@@ -392,13 +392,13 @@ export function insertModelsDevRawModels(
 	}
 }
 
-/** Insert DeepSWE raw rows and mark summarized best rows. */
+/** Insert DeepSWE raw rows and mark summarized default scoring rows. */
 export function insertDeepSWERawRows(
 	db: DatabaseSync,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
-	const bestKeys = new Set(
+	const defaultScoreKeys = new Set(
 		snapshots.deepSWEModelScoreRows.map((row) =>
 			[
 				row.model,
@@ -411,13 +411,14 @@ export function insertDeepSWERawRows(
 	);
 	const statement = db.prepare(`
 		INSERT INTO deep_swe_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model, pass_at_1,
+			run_id, row_index, fetched_at_epoch_seconds, url, model,
+			reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
 			mean_cost_usd, mean_duration_seconds, mean_output_tokens,
 			is_best_model_score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.deepSWERawRows.entries()) {
-		const key = [
+		const scoreKey = [
 			row.model,
 			row.pass_at_1,
 			row.mean_cost_usd,
@@ -430,11 +431,16 @@ export function insertDeepSWERawRows(
 			snapshots.fetchedAt.deepSWE,
 			SOURCE_URLS.deep_swe,
 			row.model,
+			row.reasoning_effort,
+			row.config,
 			row.pass_at_1,
+			row.ci_lo,
+			row.ci_hi,
+			row.ci_half,
 			row.mean_cost_usd,
 			row.mean_duration_seconds,
 			row.mean_output_tokens,
-			bestKeys.has(key) ? 1 : 0,
+			defaultScoreKeys.has(scoreKey) ? 1 : 0,
 		);
 	}
 }

@@ -13,7 +13,12 @@ export type DeepSWEScraperOptions = {
 
 export type DeepSWELeaderboardRow = {
 	model: string;
+	reasoning_effort: string | null;
+	config: string | null;
 	pass_at_1: number;
+	ci_lo: number | null;
+	ci_hi: number | null;
+	ci_half: number | null;
 	mean_cost_usd: number;
 	mean_duration_seconds: number;
 	mean_output_tokens: number;
@@ -48,7 +53,19 @@ function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
 	}
 	return {
 		model: row.model,
+		reasoning_effort:
+			typeof row.reasoning_effort === "string" &&
+			row.reasoning_effort.length > 0
+				? row.reasoning_effort
+				: null,
+		config:
+			typeof row.config === "string" && row.config.length > 0
+				? row.config
+				: null,
 		pass_at_1: passAt1,
+		ci_lo: asFiniteNumber(row.ci_lo),
+		ci_hi: asFiniteNumber(row.ci_hi),
+		ci_half: asFiniteNumber(row.ci_half),
 		mean_cost_usd: meanCostUsd,
 		mean_duration_seconds: meanDurationSeconds,
 		mean_output_tokens: meanOutputTokens,
@@ -71,7 +88,30 @@ export function summarizeDeepSWEBestModelScores(
 	);
 }
 
-/** Build DeepSWE best-score rows by normalized model name. */
+/** Return the quiet default score row per model, preferring xhigh when available. */
+export function summarizeDeepSWEDefaultModelScores(
+	rows: DeepSWELeaderboardRow[],
+): DeepSWEModelScoreRow[] {
+	const rowsByModel = new Map<string, DeepSWELeaderboardRow[]>();
+	for (const row of rows) {
+		const existing = rowsByModel.get(row.model) ?? [];
+		existing.push(row);
+		rowsByModel.set(row.model, existing);
+	}
+	return [...rowsByModel.values()]
+		.map((modelRows) => {
+			return (
+				modelRows.find((row) => row.reasoning_effort === "xhigh") ??
+				[...modelRows].sort(
+					(left, right) => right.pass_at_1 - left.pass_at_1,
+				)[0]
+			);
+		})
+		.filter((row): row is DeepSWEModelScoreRow => row != null)
+		.sort((left, right) => right.pass_at_1 - left.pass_at_1);
+}
+
+/** Build DeepSWE selected-score rows by normalized model name. */
 export function buildDeepSWEScoreByModelName(
 	rows: DeepSWEModelScoreRow[],
 ): DeepSWEScoreByModelName {
@@ -131,13 +171,13 @@ export async function getDeepSWERawLeaderboardStats(
 	}
 }
 
-/** Fetch DeepSWE best model score rows from the public leaderboard artifact. */
+/** Fetch DeepSWE default model score rows from the public leaderboard artifact. */
 export async function getDeepSWEModelScoreStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {
 	const payload = await getDeepSWERawLeaderboardStats(options);
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-		data: summarizeDeepSWEBestModelScores(payload.data),
+		data: summarizeDeepSWEDefaultModelScores(payload.data),
 	};
 }

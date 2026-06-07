@@ -422,7 +422,15 @@ function buildScoringSources(model: JsonObject): ModelStatsScoringSources {
 	return {
 		deep_swe: {
 			model: source.model,
+			reasoning_effort:
+				typeof source.reasoning_effort === "string"
+					? source.reasoning_effort
+					: null,
+			config: typeof source.config === "string" ? source.config : null,
 			pass_at_1: passAt1,
+			ci_lo: asFiniteNumber(source.ci_lo),
+			ci_hi: asFiniteNumber(source.ci_hi),
+			ci_half: asFiniteNumber(source.ci_half),
 			mean_cost_usd: meanCostUsd,
 			mean_duration_seconds: meanDurationSeconds,
 			mean_output_tokens: meanOutputTokens,

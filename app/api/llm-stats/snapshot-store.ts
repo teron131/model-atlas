@@ -51,13 +51,24 @@ export async function readSnapshotPayload(): Promise<ModelStatsSelectedPayload |
 	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
 		return fetchRemoteSnapshot(process.env.MODEL_ATLAS_SNAPSHOT_URL);
 	}
-	const [blobSnapshot, staticSnapshot] = await Promise.all([
-		readBlobSnapshot().catch(() => null),
-		shouldReadStaticSnapshot()
-			? readStaticSnapshot().catch(() => null)
-			: Promise.resolve(null),
-	]);
-	return freshestSnapshot(blobSnapshot, staticSnapshot);
+	return readSnapshotCache();
+}
+
+async function readSnapshotCache(): Promise<ModelStatsSelectedPayload | null> {
+	const [blobSnapshot, localDatabaseSnapshot, staticSnapshot] =
+		await Promise.all([
+			readBlobSnapshot().catch(() => null),
+			shouldReadStaticSnapshot()
+				? Promise.resolve(null)
+				: readLocalDatabaseSnapshot().catch(() => null),
+			shouldReadStaticSnapshot()
+				? readStaticSnapshot().catch(() => null)
+				: Promise.resolve(null),
+		]);
+	return freshestSnapshot(
+		freshestSnapshot(blobSnapshot, localDatabaseSnapshot),
+		staticSnapshot,
+	);
 }
 
 export async function readDisplaySnapshotPayload(): Promise<ModelStatsSelectedPayload | null> {
@@ -80,7 +91,7 @@ async function readDisplaySnapshotPayloadUncached(): Promise<ModelStatsSelectedP
 		return payload;
 	}
 	const payload = await refreshDisplaySnapshotIfStale(
-		await readDisplaySnapshotCache(),
+		await readSnapshotCache(),
 	);
 	cacheDisplayPayload(payload);
 	return payload;
@@ -117,23 +128,6 @@ function startDisplayRefresh(
 			state.refreshInFlight = null;
 		});
 	return state.refreshInFlight;
-}
-
-async function readDisplaySnapshotCache(): Promise<ModelStatsSelectedPayload | null> {
-	const [blobSnapshot, localDatabaseSnapshot, staticSnapshot] =
-		await Promise.all([
-			readBlobSnapshot().catch(() => null),
-			shouldReadStaticSnapshot()
-				? Promise.resolve(null)
-				: readLocalDatabaseSnapshot().catch(() => null),
-			shouldReadStaticSnapshot()
-				? readStaticSnapshot().catch(() => null)
-				: Promise.resolve(null),
-		]);
-	return freshestSnapshot(
-		freshestSnapshot(blobSnapshot, localDatabaseSnapshot),
-		staticSnapshot,
-	);
 }
 
 async function refreshDisplaySnapshotIfStale(

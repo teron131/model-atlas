@@ -24,7 +24,7 @@ import {
 	buildDeepSWEScoreByModelName,
 	findDeepSWEModelScore,
 	getDeepSWERawLeaderboardStats,
-	summarizeDeepSWEBestModelScores,
+	summarizeDeepSWEDefaultModelScores,
 } from "../sources/deep-swe-scraper";
 import {
 	getModelsDevSourceStats,
@@ -465,10 +465,13 @@ async function deepSWESnapshot(
 	status: RawSourceCacheStatus,
 ): Promise<DeepSWESnapshot> {
 	const cached = readDeepSWERawCache(db);
-	if (status.cache_hit && cached != null) {
+	const cachedHasEffortMetadata = cached?.rows.some(
+		(row) => row.reasoning_effort != null || row.config != null,
+	);
+	if (status.cache_hit && cached != null && cachedHasEffortMetadata) {
 		return {
 			deepSWERawRows: cached.rows,
-			deepSWEModelScoreRows: summarizeDeepSWEBestModelScores(cached.rows),
+			deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(cached.rows),
 			fetchedAt: { deepSWE: cached.fetchedAt },
 		};
 	}
@@ -481,7 +484,7 @@ async function deepSWESnapshot(
 		: (cached?.rows ?? fetched.data);
 	return {
 		deepSWERawRows: rows,
-		deepSWEModelScoreRows: summarizeDeepSWEBestModelScores(rows),
+		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(rows),
 		fetchedAt: {
 			deepSWE:
 				cached?.rows === rows
