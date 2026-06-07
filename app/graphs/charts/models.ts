@@ -23,7 +23,14 @@ import type {
 	ProviderOption,
 } from "./types";
 
-export const costFilterOptions: Array<"all" | number> = ["all", 1, 2, 5, 10, 25];
+export const costFilterOptions: Array<"all" | number> = [
+	"all",
+	1,
+	2,
+	5,
+	10,
+	25,
+];
 export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
 
 export const interactionConfigs: InteractionConfig[] = [
@@ -216,11 +223,12 @@ export function pointHover(
 	event: PointerEvent<Element>,
 	model: ModelStatsSelectedModel,
 	rows: HoverRow[],
+	displayName = modelName(model),
 ): HoverState {
 	return {
 		left: event.clientX,
 		top: event.clientY,
-		model: modelName(model),
+		model: displayName,
 		provider: providerName(model),
 		color: providerColor(model.provider),
 		rows,
@@ -231,12 +239,13 @@ export function focusHover(
 	target: Element,
 	model: ModelStatsSelectedModel,
 	rows: HoverRow[],
+	displayName = modelName(model),
 ): HoverState {
 	const rect = target.getBoundingClientRect();
 	return {
 		left: rect.left + rect.width / 2,
 		top: rect.top + rect.height / 2,
-		model: modelName(model),
+		model: displayName,
 		provider: providerName(model),
 		color: providerColor(model.provider),
 		rows,
@@ -319,7 +328,7 @@ export function modelName(model: ModelStatsSelectedModel) {
 export function deepSWELabel(row: DeepSWEChartRow, includeEffort: boolean) {
 	const base = row.displayName.replace(" Preview", "");
 	return includeEffort && row.effortLabel !== "default"
-		? `${base} [${row.effortLabel}]`
+		? `${base} (${row.effortLabel})`
 		: base;
 }
 
