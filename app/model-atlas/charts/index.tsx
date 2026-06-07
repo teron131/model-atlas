@@ -1,221 +1,61 @@
 "use client";
 
+import { GridColumns, GridRows } from "@visx/grid";
+import { LinePath } from "@visx/shape";
 import { extent, max, median } from "d3-array";
 import { scaleLinear, scaleLog, scaleSqrt } from "d3-scale";
 import { line } from "d3-shape";
-import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
-
 import type {
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
-} from "../../src/model-atlas/llm/llm-stats/types";
-import styles from "./modelGraphLab.module.css";
+} from "../../../src/model-atlas/llm/llm-stats/types";
+import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/sources/deep-swe-scraper";
+import {
+	clamp,
+	finite,
+	finiteValue,
+	fmtCompact,
+	fmtMinutes,
+	fmtMoney,
+	fmtPercent,
+	fmtScore,
+	percent,
+} from "./format";
+import {
+	correlationLabel,
+	costFilterOptions,
+	deepSWECi,
+	deepSWELabel,
+	deepSweMetricConfig,
+	deepSweRows,
+	focusHover,
+	groupBy,
+	interactionConfigs,
+	modelKey,
+	modelLimitOptions,
+	modelName,
+	pointHover,
+	positiveDomain,
+	providerOptions,
+	shortLabel,
+	stepPath,
+} from "./models";
+import { providerColor, providerSlug } from "./providerTheme";
+import type {
+	DeepSWEChartRow,
+	DeepSWEEffortMode,
+	HoverRow,
+	HoverSetter,
+	HoverState,
+	InteractionConfig,
+	Margin,
+	ModelLimit,
+	Point,
+} from "./types";
+import styles from "../charts.module.css";
 
-type ProviderOption = {
-	slug: string;
-	label: string;
-	count: number;
-	color: string;
-};
-
-type HoverRow = readonly [string, string];
-
-type HoverState = {
-	left: number;
-	top: number;
-	model: string;
-	provider: string;
-	color: string;
-	rows: HoverRow[];
-};
-
-type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
-
-type Point = {
-	model: ModelStatsSelectedModel;
-	x: number;
-	y: number;
-	overall: number | null;
-	agentic: number | null;
-};
-
-type InteractionConfig = {
-	key: string;
-	title: string;
-	corner: string;
-	lowerBetter: boolean;
-	log: boolean;
-	ticks: number[];
-	get: (model: ModelStatsSelectedModel) => number | null;
-	format: (value: number) => string;
-	xLabel: string;
-	read: string;
-};
-
-type Margin = {
-	top: number;
-	right: number;
-	bottom: number;
-	left: number;
-};
-
-type ModelLimit = 30 | 60 | "all";
-
-const providerThemeColors: Record<string, string> = {
-	alibaba: "#ff7018",
-	anthropic: "#d07860",
-	amazon: "#ff9800",
-	aws: "#ff9800",
-	deepseek: "#2040e8",
-	google: "#38a850",
-	kimi: "#0878ff",
-	meta: "#0088f8",
-	minimax: "#e83868",
-	mistral: "#ff6800",
-	mistralai: "#ff6800",
-	moonshotai: "#0878ff",
-	nvidia: "#88b838",
-	openai: "#eeeeea",
-	qwen: "#ff7018",
-	tencent: "#1820a8",
-	upstage: "#8058f8",
-	xai: "#7070d0",
-	"x-ai": "#7070d0",
-	xiaomi: "#ff6800",
-	zai: "#2080f8",
-	"z-ai": "#2080f8",
-};
-
-const providerDisplayLabels: Record<string, string> = {
-	alibaba: "Alibaba",
-	anthropic: "Anthropic",
-	amazon: "Amazon",
-	aws: "AWS",
-	deepseek: "DeepSeek",
-	google: "Google",
-	kimi: "Kimi",
-	meta: "Meta",
-	minimax: "MiniMax",
-	mistral: "Mistral",
-	mistralai: "Mistral",
-	moonshotai: "Moonshot AI",
-	nvidia: "NVIDIA",
-	openai: "OpenAI",
-	qwen: "Qwen",
-	tencent: "Tencent",
-	upstage: "Upstage",
-	xai: "xAI",
-	"x-ai": "xAI",
-	xiaomi: "Xiaomi",
-	zai: "Z AI",
-	"z-ai": "Z AI",
-};
-
-const fallbackProviderColors = [
-	"#ff5a46",
-	"#f6b44b",
-	"#7cc69b",
-	"#7aa7ff",
-	"#d078ff",
-	"#5cc8c8",
-	"#d7d46a",
-];
-
-const benchmarkLabels: Record<string, string> = {
-	apex_agents: "APEX",
-	critpt: "CritPt",
-	deep_swe: "DeepSWE",
-	gdpval_normalized: "GDPval",
-	hle: "HLE",
-	ifbench: "IFBench",
-	lcr: "LCR",
-	omniscience_accuracy: "Omni Acc",
-	scicode: "SciCode",
-	terminal_bench_2: "TB 2.0",
-	terminalbench_hard: "TB Hard",
-};
-
-const costFilterOptions: Array<"all" | number> = ["all", 1, 2, 5, 10, 25];
-const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
-
-const interactionConfigs: InteractionConfig[] = [
-	{
-		key: "price",
-		title: "Intelligence vs blended price",
-		corner: "upper left",
-		lowerBetter: true,
-		log: true,
-		ticks: [0.25, 0.5, 1, 2, 5, 10, 25],
-		get: (model) => finiteValue(model.cost?.blended_price),
-		format: fmtMoney,
-		xLabel: "Blended price per 1M tokens",
-		read: "Shows whether price actually buys broad intelligence, and where cheap high-ceiling models break the curve.",
-	},
-	{
-		key: "speed",
-		title: "Intelligence vs output speed",
-		corner: "upper right",
-		lowerBetter: false,
-		log: true,
-		ticks: [20, 50, 100, 250, 500, 1000, 2500],
-		get: (model) =>
-			finiteValue(model.speed?.throughput_tokens_per_second_median),
-		format: (value) => `${fmtCompact(value)} t/s`,
-		xLabel: "Output tokens per second",
-		read: "Separates fast utility models from models that are both fast enough and genuinely capable.",
-	},
-	{
-		key: "response",
-		title: "Intelligence vs response time",
-		corner: "upper left",
-		lowerBetter: true,
-		log: true,
-		ticks: [2, 5, 10, 20, 40, 80],
-		get: (model) => finiteValue(model.speed?.e2e_latency_seconds_median),
-		format: fmtSeconds,
-		xLabel: "End-to-end response time",
-		read: "Makes the practical waiting-time tradeoff visible instead of ranking intelligence in isolation.",
-	},
-	{
-		key: "context",
-		title: "Intelligence vs context window",
-		corner: "upper right",
-		lowerBetter: false,
-		log: true,
-		ticks: [32_000, 128_000, 256_000, 1_000_000, 2_000_000, 10_000_000],
-		get: (model) => finiteValue(model.context_window?.context),
-		format: fmtCompact,
-		xLabel: "Context tokens",
-		read: "Highlights when huge context is real leverage versus just a large number beside a weaker model.",
-	},
-	{
-		key: "aaCost",
-		title: "Intelligence vs AA task cost",
-		corner: "upper left",
-		lowerBetter: true,
-		log: true,
-		ticks: [0.02, 0.05, 0.1, 0.25, 0.5, 1],
-		get: (model) => finiteValue(model.task_metrics?.artificial_analysis?.cost),
-		format: fmtMoney,
-		xLabel: "AA task cost",
-		read: "Connects benchmark quality to the cost of producing that quality during the evaluation workload.",
-	},
-	{
-		key: "deepSwe",
-		title: "Intelligence vs DeepSWE accuracy",
-		corner: "upper right",
-		lowerBetter: false,
-		log: false,
-		ticks: [0, 20, 40, 60, 80],
-		get: (model) => percent(model.evaluations?.deep_swe),
-		format: (value) => `${value.toFixed(0)}%`,
-		xLabel: "DeepSWE accuracy",
-		read: "Shows when broad intelligence and long-horizon coding reliability agree, and where they diverge.",
-	},
-];
-
-export function ModelGraphLab({
+export function ModelAtlasCharts({
 	initialPayload,
 }: {
 	initialPayload: ModelStatsSelectedPayload | null;
@@ -277,15 +117,15 @@ export function ModelGraphLab({
 
 	if (!mounted) {
 		return (
-			<main className={styles.lab}>
-				<div className={styles.error}>Loading the graph lab.</div>
+			<main className={styles.atlas}>
+				<div className={styles.error}>Loading Model Atlas charts.</div>
 			</main>
 		);
 	}
 
 	if (!initialPayload || allModels.length === 0) {
 		return (
-			<main className={styles.lab}>
+			<main className={styles.atlas}>
 				<div className={styles.error}>
 					Unable to load the Model Atlas snapshot.
 				</div>
@@ -294,7 +134,7 @@ export function ModelGraphLab({
 	}
 
 	return (
-		<main className={styles.lab}>
+		<main className={styles.atlas}>
 			<header className={styles.hero}>
 				<div>
 					<p className={styles.kicker}>Model graphs</p>
@@ -381,15 +221,13 @@ export function ModelGraphLab({
 			) : (
 				<section className={styles.sectionGrid}>
 					<FrontierPanel models={models} setHover={setHover} />
-					<DeepSwePanel models={models} setHover={setHover} />
-					<InteractionMatrix models={models} setHover={setHover} />
-					<FingerprintPanel models={models} />
-					<HeatmapPanel
+					<DeepSwePanel
 						models={models}
-						keys={initialPayload.metadata.scoring.selected_benchmark_keys}
+						rows={initialPayload.deep_swe?.rows ?? []}
+						setHover={setHover}
 					/>
+					<InteractionMatrix models={models} setHover={setHover} />
 					<RunwayPanel models={models} setHover={setHover} />
-					<EfficiencyTablePanel models={models} />
 				</section>
 			)}
 
@@ -464,7 +302,7 @@ function FrontierPanel({
 		return (
 			<Panel
 				kicker="Graph 01 / Pareto frontier"
-				title="Capability per blended dollar"
+				title="Pareto frontier"
 				copy="A tradeoff scatter for intelligence versus price."
 			>
 				<EmptyChart />
@@ -513,7 +351,7 @@ function FrontierPanel({
 	return (
 		<Panel
 			kicker="Graph 01 / Pareto frontier"
-			title="Capability per blended dollar"
+			title="Pareto frontier"
 			copy="A tradeoff scatter for the Artificial Analysis-style intelligence versus price story, with the efficient budget envelope pulled forward."
 			chips={["line = observed envelope"]}
 			note={
@@ -664,43 +502,43 @@ function FrontierPanel({
 					})}
 				</svg>
 			</div>
-			<div className={styles.frontierStrip}>
-				{visibleFrontier
-					.slice(-4)
-					.reverse()
-					.map((model) => (
-						<div key={model.id ?? model.name} className={styles.frontierCard}>
-							<div className={styles.frontierCardName}>{modelName(model)}</div>
-							<span className={styles.frontierCardValue}>
-								{fmtScore(model.relative_scores.intelligence_score)}
-							</span>
-							<span className={styles.frontierCardNote}>
-								{fmtMoney(Number(model.cost?.blended_price))} blend
-							</span>
-						</div>
-					))}
-			</div>
 		</Panel>
 	);
 }
 
 function DeepSwePanel({
 	models,
+	rows,
 	setHover,
 }: {
 	models: ModelStatsSelectedModel[];
+	rows: DeepSWELeaderboardRow[];
 	setHover: HoverSetter;
 }) {
 	const [metricKey, setMetricKey] = useState<"cost" | "time" | "tokens">(
 		"cost",
 	);
-	const deep = deepSweRows(models);
+	const [effortMode, setEffortMode] = useState<DeepSWEEffortMode>("best");
+	const allEfforts = deepSweRows(models, rows, "all");
+	const deep =
+		effortMode === "all" ? allEfforts : deepSweRows(models, rows, "best");
+	const effortLabelKeys = new Set(
+		[...groupBy(allEfforts, (row) => row.modelKey).values()].flatMap(
+			(modelRows) => {
+				if (modelRows.length <= 1) {
+					return [];
+				}
+				const labelRow = modelRows[0];
+				return labelRow ? [labelRow.row.config ?? labelRow.displayName] : [];
+			},
+		),
+	);
 
 	if (deep.length === 0) {
 		return (
 			<Panel
 				kicker="Graph 02 / DeepSWE resource axis"
-				title="Pass rate is not just spend"
+				title="DeepSWE resource axis"
 				copy="DeepSWE rows appear when the current filters include models with DeepSWE task metrics."
 			>
 				<EmptyChart message="No DeepSWE rows match the current filters." />
@@ -712,55 +550,73 @@ function DeepSwePanel({
 	const width = 760;
 	const height = 490;
 	const margin = { top: 28, right: 62, bottom: 70, left: 62 };
+	const plotWidth = width - margin.left - margin.right;
+	const plotHeight = height - margin.top - margin.bottom;
 	const metricValues = deep.map(metric.get).filter(finite);
 	const xDomain = positiveDomain(metricValues);
-	const passMax =
-		max(deep, (model) => percent(model.evaluations?.deep_swe)) ?? 75;
+	const passMax = max(deep, (row) => percent(row.row.pass_at_1)) ?? 75;
+	const yTicks = [0, 15, 30, 45, 60, 75];
+	const xTicks = metric.ticks.filter(
+		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
+	);
 	const x = scaleLog()
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
 		.clamp(true);
+	const yDomain: [number, number] = [0, Math.max(75, passMax + 4)];
 	const y = scaleLinear()
-		.domain([0, Math.max(75, passMax + 4)])
+		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
-	const bubbleValue = (model: ModelStatsSelectedModel) => {
+	const bubbleValue = (row: DeepSWEChartRow) => {
 		if (metricKey === "time") {
-			return Number(model.task_metrics?.deep_swe?.cost);
+			return row.row.mean_cost_usd;
 		}
 		if (metricKey === "tokens") {
-			return Number(model.task_metrics?.deep_swe?.seconds) / 60;
+			return row.row.mean_duration_seconds / 60;
 		}
-		return Number(model.task_metrics?.deep_swe?.output_tokens);
+		return row.row.mean_output_tokens;
 	};
 	const bubbleDomain = positiveDomain(deep.map(bubbleValue).filter(finite));
 	const bubbleScale = scaleSqrt()
 		.domain(bubbleDomain)
 		.range([5, 15])
 		.clamp(true);
-	const labelSet = new Set(deep.slice(0, 8).map((model) => model.id));
-	const leader = deep[0] as ModelStatsSelectedModel;
+	const labelSet = new Set(
+		deep.slice(0, 8).map((row) => row.row.config ?? row.displayName),
+	);
+	const leader = deep[0] as DeepSWEChartRow;
 	const bestAxis =
 		[...deep].sort(
 			(left, right) =>
-				Number(percent(right.evaluations?.deep_swe)) / metric.get(right) -
-				Number(percent(left.evaluations?.deep_swe)) / metric.get(left),
+				Number(percent(right.row.pass_at_1)) / metric.get(right) -
+				Number(percent(left.row.pass_at_1)) / metric.get(left),
 		)[0] ?? leader;
 	const leanAboveFloor =
 		[...deep]
-			.filter((model) => Number(percent(model.evaluations?.deep_swe)) >= 20)
+			.filter((row) => Number(percent(row.row.pass_at_1)) >= 20)
 			.sort((left, right) => metric.get(left) - metric.get(right))[0] ??
 		bestAxis;
+	const effortLines =
+		effortMode === "all"
+			? [...groupBy(deep, (row) => row.modelKey).values()]
+					.filter((modelRows) => modelRows.length > 1)
+					.map((modelRows) =>
+						[...modelRows].sort(
+							(left, right) => metric.get(left) - metric.get(right),
+						),
+					)
+			: [];
 
 	return (
 		<Panel
 			kicker="Graph 02 / DeepSWE resource axis"
-			title="Accuracy is not just spend"
+			title="DeepSWE resource axis"
 			copy="The official DeepSWE page lets the scatter pivot between cost, time, and output tokens; this draft keeps that behavior and adds dot-size encoding for the hidden resource."
 			chips={[
-				`leader ${fmtPercent(leader.evaluations?.deep_swe)}`,
+				`leader ${fmtPercent(leader.row.pass_at_1)}`,
 				"cost / time / output tokens",
-				`best accuracy/${metric.unit} ${shortName(bestAxis)}`,
+				`best accuracy/${metric.unit} ${deepSWELabel(bestAxis, false)}`,
 			]}
 			note={
 				<>
@@ -786,6 +642,22 @@ function DeepSwePanel({
 						</button>
 					))}
 				</fieldset>
+				<fieldset className={styles.metricToggle}>
+					<legend className={styles.visuallyHidden}>DeepSWE effort rows</legend>
+					{[
+						["best", "Best"],
+						["all", "All efforts"],
+					].map(([key, label]) => (
+						<button
+							key={key}
+							type="button"
+							aria-pressed={effortMode === key}
+							onClick={() => setEffortMode(key as DeepSWEEffortMode)}
+						>
+							{label}
+						</button>
+					))}
+				</fieldset>
 				<div className={styles.resourceCaption}>
 					Bubble size = {metric.bubble}
 				</div>
@@ -797,15 +669,24 @@ function DeepSwePanel({
 					aria-label="DeepSWE accuracy by resource axis scatter plot"
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
-					{[0, 15, 30, 45, 60, 75].map((tick) => (
+					<GridRows
+						scale={y}
+						tickValues={yTicks}
+						width={plotWidth}
+						left={margin.left}
+						stroke="rgba(238, 238, 234, 0.16)"
+						strokeWidth={1}
+					/>
+					<GridColumns
+						scale={x}
+						tickValues={xTicks}
+						height={plotHeight}
+						top={margin.top}
+						stroke="rgba(238, 238, 234, 0.18)"
+						strokeWidth={1}
+					/>
+					{yTicks.map((tick) => (
 						<g key={`y-${tick}`}>
-							<line
-								className={styles.gridLine}
-								x1={margin.left}
-								x2={width - margin.right}
-								y1={y(tick)}
-								y2={y(tick)}
-							/>
 							<text
 								className={styles.axisLabel}
 								x={margin.left - 18}
@@ -816,27 +697,18 @@ function DeepSwePanel({
 							</text>
 						</g>
 					))}
-					{metric.ticks
-						.filter((tick) => tick >= xDomain[0] && tick <= xDomain[1])
-						.map((tick) => (
-							<g key={`x-${tick}`}>
-								<line
-									className={styles.gridLine}
-									x1={x(tick)}
-									x2={x(tick)}
-									y1={margin.top}
-									y2={height - margin.bottom}
-								/>
-								<text
-									className={styles.axisLabel}
-									x={x(tick)}
-									y={height - 26}
-									textAnchor="middle"
-								>
-									{metric.format(tick)}
-								</text>
-							</g>
-						))}
+					{xTicks.map((tick) => (
+						<g key={`x-${tick}`}>
+							<text
+								className={styles.axisLabel}
+								x={x(tick)}
+								y={height - 26}
+								textAnchor="middle"
+							>
+								{metric.format(tick)}
+							</text>
+						</g>
+					))}
 					<AxisTitles
 						width={width}
 						height={height}
@@ -844,60 +716,62 @@ function DeepSwePanel({
 						x={`${metric.label}, log scale`}
 						y="DeepSWE accuracy"
 					/>
-					<path
-						d={`M${margin.left},${y(18)} C${x(xDomain[0] * 1.8)},${y(42)} ${x(Math.sqrt(xDomain[0] * xDomain[1]))},${y(58)} ${width - margin.right},${y(68)}`}
-						fill="none"
-						stroke="rgba(246,180,75,0.38)"
-						strokeWidth={2}
-						strokeDasharray="7 7"
-					/>
-					<text
-						className={styles.calloutLabel}
-						x={x(Math.sqrt(xDomain[0] * xDomain[1]))}
-						y={y(63)}
-					>
-						diminishing returns band
-					</text>
-					{deep.map((model) => {
-						const axisValue = metric.get(model);
-						const score = Number(percent(model.evaluations?.deep_swe));
+					{effortLines.map((modelRows) => {
+						const firstRow = modelRows[0] as DeepSWEChartRow;
+						return (
+							<LinePath<DeepSWEChartRow>
+								key={firstRow.modelKey}
+								className={styles.deepSweEffortLine}
+								data={modelRows}
+								x={(row) => x(metric.get(row))}
+								y={(row) => y(Number(percent(row.row.pass_at_1)))}
+								style={
+									{
+										"--line-color": providerColor(firstRow.model.provider),
+									} as React.CSSProperties
+								}
+							/>
+						);
+					})}
+					{deep.map((row) => {
+						const axisValue = metric.get(row);
+						const score = Number(percent(row.row.pass_at_1));
 						const cx = x(axisValue);
 						const cy = y(score);
-						const labeled = labelSet.has(model.id);
+						const labeled =
+							effortMode === "all"
+								? effortLabelKeys.has(row.row.config ?? row.displayName)
+								: labelSet.has(row.row.config ?? row.displayName);
 						const rows: HoverRow[] = [
-							["DeepSWE", fmtPercent(model.evaluations?.deep_swe)],
-							["Cost", fmtMoney(Number(model.task_metrics?.deep_swe?.cost))],
-							[
-								"Time",
-								fmtMinutes(Number(model.task_metrics?.deep_swe?.seconds)),
-							],
-							[
-								"Output tokens",
-								fmtCompact(Number(model.task_metrics?.deep_swe?.output_tokens)),
-							],
+							["DeepSWE", fmtPercent(row.row.pass_at_1)],
+							["Effort", row.effortLabel],
+							["Cost", fmtMoney(row.row.mean_cost_usd)],
+							["Time", fmtMinutes(row.row.mean_duration_seconds)],
+							["Output tokens", fmtCompact(row.row.mean_output_tokens)],
+							["95% CI", deepSWECi(row.row)],
 						];
 						return (
-							<g key={model.id ?? model.name}>
+							<g key={row.row.config ?? `${row.modelKey}-${row.effortLabel}`}>
 								<circle
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={bubbleScale(bubbleValue(model))}
-									fill={providerColor(model.provider)}
+									r={bubbleScale(bubbleValue(row))}
+									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
-									opacity={labeled ? 0.9 : 0.32}
+									opacity={0.9}
 								/>
 								<PointHitTarget
 									cx={cx}
 									cy={cy}
-									model={model}
+									model={row.model}
 									rows={rows}
 									setHover={setHover}
 								/>
 								{labeled ? (
-									<PointLabel
-										model={model}
+									<DeepSWEPointLabel
+										label={deepSWELabel(row, false)}
 										cx={cx}
 										cy={cy}
 										width={width}
@@ -913,28 +787,25 @@ function DeepSwePanel({
 			<div className={styles.chartSummary}>
 				<SummaryCard
 					label="Leader"
-					value={`${modelName(leader)} - ${fmtPercent(leader.evaluations?.deep_swe)}`}
-					detail={`${fmtMoney(Number(leader.task_metrics?.deep_swe?.cost))} / ${fmtMinutes(Number(leader.task_metrics?.deep_swe?.seconds))}`}
+					value={`${deepSWELabel(leader, effortMode === "all")} - ${fmtPercent(leader.row.pass_at_1)}`}
+					detail={`${fmtMoney(leader.row.mean_cost_usd)} / ${fmtMinutes(leader.row.mean_duration_seconds)}`}
 				/>
 				<SummaryCard
 					label={`Best accuracy per ${metric.unit}`}
-					value={modelName(bestAxis)}
+					value={deepSWELabel(bestAxis, effortMode === "all")}
 					detail={(
-						Number(percent(bestAxis.evaluations?.deep_swe)) /
-						metric.get(bestAxis)
+						Number(percent(bestAxis.row.pass_at_1)) / metric.get(bestAxis)
 					).toFixed(metricKey === "tokens" ? 4 : 1)}
 				/>
 				<SummaryCard
 					label="Leanest above 20%"
-					value={modelName(leanAboveFloor)}
+					value={deepSWELabel(leanAboveFloor, effortMode === "all")}
 					detail={metric.format(metric.get(leanAboveFloor))}
 				/>
 				<SummaryCard
 					label="Median accuracy"
-					value={fmtPercent(
-						median(deep, (model) => percent(model.evaluations?.deep_swe)),
-					)}
-					detail={`${deep.length} models`}
+					value={fmtPercent(median(deep, (row) => percent(row.row.pass_at_1)))}
+					detail={`${deep.length} ${effortMode === "all" ? "efforts" : "models"}`}
 				/>
 			</div>
 		</Panel>
@@ -951,7 +822,7 @@ function InteractionMatrix({
 	return (
 		<Panel
 			kicker="Graph 03 / Intelligence interaction matrix"
-			title="Keep intelligence fixed, change the question"
+			title="Intelligence interaction matrix"
 			copy="The table already tells you who ranks highest. This matrix asks whether intelligence moves with price, speed, response time, context, task cost, and coding reliability."
 			chips={[
 				"AA-style comparisons",
@@ -1174,120 +1045,6 @@ function InteractionPlot({
 	);
 }
 
-function FingerprintPanel({ models }: { models: ModelStatsSelectedModel[] }) {
-	return (
-		<Panel
-			kicker="Graph 04 / Capability fingerprints"
-			title="Why two adjacent ranks feel different"
-			copy="A row fingerprint is faster to scan than four separate numeric columns when the question is which workload a model naturally fits."
-			chips={["top 10 overall", "four-score shape"]}
-			note={
-				<>
-					<b>Read:</b> The shape matters more than the rank. A model with weaker
-					speed but stronger agentic score belongs in a different default lane
-					than a cheap fast model.
-				</>
-			}
-		>
-			<div className={styles.radarList}>
-				{models.slice(0, 10).map((model, index) => (
-					<div key={model.id ?? model.name} className={styles.radarRow}>
-						<div className={styles.modelTitle}>
-							<div className={styles.modelName}>{modelName(model)}</div>
-							<div className={styles.modelProvider}>{providerName(model)}</div>
-						</div>
-						<div className={styles.scoreBars}>
-							<ScoreBar
-								label="Int"
-								value={model.relative_scores.intelligence_score}
-								kind="intel"
-							/>
-							<ScoreBar
-								label="Agt"
-								value={model.relative_scores.agentic_score}
-								kind="agentic"
-							/>
-							<ScoreBar
-								label="Spd"
-								value={model.relative_scores.speed_score}
-								kind="speed"
-							/>
-							<ScoreBar
-								label="Val"
-								value={model.relative_scores.value_score}
-								kind="value"
-							/>
-						</div>
-						<div className={styles.rankPill}>#{index + 1}</div>
-					</div>
-				))}
-			</div>
-		</Panel>
-	);
-}
-
-function HeatmapPanel({
-	models,
-	keys,
-}: {
-	models: ModelStatsSelectedModel[];
-	keys: string[];
-}) {
-	const visibleKeys = keys.length > 0 ? keys : Object.keys(benchmarkLabels);
-	const top = models.filter((model) => model.evaluations).slice(0, 12);
-	return (
-		<Panel
-			kicker="Graph 05 / Benchmark breadth"
-			title="Broad strength versus one-benchmark spikes"
-			copy="This turns selected benchmark coverage into a texture. It can reveal whether a high overall rank is broad, coding-heavy, or carried by one outlier."
-			chips={[`${top.length} models`, `${visibleKeys.length} benchmarks`]}
-			note={
-				<>
-					<b>Read:</b> Warm continuous rows are balanced. Striped gaps show
-					missing benchmark evidence, which should reduce confidence in a single
-					blended score.
-				</>
-			}
-		>
-			<div className={styles.heatmap}>
-				<div
-					className={styles.heatmapGrid}
-					style={{
-						gridTemplateColumns: `170px repeat(${visibleKeys.length}, minmax(52px, 1fr))`,
-					}}
-				>
-					<div className={styles.heatmapHead} />
-					{visibleKeys.map((key) => (
-						<div key={key} className={styles.heatmapHead}>
-							{benchmarkLabels[key] ?? key}
-						</div>
-					))}
-					{top.flatMap((model) => [
-						<div key={`${model.id}-model`} className={styles.heatmapModel}>
-							{modelName(model).replace(" Preview", "")}
-						</div>,
-						...visibleKeys.map((key) => {
-							const score = percent(model.evaluations?.[key]);
-							const value = score == null ? 0 : clamp(score, 0, 100);
-							return (
-								<div
-									key={`${model.id}-${key}`}
-									className={styles.heatmapCell}
-									data-missing={score == null}
-									style={{ "--value": value } as React.CSSProperties}
-									title={`${modelName(model)} / ${benchmarkLabels[key] ?? key}: ${
-										score == null ? "missing" : `${score.toFixed(1)}%`
-									}`}
-								/>
-							);
-						}),
-					])}
-				</div>
-			</div>
-		</Panel>
-	);
-}
-
 function RunwayPanel({
 	models,
 	setHover,
@@ -1312,8 +1069,8 @@ function RunwayPanel({
 	if (candidates.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 06 / Context runway"
-				title="How much room and how fast"
+				kicker="Graph 04 / Context runway"
+				title="Context runway"
 				copy="Context runway appears when context and throughput metrics are available under the current filters."
 			>
 				<EmptyChart />
@@ -1344,8 +1101,8 @@ function RunwayPanel({
 
 	return (
 		<Panel
-			kicker="Graph 06 / Context runway"
-			title="How much room and how fast"
+			kicker="Graph 04 / Context runway"
+			title="Context runway"
 			copy="Long-context claims are more useful when paired with throughput. This plot separates giant-but-slow context from models that can actually move through large inputs."
 			chips={["bubble = value"]}
 			note={
@@ -1465,83 +1222,6 @@ function RunwayPanel({
 						);
 					})}
 				</svg>
-			</div>
-		</Panel>
-	);
-}
-
-function EfficiencyTablePanel({
-	models,
-}: {
-	models: ModelStatsSelectedModel[];
-}) {
-	const rows = models
-		.filter(
-			(model) =>
-				finite(model.evaluations?.deep_swe) &&
-				finite(model.task_metrics?.deep_swe?.cost),
-		)
-		.map((model) => {
-			const pass = Number(percent(model.evaluations?.deep_swe));
-			const cost = Number(model.task_metrics?.deep_swe?.cost);
-			const seconds = Number(model.task_metrics?.deep_swe?.seconds);
-			return {
-				model,
-				pass,
-				cost,
-				seconds,
-				passPerDollar: pass / cost,
-			};
-		})
-		.sort((left, right) => right.passPerDollar - left.passPerDollar)
-		.slice(0, 8);
-
-	return (
-		<Panel
-			kicker="Graph 07 / Decision inset"
-			title="The shortlist table that belongs beside the graphs"
-			copy="The table is intentionally small: it only shows the best DeepSWE accuracy-per-dollar candidates, because the graph already carries the broad visual story."
-			chips={["accuracy/$ sorted", "DeepSWE only"]}
-			note={
-				<>
-					<b>Read:</b> This is a companion to the charts, not a replacement
-					leaderboard. It answers the operational question after the visual
-					comparison narrows the field.
-				</>
-			}
-		>
-			<table className={styles.tableMini}>
-				<thead>
-					<tr>
-						<th>Model</th>
-						<th>Pass</th>
-						<th>Cost</th>
-						<th>Time</th>
-						<th>Pass/$</th>
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map((row) => (
-						<tr key={row.model.id ?? row.model.name}>
-							<td>{modelName(row.model)}</td>
-							<td>{fmtPercent(row.pass)}</td>
-							<td>{fmtMoney(row.cost)}</td>
-							<td>{fmtMinutes(row.seconds)}</td>
-							<td>{row.passPerDollar.toFixed(1)}</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-			<div className={styles.legend}>
-				<span className={styles.accentLegend}>
-					<i /> Highlighted frontier
-				</span>
-				<span className={styles.goldLegend}>
-					<i /> Runway leaders
-				</span>
-				<span className={styles.goodLegend}>
-					<i /> Value strength
-				</span>
 			</div>
 		</Panel>
 	);
@@ -1687,6 +1367,36 @@ function PointLabel({
 	);
 }
 
+function DeepSWEPointLabel({
+	label,
+	cx,
+	cy,
+	width,
+	margin,
+	height,
+}: {
+	label: string;
+	cx: number;
+	cy: number;
+	width: number;
+	margin: Margin;
+	height: number;
+}) {
+	const labelOnLeft = cx > width - margin.right - 135;
+	const xOffset = 10;
+	const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
+	return (
+		<text
+			className={styles.pointLabel}
+			x={labelOnLeft ? cx - xOffset : cx + xOffset}
+			y={y}
+			textAnchor={labelOnLeft ? "end" : "start"}
+		>
+			{label}
+		</text>
+	);
+}
+
 function HoverCard({ hover }: { hover: HoverState }) {
 	const left = Math.min(Math.max(14, hover.left + 16), window.innerWidth - 280);
 	const top = Math.min(Math.max(14, hover.top + 16), window.innerHeight - 210);
@@ -1755,30 +1465,6 @@ function FilterButton({
 	);
 }
 
-function ScoreBar({
-	label,
-	value,
-	kind,
-}: {
-	label: string;
-	value: number | null | undefined;
-	kind: string;
-}) {
-	const normalized = clamp(value ?? 0, 0, 100);
-	return (
-		<div className={`${styles.scoreBar} ${styles[kind]}`}>
-			<span>{label}</span>
-			<span className={styles.barTrack}>
-				<span
-					className={styles.barFill}
-					style={{ "--value": normalized } as React.CSSProperties}
-				/>
-			</span>
-			<span>{fmtScore(value)}</span>
-		</div>
-	);
-}
-
 function SummaryCard({
 	label,
 	value,
@@ -1792,285 +1478,7 @@ function SummaryCard({
 		<div className={styles.summaryCard}>
 			<div className={styles.summaryLabel}>{label}</div>
 			<span className={styles.summaryValue}>{value}</span>
-			<span className={styles.frontierCardNote}>{detail}</span>
+			<span className={styles.summaryDetail}>{detail}</span>
 		</div>
-	);
-}
-
-const deepSweMetricConfig = {
-	cost: {
-		label: "Avg cost per task",
-		shortLabel: "Cost",
-		unit: "dollar",
-		get: (model: ModelStatsSelectedModel) =>
-			Number(model.task_metrics?.deep_swe?.cost),
-		format: fmtMoney,
-		ticks: [0.5, 1, 2, 5, 10, 20],
-		bubble: "output tokens",
-	},
-	time: {
-		label: "Avg time per task",
-		shortLabel: "Time",
-		unit: "minute",
-		get: (model: ModelStatsSelectedModel) =>
-			Number(model.task_metrics?.deep_swe?.seconds) / 60,
-		format: (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)}m`,
-		ticks: [10, 20, 30, 45, 60],
-		bubble: "cost",
-	},
-	tokens: {
-		label: "Avg output tokens",
-		shortLabel: "Output tokens",
-		unit: "output token",
-		get: (model: ModelStatsSelectedModel) =>
-			Number(model.task_metrics?.deep_swe?.output_tokens),
-		format: fmtCompact,
-		ticks: [20_000, 50_000, 100_000, 200_000],
-		bubble: "time",
-	},
-};
-
-function deepSweRows(models: ModelStatsSelectedModel[]) {
-	return models
-		.filter(
-			(model) =>
-				finite(model.evaluations?.deep_swe) &&
-				finite(model.task_metrics?.deep_swe?.cost) &&
-				Number(model.task_metrics?.deep_swe?.cost) > 0,
-		)
-		.sort(
-			(left, right) =>
-				Number(percent(right.evaluations?.deep_swe)) -
-				Number(percent(left.evaluations?.deep_swe)),
-		);
-}
-
-function providerOptions(models: ModelStatsSelectedModel[]): ProviderOption[] {
-	const byProvider = new Map<string, ProviderOption>();
-	for (const model of models) {
-		const slug = providerSlug(model.provider);
-		const current = byProvider.get(slug) ?? {
-			slug,
-			label: providerName(model),
-			count: 0,
-			color: providerColor(model.provider),
-		};
-		current.count += 1;
-		byProvider.set(slug, current);
-	}
-	return [...byProvider.values()]
-		.sort(
-			(left, right) =>
-				right.count - left.count || left.label.localeCompare(right.label),
-		)
-		.slice(0, 14);
-}
-
-function modelKey(model: ModelStatsSelectedModel) {
-	return model.id ?? model.name ?? "";
-}
-
-function pointHover(
-	event: React.PointerEvent<Element>,
-	model: ModelStatsSelectedModel,
-	rows: HoverRow[],
-): HoverState {
-	return {
-		left: event.clientX,
-		top: event.clientY,
-		model: modelName(model),
-		provider: providerName(model),
-		color: providerColor(model.provider),
-		rows,
-	};
-}
-
-function focusHover(
-	target: Element,
-	model: ModelStatsSelectedModel,
-	rows: HoverRow[],
-): HoverState {
-	const rect = target.getBoundingClientRect();
-	return {
-		left: rect.left + rect.width / 2,
-		top: rect.top + rect.height / 2,
-		model: modelName(model),
-		provider: providerName(model),
-		color: providerColor(model.provider),
-		rows,
-	};
-}
-
-function stepPath(
-	points: ModelStatsSelectedModel[],
-	x: (value: number) => number,
-	y: (value: number) => number,
-) {
-	if (points.length === 0) {
-		return "";
-	}
-	const [first, ...rest] = points;
-	if (first == null) {
-		return "";
-	}
-	let path = `M${x(Number(first.cost?.blended_price))},${y(first.relative_scores.intelligence_score)}`;
-	for (const point of rest) {
-		const nextX = x(Number(point.cost?.blended_price));
-		const nextY = y(point.relative_scores.intelligence_score);
-		path += ` H${nextX} V${nextY}`;
-	}
-	return path;
-}
-
-function correlationLabel(
-	points: Point[],
-	transformX: (value: number) => number,
-) {
-	if (points.length < 3) {
-		return "r --";
-	}
-	const xs = points.map((point) => transformX(point.x));
-	const ys = points.map((point) => point.y);
-	const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length;
-	const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
-	let numerator = 0;
-	let varianceX = 0;
-	let varianceY = 0;
-	for (const [index, xValue] of xs.entries()) {
-		const dx = xValue - meanX;
-		const dy = (ys[index] ?? meanY) - meanY;
-		numerator += dx * dy;
-		varianceX += dx * dx;
-		varianceY += dy * dy;
-	}
-	const denominator = Math.sqrt(varianceX * varianceY);
-	if (denominator === 0) {
-		return "r --";
-	}
-	const r = numerator / denominator;
-	return `r ${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
-}
-
-function positiveDomain(values: number[]): [number, number] {
-	const positive = values.filter((value) => finite(value) && value > 0);
-	const low = Math.min(...positive);
-	const high = Math.max(...positive);
-	if (!finite(low) || !finite(high)) {
-		return [0.001, 1];
-	}
-	if (low === high) {
-		return [Math.max(low / 1.4, 0.001), high * 1.4];
-	}
-	return [Math.max(low / 1.08, 0.001), high * 1.08];
-}
-
-function finite(value: unknown): value is number {
-	return typeof value === "number" && Number.isFinite(value);
-}
-
-function finiteValue(value: unknown): number | null {
-	return finite(value) ? value : null;
-}
-
-function clamp(value: number, minValue: number, maxValue: number) {
-	return Math.max(minValue, Math.min(maxValue, value));
-}
-
-function percent(value: unknown) {
-	if (!finite(value)) {
-		return null;
-	}
-	return value <= 1 ? value * 100 : value;
-}
-
-function fmtPercent(value: unknown, digits = 0) {
-	const normalized = percent(value);
-	return normalized == null ? "--" : `${normalized.toFixed(digits)}%`;
-}
-
-function fmtScore(value: number | null | undefined) {
-	return finite(value) ? value.toFixed(0) : "--";
-}
-
-function fmtMoney(value: number | null | undefined) {
-	if (!finite(value)) {
-		return "--";
-	}
-	if (value < 1) {
-		return `$${value.toFixed(2)}`;
-	}
-	if (value < 10) {
-		return `$${value.toFixed(1)}`;
-	}
-	return `$${value.toFixed(0)}`;
-}
-
-function fmtCompact(value: number | null | undefined) {
-	if (!finite(value)) {
-		return "--";
-	}
-	if (Math.abs(value) >= 1_000_000) {
-		return `${Number((value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1))}M`;
-	}
-	if (Math.abs(value) >= 1_000) {
-		return `${Number((value / 1_000).toFixed(value >= 10_000 ? 0 : 1))}K`;
-	}
-	if (Number.isInteger(value)) {
-		return String(value);
-	}
-	return value.toFixed(value >= 10 ? 0 : 1);
-}
-
-function fmtSeconds(value: number) {
-	return `${value.toFixed(value >= 10 ? 0 : 1)}s`;
-}
-
-function fmtMinutes(seconds: number | null | undefined) {
-	if (!finite(seconds)) {
-		return "--";
-	}
-	return `${(seconds / 60).toFixed(seconds > 600 ? 0 : 1)}m`;
-}
-
-function modelName(model: ModelStatsSelectedModel) {
-	return model.name ?? model.id ?? "Unknown model";
-}
-
-function shortName(model: ModelStatsSelectedModel) {
-	return modelName(model).split(" ").slice(0, 2).join(" ");
-}
-
-function shortLabel(model: ModelStatsSelectedModel) {
-	return modelName(model)
-		.replace(" Preview", "")
-		.replace("Claude ", "")
-		.replace("GPT-", "GPT ");
-}
-
-function providerName(model: ModelStatsSelectedModel | string | null) {
-	const rawProvider = typeof model === "string" ? model : model?.provider;
-	const slug = providerSlug(rawProvider);
-	return providerDisplayLabels[slug] ?? rawProvider ?? "Unknown";
-}
-
-function providerSlug(provider: string | null | undefined) {
-	return String(provider ?? "unknown")
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
-function providerColor(provider: string | null | undefined) {
-	const slug = providerSlug(provider);
-	if (providerThemeColors[slug]) {
-		return providerThemeColors[slug];
-	}
-	let hash = 0;
-	for (const char of slug) {
-		hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-	}
-	return (
-		fallbackProviderColors[hash % fallbackProviderColors.length] ?? "#ff5a46"
 	);
 }

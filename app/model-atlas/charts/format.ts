@@ -1,0 +1,67 @@
+export function finite(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
+export function finiteValue(value: unknown): number | null {
+	return finite(value) ? value : null;
+}
+
+export function clamp(value: number, minValue: number, maxValue: number) {
+	return Math.max(minValue, Math.min(maxValue, value));
+}
+
+export function percent(value: unknown) {
+	if (!finite(value)) {
+		return null;
+	}
+	return value <= 1 ? value * 100 : value;
+}
+
+export function fmtPercent(value: unknown, digits = 0) {
+	const normalized = percent(value);
+	return normalized == null ? "--" : `${normalized.toFixed(digits)}%`;
+}
+
+export function fmtScore(value: number | null | undefined) {
+	return finite(value) ? value.toFixed(0) : "--";
+}
+
+export function fmtMoney(value: number | null | undefined) {
+	if (!finite(value)) {
+		return "--";
+	}
+	if (value < 1) {
+		return `$${value.toFixed(2)}`;
+	}
+	if (value < 10) {
+		return `$${value.toFixed(1)}`;
+	}
+	return `$${value.toFixed(0)}`;
+}
+
+export function fmtCompact(value: number | null | undefined) {
+	if (!finite(value)) {
+		return "--";
+	}
+	if (Math.abs(value) >= 1_000_000) {
+		return `${Number((value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1))}M`;
+	}
+	if (Math.abs(value) >= 1_000) {
+		return `${Number((value / 1_000).toFixed(value >= 10_000 ? 0 : 1))}K`;
+	}
+	if (Number.isInteger(value)) {
+		return String(value);
+	}
+	return value.toFixed(value >= 10 ? 0 : 1);
+}
+
+export function fmtSeconds(value: number) {
+	return `${value.toFixed(value >= 10 ? 0 : 1)}s`;
+}
+
+export function fmtMinutes(seconds: number | null | undefined) {
+	if (!finite(seconds)) {
+		return "--";
+	}
+	return `${(seconds / 60).toFixed(seconds > 600 ? 0 : 1)}m`;
+}
