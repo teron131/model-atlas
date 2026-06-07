@@ -11,6 +11,7 @@ import type {
 	ModelStatsSelectedPayload,
 } from "../../../src/model-atlas/llm/llm-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/sources/deep-swe-scraper";
+import styles from "../charts.module.css";
 import {
 	clamp,
 	finite,
@@ -53,7 +54,6 @@ import type {
 	ModelLimit,
 	Point,
 } from "./types";
-import styles from "../charts.module.css";
 
 export function ModelAtlasCharts({
 	initialPayload,
@@ -742,9 +742,9 @@ function DeepSwePanel({
 							effortMode === "all"
 								? effortLabelKeys.has(row.row.config ?? row.displayName)
 								: labelSet.has(row.row.config ?? row.displayName);
+						const hoverTitle = deepSWELabel(row, true);
 						const rows: HoverRow[] = [
 							["DeepSWE", fmtPercent(row.row.pass_at_1)],
-							["Effort", row.effortLabel],
 							["Cost", fmtMoney(row.row.mean_cost_usd)],
 							["Time", fmtMinutes(row.row.mean_duration_seconds)],
 							["Output tokens", fmtCompact(row.row.mean_output_tokens)],
@@ -768,6 +768,7 @@ function DeepSwePanel({
 									model={row.model}
 									rows={rows}
 									setHover={setHover}
+									hoverTitle={hoverTitle}
 								/>
 								{labeled ? (
 									<DeepSWEPointLabel
@@ -1296,14 +1297,17 @@ function PointHitTarget({
 	model,
 	rows,
 	setHover,
+	hoverTitle,
 }: {
 	cx: number;
 	cy: number;
 	model: ModelStatsSelectedModel;
 	rows: HoverRow[];
 	setHover: HoverSetter;
+	hoverTitle?: string;
 }) {
 	const size = 28;
+	const displayName = hoverTitle ?? modelName(model);
 	return (
 		<foreignObject
 			x={cx - size / 2}
@@ -1314,10 +1318,12 @@ function PointHitTarget({
 			<button
 				type="button"
 				className={styles.pointButton}
-				aria-label={`Show details for ${modelName(model)}`}
-				onPointerEnter={(event) => setHover(pointHover(event, model, rows))}
+				aria-label={`Show details for ${displayName}`}
+				onPointerEnter={(event) =>
+					setHover(pointHover(event, model, rows, displayName))
+				}
 				onFocus={(event) =>
-					setHover(focusHover(event.currentTarget, model, rows))
+					setHover(focusHover(event.currentTarget, model, rows, displayName))
 				}
 				onPointerMove={(event) =>
 					setHover((hover) =>
