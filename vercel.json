@@ -1,0 +1,12 @@
+{
+	"buildCommand": "pnpm run atlas:snapshot && pnpm run build",
+	"git": {
+		"deploymentEnabled": true
+	},
+	"crons": [
+		{
+			"path": "/api/llm-stats/refresh",
+			"schedule": "0 4 * * *"
+		}
+	]
+}

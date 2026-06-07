@@ -1,0 +1,48 @@
+{
+	"name": "model-atlas",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"packageManager": "pnpm@10.28.1",
+	"exports": {
+		".": "./src/model-atlas/index.ts"
+	},
+	"scripts": {
+		"prebuild": "pnpm run icons:favicon",
+		"build": "next build",
+		"dev": "next dev",
+		"start": "next start",
+		"test": "tsx test/snapshot_store.ts && tsx test/dashboard_static_markup.tsx && tsx test/dashboard_models.ts && tsx test/artificial_analysis_scraper.ts && tsx test/scoring.ts && tsx test/matcher.ts && tsx test/openrouter_stage.ts && tsx test/deep_swe_scraper.ts && tsx test/terminal_bench_scraper.ts && tsx test/models_dev.ts && tsx test/openrouter_scraper.ts",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"icons:favicon": "tsx scripts/generate-favicon.ts",
+		"atlas:database": "tsx scripts/database.ts",
+		"atlas:payload": "tsx scripts/refresh-model-atlas-payload.ts",
+		"atlas:snapshot": "tsx scripts/write-static-snapshot.ts",
+		"atlas:smoke": "tsx scripts/smoke-model-atlas.ts",
+		"atlas:ui": "next dev",
+		"atlas:ui:static": "tsx scripts/serve-minimal-ui.ts"
+	},
+	"dependencies": {
+		"@vercel/blob": "^2.4.0",
+		"d3-array": "^3.2.4",
+		"d3-scale": "^4.0.2",
+		"d3-shape": "^3.2.0",
+		"next": "^16.2.7",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"sharp": "^0.34.5"
+	},
+	"devDependencies": {
+		"@types/d3-array": "^3.2.2",
+		"@types/d3-scale": "^4.0.9",
+		"@types/d3-shape": "^3.1.8",
+		"@types/node": "^25.0.0",
+		"@types/react": "^19.2.16",
+		"@types/react-dom": "^19.2.3",
+		"playwright": "^1.60.0",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	}
+}
