@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { readDisplaySnapshotPayload } from "../api/llm-stats/snapshot-store";
-import { ModelGraphLab } from "./modelGraphLab";
+import { ModelAtlasCharts } from "./charts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,5 +15,5 @@ export const metadata: Metadata = {
 
 export default async function ModelAtlasPage() {
 	const payload = await readDisplaySnapshotPayload();
-	return <ModelGraphLab initialPayload={payload} />;
+	return <ModelAtlasCharts initialPayload={payload} />;
 }
