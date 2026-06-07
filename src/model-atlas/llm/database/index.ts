@@ -81,7 +81,30 @@ async function openDatabase(
 	await mkdir(dirname(outputPath), { recursive: true });
 	const db = new DatabaseSync(outputPath);
 	db.exec(schemaSql);
+	ensureDeepSWEColumns(db);
 	return db;
+}
+
+/** Add nullable DeepSWE columns to existing local caches. */
+function ensureDeepSWEColumns(db: DatabaseSync): void {
+	const existingColumns = new Set(
+		db
+			.prepare("PRAGMA table_info(deep_swe_raw_rows)")
+			.all()
+			.map((row) => String((row as { name?: unknown }).name)),
+	);
+	const columns: Array<[string, string]> = [
+		["reasoning_effort", "TEXT"],
+		["config", "TEXT"],
+		["ci_lo", "REAL"],
+		["ci_hi", "REAL"],
+		["ci_half", "REAL"],
+	];
+	for (const [name, type] of columns) {
+		if (!existingColumns.has(name)) {
+			db.exec(`ALTER TABLE deep_swe_raw_rows ADD COLUMN ${name} ${type}`);
+		}
+	}
 }
 
 /** Remove current snapshot rows before rewriting the runtime view. */

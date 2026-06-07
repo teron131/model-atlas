@@ -395,7 +395,12 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 	return {
 		rows: rawRows.flatMap((row) => {
 			const model = stringValue(row.model);
+			const reasoningEffort = stringValue(row.reasoning_effort);
+			const config = stringValue(row.config);
 			const passAt1 = asFiniteNumber(row.pass_at_1);
+			const ciLo = asFiniteNumber(row.ci_lo);
+			const ciHi = asFiniteNumber(row.ci_hi);
+			const ciHalf = asFiniteNumber(row.ci_half);
 			const meanCostUsd = asFiniteNumber(row.mean_cost_usd);
 			const meanDurationSeconds = asFiniteNumber(row.mean_duration_seconds);
 			const meanOutputTokens = asFiniteNumber(row.mean_output_tokens);
@@ -407,7 +412,12 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 				? [
 						{
 							model,
+							reasoning_effort: reasoningEffort,
+							config,
 							pass_at_1: passAt1,
+							ci_lo: ciLo,
+							ci_hi: ciHi,
+							ci_half: ciHalf,
 							mean_cost_usd: meanCostUsd,
 							mean_duration_seconds: meanDurationSeconds,
 							mean_output_tokens: meanOutputTokens,

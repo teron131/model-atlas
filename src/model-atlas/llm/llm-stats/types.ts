@@ -1,6 +1,7 @@
 /** Shared public and stage-handoff types for the final selected Model Atlas pipeline. */
 import type { JsonObject, NumberOrNull } from "../../utils";
 import type {
+	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
 	DeepSWEScoreByModelName,
 } from "../sources/deep-swe-scraper";
@@ -262,6 +263,9 @@ export type ModelStatsSelectedMetadata = {
 export type ModelStatsSelectedPayload = {
 	fetched_at_epoch_seconds: number | null;
 	metadata: ModelStatsSelectedMetadata;
+	deep_swe?: {
+		rows: DeepSWELeaderboardRow[];
+	};
 	models: ModelStatsSelectedModel[];
 };
 

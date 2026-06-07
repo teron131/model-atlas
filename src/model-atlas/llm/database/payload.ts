@@ -18,6 +18,7 @@ import type {
 	ModelStatsSelectedTaskMetrics,
 } from "../llm-stats/types";
 import { asFiniteNumber, asRecord } from "../shared";
+import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
 import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
@@ -299,6 +300,46 @@ function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
 	};
 }
 
+/** Read all DeepSWE effort rows for graph-only display. */
+function readDeepSWERows(
+	db: DatabaseSync,
+	runId: number,
+): DeepSWELeaderboardRow[] {
+	return db
+		.prepare(
+			"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+		)
+		.all(runId)
+		.flatMap((row) => {
+			const record = asRecord(row);
+			const model = stringValue(record.model);
+			const passAt1 = asFiniteNumber(record.pass_at_1);
+			const meanCostUsd = asFiniteNumber(record.mean_cost_usd);
+			const meanDurationSeconds = asFiniteNumber(record.mean_duration_seconds);
+			const meanOutputTokens = asFiniteNumber(record.mean_output_tokens);
+			return model != null &&
+				passAt1 != null &&
+				meanCostUsd != null &&
+				meanDurationSeconds != null &&
+				meanOutputTokens != null
+				? [
+						{
+							model,
+							reasoning_effort: stringValue(record.reasoning_effort),
+							config: stringValue(record.config),
+							pass_at_1: passAt1,
+							ci_lo: asFiniteNumber(record.ci_lo),
+							ci_hi: asFiniteNumber(record.ci_hi),
+							ci_half: asFiniteNumber(record.ci_half),
+							mean_cost_usd: meanCostUsd,
+							mean_duration_seconds: meanDurationSeconds,
+							mean_output_tokens: meanOutputTokens,
+						},
+					]
+				: [];
+		});
+}
+
 /** Read the UI payload from the latest final-stage SQLite rows. */
 export function readModelAtlasDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
@@ -316,6 +357,9 @@ export function readModelAtlasDatabasePayload(
 		return {
 			fetched_at_epoch_seconds: run.fetchedAt,
 			metadata: buildMetadata(models),
+			deep_swe: {
+				rows: readDeepSWERows(db, run.id),
+			},
 			models: models as ModelStatsSelectedPayload["models"],
 		};
 	} finally {

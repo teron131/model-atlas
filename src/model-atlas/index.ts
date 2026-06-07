@@ -93,6 +93,7 @@ export {
 	getDeepSWEModelScoreStats,
 	getDeepSWERawLeaderboardStats,
 	summarizeDeepSWEBestModelScores,
+	summarizeDeepSWEDefaultModelScores,
 } from "./llm/sources/deep-swe-scraper";
 export type {
 	ModelRecord,
