@@ -9,6 +9,7 @@ import {
 
 import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/llm-stats/types";
 import {
+	formatBenchmarkMetric,
 	formatContext,
 	formatCost,
 	formatScore,
@@ -16,6 +17,8 @@ import {
 	safeSlug,
 } from "./format";
 import {
+	benchmarkMetricColumns,
+	benchmarkMetricValue,
 	contextWindowValue,
 	type Direction,
 	type SortKey,
@@ -193,6 +196,17 @@ function TableHeaderRow({
 					onTooltipEnd={onTooltipEnd}
 				/>
 			))}
+			{benchmarkMetricColumns.map((column) => (
+				<SortableHeader
+					key={column.key}
+					label={column.label}
+					keyName={column.key}
+					sortState={sortState}
+					onSort={onSort}
+					onTooltip={onTooltip}
+					onTooltipEnd={onTooltipEnd}
+				/>
+			))}
 		</tr>
 	);
 }
@@ -303,6 +317,16 @@ function ModelRow({
 				<TableCell
 					key={column.key}
 					text={formatTaskMetric(taskMetricValue(model, column), column)}
+					className="data-cell"
+				/>
+			))}
+			{benchmarkMetricColumns.map((column) => (
+				<TableCell
+					key={column.key}
+					text={formatBenchmarkMetric(
+						benchmarkMetricValue(model, column),
+						column,
+					)}
 					className="data-cell"
 				/>
 			))}

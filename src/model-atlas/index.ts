@@ -1,7 +1,9 @@
 /** Stats package exports. */
 
 export {
+	MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS,
+	MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS,
 	MODEL_ATLAS_OVERALL_RELATIVE_SCORE_WEIGHTS,
 	MODEL_ATLAS_PRICE_PROFILES,
@@ -66,6 +68,22 @@ export type {
 	LlmScraperFallbackMatchDiagnosticsPayload,
 } from "./llm/matcher";
 export { getMatchModelMapping } from "./llm/matcher";
+export type {
+	AgentsLastExamHarnessPayload,
+	AgentsLastExamHarnessRow,
+	AgentsLastExamModelScorePayload,
+	AgentsLastExamModelScoreRow,
+	AgentsLastExamScraperOptions,
+} from "./llm/sources/agents-last-exam-scraper";
+export {
+	agentsLastExamBenchmarkScore,
+	buildAgentsLastExamScoreByModelName,
+	findAgentsLastExamModelScore,
+	getAgentsLastExamHarnessStats,
+	getAgentsLastExamModelScoreStats,
+	processAgentsLastExamLeaderboardRows,
+	summarizeAgentsLastExamModelScores,
+} from "./llm/sources/agents-last-exam-scraper";
 export type { ArtificialAnalysisOptions } from "./llm/sources/artificial-analysis-api";
 export { getArtificialAnalysisStats } from "./llm/sources/artificial-analysis-api";
 export type {

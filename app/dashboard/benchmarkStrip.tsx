@@ -43,8 +43,8 @@ export function BenchmarkStrip({
 		<section className="benchmarks" aria-label="Selected benchmarks">
 			<h2>Selected benchmarks</h2>
 			<div className="benchmark-groups">
-				{benchmarkGroups.map(([field, label]) => {
-					const keys = scoring?.[field] ?? [];
+				{benchmarkGroups.map(({ field, fallbackField, label }) => {
+					const keys = scoring?.[field] ?? scoring?.[fallbackField] ?? [];
 					return (
 						<BenchmarkGroup
 							key={field}

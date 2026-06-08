@@ -146,6 +146,7 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(evaluations.terminalbench_hard),
 		asFiniteNumber(evaluations.deep_swe),
 		asFiniteNumber(evaluations.terminal_bench_2),
+		asFiniteNumber(evaluations.agents_last_exam),
 	];
 }
 
@@ -154,6 +155,7 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 	const taskMetrics = asRecord(model.task_metrics);
 	const artificialAnalysisTask = asRecord(taskMetrics.artificial_analysis);
 	const deepSWETask = asRecord(taskMetrics.deep_swe);
+	const agentsLastExamTask = asRecord(taskMetrics.agents_last_exam);
 	const scores = asRecord(model.scores);
 	const relativeScores = asRecord(model.relative_scores);
 	return [
@@ -163,6 +165,10 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(deepSWETask.cost),
 		asFiniteNumber(deepSWETask.seconds),
 		asFiniteNumber(deepSWETask.output_tokens),
+		asFiniteNumber(agentsLastExamTask.cost),
+		asFiniteNumber(agentsLastExamTask.seconds),
+		asFiniteNumber(agentsLastExamTask.input_tokens),
+		asFiniteNumber(agentsLastExamTask.output_tokens),
 		asFiniteNumber(scores.intelligence_score),
 		asFiniteNumber(scores.agentic_score),
 		asFiniteNumber(scores.speed_score),
@@ -492,6 +498,94 @@ export function insertTerminalBenchRawRows(
 	}
 }
 
+/** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
+export function insertAgentsLastExamRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO agents_last_exam_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, split, harness, model,
+			harness_variant, runs, tasks, split_tasks, passes, accuracy, score,
+			total_duration_seconds, total_input_tokens, total_output_tokens,
+			median_accuracy, mean_accuracy, median_score, mean_score,
+			median_total_duration_seconds, mean_total_duration_seconds,
+			median_total_input_tokens, mean_total_input_tokens,
+			median_total_output_tokens, mean_total_output_tokens, frequency, row_kind
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	let rowIndex = 0;
+	for (const row of snapshots.agentsLastExamRows) {
+		statement.run(
+			runId,
+			rowIndex,
+			snapshots.fetchedAt.agentsLastExam,
+			SOURCE_URLS.agents_last_exam,
+			row.split,
+			row.harness,
+			row.model,
+			row.harness_variant,
+			row.runs,
+			row.tasks,
+			row.split_tasks,
+			row.passes,
+			row.accuracy,
+			row.score,
+			row.total_duration_seconds,
+			row.total_input_tokens,
+			row.total_output_tokens,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			"harness_score",
+		);
+		rowIndex += 1;
+	}
+	for (const row of snapshots.agentsLastExamModelScores) {
+		statement.run(
+			runId,
+			rowIndex,
+			snapshots.fetchedAt.agentsLastExam,
+			SOURCE_URLS.agents_last_exam,
+			row.split,
+			null,
+			row.model,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			row.median_accuracy,
+			row.mean_accuracy,
+			row.median_score,
+			row.mean_score,
+			row.median_total_duration_seconds,
+			row.mean_total_duration_seconds,
+			row.median_total_input_tokens,
+			row.mean_total_input_tokens,
+			row.median_total_output_tokens,
+			row.mean_total_output_tokens,
+			row.frequency,
+			"model_score",
+		);
+		rowIndex += 1;
+	}
+}
+
 type OpenRouterPointRow = {
 	x: string | null;
 	series: string;
@@ -726,13 +820,16 @@ export function insertProcessedModelRows(
 			intelligence_index, agentic_index, coding_index, omniscience_index,
 			omniscience_accuracy, omniscience_nonhallucination_rate, apex_agents,
 			critpt, gdpval_normalized, gpqa, hle, ifbench, lcr, mmmu_pro, scicode,
-			terminalbench_hard, deep_swe, terminal_bench_2,
+			terminalbench_hard, deep_swe, terminal_bench_2, agents_last_exam,
 			aa_task_cost, aa_task_seconds, aa_task_output_tokens,
 			deep_swe_task_cost, deep_swe_task_seconds, deep_swe_task_output_tokens,
+			agents_last_exam_task_cost, agents_last_exam_task_seconds,
+			agents_last_exam_task_input_tokens,
+			agents_last_exam_task_output_tokens,
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_value_score, relative_intelligence_score, relative_agentic_score,
 			relative_speed_score, relative_value_score, relative_overall_score
-		) VALUES (${Array.from({ length: 68 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 73 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

@@ -24,27 +24,14 @@ import {
 const MIN_DISPLAY_VALUE_COMPONENTS = 2;
 const MIN_DISPLAY_SPEED_COMPONENTS = 2;
 const VALUE_QUALITY_TRADEOFF_STRENGTH = 0.5;
-
-/** Build a percentile score from a raw source value and its raw comparison distribution. */
-function percentileScore(
-	values: Array<number | null>,
-	value: number | null,
-): number | null {
-	return value == null ? null : percentileRank(values, value);
-}
+type TaskMetricKey = "artificial_analysis" | "deep_swe" | "agents_last_exam";
 
 function percentileScoreAt(
 	values: Array<number | null>,
 	index: number,
 ): number | null {
-	return percentileScore(values, values[index] ?? null);
-}
-
-function qualityUtilityScore(
-	intelligenceRelativeScore: number | null,
-	agenticRelativeScore: number | null,
-): number | null {
-	return meanOfFinite([intelligenceRelativeScore, agenticRelativeScore]);
+	const value = values[index] ?? null;
+	return value == null ? null : percentileRank(values, value);
 }
 
 function fillMissingScoresWithMedian(
@@ -97,14 +84,14 @@ function inversePositive(value: unknown): number | null {
 
 function taskMetricCost(
 	model: ModelStatsProjectedModel,
-	key: "artificial_analysis" | "deep_swe",
+	key: TaskMetricKey,
 ): number | null {
 	return positiveNumber(model.task_metrics?.[key]?.cost);
 }
 
 function taskMetricSeconds(
 	model: ModelStatsProjectedModel,
-	key: "artificial_analysis" | "deep_swe",
+	key: TaskMetricKey,
 ): number | null {
 	return positiveNumber(model.task_metrics?.[key]?.seconds);
 }
@@ -131,10 +118,10 @@ export function attachRelativeScores(
 		(model) => model.scores?.agentic_score ?? null,
 	);
 	const qualityUtilityScores = models.map((_, index) =>
-		qualityUtilityScore(
+		meanOfFinite([
 			intelligenceRelativeScores[index] ?? null,
 			agenticRelativeScores[index] ?? null,
-		),
+		]),
 	);
 	const artificialAnalysisCostValues = models.map((model) =>
 		inversePositive(taskMetricCost(model, "artificial_analysis")),
@@ -148,6 +135,9 @@ export function attachRelativeScores(
 	});
 	const deepSWECostValues = models.map((model) =>
 		inversePositive(taskMetricCost(model, "deep_swe")),
+	);
+	const agentsLastExamCostValues = models.map((model) =>
+		inversePositive(taskMetricCost(model, "agents_last_exam")),
 	);
 	const blendCostValues = models.map((model) =>
 		inversePositive(blendCost(model, scoringConfig)),
@@ -168,7 +158,10 @@ export function attachRelativeScores(
 	const deepSWESpeedValues = models.map((model) =>
 		inversePositive(taskMetricSeconds(model, "deep_swe")),
 	);
-	const simulationSpeedValues = models.map((model) =>
+	const agentsLastExamSpeedValues = models.map((model) =>
+		inversePositive(taskMetricSeconds(model, "agents_last_exam")),
+	);
+	const workflowSimulatedSpeedValues = models.map((model) =>
 		inversePositive(simulatedBlendSeconds(model.speed, scoringConfig)),
 	);
 	const valueRelativeScores = models.map((_, index) =>
@@ -177,6 +170,7 @@ export function attachRelativeScores(
 				percentileScoreAt(artificialAnalysisCostValues, index),
 				percentileScoreAt(artificialAnalysisEfficiencyValues, index),
 				percentileScoreAt(deepSWECostValues, index),
+				percentileScoreAt(agentsLastExamCostValues, index),
 				percentileScoreAt(blendCostValues, index),
 				percentileScoreAt(qualityAdjustedBlendCostValues, index),
 				percentileScoreAt(workflowSimulatedValueValues, index),
@@ -189,7 +183,8 @@ export function attachRelativeScores(
 			[
 				percentileScoreAt(artificialAnalysisSpeedValues, index),
 				percentileScoreAt(deepSWESpeedValues, index),
-				percentileScoreAt(simulationSpeedValues, index),
+				percentileScoreAt(agentsLastExamSpeedValues, index),
+				percentileScoreAt(workflowSimulatedSpeedValues, index),
 			],
 			MIN_DISPLAY_SPEED_COMPONENTS,
 		),

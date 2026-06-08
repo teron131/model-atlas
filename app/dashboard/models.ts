@@ -43,10 +43,41 @@ export const taskMetricColumns = [
 		direction: "descending",
 		label: "DSWE Tok",
 	},
+	{
+		key: "agentsLastExamSeconds",
+		source: "agents_last_exam",
+		metric: "seconds",
+		direction: "ascending",
+		label: "ALE Sec",
+	},
+	{
+		key: "agentsLastExamInputTokens",
+		source: "agents_last_exam",
+		metric: "input_tokens",
+		direction: "ascending",
+		label: "ALE In",
+	},
+	{
+		key: "agentsLastExamOutputTokens",
+		source: "agents_last_exam",
+		metric: "output_tokens",
+		direction: "ascending",
+		label: "ALE Out",
+	},
+] as const;
+
+export const benchmarkMetricColumns = [
+	{
+		key: "agentsLastExam",
+		metric: "agents_last_exam",
+		direction: "descending",
+		label: "ALE",
+	},
 ] as const;
 
 export type Direction = "ascending" | "descending";
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
+export type BenchmarkMetricColumn = (typeof benchmarkMetricColumns)[number];
 export type SortKey =
 	| "rank"
 	| "model"
@@ -57,7 +88,8 @@ export type SortKey =
 	| "value"
 	| "blend"
 	| "context"
-	| TaskMetricColumn["key"];
+	| TaskMetricColumn["key"]
+	| BenchmarkMetricColumn["key"];
 
 export type SortState = {
 	key: SortKey;
@@ -89,6 +121,17 @@ const taskMetricSorters = Object.fromEntries(
 		},
 	]),
 ) as Record<TaskMetricColumn["key"], Sorter>;
+
+const benchmarkMetricSorters = Object.fromEntries(
+	benchmarkMetricColumns.map((column) => [
+		column.key,
+		{
+			direction: column.direction,
+			type: "number",
+			value: (row: TableRow) => benchmarkMetricValue(row.model, column),
+		},
+	]),
+) as Record<BenchmarkMetricColumn["key"], Sorter>;
 
 export const sorters: Record<SortKey, Sorter> = {
 	rank: {
@@ -137,6 +180,7 @@ export const sorters: Record<SortKey, Sorter> = {
 		value: (row) => contextWindowValue(row.model),
 	},
 	...taskMetricSorters,
+	...benchmarkMetricSorters,
 };
 
 export function sortedRows(
@@ -185,6 +229,13 @@ export function taskMetricValue(
 	column: TaskMetricColumn,
 ) {
 	return model.task_metrics?.[column.source]?.[column.metric];
+}
+
+export function benchmarkMetricValue(
+	model: ModelStatsSelectedModel,
+	column: BenchmarkMetricColumn,
+) {
+	return model.evaluations?.[column.metric];
 }
 
 export function contextWindowValue(model: ModelStatsSelectedModel) {
