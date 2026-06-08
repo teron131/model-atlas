@@ -6,7 +6,10 @@ import { get, put } from "@vercel/blob";
 
 import { MODEL_ATLAS_STAGE_CONFIG } from "../../../src/model-atlas/constants";
 import { readModelAtlasDatabasePayload } from "../../../src/model-atlas/llm/database";
-import { RAW_SOURCE_CACHE_SECONDS } from "../../../src/model-atlas/llm/database/types";
+import {
+	DEFAULT_DATABASE_PATH,
+	RAW_SOURCE_CACHE_SECONDS,
+} from "../../../src/model-atlas/llm/database/types";
 import type {
 	ModelStatsSelectedMetadata,
 	ModelStatsSelectedModel,
@@ -201,7 +204,7 @@ async function readStaticSnapshot(): Promise<ModelStatsSelectedPayload> {
 
 async function readLocalDatabaseSnapshot(): Promise<ModelStatsSelectedPayload> {
 	return withCurrentSnapshotMetadata(
-		readModelAtlasDatabasePayload(runtimeDatabasePath()),
+		readModelAtlasDatabasePayload(localDatabaseReadPath()),
 	);
 }
 
@@ -309,11 +312,17 @@ function withCurrentSnapshotMetadata(
 			artificial_analysis: artificialAnalysis,
 			scoring: {
 				intelligence_benchmark_keys: [...scoring.intelligenceBenchmarkKeys],
+				intelligence_benchmark_display_keys: [
+					...scoring.intelligenceBenchmarkDisplayKeys,
+				],
 				missing_intelligence_benchmark_keys:
 					scoring.intelligenceBenchmarkKeys.filter(
 						(key) => !availableBenchmarkKeys.includes(key),
 					),
 				agentic_benchmark_keys: [...scoring.agenticBenchmarkKeys],
+				agentic_benchmark_display_keys: [
+					...scoring.agenticBenchmarkDisplayKeys,
+				],
 				missing_agentic_benchmark_keys: scoring.agenticBenchmarkKeys.filter(
 					(key) => !availableBenchmarkKeys.includes(key),
 				),
@@ -365,7 +374,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 		: {};
 }
 
-function runtimeDatabasePath(): string | undefined {
+export function runtimeDatabasePath(): string | undefined {
 	if (process.env.MODEL_ATLAS_DATABASE_PATH) {
 		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
 	}
@@ -373,4 +382,14 @@ function runtimeDatabasePath(): string | undefined {
 		return resolve(tmpdir(), "model-atlas/database.sqlite");
 	}
 	return undefined;
+}
+
+export function localDatabaseReadPath(): string | undefined {
+	if (process.env.MODEL_ATLAS_DATABASE_PATH) {
+		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
+	}
+	if (process.env.VERCEL === "1") {
+		return resolve(tmpdir(), "model-atlas/database.sqlite");
+	}
+	return resolve(DEFAULT_DATABASE_PATH);
 }

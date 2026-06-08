@@ -41,6 +41,17 @@ import {
 
 const emptyColumnTooltips: ModelStatsColumnTooltips = {};
 const SELECTED_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
+const SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY =
+	"model-atlas:selected-payload-refresh-at:v1";
+// Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
+const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
+const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
+const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
+
+type RefreshPayloadOptions = {
+	bypassGuard?: boolean;
+	retryWhenGuarded?: boolean;
+};
 
 export function Dashboard({
 	initialPayload,
@@ -162,7 +173,7 @@ export function Dashboard({
 				rowCountLabel={rowCountLabel}
 				isRefreshing={isRefreshing}
 				onFilterQueryChange={setFilterQuery}
-				onRefresh={() => void refreshPayload()}
+				onRefresh={() => void refreshPayload({ bypassGuard: true })}
 			/>
 			<ModelTable
 				sortState={sortState}
@@ -235,58 +246,85 @@ function useLivePayload(initialPayload: ModelStatsSelectedPayload | null) {
 	);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const refreshInFlightRef = useRef<Promise<void> | null>(null);
+	const refreshRetryTimeoutRef = useRef<number | null>(null);
 
-	const refreshPayload = useCallback(async () => {
+	const refreshPayload = useCallback((options?: RefreshPayloadOptions) => {
+		if (refreshInFlightRef.current != null) {
+			return refreshInFlightRef.current;
+		}
+		const remainingGuardMs = options?.bypassGuard
+			? 0
+			: refreshGuardRemainingMs();
+		if (remainingGuardMs > 0) {
+			if (options?.retryWhenGuarded && refreshRetryTimeoutRef.current == null) {
+				refreshRetryTimeoutRef.current = window.setTimeout(() => {
+					refreshRetryTimeoutRef.current = null;
+					void refreshPayload();
+				}, remainingGuardMs + GUARDED_REFRESH_RETRY_SLACK_MS);
+			}
+			return Promise.resolve();
+		}
+		if (refreshRetryTimeoutRef.current != null) {
+			window.clearTimeout(refreshRetryTimeoutRef.current);
+			refreshRetryTimeoutRef.current = null;
+		}
+		recordRefreshAttempt();
 		setIsRefreshing(true);
 		setErrorMessage(null);
-		try {
-			const response = await fetch(cacheBustedPath(liveStatsPath), {
-				cache: "no-store",
+		refreshInFlightRef.current = fetch(cacheBustedPath(liveStatsPath), {
+			cache: "no-store",
+		})
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+				return response.json() as Promise<ModelStatsSelectedPayload>;
+			})
+			.then((nextPayload) => {
+				setPayload(nextPayload);
+				scheduleCachedPayloadWrite(nextPayload);
+			})
+			.catch((error) => {
+				console.error("Unable to refresh stats", error);
+				setErrorMessage("Unable to refresh stats");
+			})
+			.finally(() => {
+				refreshInFlightRef.current = null;
+				setIsRefreshing(false);
 			});
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}`);
-			}
-			const nextPayload = (await response.json()) as ModelStatsSelectedPayload;
-			setPayload(nextPayload);
-			scheduleCachedPayloadWrite(nextPayload);
-		} catch (error) {
-			console.error("Unable to refresh stats", error);
-			setErrorMessage("Unable to refresh stats");
-		} finally {
-			setIsRefreshing(false);
-		}
+		return refreshInFlightRef.current;
 	}, []);
 
 	useEffect(() => {
-		if (initialPayload != null) {
-			return;
+		if (initialPayload == null) {
+			const cachedPayload = readCachedPayload();
+			if (cachedPayload != null) {
+				setPayload(cachedPayload);
+			}
 		}
-		setPayload(readCachedPayload());
-	}, [initialPayload]);
+		void refreshPayload({ retryWhenGuarded: true });
+	}, [initialPayload, refreshPayload]);
 
 	useEffect(() => {
-		if (initialPayload == null) {
-			void refreshPayload();
+		return () => {
+			if (refreshRetryTimeoutRef.current != null) {
+				window.clearTimeout(refreshRetryTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	useEffect(() => {
+		if (payload == null) {
 			return;
 		}
-		const idleCallback = window.requestIdleCallback?.(
-			() => {
-				void refreshPayload();
-			},
-			{ timeout: 2000 },
-		);
-		if (idleCallback != null) {
-			return () => {
-				window.cancelIdleCallback?.(idleCallback);
-			};
-		}
-		const timeout = window.setTimeout(() => {
+		const interval = window.setInterval(() => {
 			void refreshPayload();
-		}, 1200);
+		}, SCHEDULED_REFRESH_INTERVAL_MS);
 		return () => {
-			window.clearTimeout(timeout);
+			window.clearInterval(interval);
 		};
-	}, [initialPayload, refreshPayload]);
+	}, [payload, refreshPayload]);
 
 	return { payload, isRefreshing, errorMessage, refreshPayload };
 }
@@ -316,6 +354,36 @@ function readCachedPayload(): ModelStatsSelectedPayload | null {
 	} catch {
 		return null;
 	}
+}
+
+function refreshGuardRemainingMs(): number {
+	if (typeof window === "undefined") {
+		return 0;
+	}
+	try {
+		const refreshedAt = Number.parseInt(
+			window.sessionStorage.getItem(SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY) ?? "",
+			10,
+		);
+		if (!Number.isFinite(refreshedAt)) {
+			return 0;
+		}
+		return Math.max(0, AUTOMATIC_REFRESH_GUARD_MS - (Date.now() - refreshedAt));
+	} catch {
+		return 0;
+	}
+}
+
+function recordRefreshAttempt(): void {
+	if (typeof window === "undefined") {
+		return;
+	}
+	try {
+		window.sessionStorage.setItem(
+			SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY,
+			String(Date.now()),
+		);
+	} catch {}
 }
 
 function scheduleCachedPayloadWrite(payload: ModelStatsSelectedPayload): void {
