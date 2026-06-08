@@ -391,6 +391,8 @@ function ModelRow({
 	providerColors: ProviderThemeColors;
 }) {
 	const model = rowData.model;
+	const displayName = displayModelName(model.name);
+	const displayId = displayModelId(model.id);
 	const relativeScores = model.relative_scores ?? {};
 	return (
 		<tr>
@@ -403,10 +405,10 @@ function ModelRow({
 					<ProviderLogo model={model} />
 					<div className="model-copy">
 						<div className="model" title={model.name ?? undefined}>
-							{model.name ?? "-"}
+							{displayName}
 						</div>
 						<div className="id" title={model.id ?? undefined}>
-							{model.id ?? "-"}
+							{displayId}
 						</div>
 					</div>
 				</div>
@@ -453,6 +455,41 @@ function ModelRow({
 			)}
 		</tr>
 	);
+}
+
+function displayModelName(name: string | null | undefined) {
+	if (name == null || name.length === 0) {
+		return "-";
+	}
+	return stripModelDisplaySuffixes(name, " ");
+}
+
+function displayModelId(id: string | null | undefined) {
+	if (id == null || id.length === 0) {
+		return "-";
+	}
+	const slashIndex = id.indexOf("/");
+	return stripModelDisplaySuffixes(
+		slashIndex === -1 ? id : id.slice(slashIndex + 1),
+		"-",
+	);
+}
+
+function stripModelDisplaySuffixes(value: string, separator: " " | "-") {
+	const tokens = value.split(separator).filter((token) => token.length > 0);
+	const visibleTokens = tokens.filter((token) => !isHiddenDisplayToken(token));
+	while (visibleTokens.length > 1 && isReleaseDateToken(visibleTokens.at(-1))) {
+		visibleTokens.pop();
+	}
+	return visibleTokens.join(separator) || value;
+}
+
+function isHiddenDisplayToken(token: string) {
+	return /^(instruct|preview)$/i.test(token);
+}
+
+function isReleaseDateToken(token: string | undefined) {
+	return token != null && /^\d{4}$/.test(token);
 }
 
 function ProviderLogo({ model }: { model: ModelStatsSelectedModel }) {
