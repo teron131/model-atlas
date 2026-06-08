@@ -150,7 +150,7 @@ C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}
 $$
 
 $$
-\hat{x}_{m,b}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\frac{\operatorname{Percentile}(C_{m,b})}{100}\right)
+\hat{x}_{m,b}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\operatorname{Percentile}(C_{m,b})/100\right)
 $$
 
 $$
@@ -182,13 +182,13 @@ Value components:
 
 $$
 \begin{aligned}
-V_{\text{AA cost},m}&=\operatorname{Percentile}\left(\frac{1}{\text{AA task cost}_m}\right)\\
-V_{\text{AA efficiency},m}&=\operatorname{Percentile}\left(\frac{I_m}{\text{AA task cost}_m}\right)\\
-V_{\text{DeepSWE cost},m}&=\operatorname{Percentile}\left(\frac{1}{\text{DeepSWE task cost}_m}\right)\\
-V_{\text{ALE cost},m}&=\operatorname{Percentile}\left(\frac{1}{\text{Agents' Last Exam task cost}_m}\right)\\
-V_{\text{blend cheapness},m}&=\operatorname{Percentile}\left(\frac{1}{\text{blended price}_m}\right)\\
+V_{\text{AA cost},m}&=\operatorname{Percentile}\left(1/\text{AA task cost}_m\right)\\
+V_{\text{AA efficiency},m}&=\operatorname{Percentile}\left(I_m/\text{AA task cost}_m\right)\\
+V_{\text{DeepSWE cost},m}&=\operatorname{Percentile}\left(1/\text{DeepSWE task cost}_m\right)\\
+V_{\text{ALE cost},m}&=\operatorname{Percentile}\left(1/\text{Agents' Last Exam task cost}_m\right)\\
+V_{\text{blend cheapness},m}&=\operatorname{Percentile}\left(1/\text{blended price}_m\right)\\
 Q_m&=\operatorname{mean}(I_m,A_m)\\
-V_{\text{quality blend},m}&=\operatorname{Percentile}\left(\frac{Q_m}{\text{blended price}_m}\right)\\
+V_{\text{quality blend},m}&=\operatorname{Percentile}\left(Q_m/\text{blended price}_m\right)\\
 V_{\text{workflow},m}&=\operatorname{Percentile}\left(\text{workflow useful work per dollar}_m\right)
 \end{aligned}
 $$
@@ -208,7 +208,7 @@ $$
 where $\ell_m$ is latency and $\tau_m$ is throughput.
 
 $$
-\text{observed speed}_m=\frac{\operatorname{median}(\text{anchors})}{\text{end-to-end latency}_m}
+\text{observed speed}_m=\operatorname{median}(\text{anchors})/\text{end-to-end latency}_m
 $$
 
 $$
@@ -225,10 +225,10 @@ Relative Speed components:
 
 $$
 \begin{aligned}
-S_{\text{AA},m}&=\operatorname{Percentile}\left(\frac{1}{\text{AA task seconds}_m}\right)\\
-S_{\text{DeepSWE},m}&=\operatorname{Percentile}\left(\frac{1}{\text{DeepSWE task seconds}_m}\right)\\
-S_{\text{ALE},m}&=\operatorname{Percentile}\left(\frac{1}{\text{Agents' Last Exam task seconds}_m}\right)\\
-S_{\text{Workflow},m}&=\operatorname{Percentile}\left(\frac{1}{\text{workflow simulated seconds}_m}\right)
+S_{\text{AA},m}&=\operatorname{Percentile}\left(1/\text{AA task seconds}_m\right)\\
+S_{\text{DeepSWE},m}&=\operatorname{Percentile}\left(1/\text{DeepSWE task seconds}_m\right)\\
+S_{\text{ALE},m}&=\operatorname{Percentile}\left(1/\text{Agents' Last Exam task seconds}_m\right)\\
+S_{\text{Workflow},m}&=\operatorname{Percentile}\left(1/\text{workflow simulated seconds}_m\right)
 \end{aligned}
 $$
 
@@ -242,7 +242,7 @@ Workflow simulation seconds:
 
 $$
 \begin{aligned}
-T_{m,s}&=n_s\cdot\left(\ell_m+\lambda \operatorname{ELogUniform}(x_{\text{input},s})+\frac{\operatorname{ELogUniform}(x_{\text{output},s})}{\tau_m}\right)\\
+T_{m,s}&=n_s\cdot\left(\ell_m+\lambda \operatorname{ELogUniform}(x_{\text{input},s})+\operatorname{ELogUniform}(x_{\text{output},s})/\tau_m\right)\\
 T_{\text{workflow},m}&=\sum_s w_sT_{m,s}
 \end{aligned}
 $$
@@ -252,7 +252,7 @@ where $\ell_m$ is latency, $\tau_m$ is output throughput, $n_s$ is scenario call
 Input and output token counts use the expected value of a log-uniform range:
 
 $$
-\operatorname{ELogUniform}(a,b)=\frac{b-a}{\log b-\log a}
+\operatorname{ELogUniform}(x_{\min},x_{\max})=\frac{x_{\max}-x_{\min}}{\log x_{\max}-\log x_{\min}}
 $$
 
 The scenario mix is:
@@ -293,7 +293,7 @@ p_{V,m}&=50-\alpha_V(p_{Q,m}-50)
 $$
 
 $$
-V_m^{\text{imputed}}=\operatorname{quantile}\left(\{V_j:V_j\text{ observed}\},\frac{p_{V,m}}{100}\right)
+V_m^{\text{imputed}}=\operatorname{quantile}\left(\{V_j:V_j\text{ observed}\},p_{V,m}/100\right)
 $$
 
 Displayed Speed and Value stay `null` when source evidence is missing. This imputation is used only inside Overall.
