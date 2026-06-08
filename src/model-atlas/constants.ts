@@ -2,6 +2,7 @@
 
 import type {
 	ModelAtlasStageConfig,
+	ModelStatsColumnTooltipRow,
 	ModelStatsColumnTooltips,
 	SimulationProfile,
 } from "./llm/llm-stats/types";
@@ -115,6 +116,17 @@ const MODEL_ATLAS_PRICE_PROFILE_WEIGHTS = Object.fromEntries(
 		config.weight,
 	]),
 ) as Record<keyof typeof MODEL_ATLAS_PRICE_PROFILES, number>;
+const MODEL_ATLAS_PRICE_PROFILE_TOTAL_WEIGHT = Object.values(
+	MODEL_ATLAS_PRICE_PROFILES,
+).reduce((sum, config) => sum + config.weight, 0);
+const MODEL_ATLAS_PRICE_PROFILE_ENTRIES = [
+	["Task", "task"],
+	["Chat", "chat"],
+	["Agentic", "agentic"],
+] as const satisfies readonly [
+	string,
+	keyof typeof MODEL_ATLAS_PRICE_PROFILES,
+][];
 
 export const MODEL_ATLAS_QUALITY_SCORE_WEIGHTS = {
 	index: 1,
@@ -302,6 +314,29 @@ const priceProfileRow = (
 		weightPercent(MODEL_ATLAS_PRICE_PROFILE_WEIGHTS, profile),
 	] as const;
 };
+const priceProfileContributionRow = (
+	label: string,
+	profile: keyof typeof MODEL_ATLAS_PRICE_PROFILES,
+	side: "input" | "output",
+) => {
+	const profileConfig = MODEL_ATLAS_PRICE_PROFILES[profile];
+	const profileWeight =
+		MODEL_ATLAS_PRICE_PROFILE_TOTAL_WEIGHT > 0
+			? profileConfig.weight / MODEL_ATLAS_PRICE_PROFILE_TOTAL_WEIGHT
+			: 0;
+	return [
+		`${label} ${percent(profileWeight)} x ${percent(profileConfig[side])}`,
+		percent(profileWeight * profileConfig[side], 1),
+	] as const;
+};
+const priceProfileRows = () =>
+	MODEL_ATLAS_PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
+		priceProfileRow(label, profile),
+	);
+const priceProfileContributionRows = (side: "input" | "output") =>
+	MODEL_ATLAS_PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
+		priceProfileContributionRow(label, profile, side),
+	);
 const simulationProfileRow = (
 	label: string,
 	description: string,
@@ -445,6 +480,9 @@ const SPEED_INPUT_LABELS = [
 	"Agents' Last Exam task seconds",
 	"Workflow simulated seconds",
 ] as const;
+const SPEED_DIRECT_INPUT_LABELS = SPEED_INPUT_LABELS.filter(
+	(label) => label !== "Workflow simulated seconds",
+);
 const VALUE_INPUT_LABELS = [
 	"AA task cost",
 	"AA intel per dollar",
@@ -458,6 +496,18 @@ const qualityScoreRows = (indexLabel: string) =>
 	[
 		[indexLabel, qualityWeight("index")],
 		["Selected benchmarks", qualityWeight("selected_benchmarks")],
+	] as const;
+const qualityScoreRowsWithBenchmarkMix = (
+	indexLabel: string,
+	benchmarkRows: readonly ModelStatsColumnTooltipRow[],
+) =>
+	[
+		[indexLabel, qualityWeight("index")],
+		{
+			title: "Benchmark mix",
+			weight: qualityWeight("selected_benchmarks"),
+			rows: benchmarkRows,
+		},
 	] as const;
 const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS =
 	MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS.map(
@@ -476,13 +526,39 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS =
 			] as const,
 	);
 const speedInputRows = () =>
-	SPEED_INPUT_LABELS.map(
-		(label) => [label, equalInputWeight(SPEED_INPUT_LABELS)] as const,
-	);
-const valueInputRows = () =>
-	VALUE_INPUT_LABELS.map(
-		(label) => [label, equalInputWeight(VALUE_INPUT_LABELS)] as const,
-	);
+	[
+		...SPEED_DIRECT_INPUT_LABELS.map(
+			(label) => [label, equalInputWeight(SPEED_INPUT_LABELS)] as const,
+		),
+		{
+			title: "Workflow simulation mix",
+			kind: "workflow_simulation",
+			weight: equalInputWeight(SPEED_INPUT_LABELS),
+			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
+		},
+	] as const;
+const valueInputRows = () => {
+	const inputWeight = equalInputWeight(VALUE_INPUT_LABELS);
+	return [
+		["AA task cost", inputWeight],
+		["AA intel per dollar", inputWeight],
+		["DeepSWE task cost", inputWeight],
+		["Agents' Last Exam task cost", inputWeight],
+		{
+			title: "Blend price profile",
+			kind: "price_profile",
+			weight: inputWeight,
+			rows: priceProfileRows(),
+		},
+		["Quality-adjusted blend value", inputWeight],
+		{
+			title: "Workflow simulation mix",
+			kind: "workflow_simulation",
+			weight: inputWeight,
+			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
+		},
+	] as const;
+};
 
 export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 	overall: {
@@ -527,11 +603,10 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		sections: [
 			{
 				title: "Score blend",
-				rows: qualityScoreRows("AA Intelligence Index"),
-			},
-			{
-				title: "Benchmark mix",
-				rows: INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
+				rows: qualityScoreRowsWithBenchmarkMix(
+					"AA Intelligence Index",
+					INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
+				),
 			},
 		],
 	},
@@ -545,11 +620,10 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		sections: [
 			{
 				title: "Score blend",
-				rows: qualityScoreRows("AA Agentic Index"),
-			},
-			{
-				title: "Benchmark mix",
-				rows: AGENTIC_BENCHMARK_TOOLTIP_ROWS,
+				rows: qualityScoreRowsWithBenchmarkMix(
+					"AA Agentic Index",
+					AGENTIC_BENCHMARK_TOOLTIP_ROWS,
+				),
 			},
 		],
 	},
@@ -566,10 +640,6 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 				title: "Speed inputs",
 				rows: speedInputRows(),
 			},
-			{
-				title: "Workflow simulation mix",
-				rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
-			},
 		],
 	},
 	value: {
@@ -585,18 +655,6 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 				title: "Value inputs",
 				rows: valueInputRows(),
 			},
-			{
-				title: "Blend price profile",
-				rows: [
-					priceProfileRow("Task", "task"),
-					priceProfileRow("Chat", "chat"),
-					priceProfileRow("Agentic", "agentic"),
-				],
-			},
-			{
-				title: "Workflow simulation mix",
-				rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
-			},
 		],
 	},
 	blend: {
@@ -605,17 +663,29 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		rows: [
 			["Definition", "weighted input/output price"],
 			["Formula", "sum(profile weight x profile price)"],
-			["Input share", effectivePriceProfileRatio("input")],
-			["Output share", effectivePriceProfileRatio("output")],
 			["Sort", LOWER_FIRST_TEXT],
 		],
 		sections: [
 			{
-				title: "Price profile weights",
+				title: "Price methodology",
 				rows: [
-					priceProfileRow("Task", "task"),
-					priceProfileRow("Chat", "chat"),
-					priceProfileRow("Agentic", "agentic"),
+					{
+						title: "Profile weights",
+						kind: "price_profile",
+						rows: priceProfileRows(),
+					},
+					{
+						title: "Input share",
+						kind: "price_share",
+						weight: effectivePriceProfileRatio("input"),
+						rows: priceProfileContributionRows("input"),
+					},
+					{
+						title: "Output share",
+						kind: "price_share",
+						weight: effectivePriceProfileRatio("output"),
+						rows: priceProfileContributionRows("output"),
+					},
 				],
 			},
 		],
