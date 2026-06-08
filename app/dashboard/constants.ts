@@ -3,7 +3,8 @@ import type { ModelStatsColumnTooltip } from "../../src/model-atlas/llm/llm-stat
 export const liveStatsPath = "/api/llm-stats";
 
 export const tooltipHorizontalPadding = 18;
-export const tooltipMaxWidth = 400;
+export const tooltipMaxWidth = 390;
+export const tooltipWorkflowMaxWidth = 460;
 export const tooltipOffsetTop = 12;
 
 export const benchmarkGroups = [

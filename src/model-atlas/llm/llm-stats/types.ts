@@ -233,9 +233,27 @@ export type SimulationProfiles = Record<string, SimulationProfile>;
 
 export type ModelStatsColumnTooltipRow = readonly [string, string];
 
+export type ModelStatsColumnTooltipSectionKind =
+	| "price_profile"
+	| "price_share"
+	| "workflow_simulation";
+
+export type ModelStatsColumnTooltipNestedSection = {
+	title: string;
+	kind?: ModelStatsColumnTooltipSectionKind;
+	weight?: string;
+	rows: readonly ModelStatsColumnTooltipRow[];
+};
+
+export type ModelStatsColumnTooltipSectionItem =
+	| ModelStatsColumnTooltipRow
+	| ModelStatsColumnTooltipNestedSection;
+
 export type ModelStatsColumnTooltipSection = {
 	title: string;
-	rows: readonly ModelStatsColumnTooltipRow[];
+	kind?: ModelStatsColumnTooltipSectionKind;
+	weight?: string;
+	rows: readonly ModelStatsColumnTooltipSectionItem[];
 };
 
 export type ModelStatsColumnTooltip = {

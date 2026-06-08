@@ -561,7 +561,9 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip {
 	position: fixed;
 	z-index: 30;
+	box-sizing: border-box;
 	width: min(400px, calc(100vw - 36px));
+	max-width: calc(100vw - 36px);
 	padding: 12px 13px 13px;
 	border: 1px solid rgba(217, 216, 210, 0.2);
 	background: rgba(13, 14, 15, 0.97);
@@ -648,6 +650,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-sections {
 	display: grid;
 	gap: 8px;
+	min-width: 0;
 	margin-top: 10px;
 	padding-top: 10px;
 	border-top: 1px solid rgba(217, 216, 210, 0.14);
@@ -656,6 +659,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-section {
 	display: grid;
 	gap: 7px;
+	min-width: 0;
 	padding: 9px 10px 10px;
 	border: 1px solid rgba(217, 216, 210, 0.1);
 	background: rgba(255, 255, 255, 0.018);
@@ -674,8 +678,24 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	text-transform: uppercase;
 }
 
+.column-tooltip-section-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.column-tooltip-section-weight {
+	margin-left: auto;
+	color: var(--ink);
+	font-size: var(--mono-label);
+	font-weight: 800;
+	white-space: nowrap;
+}
+
 .column-tooltip-section-title::before {
 	content: "";
+	flex: 0 0 auto;
 	width: 7px;
 	height: 7px;
 	border: 1px solid rgba(238, 238, 234, 0.38);
@@ -685,6 +705,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-section .column-tooltip-row {
 	grid-template-columns: minmax(0, 1fr) max-content;
 	gap: 14px;
+	min-width: 0;
 	font-size: var(--mono-label);
 }
 
@@ -698,6 +719,145 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	white-space: nowrap;
 }
 
+.workflow-tooltip .column-tooltip-section {
+	gap: 10px;
+	padding: 10px 10px 12px;
+}
+
+.column-tooltip-nested-section {
+	display: grid;
+	gap: 6px;
+	justify-self: stretch;
+	min-width: 0;
+	margin: 2px 0 8px;
+	padding: 0;
+}
+
+.column-tooltip-nested-section .column-tooltip-row {
+	grid-template-columns: minmax(0, 1fr) max-content;
+	justify-content: stretch;
+	margin-left: 18px;
+}
+
+.column-tooltip-nested-section.weighted-breakdown {
+	gap: 6px;
+}
+
+.column-tooltip-nested-section.weighted-breakdown .column-tooltip-row {
+	grid-template-columns: minmax(0, max-content) minmax(0, 1fr) max-content;
+	gap: 18px;
+	margin-left: 18px;
+}
+
+.column-tooltip-nested-section.weighted-breakdown .column-tooltip-value {
+	grid-column: 3;
+	text-align: right;
+}
+
+.column-tooltip-nested-section .column-tooltip-value {
+	color: var(--muted);
+}
+
+.column-tooltip-nested-section .column-tooltip-section-title {
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) max-content;
+	gap: 14px;
+	color: var(--muted);
+	font-size: var(--mono-label);
+	line-height: 1.2;
+}
+
+.column-tooltip-nested-section .column-tooltip-section-title::before {
+	display: none;
+}
+
+.column-tooltip-nested-section .column-tooltip-section-label {
+	padding-left: 0;
+}
+
+.column-tooltip-nested-section .column-tooltip-section-weight {
+	margin-left: auto;
+	color: var(--ink);
+	font-size: var(--mono-label);
+}
+
+.column-tooltip-price-profile-table,
+.column-tooltip-price-share-table,
+.column-tooltip-workflow-table {
+	display: grid;
+	align-items: baseline;
+	min-width: 0;
+	max-width: 100%;
+	color: var(--muted);
+	font-family: "SF Mono", Menlo, Consolas, monospace;
+	font-size: var(--mono-label);
+	font-weight: 800;
+	line-height: 1.2;
+}
+
+.column-tooltip-price-profile-table {
+	grid-template-columns:
+		minmax(0, max-content) minmax(72px, max-content)
+		minmax(42px, max-content);
+	column-gap: 18px;
+	row-gap: 6px;
+	width: fit-content;
+	margin-left: 18px;
+}
+
+.column-tooltip-price-share-table {
+	grid-template-columns:
+		minmax(0, max-content) minmax(76px, max-content)
+		minmax(44px, max-content);
+	column-gap: 18px;
+	row-gap: 6px;
+	width: fit-content;
+	margin-left: 18px;
+}
+
+.column-tooltip-workflow-table {
+	grid-template-columns:
+		minmax(0, 1.5fr) minmax(32px, max-content)
+		minmax(60px, max-content) minmax(60px, max-content)
+		minmax(46px, max-content);
+	column-gap: 14px;
+	row-gap: 6px;
+	width: min(100%, 390px);
+	margin-left: 18px;
+}
+
+.column-tooltip-nested-head,
+.column-tooltip-workflow-head {
+	padding-bottom: 5px;
+	border-bottom: 1px solid rgba(217, 216, 210, 0.1);
+	color: var(--faint);
+	font-size: 10px;
+	font-weight: 800;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.column-tooltip-price-profile-table span,
+.column-tooltip-price-share-table span,
+.column-tooltip-workflow-table span {
+	min-width: 0;
+	white-space: nowrap;
+}
+
+.column-tooltip-workflow-scenario {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.column-tooltip-nested-weight,
+.column-tooltip-workflow-weight {
+	color: var(--muted);
+	text-align: right;
+}
+
 @media (max-width: 560px) {
 	.column-tooltip-row,
 	.column-tooltip-section .column-tooltip-row {
@@ -706,6 +866,15 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	}
 
 	.column-tooltip-label {
+		white-space: normal;
+	}
+
+	.column-tooltip-workflow-table {
+		column-gap: 7px;
+		font-size: 11px;
+	}
+
+	.column-tooltip-workflow-scenario {
 		white-space: normal;
 	}
 }
