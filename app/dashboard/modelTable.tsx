@@ -5,6 +5,7 @@ import {
 	useLayoutEffect,
 	useRef,
 	useState,
+	type WheelEvent,
 } from "react";
 
 import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/llm-stats/types";
@@ -51,10 +52,14 @@ export function ModelTable({
 	providerColors,
 }: ModelTableProps) {
 	const tableScrollRef = useRef<HTMLDivElement>(null);
+	const tableShellRef = useRef<HTMLDivElement>(null);
 	const stickyHeadTrackRef = useRef<HTMLDivElement>(null);
 	const tableRef = useRef<HTMLTableElement>(null);
 	const scrollAnimationFrameRef = useRef<number | null>(null);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
+	const tableShellStyle = {
+		"--rank-column-width": `${columnWidths[0] ?? 48}px`,
+	} as CSSProperties;
 	const syncColumnWidths = useCallback(() => {
 		const widths = Array.from(
 			tableRef.current?.querySelectorAll("thead th") ?? [],
@@ -69,11 +74,41 @@ export function ModelTable({
 	}, []);
 	const syncStickyHeaderScroll = useCallback(() => {
 		scrollAnimationFrameRef.current = null;
-		const scrollLeft = tableScrollRef.current?.scrollLeft ?? 0;
+		const tableScroll = tableScrollRef.current;
+		const { scrollLeft } = horizontalScrollState(tableScroll);
+		if (tableScroll != null && tableScroll.scrollLeft !== scrollLeft) {
+			tableScroll.scrollLeft = scrollLeft;
+		}
 		if (stickyHeadTrackRef.current != null) {
 			stickyHeadTrackRef.current.style.transform = `translateX(${-scrollLeft}px)`;
 		}
+		tableShellRef.current?.style.setProperty(
+			"--table-scroll-left",
+			`${scrollLeft}px`,
+		);
 	}, []);
+	const handleWheel = useCallback(
+		(event: WheelEvent<HTMLDivElement>) => {
+			const tableScroll = tableScrollRef.current;
+			if (
+				tableScroll == null ||
+				Math.abs(event.deltaX) <= Math.abs(event.deltaY)
+			) {
+				return;
+			}
+			const { scrollLeft, maxScrollLeft } = horizontalScrollState(tableScroll);
+			const nextScrollLeft = scrollLeft + event.deltaX;
+			if (nextScrollLeft < 0 || nextScrollLeft > maxScrollLeft) {
+				event.preventDefault();
+				tableScroll.scrollLeft = Math.max(
+					0,
+					Math.min(nextScrollLeft, maxScrollLeft),
+				);
+				syncStickyHeaderScroll();
+			}
+		},
+		[syncStickyHeaderScroll],
+	);
 	const handleScroll = useCallback(() => {
 		onTooltipEnd();
 		if (scrollAnimationFrameRef.current == null) {
@@ -104,7 +139,7 @@ export function ModelTable({
 	}, [syncColumnWidths, syncStickyHeaderScroll]);
 
 	return (
-		<div className="table-shell">
+		<div ref={tableShellRef} className="table-shell" style={tableShellStyle}>
 			<div className="table-sticky-head">
 				<div className="table-sticky-head-viewport">
 					<div ref={stickyHeadTrackRef} className="table-sticky-head-track">
@@ -122,7 +157,12 @@ export function ModelTable({
 					</div>
 				</div>
 			</div>
-			<div className="table-wrap" ref={tableScrollRef} onScroll={handleScroll}>
+			<div
+				className="table-wrap"
+				ref={tableScrollRef}
+				onScroll={handleScroll}
+				onWheel={handleWheel}
+			>
 				<table ref={tableRef}>
 					<ColumnGroup widths={columnWidths} />
 					<thead>
@@ -278,7 +318,7 @@ function ModelRow({
 				text={String(rowData.intelligenceRank).padStart(2, "0")}
 				className="rank"
 			/>
-			<td>
+			<td className="model-column">
 				<div className="model-cell">
 					<ProviderLogo model={model} />
 					<div className="model-copy">
@@ -400,6 +440,15 @@ function sameNumberList(left: number[], right: number[]) {
 		left.length === right.length &&
 		left.every((leftValue, index) => leftValue === right[index])
 	);
+}
+
+function horizontalScrollState(element: HTMLElement | null) {
+	if (element == null) {
+		return { scrollLeft: 0, maxScrollLeft: 0 };
+	}
+	const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
+	const scrollLeft = Math.max(0, Math.min(element.scrollLeft, maxScrollLeft));
+	return { scrollLeft, maxScrollLeft };
 }
 
 export function reverseDirection(direction: Direction): Direction {

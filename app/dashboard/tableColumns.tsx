@@ -14,7 +14,7 @@ export type SortableColumnDefinition = {
 };
 
 export const staticSortableColumns: SortableColumnDefinition[] = [
-	{ key: "rank", label: "#" },
+	{ key: "rank", label: "#", className: "rank" },
 	{ key: "model", label: "Model", className: "model-column" },
 	{ key: "overall", label: "Ovrll" },
 	{
