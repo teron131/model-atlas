@@ -49,6 +49,8 @@ const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
 const PINNED_COLUMNS_ENABLE_BUFFER_PX = 24;
 const MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
+const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
+const RELEASE_DATE_TOKEN_PATTERN = /^\d{4}$/;
 
 export function ModelTable({
 	sortState,
@@ -391,8 +393,8 @@ function ModelRow({
 	providerColors: ProviderThemeColors;
 }) {
 	const model = rowData.model;
-	const displayName = displayModelName(model.name);
-	const displayId = displayModelId(model.id);
+	const visibleName = visibleModelName(model.name);
+	const visibleSlug = visibleModelSlug(model.id);
 	const relativeScores = model.relative_scores ?? {};
 	return (
 		<tr>
@@ -405,10 +407,10 @@ function ModelRow({
 					<ProviderLogo model={model} />
 					<div className="model-copy">
 						<div className="model" title={model.name ?? undefined}>
-							{displayName}
+							{visibleName}
 						</div>
 						<div className="id" title={model.id ?? undefined}>
-							{displayId}
+							{visibleSlug}
 						</div>
 					</div>
 				</div>
@@ -457,25 +459,25 @@ function ModelRow({
 	);
 }
 
-function displayModelName(name: string | null | undefined) {
+function visibleModelName(name: string | null | undefined) {
 	if (name == null || name.length === 0) {
 		return "-";
 	}
-	return stripModelDisplaySuffixes(name, " ");
+	return stripModelDisplayTokens(name, " ");
 }
 
-function displayModelId(id: string | null | undefined) {
+function visibleModelSlug(id: string | null | undefined) {
 	if (id == null || id.length === 0) {
 		return "-";
 	}
 	const slashIndex = id.indexOf("/");
-	return stripModelDisplaySuffixes(
+	return stripModelDisplayTokens(
 		slashIndex === -1 ? id : id.slice(slashIndex + 1),
 		"-",
 	);
 }
 
-function stripModelDisplaySuffixes(value: string, separator: " " | "-") {
+function stripModelDisplayTokens(value: string, separator: " " | "-") {
 	const tokens = value.split(separator).filter((token) => token.length > 0);
 	const visibleTokens = tokens.filter((token) => !isHiddenDisplayToken(token));
 	while (visibleTokens.length > 1 && isReleaseDateToken(visibleTokens.at(-1))) {
@@ -485,11 +487,11 @@ function stripModelDisplaySuffixes(value: string, separator: " " | "-") {
 }
 
 function isHiddenDisplayToken(token: string) {
-	return /^(instruct|preview)$/i.test(token);
+	return HIDDEN_MODEL_DISPLAY_TOKENS.has(token.toLowerCase());
 }
 
 function isReleaseDateToken(token: string | undefined) {
-	return token != null && /^\d{4}$/.test(token);
+	return token != null && RELEASE_DATE_TOKEN_PATTERN.test(token);
 }
 
 function ProviderLogo({ model }: { model: ModelStatsSelectedModel }) {
