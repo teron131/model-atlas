@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
 
 import { BotIcon, BrainIcon, DollarIcon, RocketIcon } from "./icons";
-import {
-	benchmarkMetricColumns,
-	type SortKey,
-	taskMetricColumns,
-} from "./models";
+import { dashboardMetricColumns, type SortKey } from "./models";
 
 export type SortableColumnDefinition = {
 	key: SortKey;
@@ -39,8 +35,7 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
 
 export const dashboardColumnKeys = [
 	...staticSortableColumns.map((column) => column.key),
-	...taskMetricColumns.map((column) => column.key),
-	...benchmarkMetricColumns.map((column) => column.key),
+	...dashboardMetricColumns.map((column) => column.key),
 ];
 
 function metricLabel(icon: ReactNode, text: string) {

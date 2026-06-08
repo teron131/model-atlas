@@ -1,6 +1,6 @@
 import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/llm-stats/types";
 
-export const taskMetricColumns = [
+const artificialAnalysisTaskMetricColumns = [
 	{
 		key: "aaCost",
 		source: "artificial_analysis",
@@ -22,6 +22,9 @@ export const taskMetricColumns = [
 		direction: "descending",
 		label: "AA Tok",
 	},
+] as const;
+
+const deepSWETaskMetricColumns = [
 	{
 		key: "deepSWECost",
 		source: "deep_swe",
@@ -43,6 +46,9 @@ export const taskMetricColumns = [
 		direction: "descending",
 		label: "DSWE Tok",
 	},
+] as const;
+
+const agentsLastExamTaskMetricColumns = [
 	{
 		key: "agentsLastExamSeconds",
 		source: "agents_last_exam",
@@ -66,18 +72,35 @@ export const taskMetricColumns = [
 	},
 ] as const;
 
+export const taskMetricColumns = [
+	...artificialAnalysisTaskMetricColumns,
+	...deepSWETaskMetricColumns,
+	...agentsLastExamTaskMetricColumns,
+] as const;
+
+const deepSWEBenchmarkColumn = {
+	key: "deepSWE",
+	metric: "deep_swe",
+	direction: "descending",
+	label: "DSWE",
+} as const;
+
+const agentsLastExamBenchmarkColumn = {
+	key: "agentsLastExam",
+	metric: "agents_last_exam",
+	direction: "descending",
+	label: "ALE",
+} as const;
+
 export const benchmarkMetricColumns = [
-	{
-		key: "agentsLastExam",
-		metric: "agents_last_exam",
-		direction: "descending",
-		label: "ALE",
-	},
+	deepSWEBenchmarkColumn,
+	agentsLastExamBenchmarkColumn,
 ] as const;
 
 export type Direction = "ascending" | "descending";
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
 export type BenchmarkMetricColumn = (typeof benchmarkMetricColumns)[number];
+export type DashboardMetricColumn = TaskMetricColumn | BenchmarkMetricColumn;
 export type SortKey =
 	| "rank"
 	| "model"
@@ -90,6 +113,14 @@ export type SortKey =
 	| "context"
 	| TaskMetricColumn["key"]
 	| BenchmarkMetricColumn["key"];
+
+export const dashboardMetricColumns: DashboardMetricColumn[] = [
+	...artificialAnalysisTaskMetricColumns,
+	deepSWEBenchmarkColumn,
+	...deepSWETaskMetricColumns,
+	agentsLastExamBenchmarkColumn,
+	...agentsLastExamTaskMetricColumns,
+];
 
 export type SortState = {
 	key: SortKey;
