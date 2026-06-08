@@ -14,15 +14,7 @@
 	min-height: 100dvh;
 	margin: 0 auto;
 	padding: 18px 22px 56px;
-	background:
-		linear-gradient(
-			90deg,
-			rgba(255, 90, 70, 0.08),
-			transparent 16%,
-			transparent 84%,
-			rgba(8, 128, 248, 0.05)
-		),
-		var(--paper);
+	background: var(--paper);
 	color: var(--ink);
 	font-family: "Helvetica Neue", Arial, sans-serif;
 }
