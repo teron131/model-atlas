@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
 	type CSSProperties,
 	type ReactNode,
@@ -18,14 +19,13 @@ import {
 	safeSlug,
 } from "./format";
 import {
-	benchmarkMetricColumns,
 	benchmarkMetricValue,
 	contextWindowValue,
 	type Direction,
+	dashboardMetricColumns,
 	type SortKey,
 	type SortState,
 	type TableRow,
-	taskMetricColumns,
 	taskMetricValue,
 } from "./models";
 import { type ProviderThemeColors, providerThemeColor } from "./providerTheme";
@@ -225,18 +225,7 @@ function TableHeaderRow({
 					onTooltipEnd={onTooltipEnd}
 				/>
 			))}
-			{taskMetricColumns.map((column) => (
-				<SortableHeader
-					key={column.key}
-					label={column.label}
-					keyName={column.key}
-					sortState={sortState}
-					onSort={onSort}
-					onTooltip={onTooltip}
-					onTooltipEnd={onTooltipEnd}
-				/>
-			))}
-			{benchmarkMetricColumns.map((column) => (
+			{dashboardMetricColumns.map((column) => (
 				<SortableHeader
 					key={column.key}
 					label={column.label}
@@ -353,23 +342,24 @@ function ModelRow({
 				text={formatContext(contextWindowValue(model))}
 				className="data-cell"
 			/>
-			{taskMetricColumns.map((column) => (
-				<TableCell
-					key={column.key}
-					text={formatTaskMetric(taskMetricValue(model, column), column)}
-					className="data-cell"
-				/>
-			))}
-			{benchmarkMetricColumns.map((column) => (
-				<TableCell
-					key={column.key}
-					text={formatBenchmarkMetric(
-						benchmarkMetricValue(model, column),
-						column,
-					)}
-					className="data-cell"
-				/>
-			))}
+			{dashboardMetricColumns.map((column) =>
+				"source" in column ? (
+					<TableCell
+						key={column.key}
+						text={formatTaskMetric(taskMetricValue(model, column), column)}
+						className="data-cell"
+					/>
+				) : (
+					<TableCell
+						key={column.key}
+						text={formatBenchmarkMetric(
+							benchmarkMetricValue(model, column),
+							column,
+						)}
+						className="data-cell"
+					/>
+				),
+			)}
 		</tr>
 	);
 }
@@ -383,14 +373,13 @@ function ProviderLogo({ model }: { model: ModelStatsSelectedModel }) {
 	}
 
 	return (
-		<img
+		<Image
 			className="provider-logo"
 			src={logoSrc}
 			alt=""
 			width={32}
 			height={32}
-			decoding="async"
-			loading="lazy"
+			unoptimized
 			onError={() => {
 				setHidden(true);
 			}}

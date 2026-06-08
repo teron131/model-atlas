@@ -59,7 +59,7 @@ export function formatBenchmarkMetric(
 	value: number | null | undefined,
 	column: BenchmarkMetricColumn,
 ) {
-	if (column.metric === "agents_last_exam") {
+	if (column.metric === "agents_last_exam" || column.metric === "deep_swe") {
 		return typeof value === "number" && Number.isFinite(value)
 			? `${(value * 100).toFixed(1)}%`
 			: "-";

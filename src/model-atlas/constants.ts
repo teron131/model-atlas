@@ -715,6 +715,14 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		body: "Estimated output tokens for one Artificial Analysis Intelligence task.",
 		rows: [["Formula", "output tokens / task count"]],
 	},
+	deepSWE: {
+		title: "DeepSWE",
+		body: "Coding-agent benchmark. This score uses each model's best pass@1 configuration.",
+		rows: [
+			["Source", "DeepSWE leaderboard"],
+			["Sort", HIGHER_FIRST_TEXT],
+		],
+	},
 	deepSWECost: {
 		title: "DeepSWE cost per task",
 		body: "Mean cost for one DeepSWE task.",
