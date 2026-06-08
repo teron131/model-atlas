@@ -231,6 +231,7 @@ export function pointHover(
 		model: displayName,
 		provider: providerName(model),
 		color: providerColor(model.provider),
+		logo: providerLogoSource(model),
 		rows,
 	};
 }
@@ -248,6 +249,7 @@ export function focusHover(
 		model: displayName,
 		provider: providerName(model),
 		color: providerColor(model.provider),
+		logo: providerLogoSource(model),
 		rows,
 	};
 }
@@ -337,6 +339,14 @@ export function shortLabel(model: ModelStatsSelectedModel) {
 		.replace(" Preview", "")
 		.replace("Claude ", "")
 		.replace("GPT-", "GPT ");
+}
+
+function providerLogoSource(model: ModelStatsSelectedModel) {
+	if (typeof model.logo === "string" && model.logo.length > 0) {
+		return model.logo;
+	}
+	const logoSlug = providerSlug(model.provider);
+	return logoSlug ? `/api/logos/${logoSlug}.png` : "";
 }
 
 function modelLookupKey(value: string) {

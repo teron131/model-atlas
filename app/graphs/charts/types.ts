@@ -18,6 +18,7 @@ export type HoverState = {
 	model: string;
 	provider: string;
 	color: string;
+	logo: string;
 	rows: HoverRow[];
 };
 

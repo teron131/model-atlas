@@ -566,11 +566,28 @@
 	border-bottom: 1px solid var(--line);
 }
 
-.hoverCardSwatch {
-	width: 11px;
-	height: 11px;
-	margin-top: 4px;
-	background: var(--hover-color);
+.hoverCardLogo {
+	display: grid;
+	flex: 0 0 28px;
+	width: 28px;
+	height: 28px;
+	place-items: center;
+	border: 1px solid color-mix(in srgb, var(--hover-color) 74%, transparent);
+	border-radius: 4px;
+	background:
+		linear-gradient(
+			135deg,
+			color-mix(in srgb, var(--hover-color) 18%, transparent),
+			rgba(8, 9, 9, 0.9)
+		),
+		var(--surface);
+}
+
+.hoverCardLogo img {
+	width: 22px;
+	height: 22px;
+	object-fit: contain;
+	filter: saturate(0.96) contrast(1.08);
 }
 
 .hoverCardTitle {

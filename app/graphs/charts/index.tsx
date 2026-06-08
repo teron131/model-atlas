@@ -5,6 +5,7 @@ import { LinePath } from "@visx/shape";
 import { extent, max, median } from "d3-array";
 import { scaleLinear, scaleLog, scaleSqrt } from "d3-scale";
 import { line } from "d3-shape";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type {
 	ModelStatsSelectedModel,
@@ -1417,7 +1418,21 @@ function HoverCard({ hover }: { hover: HoverState }) {
 			}
 		>
 			<div className={styles.hoverCardHead}>
-				<span className={styles.hoverCardSwatch} />
+				<span className={styles.hoverCardLogo}>
+					{hover.logo ? (
+						<Image
+							src={hover.logo}
+							alt=""
+							width={26}
+							height={26}
+							loading="lazy"
+							unoptimized
+							onError={(event) => {
+								event.currentTarget.hidden = true;
+							}}
+						/>
+					) : null}
+				</span>
 				<div>
 					<div className={styles.hoverCardTitle}>{hover.model}</div>
 					<div className={styles.hoverCardProvider}>{hover.provider}</div>
