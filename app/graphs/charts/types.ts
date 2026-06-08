@@ -41,6 +41,7 @@ export type InteractionConfig = {
 	ticks: number[];
 	get: (model: ModelStatsSelectedModel) => number | null;
 	format: (value: number) => string;
+	tooltipFormat: (value: number) => string;
 	xLabel: string;
 	read: string;
 };

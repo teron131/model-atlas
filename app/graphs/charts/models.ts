@@ -7,8 +7,10 @@ import {
 	finiteValue,
 	fmtCompact,
 	fmtMoney,
-	fmtPercent,
 	fmtSeconds,
+	fmtTooltipMoney,
+	fmtTooltipNumber,
+	fmtTooltipPercent,
 	percent,
 } from "./format";
 import { providerColor, providerName, providerSlug } from "./providerTheme";
@@ -43,6 +45,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		ticks: [0.25, 0.5, 1, 2, 5, 10, 25],
 		get: (model) => finiteValue(model.cost?.blended_price),
 		format: fmtMoney,
+		tooltipFormat: fmtTooltipMoney,
 		xLabel: "Blended price per 1M tokens",
 		read: "Shows whether price actually buys broad intelligence, and where cheap high-ceiling models break the curve.",
 	},
@@ -56,6 +59,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		get: (model) =>
 			finiteValue(model.speed?.throughput_tokens_per_second_median),
 		format: (value) => `${fmtCompact(value)} t/s`,
+		tooltipFormat: (value) => `${fmtTooltipNumber(value)} t/s`,
 		xLabel: "Output tokens per second",
 		read: "Separates fast utility models from models that are both fast enough and genuinely capable.",
 	},
@@ -68,6 +72,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		ticks: [2, 5, 10, 20, 40, 80],
 		get: (model) => finiteValue(model.speed?.e2e_latency_seconds_median),
 		format: fmtSeconds,
+		tooltipFormat: (value) => `${fmtTooltipNumber(value)}s`,
 		xLabel: "End-to-end response time",
 		read: "Makes the practical waiting-time tradeoff visible instead of ranking intelligence in isolation.",
 	},
@@ -80,6 +85,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		ticks: [32_000, 128_000, 256_000, 1_000_000, 2_000_000, 10_000_000],
 		get: (model) => finiteValue(model.context_window?.context),
 		format: fmtCompact,
+		tooltipFormat: fmtTooltipNumber,
 		xLabel: "Context tokens",
 		read: "Highlights when huge context is real leverage versus just a large number beside a weaker model.",
 	},
@@ -92,6 +98,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		ticks: [0.02, 0.05, 0.1, 0.25, 0.5, 1],
 		get: (model) => finiteValue(model.task_metrics?.artificial_analysis?.cost),
 		format: fmtMoney,
+		tooltipFormat: fmtTooltipMoney,
 		xLabel: "AA task cost",
 		read: "Connects benchmark quality to the cost of producing that quality during the evaluation workload.",
 	},
@@ -104,6 +111,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		ticks: [0, 20, 40, 60, 80],
 		get: (model) => percent(model.evaluations?.deep_swe),
 		format: (value) => `${value.toFixed(0)}%`,
+		tooltipFormat: fmtTooltipPercent,
 		xLabel: "DeepSWE accuracy",
 		read: "Shows when broad intelligence and long-horizon coding reliability agree, and where they diverge.",
 	},
@@ -319,7 +327,7 @@ export function positiveDomain(values: number[]): [number, number] {
 
 export function deepSWECi(row: DeepSWELeaderboardRow) {
 	return row.ci_lo != null && row.ci_hi != null
-		? `${fmtPercent(row.ci_lo)}-${fmtPercent(row.ci_hi)}`
+		? `${fmtTooltipPercent(row.ci_lo)}-${fmtTooltipPercent(row.ci_hi)}`
 		: "--";
 }
 
