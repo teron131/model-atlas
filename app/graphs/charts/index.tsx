@@ -2,8 +2,8 @@
 
 import { GridColumns, GridRows } from "@visx/grid";
 import { LinePath } from "@visx/shape";
-import { extent, max, median } from "d3-array";
-import { scaleLinear, scaleLog, scaleSqrt } from "d3-scale";
+import { extent, max, median, quantile } from "d3-array";
+import { scaleLinear, scaleLog } from "d3-scale";
 import { line } from "d3-shape";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -58,6 +58,45 @@ import type {
 	ModelLimit,
 	Point,
 } from "./types";
+
+type DeepSWEMetricKey = "cost" | "time" | "tokens";
+
+type AccuracyDistribution = {
+	count: number;
+	min: number;
+	q1: number;
+	median: number;
+	q3: number;
+	max: number;
+};
+
+type HiddenResourceMetric = {
+	firstLabel: string;
+	secondLabel: string;
+	firstValue: (row: DeepSWEChartRow) => number;
+	secondValue: (row: DeepSWEChartRow) => number;
+};
+
+const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
+	cost: {
+		firstLabel: "time",
+		secondLabel: "output tokens",
+		firstValue: (row) => row.row.mean_duration_seconds / 60,
+		secondValue: (row) => row.row.mean_output_tokens,
+	},
+	time: {
+		firstLabel: "cost",
+		secondLabel: "output tokens",
+		firstValue: (row) => row.row.mean_cost_usd,
+		secondValue: (row) => row.row.mean_output_tokens,
+	},
+	tokens: {
+		firstLabel: "cost",
+		secondLabel: "time",
+		firstValue: (row) => row.row.mean_cost_usd,
+		secondValue: (row) => row.row.mean_duration_seconds / 60,
+	},
+};
 
 export function ModelAtlasCharts({
 	initialPayload,
@@ -245,6 +284,7 @@ function Panel({
 	title,
 	copy,
 	chips,
+	summary,
 	children,
 	note,
 	wide = false,
@@ -253,6 +293,7 @@ function Panel({
 	title: string;
 	copy?: string;
 	chips?: string[];
+	summary?: React.ReactNode;
 	children: React.ReactNode;
 	note?: React.ReactNode;
 	wide?: boolean;
@@ -262,15 +303,16 @@ function Panel({
 			<div className={styles.panelHead}>
 				<div className={styles.panelMeta}>
 					<p className={styles.chartKicker}>{kicker}</p>
-					{chips && chips.length > 0 ? (
-						<div className={styles.chips}>
-							{chips.map((chip) => (
-								<span key={chip} className={styles.chip}>
-									{chip}
-								</span>
-							))}
-						</div>
-					) : null}
+					{summary ??
+						(chips && chips.length > 0 ? (
+							<div className={styles.chips}>
+								{chips.map((chip) => (
+									<span key={chip} className={styles.chip}>
+										{chip}
+									</span>
+								))}
+							</div>
+						) : null)}
 				</div>
 				<div className={styles.panelTitleBlock}>
 					<h2>{title}</h2>
@@ -281,6 +323,89 @@ function Panel({
 			{note ? <div className={styles.note}>{note}</div> : null}
 		</article>
 	);
+}
+
+function AccuracyBoxWhisker({
+	distribution,
+}: {
+	distribution: AccuracyDistribution;
+}) {
+	const domainMax = Math.max(75, distribution.max);
+	const toPosition = (value: number) =>
+		`${clamp((value / domainMax) * 100, 0, 100)}%`;
+	const formatPoint = (value: number) => `${value.toFixed(0)}%`;
+	const style = {
+		"--whisker-min": toPosition(distribution.min),
+		"--whisker-q1": toPosition(distribution.q1),
+		"--whisker-median": toPosition(distribution.median),
+		"--whisker-q3": toPosition(distribution.q3),
+		"--whisker-max": toPosition(distribution.max),
+	} as React.CSSProperties;
+
+	return (
+		<div className={styles.boxWhiskerSummary} style={style}>
+			<div className={styles.boxWhiskerTop}>
+				<span>DeepSWE accuracy</span>
+				<b>{distribution.count} models</b>
+			</div>
+			<div
+				className={styles.boxWhiskerPlot}
+				aria-label={`DeepSWE accuracy distribution from ${formatPoint(
+					distribution.min,
+				)} to ${formatPoint(distribution.max)} with median ${formatPoint(
+					distribution.median,
+				)}`}
+				role="img"
+			>
+				<span className={styles.boxWhiskerLine} />
+				<span className={styles.boxWhiskerMin} />
+				<span className={styles.boxWhiskerMax} />
+				<span className={styles.boxWhiskerBox} />
+				<span className={styles.boxWhiskerMedian} />
+			</div>
+			<div className={styles.boxWhiskerStats}>
+				<span className={styles.boxWhiskerMinValue}>
+					{formatPoint(distribution.min)}
+				</span>
+				<span className={styles.boxWhiskerMedianValue}>
+					{formatPoint(distribution.median)}
+				</span>
+				<span className={styles.boxWhiskerMaxValue}>
+					{formatPoint(distribution.max)}
+				</span>
+			</div>
+		</div>
+	);
+}
+
+function deepSWEAccuracyDistribution(
+	rows: DeepSWELeaderboardRow[],
+): AccuracyDistribution {
+	const accuracyValues = [...groupBy(rows, (row) => row.model).values()]
+		.map((modelRows) => {
+			const modelScores = modelRows
+				.map((row) => percent(row.pass_at_1))
+				.filter(finite);
+			return max(modelScores) ?? null;
+		})
+		.filter(finite)
+		.sort((left, right) => left - right);
+
+	return {
+		count: accuracyValues.length,
+		min: accuracyValues[0] ?? 0,
+		q1: quantile(accuracyValues, 0.25) ?? 0,
+		median: quantile(accuracyValues, 0.5) ?? 0,
+		q3: quantile(accuracyValues, 0.75) ?? 0,
+		max: accuracyValues[accuracyValues.length - 1] ?? 0,
+	};
+}
+
+function hiddenResourceValue(
+	row: DeepSWEChartRow,
+	metric: HiddenResourceMetric,
+) {
+	return metric.firstValue(row) * metric.secondValue(row);
 }
 
 function FrontierPanel({
@@ -356,13 +481,12 @@ function FrontierPanel({
 		<Panel
 			kicker="Graph 01 / Pareto frontier"
 			title="Pareto frontier"
-			copy="A tradeoff scatter for the Artificial Analysis-style intelligence versus price story, with the efficient budget envelope pulled forward."
-			chips={["line = observed envelope"]}
+			copy="Intelligence score plotted against blended price per 1M tokens."
+			chips={["observed envelope"]}
 			note={
 				<>
-					<b>Read:</b> The step line marks the best available intelligence once
-					you raise the budget. It is an envelope of observed models, not a
-					fitted curve.
+					Step line: highest observed intelligence score available at or below
+					each price level.
 				</>
 			}
 		>
@@ -519,24 +643,11 @@ function DeepSwePanel({
 	rows: DeepSWELeaderboardRow[];
 	setHover: HoverSetter;
 }) {
-	const [metricKey, setMetricKey] = useState<"cost" | "time" | "tokens">(
-		"cost",
-	);
+	const [metricKey, setMetricKey] = useState<DeepSWEMetricKey>("cost");
 	const [effortMode, setEffortMode] = useState<DeepSWEEffortMode>("best");
 	const allEfforts = deepSweRows(models, rows, "all");
 	const deep =
 		effortMode === "all" ? allEfforts : deepSweRows(models, rows, "best");
-	const effortLabelKeys = new Set(
-		[...groupBy(allEfforts, (row) => row.modelKey).values()].flatMap(
-			(modelRows) => {
-				if (modelRows.length <= 1) {
-					return [];
-				}
-				const labelRow = modelRows[0];
-				return labelRow ? [labelRow.row.config ?? labelRow.displayName] : [];
-			},
-		),
-	);
 
 	if (deep.length === 0) {
 		return (
@@ -572,23 +683,13 @@ function DeepSwePanel({
 		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
-	const bubbleValue = (row: DeepSWEChartRow) => {
-		if (metricKey === "time") {
-			return row.row.mean_cost_usd;
-		}
-		if (metricKey === "tokens") {
-			return row.row.mean_duration_seconds / 60;
-		}
-		return row.row.mean_output_tokens;
-	};
-	const bubbleDomain = positiveDomain(deep.map(bubbleValue).filter(finite));
-	const bubbleScale = scaleSqrt()
-		.domain(bubbleDomain)
-		.range([5, 15])
+	const markerMetrics = hiddenResourceMetrics[metricKey];
+	const bubbleValue = (row: DeepSWEChartRow) =>
+		hiddenResourceValue(row, markerMetrics);
+	const bubbleScale = scaleLog()
+		.domain(positiveDomain(deep.map(bubbleValue).filter(finite)))
+		.range([5, 20])
 		.clamp(true);
-	const labelSet = new Set(
-		deep.slice(0, 8).map((row) => row.row.config ?? row.displayName),
-	);
 	const leader = deep[0] as DeepSWEChartRow;
 	const bestAxis =
 		[...deep].sort(
@@ -601,6 +702,8 @@ function DeepSwePanel({
 			.filter((row) => Number(percent(row.row.pass_at_1)) >= 20)
 			.sort((left, right) => metric.get(left) - metric.get(right))[0] ??
 		bestAxis;
+	const labeledRows = new Set([leader, bestAxis, leanAboveFloor]);
+	const accuracyDistribution = deepSWEAccuracyDistribution(rows);
 	const effortLines =
 		effortMode === "all"
 			? [...groupBy(deep, (row) => row.modelKey).values()]
@@ -611,24 +714,18 @@ function DeepSwePanel({
 						),
 					)
 			: [];
+	const plotRows = [...deep].sort(
+		(left, right) =>
+			Number(percent(left.row.pass_at_1)) -
+			Number(percent(right.row.pass_at_1)),
+	);
 
 	return (
 		<Panel
 			kicker="Graph 02 / DeepSWE resource axis"
 			title="DeepSWE resource axis"
-			copy="The official DeepSWE page lets the scatter pivot between cost, time, and output tokens; this draft keeps that behavior and adds dot-size encoding for the hidden resource."
-			chips={[
-				`leader ${fmtPercent(leader.row.pass_at_1)}`,
-				"cost / time / output tokens",
-				`best accuracy/${metric.unit} ${deepSWELabel(bestAxis, false)}`,
-			]}
-			note={
-				<>
-					<b>Read:</b> Use the resource buttons to ask three different
-					questions: who buys accuracy cheaply, who gets it quickly, and who
-					gets it with fewer generated tokens.
-				</>
-			}
+			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens. Bubble size uses a log-scaled product of the two other resources."
+			summary={<AccuracyBoxWhisker distribution={accuracyDistribution} />}
 		>
 			<div className={styles.resourceToolbar}>
 				<fieldset className={styles.metricToggle}>
@@ -640,7 +737,7 @@ function DeepSwePanel({
 							key={key}
 							type="button"
 							aria-pressed={key === metricKey}
-							onClick={() => setMetricKey(key as "cost" | "time" | "tokens")}
+							onClick={() => setMetricKey(key as DeepSWEMetricKey)}
 						>
 							{config.shortLabel}
 						</button>
@@ -663,7 +760,11 @@ function DeepSwePanel({
 					))}
 				</fieldset>
 				<div className={styles.resourceCaption}>
-					Bubble size = {metric.bubble}
+					<span className={styles.markerKey}>
+						<span className={styles.bubbleMarkerKey} />
+						Bubble = log({markerMetrics.firstLabel} x{" "}
+						{markerMetrics.secondLabel})
+					</span>
 				</div>
 			</div>
 			<div className={styles.chartWrap}>
@@ -737,15 +838,11 @@ function DeepSwePanel({
 							/>
 						);
 					})}
-					{deep.map((row) => {
+					{plotRows.map((row) => {
 						const axisValue = metric.get(row);
 						const score = Number(percent(row.row.pass_at_1));
 						const cx = x(axisValue);
 						const cy = y(score);
-						const labeled =
-							effortMode === "all"
-								? effortLabelKeys.has(row.row.config ?? row.displayName)
-								: labelSet.has(row.row.config ?? row.displayName);
 						const hoverTitle = deepSWELabel(row, true);
 						const rows: HoverRow[] = [
 							["DeepSWE", fmtTooltipPercent(row.row.pass_at_1)],
@@ -764,7 +861,7 @@ function DeepSwePanel({
 									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
-									opacity={0.9}
+									opacity={0.72}
 								/>
 								<PointHitTarget
 									cx={cx}
@@ -774,18 +871,26 @@ function DeepSwePanel({
 									setHover={setHover}
 									hoverTitle={hoverTitle}
 								/>
-								{labeled ? (
-									<DeepSWEPointLabel
-										label={deepSWELabel(row, false)}
-										cx={cx}
-										cy={cy}
-										width={width}
-										margin={margin}
-										height={height}
-									/>
-								) : null}
 							</g>
 						);
+					})}
+					{plotRows.map((row) => {
+						const axisValue = metric.get(row);
+						const score = Number(percent(row.row.pass_at_1));
+						const cx = x(axisValue);
+						const cy = y(score);
+						return labeledRows.has(row) ? (
+							<DeepSWEPointLabel
+								key={`label-${row.row.config ?? row.modelKey}`}
+								label={deepSWELabel(row, false)}
+								cx={cx}
+								cy={cy}
+								width={width}
+								margin={margin}
+								height={height}
+								xOffset={bubbleScale(bubbleValue(row)) + 8}
+							/>
+						) : null;
 					})}
 				</svg>
 			</div>
@@ -807,11 +912,6 @@ function DeepSwePanel({
 					value={deepSWELabel(leanAboveFloor, effortMode === "all")}
 					detail={metric.format(metric.get(leanAboveFloor))}
 				/>
-				<SummaryCard
-					label="Median accuracy"
-					value={fmtPercent(median(deep, (row) => percent(row.row.pass_at_1)))}
-					detail={`${deep.length} ${effortMode === "all" ? "efforts" : "models"}`}
-				/>
 			</div>
 		</Panel>
 	);
@@ -828,18 +928,17 @@ function InteractionMatrix({
 		<Panel
 			kicker="Graph 03 / Intelligence interaction matrix"
 			title="Intelligence interaction matrix"
-			copy="The table already tells you who ranks highest. This matrix asks whether intelligence moves with price, speed, response time, context, task cost, and coding reliability."
+			copy="Small multiples plotting intelligence against price, speed, response time, context, task cost, and coding reliability."
 			chips={[
-				"AA-style comparisons",
-				"not another rank list",
-				"best corner labels",
+				"y = intelligence",
+				"r = correlation",
+				"corner label = selected tradeoff",
 			]}
 			wide
 			note={
 				<>
-					<b>Read:</b> Every plot uses intelligence on the vertical axis. The
-					useful model is usually in the named corner, not necessarily the model
-					with the highest standalone score.
+					Each plot uses intelligence on the vertical axis. The corner label
+					names the tradeoff emphasized in that plot.
 				</>
 			}
 		>
@@ -1108,12 +1207,12 @@ function RunwayPanel({
 		<Panel
 			kicker="Graph 04 / Context runway"
 			title="Context runway"
-			copy="Long-context claims are more useful when paired with throughput. This plot separates giant-but-slow context from models that can actually move through large inputs."
+			copy="Context window plotted against median output throughput."
 			chips={["bubble = value"]}
 			note={
 				<>
-					<b>Read:</b> Upper right is the long-context runway. It is a better
-					signal for RAG and repository-scale workflows than context alone.
+					Upper right means larger context and higher throughput. Bubble size
+					uses the model's value score.
 				</>
 			}
 		>
@@ -1387,6 +1486,7 @@ function DeepSWEPointLabel({
 	width,
 	margin,
 	height,
+	xOffset = 10,
 }: {
 	label: string;
 	cx: number;
@@ -1394,9 +1494,9 @@ function DeepSWEPointLabel({
 	width: number;
 	margin: Margin;
 	height: number;
+	xOffset?: number;
 }) {
 	const labelOnLeft = cx > width - margin.right - 135;
-	const xOffset = 10;
 	const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
 	return (
 		<text

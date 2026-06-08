@@ -125,7 +125,6 @@ export const deepSweMetricConfig = {
 		get: (row: DeepSWEChartRow) => row.row.mean_cost_usd,
 		format: fmtMoney,
 		ticks: [0.5, 1, 2, 5, 10, 20],
-		bubble: "output tokens",
 	},
 	time: {
 		label: "Avg time per task",
@@ -134,7 +133,6 @@ export const deepSweMetricConfig = {
 		get: (row: DeepSWEChartRow) => row.row.mean_duration_seconds / 60,
 		format: (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)}m`,
 		ticks: [10, 20, 30, 45, 60],
-		bubble: "cost",
 	},
 	tokens: {
 		label: "Avg output tokens",
@@ -143,7 +141,6 @@ export const deepSweMetricConfig = {
 		get: (row: DeepSWEChartRow) => row.row.mean_output_tokens,
 		format: fmtCompact,
 		ticks: [20_000, 50_000, 100_000, 200_000],
-		bubble: "time",
 	},
 };
 
