@@ -390,7 +390,8 @@ h1 {
 	width: 100%;
 	overflow-x: auto;
 	overflow-y: visible;
-	overscroll-behavior: none;
+	overscroll-behavior-x: contain;
+	overscroll-behavior-y: auto;
 	-webkit-overflow-scrolling: touch;
 }
 
