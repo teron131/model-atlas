@@ -6,6 +6,14 @@ export function finiteValue(value: unknown): number | null {
 	return finite(value) ? value : null;
 }
 
+const tooltipIntegerFormatter = new Intl.NumberFormat("en-US", {
+	maximumFractionDigits: 0,
+});
+
+const tooltipDecimalFormatter = new Intl.NumberFormat("en-US", {
+	maximumFractionDigits: 1,
+});
+
 export function clamp(value: number, minValue: number, maxValue: number) {
 	return Math.max(minValue, Math.min(maxValue, value));
 }
@@ -26,6 +34,10 @@ export function fmtScore(value: number | null | undefined) {
 	return finite(value) ? value.toFixed(0) : "--";
 }
 
+export function fmtTooltipScore(value: number | null | undefined) {
+	return finite(value) ? value.toFixed(1) : "--";
+}
+
 export function fmtMoney(value: number | null | undefined) {
 	if (!finite(value)) {
 		return "--";
@@ -37,6 +49,13 @@ export function fmtMoney(value: number | null | undefined) {
 		return `$${value.toFixed(1)}`;
 	}
 	return `$${value.toFixed(0)}`;
+}
+
+export function fmtTooltipMoney(value: number | null | undefined) {
+	if (!finite(value)) {
+		return "--";
+	}
+	return `$${value.toFixed(value < 1 ? 3 : 2)}`;
 }
 
 export function fmtCompact(value: number | null | undefined) {
@@ -53,6 +72,20 @@ export function fmtCompact(value: number | null | undefined) {
 		return String(value);
 	}
 	return value.toFixed(value >= 10 ? 0 : 1);
+}
+
+export function fmtTooltipNumber(value: number | null | undefined) {
+	if (!finite(value)) {
+		return "--";
+	}
+	return Number.isInteger(value)
+		? tooltipIntegerFormatter.format(value)
+		: tooltipDecimalFormatter.format(value);
+}
+
+export function fmtTooltipPercent(value: unknown) {
+	const normalized = percent(value);
+	return normalized == null ? "--" : `${normalized.toFixed(1)}%`;
 }
 
 export function fmtSeconds(value: number) {

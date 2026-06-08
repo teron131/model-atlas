@@ -21,7 +21,10 @@ import {
 	fmtMinutes,
 	fmtMoney,
 	fmtPercent,
-	fmtScore,
+	fmtTooltipMoney,
+	fmtTooltipNumber,
+	fmtTooltipPercent,
+	fmtTooltipScore,
 	percent,
 } from "./format";
 import {
@@ -459,11 +462,11 @@ function FrontierPanel({
 						const rows: HoverRow[] = [
 							[
 								"Intelligence",
-								fmtScore(model.relative_scores.intelligence_score),
+								fmtTooltipScore(model.relative_scores.intelligence_score),
 							],
-							["Agentic", fmtScore(model.relative_scores.agentic_score)],
-							["Blend", fmtMoney(Number(model.cost?.blended_price))],
-							["Overall", fmtScore(model.relative_scores.overall_score)],
+							["Agentic", fmtTooltipScore(model.relative_scores.agentic_score)],
+							["Blend", fmtTooltipMoney(Number(model.cost?.blended_price))],
+							["Overall", fmtTooltipScore(model.relative_scores.overall_score)],
 						];
 						return (
 							<g key={model.id ?? model.name ?? `${cx}-${cy}`}>
@@ -745,10 +748,10 @@ function DeepSwePanel({
 								: labelSet.has(row.row.config ?? row.displayName);
 						const hoverTitle = deepSWELabel(row, true);
 						const rows: HoverRow[] = [
-							["DeepSWE", fmtPercent(row.row.pass_at_1)],
-							["Cost", fmtMoney(row.row.mean_cost_usd)],
+							["DeepSWE", fmtTooltipPercent(row.row.pass_at_1)],
+							["Cost", fmtTooltipMoney(row.row.mean_cost_usd)],
 							["Time", fmtMinutes(row.row.mean_duration_seconds)],
-							["Output tokens", fmtCompact(row.row.mean_output_tokens)],
+							["Output tokens", fmtTooltipNumber(row.row.mean_output_tokens)],
 							["95% CI", deepSWECi(row.row)],
 						];
 						return (
@@ -1011,10 +1014,10 @@ function InteractionPlot({
 					const cx = x(point.x);
 					const cy = y(point.y);
 					const rows: HoverRow[] = [
-						["Intelligence", fmtScore(point.y)],
-						[config.xLabel, config.format(point.x)],
-						["Overall", fmtScore(point.overall)],
-						["Agentic", fmtScore(point.agentic)],
+						["Intelligence", fmtTooltipScore(point.y)],
+						[config.xLabel, config.tooltipFormat(point.x)],
+						["Overall", fmtTooltipScore(point.overall)],
+						["Agentic", fmtTooltipScore(point.agentic)],
 					];
 					return (
 						<g key={point.model.id ?? `${point.x}-${point.y}`}>
@@ -1177,15 +1180,18 @@ function RunwayPanel({
 						);
 						const labeled = labelSet.has(model.id);
 						const rows: HoverRow[] = [
-							["Context", fmtCompact(Number(model.context_window?.context))],
+							[
+								"Context",
+								fmtTooltipNumber(Number(model.context_window?.context)),
+							],
 							[
 								"Throughput",
-								`${fmtCompact(
+								`${fmtTooltipNumber(
 									Number(model.speed?.throughput_tokens_per_second_median),
 								)} t/s`,
 							],
-							["Value", fmtScore(model.relative_scores.value_score)],
-							["Overall", fmtScore(model.relative_scores.overall_score)],
+							["Value", fmtTooltipScore(model.relative_scores.value_score)],
+							["Overall", fmtTooltipScore(model.relative_scores.overall_score)],
 						];
 						return (
 							<g key={model.id ?? model.name}>
