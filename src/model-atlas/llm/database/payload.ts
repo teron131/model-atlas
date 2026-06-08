@@ -45,6 +45,7 @@ const EVALUATION_KEYS = [
 	"terminalbench_hard",
 	"deep_swe",
 	"terminal_bench_2",
+	"agents_last_exam",
 ] as const;
 
 const INPUT_MODALITY_COLUMNS = [
@@ -162,12 +163,28 @@ function buildTaskMetrics(row: DbRow): ModelStatsSelectedTaskMetrics {
 	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
 	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
 	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
+	const agentsLastExam: Record<string, number> = {};
+	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
+	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
+	assignNumber(
+		agentsLastExam,
+		"input_tokens",
+		row.agents_last_exam_task_input_tokens,
+	);
+	assignNumber(
+		agentsLastExam,
+		"output_tokens",
+		row.agents_last_exam_task_output_tokens,
+	);
 	const taskMetrics: NonNullable<ModelStatsSelectedTaskMetrics> = {};
 	if (hasFields(artificialAnalysis)) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
 	}
 	if (hasFields(deepSWE)) {
 		taskMetrics.deep_swe = deepSWE;
+	}
+	if (hasFields(agentsLastExam)) {
+		taskMetrics.agents_last_exam = agentsLastExam;
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
@@ -260,11 +277,17 @@ function buildMetadata(
 		},
 		scoring: {
 			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
+			intelligence_benchmark_display_keys: [
+				...scoringConfig.intelligenceBenchmarkDisplayKeys,
+			],
 			missing_intelligence_benchmark_keys:
 				scoringConfig.intelligenceBenchmarkKeys.filter(
 					(key) => !availableBenchmarkKeys.includes(key),
 				),
 			agentic_benchmark_keys: [...scoringConfig.agenticBenchmarkKeys],
+			agentic_benchmark_display_keys: [
+				...scoringConfig.agenticBenchmarkDisplayKeys,
+			],
 			missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
 				(key) => !availableBenchmarkKeys.includes(key),
 			),

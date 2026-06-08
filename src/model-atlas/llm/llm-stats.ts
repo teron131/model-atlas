@@ -76,11 +76,17 @@ function buildModelStatsSelectedMetadata(
 		},
 		scoring: {
 			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
+			intelligence_benchmark_display_keys: [
+				...scoringConfig.intelligenceBenchmarkDisplayKeys,
+			],
 			missing_intelligence_benchmark_keys:
 				scoringConfig.intelligenceBenchmarkKeys.filter(
 					(key) => !availableBenchmarkKeys.includes(key),
 				),
 			agentic_benchmark_keys: [...scoringConfig.agenticBenchmarkKeys],
+			agentic_benchmark_display_keys: [
+				...scoringConfig.agenticBenchmarkDisplayKeys,
+			],
 			missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
 				(key) => !availableBenchmarkKeys.includes(key),
 			),

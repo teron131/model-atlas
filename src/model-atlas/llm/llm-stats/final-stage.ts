@@ -405,6 +405,17 @@ function buildIntelligenceIndexCost(
 
 /** Build internal-only scoring source telemetry that is pruned before the public payload is returned. */
 function buildScoringSources(model: JsonObject): ModelStatsScoringSources {
+	const deepSWE = buildDeepSWEScoringSource(model);
+	const agentsLastExam = buildAgentsLastExamScoringSource(model);
+	const scoringSources = {
+		...(deepSWE == null ? {} : { deep_swe: deepSWE }),
+		...(agentsLastExam == null ? {} : { agents_last_exam: agentsLastExam }),
+	};
+	return hasFields(scoringSources) ? scoringSources : null;
+}
+
+/** Build DeepSWE source telemetry when a model matched the standalone leaderboard. */
+function buildDeepSWEScoringSource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).deep_swe);
 	const passAt1 = asFiniteNumber(source.pass_at_1);
 	const meanCostUsd = asFiniteNumber(source.mean_cost_usd);
@@ -420,28 +431,83 @@ function buildScoringSources(model: JsonObject): ModelStatsScoringSources {
 		return null;
 	}
 	return {
-		deep_swe: {
-			model: source.model,
-			reasoning_effort:
-				typeof source.reasoning_effort === "string"
-					? source.reasoning_effort
-					: null,
-			config: typeof source.config === "string" ? source.config : null,
-			pass_at_1: passAt1,
-			ci_lo: asFiniteNumber(source.ci_lo),
-			ci_hi: asFiniteNumber(source.ci_hi),
-			ci_half: asFiniteNumber(source.ci_half),
-			mean_cost_usd: meanCostUsd,
-			mean_duration_seconds: meanDurationSeconds,
-			mean_output_tokens: meanOutputTokens,
-		},
+		model: source.model,
+		reasoning_effort:
+			typeof source.reasoning_effort === "string"
+				? source.reasoning_effort
+				: null,
+		config: typeof source.config === "string" ? source.config : null,
+		pass_at_1: passAt1,
+		ci_lo: asFiniteNumber(source.ci_lo),
+		ci_hi: asFiniteNumber(source.ci_hi),
+		ci_half: asFiniteNumber(source.ci_half),
+		mean_cost_usd: meanCostUsd,
+		mean_duration_seconds: meanDurationSeconds,
+		mean_output_tokens: meanOutputTokens,
 	};
 }
 
-/** Build normalized per-task metrics for AA Intelligence and DeepSWE task runs. */
+/** Build Agents' Last Exam source telemetry when a model matched the standalone leaderboard. */
+function buildAgentsLastExamScoringSource(model: JsonObject) {
+	const source = asRecord(asRecord(model.scoring_sources).agents_last_exam);
+	const medianScore = asFiniteNumber(source.median_score);
+	const meanScore = asFiniteNumber(source.mean_score);
+	const medianAccuracy = asFiniteNumber(source.median_accuracy);
+	const meanAccuracy = asFiniteNumber(source.mean_accuracy);
+	const medianTotalDurationSeconds = asFiniteNumber(
+		source.median_total_duration_seconds,
+	);
+	const meanTotalDurationSeconds = asFiniteNumber(
+		source.mean_total_duration_seconds,
+	);
+	const medianTotalInputTokens = asFiniteNumber(
+		source.median_total_input_tokens,
+	);
+	const meanTotalInputTokens = asFiniteNumber(source.mean_total_input_tokens);
+	const medianTotalOutputTokens = asFiniteNumber(
+		source.median_total_output_tokens,
+	);
+	const meanTotalOutputTokens = asFiniteNumber(source.mean_total_output_tokens);
+	const frequency = asFiniteNumber(source.frequency);
+	if (
+		typeof source.model !== "string" ||
+		typeof source.split !== "string" ||
+		medianScore == null ||
+		meanScore == null ||
+		medianAccuracy == null ||
+		meanAccuracy == null ||
+		medianTotalDurationSeconds == null ||
+		meanTotalDurationSeconds == null ||
+		medianTotalInputTokens == null ||
+		meanTotalInputTokens == null ||
+		medianTotalOutputTokens == null ||
+		meanTotalOutputTokens == null ||
+		frequency == null
+	) {
+		return null;
+	}
+	return {
+		model: source.model,
+		split: source.split,
+		median_score: medianScore,
+		mean_score: meanScore,
+		median_accuracy: medianAccuracy,
+		mean_accuracy: meanAccuracy,
+		median_total_duration_seconds: medianTotalDurationSeconds,
+		mean_total_duration_seconds: meanTotalDurationSeconds,
+		median_total_input_tokens: medianTotalInputTokens,
+		mean_total_input_tokens: meanTotalInputTokens,
+		median_total_output_tokens: medianTotalOutputTokens,
+		mean_total_output_tokens: meanTotalOutputTokens,
+		frequency,
+	};
+}
+
+/** Build normalized per-task metrics for AA Intelligence, DeepSWE, and ALE runs. */
 function buildTaskMetrics(
 	intelligenceIndexCost: ModelStatsSelectedIntelligenceIndexCost,
 	speed: ModelStatsSelectedSpeed,
+	cost: ModelStatsSelectedCost,
 	scoringSources: ModelStatsScoringSources,
 ): ModelStatsSelectedTaskMetrics {
 	const taskMetrics: NonNullable<ModelStatsSelectedTaskMetrics> = {};
@@ -455,6 +521,10 @@ function buildTaskMetrics(
 	const deepSWE = buildDeepSWETaskMetrics(scoringSources);
 	if (deepSWE != null) {
 		taskMetrics.deep_swe = deepSWE;
+	}
+	const agentsLastExam = buildAgentsLastExamTaskMetrics(scoringSources, cost);
+	if (agentsLastExam != null) {
+		taskMetrics.agents_last_exam = agentsLastExam;
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
@@ -525,11 +595,54 @@ function buildDeepSWETaskMetrics(
 	};
 }
 
-/** Read the required intelligence relative score used for final ordering. */
-function intelligenceRelativeScoreValue(
-	model: ModelStatsSelectedModel,
-): number {
-	return model.relative_scores.intelligence_score;
+/** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */
+function buildAgentsLastExamTaskMetrics(
+	scoringSources: ModelStatsScoringSources,
+	cost: ModelStatsSelectedCost,
+): TaskMetricValues | null {
+	const agentsLastExam = scoringSources?.agents_last_exam;
+	if (agentsLastExam == null) {
+		return null;
+	}
+	const inputTokens = Math.min(
+		agentsLastExam.median_total_input_tokens,
+		agentsLastExam.mean_total_input_tokens,
+	);
+	const outputTokens = Math.min(
+		agentsLastExam.median_total_output_tokens,
+		agentsLastExam.mean_total_output_tokens,
+	);
+	const taskMetrics: TaskMetricValues = {
+		seconds: Math.min(
+			agentsLastExam.median_total_duration_seconds,
+			agentsLastExam.mean_total_duration_seconds,
+		),
+		input_tokens: inputTokens,
+		output_tokens: outputTokens,
+	};
+	const taskCost = tokenUsageTaskCost(cost, inputTokens, outputTokens);
+	if (taskCost != null) {
+		taskMetrics.cost = taskCost;
+	}
+	return taskMetrics;
+}
+
+/** Estimate task cost from per-million input/output token prices and observed tokens. */
+function tokenUsageTaskCost(
+	cost: ModelStatsSelectedCost,
+	inputTokens: number,
+	outputTokens: number,
+): number | null {
+	const inputCost =
+		asFiniteNumber(cost?.weighted_input) ?? asFiniteNumber(cost?.input);
+	const outputCost =
+		asFiniteNumber(cost?.weighted_output) ?? asFiniteNumber(cost?.output);
+	return inputCost != null &&
+		inputCost > 0 &&
+		outputCost != null &&
+		outputCost > 0
+		? (inputTokens * inputCost + outputTokens * outputCost) / 1_000_000
+		: null;
 }
 
 /** Sort the models by intelligence relative score. */
@@ -537,8 +650,8 @@ function sortModelsByIntelligenceRelativeScore(
 	models: ModelStatsSelectedModel[],
 ): ModelStatsSelectedModel[] {
 	return [...models].sort((left, right) => {
-		const leftIntelligence = intelligenceRelativeScoreValue(left);
-		const rightIntelligence = intelligenceRelativeScoreValue(right);
+		const leftIntelligence = left.relative_scores.intelligence_score;
+		const rightIntelligence = right.relative_scores.intelligence_score;
 		if (leftIntelligence !== rightIntelligence) {
 			return rightIntelligence - leftIntelligence;
 		}
@@ -816,6 +929,7 @@ function projectFinalModel(
 		task_metrics: buildTaskMetrics(
 			intelligenceIndexCost,
 			speed,
+			cost,
 			scoringSources,
 		),
 		evaluations: buildEvaluations(model),

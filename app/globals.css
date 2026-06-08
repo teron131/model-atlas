@@ -683,13 +683,14 @@ th[data-sort-state="descending"] .sort-indicator::after {
 }
 
 .column-tooltip-section .column-tooltip-row {
-	grid-template-columns: minmax(0, 1fr) auto;
-	gap: 10px;
+	grid-template-columns: minmax(0, 1fr) max-content;
+	gap: 14px;
 	font-size: var(--mono-label);
 }
 
 .column-tooltip-section .column-tooltip-label {
 	color: var(--muted);
+	white-space: normal;
 }
 
 .column-tooltip-section .column-tooltip-value {

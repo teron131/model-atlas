@@ -4,6 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { isSameOpenRouterModelRoute } from "../llm-stats/model-aliases";
 import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
+import type { AgentsLastExamHarnessRow } from "../sources/agents-last-exam-scraper";
 import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
 import type { ModelRecord, ModelsDevPayload } from "../sources/models-dev";
 import type {
@@ -26,6 +27,7 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	models_dev: "models_dev_raw_models",
 	deep_swe: "deep_swe_raw_rows",
 	terminal_bench: "terminal_bench_raw_rows",
+	agents_last_exam: "agents_last_exam_raw_rows",
 	openrouter: "openrouter_raw_rows",
 };
 
@@ -447,6 +449,66 @@ export function readTerminalBenchRawCache(db: DatabaseSync): {
 			const accuracy = asFiniteNumber(row.accuracy);
 			return agent != null && model != null && accuracy != null
 				? [{ agent, model, accuracy }]
+				: [];
+		}),
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+export function readAgentsLastExamRawCache(db: DatabaseSync): {
+	rows: AgentsLastExamHarnessRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM agents_last_exam_raw_rows WHERE row_kind = 'harness_score' ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: rawRows.flatMap((row) => {
+			const split = stringValue(row.split);
+			const harness = stringValue(row.harness);
+			const model = stringValue(row.model);
+			const runs = asFiniteNumber(row.runs);
+			const tasks = asFiniteNumber(row.tasks);
+			const splitTasks = asFiniteNumber(row.split_tasks);
+			const passes = asFiniteNumber(row.passes);
+			const accuracy = asFiniteNumber(row.accuracy);
+			const score = asFiniteNumber(row.score);
+			const totalDurationSeconds = asFiniteNumber(row.total_duration_seconds);
+			const totalInputTokens = asFiniteNumber(row.total_input_tokens);
+			const totalOutputTokens = asFiniteNumber(row.total_output_tokens);
+			return split != null &&
+				harness != null &&
+				model != null &&
+				runs != null &&
+				tasks != null &&
+				splitTasks != null &&
+				passes != null &&
+				accuracy != null &&
+				score != null &&
+				totalDurationSeconds != null &&
+				totalInputTokens != null &&
+				totalOutputTokens != null
+				? [
+						{
+							split,
+							harness,
+							model,
+							harness_variant: stringValue(row.harness_variant),
+							runs,
+							tasks,
+							split_tasks: splitTasks,
+							passes,
+							accuracy,
+							score,
+							total_duration_seconds: totalDurationSeconds,
+							total_input_tokens: totalInputTokens,
+							total_output_tokens: totalOutputTokens,
+						},
+					]
 				: [];
 		}),
 		fetchedAt: firstEpochSecond(rawRows),

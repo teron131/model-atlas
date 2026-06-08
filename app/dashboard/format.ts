@@ -1,4 +1,4 @@
-import type { TaskMetricColumn } from "./models";
+import type { BenchmarkMetricColumn, TaskMetricColumn } from "./models";
 
 export const formatScore = (value: number | null | undefined) =>
 	typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
@@ -29,6 +29,16 @@ export const formatSeconds = (value: number | null | undefined) =>
 		? `${value.toFixed(value < 10 ? 1 : 0)}s`
 		: "-";
 
+export const formatDuration = (value: number | null | undefined) => {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return "-";
+	}
+	const totalMinutes = Math.round(value / 60);
+	const hours = Math.floor(totalMinutes / 60);
+	const minutes = totalMinutes % 60;
+	return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+};
+
 export function formatTaskMetric(
 	value: number | null | undefined,
 	column: TaskMetricColumn,
@@ -37,9 +47,24 @@ export function formatTaskMetric(
 		return formatCost(value);
 	}
 	if (column.metric === "seconds") {
+		if (column.source === "agents_last_exam") {
+			return formatDuration(value);
+		}
 		return formatSeconds(value);
 	}
 	return formatCompactNumber(value);
+}
+
+export function formatBenchmarkMetric(
+	value: number | null | undefined,
+	column: BenchmarkMetricColumn,
+) {
+	if (column.metric === "agents_last_exam") {
+		return typeof value === "number" && Number.isFinite(value)
+			? `${(value * 100).toFixed(1)}%`
+			: "-";
+	}
+	return formatScore(value);
 }
 
 export const formatContext = (value: number | null | undefined) => {

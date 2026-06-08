@@ -27,6 +27,7 @@ import {
 	type SourceSnapshots,
 } from "./types";
 import {
+	insertAgentsLastExamRawRows,
 	insertArtificialAnalysisRawModels,
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
@@ -44,6 +45,7 @@ const SNAPSHOT_TABLES = [
 	"models_dev_raw_models",
 	"deep_swe_raw_rows",
 	"terminal_bench_raw_rows",
+	"agents_last_exam_raw_rows",
 	"openrouter_raw_rows",
 	"processed_models",
 	"debug",
@@ -82,6 +84,7 @@ async function openDatabase(
 	const db = new DatabaseSync(outputPath);
 	db.exec(schemaSql);
 	ensureDeepSWEColumns(db);
+	ensureAgentsLastExamColumns(db);
 	return db;
 }
 
@@ -103,6 +106,28 @@ function ensureDeepSWEColumns(db: DatabaseSync): void {
 	for (const [name, type] of columns) {
 		if (!existingColumns.has(name)) {
 			db.exec(`ALTER TABLE deep_swe_raw_rows ADD COLUMN ${name} ${type}`);
+		}
+	}
+}
+
+/** Add Agents' Last Exam columns to existing local caches. */
+function ensureAgentsLastExamColumns(db: DatabaseSync): void {
+	const existingProcessedColumns = new Set(
+		db
+			.prepare("PRAGMA table_info(processed_models)")
+			.all()
+			.map((row) => String((row as { name?: unknown }).name)),
+	);
+	const columns: Array<[string, string]> = [
+		["agents_last_exam", "REAL"],
+		["agents_last_exam_task_cost", "REAL"],
+		["agents_last_exam_task_seconds", "REAL"],
+		["agents_last_exam_task_input_tokens", "REAL"],
+		["agents_last_exam_task_output_tokens", "REAL"],
+	];
+	for (const [name, type] of columns) {
+		if (!existingProcessedColumns.has(name)) {
+			db.exec(`ALTER TABLE processed_models ADD COLUMN ${name} ${type}`);
 		}
 	}
 }
@@ -158,6 +183,7 @@ function writeDatabaseSnapshot(
 	insertModelsDevRawModels(db, runId, rows.snapshots);
 	insertDeepSWERawRows(db, runId, rows.snapshots);
 	insertTerminalBenchRawRows(db, runId, rows.snapshots);
+	insertAgentsLastExamRawRows(db, runId, rows.snapshots);
 	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
 	insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
 	insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);

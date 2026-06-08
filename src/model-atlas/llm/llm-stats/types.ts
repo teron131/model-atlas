@@ -1,6 +1,10 @@
 /** Shared public and stage-handoff types for the final selected Model Atlas pipeline. */
 import type { JsonObject, NumberOrNull } from "../../utils";
 import type {
+	AgentsLastExamModelScoreRow,
+	AgentsLastExamScoreByModelName,
+} from "../sources/agents-last-exam-scraper";
+import type {
 	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
 	DeepSWEScoreByModelName,
@@ -92,12 +96,14 @@ export type ModelStatsSelectedIntelligenceIndexCost = {
 export type ModelStatsSelectedTaskMetricValues = {
 	cost?: NumberOrNull;
 	seconds?: NumberOrNull;
+	input_tokens?: NumberOrNull;
 	output_tokens?: NumberOrNull;
 };
 
 export type ModelStatsSelectedTaskMetrics = {
 	artificial_analysis?: ModelStatsSelectedTaskMetricValues | null;
 	deep_swe?: ModelStatsSelectedTaskMetricValues | null;
+	agents_last_exam?: ModelStatsSelectedTaskMetricValues | null;
 } | null;
 
 export type ModelStatsSelectedEvaluations =
@@ -112,12 +118,14 @@ export type ModelStatsSelectedEvaluations =
 		mmmu_pro?: NumberOrNull;
 		scicode?: NumberOrNull;
 		deep_swe?: NumberOrNull;
+		agents_last_exam?: NumberOrNull;
 		terminal_bench_2?: NumberOrNull;
 		terminalbench_hard?: NumberOrNull;
 	};
 
 export type ModelStatsScoringSources = {
 	deep_swe?: DeepSWEModelScoreRow | null;
+	agents_last_exam?: AgentsLastExamModelScoreRow | null;
 } | null;
 
 export type ModelStatsNullableScores = {
@@ -247,8 +255,10 @@ export type ModelStatsSelectedMetadata = {
 	};
 	scoring: {
 		intelligence_benchmark_keys: string[];
+		intelligence_benchmark_display_keys: string[];
 		missing_intelligence_benchmark_keys: string[];
 		agentic_benchmark_keys: string[];
+		agentic_benchmark_display_keys: string[];
 		missing_agentic_benchmark_keys: string[];
 		selected_benchmark_keys: string[];
 		price_profiles: PriceProfiles;
@@ -288,7 +298,9 @@ export type FinalStageConfig = {
 
 export type ScoringConfig = {
 	intelligenceBenchmarkKeys: readonly string[];
+	intelligenceBenchmarkDisplayKeys: readonly string[];
 	agenticBenchmarkKeys: readonly string[];
+	agenticBenchmarkDisplayKeys: readonly string[];
 	defaultSpeedOutputTokenAnchors: readonly number[];
 	speedOutputTokenRangeMin: number;
 	speedOutputTokenRangeMax: number;
@@ -317,6 +329,8 @@ export type SourceData = {
 	deepSWEModelScoreRows: DeepSWEModelScoreRow[];
 	deepSWEScoreByModelName: DeepSWEScoreByModelName;
 	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName;
+	agentsLastExamModelScoreRows: AgentsLastExamModelScoreRow[];
+	agentsLastExamScoreByModelName: AgentsLastExamScoreByModelName;
 };
 
 export type EnrichedRows = {

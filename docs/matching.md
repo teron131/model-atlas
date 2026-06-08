@@ -4,7 +4,9 @@ The stats pipeline has to join model rows from sources that do not use the same 
 
 ## Source Shape
 
-The source stage fetches AA scraper rows and `models.dev` rows. AA rows are keyed by the model slug derived from `model_id`, usually the part after the provider slash. `models.dev` rows are first reduced to preferred providers: OpenRouter is primary, Vercel is secondary, and OpenAI/Google/Anthropic are trusted fallbacks. When multiple rows share a model id, the preferred provider wins. The recent-model cutoff keeps the catalog small, but AA-backed exact ids and normalized AA names are retained even when the catalog row is older than the cutoff. This lets stable OpenRouter rows such as older Gemini routes or provider-renamed Mistral routes remain matchable when AA still reports benchmark rows for them.
+The source stage fetches AA scraper rows, `models.dev` rows, and supplemental benchmark sources. AA rows are keyed by the model slug derived from `model_id`, usually the part after the provider slash. `models.dev` rows are first reduced to preferred providers: OpenRouter is primary, Vercel is secondary, and OpenAI/Google/Anthropic are trusted fallbacks. When multiple rows share a model id, the preferred provider wins. The recent-model cutoff keeps the catalog small, but AA-backed exact ids and normalized AA names are retained even when the catalog row is older than the cutoff. This lets stable OpenRouter rows such as older Gemini routes or provider-renamed Mistral routes remain matchable when AA still reports benchmark rows for them.
+
+DeepSWE, Terminal-Bench 2, and Agents Last Exam are not identity authorities. They are joined later by display-name/id candidates after the AA-to-`models.dev` match has chosen a stable provider/model id.
 
 The matcher input is intentionally small:
 
@@ -99,18 +101,34 @@ Once a match survives, the final matched row prefers the OpenRouter provider/mod
 - display name from `models.dev` when available
 - family, modalities, context, cost, attachment/reasoning/open-weights fields from `models.dev`
 - evaluations, intelligence fields, and intelligence-index cost fields from AA
+- supplemental benchmark values from DeepSWE, Terminal-Bench 2, and Agents Last Exam when a model-name candidate matches those sources
+- `scoring_sources` with the raw supplemental rows used to derive DeepSWE and Agents Last Exam task metrics
 
 The later OpenRouter enrichment stage can merge route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, and Gemini `Preview` labels. This keeps the public payload aligned with route-level pricing and speed while still making it possible to trace a score back to the AA row that supplied the benchmark data.
 
+## Database Traceability
+
+The SQLite snapshot preserves the raw source paths used by the matcher:
+
+- `aa_raw_models` stores scraped AA rows.
+- `models_dev_raw_models` stores flattened `models.dev` provider/model rows.
+- `deep_swe_raw_rows`, `terminal_bench_raw_rows`, and `agents_last_exam_raw_rows` store supplemental benchmark rows before they are summarized.
+- `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
+- `processed_models` stores the matched, catalog, enriched, and final stages.
+- `debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
+
+`debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, selected/rejected flags, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
+
 ## Debugging Bad Matches
 
-Start with the matcher diagnostics rather than the final payload. Check:
+Start with the matcher diagnostics or the `debug` table rather than the final payload. Check:
 
 - the AA slug and source name
 - the best candidate id and score
 - the next few candidates
 - whether the row was voided
-- whether a variant token mismatch would reject it later
+- whether a variant token mismatch rejected it later
 - whether OpenRouter won when a direct fallback provider exact match would have been cleaner
+- the raw row indexes linked from `debug` when the final payload is not enough
 
 Most bad matches come from one of four cases: source slug changed upstream, candidate id changed upstream, two sibling variants are too similar, or a route tag looked like identity even though it was just a serving route.

@@ -137,5 +137,7 @@ function buildSourceData(
 		deepSWEModelScoreRows: [],
 		deepSWEScoreByModelName: new Map(),
 		terminalBenchAccuracyByModelName: new Map(),
+		agentsLastExamModelScoreRows: [],
+		agentsLastExamScoreByModelName: new Map(),
 	};
 }

@@ -140,7 +140,17 @@ const scoringRows = [
 ];
 const scoringConfig = {
 	intelligenceBenchmarkKeys: [],
+	intelligenceBenchmarkDisplayKeys: [],
 	agenticBenchmarkKeys: [
+		"omniscience_nonhallucination_rate",
+		"gdpval_normalized",
+		"ifbench",
+		"scicode",
+		"terminalbench_hard",
+		"terminal_bench_2",
+		"apex_agents",
+	],
+	agenticBenchmarkDisplayKeys: [
 		"omniscience_nonhallucination_rate",
 		"gdpval_normalized",
 		"ifbench",

@@ -6,7 +6,7 @@ This project is trying to build the best current version of my opinionated LLM r
 
 The ranking is not an average of everything available upstream. Many benchmarks are low-signal for this purpose: some are saturated, some are stale, some are noisy, and some reward capabilities that do not matter much for the downstream model choices I care about. A benchmark only belongs here if it still creates a useful relative ordering among current models.
 
-The implementation keeps the main knobs in `src/model-atlas/constants.ts`, with scoring math under `src/model-atlas/llm/llm-stats/scores/`: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, speed anchors, and overall score weights.
+The main ranking choices are explicit: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, speed anchors, and overall score weights.
 
 ## Benchmark Criteria
 
@@ -36,6 +36,7 @@ The intelligence group is meant to capture broad capability: factual accuracy, h
 - `hle`
 - `scicode`
 - `critpt`
+- `agents_last_exam`
 
 `omniscience_nonhallucination_rate` remains available as a diagnostic reliability field, but it is not selected for intelligence scoring because it can reward abstention behavior rather than raw knowledge.
 
@@ -45,59 +46,37 @@ The agentic group is meant to capture whether a model is useful inside workflows
 - `terminalbench_hard`
 - `ifbench`
 - `apex_agents`
-- `deep_swe`
 - `terminal_bench_2`
+- `agents_last_exam`
+- `deep_swe`
 
-There is no standalone coding score in the current ranking. AA `scicode` is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA `terminalbench_hard`, and standalone Terminal-Bench 2.0 remain agentic.
+There is no standalone coding score in the current ranking. AA `scicode` is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA `terminalbench_hard`, and standalone Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
 Value and speed are secondary. They still matter because downstream applications have budgets and latency constraints, and they now have enough eval-derived signal to act as practical utility components without overtaking quality.
 
 ## Source Roles
 
-Artificial Analysis is the primary benchmark source: https://artificialanalysis.ai/leaderboards/models. It provides the broad indexes, benchmark fields, model names, slugs, release information, and scraped intelligence/evaluation data. The scraper path matters because some fields are easier to recover there than through the API path.
+Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds.
 
-Artificial Analysis reference pages:
+OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated value. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
-- https://artificialanalysis.ai/methodology for scope, source terminology, and glossary definitions.
-- https://artificialanalysis.ai/methodology/intelligence-benchmarking for the Intelligence Index methodology and benchmark descriptions.
+DeepSWE contributes one standalone agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components. Missing DeepSWE values are filled with the observed DeepSWE minimum for scoring only.
 
-OpenRouter provider/model ids are the preferred public model ids after matching. AA slugs are useful source identifiers and benchmark provenance, but the public stats payload should use the OpenRouter route id when one is available because that is the id used for current route pricing, speed, and user-facing model selection.
+Terminal-Bench 2.0 contributes one standalone agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's `terminalbench_hard` field; both are selected agentic benchmarks because they are different signals.
 
-`models.dev` is used as catalog metadata after matching: https://models.dev/. It supplies model family, modalities, context, cost, release information, and fallback provider ids, but it no longer overrides the public OpenRouter id when the matched route is known.
-
-OpenRouter is used after matching for public identity, speed, and weighted pricing from each model page's Performance tab. It should improve cost and latency estimates and anchor the final provider/model id, but it still should not decide which AA benchmark row supplies the score.
-
-DeepSWE is fetched separately from https://deepswe.datacurve.ai/artifacts/leaderboard-live.json and joined by normalized model name after the AA-to-models.dev match. The selected key for this standalone source is `deep_swe`, using the best `pass_at_1` configuration for each model. It is multiplied by $2$ in the selected agentic benchmark average, preserving the explicit double-weight policy without duplicating the field. Missing DeepSWE values are filled with the observed DeepSWE minimum for scoring only; the public source field still stays absent when no match exists.
-
-Terminal-Bench 2.0 is fetched separately from https://www.tbench.ai/leaderboard/terminal-bench/2.0 and joined by normalized model name after the AA-to-models.dev match. The selected key for this standalone source is `terminal_bench_2`. It uses `max(median_accuracy, mean_accuracy)` across agent/model rows, so multiple harness attempts can slightly help when they improve the aggregate signal without adding a direct frequency bonus. This is intentionally separate from AA's `terminalbench_hard` field. Both are selected agentic benchmarks because they are different signals.
-
-The pipeline shape is:
-
-1. Fetch AA scraper/API data, `models.dev` data, standalone DeepSWE data, and standalone Terminal-Bench 2.0 data.
-2. Match AA rows to canonical model identities.
-3. Join standalone DeepSWE and Terminal-Bench 2.0 scores to matched rows when model labels line up.
-4. Enrich matched rows with OpenRouter speed and pricing.
-5. Compute raw `scores`.
-6. Normalize into `relative_scores`.
-7. Filter low-signal rows, sort, and prune sparse fields.
-
-This staging is important because it keeps benchmark source truth, identity matching, economic enrichment, and ranking math separate enough to debug. The model-id matching details are in `docs/matching.md`.
-
-The SQLite database at `.cache/database.sqlite` is the cache and derived-stage store. Raw source inputs are cacheable daily, while matched, enriched, and final score rows are rebuilt from the current runtime inputs so score calculations stay separated from source refresh policy.
-
-The Next.js app can serve a stored payload from Vercel Blob, `MODEL_ATLAS_SNAPSHOT_URL`, or `public/model-atlas-snapshot.json`. Stored snapshots preserve model rows and scores from the snapshot, but scoring metadata such as selected benchmark keys, score weights, price profiles, and column tooltips is overlaid from the current `src/model-atlas/constants.ts` when the snapshot is read. That keeps explanatory UI text aligned with the current scoring configuration even when the data rows come from an older snapshot. The static minimal UI served by `pnpm run atlas:ui:static` refreshes `/api/llm-stats` through the local dev server, which rebuilds the SQLite payload.
+Agents' Last Exam contributes both Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 ## Scoring Shape
 
-The scoring pipeline is:
+The scoring map is:
 
 $$
-\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{percentile-ranked Speed/Value}\rightarrow O_m
+\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{percentile-scored Speed/Value}\rightarrow O_m
 $$
 
-Quality is normalized before averaging. Economics and time are percentile-ranked after converting raw costs or seconds into "higher is better" components.
+Quality is normalized before averaging. Economics and time become percentile scores after converting raw costs or seconds into "higher is better" components.
 
-AA's `coding_index` is also preserved as source data under the public `intelligence` object when upstream provides it. It is not used to compute any score, and there is no public `coding_score`.
+AA's `coding_index` can be kept as source context when available, but it is not used to compute any score. There is no standalone coding score.
 
 ## Math Mapping Details
 
@@ -109,10 +88,11 @@ m&=\text{model}\\
 b&=\text{benchmark or AA index field}\\
 x_{m,b}&=\text{raw value for model }m\text{ on field }b\\
 x_{\min,b}&=\min_m x_{m,b}\\
-x_{\max,b}&=\max_m x_{m,b}\\
-r(y)&=\operatorname{percentileRank}(y)
+x_{\max,b}&=\max_m x_{m,b}
 \end{aligned}
 $$
+
+In formulas, $\operatorname{Percentile}(y)$ means the 0-100 percentile of $y$ within the current finite comparison set for that component.
 
 Each quality input is first converted into a benchmark-relative score:
 
@@ -132,7 +112,7 @@ w_b=
 \end{cases}
 $$
 
-In the dashboard tooltip, DeepSWE is shown last for readability; that display order does not change the scoring weight.
+Display order does not change the scoring weight.
 
 For a dimension $D$, where $D$ is Intelligence or Agentic:
 
@@ -155,7 +135,7 @@ A_m&=D_{m,\text{Agentic}}
 \end{aligned}
 $$
 
-Missing benchmark values are scoring-only. Public source fields stay `null`.
+Missing benchmark values are imputed only for scoring. They are not treated as observed source values.
 
 Missing DeepSWE:
 
@@ -170,7 +150,7 @@ C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}
 $$
 
 $$
-\hat{x}_{m,b}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\frac{\operatorname{percentileRank}(C_{m,b})}{100}\right)
+\hat{x}_{m,b}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\frac{\operatorname{Percentile}(C_{m,b})}{100}\right)
 $$
 
 $$
@@ -187,6 +167,8 @@ The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not
 
 Price profiles:
 
+All price terms in this block are USD per 1M tokens.
+
 $$
 \begin{aligned}
 \text{task price}&=0.80\cdot\text{input-side price}+0.20\cdot\text{output-side price}\\
@@ -200,18 +182,19 @@ Value components:
 
 $$
 \begin{aligned}
-V_{\text{AA cost},m}&=r\left(\frac{1}{\text{AA task cost}_m}\right)\\
-V_{\text{AA efficiency},m}&=r\left(\frac{I_m}{\text{AA task cost}_m}\right)\\
-V_{\text{DeepSWE cost},m}&=r\left(\frac{1}{\text{DeepSWE task cost}_m}\right)\\
-V_{\text{blend cheapness},m}&=r\left(\frac{1}{\text{blended price}_m}\right)\\
+V_{\text{AA cost},m}&=\operatorname{Percentile}\left(\frac{1}{\text{AA task cost}_m}\right)\\
+V_{\text{AA efficiency},m}&=\operatorname{Percentile}\left(\frac{I_m}{\text{AA task cost}_m}\right)\\
+V_{\text{DeepSWE cost},m}&=\operatorname{Percentile}\left(\frac{1}{\text{DeepSWE task cost}_m}\right)\\
+V_{\text{ALE cost},m}&=\operatorname{Percentile}\left(\frac{1}{\text{Agents' Last Exam task cost}_m}\right)\\
+V_{\text{blend cheapness},m}&=\operatorname{Percentile}\left(\frac{1}{\text{blended price}_m}\right)\\
 Q_m&=\operatorname{mean}(I_m,A_m)\\
-V_{\text{quality blend},m}&=r\left(\frac{Q_m}{\text{blended price}_m}\right)\\
-V_{\text{workflow},m}&=r\left(\text{workflow useful work per dollar}_m\right)
+V_{\text{quality blend},m}&=\operatorname{Percentile}\left(\frac{Q_m}{\text{blended price}_m}\right)\\
+V_{\text{workflow},m}&=\operatorname{Percentile}\left(\text{workflow useful work per dollar}_m\right)
 \end{aligned}
 $$
 
 $$
-V_m=\operatorname{mean}_{\text{finite}}\left(V_{\text{AA cost},m},V_{\text{AA efficiency},m},V_{\text{DeepSWE cost},m},V_{\text{blend cheapness},m},V_{\text{quality blend},m},V_{\text{workflow},m}\right)
+V_m=\operatorname{mean}_{\text{finite}}\left(V_{\text{AA cost},m},V_{\text{AA efficiency},m},V_{\text{DeepSWE cost},m},V_{\text{ALE cost},m},V_{\text{blend cheapness},m},V_{\text{quality blend},m},V_{\text{workflow},m}\right)
 $$
 
 Displayed Value requires at least two finite components. If fewer than two Value components exist, the displayed Value is `null` and Overall uses the scoring-only missing-Value imputation.
@@ -242,28 +225,29 @@ Relative Speed components:
 
 $$
 \begin{aligned}
-S_{\text{AA},m}&=r\left(\frac{1}{\text{AA task seconds}_m}\right)\\
-S_{\text{DeepSWE},m}&=r\left(\frac{1}{\text{DeepSWE task seconds}_m}\right)\\
-S_{\text{Simulation},m}&=r\left(\frac{1}{\text{Simulation seconds}_m}\right)
+S_{\text{AA},m}&=\operatorname{Percentile}\left(\frac{1}{\text{AA task seconds}_m}\right)\\
+S_{\text{DeepSWE},m}&=\operatorname{Percentile}\left(\frac{1}{\text{DeepSWE task seconds}_m}\right)\\
+S_{\text{ALE},m}&=\operatorname{Percentile}\left(\frac{1}{\text{Agents' Last Exam task seconds}_m}\right)\\
+S_{\text{Workflow},m}&=\operatorname{Percentile}\left(\frac{1}{\text{workflow simulated seconds}_m}\right)
 \end{aligned}
 $$
 
 $$
-S_m=\operatorname{mean}_{\text{finite}}\left(S_{\text{AA},m},S_{\text{DeepSWE},m},S_{\text{Simulation},m}\right)
+S_m=\operatorname{mean}_{\text{finite}}\left(S_{\text{AA},m},S_{\text{DeepSWE},m},S_{\text{ALE},m},S_{\text{Workflow},m}\right)
 $$
 
 Displayed Speed requires at least two finite components. If fewer than two Speed components exist, the displayed Speed is `null` and Overall uses the scoring-only missing-Speed imputation.
 
-Simulation seconds:
+Workflow simulation seconds:
 
 $$
 \begin{aligned}
-T_{\text{scenario},m}&=n_s\cdot\left(\ell_m+\lambda \operatorname{ELogUniform}(x_{\text{input},s})+\frac{\operatorname{ELogUniform}(x_{\text{output},s})}{\tau_m}\right)\\
-T_{\text{Simulation},m}&=\sum_s w_sT_{\text{scenario},m}
+T_{m,s}&=n_s\cdot\left(\ell_m+\lambda \operatorname{ELogUniform}(x_{\text{input},s})+\frac{\operatorname{ELogUniform}(x_{\text{output},s})}{\tau_m}\right)\\
+T_{\text{workflow},m}&=\sum_s w_sT_{m,s}
 \end{aligned}
 $$
 
-where $\ell_m$ is latency, $\tau_m$ is output throughput, $n_s$ is call count, and $\lambda=0.0001$ seconds per input token is the explicit input-token friction used when no reliable per-model prefill throughput is available.
+where $\ell_m$ is latency, $\tau_m$ is output throughput, $n_s$ is scenario call count, and $\lambda=0.0001$ seconds per input token is the explicit input-token friction used when no reliable per-model prefill throughput is available.
 
 Input and output token counts use the expected value of a log-uniform range:
 
@@ -273,17 +257,19 @@ $$
 
 The scenario mix is:
 
-- Micro: 15%, 1 call, input `500..3000`, output `1..50`
-- Refine/translate: 15%, 1 call, input `500..20000`, output `500..20000`
-- Extract/structure: 15%, 1 call, input `3000..20000`, output `100..1200`
-- Chat/reasoning: 20%, 4 calls, input `1000..12000`, output `300..2000`
-- Long synthesis: 15%, 1 call, input `20000..80000`, output `1500..6000`
-- Agentic loop: 20%, 8 calls, input `8000..60000`, output `500..4000`
+| Scenario | Weight | Calls | Input tokens/call | Output tokens/call |
+| --- | ---: | ---: | ---: | ---: |
+| Micro | 15% | 1 | `500..3000` | `1..50` |
+| Refine/translate | 15% | 1 | `500..20000` | `500..20000` |
+| Extract/structure | 15% | 1 | `3000..20000` | `100..1200` |
+| Chat/reasoning | 20% | 4 | `1000..12000` | `300..2000` |
+| Long synthesis | 15% | 1 | `20000..80000` | `1500..6000` |
+| Agentic loop | 20% | 8 | `8000..60000` | `500..4000` |
 
-Workflow Value uses the same scenario mix, but each scenario contributes useful work per dollar:
+Workflow value uses the same scenario mix, but each scenario contributes useful work per dollar:
 
 $$
-U_{m,s}=\frac{\operatorname{smoothstep}\left(\frac{q_{m,s}}{q_{\text{full},s}}\right)}{\text{scenario cost}_{m,s}}
+U_{m,s}=\frac{\operatorname{smoothstep}\left(q_{m,s}/q_{\text{full},s}\right)}{\text{scenario cost}_{m,s}}
 $$
 
 where $q_{m,s}$ is the scenario-specific intelligence/agentic blend and $q_{\text{full},s}$ is the good-enough threshold for that scenario. Repeated chat and agentic scenarios model cache-read pricing after the first call: chat treats 50% of input as cacheable and agentic treats 70% of input as cacheable, with a midpoint 70% hit rate from the configured `50..90%` range. One-shot scenarios do not receive cache benefit.
@@ -300,7 +286,7 @@ For missing Value, the scoring-only imputation mirrors quality percentile into t
 
 $$
 \begin{aligned}
-p_{Q,m}&=\operatorname{percentileRank}(Q_m)\\
+p_{Q,m}&=\operatorname{Percentile}(Q_m)\\
 \alpha_V&=0.5\\
 p_{V,m}&=50-\alpha_V(p_{Q,m}-50)
 \end{aligned}
@@ -316,10 +302,10 @@ $$
 O_m=0.35I_m+0.25A_m+0.20S_m^{*}+0.20V_m^{*}
 $$
 
-Here $S_m^{*}$ and $V_m^{*}$ are the displayed score when present, otherwise the scoring-only imputed score.
+Here $S_m^{*}$ and $V_m^{*}$ are the observed score when present, otherwise the scoring-only imputed score.
 
-## Final Filtering And Ordering
+## Final Ordering
 
-The final list requires enough signal after relative scoring: `overall_score`, `intelligence_score`, and `agentic_score` must each exist and be at least `10`.
+The final comparison set requires enough signal after relative scoring: $O_m$, $I_m$, and $A_m$ must each exist and be at least $10$.
 
-The final payload and dashboard default sort are relative Intelligence first. Overall is a practical utility score, not the default ranking key.
+Models are primarily ordered by relative Intelligence. Overall is a practical utility score, not the primary ranking key.

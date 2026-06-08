@@ -1,6 +1,10 @@
 /** Source stage for Model Atlas: fetch Artificial Analysis scraper rows and build lookup maps. */
 
 import { modelSlugFromModelId } from "../shared";
+import {
+	buildAgentsLastExamScoreByModelName,
+	getAgentsLastExamModelScoreStats,
+} from "../sources/agents-last-exam-scraper";
 import { getArtificialAnalysisScrapedEvalsOnlyStats } from "../sources/artificial-analysis-scraper";
 import {
 	buildDeepSWEScoreByModelName,
@@ -55,13 +59,19 @@ function buildAaBySlug(
 
 /** Fetch the source snapshots and precompute the slug/id maps used by later stages. */
 export async function fetchSourceData(): Promise<SourceData> {
-	const [aaStats, modelsDevSourceStats, deepSWEStats, terminalBenchStats] =
-		await Promise.all([
-			getArtificialAnalysisScrapedEvalsOnlyStats(),
-			getModelsDevSourceStats(),
-			getDeepSWEModelScoreStats(),
-			getTerminalBenchModelMedianAccuracyStats(),
-		]);
+	const [
+		aaStats,
+		modelsDevSourceStats,
+		deepSWEStats,
+		terminalBenchStats,
+		agentsLastExamStats,
+	] = await Promise.all([
+		getArtificialAnalysisScrapedEvalsOnlyStats(),
+		getModelsDevSourceStats(),
+		getDeepSWEModelScoreStats(),
+		getTerminalBenchModelMedianAccuracyStats(),
+		getAgentsLastExamModelScoreStats(),
+	]);
 	const retainKeys = buildAaRetainKeys(aaStats.data);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDevSourceStats.payload,
@@ -78,6 +88,10 @@ export async function fetchSourceData(): Promise<SourceData> {
 		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(deepSWEStats.data),
 		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
 			terminalBenchStats.data,
+		),
+		agentsLastExamModelScoreRows: agentsLastExamStats.data,
+		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
+			agentsLastExamStats.data,
 		),
 	};
 }

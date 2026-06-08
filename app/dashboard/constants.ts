@@ -7,12 +7,21 @@ export const tooltipMaxWidth = 400;
 export const tooltipOffsetTop = 12;
 
 export const benchmarkGroups = [
-	["intelligence_benchmark_keys", "Intelligence"],
-	["agentic_benchmark_keys", "Agent"],
+	{
+		field: "intelligence_benchmark_display_keys",
+		fallbackField: "intelligence_benchmark_keys",
+		label: "Intelligence",
+	},
+	{
+		field: "agentic_benchmark_display_keys",
+		fallbackField: "agentic_benchmark_keys",
+		label: "Agent",
+	},
 ] as const;
 
 export const benchmarkLabels: Record<string, string> = {
 	apex_agents: "APEX Agents",
+	agents_last_exam: "Agents' Last Exam",
 	critpt: "CritPt",
 	deep_swe: "DeepSWE",
 	gdpval_normalized: "GDPval",
@@ -29,7 +38,7 @@ export const benchmarkLabels: Record<string, string> = {
 export const benchmarkTooltips: Record<string, ModelStatsColumnTooltip> = {
 	omniscience_accuracy: {
 		title: "Omniscience",
-		body: "AA knowledge and hallucination benchmark. This table uses the accuracy side as factual recall signal.",
+		body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "knowledge accuracy"],
@@ -99,9 +108,17 @@ export const benchmarkTooltips: Record<string, ModelStatsColumnTooltip> = {
 			["Role", "agentic task completion"],
 		],
 	},
+	agents_last_exam: {
+		title: "Agents' Last Exam",
+		body: "Real-world software and professional-workflow benchmark. Model Atlas uses the partial-credit score.",
+		rows: [
+			["Source", "Agents' Last Exam"],
+			["Role", "agentic real-world work"],
+		],
+	},
 	deep_swe: {
 		title: "DeepSWE",
-		body: "Standalone coding-agent benchmark joined by model name; this score uses each model's best pass@1 row.",
+		body: "Coding-agent benchmark. This score uses each model's best pass@1 configuration.",
 		rows: [
 			["Source", "DeepSWE leaderboard"],
 			["Role", "coding agent work"],
@@ -109,7 +126,7 @@ export const benchmarkTooltips: Record<string, ModelStatsColumnTooltip> = {
 	},
 	terminal_bench_2: {
 		title: "Terminal-Bench 2.0",
-		body: "Standalone Terminal-Bench 2.0 result joined separately from AA's hard subset.",
+		body: "Terminal task benchmark, kept separate from AA's Terminal-Bench Hard subset.",
 		rows: [
 			["Source", "Terminal-Bench"],
 			["Role", "terminal agent work"],

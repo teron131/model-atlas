@@ -11,6 +11,10 @@ import {
 	normalizeModelToken,
 	normalizeProviderModelId,
 } from "../shared";
+import {
+	agentsLastExamBenchmarkScore,
+	findAgentsLastExamModelScore,
+} from "../sources/agents-last-exam-scraper";
 import { findDeepSWEModelScore } from "../sources/deep-swe-scraper";
 import { findTerminalBenchMedianAccuracy } from "../sources/terminal-bench-scraper";
 
@@ -125,6 +129,7 @@ function buildMatchedRow(
 	modelsDevById: Map<string, ModelsDevModel>,
 	deepSWEScoreByModelName: SourceData["deepSWEScoreByModelName"],
 	terminalBenchAccuracyByModelName: SourceData["terminalBenchAccuracyByModelName"],
+	agentsLastExamScoreByModelName: SourceData["agentsLastExamScoreByModelName"],
 ): Record<string, unknown> {
 	const aaModelId =
 		typeof aaModel.model_id === "string" ? aaModel.model_id : null;
@@ -150,10 +155,22 @@ function buildMatchedRow(
 		modelNameCandidates,
 		deepSWEScoreByModelName,
 	);
-	const scoringSources =
-		deepSWEScore == null ? null : { deep_swe: deepSWEScore };
+	const agentsLastExamScore = findAgentsLastExamModelScore(
+		modelNameCandidates,
+		agentsLastExamScoreByModelName,
+	);
+	const scoringSources = {
+		...(deepSWEScore == null ? {} : { deep_swe: deepSWEScore }),
+		...(agentsLastExamScore == null
+			? {}
+			: { agents_last_exam: agentsLastExamScore }),
+	};
 	if (deepSWEScore != null) {
 		evaluations.deep_swe = deepSWEScore.pass_at_1;
+	}
+	if (agentsLastExamScore != null) {
+		evaluations.agents_last_exam =
+			agentsLastExamBenchmarkScore(agentsLastExamScore);
 	}
 	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,
@@ -186,7 +203,9 @@ function buildMatchedRow(
 		family: matchedFamily,
 		logo,
 		...modelMetadata,
-		...(scoringSources == null ? {} : { scoring_sources: scoringSources }),
+		...(Object.keys(scoringSources).length === 0
+			? {}
+			: { scoring_sources: scoringSources }),
 		evaluations,
 		intelligence,
 		intelligence_index_cost: intelligenceIndexCost,
@@ -221,6 +240,7 @@ export function matchedRowsFromDiagnostics(
 				sourceData.modelsDevById,
 				sourceData.deepSWEScoreByModelName,
 				sourceData.terminalBenchAccuracyByModelName,
+				sourceData.agentsLastExamScoreByModelName,
 			);
 		})
 		.filter((row): row is Record<string, unknown> => row != null);

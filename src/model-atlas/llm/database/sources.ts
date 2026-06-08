@@ -16,6 +16,13 @@ import {
 	normalizeProviderModelId,
 } from "../shared";
 import {
+	agentsLastExamBenchmarkScore,
+	buildAgentsLastExamScoreByModelName,
+	findAgentsLastExamModelScore,
+	getAgentsLastExamHarnessStats,
+	summarizeAgentsLastExamModelScores,
+} from "../sources/agents-last-exam-scraper";
+import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
 	getArtificialAnalysisScrapedRawStats,
 	processArtificialAnalysisScrapedRows,
@@ -39,6 +46,7 @@ import {
 	summarizeTerminalBenchModelMedianAccuracy,
 } from "../sources/terminal-bench-scraper";
 import {
+	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
 	readDeepSWERawCache,
 	readModelsDevRawCache,
@@ -85,6 +93,12 @@ type TerminalBenchSnapshot = {
 	fetchedAt: { terminalBench: number | null };
 };
 
+type AgentsLastExamSnapshot = {
+	agentsLastExamRows: SourceSnapshots["agentsLastExamRows"];
+	agentsLastExamModelScores: SourceSnapshots["agentsLastExamModelScores"];
+	fetchedAt: { agentsLastExam: number | null };
+};
+
 /** Build the source data object consumed by match/enrichment stages. */
 export function buildSourceData(snapshots: SourceSnapshots): SourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
@@ -112,6 +126,10 @@ export function buildSourceData(snapshots: SourceSnapshots): SourceData {
 		),
 		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
 			snapshots.terminalBenchModelScores,
+		),
+		agentsLastExamModelScoreRows: snapshots.agentsLastExamModelScores,
+		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
+			snapshots.agentsLastExamModelScores,
 		),
 	};
 }
@@ -314,6 +332,14 @@ function modelsDevCatalogRow(
 	if (terminalBenchAccuracy != null) {
 		evaluations.terminal_bench_2 = terminalBenchAccuracy;
 	}
+	const agentsLastExamScore = findAgentsLastExamModelScore(
+		modelNameCandidates,
+		sourceData.agentsLastExamScoreByModelName,
+	);
+	if (agentsLastExamScore != null) {
+		evaluations.agents_last_exam =
+			agentsLastExamBenchmarkScore(agentsLastExamScore);
+	}
 	return {
 		id: canonicalId,
 		provider_id: modelsDevModel.provider_id,
@@ -325,9 +351,16 @@ function modelsDevCatalogRow(
 		aa_id: null,
 		family: matchedFamily,
 		...modelMetadata,
-		...(deepSWEScore == null
+		...(deepSWEScore == null && agentsLastExamScore == null
 			? {}
-			: { scoring_sources: { deep_swe: deepSWEScore } }),
+			: {
+					scoring_sources: {
+						...(deepSWEScore == null ? {} : { deep_swe: deepSWEScore }),
+						...(agentsLastExamScore == null
+							? {}
+							: { agents_last_exam: agentsLastExamScore }),
+					},
+				}),
 		...(Object.keys(evaluations).length === 0 ? {} : { evaluations }),
 	};
 }
@@ -527,18 +560,53 @@ async function terminalBenchSnapshot(
 	};
 }
 
+async function agentsLastExamSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<AgentsLastExamSnapshot> {
+	const cached = readAgentsLastExamRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			agentsLastExamRows: cached.rows,
+			agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
+				cached.rows,
+			),
+			fetchedAt: { agentsLastExam: cached.fetchedAt },
+		};
+	}
+	const fetched = await getAgentsLastExamHarnessStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		agentsLastExamRows: rows,
+		agentsLastExamModelScores: summarizeAgentsLastExamModelScores(rows),
+		fetchedAt: {
+			agentsLastExam:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
 export async function loadOrFetchSourceSnapshots(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
 ): Promise<SourceSnapshotCacheResult> {
 	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
-	const [aa, modelsDev, deepSWE, terminalBench] = await Promise.all([
-		aaSnapshot(db, sourceCache.artificial_analysis),
-		modelsDevSnapshot(db, sourceCache.models_dev),
-		deepSWESnapshot(db, sourceCache.deep_swe),
-		terminalBenchSnapshot(db, sourceCache.terminal_bench),
-	]);
+	const [aa, modelsDev, deepSWE, terminalBench, agentsLastExam] =
+		await Promise.all([
+			aaSnapshot(db, sourceCache.artificial_analysis),
+			modelsDevSnapshot(db, sourceCache.models_dev),
+			deepSWESnapshot(db, sourceCache.deep_swe),
+			terminalBenchSnapshot(db, sourceCache.terminal_bench),
+			agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
+		]);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
@@ -564,6 +632,11 @@ export async function loadOrFetchSourceSnapshots(
 		terminalBench.fetchedAt.terminalBench,
 		terminalBench.terminalBenchRows.length,
 	);
+	sourceCache.agents_last_exam = updatedSourceCacheStatus(
+		sourceCache.agents_last_exam,
+		agentsLastExam.fetchedAt.agentsLastExam,
+		agentsLastExam.agentsLastExamRows.length,
+	);
 	return {
 		snapshots: {
 			aaRawRows: aa.aaRawRows,
@@ -576,10 +649,13 @@ export async function loadOrFetchSourceSnapshots(
 			deepSWEModelScoreRows: deepSWE.deepSWEModelScoreRows,
 			terminalBenchRows: terminalBench.terminalBenchRows,
 			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
+			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
+			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			fetchedAt: {
 				artificialAnalysis: aa.fetchedAt.artificialAnalysis,
 				deepSWE: deepSWE.fetchedAt.deepSWE,
 				terminalBench: terminalBench.fetchedAt.terminalBench,
+				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
 			},
 		},
 		sourceCache,
