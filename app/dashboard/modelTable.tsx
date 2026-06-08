@@ -2,11 +2,12 @@ import Image from "next/image";
 import {
 	type CSSProperties,
 	type ReactNode,
+	type UIEvent,
 	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
-	type WheelEvent,
 } from "react";
 
 import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/llm-stats/types";
@@ -32,6 +33,8 @@ import { type ProviderThemeColors, providerThemeColor } from "./providerTheme";
 import { dashboardColumnKeys, staticSortableColumns } from "./tableColumns";
 import type { HeaderTooltipHandler } from "./tooltip";
 
+type ScrollTargetName = "body" | "header";
+
 type ModelTableProps = {
 	sortState: SortState;
 	visibleRows: TableRow[];
@@ -41,6 +44,11 @@ type ModelTableProps = {
 	onTooltipEnd: () => void;
 	providerColors: ProviderThemeColors;
 };
+
+const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
+const PINNED_COLUMNS_ENABLE_BUFFER_PX = 24;
+const MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
+const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
 
 export function ModelTable({
 	sortState,
@@ -52,43 +60,63 @@ export function ModelTable({
 	providerColors,
 }: ModelTableProps) {
 	const tableScrollRef = useRef<HTMLDivElement>(null);
-	const tableShellRef = useRef<HTMLDivElement>(null);
-	const stickyHeadTrackRef = useRef<HTMLDivElement>(null);
+	const headerScrollRef = useRef<HTMLDivElement>(null);
 	const tableRef = useRef<HTMLTableElement>(null);
-	const scrollAnimationFrameRef = useRef<number | null>(null);
+	const mirroredScrollTargetRef = useRef<ScrollTargetName | null>(null);
+	const widestLeadingColumnsWidthRef = useRef(0);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
-	const tableShellStyle = {
-		"--rank-column-width": `${columnWidths[0] ?? 48}px`,
-	} as CSSProperties;
-	const syncColumnWidths = useCallback(() => {
-		const widths = Array.from(
-			tableRef.current?.querySelectorAll("thead th") ?? [],
-			(cell) => Math.ceil(cell.getBoundingClientRect().width),
-		);
+	const [pinnedColumnsEnabled, setPinnedColumnsEnabled] = useState(false);
+	const stickyHeaderReady = columnWidths.length === dashboardColumnKeys.length;
+	const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+	const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
+	const stickyHeaderTableStyle =
+		stickyHeaderReady && stickyHeaderWidth > 0
+			? ({
+					width: stickyHeaderWidthStyle,
+					minWidth: stickyHeaderWidthStyle,
+					maxWidth: stickyHeaderWidthStyle,
+				} as CSSProperties)
+			: undefined;
+	const tableShellStyle =
+		columnWidths[0] == null
+			? undefined
+			: ({
+					"--rank-column-width": `${columnWidths[0]}px`,
+				} as CSSProperties);
+	const syncTableLayoutMeasurements = useCallback(() => {
+		const widths = measuredTableColumnWidths(tableRef.current);
 		if (widths.length === 0) {
+			setPinnedColumnsEnabled(false);
 			return;
 		}
 		setColumnWidths((current) =>
 			sameNumberList(current, widths) ? current : widths,
 		);
-	}, []);
-	const syncStickyHeaderScroll = useCallback(() => {
-		scrollAnimationFrameRef.current = null;
-		const tableScroll = tableScrollRef.current;
-		const { scrollLeft } = horizontalScrollState(tableScroll);
-		if (tableScroll != null && tableScroll.scrollLeft !== scrollLeft) {
-			tableScroll.scrollLeft = scrollLeft;
-		}
-		if (stickyHeadTrackRef.current != null) {
-			stickyHeadTrackRef.current.style.transform = `translateX(${-scrollLeft}px)`;
-		}
-		tableShellRef.current?.style.setProperty(
-			"--table-scroll-left",
-			`${scrollLeft}px`,
+		widestLeadingColumnsWidthRef.current = Math.max(
+			widestLeadingColumnsWidthRef.current,
+			leadingColumnsWidth(widths),
+		);
+		setPinnedColumnsEnabled((current) =>
+			nextPinnedColumnsEnabled(
+				tableScrollRef.current,
+				widestLeadingColumnsWidthRef.current,
+				current,
+			),
 		);
 	}, []);
+	const markMirroredScrollTarget = useCallback(
+		(targetName: ScrollTargetName) => {
+			mirroredScrollTargetRef.current = targetName;
+			window.requestAnimationFrame(() => {
+				if (mirroredScrollTargetRef.current === targetName) {
+					mirroredScrollTargetRef.current = null;
+				}
+			});
+		},
+		[],
+	);
 	const handleWheel = useCallback(
-		(event: WheelEvent<HTMLDivElement>) => {
+		(event: WheelEvent) => {
 			const tableScroll = tableScrollRef.current;
 			if (
 				tableScroll == null ||
@@ -96,75 +124,138 @@ export function ModelTable({
 			) {
 				return;
 			}
-			const { scrollLeft, maxScrollLeft } = horizontalScrollState(tableScroll);
-			const nextScrollLeft = scrollLeft + event.deltaX;
-			if (nextScrollLeft < 0 || nextScrollLeft > maxScrollLeft) {
-				event.preventDefault();
-				tableScroll.scrollLeft = Math.max(
-					0,
-					Math.min(nextScrollLeft, maxScrollLeft),
-				);
-				syncStickyHeaderScroll();
+			const { maxScrollLeft } = horizontalScrollState(tableScroll);
+			if (maxScrollLeft <= 0) {
+				return;
+			}
+			event.preventDefault();
+			tableScroll.scrollLeft = getNextScrollLeft(tableScroll, event.deltaX);
+			markMirroredScrollTarget("header");
+			syncHorizontalScroll(tableScroll, headerScrollRef.current);
+		},
+		[markMirroredScrollTarget],
+	);
+
+	useEffect(() => {
+		const tableScroll = tableScrollRef.current;
+		const headerScroll = headerScrollRef.current;
+		if (tableScroll == null) {
+			return;
+		}
+		tableScroll.addEventListener(
+			"wheel",
+			handleWheel,
+			NON_PASSIVE_WHEEL_OPTIONS,
+		);
+		headerScroll?.addEventListener(
+			"wheel",
+			handleWheel,
+			NON_PASSIVE_WHEEL_OPTIONS,
+		);
+		return () => {
+			tableScroll.removeEventListener(
+				"wheel",
+				handleWheel,
+				NON_PASSIVE_WHEEL_OPTIONS,
+			);
+			headerScroll?.removeEventListener(
+				"wheel",
+				handleWheel,
+				NON_PASSIVE_WHEEL_OPTIONS,
+			);
+		};
+	}, [handleWheel]);
+
+	const handleBodyScroll = useCallback(
+		(event: UIEvent<HTMLDivElement>) => {
+			if (mirroredScrollTargetRef.current === "body") {
+				mirroredScrollTargetRef.current = null;
+				return;
+			}
+			onTooltipEnd();
+			markMirroredScrollTarget("header");
+			if (!syncHorizontalScroll(event.currentTarget, headerScrollRef.current)) {
+				mirroredScrollTargetRef.current = null;
 			}
 		},
-		[syncStickyHeaderScroll],
+		[markMirroredScrollTarget, onTooltipEnd],
 	);
-	const handleScroll = useCallback(() => {
-		onTooltipEnd();
-		if (scrollAnimationFrameRef.current == null) {
-			scrollAnimationFrameRef.current = window.requestAnimationFrame(
-				syncStickyHeaderScroll,
-			);
-		}
-	}, [onTooltipEnd, syncStickyHeaderScroll]);
+	const handleHeaderScroll = useCallback(
+		(event: UIEvent<HTMLDivElement>) => {
+			if (mirroredScrollTargetRef.current === "header") {
+				mirroredScrollTargetRef.current = null;
+				return;
+			}
+			onTooltipEnd();
+			markMirroredScrollTarget("body");
+			if (!syncHorizontalScroll(event.currentTarget, tableScrollRef.current)) {
+				mirroredScrollTargetRef.current = null;
+			}
+		},
+		[markMirroredScrollTarget, onTooltipEnd],
+	);
 
 	useLayoutEffect(() => {
 		const table = tableRef.current;
-		syncColumnWidths();
-		syncStickyHeaderScroll();
-		const animationFrame = window.requestAnimationFrame(syncColumnWidths);
-		const observer = new ResizeObserver(syncColumnWidths);
+		syncTableLayoutMeasurements();
+		const animationFrame = window.requestAnimationFrame(
+			syncTableLayoutMeasurements,
+		);
+		const observer = new ResizeObserver(syncTableLayoutMeasurements);
 		if (table) {
 			observer.observe(table);
 		}
-		window.addEventListener("resize", syncColumnWidths);
+		if (tableScrollRef.current) {
+			observer.observe(tableScrollRef.current);
+		}
+		window.addEventListener("resize", syncTableLayoutMeasurements);
+		document.fonts?.ready.then(syncTableLayoutMeasurements).catch(() => {});
 		return () => {
 			window.cancelAnimationFrame(animationFrame);
-			if (scrollAnimationFrameRef.current != null) {
-				window.cancelAnimationFrame(scrollAnimationFrameRef.current);
-			}
 			observer.disconnect();
-			window.removeEventListener("resize", syncColumnWidths);
+			window.removeEventListener("resize", syncTableLayoutMeasurements);
 		};
-	}, [syncColumnWidths, syncStickyHeaderScroll]);
+	}, [syncTableLayoutMeasurements]);
+
+	useLayoutEffect(() => {
+		const tableScroll = tableScrollRef.current;
+		const headerScroll = headerScrollRef.current;
+		if (tableScroll == null || headerScroll == null || !stickyHeaderReady) {
+			return;
+		}
+		headerScroll.scrollLeft = tableScroll.scrollLeft;
+	}, [stickyHeaderReady]);
 
 	return (
-		<div ref={tableShellRef} className="table-shell" style={tableShellStyle}>
-			<div className="table-sticky-head">
-				<div className="table-sticky-head-viewport">
-					<div ref={stickyHeadTrackRef} className="table-sticky-head-track">
-						<table className="sticky-header-table">
-							<ColumnGroup widths={columnWidths} />
-							<thead>
-								<TableHeaderRow
-									sortState={sortState}
-									onSort={onSort}
-									onTooltip={onTooltip}
-									onTooltipEnd={onTooltipEnd}
-								/>
-							</thead>
-						</table>
-					</div>
-				</div>
+		<div
+			className="table-shell"
+			data-pinned-columns={pinnedColumnsEnabled}
+			data-sticky-head-ready={stickyHeaderReady}
+			style={tableShellStyle}
+		>
+			<div
+				className="table-sticky-head"
+				ref={headerScrollRef}
+				onScroll={handleHeaderScroll}
+			>
+				<table className="sticky-header-table" style={stickyHeaderTableStyle}>
+					<ColumnGroup widths={columnWidths} />
+					<thead>
+						<TableHeaderRow
+							sortState={sortState}
+							onSort={onSort}
+							onTooltip={onTooltip}
+							onTooltipEnd={onTooltipEnd}
+						/>
+					</thead>
+				</table>
 			</div>
 			<div
 				className="table-wrap"
 				ref={tableScrollRef}
-				onScroll={handleScroll}
-				onWheel={handleWheel}
+				onScroll={handleBodyScroll}
 			>
 				<table ref={tableRef}>
-					<ColumnGroup widths={columnWidths} />
 					<thead>
 						<TableHeaderRow
 							sortState={sortState}
@@ -424,10 +515,47 @@ function scoreCell(
 	);
 }
 
+function measuredTableColumnWidths(table: HTMLTableElement | null) {
+	const dataRow = Array.from(table?.querySelectorAll("tbody tr") ?? []).find(
+		(row) => row.children.length === dashboardColumnKeys.length,
+	);
+	const measurementCells =
+		dataRow?.children ?? table?.querySelector("thead tr")?.children;
+	return Array.from(
+		measurementCells ?? [],
+		(cell) => Math.round(cell.getBoundingClientRect().width * 100) / 100,
+	);
+}
+
+function leadingColumnsWidth(columnWidths: number[]) {
+	return (columnWidths[0] ?? 0) + (columnWidths[1] ?? 0);
+}
+
+function nextPinnedColumnsEnabled(
+	scrollElement: HTMLElement | null,
+	leadingColumnsWidth: number,
+	isCurrentlyPinned: boolean,
+) {
+	if (scrollElement == null || leadingColumnsWidth <= 0) {
+		return false;
+	}
+	if (window.matchMedia(MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY).matches) {
+		return false;
+	}
+	const threshold = leadingColumnsWidth * PINNED_COLUMNS_WIDTH_MULTIPLIER;
+	const viewportWidth = scrollElement.clientWidth;
+	return isCurrentlyPinned
+		? viewportWidth > threshold
+		: viewportWidth > threshold + PINNED_COLUMNS_ENABLE_BUFFER_PX;
+}
+
 function sameNumberList(left: number[], right: number[]) {
 	return (
 		left.length === right.length &&
-		left.every((leftValue, index) => leftValue === right[index])
+		left.every((leftValue, index) => {
+			const rightValue = right[index];
+			return rightValue != null && Math.abs(leftValue - rightValue) < 0.5;
+		})
 	);
 }
 
@@ -438,6 +566,30 @@ function horizontalScrollState(element: HTMLElement | null) {
 	const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
 	const scrollLeft = Math.max(0, Math.min(element.scrollLeft, maxScrollLeft));
 	return { scrollLeft, maxScrollLeft };
+}
+
+function getNextScrollLeft(element: HTMLElement, deltaX: number) {
+	const { scrollLeft, maxScrollLeft } = horizontalScrollState(element);
+	return Math.max(0, Math.min(scrollLeft + deltaX, maxScrollLeft));
+}
+
+function syncHorizontalScroll(
+	sourceElement: HTMLElement,
+	targetElement: HTMLElement | null,
+) {
+	if (targetElement == null) {
+		return false;
+	}
+	const { maxScrollLeft } = horizontalScrollState(targetElement);
+	const nextScrollLeft = Math.max(
+		0,
+		Math.min(sourceElement.scrollLeft, maxScrollLeft),
+	);
+	if (Math.abs(targetElement.scrollLeft - nextScrollLeft) < 0.5) {
+		return false;
+	}
+	targetElement.scrollLeft = nextScrollLeft;
+	return true;
 }
 
 export function reverseDirection(direction: Direction): Direction {
