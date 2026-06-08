@@ -39,6 +39,7 @@ type ModelTableProps = {
 	sortState: SortState;
 	visibleRows: TableRow[];
 	emptyMessage: string;
+	isLoading: boolean;
 	onSort: (key: SortKey) => void;
 	onTooltip: HeaderTooltipHandler;
 	onTooltipEnd: () => void;
@@ -51,11 +52,24 @@ const MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
 const RELEASE_DATE_TOKEN_PATTERN = /^\d{4}$/;
+const LOADING_ROW_KEYS = [
+	"loading-row-01",
+	"loading-row-02",
+	"loading-row-03",
+	"loading-row-04",
+	"loading-row-05",
+	"loading-row-06",
+	"loading-row-07",
+	"loading-row-08",
+	"loading-row-09",
+] as const;
+const LOADING_METRIC_COLUMN_KEYS = dashboardColumnKeys.slice(2);
 
 export function ModelTable({
 	sortState,
 	visibleRows,
 	emptyMessage,
+	isLoading,
 	onSort,
 	onTooltip,
 	onTooltipEnd,
@@ -267,15 +281,21 @@ export function ModelTable({
 						/>
 					</thead>
 					<tbody>
-						{visibleRows.map((rowData) => (
-							<ModelRow
-								key={rowData.model.id ?? `${rowData.originalIndex}`}
-								rowData={rowData}
-								providerColors={providerColors}
-							/>
-						))}
-						{visibleRows.length === 0 && (
-							<EmptyStateRow message={emptyMessage} />
+						{isLoading ? (
+							<LoadingRows />
+						) : (
+							<>
+								{visibleRows.map((rowData) => (
+									<ModelRow
+										key={rowData.model.id ?? `${rowData.originalIndex}`}
+										rowData={rowData}
+										providerColors={providerColors}
+									/>
+								))}
+								{visibleRows.length === 0 && (
+									<EmptyStateRow message={emptyMessage} />
+								)}
+							</>
 						)}
 					</tbody>
 				</table>
@@ -303,7 +323,10 @@ function TableHeaderRow({
 	onSort,
 	onTooltip,
 	onTooltipEnd,
-}: Omit<ModelTableProps, "visibleRows" | "emptyMessage" | "providerColors">) {
+}: Omit<
+	ModelTableProps,
+	"visibleRows" | "emptyMessage" | "isLoading" | "providerColors"
+>) {
 	return (
 		<tr>
 			{staticSortableColumns.map((column) => (
@@ -339,6 +362,43 @@ function EmptyStateRow({ message }: { message: string }) {
 			<td className="empty" colSpan={dashboardColumnKeys.length}>
 				{message}
 			</td>
+		</tr>
+	);
+}
+
+function LoadingRows() {
+	return (
+		<>
+			{LOADING_ROW_KEYS.map((key, index) => (
+				<LoadingRow key={key} index={index} />
+			))}
+		</>
+	);
+}
+
+function LoadingRow({ index }: { index: number }) {
+	return (
+		<tr
+			className="loading-row"
+			style={{ "--loading-row-index": index } as CSSProperties}
+		>
+			<td className="rank">
+				<span className="loading-block loading-rank" />
+			</td>
+			<td className="model-column">
+				<div className="model-cell loading-model-cell">
+					<span className="provider-logo loading-logo" />
+					<div className="model-copy loading-model-copy">
+						<span className="loading-block loading-model-name" />
+						<span className="loading-block loading-model-id" />
+					</div>
+				</div>
+			</td>
+			{LOADING_METRIC_COLUMN_KEYS.map((key) => (
+				<td className="data-cell" key={`loading-${key}`}>
+					<span className="loading-block loading-metric" />
+				</td>
+			))}
 		</tr>
 	);
 }

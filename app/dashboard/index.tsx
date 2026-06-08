@@ -83,6 +83,7 @@ export function Dashboard({
 		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
 	const activeTooltipContent =
 		tooltip == null ? undefined : columnTooltips[tooltip.key];
+	const isInitialLoading = payload == null && errorMessage == null;
 	const rowCountLabel =
 		payload == null
 			? "Loading"
@@ -165,9 +166,9 @@ export function Dashboard({
 	}, []);
 
 	return (
-		<main ref={dashboardRef}>
+		<main ref={dashboardRef} aria-busy={isInitialLoading}>
 			<DashboardHeader />
-			<BenchmarkStrip payload={payload} />
+			<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
 			<DashboardControls
 				filterQuery={filterQuery}
 				rowCountLabel={rowCountLabel}
@@ -179,6 +180,7 @@ export function Dashboard({
 				sortState={sortState}
 				visibleRows={visibleRows}
 				emptyMessage={emptyMessage}
+				isLoading={isInitialLoading}
 				onSort={handleSort}
 				onTooltip={showTooltip}
 				onTooltipEnd={clearTooltip}
@@ -416,6 +418,7 @@ function DashboardHeader() {
 	return (
 		<header>
 			<div className="brand-lockup">
+				{/* biome-ignore lint/performance/noImgElement: static markup tests render the client dashboard without Next's image runtime. */}
 				<img
 					className="brand-mark"
 					src="/icons/icon.png"
