@@ -359,6 +359,8 @@ h1 {
 	position: relative;
 	width: 100%;
 	border-bottom: 2px solid rgba(217, 216, 210, 0.88);
+	--rank-column-width: 48px;
+	--table-scroll-left: 0px;
 }
 
 .table-sticky-head {
@@ -388,7 +390,7 @@ h1 {
 	width: 100%;
 	overflow-x: auto;
 	overflow-y: visible;
-	overscroll-behavior-x: contain;
+	overscroll-behavior: none;
 	-webkit-overflow-scrolling: touch;
 }
 
@@ -415,19 +417,23 @@ td {
 
 tbody tr {
 	position: relative;
+	--sticky-cell-background: var(--paper);
 	transition: background-color 0.18s ease;
 }
 
 tbody tr:hover {
 	background: var(--hover);
+	--sticky-cell-background: color-mix(in srgb, var(--paper) 92%, var(--ink));
 }
 
 tbody tr:nth-child(2n) {
 	background: rgba(255, 255, 255, 0.012);
+	--sticky-cell-background: color-mix(in srgb, var(--paper) 98.8%, white);
 }
 
 tbody tr:nth-child(2n):hover {
 	background: rgba(238, 238, 234, 0.07);
+	--sticky-cell-background: color-mix(in srgb, var(--paper) 93%, var(--ink));
 }
 
 thead {
@@ -449,6 +455,44 @@ th {
 thead th {
 	position: relative;
 	z-index: 3;
+}
+
+th:nth-child(1),
+th:nth-child(2),
+tbody td:nth-child(1):not(.empty),
+tbody td:nth-child(2):not(.empty) {
+	position: sticky;
+	z-index: 4;
+}
+
+th:nth-child(1),
+tbody td:nth-child(1):not(.empty) {
+	left: 0;
+}
+
+th:nth-child(2),
+tbody td:nth-child(2):not(.empty) {
+	left: var(--rank-column-width);
+}
+
+thead th:nth-child(1),
+thead th:nth-child(2) {
+	background: var(--paper);
+}
+
+tbody td:nth-child(1):not(.empty),
+tbody td:nth-child(2):not(.empty) {
+	background: var(--sticky-cell-background);
+}
+
+th:nth-child(2),
+tbody td:nth-child(2):not(.empty) {
+	box-shadow: 1px 0 0 rgba(217, 216, 210, 0.16);
+}
+
+.table-sticky-head th:nth-child(1),
+.table-sticky-head th:nth-child(2) {
+	transform: translateX(var(--table-scroll-left));
 }
 
 th:nth-child(2),
