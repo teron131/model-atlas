@@ -93,7 +93,6 @@ main {
 
 header {
 	width: 100%;
-	border-bottom: 2px solid rgba(217, 216, 210, 0.86);
 	padding-bottom: 16px;
 }
 
@@ -126,7 +125,6 @@ h1 {
 	gap: 8px;
 	width: 100%;
 	padding: 10px 0 12px;
-	border-bottom: 1px solid rgba(217, 216, 210, 0.7);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -141,12 +139,6 @@ h1 {
 	letter-spacing: 0;
 	line-height: 1.35;
 	text-transform: uppercase;
-}
-
-.benchmarks h2::after {
-	content: "";
-	height: 1px;
-	background: var(--soft);
 }
 
 .benchmark-groups {
@@ -358,7 +350,6 @@ h1 {
 .table-shell {
 	position: relative;
 	width: 100%;
-	border-bottom: 2px solid rgba(217, 216, 210, 0.88);
 	--rank-column-width: 48px;
 	--table-scroll-left: 0px;
 }
