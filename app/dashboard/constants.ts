@@ -4,7 +4,7 @@ export const liveStatsPath = "/api/llm-stats";
 
 export const tooltipHorizontalPadding = 18;
 export const tooltipMaxWidth = 390;
-export const tooltipWorkflowMaxWidth = 460;
+export const tooltipWorkflowMaxWidth = 520;
 export const tooltipOffsetTop = 12;
 
 export const benchmarkGroups = [
