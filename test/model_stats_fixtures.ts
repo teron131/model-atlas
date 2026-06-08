@@ -20,8 +20,10 @@ export function minimalSelectedPayload({
 			},
 			scoring: {
 				intelligence_benchmark_keys: [],
+				intelligence_benchmark_display_keys: [],
 				missing_intelligence_benchmark_keys: [],
 				agentic_benchmark_keys: [],
+				agentic_benchmark_display_keys: [],
 				missing_agentic_benchmark_keys: [],
 				selected_benchmark_keys: [],
 				price_profiles: {},

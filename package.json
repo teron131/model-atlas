@@ -12,16 +12,16 @@
 	"scripts": {
 		"prebuild": "pnpm run icons:favicon",
 		"build": "next build",
-		"dev": "next dev",
+		"dev": "next dev --webpack",
 		"start": "next start",
-		"test": "tsx test/snapshot_store.ts && tsx test/dashboard_static_markup.tsx && tsx test/dashboard_models.ts && tsx test/artificial_analysis_scraper.ts && tsx test/scoring.ts && tsx test/matcher.ts && tsx test/openrouter_stage.ts && tsx test/deep_swe_scraper.ts && tsx test/terminal_bench_scraper.ts && tsx test/models_dev.ts && tsx test/openrouter_scraper.ts",
+		"test": "tsx test/snapshot_store.ts && tsx test/dashboard_static_markup.tsx && tsx test/dashboard_models.ts && tsx test/next-config.ts && tsx test/artificial_analysis_scraper.ts && tsx test/scoring.ts && tsx test/matcher.ts && tsx test/openrouter_stage.ts && tsx test/deep_swe_scraper.ts && tsx test/terminal_bench_scraper.ts && tsx test/models_dev.ts && tsx test/openrouter_scraper.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"icons:favicon": "tsx scripts/generate-favicon.ts",
 		"atlas:database": "tsx scripts/database.ts",
 		"atlas:payload": "tsx scripts/refresh-model-atlas-payload.ts",
 		"atlas:snapshot": "tsx scripts/write-static-snapshot.ts",
 		"atlas:smoke": "tsx scripts/smoke-model-atlas.ts",
-		"atlas:ui": "next dev",
+		"atlas:ui": "next dev --webpack",
 		"atlas:ui:static": "tsx scripts/serve-minimal-ui.ts"
 	},
 	"dependencies": {

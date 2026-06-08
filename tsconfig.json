@@ -12,6 +12,7 @@
 		"exactOptionalPropertyTypes": false,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
+		"tsBuildInfoFile": ".next/cache/tsconfig.tsbuildinfo",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"plugins": [
