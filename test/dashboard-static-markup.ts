@@ -7,7 +7,7 @@ import { Dashboard } from "../app/dashboard/index";
 import {
 	minimalSelectedModel,
 	minimalSelectedPayload,
-} from "./model_stats_fixtures";
+} from "./model-stats-fixtures";
 
 const payload = minimalSelectedPayload({
 	fetchedAt: 900,

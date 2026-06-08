@@ -6,7 +6,7 @@ import {
 	sortedRows,
 } from "../app/dashboard/models";
 import type { ModelStatsSelectedModel } from "../src/model-atlas/llm/llm-stats/types";
-import { minimalSelectedModel } from "./model_stats_fixtures";
+import { minimalSelectedModel } from "./model-stats-fixtures";
 
 const intelligenceRows = dedupeDisplayModels([
 	rankedModel("provider/third", "Third", 30),
