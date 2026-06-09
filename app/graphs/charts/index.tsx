@@ -5,19 +5,34 @@ import { LinePath } from "@visx/shape";
 import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { line } from "d3-shape";
-import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import type {
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
 } from "../../../src/model-atlas/llm/llm-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/sources/deep-swe-scraper";
+import { clamp } from "../../../src/model-atlas/math-utils";
 import styles from "../charts.module.css";
 import {
-	clamp,
+	type BoxWhiskerDistribution,
+	BoxWhiskerSummary,
+} from "./BoxWhiskerSummary";
+import {
+	AxisTitles,
+	DeepSWEPointLabel,
+	EmptyChart,
+	FilterButton,
+	HoverCard,
+	PlotFrame,
+	PointHitTarget,
+	PointLabel,
+	SummaryCard,
+} from "./chartComponents";
+import {
 	finite,
 	finiteValue,
 	fmtCompact,
+	fmtDurationShort,
 	fmtMinutes,
 	fmtMoney,
 	fmtPercent,
@@ -34,13 +49,11 @@ import {
 	deepSWELabel,
 	deepSweMetricConfig,
 	deepSweRows,
-	focusHover,
 	groupBy,
 	interactionConfigs,
 	modelKey,
 	modelLimitOptions,
 	modelName,
-	pointHover,
 	positiveDomain,
 	providerOptions,
 	shortLabel,
@@ -54,27 +67,38 @@ import type {
 	HoverSetter,
 	HoverState,
 	InteractionConfig,
-	Margin,
 	ModelLimit,
 	Point,
 } from "./types";
 
 type DeepSWEMetricKey = "cost" | "time" | "tokens";
-
-type AccuracyDistribution = {
-	count: number;
-	min: number;
-	q1: number;
-	median: number;
-	q3: number;
-	max: number;
-};
+type ALEMetricKey = "cost" | "time" | "tokens";
 
 type HiddenResourceMetric = {
 	firstLabel: string;
 	secondLabel: string;
 	firstValue: (row: DeepSWEChartRow) => number;
 	secondValue: (row: DeepSWEChartRow) => number;
+};
+
+type ALEChartRow = {
+	model: ModelStatsSelectedModel;
+	score: number;
+	cost: number;
+	seconds: number;
+	inputTokens: number;
+	outputTokens: number;
+	totalTokens: number;
+};
+
+type ALEMetricConfig = {
+	label: string;
+	shortLabel: string;
+	bubbleLabel: string;
+	unit: string;
+	get: (row: ALEChartRow) => number;
+	format: (value: number) => string;
+	ticks: number[];
 };
 
 const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
@@ -95,6 +119,39 @@ const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
 		secondLabel: "time",
 		firstValue: (row) => row.row.mean_cost_usd,
 		secondValue: (row) => row.row.mean_duration_seconds / 60,
+	},
+};
+
+const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
+	cost: {
+		label: "ALE task cost",
+		shortLabel: "Cost",
+		bubbleLabel: "cost",
+		unit: "dollar",
+		get: (row) => row.cost,
+		format: fmtMoney,
+		ticks: [10, 25, 50, 100, 250, 500, 1000, 2000],
+	},
+	time: {
+		label: "ALE task time",
+		shortLabel: "Time",
+		bubbleLabel: "time",
+		unit: "day",
+		get: (row) => row.seconds,
+		format: fmtDurationShort,
+		ticks: [100_000, 250_000, 500_000, 1_000_000, 2_000_000],
+	},
+	tokens: {
+		label: "ALE tokens",
+		shortLabel: "Tokens",
+		bubbleLabel: "tokens",
+		unit: "token",
+		get: (row) => row.totalTokens,
+		format: fmtCompact,
+		ticks: [
+			50_000_000, 100_000_000, 250_000_000, 500_000_000, 1_000_000_000,
+			2_000_000_000,
+		],
 	},
 };
 
@@ -269,6 +326,7 @@ export function ModelAtlasCharts({
 						rows={initialPayload.deep_swe?.rows ?? []}
 						setHover={setHover}
 					/>
+					<ALEPanel models={models} setHover={setHover} />
 					<InteractionMatrix models={models} setHover={setHover} />
 					<RunwayPanel models={models} setHover={setHover} />
 				</section>
@@ -325,80 +383,92 @@ function Panel({
 	);
 }
 
-function AccuracyBoxWhisker({
-	distribution,
-}: {
-	distribution: AccuracyDistribution;
-}) {
-	const domainMax = Math.max(75, distribution.max);
-	const toPosition = (value: number) =>
-		`${clamp((value / domainMax) * 100, 0, 100)}%`;
-	const formatPoint = (value: number) => `${value.toFixed(0)}%`;
-	const style = {
-		"--whisker-min": toPosition(distribution.min),
-		"--whisker-q1": toPosition(distribution.q1),
-		"--whisker-median": toPosition(distribution.median),
-		"--whisker-q3": toPosition(distribution.q3),
-		"--whisker-max": toPosition(distribution.max),
-	} as React.CSSProperties;
-
-	return (
-		<div className={styles.boxWhiskerSummary} style={style}>
-			<div className={styles.boxWhiskerTop}>
-				<span>DeepSWE accuracy</span>
-				<b>{distribution.count} models</b>
-			</div>
-			<div
-				className={styles.boxWhiskerPlot}
-				aria-label={`DeepSWE accuracy distribution from ${formatPoint(
-					distribution.min,
-				)} to ${formatPoint(distribution.max)} with median ${formatPoint(
-					distribution.median,
-				)}`}
-				role="img"
-			>
-				<span className={styles.boxWhiskerLine} />
-				<span className={styles.boxWhiskerMin} />
-				<span className={styles.boxWhiskerMax} />
-				<span className={styles.boxWhiskerBox} />
-				<span className={styles.boxWhiskerMedian} />
-			</div>
-			<div className={styles.boxWhiskerStats}>
-				<span className={styles.boxWhiskerMinValue}>
-					{formatPoint(distribution.min)}
-				</span>
-				<span className={styles.boxWhiskerMedianValue}>
-					{formatPoint(distribution.median)}
-				</span>
-				<span className={styles.boxWhiskerMaxValue}>
-					{formatPoint(distribution.max)}
-				</span>
-			</div>
-		</div>
-	);
-}
-
-function deepSWEAccuracyDistribution(
-	rows: DeepSWELeaderboardRow[],
-): AccuracyDistribution {
-	const accuracyValues = [...groupBy(rows, (row) => row.model).values()]
-		.map((modelRows) => {
-			const modelScores = modelRows
-				.map((row) => percent(row.pass_at_1))
-				.filter(finite);
-			return max(modelScores) ?? null;
-		})
+function valueDistribution(values: number[]): BoxWhiskerDistribution {
+	const sortedValues = values
 		.filter(finite)
 		.sort((left, right) => left - right);
 
 	return {
-		count: accuracyValues.length,
-		min: accuracyValues[0] ?? 0,
-		q1: quantile(accuracyValues, 0.25) ?? 0,
-		median: quantile(accuracyValues, 0.5) ?? 0,
-		q3: quantile(accuracyValues, 0.75) ?? 0,
-		max: accuracyValues[accuracyValues.length - 1] ?? 0,
+		count: sortedValues.length,
+		min: sortedValues[0] ?? 0,
+		q1: quantile(sortedValues, 0.25) ?? 0,
+		median: quantile(sortedValues, 0.5) ?? 0,
+		q3: quantile(sortedValues, 0.75) ?? 0,
+		max: sortedValues[sortedValues.length - 1] ?? 0,
 	};
+}
+
+function deepSWEAccuracyDistribution(
+	rows: DeepSWEChartRow[],
+): BoxWhiskerDistribution {
+	return valueDistribution(
+		rows.map((row) => percent(row.row.pass_at_1)).filter(finite),
+	);
+}
+
+function intelligenceDistribution(
+	models: ModelStatsSelectedModel[],
+): BoxWhiskerDistribution {
+	return valueDistribution(
+		models
+			.map((model) => finiteValue(model.relative_scores?.intelligence_score))
+			.filter(finite),
+	);
+}
+
+function outputSpeedDistribution(
+	models: ModelStatsSelectedModel[],
+): BoxWhiskerDistribution {
+	return valueDistribution(
+		models
+			.map((model) =>
+				finiteValue(model.speed?.throughput_tokens_per_second_median),
+			)
+			.filter(finite),
+	);
+}
+
+function aleRows(models: ModelStatsSelectedModel[]): ALEChartRow[] {
+	return models
+		.map((model) => {
+			const score = percent(model.evaluations?.agents_last_exam);
+			const task = model.task_metrics?.agents_last_exam;
+			const cost = finiteValue(task?.cost);
+			const seconds = finiteValue(task?.seconds);
+			const inputTokens = finiteValue(task?.input_tokens);
+			const outputTokens = finiteValue(task?.output_tokens);
+			const totalTokens =
+				inputTokens != null && outputTokens != null
+					? inputTokens + outputTokens
+					: null;
+			return score != null &&
+				cost != null &&
+				cost > 0 &&
+				seconds != null &&
+				seconds > 0 &&
+				inputTokens != null &&
+				inputTokens > 0 &&
+				outputTokens != null &&
+				outputTokens > 0 &&
+				totalTokens != null &&
+				totalTokens > 0
+				? {
+						model,
+						score,
+						cost,
+						seconds,
+						inputTokens,
+						outputTokens,
+						totalTokens,
+					}
+				: null;
+		})
+		.filter((row): row is ALEChartRow => row != null)
+		.sort((left, right) => right.score - left.score);
+}
+
+function aleScoreDistribution(rows: ALEChartRow[]): BoxWhiskerDistribution {
+	return valueDistribution(rows.map((row) => row.score));
 }
 
 function hiddenResourceValue(
@@ -406,6 +476,43 @@ function hiddenResourceValue(
 	metric: HiddenResourceMetric,
 ) {
 	return metric.firstValue(row) * metric.secondValue(row);
+}
+
+function inverseLogBubbleRadius(values: number[]) {
+	const minRadius = 5;
+	const maxRadius = 20;
+	const logs = values
+		.filter((value) => finite(value) && value > 0)
+		.map((value) => Math.log(value));
+	const minLog = Math.min(...logs);
+	const maxLog = Math.max(...logs);
+	const span = maxLog - minLog;
+
+	return (value: number) => {
+		if (!finite(value) || value <= 0) {
+			return minRadius;
+		}
+		if (!finite(span) || span === 0) {
+			return (minRadius + maxRadius) / 2;
+		}
+		const normalized = clamp((Math.log(value) - minLog) / span, 0, 1);
+		return maxRadius - normalized * (maxRadius - minRadius);
+	};
+}
+
+function aleBubbleValue(row: ALEChartRow, selectedMetric: ALEMetricKey) {
+	return (Object.keys(aleMetricConfig) as ALEMetricKey[])
+		.filter((key) => key !== selectedMetric)
+		.map((key) => aleMetricConfig[key].get(row))
+		.filter((value) => finite(value) && value > 0)
+		.reduce((product, value) => product * value, 1);
+}
+
+function aleBubbleLabel(selectedMetric: ALEMetricKey) {
+	return (Object.keys(aleMetricConfig) as ALEMetricKey[])
+		.filter((key) => key !== selectedMetric)
+		.map((key) => aleMetricConfig[key].bubbleLabel)
+		.join(" x ");
 }
 
 function FrontierPanel({
@@ -490,6 +597,14 @@ function FrontierPanel({
 				</>
 			}
 		>
+			<div className={styles.frontierLegend}>
+				<div className={styles.resourceCaption}>
+					<span className={styles.markerKey}>
+						<span className={styles.bubbleMarkerKey} />
+						Bubble = agentic score
+					</span>
+				</div>
+			</div>
 			<div className={styles.chartWrap}>
 				<svg
 					viewBox={`0 0 ${width} ${height}`}
@@ -646,14 +761,14 @@ function DeepSwePanel({
 	const [metricKey, setMetricKey] = useState<DeepSWEMetricKey>("cost");
 	const [effortMode, setEffortMode] = useState<DeepSWEEffortMode>("best");
 	const allEfforts = deepSweRows(models, rows, "all");
-	const deep =
-		effortMode === "all" ? allEfforts : deepSweRows(models, rows, "best");
+	const bestEfforts = deepSweRows(models, rows, "best");
+	const deep = effortMode === "all" ? allEfforts : bestEfforts;
 
 	if (deep.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 02 / DeepSWE resource axis"
-				title="DeepSWE resource axis"
+				kicker="Graph 02 / DeepSWE efficiency axis"
+				title="DeepSWE efficiency axis"
 				copy="DeepSWE rows appear when the current filters include models with DeepSWE task metrics."
 			>
 				<EmptyChart message="No DeepSWE rows match the current filters." />
@@ -686,10 +801,7 @@ function DeepSwePanel({
 	const markerMetrics = hiddenResourceMetrics[metricKey];
 	const bubbleValue = (row: DeepSWEChartRow) =>
 		hiddenResourceValue(row, markerMetrics);
-	const bubbleScale = scaleLog()
-		.domain(positiveDomain(deep.map(bubbleValue).filter(finite)))
-		.range([5, 20])
-		.clamp(true);
+	const bubbleRadius = inverseLogBubbleRadius(deep.map(bubbleValue));
 	const leader = deep[0] as DeepSWEChartRow;
 	const bestAxis =
 		[...deep].sort(
@@ -703,7 +815,7 @@ function DeepSwePanel({
 			.sort((left, right) => metric.get(left) - metric.get(right))[0] ??
 		bestAxis;
 	const labeledRows = new Set([leader, bestAxis, leanAboveFloor]);
-	const accuracyDistribution = deepSWEAccuracyDistribution(rows);
+	const accuracyDistribution = deepSWEAccuracyDistribution(bestEfforts);
 	const effortLines =
 		effortMode === "all"
 			? [...groupBy(deep, (row) => row.modelKey).values()]
@@ -722,15 +834,23 @@ function DeepSwePanel({
 
 	return (
 		<Panel
-			kicker="Graph 02 / DeepSWE resource axis"
-			title="DeepSWE resource axis"
-			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens. Bubble size uses a log-scaled product of the two other resources."
-			summary={<AccuracyBoxWhisker distribution={accuracyDistribution} />}
+			kicker="Graph 02 / DeepSWE efficiency axis"
+			title="DeepSWE efficiency axis"
+			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens. Bigger bubbles mark lower use of the other two resources."
+			summary={
+				<BoxWhiskerSummary
+					label="DeepSWE accuracy"
+					distribution={accuracyDistribution}
+					domainMax={100}
+					formatValue={(value) => `${value.toFixed(0)}%`}
+					showDomainEndpoints
+				/>
+			}
 		>
 			<div className={styles.resourceToolbar}>
 				<fieldset className={styles.metricToggle}>
 					<legend className={styles.visuallyHidden}>
-						DeepSWE resource axis
+						DeepSWE efficiency axis
 					</legend>
 					{Object.entries(deepSweMetricConfig).map(([key, config]) => (
 						<button
@@ -762,7 +882,7 @@ function DeepSwePanel({
 				<div className={styles.resourceCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble = log({markerMetrics.firstLabel} x{" "}
+						Bubble = lower ({markerMetrics.firstLabel} x{" "}
 						{markerMetrics.secondLabel})
 					</span>
 				</div>
@@ -771,7 +891,7 @@ function DeepSwePanel({
 				<svg
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
-					aria-label="DeepSWE accuracy by resource axis scatter plot"
+					aria-label="DeepSWE accuracy by efficiency axis scatter plot"
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
 					<GridRows
@@ -833,7 +953,7 @@ function DeepSwePanel({
 								style={
 									{
 										"--line-color": providerColor(firstRow.model.provider),
-									} as React.CSSProperties
+									} as CSSProperties
 								}
 							/>
 						);
@@ -857,7 +977,7 @@ function DeepSwePanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={bubbleScale(bubbleValue(row))}
+									r={bubbleRadius(bubbleValue(row))}
 									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
@@ -888,7 +1008,7 @@ function DeepSwePanel({
 								width={width}
 								margin={margin}
 								height={height}
-								xOffset={bubbleScale(bubbleValue(row)) + 8}
+								xOffset={bubbleRadius(bubbleValue(row)) + 8}
 							/>
 						) : null;
 					})}
@@ -917,6 +1037,234 @@ function DeepSwePanel({
 	);
 }
 
+function ALEPanel({
+	models,
+	setHover,
+}: {
+	models: ModelStatsSelectedModel[];
+	setHover: HoverSetter;
+}) {
+	const [metricKey, setMetricKey] = useState<ALEMetricKey>("cost");
+	const rows = aleRows(models);
+
+	if (rows.length === 0) {
+		return (
+			<Panel
+				kicker="Graph 03 / ALE efficiency axis"
+				title="ALE efficiency axis"
+				copy="ALE rows appear when the current filters include models with Agents' Last Exam task metrics."
+			>
+				<EmptyChart message="No ALE rows match the current filters." />
+			</Panel>
+		);
+	}
+
+	const metric = aleMetricConfig[metricKey];
+	const width = 760;
+	const height = 490;
+	const margin = { top: 28, right: 62, bottom: 70, left: 62 };
+	const plotWidth = width - margin.left - margin.right;
+	const plotHeight = height - margin.top - margin.bottom;
+	const metricValues = rows.map(metric.get).filter(finite);
+	const xDomain = positiveDomain(metricValues);
+	const scoreMax = max(rows, (row) => row.score) ?? 50;
+	const yTicks = [0, 10, 20, 30, 40, 50];
+	const xTicks = metric.ticks.filter(
+		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
+	);
+	const x = scaleLog()
+		.domain(xDomain)
+		.range([margin.left, width - margin.right])
+		.clamp(true);
+	const yDomain: [number, number] = [0, Math.max(50, scoreMax + 4)];
+	const y = scaleLinear()
+		.domain(yDomain)
+		.range([height - margin.bottom, margin.top])
+		.clamp(true);
+	const bubbleValue = (row: ALEChartRow) => aleBubbleValue(row, metricKey);
+	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue));
+	const leader = rows[0] as ALEChartRow;
+	const bestAxis =
+		[...rows].sort(
+			(left, right) =>
+				right.score / metric.get(right) - left.score / metric.get(left),
+		)[0] ?? leader;
+	const leanAboveFloor =
+		[...rows]
+			.filter((row) => row.score >= 10)
+			.sort((left, right) => metric.get(left) - metric.get(right))[0] ??
+		bestAxis;
+	const labeledRows = new Set([leader, bestAxis, leanAboveFloor]);
+	const scoreDistribution = aleScoreDistribution(rows);
+	const plotRows = [...rows].sort((left, right) => left.score - right.score);
+	const bubbleLabel = aleBubbleLabel(metricKey);
+
+	return (
+		<Panel
+			kicker="Graph 03 / ALE efficiency axis"
+			title="ALE efficiency axis"
+			copy="Agents' Last Exam score plotted against task cost, time, or total tokens. Bigger bubbles mark lower use of the other two resources."
+			summary={
+				<BoxWhiskerSummary
+					label="ALE score"
+					distribution={scoreDistribution}
+					domainMax={100}
+					formatValue={(value) => `${value.toFixed(0)}%`}
+					showDomainEndpoints
+				/>
+			}
+		>
+			<div className={styles.resourceToolbar}>
+				<fieldset className={styles.metricToggle}>
+					<legend className={styles.visuallyHidden}>ALE efficiency axis</legend>
+					{Object.entries(aleMetricConfig).map(([key, config]) => (
+						<button
+							key={key}
+							type="button"
+							aria-pressed={key === metricKey}
+							onClick={() => setMetricKey(key as ALEMetricKey)}
+						>
+							{config.shortLabel}
+						</button>
+					))}
+				</fieldset>
+				<div className={styles.resourceCaption}>
+					<span className={styles.markerKey}>
+						<span className={styles.bubbleMarkerKey} />
+						Bubble = lower ({bubbleLabel})
+					</span>
+				</div>
+			</div>
+			<div className={styles.chartWrap}>
+				<svg
+					viewBox={`0 0 ${width} ${height}`}
+					role="img"
+					aria-label="Agents' Last Exam score by efficiency axis scatter plot"
+				>
+					<PlotFrame width={width} height={height} margin={margin} />
+					<GridRows
+						scale={y}
+						tickValues={yTicks}
+						width={plotWidth}
+						left={margin.left}
+						stroke="rgba(238, 238, 234, 0.16)"
+						strokeWidth={1}
+					/>
+					<GridColumns
+						scale={x}
+						tickValues={xTicks}
+						height={plotHeight}
+						top={margin.top}
+						stroke="rgba(238, 238, 234, 0.18)"
+						strokeWidth={1}
+					/>
+					{yTicks.map((tick) => (
+						<g key={`ale-y-${tick}`}>
+							<text
+								className={styles.axisLabel}
+								x={margin.left - 18}
+								y={y(tick) + 4}
+								textAnchor="end"
+							>
+								{tick}%
+							</text>
+						</g>
+					))}
+					{xTicks.map((tick) => (
+						<g key={`ale-x-${tick}`}>
+							<text
+								className={styles.axisLabel}
+								x={x(tick)}
+								y={height - 26}
+								textAnchor="middle"
+							>
+								{metric.format(tick)}
+							</text>
+						</g>
+					))}
+					<AxisTitles
+						width={width}
+						height={height}
+						margin={margin}
+						x={`${metric.label}, log scale`}
+						y="ALE score"
+					/>
+					{plotRows.map((row) => {
+						const axisValue = metric.get(row);
+						const cx = x(axisValue);
+						const cy = y(row.score);
+						const rows: HoverRow[] = [
+							["ALE score", `${row.score.toFixed(1)}%`],
+							["Cost", fmtTooltipMoney(row.cost)],
+							["Time", fmtDurationShort(row.seconds)],
+							["Total tokens", fmtTooltipNumber(row.totalTokens)],
+							["Input tokens", fmtTooltipNumber(row.inputTokens)],
+							["Output tokens", fmtTooltipNumber(row.outputTokens)],
+						];
+						return (
+							<g key={row.model.id ?? row.model.name}>
+								<circle
+									className={styles.datavizPoint}
+									cx={cx}
+									cy={cy}
+									r={bubbleRadius(bubbleValue(row))}
+									fill={providerColor(row.model.provider)}
+									stroke="rgba(8,9,9,0.7)"
+									strokeWidth={1}
+									opacity={0.72}
+								/>
+								<PointHitTarget
+									cx={cx}
+									cy={cy}
+									model={row.model}
+									rows={rows}
+									setHover={setHover}
+								/>
+							</g>
+						);
+					})}
+					{plotRows.map((row) => {
+						const axisValue = metric.get(row);
+						const cx = x(axisValue);
+						const cy = y(row.score);
+						return labeledRows.has(row) ? (
+							<DeepSWEPointLabel
+								key={`ale-label-${row.model.id ?? row.model.name}`}
+								label={shortLabel(row.model)}
+								cx={cx}
+								cy={cy}
+								width={width}
+								margin={margin}
+								height={height}
+								xOffset={bubbleRadius(bubbleValue(row)) + 8}
+							/>
+						) : null;
+					})}
+				</svg>
+			</div>
+			<div className={styles.chartSummary}>
+				<SummaryCard
+					label="Leader"
+					value={`${modelName(leader.model)} - ${leader.score.toFixed(1)}%`}
+					detail={`${fmtMoney(leader.cost)} / ${fmtDurationShort(leader.seconds)}`}
+				/>
+				<SummaryCard
+					label={`Best score per ${metric.unit}`}
+					value={modelName(bestAxis.model)}
+					detail={(bestAxis.score / metric.get(bestAxis)).toFixed(
+						metricKey === "tokens" ? 6 : 2,
+					)}
+				/>
+				<SummaryCard
+					label="Leanest above 10%"
+					value={modelName(leanAboveFloor.model)}
+					detail={metric.format(metric.get(leanAboveFloor))}
+				/>
+			</div>
+		</Panel>
+	);
+}
+
 function InteractionMatrix({
 	models,
 	setHover,
@@ -924,16 +1272,21 @@ function InteractionMatrix({
 	models: ModelStatsSelectedModel[];
 	setHover: HoverSetter;
 }) {
+	const distribution = intelligenceDistribution(models);
+
 	return (
 		<Panel
-			kicker="Graph 03 / Intelligence interaction matrix"
+			kicker="Graph 04 / Intelligence interaction matrix"
 			title="Intelligence interaction matrix"
 			copy="Small multiples plotting intelligence against price, speed, response time, context, task cost, and coding reliability."
-			chips={[
-				"y = intelligence",
-				"r = correlation",
-				"corner label = selected tradeoff",
-			]}
+			summary={
+				<BoxWhiskerSummary
+					label="Intelligence score"
+					distribution={distribution}
+					domainMax={100}
+					showDomainEndpoints
+				/>
+			}
 			wide
 			note={
 				<>
@@ -1173,7 +1526,7 @@ function RunwayPanel({
 	if (candidates.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 04 / Context runway"
+				kicker="Graph 05 / Context runway"
 				title="Context runway"
 				copy="Context runway appears when context and throughput metrics are available under the current filters."
 			>
@@ -1188,6 +1541,7 @@ function RunwayPanel({
 	const xDomain = positiveDomain(
 		candidates.map((model) => Number(model.context_window?.context)),
 	);
+	const outputSpeedSummary = outputSpeedDistribution(candidates);
 	const yDomain = positiveDomain(
 		candidates.map((model) =>
 			Number(model.speed?.throughput_tokens_per_second_median),
@@ -1205,10 +1559,18 @@ function RunwayPanel({
 
 	return (
 		<Panel
-			kicker="Graph 04 / Context runway"
+			kicker="Graph 05 / Context runway"
 			title="Context runway"
 			copy="Context window plotted against median output throughput."
-			chips={["bubble = value"]}
+			summary={
+				<BoxWhiskerSummary
+					label="Output speed"
+					distribution={outputSpeedSummary}
+					domainMax={outputSpeedSummary.max}
+					formatValue={(value) => `${fmtCompact(value)} t/s`}
+					showObservedLabels
+				/>
+			}
 			note={
 				<>
 					Upper right means larger context and higher throughput. Bubble size
@@ -1331,281 +1693,5 @@ function RunwayPanel({
 				</svg>
 			</div>
 		</Panel>
-	);
-}
-
-function PlotFrame({
-	width,
-	height,
-	margin,
-}: {
-	width: number;
-	height: number;
-	margin: Margin;
-}) {
-	return (
-		<rect
-			x={margin.left}
-			y={margin.top}
-			width={width - margin.left - margin.right}
-			height={height - margin.top - margin.bottom}
-			fill="rgba(255,255,255,0.015)"
-		/>
-	);
-}
-
-function AxisTitles({
-	width,
-	height,
-	margin,
-	x,
-	y,
-	compact = false,
-}: {
-	width: number;
-	height: number;
-	margin: Margin;
-	x: string;
-	y: string;
-	compact?: boolean;
-}) {
-	const plotLeft = margin.left;
-	const plotRight = width - margin.right;
-	const plotBottom = height - margin.bottom;
-	const plotMiddleY = margin.top + (height - margin.top - margin.bottom) / 2;
-	const yTitleX = compact ? 14 : 18;
-	return (
-		<>
-			<text
-				className={styles.axisTitle}
-				x={plotLeft + (plotRight - plotLeft) / 2}
-				y={plotBottom + (compact ? 58 : 60)}
-				textAnchor="middle"
-			>
-				{x}
-			</text>
-			<text
-				className={styles.axisTitle}
-				x={yTitleX}
-				y={plotMiddleY}
-				textAnchor="middle"
-				transform={`rotate(-90 ${yTitleX} ${plotMiddleY})`}
-			>
-				{y}
-			</text>
-		</>
-	);
-}
-
-function PointHitTarget({
-	cx,
-	cy,
-	model,
-	rows,
-	setHover,
-	hoverTitle,
-}: {
-	cx: number;
-	cy: number;
-	model: ModelStatsSelectedModel;
-	rows: HoverRow[];
-	setHover: HoverSetter;
-	hoverTitle?: string;
-}) {
-	const size = 28;
-	const displayName = hoverTitle ?? modelName(model);
-	return (
-		<foreignObject
-			x={cx - size / 2}
-			y={cy - size / 2}
-			width={size}
-			height={size}
-		>
-			<button
-				type="button"
-				className={styles.pointButton}
-				aria-label={`Show details for ${displayName}`}
-				onPointerEnter={(event) =>
-					setHover(pointHover(event, model, rows, displayName))
-				}
-				onFocus={(event) =>
-					setHover(focusHover(event.currentTarget, model, rows, displayName))
-				}
-				onPointerMove={(event) =>
-					setHover((hover) =>
-						hover
-							? {
-									...hover,
-									left: event.clientX,
-									top: event.clientY,
-								}
-							: null,
-					)
-				}
-				onPointerLeave={() => setHover(null)}
-				onBlur={() => setHover(null)}
-			/>
-		</foreignObject>
-	);
-}
-
-function PointLabel({
-	model,
-	cx,
-	cy,
-	width,
-	margin,
-	height,
-}: {
-	model: ModelStatsSelectedModel;
-	cx: number;
-	cy: number;
-	width: number;
-	margin: Margin;
-	height: number;
-}) {
-	const labelOnLeft = cx > width - margin.right - 120;
-	const xOffset = 10;
-	const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
-	return (
-		<text
-			className={styles.pointLabel}
-			x={labelOnLeft ? cx - xOffset : cx + xOffset}
-			y={y}
-			textAnchor={labelOnLeft ? "end" : "start"}
-		>
-			{shortLabel(model)}
-		</text>
-	);
-}
-
-function DeepSWEPointLabel({
-	label,
-	cx,
-	cy,
-	width,
-	margin,
-	height,
-	xOffset = 10,
-}: {
-	label: string;
-	cx: number;
-	cy: number;
-	width: number;
-	margin: Margin;
-	height: number;
-	xOffset?: number;
-}) {
-	const labelOnLeft = cx > width - margin.right - 135;
-	const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
-	return (
-		<text
-			className={styles.pointLabel}
-			x={labelOnLeft ? cx - xOffset : cx + xOffset}
-			y={y}
-			textAnchor={labelOnLeft ? "end" : "start"}
-		>
-			{label}
-		</text>
-	);
-}
-
-function HoverCard({ hover }: { hover: HoverState }) {
-	const left = Math.min(Math.max(14, hover.left + 16), window.innerWidth - 280);
-	const top = Math.min(Math.max(14, hover.top + 16), window.innerHeight - 210);
-	return (
-		<div
-			className={styles.hoverCard}
-			style={
-				{
-					"--hover-color": hover.color,
-					transform: `translate3d(${left}px, ${top}px, 0)`,
-				} as React.CSSProperties
-			}
-		>
-			<div className={styles.hoverCardHead}>
-				<span className={styles.hoverCardLogo}>
-					{hover.logo ? (
-						<Image
-							src={hover.logo}
-							alt=""
-							width={26}
-							height={26}
-							loading="lazy"
-							unoptimized
-							onError={(event) => {
-								event.currentTarget.hidden = true;
-							}}
-						/>
-					) : null}
-				</span>
-				<div>
-					<div className={styles.hoverCardTitle}>{hover.model}</div>
-					<div className={styles.hoverCardProvider}>{hover.provider}</div>
-				</div>
-			</div>
-			<div className={styles.hoverCardRows}>
-				{hover.rows.map(([label, value]) => (
-					<div key={label} className={styles.hoverCardRow}>
-						<span>{label}</span>
-						<span>{value}</span>
-					</div>
-				))}
-			</div>
-		</div>
-	);
-}
-
-function EmptyChart({
-	message = "No models match the current filters.",
-}: {
-	message?: string;
-}) {
-	return <div className={styles.error}>{message}</div>;
-}
-
-function FilterButton({
-	active,
-	color,
-	label,
-	count,
-	onClick,
-}: {
-	active: boolean;
-	color: string;
-	label: string;
-	count: number;
-	onClick: () => void;
-}) {
-	return (
-		<button
-			type="button"
-			className={styles.filterButton}
-			aria-pressed={active}
-			style={{ "--provider-color": color } as React.CSSProperties}
-			onClick={onClick}
-		>
-			<span className={styles.filterSwatch} />
-			<span>{label}</span>
-			<span>{fmtCompact(count)}</span>
-		</button>
-	);
-}
-
-function SummaryCard({
-	label,
-	value,
-	detail,
-}: {
-	label: string;
-	value: string;
-	detail: string;
-}) {
-	return (
-		<div className={styles.summaryCard}>
-			<div className={styles.summaryLabel}>{label}</div>
-			<span className={styles.summaryValue}>{value}</span>
-			<span className={styles.summaryDetail}>{detail}</span>
-		</div>
 	);
 }
