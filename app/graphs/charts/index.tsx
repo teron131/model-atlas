@@ -114,6 +114,15 @@ function stableSvgScale(scale: (value: number) => number) {
 	return (value: number) => stableSvgNumber(scale(value));
 }
 
+function fmtAxisMoney(value: number) {
+	const digits = value < 1 ? 2 : Number.isInteger(value) ? 0 : 2;
+	const amount =
+		digits === 0
+			? value.toFixed(0)
+			: value.toFixed(digits).replace(/\.?0+$/, "");
+	return `$${amount}`;
+}
+
 const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
 	cost: {
 		firstLabel: "time",
@@ -562,7 +571,7 @@ function FrontierPanel({
 	let best = -Infinity;
 	for (const model of candidates) {
 		const score = model.relative_scores.intelligence_score;
-		if (score > best + 0.5) {
+		if (score > best) {
 			frontier.push(model);
 			best = score;
 		}
@@ -590,15 +599,27 @@ function FrontierPanel({
 	const yPoint = stableSvgScale(y);
 	const medianPrice = median(costs) ?? xDomain[0];
 	const medianScore = median(scores) ?? 50;
-	const visibleFrontier = frontier.filter(
-		(model) => model.relative_scores.intelligence_score >= 55,
-	);
-	const visibleFrontierIds = new Set(visibleFrontier.map(modelKey));
-	const frontierPath = stepPath(visibleFrontier, xPoint, yPoint);
+	const frontierIds = new Set(frontier.map(modelKey));
+	const frontierPath = stepPath(frontier, xPoint, yPoint);
 	const frontierGuideLine = line<ModelStatsSelectedModel>()
 		.x((model) => xPoint(Number(model.cost?.blended_price)))
 		.y((model) => yPoint(model.relative_scores.intelligence_score));
-	const guidePath = frontierGuideLine(visibleFrontier);
+	const guidePath = frontierGuideLine(frontier);
+	const plotLeft = margin.left;
+	const plotRight = width - margin.right;
+	const plotTop = margin.top;
+	const plotBottom = height - margin.bottom;
+	const medianX = xPoint(medianPrice);
+	const medianY = yPoint(medianScore);
+	const yTickStart = Math.ceil(yMin / 5) * 5;
+	const yTicks = Array.from(
+		{ length: Math.floor((100 - yTickStart) / 5) + 1 },
+		(_, index) => yTickStart + index * 5,
+	);
+	const xTickCandidates = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20];
+	const xTicks = xTickCandidates.filter(
+		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
+	);
 
 	return (
 		<Panel
@@ -635,18 +656,18 @@ function FrontierPanel({
 					aria-label="Capability per blended dollar scatter plot"
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
-					{[20, 40, 60, 80, 100].map((tick) => (
+					{yTicks.map((tick) => (
 						<g key={`y-${tick}`}>
 							<line
-								className={styles.gridLine}
-								x1={margin.left}
-								x2={width - margin.right}
+								className={styles.axisTick}
+								x1={plotLeft - 7}
+								x2={plotLeft}
 								y1={yPoint(tick)}
 								y2={yPoint(tick)}
 							/>
 							<text
 								className={styles.axisLabel}
-								x={margin.left - 18}
+								x={plotLeft - 15}
 								y={yPoint(tick) + 4}
 								textAnchor="end"
 							>
@@ -654,59 +675,73 @@ function FrontierPanel({
 							</text>
 						</g>
 					))}
-					{[0.25, 0.5, 1, 2, 5, 10, 25, 50]
-						.filter((tick) => tick >= xDomain[0] && tick <= xDomain[1])
-						.map((tick) => (
-							<g key={`x-${tick}`}>
-								<line
-									className={styles.gridLine}
-									x1={xPoint(tick)}
-									x2={xPoint(tick)}
-									y1={margin.top}
-									y2={height - margin.bottom}
-								/>
-								<text
-									className={styles.axisLabel}
-									x={xPoint(tick)}
-									y={height - 24}
-									textAnchor="middle"
-								>
-									${tick}
-								</text>
-							</g>
-						))}
+					{xTicks.map((tick) => (
+						<g key={`x-${tick}`}>
+							<line
+								className={styles.axisTick}
+								x1={xPoint(tick)}
+								x2={xPoint(tick)}
+								y1={plotBottom}
+								y2={plotBottom + 7}
+							/>
+							<text
+								className={styles.axisLabel}
+								x={xPoint(tick)}
+								y={plotBottom + 24}
+								textAnchor="middle"
+							>
+								{fmtAxisMoney(tick)}
+							</text>
+						</g>
+					))}
 					<AxisTitles
 						width={width}
 						height={height}
 						margin={margin}
 						x="Blended price per 1M tokens, log scale"
 						y="Intelligence score"
+						xTitleOffset={48}
 					/>
 					<line
-						className={styles.axisStrong}
-						x1={xPoint(medianPrice)}
-						x2={xPoint(medianPrice)}
-						y1={margin.top}
-						y2={height - margin.bottom}
+						className={styles.medianAxis}
+						x1={medianX}
+						x2={medianX}
+						y1={plotTop}
+						y2={plotBottom}
 					/>
 					<line
-						className={styles.axisStrong}
-						x1={margin.left}
-						x2={width - margin.right}
-						y1={yPoint(medianScore)}
-						y2={yPoint(medianScore)}
+						className={styles.medianAxis}
+						x1={plotLeft}
+						x2={plotRight}
+						y1={medianY}
+						y2={medianY}
 					/>
 					<text
+						className={styles.medianLabel}
+						x={medianX}
+						y={plotTop - 8}
+						textAnchor="middle"
+					>
+						{fmtAxisMoney(medianPrice)}
+					</text>
+					<text
+						className={styles.medianLabel}
+						x={plotRight + 12}
+						y={medianY + 5}
+					>
+						{medianScore.toFixed(0)}
+					</text>
+					<text
 						className={styles.quadrantLabel}
-						x={margin.left + 18}
-						y={margin.top + 44}
+						x={plotLeft + 16}
+						y={plotTop + 40}
 					>
 						High value
 					</text>
 					<text
 						className={styles.quadrantLabel}
-						x={xPoint(medianPrice) + 22}
-						y={height - margin.bottom - 20}
+						x={medianX + 18}
+						y={plotBottom - 20}
 					>
 						Costly ceiling
 					</text>
@@ -719,8 +754,7 @@ function FrontierPanel({
 					{candidates.slice(0, 95).map((model) => {
 						const cx = xPoint(Number(model.cost?.blended_price));
 						const cy = yPoint(model.relative_scores.intelligence_score);
-						const isFrontier = visibleFrontierIds.has(modelKey(model));
-						const shouldLabel = isFrontier;
+						const isFrontier = frontierIds.has(modelKey(model));
 						const rows: HoverRow[] = [
 							[
 								"Intelligence",
@@ -731,7 +765,10 @@ function FrontierPanel({
 							["Overall", fmtTooltipScore(model.relative_scores.overall_score)],
 						];
 						return (
-							<g key={model.id ?? model.name ?? `${cx}-${cy}`}>
+							<g
+								className={isFrontier ? styles.frontierPoint : undefined}
+								key={model.id ?? model.name ?? `${cx}-${cy}`}
+							>
 								<circle
 									className={styles.datavizPoint}
 									cx={cx}
@@ -744,9 +781,11 @@ function FrontierPanel({
 										),
 									)}
 									fill={providerColor(model.provider)}
-									stroke={isFrontier ? "var(--accent)" : "rgba(8,9,9,0.7)"}
-									strokeWidth={isFrontier ? 2 : 1}
-									opacity={isFrontier ? 0.95 : 0.35}
+									stroke={
+										isFrontier ? "rgba(255, 112, 92, 0.74)" : "rgba(8,9,9,0.7)"
+									}
+									strokeWidth={isFrontier ? 1.4 : 1}
+									opacity={isFrontier ? 1 : 0.35}
 								/>
 								<PointHitTarget
 									cx={cx}
@@ -755,7 +794,7 @@ function FrontierPanel({
 									rows={rows}
 									setHover={setHover}
 								/>
-								{shouldLabel ? (
+								{isFrontier ? (
 									<PointLabel
 										model={model}
 										cx={cx}

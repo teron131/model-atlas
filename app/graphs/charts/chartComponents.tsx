@@ -37,6 +37,7 @@ export function AxisTitles({
 	x,
 	y,
 	compact = false,
+	xTitleOffset,
 }: {
 	width: number;
 	height: number;
@@ -44,18 +45,20 @@ export function AxisTitles({
 	x: string;
 	y: string;
 	compact?: boolean;
+	xTitleOffset?: number;
 }) {
 	const plotLeft = margin.left;
 	const plotRight = width - margin.right;
 	const plotBottom = height - margin.bottom;
 	const plotMiddleY = margin.top + (height - margin.top - margin.bottom) / 2;
 	const yTitleX = compact ? 14 : 18;
+	const resolvedXTitleOffset = xTitleOffset ?? (compact ? 58 : 60);
 	return (
 		<>
 			<text
 				className={styles.axisTitle}
 				x={plotLeft + (plotRight - plotLeft) / 2}
-				y={plotBottom + (compact ? 58 : 60)}
+				y={plotBottom + resolvedXTitleOffset}
 				textAnchor="middle"
 			>
 				{x}
