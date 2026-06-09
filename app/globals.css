@@ -734,9 +734,9 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	position: fixed;
 	z-index: 30;
 	box-sizing: border-box;
-	width: min(400px, calc(100vw - 36px));
+	width: min(360px, calc(100vw - 36px));
 	max-width: calc(100vw - 36px);
-	max-height: calc(100dvh - 36px);
+	max-height: min(640px, calc(100dvh - 36px));
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	padding: 12px 13px 13px;
@@ -747,6 +747,9 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	pointer-events: none;
 	opacity: 0;
 	visibility: hidden;
+	transition:
+		opacity 2s ease,
+		visibility 0s linear 2s;
 	box-shadow:
 		0 18px 48px rgba(0, 0, 0, 0.46),
 		inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -756,7 +759,19 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .column-tooltip.visible {
 	opacity: 1;
+	pointer-events: auto;
 	visibility: visible;
+	transition:
+		opacity 160ms ease,
+		visibility 0s linear;
+}
+
+.column-tooltip.visible.leaving {
+	opacity: 0;
+	visibility: visible;
+	transition:
+		opacity 2s ease,
+		visibility 0s linear 2s;
 }
 
 .column-tooltip-title {
@@ -924,13 +939,13 @@ th[data-sort-state="descending"] .sort-indicator::after {
 }
 
 .column-tooltip-nested-section.weighted-breakdown .column-tooltip-row {
-	grid-template-columns: minmax(0, max-content) minmax(0, 1fr) max-content;
+	grid-template-columns: minmax(0, 1fr) max-content;
 	gap: 14px;
+	max-width: 100%;
 	margin-left: 0;
 }
 
 .column-tooltip-nested-section.weighted-breakdown .column-tooltip-value {
-	grid-column: 3;
 	text-align: right;
 }
 
@@ -969,11 +984,20 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-nested-section .column-tooltip-workflow-table,
 .column-tooltip-nested-section > .column-tooltip-row {
 	box-sizing: border-box;
-	width: auto;
-	max-width: calc(100% - 13px);
-	margin-left: 13px;
-	padding-left: 11px;
+	max-width: calc(100% - 8px);
+	margin-left: 8px;
+	padding-left: 7px;
 	border-left: 1px solid rgba(217, 216, 210, 0.1);
+}
+
+.column-tooltip-nested-section .column-tooltip-price-profile-table,
+.column-tooltip-nested-section .column-tooltip-price-share-table {
+	width: fit-content;
+}
+
+.column-tooltip-nested-section .column-tooltip-workflow-table,
+.column-tooltip-nested-section > .column-tooltip-row {
+	width: auto;
 }
 
 .column-tooltip-price-profile-table,
@@ -1012,8 +1036,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .column-tooltip-workflow-table {
 	--workflow-column-gap: 14px;
-	--workflow-grid-columns:
-		minmax(0, 1.25fr) minmax(0, 32px) minmax(0, 60px)
+	--workflow-grid-columns: minmax(0, 1.25fr) minmax(0, 32px) minmax(0, 60px)
 		minmax(0, 64px) minmax(0, 46px);
 
 	gap: 6px;
@@ -1032,10 +1055,19 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	min-width: 0;
 }
 
-.column-tooltip-nested-head,
-.column-tooltip-workflow-head {
+.column-tooltip-workflow-header {
 	padding-bottom: 5px;
 	border-bottom: 1px solid rgba(217, 216, 210, 0.1);
+}
+
+.column-tooltip-nested-rule {
+	grid-column: 1 / -1;
+	height: 0;
+	border-top: 1px solid rgba(217, 216, 210, 0.1);
+}
+
+.column-tooltip-nested-head,
+.column-tooltip-workflow-head {
 	color: var(--faint);
 	font-size: 10px;
 	font-weight: 800;
@@ -1072,6 +1104,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 @media (max-width: 560px) {
 	.column-tooltip {
+		max-height: min(72dvh, calc(100dvh - 36px));
 		pointer-events: auto;
 		touch-action: pan-y;
 	}
@@ -1088,8 +1121,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 	.column-tooltip-workflow-table {
 		--workflow-column-gap: 4px;
-		--workflow-grid-columns:
-			minmax(0, 1fr) minmax(0, 25px) minmax(0, 47px)
+		--workflow-grid-columns: minmax(0, 1fr) minmax(0, 25px) minmax(0, 47px)
 			minmax(0, 51px) minmax(0, 24px);
 
 		gap: 0;
