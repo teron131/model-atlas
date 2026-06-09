@@ -909,14 +909,14 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	gap: 6px;
 	justify-self: stretch;
 	min-width: 0;
-	margin: 2px 0 8px;
+	margin: 7px 0 10px;
 	padding: 0;
 }
 
 .column-tooltip-nested-section .column-tooltip-row {
 	grid-template-columns: minmax(0, 1fr) max-content;
 	justify-content: stretch;
-	margin-left: 18px;
+	margin-left: 0;
 }
 
 .column-tooltip-nested-section.weighted-breakdown {
@@ -925,8 +925,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .column-tooltip-nested-section.weighted-breakdown .column-tooltip-row {
 	grid-template-columns: minmax(0, max-content) minmax(0, 1fr) max-content;
-	gap: 18px;
-	margin-left: 18px;
+	gap: 14px;
+	margin-left: 0;
 }
 
 .column-tooltip-nested-section.weighted-breakdown .column-tooltip-value {
@@ -964,6 +964,18 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	font-size: var(--mono-label);
 }
 
+.column-tooltip-nested-section .column-tooltip-price-profile-table,
+.column-tooltip-nested-section .column-tooltip-price-share-table,
+.column-tooltip-nested-section .column-tooltip-workflow-table,
+.column-tooltip-nested-section > .column-tooltip-row {
+	box-sizing: border-box;
+	width: auto;
+	max-width: calc(100% - 13px);
+	margin-left: 13px;
+	padding-left: 11px;
+	border-left: 1px solid rgba(217, 216, 210, 0.1);
+}
+
 .column-tooltip-price-profile-table,
 .column-tooltip-price-share-table,
 .column-tooltip-workflow-table {
@@ -985,7 +997,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	column-gap: 18px;
 	row-gap: 6px;
 	width: fit-content;
-	margin-left: 18px;
+	margin-left: 0;
 }
 
 .column-tooltip-price-share-table {
@@ -995,12 +1007,18 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	column-gap: 18px;
 	row-gap: 6px;
 	width: fit-content;
-	margin-left: 18px;
+	margin-left: 0;
 }
 
 .column-tooltip-workflow-table {
+	--workflow-column-gap: 14px;
+	--workflow-grid-columns:
+		minmax(0, 1.25fr) minmax(0, 32px) minmax(0, 60px)
+		minmax(0, 64px) minmax(0, 46px);
+
 	gap: 6px;
 	row-gap: 6px;
+	overflow: hidden;
 	width: 100%;
 	margin-left: 0;
 }
@@ -1008,11 +1026,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-workflow-header,
 .column-tooltip-workflow-row {
 	display: grid;
-	grid-template-columns:
-		minmax(104px, 1.25fr) minmax(32px, max-content)
-		minmax(60px, max-content) minmax(64px, max-content)
-		minmax(46px, max-content);
-	column-gap: 14px;
+	grid-template-columns: var(--workflow-grid-columns);
+	column-gap: var(--workflow-column-gap);
 	align-items: baseline;
 	min-width: 0;
 }
@@ -1033,12 +1048,20 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-workflow-header span,
 .column-tooltip-workflow-row span {
 	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .column-tooltip-workflow-scenario {
+	display: block;
+	max-width: 100%;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.column-tooltip-workflow-head-short {
+	display: none;
 }
 
 .column-tooltip-nested-weight,
@@ -1064,20 +1087,73 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	}
 
 	.column-tooltip-workflow-table {
-		font-size: 11px;
+		--workflow-column-gap: 4px;
+		--workflow-grid-columns:
+			minmax(0, 1fr) minmax(0, 25px) minmax(0, 47px)
+			minmax(0, 51px) minmax(0, 24px);
+
+		gap: 0;
+		padding-top: 1px;
+		font-size: 10px;
 	}
 
-	.column-tooltip-workflow-header,
+	.column-tooltip-workflow-header {
+		padding: 2px 0 5px;
+		border-bottom: 1px solid rgba(217, 216, 210, 0.1);
+	}
+
 	.column-tooltip-workflow-row {
-		grid-template-columns:
-			minmax(0, 1.25fr) minmax(24px, max-content)
-			minmax(0, 0.78fr) minmax(0, 0.78fr) minmax(34px, max-content);
-		column-gap: 6px;
+		padding: 5px 0 0;
+		border-bottom: 0;
+	}
+
+	.column-tooltip-workflow-scenario,
+	.column-tooltip-workflow-calls,
+	.column-tooltip-workflow-input,
+	.column-tooltip-workflow-output,
+	.column-tooltip-workflow-weight,
+	.column-tooltip-workflow-head {
+		min-width: 0;
+	}
+
+	.column-tooltip-workflow-head {
+		overflow: hidden;
+		padding-bottom: 0;
+		border-bottom: 0;
+		color: var(--faint);
+		font-size: 8.5px;
+	}
+
+	.column-tooltip-workflow-head:first-child {
+		visibility: hidden;
+	}
+
+	.column-tooltip-workflow-head:last-child {
+		visibility: hidden;
+	}
+
+	.column-tooltip-workflow-head-full {
+		display: none;
+	}
+
+	.column-tooltip-workflow-head-short {
+		display: inline;
 	}
 
 	.column-tooltip-workflow-scenario {
-		overflow: hidden;
-		text-overflow: ellipsis;
+		color: var(--muted);
+	}
+
+	.column-tooltip-workflow-calls,
+	.column-tooltip-workflow-input,
+	.column-tooltip-workflow-output,
+	.column-tooltip-workflow-weight {
+		color: var(--muted);
+		font-size: 9.5px;
+	}
+
+	.column-tooltip-workflow-weight {
+		text-align: left;
 	}
 }
 

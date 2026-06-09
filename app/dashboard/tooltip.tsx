@@ -240,9 +240,15 @@ function WorkflowSimulationRows({
 		<div className="column-tooltip-workflow-table">
 			<div className="column-tooltip-workflow-header">
 				<span className="column-tooltip-workflow-head">Scenario</span>
-				<span className="column-tooltip-workflow-head">Calls</span>
-				<span className="column-tooltip-workflow-head">Input</span>
-				<span className="column-tooltip-workflow-head">Output</span>
+				<span className="column-tooltip-workflow-head">#</span>
+				<span className="column-tooltip-workflow-head">
+					<span className="column-tooltip-workflow-head-full">Input</span>
+					<span className="column-tooltip-workflow-head-short">In</span>
+				</span>
+				<span className="column-tooltip-workflow-head">
+					<span className="column-tooltip-workflow-head-full">Output</span>
+					<span className="column-tooltip-workflow-head-short">Out</span>
+				</span>
 				<span className="column-tooltip-workflow-head">Weight</span>
 			</div>
 			{rows.map(([label, value]) => {
@@ -356,9 +362,9 @@ function WorkflowSimulationRow({
 	return (
 		<div className="column-tooltip-workflow-row">
 			<span className="column-tooltip-workflow-scenario">{cells.scenario}</span>
-			<span>{cells.calls}</span>
-			<span>{cells.input}</span>
-			<span>{cells.output}</span>
+			<span className="column-tooltip-workflow-calls">{cells.calls}</span>
+			<span className="column-tooltip-workflow-input">{cells.input}</span>
+			<span className="column-tooltip-workflow-output">{cells.output}</span>
 			<span className="column-tooltip-workflow-weight">{weight}</span>
 		</div>
 	);
