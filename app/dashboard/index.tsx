@@ -166,26 +166,32 @@ export function Dashboard({
 	}, []);
 
 	return (
-		<main ref={dashboardRef} aria-busy={isInitialLoading}>
+		<main
+			className="dashboard-main"
+			ref={dashboardRef}
+			aria-busy={isInitialLoading}
+		>
 			<DashboardHeader />
 			<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
-			<DashboardControls
-				filterQuery={filterQuery}
-				rowCountLabel={rowCountLabel}
-				isRefreshing={isRefreshing}
-				onFilterQueryChange={setFilterQuery}
-				onRefresh={() => void refreshPayload({ bypassGuard: true })}
-			/>
-			<ModelTable
-				sortState={sortState}
-				visibleRows={visibleRows}
-				emptyMessage={emptyMessage}
-				isLoading={isInitialLoading}
-				onSort={handleSort}
-				onTooltip={showTooltip}
-				onTooltipEnd={clearTooltip}
-				providerColors={providerColors}
-			/>
+			<section className="dashboard-deck" aria-label="Model leaderboard">
+				<DashboardControls
+					filterQuery={filterQuery}
+					rowCountLabel={rowCountLabel}
+					isRefreshing={isRefreshing}
+					onFilterQueryChange={setFilterQuery}
+					onRefresh={() => void refreshPayload({ bypassGuard: true })}
+				/>
+				<ModelTable
+					sortState={sortState}
+					visibleRows={visibleRows}
+					emptyMessage={emptyMessage}
+					isLoading={isInitialLoading}
+					onSort={handleSort}
+					onTooltip={showTooltip}
+					onTooltipEnd={clearTooltip}
+					providerColors={providerColors}
+				/>
+			</section>
 			{tooltip != null && activeTooltipContent != null && (
 				<ColumnTooltip
 					content={activeTooltipContent}
