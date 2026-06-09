@@ -238,11 +238,13 @@ function WorkflowSimulationRows({
 }) {
 	return (
 		<div className="column-tooltip-workflow-table">
-			<span className="column-tooltip-workflow-head">Scenario</span>
-			<span className="column-tooltip-workflow-head">Calls</span>
-			<span className="column-tooltip-workflow-head">Input</span>
-			<span className="column-tooltip-workflow-head">Output</span>
-			<span className="column-tooltip-workflow-head">Weight</span>
+			<div className="column-tooltip-workflow-header">
+				<span className="column-tooltip-workflow-head">Scenario</span>
+				<span className="column-tooltip-workflow-head">Calls</span>
+				<span className="column-tooltip-workflow-head">Input</span>
+				<span className="column-tooltip-workflow-head">Output</span>
+				<span className="column-tooltip-workflow-head">Weight</span>
+			</div>
 			{rows.map(([label, value]) => {
 				const cells = workflowSimulationCells(label);
 				return cells == null ? (
@@ -352,13 +354,13 @@ function WorkflowSimulationRow({
 	weight: string;
 }) {
 	return (
-		<>
+		<div className="column-tooltip-workflow-row">
 			<span className="column-tooltip-workflow-scenario">{cells.scenario}</span>
 			<span>{cells.calls}</span>
 			<span>{cells.input}</span>
 			<span>{cells.output}</span>
 			<span className="column-tooltip-workflow-weight">{weight}</span>
-		</>
+		</div>
 	);
 }
 

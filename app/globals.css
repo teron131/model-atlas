@@ -736,6 +736,9 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	box-sizing: border-box;
 	width: min(400px, calc(100vw - 36px));
 	max-width: calc(100vw - 36px);
+	max-height: calc(100dvh - 36px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	padding: 12px 13px 13px;
 	border: 1px solid rgba(217, 216, 210, 0.2);
 	background: rgba(13, 14, 15, 0.97);
@@ -748,6 +751,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 		0 18px 48px rgba(0, 0, 0, 0.46),
 		inset 0 1px 0 rgba(255, 255, 255, 0.06);
 	backdrop-filter: blur(10px);
+	-webkit-overflow-scrolling: touch;
 }
 
 .column-tooltip.visible {
@@ -995,14 +999,22 @@ th[data-sort-state="descending"] .sort-indicator::after {
 }
 
 .column-tooltip-workflow-table {
+	gap: 6px;
+	row-gap: 6px;
+	width: 100%;
+	margin-left: 0;
+}
+
+.column-tooltip-workflow-header,
+.column-tooltip-workflow-row {
+	display: grid;
 	grid-template-columns:
 		minmax(104px, 1.25fr) minmax(32px, max-content)
 		minmax(60px, max-content) minmax(64px, max-content)
 		minmax(46px, max-content);
 	column-gap: 14px;
-	row-gap: 6px;
-	width: 100%;
-	margin-left: 0;
+	align-items: baseline;
+	min-width: 0;
 }
 
 .column-tooltip-nested-head,
@@ -1018,7 +1030,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .column-tooltip-price-profile-table span,
 .column-tooltip-price-share-table span,
-.column-tooltip-workflow-table span {
+.column-tooltip-workflow-header span,
+.column-tooltip-workflow-row span {
 	min-width: 0;
 	white-space: nowrap;
 }
@@ -1035,6 +1048,11 @@ th[data-sort-state="descending"] .sort-indicator::after {
 }
 
 @media (max-width: 560px) {
+	.column-tooltip {
+		pointer-events: auto;
+		touch-action: pan-y;
+	}
+
 	.column-tooltip-row,
 	.column-tooltip-section .column-tooltip-row {
 		grid-template-columns: 1fr;
@@ -1046,12 +1064,20 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	}
 
 	.column-tooltip-workflow-table {
-		column-gap: 7px;
 		font-size: 11px;
 	}
 
+	.column-tooltip-workflow-header,
+	.column-tooltip-workflow-row {
+		grid-template-columns:
+			minmax(0, 1.25fr) minmax(24px, max-content)
+			minmax(0, 0.78fr) minmax(0, 0.78fr) minmax(34px, max-content);
+		column-gap: 6px;
+	}
+
 	.column-tooltip-workflow-scenario {
-		white-space: normal;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 }
 
