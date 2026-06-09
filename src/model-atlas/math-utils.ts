@@ -56,6 +56,18 @@ export function clamp(value: number, minValue: number, maxValue: number) {
 	return Math.max(minValue, Math.min(maxValue, value));
 }
 
+/** Scale circle radius so visible area changes linearly with a normalized score. */
+export function areaScaledRadius(
+	minRadius: number,
+	maxRadius: number,
+	score: number,
+): number {
+	const clampedScore = clamp(score, 0, 1);
+	return Math.sqrt(
+		minRadius ** 2 + clampedScore * (maxRadius ** 2 - minRadius ** 2),
+	);
+}
+
 /** Compute a finite-aware mean only when enough components are present. */
 export function meanOfFiniteWithMinimum(
 	values: Array<number | null>,

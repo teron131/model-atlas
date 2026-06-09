@@ -11,7 +11,7 @@ import type {
 	ModelStatsSelectedPayload,
 } from "../../../src/model-atlas/llm/llm-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/sources/deep-swe-scraper";
-import { clamp } from "../../../src/model-atlas/math-utils";
+import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
 import styles from "../charts.module.css";
 import {
 	type BoxWhiskerDistribution,
@@ -480,7 +480,7 @@ function hiddenResourceValue(
 
 function inverseLogBubbleRadius(values: number[]) {
 	const minRadius = 5;
-	const maxRadius = 20;
+	const maxRadius = 16;
 	const logs = values
 		.filter((value) => finite(value) && value > 0)
 		.map((value) => Math.log(value));
@@ -493,10 +493,10 @@ function inverseLogBubbleRadius(values: number[]) {
 			return minRadius;
 		}
 		if (!finite(span) || span === 0) {
-			return (minRadius + maxRadius) / 2;
+			return areaScaledRadius(minRadius, maxRadius, 0.5);
 		}
 		const normalized = clamp((Math.log(value) - minLog) / span, 0, 1);
-		return maxRadius - normalized * (maxRadius - minRadius);
+		return areaScaledRadius(minRadius, maxRadius, 1 - normalized);
 	};
 }
 
