@@ -5,7 +5,7 @@ import { LinePath } from "@visx/shape";
 import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { line } from "d3-shape";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useMemo, useState } from "react";
 import type {
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
@@ -101,6 +101,17 @@ type ALEMetricConfig = {
 	ticks: number[];
 };
 
+const SVG_NUMBER_DECIMALS = 3;
+
+// Keep SSR and hydration SVG attributes stable across runtimes.
+function stableSvgNumber(value: number) {
+	return Number(value.toFixed(SVG_NUMBER_DECIMALS));
+}
+
+function stableSvgScale(scale: (value: number) => number) {
+	return (value: number) => stableSvgNumber(scale(value));
+}
+
 const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
 	cost: {
 		firstLabel: "time",
@@ -160,15 +171,10 @@ export function ModelAtlasCharts({
 }: {
 	initialPayload: ModelStatsSelectedPayload | null;
 }) {
-	const [mounted, setMounted] = useState(false);
 	const [provider, setProvider] = useState("all");
 	const [maxCost, setMaxCost] = useState<"all" | number>("all");
 	const [modelLimit, setModelLimit] = useState<ModelLimit>(30);
 	const [hover, setHover] = useState<HoverState | null>(null);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
 
 	const allModels = useMemo(() => {
 		return (initialPayload?.models ?? [])
@@ -214,14 +220,6 @@ export function ModelAtlasCharts({
 		modelLimit === "all" || filteredModels.length <= modelLimit
 			? `${fmtCompact(filteredModels.length)} shown`
 			: `Top ${modelLimit} of ${fmtCompact(filteredModels.length)}`;
-
-	if (!mounted) {
-		return (
-			<main className={styles.atlas}>
-				<div className={styles.error}>Loading Model Atlas charts.</div>
-			</main>
-		);
-	}
 
 	if (!initialPayload || allModels.length === 0) {
 		return (
@@ -580,16 +578,19 @@ function FrontierPanel({
 		.domain([yMin, 102])
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
+	const xPoint = stableSvgScale(x);
+	const yPoint = stableSvgScale(y);
 	const medianPrice = median(costs) ?? xDomain[0];
 	const medianScore = median(scores) ?? 50;
 	const visibleFrontier = frontier.filter(
 		(model) => model.relative_scores.intelligence_score >= 55,
 	);
 	const visibleFrontierIds = new Set(visibleFrontier.map(modelKey));
-	const frontierPath = stepPath(visibleFrontier, x, y);
-	const guidePath = line<ModelStatsSelectedModel>()
-		.x((model) => x(Number(model.cost?.blended_price)))
-		.y((model) => y(model.relative_scores.intelligence_score))(visibleFrontier);
+	const frontierPath = stepPath(visibleFrontier, xPoint, yPoint);
+	const frontierGuideLine = line<ModelStatsSelectedModel>()
+		.x((model) => xPoint(Number(model.cost?.blended_price)))
+		.y((model) => yPoint(model.relative_scores.intelligence_score));
+	const guidePath = frontierGuideLine(visibleFrontier);
 
 	return (
 		<Panel
@@ -632,13 +633,13 @@ function FrontierPanel({
 								className={styles.gridLine}
 								x1={margin.left}
 								x2={width - margin.right}
-								y1={y(tick)}
-								y2={y(tick)}
+								y1={yPoint(tick)}
+								y2={yPoint(tick)}
 							/>
 							<text
 								className={styles.axisLabel}
 								x={margin.left - 18}
-								y={y(tick) + 4}
+								y={yPoint(tick) + 4}
 								textAnchor="end"
 							>
 								{tick}
@@ -651,14 +652,14 @@ function FrontierPanel({
 							<g key={`x-${tick}`}>
 								<line
 									className={styles.gridLine}
-									x1={x(tick)}
-									x2={x(tick)}
+									x1={xPoint(tick)}
+									x2={xPoint(tick)}
 									y1={margin.top}
 									y2={height - margin.bottom}
 								/>
 								<text
 									className={styles.axisLabel}
-									x={x(tick)}
+									x={xPoint(tick)}
 									y={height - 24}
 									textAnchor="middle"
 								>
@@ -675,8 +676,8 @@ function FrontierPanel({
 					/>
 					<line
 						className={styles.axisStrong}
-						x1={x(medianPrice)}
-						x2={x(medianPrice)}
+						x1={xPoint(medianPrice)}
+						x2={xPoint(medianPrice)}
 						y1={margin.top}
 						y2={height - margin.bottom}
 					/>
@@ -684,8 +685,8 @@ function FrontierPanel({
 						className={styles.axisStrong}
 						x1={margin.left}
 						x2={width - margin.right}
-						y1={y(medianScore)}
-						y2={y(medianScore)}
+						y1={yPoint(medianScore)}
+						y2={yPoint(medianScore)}
 					/>
 					<text
 						className={styles.quadrantLabel}
@@ -696,7 +697,7 @@ function FrontierPanel({
 					</text>
 					<text
 						className={styles.quadrantLabel}
-						x={x(medianPrice) + 22}
+						x={xPoint(medianPrice) + 22}
 						y={height - margin.bottom - 20}
 					>
 						Costly ceiling
@@ -708,8 +709,8 @@ function FrontierPanel({
 						<path className={styles.frontier} d={frontierPath} />
 					) : null}
 					{candidates.slice(0, 95).map((model) => {
-						const cx = x(Number(model.cost?.blended_price));
-						const cy = y(model.relative_scores.intelligence_score);
+						const cx = xPoint(Number(model.cost?.blended_price));
+						const cy = yPoint(model.relative_scores.intelligence_score);
 						const isFrontier = visibleFrontierIds.has(modelKey(model));
 						const shouldLabel = isFrontier;
 						const rows: HoverRow[] = [
@@ -727,10 +728,12 @@ function FrontierPanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={clamp(
-										(model.relative_scores.agentic_score ?? 35) / 11,
-										3,
-										9,
+									r={stableSvgNumber(
+										clamp(
+											(model.relative_scores.agentic_score ?? 35) / 11,
+											3,
+											9,
+										),
 									)}
 									fill={providerColor(model.provider)}
 									stroke={isFrontier ? "var(--accent)" : "rgba(8,9,9,0.7)"}
@@ -812,6 +815,8 @@ function DeepSwePanel({
 		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
+	const xPoint = stableSvgScale(x);
+	const yPoint = stableSvgScale(y);
 	const markerMetrics = hiddenResourceMetrics[metricKey];
 	const bubbleValue = (row: DeepSWEChartRow) =>
 		hiddenResourceValue(row, markerMetrics);
@@ -929,7 +934,7 @@ function DeepSwePanel({
 							<text
 								className={styles.axisLabel}
 								x={margin.left - 18}
-								y={y(tick) + 4}
+								y={yPoint(tick) + 4}
 								textAnchor="end"
 							>
 								{tick}%
@@ -940,7 +945,7 @@ function DeepSwePanel({
 						<g key={`x-${tick}`}>
 							<text
 								className={styles.axisLabel}
-								x={x(tick)}
+								x={xPoint(tick)}
 								y={height - 26}
 								textAnchor="middle"
 							>
@@ -962,8 +967,8 @@ function DeepSwePanel({
 								key={firstRow.modelKey}
 								className={styles.deepSweEffortLine}
 								data={modelRows}
-								x={(row) => x(metric.get(row))}
-								y={(row) => y(Number(percent(row.row.pass_at_1)))}
+								x={(row) => xPoint(metric.get(row))}
+								y={(row) => yPoint(Number(percent(row.row.pass_at_1)))}
 								style={
 									{
 										"--line-color": providerColor(firstRow.model.provider),
@@ -975,8 +980,8 @@ function DeepSwePanel({
 					{plotRows.map((row) => {
 						const axisValue = metric.get(row);
 						const score = Number(percent(row.row.pass_at_1));
-						const cx = x(axisValue);
-						const cy = y(score);
+						const cx = xPoint(axisValue);
+						const cy = yPoint(score);
 						const hoverTitle = deepSWELabel(row, true);
 						const rows: HoverRow[] = [
 							["DeepSWE", fmtTooltipPercent(row.row.pass_at_1)],
@@ -991,7 +996,7 @@ function DeepSwePanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={bubbleRadius(bubbleValue(row))}
+									r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
 									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
@@ -1011,8 +1016,8 @@ function DeepSwePanel({
 					{plotRows.map((row) => {
 						const axisValue = metric.get(row);
 						const score = Number(percent(row.row.pass_at_1));
-						const cx = x(axisValue);
-						const cy = y(score);
+						const cx = xPoint(axisValue);
+						const cy = yPoint(score);
 						return labeledRows.has(row) ? (
 							<DeepSWEPointLabel
 								key={`label-${row.row.config ?? row.modelKey}`}
@@ -1095,6 +1100,8 @@ function ALEPanel({
 		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
+	const xPoint = stableSvgScale(x);
+	const yPoint = stableSvgScale(y);
 	const bubbleValue = (row: ALEChartRow) => aleBubbleValue(row, metricKey);
 	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue));
 	const leader = rows[0] as ALEChartRow;
@@ -1177,7 +1184,7 @@ function ALEPanel({
 							<text
 								className={styles.axisLabel}
 								x={margin.left - 18}
-								y={y(tick) + 4}
+								y={yPoint(tick) + 4}
 								textAnchor="end"
 							>
 								{tick}%
@@ -1188,7 +1195,7 @@ function ALEPanel({
 						<g key={`ale-x-${tick}`}>
 							<text
 								className={styles.axisLabel}
-								x={x(tick)}
+								x={xPoint(tick)}
 								y={height - 26}
 								textAnchor="middle"
 							>
@@ -1205,8 +1212,8 @@ function ALEPanel({
 					/>
 					{plotRows.map((row) => {
 						const axisValue = metric.get(row);
-						const cx = x(axisValue);
-						const cy = y(row.score);
+						const cx = xPoint(axisValue);
+						const cy = yPoint(row.score);
 						const rows: HoverRow[] = [
 							["ALE score", `${row.score.toFixed(1)}%`],
 							["Cost", fmtTooltipMoney(row.cost)],
@@ -1221,7 +1228,7 @@ function ALEPanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={bubbleRadius(bubbleValue(row))}
+									r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
 									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
@@ -1239,8 +1246,8 @@ function ALEPanel({
 					})}
 					{plotRows.map((row) => {
 						const axisValue = metric.get(row);
-						const cx = x(axisValue);
-						const cy = y(row.score);
+						const cx = xPoint(axisValue);
+						const cy = yPoint(row.score);
 						return labeledRows.has(row) ? (
 							<DeepSWEPointLabel
 								key={`ale-label-${row.model.id ?? row.model.name}`}
@@ -1380,6 +1387,8 @@ function InteractionPlot({
 		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
+	const xPoint = stableSvgScale(x);
+	const yPoint = stableSvgScale(y);
 	const transformX = (value: number) =>
 		config.log ? Math.log10(Math.max(value, 0.001)) : value;
 	const txMin = transformX(xDomain[0]);
@@ -1420,15 +1429,15 @@ function InteractionPlot({
 						<g key={`${config.key}-x-${tick}`}>
 							<line
 								className={styles.gridLine}
-								x1={x(tick)}
-								x2={x(tick)}
+								x1={xPoint(tick)}
+								x2={xPoint(tick)}
 								y1={margin.top}
 								y2={height - margin.bottom}
 							/>
 							{index % 2 === 0 ? (
 								<text
 									className={styles.axisLabel}
-									x={x(tick)}
+									x={xPoint(tick)}
 									y={height - 24}
 									textAnchor="middle"
 								>
@@ -1445,13 +1454,13 @@ function InteractionPlot({
 								className={styles.gridLine}
 								x1={margin.left}
 								x2={width - margin.right}
-								y1={y(tick)}
-								y2={y(tick)}
+								y1={yPoint(tick)}
+								y2={yPoint(tick)}
 							/>
 							<text
 								className={styles.axisLabel}
 								x={margin.left - 14}
-								y={y(tick) + 4}
+								y={yPoint(tick) + 4}
 								textAnchor="end"
 							>
 								{tick}
@@ -1477,8 +1486,8 @@ function InteractionPlot({
 				{data.slice(0, 130).map((point) => {
 					const highlighted = bestPointId === point.model.id;
 					const radius = clamp((point.agentic ?? 35) / 12, 3, 8);
-					const cx = x(point.x);
-					const cy = y(point.y);
+					const cx = xPoint(point.x);
+					const cy = yPoint(point.y);
 					const rows: HoverRow[] = [
 						["Intelligence", fmtTooltipScore(point.y)],
 						[config.xLabel, config.tooltipFormat(point.x)],
@@ -1491,7 +1500,7 @@ function InteractionPlot({
 								className={styles.datavizPoint}
 								cx={cx}
 								cy={cy}
-								r={highlighted ? radius + 2 : radius}
+								r={stableSvgNumber(highlighted ? radius + 2 : radius)}
 								fill={providerColor(point.model.provider)}
 								stroke={highlighted ? "var(--ink)" : "rgba(8,9,9,0.7)"}
 								strokeWidth={highlighted ? 2.4 : 1}
@@ -1569,6 +1578,8 @@ function RunwayPanel({
 		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
+	const xPoint = stableSvgScale(x);
+	const yPoint = stableSvgScale(y);
 	const labelSet = new Set(candidates.slice(0, 3).map((model) => model.id));
 
 	return (
@@ -1605,14 +1616,14 @@ function RunwayPanel({
 							<g key={`x-${tick}`}>
 								<line
 									className={styles.gridLine}
-									x1={x(tick)}
-									x2={x(tick)}
+									x1={xPoint(tick)}
+									x2={xPoint(tick)}
 									y1={margin.top}
 									y2={height - margin.bottom}
 								/>
 								<text
 									className={styles.axisLabel}
-									x={x(tick)}
+									x={xPoint(tick)}
 									y={height - 26}
 									textAnchor="middle"
 								>
@@ -1628,13 +1639,13 @@ function RunwayPanel({
 									className={styles.gridLine}
 									x1={margin.left}
 									x2={width - margin.right}
-									y1={y(tick)}
-									y2={y(tick)}
+									y1={yPoint(tick)}
+									y2={yPoint(tick)}
 								/>
 								<text
 									className={styles.axisLabel}
 									x={margin.left - 18}
-									y={y(tick) + 4}
+									y={yPoint(tick) + 4}
 									textAnchor="end"
 								>
 									{fmtCompact(tick)}
@@ -1649,8 +1660,8 @@ function RunwayPanel({
 						y="Output tokens per second, log scale"
 					/>
 					{candidates.slice(0, 90).map((model) => {
-						const cx = x(Number(model.context_window?.context));
-						const cy = y(
+						const cx = xPoint(Number(model.context_window?.context));
+						const cy = yPoint(
 							Number(model.speed?.throughput_tokens_per_second_median),
 						);
 						const labeled = labelSet.has(model.id);
@@ -1674,10 +1685,8 @@ function RunwayPanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={clamp(
-										(model.relative_scores.value_score ?? 25) / 9,
-										3,
-										10,
+									r={stableSvgNumber(
+										clamp((model.relative_scores.value_score ?? 25) / 9, 3, 10),
 									)}
 									fill={providerColor(model.provider)}
 									stroke="rgba(8,9,9,0.7)"
