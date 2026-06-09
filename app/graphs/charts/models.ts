@@ -121,24 +121,34 @@ export const deepSweMetricConfig = {
 	cost: {
 		label: "Avg cost per task",
 		shortLabel: "Cost",
-		unit: "dollar",
 		get: (row: DeepSWEChartRow) => row.row.mean_cost_usd,
+		efficiencyLabel: "Best accuracy per dollar",
+		efficiencyScore: (row: DeepSWEChartRow) =>
+			Number(percent(row.row.pass_at_1)) / row.row.mean_cost_usd,
+		formatEfficiency: (value: number) => value.toFixed(1),
 		format: fmtMoney,
 		ticks: [0.5, 1, 2, 5, 10, 20],
 	},
 	time: {
 		label: "Avg time per task",
 		shortLabel: "Time",
-		unit: "minute",
 		get: (row: DeepSWEChartRow) => row.row.mean_duration_seconds / 60,
+		efficiencyLabel: "Best accuracy per minute",
+		efficiencyScore: (row: DeepSWEChartRow) =>
+			Number(percent(row.row.pass_at_1)) / (row.row.mean_duration_seconds / 60),
+		formatEfficiency: (value: number) => value.toFixed(1),
 		format: (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)}m`,
 		ticks: [10, 20, 30, 45, 60],
 	},
 	tokens: {
 		label: "Avg output tokens",
 		shortLabel: "Output tokens",
-		unit: "output token",
 		get: (row: DeepSWEChartRow) => row.row.mean_output_tokens,
+		efficiencyLabel: "Best accuracy per 1M output tokens",
+		efficiencyScore: (row: DeepSWEChartRow) =>
+			Number(percent(row.row.pass_at_1)) /
+			(row.row.mean_output_tokens / 1_000_000),
+		formatEfficiency: (value: number) => value.toFixed(2),
 		format: fmtCompact,
 		ticks: [20_000, 50_000, 100_000, 200_000],
 	},

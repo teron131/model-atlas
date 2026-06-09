@@ -95,8 +95,10 @@ type ALEMetricConfig = {
 	label: string;
 	shortLabel: string;
 	bubbleLabel: string;
-	unit: string;
 	get: (row: ALEChartRow) => number;
+	efficiencyLabel: string;
+	efficiencyScore: (row: ALEChartRow) => number;
+	formatEfficiency: (value: number) => string;
 	format: (value: number) => string;
 	ticks: number[];
 };
@@ -138,8 +140,10 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 		label: "ALE task cost",
 		shortLabel: "Cost",
 		bubbleLabel: "cost",
-		unit: "dollar",
 		get: (row) => row.cost,
+		efficiencyLabel: "Best score per dollar",
+		efficiencyScore: (row) => row.score / row.cost,
+		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtMoney,
 		ticks: [10, 25, 50, 100, 250, 500, 1000, 2000],
 	},
@@ -147,8 +151,10 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 		label: "ALE task time",
 		shortLabel: "Time",
 		bubbleLabel: "time",
-		unit: "day",
 		get: (row) => row.seconds,
+		efficiencyLabel: "Best score per day",
+		efficiencyScore: (row) => row.score / (row.seconds / 86_400),
+		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtDurationShort,
 		ticks: [100_000, 250_000, 500_000, 1_000_000, 2_000_000],
 	},
@@ -156,8 +162,10 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 		label: "ALE tokens",
 		shortLabel: "Tokens",
 		bubbleLabel: "tokens",
-		unit: "token",
 		get: (row) => row.totalTokens,
+		efficiencyLabel: "Best score per 1M tokens",
+		efficiencyScore: (row) => row.score / (row.totalTokens / 1_000_000),
+		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtCompact,
 		ticks: [
 			50_000_000, 100_000_000, 250_000_000, 500_000_000, 1_000_000_000,
@@ -825,8 +833,7 @@ function DeepSwePanel({
 	const bestAxis =
 		[...deep].sort(
 			(left, right) =>
-				Number(percent(right.row.pass_at_1)) / metric.get(right) -
-				Number(percent(left.row.pass_at_1)) / metric.get(left),
+				metric.efficiencyScore(right) - metric.efficiencyScore(left),
 		)[0] ?? leader;
 	const leanAboveFloor =
 		[...deep]
@@ -1040,11 +1047,9 @@ function DeepSwePanel({
 					detail={`${fmtMoney(leader.row.mean_cost_usd)} / ${fmtMinutes(leader.row.mean_duration_seconds)}`}
 				/>
 				<SummaryCard
-					label={`Best accuracy per ${metric.unit}`}
+					label={metric.efficiencyLabel}
 					value={deepSWELabel(bestAxis, effortMode === "all")}
-					detail={(
-						Number(percent(bestAxis.row.pass_at_1)) / metric.get(bestAxis)
-					).toFixed(metricKey === "tokens" ? 4 : 1)}
+					detail={metric.formatEfficiency(metric.efficiencyScore(bestAxis))}
 				/>
 				<SummaryCard
 					label="Leanest above 20%"
@@ -1108,7 +1113,7 @@ function ALEPanel({
 	const bestAxis =
 		[...rows].sort(
 			(left, right) =>
-				right.score / metric.get(right) - left.score / metric.get(left),
+				metric.efficiencyScore(right) - metric.efficiencyScore(left),
 		)[0] ?? leader;
 	const leanAboveFloor =
 		[...rows]
@@ -1270,11 +1275,9 @@ function ALEPanel({
 					detail={`${fmtMoney(leader.cost)} / ${fmtDurationShort(leader.seconds)}`}
 				/>
 				<SummaryCard
-					label={`Best score per ${metric.unit}`}
+					label={metric.efficiencyLabel}
 					value={modelName(bestAxis.model)}
-					detail={(bestAxis.score / metric.get(bestAxis)).toFixed(
-						metricKey === "tokens" ? 6 : 2,
-					)}
+					detail={metric.formatEfficiency(metric.efficiencyScore(bestAxis))}
 				/>
 				<SummaryCard
 					label="Leanest above 10%"
