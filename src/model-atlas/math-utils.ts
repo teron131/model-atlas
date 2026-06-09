@@ -51,6 +51,11 @@ export function mapFiniteNumbers<T>(
 		);
 }
 
+/** Clamp a number into an inclusive range. */
+export function clamp(value: number, minValue: number, maxValue: number) {
+	return Math.max(minValue, Math.min(maxValue, value));
+}
+
 /** Compute a finite-aware mean only when enough components are present. */
 export function meanOfFiniteWithMinimum(
 	values: Array<number | null>,

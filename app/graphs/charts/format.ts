@@ -14,10 +14,6 @@ const tooltipDecimalFormatter = new Intl.NumberFormat("en-US", {
 	maximumFractionDigits: 1,
 });
 
-export function clamp(value: number, minValue: number, maxValue: number) {
-	return Math.max(minValue, Math.min(maxValue, value));
-}
-
 export function percent(value: unknown) {
 	if (!finite(value)) {
 		return null;
@@ -97,4 +93,14 @@ export function fmtMinutes(seconds: number | null | undefined) {
 		return "--";
 	}
 	return `${(seconds / 60).toFixed(seconds > 600 ? 0 : 1)}m`;
+}
+
+export function fmtDurationShort(seconds: number) {
+	if (seconds >= 172_800) {
+		return `${Number((seconds / 86_400).toFixed(seconds >= 864_000 ? 0 : 1))}d`;
+	}
+	if (seconds >= 7_200) {
+		return `${Number((seconds / 3_600).toFixed(seconds >= 36_000 ? 0 : 1))}h`;
+	}
+	return `${fmtCompact(seconds)}s`;
 }

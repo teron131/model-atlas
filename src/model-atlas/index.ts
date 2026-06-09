@@ -163,6 +163,7 @@ export {
 } from "./llm/sources/terminal-bench-scraper";
 export type { NumberOrNull, WeightedScorePart } from "./math-utils";
 export {
+	clamp,
 	finiteNumbers,
 	isPositiveFinite,
 	logMinMaxScale,
