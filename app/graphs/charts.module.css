@@ -380,7 +380,7 @@
 
 .boxWhiskerFixedDomain .boxWhiskerMin,
 .boxWhiskerFixedDomain .boxWhiskerMax {
-	top: 16px;
+	top: 13px;
 	height: 24px;
 	background: none;
 	border-left: 2px dotted rgba(238, 238, 234, 0.42);
@@ -396,6 +396,7 @@
 
 .boxWhiskerFixedDomain .boxWhiskerStats {
 	height: 26px;
+	margin-top: -8px;
 }
 
 .boxWhiskerStats span {

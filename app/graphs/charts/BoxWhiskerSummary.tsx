@@ -122,7 +122,7 @@ export function BoxWhiskerSummary({
 				) : null}
 				{observedValuesOnTop || medianOnTop ? (
 					<span className={styles.boxWhiskerMedianLabel}>
-						{observedValuesOnTop ? "MEDIAN" : medianValue}
+						{observedValuesOnTop ? "MED" : medianValue}
 					</span>
 				) : null}
 				{observedValuesOnTop ? (
