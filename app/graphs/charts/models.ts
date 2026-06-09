@@ -319,7 +319,10 @@ export function positiveDomain(values: number[]): [number, number] {
 	if (low === high) {
 		return [Math.max(low / 1.4, 0.001), high * 1.4];
 	}
-	return [Math.max(low / 1.08, 0.001), high * 1.08];
+	const logLow = Math.log10(low);
+	const logHigh = Math.log10(high);
+	const logPad = (logHigh - logLow) * 0.05;
+	return [Math.max(10 ** (logLow - logPad), 0.001), 10 ** (logHigh + logPad)];
 }
 
 export function deepSWECi(row: DeepSWELeaderboardRow) {

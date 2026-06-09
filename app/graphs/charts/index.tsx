@@ -356,21 +356,27 @@ function Panel({
 	note?: React.ReactNode;
 	wide?: boolean;
 }) {
+	const showChips = chips != null && chips.length > 0;
+
 	return (
 		<article className={`${styles.panel} ${wide ? styles.wide : ""}`}>
 			<div className={styles.panelHead}>
 				<div className={styles.panelMeta}>
 					<p className={styles.chartKicker}>{kicker}</p>
-					{summary ??
-						(chips && chips.length > 0 ? (
-							<div className={styles.chips}>
-								{chips.map((chip) => (
-									<span key={chip} className={styles.chip}>
-										{chip}
-									</span>
-								))}
-							</div>
-						) : null)}
+					{summary != null || showChips ? (
+						<div className={styles.panelSide}>
+							{showChips ? (
+								<div className={styles.chips}>
+									{chips.map((chip) => (
+										<span key={chip} className={styles.chip}>
+											{chip}
+										</span>
+									))}
+								</div>
+							) : null}
+							{summary}
+						</div>
+					) : null}
 				</div>
 				<div className={styles.panelTitleBlock}>
 					<h2>{title}</h2>
@@ -558,11 +564,12 @@ function FrontierPanel({
 
 	const width = 820;
 	const height = 500;
-	const margin = { top: 26, right: 58, bottom: 68, left: 62 };
+	const margin = { top: 26, right: 76, bottom: 68, left: 76 };
 	const costs = candidates.map((model) => Number(model.cost?.blended_price));
 	const scores = candidates.map(
 		(model) => model.relative_scores.intelligence_score,
 	);
+	const scoreDistribution = valueDistribution(scores);
 	const xDomain = positiveDomain(costs);
 	const yMin = Math.max(0, Math.min(...scores) - 4);
 	const x = scaleLog()
@@ -589,7 +596,14 @@ function FrontierPanel({
 			kicker="Graph 01 / Pareto frontier"
 			title="Pareto frontier"
 			copy="Intelligence score plotted against blended price per 1M tokens."
-			chips={["observed envelope"]}
+			summary={
+				<BoxWhiskerSummary
+					label="Intelligence score"
+					distribution={scoreDistribution}
+					domainMax={100}
+					showDomainEndpoints
+				/>
+			}
 			note={
 				<>
 					Step line: highest observed intelligence score available at or below
@@ -779,7 +793,7 @@ function DeepSwePanel({
 	const metric = deepSweMetricConfig[metricKey];
 	const width = 760;
 	const height = 490;
-	const margin = { top: 28, right: 62, bottom: 70, left: 62 };
+	const margin = { top: 28, right: 78, bottom: 70, left: 76 };
 	const plotWidth = width - margin.left - margin.right;
 	const plotHeight = height - margin.top - margin.bottom;
 	const metricValues = deep.map(metric.get).filter(finite);
@@ -1062,7 +1076,7 @@ function ALEPanel({
 	const metric = aleMetricConfig[metricKey];
 	const width = 760;
 	const height = 490;
-	const margin = { top: 28, right: 62, bottom: 70, left: 62 };
+	const margin = { top: 28, right: 78, bottom: 70, left: 76 };
 	const plotWidth = width - margin.left - margin.right;
 	const plotHeight = height - margin.top - margin.bottom;
 	const metricValues = rows.map(metric.get).filter(finite);
@@ -1345,14 +1359,14 @@ function InteractionPlot({
 
 	const width = 430;
 	const height = 315;
-	const margin = { top: 22, right: 36, bottom: 64, left: 50 };
+	const margin = { top: 22, right: 50, bottom: 64, left: 62 };
 	const [rawMin, rawMax] = extent(data, (point) => point.x);
 	const xMin = rawMin ?? 1;
 	const xMax = rawMax ?? xMin * 2;
 	const xSpan = xMax - xMin || Math.max(1, xMax);
 	const xDomain: [number, number] = config.log
-		? [Math.max(xMin / 1.2, 0.001), Math.max(xMax * 1.2, 0.002)]
-		: [Math.min(0, xMin - xSpan * 0.08), xMax + xSpan * 0.08];
+		? positiveDomain(data.map((point) => point.x))
+		: [Math.min(0, xMin - xSpan * 0.05), xMax + xSpan * 0.05];
 	const yValues = data.map((point) => point.y);
 	const yDomain: [number, number] = [
 		Math.min(0, Math.floor((Math.min(...yValues) - 6) / 10) * 10),
@@ -1537,7 +1551,7 @@ function RunwayPanel({
 
 	const width = 760;
 	const height = 460;
-	const margin = { top: 30, right: 72, bottom: 72, left: 70 };
+	const margin = { top: 30, right: 88, bottom: 72, left: 84 };
 	const xDomain = positiveDomain(
 		candidates.map((model) => Number(model.context_window?.context)),
 	);

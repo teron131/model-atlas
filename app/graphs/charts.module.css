@@ -209,12 +209,15 @@
 	display: contents;
 }
 
-.panelMeta .boxWhiskerSummary,
-.panelMeta .chips {
+.panelMeta .panelSide {
 	grid-column: 2;
 	grid-row: 2;
 	align-self: start;
 	justify-self: end;
+	display: grid;
+	gap: 10px;
+	justify-items: end;
+	min-width: min(300px, 100%);
 }
 
 .panelMeta .chartKicker {
@@ -606,11 +609,11 @@
 		grid-row: 2;
 	}
 
-	.panelMeta .boxWhiskerSummary,
-	.panelMeta .chips {
+	.panelMeta .panelSide {
 		grid-column: 1;
 		grid-row: 3;
 		justify-self: start;
+		justify-items: start;
 	}
 
 	.chips {
