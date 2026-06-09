@@ -47,6 +47,7 @@ const SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY =
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
 const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
+const TOOLTIP_FADE_OUT_MS = 2_000;
 
 type RefreshPayloadOptions = {
 	bypassGuard?: boolean;
@@ -59,6 +60,7 @@ export function Dashboard({
 	initialPayload: ModelStatsSelectedPayload | null;
 }) {
 	const dashboardRef = useRef<HTMLElement>(null);
+	const tooltipFadeTimeoutRef = useRef<number | null>(null);
 	const [sortState, setSortState] = useState<SortState>({
 		key: "intelligence",
 		direction: "descending",
@@ -104,22 +106,53 @@ export function Dashboard({
 		});
 	}, []);
 
-	const clearTooltip = useCallback(() => {
-		setTooltip((current) => (current == null ? current : null));
+	const clearTooltipFadeTimeout = useCallback(() => {
+		if (tooltipFadeTimeoutRef.current != null) {
+			window.clearTimeout(tooltipFadeTimeoutRef.current);
+			tooltipFadeTimeoutRef.current = null;
+		}
 	}, []);
+
+	const cancelTooltipFade = useCallback(() => {
+		clearTooltipFadeTimeout();
+		setTooltip((current) =>
+			current == null || current.phase === "visible"
+				? current
+				: { ...current, phase: "visible" },
+		);
+	}, [clearTooltipFadeTimeout]);
+
+	const clearTooltip = useCallback(() => {
+		setTooltip((current) =>
+			current == null || current.phase === "leaving"
+				? current
+				: { ...current, phase: "leaving" },
+		);
+		clearTooltipFadeTimeout();
+		tooltipFadeTimeoutRef.current = window.setTimeout(() => {
+			setTooltip((current) => (current?.phase === "leaving" ? null : current));
+			tooltipFadeTimeoutRef.current = null;
+		}, TOOLTIP_FADE_OUT_MS);
+	}, [clearTooltipFadeTimeout]);
 
 	const showTooltip = useCallback<HeaderTooltipHandler>(
 		(event, key) => {
 			if (!columnTooltips[key]) {
 				return;
 			}
+			clearTooltipFadeTimeout();
 			setTooltip({
 				key,
+				phase: "visible",
 				...tooltipPositionFromElement(event.currentTarget),
 			});
 		},
-		[columnTooltips],
+		[columnTooltips, clearTooltipFadeTimeout],
 	);
+
+	useEffect(() => {
+		return clearTooltipFadeTimeout;
+	}, [clearTooltipFadeTimeout]);
 
 	useEffect(() => {
 		const observer = new ResizeObserver(() => {
@@ -195,7 +228,10 @@ export function Dashboard({
 			{tooltip != null && activeTooltipContent != null && (
 				<ColumnTooltip
 					content={activeTooltipContent}
+					phase={tooltip.phase}
 					left={tooltip.left}
+					onMouseEnter={cancelTooltipFade}
+					onMouseLeave={clearTooltip}
 					top={tooltip.top}
 				/>
 			)}

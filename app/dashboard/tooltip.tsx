@@ -25,6 +25,7 @@ export type TooltipState = {
 	key: string;
 	left: number;
 	top: number;
+	phase: "visible" | "leaving";
 };
 
 export type HeaderTooltipHandler = (
@@ -34,11 +35,17 @@ export type HeaderTooltipHandler = (
 
 export function ColumnTooltip({
 	content,
+	phase = "visible",
 	left,
+	onMouseEnter,
+	onMouseLeave,
 	top,
 }: {
 	content: ModelStatsColumnTooltip;
+	phase?: TooltipState["phase"];
 	left: number;
+	onMouseEnter?: () => void;
+	onMouseLeave?: () => void;
 	top: number;
 }) {
 	const tooltipRef = useRef<HTMLDivElement>(null);
@@ -77,8 +84,11 @@ export function ColumnTooltip({
 
 	return (
 		<div
-			className={`column-tooltip visible${hasWorkflowSimulationSection ? " workflow-tooltip" : ""}`}
+			className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${hasWorkflowSimulationSection ? " workflow-tooltip" : ""}`}
+			onMouseEnter={onMouseEnter}
+			onMouseLeave={onMouseLeave}
 			ref={tooltipRef}
+			role="tooltip"
 			style={{ ...position, width: tooltipWidth }}
 		>
 			<div className="column-tooltip-title">{content.title}</div>
@@ -189,6 +199,7 @@ function PriceProfileRows({
 			<span className="column-tooltip-nested-head">Profile</span>
 			<span className="column-tooltip-nested-head">Split</span>
 			<span className="column-tooltip-nested-head">Weight</span>
+			<span className="column-tooltip-nested-rule" aria-hidden="true" />
 			{rows.map(([label, value]) => {
 				const cells = priceProfileCells(label);
 				return cells == null ? (
@@ -215,6 +226,7 @@ function PriceShareRows({
 			<span className="column-tooltip-nested-head">Profile</span>
 			<span className="column-tooltip-nested-head">Weight x split</span>
 			<span className="column-tooltip-nested-head">Share</span>
+			<span className="column-tooltip-nested-rule" aria-hidden="true" />
 			{rows.map(([label, value]) => {
 				const cells = priceShareCells(label);
 				return cells == null ? (

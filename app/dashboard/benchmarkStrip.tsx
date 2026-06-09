@@ -46,6 +46,7 @@ export function BenchmarkStrip({
 			}
 			setTooltip({
 				key,
+				phase: "visible",
 				...tooltipPositionFromElement(event.currentTarget),
 			});
 		},
