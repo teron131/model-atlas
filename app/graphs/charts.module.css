@@ -198,7 +198,7 @@
 
 .panelHead {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(380px, 500px);
+	grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
 	column-gap: clamp(22px, 3vw, 42px);
 	row-gap: 18px;
 	padding: 22px 22px 24px;
@@ -248,11 +248,11 @@
 .boxWhiskerSummary {
 	display: grid;
 	gap: 8px;
-	width: min(500px, 100%);
+	width: min(clamp(260px, 20vw, 300px), 100%);
 	max-width: 100%;
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
-	font-size: 11px;
+	font-size: 10px;
 	font-weight: 900;
 	text-transform: uppercase;
 }
@@ -435,8 +435,8 @@
 
 .panel h2 {
 	max-width: 880px;
-	font-size: clamp(34px, 4vw, 64px);
-	line-height: 0.88;
+	font-size: clamp(26px, 3vw, 48px);
+	line-height: 0.92;
 }
 
 .wide h2 {
@@ -589,7 +589,7 @@
 	font-weight: 900;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 760px) {
 	.panelHead {
 		grid-template-columns: 1fr;
 		column-gap: 0;
@@ -610,7 +610,7 @@
 	.panelMeta .chips {
 		grid-column: 1;
 		grid-row: 3;
-		justify-self: stretch;
+		justify-self: start;
 	}
 
 	.chips {
