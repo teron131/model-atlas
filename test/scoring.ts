@@ -96,7 +96,7 @@ const groupPolicyConfig = {
 			agenticPortion: 0,
 		},
 	},
-	floorImputedBenchmarkKeys: [],
+	frontierBenchmarkKeys: [],
 } as const;
 const groupPolicyModels = [
 	{
@@ -216,7 +216,7 @@ const normalizedContextConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: ["target", "wide", "narrow"],
 	agenticBenchmarkKeys: [],
-	floorImputedBenchmarkKeys: [],
+	frontierBenchmarkKeys: [],
 };
 const normalizedContextImputations = buildBenchmarkImputationByModel(
 	normalizedContextModels,
@@ -229,37 +229,38 @@ assertClose(
 	7.5,
 );
 
-const frontierFloorConfig = {
+const frontierPercentileConfig = {
 	...normalizedContextConfig,
-	intelligenceBenchmarkKeys: ["agents_last_exam"],
-	floorImputedBenchmarkKeys: ["agents_last_exam"],
+	intelligenceBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
+	frontierBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
 };
-const frontierFloorModels = [
+const frontierPercentileModels = [
 	{
 		id: "observed-frontier-a",
-		intelligence: { intelligence_index: 0 },
-		evaluations: { agents_last_exam: 0.2 },
+		evaluations: { gdpval_normalized: 0, hle: 0, agents_last_exam: 0.2 },
 	},
 	{
 		id: "observed-frontier-b",
-		intelligence: { intelligence_index: 10 },
-		evaluations: { agents_last_exam: 0.8 },
+		evaluations: { gdpval_normalized: 50, hle: 50, agents_last_exam: 0.5 },
+	},
+	{
+		id: "observed-frontier-c",
+		evaluations: { gdpval_normalized: 100, hle: 100, agents_last_exam: 0.8 },
 	},
 	{
 		id: "missing-frontier",
-		intelligence: { intelligence_index: 20 },
-		evaluations: {},
+		evaluations: { gdpval_normalized: 100, hle: 100 },
 	},
 ];
-const frontierFloorImputations = buildBenchmarkImputationByModel(
-	frontierFloorModels,
-	frontierFloorConfig,
+const frontierPercentileImputations = buildBenchmarkImputationByModel(
+	frontierPercentileModels,
+	frontierPercentileConfig,
 );
 assertClose(
-	frontierFloorImputations
-		.get(frontierFloorModels.at(-1) ?? {})
+	frontierPercentileImputations
+		.get(frontierPercentileModels.at(-1) ?? {})
 		?.get("agents_last_exam"),
-	0.2,
+	0.8,
 );
 
 function projectedModel(options: {

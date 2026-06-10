@@ -194,7 +194,6 @@ export function attachRelativeScores(
 		qualityUtilityScores,
 		valueRelativeScores,
 	);
-
 	return models.map((model, index) => {
 		const intelligenceRelativeScore = intelligenceRelativeScores[index] ?? null;
 		const agenticRelativeScore = agenticRelativeScores[index] ?? null;

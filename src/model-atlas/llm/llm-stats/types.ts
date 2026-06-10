@@ -350,7 +350,7 @@ export type ScoringConfig = {
 	simulationProfiles: SimulationProfiles;
 	simulationInputTokenSeconds: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
-	floorImputedBenchmarkKeys: readonly string[];
+	frontierBenchmarkKeys: readonly string[];
 	qualityScoreWeights: QualityScoreWeights;
 	overallRelativeScoreWeights: OverallRelativeScoreWeights;
 	columnTooltips: ModelStatsColumnTooltips;

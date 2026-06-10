@@ -27,18 +27,18 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	terminalbench_hard: {
 		group: "baseline",
-		intelligencePortion: 0.1,
-		agenticPortion: 0.9,
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 	terminal_bench_2: {
 		group: "baseline",
-		intelligencePortion: 0.3,
-		agenticPortion: 0.7,
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 	browsecomp: {
 		group: "baseline",
-		intelligencePortion: 0.3,
-		agenticPortion: 0.7,
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 	hle: {
 		group: "frontier",
@@ -57,8 +57,8 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	apex_agents: {
 		group: "frontier",
-		intelligencePortion: 0.3,
-		agenticPortion: 0.7,
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 	agents_last_exam: {
 		group: "frontier",
@@ -67,8 +67,8 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	deep_swe: {
 		group: "frontier",
-		intelligencePortion: 0.1,
-		agenticPortion: 0.9,
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 } as const satisfies Readonly<Record<string, BenchmarkPortfolioEntry>>;
 
@@ -814,7 +814,7 @@ export const STAGE_CONFIG = {
 		simulationProfiles: SIMULATION_PROFILES,
 		simulationInputTokenSeconds: SIMULATION_INPUT_TOKEN_SECONDS,
 		benchmarkPortfolio: BENCHMARK_PORTFOLIO,
-		floorImputedBenchmarkKeys: FRONTIER_BENCHMARKS,
+		frontierBenchmarkKeys: FRONTIER_BENCHMARKS,
 		qualityScoreWeights: QUALITY_SCORE_WEIGHTS,
 		overallRelativeScoreWeights: OVERALL_RELATIVE_SCORE_WEIGHTS,
 		columnTooltips: COLUMN_TOOLTIPS,
