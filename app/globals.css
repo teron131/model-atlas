@@ -748,8 +748,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	opacity: 0;
 	visibility: hidden;
 	transition:
-		opacity 2s ease,
-		visibility 0s linear 2s;
+		opacity 1s ease,
+		visibility 0s linear 1s;
 	box-shadow:
 		0 18px 48px rgba(0, 0, 0, 0.46),
 		inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -770,8 +770,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	opacity: 0;
 	visibility: visible;
 	transition:
-		opacity 2s ease,
-		visibility 0s linear 2s;
+		opacity 1s ease,
+		visibility 0s linear 1s;
 }
 
 .column-tooltip-title {
