@@ -41,7 +41,6 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "price",
 		title: "Intelligence vs blended price",
-		corner: "upper left",
 		lowerBetter: true,
 		log: true,
 		ticks: [0.25, 0.5, 1, 2, 5, 10, 25],
@@ -54,7 +53,6 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "speed",
 		title: "Intelligence vs output speed",
-		corner: "upper right",
 		lowerBetter: false,
 		log: true,
 		ticks: [20, 50, 100, 250, 500, 1000, 2500],
@@ -68,7 +66,6 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "response",
 		title: "Intelligence vs response time",
-		corner: "upper left",
 		lowerBetter: true,
 		log: true,
 		ticks: [2, 5, 10, 20, 40, 80],
@@ -81,7 +78,6 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "context",
 		title: "Intelligence vs context window",
-		corner: "upper right",
 		lowerBetter: false,
 		log: true,
 		ticks: [32_000, 128_000, 256_000, 1_000_000, 2_000_000, 10_000_000],
@@ -94,7 +90,6 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "aaCost",
 		title: "Intelligence vs AA task cost",
-		corner: "upper left",
 		lowerBetter: true,
 		log: true,
 		ticks: [0.02, 0.05, 0.1, 0.25, 0.5, 1],
@@ -107,7 +102,6 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "deepSwe",
 		title: "Intelligence vs DeepSWE accuracy",
-		corner: "upper right",
 		lowerBetter: false,
 		log: false,
 		ticks: [0, 20, 40, 60, 80],

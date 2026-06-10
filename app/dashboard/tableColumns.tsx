@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { BotIcon, BrainIcon, DollarIcon, RocketIcon } from "./icons";
+import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "./icons";
 import { dashboardMetricColumns, type SortKey } from "./models";
 
 export type SortableColumnDefinition = {
@@ -25,7 +25,7 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
 	},
 	{
 		key: "speed",
-		label: metricLabel(<RocketIcon />, "Speed"),
+		label: metricLabel(<LightningIcon />, "Speed"),
 	},
 	{
 		key: "value",

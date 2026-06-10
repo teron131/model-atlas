@@ -2,7 +2,6 @@
 
 /** Interactive chart view for selected Model Atlas payloads. */
 
-import { GridColumns, GridRows } from "@visx/grid";
 import { LinePath } from "@visx/shape";
 import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
@@ -21,14 +20,23 @@ import {
 } from "./BoxWhiskerSummary";
 import {
 	AxisTitles,
+	CursorCapture,
+	CursorProjectionLayer,
 	DeepSWEPointLabel,
 	EmptyChart,
 	FilterButton,
 	HoverCard,
+	MedianCross,
 	PlotFrame,
 	PointHitTarget,
 	PointLabel,
+	plotBoundsFor,
 	SummaryCard,
+	stableSvgNumber,
+	stableSvgScale,
+	useCursorProjection,
+	XAxisTicks,
+	YAxisTicks,
 } from "./ChartComponents";
 import {
 	finite,
@@ -104,17 +112,6 @@ type ALEMetricConfig = {
 	format: (value: number) => string;
 	ticks: number[];
 };
-
-const SVG_NUMBER_DECIMALS = 3;
-
-// Keep SSR and hydration SVG attributes stable across runtimes.
-function stableSvgNumber(value: number) {
-	return Number(value.toFixed(SVG_NUMBER_DECIMALS));
-}
-
-function stableSvgScale(scale: (value: number) => number) {
-	return (value: number) => stableSvgNumber(scale(value));
-}
 
 function fmtAxisMoney(value: number) {
 	const digits = value < 1 ? 2 : Number.isInteger(value) ? 0 : 2;
@@ -545,6 +542,7 @@ function FrontierPanel({
 	models: ModelStatsSelectedModel[];
 	setHover: HoverSetter;
 }) {
+	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const candidates = models
 		.filter(
 			(model) =>
@@ -607,10 +605,7 @@ function FrontierPanel({
 		.x((model) => xPoint(Number(model.cost?.blended_price)))
 		.y((model) => yPoint(model.relative_scores.intelligence_score));
 	const guidePath = frontierGuideLine(frontier);
-	const plotLeft = margin.left;
-	const plotRight = width - margin.right;
-	const plotTop = margin.top;
-	const plotBottom = height - margin.bottom;
+	const plot = plotBoundsFor(width, height, margin);
 	const medianX = xPoint(medianPrice);
 	const medianY = yPoint(medianScore);
 	const yTickStart = Math.ceil(yMin / 5) * 5;
@@ -622,6 +617,23 @@ function FrontierPanel({
 	const xTicks = xTickCandidates.filter(
 		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
 	);
+	const plottedCandidates = candidates.slice(0, 95);
+	const projectionPoints = plottedCandidates.map((model) => {
+		const xValue = Number(model.cost?.blended_price);
+		const yValue = model.relative_scores.intelligence_score;
+		return {
+			x: xPoint(xValue),
+			y: yPoint(yValue),
+			xValue,
+			yValue,
+		};
+	});
+	const cursorProjectionHandlers = cursorHandlers({
+		bounds: plot,
+		xInvert: x.invert,
+		yInvert: y.invert,
+		points: projectionPoints,
+	});
 
 	return (
 		<Panel
@@ -656,46 +668,24 @@ function FrontierPanel({
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
 					aria-label="Capability per blended dollar scatter plot"
+					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
-					{yTicks.map((tick) => (
-						<g key={`y-${tick}`}>
-							<line
-								className={styles.axisTick}
-								x1={plotLeft - 7}
-								x2={plotLeft}
-								y1={yPoint(tick)}
-								y2={yPoint(tick)}
-							/>
-							<text
-								className={styles.axisLabel}
-								x={plotLeft - 15}
-								y={yPoint(tick) + 4}
-								textAnchor="end"
-							>
-								{tick}
-							</text>
-						</g>
-					))}
-					{xTicks.map((tick) => (
-						<g key={`x-${tick}`}>
-							<line
-								className={styles.axisTick}
-								x1={xPoint(tick)}
-								x2={xPoint(tick)}
-								y1={plotBottom}
-								y2={plotBottom + 7}
-							/>
-							<text
-								className={styles.axisLabel}
-								x={xPoint(tick)}
-								y={plotBottom + 24}
-								textAnchor="middle"
-							>
-								{fmtAxisMoney(tick)}
-							</text>
-						</g>
-					))}
+					<CursorCapture bounds={plot} />
+					<YAxisTicks
+						ticks={yTicks}
+						yPoint={yPoint}
+						x={plot.left}
+						format={(tick) => String(tick)}
+						keyPrefix="frontier"
+					/>
+					<XAxisTicks
+						ticks={xTicks}
+						xPoint={xPoint}
+						y={plot.bottom}
+						format={fmtAxisMoney}
+						keyPrefix="frontier"
+					/>
 					<AxisTitles
 						width={width}
 						height={height}
@@ -704,56 +694,42 @@ function FrontierPanel({
 						y="Intelligence score"
 						xTitleOffset={48}
 					/>
-					<line
-						className={styles.medianAxis}
-						x1={medianX}
-						x2={medianX}
-						y1={plotTop}
-						y2={plotBottom}
-					/>
-					<line
-						className={styles.medianAxis}
-						x1={plotLeft}
-						x2={plotRight}
-						y1={medianY}
-						y2={medianY}
-					/>
-					<text
-						className={styles.medianLabel}
+					<MedianCross
 						x={medianX}
-						y={plotTop - 8}
-						textAnchor="middle"
-					>
-						{fmtAxisMoney(medianPrice)}
-					</text>
-					<text
-						className={styles.medianLabel}
-						x={plotRight + 12}
-						y={medianY + 5}
-					>
-						{medianScore.toFixed(0)}
-					</text>
+						y={medianY}
+						bounds={plot}
+						xLabel={fmtAxisMoney(medianPrice)}
+						yLabel={medianScore.toFixed(0)}
+					/>
 					<text
 						className={styles.quadrantLabel}
-						x={plotLeft + 16}
-						y={plotTop + 40}
+						x={plot.left + 16}
+						y={plot.top + 40}
 					>
 						High value
 					</text>
 					<text
 						className={styles.quadrantLabel}
 						x={medianX + 18}
-						y={plotBottom - 20}
+						y={plot.bottom - 20}
 					>
 						Costly ceiling
 					</text>
+					<CursorProjectionLayer
+						projection={cursorProjection}
+						bounds={plot}
+						xLabel={
+							cursorProjection ? fmtTooltipMoney(cursorProjection.xValue) : ""
+						}
+						yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
+					/>
 					{guidePath ? (
 						<path className={styles.frontierGuide} d={guidePath} />
 					) : null}
 					{frontierPath ? (
 						<path className={styles.frontier} d={frontierPath} />
 					) : null}
-					{candidates.slice(0, 95).map((model) => {
+					{plottedCandidates.map((model) => {
 						const cx = xPoint(Number(model.cost?.blended_price));
 						const cy = yPoint(model.relative_scores.intelligence_score);
 						const isFrontier = frontierIds.has(modelKey(model));
@@ -787,7 +763,7 @@ function FrontierPanel({
 										isFrontier ? "rgba(255, 112, 92, 0.74)" : "rgba(8,9,9,0.7)"
 									}
 									strokeWidth={isFrontier ? 1.4 : 1}
-									opacity={isFrontier ? 1 : 0.35}
+									opacity={1}
 								/>
 								<PointHitTarget
 									cx={cx}
@@ -826,6 +802,7 @@ function DeepSwePanel({
 }) {
 	const [metricKey, setMetricKey] = useState<DeepSWEMetricKey>("cost");
 	const [effortMode, setEffortMode] = useState<DeepSWEEffortMode>("best");
+	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const allEfforts = deepSweRows(models, rows, "all");
 	const bestEfforts = deepSweRows(models, rows, "best");
 	const deep = effortMode === "all" ? allEfforts : bestEfforts;
@@ -846,8 +823,6 @@ function DeepSwePanel({
 	const width = 760;
 	const height = 490;
 	const margin = { top: 28, right: 78, bottom: 70, left: 76 };
-	const plotWidth = width - margin.left - margin.right;
-	const plotHeight = height - margin.top - margin.bottom;
 	const metricValues = deep.map(metric.get).filter(finite);
 	const xDomain = positiveDomain(metricValues);
 	const passMax = max(deep, (row) => percent(row.row.pass_at_1)) ?? 75;
@@ -866,6 +841,7 @@ function DeepSwePanel({
 		.clamp(true);
 	const xPoint = stableSvgScale(x);
 	const yPoint = stableSvgScale(y);
+	const plot = plotBoundsFor(width, height, margin);
 	const markerMetrics = hiddenResourceMetrics[metricKey];
 	const bubbleValue = (row: DeepSWEChartRow) =>
 		hiddenResourceValue(row, markerMetrics);
@@ -898,6 +874,25 @@ function DeepSwePanel({
 			Number(percent(left.row.pass_at_1)) -
 			Number(percent(right.row.pass_at_1)),
 	);
+	const medianMetric = median(metricValues) ?? xDomain[0];
+	const medianAccuracy =
+		median(deep.map((row) => Number(percent(row.row.pass_at_1)))) ?? 0;
+	const projectionPoints = plotRows.map((row) => {
+		const xValue = metric.get(row);
+		const yValue = Number(percent(row.row.pass_at_1));
+		return {
+			x: xPoint(xValue),
+			y: yPoint(yValue),
+			xValue,
+			yValue,
+		};
+	});
+	const cursorProjectionHandlers = cursorHandlers({
+		bounds: plot,
+		xInvert: x.invert,
+		yInvert: y.invert,
+		points: projectionPoints,
+	});
 
 	return (
 		<Panel
@@ -959,54 +954,48 @@ function DeepSwePanel({
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
 					aria-label="DeepSWE accuracy by efficiency axis scatter plot"
+					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
-					<GridRows
-						scale={y}
-						tickValues={yTicks}
-						width={plotWidth}
-						left={margin.left}
-						stroke="rgba(238, 238, 234, 0.16)"
-						strokeWidth={1}
+					<CursorCapture bounds={plot} />
+					<YAxisTicks
+						ticks={yTicks}
+						yPoint={yPoint}
+						x={plot.left}
+						format={(tick) => `${tick}%`}
+						keyPrefix="deep-swe"
 					/>
-					<GridColumns
-						scale={x}
-						tickValues={xTicks}
-						height={plotHeight}
-						top={margin.top}
-						stroke="rgba(238, 238, 234, 0.18)"
-						strokeWidth={1}
+					<XAxisTicks
+						ticks={xTicks}
+						xPoint={xPoint}
+						y={plot.bottom}
+						format={metric.format}
+						keyPrefix="deep-swe"
 					/>
-					{yTicks.map((tick) => (
-						<g key={`y-${tick}`}>
-							<text
-								className={styles.axisLabel}
-								x={margin.left - 18}
-								y={yPoint(tick) + 4}
-								textAnchor="end"
-							>
-								{tick}%
-							</text>
-						</g>
-					))}
-					{xTicks.map((tick) => (
-						<g key={`x-${tick}`}>
-							<text
-								className={styles.axisLabel}
-								x={xPoint(tick)}
-								y={height - 26}
-								textAnchor="middle"
-							>
-								{metric.format(tick)}
-							</text>
-						</g>
-					))}
 					<AxisTitles
 						width={width}
 						height={height}
 						margin={margin}
 						x={`${metric.label}, log scale`}
 						y="DeepSWE accuracy"
+						xTitleOffset={50}
+					/>
+					<MedianCross
+						x={xPoint(medianMetric)}
+						y={yPoint(medianAccuracy)}
+						bounds={plot}
+						xLabel={metric.format(medianMetric)}
+						yLabel={`${medianAccuracy.toFixed(0)}%`}
+					/>
+					<CursorProjectionLayer
+						projection={cursorProjection}
+						bounds={plot}
+						xLabel={
+							cursorProjection ? metric.format(cursorProjection.xValue) : ""
+						}
+						yLabel={
+							cursorProjection ? `${cursorProjection.yValue.toFixed(1)}%` : ""
+						}
 					/>
 					{effortLines.map((modelRows) => {
 						const firstRow = modelRows[0] as DeepSWEChartRow;
@@ -1048,7 +1037,7 @@ function DeepSwePanel({
 									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
-									opacity={0.72}
+									opacity={1}
 								/>
 								<PointHitTarget
 									cx={cx}
@@ -1110,6 +1099,7 @@ function ALEPanel({
 	setHover: HoverSetter;
 }) {
 	const [metricKey, setMetricKey] = useState<ALEMetricKey>("cost");
+	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const rows = aleRows(models);
 
 	if (rows.length === 0) {
@@ -1128,8 +1118,6 @@ function ALEPanel({
 	const width = 760;
 	const height = 490;
 	const margin = { top: 28, right: 78, bottom: 70, left: 76 };
-	const plotWidth = width - margin.left - margin.right;
-	const plotHeight = height - margin.top - margin.bottom;
 	const metricValues = rows.map(metric.get).filter(finite);
 	const xDomain = positiveDomain(metricValues);
 	const scoreMax = max(rows, (row) => row.score) ?? 50;
@@ -1148,6 +1136,7 @@ function ALEPanel({
 		.clamp(true);
 	const xPoint = stableSvgScale(x);
 	const yPoint = stableSvgScale(y);
+	const plot = plotBoundsFor(width, height, margin);
 	const bubbleValue = (row: ALEChartRow) => aleBubbleValue(row, metricKey);
 	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue));
 	const leader = rows[0] as ALEChartRow;
@@ -1165,6 +1154,23 @@ function ALEPanel({
 	const scoreDistribution = aleScoreDistribution(rows);
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
 	const bubbleLabel = aleBubbleLabel(metricKey);
+	const medianMetric = median(metricValues) ?? xDomain[0];
+	const medianScore = median(rows.map((row) => row.score)) ?? 0;
+	const projectionPoints = plotRows.map((row) => {
+		const xValue = metric.get(row);
+		return {
+			x: xPoint(xValue),
+			y: yPoint(row.score),
+			xValue,
+			yValue: row.score,
+		};
+	});
+	const cursorProjectionHandlers = cursorHandlers({
+		bounds: plot,
+		xInvert: x.invert,
+		yInvert: y.invert,
+		points: projectionPoints,
+	});
 
 	return (
 		<Panel
@@ -1207,54 +1213,48 @@ function ALEPanel({
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
 					aria-label="Agents' Last Exam score by efficiency axis scatter plot"
+					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
-					<GridRows
-						scale={y}
-						tickValues={yTicks}
-						width={plotWidth}
-						left={margin.left}
-						stroke="rgba(238, 238, 234, 0.16)"
-						strokeWidth={1}
+					<CursorCapture bounds={plot} />
+					<YAxisTicks
+						ticks={yTicks}
+						yPoint={yPoint}
+						x={plot.left}
+						format={(tick) => `${tick}%`}
+						keyPrefix="ale"
 					/>
-					<GridColumns
-						scale={x}
-						tickValues={xTicks}
-						height={plotHeight}
-						top={margin.top}
-						stroke="rgba(238, 238, 234, 0.18)"
-						strokeWidth={1}
+					<XAxisTicks
+						ticks={xTicks}
+						xPoint={xPoint}
+						y={plot.bottom}
+						format={metric.format}
+						keyPrefix="ale"
 					/>
-					{yTicks.map((tick) => (
-						<g key={`ale-y-${tick}`}>
-							<text
-								className={styles.axisLabel}
-								x={margin.left - 18}
-								y={yPoint(tick) + 4}
-								textAnchor="end"
-							>
-								{tick}%
-							</text>
-						</g>
-					))}
-					{xTicks.map((tick) => (
-						<g key={`ale-x-${tick}`}>
-							<text
-								className={styles.axisLabel}
-								x={xPoint(tick)}
-								y={height - 26}
-								textAnchor="middle"
-							>
-								{metric.format(tick)}
-							</text>
-						</g>
-					))}
 					<AxisTitles
 						width={width}
 						height={height}
 						margin={margin}
 						x={`${metric.label}, log scale`}
 						y="ALE score"
+						xTitleOffset={50}
+					/>
+					<MedianCross
+						x={xPoint(medianMetric)}
+						y={yPoint(medianScore)}
+						bounds={plot}
+						xLabel={metric.format(medianMetric)}
+						yLabel={`${medianScore.toFixed(0)}%`}
+					/>
+					<CursorProjectionLayer
+						projection={cursorProjection}
+						bounds={plot}
+						xLabel={
+							cursorProjection ? metric.format(cursorProjection.xValue) : ""
+						}
+						yLabel={
+							cursorProjection ? `${cursorProjection.yValue.toFixed(1)}%` : ""
+						}
 					/>
 					{plotRows.map((row) => {
 						const axisValue = metric.get(row);
@@ -1278,7 +1278,7 @@ function ALEPanel({
 									fill={providerColor(row.model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
-									opacity={0.72}
+									opacity={1}
 								/>
 								<PointHitTarget
 									cx={cx}
@@ -1383,6 +1383,7 @@ function InteractionPlot({
 	config: InteractionConfig;
 	setHover: HoverSetter;
 }) {
+	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const data = models
 		.map((model) => ({
 			model,
@@ -1433,6 +1434,7 @@ function InteractionPlot({
 		.clamp(true);
 	const xPoint = stableSvgScale(x);
 	const yPoint = stableSvgScale(y);
+	const plot = plotBoundsFor(width, height, margin);
 	const transformX = (value: number) =>
 		config.log ? Math.log10(Math.max(value, 0.001)) : value;
 	const txMin = transformX(xDomain[0]);
@@ -1450,10 +1452,30 @@ function InteractionPlot({
 	)[0] ?? data[0]) as Point;
 	const bestPointId = bestCornerPoint.model.id;
 	const rLabel = correlationLabel(data, transformX);
-	const cornerX = config.lowerBetter
-		? margin.left + 12
-		: width - margin.right - 12;
-	const cornerAnchor = config.lowerBetter ? "start" : "end";
+	// Keep lower-is-better axes visually conventional: cheaper/faster remains left, while the label marks the better corner.
+	const bestCornerIsRight = !config.lowerBetter;
+	const cornerLabel = bestCornerIsRight ? "upper right" : "upper left";
+	const cornerX = bestCornerIsRight
+		? width - margin.right - 12
+		: margin.left + 12;
+	const cornerAnchor = bestCornerIsRight ? "end" : "start";
+	const plottedPoints = data.slice(0, 130);
+	const medianXValue =
+		median(plottedPoints.map((point) => point.x)) ?? xDomain[0];
+	const medianYValue =
+		median(plottedPoints.map((point) => point.y)) ?? yDomain[0];
+	const projectionPoints = plottedPoints.map((point) => ({
+		x: xPoint(point.x),
+		y: yPoint(point.y),
+		xValue: point.x,
+		yValue: point.y,
+	}));
+	const cursorProjectionHandlers = cursorHandlers({
+		bounds: plot,
+		xInvert: x.invert,
+		yInvert: y.invert,
+		points: projectionPoints,
+	});
 
 	return (
 		<div className={styles.interactionPlot}>
@@ -1465,52 +1487,33 @@ function InteractionPlot({
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
 				aria-label={`${config.title} scatter plot`}
+				{...cursorProjectionHandlers}
 			>
 				<PlotFrame width={width} height={height} margin={margin} />
-				{config.ticks
-					.filter((tick) => tick >= xDomain[0] && tick <= xDomain[1])
-					.map((tick, index) => (
-						<g key={`${config.key}-x-${tick}`}>
-							<line
-								className={styles.gridLine}
-								x1={xPoint(tick)}
-								x2={xPoint(tick)}
-								y1={margin.top}
-								y2={height - margin.bottom}
-							/>
-							{index % 2 === 0 ? (
-								<text
-									className={styles.axisLabel}
-									x={xPoint(tick)}
-									y={height - 24}
-									textAnchor="middle"
-								>
-									{config.format(tick)}
-								</text>
-							) : null}
-						</g>
-					))}
-				{[0, 20, 40, 60, 80, 100]
-					.filter((tick) => tick >= yDomain[0] && tick <= yDomain[1])
-					.map((tick) => (
-						<g key={`${config.key}-y-${tick}`}>
-							<line
-								className={styles.gridLine}
-								x1={margin.left}
-								x2={width - margin.right}
-								y1={yPoint(tick)}
-								y2={yPoint(tick)}
-							/>
-							<text
-								className={styles.axisLabel}
-								x={margin.left - 14}
-								y={yPoint(tick) + 4}
-								textAnchor="end"
-							>
-								{tick}
-							</text>
-						</g>
-					))}
+				<CursorCapture bounds={plot} />
+				<XAxisTicks
+					ticks={config.ticks.filter(
+						(tick) => tick >= xDomain[0] && tick <= xDomain[1],
+					)}
+					xPoint={xPoint}
+					y={plot.bottom}
+					format={config.format}
+					keyPrefix={config.key}
+					tickLength={6}
+					labelOffset={20}
+					labelEvery={2}
+				/>
+				<YAxisTicks
+					ticks={[0, 20, 40, 60, 80, 100].filter(
+						(tick) => tick >= yDomain[0] && tick <= yDomain[1],
+					)}
+					yPoint={yPoint}
+					x={plot.left}
+					format={(tick) => String(tick)}
+					keyPrefix={config.key}
+					tickLength={6}
+					labelOffset={12}
+				/>
 				<AxisTitles
 					width={width}
 					height={height}
@@ -1519,15 +1522,32 @@ function InteractionPlot({
 					y="Intelligence score"
 					compact
 				/>
+				<MedianCross
+					x={xPoint(medianXValue)}
+					y={yPoint(medianYValue)}
+					bounds={plot}
+					xLabel={config.format(medianXValue)}
+					yLabel={medianYValue.toFixed(0)}
+				/>
+				<CursorProjectionLayer
+					projection={cursorProjection}
+					bounds={plot}
+					xLabel={
+						cursorProjection
+							? config.tooltipFormat(cursorProjection.xValue)
+							: ""
+					}
+					yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
+				/>
 				<text
 					className={styles.cornerLabel}
 					x={cornerX}
 					y={margin.top + 26}
 					textAnchor={cornerAnchor}
 				>
-					{config.corner}
+					{cornerLabel}
 				</text>
-				{data.slice(0, 130).map((point) => {
+				{plottedPoints.map((point) => {
 					const highlighted = bestPointId === point.model.id;
 					const radius = clamp((point.agentic ?? 35) / 12, 3, 8);
 					const cx = xPoint(point.x);
@@ -1548,7 +1568,7 @@ function InteractionPlot({
 								fill={providerColor(point.model.provider)}
 								stroke={highlighted ? "var(--ink)" : "rgba(8,9,9,0.7)"}
 								strokeWidth={highlighted ? 2.4 : 1}
-								opacity={highlighted ? 0.96 : 0.34}
+								opacity={1}
 							/>
 							<PointHitTarget
 								cx={cx}
@@ -1576,6 +1596,7 @@ function RunwayPanel({
 	models: ModelStatsSelectedModel[];
 	setHover: HoverSetter;
 }) {
+	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const candidates = models
 		.filter(
 			(model) =>
@@ -1624,7 +1645,35 @@ function RunwayPanel({
 		.clamp(true);
 	const xPoint = stableSvgScale(x);
 	const yPoint = stableSvgScale(y);
+	const plot = plotBoundsFor(width, height, margin);
 	const labelSet = new Set(candidates.slice(0, 3).map((model) => model.id));
+	const plottedCandidates = candidates.slice(0, 90);
+	const medianContext =
+		median(
+			plottedCandidates.map((model) => Number(model.context_window?.context)),
+		) ?? xDomain[0];
+	const medianThroughput =
+		median(
+			plottedCandidates.map((model) =>
+				Number(model.speed?.throughput_tokens_per_second_median),
+			),
+		) ?? yDomain[0];
+	const projectionPoints = plottedCandidates.map((model) => {
+		const xValue = Number(model.context_window?.context);
+		const yValue = Number(model.speed?.throughput_tokens_per_second_median);
+		return {
+			x: xPoint(xValue),
+			y: yPoint(yValue),
+			xValue,
+			yValue,
+		};
+	});
+	const cursorProjectionHandlers = cursorHandlers({
+		bounds: plot,
+		xInvert: x.invert,
+		yInvert: y.invert,
+		points: projectionPoints,
+	});
 
 	return (
 		<Panel
@@ -1652,58 +1701,54 @@ function RunwayPanel({
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
 					aria-label="Context window by output throughput scatter plot"
+					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
-					{[32_000, 128_000, 256_000, 1_000_000, 2_000_000, 10_000_000]
-						.filter((tick) => tick >= xDomain[0] && tick <= xDomain[1])
-						.map((tick) => (
-							<g key={`x-${tick}`}>
-								<line
-									className={styles.gridLine}
-									x1={xPoint(tick)}
-									x2={xPoint(tick)}
-									y1={margin.top}
-									y2={height - margin.bottom}
-								/>
-								<text
-									className={styles.axisLabel}
-									x={xPoint(tick)}
-									y={height - 26}
-									textAnchor="middle"
-								>
-									{fmtCompact(tick)}
-								</text>
-							</g>
-						))}
-					{[20, 50, 100, 250, 500, 1000, 2500]
-						.filter((tick) => tick >= yDomain[0] && tick <= yDomain[1])
-						.map((tick) => (
-							<g key={`y-${tick}`}>
-								<line
-									className={styles.gridLine}
-									x1={margin.left}
-									x2={width - margin.right}
-									y1={yPoint(tick)}
-									y2={yPoint(tick)}
-								/>
-								<text
-									className={styles.axisLabel}
-									x={margin.left - 18}
-									y={yPoint(tick) + 4}
-									textAnchor="end"
-								>
-									{fmtCompact(tick)}
-								</text>
-							</g>
-						))}
+					<CursorCapture bounds={plot} />
+					<XAxisTicks
+						ticks={[
+							32_000, 128_000, 256_000, 1_000_000, 2_000_000, 10_000_000,
+						].filter((tick) => tick >= xDomain[0] && tick <= xDomain[1])}
+						xPoint={xPoint}
+						y={plot.bottom}
+						format={fmtCompact}
+						keyPrefix="runway"
+					/>
+					<YAxisTicks
+						ticks={[20, 50, 100, 250, 500, 1000, 2500].filter(
+							(tick) => tick >= yDomain[0] && tick <= yDomain[1],
+						)}
+						yPoint={yPoint}
+						x={plot.left}
+						format={fmtCompact}
+						keyPrefix="runway"
+					/>
 					<AxisTitles
 						width={width}
 						height={height}
 						margin={margin}
 						x="Context window, log scale"
 						y="Output tokens per second, log scale"
+						xTitleOffset={50}
 					/>
-					{candidates.slice(0, 90).map((model) => {
+					<MedianCross
+						x={xPoint(medianContext)}
+						y={yPoint(medianThroughput)}
+						bounds={plot}
+						xLabel={fmtCompact(medianContext)}
+						yLabel={`${fmtCompact(medianThroughput)} t/s`}
+					/>
+					<CursorProjectionLayer
+						projection={cursorProjection}
+						bounds={plot}
+						xLabel={cursorProjection ? fmtCompact(cursorProjection.xValue) : ""}
+						yLabel={
+							cursorProjection
+								? `${fmtCompact(cursorProjection.yValue)} t/s`
+								: ""
+						}
+					/>
+					{plottedCandidates.map((model) => {
 						const cx = xPoint(Number(model.context_window?.context));
 						const cy = yPoint(
 							Number(model.speed?.throughput_tokens_per_second_median),
@@ -1735,7 +1780,7 @@ function RunwayPanel({
 									fill={providerColor(model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
-									opacity={labeled ? 0.9 : 0.34}
+									opacity={1}
 								/>
 								<PointHitTarget
 									cx={cx}

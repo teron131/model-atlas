@@ -284,7 +284,7 @@ h1 {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	min-width: 0;
-	overflow: hidden;
+	overflow: visible;
 	border: 1px solid var(--frame-line);
 	background: rgba(13, 14, 14, 0.88);
 }
@@ -394,9 +394,20 @@ h1 {
 	position: relative;
 	width: 100%;
 	min-width: 0;
-	overflow-x: clip;
+	overflow: visible;
 	background: rgba(9, 10, 11, 0.44);
 	--rank-column-width: 48px;
+	--table-visible-rows: 12;
+	--table-row-content-height: 35px;
+	--table-row-padding-y: 9px;
+	--table-row-border-width: 1px;
+	--table-row-height: calc(
+		var(--table-row-content-height) + var(--table-row-padding-y) +
+			var(--table-row-padding-y) + var(--table-row-border-width)
+	);
+	--table-body-height: calc(
+		var(--table-row-height) * var(--table-visible-rows)
+	);
 }
 
 .table-sticky-head {
@@ -428,9 +439,10 @@ h1 {
 .table-wrap {
 	width: 100%;
 	overflow-x: auto;
-	overflow-y: visible;
+	overflow-y: auto;
+	max-height: var(--table-body-height);
 	overscroll-behavior-x: none;
-	overscroll-behavior-y: auto;
+	overscroll-behavior-y: contain;
 	-webkit-overflow-scrolling: auto;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
@@ -454,6 +466,13 @@ h1 {
 	visibility: visible;
 }
 
+.table-shell[data-sticky-head-ready="false"] .table-wrap thead th {
+	position: sticky;
+	top: 0;
+	z-index: 6;
+	background: var(--surface);
+}
+
 table {
 	width: max-content;
 	border-collapse: separate;
@@ -465,7 +484,8 @@ table {
 
 th,
 td {
-	padding: 9px 8px;
+	height: var(--table-row-content-height);
+	padding: var(--table-row-padding-y) 8px;
 	border-bottom: 1px solid rgba(238, 238, 234, 0.1);
 	text-align: right;
 	vertical-align: middle;
@@ -474,6 +494,7 @@ td {
 tbody tr {
 	position: relative;
 	--sticky-cell-background: var(--paper);
+	height: var(--table-row-height);
 	transition: background-color 0.18s ease;
 }
 
@@ -497,7 +518,7 @@ tbody tr:nth-child(2n):hover {
 }
 
 .loading-row td {
-	height: 54px;
+	height: var(--table-row-content-height);
 }
 
 .loading-model-cell {
@@ -1319,6 +1340,8 @@ tbody tr:nth-child(-n + 3) .rank {
 
 	.table-shell {
 		--rank-column-width: 38px;
+		--table-row-content-height: 33px;
+		--table-row-padding-y: 8px;
 	}
 
 	h1 {
@@ -1394,7 +1417,7 @@ tbody tr:nth-child(-n + 3) .rank {
 
 	th,
 	td {
-		padding: 8px 7px;
+		padding: var(--table-row-padding-y) 7px;
 	}
 
 	.rank {

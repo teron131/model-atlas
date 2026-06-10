@@ -37,7 +37,6 @@ export type Point = {
 export type InteractionConfig = {
 	key: string;
 	title: string;
-	corner: string;
 	lowerBetter: boolean;
 	log: boolean;
 	ticks: number[];
