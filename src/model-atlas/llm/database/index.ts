@@ -5,7 +5,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
-import { MODEL_ATLAS_STAGE_CONFIG } from "../../constants";
+import { STAGE_CONFIG } from "../../constants";
 import { buildFinalModels } from "../llm-stats/final-stage";
 import { matchedRowsFromDiagnostics } from "../llm-stats/match-stage";
 import { publicOpenRouterModelId } from "../llm-stats/model-aliases";
@@ -287,7 +287,7 @@ export async function buildModelAtlasDatabase(
 		});
 		const matchedRows = matchedRowsFromDiagnostics(
 			sourceData,
-			MODEL_ATLAS_STAGE_CONFIG.matcher,
+			STAGE_CONFIG.matcher,
 			matchDiagnostics,
 		);
 		const textMatchedRows = filterDatabaseTextLlmRows(matchedRows);
@@ -295,20 +295,20 @@ export async function buildModelAtlasDatabase(
 		const openRouter = await loadOrFetchOpenRouterRawPayload(
 			db,
 			openRouterModelIds(catalogRows),
-			MODEL_ATLAS_STAGE_CONFIG.openrouter.speedConcurrency,
+			STAGE_CONFIG.openrouter.speedConcurrency,
 			startedAt,
 		);
 		const enrichedRows = await enrichRows(
 			catalogRows,
-			MODEL_ATLAS_STAGE_CONFIG.openrouter,
-			MODEL_ATLAS_STAGE_CONFIG.scoring,
+			STAGE_CONFIG.openrouter,
+			STAGE_CONFIG.scoring,
 			openRouter.rawPayload,
 		);
 		const debugTraceRows = buildDebugTraceRows(
 			snapshots,
 			openRouter.rawPayload,
 			matchDiagnostics,
-			MODEL_ATLAS_STAGE_CONFIG.matcher,
+			STAGE_CONFIG.matcher,
 		);
 		const models = await buildFinalModels(
 			{
@@ -316,8 +316,8 @@ export async function buildModelAtlasDatabase(
 				deepSWEModelScoreRows: sourceData.deepSWEModelScoreRows,
 			},
 			null,
-			MODEL_ATLAS_STAGE_CONFIG.final,
-			MODEL_ATLAS_STAGE_CONFIG.scoring,
+			STAGE_CONFIG.final,
+			STAGE_CONFIG.scoring,
 		);
 		const finalSourceCache: DatabaseBuildResult["source_cache"] = {
 			...sourceCache,

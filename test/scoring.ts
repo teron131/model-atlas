@@ -1,8 +1,10 @@
-import { MODEL_ATLAS_STAGE_CONFIG } from "../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import {
 	attachRelativeScores,
 	blendedPriceValue,
 	buildBenchmarkImputationByModel,
+	buildQualityScoringContext,
+	buildScores,
 	simulatedBlendSeconds,
 } from "../src/model-atlas/llm/llm-stats/scores";
 import type { ModelStatsProjectedModel } from "../src/model-atlas/llm/llm-stats/types";
@@ -37,7 +39,7 @@ assertEqual(
 			weighted_input: 1.5,
 			weighted_output: 25,
 		},
-		MODEL_ATLAS_STAGE_CONFIG.scoring,
+		STAGE_CONFIG.scoring,
 	),
 	13.1325,
 );
@@ -52,7 +54,7 @@ assertEqual(
 			weighted_input: 0,
 			weighted_output: 0,
 		},
-		MODEL_ATLAS_STAGE_CONFIG.scoring,
+		STAGE_CONFIG.scoring,
 	),
 	4.975,
 );
@@ -64,7 +66,7 @@ assertClose(
 			latency_seconds_median: 1,
 			e2e_latency_seconds_median: 3,
 		},
-		MODEL_ATLAS_STAGE_CONFIG.scoring,
+		STAGE_CONFIG.scoring,
 	),
 	55.9474,
 );
@@ -77,6 +79,55 @@ assertEqual(quantileFromSorted(sparseQuantileValues, 0.95), 95);
 assertEqual(quantileFromSorted(sparseQuantileValues, 1), 100);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
+
+const groupPolicyConfig = {
+	...STAGE_CONFIG.scoring,
+	intelligenceBenchmarkKeys: ["omniscience_accuracy", "hle"],
+	agenticBenchmarkKeys: [],
+	benchmarkPortfolio: {
+		omniscience_accuracy: {
+			group: "baseline",
+			intelligencePortion: 1,
+			agenticPortion: 0,
+		},
+		hle: {
+			group: "frontier",
+			intelligencePortion: 1,
+			agenticPortion: 0,
+		},
+	},
+	floorImputedBenchmarkKeys: [],
+} as const;
+const groupPolicyModels = [
+	{
+		id: "group-min",
+		intelligence: { intelligence_index: 0 },
+		evaluations: { omniscience_accuracy: 0, hle: 0 },
+	},
+	{
+		id: "group-max",
+		intelligence: { intelligence_index: 100 },
+		evaluations: { omniscience_accuracy: 100, hle: 100 },
+	},
+	{
+		id: "group-target",
+		intelligence: { intelligence_index: 100 },
+		evaluations: { omniscience_accuracy: 0, hle: 100 },
+	},
+];
+const groupPolicyScores = buildScores(
+	groupPolicyModels[2] ?? {},
+	{},
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	groupPolicyConfig,
+	buildQualityScoringContext(groupPolicyModels, groupPolicyConfig, new Map()),
+);
+assertClose(groupPolicyScores?.intelligence_score, 70);
 
 const scoredModels = attachRelativeScores(
 	[
@@ -117,7 +168,7 @@ const scoredModels = attachRelativeScores(
 			latency: 0.5,
 		}),
 	],
-	MODEL_ATLAS_STAGE_CONFIG.scoring,
+	STAGE_CONFIG.scoring,
 );
 
 assertClose(scoredModels[0]?.relative_scores.value_score, 72.2223);
@@ -148,7 +199,7 @@ const sparseComponentModels = attachRelativeScores(
 			latency: 3,
 		}),
 	],
-	MODEL_ATLAS_STAGE_CONFIG.scoring,
+	STAGE_CONFIG.scoring,
 );
 
 assertEqual(sparseComponentModels[0]?.relative_scores.value_score, null);
@@ -162,10 +213,10 @@ const normalizedContextModels = [
 	imputationModel("missing", null, 0, 1_000, 0),
 ];
 const normalizedContextConfig = {
-	...MODEL_ATLAS_STAGE_CONFIG.scoring,
+	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: ["target", "wide", "narrow"],
 	agenticBenchmarkKeys: [],
-	benchmarkScoreWeights: {},
+	floorImputedBenchmarkKeys: [],
 };
 const normalizedContextImputations = buildBenchmarkImputationByModel(
 	normalizedContextModels,
@@ -176,6 +227,39 @@ assertClose(
 		.get(normalizedContextModels.at(-1) ?? {})
 		?.get("target"),
 	7.5,
+);
+
+const frontierFloorConfig = {
+	...normalizedContextConfig,
+	intelligenceBenchmarkKeys: ["agents_last_exam"],
+	floorImputedBenchmarkKeys: ["agents_last_exam"],
+};
+const frontierFloorModels = [
+	{
+		id: "observed-frontier-a",
+		intelligence: { intelligence_index: 0 },
+		evaluations: { agents_last_exam: 0.2 },
+	},
+	{
+		id: "observed-frontier-b",
+		intelligence: { intelligence_index: 10 },
+		evaluations: { agents_last_exam: 0.8 },
+	},
+	{
+		id: "missing-frontier",
+		intelligence: { intelligence_index: 20 },
+		evaluations: {},
+	},
+];
+const frontierFloorImputations = buildBenchmarkImputationByModel(
+	frontierFloorModels,
+	frontierFloorConfig,
+);
+assertClose(
+	frontierFloorImputations
+		.get(frontierFloorModels.at(-1) ?? {})
+		?.get("agents_last_exam"),
+	0.2,
 );
 
 function projectedModel(options: {

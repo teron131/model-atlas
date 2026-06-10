@@ -1,4 +1,4 @@
-import { MODEL_ATLAS_STAGE_CONFIG } from "../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import { publicOpenRouterModelId } from "../src/model-atlas/llm/llm-stats/model-aliases";
 import { enrichRows } from "../src/model-atlas/llm/llm-stats/openrouter-stage";
 
@@ -28,8 +28,8 @@ const enriched = await enrichRows(
 			},
 		},
 	],
-	MODEL_ATLAS_STAGE_CONFIG.openrouter,
-	MODEL_ATLAS_STAGE_CONFIG.scoring,
+	STAGE_CONFIG.openrouter,
+	STAGE_CONFIG.scoring,
 	null,
 );
 
@@ -70,8 +70,8 @@ const aliasOnlyEnriched = await enrichRows(
 			},
 		},
 	],
-	MODEL_ATLAS_STAGE_CONFIG.openrouter,
-	MODEL_ATLAS_STAGE_CONFIG.scoring,
+	STAGE_CONFIG.openrouter,
+	STAGE_CONFIG.scoring,
 	null,
 );
 
@@ -90,8 +90,8 @@ const datedGeminiPreviewEnriched = await enrichRows(
 			},
 		},
 	],
-	MODEL_ATLAS_STAGE_CONFIG.openrouter,
-	MODEL_ATLAS_STAGE_CONFIG.scoring,
+	STAGE_CONFIG.openrouter,
+	STAGE_CONFIG.scoring,
 	null,
 );
 

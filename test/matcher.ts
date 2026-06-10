@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { MODEL_ATLAS_STAGE_CONFIG } from "../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import { buildMatchedRows } from "../src/model-atlas/llm/llm-stats/match-stage";
 import type { SourceData } from "../src/model-atlas/llm/llm-stats/types";
 import { runMatcher } from "../src/model-atlas/llm/matcher/pipeline";
@@ -46,10 +46,7 @@ const sourceData = buildSourceData([
 	sourceModel("google/example-2-5-flash", 20),
 	sourceModel("google/example-3-pro", 50),
 ]);
-const matchedRows = await buildMatchedRows(
-	sourceData,
-	MODEL_ATLAS_STAGE_CONFIG.matcher,
-);
+const matchedRows = await buildMatchedRows(sourceData, STAGE_CONFIG.matcher);
 
 assert.equal(
 	matchedRows.find((row) => row.aa_id === "google/example-2-5-flash")?.id,

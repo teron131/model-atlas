@@ -4,7 +4,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Dashboard } from "../app/dashboard/index";
 import { ColumnTooltip } from "../app/dashboard/tooltip";
-import { MODEL_ATLAS_COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
+import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
 import {
 	minimalSelectedModel,
 	minimalSelectedPayload,
@@ -60,7 +60,7 @@ assert.equal(
 
 const speedTooltipHtml = renderToStaticMarkup(
 	React.createElement(ColumnTooltip, {
-		content: MODEL_ATLAS_COLUMN_TOOLTIPS.speed,
+		content: COLUMN_TOOLTIPS.speed,
 		left: 0,
 		top: 0,
 	}),

@@ -1,6 +1,6 @@
 /** Public Model Atlas API: rebuild from live sources and return failure-safe output. */
 
-import { MODEL_ATLAS_STAGE_CONFIG } from "../constants";
+import { STAGE_CONFIG } from "../constants";
 import { nowEpochSeconds } from "../utils";
 import { buildFinalModels } from "./llm-stats/final-stage";
 import { buildMatchedRows } from "./llm-stats/match-stage";
@@ -91,6 +91,7 @@ function buildModelStatsSelectedMetadata(
 				(key) => !availableBenchmarkKeys.includes(key),
 			),
 			selected_benchmark_keys: selectedBenchmarkKeys,
+			benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
 			price_profiles: { ...scoringConfig.priceProfiles },
 			simulation_profiles: { ...scoringConfig.simulationProfiles },
 			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
@@ -115,7 +116,7 @@ function withModelStatsSelectedMetadata(
 ): ModelStatsSelectedPayload {
 	const currentMetadata = buildModelStatsSelectedMetadata(
 		modelsForMetadata,
-		MODEL_ATLAS_STAGE_CONFIG.scoring,
+		STAGE_CONFIG.scoring,
 	);
 	return {
 		...payload,
@@ -141,14 +142,11 @@ async function buildModelStatsSelectedPayload(
 	modelId: string | null = null,
 ): Promise<ModelStatsSelectedPayload> {
 	const sourceData = await fetchSourceData();
-	const matchedRows = await buildMatchedRows(
-		sourceData,
-		MODEL_ATLAS_STAGE_CONFIG.matcher,
-	);
+	const matchedRows = await buildMatchedRows(sourceData, STAGE_CONFIG.matcher);
 	const enrichedRows = await enrichRows(
 		matchedRows,
-		MODEL_ATLAS_STAGE_CONFIG.openrouter,
-		MODEL_ATLAS_STAGE_CONFIG.scoring,
+		STAGE_CONFIG.openrouter,
+		STAGE_CONFIG.scoring,
 	);
 	const models = await buildFinalModels(
 		{
@@ -156,8 +154,8 @@ async function buildModelStatsSelectedPayload(
 			deepSWEModelScoreRows: sourceData.deepSWEModelScoreRows,
 		},
 		modelId,
-		MODEL_ATLAS_STAGE_CONFIG.final,
-		MODEL_ATLAS_STAGE_CONFIG.scoring,
+		STAGE_CONFIG.final,
+		STAGE_CONFIG.scoring,
 	);
 	const fetchedAt = nowEpochSeconds();
 	return withModelStatsSelectedMetadata(

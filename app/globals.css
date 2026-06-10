@@ -885,12 +885,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 }
 
 .column-tooltip-section-title::before {
-	content: "";
-	flex: 0 0 auto;
-	width: 7px;
-	height: 7px;
-	border: 1px solid rgba(238, 238, 234, 0.38);
-	background: rgba(238, 238, 234, 0.08);
+	display: none;
 }
 
 .column-tooltip-section .column-tooltip-row {
@@ -945,12 +940,18 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	margin-left: 0;
 }
 
-.column-tooltip-nested-section.weighted-breakdown .column-tooltip-value {
-	text-align: right;
+.column-tooltip-nested-body {
+	box-sizing: border-box;
+	display: grid;
+	gap: 6px;
+	max-width: calc(100% - 8px);
+	margin-left: 8px;
+	padding-left: 7px;
+	border-left: 1px solid rgba(217, 216, 210, 0.1);
 }
 
-.column-tooltip-nested-section .column-tooltip-value {
-	color: var(--muted);
+.column-tooltip-nested-section.weighted-breakdown .column-tooltip-value {
+	text-align: right;
 }
 
 .column-tooltip-nested-section .column-tooltip-section-title {
@@ -984,10 +985,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-nested-section .column-tooltip-workflow-table,
 .column-tooltip-nested-section > .column-tooltip-row {
 	box-sizing: border-box;
-	max-width: calc(100% - 8px);
-	margin-left: 8px;
-	padding-left: 7px;
-	border-left: 1px solid rgba(217, 216, 210, 0.1);
+	max-width: 100%;
+	margin-left: 0;
 }
 
 .column-tooltip-nested-section .column-tooltip-price-profile-table,

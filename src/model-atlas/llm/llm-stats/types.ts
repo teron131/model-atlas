@@ -207,8 +207,21 @@ export type OverallRelativeScoreWeights = {
 
 export type QualityScoreWeights = {
 	index: number;
-	selected_benchmarks: number;
+	baseline: number;
+	frontier: number;
 };
+
+export type BenchmarkGroup = "baseline" | "frontier";
+
+export type BenchmarkPortfolioEntry = {
+	group: BenchmarkGroup;
+	intelligencePortion: number;
+	agenticPortion: number;
+};
+
+export type BenchmarkPortfolio = Readonly<
+	Record<string, BenchmarkPortfolioEntry>
+>;
 
 export type PriceProfile = {
 	weight: number;
@@ -259,6 +272,7 @@ export type ModelStatsColumnTooltipSectionItem =
 
 export type ModelStatsColumnTooltipSection = {
 	title: string;
+	hideTitle?: boolean;
 	kind?: ModelStatsColumnTooltipSectionKind;
 	weight?: string;
 	rows: readonly ModelStatsColumnTooltipSectionItem[];
@@ -287,6 +301,7 @@ export type ModelStatsSelectedMetadata = {
 		agentic_benchmark_display_keys: string[];
 		missing_agentic_benchmark_keys: string[];
 		selected_benchmark_keys: string[];
+		benchmark_portfolio: BenchmarkPortfolio;
 		price_profiles: PriceProfiles;
 		simulation_profiles: SimulationProfiles;
 		simulation_input_token_seconds: number;
@@ -334,7 +349,8 @@ export type ScoringConfig = {
 	priceProfiles: PriceProfiles;
 	simulationProfiles: SimulationProfiles;
 	simulationInputTokenSeconds: number;
-	benchmarkScoreWeights: Readonly<Record<string, number>>;
+	benchmarkPortfolio: BenchmarkPortfolio;
+	floorImputedBenchmarkKeys: readonly string[];
 	qualityScoreWeights: QualityScoreWeights;
 	overallRelativeScoreWeights: OverallRelativeScoreWeights;
 	columnTooltips: ModelStatsColumnTooltips;

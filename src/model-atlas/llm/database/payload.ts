@@ -2,7 +2,7 @@
 
 import { DatabaseSync } from "node:sqlite";
 
-import { MODEL_ATLAS_STAGE_CONFIG } from "../../constants";
+import { STAGE_CONFIG } from "../../constants";
 import type {
 	ModelStatsNullableRelativeScores,
 	ModelStatsNullableScores,
@@ -258,7 +258,7 @@ function keysFromModelField(
 function buildMetadata(
 	models: ModelStatsScoredModel[],
 ): ModelStatsSelectedMetadata {
-	const scoringConfig = MODEL_ATLAS_STAGE_CONFIG.scoring;
+	const scoringConfig = STAGE_CONFIG.scoring;
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
 	const availableBenchmarkKeys = [
@@ -293,6 +293,7 @@ function buildMetadata(
 				(key) => !availableBenchmarkKeys.includes(key),
 			),
 			selected_benchmark_keys: selectedBenchmarkKeys,
+			benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
 			price_profiles: { ...scoringConfig.priceProfiles },
 			simulation_profiles: { ...scoringConfig.simulationProfiles },
 			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
