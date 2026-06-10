@@ -1,7 +1,7 @@
 import type {
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
-} from "../src/model-atlas/llm/llm-stats/types";
+} from "../src/model-atlas/llm/model-stats/types";
 
 export function minimalSelectedPayload({
 	fetchedAt,

@@ -1,4 +1,4 @@
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/llm-stats/types";
+import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
 
 const providerThemeColors: Record<string, string> = {
 	alibaba: "#ff7018",

@@ -1,13 +1,10 @@
 /** Debug trace row construction for Model Atlas database snapshots. */
 
-import {
-	firstValidMatchId,
-	hasVariantConflict,
-} from "../llm-stats/match-stage";
-import { publicOpenRouterModelId } from "../llm-stats/model-aliases";
-import type { MatcherConfig } from "../llm-stats/types";
 import type { LlmScraperFallbackMatchDiagnosticsPayload } from "../matcher";
-import type { OpenRouterRawScrapedPayload } from "../sources/openrouter-scraper";
+import { firstValidMatchId, hasVariantConflict } from "../model-stats/matching";
+import { publicOpenRouterModelId } from "../model-stats/model-aliases";
+import type { MatcherConfig } from "../model-stats/types";
+import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type { DebugTraceRow, SourceSnapshots } from "./types";
 
 /** Map AA model ids to raw table row indexes for debug joins. */

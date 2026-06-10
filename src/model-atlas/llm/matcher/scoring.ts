@@ -10,7 +10,7 @@ import {
 	splitBaseModelId,
 	splitBaseModelTokens,
 	splitTokens,
-} from "./tokenize";
+} from "./name-tokens";
 import type { LlmMatchCandidate } from "./types";
 
 const TOKEN_PREFIX_WEIGHTS = [5, 4, 3, 2, 1] as const;

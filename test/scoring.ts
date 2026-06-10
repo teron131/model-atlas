@@ -6,8 +6,8 @@ import {
 	buildQualityScoringContext,
 	buildScores,
 	simulatedBlendSeconds,
-} from "../src/model-atlas/llm/llm-stats/scores";
-import type { ModelStatsProjectedModel } from "../src/model-atlas/llm/llm-stats/types";
+} from "../src/model-atlas/llm/model-stats/scores";
+import type { ModelStatsModelCandidate } from "../src/model-atlas/llm/model-stats/types";
 import {
 	meanOfFiniteWithMinimum,
 	quantileFromSorted,
@@ -131,7 +131,7 @@ assertClose(groupPolicyScores?.intelligence_score, 70);
 
 const scoredModels = attachRelativeScores(
 	[
-		projectedModel({
+		modelCandidate({
 			id: "test/a",
 			intelligenceScore: 90,
 			agenticScore: 80,
@@ -143,7 +143,7 @@ const scoredModels = attachRelativeScores(
 			tps: 100,
 			latency: 1,
 		}),
-		projectedModel({
+		modelCandidate({
 			id: "test/b",
 			intelligenceScore: 80,
 			agenticScore: 70,
@@ -155,7 +155,7 @@ const scoredModels = attachRelativeScores(
 			tps: 50,
 			latency: 2,
 		}),
-		projectedModel({
+		modelCandidate({
 			id: "test/c",
 			intelligenceScore: 70,
 			agenticScore: 60,
@@ -180,19 +180,19 @@ assertClose(scoredModels[2]?.relative_scores.speed_score, 77.7778);
 
 const sparseComponentModels = attachRelativeScores(
 	[
-		projectedModel({
+		modelCandidate({
 			id: "test/sparse-a",
 			blendPrice: 2,
 			tps: 100,
 			latency: 1,
 		}),
-		projectedModel({
+		modelCandidate({
 			id: "test/sparse-b",
 			blendPrice: 4,
 			tps: 50,
 			latency: 2,
 		}),
-		projectedModel({
+		modelCandidate({
 			id: "test/sparse-c",
 			blendPrice: 8,
 			tps: 25,
@@ -263,7 +263,7 @@ assertClose(
 	0.8,
 );
 
-function projectedModel(options: {
+function modelCandidate(options: {
 	id: string;
 	intelligenceScore?: number | null;
 	agenticScore?: number | null;
@@ -274,7 +274,7 @@ function projectedModel(options: {
 	deepSWESeconds?: number | null;
 	tps?: number | null;
 	latency?: number | null;
-}): ModelStatsProjectedModel {
+}): ModelStatsModelCandidate {
 	return {
 		id: options.id,
 		name: options.id,

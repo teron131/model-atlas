@@ -2,12 +2,11 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { isSameOpenRouterModelRoute } from "../llm-stats/model-aliases";
-import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
-import type { AgentsLastExamHarnessRow } from "../sources/agents-last-exam-scraper";
-import type { BrowseCompModelScoreRow } from "../sources/browsecomp-scraper";
-import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
-import type { ModelRecord, ModelsDevPayload } from "../sources/models-dev";
+import { isSameOpenRouterModelRoute } from "../model-stats/model-aliases";
+import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
+import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
+import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
+import type { ModelRecord, ModelsDevPayload } from "../scrapers/models-dev";
 import type {
 	OpenRouterEffectivePricingResponse,
 	OpenRouterFrontendModel,
@@ -15,8 +14,9 @@ import type {
 	OpenRouterRawScrapedModel,
 	OpenRouterRawScrapedPayload,
 	OpenRouterStatsResponse,
-} from "../sources/openrouter-scraper";
-import type { TerminalBenchAgentModelAccuracyRow } from "../sources/terminal-bench-scraper";
+} from "../scrapers/openrouter";
+import type { TerminalBenchAgentModelAccuracyRow } from "../scrapers/terminal-bench";
+import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
 import {
 	RAW_SOURCE_CACHE_SECONDS,
 	type RawSourceCacheStatus,

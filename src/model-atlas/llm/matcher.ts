@@ -15,9 +15,9 @@ import type {
 	LlmScraperFallbackMatchDiagnosticsPayload,
 } from "./matcher/types";
 /** Public matcher APIs for LLM model mapping and scraper fallback diagnostics. */
-import { getArtificialAnalysisStats } from "./sources/artificial-analysis-api";
-import { getArtificialAnalysisScrapedEvalsOnlyStats } from "./sources/artificial-analysis-scraper";
-import { getModelsDevStats } from "./sources/models-dev";
+import { getArtificialAnalysisStats } from "./scrapers/artificial-analysis-api";
+import { getArtificialAnalysisScrapedEvalsOnlyStats } from "./scrapers/artificial-analysis-evals";
+import { getModelsDevStats } from "./scrapers/models-dev";
 
 export type {
 	LlmMatchCandidate,

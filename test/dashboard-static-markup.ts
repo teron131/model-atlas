@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ColumnTooltip } from "../app/dashboard/ColumnTooltip";
 import { Dashboard } from "../app/dashboard/index";
-import { ColumnTooltip } from "../app/dashboard/tooltip";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
 import {
 	minimalSelectedModel,

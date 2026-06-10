@@ -1,3 +1,5 @@
+/** Dashboard table columns shared by the body and sticky header. */
+
 import type { ReactNode } from "react";
 
 import { BotIcon, BrainIcon, DollarIcon, RocketIcon } from "./icons";

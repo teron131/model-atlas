@@ -8,7 +8,7 @@ import {
 	localDatabaseReadPath,
 	runtimeDatabasePath,
 } from "../app/api/llm-stats/snapshot-store";
-import type { ModelStatsSelectedPayload } from "../src/model-atlas/llm/llm-stats/types";
+import type { ModelStatsSelectedPayload } from "../src/model-atlas/llm/model-stats/types";
 import { minimalSelectedPayload } from "./model-stats-fixtures";
 
 const freshPayload = payloadAt(900);

@@ -1,4 +1,4 @@
-import { processModelsDevPayload } from "../src/model-atlas/llm/sources/models-dev";
+import { processModelsDevPayload } from "../src/model-atlas/llm/scrapers/models-dev";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

@@ -1,7 +1,9 @@
+/** Shared graph view contracts. */
+
 import type { Dispatch, SetStateAction } from "react";
 
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/llm-stats/types";
-import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/sources/deep-swe-scraper";
+import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
+import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
 
 export type ProviderOption = {
 	slug: string;
