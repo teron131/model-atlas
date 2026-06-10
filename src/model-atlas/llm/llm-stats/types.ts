@@ -21,6 +21,9 @@ export type ArtificialAnalysisModel = {
 	model_id?: unknown;
 	name?: unknown;
 	logo?: unknown;
+	median_speed?: unknown;
+	median_time?: unknown;
+	median_end_to_end_response_time?: unknown;
 	evaluations?: unknown;
 	intelligence?: unknown;
 	intelligence_index_cost?: unknown;

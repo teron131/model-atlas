@@ -9,7 +9,11 @@ const DEFAULT_SNAPSHOT_PATH = "public/model-atlas-snapshot.json";
 export async function writeModelAtlasSnapshot(
 	outputPath = DEFAULT_SNAPSHOT_PATH,
 ) {
-	const payload = await refreshModelAtlasPayload();
+	const databasePath =
+		process.env.MODEL_ATLAS_DATABASE_PATH == null
+			? undefined
+			: resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
+	const payload = await refreshModelAtlasPayload(databasePath);
 	const resolvedOutputPath = resolve(outputPath);
 	await mkdir(dirname(resolvedOutputPath), { recursive: true });
 	await writeFile(resolvedOutputPath, `${JSON.stringify(payload)}\n`);

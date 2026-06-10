@@ -16,6 +16,11 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 const model = processOpenRouterModelStats(
 	"openai/example",
 	{
+		summary: {
+			throughput_tokens_per_second_median: 42,
+			latency_seconds_median: 0.9,
+			e2e_latency_seconds_median: null,
+		},
 		throughput: {
 			data: [
 				{ x: "2026-01-01", y: { p50: 100, p90: 300 } },
@@ -43,14 +48,42 @@ const model = processOpenRouterModelStats(
 assertDeepEqual(model, {
 	id: "openai/example",
 	performance: {
-		throughput_tokens_per_second_median: 400,
-		latency_seconds_median: 2,
+		throughput_tokens_per_second_median: 42,
+		latency_seconds_median: 0.9,
 		e2e_latency_seconds_median: 1.5,
 	},
 	pricing: {
 		weighted_input_price_per_1m: 1.2,
 		weighted_output_price_per_1m: 3.4,
 	},
+});
+
+const sparseModel = processOpenRouterModelStats(
+	"openai/sparse-example",
+	{
+		throughput: {
+			data: [
+				{ x: "2026-01-01", y: { providerA: null, providerB: 100 } },
+				{ x: "2026-01-02", y: { providerA: 200 } },
+			],
+		},
+		latency: {
+			data: [
+				{ x: "2026-01-01", y: { providerA: null, providerB: 1000 } },
+				{ x: "2026-01-02", y: { providerA: 3000 } },
+			],
+		},
+		latency_e2e: {
+			data: [{ x: "2026-01-01", y: { providerA: null, providerB: 1500 } }],
+		},
+	},
+	null,
+);
+
+assertDeepEqual(sparseModel.performance, {
+	throughput_tokens_per_second_median: 150,
+	latency_seconds_median: 2,
+	e2e_latency_seconds_median: 1.5,
 });
 
 assertDeepEqual(

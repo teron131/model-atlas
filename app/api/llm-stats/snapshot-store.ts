@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { get, put } from "@vercel/blob";
 
 import { MODEL_ATLAS_STAGE_CONFIG } from "../../../src/model-atlas/constants";
-import { readModelAtlasDatabasePayload } from "../../../src/model-atlas/llm/database";
+import { readModelAtlasDatabasePayload } from "../../../src/model-atlas/llm/database/payload";
 import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,

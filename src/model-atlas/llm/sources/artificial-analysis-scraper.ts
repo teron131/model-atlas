@@ -37,6 +37,9 @@ export const ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS = [
 	"model_id",
 	"model_url",
 	"logo",
+	"median_speed",
+	"median_time",
+	"median_end_to_end_response_time",
 	"intelligence",
 	"intelligence_index_cost",
 	"evaluations",
@@ -604,6 +607,14 @@ function getSelectedColumnValue(
 				row.median_time_to_first_chunk ??
 				row.medianTimeToFirstTokenSeconds ??
 				asRecord(row.timescaleData).median_time_to_first_chunk ??
+				null
+			);
+		case "median_end_to_end_response_time":
+			return (
+				row.median_end_to_end_response_time ??
+				row.medianEndToEndResponseTimeSeconds ??
+				asRecord(row.end_to_end_response_time_metrics)
+					.median_end_to_end_response_time ??
 				null
 			);
 		case "evaluations":

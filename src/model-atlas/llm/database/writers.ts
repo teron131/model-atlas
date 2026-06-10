@@ -235,6 +235,11 @@ function artificialAnalysisBenchmarkValues(
 			"median_time_to_first_chunk",
 			"medianTimeToFirstTokenSeconds",
 		]),
+		firstNumber(selectedRow, ["median_end_to_end_response_time"]) ??
+			firstNumber(row, [
+				"median_end_to_end_response_time",
+				"medianEndToEndResponseTimeSeconds",
+			]),
 		asFiniteNumber(intelligence.intelligence_index),
 		asFiniteNumber(intelligence.agentic_index),
 		asFiniteNumber(intelligence.coding_index),
@@ -304,14 +309,15 @@ export function insertArtificialAnalysisRawModels(
 			output_modality_text, output_modality_image, output_modality_video,
 			output_modality_speech,
 			median_output_tokens_per_second,
-			median_time_to_first_token_seconds, intelligence_index, agentic_index,
-			coding_index, omniscience_index, omniscience_accuracy,
+			median_time_to_first_token_seconds,
+			median_end_to_end_response_time_seconds, intelligence_index,
+			agentic_index, coding_index, omniscience_index, omniscience_accuracy,
 			omniscience_nonhallucination_rate, apex_agents, critpt,
 			gdpval_normalized, gpqa, hle, ifbench, lcr, mmmu_pro, scicode,
 			terminalbench_hard, input_cost, reasoning_cost, output_cost, total_cost,
 			input_tokens, reasoning_tokens, answer_tokens, output_tokens,
 			total_tokens, logo_url
-		) VALUES (${Array.from({ length: 50 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 51 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of snapshots.aaRawRows.entries()) {
 		const selectedRow = snapshots.aaSelectedRows[index] ?? {};

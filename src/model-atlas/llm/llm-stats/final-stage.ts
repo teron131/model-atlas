@@ -217,6 +217,7 @@ function buildSpeed(
 		asFiniteNumber(model.median_time_to_first_token_seconds);
 	const e2eLatency =
 		asFiniteNumber(openRouterSpeed?.e2e_latency_seconds_median) ??
+		asFiniteNumber(model.median_end_to_end_response_time_seconds) ??
 		asFiniteNumber(model.median_time_to_first_answer_token) ??
 		latency;
 	return {

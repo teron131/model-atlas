@@ -38,6 +38,9 @@ const rows = processArtificialAnalysisScrapedRows(
 			modelCreatorName: "Acme",
 			modelCreatorSlug: "acme",
 			intelligenceIndex: 70,
+			medianOutputTokensPerSecond: 59,
+			medianTimeToFirstTokenSeconds: 94,
+			medianEndToEndResponseTimeSeconds: 103,
 			apexAgents: 0.47,
 			critpt: 0.31,
 			scicode: 0.42,
@@ -80,6 +83,9 @@ assertDeepEqual(rows[1]?.evaluations, {
 	scicode: 0.36,
 	terminalbench_hard: 0.37,
 });
+assertDeepEqual(rows[0]?.median_speed, 59);
+assertDeepEqual(rows[0]?.median_time, 94);
+assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
 
 const scoringRows = [
 	{

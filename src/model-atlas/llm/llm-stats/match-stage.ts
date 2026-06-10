@@ -6,6 +6,7 @@ import {
 	type LlmScraperFallbackMatchDiagnosticsPayload,
 } from "../matcher";
 import {
+	asFiniteNumber,
 	asRecord,
 	modelSlugFromModelId,
 	normalizeModelToken,
@@ -192,6 +193,11 @@ function buildMatchedRow(
 		slug: _matchedSlug,
 		...modelMetadata
 	} = matchedModelFields;
+	const medianSpeed = asFiniteNumber(aaModel.median_speed);
+	const medianTime = asFiniteNumber(aaModel.median_time);
+	const medianEndToEndResponseTime = asFiniteNumber(
+		aaModel.median_end_to_end_response_time,
+	);
 
 	return {
 		id: canonicalId,
@@ -203,6 +209,17 @@ function buildMatchedRow(
 		family: matchedFamily,
 		logo,
 		...modelMetadata,
+		...(medianSpeed == null
+			? {}
+			: { median_output_tokens_per_second: medianSpeed }),
+		...(medianTime == null
+			? {}
+			: { median_time_to_first_token_seconds: medianTime }),
+		...(medianEndToEndResponseTime == null
+			? {}
+			: {
+					median_end_to_end_response_time_seconds: medianEndToEndResponseTime,
+				}),
 		...(Object.keys(scoringSources).length === 0
 			? {}
 			: { scoring_sources: scoringSources }),
