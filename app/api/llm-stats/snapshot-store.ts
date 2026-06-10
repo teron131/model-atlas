@@ -14,7 +14,7 @@ import type {
 	ModelStatsSelectedMetadata,
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
-} from "../../../src/model-atlas/llm/llm-stats/types";
+} from "../../../src/model-atlas/llm/model-stats/types";
 
 const STATIC_SNAPSHOT_PATH = resolve(
 	process.cwd(),

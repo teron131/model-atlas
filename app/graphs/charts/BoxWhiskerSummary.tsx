@@ -1,5 +1,7 @@
 "use client";
 
+/** Responsive box-whisker summary for graph overview cards. */
+
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../src/model-atlas/math-utils";

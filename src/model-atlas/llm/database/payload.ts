@@ -1,4 +1,4 @@
-/** Read the latest SQLite final-stage rows as the payload consumed by the minimal UI. */
+/** Read the latest SQLite selected rows as the payload consumed by the minimal UI. */
 
 import { DatabaseSync } from "node:sqlite";
 
@@ -6,7 +6,7 @@ import { STAGE_CONFIG } from "../../constants";
 import type {
 	ModelStatsNullableRelativeScores,
 	ModelStatsNullableScores,
-	ModelStatsScoredModel,
+	ModelStatsScoredCandidate,
 	ModelStatsSelectedContextWindow,
 	ModelStatsSelectedCost,
 	ModelStatsSelectedEvaluations,
@@ -16,9 +16,9 @@ import type {
 	ModelStatsSelectedPayload,
 	ModelStatsSelectedSpeed,
 	ModelStatsSelectedTaskMetrics,
-} from "../llm-stats/types";
+} from "../model-stats/types";
+import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
-import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
 import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
@@ -211,8 +211,8 @@ function buildRelativeScores(row: DbRow): ModelStatsNullableRelativeScores {
 	};
 }
 
-/** Convert one SQLite final-stage row into the model payload shape. */
-function modelFromRow(row: DbRow): ModelStatsScoredModel {
+/** Convert one SQLite selected row into the model payload shape. */
+function modelFromRow(row: DbRow): ModelStatsScoredCandidate {
 	const modelId = stringValue(row.model_id);
 	const provider =
 		stringValue(row.provider_id) ?? modelId?.split("/")[0] ?? null;
@@ -246,7 +246,7 @@ function modelFromRow(row: DbRow): ModelStatsScoredModel {
 
 /** Return sorted unique keys from model object fields. */
 function keysFromModelField(
-	models: ModelStatsScoredModel[],
+	models: ModelStatsScoredCandidate[],
 	field: "evaluations" | "intelligence",
 ): string[] {
 	return [
@@ -256,7 +256,7 @@ function keysFromModelField(
 
 /** Build metadata for the DB-backed UI payload. */
 function buildMetadata(
-	models: ModelStatsScoredModel[],
+	models: ModelStatsScoredCandidate[],
 ): ModelStatsSelectedMetadata {
 	const scoringConfig = STAGE_CONFIG.scoring;
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
@@ -365,7 +365,7 @@ function readDeepSWERows(
 		});
 }
 
-/** Read the UI payload from the latest final-stage SQLite rows. */
+/** Read the UI payload from the latest SQLite selected rows. */
 export function readModelAtlasDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
 ): ModelStatsSelectedPayload {

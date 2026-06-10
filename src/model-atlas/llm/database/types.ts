@@ -1,21 +1,21 @@
 /** Stable SQLite database contracts for the Model Atlas snapshot pipeline. */
 
 import type { JsonObject } from "../../utils";
-import type { SourceData } from "../llm-stats/types";
+import type { ModelStatsSourceData } from "../model-stats/types";
 import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
-} from "../sources/agents-last-exam-scraper";
-import type { BrowseCompModelScoreRow } from "../sources/browsecomp-scraper";
-import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
+} from "../scrapers/agents-last-exam";
+import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
+import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import type {
 	ModelsDevFlatModel,
 	ModelsDevPayload,
-} from "../sources/models-dev";
+} from "../scrapers/models-dev";
 import type {
 	TerminalBenchAgentModelAccuracyRow,
 	TerminalBenchModelMedianAccuracyRow,
-} from "../sources/terminal-bench-scraper";
+} from "../scrapers/terminal-bench";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
 export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
@@ -88,7 +88,7 @@ export type SourceSnapshots = {
 	modelsDevFetchedAt: number | null;
 	modelsDevStatusCode: number | null;
 	deepSWERawRows: DeepSWELeaderboardRow[];
-	deepSWEModelScoreRows: SourceData["deepSWEModelScoreRows"];
+	deepSWEModelScoreRows: ModelStatsSourceData["deepSWEModelScoreRows"];
 	terminalBenchRows: TerminalBenchAgentModelAccuracyRow[];
 	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
 	agentsLastExamRows: AgentsLastExamHarnessRow[];

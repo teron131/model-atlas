@@ -1,4 +1,6 @@
-import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/llm-stats/types";
+/** Dashboard row shaping and sort semantics for selected-model payloads. */
+
+import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/model-stats/types";
 
 const artificialAnalysisTaskMetricColumns = [
 	{
@@ -214,6 +216,7 @@ export const sorters: Record<SortKey, Sorter> = {
 	...benchmarkMetricSorters,
 };
 
+/** Filter and sort rows with source order as the final stable tie-breaker. */
 export function sortedRows(
 	rows: TableRow[],
 	filterQuery: string,
@@ -236,6 +239,7 @@ export function sortedRows(
 	});
 }
 
+/** Collapse duplicate model routes before assigning display ranks. */
 export function dedupeDisplayModels(models: ModelStatsSelectedModel[]) {
 	const byDisplayId = new Map<string, UnrankedTableRow>();
 	for (const [originalIndex, model] of models.entries()) {

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { buildMatchedRows } from "../src/model-atlas/llm/llm-stats/match-stage";
-import type { SourceData } from "../src/model-atlas/llm/llm-stats/types";
 import { runMatcher } from "../src/model-atlas/llm/matcher/pipeline";
 import type {
 	MatcherSourceModel,
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/llm/matcher/types";
+import { buildMatchedModelRows } from "../src/model-atlas/llm/model-stats/matching";
+import type { ModelStatsSourceData } from "../src/model-atlas/llm/model-stats/types";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),
@@ -42,11 +42,14 @@ assert.equal(
 	"an older numeric version should not match a newer OpenRouter sibling when the exact row is absent",
 );
 
-const sourceData = buildSourceData([
+const sourceData = modelStatsSourceData([
 	sourceModel("google/example-2-5-flash", 20),
 	sourceModel("google/example-3-pro", 50),
 ]);
-const matchedRows = await buildMatchedRows(sourceData, STAGE_CONFIG.matcher);
+const matchedRows = await buildMatchedModelRows(
+	sourceData,
+	STAGE_CONFIG.matcher,
+);
 
 assert.equal(
 	matchedRows.find((row) => row.aa_id === "google/example-2-5-flash")?.id,
@@ -95,9 +98,9 @@ function sourceModel(
 	};
 }
 
-function buildSourceData(
+function modelStatsSourceData(
 	artificialAnalysisRows: Record<string, unknown>[],
-): SourceData {
+): ModelStatsSourceData {
 	const modelsDevModels = [
 		model(
 			"openrouter",

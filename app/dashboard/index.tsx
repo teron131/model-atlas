@@ -1,5 +1,7 @@
 "use client";
 
+/** Client dashboard for live selected-model payloads, filtering, sorting, and tooltips. */
+
 import {
 	useCallback,
 	useDeferredValue,
@@ -13,11 +15,18 @@ import {
 import type {
 	ModelStatsColumnTooltips,
 	ModelStatsSelectedPayload,
-} from "../../src/model-atlas/llm/llm-stats/types";
-import { BenchmarkStrip } from "./benchmarkStrip";
+} from "../../src/model-atlas/llm/model-stats/types";
+import { BenchmarkStrip } from "./BenchmarkStrip";
+import {
+	ColumnTooltip,
+	type HeaderTooltipHandler,
+	type TooltipState,
+	tooltipPositionFromElement,
+} from "./ColumnTooltip";
 import { liveStatsPath } from "./constants";
 import { cacheBustedPath } from "./format";
 import { RefreshIcon } from "./icons";
+import { ModelTable, reverseDirection } from "./ModelTable";
 import {
 	dedupeDisplayModels,
 	type SortKey,
@@ -26,18 +35,11 @@ import {
 	sorters,
 	type TableRow,
 } from "./models";
-import { ModelTable, reverseDirection } from "./modelTable";
 import {
 	hasSelectedProviderThemeColor,
 	type ProviderThemeColors,
 	providerThemeSlug,
 } from "./providerTheme";
-import {
-	ColumnTooltip,
-	type HeaderTooltipHandler,
-	type TooltipState,
-	tooltipPositionFromElement,
-} from "./tooltip";
 
 const emptyColumnTooltips: ModelStatsColumnTooltips = {};
 const SELECTED_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";

@@ -39,6 +39,15 @@ export type {
 } from "./image/sources/artificial-analysis";
 export { getArtificialAnalysisImageStats } from "./image/sources/artificial-analysis";
 export type {
+	LlmMatchCandidate,
+	LlmMatchMappedModel,
+	LlmMatchModelMappingOptions,
+	LlmMatchModelMappingPayload,
+	LlmMatchResult,
+	LlmScraperFallbackMatchDiagnosticsPayload,
+} from "./llm/matcher";
+export { getMatchModelMapping } from "./llm/matcher";
+export type {
 	ModelAtlasStageConfig,
 	ModelStatsSelectedBenchmarkValues,
 	ModelStatsSelectedContextWindow,
@@ -57,27 +66,18 @@ export type {
 	ModelStatsSelectedScores,
 	ModelStatsSelectedSpeed,
 	OverallRelativeScoreWeights,
-} from "./llm/llm-stats";
+} from "./llm/model-stats";
 export {
 	getModelStatsSelected,
 	getModelStatsSelectedLive,
-} from "./llm/llm-stats";
-export type {
-	LlmMatchCandidate,
-	LlmMatchMappedModel,
-	LlmMatchModelMappingOptions,
-	LlmMatchModelMappingPayload,
-	LlmMatchResult,
-	LlmScraperFallbackMatchDiagnosticsPayload,
-} from "./llm/matcher";
-export { getMatchModelMapping } from "./llm/matcher";
+} from "./llm/model-stats";
 export type {
 	AgentsLastExamHarnessPayload,
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScorePayload,
 	AgentsLastExamModelScoreRow,
 	AgentsLastExamScraperOptions,
-} from "./llm/sources/agents-last-exam-scraper";
+} from "./llm/scrapers/agents-last-exam";
 export {
 	agentsLastExamBenchmarkScore,
 	buildAgentsLastExamScoreByModelName,
@@ -86,39 +86,39 @@ export {
 	getAgentsLastExamModelScoreStats,
 	processAgentsLastExamLeaderboardRows,
 	summarizeAgentsLastExamModelScores,
-} from "./llm/sources/agents-last-exam-scraper";
-export type { ArtificialAnalysisOptions } from "./llm/sources/artificial-analysis-api";
-export { getArtificialAnalysisStats } from "./llm/sources/artificial-analysis-api";
+} from "./llm/scrapers/agents-last-exam";
+export type { ArtificialAnalysisOptions } from "./llm/scrapers/artificial-analysis-api";
+export { getArtificialAnalysisStats } from "./llm/scrapers/artificial-analysis-api";
 export type {
 	ArtificialAnalysisScrapedPayload,
 	ArtificialAnalysisScrapedRawPayload,
 	ArtificialAnalysisScraperOptions,
 	ArtificialAnalysisScraperProcessOptions,
-} from "./llm/sources/artificial-analysis-scraper";
+} from "./llm/scrapers/artificial-analysis-evals";
 export {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
 	getArtificialAnalysisScrapedEvalsOnlyStats,
 	getArtificialAnalysisScrapedRawStats,
 	getArtificialAnalysisScrapedStats,
 	processArtificialAnalysisScrapedRows,
-} from "./llm/sources/artificial-analysis-scraper";
+} from "./llm/scrapers/artificial-analysis-evals";
 export type {
 	BrowseCompModelScorePayload,
 	BrowseCompModelScoreRow,
 	BrowseCompScraperOptions,
-} from "./llm/sources/browsecomp-scraper";
+} from "./llm/scrapers/browsecomp";
 export {
 	buildBrowseCompScoreByModelName,
 	findBrowseCompScore,
 	getBrowseCompModelScoreStats,
 	processBrowseCompDetailsJson,
-} from "./llm/sources/browsecomp-scraper";
+} from "./llm/scrapers/browsecomp";
 export type {
 	DeepSWELeaderboardPayload,
 	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
 	DeepSWEScraperOptions,
-} from "./llm/sources/deep-swe-scraper";
+} from "./llm/scrapers/deep-swe";
 export {
 	buildDeepSWEScoreByModelName,
 	findDeepSWEModelScore,
@@ -126,7 +126,7 @@ export {
 	getDeepSWERawLeaderboardStats,
 	summarizeDeepSWEBestModelScores,
 	summarizeDeepSWEDefaultModelScores,
-} from "./llm/sources/deep-swe-scraper";
+} from "./llm/scrapers/deep-swe";
 export type {
 	ModelRecord,
 	ModelsDevFlatModel,
@@ -135,12 +135,12 @@ export type {
 	ModelsDevSourcePayload,
 	ProviderRecord,
 	VercelGatewayModelRecord,
-} from "./llm/sources/models-dev";
+} from "./llm/scrapers/models-dev";
 export {
 	getModelsDevSourceStats,
 	getModelsDevStats,
 	processModelsDevPayload,
-} from "./llm/sources/models-dev";
+} from "./llm/scrapers/models-dev";
 export type {
 	OpenRouterEffectivePricingResponse,
 	OpenRouterFrontendModel,
@@ -155,26 +155,26 @@ export type {
 	OpenRouterSingleModelOptions,
 	OpenRouterStatsPoint,
 	OpenRouterStatsResponse,
-} from "./llm/sources/openrouter-scraper";
+} from "./llm/scrapers/openrouter";
 export {
 	getOpenRouterModelStats,
 	getOpenRouterRawScrapedStats,
 	getOpenRouterScrapedStats,
 	processOpenRouterModelStats,
-} from "./llm/sources/openrouter-scraper";
+} from "./llm/scrapers/openrouter";
 export type {
 	TerminalBenchAgentModelAccuracyPayload,
 	TerminalBenchAgentModelAccuracyRow,
 	TerminalBenchModelMedianAccuracyPayload,
 	TerminalBenchModelMedianAccuracyRow,
 	TerminalBenchScraperOptions,
-} from "./llm/sources/terminal-bench-scraper";
+} from "./llm/scrapers/terminal-bench";
 export {
 	getTerminalBenchAgentModelAccuracyStats,
 	getTerminalBenchModelMedianAccuracyStats,
 	processTerminalBenchLeaderboardRows,
 	summarizeTerminalBenchModelMedianAccuracy,
-} from "./llm/sources/terminal-bench-scraper";
+} from "./llm/scrapers/terminal-bench";
 export type { NumberOrNull, WeightedScorePart } from "./math-utils";
 export {
 	clamp,

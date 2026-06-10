@@ -1,8 +1,8 @@
 /** LLM model matching helpers. */
 
 /** Shared public and intermediate types for the LLM matcher pipeline. */
-import type { getArtificialAnalysisStats } from "../sources/artificial-analysis-api";
-import type { getModelsDevStats } from "../sources/models-dev";
+import type { getArtificialAnalysisStats } from "../scrapers/artificial-analysis-api";
+import type { getModelsDevStats } from "../scrapers/models-dev";
 
 export type ModelsDevModel = Awaited<
 	ReturnType<typeof getModelsDevStats>

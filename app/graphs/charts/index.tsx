@@ -1,5 +1,7 @@
 "use client";
 
+/** Interactive chart view for selected Model Atlas payloads. */
+
 import { GridColumns, GridRows } from "@visx/grid";
 import { LinePath } from "@visx/shape";
 import { extent, max, median, quantile } from "d3-array";
@@ -9,8 +11,8 @@ import { type CSSProperties, useMemo, useState } from "react";
 import type {
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
-} from "../../../src/model-atlas/llm/llm-stats/types";
-import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/sources/deep-swe-scraper";
+} from "../../../src/model-atlas/llm/model-stats/types";
+import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
 import styles from "../charts.module.css";
 import {
@@ -27,7 +29,7 @@ import {
 	PointHitTarget,
 	PointLabel,
 	SummaryCard,
-} from "./chartComponents";
+} from "./ChartComponents";
 import {
 	finite,
 	finiteValue,
