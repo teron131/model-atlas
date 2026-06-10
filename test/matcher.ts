@@ -139,5 +139,7 @@ function buildSourceData(
 		terminalBenchAccuracyByModelName: new Map(),
 		agentsLastExamModelScoreRows: [],
 		agentsLastExamScoreByModelName: new Map(),
+		browseCompModelScoreRows: [],
+		browseCompScoreByModelName: new Map(),
 	};
 }

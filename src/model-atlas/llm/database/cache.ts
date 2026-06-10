@@ -5,6 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { isSameOpenRouterModelRoute } from "../llm-stats/model-aliases";
 import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
 import type { AgentsLastExamHarnessRow } from "../sources/agents-last-exam-scraper";
+import type { BrowseCompModelScoreRow } from "../sources/browsecomp-scraper";
 import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
 import type { ModelRecord, ModelsDevPayload } from "../sources/models-dev";
 import type {
@@ -20,6 +21,7 @@ import {
 	RAW_SOURCE_CACHE_SECONDS,
 	type RawSourceCacheStatus,
 	type RawSourceName,
+	SOURCE_URLS,
 } from "./types";
 
 const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
@@ -28,6 +30,7 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	deep_swe: "deep_swe_raw_rows",
 	terminal_bench: "terminal_bench_raw_rows",
 	agents_last_exam: "agents_last_exam_raw_rows",
+	browsecomp: "browsecomp_raw_rows",
 	openrouter: "openrouter_raw_rows",
 };
 
@@ -531,6 +534,48 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 					]
 				: [];
 		}),
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+export function readBrowseCompRawCache(db: DatabaseSync): {
+	rows: BrowseCompModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM browsecomp_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.browsecomp)) {
+		return null;
+	}
+	const cachedRows = rawRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const provider = stringValue(row.provider);
+		const score = asFiniteNumber(row.score);
+		return model != null && provider != null && score != null
+			? [
+					{
+						model,
+						provider,
+						provider_name: stringValue(row.provider_name),
+						score,
+						source_url: stringValue(row.source_url),
+						analysis_method: stringValue(row.analysis_method),
+						verified: booleanFromSql(row.verified),
+						self_reported: booleanFromSql(row.self_reported),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
 		fetchedAt: firstEpochSecond(rawRows),
 	};
 }

@@ -1,4 +1,4 @@
-/** Source stage for Model Atlas: fetch Artificial Analysis scraper rows and build lookup maps. */
+/** Source stage for Model Atlas: fetch raw benchmark rows and build lookup maps. */
 
 import { modelSlugFromModelId } from "../shared";
 import {
@@ -6,6 +6,10 @@ import {
 	getAgentsLastExamModelScoreStats,
 } from "../sources/agents-last-exam-scraper";
 import { getArtificialAnalysisScrapedEvalsOnlyStats } from "../sources/artificial-analysis-scraper";
+import {
+	buildBrowseCompScoreByModelName,
+	getBrowseCompModelScoreStats,
+} from "../sources/browsecomp-scraper";
 import {
 	buildDeepSWEScoreByModelName,
 	getDeepSWEModelScoreStats,
@@ -65,12 +69,14 @@ export async function fetchSourceData(): Promise<SourceData> {
 		deepSWEStats,
 		terminalBenchStats,
 		agentsLastExamStats,
+		browseCompStats,
 	] = await Promise.all([
 		getArtificialAnalysisScrapedEvalsOnlyStats(),
 		getModelsDevSourceStats(),
 		getDeepSWEModelScoreStats(),
 		getTerminalBenchModelMedianAccuracyStats(),
 		getAgentsLastExamModelScoreStats(),
+		getBrowseCompModelScoreStats(),
 	]);
 	const retainKeys = buildAaRetainKeys(aaStats.data);
 	const modelsDevModels = processModelsDevPayload(
@@ -92,6 +98,10 @@ export async function fetchSourceData(): Promise<SourceData> {
 		agentsLastExamModelScoreRows: agentsLastExamStats.data,
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			agentsLastExamStats.data,
+		),
+		browseCompModelScoreRows: browseCompStats.data,
+		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
+			browseCompStats.data,
 		),
 	};
 }

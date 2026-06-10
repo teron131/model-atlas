@@ -29,6 +29,7 @@ import {
 import {
 	insertAgentsLastExamRawRows,
 	insertArtificialAnalysisRawModels,
+	insertBrowseCompRawRows,
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
 	insertModelsDevRawModels,
@@ -46,6 +47,7 @@ const SNAPSHOT_TABLES = [
 	"deep_swe_raw_rows",
 	"terminal_bench_raw_rows",
 	"agents_last_exam_raw_rows",
+	"browsecomp_raw_rows",
 	"openrouter_raw_rows",
 	"processed_models",
 	"debug",
@@ -86,6 +88,7 @@ async function openDatabase(
 	ensureArtificialAnalysisColumns(db);
 	ensureDeepSWEColumns(db);
 	ensureAgentsLastExamColumns(db);
+	ensureBrowseCompColumns(db);
 	return db;
 }
 
@@ -151,6 +154,42 @@ function ensureAgentsLastExamColumns(db: DatabaseSync): void {
 	}
 }
 
+/** Add BrowseComp columns to existing local caches. */
+function ensureBrowseCompColumns(db: DatabaseSync): void {
+	const existingRawColumns = new Set(
+		db
+			.prepare("PRAGMA table_info(browsecomp_raw_rows)")
+			.all()
+			.map((row) => String((row as { name?: unknown }).name)),
+	);
+	if (!existingRawColumns.has("provider")) {
+		db.exec(
+			"ALTER TABLE browsecomp_raw_rows ADD COLUMN provider TEXT NOT NULL DEFAULT ''",
+		);
+	}
+	const rawColumns: Array<[string, string]> = [
+		["provider_name", "TEXT"],
+		["source_url", "TEXT"],
+		["analysis_method", "TEXT"],
+		["verified", "INTEGER"],
+		["self_reported", "INTEGER"],
+	];
+	for (const [name, type] of rawColumns) {
+		if (!existingRawColumns.has(name)) {
+			db.exec(`ALTER TABLE browsecomp_raw_rows ADD COLUMN ${name} ${type}`);
+		}
+	}
+	const existingProcessedColumns = new Set(
+		db
+			.prepare("PRAGMA table_info(processed_models)")
+			.all()
+			.map((row) => String((row as { name?: unknown }).name)),
+	);
+	if (!existingProcessedColumns.has("browsecomp")) {
+		db.exec("ALTER TABLE processed_models ADD COLUMN browsecomp REAL");
+	}
+}
+
 /** Remove current snapshot rows before rewriting the runtime view. */
 function clearSnapshotTables(db: DatabaseSync): void {
 	for (const table of SNAPSHOT_TABLES) {
@@ -203,6 +242,7 @@ function writeDatabaseSnapshot(
 	insertDeepSWERawRows(db, runId, rows.snapshots);
 	insertTerminalBenchRawRows(db, runId, rows.snapshots);
 	insertAgentsLastExamRawRows(db, runId, rows.snapshots);
+	insertBrowseCompRawRows(db, runId, rows.snapshots);
 	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
 	insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
 	insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);

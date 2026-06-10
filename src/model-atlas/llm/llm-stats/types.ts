@@ -5,6 +5,10 @@ import type {
 	AgentsLastExamScoreByModelName,
 } from "../sources/agents-last-exam-scraper";
 import type {
+	BrowseCompModelScoreRow,
+	BrowseCompScoreByModelName,
+} from "../sources/browsecomp-scraper";
+import type {
 	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
 	DeepSWEScoreByModelName,
@@ -123,6 +127,7 @@ export type ModelStatsSelectedEvaluations =
 		deep_swe?: NumberOrNull;
 		agents_last_exam?: NumberOrNull;
 		terminal_bench_2?: NumberOrNull;
+		browsecomp?: NumberOrNull;
 		terminalbench_hard?: NumberOrNull;
 	};
 
@@ -352,6 +357,8 @@ export type SourceData = {
 	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName;
 	agentsLastExamModelScoreRows: AgentsLastExamModelScoreRow[];
 	agentsLastExamScoreByModelName: AgentsLastExamScoreByModelName;
+	browseCompModelScoreRows: BrowseCompModelScoreRow[];
+	browseCompScoreByModelName: BrowseCompScoreByModelName;
 };
 
 export type EnrichedRows = {

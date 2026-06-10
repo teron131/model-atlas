@@ -16,15 +16,24 @@ import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
 } from "../sources/agents-last-exam-scraper";
+import { findBrowseCompScore } from "../sources/browsecomp-scraper";
 import { findDeepSWEModelScore } from "../sources/deep-swe-scraper";
 import { findTerminalBenchMedianAccuracy } from "../sources/terminal-bench-scraper";
 
 import type {
 	ArtificialAnalysisModel,
 	MatcherConfig,
-	ModelsDevModel,
 	SourceData,
 } from "./types";
+
+type MatchedRowLookups = Pick<
+	SourceData,
+	| "modelsDevById"
+	| "deepSWEScoreByModelName"
+	| "terminalBenchAccuracyByModelName"
+	| "agentsLastExamScoreByModelName"
+	| "browseCompScoreByModelName"
+>;
 
 /** Helper for canonical model id. */
 function canonicalModelId(
@@ -127,10 +136,7 @@ export function firstValidMatchId(
 function buildMatchedRow(
 	aaModel: ArtificialAnalysisModel,
 	matchedModelId: string,
-	modelsDevById: Map<string, ModelsDevModel>,
-	deepSWEScoreByModelName: SourceData["deepSWEScoreByModelName"],
-	terminalBenchAccuracyByModelName: SourceData["terminalBenchAccuracyByModelName"],
-	agentsLastExamScoreByModelName: SourceData["agentsLastExamScoreByModelName"],
+	lookups: MatchedRowLookups,
 ): Record<string, unknown> {
 	const aaModelId =
 		typeof aaModel.model_id === "string" ? aaModel.model_id : null;
@@ -139,7 +145,7 @@ function buildMatchedRow(
 	const intelligence = asRecord(aaModel.intelligence);
 	const intelligenceIndexCost = asRecord(aaModel.intelligence_index_cost);
 	const logo = typeof aaModel.logo === "string" ? aaModel.logo : null;
-	const matchedModelsDev = modelsDevById.get(matchedModelId) ?? null;
+	const matchedModelsDev = lookups.modelsDevById.get(matchedModelId) ?? null;
 	const matchedModelFields = asRecord(matchedModelsDev?.model);
 	const matchedModelName =
 		typeof matchedModelsDev?.model?.name === "string"
@@ -154,11 +160,11 @@ function buildMatchedRow(
 	];
 	const deepSWEScore = findDeepSWEModelScore(
 		modelNameCandidates,
-		deepSWEScoreByModelName,
+		lookups.deepSWEScoreByModelName,
 	);
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
-		agentsLastExamScoreByModelName,
+		lookups.agentsLastExamScoreByModelName,
 	);
 	const scoringSources = {
 		...(deepSWEScore == null ? {} : { deep_swe: deepSWEScore }),
@@ -175,10 +181,17 @@ function buildMatchedRow(
 	}
 	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,
-		terminalBenchAccuracyByModelName,
+		lookups.terminalBenchAccuracyByModelName,
 	);
 	if (terminalBenchAccuracy != null) {
 		evaluations.terminal_bench_2 = terminalBenchAccuracy;
+	}
+	const browseCompScore = findBrowseCompScore(
+		modelNameCandidates,
+		lookups.browseCompScoreByModelName,
+	);
+	if (browseCompScore != null) {
+		evaluations.browsecomp = browseCompScore;
 	}
 	const canonicalId = canonicalModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,
@@ -251,14 +264,7 @@ export function matchedRowsFromDiagnostics(
 			if (!aaModel) {
 				return null;
 			}
-			return buildMatchedRow(
-				aaModel,
-				matchedModelId,
-				sourceData.modelsDevById,
-				sourceData.deepSWEScoreByModelName,
-				sourceData.terminalBenchAccuracyByModelName,
-				sourceData.agentsLastExamScoreByModelName,
-			);
+			return buildMatchedRow(aaModel, matchedModelId, sourceData);
 		})
 		.filter((row): row is Record<string, unknown> => row != null);
 }

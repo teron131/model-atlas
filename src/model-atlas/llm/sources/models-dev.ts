@@ -1,4 +1,9 @@
-/** Models.dev source helpers for recent model stats. */
+/**
+ * Models.dev source helpers for recent model stats.
+ *
+ * JSON source: https://models.dev/api.json
+ * Overlay page source: https://vercel.com/ai-gateway/models
+ */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken, normalizeProviderModelId } from "../shared";
 

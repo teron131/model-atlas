@@ -1,4 +1,8 @@
-/** Artificial Analysis API source helpers. */
+/**
+ * Artificial Analysis API source helpers.
+ *
+ * JSON source: https://artificialanalysis.ai/api/v2/data/llms/models
+ */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 
 const MODELS_URL = "https://artificialanalysis.ai/api/v2/data/llms/models";
