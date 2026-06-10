@@ -2,11 +2,10 @@
 
 /** Interactive chart view for selected Model Atlas payloads. */
 
-import { LinePath } from "@visx/shape";
 import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { line } from "d3-shape";
-import { type CSSProperties, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type {
 	ModelStatsSelectedModel,
 	ModelStatsSelectedPayload,
@@ -20,9 +19,9 @@ import {
 } from "./BoxWhiskerSummary";
 import {
 	AxisTitles,
+	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
-	DeepSWEPointLabel,
 	EmptyChart,
 	FilterButton,
 	HoverCard,
@@ -38,6 +37,10 @@ import {
 	XAxisTicks,
 	YAxisTicks,
 } from "./ChartComponents";
+import {
+	EfficiencyAxisChart,
+	type EfficiencyEffortLine,
+} from "./EfficiencyAxisChart";
 import {
 	finite,
 	finiteValue,
@@ -67,7 +70,6 @@ import {
 	positiveDomain,
 	providerOptions,
 	shortLabel,
-	stepPath,
 } from "./models";
 import { providerColor, providerSlug } from "./providerTheme";
 import type {
@@ -104,7 +106,6 @@ type ALEChartRow = {
 type ALEMetricConfig = {
 	label: string;
 	shortLabel: string;
-	bubbleLabel: string;
 	get: (row: ALEChartRow) => number;
 	efficiencyLabel: string;
 	efficiencyScore: (row: ALEChartRow) => number;
@@ -112,15 +113,6 @@ type ALEMetricConfig = {
 	format: (value: number) => string;
 	ticks: number[];
 };
-
-function fmtAxisMoney(value: number) {
-	const digits = value < 1 ? 2 : Number.isInteger(value) ? 0 : 2;
-	const amount =
-		digits === 0
-			? value.toFixed(0)
-			: value.toFixed(digits).replace(/\.?0+$/, "");
-	return `$${amount}`;
-}
 
 const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
 	cost: {
@@ -147,7 +139,6 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 	cost: {
 		label: "ALE task cost",
 		shortLabel: "Cost",
-		bubbleLabel: "cost",
 		get: (row) => row.cost,
 		efficiencyLabel: "Best score per dollar",
 		efficiencyScore: (row) => row.score / row.cost,
@@ -158,7 +149,6 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 	time: {
 		label: "ALE task time",
 		shortLabel: "Time",
-		bubbleLabel: "time",
 		get: (row) => row.seconds,
 		efficiencyLabel: "Best score per day",
 		efficiencyScore: (row) => row.score / (row.seconds / 86_400),
@@ -169,7 +159,6 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 	tokens: {
 		label: "ALE tokens",
 		shortLabel: "Tokens",
-		bubbleLabel: "tokens",
 		get: (row) => row.totalTokens,
 		efficiencyLabel: "Best score per 1M tokens",
 		efficiencyScore: (row) => row.score / (row.totalTokens / 1_000_000),
@@ -520,19 +509,30 @@ function inverseLogBubbleRadius(values: number[]) {
 	};
 }
 
+function linearBubbleRadius(values: number[], minRadius = 3, maxRadius = 10) {
+	const finiteValues = values.filter(finite);
+	const minValue = Math.min(...finiteValues);
+	const maxValue = Math.max(...finiteValues);
+	const span = maxValue - minValue;
+
+	return (value: number) => {
+		if (!finite(value)) {
+			return minRadius;
+		}
+		if (!finite(span) || span === 0) {
+			return areaScaledRadius(minRadius, maxRadius, 0.5);
+		}
+		const normalized = clamp((value - minValue) / span, 0, 1);
+		return areaScaledRadius(minRadius, maxRadius, normalized);
+	};
+}
+
 function aleBubbleValue(row: ALEChartRow, selectedMetric: ALEMetricKey) {
 	return (Object.keys(aleMetricConfig) as ALEMetricKey[])
 		.filter((key) => key !== selectedMetric)
 		.map((key) => aleMetricConfig[key].get(row))
 		.filter((value) => finite(value) && value > 0)
 		.reduce((product, value) => product * value, 1);
-}
-
-function aleBubbleLabel(selectedMetric: ALEMetricKey) {
-	return (Object.keys(aleMetricConfig) as ALEMetricKey[])
-		.filter((key) => key !== selectedMetric)
-		.map((key) => aleMetricConfig[key].bubbleLabel)
-		.join(" x ");
 }
 
 function FrontierPanel({
@@ -547,12 +547,14 @@ function FrontierPanel({
 		.filter(
 			(model) =>
 				finite(model.relative_scores?.intelligence_score) &&
+				finite(model.relative_scores?.value_score) &&
 				finite(model.cost?.blended_price) &&
 				Number(model.cost?.blended_price) > 0,
 		)
 		.sort(
 			(left, right) =>
-				Number(left.cost?.blended_price) - Number(right.cost?.blended_price),
+				Number(left.relative_scores?.value_score) -
+				Number(right.relative_scores?.value_score),
 		);
 
 	if (candidates.length === 0) {
@@ -560,34 +562,43 @@ function FrontierPanel({
 			<Panel
 				kicker="Graph 01 / Pareto frontier"
 				title="Pareto frontier"
-				copy="A tradeoff scatter for intelligence versus price."
+				copy="A tradeoff scatter for intelligence versus value score."
 			>
 				<EmptyChart />
 			</Panel>
 		);
 	}
 
-	const frontier: ModelStatsSelectedModel[] = [];
-	let best = -Infinity;
-	for (const model of candidates) {
-		const score = model.relative_scores.intelligence_score;
-		if (score > best) {
-			frontier.push(model);
-			best = score;
-		}
-	}
-
 	const width = 820;
 	const height = 500;
 	const margin = { top: 26, right: 76, bottom: 68, left: 76 };
-	const costs = candidates.map((model) => Number(model.cost?.blended_price));
+	const values = candidates.map((model) =>
+		Number(model.relative_scores.value_score),
+	);
 	const scores = candidates.map(
 		(model) => model.relative_scores.intelligence_score,
 	);
+	const frontierDescending: ModelStatsSelectedModel[] = [];
+	let bestFromRight = -Infinity;
+	for (const model of [...candidates].sort(
+		(left, right) =>
+			Number(right.relative_scores.value_score) -
+			Number(left.relative_scores.value_score),
+	)) {
+		const score = model.relative_scores.intelligence_score;
+		if (score > bestFromRight) {
+			frontierDescending.push(model);
+			bestFromRight = score;
+		}
+	}
+	const frontier = frontierDescending.reverse();
 	const scoreDistribution = valueDistribution(scores);
-	const xDomain = positiveDomain(costs);
+	const xDomain: [number, number] = [
+		Math.max(0, Math.floor((Math.min(...values) - 2) / 5) * 5),
+		100,
+	];
 	const yMin = Math.max(0, Math.min(...scores) - 4);
-	const x = scaleLog()
+	const x = scaleLinear()
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
 		.clamp(true);
@@ -597,29 +608,41 @@ function FrontierPanel({
 		.clamp(true);
 	const xPoint = stableSvgScale(x);
 	const yPoint = stableSvgScale(y);
-	const medianPrice = median(costs) ?? xDomain[0];
+	const medianValue = median(values) ?? xDomain[0];
 	const medianScore = median(scores) ?? 50;
 	const frontierIds = new Set(frontier.map(modelKey));
-	const frontierPath = stepPath(frontier, xPoint, yPoint);
+	const frontierPath = frontier.reduce((path, model, index) => {
+		const nextX = xPoint(Number(model.relative_scores.value_score));
+		const nextY = yPoint(model.relative_scores.intelligence_score);
+		return index === 0 ? `M${nextX},${nextY}` : `${path} H${nextX} V${nextY}`;
+	}, "");
 	const frontierGuideLine = line<ModelStatsSelectedModel>()
-		.x((model) => xPoint(Number(model.cost?.blended_price)))
+		.x((model) => xPoint(Number(model.relative_scores.value_score)))
 		.y((model) => yPoint(model.relative_scores.intelligence_score));
 	const guidePath = frontierGuideLine(frontier);
 	const plot = plotBoundsFor(width, height, margin);
-	const medianX = xPoint(medianPrice);
+	const medianX = xPoint(medianValue);
 	const medianY = yPoint(medianScore);
 	const yTickStart = Math.ceil(yMin / 5) * 5;
 	const yTicks = Array.from(
 		{ length: Math.floor((100 - yTickStart) / 5) + 1 },
 		(_, index) => yTickStart + index * 5,
 	);
-	const xTickCandidates = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20];
+	const xTickCandidates = [50, 60, 70, 80, 90, 100];
 	const xTicks = xTickCandidates.filter(
 		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
 	);
 	const plottedCandidates = candidates.slice(0, 95);
+	const capabilityBubbleValue = (model: ModelStatsSelectedModel) =>
+		Number(model.relative_scores.intelligence_score) *
+		Number(model.relative_scores.agentic_score ?? 0);
+	const capabilityBubbleRadius = linearBubbleRadius(
+		plottedCandidates.map(capabilityBubbleValue),
+		3,
+		10,
+	);
 	const projectionPoints = plottedCandidates.map((model) => {
-		const xValue = Number(model.cost?.blended_price);
+		const xValue = Number(model.relative_scores.value_score);
 		const yValue = model.relative_scores.intelligence_score;
 		return {
 			x: xPoint(xValue),
@@ -639,7 +662,7 @@ function FrontierPanel({
 		<Panel
 			kicker="Graph 01 / Pareto frontier"
 			title="Pareto frontier"
-			copy="Intelligence score plotted against blended price per 1M tokens."
+			copy="Intelligence score plotted against value score."
 			summary={
 				<BoxWhiskerSummary
 					label="Intelligence score"
@@ -649,17 +672,14 @@ function FrontierPanel({
 				/>
 			}
 			note={
-				<>
-					Step line: highest observed intelligence score available at or below
-					each price level.
-				</>
+				<>Step line: strongest observed intelligence/value tradeoff envelope.</>
 			}
 		>
 			<div className={styles.frontierLegend}>
 				<div className={styles.resourceCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble = agentic score
+						Bubble size = quality
 					</span>
 				</div>
 			</div>
@@ -667,7 +687,7 @@ function FrontierPanel({
 				<svg
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
-					aria-label="Capability per blended dollar scatter plot"
+					aria-label="Intelligence by value score scatter plot"
 					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
@@ -683,14 +703,14 @@ function FrontierPanel({
 						ticks={xTicks}
 						xPoint={xPoint}
 						y={plot.bottom}
-						format={fmtAxisMoney}
+						format={(tick) => tick.toFixed(0)}
 						keyPrefix="frontier"
 					/>
 					<AxisTitles
 						width={width}
 						height={height}
 						margin={margin}
-						x="Blended price per 1M tokens, log scale"
+						x="Value score"
 						y="Intelligence score"
 						xTitleOffset={48}
 					/>
@@ -698,29 +718,14 @@ function FrontierPanel({
 						x={medianX}
 						y={medianY}
 						bounds={plot}
-						xLabel={fmtAxisMoney(medianPrice)}
+						xLabel={medianValue.toFixed(0)}
 						yLabel={medianScore.toFixed(0)}
 					/>
-					<text
-						className={styles.quadrantLabel}
-						x={plot.left + 16}
-						y={plot.top + 40}
-					>
-						High value
-					</text>
-					<text
-						className={styles.quadrantLabel}
-						x={medianX + 18}
-						y={plot.bottom - 20}
-					>
-						Costly ceiling
-					</text>
+					<CornerDirectionArrow bounds={plot} corner="upper-right" />
 					<CursorProjectionLayer
 						projection={cursorProjection}
 						bounds={plot}
-						xLabel={
-							cursorProjection ? fmtTooltipMoney(cursorProjection.xValue) : ""
-						}
+						xLabel={cursorProjection ? cursorProjection.xValue.toFixed(1) : ""}
 						yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
 					/>
 					{guidePath ? (
@@ -730,7 +735,7 @@ function FrontierPanel({
 						<path className={styles.frontier} d={frontierPath} />
 					) : null}
 					{plottedCandidates.map((model) => {
-						const cx = xPoint(Number(model.cost?.blended_price));
+						const cx = xPoint(Number(model.relative_scores.value_score));
 						const cy = yPoint(model.relative_scores.intelligence_score);
 						const isFrontier = frontierIds.has(modelKey(model));
 						const rows: HoverRow[] = [
@@ -738,6 +743,7 @@ function FrontierPanel({
 								"Intelligence",
 								fmtTooltipScore(model.relative_scores.intelligence_score),
 							],
+							["Value", fmtTooltipScore(model.relative_scores.value_score)],
 							["Agentic", fmtTooltipScore(model.relative_scores.agentic_score)],
 							["Blend", fmtTooltipMoney(Number(model.cost?.blended_price))],
 							["Overall", fmtTooltipScore(model.relative_scores.overall_score)],
@@ -752,11 +758,7 @@ function FrontierPanel({
 									cx={cx}
 									cy={cy}
 									r={stableSvgNumber(
-										clamp(
-											(model.relative_scores.agentic_score ?? 35) / 11,
-											3,
-											9,
-										),
+										capabilityBubbleRadius(capabilityBubbleValue(model)),
 									)}
 									fill={providerColor(model.provider)}
 									stroke={
@@ -802,7 +804,6 @@ function DeepSwePanel({
 }) {
 	const [metricKey, setMetricKey] = useState<DeepSWEMetricKey>("cost");
 	const [effortMode, setEffortMode] = useState<DeepSWEEffortMode>("best");
-	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const allEfforts = deepSweRows(models, rows, "all");
 	const bestEfforts = deepSweRows(models, rows, "best");
 	const deep = effortMode === "all" ? allEfforts : bestEfforts;
@@ -820,28 +821,11 @@ function DeepSwePanel({
 	}
 
 	const metric = deepSweMetricConfig[metricKey];
-	const width = 760;
-	const height = 490;
-	const margin = { top: 28, right: 78, bottom: 70, left: 76 };
 	const metricValues = deep.map(metric.get).filter(finite);
 	const xDomain = positiveDomain(metricValues);
 	const passMax = max(deep, (row) => percent(row.row.pass_at_1)) ?? 75;
 	const yTicks = [0, 15, 30, 45, 60, 75];
-	const xTicks = metric.ticks.filter(
-		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
-	);
-	const x = scaleLog()
-		.domain(xDomain)
-		.range([margin.left, width - margin.right])
-		.clamp(true);
 	const yDomain: [number, number] = [0, Math.max(75, passMax + 4)];
-	const y = scaleLinear()
-		.domain(yDomain)
-		.range([height - margin.bottom, margin.top])
-		.clamp(true);
-	const xPoint = stableSvgScale(x);
-	const yPoint = stableSvgScale(y);
-	const plot = plotBoundsFor(width, height, margin);
 	const markerMetrics = hiddenResourceMetrics[metricKey];
 	const bubbleValue = (row: DeepSWEChartRow) =>
 		hiddenResourceValue(row, markerMetrics);
@@ -869,36 +853,26 @@ function DeepSwePanel({
 						),
 					)
 			: [];
+	const chartEffortLines: EfficiencyEffortLine<DeepSWEChartRow>[] =
+		effortLines.map((modelRows) => {
+			const firstRow = modelRows[0] as DeepSWEChartRow;
+			return {
+				key: firstRow.modelKey,
+				rows: modelRows,
+				color: providerColor(firstRow.model.provider),
+			};
+		});
 	const plotRows = [...deep].sort(
 		(left, right) =>
 			Number(percent(left.row.pass_at_1)) -
 			Number(percent(right.row.pass_at_1)),
 	);
-	const medianMetric = median(metricValues) ?? xDomain[0];
-	const medianAccuracy =
-		median(deep.map((row) => Number(percent(row.row.pass_at_1)))) ?? 0;
-	const projectionPoints = plotRows.map((row) => {
-		const xValue = metric.get(row);
-		const yValue = Number(percent(row.row.pass_at_1));
-		return {
-			x: xPoint(xValue),
-			y: yPoint(yValue),
-			xValue,
-			yValue,
-		};
-	});
-	const cursorProjectionHandlers = cursorHandlers({
-		bounds: plot,
-		xInvert: x.invert,
-		yInvert: y.invert,
-		points: projectionPoints,
-	});
 
 	return (
 		<Panel
 			kicker="Graph 02 / DeepSWE efficiency axis"
 			title="DeepSWE efficiency axis"
-			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens. Bigger bubbles mark lower use of the other two resources."
+			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens."
 			summary={
 				<BoxWhiskerSummary
 					label="DeepSWE accuracy"
@@ -944,132 +918,37 @@ function DeepSwePanel({
 				<div className={styles.resourceCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble = lower ({markerMetrics.firstLabel} x{" "}
-						{markerMetrics.secondLabel})
+						Bubble size = efficiency
 					</span>
 				</div>
 			</div>
-			<div className={styles.chartWrap}>
-				<svg
-					viewBox={`0 0 ${width} ${height}`}
-					role="img"
-					aria-label="DeepSWE accuracy by efficiency axis scatter plot"
-					{...cursorProjectionHandlers}
-				>
-					<PlotFrame width={width} height={height} margin={margin} />
-					<CursorCapture bounds={plot} />
-					<YAxisTicks
-						ticks={yTicks}
-						yPoint={yPoint}
-						x={plot.left}
-						format={(tick) => `${tick}%`}
-						keyPrefix="deep-swe"
-					/>
-					<XAxisTicks
-						ticks={xTicks}
-						xPoint={xPoint}
-						y={plot.bottom}
-						format={metric.format}
-						keyPrefix="deep-swe"
-					/>
-					<AxisTitles
-						width={width}
-						height={height}
-						margin={margin}
-						x={`${metric.label}, log scale`}
-						y="DeepSWE accuracy"
-						xTitleOffset={50}
-					/>
-					<MedianCross
-						x={xPoint(medianMetric)}
-						y={yPoint(medianAccuracy)}
-						bounds={plot}
-						xLabel={metric.format(medianMetric)}
-						yLabel={`${medianAccuracy.toFixed(0)}%`}
-					/>
-					<CursorProjectionLayer
-						projection={cursorProjection}
-						bounds={plot}
-						xLabel={
-							cursorProjection ? metric.format(cursorProjection.xValue) : ""
-						}
-						yLabel={
-							cursorProjection ? `${cursorProjection.yValue.toFixed(1)}%` : ""
-						}
-					/>
-					{effortLines.map((modelRows) => {
-						const firstRow = modelRows[0] as DeepSWEChartRow;
-						return (
-							<LinePath<DeepSWEChartRow>
-								key={firstRow.modelKey}
-								className={styles.deepSweEffortLine}
-								data={modelRows}
-								x={(row) => xPoint(metric.get(row))}
-								y={(row) => yPoint(Number(percent(row.row.pass_at_1)))}
-								style={
-									{
-										"--line-color": providerColor(firstRow.model.provider),
-									} as CSSProperties
-								}
-							/>
-						);
-					})}
-					{plotRows.map((row) => {
-						const axisValue = metric.get(row);
-						const score = Number(percent(row.row.pass_at_1));
-						const cx = xPoint(axisValue);
-						const cy = yPoint(score);
-						const hoverTitle = deepSWELabel(row, true);
-						const rows: HoverRow[] = [
-							["DeepSWE", fmtTooltipPercent(row.row.pass_at_1)],
-							["Cost", fmtTooltipMoney(row.row.mean_cost_usd)],
-							["Time", fmtMinutes(row.row.mean_duration_seconds)],
-							["Output tokens", fmtTooltipNumber(row.row.mean_output_tokens)],
-							["95% CI", deepSWECi(row.row)],
-						];
-						return (
-							<g key={row.row.config ?? `${row.modelKey}-${row.effortLabel}`}>
-								<circle
-									className={styles.datavizPoint}
-									cx={cx}
-									cy={cy}
-									r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
-									fill={providerColor(row.model.provider)}
-									stroke="rgba(8,9,9,0.7)"
-									strokeWidth={1}
-									opacity={1}
-								/>
-								<PointHitTarget
-									cx={cx}
-									cy={cy}
-									model={row.model}
-									rows={rows}
-									setHover={setHover}
-									hoverTitle={hoverTitle}
-								/>
-							</g>
-						);
-					})}
-					{plotRows.map((row) => {
-						const axisValue = metric.get(row);
-						const score = Number(percent(row.row.pass_at_1));
-						const cx = xPoint(axisValue);
-						const cy = yPoint(score);
-						return labeledRows.has(row) ? (
-							<DeepSWEPointLabel
-								key={`label-${row.row.config ?? row.modelKey}`}
-								label={deepSWELabel(row, false)}
-								cx={cx}
-								cy={cy}
-								width={width}
-								margin={margin}
-								height={height}
-								xOffset={bubbleRadius(bubbleValue(row)) + 8}
-							/>
-						) : null;
-					})}
-				</svg>
-			</div>
+			<EfficiencyAxisChart
+				rows={plotRows}
+				metric={metric}
+				xDomain={xDomain}
+				yDomain={yDomain}
+				yTicks={yTicks}
+				yAxisLabel="DeepSWE accuracy"
+				keyPrefix="deep-swe"
+				ariaLabel="DeepSWE accuracy by efficiency axis scatter plot"
+				bubbleValue={bubbleValue}
+				bubbleRadius={bubbleRadius}
+				getScore={(row) => Number(percent(row.row.pass_at_1))}
+				getModel={(row) => row.model}
+				getKey={(row) => row.row.config ?? `${row.modelKey}-${row.effortLabel}`}
+				getHoverTitle={(row) => deepSWELabel(row, true)}
+				getHoverRows={(row) => [
+					["DeepSWE", fmtTooltipPercent(row.row.pass_at_1)],
+					["Cost", fmtTooltipMoney(row.row.mean_cost_usd)],
+					["Time", fmtMinutes(row.row.mean_duration_seconds)],
+					["Output tokens", fmtTooltipNumber(row.row.mean_output_tokens)],
+					["95% CI", deepSWECi(row.row)],
+				]}
+				labelRows={labeledRows}
+				getLabel={(row) => deepSWELabel(row, false)}
+				effortLines={chartEffortLines}
+				setHover={setHover}
+			/>
 			<div className={styles.chartSummary}>
 				<SummaryCard
 					label="Leader"
@@ -1099,7 +978,6 @@ function ALEPanel({
 	setHover: HoverSetter;
 }) {
 	const [metricKey, setMetricKey] = useState<ALEMetricKey>("cost");
-	const { cursorProjection, cursorHandlers } = useCursorProjection();
 	const rows = aleRows(models);
 
 	if (rows.length === 0) {
@@ -1115,28 +993,11 @@ function ALEPanel({
 	}
 
 	const metric = aleMetricConfig[metricKey];
-	const width = 760;
-	const height = 490;
-	const margin = { top: 28, right: 78, bottom: 70, left: 76 };
 	const metricValues = rows.map(metric.get).filter(finite);
 	const xDomain = positiveDomain(metricValues);
 	const scoreMax = max(rows, (row) => row.score) ?? 50;
 	const yTicks = [0, 10, 20, 30, 40, 50];
-	const xTicks = metric.ticks.filter(
-		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
-	);
-	const x = scaleLog()
-		.domain(xDomain)
-		.range([margin.left, width - margin.right])
-		.clamp(true);
 	const yDomain: [number, number] = [0, Math.max(50, scoreMax + 4)];
-	const y = scaleLinear()
-		.domain(yDomain)
-		.range([height - margin.bottom, margin.top])
-		.clamp(true);
-	const xPoint = stableSvgScale(x);
-	const yPoint = stableSvgScale(y);
-	const plot = plotBoundsFor(width, height, margin);
 	const bubbleValue = (row: ALEChartRow) => aleBubbleValue(row, metricKey);
 	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue));
 	const leader = rows[0] as ALEChartRow;
@@ -1153,30 +1014,12 @@ function ALEPanel({
 	const labeledRows = new Set([leader, bestAxis, leanAboveFloor]);
 	const scoreDistribution = aleScoreDistribution(rows);
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
-	const bubbleLabel = aleBubbleLabel(metricKey);
-	const medianMetric = median(metricValues) ?? xDomain[0];
-	const medianScore = median(rows.map((row) => row.score)) ?? 0;
-	const projectionPoints = plotRows.map((row) => {
-		const xValue = metric.get(row);
-		return {
-			x: xPoint(xValue),
-			y: yPoint(row.score),
-			xValue,
-			yValue: row.score,
-		};
-	});
-	const cursorProjectionHandlers = cursorHandlers({
-		bounds: plot,
-		xInvert: x.invert,
-		yInvert: y.invert,
-		points: projectionPoints,
-	});
 
 	return (
 		<Panel
 			kicker="Graph 03 / ALE efficiency axis"
 			title="ALE efficiency axis"
-			copy="Agents' Last Exam score plotted against task cost, time, or total tokens. Bigger bubbles mark lower use of the other two resources."
+			copy="Agents' Last Exam score plotted against task cost, time, or total tokens."
 			summary={
 				<BoxWhiskerSummary
 					label="ALE score"
@@ -1204,111 +1047,36 @@ function ALEPanel({
 				<div className={styles.resourceCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble = lower ({bubbleLabel})
+						Bubble size = efficiency
 					</span>
 				</div>
 			</div>
-			<div className={styles.chartWrap}>
-				<svg
-					viewBox={`0 0 ${width} ${height}`}
-					role="img"
-					aria-label="Agents' Last Exam score by efficiency axis scatter plot"
-					{...cursorProjectionHandlers}
-				>
-					<PlotFrame width={width} height={height} margin={margin} />
-					<CursorCapture bounds={plot} />
-					<YAxisTicks
-						ticks={yTicks}
-						yPoint={yPoint}
-						x={plot.left}
-						format={(tick) => `${tick}%`}
-						keyPrefix="ale"
-					/>
-					<XAxisTicks
-						ticks={xTicks}
-						xPoint={xPoint}
-						y={plot.bottom}
-						format={metric.format}
-						keyPrefix="ale"
-					/>
-					<AxisTitles
-						width={width}
-						height={height}
-						margin={margin}
-						x={`${metric.label}, log scale`}
-						y="ALE score"
-						xTitleOffset={50}
-					/>
-					<MedianCross
-						x={xPoint(medianMetric)}
-						y={yPoint(medianScore)}
-						bounds={plot}
-						xLabel={metric.format(medianMetric)}
-						yLabel={`${medianScore.toFixed(0)}%`}
-					/>
-					<CursorProjectionLayer
-						projection={cursorProjection}
-						bounds={plot}
-						xLabel={
-							cursorProjection ? metric.format(cursorProjection.xValue) : ""
-						}
-						yLabel={
-							cursorProjection ? `${cursorProjection.yValue.toFixed(1)}%` : ""
-						}
-					/>
-					{plotRows.map((row) => {
-						const axisValue = metric.get(row);
-						const cx = xPoint(axisValue);
-						const cy = yPoint(row.score);
-						const rows: HoverRow[] = [
-							["ALE score", `${row.score.toFixed(1)}%`],
-							["Cost", fmtTooltipMoney(row.cost)],
-							["Time", fmtDurationShort(row.seconds)],
-							["Total tokens", fmtTooltipNumber(row.totalTokens)],
-							["Input tokens", fmtTooltipNumber(row.inputTokens)],
-							["Output tokens", fmtTooltipNumber(row.outputTokens)],
-						];
-						return (
-							<g key={row.model.id ?? row.model.name}>
-								<circle
-									className={styles.datavizPoint}
-									cx={cx}
-									cy={cy}
-									r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
-									fill={providerColor(row.model.provider)}
-									stroke="rgba(8,9,9,0.7)"
-									strokeWidth={1}
-									opacity={1}
-								/>
-								<PointHitTarget
-									cx={cx}
-									cy={cy}
-									model={row.model}
-									rows={rows}
-									setHover={setHover}
-								/>
-							</g>
-						);
-					})}
-					{plotRows.map((row) => {
-						const axisValue = metric.get(row);
-						const cx = xPoint(axisValue);
-						const cy = yPoint(row.score);
-						return labeledRows.has(row) ? (
-							<DeepSWEPointLabel
-								key={`ale-label-${row.model.id ?? row.model.name}`}
-								label={shortLabel(row.model)}
-								cx={cx}
-								cy={cy}
-								width={width}
-								margin={margin}
-								height={height}
-								xOffset={bubbleRadius(bubbleValue(row)) + 8}
-							/>
-						) : null;
-					})}
-				</svg>
-			</div>
+			<EfficiencyAxisChart
+				rows={plotRows}
+				metric={metric}
+				xDomain={xDomain}
+				yDomain={yDomain}
+				yTicks={yTicks}
+				yAxisLabel="ALE score"
+				keyPrefix="ale"
+				ariaLabel="Agents' Last Exam score by efficiency axis scatter plot"
+				bubbleValue={bubbleValue}
+				bubbleRadius={bubbleRadius}
+				getScore={(row) => row.score}
+				getModel={(row) => row.model}
+				getKey={(row) => modelKey(row.model)}
+				getHoverRows={(row) => [
+					["ALE score", `${row.score.toFixed(1)}%`],
+					["Cost", fmtTooltipMoney(row.cost)],
+					["Time", fmtDurationShort(row.seconds)],
+					["Total tokens", fmtTooltipNumber(row.totalTokens)],
+					["Input tokens", fmtTooltipNumber(row.inputTokens)],
+					["Output tokens", fmtTooltipNumber(row.outputTokens)],
+				]}
+				labelRows={labeledRows}
+				getLabel={(row) => shortLabel(row.model)}
+				setHover={setHover}
+			/>
 			<div className={styles.chartSummary}>
 				<SummaryCard
 					label="Leader"
@@ -1343,7 +1111,7 @@ function InteractionMatrix({
 		<Panel
 			kicker="Graph 04 / Intelligence interaction matrix"
 			title="Intelligence interaction matrix"
-			copy="Small multiples plotting intelligence against price, speed, response time, context, task cost, and coding reliability."
+			copy="Small multiples across price, speed, response time, context, task cost, and coding reliability."
 			summary={
 				<BoxWhiskerSummary
 					label="Intelligence score"
@@ -1353,12 +1121,6 @@ function InteractionMatrix({
 				/>
 			}
 			wide
-			note={
-				<>
-					Each plot uses intelligence on the vertical axis. The corner label
-					names the tradeoff emphasized in that plot.
-				</>
-			}
 		>
 			<div className={styles.interactionGrid}>
 				{interactionConfigs.map((config) => (
@@ -1452,13 +1214,8 @@ function InteractionPlot({
 	)[0] ?? data[0]) as Point;
 	const bestPointId = bestCornerPoint.model.id;
 	const rLabel = correlationLabel(data, transformX);
-	// Keep lower-is-better axes visually conventional: cheaper/faster remains left, while the label marks the better corner.
+	// Keep lower-is-better axes visually conventional: cheaper/faster remains left, while a small arrow marks the better corner.
 	const bestCornerIsRight = !config.lowerBetter;
-	const cornerLabel = bestCornerIsRight ? "upper right" : "upper left";
-	const cornerX = bestCornerIsRight
-		? width - margin.right - 12
-		: margin.left + 12;
-	const cornerAnchor = bestCornerIsRight ? "end" : "start";
 	const plottedPoints = data.slice(0, 130);
 	const medianXValue =
 		median(plottedPoints.map((point) => point.x)) ?? xDomain[0];
@@ -1539,14 +1296,10 @@ function InteractionPlot({
 					}
 					yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
 				/>
-				<text
-					className={styles.cornerLabel}
-					x={cornerX}
-					y={margin.top + 26}
-					textAnchor={cornerAnchor}
-				>
-					{cornerLabel}
-				</text>
+				<CornerDirectionArrow
+					bounds={plot}
+					corner={bestCornerIsRight ? "upper-right" : "upper-left"}
+				/>
 				{plottedPoints.map((point) => {
 					const highlighted = bestPointId === point.model.id;
 					const radius = clamp((point.agentic ?? 35) / 12, 3, 8);
@@ -1580,6 +1333,14 @@ function InteractionPlot({
 						</g>
 					);
 				})}
+				<PointLabel
+					model={bestCornerPoint.model}
+					cx={xPoint(bestCornerPoint.x)}
+					cy={yPoint(bestCornerPoint.y)}
+					width={width}
+					margin={margin}
+					height={height}
+				/>
 			</svg>
 			<div className={styles.interactionBest}>
 				Best corner <b>{modelName(bestCornerPoint.model)}</b>
@@ -1646,8 +1407,74 @@ function RunwayPanel({
 	const xPoint = stableSvgScale(x);
 	const yPoint = stableSvgScale(y);
 	const plot = plotBoundsFor(width, height, margin);
-	const labelSet = new Set(candidates.slice(0, 3).map((model) => model.id));
 	const plottedCandidates = candidates.slice(0, 90);
+	const runwayLabelCandidates: ModelStatsSelectedModel[] = [];
+	const labelContextRatio = 1.12;
+	const labelQualityFloor = 55;
+	let contextCluster: ModelStatsSelectedModel[] = [];
+	let clusterStartContext = 0;
+	const finishContextCluster = () => {
+		if (contextCluster.length === 0) {
+			return;
+		}
+		const winner = contextCluster.reduce((bestModel, model) =>
+			Number(model.speed?.throughput_tokens_per_second_median) >
+			Number(bestModel.speed?.throughput_tokens_per_second_median)
+				? model
+				: bestModel,
+		);
+		runwayLabelCandidates.push(winner);
+	};
+	for (const model of [...plottedCandidates]
+		.filter(
+			(candidate) =>
+				Number(candidate.relative_scores.overall_score) >= labelQualityFloor,
+		)
+		.sort(
+			(left, right) =>
+				Number(left.context_window?.context) -
+				Number(right.context_window?.context),
+		)) {
+		const context = Number(model.context_window?.context);
+		if (
+			contextCluster.length > 0 &&
+			context / clusterStartContext > labelContextRatio
+		) {
+			finishContextCluster();
+			contextCluster = [];
+		}
+		if (contextCluster.length === 0) {
+			clusterStartContext = context;
+		}
+		contextCluster.push(model);
+	}
+	finishContextCluster();
+	const runwayLabels = runwayLabelCandidates
+		.sort(
+			(left, right) =>
+				Number(right.speed?.throughput_tokens_per_second_median) -
+				Number(left.speed?.throughput_tokens_per_second_median),
+		)
+		.reduce<ModelStatsSelectedModel[]>((selected, model) => {
+			const xPosition = xPoint(Number(model.context_window?.context));
+			const yPosition = yPoint(
+				Number(model.speed?.throughput_tokens_per_second_median),
+			);
+			const tooClose = selected.some((other) => {
+				const otherX = xPoint(Number(other.context_window?.context));
+				const otherY = yPoint(
+					Number(other.speed?.throughput_tokens_per_second_median),
+				);
+				return (
+					Math.abs(xPosition - otherX) < 46 && Math.abs(yPosition - otherY) < 26
+				);
+			});
+			if (!tooClose) {
+				selected.push(model);
+			}
+			return selected;
+		}, []);
+	const labelSet = new Set(runwayLabels.map((model) => modelKey(model)));
 	const medianContext =
 		median(
 			plottedCandidates.map((model) => Number(model.context_window?.context)),
@@ -1689,13 +1516,15 @@ function RunwayPanel({
 					showObservedLabels
 				/>
 			}
-			note={
-				<>
-					Upper right means larger context and higher throughput. Bubble size
-					uses the model's value score.
-				</>
-			}
 		>
+			<div className={styles.frontierLegend}>
+				<div className={styles.resourceCaption}>
+					<span className={styles.markerKey}>
+						<span className={styles.bubbleMarkerKey} />
+						Bubble size = value score
+					</span>
+				</div>
+			</div>
 			<div className={styles.chartWrap}>
 				<svg
 					viewBox={`0 0 ${width} ${height}`}
@@ -1738,6 +1567,7 @@ function RunwayPanel({
 						xLabel={fmtCompact(medianContext)}
 						yLabel={`${fmtCompact(medianThroughput)} t/s`}
 					/>
+					<CornerDirectionArrow bounds={plot} corner="upper-right" />
 					<CursorProjectionLayer
 						projection={cursorProjection}
 						bounds={plot}
@@ -1753,7 +1583,7 @@ function RunwayPanel({
 						const cy = yPoint(
 							Number(model.speed?.throughput_tokens_per_second_median),
 						);
-						const labeled = labelSet.has(model.id);
+						const labeled = labelSet.has(modelKey(model));
 						const rows: HoverRow[] = [
 							[
 								"Context",
