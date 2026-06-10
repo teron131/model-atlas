@@ -402,11 +402,14 @@ h1 {
 	--table-row-padding-y: 9px;
 	--table-row-border-width: 1px;
 	--table-row-height: calc(
-		var(--table-row-content-height) + var(--table-row-padding-y) +
-			var(--table-row-padding-y) + var(--table-row-border-width)
+		var(--table-row-content-height) +
+		var(--table-row-padding-y) +
+		var(--table-row-padding-y) +
+		var(--table-row-border-width)
 	);
 	--table-body-height: calc(
-		var(--table-row-height) * var(--table-visible-rows)
+		var(--table-row-height) *
+		var(--table-visible-rows)
 	);
 }
 

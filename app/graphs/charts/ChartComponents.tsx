@@ -357,6 +357,50 @@ export function PlotFrame({
 	);
 }
 
+export function CornerDirectionArrow({
+	bounds: plot,
+	corner,
+}: {
+	bounds: PlotBounds;
+	corner: "upper-left" | "upper-right";
+}) {
+	const direction = corner === "upper-right" ? 1 : -1;
+	const tipX = corner === "upper-right" ? plot.right - 4 : plot.left + 4;
+	const tipY = plot.top + 4;
+	const unit = 1 / Math.SQRT2;
+	const axis: [number, number] = [direction * unit, -unit];
+	const normal: [number, number] = [unit, direction * unit];
+	const length = 19;
+	const headLength = 8.8;
+	const tailWidth = 6.2;
+	const headWidth = 13.8;
+	const point = (
+		axisOffset: number,
+		normalOffset: number,
+	): [number, number] => [
+		tipX - axis[0] * axisOffset + normal[0] * normalOffset,
+		tipY - axis[1] * axisOffset + normal[1] * normalOffset,
+	];
+	const pointCoordinates: [number, number][] = [
+		point(length, tailWidth / 2),
+		point(headLength, tailWidth / 2),
+		point(headLength, headWidth / 2),
+		[tipX, tipY],
+		point(headLength, -headWidth / 2),
+		point(headLength, -tailWidth / 2),
+		point(length, -tailWidth / 2),
+	];
+	const points = pointCoordinates
+		.map(([px, py]) => `${stableSvgNumber(px)},${stableSvgNumber(py)}`)
+		.join(" ");
+
+	return (
+		<g className={styles.cornerDirection}>
+			<polygon className={styles.cornerDirectionGlyph} points={points} />
+		</g>
+	);
+}
+
 export function AxisTitles({
 	width,
 	height,

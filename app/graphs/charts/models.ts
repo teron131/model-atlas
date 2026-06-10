@@ -291,7 +291,7 @@ export function correlationLabel(
 	transformX: (value: number) => number,
 ) {
 	if (points.length < 3) {
-		return "r --";
+		return "CORR --";
 	}
 	const xs = points.map((point) => transformX(point.x));
 	const ys = points.map((point) => point.y);
@@ -309,10 +309,10 @@ export function correlationLabel(
 	}
 	const denominator = Math.sqrt(varianceX * varianceY);
 	if (denominator === 0) {
-		return "r --";
+		return "CORR --";
 	}
 	const r = numerator / denominator;
-	return `r ${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
+	return `CORR ${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
 }
 
 export function positiveDomain(values: number[]): [number, number] {
