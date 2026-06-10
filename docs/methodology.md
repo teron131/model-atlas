@@ -49,15 +49,15 @@ Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is 
 | Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Professional factual knowledge support. |
 | LCR | baseline | 100% | 0% | Long-context professional-document reasoning. |
 | SciCode | baseline | 60% | 40% | Scientific reasoning with executable coding. |
-| TerminalBench&nbsp;Hard | baseline | 10% | 90% | Same-harness terminal execution and environment handling. |
-| Terminal-Bench&nbsp;2.0 | baseline | 30% | 70% | Cross-harness terminal robustness; needs popularity correction. |
-| BrowseComp | baseline | 30% | 70% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
+| TerminalBench&nbsp;Hard | baseline | 0% | 100% | Same-harness terminal execution and environment handling. |
+| Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Cross-harness terminal robustness; needs popularity correction. |
+| BrowseComp | baseline | 0% | 100% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
 | HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
 | CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
 | GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
-| APEX&nbsp;Agents | frontier | 30% | 70% | Professional workflows with files, tools, rubrics, and domain reasoning. |
+| APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
-| DeepSWE | frontier | 10% | 90% | Repo reasoning plus long-horizon agentic code execution. |
+| DeepSWE | frontier | 0% | 100% | Repo reasoning plus long-horizon agentic code execution. |
 
 The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
 
@@ -79,11 +79,11 @@ Artificial Analysis is the primary benchmark source. It supplies the broad Intel
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated value. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
-DeepSWE contributes one frontier agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components. Missing DeepSWE values are filled with the observed DeepSWE minimum for scoring only.
+DeepSWE contributes one frontier agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components.
 
 Terminal-Bench 2.0 contributes one baseline agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's `terminalbench_hard` field; both are selected agentic benchmarks because they are different signals.
 
-Agents' Last Exam contributes frontier Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy. Missing Agents' Last Exam values are filled with the observed Agents' Last Exam minimum for scoring only.
+Agents' Last Exam contributes frontier Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 BrowseComp contributes one baseline benchmark input from LLM Stats' model-level leaderboard.
 
@@ -150,13 +150,17 @@ $$
 
 Missing benchmark values are imputed only for scoring. They are not treated as observed source values.
 
-Missing frontier benchmarks:
+Missing frontier benchmarks use other selected frontier benchmarks as the percentile context:
 
 $$
-x_{m,b}=\min_j x_{j,b},\quad b\in\text{Frontier}
+C_{m,b}^{\text{frontier}}=\operatorname{mean}\left(z_{m,k}:k\in D\cap\text{Frontier},k\neq b,z_{m,k}\text{ available}\right)
 $$
 
-Other missing benchmarks:
+$$
+x_{m,b}^{\text{imputed}}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\operatorname{Percentile}(C_{m,b}^{\text{frontier}})/100\right),\quad b\in\text{Frontier}
+$$
+
+Other missing benchmarks use same-dimension evidence and keep a conservative shrink toward the observed floor:
 
 $$
 C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}\right)

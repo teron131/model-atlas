@@ -220,7 +220,7 @@ const scoringConfig = {
 			agenticPortion: 0.55,
 		},
 	},
-	floorImputedBenchmarkKeys: ["apex_agents"],
+	frontierBenchmarkKeys: ["gdpval_normalized", "apex_agents"],
 	overallRelativeScoreWeights: {
 		intelligence: 0.4,
 		agentic: 0.4,
@@ -253,7 +253,7 @@ const scoreWithMissingApex = buildScores(
 	benchmarkImputationByModel.get(scoringRows[3] ?? {}),
 );
 assertDeepEqual(scoreWithMissingApex, {
-	agentic_score: 57.6315789473684,
+	agentic_score: 74.99999999999997,
 	intelligence_score: null,
 	value_score: null,
 	speed_score: null,
