@@ -83,9 +83,28 @@ async function openDatabase(
 	await mkdir(dirname(outputPath), { recursive: true });
 	const db = new DatabaseSync(outputPath);
 	db.exec(schemaSql);
+	ensureArtificialAnalysisColumns(db);
 	ensureDeepSWEColumns(db);
 	ensureAgentsLastExamColumns(db);
 	return db;
+}
+
+/** Add nullable Artificial Analysis columns to existing local caches. */
+function ensureArtificialAnalysisColumns(db: DatabaseSync): void {
+	const existingColumns = new Set(
+		db
+			.prepare("PRAGMA table_info(aa_raw_models)")
+			.all()
+			.map((row) => String((row as { name?: unknown }).name)),
+	);
+	const columns: Array<[string, string]> = [
+		["median_end_to_end_response_time_seconds", "REAL"],
+	];
+	for (const [name, type] of columns) {
+		if (!existingColumns.has(name)) {
+			db.exec(`ALTER TABLE aa_raw_models ADD COLUMN ${name} ${type}`);
+		}
+	}
 }
 
 /** Add nullable DeepSWE columns to existing local caches. */

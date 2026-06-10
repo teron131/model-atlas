@@ -5,8 +5,6 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import sharp from "sharp";
-
 import { fetchWithTimeout } from "./utils";
 
 const LOGO_CACHE_SIZE = 128;
@@ -78,6 +76,7 @@ async function saveCachedLogoBuffer(
 
 /** Resize remote logo bytes into a bounded transparent PNG. */
 async function resizeLogoToPng(imageBuffer: Buffer): Promise<Buffer> {
+	const { default: sharp } = await import("sharp");
 	return sharp(imageBuffer, { density: 300 })
 		.trim({
 			background: {

@@ -214,6 +214,11 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 		"medianTimeToFirstTokenSeconds",
 		row.median_time_to_first_token_seconds,
 	);
+	assignIfNumber(
+		rawRow,
+		"medianEndToEndResponseTimeSeconds",
+		row.median_end_to_end_response_time_seconds,
+	);
 	assignIfBoolean(rawRow, "deprecated", row.deprecated);
 	assignIfBoolean(rawRow, "reasoningModel", row.reasoning_model);
 	assignIfBoolean(rawRow, "isOpenWeights", row.open_weights);
@@ -244,6 +249,21 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	assignIfString(selectedRow, "name", row.name);
 	assignIfString(selectedRow, "model_url", row.model_url);
 	assignIfString(selectedRow, "logo", row.logo_url);
+	assignIfNumber(
+		selectedRow,
+		"median_speed",
+		row.median_output_tokens_per_second,
+	);
+	assignIfNumber(
+		selectedRow,
+		"median_time",
+		row.median_time_to_first_token_seconds,
+	);
+	assignIfNumber(
+		selectedRow,
+		"median_end_to_end_response_time",
+		row.median_end_to_end_response_time_seconds,
+	);
 	const intelligence = artificialAnalysisNestedNumbers(
 		row,
 		AA_INTELLIGENCE_KEYS,
@@ -573,6 +593,13 @@ function openRouterModelRows(
 		stringValue(statRows[0]?.selected_permaslug) ??
 		stringValue(candidateRows[0]?.selected_permaslug);
 	const performance: OpenRouterModelStats = {
+		summary: {
+			throughput_tokens_per_second_median:
+				asFiniteNumber(statsRow?.throughput_tokens_per_second_median) ?? null,
+			latency_seconds_median:
+				asFiniteNumber(statsRow?.latency_seconds_median) ?? null,
+			e2e_latency_seconds_median: null,
+		},
 		throughput: openRouterStatsResponse(
 			statRows.filter((row) => row.metric === "throughput"),
 		),

@@ -199,3 +199,17 @@ const matchedScore = findAgentsLastExamModelScore(
 
 assertDeepEqual(matchedScore?.frequency, 7);
 assertDeepEqual(agentsLastExamBenchmarkScore(matchedScore ?? gptScore), 0.37);
+
+const slashProviderScore = findAgentsLastExamModelScore(
+	["anthropic/claude-fable-5"],
+	buildAgentsLastExamScoreByModelName([
+		{
+			...gptScore,
+			model: "anthropic-claude-fable-5",
+			median_score: 0.36,
+			mean_score: 0.36,
+		},
+	]),
+);
+
+assertDeepEqual(slashProviderScore?.model, "anthropic-claude-fable-5");

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS aa_raw_models (
 	output_modality_speech INTEGER,
 	median_output_tokens_per_second REAL,
 	median_time_to_first_token_seconds REAL,
+	median_end_to_end_response_time_seconds REAL,
 	intelligence_index REAL,
 	agentic_index REAL,
 	coding_index REAL,

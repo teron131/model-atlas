@@ -232,7 +232,10 @@ export function findAgentsLastExamModelScore(
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = scoreByModelName.get(normalizeModelToken(candidateName));
+		const normalizedCandidate = normalizeModelToken(candidateName);
+		const row =
+			scoreByModelName.get(normalizedCandidate) ??
+			scoreByModelName.get(normalizedCandidate.replace(/\//g, "-"));
 		if (row) {
 			return row;
 		}

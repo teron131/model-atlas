@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { NextRequest } from "next/server";
-import sharp from "sharp";
 
 import { publicCacheHeaders } from "../cache-headers";
 
@@ -74,6 +73,7 @@ function getColorCache() {
 async function deriveIconThemeColor(provider: string) {
 	try {
 		const image = await readFile(resolve(LOGO_ROOT, `${provider}.png`));
+		const { default: sharp } = await import("sharp");
 		const { data, info } = await sharp(image)
 			.ensureAlpha()
 			.resize(64, 64, { fit: "inside" })

@@ -1,19 +1,21 @@
 /** OpenRouter scraper helpers for model stats. */
-import { finiteNumbers } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { isSameOpenRouterModelRoute } from "../llm-stats/model-aliases";
 import { asRecord } from "../shared";
 
-const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/frontend/models";
+const OPENROUTER_MODELS_URL =
+	"https://openrouter.ai/api/frontend/v1/catalog/models";
 const OPENROUTER_BASE_URL = "https://openrouter.ai";
+const OPENROUTER_ENDPOINT_URL =
+	"https://openrouter.ai/api/frontend/v1/stats/endpoint";
 const OPENROUTER_THROUGHPUT_URL =
-	"https://openrouter.ai/api/frontend/stats/throughput-comparison";
+	"https://openrouter.ai/api/frontend/v1/stats/throughput-comparison";
 const OPENROUTER_LATENCY_URL =
-	"https://openrouter.ai/api/frontend/stats/latency-comparison";
+	"https://openrouter.ai/api/frontend/v1/stats/latency-comparison";
 const OPENROUTER_E2E_LATENCY_URL =
-	"https://openrouter.ai/api/frontend/stats/latency-e2e-comparison";
+	"https://openrouter.ai/api/frontend/v1/stats/latency-e2e-comparison";
 const OPENROUTER_EFFECTIVE_PRICING_URL =
-	"https://openrouter.ai/api/frontend/stats/effective-pricing";
+	"https://openrouter.ai/api/frontend/v1/stats/effective-pricing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 8;
@@ -35,9 +37,19 @@ export type OpenRouterStatsResponse = {
 };
 
 export type OpenRouterModelStats = {
+	summary?: OpenRouterPerformanceSummary | null;
 	throughput?: OpenRouterStatsResponse | null;
 	latency?: OpenRouterStatsResponse | null;
 	latency_e2e?: OpenRouterStatsResponse | null;
+};
+
+export type OpenRouterEndpointStatsResponse = {
+	data?: Array<{
+		stats?: {
+			p50_throughput?: number | null;
+			p50_latency?: number | null;
+		} | null;
+	}>;
 };
 
 export type OpenRouterEffectivePricingResponse = {
@@ -125,6 +137,9 @@ function sanitizeModelId(modelId: string): string {
 
 /** Convert the input into a finite number for OpenRouter scraper model stats. */
 function asFiniteNumber(value: unknown): number | null {
+	if (value == null || value === "") {
+		return null;
+	}
 	const numericValue = Number(value);
 	return Number.isFinite(numericValue) ? numericValue : null;
 }
@@ -166,7 +181,9 @@ function toDailyAveragedValues(
 	return response.data
 		.map((point) => {
 			const y = asRecord(point.y);
-			const values = finiteNumbers(Object.values(y));
+			const values = Object.values(y)
+				.map((value) => asFiniteNumber(value))
+				.filter((value): value is number => value != null);
 			const dailyAverage = average(values);
 			if (dailyAverage == null) {
 				return null;
@@ -182,6 +199,7 @@ function toDailyAveragedValues(
 function summarizePerformance(
 	stats: OpenRouterModelStats,
 ): OpenRouterPerformanceSummary {
+	const summary = stats.summary;
 	const throughputValues = toDailyAveragedValues(
 		stats.throughput ?? null,
 		false,
@@ -193,9 +211,32 @@ function summarizePerformance(
 	);
 
 	return {
-		throughput_tokens_per_second_median: median(throughputValues),
-		latency_seconds_median: median(latencyValues),
+		throughput_tokens_per_second_median:
+			summary?.throughput_tokens_per_second_median ?? median(throughputValues),
+		latency_seconds_median:
+			summary?.latency_seconds_median ?? median(latencyValues),
 		e2e_latency_seconds_median: median(e2eLatencyValues),
+	};
+}
+
+function summarizeEndpointPerformance(
+	response: OpenRouterEndpointStatsResponse | null,
+): OpenRouterPerformanceSummary {
+	const endpointStats = Array.isArray(response?.data)
+		? response.data.map((endpoint) => endpoint.stats ?? null)
+		: [];
+	const throughputValues = endpointStats
+		.map((stats) => asFiniteNumber(stats?.p50_throughput))
+		.filter((value): value is number => value != null);
+	const latencyValues = endpointStats
+		.map((stats) => asFiniteNumber(stats?.p50_latency))
+		.filter((value): value is number => value != null);
+	return {
+		throughput_tokens_per_second_median:
+			throughputValues.length === 0 ? null : Math.max(...throughputValues),
+		latency_seconds_median:
+			latencyValues.length === 0 ? null : Math.min(...latencyValues) / 1000,
+		e2e_latency_seconds_median: null,
 	};
 }
 
@@ -445,8 +486,22 @@ async function fetchPerformanceForPermaslug(
 	pricing: OpenRouterEffectivePricingResponse;
 }> {
 	const query = new URLSearchParams({ permaslug });
-	const [throughput, latency, latencyE2e, effectivePricing] = await Promise.all(
-		[
+	const endpointQuery = new URLSearchParams({
+		permaslug,
+		variant: "standard",
+	});
+	const pricingQuery = new URLSearchParams({
+		permaslug,
+		variant: "standard",
+	});
+	const [endpointStats, throughput, latency, latencyE2e, effectivePricing] =
+		await Promise.all([
+			fetchJsonWithRetry<OpenRouterEndpointStatsResponse>(
+				`${OPENROUTER_ENDPOINT_URL}?${endpointQuery.toString()}`,
+				timeoutMs,
+				maxRetries,
+				retryBaseDelayMs,
+			),
 			fetchJsonWithRetry<OpenRouterStatsResponse>(
 				`${OPENROUTER_THROUGHPUT_URL}?${query.toString()}`,
 				timeoutMs,
@@ -466,16 +521,16 @@ async function fetchPerformanceForPermaslug(
 				retryBaseDelayMs,
 			),
 			fetchJsonWithRetry<OpenRouterEffectivePricingResponse>(
-				`${OPENROUTER_EFFECTIVE_PRICING_URL}?${query.toString()}`,
+				`${OPENROUTER_EFFECTIVE_PRICING_URL}?${pricingQuery.toString()}`,
 				timeoutMs,
 				maxRetries,
 				retryBaseDelayMs,
 			),
-		],
-	);
+		]);
 
 	return {
 		performance: {
+			summary: summarizeEndpointPerformance(endpointStats),
 			throughput,
 			latency,
 			latency_e2e: latencyE2e,
