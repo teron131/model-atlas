@@ -1,103 +1,111 @@
 /** Public tuning inputs for the selected Model Atlas pipeline. */
 
 import type {
+	BenchmarkGroup,
+	BenchmarkPortfolioEntry,
 	ModelAtlasStageConfig,
 	ModelStatsColumnTooltipRow,
 	ModelStatsColumnTooltips,
 	SimulationProfile,
 } from "./llm/llm-stats/types";
 
-export const MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS = [
-	"omniscience_accuracy",
-	"lcr",
-	"hle",
-	"scicode",
-	"critpt",
-	"agents_last_exam",
-] as const;
-
-export const AGENTIC_BENCHMARKS = [
-	"gdpval_normalized",
-	"terminalbench_hard",
-	"ifbench",
-	"apex_agents",
-	"terminal_bench_2",
-	"agents_last_exam",
-	"deep_swe",
-	"browsecomp",
-] as const;
-
-export const MODEL_ATLAS_BENCHMARK_SCORE_WEIGHTS = {
-	deep_swe: 2,
-} as const satisfies Readonly<Record<string, number>>;
-
-const MODEL_ATLAS_BENCHMARK_DISPLAY_POLICY = {
-	clusters: {
-		artificial_analysis: {
-			rank: 0,
-		},
-		standalone: {
-			rank: 1,
-			sortByWeightAscending: true,
-		},
+export const BENCHMARK_PORTFOLIO = {
+	omniscience_accuracy: {
+		group: "baseline",
+		intelligencePortion: 1,
+		agenticPortion: 0,
 	},
-	benchmarks: {
-		omniscience_accuracy: {
-			cluster: "artificial_analysis",
-			sourceOrder: 0,
-		},
-		lcr: {
-			cluster: "artificial_analysis",
-			sourceOrder: 1,
-		},
-		hle: {
-			cluster: "artificial_analysis",
-			sourceOrder: 2,
-		},
-		scicode: {
-			cluster: "artificial_analysis",
-			sourceOrder: 3,
-		},
-		critpt: {
-			cluster: "artificial_analysis",
-			sourceOrder: 4,
-		},
-		gdpval_normalized: {
-			cluster: "artificial_analysis",
-			sourceOrder: 0,
-		},
-		terminalbench_hard: {
-			cluster: "artificial_analysis",
-			sourceOrder: 1,
-		},
-		ifbench: {
-			cluster: "artificial_analysis",
-			sourceOrder: 2,
-		},
-		apex_agents: {
-			cluster: "artificial_analysis",
-			sourceOrder: 3,
-		},
-		terminal_bench_2: {
-			cluster: "standalone",
-			sourceOrder: 0,
-		},
-		agents_last_exam: {
-			cluster: "standalone",
-			sourceOrder: 1,
-		},
-		deep_swe: {
-			cluster: "standalone",
-			sourceOrder: 2,
-		},
-		browsecomp: {
-			cluster: "standalone",
-			sourceOrder: 3,
-		},
+	lcr: {
+		group: "baseline",
+		intelligencePortion: 1,
+		agenticPortion: 0,
 	},
-} as const;
+	scicode: {
+		group: "baseline",
+		intelligencePortion: 0.6,
+		agenticPortion: 0.4,
+	},
+	terminalbench_hard: {
+		group: "baseline",
+		intelligencePortion: 0.1,
+		agenticPortion: 0.9,
+	},
+	terminal_bench_2: {
+		group: "baseline",
+		intelligencePortion: 0.3,
+		agenticPortion: 0.7,
+	},
+	browsecomp: {
+		group: "baseline",
+		intelligencePortion: 0.3,
+		agenticPortion: 0.7,
+	},
+	hle: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
+	critpt: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
+	gdpval_normalized: {
+		group: "frontier",
+		intelligencePortion: 0.8,
+		agenticPortion: 0.2,
+	},
+	apex_agents: {
+		group: "frontier",
+		intelligencePortion: 0.3,
+		agenticPortion: 0.7,
+	},
+	agents_last_exam: {
+		group: "frontier",
+		intelligencePortion: 0.2,
+		agenticPortion: 0.8,
+	},
+	deep_swe: {
+		group: "frontier",
+		intelligencePortion: 0.1,
+		agenticPortion: 0.9,
+	},
+} as const satisfies Readonly<Record<string, BenchmarkPortfolioEntry>>;
 
-export const MODEL_ATLAS_PRICE_PROFILES = {
+type BenchmarkKey = keyof typeof BENCHMARK_PORTFOLIO & string;
+type BenchmarkDimension = "intelligence" | "agentic";
+
+const BENCHMARK_KEYS = Object.keys(BENCHMARK_PORTFOLIO) as BenchmarkKey[];
+
+const benchmarkPortfolioEntry = (key: string) =>
+	BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
+
+const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
+	BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
+
+const benchmarkDimensionPortion = (
+	key: string,
+	dimension: BenchmarkDimension,
+) => {
+	const entry = benchmarkPortfolioEntry(key);
+	return entry == null
+		? 0
+		: dimension === "intelligence"
+			? entry.intelligencePortion
+			: entry.agenticPortion;
+};
+
+const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
+	BENCHMARK_KEYS.filter((key) => benchmarkDimensionPortion(key, dimension) > 0);
+
+export const BASELINE_BENCHMARKS = benchmarkKeysInGroup("baseline");
+export const FRONTIER_BENCHMARKS = benchmarkKeysInGroup("frontier");
+export const SELECTED_INTELLIGENCE_BENCHMARKS =
+	selectedBenchmarksForDimension("intelligence");
+export const SELECTED_AGENTIC_BENCHMARKS =
+	selectedBenchmarksForDimension("agentic");
+
+export const PRICE_PROFILES = {
 	task: {
 		weight: 0.25,
 		input: 0.8,
@@ -115,37 +123,36 @@ export const MODEL_ATLAS_PRICE_PROFILES = {
 	},
 } as const;
 
-const MODEL_ATLAS_PRICE_PROFILE_WEIGHTS = Object.fromEntries(
-	Object.entries(MODEL_ATLAS_PRICE_PROFILES).map(([profile, config]) => [
+const PRICE_PROFILE_WEIGHTS = Object.fromEntries(
+	Object.entries(PRICE_PROFILES).map(([profile, config]) => [
 		profile,
 		config.weight,
 	]),
-) as Record<keyof typeof MODEL_ATLAS_PRICE_PROFILES, number>;
-const MODEL_ATLAS_PRICE_PROFILE_TOTAL_WEIGHT = Object.values(
-	MODEL_ATLAS_PRICE_PROFILES,
-).reduce((sum, config) => sum + config.weight, 0);
-const MODEL_ATLAS_PRICE_PROFILE_ENTRIES = [
+) as Record<keyof typeof PRICE_PROFILES, number>;
+const PRICE_PROFILE_TOTAL_WEIGHT = Object.values(PRICE_PROFILES).reduce(
+	(sum, config) => sum + config.weight,
+	0,
+);
+const PRICE_PROFILE_ENTRIES = [
 	["Task", "task"],
 	["Chat", "chat"],
 	["Agentic", "agentic"],
-] as const satisfies readonly [
-	string,
-	keyof typeof MODEL_ATLAS_PRICE_PROFILES,
-][];
+] as const satisfies readonly [string, keyof typeof PRICE_PROFILES][];
 
-export const MODEL_ATLAS_QUALITY_SCORE_WEIGHTS = {
-	index: 1,
-	selected_benchmarks: 2,
+export const QUALITY_SCORE_WEIGHTS = {
+	index: 0.3,
+	baseline: 0.3,
+	frontier: 0.4,
 } as const;
 
-export const MODEL_ATLAS_OVERALL_RELATIVE_SCORE_WEIGHTS = {
+export const OVERALL_RELATIVE_SCORE_WEIGHTS = {
 	intelligence: 0.35,
 	agentic: 0.25,
 	speed: 0.2,
 	value: 0.2,
 } as const;
 
-export const MODEL_ATLAS_SIMULATION_PROFILES = {
+export const SIMULATION_PROFILES = {
 	micro: {
 		weight: 0.15,
 		calls: 1,
@@ -280,14 +287,14 @@ export const MODEL_ATLAS_SIMULATION_PROFILES = {
 	},
 } as const satisfies Record<string, SimulationProfile>;
 
-export const MODEL_ATLAS_SIMULATION_INPUT_TOKEN_SECONDS = 0.0001;
+export const SIMULATION_INPUT_TOKEN_SECONDS = 0.0001;
 
-const MODEL_ATLAS_SIMULATION_PROFILE_WEIGHTS = Object.fromEntries(
-	Object.entries(MODEL_ATLAS_SIMULATION_PROFILES).map(([profile, config]) => [
+const SIMULATION_PROFILE_WEIGHTS = Object.fromEntries(
+	Object.entries(SIMULATION_PROFILES).map(([profile, config]) => [
 		profile,
 		config.weight,
 	]),
-) as Record<keyof typeof MODEL_ATLAS_SIMULATION_PROFILES, number>;
+) as Record<keyof typeof SIMULATION_PROFILES, number>;
 
 function percent(value: number, fractionDigits = 0): string {
 	return `${(value * 100).toFixed(fractionDigits)}%`;
@@ -302,32 +309,31 @@ function weightPercent<T extends Record<string, number>>(
 	return total > 0 && weight != null ? percent(weight / total) : "-";
 }
 
-const overallWeight = (
-	key: keyof typeof MODEL_ATLAS_OVERALL_RELATIVE_SCORE_WEIGHTS,
-) => percent(MODEL_ATLAS_OVERALL_RELATIVE_SCORE_WEIGHTS[key]);
+const overallWeight = (key: keyof typeof OVERALL_RELATIVE_SCORE_WEIGHTS) =>
+	percent(OVERALL_RELATIVE_SCORE_WEIGHTS[key]);
 
-const qualityWeight = (key: keyof typeof MODEL_ATLAS_QUALITY_SCORE_WEIGHTS) =>
-	weightPercent(MODEL_ATLAS_QUALITY_SCORE_WEIGHTS, key);
+const qualityWeight = (key: keyof typeof QUALITY_SCORE_WEIGHTS) =>
+	weightPercent(QUALITY_SCORE_WEIGHTS, key);
 
 const priceProfileRow = (
 	label: string,
-	profile: keyof typeof MODEL_ATLAS_PRICE_PROFILES,
+	profile: keyof typeof PRICE_PROFILES,
 ) => {
-	const profileConfig = MODEL_ATLAS_PRICE_PROFILES[profile];
+	const profileConfig = PRICE_PROFILES[profile];
 	return [
 		`${label} input/output split ${percent(profileConfig.input)}/${percent(profileConfig.output)}`,
-		weightPercent(MODEL_ATLAS_PRICE_PROFILE_WEIGHTS, profile),
+		weightPercent(PRICE_PROFILE_WEIGHTS, profile),
 	] as const;
 };
 const priceProfileContributionRow = (
 	label: string,
-	profile: keyof typeof MODEL_ATLAS_PRICE_PROFILES,
+	profile: keyof typeof PRICE_PROFILES,
 	side: "input" | "output",
 ) => {
-	const profileConfig = MODEL_ATLAS_PRICE_PROFILES[profile];
+	const profileConfig = PRICE_PROFILES[profile];
 	const profileWeight =
-		MODEL_ATLAS_PRICE_PROFILE_TOTAL_WEIGHT > 0
-			? profileConfig.weight / MODEL_ATLAS_PRICE_PROFILE_TOTAL_WEIGHT
+		PRICE_PROFILE_TOTAL_WEIGHT > 0
+			? profileConfig.weight / PRICE_PROFILE_TOTAL_WEIGHT
 			: 0;
 	return [
 		`${label} ${percent(profileWeight)} x ${percent(profileConfig[side])}`,
@@ -335,21 +341,21 @@ const priceProfileContributionRow = (
 	] as const;
 };
 const priceProfileRows = () =>
-	MODEL_ATLAS_PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
+	PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
 		priceProfileRow(label, profile),
 	);
 const priceProfileContributionRows = (side: "input" | "output") =>
-	MODEL_ATLAS_PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
+	PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
 		priceProfileContributionRow(label, profile, side),
 	);
 const simulationProfileRow = (
 	label: string,
 	description: string,
-	profile: keyof typeof MODEL_ATLAS_SIMULATION_PROFILES,
+	profile: keyof typeof SIMULATION_PROFILES,
 ) =>
 	[
 		`${label} ${description}`,
-		weightPercent(MODEL_ATLAS_SIMULATION_PROFILE_WEIGHTS, profile),
+		weightPercent(SIMULATION_PROFILE_WEIGHTS, profile),
 	] as const;
 const WORKFLOW_SIMULATION_TOOLTIP_ROWS = [
 	simulationProfileRow("Micro", "1 call, input 500-3k, output 1-50", "micro"),
@@ -380,70 +386,43 @@ const WORKFLOW_SIMULATION_TOOLTIP_ROWS = [
 	),
 ] as const;
 const effectivePriceProfileRatio = (key: "input" | "output") => {
-	const totalWeight = Object.values(MODEL_ATLAS_PRICE_PROFILES).reduce(
+	const totalWeight = Object.values(PRICE_PROFILES).reduce(
 		(sum, profile) => sum + profile.weight,
 		0,
 	);
-	const weightedRatio = Object.values(MODEL_ATLAS_PRICE_PROFILES).reduce(
+	const weightedRatio = Object.values(PRICE_PROFILES).reduce(
 		(sum, profile) => sum + profile.weight * profile[key],
 		0,
 	);
 	return totalWeight > 0 ? percent(weightedRatio / totalWeight, 1) : "-";
 };
 
-const benchmarkScoreWeight = (key: string) =>
-	MODEL_ATLAS_BENCHMARK_SCORE_WEIGHTS[
-		key as keyof typeof MODEL_ATLAS_BENCHMARK_SCORE_WEIGHTS
-	] ?? 1;
-function benchmarkDisplayRank(key: string, inputIndex: number) {
-	const benchmark =
-		MODEL_ATLAS_BENCHMARK_DISPLAY_POLICY.benchmarks[
-			key as keyof typeof MODEL_ATLAS_BENCHMARK_DISPLAY_POLICY.benchmarks
-		];
-	const cluster =
-		benchmark == null
-			? null
-			: MODEL_ATLAS_BENCHMARK_DISPLAY_POLICY.clusters[benchmark.cluster];
-	return {
-		clusterRank: cluster?.rank ?? Number.MAX_SAFE_INTEGER,
-		weightRank:
-			cluster != null &&
-			"sortByWeightAscending" in cluster &&
-			cluster.sortByWeightAscending
-				? benchmarkScoreWeight(key)
-				: 0,
-		sourceOrder: benchmark?.sourceOrder ?? inputIndex,
-		inputIndex,
-	};
-}
+export const INTELLIGENCE_BENCHMARK_DISPLAY_KEYS =
+	SELECTED_INTELLIGENCE_BENCHMARKS;
+export const AGENTIC_BENCHMARK_DISPLAY_KEYS = SELECTED_AGENTIC_BENCHMARKS;
 
-function orderBenchmarkKeysForDisplay<const T extends readonly string[]>(
-	keys: T,
-): T[number][] {
-	return [...keys].sort((left, right) => {
-		const leftRank = benchmarkDisplayRank(left, keys.indexOf(left));
-		const rightRank = benchmarkDisplayRank(right, keys.indexOf(right));
-		return (
-			leftRank.clusterRank - rightRank.clusterRank ||
-			leftRank.weightRank - rightRank.weightRank ||
-			leftRank.sourceOrder - rightRank.sourceOrder ||
-			leftRank.inputIndex - rightRank.inputIndex
-		);
-	});
-}
-
-export const MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS =
-	orderBenchmarkKeysForDisplay(MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS);
-export const MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS =
-	orderBenchmarkKeysForDisplay(AGENTIC_BENCHMARKS);
-
-const benchmarkInputWeight = (keys: readonly string[], key: string) => {
-	const totalWeight = keys.reduce(
-		(sum, benchmarkKey) => sum + benchmarkScoreWeight(benchmarkKey),
+const benchmarkContributionPercent = (
+	keys: readonly string[],
+	key: string,
+	dimension: BenchmarkDimension,
+) => {
+	const entry = benchmarkPortfolioEntry(key);
+	if (entry == null) {
+		return "-";
+	}
+	const groupKeys = keys.filter(
+		(benchmarkKey) =>
+			benchmarkPortfolioEntry(benchmarkKey)?.group === entry.group,
+	);
+	const groupPortionTotal = groupKeys.reduce(
+		(sum, benchmarkKey) =>
+			sum + benchmarkDimensionPortion(benchmarkKey, dimension),
 		0,
 	);
-	return totalWeight > 0
-		? percent(benchmarkScoreWeight(key) / totalWeight)
+	const groupWeight = QUALITY_SCORE_WEIGHTS[entry.group];
+	const portion = benchmarkDimensionPortion(key, dimension);
+	return groupPortionTotal > 0
+		? percent((groupWeight * portion) / groupPortionTotal)
 		: "-";
 };
 const equalInputWeight = (inputs: readonly unknown[]) =>
@@ -456,27 +435,20 @@ const PERCENTILE_SCORE_TEXT = "percentile; higher is better";
 const LOWER_FIRST_TEXT = "lower values sort first";
 const HIGHER_FIRST_TEXT = "higher values sort first";
 const FULL_OVERALL_TEXT = "Full Overall";
-const INTELLIGENCE_BENCHMARK_LABEL_BY_KEY = {
+const BENCHMARK_LABEL_BY_KEY = {
 	omniscience_accuracy: "Omniscience accuracy",
 	lcr: "LCR",
-	hle: "HLE",
 	scicode: "SciCode",
-	critpt: "CritPt",
-	agents_last_exam: "Agents' Last Exam",
-} as const satisfies Record<
-	(typeof MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS)[number],
-	string
->;
-const AGENTIC_BENCHMARK_LABEL_BY_KEY = {
-	gdpval_normalized: "GDPval",
 	terminalbench_hard: "TerminalBench Hard",
-	ifbench: "IFBench",
-	apex_agents: "APEX Agents",
-	deep_swe: "DeepSWE",
 	terminal_bench_2: "Terminal-Bench 2.0",
-	agents_last_exam: "Agents' Last Exam",
 	browsecomp: "BrowseComp",
-} as const satisfies Record<(typeof AGENTIC_BENCHMARKS)[number], string>;
+	hle: "HLE",
+	critpt: "CritPt",
+	gdpval_normalized: "GDPVal",
+	apex_agents: "APEX Agents",
+	agents_last_exam: "Agents' Last Exam",
+	deep_swe: "DeepSWE",
+} as const satisfies Record<BenchmarkKey, string>;
 const SPEED_INPUT_LABELS = [
 	"AA task seconds",
 	"DeepSWE task seconds",
@@ -498,36 +470,58 @@ const VALUE_INPUT_LABELS = [
 const qualityScoreRows = (indexLabel: string) =>
 	[
 		[indexLabel, qualityWeight("index")],
-		["Selected benchmarks", qualityWeight("selected_benchmarks")],
+		["Baseline benchmarks", qualityWeight("baseline")],
+		["Frontier benchmarks", qualityWeight("frontier")],
 	] as const;
-const qualityScoreRowsWithBenchmarkMix = (
+const qualityScoreRowsWithBenchmarkGroups = (
 	indexLabel: string,
-	benchmarkRows: readonly ModelStatsColumnTooltipRow[],
+	benchmarkRows: Readonly<{
+		baseline: readonly ModelStatsColumnTooltipRow[];
+		frontier: readonly ModelStatsColumnTooltipRow[];
+	}>,
 ) =>
 	[
 		[indexLabel, qualityWeight("index")],
 		{
-			title: "Benchmark mix",
-			weight: qualityWeight("selected_benchmarks"),
-			rows: benchmarkRows,
+			title: "Baseline benchmarks",
+			rows: benchmarkRows.baseline,
+		},
+		{
+			title: "Frontier benchmarks",
+			rows: benchmarkRows.frontier,
 		},
 	] as const;
-const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS =
-	MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS.map(
-		(key) =>
-			[
-				INTELLIGENCE_BENCHMARK_LABEL_BY_KEY[key],
-				benchmarkInputWeight(MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS, key),
-			] as const,
-	);
-const AGENTIC_BENCHMARK_TOOLTIP_ROWS =
-	MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS.map(
-		(key) =>
-			[
-				AGENTIC_BENCHMARK_LABEL_BY_KEY[key],
-				benchmarkInputWeight(AGENTIC_BENCHMARKS, key),
-			] as const,
-	);
+const benchmarkTooltipRowsByGroup = (
+	keys: readonly BenchmarkKey[],
+	dimension: BenchmarkDimension,
+) => ({
+	baseline: keys
+		.filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline")
+		.map(
+			(key) =>
+				[
+					BENCHMARK_LABEL_BY_KEY[key],
+					benchmarkContributionPercent(keys, key, dimension),
+				] as const,
+		),
+	frontier: keys
+		.filter((key) => benchmarkPortfolioEntry(key)?.group === "frontier")
+		.map(
+			(key) =>
+				[
+					BENCHMARK_LABEL_BY_KEY[key],
+					benchmarkContributionPercent(keys, key, dimension),
+				] as const,
+		),
+});
+const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
+	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+	"intelligence",
+);
+const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
+	AGENTIC_BENCHMARK_DISPLAY_KEYS,
+	"agentic",
+);
 const speedInputRows = () =>
 	[
 		...SPEED_DIRECT_INPUT_LABELS.map(
@@ -563,7 +557,7 @@ const valueInputRows = () => {
 	] as const;
 };
 
-export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
+export const COLUMN_TOOLTIPS = {
 	overall: {
 		title: "Overall score",
 		body: "Practical utility score from fixed relative component weights. The table defaults to Intelligence sort; missing Speed or Value is estimated for Overall only.",
@@ -588,10 +582,12 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 			},
 			{
 				title: "Speed inputs",
+				hideTitle: true,
 				rows: speedInputRows(),
 			},
 			{
 				title: "Value inputs",
+				hideTitle: true,
 				rows: valueInputRows(),
 			},
 		],
@@ -606,7 +602,8 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		sections: [
 			{
 				title: "Score blend",
-				rows: qualityScoreRowsWithBenchmarkMix(
+				hideTitle: true,
+				rows: qualityScoreRowsWithBenchmarkGroups(
 					"AA Intelligence Index",
 					INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
 				),
@@ -623,7 +620,8 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		sections: [
 			{
 				title: "Score blend",
-				rows: qualityScoreRowsWithBenchmarkMix(
+				hideTitle: true,
+				rows: qualityScoreRowsWithBenchmarkGroups(
 					"AA Agentic Index",
 					AGENTIC_BENCHMARK_TOOLTIP_ROWS,
 				),
@@ -641,6 +639,7 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		sections: [
 			{
 				title: "Speed inputs",
+				hideTitle: true,
 				rows: speedInputRows(),
 			},
 		],
@@ -656,6 +655,7 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 		sections: [
 			{
 				title: "Value inputs",
+				hideTitle: true,
 				rows: valueInputRows(),
 			},
 		],
@@ -777,7 +777,7 @@ export const MODEL_ATLAS_COLUMN_TOOLTIPS = {
 } as const satisfies ModelStatsColumnTooltips;
 
 /** Centralized stage config for matching, enrichment, pruning, and scoring. */
-export const MODEL_ATLAS_STAGE_CONFIG = {
+export const STAGE_CONFIG = {
 	matcher: {
 		variantTokens: [
 			"flash-lite",
@@ -802,21 +802,21 @@ export const MODEL_ATLAS_STAGE_CONFIG = {
 		nullFieldPruneRecentLookbackDays: 90,
 	},
 	scoring: {
-		intelligenceBenchmarkKeys: MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS,
-		intelligenceBenchmarkDisplayKeys:
-			MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-		agenticBenchmarkKeys: AGENTIC_BENCHMARKS,
-		agenticBenchmarkDisplayKeys: MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS,
+		intelligenceBenchmarkKeys: SELECTED_INTELLIGENCE_BENCHMARKS,
+		intelligenceBenchmarkDisplayKeys: INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+		agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS,
+		agenticBenchmarkDisplayKeys: AGENTIC_BENCHMARK_DISPLAY_KEYS,
 		defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
 		speedOutputTokenRangeMin: 200,
 		speedOutputTokenRangeMax: 8_000,
 		speedAnchorQuantiles: [0.25, 0.5, 0.75],
-		priceProfiles: MODEL_ATLAS_PRICE_PROFILES,
-		simulationProfiles: MODEL_ATLAS_SIMULATION_PROFILES,
-		simulationInputTokenSeconds: MODEL_ATLAS_SIMULATION_INPUT_TOKEN_SECONDS,
-		benchmarkScoreWeights: MODEL_ATLAS_BENCHMARK_SCORE_WEIGHTS,
-		qualityScoreWeights: MODEL_ATLAS_QUALITY_SCORE_WEIGHTS,
-		overallRelativeScoreWeights: MODEL_ATLAS_OVERALL_RELATIVE_SCORE_WEIGHTS,
-		columnTooltips: MODEL_ATLAS_COLUMN_TOOLTIPS,
+		priceProfiles: PRICE_PROFILES,
+		simulationProfiles: SIMULATION_PROFILES,
+		simulationInputTokenSeconds: SIMULATION_INPUT_TOKEN_SECONDS,
+		benchmarkPortfolio: BENCHMARK_PORTFOLIO,
+		floorImputedBenchmarkKeys: FRONTIER_BENCHMARKS,
+		qualityScoreWeights: QUALITY_SCORE_WEIGHTS,
+		overallRelativeScoreWeights: OVERALL_RELATIVE_SCORE_WEIGHTS,
+		columnTooltips: COLUMN_TOOLTIPS,
 	},
 } satisfies ModelAtlasStageConfig;

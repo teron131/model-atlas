@@ -29,45 +29,63 @@ Bad benchmark signals:
 - stale relative to current model behavior
 - aimed at a capability that should not move this ranking much
 
-The intelligence group is meant to capture broad capability: factual accuracy, hard reasoning, and structured problem solving outside harness/tool execution. The current configured intelligence keys are:
+The ranking has two quality dimensions.
 
-- `omniscience_accuracy`
-- `lcr`
-- `hle`
-- `scicode`
-- `critpt`
-- `agents_last_exam`
+- Intelligence
+  - Captures broad capability: factual accuracy, hard reasoning, and structured problem solving outside harness/tool execution.
+  - Evidence comes from benchmarks with a non-zero Intelligence portion in the benchmark portfolio.
+- Agentic
+  - Captures workflow usefulness: tool use, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
+  - Evidence comes from benchmarks with a non-zero Agentic portion in the benchmark portfolio.
 
 `omniscience_nonhallucination_rate` remains available as a diagnostic reliability field, but it is not selected for intelligence scoring because it can reward abstention behavior rather than raw knowledge.
 
-The agentic group is meant to capture whether a model is useful inside workflows. In practice this is roughly tool usage, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion. The current configured agentic keys are:
+There is no standalone coding score in the current ranking. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA TerminalBench Hard, and Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
-- `gdpval_normalized`
-- `terminalbench_hard`
-- `ifbench`
-- `apex_agents`
-- `terminal_bench_2`
-- `agents_last_exam`
-- `deep_swe`
-- `browsecomp`
+Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
-There is no standalone coding score in the current ranking. AA `scicode` is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA `terminalbench_hard`, and standalone Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
+| Benchmark | Group | Intelligence Portion | Agentic Portion | Decision Note |
+| --- | --- | ---: | ---: | --- |
+| Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Professional factual knowledge support. |
+| LCR | baseline | 100% | 0% | Long-context professional-document reasoning. |
+| SciCode | baseline | 60% | 40% | Scientific reasoning with executable coding. |
+| TerminalBench&nbsp;Hard | baseline | 10% | 90% | Same-harness terminal execution and environment handling. |
+| Terminal-Bench&nbsp;2.0 | baseline | 30% | 70% | Cross-harness terminal robustness; needs popularity correction. |
+| BrowseComp | baseline | 30% | 70% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
+| HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
+| CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
+| GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
+| APEX&nbsp;Agents | frontier | 30% | 70% | Professional workflows with files, tools, rubrics, and domain reasoning. |
+| Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
+| DeepSWE | frontier | 10% | 90% | Repo reasoning plus long-horizon agentic code execution. |
+
+The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
+
+Working quality mix is the same for Intelligence and Agentic:
+
+| Component | Share |
+| --- | ---: |
+| AA index | 30% |
+| baseline benchmarks | 30% |
+| frontier benchmarks | 40% |
+
+Baseline and frontier benchmark groups are portion-weighted before they are combined. This keeps the grouping legible: the AA index anchors the dimension, baseline gives broad coverage, and frontier gets extra force as the proof-heavy separation signal.
 
 Value and speed are secondary. They still matter because downstream applications have budgets and latency constraints, and they now have enough eval-derived signal to act as practical utility components without overtaking quality.
 
-## Source Roles
+## Source Notes
 
 Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds.
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated value. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
-DeepSWE contributes one standalone agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components. Missing DeepSWE values are filled with the observed DeepSWE minimum for scoring only.
+DeepSWE contributes one frontier agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components. Missing DeepSWE values are filled with the observed DeepSWE minimum for scoring only.
 
-Terminal-Bench 2.0 contributes one standalone agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's `terminalbench_hard` field; both are selected agentic benchmarks because they are different signals.
+Terminal-Bench 2.0 contributes one baseline agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's `terminalbench_hard` field; both are selected agentic benchmarks because they are different signals.
 
-Agents' Last Exam contributes both Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
+Agents' Last Exam contributes frontier Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy. Missing Agents' Last Exam values are filled with the observed Agents' Last Exam minimum for scoring only.
 
-BrowseComp contributes one standalone agentic benchmark input from LLM Stats' model-level leaderboard.
+BrowseComp contributes one baseline benchmark input from LLM Stats' model-level leaderboard.
 
 ## Scoring Shape
 
@@ -105,28 +123,20 @@ $$
 
 Quality scaling uses the observed minimum and maximum for each field. The minimum maps to $0$, the maximum maps to $100$, and every benchmark is normalized before it enters a dimension average.
 
-Benchmark weights are:
+Within each dimension, benchmark groups are averaged before they are combined. Let $R_b$ be the set of selected baseline benchmarks for dimension $D$, let $R_f$ be the set of selected frontier benchmarks for dimension $D$, and let $p_{b,D}$ be benchmark $b$'s configured portion for dimension $D$.
 
 $$
-w_b=
-\begin{cases}
-2, & b=\text{DeepSWE}\\
-1, & \text{otherwise}
-\end{cases}
+B_{m,D}^{\text{baseline}}=\frac{\sum_{b\in R_b}p_{b,D}z_{m,b}}{\sum_{b\in R_b}p_{b,D}}
 $$
 
-Display order does not change the scoring weight.
-
-For a dimension $D$, where $D$ is Intelligence or Agentic:
-
 $$
-B_{m,D}=\frac{\sum_{b\in D}w_b z_{m,b}}{\sum_{b\in D}w_b}
+B_{m,D}^{\text{frontier}}=\frac{\sum_{b\in R_f}p_{b,D}z_{m,b}}{\sum_{b\in R_f}p_{b,D}}
 $$
 
-The final quality dimension score is:
+The final quality dimension score uses the same component weights for Intelligence and Agentic:
 
 $$
-D_m=\frac{z_{m,\text{AA index }D}+2B_{m,D}}{3}
+D_m=0.30z_{m,\text{AA index }D}+0.30B_{m,D}^{\text{baseline}}+0.40B_{m,D}^{\text{frontier}}
 $$
 
 So:
@@ -140,10 +150,10 @@ $$
 
 Missing benchmark values are imputed only for scoring. They are not treated as observed source values.
 
-Missing DeepSWE:
+Missing frontier benchmarks:
 
 $$
-x_{m,\text{DeepSWE}}=\min_j x_{j,\text{DeepSWE}}
+x_{m,b}=\min_j x_{j,b},\quad b\in\text{Frontier}
 $$
 
 Other missing benchmarks:

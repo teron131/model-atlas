@@ -26,12 +26,14 @@ export function minimalSelectedPayload({
 				agentic_benchmark_display_keys: [],
 				missing_agentic_benchmark_keys: [],
 				selected_benchmark_keys: [],
+				benchmark_portfolio: {},
 				price_profiles: {},
 				simulation_profiles: {},
 				simulation_input_token_seconds: 0,
 				quality_score_weights: {
 					index: 0,
-					selected_benchmarks: 0,
+					baseline: 0,
+					frontier: 0,
 				},
 				overall_relative_score_weights: {
 					intelligence: 0,

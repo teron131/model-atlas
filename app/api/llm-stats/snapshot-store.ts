@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { get, put } from "@vercel/blob";
 
-import { MODEL_ATLAS_STAGE_CONFIG } from "../../../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../../../src/model-atlas/constants";
 import { readModelAtlasDatabasePayload } from "../../../src/model-atlas/llm/database/payload";
 import {
 	DEFAULT_DATABASE_PATH,
@@ -294,7 +294,7 @@ function withCurrentSnapshotMetadata(
 	const artificialAnalysis =
 		payload.metadata?.artificial_analysis ??
 		buildArtificialAnalysisMetadata(payload.models);
-	const scoring = MODEL_ATLAS_STAGE_CONFIG.scoring;
+	const scoring = STAGE_CONFIG.scoring;
 	const availableBenchmarkKeys =
 		artificialAnalysis.available_benchmark_keys.length > 0
 			? artificialAnalysis.available_benchmark_keys
@@ -327,6 +327,7 @@ function withCurrentSnapshotMetadata(
 					(key) => !availableBenchmarkKeys.includes(key),
 				),
 				selected_benchmark_keys: selectedBenchmarkKeys,
+				benchmark_portfolio: { ...scoring.benchmarkPortfolio },
 				price_profiles: { ...scoring.priceProfiles },
 				simulation_profiles: { ...scoring.simulationProfiles },
 				simulation_input_token_seconds: scoring.simulationInputTokenSeconds,

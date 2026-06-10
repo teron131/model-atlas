@@ -1,4 +1,4 @@
-import { MODEL_ATLAS_SIMULATION_PROFILES } from "../src/model-atlas/constants";
+import { SIMULATION_PROFILES } from "../src/model-atlas/constants";
 import {
 	buildBenchmarkImputationByModel,
 	buildQualityScoringContext,
@@ -186,13 +186,41 @@ const scoringConfig = {
 			output: 0.7,
 		},
 	},
-	simulationProfiles: MODEL_ATLAS_SIMULATION_PROFILES,
+	simulationProfiles: SIMULATION_PROFILES,
 	simulationInputTokenSeconds: 0.0001,
 	qualityScoreWeights: {
-		index: 1,
-		selected_benchmarks: 2,
+		index: 0.3,
+		baseline: 0.3,
+		frontier: 0.4,
 	},
-	benchmarkScoreWeights: {},
+	benchmarkPortfolio: {
+		scicode: {
+			group: "baseline",
+			intelligencePortion: 0.8,
+			agenticPortion: 0.2,
+		},
+		terminalbench_hard: {
+			group: "baseline",
+			intelligencePortion: 0.2,
+			agenticPortion: 0.8,
+		},
+		terminal_bench_2: {
+			group: "baseline",
+			intelligencePortion: 0.2,
+			agenticPortion: 0.8,
+		},
+		gdpval_normalized: {
+			group: "frontier",
+			intelligencePortion: 0.6,
+			agenticPortion: 0.4,
+		},
+		apex_agents: {
+			group: "frontier",
+			intelligencePortion: 0.45,
+			agenticPortion: 0.55,
+		},
+	},
+	floorImputedBenchmarkKeys: ["apex_agents"],
 	overallRelativeScoreWeights: {
 		intelligence: 0.4,
 		agentic: 0.4,
@@ -225,7 +253,7 @@ const scoreWithMissingApex = buildScores(
 	benchmarkImputationByModel.get(scoringRows[3] ?? {}),
 );
 assertDeepEqual(scoreWithMissingApex, {
-	agentic_score: 71.03174761904761,
+	agentic_score: 57.6315789473684,
 	intelligence_score: null,
 	value_score: null,
 	speed_score: null,

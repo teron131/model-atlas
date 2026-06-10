@@ -105,10 +105,12 @@ export function ColumnTooltip({
 				<div className="column-tooltip-sections">
 					{content.sections?.map((section) => (
 						<div className="column-tooltip-section" key={section.title}>
-							<TooltipSectionTitle
-								title={section.title}
-								weight={section.weight}
-							/>
+							{section.hideTitle !== true && (
+								<TooltipSectionTitle
+									title={section.title}
+									weight={section.weight}
+								/>
+							)}
 							<TooltipSectionBody kind={section.kind} rows={section.rows} />
 						</div>
 					))}
@@ -165,7 +167,9 @@ function TooltipNestedSection({
 	return (
 		<div className={className}>
 			<TooltipSectionTitle title={section.title} weight={section.weight} />
-			<TooltipSectionBody kind={section.kind} rows={section.rows} />
+			<div className="column-tooltip-nested-body">
+				<TooltipSectionBody kind={section.kind} rows={section.rows} />
+			</div>
 		</div>
 	);
 }

@@ -23,7 +23,6 @@ export type QualityScoringContext = {
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
 const IMPUTED_BENCHMARK_CONFIDENCE_MULTIPLIER = 0.5;
-const DEEP_SWE_BENCHMARK_KEY = "deep_swe";
 const INDEX_SCALE_KEY_SEPARATOR = "\u0000";
 export const INTELLIGENCE_INDEX_KEYS = [
 	"intelligence_index",
@@ -114,6 +113,7 @@ function buildDimensionBenchmarkImputations(
 	models: JsonObject[],
 	indexKeys: readonly string[],
 	benchmarkKeys: readonly string[],
+	floorImputedBenchmarkKeys: ReadonlySet<string>,
 ): Map<JsonObject, Map<string, number>> {
 	const imputationByModel = new Map<JsonObject, Map<string, number>>();
 	const valuesByKey = new Map<string, number[]>();
@@ -128,7 +128,7 @@ function buildDimensionBenchmarkImputations(
 		);
 	}
 	for (const key of benchmarkKeys) {
-		if (key === DEEP_SWE_BENCHMARK_KEY) {
+		if (floorImputedBenchmarkKeys.has(key)) {
 			continue;
 		}
 		const observedValues = models
@@ -204,32 +204,30 @@ function setImputedValue(
 	imputationByModel.set(model, valuesByKey);
 }
 
-/** Impute missing DeepSWE with the observed floor as a scoring-only proof penalty. */
-function addDeepSWEFloorImputations(
+/** Impute missing frontier benchmarks with the observed floor as a scoring-only proof penalty. */
+function addFloorBenchmarkImputations(
 	imputationByModel: Map<JsonObject, Map<string, number>>,
 	models: JsonObject[],
-	benchmarkKeys: readonly string[],
+	selectedBenchmarkKeys: ReadonlySet<string>,
+	floorImputedBenchmarkKeys: ReadonlySet<string>,
 ): void {
-	if (!benchmarkKeys.includes(DEEP_SWE_BENCHMARK_KEY)) {
-		return;
-	}
-	const observedValues = models
-		.map((model) => metricValue(model, DEEP_SWE_BENCHMARK_KEY))
-		.filter(
-			(value): value is number => value != null && Number.isFinite(value),
-		);
-	if (observedValues.length === 0) {
-		return;
-	}
-	const floorValue = Math.min(...observedValues);
-	for (const model of models) {
-		if (metricValue(model, DEEP_SWE_BENCHMARK_KEY) == null) {
-			setImputedValue(
-				imputationByModel,
-				model,
-				DEEP_SWE_BENCHMARK_KEY,
-				floorValue,
+	for (const key of floorImputedBenchmarkKeys) {
+		if (!selectedBenchmarkKeys.has(key)) {
+			continue;
+		}
+		const observedValues = models
+			.map((model) => metricValue(model, key))
+			.filter(
+				(value): value is number => value != null && Number.isFinite(value),
 			);
+		if (observedValues.length === 0) {
+			continue;
+		}
+		const floorValue = Math.min(...observedValues);
+		for (const model of models) {
+			if (metricValue(model, key) == null) {
+				setImputedValue(imputationByModel, model, key, floorValue);
+			}
 		}
 	}
 }
@@ -239,22 +237,32 @@ export function buildBenchmarkImputationByModel(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
+	const floorImputedBenchmarkKeys = new Set(
+		scoringConfig.floorImputedBenchmarkKeys,
+	);
+	const selectedBenchmarkKeys = new Set([
+		...scoringConfig.intelligenceBenchmarkKeys,
+		...scoringConfig.agenticBenchmarkKeys,
+	]);
 	const imputationByModel = mergeBenchmarkImputations(
 		buildDimensionBenchmarkImputations(
 			models,
 			INTELLIGENCE_INDEX_KEYS,
 			scoringConfig.intelligenceBenchmarkKeys,
+			floorImputedBenchmarkKeys,
 		),
 		buildDimensionBenchmarkImputations(
 			models,
 			AGENTIC_INDEX_KEYS,
 			scoringConfig.agenticBenchmarkKeys,
+			floorImputedBenchmarkKeys,
 		),
 	);
-	addDeepSWEFloorImputations(
+	addFloorBenchmarkImputations(
 		imputationByModel,
 		models,
-		scoringConfig.agenticBenchmarkKeys,
+		selectedBenchmarkKeys,
+		floorImputedBenchmarkKeys,
 	);
 	return imputationByModel;
 }

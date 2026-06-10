@@ -7,6 +7,7 @@ import {
 } from "../../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
+	BenchmarkGroup,
 	ModelStatsNullableScores,
 	ModelStatsSelectedCost,
 	ModelStatsSelectedSpeed,
@@ -22,16 +23,35 @@ import {
 	type QualityScoringContext,
 } from "./benchmark-imputation";
 
-/** Read selected benchmarks as explicitly weighted normalized score parts. */
-function selectedBenchmarkScoreParts(
+type BenchmarkDimension = "intelligence" | "agentic";
+type BenchmarkScoreInput = {
+	value: number | null;
+	group: BenchmarkGroup;
+	weight: number;
+};
+
+/** Read selected benchmarks as group-owned, portion-weighted normalized score inputs. */
+function selectedBenchmarkScoreInputs(
 	model: JsonObject,
 	keys: readonly string[],
+	dimension: BenchmarkDimension,
 	qualityContext: QualityScoringContext,
 	scoringConfig: ScoringConfig,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-): Array<{ value: number | null; weight: number }> {
-	const parts: Array<{ value: number | null; weight: number }> = [];
+): BenchmarkScoreInput[] {
+	const inputs: BenchmarkScoreInput[] = [];
 	for (const key of keys) {
+		const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
+		if (portfolioEntry == null) {
+			continue;
+		}
+		const weight =
+			dimension === "intelligence"
+				? portfolioEntry.intelligencePortion
+				: portfolioEntry.agenticPortion;
+		if (!(weight > 0)) {
+			continue;
+		}
 		const rawValue =
 			metricValue(model, key) ?? imputedValuesByKey.get(key) ?? null;
 		const value = normalizedMetricValue(
@@ -39,27 +59,40 @@ function selectedBenchmarkScoreParts(
 			key,
 			rawValue,
 		);
-		const weight = scoringConfig.benchmarkScoreWeights[key] ?? 1;
-		parts.push({ value, weight });
+		inputs.push({ value, group: portfolioEntry.group, weight });
 	}
-	return parts;
+	return inputs;
 }
 
-/** Blend an upstream quality index with the selected benchmark average. */
+function benchmarkGroupMean(
+	benchmarkScoreInputs: BenchmarkScoreInput[],
+	group: BenchmarkGroup,
+): number | null {
+	return weightedMeanOfFinite(
+		benchmarkScoreInputs.filter((input) => input.group === group),
+	);
+}
+
+/** Blend an upstream quality index with baseline and frontier benchmark means. */
 function qualityScore(
 	qualityIndexScore: number | null,
-	selectedBenchmarkParts: Array<{ value: number | null; weight: number }>,
+	benchmarkScoreInputs: BenchmarkScoreInput[],
 	scoringConfig: ScoringConfig,
 ): number | null {
-	const benchmarkMean = weightedMeanOfFinite(selectedBenchmarkParts);
+	const baselineMean = benchmarkGroupMean(benchmarkScoreInputs, "baseline");
+	const frontierMean = benchmarkGroupMean(benchmarkScoreInputs, "frontier");
 	const qualityMean = weightedMeanOfFinite([
 		{
 			value: qualityIndexScore,
 			weight: scoringConfig.qualityScoreWeights.index,
 		},
 		{
-			value: benchmarkMean,
-			weight: scoringConfig.qualityScoreWeights.selected_benchmarks,
+			value: baselineMean,
+			weight: scoringConfig.qualityScoreWeights.baseline,
+		},
+		{
+			value: frontierMean,
+			weight: scoringConfig.qualityScoreWeights.frontier,
 		},
 	]);
 	return qualityMean;
@@ -188,28 +221,30 @@ export function buildScores(
 		indexScaleKey(AGENTIC_INDEX_KEYS),
 		agenticIndex,
 	);
-	const intelligenceBenchmarkParts = selectedBenchmarkScoreParts(
+	const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
 		scoringConfig.intelligenceBenchmarkKeys,
+		"intelligence",
 		qualityContext,
 		scoringConfig,
 		imputedValuesByKey,
 	);
-	const agenticBenchmarkParts = selectedBenchmarkScoreParts(
+	const agenticBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
 		scoringConfig.agenticBenchmarkKeys,
+		"agentic",
 		qualityContext,
 		scoringConfig,
 		imputedValuesByKey,
 	);
 	const intelligenceScore = qualityScore(
 		intelligenceIndexScore,
-		intelligenceBenchmarkParts,
+		intelligenceBenchmarkInputs,
 		scoringConfig,
 	);
 	const agenticScore = qualityScore(
 		agenticIndexScore,
-		agenticBenchmarkParts,
+		agenticBenchmarkInputs,
 		scoringConfig,
 	);
 	const blendedPrice = blendedPriceValue(cost, scoringConfig);
