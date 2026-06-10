@@ -28,6 +28,11 @@ import {
 	processArtificialAnalysisScrapedRows,
 } from "../sources/artificial-analysis-scraper";
 import {
+	buildBrowseCompScoreByModelName,
+	findBrowseCompScore,
+	getBrowseCompModelScoreStats,
+} from "../sources/browsecomp-scraper";
+import {
 	buildDeepSWEScoreByModelName,
 	findDeepSWEModelScore,
 	getDeepSWERawLeaderboardStats,
@@ -48,6 +53,7 @@ import {
 import {
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
+	readBrowseCompRawCache,
 	readDeepSWERawCache,
 	readModelsDevRawCache,
 	readOpenRouterRawCache,
@@ -99,6 +105,11 @@ type AgentsLastExamSnapshot = {
 	fetchedAt: { agentsLastExam: number | null };
 };
 
+type BrowseCompSnapshot = {
+	browseCompModelScoreRows: SourceSnapshots["browseCompModelScoreRows"];
+	fetchedAt: { browseComp: number | null };
+};
+
 /** Build the source data object consumed by match/enrichment stages. */
 export function buildSourceData(snapshots: SourceSnapshots): SourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
@@ -130,6 +141,10 @@ export function buildSourceData(snapshots: SourceSnapshots): SourceData {
 		agentsLastExamModelScoreRows: snapshots.agentsLastExamModelScores,
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			snapshots.agentsLastExamModelScores,
+		),
+		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
+		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
+			snapshots.browseCompModelScoreRows,
 		),
 	};
 }
@@ -339,6 +354,13 @@ function modelsDevCatalogRow(
 	if (agentsLastExamScore != null) {
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
+	}
+	const browseCompScore = findBrowseCompScore(
+		modelNameCandidates,
+		sourceData.browseCompScoreByModelName,
+	);
+	if (browseCompScore != null) {
+		evaluations.browsecomp = browseCompScore;
 	}
 	return {
 		id: canonicalId,
@@ -593,19 +615,49 @@ async function agentsLastExamSnapshot(
 	};
 }
 
+async function browseCompSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<BrowseCompSnapshot> {
+	const cached = readBrowseCompRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			browseCompModelScoreRows: cached.rows,
+			fetchedAt: { browseComp: cached.fetchedAt },
+		};
+	}
+	const fetched = await getBrowseCompModelScoreStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		browseCompModelScoreRows: rows,
+		fetchedAt: {
+			browseComp:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
 export async function loadOrFetchSourceSnapshots(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
 ): Promise<SourceSnapshotCacheResult> {
 	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
-	const [aa, modelsDev, deepSWE, terminalBench, agentsLastExam] =
+	const [aa, modelsDev, deepSWE, terminalBench, agentsLastExam, browseComp] =
 		await Promise.all([
 			aaSnapshot(db, sourceCache.artificial_analysis),
 			modelsDevSnapshot(db, sourceCache.models_dev),
 			deepSWESnapshot(db, sourceCache.deep_swe),
 			terminalBenchSnapshot(db, sourceCache.terminal_bench),
 			agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
+			browseCompSnapshot(db, sourceCache.browsecomp),
 		]);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
@@ -637,6 +689,11 @@ export async function loadOrFetchSourceSnapshots(
 		agentsLastExam.fetchedAt.agentsLastExam,
 		agentsLastExam.agentsLastExamRows.length,
 	);
+	sourceCache.browsecomp = updatedSourceCacheStatus(
+		sourceCache.browsecomp,
+		browseComp.fetchedAt.browseComp,
+		browseComp.browseCompModelScoreRows.length,
+	);
 	return {
 		snapshots: {
 			aaRawRows: aa.aaRawRows,
@@ -651,11 +708,13 @@ export async function loadOrFetchSourceSnapshots(
 			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
+			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			fetchedAt: {
 				artificialAnalysis: aa.fetchedAt.artificialAnalysis,
 				deepSWE: deepSWE.fetchedAt.deepSWE,
 				terminalBench: terminalBench.fetchedAt.terminalBench,
 				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
+				browseComp: browseComp.fetchedAt.browseComp,
 			},
 		},
 		sourceCache,

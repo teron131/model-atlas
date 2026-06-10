@@ -1,4 +1,8 @@
-/** Terminal-Bench leaderboard scraper helpers. */
+/**
+ * Terminal-Bench leaderboard scraper helpers.
+ *
+ * Page source: https://www.tbench.ai/leaderboard/terminal-bench/2.0
+ */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asRecord, type JsonObject, normalizeModelToken } from "../shared";
 

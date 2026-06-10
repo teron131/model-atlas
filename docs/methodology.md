@@ -49,6 +49,7 @@ The agentic group is meant to capture whether a model is useful inside workflows
 - `terminal_bench_2`
 - `agents_last_exam`
 - `deep_swe`
+- `browsecomp`
 
 There is no standalone coding score in the current ranking. AA `scicode` is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA `terminalbench_hard`, and standalone Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
@@ -65,6 +66,8 @@ DeepSWE contributes one standalone agentic benchmark input: each model's best `p
 Terminal-Bench 2.0 contributes one standalone agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's `terminalbench_hard` field; both are selected agentic benchmarks because they are different signals.
 
 Agents' Last Exam contributes both Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
+
+BrowseComp contributes one standalone agentic benchmark input from LLM Stats' model-level leaderboard.
 
 ## Scoring Shape
 

@@ -1,4 +1,9 @@
-/** Agents' Last Exam leaderboard scraper helpers. */
+/**
+ * Agents' Last Exam leaderboard scraper helpers.
+ *
+ * Page source: https://agenthle.org/leaderboard
+ * JSON source: https://agenthle.org/api/demo/leaderboard
+ */
 import { meanOfFinite, quantileFromSorted } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";

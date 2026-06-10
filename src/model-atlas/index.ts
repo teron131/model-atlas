@@ -1,8 +1,8 @@
 /** Stats package exports. */
 
 export {
+	AGENTIC_BENCHMARKS,
 	MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS,
-	MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS,
 	MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS,
 	MODEL_ATLAS_OVERALL_RELATIVE_SCORE_WEIGHTS,
@@ -99,6 +99,17 @@ export {
 	getArtificialAnalysisScrapedStats,
 	processArtificialAnalysisScrapedRows,
 } from "./llm/sources/artificial-analysis-scraper";
+export type {
+	BrowseCompModelScorePayload,
+	BrowseCompModelScoreRow,
+	BrowseCompScraperOptions,
+} from "./llm/sources/browsecomp-scraper";
+export {
+	buildBrowseCompScoreByModelName,
+	findBrowseCompScore,
+	getBrowseCompModelScoreStats,
+	processBrowseCompDetailsJson,
+} from "./llm/sources/browsecomp-scraper";
 export type {
 	DeepSWELeaderboardPayload,
 	DeepSWELeaderboardRow,

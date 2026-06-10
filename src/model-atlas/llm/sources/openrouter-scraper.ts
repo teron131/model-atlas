@@ -1,4 +1,13 @@
-/** OpenRouter scraper helpers for model stats. */
+/**
+ * OpenRouter scraper helpers for model stats.
+ *
+ * Catalog source: https://openrouter.ai/api/frontend/v1/catalog/models
+ * Endpoint stats source: https://openrouter.ai/api/frontend/v1/stats/endpoint
+ * Throughput source: https://openrouter.ai/api/frontend/v1/stats/throughput-comparison
+ * Latency source: https://openrouter.ai/api/frontend/v1/stats/latency-comparison
+ * End-to-end latency source: https://openrouter.ai/api/frontend/v1/stats/latency-e2e-comparison
+ * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
+ */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { isSameOpenRouterModelRoute } from "../llm-stats/model-aliases";
 import { asRecord } from "../shared";

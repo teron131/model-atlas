@@ -1,4 +1,8 @@
-/** DeepSWE leaderboard scraper helpers. */
+/**
+ * DeepSWE leaderboard scraper helpers.
+ *
+ * JSON source: https://deepswe.datacurve.ai/artifacts/leaderboard-live.json
+ */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
 

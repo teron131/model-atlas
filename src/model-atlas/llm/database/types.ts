@@ -6,6 +6,7 @@ import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
 } from "../sources/agents-last-exam-scraper";
+import type { BrowseCompModelScoreRow } from "../sources/browsecomp-scraper";
 import type { DeepSWELeaderboardRow } from "../sources/deep-swe-scraper";
 import type {
 	ModelsDevFlatModel,
@@ -25,6 +26,7 @@ export const RAW_SOURCE_NAMES = [
 	"deep_swe",
 	"terminal_bench",
 	"agents_last_exam",
+	"browsecomp",
 	"openrouter",
 ] as const;
 
@@ -34,6 +36,8 @@ export const SOURCE_URLS = {
 	deep_swe: "https://deepswe.datacurve.ai/artifacts/leaderboard-live.json",
 	terminal_bench: "https://www.tbench.ai/leaderboard/terminal-bench/2.0",
 	agents_last_exam: "https://agenthle.org/leaderboard",
+	browsecomp:
+		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 	openrouter_models: "https://openrouter.ai/api/frontend/models",
 	openrouter_stats: "https://openrouter.ai/api/frontend/stats/*",
 } as const;
@@ -89,10 +93,12 @@ export type SourceSnapshots = {
 	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
+	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	fetchedAt: {
 		artificialAnalysis: number | null;
 		deepSWE: number | null;
 		terminalBench: number | null;
 		agentsLastExam: number | null;
+		browseComp: number | null;
 	};
 };

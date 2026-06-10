@@ -16,7 +16,7 @@ export const MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS = [
 	"agents_last_exam",
 ] as const;
 
-export const MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS = [
+export const AGENTIC_BENCHMARKS = [
 	"gdpval_normalized",
 	"terminalbench_hard",
 	"ifbench",
@@ -24,6 +24,7 @@ export const MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS = [
 	"terminal_bench_2",
 	"agents_last_exam",
 	"deep_swe",
+	"browsecomp",
 ] as const;
 
 export const MODEL_ATLAS_BENCHMARK_SCORE_WEIGHTS = {
@@ -88,6 +89,10 @@ const MODEL_ATLAS_BENCHMARK_DISPLAY_POLICY = {
 		deep_swe: {
 			cluster: "standalone",
 			sourceOrder: 2,
+		},
+		browsecomp: {
+			cluster: "standalone",
+			sourceOrder: 3,
 		},
 	},
 } as const;
@@ -430,7 +435,7 @@ function orderBenchmarkKeysForDisplay<const T extends readonly string[]>(
 export const MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS =
 	orderBenchmarkKeysForDisplay(MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS);
 export const MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS =
-	orderBenchmarkKeysForDisplay(MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS);
+	orderBenchmarkKeysForDisplay(AGENTIC_BENCHMARKS);
 
 const benchmarkInputWeight = (keys: readonly string[], key: string) => {
 	const totalWeight = keys.reduce(
@@ -470,10 +475,8 @@ const AGENTIC_BENCHMARK_LABEL_BY_KEY = {
 	deep_swe: "DeepSWE",
 	terminal_bench_2: "Terminal-Bench 2.0",
 	agents_last_exam: "Agents' Last Exam",
-} as const satisfies Record<
-	(typeof MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS)[number],
-	string
->;
+	browsecomp: "BrowseComp",
+} as const satisfies Record<(typeof AGENTIC_BENCHMARKS)[number], string>;
 const SPEED_INPUT_LABELS = [
 	"AA task seconds",
 	"DeepSWE task seconds",
@@ -522,7 +525,7 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS =
 		(key) =>
 			[
 				AGENTIC_BENCHMARK_LABEL_BY_KEY[key],
-				benchmarkInputWeight(MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS, key),
+				benchmarkInputWeight(AGENTIC_BENCHMARKS, key),
 			] as const,
 	);
 const speedInputRows = () =>
@@ -802,7 +805,7 @@ export const MODEL_ATLAS_STAGE_CONFIG = {
 		intelligenceBenchmarkKeys: MODEL_ATLAS_INTELLIGENCE_BENCHMARK_KEYS,
 		intelligenceBenchmarkDisplayKeys:
 			MODEL_ATLAS_INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-		agenticBenchmarkKeys: MODEL_ATLAS_AGENTIC_BENCHMARK_KEYS,
+		agenticBenchmarkKeys: AGENTIC_BENCHMARKS,
 		agenticBenchmarkDisplayKeys: MODEL_ATLAS_AGENTIC_BENCHMARK_DISPLAY_KEYS,
 		defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
 		speedOutputTokenRangeMin: 200,

@@ -1,4 +1,8 @@
-/** Artificial Analysis scraper helpers. */
+/**
+ * Artificial Analysis scraper helpers.
+ *
+ * Page source: https://artificialanalysis.ai/leaderboards/models
+ */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asRecord, type JsonObject } from "../shared";
 
