@@ -64,6 +64,9 @@ const LOADING_ROW_KEYS = [
 	"loading-row-07",
 	"loading-row-08",
 	"loading-row-09",
+	"loading-row-10",
+	"loading-row-11",
+	"loading-row-12",
 ] as const;
 const LOADING_METRIC_COLUMN_KEYS = dashboardColumnKeys.slice(2);
 
