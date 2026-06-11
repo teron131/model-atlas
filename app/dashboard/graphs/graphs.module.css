@@ -671,15 +671,6 @@
 	font-weight: 900;
 }
 
-@media (min-width: 1000px) {
-	.sectionGrid {
-		position: relative;
-		left: 50%;
-		width: min(1320px, calc(100vw - 96px));
-		transform: translateX(-50%);
-	}
-}
-
 @media (max-width: 760px) {
 	.panelHead {
 		grid-template-columns: 1fr;
@@ -1052,21 +1043,5 @@
 
 	.chartWrap {
 		padding: 12px 0 6px;
-	}
-}
-
-@media (max-width: 720px) {
-	.sectionGrid {
-		width: calc(100% + 28px);
-		margin-right: -14px;
-		margin-left: -14px;
-	}
-}
-
-@media (max-width: 380px) {
-	.sectionGrid {
-		width: calc(100% + 20px);
-		margin-right: -10px;
-		margin-left: -10px;
 	}
 }
