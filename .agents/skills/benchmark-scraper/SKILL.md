@@ -82,7 +82,9 @@ After the scraper works:
 - Show the fetched row shape and representative parsed output.
 - Discuss scoring with the user before wiring it into Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
-- Decide whether the benchmark contributes to intelligence, agentic, speed, value, bonus-only display, or raw display only.
+- Decide the accepted class (`baseline` or `frontier`) and the Intelligence/Agentic split. These are the only benchmark-quality knobs; the two portions must sum to 100%.
+- Do not invent arbitrary per-benchmark weights. Explain the expected impact through the existing baseline/frontier group weights and Intelligence/Agentic portions.
+- Decide whether any non-quality data contributes to speed, value, bonus-only display, or raw display only.
 - Preserve extra dimensions even if the initial scoring uses only one summary.
 
 Do not bury bonus, median, max, domain-lead, effort, or harness aggregation choices inside parser code.
