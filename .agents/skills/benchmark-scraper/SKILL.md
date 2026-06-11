@@ -70,6 +70,7 @@ After field selection:
 - Use `playwright-cli` to prototype and verify the scraper against the live leaderboard when browser rendering or network discovery matters.
 - Preserve raw leaderboard rows separately from summarized model rows.
 - Keep benchmark-specific metadata such as split, domain, harness, effort, tie, and source provenance.
+- Preserve multiple reasoning-effort or budget rows when available; higher-effort regressions are review signals, not parser noise.
 - Match model names conservatively: exact first, narrow aliases second, no broad fuzzy matching without review.
 - Keep unmatched rows inspectable.
 - Add focused fixture tests that cover the weird cases found in the real leaderboard.
@@ -83,6 +84,8 @@ After the scraper works:
 - Discuss scoring with the user before wiring it into Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
 - Decide the accepted class (`baseline` or `frontier`) and the Intelligence/Agentic split. These are the only benchmark-quality knobs; the two portions must sum to 100%.
+- Treat Agentic as coding workflow execution or specific tool use: terminals, browsers, files, repositories, APIs, harnesses, or other external environments. Do not assign Agentic portion just because the task is hard coding; static coding or scientific programming can be Intelligence when it mainly tests professional knowledge and reasoning.
+- Check effort sensitivity before scoring. If the same model regresses at higher reasoning effort, explain whether this looks like real overthinking, timeout pressure, brittle formatting, harness mismatch, or another benchmark artifact.
 - Do not invent arbitrary per-benchmark weights. Explain the expected impact through the existing baseline/frontier group weights and Intelligence/Agentic portions.
 - Decide whether any non-quality data contributes to speed, value, bonus-only display, or raw display only.
 - Preserve extra dimensions even if the initial scoring uses only one summary.
