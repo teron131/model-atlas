@@ -14,6 +14,10 @@ import {
 	getBrowseCompModelScoreStats,
 } from "../scrapers/browsecomp";
 import {
+	buildCursorBenchScoreByModelName,
+	getCursorBenchModelScoreStats,
+} from "../scrapers/cursorbench";
+import {
 	buildDeepSWEScoreByModelName,
 	getDeepSWEModelScoreStats,
 } from "../scrapers/deep-swe";
@@ -80,6 +84,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		automationBenchStats,
 		browseCompStats,
 		toolathlonStats,
+		cursorBenchStats,
 	] = await Promise.all([
 		getArtificialAnalysisScrapedEvalsOnlyStats(),
 		getModelsDevSourceStats(),
@@ -89,6 +94,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getAutomationBenchLeaderboardStats(),
 		getBrowseCompModelScoreStats(),
 		getToolathlonModelScoreStats(),
+		getCursorBenchModelScoreStats(),
 	]);
 	const retainKeys = buildAaRetainKeys(aaStats.data);
 	const modelsDevModels = processModelsDevPayload(
@@ -122,6 +128,10 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		toolathlonModelScoreRows: toolathlonStats.data,
 		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
 			toolathlonStats.data,
+		),
+		cursorBenchModelScoreRows: cursorBenchStats.data,
+		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+			cursorBenchStats.data,
 		),
 	};
 }

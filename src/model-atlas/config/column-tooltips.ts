@@ -174,6 +174,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	terminal_bench_2: "Terminal-Bench 2.0",
 	browsecomp: "BrowseComp",
 	toolathlon: "Toolathlon",
+	cursorbench: "CursorBench",
 	hle: "HLE",
 	critpt: "CritPt",
 	gdpval_normalized: "GDPVal",

@@ -39,6 +39,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0.2,
 		agenticPortion: 0.8,
 	},
+	cursorbench: {
+		group: "baseline",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+	},
 	hle: {
 		group: "frontier",
 		intelligencePortion: 1,

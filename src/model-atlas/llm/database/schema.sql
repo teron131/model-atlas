@@ -202,6 +202,22 @@ CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	rank INTEGER NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	score REAL NOT NULL,
+	cost_per_task_usd REAL NOT NULL,
+	tokens_per_task INTEGER NOT NULL,
+	steps_per_task INTEGER NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -283,6 +299,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	automation_bench REAL,
 	browsecomp REAL,
 	toolathlon REAL,
+	cursorbench REAL,
 	aa_task_cost REAL,
 	aa_task_seconds REAL,
 	aa_task_output_tokens REAL,

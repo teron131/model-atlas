@@ -11,6 +11,7 @@ import {
 } from "../scrapers/agents-last-exam";
 import { findAutomationBenchScore } from "../scrapers/automation-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
+import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
 import { findToolathlonScore } from "../scrapers/toolathlon";
@@ -37,6 +38,7 @@ type MatchedRowLookups = Pick<
 	| "automationBenchScoreByModelName"
 	| "browseCompScoreByModelName"
 	| "toolathlonScoreByModelName"
+	| "cursorBenchScoreByModelName"
 >;
 
 /** Helper for canonical model id. */
@@ -210,6 +212,13 @@ function buildMatchedRow(
 	);
 	if (toolathlonScore != null) {
 		evaluations.toolathlon = toolathlonScore;
+	}
+	const cursorBenchScore = findCursorBenchScore(
+		modelNameCandidates,
+		lookups.cursorBenchScoreByModelName,
+	);
+	if (cursorBenchScore != null) {
+		evaluations.cursorbench = cursorBenchScore;
 	}
 	const canonicalId = canonicalModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,

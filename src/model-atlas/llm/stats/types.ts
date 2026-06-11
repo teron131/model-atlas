@@ -13,6 +13,10 @@ import type {
 	BrowseCompScoreByModelName,
 } from "../scrapers/browsecomp";
 import type {
+	CursorBenchModelScoreRow,
+	CursorBenchScoreByModelName,
+} from "../scrapers/cursorbench";
+import type {
 	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
 	DeepSWEScoreByModelName,
@@ -136,6 +140,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	terminal_bench_2?: NumberOrNull;
 	browsecomp?: NumberOrNull;
 	toolathlon?: NumberOrNull;
+	cursorbench?: NumberOrNull;
 	terminalbench_hard?: NumberOrNull;
 };
 
@@ -387,6 +392,8 @@ export type LlmStatsSourceData = {
 	browseCompScoreByModelName: BrowseCompScoreByModelName;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	toolathlonScoreByModelName: ToolathlonScoreByModelName;
+	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
+	cursorBenchScoreByModelName: CursorBenchScoreByModelName;
 };
 
 export type EnrichedRows = {

@@ -49,6 +49,7 @@ const EVALUATION_KEYS = [
 	"automation_bench",
 	"browsecomp",
 	"toolathlon",
+	"cursorbench",
 ] as const;
 
 const INPUT_MODALITY_COLUMNS = [

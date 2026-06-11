@@ -10,6 +10,8 @@ const DEFAULT_LEADERBOARD_URL = "https://cursor.com/cursorbench";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const LEADERBOARD_HEADER =
 	"Model Score Cost Cost / task Tokens Tokens / task Steps Steps / task";
+const COMPACT_ROW_PATTERN =
+	/^(?<rank>\d+)\s+(?<model>.+?)\s+(?<score>\d+(?:\.\d+)?)%\s*\$?(?<cost>\d+(?:\.\d+)?)\s+(?<tokens>[\d,]+)\s+(?<steps>\d+)$/;
 const LEADERBOARD_HEADER_CELLS = [
 	"Model",
 	"Score",
@@ -53,6 +55,38 @@ export type CursorBenchModelScorePayload = {
 	data: CursorBenchModelScoreRow[];
 };
 
+type ParsedCursorBenchCellRow = {
+	row: CursorBenchModelScoreRow;
+	consumedCells: number;
+};
+
+function addScoreRowAlias(
+	scoreByModelName: CursorBenchScoreByModelName,
+	alias: string,
+	row: CursorBenchModelScoreRow,
+): void {
+	const key = normalizeModelToken(alias);
+	if (key.length === 0) {
+		return;
+	}
+	const existing = scoreByModelName.get(key);
+	if (existing == null || row.score > existing.score) {
+		scoreByModelName.set(key, row);
+	}
+}
+
+function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
+	const aliases = new Set([row.model, row.base_model]);
+	if (/^(Fable|Opus|Sonnet)\s+\d/i.test(row.base_model)) {
+		aliases.add(`Claude ${row.base_model}`);
+	}
+	const kimiVersion = row.base_model.match(/^Kimi\s+(\d(?:\.\d+)?)$/i)?.[1];
+	if (kimiVersion != null) {
+		aliases.add(`Kimi K${kimiVersion}`);
+	}
+	return [...aliases];
+}
+
 function decodeHtmlEntities(value: string): string {
 	return value
 		.replace(/&nbsp;/g, " ")
@@ -87,8 +121,7 @@ function findLeaderboardBodyStart(lines: string[]): number {
 		if (
 			possibleHeader.length === LEADERBOARD_HEADER_CELLS.length &&
 			possibleHeader.every(
-				(value, headerIndex) =>
-					value === LEADERBOARD_HEADER_CELLS[headerIndex],
+				(value, headerIndex) => value === LEADERBOARD_HEADER_CELLS[headerIndex],
 			)
 		) {
 			return index + LEADERBOARD_HEADER_CELLS.length;
@@ -108,9 +141,7 @@ function parseReasoningEffort(model: string): string | null {
 
 function baseModelName(model: string): string {
 	const effort = parseReasoningEffort(model);
-	return effort == null
-		? model
-		: model.slice(0, -effort.length).trim();
+	return effort == null ? model : model.slice(0, -effort.length).trim();
 }
 
 function isPrivateCursorModel(model: string): boolean {
@@ -125,19 +156,21 @@ function parseCount(value: string): number {
 	return Number(value.replace(/,/g, ""));
 }
 
-function parseCursorBenchRow(line: string): CursorBenchModelScoreRow | null {
-	const match = line.match(
-		/^(?<rank>\d+)\s+(?<model>.+?)\s+(?<score>\d+(?:\.\d+)?)%\$?(?<cost>\d+(?:\.\d+)?)\s+(?<tokens>[\d,]+)\s+(?<steps>\d+)$/,
-	);
-	if (match?.groups == null) {
-		return null;
-	}
-	const model = match.groups.model?.trim();
-	const rank = Number(match.groups.rank);
-	const score = parsePercent(match.groups.score ?? "");
-	const costPerTaskUsd = Number(match.groups.cost);
-	const tokensPerTask = parseCount(match.groups.tokens ?? "");
-	const stepsPerTask = Number(match.groups.steps);
+function parseCursorBenchFields(
+	rankValue: string | undefined,
+	modelValue: string | undefined,
+	scoreValue: string | undefined,
+	costValue: string | undefined,
+	tokensValue: string | undefined,
+	stepsValue: string | undefined,
+): CursorBenchModelScoreRow | null {
+	const model = modelValue?.trim();
+	const rank = Number(rankValue);
+	const scoreText = scoreValue?.replace(/%$/, "") ?? "";
+	const score = parsePercent(scoreText);
+	const costPerTaskUsd = Number(costValue?.replace(/^\$/, ""));
+	const tokensPerTask = parseCount(tokensValue ?? "");
+	const stepsPerTask = Number(stepsValue);
 	if (
 		model == null ||
 		model.length === 0 ||
@@ -162,6 +195,53 @@ function parseCursorBenchRow(line: string): CursorBenchModelScoreRow | null {
 	};
 }
 
+function parseCompactCursorBenchRow(
+	line: string,
+): CursorBenchModelScoreRow | null {
+	const match = line.match(COMPACT_ROW_PATTERN);
+	return match?.groups == null
+		? null
+		: parseCursorBenchFields(
+				match.groups.rank,
+				match.groups.model,
+				match.groups.score,
+				match.groups.cost,
+				match.groups.tokens,
+				match.groups.steps,
+			);
+}
+
+function parseCursorBenchCells(
+	lines: string[],
+	index: number,
+): ParsedCursorBenchCellRow | null {
+	const rank = lines[index];
+	const model = lines[index + 1];
+	if (rank == null || model == null || !/^\d+$/.test(rank)) {
+		return null;
+	}
+	if (lines[index + 3] === "%" && lines[index + 4] === "$") {
+		const row = parseCursorBenchFields(
+			rank,
+			model,
+			lines[index + 2],
+			lines[index + 5],
+			lines[index + 6],
+			lines[index + 7],
+		);
+		return row == null ? null : { row, consumedCells: 8 };
+	}
+	const row = parseCursorBenchFields(
+		rank,
+		model,
+		lines[index + 2],
+		lines[index + 3],
+		lines[index + 4],
+		lines[index + 5],
+	);
+	return row == null ? null : { row, consumedCells: 6 };
+}
+
 /** Extract public CursorBench model score rows from the leaderboard page HTML. */
 export function processCursorBenchPageHtml(
 	pageHtml: string,
@@ -177,41 +257,30 @@ export function processCursorBenchPageHtml(
 		if (line === LEADERBOARD_END) {
 			break;
 		}
-		const row = parseCursorBenchRow(line);
+		const row = parseCompactCursorBenchRow(line);
 		if (row != null) {
 			rows.push(row);
 			continue;
 		}
 		if (/^\d+$/.test(line)) {
-			const cellRow = parseCursorBenchRow(
-				[
-					line,
-					lines[index + 1],
-					`${lines[index + 2] ?? ""}${lines[index + 3] ?? ""}`,
-					lines[index + 4],
-					lines[index + 5],
-				]
-					.filter((value): value is string => typeof value === "string")
-					.join(" "),
-			);
+			const cellRow = parseCursorBenchCells(lines, index);
 			if (cellRow != null) {
-				rows.push(cellRow);
-				index += 5;
+				rows.push(cellRow.row);
+				index += cellRow.consumedCells - 1;
 			}
 		}
 	}
 	return rows.sort((left, right) => left.rank - right.rank);
 }
 
-/** Build CursorBench score rows by normalized full model label. */
+/** Build CursorBench score rows by normalized model labels and public base-model aliases. */
 export function buildCursorBenchScoreByModelName(
 	rows: CursorBenchModelScoreRow[],
 ): CursorBenchScoreByModelName {
 	const scoreByModelName: CursorBenchScoreByModelName = new Map();
 	for (const row of rows) {
-		const key = normalizeModelToken(row.model);
-		if (key.length > 0) {
-			scoreByModelName.set(key, row);
+		for (const alias of cursorBenchModelAliases(row)) {
+			addScoreRowAlias(scoreByModelName, alias, row);
 		}
 	}
 	return scoreByModelName;

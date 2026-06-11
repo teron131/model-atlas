@@ -255,3 +255,34 @@ export function insertToolathlonRawRows(
 		);
 	}
 }
+
+/** Insert CursorBench model score rows. */
+export function insertCursorBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO cursorbench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, rank, model,
+			base_model, reasoning_effort, score, cost_per_task_usd,
+			tokens_per_task, steps_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.cursorBenchModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.cursorBench,
+			SOURCE_URLS.cursorbench,
+			row.rank,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.score,
+			row.cost_per_task_usd,
+			row.tokens_per_task,
+			row.steps_per_task,
+		);
+	}
+}

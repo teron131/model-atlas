@@ -17,6 +17,10 @@ import {
 	getBrowseCompModelScoreStats,
 } from "../scrapers/browsecomp";
 import {
+	buildCursorBenchScoreByModelName,
+	getCursorBenchModelScoreStats,
+} from "../scrapers/cursorbench";
+import {
 	buildDeepSWEScoreByModelName,
 	getDeepSWERawLeaderboardStats,
 	summarizeDeepSWEDefaultModelScores,
@@ -47,6 +51,7 @@ import {
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
 	readBrowseCompRawCache,
+	readCursorBenchRawCache,
 	readDeepSWERawCache,
 	readModelsDevRawCache,
 	readOpenRouterRawCache,
@@ -109,6 +114,11 @@ type ToolathlonSnapshot = {
 	fetchedAt: { toolathlon: number | null };
 };
 
+type CursorBenchSnapshot = {
+	cursorBenchModelScoreRows: SourceSnapshots["cursorBenchModelScoreRows"];
+	fetchedAt: { cursorBench: number | null };
+};
+
 /** Project loaded snapshots into the source data consumed by matching and enrichment. */
 export function sourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
@@ -152,6 +162,10 @@ export function sourceDataFromSnapshots(
 		toolathlonModelScoreRows: snapshots.toolathlonModelScoreRows,
 		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
 			snapshots.toolathlonModelScoreRows,
+		),
+		cursorBenchModelScoreRows: snapshots.cursorBenchModelScoreRows,
+		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+			snapshots.cursorBenchModelScoreRows,
 		),
 	};
 }
@@ -439,6 +453,35 @@ async function toolathlonSnapshot(
 	};
 }
 
+async function cursorBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<CursorBenchSnapshot> {
+	const cached = readCursorBenchRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			cursorBenchModelScoreRows: cached.rows,
+			fetchedAt: { cursorBench: cached.fetchedAt },
+		};
+	}
+	const fetched = await getCursorBenchModelScoreStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		cursorBenchModelScoreRows: rows,
+		fetchedAt: {
+			cursorBench:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
 export async function loadSourceSnapshots(
 	db: DatabaseSync,
@@ -453,6 +496,7 @@ export async function loadSourceSnapshots(
 		agentsLastExam,
 		browseComp,
 		toolathlon,
+		cursorBench,
 	] = await Promise.all([
 		aaSnapshot(db, sourceCache.artificial_analysis),
 		modelsDevSnapshot(db, sourceCache.models_dev),
@@ -461,6 +505,7 @@ export async function loadSourceSnapshots(
 		agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
 		browseCompSnapshot(db, sourceCache.browsecomp),
 		toolathlonSnapshot(db, sourceCache.toolathlon),
+		cursorBenchSnapshot(db, sourceCache.cursorbench),
 	]);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
@@ -502,6 +547,11 @@ export async function loadSourceSnapshots(
 		toolathlon.fetchedAt.toolathlon,
 		toolathlon.toolathlonModelScoreRows.length,
 	);
+	sourceCache.cursorbench = updatedSourceCacheStatus(
+		sourceCache.cursorbench,
+		cursorBench.fetchedAt.cursorBench,
+		cursorBench.cursorBenchModelScoreRows.length,
+	);
 	return {
 		snapshots: {
 			aaRawRows: aa.aaRawRows,
@@ -518,6 +568,7 @@ export async function loadSourceSnapshots(
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
+			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
 			fetchedAt: {
 				artificialAnalysis: aa.fetchedAt.artificialAnalysis,
 				deepSWE: deepSWE.fetchedAt.deepSWE,
@@ -525,6 +576,7 @@ export async function loadSourceSnapshots(
 				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
 				browseComp: browseComp.fetchedAt.browseComp,
 				toolathlon: toolathlon.fetchedAt.toolathlon,
+				cursorBench: cursorBench.fetchedAt.cursorBench,
 			},
 		},
 		sourceCache,

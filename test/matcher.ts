@@ -7,6 +7,7 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/llm/matcher/types";
+import { buildCursorBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/cursorbench";
 import { buildToolathlonScoreByModelName } from "../src/model-atlas/llm/scrapers/toolathlon";
 import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
 import type { LlmStatsSourceData } from "../src/model-atlas/llm/stats/types";
@@ -69,6 +70,13 @@ assert.equal(
 	0.42,
 	"Toolathlon scores should attach through the benchmark lookup path",
 );
+assert.equal(
+	asEvaluations(
+		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+	).cursorbench,
+	0.58,
+	"CursorBench scores should attach through the benchmark lookup path",
+);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -123,6 +131,18 @@ function modelStatsSourceData(
 			announcement_date: null,
 		},
 	];
+	const cursorBenchModelScoreRows = [
+		{
+			rank: 1,
+			model: "Example 2.5 Flash",
+			base_model: "Example 2.5 Flash",
+			reasoning_effort: null,
+			score: 0.58,
+			cost_per_task_usd: 1.25,
+			tokens_per_task: 12_000,
+			steps_per_task: 42,
+		},
+	];
 	const modelsDevModels = [
 		model(
 			"openrouter",
@@ -168,6 +188,10 @@ function modelStatsSourceData(
 		toolathlonModelScoreRows,
 		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
 			toolathlonModelScoreRows,
+		),
+		cursorBenchModelScoreRows,
+		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+			cursorBenchModelScoreRows,
 		),
 	};
 }

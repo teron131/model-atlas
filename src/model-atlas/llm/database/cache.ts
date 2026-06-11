@@ -3,6 +3,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
+import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import type { ModelRecord, ModelsDevPayload } from "../scrapers/models-dev";
 import type {
@@ -32,6 +33,7 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	agents_last_exam: "agents_last_exam_raw_rows",
 	browsecomp: "browsecomp_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
+	cursorbench: "cursorbench_raw_rows",
 	openrouter: "openrouter_raw_rows",
 };
 
@@ -612,6 +614,58 @@ export function readToolathlonRawCache(db: DatabaseSync): {
 						verified: booleanFromSql(row.verified),
 						self_reported: booleanFromSql(row.self_reported),
 						announcement_date: stringValue(row.announcement_date),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+export function readCursorBenchRawCache(db: DatabaseSync): {
+	rows: CursorBenchModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.cursorbench)) {
+		return null;
+	}
+	const cachedRows = rawRows.flatMap((row) => {
+		const rank = asFiniteNumber(row.rank);
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const score = asFiniteNumber(row.score);
+		const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
+		const tokensPerTask = asFiniteNumber(row.tokens_per_task);
+		const stepsPerTask = asFiniteNumber(row.steps_per_task);
+		return rank != null &&
+			model != null &&
+			baseModel != null &&
+			score != null &&
+			costPerTaskUsd != null &&
+			tokensPerTask != null &&
+			stepsPerTask != null
+			? [
+					{
+						rank,
+						model,
+						base_model: baseModel,
+						reasoning_effort: stringValue(row.reasoning_effort),
+						score,
+						cost_per_task_usd: costPerTaskUsd,
+						tokens_per_task: tokensPerTask,
+						steps_per_task: stepsPerTask,
 					},
 				]
 			: [];

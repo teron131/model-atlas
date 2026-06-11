@@ -6,6 +6,7 @@ import type {
 	AgentsLastExamModelScoreRow,
 } from "../scrapers/agents-last-exam";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
+import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import type {
 	ModelsDevFlatModel,
@@ -29,6 +30,7 @@ export const RAW_SOURCE_NAMES = [
 	"agents_last_exam",
 	"browsecomp",
 	"toolathlon",
+	"cursorbench",
 	"openrouter",
 ] as const;
 
@@ -42,6 +44,7 @@ export const SOURCE_URLS = {
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
+	cursorbench: "https://cursor.com/cursorbench",
 	openrouter_models: "https://openrouter.ai/api/frontend/models",
 	openrouter_stats: "https://openrouter.ai/api/frontend/stats/*",
 } as const;
@@ -99,6 +102,7 @@ export type SourceSnapshots = {
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
+	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
 	fetchedAt: {
 		artificialAnalysis: number | null;
 		deepSWE: number | null;
@@ -106,5 +110,6 @@ export type SourceSnapshots = {
 		agentsLastExam: number | null;
 		browseComp: number | null;
 		toolathlon: number | null;
+		cursorBench: number | null;
 	};
 };

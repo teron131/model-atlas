@@ -27,10 +27,12 @@ const rows = processCursorBenchPageHtml(`
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td>1</td><td>Fable 5 Max</td><td>72.9%</td><td>$18.02</td><td>63,842</td><td>76</td></tr>
+			<tr><td>1</td><td>Fable 5 Max</td><td>72.9</td><td>%</td><td>$</td><td>18.02</td><td>63,842</td><td>76</td></tr>
 			<tr><td>2</td><td>Composer 2.5</td><td>63.2%</td><td>$0.55</td><td>15,152</td><td>37</td></tr>
 			<tr><td>3</td><td>GPT-5.5 Medium</td><td>59.2%</td><td>$2.22</td><td>9,065</td><td>35</td></tr>
 			<tr><td>4</td><td>Gemini 3.5 Flash</td><td>49.8%</td><td>$1.94</td><td>35,105</td><td>79</td></tr>
+			<tr><td>5</td><td>Opus 4.8 High</td><td>58.4%</td><td>$4.41</td><td>36,788</td><td>45</td></tr>
+			<tr><td>6</td><td>Kimi 2.6</td><td>47.6%</td><td>$1.27</td><td>24,783</td><td>56</td></tr>
 		</tbody>
 	</table>
 	<h2>Changelog</h2>
@@ -67,6 +69,45 @@ assertDeepEqual(rows, [
 		tokens_per_task: 35105,
 		steps_per_task: 79,
 	},
+	{
+		rank: 5,
+		model: "Opus 4.8 High",
+		base_model: "Opus 4.8",
+		reasoning_effort: "High",
+		score: 0.584,
+		cost_per_task_usd: 4.41,
+		tokens_per_task: 36788,
+		steps_per_task: 45,
+	},
+	{
+		rank: 6,
+		model: "Kimi 2.6",
+		base_model: "Kimi 2.6",
+		reasoning_effort: null,
+		score: 0.476,
+		cost_per_task_usd: 1.27,
+		tokens_per_task: 24783,
+		steps_per_task: 56,
+	},
+]);
+
+const compactRows = processCursorBenchPageHtml(`
+	Model Score Cost Cost / task Tokens Tokens / task Steps Steps / task
+	1 GPT-5.5 Medium 59.2% $2.22 9,065 35
+	Changelog
+`);
+
+assertDeepEqual(compactRows, [
+	{
+		rank: 1,
+		model: "GPT-5.5 Medium",
+		base_model: "GPT-5.5",
+		reasoning_effort: "Medium",
+		score: 0.592,
+		cost_per_task_usd: 2.22,
+		tokens_per_task: 9065,
+		steps_per_task: 35,
+	},
 ]);
 
 const scoreByModelName = buildCursorBenchScoreByModelName(rows);
@@ -75,5 +116,12 @@ assertDeepEqual(
 	findCursorBenchScore(["missing", "GPT 5.5 Medium"], scoreByModelName),
 	0.592,
 );
+
+assertDeepEqual(
+	findCursorBenchScore(["Claude Opus 4.8"], scoreByModelName),
+	0.584,
+);
+
+assertDeepEqual(findCursorBenchScore(["Kimi K2.6"], scoreByModelName), 0.476);
 
 assertDeepEqual(findCursorBenchScore(["Composer 2.5"], scoreByModelName), null);
