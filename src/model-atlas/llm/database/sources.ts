@@ -1,14 +1,6 @@
 /** Source snapshot calculations for the Model Atlas SQLite database pipeline. */
 
 import type { DatabaseSync } from "node:sqlite";
-
-import {
-	buildAaRetainKeys,
-	isoDateDaysAgo,
-	MODELS_DEV_LOOKBACK_DAYS,
-	pickPreferredModelsDevRows,
-} from "../model-stats/source-policy";
-import type { ModelStatsSourceData } from "../model-stats/types";
 import {
 	buildAgentsLastExamScoreByModelName,
 	getAgentsLastExamHarnessStats,
@@ -40,6 +32,13 @@ import {
 	summarizeTerminalBenchModelMedianAccuracy,
 } from "../scrapers/terminal-bench";
 import { modelSlugFromModelId } from "../shared";
+import {
+	buildAaRetainKeys,
+	isoDateDaysAgo,
+	MODELS_DEV_LOOKBACK_DAYS,
+	pickPreferredModelsDevRows,
+} from "../stats/source-policy";
+import type { LlmStatsSourceData } from "../stats/types";
 import {
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
@@ -100,10 +99,10 @@ type BrowseCompSnapshot = {
 	fetchedAt: { browseComp: number | null };
 };
 
-/** Build the source data object consumed by matching and enrichment. */
-export function buildModelStatsSourceData(
+/** Project loaded snapshots into the source data consumed by matching and enrichment. */
+export function sourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
-): ModelStatsSourceData {
+): LlmStatsSourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
 		snapshots.modelsDevModels,
 	);
@@ -398,7 +397,7 @@ async function browseCompSnapshot(
 }
 
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
-export async function loadOrFetchSourceSnapshots(
+export async function loadSourceSnapshots(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
 ): Promise<SourceSnapshotCacheResult> {
@@ -475,7 +474,7 @@ export async function loadOrFetchSourceSnapshots(
 }
 
 /** Load OpenRouter raw stats from SQLite when fresh and complete for the current matched model ids. */
-export async function loadOrFetchOpenRouterRawPayload(
+export async function loadOpenRouterRawPayload(
 	db: DatabaseSync,
 	modelIds: string[],
 	speedConcurrency: number,

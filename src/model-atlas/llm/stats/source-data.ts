@@ -34,7 +34,7 @@ import {
 } from "./source-policy";
 import type {
 	ArtificialAnalysisModel,
-	ModelStatsSourceData,
+	LlmStatsSourceData,
 	ModelsDevModel,
 } from "./types";
 
@@ -66,7 +66,7 @@ function buildAaBySlug(
 }
 
 /** Fetch source snapshots and precompute lookup maps used by matching and enrichment. */
-export async function fetchModelStatsSourceData(): Promise<ModelStatsSourceData> {
+export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
 		aaStats,
 		modelsDevSourceStats,

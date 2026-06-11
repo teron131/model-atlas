@@ -1,7 +1,6 @@
 /** Stable SQLite database contracts for the Model Atlas snapshot pipeline. */
 
 import type { JsonObject } from "../../utils";
-import type { ModelStatsSourceData } from "../model-stats/types";
 import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
@@ -16,6 +15,7 @@ import type {
 	TerminalBenchAgentModelAccuracyRow,
 	TerminalBenchModelMedianAccuracyRow,
 } from "../scrapers/terminal-bench";
+import type { LlmStatsSourceData } from "../stats/types";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
 export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
@@ -88,7 +88,7 @@ export type SourceSnapshots = {
 	modelsDevFetchedAt: number | null;
 	modelsDevStatusCode: number | null;
 	deepSWERawRows: DeepSWELeaderboardRow[];
-	deepSWEModelScoreRows: ModelStatsSourceData["deepSWEModelScoreRows"];
+	deepSWEModelScoreRows: LlmStatsSourceData["deepSWEModelScoreRows"];
 	terminalBenchRows: TerminalBenchAgentModelAccuracyRow[];
 	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
 	agentsLastExamRows: AgentsLastExamHarnessRow[];

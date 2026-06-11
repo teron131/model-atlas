@@ -8,8 +8,8 @@ import {
 	localDatabaseReadPath,
 	runtimeDatabasePath,
 } from "../app/api/llm-stats/snapshot-store";
-import type { ModelStatsSelectedPayload } from "../src/model-atlas/llm/model-stats/types";
-import { minimalSelectedPayload } from "./model-stats-fixtures";
+import type { LlmStatsPayload } from "../src/model-atlas/llm/stats/types";
+import { minimalLlmStatsPayload } from "./llm-stats-fixtures";
 
 const freshPayload = payloadAt(900);
 const stalePayload = payloadAt(100);
@@ -87,13 +87,13 @@ try {
 }
 
 function mode(
-	payload: ModelStatsSelectedPayload | null,
+	payload: LlmStatsPayload | null,
 	hasRuntimeSnapshotStore: boolean,
 	now: number,
 ): DisplaySnapshotRefreshMode {
 	return displaySnapshotRefreshMode(payload, now, hasRuntimeSnapshotStore, 300);
 }
 
-function payloadAt(fetchedAt: number): ModelStatsSelectedPayload {
-	return minimalSelectedPayload({ fetchedAt });
+function payloadAt(fetchedAt: number): LlmStatsPayload {
+	return minimalLlmStatsPayload({ fetchedAt });
 }

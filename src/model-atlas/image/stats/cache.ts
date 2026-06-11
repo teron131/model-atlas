@@ -8,7 +8,7 @@ import {
 	nowEpochSeconds,
 	writeJsonFile,
 } from "../../utils";
-import type { ImageStatsSelectedPayload } from "./types";
+import type { ImageStatsPayload } from "./types";
 
 export const DEFAULT_OUTPUT_PATH = resolve(".cache/image_stats.json");
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
@@ -19,8 +19,8 @@ export function currentEpochSeconds(): number {
 }
 /** Write Cache selected image stats payloads data to disk. */
 
-export async function saveImageStatsSelectedToPath(
-	payload: ImageStatsSelectedPayload,
+export async function saveImageStatsToPath(
+	payload: ImageStatsPayload,
 	outputPath = DEFAULT_OUTPUT_PATH,
 ): Promise<void> {
 	try {
@@ -31,12 +31,12 @@ export async function saveImageStatsSelectedToPath(
 }
 /** Load Cache selected image stats payloads data from cache. */
 
-export async function loadImageStatsSelectedFromCache(
+export async function loadImageStatsFromCache(
 	outputPath: string,
-): Promise<ImageStatsSelectedPayload | null> {
+): Promise<ImageStatsPayload | null> {
 	try {
 		const content = await readFile(outputPath, "utf-8");
-		const payload = JSON.parse(content) as ImageStatsSelectedPayload;
+		const payload = JSON.parse(content) as ImageStatsPayload;
 		if (!Array.isArray(payload.models)) {
 			return null;
 		}

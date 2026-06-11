@@ -9,7 +9,7 @@ import {
 	useState,
 } from "react";
 
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { fmtCompact } from "./format";
 import styles from "./graphs.module.css";
@@ -457,7 +457,7 @@ export function PointHitTarget({
 }: {
 	cx: number;
 	cy: number;
-	model: ModelStatsSelectedModel;
+	model: LlmStatsModel;
 	rows: HoverRow[];
 	setHover: HoverSetter;
 	hoverTitle?: string;
@@ -507,7 +507,7 @@ export function PointLabel({
 	margin,
 	height,
 }: {
-	model: ModelStatsSelectedModel;
+	model: LlmStatsModel;
 	cx: number;
 	cy: number;
 	width: number;

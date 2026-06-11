@@ -1,4 +1,4 @@
-import type { ModelAtlasStageConfig } from "../llm/model-stats/types";
+import type { ModelAtlasStageConfig } from "../llm/stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,

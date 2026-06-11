@@ -1,7 +1,7 @@
 import type {
-	ModelStatsColumnTooltipRow,
-	ModelStatsColumnTooltips,
-} from "../llm/model-stats/types";
+	LlmStatsColumnTooltipRow,
+	LlmStatsColumnTooltips,
+} from "../llm/stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	type BenchmarkDimension,
@@ -213,8 +213,8 @@ const qualityScoreRows = (indexLabel: string) =>
 const qualityScoreRowsWithBenchmarkGroups = (
 	indexLabel: string,
 	benchmarkRows: Readonly<{
-		baseline: readonly ModelStatsColumnTooltipRow[];
-		frontier: readonly ModelStatsColumnTooltipRow[];
+		baseline: readonly LlmStatsColumnTooltipRow[];
+		frontier: readonly LlmStatsColumnTooltipRow[];
 	}>,
 ) =>
 	[
@@ -516,4 +516,4 @@ export const COLUMN_TOOLTIPS = {
 			["Sort", LOWER_FIRST_TEXT],
 		],
 	},
-} as const satisfies ModelStatsColumnTooltips;
+} as const satisfies LlmStatsColumnTooltips;

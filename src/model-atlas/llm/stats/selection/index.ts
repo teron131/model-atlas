@@ -1,6 +1,6 @@
 /** Public selection builder exports. */
 
 export {
+	buildFinalModels,
 	buildScoredModelCandidates,
-	buildSelectedModels,
 } from "./builder";

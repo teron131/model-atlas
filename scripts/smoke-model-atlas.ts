@@ -1,7 +1,7 @@
-import { getModelStatsSelectedLive } from "../src/model-atlas/index";
+import { getLiveLlmStats } from "../src/model-atlas/index";
 
 const started = Date.now();
-const payload = await getModelStatsSelectedLive();
+const payload = await getLiveLlmStats();
 
 console.log(
 	JSON.stringify(

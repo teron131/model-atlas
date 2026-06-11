@@ -83,8 +83,8 @@ function collectCandidatesForSourceSlug(
 		.sort(compareCandidates);
 }
 
-/** Select the preferred candidates for artificial analysis slug. */
-function selectPreferredCandidatesForArtificialAnalysisSlug(
+/** Select preferred candidates for one source slug. */
+function preferredCandidatesForSourceSlug(
 	sourceSlug: string,
 	providerPools: PreferredProviderPools,
 ): LlmMatchCandidate[] {
@@ -140,7 +140,7 @@ export function runMatcher(
 ): MatcherRunOutput {
 	const models = sourceModels.map((sourceModel) => {
 		const matchSlug = sourceModel.sourceMatchSlug ?? sourceModel.sourceSlug;
-		const candidates = selectPreferredCandidatesForArtificialAnalysisSlug(
+		const candidates = preferredCandidatesForSourceSlug(
 			matchSlug,
 			providerPools,
 		).slice(0, maxCandidates);

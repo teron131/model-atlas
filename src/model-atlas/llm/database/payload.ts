@@ -3,22 +3,22 @@
 import { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../constants";
-import type {
-	ModelStatsNullableRelativeScores,
-	ModelStatsNullableScores,
-	ModelStatsScoredCandidate,
-	ModelStatsSelectedContextWindow,
-	ModelStatsSelectedCost,
-	ModelStatsSelectedEvaluations,
-	ModelStatsSelectedIntelligence,
-	ModelStatsSelectedMetadata,
-	ModelStatsSelectedModalities,
-	ModelStatsSelectedPayload,
-	ModelStatsSelectedSpeed,
-	ModelStatsSelectedTaskMetrics,
-} from "../model-stats/types";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
+import type {
+	LlmStatsContextWindow,
+	LlmStatsCost,
+	LlmStatsEvaluations,
+	LlmStatsIntelligence,
+	LlmStatsMetadata,
+	LlmStatsModalities,
+	LlmStatsNullableRelativeScores,
+	LlmStatsNullableScores,
+	LlmStatsPayload,
+	LlmStatsScoredCandidate,
+	LlmStatsSpeed,
+	LlmStatsTaskMetrics,
+} from "../stats/types";
 import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
@@ -103,7 +103,7 @@ function numericObject<T extends object>(
 }
 
 /** Build the modalities object from scalar input-modality columns. */
-function buildModalities(row: DbRow): ModelStatsSelectedModalities | null {
+function buildModalities(row: DbRow): LlmStatsModalities | null {
 	const input = INPUT_MODALITY_COLUMNS.flatMap(([column, modality]) =>
 		booleanValue(row[column]) === true ? [modality] : [],
 	);
@@ -111,8 +111,8 @@ function buildModalities(row: DbRow): ModelStatsSelectedModalities | null {
 }
 
 /** Build the context window object from scalar columns. */
-function buildContextWindow(row: DbRow): ModelStatsSelectedContextWindow {
-	const contextWindow: NonNullable<ModelStatsSelectedContextWindow> = {};
+function buildContextWindow(row: DbRow): LlmStatsContextWindow {
+	const contextWindow: NonNullable<LlmStatsContextWindow> = {};
 	assignNumber(contextWindow, "context", row.context);
 	assignNumber(contextWindow, "input", row.context_input);
 	assignNumber(contextWindow, "output", row.context_output);
@@ -120,7 +120,7 @@ function buildContextWindow(row: DbRow): ModelStatsSelectedContextWindow {
 }
 
 /** Build the speed object from scalar columns. */
-function buildSpeed(row: DbRow): ModelStatsSelectedSpeed {
+function buildSpeed(row: DbRow): LlmStatsSpeed {
 	return {
 		throughput_tokens_per_second_median:
 			asFiniteNumber(row.throughput_tokens_per_second_median) ?? null,
@@ -131,7 +131,7 @@ function buildSpeed(row: DbRow): ModelStatsSelectedSpeed {
 }
 
 /** Build the cost object from scalar columns. */
-function buildCost(row: DbRow): ModelStatsSelectedCost {
+function buildCost(row: DbRow): LlmStatsCost {
 	const cost: Record<string, unknown> = {};
 	assignNumber(cost, "input", row.cost_input);
 	assignNumber(cost, "output", row.cost_output);
@@ -152,11 +152,11 @@ function buildCost(row: DbRow): ModelStatsSelectedCost {
 	if (hasFields(contextOver200k)) {
 		cost.context_over_200k = contextOver200k;
 	}
-	return hasFields(cost) ? (cost as NonNullable<ModelStatsSelectedCost>) : null;
+	return hasFields(cost) ? (cost as NonNullable<LlmStatsCost>) : null;
 }
 
 /** Build the task metrics object from scalar columns. */
-function buildTaskMetrics(row: DbRow): ModelStatsSelectedTaskMetrics {
+function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	const artificialAnalysis: Record<string, number> = {};
 	assignNumber(artificialAnalysis, "cost", row.aa_task_cost);
 	assignNumber(artificialAnalysis, "seconds", row.aa_task_seconds);
@@ -178,7 +178,7 @@ function buildTaskMetrics(row: DbRow): ModelStatsSelectedTaskMetrics {
 		"output_tokens",
 		row.agents_last_exam_task_output_tokens,
 	);
-	const taskMetrics: NonNullable<ModelStatsSelectedTaskMetrics> = {};
+	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
 	if (hasFields(artificialAnalysis)) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
 	}
@@ -192,7 +192,7 @@ function buildTaskMetrics(row: DbRow): ModelStatsSelectedTaskMetrics {
 }
 
 /** Build nullable raw score fields from scalar columns. */
-function buildScores(row: DbRow): ModelStatsNullableScores {
+function buildScores(row: DbRow): LlmStatsNullableScores {
 	return {
 		intelligence_score: asFiniteNumber(row.raw_intelligence_score) ?? null,
 		agentic_score: asFiniteNumber(row.raw_agentic_score) ?? null,
@@ -202,7 +202,7 @@ function buildScores(row: DbRow): ModelStatsNullableScores {
 }
 
 /** Build nullable relative score fields from scalar columns. */
-function buildRelativeScores(row: DbRow): ModelStatsNullableRelativeScores {
+function buildRelativeScores(row: DbRow): LlmStatsNullableRelativeScores {
 	return {
 		intelligence_score: asFiniteNumber(row.relative_intelligence_score) ?? null,
 		agentic_score: asFiniteNumber(row.relative_agentic_score) ?? null,
@@ -213,7 +213,7 @@ function buildRelativeScores(row: DbRow): ModelStatsNullableRelativeScores {
 }
 
 /** Convert one SQLite selected row into the model payload shape. */
-function modelFromRow(row: DbRow): ModelStatsScoredCandidate {
+function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 	const modelId = stringValue(row.model_id);
 	const provider =
 		stringValue(row.provider_id) ?? modelId?.split("/")[0] ?? null;
@@ -230,16 +230,10 @@ function modelFromRow(row: DbRow): ModelStatsScoredCandidate {
 		cost: buildCost(row),
 		context_window: buildContextWindow(row),
 		speed: buildSpeed(row),
-		intelligence: numericObject<ModelStatsSelectedIntelligence>(
-			row,
-			INTELLIGENCE_KEYS,
-		),
+		intelligence: numericObject<LlmStatsIntelligence>(row, INTELLIGENCE_KEYS),
 		intelligence_index_cost: null,
 		task_metrics: buildTaskMetrics(row),
-		evaluations: numericObject<ModelStatsSelectedEvaluations>(
-			row,
-			EVALUATION_KEYS,
-		),
+		evaluations: numericObject<LlmStatsEvaluations>(row, EVALUATION_KEYS),
 		scores: buildScores(row),
 		relative_scores: buildRelativeScores(row),
 	};
@@ -247,7 +241,7 @@ function modelFromRow(row: DbRow): ModelStatsScoredCandidate {
 
 /** Return sorted unique keys from model object fields. */
 function keysFromModelField(
-	models: ModelStatsScoredCandidate[],
+	models: LlmStatsScoredCandidate[],
 	field: "evaluations" | "intelligence",
 ): string[] {
 	return [
@@ -256,9 +250,7 @@ function keysFromModelField(
 }
 
 /** Build metadata for the DB-backed UI payload. */
-function buildMetadata(
-	models: ModelStatsScoredCandidate[],
-): ModelStatsSelectedMetadata {
+function buildMetadata(models: LlmStatsScoredCandidate[]): LlmStatsMetadata {
 	const scoringConfig = STAGE_CONFIG.scoring;
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
@@ -369,7 +361,7 @@ function readDeepSWERows(
 /** Read the UI payload from the latest SQLite selected rows. */
 export function readModelAtlasDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
-): ModelStatsSelectedPayload {
+): LlmStatsPayload {
 	const db = new DatabaseSync(databasePath);
 	try {
 		const run = latestRun(db);
@@ -386,7 +378,7 @@ export function readModelAtlasDatabasePayload(
 			deep_swe: {
 				rows: readDeepSWERows(db, run.id),
 			},
-			models: models as ModelStatsSelectedPayload["models"],
+			models: models as LlmStatsPayload["models"],
 		};
 	} finally {
 		db.close();

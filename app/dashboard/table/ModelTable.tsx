@@ -12,7 +12,7 @@ import {
 	useState,
 } from "react";
 
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import {
 	formatBenchmarkMetric,
@@ -559,7 +559,7 @@ function isReleaseDateToken(token: string | undefined) {
 	return token != null && RELEASE_DATE_TOKEN_PATTERN.test(token);
 }
 
-function ProviderLogo({ model }: { model: ModelStatsSelectedModel }) {
+function ProviderLogo({ model }: { model: LlmStatsModel }) {
 	const [hidden, setHidden] = useState(false);
 	const logoSrc = logoSource(model);
 
@@ -582,7 +582,7 @@ function ProviderLogo({ model }: { model: ModelStatsSelectedModel }) {
 	);
 }
 
-function logoSource(model: ModelStatsSelectedModel) {
+function logoSource(model: LlmStatsModel) {
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;
 	}

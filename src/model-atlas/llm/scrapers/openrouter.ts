@@ -9,8 +9,8 @@
  * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
-import { isSameOpenRouterModelRoute } from "../model-stats/model-aliases";
 import { asRecord } from "../shared";
+import { isSameOpenRouterModelRoute } from "../stats/model-aliases";
 
 const OPENROUTER_MODELS_URL =
 	"https://openrouter.ai/api/frontend/v1/catalog/models";

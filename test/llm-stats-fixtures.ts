@@ -1,15 +1,15 @@
 import type {
-	ModelStatsSelectedModel,
-	ModelStatsSelectedPayload,
-} from "../src/model-atlas/llm/model-stats/types";
+	LlmStatsModel,
+	LlmStatsPayload,
+} from "../src/model-atlas/llm/stats/types";
 
-export function minimalSelectedPayload({
+export function minimalLlmStatsPayload({
 	fetchedAt,
 	models = [],
 }: {
 	fetchedAt: number;
-	models?: ModelStatsSelectedModel[];
-}): ModelStatsSelectedPayload {
+	models?: LlmStatsModel[];
+}): LlmStatsPayload {
 	return {
 		fetched_at_epoch_seconds: fetchedAt,
 		metadata: {
@@ -48,13 +48,13 @@ export function minimalSelectedPayload({
 	};
 }
 
-export function minimalSelectedModel({
+export function minimalLlmStatsModel({
 	id,
 	name,
 }: {
 	id: string;
 	name: string;
-}): ModelStatsSelectedModel {
+}): LlmStatsModel {
 	return {
 		id,
 		name,

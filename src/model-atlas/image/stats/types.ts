@@ -11,7 +11,7 @@ import type {
 	ArtificialAnalysisImageOutputPayload,
 } from "../sources/artificial-analysis";
 
-export type ImageStatsSelectedModel = {
+export type ImageStatsModel = {
 	id: string | null;
 	name: string | null;
 	provider: string | null;
@@ -43,12 +43,12 @@ export type ImageStatsSelectedModel = {
 	};
 };
 
-export type ImageStatsSelectedPayload = {
+export type ImageStatsPayload = {
 	fetched_at_epoch_seconds: number | null;
-	models: ImageStatsSelectedModel[];
+	models: ImageStatsModel[];
 };
 
-export type ImageStatsSelectedOptions = {
+export type ImageStatsOptions = {
 	id?: string | null;
 };
 

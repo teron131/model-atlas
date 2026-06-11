@@ -6,8 +6,8 @@ import {
 } from "../../../math-utils";
 import { asFiniteNumber } from "../../shared";
 import type {
-	ModelStatsModelCandidate,
-	ModelStatsSelectedSpeed,
+	LlmStatsModelCandidate,
+	LlmStatsSpeed,
 	ScoringConfig,
 	SimulationProfile,
 	SimulationTokenRange,
@@ -73,7 +73,7 @@ function profileSeconds(
 }
 
 function profileCost(
-	model: ModelStatsModelCandidate,
+	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
 	useCache: boolean,
 ): number | null {
@@ -105,7 +105,7 @@ function profileCost(
 }
 
 function profileQualityMultiplier(
-	model: ModelStatsModelCandidate,
+	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
 ): number | null {
 	const intelligenceScore = asFiniteNumber(model.scores?.intelligence_score);
@@ -138,7 +138,7 @@ function weightedProfileMean(
 
 /** Estimate expected workflow seconds from latency, input friction, and decode throughput. */
 export function simulatedBlendSeconds(
-	speed: ModelStatsSelectedSpeed,
+	speed: LlmStatsSpeed,
 	scoringConfig: ScoringConfig,
 ): number | null {
 	const throughputTokensPerSecond = positiveNumber(
@@ -169,7 +169,7 @@ export function simulatedBlendSeconds(
 
 /** Estimate quality-gated useful workflow per dollar, including cache reads for repeated calls. */
 export function workflowSimulatedValueSignal(
-	model: ModelStatsModelCandidate,
+	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,
 ): number | null {
 	return weightedProfileMean(

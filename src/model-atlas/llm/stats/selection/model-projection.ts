@@ -13,17 +13,17 @@ import {
 	type QualityScoringContext,
 } from "../scores";
 import type {
-	ModelStatsModelCandidate,
-	ModelStatsScoringSources,
-	ModelStatsSelectedContextWindow,
-	ModelStatsSelectedCost,
-	ModelStatsSelectedCostBreakdown,
-	ModelStatsSelectedCostTier,
-	ModelStatsSelectedEvaluations,
-	ModelStatsSelectedIntelligence,
-	ModelStatsSelectedIntelligenceIndexCost,
-	ModelStatsSelectedModalities,
-	ModelStatsSelectedSpeed,
+	LlmStatsContextWindow,
+	LlmStatsCost,
+	LlmStatsCostBreakdown,
+	LlmStatsCostTier,
+	LlmStatsEvaluations,
+	LlmStatsIntelligence,
+	LlmStatsIntelligenceIndexCost,
+	LlmStatsModalities,
+	LlmStatsModelCandidate,
+	LlmStatsScoringSources,
+	LlmStatsSpeed,
 	ScoringConfig,
 } from "../types";
 import { buildTaskMetrics } from "./task-metrics";
@@ -88,9 +88,7 @@ function buildLogo(model: JsonObject, provider: string | null): string {
 	});
 }
 
-function buildModalities(
-	model: JsonObject,
-): ModelStatsSelectedModalities | null {
+function buildModalities(model: JsonObject): LlmStatsModalities | null {
 	const modalities = asRecord(model.modalities);
 	const input = Array.isArray(modalities.input)
 		? modalities.input.filter(
@@ -102,7 +100,7 @@ function buildModalities(
 				(value): value is string => typeof value === "string",
 			)
 		: undefined;
-	const normalized: ModelStatsSelectedModalities = {};
+	const normalized: LlmStatsModalities = {};
 	if (input && input.length > 0) {
 		normalized.input = input;
 	}
@@ -112,9 +110,7 @@ function buildModalities(
 	return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
-function buildContextWindow(
-	model: JsonObject,
-): ModelStatsSelectedContextWindow {
+function buildContextWindow(model: JsonObject): LlmStatsContextWindow {
 	const limit = asRecord(model.limit);
 	const context = asFiniteNumber(limit.context);
 	const input = asFiniteNumber(limit.input);
@@ -133,7 +129,7 @@ function buildSpeed(
 	model: JsonObject,
 	modelId: string | null,
 	openRouterSpeedById: Map<string, JsonObject>,
-): ModelStatsSelectedSpeed {
+): LlmStatsSpeed {
 	const openRouterSpeed = lookupOpenRouterData(
 		openRouterSpeedById,
 		modelId,
@@ -191,11 +187,9 @@ function lookupOpenRouterData(
 	return exact ?? normalized ?? null;
 }
 
-function buildCostBreakdown(
-	value: unknown,
-): ModelStatsSelectedCostBreakdown | null {
+function buildCostBreakdown(value: unknown): LlmStatsCostBreakdown | null {
 	const source = asRecord(value);
-	const cost: ModelStatsSelectedCostBreakdown = {};
+	const cost: LlmStatsCostBreakdown = {};
 	const input = asFiniteNumber(source.input);
 	const output = asFiniteNumber(source.output);
 	const cacheRead = asFiniteNumber(source.cache_read);
@@ -215,9 +209,9 @@ function buildCostBreakdown(
 	return hasFields(cost) ? cost : null;
 }
 
-function buildCostTier(value: unknown): ModelStatsSelectedCostTier | null {
+function buildCostTier(value: unknown): LlmStatsCostTier | null {
 	const source = asRecord(value);
-	const costTier: ModelStatsSelectedCostTier = {
+	const costTier: LlmStatsCostTier = {
 		...(buildCostBreakdown(source) ?? {}),
 	};
 	const tier = asRecord(source.tier);
@@ -236,9 +230,9 @@ function buildCost(
 	model: JsonObject,
 	openRouterPricing: JsonObject,
 	scoringConfig: ScoringConfig,
-): ModelStatsSelectedCost {
+): LlmStatsCost {
 	const baseCost = asRecord(model.cost);
-	const cost: Exclude<ModelStatsSelectedCost, null> = {
+	const cost: Exclude<LlmStatsCost, null> = {
 		...(buildCostBreakdown(baseCost) ?? {}),
 	};
 	const contextOver200k = buildCostBreakdown(baseCost.context_over_200k);
@@ -248,7 +242,7 @@ function buildCost(
 	if (Array.isArray(baseCost.tiers)) {
 		const tiers = baseCost.tiers
 			.map((tier) => buildCostTier(tier))
-			.filter((tier): tier is ModelStatsSelectedCostTier => tier != null);
+			.filter((tier): tier is LlmStatsCostTier => tier != null);
 		if (tiers.length > 0) {
 			cost.tiers = tiers;
 		}
@@ -268,15 +262,11 @@ function buildCost(
 	return hasFields(cost) ? cost : null;
 }
 
-function buildEvaluations(
-	model: JsonObject,
-): ModelStatsSelectedEvaluations | null {
-	return buildNumericMap<ModelStatsSelectedEvaluations>(model.evaluations);
+function buildEvaluations(model: JsonObject): LlmStatsEvaluations | null {
+	return buildNumericMap<LlmStatsEvaluations>(model.evaluations);
 }
 
-function buildIntelligence(
-	model: JsonObject,
-): ModelStatsSelectedIntelligence | null {
+function buildIntelligence(model: JsonObject): LlmStatsIntelligence | null {
 	const intelligence = { ...asRecord(model.intelligence) };
 	const nonhallucinationRate = asFiniteNumber(
 		intelligence.omniscience_hallucination_rate,
@@ -287,12 +277,12 @@ function buildIntelligence(
 	}
 	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
 	delete intelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY];
-	return buildNumericMap<ModelStatsSelectedIntelligence>(intelligence);
+	return buildNumericMap<LlmStatsIntelligence>(intelligence);
 }
 
 function buildIntelligenceIndexCost(
 	model: JsonObject,
-): ModelStatsSelectedIntelligenceIndexCost {
+): LlmStatsIntelligenceIndexCost {
 	const fromRow = asRecord(model.intelligence_index_cost);
 	const fromIntelligence = asRecord(model.intelligence);
 	const totalCost =
@@ -301,7 +291,7 @@ function buildIntelligenceIndexCost(
 	const totalTokens =
 		asFiniteNumber(fromRow.total_tokens) ??
 		asFiniteNumber(fromIntelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY]);
-	const cost: Exclude<ModelStatsSelectedIntelligenceIndexCost, null> = {};
+	const cost: Exclude<LlmStatsIntelligenceIndexCost, null> = {};
 	for (const key of [
 		"input_cost",
 		"reasoning_cost",
@@ -328,7 +318,7 @@ function buildIntelligenceIndexCost(
 	return hasFields(cost) ? cost : null;
 }
 
-function buildScoringSources(model: JsonObject): ModelStatsScoringSources {
+function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 	const deepSWE = buildDeepSWEScoringSource(model);
 	const agentsLastExam = buildAgentsLastExamScoringSource(model);
 	const scoringSources = {
@@ -426,7 +416,7 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 }
 
 /** Build one public model candidate from an enriched intermediate row. */
-export function projectModelStatsCandidate(
+export function projectLlmStatsCandidate(
 	row: unknown,
 	openRouterSpeedById: Map<string, JsonObject>,
 	openRouterPricingById: Map<string, JsonObject>,
@@ -434,7 +424,7 @@ export function projectModelStatsCandidate(
 	scoringConfig: ScoringConfig,
 	benchmarkImputationByModel: BenchmarkImputationByModel,
 	qualityContext: QualityScoringContext,
-): ModelStatsModelCandidate {
+): LlmStatsModelCandidate {
 	const model = asRecord(row);
 	const provider = providerFromModel(model);
 	const modelId = typeof model.id === "string" ? model.id : null;

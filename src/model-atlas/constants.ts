@@ -1,4 +1,4 @@
-/** Public tuning inputs for the selected Model Atlas pipeline. */
+/** Public tuning inputs for the Model Atlas stats pipeline. */
 
 export {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,

@@ -11,8 +11,8 @@ import {
 } from "../../../math-utils";
 import { asFiniteNumber } from "../../shared";
 import type {
-	ModelStatsModelCandidate,
-	ModelStatsScoredCandidate,
+	LlmStatsModelCandidate,
+	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
 import { blendedPriceValue } from "./score-builders";
@@ -83,21 +83,21 @@ function inversePositive(value: unknown): number | null {
 }
 
 function taskMetricCost(
-	model: ModelStatsModelCandidate,
+	model: LlmStatsModelCandidate,
 	key: TaskMetricKey,
 ): number | null {
 	return positiveNumber(model.task_metrics?.[key]?.cost);
 }
 
 function taskMetricSeconds(
-	model: ModelStatsModelCandidate,
+	model: LlmStatsModelCandidate,
 	key: TaskMetricKey,
 ): number | null {
 	return positiveNumber(model.task_metrics?.[key]?.seconds);
 }
 
 function blendCost(
-	model: ModelStatsModelCandidate,
+	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,
 ): number | null {
 	return (
@@ -108,9 +108,9 @@ function blendCost(
 
 /** Attach `relative_scores`; quality is already benchmark-relative, while speed/value use percentiles. */
 export function attachRelativeScores(
-	models: ModelStatsModelCandidate[],
+	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
-): ModelStatsScoredCandidate[] {
+): LlmStatsScoredCandidate[] {
 	const intelligenceRelativeScores = models.map(
 		(model) => model.scores?.intelligence_score ?? null,
 	);

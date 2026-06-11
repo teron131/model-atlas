@@ -1,16 +1,16 @@
 "use client";
 
-/** Interactive chart view for selected Model Atlas payloads. */
+/** Interactive chart view for LLM stats payloads. */
 
 import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { line } from "d3-shape";
 import { useMemo, useState } from "react";
-import type {
-	ModelStatsSelectedModel,
-	ModelStatsSelectedPayload,
-} from "../../../src/model-atlas/llm/model-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
+import type {
+	LlmStatsModel,
+	LlmStatsPayload,
+} from "../../../src/model-atlas/llm/stats/types";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
 import {
 	type BoxWhiskerDistribution,
@@ -94,7 +94,7 @@ type HiddenResourceMetric = {
 };
 
 type ALEChartRow = {
-	model: ModelStatsSelectedModel;
+	model: LlmStatsModel;
 	score: number;
 	cost: number;
 	seconds: number;
@@ -176,7 +176,7 @@ export function DashboardGraphs({
 	afterControls,
 	afterLead,
 }: {
-	initialPayload: ModelStatsSelectedPayload | null;
+	initialPayload: LlmStatsPayload | null;
 	afterControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
 }) {
@@ -429,7 +429,7 @@ function deepSWEAccuracyDistribution(
 }
 
 function intelligenceDistribution(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 ): BoxWhiskerDistribution {
 	return valueDistribution(
 		models
@@ -439,7 +439,7 @@ function intelligenceDistribution(
 }
 
 function outputSpeedDistribution(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 ): BoxWhiskerDistribution {
 	return valueDistribution(
 		models
@@ -450,7 +450,7 @@ function outputSpeedDistribution(
 	);
 }
 
-function aleRows(models: ModelStatsSelectedModel[]): ALEChartRow[] {
+function aleRows(models: LlmStatsModel[]): ALEChartRow[] {
 	return models
 		.map((model) => {
 			const score = percent(model.evaluations?.agents_last_exam);
@@ -552,7 +552,7 @@ function FrontierPanel({
 	models,
 	setHover,
 }: {
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
 	const { cursorProjection, cursorHandlers } = useCursorProjection();
@@ -590,7 +590,7 @@ function FrontierPanel({
 	const scores = candidates.map(
 		(model) => model.relative_scores.intelligence_score,
 	);
-	const frontierDescending: ModelStatsSelectedModel[] = [];
+	const frontierDescending: LlmStatsModel[] = [];
 	let bestFromRight = -Infinity;
 	for (const model of [...candidates].sort(
 		(left, right) =>
@@ -628,7 +628,7 @@ function FrontierPanel({
 		const nextY = yPoint(model.relative_scores.intelligence_score);
 		return index === 0 ? `M${nextX},${nextY}` : `${path} H${nextX} V${nextY}`;
 	}, "");
-	const frontierGuideLine = line<ModelStatsSelectedModel>()
+	const frontierGuideLine = line<LlmStatsModel>()
 		.x((model) => xPoint(Number(model.relative_scores.value_score)))
 		.y((model) => yPoint(model.relative_scores.intelligence_score));
 	const guidePath = frontierGuideLine(frontier);
@@ -645,7 +645,7 @@ function FrontierPanel({
 		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
 	);
 	const plottedCandidates = candidates;
-	const capabilityBubbleValue = (model: ModelStatsSelectedModel) =>
+	const capabilityBubbleValue = (model: LlmStatsModel) =>
 		Number(model.relative_scores.intelligence_score) *
 		Number(model.relative_scores.agentic_score ?? 0);
 	const capabilityBubbleRadius = linearBubbleRadius(
@@ -809,7 +809,7 @@ function DeepSwePanel({
 	rows,
 	setHover,
 }: {
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 	rows: DeepSWELeaderboardRow[];
 	setHover: HoverSetter;
 }) {
@@ -983,7 +983,7 @@ function ALEPanel({
 	models,
 	setHover,
 }: {
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
 	const [metricKey, setMetricKey] = useState<ALEMetricKey>("cost");
@@ -1109,7 +1109,7 @@ function InteractionMatrix({
 	models,
 	setHover,
 }: {
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
 	const distribution = intelligenceDistribution(models);
@@ -1147,7 +1147,7 @@ function InteractionPlot({
 	config,
 	setHover,
 }: {
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 	config: InteractionConfig;
 	setHover: HoverSetter;
 }) {
@@ -1360,7 +1360,7 @@ function RunwayPanel({
 	models,
 	setHover,
 }: {
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
 	const { cursorProjection, cursorHandlers } = useCursorProjection();
@@ -1413,10 +1413,10 @@ function RunwayPanel({
 	const yPoint = stableSvgScale(y);
 	const plot = plotBoundsFor(width, height, margin);
 	const plottedCandidates = candidates.slice(0, 90);
-	const runwayLabelCandidates: ModelStatsSelectedModel[] = [];
+	const runwayLabelCandidates: LlmStatsModel[] = [];
 	const labelContextRatio = 1.12;
 	const labelQualityFloor = 55;
-	let contextCluster: ModelStatsSelectedModel[] = [];
+	let contextCluster: LlmStatsModel[] = [];
 	let clusterStartContext = 0;
 	const finishContextCluster = () => {
 		if (contextCluster.length === 0) {
@@ -1460,7 +1460,7 @@ function RunwayPanel({
 				Number(right.speed?.throughput_tokens_per_second_median) -
 				Number(left.speed?.throughput_tokens_per_second_median),
 		)
-		.reduce<ModelStatsSelectedModel[]>((selected, model) => {
+		.reduce<LlmStatsModel[]>((selected, model) => {
 			const xPosition = xPoint(Number(model.context_window?.context));
 			const yPosition = yPoint(
 				Number(model.speed?.throughput_tokens_per_second_median),

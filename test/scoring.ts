@@ -6,8 +6,8 @@ import {
 	buildQualityScoringContext,
 	buildScores,
 	simulatedBlendSeconds,
-} from "../src/model-atlas/llm/model-stats/scores";
-import type { ModelStatsModelCandidate } from "../src/model-atlas/llm/model-stats/types";
+} from "../src/model-atlas/llm/stats/scores";
+import type { LlmStatsModelCandidate } from "../src/model-atlas/llm/stats/types";
 import {
 	meanOfFiniteWithMinimum,
 	quantileFromSorted,
@@ -274,7 +274,7 @@ function modelCandidate(options: {
 	deepSWESeconds?: number | null;
 	tps?: number | null;
 	latency?: number | null;
-}): ModelStatsModelCandidate {
+}): LlmStatsModelCandidate {
 	return {
 		id: options.id,
 		name: options.id,

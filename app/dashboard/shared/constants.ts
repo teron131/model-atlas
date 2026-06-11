@@ -1,4 +1,4 @@
-import type { ModelStatsColumnTooltip } from "../../../src/model-atlas/llm/model-stats/types";
+import type { LlmStatsColumnTooltip } from "../../../src/model-atlas/llm/stats/types";
 
 export const liveStatsPath = "/api/llm-stats";
 
@@ -37,7 +37,7 @@ export const benchmarkLabels: Record<string, string> = {
 	terminalbench_hard: "TerminalBench Hard",
 };
 
-export const benchmarkTooltips: Record<string, ModelStatsColumnTooltip> = {
+export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	omniscience_accuracy: {
 		title: "Omniscience",
 		body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",
