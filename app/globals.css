@@ -124,35 +124,31 @@ h1 {
 
 .benchmarks {
 	display: grid;
-	gap: 8px;
+	gap: 0;
 	width: 100%;
 	margin: 8px 0 0;
-	padding: 13px 0 14px;
+	padding: 4px 0 14px;
 	background: transparent;
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 }
 
 .benchmarks h2 {
-	display: grid;
-	grid-template-columns: max-content 1fr;
-	gap: 12px;
-	align-items: center;
-	margin: 0;
-	color: var(--muted);
-	font-size: var(--mono-label);
-	letter-spacing: 0;
-	line-height: 1.35;
-	text-transform: uppercase;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
 
 .benchmark-groups {
 	display: flex;
 	width: 100%;
 	max-width: 100%;
-	margin: 3px 0 -14px;
+	margin: 0 0 -14px;
 	overflow-x: auto;
 	overscroll-behavior-x: contain;
-	border-top: 1px solid var(--frame-line-soft);
+	border-top: 0;
 	background: transparent;
 	-webkit-overflow-scrolling: touch;
 	scrollbar-width: none;
