@@ -222,3 +222,36 @@ export function insertBrowseCompRawRows(
 		);
 	}
 }
+
+/** Insert Toolathlon model score rows. */
+export function insertToolathlonRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO toolathlon_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, rank, model, provider,
+			provider_name, score, source_url, analysis_method, verified,
+			self_reported, announcement_date
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.toolathlonModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.toolathlon,
+			SOURCE_URLS.toolathlon,
+			row.rank,
+			row.model,
+			row.provider,
+			row.provider_name ?? null,
+			row.score,
+			row.source_url ?? null,
+			row.analysis_method ?? null,
+			booleanValue(row.verified),
+			booleanValue(row.self_reported),
+			row.announcement_date ?? null,
+		);
+	}
+}

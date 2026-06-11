@@ -35,6 +35,7 @@ export const benchmarkLabels: Record<string, string> = {
 	scicode: "SciCode",
 	terminal_bench_2: "Terminal-Bench 2.0",
 	terminalbench_hard: "TerminalBench Hard",
+	toolathlon: "Toolathlon",
 };
 
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
@@ -140,6 +141,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Terminal-Bench"],
 			["Role", "terminal agent work"],
+		],
+	},
+	toolathlon: {
+		title: "Toolathlon",
+		body: "Multi-tool workflow benchmark. Model Atlas uses the current LLM Stats score as a modest baseline signal.",
+		rows: [
+			["Source", "LLM Stats / ZeroEval"],
+			["Role", "multi-tool agent work"],
 		],
 	},
 };

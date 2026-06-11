@@ -15,6 +15,7 @@ import type {
 	TerminalBenchAgentModelAccuracyRow,
 	TerminalBenchModelMedianAccuracyRow,
 } from "../scrapers/terminal-bench";
+import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import type { LlmStatsSourceData } from "../stats/types";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
@@ -27,6 +28,7 @@ export const RAW_SOURCE_NAMES = [
 	"terminal_bench",
 	"agents_last_exam",
 	"browsecomp",
+	"toolathlon",
 	"openrouter",
 ] as const;
 
@@ -38,6 +40,8 @@ export const SOURCE_URLS = {
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	browsecomp:
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
+	toolathlon:
+		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 	openrouter_models: "https://openrouter.ai/api/frontend/models",
 	openrouter_stats: "https://openrouter.ai/api/frontend/stats/*",
 } as const;
@@ -94,11 +98,13 @@ export type SourceSnapshots = {
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
+	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	fetchedAt: {
 		artificialAnalysis: number | null;
 		deepSWE: number | null;
 		terminalBench: number | null;
 		agentsLastExam: number | null;
 		browseComp: number | null;
+		toolathlon: number | null;
 	};
 };

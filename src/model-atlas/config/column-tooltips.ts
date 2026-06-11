@@ -173,6 +173,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	terminalbench_hard: "TerminalBench Hard",
 	terminal_bench_2: "Terminal-Bench 2.0",
 	browsecomp: "BrowseComp",
+	toolathlon: "Toolathlon",
 	hle: "HLE",
 	critpt: "CritPt",
 	gdpval_normalized: "GDPVal",

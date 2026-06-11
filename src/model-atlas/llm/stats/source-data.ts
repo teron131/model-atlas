@@ -25,6 +25,10 @@ import {
 	buildTerminalBenchAccuracyByModelName,
 	getTerminalBenchModelMedianAccuracyStats,
 } from "../scrapers/terminal-bench";
+import {
+	buildToolathlonScoreByModelName,
+	getToolathlonModelScoreStats,
+} from "../scrapers/toolathlon";
 import { modelSlugFromModelId } from "../shared";
 import {
 	buildAaRetainKeys,
@@ -75,6 +79,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		agentsLastExamStats,
 		automationBenchStats,
 		browseCompStats,
+		toolathlonStats,
 	] = await Promise.all([
 		getArtificialAnalysisScrapedEvalsOnlyStats(),
 		getModelsDevSourceStats(),
@@ -83,6 +88,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getAgentsLastExamModelScoreStats(),
 		getAutomationBenchLeaderboardStats(),
 		getBrowseCompModelScoreStats(),
+		getToolathlonModelScoreStats(),
 	]);
 	const retainKeys = buildAaRetainKeys(aaStats.data);
 	const modelsDevModels = processModelsDevPayload(
@@ -112,6 +118,10 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		browseCompModelScoreRows: browseCompStats.data,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
 			browseCompStats.data,
+		),
+		toolathlonModelScoreRows: toolathlonStats.data,
+		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
+			toolathlonStats.data,
 		),
 	};
 }

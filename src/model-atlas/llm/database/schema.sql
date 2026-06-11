@@ -184,6 +184,24 @@ CREATE TABLE IF NOT EXISTS browsecomp_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	rank INTEGER,
+	model TEXT NOT NULL,
+	provider TEXT NOT NULL,
+	provider_name TEXT,
+	score REAL NOT NULL,
+	source_url TEXT,
+	analysis_method TEXT,
+	verified INTEGER,
+	self_reported INTEGER,
+	announcement_date TEXT,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -264,6 +282,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	agents_last_exam REAL,
 	automation_bench REAL,
 	browsecomp REAL,
+	toolathlon REAL,
 	aa_task_cost REAL,
 	aa_task_seconds REAL,
 	aa_task_output_tokens REAL,

@@ -169,6 +169,17 @@ export {
 	summarizeTerminalBenchModelMedianAccuracy,
 } from "./llm/scrapers/terminal-bench";
 export type {
+	ToolathlonModelScorePayload,
+	ToolathlonModelScoreRow,
+	ToolathlonScraperOptions,
+} from "./llm/scrapers/toolathlon";
+export {
+	buildToolathlonScoreByModelName,
+	findToolathlonScore,
+	getToolathlonModelScoreStats,
+	processToolathlonDetailsJson,
+} from "./llm/scrapers/toolathlon";
+export type {
 	LlmStatsBenchmarkValues,
 	LlmStatsContextWindow,
 	LlmStatsCost,
