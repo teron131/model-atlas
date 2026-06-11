@@ -189,6 +189,17 @@ export {
 	processOpenRouterModelStats,
 } from "./llm/scrapers/openrouter";
 export type {
+	RiemannBenchModelScorePayload,
+	RiemannBenchModelScoreRow,
+	RiemannBenchScraperOptions,
+} from "./llm/scrapers/riemann-bench";
+export {
+	buildRiemannBenchScoreByModelName,
+	findRiemannBenchScore,
+	getRiemannBenchModelScoreStats,
+	processRiemannBenchPageHtml,
+} from "./llm/scrapers/riemann-bench";
+export type {
 	TerminalBenchAgentModelAccuracyPayload,
 	TerminalBenchAgentModelAccuracyRow,
 	TerminalBenchModelMedianAccuracyPayload,

@@ -49,6 +49,7 @@ const EVALUATION_KEYS = [
 	"automation_bench",
 	"blueprint_bench_2",
 	"gdp_pdf",
+	"riemann_bench",
 	"browsecomp",
 	"toolathlon",
 	"cursorbench",

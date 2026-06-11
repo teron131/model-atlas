@@ -16,6 +16,7 @@ import type {
 	OpenRouterRawScrapedPayload,
 	OpenRouterStatsResponse,
 } from "../scrapers/openrouter";
+import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
 import type { TerminalBenchAgentModelAccuracyRow } from "../scrapers/terminal-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
@@ -35,6 +36,7 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	agents_last_exam: "agents_last_exam_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",
 	gdp_pdf: "gdp_pdf_raw_rows",
+	riemann_bench: "riemann_bench_raw_rows",
 	browsecomp: "browsecomp_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
 	cursorbench: "cursorbench_raw_rows",
@@ -635,6 +637,45 @@ export function readGdpPdfRawCache(db: DatabaseSync): {
 		return null;
 	}
 	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.gdp_pdf)) {
+		return null;
+	}
+	const cachedRows = rawRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return model != null && score != null
+			? [
+					{
+						provider: stringValue(row.provider),
+						model,
+						score,
+						last_updated: stringValue(row.last_updated),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+export function readRiemannBenchRawCache(db: DatabaseSync): {
+	rows: RiemannBenchModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	if (
+		rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.riemann_bench)
+	) {
 		return null;
 	}
 	const cachedRows = rawRows.flatMap((row) => {

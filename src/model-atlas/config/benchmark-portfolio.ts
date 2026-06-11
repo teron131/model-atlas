@@ -59,6 +59,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0.8,
 		agenticPortion: 0.2,
 	},
+	riemann_bench: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
 	apex_agents: {
 		group: "frontier",
 		intelligencePortion: 0,

@@ -36,6 +36,7 @@ export const benchmarkLabels: Record<string, string> = {
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience",
 	omniscience_nonhallucination_rate: "Omniscience NH",
+	riemann_bench: "Riemann-bench",
 	scicode: "SciCode",
 	terminal_bench_2: "Terminal-Bench 2.0",
 	terminalbench_hard: "TerminalBench Hard",
@@ -145,6 +146,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Surge AI"],
 			["Role", "document reasoning"],
+		],
+	},
+	riemann_bench: {
+		title: "Riemann-bench",
+		body: "Surge AI extreme mathematics benchmark over private frontier math problems. Model Atlas uses the public leaderboard score.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "frontier math reasoning"],
 		],
 	},
 	deep_swe: {

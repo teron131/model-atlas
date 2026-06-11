@@ -15,6 +15,7 @@ import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import { findGdpPdfScore } from "../scrapers/gdp-pdf";
+import { findRiemannBenchScore } from "../scrapers/riemann-bench";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
 import { findToolathlonScore } from "../scrapers/toolathlon";
 import {
@@ -40,6 +41,7 @@ type MatchedRowLookups = Pick<
 	| "automationBenchScoreByModelName"
 	| "blueprintBenchScoreByModelName"
 	| "gdpPdfScoreByModelName"
+	| "riemannBenchScoreByModelName"
 	| "browseCompScoreByModelName"
 	| "toolathlonScoreByModelName"
 	| "cursorBenchScoreByModelName"
@@ -209,6 +211,13 @@ function buildMatchedRow(
 	);
 	if (gdpPdfScore != null) {
 		evaluations.gdp_pdf = gdpPdfScore;
+	}
+	const riemannBenchScore = findRiemannBenchScore(
+		modelNameCandidates,
+		lookups.riemannBenchScoreByModelName,
+	);
+	if (riemannBenchScore != null) {
+		evaluations.riemann_bench = riemannBenchScore;
 	}
 	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,

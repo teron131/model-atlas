@@ -10,6 +10,7 @@ import type {
 import { buildBlueprintBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/blueprint-bench";
 import { buildCursorBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/cursorbench";
 import { buildGdpPdfScoreByModelName } from "../src/model-atlas/llm/scrapers/gdp-pdf";
+import { buildRiemannBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/riemann-bench";
 import { buildToolathlonScoreByModelName } from "../src/model-atlas/llm/scrapers/toolathlon";
 import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
 import type { LlmStatsSourceData } from "../src/model-atlas/llm/stats/types";
@@ -93,6 +94,13 @@ assert.equal(
 	0.25,
 	"GDP.pdf scores should attach through normalized display-name matching",
 );
+assert.equal(
+	asEvaluations(
+		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+	).riemann_bench,
+	0.31,
+	"Riemann-bench scores should attach through normalized display-name matching",
+);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -173,6 +181,14 @@ function modelStatsSourceData(
 			last_updated: "06/06/2026",
 		},
 	];
+	const riemannBenchModelScoreRows = [
+		{
+			provider: "Google",
+			model: "Example 2.5 Flash (High reasoning)",
+			score: 0.31,
+			last_updated: "05/27/2026",
+		},
+	];
 	const modelsDevModels = [
 		model(
 			"openrouter",
@@ -219,6 +235,10 @@ function modelStatsSourceData(
 		),
 		gdpPdfModelScoreRows,
 		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfModelScoreRows),
+		riemannBenchModelScoreRows,
+		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
+			riemannBenchModelScoreRows,
+		),
 		browseCompModelScoreRows: [],
 		browseCompScoreByModelName: new Map(),
 		toolathlonModelScoreRows,

@@ -34,6 +34,10 @@ import {
 	processModelsDevPayload,
 } from "../scrapers/models-dev";
 import {
+	buildRiemannBenchScoreByModelName,
+	getRiemannBenchModelScoreStats,
+} from "../scrapers/riemann-bench";
+import {
 	buildTerminalBenchAccuracyByModelName,
 	getTerminalBenchModelMedianAccuracyStats,
 } from "../scrapers/terminal-bench";
@@ -92,6 +96,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		automationBenchStats,
 		blueprintBenchStats,
 		gdpPdfStats,
+		riemannBenchStats,
 		browseCompStats,
 		toolathlonStats,
 		cursorBenchStats,
@@ -104,6 +109,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getAutomationBenchLeaderboardStats(),
 		getBlueprintBenchModelScoreStats(),
 		getGdpPdfModelScoreStats(),
+		getRiemannBenchModelScoreStats(),
 		getBrowseCompModelScoreStats(),
 		getToolathlonModelScoreStats(),
 		getCursorBenchModelScoreStats(),
@@ -139,6 +145,10 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		),
 		gdpPdfModelScoreRows: gdpPdfStats.data,
 		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfStats.data),
+		riemannBenchModelScoreRows: riemannBenchStats.data,
+		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
+			riemannBenchStats.data,
+		),
 		browseCompModelScoreRows: browseCompStats.data,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
 			browseCompStats.data,

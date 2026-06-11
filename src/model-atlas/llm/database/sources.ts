@@ -39,6 +39,10 @@ import {
 } from "../scrapers/models-dev";
 import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
 import {
+	buildRiemannBenchScoreByModelName,
+	getRiemannBenchModelScoreStats,
+} from "../scrapers/riemann-bench";
+import {
 	buildTerminalBenchAccuracyByModelName,
 	getTerminalBenchAgentModelAccuracyStats,
 	summarizeTerminalBenchModelMedianAccuracy,
@@ -66,6 +70,7 @@ import {
 	readModelsDevRawCache,
 	readOpenRouterRawCache,
 	readRawSourceCacheStatus,
+	readRiemannBenchRawCache,
 	readTerminalBenchRawCache,
 	readToolathlonRawCache,
 	refreshedCacheStatus,
@@ -129,6 +134,11 @@ type GdpPdfSnapshot = {
 	fetchedAt: { gdpPdf: number | null };
 };
 
+type RiemannBenchSnapshot = {
+	riemannBenchModelScoreRows: SourceSnapshots["riemannBenchModelScoreRows"];
+	fetchedAt: { riemannBench: number | null };
+};
+
 type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: SourceSnapshots["toolathlonModelScoreRows"];
 	fetchedAt: { toolathlon: number | null };
@@ -182,6 +192,10 @@ export function sourceDataFromSnapshots(
 		gdpPdfModelScoreRows: snapshots.gdpPdfModelScoreRows,
 		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(
 			snapshots.gdpPdfModelScoreRows,
+		),
+		riemannBenchModelScoreRows: snapshots.riemannBenchModelScoreRows,
+		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
+			snapshots.riemannBenchModelScoreRows,
 		),
 		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
@@ -510,6 +524,35 @@ async function gdpPdfSnapshot(
 	};
 }
 
+async function riemannBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<RiemannBenchSnapshot> {
+	const cached = readRiemannBenchRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			riemannBenchModelScoreRows: cached.rows,
+			fetchedAt: { riemannBench: cached.fetchedAt },
+		};
+	}
+	const fetched = await getRiemannBenchModelScoreStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		riemannBenchModelScoreRows: rows,
+		fetchedAt: {
+			riemannBench:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 async function toolathlonSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -582,6 +625,7 @@ export async function loadSourceSnapshots(
 		agentsLastExam,
 		blueprintBench,
 		gdpPdf,
+		riemannBench,
 		browseComp,
 		toolathlon,
 		cursorBench,
@@ -593,6 +637,7 @@ export async function loadSourceSnapshots(
 		agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
 		blueprintBenchSnapshot(db, sourceCache.blueprint_bench_2),
 		gdpPdfSnapshot(db, sourceCache.gdp_pdf),
+		riemannBenchSnapshot(db, sourceCache.riemann_bench),
 		browseCompSnapshot(db, sourceCache.browsecomp),
 		toolathlonSnapshot(db, sourceCache.toolathlon),
 		cursorBenchSnapshot(db, sourceCache.cursorbench),
@@ -637,6 +682,11 @@ export async function loadSourceSnapshots(
 		gdpPdf.fetchedAt.gdpPdf,
 		gdpPdf.gdpPdfModelScoreRows.length,
 	);
+	sourceCache.riemann_bench = updatedSourceCacheStatus(
+		sourceCache.riemann_bench,
+		riemannBench.fetchedAt.riemannBench,
+		riemannBench.riemannBenchModelScoreRows.length,
+	);
 	sourceCache.browsecomp = updatedSourceCacheStatus(
 		sourceCache.browsecomp,
 		browseComp.fetchedAt.browseComp,
@@ -668,6 +718,7 @@ export async function loadSourceSnapshots(
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			blueprintBenchModelScoreRows: blueprintBench.blueprintBenchModelScoreRows,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
+			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
@@ -678,6 +729,7 @@ export async function loadSourceSnapshots(
 				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
 				blueprintBench: blueprintBench.fetchedAt.blueprintBench,
 				gdpPdf: gdpPdf.fetchedAt.gdpPdf,
+				riemannBench: riemannBench.fetchedAt.riemannBench,
 				browseComp: browseComp.fetchedAt.browseComp,
 				toolathlon: toolathlon.fetchedAt.toolathlon,
 				cursorBench: cursorBench.fetchedAt.cursorBench,

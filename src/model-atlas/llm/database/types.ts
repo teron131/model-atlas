@@ -14,6 +14,7 @@ import type {
 	ModelsDevFlatModel,
 	ModelsDevPayload,
 } from "../scrapers/models-dev";
+import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
 import type {
 	TerminalBenchAgentModelAccuracyRow,
 	TerminalBenchModelMedianAccuracyRow,
@@ -32,6 +33,7 @@ export const RAW_SOURCE_NAMES = [
 	"agents_last_exam",
 	"blueprint_bench_2",
 	"gdp_pdf",
+	"riemann_bench",
 	"browsecomp",
 	"toolathlon",
 	"cursorbench",
@@ -46,6 +48,7 @@ export const SOURCE_URLS = {
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
 	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
+	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
 	browsecomp:
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 	toolathlon:
@@ -108,6 +111,7 @@ export type SourceSnapshots = {
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
+	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
@@ -118,6 +122,7 @@ export type SourceSnapshots = {
 		agentsLastExam: number | null;
 		blueprintBench: number | null;
 		gdpPdf: number | null;
+		riemannBench: number | null;
 		browseComp: number | null;
 		toolathlon: number | null;
 		cursorBench: number | null;
