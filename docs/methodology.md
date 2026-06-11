@@ -8,26 +8,9 @@ The ranking is not an average of everything available upstream. Many benchmarks 
 
 The main ranking choices are explicit: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, speed anchors, and overall score weights.
 
-## Benchmark Criteria
+## Benchmark Selection
 
-A benchmark is useful here when it changes the ranking in a way that feels real. It should separate strong models, expose a capability difference I care about, and not just add another correlated number to the average.
-
-Good benchmark signals:
-
-- still have headroom among current frontier or near-frontier models
-- produce relative ordering that matches meaningful qualitative differences
-- add a capability angle not already covered by another selected metric
-- are understandable enough that I can revisit why they are included
-- do not over-reward narrow benchmark artifacts
-
-Bad benchmark signals:
-
-- saturated, where many strong models tie or nearly tie
-- duplicated by another selected metric
-- too easy for the current model set
-- noisy in a way that creates fake precision
-- stale relative to current model behavior
-- aimed at a capability that should not move this ranking much
+Benchmark admission follows the standards in `docs/standards.md`. Accepted benchmarks are classified as `frontier` or `baseline`; rejected benchmarks do not affect the ranking.
 
 The ranking has two quality dimensions.
 
