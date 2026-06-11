@@ -3,7 +3,7 @@
  *
  * Page source: https://zapier.com/benchmarks
  */
-import { quantileFromSorted } from "../../math-utils";
+import { medianOfFinite } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
 import { htmlTextLines } from "./parsing";
@@ -75,13 +75,6 @@ function parseScorePercent(value: string): number {
 
 function parseMoney(value: string): number {
 	return Number(Number(value).toFixed(6));
-}
-
-function median(values: number[]): number | null {
-	return quantileFromSorted(
-		[...values].sort((left, right) => left - right),
-		0.5,
-	);
 }
 
 function adjustedScore(
@@ -353,7 +346,7 @@ export function summarizeAutomationBenchModelScores(
 	return overallRows.map((row) => {
 		const domainLeadScores =
 			leadScoresByModel.get(normalizeModelToken(row.model)) ?? [];
-		const domainLeadScoreMedian = median(domainLeadScores);
+		const domainLeadScoreMedian = medianOfFinite(domainLeadScores);
 		return {
 			...row,
 			domain_lead_scores: domainLeadScores,

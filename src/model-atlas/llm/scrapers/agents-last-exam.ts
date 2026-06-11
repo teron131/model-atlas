@@ -4,7 +4,7 @@
  * Page source: https://agenthle.org/leaderboard
  * JSON source: https://agenthle.org/api/demo/leaderboard
  */
-import { meanOfFinite, quantileFromSorted } from "../../math-utils";
+import { meanOfFinite, medianOfFinite } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
 
@@ -130,14 +130,6 @@ export function processAgentsLastExamLeaderboardRows(
 		.filter((row): row is AgentsLastExamHarnessRow => row != null);
 }
 
-/** Return the median of finite values. */
-function median(values: number[]): number | null {
-	return quantileFromSorted(
-		[...values].sort((left, right) => left - right),
-		0.5,
-	);
-}
-
 /** Return the Agents' Last Exam score used for model matching and scoring. */
 export function agentsLastExamBenchmarkScore(
 	row: AgentsLastExamModelScoreRow,
@@ -171,15 +163,15 @@ export function summarizeAgentsLastExamModelScores(
 			return {
 				model,
 				split: scoreSplit,
-				median_score: median(scores),
+				median_score: medianOfFinite(scores),
 				mean_score: meanOfFinite(scores),
-				median_accuracy: median(accuracies),
+				median_accuracy: medianOfFinite(accuracies),
 				mean_accuracy: meanOfFinite(accuracies),
-				median_total_duration_seconds: median(durationSeconds),
+				median_total_duration_seconds: medianOfFinite(durationSeconds),
 				mean_total_duration_seconds: meanOfFinite(durationSeconds),
-				median_total_input_tokens: median(inputTokens),
+				median_total_input_tokens: medianOfFinite(inputTokens),
 				mean_total_input_tokens: meanOfFinite(inputTokens),
-				median_total_output_tokens: median(outputTokens),
+				median_total_output_tokens: medianOfFinite(outputTokens),
 				mean_total_output_tokens: meanOfFinite(outputTokens),
 				frequency: modelRows.length,
 			};

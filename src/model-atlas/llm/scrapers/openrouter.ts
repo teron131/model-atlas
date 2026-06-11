@@ -9,7 +9,7 @@
  * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
  */
 
-import { quantileFromSorted } from "../../math-utils";
+import { medianOfFinite } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asRecord } from "../shared";
 import { isSameOpenRouterModelRoute } from "../stats/model-aliases";
@@ -155,13 +155,6 @@ function asFiniteNumber(value: unknown): number | null {
 	return Number.isFinite(numericValue) ? numericValue : null;
 }
 
-function median(values: number[]): number | null {
-	return quantileFromSorted(
-		[...values].sort((left, right) => left - right),
-		0.5,
-	);
-}
-
 /** Helper for average. */
 function average(values: number[]): number | null {
 	if (values.length === 0) {
@@ -212,10 +205,11 @@ function summarizePerformance(
 
 	return {
 		throughput_tokens_per_second_median:
-			summary?.throughput_tokens_per_second_median ?? median(throughputValues),
+			summary?.throughput_tokens_per_second_median ??
+			medianOfFinite(throughputValues),
 		latency_seconds_median:
-			summary?.latency_seconds_median ?? median(latencyValues),
-		e2e_latency_seconds_median: median(e2eLatencyValues),
+			summary?.latency_seconds_median ?? medianOfFinite(latencyValues),
+		e2e_latency_seconds_median: medianOfFinite(e2eLatencyValues),
 	};
 }
 

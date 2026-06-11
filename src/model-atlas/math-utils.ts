@@ -181,6 +181,16 @@ export function quantileFromSorted(
 	return lowerValue + (upperValue - lowerValue) * ratio;
 }
 
+/** Return the median of finite values from an unsorted list. */
+export function medianOfFinite(
+	values: ReadonlyArray<number | null | undefined>,
+): number | null {
+	return quantileFromSorted(
+		finiteScoreValues(values).sort((left, right) => left - right),
+		0.5,
+	);
+}
+
 /** Min-max normalize one value against the current comparison set. */
 export function minMaxScale(
 	values: ReadonlyArray<number | null>,

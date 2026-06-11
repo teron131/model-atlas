@@ -10,6 +10,7 @@ import {
 import type { LlmStatsModelCandidate } from "../src/model-atlas/llm/stats/types";
 import {
 	meanOfFiniteWithMinimum,
+	medianOfFinite,
 	quantileFromSorted,
 } from "../src/model-atlas/math-utils";
 
@@ -77,6 +78,7 @@ assertEqual(quantileFromSorted(sparseQuantileValues, 0.05), 5);
 assertEqual(quantileFromSorted(sparseQuantileValues, 0.5), 50);
 assertEqual(quantileFromSorted(sparseQuantileValues, 0.95), 95);
 assertEqual(quantileFromSorted(sparseQuantileValues, 1), 100);
+assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
 
