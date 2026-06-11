@@ -63,7 +63,7 @@ export function EfficiencyAxisChart<Row>({
 	setHover,
 	width = 760,
 	height = 490,
-	margin = { top: 28, right: 78, bottom: 70, left: 76 },
+	margin = { top: 28, right: 34, bottom: 70, left: 62 },
 }: {
 	rows: Row[];
 	metric: EfficiencyAxisMetric<Row>;
