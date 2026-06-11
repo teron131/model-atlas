@@ -3,7 +3,7 @@
  *
  * Page source: https://www.tbench.ai/leaderboard/terminal-bench/2.0
  */
-import { quantileFromSorted } from "../../math-utils";
+import { medianOfFinite } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asRecord, type JsonObject, normalizeModelToken } from "../shared";
 
@@ -202,14 +202,6 @@ export function processTerminalBenchLeaderboardRows(
 		}));
 }
 
-/** Return the median of finite values. */
-function median(values: number[]): number | null {
-	return quantileFromSorted(
-		[...values].sort((left, right) => left - right),
-		0.5,
-	);
-}
-
 /** Return the Terminal-Bench score used for model matching. */
 function terminalBenchScore(row: TerminalBenchModelMedianAccuracyRow): number {
 	return Math.max(row.median_accuracy, row.mean_accuracy);
@@ -240,7 +232,7 @@ export function summarizeTerminalBenchModelMedianAccuracy(
 	return [...accuracyByModel.entries()]
 		.map(([model, values]) => ({
 			model,
-			median_accuracy: median(values),
+			median_accuracy: medianOfFinite(values),
 			mean_accuracy:
 				values.reduce((sum, value) => sum + value, 0) / values.length,
 			frequency: values.length,
