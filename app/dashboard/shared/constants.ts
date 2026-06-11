@@ -24,6 +24,7 @@ export const benchmarkLabels: Record<string, string> = {
 	apex_agents: "APEX Agents",
 	agents_last_exam: "Agents' Last Exam",
 	automation_bench: "AutomationBench",
+	browsecomp: "BrowseComp",
 	critpt: "CritPt",
 	cursorbench: "CursorBench",
 	deep_swe: "DeepSWE",
