@@ -1,6 +1,6 @@
 /** Provider color selection for dashboard rows and logos. */
 
-import { safeSlug } from "./format";
+import { safeSlug } from "../shared/format";
 
 export type ProviderThemeColors = Record<string, string>;
 

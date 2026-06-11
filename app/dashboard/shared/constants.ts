@@ -1,4 +1,4 @@
-import type { ModelStatsColumnTooltip } from "../../src/model-atlas/llm/model-stats/types";
+import type { ModelStatsColumnTooltip } from "../../../src/model-atlas/llm/model-stats/types";
 
 export const liveStatsPath = "/api/llm-stats";
 

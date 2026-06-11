@@ -12,7 +12,6 @@ import type {
 } from "../../../src/model-atlas/llm/model-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
-import styles from "../charts.module.css";
 import {
 	type BoxWhiskerDistribution,
 	BoxWhiskerSummary,
@@ -55,6 +54,7 @@ import {
 	fmtTooltipScore,
 	percent,
 } from "./format";
+import styles from "./graphs.module.css";
 import {
 	correlationLabel,
 	costFilterOptions,
@@ -171,10 +171,14 @@ const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
 	},
 };
 
-export function ModelAtlasCharts({
+export function DashboardGraphs({
 	initialPayload,
+	afterControls,
+	afterLead,
 }: {
 	initialPayload: ModelStatsSelectedPayload | null;
+	afterControls?: React.ReactNode;
+	afterLead?: React.ReactNode;
 }) {
 	const [provider, setProvider] = useState("all");
 	const [maxCost, setMaxCost] = useState<"all" | number>("all");
@@ -228,23 +232,24 @@ export function ModelAtlasCharts({
 
 	if (!initialPayload || allModels.length === 0) {
 		return (
-			<main className={styles.atlas}>
+			<section
+				className={`${styles.atlas} ${styles.dashboardGraphs}`}
+				aria-label="Model graphs"
+			>
+				{afterControls}
 				<div className={styles.error}>
 					Unable to load the Model Atlas snapshot.
 				</div>
-			</main>
+				{afterLead}
+			</section>
 		);
 	}
 
 	return (
-		<main className={styles.atlas}>
-			<header className={styles.hero}>
-				<div>
-					<p className={styles.kicker}>Model graphs</p>
-					<h1>Model Atlas</h1>
-				</div>
-			</header>
-
+		<section
+			className={`${styles.atlas} ${styles.dashboardGraphs}`}
+			aria-label="Model graphs"
+		>
 			<section className={styles.controls} aria-label="Graph filters">
 				<div className={styles.controlGroup}>
 					<div className={styles.controlLabel}>
@@ -316,27 +321,33 @@ export function ModelAtlasCharts({
 					</div>
 				</div>
 			</section>
+			{afterControls}
 
 			{models.length === 0 ? (
 				<div className={styles.error}>
 					No models match the current provider and cost filters.
 				</div>
 			) : (
-				<section className={styles.sectionGrid}>
-					<FrontierPanel models={models} setHover={setHover} />
-					<DeepSwePanel
-						models={models}
-						rows={initialPayload.deep_swe?.rows ?? []}
-						setHover={setHover}
-					/>
-					<ALEPanel models={models} setHover={setHover} />
-					<InteractionMatrix models={models} setHover={setHover} />
-					<RunwayPanel models={models} setHover={setHover} />
-				</section>
+				<>
+					<section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
+						<FrontierPanel models={models} setHover={setHover} />
+					</section>
+					{afterLead}
+					<section className={styles.sectionGrid}>
+						<DeepSwePanel
+							models={models}
+							rows={initialPayload.deep_swe?.rows ?? []}
+							setHover={setHover}
+						/>
+						<ALEPanel models={models} setHover={setHover} />
+						<InteractionMatrix models={models} setHover={setHover} />
+						<RunwayPanel models={models} setHover={setHover} />
+					</section>
+				</>
 			)}
 
 			{hover ? <HoverCard hover={hover} /> : null}
-		</main>
+		</section>
 	);
 }
 
@@ -350,7 +361,7 @@ function Panel({
 	note,
 	wide = false,
 }: {
-	kicker: string;
+	kicker?: string;
 	title: string;
 	copy?: string;
 	chips?: string[];
@@ -362,10 +373,12 @@ function Panel({
 	const showChips = chips != null && chips.length > 0;
 
 	return (
-		<article className={`${styles.panel} ${wide ? styles.wide : ""}`}>
+		<article
+			className={`${styles.panel} ${wide ? styles.wide : ""} ${kicker ? "" : styles.noKicker}`}
+		>
 			<div className={styles.panelHead}>
 				<div className={styles.panelMeta}>
-					<p className={styles.chartKicker}>{kicker}</p>
+					{kicker ? <p className={styles.chartKicker}>{kicker}</p> : null}
 					{summary != null || showChips ? (
 						<div className={styles.panelSide}>
 							{showChips ? (
@@ -560,7 +573,6 @@ function FrontierPanel({
 	if (candidates.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 01 / Pareto frontier"
 				title="Pareto frontier"
 				copy="A tradeoff scatter for intelligence versus value score."
 			>
@@ -660,7 +672,6 @@ function FrontierPanel({
 
 	return (
 		<Panel
-			kicker="Graph 01 / Pareto frontier"
 			title="Pareto frontier"
 			copy="Intelligence score plotted against value score."
 			summary={
@@ -811,7 +822,6 @@ function DeepSwePanel({
 	if (deep.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 02 / DeepSWE efficiency axis"
 				title="DeepSWE efficiency axis"
 				copy="DeepSWE rows appear when the current filters include models with DeepSWE task metrics."
 			>
@@ -870,7 +880,6 @@ function DeepSwePanel({
 
 	return (
 		<Panel
-			kicker="Graph 02 / DeepSWE efficiency axis"
 			title="DeepSWE efficiency axis"
 			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens."
 			summary={
@@ -983,7 +992,6 @@ function ALEPanel({
 	if (rows.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 03 / ALE efficiency axis"
 				title="ALE efficiency axis"
 				copy="ALE rows appear when the current filters include models with Agents' Last Exam task metrics."
 			>
@@ -1017,7 +1025,6 @@ function ALEPanel({
 
 	return (
 		<Panel
-			kicker="Graph 03 / ALE efficiency axis"
 			title="ALE efficiency axis"
 			copy="Agents' Last Exam score plotted against task cost, time, or total tokens."
 			summary={
@@ -1109,7 +1116,6 @@ function InteractionMatrix({
 
 	return (
 		<Panel
-			kicker="Graph 04 / Intelligence interaction matrix"
 			title="Intelligence interaction matrix"
 			copy="Small multiples across price, speed, response time, context, task cost, and coding reliability."
 			summary={
@@ -1375,7 +1381,6 @@ function RunwayPanel({
 	if (candidates.length === 0) {
 		return (
 			<Panel
-				kicker="Graph 05 / Context runway"
 				title="Context runway"
 				copy="Context runway appears when context and throughput metrics are available under the current filters."
 			>
@@ -1504,7 +1509,6 @@ function RunwayPanel({
 
 	return (
 		<Panel
-			kicker="Graph 05 / Context runway"
 			title="Context runway"
 			copy="Context window plotted against median output throughput."
 			summary={

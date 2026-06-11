@@ -8,7 +8,6 @@ import { scaleLinear, scaleLog } from "d3-scale";
 import type { CSSProperties } from "react";
 
 import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
-import styles from "../charts.module.css";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
@@ -25,6 +24,7 @@ import {
 	XAxisTicks,
 	YAxisTicks,
 } from "./ChartComponents";
+import styles from "./graphs.module.css";
 import { providerColor } from "./providerTheme";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 

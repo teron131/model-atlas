@@ -16,17 +16,18 @@ import type {
 	ModelStatsColumnTooltips,
 	ModelStatsSelectedPayload,
 } from "../../src/model-atlas/llm/model-stats/types";
-import { BenchmarkStrip } from "./BenchmarkStrip";
+import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
+import { DashboardGraphs } from "./graphs";
 import {
 	ColumnTooltip,
 	type HeaderTooltipHandler,
 	type TooltipState,
 	tooltipPositionFromElement,
-} from "./ColumnTooltip";
-import { liveStatsPath } from "./constants";
-import { cacheBustedPath } from "./format";
-import { RefreshIcon } from "./icons";
-import { ModelTable, reverseDirection } from "./ModelTable";
+} from "./shared/ColumnTooltip";
+import { liveStatsPath } from "./shared/constants";
+import { cacheBustedPath } from "./shared/format";
+import { RefreshIcon } from "./shared/icons";
+import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dedupeDisplayModels,
 	type SortKey,
@@ -34,12 +35,12 @@ import {
 	sortedRows,
 	sorters,
 	type TableRow,
-} from "./models";
+} from "./table/models";
 import {
 	hasSelectedProviderThemeColor,
 	type ProviderThemeColors,
 	providerThemeSlug,
-} from "./providerTheme";
+} from "./table/providerTheme";
 
 const emptyColumnTooltips: ModelStatsColumnTooltips = {};
 const SELECTED_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
@@ -207,26 +208,33 @@ export function Dashboard({
 			aria-busy={isInitialLoading}
 		>
 			<DashboardHeader />
-			<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
-			<section className="dashboard-deck" aria-label="Model leaderboard">
-				<DashboardControls
-					filterQuery={filterQuery}
-					rowCountLabel={rowCountLabel}
-					isRefreshing={isRefreshing}
-					onFilterQueryChange={setFilterQuery}
-					onRefresh={() => void refreshPayload({ bypassGuard: true })}
-				/>
-				<ModelTable
-					sortState={sortState}
-					visibleRows={visibleRows}
-					emptyMessage={emptyMessage}
-					isLoading={isInitialLoading}
-					onSort={handleSort}
-					onTooltip={showTooltip}
-					onTooltipEnd={clearTooltip}
-					providerColors={providerColors}
-				/>
-			</section>
+			<DashboardGraphs
+				initialPayload={payload}
+				afterControls={
+					<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
+				}
+				afterLead={
+					<section className="dashboard-deck" aria-label="Model leaderboard">
+						<DashboardControls
+							filterQuery={filterQuery}
+							rowCountLabel={rowCountLabel}
+							isRefreshing={isRefreshing}
+							onFilterQueryChange={setFilterQuery}
+							onRefresh={() => void refreshPayload({ bypassGuard: true })}
+						/>
+						<ModelTable
+							sortState={sortState}
+							visibleRows={visibleRows}
+							emptyMessage={emptyMessage}
+							isLoading={isInitialLoading}
+							onSort={handleSort}
+							onTooltip={showTooltip}
+							onTooltipEnd={clearTooltip}
+							providerColors={providerColors}
+						/>
+					</section>
+				}
+			/>
 			{tooltip != null && activeTooltipContent != null && (
 				<ColumnTooltip
 					content={activeTooltipContent}

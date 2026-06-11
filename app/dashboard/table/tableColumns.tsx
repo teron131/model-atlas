@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "./icons";
+import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../shared/icons";
 import { dashboardMetricColumns, type SortKey } from "./models";
 
 export type SortableColumnDefinition = {

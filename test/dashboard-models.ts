@@ -4,7 +4,7 @@ import {
 	dedupeDisplayModels,
 	type SortState,
 	sortedRows,
-} from "../app/dashboard/models";
+} from "../app/dashboard/table/models";
 import type { ModelStatsSelectedModel } from "../src/model-atlas/llm/model-stats/types";
 import { minimalSelectedModel } from "./model-stats-fixtures";
 

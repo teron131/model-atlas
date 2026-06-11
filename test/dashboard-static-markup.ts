@@ -1,14 +1,30 @@
 import assert from "node:assert/strict";
+import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ColumnTooltip } from "../app/dashboard/ColumnTooltip";
-import { Dashboard } from "../app/dashboard/index";
+import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
 import {
 	minimalSelectedModel,
 	minimalSelectedPayload,
 } from "./model-stats-fixtures";
+
+registerHooks({
+	load(url, context, nextLoad) {
+		if (url.endsWith(".css")) {
+			return {
+				format: "module",
+				shortCircuit: true,
+				source:
+					"export default new Proxy({}, { get: (_, key) => String(key) });",
+			};
+		}
+		return nextLoad(url, context);
+	},
+});
+
+const { Dashboard } = await import("../app/dashboard/index");
 
 const payload = minimalSelectedPayload({
 	fetchedAt: 900,
@@ -49,7 +65,7 @@ assert.equal(
 );
 assert.equal(
 	matchCount(loadingHtml, 'class="loading-row"'),
-	9,
+	12,
 	"initial loading markup should preserve table density with skeleton rows",
 );
 assert.equal(

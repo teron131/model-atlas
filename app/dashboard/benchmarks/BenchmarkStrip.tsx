@@ -3,18 +3,18 @@
 import type { CSSProperties, FocusEvent, MouseEvent } from "react";
 import { useCallback, useState } from "react";
 
-import type { ModelStatsSelectedPayload } from "../../src/model-atlas/llm/model-stats/types";
+import type { ModelStatsSelectedPayload } from "../../../src/model-atlas/llm/model-stats/types";
 import {
 	ColumnTooltip,
 	type TooltipState,
 	tooltipPositionFromElement,
-} from "./ColumnTooltip";
+} from "../shared/ColumnTooltip";
 import {
 	benchmarkGroups,
 	benchmarkLabels,
 	benchmarkTooltips,
-} from "./constants";
-import { formatWeight } from "./format";
+} from "../shared/constants";
+import { formatWeight } from "../shared/format";
 
 const loadingWeightRows = [
 	"intelligence",
