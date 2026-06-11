@@ -27,6 +27,8 @@ There is no standalone coding score in the current ranking. AA SciCode is treate
 
 Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
+For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow: choose the group, then assign Intelligence and Agentic portions that sum to 100%. These portions allocate the benchmark's capability signal between the two quality dimensions; they are not arbitrary standalone weights. A proprietary or first-party agent workflow benchmark can be kept `baseline` and `0%` Intelligence / `100%` Agentic when the evidence is useful but too opaque to act as a frontier model-quality claim.
+
 | Benchmark | Group | Intelligence Portion | Agentic Portion | Decision Note |
 | --- | --- | ---: | ---: | --- |
 | Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Professional factual knowledge support. |

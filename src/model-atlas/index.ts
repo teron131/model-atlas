@@ -107,6 +107,17 @@ export {
 	processBrowseCompDetailsJson,
 } from "./llm/scrapers/browsecomp";
 export type {
+	CursorBenchModelScorePayload,
+	CursorBenchModelScoreRow,
+	CursorBenchScraperOptions,
+} from "./llm/scrapers/cursorbench";
+export {
+	buildCursorBenchScoreByModelName,
+	findCursorBenchScore,
+	getCursorBenchModelScoreStats,
+	processCursorBenchPageHtml,
+} from "./llm/scrapers/cursorbench";
+export type {
 	DeepSWELeaderboardPayload,
 	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
