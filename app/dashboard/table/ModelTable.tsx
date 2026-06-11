@@ -12,8 +12,8 @@ import {
 	useState,
 } from "react";
 
-import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/model-stats/types";
-import type { HeaderTooltipHandler } from "./ColumnTooltip";
+import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
+import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import {
 	formatBenchmarkMetric,
 	formatContext,
@@ -21,7 +21,7 @@ import {
 	formatScore,
 	formatTaskMetric,
 	safeSlug,
-} from "./format";
+} from "../shared/format";
 import {
 	benchmarkMetricValue,
 	contextWindowValue,

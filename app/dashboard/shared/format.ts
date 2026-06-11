@@ -1,4 +1,4 @@
-import type { BenchmarkMetricColumn, TaskMetricColumn } from "./models";
+import type { BenchmarkMetricColumn, TaskMetricColumn } from "../table/models";
 
 export const formatScore = (value: number | null | undefined) =>
 	typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";

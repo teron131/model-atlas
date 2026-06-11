@@ -5,9 +5,10 @@
 	--ink: #eeeeea;
 	--muted: #a5a29b;
 	--faint: #6d6b65;
-	--line: rgba(238, 238, 234, 0.13);
-	--line-strong: rgba(238, 238, 234, 0.24);
-	--accent: #ff5a46;
+	--line: rgba(238, 238, 234, 0.075);
+	--line-strong: rgba(238, 238, 234, 0.16);
+	--accent: #eeeeea;
+	--analysis-accent: #ff5a46;
 	--gold: #f6b44b;
 	--good: #7cc69b;
 	width: min(1760px, 100%);
@@ -17,6 +18,19 @@
 	background: var(--paper);
 	color: var(--ink);
 	font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+.dashboardGraphs {
+	width: 100%;
+	min-height: 0;
+	margin: 0 0 28px;
+	padding: 0;
+	background: transparent;
+}
+
+.dashboardGraphs .controls {
+	margin-top: 0;
+	border-top: 0;
 }
 
 .atlas *,
@@ -73,22 +87,23 @@
 
 .controls {
 	display: grid;
-	grid-template-columns: 1fr;
+	grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.88fr) minmax(0, 0.78fr);
 	align-items: start;
-	margin: 22px 0;
-	border: 1px solid var(--line);
-	background: rgba(255, 255, 255, 0.012);
+	margin: 18px 0 12px;
+	border-top: 1px solid var(--line-strong);
+	border-bottom: 1px solid var(--line);
+	background: transparent;
 }
 
 .controlGroup {
 	display: grid;
 	gap: 12px;
 	padding: 14px 16px;
-	border-bottom: 1px solid var(--line);
+	border-right: 1px solid var(--line);
 }
 
 .controlGroup:last-child {
-	border-bottom: 0;
+	border-right: 0;
 }
 
 .controlLabel {
@@ -123,7 +138,7 @@
 	padding: 7px 9px;
 	border: 1px solid var(--line);
 	border-radius: 0;
-	background: rgba(8, 9, 9, 0.72);
+	background: rgba(238, 238, 234, 0.016);
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
@@ -146,7 +161,7 @@
 	padding: 0 10px;
 	border: 1px solid var(--line);
 	border-radius: 0;
-	background: rgba(8, 9, 9, 0.72);
+	background: rgba(238, 238, 234, 0.016);
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
@@ -171,7 +186,7 @@
 		var(--provider-color, var(--ink)) 58%,
 		var(--line)
 	);
-	background: rgba(255, 255, 255, 0.06);
+	background: rgba(255, 255, 255, 0.045);
 	color: var(--ink);
 }
 
@@ -190,16 +205,18 @@
 .sectionGrid {
 	display: grid;
 	grid-template-columns: 1fr;
-	gap: 18px;
+	gap: 22px;
+}
+
+.leadGrid {
+	margin-top: 6px;
 }
 
 .panel {
 	min-width: 0;
 	overflow: hidden;
-	border: 1px solid var(--line);
-	background:
-		linear-gradient(180deg, rgba(18, 19, 19, 0.92), rgba(10, 11, 11, 0.95)),
-		var(--surface);
+	border-top: 1px solid var(--line-strong);
+	background: transparent;
 }
 
 .wide {
@@ -211,8 +228,7 @@
 	grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
 	column-gap: clamp(22px, 3vw, 42px);
 	row-gap: 18px;
-	padding: 22px 22px 24px;
-	border-bottom: 1px solid var(--line);
+	padding: 22px 0 24px;
 }
 
 .panelMeta {
@@ -242,6 +258,11 @@
 	min-width: 0;
 }
 
+.noKicker .panelTitleBlock,
+.noKicker .panelMeta .panelSide {
+	grid-row: 1;
+}
+
 .chips {
 	display: flex;
 	flex-wrap: wrap;
@@ -252,6 +273,7 @@
 .chip {
 	padding: 6px 8px;
 	border: 1px solid var(--line);
+	background: rgba(238, 238, 234, 0.012);
 	color: var(--muted);
 	font-size: 11px;
 	font-weight: 900;
@@ -331,7 +353,7 @@
 	left: var(--whisker-median);
 	width: 2px;
 	height: 18px;
-	background: var(--accent);
+	background: var(--analysis-accent);
 	transform: translateX(-1px);
 }
 
@@ -469,7 +491,7 @@
 .chartWrap {
 	width: 100%;
 	overflow: hidden;
-	padding: 18px 20px 8px;
+	padding: 18px 0 8px;
 }
 
 .chartWrap svg,
@@ -481,17 +503,17 @@
 }
 
 .gridLine {
-	stroke: rgba(238, 238, 234, 0.12);
+	stroke: rgba(238, 238, 234, 0.075);
 	stroke-width: 1;
 }
 
 .axisTick {
-	stroke: rgba(238, 238, 234, 0.42);
+	stroke: rgba(238, 238, 234, 0.32);
 	stroke-width: 1.1;
 }
 
 .medianAxis {
-	stroke: rgba(238, 238, 234, 0.22);
+	stroke: rgba(238, 238, 234, 0.14);
 	stroke-width: 1;
 }
 
@@ -559,7 +581,7 @@
 
 .frontier {
 	fill: none;
-	stroke: rgba(255, 90, 70, 0.68);
+	stroke: color-mix(in srgb, var(--analysis-accent) 82%, var(--ink));
 	stroke-width: 1.45;
 	stroke-linecap: square;
 	stroke-linejoin: miter;
@@ -567,7 +589,7 @@
 
 .frontierGuide {
 	fill: none;
-	stroke: rgba(255, 90, 70, 0.14);
+	stroke: color-mix(in srgb, var(--analysis-accent) 24%, transparent);
 	stroke-width: 1;
 	stroke-dasharray: 5 6;
 }
@@ -620,17 +642,17 @@
 .chartSummary {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	border-top: 1px solid var(--line);
+	gap: clamp(16px, 3vw, 28px);
+	margin-top: 10px;
 }
 
 .summaryCard {
 	min-width: 0;
-	padding: 12px 14px;
-	border-right: 1px solid var(--line);
+	padding: 10px 0 0;
 }
 
-.summaryCard:last-child {
-	border-right: 0;
+.summaryCard + .summaryCard {
+	padding-left: 0;
 }
 
 .summaryValue {
@@ -666,11 +688,19 @@
 		grid-row: 2;
 	}
 
+	.noKicker .panelTitleBlock {
+		grid-row: 1;
+	}
+
 	.panelMeta .panelSide {
 		grid-column: 1;
 		grid-row: 3;
 		justify-self: start;
 		justify-items: start;
+	}
+
+	.noKicker .panelMeta .panelSide {
+		grid-row: 2;
 	}
 
 	.chips {
@@ -684,13 +714,13 @@
 	justify-content: flex-start;
 	gap: 10px 14px;
 	align-items: center;
-	padding: 14px 18px 0;
+	padding: 14px 0 0;
 }
 
 .frontierLegend {
 	display: flex;
 	justify-content: flex-end;
-	padding: 14px 18px 0;
+	padding: 14px 0 0;
 }
 
 .metricToggle {
@@ -707,7 +737,7 @@
 	padding: 8px 10px;
 	border: 1px solid var(--line);
 	border-right: 0;
-	background: rgba(8, 9, 9, 0.72);
+	background: rgba(238, 238, 234, 0.016);
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
@@ -786,9 +816,17 @@
 
 .interactionPlot {
 	min-width: 0;
-	padding: 14px 14px 12px;
+	padding: 14px 0 12px;
 	border-right: 1px solid var(--line);
 	border-bottom: 1px solid var(--line);
+}
+
+.interactionPlot:nth-child(2n + 1) {
+	padding-right: 14px;
+}
+
+.interactionPlot:nth-child(2n) {
+	padding-left: 14px;
 }
 
 .interactionPlot:nth-child(2n) {
@@ -816,7 +854,7 @@
 .interactionBadge {
 	padding: 5px 7px;
 	border: 1px solid var(--line);
-	background: rgba(238, 238, 234, 0.025);
+	background: rgba(238, 238, 234, 0.014);
 	color: var(--muted);
 	font-size: 11px;
 	font-weight: 900;
@@ -989,6 +1027,8 @@
 	.interactionPlot,
 	.interactionPlot:nth-child(2n),
 	.interactionPlot:nth-child(3n) {
+		padding-right: 0;
+		padding-left: 0;
 		border-right: 0;
 		border-bottom: 1px solid var(--line);
 	}

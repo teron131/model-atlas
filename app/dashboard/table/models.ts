@@ -1,6 +1,6 @@
 /** Dashboard row shaping and sort semantics for selected-model payloads. */
 
-import type { ModelStatsSelectedModel } from "../../src/model-atlas/llm/model-stats/types";
+import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
 
 const artificialAnalysisTaskMetricColumns = [
 	{

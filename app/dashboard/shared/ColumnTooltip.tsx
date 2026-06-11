@@ -9,14 +9,14 @@ import type {
 	ModelStatsColumnTooltipRow,
 	ModelStatsColumnTooltipSectionItem,
 	ModelStatsColumnTooltipSectionKind,
-} from "../../src/model-atlas/llm/model-stats/types";
+} from "../../../src/model-atlas/llm/model-stats/types";
+import type { SortKey } from "../table/models";
 import {
 	tooltipHorizontalPadding,
 	tooltipMaxWidth,
 	tooltipOffsetTop,
 	tooltipWorkflowMaxWidth,
 } from "./constants";
-import type { SortKey } from "./models";
 
 const workflowSimulationRowPattern =
 	/^(.*?)\s+(\d+\s+calls?), input ([^,]+), output (.+)$/;

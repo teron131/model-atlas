@@ -11,8 +11,8 @@ import {
 
 import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
-import styles from "../charts.module.css";
 import { fmtCompact } from "./format";
+import styles from "./graphs.module.css";
 import { focusHover, modelName, pointHover, shortLabel } from "./models";
 import type { HoverRow, HoverSetter, HoverState, Margin } from "./types";
 

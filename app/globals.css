@@ -7,13 +7,13 @@
 	--muted: #a2a09a;
 	--faint: #62615d;
 	--line: #d9d8d2;
-	--frame-line: rgba(238, 238, 234, 0.32);
-	--frame-line-soft: rgba(238, 238, 234, 0.16);
+	--frame-line: rgba(238, 238, 234, 0.2);
+	--frame-line-soft: rgba(238, 238, 234, 0.085);
 	--soft: #292b2e;
 	--rail: #1b1d20;
-	--hover: rgba(238, 238, 234, 0.055);
+	--hover: rgba(238, 238, 234, 0.04);
 	--accent: #eeeeea;
-	--accent-soft: rgba(238, 238, 234, 0.28);
+	--accent-soft: rgba(238, 238, 234, 0.18);
 	--mono-label: 11px;
 	--mono-chip: 12px;
 	--mono-data: 12px;
@@ -66,8 +66,8 @@ body::before {
 		0deg,
 		transparent,
 		transparent 2px,
-		rgba(255, 255, 255, 0.025) 2px,
-		rgba(255, 255, 255, 0.025) 4px
+		rgba(255, 255, 255, 0.014) 2px,
+		rgba(255, 255, 255, 0.014) 4px
 	);
 }
 
@@ -76,10 +76,10 @@ body::after {
 	position: fixed;
 	inset: 0;
 	pointer-events: none;
-	opacity: 0.18;
+	opacity: 0.09;
 	background-image: radial-gradient(
 		circle at 20% 10%,
-		rgba(255, 255, 255, 0.08) 0 1px,
+		rgba(255, 255, 255, 0.055) 0 1px,
 		transparent 1px
 	);
 	background-size: 13px 11px;
@@ -118,18 +118,17 @@ h1 {
 	letter-spacing: 0;
 	text-transform: uppercase;
 	text-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.12),
-		0 18px 42px rgba(0, 0, 0, 0.34);
+		0 1px 0 rgba(255, 255, 255, 0.08),
+		0 14px 34px rgba(0, 0, 0, 0.26);
 }
 
 .benchmarks {
 	display: grid;
 	gap: 8px;
 	width: 100%;
-	margin: 8px 0 24px;
-	padding: 14px 16px 16px;
-	border: 1px solid var(--frame-line);
-	background: rgba(255, 255, 255, 0.018);
+	margin: 8px 0 0;
+	padding: 13px 0 14px;
+	background: transparent;
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -148,9 +147,9 @@ h1 {
 
 .benchmark-groups {
 	display: flex;
-	width: calc(100% + 32px);
-	max-width: calc(100% + 32px);
-	margin: 3px -16px -16px;
+	width: 100%;
+	max-width: 100%;
+	margin: 3px 0 -14px;
 	overflow-x: auto;
 	overscroll-behavior-x: contain;
 	border-top: 1px solid var(--frame-line-soft);
@@ -168,7 +167,7 @@ h1 {
 	max-width: 360px;
 	padding: 11px 12px 13px;
 	border-right: 1px solid var(--frame-line-soft);
-	background: rgba(8, 9, 9, 0.54);
+	background: transparent;
 }
 
 .benchmark-group:last-child {
@@ -205,7 +204,7 @@ h1 {
 	display: block;
 	padding: 4px 6px;
 	border: 1px solid var(--frame-line-soft);
-	background: rgba(8, 9, 9, 0.72);
+	background: rgba(238, 238, 234, 0.018);
 	color: var(--ink);
 	font: inherit;
 	font-size: var(--mono-chip);
@@ -236,8 +235,8 @@ h1 {
 .benchmark-list samp:hover,
 .benchmark-chip:hover,
 .benchmark-chip:focus {
-	border-color: rgba(217, 216, 210, 0.35);
-	background: rgba(238, 238, 234, 0.065);
+	border-color: rgba(217, 216, 210, 0.24);
+	background: rgba(238, 238, 234, 0.045);
 	color: #fff;
 	outline: 0;
 }
@@ -284,9 +283,10 @@ h1 {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	min-width: 0;
+	margin: 30px 0 38px;
 	overflow: visible;
-	border: 1px solid var(--frame-line);
-	background: rgba(13, 14, 14, 0.88);
+	border-bottom: 1px solid var(--frame-line);
+	background: transparent;
 }
 
 .controls {
@@ -296,8 +296,8 @@ h1 {
 	gap: 16px;
 	width: 100%;
 	min-width: 0;
-	padding: 14px 16px;
-	border-bottom: 1px solid var(--frame-line);
+	padding: 14px 0;
+	border-bottom: 1px solid var(--frame-line-soft);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -316,7 +316,7 @@ h1 {
 	padding: 0 10px;
 	border: 1px solid var(--frame-line-soft);
 	border-radius: 0;
-	background: rgba(8, 9, 9, 0.72);
+	background: rgba(238, 238, 234, 0.018);
 	color: var(--ink);
 	font: inherit;
 	font-size: var(--mono-chip);
@@ -354,7 +354,7 @@ h1 {
 	padding: 0;
 	border: 1px solid var(--frame-line-soft);
 	border-radius: 0;
-	background: rgba(8, 9, 9, 0.72);
+	background: rgba(238, 238, 234, 0.018);
 	color: var(--ink);
 	cursor: pointer;
 	transition:
@@ -395,7 +395,7 @@ h1 {
 	width: 100%;
 	min-width: 0;
 	overflow: visible;
-	background: rgba(9, 10, 11, 0.44);
+	background: transparent;
 	--rank-column-width: 48px;
 	--table-visible-rows: 12;
 	--table-row-content-height: 35px;
@@ -421,7 +421,7 @@ h1 {
 	overflow-x: auto;
 	overflow-y: hidden;
 	overscroll-behavior-x: none;
-	background: var(--surface);
+	background: rgba(15, 16, 18, 0.92);
 	border-bottom: 1px solid var(--frame-line-soft);
 	scrollbar-width: none;
 	-ms-overflow-style: none;
@@ -489,7 +489,7 @@ th,
 td {
 	height: var(--table-row-content-height);
 	padding: var(--table-row-padding-y) 8px;
-	border-bottom: 1px solid rgba(238, 238, 234, 0.1);
+	border-bottom: 1px solid rgba(238, 238, 234, 0.07);
 	text-align: right;
 	vertical-align: middle;
 }
@@ -507,12 +507,12 @@ tbody tr:hover {
 }
 
 tbody tr:nth-child(2n) {
-	background: rgba(255, 255, 255, 0.012);
+	background: rgba(255, 255, 255, 0.007);
 	--sticky-cell-background: color-mix(in srgb, var(--paper) 98.8%, white);
 }
 
 tbody tr:nth-child(2n):hover {
-	background: rgba(238, 238, 234, 0.07);
+	background: rgba(238, 238, 234, 0.045);
 	--sticky-cell-background: color-mix(in srgb, var(--paper) 93%, var(--ink));
 }
 

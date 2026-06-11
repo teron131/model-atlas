@@ -5,7 +5,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../src/model-atlas/math-utils";
-import styles from "../charts.module.css";
+import styles from "./graphs.module.css";
 
 export type BoxWhiskerDistribution = {
 	count: number;
