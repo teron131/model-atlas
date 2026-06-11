@@ -6,6 +6,11 @@
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
+import {
+	stringValue,
+	zeroEvalModelRows,
+	zeroEvalModelScoreFields,
+} from "./parsing";
 
 const DEFAULT_DETAILS_URL =
 	"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details";
@@ -36,43 +41,17 @@ export type ToolathlonModelScorePayload = {
 	data: ToolathlonModelScoreRow[];
 };
 
-function stringValue(value: unknown): string | null {
-	return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function booleanValue(value: unknown): boolean | null {
-	return typeof value === "boolean" ? value : null;
-}
-
-function normalizedScore(value: unknown): number | null {
-	const score = asFiniteNumber(value);
-	if (score == null || score < 0 || score > 1) {
-		return null;
-	}
-	return Number(score.toFixed(6));
-}
-
 function toolathlonModelScoreRow(
 	value: unknown,
 ): ToolathlonModelScoreRow | null {
 	const row = asRecord(value);
-	const model = stringValue(row?.model_name);
-	const provider = stringValue(row?.organization_id);
-	const score =
-		normalizedScore(row?.normalized_score) ?? normalizedScore(row?.score);
-	if (model == null || provider == null || score == null) {
+	const fields = zeroEvalModelScoreFields(value);
+	if (fields == null) {
 		return null;
 	}
 	return {
 		rank: asFiniteNumber(row?.rank),
-		model,
-		provider,
-		provider_name: stringValue(row?.organization_name),
-		score,
-		source_url: stringValue(row?.self_reported_source),
-		analysis_method: stringValue(row?.analysis_method),
-		verified: booleanValue(row?.verified),
-		self_reported: booleanValue(row?.self_reported),
+		...fields,
 		announcement_date: stringValue(row?.announcement_date),
 	};
 }
@@ -81,16 +60,7 @@ function toolathlonModelScoreRow(
 export function processToolathlonDetailsJson(
 	payload: unknown,
 ): ToolathlonModelScoreRow[] {
-	const root = asRecord(payload);
-	const modelRows = Array.isArray(root?.models) ? root.models : [];
-	const rows: ToolathlonModelScoreRow[] = [];
-	for (const modelRow of modelRows) {
-		const row = toolathlonModelScoreRow(modelRow);
-		if (row != null) {
-			rows.push(row);
-		}
-	}
-	return rows;
+	return zeroEvalModelRows(payload, toolathlonModelScoreRow);
 }
 
 /** Build Toolathlon score rows by normalized model name. */

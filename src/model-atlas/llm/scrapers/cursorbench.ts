@@ -5,6 +5,7 @@
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
+import { htmlTextLines } from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://cursor.com/cursorbench";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -85,27 +86,6 @@ function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
 		aliases.add(`Kimi K${kimiVersion}`);
 	}
 	return [...aliases];
-}
-
-function decodeHtmlEntities(value: string): string {
-	return value
-		.replace(/&nbsp;/g, " ")
-		.replace(/&#xA0;/gi, " ")
-		.replace(/&amp;/g, "&")
-		.replace(/&#x27;/g, "'")
-		.replace(/&quot;/g, '"');
-}
-
-function pageLines(pageHtml: string): string[] {
-	return decodeHtmlEntities(
-		pageHtml
-			.replace(/<script[\s\S]*?<\/script>/g, " ")
-			.replace(/<style[\s\S]*?<\/style>/g, " ")
-			.replace(/<[^>]+>/g, "\n"),
-	)
-		.split("\n")
-		.map((line) => line.replace(/\s+/g, " ").trim())
-		.filter((line) => line.length > 0);
 }
 
 function findLeaderboardBodyStart(lines: string[]): number {
@@ -246,7 +226,7 @@ function parseCursorBenchCells(
 export function processCursorBenchPageHtml(
 	pageHtml: string,
 ): CursorBenchModelScoreRow[] {
-	const lines = pageLines(pageHtml);
+	const lines = htmlTextLines(pageHtml);
 	const bodyStart = findLeaderboardBodyStart(lines);
 	if (bodyStart === -1) {
 		return [];

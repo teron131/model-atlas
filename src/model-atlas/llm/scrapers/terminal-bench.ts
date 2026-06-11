@@ -3,6 +3,7 @@
  *
  * Page source: https://www.tbench.ai/leaderboard/terminal-bench/2.0
  */
+import { quantileFromSorted } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asRecord, type JsonObject, normalizeModelToken } from "../shared";
 
@@ -203,17 +204,10 @@ export function processTerminalBenchLeaderboardRows(
 
 /** Return the median of finite values. */
 function median(values: number[]): number | null {
-	if (values.length === 0) {
-		return null;
-	}
-	const sorted = [...values].sort((left, right) => left - right);
-	const middle = Math.floor(sorted.length / 2);
-	if (sorted.length % 2 === 1) {
-		return sorted[middle] ?? null;
-	}
-	const left = sorted[middle - 1];
-	const right = sorted[middle];
-	return left != null && right != null ? (left + right) / 2 : null;
+	return quantileFromSorted(
+		[...values].sort((left, right) => left - right),
+		0.5,
+	);
 }
 
 /** Return the Terminal-Bench score used for model matching. */

@@ -6,6 +6,12 @@
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
+import {
+	htmlAttribute,
+	percentToUnitScore,
+	providerFromLogoAlt,
+	stripHtmlTags,
+} from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -35,45 +41,6 @@ export type RiemannBenchModelScorePayload = {
 	data: RiemannBenchModelScoreRow[];
 };
 
-function decodeHtmlEntities(value: string): string {
-	return value
-		.replace(/&nbsp;/g, " ")
-		.replace(/&#xA0;/gi, " ")
-		.replace(/&amp;/g, "&")
-		.replace(/&#x27;/g, "'")
-		.replace(/&quot;/g, '"');
-}
-
-function stripTags(value: string): string {
-	return decodeHtmlEntities(value.replace(/<[^>]+>/g, " "))
-		.replace(/\s+/g, " ")
-		.trim();
-}
-
-function stringAttribute(html: string, name: string): string | null {
-	const match = html.match(new RegExp(`${name}="([^"]+)"`, "i"));
-	return match == null ? null : decodeHtmlEntities(match[1] ?? "").trim();
-}
-
-function scoreFromPercent(value: string | null): number | null {
-	if (value == null) {
-		return null;
-	}
-	const score = Number(value);
-	if (!Number.isFinite(score) || score < 0 || score > 100) {
-		return null;
-	}
-	return Number((score / 100).toFixed(6));
-}
-
-function providerFromAlt(value: string | null): string | null {
-	if (value == null) {
-		return null;
-	}
-	const provider = value.replace(/\s+logo$/i, "").trim();
-	return provider.length > 0 ? provider : null;
-}
-
 function lastUpdatedFromPage(pageHtml: string): string | null {
 	const match = pageHtml.match(/Last updated\s+(\d{2}\/\d{2}\/\d{4})/i);
 	return match?.[1] ?? null;
@@ -81,19 +48,19 @@ function lastUpdatedFromPage(pageHtml: string): string | null {
 
 function rowModelName(rowHtml: string): string | null {
 	const modelMatch = rowHtml.match(/corecraft-model[^>]*>([\s\S]*?)<\/div>/i);
-	const model = modelMatch == null ? null : stripTags(modelMatch[1] ?? "");
+	const model = modelMatch == null ? null : stripHtmlTags(modelMatch[1] ?? "");
 	return model != null && model.length > 0 ? model : null;
 }
 
 function rowScorePercent(rowHtml: string): string | null {
-	const attributeScore = stringAttribute(rowHtml, "data-score");
+	const attributeScore = htmlAttribute(rowHtml, "data-score");
 	if (attributeScore != null && attributeScore.length > 0) {
 		return attributeScore;
 	}
 	const scoreMatch = rowHtml.match(
 		/<div[^>]*data-score[^>]*>([\s\S]*?)<\/div>/i,
 	);
-	const score = scoreMatch == null ? null : stripTags(scoreMatch[1] ?? "");
+	const score = scoreMatch == null ? null : stripHtmlTags(scoreMatch[1] ?? "");
 	return score != null && score.length > 0 ? score : null;
 }
 
@@ -102,12 +69,12 @@ function parseLeaderboardRow(
 	lastUpdated: string | null,
 ): RiemannBenchModelScoreRow | null {
 	const model = rowModelName(rowHtml);
-	const score = scoreFromPercent(rowScorePercent(rowHtml));
+	const score = percentToUnitScore(rowScorePercent(rowHtml));
 	if (model == null || score == null) {
 		return null;
 	}
 	return {
-		provider: providerFromAlt(stringAttribute(rowHtml, "alt")),
+		provider: providerFromLogoAlt(htmlAttribute(rowHtml, "alt")),
 		model,
 		score,
 		last_updated: lastUpdated,

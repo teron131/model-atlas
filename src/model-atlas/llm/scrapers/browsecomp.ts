@@ -5,7 +5,8 @@
  * JSON source: https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
-import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
+import { normalizeModelToken } from "../shared";
+import { zeroEvalModelRows, zeroEvalModelScoreFields } from "./parsing";
 
 const DEFAULT_DETAILS_URL =
 	"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details";
@@ -34,60 +35,14 @@ export type BrowseCompModelScorePayload = {
 	data: BrowseCompModelScoreRow[];
 };
 
-function stringValue(value: unknown): string | null {
-	return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function booleanValue(value: unknown): boolean | null {
-	return typeof value === "boolean" ? value : null;
-}
-
-/** Return a fractional benchmark score from the source score fields. */
-function normalizedScore(value: unknown): number | null {
-	const score = asFiniteNumber(value);
-	if (score == null || score < 0 || score > 1) {
-		return null;
-	}
-	return Number(score.toFixed(6));
-}
-
-function browseCompModelScoreRow(
-	value: unknown,
-): BrowseCompModelScoreRow | null {
-	const row = asRecord(value);
-	const model = stringValue(row?.model_name);
-	const provider = stringValue(row?.organization_id);
-	const score =
-		normalizedScore(row?.normalized_score) ?? normalizedScore(row?.score);
-	if (model == null || provider == null || score == null) {
-		return null;
-	}
-	return {
-		model,
-		provider,
-		provider_name: stringValue(row?.organization_name),
-		score,
-		source_url: stringValue(row?.self_reported_source),
-		analysis_method: stringValue(row?.analysis_method),
-		verified: booleanValue(row?.verified),
-		self_reported: booleanValue(row?.self_reported),
-	};
-}
-
 /** Extract model/provider/score rows from the BrowseComp details JSON payload. */
 export function processBrowseCompDetailsJson(
 	payload: unknown,
 ): BrowseCompModelScoreRow[] {
-	const root = asRecord(payload);
-	const modelRows = Array.isArray(root?.models) ? root.models : [];
-	const rows: BrowseCompModelScoreRow[] = [];
-	for (const modelRow of modelRows) {
-		const row = browseCompModelScoreRow(modelRow);
-		if (row != null) {
-			rows.push(row);
-		}
-	}
-	return rows;
+	return zeroEvalModelRows<BrowseCompModelScoreRow>(
+		payload,
+		zeroEvalModelScoreFields,
+	);
 }
 
 /** Build BrowseComp score rows by normalized model name. */
