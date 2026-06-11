@@ -25,6 +25,10 @@ import type {
 	DeepSWEModelScoreRow,
 	DeepSWEScoreByModelName,
 } from "../scrapers/deep-swe";
+import type {
+	GdpPdfModelScoreRow,
+	GdpPdfScoreByModelName,
+} from "../scrapers/gdp-pdf";
 import type { getModelsDevStats } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type { TerminalBenchAccuracyByModelName } from "../scrapers/terminal-bench";
@@ -142,6 +146,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	agents_last_exam?: NumberOrNull;
 	automation_bench?: NumberOrNull;
 	blueprint_bench_2?: NumberOrNull;
+	gdp_pdf?: NumberOrNull;
 	terminal_bench_2?: NumberOrNull;
 	browsecomp?: NumberOrNull;
 	toolathlon?: NumberOrNull;
@@ -395,6 +400,8 @@ export type LlmStatsSourceData = {
 	automationBenchScoreByModelName: AutomationBenchScoreByModelName;
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
 	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName;
+	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
+	gdpPdfScoreByModelName: GdpPdfScoreByModelName;
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	browseCompScoreByModelName: BrowseCompScoreByModelName;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];

@@ -246,6 +246,32 @@ export function insertBlueprintBenchRawRows(
 	}
 }
 
+/** Insert GDP.pdf model score rows. */
+export function insertGdpPdfRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO gdp_pdf_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, provider, model,
+			score, last_updated
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.gdpPdfModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.gdpPdf,
+			SOURCE_URLS.gdp_pdf,
+			row.provider,
+			row.model,
+			row.score,
+			row.last_updated ?? null,
+		);
+	}
+}
+
 /** Insert Toolathlon model score rows. */
 export function insertToolathlonRawRows(
 	db: DatabaseSync,

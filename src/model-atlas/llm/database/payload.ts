@@ -48,6 +48,7 @@ const EVALUATION_KEYS = [
 	"agents_last_exam",
 	"automation_bench",
 	"blueprint_bench_2",
+	"gdp_pdf",
 	"browsecomp",
 	"toolathlon",
 	"cursorbench",

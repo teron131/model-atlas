@@ -9,6 +9,7 @@ import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
+import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
 import type {
 	ModelsDevFlatModel,
 	ModelsDevPayload,
@@ -30,6 +31,7 @@ export const RAW_SOURCE_NAMES = [
 	"terminal_bench",
 	"agents_last_exam",
 	"blueprint_bench_2",
+	"gdp_pdf",
 	"browsecomp",
 	"toolathlon",
 	"cursorbench",
@@ -43,6 +45,7 @@ export const SOURCE_URLS = {
 	terminal_bench: "https://www.tbench.ai/leaderboard/terminal-bench/2.0",
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
+	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
 	browsecomp:
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 	toolathlon:
@@ -104,6 +107,7 @@ export type SourceSnapshots = {
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
+	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
@@ -113,6 +117,7 @@ export type SourceSnapshots = {
 		terminalBench: number | null;
 		agentsLastExam: number | null;
 		blueprintBench: number | null;
+		gdpPdf: number | null;
 		browseComp: number | null;
 		toolathlon: number | null;
 		cursorBench: number | null;

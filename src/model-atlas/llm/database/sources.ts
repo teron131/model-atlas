@@ -30,6 +30,10 @@ import {
 	summarizeDeepSWEDefaultModelScores,
 } from "../scrapers/deep-swe";
 import {
+	buildGdpPdfScoreByModelName,
+	getGdpPdfModelScoreStats,
+} from "../scrapers/gdp-pdf";
+import {
 	getModelsDevSourceStats,
 	processModelsDevPayload,
 } from "../scrapers/models-dev";
@@ -58,6 +62,7 @@ import {
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,
 	readDeepSWERawCache,
+	readGdpPdfRawCache,
 	readModelsDevRawCache,
 	readOpenRouterRawCache,
 	readRawSourceCacheStatus,
@@ -119,6 +124,11 @@ type BlueprintBenchSnapshot = {
 	fetchedAt: { blueprintBench: number | null };
 };
 
+type GdpPdfSnapshot = {
+	gdpPdfModelScoreRows: SourceSnapshots["gdpPdfModelScoreRows"];
+	fetchedAt: { gdpPdf: number | null };
+};
+
 type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: SourceSnapshots["toolathlonModelScoreRows"];
 	fetchedAt: { toolathlon: number | null };
@@ -168,6 +178,10 @@ export function sourceDataFromSnapshots(
 		blueprintBenchModelScoreRows: snapshots.blueprintBenchModelScoreRows,
 		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
 			snapshots.blueprintBenchModelScoreRows,
+		),
+		gdpPdfModelScoreRows: snapshots.gdpPdfModelScoreRows,
+		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(
+			snapshots.gdpPdfModelScoreRows,
 		),
 		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
@@ -467,6 +481,35 @@ async function blueprintBenchSnapshot(
 	};
 }
 
+async function gdpPdfSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<GdpPdfSnapshot> {
+	const cached = readGdpPdfRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			gdpPdfModelScoreRows: cached.rows,
+			fetchedAt: { gdpPdf: cached.fetchedAt },
+		};
+	}
+	const fetched = await getGdpPdfModelScoreStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		gdpPdfModelScoreRows: rows,
+		fetchedAt: {
+			gdpPdf:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 async function toolathlonSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -538,6 +581,7 @@ export async function loadSourceSnapshots(
 		terminalBench,
 		agentsLastExam,
 		blueprintBench,
+		gdpPdf,
 		browseComp,
 		toolathlon,
 		cursorBench,
@@ -548,6 +592,7 @@ export async function loadSourceSnapshots(
 		terminalBenchSnapshot(db, sourceCache.terminal_bench),
 		agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
 		blueprintBenchSnapshot(db, sourceCache.blueprint_bench_2),
+		gdpPdfSnapshot(db, sourceCache.gdp_pdf),
 		browseCompSnapshot(db, sourceCache.browsecomp),
 		toolathlonSnapshot(db, sourceCache.toolathlon),
 		cursorBenchSnapshot(db, sourceCache.cursorbench),
@@ -587,6 +632,11 @@ export async function loadSourceSnapshots(
 		blueprintBench.fetchedAt.blueprintBench,
 		blueprintBench.blueprintBenchModelScoreRows.length,
 	);
+	sourceCache.gdp_pdf = updatedSourceCacheStatus(
+		sourceCache.gdp_pdf,
+		gdpPdf.fetchedAt.gdpPdf,
+		gdpPdf.gdpPdfModelScoreRows.length,
+	);
 	sourceCache.browsecomp = updatedSourceCacheStatus(
 		sourceCache.browsecomp,
 		browseComp.fetchedAt.browseComp,
@@ -617,6 +667,7 @@ export async function loadSourceSnapshots(
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			blueprintBenchModelScoreRows: blueprintBench.blueprintBenchModelScoreRows,
+			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
@@ -626,6 +677,7 @@ export async function loadSourceSnapshots(
 				terminalBench: terminalBench.fetchedAt.terminalBench,
 				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
 				blueprintBench: blueprintBench.fetchedAt.blueprintBench,
+				gdpPdf: gdpPdf.fetchedAt.gdpPdf,
 				browseComp: browseComp.fetchedAt.browseComp,
 				toolathlon: toolathlon.fetchedAt.toolathlon,
 				cursorBench: cursorBench.fetchedAt.cursorBench,

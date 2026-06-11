@@ -79,6 +79,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 1,
 		agenticPortion: 0,
 	},
+	gdp_pdf: {
+		group: "frontier",
+		intelligencePortion: 0.9,
+		agenticPortion: 0.1,
+	},
 	deep_swe: {
 		group: "frontier",
 		intelligencePortion: 0,
