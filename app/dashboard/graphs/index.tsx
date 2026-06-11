@@ -644,7 +644,7 @@ function FrontierPanel({
 	const xTicks = xTickCandidates.filter(
 		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
 	);
-	const plottedCandidates = candidates.slice(0, 95);
+	const plottedCandidates = candidates;
 	const capabilityBubbleValue = (model: ModelStatsSelectedModel) =>
 		Number(model.relative_scores.intelligence_score) *
 		Number(model.relative_scores.agentic_score ?? 0);
