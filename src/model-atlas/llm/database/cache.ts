@@ -1,8 +1,6 @@
 /** SQLite cache readers for raw Model Atlas source tables. */
 
 import type { DatabaseSync } from "node:sqlite";
-
-import { isSameOpenRouterModelRoute } from "../model-stats/model-aliases";
 import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
@@ -17,6 +15,7 @@ import type {
 } from "../scrapers/openrouter";
 import type { TerminalBenchAgentModelAccuracyRow } from "../scrapers/terminal-bench";
 import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
+import { isSameOpenRouterModelRoute } from "../stats/model-aliases";
 import {
 	RAW_SOURCE_CACHE_SECONDS,
 	type RawSourceCacheStatus,

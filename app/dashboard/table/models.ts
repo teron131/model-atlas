@@ -1,6 +1,6 @@
-/** Dashboard row shaping and sort semantics for selected-model payloads. */
+/** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 
 const artificialAnalysisTaskMetricColumns = [
 	{
@@ -130,7 +130,7 @@ export type SortState = {
 };
 
 export type TableRow = {
-	model: ModelStatsSelectedModel;
+	model: LlmStatsModel;
 	intelligenceRank: number;
 	originalIndex: number;
 	priority: number;
@@ -240,7 +240,7 @@ export function sortedRows(
 }
 
 /** Collapse duplicate model routes before assigning display ranks. */
-export function dedupeDisplayModels(models: ModelStatsSelectedModel[]) {
+export function dedupeDisplayModels(models: LlmStatsModel[]) {
 	const byDisplayId = new Map<string, UnrankedTableRow>();
 	for (const [originalIndex, model] of models.entries()) {
 		const key = canonicalDisplayModelId(model);
@@ -260,24 +260,22 @@ export function dedupeDisplayModels(models: ModelStatsSelectedModel[]) {
 }
 
 export function taskMetricValue(
-	model: ModelStatsSelectedModel,
+	model: LlmStatsModel,
 	column: TaskMetricColumn,
 ) {
 	return model.task_metrics?.[column.source]?.[column.metric];
 }
 
 export function benchmarkMetricValue(
-	model: ModelStatsSelectedModel,
+	model: LlmStatsModel,
 	column: BenchmarkMetricColumn,
 ) {
 	return model.evaluations?.[column.metric];
 }
 
-export function contextWindowValue(model: ModelStatsSelectedModel) {
+export function contextWindowValue(model: LlmStatsModel) {
 	const contextWindow = model.context_window as
-		| ({ total?: number | null } & NonNullable<
-				ModelStatsSelectedModel["context_window"]
-		  >)
+		| ({ total?: number | null } & NonNullable<LlmStatsModel["context_window"]>)
 		| null;
 	return contextWindow?.context ?? contextWindow?.total;
 }
@@ -362,7 +360,7 @@ function compareSortValues(sorter: Sorter, left: unknown, right: unknown) {
 	return Number(left) - Number(right);
 }
 
-function canonicalDisplayModelId(model: ModelStatsSelectedModel) {
+function canonicalDisplayModelId(model: LlmStatsModel) {
 	const id = typeof model.id === "string" ? model.id : "";
 	const slashIndex = id.indexOf("/");
 	if (slashIndex <= 0) {
@@ -389,7 +387,7 @@ function canonicalProviderId(provider: string, slug: string) {
 		: normalizedProvider;
 }
 
-function displayAliasPriority(model: ModelStatsSelectedModel) {
+function displayAliasPriority(model: LlmStatsModel) {
 	const id = typeof model.id === "string" ? model.id.toLowerCase() : "";
 	if (id.includes("latest")) {
 		return 3;

@@ -1,4 +1,4 @@
-/** Build selected Model Atlas rows from enriched model candidates. */
+/** Build final LLM stats rows from enriched model candidates. */
 
 import { cacheStatsLogos } from "../../../logo-cache";
 import { attachRelativeScores } from "../scores";
@@ -9,11 +9,11 @@ import {
 import type {
 	EnrichedRows,
 	FinalStageConfig,
-	ModelStatsScoredCandidate,
-	ModelStatsSelectedModel,
+	LlmStatsModel,
+	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
-import { projectModelStatsCandidate } from "./model-projection";
+import { projectLlmStatsCandidate } from "./model-projection";
 import {
 	filterLowSignalModels,
 	filterModelsById,
@@ -26,7 +26,7 @@ import {
 export function buildScoredModelCandidates(
 	enrichedRows: EnrichedRows,
 	scoringConfig: ScoringConfig,
-): ModelStatsScoredCandidate[] {
+): LlmStatsScoredCandidate[] {
 	const benchmarkImputationByModel = buildBenchmarkImputationByModel(
 		enrichedRows.rows,
 		scoringConfig,
@@ -37,7 +37,7 @@ export function buildScoredModelCandidates(
 		benchmarkImputationByModel,
 	);
 	const models = enrichedRows.rows.map((row) =>
-		projectModelStatsCandidate(
+		projectLlmStatsCandidate(
 			row,
 			enrichedRows.openRouterSpeedById,
 			enrichedRows.openRouterPricingById,
@@ -50,13 +50,13 @@ export function buildScoredModelCandidates(
 	return attachRelativeScores(models, scoringConfig);
 }
 
-/** Build the selected models list and attach the normalized ranking layer used for ordering. */
-export async function buildSelectedModels(
+/** Build the final LLM stats model list and attach the normalized ranking layer used for ordering. */
+export async function buildFinalModels(
 	enrichedRows: EnrichedRows,
 	id: string | null | undefined,
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
-): Promise<ModelStatsSelectedModel[]> {
+): Promise<LlmStatsModel[]> {
 	const scoredCandidates = buildScoredModelCandidates(
 		enrichedRows,
 		scoringConfig,

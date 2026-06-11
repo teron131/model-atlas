@@ -7,8 +7,8 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/llm/matcher/types";
-import { buildMatchedModelRows } from "../src/model-atlas/llm/model-stats/matching";
-import type { ModelStatsSourceData } from "../src/model-atlas/llm/model-stats/types";
+import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
+import type { LlmStatsSourceData } from "../src/model-atlas/llm/stats/types";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),
@@ -100,7 +100,7 @@ function sourceModel(
 
 function modelStatsSourceData(
 	artificialAnalysisRows: Record<string, unknown>[],
-): ModelStatsSourceData {
+): LlmStatsSourceData {
 	const modelsDevModels = [
 		model(
 			"openrouter",

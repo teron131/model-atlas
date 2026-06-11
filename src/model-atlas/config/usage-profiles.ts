@@ -1,4 +1,4 @@
-import type { SimulationProfile } from "../llm/model-stats/types";
+import type { SimulationProfile } from "../llm/stats/types";
 
 export const PRICE_PROFILES = {
 	task: {

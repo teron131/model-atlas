@@ -13,15 +13,6 @@ export {
 	STAGE_CONFIG,
 } from "./constants";
 export type {
-	ImageStatsSelectedModel,
-	ImageStatsSelectedOptions,
-	ImageStatsSelectedPayload,
-} from "./image/image-stats";
-export {
-	getImageStatsSelected,
-	saveImageStatsSelected,
-} from "./image/image-stats";
-export type {
 	ImageMatchCandidate,
 	ImageMatchMappedModel,
 	ImageMatchModelMappingOptions,
@@ -39,6 +30,15 @@ export type {
 } from "./image/sources/artificial-analysis";
 export { getArtificialAnalysisImageStats } from "./image/sources/artificial-analysis";
 export type {
+	ImageStatsModel,
+	ImageStatsOptions,
+	ImageStatsPayload,
+} from "./image/stats";
+export {
+	getImageStats,
+	saveImageStats,
+} from "./image/stats";
+export type {
 	LlmMatchCandidate,
 	LlmMatchMappedModel,
 	LlmMatchModelMappingOptions,
@@ -47,30 +47,6 @@ export type {
 	LlmScraperFallbackMatchDiagnosticsPayload,
 } from "./llm/matcher";
 export { getMatchModelMapping } from "./llm/matcher";
-export type {
-	ModelAtlasStageConfig,
-	ModelStatsSelectedBenchmarkValues,
-	ModelStatsSelectedContextWindow,
-	ModelStatsSelectedCost,
-	ModelStatsSelectedCostBreakdown,
-	ModelStatsSelectedCostTier,
-	ModelStatsSelectedEvaluations,
-	ModelStatsSelectedIntelligence,
-	ModelStatsSelectedIntelligenceIndexCost,
-	ModelStatsSelectedMetadata,
-	ModelStatsSelectedModalities,
-	ModelStatsSelectedModel,
-	ModelStatsSelectedOptions,
-	ModelStatsSelectedPayload,
-	ModelStatsSelectedRelativeScores,
-	ModelStatsSelectedScores,
-	ModelStatsSelectedSpeed,
-	OverallRelativeScoreWeights,
-} from "./llm/model-stats";
-export {
-	getModelStatsSelected,
-	getModelStatsSelectedLive,
-} from "./llm/model-stats";
 export type {
 	AgentsLastExamHarnessPayload,
 	AgentsLastExamHarnessRow,
@@ -192,6 +168,30 @@ export {
 	processTerminalBenchLeaderboardRows,
 	summarizeTerminalBenchModelMedianAccuracy,
 } from "./llm/scrapers/terminal-bench";
+export type {
+	LlmStatsBenchmarkValues,
+	LlmStatsContextWindow,
+	LlmStatsCost,
+	LlmStatsCostBreakdown,
+	LlmStatsCostTier,
+	LlmStatsEvaluations,
+	LlmStatsIntelligence,
+	LlmStatsIntelligenceIndexCost,
+	LlmStatsMetadata,
+	LlmStatsModalities,
+	LlmStatsModel,
+	LlmStatsOptions,
+	LlmStatsPayload,
+	LlmStatsRelativeScores,
+	LlmStatsScores,
+	LlmStatsSpeed,
+	ModelAtlasStageConfig,
+	OverallRelativeScoreWeights,
+} from "./llm/stats";
+export {
+	getLiveLlmStats,
+	getLlmStats,
+} from "./llm/stats";
 export type { NumberOrNull, WeightedScorePart } from "./math-utils";
 export {
 	clamp,

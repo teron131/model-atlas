@@ -1,4 +1,4 @@
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 
 const providerThemeColors: Record<string, string> = {
 	alibaba: "#ff7018",
@@ -60,7 +60,7 @@ const fallbackProviderColors = [
 	"#d7d46a",
 ];
 
-export function providerName(model: ModelStatsSelectedModel | string | null) {
+export function providerName(model: LlmStatsModel | string | null) {
 	const rawProvider = typeof model === "string" ? model : model?.provider;
 	const slug = providerSlug(rawProvider);
 	return providerDisplayLabels[slug] ?? rawProvider ?? "Unknown";

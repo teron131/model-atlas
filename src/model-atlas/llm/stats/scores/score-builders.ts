@@ -8,9 +8,9 @@ import {
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
 	BenchmarkGroup,
-	ModelStatsNullableScores,
-	ModelStatsSelectedCost,
-	ModelStatsSelectedSpeed,
+	LlmStatsCost,
+	LlmStatsNullableScores,
+	LlmStatsSpeed,
 	ScoringConfig,
 } from "../types";
 import {
@@ -202,13 +202,13 @@ export function deriveSpeedOutputTokenAnchors(
 /** Compute the raw score bundle for a single final model row. */
 export function buildScores(
 	model: JsonObject,
-	cost: ModelStatsSelectedCost,
-	speed: ModelStatsSelectedSpeed,
+	cost: LlmStatsCost,
+	speed: LlmStatsSpeed,
 	speedOutputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
 	qualityContext: QualityScoringContext,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-): ModelStatsNullableScores | null {
+): LlmStatsNullableScores | null {
 	const intelligenceIndex = firstMetricValue(model, INTELLIGENCE_INDEX_KEYS);
 	const agenticIndex = firstMetricValue(model, AGENTIC_INDEX_KEYS);
 	const intelligenceIndexScore = normalizedMetricValue(

@@ -1,6 +1,6 @@
 "use client";
 
-/** Client dashboard for live selected-model payloads, filtering, sorting, and tooltips. */
+/** Client dashboard for live LLM stats payloads, filtering, sorting, and tooltips. */
 
 import {
 	useCallback,
@@ -13,9 +13,9 @@ import {
 } from "react";
 
 import type {
-	ModelStatsColumnTooltips,
-	ModelStatsSelectedPayload,
-} from "../../src/model-atlas/llm/model-stats/types";
+	LlmStatsColumnTooltips,
+	LlmStatsPayload,
+} from "../../src/model-atlas/llm/stats/types";
 import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
 import { DashboardGraphs } from "./graphs";
 import {
@@ -42,9 +42,9 @@ import {
 	providerThemeSlug,
 } from "./table/providerTheme";
 
-const emptyColumnTooltips: ModelStatsColumnTooltips = {};
-const SELECTED_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
-const SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY =
+const emptyColumnTooltips: LlmStatsColumnTooltips = {};
+const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
+const LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY =
 	"model-atlas:selected-payload-refresh-at:v1";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
@@ -60,7 +60,7 @@ type RefreshPayloadOptions = {
 export function Dashboard({
 	initialPayload,
 }: {
-	initialPayload: ModelStatsSelectedPayload | null;
+	initialPayload: LlmStatsPayload | null;
 }) {
 	const dashboardRef = useRef<HTMLElement>(null);
 	const tooltipFadeTimeoutRef = useRef<number | null>(null);
@@ -294,8 +294,8 @@ function useProviderThemeColors(rows: TableRow[]) {
 	return colors;
 }
 
-function useLivePayload(initialPayload: ModelStatsSelectedPayload | null) {
-	const [payload, setPayload] = useState<ModelStatsSelectedPayload | null>(
+function useLivePayload(initialPayload: LlmStatsPayload | null) {
+	const [payload, setPayload] = useState<LlmStatsPayload | null>(
 		initialPayload,
 	);
 	const [isRefreshing, setIsRefreshing] = useState(false);
@@ -333,7 +333,7 @@ function useLivePayload(initialPayload: ModelStatsSelectedPayload | null) {
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}`);
 				}
-				return response.json() as Promise<ModelStatsSelectedPayload>;
+				return response.json() as Promise<LlmStatsPayload>;
 			})
 			.then((nextPayload) => {
 				setPayload(nextPayload);
@@ -383,28 +383,26 @@ function useLivePayload(initialPayload: ModelStatsSelectedPayload | null) {
 	return { payload, isRefreshing, errorMessage, refreshPayload };
 }
 
-function isSelectedPayload(
-	payload: unknown,
-): payload is ModelStatsSelectedPayload {
+function isLlmStatsPayload(payload: unknown): payload is LlmStatsPayload {
 	if (payload == null || typeof payload !== "object") {
 		return false;
 	}
-	return Array.isArray((payload as Partial<ModelStatsSelectedPayload>).models);
+	return Array.isArray((payload as Partial<LlmStatsPayload>).models);
 }
 
-function readCachedPayload(): ModelStatsSelectedPayload | null {
+function readCachedPayload(): LlmStatsPayload | null {
 	if (typeof window === "undefined") {
 		return null;
 	}
 	try {
 		const cachedPayload = window.localStorage.getItem(
-			SELECTED_PAYLOAD_CACHE_KEY,
+			LLM_STATS_PAYLOAD_CACHE_KEY,
 		);
 		if (cachedPayload == null) {
 			return null;
 		}
 		const parsedPayload: unknown = JSON.parse(cachedPayload);
-		return isSelectedPayload(parsedPayload) ? parsedPayload : null;
+		return isLlmStatsPayload(parsedPayload) ? parsedPayload : null;
 	} catch {
 		return null;
 	}
@@ -416,7 +414,8 @@ function refreshGuardRemainingMs(): number {
 	}
 	try {
 		const refreshedAt = Number.parseInt(
-			window.sessionStorage.getItem(SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY) ?? "",
+			window.sessionStorage.getItem(LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY) ??
+				"",
 			10,
 		);
 		if (!Number.isFinite(refreshedAt)) {
@@ -434,13 +433,13 @@ function recordRefreshAttempt(): void {
 	}
 	try {
 		window.sessionStorage.setItem(
-			SELECTED_PAYLOAD_REFRESH_ATTEMPT_KEY,
+			LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY,
 			String(Date.now()),
 		);
 	} catch {}
 }
 
-function scheduleCachedPayloadWrite(payload: ModelStatsSelectedPayload): void {
+function scheduleCachedPayloadWrite(payload: LlmStatsPayload): void {
 	const idleCallback = window.requestIdleCallback?.(
 		() => {
 			writeCachedPayload(payload);
@@ -455,10 +454,10 @@ function scheduleCachedPayloadWrite(payload: ModelStatsSelectedPayload): void {
 	}, 0);
 }
 
-function writeCachedPayload(payload: ModelStatsSelectedPayload): void {
+function writeCachedPayload(payload: LlmStatsPayload): void {
 	try {
 		window.localStorage.setItem(
-			SELECTED_PAYLOAD_CACHE_KEY,
+			LLM_STATS_PAYLOAD_CACHE_KEY,
 			JSON.stringify(payload),
 		);
 	} catch {

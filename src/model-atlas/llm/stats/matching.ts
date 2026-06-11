@@ -23,12 +23,12 @@ import {
 
 import type {
 	ArtificialAnalysisModel,
+	LlmStatsSourceData,
 	MatcherConfig,
-	ModelStatsSourceData,
 } from "./types";
 
 type MatchedRowLookups = Pick<
-	ModelStatsSourceData,
+	LlmStatsSourceData,
 	| "modelsDevById"
 	| "deepSWEScoreByModelName"
 	| "terminalBenchAccuracyByModelName"
@@ -253,7 +253,7 @@ function buildMatchedRow(
 
 /** Build matched intermediate rows from precomputed scraper fallback diagnostics. */
 export function modelRowsFromMatchDiagnostics(
-	sourceData: ModelStatsSourceData,
+	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,
 	fallbackDiagnostics: LlmScraperFallbackMatchDiagnosticsPayload,
 ): Record<string, unknown>[] {
@@ -280,7 +280,7 @@ export function modelRowsFromMatchDiagnostics(
 
 /** Build matched intermediate rows by running scraper fallback diagnostics and rejecting obvious variant mismatches. */
 export async function buildMatchedModelRows(
-	sourceData: ModelStatsSourceData,
+	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,
 ): Promise<Record<string, unknown>[]> {
 	const fallbackDiagnostics = await getScraperFallbackMatchDiagnostics({

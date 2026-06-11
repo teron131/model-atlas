@@ -5,22 +5,22 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../constants";
 import { getScraperFallbackMatchDiagnostics } from "../matcher";
-import { modelRowsFromMatchDiagnostics } from "../model-stats/matching";
-import { publicOpenRouterModelId } from "../model-stats/model-aliases";
-import { enrichModelRowsWithOpenRouter } from "../model-stats/openrouter-enrichment";
-import { buildSelectedModels } from "../model-stats/selection";
 import {
 	buildAutomationBenchScoreByModelName,
 	getAutomationBenchLeaderboardStats,
 } from "../scrapers/automation-bench";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
+import { modelRowsFromMatchDiagnostics } from "../stats/matching";
+import { publicOpenRouterModelId } from "../stats/model-aliases";
+import { enrichModelRowsWithOpenRouter } from "../stats/openrouter-enrichment";
+import { buildFinalModels } from "../stats/selection";
 import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
 import { buildDebugTraceRows } from "./debug-trace";
 import { openDatabase, removeDatabaseFiles } from "./schema";
 import {
-	buildModelStatsSourceData,
-	loadOrFetchOpenRouterRawPayload,
-	loadOrFetchSourceSnapshots,
+	loadOpenRouterRawPayload,
+	loadSourceSnapshots,
+	sourceDataFromSnapshots,
 } from "./sources";
 import {
 	type DatabaseBuildResult,
@@ -52,7 +52,7 @@ const SNAPSHOT_TABLES = [
 	"debug",
 ] as const;
 
-type DatabaseSnapshotRows = {
+type SnapshotRows = {
 	startedAt: number;
 	snapshots: SourceSnapshots;
 	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
@@ -127,10 +127,7 @@ async function publishDatabaseFile(
 }
 
 /** Create the pipeline run row and return its id. */
-function insertPipelineRun(
-	db: DatabaseSync,
-	rows: DatabaseSnapshotRows,
-): number {
+function insertPipelineRun(db: DatabaseSync, rows: SnapshotRows): number {
 	const result = db
 		.prepare(`
 			INSERT INTO pipeline_runs (
@@ -147,10 +144,7 @@ function insertPipelineRun(
 }
 
 /** Write raw and processed rows for one runtime snapshot. */
-function writeDatabaseSnapshot(
-	db: DatabaseSync,
-	rows: DatabaseSnapshotRows,
-): number {
+function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	clearSnapshotTables(db);
 	const runId = insertPipelineRun(db, rows);
 	insertArtificialAnalysisRawModels(db, runId, rows.snapshots);
@@ -191,13 +185,10 @@ export async function buildModelAtlasDatabase(
 	let db: DatabaseSync | null = await openDatabase(outputPath);
 
 	try {
-		const { snapshots, sourceCache } = await loadOrFetchSourceSnapshots(
-			db,
-			startedAt,
-		);
+		const { snapshots, sourceCache } = await loadSourceSnapshots(db, startedAt);
 		const automationBench = await getAutomationBenchLeaderboardStats();
 		const sourceData = {
-			...buildModelStatsSourceData(snapshots),
+			...sourceDataFromSnapshots(snapshots),
 			automationBenchModelScoreRows: automationBench.model_scores,
 			automationBenchScoreByModelName: buildAutomationBenchScoreByModelName(
 				automationBench.model_scores,
@@ -214,7 +205,7 @@ export async function buildModelAtlasDatabase(
 		);
 		const textMatchedRows = filterDatabaseTextLlmRows(matchedRows);
 		const catalogRows = buildDatabaseCatalogRows(sourceData, textMatchedRows);
-		const openRouter = await loadOrFetchOpenRouterRawPayload(
+		const openRouter = await loadOpenRouterRawPayload(
 			db,
 			openRouterModelIds(catalogRows),
 			STAGE_CONFIG.openrouter.speedConcurrency,
@@ -232,7 +223,7 @@ export async function buildModelAtlasDatabase(
 			matchDiagnostics,
 			STAGE_CONFIG.matcher,
 		);
-		const models = await buildSelectedModels(
+		const models = await buildFinalModels(
 			{
 				...enrichedRows,
 				deepSWEModelScoreRows: sourceData.deepSWEModelScoreRows,
@@ -248,7 +239,7 @@ export async function buildModelAtlasDatabase(
 
 		const activeDb = db;
 		const runId = runInTransaction(activeDb, () =>
-			writeDatabaseSnapshot(activeDb, {
+			writeSnapshot(activeDb, {
 				startedAt,
 				snapshots,
 				openRouterRawPayload: openRouter.rawPayload,

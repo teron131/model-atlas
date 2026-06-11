@@ -7,9 +7,9 @@ import {
 } from "../model-aliases";
 import type {
 	FinalStageConfig,
-	ModelStatsNullableScores,
-	ModelStatsScoredCandidate,
-	ModelStatsSelectedModel,
+	LlmStatsModel,
+	LlmStatsNullableScores,
+	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
 
@@ -41,11 +41,11 @@ const REQUIRED_RELATIVE_SCORE_KEYS = [
 	"agentic_score",
 ] as const;
 
-function modelSortKey(model: ModelStatsSelectedModel): string {
+function modelSortKey(model: LlmStatsModel): string {
 	return model.id ?? "";
 }
 
-function isFreeRouteModel(model: ModelStatsSelectedModel): boolean {
+function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
 		isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name)
 	);
@@ -53,8 +53,8 @@ function isFreeRouteModel(model: ModelStatsSelectedModel): boolean {
 
 /** Sort the models by intelligence relative score. */
 export function sortModelsByIntelligenceRelativeScore(
-	models: ModelStatsSelectedModel[],
-): ModelStatsSelectedModel[] {
+	models: LlmStatsModel[],
+): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
 		const leftIntelligence = left.relative_scores.intelligence_score;
 		const rightIntelligence = right.relative_scores.intelligence_score;
@@ -66,9 +66,9 @@ export function sortModelsByIntelligenceRelativeScore(
 }
 
 function hasMinimumScoreSignal(
-	model: ModelStatsScoredCandidate,
-): model is ModelStatsSelectedModel {
-	const scores: ModelStatsNullableScores | null = model.scores;
+	model: LlmStatsScoredCandidate,
+): model is LlmStatsModel {
+	const scores: LlmStatsNullableScores | null = model.scores;
 	if (scores == null) {
 		return false;
 	}
@@ -88,8 +88,8 @@ function hasMinimumScoreSignal(
 
 /** Filter out low-signal models from the public list. */
 export function filterLowSignalModels(
-	models: ModelStatsScoredCandidate[],
-): ModelStatsSelectedModel[] {
+	models: LlmStatsScoredCandidate[],
+): LlmStatsModel[] {
 	return models.filter(hasMinimumScoreSignal);
 }
 
@@ -113,9 +113,9 @@ function isWithinRecentLookback(
 }
 
 function selectPruneSampleModels(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
-): ModelStatsSelectedModel[] {
+): LlmStatsModel[] {
 	const recentModels = models.filter((model) =>
 		isWithinRecentLookback(
 			model.release_date,
@@ -125,10 +125,7 @@ function selectPruneSampleModels(
 	return recentModels.length > 0 ? recentModels : models;
 }
 
-function countNullishTopLevelKey(
-	models: ModelStatsSelectedModel[],
-	key: string,
-): number {
+function countNullishTopLevelKey(models: LlmStatsModel[], key: string): number {
 	return models.reduce((count, model) => {
 		const modelRecord = asRecord(model);
 		return modelRecord[key] == null ? count + 1 : count;
@@ -136,7 +133,7 @@ function countNullishTopLevelKey(
 }
 
 function countNullishNestedKey(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 	parentKey: string,
 	nestedKey: string,
 ): number {
@@ -152,10 +149,10 @@ function countNullishNestedKey(
 
 /** Prune the sparse fields. */
 export function pruneSparseFields(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
-): ModelStatsSelectedModel[] {
+): LlmStatsModel[] {
 	if (models.length === 0) {
 		return models;
 	}
@@ -234,15 +231,15 @@ export function pruneSparseFields(
 			}
 			nextModel[parentKey] = nextParentValue;
 		}
-		return nextModel as ModelStatsSelectedModel;
+		return nextModel as LlmStatsModel;
 	});
 }
 
 /** Filter the models by id. */
 export function filterModelsById(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 	id: string | null | undefined,
-): ModelStatsSelectedModel[] {
+): LlmStatsModel[] {
 	const normalizedId = publicOpenRouterModelId(id ?? null);
 	return normalizedId == null
 		? models
@@ -253,18 +250,18 @@ export function filterModelsById(
 
 /** Normalize free-route public identifiers and collapse paid/free duplicate rows. */
 export function normalizePublicFreeRoutes(
-	models: ModelStatsSelectedModel[],
-): ModelStatsSelectedModel[] {
+	models: LlmStatsModel[],
+): LlmStatsModel[] {
 	const modelByPublicId = new Map<
 		string,
-		{ model: ModelStatsSelectedModel; isFreeRoute: boolean }
+		{ model: LlmStatsModel; isFreeRoute: boolean }
 	>();
-	const passthrough: ModelStatsSelectedModel[] = [];
+	const passthrough: LlmStatsModel[] = [];
 
 	for (const model of models) {
 		const publicId = publicOpenRouterModelId(model.id);
 		const publicName = publicModelDisplayName(model.name);
-		const normalizedModel: ModelStatsSelectedModel = {
+		const normalizedModel: LlmStatsModel = {
 			...model,
 			id: publicId,
 			name: publicName,

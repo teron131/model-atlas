@@ -11,10 +11,10 @@ import {
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
 import type {
-	ModelStatsSelectedMetadata,
-	ModelStatsSelectedModel,
-	ModelStatsSelectedPayload,
-} from "../../../src/model-atlas/llm/model-stats/types";
+	LlmStatsMetadata,
+	LlmStatsModel,
+	LlmStatsPayload,
+} from "../../../src/model-atlas/llm/stats/types";
 
 const STATIC_SNAPSHOT_PATH = resolve(
 	process.cwd(),
@@ -24,15 +24,15 @@ const SNAPSHOT_BLOB_PATH =
 	process.env.MODEL_ATLAS_BLOB_SNAPSHOT_PATH ?? "model-atlas/snapshot.json";
 
 type SnapshotWriteResult = {
-	payload: ModelStatsSelectedPayload;
+	payload: LlmStatsPayload;
 	storage: "vercel_blob";
 	url: string;
 };
 
 type DisplayRefreshState = {
-	refreshInFlight: Promise<ModelStatsSelectedPayload | null> | null;
-	readInFlight: Promise<ModelStatsSelectedPayload | null> | null;
-	cachedPayload: ModelStatsSelectedPayload | null;
+	refreshInFlight: Promise<LlmStatsPayload | null> | null;
+	readInFlight: Promise<LlmStatsPayload | null> | null;
+	cachedPayload: LlmStatsPayload | null;
 	cacheExpiresAt: number;
 };
 
@@ -50,14 +50,14 @@ export function runtimeSnapshotStoreConfigured(): boolean {
 	);
 }
 
-export async function readSnapshotPayload(): Promise<ModelStatsSelectedPayload | null> {
+export async function readSnapshotPayload(): Promise<LlmStatsPayload | null> {
 	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
 		return fetchRemoteSnapshot(process.env.MODEL_ATLAS_SNAPSHOT_URL);
 	}
 	return readSnapshotCache();
 }
 
-async function readSnapshotCache(): Promise<ModelStatsSelectedPayload | null> {
+async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
 	const [blobSnapshot, localDatabaseSnapshot, staticSnapshot] =
 		await Promise.all([
 			readBlobSnapshot().catch(() => null),
@@ -74,7 +74,7 @@ async function readSnapshotCache(): Promise<ModelStatsSelectedPayload | null> {
 	);
 }
 
-export async function readDisplaySnapshotPayload(): Promise<ModelStatsSelectedPayload | null> {
+export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	if (state.cachedPayload != null && Date.now() < state.cacheExpiresAt) {
 		return state.cachedPayload;
@@ -85,7 +85,7 @@ export async function readDisplaySnapshotPayload(): Promise<ModelStatsSelectedPa
 	return state.readInFlight;
 }
 
-async function readDisplaySnapshotPayloadUncached(): Promise<ModelStatsSelectedPayload | null> {
+async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | null> {
 	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
 		const payload = await fetchRemoteSnapshot(
 			process.env.MODEL_ATLAS_SNAPSHOT_URL,
@@ -100,7 +100,7 @@ async function readDisplaySnapshotPayloadUncached(): Promise<ModelStatsSelectedP
 	return payload;
 }
 
-function cacheDisplayPayload(payload: ModelStatsSelectedPayload | null): void {
+function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
 	if (payload == null) {
 		return;
 	}
@@ -112,7 +112,7 @@ function cacheDisplayPayload(payload: ModelStatsSelectedPayload | null): void {
 
 function startDisplayRefresh(
 	refreshMode: Exclude<DisplaySnapshotRefreshMode, "none">,
-): Promise<ModelStatsSelectedPayload | null> {
+): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
 		refreshMode === "stored"
@@ -134,8 +134,8 @@ function startDisplayRefresh(
 }
 
 async function refreshDisplaySnapshotIfStale(
-	payload: ModelStatsSelectedPayload | null,
-): Promise<ModelStatsSelectedPayload | null> {
+	payload: LlmStatsPayload | null,
+): Promise<LlmStatsPayload | null> {
 	const refreshMode = displaySnapshotRefreshMode(
 		payload,
 		nowEpochSeconds(),
@@ -170,18 +170,18 @@ export async function refreshStoredSnapshot(): Promise<SnapshotWriteResult> {
 	};
 }
 
-export async function refreshRequestPayload(): Promise<ModelStatsSelectedPayload> {
+export async function refreshRequestPayload(): Promise<LlmStatsPayload> {
 	return refreshModelAtlasPayload(runtimeDatabasePath());
 }
 
 async function refreshModelAtlasPayload(
 	databasePath?: string,
-): Promise<ModelStatsSelectedPayload> {
+): Promise<LlmStatsPayload> {
 	const script = await import("../../../scripts/refresh-model-atlas-payload");
 	return script.refreshModelAtlasPayload(databasePath);
 }
 
-async function readBlobSnapshot(): Promise<ModelStatsSelectedPayload | null> {
+async function readBlobSnapshot(): Promise<LlmStatsPayload | null> {
 	if (!runtimeSnapshotStoreConfigured()) {
 		return null;
 	}
@@ -196,13 +196,13 @@ async function readBlobSnapshot(): Promise<ModelStatsSelectedPayload | null> {
 	);
 }
 
-async function readStaticSnapshot(): Promise<ModelStatsSelectedPayload> {
+async function readStaticSnapshot(): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
 		JSON.parse(await readFile(STATIC_SNAPSHOT_PATH, "utf-8")),
 	);
 }
 
-async function readLocalDatabaseSnapshot(): Promise<ModelStatsSelectedPayload> {
+async function readLocalDatabaseSnapshot(): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
 		readModelAtlasDatabasePayload(localDatabaseReadPath()),
 	);
@@ -216,9 +216,9 @@ function shouldReadStaticSnapshot(): boolean {
 }
 
 function freshestSnapshot(
-	left: ModelStatsSelectedPayload | null,
-	right: ModelStatsSelectedPayload | null,
-): ModelStatsSelectedPayload | null {
+	left: LlmStatsPayload | null,
+	right: LlmStatsPayload | null,
+): LlmStatsPayload | null {
 	if (left == null) {
 		return right;
 	}
@@ -228,12 +228,12 @@ function freshestSnapshot(
 	return snapshotFetchedAt(right) > snapshotFetchedAt(left) ? right : left;
 }
 
-function snapshotFetchedAt(payload: ModelStatsSelectedPayload): number {
+function snapshotFetchedAt(payload: LlmStatsPayload): number {
 	return payload.fetched_at_epoch_seconds ?? 0;
 }
 
 export function displaySnapshotRefreshMode(
-	payload: ModelStatsSelectedPayload | null,
+	payload: LlmStatsPayload | null,
 	now: number,
 	hasRuntimeSnapshotStore: boolean,
 	refreshIntervalSeconds: number,
@@ -274,9 +274,7 @@ function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
 
-async function fetchRemoteSnapshot(
-	url: string,
-): Promise<ModelStatsSelectedPayload> {
+async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
 	const response = await fetch(url, {
 		cache: "no-store",
 	});
@@ -289,8 +287,8 @@ async function fetchRemoteSnapshot(
 }
 
 function withCurrentSnapshotMetadata(
-	payload: ModelStatsSelectedPayload,
-): ModelStatsSelectedPayload {
+	payload: LlmStatsPayload,
+): LlmStatsPayload {
 	const artificialAnalysis =
 		payload.metadata?.artificial_analysis ??
 		buildArtificialAnalysisMetadata(payload.models);
@@ -342,8 +340,8 @@ function withCurrentSnapshotMetadata(
 }
 
 function buildArtificialAnalysisMetadata(
-	models: ModelStatsSelectedModel[],
-): ModelStatsSelectedMetadata["artificial_analysis"] {
+	models: LlmStatsModel[],
+): LlmStatsMetadata["artificial_analysis"] {
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
 	return {
@@ -357,7 +355,7 @@ function buildArtificialAnalysisMetadata(
 }
 
 function keysFromModelField(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 	field: "evaluations" | "intelligence",
 ): string[] {
 	return sortedUniqueKeys(

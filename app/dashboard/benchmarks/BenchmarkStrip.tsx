@@ -3,7 +3,7 @@
 import type { CSSProperties, FocusEvent, MouseEvent } from "react";
 import { useCallback, useState } from "react";
 
-import type { ModelStatsSelectedPayload } from "../../../src/model-atlas/llm/model-stats/types";
+import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
 import {
 	ColumnTooltip,
 	type TooltipState,
@@ -31,7 +31,7 @@ export function BenchmarkStrip({
 	payload,
 	isLoading,
 }: {
-	payload: ModelStatsSelectedPayload | null;
+	payload: LlmStatsPayload | null;
 	isLoading: boolean;
 }) {
 	const scoring = payload?.metadata?.scoring;

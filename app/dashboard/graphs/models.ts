@@ -1,9 +1,8 @@
 /** Graph data shaping, filter options, and hover helpers. */
 
 import type { PointerEvent } from "react";
-
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
+import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import {
 	finite,
 	finiteValue,
@@ -151,7 +150,7 @@ export const deepSweMetricConfig = {
 };
 
 export function deepSweRows(
-	models: ModelStatsSelectedModel[],
+	models: LlmStatsModel[],
 	rows: DeepSWELeaderboardRow[],
 	mode: DeepSWEEffortMode,
 ): DeepSWEChartRow[] {
@@ -203,9 +202,7 @@ export function groupBy<T, TKey>(
 	return grouped;
 }
 
-export function providerOptions(
-	models: ModelStatsSelectedModel[],
-): ProviderOption[] {
+export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 	const byProvider = new Map<string, ProviderOption>();
 	for (const model of models) {
 		const slug = providerSlug(model.provider);
@@ -226,13 +223,13 @@ export function providerOptions(
 		.slice(0, 14);
 }
 
-export function modelKey(model: ModelStatsSelectedModel) {
+export function modelKey(model: LlmStatsModel) {
 	return model.id ?? model.name ?? "";
 }
 
 export function pointHover(
 	event: PointerEvent<Element>,
-	model: ModelStatsSelectedModel,
+	model: LlmStatsModel,
 	rows: HoverRow[],
 	displayName = modelName(model),
 ): HoverState {
@@ -249,7 +246,7 @@ export function pointHover(
 
 export function focusHover(
 	target: Element,
-	model: ModelStatsSelectedModel,
+	model: LlmStatsModel,
 	rows: HoverRow[],
 	displayName = modelName(model),
 ): HoverState {
@@ -266,7 +263,7 @@ export function focusHover(
 }
 
 export function stepPath(
-	points: ModelStatsSelectedModel[],
+	points: LlmStatsModel[],
 	x: (value: number) => number,
 	y: (value: number) => number,
 ) {
@@ -337,7 +334,7 @@ export function deepSWECi(row: DeepSWELeaderboardRow) {
 		: "--";
 }
 
-export function modelName(model: ModelStatsSelectedModel) {
+export function modelName(model: LlmStatsModel) {
 	return model.name ?? model.id ?? "Unknown model";
 }
 
@@ -348,14 +345,14 @@ export function deepSWELabel(row: DeepSWEChartRow, includeEffort: boolean) {
 		: base;
 }
 
-export function shortLabel(model: ModelStatsSelectedModel) {
+export function shortLabel(model: LlmStatsModel) {
 	return modelName(model)
 		.replace(" Preview", "")
 		.replace("Claude ", "")
 		.replace("GPT-", "GPT ");
 }
 
-function providerLogoSource(model: ModelStatsSelectedModel) {
+function providerLogoSource(model: LlmStatsModel) {
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;
 	}

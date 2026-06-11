@@ -1,16 +1,16 @@
 import { asFiniteNumber } from "../../shared";
 import type {
-	ModelStatsScoringSources,
-	ModelStatsSelectedCost,
-	ModelStatsSelectedIntelligenceIndexCost,
-	ModelStatsSelectedSpeed,
-	ModelStatsSelectedTaskMetrics,
-	ModelStatsSelectedTaskMetricValues,
+	LlmStatsCost,
+	LlmStatsIntelligenceIndexCost,
+	LlmStatsScoringSources,
+	LlmStatsSpeed,
+	LlmStatsTaskMetrics,
+	LlmStatsTaskMetricValues,
 } from "../types";
 
 const ARTIFICIAL_ANALYSIS_INTELLIGENCE_REPEATED_ATTEMPTS = 12_826;
 
-type TaskMetricValues = ModelStatsSelectedTaskMetricValues;
+type TaskMetricValues = LlmStatsTaskMetricValues;
 
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
@@ -18,12 +18,12 @@ function hasFields(record: object): boolean {
 
 /** Build normalized per-task metrics for AA Intelligence, DeepSWE, and ALE runs. */
 export function buildTaskMetrics(
-	intelligenceIndexCost: ModelStatsSelectedIntelligenceIndexCost,
-	speed: ModelStatsSelectedSpeed,
-	cost: ModelStatsSelectedCost,
-	scoringSources: ModelStatsScoringSources,
-): ModelStatsSelectedTaskMetrics {
-	const taskMetrics: NonNullable<ModelStatsSelectedTaskMetrics> = {};
+	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
+	speed: LlmStatsSpeed,
+	cost: LlmStatsCost,
+	scoringSources: LlmStatsScoringSources,
+): LlmStatsTaskMetrics {
+	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
 	const artificialAnalysis = buildArtificialAnalysisTaskMetrics(
 		intelligenceIndexCost,
 		speed,
@@ -44,8 +44,8 @@ export function buildTaskMetrics(
 
 /** Normalize AA Intelligence run telemetry to one repeated evaluation attempt. */
 function buildArtificialAnalysisTaskMetrics(
-	intelligenceIndexCost: ModelStatsSelectedIntelligenceIndexCost,
-	speed: ModelStatsSelectedSpeed,
+	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
+	speed: LlmStatsSpeed,
 ): TaskMetricValues | null {
 	if (intelligenceIndexCost == null) {
 		return null;
@@ -80,7 +80,7 @@ function buildArtificialAnalysisTaskMetrics(
 }
 
 function artificialAnalysisOutputTokens(
-	intelligenceIndexCost: NonNullable<ModelStatsSelectedIntelligenceIndexCost>,
+	intelligenceIndexCost: NonNullable<LlmStatsIntelligenceIndexCost>,
 ): number | null {
 	const outputTokens = asFiniteNumber(intelligenceIndexCost.output_tokens);
 	if (outputTokens != null) {
@@ -95,7 +95,7 @@ function artificialAnalysisOutputTokens(
 
 /** Expose DeepSWE's own per-task attempt telemetry beside the AA normalized values. */
 function buildDeepSWETaskMetrics(
-	scoringSources: ModelStatsScoringSources,
+	scoringSources: LlmStatsScoringSources,
 ): TaskMetricValues | null {
 	const deepSWE = scoringSources?.deep_swe;
 	if (deepSWE == null) {
@@ -110,8 +110,8 @@ function buildDeepSWETaskMetrics(
 
 /** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */
 function buildAgentsLastExamTaskMetrics(
-	scoringSources: ModelStatsScoringSources,
-	cost: ModelStatsSelectedCost,
+	scoringSources: LlmStatsScoringSources,
+	cost: LlmStatsCost,
 ): TaskMetricValues | null {
 	const agentsLastExam = scoringSources?.agents_last_exam;
 	if (agentsLastExam == null) {
@@ -142,7 +142,7 @@ function buildAgentsLastExamTaskMetrics(
 
 /** Estimate task cost from per-million input/output token prices and observed tokens. */
 function tokenUsageTaskCost(
-	cost: ModelStatsSelectedCost,
+	cost: LlmStatsCost,
 	inputTokens: number,
 	outputTokens: number,
 ): number | null {

@@ -1,13 +1,13 @@
 import { SIMULATION_PROFILES } from "../src/model-atlas/constants";
 import {
-	buildBenchmarkImputationByModel,
-	buildQualityScoringContext,
-	buildScores,
-} from "../src/model-atlas/llm/model-stats/scores";
-import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
 	processArtificialAnalysisScrapedRows,
 } from "../src/model-atlas/llm/scrapers/artificial-analysis-evals";
+import {
+	buildBenchmarkImputationByModel,
+	buildQualityScoringContext,
+	buildScores,
+} from "../src/model-atlas/llm/stats/scores";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = stableJson(actual);

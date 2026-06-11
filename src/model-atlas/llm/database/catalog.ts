@@ -1,4 +1,3 @@
-import type { ModelStatsSourceData } from "../model-stats/types";
 import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
@@ -14,6 +13,7 @@ import {
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../shared";
+import type { LlmStatsSourceData } from "../stats/types";
 
 function canonicalModelId(
 	modelId: unknown,
@@ -129,7 +129,7 @@ function normalizedCatalogIds(row: Record<string, unknown>): string[] {
 
 function modelsDevCatalogRow(
 	modelsDevModel: ModelsDevFlatModel,
-	sourceData: ModelStatsSourceData,
+	sourceData: LlmStatsSourceData,
 ): Record<string, unknown> | null {
 	const modelFields = asRecord(modelsDevModel.model);
 	const canonicalId = canonicalModelId(
@@ -219,7 +219,7 @@ function modelsDevCatalogRow(
 
 /** Add preferred recent models.dev catalog rows that have no AA-matched row. */
 export function buildDatabaseCatalogRows(
-	sourceData: ModelStatsSourceData,
+	sourceData: LlmStatsSourceData,
 	matchedRows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
 	const existingNormalizedIds = new Set<string>();

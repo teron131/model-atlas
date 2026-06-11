@@ -5,8 +5,8 @@ import {
 	type SortState,
 	sortedRows,
 } from "../app/dashboard/table/models";
-import type { ModelStatsSelectedModel } from "../src/model-atlas/llm/model-stats/types";
-import { minimalSelectedModel } from "./model-stats-fixtures";
+import type { LlmStatsModel } from "../src/model-atlas/llm/stats/types";
+import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
 const intelligenceRows = dedupeDisplayModels([
 	rankedModel("provider/third", "Third", 30),
@@ -58,8 +58,8 @@ function rankedModel(
 	id: string,
 	name: string,
 	intelligenceScore: number,
-): ModelStatsSelectedModel {
-	const model = minimalSelectedModel({ id, name });
+): LlmStatsModel {
+	const model = minimalLlmStatsModel({ id, name });
 	return {
 		...model,
 		relative_scores: {

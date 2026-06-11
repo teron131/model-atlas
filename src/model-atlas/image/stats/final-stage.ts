@@ -5,7 +5,7 @@ import { cacheStatsLogos } from "../../logo-cache";
 import { meanOrNull } from "../../math-utils";
 import { asRecord, type JsonObject } from "../../utils";
 
-import type { ImageStatsSelectedModel, ImageUnionRow } from "./types";
+import type { ImageStatsModel, ImageUnionRow } from "./types";
 
 /** Normalize a model record to its id for Final-stage image stats selection. */
 function toModelId(value: string): string {
@@ -91,9 +91,7 @@ function pickArenaScores(model: JsonObject): JsonObject | null {
 }
 
 /** Map a source model into the selected Final-stage image stats selection payload. */
-function mapUnionModelToSelected(
-	unionModel: ImageUnionRow,
-): ImageStatsSelectedModel {
+function mapUnionModelToSelected(unionModel: ImageUnionRow): ImageStatsModel {
 	const model = unionModel as unknown as JsonObject;
 	const artificialAnalysis = asRecord(model.artificial_analysis);
 	const arena = asRecord(model.arena_ai);
@@ -187,9 +185,9 @@ function mapUnionModelToSelected(
 
 /** Filter the models by id. */
 function filterModelsById(
-	models: ImageStatsSelectedModel[],
+	models: ImageStatsModel[],
 	id: string | null | undefined,
-): ImageStatsSelectedModel[] {
+): ImageStatsModel[] {
 	return id == null ? models : models.filter((model) => model.id === id);
 }
 
@@ -197,7 +195,7 @@ function filterModelsById(
 export async function buildFinalModels(
 	unionModels: ImageUnionRow[],
 	id?: string | null,
-): Promise<ImageStatsSelectedModel[]> {
+): Promise<ImageStatsModel[]> {
 	const selectedModels = unionModels
 		.map(mapUnionModelToSelected)
 		.sort(

@@ -1,9 +1,8 @@
 /** Shared graph view contracts. */
 
 import type { Dispatch, SetStateAction } from "react";
-
-import type { ModelStatsSelectedModel } from "../../../src/model-atlas/llm/model-stats/types";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
+import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 
 export type ProviderOption = {
 	slug: string;
@@ -27,7 +26,7 @@ export type HoverState = {
 export type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
 
 export type Point = {
-	model: ModelStatsSelectedModel;
+	model: LlmStatsModel;
 	x: number;
 	y: number;
 	overall: number | null;
@@ -40,7 +39,7 @@ export type InteractionConfig = {
 	lowerBetter: boolean;
 	log: boolean;
 	ticks: number[];
-	get: (model: ModelStatsSelectedModel) => number | null;
+	get: (model: LlmStatsModel) => number | null;
 	format: (value: number) => string;
 	tooltipFormat: (value: number) => string;
 	xLabel: string;
@@ -58,7 +57,7 @@ export type ModelLimit = 30 | 60 | "all";
 export type DeepSWEEffortMode = "best" | "all";
 
 export type DeepSWEChartRow = {
-	model: ModelStatsSelectedModel;
+	model: LlmStatsModel;
 	row: DeepSWELeaderboardRow;
 	displayName: string;
 	effortLabel: string;

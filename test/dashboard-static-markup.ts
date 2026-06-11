@@ -6,9 +6,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
 import {
-	minimalSelectedModel,
-	minimalSelectedPayload,
-} from "./model-stats-fixtures";
+	minimalLlmStatsModel,
+	minimalLlmStatsPayload,
+} from "./llm-stats-fixtures";
 
 registerHooks({
 	load(url, context, nextLoad) {
@@ -26,10 +26,10 @@ registerHooks({
 
 const { Dashboard } = await import("../app/dashboard/index");
 
-const payload = minimalSelectedPayload({
+const payload = minimalLlmStatsPayload({
 	fetchedAt: 900,
 	models: [
-		minimalSelectedModel({
+		minimalLlmStatsModel({
 			id: "openai/gpt-5.5",
 			name: "GPT-5.5",
 		}),

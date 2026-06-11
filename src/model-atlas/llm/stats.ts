@@ -2,41 +2,41 @@
 
 import { STAGE_CONFIG } from "../constants";
 import { nowEpochSeconds } from "../utils";
-import { buildMatchedModelRows } from "./model-stats/matching";
-import { enrichModelRowsWithOpenRouter } from "./model-stats/openrouter-enrichment";
-import { buildSelectedModels } from "./model-stats/selection";
-import { fetchModelStatsSourceData } from "./model-stats/source-data";
-import type {
-	ModelAtlasStageConfig,
-	ModelStatsSelectedMetadata,
-	ModelStatsSelectedModel,
-	ModelStatsSelectedOptions,
-	ModelStatsSelectedPayload,
-} from "./model-stats/types";
 import { asRecord } from "./shared";
+import { buildMatchedModelRows } from "./stats/matching";
+import { enrichModelRowsWithOpenRouter } from "./stats/openrouter-enrichment";
+import { buildFinalModels } from "./stats/selection";
+import { fetchSourceData } from "./stats/source-data";
+import type {
+	LlmStatsMetadata,
+	LlmStatsModel,
+	LlmStatsOptions,
+	LlmStatsPayload,
+	ModelAtlasStageConfig,
+} from "./stats/types";
 
 export type {
+	LlmStatsBenchmarkValues,
+	LlmStatsColumnTooltip,
+	LlmStatsColumnTooltips,
+	LlmStatsContextWindow,
+	LlmStatsCost,
+	LlmStatsCostBreakdown,
+	LlmStatsCostTier,
+	LlmStatsEvaluations,
+	LlmStatsIntelligence,
+	LlmStatsIntelligenceIndexCost,
+	LlmStatsMetadata,
+	LlmStatsModalities,
+	LlmStatsModel,
+	LlmStatsOptions,
+	LlmStatsPayload,
+	LlmStatsRelativeScores,
+	LlmStatsScores,
+	LlmStatsSpeed,
 	ModelAtlasStageConfig,
-	ModelStatsColumnTooltip,
-	ModelStatsColumnTooltips,
-	ModelStatsSelectedBenchmarkValues,
-	ModelStatsSelectedContextWindow,
-	ModelStatsSelectedCost,
-	ModelStatsSelectedCostBreakdown,
-	ModelStatsSelectedCostTier,
-	ModelStatsSelectedEvaluations,
-	ModelStatsSelectedIntelligence,
-	ModelStatsSelectedIntelligenceIndexCost,
-	ModelStatsSelectedMetadata,
-	ModelStatsSelectedModalities,
-	ModelStatsSelectedModel,
-	ModelStatsSelectedOptions,
-	ModelStatsSelectedPayload,
-	ModelStatsSelectedRelativeScores,
-	ModelStatsSelectedScores,
-	ModelStatsSelectedSpeed,
 	OverallRelativeScoreWeights,
-} from "./model-stats/types";
+} from "./stats/types";
 
 /** Return sorted unique keys for metadata fields. */
 function sortedUniqueKeys(values: Iterable<string>): string[] {
@@ -45,7 +45,7 @@ function sortedUniqueKeys(values: Iterable<string>): string[] {
 
 /** Collect available keys from a source model object field. */
 function keysFromModelField(
-	models: Array<Record<string, unknown> | ModelStatsSelectedModel>,
+	models: Array<Record<string, unknown> | LlmStatsModel>,
 	field: "evaluations" | "intelligence",
 ): string[] {
 	return sortedUniqueKeys(
@@ -54,10 +54,10 @@ function keysFromModelField(
 }
 
 /** Build metadata that exposes available and selected benchmark fields. */
-function buildModelStatsSelectedMetadata(
-	models: Array<Record<string, unknown> | ModelStatsSelectedModel>,
+function buildLlmStatsMetadata(
+	models: Array<Record<string, unknown> | LlmStatsModel>,
 	scoringConfig: ModelAtlasStageConfig["scoring"],
-): ModelStatsSelectedMetadata {
+): LlmStatsMetadata {
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
 	const availableBenchmarkKeys = sortedUniqueKeys([
@@ -107,14 +107,14 @@ function buildModelStatsSelectedMetadata(
 }
 
 /** Ensure cached or freshly built payloads expose current scoring metadata. */
-function withModelStatsSelectedMetadata(
-	payload: Omit<ModelStatsSelectedPayload, "metadata"> &
-		Partial<Pick<ModelStatsSelectedPayload, "metadata">>,
+function withLlmStatsMetadata(
+	payload: Omit<LlmStatsPayload, "metadata"> &
+		Partial<Pick<LlmStatsPayload, "metadata">>,
 	modelsForMetadata: Array<
-		Record<string, unknown> | ModelStatsSelectedModel
+		Record<string, unknown> | LlmStatsModel
 	> = payload.models,
-): ModelStatsSelectedPayload {
-	const currentMetadata = buildModelStatsSelectedMetadata(
+): LlmStatsPayload {
+	const currentMetadata = buildLlmStatsMetadata(
 		modelsForMetadata,
 		STAGE_CONFIG.scoring,
 	);
@@ -129,19 +129,19 @@ function withModelStatsSelectedMetadata(
 	};
 }
 
-/** Return an empty selected Model Atlas payload for failure-safe fallback paths. */
-function emptyModelStatsSelectedPayload(): ModelStatsSelectedPayload {
-	return withModelStatsSelectedMetadata({
+/** Return an empty LLM stats payload for failure-safe fallback paths. */
+function emptyLlmStatsPayload(): LlmStatsPayload {
+	return withLlmStatsMetadata({
 		fetched_at_epoch_seconds: null,
 		models: [],
 	});
 }
 
-/** Build the selected Model Atlas payload from the live pipeline. */
-async function buildModelStatsSelectedPayload(
+/** Build the LLM stats payload from the live pipeline. */
+async function buildLlmStatsPayload(
 	modelId: string | null = null,
-): Promise<ModelStatsSelectedPayload> {
-	const sourceData = await fetchModelStatsSourceData();
+): Promise<LlmStatsPayload> {
+	const sourceData = await fetchSourceData();
 	const matchedRows = await buildMatchedModelRows(
 		sourceData,
 		STAGE_CONFIG.matcher,
@@ -151,7 +151,7 @@ async function buildModelStatsSelectedPayload(
 		STAGE_CONFIG.openrouter,
 		STAGE_CONFIG.scoring,
 	);
-	const models = await buildSelectedModels(
+	const models = await buildFinalModels(
 		{
 			...enrichedRows,
 			deepSWEModelScoreRows: sourceData.deepSWEModelScoreRows,
@@ -161,7 +161,7 @@ async function buildModelStatsSelectedPayload(
 		STAGE_CONFIG.scoring,
 	);
 	const fetchedAt = nowEpochSeconds();
-	return withModelStatsSelectedMetadata(
+	return withLlmStatsMetadata(
 		{
 			fetched_at_epoch_seconds: fetchedAt,
 			models,
@@ -170,28 +170,28 @@ async function buildModelStatsSelectedPayload(
 	);
 }
 
-/** Build the selected Model Atlas payload. */
-async function getModelStatsSelectedPayload(
-	options: ModelStatsSelectedOptions = {},
-): Promise<ModelStatsSelectedPayload> {
+/** Build the LLM stats payload. */
+async function getLlmStatsPayload(
+	options: LlmStatsOptions = {},
+): Promise<LlmStatsPayload> {
 	try {
 		const modelId = options.id ?? null;
-		return await buildModelStatsSelectedPayload(modelId);
+		return await buildLlmStatsPayload(modelId);
 	} catch {
-		return emptyModelStatsSelectedPayload();
+		return emptyLlmStatsPayload();
 	}
 }
 
-/** Build the final selected Model Atlas payload with cache-first list mode and in-memory single-model mode. */
-export async function getModelStatsSelected(
-	options: ModelStatsSelectedOptions = {},
-): Promise<ModelStatsSelectedPayload> {
-	return getModelStatsSelectedPayload(options);
+/** Build the final LLM stats payload with cache-first list mode and in-memory single-model mode. */
+export async function getLlmStats(
+	options: LlmStatsOptions = {},
+): Promise<LlmStatsPayload> {
+	return getLlmStatsPayload(options);
 }
 
-/** Build the final selected Model Atlas payload from live sources without using cache. */
-export async function getModelStatsSelectedLive(
-	options: ModelStatsSelectedOptions = {},
-): Promise<ModelStatsSelectedPayload> {
-	return getModelStatsSelectedPayload(options);
+/** Build the final LLM stats payload from live sources without using cache. */
+export async function getLiveLlmStats(
+	options: LlmStatsOptions = {},
+): Promise<LlmStatsPayload> {
+	return getLlmStatsPayload(options);
 }

@@ -1,4 +1,4 @@
-/** Shared public and handoff types for the selected Model Atlas pipeline. */
+/** Shared public and handoff types for the LLM stats pipeline. */
 import type { JsonObject, NumberOrNull } from "../../utils";
 import type {
 	AgentsLastExamModelScoreRow,
@@ -37,62 +37,61 @@ export type ArtificialAnalysisModel = {
 	intelligence_index_cost?: unknown;
 };
 
-export type ModelStatsSelectedModalities = {
+export type LlmStatsModalities = {
 	input?: string[];
 	output?: string[];
 };
 
-export type ModelStatsSelectedCostBreakdown = {
+export type LlmStatsCostBreakdown = {
 	input?: NumberOrNull;
 	output?: NumberOrNull;
 	cache_read?: NumberOrNull;
 	cache_write?: NumberOrNull;
 };
 
-export type ModelStatsSelectedCostTier = ModelStatsSelectedCostBreakdown & {
+export type LlmStatsCostTier = LlmStatsCostBreakdown & {
 	tier?: {
 		type?: string;
 		size?: NumberOrNull;
 	};
 };
 
-export type ModelStatsSelectedCost =
-	| (ModelStatsSelectedCostBreakdown & {
+export type LlmStatsCost =
+	| (LlmStatsCostBreakdown & {
 			weighted_input?: NumberOrNull;
 			weighted_output?: NumberOrNull;
 			blended_price?: NumberOrNull;
-			context_over_200k?: ModelStatsSelectedCostBreakdown;
-			tiers?: ModelStatsSelectedCostTier[];
+			context_over_200k?: LlmStatsCostBreakdown;
+			tiers?: LlmStatsCostTier[];
 	  })
 	| null;
 
-export type ModelStatsSelectedContextWindow = {
+export type LlmStatsContextWindow = {
 	context?: NumberOrNull;
 	input?: NumberOrNull;
 	output?: NumberOrNull;
 } | null;
 
-export type ModelStatsSelectedSpeed = {
+export type LlmStatsSpeed = {
 	throughput_tokens_per_second_median: NumberOrNull;
 	latency_seconds_median: NumberOrNull;
 	e2e_latency_seconds_median: NumberOrNull;
 };
 
-export type ModelStatsSelectedBenchmarkValues = {
+export type LlmStatsBenchmarkValues = {
 	[key: string]: NumberOrNull | undefined;
 };
 
-export type ModelStatsSelectedIntelligence =
-	ModelStatsSelectedBenchmarkValues & {
-		intelligence_index?: NumberOrNull;
-		agentic_index?: NumberOrNull;
-		coding_index?: NumberOrNull;
-		omniscience_index?: NumberOrNull;
-		omniscience_accuracy?: NumberOrNull;
-		omniscience_nonhallucination_rate?: NumberOrNull;
-	};
+export type LlmStatsIntelligence = LlmStatsBenchmarkValues & {
+	intelligence_index?: NumberOrNull;
+	agentic_index?: NumberOrNull;
+	coding_index?: NumberOrNull;
+	omniscience_index?: NumberOrNull;
+	omniscience_accuracy?: NumberOrNull;
+	omniscience_nonhallucination_rate?: NumberOrNull;
+};
 
-export type ModelStatsSelectedIntelligenceIndexCost = {
+export type LlmStatsIntelligenceIndexCost = {
 	input_cost?: NumberOrNull;
 	reasoning_cost?: NumberOrNull;
 	output_cost?: NumberOrNull;
@@ -104,62 +103,61 @@ export type ModelStatsSelectedIntelligenceIndexCost = {
 	total_tokens?: NumberOrNull;
 } | null;
 
-export type ModelStatsSelectedTaskMetricValues = {
+export type LlmStatsTaskMetricValues = {
 	cost?: NumberOrNull;
 	seconds?: NumberOrNull;
 	input_tokens?: NumberOrNull;
 	output_tokens?: NumberOrNull;
 };
 
-export type ModelStatsSelectedTaskMetrics = {
-	artificial_analysis?: ModelStatsSelectedTaskMetricValues | null;
-	deep_swe?: ModelStatsSelectedTaskMetricValues | null;
-	agents_last_exam?: ModelStatsSelectedTaskMetricValues | null;
+export type LlmStatsTaskMetrics = {
+	artificial_analysis?: LlmStatsTaskMetricValues | null;
+	deep_swe?: LlmStatsTaskMetricValues | null;
+	agents_last_exam?: LlmStatsTaskMetricValues | null;
 } | null;
 
-export type ModelStatsSelectedEvaluations =
-	ModelStatsSelectedBenchmarkValues & {
-		apex_agents?: NumberOrNull;
-		critpt?: NumberOrNull;
-		gdpval_normalized?: NumberOrNull;
-		gpqa?: NumberOrNull;
-		hle?: NumberOrNull;
-		ifbench?: NumberOrNull;
-		lcr?: NumberOrNull;
-		mmmu_pro?: NumberOrNull;
-		scicode?: NumberOrNull;
-		deep_swe?: NumberOrNull;
-		agents_last_exam?: NumberOrNull;
-		automation_bench?: NumberOrNull;
-		terminal_bench_2?: NumberOrNull;
-		browsecomp?: NumberOrNull;
-		terminalbench_hard?: NumberOrNull;
-	};
+export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
+	apex_agents?: NumberOrNull;
+	critpt?: NumberOrNull;
+	gdpval_normalized?: NumberOrNull;
+	gpqa?: NumberOrNull;
+	hle?: NumberOrNull;
+	ifbench?: NumberOrNull;
+	lcr?: NumberOrNull;
+	mmmu_pro?: NumberOrNull;
+	scicode?: NumberOrNull;
+	deep_swe?: NumberOrNull;
+	agents_last_exam?: NumberOrNull;
+	automation_bench?: NumberOrNull;
+	terminal_bench_2?: NumberOrNull;
+	browsecomp?: NumberOrNull;
+	terminalbench_hard?: NumberOrNull;
+};
 
-export type ModelStatsScoringSources = {
+export type LlmStatsScoringSources = {
 	deep_swe?: DeepSWEModelScoreRow | null;
 	agents_last_exam?: AgentsLastExamModelScoreRow | null;
 } | null;
 
-export type ModelStatsNullableScores = {
+export type LlmStatsNullableScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
 	value_score: NumberOrNull;
 };
 
-export type ModelStatsSelectedScores = {
+export type LlmStatsScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
 	value_score: NumberOrNull;
 };
 
-export type ModelStatsNullableRelativeScores = ModelStatsNullableScores & {
+export type LlmStatsNullableRelativeScores = LlmStatsNullableScores & {
 	overall_score: NumberOrNull;
 };
 
-export type ModelStatsSelectedRelativeScores = {
+export type LlmStatsRelativeScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
@@ -167,7 +165,7 @@ export type ModelStatsSelectedRelativeScores = {
 	overall_score: number;
 };
 
-type ModelStatsModelFields = {
+type LlmStatsModelFields = {
 	id: string | null;
 	name: string | null;
 	provider: string | null;
@@ -175,32 +173,32 @@ type ModelStatsModelFields = {
 	attachment: boolean | null;
 	reasoning: boolean | null;
 	release_date: string | null;
-	modalities: ModelStatsSelectedModalities | null;
+	modalities: LlmStatsModalities | null;
 	open_weights: boolean | null;
-	cost: ModelStatsSelectedCost;
-	context_window: ModelStatsSelectedContextWindow;
-	speed: ModelStatsSelectedSpeed;
-	intelligence: ModelStatsSelectedIntelligence | null;
-	intelligence_index_cost: ModelStatsSelectedIntelligenceIndexCost;
-	task_metrics: ModelStatsSelectedTaskMetrics;
-	evaluations: ModelStatsSelectedEvaluations | null;
+	cost: LlmStatsCost;
+	context_window: LlmStatsContextWindow;
+	speed: LlmStatsSpeed;
+	intelligence: LlmStatsIntelligence | null;
+	intelligence_index_cost: LlmStatsIntelligenceIndexCost;
+	task_metrics: LlmStatsTaskMetrics;
+	evaluations: LlmStatsEvaluations | null;
 };
 
-export type ModelStatsModelCandidate = ModelStatsModelFields & {
-	scoring_sources?: ModelStatsScoringSources;
-	scores: ModelStatsNullableScores | null;
+export type LlmStatsModelCandidate = LlmStatsModelFields & {
+	scoring_sources?: LlmStatsScoringSources;
+	scores: LlmStatsNullableScores | null;
 	relative_scores: null;
 };
 
-export type ModelStatsScoredCandidate = ModelStatsModelFields & {
-	scoring_sources?: ModelStatsScoringSources;
-	scores: ModelStatsNullableScores | null;
-	relative_scores: ModelStatsNullableRelativeScores;
+export type LlmStatsScoredCandidate = LlmStatsModelFields & {
+	scoring_sources?: LlmStatsScoringSources;
+	scores: LlmStatsNullableScores | null;
+	relative_scores: LlmStatsNullableRelativeScores;
 };
 
-export type ModelStatsSelectedModel = ModelStatsModelFields & {
-	scores: ModelStatsSelectedScores;
-	relative_scores: ModelStatsSelectedRelativeScores;
+export type LlmStatsModel = LlmStatsModelFields & {
+	scores: LlmStatsScores;
+	relative_scores: LlmStatsRelativeScores;
 };
 
 export type OverallRelativeScoreWeights = {
@@ -257,42 +255,42 @@ export type SimulationProfile = {
 
 export type SimulationProfiles = Record<string, SimulationProfile>;
 
-export type ModelStatsColumnTooltipRow = readonly [string, string];
+export type LlmStatsColumnTooltipRow = readonly [string, string];
 
-export type ModelStatsColumnTooltipSectionKind =
+export type LlmStatsColumnTooltipSectionKind =
 	| "price_profile"
 	| "price_share"
 	| "workflow_simulation";
 
-export type ModelStatsColumnTooltipNestedSection = {
+export type LlmStatsColumnTooltipNestedSection = {
 	title: string;
-	kind?: ModelStatsColumnTooltipSectionKind;
+	kind?: LlmStatsColumnTooltipSectionKind;
 	weight?: string;
-	rows: readonly ModelStatsColumnTooltipRow[];
+	rows: readonly LlmStatsColumnTooltipRow[];
 };
 
-export type ModelStatsColumnTooltipSectionItem =
-	| ModelStatsColumnTooltipRow
-	| ModelStatsColumnTooltipNestedSection;
+export type LlmStatsColumnTooltipSectionItem =
+	| LlmStatsColumnTooltipRow
+	| LlmStatsColumnTooltipNestedSection;
 
-export type ModelStatsColumnTooltipSection = {
+export type LlmStatsColumnTooltipSection = {
 	title: string;
 	hideTitle?: boolean;
-	kind?: ModelStatsColumnTooltipSectionKind;
+	kind?: LlmStatsColumnTooltipSectionKind;
 	weight?: string;
-	rows: readonly ModelStatsColumnTooltipSectionItem[];
+	rows: readonly LlmStatsColumnTooltipSectionItem[];
 };
 
-export type ModelStatsColumnTooltip = {
+export type LlmStatsColumnTooltip = {
 	title: string;
 	body: string;
-	rows?: readonly ModelStatsColumnTooltipRow[];
-	sections?: readonly ModelStatsColumnTooltipSection[];
+	rows?: readonly LlmStatsColumnTooltipRow[];
+	sections?: readonly LlmStatsColumnTooltipSection[];
 };
 
-export type ModelStatsColumnTooltips = Record<string, ModelStatsColumnTooltip>;
+export type LlmStatsColumnTooltips = Record<string, LlmStatsColumnTooltip>;
 
-export type ModelStatsSelectedMetadata = {
+export type LlmStatsMetadata = {
 	artificial_analysis: {
 		available_benchmark_keys: string[];
 		available_evaluation_keys: string[];
@@ -312,20 +310,20 @@ export type ModelStatsSelectedMetadata = {
 		simulation_input_token_seconds: number;
 		quality_score_weights: QualityScoreWeights;
 		overall_relative_score_weights: OverallRelativeScoreWeights;
-		column_tooltips: ModelStatsColumnTooltips;
+		column_tooltips: LlmStatsColumnTooltips;
 	};
 };
 
-export type ModelStatsSelectedPayload = {
+export type LlmStatsPayload = {
 	fetched_at_epoch_seconds: number | null;
-	metadata: ModelStatsSelectedMetadata;
+	metadata: LlmStatsMetadata;
 	deep_swe?: {
 		rows: DeepSWELeaderboardRow[];
 	};
-	models: ModelStatsSelectedModel[];
+	models: LlmStatsModel[];
 };
 
-export type ModelStatsSelectedOptions = {
+export type LlmStatsOptions = {
 	id?: string | null;
 };
 
@@ -358,7 +356,7 @@ export type ScoringConfig = {
 	frontierBenchmarkKeys: readonly string[];
 	qualityScoreWeights: QualityScoreWeights;
 	overallRelativeScoreWeights: OverallRelativeScoreWeights;
-	columnTooltips: ModelStatsColumnTooltips;
+	columnTooltips: LlmStatsColumnTooltips;
 };
 
 export type ModelAtlasStageConfig = {
@@ -368,7 +366,7 @@ export type ModelAtlasStageConfig = {
 	scoring: ScoringConfig;
 };
 
-export type ModelStatsSourceData = {
+export type LlmStatsSourceData = {
 	artificialAnalysisRows: unknown[];
 	preferredModelsDevModels: ModelsDevModel[];
 	modelsDevById: Map<string, ModelsDevModel>;

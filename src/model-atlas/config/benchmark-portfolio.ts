@@ -1,7 +1,7 @@
 import type {
 	BenchmarkGroup,
 	BenchmarkPortfolioEntry,
-} from "../llm/model-stats/types";
+} from "../llm/stats/types";
 
 export const BENCHMARK_PORTFOLIO = {
 	omniscience_accuracy: {
