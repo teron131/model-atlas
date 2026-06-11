@@ -9,6 +9,10 @@ import type {
 	AutomationBenchScoreByModelName,
 } from "../scrapers/automation-bench";
 import type {
+	BlueprintBenchModelScoreRow,
+	BlueprintBenchScoreByModelName,
+} from "../scrapers/blueprint-bench";
+import type {
 	BrowseCompModelScoreRow,
 	BrowseCompScoreByModelName,
 } from "../scrapers/browsecomp";
@@ -137,6 +141,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	deep_swe?: NumberOrNull;
 	agents_last_exam?: NumberOrNull;
 	automation_bench?: NumberOrNull;
+	blueprint_bench_2?: NumberOrNull;
 	terminal_bench_2?: NumberOrNull;
 	browsecomp?: NumberOrNull;
 	toolathlon?: NumberOrNull;
@@ -388,6 +393,8 @@ export type LlmStatsSourceData = {
 	agentsLastExamScoreByModelName: AgentsLastExamScoreByModelName;
 	automationBenchModelScoreRows: AutomationBenchModelScoreRow[];
 	automationBenchScoreByModelName: AutomationBenchScoreByModelName;
+	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
+	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName;
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	browseCompScoreByModelName: BrowseCompScoreByModelName;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];

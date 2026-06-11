@@ -2,6 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
+import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
@@ -31,6 +32,7 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	deep_swe: "deep_swe_raw_rows",
 	terminal_bench: "terminal_bench_raw_rows",
 	agents_last_exam: "agents_last_exam_raw_rows",
+	blueprint_bench_2: "blueprint_bench_2_raw_rows",
 	browsecomp: "browsecomp_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
 	cursorbench: "cursorbench_raw_rows",
@@ -570,6 +572,45 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 						analysis_method: stringValue(row.analysis_method),
 						verified: booleanFromSql(row.verified),
 						self_reported: booleanFromSql(row.self_reported),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+export function readBlueprintBenchRawCache(db: DatabaseSync): {
+	rows: BlueprintBenchModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	if (
+		rawRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.blueprint_bench_2,
+		)
+	) {
+		return null;
+	}
+	const cachedRows = rawRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return model != null && score != null
+			? [
+					{
+						model,
+						score,
 					},
 				]
 			: [];

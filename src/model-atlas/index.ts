@@ -96,6 +96,17 @@ export {
 	summarizeAutomationBenchModelScores,
 } from "./llm/scrapers/automation-bench";
 export type {
+	BlueprintBenchModelScorePayload,
+	BlueprintBenchModelScoreRow,
+	BlueprintBenchScraperOptions,
+} from "./llm/scrapers/blueprint-bench";
+export {
+	buildBlueprintBenchScoreByModelName,
+	findBlueprintBenchScore,
+	getBlueprintBenchModelScoreStats,
+	processBlueprintBenchPageHtml,
+} from "./llm/scrapers/blueprint-bench";
+export type {
 	BrowseCompModelScorePayload,
 	BrowseCompModelScoreRow,
 	BrowseCompScraperOptions,

@@ -47,6 +47,7 @@ const EVALUATION_KEYS = [
 	"terminal_bench_2",
 	"agents_last_exam",
 	"automation_bench",
+	"blueprint_bench_2",
 	"browsecomp",
 	"toolathlon",
 	"cursorbench",

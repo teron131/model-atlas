@@ -44,6 +44,7 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
 | APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
+| Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Protected spatial-reasoning stress test over apartment-photo floor-plan reconstruction. |
 | DeepSWE | frontier | 0% | 100% | Repo reasoning plus long-horizon agentic code execution. |
 
 The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
@@ -77,6 +78,8 @@ BrowseComp contributes one baseline benchmark input from LLM Stats' model-level 
 Toolathlon contributes one baseline benchmark input from LLM Stats' model-level leaderboard. Model Atlas uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
 CursorBench contributes one baseline agentic benchmark input from Cursor's public CursorBench 3.1 leaderboard. Model Atlas preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
+
+Blueprint-Bench 2 contributes one frontier intelligence benchmark input from Andon Labs' public leaderboard. Model Atlas uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
 
 ## Scoring Shape
 

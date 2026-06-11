@@ -74,6 +74,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0,
 		agenticPortion: 1,
 	},
+	blueprint_bench_2: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
 	deep_swe: {
 		group: "frontier",
 		intelligencePortion: 0,

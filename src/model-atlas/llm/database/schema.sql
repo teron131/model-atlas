@@ -184,6 +184,16 @@ CREATE TABLE IF NOT EXISTS browsecomp_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS blueprint_bench_2_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	model TEXT NOT NULL,
+	score REAL NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -297,6 +307,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	terminal_bench_2 REAL,
 	agents_last_exam REAL,
 	automation_bench REAL,
+	blueprint_bench_2 REAL,
 	browsecomp REAL,
 	toolathlon REAL,
 	cursorbench REAL,

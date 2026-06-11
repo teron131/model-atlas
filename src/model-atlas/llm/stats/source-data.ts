@@ -10,6 +10,10 @@ import {
 	getAutomationBenchLeaderboardStats,
 } from "../scrapers/automation-bench";
 import {
+	buildBlueprintBenchScoreByModelName,
+	getBlueprintBenchModelScoreStats,
+} from "../scrapers/blueprint-bench";
+import {
 	buildBrowseCompScoreByModelName,
 	getBrowseCompModelScoreStats,
 } from "../scrapers/browsecomp";
@@ -82,6 +86,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		terminalBenchStats,
 		agentsLastExamStats,
 		automationBenchStats,
+		blueprintBenchStats,
 		browseCompStats,
 		toolathlonStats,
 		cursorBenchStats,
@@ -92,6 +97,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getTerminalBenchModelMedianAccuracyStats(),
 		getAgentsLastExamModelScoreStats(),
 		getAutomationBenchLeaderboardStats(),
+		getBlueprintBenchModelScoreStats(),
 		getBrowseCompModelScoreStats(),
 		getToolathlonModelScoreStats(),
 		getCursorBenchModelScoreStats(),
@@ -120,6 +126,10 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		automationBenchModelScoreRows: automationBenchStats.model_scores,
 		automationBenchScoreByModelName: buildAutomationBenchScoreByModelName(
 			automationBenchStats.model_scores,
+		),
+		blueprintBenchModelScoreRows: blueprintBenchStats.data,
+		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
+			blueprintBenchStats.data,
 		),
 		browseCompModelScoreRows: browseCompStats.data,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
