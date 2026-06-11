@@ -375,7 +375,21 @@ export function deepSWECi(row: DeepSWELeaderboardRow) {
 }
 
 export function modelName(model: LlmStatsModel) {
-	return model.name ?? model.id ?? "Unknown model";
+	return graphModelName(model.name ?? model.id ?? "Unknown model");
+}
+
+function graphModelName(name: string) {
+	return name
+		.replace(/\bGPT\s+(?=\d)/g, "GPT-")
+		.replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
+}
+
+function prefixBareFableModelName(match: string, offset: number, name: string) {
+	const previousToken = name.slice(
+		Math.max(0, offset - "Claude ".length),
+		offset,
+	);
+	return previousToken === "Claude " ? match : `Claude ${match}`;
 }
 
 export function deepSWELabel(row: DeepSWEChartRow, includeEffort: boolean) {
@@ -386,10 +400,10 @@ export function deepSWELabel(row: DeepSWEChartRow, includeEffort: boolean) {
 }
 
 export function shortLabel(model: LlmStatsModel) {
-	return modelName(model)
-		.replace(" Preview", "")
-		.replace("Claude ", "")
-		.replace("GPT-", "GPT ");
+	const label = modelName(model).replace(" Preview", "");
+	return label.startsWith("Claude Fable ")
+		? label
+		: label.replace("Claude ", "");
 }
 
 function providerLogoSource(model: LlmStatsModel) {
