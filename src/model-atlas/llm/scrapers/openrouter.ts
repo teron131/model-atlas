@@ -8,6 +8,8 @@
  * End-to-end latency source: https://openrouter.ai/api/frontend/v1/stats/latency-e2e-comparison
  * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
  */
+
+import { quantileFromSorted } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asRecord } from "../shared";
 import { isSameOpenRouterModelRoute } from "../stats/model-aliases";
@@ -153,22 +155,11 @@ function asFiniteNumber(value: unknown): number | null {
 	return Number.isFinite(numericValue) ? numericValue : null;
 }
 
-/** Helper for median. */
 function median(values: number[]): number | null {
-	if (values.length === 0) {
-		return null;
-	}
-	const sorted = [...values].sort((left, right) => left - right);
-	const mid = Math.floor(sorted.length / 2);
-	if (sorted.length % 2 === 1) {
-		return sorted[mid] ?? null;
-	}
-	const left = sorted[mid - 1];
-	const right = sorted[mid];
-	if (left == null || right == null) {
-		return null;
-	}
-	return (left + right) / 2;
+	return quantileFromSorted(
+		[...values].sort((left, right) => left - right),
+		0.5,
+	);
 }
 
 /** Helper for average. */

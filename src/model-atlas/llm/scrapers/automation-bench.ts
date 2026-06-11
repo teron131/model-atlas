@@ -3,8 +3,10 @@
  *
  * Page source: https://zapier.com/benchmarks
  */
+import { quantileFromSorted } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
+import { htmlTextLines } from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://zapier.com/benchmarks";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -67,28 +69,6 @@ export type AutomationBenchLeaderboardPayload = {
 	model_scores: AutomationBenchModelScoreRow[];
 };
 
-function decodeHtmlEntities(value: string): string {
-	return value
-		.replace(/&nbsp;/g, " ")
-		.replace(/&amp;/g, "&")
-		.replace(/&#x27;/g, "'")
-		.replace(/&quot;/g, '"')
-		.replace(/&mdash;/g, "\u2014")
-		.replace(/&#8212;/g, "\u2014");
-}
-
-function pageLines(pageHtml: string): string[] {
-	return decodeHtmlEntities(
-		pageHtml
-			.replace(/<script[\s\S]*?<\/script>/g, " ")
-			.replace(/<style[\s\S]*?<\/style>/g, " ")
-			.replace(/<[^>]+>/g, "\n"),
-	)
-		.split("\n")
-		.map((line) => line.replace(/\s+/g, " ").trim())
-		.filter((line) => line.length > 0);
-}
-
 function parseScorePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }
@@ -98,17 +78,10 @@ function parseMoney(value: string): number {
 }
 
 function median(values: number[]): number | null {
-	if (values.length === 0) {
-		return null;
-	}
-	const sorted = [...values].sort((left, right) => left - right);
-	const middle = Math.floor(sorted.length / 2);
-	if (sorted.length % 2 === 1) {
-		return sorted[middle] ?? null;
-	}
-	const left = sorted[middle - 1];
-	const right = sorted[middle];
-	return left != null && right != null ? (left + right) / 2 : null;
+	return quantileFromSorted(
+		[...values].sort((left, right) => left - right),
+		0.5,
+	);
 }
 
 function adjustedScore(
@@ -397,7 +370,7 @@ export function processAutomationBenchPageHtml(
 	AutomationBenchLeaderboardPayload,
 	"overall" | "domains" | "model_scores"
 > {
-	const lines = pageLines(pageHtml);
+	const lines = htmlTextLines(pageHtml);
 	const overall = processAutomationBenchOverallLines(
 		linesBetween(lines, LEADERBOARD_START, DOMAIN_START),
 	);

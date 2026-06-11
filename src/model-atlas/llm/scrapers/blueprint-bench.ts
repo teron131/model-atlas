@@ -5,6 +5,7 @@
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
+import { htmlTextLines } from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/blueprint-bench-2";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -31,27 +32,6 @@ export type BlueprintBenchModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: BlueprintBenchModelScoreRow[];
 };
-
-function decodeHtmlEntities(value: string): string {
-	return value
-		.replace(/&nbsp;/g, " ")
-		.replace(/&#xA0;/gi, " ")
-		.replace(/&amp;/g, "&")
-		.replace(/&#x27;/g, "'")
-		.replace(/&quot;/g, '"');
-}
-
-function pageLines(pageHtml: string): string[] {
-	return decodeHtmlEntities(
-		pageHtml
-			.replace(/<script[\s\S]*?<\/script>/g, " ")
-			.replace(/<style[\s\S]*?<\/style>/g, " ")
-			.replace(/<[^>]+>/g, "\n"),
-	)
-		.split("\n")
-		.map((line) => line.replace(/\s+/g, " ").trim())
-		.filter((line) => line.length > 0);
-}
 
 function parseScore(value: string | undefined): number | null {
 	if (value == null) {
@@ -89,7 +69,7 @@ function parseLeaderboardCells(lines: string[]): BlueprintBenchModelScoreRow[] {
 export function processBlueprintBenchPageHtml(
 	pageHtml: string,
 ): BlueprintBenchModelScoreRow[] {
-	const lines = pageLines(pageHtml);
+	const lines = htmlTextLines(pageHtml);
 	const start = lines.indexOf(LEADERBOARD_START);
 	if (start === -1) {
 		return [];
