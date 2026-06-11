@@ -9,6 +9,7 @@ import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import { findGdpPdfScore } from "../scrapers/gdp-pdf";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
+import { findRiemannBenchScore } from "../scrapers/riemann-bench";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
 import { findToolathlonScore } from "../scrapers/toolathlon";
 import {
@@ -202,6 +203,13 @@ function modelsDevCatalogRow(
 	);
 	if (gdpPdfScore != null) {
 		evaluations.gdp_pdf = gdpPdfScore;
+	}
+	const riemannBenchScore = findRiemannBenchScore(
+		modelNameCandidates,
+		sourceData.riemannBenchScoreByModelName,
+	);
+	if (riemannBenchScore != null) {
+		evaluations.riemann_bench = riemannBenchScore;
 	}
 	const browseCompScore = findBrowseCompScore(
 		modelNameCandidates,

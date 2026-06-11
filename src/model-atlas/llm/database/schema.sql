@@ -206,6 +206,18 @@ CREATE TABLE IF NOT EXISTS gdp_pdf_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	provider TEXT,
+	model TEXT NOT NULL,
+	score REAL NOT NULL,
+	last_updated TEXT,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -321,6 +333,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	automation_bench REAL,
 	blueprint_bench_2 REAL,
 	gdp_pdf REAL,
+	riemann_bench REAL,
 	browsecomp REAL,
 	toolathlon REAL,
 	cursorbench REAL,

@@ -42,6 +42,7 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
 | CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
 | GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
+| Riemann-bench | frontier | 100% | 0% | Private extreme mathematics stress test with useful frontier spread but limited public task access. |
 | APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
 | Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Protected spatial-reasoning stress test over apartment-photo floor-plan reconstruction. |
@@ -81,6 +82,8 @@ Toolathlon contributes one baseline benchmark input from LLM Stats' model-level 
 CursorBench contributes one baseline agentic benchmark input from Cursor's public CursorBench 3.1 leaderboard. Model Atlas preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
 Blueprint-Bench 2 contributes one frontier intelligence benchmark input from Andon Labs' public leaderboard. Model Atlas uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
+
+Riemann-bench contributes one frontier intelligence benchmark input from Surge AI's public leaderboard. Model Atlas uses the normalized public percent score and preserves provider, model label, and leaderboard last-updated date from the page. The benchmark is treated as a sharp but opaque math-reasoning stress test because the task set is private and small.
 
 GDP.pdf contributes one frontier document-reasoning benchmark input from Surge AI's public leaderboard. Model Atlas uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date. It is mostly Intelligence because the benchmark stresses PDF understanding, extraction, page-grounded citation, and professional-domain reasoning rather than tool or coding execution.
 

@@ -272,6 +272,32 @@ export function insertGdpPdfRawRows(
 	}
 }
 
+/** Insert Riemann-bench model score rows. */
+export function insertRiemannBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO riemann_bench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, provider,
+			model, score, last_updated
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.riemannBenchModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.riemannBench,
+			SOURCE_URLS.riemann_bench,
+			row.provider,
+			row.model,
+			row.score,
+			row.last_updated,
+		);
+	}
+}
+
 /** Insert Toolathlon model score rows. */
 export function insertToolathlonRawRows(
 	db: DatabaseSync,

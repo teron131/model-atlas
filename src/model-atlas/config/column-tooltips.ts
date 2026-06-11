@@ -177,6 +177,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	cursorbench: "CursorBench",
 	blueprint_bench_2: "Blueprint-Bench 2",
 	gdp_pdf: "GDP.pdf",
+	riemann_bench: "Riemann-bench",
 	hle: "HLE",
 	critpt: "CritPt",
 	gdpval_normalized: "GDPVal",

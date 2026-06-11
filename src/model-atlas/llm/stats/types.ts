@@ -31,6 +31,10 @@ import type {
 } from "../scrapers/gdp-pdf";
 import type { getModelsDevStats } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
+import type {
+	RiemannBenchModelScoreRow,
+	RiemannBenchScoreByModelName,
+} from "../scrapers/riemann-bench";
 import type { TerminalBenchAccuracyByModelName } from "../scrapers/terminal-bench";
 import type {
 	ToolathlonModelScoreRow,
@@ -147,6 +151,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	automation_bench?: NumberOrNull;
 	blueprint_bench_2?: NumberOrNull;
 	gdp_pdf?: NumberOrNull;
+	riemann_bench?: NumberOrNull;
 	terminal_bench_2?: NumberOrNull;
 	browsecomp?: NumberOrNull;
 	toolathlon?: NumberOrNull;
@@ -402,6 +407,8 @@ export type LlmStatsSourceData = {
 	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	gdpPdfScoreByModelName: GdpPdfScoreByModelName;
+	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
+	riemannBenchScoreByModelName: RiemannBenchScoreByModelName;
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	browseCompScoreByModelName: BrowseCompScoreByModelName;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
