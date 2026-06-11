@@ -262,6 +262,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	deep_swe REAL,
 	terminal_bench_2 REAL,
 	agents_last_exam REAL,
+	automation_bench REAL,
 	browsecomp REAL,
 	aa_task_cost REAL,
 	aa_task_seconds REAL,

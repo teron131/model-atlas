@@ -5,6 +5,10 @@ import type {
 	AgentsLastExamScoreByModelName,
 } from "../scrapers/agents-last-exam";
 import type {
+	AutomationBenchModelScoreRow,
+	AutomationBenchScoreByModelName,
+} from "../scrapers/automation-bench";
+import type {
 	BrowseCompModelScoreRow,
 	BrowseCompScoreByModelName,
 } from "../scrapers/browsecomp";
@@ -126,6 +130,7 @@ export type ModelStatsSelectedEvaluations =
 		scicode?: NumberOrNull;
 		deep_swe?: NumberOrNull;
 		agents_last_exam?: NumberOrNull;
+		automation_bench?: NumberOrNull;
 		terminal_bench_2?: NumberOrNull;
 		browsecomp?: NumberOrNull;
 		terminalbench_hard?: NumberOrNull;
@@ -373,6 +378,8 @@ export type ModelStatsSourceData = {
 	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName;
 	agentsLastExamModelScoreRows: AgentsLastExamModelScoreRow[];
 	agentsLastExamScoreByModelName: AgentsLastExamScoreByModelName;
+	automationBenchModelScoreRows: AutomationBenchModelScoreRow[];
+	automationBenchScoreByModelName: AutomationBenchScoreByModelName;
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	browseCompScoreByModelName: BrowseCompScoreByModelName;
 };

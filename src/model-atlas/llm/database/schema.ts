@@ -11,10 +11,19 @@ async function loadSchemaSql(): Promise<string> {
 	);
 }
 
+/** Remove a SQLite database file and its sidecar files. */
+export async function removeDatabaseFiles(path: string): Promise<void> {
+	await Promise.all([
+		rm(path, { force: true }),
+		rm(`${path}-shm`, { force: true }),
+		rm(`${path}-wal`, { force: true }),
+	]);
+}
+
 /** Recreate the SQLite database from the checked-in schema. */
 export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	await mkdir(dirname(outputPath), { recursive: true });
-	await rm(outputPath, { force: true });
+	await removeDatabaseFiles(outputPath);
 	const db = new DatabaseSync(outputPath);
 	db.exec(await loadSchemaSql());
 	return db;

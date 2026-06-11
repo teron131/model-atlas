@@ -23,6 +23,7 @@ export const benchmarkGroups = [
 export const benchmarkLabels: Record<string, string> = {
 	apex_agents: "APEX Agents",
 	agents_last_exam: "Agents' Last Exam",
+	automation_bench: "AutomationBench",
 	critpt: "CritPt",
 	deep_swe: "DeepSWE",
 	gdpval_normalized: "GDPval",
@@ -115,6 +116,14 @@ export const benchmarkTooltips: Record<string, ModelStatsColumnTooltip> = {
 		rows: [
 			["Source", "Agents' Last Exam"],
 			["Role", "agentic real-world work"],
+		],
+	},
+	automation_bench: {
+		title: "AutomationBench",
+		body: "Zapier workflow automation benchmark. Model Atlas uses the leaderboard score with a bounded domain-leadership lift.",
+		rows: [
+			["Source", "Zapier"],
+			["Role", "business workflow automation"],
 		],
 	},
 	deep_swe: {

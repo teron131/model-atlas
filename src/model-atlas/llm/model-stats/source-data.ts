@@ -6,6 +6,10 @@ import {
 } from "../scrapers/agents-last-exam";
 import { getArtificialAnalysisScrapedEvalsOnlyStats } from "../scrapers/artificial-analysis-evals";
 import {
+	buildAutomationBenchScoreByModelName,
+	getAutomationBenchLeaderboardStats,
+} from "../scrapers/automation-bench";
+import {
 	buildBrowseCompScoreByModelName,
 	getBrowseCompModelScoreStats,
 } from "../scrapers/browsecomp";
@@ -69,6 +73,7 @@ export async function fetchModelStatsSourceData(): Promise<ModelStatsSourceData>
 		deepSWEStats,
 		terminalBenchStats,
 		agentsLastExamStats,
+		automationBenchStats,
 		browseCompStats,
 	] = await Promise.all([
 		getArtificialAnalysisScrapedEvalsOnlyStats(),
@@ -76,6 +81,7 @@ export async function fetchModelStatsSourceData(): Promise<ModelStatsSourceData>
 		getDeepSWEModelScoreStats(),
 		getTerminalBenchModelMedianAccuracyStats(),
 		getAgentsLastExamModelScoreStats(),
+		getAutomationBenchLeaderboardStats(),
 		getBrowseCompModelScoreStats(),
 	]);
 	const retainKeys = buildAaRetainKeys(aaStats.data);
@@ -98,6 +104,10 @@ export async function fetchModelStatsSourceData(): Promise<ModelStatsSourceData>
 		agentsLastExamModelScoreRows: agentsLastExamStats.data,
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			agentsLastExamStats.data,
+		),
+		automationBenchModelScoreRows: automationBenchStats.model_scores,
+		automationBenchScoreByModelName: buildAutomationBenchScoreByModelName(
+			automationBenchStats.model_scores,
 		),
 		browseCompModelScoreRows: browseCompStats.data,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(

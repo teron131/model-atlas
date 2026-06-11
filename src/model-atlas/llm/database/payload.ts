@@ -46,6 +46,7 @@ const EVALUATION_KEYS = [
 	"deep_swe",
 	"terminal_bench_2",
 	"agents_last_exam",
+	"automation_bench",
 	"browsecomp",
 ] as const;
 

@@ -19,6 +19,7 @@ import {
 	getArtificialAnalysisScrapedRawStats,
 	processArtificialAnalysisScrapedRows,
 } from "../scrapers/artificial-analysis-evals";
+import { buildAutomationBenchScoreByModelName } from "../scrapers/automation-bench";
 import {
 	buildBrowseCompScoreByModelName,
 	getBrowseCompModelScoreStats,
@@ -133,6 +134,8 @@ export function buildModelStatsSourceData(
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			snapshots.agentsLastExamModelScores,
 		),
+		automationBenchModelScoreRows: [],
+		automationBenchScoreByModelName: buildAutomationBenchScoreByModelName([]),
 		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
 			snapshots.browseCompModelScoreRows,
