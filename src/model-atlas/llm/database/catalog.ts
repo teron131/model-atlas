@@ -3,6 +3,7 @@ import {
 	findAgentsLastExamModelScore,
 } from "../scrapers/agents-last-exam";
 import { findAutomationBenchScore } from "../scrapers/automation-bench";
+import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
@@ -186,6 +187,13 @@ function modelsDevCatalogRow(
 	);
 	if (automationBenchScore != null) {
 		evaluations.automation_bench = automationBenchScore;
+	}
+	const blueprintBenchScore = findBlueprintBenchScore(
+		modelNameCandidates,
+		sourceData.blueprintBenchScoreByModelName,
+	);
+	if (blueprintBenchScore != null) {
+		evaluations.blueprint_bench_2 = blueprintBenchScore;
 	}
 	const browseCompScore = findBrowseCompScore(
 		modelNameCandidates,

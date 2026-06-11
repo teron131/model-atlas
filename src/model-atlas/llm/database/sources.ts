@@ -13,6 +13,10 @@ import {
 } from "../scrapers/artificial-analysis-evals";
 import { buildAutomationBenchScoreByModelName } from "../scrapers/automation-bench";
 import {
+	buildBlueprintBenchScoreByModelName,
+	getBlueprintBenchModelScoreStats,
+} from "../scrapers/blueprint-bench";
+import {
 	buildBrowseCompScoreByModelName,
 	getBrowseCompModelScoreStats,
 } from "../scrapers/browsecomp";
@@ -50,6 +54,7 @@ import type { LlmStatsSourceData } from "../stats/types";
 import {
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
+	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,
 	readDeepSWERawCache,
@@ -109,6 +114,11 @@ type BrowseCompSnapshot = {
 	fetchedAt: { browseComp: number | null };
 };
 
+type BlueprintBenchSnapshot = {
+	blueprintBenchModelScoreRows: SourceSnapshots["blueprintBenchModelScoreRows"];
+	fetchedAt: { blueprintBench: number | null };
+};
+
 type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: SourceSnapshots["toolathlonModelScoreRows"];
 	fetchedAt: { toolathlon: number | null };
@@ -155,6 +165,10 @@ export function sourceDataFromSnapshots(
 		),
 		automationBenchModelScoreRows: [],
 		automationBenchScoreByModelName: buildAutomationBenchScoreByModelName([]),
+		blueprintBenchModelScoreRows: snapshots.blueprintBenchModelScoreRows,
+		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
+			snapshots.blueprintBenchModelScoreRows,
+		),
 		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
 			snapshots.browseCompModelScoreRows,
@@ -424,6 +438,35 @@ async function browseCompSnapshot(
 	};
 }
 
+async function blueprintBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<BlueprintBenchSnapshot> {
+	const cached = readBlueprintBenchRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			blueprintBenchModelScoreRows: cached.rows,
+			fetchedAt: { blueprintBench: cached.fetchedAt },
+		};
+	}
+	const fetched = await getBlueprintBenchModelScoreStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		blueprintBenchModelScoreRows: rows,
+		fetchedAt: {
+			blueprintBench:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 async function toolathlonSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -494,6 +537,7 @@ export async function loadSourceSnapshots(
 		deepSWE,
 		terminalBench,
 		agentsLastExam,
+		blueprintBench,
 		browseComp,
 		toolathlon,
 		cursorBench,
@@ -503,6 +547,7 @@ export async function loadSourceSnapshots(
 		deepSWESnapshot(db, sourceCache.deep_swe),
 		terminalBenchSnapshot(db, sourceCache.terminal_bench),
 		agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
+		blueprintBenchSnapshot(db, sourceCache.blueprint_bench_2),
 		browseCompSnapshot(db, sourceCache.browsecomp),
 		toolathlonSnapshot(db, sourceCache.toolathlon),
 		cursorBenchSnapshot(db, sourceCache.cursorbench),
@@ -537,6 +582,11 @@ export async function loadSourceSnapshots(
 		agentsLastExam.fetchedAt.agentsLastExam,
 		agentsLastExam.agentsLastExamRows.length,
 	);
+	sourceCache.blueprint_bench_2 = updatedSourceCacheStatus(
+		sourceCache.blueprint_bench_2,
+		blueprintBench.fetchedAt.blueprintBench,
+		blueprintBench.blueprintBenchModelScoreRows.length,
+	);
 	sourceCache.browsecomp = updatedSourceCacheStatus(
 		sourceCache.browsecomp,
 		browseComp.fetchedAt.browseComp,
@@ -566,6 +616,7 @@ export async function loadSourceSnapshots(
 			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
+			blueprintBenchModelScoreRows: blueprintBench.blueprintBenchModelScoreRows,
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
@@ -574,6 +625,7 @@ export async function loadSourceSnapshots(
 				deepSWE: deepSWE.fetchedAt.deepSWE,
 				terminalBench: terminalBench.fetchedAt.terminalBench,
 				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
+				blueprintBench: blueprintBench.fetchedAt.blueprintBench,
 				browseComp: browseComp.fetchedAt.browseComp,
 				toolathlon: toolathlon.fetchedAt.toolathlon,
 				cursorBench: cursorBench.fetchedAt.cursorBench,

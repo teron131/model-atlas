@@ -7,6 +7,7 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/llm/matcher/types";
+import { buildBlueprintBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/blueprint-bench";
 import { buildCursorBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/cursorbench";
 import { buildToolathlonScoreByModelName } from "../src/model-atlas/llm/scrapers/toolathlon";
 import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
@@ -77,6 +78,13 @@ assert.equal(
 	0.58,
 	"CursorBench scores should attach through the benchmark lookup path",
 );
+assert.equal(
+	asEvaluations(
+		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+	).blueprint_bench_2,
+	0.36,
+	"Blueprint-Bench 2 scores should attach through display-name matching",
+);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -143,6 +151,12 @@ function modelStatsSourceData(
 			steps_per_task: 42,
 		},
 	];
+	const blueprintBenchModelScoreRows = [
+		{
+			model: "Example 2.5 Flash",
+			score: 0.36,
+		},
+	];
 	const modelsDevModels = [
 		model(
 			"openrouter",
@@ -183,6 +197,10 @@ function modelStatsSourceData(
 		agentsLastExamScoreByModelName: new Map(),
 		automationBenchModelScoreRows: [],
 		automationBenchScoreByModelName: new Map(),
+		blueprintBenchModelScoreRows,
+		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
+			blueprintBenchModelScoreRows,
+		),
 		browseCompModelScoreRows: [],
 		browseCompScoreByModelName: new Map(),
 		toolathlonModelScoreRows,

@@ -223,6 +223,29 @@ export function insertBrowseCompRawRows(
 	}
 }
 
+/** Insert Blueprint-Bench 2 model score rows. */
+export function insertBlueprintBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO blueprint_bench_2_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, model, score
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.blueprintBenchModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.blueprintBench,
+			SOURCE_URLS.blueprint_bench_2,
+			row.model,
+			row.score,
+		);
+	}
+}
+
 /** Insert Toolathlon model score rows. */
 export function insertToolathlonRawRows(
 	db: DatabaseSync,

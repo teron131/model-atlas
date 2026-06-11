@@ -24,6 +24,7 @@ export const benchmarkLabels: Record<string, string> = {
 	apex_agents: "APEX Agents",
 	agents_last_exam: "Agents' Last Exam",
 	automation_bench: "AutomationBench",
+	blueprint_bench_2: "Blueprint-Bench 2",
 	browsecomp: "BrowseComp",
 	critpt: "CritPt",
 	cursorbench: "CursorBench",
@@ -127,6 +128,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Zapier"],
 			["Role", "business workflow automation"],
+		],
+	},
+	blueprint_bench_2: {
+		title: "Blueprint-Bench 2",
+		body: "Andon Labs spatial reasoning benchmark: models reconstruct apartment floor plans from interior photos.",
+		rows: [
+			["Source", "Andon Labs"],
+			["Role", "spatial reasoning"],
 		],
 	},
 	deep_swe: {

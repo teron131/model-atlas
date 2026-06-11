@@ -175,6 +175,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	browsecomp: "BrowseComp",
 	toolathlon: "Toolathlon",
 	cursorbench: "CursorBench",
+	blueprint_bench_2: "Blueprint-Bench 2",
 	hle: "HLE",
 	critpt: "CritPt",
 	gdpval_normalized: "GDPVal",
