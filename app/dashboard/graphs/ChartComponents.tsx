@@ -2,6 +2,7 @@
 
 /** Shared SVG and hover primitives for Model Atlas charts. */
 
+import { Boxes } from "lucide-react";
 import Image from "next/image";
 import {
 	type CSSProperties,
@@ -617,16 +618,21 @@ export function EmptyChart({
 export function FilterButton({
 	active,
 	color,
+	logo,
 	label,
 	count,
 	onClick,
 }: {
 	active: boolean;
 	color: string;
+	logo?: string;
 	label: string;
 	count: number;
 	onClick: () => void;
 }) {
+	const [failedLogo, setFailedLogo] = useState<string | null>(null);
+	const showLogo = logo && failedLogo !== logo;
+
 	return (
 		<button
 			type="button"
@@ -635,7 +641,26 @@ export function FilterButton({
 			style={{ "--provider-color": color } as CSSProperties}
 			onClick={onClick}
 		>
-			<span className={styles.filterSwatch} />
+			<span className={styles.filterIcon} aria-hidden="true">
+				{showLogo ? (
+					<Image
+						className={styles.filterLogo}
+						src={logo}
+						alt=""
+						width={16}
+						height={16}
+						loading="lazy"
+						unoptimized
+						onError={() => {
+							setFailedLogo(logo);
+						}}
+					/>
+				) : logo ? (
+					<span className={styles.filterIconFallback}>{label.slice(0, 1)}</span>
+				) : (
+					<Boxes className={styles.filterAllIcon} strokeWidth={2.1} />
+				)}
+			</span>
 			<span>{label}</span>
 			<span>{fmtCompact(count)}</span>
 		</button>

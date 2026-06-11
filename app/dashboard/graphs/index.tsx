@@ -273,6 +273,7 @@ export function DashboardGraphs({
 								key={option.slug}
 								active={provider === option.slug}
 								color={option.color}
+								logo={option.logo}
 								label={option.label}
 								count={option.count}
 								onClick={() => setProvider(option.slug)}

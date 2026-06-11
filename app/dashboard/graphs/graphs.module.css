@@ -195,11 +195,41 @@
 	border-color: rgba(238, 238, 234, 0.58);
 }
 
-.filterSwatch {
-	width: 9px;
-	height: 9px;
-	background: var(--provider-color, var(--ink));
-	box-shadow: 0 0 0 1px rgba(8, 9, 9, 0.85);
+.filterIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	flex: 0 0 16px;
+	color: var(--provider-color, var(--ink));
+}
+
+.filterLogo {
+	display: block;
+	width: 16px;
+	height: 16px;
+	object-fit: contain;
+	filter: saturate(0.92) contrast(1.05);
+}
+
+.filterAllIcon {
+	width: 15px;
+	height: 15px;
+	color: currentColor;
+}
+
+.filterIconFallback {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 15px;
+	height: 15px;
+	border: 1px solid
+		color-mix(in srgb, var(--provider-color, var(--ink)) 58%, var(--line));
+	color: var(--provider-color, var(--ink));
+	font-size: 9px;
+	line-height: 1;
 }
 
 .sectionGrid {

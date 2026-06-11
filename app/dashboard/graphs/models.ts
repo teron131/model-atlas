@@ -35,6 +35,8 @@ export const costFilterOptions: Array<"all" | number> = [
 	25,
 ];
 export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
+const PROVIDER_FILTER_LIMIT = 14;
+const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 
 export const interactionConfigs: InteractionConfig[] = [
 	{
@@ -203,24 +205,62 @@ export function groupBy<T, TKey>(
 }
 
 export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
-	const byProvider = new Map<string, ProviderOption>();
+	type ProviderOptionDraft = ProviderOption & {
+		overallScores: number[];
+	};
+
+	const byProvider = new Map<string, ProviderOptionDraft>();
 	for (const model of models) {
 		const slug = providerSlug(model.provider);
+		const overallScore = finiteValue(model.relative_scores?.overall_score);
 		const current = byProvider.get(slug) ?? {
 			slug,
 			label: providerName(model),
 			count: 0,
 			color: providerColor(model.provider),
+			logo: providerLogoSource(model),
+			overallScores: [],
 		};
 		current.count += 1;
+		if (overallScore != null) {
+			current.overallScores.push(overallScore);
+		}
 		byProvider.set(slug, current);
 	}
-	return [...byProvider.values()]
+	const providerShortlist = [...byProvider.values()]
 		.sort(
 			(left, right) =>
 				right.count - left.count || left.label.localeCompare(right.label),
 		)
-		.slice(0, 14);
+		.slice(0, PROVIDER_FILTER_LIMIT);
+
+	return providerShortlist
+		.map((option) => ({
+			...option,
+			orderScore: meanTopProviderScore(option.overallScores),
+		}))
+		.sort(
+			(left, right) =>
+				right.orderScore - left.orderScore ||
+				right.count - left.count ||
+				left.label.localeCompare(right.label),
+		)
+		.map((option) => ({
+			slug: option.slug,
+			label: option.label,
+			count: option.count,
+			color: option.color,
+			logo: option.logo,
+		}));
+}
+
+function meanTopProviderScore(overallScores: number[]) {
+	const topScores = [...overallScores]
+		.sort((left, right) => right - left)
+		.slice(0, PROVIDER_ORDER_TOP_SCORE_COUNT);
+	return topScores.length > 0
+		? topScores.reduce((total, score) => total + score, 0) / topScores.length
+		: Number.NEGATIVE_INFINITY;
 }
 
 export function modelKey(model: LlmStatsModel) {

@@ -9,6 +9,7 @@ export type ProviderOption = {
 	label: string;
 	count: number;
 	color: string;
+	logo: string;
 };
 
 export type HoverRow = readonly [string, string];
