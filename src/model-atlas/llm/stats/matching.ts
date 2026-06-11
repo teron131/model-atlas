@@ -13,6 +13,7 @@ import { findAutomationBenchScore } from "../scrapers/automation-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
+import { findToolathlonScore } from "../scrapers/toolathlon";
 import {
 	asFiniteNumber,
 	asRecord,
@@ -35,6 +36,7 @@ type MatchedRowLookups = Pick<
 	| "agentsLastExamScoreByModelName"
 	| "automationBenchScoreByModelName"
 	| "browseCompScoreByModelName"
+	| "toolathlonScoreByModelName"
 >;
 
 /** Helper for canonical model id. */
@@ -201,6 +203,13 @@ function buildMatchedRow(
 	);
 	if (browseCompScore != null) {
 		evaluations.browsecomp = browseCompScore;
+	}
+	const toolathlonScore = findToolathlonScore(
+		modelNameCandidates,
+		lookups.toolathlonScoreByModelName,
+	);
+	if (toolathlonScore != null) {
+		evaluations.toolathlon = toolathlonScore;
 	}
 	const canonicalId = canonicalModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,

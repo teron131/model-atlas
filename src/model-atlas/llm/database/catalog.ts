@@ -7,6 +7,7 @@ import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
+import { findToolathlonScore } from "../scrapers/toolathlon";
 import {
 	asRecord,
 	modelSlugFromModelId,
@@ -191,6 +192,13 @@ function modelsDevCatalogRow(
 	);
 	if (browseCompScore != null) {
 		evaluations.browsecomp = browseCompScore;
+	}
+	const toolathlonScore = findToolathlonScore(
+		modelNameCandidates,
+		sourceData.toolathlonScoreByModelName,
+	);
+	if (toolathlonScore != null) {
+		evaluations.toolathlon = toolathlonScore;
 	}
 	return {
 		id: canonicalId,

@@ -52,6 +52,7 @@ Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is 
 | TerminalBench&nbsp;Hard | baseline | 0% | 100% | Same-harness terminal execution and environment handling. |
 | Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Cross-harness terminal robustness; needs popularity correction. |
 | BrowseComp | baseline | 0% | 100% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
+| Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding; limited current row count keeps it baseline. |
 | HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
 | CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
 | GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
@@ -86,6 +87,8 @@ Terminal-Bench 2.0 contributes one baseline agentic benchmark input. It uses `ma
 Agents' Last Exam contributes frontier Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 BrowseComp contributes one baseline benchmark input from LLM Stats' model-level leaderboard.
+
+Toolathlon contributes one baseline benchmark input from LLM Stats' model-level leaderboard. Model Atlas uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
 ## Scoring Shape
 

@@ -34,6 +34,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0,
 		agenticPortion: 1,
 	},
+	toolathlon: {
+		group: "baseline",
+		intelligencePortion: 0.2,
+		agenticPortion: 0.8,
+	},
 	hle: {
 		group: "frontier",
 		intelligencePortion: 1,

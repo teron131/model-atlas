@@ -7,6 +7,7 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/llm/matcher/types";
+import { buildToolathlonScoreByModelName } from "../src/model-atlas/llm/scrapers/toolathlon";
 import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
 import type { LlmStatsSourceData } from "../src/model-atlas/llm/stats/types";
 
@@ -61,6 +62,13 @@ assert.equal(
 	false,
 	"image and latest routes should not stand in for a base source row",
 );
+assert.equal(
+	asEvaluations(
+		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+	).toolathlon,
+	0.42,
+	"Toolathlon scores should attach through the benchmark lookup path",
+);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -101,6 +109,20 @@ function sourceModel(
 function modelStatsSourceData(
 	artificialAnalysisRows: Record<string, unknown>[],
 ): LlmStatsSourceData {
+	const toolathlonModelScoreRows = [
+		{
+			rank: 1,
+			model: "Example 2.5 Flash",
+			provider: "google",
+			provider_name: "Google",
+			score: 0.42,
+			source_url: null,
+			analysis_method: null,
+			verified: false,
+			self_reported: true,
+			announcement_date: null,
+		},
+	];
 	const modelsDevModels = [
 		model(
 			"openrouter",
@@ -143,5 +165,17 @@ function modelStatsSourceData(
 		automationBenchScoreByModelName: new Map(),
 		browseCompModelScoreRows: [],
 		browseCompScoreByModelName: new Map(),
+		toolathlonModelScoreRows,
+		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
+			toolathlonModelScoreRows,
+		),
 	};
+}
+
+function asEvaluations(
+	row: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+	return row?.evaluations && typeof row.evaluations === "object"
+		? (row.evaluations as Record<string, unknown>)
+		: {};
 }

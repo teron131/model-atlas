@@ -14,6 +14,7 @@ import type {
 	OpenRouterStatsResponse,
 } from "../scrapers/openrouter";
 import type { TerminalBenchAgentModelAccuracyRow } from "../scrapers/terminal-bench";
+import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
 import { isSameOpenRouterModelRoute } from "../stats/model-aliases";
 import {
@@ -30,6 +31,7 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	terminal_bench: "terminal_bench_raw_rows",
 	agents_last_exam: "agents_last_exam_raw_rows",
 	browsecomp: "browsecomp_raw_rows",
+	toolathlon: "toolathlon_raw_rows",
 	openrouter: "openrouter_raw_rows",
 };
 
@@ -566,6 +568,50 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 						analysis_method: stringValue(row.analysis_method),
 						verified: booleanFromSql(row.verified),
 						self_reported: booleanFromSql(row.self_reported),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+export function readToolathlonRawCache(db: DatabaseSync): {
+	rows: ToolathlonModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM toolathlon_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.toolathlon)) {
+		return null;
+	}
+	const cachedRows = rawRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const provider = stringValue(row.provider);
+		const score = asFiniteNumber(row.score);
+		return model != null && provider != null && score != null
+			? [
+					{
+						rank: asFiniteNumber(row.rank),
+						model,
+						provider,
+						provider_name: stringValue(row.provider_name),
+						score,
+						source_url: stringValue(row.source_url),
+						analysis_method: stringValue(row.analysis_method),
+						verified: booleanFromSql(row.verified),
+						self_reported: booleanFromSql(row.self_reported),
+						announcement_date: stringValue(row.announcement_date),
 					},
 				]
 			: [];

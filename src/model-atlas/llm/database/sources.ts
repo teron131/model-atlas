@@ -31,6 +31,10 @@ import {
 	getTerminalBenchAgentModelAccuracyStats,
 	summarizeTerminalBenchModelMedianAccuracy,
 } from "../scrapers/terminal-bench";
+import {
+	buildToolathlonScoreByModelName,
+	getToolathlonModelScoreStats,
+} from "../scrapers/toolathlon";
 import { modelSlugFromModelId } from "../shared";
 import {
 	buildAaRetainKeys,
@@ -48,6 +52,7 @@ import {
 	readOpenRouterRawCache,
 	readRawSourceCacheStatus,
 	readTerminalBenchRawCache,
+	readToolathlonRawCache,
 	refreshedCacheStatus,
 } from "./cache";
 import {
@@ -99,6 +104,11 @@ type BrowseCompSnapshot = {
 	fetchedAt: { browseComp: number | null };
 };
 
+type ToolathlonSnapshot = {
+	toolathlonModelScoreRows: SourceSnapshots["toolathlonModelScoreRows"];
+	fetchedAt: { toolathlon: number | null };
+};
+
 /** Project loaded snapshots into the source data consumed by matching and enrichment. */
 export function sourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
@@ -138,6 +148,10 @@ export function sourceDataFromSnapshots(
 		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
 			snapshots.browseCompModelScoreRows,
+		),
+		toolathlonModelScoreRows: snapshots.toolathlonModelScoreRows,
+		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
+			snapshots.toolathlonModelScoreRows,
 		),
 	};
 }
@@ -396,21 +410,58 @@ async function browseCompSnapshot(
 	};
 }
 
+async function toolathlonSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+): Promise<ToolathlonSnapshot> {
+	const cached = readToolathlonRawCache(db);
+	if (status.cache_hit && cached != null) {
+		return {
+			toolathlonModelScoreRows: cached.rows,
+			fetchedAt: { toolathlon: cached.fetchedAt },
+		};
+	}
+	const fetched = await getToolathlonModelScoreStats();
+	const rows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	)
+		? fetched.data
+		: (cached?.rows ?? fetched.data);
+	return {
+		toolathlonModelScoreRows: rows,
+		fetchedAt: {
+			toolathlon:
+				cached?.rows === rows
+					? cached.fetchedAt
+					: fetched.fetched_at_epoch_seconds,
+		},
+	};
+}
+
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
 export async function loadSourceSnapshots(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
 ): Promise<SourceSnapshotCacheResult> {
 	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
-	const [aa, modelsDev, deepSWE, terminalBench, agentsLastExam, browseComp] =
-		await Promise.all([
-			aaSnapshot(db, sourceCache.artificial_analysis),
-			modelsDevSnapshot(db, sourceCache.models_dev),
-			deepSWESnapshot(db, sourceCache.deep_swe),
-			terminalBenchSnapshot(db, sourceCache.terminal_bench),
-			agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
-			browseCompSnapshot(db, sourceCache.browsecomp),
-		]);
+	const [
+		aa,
+		modelsDev,
+		deepSWE,
+		terminalBench,
+		agentsLastExam,
+		browseComp,
+		toolathlon,
+	] = await Promise.all([
+		aaSnapshot(db, sourceCache.artificial_analysis),
+		modelsDevSnapshot(db, sourceCache.models_dev),
+		deepSWESnapshot(db, sourceCache.deep_swe),
+		terminalBenchSnapshot(db, sourceCache.terminal_bench),
+		agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
+		browseCompSnapshot(db, sourceCache.browsecomp),
+		toolathlonSnapshot(db, sourceCache.toolathlon),
+	]);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
@@ -446,6 +497,11 @@ export async function loadSourceSnapshots(
 		browseComp.fetchedAt.browseComp,
 		browseComp.browseCompModelScoreRows.length,
 	);
+	sourceCache.toolathlon = updatedSourceCacheStatus(
+		sourceCache.toolathlon,
+		toolathlon.fetchedAt.toolathlon,
+		toolathlon.toolathlonModelScoreRows.length,
+	);
 	return {
 		snapshots: {
 			aaRawRows: aa.aaRawRows,
@@ -461,12 +517,14 @@ export async function loadSourceSnapshots(
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
+			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			fetchedAt: {
 				artificialAnalysis: aa.fetchedAt.artificialAnalysis,
 				deepSWE: deepSWE.fetchedAt.deepSWE,
 				terminalBench: terminalBench.fetchedAt.terminalBench,
 				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
 				browseComp: browseComp.fetchedAt.browseComp,
+				toolathlon: toolathlon.fetchedAt.toolathlon,
 			},
 		},
 		sourceCache,

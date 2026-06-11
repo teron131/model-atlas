@@ -20,6 +20,10 @@ import type {
 import type { getModelsDevStats } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type { TerminalBenchAccuracyByModelName } from "../scrapers/terminal-bench";
+import type {
+	ToolathlonModelScoreRow,
+	ToolathlonScoreByModelName,
+} from "../scrapers/toolathlon";
 
 export type ModelsDevModel = Awaited<
 	ReturnType<typeof getModelsDevStats>
@@ -131,6 +135,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	automation_bench?: NumberOrNull;
 	terminal_bench_2?: NumberOrNull;
 	browsecomp?: NumberOrNull;
+	toolathlon?: NumberOrNull;
 	terminalbench_hard?: NumberOrNull;
 };
 
@@ -380,6 +385,8 @@ export type LlmStatsSourceData = {
 	automationBenchScoreByModelName: AutomationBenchScoreByModelName;
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	browseCompScoreByModelName: BrowseCompScoreByModelName;
+	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
+	toolathlonScoreByModelName: ToolathlonScoreByModelName;
 };
 
 export type EnrichedRows = {
