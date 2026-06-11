@@ -25,6 +25,7 @@ export const benchmarkLabels: Record<string, string> = {
 	agents_last_exam: "Agents' Last Exam",
 	automation_bench: "AutomationBench",
 	critpt: "CritPt",
+	cursorbench: "CursorBench",
 	deep_swe: "DeepSWE",
 	gdpval_normalized: "GDPval",
 	hle: "HLE",
@@ -149,6 +150,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "LLM Stats / ZeroEval"],
 			["Role", "multi-tool agent work"],
+		],
+	},
+	cursorbench: {
+		title: "CursorBench",
+		body: "Cursor's first-party coding-agent benchmark over ambiguous, multi-file tasks. Composer rows are excluded.",
+		rows: [
+			["Source", "Cursor"],
+			["Role", "coding-agent workflow"],
 		],
 	},
 };

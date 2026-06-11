@@ -32,6 +32,7 @@ import {
 	insertAgentsLastExamRawRows,
 	insertArtificialAnalysisRawModels,
 	insertBrowseCompRawRows,
+	insertCursorBenchRawRows,
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
 	insertModelsDevRawModels,
@@ -49,6 +50,7 @@ const SNAPSHOT_TABLES = [
 	"agents_last_exam_raw_rows",
 	"browsecomp_raw_rows",
 	"toolathlon_raw_rows",
+	"cursorbench_raw_rows",
 	"openrouter_raw_rows",
 	"processed_models",
 	"debug",
@@ -156,6 +158,7 @@ function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	insertAgentsLastExamRawRows(db, runId, rows.snapshots);
 	insertBrowseCompRawRows(db, runId, rows.snapshots);
 	insertToolathlonRawRows(db, runId, rows.snapshots);
+	insertCursorBenchRawRows(db, runId, rows.snapshots);
 	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
 	insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
 	insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);

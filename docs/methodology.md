@@ -38,6 +38,7 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Cross-harness terminal robustness; needs popularity correction. |
 | BrowseComp | baseline | 0% | 100% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
 | Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding; limited current row count keeps it baseline. |
+| CursorBench | baseline | 0% | 100% | First-party coding-agent workflow signal from ambiguous, multi-file Cursor tasks; private Composer rows are excluded. |
 | HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
 | CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
 | GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
@@ -74,6 +75,8 @@ Agents' Last Exam contributes frontier Intelligence and Agentic benchmark eviden
 BrowseComp contributes one baseline benchmark input from LLM Stats' model-level leaderboard.
 
 Toolathlon contributes one baseline benchmark input from LLM Stats' model-level leaderboard. Model Atlas uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
+
+CursorBench contributes one baseline agentic benchmark input from Cursor's public CursorBench 3.1 leaderboard. Model Atlas preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
 ## Scoring Shape
 

@@ -4,6 +4,7 @@ import {
 } from "../scrapers/agents-last-exam";
 import { findAutomationBenchScore } from "../scrapers/automation-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
+import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
@@ -199,6 +200,13 @@ function modelsDevCatalogRow(
 	);
 	if (toolathlonScore != null) {
 		evaluations.toolathlon = toolathlonScore;
+	}
+	const cursorBenchScore = findCursorBenchScore(
+		modelNameCandidates,
+		sourceData.cursorBenchScoreByModelName,
+	);
+	if (cursorBenchScore != null) {
+		evaluations.cursorbench = cursorBenchScore;
 	}
 	return {
 		id: canonicalId,

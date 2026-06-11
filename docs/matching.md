@@ -101,7 +101,7 @@ Once a match survives, the final matched row prefers the OpenRouter provider/mod
 - display name from `models.dev` when available
 - family, modalities, context, cost, attachment/reasoning/open-weights fields from `models.dev`
 - evaluations, intelligence fields, and intelligence-index cost fields from AA
-- supplemental benchmark values from DeepSWE, Terminal-Bench 2, and Agents Last Exam when a model-name candidate matches those sources
+- supplemental benchmark values from DeepSWE, Terminal-Bench 2, Agents Last Exam, BrowseComp, Toolathlon, and CursorBench when a model-name candidate matches those sources
 - `scoring_sources` with the raw supplemental rows used to derive DeepSWE and Agents Last Exam task metrics
 
 The later OpenRouter enrichment stage can merge route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, and Gemini `Preview` labels. This keeps the public payload aligned with route-level pricing and speed while still making it possible to trace a score back to the AA row that supplied the benchmark data.
@@ -112,7 +112,7 @@ The SQLite snapshot preserves the raw source paths used by the matcher:
 
 - `aa_raw_models` stores scraped AA rows.
 - `models_dev_raw_models` stores flattened `models.dev` provider/model rows.
-- `deep_swe_raw_rows`, `terminal_bench_raw_rows`, and `agents_last_exam_raw_rows` store supplemental benchmark rows before they are summarized.
+- `deep_swe_raw_rows`, `terminal_bench_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `toolathlon_raw_rows`, and `cursorbench_raw_rows` store supplemental benchmark rows before they are summarized or matched.
 - `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
 - `processed_models` stores the matched, catalog, enriched, and final stages.
 - `debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
