@@ -583,7 +583,7 @@ function FrontierPanel({
 
 	const width = 820;
 	const height = 500;
-	const margin = { top: 26, right: 76, bottom: 68, left: 76 };
+	const margin = { top: 26, right: 34, bottom: 68, left: 62 };
 	const values = candidates.map((model) =>
 		Number(model.relative_scores.value_score),
 	);
@@ -1179,7 +1179,7 @@ function InteractionPlot({
 
 	const width = 430;
 	const height = 315;
-	const margin = { top: 22, right: 50, bottom: 64, left: 62 };
+	const margin = { top: 22, right: 22, bottom: 64, left: 54 };
 	const [rawMin, rawMax] = extent(data, (point) => point.x);
 	const xMin = rawMin ?? 1;
 	const xMax = rawMax ?? xMin * 2;
@@ -1391,7 +1391,7 @@ function RunwayPanel({
 
 	const width = 760;
 	const height = 460;
-	const margin = { top: 30, right: 88, bottom: 72, left: 84 };
+	const margin = { top: 30, right: 38, bottom: 72, left: 66 };
 	const xDomain = positiveDomain(
 		candidates.map((model) => Number(model.context_window?.context)),
 	);
