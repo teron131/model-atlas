@@ -9,6 +9,7 @@ import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
 } from "../scrapers/agents-last-exam";
+import { findAutomationBenchScore } from "../scrapers/automation-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
@@ -32,6 +33,7 @@ type MatchedRowLookups = Pick<
 	| "deepSWEScoreByModelName"
 	| "terminalBenchAccuracyByModelName"
 	| "agentsLastExamScoreByModelName"
+	| "automationBenchScoreByModelName"
 	| "browseCompScoreByModelName"
 >;
 
@@ -178,6 +180,13 @@ function buildMatchedRow(
 	if (agentsLastExamScore != null) {
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
+	}
+	const automationBenchScore = findAutomationBenchScore(
+		modelNameCandidates,
+		lookups.automationBenchScoreByModelName,
+	);
+	if (automationBenchScore != null) {
+		evaluations.automation_bench = automationBenchScore;
 	}
 	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,

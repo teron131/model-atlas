@@ -178,6 +178,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	gdpval_normalized: "GDPVal",
 	apex_agents: "APEX Agents",
 	agents_last_exam: "Agents' Last Exam",
+	automation_bench: "AutomationBench",
 	deep_swe: "DeepSWE",
 } as const satisfies Record<BenchmarkKey, string>;
 

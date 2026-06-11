@@ -139,6 +139,8 @@ function modelStatsSourceData(
 		terminalBenchAccuracyByModelName: new Map(),
 		agentsLastExamModelScoreRows: [],
 		agentsLastExamScoreByModelName: new Map(),
+		automationBenchModelScoreRows: [],
+		automationBenchScoreByModelName: new Map(),
 		browseCompModelScoreRows: [],
 		browseCompScoreByModelName: new Map(),
 	};

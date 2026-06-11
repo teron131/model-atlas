@@ -59,6 +59,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0.2,
 		agenticPortion: 0.8,
 	},
+	automation_bench: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+	},
 	deep_swe: {
 		group: "frontier",
 		intelligencePortion: 0,

@@ -1,5 +1,6 @@
 /** SQLite snapshot pipeline for cacheable Model Atlas source rows and derived scores. */
 
+import { rename } from "node:fs/promises";
 import type { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../constants";
@@ -8,10 +9,14 @@ import { modelRowsFromMatchDiagnostics } from "../model-stats/matching";
 import { publicOpenRouterModelId } from "../model-stats/model-aliases";
 import { enrichModelRowsWithOpenRouter } from "../model-stats/openrouter-enrichment";
 import { buildSelectedModels } from "../model-stats/selection";
+import {
+	buildAutomationBenchScoreByModelName,
+	getAutomationBenchLeaderboardStats,
+} from "../scrapers/automation-bench";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
 import { buildDebugTraceRows } from "./debug-trace";
-import { openDatabase } from "./schema";
+import { openDatabase, removeDatabaseFiles } from "./schema";
 import {
 	buildModelStatsSourceData,
 	loadOrFetchOpenRouterRawPayload,
@@ -105,6 +110,22 @@ function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
 	}
 }
 
+function sqlStringLiteral(value: string): string {
+	return `'${value.replace(/'/g, "''")}'`;
+}
+
+async function publishDatabaseFile(
+	db: DatabaseSync,
+	outputPath: string,
+): Promise<void> {
+	const persistedPath = `${outputPath}.persisted`;
+	await removeDatabaseFiles(persistedPath);
+	db.exec(`VACUUM INTO ${sqlStringLiteral(persistedPath)}`);
+	db.close();
+	await removeDatabaseFiles(outputPath);
+	await rename(persistedPath, outputPath);
+}
+
 /** Create the pipeline run row and return its id. */
 function insertPipelineRun(
 	db: DatabaseSync,
@@ -167,14 +188,21 @@ export async function buildModelAtlasDatabase(
 	outputPath = DEFAULT_DATABASE_PATH,
 ): Promise<DatabaseBuildResult> {
 	const startedAt = nowEpochSeconds();
-	const db = await openDatabase(outputPath);
+	let db: DatabaseSync | null = await openDatabase(outputPath);
 
 	try {
 		const { snapshots, sourceCache } = await loadOrFetchSourceSnapshots(
 			db,
 			startedAt,
 		);
-		const sourceData = buildModelStatsSourceData(snapshots);
+		const automationBench = await getAutomationBenchLeaderboardStats();
+		const sourceData = {
+			...buildModelStatsSourceData(snapshots),
+			automationBenchModelScoreRows: automationBench.model_scores,
+			automationBenchScoreByModelName: buildAutomationBenchScoreByModelName(
+				automationBench.model_scores,
+			),
+		};
 		const matchDiagnostics = await getScraperFallbackMatchDiagnostics({
 			scrapedRows: sourceData.artificialAnalysisRows,
 			modelsDevModels: sourceData.preferredModelsDevModels,
@@ -218,8 +246,9 @@ export async function buildModelAtlasDatabase(
 			openrouter: openRouter.cacheStatus,
 		};
 
-		const runId = runInTransaction(db, () =>
-			writeDatabaseSnapshot(db, {
+		const activeDb = db;
+		const runId = runInTransaction(activeDb, () =>
+			writeDatabaseSnapshot(activeDb, {
 				startedAt,
 				snapshots,
 				openRouterRawPayload: openRouter.rawPayload,
@@ -230,15 +259,18 @@ export async function buildModelAtlasDatabase(
 				debugTraceRows,
 			}),
 		);
-		const counts = tableCounts(db);
-		return {
+		const counts = tableCounts(activeDb);
+		const result = {
 			path: outputPath,
 			run_id: runId,
 			source_rows: counts,
 			source_cache: finalSourceCache,
 			final_model_count: models.length,
 		};
+		await publishDatabaseFile(activeDb, outputPath);
+		db = null;
+		return result;
 	} finally {
-		db.close();
+		db?.close();
 	}
 }

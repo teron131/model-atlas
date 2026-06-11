@@ -103,6 +103,23 @@ export {
 	processArtificialAnalysisScrapedRows,
 } from "./llm/scrapers/artificial-analysis-evals";
 export type {
+	AutomationBenchDomainModel,
+	AutomationBenchDomainRow,
+	AutomationBenchLeaderboardPayload,
+	AutomationBenchModelScoreRow,
+	AutomationBenchOverallRow,
+	AutomationBenchScraperOptions,
+} from "./llm/scrapers/automation-bench";
+export {
+	buildAutomationBenchScoreByModelName,
+	findAutomationBenchScore,
+	getAutomationBenchLeaderboardStats,
+	processAutomationBenchDomainText,
+	processAutomationBenchOverallText,
+	processAutomationBenchPageHtml,
+	summarizeAutomationBenchModelScores,
+} from "./llm/scrapers/automation-bench";
+export type {
 	BrowseCompModelScorePayload,
 	BrowseCompModelScoreRow,
 	BrowseCompScraperOptions,
