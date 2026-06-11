@@ -14,7 +14,7 @@
 		"build": "next build",
 		"dev": "next dev --webpack",
 		"start": "next start",
-		"test": "tsx test/snapshot-store.ts && tsx test/dashboard-static-markup.ts && tsx test/dashboard-models.ts && tsx test/next-config.ts && tsx test/artificial-analysis-evals.ts && tsx test/scoring.ts && tsx test/matcher.ts && tsx test/openrouter-enrichment.ts && tsx test/blueprint-bench.ts && tsx test/browsecomp.ts && tsx test/cursorbench.ts && tsx test/toolathlon.ts && tsx test/deep-swe.ts && tsx test/terminal-bench.ts && tsx test/automation-bench.ts && tsx test/models-dev.ts && tsx test/openrouter.ts",
+		"test": "tsx test/snapshot-store.ts && tsx test/dashboard-static-markup.ts && tsx test/dashboard-models.ts && tsx test/next-config.ts && tsx test/artificial-analysis-evals.ts && tsx test/scoring.ts && tsx test/matcher.ts && tsx test/openrouter-enrichment.ts && tsx test/blueprint-bench.ts && tsx test/gdp-pdf.ts && tsx test/browsecomp.ts && tsx test/cursorbench.ts && tsx test/toolathlon.ts && tsx test/deep-swe.ts && tsx test/terminal-bench.ts && tsx test/automation-bench.ts && tsx test/models-dev.ts && tsx test/openrouter.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"icons:favicon": "tsx scripts/generate-favicon.ts",
 		"atlas:database": "tsx scripts/database.ts",

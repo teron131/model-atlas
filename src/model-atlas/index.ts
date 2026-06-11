@@ -143,6 +143,17 @@ export {
 	summarizeDeepSWEDefaultModelScores,
 } from "./llm/scrapers/deep-swe";
 export type {
+	GdpPdfModelScorePayload,
+	GdpPdfModelScoreRow,
+	GdpPdfScraperOptions,
+} from "./llm/scrapers/gdp-pdf";
+export {
+	buildGdpPdfScoreByModelName,
+	findGdpPdfScore,
+	getGdpPdfModelScoreStats,
+	processGdpPdfPageHtml,
+} from "./llm/scrapers/gdp-pdf";
+export type {
 	ModelRecord,
 	ModelsDevFlatModel,
 	ModelsDevOptions,

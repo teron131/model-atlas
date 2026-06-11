@@ -26,6 +26,10 @@ import {
 	getDeepSWEModelScoreStats,
 } from "../scrapers/deep-swe";
 import {
+	buildGdpPdfScoreByModelName,
+	getGdpPdfModelScoreStats,
+} from "../scrapers/gdp-pdf";
+import {
 	getModelsDevSourceStats,
 	processModelsDevPayload,
 } from "../scrapers/models-dev";
@@ -87,6 +91,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		agentsLastExamStats,
 		automationBenchStats,
 		blueprintBenchStats,
+		gdpPdfStats,
 		browseCompStats,
 		toolathlonStats,
 		cursorBenchStats,
@@ -98,6 +103,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getAgentsLastExamModelScoreStats(),
 		getAutomationBenchLeaderboardStats(),
 		getBlueprintBenchModelScoreStats(),
+		getGdpPdfModelScoreStats(),
 		getBrowseCompModelScoreStats(),
 		getToolathlonModelScoreStats(),
 		getCursorBenchModelScoreStats(),
@@ -131,6 +137,8 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
 			blueprintBenchStats.data,
 		),
+		gdpPdfModelScoreRows: gdpPdfStats.data,
+		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfStats.data),
 		browseCompModelScoreRows: browseCompStats.data,
 		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
 			browseCompStats.data,

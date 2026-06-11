@@ -14,6 +14,7 @@ import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
+import { findGdpPdfScore } from "../scrapers/gdp-pdf";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
 import { findToolathlonScore } from "../scrapers/toolathlon";
 import {
@@ -38,6 +39,7 @@ type MatchedRowLookups = Pick<
 	| "agentsLastExamScoreByModelName"
 	| "automationBenchScoreByModelName"
 	| "blueprintBenchScoreByModelName"
+	| "gdpPdfScoreByModelName"
 	| "browseCompScoreByModelName"
 	| "toolathlonScoreByModelName"
 	| "cursorBenchScoreByModelName"
@@ -200,6 +202,13 @@ function buildMatchedRow(
 	);
 	if (blueprintBenchScore != null) {
 		evaluations.blueprint_bench_2 = blueprintBenchScore;
+	}
+	const gdpPdfScore = findGdpPdfScore(
+		modelNameCandidates,
+		lookups.gdpPdfScoreByModelName,
+	);
+	if (gdpPdfScore != null) {
+		evaluations.gdp_pdf = gdpPdfScore;
 	}
 	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,

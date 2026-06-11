@@ -6,8 +6,7 @@
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
 
-const DEFAULT_LEADERBOARD_URL =
-	"https://andonlabs.com/evals/blueprint-bench-2";
+const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/blueprint-bench-2";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const LEADERBOARD_START = "Leaderboard";
 const LEADERBOARD_END = "The eval";

@@ -15,15 +15,15 @@ Benchmark admission follows the standards in `docs/standards.md`. Accepted bench
 The ranking has two quality dimensions.
 
 - Intelligence
-  - Captures broad capability: factual accuracy, hard reasoning, and structured problem solving outside harness/tool execution.
+  - Captures broad capability: factual accuracy, hard reasoning, professional knowledge, and structured problem solving outside harness/tool execution.
   - Evidence comes from benchmarks with a non-zero Intelligence portion in the benchmark portfolio.
 - Agentic
-  - Captures workflow usefulness: tool use, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
+  - Captures workflow usefulness: coding or task execution with specific tools, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
   - Evidence comes from benchmarks with a non-zero Agentic portion in the benchmark portfolio.
 
 `omniscience_nonhallucination_rate` remains available as a diagnostic reliability field, but it is not selected for intelligence scoring because it can reward abstention behavior rather than raw knowledge.
 
-There is no standalone coding score in the current ranking. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA TerminalBench Hard, and Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
+There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA TerminalBench Hard, and Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
 Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
@@ -45,6 +45,7 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
 | Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Protected spatial-reasoning stress test over apartment-photo floor-plan reconstruction. |
+| GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics; mostly document intelligence, with a small execution-reliability component. |
 | DeepSWE | frontier | 0% | 100% | Repo reasoning plus long-horizon agentic code execution. |
 
 The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
@@ -80,6 +81,8 @@ Toolathlon contributes one baseline benchmark input from LLM Stats' model-level 
 CursorBench contributes one baseline agentic benchmark input from Cursor's public CursorBench 3.1 leaderboard. Model Atlas preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
 Blueprint-Bench 2 contributes one frontier intelligence benchmark input from Andon Labs' public leaderboard. Model Atlas uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
+
+GDP.pdf contributes one frontier document-reasoning benchmark input from Surge AI's public leaderboard. Model Atlas uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date. It is mostly Intelligence because the benchmark stresses PDF understanding, extraction, page-grounded citation, and professional-domain reasoning rather than tool or coding execution.
 
 ## Scoring Shape
 

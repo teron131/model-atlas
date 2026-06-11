@@ -9,6 +9,8 @@ A benchmark should help answer one of two questions:
 
 If it does not help answer either question, it does not belong in the ranking.
 
+Agentic signal should come from tasks that require coding workflow execution or specific tool use: terminals, browsers, files, repositories, APIs, multi-step harnesses, or other external environments. Coding difficulty alone does not make a benchmark agentic. Static coding, scientific programming, or software-design questions should count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation rather than tool execution.
+
 Accepted benchmarks fall into exactly two classes: `frontier` and `baseline`. Everything else is `rejected`. There is no diagnostic bucket for the ranking. Interesting but non-decisive benchmarks should be discussed elsewhere, not allowed to quietly affect the score.
 
 ## Frontier Benchmarks
@@ -66,9 +68,18 @@ A useful benchmark report should answer:
 - Is grading reliable enough to trust?
 - Is contamination controlled?
 - Is the benchmark measuring the model or the scaffold?
+- Do stronger reasoning-effort settings help, plateau, or regress?
 - Is the signal broad or important enough?
 - Is it redundant with a better benchmark?
 - Is there enough public evidence to understand the result?
+
+## Effort Sensitivity
+
+Benchmarks with multiple reasoning-effort or budget settings should be inspected for effort sensitivity.
+
+For the same base model, higher reasoning effort should usually improve performance or plateau. A material regression at higher effort is a warning sign. It can mean the benchmark is measuring overthinking, verbosity penalties, timeout pressure, brittle output formatting, over-engineered patches, or harness mismatch rather than clean model capability.
+
+This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level rows when available, report effort sensitivity, and avoid hiding the issue by silently selecting only the best effort row.
 
 ## Harness Interpretation
 

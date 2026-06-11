@@ -7,6 +7,7 @@ import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findCursorBenchScore } from "../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../scrapers/deep-swe";
+import { findGdpPdfScore } from "../scrapers/gdp-pdf";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
 import { findToolathlonScore } from "../scrapers/toolathlon";
@@ -194,6 +195,13 @@ function modelsDevCatalogRow(
 	);
 	if (blueprintBenchScore != null) {
 		evaluations.blueprint_bench_2 = blueprintBenchScore;
+	}
+	const gdpPdfScore = findGdpPdfScore(
+		modelNameCandidates,
+		sourceData.gdpPdfScoreByModelName,
+	);
+	if (gdpPdfScore != null) {
+		evaluations.gdp_pdf = gdpPdfScore;
 	}
 	const browseCompScore = findBrowseCompScore(
 		modelNameCandidates,

@@ -29,6 +29,7 @@ export const benchmarkLabels: Record<string, string> = {
 	critpt: "CritPt",
 	cursorbench: "CursorBench",
 	deep_swe: "DeepSWE",
+	gdp_pdf: "GDP.pdf",
 	gdpval_normalized: "GDPval",
 	hle: "HLE",
 	ifbench: "IFBench",
@@ -136,6 +137,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Andon Labs"],
 			["Role", "spatial reasoning"],
+		],
+	},
+	gdp_pdf: {
+		title: "GDP.pdf",
+		body: "Surge AI document-understanding benchmark over real professional PDFs. Model Atlas uses the public leaderboard score.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "document reasoning"],
 		],
 	},
 	deep_swe: {
