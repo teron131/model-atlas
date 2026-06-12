@@ -1,18 +1,25 @@
 /** Relative percentile scoring for final Model Atlas model rows. */
 
 import {
+	ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	RAW_RESOURCE_COMPONENT_WEIGHT,
+	resourceComponentWeightsFor,
+} from "../../../config/benchmark-portfolio";
+import {
 	clampScore,
 	fixedWeightedScore,
 	meanOfFinite,
-	meanOfFiniteWithMinimum,
+	minMaxScale,
 	percentileRank,
 	quantileFromSorted,
 	sortedFiniteScores,
+	weightedMeanOfFinite,
 } from "../../../math-utils";
 import { asFiniteNumber } from "../../shared";
 import type {
 	LlmStatsModelCandidate,
 	LlmStatsScoredCandidate,
+	LlmStatsTaskMetricValues,
 	ScoringConfig,
 } from "../types";
 import { blendedPriceValue } from "./score-builders";
@@ -23,8 +30,14 @@ import {
 
 const MIN_DISPLAY_VALUE_COMPONENTS = 2;
 const MIN_DISPLAY_SPEED_COMPONENTS = 2;
+const VALUE_RAW_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT / 3;
+const SPEED_SIMULATION_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT;
 const VALUE_QUALITY_TRADEOFF_STRENGTH = 0.5;
 type TaskMetricKey = "artificial_analysis" | "deep_swe" | "agents_last_exam";
+type RelativeComponent = {
+	value: number | null;
+	weight: number;
+};
 
 function percentileScoreAt(
 	values: Array<number | null>,
@@ -32,6 +45,22 @@ function percentileScoreAt(
 ): number | null {
 	const value = values[index] ?? null;
 	return value == null ? null : percentileRank(values, value);
+}
+
+function weightedMeanOfFiniteWithMinimum(
+	components: RelativeComponent[],
+	minimumFiniteValues: number,
+): number | null {
+	const finiteValueCount = components.filter(
+		(component) =>
+			component.value != null &&
+			Number.isFinite(component.value) &&
+			Number.isFinite(component.weight) &&
+			component.weight > 0,
+	).length;
+	return finiteValueCount >= minimumFiniteValues
+		? weightedMeanOfFinite(components)
+		: null;
 }
 
 function fillMissingScoresWithMedian(
@@ -96,6 +125,148 @@ function taskMetricSeconds(
 	return positiveNumber(model.task_metrics?.[key]?.seconds);
 }
 
+function benchmarkMetricValue(
+	model: LlmStatsModelCandidate,
+	key: string,
+): number | null {
+	return (
+		asFiniteNumber(model.intelligence?.[key]) ??
+		asFiniteNumber(model.evaluations?.[key]) ??
+		null
+	);
+}
+
+function frontierResourceTaskMetric(
+	model: LlmStatsModelCandidate,
+	key: string,
+): LlmStatsTaskMetricValues | null {
+	return (
+		model.task_metrics?.[key] ?? model.task_metrics?.artificial_analysis ?? null
+	);
+}
+
+function hasPositiveResourceMetric(
+	model: LlmStatsModelCandidate,
+	key: string,
+): boolean {
+	const task = model.task_metrics?.[key];
+	return (
+		positiveNumber(task?.cost) != null || positiveNumber(task?.seconds) != null
+	);
+}
+
+function hasBenchmarkFrontierResourceMetric(
+	models: LlmStatsModelCandidate[],
+	key: string,
+): boolean {
+	return models.some(
+		(model) =>
+			benchmarkMetricValue(model, key) != null &&
+			(hasPositiveResourceMetric(model, key) ||
+				hasPositiveResourceMetric(model, "artificial_analysis")),
+	);
+}
+
+function frontierResourceKeys(
+	models: LlmStatsModelCandidate[],
+	scoringConfig: ScoringConfig,
+): string[] {
+	return scoringConfig.frontierBenchmarkKeys.filter((key) =>
+		hasBenchmarkFrontierResourceMetric(models, key),
+	);
+}
+
+function frontierBenchmarkValuesByKey(
+	models: LlmStatsModelCandidate[],
+	keys: readonly string[],
+) {
+	return new Map(
+		keys.map((key) => [
+			key,
+			models
+				.map((model) => benchmarkMetricValue(model, key))
+				.filter(
+					(value): value is number => value != null && Number.isFinite(value),
+				),
+		]),
+	);
+}
+
+function frontierBenchmarkSpeedValuesByKey(
+	models: LlmStatsModelCandidate[],
+	keys: readonly string[],
+) {
+	return new Map(
+		keys.map((key) => [
+			key,
+			models
+				.map((model) => {
+					if (benchmarkMetricValue(model, key) == null) {
+						return null;
+					}
+					return inversePositive(
+						frontierResourceTaskMetric(model, key)?.seconds,
+					);
+				})
+				.filter(
+					(value): value is number => value != null && Number.isFinite(value),
+				),
+		]),
+	);
+}
+
+function frontierResourceCostSignal(
+	model: LlmStatsModelCandidate,
+	keys: readonly string[],
+): number | null {
+	return meanOfFinite(
+		keys.map((key) => {
+			if (benchmarkMetricValue(model, key) == null) {
+				return null;
+			}
+			return inversePositive(frontierResourceTaskMetric(model, key)?.cost);
+		}),
+	);
+}
+
+function frontierResourceEfficiencySignal(
+	model: LlmStatsModelCandidate,
+	keys: readonly string[],
+	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
+): number | null {
+	return meanOfFinite(
+		keys.map((key) => {
+			const score = minMaxScale(
+				benchmarkValuesByKey.get(key) ?? [],
+				benchmarkMetricValue(model, key),
+			);
+			const cost = positiveNumber(frontierResourceTaskMetric(model, key)?.cost);
+			return score == null || cost == null ? null : score / cost;
+		}),
+	);
+}
+
+function frontierResourceSpeedSignal(
+	model: LlmStatsModelCandidate,
+	keys: readonly string[],
+	benchmarkSpeedValuesByKey: ReadonlyMap<string, readonly number[]>,
+): number | null {
+	return meanOfFinite(
+		keys.map((key) => {
+			if (benchmarkMetricValue(model, key) == null) {
+				return null;
+			}
+			const speed = inversePositive(
+				frontierResourceTaskMetric(model, key)?.seconds,
+			);
+			return percentileRank(
+				[...(benchmarkSpeedValuesByKey.get(key) ?? [])],
+				speed,
+			);
+		}),
+	);
+}
+
 function blendCost(
 	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,
@@ -111,6 +282,27 @@ export function attachRelativeScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
 ): LlmStatsScoredCandidate[] {
+	const frontierKeys = frontierResourceKeys(models, scoringConfig);
+	const aaResourceSourceCount = models.some((model) =>
+		hasPositiveResourceMetric(model, "artificial_analysis"),
+	)
+		? ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT
+		: 0;
+	const { aaResourceWeight, frontierResourceWeight } =
+		resourceComponentWeightsFor({
+			aaResourceSourceCount,
+			frontierResourceSourceCount: frontierKeys.length,
+		});
+	const aaResourcePairComponentWeight = aaResourceWeight / 2;
+	const frontierResourcePairComponentWeight = frontierResourceWeight / 2;
+	const frontierValuesByKey = frontierBenchmarkValuesByKey(
+		models,
+		frontierKeys,
+	);
+	const frontierSpeedValuesByKey = frontierBenchmarkSpeedValuesByKey(
+		models,
+		frontierKeys,
+	);
 	const intelligenceRelativeScores = models.map(
 		(model) => model.scores?.intelligence_score ?? null,
 	);
@@ -133,11 +325,11 @@ export function attachRelativeScores(
 			? null
 			: intelligenceRelativeScore / cost;
 	});
-	const deepSWECostValues = models.map((model) =>
-		inversePositive(taskMetricCost(model, "deep_swe")),
+	const frontierResourceCostValues = models.map((model) =>
+		frontierResourceCostSignal(model, frontierKeys),
 	);
-	const agentsLastExamCostValues = models.map((model) =>
-		inversePositive(taskMetricCost(model, "agents_last_exam")),
+	const frontierResourceEfficiencyValues = models.map((model) =>
+		frontierResourceEfficiencySignal(model, frontierKeys, frontierValuesByKey),
 	);
 	const blendCostValues = models.map((model) =>
 		inversePositive(blendCost(model, scoringConfig)),
@@ -155,36 +347,65 @@ export function attachRelativeScores(
 	const artificialAnalysisSpeedValues = models.map((model) =>
 		inversePositive(taskMetricSeconds(model, "artificial_analysis")),
 	);
-	const deepSWESpeedValues = models.map((model) =>
-		inversePositive(taskMetricSeconds(model, "deep_swe")),
+	const aaResourceSpeedValues = models.map((_, index) =>
+		percentileScoreAt(artificialAnalysisSpeedValues, index),
 	);
-	const agentsLastExamSpeedValues = models.map((model) =>
-		inversePositive(taskMetricSeconds(model, "agents_last_exam")),
+	const frontierResourceSpeedValues = models.map((model) =>
+		frontierResourceSpeedSignal(model, frontierKeys, frontierSpeedValuesByKey),
 	);
 	const workflowSimulatedSpeedValues = models.map((model) =>
 		inversePositive(simulatedBlendSeconds(model.speed, scoringConfig)),
 	);
 	const valueRelativeScores = models.map((_, index) =>
-		meanOfFiniteWithMinimum(
+		weightedMeanOfFiniteWithMinimum(
 			[
-				percentileScoreAt(artificialAnalysisCostValues, index),
-				percentileScoreAt(artificialAnalysisEfficiencyValues, index),
-				percentileScoreAt(deepSWECostValues, index),
-				percentileScoreAt(agentsLastExamCostValues, index),
-				percentileScoreAt(blendCostValues, index),
-				percentileScoreAt(qualityAdjustedBlendCostValues, index),
-				percentileScoreAt(workflowSimulatedValueValues, index),
+				{
+					value: percentileScoreAt(artificialAnalysisCostValues, index),
+					weight: aaResourcePairComponentWeight,
+				},
+				{
+					value: percentileScoreAt(artificialAnalysisEfficiencyValues, index),
+					weight: aaResourcePairComponentWeight,
+				},
+				{
+					value: percentileScoreAt(frontierResourceCostValues, index),
+					weight: frontierResourcePairComponentWeight,
+				},
+				{
+					value: percentileScoreAt(frontierResourceEfficiencyValues, index),
+					weight: frontierResourcePairComponentWeight,
+				},
+				{
+					value: percentileScoreAt(blendCostValues, index),
+					weight: VALUE_RAW_COMPONENT_WEIGHT,
+				},
+				{
+					value: percentileScoreAt(qualityAdjustedBlendCostValues, index),
+					weight: VALUE_RAW_COMPONENT_WEIGHT,
+				},
+				{
+					value: percentileScoreAt(workflowSimulatedValueValues, index),
+					weight: VALUE_RAW_COMPONENT_WEIGHT,
+				},
 			],
 			MIN_DISPLAY_VALUE_COMPONENTS,
 		),
 	);
 	const speedRelativeScores = models.map((_, index) =>
-		meanOfFiniteWithMinimum(
+		weightedMeanOfFiniteWithMinimum(
 			[
-				percentileScoreAt(artificialAnalysisSpeedValues, index),
-				percentileScoreAt(deepSWESpeedValues, index),
-				percentileScoreAt(agentsLastExamSpeedValues, index),
-				percentileScoreAt(workflowSimulatedSpeedValues, index),
+				{
+					value: aaResourceSpeedValues[index] ?? null,
+					weight: aaResourceWeight,
+				},
+				{
+					value: frontierResourceSpeedValues[index] ?? null,
+					weight: frontierResourceWeight,
+				},
+				{
+					value: percentileScoreAt(workflowSimulatedSpeedValues, index),
+					weight: SPEED_SIMULATION_COMPONENT_WEIGHT,
+				},
 			],
 			MIN_DISPLAY_SPEED_COMPONENTS,
 		),

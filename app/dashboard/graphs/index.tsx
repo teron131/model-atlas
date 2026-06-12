@@ -6,12 +6,17 @@ import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { line } from "d3-shape";
 import { useMemo, useState } from "react";
-import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
 import type {
+	BenchmarkPortfolio,
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../../src/model-atlas/llm/stats/types";
-import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
+import {
+	areaScaledRadius,
+	clamp,
+	minMaxScale,
+} from "../../../src/model-atlas/math-utils";
+import { benchmarkLabels } from "../shared/constants";
 import {
 	type BoxWhiskerDistribution,
 	BoxWhiskerSummary,
@@ -36,21 +41,15 @@ import {
 	XAxisTicks,
 	YAxisTicks,
 } from "./ChartComponents";
-import {
-	EfficiencyAxisChart,
-	type EfficiencyEffortLine,
-} from "./EfficiencyAxisChart";
+import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import {
 	finite,
 	finiteValue,
 	fmtCompact,
 	fmtDurationShort,
-	fmtMinutes,
 	fmtMoney,
-	fmtPercent,
 	fmtTooltipMoney,
 	fmtTooltipNumber,
-	fmtTooltipPercent,
 	fmtTooltipScore,
 	percent,
 } from "./format";
@@ -58,11 +57,6 @@ import styles from "./graphs.module.css";
 import {
 	correlationLabel,
 	costFilterOptions,
-	deepSWECi,
-	deepSWELabel,
-	deepSweMetricConfig,
-	deepSweRows,
-	groupBy,
 	interactionConfigs,
 	modelKey,
 	modelLimitOptions,
@@ -73,8 +67,6 @@ import {
 } from "./models";
 import { providerColor, providerSlug } from "./providerTheme";
 import type {
-	DeepSWEChartRow,
-	DeepSWEEffortMode,
 	HoverRow,
 	HoverSetter,
 	HoverState,
@@ -83,91 +75,63 @@ import type {
 	Point,
 } from "./types";
 
-type DeepSWEMetricKey = "cost" | "time" | "tokens";
-type ALEMetricKey = "cost" | "time" | "tokens";
+type FrontierResourceMetricKey = "cost" | "time" | "tokens";
+type FrontierResourceFilterKey = "all" | string;
 
-type HiddenResourceMetric = {
-	firstLabel: string;
-	secondLabel: string;
-	firstValue: (row: DeepSWEChartRow) => number;
-	secondValue: (row: DeepSWEChartRow) => number;
-};
-
-type ALEChartRow = {
+type FrontierResourceRow = {
+	benchmarkKey: string;
+	benchmarkLabel: string;
+	resourceSourceLabel: string;
+	benchmarkCount: number;
 	model: LlmStatsModel;
 	score: number;
 	cost: number;
 	seconds: number;
-	inputTokens: number;
-	outputTokens: number;
+	inputTokens: number | null;
+	outputTokens: number | null;
 	totalTokens: number;
 };
 
-type ALEMetricConfig = {
+type FrontierResourceMetricConfig = {
 	label: string;
 	shortLabel: string;
-	get: (row: ALEChartRow) => number;
+	get: (row: FrontierResourceRow) => number;
 	efficiencyLabel: string;
-	efficiencyScore: (row: ALEChartRow) => number;
+	efficiencyScore: (row: FrontierResourceRow) => number;
 	formatEfficiency: (value: number) => string;
 	format: (value: number) => string;
-	ticks: number[];
 };
 
-const hiddenResourceMetrics: Record<DeepSWEMetricKey, HiddenResourceMetric> = {
+const frontierResourceMetricConfig: Record<
+	FrontierResourceMetricKey,
+	FrontierResourceMetricConfig
+> = {
 	cost: {
-		firstLabel: "time",
-		secondLabel: "output tokens",
-		firstValue: (row) => row.row.mean_duration_seconds / 60,
-		secondValue: (row) => row.row.mean_output_tokens,
-	},
-	time: {
-		firstLabel: "cost",
-		secondLabel: "output tokens",
-		firstValue: (row) => row.row.mean_cost_usd,
-		secondValue: (row) => row.row.mean_output_tokens,
-	},
-	tokens: {
-		firstLabel: "cost",
-		secondLabel: "time",
-		firstValue: (row) => row.row.mean_cost_usd,
-		secondValue: (row) => row.row.mean_duration_seconds / 60,
-	},
-};
-
-const aleMetricConfig: Record<ALEMetricKey, ALEMetricConfig> = {
-	cost: {
-		label: "ALE task cost",
+		label: "Task cost",
 		shortLabel: "Cost",
 		get: (row) => row.cost,
 		efficiencyLabel: "Best score per dollar",
 		efficiencyScore: (row) => row.score / row.cost,
 		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtMoney,
-		ticks: [10, 25, 50, 100, 250, 500, 1000, 2000],
 	},
 	time: {
-		label: "ALE task time",
+		label: "Task time",
 		shortLabel: "Time",
 		get: (row) => row.seconds,
 		efficiencyLabel: "Best score per day",
 		efficiencyScore: (row) => row.score / (row.seconds / 86_400),
 		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtDurationShort,
-		ticks: [100_000, 250_000, 500_000, 1_000_000, 2_000_000],
 	},
 	tokens: {
-		label: "ALE tokens",
+		label: "Task tokens",
 		shortLabel: "Tokens",
 		get: (row) => row.totalTokens,
 		efficiencyLabel: "Best score per 1M tokens",
 		efficiencyScore: (row) => row.score / (row.totalTokens / 1_000_000),
 		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtCompact,
-		ticks: [
-			50_000_000, 100_000_000, 250_000_000, 500_000_000, 1_000_000_000,
-			2_000_000_000,
-		],
 	},
 };
 
@@ -335,12 +299,11 @@ export function DashboardGraphs({
 					</section>
 					{afterLead}
 					<section className={styles.sectionGrid}>
-						<DeepSwePanel
+						<FrontierResourcePanel
+							payload={initialPayload}
 							models={models}
-							rows={initialPayload.deep_swe?.rows ?? []}
 							setHover={setHover}
 						/>
-						<ALEPanel models={models} setHover={setHover} />
 						<InteractionMatrix models={models} setHover={setHover} />
 						<RunwayPanel models={models} setHover={setHover} />
 					</section>
@@ -421,14 +384,6 @@ function valueDistribution(values: number[]): BoxWhiskerDistribution {
 	};
 }
 
-function deepSWEAccuracyDistribution(
-	rows: DeepSWEChartRow[],
-): BoxWhiskerDistribution {
-	return valueDistribution(
-		rows.map((row) => percent(row.row.pass_at_1)).filter(finite),
-	);
-}
-
 function intelligenceDistribution(
 	models: LlmStatsModel[],
 ): BoxWhiskerDistribution {
@@ -451,31 +406,49 @@ function outputSpeedDistribution(
 	);
 }
 
-function aleRows(models: LlmStatsModel[]): ALEChartRow[] {
+function frontierResourceRows(
+	models: LlmStatsModel[],
+	portfolio: BenchmarkPortfolio,
+): FrontierResourceRow[] {
+	const frontierKeys = Object.entries(portfolio)
+		.filter(([, entry]) => entry.group === "frontier")
+		.map(([key]) => key);
 	return models
-		.map((model) => {
-			const score = percent(model.evaluations?.agents_last_exam);
-			const task = model.task_metrics?.agents_last_exam;
-			const cost = finiteValue(task?.cost);
-			const seconds = finiteValue(task?.seconds);
-			const inputTokens = finiteValue(task?.input_tokens);
-			const outputTokens = finiteValue(task?.output_tokens);
-			const totalTokens =
-				inputTokens != null && outputTokens != null
-					? inputTokens + outputTokens
-					: null;
-			return score != null &&
-				cost != null &&
-				cost > 0 &&
-				seconds != null &&
-				seconds > 0 &&
-				inputTokens != null &&
-				inputTokens > 0 &&
-				outputTokens != null &&
-				outputTokens > 0 &&
-				totalTokens != null &&
-				totalTokens > 0
-				? {
+		.flatMap((model): FrontierResourceRow[] => {
+			const evaluations = model.evaluations ?? {};
+			const taskMetrics = model.task_metrics ?? {};
+			return frontierKeys.flatMap((benchmarkKey) => {
+				const score = percent(evaluations[benchmarkKey]);
+				const directTask = taskMetrics[benchmarkKey];
+				const task = directTask ?? taskMetrics.artificial_analysis;
+				const cost = finiteValue(task?.cost);
+				const seconds = finiteValue(task?.seconds);
+				const inputTokens = finiteValue(task?.input_tokens);
+				const outputTokens = finiteValue(task?.output_tokens);
+				const totalTokens =
+					inputTokens != null && inputTokens > 0
+						? inputTokens + Math.max(outputTokens ?? 0, 0)
+						: outputTokens != null && outputTokens > 0
+							? outputTokens
+							: null;
+				if (
+					score == null ||
+					cost == null ||
+					cost <= 0 ||
+					seconds == null ||
+					seconds <= 0 ||
+					totalTokens == null ||
+					totalTokens <= 0
+				) {
+					return [];
+				}
+				return [
+					{
+						benchmarkKey,
+						benchmarkLabel: benchmarkLabels[benchmarkKey] ?? benchmarkKey,
+						resourceSourceLabel:
+							directTask != null ? "Benchmark source" : "Artificial Analysis",
+						benchmarkCount: 1,
 						model,
 						score,
 						cost,
@@ -483,27 +456,79 @@ function aleRows(models: LlmStatsModel[]): ALEChartRow[] {
 						inputTokens,
 						outputTokens,
 						totalTokens,
-					}
-				: null;
+					},
+				];
+			});
 		})
-		.filter((row): row is ALEChartRow => row != null)
 		.sort((left, right) => right.score - left.score);
 }
 
-function aleScoreDistribution(rows: ALEChartRow[]): BoxWhiskerDistribution {
-	return valueDistribution(rows.map((row) => row.score));
+function meanFrontierResourceRows(
+	rows: FrontierResourceRow[],
+): FrontierResourceRow[] {
+	const rowsByModel = new Map<string, FrontierResourceRow[]>();
+	for (const row of rows) {
+		const key = modelKey(row.model);
+		const current = rowsByModel.get(key) ?? [];
+		current.push(row);
+		rowsByModel.set(key, current);
+	}
+	return [...rowsByModel.values()]
+		.map((modelRows) => {
+			const first = modelRows[0];
+			if (first == null) {
+				return null;
+			}
+			return {
+				benchmarkKey: "all",
+				benchmarkLabel: "Frontier mean",
+				resourceSourceLabel: `Mean of ${modelRows.length} benchmarks`,
+				benchmarkCount: modelRows.length,
+				model: first.model,
+				score: meanNumber(modelRows.map((row) => row.score)),
+				cost: meanNumber(modelRows.map((row) => row.cost)),
+				seconds: meanNumber(modelRows.map((row) => row.seconds)),
+				inputTokens: nullableMeanNumber(
+					modelRows.map((row) => row.inputTokens),
+				),
+				outputTokens: nullableMeanNumber(
+					modelRows.map((row) => row.outputTokens),
+				),
+				totalTokens: meanNumber(modelRows.map((row) => row.totalTokens)),
+			};
+		})
+		.filter((row): row is FrontierResourceRow => row != null)
+		.sort((left, right) => right.score - left.score);
 }
 
-function hiddenResourceValue(
-	row: DeepSWEChartRow,
-	metric: HiddenResourceMetric,
-) {
-	return metric.firstValue(row) * metric.secondValue(row);
+function normalizedFrontierResourceRows(
+	rows: FrontierResourceRow[],
+): FrontierResourceRow[] {
+	const scoresByBenchmark = new Map<string, number[]>();
+	for (const row of rows) {
+		const scores = scoresByBenchmark.get(row.benchmarkKey) ?? [];
+		scores.push(row.score);
+		scoresByBenchmark.set(row.benchmarkKey, scores);
+	}
+	return rows.map((row) => ({
+		...row,
+		score:
+			minMaxScale(scoresByBenchmark.get(row.benchmarkKey) ?? [], row.score) ??
+			row.score,
+	}));
 }
 
-function inverseLogBubbleRadius(values: number[]) {
+function meanNumber(values: number[]): number {
+	return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function nullableMeanNumber(values: Array<number | null>): number | null {
+	const finiteValues = values.filter(finite);
+	return finiteValues.length > 0 ? meanNumber(finiteValues) : null;
+}
+
+function inverseLogBubbleRadius(values: number[], maxRadius = 16) {
 	const minRadius = 5;
-	const maxRadius = 16;
 	const logs = values
 		.filter((value) => finite(value) && value > 0)
 		.map((value) => Math.log(value));
@@ -541,10 +566,15 @@ function linearBubbleRadius(values: number[], minRadius = 3, maxRadius = 10) {
 	};
 }
 
-function aleBubbleValue(row: ALEChartRow, selectedMetric: ALEMetricKey) {
-	return (Object.keys(aleMetricConfig) as ALEMetricKey[])
-		.filter((key) => key !== selectedMetric)
-		.map((key) => aleMetricConfig[key].get(row))
+function frontierResourceProduct(
+	row: FrontierResourceRow,
+	selectedMetric: FrontierResourceMetricKey | "all",
+) {
+	return (
+		Object.keys(frontierResourceMetricConfig) as FrontierResourceMetricKey[]
+	)
+		.filter((key) => selectedMetric === "all" || key !== selectedMetric)
+		.map((key) => frontierResourceMetricConfig[key].get(row))
 		.filter((value) => finite(value) && value > 0)
 		.reduce((product, value) => product * value, 1);
 }
@@ -556,7 +586,8 @@ function FrontierPanel({
 	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const { cursorProjection, cursorHandlers } = useCursorProjection();
+	const { cursorProjection, cursorHandlers, setCursorProjection } =
+		useCursorProjection();
 	const candidates = models
 		.filter(
 			(model) =>
@@ -666,8 +697,6 @@ function FrontierPanel({
 	});
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
-		xInvert: x.invert,
-		yInvert: y.invert,
 		points: projectionPoints,
 	});
 
@@ -785,6 +814,13 @@ function FrontierPanel({
 									model={model}
 									rows={rows}
 									setHover={setHover}
+									snapProjection={{
+										x: cx,
+										y: cy,
+										xValue: Number(model.relative_scores.value_score),
+										yValue: model.relative_scores.intelligence_score,
+									}}
+									setCursorProjection={setCursorProjection}
 								/>
 								{isFrontier ? (
 									<PointLabel
@@ -805,253 +841,168 @@ function FrontierPanel({
 	);
 }
 
-function DeepSwePanel({
+function FrontierResourcePanel({
+	payload,
 	models,
-	rows,
 	setHover,
 }: {
+	payload: LlmStatsPayload;
 	models: LlmStatsModel[];
-	rows: DeepSWELeaderboardRow[];
 	setHover: HoverSetter;
 }) {
-	const [metricKey, setMetricKey] = useState<DeepSWEMetricKey>("cost");
-	const [effortMode, setEffortMode] = useState<DeepSWEEffortMode>("best");
-	const allEfforts = deepSweRows(models, rows, "all");
-	const bestEfforts = deepSweRows(models, rows, "best");
-	const deep = effortMode === "all" ? allEfforts : bestEfforts;
+	const [metricKey, setMetricKey] = useState<FrontierResourceMetricKey>("cost");
+	const [benchmarkFilter, setBenchmarkFilter] =
+		useState<FrontierResourceFilterKey>("all");
+	const allRows = useMemo(
+		() =>
+			frontierResourceRows(
+				models,
+				payload.metadata.scoring.benchmark_portfolio,
+			),
+		[models, payload.metadata.scoring.benchmark_portfolio],
+	);
+	const meanRows = useMemo(
+		() => meanFrontierResourceRows(normalizedFrontierResourceRows(allRows)),
+		[allRows],
+	);
+	const benchmarkOptions = useMemo(
+		() => frontierResourceOptions(allRows),
+		[allRows],
+	);
+	const selectedFilter =
+		benchmarkFilter !== "all" &&
+		benchmarkOptions.some((option) => option.key === benchmarkFilter)
+			? benchmarkFilter
+			: "all";
+	const rows = useMemo(
+		() =>
+			selectedFilter === "all"
+				? meanRows
+				: allRows.filter((row) => row.benchmarkKey === selectedFilter),
+		[allRows, meanRows, selectedFilter],
+	);
 
-	if (deep.length === 0) {
+	if (allRows.length === 0) {
 		return (
 			<Panel
-				title="DeepSWE efficiency axis"
-				copy="DeepSWE rows appear when the current filters include models with DeepSWE task metrics."
+				title="Frontier Efficiency"
+				copy="Frontier benchmark resource rows appear when selected frontier benchmarks include score, cost, time, and token metrics."
 			>
-				<EmptyChart message="No DeepSWE rows match the current filters." />
+				<EmptyChart message="No frontier resource rows match the current filters." />
 			</Panel>
 		);
 	}
 
-	const metric = deepSweMetricConfig[metricKey];
-	const metricValues = deep.map(metric.get).filter(finite);
-	const xDomain = positiveDomain(metricValues);
-	const passMax = max(deep, (row) => percent(row.row.pass_at_1)) ?? 75;
-	const yTicks = [0, 15, 30, 45, 60, 75];
-	const yDomain: [number, number] = [0, Math.max(75, passMax + 4)];
-	const markerMetrics = hiddenResourceMetrics[metricKey];
-	const bubbleValue = (row: DeepSWEChartRow) =>
-		hiddenResourceValue(row, markerMetrics);
-	const bubbleRadius = inverseLogBubbleRadius(deep.map(bubbleValue));
-	const leader = deep[0] as DeepSWEChartRow;
-	const bestAxis =
-		[...deep].sort(
-			(left, right) =>
-				metric.efficiencyScore(right) - metric.efficiencyScore(left),
-		)[0] ?? leader;
-	const leanAboveFloor =
-		[...deep]
-			.filter((row) => Number(percent(row.row.pass_at_1)) >= 20)
-			.sort((left, right) => metric.get(left) - metric.get(right))[0] ??
-		bestAxis;
-	const labeledRows = new Set([leader, bestAxis, leanAboveFloor]);
-	const accuracyDistribution = deepSWEAccuracyDistribution(bestEfforts);
-	const effortLines =
-		effortMode === "all"
-			? [...groupBy(deep, (row) => row.modelKey).values()]
-					.filter((modelRows) => modelRows.length > 1)
-					.map((modelRows) =>
-						[...modelRows].sort(
-							(left, right) => metric.get(left) - metric.get(right),
-						),
-					)
-			: [];
-	const chartEffortLines: EfficiencyEffortLine<DeepSWEChartRow>[] =
-		effortLines.map((modelRows) => {
-			const firstRow = modelRows[0] as DeepSWEChartRow;
-			return {
-				key: firstRow.modelKey,
-				rows: modelRows,
-				color: providerColor(firstRow.model.provider),
-			};
-		});
-	const plotRows = [...deep].sort(
-		(left, right) =>
-			Number(percent(left.row.pass_at_1)) -
-			Number(percent(right.row.pass_at_1)),
-	);
-
-	return (
-		<Panel
-			title="DeepSWE efficiency axis"
-			copy="DeepSWE accuracy plotted against cost, runtime, or output tokens."
-			summary={
-				<BoxWhiskerSummary
-					label="DeepSWE accuracy"
-					distribution={accuracyDistribution}
-					domainMax={100}
-					formatValue={(value) => `${value.toFixed(0)}%`}
-					showDomainEndpoints
-				/>
+	const isAllFilter = selectedFilter === "all";
+	const resourceMetric = frontierResourceMetricConfig[metricKey];
+	const axisMetric = isAllFilter
+		? {
+				label: "Value score",
+				get: (row: FrontierResourceRow) =>
+					finiteValue(row.model.relative_scores?.value_score) ?? 0,
+				format: (value: number) => value.toFixed(0),
 			}
-		>
-			<div className={styles.resourceToolbar}>
-				<fieldset className={styles.metricToggle}>
-					<legend className={styles.visuallyHidden}>
-						DeepSWE efficiency axis
-					</legend>
-					{Object.entries(deepSweMetricConfig).map(([key, config]) => (
-						<button
-							key={key}
-							type="button"
-							aria-pressed={key === metricKey}
-							onClick={() => setMetricKey(key as DeepSWEMetricKey)}
-						>
-							{config.shortLabel}
-						</button>
-					))}
-				</fieldset>
-				<fieldset className={styles.metricToggle}>
-					<legend className={styles.visuallyHidden}>DeepSWE effort rows</legend>
-					{[
-						["best", "Best"],
-						["all", "All efforts"],
-					].map(([key, label]) => (
-						<button
-							key={key}
-							type="button"
-							aria-pressed={effortMode === key}
-							onClick={() => setEffortMode(key as DeepSWEEffortMode)}
-						>
-							{label}
-						</button>
-					))}
-				</fieldset>
-				<div className={styles.resourceCaption}>
-					<span className={styles.markerKey}>
-						<span className={styles.bubbleMarkerKey} />
-						Bubble size = efficiency
-					</span>
-				</div>
-			</div>
-			<EfficiencyAxisChart
-				rows={plotRows}
-				metric={metric}
-				xDomain={xDomain}
-				yDomain={yDomain}
-				yTicks={yTicks}
-				yAxisLabel="DeepSWE accuracy"
-				keyPrefix="deep-swe"
-				ariaLabel="DeepSWE accuracy by efficiency axis scatter plot"
-				bubbleValue={bubbleValue}
-				bubbleRadius={bubbleRadius}
-				getScore={(row) => Number(percent(row.row.pass_at_1))}
-				getModel={(row) => row.model}
-				getKey={(row) => row.row.config ?? `${row.modelKey}-${row.effortLabel}`}
-				getHoverTitle={(row) => deepSWELabel(row, true)}
-				getHoverRows={(row) => [
-					["DeepSWE", fmtTooltipPercent(row.row.pass_at_1)],
-					["Cost", fmtTooltipMoney(row.row.mean_cost_usd)],
-					["Time", fmtMinutes(row.row.mean_duration_seconds)],
-					["Output tokens", fmtTooltipNumber(row.row.mean_output_tokens)],
-					["95% CI", deepSWECi(row.row)],
-				]}
-				labelRows={labeledRows}
-				getLabel={(row) => deepSWELabel(row, false)}
-				effortLines={chartEffortLines}
-				setHover={setHover}
-			/>
-			<div className={styles.chartSummary}>
-				<SummaryCard
-					label="Leader"
-					value={`${deepSWELabel(leader, effortMode === "all")} - ${fmtPercent(leader.row.pass_at_1)}`}
-					detail={`${fmtMoney(leader.row.mean_cost_usd)} / ${fmtMinutes(leader.row.mean_duration_seconds)}`}
-				/>
-				<SummaryCard
-					label={metric.efficiencyLabel}
-					value={deepSWELabel(bestAxis, effortMode === "all")}
-					detail={metric.formatEfficiency(metric.efficiencyScore(bestAxis))}
-				/>
-				<SummaryCard
-					label="Leanest above 20%"
-					value={deepSWELabel(leanAboveFloor, effortMode === "all")}
-					detail={metric.format(metric.get(leanAboveFloor))}
-				/>
-			</div>
-		</Panel>
-	);
-}
-
-function ALEPanel({
-	models,
-	setHover,
-}: {
-	models: LlmStatsModel[];
-	setHover: HoverSetter;
-}) {
-	const [metricKey, setMetricKey] = useState<ALEMetricKey>("cost");
-	const rows = aleRows(models);
-
-	if (rows.length === 0) {
-		return (
-			<Panel
-				title="ALE efficiency axis"
-				copy="ALE rows appear when the current filters include models with Agents' Last Exam task metrics."
-			>
-				<EmptyChart message="No ALE rows match the current filters." />
-			</Panel>
-		);
-	}
-
-	const metric = aleMetricConfig[metricKey];
-	const metricValues = rows.map(metric.get).filter(finite);
-	const xDomain = positiveDomain(metricValues);
+		: resourceMetric;
+	const metricValues = rows.map(axisMetric.get).filter(finite);
+	const xDomain = linearResourceDomain(metricValues);
 	const scoreMax = max(rows, (row) => row.score) ?? 50;
-	const yTicks = [0, 10, 20, 30, 40, 50];
-	const yDomain: [number, number] = [0, Math.max(50, scoreMax + 4)];
-	const bubbleValue = (row: ALEChartRow) => aleBubbleValue(row, metricKey);
-	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue));
-	const leader = rows[0] as ALEChartRow;
-	const bestAxis =
-		[...rows].sort(
-			(left, right) =>
-				metric.efficiencyScore(right) - metric.efficiencyScore(left),
-		)[0] ?? leader;
+	const yDomainTop = Math.max(
+		50,
+		Math.min(105, Math.ceil((scoreMax + 4) / 10) * 10),
+	);
+	const yTicks = percentageTicks(yDomainTop);
+	const bubbleValue = (row: FrontierResourceRow) =>
+		frontierResourceProduct(row, isAllFilter ? "all" : metricKey);
+	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue), 13);
+	const leader = rows[0] as FrontierResourceRow;
+	const bestAxis = isAllFilter
+		? ([...rows].sort(
+				(left, right) => axisMetric.get(right) - axisMetric.get(left),
+			)[0] ?? leader)
+		: ([...rows].sort(
+				(left, right) =>
+					resourceMetric.efficiencyScore(right) -
+					resourceMetric.efficiencyScore(left),
+			)[0] ?? leader);
 	const leanAboveFloor =
 		[...rows]
 			.filter((row) => row.score >= 10)
-			.sort((left, right) => metric.get(left) - metric.get(right))[0] ??
+			.sort((left, right) => axisMetric.get(left) - axisMetric.get(right))[0] ??
 		bestAxis;
-	const labeledRows = new Set([leader, bestAxis, leanAboveFloor]);
-	const scoreDistribution = aleScoreDistribution(rows);
+	const valueAbove80 = bestValueRowAboveScore(rows, axisMetric.get, 80, leader);
+	const valueAbove20 = bestValueRowAboveScore(rows, axisMetric.get, 20, leader);
+	const labeledRows = new Set([leader]);
+	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
+	const yAxisLabel = isAllFilter ? "Normalized score" : "Benchmark score";
+	const panelCopy = isAllFilter
+		? "Each point is one model: normalized frontier score against value score."
+		: `${leader.benchmarkLabel} score plotted against available task cost, time, or tokens.`;
+	const leaderDetail = isAllFilter
+		? `${leader.score.toFixed(1)}% / value ${axisMetric.format(
+				axisMetric.get(leader),
+			)}`
+		: `${leader.score.toFixed(1)}% / ${fmtMoney(leader.cost)}`;
 
 	return (
 		<Panel
-			title="ALE efficiency axis"
-			copy="Agents' Last Exam score plotted against task cost, time, or total tokens."
+			title="Frontier Efficiency"
+			copy={panelCopy}
 			summary={
 				<BoxWhiskerSummary
-					label="ALE score"
+					label="Benchmark score"
 					distribution={scoreDistribution}
 					domainMax={100}
 					formatValue={(value) => `${value.toFixed(0)}%`}
 					showDomainEndpoints
 				/>
 			}
+			wide
 		>
 			<div className={styles.resourceToolbar}>
-				<fieldset className={styles.metricToggle}>
-					<legend className={styles.visuallyHidden}>ALE efficiency axis</legend>
-					{Object.entries(aleMetricConfig).map(([key, config]) => (
+				<fieldset
+					className={`${styles.metricToggle} ${styles.benchmarkToggle}`}
+				>
+					<legend className={styles.visuallyHidden}>
+						Frontier resource benchmark
+					</legend>
+					<button
+						type="button"
+						aria-pressed={selectedFilter === "all"}
+						onClick={() => setBenchmarkFilter("all")}
+					>
+						All <span>{meanRows.length}</span>
+					</button>
+					{benchmarkOptions.map((option) => (
 						<button
-							key={key}
+							key={option.key}
 							type="button"
-							aria-pressed={key === metricKey}
-							onClick={() => setMetricKey(key as ALEMetricKey)}
+							aria-pressed={selectedFilter === option.key}
+							onClick={() => setBenchmarkFilter(option.key)}
 						>
-							{config.shortLabel}
+							{option.label} <span>{option.count}</span>
 						</button>
 					))}
 				</fieldset>
+				{isAllFilter ? null : (
+					<fieldset className={styles.metricToggle}>
+						<legend className={styles.visuallyHidden}>
+							Frontier Efficiency axis
+						</legend>
+						{Object.entries(frontierResourceMetricConfig).map(
+							([key, config]) => (
+								<button
+									key={key}
+									type="button"
+									aria-pressed={key === metricKey}
+									onClick={() => setMetricKey(key as FrontierResourceMetricKey)}
+								>
+									{config.shortLabel}
+								</button>
+							),
+						)}
+					</fieldset>
+				)}
 				<div className={styles.resourceCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
@@ -1061,49 +1012,143 @@ function ALEPanel({
 			</div>
 			<EfficiencyAxisChart
 				rows={plotRows}
-				metric={metric}
+				metric={axisMetric}
 				xDomain={xDomain}
-				yDomain={yDomain}
+				yDomain={[0, yDomainTop]}
 				yTicks={yTicks}
-				yAxisLabel="ALE score"
-				keyPrefix="ale"
-				ariaLabel="Agents' Last Exam score by efficiency axis scatter plot"
+				yAxisLabel={yAxisLabel}
+				keyPrefix={`frontier-resource-${selectedFilter}-${isAllFilter ? "value" : metricKey}`}
+				ariaLabel="Frontier Efficiency scatter plot"
 				bubbleValue={bubbleValue}
 				bubbleRadius={bubbleRadius}
 				getScore={(row) => row.score}
 				getModel={(row) => row.model}
-				getKey={(row) => modelKey(row.model)}
-				getHoverRows={(row) => [
-					["ALE score", `${row.score.toFixed(1)}%`],
-					["Cost", fmtTooltipMoney(row.cost)],
-					["Time", fmtDurationShort(row.seconds)],
-					["Total tokens", fmtTooltipNumber(row.totalTokens)],
-					["Input tokens", fmtTooltipNumber(row.inputTokens)],
-					["Output tokens", fmtTooltipNumber(row.outputTokens)],
-				]}
+				getKey={(row) => `${row.benchmarkKey}-${modelKey(row.model)}`}
+				getHoverTitle={(row) =>
+					`${modelName(row.model)} / ${row.benchmarkLabel}`
+				}
+				getHoverRows={(row) => frontierResourceHoverRows(row)}
 				labelRows={labeledRows}
 				getLabel={(row) => shortLabel(row.model)}
 				setHover={setHover}
+				height={520}
 			/>
 			<div className={styles.chartSummary}>
 				<SummaryCard
 					label="Leader"
-					value={`${modelName(leader.model)} - ${leader.score.toFixed(1)}%`}
-					detail={`${fmtMoney(leader.cost)} / ${fmtDurationShort(leader.seconds)}`}
+					value={`${modelName(leader.model)} - ${leader.benchmarkLabel}`}
+					detail={leaderDetail}
 				/>
-				<SummaryCard
-					label={metric.efficiencyLabel}
-					value={modelName(bestAxis.model)}
-					detail={metric.formatEfficiency(metric.efficiencyScore(bestAxis))}
-				/>
-				<SummaryCard
-					label="Leanest above 10%"
-					value={modelName(leanAboveFloor.model)}
-					detail={metric.format(metric.get(leanAboveFloor))}
-				/>
+				{isAllFilter ? (
+					<>
+						<SummaryCard
+							label="Best value above 80%"
+							value={`${modelName(valueAbove80.model)} - ${valueAbove80.benchmarkLabel}`}
+							detail={`${valueAbove80.score.toFixed(1)}% / value ${axisMetric
+								.get(valueAbove80)
+								.toFixed(0)}`}
+						/>
+						<SummaryCard
+							label="Best value above 20%"
+							value={`${modelName(valueAbove20.model)} - ${valueAbove20.benchmarkLabel}`}
+							detail={`${valueAbove20.score.toFixed(1)}% / value ${axisMetric
+								.get(valueAbove20)
+								.toFixed(0)}`}
+						/>
+					</>
+				) : (
+					<>
+						<SummaryCard
+							label={resourceMetric.efficiencyLabel}
+							value={`${modelName(bestAxis.model)} - ${bestAxis.benchmarkLabel}`}
+							detail={resourceMetric.formatEfficiency(
+								resourceMetric.efficiencyScore(bestAxis),
+							)}
+						/>
+						<SummaryCard
+							label="Leanest above 10%"
+							value={`${modelName(leanAboveFloor.model)} - ${leanAboveFloor.benchmarkLabel}`}
+							detail={axisMetric.format(axisMetric.get(leanAboveFloor))}
+						/>
+					</>
+				)}
 			</div>
 		</Panel>
 	);
+}
+
+function bestValueRowAboveScore(
+	rows: FrontierResourceRow[],
+	valueScore: (row: FrontierResourceRow) => number,
+	minScore: number,
+	fallback: FrontierResourceRow,
+) {
+	return (
+		[...rows]
+			.filter((row) => row.score >= minScore)
+			.sort((left, right) => valueScore(right) - valueScore(left))[0] ??
+		fallback
+	);
+}
+
+function frontierResourceOptions(rows: FrontierResourceRow[]) {
+	const counts = new Map<
+		string,
+		{ key: string; label: string; count: number }
+	>();
+	for (const row of rows) {
+		const current = counts.get(row.benchmarkKey) ?? {
+			key: row.benchmarkKey,
+			label: row.benchmarkLabel,
+			count: 0,
+		};
+		current.count += 1;
+		counts.set(row.benchmarkKey, current);
+	}
+	return [...counts.values()].sort(
+		(left, right) =>
+			right.count - left.count || left.label.localeCompare(right.label),
+	);
+}
+
+function percentageTicks(domainTop: number) {
+	const step = domainTop <= 60 ? 10 : 20;
+	return Array.from(
+		{ length: Math.floor(domainTop / step) + 1 },
+		(_, index) => index * step,
+	);
+}
+
+function linearResourceDomain(values: number[]): [number, number] {
+	const low = Math.min(...values);
+	const high = Math.max(...values);
+	if (!finite(low) || !finite(high)) {
+		return [0, 1];
+	}
+	if (low === high) {
+		const pad = Math.max(Math.abs(low) * 0.1, 1);
+		return [Math.max(0, low - pad), high + pad];
+	}
+	const span = high - low;
+	return [Math.max(0, low - span * 0.05), high + span * 0.05];
+}
+
+function frontierResourceHoverRows(row: FrontierResourceRow): HoverRow[] {
+	const rows: HoverRow[] = [
+		["Benchmark", row.benchmarkLabel],
+		["Resource source", row.resourceSourceLabel],
+		["Score", `${row.score.toFixed(1)}%`],
+		["Cost", fmtTooltipMoney(row.cost)],
+		["Time", fmtDurationShort(row.seconds)],
+		["Task tokens", fmtTooltipNumber(row.totalTokens)],
+	];
+	if (row.inputTokens != null) {
+		rows.push(["Input tokens", fmtTooltipNumber(row.inputTokens)]);
+	}
+	if (row.outputTokens != null) {
+		rows.push(["Output tokens", fmtTooltipNumber(row.outputTokens)]);
+	}
+	return rows;
 }
 
 function InteractionMatrix({
@@ -1152,7 +1197,8 @@ function InteractionPlot({
 	config: InteractionConfig;
 	setHover: HoverSetter;
 }) {
-	const { cursorProjection, cursorHandlers } = useCursorProjection();
+	const { cursorProjection, cursorHandlers, setCursorProjection } =
+		useCursorProjection();
 	const data = models
 		.map((model) => ({
 			model,
@@ -1236,8 +1282,6 @@ function InteractionPlot({
 	}));
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
-		xInvert: x.invert,
-		yInvert: y.invert,
 		points: projectionPoints,
 	});
 
@@ -1336,6 +1380,13 @@ function InteractionPlot({
 								model={point.model}
 								rows={rows}
 								setHover={setHover}
+								snapProjection={{
+									x: cx,
+									y: cy,
+									xValue: point.x,
+									yValue: point.y,
+								}}
+								setCursorProjection={setCursorProjection}
 							/>
 						</g>
 					);
@@ -1364,7 +1415,8 @@ function RunwayPanel({
 	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const { cursorProjection, cursorHandlers } = useCursorProjection();
+	const { cursorProjection, cursorHandlers, setCursorProjection } =
+		useCursorProjection();
 	const candidates = models
 		.filter(
 			(model) =>
@@ -1503,8 +1555,6 @@ function RunwayPanel({
 	});
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
-		xInvert: x.invert,
-		yInvert: y.invert,
 		points: projectionPoints,
 	});
 
@@ -1623,6 +1673,15 @@ function RunwayPanel({
 									model={model}
 									rows={rows}
 									setHover={setHover}
+									snapProjection={{
+										x: cx,
+										y: cy,
+										xValue: Number(model.context_window?.context),
+										yValue: Number(
+											model.speed?.throughput_tokens_per_second_median,
+										),
+									}}
+									setCursorProjection={setCursorProjection}
 								/>
 								{labeled ? (
 									<PointLabel

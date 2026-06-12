@@ -130,11 +130,13 @@ export type LlmStatsTaskMetricValues = {
 	output_tokens?: NumberOrNull;
 };
 
-export type LlmStatsTaskMetrics = {
-	artificial_analysis?: LlmStatsTaskMetricValues | null;
-	deep_swe?: LlmStatsTaskMetricValues | null;
-	agents_last_exam?: LlmStatsTaskMetricValues | null;
-} | null;
+export type LlmStatsTaskMetrics =
+	| (Record<string, LlmStatsTaskMetricValues | null | undefined> & {
+			artificial_analysis?: LlmStatsTaskMetricValues | null;
+			deep_swe?: LlmStatsTaskMetricValues | null;
+			agents_last_exam?: LlmStatsTaskMetricValues | null;
+	  })
+	| null;
 
 export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	apex_agents?: NumberOrNull;

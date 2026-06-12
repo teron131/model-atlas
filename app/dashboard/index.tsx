@@ -51,6 +51,9 @@ const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
 const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
 const TOOLTIP_FADE_OUT_MS = 1_000;
+const AUTOMATIC_LIVE_REFRESH_ENABLED =
+	process.env.NODE_ENV === "production" ||
+	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
 
 type RefreshPayloadOptions = {
 	bypassGuard?: boolean;
@@ -356,8 +359,12 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			if (cachedPayload != null) {
 				setPayload(cachedPayload);
 			}
+			void refreshPayload({ retryWhenGuarded: true });
+			return;
 		}
-		void refreshPayload({ retryWhenGuarded: true });
+		if (AUTOMATIC_LIVE_REFRESH_ENABLED) {
+			void refreshPayload({ retryWhenGuarded: true });
+		}
 	}, [initialPayload, refreshPayload]);
 
 	useEffect(() => {
@@ -369,7 +376,7 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 	}, []);
 
 	useEffect(() => {
-		if (payload == null) {
+		if (payload == null || !AUTOMATIC_LIVE_REFRESH_ENABLED) {
 			return;
 		}
 		const interval = window.setInterval(() => {

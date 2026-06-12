@@ -1,5 +1,6 @@
 /** Selected-benchmark summary strip backed by scoring metadata. */
 
+import { Star } from "lucide-react";
 import type { CSSProperties, FocusEvent, MouseEvent } from "react";
 import { useCallback, useState } from "react";
 
@@ -35,6 +36,11 @@ export function BenchmarkStrip({
 	isLoading: boolean;
 }) {
 	const scoring = payload?.metadata?.scoring;
+	const frontierBenchmarkKeys = new Set(
+		Object.entries(scoring?.benchmark_portfolio ?? {})
+			.filter(([, entry]) => entry.group === "frontier")
+			.map(([key]) => key),
+	);
 	const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 	const activeTooltipContent =
 		tooltip == null ? undefined : benchmarkTooltips[tooltip.key];
@@ -66,6 +72,7 @@ export function BenchmarkStrip({
 							key={field}
 							label={label}
 							keys={keys}
+							frontierBenchmarkKeys={frontierBenchmarkKeys}
 							isLoading={isLoading}
 							onTooltip={showTooltip}
 							onTooltipEnd={clearTooltip}
@@ -91,12 +98,14 @@ export function BenchmarkStrip({
 function BenchmarkGroup({
 	label,
 	keys,
+	frontierBenchmarkKeys,
 	isLoading,
 	onTooltip,
 	onTooltipEnd,
 }: {
 	label: string;
 	keys: string[];
+	frontierBenchmarkKeys: ReadonlySet<string>;
 	isLoading: boolean;
 	onTooltip: (
 		event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>,
@@ -117,6 +126,7 @@ function BenchmarkGroup({
 			) : (
 				<BenchmarkList
 					keys={keys}
+					frontierBenchmarkKeys={frontierBenchmarkKeys}
 					onTooltip={onTooltip}
 					onTooltipEnd={onTooltipEnd}
 				/>
@@ -127,10 +137,12 @@ function BenchmarkGroup({
 
 function BenchmarkList({
 	keys,
+	frontierBenchmarkKeys,
 	onTooltip,
 	onTooltipEnd,
 }: {
 	keys: string[];
+	frontierBenchmarkKeys: ReadonlySet<string>;
 	onTooltip: (
 		event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>,
 		key: string,
@@ -139,20 +151,32 @@ function BenchmarkList({
 }) {
 	return (
 		<ul className="benchmark-list">
-			{keys.map((key) => (
-				<li key={key}>
-					<button
-						className="benchmark-chip"
-						type="button"
-						onMouseEnter={(event) => onTooltip(event, key)}
-						onFocus={(event) => onTooltip(event, key)}
-						onMouseLeave={onTooltipEnd}
-						onBlur={onTooltipEnd}
-					>
-						{benchmarkLabels[key] ?? key}
-					</button>
-				</li>
-			))}
+			{keys.map((key) => {
+				const label = benchmarkLabels[key] ?? key;
+				const isFrontier = frontierBenchmarkKeys.has(key);
+				return (
+					<li key={key}>
+						<button
+							className="benchmark-chip"
+							type="button"
+							aria-label={isFrontier ? `${label} frontier benchmark` : label}
+							onMouseEnter={(event) => onTooltip(event, key)}
+							onFocus={(event) => onTooltip(event, key)}
+							onMouseLeave={onTooltipEnd}
+							onBlur={onTooltipEnd}
+						>
+							{isFrontier && (
+								<Star
+									className="benchmark-frontier-star"
+									aria-hidden="true"
+									size={10}
+								/>
+							)}
+							<span className="benchmark-chip-label">{label}</span>
+						</button>
+					</li>
+				);
+			})}
 		</ul>
 	);
 }

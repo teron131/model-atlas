@@ -116,6 +116,36 @@ export const OVERALL_RELATIVE_SCORE_WEIGHTS = {
 	value: 0.2,
 } as const;
 
+export const RAW_RESOURCE_COMPONENT_WEIGHT = 0.6;
+export const RESOURCE_COMPONENT_TOTAL_WEIGHT =
+	1 - RAW_RESOURCE_COMPONENT_WEIGHT;
+export const ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT = 14;
+
+export function resourceComponentWeightsFor({
+	aaResourceSourceCount = ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	frontierResourceSourceCount,
+}: {
+	aaResourceSourceCount?: number;
+	frontierResourceSourceCount: number;
+}) {
+	const totalResourceSourceCount =
+		aaResourceSourceCount + frontierResourceSourceCount;
+	if (totalResourceSourceCount <= 0) {
+		return {
+			aaResourceWeight: 0,
+			frontierResourceWeight: 0,
+		};
+	}
+	return {
+		aaResourceWeight:
+			RESOURCE_COMPONENT_TOTAL_WEIGHT *
+			(aaResourceSourceCount / totalResourceSourceCount),
+		frontierResourceWeight:
+			RESOURCE_COMPONENT_TOTAL_WEIGHT *
+			(frontierResourceSourceCount / totalResourceSourceCount),
+	};
+}
+
 export const benchmarkPortfolioEntry = (key: string) =>
 	BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
 

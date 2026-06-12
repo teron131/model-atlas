@@ -36,8 +36,6 @@ export type PlotBounds = {
 type ProjectionConfig = {
 	event: ReactPointerEvent<SVGSVGElement>;
 	bounds: PlotBounds;
-	xInvert: (position: number) => number;
-	yInvert: (position: number) => number;
 	points: ProjectionPoint[];
 	snapDistance?: number;
 };
@@ -71,10 +69,8 @@ export function plotBoundsFor(
 function cursorProjectionFromPointer({
 	event,
 	bounds: plot,
-	xInvert,
-	yInvert,
 	points,
-	snapDistance = 16,
+	snapDistance = 24,
 }: ProjectionConfig): CursorProjection | null {
 	const svg = event.currentTarget;
 	const bounds = svg.getBoundingClientRect();
@@ -105,21 +101,7 @@ function cursorProjectionFromPointer({
 		}
 	}
 
-	if (nearestPoint && nearestDistance <= snapDistance) {
-		return {
-			x: nearestPoint.x,
-			y: nearestPoint.y,
-			xValue: nearestPoint.xValue,
-			yValue: nearestPoint.yValue,
-		};
-	}
-
-	return {
-		x: stableSvgNumber(pointerX),
-		y: stableSvgNumber(pointerY),
-		xValue: xInvert(pointerX),
-		yValue: yInvert(pointerY),
-	};
+	return nearestPoint && nearestDistance <= snapDistance ? nearestPoint : null;
 }
 
 export function useCursorProjection() {
@@ -128,20 +110,12 @@ export function useCursorProjection() {
 
 	return {
 		cursorProjection,
-		cursorHandlers: ({
-			bounds,
-			xInvert,
-			yInvert,
-			points,
-			snapDistance,
-		}: ProjectionTarget) => ({
+		cursorHandlers: ({ bounds, points, snapDistance }: ProjectionTarget) => ({
 			onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => {
 				setCursorProjection(
 					cursorProjectionFromPointer({
 						event,
 						bounds,
-						xInvert,
-						yInvert,
 						points,
 						snapDistance,
 					}),
@@ -149,6 +123,7 @@ export function useCursorProjection() {
 			},
 			onPointerLeave: () => setCursorProjection(null),
 		}),
+		setCursorProjection,
 	};
 }
 
@@ -267,6 +242,7 @@ export function XAxisTicks({
 	tickLength = 7,
 	labelOffset = 24,
 	labelEvery = 1,
+	labelMinGap = 0,
 }: {
 	ticks: number[];
 	xPoint: (value: number) => number;
@@ -276,7 +252,20 @@ export function XAxisTicks({
 	tickLength?: number;
 	labelOffset?: number;
 	labelEvery?: number;
+	labelMinGap?: number;
 }) {
+	let lastLabelX = Number.NEGATIVE_INFINITY;
+	const labelVisible = ticks.map((tick, index) => {
+		if (index % labelEvery !== 0) {
+			return false;
+		}
+		const x = xPoint(tick);
+		if (x - lastLabelX < labelMinGap) {
+			return false;
+		}
+		lastLabelX = x;
+		return true;
+	});
 	return ticks.map((tick, index) => (
 		<g key={`${keyPrefix}-x-${tick}`}>
 			<line
@@ -286,7 +275,7 @@ export function XAxisTicks({
 				y1={y}
 				y2={y + tickLength}
 			/>
-			{index % labelEvery === 0 ? (
+			{labelVisible[index] ? (
 				<text
 					className={styles.axisLabel}
 					x={xPoint(tick)}
@@ -455,6 +444,8 @@ export function PointHitTarget({
 	rows,
 	setHover,
 	hoverTitle,
+	snapProjection,
+	setCursorProjection,
 }: {
 	cx: number;
 	cy: number;
@@ -462,6 +453,8 @@ export function PointHitTarget({
 	rows: HoverRow[];
 	setHover: HoverSetter;
 	hoverTitle?: string;
+	snapProjection?: CursorProjection;
+	setCursorProjection?: (projection: CursorProjection | null) => void;
 }) {
 	const size = 28;
 	const displayName = hoverTitle ?? modelName(model);
@@ -476,25 +469,43 @@ export function PointHitTarget({
 				type="button"
 				className={styles.pointButton}
 				aria-label={`Show details for ${displayName}`}
-				onPointerEnter={(event) =>
-					setHover(pointHover(event, model, rows, displayName))
-				}
-				onFocus={(event) =>
-					setHover(focusHover(event.currentTarget, model, rows, displayName))
-				}
+				onPointerEnter={(event) => {
+					if (snapProjection) {
+						setCursorProjection?.(snapProjection);
+					}
+					setHover(pointHover(event, model, rows, displayName));
+				}}
+				onFocus={(event) => {
+					if (snapProjection) {
+						setCursorProjection?.(snapProjection);
+					}
+					setHover(focusHover(event.currentTarget, model, rows, displayName));
+				}}
 				onPointerMove={(event) =>
 					setHover((hover) =>
-						hover
-							? {
+						hover == null ||
+						(Math.abs(hover.left - event.clientX) < 6 &&
+							Math.abs(hover.top - event.clientY) < 6)
+							? hover
+							: {
 									...hover,
 									left: event.clientX,
 									top: event.clientY,
-								}
-							: null,
+								},
 					)
 				}
-				onPointerLeave={() => setHover(null)}
-				onBlur={() => setHover(null)}
+				onPointerLeave={() => {
+					if (snapProjection) {
+						setCursorProjection?.(null);
+					}
+					setHover(null);
+				}}
+				onBlur={() => {
+					if (snapProjection) {
+						setCursorProjection?.(null);
+					}
+					setHover(null);
+				}}
 			/>
 		</foreignObject>
 	);
