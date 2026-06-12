@@ -4,7 +4,6 @@
 
 import { extent, max, median, quantile } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
-import { line } from "d3-shape";
 import { useMemo, useState } from "react";
 import type {
 	BenchmarkPortfolio,
@@ -26,6 +25,7 @@ import {
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
+	calloutLabelPlacements,
 	EmptyChart,
 	FilterButton,
 	HoverCard,
@@ -566,6 +566,52 @@ function linearBubbleRadius(values: number[], minRadius = 3, maxRadius = 10) {
 	};
 }
 
+function bestByScore<T>(
+	rows: readonly T[],
+	score: (row: T) => number | null,
+): T | null {
+	return (
+		[...rows].sort((left, right) => {
+			const leftScore = score(left);
+			const rightScore = score(right);
+			return (rightScore ?? -Infinity) - (leftScore ?? -Infinity);
+		})[0] ?? null
+	);
+}
+
+function extremeLabelRows<T>(
+	rows: readonly T[],
+	keyFor: (row: T) => string,
+	xValue: (row: T) => number,
+	yValue: (row: T) => number,
+	{ xHigherBetter = true }: { xHigherBetter?: boolean } = {},
+) {
+	const ratioScore = (row: T) => {
+		const x = xValue(row);
+		const y = yValue(row);
+		if (!finite(x) || !finite(y)) {
+			return null;
+		}
+		return xHigherBetter ? (y > 0 ? x / y : null) : x > 0 ? y / x : null;
+	};
+	const selected: T[] = [];
+	for (const row of [
+		bestByScore(rows, (candidate) =>
+			xHigherBetter ? xValue(candidate) : -xValue(candidate),
+		),
+		bestByScore(rows, yValue),
+		bestByScore(rows, ratioScore),
+	]) {
+		if (
+			row != null &&
+			!selected.some((candidate) => keyFor(candidate) === keyFor(row))
+		) {
+			selected.push(row);
+		}
+	}
+	return new Set(selected);
+}
+
 function frontierResourceProduct(
 	row: FrontierResourceRow,
 	selectedMetric: FrontierResourceMetricKey | "all",
@@ -660,10 +706,6 @@ function FrontierPanel({
 		const nextY = yPoint(model.relative_scores.intelligence_score);
 		return index === 0 ? `M${nextX},${nextY}` : `${path} H${nextX} V${nextY}`;
 	}, "");
-	const frontierGuideLine = line<LlmStatsModel>()
-		.x((model) => xPoint(Number(model.relative_scores.value_score)))
-		.y((model) => yPoint(model.relative_scores.intelligence_score));
-	const guidePath = frontierGuideLine(frontier);
 	const plot = plotBoundsFor(width, height, margin);
 	const medianX = xPoint(medianValue);
 	const medianY = yPoint(medianScore);
@@ -698,6 +740,25 @@ function FrontierPanel({
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
+	});
+	const frontierLabelPlacements = calloutLabelPlacements({
+		bounds: plot,
+		obstacles: plottedCandidates.map((model) => ({
+			cx: xPoint(Number(model.relative_scores.value_score)),
+			cy: yPoint(model.relative_scores.intelligence_score),
+			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
+		})),
+		labels: frontier.map((model, index) => ({
+			key: modelKey(model),
+			label: shortLabel(model),
+			cx: xPoint(Number(model.relative_scores.value_score)),
+			cy: yPoint(model.relative_scores.intelligence_score),
+			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
+			priority: frontier.length - index,
+		})),
+		fontSize: 11,
+		charWidth: 6.6,
+		lineHeight: 13,
 	});
 
 	return (
@@ -769,9 +830,6 @@ function FrontierPanel({
 						xLabel={cursorProjection ? cursorProjection.xValue.toFixed(1) : ""}
 						yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
 					/>
-					{guidePath ? (
-						<path className={styles.frontierGuide} d={guidePath} />
-					) : null}
 					{frontierPath ? (
 						<path className={styles.frontier} d={frontierPath} />
 					) : null}
@@ -830,6 +888,7 @@ function FrontierPanel({
 										width={width}
 										margin={margin}
 										height={height}
+										placement={frontierLabelPlacements.get(modelKey(model))}
 									/>
 								) : null}
 							</g>
@@ -931,7 +990,11 @@ function FrontierResourcePanel({
 		bestAxis;
 	const valueAbove80 = bestValueRowAboveScore(rows, axisMetric.get, 80, leader);
 	const valueAbove20 = bestValueRowAboveScore(rows, axisMetric.get, 20, leader);
-	const labeledRows = new Set([leader]);
+	const labeledRows = new Set(
+		isAllFilter
+			? [leader, valueAbove80, valueAbove20]
+			: [leader, bestAxis, leanAboveFloor],
+	);
 	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
 	const yAxisLabel = isAllFilter ? "Normalized score" : "Benchmark score";
@@ -1284,6 +1347,38 @@ function InteractionPlot({
 		bounds: plot,
 		points: projectionPoints,
 	});
+	const labeledPoints = extremeLabelRows(
+		plottedPoints,
+		(point) => modelKey(point.model),
+		(point) => point.x,
+		(point) => point.y,
+		{ xHigherBetter: !config.lowerBetter },
+	);
+	const pointRadius = (point: Point) =>
+		clamp((point.overall ?? 45) / 18, 3, 6) +
+		(bestPointId === point.model.id ? 1.2 : 0);
+	const interactionLabelPlacements = calloutLabelPlacements({
+		bounds: plot,
+		obstacles: plottedPoints.map((point) => ({
+			cx: xPoint(point.x),
+			cy: yPoint(point.y),
+			radius: pointRadius(point),
+		})),
+		labels: plottedPoints
+			.filter((point) => labeledPoints.has(point))
+			.map((point, index) => ({
+				key: modelKey(point.model),
+				label: shortLabel(point.model),
+				cx: xPoint(point.x),
+				cy: yPoint(point.y),
+				radius: pointRadius(point),
+				priority: plottedPoints.length - index,
+			})),
+		fontSize: 9.5,
+		charWidth: 5.8,
+		lineHeight: 11,
+		padding: 3,
+	});
 
 	return (
 		<div className={styles.interactionPlot}>
@@ -1353,7 +1448,7 @@ function InteractionPlot({
 				/>
 				{plottedPoints.map((point) => {
 					const highlighted = bestPointId === point.model.id;
-					const radius = clamp((point.agentic ?? 35) / 12, 3, 8);
+					const radius = clamp((point.overall ?? 45) / 18, 3, 6);
 					const cx = xPoint(point.x);
 					const cy = yPoint(point.y);
 					const rows: HoverRow[] = [
@@ -1368,7 +1463,7 @@ function InteractionPlot({
 								className={styles.datavizPoint}
 								cx={cx}
 								cy={cy}
-								r={stableSvgNumber(highlighted ? radius + 2 : radius)}
+								r={stableSvgNumber(highlighted ? radius + 1.2 : radius)}
 								fill={providerColor(point.model.provider)}
 								stroke={highlighted ? "var(--ink)" : "rgba(8,9,9,0.7)"}
 								strokeWidth={highlighted ? 2.4 : 1}
@@ -1391,14 +1486,20 @@ function InteractionPlot({
 						</g>
 					);
 				})}
-				<PointLabel
-					model={bestCornerPoint.model}
-					cx={xPoint(bestCornerPoint.x)}
-					cy={yPoint(bestCornerPoint.y)}
-					width={width}
-					margin={margin}
-					height={height}
-				/>
+				{plottedPoints.map((point) =>
+					labeledPoints.has(point) ? (
+						<PointLabel
+							key={`label-${point.model.id ?? `${point.x}-${point.y}`}`}
+							model={point.model}
+							cx={xPoint(point.x)}
+							cy={yPoint(point.y)}
+							width={width}
+							margin={margin}
+							height={height}
+							placement={interactionLabelPlacements.get(modelKey(point.model))}
+						/>
+					) : null,
+				)}
 			</svg>
 			<div className={styles.interactionBest}>
 				Best corner <b>{modelName(bestCornerPoint.model)}</b>
@@ -1507,6 +1608,32 @@ function RunwayPanel({
 		contextCluster.push(model);
 	}
 	finishContextCluster();
+	const maxContextModel = plottedCandidates.reduce<LlmStatsModel | null>(
+		(bestModel, model) => {
+			if (bestModel == null) {
+				return model;
+			}
+			const contextDelta =
+				Number(model.context_window?.context) -
+				Number(bestModel.context_window?.context);
+			if (contextDelta !== 0) {
+				return contextDelta > 0 ? model : bestModel;
+			}
+			return Number(model.speed?.throughput_tokens_per_second_median) >
+				Number(bestModel.speed?.throughput_tokens_per_second_median)
+				? model
+				: bestModel;
+		},
+		null,
+	);
+	if (
+		maxContextModel != null &&
+		!runwayLabelCandidates.some(
+			(model) => modelKey(model) === modelKey(maxContextModel),
+		)
+	) {
+		runwayLabelCandidates.push(maxContextModel);
+	}
 	const runwayLabels = runwayLabelCandidates
 		.sort(
 			(left, right) =>
@@ -1556,6 +1683,24 @@ function RunwayPanel({
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
+	});
+	const runwayRadius = (model: LlmStatsModel) =>
+		clamp((model.relative_scores.value_score ?? 25) / 9, 3, 10);
+	const runwayLabelPlacements = calloutLabelPlacements({
+		bounds: plot,
+		obstacles: plottedCandidates.map((model) => ({
+			cx: xPoint(Number(model.context_window?.context)),
+			cy: yPoint(Number(model.speed?.throughput_tokens_per_second_median)),
+			radius: runwayRadius(model),
+		})),
+		labels: runwayLabels.map((model, index) => ({
+			key: modelKey(model),
+			label: shortLabel(model),
+			cx: xPoint(Number(model.context_window?.context)),
+			cy: yPoint(Number(model.speed?.throughput_tokens_per_second_median)),
+			radius: runwayRadius(model),
+			priority: runwayLabels.length - index,
+		})),
 	});
 
 	return (
@@ -1659,9 +1804,7 @@ function RunwayPanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={stableSvgNumber(
-										clamp((model.relative_scores.value_score ?? 25) / 9, 3, 10),
-									)}
+									r={stableSvgNumber(runwayRadius(model))}
 									fill={providerColor(model.provider)}
 									stroke="rgba(8,9,9,0.7)"
 									strokeWidth={1}
@@ -1691,6 +1834,7 @@ function RunwayPanel({
 										width={width}
 										margin={margin}
 										height={height}
+										placement={runwayLabelPlacements.get(modelKey(model))}
 									/>
 								) : null}
 							</g>
