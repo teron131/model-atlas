@@ -25,6 +25,7 @@ import {
 import { extremeLabelRows, intelligenceDistribution } from "./chartStats";
 import { finiteValue, fmtTooltipScore } from "./format";
 import styles from "./graphs.module.css";
+import { interactionXAxisTicks } from "./interactionTicks";
 import { calloutLabelPlacements } from "./labelPlacement";
 import {
 	correlationLabel,
@@ -120,6 +121,7 @@ function InteractionPlot({
 	const xDomain: [number, number] = config.log
 		? positiveDomain(data.map((point) => point.x))
 		: [Math.min(0, xMin - xSpan * 0.05), xMax + xSpan * 0.05];
+	const xTickDomain: [number, number] = xMin < xMax ? [xMin, xMax] : xDomain;
 	const yValues = data.map((point) => point.y);
 	const yDomain: [number, number] = [
 		Math.min(0, Math.floor((Math.min(...yValues) - 6) / 10) * 10),
@@ -129,6 +131,7 @@ function InteractionPlot({
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
 		.clamp(true);
+	const xTicks = interactionXAxisTicks(config, xTickDomain);
 	const y = scaleLinear()
 		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
@@ -219,9 +222,7 @@ function InteractionPlot({
 				<PlotFrame width={width} height={height} margin={margin} />
 				<CursorCapture bounds={plot} />
 				<XAxisTicks
-					ticks={config.ticks.filter(
-						(tick) => tick >= xDomain[0] && tick <= xDomain[1],
-					)}
+					ticks={xTicks}
 					xPoint={xPoint}
 					y={plot.bottom}
 					format={config.format}

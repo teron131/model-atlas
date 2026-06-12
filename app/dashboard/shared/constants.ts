@@ -44,6 +44,14 @@ export const benchmarkLabels: Record<string, string> = {
 };
 
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
+	gpqa: {
+		title: "GPQA",
+		body: "Graduate-level Google-proof science questions, used here as a compact reasoning benchmark.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "science reasoning"],
+		],
+	},
 	omniscience_accuracy: {
 		title: "Omniscience",
 		body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",

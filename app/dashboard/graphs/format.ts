@@ -85,6 +85,9 @@ export function fmtTooltipPercent(value: unknown) {
 }
 
 export function fmtSeconds(value: number) {
+	if (Number.isInteger(value)) {
+		return `${value.toFixed(0)}s`;
+	}
 	return `${value.toFixed(value >= 10 ? 0 : 1)}s`;
 }
 

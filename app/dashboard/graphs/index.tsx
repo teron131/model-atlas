@@ -22,7 +22,7 @@ import type { CostFilter, HoverState, ModelLimit } from "./types";
 
 export function DashboardGraphs({
 	initialPayload,
-	afterControls,
+	benchmarkControls,
 	afterLead,
 	provider,
 	maxCost,
@@ -32,7 +32,7 @@ export function DashboardGraphs({
 	onModelLimitChange,
 }: {
 	initialPayload: LlmStatsPayload | null;
-	afterControls?: React.ReactNode;
+	benchmarkControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
 	provider: string;
 	maxCost: CostFilter;
@@ -42,6 +42,7 @@ export function DashboardGraphs({
 	onModelLimitChange: (modelLimit: ModelLimit) => void;
 }) {
 	const [hover, setHover] = useState<HoverState | null>(null);
+	const [filtersExpanded, setFiltersExpanded] = useState(false);
 
 	const allModels = useMemo(() => {
 		return (initialPayload?.models ?? [])
@@ -73,6 +74,15 @@ export function DashboardGraphs({
 		modelLimit === "all" || filteredModels.length <= modelLimit
 			? `${fmtCompact(filteredModels.length)} shown`
 			: `Top ${modelLimit} of ${fmtCompact(filteredModels.length)}`;
+	const providerLabel =
+		provider === "all"
+			? "All providers"
+			: (providers.find((item) => item.slug === provider)?.label ?? provider);
+	const costLabel = maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`;
+	const compactCostLabel =
+		maxCost === "all" ? "Any" : `<= ${fmtMoney(maxCost)}`;
+	const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
+	const filterSummary = `${providerLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
 
 	if (!initialPayload || allModels.length === 0) {
 		return (
@@ -80,7 +90,7 @@ export function DashboardGraphs({
 				className={`${styles.atlas} ${styles.dashboardGraphs}`}
 				aria-label="Model graphs"
 			>
-				{afterControls}
+				{benchmarkControls}
 				<div className={styles.error}>
 					Unable to load the Model Atlas snapshot.
 				</div>
@@ -94,79 +104,75 @@ export function DashboardGraphs({
 			className={`${styles.atlas} ${styles.dashboardGraphs}`}
 			aria-label="Model graphs"
 		>
-			<section className={styles.controls} aria-label="Graph filters">
-				<div className={styles.controlGroup}>
-					<div className={styles.controlLabel}>
-						<span>Provider filter</span>
-						<b>
-							{provider === "all"
-								? "All providers"
-								: providers.find((item) => item.slug === provider)?.label}
-						</b>
-					</div>
-					<div className={styles.filterRow}>
-						<FilterButton
-							active={provider === "all"}
-							color="#eeeeea"
-							label="All"
-							count={allModels.length}
-							onClick={() => onProviderChange("all")}
-						/>
-						{providers.map((option) => (
+			<section className={styles.controls} aria-label="Filters">
+				<button
+					type="button"
+					className={styles.filtersToggle}
+					aria-expanded={filtersExpanded}
+					onClick={() => setFiltersExpanded((current) => !current)}
+				>
+					<span>Filters</span>
+					<b>{filterSummary}</b>
+					<i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
+				</button>
+				<div className={styles.filterPanel} hidden={!filtersExpanded}>
+					<FilterSection label="Provider filter" value={providerLabel}>
+						<div className={styles.filterRow}>
 							<FilterButton
-								key={option.slug}
-								active={provider === option.slug}
-								color={option.color}
-								logo={option.logo}
-								label={option.label}
-								count={option.count}
-								onClick={() => onProviderChange(option.slug)}
+								active={provider === "all"}
+								color="#eeeeea"
+								label="All"
+								count={allModels.length}
+								onClick={() => onProviderChange("all")}
 							/>
-						))}
-					</div>
-				</div>
-				<div className={styles.controlGroup}>
-					<div className={styles.controlLabel}>
-						<span>Max blended cost</span>
-						<b>{maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`}</b>
-					</div>
-					<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-						{costFilterOptions.map((option) => (
-							<button
-								key={String(option)}
-								type="button"
-								className={styles.costFilterButton}
-								aria-pressed={maxCost === option}
-								onClick={() => onMaxCostChange(option)}
-							>
-								<span>
-									{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}
-								</span>
-							</button>
-						))}
-					</div>
-				</div>
-				<div className={styles.controlGroup}>
-					<div className={styles.controlLabel}>
-						<span>Model count</span>
-						<b>{visibleModelLabel}</b>
-					</div>
-					<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-						{modelLimitOptions.map((option) => (
-							<button
-								key={String(option)}
-								type="button"
-								className={styles.costFilterButton}
-								aria-pressed={modelLimit === option}
-								onClick={() => onModelLimitChange(option)}
-							>
-								<span>{option === "all" ? "All" : `Top ${option}`}</span>
-							</button>
-						))}
-					</div>
+							{providers.map((option) => (
+								<FilterButton
+									key={option.slug}
+									active={provider === option.slug}
+									color={option.color}
+									logo={option.logo}
+									label={option.label}
+									count={option.count}
+									onClick={() => onProviderChange(option.slug)}
+								/>
+							))}
+						</div>
+					</FilterSection>
+					<FilterSection label="Max blended cost" value={costLabel}>
+						<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+							{costFilterOptions.map((option) => (
+								<button
+									key={String(option)}
+									type="button"
+									className={styles.costFilterButton}
+									aria-pressed={maxCost === option}
+									onClick={() => onMaxCostChange(option)}
+								>
+									<span>
+										{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}
+									</span>
+								</button>
+							))}
+						</div>
+					</FilterSection>
+					<FilterSection label="Model count" value={visibleModelLabel}>
+						<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+							{modelLimitOptions.map((option) => (
+								<button
+									key={String(option)}
+									type="button"
+									className={styles.costFilterButton}
+									aria-pressed={modelLimit === option}
+									onClick={() => onModelLimitChange(option)}
+								>
+									<span>{option === "all" ? "All" : `Top ${option}`}</span>
+								</button>
+							))}
+						</div>
+					</FilterSection>
+					{benchmarkControls}
 				</div>
 			</section>
-			{afterControls}
 			{afterLead}
 
 			{models.length === 0 ? (
@@ -192,5 +198,25 @@ export function DashboardGraphs({
 
 			{hover ? <HoverCard hover={hover} /> : null}
 		</section>
+	);
+}
+
+function FilterSection({
+	label,
+	value,
+	children,
+}: {
+	label: string;
+	value: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className={styles.controlGroup}>
+			<div className={styles.controlLabel}>
+				<span>{label}</span>
+				<b>{value}</b>
+			</div>
+			{children}
+		</div>
 	);
 }

@@ -238,7 +238,7 @@ export function RunwayPanel({
 					label="Output speed"
 					distribution={outputSpeedSummary}
 					domainMax={outputSpeedSummary.max}
-					formatValue={(value) => `${fmtCompact(value)} t/s`}
+					formatValue={fmtCompact}
 					showObservedLabels
 				/>
 			}

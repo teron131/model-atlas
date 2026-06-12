@@ -251,11 +251,15 @@ export type { NumberOrNull, WeightedScorePart } from "./math-utils";
 export {
 	clamp,
 	finiteNumbers,
+	interpolateLinear,
 	isPositiveFinite,
+	logDistance,
 	logMinMaxScale,
 	meanOfFinite,
 	meanOrNull,
 	minMaxScale,
+	niceLinearStep,
 	percentileRank,
+	roundTick,
 	weightedMeanOfFinite,
 } from "./math-utils";

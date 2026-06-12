@@ -172,11 +172,13 @@ h1 {
 }
 
 .benchmark-group-label {
-	display: flex;
-	justify-content: space-between;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
 	gap: 14px;
 	color: var(--muted);
 	font-size: var(--mono-label);
+	font-weight: 900;
 	letter-spacing: 0;
 	line-height: 1.2;
 	text-transform: uppercase;
@@ -1491,6 +1493,10 @@ td.modality-cell {
 		padding: 4px 5px;
 	}
 
+	.dashboard-deck {
+		margin-top: 12px;
+	}
+
 	.table-shell::after {
 		content: "";
 		position: absolute;
@@ -1504,20 +1510,27 @@ td.modality-cell {
 	}
 
 	.controls {
-		align-items: stretch;
-		flex-direction: column;
-		gap: 10px;
-		padding: 12px 14px;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas:
+			"search search"
+			"tabs meta";
+		align-items: center;
+		column-gap: 10px;
+		row-gap: 8px;
+		padding: 10px 0 12px;
 	}
 
 	.model-filter {
+		grid-area: search;
 		width: 100%;
-		height: 40px;
+		height: 38px;
 	}
 
 	.column-filter {
+		grid-area: tabs;
 		justify-content: flex-start;
-		width: 100%;
+		width: auto;
 	}
 
 	.column-filter-button {
@@ -1526,14 +1539,15 @@ td.modality-cell {
 	}
 
 	.control-meta {
+		grid-area: meta;
 		align-items: center;
 		flex-direction: row;
-		justify-content: space-between;
-		width: 100%;
+		justify-content: flex-end;
+		width: auto;
 	}
 
 	.row-count {
-		align-self: auto;
+		font-size: 10.5px;
 	}
 
 	.model-column {

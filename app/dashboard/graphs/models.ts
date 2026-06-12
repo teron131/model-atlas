@@ -62,9 +62,9 @@ export const interactionConfigs: InteractionConfig[] = [
 		ticks: [20, 50, 100, 250, 500, 1000, 2500],
 		get: (model) =>
 			finiteValue(model.speed?.throughput_tokens_per_second_median),
-		format: (value) => `${fmtCompact(value)} t/s`,
+		format: fmtCompact,
 		tooltipFormat: (value) => `${fmtTooltipNumber(value)} t/s`,
-		xLabel: "Output tokens per second",
+		xLabel: "Output tokens per second (t/s)",
 		read: "Separates fast utility models from models that are both fast enough and genuinely capable.",
 	},
 	{
@@ -72,7 +72,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		title: "Intelligence vs response time",
 		lowerBetter: true,
 		log: true,
-		ticks: [2, 5, 10, 20, 40, 80],
+		ticks: [2.5, 5, 10, 20, 40, 80],
 		get: (model) => finiteValue(model.speed?.e2e_latency_seconds_median),
 		format: fmtSeconds,
 		tooltipFormat: (value) => `${fmtTooltipNumber(value)}s`,

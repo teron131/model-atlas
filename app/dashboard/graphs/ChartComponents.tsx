@@ -687,14 +687,14 @@ export function FilterButton({
 		>
 			<span className={styles.filterIcon} aria-hidden="true">
 				{showLogo ? (
-					<Image
+					// biome-ignore lint/performance/noImgElement: 16px internal provider icons are not LCP content, and next/image fails this static SSR path.
+					<img
 						className={styles.filterLogo}
 						src={logo}
 						alt=""
 						width={16}
 						height={16}
 						loading="lazy"
-						unoptimized
 						onError={() => {
 							setFailedLogo(logo);
 						}}
