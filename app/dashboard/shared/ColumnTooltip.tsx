@@ -122,10 +122,9 @@ export function ColumnTooltip({
 	);
 }
 
-/** Anchor a tooltip under the nearest table header while keeping it inside the viewport. */
+/** Anchor a tooltip under the hovered trigger while keeping it inside the viewport. */
 export function tooltipPositionFromElement(element: HTMLElement) {
-	const headerCell = element.closest("th") ?? element;
-	const rect = headerCell.getBoundingClientRect();
+	const rect = element.getBoundingClientRect();
 	const width = Math.min(
 		tooltipMaxWidth,
 		window.innerWidth - tooltipHorizontalPadding * 2,

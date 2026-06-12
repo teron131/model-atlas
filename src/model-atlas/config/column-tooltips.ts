@@ -4,13 +4,17 @@ import type {
 } from "../llm/stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
+	ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
 	type BenchmarkDimension,
 	type BenchmarkKey,
 	benchmarkDimensionPortion,
 	benchmarkPortfolioEntry,
+	FRONTIER_BENCHMARKS,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	OVERALL_RELATIVE_SCORE_WEIGHTS,
 	QUALITY_SCORE_WEIGHTS,
+	RAW_RESOURCE_COMPONENT_WEIGHT,
+	resourceComponentWeightsFor,
 } from "./benchmark-portfolio";
 import {
 	PRICE_PROFILE_ENTRIES,
@@ -153,11 +157,19 @@ const benchmarkContributionPercent = (
 		: "-";
 };
 
-const equalInputWeight = (inputs: readonly unknown[]) =>
-	inputs.length > 0 ? percent(1 / inputs.length) : "-";
+const componentWeightPercent = (
+	weights: Record<string, number>,
+	key: string,
+): string => {
+	const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
+	const weight = weights[key];
+	return total > 0 && weight != null ? percent(weight / total, 1) : "-";
+};
 
-const blendInputText = (inputs: readonly unknown[]) =>
-	`each input ${equalInputWeight(inputs)}`;
+const blendInputText = (weights: Record<string, number>) => {
+	const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
+	return `${total.toFixed(1)} weighted component units`;
+};
 
 const RELATIVE_SCORE_TEXT = "relative to this model set";
 const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
@@ -187,26 +199,30 @@ const BENCHMARK_LABEL_BY_KEY = {
 	deep_swe: "DeepSWE",
 } as const satisfies Record<BenchmarkKey, string>;
 
-const SPEED_INPUT_LABELS = [
-	"AA task seconds",
-	"DeepSWE task seconds",
-	"Agents' Last Exam task seconds",
-	"Workflow simulated seconds",
-] as const;
+const FRONTIER_RESOURCE_SOURCE_COUNT = FRONTIER_BENCHMARKS.length;
+const {
+	aaResourceWeight: AA_RESOURCE_COMPONENT_WEIGHT,
+	frontierResourceWeight: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
+} = resourceComponentWeightsFor({
+	aaResourceSourceCount: ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	frontierResourceSourceCount: FRONTIER_RESOURCE_SOURCE_COUNT,
+});
 
-const SPEED_DIRECT_INPUT_LABELS = SPEED_INPUT_LABELS.filter(
-	(label) => label !== "Workflow simulated seconds",
-);
+const SPEED_COMPONENT_WEIGHTS = {
+	aa_task_seconds: AA_RESOURCE_COMPONENT_WEIGHT,
+	frontier_normalized_task_speed: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
+	workflow_simulated_seconds: RAW_RESOURCE_COMPONENT_WEIGHT,
+} as const;
 
-const VALUE_INPUT_LABELS = [
-	"AA task cost",
-	"AA intel per dollar",
-	"DeepSWE task cost",
-	"Agents' Last Exam task cost",
-	"Blend price",
-	"Quality-adjusted blend value",
-	"Workflow simulated value",
-] as const;
+const VALUE_COMPONENT_WEIGHTS = {
+	aa_resource_task_cost: AA_RESOURCE_COMPONENT_WEIGHT / 2,
+	aa_score_per_dollar: AA_RESOURCE_COMPONENT_WEIGHT / 2,
+	frontier_resource_task_cost: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
+	frontier_resource_score_per_dollar: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
+	blend_price: 2,
+	quality_adjusted_blend_value: 2,
+	workflow_simulated_value: 2,
+} as const;
 
 const qualityScoreRows = (indexLabel: string) =>
 	[
@@ -270,39 +286,75 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
 
 const speedInputRows = () =>
 	[
-		...SPEED_DIRECT_INPUT_LABELS.map(
-			(label) => [label, equalInputWeight(SPEED_INPUT_LABELS)] as const,
-		),
+		[
+			"AA task seconds",
+			componentWeightPercent(SPEED_COMPONENT_WEIGHTS, "aa_task_seconds"),
+		],
+		[
+			"Frontier benchmark task speed",
+			componentWeightPercent(
+				SPEED_COMPONENT_WEIGHTS,
+				"frontier_normalized_task_speed",
+			),
+		],
 		{
 			title: "Workflow simulation mix",
 			kind: "workflow_simulation",
-			weight: equalInputWeight(SPEED_INPUT_LABELS),
+			weight: componentWeightPercent(
+				SPEED_COMPONENT_WEIGHTS,
+				"workflow_simulated_seconds",
+			),
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
 	] as const;
 
-const valueInputRows = () => {
-	const inputWeight = equalInputWeight(VALUE_INPUT_LABELS);
-	return [
-		["AA task cost", inputWeight],
-		["AA intel per dollar", inputWeight],
-		["DeepSWE task cost", inputWeight],
-		["Agents' Last Exam task cost", inputWeight],
+const valueInputRows = () =>
+	[
+		[
+			"AA-sourced resource task cost",
+			componentWeightPercent(VALUE_COMPONENT_WEIGHTS, "aa_resource_task_cost"),
+		],
+		[
+			"AA-sourced score per dollar",
+			componentWeightPercent(VALUE_COMPONENT_WEIGHTS, "aa_score_per_dollar"),
+		],
+		[
+			"Frontier benchmark task cost",
+			componentWeightPercent(
+				VALUE_COMPONENT_WEIGHTS,
+				"frontier_resource_task_cost",
+			),
+		],
+		[
+			"Frontier benchmark score per dollar",
+			componentWeightPercent(
+				VALUE_COMPONENT_WEIGHTS,
+				"frontier_resource_score_per_dollar",
+			),
+		],
 		{
 			title: "Blend price profile",
 			kind: "price_profile",
-			weight: inputWeight,
+			weight: componentWeightPercent(VALUE_COMPONENT_WEIGHTS, "blend_price"),
 			rows: priceProfileRows(),
 		},
-		["Quality-adjusted blend value", inputWeight],
+		[
+			"Quality-adjusted blend value",
+			componentWeightPercent(
+				VALUE_COMPONENT_WEIGHTS,
+				"quality_adjusted_blend_value",
+			),
+		],
 		{
 			title: "Workflow simulation mix",
 			kind: "workflow_simulation",
-			weight: inputWeight,
+			weight: componentWeightPercent(
+				VALUE_COMPONENT_WEIGHTS,
+				"workflow_simulated_value",
+			),
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
 	] as const;
-};
 
 export const COLUMN_TOOLTIPS = {
 	overall: {
@@ -377,10 +429,10 @@ export const COLUMN_TOOLTIPS = {
 	},
 	speed: {
 		title: "Speed score",
-		body: "Percentile blend of task runtime and workflow-simulated runtime. Displayed only when at least two speed components are present.",
+		body: "Weighted percentile blend of served-speed simulation, task runtime, and frontier resource runtime. Displayed only when at least two speed components are present.",
 		rows: [
 			["Scale", PERCENTILE_SCORE_TEXT],
-			["Blend", blendInputText(SPEED_INPUT_LABELS)],
+			["Blend", blendInputText(SPEED_COMPONENT_WEIGHTS)],
 			["Sort", HIGHER_FIRST_TEXT],
 		],
 		sections: [
@@ -393,10 +445,10 @@ export const COLUMN_TOOLTIPS = {
 	},
 	value: {
 		title: "Value score",
-		body: "Percentile blend of task cost, intelligence per dollar, blend price, quality-adjusted price, and workflow-simulated work per dollar. Displayed only when at least two value components are present.",
+		body: "Weighted percentile blend of raw price, task cost, quality per dollar, and frontier resource value. Displayed only when at least two value components are present.",
 		rows: [
 			["Scale", PERCENTILE_SCORE_TEXT],
-			["Blend", blendInputText(VALUE_INPUT_LABELS)],
+			["Blend", blendInputText(VALUE_COMPONENT_WEIGHTS)],
 			["Sort", HIGHER_FIRST_TEXT],
 		],
 		sections: [

@@ -4,7 +4,7 @@
 
 import { LinePath } from "@visx/shape";
 import { median } from "d3-array";
-import { scaleLinear, scaleLog } from "d3-scale";
+import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
@@ -32,7 +32,6 @@ export type EfficiencyAxisMetric<Row> = {
 	label: string;
 	get: (row: Row) => number;
 	format: (value: number) => string;
-	ticks: number[];
 };
 
 export type EfficiencyEffortLine<Row> = {
@@ -88,11 +87,11 @@ export function EfficiencyAxisChart<Row>({
 	height?: number;
 	margin?: Margin;
 }) {
-	const { cursorProjection, cursorHandlers } = useCursorProjection();
-	const xTicks = metric.ticks.filter(
-		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
-	);
-	const x = scaleLog()
+	const { cursorProjection, cursorHandlers, setCursorProjection } =
+		useCursorProjection();
+	const metricValues = rows.map(metric.get);
+	const xTicks = linearTicksForValues(metricValues, metric.format);
+	const x = scaleLinear()
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
 		.clamp(true);
@@ -117,8 +116,6 @@ export function EfficiencyAxisChart<Row>({
 	});
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
-		xInvert: x.invert,
-		yInvert: y.invert,
 		points: projectionPoints,
 	});
 
@@ -145,12 +142,13 @@ export function EfficiencyAxisChart<Row>({
 					y={plot.bottom}
 					format={metric.format}
 					keyPrefix={keyPrefix}
+					labelMinGap={62}
 				/>
 				<AxisTitles
 					width={width}
 					height={height}
 					margin={margin}
-					x={`${metric.label}, log scale`}
+					x={metric.label}
 					y={yAxisLabel}
 					xTitleOffset={50}
 				/>
@@ -211,6 +209,13 @@ export function EfficiencyAxisChart<Row>({
 								rows={getHoverRows(row)}
 								setHover={setHover}
 								hoverTitle={getHoverTitle?.(row)}
+								snapProjection={{
+									x: cx,
+									y: cy,
+									xValue: axisValue,
+									yValue: score,
+								}}
+								setCursorProjection={setCursorProjection}
 							/>
 						</g>
 					);
@@ -235,4 +240,33 @@ export function EfficiencyAxisChart<Row>({
 			</svg>
 		</div>
 	);
+}
+
+function linearTicksForValues(
+	values: number[],
+	format: (value: number) => string,
+) {
+	const finiteValues = values.filter((value) => Number.isFinite(value));
+	const low = Math.min(...finiteValues);
+	const high = Math.max(...finiteValues);
+	if (!Number.isFinite(low) || !Number.isFinite(high)) {
+		return [];
+	}
+	if (low === high) {
+		return [low];
+	}
+	const tickCount = 5;
+	const ticks = Array.from(
+		{ length: tickCount },
+		(_, index) => low + ((high - low) * index) / (tickCount - 1),
+	);
+	const labels = new Set<string>();
+	return ticks.filter((tick) => {
+		const label = format(tick);
+		if (labels.has(label)) {
+			return false;
+		}
+		labels.add(label);
+		return true;
+	});
 }

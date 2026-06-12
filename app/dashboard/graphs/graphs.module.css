@@ -780,6 +780,16 @@
 		color 0.16s ease;
 }
 
+.metricToggle button span {
+	margin-left: 6px;
+	color: color-mix(in srgb, currentColor 64%, transparent);
+	font-size: 10px;
+}
+
+.benchmarkToggle {
+	flex-wrap: wrap;
+}
+
 .metricToggle button:last-child {
 	border-right: 1px solid var(--line);
 }

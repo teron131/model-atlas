@@ -173,12 +173,12 @@ const scoredModels = attachRelativeScores(
 	STAGE_CONFIG.scoring,
 );
 
-assertClose(scoredModels[0]?.relative_scores.value_score, 72.2223);
-assertClose(scoredModels[1]?.relative_scores.value_score, 72.2222);
-assertClose(scoredModels[2]?.relative_scores.value_score, 55.5555);
+assertClose(scoredModels[0]?.relative_scores.value_score, 73.3334);
+assertClose(scoredModels[1]?.relative_scores.value_score, 66.6667);
+assertClose(scoredModels[2]?.relative_scores.value_score, 60.0);
 assertClose(scoredModels[0]?.relative_scores.speed_score, 66.6667);
-assertClose(scoredModels[1]?.relative_scores.speed_score, 55.5556);
-assertClose(scoredModels[2]?.relative_scores.speed_score, 77.7778);
+assertClose(scoredModels[1]?.relative_scores.speed_score, 33.3333);
+assertClose(scoredModels[2]?.relative_scores.speed_score, 100);
 
 const sparseComponentModels = attachRelativeScores(
 	[
@@ -206,6 +206,60 @@ const sparseComponentModels = attachRelativeScores(
 
 assertEqual(sparseComponentModels[0]?.relative_scores.value_score, null);
 assertEqual(sparseComponentModels[0]?.relative_scores.speed_score, null);
+
+const frontierResourceScoredModels = attachRelativeScores(
+	[
+		modelCandidate({
+			id: "test/frontier-efficient",
+			gdpvalScore: 90,
+			gdpvalCost: 0.1,
+			gdpvalSeconds: 90,
+			tps: 100,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+		modelCandidate({
+			id: "test/frontier-middle",
+			gdpvalScore: 50,
+			gdpvalCost: 0.5,
+			gdpvalSeconds: 50,
+			tps: 100,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+		modelCandidate({
+			id: "test/frontier-fast",
+			gdpvalScore: 10,
+			gdpvalCost: 0.9,
+			gdpvalSeconds: 10,
+			tps: 100,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+	],
+	{
+		...STAGE_CONFIG.scoring,
+		frontierBenchmarkKeys: ["gdpval_normalized"],
+	},
+);
+assertClose(frontierResourceScoredModels[0]?.relative_scores.value_score, 100);
+assertClose(
+	frontierResourceScoredModels[1]?.relative_scores.value_score,
+	66.6667,
+);
+assertClose(
+	frontierResourceScoredModels[2]?.relative_scores.value_score,
+	33.3333,
+);
+assertClose(
+	frontierResourceScoredModels[0]?.relative_scores.speed_score,
+	73.3333,
+);
+assertClose(
+	frontierResourceScoredModels[1]?.relative_scores.speed_score,
+	86.6667,
+);
+assertClose(frontierResourceScoredModels[2]?.relative_scores.speed_score, 100);
 
 const normalizedContextModels = [
 	imputationModel("observed-a", 0, 0, 0, 0),
@@ -276,7 +330,18 @@ function modelCandidate(options: {
 	deepSWESeconds?: number | null;
 	tps?: number | null;
 	latency?: number | null;
+	gdpvalScore?: number | null;
+	gdpvalCost?: number | null;
+	gdpvalSeconds?: number | null;
+	disableBaseCost?: boolean;
 }): LlmStatsModelCandidate {
+	const gdpvalTask =
+		options.gdpvalCost == null && options.gdpvalSeconds == null
+			? null
+			: {
+					cost: options.gdpvalCost ?? null,
+					seconds: options.gdpvalSeconds ?? null,
+				};
 	return {
 		id: options.id,
 		name: options.id,
@@ -287,11 +352,13 @@ function modelCandidate(options: {
 		release_date: null,
 		modalities: null,
 		open_weights: null,
-		cost: {
-			input: 1,
-			output: 1,
-			blended_price: options.blendPrice ?? null,
-		},
+		cost: options.disableBaseCost
+			? null
+			: {
+					input: 1,
+					output: 1,
+					blended_price: options.blendPrice ?? null,
+				},
 		context_window: null,
 		speed: {
 			throughput_tokens_per_second_median: options.tps ?? null,
@@ -309,8 +376,12 @@ function modelCandidate(options: {
 				cost: options.deepSWECost,
 				seconds: options.deepSWESeconds,
 			},
+			...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
 		},
-		evaluations: null,
+		evaluations:
+			options.gdpvalScore == null
+				? null
+				: { gdpval_normalized: options.gdpvalScore },
 		scores: {
 			intelligence_score: options.intelligenceScore ?? null,
 			agentic_score: options.agenticScore ?? null,

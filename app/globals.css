@@ -224,8 +224,25 @@ h1 {
 }
 
 .benchmark-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	border-radius: 0;
 	cursor: help;
+}
+
+.benchmark-chip-label {
+	min-width: 0;
+}
+
+.benchmark-frontier-star {
+	flex: 0 0 auto;
+	width: 9px;
+	height: 9px;
+	color: color-mix(in srgb, var(--accent) 82%, var(--ink));
+	fill: currentColor;
+	opacity: 0.88;
+	stroke-width: 1.8;
 }
 
 .benchmark-list samp:hover,
@@ -454,6 +471,7 @@ h1 {
 }
 
 .table-wrap thead {
+	pointer-events: none;
 	visibility: collapse;
 }
 
@@ -462,6 +480,7 @@ h1 {
 }
 
 .table-shell[data-sticky-head-ready="false"] .table-wrap thead {
+	pointer-events: auto;
 	visibility: visible;
 }
 
