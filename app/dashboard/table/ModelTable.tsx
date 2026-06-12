@@ -8,6 +8,7 @@ import {
 	useCallback,
 	useEffect,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -15,28 +16,33 @@ import {
 import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import {
-	formatBenchmarkMetric,
+	benchmarkPercentValue,
 	formatContext,
 	formatCost,
+	formatDashboardMetric,
 	formatScore,
-	formatTaskMetric,
 	safeSlug,
 } from "../shared/format";
+import {
+	AudioInputIcon,
+	ImageInputIcon,
+	TextInputIcon,
+	VideoInputIcon,
+} from "../shared/icons";
 import {
 	type ProviderColorMap,
 	providerDisplayColor,
 } from "../shared/providerTheme";
 import {
-	benchmarkMetricValue,
 	contextWindowValue,
+	type DashboardMetricColumn,
 	type Direction,
-	dashboardMetricColumns,
+	dashboardMetricValue,
 	type SortKey,
 	type SortState,
 	type TableRow,
-	taskMetricValue,
 } from "./models";
-import { dashboardColumnKeys, staticSortableColumns } from "./tableColumns";
+import { staticSortableColumns } from "./tableColumns";
 
 type ScrollTargetName = "body" | "header";
 
@@ -49,6 +55,7 @@ type ModelTableProps = {
 	onTooltip: HeaderTooltipHandler;
 	onTooltipEnd: () => void;
 	providerColors: ProviderColorMap;
+	metricColumns: DashboardMetricColumn[];
 };
 
 const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
@@ -71,7 +78,7 @@ const LOADING_ROW_KEYS = [
 	"loading-row-11",
 	"loading-row-12",
 ] as const;
-const LOADING_METRIC_COLUMN_KEYS = dashboardColumnKeys.slice(2);
+const staticColumnKeys = staticSortableColumns.map((column) => column.key);
 
 export function ModelTable({
 	sortState,
@@ -82,6 +89,7 @@ export function ModelTable({
 	onTooltip,
 	onTooltipEnd,
 	providerColors,
+	metricColumns,
 }: ModelTableProps) {
 	const tableScrollRef = useRef<HTMLDivElement>(null);
 	const headerScrollRef = useRef<HTMLDivElement>(null);
@@ -90,7 +98,11 @@ export function ModelTable({
 	const widestLeadingColumnsWidthRef = useRef(0);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const [pinnedColumnsEnabled, setPinnedColumnsEnabled] = useState(false);
-	const stickyHeaderReady = columnWidths.length === dashboardColumnKeys.length;
+	const columnKeys = useMemo(
+		() => [...staticColumnKeys, ...metricColumns.map((column) => column.key)],
+		[metricColumns],
+	);
+	const stickyHeaderReady = columnWidths.length === columnKeys.length;
 	const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
 	const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
 	const stickyHeaderTableStyle =
@@ -108,7 +120,10 @@ export function ModelTable({
 					"--rank-column-width": `${columnWidths[0]}px`,
 				} as CSSProperties);
 	const syncTableLayoutMeasurements = useCallback(() => {
-		const widths = measuredTableColumnWidths(tableRef.current);
+		const widths = measuredTableColumnWidths(
+			tableRef.current,
+			columnKeys.length,
+		);
 		if (widths.length === 0) {
 			setPinnedColumnsEnabled(false);
 			return;
@@ -127,7 +142,7 @@ export function ModelTable({
 				current,
 			),
 		);
-	}, []);
+	}, [columnKeys.length]);
 	const markMirroredScrollTarget = useCallback(
 		(targetName: ScrollTargetName) => {
 			mirroredScrollTargetRef.current = targetName;
@@ -263,9 +278,10 @@ export function ModelTable({
 				onScroll={handleHeaderScroll}
 			>
 				<table className="sticky-header-table" style={stickyHeaderTableStyle}>
-					<ColumnGroup widths={columnWidths} />
+					<ColumnGroup widths={columnWidths} columnKeys={columnKeys} />
 					<thead>
 						<TableHeaderRow
+							metricColumns={metricColumns}
 							sortState={sortState}
 							onSort={onSort}
 							onTooltip={onTooltip}
@@ -282,6 +298,7 @@ export function ModelTable({
 				<table ref={tableRef}>
 					<thead>
 						<TableHeaderRow
+							metricColumns={metricColumns}
 							sortState={sortState}
 							onSort={onSort}
 							onTooltip={onTooltip}
@@ -290,7 +307,7 @@ export function ModelTable({
 					</thead>
 					<tbody>
 						{isLoading ? (
-							<LoadingRows />
+							<LoadingRows columnKeys={columnKeys} />
 						) : (
 							<>
 								{visibleRows.map((rowData) => (
@@ -298,10 +315,14 @@ export function ModelTable({
 										key={rowData.model.id ?? `${rowData.originalIndex}`}
 										rowData={rowData}
 										providerColors={providerColors}
+										metricColumns={metricColumns}
 									/>
 								))}
 								{visibleRows.length === 0 && (
-									<EmptyStateRow message={emptyMessage} />
+									<EmptyStateRow
+										message={emptyMessage}
+										columnCount={columnKeys.length}
+									/>
 								)}
 							</>
 						)}
@@ -312,13 +333,19 @@ export function ModelTable({
 	);
 }
 
-function ColumnGroup({ widths }: { widths: number[] }) {
+function ColumnGroup({
+	widths,
+	columnKeys,
+}: {
+	widths: number[];
+	columnKeys: SortKey[];
+}) {
 	if (widths.length === 0) {
 		return null;
 	}
 	return (
 		<colgroup>
-			{dashboardColumnKeys.map((key, columnIndex) => {
+			{columnKeys.map((key, columnIndex) => {
 				const width = widths[columnIndex];
 				return width == null ? null : <col key={key} style={{ width }} />;
 			})}
@@ -327,6 +354,7 @@ function ColumnGroup({ widths }: { widths: number[] }) {
 }
 
 function TableHeaderRow({
+	metricColumns,
 	sortState,
 	onSort,
 	onTooltip,
@@ -349,11 +377,12 @@ function TableHeaderRow({
 					onTooltipEnd={onTooltipEnd}
 				/>
 			))}
-			{dashboardMetricColumns.map((column) => (
+			{metricColumns.map((column) => (
 				<SortableHeader
 					key={column.key}
 					label={column.label}
 					keyName={column.key}
+					className={column.key === "modalities" ? "modality-cell" : undefined}
 					sortState={sortState}
 					onSort={onSort}
 					onTooltip={onTooltip}
@@ -364,27 +393,39 @@ function TableHeaderRow({
 	);
 }
 
-function EmptyStateRow({ message }: { message: string }) {
+function EmptyStateRow({
+	message,
+	columnCount,
+}: {
+	message: string;
+	columnCount: number;
+}) {
 	return (
 		<tr>
-			<td className="empty" colSpan={dashboardColumnKeys.length}>
+			<td className="empty" colSpan={columnCount}>
 				{message}
 			</td>
 		</tr>
 	);
 }
 
-function LoadingRows() {
+function LoadingRows({ columnKeys }: { columnKeys: SortKey[] }) {
 	return (
 		<>
 			{LOADING_ROW_KEYS.map((key, index) => (
-				<LoadingRow key={key} index={index} />
+				<LoadingRow key={key} index={index} columnKeys={columnKeys} />
 			))}
 		</>
 	);
 }
 
-function LoadingRow({ index }: { index: number }) {
+function LoadingRow({
+	index,
+	columnKeys,
+}: {
+	index: number;
+	columnKeys: SortKey[];
+}) {
 	return (
 		<tr
 			className="loading-row"
@@ -402,7 +443,7 @@ function LoadingRow({ index }: { index: number }) {
 					</div>
 				</div>
 			</td>
-			{LOADING_METRIC_COLUMN_KEYS.map((key) => (
+			{columnKeys.slice(2).map((key) => (
 				<td className="data-cell" key={`loading-${key}`}>
 					<span className="loading-block loading-metric" />
 				</td>
@@ -456,9 +497,11 @@ function SortableHeader({
 function ModelRow({
 	rowData,
 	providerColors,
+	metricColumns,
 }: {
 	rowData: TableRow;
 	providerColors: ProviderColorMap;
+	metricColumns: DashboardMetricColumn[];
 }) {
 	const model = rowData.model;
 	const visibleName = visibleModelName(model.name);
@@ -505,26 +548,118 @@ function ModelRow({
 				text={formatContext(contextWindowValue(model))}
 				className="data-cell"
 			/>
-			{dashboardMetricColumns.map((column) =>
-				"source" in column ? (
-					<TableCell
-						key={column.key}
-						text={formatTaskMetric(taskMetricValue(model, column), column)}
-						className="data-cell"
-					/>
-				) : (
-					<TableCell
-						key={column.key}
-						text={formatBenchmarkMetric(
-							benchmarkMetricValue(model, column),
-							column,
-						)}
-						className="data-cell"
-					/>
-				),
-			)}
+			{metricColumns.map((column) => (
+				<DashboardMetricCell
+					key={column.key}
+					model={model}
+					column={column}
+					providerColors={providerColors}
+				/>
+			))}
 		</tr>
 	);
+}
+
+function DashboardMetricCell({
+	model,
+	column,
+	providerColors,
+}: {
+	model: LlmStatsModel;
+	column: DashboardMetricColumn;
+	providerColors: ProviderColorMap;
+}) {
+	if (column.group === "profile" && column.field === "modalities") {
+		return <ModalityInputCell inputs={model.modalities?.input} />;
+	}
+	const value = dashboardMetricValue(model, column);
+	if ("benchmark" in column) {
+		return (
+			<BenchmarkMetricCell
+				value={typeof value === "number" ? value : null}
+				text={formatDashboardMetric(value, column)}
+				provider={model.provider}
+				providerColors={providerColors}
+			/>
+		);
+	}
+	return (
+		<TableCell
+			text={formatDashboardMetric(value, column)}
+			className="data-cell"
+		/>
+	);
+}
+
+function BenchmarkMetricCell({
+	value,
+	text,
+	provider,
+	providerColors,
+}: {
+	value: number | null;
+	text: string;
+	provider: string | null | undefined;
+	providerColors: ProviderColorMap;
+}) {
+	const normalizedValue = benchmarkPercentValue(value);
+	const displayColor = providerDisplayColor(provider, providerColors);
+	const style = {
+		"--score": String(Math.max(0, Math.min(100, normalizedValue ?? 0))),
+		"--score-color": displayColor,
+	} as CSSProperties;
+	return (
+		<td
+			className={`data-cell benchmark-cell${
+				normalizedValue == null ? " missing" : ""
+			}`}
+			style={style}
+		>
+			<span className="score-value">{text}</span>
+			<span className="score-meter benchmark-meter" />
+		</td>
+	);
+}
+
+function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
+	const availableSet = inputModalitySet(inputs);
+	const availableModalities = inputModalities.filter((modality) =>
+		availableSet.has(modality.key),
+	);
+	const label =
+		availableModalities.length === 0
+			? "none"
+			: availableModalities.map((modality) => modality.label).join(", ");
+	return (
+		<td className="data-cell modality-cell">
+			<span className="modality-icons" title={`Inputs: ${label}`}>
+				<span className="column-filter-label">Inputs: {label}</span>
+				{inputModalities.map(({ Icon, key, label }) => {
+					const isAvailable = availableSet.has(key);
+					return (
+						<span
+							className={`modality-icon ${isAvailable ? "" : "unavailable"}`}
+							key={key}
+							title={`${label} input ${isAvailable ? "available" : "unavailable"}`}
+						>
+							<Icon />
+						</span>
+					);
+				})}
+			</span>
+		</td>
+	);
+}
+
+const inputModalities = [
+	{ key: "text", label: "text", Icon: TextInputIcon },
+	{ key: "image", label: "image", Icon: ImageInputIcon },
+	{ key: "audio", label: "audio", Icon: AudioInputIcon },
+	{ key: "video", label: "video", Icon: VideoInputIcon },
+] as const;
+
+function inputModalitySet(inputs: string[] | undefined) {
+	return new Set((inputs ?? []).map((input) => input.toLowerCase()));
 }
 
 function visibleModelName(name: string | null | undefined) {
@@ -622,9 +757,12 @@ function scoreCell(
 	);
 }
 
-function measuredTableColumnWidths(table: HTMLTableElement | null) {
+function measuredTableColumnWidths(
+	table: HTMLTableElement | null,
+	expectedColumnCount: number,
+) {
 	const dataRow = Array.from(table?.querySelectorAll("tbody tr") ?? []).find(
-		(row) => row.children.length === dashboardColumnKeys.length,
+		(row) => row.children.length === expectedColumnCount,
 	);
 	const measurementCells =
 		dataRow?.children ?? table?.querySelector("thead tr")?.children;

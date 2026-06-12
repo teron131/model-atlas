@@ -20,6 +20,7 @@ import {
 	percent,
 } from "./format";
 import type {
+	CostFilter,
 	DeepSWEChartRow,
 	DeepSWEEffortMode,
 	HoverRow,
@@ -30,17 +31,15 @@ import type {
 	ProviderOption,
 } from "./types";
 
-export const costFilterOptions: Array<"all" | number> = [
-	"all",
-	1,
-	2,
-	5,
-	10,
-	25,
-];
+export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
 export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
 const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
+
+export type ModelControlFilters = {
+	provider: string;
+	maxCost: CostFilter;
+};
 
 export const interactionConfigs: InteractionConfig[] = [
 	{
@@ -258,6 +257,48 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 			color: option.color,
 			logo: option.logo,
 		}));
+}
+
+export function filterByModelControls<T>(
+	items: T[],
+	getModel: (item: T) => LlmStatsModel,
+	filters: ModelControlFilters,
+) {
+	return items.filter((item) => modelMatchesControls(getModel(item), filters));
+}
+
+export function limitByOverallScore<T>(
+	items: T[],
+	getModel: (item: T) => LlmStatsModel,
+	limit: ModelLimit,
+) {
+	if (limit === "all") {
+		return items;
+	}
+	return [...items]
+		.sort(
+			(left, right) =>
+				modelOverallScore(getModel(right)) - modelOverallScore(getModel(left)),
+		)
+		.slice(0, limit);
+}
+
+function modelMatchesControls(
+	model: LlmStatsModel,
+	{ maxCost, provider }: ModelControlFilters,
+) {
+	if (provider !== "all" && providerFilterKey(model.provider) !== provider) {
+		return false;
+	}
+	if (maxCost === "all") {
+		return true;
+	}
+	const blendedPrice = finiteValue(model.cost?.blended_price);
+	return blendedPrice != null && blendedPrice <= maxCost;
+}
+
+function modelOverallScore(model: LlmStatsModel) {
+	return finiteValue(model.relative_scores?.overall_score) ?? -Infinity;
 }
 
 function meanTopProviderScore(overallScores: number[]) {
