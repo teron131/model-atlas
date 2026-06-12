@@ -35,6 +35,7 @@ export function BoxWhiskerSummary({
 }) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const [medianOnTop, setMedianOnTop] = useState(false);
+	const [staggerObservedMedian, setStaggerObservedMedian] = useState(false);
 	const requestedMinValue =
 		domainMin ?? (showDomainEndpoints ? 0 : distribution.min);
 	const minValue = Math.min(requestedMinValue, distribution.min);
@@ -66,6 +67,7 @@ export function BoxWhiskerSummary({
 		"--whisker-max": toPosition(distribution.max),
 		"--whisker-domain-max": toPosition(maxValue),
 	} as CSSProperties;
+	const observedValuesOnTop = showDomainEndpoints || showObservedLabels;
 
 	useEffect(() => {
 		const root = rootRef.current;
@@ -74,21 +76,39 @@ export function BoxWhiskerSummary({
 		}
 		const measure = () => {
 			const min = root.querySelector(`.${styles.boxWhiskerMinValue}`);
-			const median = root.querySelector(`.${styles.boxWhiskerMedianProbe}`);
+			const medianProbe = root.querySelector(
+				`.${styles.boxWhiskerMedianProbe}`,
+			);
+			const medianValue = root.querySelector(
+				`.${styles.boxWhiskerMedianValue}`,
+			);
 			const max = root.querySelector(`.${styles.boxWhiskerMaxValue}`);
-			if (min == null || median == null || max == null) {
-				return;
-			}
-			const medianRect = median.getBoundingClientRect();
-			const overlaps = (element: Element) => {
+			const overlaps = (medianRect: DOMRect, element: Element) => {
 				const rect = element.getBoundingClientRect();
 				return (
 					medianRect.left < rect.right + 4 && medianRect.right > rect.left - 4
 				);
 			};
-			const nextMedianOnTop = overlaps(min) || overlaps(max);
-			setMedianOnTop((current) =>
-				current === nextMedianOnTop ? current : nextMedianOnTop,
+			if (min != null && medianProbe != null && max != null) {
+				const medianRect = medianProbe.getBoundingClientRect();
+				const nextMedianOnTop =
+					overlaps(medianRect, min) || overlaps(medianRect, max);
+				setMedianOnTop((current) =>
+					current === nextMedianOnTop ? current : nextMedianOnTop,
+				);
+			}
+			const shouldStaggerObservedMedian =
+				observedValuesOnTop &&
+				!showDomainEndpoints &&
+				min != null &&
+				medianValue != null &&
+				max != null &&
+				(overlaps(medianValue.getBoundingClientRect(), min) ||
+					overlaps(medianValue.getBoundingClientRect(), max));
+			setStaggerObservedMedian((current) =>
+				current === shouldStaggerObservedMedian
+					? current
+					: shouldStaggerObservedMedian,
 			);
 		};
 		measure();
@@ -96,7 +116,6 @@ export function BoxWhiskerSummary({
 		resizeObserver.observe(root);
 		return () => resizeObserver.disconnect();
 	});
-	const observedValuesOnTop = showDomainEndpoints || showObservedLabels;
 
 	return (
 		<div
@@ -139,7 +158,11 @@ export function BoxWhiskerSummary({
 				<span className={styles.boxWhiskerBox} />
 				<span className={styles.boxWhiskerMedian} />
 			</div>
-			<div className={styles.boxWhiskerStats}>
+			<div
+				className={`${styles.boxWhiskerStats} ${
+					staggerObservedMedian ? styles.boxWhiskerStatsStaggered : ""
+				}`}
+			>
 				{showDomainEndpoints ? (
 					<span className={styles.boxWhiskerDomainMinValue}>
 						{domainMinValue}

@@ -8,12 +8,12 @@ import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import { providerPaletteColor } from "../shared/providerTheme";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
-	calloutLabelPlacements,
 	DeepSWEPointLabel,
 	MedianCross,
 	PlotFrame,
@@ -26,7 +26,7 @@ import {
 	YAxisTicks,
 } from "./ChartComponents";
 import styles from "./graphs.module.css";
-import { providerColor } from "./providerTheme";
+import { calloutLabelPlacements } from "./labelPlacement";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 
 export type EfficiencyAxisMetric<Row> = {
@@ -91,7 +91,10 @@ export function EfficiencyAxisChart<Row>({
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
 		useCursorProjection();
 	const metricValues = rows.map(metric.get);
-	const xTicks = linearTicksForValues(metricValues, metric.format);
+	const xTicks =
+		metric.label === "Value score"
+			? roundedLinearTicks(xDomain, 10)
+			: linearTicksForValues(metricValues, metric.format);
 	const x = scaleLinear()
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
@@ -139,7 +142,10 @@ export function EfficiencyAxisChart<Row>({
 	});
 
 	return (
-		<div className={styles.chartWrap}>
+		<div
+			className={styles.chartWrap}
+			style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+		>
 			<svg
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
@@ -216,7 +222,7 @@ export function EfficiencyAxisChart<Row>({
 								cx={cx}
 								cy={cy}
 								r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
-								fill={providerColor(model.provider)}
+								fill={providerPaletteColor(model.provider)}
 								stroke="rgba(8,9,9,0.7)"
 								strokeWidth={1}
 								opacity={1}
@@ -289,4 +295,16 @@ function linearTicksForValues(
 		labels.add(label);
 		return true;
 	});
+}
+
+function roundedLinearTicks([low, high]: [number, number], step: number) {
+	const first = Math.ceil(low / step) * step;
+	const last = Math.floor(high / step) * step;
+	if (!Number.isFinite(first) || !Number.isFinite(last) || first > last) {
+		return [];
+	}
+	return Array.from(
+		{ length: Math.floor((last - first) / step) + 1 },
+		(_, index) => first + index * step,
+	);
 }

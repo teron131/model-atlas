@@ -27,6 +27,11 @@ import {
 import { liveStatsPath } from "./shared/constants";
 import { cacheBustedPath } from "./shared/format";
 import { RefreshIcon } from "./shared/icons";
+import {
+	fixedProviderColors,
+	type ProviderColorMap,
+	providerColorKey,
+} from "./shared/providerTheme";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dedupeDisplayModels,
@@ -36,11 +41,6 @@ import {
 	sorters,
 	type TableRow,
 } from "./table/models";
-import {
-	hasSelectedProviderThemeColor,
-	type ProviderThemeColors,
-	providerThemeSlug,
-} from "./table/providerTheme";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
@@ -82,7 +82,7 @@ export function Dashboard({
 		() => dedupeDisplayModels(payload?.models ?? []),
 		[payload],
 	);
-	const providerColors = useProviderThemeColors(tableRows);
+	const providerColors = useProviderDisplayColors(tableRows);
 	const visibleRows = useMemo(
 		() => sortedRows(tableRows, deferredFilterQuery, sortState),
 		[deferredFilterQuery, sortState, tableRows],
@@ -252,14 +252,14 @@ export function Dashboard({
 	);
 }
 
-function useProviderThemeColors(rows: TableRow[]) {
-	const [colors, setColors] = useState<ProviderThemeColors>({});
+function useProviderDisplayColors(rows: TableRow[]) {
+	const [colors, setColors] = useState<ProviderColorMap>({});
 	const providerKey = useMemo(() => {
 		const providers = rows
-			.map((row) => providerThemeSlug(row.model.provider))
+			.map((row) => providerColorKey(row.model.provider))
 			.filter(
 				(provider) =>
-					provider.length > 0 && !hasSelectedProviderThemeColor(provider),
+					provider.length > 0 && fixedProviderColors[provider] == null,
 			)
 			.sort();
 		return [...new Set(providers)].join(",");
@@ -278,7 +278,7 @@ function useProviderThemeColors(rows: TableRow[]) {
 			},
 		)
 			.then((response) => (response.ok ? response.json() : {}))
-			.then((payload: ProviderThemeColors) => {
+			.then((payload: ProviderColorMap) => {
 				if (active) {
 					setColors(payload);
 				}
