@@ -500,7 +500,13 @@
 }
 
 .panel h2 {
+	display: inline;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
 	max-width: 880px;
+	padding: 0 4px;
+	background: var(--ink);
+	color: var(--paper);
 	font-size: clamp(26px, 3vw, 48px);
 	line-height: 0.92;
 }
