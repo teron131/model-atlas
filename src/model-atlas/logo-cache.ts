@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 
 import { fetchWithTimeout } from "./utils";
 
-const LOGO_CACHE_SIZE = 128;
+const LOGO_CACHE_SIZE = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
 const pendingCacheRequestBySource = new Map<string, Promise<string>>();
@@ -52,14 +52,28 @@ function pngDataUrl(imageBuffer: Buffer): string {
 	return `data:image/png;base64,${imageBuffer.toString("base64")}`;
 }
 
-/** Load a cached logo as a data URL when present. */
+/** Load a cached logo as a normalized data URL when present. */
 async function loadCachedLogoDataUrl(
 	cachePath: string,
 ): Promise<string | null> {
 	try {
 		await access(cachePath);
 		const imageBuffer = await readFile(cachePath);
-		return pngDataUrl(imageBuffer);
+		const { default: sharp } = await import("sharp");
+		const metadata = await sharp(imageBuffer).metadata();
+		if (
+			metadata.width != null &&
+			metadata.width <= LOGO_CACHE_SIZE &&
+			metadata.height != null &&
+			metadata.height <= LOGO_CACHE_SIZE
+		) {
+			return pngDataUrl(imageBuffer);
+		}
+		const resizedLogoBuffer = await resizeLogoToPng(imageBuffer);
+		if (!imageBuffer.equals(resizedLogoBuffer)) {
+			await saveCachedLogoBuffer(cachePath, resizedLogoBuffer);
+		}
+		return pngDataUrl(resizedLogoBuffer);
 	} catch {
 		return null;
 	}
