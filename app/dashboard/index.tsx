@@ -12,7 +12,9 @@ import {
 	useTransition,
 } from "react";
 
+import { COLUMN_TOOLTIPS } from "../../src/model-atlas/constants";
 import type {
+	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
 	LlmStatsPayload,
 } from "../../src/model-atlas/llm/stats/types";
@@ -26,7 +28,7 @@ import {
 	type TooltipState,
 	tooltipPositionFromElement,
 } from "./shared/ColumnTooltip";
-import { liveStatsPath } from "./shared/constants";
+import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
 import { cacheBustedPath } from "./shared/format";
 import { RefreshIcon } from "./shared/icons";
 import {
@@ -59,14 +61,67 @@ const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
 const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
 const TOOLTIP_FADE_OUT_MS = 1_000;
+const COLUMN_FRAME_HEADER_SELECTOR =
+	'.table-wrap th[data-column-key="modalities"], .table-wrap th[data-column-key="context"]';
 const AUTOMATIC_LIVE_REFRESH_ENABLED =
 	process.env.NODE_ENV === "production" ||
 	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
+
+const benchmarkColumnTooltipKeys = {
+	gpqa: "gpqa",
+	hle: "hle",
+	terminalBench: "terminalbench_hard",
+	automationBench: "automation_bench",
+	blueprintBench: "blueprint_bench_2",
+	gdpPdf: "gdp_pdf",
+	riemannBench: "riemann_bench",
+	cursorBench: "cursorbench",
+	deepSWE: "deep_swe",
+	agentsLastExam: "agents_last_exam",
+} as const satisfies Partial<Record<SortKey, keyof typeof benchmarkTooltips>>;
+
+const benchmarkTableColumnTooltips = Object.fromEntries(
+	Object.entries(benchmarkColumnTooltipKeys).flatMap(
+		([columnKey, benchmarkKey]) => {
+			const tooltip = benchmarkTooltips[benchmarkKey];
+			return tooltip == null
+				? []
+				: [[columnKey, benchmarkTableTooltip(tooltip)]];
+		},
+	),
+) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+
+const tableColumnFallbackTooltips: Partial<
+	Record<SortKey, LlmStatsColumnTooltip>
+> = {
+	...benchmarkTableColumnTooltips,
+	agentsLastExamCost: COLUMN_TOOLTIPS.agentsLastExamCost,
+};
+
+function tooltipForColumn(
+	key: SortKey,
+	columnTooltips: LlmStatsColumnTooltips,
+) {
+	return tableColumnFallbackTooltips[key] ?? columnTooltips[key];
+}
+
+function benchmarkTableTooltip(
+	tooltip: LlmStatsColumnTooltip,
+): LlmStatsColumnTooltip {
+	return {
+		...tooltip,
+		rows: [...(tooltip.rows ?? []), ["Sort", "higher values sort first"]],
+	};
+}
 
 type RefreshPayloadOptions = {
 	bypassGuard?: boolean;
 	forceFresh?: boolean;
 	retryWhenGuarded?: boolean;
+};
+
+type DashboardTooltipState = Omit<TooltipState, "key"> & {
+	key: SortKey;
 };
 
 export function Dashboard({
@@ -81,7 +136,7 @@ export function Dashboard({
 		direction: "descending",
 	});
 	const [filterQuery, setFilterQuery] = useState("");
-	const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+	const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
 	const [columnView, setColumnView] = useState<ColumnView>("specs");
 	const [providerFilter, setProviderFilter] = useState("all");
 	const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
@@ -114,7 +169,7 @@ export function Dashboard({
 	const columnTooltips =
 		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
 	const activeTooltipContent =
-		tooltip == null ? undefined : columnTooltips[tooltip.key];
+		tooltip == null ? undefined : tooltipForColumn(tooltip.key, columnTooltips);
 	const isInitialLoading = payload == null && errorMessage == null;
 	const rowCountLabel =
 		payload == null
@@ -179,7 +234,7 @@ export function Dashboard({
 
 	const showTooltip = useCallback<HeaderTooltipHandler>(
 		(event, key) => {
-			if (!columnTooltips[key]) {
+			if (!tooltipForColumn(key, columnTooltips)) {
 				return;
 			}
 			clearTooltipFadeTimeout();
@@ -197,9 +252,6 @@ export function Dashboard({
 	}, [clearTooltipFadeTimeout]);
 
 	useEffect(() => {
-		const observer = new ResizeObserver(() => {
-			syncFrameWidth();
-		});
 		const syncFrameWidth = () => {
 			const frameWidth = defaultColumnFrameWidth(dashboardRef.current);
 			if (frameWidth != null) {
@@ -209,6 +261,9 @@ export function Dashboard({
 				);
 			}
 		};
+		const observer = new ResizeObserver(() => {
+			syncFrameWidth();
+		});
 		const observeLayoutTargets = () => {
 			const root = dashboardRef.current;
 			if (root == null) {
@@ -216,7 +271,7 @@ export function Dashboard({
 			}
 			const table = root.querySelector<HTMLElement>(".table-wrap table");
 			const frameHeader = root.querySelector<HTMLElement>(
-				'.table-wrap th[data-column-key="modalities"], .table-wrap th[data-column-key="context"]',
+				COLUMN_FRAME_HEADER_SELECTOR,
 			);
 			observer.observe(root);
 			if (table != null) {
@@ -255,7 +310,7 @@ export function Dashboard({
 				onProviderChange={setProviderFilter}
 				onMaxCostChange={setMaxCostFilter}
 				onModelLimitChange={setModelLimit}
-				afterControls={
+				benchmarkControls={
 					<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
 				}
 				afterLead={
@@ -602,7 +657,7 @@ function DashboardControls({
 
 function defaultColumnFrameWidth(root: HTMLElement | null) {
 	const frameHeader = root?.querySelector<HTMLElement>(
-		'.table-wrap th[data-column-key="modalities"], .table-wrap th[data-column-key="context"]',
+		COLUMN_FRAME_HEADER_SELECTOR,
 	);
 	if (!frameHeader) {
 		return null;

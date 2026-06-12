@@ -56,6 +56,48 @@ export function clamp(value: number, minValue: number, maxValue: number) {
 	return Math.max(minValue, Math.min(maxValue, value));
 }
 
+/** Linearly interpolate between two numbers. */
+export function interpolateLinear(start: number, end: number, ratio: number) {
+	return start + (end - start) * ratio;
+}
+
+/** Return distance between two positive values on a log10 scale. */
+export function logDistance(left: number, right: number) {
+	return Math.abs(Math.log10(left) - Math.log10(right));
+}
+
+/** Pick a human-friendly linear step near a raw step size. */
+export function niceLinearStep(rawStep: number) {
+	const exponent = Math.floor(Math.log10(rawStep));
+	const base = 10 ** exponent;
+	const mantissa = rawStep / base;
+	const niceMantissa =
+		mantissa <= 1
+			? 1
+			: mantissa <= 2
+				? 2
+				: mantissa <= 2.5
+					? 2.5
+					: mantissa <= 5
+						? 5
+						: 10;
+	return niceMantissa * base;
+}
+
+/** Round chart tick values without adding noisy floating-point tails. */
+export function roundTick(value: number) {
+	if (Math.abs(value) >= 100) {
+		return Number(value.toFixed(0));
+	}
+	if (Math.abs(value) >= 10) {
+		return Number(value.toFixed(1));
+	}
+	if (Math.abs(value) >= 1) {
+		return Number(value.toFixed(2));
+	}
+	return Number(value.toPrecision(3));
+}
+
 /** Scale circle radius so visible area changes linearly with a normalized score. */
 export function areaScaledRadius(
 	minRadius: number,

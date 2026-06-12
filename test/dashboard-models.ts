@@ -5,6 +5,7 @@ import {
 	type SortState,
 	sortedRows,
 } from "../app/dashboard/table/models";
+import { metricColumnsForView } from "../app/dashboard/table/tableColumns";
 import type { LlmStatsModel } from "../src/model-atlas/llm/stats/types";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
@@ -45,6 +46,47 @@ assert.deepEqual(
 	"rank sort should follow intelligence rank",
 );
 
+const modalityRows = dedupeDisplayModels([
+	modalityModel("provider/text", "Text", ["text"]),
+	modalityModel("provider/vision", "Vision", ["text", "image"]),
+	modalityModel("provider/all", "All", ["text", "image", "audio", "video"]),
+]);
+
+assert.deepEqual(
+	sortedRows(modalityRows, "", sort("modalities", "descending")).map(
+		(row) => row.model.id,
+	),
+	["provider/all", "provider/vision", "provider/text"],
+	"input modality sort should order by capability coverage, not icon label text",
+);
+
+assert.deepEqual(
+	metricColumnsForView("evals").map((column) => column.key),
+	[
+		"gpqa",
+		"hle",
+		"terminalBench",
+		"automationBench",
+		"blueprintBench",
+		"gdpPdf",
+		"riemannBench",
+		"cursorBench",
+		"deepSWE",
+		"deepSWECost",
+		"deepSWESeconds",
+		"deepSWETokens",
+		"agentsLastExam",
+		"agentsLastExamCost",
+		"agentsLastExamSeconds",
+		"agentsLastExamInputTokens",
+		"agentsLastExamOutputTokens",
+		"aaCost",
+		"aaSeconds",
+		"aaTokens",
+	],
+	"eval columns should keep resource metrics next to their matching benchmark",
+);
+
 assert.deepEqual(
 	dedupeDisplayModels([
 		rankedModel("mistral/mistral-medium-3.5", "Mistral Medium Latest", 90),
@@ -65,6 +107,19 @@ function rankedModel(
 		relative_scores: {
 			...model.relative_scores,
 			intelligence_score: intelligenceScore,
+		},
+	};
+}
+
+function modalityModel(
+	id: string,
+	name: string,
+	input: string[],
+): LlmStatsModel {
+	return {
+		...minimalLlmStatsModel({ id, name }),
+		modalities: {
+			input,
 		},
 	};
 }

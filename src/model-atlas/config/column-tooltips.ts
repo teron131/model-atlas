@@ -507,17 +507,32 @@ export const COLUMN_TOOLTIPS = {
 	aaCost: {
 		title: "AA cost per task",
 		body: "Estimated cost for one Artificial Analysis Intelligence task.",
-		rows: [["Formula", "total cost / task count"]],
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Metric", "cost per Intelligence task"],
+			["Formula", "total cost / task count"],
+			["Sort", LOWER_FIRST_TEXT],
+		],
 	},
 	aaSeconds: {
 		title: "AA seconds per task",
 		body: "Estimated runtime for one Artificial Analysis Intelligence task.",
-		rows: [["Formula", "latency + tokens / throughput"]],
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Metric", "runtime per Intelligence task"],
+			["Formula", "latency + tokens / throughput"],
+			["Sort", LOWER_FIRST_TEXT],
+		],
 	},
 	aaTokens: {
 		title: "AA output tokens per task",
 		body: "Estimated output tokens for one Artificial Analysis Intelligence task.",
-		rows: [["Formula", "output tokens / task count"]],
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Metric", "output tokens per Intelligence task"],
+			["Formula", "output tokens / task count"],
+			["Sort", HIGHER_FIRST_TEXT],
+		],
 	},
 	deepSWE: {
 		title: "DeepSWE",
@@ -530,14 +545,29 @@ export const COLUMN_TOOLTIPS = {
 	deepSWECost: {
 		title: "DeepSWE cost per task",
 		body: "Mean cost for one DeepSWE task.",
+		rows: [
+			["Source", "DeepSWE leaderboard"],
+			["Metric", "mean cost per task"],
+			["Sort", LOWER_FIRST_TEXT],
+		],
 	},
 	deepSWESeconds: {
 		title: "DeepSWE seconds per task",
 		body: "Mean runtime for one DeepSWE task.",
+		rows: [
+			["Source", "DeepSWE leaderboard"],
+			["Metric", "mean runtime per task"],
+			["Sort", LOWER_FIRST_TEXT],
+		],
 	},
 	deepSWETokens: {
 		title: "DeepSWE output tokens per task",
 		body: "Mean output tokens for one DeepSWE task.",
+		rows: [
+			["Source", "DeepSWE leaderboard"],
+			["Metric", "mean output tokens per task"],
+			["Sort", HIGHER_FIRST_TEXT],
+		],
 	},
 	agentsLastExam: {
 		title: "Agents' Last Exam",
@@ -548,12 +578,23 @@ export const COLUMN_TOOLTIPS = {
 			["Sort", HIGHER_FIRST_TEXT],
 		],
 	},
+	agentsLastExamCost: {
+		title: "Agents' Last Exam cost",
+		body: "Full Overall harness cost, using the lower of median and mean.",
+		rows: [
+			["Source", "Agents' Last Exam"],
+			["Split", FULL_OVERALL_TEXT],
+			["Metric", "cost"],
+			["Sort", LOWER_FIRST_TEXT],
+		],
+	},
 	agentsLastExamSeconds: {
 		title: "Agents' Last Exam runtime",
 		body: "Full Overall harness runtime, using the lower of median and mean.",
 		rows: [
 			["Source", "Agents' Last Exam"],
 			["Split", FULL_OVERALL_TEXT],
+			["Metric", "runtime"],
 			["Sort", LOWER_FIRST_TEXT],
 		],
 	},
@@ -563,6 +604,7 @@ export const COLUMN_TOOLTIPS = {
 		rows: [
 			["Source", "Agents' Last Exam"],
 			["Split", FULL_OVERALL_TEXT],
+			["Metric", "input tokens"],
 			["Sort", LOWER_FIRST_TEXT],
 		],
 	},
@@ -572,6 +614,7 @@ export const COLUMN_TOOLTIPS = {
 		rows: [
 			["Source", "Agents' Last Exam"],
 			["Split", FULL_OVERALL_TEXT],
+			["Metric", "output tokens"],
 			["Sort", LOWER_FIRST_TEXT],
 		],
 	},

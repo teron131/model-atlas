@@ -119,7 +119,7 @@ function BenchmarkGroup({
 				className="benchmark-group-label"
 				data-count={isLoading ? "sync" : keys.length}
 			>
-				{label}
+				<span>{label}</span>
 			</div>
 			{isLoading ? (
 				<LoadingBenchmarkList label={label} />
@@ -209,7 +209,7 @@ function WeightsGroup({
 				className="benchmark-group-label"
 				data-count={isLoading ? "sync" : "overall"}
 			>
-				Weights
+				<span>Weights</span>
 			</div>
 			{isLoading ? <LoadingWeightList /> : <WeightList weights={weights} />}
 		</div>

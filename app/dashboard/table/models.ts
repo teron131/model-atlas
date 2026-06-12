@@ -64,6 +64,15 @@ const deepSWETaskMetricColumns = [
 
 const agentsLastExamTaskMetricColumns = [
 	{
+		key: "agentsLastExamCost",
+		group: "tasks",
+		source: "agents_last_exam",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "ALE$",
+	},
+	{
 		key: "agentsLastExamSeconds",
 		group: "tasks",
 		source: "agents_last_exam",
@@ -119,8 +128,8 @@ const profileMetricColumns = [
 		key: "modalities",
 		group: "profile",
 		field: "modalities",
-		direction: "ascending",
-		type: "text",
+		direction: "descending",
+		type: "number",
 		label: "Inputs",
 	},
 ] as const;
@@ -177,6 +186,13 @@ const speedMetricColumns = [
 		type: "number",
 		label: "E2E",
 	},
+] as const;
+
+const inputModalityScores = [
+	["text", 8],
+	["image", 4],
+	["audio", 2],
+	["video", 1],
 ] as const;
 
 export const benchmarkMetricColumns = [
@@ -290,18 +306,28 @@ export type SortKey =
 	| TaskMetricColumn["key"]
 	| BenchmarkMetricColumn["key"];
 
-export const dashboardMetricColumns: DashboardMetricColumn[] = [
-	...profileMetricColumns,
-	...costMetricColumns,
-	...speedMetricColumns,
-	...benchmarkMetricColumns,
-	...taskMetricColumns,
-];
-
 export type SortState = {
 	key: SortKey;
 	direction: Direction;
 };
+
+const taskMetricColumnsByBenchmark: Partial<
+	Record<BenchmarkMetricColumn["key"], readonly TaskMetricColumn[]>
+> = {
+	deepSWE: deepSWETaskMetricColumns,
+	agentsLastExam: agentsLastExamTaskMetricColumns,
+};
+
+export const dashboardMetricColumns: DashboardMetricColumn[] = [
+	...profileMetricColumns,
+	...costMetricColumns,
+	...speedMetricColumns,
+	...benchmarkMetricColumns.flatMap((column) => [
+		column,
+		...(taskMetricColumnsByBenchmark[column.key] ?? []),
+	]),
+	...artificialAnalysisTaskMetricColumns,
+];
 
 export type TableRow = {
 	model: LlmStatsModel;
@@ -466,7 +492,7 @@ function profileMetricValue(model: LlmStatsModel, column: ProfileMetricColumn) {
 		return model.release_date;
 	}
 	if (column.field === "modalities") {
-		return inputModalityLabel(model);
+		return inputModalityRank(model);
 	}
 	return booleanSortValue(model[column.field]);
 }
@@ -478,18 +504,17 @@ function booleanSortValue(value: boolean | null | undefined) {
 	return value ? 1 : 0;
 }
 
-function inputModalityLabel(model: LlmStatsModel) {
-	const input = modalityTokens(model.modalities?.input);
-	if (input.length === 0) {
+function inputModalityRank(model: LlmStatsModel) {
+	const input = new Set(
+		(model.modalities?.input ?? []).map((value) => value.toLowerCase()),
+	);
+	if (input.size === 0) {
 		return null;
 	}
-	return input.join("+");
-}
-
-function modalityTokens(values: string[] | undefined) {
-	return (values ?? [])
-		.map((value) => value.slice(0, 1).toUpperCase())
-		.filter((value) => value.length > 0);
+	return inputModalityScores.reduce(
+		(total, [modality, score]) => total + (input.has(modality) ? score : 0),
+		0,
+	);
 }
 
 function filteredRows(rows: TableRow[], filterQuery: string) {

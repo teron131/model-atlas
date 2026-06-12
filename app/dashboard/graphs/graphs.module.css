@@ -29,7 +29,7 @@
 }
 
 .dashboardGraphs .controls {
-	margin-top: 0;
+	margin: 0;
 	border-top: 0;
 }
 
@@ -46,6 +46,7 @@
 
 .kicker,
 .chartKicker,
+.filtersToggle,
 .controlLabel,
 .chip,
 .axisLabel,
@@ -87,12 +88,66 @@
 
 .controls {
 	display: grid;
-	grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.88fr) minmax(0, 0.78fr);
+	grid-template-columns: minmax(0, 1fr);
 	align-items: start;
 	margin: 18px 0 12px;
 	border-top: 1px solid var(--line-strong);
 	border-bottom: 1px solid var(--line);
 	background: transparent;
+}
+
+.filtersToggle {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 18px;
+	width: 100%;
+	padding: 14px 16px;
+	border: 0;
+	background: transparent;
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 900;
+	text-align: left;
+	cursor: pointer;
+}
+
+.filtersToggle b {
+	overflow: hidden;
+	color: var(--ink);
+	font: inherit;
+	text-align: right;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.filtersToggle i {
+	min-width: 12px;
+	color: var(--faint);
+	font-style: normal;
+	text-align: right;
+}
+
+.filtersToggle:hover,
+.filtersToggle[aria-expanded="true"] {
+	color: var(--ink);
+}
+
+.filtersToggle[aria-expanded="true"] i {
+	color: var(--ink);
+}
+
+.filterPanel {
+	display: grid;
+	grid-template-columns:
+		minmax(0, 1.25fr) minmax(0, 0.88fr) minmax(0, 0.78fr)
+		minmax(0, 1fr);
+	align-items: start;
+	border-top: 1px solid var(--line);
+}
+
+.filterPanel[hidden] {
+	display: none;
 }
 
 .controlGroup {
@@ -106,16 +161,45 @@
 	border-right: 0;
 }
 
+.filterPanel :global(.benchmarks) {
+	min-width: 0;
+	margin: 0;
+	padding: 14px 16px;
+}
+
+.filterPanel :global(.benchmark-groups) {
+	margin: 0;
+}
+
+.filterPanel :global(.benchmark-group) {
+	min-width: 170px;
+	padding: 0 12px 0 0;
+}
+
+.filterPanel :global(.benchmark-group:last-child) {
+	padding-right: 0;
+}
+
 .controlLabel {
 	display: flex;
+	align-items: center;
 	justify-content: space-between;
 	gap: 18px;
+	width: 100%;
+	padding: 0;
+	border: 0;
+	background: transparent;
 	color: var(--muted);
+	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
 	font-weight: 900;
+	letter-spacing: 0;
+	text-align: left;
+	text-transform: uppercase;
 }
 
 .controlLabel b {
+	margin-left: auto;
 	color: var(--ink);
 }
 
@@ -1085,6 +1169,14 @@
 		grid-template-columns: 1fr;
 	}
 
+	.filterPanel {
+		grid-template-columns: 1fr;
+	}
+
+	.filtersToggle {
+		padding: 13px 16px;
+	}
+
 	.chartSummary,
 	.interactionGrid {
 		grid-template-columns: 1fr;
@@ -1094,6 +1186,14 @@
 	.interactionPlot,
 	.controlGroup {
 		border-right: 0;
+	}
+
+	.controlGroup {
+		border-bottom: 1px solid var(--line);
+	}
+
+	.filterPanel :global(.benchmarks) {
+		padding: 14px 16px;
 	}
 
 	.interactionPlot,
