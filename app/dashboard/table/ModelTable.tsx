@@ -23,6 +23,10 @@ import {
 	safeSlug,
 } from "../shared/format";
 import {
+	type ProviderColorMap,
+	providerDisplayColor,
+} from "../shared/providerTheme";
+import {
 	benchmarkMetricValue,
 	contextWindowValue,
 	type Direction,
@@ -32,7 +36,6 @@ import {
 	type TableRow,
 	taskMetricValue,
 } from "./models";
-import { type ProviderThemeColors, providerThemeColor } from "./providerTheme";
 import { dashboardColumnKeys, staticSortableColumns } from "./tableColumns";
 
 type ScrollTargetName = "body" | "header";
@@ -45,7 +48,7 @@ type ModelTableProps = {
 	onSort: (key: SortKey) => void;
 	onTooltip: HeaderTooltipHandler;
 	onTooltipEnd: () => void;
-	providerColors: ProviderThemeColors;
+	providerColors: ProviderColorMap;
 };
 
 const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
@@ -455,7 +458,7 @@ function ModelRow({
 	providerColors,
 }: {
 	rowData: TableRow;
-	providerColors: ProviderThemeColors;
+	providerColors: ProviderColorMap;
 }) {
 	const model = rowData.model;
 	const visibleName = visibleModelName(model.name);
@@ -598,15 +601,15 @@ function TableCell({ text, className }: { text: string; className?: string }) {
 function scoreCell(
 	value: number | null | undefined,
 	provider: string | null | undefined,
-	providerColors: ProviderThemeColors,
+	providerColors: ProviderColorMap,
 	className = "",
 ) {
 	const score =
 		typeof value === "number" && Number.isFinite(value) ? value : null;
-	const themeColor = providerThemeColor(provider, providerColors);
+	const displayColor = providerDisplayColor(provider, providerColors);
 	const style = {
 		"--score": String(Math.max(0, Math.min(100, score ?? 0))),
-		"--score-color": themeColor,
+		"--score-color": displayColor,
 	} as CSSProperties;
 	return (
 		<td

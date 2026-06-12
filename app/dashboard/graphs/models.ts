@@ -4,6 +4,11 @@ import type { PointerEvent } from "react";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
 import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import {
+	providerFilterKey,
+	providerName,
+	providerPaletteColor,
+} from "../shared/providerTheme";
+import {
 	finite,
 	finiteValue,
 	fmtCompact,
@@ -14,7 +19,6 @@ import {
 	fmtTooltipPercent,
 	percent,
 } from "./format";
-import { providerColor, providerName, providerSlug } from "./providerTheme";
 import type {
 	DeepSWEChartRow,
 	DeepSWEEffortMode,
@@ -81,7 +85,9 @@ export const interactionConfigs: InteractionConfig[] = [
 		title: "Intelligence vs context window",
 		lowerBetter: false,
 		log: true,
-		ticks: [32_000, 128_000, 256_000, 1_000_000, 2_000_000, 10_000_000],
+		ticks: [
+			32_000, 128_000, 256_000, 400_000, 1_000_000, 2_000_000, 10_000_000,
+		],
 		get: (model) => finiteValue(model.context_window?.context),
 		format: fmtCompact,
 		tooltipFormat: fmtTooltipNumber,
@@ -157,11 +163,11 @@ export function deepSweRows(
 	mode: DeepSWEEffortMode,
 ): DeepSWEChartRow[] {
 	const modelsByKey = new Map(
-		models.map((model) => [modelLookupKey(modelName(model)), model]),
+		models.map((model) => [providerFilterKey(modelName(model)), model]),
 	);
 	const chartRows = rows
 		.flatMap((row): DeepSWEChartRow[] => {
-			const key = modelLookupKey(row.model);
+			const key = providerFilterKey(row.model);
 			const model = modelsByKey.get(key);
 			return model != null &&
 				finite(row.pass_at_1) &&
@@ -211,13 +217,13 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 
 	const byProvider = new Map<string, ProviderOptionDraft>();
 	for (const model of models) {
-		const slug = providerSlug(model.provider);
+		const slug = providerFilterKey(model.provider);
 		const overallScore = finiteValue(model.relative_scores?.overall_score);
 		const current = byProvider.get(slug) ?? {
 			slug,
 			label: providerName(model),
 			count: 0,
-			color: providerColor(model.provider),
+			color: providerPaletteColor(model.provider),
 			logo: providerLogoSource(model),
 			overallScores: [],
 		};
@@ -278,7 +284,7 @@ export function pointHover(
 		top: event.clientY,
 		model: displayName,
 		provider: providerName(model),
-		color: providerColor(model.provider),
+		color: providerPaletteColor(model.provider),
 		logo: providerLogoSource(model),
 		rows,
 	};
@@ -296,7 +302,7 @@ export function focusHover(
 		top: rect.top + rect.height / 2,
 		model: displayName,
 		provider: providerName(model),
-		color: providerColor(model.provider),
+		color: providerPaletteColor(model.provider),
 		logo: providerLogoSource(model),
 		rows,
 	};
@@ -407,10 +413,6 @@ function providerLogoSource(model: LlmStatsModel) {
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;
 	}
-	const logoSlug = providerSlug(model.provider);
+	const logoSlug = providerFilterKey(model.provider);
 	return logoSlug ? `/api/logos/${logoSlug}.png` : "";
-}
-
-function modelLookupKey(value: string) {
-	return providerSlug(value);
 }

@@ -1,6 +1,10 @@
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import { safeSlug } from "./format";
 
-const providerThemeColors: Record<string, string> = {
+type ProviderLike = { provider?: string | null };
+
+export type ProviderColorMap = Record<string, string>;
+
+export const fixedProviderColors: ProviderColorMap = {
 	alibaba: "#ff7018",
 	anthropic: "#d07860",
 	amazon: "#ff9800",
@@ -25,7 +29,7 @@ const providerThemeColors: Record<string, string> = {
 	"z-ai": "#2080f8",
 };
 
-const providerDisplayLabels: Record<string, string> = {
+const providerLabels: Record<string, string> = {
 	alibaba: "Alibaba",
 	anthropic: "Anthropic",
 	amazon: "Amazon",
@@ -60,13 +64,13 @@ const fallbackProviderColors = [
 	"#d7d46a",
 ];
 
-export function providerName(model: LlmStatsModel | string | null) {
+export function providerName(model: ProviderLike | string | null) {
 	const rawProvider = typeof model === "string" ? model : model?.provider;
-	const slug = providerSlug(rawProvider);
-	return providerDisplayLabels[slug] ?? rawProvider ?? "Unknown";
+	const key = providerFilterKey(rawProvider);
+	return providerLabels[key] ?? rawProvider ?? "Unknown";
 }
 
-export function providerSlug(provider: string | null | undefined) {
+export function providerFilterKey(provider: string | null | undefined) {
 	return String(provider ?? "unknown")
 		.toLowerCase()
 		.trim()
@@ -74,16 +78,31 @@ export function providerSlug(provider: string | null | undefined) {
 		.replace(/^-+|-+$/g, "");
 }
 
-export function providerColor(provider: string | null | undefined) {
-	const slug = providerSlug(provider);
-	if (providerThemeColors[slug]) {
-		return providerThemeColors[slug];
+export function providerColorKey(provider: string | null | undefined) {
+	return safeSlug(provider);
+}
+
+export function providerPaletteColor(provider: string | null | undefined) {
+	const key = providerFilterKey(provider);
+	if (fixedProviderColors[key]) {
+		return fixedProviderColors[key];
 	}
 	let hash = 0;
-	for (const char of slug) {
+	for (const char of key) {
 		hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
 	}
 	return (
 		fallbackProviderColors[hash % fallbackProviderColors.length] ?? "#ff5a46"
 	);
+}
+
+export function providerDisplayColor(
+	provider: string | null | undefined,
+	iconDerivedColors: ProviderColorMap,
+) {
+	const key = providerColorKey(provider);
+	if (!key) {
+		return undefined;
+	}
+	return fixedProviderColors[key] ?? iconDerivedColors[key];
 }

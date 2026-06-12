@@ -461,6 +461,10 @@
 	margin-top: -8px;
 }
 
+.boxWhiskerStatsStaggered {
+	height: 28px;
+}
+
 .boxWhiskerStats span {
 	position: absolute;
 	top: 0;
@@ -486,6 +490,10 @@
 
 .boxWhiskerMedianProbe {
 	visibility: hidden;
+}
+
+.boxWhiskerStatsStaggered .boxWhiskerMedianValue {
+	top: 14px;
 }
 
 .boxWhiskerMaxValue {
@@ -525,6 +533,7 @@
 }
 
 .chartWrap {
+	--chart-max-width: 820px;
 	width: 100%;
 	overflow: hidden;
 	padding: 18px 0 8px;
@@ -533,9 +542,14 @@
 .chartWrap svg,
 .interactionPlot svg {
 	display: block;
-	width: 100%;
+	width: min(100%, var(--chart-max-width));
 	height: auto;
+	margin-inline: auto;
 	overflow: visible;
+}
+
+.interactionPlot svg {
+	--chart-max-width: 430px;
 }
 
 .gridLine {
