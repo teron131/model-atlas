@@ -214,14 +214,16 @@ const SPEED_COMPONENT_WEIGHTS = {
 	workflow_simulated_seconds: RAW_RESOURCE_COMPONENT_WEIGHT,
 } as const;
 
+const VALUE_RAW_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT / 3;
+
 const VALUE_COMPONENT_WEIGHTS = {
 	aa_resource_task_cost: AA_RESOURCE_COMPONENT_WEIGHT / 2,
 	aa_score_per_dollar: AA_RESOURCE_COMPONENT_WEIGHT / 2,
 	frontier_resource_task_cost: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
 	frontier_resource_score_per_dollar: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
-	blend_price: 2,
-	quality_adjusted_blend_value: 2,
-	workflow_simulated_value: 2,
+	blend_price: VALUE_RAW_COMPONENT_WEIGHT,
+	quality_adjusted_blend_value: VALUE_RAW_COMPONENT_WEIGHT,
+	workflow_simulated_value: VALUE_RAW_COMPONENT_WEIGHT,
 } as const;
 
 const qualityScoreRows = (indexLabel: string) =>

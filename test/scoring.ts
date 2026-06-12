@@ -81,6 +81,14 @@ assertEqual(quantileFromSorted(sparseQuantileValues, 1), 100);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
+assertEqual(
+	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.[1]?.[1],
+	"1.0 weighted component units",
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("20.0%"),
+	true,
+);
 
 const groupPolicyConfig = {
 	...STAGE_CONFIG.scoring,
