@@ -61,8 +61,7 @@ const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
 const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
 const TOOLTIP_FADE_OUT_MS = 1_000;
-const COLUMN_FRAME_HEADER_SELECTOR =
-	'.table-wrap th[data-column-key="modalities"], .table-wrap th[data-column-key="context"]';
+const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
 const AUTOMATIC_LIVE_REFRESH_ENABLED =
 	process.env.NODE_ENV === "production" ||
 	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
@@ -270,9 +269,7 @@ export function Dashboard({
 				return;
 			}
 			const table = root.querySelector<HTMLElement>(".table-wrap table");
-			const frameHeader = root.querySelector<HTMLElement>(
-				COLUMN_FRAME_HEADER_SELECTOR,
-			);
+			const frameHeader = columnFrameHeader(root);
 			observer.observe(root);
 			if (table != null) {
 				observer.observe(table);
@@ -656,9 +653,7 @@ function DashboardControls({
 }
 
 function defaultColumnFrameWidth(root: HTMLElement | null) {
-	const frameHeader = root?.querySelector<HTMLElement>(
-		COLUMN_FRAME_HEADER_SELECTOR,
-	);
+	const frameHeader = columnFrameHeader(root);
 	if (!frameHeader) {
 		return null;
 	}
@@ -669,4 +664,16 @@ function defaultColumnFrameWidth(root: HTMLElement | null) {
 	return Math.ceil(
 		frameHeader.offsetLeft + frameHeader.offsetWidth + horizontalPadding,
 	);
+}
+
+function columnFrameHeader(root: HTMLElement | null) {
+	for (const key of COLUMN_FRAME_HEADER_KEYS) {
+		const header = root?.querySelector<HTMLElement>(
+			`.table-wrap th[data-column-key="${key}"]`,
+		);
+		if (header != null) {
+			return header;
+		}
+	}
+	return null;
 }
