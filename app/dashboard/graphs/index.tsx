@@ -4,33 +4,43 @@
 
 import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
-import { providerFilterKey } from "../shared/providerTheme";
 import { FilterButton, HoverCard } from "./ChartComponents";
-import { finite, finiteValue, fmtCompact, fmtMoney } from "./format";
+import { finite, fmtCompact, fmtMoney } from "./format";
 import { FrontierEfficiencyPanel } from "./frontierEfficiency";
 import styles from "./graphs.module.css";
 import { InteractionMatrix } from "./interaction";
 import {
 	costFilterOptions,
+	filterByModelControls,
+	limitByOverallScore,
 	modelLimitOptions,
 	providerOptions,
 } from "./models";
 import { ParetoFrontierPanel } from "./pareto";
 import { RunwayPanel } from "./runway";
-import type { HoverState, ModelLimit } from "./types";
+import type { CostFilter, HoverState, ModelLimit } from "./types";
 
 export function DashboardGraphs({
 	initialPayload,
 	afterControls,
 	afterLead,
+	provider,
+	maxCost,
+	modelLimit,
+	onProviderChange,
+	onMaxCostChange,
+	onModelLimitChange,
 }: {
 	initialPayload: LlmStatsPayload | null;
 	afterControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
+	provider: string;
+	maxCost: CostFilter;
+	modelLimit: ModelLimit;
+	onProviderChange: (provider: string) => void;
+	onMaxCostChange: (maxCost: CostFilter) => void;
+	onModelLimitChange: (modelLimit: ModelLimit) => void;
 }) {
-	const [provider, setProvider] = useState("all");
-	const [maxCost, setMaxCost] = useState<"all" | number>("all");
-	const [modelLimit, setModelLimit] = useState<ModelLimit>(30);
 	const [hover, setHover] = useState<HoverState | null>(null);
 
 	const allModels = useMemo(() => {
@@ -49,31 +59,14 @@ export function DashboardGraphs({
 	const providers = useMemo(() => providerOptions(allModels), [allModels]);
 
 	const filteredModels = useMemo(() => {
-		return allModels
-			.filter((model) => {
-				if (
-					provider !== "all" &&
-					providerFilterKey(model.provider) !== provider
-				) {
-					return false;
-				}
-				if (maxCost !== "all") {
-					const cost = finiteValue(model.cost?.blended_price);
-					return cost != null && cost <= maxCost;
-				}
-				return true;
-			})
-			.sort(
-				(left, right) =>
-					right.relative_scores.overall_score -
-					left.relative_scores.overall_score,
-			);
+		return filterByModelControls(allModels, (model) => model, {
+			provider,
+			maxCost,
+		});
 	}, [allModels, provider, maxCost]);
 
 	const models = useMemo(() => {
-		return modelLimit === "all"
-			? filteredModels
-			: filteredModels.slice(0, modelLimit);
+		return limitByOverallScore(filteredModels, (model) => model, modelLimit);
 	}, [filteredModels, modelLimit]);
 
 	const visibleModelLabel =
@@ -117,7 +110,7 @@ export function DashboardGraphs({
 							color="#eeeeea"
 							label="All"
 							count={allModels.length}
-							onClick={() => setProvider("all")}
+							onClick={() => onProviderChange("all")}
 						/>
 						{providers.map((option) => (
 							<FilterButton
@@ -127,7 +120,7 @@ export function DashboardGraphs({
 								logo={option.logo}
 								label={option.label}
 								count={option.count}
-								onClick={() => setProvider(option.slug)}
+								onClick={() => onProviderChange(option.slug)}
 							/>
 						))}
 					</div>
@@ -144,7 +137,7 @@ export function DashboardGraphs({
 								type="button"
 								className={styles.costFilterButton}
 								aria-pressed={maxCost === option}
-								onClick={() => setMaxCost(option)}
+								onClick={() => onMaxCostChange(option)}
 							>
 								<span>
 									{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}
@@ -165,7 +158,7 @@ export function DashboardGraphs({
 								type="button"
 								className={styles.costFilterButton}
 								aria-pressed={modelLimit === option}
-								onClick={() => setModelLimit(option)}
+								onClick={() => onModelLimitChange(option)}
 							>
 								<span>{option === "all" ? "All" : `Top ${option}`}</span>
 							</button>
@@ -174,6 +167,7 @@ export function DashboardGraphs({
 				</div>
 			</section>
 			{afterControls}
+			{afterLead}
 
 			{models.length === 0 ? (
 				<div className={styles.error}>
@@ -184,7 +178,6 @@ export function DashboardGraphs({
 					<section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
 						<ParetoFrontierPanel models={models} setHover={setHover} />
 					</section>
-					{afterLead}
 					<section className={styles.sectionGrid}>
 						<FrontierEfficiencyPanel
 							payload={initialPayload}

@@ -81,8 +81,8 @@
 }
 
 .hero h1 {
-	font-size: clamp(44px, 6.6vw, 112px);
-	line-height: 0.84;
+	font-size: clamp(32px, 4vw, 52px);
+	line-height: 0.9;
 }
 
 .controls {
@@ -515,8 +515,8 @@
 	padding: 0 4px;
 	background: var(--ink);
 	color: var(--paper);
-	font-size: clamp(26px, 3vw, 48px);
-	line-height: 0.92;
+	font-size: clamp(24px, 2.35vw, 40px);
+	line-height: 0.96;
 }
 
 .wide h2 {

@@ -18,6 +18,8 @@ import type {
 } from "../../src/model-atlas/llm/stats/types";
 import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
 import { DashboardGraphs } from "./graphs";
+import { filterByModelControls, limitByOverallScore } from "./graphs/models";
+import type { CostFilter, ModelLimit } from "./graphs/types";
 import {
 	ColumnTooltip,
 	type HeaderTooltipHandler,
@@ -41,6 +43,12 @@ import {
 	sorters,
 	type TableRow,
 } from "./table/models";
+import {
+	type ColumnView,
+	columnViewOptions,
+	isSortKeyVisible,
+	metricColumnsForView,
+} from "./table/tableColumns";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
@@ -74,6 +82,10 @@ export function Dashboard({
 	});
 	const [filterQuery, setFilterQuery] = useState("");
 	const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+	const [columnView, setColumnView] = useState<ColumnView>("specs");
+	const [providerFilter, setProviderFilter] = useState("all");
+	const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
+	const [modelLimit, setModelLimit] = useState<ModelLimit>(30);
 	const deferredFilterQuery = useDeferredValue(filterQuery);
 	const [, startSortTransition] = useTransition();
 	const { payload, isRefreshing, errorMessage, refreshPayload } =
@@ -84,9 +96,20 @@ export function Dashboard({
 		[payload],
 	);
 	const providerColors = useProviderDisplayColors(tableRows);
+	const metricColumns = useMemo(
+		() => metricColumnsForView(columnView),
+		[columnView],
+	);
+	const filteredTableRows = useMemo(() => {
+		const filteredRows = filterByModelControls(tableRows, (row) => row.model, {
+			provider: providerFilter,
+			maxCost: maxCostFilter,
+		});
+		return limitByOverallScore(filteredRows, (row) => row.model, modelLimit);
+	}, [tableRows, providerFilter, maxCostFilter, modelLimit]);
 	const visibleRows = useMemo(
-		() => sortedRows(tableRows, deferredFilterQuery, sortState),
-		[deferredFilterQuery, sortState, tableRows],
+		() => sortedRows(filteredTableRows, deferredFilterQuery, sortState),
+		[deferredFilterQuery, sortState, filteredTableRows],
 	);
 	const columnTooltips =
 		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
@@ -96,7 +119,7 @@ export function Dashboard({
 	const rowCountLabel =
 		payload == null
 			? "Loading"
-			: `${visibleRows.length} of ${tableRows.length} models`;
+			: `${visibleRows.length} of ${filteredTableRows.length} models`;
 	const emptyMessage =
 		errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
@@ -111,6 +134,18 @@ export function Dashboard({
 						: defaultDirection,
 			}));
 		});
+	}, []);
+
+	const handleColumnViewChange = useCallback((nextColumnView: ColumnView) => {
+		setColumnView(nextColumnView);
+		setSortState((current) =>
+			isSortKeyVisible(nextColumnView, current.key)
+				? current
+				: {
+						key: "intelligence",
+						direction: sorters.intelligence.direction,
+					},
+		);
 	}, []);
 
 	const clearTooltipFadeTimeout = useCallback(() => {
@@ -166,7 +201,7 @@ export function Dashboard({
 			syncFrameWidth();
 		});
 		const syncFrameWidth = () => {
-			const frameWidth = contextColumnFrameWidth(dashboardRef.current);
+			const frameWidth = defaultColumnFrameWidth(dashboardRef.current);
 			if (frameWidth != null) {
 				dashboardRef.current?.style.setProperty(
 					"--dashboard-frame-width",
@@ -180,15 +215,15 @@ export function Dashboard({
 				return;
 			}
 			const table = root.querySelector<HTMLElement>(".table-wrap table");
-			const contextHeader = root.querySelector<HTMLElement>(
-				'.table-wrap th[data-column-key="context"]',
+			const frameHeader = root.querySelector<HTMLElement>(
+				'.table-wrap th[data-column-key="modalities"], .table-wrap th[data-column-key="context"]',
 			);
 			observer.observe(root);
 			if (table != null) {
 				observer.observe(table);
 			}
-			if (contextHeader != null) {
-				observer.observe(contextHeader);
+			if (frameHeader != null) {
+				observer.observe(frameHeader);
 			}
 		};
 		syncFrameWidth();
@@ -214,15 +249,23 @@ export function Dashboard({
 			<DashboardHeader />
 			<DashboardGraphs
 				initialPayload={payload}
+				provider={providerFilter}
+				maxCost={maxCostFilter}
+				modelLimit={modelLimit}
+				onProviderChange={setProviderFilter}
+				onMaxCostChange={setMaxCostFilter}
+				onModelLimitChange={setModelLimit}
 				afterControls={
 					<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
 				}
 				afterLead={
 					<section className="dashboard-deck" aria-label="Model leaderboard">
 						<DashboardControls
+							columnView={columnView}
 							filterQuery={filterQuery}
 							rowCountLabel={rowCountLabel}
 							isRefreshing={isRefreshing}
+							onColumnViewChange={handleColumnViewChange}
 							onFilterQueryChange={setFilterQuery}
 							onRefresh={() =>
 								void refreshPayload({
@@ -236,6 +279,7 @@ export function Dashboard({
 							visibleRows={visibleRows}
 							emptyMessage={emptyMessage}
 							isLoading={isInitialLoading}
+							metricColumns={metricColumns}
 							onSort={handleSort}
 							onTooltip={showTooltip}
 							onTooltipEnd={clearTooltip}
@@ -497,15 +541,19 @@ function DashboardHeader() {
 }
 
 function DashboardControls({
+	columnView,
 	filterQuery,
 	rowCountLabel,
 	isRefreshing,
+	onColumnViewChange,
 	onFilterQueryChange,
 	onRefresh,
 }: {
+	columnView: ColumnView;
 	filterQuery: string;
 	rowCountLabel: string;
 	isRefreshing: boolean;
+	onColumnViewChange: (columnView: ColumnView) => void;
 	onFilterQueryChange: (value: string) => void;
 	onRefresh: () => void;
 }) {
@@ -520,6 +568,20 @@ function DashboardControls({
 				value={filterQuery}
 				onChange={(event) => onFilterQueryChange(event.target.value)}
 			/>
+			<fieldset className="column-filter">
+				<legend className="column-filter-label">Table columns</legend>
+				{columnViewOptions.map((option) => (
+					<button
+						key={option.key}
+						className="column-filter-button"
+						type="button"
+						aria-pressed={columnView === option.key}
+						onClick={() => onColumnViewChange(option.key)}
+					>
+						{option.label}
+					</button>
+				))}
+			</fieldset>
 			<div className="control-meta">
 				<div className="row-count">{rowCountLabel}</div>
 				<button
@@ -538,11 +600,11 @@ function DashboardControls({
 	);
 }
 
-function contextColumnFrameWidth(root: HTMLElement | null) {
-	const contextHeader = root?.querySelector<HTMLElement>(
-		'.table-wrap th[data-column-key="context"]',
+function defaultColumnFrameWidth(root: HTMLElement | null) {
+	const frameHeader = root?.querySelector<HTMLElement>(
+		'.table-wrap th[data-column-key="modalities"], .table-wrap th[data-column-key="context"]',
 	);
-	if (!contextHeader) {
+	if (!frameHeader) {
 		return null;
 	}
 	const rootStyle = root == null ? null : window.getComputedStyle(root);
@@ -550,6 +612,6 @@ function contextColumnFrameWidth(root: HTMLElement | null) {
 		Number.parseFloat(rootStyle?.paddingLeft ?? "0") +
 		Number.parseFloat(rootStyle?.paddingRight ?? "0");
 	return Math.ceil(
-		contextHeader.offsetLeft + contextHeader.offsetWidth + horizontalPadding,
+		frameHeader.offsetLeft + frameHeader.offsetWidth + horizontalPadding,
 	);
 }

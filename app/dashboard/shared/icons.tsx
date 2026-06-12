@@ -1,4 +1,13 @@
-import { BrainCircuit, CircleDollarSign, RefreshCcw, Zap } from "lucide-react";
+import {
+	AudioLines,
+	BrainCircuit,
+	CircleDollarSign,
+	FileText,
+	Image as ImageSymbol,
+	RefreshCcw,
+	Video,
+	Zap,
+} from "lucide-react";
 import { RiRobot3Line } from "react-icons/ri";
 
 export function RefreshIcon() {
@@ -24,4 +33,20 @@ export function LightningIcon() {
 
 export function DollarIcon() {
 	return <CircleDollarSign aria-hidden="true" />;
+}
+
+export function TextInputIcon() {
+	return <FileText aria-hidden="true" />;
+}
+
+export function ImageInputIcon() {
+	return <ImageSymbol aria-hidden="true" />;
+}
+
+export function AudioInputIcon() {
+	return <AudioLines aria-hidden="true" />;
+}
+
+export function VideoInputIcon() {
+	return <Video aria-hidden="true" />;
 }

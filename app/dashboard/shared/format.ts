@@ -1,4 +1,4 @@
-import type { BenchmarkMetricColumn, TaskMetricColumn } from "../table/models";
+import type { DashboardMetricColumn, TaskMetricColumn } from "../table/models";
 
 export const formatScore = (value: number | null | undefined) =>
 	typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
@@ -55,16 +55,58 @@ export function formatTaskMetric(
 	return formatCompactNumber(value);
 }
 
-export function formatBenchmarkMetric(
-	value: number | null | undefined,
-	column: BenchmarkMetricColumn,
+export function benchmarkPercentValue(value: number | null | undefined) {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return null;
+	}
+	return Math.abs(value) <= 1 ? value * 100 : value;
+}
+
+export function formatBenchmarkMetric(value: number | null | undefined) {
+	const percent = benchmarkPercentValue(value);
+	if (percent == null) {
+		return "-";
+	}
+	return `${percent.toFixed(1)}%`;
+}
+
+export function formatDashboardMetric(
+	value: number | string | null | undefined,
+	column: DashboardMetricColumn,
 ) {
-	if (column.metric === "agents_last_exam" || column.metric === "deep_swe") {
-		return typeof value === "number" && Number.isFinite(value)
-			? `${(value * 100).toFixed(1)}%`
+	if ("source" in column) {
+		return formatTaskMetric(numberValue(value), column);
+	}
+	if ("benchmark" in column) {
+		return formatBenchmarkMetric(numberValue(value));
+	}
+	if (column.group === "costs") {
+		return formatCost(numberValue(value));
+	}
+	if (column.group === "speed") {
+		return column.field === "throughput_tokens_per_second_median"
+			? formatCompactNumber(numberValue(value))
+			: formatSeconds(numberValue(value));
+	}
+	if (column.field === "release") {
+		return typeof value === "string" && value.length > 0
+			? value.slice(0, 10)
 			: "-";
 	}
-	return formatScore(value);
+	if (column.field === "modalities") {
+		return typeof value === "string" && value.length > 0 ? value : "-";
+	}
+	if (value === 1) {
+		return "Yes";
+	}
+	if (value === 0) {
+		return "No";
+	}
+	return "-";
+}
+
+function numberValue(value: number | string | null | undefined) {
+	return typeof value === "number" ? value : null;
 }
 
 export const formatContext = (value: number | null | undefined) => {

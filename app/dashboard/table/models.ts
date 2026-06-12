@@ -5,23 +5,29 @@ import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 const artificialAnalysisTaskMetricColumns = [
 	{
 		key: "aaCost",
+		group: "tasks",
 		source: "artificial_analysis",
 		metric: "cost",
 		direction: "ascending",
+		type: "number",
 		label: "AA$",
 	},
 	{
 		key: "aaSeconds",
+		group: "tasks",
 		source: "artificial_analysis",
 		metric: "seconds",
 		direction: "ascending",
+		type: "number",
 		label: "AA Sec",
 	},
 	{
 		key: "aaTokens",
+		group: "tasks",
 		source: "artificial_analysis",
 		metric: "output_tokens",
 		direction: "descending",
+		type: "number",
 		label: "AA Tok",
 	},
 ] as const;
@@ -29,23 +35,29 @@ const artificialAnalysisTaskMetricColumns = [
 const deepSWETaskMetricColumns = [
 	{
 		key: "deepSWECost",
+		group: "tasks",
 		source: "deep_swe",
 		metric: "cost",
 		direction: "ascending",
+		type: "number",
 		label: "DSWE$",
 	},
 	{
 		key: "deepSWESeconds",
+		group: "tasks",
 		source: "deep_swe",
 		metric: "seconds",
 		direction: "ascending",
+		type: "number",
 		label: "DSWE Sec",
 	},
 	{
 		key: "deepSWETokens",
+		group: "tasks",
 		source: "deep_swe",
 		metric: "output_tokens",
 		direction: "descending",
+		type: "number",
 		label: "DSWE Tok",
 	},
 ] as const;
@@ -53,23 +65,29 @@ const deepSWETaskMetricColumns = [
 const agentsLastExamTaskMetricColumns = [
 	{
 		key: "agentsLastExamSeconds",
+		group: "tasks",
 		source: "agents_last_exam",
 		metric: "seconds",
 		direction: "ascending",
+		type: "number",
 		label: "ALE Sec",
 	},
 	{
 		key: "agentsLastExamInputTokens",
+		group: "tasks",
 		source: "agents_last_exam",
 		metric: "input_tokens",
 		direction: "ascending",
+		type: "number",
 		label: "ALE In",
 	},
 	{
 		key: "agentsLastExamOutputTokens",
+		group: "tasks",
 		source: "agents_last_exam",
 		metric: "output_tokens",
 		direction: "ascending",
+		type: "number",
 		label: "ALE Out",
 	},
 ] as const;
@@ -80,29 +98,182 @@ export const taskMetricColumns = [
 	...agentsLastExamTaskMetricColumns,
 ] as const;
 
-const deepSWEBenchmarkColumn = {
-	key: "deepSWE",
-	metric: "deep_swe",
-	direction: "descending",
-	label: "DSWE",
-} as const;
+const profileMetricColumns = [
+	{
+		key: "release",
+		group: "profile",
+		field: "release",
+		direction: "descending",
+		type: "text",
+		label: "Release",
+	},
+	{
+		key: "openWeights",
+		group: "profile",
+		field: "open_weights",
+		direction: "descending",
+		type: "number",
+		label: "Open",
+	},
+	{
+		key: "modalities",
+		group: "profile",
+		field: "modalities",
+		direction: "ascending",
+		type: "text",
+		label: "Inputs",
+	},
+] as const;
 
-const agentsLastExamBenchmarkColumn = {
-	key: "agentsLastExam",
-	metric: "agents_last_exam",
-	direction: "descending",
-	label: "ALE",
-} as const;
+const costMetricColumns = [
+	{
+		key: "inputCost",
+		group: "costs",
+		field: "input",
+		direction: "ascending",
+		type: "number",
+		label: "In$",
+	},
+	{
+		key: "outputCost",
+		group: "costs",
+		field: "output",
+		direction: "ascending",
+		type: "number",
+		label: "Out$",
+	},
+	{
+		key: "cacheReadCost",
+		group: "costs",
+		field: "cache_read",
+		direction: "ascending",
+		type: "number",
+		label: "Cache$",
+	},
+] as const;
+
+const speedMetricColumns = [
+	{
+		key: "throughput",
+		group: "speed",
+		field: "throughput_tokens_per_second_median",
+		direction: "descending",
+		type: "number",
+		label: "TPS",
+	},
+	{
+		key: "latency",
+		group: "speed",
+		field: "latency_seconds_median",
+		direction: "ascending",
+		type: "number",
+		label: "Latency",
+	},
+	{
+		key: "e2eLatency",
+		group: "speed",
+		field: "e2e_latency_seconds_median",
+		direction: "ascending",
+		type: "number",
+		label: "E2E",
+	},
+] as const;
 
 export const benchmarkMetricColumns = [
-	deepSWEBenchmarkColumn,
-	agentsLastExamBenchmarkColumn,
+	{
+		key: "gpqa",
+		group: "benchmarks",
+		benchmark: "gpqa",
+		direction: "descending",
+		type: "number",
+		label: "GPQA",
+	},
+	{
+		key: "hle",
+		group: "benchmarks",
+		benchmark: "hle",
+		direction: "descending",
+		type: "number",
+		label: "HLE",
+	},
+	{
+		key: "terminalBench",
+		group: "benchmarks",
+		benchmark: "terminalbench_hard",
+		direction: "descending",
+		type: "number",
+		label: "TBench",
+	},
+	{
+		key: "automationBench",
+		group: "benchmarks",
+		benchmark: "automation_bench",
+		direction: "descending",
+		type: "number",
+		label: "Auto",
+	},
+	{
+		key: "blueprintBench",
+		group: "benchmarks",
+		benchmark: "blueprint_bench_2",
+		direction: "descending",
+		type: "number",
+		label: "BB2",
+	},
+	{
+		key: "gdpPdf",
+		group: "benchmarks",
+		benchmark: "gdp_pdf",
+		direction: "descending",
+		type: "number",
+		label: "GDP.pdf",
+	},
+	{
+		key: "riemannBench",
+		group: "benchmarks",
+		benchmark: "riemann_bench",
+		direction: "descending",
+		type: "number",
+		label: "Riemann",
+	},
+	{
+		key: "cursorBench",
+		group: "benchmarks",
+		benchmark: "cursorbench",
+		direction: "descending",
+		type: "number",
+		label: "Cursor",
+	},
+	{
+		key: "deepSWE",
+		group: "benchmarks",
+		benchmark: "deep_swe",
+		direction: "descending",
+		type: "number",
+		label: "DSWE",
+	},
+	{
+		key: "agentsLastExam",
+		group: "benchmarks",
+		benchmark: "agents_last_exam",
+		direction: "descending",
+		type: "number",
+		label: "ALE",
+	},
 ] as const;
 
 export type Direction = "ascending" | "descending";
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
+export type ProfileMetricColumn = (typeof profileMetricColumns)[number];
+export type CostMetricColumn = (typeof costMetricColumns)[number];
+export type SpeedMetricColumn = (typeof speedMetricColumns)[number];
 export type BenchmarkMetricColumn = (typeof benchmarkMetricColumns)[number];
-export type DashboardMetricColumn = TaskMetricColumn | BenchmarkMetricColumn;
+export type DashboardMetricColumn =
+	| ProfileMetricColumn
+	| CostMetricColumn
+	| SpeedMetricColumn
+	| BenchmarkMetricColumn
+	| TaskMetricColumn;
 export type SortKey =
 	| "rank"
 	| "model"
@@ -113,15 +284,18 @@ export type SortKey =
 	| "value"
 	| "blend"
 	| "context"
+	| ProfileMetricColumn["key"]
+	| CostMetricColumn["key"]
+	| SpeedMetricColumn["key"]
 	| TaskMetricColumn["key"]
 	| BenchmarkMetricColumn["key"];
 
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
-	...artificialAnalysisTaskMetricColumns,
-	deepSWEBenchmarkColumn,
-	...deepSWETaskMetricColumns,
-	agentsLastExamBenchmarkColumn,
-	...agentsLastExamTaskMetricColumns,
+	...profileMetricColumns,
+	...costMetricColumns,
+	...speedMetricColumns,
+	...benchmarkMetricColumns,
+	...taskMetricColumns,
 ];
 
 export type SortState = {
@@ -144,27 +318,16 @@ type Sorter = {
 	value: (row: TableRow) => number | string | null | undefined;
 };
 
-const taskMetricSorters = Object.fromEntries(
-	taskMetricColumns.map((column) => [
+const dashboardMetricSorters = Object.fromEntries(
+	dashboardMetricColumns.map((column) => [
 		column.key,
 		{
 			direction: column.direction,
-			type: "number",
-			value: (row: TableRow) => taskMetricValue(row.model, column),
+			type: column.type,
+			value: (row: TableRow) => dashboardMetricValue(row.model, column),
 		},
 	]),
-) as Record<TaskMetricColumn["key"], Sorter>;
-
-const benchmarkMetricSorters = Object.fromEntries(
-	benchmarkMetricColumns.map((column) => [
-		column.key,
-		{
-			direction: column.direction,
-			type: "number",
-			value: (row: TableRow) => benchmarkMetricValue(row.model, column),
-		},
-	]),
-) as Record<BenchmarkMetricColumn["key"], Sorter>;
+) as Record<DashboardMetricColumn["key"], Sorter>;
 
 export const sorters: Record<SortKey, Sorter> = {
 	rank: {
@@ -212,8 +375,7 @@ export const sorters: Record<SortKey, Sorter> = {
 		type: "number",
 		value: (row) => contextWindowValue(row.model),
 	},
-	...taskMetricSorters,
-	...benchmarkMetricSorters,
+	...dashboardMetricSorters,
 };
 
 /** Filter and sort rows with source order as the final stable tie-breaker. */
@@ -270,7 +432,7 @@ export function benchmarkMetricValue(
 	model: LlmStatsModel,
 	column: BenchmarkMetricColumn,
 ) {
-	return model.evaluations?.[column.metric];
+	return model.evaluations?.[column.benchmark];
 }
 
 export function contextWindowValue(model: LlmStatsModel) {
@@ -278,6 +440,56 @@ export function contextWindowValue(model: LlmStatsModel) {
 		| ({ total?: number | null } & NonNullable<LlmStatsModel["context_window"]>)
 		| null;
 	return contextWindow?.context ?? contextWindow?.total;
+}
+
+export function dashboardMetricValue(
+	model: LlmStatsModel,
+	column: DashboardMetricColumn,
+) {
+	if ("source" in column) {
+		return taskMetricValue(model, column);
+	}
+	if ("benchmark" in column) {
+		return benchmarkMetricValue(model, column);
+	}
+	if (column.group === "costs") {
+		return model.cost?.[column.field];
+	}
+	if (column.group === "speed") {
+		return model.speed?.[column.field];
+	}
+	return profileMetricValue(model, column);
+}
+
+function profileMetricValue(model: LlmStatsModel, column: ProfileMetricColumn) {
+	if (column.field === "release") {
+		return model.release_date;
+	}
+	if (column.field === "modalities") {
+		return inputModalityLabel(model);
+	}
+	return booleanSortValue(model[column.field]);
+}
+
+function booleanSortValue(value: boolean | null | undefined) {
+	if (value == null) {
+		return null;
+	}
+	return value ? 1 : 0;
+}
+
+function inputModalityLabel(model: LlmStatsModel) {
+	const input = modalityTokens(model.modalities?.input);
+	if (input.length === 0) {
+		return null;
+	}
+	return input.join("+");
+}
+
+function modalityTokens(values: string[] | undefined) {
+	return (values ?? [])
+		.map((value) => value.slice(0, 1).toUpperCase())
+		.filter((value) => value.length > 0);
 }
 
 function filteredRows(rows: TableRow[], filterQuery: string) {
