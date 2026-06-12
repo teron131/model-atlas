@@ -88,7 +88,7 @@ body::after {
 }
 
 main {
-	width: min(max(var(--dashboard-frame-width, 1080px), 1120px), 100%);
+	width: min(var(--dashboard-frame-width, 1080px), 100%);
 	min-height: 100dvh;
 	margin: 0 auto;
 	padding: 24px 28px 34px;
