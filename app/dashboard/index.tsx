@@ -57,6 +57,7 @@ const AUTOMATIC_LIVE_REFRESH_ENABLED =
 
 type RefreshPayloadOptions = {
 	bypassGuard?: boolean;
+	forceFresh?: boolean;
 	retryWhenGuarded?: boolean;
 };
 
@@ -223,7 +224,12 @@ export function Dashboard({
 							rowCountLabel={rowCountLabel}
 							isRefreshing={isRefreshing}
 							onFilterQueryChange={setFilterQuery}
-							onRefresh={() => void refreshPayload({ bypassGuard: true })}
+							onRefresh={() =>
+								void refreshPayload({
+									bypassGuard: true,
+									forceFresh: true,
+								})
+							}
 						/>
 						<ModelTable
 							sortState={sortState}
@@ -329,9 +335,10 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 		recordRefreshAttempt();
 		setIsRefreshing(true);
 		setErrorMessage(null);
-		refreshInFlightRef.current = fetch(cacheBustedPath(liveStatsPath), {
-			cache: "no-store",
-		})
+		refreshInFlightRef.current = fetch(
+			options?.forceFresh ? cacheBustedPath(liveStatsPath) : liveStatsPath,
+			options?.forceFresh ? { cache: "no-store" } : undefined,
+		)
 			.then((response) => {
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}`);
@@ -362,9 +369,6 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			void refreshPayload({ retryWhenGuarded: true });
 			return;
 		}
-		if (AUTOMATIC_LIVE_REFRESH_ENABLED) {
-			void refreshPayload({ retryWhenGuarded: true });
-		}
 	}, [initialPayload, refreshPayload]);
 
 	useEffect(() => {
@@ -380,7 +384,7 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			return;
 		}
 		const interval = window.setInterval(() => {
-			void refreshPayload();
+			void refreshPayload({ forceFresh: true });
 		}, SCHEDULED_REFRESH_INTERVAL_MS);
 		return () => {
 			window.clearInterval(interval);
