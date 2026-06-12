@@ -13,6 +13,7 @@ import {
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
+	calloutLabelPlacements,
 	DeepSWEPointLabel,
 	MedianCross,
 	PlotFrame,
@@ -117,6 +118,24 @@ export function EfficiencyAxisChart<Row>({
 	const cursorProjectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
+	});
+	const labelPlacements = calloutLabelPlacements({
+		bounds: plot,
+		obstacles: rows.map((row) => ({
+			cx: xPoint(metric.get(row)),
+			cy: yPoint(getScore(row)),
+			radius: bubbleRadius(bubbleValue(row)),
+		})),
+		labels: rows
+			.filter((row) => labelRows.has(row))
+			.map((row, index) => ({
+				key: getKey(row),
+				label: getLabel(row),
+				cx: xPoint(metric.get(row)),
+				cy: yPoint(getScore(row)),
+				radius: bubbleRadius(bubbleValue(row)),
+				priority: rows.length - index,
+			})),
 	});
 
 	return (
@@ -234,6 +253,7 @@ export function EfficiencyAxisChart<Row>({
 							margin={margin}
 							height={height}
 							xOffset={bubbleRadius(bubbleValue(row)) + 8}
+							placement={labelPlacements.get(getKey(row))}
 						/>
 					) : null;
 				})}

@@ -400,10 +400,7 @@ export function deepSWELabel(row: DeepSWEChartRow, includeEffort: boolean) {
 }
 
 export function shortLabel(model: LlmStatsModel) {
-	const label = modelName(model).replace(" Preview", "");
-	return label.startsWith("Claude Fable ")
-		? label
-		: label.replace("Claude ", "");
+	return modelName(model).replace(" Preview", "");
 }
 
 function providerLogoSource(model: LlmStatsModel) {
