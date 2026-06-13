@@ -1,6 +1,7 @@
 import { SIMULATION_PROFILES } from "../src/model-atlas/constants";
 import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
+	cleanArtificialAnalysisModelName,
 	processArtificialAnalysisScrapedRows,
 } from "../src/model-atlas/llm/scrapers/artificial-analysis-evals";
 import {
@@ -86,6 +87,93 @@ assertDeepEqual(rows[1]?.evaluations, {
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
 assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
+assertDeepEqual(
+	processArtificialAnalysisScrapedRows(
+		[
+			{
+				slug: "claude-fable-5",
+				model_url:
+					"https://artificialanalysis.ai/models/anthropic/claude-fable-5",
+				name: "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",
+				modelCreatorName: "Anthropic",
+				modelCreatorSlug: "anthropic",
+				intelligenceIndex: 64.9,
+			},
+		],
+		{ selectedColumns: ["model_id", "name"] },
+	),
+	[
+		{
+			model_id: "anthropic/claude-fable-5",
+			name: "Claude Fable 5",
+		},
+	],
+);
+assertDeepEqual(
+	processArtificialAnalysisScrapedRows(
+		[
+			{
+				model_id: "anthropic/claude-fable-5",
+				model_url:
+					"https://artificialanalysis.ai/models/anthropic/claude-fable-5",
+				name: "Claude Fable 5",
+				modelCreatorName: "Anthropic",
+				modelCreatorSlug: "anthropic",
+				intelligence_index: 64.9,
+				agentic_index: 80.5,
+				terminalbench_hard: 0.62,
+				input_cost: 10,
+				output_cost: 50,
+				total_tokens: 2_000_000,
+			},
+		],
+		{
+			selectedColumns: [
+				"model_id",
+				"intelligence",
+				"intelligence_index_cost",
+				"evaluations",
+			],
+		},
+	),
+	[
+		{
+			model_id: "anthropic/claude-fable-5",
+			intelligence: {
+				agentic_index: 80.5,
+				coding_index: null,
+				intelligence_index: 64.9,
+				omniscience_accuracy: null,
+				omniscience_index: null,
+				omniscience_nonhallucination_rate: null,
+			},
+			intelligence_index_cost: {
+				answer_tokens: null,
+				input_cost: 10,
+				input_tokens: null,
+				output_cost: 50,
+				output_tokens: null,
+				reasoning_cost: null,
+				reasoning_tokens: null,
+				total_cost: null,
+				total_tokens: 2_000_000,
+			},
+			evaluations: {
+				terminalbench_hard: 0.62,
+			},
+		},
+	],
+);
+assertDeepEqual(
+	cleanArtificialAnalysisModelName(
+		"Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",
+	),
+	"Claude Fable 5",
+);
+assertDeepEqual(
+	cleanArtificialAnalysisModelName("Claude Fable 5 (with fallback)"),
+	"Claude Fable 5",
+);
 
 const scoringRows = [
 	{

@@ -2,7 +2,9 @@
 
 import { buildModelAtlasDatabase } from "../src/model-atlas/llm/database";
 
-const result = await buildModelAtlasDatabase();
+const result = await buildModelAtlasDatabase(undefined, {
+	replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+});
 
 console.log(
 	JSON.stringify(

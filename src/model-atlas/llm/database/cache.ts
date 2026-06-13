@@ -243,6 +243,15 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 	assignIfBoolean(rawRow, "output_modality_image", row.output_modality_image);
 	assignIfBoolean(rawRow, "output_modality_video", row.output_modality_video);
 	assignIfBoolean(rawRow, "output_modality_speech", row.output_modality_speech);
+	for (const key of AA_INTELLIGENCE_KEYS) {
+		assignIfNumber(rawRow, key, row[key]);
+	}
+	for (const key of AA_EVALUATION_KEYS) {
+		assignIfNumber(rawRow, key, row[key]);
+	}
+	for (const key of AA_COST_KEYS) {
+		assignIfNumber(rawRow, key, row[key]);
+	}
 	if (nonEmptyRecord(tokenCounts) != null) {
 		rawRow.intelligenceIndexTokenCounts = tokenCounts;
 	}

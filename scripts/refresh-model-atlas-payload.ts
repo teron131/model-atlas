@@ -6,7 +6,9 @@ import {
 } from "../src/model-atlas/llm/database";
 
 export async function refreshModelAtlasPayload(databasePath?: string) {
-	const database = await buildModelAtlasDatabase(databasePath);
+	const database = await buildModelAtlasDatabase(databasePath, {
+		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+	});
 	return readModelAtlasDatabasePayload(database.path);
 }
 

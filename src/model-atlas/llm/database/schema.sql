@@ -275,6 +275,17 @@ CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS source_row_states (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	source TEXT NOT NULL,
+	row_key TEXT NOT NULL,
+	row_label TEXT,
+	status TEXT NOT NULL,
+	missing_from_source_since_epoch_seconds INTEGER,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS processed_models (
 	run_id INTEGER NOT NULL,
 	stage TEXT NOT NULL,
@@ -386,6 +397,8 @@ CREATE TABLE IF NOT EXISTS debug (
 CREATE INDEX IF NOT EXISTS idx_aa_raw_models_model_id ON aa_raw_models(model_id);
 CREATE INDEX IF NOT EXISTS idx_models_dev_raw_models_model_id ON models_dev_raw_models(model_id);
 CREATE INDEX IF NOT EXISTS idx_openrouter_raw_rows_model_id ON openrouter_raw_rows(model_id);
+CREATE INDEX IF NOT EXISTS idx_source_row_states_source_key ON source_row_states(source, row_key);
+CREATE INDEX IF NOT EXISTS idx_source_row_states_status ON source_row_states(status);
 CREATE INDEX IF NOT EXISTS idx_processed_models_model_id ON processed_models(model_id);
 CREATE INDEX IF NOT EXISTS idx_debug_aa_id ON debug(aa_id);
 CREATE INDEX IF NOT EXISTS idx_debug_candidate_model_id ON debug(candidate_model_id);

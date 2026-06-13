@@ -23,6 +23,7 @@ import {
 	sourceDataFromSnapshots,
 } from "./sources";
 import {
+	type DatabaseBuildOptions,
 	type DatabaseBuildResult,
 	DEFAULT_DATABASE_PATH,
 	type DebugTraceRow,
@@ -41,6 +42,7 @@ import {
 	insertOpenRouterRawRows,
 	insertProcessedModelRows,
 	insertRiemannBenchRawRows,
+	insertSourceRowStates,
 	insertTerminalBenchRawRows,
 	insertToolathlonRawRows,
 } from "./writers";
@@ -58,6 +60,7 @@ const SNAPSHOT_TABLES = [
 	"toolathlon_raw_rows",
 	"cursorbench_raw_rows",
 	"openrouter_raw_rows",
+	"source_row_states",
 	"processed_models",
 	"debug",
 ] as const;
@@ -169,6 +172,7 @@ function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	insertToolathlonRawRows(db, runId, rows.snapshots);
 	insertCursorBenchRawRows(db, runId, rows.snapshots);
 	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
+	insertSourceRowStates(db, runId, rows.snapshots);
 	insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
 	insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);
 	insertProcessedModelRows(db, runId, "enriched", rows.enrichedRows);
@@ -195,12 +199,17 @@ function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
 /** Build the Model Atlas SQLite database snapshot. */
 export async function buildModelAtlasDatabase(
 	outputPath = DEFAULT_DATABASE_PATH,
+	options: DatabaseBuildOptions = {},
 ): Promise<DatabaseBuildResult> {
 	const startedAt = nowEpochSeconds();
 	let db: DatabaseSync | null = await openDatabase(outputPath);
 
 	try {
-		const { snapshots, sourceCache } = await loadSourceSnapshots(db, startedAt);
+		const { snapshots, sourceCache } = await loadSourceSnapshots(
+			db,
+			startedAt,
+			options,
+		);
 		const automationBench = await getAutomationBenchLeaderboardStats();
 		const sourceData = {
 			...sourceDataFromSnapshots(snapshots),
@@ -225,6 +234,7 @@ export async function buildModelAtlasDatabase(
 			openRouterModelIds(catalogRows),
 			STAGE_CONFIG.openrouter.speedConcurrency,
 			startedAt,
+			options,
 		);
 		const enrichedRows = await enrichModelRowsWithOpenRouter(
 			catalogRows,

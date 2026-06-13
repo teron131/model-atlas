@@ -20,10 +20,9 @@ export async function removeDatabaseFiles(path: string): Promise<void> {
 	]);
 }
 
-/** Recreate the SQLite database from the checked-in schema. */
+/** Open the SQLite database and ensure the checked-in schema exists. */
 export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	await mkdir(dirname(outputPath), { recursive: true });
-	await removeDatabaseFiles(outputPath);
 	const db = new DatabaseSync(outputPath);
 	db.exec(await loadSchemaSql());
 	return db;

@@ -35,6 +35,8 @@ import {
 } from "../scrapers/gdp-pdf";
 import {
 	getModelsDevSourceStats,
+	type ModelsDevPayload,
+	type ProviderRecord,
 	processModelsDevPayload,
 } from "../scrapers/models-dev";
 import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
@@ -76,9 +78,19 @@ import {
 	refreshedCacheStatus,
 } from "./cache";
 import {
+	latestSourceRowStates,
+	missingSinceBySource,
+	rowStringValue,
+	snapshotRowsWithStates,
+	sourceKey,
+	sourceStatesForModelsDevPayload,
+} from "./policy";
+import {
+	type DatabaseBuildOptions,
 	RAW_SOURCE_NAMES,
 	type RawSourceCacheStatus,
 	type RawSourceName,
+	type SourceRowState,
 	type SourceSnapshots,
 } from "./types";
 
@@ -90,6 +102,7 @@ type SourceSnapshotCacheResult = {
 type AaSnapshot = {
 	aaRawRows: SourceSnapshots["aaRawRows"];
 	aaSelectedRows: SourceSnapshots["aaSelectedRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { artificialAnalysis: number | null };
 };
 
@@ -99,53 +112,62 @@ type ModelsDevSnapshot = Pick<
 	| "modelsDevModels"
 	| "modelsDevFetchedAt"
 	| "modelsDevStatusCode"
->;
+> & { sourceRowStates: SourceRowState[] };
 
 type DeepSWESnapshot = {
 	deepSWERawRows: SourceSnapshots["deepSWERawRows"];
 	deepSWEModelScoreRows: SourceSnapshots["deepSWEModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { deepSWE: number | null };
 };
 
 type TerminalBenchSnapshot = {
 	terminalBenchRows: SourceSnapshots["terminalBenchRows"];
 	terminalBenchModelScores: SourceSnapshots["terminalBenchModelScores"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { terminalBench: number | null };
 };
 
 type AgentsLastExamSnapshot = {
 	agentsLastExamRows: SourceSnapshots["agentsLastExamRows"];
 	agentsLastExamModelScores: SourceSnapshots["agentsLastExamModelScores"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { agentsLastExam: number | null };
 };
 
 type BrowseCompSnapshot = {
 	browseCompModelScoreRows: SourceSnapshots["browseCompModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { browseComp: number | null };
 };
 
 type BlueprintBenchSnapshot = {
 	blueprintBenchModelScoreRows: SourceSnapshots["blueprintBenchModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { blueprintBench: number | null };
 };
 
 type GdpPdfSnapshot = {
 	gdpPdfModelScoreRows: SourceSnapshots["gdpPdfModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { gdpPdf: number | null };
 };
 
 type RiemannBenchSnapshot = {
 	riemannBenchModelScoreRows: SourceSnapshots["riemannBenchModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { riemannBench: number | null };
 };
 
 type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: SourceSnapshots["toolathlonModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { toolathlon: number | null };
 };
 
 type CursorBenchSnapshot = {
 	cursorBenchModelScoreRows: SourceSnapshots["cursorBenchModelScoreRows"];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: { cursorBench: number | null };
 };
 
@@ -231,6 +253,40 @@ function shouldUseFetchedRows(
 	return fetchedAtEpochSeconds != null && rowCount > 0;
 }
 
+function snapshotFetchedAt(
+	hasUsableFetchedRows: boolean,
+	cachedFetchedAt: number | null | undefined,
+	fetchedAtEpochSeconds: number | null,
+): number | null {
+	return hasUsableFetchedRows || cachedFetchedAt == null
+		? fetchedAtEpochSeconds
+		: cachedFetchedAt;
+}
+
+function mergeModelsDevPayload(
+	cachedPayload: ModelsDevPayload | undefined,
+	fetchedPayload: ModelsDevPayload,
+	options: DatabaseBuildOptions,
+): ModelsDevPayload {
+	if (cachedPayload == null || options.replaceSourceRows === true) {
+		return fetchedPayload;
+	}
+	const mergedPayload: ModelsDevPayload = structuredClone(cachedPayload);
+	for (const [providerId, fetchedProvider] of Object.entries(fetchedPayload)) {
+		const cachedProvider = mergedPayload[providerId];
+		const mergedProvider: ProviderRecord = {
+			...cachedProvider,
+			...fetchedProvider,
+			models: {
+				...(cachedProvider?.models ?? {}),
+				...(fetchedProvider.models ?? {}),
+			},
+		};
+		mergedPayload[providerId] = mergedProvider;
+	}
+	return mergedPayload;
+}
+
 function updatedSourceCacheStatus(
 	status: RawSourceCacheStatus,
 	lastFetchEpochSeconds: number | null,
@@ -258,36 +314,67 @@ function modelsDevSourceInputCount(
 async function aaSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<AaSnapshot> {
 	const cached = readArtificialAnalysisRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "artificial_analysis",
+			cachedRows: cached.aaRawRows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => rowStringValue(row, "model_id"),
+			rowLabel: (row) => rowStringValue(row, "name"),
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			aaRawRows: cached.aaRawRows,
-			aaSelectedRows: cached.aaSelectedRows,
+			aaRawRows: cachedSnapshot.rows,
+			aaSelectedRows: processArtificialAnalysisScrapedRows(
+				cachedSnapshot.rows,
+				{
+					selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
+				},
+			),
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { artificialAnalysis: cached.fetchedAt },
 		};
 	}
 	const fetched = await getArtificialAnalysisScrapedRawStats();
-	if (
-		shouldUseFetchedRows(fetched.fetched_at_epoch_seconds, fetched.data.length)
-	) {
-		return {
-			aaRawRows: fetched.data,
-			aaSelectedRows: processArtificialAnalysisScrapedRows(fetched.data, {
-				selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
-			}),
-			fetchedAt: { artificialAnalysis: fetched.fetched_at_epoch_seconds },
-		};
-	}
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "artificial_analysis",
+		cachedRows: cached?.aaRawRows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => rowStringValue(row, "model_id"),
+		rowLabel: (row) => rowStringValue(row, "name"),
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		aaRawRows: cached?.aaRawRows ?? fetched.data,
-		aaSelectedRows:
-			cached?.aaSelectedRows ??
-			processArtificialAnalysisScrapedRows(fetched.data, {
-				selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
-			}),
+		aaRawRows: snapshot.rows,
+		aaSelectedRows: processArtificialAnalysisScrapedRows(snapshot.rows, {
+			selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
+		}),
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			artificialAnalysis: cached?.fetchedAt ?? fetched.fetched_at_epoch_seconds,
+			artificialAnalysis: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -295,9 +382,24 @@ async function aaSnapshot(
 async function modelsDevSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<ModelsDevSnapshot> {
 	const cached = readModelsDevRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const sourceRowStates = sourceStatesForModelsDevPayload(
+			cached.payload,
+			null,
+			false,
+			previousMissingSince,
+			nowEpochSeconds,
+			options,
+		);
 		return {
 			modelsDevPayload: cached.payload,
 			modelsDevModels: processModelsDevPayload(
@@ -306,67 +408,106 @@ async function modelsDevSnapshot(
 			),
 			modelsDevFetchedAt: cached.fetchedAt,
 			modelsDevStatusCode: cached.statusCode,
+			sourceRowStates,
 		};
 	}
 	const fetched = await getModelsDevSourceStats();
-	if (
-		shouldUseFetchedRows(
-			fetched.fetched_at_epoch_seconds,
-			Object.keys(fetched.payload).length,
-		)
-	) {
-		return {
-			modelsDevPayload: fetched.payload,
-			modelsDevModels: processModelsDevPayload(
-				fetched.payload,
-				isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
-			),
-			modelsDevFetchedAt: fetched.fetched_at_epoch_seconds,
-			modelsDevStatusCode: fetched.status_code,
-		};
-	}
-	const payload = cached?.payload ?? fetched.payload;
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		Object.keys(fetched.payload).length,
+	);
+	const payload = hasUsableFetchedRows
+		? mergeModelsDevPayload(cached?.payload, fetched.payload, options)
+		: (cached?.payload ?? fetched.payload);
 	return {
 		modelsDevPayload: payload,
 		modelsDevModels: processModelsDevPayload(
 			payload,
 			isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
 		),
-		modelsDevFetchedAt: cached?.fetchedAt ?? fetched.fetched_at_epoch_seconds,
-		modelsDevStatusCode: cached?.statusCode ?? fetched.status_code,
+		sourceRowStates: sourceStatesForModelsDevPayload(
+			payload,
+			fetched.payload,
+			hasUsableFetchedRows,
+			previousMissingSince,
+			nowEpochSeconds,
+			options,
+		),
+		modelsDevFetchedAt: snapshotFetchedAt(
+			hasUsableFetchedRows,
+			cached?.fetchedAt,
+			fetched.fetched_at_epoch_seconds,
+		),
+		modelsDevStatusCode:
+			hasUsableFetchedRows || cached?.statusCode == null
+				? fetched.status_code
+				: cached.statusCode,
 	};
 }
 
 async function deepSWESnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<DeepSWESnapshot> {
 	const cached = readDeepSWERawCache(db);
 	const cachedHasEffortMetadata = cached?.rows.some(
 		(row) => row.reasoning_effort != null || row.config != null,
 	);
-	if (status.cache_hit && cached != null && cachedHasEffortMetadata) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		cachedHasEffortMetadata &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "deep_swe",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.model, row.reasoning_effort, row.config),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			deepSWERawRows: cached.rows,
-			deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(cached.rows),
+			deepSWERawRows: cachedSnapshot.rows,
+			deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(
+				cachedSnapshot.rows,
+			),
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { deepSWE: cached.fetchedAt },
 		};
 	}
 	const fetched = await getDeepSWERawLeaderboardStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "deep_swe",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.model, row.reasoning_effort, row.config),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		deepSWERawRows: rows,
-		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(rows),
+		deepSWERawRows: snapshot.rows,
+		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(snapshot.rows),
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			deepSWE:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			deepSWE: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -374,32 +515,64 @@ async function deepSWESnapshot(
 async function terminalBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<TerminalBenchSnapshot> {
 	const cached = readTerminalBenchRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "terminal_bench",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.agent, row.model),
+			rowLabel: (row) => `${row.agent} ${row.model}`,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			terminalBenchRows: cached.rows,
+			terminalBenchRows: cachedSnapshot.rows,
 			terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(
-				cached.rows,
+				cachedSnapshot.rows,
 			),
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { terminalBench: cached.fetchedAt },
 		};
 	}
 	const fetched = await getTerminalBenchAgentModelAccuracyStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "terminal_bench",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.agent, row.model),
+		rowLabel: (row) => `${row.agent} ${row.model}`,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		terminalBenchRows: rows,
-		terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(rows),
+		terminalBenchRows: snapshot.rows,
+		terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(
+			snapshot.rows,
+		),
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			terminalBench:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			terminalBench: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -407,32 +580,66 @@ async function terminalBenchSnapshot(
 async function agentsLastExamSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<AgentsLastExamSnapshot> {
 	const cached = readAgentsLastExamRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "agents_last_exam",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) =>
+				sourceKey(row.split, row.harness, row.model, row.harness_variant),
+			rowLabel: (row) => `${row.model} ${row.split}`,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			agentsLastExamRows: cached.rows,
+			agentsLastExamRows: cachedSnapshot.rows,
 			agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
-				cached.rows,
+				cachedSnapshot.rows,
 			),
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { agentsLastExam: cached.fetchedAt },
 		};
 	}
 	const fetched = await getAgentsLastExamHarnessStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "agents_last_exam",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) =>
+			sourceKey(row.split, row.harness, row.model, row.harness_variant),
+		rowLabel: (row) => `${row.model} ${row.split}`,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		agentsLastExamRows: rows,
-		agentsLastExamModelScores: summarizeAgentsLastExamModelScores(rows),
+		agentsLastExamRows: snapshot.rows,
+		agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
+			snapshot.rows,
+		),
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			agentsLastExam:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			agentsLastExam: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -440,28 +647,58 @@ async function agentsLastExamSnapshot(
 async function browseCompSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<BrowseCompSnapshot> {
 	const cached = readBrowseCompRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "browsecomp",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.provider, row.model),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			browseCompModelScoreRows: cached.rows,
+			browseCompModelScoreRows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { browseComp: cached.fetchedAt },
 		};
 	}
 	const fetched = await getBrowseCompModelScoreStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "browsecomp",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		browseCompModelScoreRows: rows,
+		browseCompModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			browseComp:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			browseComp: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -469,28 +706,58 @@ async function browseCompSnapshot(
 async function blueprintBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<BlueprintBenchSnapshot> {
 	const cached = readBlueprintBenchRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "blueprint_bench_2",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.model),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			blueprintBenchModelScoreRows: cached.rows,
+			blueprintBenchModelScoreRows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { blueprintBench: cached.fetchedAt },
 		};
 	}
 	const fetched = await getBlueprintBenchModelScoreStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "blueprint_bench_2",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.model),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		blueprintBenchModelScoreRows: rows,
+		blueprintBenchModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			blueprintBench:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			blueprintBench: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -498,28 +765,58 @@ async function blueprintBenchSnapshot(
 async function gdpPdfSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<GdpPdfSnapshot> {
 	const cached = readGdpPdfRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "gdp_pdf",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.provider, row.model),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			gdpPdfModelScoreRows: cached.rows,
+			gdpPdfModelScoreRows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { gdpPdf: cached.fetchedAt },
 		};
 	}
 	const fetched = await getGdpPdfModelScoreStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "gdp_pdf",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		gdpPdfModelScoreRows: rows,
+		gdpPdfModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			gdpPdf:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			gdpPdf: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -527,28 +824,58 @@ async function gdpPdfSnapshot(
 async function riemannBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<RiemannBenchSnapshot> {
 	const cached = readRiemannBenchRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "riemann_bench",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.provider, row.model),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			riemannBenchModelScoreRows: cached.rows,
+			riemannBenchModelScoreRows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { riemannBench: cached.fetchedAt },
 		};
 	}
 	const fetched = await getRiemannBenchModelScoreStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "riemann_bench",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		riemannBenchModelScoreRows: rows,
+		riemannBenchModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			riemannBench:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			riemannBench: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -556,28 +883,58 @@ async function riemannBenchSnapshot(
 async function toolathlonSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<ToolathlonSnapshot> {
 	const cached = readToolathlonRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "toolathlon",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) => sourceKey(row.provider, row.model),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			toolathlonModelScoreRows: cached.rows,
+			toolathlonModelScoreRows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { toolathlon: cached.fetchedAt },
 		};
 	}
 	const fetched = await getToolathlonModelScoreStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "toolathlon",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		toolathlonModelScoreRows: rows,
+		toolathlonModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			toolathlon:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			toolathlon: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -585,28 +942,59 @@ async function toolathlonSnapshot(
 async function cursorBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
 ): Promise<CursorBenchSnapshot> {
 	const cached = readCursorBenchRawCache(db);
-	if (status.cache_hit && cached != null) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "cursorbench",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) =>
+				sourceKey(row.model, row.base_model, row.reasoning_effort),
+			rowLabel: (row) => row.model,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
 		return {
-			cursorBenchModelScoreRows: cached.rows,
+			cursorBenchModelScoreRows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { cursorBench: cached.fetchedAt },
 		};
 	}
 	const fetched = await getCursorBenchModelScoreStats();
-	const rows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
-	)
-		? fetched.data
-		: (cached?.rows ?? fetched.data);
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "cursorbench",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) => sourceKey(row.model, row.base_model, row.reasoning_effort),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
 	return {
-		cursorBenchModelScoreRows: rows,
+		cursorBenchModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.states,
 		fetchedAt: {
-			cursorBench:
-				cached?.rows === rows
-					? cached.fetchedAt
-					: fetched.fetched_at_epoch_seconds,
+			cursorBench: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
 		},
 	};
 }
@@ -615,8 +1003,10 @@ async function cursorBenchSnapshot(
 export async function loadSourceSnapshots(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
+	options: DatabaseBuildOptions = {},
 ): Promise<SourceSnapshotCacheResult> {
 	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
+	const previousMissingSince = missingSinceBySource(latestSourceRowStates(db));
 	const [
 		aa,
 		modelsDev,
@@ -630,17 +1020,83 @@ export async function loadSourceSnapshots(
 		toolathlon,
 		cursorBench,
 	] = await Promise.all([
-		aaSnapshot(db, sourceCache.artificial_analysis),
-		modelsDevSnapshot(db, sourceCache.models_dev),
-		deepSWESnapshot(db, sourceCache.deep_swe),
-		terminalBenchSnapshot(db, sourceCache.terminal_bench),
-		agentsLastExamSnapshot(db, sourceCache.agents_last_exam),
-		blueprintBenchSnapshot(db, sourceCache.blueprint_bench_2),
-		gdpPdfSnapshot(db, sourceCache.gdp_pdf),
-		riemannBenchSnapshot(db, sourceCache.riemann_bench),
-		browseCompSnapshot(db, sourceCache.browsecomp),
-		toolathlonSnapshot(db, sourceCache.toolathlon),
-		cursorBenchSnapshot(db, sourceCache.cursorbench),
+		aaSnapshot(
+			db,
+			sourceCache.artificial_analysis,
+			options,
+			previousMissingSince.artificial_analysis,
+			nowEpochSeconds,
+		),
+		modelsDevSnapshot(
+			db,
+			sourceCache.models_dev,
+			options,
+			previousMissingSince.models_dev,
+			nowEpochSeconds,
+		),
+		deepSWESnapshot(
+			db,
+			sourceCache.deep_swe,
+			options,
+			previousMissingSince.deep_swe,
+			nowEpochSeconds,
+		),
+		terminalBenchSnapshot(
+			db,
+			sourceCache.terminal_bench,
+			options,
+			previousMissingSince.terminal_bench,
+			nowEpochSeconds,
+		),
+		agentsLastExamSnapshot(
+			db,
+			sourceCache.agents_last_exam,
+			options,
+			previousMissingSince.agents_last_exam,
+			nowEpochSeconds,
+		),
+		blueprintBenchSnapshot(
+			db,
+			sourceCache.blueprint_bench_2,
+			options,
+			previousMissingSince.blueprint_bench_2,
+			nowEpochSeconds,
+		),
+		gdpPdfSnapshot(
+			db,
+			sourceCache.gdp_pdf,
+			options,
+			previousMissingSince.gdp_pdf,
+			nowEpochSeconds,
+		),
+		riemannBenchSnapshot(
+			db,
+			sourceCache.riemann_bench,
+			options,
+			previousMissingSince.riemann_bench,
+			nowEpochSeconds,
+		),
+		browseCompSnapshot(
+			db,
+			sourceCache.browsecomp,
+			options,
+			previousMissingSince.browsecomp,
+			nowEpochSeconds,
+		),
+		toolathlonSnapshot(
+			db,
+			sourceCache.toolathlon,
+			options,
+			previousMissingSince.toolathlon,
+			nowEpochSeconds,
+		),
+		cursorBenchSnapshot(
+			db,
+			sourceCache.cursorbench,
+			options,
+			previousMissingSince.cursorbench,
+			nowEpochSeconds,
+		),
 	]);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
@@ -722,6 +1178,19 @@ export async function loadSourceSnapshots(
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
+			sourceRowStates: [
+				...aa.sourceRowStates,
+				...modelsDev.sourceRowStates,
+				...deepSWE.sourceRowStates,
+				...terminalBench.sourceRowStates,
+				...agentsLastExam.sourceRowStates,
+				...blueprintBench.sourceRowStates,
+				...gdpPdf.sourceRowStates,
+				...riemannBench.sourceRowStates,
+				...browseComp.sourceRowStates,
+				...toolathlon.sourceRowStates,
+				...cursorBench.sourceRowStates,
+			],
 			fetchedAt: {
 				artificialAnalysis: aa.fetchedAt.artificialAnalysis,
 				deepSWE: deepSWE.fetchedAt.deepSWE,
@@ -745,6 +1214,7 @@ export async function loadOpenRouterRawPayload(
 	modelIds: string[],
 	speedConcurrency: number,
 	nowEpochSeconds: number,
+	options: DatabaseBuildOptions = {},
 ): Promise<{
 	rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
 	cacheStatus: RawSourceCacheStatus;
@@ -755,7 +1225,12 @@ export async function loadOpenRouterRawPayload(
 	const cacheCoversModels = modelIds.every((modelId) =>
 		cachedModelIds.has(modelId),
 	);
-	if (status.cache_hit && cached != null && cacheCoversModels) {
+	if (
+		status.cache_hit &&
+		cached != null &&
+		cacheCoversModels &&
+		options.replaceSourceRows !== true
+	) {
 		return {
 			rawPayload: cached,
 			cacheStatus: {
