@@ -20,8 +20,6 @@ const CORE_SCHEMA = "model_atlas.core";
 const BENCHMARKS_SCHEMA = "model_atlas.benchmarks";
 const SCORE_SCALE = "percentage";
 const BENCHMARK_SCALE = "decimal";
-const METHODOLOGY =
-	"Overall score is 35% Intelligence, 25% Agentic, 20% Speed, and 20% Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.";
 
 export type LlmStatsJsonView = "score" | "core" | "benchmarks" | "all" | "full";
 
@@ -35,7 +33,7 @@ export type CoreJsonPayload = {
 	schema: typeof CORE_SCHEMA;
 	fetched_at_epoch_seconds: number | null;
 	score_scale: typeof SCORE_SCALE;
-	methodology: typeof METHODOLOGY;
+	methodology: string;
 	columns: string[];
 	models: CoreJsonModel[];
 };
@@ -48,7 +46,7 @@ export type ScoreJsonPayload = {
 	schema: typeof SCORE_SCHEMA;
 	fetched_at_epoch_seconds: number | null;
 	score_scale: typeof SCORE_SCALE;
-	methodology: typeof METHODOLOGY;
+	methodology: string;
 	scores: ScoreJsonModel[];
 };
 
@@ -70,7 +68,7 @@ export type BenchmarksJsonPayload = {
 	schema: typeof BENCHMARKS_SCHEMA;
 	fetched_at_epoch_seconds: number | null;
 	benchmark_scale: typeof BENCHMARK_SCALE;
-	methodology: typeof METHODOLOGY;
+	methodology: string;
 	benchmarks: BenchmarksJsonModel[];
 };
 
@@ -152,7 +150,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 		schema: CORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
-		methodology: METHODOLOGY,
+		methodology: methodologyText(payload),
 		columns: [...coreColumnKeys],
 		models: payload.models.map((model, index) => coreJsonModel(model, index)),
 	};
@@ -163,7 +161,7 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 		schema: SCORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
-		methodology: METHODOLOGY,
+		methodology: methodologyText(payload),
 		scores: payload.models.map((model, index) => scoreJsonModel(model, index)),
 	};
 }
@@ -175,7 +173,7 @@ export function benchmarksJsonPayload(
 		schema: BENCHMARKS_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		benchmark_scale: BENCHMARK_SCALE,
-		methodology: METHODOLOGY,
+		methodology: methodologyText(payload),
 		benchmarks: payload.models.map((model, index) =>
 			benchmarksJsonModel(model, index),
 		),
@@ -226,6 +224,16 @@ export function leanDashboardPayload(
 		},
 		models: payload.models.map(leanDashboardModel),
 	};
+}
+
+function methodologyText(payload: LlmStatsPayload): string {
+	const weights = payload.metadata.scoring.overall_relative_score_weights;
+	return `Overall score is ${formatMethodologyWeight(weights.intelligence)} Intelligence, ${formatMethodologyWeight(weights.agentic)} Agentic, ${formatMethodologyWeight(weights.speed)} Speed, and ${formatMethodologyWeight(weights.value)} Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.`;
+}
+
+function formatMethodologyWeight(weight: number): string {
+	const percent = Number((weight * 100).toFixed(2));
+	return `${percent}%`;
 }
 
 function withoutUnusedModelFields(
