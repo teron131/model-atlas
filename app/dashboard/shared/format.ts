@@ -131,4 +131,7 @@ export const safeSlug = (value: unknown) =>
 		.replace(/[^a-z0-9._-]+/g, "-")
 		.replace(/^-+|-+$/g, "");
 
-export const cacheBustedPath = (path: string) => `${path}?reload=${Date.now()}`;
+export const cacheBustedPath = (path: string) => {
+	const separator = path.includes("?") ? "&" : "?";
+	return `${path}${separator}reload=${Date.now()}`;
+};

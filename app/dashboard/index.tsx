@@ -53,9 +53,9 @@ import {
 } from "./table/tableColumns";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
-const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload:v1";
+const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY =
-	"model-atlas:selected-payload-refresh-at:v1";
+	"model-atlas:selected-payload-refresh-at";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
@@ -465,6 +465,9 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			void refreshPayload({ retryWhenGuarded: true });
 			return;
 		}
+		if (!hasFullPayload(initialPayload)) {
+			void refreshPayload({ retryWhenGuarded: true });
+		}
 	}, [initialPayload, refreshPayload]);
 
 	useEffect(() => {
@@ -495,6 +498,10 @@ function isLlmStatsPayload(payload: unknown): payload is LlmStatsPayload {
 		return false;
 	}
 	return Array.isArray((payload as Partial<LlmStatsPayload>).models);
+}
+
+function hasFullPayload(payload: LlmStatsPayload): boolean {
+	return payload.metadata.scoring.selected_benchmark_keys.length > 0;
 }
 
 function readCachedPayload(): LlmStatsPayload | null {
