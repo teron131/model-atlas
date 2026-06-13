@@ -2,6 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
+import { cleanArtificialAnalysisModelName } from "../../scrapers/artificial-analysis-evals";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
@@ -38,8 +39,13 @@ function artificialAnalysisIdentityValues(
 			: firstString(row, ["model_id", "model_url", "id"]);
 	return [
 		modelId,
-		firstString(row, ["name"]),
-		firstString(row, ["shortName", "short_name"]),
+		cleanArtificialAnalysisModelName(
+			firstString(row, ["name"]) ?? firstString(selectedRow, ["name"]),
+		),
+		cleanArtificialAnalysisModelName(
+			firstString(row, ["shortName", "short_name"]) ??
+				firstString(selectedRow, ["name"]),
+		),
 		firstString(creator, ["name"]) ?? firstString(row, ["modelCreatorName"]),
 		absoluteArtificialAnalysisUrl(
 			firstString(selectedRow, ["model_url"]) ??

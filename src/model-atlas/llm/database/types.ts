@@ -66,6 +66,10 @@ export type DatabaseBuildResult = {
 	final_model_count: number;
 };
 
+export type DatabaseBuildOptions = {
+	replaceSourceRows?: boolean;
+};
+
 export type DebugTraceRow = {
 	trace_kind: "matcher_candidate";
 	aa_id: string | null;
@@ -96,6 +100,16 @@ export type RawSourceCacheStatus = {
 	refreshed: boolean;
 };
 
+export type SourceRowStatus = "active" | "quarantined_missing_from_source";
+
+export type SourceRowState = {
+	source: RawSourceName;
+	row_key: string;
+	row_label: string | null;
+	status: SourceRowStatus;
+	missing_from_source_since_epoch_seconds: number | null;
+};
+
 export type SourceSnapshots = {
 	aaRawRows: JsonObject[];
 	aaSelectedRows: JsonObject[];
@@ -115,6 +129,7 @@ export type SourceSnapshots = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
+	sourceRowStates: SourceRowState[];
 	fetchedAt: {
 		artificialAnalysis: number | null;
 		deepSWE: number | null;

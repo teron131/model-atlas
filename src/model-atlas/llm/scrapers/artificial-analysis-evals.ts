@@ -14,6 +14,8 @@ const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
 const MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD = 1_000_000;
 const NEXT_FLIGHT_CHUNK_REGEX =
 	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
+const DISPLAY_SUFFIX_PATTERN =
+	/\s*\((?:[^)]*(?:fallback|not currently available|unavailable|adaptive reasoning|max effort)[^)]*)\)\s*/gi;
 
 export type ArtificialAnalysisScraperOptions = {
 	url?: string;
@@ -73,6 +75,20 @@ function toAbsoluteAaLogoUrl(value: unknown): string | null {
 	return `https://artificialanalysis.ai${normalized}`;
 }
 
+/** Remove transient availability/fallback qualifiers from AA model names. */
+export function cleanArtificialAnalysisModelName(
+	value: unknown,
+): string | null {
+	if (typeof value !== "string" || value.length === 0) {
+		return null;
+	}
+	const cleaned = value
+		.replace(DISPLAY_SUFFIX_PATTERN, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	return cleaned.length > 0 ? cleaned : value;
+}
+
 const EVALUATION_KEY_HINT_REGEX =
 	/(index|bench|mmlu|mmmu|gpqa|hle|aime|math|vision|omniscience|ifbench|gdpval|lcr|arc|musr|humanity|sci|code|critpt|apex)/i;
 const NON_EVALUATION_KEY_REGEX =
@@ -80,13 +96,18 @@ const NON_EVALUATION_KEY_REGEX =
 const EVALUATION_EXCLUDED_KEYS = new Set([
 	"omniscience",
 	"omniscience_accuracy",
+	"omniscience_index",
+	"omniscience_nonhallucination_rate",
 	"omniscience_hallucination_rate",
 	"omniscienceAccuracy",
 	"omniscienceNonHallucination",
 	"intelligenceIndex",
 	"intelligenceIndexIsEstimated",
+	"intelligence_index",
 	"agenticIndex",
+	"agentic_index",
 	"codingIndex",
+	"coding_index",
 	"intelligenceIndexCostTotal",
 	"intelligenceIndexCostInput",
 	"intelligenceIndexCostOutput",
@@ -157,13 +178,20 @@ function pickIntelligence(row: JsonObject): JsonObject {
 		"hallucinationRate",
 	]);
 	const intelligence: JsonObject = {
-		intelligence_index: firstNumber(row, ["intelligenceIndex"]),
-		agentic_index: firstNumber(row, ["agenticIndex"]),
-		coding_index: firstNumber(row, ["codingIndex"]),
-		omniscience_index: firstNumber(row, ["omniscience"]),
-		omniscience_accuracy: firstNumber(row, ["omniscienceAccuracy"]),
+		intelligence_index: firstNumber(row, [
+			"intelligenceIndex",
+			"intelligence_index",
+		]),
+		agentic_index: firstNumber(row, ["agenticIndex", "agentic_index"]),
+		coding_index: firstNumber(row, ["codingIndex", "coding_index"]),
+		omniscience_index: firstNumber(row, ["omniscience", "omniscience_index"]),
+		omniscience_accuracy: firstNumber(row, [
+			"omniscienceAccuracy",
+			"omniscience_accuracy",
+		]),
 		omniscience_nonhallucination_rate: firstNumber(row, [
 			"omniscienceNonHallucination",
+			"omniscience_nonhallucination_rate",
 		]),
 	};
 	if (intelligence.omniscience_accuracy == null) {
@@ -196,19 +224,25 @@ function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 	const totalTokens = outputTokens ?? outputFromParts;
 
 	return {
-		input_cost: firstNumber(row, ["intelligenceIndexCostInput"]),
-		reasoning_cost: firstNumber(row, ["intelligenceIndexCostReasoning"]),
-		output_cost: firstNumber(row, ["intelligenceIndexCostOutput"]),
-		total_cost: firstNumber(row, ["intelligenceIndexCostTotal"]),
-		input_tokens: inputTokens,
-		reasoning_tokens: reasoningTokens,
-		answer_tokens: answerTokens,
-		output_tokens: outputTokens,
+		input_cost: firstNumber(row, ["intelligenceIndexCostInput", "input_cost"]),
+		reasoning_cost: firstNumber(row, [
+			"intelligenceIndexCostReasoning",
+			"reasoning_cost",
+		]),
+		output_cost: firstNumber(row, [
+			"intelligenceIndexCostOutput",
+			"output_cost",
+		]),
+		total_cost: firstNumber(row, ["intelligenceIndexCostTotal", "total_cost"]),
+		input_tokens: inputTokens ?? firstNumber(row, ["input_tokens"]),
+		reasoning_tokens: reasoningTokens ?? firstNumber(row, ["reasoning_tokens"]),
+		answer_tokens: answerTokens ?? firstNumber(row, ["answer_tokens"]),
+		output_tokens: outputTokens ?? firstNumber(row, ["output_tokens"]),
 		total_tokens:
 			typeof totalTokens === "number" &&
 			totalTokens >= MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD
 				? totalTokens
-				: null,
+				: firstNumber(row, ["total_tokens"]),
 	};
 }
 
@@ -444,6 +478,20 @@ function flatCreatorFromRow(row: JsonObject): JsonObject {
 	};
 }
 
+/** Derive the model URL slug from relative or absolute AA URLs. */
+function modelUrlSlugFromRow(
+	row: JsonObject,
+	fallbackSlug: string | null,
+): string | null {
+	if (typeof row.model_url !== "string" || row.model_url.length === 0) {
+		return fallbackSlug;
+	}
+	const urlPath = row.model_url
+		.replace(/^https?:\/\/(?:www\.)?artificialanalysis\.ai/, "")
+		.replace(/^\/models\//, "");
+	return urlPath.length > 0 ? urlPath : fallbackSlug;
+}
+
 /** Build a row-selection context for Artificial Analysis scraper. */
 function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 	const creator = {
@@ -460,10 +508,7 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 		firstString(modelCreators, ["slug"]) ??
 		firstString(creator, ["slug"]) ??
 		providerSlug;
-	const modelUrlSlug =
-		typeof row.model_url === "string"
-			? row.model_url.replace(/^\/models\//, "")
-			: modelSlug;
+	const modelUrlSlug = modelUrlSlugFromRow(row, modelSlug);
 	return {
 		creator,
 		modelCreators,
@@ -524,15 +569,17 @@ function getSelectedColumnValue(
 				(typeof row.id === "string" ? row.id : null)
 			);
 		case "model_id":
-			return creatorSlug && modelUrlSlug
-				? `${creatorSlug}/${modelUrlSlug}`
-				: (modelUrlSlug ?? row.model_url ?? null);
+			return typeof modelUrlSlug === "string" && modelUrlSlug.includes("/")
+				? modelUrlSlug
+				: creatorSlug && modelUrlSlug
+					? `${creatorSlug}/${modelUrlSlug}`
+					: (modelUrlSlug ?? row.model_url ?? null);
 		case "name":
-			return (
+			return cleanArtificialAnalysisModelName(
 				row.short_name ??
-				row.shortName ??
-				row.name ??
-				(typeof row.slug === "string" ? row.slug : null)
+					row.shortName ??
+					row.name ??
+					(typeof row.slug === "string" ? row.slug : null),
 			);
 		case "provider":
 			return (
