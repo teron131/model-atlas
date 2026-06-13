@@ -74,6 +74,12 @@ fullPayload.metadata.scoring.benchmark_portfolio = {
 		agenticPortion: 0,
 	},
 };
+fullPayload.metadata.scoring.overall_relative_score_weights = {
+	intelligence: 0.11,
+	agentic: 0.22,
+	speed: 0.33,
+	value: 0.34,
+};
 
 const leanPayload = leanDashboardPayload(fullPayload);
 const model = leanPayload.models[0];
@@ -85,7 +91,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"Overall score is 35% Intelligence, 25% Agentic, 20% Speed, and 20% Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.";
+	"Overall score is 11% Intelligence, 22% Agentic, 33% Speed, and 34% Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
