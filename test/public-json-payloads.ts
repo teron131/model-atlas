@@ -84,9 +84,12 @@ const coreModel = corePayload.models[0];
 const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
+const methodology =
+	"Overall score is 35% Intelligence, 25% Agentic, 20% Speed, and 20% Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
+assert.equal(scorePayload.methodology, methodology);
 assert.deepEqual(scoreModel, {
 	rank: 1,
 	id: "provider/model",
@@ -125,6 +128,7 @@ assert.deepEqual(model?.cost, {
 
 assert.equal(corePayload.schema, "model_atlas.core");
 assert.equal(corePayload.score_scale, "percentage");
+assert.equal(corePayload.methodology, methodology);
 assert.deepEqual(corePayload.columns, [
 	"rank",
 	"id",
@@ -165,6 +169,7 @@ assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
 assert.equal(benchmarksPayload.schema, "model_atlas.benchmarks");
 assert.equal(benchmarksPayload.benchmark_scale, "decimal");
+assert.equal(benchmarksPayload.methodology, methodology);
 assert.deepEqual(benchmarksModel, {
 	rank: 1,
 	id: "provider/model",
