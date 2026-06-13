@@ -1,4 +1,6 @@
+import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
 import { publicCacheHeaders } from "../cache-headers";
+import { publicJsonPayload } from "./public-json";
 import { readSnapshotPayload, refreshRequestPayload } from "./snapshot-store";
 
 export const dynamic = "force-dynamic";
@@ -12,21 +14,20 @@ const PUBLIC_SNAPSHOT_CACHE_HEADERS = publicCacheHeaders({
 });
 
 type RefreshState = {
-	payload: unknown | null;
-	refreshInFlight: Promise<unknown> | null;
+	payload: LlmStatsPayload | null;
+	refreshInFlight: Promise<LlmStatsPayload> | null;
 };
 
 const refreshState = globalThis as typeof globalThis & {
 	__modelAtlasRefreshState?: RefreshState;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+	const view = jsonViewForRequest(request);
 	try {
 		const deployedSnapshot = await readSnapshotPayload();
 		if (deployedSnapshot != null) {
-			return Response.json(deployedSnapshot, {
-				headers: PUBLIC_SNAPSHOT_CACHE_HEADERS,
-			});
+			return jsonPayloadResponse(deployedSnapshot, view);
 		}
 
 		const state = getRefreshState();
@@ -35,15 +36,11 @@ export async function GET() {
 		});
 		const payload = await state.refreshInFlight;
 		state.payload = payload;
-		return Response.json(payload, {
-			headers: PUBLIC_SNAPSHOT_CACHE_HEADERS,
-		});
+		return jsonPayloadResponse(payload, view);
 	} catch {
 		const fallbackPayload = getRefreshState().payload;
 		if (fallbackPayload != null) {
-			return Response.json(fallbackPayload, {
-				headers: PUBLIC_SNAPSHOT_CACHE_HEADERS,
-			});
+			return jsonPayloadResponse(fallbackPayload, view);
 		}
 		return new Response("Unable to refresh stats", {
 			status: 500,
@@ -53,6 +50,19 @@ export async function GET() {
 			},
 		});
 	}
+}
+
+function jsonViewForRequest(request: Request): string | null {
+	return (
+		new URL(request.url).searchParams.get("view") ??
+		request.headers.get("x-model-atlas-view")
+	);
+}
+
+function jsonPayloadResponse(payload: LlmStatsPayload, view: string | null) {
+	return Response.json(publicJsonPayload(payload, view), {
+		headers: PUBLIC_SNAPSHOT_CACHE_HEADERS,
+	});
 }
 
 function getRefreshState(): RefreshState {

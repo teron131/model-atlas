@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-
+import { cacheBustedPath } from "../app/dashboard/shared/format";
 import {
 	dedupeDisplayModels,
 	type SortState,
@@ -94,6 +94,14 @@ assert.deepEqual(
 	]).map((row) => row.model.id),
 	["mistral/mistral-medium-3.5"],
 	"display dedupe should collapse provider ids that only differ by a trailing ai suffix when the slug family matches",
+);
+
+assert.equal(
+	cacheBustedPath("/api/llm-stats?view=all").startsWith(
+		"/api/llm-stats?view=all&reload=",
+	),
+	true,
+	"cache busting should preserve existing query params",
 );
 
 function rankedModel(

@@ -1,3 +1,7 @@
+import {
+	leanDashboardPayload,
+	scoreJsonPayload,
+} from "./api/llm-stats/public-json";
 import { readDisplaySnapshotPayload } from "./api/llm-stats/snapshot-store";
 import { Dashboard } from "./dashboard";
 
@@ -6,5 +10,45 @@ export const runtime = "nodejs";
 
 export default async function Home() {
 	const initialPayload = await readDisplaySnapshotPayload();
-	return <Dashboard initialPayload={initialPayload} />;
+	const scorePayload =
+		initialPayload == null ? null : scoreJsonPayload(initialPayload);
+	const dashboardPayload =
+		initialPayload == null ? null : leanDashboardPayload(initialPayload);
+	return (
+		<>
+			<link
+				rel="alternate"
+				type="application/json"
+				title="Model Atlas scores"
+				href="/score"
+			/>
+			<link
+				rel="alternate"
+				type="application/json"
+				title="Model Atlas core table"
+				href="/core"
+			/>
+			<link
+				rel="alternate"
+				type="application/json"
+				title="Model Atlas benchmarks"
+				href="/benchmarks"
+			/>
+			{scorePayload == null ? null : (
+				<script id="model-atlas-score-json" type="application/json">
+					{jsonScriptPayload(scorePayload)}
+				</script>
+			)}
+			<Dashboard initialPayload={dashboardPayload} />
+		</>
+	);
+}
+
+function jsonScriptPayload(value: unknown): string {
+	return JSON.stringify(value)
+		.replaceAll("<", "\\u003c")
+		.replaceAll(">", "\\u003e")
+		.replaceAll("&", "\\u0026")
+		.replaceAll("\u2028", "\\u2028")
+		.replaceAll("\u2029", "\\u2029");
 }

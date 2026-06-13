@@ -1,6 +1,6 @@
 import type { LlmStatsColumnTooltip } from "../../../src/model-atlas/llm/stats/types";
 
-export const liveStatsPath = "/api/llm-stats";
+export const liveStatsPath = "/api/llm-stats?view=all";
 
 export const tooltipHorizontalPadding = 18;
 export const tooltipMaxWidth = 360;
