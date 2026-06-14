@@ -31,7 +31,6 @@ import {
 	correlationLabel,
 	interactionConfigs,
 	modelKey,
-	modelName,
 	positiveDomain,
 	shortLabel,
 } from "./models";
@@ -40,9 +39,11 @@ import type { HoverRow, HoverSetter, InteractionConfig, Point } from "./types";
 
 export function InteractionMatrix({
 	models,
+	fullPayloadLoaded,
 	setHover,
 }: {
 	models: LlmStatsModel[];
+	fullPayloadLoaded: boolean;
 	setHover: HoverSetter;
 }) {
 	const distribution = intelligenceDistribution(models);
@@ -67,6 +68,7 @@ export function InteractionMatrix({
 						key={config.key}
 						models={models}
 						config={config}
+						fullPayloadLoaded={fullPayloadLoaded}
 						setHover={setHover}
 					/>
 				))}
@@ -78,10 +80,12 @@ export function InteractionMatrix({
 function InteractionPlot({
 	models,
 	config,
+	fullPayloadLoaded,
 	setHover,
 }: {
 	models: LlmStatsModel[];
 	config: InteractionConfig;
+	fullPayloadLoaded: boolean;
 	setHover: HoverSetter;
 }) {
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
@@ -100,6 +104,9 @@ function InteractionPlot({
 		);
 
 	if (data.length === 0) {
+		if (!fullPayloadLoaded) {
+			return null;
+		}
 		return (
 			<div className={styles.interactionPlot}>
 				<div className={styles.interactionPlotHead}>
@@ -141,20 +148,6 @@ function InteractionPlot({
 	const plot = plotBoundsFor(width, height, margin);
 	const transformX = (value: number) =>
 		config.log ? Math.log10(Math.max(value, 0.001)) : value;
-	const txMin = transformX(xDomain[0]);
-	const txMax = transformX(xDomain[1]);
-	const normalizedX = (value: number) =>
-		(transformX(value) - txMin) / (txMax - txMin || 1);
-	const cornerScore = (point: Point) => {
-		const xFit = config.lowerBetter
-			? 1 - normalizedX(point.x)
-			: normalizedX(point.x);
-		return point.y + xFit * 34 + (point.overall ?? 0) * 0.05;
-	};
-	const bestCornerPoint = ([...data].sort(
-		(left, right) => cornerScore(right) - cornerScore(left),
-	)[0] ?? data[0]) as Point;
-	const bestPointId = bestCornerPoint.model.id;
 	const rLabel = correlationLabel(data, transformX);
 	// Keep lower-is-better axes visually conventional: cheaper/faster remains left, while a small arrow marks the better corner.
 	const bestCornerIsRight = !config.lowerBetter;
@@ -180,9 +173,7 @@ function InteractionPlot({
 		(point) => point.y,
 		{ xHigherBetter: !config.lowerBetter },
 	);
-	const pointRadius = (point: Point) =>
-		clamp((point.overall ?? 45) / 18, 3, 6) +
-		(bestPointId === point.model.id ? 1.2 : 0);
+	const pointRadius = (point: Point) => clamp((point.overall ?? 45) / 18, 3, 6);
 	const interactionLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedPoints.map((point) => ({
@@ -271,7 +262,6 @@ function InteractionPlot({
 					corner={bestCornerIsRight ? "upper-right" : "upper-left"}
 				/>
 				{plottedPoints.map((point) => {
-					const highlighted = bestPointId === point.model.id;
 					const radius = clamp((point.overall ?? 45) / 18, 3, 6);
 					const cx = xPoint(point.x);
 					const cy = yPoint(point.y);
@@ -287,10 +277,10 @@ function InteractionPlot({
 								className={styles.datavizPoint}
 								cx={cx}
 								cy={cy}
-								r={stableSvgNumber(highlighted ? radius + 1.2 : radius)}
+								r={stableSvgNumber(radius)}
 								fill={providerPaletteColor(point.model.provider)}
-								stroke={highlighted ? "var(--ink)" : "rgba(8,9,9,0.7)"}
-								strokeWidth={highlighted ? 2.4 : 1}
+								stroke="rgba(8,9,9,0.7)"
+								strokeWidth={1}
 								opacity={1}
 							/>
 							<PointHitTarget
@@ -325,9 +315,6 @@ function InteractionPlot({
 					) : null,
 				)}
 			</svg>
-			<div className={styles.interactionBest}>
-				Best corner <b>{modelName(bestCornerPoint.model)}</b>
-			</div>
 			<div className={styles.interactionRead}>{config.read}</div>
 		</div>
 	);

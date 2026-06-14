@@ -3,6 +3,7 @@ import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { leanDashboardPayload } from "../app/api/llm-stats/public-json";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import type { TableRow } from "../app/dashboard/table/models";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
@@ -37,12 +38,43 @@ const payload = minimalLlmStatsPayload({
 		}),
 	],
 });
+const leanInteractionPayload = leanDashboardPayload(
+	minimalLlmStatsPayload({
+		fetchedAt: 901,
+		models: [
+			{
+				...minimalLlmStatsModel({
+					id: "openai/gpt-5.5",
+					name: "GPT-5.5",
+				}),
+				task_metrics: {
+					artificial_analysis: {
+						cost: 0.42,
+					},
+				},
+				evaluations: {
+					deep_swe: 0.6,
+				},
+				relative_scores: {
+					intelligence_score: 90,
+					agentic_score: 80,
+					speed_score: 70,
+					value_score: 60,
+					overall_score: 95,
+				},
+			},
+		],
+	}),
+);
 
 const html = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: payload }),
 );
 const loadingHtml = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: null }),
+);
+const leanInteractionHtml = renderToStaticMarkup(
+	React.createElement(Dashboard, { initialPayload: leanInteractionPayload }),
 );
 
 assert.equal(
@@ -74,6 +106,21 @@ assert.equal(
 	loadingHtml.includes("benchmark-chip-loading"),
 	true,
 	"initial loading markup should include benchmark placeholder chips",
+);
+assert.equal(
+	leanInteractionHtml.includes("Intelligence vs AA task cost"),
+	true,
+	"lean dashboard payload should render the AA task-cost interaction plot immediately",
+);
+assert.equal(
+	leanInteractionHtml.includes("Intelligence vs DeepSWE accuracy"),
+	true,
+	"lean dashboard payload should render the DeepSWE interaction plot immediately",
+);
+assert.equal(
+	leanInteractionHtml.includes("Loading full metric payload"),
+	false,
+	"lean dashboard payload should not show a loading card for interaction metrics it already carries",
 );
 
 const visibleRankRows: TableRow[] = [

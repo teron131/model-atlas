@@ -6,6 +6,7 @@ import {
 	useCallback,
 	useDeferredValue,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -294,6 +295,7 @@ export function Dashboard({
 			<DashboardHeader />
 			<DashboardGraphs
 				initialPayload={payload}
+				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
 				provider={providerFilter}
 				maxCost={maxCostFilter}
 				modelLimit={modelLimit}
@@ -403,9 +405,9 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 		return refreshInFlightRef.current;
 	}, []);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
+		const cachedPayload = readCachedPayload();
 		if (initialPayload == null) {
-			const cachedPayload = readCachedPayload();
 			if (cachedPayload != null) {
 				setPayload(cachedPayload);
 			}
@@ -413,6 +415,9 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			return;
 		}
 		if (!hasFullPayload(initialPayload)) {
+			if (cachedPayload != null && hasFullPayload(cachedPayload)) {
+				setPayload(cachedPayload);
+			}
 			void refreshPayload({ retryWhenGuarded: true });
 		}
 	}, [initialPayload, refreshPayload]);

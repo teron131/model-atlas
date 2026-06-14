@@ -105,21 +105,21 @@ export function extremeLabelRows<T>(
 	yValue: (row: T) => number,
 	{ xHigherBetter = true }: { xHigherBetter?: boolean } = {},
 ) {
-	const ratioScore = (row: T) => {
+	const tradeoffScore = (row: T) => {
 		const x = xValue(row);
 		const y = yValue(row);
 		if (!finite(x) || !finite(y)) {
 			return null;
 		}
-		return xHigherBetter ? (y > 0 ? x / y : null) : x > 0 ? y / x : null;
+		return xHigherBetter ? y * x : x > 0 ? y / x : null;
 	};
 	const selected: T[] = [];
 	for (const row of [
+		bestByScore(rows, yValue),
 		bestByScore(rows, (candidate) =>
 			xHigherBetter ? xValue(candidate) : -xValue(candidate),
 		),
-		bestByScore(rows, yValue),
-		bestByScore(rows, ratioScore),
+		bestByScore(rows, tradeoffScore),
 	]) {
 		if (
 			row != null &&
