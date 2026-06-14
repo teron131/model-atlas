@@ -37,7 +37,7 @@ function logoCachePath(source: string, cacheKey?: string | null): string {
 	return resolve(logoCacheDir, `${sourceHash}.png`);
 }
 
-function statsLogoCacheDir(): string {
+export function statsLogoCacheDir(): string {
 	if (process.env.MODEL_ATLAS_LOGO_CACHE_DIR) {
 		return resolve(process.env.MODEL_ATLAS_LOGO_CACHE_DIR);
 	}

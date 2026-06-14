@@ -3,13 +3,13 @@ import { resolve } from "node:path";
 
 import type { NextRequest } from "next/server";
 
+import { statsLogoCacheDir } from "../../../../src/model-atlas/logo-cache";
 import { publicCacheHeaders } from "../../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-const LOGO_ROOT = resolve(process.cwd(), ".cache/stats-logos");
 const LOGO_CACHE_HEADERS = publicCacheHeaders({
 	browserMaxAgeSeconds: 3600,
 	cdnMaxAgeSeconds: 86400,
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const file = await readFile(resolve(LOGO_ROOT, logo));
+		const file = await readFile(resolve(statsLogoCacheDir(), logo));
 		return new Response(file, {
 			headers: LOGO_CACHE_HEADERS,
 		});

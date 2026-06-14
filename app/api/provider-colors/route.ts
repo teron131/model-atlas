@@ -3,13 +3,13 @@ import { resolve } from "node:path";
 
 import type { NextRequest } from "next/server";
 
+import { statsLogoCacheDir } from "../../../src/model-atlas/logo-cache";
 import { publicCacheHeaders } from "../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-const LOGO_ROOT = resolve(process.cwd(), ".cache/stats-logos");
 const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;
@@ -20,7 +20,7 @@ const PROVIDER_COLOR_CACHE_HEADERS = publicCacheHeaders({
 	staleWhileRevalidateSeconds: 604800,
 });
 
-type ColorCache = Map<string, string | null>;
+type ColorCache = Map<string, string>;
 
 const globalColorCache = globalThis as typeof globalThis & {
 	__providerColorCache?: ColorCache;
@@ -61,18 +61,22 @@ async function cachedProviderColor(provider: string) {
 		return cache.get(provider) ?? null;
 	}
 	const color = await deriveIconThemeColor(provider);
-	cache.set(provider, color);
+	if (color != null) {
+		cache.set(provider, color);
+	}
 	return color;
 }
 
 function getColorCache() {
-	globalColorCache.__providerColorCache ??= new Map<string, string | null>();
+	globalColorCache.__providerColorCache ??= new Map<string, string>();
 	return globalColorCache.__providerColorCache;
 }
 
 async function deriveIconThemeColor(provider: string) {
 	try {
-		const image = await readFile(resolve(LOGO_ROOT, `${provider}.png`));
+		const image = await readFile(
+			resolve(statsLogoCacheDir(), `${provider}.png`),
+		);
 		const { default: sharp } = await import("sharp");
 		const { data, info } = await sharp(image)
 			.ensureAlpha()
