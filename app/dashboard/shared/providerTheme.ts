@@ -1,8 +1,10 @@
 import { safeSlug } from "./format";
+import { providerAssets } from "./providerAssets.generated";
 
 type ProviderLike = { provider?: string | null };
 
-export type ProviderColorMap = Record<string, string>;
+type ProviderColorMap = Record<string, string>;
+type ProviderAssetKey = keyof typeof providerAssets;
 
 export const fixedProviderColors: ProviderColorMap = {
 	alibaba: "#ff7018",
@@ -87,6 +89,10 @@ export function providerPaletteColor(provider: string | null | undefined) {
 	if (fixedProviderColors[key]) {
 		return fixedProviderColors[key];
 	}
+	const assetColor = providerAsset(provider)?.color;
+	if (assetColor != null) {
+		return assetColor;
+	}
 	let hash = 0;
 	for (const char of key) {
 		hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
@@ -96,13 +102,21 @@ export function providerPaletteColor(provider: string | null | undefined) {
 	);
 }
 
-export function providerDisplayColor(
-	provider: string | null | undefined,
-	iconDerivedColors: ProviderColorMap,
-) {
+export function providerDisplayColor(provider: string | null | undefined) {
+	return (
+		fixedProviderColors[providerColorKey(provider)] ??
+		providerAsset(provider)?.color
+	);
+}
+
+export function providerAssetLogo(provider: string | null | undefined) {
+	return providerAsset(provider)?.logo ?? "";
+}
+
+function providerAsset(provider: string | null | undefined) {
 	const key = providerColorKey(provider);
 	if (!key) {
 		return undefined;
 	}
-	return fixedProviderColors[key] ?? iconDerivedColors[key];
+	return providerAssets[key as ProviderAssetKey];
 }

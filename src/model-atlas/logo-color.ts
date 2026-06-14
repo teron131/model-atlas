@@ -1,92 +1,15 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
-
-import type { NextRequest } from "next/server";
-
-import { statsLogoCacheDir } from "../../../src/model-atlas/logo-cache";
-import { publicCacheHeaders } from "../cache-headers";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const runtime = "nodejs";
-
 const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;
-const MAX_PROVIDER_COLOR_BATCH_SIZE = 64;
-const PROVIDER_COLOR_CACHE_HEADERS = publicCacheHeaders({
-	browserMaxAgeSeconds: 3600,
-	cdnMaxAgeSeconds: 86400,
-	staleWhileRevalidateSeconds: 604800,
-});
 
-type ColorCache = Map<string, string>;
-
-const globalColorCache = globalThis as typeof globalThis & {
-	__providerColorCache?: ColorCache;
-};
-
-export async function GET(request: NextRequest) {
-	const providers = providerSlugs(
-		request.nextUrl.searchParams.get("providers"),
-	);
-	const colors: Record<string, string> = {};
-	await Promise.all(
-		providers.map(async (provider) => {
-			const color = await cachedProviderColor(provider);
-			if (color != null) {
-				colors[provider] = color;
-			}
-		}),
-	);
-	return Response.json(colors, {
-		headers: PROVIDER_COLOR_CACHE_HEADERS,
-	});
-}
-
-function providerSlugs(value: string | null) {
-	return [
-		...new Set(
-			(value ?? "")
-				.split(",")
-				.map((provider) => provider.trim())
-				.filter((provider) => /^[a-z0-9._-]+$/.test(provider)),
-		),
-	].slice(0, MAX_PROVIDER_COLOR_BATCH_SIZE);
-}
-
-async function cachedProviderColor(provider: string) {
-	const cache = getColorCache();
-	if (cache.has(provider)) {
-		return cache.get(provider) ?? null;
-	}
-	const color = await deriveIconThemeColor(provider);
-	if (color != null) {
-		cache.set(provider, color);
-	}
-	return color;
-}
-
-function getColorCache() {
-	globalColorCache.__providerColorCache ??= new Map<string, string>();
-	return globalColorCache.__providerColorCache;
-}
-
-async function deriveIconThemeColor(provider: string) {
-	try {
-		const image = await readFile(
-			resolve(statsLogoCacheDir(), `${provider}.png`),
-		);
-		const { default: sharp } = await import("sharp");
-		const { data, info } = await sharp(image)
-			.ensureAlpha()
-			.resize(64, 64, { fit: "inside" })
-			.raw()
-			.toBuffer({ resolveWithObject: true });
-		return prominentIconColor(data, info.channels);
-	} catch {
-		return null;
-	}
+export async function providerIconColor(imageBuffer: Buffer) {
+	const { default: sharp } = await import("sharp");
+	const { data, info } = await sharp(imageBuffer)
+		.ensureAlpha()
+		.resize(64, 64, { fit: "inside" })
+		.raw()
+		.toBuffer({ resolveWithObject: true });
+	return prominentIconColor(data, info.channels);
 }
 
 function prominentIconColor(data: Buffer, channels: number) {
@@ -198,21 +121,29 @@ function hslToHex({ h, s, l }: Hsl) {
 		red = chroma;
 		blue = x;
 	}
-	return rgbToHex(
-		Math.round((red + m) * 255),
-		Math.round((green + m) * 255),
-		Math.round((blue + m) * 255),
-	);
-}
-
-function rgbToHex(red: number, green: number, blue: number) {
-	return `#${[red, green, blue]
-		.map((value) =>
-			clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0"),
-		)
-		.join("")}`;
+	return rgbToHex({
+		red: Math.round((red + m) * 255),
+		green: Math.round((green + m) * 255),
+		blue: Math.round((blue + m) * 255),
+	});
 }
 
 function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
+	return Math.min(Math.max(value, min), max);
+}
+
+function rgbToHex({
+	red,
+	green,
+	blue,
+}: {
+	red: number;
+	green: number;
+	blue: number;
+}) {
+	return `#${hexByte(red)}${hexByte(green)}${hexByte(blue)}`;
+}
+
+function hexByte(value: number) {
+	return clamp(value, 0, 255).toString(16).padStart(2, "0");
 }

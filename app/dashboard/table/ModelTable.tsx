@@ -21,7 +21,6 @@ import {
 	formatCost,
 	formatDashboardMetric,
 	formatScore,
-	safeSlug,
 } from "../shared/format";
 import {
 	AudioInputIcon,
@@ -30,7 +29,7 @@ import {
 	VideoInputIcon,
 } from "../shared/icons";
 import {
-	type ProviderColorMap,
+	providerAssetLogo,
 	providerDisplayColor,
 } from "../shared/providerTheme";
 import {
@@ -54,7 +53,6 @@ type ModelTableProps = {
 	onSort: (key: SortKey) => void;
 	onTooltip: HeaderTooltipHandler;
 	onTooltipEnd: () => void;
-	providerColors: ProviderColorMap;
 	metricColumns: DashboardMetricColumn[];
 };
 
@@ -88,7 +86,6 @@ export function ModelTable({
 	onSort,
 	onTooltip,
 	onTooltipEnd,
-	providerColors,
 	metricColumns,
 }: ModelTableProps) {
 	const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -314,7 +311,6 @@ export function ModelTable({
 									<ModelRow
 										key={rowData.model.id ?? `${rowData.originalIndex}`}
 										rowData={rowData}
-										providerColors={providerColors}
 										metricColumns={metricColumns}
 									/>
 								))}
@@ -359,10 +355,7 @@ function TableHeaderRow({
 	onSort,
 	onTooltip,
 	onTooltipEnd,
-}: Omit<
-	ModelTableProps,
-	"visibleRows" | "emptyMessage" | "isLoading" | "providerColors"
->) {
+}: Omit<ModelTableProps, "visibleRows" | "emptyMessage" | "isLoading">) {
 	return (
 		<tr>
 			{staticSortableColumns.map((column) => (
@@ -496,11 +489,9 @@ function SortableHeader({
 
 function ModelRow({
 	rowData,
-	providerColors,
 	metricColumns,
 }: {
 	rowData: TableRow;
-	providerColors: ProviderColorMap;
 	metricColumns: DashboardMetricColumn[];
 }) {
 	const model = rowData.model;
@@ -526,20 +517,11 @@ function ModelRow({
 					</div>
 				</div>
 			</td>
-			{scoreCell(
-				relativeScores.overall_score,
-				model.provider,
-				providerColors,
-				"overall",
-			)}
-			{scoreCell(
-				relativeScores.intelligence_score,
-				model.provider,
-				providerColors,
-			)}
-			{scoreCell(relativeScores.agentic_score, model.provider, providerColors)}
-			{scoreCell(relativeScores.speed_score, model.provider, providerColors)}
-			{scoreCell(relativeScores.value_score, model.provider, providerColors)}
+			{scoreCell(relativeScores.overall_score, model.provider, "overall")}
+			{scoreCell(relativeScores.intelligence_score, model.provider)}
+			{scoreCell(relativeScores.agentic_score, model.provider)}
+			{scoreCell(relativeScores.speed_score, model.provider)}
+			{scoreCell(relativeScores.value_score, model.provider)}
 			<TableCell
 				text={formatCost(model.cost?.blended_price)}
 				className="data-cell"
@@ -549,12 +531,7 @@ function ModelRow({
 				className="data-cell"
 			/>
 			{metricColumns.map((column) => (
-				<DashboardMetricCell
-					key={column.key}
-					model={model}
-					column={column}
-					providerColors={providerColors}
-				/>
+				<DashboardMetricCell key={column.key} model={model} column={column} />
 			))}
 		</tr>
 	);
@@ -563,11 +540,9 @@ function ModelRow({
 function DashboardMetricCell({
 	model,
 	column,
-	providerColors,
 }: {
 	model: LlmStatsModel;
 	column: DashboardMetricColumn;
-	providerColors: ProviderColorMap;
 }) {
 	if (column.group === "profile" && column.field === "modalities") {
 		return <ModalityInputCell inputs={model.modalities?.input} />;
@@ -579,7 +554,6 @@ function DashboardMetricCell({
 				value={typeof value === "number" ? value : null}
 				text={formatDashboardMetric(value, column)}
 				provider={model.provider}
-				providerColors={providerColors}
 			/>
 		);
 	}
@@ -595,15 +569,13 @@ function BenchmarkMetricCell({
 	value,
 	text,
 	provider,
-	providerColors,
 }: {
 	value: number | null;
 	text: string;
 	provider: string | null | undefined;
-	providerColors: ProviderColorMap;
 }) {
 	const normalizedValue = benchmarkPercentValue(value);
-	const displayColor = providerDisplayColor(provider, providerColors);
+	const displayColor = providerDisplayColor(provider);
 	const style = {
 		"--score": String(Math.max(0, Math.min(100, normalizedValue ?? 0))),
 		"--score-color": displayColor,
@@ -721,11 +693,14 @@ function ProviderLogo({ model }: { model: LlmStatsModel }) {
 }
 
 function logoSource(model: LlmStatsModel) {
+	const providerLogo = providerAssetLogo(model.provider);
+	if (providerLogo.length > 0) {
+		return providerLogo;
+	}
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;
 	}
-	const logoSlug = safeSlug(model.provider);
-	return logoSlug ? `/api/logos/${logoSlug}.png` : "";
+	return "";
 }
 
 function TableCell({ text, className }: { text: string; className?: string }) {
@@ -736,12 +711,11 @@ function TableCell({ text, className }: { text: string; className?: string }) {
 function scoreCell(
 	value: number | null | undefined,
 	provider: string | null | undefined,
-	providerColors: ProviderColorMap,
 	className = "",
 ) {
 	const score =
 		typeof value === "number" && Number.isFinite(value) ? value : null;
-	const displayColor = providerDisplayColor(provider, providerColors);
+	const displayColor = providerDisplayColor(provider);
 	const style = {
 		"--score": String(Math.max(0, Math.min(100, score ?? 0))),
 		"--score-color": displayColor,

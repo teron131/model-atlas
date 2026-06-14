@@ -4,6 +4,7 @@ import type { PointerEvent } from "react";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
 import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import {
+	providerAssetLogo,
 	providerFilterKey,
 	providerName,
 	providerPaletteColor,
@@ -451,9 +452,12 @@ export function shortLabel(model: LlmStatsModel) {
 }
 
 function providerLogoSource(model: LlmStatsModel) {
+	const providerLogo = providerAssetLogo(model.provider);
+	if (providerLogo.length > 0) {
+		return providerLogo;
+	}
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;
 	}
-	const logoSlug = providerFilterKey(model.provider);
-	return logoSlug ? `/api/logos/${logoSlug}.png` : "";
+	return "";
 }
