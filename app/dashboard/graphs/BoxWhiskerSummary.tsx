@@ -22,7 +22,9 @@ export function BoxWhiskerSummary({
 	domainMin,
 	domainMax,
 	formatValue = (value) => value.toFixed(0),
+	countLabel = "models",
 	showDomainEndpoints = false,
+	showDomainEndpointLabels = false,
 	showObservedLabels = false,
 }: {
 	label: string;
@@ -30,12 +32,14 @@ export function BoxWhiskerSummary({
 	domainMin?: number;
 	domainMax: number;
 	formatValue?: (value: number) => string;
+	countLabel?: string;
 	showDomainEndpoints?: boolean;
+	showDomainEndpointLabels?: boolean;
 	showObservedLabels?: boolean;
 }) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const [medianOnTop, setMedianOnTop] = useState(false);
-	const [staggerObservedMedian, setStaggerObservedMedian] = useState(false);
+	const [staggerTopMedian, setStaggerTopMedian] = useState(false);
 	const requestedMinValue =
 		domainMin ?? (showDomainEndpoints ? 0 : distribution.min);
 	const minValue = Math.min(requestedMinValue, distribution.min);
@@ -68,6 +72,13 @@ export function BoxWhiskerSummary({
 		"--whisker-domain-max": toPosition(maxValue),
 	} as CSSProperties;
 	const observedValuesOnTop = showDomainEndpoints || showObservedLabels;
+	const nearestObservedLabelGap =
+		Math.min(
+			Math.abs(distribution.median - distribution.min),
+			Math.abs(distribution.max - distribution.median),
+		) / domainSpan;
+	const allowTopLabelStagger =
+		observedValuesOnTop && nearestObservedLabelGap < 0.12;
 
 	useEffect(() => {
 		const root = rootRef.current;
@@ -79,36 +90,28 @@ export function BoxWhiskerSummary({
 			const medianProbe = root.querySelector(
 				`.${styles.boxWhiskerMedianProbe}`,
 			);
-			const medianValue = root.querySelector(
-				`.${styles.boxWhiskerMedianValue}`,
-			);
 			const max = root.querySelector(`.${styles.boxWhiskerMaxValue}`);
-			const overlaps = (medianRect: DOMRect, element: Element) => {
-				const rect = element.getBoundingClientRect();
-				return (
-					medianRect.left < rect.right + 4 && medianRect.right > rect.left - 4
-				);
-			};
+			const topMin = root.querySelector(`.${styles.boxWhiskerMinLabel}`);
+			const topMedian = root.querySelector(`.${styles.boxWhiskerMedianLabel}`);
+			const topMax = root.querySelector(`.${styles.boxWhiskerMaxLabel}`);
 			if (min != null && medianProbe != null && max != null) {
 				const medianRect = medianProbe.getBoundingClientRect();
 				const nextMedianOnTop =
-					overlaps(medianRect, min) || overlaps(medianRect, max);
+					hasHorizontalOverlap(medianRect, min) ||
+					hasHorizontalOverlap(medianRect, max);
 				setMedianOnTop((current) =>
 					current === nextMedianOnTop ? current : nextMedianOnTop,
 				);
 			}
-			const shouldStaggerObservedMedian =
+			const shouldStaggerTopMedian =
 				observedValuesOnTop &&
-				!showDomainEndpoints &&
-				min != null &&
-				medianValue != null &&
-				max != null &&
-				(overlaps(medianValue.getBoundingClientRect(), min) ||
-					overlaps(medianValue.getBoundingClientRect(), max));
-			setStaggerObservedMedian((current) =>
-				current === shouldStaggerObservedMedian
-					? current
-					: shouldStaggerObservedMedian,
+				topMin != null &&
+				topMedian != null &&
+				topMax != null &&
+				(hasHorizontalOverlap(topMedian.getBoundingClientRect(), topMin) ||
+					hasHorizontalOverlap(topMedian.getBoundingClientRect(), topMax));
+			setStaggerTopMedian((current) =>
+				current === shouldStaggerTopMedian ? current : shouldStaggerTopMedian,
 			);
 		};
 		measure();
@@ -127,10 +130,16 @@ export function BoxWhiskerSummary({
 		>
 			<div className={styles.boxWhiskerTop}>
 				<span>{label}</span>
-				<b>{distribution.count} models</b>
+				<b>
+					{distribution.count} {countLabel}
+				</b>
 			</div>
 			<div
-				className={styles.boxWhiskerPlot}
+				className={`${styles.boxWhiskerPlot} ${
+					allowTopLabelStagger && staggerTopMedian
+						? styles.boxWhiskerTopLabelsStaggered
+						: ""
+				}`}
 				aria-label={`${label} distribution from ${formatValue(
 					distribution.min,
 				)} to ${formatValue(distribution.max)} with median ${formatValue(
@@ -160,34 +169,66 @@ export function BoxWhiskerSummary({
 			</div>
 			<div
 				className={`${styles.boxWhiskerStats} ${
-					staggerObservedMedian ? styles.boxWhiskerStatsStaggered : ""
+					observedValuesOnTop ? styles.boxWhiskerStatsStripLayout : ""
 				}`}
 			>
-				{showDomainEndpoints ? (
+				{showDomainEndpoints && showDomainEndpointLabels ? (
 					<span className={styles.boxWhiskerDomainMinValue}>
 						{domainMinValue}
 					</span>
 				) : null}
-				{hideMinValue ? null : (
-					<span className={styles.boxWhiskerMinValue}>{minDisplayValue}</span>
-				)}
-				{observedValuesOnTop ? null : (
-					<span className={styles.boxWhiskerMedianProbe} aria-hidden="true">
-						{medianValue}
+				{observedValuesOnTop ? (
+					<span className={styles.boxWhiskerObservedStrip}>
+						<span>
+							<b>MIN</b> {minDisplayValue}
+						</span>
+						<span>
+							<b>MED</b> {medianValue}
+						</span>
+						<span>
+							<b>MAX</b> {maxDisplayValue}
+						</span>
 					</span>
+				) : (
+					<>
+						{hideMinValue ? null : (
+							<span className={styles.boxWhiskerMinValue}>
+								{minDisplayValue}
+							</span>
+						)}
+						<span className={styles.boxWhiskerMedianProbe} aria-hidden="true">
+							{medianValue}
+						</span>
+						{medianOnTop ? null : (
+							<span className={styles.boxWhiskerMedianValue}>
+								{medianValue}
+							</span>
+						)}
+						{hideMaxValue ? null : (
+							<span className={styles.boxWhiskerMaxValue}>
+								{maxDisplayValue}
+							</span>
+						)}
+					</>
 				)}
-				{medianOnTop && !observedValuesOnTop ? null : (
-					<span className={styles.boxWhiskerMedianValue}>{medianValue}</span>
-				)}
-				{hideMaxValue ? null : (
-					<span className={styles.boxWhiskerMaxValue}>{maxDisplayValue}</span>
-				)}
-				{showDomainEndpoints ? (
+				{showDomainEndpoints && showDomainEndpointLabels ? (
 					<span className={styles.boxWhiskerDomainMaxValue}>
 						{domainMaxValue}
 					</span>
 				) : null}
 			</div>
 		</div>
+	);
+}
+
+function hasHorizontalOverlap(
+	referenceRect: DOMRect,
+	element: Element,
+	padding = 4,
+) {
+	const rect = element.getBoundingClientRect();
+	return (
+		referenceRect.left < rect.right + padding &&
+		referenceRect.right > rect.left - padding
 	);
 }

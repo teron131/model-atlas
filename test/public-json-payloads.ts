@@ -37,6 +37,11 @@ const fullPayload = minimalLlmStatsPayload({
 				total_cost: 12,
 			},
 			task_metrics: {
+				artificial_analysis: {
+					cost: 1.25,
+					seconds: 2,
+					output_tokens: 3,
+				},
 				deep_swe: {
 					cost: 3,
 					seconds: 4,
@@ -117,8 +122,14 @@ assert.deepEqual(
 );
 assert.deepEqual(leanPayload.metadata.scoring.selected_benchmark_keys, []);
 assert.deepEqual(leanPayload.metadata.scoring.benchmark_portfolio, {});
-assert.equal(model?.evaluations, null);
-assert.equal(model?.task_metrics, null);
+assert.deepEqual(model?.evaluations, {
+	deep_swe: 0.6,
+});
+assert.deepEqual(model?.task_metrics, {
+	artificial_analysis: {
+		cost: 1.25,
+	},
+});
 assert.equal(model?.intelligence_index_cost, null);
 assert.deepEqual(model?.intelligence, {
 	intelligence_index: 80,

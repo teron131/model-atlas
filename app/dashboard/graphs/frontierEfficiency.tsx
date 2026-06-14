@@ -1,4 +1,4 @@
-import { max } from "d3-array";
+import { max, median } from "d3-array";
 import { useMemo, useState } from "react";
 import type {
 	BenchmarkPortfolio,
@@ -8,7 +8,7 @@ import type {
 import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import { benchmarkLabels } from "../shared/constants";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { EmptyChart, SummaryCard } from "./ChartComponents";
+import { SummaryCard } from "./ChartComponents";
 import { inverseLogBubbleRadius, valueDistribution } from "./chartStats";
 import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import {
@@ -47,9 +47,7 @@ type FrontierEfficiencyMetricConfig = {
 	label: string;
 	shortLabel: string;
 	get: (row: FrontierEfficiencyRow) => number;
-	efficiencyLabel: string;
 	efficiencyScore: (row: FrontierEfficiencyRow) => number;
-	formatEfficiency: (value: number) => string;
 	format: (value: number) => string;
 };
 
@@ -61,27 +59,21 @@ const frontierEfficiencyMetricConfig: Record<
 		label: "Task cost",
 		shortLabel: "Cost",
 		get: (row) => row.cost,
-		efficiencyLabel: "Best score per dollar",
 		efficiencyScore: (row) => row.score / row.cost,
-		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtMoney,
 	},
 	time: {
 		label: "Task time",
 		shortLabel: "Time",
 		get: (row) => row.seconds,
-		efficiencyLabel: "Best score per day",
 		efficiencyScore: (row) => row.score / (row.seconds / 86_400),
-		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtDurationShort,
 	},
 	tokens: {
 		label: "Task tokens",
 		shortLabel: "Tokens",
 		get: (row) => row.totalTokens,
-		efficiencyLabel: "Best score per 1M tokens",
 		efficiencyScore: (row) => row.score / (row.totalTokens / 1_000_000),
-		formatEfficiency: (value) => value.toFixed(2),
 		format: fmtCompact,
 	},
 };
@@ -263,14 +255,7 @@ export function FrontierEfficiencyPanel({
 	);
 
 	if (allRows.length === 0) {
-		return (
-			<Panel
-				title="Frontier Efficiency"
-				copy="Frontier benchmark resource rows appear when selected frontier benchmarks include score, cost, time, and token metrics."
-			>
-				<EmptyChart message="No frontier resource rows match the current filters." />
-			</Panel>
-		);
+		return null;
 	}
 
 	const isAllFilter = selectedFilter === "all";
@@ -295,26 +280,24 @@ export function FrontierEfficiencyPanel({
 		frontierEfficiencyProduct(row, isAllFilter ? "all" : metricKey);
 	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue), 13);
 	const leader = rows[0] as FrontierEfficiencyRow;
-	const bestAxis = isAllFilter
+	const medianScore = median(rows.map((row) => row.score)) ?? leader.score;
+	const paretoScoreFloor = leader.score * 0.8;
+	const budgetRow = isAllFilter
 		? ([...rows].sort(
 				(left, right) => axisMetric.get(right) - axisMetric.get(left),
 			)[0] ?? leader)
-		: ([...rows].sort(
-				(left, right) =>
-					resourceMetric.efficiencyScore(right) -
-					resourceMetric.efficiencyScore(left),
-			)[0] ?? leader);
-	const leanAboveFloor =
-		[...rows]
-			.filter((row) => row.score >= 10)
-			.sort((left, right) => axisMetric.get(left) - axisMetric.get(right))[0] ??
-		bestAxis;
+		: bestEfficiencyRowAtOrAboveScore(rows, resourceMetric, medianScore);
+	const paretoRow = isAllFilter
+		? null
+		: bestEfficiencyRowAtOrAboveScore(rows, resourceMetric, paretoScoreFloor);
 	const valueAbove80 = bestValueRowAboveScore(rows, axisMetric.get, 80, leader);
 	const valueAbove20 = bestValueRowAboveScore(rows, axisMetric.get, 20, leader);
 	const labeledRows = new Set(
 		isAllFilter
 			? [leader, valueAbove80, valueAbove20]
-			: [leader, bestAxis, leanAboveFloor],
+			: [leader, paretoRow, budgetRow].filter(
+					(row): row is FrontierEfficiencyRow => row != null,
+				),
 	);
 	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
@@ -368,7 +351,7 @@ export function FrontierEfficiencyPanel({
 						</button>
 					))}
 				</fieldset>
-				{isAllFilter ? null : (
+				{!isAllFilter ? (
 					<fieldset className={styles.metricToggle}>
 						<legend className={styles.visuallyHidden}>
 							Frontier Efficiency axis
@@ -388,7 +371,7 @@ export function FrontierEfficiencyPanel({
 							),
 						)}
 					</fieldset>
-				)}
+				) : null}
 				<div className={styles.resourceCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
@@ -422,21 +405,21 @@ export function FrontierEfficiencyPanel({
 			<div className={styles.chartSummary}>
 				<SummaryCard
 					label="Leader"
-					value={`${modelName(leader.model)} - ${leader.benchmarkLabel}`}
+					value={modelName(leader.model)}
 					detail={leaderDetail}
 				/>
 				{isAllFilter ? (
 					<>
 						<SummaryCard
 							label="Best value above 80%"
-							value={`${modelName(valueAbove80.model)} - ${valueAbove80.benchmarkLabel}`}
+							value={modelName(valueAbove80.model)}
 							detail={`${valueAbove80.score.toFixed(1)}% / value ${axisMetric
 								.get(valueAbove80)
 								.toFixed(0)}`}
 						/>
 						<SummaryCard
 							label="Best value above 20%"
-							value={`${modelName(valueAbove20.model)} - ${valueAbove20.benchmarkLabel}`}
+							value={modelName(valueAbove20.model)}
 							detail={`${valueAbove20.score.toFixed(1)}% / value ${axisMetric
 								.get(valueAbove20)
 								.toFixed(0)}`}
@@ -445,22 +428,51 @@ export function FrontierEfficiencyPanel({
 				) : (
 					<>
 						<SummaryCard
-							label={resourceMetric.efficiencyLabel}
-							value={`${modelName(bestAxis.model)} - ${bestAxis.benchmarkLabel}`}
-							detail={resourceMetric.formatEfficiency(
-								resourceMetric.efficiencyScore(bestAxis),
-							)}
+							label="Pareto (Scored > 80% of leader)"
+							value={resourceSummaryModel(paretoRow)}
+							detail={resourceSummaryDetail(paretoRow, resourceMetric)}
 						/>
 						<SummaryCard
-							label="Leanest above 10%"
-							value={`${modelName(leanAboveFloor.model)} - ${leanAboveFloor.benchmarkLabel}`}
-							detail={axisMetric.format(axisMetric.get(leanAboveFloor))}
+							label="Budget (Scored > median)"
+							value={resourceSummaryModel(budgetRow)}
+							detail={resourceSummaryDetail(budgetRow, resourceMetric)}
 						/>
 					</>
 				)}
 			</div>
 		</Panel>
 	);
+}
+
+function bestEfficiencyRowAtOrAboveScore(
+	rows: FrontierEfficiencyRow[],
+	resourceMetric: FrontierEfficiencyMetricConfig,
+	minScore: number,
+) {
+	return (
+		[...rows]
+			.filter((row) => row.score >= minScore)
+			.sort(
+				(left, right) =>
+					resourceMetric.efficiencyScore(right) -
+					resourceMetric.efficiencyScore(left),
+			)[0] ?? null
+	);
+}
+
+function resourceSummaryModel(row: FrontierEfficiencyRow | null) {
+	return row == null ? "No model above threshold" : modelName(row.model);
+}
+
+function resourceSummaryDetail(
+	row: FrontierEfficiencyRow | null,
+	resourceMetric: FrontierEfficiencyMetricConfig,
+) {
+	return row == null
+		? "--"
+		: `${row.score.toFixed(1)}% / ${resourceMetric.format(
+				resourceMetric.get(row),
+			)}`;
 }
 
 function bestValueRowAboveScore(

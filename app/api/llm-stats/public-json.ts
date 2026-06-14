@@ -335,8 +335,8 @@ function leanDashboardModel(model: LlmStatsModel): LlmStatsModel {
 		speed: { ...model.speed },
 		intelligence: leanDashboardIntelligence(model.intelligence),
 		intelligence_index_cost: null,
-		task_metrics: null,
-		evaluations: null,
+		task_metrics: leanDashboardTaskMetrics(model.task_metrics),
+		evaluations: leanDashboardEvaluations(model.evaluations),
 		scores: { ...model.scores },
 		relative_scores: { ...model.relative_scores },
 	} as LlmStatsModel;
@@ -382,5 +382,30 @@ function leanDashboardIntelligence(
 		...(intelligence.agentic_index == null
 			? {}
 			: { agentic_index: intelligence.agentic_index }),
+	};
+}
+
+function leanDashboardTaskMetrics(
+	taskMetrics: LlmStatsModel["task_metrics"],
+): LlmStatsModel["task_metrics"] {
+	const artificialAnalysis = taskMetrics?.artificial_analysis;
+	if (artificialAnalysis?.cost == null) {
+		return null;
+	}
+	return {
+		artificial_analysis: {
+			cost: artificialAnalysis.cost,
+		},
+	};
+}
+
+function leanDashboardEvaluations(
+	evaluations: LlmStatsModel["evaluations"],
+): LlmStatsModel["evaluations"] {
+	if (evaluations?.deep_swe == null) {
+		return null;
+	}
+	return {
+		deep_swe: evaluations.deep_swe,
 	};
 }

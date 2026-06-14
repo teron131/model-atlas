@@ -22,6 +22,7 @@ import type { CostFilter, HoverState, ModelLimit } from "./types";
 
 export function DashboardGraphs({
 	initialPayload,
+	fullPayloadLoaded,
 	benchmarkControls,
 	afterLead,
 	provider,
@@ -32,6 +33,7 @@ export function DashboardGraphs({
 	onModelLimitChange,
 }: {
 	initialPayload: LlmStatsPayload | null;
+	fullPayloadLoaded: boolean;
 	benchmarkControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
 	provider: string;
@@ -190,7 +192,11 @@ export function DashboardGraphs({
 							models={models}
 							setHover={setHover}
 						/>
-						<InteractionMatrix models={models} setHover={setHover} />
+						<InteractionMatrix
+							models={models}
+							fullPayloadLoaded={fullPayloadLoaded}
+							setHover={setHover}
+						/>
 						<RunwayPanel models={models} setHover={setHover} />
 					</section>
 				</>
