@@ -88,7 +88,6 @@ const rankHtml = renderToStaticMarkup(
 		emptyMessage: "No models",
 		isLoading: false,
 		metricColumns: [],
-		providerColors: {},
 		onSort: () => {},
 		onTooltip: () => {},
 		onTooltipEnd: () => {},

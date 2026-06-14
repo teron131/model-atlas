@@ -169,6 +169,7 @@ assert.equal("logo" in (coreModel ?? {}), false);
 assert.equal("attachment" in (coreModel ?? {}), false);
 assert.equal("reasoning" in (coreModel ?? {}), false);
 assert.equal(model?.logo, "");
+assert.equal("logo" in (fullJsonModel ?? {}), false);
 assert.equal("attachment" in (model ?? {}), false);
 assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);

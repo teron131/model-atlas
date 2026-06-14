@@ -39,7 +39,7 @@ export type CoreJsonPayload = {
 };
 
 export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
-	models: Array<Omit<LlmStatsModel, "attachment" | "reasoning">>;
+	models: Array<Omit<LlmStatsModel, "attachment" | "reasoning" | "logo">>;
 };
 
 export type ScoreJsonPayload = {
@@ -238,9 +238,10 @@ function formatMethodologyWeight(weight: number): string {
 
 function withoutUnusedModelFields(
 	model: LlmStatsModel,
-): Omit<LlmStatsModel, "attachment" | "reasoning"> {
+): Omit<LlmStatsModel, "attachment" | "reasoning" | "logo"> {
 	const {
 		attachment: _attachment,
+		logo: _logo,
 		reasoning: _reasoning,
 		...modelPayload
 	} = model;

@@ -89,7 +89,7 @@ async function saveCachedLogoBuffer(
 }
 
 /** Resize remote logo bytes into a bounded transparent PNG. */
-async function resizeLogoToPng(imageBuffer: Buffer): Promise<Buffer> {
+export async function resizeLogoToPng(imageBuffer: Buffer): Promise<Buffer> {
 	const { default: sharp } = await import("sharp");
 	return sharp(imageBuffer, { density: 300 })
 		.trim({

@@ -31,11 +31,6 @@ import {
 import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
 import { cacheBustedPath } from "./shared/format";
 import { RefreshIcon } from "./shared/icons";
-import {
-	fixedProviderColors,
-	type ProviderColorMap,
-	providerColorKey,
-} from "./shared/providerTheme";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dedupeDisplayModels,
@@ -43,7 +38,6 @@ import {
 	type SortState,
 	sortedRows,
 	sorters,
-	type TableRow,
 } from "./table/models";
 import {
 	type ColumnView,
@@ -149,7 +143,6 @@ export function Dashboard({
 		() => dedupeDisplayModels(payload?.models ?? []),
 		[payload],
 	);
-	const providerColors = useProviderDisplayColors(tableRows);
 	const metricColumns = useMemo(
 		() => metricColumnsForView(columnView),
 		[columnView],
@@ -335,7 +328,6 @@ export function Dashboard({
 							onSort={handleSort}
 							onTooltip={showTooltip}
 							onTooltipEnd={clearTooltip}
-							providerColors={providerColors}
 						/>
 					</section>
 				}
@@ -352,48 +344,6 @@ export function Dashboard({
 			)}
 		</main>
 	);
-}
-
-function useProviderDisplayColors(rows: TableRow[]) {
-	const [colors, setColors] = useState<ProviderColorMap>({});
-	const providerKey = useMemo(() => {
-		const providers = rows
-			.map((row) => providerColorKey(row.model.provider))
-			.filter(
-				(provider) =>
-					provider.length > 0 && fixedProviderColors[provider] == null,
-			)
-			.sort();
-		return [...new Set(providers)].join(",");
-	}, [rows]);
-
-	useEffect(() => {
-		if (providerKey.length === 0) {
-			setColors({});
-			return;
-		}
-		let active = true;
-		void fetch(
-			`/api/provider-colors?providers=${encodeURIComponent(providerKey)}`,
-		)
-			.then((response) => (response.ok ? response.json() : {}))
-			.then((payload: ProviderColorMap) => {
-				if (active) {
-					setColors(payload);
-				}
-			})
-			.catch((error) => {
-				console.error("Unable to derive provider colors", error);
-				if (active) {
-					setColors({});
-				}
-			});
-		return () => {
-			active = false;
-		};
-	}, [providerKey]);
-
-	return colors;
 }
 
 function useLivePayload(initialPayload: LlmStatsPayload | null) {
