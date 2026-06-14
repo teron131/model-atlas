@@ -97,8 +97,8 @@ const rankHtml = renderToStaticMarkup(
 
 assert.deepEqual(
 	rankCells(rankHtml),
-	["01", "02", "03"],
-	"rendered rank cells should follow visible table order without gaps",
+	["07", "08", "10"],
+	"rendered rank cells should preserve each model's intelligence rank",
 );
 
 const speedTooltipHtml = renderToStaticMarkup(

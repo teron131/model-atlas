@@ -375,9 +375,6 @@ function useProviderDisplayColors(rows: TableRow[]) {
 		let active = true;
 		void fetch(
 			`/api/provider-colors?providers=${encodeURIComponent(providerKey)}`,
-			{
-				cache: "no-store",
-			},
 		)
 			.then((response) => (response.ok ? response.json() : {}))
 			.then((payload: ProviderColorMap) => {

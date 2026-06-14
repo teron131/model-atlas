@@ -310,11 +310,10 @@ export function ModelTable({
 							<LoadingRows columnKeys={columnKeys} />
 						) : (
 							<>
-								{visibleRows.map((rowData, rowIndex) => (
+								{visibleRows.map((rowData) => (
 									<ModelRow
 										key={rowData.model.id ?? `${rowData.originalIndex}`}
 										rowData={rowData}
-										displayRank={rowIndex + 1}
 										providerColors={providerColors}
 										metricColumns={metricColumns}
 									/>
@@ -497,12 +496,10 @@ function SortableHeader({
 
 function ModelRow({
 	rowData,
-	displayRank,
 	providerColors,
 	metricColumns,
 }: {
 	rowData: TableRow;
-	displayRank: number;
 	providerColors: ProviderColorMap;
 	metricColumns: DashboardMetricColumn[];
 }) {
@@ -512,7 +509,10 @@ function ModelRow({
 	const relativeScores = model.relative_scores ?? {};
 	return (
 		<tr>
-			<TableCell text={String(displayRank).padStart(2, "0")} className="rank" />
+			<TableCell
+				text={String(rowData.intelligenceRank).padStart(2, "0")}
+				className="rank"
+			/>
 			<td className="model-column">
 				<div className="model-cell">
 					<ProviderLogo model={model} />
