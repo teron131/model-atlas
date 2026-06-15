@@ -93,7 +93,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		],
 	},
 	gdpval_normalized: {
-		title: "GDPval-AA",
+		title: "GDPval",
 		body: "Work-like file-output tasks across economically valuable occupations, graded by pairwise comparison.",
 		rows: [
 			["Source", "Artificial Analysis"],
@@ -134,7 +134,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	automation_bench: {
 		title: "AutomationBench",
-		body: "Zapier workflow automation benchmark. Model Atlas uses the leaderboard score with a bounded domain-leadership lift.",
+		body: "Zapier workflow automation benchmark. Model Atlas uses the public leaderboard score.",
 		rows: [
 			["Source", "Zapier"],
 			["Role", "business workflow automation"],
@@ -182,7 +182,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	toolathlon: {
 		title: "Toolathlon",
-		body: "Multi-tool workflow benchmark. Model Atlas uses the current LLM Stats score as a modest baseline signal.",
+		body: "Multi-tool workflow benchmark from ZeroEval. Model Atlas uses the LLM Stats score.",
 		rows: [
 			["Source", "LLM Stats / ZeroEval"],
 			["Role", "multi-tool agent work"],

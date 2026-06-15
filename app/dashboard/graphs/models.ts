@@ -18,6 +18,7 @@ import {
 	finiteValue,
 	fmtCompact,
 	fmtMoney,
+	fmtPercentScore,
 	fmtSeconds,
 	fmtTooltipMoney,
 	fmtTooltipNumber,
@@ -58,12 +59,13 @@ export const interactionConfigs: InteractionConfig[] = [
 		format: fmtMoney,
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "Blended price per 1M tokens",
+		hoverLabel: "Blend price",
 		read: "Shows whether price actually buys broad intelligence, and where cheap high-ceiling models break the curve.",
 	},
 	{
 		key: "speed",
-		title: "Intelligence vs output speed",
-		fieldLabel: "Speed",
+		title: "Intelligence vs throughput",
+		fieldLabel: "Throughput",
 		lowerBetter: false,
 		log: true,
 		ticks: [20, 50, 100, 250, 500, 1000, 2500],
@@ -72,6 +74,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		format: fmtCompact,
 		tooltipFormat: (value) => `${fmtTooltipNumber(value)} t/s`,
 		xLabel: "Output tokens per second (t/s)",
+		hoverLabel: "Throughput",
 		read: "Separates fast utility models from models that are both fast enough and genuinely capable.",
 	},
 	{
@@ -100,6 +103,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		format: fmtCompact,
 		tooltipFormat: fmtTooltipNumber,
 		xLabel: "Context tokens",
+		hoverLabel: "Context window",
 		read: "Highlights when huge context is real leverage versus just a large number beside a weaker model.",
 	},
 	{
@@ -125,9 +129,9 @@ export const interactionConfigs: InteractionConfig[] = [
 		get: (model, context) =>
 			context.frontierScoreByModel.get(modelKey(model)) ?? null,
 		format: (value) => `${value.toFixed(0)}%`,
-		tooltipFormat: fmtTooltipPercent,
+		tooltipFormat: fmtPercentScore,
 		xLabel: "Frontier benchmark normalized score",
-		read: "Shows whether broad intelligence agrees with normalized frontier benchmark performance across the selected model set.",
+		read: "Shows whether broad intelligence agrees with each model's mean normalized frontier benchmark score.",
 	},
 ];
 

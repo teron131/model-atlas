@@ -192,7 +192,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	riemann_bench: "Riemann-bench",
 	hle: "HLE",
 	critpt: "CritPt",
-	gdpval_normalized: "GDPVal",
+	gdpval_normalized: "GDPval",
 	apex_agents: "APEX Agents",
 	agents_last_exam: "Agents' Last Exam",
 	automation_bench: "AutomationBench",

@@ -311,13 +311,25 @@ export function ParetoFrontierPanel({
 						const isFrontier = frontierIds.has(modelKey(model));
 						const rows: HoverRow[] = [
 							[
-								"Intelligence",
+								"Intelligence score",
 								fmtTooltipScore(model.relative_scores.intelligence_score),
 							],
-							["Value", fmtTooltipScore(model.relative_scores.value_score)],
-							["Agentic", fmtTooltipScore(model.relative_scores.agentic_score)],
-							["Blend", fmtTooltipMoney(Number(model.cost?.blended_price))],
-							["Overall", fmtTooltipScore(model.relative_scores.overall_score)],
+							[
+								"Agentic score",
+								fmtTooltipScore(model.relative_scores.agentic_score),
+							],
+							[
+								"Speed score",
+								fmtTooltipScore(model.relative_scores.speed_score),
+							],
+							[
+								"Value score",
+								fmtTooltipScore(model.relative_scores.value_score),
+							],
+							[
+								"Blend price",
+								fmtTooltipMoney(Number(model.cost?.blended_price)),
+							],
 						];
 						return (
 							<g

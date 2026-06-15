@@ -30,8 +30,6 @@ export type Point = {
 	model: LlmStatsModel;
 	x: number;
 	y: number;
-	overall: number | null;
-	agentic: number | null;
 };
 
 export type InteractionContext = {
@@ -49,6 +47,7 @@ export type InteractionConfig = {
 	format: (value: number) => string;
 	tooltipFormat: (value: number) => string;
 	xLabel: string;
+	hoverLabel?: string;
 	read: string;
 };
 

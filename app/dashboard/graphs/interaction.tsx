@@ -5,7 +5,6 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/llm/stats/types";
-import { clamp } from "../../../src/model-atlas/math-utils";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { linearAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
@@ -59,6 +58,7 @@ const INTERACTION_CHART_MARGIN = {
 	bottom: 72,
 	left: 66,
 };
+const INTERACTION_POINT_RADIUS = 4;
 const INTERACTION_LABEL_METRICS = {
 	fontSize: 11,
 	charWidth: 6.5,
@@ -105,7 +105,7 @@ export function InteractionMatrix({
 	return (
 		<Panel
 			title="Intelligence interaction matrix"
-			copy="Switch between price, speed, response time, context, task cost, and coding reliability."
+			copy="Switch between price, throughput, response time, context, AA task cost, and normalized frontier benchmark score."
 			summary={
 				<BoxWhiskerSummary
 					label={`${selectedConfig.fieldLabel} spread`}
@@ -212,8 +212,6 @@ function InteractionPlot({
 		model,
 		x: config.get(model, context),
 		y: finiteValue(model.relative_scores?.intelligence_score),
-		overall: finiteValue(model.relative_scores?.overall_score),
-		agentic: finiteValue(model.relative_scores?.agentic_score),
 	}));
 	const data = modelPoints.filter(
 		(point): point is Point =>
@@ -305,13 +303,12 @@ function InteractionPlot({
 					(point) => point.y,
 					{ xHigherBetter: !config.lowerBetter },
 				);
-	const pointRadius = (point: Point) => clamp((point.overall ?? 45) / 18, 3, 6);
 	const interactionLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedPoints.map((point) => ({
 			cx: xPoint(point.x),
 			cy: yPoint(point.y),
-			radius: pointRadius(point),
+			radius: INTERACTION_POINT_RADIUS,
 		})),
 		labels: plottedPoints
 			.filter((point) => labeledPoints.has(point))
@@ -320,7 +317,7 @@ function InteractionPlot({
 				label: shortLabel(point.model),
 				cx: xPoint(point.x),
 				cy: yPoint(point.y),
-				radius: pointRadius(point),
+				radius: INTERACTION_POINT_RADIUS,
 				priority: plottedPoints.length - index,
 			})),
 		...INTERACTION_LABEL_METRICS,
@@ -387,14 +384,11 @@ function InteractionPlot({
 					corner={bestCornerIsRight ? "upper-right" : "upper-left"}
 				/>
 				{plottedPoints.map((point) => {
-					const radius = clamp((point.overall ?? 45) / 18, 3, 6);
 					const cx = xPoint(point.x);
 					const cy = yPoint(point.y);
 					const rows: HoverRow[] = [
-						["Intelligence", fmtTooltipScore(point.y)],
-						[config.xLabel, config.tooltipFormat(point.x)],
-						["Overall", fmtTooltipScore(point.overall)],
-						["Agentic", fmtTooltipScore(point.agentic)],
+						["Intelligence score", fmtTooltipScore(point.y)],
+						[config.hoverLabel ?? config.xLabel, config.tooltipFormat(point.x)],
 					];
 					return (
 						<g key={point.model.id ?? `${point.x}-${point.y}`}>
@@ -402,7 +396,7 @@ function InteractionPlot({
 								className={styles.datavizPoint}
 								cx={cx}
 								cy={cy}
-								r={stableSvgNumber(radius)}
+								r={stableSvgNumber(INTERACTION_POINT_RADIUS)}
 								fill={providerPaletteColor(point.model.provider)}
 								stroke="rgba(8,9,9,0.7)"
 								strokeWidth={1}

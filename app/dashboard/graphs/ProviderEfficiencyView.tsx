@@ -432,8 +432,8 @@ function providerHoverState(row: ProviderEfficiencyRow) {
 		.map((point) => modelName(point.model))
 		.join(", ");
 	const rows: HoverRow[] = [
-		["Median quality", row.quality.toFixed(1)],
-		["Median value", row.value.toFixed(1)],
+		["Median quality score", row.quality.toFixed(1)],
+		["Median value score", row.value.toFixed(1)],
 		["Eligible models", fmtCompact(row.models.length)],
 		["Top intelligence models", topModelNames || "--"],
 	];

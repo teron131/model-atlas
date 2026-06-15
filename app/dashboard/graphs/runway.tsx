@@ -23,12 +23,7 @@ import {
 	YAxisTicks,
 } from "./ChartComponents";
 import { outputSpeedDistribution } from "./chartStats";
-import {
-	finite,
-	fmtCompact,
-	fmtTooltipNumber,
-	fmtTooltipScore,
-} from "./format";
+import { finite, fmtCompact, fmtTooltipNumber } from "./format";
 import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./labelPlacement";
 import { modelKey, positiveDomain, shortLabel } from "./models";
@@ -325,8 +320,6 @@ export function RunwayPanel({
 									Number(model.speed?.throughput_tokens_per_second_median),
 								)} t/s`,
 							],
-							["Value", fmtTooltipScore(model.relative_scores.value_score)],
-							["Overall", fmtTooltipScore(model.relative_scores.overall_score)],
 						];
 						return (
 							<g key={model.id ?? model.name}>
