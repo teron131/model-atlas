@@ -517,11 +517,11 @@ function ModelRow({
 					</div>
 				</div>
 			</td>
-			{scoreCell(relativeScores.overall_score, model.provider, "overall")}
 			{scoreCell(relativeScores.intelligence_score, model.provider)}
 			{scoreCell(relativeScores.agentic_score, model.provider)}
 			{scoreCell(relativeScores.speed_score, model.provider)}
 			{scoreCell(relativeScores.value_score, model.provider)}
+			{scoreCell(relativeScores.overall_score, model.provider, "overall")}
 			<TableCell
 				text={formatCost(model.cost?.blended_price)}
 				className="data-cell"

@@ -106,14 +106,14 @@ export function ParetoFrontierPanel({
 					<>Step line: strongest observed provider quality/value envelope.</>
 				}
 			>
-				<div className={styles.resourceToolbar}>
+				<div className={styles.chartToolbar}>
 					<ParetoViewToggle
 						activeView="providers"
 						modelCount={candidates.length}
 						providerCount={providerRows.length}
 						onViewChange={setViewKey}
 					/>
-					<div className={styles.resourceCaption}>
+					<div className={styles.chartToolbarCaption}>
 						<span className={styles.markerKey}>
 							<span className={styles.bubbleMarkerKey} />
 							Bubble size = eligible model count
@@ -243,14 +243,14 @@ export function ParetoFrontierPanel({
 				<>Step line: strongest observed intelligence/value tradeoff envelope.</>
 			}
 		>
-			<div className={styles.resourceToolbar}>
+			<div className={styles.chartToolbar}>
 				<ParetoViewToggle
 					activeView="models"
 					modelCount={candidates.length}
 					providerCount={providerRows.length}
 					onViewChange={setViewKey}
 				/>
-				<div className={styles.resourceCaption}>
+				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
 						Bubble size = quality

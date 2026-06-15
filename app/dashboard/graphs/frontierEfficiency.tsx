@@ -9,7 +9,7 @@ import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import { benchmarkLabels } from "../shared/constants";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { SummaryCard } from "./ChartComponents";
-import { inverseLogBubbleRadius, valueDistribution } from "./chartStats";
+import { linearBubbleRadius, valueDistribution } from "./chartStats";
 import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import {
 	finite,
@@ -21,13 +21,19 @@ import {
 	fmtTooltipNumber,
 	percent,
 } from "./format";
+import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
-import { modelKey, modelName, shortLabel } from "./models";
+import {
+	correlationValue,
+	formatCorrelation,
+	modelKey,
+	modelName,
+	shortLabel,
+} from "./models";
 import { Panel } from "./Panel";
 import type { HoverRow, HoverSetter } from "./types";
 
-type FrontierEfficiencyMetricKey = "cost" | "time" | "tokens";
-type FrontierEfficiencyFilterKey = "all" | string;
+type FrontierEfficiencyAxisKey = "value" | "cost" | "time" | "tokens";
 
 type FrontierEfficiencyRow = {
 	benchmarkKey: string;
@@ -43,38 +49,53 @@ type FrontierEfficiencyRow = {
 	totalTokens: number;
 };
 
-type FrontierEfficiencyMetricConfig = {
+type FrontierEfficiencyAxisConfig = {
 	label: string;
 	shortLabel: string;
 	get: (row: FrontierEfficiencyRow) => number;
-	efficiencyScore: (row: FrontierEfficiencyRow) => number;
+	selectionScore: (row: FrontierEfficiencyRow) => number;
 	format: (value: number) => string;
+	detailLabel: string;
+	xHigherBetter?: boolean;
 };
 
-const frontierEfficiencyMetricConfig: Record<
-	FrontierEfficiencyMetricKey,
-	FrontierEfficiencyMetricConfig
+const frontierEfficiencyAxisConfig: Record<
+	FrontierEfficiencyAxisKey,
+	FrontierEfficiencyAxisConfig
 > = {
+	value: {
+		label: "Value score",
+		shortLabel: "Value",
+		get: (row) => finiteValue(row.model.relative_scores?.value_score) ?? 0,
+		selectionScore: (row) =>
+			finiteValue(row.model.relative_scores?.value_score) ?? 0,
+		format: (value) => value.toFixed(0),
+		detailLabel: "value",
+		xHigherBetter: true,
+	},
 	cost: {
 		label: "Task cost",
 		shortLabel: "Cost",
 		get: (row) => row.cost,
-		efficiencyScore: (row) => row.score / row.cost,
+		selectionScore: (row) => row.score / row.cost,
 		format: fmtMoney,
+		detailLabel: "cost",
 	},
 	time: {
 		label: "Task time",
 		shortLabel: "Time",
 		get: (row) => row.seconds,
-		efficiencyScore: (row) => row.score / (row.seconds / 86_400),
+		selectionScore: (row) => row.score / (row.seconds / 86_400),
 		format: fmtDurationShort,
+		detailLabel: "time",
 	},
 	tokens: {
 		label: "Task tokens",
 		shortLabel: "Tokens",
 		get: (row) => row.totalTokens,
-		efficiencyScore: (row) => row.score / (row.totalTokens / 1_000_000),
+		selectionScore: (row) => row.score / (row.totalTokens / 1_000_000),
 		format: fmtCompact,
+		detailLabel: "tokens",
 	},
 };
 
@@ -199,19 +220,6 @@ function nullableMeanNumber(values: Array<number | null>): number | null {
 	return finiteValues.length > 0 ? meanNumber(finiteValues) : null;
 }
 
-function frontierEfficiencyProduct(
-	row: FrontierEfficiencyRow,
-	selectedMetric: FrontierEfficiencyMetricKey | "all",
-) {
-	return (
-		Object.keys(frontierEfficiencyMetricConfig) as FrontierEfficiencyMetricKey[]
-	)
-		.filter((key) => selectedMetric === "all" || key !== selectedMetric)
-		.map((key) => frontierEfficiencyMetricConfig[key].get(row))
-		.filter((value) => finite(value) && value > 0)
-		.reduce((product, value) => product * value, 1);
-}
-
 export function FrontierEfficiencyPanel({
 	payload,
 	models,
@@ -221,10 +229,8 @@ export function FrontierEfficiencyPanel({
 	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const [metricKey, setMetricKey] =
-		useState<FrontierEfficiencyMetricKey>("cost");
-	const [benchmarkFilter, setBenchmarkFilter] =
-		useState<FrontierEfficiencyFilterKey>("all");
+	const [axisKey, setAxisKey] = useState<FrontierEfficiencyAxisKey>("value");
+	const [benchmarkKey, setBenchmarkKey] = useState("all");
 	const allRows = useMemo(
 		() =>
 			frontierEfficiencyRows(
@@ -241,85 +247,66 @@ export function FrontierEfficiencyPanel({
 		() => frontierEfficiencyOptions(allRows),
 		[allRows],
 	);
-	const selectedFilter =
-		benchmarkFilter !== "all" &&
-		benchmarkOptions.some((option) => option.key === benchmarkFilter)
-			? benchmarkFilter
+	const correlationByBenchmark = useMemo(
+		() => frontierEfficiencyCorrelationByBenchmark(allRows, meanRows),
+		[allRows, meanRows],
+	);
+	const selectedBenchmarkKey =
+		benchmarkKey !== "all" &&
+		benchmarkOptions.some((option) => option.key === benchmarkKey)
+			? benchmarkKey
 			: "all";
 	const rows = useMemo(
 		() =>
-			selectedFilter === "all"
+			selectedBenchmarkKey === "all"
 				? meanRows
-				: allRows.filter((row) => row.benchmarkKey === selectedFilter),
-		[allRows, meanRows, selectedFilter],
+				: allRows.filter((row) => row.benchmarkKey === selectedBenchmarkKey),
+		[allRows, meanRows, selectedBenchmarkKey],
 	);
 
 	if (allRows.length === 0) {
 		return null;
 	}
 
-	const isAllFilter = selectedFilter === "all";
-	const resourceMetric = frontierEfficiencyMetricConfig[metricKey];
-	const axisMetric = isAllFilter
-		? {
-				label: "Value score",
-				get: (row: FrontierEfficiencyRow) =>
-					finiteValue(row.model.relative_scores?.value_score) ?? 0,
-				format: (value: number) => value.toFixed(0),
-			}
-		: resourceMetric;
-	const metricValues = rows.map(axisMetric.get).filter(finite);
-	const xDomain = linearResourceDomain(metricValues);
+	const isAllBenchmark = selectedBenchmarkKey === "all";
+	const axisConfig = frontierEfficiencyAxisConfig[axisKey];
+	const axisValues = rows.map(axisConfig.get).filter(finite);
+	const xDomain = linearAxisDomain(axisValues);
 	const scoreMax = max(rows, (row) => row.score) ?? 50;
 	const yDomainTop = Math.max(
 		50,
 		Math.min(105, Math.ceil((scoreMax + 4) / 10) * 10),
 	);
 	const yTicks = percentageTicks(yDomainTop);
-	const bubbleValue = (row: FrontierEfficiencyRow) =>
-		frontierEfficiencyProduct(row, isAllFilter ? "all" : metricKey);
-	const bubbleRadius = inverseLogBubbleRadius(rows.map(bubbleValue), 13);
+	const bubbleValue = speedScore;
+	const bubbleRadius = linearBubbleRadius(rows.map(bubbleValue), 4, 13);
 	const leader = rows[0] as FrontierEfficiencyRow;
 	const medianScore = median(rows.map((row) => row.score)) ?? leader.score;
 	const paretoScoreFloor = leader.score * 0.8;
-	const budgetRow = isAllFilter
-		? ([...rows].sort(
-				(left, right) => axisMetric.get(right) - axisMetric.get(left),
-			)[0] ?? leader)
-		: bestEfficiencyRowAtOrAboveScore(rows, resourceMetric, medianScore);
-	const paretoRow = isAllFilter
-		? null
-		: bestEfficiencyRowAtOrAboveScore(rows, resourceMetric, paretoScoreFloor);
-	const allParetoRow = bestValueRowAboveScore(
+	const budgetRow = bestAxisRowAtOrAboveScore(
 		rows,
-		axisMetric.get,
-		paretoScoreFloor,
-		leader,
-	);
-	const allBudgetRow = bestValueRowAboveScore(
-		rows,
-		axisMetric.get,
+		axisConfig,
 		medianScore,
 		leader,
 	);
+	const paretoRow = bestAxisRowAtOrAboveScore(
+		rows,
+		axisConfig,
+		paretoScoreFloor,
+		leader,
+	);
 	const labeledRows = new Set(
-		isAllFilter
-			? [leader, allParetoRow, allBudgetRow]
-			: [leader, paretoRow, budgetRow].filter(
-					(row): row is FrontierEfficiencyRow => row != null,
-				),
+		[leader, paretoRow, budgetRow].filter(
+			(row): row is FrontierEfficiencyRow => row != null,
+		),
 	);
 	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
-	const yAxisLabel = isAllFilter ? "Normalized score" : "Benchmark score";
-	const panelCopy = isAllFilter
-		? "Each point is one model: normalized frontier score against value score."
-		: `${leader.benchmarkLabel} score plotted against available task cost, time, or tokens.`;
-	const leaderDetail = isAllFilter
-		? `${leader.score.toFixed(1)}% / value ${axisMetric.format(
-				axisMetric.get(leader),
-			)}`
-		: `${leader.score.toFixed(1)}% / ${fmtMoney(leader.cost)}`;
+	const yAxisLabel = isAllBenchmark ? "Normalized score" : "Benchmark score";
+	const panelCopy = isAllBenchmark
+		? `Each point is one model: normalized frontier score against ${axisConfig.label.toLowerCase()}.`
+		: `${leader.benchmarkLabel} score plotted against ${axisConfig.label.toLowerCase()}.`;
+	const leaderDetail = axisSummaryDetail(leader, axisConfig);
 
 	return (
 		<Panel
@@ -336,67 +323,51 @@ export function FrontierEfficiencyPanel({
 			}
 			wide
 		>
-			<div className={styles.resourceToolbar}>
-				<fieldset
-					className={`${styles.metricToggle} ${styles.benchmarkToggle}`}
-				>
-					<legend className={styles.visuallyHidden}>
-						Frontier Efficiency benchmark
-					</legend>
-					<button
-						type="button"
-						aria-pressed={selectedFilter === "all"}
-						onClick={() => setBenchmarkFilter("all")}
-					>
-						All <span>{meanRows.length}</span>
-					</button>
-					{benchmarkOptions.map((option) => (
-						<button
-							key={option.key}
-							type="button"
-							aria-pressed={selectedFilter === option.key}
-							onClick={() => setBenchmarkFilter(option.key)}
-						>
-							{option.label} <span>{option.count}</span>
-						</button>
-					))}
-				</fieldset>
-				{!isAllFilter ? (
-					<fieldset className={styles.metricToggle}>
-						<legend className={styles.visuallyHidden}>
-							Frontier Efficiency axis
-						</legend>
-						{Object.entries(frontierEfficiencyMetricConfig).map(
-							([key, config]) => (
-								<button
-									key={key}
-									type="button"
-									aria-pressed={key === metricKey}
-									onClick={() =>
-										setMetricKey(key as FrontierEfficiencyMetricKey)
-									}
-								>
-									{config.shortLabel}
-								</button>
-							),
-						)}
-					</fieldset>
-				) : null}
-				<div className={styles.resourceCaption}>
+			<div className={styles.chartToolbar}>
+				<GraphToggle
+					legend="Frontier Efficiency benchmark"
+					options={[
+						{
+							key: "all",
+							label: `All ${meanRows.length}`,
+							detail: correlationByBenchmark.get("all") ?? "CORR --",
+						},
+						...benchmarkOptions.map((option) => ({
+							key: option.key,
+							label: `${option.label} ${option.count}`,
+							detail: correlationByBenchmark.get(option.key) ?? "CORR --",
+						})),
+					]}
+					selectedKey={selectedBenchmarkKey}
+					onSelect={setBenchmarkKey}
+					layout="stacked"
+				/>
+				<GraphToggle
+					legend="Frontier Efficiency axis"
+					options={Object.entries(frontierEfficiencyAxisConfig).map(
+						([key, config]) => ({
+							key: key as FrontierEfficiencyAxisKey,
+							label: config.shortLabel,
+						}),
+					)}
+					selectedKey={axisKey}
+					onSelect={setAxisKey}
+				/>
+				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble size = efficiency
+						Bubble size = speed score
 					</span>
 				</div>
 			</div>
 			<EfficiencyAxisChart
 				rows={plotRows}
-				metric={axisMetric}
+				metric={axisConfig}
 				xDomain={xDomain}
 				yDomain={[0, yDomainTop]}
 				yTicks={yTicks}
 				yAxisLabel={yAxisLabel}
-				keyPrefix={`frontier-efficiency-${selectedFilter}-${isAllFilter ? "value" : metricKey}`}
+				keyPrefix={`frontier-efficiency-${selectedBenchmarkKey}-${axisKey}`}
 				ariaLabel="Frontier Efficiency scatter plot"
 				bubbleValue={bubbleValue}
 				bubbleRadius={bubbleRadius}
@@ -418,85 +389,44 @@ export function FrontierEfficiencyPanel({
 					value={modelName(leader.model)}
 					detail={leaderDetail}
 				/>
-				{isAllFilter ? (
-					<>
-						<SummaryCard
-							label="Pareto (Scored > 80% of leader)"
-							value={modelName(allParetoRow.model)}
-							detail={`${allParetoRow.score.toFixed(1)}% / value ${axisMetric
-								.get(allParetoRow)
-								.toFixed(0)}`}
-						/>
-						<SummaryCard
-							label="Budget (Scored > median)"
-							value={modelName(allBudgetRow.model)}
-							detail={`${allBudgetRow.score.toFixed(1)}% / value ${axisMetric
-								.get(allBudgetRow)
-								.toFixed(0)}`}
-						/>
-					</>
-				) : (
-					<>
-						<SummaryCard
-							label="Pareto (Scored > 80% of leader)"
-							value={resourceSummaryModel(paretoRow)}
-							detail={resourceSummaryDetail(paretoRow, resourceMetric)}
-						/>
-						<SummaryCard
-							label="Budget (Scored > median)"
-							value={resourceSummaryModel(budgetRow)}
-							detail={resourceSummaryDetail(budgetRow, resourceMetric)}
-						/>
-					</>
-				)}
+				<SummaryCard
+					label="Pareto (Scored > 80% of leader)"
+					value={modelName(paretoRow.model)}
+					detail={axisSummaryDetail(paretoRow, axisConfig)}
+				/>
+				<SummaryCard
+					label="Budget (Scored > median)"
+					value={modelName(budgetRow.model)}
+					detail={axisSummaryDetail(budgetRow, axisConfig)}
+				/>
 			</div>
 		</Panel>
 	);
 }
 
-function bestEfficiencyRowAtOrAboveScore(
+function bestAxisRowAtOrAboveScore(
 	rows: FrontierEfficiencyRow[],
-	resourceMetric: FrontierEfficiencyMetricConfig,
-	minScore: number,
-) {
-	return (
-		[...rows]
-			.filter((row) => row.score >= minScore)
-			.sort(
-				(left, right) =>
-					resourceMetric.efficiencyScore(right) -
-					resourceMetric.efficiencyScore(left),
-			)[0] ?? null
-	);
-}
-
-function resourceSummaryModel(row: FrontierEfficiencyRow | null) {
-	return row == null ? "No model above threshold" : modelName(row.model);
-}
-
-function resourceSummaryDetail(
-	row: FrontierEfficiencyRow | null,
-	resourceMetric: FrontierEfficiencyMetricConfig,
-) {
-	return row == null
-		? "--"
-		: `${row.score.toFixed(1)}% / ${resourceMetric.format(
-				resourceMetric.get(row),
-			)}`;
-}
-
-function bestValueRowAboveScore(
-	rows: FrontierEfficiencyRow[],
-	valueScore: (row: FrontierEfficiencyRow) => number,
+	axisConfig: FrontierEfficiencyAxisConfig,
 	minScore: number,
 	fallback: FrontierEfficiencyRow,
 ) {
 	return (
 		[...rows]
 			.filter((row) => row.score >= minScore)
-			.sort((left, right) => valueScore(right) - valueScore(left))[0] ??
-		fallback
+			.sort(
+				(left, right) =>
+					axisConfig.selectionScore(right) - axisConfig.selectionScore(left),
+			)[0] ?? fallback
 	);
+}
+
+function axisSummaryDetail(
+	row: FrontierEfficiencyRow,
+	axisConfig: FrontierEfficiencyAxisConfig,
+) {
+	return `${row.score.toFixed(1)}% / ${axisConfig.detailLabel} ${axisConfig.format(
+		axisConfig.get(row),
+	)}`;
 }
 
 function frontierEfficiencyOptions(rows: FrontierEfficiencyRow[]) {
@@ -519,6 +449,57 @@ function frontierEfficiencyOptions(rows: FrontierEfficiencyRow[]) {
 	);
 }
 
+function frontierEfficiencyCorrelationByBenchmark(
+	allRows: FrontierEfficiencyRow[],
+	meanRows: FrontierEfficiencyRow[],
+) {
+	const correlations = new Map<string, string>([
+		["all", frontierEfficiencyCorrelation(meanRows)],
+	]);
+	for (const [benchmarkKey, benchmarkRows] of groupRowsByBenchmark(allRows)) {
+		correlations.set(
+			benchmarkKey,
+			frontierEfficiencyCorrelation(benchmarkRows),
+		);
+	}
+	return correlations;
+}
+
+function frontierEfficiencyCorrelation(rows: FrontierEfficiencyRow[]) {
+	return formatCorrelation(
+		correlationValue(
+			rows.flatMap((row) => {
+				const intelligenceScore = finiteValue(
+					row.model.relative_scores?.intelligence_score,
+				);
+				if (intelligenceScore == null) {
+					return [];
+				}
+				return [
+					{
+						x: row.score,
+						y: intelligenceScore,
+					},
+				];
+			}),
+		),
+	);
+}
+
+function groupRowsByBenchmark(rows: FrontierEfficiencyRow[]) {
+	const rowsByBenchmark = new Map<string, FrontierEfficiencyRow[]>();
+	for (const row of rows) {
+		const current = rowsByBenchmark.get(row.benchmarkKey) ?? [];
+		current.push(row);
+		rowsByBenchmark.set(row.benchmarkKey, current);
+	}
+	return rowsByBenchmark;
+}
+
+function speedScore(row: FrontierEfficiencyRow) {
+	return finiteValue(row.model.relative_scores?.speed_score) ?? 0;
+}
+
 function percentageTicks(domainTop: number) {
 	const step = domainTop <= 60 ? 10 : 20;
 	return Array.from(
@@ -527,7 +508,7 @@ function percentageTicks(domainTop: number) {
 	);
 }
 
-function linearResourceDomain(values: number[]): [number, number] {
+function linearAxisDomain(values: number[]): [number, number] {
 	const low = Math.min(...values);
 	const high = Math.max(...values);
 	if (!finite(low) || !finite(high)) {
@@ -546,6 +527,7 @@ function frontierEfficiencyHoverRows(row: FrontierEfficiencyRow): HoverRow[] {
 		["Benchmark", row.benchmarkLabel],
 		["Resource source", row.resourceSourceLabel],
 		["Score", `${row.score.toFixed(1)}%`],
+		["Speed score", speedScore(row).toFixed(1)],
 		["Cost", fmtTooltipMoney(row.cost)],
 		["Time", fmtDurationShort(row.seconds)],
 		["Task tokens", fmtTooltipNumber(row.totalTokens)],

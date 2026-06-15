@@ -1022,7 +1022,7 @@
 	}
 }
 
-.resourceToolbar {
+.chartToolbar {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-start;
@@ -1071,10 +1071,6 @@
 	font-size: inherit;
 }
 
-.benchmarkToggle {
-	flex-wrap: wrap;
-}
-
 .metricToggle button:last-child {
 	border-right: 1px solid var(--line);
 }
@@ -1104,7 +1100,7 @@
 	white-space: nowrap;
 }
 
-.resourceCaption {
+.chartToolbarCaption {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-end;
@@ -1150,11 +1146,11 @@
 	border-top: 1px solid var(--line);
 }
 
-.interactionToggle {
+.metricToggleStacked {
 	flex-wrap: wrap;
 }
 
-.interactionToggle button {
+.metricToggleStacked button {
 	display: grid;
 	min-width: 82px;
 	gap: 4px;
@@ -1162,19 +1158,19 @@
 	padding-block: 7px;
 }
 
-.interactionToggle button span,
-.interactionToggle button b {
+.metricToggleStacked button span,
+.metricToggleStacked button b {
 	margin-left: 0;
 	color: currentColor;
 	font-size: inherit;
 	line-height: 1;
 }
 
-.interactionTabCorr {
+.metricToggleDetail {
 	opacity: 0.58;
 }
 
-.interactionTabLabel {
+.metricToggleLabel {
 	font-weight: 900;
 }
 
