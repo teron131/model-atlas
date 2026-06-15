@@ -153,6 +153,7 @@ function interactionXDistribution(
 	config: InteractionConfig,
 	context: InteractionContext,
 ) {
+	const formatValue = interactionSummaryFormat(config);
 	const values = models
 		.map((model) => config.get(model, context))
 		.filter(
@@ -166,7 +167,7 @@ function interactionXDistribution(
 			displayDistribution: distribution,
 			domainMax: distribution.max,
 			domainMin: distribution.min,
-			formatValue: config.tooltipFormat,
+			formatValue,
 		};
 	}
 	const logValues = values.map((value) => Math.log10(value));
@@ -176,8 +177,12 @@ function interactionXDistribution(
 		displayDistribution: valueDistribution(values),
 		domainMax: distribution.max,
 		domainMin: distribution.min,
-		formatValue: config.tooltipFormat,
+		formatValue,
 	};
+}
+
+function interactionSummaryFormat(config: InteractionConfig) {
+	return config.key === "context" ? config.format : config.tooltipFormat;
 }
 
 function interactionTabCorrelation(
