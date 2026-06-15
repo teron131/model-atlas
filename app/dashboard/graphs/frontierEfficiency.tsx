@@ -22,6 +22,7 @@ import {
 	fmtCompact,
 	fmtDurationShort,
 	fmtMoney,
+	fmtPercentScore,
 	fmtTooltipMoney,
 	fmtTooltipNumber,
 	percent,
@@ -329,7 +330,7 @@ export function FrontierEfficiencyPanel({
 					label="Benchmark score"
 					distribution={scoreDistribution}
 					domainMax={100}
-					formatValue={(value) => `${value.toFixed(0)}%`}
+					formatValue={fmtPercentScore}
 					showDomainEndpoints
 				/>
 			}
