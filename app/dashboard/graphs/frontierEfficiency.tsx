@@ -23,8 +23,6 @@ import {
 	fmtDurationShort,
 	fmtMoney,
 	fmtPercentScore,
-	fmtTooltipMoney,
-	fmtTooltipNumber,
 	percent,
 } from "./format";
 import { GraphToggle } from "./GraphToggle";
@@ -184,26 +182,22 @@ function meanFrontierEfficiencyRows(
 		rowsByModel.set(key, current);
 	}
 	return [...rowsByModel.values()]
-		.map((modelRows) => {
+		.map((modelRows): FrontierEfficiencyRow | null => {
 			const first = modelRows[0];
 			if (first == null) {
 				return null;
 			}
 			return {
 				benchmarkKey: "all",
-				benchmarkLabel: "Frontier mean",
+				benchmarkLabel: "Normalized frontier score",
 				resourceSourceLabel: `Mean of ${modelRows.length} benchmarks`,
 				benchmarkCount: modelRows.length,
 				model: first.model,
 				score: meanNumber(modelRows.map((row) => row.score)),
 				cost: meanNumber(modelRows.map((row) => row.cost)),
 				seconds: meanNumber(modelRows.map((row) => row.seconds)),
-				inputTokens: nullableMeanNumber(
-					modelRows.map((row) => row.inputTokens),
-				),
-				outputTokens: nullableMeanNumber(
-					modelRows.map((row) => row.outputTokens),
-				),
+				inputTokens: null,
+				outputTokens: null,
 				totalTokens: meanNumber(modelRows.map((row) => row.totalTokens)),
 			};
 		})
@@ -230,11 +224,6 @@ function normalizedFrontierEfficiencyRows(
 
 function meanNumber(values: number[]): number {
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function nullableMeanNumber(values: Array<number | null>): number | null {
-	const finiteValues = values.filter(finite);
-	return finiteValues.length > 0 ? meanNumber(finiteValues) : null;
 }
 
 export function FrontierEfficiencyPanel({
@@ -315,9 +304,14 @@ export function FrontierEfficiencyPanel({
 	);
 	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
-	const yAxisLabel = isAllBenchmark ? "Normalized score" : "Benchmark score";
+	const yAxisLabel = isAllBenchmark
+		? "Normalized benchmark score"
+		: "Benchmark score";
+	const summaryLabel = isAllBenchmark
+		? "Mean normalized frontier score"
+		: "Benchmark score";
 	const panelCopy = isAllBenchmark
-		? `Each point is one model: normalized frontier score against ${axisConfig.label.toLowerCase()}.`
+		? `Each point is one model: mean normalized frontier benchmark score against ${axisConfig.label.toLowerCase()}.`
 		: `${leader.benchmarkLabel} score plotted against ${axisConfig.label.toLowerCase()}.`;
 	const leaderDetail = axisSummaryDetail(leader, axisConfig);
 
@@ -327,7 +321,7 @@ export function FrontierEfficiencyPanel({
 			copy={panelCopy}
 			summary={
 				<BoxWhiskerSummary
-					label="Benchmark score"
+					label={summaryLabel}
 					distribution={scoreDistribution}
 					domainMax={100}
 					formatValue={fmtPercentScore}
@@ -388,10 +382,8 @@ export function FrontierEfficiencyPanel({
 				getScore={(row) => row.score}
 				getModel={(row) => row.model}
 				getKey={(row) => `${row.benchmarkKey}-${modelKey(row.model)}`}
-				getHoverTitle={(row) =>
-					`${modelName(row.model)} / ${row.benchmarkLabel}`
-				}
-				getHoverRows={(row) => frontierEfficiencyHoverRows(row)}
+				getHoverTitle={(row) => modelName(row.model)}
+				getHoverRows={(row) => frontierEfficiencyHoverRows(row, axisConfig)}
 				labelRows={labeledRows}
 				getLabel={(row) => shortLabel(row.model)}
 				setHover={setHover}
@@ -438,7 +430,7 @@ function axisSummaryDetail(
 	row: FrontierEfficiencyRow,
 	axisConfig: FrontierEfficiencyAxisConfig,
 ) {
-	return `${row.score.toFixed(1)}% / ${axisConfig.detailLabel} ${axisConfig.format(
+	return `${fmtPercentScore(row.score)} / ${axisConfig.detailLabel} ${axisConfig.format(
 		axisConfig.get(row),
 	)}`;
 }
@@ -537,21 +529,20 @@ function frontierXAxisScale(
 	});
 }
 
-function frontierEfficiencyHoverRows(row: FrontierEfficiencyRow): HoverRow[] {
-	const rows: HoverRow[] = [
-		["Benchmark", row.benchmarkLabel],
-		["Resource source", row.resourceSourceLabel],
-		["Score", `${row.score.toFixed(1)}%`],
+function frontierEfficiencyHoverRows(
+	row: FrontierEfficiencyRow,
+	axisConfig: FrontierEfficiencyAxisConfig,
+): HoverRow[] {
+	const rows: HoverRow[] = [];
+	rows.push(
+		[
+			row.benchmarkKey === "all"
+				? "Normalized benchmark score"
+				: "Benchmark score",
+			fmtPercentScore(row.score),
+		],
+		[axisConfig.label, axisConfig.format(axisConfig.get(row))],
 		["Speed score", speedScore(row).toFixed(1)],
-		["Cost", fmtTooltipMoney(row.cost)],
-		["Time", fmtDurationShort(row.seconds)],
-		["Task tokens", fmtTooltipNumber(row.totalTokens)],
-	];
-	if (row.inputTokens != null) {
-		rows.push(["Input tokens", fmtTooltipNumber(row.inputTokens)]);
-	}
-	if (row.outputTokens != null) {
-		rows.push(["Output tokens", fmtTooltipNumber(row.outputTokens)]);
-	}
+	);
 	return rows;
 }
