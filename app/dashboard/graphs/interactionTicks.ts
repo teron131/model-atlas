@@ -6,7 +6,7 @@ import {
 } from "../../../src/model-atlas/math-utils";
 import type { InteractionConfig } from "./types";
 
-const TARGET_X_TICK_COUNT = 5;
+const TARGET_TICK_COUNT = 5;
 const NICE_LOG_MANTISSAS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 10] as const;
 
 export function interactionXAxisTicks(
@@ -20,7 +20,7 @@ export function interactionXAxisTicks(
 	}
 	return config.log
 		? logStepTicks(domain, config.format)
-		: linearStepTicks(domain, config.format);
+		: linearAxisTicks(domain, config.format);
 }
 
 function logStepTicks(
@@ -32,24 +32,23 @@ function logStepTicks(
 	}
 	const logLow = Math.log10(low);
 	const logHigh = Math.log10(high);
-	const ticks = Array.from({ length: TARGET_X_TICK_COUNT }, (_, index) =>
+	const ticks = Array.from({ length: TARGET_TICK_COUNT }, (_, index) =>
 		nearestNiceLogTick(
-			10 **
-				interpolateLinear(logLow, logHigh, index / (TARGET_X_TICK_COUNT - 1)),
+			10 ** interpolateLinear(logLow, logHigh, index / (TARGET_TICK_COUNT - 1)),
 			[low, high],
 		),
 	);
 	return uniqueFormattedTicks(ticks, format);
 }
 
-function linearStepTicks(
+export function linearAxisTicks(
 	[low, high]: [number, number],
 	format: (value: number) => string,
 ) {
 	if (!(high > low)) {
 		return [];
 	}
-	const step = niceLinearStep((high - low) / (TARGET_X_TICK_COUNT - 1));
+	const step = niceLinearStep((high - low) / (TARGET_TICK_COUNT - 1));
 	if (!(step > 0)) {
 		return [];
 	}
@@ -57,7 +56,7 @@ function linearStepTicks(
 	const ticks: number[] = [];
 	for (
 		let tick = first;
-		tick <= high + step * 0.01 && ticks.length <= TARGET_X_TICK_COUNT + 1;
+		tick <= high + step * 0.01 && ticks.length <= TARGET_TICK_COUNT + 1;
 		tick += step
 	) {
 		ticks.push(roundTick(tick));

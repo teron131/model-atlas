@@ -2,7 +2,11 @@
 
 import type { PointerEvent } from "react";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import type {
+	BenchmarkPortfolio,
+	LlmStatsModel,
+} from "../../../src/model-atlas/llm/stats/types";
+import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import {
 	providerAssetLogo,
 	providerFilterKey,
@@ -46,6 +50,7 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "price",
 		title: "Intelligence vs blended price",
+		fieldLabel: "Price",
 		lowerBetter: true,
 		log: true,
 		ticks: [0.25, 0.5, 1, 2, 5, 10, 25],
@@ -58,6 +63,7 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "speed",
 		title: "Intelligence vs output speed",
+		fieldLabel: "Speed",
 		lowerBetter: false,
 		log: true,
 		ticks: [20, 50, 100, 250, 500, 1000, 2500],
@@ -71,6 +77,7 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "response",
 		title: "Intelligence vs response time",
+		fieldLabel: "Response",
 		lowerBetter: true,
 		log: true,
 		ticks: [2.5, 5, 10, 20, 40, 80],
@@ -83,6 +90,7 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "context",
 		title: "Intelligence vs context window",
+		fieldLabel: "Context",
 		lowerBetter: false,
 		log: true,
 		ticks: [
@@ -97,6 +105,7 @@ export const interactionConfigs: InteractionConfig[] = [
 	{
 		key: "aaCost",
 		title: "Intelligence vs AA task cost",
+		fieldLabel: "AA cost",
 		lowerBetter: true,
 		log: true,
 		ticks: [0.02, 0.05, 0.1, 0.25, 0.5, 1],
@@ -107,18 +116,58 @@ export const interactionConfigs: InteractionConfig[] = [
 		read: "Connects benchmark quality to the cost of producing that quality during the evaluation workload.",
 	},
 	{
-		key: "deepSwe",
-		title: "Intelligence vs DeepSWE accuracy",
+		key: "frontierScore",
+		title: "Intelligence vs frontier benchmark score",
+		fieldLabel: "Frontier",
 		lowerBetter: false,
 		log: false,
-		ticks: [0, 20, 40, 60, 80],
-		get: (model) => percent(model.evaluations?.deep_swe),
+		ticks: [0, 20, 40, 60, 80, 100],
+		get: (model, context) =>
+			context.frontierScoreByModel.get(modelKey(model)) ?? null,
 		format: (value) => `${value.toFixed(0)}%`,
 		tooltipFormat: fmtTooltipPercent,
-		xLabel: "DeepSWE accuracy",
-		read: "Shows when broad intelligence and long-horizon coding reliability agree, and where they diverge.",
+		xLabel: "Frontier benchmark normalized score",
+		read: "Shows whether broad intelligence agrees with normalized frontier benchmark performance across the selected model set.",
 	},
 ];
+
+export function frontierBenchmarkScoreByModel(
+	models: LlmStatsModel[],
+	portfolio: BenchmarkPortfolio,
+) {
+	const frontierKeys = Object.entries(portfolio)
+		.filter(([, entry]) => entry.group === "frontier")
+		.map(([key]) => key);
+	const scoresByBenchmark = new Map<string, number[]>();
+	for (const key of frontierKeys) {
+		const scores = models
+			.map((model) => percent(model.evaluations?.[key]))
+			.filter(finite);
+		if (scores.length > 0) {
+			scoresByBenchmark.set(key, scores);
+		}
+	}
+
+	const scoreByModel = new Map<string, number>();
+	for (const model of models) {
+		const normalizedScores = frontierKeys.flatMap((key) => {
+			const score = percent(model.evaluations?.[key]);
+			const benchmarkScores = scoresByBenchmark.get(key);
+			if (score == null || benchmarkScores == null) {
+				return [];
+			}
+			return [minMaxScale(benchmarkScores, score) ?? score];
+		});
+		if (normalizedScores.length > 0) {
+			scoreByModel.set(modelKey(model), meanNumber(normalizedScores));
+		}
+	}
+	return scoreByModel;
+}
+
+function meanNumber(values: number[]) {
+	return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
 
 export const deepSweMetricConfig = {
 	cost: {
@@ -375,10 +424,27 @@ export function correlationLabel(
 	points: Point[],
 	transformX: (value: number) => number,
 ) {
-	if (points.length < 3) {
+	const correlation = correlationValue(
+		points.map((point) => ({
+			x: transformX(point.x),
+			y: point.y,
+		})),
+	);
+	return formatCorrelation(correlation);
+}
+
+export function formatCorrelation(correlation: number | null) {
+	if (correlation == null) {
 		return "CORR --";
 	}
-	const xs = points.map((point) => transformX(point.x));
+	return `CORR ${correlation >= 0 ? "+" : ""}${correlation.toFixed(2)}`;
+}
+
+export function correlationValue(points: { x: number; y: number }[]) {
+	if (points.length < 3) {
+		return null;
+	}
+	const xs = points.map((point) => point.x);
 	const ys = points.map((point) => point.y);
 	const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length;
 	const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
@@ -394,10 +460,9 @@ export function correlationLabel(
 	}
 	const denominator = Math.sqrt(varianceX * varianceY);
 	if (denominator === 0) {
-		return "CORR --";
+		return null;
 	}
-	const r = numerator / denominator;
-	return `CORR ${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
+	return numerator / denominator;
 }
 
 export function positiveDomain(values: number[]): [number, number] {

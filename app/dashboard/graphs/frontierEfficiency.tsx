@@ -290,11 +290,21 @@ export function FrontierEfficiencyPanel({
 	const paretoRow = isAllFilter
 		? null
 		: bestEfficiencyRowAtOrAboveScore(rows, resourceMetric, paretoScoreFloor);
-	const valueAbove80 = bestValueRowAboveScore(rows, axisMetric.get, 80, leader);
-	const valueAbove20 = bestValueRowAboveScore(rows, axisMetric.get, 20, leader);
+	const allParetoRow = bestValueRowAboveScore(
+		rows,
+		axisMetric.get,
+		paretoScoreFloor,
+		leader,
+	);
+	const allBudgetRow = bestValueRowAboveScore(
+		rows,
+		axisMetric.get,
+		medianScore,
+		leader,
+	);
 	const labeledRows = new Set(
 		isAllFilter
-			? [leader, valueAbove80, valueAbove20]
+			? [leader, allParetoRow, allBudgetRow]
 			: [leader, paretoRow, budgetRow].filter(
 					(row): row is FrontierEfficiencyRow => row != null,
 				),
@@ -411,17 +421,17 @@ export function FrontierEfficiencyPanel({
 				{isAllFilter ? (
 					<>
 						<SummaryCard
-							label="Best value above 80%"
-							value={modelName(valueAbove80.model)}
-							detail={`${valueAbove80.score.toFixed(1)}% / value ${axisMetric
-								.get(valueAbove80)
+							label="Pareto (Scored > 80% of leader)"
+							value={modelName(allParetoRow.model)}
+							detail={`${allParetoRow.score.toFixed(1)}% / value ${axisMetric
+								.get(allParetoRow)
 								.toFixed(0)}`}
 						/>
 						<SummaryCard
-							label="Best value above 20%"
-							value={modelName(valueAbove20.model)}
-							detail={`${valueAbove20.score.toFixed(1)}% / value ${axisMetric
-								.get(valueAbove20)
+							label="Budget (Scored > median)"
+							value={modelName(allBudgetRow.model)}
+							detail={`${allBudgetRow.score.toFixed(1)}% / value ${axisMetric
+								.get(allBudgetRow)
 								.toFixed(0)}`}
 						/>
 					</>

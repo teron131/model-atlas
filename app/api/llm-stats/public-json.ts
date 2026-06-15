@@ -1,5 +1,6 @@
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/constants";
 import type {
+	BenchmarkPortfolio,
 	LlmStatsColumnTooltips,
 	LlmStatsModel,
 	LlmStatsPayload,
@@ -190,6 +191,9 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 export function leanDashboardPayload(
 	payload: LlmStatsPayload,
 ): LlmStatsPayload {
+	const frontierBenchmarkPortfolio = leanDashboardBenchmarkPortfolio(
+		payload.metadata.scoring.benchmark_portfolio,
+	);
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		metadata: {
@@ -206,7 +210,7 @@ export function leanDashboardPayload(
 				agentic_benchmark_display_keys: [],
 				missing_agentic_benchmark_keys: [],
 				selected_benchmark_keys: [],
-				benchmark_portfolio: {},
+				benchmark_portfolio: frontierBenchmarkPortfolio,
 				price_profiles: {},
 				simulation_profiles: {},
 				simulation_input_token_seconds:
@@ -222,8 +226,20 @@ export function leanDashboardPayload(
 				),
 			},
 		},
-		models: payload.models.map(leanDashboardModel),
+		models: payload.models.map((model) =>
+			leanDashboardModel(model, frontierBenchmarkPortfolio),
+		),
 	};
+}
+
+function leanDashboardBenchmarkPortfolio(
+	benchmarkPortfolio: BenchmarkPortfolio,
+): BenchmarkPortfolio {
+	return Object.fromEntries(
+		Object.entries(benchmarkPortfolio).filter(
+			([, entry]) => entry.group === "frontier",
+		),
+	);
 }
 
 function methodologyText(payload: LlmStatsPayload): string {
@@ -320,7 +336,10 @@ function leanDashboardColumnTooltips(
 	);
 }
 
-function leanDashboardModel(model: LlmStatsModel): LlmStatsModel {
+function leanDashboardModel(
+	model: LlmStatsModel,
+	benchmarkPortfolio: BenchmarkPortfolio,
+): LlmStatsModel {
 	return {
 		id: model.id,
 		name: model.name,
@@ -336,7 +355,10 @@ function leanDashboardModel(model: LlmStatsModel): LlmStatsModel {
 		intelligence: leanDashboardIntelligence(model.intelligence),
 		intelligence_index_cost: null,
 		task_metrics: leanDashboardTaskMetrics(model.task_metrics),
-		evaluations: leanDashboardEvaluations(model.evaluations),
+		evaluations: leanDashboardEvaluations(
+			model.evaluations,
+			benchmarkPortfolio,
+		),
 		scores: { ...model.scores },
 		relative_scores: { ...model.relative_scores },
 	} as LlmStatsModel;
@@ -401,11 +423,15 @@ function leanDashboardTaskMetrics(
 
 function leanDashboardEvaluations(
 	evaluations: LlmStatsModel["evaluations"],
+	frontierBenchmarkPortfolio: BenchmarkPortfolio,
 ): LlmStatsModel["evaluations"] {
-	if (evaluations?.deep_swe == null) {
-		return null;
-	}
-	return {
-		deep_swe: evaluations.deep_swe,
-	};
+	const frontierEvaluations = Object.fromEntries(
+		Object.keys(frontierBenchmarkPortfolio).flatMap((key) => {
+			const value = evaluations?.[key];
+			return value == null ? [] : [[key, value]];
+		}),
+	);
+	return Object.keys(frontierEvaluations).length > 0
+		? frontierEvaluations
+		: null;
 }
