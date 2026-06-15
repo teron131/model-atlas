@@ -13,6 +13,7 @@ import {
 	providerName,
 	providerPaletteColor,
 } from "../shared/providerTheme";
+import { scoreAxisScale } from "./axisScale";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
@@ -39,6 +40,10 @@ import type { HoverRow, HoverSetter, Margin } from "./types";
 
 const QUALITY_INTELLIGENCE_WEIGHT = 0.65;
 const QUALITY_AGENTIC_WEIGHT = 0.35;
+const PROVIDER_SCORE_AXIS_OPTIONS = {
+	paddingRatio: 0.12,
+	singleValuePadding: 5,
+};
 
 type ProviderModelPoint = {
 	model: LlmStatsModel;
@@ -204,10 +209,12 @@ function ProviderEfficiencyChart({
 	const qualities = rows.map((row) => row.quality);
 	const medianValue = median(values) ?? 0;
 	const medianQuality = median(qualities) ?? 0;
-	const xDomain = scoreDomain(values);
-	const yDomain = scoreDomain(qualities);
-	const xTicks = scoreTicks(xDomain);
-	const yTicks = scoreTicks(yDomain);
+	const valueAxis = scoreAxisScale(values, PROVIDER_SCORE_AXIS_OPTIONS);
+	const qualityAxis = scoreAxisScale(qualities, PROVIDER_SCORE_AXIS_OPTIONS);
+	const xDomain = valueAxis.domain;
+	const yDomain = qualityAxis.domain;
+	const xTicks = valueAxis.ticks;
+	const yTicks = qualityAxis.ticks;
 	const x = scaleLinear()
 		.domain(xDomain)
 		.range([plot.left, plot.right])
@@ -437,35 +444,6 @@ function providerHoverState(row: ProviderEfficiencyRow) {
 		logo: row.logo,
 		rows,
 	};
-}
-
-function scoreDomain(values: number[]): [number, number] {
-	const finiteValues = values.filter((value) => Number.isFinite(value));
-	const low = Math.min(...finiteValues);
-	const high = Math.max(...finiteValues);
-	if (!Number.isFinite(low) || !Number.isFinite(high)) {
-		return [0, 100];
-	}
-	if (low === high) {
-		const pad = 5;
-		return [Math.max(0, low - pad), Math.min(100, high + pad)];
-	}
-	const pad = Math.max(4, (high - low) * 0.12);
-	return [
-		Math.max(0, Math.floor((low - pad) / 5) * 5),
-		Math.min(100, Math.ceil((high + pad) / 5) * 5),
-	];
-}
-
-function scoreTicks([low, high]: [number, number]) {
-	const span = high - low;
-	const step = span <= 30 ? 5 : 10;
-	const first = Math.ceil(low / step) * step;
-	const ticks: number[] = [];
-	for (let tick = first; tick <= high; tick += step) {
-		ticks.push(tick);
-	}
-	return ticks.length > 0 ? ticks : [low, high];
 }
 
 function providerEnvelopeRows(

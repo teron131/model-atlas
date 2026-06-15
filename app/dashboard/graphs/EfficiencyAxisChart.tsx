@@ -46,6 +46,7 @@ export function EfficiencyAxisChart<Row>({
 	rows,
 	metric,
 	xDomain,
+	xTicks: providedXTicks,
 	yDomain,
 	yTicks,
 	yAxisLabel,
@@ -69,6 +70,7 @@ export function EfficiencyAxisChart<Row>({
 	rows: Row[];
 	metric: EfficiencyAxisMetric<Row>;
 	xDomain: [number, number];
+	xTicks?: number[];
 	yDomain: [number, number];
 	yTicks: number[];
 	yAxisLabel: string;
@@ -93,9 +95,10 @@ export function EfficiencyAxisChart<Row>({
 		useCursorProjection();
 	const metricValues = rows.map(metric.get);
 	const xTicks =
-		metric.label === "Value score"
+		providedXTicks ??
+		(metric.label === "Value score"
 			? roundedLinearTicks(xDomain, 10)
-			: linearTicksForValues(metricValues, metric.format);
+			: linearTicksForValues(metricValues, metric.format));
 	const x = scaleLinear()
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])

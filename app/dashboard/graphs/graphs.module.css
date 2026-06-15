@@ -461,11 +461,11 @@
 	height: 42px;
 }
 
-.boxWhiskerPlot.boxWhiskerTopLabelsStaggered {
+.boxWhiskerPlot.boxWhiskerTopLabelsSeparated {
 	height: 58px;
 }
 
-.boxWhiskerFixedDomain .boxWhiskerPlot.boxWhiskerTopLabelsStaggered {
+.boxWhiskerFixedDomain .boxWhiskerPlot.boxWhiskerTopLabelsSeparated {
 	height: 52px;
 }
 
@@ -546,23 +546,35 @@
 	top: 16px;
 }
 
-.boxWhiskerTopLabelsStaggered .boxWhiskerLine,
-.boxWhiskerTopLabelsStaggered .boxWhiskerDomainLine {
+.boxWhiskerTopLabelsSpread .boxWhiskerMinLabel {
+	transform: translateX(calc(-100% - 5px));
+}
+
+.boxWhiskerTopLabelsSpread .boxWhiskerMedianLabel {
+	top: 16px;
+}
+
+.boxWhiskerTopLabelsSpread .boxWhiskerMaxLabel {
+	transform: translateX(5px);
+}
+
+.boxWhiskerTopLabelsSeparated .boxWhiskerLine,
+.boxWhiskerTopLabelsSeparated .boxWhiskerDomainLine {
 	top: 36px;
 }
 
-.boxWhiskerTopLabelsStaggered .boxWhiskerBox,
-.boxWhiskerTopLabelsStaggered .boxWhiskerMin,
-.boxWhiskerTopLabelsStaggered .boxWhiskerMax {
+.boxWhiskerTopLabelsSeparated .boxWhiskerBox,
+.boxWhiskerTopLabelsSeparated .boxWhiskerMin,
+.boxWhiskerTopLabelsSeparated .boxWhiskerMax {
 	top: 31px;
 }
 
-.boxWhiskerTopLabelsStaggered .boxWhiskerMedian {
+.boxWhiskerTopLabelsSeparated .boxWhiskerMedian {
 	top: 28px;
 }
 
-.boxWhiskerFixedDomain .boxWhiskerTopLabelsStaggered .boxWhiskerMin,
-.boxWhiskerFixedDomain .boxWhiskerTopLabelsStaggered .boxWhiskerMax {
+.boxWhiskerFixedDomain .boxWhiskerTopLabelsSeparated .boxWhiskerMin,
+.boxWhiskerFixedDomain .boxWhiskerTopLabelsSeparated .boxWhiskerMax {
 	top: 25px;
 }
 
