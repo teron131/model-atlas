@@ -3,6 +3,7 @@ import { scaleLinear } from "d3-scale";
 import { type CSSProperties, useMemo, useState } from "react";
 import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import { providerPaletteColor } from "../shared/providerTheme";
+import { scoreAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import {
 	AxisTitles,
@@ -40,6 +41,10 @@ type ParetoViewToggleProps = {
 	modelCount: number;
 	providerCount: number;
 	onViewChange: (viewKey: ParetoViewKey) => void;
+};
+
+const SCORE_AXIS_FORMAT_OPTIONS = {
+	formatTick: (tick: number) => tick.toFixed(0),
 };
 
 export function ParetoFrontierPanel({
@@ -149,17 +154,16 @@ export function ParetoFrontierPanel({
 	}
 	const frontier = frontierDescending.reverse();
 	const scoreDistribution = valueDistribution(scores);
-	const xDomain: [number, number] = [
-		Math.max(0, Math.floor((Math.min(...values) - 2) / 5) * 5),
-		100,
-	];
-	const yMin = Math.max(0, Math.min(...scores) - 4);
+	const valueAxis = scoreAxisScale(values, SCORE_AXIS_FORMAT_OPTIONS);
+	const intelligenceAxis = scoreAxisScale(scores, SCORE_AXIS_FORMAT_OPTIONS);
+	const xDomain = valueAxis.domain;
+	const yDomain = intelligenceAxis.domain;
 	const x = scaleLinear()
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
 		.clamp(true);
 	const y = scaleLinear()
-		.domain([yMin, 102])
+		.domain(yDomain)
 		.range([height - margin.bottom, margin.top])
 		.clamp(true);
 	const xPoint = stableSvgScale(x);
@@ -175,15 +179,8 @@ export function ParetoFrontierPanel({
 	const plot = plotBoundsFor(width, height, margin);
 	const medianX = xPoint(medianValue);
 	const medianY = yPoint(medianScore);
-	const yTickStart = Math.ceil(yMin / 5) * 5;
-	const yTicks = Array.from(
-		{ length: Math.floor((100 - yTickStart) / 5) + 1 },
-		(_, index) => yTickStart + index * 5,
-	);
-	const xTickCandidates = [50, 60, 70, 80, 90, 100];
-	const xTicks = xTickCandidates.filter(
-		(tick) => tick >= xDomain[0] && tick <= xDomain[1],
-	);
+	const yTicks = intelligenceAxis.ticks;
+	const xTicks = valueAxis.ticks;
 	const plottedCandidates = candidates;
 	const capabilityBubbleValue = (model: LlmStatsModel) =>
 		Number(model.relative_scores.intelligence_score) *

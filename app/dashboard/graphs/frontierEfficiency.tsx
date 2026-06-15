@@ -1,4 +1,4 @@
-import { max, median } from "d3-array";
+import { median } from "d3-array";
 import { useMemo, useState } from "react";
 import type {
 	BenchmarkPortfolio,
@@ -7,6 +7,11 @@ import type {
 } from "../../../src/model-atlas/llm/stats/types";
 import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import { benchmarkLabels } from "../shared/constants";
+import {
+	linearAxisScale,
+	scoreAxisScale,
+	steppedLinearAxisScale,
+} from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { SummaryCard } from "./ChartComponents";
 import { linearBubbleRadius, valueDistribution } from "./chartStats";
@@ -97,6 +102,17 @@ const frontierEfficiencyAxisConfig: Record<
 		format: fmtCompact,
 		detailLabel: "tokens",
 	},
+};
+
+const FRONTIER_SCORE_AXIS_OPTIONS = {
+	formatTick: (tick: number) => `${tick}%`,
+};
+
+const SELECTED_BENCHMARK_SCORE_AXIS_OPTIONS = {
+	formatTick: (tick: number) => `${tick}%`,
+	max: 100,
+	minimumTicks: 5,
+	steps: [10, 5, 2] as const,
 };
 
 function frontierEfficiencyRows(
@@ -271,13 +287,9 @@ export function FrontierEfficiencyPanel({
 	const isAllBenchmark = selectedBenchmarkKey === "all";
 	const axisConfig = frontierEfficiencyAxisConfig[axisKey];
 	const axisValues = rows.map(axisConfig.get).filter(finite);
-	const xDomain = linearAxisDomain(axisValues);
-	const scoreMax = max(rows, (row) => row.score) ?? 50;
-	const yDomainTop = Math.max(
-		50,
-		Math.min(105, Math.ceil((scoreMax + 4) / 10) * 10),
-	);
-	const yTicks = percentageTicks(yDomainTop);
+	const xAxis = frontierXAxisScale(axisValues, axisKey, axisConfig);
+	const scoreValues = rows.map((row) => row.score).filter(finite);
+	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
 	const bubbleValue = speedScore;
 	const bubbleRadius = linearBubbleRadius(rows.map(bubbleValue), 4, 13);
 	const leader = rows[0] as FrontierEfficiencyRow;
@@ -363,9 +375,10 @@ export function FrontierEfficiencyPanel({
 			<EfficiencyAxisChart
 				rows={plotRows}
 				metric={axisConfig}
-				xDomain={xDomain}
-				yDomain={[0, yDomainTop]}
-				yTicks={yTicks}
+				xDomain={xAxis.domain}
+				xTicks={xAxis.ticks}
+				yDomain={scoreAxis.domain}
+				yTicks={scoreAxis.ticks}
 				yAxisLabel={yAxisLabel}
 				keyPrefix={`frontier-efficiency-${selectedBenchmarkKey}-${axisKey}`}
 				ariaLabel="Frontier Efficiency scatter plot"
@@ -486,6 +499,13 @@ function frontierEfficiencyCorrelation(rows: FrontierEfficiencyRow[]) {
 	);
 }
 
+function frontierScoreAxisScale(values: number[], isAllBenchmark: boolean) {
+	if (isAllBenchmark) {
+		return scoreAxisScale(values, FRONTIER_SCORE_AXIS_OPTIONS);
+	}
+	return steppedLinearAxisScale(values, SELECTED_BENCHMARK_SCORE_AXIS_OPTIONS);
+}
+
 function groupRowsByBenchmark(rows: FrontierEfficiencyRow[]) {
 	const rowsByBenchmark = new Map<string, FrontierEfficiencyRow[]>();
 	for (const row of rows) {
@@ -500,26 +520,20 @@ function speedScore(row: FrontierEfficiencyRow) {
 	return finiteValue(row.model.relative_scores?.speed_score) ?? 0;
 }
 
-function percentageTicks(domainTop: number) {
-	const step = domainTop <= 60 ? 10 : 20;
-	return Array.from(
-		{ length: Math.floor(domainTop / step) + 1 },
-		(_, index) => index * step,
-	);
-}
-
-function linearAxisDomain(values: number[]): [number, number] {
-	const low = Math.min(...values);
-	const high = Math.max(...values);
-	if (!finite(low) || !finite(high)) {
-		return [0, 1];
+function frontierXAxisScale(
+	values: number[],
+	axisKey: FrontierEfficiencyAxisKey,
+	axisConfig: FrontierEfficiencyAxisConfig,
+) {
+	if (axisKey === "value") {
+		return scoreAxisScale(values, {
+			formatTick: axisConfig.format,
+		});
 	}
-	if (low === high) {
-		const pad = Math.max(Math.abs(low) * 0.1, 1);
-		return [Math.max(0, low - pad), high + pad];
-	}
-	const span = high - low;
-	return [Math.max(0, low - span * 0.05), high + span * 0.05];
+	return linearAxisScale(values, {
+		formatTick: axisConfig.format,
+		min: 0,
+	});
 }
 
 function frontierEfficiencyHoverRows(row: FrontierEfficiencyRow): HoverRow[] {

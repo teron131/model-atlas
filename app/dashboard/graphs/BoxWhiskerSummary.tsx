@@ -16,9 +16,14 @@ export type BoxWhiskerDistribution = {
 	max: number;
 };
 
+const TOP_LABEL_COLLISION_RATIO = 0.12;
+
+type TopLabelMode = "spread" | "stagger" | null;
+
 export function BoxWhiskerSummary({
 	label,
 	distribution,
+	displayDistribution,
 	domainMin,
 	domainMax,
 	formatValue = (value) => value.toFixed(0),
@@ -29,6 +34,7 @@ export function BoxWhiskerSummary({
 }: {
 	label: string;
 	distribution: BoxWhiskerDistribution;
+	displayDistribution?: BoxWhiskerDistribution;
 	domainMin?: number;
 	domainMax: number;
 	formatValue?: (value: number) => string;
@@ -53,11 +59,12 @@ export function BoxWhiskerSummary({
 		const operator = offset < 0 ? "-" : "+";
 		return `calc(${percent}% ${operator} ${Math.abs(offset)}px)`;
 	};
-	const medianValue = formatValue(distribution.median);
+	const displayValues = displayDistribution ?? distribution;
+	const displayMedianValue = formatValue(displayValues.median);
 	const domainMinValue = formatValue(minValue);
 	const domainMaxValue = formatValue(maxValue);
-	const minDisplayValue = formatValue(distribution.min);
-	const maxDisplayValue = formatValue(distribution.max);
+	const minDisplayValue = formatValue(displayValues.min);
+	const maxDisplayValue = formatValue(displayValues.max);
 	const hideMinValue =
 		showDomainEndpoints && minDisplayValue === domainMinValue;
 	const hideMaxValue =
@@ -71,14 +78,26 @@ export function BoxWhiskerSummary({
 		"--whisker-max": toPosition(distribution.max),
 		"--whisker-domain-max": toPosition(maxValue),
 	} as CSSProperties;
-	const observedValuesOnTop = showDomainEndpoints || showObservedLabels;
-	const nearestObservedLabelGap =
+	const usesObservedTopLabels = showDomainEndpoints || showObservedLabels;
+	const nearestObservedLabelRatio =
 		Math.min(
 			Math.abs(distribution.median - distribution.min),
 			Math.abs(distribution.max - distribution.median),
 		) / domainSpan;
-	const allowTopLabelStagger =
-		observedValuesOnTop && nearestObservedLabelGap < 0.12;
+	const observedRangeRatio =
+		Math.abs(distribution.max - distribution.min) / domainSpan;
+	const topLabelMode = boxWhiskerTopLabelMode({
+		nearestObservedLabelRatio,
+		observedRangeRatio,
+		staggerTopMedian,
+		usesObservedTopLabels,
+	});
+	const topLabelClassName =
+		topLabelMode === "spread"
+			? `${styles.boxWhiskerTopLabelsSeparated} ${styles.boxWhiskerTopLabelsSpread}`
+			: topLabelMode === "stagger"
+				? `${styles.boxWhiskerTopLabelsSeparated} ${styles.boxWhiskerTopLabelsStaggered}`
+				: "";
 
 	useEffect(() => {
 		const root = rootRef.current;
@@ -104,7 +123,7 @@ export function BoxWhiskerSummary({
 				);
 			}
 			const shouldStaggerTopMedian =
-				observedValuesOnTop &&
+				usesObservedTopLabels &&
 				topMin != null &&
 				topMedian != null &&
 				topMax != null &&
@@ -118,7 +137,7 @@ export function BoxWhiskerSummary({
 		const resizeObserver = new ResizeObserver(measure);
 		resizeObserver.observe(root);
 		return () => resizeObserver.disconnect();
-	});
+	}, [usesObservedTopLabels]);
 
 	return (
 		<div
@@ -135,27 +154,23 @@ export function BoxWhiskerSummary({
 				</b>
 			</div>
 			<div
-				className={`${styles.boxWhiskerPlot} ${
-					allowTopLabelStagger && staggerTopMedian
-						? styles.boxWhiskerTopLabelsStaggered
-						: ""
-				}`}
+				className={`${styles.boxWhiskerPlot} ${topLabelClassName}`}
 				aria-label={`${label} distribution from ${formatValue(
-					distribution.min,
-				)} to ${formatValue(distribution.max)} with median ${formatValue(
-					distribution.median,
+					displayValues.min,
+				)} to ${formatValue(displayValues.max)} with median ${formatValue(
+					displayValues.median,
 				)}`}
 				role="img"
 			>
-				{observedValuesOnTop ? (
+				{usesObservedTopLabels ? (
 					<span className={styles.boxWhiskerMinLabel}>MIN</span>
 				) : null}
-				{observedValuesOnTop || medianOnTop ? (
+				{usesObservedTopLabels || medianOnTop ? (
 					<span className={styles.boxWhiskerMedianLabel}>
-						{observedValuesOnTop ? "MED" : medianValue}
+						{usesObservedTopLabels ? "MED" : displayMedianValue}
 					</span>
 				) : null}
-				{observedValuesOnTop ? (
+				{usesObservedTopLabels ? (
 					<span className={styles.boxWhiskerMaxLabel}>MAX</span>
 				) : null}
 				{showDomainEndpoints ? (
@@ -169,7 +184,7 @@ export function BoxWhiskerSummary({
 			</div>
 			<div
 				className={`${styles.boxWhiskerStats} ${
-					observedValuesOnTop ? styles.boxWhiskerStatsStripLayout : ""
+					usesObservedTopLabels ? styles.boxWhiskerStatsStripLayout : ""
 				}`}
 			>
 				{showDomainEndpoints && showDomainEndpointLabels ? (
@@ -177,13 +192,13 @@ export function BoxWhiskerSummary({
 						{domainMinValue}
 					</span>
 				) : null}
-				{observedValuesOnTop ? (
+				{usesObservedTopLabels ? (
 					<span className={styles.boxWhiskerObservedStrip}>
 						<span>
 							<b>MIN</b> {minDisplayValue}
 						</span>
 						<span>
-							<b>MED</b> {medianValue}
+							<b>MED</b> {displayMedianValue}
 						</span>
 						<span>
 							<b>MAX</b> {maxDisplayValue}
@@ -197,11 +212,11 @@ export function BoxWhiskerSummary({
 							</span>
 						)}
 						<span className={styles.boxWhiskerMedianProbe} aria-hidden="true">
-							{medianValue}
+							{displayMedianValue}
 						</span>
 						{medianOnTop ? null : (
 							<span className={styles.boxWhiskerMedianValue}>
-								{medianValue}
+								{displayMedianValue}
 							</span>
 						)}
 						{hideMaxValue ? null : (
@@ -219,6 +234,32 @@ export function BoxWhiskerSummary({
 			</div>
 		</div>
 	);
+}
+
+function boxWhiskerTopLabelMode({
+	nearestObservedLabelRatio,
+	observedRangeRatio,
+	staggerTopMedian,
+	usesObservedTopLabels,
+}: {
+	nearestObservedLabelRatio: number;
+	observedRangeRatio: number;
+	staggerTopMedian: boolean;
+	usesObservedTopLabels: boolean;
+}): TopLabelMode {
+	if (!usesObservedTopLabels) {
+		return null;
+	}
+	if (observedRangeRatio < TOP_LABEL_COLLISION_RATIO) {
+		return "spread";
+	}
+	if (
+		staggerTopMedian &&
+		nearestObservedLabelRatio < TOP_LABEL_COLLISION_RATIO
+	) {
+		return "stagger";
+	}
+	return null;
 }
 
 function hasHorizontalOverlap(

@@ -7,6 +7,7 @@ import type {
 } from "../../../src/model-atlas/llm/stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { providerPaletteColor } from "../shared/providerTheme";
+import { linearAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import {
 	AxisTitles,
@@ -25,11 +26,11 @@ import {
 	XAxisTicks,
 	YAxisTicks,
 } from "./ChartComponents";
-import { extremeLabelRows, intelligenceDistribution } from "./chartStats";
+import { extremeLabelRows, valueDistribution } from "./chartStats";
 import { finiteValue, fmtTooltipScore } from "./format";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
-import { interactionXAxisTicks, linearAxisTicks } from "./interactionTicks";
+import { interactionXAxisTicks } from "./interactionTicks";
 import { calloutLabelPlacements } from "./labelPlacement";
 import {
 	correlationLabel,
@@ -91,11 +92,15 @@ export function InteractionMatrix({
 		}),
 		[models, benchmarkPortfolio],
 	);
-	const distribution = intelligenceDistribution(models);
-
 	if (!selectedConfig) {
 		return null;
 	}
+
+	const xDistribution = interactionXDistribution(
+		models,
+		selectedConfig,
+		interactionContext,
+	);
 
 	return (
 		<Panel
@@ -103,10 +108,13 @@ export function InteractionMatrix({
 			copy="Switch between price, speed, response time, context, task cost, and coding reliability."
 			summary={
 				<BoxWhiskerSummary
-					label="Intelligence score"
-					distribution={distribution}
-					domainMax={100}
-					showDomainEndpoints
+					label={`${selectedConfig.fieldLabel} spread`}
+					distribution={xDistribution.distribution}
+					displayDistribution={xDistribution.displayDistribution}
+					domainMin={xDistribution.domainMin}
+					domainMax={xDistribution.domainMax}
+					formatValue={xDistribution.formatValue}
+					showObservedLabels
 				/>
 			}
 		>
@@ -138,6 +146,38 @@ export function InteractionMatrix({
 			</div>
 		</Panel>
 	);
+}
+
+function interactionXDistribution(
+	models: LlmStatsModel[],
+	config: InteractionConfig,
+	context: InteractionContext,
+) {
+	const values = models
+		.map((model) => config.get(model, context))
+		.filter(
+			(value): value is number =>
+				value != null && Number.isFinite(value) && (!config.log || value > 0),
+		);
+	if (!config.log) {
+		const distribution = valueDistribution(values);
+		return {
+			distribution,
+			displayDistribution: distribution,
+			domainMax: distribution.max,
+			domainMin: distribution.min,
+			formatValue: config.tooltipFormat,
+		};
+	}
+	const logValues = values.map((value) => Math.log10(value));
+	const distribution = valueDistribution(logValues);
+	return {
+		distribution,
+		displayDistribution: valueDistribution(values),
+		domainMax: distribution.max,
+		domainMin: distribution.min,
+		formatValue: config.tooltipFormat,
+	};
 }
 
 function interactionTabCorrelation(
@@ -209,13 +249,28 @@ function InteractionPlot({
 	const [rawMin, rawMax] = extent(data, (point) => point.x);
 	const xMin = rawMin ?? 1;
 	const xMax = rawMax ?? xMin * 2;
+	const xAxis = config.log
+		? null
+		: linearAxisScale(
+				data.map((point) => point.x),
+				{
+					paddingRatio: 0.06,
+				},
+			);
 	const xDomain: [number, number] = config.log
 		? positiveDomain(data.map((point) => point.x))
-		: paddedLinearDomain(data.map((point) => point.x));
+		: (xAxis?.domain ?? [0, 1]);
 	const xTickDomain: [number, number] = xMin < xMax ? [xMin, xMax] : xDomain;
 	const yValues = data.map((point) => point.y);
-	const yDomain = paddedLinearDomain(yValues);
-	const yTicks = linearAxisTicks(yDomain, (tick) => String(tick));
+	const yAxis = linearAxisScale(yValues, {
+		formatTick: (tick) => String(tick),
+		max: 100,
+		min: 0,
+		minimumTicksWithoutExpansion: 4,
+		paddingRatio: 0.06,
+	});
+	const yDomain = yAxis.domain;
+	const yTicks = yAxis.ticks;
 	const x = (config.log ? scaleLog() : scaleLinear())
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
@@ -396,18 +451,6 @@ function InteractionPlot({
 			<div className={styles.interactionRead}>{config.read}</div>
 		</div>
 	);
-}
-
-function paddedLinearDomain(values: number[]): [number, number] {
-	const finiteValues = values.filter((value) => Number.isFinite(value));
-	const low = Math.min(...finiteValues);
-	const high = Math.max(...finiteValues);
-	if (!Number.isFinite(low) || !Number.isFinite(high)) {
-		return [0, 1];
-	}
-	const span = high - low;
-	const padding = span > 0 ? span * 0.06 : Math.max(Math.abs(high) * 0.06, 1);
-	return [low - padding, high + padding];
 }
 
 function topIntelligenceScoreRows(points: readonly Point[]) {
