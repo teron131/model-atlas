@@ -23,7 +23,6 @@ type TopLabelMode = "spread" | "stagger" | null;
 export function BoxWhiskerSummary({
 	label,
 	distribution,
-	displayDistribution,
 	domainMin,
 	domainMax,
 	formatValue = (value) => value.toFixed(0),
@@ -34,7 +33,6 @@ export function BoxWhiskerSummary({
 }: {
 	label: string;
 	distribution: BoxWhiskerDistribution;
-	displayDistribution?: BoxWhiskerDistribution;
 	domainMin?: number;
 	domainMax: number;
 	formatValue?: (value: number) => string;
@@ -59,12 +57,11 @@ export function BoxWhiskerSummary({
 		const operator = offset < 0 ? "-" : "+";
 		return `calc(${percent}% ${operator} ${Math.abs(offset)}px)`;
 	};
-	const displayValues = displayDistribution ?? distribution;
-	const displayMedianValue = formatValue(displayValues.median);
+	const medianValue = formatValue(distribution.median);
 	const domainMinValue = formatValue(minValue);
 	const domainMaxValue = formatValue(maxValue);
-	const minDisplayValue = formatValue(displayValues.min);
-	const maxDisplayValue = formatValue(displayValues.max);
+	const minDisplayValue = formatValue(distribution.min);
+	const maxDisplayValue = formatValue(distribution.max);
 	const hideMinValue =
 		showDomainEndpoints && minDisplayValue === domainMinValue;
 	const hideMaxValue =
@@ -156,9 +153,9 @@ export function BoxWhiskerSummary({
 			<div
 				className={`${styles.boxWhiskerPlot} ${topLabelClassName}`}
 				aria-label={`${label} distribution from ${formatValue(
-					displayValues.min,
-				)} to ${formatValue(displayValues.max)} with median ${formatValue(
-					displayValues.median,
+					distribution.min,
+				)} to ${formatValue(distribution.max)} with median ${formatValue(
+					distribution.median,
 				)}`}
 				role="img"
 			>
@@ -167,7 +164,7 @@ export function BoxWhiskerSummary({
 				) : null}
 				{usesObservedTopLabels || medianOnTop ? (
 					<span className={styles.boxWhiskerMedianLabel}>
-						{usesObservedTopLabels ? "MED" : displayMedianValue}
+						{usesObservedTopLabels ? "MED" : medianValue}
 					</span>
 				) : null}
 				{usesObservedTopLabels ? (
@@ -198,7 +195,7 @@ export function BoxWhiskerSummary({
 							<b>MIN</b> {minDisplayValue}
 						</span>
 						<span>
-							<b>MED</b> {displayMedianValue}
+							<b>MED</b> {medianValue}
 						</span>
 						<span>
 							<b>MAX</b> {maxDisplayValue}
@@ -212,11 +209,11 @@ export function BoxWhiskerSummary({
 							</span>
 						)}
 						<span className={styles.boxWhiskerMedianProbe} aria-hidden="true">
-							{displayMedianValue}
+							{medianValue}
 						</span>
 						{medianOnTop ? null : (
 							<span className={styles.boxWhiskerMedianValue}>
-								{displayMedianValue}
+								{medianValue}
 							</span>
 						)}
 						{hideMaxValue ? null : (

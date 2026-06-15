@@ -110,7 +110,6 @@ export function InteractionMatrix({
 				<BoxWhiskerSummary
 					label={`${selectedConfig.fieldLabel} spread`}
 					distribution={xDistribution.distribution}
-					displayDistribution={xDistribution.displayDistribution}
 					domainMin={xDistribution.domainMin}
 					domainMax={xDistribution.domainMax}
 					formatValue={xDistribution.formatValue}
@@ -160,21 +159,9 @@ function interactionXDistribution(
 			(value): value is number =>
 				value != null && Number.isFinite(value) && (!config.log || value > 0),
 		);
-	if (!config.log) {
-		const distribution = valueDistribution(values);
-		return {
-			distribution,
-			displayDistribution: distribution,
-			domainMax: distribution.max,
-			domainMin: distribution.min,
-			formatValue,
-		};
-	}
-	const logValues = values.map((value) => Math.log10(value));
-	const distribution = valueDistribution(logValues);
+	const distribution = valueDistribution(values);
 	return {
 		distribution,
-		displayDistribution: valueDistribution(values),
 		domainMax: distribution.max,
 		domainMin: distribution.min,
 		formatValue,

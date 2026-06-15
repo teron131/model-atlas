@@ -26,6 +26,21 @@ export function fmtPercent(value: unknown, digits = 0) {
 	return normalized == null ? "--" : `${normalized.toFixed(digits)}%`;
 }
 
+export function fmtPercentScore(value: unknown) {
+	if (!finite(value)) {
+		return "--";
+	}
+	// Benchmark sources report score percentages at roughly tenth-point precision.
+	const roundedToTenth = Number(value.toFixed(1));
+	if (value < 100 && roundedToTenth >= 100) {
+		return "99.9%";
+	}
+	const roundedToWhole = Math.round(roundedToTenth);
+	return Math.abs(roundedToTenth - roundedToWhole) < 0.001
+		? `${roundedToWhole}%`
+		: `${roundedToTenth.toFixed(1)}%`;
+}
+
 export function fmtScore(value: number | null | undefined) {
 	return finite(value) ? value.toFixed(0) : "--";
 }
