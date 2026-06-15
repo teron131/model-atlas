@@ -34,13 +34,18 @@ export type Point = {
 	agentic: number | null;
 };
 
+export type InteractionContext = {
+	frontierScoreByModel: ReadonlyMap<string, number>;
+};
+
 export type InteractionConfig = {
 	key: string;
 	title: string;
+	fieldLabel: string;
 	lowerBetter: boolean;
 	log: boolean;
 	ticks: number[];
-	get: (model: LlmStatsModel) => number | null;
+	get: (model: LlmStatsModel, context: InteractionContext) => number | null;
 	format: (value: number) => string;
 	tooltipFormat: (value: number) => string;
 	xLabel: string;

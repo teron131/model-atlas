@@ -108,14 +108,19 @@ assert.equal(
 	"initial loading markup should include benchmark placeholder chips",
 );
 assert.equal(
-	leanInteractionHtml.includes("Intelligence vs AA task cost"),
+	leanInteractionHtml.includes("AA cost"),
 	true,
-	"lean dashboard payload should render the AA task-cost interaction plot immediately",
+	"lean dashboard payload should expose the AA task-cost interaction field immediately",
 );
 assert.equal(
-	leanInteractionHtml.includes("Intelligence vs DeepSWE accuracy"),
+	leanInteractionHtml.includes("Frontier"),
 	true,
-	"lean dashboard payload should render the DeepSWE interaction plot immediately",
+	"lean dashboard payload should expose the frontier benchmark interaction field immediately",
+);
+assert.equal(
+	leanInteractionHtml.includes("CORR"),
+	true,
+	"lean dashboard payload should render field correlation labels immediately",
 );
 assert.equal(
 	leanInteractionHtml.includes("Loading full metric payload"),

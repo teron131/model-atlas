@@ -1,7 +1,10 @@
 import { extent, median } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
-import type { CSSProperties } from "react";
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import { type CSSProperties, useMemo, useState } from "react";
+import type {
+	BenchmarkPortfolio,
+	LlmStatsModel,
+} from "../../../src/model-atlas/llm/stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
@@ -25,33 +28,78 @@ import {
 import { extremeLabelRows, intelligenceDistribution } from "./chartStats";
 import { finiteValue, fmtTooltipScore } from "./format";
 import styles from "./graphs.module.css";
-import { interactionXAxisTicks } from "./interactionTicks";
+import { interactionXAxisTicks, linearAxisTicks } from "./interactionTicks";
 import { calloutLabelPlacements } from "./labelPlacement";
 import {
 	correlationLabel,
+	correlationValue,
+	formatCorrelation,
+	frontierBenchmarkScoreByModel,
 	interactionConfigs,
 	modelKey,
 	positiveDomain,
 	shortLabel,
 } from "./models";
 import { Panel } from "./Panel";
-import type { HoverRow, HoverSetter, InteractionConfig, Point } from "./types";
+import type {
+	HoverRow,
+	HoverSetter,
+	InteractionConfig,
+	InteractionContext,
+	Point,
+} from "./types";
+
+const INTERACTION_CHART_WIDTH = 760;
+const INTERACTION_CHART_HEIGHT = 460;
+const INTERACTION_CHART_MARGIN = {
+	top: 30,
+	right: 64,
+	bottom: 72,
+	left: 66,
+};
+const INTERACTION_LABEL_METRICS = {
+	fontSize: 11,
+	charWidth: 6.5,
+	lineHeight: 12,
+	padding: 3,
+};
 
 export function InteractionMatrix({
 	models,
+	benchmarkPortfolio,
 	fullPayloadLoaded,
 	setHover,
 }: {
 	models: LlmStatsModel[];
+	benchmarkPortfolio: BenchmarkPortfolio;
 	fullPayloadLoaded: boolean;
 	setHover: HoverSetter;
 }) {
+	const [selectedKey, setSelectedKey] = useState(
+		interactionConfigs[0]?.key ?? "",
+	);
+	const selectedConfig =
+		interactionConfigs.find((config) => config.key === selectedKey) ??
+		interactionConfigs[0];
+	const interactionContext = useMemo(
+		() => ({
+			frontierScoreByModel: frontierBenchmarkScoreByModel(
+				models,
+				benchmarkPortfolio,
+			),
+		}),
+		[models, benchmarkPortfolio],
+	);
 	const distribution = intelligenceDistribution(models);
+
+	if (!selectedConfig) {
+		return null;
+	}
 
 	return (
 		<Panel
 			title="Intelligence interaction matrix"
-			copy="Small multiples across price, speed, response time, context, task cost, and coding reliability."
+			copy="Switch between price, speed, response time, context, task cost, and coding reliability."
 			summary={
 				<BoxWhiskerSummary
 					label="Intelligence score"
@@ -60,55 +108,94 @@ export function InteractionMatrix({
 					showDomainEndpoints
 				/>
 			}
-			wide
 		>
-			<div className={styles.interactionGrid}>
-				{interactionConfigs.map((config) => (
-					<InteractionPlot
-						key={config.key}
-						models={models}
-						config={config}
-						fullPayloadLoaded={fullPayloadLoaded}
-						setHover={setHover}
-					/>
-				))}
+			<div className={styles.interactionControls}>
+				<fieldset
+					className={`${styles.metricToggle} ${styles.interactionToggle}`}
+				>
+					<legend className={styles.visuallyHidden}>Interaction field</legend>
+					{interactionConfigs.map((config) => (
+						<button
+							key={config.key}
+							type="button"
+							aria-pressed={selectedConfig.key === config.key}
+							onClick={() => setSelectedKey(config.key)}
+						>
+							<span className={styles.interactionTabCorr}>
+								{interactionTabCorrelation(models, config, interactionContext)}
+							</span>
+							<b className={styles.interactionTabLabel}>{config.fieldLabel}</b>
+						</button>
+					))}
+				</fieldset>
+			</div>
+			<div className={styles.interactionPlotBody}>
+				<InteractionPlot
+					models={models}
+					config={selectedConfig}
+					context={interactionContext}
+					fullPayloadLoaded={fullPayloadLoaded}
+					setHover={setHover}
+				/>
 			</div>
 		</Panel>
 	);
 }
 
+function interactionTabCorrelation(
+	models: LlmStatsModel[],
+	config: InteractionConfig,
+	context: InteractionContext,
+) {
+	const pairs = models.flatMap((model) => {
+		const xValue = config.get(model, context);
+		const yValue = finiteValue(model.relative_scores?.intelligence_score);
+		if (xValue == null || yValue == null || (config.log && xValue <= 0)) {
+			return [];
+		}
+		return [
+			{
+				x: config.log ? Math.log10(Math.max(xValue, 0.001)) : xValue,
+				y: yValue,
+			},
+		];
+	});
+	return formatCorrelation(correlationValue(pairs));
+}
+
 function InteractionPlot({
 	models,
 	config,
+	context,
 	fullPayloadLoaded,
 	setHover,
 }: {
 	models: LlmStatsModel[];
 	config: InteractionConfig;
+	context: InteractionContext;
 	fullPayloadLoaded: boolean;
 	setHover: HoverSetter;
 }) {
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
 		useCursorProjection();
-	const data = models
-		.map((model) => ({
-			model,
-			x: config.get(model),
-			y: finiteValue(model.relative_scores?.intelligence_score),
-			overall: finiteValue(model.relative_scores?.overall_score),
-			agentic: finiteValue(model.relative_scores?.agentic_score),
-		}))
-		.filter(
-			(point): point is Point =>
-				point.x != null && point.y != null && (!config.log || point.x > 0),
-		);
+	const modelPoints = models.map((model) => ({
+		model,
+		x: config.get(model, context),
+		y: finiteValue(model.relative_scores?.intelligence_score),
+		overall: finiteValue(model.relative_scores?.overall_score),
+		agentic: finiteValue(model.relative_scores?.agentic_score),
+	}));
+	const data = modelPoints.filter(
+		(point): point is Point =>
+			point.x != null && point.y != null && (!config.log || point.x > 0),
+	);
 
 	if (data.length === 0) {
 		if (!fullPayloadLoaded) {
 			return null;
 		}
 		return (
-			<div className={styles.interactionPlot}>
+			<div className={`${styles.chartWrap} ${styles.interactionPlot}`}>
 				<div className={styles.interactionPlotHead}>
 					<div className={styles.interactionTitle}>{config.title}</div>
 					<div className={styles.interactionBadge}>r --</div>
@@ -118,22 +205,19 @@ function InteractionPlot({
 		);
 	}
 
-	const width = 430;
-	const height = 315;
-	const margin = { top: 22, right: 52, bottom: 64, left: 54 };
+	const width = INTERACTION_CHART_WIDTH;
+	const height = INTERACTION_CHART_HEIGHT;
+	const margin = INTERACTION_CHART_MARGIN;
 	const [rawMin, rawMax] = extent(data, (point) => point.x);
 	const xMin = rawMin ?? 1;
 	const xMax = rawMax ?? xMin * 2;
-	const xSpan = xMax - xMin || Math.max(1, xMax);
 	const xDomain: [number, number] = config.log
 		? positiveDomain(data.map((point) => point.x))
-		: [Math.min(0, xMin - xSpan * 0.05), xMax + xSpan * 0.05];
+		: paddedLinearDomain(data.map((point) => point.x));
 	const xTickDomain: [number, number] = xMin < xMax ? [xMin, xMax] : xDomain;
 	const yValues = data.map((point) => point.y);
-	const yDomain: [number, number] = [
-		Math.min(0, Math.floor((Math.min(...yValues) - 6) / 10) * 10),
-		Math.max(105, Math.ceil((Math.max(...yValues) + 6) / 10) * 10),
-	];
+	const yDomain = paddedLinearDomain(yValues);
+	const yTicks = linearAxisTicks(yDomain, (tick) => String(tick));
 	const x = (config.log ? scaleLog() : scaleLinear())
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
@@ -166,13 +250,16 @@ function InteractionPlot({
 		bounds: plot,
 		points: projectionPoints,
 	});
-	const labeledPoints = extremeLabelRows(
-		plottedPoints,
-		(point) => modelKey(point.model),
-		(point) => point.x,
-		(point) => point.y,
-		{ xHigherBetter: !config.lowerBetter },
-	);
+	const labeledPoints =
+		config.key === "frontierScore"
+			? topIntelligenceScoreRows(plottedPoints)
+			: extremeLabelRows(
+					plottedPoints,
+					(point) => modelKey(point.model),
+					(point) => point.x,
+					(point) => point.y,
+					{ xHigherBetter: !config.lowerBetter },
+				);
 	const pointRadius = (point: Point) => clamp((point.overall ?? 45) / 18, 3, 6);
 	const interactionLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
@@ -191,20 +278,19 @@ function InteractionPlot({
 				radius: pointRadius(point),
 				priority: plottedPoints.length - index,
 			})),
-		fontSize: 9.5,
-		charWidth: 5.8,
-		lineHeight: 11,
-		padding: 3,
+		...INTERACTION_LABEL_METRICS,
 	});
 
 	return (
-		<div className={styles.interactionPlot}>
+		<div
+			className={`${styles.chartWrap} ${styles.interactionPlot}`}
+			style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+		>
 			<div className={styles.interactionPlotHead}>
 				<div className={styles.interactionTitle}>{config.title}</div>
 				<div className={styles.interactionBadge}>{rLabel}</div>
 			</div>
 			<svg
-				style={{ "--chart-max-width": `${width}px` } as CSSProperties}
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
 				aria-label={`${config.title} scatter plot`}
@@ -218,19 +304,13 @@ function InteractionPlot({
 					y={plot.bottom}
 					format={config.format}
 					keyPrefix={config.key}
-					tickLength={6}
-					labelOffset={20}
 				/>
 				<YAxisTicks
-					ticks={[0, 20, 40, 60, 80, 100].filter(
-						(tick) => tick >= yDomain[0] && tick <= yDomain[1],
-					)}
+					ticks={yTicks}
 					yPoint={yPoint}
 					x={plot.left}
 					format={(tick) => String(tick)}
 					keyPrefix={config.key}
-					tickLength={6}
-					labelOffset={12}
 				/>
 				<AxisTitles
 					width={width}
@@ -238,7 +318,7 @@ function InteractionPlot({
 					margin={margin}
 					x={config.xLabel}
 					y="Intelligence score"
-					compact
+					xTitleOffset={50}
 				/>
 				<MedianCross
 					x={xPoint(medianXValue)}
@@ -317,5 +397,25 @@ function InteractionPlot({
 			</svg>
 			<div className={styles.interactionRead}>{config.read}</div>
 		</div>
+	);
+}
+
+function paddedLinearDomain(values: number[]): [number, number] {
+	const finiteValues = values.filter((value) => Number.isFinite(value));
+	const low = Math.min(...finiteValues);
+	const high = Math.max(...finiteValues);
+	if (!Number.isFinite(low) || !Number.isFinite(high)) {
+		return [0, 1];
+	}
+	const span = high - low;
+	const padding = span > 0 ? span * 0.06 : Math.max(Math.abs(high) * 0.06, 1);
+	return [low - padding, high + padding];
+}
+
+function topIntelligenceScoreRows(points: readonly Point[]) {
+	return new Set(
+		[...points]
+			.sort((left, right) => right.y - left.y || right.x - left.x)
+			.slice(0, 3),
 	);
 }

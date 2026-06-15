@@ -78,6 +78,11 @@ fullPayload.metadata.scoring.benchmark_portfolio = {
 		intelligencePortion: 1,
 		agenticPortion: 0,
 	},
+	deep_swe: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 1,
+	},
 };
 fullPayload.metadata.scoring.overall_relative_score_weights = {
 	intelligence: 0.11,
@@ -121,7 +126,13 @@ assert.deepEqual(
 	[],
 );
 assert.deepEqual(leanPayload.metadata.scoring.selected_benchmark_keys, []);
-assert.deepEqual(leanPayload.metadata.scoring.benchmark_portfolio, {});
+assert.deepEqual(leanPayload.metadata.scoring.benchmark_portfolio, {
+	deep_swe: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 1,
+	},
+});
 assert.deepEqual(model?.evaluations, {
 	deep_swe: 0.6,
 });

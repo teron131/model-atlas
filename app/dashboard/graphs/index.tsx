@@ -194,6 +194,9 @@ export function DashboardGraphs({
 						/>
 						<InteractionMatrix
 							models={models}
+							benchmarkPortfolio={
+								initialPayload.metadata.scoring.benchmark_portfolio
+							}
 							fullPayloadLoaded={fullPayloadLoaded}
 							setHover={setHover}
 						/>
