@@ -244,7 +244,7 @@ export function RunwayPanel({
 			}
 		>
 			<div className={styles.frontierLegend}>
-				<div className={styles.resourceCaption}>
+				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
 						Bubble size = value score

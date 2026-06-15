@@ -18,7 +18,6 @@ export type SortableColumnDefinition = {
 export const staticSortableColumns: SortableColumnDefinition[] = [
 	{ key: "rank", label: "#", className: "rank" },
 	{ key: "model", label: "Model", className: "model-column" },
-	{ key: "overall", label: "Ovrll" },
 	{
 		key: "intelligence",
 		label: metricLabel(<BrainIcon />, "Intel"),
@@ -35,6 +34,7 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
 		key: "value",
 		label: metricLabel(<DollarIcon />, "Value"),
 	},
+	{ key: "overall", label: "Ovrll" },
 	{ key: "blend", label: "Blend" },
 	{ key: "context", label: "Context" },
 ];

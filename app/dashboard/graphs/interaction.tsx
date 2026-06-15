@@ -27,6 +27,7 @@ import {
 } from "./ChartComponents";
 import { extremeLabelRows, intelligenceDistribution } from "./chartStats";
 import { finiteValue, fmtTooltipScore } from "./format";
+import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
 import { interactionXAxisTicks, linearAxisTicks } from "./interactionTicks";
 import { calloutLabelPlacements } from "./labelPlacement";
@@ -110,24 +111,21 @@ export function InteractionMatrix({
 			}
 		>
 			<div className={styles.interactionControls}>
-				<fieldset
-					className={`${styles.metricToggle} ${styles.interactionToggle}`}
-				>
-					<legend className={styles.visuallyHidden}>Interaction field</legend>
-					{interactionConfigs.map((config) => (
-						<button
-							key={config.key}
-							type="button"
-							aria-pressed={selectedConfig.key === config.key}
-							onClick={() => setSelectedKey(config.key)}
-						>
-							<span className={styles.interactionTabCorr}>
-								{interactionTabCorrelation(models, config, interactionContext)}
-							</span>
-							<b className={styles.interactionTabLabel}>{config.fieldLabel}</b>
-						</button>
-					))}
-				</fieldset>
+				<GraphToggle
+					legend="Interaction field"
+					options={interactionConfigs.map((config) => ({
+						key: config.key,
+						label: config.fieldLabel,
+						detail: interactionTabCorrelation(
+							models,
+							config,
+							interactionContext,
+						),
+					}))}
+					selectedKey={selectedConfig.key}
+					onSelect={setSelectedKey}
+					layout="stacked"
+				/>
 			</div>
 			<div className={styles.interactionPlotBody}>
 				<InteractionPlot

@@ -33,6 +33,7 @@ export type EfficiencyAxisMetric<Row> = {
 	label: string;
 	get: (row: Row) => number;
 	format: (value: number) => string;
+	xHigherBetter?: boolean;
 };
 
 export type EfficiencyEffortLine<Row> = {
@@ -184,7 +185,10 @@ export function EfficiencyAxisChart<Row>({
 					xLabel={metric.format(medianMetric)}
 					yLabel={`${medianScore.toFixed(0)}%`}
 				/>
-				<CornerDirectionArrow bounds={plot} corner="upper-left" />
+				<CornerDirectionArrow
+					bounds={plot}
+					corner={metric.xHigherBetter ? "upper-right" : "upper-left"}
+				/>
 				<CursorProjectionLayer
 					projection={cursorProjection}
 					bounds={plot}
