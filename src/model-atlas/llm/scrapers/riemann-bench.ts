@@ -6,18 +6,10 @@
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
-import {
-	htmlAttribute,
-	percentToUnitScore,
-	providerFromLogoAlt,
-	stripHtmlTags,
-} from "./parsing";
+import { surgeLeaderboardScoreRows } from "./surge-leaderboard";
 
 const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const LEADERBOARD_MARKER = 'lead-rank-table-title">Model Rankings';
-const ROW_START_PATTERN =
-	/<div role="listitem" class="lead-rank-corecraft-item[\s\S]*?(?=<div role="listitem" class="lead-rank-corecraft-item|<section|$)/g;
 
 export type RiemannBenchScraperOptions = {
 	url?: string;
@@ -41,66 +33,11 @@ export type RiemannBenchModelScorePayload = {
 	data: RiemannBenchModelScoreRow[];
 };
 
-function lastUpdatedFromPage(pageHtml: string): string | null {
-	const match = pageHtml.match(/Last updated\s+(\d{2}\/\d{2}\/\d{4})/i);
-	return match?.[1] ?? null;
-}
-
-function rowModelName(rowHtml: string): string | null {
-	const modelMatch = rowHtml.match(/corecraft-model[^>]*>([\s\S]*?)<\/div>/i);
-	const model = modelMatch == null ? null : stripHtmlTags(modelMatch[1] ?? "");
-	return model != null && model.length > 0 ? model : null;
-}
-
-function rowScorePercent(rowHtml: string): string | null {
-	const attributeScore = htmlAttribute(rowHtml, "data-score");
-	if (attributeScore != null && attributeScore.length > 0) {
-		return attributeScore;
-	}
-	const scoreMatch = rowHtml.match(
-		/<div[^>]*data-score[^>]*>([\s\S]*?)<\/div>/i,
-	);
-	const score = scoreMatch == null ? null : stripHtmlTags(scoreMatch[1] ?? "");
-	return score != null && score.length > 0 ? score : null;
-}
-
-function parseLeaderboardRow(
-	rowHtml: string,
-	lastUpdated: string | null,
-): RiemannBenchModelScoreRow | null {
-	const model = rowModelName(rowHtml);
-	const score = percentToUnitScore(rowScorePercent(rowHtml));
-	if (model == null || score == null) {
-		return null;
-	}
-	return {
-		provider: providerFromLogoAlt(htmlAttribute(rowHtml, "alt")),
-		model,
-		score,
-		last_updated: lastUpdated,
-	};
-}
-
-function leaderboardSegment(pageHtml: string): string {
-	const start = pageHtml.indexOf(LEADERBOARD_MARKER);
-	if (start === -1) {
-		return "";
-	}
-	const nextSectionStart = pageHtml.indexOf("<section", start);
-	return nextSectionStart === -1
-		? pageHtml.slice(start)
-		: pageHtml.slice(start, nextSectionStart);
-}
-
 /** Extract model score rows from the public Riemann-bench leaderboard page. */
 export function processRiemannBenchPageHtml(
 	pageHtml: string,
 ): RiemannBenchModelScoreRow[] {
-	const segment = leaderboardSegment(pageHtml);
-	const lastUpdated = lastUpdatedFromPage(segment);
-	return [...segment.matchAll(ROW_START_PATTERN)]
-		.map((match) => parseLeaderboardRow(match[0] ?? "", lastUpdated))
-		.filter((row): row is RiemannBenchModelScoreRow => row != null);
+	return surgeLeaderboardScoreRows(pageHtml);
 }
 
 function modelKeyCandidates(model: string): string[] {

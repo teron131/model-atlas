@@ -13,7 +13,7 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 }
 
 const rows = processGdpPdfPageHtml(`
-	<div class="lead-rank-table-title">Model Rankings</div>
+	<h2 class="renamed-ranking-title">Model Rankings</h2>
 	<div class="txt fs-12">Last updated 06/06/2026</div>
 	<div role="listitem" class="lead-rank-corecraft-item w-dyn-item">
 		<div data-leaderboard-rank="">1</div>
@@ -27,8 +27,17 @@ const rows = processGdpPdfPageHtml(`
 		<div class="txt fs-14 fw-med corecraft-model is-logo">GPT-5.5 (xHigh reasoning)</div>
 		<div data-score="25">25</div><div>%</div>
 	</div>
-	<div role="listitem" class="lead-rank-corecraft-item w-dyn-item">
+	<div role="listitem" class="renamed-ranking-row">
 		<div data-leaderboard-rank="">3</div>
+		<img data-alt="Wrong logo" alt='Google logo' />
+		<div class="head-rank-table-name-wrap">
+			<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Google</div></div>
+			<div class="head-rank-table-name"><div class="txt fs-14 fw-med">Gemini 3 Pro</div></div>
+		</div>
+		<div data-data-score="99" data-score='22' fs-list-field="foundational-score" class="txt fs-14">22</div><div>%</div>
+	</div>
+	<div role="listitem" class="lead-rank-corecraft-item w-dyn-item">
+		<div data-leaderboard-rank="">4</div>
 		<img alt="Example logo" />
 		<div class="txt fs-14 fw-med corecraft-model is-logo">Invalid Score</div>
 		<div data-score="105">105</div><div>%</div>
@@ -47,6 +56,33 @@ assertDeepEqual(rows, [
 		provider: "OpenAI",
 		model: "GPT-5.5 (xHigh reasoning)",
 		score: 0.25,
+		last_updated: "06/06/2026",
+	},
+	{
+		provider: "Google",
+		model: "Gemini 3 Pro",
+		score: 0.22,
+		last_updated: "06/06/2026",
+	},
+]);
+
+const rowsWithoutRankingHeading = processGdpPdfPageHtml(`
+	<div class="txt fs-12">Last updated 06/06/2026</div>
+	<div class="renamed-ranking-row" data-kind="score-row" role = 'listitem'>
+		<img alt="Google logo" />
+		<div class="head-rank-table-name-wrap">
+			<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Google</div></div>
+			<div class="head-rank-table-name"><div class="txt fs-14 fw-med">Gemini 3 Pro</div></div>
+		</div>
+		<div data-score="22" fs-list-field="foundational-score" class="txt fs-14">22</div><div>%</div>
+	</div>
+`);
+
+assertDeepEqual(rowsWithoutRankingHeading, [
+	{
+		provider: "Google",
+		model: "Gemini 3 Pro",
+		score: 0.22,
 		last_updated: "06/06/2026",
 	},
 ]);

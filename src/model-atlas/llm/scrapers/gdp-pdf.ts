@@ -6,18 +6,10 @@
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { normalizeModelToken } from "../shared";
-import {
-	htmlAttribute,
-	percentToUnitScore,
-	providerFromLogoAlt,
-	stripHtmlTags,
-} from "./parsing";
+import { surgeLeaderboardScoreRows } from "./surge-leaderboard";
 
 const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/gdp-pdf";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const LEADERBOARD_MARKER = 'lead-rank-table-title">Model Rankings';
-const ROW_START_PATTERN =
-	/<div role="listitem" class="lead-rank-corecraft-item[\s\S]*?(?=<div role="listitem" class="lead-rank-corecraft-item|<section id="newsletter"|$)/g;
 
 export type GdpPdfScraperOptions = {
 	url?: string;
@@ -38,52 +30,9 @@ export type GdpPdfModelScorePayload = {
 	data: GdpPdfModelScoreRow[];
 };
 
-function lastUpdatedFromPage(pageHtml: string): string | null {
-	const match = pageHtml.match(/Last updated\s+(\d{2}\/\d{2}\/\d{4})/i);
-	return match?.[1] ?? null;
-}
-
-function rowModelName(rowHtml: string): string | null {
-	const modelMatch = rowHtml.match(/corecraft-model[^>]*>([\s\S]*?)<\/div>/i);
-	const model = modelMatch == null ? null : stripHtmlTags(modelMatch[1] ?? "");
-	return model != null && model.length > 0 ? model : null;
-}
-
-function parseLeaderboardRow(
-	rowHtml: string,
-	lastUpdated: string | null,
-): GdpPdfModelScoreRow | null {
-	const model = rowModelName(rowHtml);
-	const score = percentToUnitScore(htmlAttribute(rowHtml, "data-score"));
-	if (model == null || score == null) {
-		return null;
-	}
-	return {
-		provider: providerFromLogoAlt(htmlAttribute(rowHtml, "alt")),
-		model,
-		score,
-		last_updated: lastUpdated,
-	};
-}
-
-function leaderboardSegment(pageHtml: string): string {
-	const start = pageHtml.indexOf(LEADERBOARD_MARKER);
-	if (start === -1) {
-		return "";
-	}
-	const newsletterStart = pageHtml.indexOf('<section id="newsletter"', start);
-	return newsletterStart === -1
-		? pageHtml.slice(start)
-		: pageHtml.slice(start, newsletterStart);
-}
-
 /** Extract model score rows from the public GDP.pdf leaderboard page. */
 export function processGdpPdfPageHtml(pageHtml: string): GdpPdfModelScoreRow[] {
-	const segment = leaderboardSegment(pageHtml);
-	const lastUpdated = lastUpdatedFromPage(segment);
-	return [...segment.matchAll(ROW_START_PATTERN)]
-		.map((match) => parseLeaderboardRow(match[0] ?? "", lastUpdated))
-		.filter((row): row is GdpPdfModelScoreRow => row != null);
+	return surgeLeaderboardScoreRows(pageHtml);
 }
 
 function modelKeyCandidates(model: string): string[] {
