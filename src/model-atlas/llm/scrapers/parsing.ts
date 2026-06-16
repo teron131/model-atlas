@@ -57,9 +57,16 @@ export function stripHtmlTags(value: string): string {
 		.trim();
 }
 
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function htmlAttribute(html: string, name: string): string | null {
-	const match = html.match(new RegExp(`${name}="([^"]+)"`, "i"));
-	return match == null ? null : decodeHtmlEntities(match[1] ?? "").trim();
+	const namePattern = escapeRegExp(name);
+	const match = html.match(
+		new RegExp(`(?:^|[\\s<])${namePattern}\\s*=\\s*(['"])(.*?)\\1`, "i"),
+	);
+	return match == null ? null : decodeHtmlEntities(match[2] ?? "").trim();
 }
 
 export function htmlTextLines(pageHtml: string): string[] {
