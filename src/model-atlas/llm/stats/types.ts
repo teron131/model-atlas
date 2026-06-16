@@ -108,7 +108,6 @@ export type LlmStatsIntelligence = LlmStatsBenchmarkValues & {
 	coding_index?: NumberOrNull;
 	omniscience_index?: NumberOrNull;
 	omniscience_accuracy?: NumberOrNull;
-	omniscience_nonhallucination_rate?: NumberOrNull;
 };
 
 export type LlmStatsIntelligenceIndexCost = {
@@ -121,6 +120,9 @@ export type LlmStatsIntelligenceIndexCost = {
 	answer_tokens?: NumberOrNull;
 	output_tokens?: NumberOrNull;
 	total_tokens?: NumberOrNull;
+	cost_per_task?: NumberOrNull;
+	seconds_per_task?: NumberOrNull;
+	output_tokens_per_task?: NumberOrNull;
 } | null;
 
 export type LlmStatsTaskMetricValues = {
@@ -144,10 +146,10 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	gdpval_normalized?: NumberOrNull;
 	gpqa?: NumberOrNull;
 	hle?: NumberOrNull;
-	ifbench?: NumberOrNull;
 	lcr?: NumberOrNull;
 	mmmu_pro?: NumberOrNull;
 	scicode?: NumberOrNull;
+	tau_banking?: NumberOrNull;
 	deep_swe?: NumberOrNull;
 	agents_last_exam?: NumberOrNull;
 	automation_bench?: NumberOrNull;
@@ -158,7 +160,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	browsecomp?: NumberOrNull;
 	toolathlon?: NumberOrNull;
 	cursorbench?: NumberOrNull;
-	terminalbench_hard?: NumberOrNull;
+	terminalbench_v21?: NumberOrNull;
 };
 
 export type LlmStatsScoringSources = {

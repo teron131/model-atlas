@@ -29,7 +29,6 @@ const INTELLIGENCE_KEYS = [
 	"coding_index",
 	"omniscience_index",
 	"omniscience_accuracy",
-	"omniscience_nonhallucination_rate",
 ] as const;
 
 const EVALUATION_KEYS = [
@@ -38,11 +37,11 @@ const EVALUATION_KEYS = [
 	"gdpval_normalized",
 	"gpqa",
 	"hle",
-	"ifbench",
 	"lcr",
 	"mmmu_pro",
 	"scicode",
-	"terminalbench_hard",
+	"tau_banking",
+	"terminalbench_v21",
 	"deep_swe",
 	"terminal_bench_2",
 	"agents_last_exam",

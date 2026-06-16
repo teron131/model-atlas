@@ -89,31 +89,25 @@ export function cleanArtificialAnalysisModelName(
 	return cleaned.length > 0 ? cleaned : value;
 }
 
-const EVALUATION_KEY_HINT_REGEX =
-	/(index|bench|mmlu|mmmu|gpqa|hle|aime|math|vision|omniscience|ifbench|gdpval|lcr|arc|musr|humanity|sci|code|critpt|apex)/i;
-const NON_EVALUATION_KEY_REGEX =
-	/(token|time|speed|price|cost|window|modality|reasoning_model|release_date|display_order|deprecated|deleted|commercial_allowed|frontier_model|is_open_weights|logo|url|license|creator|host|slug|name|id$|^id$|model_|timescale|response|performance|voice|image|audio|video|text)/i;
-const EVALUATION_EXCLUDED_KEYS = new Set([
-	"omniscience",
-	"omniscience_accuracy",
-	"omniscience_index",
-	"omniscience_nonhallucination_rate",
-	"omniscience_hallucination_rate",
-	"omniscienceAccuracy",
-	"omniscienceNonHallucination",
-	"intelligenceIndex",
-	"intelligenceIndexIsEstimated",
-	"intelligence_index",
-	"agenticIndex",
-	"agentic_index",
-	"codingIndex",
-	"coding_index",
-	"intelligenceIndexCostTotal",
-	"intelligenceIndexCostInput",
-	"intelligenceIndexCostOutput",
-	"intelligenceIndexCostReasoning",
-	"intelligenceIndexCostAnswer",
-]);
+const EVALUATION_KEY_BY_SOURCE_KEY = {
+	apexAgents: "apex_agents",
+	apex_agents: "apex_agents",
+	critpt: "critpt",
+	gdpvalNormalized: "gdpval_normalized",
+	gdpval_normalized: "gdpval_normalized",
+	gpqa: "gpqa",
+	hle: "hle",
+	itbenchSre: "itbench_sre",
+	itbench_sre: "itbench_sre",
+	lcr: "lcr",
+	mmmuPro: "mmmu_pro",
+	mmmu_pro: "mmmu_pro",
+	scicode: "scicode",
+	tauBanking: "tau_banking",
+	tau_banking: "tau_banking",
+	terminalbenchV21: "terminalbench_v21",
+	terminalbench_v21: "terminalbench_v21",
+} as const satisfies Readonly<Record<string, string>>;
 const NO_COLUMN_VALUE = Symbol("no_column_value");
 /** Return the first numeric value from the provided row keys. */
 function firstNumber(row: JsonObject, keys: string[]): number | null {
@@ -145,7 +139,7 @@ function firstString(row: JsonObject, keys: string[]): string | null {
 	return null;
 }
 
-/** Convert current and legacy AA metric keys into the stable snake_case payload keys. */
+/** Convert AA metric keys into the stable snake_case payload keys. */
 function normalizeMetricKey(key: string): string {
 	return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
@@ -154,29 +148,33 @@ function normalizeMetricKey(key: string): string {
 function pickEvaluations(row: JsonObject): JsonObject {
 	const evaluations: JsonObject = {};
 	for (const [key, value] of Object.entries(row)) {
-		if (EVALUATION_EXCLUDED_KEYS.has(key)) {
-			continue;
-		}
-		if (!EVALUATION_KEY_HINT_REGEX.test(key)) {
-			continue;
-		}
-		if (NON_EVALUATION_KEY_REGEX.test(key)) {
+		const normalizedKey = evaluationKeyBySourceKey(key);
+		if (normalizedKey == null) {
 			continue;
 		}
 		if (typeof value === "number" || typeof value === "boolean") {
-			evaluations[normalizeMetricKey(key)] = value;
+			evaluations[normalizedKey] = value;
 		}
 	}
 	return evaluations;
+}
+
+function evaluationKeyBySourceKey(key: string): string | null {
+	return (
+		EVALUATION_KEY_BY_SOURCE_KEY[
+			key as keyof typeof EVALUATION_KEY_BY_SOURCE_KEY
+		] ??
+		EVALUATION_KEY_BY_SOURCE_KEY[
+			normalizeMetricKey(key) as keyof typeof EVALUATION_KEY_BY_SOURCE_KEY
+		] ??
+		null
+	);
 }
 
 /** Select the relevant score fields for Artificial Analysis scraper. */
 function pickIntelligence(row: JsonObject): JsonObject {
 	const omniscienceBreakdown = asRecord(row.omniscienceBreakdown);
 	const omniscienceTotal = asRecord(omniscienceBreakdown.total);
-	const hallucinationRate = firstNumber(omniscienceTotal, [
-		"hallucinationRate",
-	]);
 	const intelligence: JsonObject = {
 		intelligence_index: firstNumber(row, [
 			"intelligenceIndex",
@@ -189,21 +187,11 @@ function pickIntelligence(row: JsonObject): JsonObject {
 			"omniscienceAccuracy",
 			"omniscience_accuracy",
 		]),
-		omniscience_nonhallucination_rate: firstNumber(row, [
-			"omniscienceNonHallucination",
-			"omniscience_nonhallucination_rate",
-		]),
 	};
 	if (intelligence.omniscience_accuracy == null) {
 		intelligence.omniscience_accuracy = firstNumber(omniscienceTotal, [
 			"accuracy",
 		]);
-	}
-	if (
-		intelligence.omniscience_nonhallucination_rate == null &&
-		hallucinationRate != null
-	) {
-		intelligence.omniscience_nonhallucination_rate = 1 - hallucinationRate;
 	}
 	return intelligence;
 }
@@ -211,6 +199,11 @@ function pickIntelligence(row: JsonObject): JsonObject {
 /** Select the relevant score fields for Artificial Analysis scraper. */
 function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 	const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
+	const costPerTask = asRecord(row.intelligenceIndexCostPerTask);
+	const costPerTaskBreakdown = asRecord(costPerTask.cost);
+	const outputTokensPerTask = asRecord(
+		row.intelligenceIndexOutputTokensPerTask,
+	);
 	const inputTokens = firstNumber(intelligenceTokenCounts, ["inputTokens"]);
 	const outputTokens = firstNumber(intelligenceTokenCounts, ["outputTokens"]);
 	const answerTokens = firstNumber(intelligenceTokenCounts, ["answerTokens"]);
@@ -243,6 +236,16 @@ function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 			totalTokens >= MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD
 				? totalTokens
 				: firstNumber(row, ["total_tokens"]),
+		cost_per_task:
+			firstNumber(costPerTaskBreakdown, ["total"]) ??
+			firstNumber(row, ["cost_per_task"]),
+		seconds_per_task: firstNumber(row, [
+			"intelligenceIndexTimePerTask",
+			"seconds_per_task",
+		]),
+		output_tokens_per_task:
+			firstNumber(outputTokensPerTask, ["output"]) ??
+			firstNumber(row, ["output_tokens_per_task"]),
 	};
 }
 

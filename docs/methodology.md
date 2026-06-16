@@ -21,9 +21,7 @@ The ranking has two quality dimensions.
   - Captures workflow usefulness: coding or task execution with specific tools, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
   - Evidence comes from benchmarks with a non-zero Agentic portion in the benchmark portfolio.
 
-`omniscience_nonhallucination_rate` remains available as a diagnostic reliability field, but it is not selected for intelligence scoring because it can reward abstention behavior rather than raw knowledge.
-
-There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA TerminalBench Hard, and Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
+There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA Terminal-Bench 2.1, AA tau3 Banking, and Terminal-Bench 2.0 remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
 Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
@@ -34,14 +32,15 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Professional factual knowledge support. |
 | LCR | baseline | 100% | 0% | Long-context professional-document reasoning. |
 | SciCode | baseline | 60% | 40% | Scientific reasoning with executable coding. |
-| TerminalBench&nbsp;Hard | baseline | 0% | 100% | Same-harness terminal execution and environment handling. |
+| Terminal-Bench&nbsp;2.1&nbsp;(AA) | baseline | 0% | 100% | Same-source AA terminal execution and environment handling. |
+| tau3&nbsp;Banking&nbsp;(AA) | baseline | 0% | 100% | Realistic banking agent scenarios from AA's upgraded tau benchmark. |
 | Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Cross-harness terminal robustness; needs popularity correction. |
 | BrowseComp | baseline | 0% | 100% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
 | Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding; limited current row count keeps it baseline. |
 | CursorBench | baseline | 0% | 100% | First-party coding-agent workflow signal from ambiguous, multi-file Cursor tasks; private Composer rows are excluded. |
 | HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
 | CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
-| GDPVal | frontier | 80% | 20% | Professional artifact quality, mostly domain judgment with some execution signal. |
+| GDPval-AA&nbsp;v2 | frontier | 80% | 20% | AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories. |
 | Riemann-bench | frontier | 100% | 0% | Private extreme mathematics stress test with useful frontier spread but limited public task access. |
 | APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
@@ -71,7 +70,7 @@ OpenRouter supplies current route pricing and speed measurements used for blend 
 
 DeepSWE contributes one frontier agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components.
 
-Terminal-Bench 2.0 contributes one baseline agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's `terminalbench_hard` field; both are selected agentic benchmarks because they are different signals.
+Terminal-Bench 2.0 contributes one baseline agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's Terminal-Bench 2.1 field; both are selected agentic benchmarks because they are different signals.
 
 Agents' Last Exam contributes frontier Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 

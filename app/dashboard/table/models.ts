@@ -19,7 +19,7 @@ const artificialAnalysisTaskMetricColumns = [
 		metric: "seconds",
 		direction: "ascending",
 		type: "number",
-		label: "AA Sec",
+		label: "AA Time",
 	},
 	{
 		key: "aaTokens",
@@ -28,7 +28,7 @@ const artificialAnalysisTaskMetricColumns = [
 		metric: "output_tokens",
 		direction: "descending",
 		type: "number",
-		label: "AA Tok",
+		label: "AA Out",
 	},
 ] as const;
 
@@ -215,7 +215,7 @@ export const benchmarkMetricColumns = [
 	{
 		key: "terminalBench",
 		group: "benchmarks",
-		benchmark: "terminalbench_hard",
+		benchmark: "terminalbench_v21",
 		direction: "descending",
 		type: "number",
 		label: "TBench",

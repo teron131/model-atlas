@@ -38,18 +38,6 @@ export const AGENTIC_INDEX_KEYS = [
 export function metricValue(model: JsonObject, key: string): number | null {
 	const intelligence = asRecord(model.intelligence);
 	const evaluations = asRecord(model.evaluations);
-	if (key === "omniscience_nonhallucination_rate") {
-		const nonhallucinationRate = asFiniteNumber(
-			intelligence.omniscience_nonhallucination_rate,
-		);
-		if (nonhallucinationRate != null) {
-			return nonhallucinationRate;
-		}
-		const nonhallucinationRateFromLegacyKey = asFiniteNumber(
-			intelligence.omniscience_hallucination_rate,
-		);
-		return nonhallucinationRateFromLegacyKey;
-	}
 	return (
 		asFiniteNumber(intelligence[key]) ??
 		asFiniteNumber(evaluations[key]) ??

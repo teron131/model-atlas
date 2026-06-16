@@ -82,17 +82,16 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(intelligence.coding_index),
 		asFiniteNumber(intelligence.omniscience_index),
 		asFiniteNumber(intelligence.omniscience_accuracy),
-		asFiniteNumber(intelligence.omniscience_nonhallucination_rate),
 		asFiniteNumber(evaluations.apex_agents),
 		asFiniteNumber(evaluations.critpt),
 		asFiniteNumber(evaluations.gdpval_normalized),
 		asFiniteNumber(evaluations.gpqa),
 		asFiniteNumber(evaluations.hle),
-		asFiniteNumber(evaluations.ifbench),
 		asFiniteNumber(evaluations.lcr),
 		asFiniteNumber(evaluations.mmmu_pro),
 		asFiniteNumber(evaluations.scicode),
-		asFiniteNumber(evaluations.terminalbench_hard),
+		asFiniteNumber(evaluations.tau_banking),
+		asFiniteNumber(evaluations.terminalbench_v21),
 		asFiniteNumber(evaluations.deep_swe),
 		asFiniteNumber(evaluations.terminal_bench_2),
 		asFiniteNumber(evaluations.agents_last_exam),
@@ -156,11 +155,11 @@ export function insertProcessedModelRows(
 			cost_blended_price, context_over_200k_input, context_over_200k_output,
 			context_over_200k_cache_read, context_over_200k_cache_write,
 			intelligence_index, agentic_index, coding_index, omniscience_index,
-			omniscience_accuracy, omniscience_nonhallucination_rate, apex_agents,
-			critpt, gdpval_normalized, gpqa, hle, ifbench, lcr, mmmu_pro, scicode,
-			terminalbench_hard, deep_swe, terminal_bench_2, agents_last_exam,
-			automation_bench, blueprint_bench_2, gdp_pdf, riemann_bench,
-			browsecomp, toolathlon, cursorbench,
+			omniscience_accuracy, apex_agents, critpt, gdpval_normalized, gpqa,
+			hle, lcr, mmmu_pro, scicode, tau_banking, terminalbench_v21,
+			deep_swe, terminal_bench_2, agents_last_exam, automation_bench,
+			blueprint_bench_2, gdp_pdf, riemann_bench, browsecomp, toolathlon,
+			cursorbench,
 			aa_task_cost, aa_task_seconds, aa_task_output_tokens,
 			deep_swe_task_cost, deep_swe_task_seconds, deep_swe_task_output_tokens,
 			agents_last_exam_task_cost, agents_last_exam_task_seconds,
@@ -169,7 +168,7 @@ export function insertProcessedModelRows(
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_value_score, relative_intelligence_score, relative_agentic_score,
 			relative_speed_score, relative_value_score, relative_overall_score
-		) VALUES (${Array.from({ length: 80 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 79 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

@@ -30,16 +30,15 @@ export const benchmarkLabels: Record<string, string> = {
 	cursorbench: "CursorBench",
 	deep_swe: "DeepSWE",
 	gdp_pdf: "GDP.pdf",
-	gdpval_normalized: "GDPval",
+	gdpval_normalized: "GDPval-AA v2",
 	hle: "HLE",
-	ifbench: "IFBench",
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience",
-	omniscience_nonhallucination_rate: "Omniscience NH",
 	riemann_bench: "Riemann-bench",
 	scicode: "SciCode",
+	tau_banking: "tau3 Banking",
 	terminal_bench_2: "Terminal-Bench 2.0",
-	terminalbench_hard: "TerminalBench Hard",
+	terminalbench_v21: "Terminal-Bench 2.1",
 	toolathlon: "Toolathlon",
 };
 
@@ -93,27 +92,27 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		],
 	},
 	gdpval_normalized: {
-		title: "GDPval",
-		body: "Work-like file-output tasks across economically valuable occupations, graded by pairwise comparison.",
+		title: "GDPval-AA v2",
+		body: "AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories.",
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "real work completion"],
 		],
 	},
-	terminalbench_hard: {
-		title: "Terminal-Bench Hard",
-		body: "AA hard subset of Terminal-Bench: terminal tasks scored by pass/fail test suites.",
+	terminalbench_v21: {
+		title: "Terminal-Bench 2.1",
+		body: "AA v4.1 terminal-agent benchmark for command-line task execution.",
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "terminal agent work"],
 		],
 	},
-	ifbench: {
-		title: "IFBench",
-		body: "Single-turn instruction-following prompts with rule-driven response checks.",
+	tau_banking: {
+		title: "tau3 Banking",
+		body: "AA v4.1 banking-agent benchmark for realistic tool-mediated banking scenarios.",
 		rows: [
 			["Source", "Artificial Analysis"],
-			["Role", "instruction reliability"],
+			["Role", "banking agent work"],
 		],
 	},
 	apex_agents: {
@@ -174,7 +173,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	terminal_bench_2: {
 		title: "Terminal-Bench 2.0",
-		body: "Terminal task benchmark, kept separate from AA's Terminal-Bench Hard subset.",
+		body: "Independent Terminal-Bench leaderboard signal, kept separate from AA's Terminal-Bench 2.1 field.",
 		rows: [
 			["Source", "Terminal-Bench"],
 			["Role", "terminal agent work"],

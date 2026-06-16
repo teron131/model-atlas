@@ -268,13 +268,6 @@ function buildEvaluations(model: JsonObject): LlmStatsEvaluations | null {
 
 function buildIntelligence(model: JsonObject): LlmStatsIntelligence | null {
 	const intelligence = { ...asRecord(model.intelligence) };
-	const nonhallucinationRate = asFiniteNumber(
-		intelligence.omniscience_hallucination_rate,
-	);
-	if (nonhallucinationRate != null) {
-		intelligence.omniscience_nonhallucination_rate = nonhallucinationRate;
-		delete intelligence.omniscience_hallucination_rate;
-	}
 	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
 	delete intelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY];
 	return buildNumericMap<LlmStatsIntelligence>(intelligence);
@@ -300,6 +293,9 @@ function buildIntelligenceIndexCost(
 		"reasoning_tokens",
 		"answer_tokens",
 		"output_tokens",
+		"cost_per_task",
+		"seconds_per_task",
+		"output_tokens_per_task",
 	] as const) {
 		const value = asFiniteNumber(fromRow[key]);
 		if (value != null) {
@@ -452,12 +448,7 @@ export function projectLlmStatsCandidate(
 		speed,
 		intelligence: buildIntelligence(model),
 		intelligence_index_cost: intelligenceIndexCost,
-		task_metrics: buildTaskMetrics(
-			intelligenceIndexCost,
-			speed,
-			cost,
-			scoringSources,
-		),
+		task_metrics: buildTaskMetrics(intelligenceIndexCost, cost, scoringSources),
 		evaluations: buildEvaluations(model),
 		scoring_sources: scoringSources,
 		scores: buildScores(

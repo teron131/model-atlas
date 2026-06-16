@@ -19,7 +19,12 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0.6,
 		agenticPortion: 0.4,
 	},
-	terminalbench_hard: {
+	terminalbench_v21: {
+		group: "baseline",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+	},
+	tau_banking: {
 		group: "baseline",
 		intelligencePortion: 0,
 		agenticPortion: 1,

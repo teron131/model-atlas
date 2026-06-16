@@ -45,7 +45,8 @@ const rows = processArtificialAnalysisScrapedRows(
 			apexAgents: 0.47,
 			critpt: 0.31,
 			scicode: 0.42,
-			terminalbenchHard: 0.43,
+			tauBanking: 0.52,
+			terminalbenchV21: 0.53,
 			itbenchSre: 0.31,
 			mmmuPro: 0.24,
 		},
@@ -56,7 +57,7 @@ const rows = processArtificialAnalysisScrapedRows(
 			modelCreatorSlug: "acme",
 			intelligenceIndex: 65,
 			scicode: 0.36,
-			terminalbenchHard: 0.37,
+			terminalbenchV21: 0.47,
 		},
 		{
 			slug: "gamma",
@@ -78,11 +79,12 @@ assertDeepEqual(rows[0]?.evaluations, {
 	itbench_sre: 0.31,
 	mmmu_pro: 0.24,
 	scicode: 0.42,
-	terminalbench_hard: 0.43,
+	tau_banking: 0.52,
+	terminalbench_v21: 0.53,
 });
 assertDeepEqual(rows[1]?.evaluations, {
 	scicode: 0.36,
-	terminalbench_hard: 0.37,
+	terminalbench_v21: 0.47,
 });
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
@@ -121,10 +123,20 @@ assertDeepEqual(
 				modelCreatorSlug: "anthropic",
 				intelligence_index: 64.9,
 				agentic_index: 80.5,
-				terminalbench_hard: 0.62,
+				terminalbench_v21: 0.72,
+				tauBanking: 0.58,
 				input_cost: 10,
 				output_cost: 50,
 				total_tokens: 2_000_000,
+				intelligenceIndexCostPerTask: {
+					cost: {
+						total: 1.5,
+					},
+				},
+				intelligenceIndexTimePerTask: 120,
+				intelligenceIndexOutputTokensPerTask: {
+					output: 42_000,
+				},
 			},
 		],
 		{
@@ -145,7 +157,6 @@ assertDeepEqual(
 				intelligence_index: 64.9,
 				omniscience_accuracy: null,
 				omniscience_index: null,
-				omniscience_nonhallucination_rate: null,
 			},
 			intelligence_index_cost: {
 				answer_tokens: null,
@@ -157,9 +168,13 @@ assertDeepEqual(
 				reasoning_tokens: null,
 				total_cost: null,
 				total_tokens: 2_000_000,
+				cost_per_task: 1.5,
+				seconds_per_task: 120,
+				output_tokens_per_task: 42000,
 			},
 			evaluations: {
-				terminalbench_hard: 0.62,
+				tau_banking: 0.58,
+				terminalbench_v21: 0.72,
 			},
 		},
 	],
@@ -179,13 +194,12 @@ const scoringRows = [
 	{
 		intelligence: {
 			agentic_index: 40,
-			omniscience_nonhallucination_rate: 0.4,
 		},
 		evaluations: {
 			gdpval_normalized: 0.4,
-			ifbench: 0.4,
 			scicode: 0.4,
-			terminalbench_hard: 0.4,
+			tau_banking: 0.4,
+			terminalbench_v21: 0.4,
 			terminal_bench_2: 0.4,
 			apex_agents: 0.1,
 		},
@@ -193,13 +207,12 @@ const scoringRows = [
 	{
 		intelligence: {
 			agentic_index: 60,
-			omniscience_nonhallucination_rate: 0.6,
 		},
 		evaluations: {
 			gdpval_normalized: 0.6,
-			ifbench: 0.6,
 			scicode: 0.6,
-			terminalbench_hard: 0.6,
+			tau_banking: 0.6,
+			terminalbench_v21: 0.6,
 			terminal_bench_2: 0.6,
 			apex_agents: 0.3,
 		},
@@ -207,13 +220,12 @@ const scoringRows = [
 	{
 		intelligence: {
 			agentic_index: 80,
-			omniscience_nonhallucination_rate: 0.8,
 		},
 		evaluations: {
 			gdpval_normalized: 0.8,
-			ifbench: 0.8,
 			scicode: 0.8,
-			terminalbench_hard: 0.8,
+			tau_banking: 0.8,
+			terminalbench_v21: 0.8,
 			terminal_bench_2: 0.8,
 			apex_agents: 0.5,
 		},
@@ -221,13 +233,12 @@ const scoringRows = [
 	{
 		intelligence: {
 			agentic_index: 70,
-			omniscience_nonhallucination_rate: 0.7,
 		},
 		evaluations: {
 			gdpval_normalized: 0.7,
-			ifbench: 0.7,
 			scicode: 0.7,
-			terminalbench_hard: 0.7,
+			tau_banking: 0.7,
+			terminalbench_v21: 0.7,
 			terminal_bench_2: 0.7,
 		},
 	},
@@ -236,20 +247,18 @@ const scoringConfig = {
 	intelligenceBenchmarkKeys: [],
 	intelligenceBenchmarkDisplayKeys: [],
 	agenticBenchmarkKeys: [
-		"omniscience_nonhallucination_rate",
 		"gdpval_normalized",
-		"ifbench",
 		"scicode",
-		"terminalbench_hard",
+		"tau_banking",
+		"terminalbench_v21",
 		"terminal_bench_2",
 		"apex_agents",
 	],
 	agenticBenchmarkDisplayKeys: [
-		"omniscience_nonhallucination_rate",
 		"gdpval_normalized",
-		"ifbench",
 		"scicode",
-		"terminalbench_hard",
+		"tau_banking",
+		"terminalbench_v21",
 		"terminal_bench_2",
 		"apex_agents",
 	],
@@ -287,7 +296,12 @@ const scoringConfig = {
 			intelligencePortion: 0.8,
 			agenticPortion: 0.2,
 		},
-		terminalbench_hard: {
+		tau_banking: {
+			group: "baseline",
+			intelligencePortion: 0.2,
+			agenticPortion: 0.8,
+		},
+		terminalbench_v21: {
 			group: "baseline",
 			intelligencePortion: 0.2,
 			agenticPortion: 0.8,
