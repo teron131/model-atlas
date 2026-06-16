@@ -17,9 +17,9 @@ type Evaluations = {
 	artificial_analysis_intelligence_index?: number | null;
 	artificial_analysis_coding_index?: number | null;
 	hle?: number | null;
-	terminalbench_hard?: number | null;
+	terminalbench_v21?: number | null;
+	tau_banking?: number | null;
 	lcr?: number | null;
-	ifbench?: number | null;
 	scicode?: number | null;
 	[key: string]: unknown;
 };

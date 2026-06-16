@@ -26,6 +26,12 @@ try {
 				"anthropic/claude-fable-5",
 				"Claude Fable 5",
 			);
+		firstDb
+			.prepare("ALTER TABLE processed_models DROP COLUMN cursorbench")
+			.run();
+		firstDb
+			.prepare("ALTER TABLE browsecomp_raw_rows DROP COLUMN provider_name")
+			.run();
 	} finally {
 		firstDb.close();
 	}
@@ -39,6 +45,20 @@ try {
 			Number(row?.count ?? 0),
 			1,
 			"Opening the database should preserve existing source rows for cache loading",
+		);
+		assert(
+			reopenedDb
+				.prepare("PRAGMA table_info(processed_models)")
+				.all()
+				.some((column) => column.name === "cursorbench"),
+			"Opening the database should add missing processed_models columns",
+		);
+		assert(
+			reopenedDb
+				.prepare("PRAGMA table_info(browsecomp_raw_rows)")
+				.all()
+				.some((column) => column.name === "provider_name"),
+			"Opening the database should add missing raw source columns",
 		);
 	} finally {
 		reopenedDb.close();

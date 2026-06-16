@@ -64,7 +64,7 @@ const AUTOMATIC_LIVE_REFRESH_ENABLED =
 const benchmarkColumnTooltipKeys = {
 	gpqa: "gpqa",
 	hle: "hle",
-	terminalBench: "terminalbench_hard",
+	terminalBench: "terminalbench_v21",
 	automationBench: "automation_bench",
 	blueprintBench: "blueprint_bench_2",
 	gdpPdf: "gdp_pdf",

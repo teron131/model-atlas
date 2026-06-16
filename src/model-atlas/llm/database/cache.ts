@@ -49,7 +49,6 @@ const AA_INTELLIGENCE_KEYS = [
 	"coding_index",
 	"omniscience_index",
 	"omniscience_accuracy",
-	"omniscience_nonhallucination_rate",
 ] as const;
 
 const AA_EVALUATION_KEYS = [
@@ -58,11 +57,11 @@ const AA_EVALUATION_KEYS = [
 	"gdpval_normalized",
 	"gpqa",
 	"hle",
-	"ifbench",
 	"lcr",
 	"mmmu_pro",
 	"scicode",
-	"terminalbench_hard",
+	"tau_banking",
+	"terminalbench_v21",
 ] as const;
 
 const AA_COST_KEYS = [
@@ -75,6 +74,9 @@ const AA_COST_KEYS = [
 	"answer_tokens",
 	"output_tokens",
 	"total_tokens",
+	"cost_per_task",
+	"seconds_per_task",
+	"output_tokens_per_task",
 ] as const;
 
 type RawDbRow = JsonObject;
@@ -100,7 +102,12 @@ function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
 	const row = asRecord(
 		db
 			.prepare(
-				"SELECT COUNT(*) AS row_count FROM aa_raw_models WHERE deprecated = 1",
+				`
+				SELECT COUNT(*) AS row_count
+				FROM aa_raw_models
+				WHERE deprecated = 1
+					AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
+			`,
 			)
 			.get(),
 	);

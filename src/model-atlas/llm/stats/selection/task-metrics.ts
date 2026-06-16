@@ -3,12 +3,9 @@ import type {
 	LlmStatsCost,
 	LlmStatsIntelligenceIndexCost,
 	LlmStatsScoringSources,
-	LlmStatsSpeed,
 	LlmStatsTaskMetrics,
 	LlmStatsTaskMetricValues,
 } from "../types";
-
-const ARTIFICIAL_ANALYSIS_INTELLIGENCE_REPEATED_ATTEMPTS = 12_826;
 
 type TaskMetricValues = LlmStatsTaskMetricValues;
 
@@ -19,14 +16,12 @@ function hasFields(record: object): boolean {
 /** Build normalized per-task metrics for AA Intelligence, DeepSWE, and ALE runs. */
 export function buildTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
-	speed: LlmStatsSpeed,
 	cost: LlmStatsCost,
 	scoringSources: LlmStatsScoringSources,
 ): LlmStatsTaskMetrics {
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
 	const artificialAnalysis = buildArtificialAnalysisTaskMetrics(
 		intelligenceIndexCost,
-		speed,
 	);
 	if (artificialAnalysis != null) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
@@ -42,55 +37,30 @@ export function buildTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-/** Normalize AA Intelligence run telemetry to one repeated evaluation attempt. */
+/** Use AA's direct Intelligence per-task telemetry. */
 function buildArtificialAnalysisTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
-	speed: LlmStatsSpeed,
 ): TaskMetricValues | null {
 	if (intelligenceIndexCost == null) {
 		return null;
 	}
-	const cost = asFiniteNumber(intelligenceIndexCost.total_cost);
-	const outputTokens = artificialAnalysisOutputTokens(intelligenceIndexCost);
-	const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
-	const throughputTokensPerSecond = asFiniteNumber(
-		speed.throughput_tokens_per_second_median,
+	const costPerTask = asFiniteNumber(intelligenceIndexCost.cost_per_task);
+	const outputTokensPerTask = asFiniteNumber(
+		intelligenceIndexCost.output_tokens_per_task,
 	);
+	const secondsPerTask = asFiniteNumber(intelligenceIndexCost.seconds_per_task);
 	const taskMetrics: TaskMetricValues = {};
 
-	if (cost != null && cost >= 0) {
-		taskMetrics.cost =
-			cost / ARTIFICIAL_ANALYSIS_INTELLIGENCE_REPEATED_ATTEMPTS;
+	if (costPerTask != null && costPerTask >= 0) {
+		taskMetrics.cost = costPerTask;
 	}
-	if (outputTokens != null && outputTokens >= 0) {
-		const outputTokensPerTask =
-			outputTokens / ARTIFICIAL_ANALYSIS_INTELLIGENCE_REPEATED_ATTEMPTS;
+	if (outputTokensPerTask != null && outputTokensPerTask >= 0) {
 		taskMetrics.output_tokens = outputTokensPerTask;
-		if (
-			latencySeconds != null &&
-			latencySeconds >= 0 &&
-			throughputTokensPerSecond != null &&
-			throughputTokensPerSecond > 0
-		) {
-			taskMetrics.seconds =
-				latencySeconds + outputTokensPerTask / throughputTokensPerSecond;
-		}
+	}
+	if (secondsPerTask != null && secondsPerTask >= 0) {
+		taskMetrics.seconds = secondsPerTask;
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
-}
-
-function artificialAnalysisOutputTokens(
-	intelligenceIndexCost: NonNullable<LlmStatsIntelligenceIndexCost>,
-): number | null {
-	const outputTokens = asFiniteNumber(intelligenceIndexCost.output_tokens);
-	if (outputTokens != null) {
-		return outputTokens;
-	}
-	const answerTokens = asFiniteNumber(intelligenceIndexCost.answer_tokens) ?? 0;
-	const reasoningTokens =
-		asFiniteNumber(intelligenceIndexCost.reasoning_tokens) ?? 0;
-	const totalOutputTokens = answerTokens + reasoningTokens;
-	return totalOutputTokens > 0 ? totalOutputTokens : null;
 }
 
 /** Expose DeepSWE's own per-task attempt telemetry beside the AA normalized values. */

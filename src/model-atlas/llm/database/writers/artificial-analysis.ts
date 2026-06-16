@@ -14,6 +14,44 @@ import {
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
 
+/** Derive the selected-row key represented by one raw AA row. */
+function artificialAnalysisRawRowKey(row: JsonObject): string | null {
+	const explicitModelId = firstString(row, ["model_id", "model_url", "id"]);
+	if (explicitModelId != null) {
+		return explicitModelId;
+	}
+	const slug = firstString(row, ["slug"]);
+	if (slug == null) {
+		return null;
+	}
+	const creator = {
+		...asRecord(row.creator),
+		...asRecord(row.model_creators),
+	};
+	const creatorSlug =
+		firstString(row, ["modelCreatorSlug"]) ??
+		firstString(creator, ["slug"]) ??
+		firstString(row, ["modelCreatorName"]);
+	return creatorSlug == null ? slug : `${creatorSlug}/${slug}`;
+}
+
+function artificialAnalysisSelectedRowsByKey(
+	rows: readonly JsonObject[],
+): Map<string, JsonObject> {
+	const rowsByKey = new Map<string, JsonObject>();
+	for (const row of rows) {
+		for (const key of [
+			firstString(row, ["model_id"]),
+			firstString(row, ["model_url"]),
+		]) {
+			if (key != null) {
+				rowsByKey.set(key, row);
+			}
+		}
+	}
+	return rowsByKey;
+}
+
 /** Return an absolute Artificial Analysis URL from a relative or absolute path. */
 function absoluteArtificialAnalysisUrl(value: string | null): string | null {
 	if (value == null) {
@@ -96,17 +134,16 @@ function artificialAnalysisBenchmarkValues(
 		asFiniteNumber(intelligence.coding_index),
 		asFiniteNumber(intelligence.omniscience_index),
 		asFiniteNumber(intelligence.omniscience_accuracy),
-		asFiniteNumber(intelligence.omniscience_nonhallucination_rate),
 		asFiniteNumber(evaluations.apex_agents),
 		asFiniteNumber(evaluations.critpt),
 		asFiniteNumber(evaluations.gdpval_normalized),
 		asFiniteNumber(evaluations.gpqa),
 		asFiniteNumber(evaluations.hle),
-		asFiniteNumber(evaluations.ifbench),
 		asFiniteNumber(evaluations.lcr),
 		asFiniteNumber(evaluations.mmmu_pro),
 		asFiniteNumber(evaluations.scicode),
-		asFiniteNumber(evaluations.terminalbench_hard),
+		asFiniteNumber(evaluations.tau_banking),
+		asFiniteNumber(evaluations.terminalbench_v21),
 	];
 }
 
@@ -128,6 +165,9 @@ function artificialAnalysisCostAndLogoValues(
 		asFiniteNumber(tokenCounts.answerTokens),
 		asFiniteNumber(tokenCounts.outputTokens),
 		asFiniteNumber(intelligenceIndexCost.total_tokens),
+		asFiniteNumber(intelligenceIndexCost.cost_per_task),
+		asFiniteNumber(intelligenceIndexCost.seconds_per_task),
+		asFiniteNumber(intelligenceIndexCost.output_tokens_per_task),
 		firstString(selectedRow, ["logo"]) ??
 			firstString(row, [
 				"logo_small_url",
@@ -151,6 +191,9 @@ export function insertArtificialAnalysisRawModels(
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
+	const selectedRowsByKey = artificialAnalysisSelectedRowsByKey(
+		snapshots.aaSelectedRows,
+	);
 	const statement = db.prepare(`
 		INSERT INTO aa_raw_models (
 			run_id, row_index, fetched_at_epoch_seconds, url, model_id, name,
@@ -163,15 +206,18 @@ export function insertArtificialAnalysisRawModels(
 			median_time_to_first_token_seconds,
 			median_end_to_end_response_time_seconds, intelligence_index,
 			agentic_index, coding_index, omniscience_index, omniscience_accuracy,
-			omniscience_nonhallucination_rate, apex_agents, critpt,
-			gdpval_normalized, gpqa, hle, ifbench, lcr, mmmu_pro, scicode,
-			terminalbench_hard, input_cost, reasoning_cost, output_cost, total_cost,
-			input_tokens, reasoning_tokens, answer_tokens, output_tokens,
-			total_tokens, logo_url
-		) VALUES (${Array.from({ length: 51 }, () => "?").join(", ")})
+			apex_agents, critpt, gdpval_normalized, gpqa, hle, lcr, mmmu_pro,
+			scicode, tau_banking, terminalbench_v21, input_cost, reasoning_cost,
+			output_cost, total_cost, input_tokens, reasoning_tokens, answer_tokens,
+			output_tokens, total_tokens, cost_per_task, seconds_per_task,
+			output_tokens_per_task, logo_url
+		) VALUES (${Array.from({ length: 53 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of snapshots.aaRawRows.entries()) {
-		const selectedRow = snapshots.aaSelectedRows[index] ?? {};
+		const selectedRow =
+			selectedRowsByKey.get(artificialAnalysisRawRowKey(row) ?? "") ??
+			snapshots.aaSelectedRows[index] ??
+			{};
 		const creator = {
 			...asRecord(row.creator),
 			...asRecord(row.model_creators),
