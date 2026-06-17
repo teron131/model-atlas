@@ -876,7 +876,8 @@ function openRouterModelRows(
 				asFiniteNumber(statsRow?.throughput_tokens_per_second_median) ?? null,
 			latency_seconds_median:
 				asFiniteNumber(statsRow?.latency_seconds_median) ?? null,
-			e2e_latency_seconds_median: null,
+			e2e_latency_seconds_median:
+				asFiniteNumber(statsRow?.e2e_latency_seconds_median) ?? null,
 		},
 		throughput: openRouterStatsResponse(
 			statRows.filter((row) => row.metric === "throughput"),

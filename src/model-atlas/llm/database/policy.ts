@@ -33,6 +33,8 @@ export function mergeCachedSourceRows<T>(
 	cachedRows: readonly T[],
 	fetchedRows: readonly T[],
 	rowKey: (row: T) => string | null,
+	mergeRow: (cachedRow: T, fetchedRow: T) => T = (_cachedRow, fetchedRow) =>
+		fetchedRow,
 ): T[] {
 	const keyedRows = new Map<string, T>();
 	const unkeyedCachedRows: T[] = [];
@@ -55,7 +57,8 @@ export function mergeCachedSourceRows<T>(
 			unkeyedFetchedRows.push(row);
 			continue;
 		}
-		keyedRows.set(key, row);
+		const cachedRow = keyedRows.get(key);
+		keyedRows.set(key, cachedRow == null ? row : mergeRow(cachedRow, row));
 	}
 
 	return [...unkeyedCachedRows, ...keyedRows.values(), ...unkeyedFetchedRows];
@@ -67,6 +70,7 @@ export function snapshotRows<T>(
 	fetchedAtEpochSeconds: number | null,
 	options: DatabaseBuildOptions,
 	rowKey: (row: T) => string | null,
+	mergeRow?: (cachedRow: T, fetchedRow: T) => T,
 ): T[] {
 	if (fetchedAtEpochSeconds == null || fetchedRows.length === 0) {
 		return [...(cachedRows ?? fetchedRows)];
@@ -74,7 +78,7 @@ export function snapshotRows<T>(
 	if (cachedRows == null || options.replaceSourceRows === true) {
 		return [...fetchedRows];
 	}
-	return mergeCachedSourceRows(cachedRows, fetchedRows, rowKey);
+	return mergeCachedSourceRows(cachedRows, fetchedRows, rowKey, mergeRow);
 }
 
 type SnapshotRowsConfig<T> = {
@@ -85,6 +89,7 @@ type SnapshotRowsConfig<T> = {
 	options: DatabaseBuildOptions;
 	rowKey: (row: T) => string | null;
 	rowLabel: (row: T) => string | null;
+	mergeRow?: (cachedRow: T, fetchedRow: T) => T;
 	previousMissingSince: ReadonlyMap<string, number>;
 	nowEpochSeconds: number;
 };
@@ -105,6 +110,7 @@ export function snapshotRowsWithStates<T>(
 		config.fetchedAtEpochSeconds,
 		config.options,
 		config.rowKey,
+		config.mergeRow,
 	);
 	const fetchedKeys = new Set(
 		hasUsableFetchedRows

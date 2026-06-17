@@ -208,6 +208,7 @@ export async function buildModelAtlasDatabase(
 		const { snapshots, sourceCache } = await loadSourceSnapshots(
 			db,
 			startedAt,
+			STAGE_CONFIG.scoring,
 			options,
 		);
 		const automationBench = await getAutomationBenchLeaderboardStats();

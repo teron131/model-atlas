@@ -369,6 +369,11 @@ export type FinalStageConfig = {
 	nullFieldPruneRecentLookbackDays: number;
 };
 
+export type SnapshotPreservationConfig = {
+	minPreviousIntelligenceScore: number;
+	minIntelligenceScoreDrop: number;
+};
+
 export type ScoringConfig = {
 	intelligenceBenchmarkKeys: readonly string[];
 	intelligenceBenchmarkDisplayKeys: readonly string[];
@@ -392,6 +397,7 @@ export type ModelAtlasStageConfig = {
 	matcher: MatcherConfig;
 	openrouter: OpenRouterConfig;
 	final: FinalStageConfig;
+	snapshotPreservation: SnapshotPreservationConfig;
 	scoring: ScoringConfig;
 };
 

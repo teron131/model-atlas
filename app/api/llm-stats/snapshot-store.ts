@@ -10,6 +10,7 @@ import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
+import { preserveHighSignalSnapshotModels } from "../../../src/model-atlas/llm/stats/snapshot-preservation";
 import type {
 	LlmStatsMetadata,
 	LlmStatsModel,
@@ -156,7 +157,16 @@ export async function refreshStoredSnapshot(): Promise<SnapshotWriteResult> {
 	if (!runtimeSnapshotStoreConfigured()) {
 		throw new Error("Vercel Blob is not configured for runtime snapshots");
 	}
-	const payload = await refreshModelAtlasPayload(runtimeDatabasePath());
+	const [refreshedPayload, previousPayload] = await Promise.all([
+		refreshModelAtlasPayload(runtimeDatabasePath()),
+		readBlobSnapshot().catch(() => null),
+	]);
+	const payload = preserveHighSignalSnapshotModels(
+		refreshedPayload,
+		previousPayload,
+		STAGE_CONFIG.snapshotPreservation,
+		STAGE_CONFIG.scoring,
+	);
 	const blob = await put(SNAPSHOT_BLOB_PATH, JSON.stringify(payload), {
 		access: "public",
 		allowOverwrite: true,

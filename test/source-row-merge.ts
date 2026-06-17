@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 
+import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import {
 	mergeCachedSourceRows,
 	snapshotRows,
 	snapshotRowsWithStates,
 } from "../src/model-atlas/llm/database/policy";
+import { mergeArtificialAnalysisRow } from "../src/model-atlas/llm/database/sources";
 
 type AaFixtureRow = {
 	model_id: string;
@@ -40,8 +42,19 @@ const fetchedRows: AaFixtureRow[] = [
 ];
 
 const rowKey = (row: AaFixtureRow) => row.model_id;
+const mergeAaRow = (cachedRow: AaFixtureRow, fetchedRow: AaFixtureRow) =>
+	mergeArtificialAnalysisRow(
+		cachedRow as Record<string, unknown>,
+		fetchedRow as Record<string, unknown>,
+		STAGE_CONFIG.scoring,
+	) as AaFixtureRow;
 
-const mergedRows = mergeCachedSourceRows(cachedRows, fetchedRows, rowKey);
+const mergedRows = mergeCachedSourceRows(
+	cachedRows,
+	fetchedRows,
+	rowKey,
+	mergeAaRow,
+);
 
 assert.deepEqual(
 	mergedRows.map((row) => row.model_id),
@@ -50,10 +63,11 @@ assert.deepEqual(
 );
 assert.equal(
 	mergedRows[0]?.name,
-	"Claude Fable 5 (not currently available)",
-	"AA unavailable label changes should update the cached row with the same model id",
+	"Claude Fable 5",
+	"AA unavailable shell rows should not overwrite cached score-bearing rows with the same model id",
 );
-assert.equal(mergedRows[0]?.deprecated, true);
+assert.equal(mergedRows[0]?.deprecated, undefined);
+assert.equal(mergedRows[0]?.intelligenceIndex, 64.9);
 assert.equal(
 	mergedRows[1]?.name,
 	"Claude Opus 4.6",
@@ -66,9 +80,14 @@ assert.deepEqual(
 	"Unavailable sources with no usable fetched rows should keep cached rows",
 );
 assert.deepEqual(
-	snapshotRows(cachedRows, fetchedRows, 1_800_000_000, {}, rowKey).map(
-		(row) => row.model_id,
-	),
+	snapshotRows(
+		cachedRows,
+		fetchedRows,
+		1_800_000_000,
+		{},
+		rowKey,
+		mergeAaRow,
+	).map((row) => row.model_id),
 	["anthropic/claude-fable-5", "anthropic/claude-opus-4-6", "openai/gpt-5-5"],
 	"Normal refreshes should not remove cached rows absent from the fetch",
 );
@@ -92,6 +111,7 @@ const quarantinedSnapshot = snapshotRowsWithStates({
 	options: {},
 	rowKey,
 	rowLabel: (row) => row.name,
+	mergeRow: mergeAaRow,
 	previousMissingSince: new Map(),
 	nowEpochSeconds: 1_800_000_123,
 });
