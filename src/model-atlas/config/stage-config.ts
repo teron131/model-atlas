@@ -41,6 +41,10 @@ export const STAGE_CONFIG = {
 		nullFieldPruneThreshold: 0.5,
 		nullFieldPruneRecentLookbackDays: 90,
 	},
+	snapshotPreservation: {
+		minPreviousIntelligenceScore: 90,
+		minIntelligenceScoreDrop: 10,
+	},
 	scoring: {
 		intelligenceBenchmarkKeys: SELECTED_INTELLIGENCE_BENCHMARKS,
 		intelligenceBenchmarkDisplayKeys: INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,

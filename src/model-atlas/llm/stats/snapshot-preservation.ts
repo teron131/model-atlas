@@ -1,0 +1,127 @@
+/** Preserve high-signal snapshot rows when a refresh loses source evidence. */
+
+import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
+import {
+	AGENTIC_INDEX_KEYS,
+	INTELLIGENCE_INDEX_KEYS,
+} from "./scores/benchmark-imputation";
+import type {
+	LlmStatsModel,
+	LlmStatsPayload,
+	ScoringConfig,
+	SnapshotPreservationConfig,
+} from "./types";
+
+function modelKeys(model: LlmStatsModel): string[] {
+	const keys = new Set<string>();
+	for (const value of [model.id, model.name]) {
+		if (typeof value !== "string" || value.length === 0) {
+			continue;
+		}
+		keys.add(normalizeModelToken(value));
+		const slug = value.split("/").at(-1);
+		if (slug != null && slug.length > 0) {
+			keys.add(normalizeModelToken(slug));
+		}
+	}
+	return [...keys].filter((key) => key.length > 0);
+}
+
+function previousModelByKey(
+	previousPayload: LlmStatsPayload,
+): Map<string, LlmStatsModel> {
+	const models = new Map<string, LlmStatsModel>();
+	for (const model of previousPayload.models) {
+		for (const key of modelKeys(model)) {
+			const existing = models.get(key);
+			if (
+				existing == null ||
+				model.relative_scores.intelligence_score >
+					existing.relative_scores.intelligence_score
+			) {
+				models.set(key, model);
+			}
+		}
+	}
+	return models;
+}
+
+function scoreSignalCount(
+	model: LlmStatsModel,
+	scoringConfig: ScoringConfig,
+): number {
+	const speed = model.speed;
+	const intelligence = asRecord(model.intelligence);
+	const evaluations = asRecord(model.evaluations);
+	const benchmarkKeys = [
+		...INTELLIGENCE_INDEX_KEYS,
+		...AGENTIC_INDEX_KEYS,
+		...scoringConfig.intelligenceBenchmarkKeys,
+		...scoringConfig.agenticBenchmarkKeys,
+	];
+	return [
+		...benchmarkKeys.flatMap((key) => [intelligence[key], evaluations[key]]),
+		model.relative_scores.speed_score,
+		speed.throughput_tokens_per_second_median,
+		speed.latency_seconds_median,
+		speed.e2e_latency_seconds_median,
+	].filter((value) => asFiniteNumber(value) != null).length;
+}
+
+function shouldPreservePreviousModel(
+	current: LlmStatsModel,
+	previous: LlmStatsModel,
+	policy: SnapshotPreservationConfig,
+	scoringConfig: ScoringConfig,
+): boolean {
+	const previousIntelligence = previous.relative_scores.intelligence_score;
+	const currentIntelligence = current.relative_scores.intelligence_score;
+	return (
+		previousIntelligence >= policy.minPreviousIntelligenceScore &&
+		previousIntelligence - currentIntelligence >=
+			policy.minIntelligenceScoreDrop &&
+		scoreSignalCount(previous, scoringConfig) >
+			scoreSignalCount(current, scoringConfig)
+	);
+}
+
+function sortByIntelligence(models: LlmStatsModel[]): LlmStatsModel[] {
+	return [...models].sort((left, right) => {
+		const scoreDelta =
+			right.relative_scores.intelligence_score -
+			left.relative_scores.intelligence_score;
+		if (scoreDelta !== 0) {
+			return scoreDelta;
+		}
+		return (left.id ?? "").localeCompare(right.id ?? "");
+	});
+}
+
+export function preserveHighSignalSnapshotModels(
+	payload: LlmStatsPayload,
+	previousPayload: LlmStatsPayload | null,
+	policy: SnapshotPreservationConfig,
+	scoringConfig: ScoringConfig,
+): LlmStatsPayload {
+	if (previousPayload == null || previousPayload.models.length === 0) {
+		return payload;
+	}
+	const previousByKey = previousModelByKey(previousPayload);
+	let replaced = false;
+	const models = payload.models.map((model) => {
+		const previous = modelKeys(model)
+			.map((key) => previousByKey.get(key))
+			.find((candidate): candidate is LlmStatsModel => candidate != null);
+		if (
+			previous == null ||
+			!shouldPreservePreviousModel(model, previous, policy, scoringConfig)
+		) {
+			return model;
+		}
+		replaced = true;
+		return previous;
+	});
+	return replaced
+		? { ...payload, models: sortByIntelligence(models) }
+		: payload;
+}

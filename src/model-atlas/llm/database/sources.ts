@@ -53,14 +53,23 @@ import {
 	buildToolathlonScoreByModelName,
 	getToolathlonModelScoreStats,
 } from "../scrapers/toolathlon";
-import { modelSlugFromModelId } from "../shared";
+import {
+	asFiniteNumber,
+	asRecord,
+	type JsonObject,
+	modelSlugFromModelId,
+} from "../shared";
+import {
+	AGENTIC_INDEX_KEYS,
+	INTELLIGENCE_INDEX_KEYS,
+} from "../stats/scores/benchmark-imputation";
 import {
 	buildAaRetainKeys,
 	isoDateDaysAgo,
 	MODELS_DEV_LOOKBACK_DAYS,
 	pickPreferredModelsDevRows,
 } from "../stats/source-policy";
-import type { LlmStatsSourceData } from "../stats/types";
+import type { LlmStatsSourceData, ScoringConfig } from "../stats/types";
 import {
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
@@ -105,6 +114,73 @@ type AaSnapshot = {
 	sourceRowStates: SourceRowState[];
 	fetchedAt: { artificialAnalysis: number | null };
 };
+
+const AA_RESOURCE_SIGNAL_KEYS = [
+	"cost_per_task",
+	"seconds_per_task",
+	"output_tokens_per_task",
+] as const;
+
+function camelMetricKey(key: string): string {
+	return key.replace(/_([a-z0-9])/g, (_match, char: string) =>
+		char.toUpperCase(),
+	);
+}
+
+function aaSignalKeys(scoringConfig: ScoringConfig): Set<string> {
+	const keys = new Set<string>(AA_RESOURCE_SIGNAL_KEYS);
+	for (const key of [
+		...INTELLIGENCE_INDEX_KEYS,
+		...AGENTIC_INDEX_KEYS,
+		...scoringConfig.intelligenceBenchmarkKeys,
+		...scoringConfig.agenticBenchmarkKeys,
+	]) {
+		keys.add(key);
+		keys.add(camelMetricKey(key));
+	}
+	return keys;
+}
+
+function aaScoreSignalCount(
+	row: JsonObject,
+	scoringConfig: ScoringConfig,
+): number {
+	const intelligence = asRecord(row.intelligence);
+	const evaluations = asRecord(row.evaluations);
+	const cost = asRecord(row.intelligence_index_cost);
+	const signalKeys = aaSignalKeys(scoringConfig);
+	return [...signalKeys].filter(
+		(key) =>
+			asFiniteNumber(row[key]) != null ||
+			asFiniteNumber(intelligence[key]) != null ||
+			asFiniteNumber(evaluations[key]) != null ||
+			asFiniteNumber(cost[key]) != null,
+	).length;
+}
+
+function aaRowIsUnavailable(row: JsonObject): boolean {
+	const name = typeof row.name === "string" ? row.name.toLowerCase() : "";
+	return (
+		row.deprecated === true ||
+		name.includes("not currently available") ||
+		name.includes("unavailable")
+	);
+}
+
+export function mergeArtificialAnalysisRow(
+	cachedRow: JsonObject,
+	fetchedRow: JsonObject,
+	scoringConfig: ScoringConfig,
+): JsonObject {
+	if (
+		aaRowIsUnavailable(fetchedRow) &&
+		aaScoreSignalCount(cachedRow, scoringConfig) >
+			aaScoreSignalCount(fetchedRow, scoringConfig)
+	) {
+		return cachedRow;
+	}
+	return fetchedRow;
+}
 
 type ModelsDevSnapshot = Pick<
 	SourceSnapshots,
@@ -315,6 +391,7 @@ async function aaSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
+	scoringConfig: ScoringConfig,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<AaSnapshot> {
@@ -360,6 +437,8 @@ async function aaSnapshot(
 		options,
 		rowKey: (row) => rowStringValue(row, "model_id"),
 		rowLabel: (row) => rowStringValue(row, "name"),
+		mergeRow: (cachedRow, fetchedRow) =>
+			mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),
 		previousMissingSince,
 		nowEpochSeconds,
 	});
@@ -1003,6 +1082,7 @@ async function cursorBenchSnapshot(
 export async function loadSourceSnapshots(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
+	scoringConfig: ScoringConfig,
 	options: DatabaseBuildOptions = {},
 ): Promise<SourceSnapshotCacheResult> {
 	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
@@ -1024,6 +1104,7 @@ export async function loadSourceSnapshots(
 			db,
 			sourceCache.artificial_analysis,
 			options,
+			scoringConfig,
 			previousMissingSince.artificial_analysis,
 			nowEpochSeconds,
 		),
