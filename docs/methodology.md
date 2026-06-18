@@ -31,18 +31,18 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | --- | --- | ---: | ---: | --- |
 | Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Professional factual knowledge support. |
 | LCR | baseline | 100% | 0% | Long-context professional-document reasoning. |
-| SciCode | baseline | 60% | 40% | Scientific reasoning with executable coding. |
+| SciCode | baseline | 80% | 20% | Scientific reasoning with executable coding; mostly intelligence, with a smaller execution-correctness signal. |
 | Terminal-Bench&nbsp;2.1&nbsp;(AA) | baseline | 0% | 100% | Same-source AA terminal execution and environment handling. |
-| tau3&nbsp;Banking&nbsp;(AA) | baseline | 0% | 100% | Realistic banking agent scenarios from AA's upgraded tau benchmark. |
 | Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Cross-harness terminal robustness; needs popularity correction. |
 | BrowseComp | baseline | 0% | 100% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
 | Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding; limited current row count keeps it baseline. |
 | CursorBench | baseline | 0% | 100% | First-party coding-agent workflow signal from ambiguous, multi-file Cursor tasks; private Composer rows are excluded. |
 | HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
 | CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
-| GDPval-AA&nbsp;v2 | frontier | 80% | 20% | AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories. |
+| GDPval-AA&nbsp;v2 | frontier | 60% | 40% | AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories. |
 | Riemann-bench | frontier | 100% | 0% | Private extreme mathematics stress test with useful frontier spread but limited public task access. |
 | APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
+| tau3&nbsp;Banking&nbsp;(AA) | frontier | 0% | 100% | AA v4.1 realistic banking-agent workflows with tool/state handling and low current pass rates. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
 | Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Protected spatial-reasoning stress test over apartment-photo floor-plan reconstruction. |
 | GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics; mostly document intelligence, with a small execution-reliability component. |
