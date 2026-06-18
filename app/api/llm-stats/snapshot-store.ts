@@ -10,7 +10,10 @@ import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
-import { preserveHighSignalSnapshotModels } from "../../../src/model-atlas/llm/stats/snapshot-preservation";
+import {
+	preserveHighSignalSnapshotModels,
+	SNAPSHOT_PRESERVATION_VERSION,
+} from "../../../src/model-atlas/llm/stats/snapshot-preservation";
 import type {
 	LlmStatsMetadata,
 	LlmStatsModel,
@@ -344,6 +347,7 @@ function withCurrentSnapshotMetadata(
 					...scoring.overallRelativeScoreWeights,
 				},
 				column_tooltips: { ...scoring.columnTooltips },
+				snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 			},
 		},
 	};

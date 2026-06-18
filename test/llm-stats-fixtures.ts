@@ -1,3 +1,4 @@
+import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/llm/stats/snapshot-preservation";
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,
@@ -42,6 +43,7 @@ export function minimalLlmStatsPayload({
 					value: 0,
 				},
 				column_tooltips: {},
+				snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 			},
 		},
 		models,
