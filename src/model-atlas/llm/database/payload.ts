@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../../constants";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
+import { SNAPSHOT_PRESERVATION_VERSION } from "../stats/snapshot-preservation";
 import type {
 	LlmStatsContextWindow,
 	LlmStatsCost,
@@ -299,6 +300,7 @@ function buildMetadata(models: LlmStatsScoredCandidate[]): LlmStatsMetadata {
 				...scoringConfig.overallRelativeScoreWeights,
 			},
 			column_tooltips: { ...scoringConfig.columnTooltips },
+			snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 		},
 	};
 }

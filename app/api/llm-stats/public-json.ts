@@ -224,6 +224,8 @@ export function leanDashboardPayload(
 				column_tooltips: leanDashboardColumnTooltips(
 					payload.metadata.scoring.column_tooltips,
 				),
+				snapshot_preservation_version:
+					payload.metadata.scoring.snapshot_preservation_version,
 			},
 		},
 		models: payload.models.map((model) =>

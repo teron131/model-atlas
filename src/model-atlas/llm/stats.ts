@@ -6,6 +6,7 @@ import { asRecord } from "./shared";
 import { buildMatchedModelRows } from "./stats/matching";
 import { enrichModelRowsWithOpenRouter } from "./stats/openrouter-enrichment";
 import { buildFinalModels } from "./stats/selection";
+import { SNAPSHOT_PRESERVATION_VERSION } from "./stats/snapshot-preservation";
 import { fetchSourceData } from "./stats/source-data";
 import type {
 	LlmStatsMetadata,
@@ -102,6 +103,7 @@ function buildLlmStatsMetadata(
 				...scoringConfig.overallRelativeScoreWeights,
 			},
 			column_tooltips: { ...scoringConfig.columnTooltips },
+			snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 		},
 	};
 }

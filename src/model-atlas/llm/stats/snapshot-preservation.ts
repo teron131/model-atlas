@@ -12,6 +12,8 @@ import type {
 	SnapshotPreservationConfig,
 } from "./types";
 
+export const SNAPSHOT_PRESERVATION_VERSION = 2;
+
 function modelKeys(model: LlmStatsModel): string[] {
 	const keys = new Set<string>();
 	for (const value of [model.id, model.name]) {
@@ -104,6 +106,12 @@ export function preserveHighSignalSnapshotModels(
 	scoringConfig: ScoringConfig,
 ): LlmStatsPayload {
 	if (previousPayload == null || previousPayload.models.length === 0) {
+		return payload;
+	}
+	if (
+		previousPayload.metadata.scoring.snapshot_preservation_version !==
+		SNAPSHOT_PRESERVATION_VERSION
+	) {
 		return payload;
 	}
 	const previousByKey = previousModelByKey(previousPayload);

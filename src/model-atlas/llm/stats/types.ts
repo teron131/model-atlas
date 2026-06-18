@@ -340,6 +340,7 @@ export type LlmStatsMetadata = {
 		quality_score_weights: QualityScoreWeights;
 		overall_relative_score_weights: OverallRelativeScoreWeights;
 		column_tooltips: LlmStatsColumnTooltips;
+		snapshot_preservation_version: number;
 	};
 };
 

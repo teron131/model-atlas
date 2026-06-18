@@ -86,6 +86,31 @@ assert.equal(
 	"previous high-signal top models should survive cold snapshot degradation",
 );
 
+const incompatiblePreviousPayload = minimalLlmStatsPayload({
+	fetchedAt: 1,
+	models: [preservedFable],
+});
+delete (
+	incompatiblePreviousPayload.metadata.scoring as Partial<
+		typeof incompatiblePreviousPayload.metadata.scoring
+	>
+).snapshot_preservation_version;
+const incompatiblePreserved = preserveHighSignalSnapshotModels(
+	minimalLlmStatsPayload({
+		fetchedAt: 2,
+		models: [degradedFable],
+	}),
+	incompatiblePreviousPayload,
+	STAGE_CONFIG.snapshotPreservation,
+	STAGE_CONFIG.scoring,
+);
+
+assert.equal(
+	incompatiblePreserved.models[0]?.id,
+	"claude-fable-5",
+	"previous snapshots without the current preservation version should not replace current rows",
+);
+
 const normalUpdate = preserveHighSignalSnapshotModels(
 	minimalLlmStatsPayload({
 		fetchedAt: 2,
