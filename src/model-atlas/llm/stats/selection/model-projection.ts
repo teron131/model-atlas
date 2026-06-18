@@ -376,6 +376,24 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 		source.median_total_output_tokens,
 	);
 	const meanTotalOutputTokens = asFiniteNumber(source.mean_total_output_tokens);
+	const medianDurationSecondsPerRun = asFiniteNumber(
+		source.median_duration_seconds_per_run,
+	);
+	const meanDurationSecondsPerRun = asFiniteNumber(
+		source.mean_duration_seconds_per_run,
+	);
+	const medianInputTokensPerRun = asFiniteNumber(
+		source.median_input_tokens_per_run,
+	);
+	const meanInputTokensPerRun = asFiniteNumber(
+		source.mean_input_tokens_per_run,
+	);
+	const medianOutputTokensPerRun = asFiniteNumber(
+		source.median_output_tokens_per_run,
+	);
+	const meanOutputTokensPerRun = asFiniteNumber(
+		source.mean_output_tokens_per_run,
+	);
 	const frequency = asFiniteNumber(source.frequency);
 	if (
 		typeof source.model !== "string" ||
@@ -390,6 +408,12 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 		meanTotalInputTokens == null ||
 		medianTotalOutputTokens == null ||
 		meanTotalOutputTokens == null ||
+		medianDurationSecondsPerRun == null ||
+		meanDurationSecondsPerRun == null ||
+		medianInputTokensPerRun == null ||
+		meanInputTokensPerRun == null ||
+		medianOutputTokensPerRun == null ||
+		meanOutputTokensPerRun == null ||
 		frequency == null
 	) {
 		return null;
@@ -407,6 +431,12 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 		mean_total_input_tokens: meanTotalInputTokens,
 		median_total_output_tokens: medianTotalOutputTokens,
 		mean_total_output_tokens: meanTotalOutputTokens,
+		median_duration_seconds_per_run: medianDurationSecondsPerRun,
+		mean_duration_seconds_per_run: meanDurationSecondsPerRun,
+		median_input_tokens_per_run: medianInputTokensPerRun,
+		mean_input_tokens_per_run: meanInputTokensPerRun,
+		median_output_tokens_per_run: medianOutputTokensPerRun,
+		mean_output_tokens_per_run: meanOutputTokensPerRun,
 		frequency,
 	};
 }

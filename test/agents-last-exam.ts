@@ -5,6 +5,7 @@ import {
 	processAgentsLastExamLeaderboardRows,
 	summarizeAgentsLastExamModelScores,
 } from "../src/model-atlas/llm/scrapers/agents-last-exam";
+import { buildTaskMetrics } from "../src/model-atlas/llm/stats/selection/task-metrics";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);
@@ -157,6 +158,12 @@ assertDeepEqual(modelScores, [
 		mean_total_input_tokens: 346_863_891,
 		median_total_output_tokens: 2_494_844.5,
 		mean_total_output_tokens: 2_494_844.5,
+		median_duration_seconds_per_run: (291_752 / 146 + 98_570 / 53) / 2,
+		mean_duration_seconds_per_run: (291_752 / 146 + 98_570 / 53) / 2,
+		median_input_tokens_per_run: (577_686_408 / 146 + 116_041_374 / 53) / 2,
+		mean_input_tokens_per_run: (577_686_408 / 146 + 116_041_374 / 53) / 2,
+		median_output_tokens_per_run: (3_856_937 / 146 + 1_132_752 / 53) / 2,
+		mean_output_tokens_per_run: (3_856_937 / 146 + 1_132_752 / 53) / 2,
 		frequency: 2,
 	},
 	{
@@ -172,6 +179,12 @@ assertDeepEqual(modelScores, [
 		mean_total_input_tokens: 112_447_742,
 		median_total_output_tokens: 1_784_448,
 		mean_total_output_tokens: 1_784_448,
+		median_duration_seconds_per_run: 1_151_355 / 102,
+		mean_duration_seconds_per_run: 1_151_355 / 102,
+		median_input_tokens_per_run: 112_447_742 / 102,
+		mean_input_tokens_per_run: 112_447_742 / 102,
+		median_output_tokens_per_run: 1_784_448 / 102,
+		mean_output_tokens_per_run: 1_784_448 / 102,
 		frequency: 1,
 	},
 ]);
@@ -199,6 +212,17 @@ const matchedScore = findAgentsLastExamModelScore(
 
 assertDeepEqual(matchedScore?.frequency, 7);
 assertDeepEqual(agentsLastExamBenchmarkScore(matchedScore ?? gptScore), 0.37);
+
+assertDeepEqual(
+	buildTaskMetrics(null, null, {
+		agents_last_exam: gptScore,
+	})?.agents_last_exam,
+	{
+		seconds: (291_752 / 146 + 98_570 / 53) / 2,
+		input_tokens: (577_686_408 / 146 + 116_041_374 / 53) / 2,
+		output_tokens: (3_856_937 / 146 + 1_132_752 / 53) / 2,
+	},
+);
 
 const slashProviderScore = findAgentsLastExamModelScore(
 	["anthropic/claude-fable-5"],

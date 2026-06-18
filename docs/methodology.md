@@ -72,7 +72,7 @@ DeepSWE supplies mean task cost, mean task duration, and mean output tokens for 
 
 Terminal-Bench 2.0 uses `max(median_accuracy, mean_accuracy)` across available agent/model entries.
 
-Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
+Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime and token counts, while displayed ALE resource columns divide those totals by the source `runs` count and then use the lower of median and mean per-run values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 Toolathlon uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 

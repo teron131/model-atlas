@@ -50,6 +50,12 @@ export type AgentsLastExamModelScoreRow = {
 	mean_total_input_tokens: number;
 	median_total_output_tokens: number;
 	mean_total_output_tokens: number;
+	median_duration_seconds_per_run: number;
+	mean_duration_seconds_per_run: number;
+	median_input_tokens_per_run: number;
+	mean_input_tokens_per_run: number;
+	median_output_tokens_per_run: number;
+	mean_output_tokens_per_run: number;
 	frequency: number;
 };
 
@@ -137,6 +143,10 @@ export function agentsLastExamBenchmarkScore(
 	return Math.max(row.median_score, row.mean_score);
 }
 
+function perRun(value: number, row: AgentsLastExamHarnessRow): number | null {
+	return row.runs > 0 ? value / row.runs : null;
+}
+
 /** Group harness/model rows into model-level score rows for one leaderboard split. */
 export function summarizeAgentsLastExamModelScores(
 	rows: AgentsLastExamHarnessRow[],
@@ -160,6 +170,15 @@ export function summarizeAgentsLastExamModelScores(
 			);
 			const inputTokens = modelRows.map((row) => row.total_input_tokens);
 			const outputTokens = modelRows.map((row) => row.total_output_tokens);
+			const durationSecondsPerRun = modelRows.map((row) =>
+				perRun(row.total_duration_seconds, row),
+			);
+			const inputTokensPerRun = modelRows.map((row) =>
+				perRun(row.total_input_tokens, row),
+			);
+			const outputTokensPerRun = modelRows.map((row) =>
+				perRun(row.total_output_tokens, row),
+			);
 			return {
 				model,
 				split: scoreSplit,
@@ -173,6 +192,12 @@ export function summarizeAgentsLastExamModelScores(
 				mean_total_input_tokens: meanOfFinite(inputTokens),
 				median_total_output_tokens: medianOfFinite(outputTokens),
 				mean_total_output_tokens: meanOfFinite(outputTokens),
+				median_duration_seconds_per_run: medianOfFinite(durationSecondsPerRun),
+				mean_duration_seconds_per_run: meanOfFinite(durationSecondsPerRun),
+				median_input_tokens_per_run: medianOfFinite(inputTokensPerRun),
+				mean_input_tokens_per_run: meanOfFinite(inputTokensPerRun),
+				median_output_tokens_per_run: medianOfFinite(outputTokensPerRun),
+				mean_output_tokens_per_run: meanOfFinite(outputTokensPerRun),
 				frequency: modelRows.length,
 			};
 		})
@@ -187,7 +212,13 @@ export function summarizeAgentsLastExamModelScores(
 				row.median_total_input_tokens != null &&
 				row.mean_total_input_tokens != null &&
 				row.median_total_output_tokens != null &&
-				row.mean_total_output_tokens != null,
+				row.mean_total_output_tokens != null &&
+				row.median_duration_seconds_per_run != null &&
+				row.mean_duration_seconds_per_run != null &&
+				row.median_input_tokens_per_run != null &&
+				row.mean_input_tokens_per_run != null &&
+				row.median_output_tokens_per_run != null &&
+				row.mean_output_tokens_per_run != null,
 		)
 		.sort(
 			(left, right) =>

@@ -165,6 +165,12 @@ CREATE TABLE IF NOT EXISTS agents_last_exam_raw_rows (
 	mean_total_input_tokens REAL,
 	median_total_output_tokens REAL,
 	mean_total_output_tokens REAL,
+	median_duration_seconds_per_run REAL,
+	mean_duration_seconds_per_run REAL,
+	median_input_tokens_per_run REAL,
+	mean_input_tokens_per_run REAL,
+	median_output_tokens_per_run REAL,
+	mean_output_tokens_per_run REAL,
 	frequency INTEGER,
 	row_kind TEXT NOT NULL,
 	PRIMARY KEY (run_id, row_index)
