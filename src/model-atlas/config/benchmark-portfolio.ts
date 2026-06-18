@@ -16,15 +16,10 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	scicode: {
 		group: "baseline",
-		intelligencePortion: 0.6,
-		agenticPortion: 0.4,
+		intelligencePortion: 0.8,
+		agenticPortion: 0.2,
 	},
 	terminalbench_v21: {
-		group: "baseline",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-	},
-	tau_banking: {
 		group: "baseline",
 		intelligencePortion: 0,
 		agenticPortion: 1,
@@ -61,8 +56,8 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	gdpval_normalized: {
 		group: "frontier",
-		intelligencePortion: 0.8,
-		agenticPortion: 0.2,
+		intelligencePortion: 0.6,
+		agenticPortion: 0.4,
 	},
 	riemann_bench: {
 		group: "frontier",
@@ -70,6 +65,11 @@ export const BENCHMARK_PORTFOLIO = {
 		agenticPortion: 0,
 	},
 	apex_agents: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+	},
+	tau_banking: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
