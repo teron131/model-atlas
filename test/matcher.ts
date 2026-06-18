@@ -47,6 +47,31 @@ assert.equal(
 	"an older numeric version should not match a newer OpenRouter sibling when the exact row is absent",
 );
 
+const exactFallbackOutput = runMatcher(
+	[source("claude-fable-5", "anthropic/claude-fable-5")],
+	{
+		primary: [
+			model(
+				"openrouter",
+				"~anthropic/claude-fable-latest",
+				"Claude Fable Latest",
+			),
+		],
+		fallback: [model("anthropic", "claude-fable-5", "Claude Fable 5")],
+	},
+	5,
+);
+
+assert.equal(
+	exactFallbackOutput.models[0]?.best_match?.provider_id,
+	"anthropic",
+	"an exact trusted-provider row should beat a weak OpenRouter latest alias",
+);
+assert.equal(
+	exactFallbackOutput.models[0]?.best_match?.model_id,
+	"claude-fable-5",
+);
+
 const sourceData = modelStatsSourceData([
 	sourceModel("google/example-2-5-flash", 20),
 	sourceModel("google/example-3-pro", 50),

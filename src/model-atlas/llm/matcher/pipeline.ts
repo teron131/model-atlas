@@ -99,7 +99,7 @@ function preferredCandidatesForSourceSlug(
 	if (primaryCandidates.length === 0) {
 		return fallbackCandidates;
 	}
-	return primaryCandidates;
+	return [...primaryCandidates, ...fallbackCandidates].sort(compareCandidates);
 }
 
 /** Apply the max-min range-ratio void threshold. */
