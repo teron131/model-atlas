@@ -412,15 +412,16 @@ function leanDashboardIntelligence(
 function leanDashboardTaskMetrics(
 	taskMetrics: LlmStatsModel["task_metrics"],
 ): LlmStatsModel["task_metrics"] {
-	const artificialAnalysis = taskMetrics?.artificial_analysis;
-	if (artificialAnalysis?.cost == null) {
+	if (taskMetrics == null) {
 		return null;
 	}
-	return {
-		artificial_analysis: {
-			cost: artificialAnalysis.cost,
-		},
-	};
+	const leanTaskMetrics = Object.fromEntries(
+		Object.entries(taskMetrics).map(([key, value]) => [
+			key,
+			value == null ? null : { ...value },
+		]),
+	);
+	return Object.keys(leanTaskMetrics).length > 0 ? leanTaskMetrics : null;
 }
 
 function leanDashboardEvaluations(

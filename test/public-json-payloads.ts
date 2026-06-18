@@ -139,6 +139,13 @@ assert.deepEqual(model?.evaluations, {
 assert.deepEqual(model?.task_metrics, {
 	artificial_analysis: {
 		cost: 1.25,
+		seconds: 2,
+		output_tokens: 3,
+	},
+	deep_swe: {
+		cost: 3,
+		seconds: 4,
+		output_tokens: 5,
 	},
 });
 assert.equal(model?.intelligence_index_cost, null);
