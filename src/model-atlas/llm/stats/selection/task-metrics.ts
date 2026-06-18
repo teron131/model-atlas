@@ -88,17 +88,17 @@ function buildAgentsLastExamTaskMetrics(
 		return null;
 	}
 	const inputTokens = Math.min(
-		agentsLastExam.median_total_input_tokens,
-		agentsLastExam.mean_total_input_tokens,
+		agentsLastExam.median_input_tokens_per_run,
+		agentsLastExam.mean_input_tokens_per_run,
 	);
 	const outputTokens = Math.min(
-		agentsLastExam.median_total_output_tokens,
-		agentsLastExam.mean_total_output_tokens,
+		agentsLastExam.median_output_tokens_per_run,
+		agentsLastExam.mean_output_tokens_per_run,
 	);
 	const taskMetrics: TaskMetricValues = {
 		seconds: Math.min(
-			agentsLastExam.median_total_duration_seconds,
-			agentsLastExam.mean_total_duration_seconds,
+			agentsLastExam.median_duration_seconds_per_run,
+			agentsLastExam.mean_duration_seconds_per_run,
 		),
 		input_tokens: inputTokens,
 		output_tokens: outputTokens,

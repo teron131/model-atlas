@@ -119,8 +119,12 @@ export function insertAgentsLastExamRawRows(
 			median_accuracy, mean_accuracy, median_score, mean_score,
 			median_total_duration_seconds, mean_total_duration_seconds,
 			median_total_input_tokens, mean_total_input_tokens,
-			median_total_output_tokens, mean_total_output_tokens, frequency, row_kind
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			median_total_output_tokens, mean_total_output_tokens,
+			median_duration_seconds_per_run, mean_duration_seconds_per_run,
+			median_input_tokens_per_run, mean_input_tokens_per_run,
+			median_output_tokens_per_run, mean_output_tokens_per_run,
+			frequency, row_kind
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	let rowIndex = 0;
 	for (const row of snapshots.agentsLastExamRows) {
@@ -142,6 +146,12 @@ export function insertAgentsLastExamRawRows(
 			row.total_duration_seconds,
 			row.total_input_tokens,
 			row.total_output_tokens,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
 			null,
 			null,
 			null,
@@ -186,6 +196,12 @@ export function insertAgentsLastExamRawRows(
 			row.mean_total_input_tokens,
 			row.median_total_output_tokens,
 			row.mean_total_output_tokens,
+			row.median_duration_seconds_per_run,
+			row.mean_duration_seconds_per_run,
+			row.median_input_tokens_per_run,
+			row.mean_input_tokens_per_run,
+			row.median_output_tokens_per_run,
+			row.mean_output_tokens_per_run,
 			row.frequency,
 			"model_score",
 		);
