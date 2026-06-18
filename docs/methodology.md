@@ -27,26 +27,26 @@ Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is 
 
 For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow: choose the group, then assign Intelligence and Agentic portions that sum to 100%. These portions allocate the benchmark's capability signal between the two quality dimensions; they are not arbitrary standalone weights. A proprietary or first-party agent workflow benchmark can be kept `baseline` and `0%` Intelligence / `100%` Agentic when the evidence is useful but too opaque to act as a frontier model-quality claim.
 
-| Benchmark | Group | Intelligence Portion | Agentic Portion | Decision Note |
+| Benchmark | Group | Intelligence Portion | Agentic Portion | Description and Decision Note |
 | --- | --- | ---: | ---: | --- |
-| Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Professional factual knowledge support. |
-| LCR | baseline | 100% | 0% | Long-context professional-document reasoning. |
-| SciCode | baseline | 80% | 20% | Scientific reasoning with executable coding; mostly intelligence, with a smaller execution-correctness signal. |
-| Terminal-Bench&nbsp;2.1&nbsp;(AA) | baseline | 0% | 100% | Same-source AA terminal execution and environment handling. |
-| Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Cross-harness terminal robustness; needs popularity correction. |
-| BrowseComp | baseline | 0% | 100% | Web/research solving where browsing/tool behavior matters more than static knowledge. |
-| Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding; limited current row count keeps it baseline. |
-| CursorBench | baseline | 0% | 100% | First-party coding-agent workflow signal from ambiguous, multi-file Cursor tasks; private Composer rows are excluded. |
-| HLE | frontier | 100% | 0% | Broad expert knowledge with headroom. |
-| CritPt | frontier | 100% | 0% | Narrow but genuinely hard specialist reasoning. |
-| GDPval-AA&nbsp;v2 | frontier | 60% | 40% | AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories. |
-| Riemann-bench | frontier | 100% | 0% | Private extreme mathematics stress test with useful frontier spread but limited public task access. |
-| APEX&nbsp;Agents | frontier | 0% | 100% | Professional workflows with files, tools, rubrics, and domain reasoning. |
-| tau3&nbsp;Banking&nbsp;(AA) | frontier | 0% | 100% | AA v4.1 realistic banking-agent workflows with tool/state handling and low current pass rates. |
-| Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Professional task knowledge plus harnessed real-world execution. |
-| Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Protected spatial-reasoning stress test over apartment-photo floor-plan reconstruction. |
-| GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics; mostly document intelligence, with a small execution-reliability component. |
-| DeepSWE | frontier | 0% | 100% | Repo reasoning plus long-horizon agentic code execution. |
+| Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to decide frontier top fights. |
+| LCR | baseline | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
+| SciCode | baseline | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
+| Terminal-Bench&nbsp;2.1&nbsp;(AA) | baseline | 0% | 100% | AA's upgraded terminal-agent benchmark. It tests command-line execution and environment handling, but stays baseline because stronger frontier agentic tests are more distinctive. |
+| Terminal-Bench&nbsp;2.0 | baseline | 0% | 100% | Independent cross-harness terminal benchmark. It is kept separate from AA Terminal-Bench 2.1 as a robustness signal, with mixed-harness caveats. |
+| BrowseComp | baseline | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
+| Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding. Limited current row count and provenance keep it baseline. |
+| CursorBench | baseline | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks. Composer rows are excluded because their model data is not independently available. |
+| HLE | frontier | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
+| CritPt | frontier | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
+| GDPval-AA&nbsp;v2 | frontier | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
+| Riemann-bench | frontier | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
+| APEX&nbsp;Agents | frontier | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
+| tau3&nbsp;Banking&nbsp;(AA) | frontier | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It is frontier because current models still struggle and the task shape is close to deployable support work. |
+| Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
+| Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
+| GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
+| DeepSWE | frontier | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using each model's best pass@1 configuration. |
 
 The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
 
@@ -64,27 +64,25 @@ Value and speed are secondary. They still matter because downstream applications
 
 ## Source Notes
 
-Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds.
+Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio.
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated value. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
-DeepSWE contributes one frontier agentic benchmark input: each model's best `pass_at_1` configuration. It also supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components.
+DeepSWE supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components.
 
-Terminal-Bench 2.0 contributes one baseline agentic benchmark input. It uses `max(median_accuracy, mean_accuracy)` across available agent/model entries. This is intentionally separate from AA's Terminal-Bench 2.1 field; both are selected agentic benchmarks because they are different signals.
+Terminal-Bench 2.0 uses `max(median_accuracy, mean_accuracy)` across available agent/model entries.
 
-Agents' Last Exam contributes frontier Intelligence and Agentic benchmark evidence because it combines professional knowledge with harnessed real-world task execution. Its benchmark score uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
+Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Its resource columns use the lower of median and mean runtime, input tokens, and output tokens from the same split. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
-BrowseComp contributes one baseline benchmark input from LLM Stats' model-level leaderboard.
+Toolathlon uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
-Toolathlon contributes one baseline benchmark input from LLM Stats' model-level leaderboard. Model Atlas uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
+CursorBench preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
-CursorBench contributes one baseline agentic benchmark input from Cursor's public CursorBench 3.1 leaderboard. Model Atlas preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
+Blueprint-Bench 2 uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
 
-Blueprint-Bench 2 contributes one frontier intelligence benchmark input from Andon Labs' public leaderboard. Model Atlas uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
+Riemann-bench uses the normalized public percent score and preserves provider, model label, and leaderboard last-updated date from the page.
 
-Riemann-bench contributes one frontier intelligence benchmark input from Surge AI's public leaderboard. Model Atlas uses the normalized public percent score and preserves provider, model label, and leaderboard last-updated date from the page. The benchmark is treated as a sharp but opaque math-reasoning stress test because the task set is private and small.
-
-GDP.pdf contributes one frontier document-reasoning benchmark input from Surge AI's public leaderboard. Model Atlas uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date. It is mostly Intelligence because the benchmark stresses PDF understanding, extraction, page-grounded citation, and professional-domain reasoning rather than tool or coding execution.
+GDP.pdf uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date.
 
 ## Scoring Shape
 
