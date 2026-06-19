@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
+	bestSnapshotPayload,
 	type DisplaySnapshotRefreshMode,
 	displaySnapshotRefreshMode,
 	localDatabaseReadPath,
@@ -33,6 +34,26 @@ assert.equal(
 	mode(stalePayload, true, 1000),
 	"stored",
 	"stale display snapshots with Blob should refresh the stored snapshot",
+);
+
+const olderCompleteSnapshot = payloadWithBenchmarks(100, [
+	"gdp_pdf",
+	"deep_swe",
+]);
+const newerIncompleteSnapshot = payloadWithBenchmarks(900, ["gdp_pdf"]);
+assert.equal(
+	bestSnapshotPayload(newerIncompleteSnapshot, olderCompleteSnapshot),
+	olderCompleteSnapshot,
+	"snapshot selection should keep richer benchmark coverage over a newer incomplete local database",
+);
+const newerEquallyCompleteSnapshot = payloadWithBenchmarks(900, [
+	"gdp_pdf",
+	"deep_swe",
+]);
+assert.equal(
+	bestSnapshotPayload(olderCompleteSnapshot, newerEquallyCompleteSnapshot),
+	newerEquallyCompleteSnapshot,
+	"snapshot selection should use freshness when selected benchmark coverage is equal",
 );
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
@@ -96,4 +117,25 @@ function mode(
 
 function payloadAt(fetchedAt: number): LlmStatsPayload {
 	return minimalLlmStatsPayload({ fetchedAt });
+}
+
+function payloadWithBenchmarks(
+	fetchedAt: number,
+	availableBenchmarkKeys: string[],
+): LlmStatsPayload {
+	const payload = payloadAt(fetchedAt);
+	return {
+		...payload,
+		metadata: {
+			...payload.metadata,
+			artificial_analysis: {
+				...payload.metadata.artificial_analysis,
+				available_benchmark_keys: availableBenchmarkKeys,
+			},
+			scoring: {
+				...payload.metadata.scoring,
+				selected_benchmark_keys: ["gdp_pdf", "deep_swe"],
+			},
+		},
+	};
 }

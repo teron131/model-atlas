@@ -1,14 +1,22 @@
 import { mkdir, readFile, rm } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { fileURLToPath } from "node:url";
+
+const SCHEMA_SQL_PATH = resolve(
+	process.cwd(),
+	"src/model-atlas/llm/database/schema.sql",
+);
 
 /** Load the SQLite schema file colocated with this database pipeline. */
 async function loadSchemaSql(): Promise<string> {
-	return readFile(
-		fileURLToPath(new URL("./schema.sql", import.meta.url)),
-		"utf-8",
-	);
+	try {
+		return await readFile(SCHEMA_SQL_PATH, "utf-8");
+	} catch (error) {
+		if ((error as { code?: string }).code !== "ENOENT") {
+			throw error;
+		}
+		return readFile(new URL("./schema.sql", import.meta.url), "utf-8");
+	}
 }
 
 /** Remove a SQLite database file and its sidecar files. */
