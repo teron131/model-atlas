@@ -1,9 +1,15 @@
 /** Public Model Atlas API: rebuild from live sources and return failure-safe output. */
 
 import { STAGE_CONFIG } from "../constants";
-import { nowEpochSeconds } from "../utils";
+import { asFiniteNumber, nowEpochSeconds } from "../utils";
 import { asRecord } from "./shared";
-import { buildBenchmarkUpdateHealth } from "./stats/health";
+import {
+	ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS,
+	appendBenchmarkUpdateOfficialRow,
+	type BenchmarkUpdateOfficialRow,
+	type BenchmarkUpdateOfficialRowsByKey,
+	buildBenchmarkUpdateHealth,
+} from "./stats/health";
 import { buildMatchedModelRows } from "./stats/matching";
 import { enrichModelRowsWithOpenRouter } from "./stats/openrouter-enrichment";
 import { buildFinalModels } from "./stats/selection";
@@ -14,6 +20,7 @@ import type {
 	LlmStatsModel,
 	LlmStatsOptions,
 	LlmStatsPayload,
+	LlmStatsSourceData,
 	ModelAtlasStageConfig,
 } from "./stats/types";
 
@@ -60,6 +67,7 @@ function buildLlmStatsMetadata(
 	models: Array<Record<string, unknown> | LlmStatsModel>,
 	healthModels: readonly LlmStatsModel[],
 	scoringConfig: ModelAtlasStageConfig["scoring"],
+	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
 ): LlmStatsMetadata {
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
@@ -80,6 +88,8 @@ function buildLlmStatsMetadata(
 		benchmark_update_health: buildBenchmarkUpdateHealth(
 			healthModels,
 			scoringConfig,
+			officialRowsByKey,
+			STAGE_CONFIG.matcher,
 		),
 		scoring: {
 			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
@@ -114,6 +124,48 @@ function buildLlmStatsMetadata(
 	};
 }
 
+function officialRowsFromSourceData(
+	sourceData: LlmStatsSourceData,
+): BenchmarkUpdateOfficialRowsByKey {
+	const rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]> = {};
+	for (const row of sourceData.artificialAnalysisRows) {
+		const record = asRecord(row);
+		const modelId =
+			typeof record.model_id === "string" && record.model_id.length > 0
+				? record.model_id
+				: null;
+		const label =
+			typeof record.name === "string" && record.name.length > 0
+				? record.name
+				: modelId;
+		if (label == null) {
+			continue;
+		}
+		const evaluations = asRecord(record.evaluations);
+		for (const key of ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS) {
+			const value = asFiniteNumber(evaluations[key]);
+			if (value == null) {
+				continue;
+			}
+			appendBenchmarkUpdateOfficialRow(rowsByKey, key, {
+				id: modelId,
+				label,
+				provider: null,
+				value,
+			});
+		}
+	}
+	for (const row of sourceData.browseCompModelScoreRows) {
+		appendBenchmarkUpdateOfficialRow(rowsByKey, "browsecomp", {
+			id: null,
+			label: row.model,
+			provider: row.provider,
+			value: row.score,
+		});
+	}
+	return rowsByKey;
+}
+
 /** Ensure cached or freshly built payloads expose current scoring metadata. */
 function withLlmStatsMetadata(
 	payload: Omit<LlmStatsPayload, "metadata"> &
@@ -121,11 +173,13 @@ function withLlmStatsMetadata(
 	modelsForMetadata: Array<
 		Record<string, unknown> | LlmStatsModel
 	> = payload.models,
+	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
 ): LlmStatsPayload {
 	const currentMetadata = buildLlmStatsMetadata(
 		modelsForMetadata,
 		payload.models,
 		STAGE_CONFIG.scoring,
+		officialRowsByKey,
 	);
 	return {
 		...payload,
@@ -177,6 +231,7 @@ async function buildLlmStatsPayload(
 			models,
 		},
 		enrichedRows.rows,
+		officialRowsFromSourceData(sourceData),
 	);
 }
 

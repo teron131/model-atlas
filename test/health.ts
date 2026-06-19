@@ -40,6 +40,9 @@ assert.deepEqual(sparseHealth.sparse_benchmark, {
 	overlap_count: 2,
 	overlap_model_ids: ["frontier/a", "frontier/b"],
 	top_model_ids: ["frontier/a", "frontier/b", "older/c", "older/d"],
+	checked_model_ids: ["frontier/a", "frontier/b", "older/c", "older/d"],
+	top_model_labels: ["Frontier A", "Frontier B", "Older C", "Older D"],
+	unrepresented_top_model_labels: [],
 	top_model_reference_rank: 1,
 	reference_metric: "relative_overall_score",
 });
@@ -72,6 +75,105 @@ assert.equal(
 	staleSparseHealth.sparse_benchmark?.status,
 	"stale_possible",
 	"Sparse benchmarks should warn when their top rows miss the current top models entirely",
+);
+
+const officialRowHealth = buildBenchmarkUpdateHealth(
+	[
+		model("openai/gpt-5.5", "GPT-5.5", 100, 0.74),
+		model("anthropic/claude-fable-5", "Claude Fable 5", 99, 0.7),
+		model("google/gemini-3.1-pro-preview", "Gemini 3.1 Pro", 98.5, null),
+		model("frontier/c", "Frontier C", 98, null),
+		model("frontier/d", "Frontier D", 97, null),
+		model("frontier/e", "Frontier E", 96, null),
+		model("frontier/f", "Frontier F", 95, null),
+		model("frontier/g", "Frontier G", 94, null),
+		model("frontier/h", "Frontier H", 93, null),
+		model("frontier/i", "Frontier I", 92, null),
+		model("frontier/j", "Frontier J", 91, null),
+	],
+	{
+		...STAGE_CONFIG.scoring,
+		intelligenceBenchmarkKeys: ["sparse_benchmark"],
+		agenticBenchmarkKeys: [],
+	},
+	{
+		sparse_benchmark: [
+			{
+				id: "openai/gpt-5-2-codex",
+				label: "GPT-5.2 Codex (xhigh)",
+				provider: null,
+				value: 0.76,
+			},
+			{
+				id: null,
+				label: "Claude Mythos Preview",
+				provider: "anthropic",
+				value: 0.755,
+			},
+			{
+				id: "openai/gpt-5-5-pro",
+				label: "GPT-5.5 Pro",
+				provider: null,
+				value: 0.75,
+			},
+			{
+				id: "openai/gpt-5-5",
+				label: "GPT-5.5 (xhigh)",
+				provider: null,
+				value: 0.74,
+			},
+			{
+				id: "anthropic/claude-fable-5",
+				label: "Claude Fable 5",
+				provider: null,
+				value: 0.7,
+			},
+			{
+				id: null,
+				label: "Gemini 3.1 Pro",
+				provider: "google",
+				value: 0.73,
+			},
+		],
+	},
+	STAGE_CONFIG.matcher,
+);
+
+assert.deepEqual(
+	officialRowHealth.sparse_benchmark?.top_model_labels,
+	[
+		"GPT-5.2 Codex (xhigh)",
+		"Claude Mythos Preview",
+		"GPT-5.5 Pro",
+		"GPT-5.5 (xhigh)",
+		"Gemini 3.1 Pro",
+	],
+	"Health should preserve official leaderboard labels instead of reporting only normalized Atlas ids",
+);
+assert.deepEqual(
+	officialRowHealth.sparse_benchmark?.top_model_ids,
+	[
+		"openai/gpt-5-2-codex",
+		"anthropic/claude-mythos-preview",
+		"openai/gpt-5-5-pro",
+		"openai/gpt-5-5",
+		"google/gemini-3-1-pro",
+	],
+	"Health should report official source ids in top_model_ids",
+);
+assert.deepEqual(
+	officialRowHealth.sparse_benchmark?.checked_model_ids,
+	["openai/gpt-5.5", "google/gemini-3.1-pro-preview"],
+	"Health should check represented official rows against Atlas ids",
+);
+assert.deepEqual(
+	officialRowHealth.sparse_benchmark?.unrepresented_top_model_labels,
+	["GPT-5.2 Codex (xhigh)", "Claude Mythos Preview", "GPT-5.5 Pro"],
+);
+assert.equal(
+	officialRowHealth.sparse_benchmark?.status,
+	"current",
+	"Known-unrepresented official leaders should not make a benchmark look stale when represented rows still overlap current best models",
 );
 
 const sourceHealth = buildSourceHealth({

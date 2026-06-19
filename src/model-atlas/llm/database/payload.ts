@@ -5,7 +5,13 @@ import { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../../constants";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
-import { buildBenchmarkUpdateHealth } from "../stats/health";
+import {
+	ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS,
+	appendBenchmarkUpdateOfficialRow,
+	type BenchmarkUpdateOfficialRow,
+	type BenchmarkUpdateOfficialRowsByKey,
+	buildBenchmarkUpdateHealth,
+} from "../stats/health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../stats/snapshot-preservation";
 import type {
 	LlmStatsContextWindow,
@@ -260,6 +266,7 @@ function keysFromModelField(
 function buildMetadata(
 	models: LlmStatsScoredCandidate[],
 	sourceHealth?: LlmStatsSourceHealth,
+	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
 ): LlmStatsMetadata {
 	const scoringConfig = STAGE_CONFIG.scoring;
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
@@ -280,7 +287,12 @@ function buildMetadata(
 			available_intelligence_keys: availableIntelligenceKeys,
 		},
 		...(sourceHealth == null ? {} : { source_health: sourceHealth }),
-		benchmark_update_health: buildBenchmarkUpdateHealth(models, scoringConfig),
+		benchmark_update_health: buildBenchmarkUpdateHealth(
+			models,
+			scoringConfig,
+			officialRowsByKey,
+			STAGE_CONFIG.matcher,
+		),
 		scoring: {
 			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
 			intelligence_benchmark_display_keys: [
@@ -310,6 +322,55 @@ function buildMetadata(
 			snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 		},
 	};
+}
+
+function readBenchmarkOfficialRows(
+	db: DatabaseSync,
+	runId: number,
+): BenchmarkUpdateOfficialRowsByKey {
+	const rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]> = {};
+	for (const row of db
+		.prepare("SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index")
+		.all(runId)
+		.map((record) => asRecord(record))) {
+		const modelId = stringValue(row.model_id);
+		const label =
+			stringValue(row.name) ?? stringValue(row.short_name) ?? modelId;
+		if (label == null) {
+			continue;
+		}
+		for (const key of ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS) {
+			const value = asFiniteNumber(row[key]);
+			if (value == null) {
+				continue;
+			}
+			appendBenchmarkUpdateOfficialRow(rowsByKey, key, {
+				id: modelId,
+				label,
+				provider: null,
+				value,
+			});
+		}
+	}
+	for (const row of db
+		.prepare(
+			"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+		)
+		.all(runId)
+		.map((record) => asRecord(record))) {
+		const label = stringValue(row.model);
+		const value = asFiniteNumber(row.score);
+		if (label == null || value == null) {
+			continue;
+		}
+		appendBenchmarkUpdateOfficialRow(rowsByKey, "browsecomp", {
+			id: null,
+			label,
+			provider: stringValue(row.provider),
+			value,
+		});
+	}
+	return rowsByKey;
 }
 
 /** Read the latest completed run id from SQLite. */
@@ -443,9 +504,10 @@ export function readModelAtlasDatabasePayload(
 			.map((row) => asRecord(row));
 		const models = rows.map(modelFromRow);
 		const sourceHealth = readSourceHealth(db, run.id);
+		const officialRowsByKey = readBenchmarkOfficialRows(db, run.id);
 		return {
 			fetched_at_epoch_seconds: run.fetchedAt,
-			metadata: buildMetadata(models, sourceHealth),
+			metadata: buildMetadata(models, sourceHealth, officialRowsByKey),
 			deep_swe: {
 				rows: readDeepSWERows(db, run.id),
 			},
