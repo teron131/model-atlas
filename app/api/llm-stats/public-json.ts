@@ -202,6 +202,14 @@ export function leanDashboardPayload(
 				available_evaluation_keys: [],
 				available_intelligence_keys: [],
 			},
+			...(payload.metadata.source_health == null
+				? {}
+				: { source_health: payload.metadata.source_health }),
+			...(payload.metadata.benchmark_update_health == null
+				? {}
+				: {
+						benchmark_update_health: payload.metadata.benchmark_update_health,
+					}),
 			scoring: {
 				intelligence_benchmark_keys: [],
 				intelligence_benchmark_display_keys: [],

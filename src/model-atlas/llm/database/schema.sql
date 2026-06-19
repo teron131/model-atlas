@@ -294,6 +294,22 @@ CREATE TABLE IF NOT EXISTS source_row_states (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS source_health (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	generated_at_epoch_seconds INTEGER,
+	source TEXT NOT NULL,
+	status TEXT NOT NULL,
+	last_fetch_epoch_seconds INTEGER,
+	source_input_count INTEGER NOT NULL,
+	cache_hit INTEGER NOT NULL,
+	refreshed INTEGER NOT NULL,
+	using_cached_rows INTEGER NOT NULL,
+	active_row_count INTEGER NOT NULL,
+	quarantined_row_count INTEGER NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS processed_models (
 	run_id INTEGER NOT NULL,
 	stage TEXT NOT NULL,
@@ -377,7 +393,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	PRIMARY KEY (run_id, stage, row_index)
 );
 
-CREATE TABLE IF NOT EXISTS debug (
+CREATE TABLE IF NOT EXISTS matcher_debug (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	trace_kind TEXT NOT NULL,
@@ -406,7 +422,9 @@ CREATE INDEX IF NOT EXISTS idx_models_dev_raw_models_model_id ON models_dev_raw_
 CREATE INDEX IF NOT EXISTS idx_openrouter_raw_rows_model_id ON openrouter_raw_rows(model_id);
 CREATE INDEX IF NOT EXISTS idx_source_row_states_source_key ON source_row_states(source, row_key);
 CREATE INDEX IF NOT EXISTS idx_source_row_states_status ON source_row_states(status);
+CREATE INDEX IF NOT EXISTS idx_source_health_source ON source_health(source);
+CREATE INDEX IF NOT EXISTS idx_source_health_status ON source_health(status);
 CREATE INDEX IF NOT EXISTS idx_processed_models_model_id ON processed_models(model_id);
-CREATE INDEX IF NOT EXISTS idx_debug_aa_id ON debug(aa_id);
-CREATE INDEX IF NOT EXISTS idx_debug_candidate_model_id ON debug(candidate_model_id);
-CREATE INDEX IF NOT EXISTS idx_debug_selected_model_id ON debug(selected_model_id);
+CREATE INDEX IF NOT EXISTS idx_matcher_debug_aa_id ON matcher_debug(aa_id);
+CREATE INDEX IF NOT EXISTS idx_matcher_debug_candidate_model_id ON matcher_debug(candidate_model_id);
+CREATE INDEX IF NOT EXISTS idx_matcher_debug_selected_model_id ON matcher_debug(selected_model_id);

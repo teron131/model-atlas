@@ -16,6 +16,7 @@ import { enrichModelRowsWithOpenRouter } from "../stats/openrouter-enrichment";
 import { buildFinalModels } from "../stats/selection";
 import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
 import { buildDebugTraceRows } from "./debug-trace";
+import { buildSourceHealth } from "./health";
 import { openDatabase, removeDatabaseFiles } from "./schema";
 import {
 	loadOpenRouterRawPayload,
@@ -42,6 +43,7 @@ import {
 	insertOpenRouterRawRows,
 	insertProcessedModelRows,
 	insertRiemannBenchRawRows,
+	insertSourceHealth,
 	insertSourceRowStates,
 	insertTerminalBenchRawRows,
 	insertToolathlonRawRows,
@@ -61,8 +63,9 @@ const SNAPSHOT_TABLES = [
 	"cursorbench_raw_rows",
 	"openrouter_raw_rows",
 	"source_row_states",
+	"source_health",
 	"processed_models",
-	"debug",
+	"matcher_debug",
 ] as const;
 
 type SnapshotRows = {
@@ -74,6 +77,7 @@ type SnapshotRows = {
 	enrichedRows: readonly unknown[];
 	selectedRows: readonly unknown[];
 	debugTraceRows: readonly DebugTraceRow[];
+	sourceHealth: DatabaseBuildResult["source_health"];
 };
 
 /** Return the current epoch seconds. */
@@ -173,6 +177,7 @@ function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	insertCursorBenchRawRows(db, runId, rows.snapshots);
 	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
 	insertSourceRowStates(db, runId, rows.snapshots);
+	insertSourceHealth(db, runId, rows.sourceHealth);
 	insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
 	insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);
 	insertProcessedModelRows(db, runId, "enriched", rows.enrichedRows);
@@ -262,6 +267,11 @@ export async function buildModelAtlasDatabase(
 			...sourceCache,
 			openrouter: openRouter.cacheStatus,
 		};
+		const sourceHealth = buildSourceHealth({
+			generatedAtEpochSeconds: startedAt,
+			sourceCache: finalSourceCache,
+			sourceRowStates: snapshots.sourceRowStates,
+		});
 
 		const activeDb = db;
 		const runId = runInTransaction(activeDb, () =>
@@ -274,6 +284,7 @@ export async function buildModelAtlasDatabase(
 				enrichedRows: enrichedRows.rows,
 				selectedRows: models,
 				debugTraceRows,
+				sourceHealth,
 			}),
 		);
 		const counts = tableCounts(activeDb);
@@ -282,6 +293,7 @@ export async function buildModelAtlasDatabase(
 			run_id: runId,
 			source_rows: counts,
 			source_cache: finalSourceCache,
+			source_health: sourceHealth,
 			final_model_count: models.length,
 		};
 		await publishDatabaseFile(activeDb, outputPath);

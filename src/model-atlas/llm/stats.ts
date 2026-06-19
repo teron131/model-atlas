@@ -3,6 +3,7 @@
 import { STAGE_CONFIG } from "../constants";
 import { nowEpochSeconds } from "../utils";
 import { asRecord } from "./shared";
+import { buildBenchmarkUpdateHealth } from "./stats/health";
 import { buildMatchedModelRows } from "./stats/matching";
 import { enrichModelRowsWithOpenRouter } from "./stats/openrouter-enrichment";
 import { buildFinalModels } from "./stats/selection";
@@ -57,6 +58,7 @@ function keysFromModelField(
 /** Build metadata that exposes available and selected benchmark fields. */
 function buildLlmStatsMetadata(
 	models: Array<Record<string, unknown> | LlmStatsModel>,
+	healthModels: readonly LlmStatsModel[],
 	scoringConfig: ModelAtlasStageConfig["scoring"],
 ): LlmStatsMetadata {
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
@@ -75,6 +77,10 @@ function buildLlmStatsMetadata(
 			available_evaluation_keys: availableEvaluationKeys,
 			available_intelligence_keys: availableIntelligenceKeys,
 		},
+		benchmark_update_health: buildBenchmarkUpdateHealth(
+			healthModels,
+			scoringConfig,
+		),
 		scoring: {
 			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
 			intelligence_benchmark_display_keys: [
@@ -118,6 +124,7 @@ function withLlmStatsMetadata(
 ): LlmStatsPayload {
 	const currentMetadata = buildLlmStatsMetadata(
 		modelsForMetadata,
+		payload.models,
 		STAGE_CONFIG.scoring,
 	);
 	return {
@@ -126,6 +133,7 @@ function withLlmStatsMetadata(
 			artificial_analysis:
 				payload.metadata?.artificial_analysis ??
 				currentMetadata.artificial_analysis,
+			benchmark_update_health: currentMetadata.benchmark_update_health,
 			scoring: currentMetadata.scoring,
 		},
 	};
