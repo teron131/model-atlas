@@ -341,10 +341,14 @@ function withCurrentSnapshotMetadata(
 			...(payload.metadata?.source_health == null
 				? {}
 				: { source_health: payload.metadata.source_health }),
-			benchmark_update_health: buildBenchmarkUpdateHealth(
-				payload.models,
-				scoring,
-			),
+			benchmark_update_health:
+				payload.metadata?.benchmark_update_health ??
+				buildBenchmarkUpdateHealth(
+					payload.models,
+					scoring,
+					{},
+					STAGE_CONFIG.matcher,
+				),
 			scoring: {
 				intelligence_benchmark_keys: [...scoring.intelligenceBenchmarkKeys],
 				intelligence_benchmark_display_keys: [

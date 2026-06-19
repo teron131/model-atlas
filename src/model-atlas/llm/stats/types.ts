@@ -292,6 +292,9 @@ export type LlmStatsBenchmarkUpdateEntry = {
 	overlap_count: number;
 	overlap_model_ids: string[];
 	top_model_ids: string[];
+	checked_model_ids: string[];
+	top_model_labels: string[];
+	unrepresented_top_model_labels: string[];
 	top_model_reference_rank: number | null;
 	reference_metric: "relative_overall_score";
 };
