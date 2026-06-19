@@ -255,6 +255,52 @@ export type BenchmarkPortfolio = Readonly<
 	Record<string, BenchmarkPortfolioEntry>
 >;
 
+export type LlmStatsSourceHealthStatus =
+	| "cache_hit"
+	| "fresh"
+	| "using_cached_rows"
+	| "empty";
+
+export type LlmStatsSourceHealthEntry = {
+	source: string;
+	status: LlmStatsSourceHealthStatus;
+	last_fetch_epoch_seconds: number | null;
+	source_input_count: number;
+	cache_hit: boolean;
+	refreshed: boolean;
+	using_cached_rows: boolean;
+	active_row_count: number;
+	quarantined_row_count: number;
+};
+
+export type LlmStatsSourceHealth = {
+	generated_at_epoch_seconds: number | null;
+	sources: Record<string, LlmStatsSourceHealthEntry>;
+};
+
+export type LlmStatsBenchmarkUpdateStatus =
+	| "current"
+	| "watch"
+	| "stale_possible"
+	| "missing";
+
+export type LlmStatsBenchmarkUpdateEntry = {
+	status: LlmStatsBenchmarkUpdateStatus;
+	observed_count: number;
+	checked_top_count: number;
+	reference_top_count: number;
+	overlap_count: number;
+	overlap_model_ids: string[];
+	top_model_ids: string[];
+	top_model_reference_rank: number | null;
+	reference_metric: "relative_overall_score";
+};
+
+export type LlmStatsBenchmarkUpdateHealth = Record<
+	string,
+	LlmStatsBenchmarkUpdateEntry
+>;
+
 export type PriceProfile = {
 	weight: number;
 	input: number;
@@ -325,6 +371,8 @@ export type LlmStatsMetadata = {
 		available_evaluation_keys: string[];
 		available_intelligence_keys: string[];
 	};
+	source_health?: LlmStatsSourceHealth;
+	benchmark_update_health?: LlmStatsBenchmarkUpdateHealth;
 	scoring: {
 		intelligence_benchmark_keys: string[];
 		intelligence_benchmark_display_keys: string[];

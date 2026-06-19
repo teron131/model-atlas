@@ -20,7 +20,7 @@ import type {
 	TerminalBenchModelMedianAccuracyRow,
 } from "../scrapers/terminal-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
-import type { LlmStatsSourceData } from "../stats/types";
+import type { LlmStatsSourceData, LlmStatsSourceHealth } from "../stats/types";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
 export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
@@ -63,6 +63,7 @@ export type DatabaseBuildResult = {
 	run_id: number;
 	source_rows: Record<string, number>;
 	source_cache: Record<RawSourceName, RawSourceCacheStatus>;
+	source_health: LlmStatsSourceHealth;
 	final_model_count: number;
 };
 

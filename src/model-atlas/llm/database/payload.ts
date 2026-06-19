@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../../constants";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
+import { buildBenchmarkUpdateHealth } from "../stats/health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../stats/snapshot-preservation";
 import type {
 	LlmStatsContextWindow,
@@ -17,6 +18,7 @@ import type {
 	LlmStatsNullableScores,
 	LlmStatsPayload,
 	LlmStatsScoredCandidate,
+	LlmStatsSourceHealth,
 	LlmStatsSpeed,
 	LlmStatsTaskMetrics,
 } from "../stats/types";
@@ -255,7 +257,10 @@ function keysFromModelField(
 }
 
 /** Build metadata for the DB-backed UI payload. */
-function buildMetadata(models: LlmStatsScoredCandidate[]): LlmStatsMetadata {
+function buildMetadata(
+	models: LlmStatsScoredCandidate[],
+	sourceHealth?: LlmStatsSourceHealth,
+): LlmStatsMetadata {
 	const scoringConfig = STAGE_CONFIG.scoring;
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
@@ -274,6 +279,8 @@ function buildMetadata(models: LlmStatsScoredCandidate[]): LlmStatsMetadata {
 			available_evaluation_keys: availableEvaluationKeys,
 			available_intelligence_keys: availableIntelligenceKeys,
 		},
+		...(sourceHealth == null ? {} : { source_health: sourceHealth }),
+		benchmark_update_health: buildBenchmarkUpdateHealth(models, scoringConfig),
 		scoring: {
 			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
 			intelligence_benchmark_display_keys: [
@@ -322,6 +329,63 @@ function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
 		id,
 		fetchedAt: asFiniteNumber(row.fetched_at_epoch_seconds),
 	};
+}
+
+function readSourceHealth(
+	db: DatabaseSync,
+	runId: number,
+): LlmStatsSourceHealth | undefined {
+	try {
+		const rows = db
+			.prepare(
+				"SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
+			)
+			.all(runId)
+			.map((row) => asRecord(row));
+		if (rows.length === 0) {
+			return undefined;
+		}
+		const generatedAt = asFiniteNumber(rows[0]?.generated_at_epoch_seconds);
+		return {
+			generated_at_epoch_seconds: generatedAt,
+			sources: Object.fromEntries(
+				rows.flatMap((row) => {
+					const source = stringValue(row.source);
+					const status = stringValue(row.status);
+					if (
+						source == null ||
+						(status !== "cache_hit" &&
+							status !== "fresh" &&
+							status !== "using_cached_rows" &&
+							status !== "empty")
+					) {
+						return [];
+					}
+					return [
+						[
+							source,
+							{
+								source,
+								status,
+								last_fetch_epoch_seconds: asFiniteNumber(
+									row.last_fetch_epoch_seconds,
+								),
+								source_input_count: asFiniteNumber(row.source_input_count) ?? 0,
+								cache_hit: booleanValue(row.cache_hit) ?? false,
+								refreshed: booleanValue(row.refreshed) ?? false,
+								using_cached_rows: booleanValue(row.using_cached_rows) ?? false,
+								active_row_count: asFiniteNumber(row.active_row_count) ?? 0,
+								quarantined_row_count:
+									asFiniteNumber(row.quarantined_row_count) ?? 0,
+							},
+						],
+					];
+				}),
+			),
+		};
+	} catch {
+		return undefined;
+	}
 }
 
 /** Read all DeepSWE effort rows for graph-only display. */
@@ -378,9 +442,10 @@ export function readModelAtlasDatabasePayload(
 			.all(run.id)
 			.map((row) => asRecord(row));
 		const models = rows.map(modelFromRow);
+		const sourceHealth = readSourceHealth(db, run.id);
 		return {
 			fetched_at_epoch_seconds: run.fetchedAt,
-			metadata: buildMetadata(models),
+			metadata: buildMetadata(models, sourceHealth),
 			deep_swe: {
 				rows: readDeepSWERows(db, run.id),
 			},

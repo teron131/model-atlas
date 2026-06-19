@@ -10,6 +10,7 @@ import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
+import { buildBenchmarkUpdateHealth } from "../../../src/model-atlas/llm/stats/health";
 import {
 	preserveHighSignalSnapshotModels,
 	SNAPSHOT_PRESERVATION_VERSION,
@@ -337,6 +338,13 @@ function withCurrentSnapshotMetadata(
 		...payload,
 		metadata: {
 			artificial_analysis: artificialAnalysis,
+			...(payload.metadata?.source_health == null
+				? {}
+				: { source_health: payload.metadata.source_health }),
+			benchmark_update_health: buildBenchmarkUpdateHealth(
+				payload.models,
+				scoring,
+			),
 			scoring: {
 				intelligence_benchmark_keys: [...scoring.intelligenceBenchmarkKeys],
 				intelligence_benchmark_display_keys: [

@@ -115,13 +115,13 @@ The SQLite snapshot preserves the raw source paths used by the matcher:
 - `deep_swe_raw_rows`, `terminal_bench_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `toolathlon_raw_rows`, `cursorbench_raw_rows`, and `riemann_bench_raw_rows` store supplemental benchmark rows before they are summarized or matched.
 - `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
 - `processed_models` stores the matched, catalog, enriched, and final stages.
-- `debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
+- `matcher_debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
 
-`debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, selected/rejected flags, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
+`matcher_debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, selected/rejected flags, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
 
 ## Debugging Bad Matches
 
-Start with the matcher diagnostics or the `debug` table rather than the final payload. Check:
+Start with the matcher diagnostics or the `matcher_debug` table rather than the final payload. Check:
 
 - the AA slug and source name
 - the best candidate id and score
@@ -129,6 +129,6 @@ Start with the matcher diagnostics or the `debug` table rather than the final pa
 - whether the row was voided
 - whether a variant token mismatch rejected it later
 - whether OpenRouter won when a direct fallback provider exact match would have been cleaner
-- the raw row indexes linked from `debug` when the final payload is not enough
+- the raw row indexes linked from `matcher_debug` when the final payload is not enough
 
 Most bad matches come from one of four cases: source slug changed upstream, candidate id changed upstream, two sibling variants are too similar, or a route tag looked like identity even though it was just a serving route.
