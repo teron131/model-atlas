@@ -122,7 +122,7 @@ export function DashboardGraphs({
 						<div className={styles.filterRow}>
 							<FilterButton
 								active={provider === "all"}
-								color="#eeeeea"
+								color="var(--ink)"
 								label="All"
 								count={allModels.length}
 								onClick={() => onProviderChange("all")}

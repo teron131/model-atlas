@@ -20,7 +20,7 @@ export const fixedProviderColors: ProviderColorMap = {
 	mistralai: "#ff6800",
 	moonshotai: "#0878ff",
 	nvidia: "#88b838",
-	openai: "#eeeeea",
+	openai: "var(--provider-openai-color)",
 	qwen: "#ff7018",
 	tencent: "#1820a8",
 	upstage: "#8058f8",

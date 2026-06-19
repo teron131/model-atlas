@@ -333,7 +333,9 @@ function ProviderEfficiencyChart({
 							r={stableSvgNumber(r)}
 							fill={row.color}
 							stroke={
-								onEnvelope ? "rgba(255, 90, 70, 0.95)" : "rgba(8, 9, 9, 0.7)"
+								onEnvelope
+									? "var(--chart-frontier-point-stroke)"
+									: "var(--chart-point-stroke)"
 							}
 							strokeWidth={onEnvelope ? 2.1 : 1}
 							opacity={1}

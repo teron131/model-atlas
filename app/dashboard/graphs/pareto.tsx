@@ -345,7 +345,9 @@ export function ParetoFrontierPanel({
 									)}
 									fill={providerPaletteColor(model.provider)}
 									stroke={
-										isFrontier ? "rgba(255, 112, 92, 0.74)" : "rgba(8,9,9,0.7)"
+										isFrontier
+											? "var(--chart-frontier-point-stroke)"
+											: "var(--chart-point-stroke)"
 									}
 									strokeWidth={isFrontier ? 1.4 : 1}
 									opacity={1}

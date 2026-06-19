@@ -329,7 +329,7 @@ export function RunwayPanel({
 									cy={cy}
 									r={stableSvgNumber(runwayRadius(model))}
 									fill={providerPaletteColor(model.provider)}
-									stroke="rgba(8,9,9,0.7)"
+									stroke="var(--chart-point-stroke)"
 									strokeWidth={1}
 									opacity={1}
 								/>

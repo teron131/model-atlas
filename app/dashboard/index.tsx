@@ -31,7 +31,7 @@ import {
 } from "./shared/ColumnTooltip";
 import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
 import { cacheBustedPath } from "./shared/format";
-import { RefreshIcon } from "./shared/icons";
+import { MoonIcon, RefreshIcon, SunIcon } from "./shared/icons";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dedupeDisplayModels,
@@ -51,6 +51,7 @@ const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY =
 	"model-atlas:selected-payload-refresh-at";
+const DASHBOARD_THEME_STORAGE_KEY = "model-atlas:dashboard-theme";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
@@ -118,6 +119,8 @@ type DashboardTooltipState = Omit<TooltipState, "key"> & {
 	key: SortKey;
 };
 
+type DashboardTheme = "dark" | "light";
+
 export function Dashboard({
 	initialPayload,
 }: {
@@ -125,6 +128,7 @@ export function Dashboard({
 }) {
 	const dashboardRef = useRef<HTMLElement>(null);
 	const tooltipFadeTimeoutRef = useRef<number | null>(null);
+	const [theme, setTheme] = useDashboardTheme();
 	const [sortState, setSortState] = useState<SortState>({
 		key: "intelligence",
 		direction: "descending",
@@ -289,10 +293,11 @@ export function Dashboard({
 	return (
 		<main
 			className="dashboard-main"
+			data-theme={theme}
 			ref={dashboardRef}
 			aria-busy={isInitialLoading}
 		>
-			<DashboardHeader />
+			<DashboardHeader theme={theme} onThemeChange={setTheme} />
 			<DashboardGraphs
 				initialPayload={payload}
 				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
@@ -346,6 +351,51 @@ export function Dashboard({
 			)}
 		</main>
 	);
+}
+
+function useDashboardTheme() {
+	const hydratedThemeRef = useRef(false);
+	const [theme, setTheme] = useState<DashboardTheme>("dark");
+
+	useLayoutEffect(() => {
+		let nextTheme = theme;
+		if (!hydratedThemeRef.current) {
+			nextTheme = readDashboardTheme() ?? "dark";
+			hydratedThemeRef.current = true;
+			if (nextTheme !== theme) {
+				setTheme(nextTheme);
+			}
+		}
+		document.documentElement.dataset.modelAtlasTheme = nextTheme;
+		writeDashboardTheme(nextTheme);
+	}, [theme]);
+
+	useEffect(() => {
+		return () => {
+			delete document.documentElement.dataset.modelAtlasTheme;
+		};
+	}, []);
+
+	return [theme, setTheme] as const;
+}
+
+function readDashboardTheme(): DashboardTheme | null {
+	try {
+		const storedTheme = window.localStorage.getItem(
+			DASHBOARD_THEME_STORAGE_KEY,
+		);
+		return storedTheme === "light" || storedTheme === "dark"
+			? storedTheme
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function writeDashboardTheme(theme: DashboardTheme): void {
+	try {
+		window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, theme);
+	} catch {}
 }
 
 function useLivePayload(initialPayload: LlmStatsPayload | null) {
@@ -531,22 +581,28 @@ function writeCachedPayload(payload: LlmStatsPayload): void {
 	}
 }
 
-function DashboardHeader() {
+function DashboardHeader({
+	theme,
+	onThemeChange,
+}: {
+	theme: DashboardTheme;
+	onThemeChange: (theme: DashboardTheme) => void;
+}) {
 	return (
-		<header>
+		<header className="dashboard-header">
 			<div className="brand-lockup">
-				{/* biome-ignore lint/performance/noImgElement: static markup tests render the client dashboard without Next's image runtime. */}
-				<img
-					className="brand-mark"
-					src="/icons/icon.png"
-					alt=""
-					width={512}
-					height={512}
-					decoding="async"
-					fetchPriority="high"
-				/>
+				<span className="brand-mark" aria-hidden="true" />
 				<h1>Model Atlas</h1>
 			</div>
+			<button
+				className="theme-toggle"
+				type="button"
+				aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}
+				title={theme === "dark" ? "Light" : "Dark"}
+				onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
+			>
+				{theme === "dark" ? <SunIcon /> : <MoonIcon />}
+			</button>
 		</header>
 	);
 }
