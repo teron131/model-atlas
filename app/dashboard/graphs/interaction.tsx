@@ -398,7 +398,7 @@ function InteractionPlot({
 								cy={cy}
 								r={stableSvgNumber(INTERACTION_POINT_RADIUS)}
 								fill={providerPaletteColor(point.model.provider)}
-								stroke="rgba(8,9,9,0.7)"
+								stroke="var(--chart-point-stroke)"
 								strokeWidth={1}
 								opacity={1}
 							/>

@@ -343,7 +343,7 @@ export function PlotFrame({
 			y={margin.top}
 			width={width - margin.left - margin.right}
 			height={height - margin.top - margin.bottom}
-			fill="rgba(255,255,255,0.015)"
+			fill="var(--chart-range-fill)"
 		/>
 	);
 }

@@ -3,6 +3,7 @@
 	--surface: #101111;
 	--surface-2: #151616;
 	--ink: #eeeeea;
+	--ink-rgb: 238 238 234;
 	--muted: #a5a29b;
 	--faint: #6d6b65;
 	--line: rgba(238, 238, 234, 0.075);
@@ -11,6 +12,41 @@
 	--analysis-accent: #ff5a46;
 	--gold: #f6b44b;
 	--good: #7cc69b;
+	--chart-control-fill: rgba(238, 238, 234, 0.016);
+	--chart-control-hover: rgba(255, 255, 255, 0.045);
+	--chart-control-border: rgba(238, 238, 234, 0.105);
+	--chart-control-border-active: var(--ink);
+	--chart-chip-fill: rgba(238, 238, 234, 0.012);
+	--chart-grid: rgba(238, 238, 234, 0.075);
+	--chart-axis-tick: rgba(238, 238, 234, 0.32);
+	--chart-median: rgba(238, 238, 234, 0.14);
+	--chart-label-fill: rgba(165, 162, 155, 0.78);
+	--chart-label-strong: rgba(238, 238, 234, 0.62);
+	--chart-projection-line: rgba(238, 238, 234, 0.34);
+	--chart-projection-point: rgba(238, 238, 234, 0.84);
+	--chart-point-stroke: rgba(8, 9, 9, 0.7);
+	--chart-point-stroke-strong: rgba(8, 9, 9, 0.9);
+	--chart-point-label: var(--ink);
+	--chart-point-label-soft: rgba(238, 238, 234, 0.86);
+	--chart-point-label-stroke: rgba(8, 9, 9, 0.82);
+	--chart-point-label-stroke-soft: rgba(8, 9, 9, 0.62);
+	--chart-point-line: rgba(238, 238, 234, 0.38);
+	--chart-point-line-soft: rgba(238, 238, 234, 0.3);
+	--chart-range-fill: rgba(255, 255, 255, 0.015);
+	--chart-corner-shadow: drop-shadow(0 0 4px rgba(238, 238, 234, 0.1));
+	--chart-corner-fill: rgba(238, 238, 234, 0.46);
+	--chart-callout-fill: rgba(238, 238, 234, 0.52);
+	--chart-frontier-point-stroke: rgba(255, 112, 92, 0.74);
+	--chart-hover-card-bg: rgba(10, 11, 11, 0.96);
+	--chart-hover-card-shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+	--chart-hover-logo-backdrop: rgba(8, 9, 9, 0.9);
+	--whisker-line: rgba(238, 238, 234, 0.34);
+	--whisker-domain-line: rgba(238, 238, 234, 0.12);
+	--whisker-box-fill: rgba(238, 238, 234, 0.16);
+	--whisker-label-strong: rgba(238, 238, 234, 0.76);
+	--whisker-label: rgba(238, 238, 234, 0.58);
+	--whisker-end: rgba(238, 238, 234, 0.52);
+	--whisker-domain-end: rgba(238, 238, 234, 0.42);
 	width: min(1760px, 100%);
 	min-height: 100dvh;
 	margin: 0 auto;
@@ -18,6 +54,57 @@
 	background: var(--paper);
 	color: var(--ink);
 	font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+:global(.dashboard-main[data-theme="light"]) .atlas {
+	--paper: #f4f5f1;
+	--surface: #ffffff;
+	--surface-2: #ecefeb;
+	--ink: var(--light-ink);
+	--ink-rgb: var(--light-ink-rgb);
+	--muted: #4f5750;
+	--faint: #7c857d;
+	--line: rgba(20, 30, 20, 0.095);
+	--line-strong: rgba(20, 30, 20, 0.18);
+	--accent: var(--ink);
+	--analysis-accent: #d94e39;
+	--gold: #a66d17;
+	--good: #3f8b62;
+	--chart-control-fill: rgba(20, 30, 20, 0.024);
+	--chart-control-hover: rgba(20, 30, 20, 0.052);
+	--chart-control-border: rgb(var(--ink-rgb) / 0.095);
+	--chart-control-border-active: var(--ink);
+	--chart-chip-fill: rgba(20, 30, 20, 0.018);
+	--chart-grid: rgba(20, 30, 20, 0.085);
+	--chart-axis-tick: rgba(20, 30, 20, 0.3);
+	--chart-median: rgba(20, 30, 20, 0.13);
+	--chart-label-fill: rgba(79, 87, 80, 0.8);
+	--chart-label-strong: rgb(var(--ink-rgb) / 0.62);
+	--chart-projection-line: rgba(20, 30, 20, 0.32);
+	--chart-projection-point: rgb(var(--ink-rgb) / 0.74);
+	--chart-point-stroke: rgba(244, 245, 241, 0.86);
+	--chart-point-stroke-strong: rgb(var(--ink-rgb) / 0.46);
+	--chart-point-label: var(--ink);
+	--chart-point-label-soft: rgb(var(--ink-rgb) / 0.82);
+	--chart-point-label-stroke: rgba(244, 245, 241, 0.92);
+	--chart-point-label-stroke-soft: rgba(244, 245, 241, 0.84);
+	--chart-point-line: rgba(20, 30, 20, 0.28);
+	--chart-point-line-soft: rgba(20, 30, 20, 0.24);
+	--chart-range-fill: rgba(20, 30, 20, 0.018);
+	--chart-corner-shadow: none;
+	--chart-corner-fill: rgba(20, 30, 20, 0.38);
+	--chart-callout-fill: rgba(79, 87, 80, 0.72);
+	--chart-frontier-point-stroke: rgba(217, 78, 57, 0.92);
+	--chart-hover-card-bg: rgba(255, 255, 255, 0.97);
+	--chart-hover-card-shadow: 0 18px 54px rgba(20, 30, 20, 0.16);
+	--chart-hover-logo-backdrop: rgba(244, 245, 241, 0.9);
+	--whisker-line: rgba(20, 30, 20, 0.34);
+	--whisker-domain-line: rgba(20, 30, 20, 0.14);
+	--whisker-box-fill: rgba(174, 242, 74, 0.2);
+	--whisker-label-strong: rgb(var(--ink-rgb) / 0.7);
+	--whisker-label: rgba(79, 87, 80, 0.72);
+	--whisker-end: rgba(20, 30, 20, 0.52);
+	--whisker-domain-end: rgba(20, 30, 20, 0.42);
 }
 
 .dashboardGraphs {
@@ -220,9 +307,9 @@
 	gap: 7px;
 	min-height: 32px;
 	padding: 7px 9px;
-	border: 1px solid var(--line);
+	border: 1px solid var(--chart-control-border);
 	border-radius: 0;
-	background: rgba(238, 238, 234, 0.016);
+	background: var(--chart-control-fill);
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
@@ -243,9 +330,9 @@
 	height: 32px;
 	min-width: 62px;
 	padding: 0 10px;
-	border: 1px solid var(--line);
+	border: 1px solid var(--chart-control-border);
 	border-radius: 0;
-	background: rgba(238, 238, 234, 0.016);
+	background: var(--chart-control-fill);
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
@@ -262,21 +349,25 @@
 }
 
 .filterButton:hover,
-.filterButton[aria-pressed="true"],
-.costFilterButton:hover,
-.costFilterButton[aria-pressed="true"] {
+.costFilterButton:hover {
 	border-color: color-mix(
 		in srgb,
-		var(--provider-color, var(--ink)) 58%,
+		var(--provider-color, var(--ink)) 34%,
 		var(--line)
 	);
-	background: rgba(255, 255, 255, 0.045);
+	background: var(--chart-control-hover);
 	color: var(--ink);
 }
 
-.costFilterButton:hover,
+.filterButton[aria-pressed="true"],
 .costFilterButton[aria-pressed="true"] {
-	border-color: rgba(238, 238, 234, 0.58);
+	border-color: var(--chart-control-border-active);
+	background: var(--ink);
+	color: var(--paper);
+}
+
+.filterButton[aria-pressed="true"] .filterIcon {
+	color: var(--paper);
 }
 
 .filterIcon {
@@ -327,7 +418,6 @@
 }
 
 .panel {
-	container-type: inline-size;
 	min-width: 0;
 	overflow: hidden;
 	border-top: 1px solid var(--line-strong);
@@ -421,8 +511,8 @@
 
 .chip {
 	padding: 6px 8px;
-	border: 1px solid var(--line);
-	background: rgba(238, 238, 234, 0.012);
+	border: 1px solid var(--chart-control-border);
+	background: var(--chart-chip-fill);
 	color: var(--muted);
 	font-size: 11px;
 	font-weight: 900;
@@ -485,7 +575,7 @@
 	left: var(--whisker-min);
 	width: calc(var(--whisker-max) - var(--whisker-min));
 	height: 2px;
-	background: rgba(238, 238, 234, 0.34);
+	background: var(--whisker-line);
 }
 
 .boxWhiskerDomainLine {
@@ -493,7 +583,7 @@
 	left: var(--whisker-domain-min);
 	width: calc(var(--whisker-domain-max) - var(--whisker-domain-min));
 	height: 1px;
-	background: rgba(238, 238, 234, 0.12);
+	background: var(--whisker-domain-line);
 }
 
 .boxWhiskerBox {
@@ -502,7 +592,7 @@
 	width: calc(var(--whisker-q3) - var(--whisker-q1));
 	height: 12px;
 	border: 1px solid var(--ink);
-	background: rgba(238, 238, 234, 0.16);
+	background: var(--whisker-box-fill);
 }
 
 .boxWhiskerMedian {
@@ -518,7 +608,7 @@
 	position: absolute;
 	top: 0;
 	left: var(--whisker-median);
-	color: rgba(238, 238, 234, 0.76);
+	color: var(--whisker-label-strong);
 	font-size: 10px;
 	white-space: nowrap;
 	transform: translateX(-50%);
@@ -528,7 +618,7 @@
 .boxWhiskerMaxLabel {
 	position: absolute;
 	top: 0;
-	color: rgba(238, 238, 234, 0.58);
+	color: var(--whisker-label);
 	font-size: 10px;
 	white-space: nowrap;
 	transform: translateX(-50%);
@@ -591,7 +681,7 @@
 	top: 19px;
 	width: 2px;
 	height: 12px;
-	background: rgba(238, 238, 234, 0.52);
+	background: var(--whisker-end);
 }
 
 .boxWhiskerMin {
@@ -608,13 +698,13 @@
 	top: 13px;
 	height: 24px;
 	background: none;
-	border-left: 2px dotted rgba(238, 238, 234, 0.42);
+	border-left: 2px dotted var(--whisker-domain-end);
 }
 
 .boxWhiskerStats {
 	position: relative;
 	height: 14px;
-	color: rgba(238, 238, 234, 0.52);
+	color: var(--whisker-end);
 	font-size: 10px;
 	line-height: 12px;
 	white-space: nowrap;
@@ -641,7 +731,7 @@
 
 .boxWhiskerStats .boxWhiskerDomainMinValue {
 	left: var(--whisker-domain-min);
-	color: rgba(238, 238, 234, 0.34);
+	color: var(--whisker-line);
 	top: 14px;
 	transform: translateX(-50%);
 }
@@ -649,7 +739,7 @@
 .boxWhiskerMedianValue,
 .boxWhiskerMedianProbe {
 	left: var(--whisker-median);
-	color: rgba(238, 238, 234, 0.76);
+	color: var(--whisker-label-strong);
 }
 
 .boxWhiskerMedianProbe {
@@ -675,7 +765,7 @@
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 10px;
 	justify-content: stretch;
-	color: rgba(238, 238, 234, 0.72);
+	color: var(--whisker-label-strong);
 	text-align: center;
 	white-space: nowrap;
 	transform: none;
@@ -687,7 +777,7 @@
 }
 
 .boxWhiskerStats .boxWhiskerObservedStrip b {
-	color: rgba(238, 238, 234, 0.46);
+	color: var(--whisker-label);
 }
 
 .boxWhiskerMaxValue {
@@ -696,7 +786,7 @@
 
 .boxWhiskerStats .boxWhiskerDomainMaxValue {
 	left: var(--whisker-domain-max);
-	color: rgba(238, 238, 234, 0.34);
+	color: var(--whisker-line);
 	top: 14px;
 	transform: translateX(-50%);
 }
@@ -749,22 +839,22 @@
 }
 
 .gridLine {
-	stroke: rgba(238, 238, 234, 0.075);
+	stroke: var(--chart-grid);
 	stroke-width: 1;
 }
 
 .axisTick {
-	stroke: rgba(238, 238, 234, 0.32);
+	stroke: var(--chart-axis-tick);
 	stroke-width: 1.1;
 }
 
 .medianAxis {
-	stroke: rgba(238, 238, 234, 0.14);
+	stroke: var(--chart-median);
 	stroke-width: 1;
 }
 
 .medianLabel {
-	fill: rgba(165, 162, 155, 0.78);
+	fill: var(--chart-label-fill);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
 	font-weight: 900;
@@ -780,24 +870,24 @@
 }
 
 .cursorProjection line {
-	stroke: rgba(238, 238, 234, 0.34);
+	stroke: var(--chart-projection-line);
 	stroke-width: 1;
 	stroke-dasharray: 2 5;
 }
 
 .cursorProjection circle {
-	fill: rgba(238, 238, 234, 0.84);
-	stroke: rgba(8, 9, 9, 0.9);
+	fill: var(--chart-projection-point);
+	stroke: var(--chart-point-stroke-strong);
 	stroke-width: 1.5;
 }
 
 .cursorProjectionLabel {
-	fill: rgba(238, 238, 234, 0.82);
+	fill: var(--chart-point-label-soft);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
 	font-weight: 900;
 	paint-order: stroke;
-	stroke: rgba(8, 9, 9, 0.78);
+	stroke: var(--chart-point-label-stroke);
 	stroke-width: 2px;
 }
 
@@ -810,19 +900,19 @@
 }
 
 .axisTitle {
-	fill: rgba(238, 238, 234, 0.62);
+	fill: var(--chart-label-strong);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	text-transform: uppercase;
 }
 
 .cornerDirection {
-	filter: drop-shadow(0 0 4px rgba(238, 238, 234, 0.1));
+	filter: var(--chart-corner-shadow);
 	opacity: 0.56;
 	pointer-events: none;
 }
 
 .cornerDirectionGlyph {
-	fill: rgba(238, 238, 234, 0.46);
+	fill: var(--chart-corner-fill);
 }
 
 .frontier {
@@ -889,38 +979,38 @@
 
 .pointLabel {
 	pointer-events: none;
-	fill: var(--ink);
+	fill: var(--chart-point-label);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 12px;
 	font-weight: 900;
 	paint-order: stroke;
-	stroke: rgba(8, 9, 9, 0.82);
+	stroke: var(--chart-point-label-stroke);
 	stroke-width: 3px;
 }
 
 .pointLabelLine {
 	pointer-events: none;
-	stroke: rgba(238, 238, 234, 0.38);
+	stroke: var(--chart-point-line);
 	stroke-width: 1px;
 	stroke-dasharray: 2 3;
 }
 
 .frontierPoint .pointLabel {
-	fill: rgba(238, 238, 234, 0.86);
+	fill: var(--chart-point-label-soft);
 	font-size: 11px;
-	stroke: rgba(8, 9, 9, 0.62);
+	stroke: var(--chart-point-label-stroke-soft);
 	stroke-width: 2px;
 }
 
 .interactionPlot .pointLabel {
-	fill: rgba(238, 238, 234, 0.88);
+	fill: var(--chart-point-label-soft);
 	font-size: 11px;
-	stroke: rgba(8, 9, 9, 0.7);
+	stroke: var(--chart-point-label-stroke-soft);
 	stroke-width: 2px;
 }
 
 .interactionPlot .pointLabelLine {
-	stroke: rgba(238, 238, 234, 0.3);
+	stroke: var(--chart-point-line-soft);
 	stroke-width: 0.8px;
 }
 
@@ -1014,7 +1104,7 @@
 	}
 }
 
-@container (max-width: 430px) {
+@media (max-width: 520px) {
 	.noKicker .panelHead {
 		grid-template-columns: 1fr;
 		column-gap: 0;
@@ -1061,10 +1151,10 @@
 
 .metricToggle button {
 	min-height: 32px;
+	margin: 0 -1px -1px 0;
 	padding: 8px 10px;
-	border: 1px solid var(--line);
-	border-right: 0;
-	background: rgba(238, 238, 234, 0.016);
+	border: 1px solid var(--chart-control-border);
+	background: var(--chart-control-fill);
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	font-size: 11px;
@@ -1084,13 +1174,16 @@
 }
 
 .metricToggle button:last-child {
-	border-right: 1px solid var(--line);
+	margin-right: 0;
 }
 
 .metricToggle button[aria-pressed="true"],
 .metricToggle button:hover {
+	border-color: var(--chart-control-border-active);
 	background: var(--ink);
 	color: var(--paper);
+	position: relative;
+	z-index: 1;
 }
 
 .metricToggle button:disabled {
@@ -1099,7 +1192,7 @@
 }
 
 .metricToggle button:disabled:hover {
-	background: rgba(238, 238, 234, 0.016);
+	background: var(--chart-control-fill);
 	color: var(--muted);
 }
 
@@ -1143,7 +1236,7 @@
 }
 
 .calloutLabel {
-	fill: rgba(238, 238, 234, 0.52);
+	fill: var(--chart-callout-fill);
 }
 
 .summaryCard {
@@ -1216,8 +1309,8 @@
 
 .interactionBadge {
 	padding: 5px 7px;
-	border: 1px solid var(--line);
-	background: rgba(238, 238, 234, 0.014);
+	border: 1px solid var(--chart-control-border);
+	background: var(--chart-control-fill);
 	color: var(--muted);
 	font-size: 11px;
 	font-weight: 900;
@@ -1281,8 +1374,8 @@
 	width: min(270px, calc(100vw - 28px));
 	padding: 12px;
 	border: 1px solid color-mix(in srgb, var(--hover-color) 52%, var(--line));
-	background: rgba(10, 11, 11, 0.96);
-	box-shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+	background: var(--chart-hover-card-bg);
+	box-shadow: var(--chart-hover-card-shadow);
 	pointer-events: none;
 }
 
@@ -1306,7 +1399,7 @@
 		linear-gradient(
 			135deg,
 			color-mix(in srgb, var(--hover-color) 18%, transparent),
-			rgba(8, 9, 9, 0.9)
+			var(--chart-hover-logo-backdrop)
 		),
 		var(--surface);
 }
@@ -1434,9 +1527,9 @@
 	}
 
 	.interactionPlot .pointLabel {
-		fill: rgba(238, 238, 234, 0.8);
+		fill: var(--chart-point-label-soft);
 		font-size: 9px;
-		stroke: rgba(8, 9, 9, 0.62);
+		stroke: var(--chart-point-label-stroke-soft);
 		stroke-width: 1.6px;
 	}
 
