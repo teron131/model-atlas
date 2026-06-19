@@ -68,12 +68,10 @@ async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
 			shouldReadStaticSnapshot()
 				? Promise.resolve(null)
 				: readLocalDatabaseSnapshot().catch(() => null),
-			shouldReadStaticSnapshot()
-				? readStaticSnapshot().catch(() => null)
-				: Promise.resolve(null),
+			readStaticSnapshot().catch(() => null),
 		]);
-	return freshestSnapshot(
-		freshestSnapshot(blobSnapshot, localDatabaseSnapshot),
+	return bestSnapshotPayload(
+		bestSnapshotPayload(blobSnapshot, localDatabaseSnapshot),
 		staticSnapshot,
 	);
 }
@@ -228,7 +226,7 @@ function shouldReadStaticSnapshot(): boolean {
 	);
 }
 
-function freshestSnapshot(
+export function bestSnapshotPayload(
 	left: LlmStatsPayload | null,
 	right: LlmStatsPayload | null,
 ): LlmStatsPayload | null {
@@ -238,11 +236,29 @@ function freshestSnapshot(
 	if (right == null) {
 		return left;
 	}
+	const leftCoverage = selectedBenchmarkCoverage(left);
+	const rightCoverage = selectedBenchmarkCoverage(right);
+	if (leftCoverage !== rightCoverage) {
+		return rightCoverage > leftCoverage ? right : left;
+	}
 	return snapshotFetchedAt(right) > snapshotFetchedAt(left) ? right : left;
 }
 
 function snapshotFetchedAt(payload: LlmStatsPayload): number {
 	return payload.fetched_at_epoch_seconds ?? 0;
+}
+
+function selectedBenchmarkCoverage(payload: LlmStatsPayload): number {
+	const selectedKeys = payload.metadata.scoring.selected_benchmark_keys;
+	if (selectedKeys.length === 0) {
+		return 0;
+	}
+	const availableKeys = new Set([
+		...payload.metadata.artificial_analysis.available_benchmark_keys,
+		...payload.metadata.artificial_analysis.available_evaluation_keys,
+		...payload.metadata.artificial_analysis.available_intelligence_keys,
+	]);
+	return selectedKeys.filter((key) => availableKeys.has(key)).length;
 }
 
 export function displaySnapshotRefreshMode(

@@ -1,13 +1,13 @@
 /**
  * DeepSWE leaderboard scraper helpers.
  *
- * JSON source: https://deepswe.datacurve.ai/artifacts/leaderboard-live.json
+ * JSON source: https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
 
 const DEFAULT_LEADERBOARD_URL =
-	"https://deepswe.datacurve.ai/artifacts/leaderboard-live.json";
+	"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 export type DeepSWEScraperOptions = {
