@@ -16,7 +16,7 @@ assert.equal(
 );
 assert.equal(
 	providerDisplayColor("openai"),
-	"#eeeeea",
+	"var(--provider-openai-color)",
 	"fixed provider colors should remain stable over generated colors",
 );
 assert.match(
