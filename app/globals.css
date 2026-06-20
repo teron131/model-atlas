@@ -23,6 +23,8 @@
 	--page-dot-blend-mode: screen;
 	--scrollbar-track: rgba(255, 255, 255, 0.035);
 	--scrollbar-thumb: #696864;
+	--table-scrollbar-track: rgba(238, 238, 234, 0.12);
+	--table-scrollbar-thumb: rgba(238, 238, 234, 0.62);
 	--title-shadow:
 		0 1px 0 rgba(255, 255, 255, 0.08),
 		0 14px 34px rgba(0, 0, 0, 0.26);
@@ -89,6 +91,8 @@ html[data-model-atlas-theme="light"] {
 	--page-dot-blend-mode: multiply;
 	--scrollbar-track: rgba(20, 30, 20, 0.055);
 	--scrollbar-thumb: #949c91;
+	--table-scrollbar-track: rgba(20, 30, 20, 0.1);
+	--table-scrollbar-thumb: rgba(20, 30, 20, 0.46);
 	--title-shadow:
 		0 1px 0 rgba(255, 255, 255, 0.76),
 		0 14px 30px rgba(20, 30, 20, 0.12);
@@ -684,6 +688,57 @@ h1 {
 	display: none;
 	width: 0;
 	height: 0;
+}
+
+.table-scrollbar {
+	display: flex;
+	align-items: center;
+	height: 22px;
+	padding: 6px 0 2px;
+}
+
+.table-scrollbar-track {
+	position: relative;
+	width: 100%;
+	height: 12px;
+	cursor: ew-resize;
+	touch-action: none;
+	background:
+		linear-gradient(var(--table-scrollbar-track), var(--table-scrollbar-track))
+			center / 100% 6px no-repeat,
+		linear-gradient(
+			90deg,
+			transparent,
+			rgb(var(--ink-rgb) / 0.14),
+			transparent
+		);
+	border: 1px solid var(--frame-line-soft);
+	border-radius: 999px;
+}
+
+.table-scrollbar-track:focus-visible {
+	box-shadow:
+		0 0 0 2px var(--paper),
+		0 0 0 4px var(--focus-ring);
+	outline: 0;
+}
+
+.table-scrollbar-thumb {
+	position: absolute;
+	top: 2px;
+	left: var(--table-scrollbar-thumb-left, 0);
+	width: var(--table-scrollbar-thumb-width, 100%);
+	min-width: var(--table-scrollbar-thumb-min-width, 58px);
+	height: 8px;
+	background: var(--table-scrollbar-thumb);
+	border-radius: 999px;
+	box-shadow:
+		0 0 0 1px rgb(var(--ink-rgb) / 0.12),
+		0 4px 16px rgb(0 0 0 / 0.26);
+}
+
+.table-scrollbar[data-scrollable="false"] {
+	display: none;
 }
 
 .table-wrap thead {

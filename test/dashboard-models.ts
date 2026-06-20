@@ -63,6 +63,9 @@ assert.deepEqual(
 assert.deepEqual(
 	metricColumnsForView("evals").map((column) => column.key),
 	[
+		"aaCost",
+		"aaSeconds",
+		"aaTokens",
 		"gpqa",
 		"hle",
 		"terminalBench",
@@ -80,11 +83,8 @@ assert.deepEqual(
 		"agentsLastExamSeconds",
 		"agentsLastExamInputTokens",
 		"agentsLastExamOutputTokens",
-		"aaCost",
-		"aaSeconds",
-		"aaTokens",
 	],
-	"eval columns should keep resource metrics next to their matching benchmark",
+	"eval columns should put AA resource metrics before benchmark scores",
 );
 
 assert.deepEqual(
