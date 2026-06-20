@@ -19,6 +19,7 @@
 		"icons:favicon": "tsx scripts/generate-favicon.ts",
 		"atlas:database": "tsx scripts/database.ts",
 		"atlas:payload": "tsx scripts/refresh-model-atlas-payload.ts",
+		"atlas:d1:publish": "tsx scripts/publish-d1.ts",
 		"generate-provider-icons": "tsx scripts/generate-provider-icons.ts",
 		"atlas:snapshot": "tsx scripts/write-static-snapshot.ts",
 		"atlas:smoke": "tsx scripts/smoke-model-atlas.ts",
@@ -26,7 +27,6 @@
 		"atlas:ui:static": "tsx scripts/serve-minimal-ui.ts"
 	},
 	"dependencies": {
-		"@vercel/blob": "^2.4.0",
 		"@vercel/speed-insights": "^2.0.0",
 		"@visx/grid": "^3.12.0",
 		"@visx/shape": "^3.12.0",

@@ -1,6 +1,7 @@
 import {
 	refreshStoredSnapshot,
 	runtimeSnapshotStoreConfigured,
+	runtimeSnapshotStoreMissingEnvironment,
 } from "../snapshot-store";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +31,7 @@ async function refreshSnapshot(request: Request) {
 		return Response.json(
 			{
 				status: "error",
-				error:
-					"Vercel Blob is not configured. Add a Blob store so BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID is available.",
+				error: `Cloudflare D1 is not configured. Add ${runtimeSnapshotStoreMissingEnvironment().join(", ")}.`,
 			},
 			{
 				status: 503,
@@ -49,7 +49,8 @@ async function refreshSnapshot(request: Request) {
 			storage: snapshot.storage,
 			model_count: snapshot.payload.models.length,
 			fetched_at_epoch_seconds: snapshot.payload.fetched_at_epoch_seconds,
-			url: snapshot.url,
+			database_id: snapshot.database_id,
+			run_id: snapshot.run_id,
 		},
 		{
 			headers: {
