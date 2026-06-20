@@ -8,7 +8,7 @@ const SCHEMA_SQL_PATH = resolve(
 );
 
 /** Load the SQLite schema file colocated with this database pipeline. */
-async function loadSchemaSql(): Promise<string> {
+export async function loadSchemaSql(): Promise<string> {
 	try {
 		return await readFile(SCHEMA_SQL_PATH, "utf-8");
 	} catch (error) {
@@ -87,4 +87,8 @@ function schemaTableColumns(
 		tables.set(table, columns);
 	}
 	return tables;
+}
+
+export function schemaTableNames(schemaSql: string): string[] {
+	return [...schemaTableColumns(schemaSql).keys()];
 }

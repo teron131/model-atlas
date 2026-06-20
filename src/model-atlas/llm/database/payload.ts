@@ -324,15 +324,75 @@ function buildMetadata(
 	};
 }
 
-function readBenchmarkOfficialRows(
-	db: DatabaseSync,
-	runId: number,
+/** Read the latest completed run id from SQLite. */
+function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
+	const row = asRecord(
+		db
+			.prepare(
+				"SELECT id, completed_at_epoch_seconds AS fetched_at_epoch_seconds FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1",
+			)
+			.get(),
+	);
+	const id = asFiniteNumber(row.id);
+	if (id == null) {
+		throw new Error("No Model Atlas database run exists");
+	}
+	return {
+		id,
+		fetchedAt: asFiniteNumber(row.fetched_at_epoch_seconds),
+	};
+}
+
+function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
+	if (rows.length === 0) {
+		return undefined;
+	}
+	const generatedAt = asFiniteNumber(rows[0]?.generated_at_epoch_seconds);
+	return {
+		generated_at_epoch_seconds: generatedAt,
+		sources: Object.fromEntries(
+			rows.flatMap((row) => {
+				const source = stringValue(row.source);
+				const status = stringValue(row.status);
+				if (
+					source == null ||
+					(status !== "cache_hit" &&
+						status !== "fresh" &&
+						status !== "using_cached_rows" &&
+						status !== "empty")
+				) {
+					return [];
+				}
+				return [
+					[
+						source,
+						{
+							source,
+							status,
+							last_fetch_epoch_seconds: asFiniteNumber(
+								row.last_fetch_epoch_seconds,
+							),
+							source_input_count: asFiniteNumber(row.source_input_count) ?? 0,
+							cache_hit: booleanValue(row.cache_hit) ?? false,
+							refreshed: booleanValue(row.refreshed) ?? false,
+							using_cached_rows: booleanValue(row.using_cached_rows) ?? false,
+							active_row_count: asFiniteNumber(row.active_row_count) ?? 0,
+							quarantined_row_count:
+								asFiniteNumber(row.quarantined_row_count) ?? 0,
+						},
+					],
+				];
+			}),
+		),
+	};
+}
+
+function officialRowsFromRows(
+	aaRows: DbRow[],
+	browseCompRows: DbRow[],
 ): BenchmarkUpdateOfficialRowsByKey {
 	const rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]> = {};
-	for (const row of db
-		.prepare("SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index")
-		.all(runId)
-		.map((record) => asRecord(record))) {
+	for (const row of aaRows) {
 		const modelId = stringValue(row.model_id);
 		const label =
 			stringValue(row.name) ?? stringValue(row.short_name) ?? modelId;
@@ -352,12 +412,7 @@ function readBenchmarkOfficialRows(
 			});
 		}
 	}
-	for (const row of db
-		.prepare(
-			"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
-		)
-		.all(runId)
-		.map((record) => asRecord(record))) {
+	for (const row of browseCompRows) {
 		const label = stringValue(row.model);
 		const value = asFiniteNumber(row.score);
 		if (label == null || value == null) {
@@ -373,120 +428,86 @@ function readBenchmarkOfficialRows(
 	return rowsByKey;
 }
 
-/** Read the latest completed run id from SQLite. */
-function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
-	const row = asRecord(
-		db
-			.prepare(
-				"SELECT id, COALESCE(completed_at_epoch_seconds, started_at_epoch_seconds) AS fetched_at_epoch_seconds FROM pipeline_runs ORDER BY id DESC LIMIT 1",
-			)
-			.get(),
+/** Build all DeepSWE effort rows for graph-only display. */
+function deepSWERowsFromRows(rows: DbRow[]): DeepSWELeaderboardRow[] {
+	return rows.flatMap((row) => {
+		const record = asRecord(row);
+		const model = stringValue(record.model);
+		const passAt1 = asFiniteNumber(record.pass_at_1);
+		const meanCostUsd = asFiniteNumber(record.mean_cost_usd);
+		const meanDurationSeconds = asFiniteNumber(record.mean_duration_seconds);
+		const meanOutputTokens = asFiniteNumber(record.mean_output_tokens);
+		return model != null &&
+			passAt1 != null &&
+			meanCostUsd != null &&
+			meanDurationSeconds != null &&
+			meanOutputTokens != null
+			? [
+					{
+						model,
+						reasoning_effort: stringValue(record.reasoning_effort),
+						config: stringValue(record.config),
+						pass_at_1: passAt1,
+						ci_lo: asFiniteNumber(record.ci_lo),
+						ci_hi: asFiniteNumber(record.ci_hi),
+						ci_half: asFiniteNumber(record.ci_half),
+						mean_cost_usd: meanCostUsd,
+						mean_duration_seconds: meanDurationSeconds,
+						mean_output_tokens: meanOutputTokens,
+					},
+				]
+			: [];
+	});
+}
+
+export type ModelAtlasPayloadRows = {
+	run: {
+		id: number;
+		fetchedAt: number | null;
+	};
+	modelRows: DbRow[];
+	sourceHealthRows: DbRow[];
+	aaRows: DbRow[];
+	browseCompRows: DbRow[];
+	deepSWERows: DbRow[];
+};
+
+export function buildModelAtlasPayloadFromRows(
+	rows: ModelAtlasPayloadRows,
+): LlmStatsPayload {
+	const models = rows.modelRows.map(modelFromRow);
+	const sourceHealth = sourceHealthFromRows(rows.sourceHealthRows);
+	const officialRowsByKey = officialRowsFromRows(
+		rows.aaRows,
+		rows.browseCompRows,
 	);
-	const id = asFiniteNumber(row.id);
-	if (id == null) {
-		throw new Error("No Model Atlas database run exists");
-	}
 	return {
-		id,
-		fetchedAt: asFiniteNumber(row.fetched_at_epoch_seconds),
+		fetched_at_epoch_seconds: rows.run.fetchedAt,
+		metadata: buildMetadata(models, sourceHealth, officialRowsByKey),
+		deep_swe: {
+			rows: deepSWERowsFromRows(rows.deepSWERows),
+		},
+		models: models as LlmStatsPayload["models"],
 	};
 }
 
-function readSourceHealth(
-	db: DatabaseSync,
-	runId: number,
-): LlmStatsSourceHealth | undefined {
+function readSourceHealthRows(db: DatabaseSync, runId: number): DbRow[] {
 	try {
-		const rows = db
-			.prepare(
-				"SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
-			)
-			.all(runId)
-			.map((row) => asRecord(row));
-		if (rows.length === 0) {
-			return undefined;
-		}
-		const generatedAt = asFiniteNumber(rows[0]?.generated_at_epoch_seconds);
-		return {
-			generated_at_epoch_seconds: generatedAt,
-			sources: Object.fromEntries(
-				rows.flatMap((row) => {
-					const source = stringValue(row.source);
-					const status = stringValue(row.status);
-					if (
-						source == null ||
-						(status !== "cache_hit" &&
-							status !== "fresh" &&
-							status !== "using_cached_rows" &&
-							status !== "empty")
-					) {
-						return [];
-					}
-					return [
-						[
-							source,
-							{
-								source,
-								status,
-								last_fetch_epoch_seconds: asFiniteNumber(
-									row.last_fetch_epoch_seconds,
-								),
-								source_input_count: asFiniteNumber(row.source_input_count) ?? 0,
-								cache_hit: booleanValue(row.cache_hit) ?? false,
-								refreshed: booleanValue(row.refreshed) ?? false,
-								using_cached_rows: booleanValue(row.using_cached_rows) ?? false,
-								active_row_count: asFiniteNumber(row.active_row_count) ?? 0,
-								quarantined_row_count:
-									asFiniteNumber(row.quarantined_row_count) ?? 0,
-							},
-						],
-					];
-				}),
-			),
-		};
+		return readRunRows(
+			db,
+			"SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
+			runId,
+		);
 	} catch {
-		return undefined;
+		return [];
 	}
 }
 
-/** Read all DeepSWE effort rows for graph-only display. */
-function readDeepSWERows(
-	db: DatabaseSync,
-	runId: number,
-): DeepSWELeaderboardRow[] {
+function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
 	return db
-		.prepare(
-			"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
-		)
+		.prepare(sql)
 		.all(runId)
-		.flatMap((row) => {
-			const record = asRecord(row);
-			const model = stringValue(record.model);
-			const passAt1 = asFiniteNumber(record.pass_at_1);
-			const meanCostUsd = asFiniteNumber(record.mean_cost_usd);
-			const meanDurationSeconds = asFiniteNumber(record.mean_duration_seconds);
-			const meanOutputTokens = asFiniteNumber(record.mean_output_tokens);
-			return model != null &&
-				passAt1 != null &&
-				meanCostUsd != null &&
-				meanDurationSeconds != null &&
-				meanOutputTokens != null
-				? [
-						{
-							model,
-							reasoning_effort: stringValue(record.reasoning_effort),
-							config: stringValue(record.config),
-							pass_at_1: passAt1,
-							ci_lo: asFiniteNumber(record.ci_lo),
-							ci_hi: asFiniteNumber(record.ci_hi),
-							ci_half: asFiniteNumber(record.ci_half),
-							mean_cost_usd: meanCostUsd,
-							mean_duration_seconds: meanDurationSeconds,
-							mean_output_tokens: meanOutputTokens,
-						},
-					]
-				: [];
-		});
+		.map((row) => asRecord(row));
 }
 
 /** Read the UI payload from the latest SQLite selected rows. */
@@ -496,23 +517,31 @@ export function readModelAtlasDatabasePayload(
 	const db = new DatabaseSync(databasePath);
 	try {
 		const run = latestRun(db);
-		const rows = db
-			.prepare(
-				"SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
-			)
-			.all(run.id)
-			.map((row) => asRecord(row));
-		const models = rows.map(modelFromRow);
-		const sourceHealth = readSourceHealth(db, run.id);
-		const officialRowsByKey = readBenchmarkOfficialRows(db, run.id);
-		return {
-			fetched_at_epoch_seconds: run.fetchedAt,
-			metadata: buildMetadata(models, sourceHealth, officialRowsByKey),
-			deep_swe: {
-				rows: readDeepSWERows(db, run.id),
-			},
-			models: models as LlmStatsPayload["models"],
-		};
+		const modelRows = readRunRows(
+			db,
+			"SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
+			run.id,
+		);
+		return buildModelAtlasPayloadFromRows({
+			run,
+			modelRows,
+			sourceHealthRows: readSourceHealthRows(db, run.id),
+			aaRows: readRunRows(
+				db,
+				"SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
+			browseCompRows: readRunRows(
+				db,
+				"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
+			deepSWERows: readRunRows(
+				db,
+				"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+				run.id,
+			),
+		});
 	} finally {
 		db.close();
 	}

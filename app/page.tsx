@@ -7,6 +7,7 @@ import { Dashboard } from "./dashboard";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export default async function Home() {
 	const initialPayload = await readDisplaySnapshotPayload();

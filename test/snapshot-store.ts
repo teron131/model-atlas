@@ -8,6 +8,8 @@ import {
 	displaySnapshotRefreshMode,
 	localDatabaseReadPath,
 	runtimeDatabasePath,
+	runtimeSnapshotStoreConfigured,
+	runtimeSnapshotStoreMissingEnvironment,
 } from "../app/api/llm-stats/snapshot-store";
 import type { LlmStatsPayload } from "../src/model-atlas/llm/stats/types";
 import { minimalLlmStatsPayload } from "./llm-stats-fixtures";
@@ -33,7 +35,7 @@ assert.equal(
 assert.equal(
 	mode(stalePayload, true, 1000),
 	"stored",
-	"stale display snapshots with Blob should refresh the stored snapshot",
+	"stale display snapshots with D1 should refresh the stored snapshot",
 );
 
 const olderCompleteSnapshot = payloadWithBenchmarks(100, [
@@ -58,6 +60,12 @@ assert.equal(
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
 const originalVercel = process.env.VERCEL;
+const originalD1AccountId = process.env.MODEL_ATLAS_D1_ACCOUNT_ID;
+const originalCloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+const originalD1DatabaseId = process.env.MODEL_ATLAS_D1_DATABASE_ID;
+const originalCloudflareD1DatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+const originalD1ApiToken = process.env.MODEL_ATLAS_D1_API_TOKEN;
+const originalCloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN;
 try {
 	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	delete process.env.VERCEL;
@@ -94,6 +102,34 @@ try {
 		resolve(tmpdir(), "model-atlas/database.sqlite"),
 		"Vercel display reads should use the writable temp database path",
 	);
+	delete process.env.MODEL_ATLAS_D1_ACCOUNT_ID;
+	delete process.env.CLOUDFLARE_ACCOUNT_ID;
+	delete process.env.MODEL_ATLAS_D1_DATABASE_ID;
+	delete process.env.CLOUDFLARE_D1_DATABASE_ID;
+	delete process.env.MODEL_ATLAS_D1_API_TOKEN;
+	delete process.env.CLOUDFLARE_API_TOKEN;
+	assert.equal(
+		runtimeSnapshotStoreConfigured(),
+		false,
+		"runtime D1 storage should be disabled when required Cloudflare settings are absent",
+	);
+	assert.deepEqual(
+		runtimeSnapshotStoreMissingEnvironment(),
+		[
+			"MODEL_ATLAS_D1_ACCOUNT_ID or CLOUDFLARE_ACCOUNT_ID",
+			"MODEL_ATLAS_D1_DATABASE_ID or CLOUDFLARE_D1_DATABASE_ID",
+			"MODEL_ATLAS_D1_API_TOKEN or CLOUDFLARE_API_TOKEN",
+		],
+		"missing D1 environment should report the accepted variable names",
+	);
+	process.env.CLOUDFLARE_ACCOUNT_ID = "account";
+	process.env.CLOUDFLARE_D1_DATABASE_ID = "database";
+	process.env.CLOUDFLARE_API_TOKEN = "token";
+	assert.equal(
+		runtimeSnapshotStoreConfigured(),
+		true,
+		"runtime D1 storage should accept standard Cloudflare variable names",
+	);
 } finally {
 	if (originalDatabasePath == null) {
 		delete process.env.MODEL_ATLAS_DATABASE_PATH;
@@ -105,6 +141,12 @@ try {
 	} else {
 		process.env.VERCEL = originalVercel;
 	}
+	restoreEnv("MODEL_ATLAS_D1_ACCOUNT_ID", originalD1AccountId);
+	restoreEnv("CLOUDFLARE_ACCOUNT_ID", originalCloudflareAccountId);
+	restoreEnv("MODEL_ATLAS_D1_DATABASE_ID", originalD1DatabaseId);
+	restoreEnv("CLOUDFLARE_D1_DATABASE_ID", originalCloudflareD1DatabaseId);
+	restoreEnv("MODEL_ATLAS_D1_API_TOKEN", originalD1ApiToken);
+	restoreEnv("CLOUDFLARE_API_TOKEN", originalCloudflareApiToken);
 }
 
 function mode(
@@ -138,4 +180,12 @@ function payloadWithBenchmarks(
 			},
 		},
 	};
+}
+
+function restoreEnv(key: string, value: string | undefined): void {
+	if (value == null) {
+		delete process.env[key];
+		return;
+	}
+	process.env[key] = value;
 }

@@ -1,15 +1,22 @@
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-
-import { get, put } from "@vercel/blob";
+import { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../../src/model-atlas/constants";
-import { readModelAtlasDatabasePayload } from "../../../src/model-atlas/llm/database/payload";
+import {
+	buildModelAtlasDatabase,
+	modelAtlasD1Configured,
+	modelAtlasD1MissingEnvironment,
+	publishSqliteDatabaseToD1,
+	readD1ModelAtlasPayload,
+	readModelAtlasDatabasePayload,
+} from "../../../src/model-atlas/llm/database";
 import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
+import { insertProcessedModelRows } from "../../../src/model-atlas/llm/database/writers";
 import { buildBenchmarkUpdateHealth } from "../../../src/model-atlas/llm/stats/health";
 import {
 	preserveHighSignalSnapshotModels,
@@ -25,13 +32,12 @@ const STATIC_SNAPSHOT_PATH = resolve(
 	process.cwd(),
 	"public/model-atlas-snapshot.json",
 );
-const SNAPSHOT_BLOB_PATH =
-	process.env.MODEL_ATLAS_BLOB_SNAPSHOT_PATH ?? "model-atlas/snapshot.json";
 
 type SnapshotWriteResult = {
 	payload: LlmStatsPayload;
-	storage: "vercel_blob";
-	url: string;
+	storage: "cloudflare_d1";
+	database_id: string;
+	run_id: number;
 };
 
 type DisplayRefreshState = {
@@ -49,10 +55,11 @@ const displayRefreshState = globalThis as typeof globalThis & {
 const DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS = 30_000;
 
 export function runtimeSnapshotStoreConfigured(): boolean {
-	return (
-		Boolean(process.env.BLOB_READ_WRITE_TOKEN) ||
-		Boolean(process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
-	);
+	return modelAtlasD1Configured();
+}
+
+export function runtimeSnapshotStoreMissingEnvironment(): string[] {
+	return modelAtlasD1MissingEnvironment();
 }
 
 export async function readSnapshotPayload(): Promise<LlmStatsPayload | null> {
@@ -63,16 +70,17 @@ export async function readSnapshotPayload(): Promise<LlmStatsPayload | null> {
 }
 
 async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
-	const [blobSnapshot, localDatabaseSnapshot, staticSnapshot] =
-		await Promise.all([
-			readBlobSnapshot().catch(() => null),
+	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
+		[
+			readD1Snapshot().catch(() => null),
 			shouldReadStaticSnapshot()
 				? Promise.resolve(null)
 				: readLocalDatabaseSnapshot().catch(() => null),
 			readStaticSnapshot().catch(() => null),
-		]);
+		],
+	);
 	return bestSnapshotPayload(
-		bestSnapshotPayload(blobSnapshot, localDatabaseSnapshot),
+		bestSnapshotPayload(d1Snapshot, localDatabaseSnapshot),
 		staticSnapshot,
 	);
 }
@@ -150,18 +158,21 @@ async function refreshDisplaySnapshotIfStale(
 	}
 	const refreshPromise = startDisplayRefresh(refreshMode);
 	if (payload != null) {
-		return payload;
+		return (await refreshPromise) ?? payload;
 	}
 	return (await refreshPromise) ?? payload;
 }
 
 export async function refreshStoredSnapshot(): Promise<SnapshotWriteResult> {
 	if (!runtimeSnapshotStoreConfigured()) {
-		throw new Error("Vercel Blob is not configured for runtime snapshots");
+		throw new Error(
+			`Cloudflare D1 is not configured for runtime snapshots. Missing ${runtimeSnapshotStoreMissingEnvironment().join(", ")}.`,
+		);
 	}
+	const databasePath = runtimeDatabasePath() ?? DEFAULT_DATABASE_PATH;
 	const [refreshedPayload, previousPayload] = await Promise.all([
-		refreshModelAtlasPayload(runtimeDatabasePath()),
-		readBlobSnapshot().catch(() => null),
+		refreshModelAtlasPayload(databasePath),
+		readD1Snapshot().catch(() => null),
 	]);
 	const payload = preserveHighSignalSnapshotModels(
 		refreshedPayload,
@@ -169,16 +180,15 @@ export async function refreshStoredSnapshot(): Promise<SnapshotWriteResult> {
 		STAGE_CONFIG.snapshotPreservation,
 		STAGE_CONFIG.scoring,
 	);
-	const blob = await put(SNAPSHOT_BLOB_PATH, JSON.stringify(payload), {
-		access: "public",
-		allowOverwrite: true,
-		cacheControlMaxAge: 60,
-		contentType: "application/json",
-	});
+	if (payload !== refreshedPayload) {
+		rewriteFinalModelRows(databasePath, payload.models);
+	}
+	const published = await publishSqliteDatabaseToD1(databasePath);
 	return {
 		payload,
-		storage: "vercel_blob",
-		url: blob.url,
+		storage: "cloudflare_d1",
+		database_id: published.databaseId,
+		run_id: published.runId,
 	};
 }
 
@@ -189,23 +199,15 @@ export async function refreshRequestPayload(): Promise<LlmStatsPayload> {
 async function refreshModelAtlasPayload(
 	databasePath?: string,
 ): Promise<LlmStatsPayload> {
-	const script = await import("../../../scripts/refresh-model-atlas-payload");
-	return script.refreshModelAtlasPayload(databasePath);
+	const database = await buildModelAtlasDatabase(databasePath, {
+		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+	});
+	return readModelAtlasDatabasePayload(database.path);
 }
 
-async function readBlobSnapshot(): Promise<LlmStatsPayload | null> {
-	if (!runtimeSnapshotStoreConfigured()) {
-		return null;
-	}
-	const blob = await get(SNAPSHOT_BLOB_PATH, {
-		access: "public",
-	});
-	if (blob?.stream == null) {
-		return null;
-	}
-	return withCurrentSnapshotMetadata(
-		JSON.parse(await new Response(blob.stream).text()),
-	);
+async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
+	const payload = await readD1ModelAtlasPayload();
+	return payload == null ? null : withCurrentSnapshotMetadata(payload);
 }
 
 async function readStaticSnapshot(): Promise<LlmStatsPayload> {
@@ -302,6 +304,37 @@ function getDisplayRefreshState(): DisplayRefreshState {
 
 function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
+}
+
+function rewriteFinalModelRows(
+	databasePath: string,
+	models: LlmStatsModel[],
+): void {
+	const db = new DatabaseSync(databasePath);
+	try {
+		const row = db
+			.prepare(
+				"SELECT id FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1",
+			)
+			.get() as { id?: number | bigint } | undefined;
+		const runId = Number(row?.id);
+		if (!Number.isFinite(runId)) {
+			throw new Error("No completed Model Atlas database run exists");
+		}
+		db.exec("BEGIN");
+		try {
+			db.prepare(
+				"DELETE FROM processed_models WHERE run_id = ? AND stage = 'final'",
+			).run(runId);
+			insertProcessedModelRows(db, runId, "final", models);
+			db.exec("COMMIT");
+		} catch (error) {
+			db.exec("ROLLBACK");
+			throw error;
+		}
+	} finally {
+		db.close();
+	}
 }
 
 async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
