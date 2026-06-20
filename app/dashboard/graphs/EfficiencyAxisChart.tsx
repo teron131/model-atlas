@@ -2,7 +2,6 @@
 
 /** Shared scatter element for task-efficiency charts. */
 
-import { LinePath } from "@visx/shape";
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
@@ -203,12 +202,14 @@ export function EfficiencyAxisChart<Row>({
 					}
 				/>
 				{effortLines.map((line) => (
-					<LinePath<Row>
+					<polyline
 						key={line.key}
 						className={styles.deepSweEffortLine}
-						data={line.rows}
-						x={(row) => xPoint(metric.get(row))}
-						y={(row) => yPoint(getScore(row))}
+						points={line.rows
+							.map(
+								(row) => `${xPoint(metric.get(row))},${yPoint(getScore(row))}`,
+							)
+							.join(" ")}
 						style={
 							{
 								"--line-color": line.color,
