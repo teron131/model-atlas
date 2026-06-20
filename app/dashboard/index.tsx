@@ -21,7 +21,10 @@ import type {
 } from "../../src/model-atlas/llm/stats/types";
 import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
 import { DashboardGraphs } from "./graphs";
-import { filterByModelControls, limitByOverallScore } from "./graphs/models";
+import {
+	filterByModelControls,
+	limitByIntelligenceScore,
+} from "./graphs/models";
 import type { CostFilter, ModelLimit } from "./graphs/types";
 import {
 	ColumnTooltip,
@@ -157,7 +160,11 @@ export function Dashboard({
 			provider: providerFilter,
 			maxCost: maxCostFilter,
 		});
-		return limitByOverallScore(filteredRows, (row) => row.model, modelLimit);
+		return limitByIntelligenceScore(
+			filteredRows,
+			(row) => row.model,
+			modelLimit,
+		);
 	}, [tableRows, providerFilter, maxCostFilter, modelLimit]);
 	const visibleRows = useMemo(
 		() => sortedRows(filteredTableRows, deferredFilterQuery, sortState),

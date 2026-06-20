@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { limitByIntelligenceScore } from "../app/dashboard/graphs/models";
 import { cacheBustedPath } from "../app/dashboard/shared/format";
 import {
 	dedupeDisplayModels,
@@ -44,6 +45,24 @@ assert.deepEqual(
 	),
 	["provider/first", "provider/second", "provider/third"],
 	"rank sort should follow intelligence rank",
+);
+
+assert.deepEqual(
+	limitByIntelligenceScore(
+		[
+			scoredModel("provider/high-int-low-overall", "High Int", 90, 10),
+			scoredModel("provider/mid-int-high-overall", "High Overall", 60, 99),
+			...Array.from({ length: 29 }, (_, index) =>
+				scoredModel(`provider/low-${index}`, `Low ${index}`, 30 - index, 30),
+			),
+		],
+		(model) => model,
+		30,
+	)
+		.slice(0, 2)
+		.map((model) => model.id),
+	["provider/high-int-low-overall", "provider/mid-int-high-overall"],
+	"model limit should prefer intelligence score over overall score",
 );
 
 const modalityRows = dedupeDisplayModels([
@@ -115,6 +134,22 @@ function rankedModel(
 		relative_scores: {
 			...model.relative_scores,
 			intelligence_score: intelligenceScore,
+		},
+	};
+}
+
+function scoredModel(
+	id: string,
+	name: string,
+	intelligenceScore: number,
+	overallScore: number,
+): LlmStatsModel {
+	const model = rankedModel(id, name, intelligenceScore);
+	return {
+		...model,
+		relative_scores: {
+			...model.relative_scores,
+			overall_score: overallScore,
 		},
 	};
 }
