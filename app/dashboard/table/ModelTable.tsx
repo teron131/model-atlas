@@ -3,6 +3,8 @@
 import Image from "next/image";
 import {
 	type CSSProperties,
+	type KeyboardEvent,
+	type PointerEvent,
 	type ReactNode,
 	type UIEvent,
 	useCallback,
@@ -44,6 +46,13 @@ import {
 import { staticSortableColumns } from "./tableColumns";
 
 type ScrollTargetName = "body" | "header";
+const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
+type HorizontalScrollSnapshot = {
+	scrollLeft: number;
+	maxScrollLeft: number;
+	clientWidth: number;
+	scrollWidth: number;
+};
 
 type ModelTableProps = {
 	sortState: SortState;
@@ -60,6 +69,10 @@ const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
 const PINNED_COLUMNS_ENABLE_BUFFER_PX = 24;
 const MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
+const TABLE_SCROLL_THUMB_MIN_PERCENT = 8;
+const TABLE_SCROLL_THUMB_MIN_WIDTH_PX = 58;
+const TABLE_SCROLL_KEY_STEP_PX = 80;
+const TABLE_SCROLL_PAGE_STEP_RATIO = 0.85;
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
 const RELEASE_DATE_TOKEN_PATTERN = /^\d{4}$/;
 const LOADING_ROW_KEYS = [
@@ -95,6 +108,8 @@ export function ModelTable({
 	const widestLeadingColumnsWidthRef = useRef(0);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const [pinnedColumnsEnabled, setPinnedColumnsEnabled] = useState(false);
+	const [scrollSnapshot, setScrollSnapshot] =
+		useState<HorizontalScrollSnapshot>(() => emptyHorizontalScrollSnapshot());
 	const columnKeys = useMemo(
 		() => [...staticColumnKeys, ...metricColumns.map((column) => column.key)],
 		[metricColumns],
@@ -116,6 +131,12 @@ export function ModelTable({
 			: ({
 					"--rank-column-width": `${columnWidths[0]}px`,
 				} as CSSProperties);
+	const syncScrollSnapshot = useCallback(() => {
+		const snapshot = horizontalScrollSnapshot(tableScrollRef.current);
+		setScrollSnapshot((current) =>
+			sameHorizontalScrollSnapshot(current, snapshot) ? current : snapshot,
+		);
+	}, []);
 	const syncTableLayoutMeasurements = useCallback(() => {
 		const widths = measuredTableColumnWidths(
 			tableRef.current,
@@ -123,6 +144,7 @@ export function ModelTable({
 		);
 		if (widths.length === 0) {
 			setPinnedColumnsEnabled(false);
+			syncScrollSnapshot();
 			return;
 		}
 		setColumnWidths((current) =>
@@ -139,7 +161,8 @@ export function ModelTable({
 				current,
 			),
 		);
-	}, [columnKeys.length]);
+		syncScrollSnapshot();
+	}, [columnKeys.length, syncScrollSnapshot]);
 	const markMirroredScrollTarget = useCallback(
 		(targetName: ScrollTargetName) => {
 			mirroredScrollTargetRef.current = targetName;
@@ -168,8 +191,24 @@ export function ModelTable({
 			tableScroll.scrollLeft = getNextScrollLeft(tableScroll, event.deltaX);
 			markMirroredScrollTarget("header");
 			syncHorizontalScroll(tableScroll, headerScrollRef.current);
+			syncScrollSnapshot();
 		},
-		[markMirroredScrollTarget],
+		[markMirroredScrollTarget, syncScrollSnapshot],
+	);
+	const scrollTableTo = useCallback(
+		(scrollLeft: number) => {
+			const tableScroll = tableScrollRef.current;
+			if (tableScroll == null) {
+				return;
+			}
+			const { maxScrollLeft } = horizontalScrollState(tableScroll);
+			tableScroll.scrollLeft = clampNumber(scrollLeft, 0, maxScrollLeft);
+			onTooltipEnd();
+			markMirroredScrollTarget("header");
+			syncHorizontalScroll(tableScroll, headerScrollRef.current);
+			syncScrollSnapshot();
+		},
+		[markMirroredScrollTarget, onTooltipEnd, syncScrollSnapshot],
 	);
 
 	useEffect(() => {
@@ -213,8 +252,9 @@ export function ModelTable({
 			if (!syncHorizontalScroll(event.currentTarget, headerScrollRef.current)) {
 				mirroredScrollTargetRef.current = null;
 			}
+			syncScrollSnapshot();
 		},
-		[markMirroredScrollTarget, onTooltipEnd],
+		[markMirroredScrollTarget, onTooltipEnd, syncScrollSnapshot],
 	);
 	const handleHeaderScroll = useCallback(
 		(event: UIEvent<HTMLDivElement>) => {
@@ -227,8 +267,9 @@ export function ModelTable({
 			if (!syncHorizontalScroll(event.currentTarget, tableScrollRef.current)) {
 				mirroredScrollTargetRef.current = null;
 			}
+			syncScrollSnapshot();
 		},
-		[markMirroredScrollTarget, onTooltipEnd],
+		[markMirroredScrollTarget, onTooltipEnd, syncScrollSnapshot],
 	);
 
 	useLayoutEffect(() => {
@@ -262,6 +303,14 @@ export function ModelTable({
 		headerScroll.scrollLeft = tableScroll.scrollLeft;
 	}, [stickyHeaderReady]);
 
+	useLayoutEffect(() => {
+		syncScrollSnapshot();
+		const animationFrame = window.requestAnimationFrame(syncScrollSnapshot);
+		return () => {
+			window.cancelAnimationFrame(animationFrame);
+		};
+	}, [syncScrollSnapshot]);
+
 	return (
 		<div
 			className="table-shell"
@@ -288,6 +337,7 @@ export function ModelTable({
 				</table>
 			</div>
 			<div
+				id={TABLE_SCROLL_REGION_ID}
 				className="table-wrap"
 				ref={tableScrollRef}
 				onScroll={handleBodyScroll}
@@ -324,6 +374,157 @@ export function ModelTable({
 						)}
 					</tbody>
 				</table>
+			</div>
+			<TableScrollRail snapshot={scrollSnapshot} onScrollTo={scrollTableTo} />
+		</div>
+	);
+}
+
+function TableScrollRail({
+	snapshot,
+	onScrollTo,
+}: {
+	snapshot: HorizontalScrollSnapshot;
+	onScrollTo: (scrollLeft: number) => void;
+}) {
+	const trackRef = useRef<HTMLDivElement>(null);
+	const thumbRef = useRef<HTMLDivElement>(null);
+	const dragOffsetRef = useRef<number | null>(null);
+	const canScroll = snapshot.maxScrollLeft > 1;
+	const thumbWidthPercent = canScroll
+		? Math.max(
+				TABLE_SCROLL_THUMB_MIN_PERCENT,
+				(snapshot.clientWidth / snapshot.scrollWidth) * 100,
+			)
+		: 100;
+	const thumbLeftPercent = canScroll
+		? (snapshot.scrollLeft / snapshot.scrollWidth) * 100
+		: 0;
+	const percentScrolled = canScroll
+		? Math.round((snapshot.scrollLeft / snapshot.maxScrollLeft) * 100)
+		: 0;
+	const railStyle = {
+		"--table-scrollbar-thumb-left": `${thumbLeftPercent}%`,
+		"--table-scrollbar-thumb-min-width": `${TABLE_SCROLL_THUMB_MIN_WIDTH_PX}px`,
+		"--table-scrollbar-thumb-width": `${thumbWidthPercent}%`,
+	} as CSSProperties;
+	const scrollToPointer = useCallback(
+		(clientX: number) => {
+			const track = trackRef.current;
+			if (track == null || !canScroll) {
+				return;
+			}
+			const trackRect = track.getBoundingClientRect();
+			const thumbWidth = trackRect.width * (thumbWidthPercent / 100);
+			const maxThumbLeft = trackRect.width - thumbWidth;
+			if (maxThumbLeft <= 0) {
+				return;
+			}
+			const nextThumbLeft = clampNumber(
+				clientX - trackRect.left - (dragOffsetRef.current ?? thumbWidth / 2),
+				0,
+				maxThumbLeft,
+			);
+			onScrollTo((nextThumbLeft / maxThumbLeft) * snapshot.maxScrollLeft);
+		},
+		[canScroll, onScrollTo, snapshot.maxScrollLeft, thumbWidthPercent],
+	);
+	const handlePointerDown = useCallback(
+		(event: PointerEvent<HTMLDivElement>) => {
+			if (!canScroll) {
+				return;
+			}
+			const thumbRect = thumbRef.current?.getBoundingClientRect();
+			dragOffsetRef.current =
+				event.target === thumbRef.current && thumbRect != null
+					? event.clientX - thumbRect.left
+					: (thumbRect?.width ?? 0) / 2;
+			event.currentTarget.setPointerCapture(event.pointerId);
+			scrollToPointer(event.clientX);
+		},
+		[canScroll, scrollToPointer],
+	);
+	const handlePointerMove = useCallback(
+		(event: PointerEvent<HTMLDivElement>) => {
+			if (dragOffsetRef.current == null) {
+				return;
+			}
+			scrollToPointer(event.clientX);
+		},
+		[scrollToPointer],
+	);
+	const handlePointerEnd = useCallback(
+		(event: PointerEvent<HTMLDivElement>) => {
+			dragOffsetRef.current = null;
+			if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+				event.currentTarget.releasePointerCapture(event.pointerId);
+			}
+		},
+		[],
+	);
+	const handleKeyDown = useCallback(
+		(event: KeyboardEvent<HTMLDivElement>) => {
+			if (!canScroll) {
+				return;
+			}
+			const pageStep = snapshot.clientWidth * TABLE_SCROLL_PAGE_STEP_RATIO;
+			if (event.key === "ArrowLeft") {
+				event.preventDefault();
+				onScrollTo(snapshot.scrollLeft - TABLE_SCROLL_KEY_STEP_PX);
+				return;
+			}
+			if (event.key === "ArrowRight") {
+				event.preventDefault();
+				onScrollTo(snapshot.scrollLeft + TABLE_SCROLL_KEY_STEP_PX);
+				return;
+			}
+			if (event.key === "PageUp") {
+				event.preventDefault();
+				onScrollTo(snapshot.scrollLeft - pageStep);
+				return;
+			}
+			if (event.key === "PageDown") {
+				event.preventDefault();
+				onScrollTo(snapshot.scrollLeft + pageStep);
+				return;
+			}
+			if (event.key === "Home") {
+				event.preventDefault();
+				onScrollTo(0);
+				return;
+			}
+			if (event.key === "End") {
+				event.preventDefault();
+				onScrollTo(snapshot.maxScrollLeft);
+			}
+		},
+		[canScroll, onScrollTo, snapshot],
+	);
+
+	return (
+		<div
+			className="table-scrollbar"
+			data-scrollable={canScroll}
+			style={railStyle}
+		>
+			<div
+				aria-controls={TABLE_SCROLL_REGION_ID}
+				aria-label="Table columns"
+				aria-orientation="horizontal"
+				aria-valuemax={100}
+				aria-valuemin={0}
+				aria-valuenow={percentScrolled}
+				className="table-scrollbar-track"
+				onKeyDown={handleKeyDown}
+				onPointerCancel={handlePointerEnd}
+				onPointerDown={handlePointerDown}
+				onPointerMove={handlePointerMove}
+				onPointerUp={handlePointerEnd}
+				ref={trackRef}
+				role="scrollbar"
+				tabIndex={canScroll ? 0 : -1}
+			>
+				<div className="table-scrollbar-thumb" ref={thumbRef} />
 			</div>
 		</div>
 	);
@@ -783,13 +984,53 @@ function horizontalScrollState(element: HTMLElement | null) {
 		return { scrollLeft: 0, maxScrollLeft: 0 };
 	}
 	const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
-	const scrollLeft = Math.max(0, Math.min(element.scrollLeft, maxScrollLeft));
+	const scrollLeft = clampNumber(element.scrollLeft, 0, maxScrollLeft);
 	return { scrollLeft, maxScrollLeft };
+}
+
+function horizontalScrollSnapshot(
+	element: HTMLElement | null,
+): HorizontalScrollSnapshot {
+	if (element == null) {
+		return emptyHorizontalScrollSnapshot();
+	}
+	const { scrollLeft, maxScrollLeft } = horizontalScrollState(element);
+	return {
+		scrollLeft,
+		maxScrollLeft,
+		clientWidth: element.clientWidth,
+		scrollWidth: element.scrollWidth,
+	};
+}
+
+function emptyHorizontalScrollSnapshot(): HorizontalScrollSnapshot {
+	return {
+		scrollLeft: 0,
+		maxScrollLeft: 0,
+		clientWidth: 0,
+		scrollWidth: 0,
+	};
+}
+
+function sameHorizontalScrollSnapshot(
+	left: HorizontalScrollSnapshot,
+	right: HorizontalScrollSnapshot,
+) {
+	return (
+		Math.abs(left.scrollLeft - right.scrollLeft) < 0.5 &&
+		Math.abs(left.maxScrollLeft - right.maxScrollLeft) < 0.5 &&
+		Math.abs(left.clientWidth - right.clientWidth) < 0.5 &&
+		Math.abs(left.scrollWidth - right.scrollWidth) < 0.5
+	);
+}
+
+function clampNumber(value: number, min: number, max: number) {
+	return Math.max(min, Math.min(value, max));
 }
 
 function getNextScrollLeft(element: HTMLElement, deltaX: number) {
 	const { scrollLeft, maxScrollLeft } = horizontalScrollState(element);
-	return Math.max(0, Math.min(scrollLeft + deltaX, maxScrollLeft));
+	return clampNumber(scrollLeft + deltaX, 0, maxScrollLeft);
 }
 
 function syncHorizontalScroll(
@@ -800,9 +1041,10 @@ function syncHorizontalScroll(
 		return false;
 	}
 	const { maxScrollLeft } = horizontalScrollState(targetElement);
-	const nextScrollLeft = Math.max(
+	const nextScrollLeft = clampNumber(
+		sourceElement.scrollLeft,
 		0,
-		Math.min(sourceElement.scrollLeft, maxScrollLeft),
+		maxScrollLeft,
 	);
 	if (Math.abs(targetElement.scrollLeft - nextScrollLeft) < 0.5) {
 		return false;

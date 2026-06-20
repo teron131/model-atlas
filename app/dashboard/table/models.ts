@@ -322,11 +322,11 @@ export const dashboardMetricColumns: DashboardMetricColumn[] = [
 	...profileMetricColumns,
 	...costMetricColumns,
 	...speedMetricColumns,
+	...artificialAnalysisTaskMetricColumns,
 	...benchmarkMetricColumns.flatMap((column) => [
 		column,
 		...(taskMetricColumnsByBenchmark[column.key] ?? []),
 	]),
-	...artificialAnalysisTaskMetricColumns,
 ];
 
 export type TableRow = {
