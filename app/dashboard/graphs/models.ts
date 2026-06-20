@@ -321,7 +321,7 @@ export function filterByModelControls<T>(
 	return items.filter((item) => modelMatchesControls(getModel(item), filters));
 }
 
-export function limitByOverallScore<T>(
+export function limitByIntelligenceScore<T>(
 	items: T[],
 	getModel: (item: T) => LlmStatsModel,
 	limit: ModelLimit,
@@ -332,7 +332,8 @@ export function limitByOverallScore<T>(
 	return [...items]
 		.sort(
 			(left, right) =>
-				modelOverallScore(getModel(right)) - modelOverallScore(getModel(left)),
+				modelIntelligenceScore(getModel(right)) -
+				modelIntelligenceScore(getModel(left)),
 		)
 		.slice(0, limit);
 }
@@ -351,8 +352,8 @@ function modelMatchesControls(
 	return blendedPrice != null && blendedPrice <= maxCost;
 }
 
-function modelOverallScore(model: LlmStatsModel) {
-	return finiteValue(model.relative_scores?.overall_score) ?? -Infinity;
+function modelIntelligenceScore(model: LlmStatsModel) {
+	return finiteValue(model.relative_scores?.intelligence_score) ?? -Infinity;
 }
 
 function meanTopProviderScore(overallScores: number[]) {

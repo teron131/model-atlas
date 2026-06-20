@@ -12,7 +12,7 @@ import { InteractionMatrix } from "./interaction";
 import {
 	costFilterOptions,
 	filterByModelControls,
-	limitByOverallScore,
+	limitByIntelligenceScore,
 	modelLimitOptions,
 	providerOptions,
 } from "./models";
@@ -69,7 +69,11 @@ export function DashboardGraphs({
 	}, [allModels, provider, maxCost]);
 
 	const models = useMemo(() => {
-		return limitByOverallScore(filteredModels, (model) => model, modelLimit);
+		return limitByIntelligenceScore(
+			filteredModels,
+			(model) => model,
+			modelLimit,
+		);
 	}, [filteredModels, modelLimit]);
 
 	const visibleModelLabel =
