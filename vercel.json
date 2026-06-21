@@ -1,5 +1,5 @@
 {
-	"buildCommand": "pnpm run atlas:snapshot && pnpm run build",
+	"buildCommand": "pnpm run snapshot && pnpm run build",
 	"git": {
 		"deploymentEnabled": true
 	},
