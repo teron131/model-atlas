@@ -433,9 +433,13 @@ function officialRowsFromRows(
 	return rowsByKey;
 }
 
-/** Build all DeepSWE effort rows for graph-only display. */
+type DeepSWEPayloadRow = DeepSWELeaderboardRow & {
+	source_version: string | null;
+};
+
+/** Return the latest available DeepSWE artifact rows for graph-only display. */
 function deepSWERowsFromRows(rows: DbRow[]): DeepSWELeaderboardRow[] {
-	return rows.flatMap((row) => {
+	const parsedRows = rows.flatMap((row): DeepSWEPayloadRow[] => {
 		const record = asRecord(row);
 		const model = stringValue(record.model);
 		const passAt1 = asFiniteNumber(record.pass_at_1);
@@ -463,10 +467,14 @@ function deepSWERowsFromRows(rows: DbRow[]): DeepSWELeaderboardRow[] {
 						mean_cost_usd: meanCostUsd,
 						mean_duration_seconds: meanDurationSeconds,
 						mean_output_tokens: meanOutputTokens,
+						source_version: stringValue(record.source_version),
 					},
 				]
 			: [];
 	});
+	const v11Rows = parsedRows.filter((row) => row.source_version === "v1.1");
+	const preferredRows = v11Rows.length > 0 ? v11Rows : parsedRows;
+	return preferredRows.map(({ source_version: _sourceVersion, ...row }) => row);
 }
 
 export type ModelAtlasPayloadRows = {

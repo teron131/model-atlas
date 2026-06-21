@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
+	source_version TEXT,
 	model TEXT NOT NULL,
 	reasoning_effort TEXT,
 	config TEXT,

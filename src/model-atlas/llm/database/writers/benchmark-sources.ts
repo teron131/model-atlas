@@ -2,6 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
+import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { booleanValue } from "./shared";
 
@@ -25,11 +26,11 @@ export function insertDeepSWERawRows(
 	);
 	const statement = db.prepare(`
 		INSERT INTO deep_swe_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model,
+			run_id, row_index, fetched_at_epoch_seconds, url, source_version, model,
 			reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
 			n_tasks_attempted, mean_cost_usd, mean_duration_seconds, mean_output_tokens,
 			is_best_model_score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.deepSWERawRows.entries()) {
 		const scoreKey = [
@@ -44,7 +45,8 @@ export function insertDeepSWERawRows(
 			runId,
 			index,
 			snapshots.fetchedAt.deepSWE,
-			SOURCE_URLS.deep_swe,
+			deepSWEUrlForSourceVersion(row.source_version),
+			row.source_version,
 			row.model,
 			row.reasoning_effort,
 			row.config,
@@ -56,7 +58,10 @@ export function insertDeepSWERawRows(
 			row.mean_cost_usd,
 			row.mean_duration_seconds,
 			row.mean_output_tokens,
-			defaultScoreKeys.has(scoreKey) ? 1 : 0,
+			row.source_version === snapshots.deepSWESourceVersion &&
+				defaultScoreKeys.has(scoreKey)
+				? 1
+				: 0,
 		);
 	}
 }

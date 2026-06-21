@@ -5,7 +5,10 @@ import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
-import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
+import type {
+	DeepSWERawLeaderboardRow,
+	DeepSWESourceVersion,
+} from "../scrapers/deep-swe";
 import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
 import type { ModelRecord, ModelsDevPayload } from "../scrapers/models-dev";
 import type {
@@ -432,8 +435,9 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 }
 
 export function readDeepSWERawCache(db: DatabaseSync): {
-	rows: DeepSWELeaderboardRow[];
+	rows: DeepSWERawLeaderboardRow[];
 	fetchedAt: number | null;
+	sourceVersion: DeepSWESourceVersion | null;
 } | null {
 	const rawRows = rows(
 		db,
@@ -475,12 +479,21 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 							mean_cost_usd: meanCostUsd,
 							mean_duration_seconds: meanDurationSeconds,
 							mean_output_tokens: meanOutputTokens,
+							source_version: deepSWESourceVersionFromDb(row.source_version),
 						},
 					]
 				: [];
 		}),
 		fetchedAt: firstEpochSecond(rawRows),
+		sourceVersion: deepSWESourceVersionFromDb(rawRows[0]?.source_version),
 	};
+}
+
+function deepSWESourceVersionFromDb(
+	value: unknown,
+): DeepSWESourceVersion | null {
+	const version = stringValue(value);
+	return version === "v1.1" || version === "v1" ? version : null;
 }
 
 export function readTerminalBenchRawCache(db: DatabaseSync): {

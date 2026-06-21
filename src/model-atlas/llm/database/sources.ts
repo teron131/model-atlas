@@ -26,7 +26,8 @@ import {
 } from "../scrapers/cursorbench";
 import {
 	buildDeepSWEScoreByModelName,
-	getDeepSWERawLeaderboardStats,
+	getDeepSWERawLeaderboardSourceRows,
+	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultModelScores,
 } from "../scrapers/deep-swe";
 import {
@@ -193,6 +194,7 @@ type ModelsDevSnapshot = Pick<
 type DeepSWESnapshot = {
 	deepSWERawRows: SourceSnapshots["deepSWERawRows"];
 	deepSWEModelScoreRows: SourceSnapshots["deepSWEModelScoreRows"];
+	deepSWESourceVersion: SourceSnapshots["deepSWESourceVersion"];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: { deepSWE: number | null };
 };
@@ -246,6 +248,18 @@ type CursorBenchSnapshot = {
 	sourceRowStates: SourceRowState[];
 	fetchedAt: { cursorBench: number | null };
 };
+
+function preferredDeepSWESourceVersion(
+	rows: SourceSnapshots["deepSWERawRows"],
+) {
+	if (rows.some((row) => row.source_version === "v1.1")) {
+		return "v1.1";
+	}
+	if (rows.some((row) => row.source_version === "v1")) {
+		return "v1";
+	}
+	return null;
+}
 
 /** Project loaded snapshots into the source data consumed by matching and enrichment. */
 export function sourceDataFromSnapshots(
@@ -547,7 +561,13 @@ async function deepSWESnapshot(
 			fetchedRows: [],
 			fetchedAtEpochSeconds: null,
 			options,
-			rowKey: (row) => sourceKey(row.model, row.reasoning_effort, row.config),
+			rowKey: (row) =>
+				sourceKey(
+					row.source_version,
+					row.model,
+					row.reasoning_effort,
+					row.config,
+				),
 			rowLabel: (row) => row.model,
 			previousMissingSince,
 			nowEpochSeconds,
@@ -555,13 +575,14 @@ async function deepSWESnapshot(
 		return {
 			deepSWERawRows: cachedSnapshot.rows,
 			deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(
-				cachedSnapshot.rows,
+				preferredDeepSWELeaderboardRows(cachedSnapshot.rows),
 			),
+			deepSWESourceVersion: cached.sourceVersion,
 			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: { deepSWE: cached.fetchedAt },
 		};
 	}
-	const fetched = await getDeepSWERawLeaderboardStats();
+	const fetched = await getDeepSWERawLeaderboardSourceRows();
 	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched.fetched_at_epoch_seconds,
 		fetched.data.length,
@@ -572,14 +593,25 @@ async function deepSWESnapshot(
 		fetchedRows: fetched.data,
 		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
 		options,
-		rowKey: (row) => sourceKey(row.model, row.reasoning_effort, row.config),
+		rowKey: (row) =>
+			sourceKey(
+				row.source_version,
+				row.model,
+				row.reasoning_effort,
+				row.config,
+			),
 		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
 	});
+	const preferredRows = preferredDeepSWELeaderboardRows(snapshot.rows);
 	return {
 		deepSWERawRows: snapshot.rows,
-		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(snapshot.rows),
+		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(preferredRows),
+		deepSWESourceVersion:
+			preferredRows.length > 0
+				? preferredDeepSWESourceVersion(snapshot.rows)
+				: (cached?.sourceVersion ?? null),
 		sourceRowStates: snapshot.states,
 		fetchedAt: {
 			deepSWE: snapshotFetchedAt(
@@ -1249,6 +1281,7 @@ export async function loadSourceSnapshots(
 			modelsDevStatusCode: modelsDev.modelsDevStatusCode,
 			deepSWERawRows: deepSWE.deepSWERawRows,
 			deepSWEModelScoreRows: deepSWE.deepSWEModelScoreRows,
+			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
 			terminalBenchRows: terminalBench.terminalBenchRows,
 			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,

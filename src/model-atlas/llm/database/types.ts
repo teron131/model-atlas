@@ -8,7 +8,11 @@ import type {
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
-import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
+import type {
+	DeepSWELeaderboardRow,
+	DeepSWERawLeaderboardRow,
+	DeepSWESourceVersion,
+} from "../scrapers/deep-swe";
 import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
 import type {
 	ModelsDevFlatModel,
@@ -118,8 +122,9 @@ export type SourceSnapshots = {
 	modelsDevModels: ModelsDevFlatModel[];
 	modelsDevFetchedAt: number | null;
 	modelsDevStatusCode: number | null;
-	deepSWERawRows: DeepSWELeaderboardRow[];
+	deepSWERawRows: DeepSWERawLeaderboardRow[];
 	deepSWEModelScoreRows: LlmStatsSourceData["deepSWEModelScoreRows"];
+	deepSWESourceVersion: DeepSWESourceVersion | null;
 	terminalBenchRows: TerminalBenchAgentModelAccuracyRow[];
 	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
