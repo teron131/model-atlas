@@ -23,6 +23,8 @@ export type DeepSWEScraperOptions = {
 	timeoutMs?: number;
 };
 
+export type DeepSWESourceVersion = "v1.1" | "v1";
+
 export type DeepSWELeaderboardRow = {
 	model: string;
 	reasoning_effort: string | null;
@@ -37,13 +39,23 @@ export type DeepSWELeaderboardRow = {
 	mean_output_tokens: number;
 };
 
+export type DeepSWERawLeaderboardRow = DeepSWELeaderboardRow & {
+	source_version: DeepSWESourceVersion | null;
+};
+
 export type DeepSWEModelScoreRow = DeepSWELeaderboardRow;
 
 export type DeepSWEScoreByModelName = Map<string, DeepSWEModelScoreRow>;
 
 export type DeepSWELeaderboardPayload = {
 	fetched_at_epoch_seconds: number | null;
+	source_version: DeepSWESourceVersion | null;
 	data: DeepSWELeaderboardRow[];
+};
+
+export type DeepSWERawLeaderboardPayload = {
+	fetched_at_epoch_seconds: number | null;
+	data: DeepSWERawLeaderboardRow[];
 };
 
 /** Return a DeepSWE leaderboard row with only fields used by scoring. */
@@ -128,6 +140,34 @@ export function summarizeDeepSWEDefaultModelScores(
 		.sort((left, right) => right.pass_at_1 - left.pass_at_1);
 }
 
+/** Strip raw-source provenance from DeepSWE rows before public/scoring use. */
+export function stripDeepSWESourceVersion(
+	row: DeepSWERawLeaderboardRow,
+): DeepSWELeaderboardRow {
+	return {
+		model: row.model,
+		reasoning_effort: row.reasoning_effort,
+		config: row.config,
+		pass_at_1: row.pass_at_1,
+		ci_lo: row.ci_lo,
+		ci_hi: row.ci_hi,
+		ci_half: row.ci_half,
+		n_tasks_attempted: row.n_tasks_attempted,
+		mean_cost_usd: row.mean_cost_usd,
+		mean_duration_seconds: row.mean_duration_seconds,
+		mean_output_tokens: row.mean_output_tokens,
+	};
+}
+
+/** Prefer the latest DeepSWE artifact for scoring/display, falling back to v1. */
+export function preferredDeepSWELeaderboardRows(
+	rows: DeepSWERawLeaderboardRow[],
+): DeepSWELeaderboardRow[] {
+	const v11Rows = rows.filter((row) => row.source_version === "v1.1");
+	const preferredRows = v11Rows.length > 0 ? v11Rows : rows;
+	return preferredRows.map(stripDeepSWESourceVersion);
+}
+
 /** Build DeepSWE selected-score rows by normalized model name. */
 export function buildDeepSWEScoreByModelName(
 	rows: DeepSWEModelScoreRow[],
@@ -159,14 +199,16 @@ export function findDeepSWEModelScore(
 	return null;
 }
 
-/** Fetch raw DeepSWE leaderboard rows from the public leaderboard artifact. */
-export async function getDeepSWERawLeaderboardStats(
+/** Fetch raw DeepSWE source rows from all configured public artifacts. */
+export async function getDeepSWERawLeaderboardSourceRows(
 	options: DeepSWEScraperOptions = {},
-): Promise<DeepSWELeaderboardPayload> {
+): Promise<DeepSWERawLeaderboardPayload> {
 	const urls =
 		options.url != null
 			? [options.url]
 			: (options.urls ?? DEFAULT_LEADERBOARD_URLS);
+	const data: DeepSWERawLeaderboardRow[] = [];
+	let fetchedAtEpochSeconds: number | null = null;
 	for (const url of urls) {
 		try {
 			const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -180,16 +222,65 @@ export async function getDeepSWERawLeaderboardStats(
 						.map((row) => asDeepSWELeaderboardRow(row))
 						.filter((row): row is DeepSWELeaderboardRow => row != null)
 				: [];
-			return {
-				fetched_at_epoch_seconds: nowEpochSeconds(),
-				data: rows,
-			};
+			const sourceVersion = deepSWESourceVersionForUrl(url);
+			data.push(
+				...rows.map((row) => ({
+					...row,
+					source_version: sourceVersion,
+				})),
+			);
+			if (rows.length > 0 && fetchedAtEpochSeconds == null) {
+				fetchedAtEpochSeconds = nowEpochSeconds();
+			}
 		} catch {}
 	}
 	return {
-		fetched_at_epoch_seconds: null,
-		data: [],
+		fetched_at_epoch_seconds: data.length > 0 ? fetchedAtEpochSeconds : null,
+		data,
 	};
+}
+
+/** Fetch preferred DeepSWE leaderboard rows for public scoring/display. */
+export async function getDeepSWERawLeaderboardStats(
+	options: DeepSWEScraperOptions = {},
+): Promise<DeepSWELeaderboardPayload> {
+	const payload = await getDeepSWERawLeaderboardSourceRows(options);
+	const data = preferredDeepSWELeaderboardRows(payload.data);
+	return {
+		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+		source_version: deepSWESourceVersionForRows(payload.data),
+		data,
+	};
+}
+
+export function deepSWEUrlForSourceVersion(
+	version: DeepSWESourceVersion | null,
+): string {
+	return version === "v1"
+		? DEEP_SWE_V1_LEADERBOARD_URL
+		: DEEP_SWE_V1_1_LEADERBOARD_URL;
+}
+
+function deepSWESourceVersionForUrl(url: string): DeepSWESourceVersion | null {
+	if (url.includes("/artifacts/v1.1/")) {
+		return "v1.1";
+	}
+	if (url.includes("/artifacts/v1/")) {
+		return "v1";
+	}
+	return null;
+}
+
+function deepSWESourceVersionForRows(
+	rows: DeepSWERawLeaderboardRow[],
+): DeepSWESourceVersion | null {
+	if (rows.some((row) => row.source_version === "v1.1")) {
+		return "v1.1";
+	}
+	if (rows.some((row) => row.source_version === "v1")) {
+		return "v1";
+	}
+	return null;
 }
 
 /** Fetch DeepSWE default model score rows from the public leaderboard artifact. */
@@ -199,6 +290,7 @@ export async function getDeepSWEModelScoreStats(
 	const payload = await getDeepSWERawLeaderboardStats(options);
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+		source_version: payload.source_version,
 		data: summarizeDeepSWEDefaultModelScores(payload.data),
 	};
 }

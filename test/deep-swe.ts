@@ -4,7 +4,9 @@ import {
 	DEEP_SWE_V1_LEADERBOARD_URL,
 	type DeepSWELeaderboardRow,
 	findDeepSWEModelScore,
+	getDeepSWERawLeaderboardSourceRows,
 	getDeepSWERawLeaderboardStats,
+	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEBestModelScores,
 	summarizeDeepSWEDefaultModelScores,
 } from "../src/model-atlas/llm/scrapers/deep-swe";
@@ -71,6 +73,21 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
+	preferredDeepSWELeaderboardRows([
+		{ ...row("v1-only", 0.42), source_version: "v1" },
+		{ ...row("v1.1-model", 0.4), source_version: "v1.1" },
+	]).map(({ model }) => model),
+	["v1.1-model"],
+);
+
+assertDeepEqual(
+	preferredDeepSWELeaderboardRows([
+		{ ...row("v1-fallback", 0.42), source_version: "v1" },
+	]).map(({ model }) => model),
+	["v1-fallback"],
+);
+
+assertDeepEqual(
 	buildTaskMetrics(null, null, {
 		deep_swe: {
 			...row("gpt-5-5", 0.7),
@@ -95,14 +112,36 @@ const v1Rows = await getDeepSWERawLeaderboardStats({
 if (fallbackRows.data.length === 0) {
 	throw new Error("Expected DeepSWE v1.1 fallback fetch to return rows");
 }
+if (fallbackRows.source_version !== "v1.1") {
+	throw new Error("Expected DeepSWE fallback fetch to report v1.1");
+}
 if (!fallbackRows.data.some((row) => row.n_tasks_attempted === 113)) {
 	throw new Error("Expected DeepSWE v1.1 rows to scrape 113 attempted tasks");
 }
 if (!fallbackRows.data.every((row) => row.n_tasks_attempted > 0)) {
 	throw new Error("Expected every DeepSWE v1.1 row to include attempted tasks");
 }
+
+const sourceRows = await getDeepSWERawLeaderboardSourceRows({
+	urls: [DEEP_SWE_V1_1_LEADERBOARD_URL, DEEP_SWE_V1_LEADERBOARD_URL],
+});
+const sourceVersions = new Set(
+	sourceRows.data.map((row) => row.source_version),
+);
+if (!sourceVersions.has("v1.1") || !sourceVersions.has("v1")) {
+	throw new Error("Expected DeepSWE source rows to include v1.1 and v1");
+}
+if (
+	preferredDeepSWELeaderboardRows(sourceRows.data).length !==
+	sourceRows.data.filter((row) => row.source_version === "v1.1").length
+) {
+	throw new Error("Expected DeepSWE preferred rows to use v1.1 when present");
+}
 if (v1Rows.data.length === 0) {
 	throw new Error("Expected DeepSWE v1 fetch to return rows");
+}
+if (v1Rows.source_version !== "v1") {
+	throw new Error("Expected DeepSWE v1 fetch to report v1");
 }
 if (!v1Rows.data.every((row) => row.n_tasks_attempted > 0)) {
 	throw new Error("Expected DeepSWE v1 rows to include attempted tasks");
