@@ -21,7 +21,8 @@
 		"generate-provider-icons": "tsx scripts/generate-provider-icons.ts",
 		"atlas:snapshot": "tsx scripts/write-static-snapshot.ts",
 		"atlas:smoke": "tsx scripts/smoke-model-atlas.ts",
-		"atlas:ui": "next dev --webpack"
+		"atlas:ui": "next dev --webpack",
+		"vercel:env:sync": "tsx scripts/sync-vercel-env.ts"
 	},
 	"dependencies": {
 		"@vercel/speed-insights": "^2.0.0",
