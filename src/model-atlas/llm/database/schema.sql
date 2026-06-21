@@ -120,7 +120,6 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	mean_cost_usd REAL NOT NULL,
 	mean_duration_seconds REAL NOT NULL,
 	mean_output_tokens REAL NOT NULL,
-	is_best_model_score INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY (run_id, row_index)
 );
 
