@@ -79,9 +79,8 @@ async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
 			readStaticSnapshot().catch(() => null),
 		],
 	);
-	return bestSnapshotPayload(
-		bestSnapshotPayload(d1Snapshot, localDatabaseSnapshot),
-		staticSnapshot,
+	return (
+		d1Snapshot ?? bestSnapshotPayload(localDatabaseSnapshot, staticSnapshot)
 	);
 }
 
@@ -205,7 +204,7 @@ async function refreshModelAtlasPayload(
 	return readModelAtlasDatabasePayload(database.path);
 }
 
-async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
+export async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
 	const payload = await readD1ModelAtlasPayload();
 	return payload == null ? null : withCurrentSnapshotMetadata(payload);
 }

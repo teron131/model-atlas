@@ -58,7 +58,7 @@ function ensureSchemaColumns(db: DatabaseSync, schemaSql: string): void {
 	}
 }
 
-function schemaTableColumns(
+export function schemaTableColumns(
 	schemaSql: string,
 ): Map<string, [string, string][]> {
 	const tables = new Map<string, [string, string][]>();

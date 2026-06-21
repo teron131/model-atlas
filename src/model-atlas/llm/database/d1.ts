@@ -7,7 +7,7 @@ import {
 	buildModelAtlasPayloadFromRows,
 	type ModelAtlasPayloadRows,
 } from "./payload";
-import { loadSchemaSql, schemaTableNames } from "./schema";
+import { loadSchemaSql, schemaTableColumns, schemaTableNames } from "./schema";
 
 type D1Value = string | number | null;
 type D1Rows = Record<string, unknown>[];
@@ -170,7 +170,25 @@ async function ensureD1Schema(): Promise<string[]> {
 	for (const statement of splitSqlStatements(schemaSql)) {
 		await queryD1(statement);
 	}
+	await ensureD1SchemaColumns(schemaSql);
 	return schemaTableNames(schemaSql);
+}
+
+async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
+	for (const [table, columns] of schemaTableColumns(schemaSql)) {
+		const existingColumns = new Set(
+			(await allD1(`PRAGMA table_info(${quoteIdentifier(table)})`)).flatMap(
+				(row) => (typeof row.name === "string" ? [row.name] : []),
+			),
+		);
+		for (const [column, type] of columns) {
+			if (!existingColumns.has(column)) {
+				await queryD1(
+					`ALTER TABLE ${quoteIdentifier(table)} ADD COLUMN ${quoteIdentifier(column)} ${type}`,
+				);
+			}
+		}
+	}
 }
 
 function localLatestRun(db: DatabaseSync): {
