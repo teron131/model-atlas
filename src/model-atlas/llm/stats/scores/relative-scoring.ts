@@ -2,6 +2,7 @@
 
 import {
 	ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	benchmarkResourcePolicy,
 	RAW_RESOURCE_COMPONENT_WEIGHT,
 	resourceComponentWeightsFor,
 } from "../../../config/benchmark-portfolio";
@@ -33,7 +34,6 @@ const MIN_DISPLAY_SPEED_COMPONENTS = 2;
 const VALUE_RAW_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT / 3;
 const SPEED_SIMULATION_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT;
 const VALUE_QUALITY_TRADEOFF_STRENGTH = 0.5;
-type TaskMetricKey = "artificial_analysis" | "deep_swe" | "agents_last_exam";
 type RelativeComponent = {
 	value: number | null;
 	weight: number;
@@ -113,14 +113,14 @@ function inversePositive(value: unknown): number | null {
 
 function taskMetricCost(
 	model: LlmStatsModelCandidate,
-	key: TaskMetricKey,
+	key: string,
 ): number | null {
 	return positiveNumber(model.task_metrics?.[key]?.cost);
 }
 
 function taskMetricSeconds(
 	model: LlmStatsModelCandidate,
-	key: TaskMetricKey,
+	key: string,
 ): number | null {
 	return positiveNumber(model.task_metrics?.[key]?.seconds);
 }
@@ -139,10 +139,15 @@ function benchmarkMetricValue(
 function frontierResourceTaskMetric(
 	model: LlmStatsModelCandidate,
 	key: string,
+	scoringConfig: ScoringConfig,
 ): LlmStatsTaskMetricValues | null {
-	return (
-		model.task_metrics?.[key] ?? model.task_metrics?.artificial_analysis ?? null
-	);
+	const policy = benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio);
+	if (policy == null) {
+		return null;
+	}
+	const taskMetricKey =
+		policy.source === "artificial_analysis" ? "artificial_analysis" : key;
+	return model.task_metrics?.[taskMetricKey] ?? null;
 }
 
 function hasPositiveResourceMetric(
@@ -158,12 +163,18 @@ function hasPositiveResourceMetric(
 function hasBenchmarkFrontierResourceMetric(
 	models: LlmStatsModelCandidate[],
 	key: string,
+	scoringConfig: ScoringConfig,
 ): boolean {
+	const policy = benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio);
+	if (policy == null) {
+		return false;
+	}
+	const taskMetricKey =
+		policy.source === "artificial_analysis" ? "artificial_analysis" : key;
 	return models.some(
 		(model) =>
 			benchmarkMetricValue(model, key) != null &&
-			(hasPositiveResourceMetric(model, key) ||
-				hasPositiveResourceMetric(model, "artificial_analysis")),
+			hasPositiveResourceMetric(model, taskMetricKey),
 	);
 }
 
@@ -172,7 +183,7 @@ function frontierResourceKeys(
 	scoringConfig: ScoringConfig,
 ): string[] {
 	return scoringConfig.frontierBenchmarkKeys.filter((key) =>
-		hasBenchmarkFrontierResourceMetric(models, key),
+		hasBenchmarkFrontierResourceMetric(models, key, scoringConfig),
 	);
 }
 
@@ -195,6 +206,7 @@ function frontierBenchmarkValuesByKey(
 function frontierBenchmarkSpeedValuesByKey(
 	models: LlmStatsModelCandidate[],
 	keys: readonly string[],
+	scoringConfig: ScoringConfig,
 ) {
 	return new Map(
 		keys.map((key) => [
@@ -205,7 +217,7 @@ function frontierBenchmarkSpeedValuesByKey(
 						return null;
 					}
 					return inversePositive(
-						frontierResourceTaskMetric(model, key)?.seconds,
+						frontierResourceTaskMetric(model, key, scoringConfig)?.seconds,
 					);
 				})
 				.filter(
@@ -218,13 +230,16 @@ function frontierBenchmarkSpeedValuesByKey(
 function frontierResourceCostSignal(
 	model: LlmStatsModelCandidate,
 	keys: readonly string[],
+	scoringConfig: ScoringConfig,
 ): number | null {
 	return meanOfFinite(
 		keys.map((key) => {
 			if (benchmarkMetricValue(model, key) == null) {
 				return null;
 			}
-			return inversePositive(frontierResourceTaskMetric(model, key)?.cost);
+			return inversePositive(
+				frontierResourceTaskMetric(model, key, scoringConfig)?.cost,
+			);
 		}),
 	);
 }
@@ -233,6 +248,7 @@ function frontierResourceEfficiencySignal(
 	model: LlmStatsModelCandidate,
 	keys: readonly string[],
 	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
+	scoringConfig: ScoringConfig,
 ): number | null {
 	return meanOfFinite(
 		keys.map((key) => {
@@ -240,7 +256,9 @@ function frontierResourceEfficiencySignal(
 				benchmarkValuesByKey.get(key) ?? [],
 				benchmarkMetricValue(model, key),
 			);
-			const cost = positiveNumber(frontierResourceTaskMetric(model, key)?.cost);
+			const cost = positiveNumber(
+				frontierResourceTaskMetric(model, key, scoringConfig)?.cost,
+			);
 			return score == null || cost == null ? null : score / cost;
 		}),
 	);
@@ -250,6 +268,7 @@ function frontierResourceSpeedSignal(
 	model: LlmStatsModelCandidate,
 	keys: readonly string[],
 	benchmarkSpeedValuesByKey: ReadonlyMap<string, readonly number[]>,
+	scoringConfig: ScoringConfig,
 ): number | null {
 	return meanOfFinite(
 		keys.map((key) => {
@@ -257,7 +276,7 @@ function frontierResourceSpeedSignal(
 				return null;
 			}
 			const speed = inversePositive(
-				frontierResourceTaskMetric(model, key)?.seconds,
+				frontierResourceTaskMetric(model, key, scoringConfig)?.seconds,
 			);
 			return percentileRank(
 				[...(benchmarkSpeedValuesByKey.get(key) ?? [])],
@@ -302,6 +321,7 @@ export function attachRelativeScores(
 	const frontierSpeedValuesByKey = frontierBenchmarkSpeedValuesByKey(
 		models,
 		frontierKeys,
+		scoringConfig,
 	);
 	const intelligenceRelativeScores = models.map(
 		(model) => model.scores?.intelligence_score ?? null,
@@ -326,10 +346,15 @@ export function attachRelativeScores(
 			: intelligenceRelativeScore / cost;
 	});
 	const frontierResourceCostValues = models.map((model) =>
-		frontierResourceCostSignal(model, frontierKeys),
+		frontierResourceCostSignal(model, frontierKeys, scoringConfig),
 	);
 	const frontierResourceEfficiencyValues = models.map((model) =>
-		frontierResourceEfficiencySignal(model, frontierKeys, frontierValuesByKey),
+		frontierResourceEfficiencySignal(
+			model,
+			frontierKeys,
+			frontierValuesByKey,
+			scoringConfig,
+		),
 	);
 	const blendCostValues = models.map((model) =>
 		inversePositive(blendCost(model, scoringConfig)),
@@ -351,7 +376,12 @@ export function attachRelativeScores(
 		percentileScoreAt(artificialAnalysisSpeedValues, index),
 	);
 	const frontierResourceSpeedValues = models.map((model) =>
-		frontierResourceSpeedSignal(model, frontierKeys, frontierSpeedValuesByKey),
+		frontierResourceSpeedSignal(
+			model,
+			frontierKeys,
+			frontierSpeedValuesByKey,
+			scoringConfig,
+		),
 	);
 	const workflowSimulatedSpeedValues = models.map((model) =>
 		inversePositive(simulatedBlendSeconds(model.speed, scoringConfig)),

@@ -219,27 +219,27 @@ const frontierResourceScoredModels = attachRelativeScores(
 	[
 		modelCandidate({
 			id: "test/frontier-efficient",
-			gdpvalScore: 90,
-			gdpvalCost: 0.1,
-			gdpvalSeconds: 90,
+			deepSWEScore: 90,
+			deepSWECost: 0.1,
+			deepSWESeconds: 90,
 			tps: 100,
 			latency: 1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/frontier-middle",
-			gdpvalScore: 50,
-			gdpvalCost: 0.5,
-			gdpvalSeconds: 50,
+			deepSWEScore: 50,
+			deepSWECost: 0.5,
+			deepSWESeconds: 50,
 			tps: 100,
 			latency: 1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/frontier-fast",
-			gdpvalScore: 10,
-			gdpvalCost: 0.9,
-			gdpvalSeconds: 10,
+			deepSWEScore: 10,
+			deepSWECost: 0.9,
+			deepSWESeconds: 10,
 			tps: 100,
 			latency: 1,
 			disableBaseCost: true,
@@ -247,7 +247,7 @@ const frontierResourceScoredModels = attachRelativeScores(
 	],
 	{
 		...STAGE_CONFIG.scoring,
-		frontierBenchmarkKeys: ["gdpval_normalized"],
+		frontierBenchmarkKeys: ["deep_swe"],
 	},
 );
 assertClose(frontierResourceScoredModels[0]?.relative_scores.value_score, 100);
@@ -334,6 +334,7 @@ function modelCandidate(options: {
 	blendPrice?: number | null;
 	aaCost?: number | null;
 	aaSeconds?: number | null;
+	deepSWEScore?: number | null;
 	deepSWECost?: number | null;
 	deepSWESeconds?: number | null;
 	tps?: number | null;
@@ -350,6 +351,12 @@ function modelCandidate(options: {
 					cost: options.gdpvalCost ?? null,
 					seconds: options.gdpvalSeconds ?? null,
 				};
+	const evaluations = {
+		...(options.gdpvalScore == null
+			? {}
+			: { gdpval_normalized: options.gdpvalScore }),
+		...(options.deepSWEScore == null ? {} : { deep_swe: options.deepSWEScore }),
+	};
 	return {
 		id: options.id,
 		name: options.id,
@@ -386,10 +393,7 @@ function modelCandidate(options: {
 			},
 			...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
 		},
-		evaluations:
-			options.gdpvalScore == null
-				? null
-				: { gdpval_normalized: options.gdpvalScore },
+		evaluations: Object.keys(evaluations).length === 0 ? null : evaluations,
 		scores: {
 			intelligence_score: options.intelligenceScore ?? null,
 			agentic_score: options.agenticScore ?? null,

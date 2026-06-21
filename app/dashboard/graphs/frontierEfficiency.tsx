@@ -1,7 +1,9 @@
 import { median } from "d3-array";
 import { useMemo, useState } from "react";
+import { benchmarkResourcePolicy } from "../../../src/model-atlas/config/benchmark-portfolio";
 import type {
 	BenchmarkPortfolio,
+	BenchmarkResourcePolicy,
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../../src/model-atlas/llm/stats/types";
@@ -38,28 +40,34 @@ import { Panel } from "./Panel";
 import type { HoverRow, HoverSetter } from "./types";
 
 type FrontierEfficiencyAxisKey = "value" | "cost" | "time" | "tokens";
+type FrontierEfficiencyResourceMetric = Exclude<
+	FrontierEfficiencyAxisKey,
+	"value"
+>;
 
 type FrontierEfficiencyRow = {
 	benchmarkKey: string;
 	benchmarkLabel: string;
-	resourceSourceLabel: string;
+	resourcePolicy: BenchmarkResourcePolicy | null;
 	benchmarkCount: number;
 	model: LlmStatsModel;
 	score: number;
-	cost: number;
-	seconds: number;
+	cost: number | null;
+	seconds: number | null;
 	inputTokens: number | null;
 	outputTokens: number | null;
-	totalTokens: number;
+	totalTokens: number | null;
 };
 
 type FrontierEfficiencyAxisConfig = {
 	label: string;
 	shortLabel: string;
-	get: (row: FrontierEfficiencyRow) => number;
-	selectionScore: (row: FrontierEfficiencyRow) => number;
+	get: (row: FrontierEfficiencyRow) => number | null;
+	selectionScore: (row: FrontierEfficiencyRow) => number | null;
 	format: (value: number) => string;
-	detailLabel: string;
+	detailLabel: (row: FrontierEfficiencyRow) => string;
+	normalizedLabel: string;
+	normalizedDetailLabel: string;
 	xHigherBetter?: boolean;
 };
 
@@ -74,32 +82,44 @@ const frontierEfficiencyAxisConfig: Record<
 		selectionScore: (row) =>
 			finiteValue(row.model.relative_scores?.value_score) ?? 0,
 		format: (value) => value.toFixed(0),
-		detailLabel: "value",
+		detailLabel: () => "Value score",
+		normalizedLabel: "Value score",
+		normalizedDetailLabel: "Value score",
 		xHigherBetter: true,
 	},
 	cost: {
-		label: "Task cost",
+		label: "Resource cost",
 		shortLabel: "Cost",
 		get: (row) => row.cost,
-		selectionScore: (row) => row.score / row.cost,
+		selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
 		format: fmtMoney,
-		detailLabel: "cost",
+		detailLabel: (row) => resourceMetricLabel(row, "cost"),
+		normalizedLabel: "Mean normalized cost score",
+		normalizedDetailLabel: "Mean normalized cost score",
 	},
 	time: {
-		label: "Task time",
+		label: "Resource time",
 		shortLabel: "Time",
 		get: (row) => row.seconds,
-		selectionScore: (row) => row.score / (row.seconds / 86_400),
+		selectionScore: (row) =>
+			row.seconds == null ? null : row.score / (row.seconds / 86_400),
 		format: fmtDurationShort,
-		detailLabel: "time",
+		detailLabel: (row) => resourceMetricLabel(row, "time"),
+		normalizedLabel: "Mean normalized time score",
+		normalizedDetailLabel: "Mean normalized time score",
 	},
 	tokens: {
-		label: "Task tokens",
+		label: "Resource tokens",
 		shortLabel: "Tokens",
 		get: (row) => row.totalTokens,
-		selectionScore: (row) => row.score / (row.totalTokens / 1_000_000),
+		selectionScore: (row) =>
+			row.totalTokens == null
+				? null
+				: row.score / (row.totalTokens / 1_000_000),
 		format: fmtCompact,
-		detailLabel: "tokens",
+		detailLabel: (row) => resourceMetricLabel(row, "tokens"),
+		normalizedLabel: "Mean normalized tokens score",
+		normalizedDetailLabel: "Mean normalized tokens score",
 	},
 };
 
@@ -127,43 +147,39 @@ function frontierEfficiencyRows(
 			const taskMetrics = model.task_metrics ?? {};
 			return frontierKeys.flatMap((benchmarkKey) => {
 				const score = percent(evaluations[benchmarkKey]);
-				const directTask = taskMetrics[benchmarkKey];
-				const task = directTask ?? taskMetrics.artificial_analysis;
+				const resourcePolicy =
+					benchmarkResourcePolicy(benchmarkKey, portfolio) ??
+					benchmarkResourcePolicy(benchmarkKey);
+				const task = frontierResourceTaskMetrics(
+					resourcePolicy,
+					benchmarkKey,
+					taskMetrics,
+				);
 				const cost = finiteValue(task?.cost);
 				const seconds = finiteValue(task?.seconds);
 				const inputTokens = finiteValue(task?.input_tokens);
 				const outputTokens = finiteValue(task?.output_tokens);
-				const totalTokens =
-					inputTokens != null && inputTokens > 0
-						? inputTokens + Math.max(outputTokens ?? 0, 0)
-						: outputTokens != null && outputTokens > 0
-							? outputTokens
-							: null;
-				if (
-					score == null ||
-					cost == null ||
-					cost <= 0 ||
-					seconds == null ||
-					seconds <= 0 ||
-					totalTokens == null ||
-					totalTokens <= 0
-				) {
+				const totalTokens = frontierResourceTokens(
+					resourcePolicy,
+					inputTokens,
+					outputTokens,
+				);
+				if (score == null) {
 					return [];
 				}
 				return [
 					{
 						benchmarkKey,
 						benchmarkLabel: benchmarkLabels[benchmarkKey] ?? benchmarkKey,
-						resourceSourceLabel:
-							directTask != null ? "Benchmark source" : "Artificial Analysis",
+						resourcePolicy,
 						benchmarkCount: 1,
 						model,
 						score,
-						cost,
-						seconds,
+						cost: positiveMetric(cost) ? cost : null,
+						seconds: positiveMetric(seconds) ? seconds : null,
 						inputTokens,
 						outputTokens,
-						totalTokens,
+						totalTokens: positiveMetric(totalTokens) ? totalTokens : null,
 					},
 				];
 			});
@@ -190,15 +206,15 @@ function meanFrontierEfficiencyRows(
 			return {
 				benchmarkKey: "all",
 				benchmarkLabel: "Normalized frontier score",
-				resourceSourceLabel: `Mean of ${modelRows.length} benchmarks`,
+				resourcePolicy: null,
 				benchmarkCount: modelRows.length,
 				model: first.model,
 				score: meanNumber(modelRows.map((row) => row.score)),
-				cost: meanNumber(modelRows.map((row) => row.cost)),
-				seconds: meanNumber(modelRows.map((row) => row.seconds)),
+				cost: meanFiniteMetric(modelRows.map((row) => row.cost)),
+				seconds: meanFiniteMetric(modelRows.map((row) => row.seconds)),
 				inputTokens: null,
 				outputTokens: null,
-				totalTokens: meanNumber(modelRows.map((row) => row.totalTokens)),
+				totalTokens: meanFiniteMetric(modelRows.map((row) => row.totalTokens)),
 			};
 		})
 		.filter((row): row is FrontierEfficiencyRow => row != null)
@@ -209,21 +225,95 @@ function normalizedFrontierEfficiencyRows(
 	rows: FrontierEfficiencyRow[],
 ): FrontierEfficiencyRow[] {
 	const scoresByBenchmark = new Map<string, number[]>();
+	const costsByBenchmark = new Map<string, number[]>();
+	const secondsByBenchmark = new Map<string, number[]>();
+	const tokensByBenchmark = new Map<string, number[]>();
 	for (const row of rows) {
 		const scores = scoresByBenchmark.get(row.benchmarkKey) ?? [];
 		scores.push(row.score);
 		scoresByBenchmark.set(row.benchmarkKey, scores);
+		pushBenchmarkValue(costsByBenchmark, row.benchmarkKey, row.cost);
+		pushBenchmarkValue(secondsByBenchmark, row.benchmarkKey, row.seconds);
+		pushBenchmarkValue(tokensByBenchmark, row.benchmarkKey, row.totalTokens);
 	}
 	return rows.map((row) => ({
 		...row,
 		score:
 			minMaxScale(scoresByBenchmark.get(row.benchmarkKey) ?? [], row.score) ??
 			row.score,
+		cost:
+			minMaxScale(costsByBenchmark.get(row.benchmarkKey) ?? [], row.cost) ??
+			row.cost,
+		seconds:
+			minMaxScale(
+				secondsByBenchmark.get(row.benchmarkKey) ?? [],
+				row.seconds,
+			) ?? row.seconds,
+		totalTokens:
+			minMaxScale(
+				tokensByBenchmark.get(row.benchmarkKey) ?? [],
+				row.totalTokens,
+			) ?? row.totalTokens,
 	}));
 }
 
 function meanNumber(values: number[]): number {
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function meanFiniteMetric(values: Array<number | null>): number | null {
+	const finiteValues = values.filter(
+		(value): value is number => value != null && Number.isFinite(value),
+	);
+	return finiteValues.length === 0 ? null : meanNumber(finiteValues);
+}
+
+function frontierResourceTaskMetrics(
+	resourcePolicy: BenchmarkResourcePolicy | null,
+	benchmarkKey: string,
+	taskMetrics: NonNullable<LlmStatsModel["task_metrics"]>,
+) {
+	if (resourcePolicy == null) {
+		return null;
+	}
+	return resourcePolicy.source === "artificial_analysis"
+		? taskMetrics.artificial_analysis
+		: taskMetrics[benchmarkKey];
+}
+
+function frontierResourceTokens(
+	resourcePolicy: BenchmarkResourcePolicy | null,
+	inputTokens: number | null,
+	outputTokens: number | null,
+) {
+	if (resourcePolicy == null) {
+		return null;
+	}
+	if (resourcePolicy.tokenMeasure === "output_tokens") {
+		return outputTokens != null && outputTokens > 0 ? outputTokens : null;
+	}
+	return inputTokens != null && inputTokens > 0
+		? inputTokens + Math.max(outputTokens ?? 0, 0)
+		: outputTokens != null && outputTokens > 0
+			? outputTokens
+			: null;
+}
+
+function pushBenchmarkValue(
+	valuesByBenchmark: Map<string, number[]>,
+	benchmarkKey: string,
+	value: number | null,
+) {
+	if (value == null) {
+		return;
+	}
+	const values = valuesByBenchmark.get(benchmarkKey) ?? [];
+	values.push(value);
+	valuesByBenchmark.set(benchmarkKey, values);
+}
+
+function positiveMetric(value: number | null): value is number {
+	return value != null && value > 0;
 }
 
 export function FrontierEfficiencyPanel({
@@ -262,22 +352,69 @@ export function FrontierEfficiencyPanel({
 		benchmarkOptions.some((option) => option.key === benchmarkKey)
 			? benchmarkKey
 			: "all";
-	const rows = useMemo(
+	const sourceRows = useMemo(
 		() =>
 			selectedBenchmarkKey === "all"
 				? meanRows
 				: allRows.filter((row) => row.benchmarkKey === selectedBenchmarkKey),
 		[allRows, meanRows, selectedBenchmarkKey],
 	);
+	const isAllBenchmark = selectedBenchmarkKey === "all";
+	const axisOptions = useMemo(
+		() =>
+			Object.entries(frontierEfficiencyAxisConfig).map(([key, config]) => {
+				const axisOptionKey = key as FrontierEfficiencyAxisKey;
+				const axisOptionConfig = frontierEfficiencyAxisConfigFor(
+					axisOptionKey,
+					isAllBenchmark,
+				);
+				return {
+					key: axisOptionKey,
+					label: config.shortLabel,
+					disabled: !sourceRows.some((row) =>
+						positiveMetric(axisOptionConfig.get(row)),
+					),
+				};
+			}),
+		[isAllBenchmark, sourceRows],
+	);
+	const selectedAxisKey = axisOptions.some(
+		(option) => option.key === axisKey && !option.disabled,
+	)
+		? axisKey
+		: (axisOptions.find((option) => option.key === "cost" && !option.disabled)
+				?.key ??
+			axisOptions.find((option) => !option.disabled)?.key ??
+			axisKey);
+	const axisConfig = frontierEfficiencyAxisConfigFor(
+		selectedAxisKey,
+		isAllBenchmark,
+	);
+	const rows = useMemo(
+		() => sourceRows.filter((row) => positiveMetric(axisConfig.get(row))),
+		[axisConfig, sourceRows],
+	);
+	const xMetricLabel = frontierAxisMetricLabel(
+		axisConfig,
+		isAllBenchmark,
+		sourceRows,
+	);
+	const chartMetric = useMemo(
+		() => ({
+			label: xMetricLabel,
+			get: (row: FrontierEfficiencyRow) => axisConfig.get(row) ?? 0,
+			format: axisConfig.format,
+			xHigherBetter: axisConfig.xHigherBetter,
+		}),
+		[axisConfig, xMetricLabel],
+	);
 
-	if (allRows.length === 0) {
+	if (rows.length === 0) {
 		return null;
 	}
 
-	const isAllBenchmark = selectedBenchmarkKey === "all";
-	const axisConfig = frontierEfficiencyAxisConfig[axisKey];
 	const axisValues = rows.map(axisConfig.get).filter(finite);
-	const xAxis = frontierXAxisScale(axisValues, axisKey, axisConfig);
+	const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
 	const scoreValues = rows.map((row) => row.score).filter(finite);
 	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
 	const bubbleValue = speedScore;
@@ -311,8 +448,8 @@ export function FrontierEfficiencyPanel({
 		? "Mean normalized frontier score"
 		: "Benchmark score";
 	const panelCopy = isAllBenchmark
-		? `Each point is one model: mean normalized frontier benchmark score against ${axisConfig.label.toLowerCase()}.`
-		: `${leader.benchmarkLabel} score plotted against ${axisConfig.label.toLowerCase()}.`;
+		? `Each point is one model: mean normalized frontier benchmark score against ${xMetricLabel.toLowerCase()}.`
+		: `${leader.benchmarkLabel} score plotted against ${xMetricLabel.toLowerCase()}.`;
 	const leaderDetail = axisSummaryDetail(leader, axisConfig);
 
 	return (
@@ -352,12 +489,13 @@ export function FrontierEfficiencyPanel({
 				<GraphToggle
 					legend="Frontier Efficiency axis"
 					options={Object.entries(frontierEfficiencyAxisConfig).map(
-						([key, config]) => ({
-							key: key as FrontierEfficiencyAxisKey,
-							label: config.shortLabel,
-						}),
+						([key, config]) =>
+							axisOptions.find((option) => option.key === key) ?? {
+								key: key as FrontierEfficiencyAxisKey,
+								label: config.shortLabel,
+							},
 					)}
-					selectedKey={axisKey}
+					selectedKey={selectedAxisKey}
 					onSelect={setAxisKey}
 				/>
 				<div className={styles.chartToolbarCaption}>
@@ -369,13 +507,13 @@ export function FrontierEfficiencyPanel({
 			</div>
 			<EfficiencyAxisChart
 				rows={plotRows}
-				metric={axisConfig}
+				metric={chartMetric}
 				xDomain={xAxis.domain}
 				xTicks={xAxis.ticks}
 				yDomain={scoreAxis.domain}
 				yTicks={scoreAxis.ticks}
 				yAxisLabel={yAxisLabel}
-				keyPrefix={`frontier-efficiency-${selectedBenchmarkKey}-${axisKey}`}
+				keyPrefix={`frontier-efficiency-${selectedBenchmarkKey}-${selectedAxisKey}`}
 				ariaLabel="Frontier Efficiency scatter plot"
 				bubbleValue={bubbleValue}
 				bubbleRadius={bubbleRadius}
@@ -421,17 +559,52 @@ function bestAxisRowAtOrAboveScore(
 			.filter((row) => row.score >= minScore)
 			.sort(
 				(left, right) =>
-					axisConfig.selectionScore(right) - axisConfig.selectionScore(left),
+					(axisConfig.selectionScore(right) ?? Number.NEGATIVE_INFINITY) -
+					(axisConfig.selectionScore(left) ?? Number.NEGATIVE_INFINITY),
 			)[0] ?? fallback
 	);
+}
+
+function frontierAxisMetricLabel(
+	axisConfig: FrontierEfficiencyAxisConfig,
+	isAllBenchmark: boolean,
+	rows: FrontierEfficiencyRow[],
+) {
+	if (isAllBenchmark) {
+		return axisConfig.label;
+	}
+	const row = rows.find((candidate) =>
+		positiveMetric(axisConfig.get(candidate)),
+	);
+	return row == null ? axisConfig.label : axisConfig.detailLabel(row);
+}
+
+function frontierEfficiencyAxisConfigFor(
+	axisKey: FrontierEfficiencyAxisKey,
+	isAllBenchmark: boolean,
+): FrontierEfficiencyAxisConfig {
+	const axisConfig = frontierEfficiencyAxisConfig[axisKey];
+	if (!isAllBenchmark || axisKey === "value") {
+		return axisConfig;
+	}
+	return {
+		...axisConfig,
+		label: axisConfig.normalizedLabel,
+		selectionScore: (row) => {
+			const value = axisConfig.get(row);
+			return value == null ? null : row.score / Math.max(value, 1);
+		},
+		format: (value) => value.toFixed(0),
+		detailLabel: () => axisConfig.normalizedDetailLabel,
+	};
 }
 
 function axisSummaryDetail(
 	row: FrontierEfficiencyRow,
 	axisConfig: FrontierEfficiencyAxisConfig,
 ) {
-	return `${fmtPercentScore(row.score)} / ${axisConfig.detailLabel} ${axisConfig.format(
-		axisConfig.get(row),
+	return `${fmtPercentScore(row.score)} / ${axisConfig.detailLabel(row)} ${axisConfig.format(
+		axisConfig.get(row) ?? 0,
 	)}`;
 }
 
@@ -541,8 +714,41 @@ function frontierEfficiencyHoverRows(
 				: "Benchmark score",
 			fmtPercentScore(row.score),
 		],
-		[axisConfig.label, axisConfig.format(axisConfig.get(row))],
+		[axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
 		["Speed score", speedScore(row).toFixed(1)],
 	);
 	return rows;
+}
+
+function resourceMetricLabel(
+	row: FrontierEfficiencyRow,
+	metric: FrontierEfficiencyResourceMetric,
+) {
+	if (row.benchmarkKey === "all") {
+		return `Mean resource ${resourceMetricName(metric)}`;
+	}
+	const policy = row.resourcePolicy;
+	if (policy == null) {
+		return `Resource ${resourceMetricName(metric)}`;
+	}
+	const metricName = resourceMetricName(metric, policy);
+	if (policy.unit === "total") {
+		return `Total ${metricName}`;
+	}
+	const sourcePrefix =
+		policy.source === "artificial_analysis" ? "AA" : "Benchmark";
+	return `${sourcePrefix} ${metricName} per task`;
+}
+
+function resourceMetricName(
+	metric: FrontierEfficiencyResourceMetric,
+	policy?: BenchmarkResourcePolicy,
+) {
+	if (metric === "time") {
+		return "time";
+	}
+	if (metric === "cost") {
+		return "cost";
+	}
+	return policy?.tokenMeasure === "output_tokens" ? "output tokens" : "tokens";
 }

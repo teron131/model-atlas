@@ -451,11 +451,14 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 			const ciLo = asFiniteNumber(row.ci_lo);
 			const ciHi = asFiniteNumber(row.ci_hi);
 			const ciHalf = asFiniteNumber(row.ci_half);
+			const tasksAttempted = asFiniteNumber(row.n_tasks_attempted);
 			const meanCostUsd = asFiniteNumber(row.mean_cost_usd);
 			const meanDurationSeconds = asFiniteNumber(row.mean_duration_seconds);
 			const meanOutputTokens = asFiniteNumber(row.mean_output_tokens);
 			return model != null &&
 				passAt1 != null &&
+				tasksAttempted != null &&
+				tasksAttempted > 0 &&
 				meanCostUsd != null &&
 				meanDurationSeconds != null &&
 				meanOutputTokens != null
@@ -468,6 +471,7 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 							ci_lo: ciLo,
 							ci_hi: ciHi,
 							ci_half: ciHalf,
+							n_tasks_attempted: tasksAttempted,
 							mean_cost_usd: meanCostUsd,
 							mean_duration_seconds: meanDurationSeconds,
 							mean_output_tokens: meanOutputTokens,

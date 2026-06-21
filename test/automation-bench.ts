@@ -1,6 +1,7 @@
 import {
 	buildAutomationBenchScoreByModelName,
 	findAutomationBenchScore,
+	findAutomationBenchScoreRow,
 	processAutomationBenchPageHtml,
 	summarizeAutomationBenchModelScores,
 } from "../src/model-atlas/llm/scrapers/automation-bench";
@@ -200,6 +201,11 @@ assertDeepEqual(
 assertDeepEqual(
 	findAutomationBenchScore(["Claude Opus 4.8 (XHigh)"], scoreByModelName),
 	0.155,
+);
+assertDeepEqual(
+	findAutomationBenchScoreRow(["Claude Opus 4.8 (XHigh)"], scoreByModelName)
+		?.cost_per_task_usd,
+	2.36,
 );
 assertDeepEqual(
 	findAutomationBenchScore(["Claude Opus 4.8"], scoreByModelName),

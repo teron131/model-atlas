@@ -2,7 +2,7 @@ import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
 } from "../scrapers/agents-last-exam";
-import { findAutomationBenchScore } from "../scrapers/automation-bench";
+import { findAutomationBenchScoreRow } from "../scrapers/automation-bench";
 import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findCursorBenchScore } from "../scrapers/cursorbench";
@@ -183,12 +183,12 @@ function modelsDevCatalogRow(
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
 	}
-	const automationBenchScore = findAutomationBenchScore(
+	const automationBenchScore = findAutomationBenchScoreRow(
 		modelNameCandidates,
 		sourceData.automationBenchScoreByModelName,
 	);
 	if (automationBenchScore != null) {
-		evaluations.automation_bench = automationBenchScore;
+		evaluations.automation_bench = automationBenchScore.adjusted_score;
 	}
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,
@@ -243,7 +243,9 @@ function modelsDevCatalogRow(
 		aa_id: null,
 		family: matchedFamily,
 		...modelMetadata,
-		...(deepSWEScore == null && agentsLastExamScore == null
+		...(deepSWEScore == null &&
+		agentsLastExamScore == null &&
+		automationBenchScore == null
 			? {}
 			: {
 					scoring_sources: {
@@ -251,6 +253,9 @@ function modelsDevCatalogRow(
 						...(agentsLastExamScore == null
 							? {}
 							: { agents_last_exam: agentsLastExamScore }),
+						...(automationBenchScore == null
+							? {}
+							: { automation_bench: automationBenchScore }),
 					},
 				}),
 		...(Object.keys(evaluations).length === 0 ? {} : { evaluations }),

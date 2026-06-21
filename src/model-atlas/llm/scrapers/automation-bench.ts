@@ -398,10 +398,10 @@ export function buildAutomationBenchScoreByModelName(
 }
 
 /** Find an AutomationBench public score from model labels that may differ by punctuation. */
-export function findAutomationBenchScore(
+export function findAutomationBenchScoreRow(
 	candidateNames: unknown[],
 	scoreByModelName: AutomationBenchScoreByModelName,
-): number | null {
+): AutomationBenchModelScoreRow | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
@@ -409,17 +409,28 @@ export function findAutomationBenchScore(
 		for (const key of normalizedModelAliases(candidateName)) {
 			const row = scoreByModelName.get(key);
 			if (row) {
-				return row.adjusted_score;
+				return row;
 			}
 		}
 		for (const key of normalizedModelAliases(baseModelName(candidateName))) {
 			const row = scoreByModelName.get(key);
 			if (row) {
-				return row.adjusted_score;
+				return row;
 			}
 		}
 	}
 	return null;
+}
+
+/** Find an AutomationBench public score from model labels that may differ by punctuation. */
+export function findAutomationBenchScore(
+	candidateNames: unknown[],
+	scoreByModelName: AutomationBenchScoreByModelName,
+): number | null {
+	return (
+		findAutomationBenchScoreRow(candidateNames, scoreByModelName)
+			?.adjusted_score ?? null
+	);
 }
 
 /** Fetch AutomationBench public top-10 and domain-winner leaderboard rows. */

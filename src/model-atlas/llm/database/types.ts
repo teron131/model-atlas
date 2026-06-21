@@ -43,7 +43,7 @@ export const RAW_SOURCE_NAMES = [
 export const SOURCE_URLS = {
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
 	models_dev: "https://models.dev/api.json",
-	deep_swe: "https://deepswe.datacurve.ai/artifacts/leaderboard-live.json",
+	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
 	terminal_bench: "https://www.tbench.ai/leaderboard/terminal-bench/2.0",
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
