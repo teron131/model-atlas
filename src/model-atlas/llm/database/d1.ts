@@ -1,6 +1,4 @@
-/** Cloudflare D1 persistence for the Model Atlas SQLite schema. */
-
-import { DatabaseSync } from "node:sqlite";
+/** Cloudflare D1 reads and schema management for the Model Atlas SQLite schema. */
 
 import type { LlmStatsPayload } from "../stats/types";
 import {
@@ -12,7 +10,7 @@ import { loadSchemaSql, schemaTableColumns, schemaTableNames } from "./schema";
 type D1Value = string | number | null;
 type D1Rows = Record<string, unknown>[];
 
-type D1Config = {
+export type ModelAtlasD1Config = {
 	accountId: string;
 	databaseId: string;
 	apiToken: string;
@@ -34,17 +32,11 @@ type D1ApiResponse = {
 };
 
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
-const D1_PARAM_LIMIT = 750;
-const COMPLETED_RUNS_TO_RETAIN = 3;
 
-function d1Config(): D1Config | null {
-	const accountId =
-		process.env.MODEL_ATLAS_D1_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
-	const databaseId =
-		process.env.MODEL_ATLAS_D1_DATABASE_ID ??
-		process.env.CLOUDFLARE_D1_DATABASE_ID;
-	const apiToken =
-		process.env.MODEL_ATLAS_D1_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
+export function modelAtlasD1Config(): ModelAtlasD1Config | null {
+	const accountId = process.env.D1_ACCOUNT_ID;
+	const databaseId = process.env.D1_DATABASE_ID;
+	const apiToken = process.env.D1_API_TOKEN;
 	if (!accountId || !databaseId || !apiToken) {
 		return null;
 	}
@@ -57,33 +49,24 @@ function d1Config(): D1Config | null {
 }
 
 export function modelAtlasD1Configured(): boolean {
-	return d1Config() != null;
+	return modelAtlasD1Config() != null;
 }
 
 export function modelAtlasD1MissingEnvironment(): string[] {
 	const missing: string[] = [];
-	if (
-		!process.env.MODEL_ATLAS_D1_ACCOUNT_ID &&
-		!process.env.CLOUDFLARE_ACCOUNT_ID
-	) {
-		missing.push("MODEL_ATLAS_D1_ACCOUNT_ID or CLOUDFLARE_ACCOUNT_ID");
+	if (!process.env.D1_ACCOUNT_ID) {
+		missing.push("D1_ACCOUNT_ID");
 	}
-	if (
-		!process.env.MODEL_ATLAS_D1_DATABASE_ID &&
-		!process.env.CLOUDFLARE_D1_DATABASE_ID
-	) {
-		missing.push("MODEL_ATLAS_D1_DATABASE_ID or CLOUDFLARE_D1_DATABASE_ID");
+	if (!process.env.D1_DATABASE_ID) {
+		missing.push("D1_DATABASE_ID");
 	}
-	if (
-		!process.env.MODEL_ATLAS_D1_API_TOKEN &&
-		!process.env.CLOUDFLARE_API_TOKEN
-	) {
-		missing.push("MODEL_ATLAS_D1_API_TOKEN or CLOUDFLARE_API_TOKEN");
+	if (!process.env.D1_API_TOKEN) {
+		missing.push("D1_API_TOKEN");
 	}
 	return missing;
 }
 
-function d1Endpoint(config: D1Config, path: "query"): string {
+function d1Endpoint(config: ModelAtlasD1Config, path: "query"): string {
 	return `${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/${path}`;
 }
 
@@ -113,7 +96,7 @@ async function queryD1(
 	sql: string,
 	params: D1Value[] = [],
 ): Promise<D1QueryResult> {
-	const config = d1Config();
+	const config = modelAtlasD1Config();
 	if (config == null) {
 		throw new Error(
 			`Cloudflare D1 is not configured. Missing ${modelAtlasD1MissingEnvironment().join(", ")}.`,
@@ -165,7 +148,7 @@ function splitSqlStatements(sql: string): string[] {
 		);
 }
 
-async function ensureD1Schema(): Promise<string[]> {
+export async function ensureModelAtlasD1Schema(): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
 	for (const statement of splitSqlStatements(schemaSql)) {
 		await queryD1(statement);
@@ -191,220 +174,9 @@ async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
 	}
 }
 
-function localLatestRun(db: DatabaseSync): {
-	id: number;
-	startedAt: number;
-	completedAt: number;
-	matchedRows: number | null;
-	enrichedRows: number | null;
-	finalModels: number | null;
-} {
-	const row = db
-		.prepare(`
-			SELECT
-				id,
-				started_at_epoch_seconds,
-				completed_at_epoch_seconds,
-				matched_row_count,
-				enriched_row_count,
-				final_model_count
-			FROM pipeline_runs
-			WHERE completed_at_epoch_seconds IS NOT NULL
-			ORDER BY id DESC
-			LIMIT 1
-		`)
-		.get() as Record<string, unknown> | undefined;
-	const id = Number(row?.id);
-	const startedAt = Number(row?.started_at_epoch_seconds);
-	const completedAt = Number(row?.completed_at_epoch_seconds);
-	if (
-		!Number.isFinite(id) ||
-		!Number.isFinite(startedAt) ||
-		!Number.isFinite(completedAt)
-	) {
-		throw new Error("No completed Model Atlas SQLite run exists to publish");
-	}
-	return {
-		id,
-		startedAt,
-		completedAt,
-		matchedRows: finiteNumberOrNull(row?.matched_row_count),
-		enrichedRows: finiteNumberOrNull(row?.enriched_row_count),
-		finalModels: finiteNumberOrNull(row?.final_model_count),
-	};
-}
-
 function finiteNumberOrNull(value: unknown): number | null {
 	const numberValue = Number(value);
 	return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function tableColumns(db: DatabaseSync, table: string): string[] {
-	return db
-		.prepare(`PRAGMA table_info(${quoteIdentifier(table)})`)
-		.all()
-		.flatMap((row) =>
-			typeof row.name === "string" && row.name.length > 0 ? [row.name] : [],
-		);
-}
-
-function tableRows(db: DatabaseSync, table: string, runId: number): D1Rows {
-	return db
-		.prepare(
-			`SELECT * FROM ${quoteIdentifier(table)} WHERE run_id = ? ORDER BY row_index`,
-		)
-		.all(runId) as D1Rows;
-}
-
-function insertSql(table: string, columns: string[], rowCount: number): string {
-	const columnList = columns.map(quoteIdentifier).join(", ");
-	const rowPlaceholders = `(${columns.map(() => "?").join(", ")})`;
-	return `INSERT INTO ${quoteIdentifier(table)} (${columnList}) VALUES ${Array.from({ length: rowCount }, () => rowPlaceholders).join(", ")}`;
-}
-
-async function insertRows(
-	table: string,
-	columns: string[],
-	rows: D1Rows,
-	remoteRunId: number,
-): Promise<void> {
-	const rowsPerChunk = Math.max(1, Math.floor(D1_PARAM_LIMIT / columns.length));
-	for (let start = 0; start < rows.length; start += rowsPerChunk) {
-		const chunk = rows.slice(start, start + rowsPerChunk);
-		const params = chunk.flatMap((row) =>
-			columns.map((column) =>
-				asD1Value(column === "run_id" ? remoteRunId : row[column]),
-			),
-		);
-		await queryD1(insertSql(table, columns, chunk.length), params);
-	}
-}
-
-function asD1Value(value: unknown): D1Value {
-	if (value == null) {
-		return null;
-	}
-	if (typeof value === "number") {
-		return Number.isFinite(value) ? value : null;
-	}
-	if (typeof value === "bigint") {
-		return Number(value);
-	}
-	return String(value);
-}
-
-async function createRemoteRun(
-	localRun: ReturnType<typeof localLatestRun>,
-): Promise<number> {
-	const result = await queryD1(
-		`
-			INSERT INTO pipeline_runs (
-				started_at_epoch_seconds,
-				completed_at_epoch_seconds,
-				matched_row_count,
-				enriched_row_count,
-				final_model_count
-			) VALUES (?, NULL, ?, ?, ?)
-		`,
-		[
-			localRun.startedAt,
-			localRun.matchedRows,
-			localRun.enrichedRows,
-			localRun.finalModels,
-		],
-	);
-	const insertedId = finiteNumberOrNull(result.meta?.last_row_id);
-	if (insertedId != null) {
-		return insertedId;
-	}
-	const rows = await allD1(
-		`
-			SELECT id
-			FROM pipeline_runs
-			WHERE started_at_epoch_seconds = ? AND completed_at_epoch_seconds IS NULL
-			ORDER BY id DESC
-			LIMIT 1
-		`,
-		[localRun.startedAt],
-	);
-	const id = finiteNumberOrNull(rows[0]?.id);
-	if (id == null) {
-		throw new Error("Unable to determine the new Cloudflare D1 run id");
-	}
-	return id;
-}
-
-async function completeRemoteRun(
-	remoteRunId: number,
-	completedAt: number,
-): Promise<void> {
-	await queryD1(
-		"UPDATE pipeline_runs SET completed_at_epoch_seconds = ? WHERE id = ?",
-		[completedAt, remoteRunId],
-	);
-}
-
-async function deleteRemoteRun(
-	tables: string[],
-	remoteRunId: number,
-): Promise<void> {
-	for (const table of tables) {
-		await queryD1(`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ?`, [
-			remoteRunId,
-		]);
-	}
-	await queryD1("DELETE FROM pipeline_runs WHERE id = ?", [remoteRunId]);
-}
-
-async function pruneOldRuns(
-	tables: string[],
-	retainCompletedRuns: number,
-): Promise<void> {
-	const rows = await allD1(
-		"SELECT id FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC",
-	);
-	const staleRunIds = rows.slice(retainCompletedRuns).flatMap((row) => {
-		const id = finiteNumberOrNull(row.id);
-		return id == null ? [] : [id];
-	});
-	for (const runId of staleRunIds) {
-		await deleteRemoteRun(tables, runId);
-	}
-}
-
-export async function publishSqliteDatabaseToD1(
-	databasePath: string,
-	retainCompletedRuns = COMPLETED_RUNS_TO_RETAIN,
-): Promise<{ databaseId: string; runId: number }> {
-	const schemaTables = await ensureD1Schema();
-	const runScopedTables = schemaTables.filter(
-		(table) => table !== "pipeline_runs",
-	);
-	const db = new DatabaseSync(databasePath, { readOnly: true });
-	try {
-		const localRun = localLatestRun(db);
-		const remoteRunId = await createRemoteRun(localRun);
-		try {
-			for (const table of runScopedTables) {
-				const columns = tableColumns(db, table);
-				const rows = tableRows(db, table, localRun.id);
-				if (rows.length > 0) {
-					await insertRows(table, columns, rows, remoteRunId);
-				}
-			}
-			await completeRemoteRun(remoteRunId, localRun.completedAt);
-		} catch (error) {
-			await deleteRemoteRun(runScopedTables, remoteRunId);
-			throw error;
-		}
-		await pruneOldRuns(runScopedTables, retainCompletedRuns);
-		return {
-			databaseId: d1Config()?.databaseId ?? "",
-			runId: remoteRunId,
-		};
-	} finally {
-		db.close();
-	}
 }
 
 export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null> {

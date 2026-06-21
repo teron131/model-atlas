@@ -1,14 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../../src/model-atlas/constants";
 import {
 	buildModelAtlasDatabase,
 	modelAtlasD1Configured,
 	modelAtlasD1MissingEnvironment,
-	publishSqliteDatabaseToD1,
 	readD1ModelAtlasPayload,
 	readModelAtlasDatabasePayload,
 } from "../../../src/model-atlas/llm/database";
@@ -16,12 +14,8 @@ import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
-import { insertProcessedModelRows } from "../../../src/model-atlas/llm/database/writers";
 import { buildBenchmarkUpdateHealth } from "../../../src/model-atlas/llm/stats/health";
-import {
-	preserveHighSignalSnapshotModels,
-	SNAPSHOT_PRESERVATION_VERSION,
-} from "../../../src/model-atlas/llm/stats/snapshot-preservation";
+import { SNAPSHOT_PRESERVATION_VERSION } from "../../../src/model-atlas/llm/stats/snapshot-preservation";
 import type {
 	LlmStatsMetadata,
 	LlmStatsModel,
@@ -32,13 +26,6 @@ const STATIC_SNAPSHOT_PATH = resolve(
 	process.cwd(),
 	"public/model-atlas-snapshot.json",
 );
-
-type SnapshotWriteResult = {
-	payload: LlmStatsPayload;
-	storage: "cloudflare_d1";
-	database_id: string;
-	run_id: number;
-};
 
 type DisplayRefreshState = {
 	refreshInFlight: Promise<LlmStatsPayload | null> | null;
@@ -125,9 +112,7 @@ function startDisplayRefresh(
 ): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
-		refreshMode === "stored"
-			? refreshStoredSnapshot().then((snapshot) => snapshot.payload)
-			: refreshRequestPayload()
+		refreshMode === "stored" ? readD1Snapshot() : refreshRequestPayload()
 	)
 		.then((payload) => {
 			cacheDisplayPayload(payload);
@@ -160,35 +145,6 @@ async function refreshDisplaySnapshotIfStale(
 		return (await refreshPromise) ?? payload;
 	}
 	return (await refreshPromise) ?? payload;
-}
-
-export async function refreshStoredSnapshot(): Promise<SnapshotWriteResult> {
-	if (!runtimeSnapshotStoreConfigured()) {
-		throw new Error(
-			`Cloudflare D1 is not configured for runtime snapshots. Missing ${runtimeSnapshotStoreMissingEnvironment().join(", ")}.`,
-		);
-	}
-	const databasePath = runtimeDatabasePath() ?? DEFAULT_DATABASE_PATH;
-	const [refreshedPayload, previousPayload] = await Promise.all([
-		refreshModelAtlasPayload(databasePath),
-		readD1Snapshot().catch(() => null),
-	]);
-	const payload = preserveHighSignalSnapshotModels(
-		refreshedPayload,
-		previousPayload,
-		STAGE_CONFIG.snapshotPreservation,
-		STAGE_CONFIG.scoring,
-	);
-	if (payload !== refreshedPayload) {
-		rewriteFinalModelRows(databasePath, payload.models);
-	}
-	const published = await publishSqliteDatabaseToD1(databasePath);
-	return {
-		payload,
-		storage: "cloudflare_d1",
-		database_id: published.databaseId,
-		run_id: published.runId,
-	};
 }
 
 export async function refreshRequestPayload(): Promise<LlmStatsPayload> {
@@ -303,37 +259,6 @@ function getDisplayRefreshState(): DisplayRefreshState {
 
 function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
-}
-
-function rewriteFinalModelRows(
-	databasePath: string,
-	models: LlmStatsModel[],
-): void {
-	const db = new DatabaseSync(databasePath);
-	try {
-		const row = db
-			.prepare(
-				"SELECT id FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1",
-			)
-			.get() as { id?: number | bigint } | undefined;
-		const runId = Number(row?.id);
-		if (!Number.isFinite(runId)) {
-			throw new Error("No completed Model Atlas database run exists");
-		}
-		db.exec("BEGIN");
-		try {
-			db.prepare(
-				"DELETE FROM processed_models WHERE run_id = ? AND stage = 'final'",
-			).run(runId);
-			insertProcessedModelRows(db, runId, "final", models);
-			db.exec("COMMIT");
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	} finally {
-		db.close();
-	}
 }
 
 async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {

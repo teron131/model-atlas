@@ -9,7 +9,6 @@ import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type {
-	DeepSWELeaderboardRow,
 	DeepSWERawLeaderboardRow,
 	DeepSWESourceVersion,
 } from "../scrapers/deep-swe";

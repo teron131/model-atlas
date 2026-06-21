@@ -2,9 +2,10 @@
 
 export { buildModelAtlasDatabase } from "./build";
 export {
+	ensureModelAtlasD1Schema,
+	modelAtlasD1Config,
 	modelAtlasD1Configured,
 	modelAtlasD1MissingEnvironment,
-	publishSqliteDatabaseToD1,
 	readD1ModelAtlasPayload,
 } from "./d1";
 export { readModelAtlasDatabasePayload } from "./payload";
