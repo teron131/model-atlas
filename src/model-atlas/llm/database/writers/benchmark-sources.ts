@@ -6,41 +6,20 @@ import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { booleanValue } from "./shared";
 
-/** Insert DeepSWE raw rows and mark summarized default scoring rows. */
+/** Insert DeepSWE raw rows. */
 export function insertDeepSWERawRows(
 	db: DatabaseSync,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
-	const defaultScoreKeys = new Set(
-		snapshots.deepSWEModelScoreRows.map((row) =>
-			[
-				row.model,
-				row.pass_at_1,
-				row.n_tasks_attempted,
-				row.mean_cost_usd,
-				row.mean_duration_seconds,
-				row.mean_output_tokens,
-			].join("|"),
-		),
-	);
 	const statement = db.prepare(`
 		INSERT INTO deep_swe_raw_rows (
 			run_id, row_index, fetched_at_epoch_seconds, url, source_version, model,
 			reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
-			n_tasks_attempted, mean_cost_usd, mean_duration_seconds, mean_output_tokens,
-			is_best_model_score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			n_tasks_attempted, mean_cost_usd, mean_duration_seconds, mean_output_tokens
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.deepSWERawRows.entries()) {
-		const scoreKey = [
-			row.model,
-			row.pass_at_1,
-			row.n_tasks_attempted,
-			row.mean_cost_usd,
-			row.mean_duration_seconds,
-			row.mean_output_tokens,
-		].join("|");
 		statement.run(
 			runId,
 			index,
@@ -58,10 +37,6 @@ export function insertDeepSWERawRows(
 			row.mean_cost_usd,
 			row.mean_duration_seconds,
 			row.mean_output_tokens,
-			row.source_version === snapshots.deepSWESourceVersion &&
-				defaultScoreKeys.has(scoreKey)
-				? 1
-				: 0,
 		);
 	}
 }
