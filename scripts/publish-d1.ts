@@ -1,26 +1,14 @@
-/** Refresh the Model Atlas database and publish the completed run to Cloudflare D1. */
+/** Refresh the local Model Atlas database and publish it to Cloudflare D1. */
 
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 
-import { refreshStoredSnapshot } from "../app/api/llm-stats/snapshot-store";
+import { publishModelAtlasD1 } from "../src/model-atlas/llm/database/d1-publish";
 
 if (existsSync(".env")) {
 	loadEnvFile(".env");
 }
 
-const snapshot = await refreshStoredSnapshot();
+const result = await publishModelAtlasD1();
 
-console.log(
-	JSON.stringify(
-		{
-			storage: snapshot.storage,
-			database_id: snapshot.database_id,
-			run_id: snapshot.run_id,
-			model_count: snapshot.payload.models.length,
-			fetched_at_epoch_seconds: snapshot.payload.fetched_at_epoch_seconds,
-		},
-		null,
-		2,
-	),
-);
+console.log(JSON.stringify(result, null, 2));

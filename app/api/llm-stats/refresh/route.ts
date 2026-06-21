@@ -1,5 +1,5 @@
 import {
-	refreshStoredSnapshot,
+	readD1Snapshot,
 	runtimeSnapshotStoreConfigured,
 	runtimeSnapshotStoreMissingEnvironment,
 } from "../snapshot-store";
@@ -42,15 +42,28 @@ async function refreshSnapshot(request: Request) {
 		);
 	}
 
-	const snapshot = await refreshStoredSnapshot();
+	const payload = await readD1Snapshot();
+	if (payload == null) {
+		return Response.json(
+			{
+				status: "error",
+				error: "Cloudflare D1 has no completed Model Atlas snapshot.",
+			},
+			{
+				status: 404,
+				headers: {
+					"Cache-Control": "no-store",
+				},
+			},
+		);
+	}
 	return Response.json(
 		{
 			status: "ok",
-			storage: snapshot.storage,
-			model_count: snapshot.payload.models.length,
-			fetched_at_epoch_seconds: snapshot.payload.fetched_at_epoch_seconds,
-			database_id: snapshot.database_id,
-			run_id: snapshot.run_id,
+			storage: "cloudflare_d1",
+			model_count: payload.models.length,
+			fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+			database_id: process.env.D1_DATABASE_ID,
 		},
 		{
 			headers: {

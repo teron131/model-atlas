@@ -60,12 +60,9 @@ assert.equal(
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
 const originalVercel = process.env.VERCEL;
-const originalD1AccountId = process.env.MODEL_ATLAS_D1_ACCOUNT_ID;
-const originalCloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-const originalD1DatabaseId = process.env.MODEL_ATLAS_D1_DATABASE_ID;
-const originalCloudflareD1DatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-const originalD1ApiToken = process.env.MODEL_ATLAS_D1_API_TOKEN;
-const originalCloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN;
+const originalD1AccountId = process.env.D1_ACCOUNT_ID;
+const originalD1DatabaseId = process.env.D1_DATABASE_ID;
+const originalD1ApiToken = process.env.D1_API_TOKEN;
 try {
 	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	delete process.env.VERCEL;
@@ -102,12 +99,9 @@ try {
 		resolve(tmpdir(), "model-atlas/database.sqlite"),
 		"Vercel display reads should use the writable temp database path",
 	);
-	delete process.env.MODEL_ATLAS_D1_ACCOUNT_ID;
-	delete process.env.CLOUDFLARE_ACCOUNT_ID;
-	delete process.env.MODEL_ATLAS_D1_DATABASE_ID;
-	delete process.env.CLOUDFLARE_D1_DATABASE_ID;
-	delete process.env.MODEL_ATLAS_D1_API_TOKEN;
-	delete process.env.CLOUDFLARE_API_TOKEN;
+	delete process.env.D1_ACCOUNT_ID;
+	delete process.env.D1_DATABASE_ID;
+	delete process.env.D1_API_TOKEN;
 	assert.equal(
 		runtimeSnapshotStoreConfigured(),
 		false,
@@ -115,20 +109,16 @@ try {
 	);
 	assert.deepEqual(
 		runtimeSnapshotStoreMissingEnvironment(),
-		[
-			"MODEL_ATLAS_D1_ACCOUNT_ID or CLOUDFLARE_ACCOUNT_ID",
-			"MODEL_ATLAS_D1_DATABASE_ID or CLOUDFLARE_D1_DATABASE_ID",
-			"MODEL_ATLAS_D1_API_TOKEN or CLOUDFLARE_API_TOKEN",
-		],
-		"missing D1 environment should report the accepted variable names",
+		["D1_ACCOUNT_ID", "D1_DATABASE_ID", "D1_API_TOKEN"],
+		"missing D1 environment should report the canonical variable names",
 	);
-	process.env.CLOUDFLARE_ACCOUNT_ID = "account";
-	process.env.CLOUDFLARE_D1_DATABASE_ID = "database";
-	process.env.CLOUDFLARE_API_TOKEN = "token";
+	process.env.D1_ACCOUNT_ID = "account";
+	process.env.D1_DATABASE_ID = "database";
+	process.env.D1_API_TOKEN = "token";
 	assert.equal(
 		runtimeSnapshotStoreConfigured(),
 		true,
-		"runtime D1 storage should accept standard Cloudflare variable names",
+		"runtime D1 storage should accept canonical D1 variable names",
 	);
 } finally {
 	if (originalDatabasePath == null) {
@@ -141,12 +131,9 @@ try {
 	} else {
 		process.env.VERCEL = originalVercel;
 	}
-	restoreEnv("MODEL_ATLAS_D1_ACCOUNT_ID", originalD1AccountId);
-	restoreEnv("CLOUDFLARE_ACCOUNT_ID", originalCloudflareAccountId);
-	restoreEnv("MODEL_ATLAS_D1_DATABASE_ID", originalD1DatabaseId);
-	restoreEnv("CLOUDFLARE_D1_DATABASE_ID", originalCloudflareD1DatabaseId);
-	restoreEnv("MODEL_ATLAS_D1_API_TOKEN", originalD1ApiToken);
-	restoreEnv("CLOUDFLARE_API_TOKEN", originalCloudflareApiToken);
+	restoreEnv("D1_ACCOUNT_ID", originalD1AccountId);
+	restoreEnv("D1_DATABASE_ID", originalD1DatabaseId);
+	restoreEnv("D1_API_TOKEN", originalD1ApiToken);
 }
 
 function mode(
