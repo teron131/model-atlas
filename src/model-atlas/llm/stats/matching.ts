@@ -9,7 +9,7 @@ import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
 } from "../scrapers/agents-last-exam";
-import { findAutomationBenchScore } from "../scrapers/automation-bench";
+import { findAutomationBenchScoreRow } from "../scrapers/automation-bench";
 import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../scrapers/browsecomp";
 import { findCursorBenchScore } from "../scrapers/cursorbench";
@@ -28,6 +28,7 @@ import {
 
 import type {
 	ArtificialAnalysisModel,
+	LlmStatsScoringSources,
 	LlmStatsSourceData,
 	MatcherConfig,
 } from "./types";
@@ -178,7 +179,7 @@ function buildMatchedRow(
 		modelNameCandidates,
 		lookups.agentsLastExamScoreByModelName,
 	);
-	const scoringSources = {
+	const scoringSources: NonNullable<LlmStatsScoringSources> = {
 		...(deepSWEScore == null ? {} : { deep_swe: deepSWEScore }),
 		...(agentsLastExamScore == null
 			? {}
@@ -191,12 +192,13 @@ function buildMatchedRow(
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
 	}
-	const automationBenchScore = findAutomationBenchScore(
+	const automationBenchScore = findAutomationBenchScoreRow(
 		modelNameCandidates,
 		lookups.automationBenchScoreByModelName,
 	);
 	if (automationBenchScore != null) {
-		evaluations.automation_bench = automationBenchScore;
+		scoringSources.automation_bench = automationBenchScore;
+		evaluations.automation_bench = automationBenchScore.adjusted_score;
 	}
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,

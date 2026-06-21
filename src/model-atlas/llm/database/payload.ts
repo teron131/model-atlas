@@ -178,6 +178,8 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
 	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
 	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
+	const automationBench: Record<string, number> = {};
+	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
 	const agentsLastExam: Record<string, number> = {};
 	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
 	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
@@ -197,6 +199,9 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	}
 	if (hasFields(deepSWE)) {
 		taskMetrics.deep_swe = deepSWE;
+	}
+	if (hasFields(automationBench)) {
+		taskMetrics.automation_bench = automationBench;
 	}
 	if (hasFields(agentsLastExam)) {
 		taskMetrics.agents_last_exam = agentsLastExam;
@@ -434,11 +439,14 @@ function deepSWERowsFromRows(rows: DbRow[]): DeepSWELeaderboardRow[] {
 		const record = asRecord(row);
 		const model = stringValue(record.model);
 		const passAt1 = asFiniteNumber(record.pass_at_1);
+		const tasksAttempted = asFiniteNumber(record.n_tasks_attempted);
 		const meanCostUsd = asFiniteNumber(record.mean_cost_usd);
 		const meanDurationSeconds = asFiniteNumber(record.mean_duration_seconds);
 		const meanOutputTokens = asFiniteNumber(record.mean_output_tokens);
 		return model != null &&
 			passAt1 != null &&
+			tasksAttempted != null &&
+			tasksAttempted > 0 &&
 			meanCostUsd != null &&
 			meanDurationSeconds != null &&
 			meanOutputTokens != null
@@ -451,6 +459,7 @@ function deepSWERowsFromRows(rows: DbRow[]): DeepSWELeaderboardRow[] {
 						ci_lo: asFiniteNumber(record.ci_lo),
 						ci_hi: asFiniteNumber(record.ci_hi),
 						ci_half: asFiniteNumber(record.ci_half),
+						n_tasks_attempted: tasksAttempted,
 						mean_cost_usd: meanCostUsd,
 						mean_duration_seconds: meanDurationSeconds,
 						mean_output_tokens: meanOutputTokens,

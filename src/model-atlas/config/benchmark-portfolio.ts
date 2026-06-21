@@ -1,7 +1,32 @@
 import type {
 	BenchmarkGroup,
 	BenchmarkPortfolioEntry,
+	BenchmarkResourcePolicy,
 } from "../llm/stats/types";
+
+const ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY = {
+	source: "artificial_analysis",
+	unit: "per_task",
+	tokenMeasure: "tokens",
+} as const satisfies BenchmarkResourcePolicy;
+
+const BENCHMARK_PER_TASK_RESOURCE_POLICY = {
+	source: "benchmark",
+	unit: "per_task",
+	tokenMeasure: "tokens",
+} as const satisfies BenchmarkResourcePolicy;
+
+const BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY = {
+	source: "benchmark",
+	unit: "per_task",
+	tokenMeasure: "output_tokens",
+} as const satisfies BenchmarkResourcePolicy;
+
+const BENCHMARK_TOTAL_RESOURCE_POLICY = {
+	source: "benchmark",
+	unit: "total",
+	tokenMeasure: "tokens",
+} as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_PORTFOLIO = {
 	omniscience_accuracy: {
@@ -48,16 +73,19 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	critpt: {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	gdpval_normalized: {
 		group: "frontier",
 		intelligencePortion: 0.6,
 		agenticPortion: 0.4,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	riemann_bench: {
 		group: "frontier",
@@ -68,21 +96,25 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	tau_banking: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	agents_last_exam: {
 		group: "frontier",
 		intelligencePortion: 0.2,
 		agenticPortion: 0.8,
+		resourcePolicy: BENCHMARK_TOTAL_RESOURCE_POLICY,
 	},
 	automation_bench: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
 	},
 	blueprint_bench_2: {
 		group: "frontier",
@@ -98,6 +130,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
+		resourcePolicy: BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 } as const satisfies Readonly<Record<string, BenchmarkPortfolioEntry>>;
 
@@ -153,6 +186,13 @@ export function resourceComponentWeightsFor({
 
 export const benchmarkPortfolioEntry = (key: string) =>
 	BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
+
+export const benchmarkResourcePolicy = (
+	key: string,
+	portfolio: Readonly<
+		Record<string, BenchmarkPortfolioEntry>
+	> = BENCHMARK_PORTFOLIO,
+) => portfolio[key]?.resourcePolicy ?? null;
 
 export const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
 	BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);

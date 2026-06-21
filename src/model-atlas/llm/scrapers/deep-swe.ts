@@ -2,16 +2,24 @@
  * DeepSWE leaderboard scraper helpers.
  *
  * JSON source: https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json
+ * Fallback: https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json
  */
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
 
-const DEFAULT_LEADERBOARD_URL =
+export const DEEP_SWE_V1_1_LEADERBOARD_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
+export const DEEP_SWE_V1_LEADERBOARD_URL =
+	"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json";
+const DEFAULT_LEADERBOARD_URLS = [
+	DEEP_SWE_V1_1_LEADERBOARD_URL,
+	DEEP_SWE_V1_LEADERBOARD_URL,
+] as const;
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 export type DeepSWEScraperOptions = {
 	url?: string;
+	urls?: readonly string[];
 	timeoutMs?: number;
 };
 
@@ -23,6 +31,7 @@ export type DeepSWELeaderboardRow = {
 	ci_lo: number | null;
 	ci_hi: number | null;
 	ci_half: number | null;
+	n_tasks_attempted: number;
 	mean_cost_usd: number;
 	mean_duration_seconds: number;
 	mean_output_tokens: number;
@@ -44,11 +53,14 @@ function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
 		return null;
 	}
 	const passAt1 = asFiniteNumber(row.pass_at_1);
+	const tasksAttempted = asFiniteNumber(row.n_tasks_attempted);
 	const meanCostUsd = asFiniteNumber(row.mean_cost_usd);
 	const meanDurationSeconds = asFiniteNumber(row.mean_duration_seconds);
 	const meanOutputTokens = asFiniteNumber(row.mean_output_tokens);
 	if (
 		passAt1 == null ||
+		tasksAttempted == null ||
+		tasksAttempted <= 0 ||
 		meanCostUsd == null ||
 		meanDurationSeconds == null ||
 		meanOutputTokens == null
@@ -70,6 +82,7 @@ function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
 		ci_lo: asFiniteNumber(row.ci_lo),
 		ci_hi: asFiniteNumber(row.ci_hi),
 		ci_half: asFiniteNumber(row.ci_half),
+		n_tasks_attempted: tasksAttempted,
 		mean_cost_usd: meanCostUsd,
 		mean_duration_seconds: meanDurationSeconds,
 		mean_output_tokens: meanOutputTokens,
@@ -150,29 +163,33 @@ export function findDeepSWEModelScore(
 export async function getDeepSWERawLeaderboardStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {
-	try {
-		const url = options.url ?? DEFAULT_LEADERBOARD_URL;
-		const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-		const response = await fetchWithTimeout(url, {}, timeoutMs);
-		if (!response.ok) {
-			throw new Error(`DeepSWE scrape failed: ${response.status}`);
-		}
-		const payload = asRecord(await response.json());
-		const rows = Array.isArray(payload.rows)
-			? payload.rows
-					.map((row) => asDeepSWELeaderboardRow(row))
-					.filter((row): row is DeepSWELeaderboardRow => row != null)
-			: [];
-		return {
-			fetched_at_epoch_seconds: nowEpochSeconds(),
-			data: rows,
-		};
-	} catch {
-		return {
-			fetched_at_epoch_seconds: null,
-			data: [],
-		};
+	const urls =
+		options.url != null
+			? [options.url]
+			: (options.urls ?? DEFAULT_LEADERBOARD_URLS);
+	for (const url of urls) {
+		try {
+			const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+			const response = await fetchWithTimeout(url, {}, timeoutMs);
+			if (!response.ok) {
+				continue;
+			}
+			const payload = asRecord(await response.json());
+			const rows = Array.isArray(payload.rows)
+				? payload.rows
+						.map((row) => asDeepSWELeaderboardRow(row))
+						.filter((row): row is DeepSWELeaderboardRow => row != null)
+				: [];
+			return {
+				fetched_at_epoch_seconds: nowEpochSeconds(),
+				data: rows,
+			};
+		} catch {}
 	}
+	return {
+		fetched_at_epoch_seconds: null,
+		data: [],
+	};
 }
 
 /** Fetch DeepSWE default model score rows from the public leaderboard artifact. */

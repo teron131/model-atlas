@@ -65,6 +65,7 @@ fullPayload.deep_swe = {
 			ci_lo: null,
 			ci_hi: null,
 			ci_half: null,
+			n_tasks_attempted: 113,
 			mean_cost_usd: 3,
 			mean_duration_seconds: 4,
 			mean_output_tokens: 5,

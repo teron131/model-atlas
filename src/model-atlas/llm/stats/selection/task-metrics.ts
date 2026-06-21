@@ -34,6 +34,10 @@ export function buildTaskMetrics(
 	if (agentsLastExam != null) {
 		taskMetrics.agents_last_exam = agentsLastExam;
 	}
+	const automationBench = buildAutomationBenchTaskMetrics(scoringSources);
+	if (automationBench != null) {
+		taskMetrics.automation_bench = automationBench;
+	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
@@ -63,7 +67,7 @@ function buildArtificialAnalysisTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-/** Expose DeepSWE's own per-task attempt telemetry beside the AA normalized values. */
+/** Expose DeepSWE resources normalized by its scraped task count. */
 function buildDeepSWETaskMetrics(
 	scoringSources: LlmStatsScoringSources,
 ): TaskMetricValues | null {
@@ -71,10 +75,14 @@ function buildDeepSWETaskMetrics(
 	if (deepSWE == null) {
 		return null;
 	}
+	const taskCount = asFiniteNumber(deepSWE.n_tasks_attempted);
+	if (taskCount == null || taskCount <= 0) {
+		return null;
+	}
 	return {
-		cost: deepSWE.mean_cost_usd,
-		seconds: deepSWE.mean_duration_seconds,
-		output_tokens: deepSWE.mean_output_tokens,
+		cost: deepSWE.mean_cost_usd / taskCount,
+		seconds: deepSWE.mean_duration_seconds / taskCount,
+		output_tokens: deepSWE.mean_output_tokens / taskCount,
 	};
 }
 
@@ -108,6 +116,19 @@ function buildAgentsLastExamTaskMetrics(
 		taskMetrics.cost = taskCost;
 	}
 	return taskMetrics;
+}
+
+/** Expose AutomationBench's reported cost-per-task beside its score. */
+function buildAutomationBenchTaskMetrics(
+	scoringSources: LlmStatsScoringSources,
+): TaskMetricValues | null {
+	const automationBench = scoringSources?.automation_bench;
+	if (automationBench == null) {
+		return null;
+	}
+	return {
+		cost: automationBench.cost_per_task_usd,
+	};
 }
 
 /** Estimate task cost from per-million input/output token prices and observed tokens. */

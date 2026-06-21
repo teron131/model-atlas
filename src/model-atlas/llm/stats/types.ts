@@ -166,6 +166,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 export type LlmStatsScoringSources = {
 	deep_swe?: DeepSWEModelScoreRow | null;
 	agents_last_exam?: AgentsLastExamModelScoreRow | null;
+	automation_bench?: AutomationBenchModelScoreRow | null;
 } | null;
 
 export type LlmStatsNullableScores = {
@@ -245,10 +246,21 @@ export type QualityScoreWeights = {
 
 export type BenchmarkGroup = "baseline" | "frontier";
 
+export type BenchmarkResourceSource = "artificial_analysis" | "benchmark";
+export type BenchmarkResourceUnit = "per_task" | "total";
+export type BenchmarkResourceTokenMeasure = "tokens" | "output_tokens";
+
+export type BenchmarkResourcePolicy = {
+	source: BenchmarkResourceSource;
+	unit: BenchmarkResourceUnit;
+	tokenMeasure: BenchmarkResourceTokenMeasure;
+};
+
 export type BenchmarkPortfolioEntry = {
 	group: BenchmarkGroup;
 	intelligencePortion: number;
 	agenticPortion: number;
+	resourcePolicy?: BenchmarkResourcePolicy;
 };
 
 export type BenchmarkPortfolio = Readonly<

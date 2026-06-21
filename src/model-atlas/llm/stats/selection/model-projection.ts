@@ -317,22 +317,53 @@ function buildIntelligenceIndexCost(
 function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 	const deepSWE = buildDeepSWEScoringSource(model);
 	const agentsLastExam = buildAgentsLastExamScoringSource(model);
+	const automationBench = buildAutomationBenchScoringSource(model);
 	const scoringSources = {
 		...(deepSWE == null ? {} : { deep_swe: deepSWE }),
 		...(agentsLastExam == null ? {} : { agents_last_exam: agentsLastExam }),
+		...(automationBench == null ? {} : { automation_bench: automationBench }),
 	};
 	return hasFields(scoringSources) ? scoringSources : null;
+}
+
+function buildAutomationBenchScoringSource(model: JsonObject) {
+	const source = asRecord(asRecord(model.scoring_sources).automation_bench);
+	const costPerTaskUsd = asFiniteNumber(source.cost_per_task_usd);
+	const adjustedScore = asFiniteNumber(source.adjusted_score);
+	const score = asFiniteNumber(source.score);
+	if (costPerTaskUsd == null || adjustedScore == null || score == null) {
+		return null;
+	}
+	return {
+		model: typeof source.model === "string" ? source.model : "",
+		reasoning_effort:
+			typeof source.reasoning_effort === "string"
+				? source.reasoning_effort
+				: null,
+		score,
+		cost_per_task_usd: costPerTaskUsd,
+		domain_lead_scores: Array.isArray(source.domain_lead_scores)
+			? source.domain_lead_scores
+					.map(asFiniteNumber)
+					.filter((value) => value != null)
+			: [],
+		domain_lead_score_median:
+			asFiniteNumber(source.domain_lead_score_median) ?? null,
+		adjusted_score: adjustedScore,
+	};
 }
 
 function buildDeepSWEScoringSource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).deep_swe);
 	const passAt1 = asFiniteNumber(source.pass_at_1);
+	const tasksAttempted = asFiniteNumber(source.n_tasks_attempted);
 	const meanCostUsd = asFiniteNumber(source.mean_cost_usd);
 	const meanDurationSeconds = asFiniteNumber(source.mean_duration_seconds);
 	const meanOutputTokens = asFiniteNumber(source.mean_output_tokens);
 	if (
 		typeof source.model !== "string" ||
 		passAt1 == null ||
+		tasksAttempted == null ||
 		meanCostUsd == null ||
 		meanDurationSeconds == null ||
 		meanOutputTokens == null
@@ -350,6 +381,7 @@ function buildDeepSWEScoringSource(model: JsonObject) {
 		ci_lo: asFiniteNumber(source.ci_lo),
 		ci_hi: asFiniteNumber(source.ci_hi),
 		ci_half: asFiniteNumber(source.ci_half),
+		n_tasks_attempted: tasksAttempted,
 		mean_cost_usd: meanCostUsd,
 		mean_duration_seconds: meanDurationSeconds,
 		mean_output_tokens: meanOutputTokens,
