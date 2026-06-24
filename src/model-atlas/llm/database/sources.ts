@@ -249,6 +249,87 @@ type CursorBenchSnapshot = {
 	fetchedAt: { cursorBench: number | null };
 };
 
+type RawRowsCache<Row> = {
+	rows: Row[];
+	fetchedAt: number | null;
+};
+
+type ModelScoreRowsPayload<Row> = {
+	fetched_at_epoch_seconds: number | null;
+	data: Row[];
+};
+
+type ModelScoreSnapshotConfig<Row> = {
+	source: RawSourceName;
+	cached: RawRowsCache<Row> | null | undefined;
+	status: RawSourceCacheStatus;
+	options: DatabaseBuildOptions;
+	previousMissingSince: ReadonlyMap<string, number>;
+	nowEpochSeconds: number;
+	fetchRows: () => Promise<ModelScoreRowsPayload<Row>>;
+	rowKey: (row: Row) => string | null;
+	rowLabel: (row: Row) => string | null;
+};
+
+type ModelScoreSnapshotResult<Row> = {
+	rows: Row[];
+	sourceRowStates: SourceRowState[];
+	fetchedAt: number | null;
+};
+
+async function modelScoreSnapshot<Row>(
+	config: ModelScoreSnapshotConfig<Row>,
+): Promise<ModelScoreSnapshotResult<Row>> {
+	if (
+		config.status.cache_hit &&
+		config.cached != null &&
+		config.options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: config.source,
+			cachedRows: config.cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options: config.options,
+			rowKey: config.rowKey,
+			rowLabel: config.rowLabel,
+			previousMissingSince: config.previousMissingSince,
+			nowEpochSeconds: config.nowEpochSeconds,
+		});
+		return {
+			rows: cachedSnapshot.rows,
+			sourceRowStates: cachedSnapshot.states,
+			fetchedAt: config.cached.fetchedAt,
+		};
+	}
+
+	const fetched = await config.fetchRows();
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: config.source,
+		cachedRows: config.cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options: config.options,
+		rowKey: config.rowKey,
+		rowLabel: config.rowLabel,
+		previousMissingSince: config.previousMissingSince,
+		nowEpochSeconds: config.nowEpochSeconds,
+	});
+	return {
+		rows: snapshot.rows,
+		sourceRowStates: snapshot.states,
+		fetchedAt: snapshotFetchedAt(
+			hasUsableFetchedRows,
+			config.cached?.fetchedAt,
+			fetched.fetched_at_epoch_seconds,
+		),
+	};
+}
+
 function preferredDeepSWESourceVersion(
 	rows: SourceSnapshots["deepSWERawRows"],
 ) {
@@ -762,55 +843,21 @@ async function browseCompSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<BrowseCompSnapshot> {
-	const cached = readBrowseCompRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "browsecomp",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) => sourceKey(row.provider, row.model),
-			rowLabel: (row) => row.model,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			browseCompModelScoreRows: cachedSnapshot.rows,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { browseComp: cached.fetchedAt },
-		};
-	}
-	const fetched = await getBrowseCompModelScoreStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
+	const snapshot = await modelScoreSnapshot({
 		source: "browsecomp",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		cached: readBrowseCompRawCache(db),
+		status,
 		options,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
+		fetchRows: getBrowseCompModelScoreStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
 	});
 	return {
 		browseCompModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			browseComp: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { browseComp: snapshot.fetchedAt },
 	};
 }
 
@@ -821,55 +868,21 @@ async function blueprintBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<BlueprintBenchSnapshot> {
-	const cached = readBlueprintBenchRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "blueprint_bench_2",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) => sourceKey(row.model),
-			rowLabel: (row) => row.model,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			blueprintBenchModelScoreRows: cachedSnapshot.rows,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { blueprintBench: cached.fetchedAt },
-		};
-	}
-	const fetched = await getBlueprintBenchModelScoreStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
+	const snapshot = await modelScoreSnapshot({
 		source: "blueprint_bench_2",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		cached: readBlueprintBenchRawCache(db),
+		status,
 		options,
-		rowKey: (row) => sourceKey(row.model),
-		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
+		fetchRows: getBlueprintBenchModelScoreStats,
+		rowKey: (row) => sourceKey(row.model),
+		rowLabel: (row) => row.model,
 	});
 	return {
 		blueprintBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			blueprintBench: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { blueprintBench: snapshot.fetchedAt },
 	};
 }
 
@@ -880,55 +893,21 @@ async function gdpPdfSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<GdpPdfSnapshot> {
-	const cached = readGdpPdfRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "gdp_pdf",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) => sourceKey(row.provider, row.model),
-			rowLabel: (row) => row.model,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			gdpPdfModelScoreRows: cachedSnapshot.rows,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { gdpPdf: cached.fetchedAt },
-		};
-	}
-	const fetched = await getGdpPdfModelScoreStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
+	const snapshot = await modelScoreSnapshot({
 		source: "gdp_pdf",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		cached: readGdpPdfRawCache(db),
+		status,
 		options,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
+		fetchRows: getGdpPdfModelScoreStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
 	});
 	return {
 		gdpPdfModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			gdpPdf: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { gdpPdf: snapshot.fetchedAt },
 	};
 }
 
@@ -939,55 +918,21 @@ async function riemannBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<RiemannBenchSnapshot> {
-	const cached = readRiemannBenchRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "riemann_bench",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) => sourceKey(row.provider, row.model),
-			rowLabel: (row) => row.model,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			riemannBenchModelScoreRows: cachedSnapshot.rows,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { riemannBench: cached.fetchedAt },
-		};
-	}
-	const fetched = await getRiemannBenchModelScoreStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
+	const snapshot = await modelScoreSnapshot({
 		source: "riemann_bench",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		cached: readRiemannBenchRawCache(db),
+		status,
 		options,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
+		fetchRows: getRiemannBenchModelScoreStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
 	});
 	return {
 		riemannBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			riemannBench: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { riemannBench: snapshot.fetchedAt },
 	};
 }
 
@@ -998,55 +943,21 @@ async function toolathlonSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<ToolathlonSnapshot> {
-	const cached = readToolathlonRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "toolathlon",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) => sourceKey(row.provider, row.model),
-			rowLabel: (row) => row.model,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			toolathlonModelScoreRows: cachedSnapshot.rows,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { toolathlon: cached.fetchedAt },
-		};
-	}
-	const fetched = await getToolathlonModelScoreStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
+	const snapshot = await modelScoreSnapshot({
 		source: "toolathlon",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		cached: readToolathlonRawCache(db),
+		status,
 		options,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
+		fetchRows: getToolathlonModelScoreStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
 	});
 	return {
 		toolathlonModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			toolathlon: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { toolathlon: snapshot.fetchedAt },
 	};
 }
 
@@ -1057,56 +968,21 @@ async function cursorBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<CursorBenchSnapshot> {
-	const cached = readCursorBenchRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "cursorbench",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) =>
-				sourceKey(row.model, row.base_model, row.reasoning_effort),
-			rowLabel: (row) => row.model,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			cursorBenchModelScoreRows: cachedSnapshot.rows,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { cursorBench: cached.fetchedAt },
-		};
-	}
-	const fetched = await getCursorBenchModelScoreStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
+	const snapshot = await modelScoreSnapshot({
 		source: "cursorbench",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		cached: readCursorBenchRawCache(db),
+		status,
 		options,
-		rowKey: (row) => sourceKey(row.model, row.base_model, row.reasoning_effort),
-		rowLabel: (row) => row.model,
 		previousMissingSince,
 		nowEpochSeconds,
+		fetchRows: getCursorBenchModelScoreStats,
+		rowKey: (row) => sourceKey(row.model, row.base_model, row.reasoning_effort),
+		rowLabel: (row) => row.model,
 	});
 	return {
 		cursorBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			cursorBench: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { cursorBench: snapshot.fetchedAt },
 	};
 }
 
