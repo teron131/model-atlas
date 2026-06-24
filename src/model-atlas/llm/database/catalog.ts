@@ -1,23 +1,11 @@
-import {
-	agentsLastExamBenchmarkScore,
-	findAgentsLastExamModelScore,
-} from "../scrapers/agents-last-exam";
-import { findAutomationBenchScoreRow } from "../scrapers/automation-bench";
-import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
-import { findBrowseCompScore } from "../scrapers/browsecomp";
-import { findCursorBenchScore } from "../scrapers/cursorbench";
-import { findDeepSWEModelScore } from "../scrapers/deep-swe";
-import { findGdpPdfScore } from "../scrapers/gdp-pdf";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
-import { findRiemannBenchScore } from "../scrapers/riemann-bench";
-import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
-import { findToolathlonScore } from "../scrapers/toolathlon";
 import {
 	asRecord,
 	modelSlugFromModelId,
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../shared";
+import { benchmarkEnrichment } from "../stats/benchmark-enrichment";
 import type { LlmStatsSourceData } from "../stats/types";
 
 function canonicalModelId(
@@ -160,78 +148,7 @@ function modelsDevCatalogRow(
 		canonicalId,
 		modelSlugFromModelId(canonicalId),
 	];
-	const evaluations: Record<string, unknown> = {};
-	const deepSWEScore = findDeepSWEModelScore(
-		modelNameCandidates,
-		sourceData.deepSWEScoreByModelName,
-	);
-	if (deepSWEScore != null) {
-		evaluations.deep_swe = deepSWEScore.pass_at_1;
-	}
-	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
-		modelNameCandidates,
-		sourceData.terminalBenchAccuracyByModelName,
-	);
-	if (terminalBenchAccuracy != null) {
-		evaluations.terminal_bench_2 = terminalBenchAccuracy;
-	}
-	const agentsLastExamScore = findAgentsLastExamModelScore(
-		modelNameCandidates,
-		sourceData.agentsLastExamScoreByModelName,
-	);
-	if (agentsLastExamScore != null) {
-		evaluations.agents_last_exam =
-			agentsLastExamBenchmarkScore(agentsLastExamScore);
-	}
-	const automationBenchScore = findAutomationBenchScoreRow(
-		modelNameCandidates,
-		sourceData.automationBenchScoreByModelName,
-	);
-	if (automationBenchScore != null) {
-		evaluations.automation_bench = automationBenchScore.adjusted_score;
-	}
-	const blueprintBenchScore = findBlueprintBenchScore(
-		modelNameCandidates,
-		sourceData.blueprintBenchScoreByModelName,
-	);
-	if (blueprintBenchScore != null) {
-		evaluations.blueprint_bench_2 = blueprintBenchScore;
-	}
-	const gdpPdfScore = findGdpPdfScore(
-		modelNameCandidates,
-		sourceData.gdpPdfScoreByModelName,
-	);
-	if (gdpPdfScore != null) {
-		evaluations.gdp_pdf = gdpPdfScore;
-	}
-	const riemannBenchScore = findRiemannBenchScore(
-		modelNameCandidates,
-		sourceData.riemannBenchScoreByModelName,
-	);
-	if (riemannBenchScore != null) {
-		evaluations.riemann_bench = riemannBenchScore;
-	}
-	const browseCompScore = findBrowseCompScore(
-		modelNameCandidates,
-		sourceData.browseCompScoreByModelName,
-	);
-	if (browseCompScore != null) {
-		evaluations.browsecomp = browseCompScore;
-	}
-	const toolathlonScore = findToolathlonScore(
-		modelNameCandidates,
-		sourceData.toolathlonScoreByModelName,
-	);
-	if (toolathlonScore != null) {
-		evaluations.toolathlon = toolathlonScore;
-	}
-	const cursorBenchScore = findCursorBenchScore(
-		modelNameCandidates,
-		sourceData.cursorBenchScoreByModelName,
-	);
-	if (cursorBenchScore != null) {
-		evaluations.cursorbench = cursorBenchScore;
-	}
+	const benchmarkFields = benchmarkEnrichment(modelNameCandidates, sourceData);
 	return {
 		id: canonicalId,
 		provider_id: modelsDevModel.provider_id,
@@ -243,22 +160,14 @@ function modelsDevCatalogRow(
 		aa_id: null,
 		family: matchedFamily,
 		...modelMetadata,
-		...(deepSWEScore == null &&
-		agentsLastExamScore == null &&
-		automationBenchScore == null
+		...(Object.keys(benchmarkFields.scoringSources).length === 0
 			? {}
 			: {
-					scoring_sources: {
-						...(deepSWEScore == null ? {} : { deep_swe: deepSWEScore }),
-						...(agentsLastExamScore == null
-							? {}
-							: { agents_last_exam: agentsLastExamScore }),
-						...(automationBenchScore == null
-							? {}
-							: { automation_bench: automationBenchScore }),
-					},
+					scoring_sources: benchmarkFields.scoringSources,
 				}),
-		...(Object.keys(evaluations).length === 0 ? {} : { evaluations }),
+		...(Object.keys(benchmarkFields.evaluations).length === 0
+			? {}
+			: { evaluations: benchmarkFields.evaluations }),
 	};
 }
 
