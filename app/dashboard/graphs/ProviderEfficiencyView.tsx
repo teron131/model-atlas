@@ -14,23 +14,22 @@ import {
 	providerPaletteColor,
 } from "../shared/providerTheme";
 import { scoreAxisScale } from "./axisScale";
+import { EmptyChart, SummaryCard } from "./ChartComponents";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
 	DeepSWEPointLabel,
-	EmptyChart,
 	MedianCross,
 	PlotFrame,
 	plotBoundsFor,
-	SummaryCard,
 	stableSvgNumber,
 	stableSvgScale,
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./ChartComponents";
+} from "./chartPrimitives";
 import { linearBubbleRadius } from "./chartStats";
 import { finiteValue, fmtCompact } from "./format";
 import styles from "./graphs.module.css";
