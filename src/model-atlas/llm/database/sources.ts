@@ -249,6 +249,14 @@ type CursorBenchSnapshot = {
 	fetchedAt: { cursorBench: number | null };
 };
 
+type SnapshotSourceStatus = {
+	source: RawSourceName;
+	fetchedAt: number | null;
+	sourceInputCount: number;
+	sourceRowStates: SourceRowState[];
+	fetchedAtKey?: keyof SourceSnapshots["fetchedAt"];
+};
+
 type RawRowsCache<Row> = {
 	rows: Row[];
 	fetchedAt: number | null;
@@ -471,6 +479,51 @@ function updatedSourceCacheStatus(
 		last_fetch_epoch_seconds: lastFetchEpochSeconds,
 		source_input_count: sourceInputCount,
 	};
+}
+
+/** Apply fetched timestamps and row counts from each loaded source snapshot. */
+function updateSourceCacheStatuses(
+	sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
+	sourceStatuses: SnapshotSourceStatus[],
+): void {
+	for (const sourceStatus of sourceStatuses) {
+		sourceCache[sourceStatus.source] = updatedSourceCacheStatus(
+			sourceCache[sourceStatus.source],
+			sourceStatus.fetchedAt,
+			sourceStatus.sourceInputCount,
+		);
+	}
+}
+
+/** Merge per-source row lifecycle states in source processing order. */
+function sourceSnapshotRowStates(
+	sourceStatuses: SnapshotSourceStatus[],
+): SourceRowState[] {
+	return sourceStatuses.flatMap((sourceStatus) => sourceStatus.sourceRowStates);
+}
+
+/** Project source snapshot timestamps into the public fetchedAt shape. */
+function sourceSnapshotFetchedAt(
+	sourceStatuses: SnapshotSourceStatus[],
+): SourceSnapshots["fetchedAt"] {
+	const fetchedAt: SourceSnapshots["fetchedAt"] = {
+		artificialAnalysis: null,
+		deepSWE: null,
+		terminalBench: null,
+		agentsLastExam: null,
+		blueprintBench: null,
+		gdpPdf: null,
+		riemannBench: null,
+		browseComp: null,
+		toolathlon: null,
+		cursorBench: null,
+	};
+	for (const sourceStatus of sourceStatuses) {
+		if (sourceStatus.fetchedAtKey != null) {
+			fetchedAt[sourceStatus.fetchedAtKey] = sourceStatus.fetchedAt;
+		}
+	}
+	return fetchedAt;
 }
 
 function modelsDevSourceInputCount(
@@ -1092,61 +1145,85 @@ export async function loadSourceSnapshots(
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
 		buildAaRetainKeys(aa.aaSelectedRows),
 	);
-	sourceCache.artificial_analysis = updatedSourceCacheStatus(
-		sourceCache.artificial_analysis,
-		aa.fetchedAt.artificialAnalysis,
-		aa.aaRawRows.length,
-	);
-	sourceCache.models_dev = updatedSourceCacheStatus(
-		sourceCache.models_dev,
-		modelsDev.modelsDevFetchedAt,
-		modelsDevSourceInputCount(modelsDev.modelsDevPayload),
-	);
-	sourceCache.deep_swe = updatedSourceCacheStatus(
-		sourceCache.deep_swe,
-		deepSWE.fetchedAt.deepSWE,
-		deepSWE.deepSWERawRows.length,
-	);
-	sourceCache.terminal_bench = updatedSourceCacheStatus(
-		sourceCache.terminal_bench,
-		terminalBench.fetchedAt.terminalBench,
-		terminalBench.terminalBenchRows.length,
-	);
-	sourceCache.agents_last_exam = updatedSourceCacheStatus(
-		sourceCache.agents_last_exam,
-		agentsLastExam.fetchedAt.agentsLastExam,
-		agentsLastExam.agentsLastExamRows.length,
-	);
-	sourceCache.blueprint_bench_2 = updatedSourceCacheStatus(
-		sourceCache.blueprint_bench_2,
-		blueprintBench.fetchedAt.blueprintBench,
-		blueprintBench.blueprintBenchModelScoreRows.length,
-	);
-	sourceCache.gdp_pdf = updatedSourceCacheStatus(
-		sourceCache.gdp_pdf,
-		gdpPdf.fetchedAt.gdpPdf,
-		gdpPdf.gdpPdfModelScoreRows.length,
-	);
-	sourceCache.riemann_bench = updatedSourceCacheStatus(
-		sourceCache.riemann_bench,
-		riemannBench.fetchedAt.riemannBench,
-		riemannBench.riemannBenchModelScoreRows.length,
-	);
-	sourceCache.browsecomp = updatedSourceCacheStatus(
-		sourceCache.browsecomp,
-		browseComp.fetchedAt.browseComp,
-		browseComp.browseCompModelScoreRows.length,
-	);
-	sourceCache.toolathlon = updatedSourceCacheStatus(
-		sourceCache.toolathlon,
-		toolathlon.fetchedAt.toolathlon,
-		toolathlon.toolathlonModelScoreRows.length,
-	);
-	sourceCache.cursorbench = updatedSourceCacheStatus(
-		sourceCache.cursorbench,
-		cursorBench.fetchedAt.cursorBench,
-		cursorBench.cursorBenchModelScoreRows.length,
-	);
+	const sourceStatuses: SnapshotSourceStatus[] = [
+		{
+			source: "artificial_analysis",
+			fetchedAt: aa.fetchedAt.artificialAnalysis,
+			sourceInputCount: aa.aaRawRows.length,
+			sourceRowStates: aa.sourceRowStates,
+			fetchedAtKey: "artificialAnalysis",
+		},
+		{
+			source: "models_dev",
+			fetchedAt: modelsDev.modelsDevFetchedAt,
+			sourceInputCount: modelsDevSourceInputCount(modelsDev.modelsDevPayload),
+			sourceRowStates: modelsDev.sourceRowStates,
+		},
+		{
+			source: "deep_swe",
+			fetchedAt: deepSWE.fetchedAt.deepSWE,
+			sourceInputCount: deepSWE.deepSWERawRows.length,
+			sourceRowStates: deepSWE.sourceRowStates,
+			fetchedAtKey: "deepSWE",
+		},
+		{
+			source: "terminal_bench",
+			fetchedAt: terminalBench.fetchedAt.terminalBench,
+			sourceInputCount: terminalBench.terminalBenchRows.length,
+			sourceRowStates: terminalBench.sourceRowStates,
+			fetchedAtKey: "terminalBench",
+		},
+		{
+			source: "agents_last_exam",
+			fetchedAt: agentsLastExam.fetchedAt.agentsLastExam,
+			sourceInputCount: agentsLastExam.agentsLastExamRows.length,
+			sourceRowStates: agentsLastExam.sourceRowStates,
+			fetchedAtKey: "agentsLastExam",
+		},
+		{
+			source: "blueprint_bench_2",
+			fetchedAt: blueprintBench.fetchedAt.blueprintBench,
+			sourceInputCount: blueprintBench.blueprintBenchModelScoreRows.length,
+			sourceRowStates: blueprintBench.sourceRowStates,
+			fetchedAtKey: "blueprintBench",
+		},
+		{
+			source: "gdp_pdf",
+			fetchedAt: gdpPdf.fetchedAt.gdpPdf,
+			sourceInputCount: gdpPdf.gdpPdfModelScoreRows.length,
+			sourceRowStates: gdpPdf.sourceRowStates,
+			fetchedAtKey: "gdpPdf",
+		},
+		{
+			source: "riemann_bench",
+			fetchedAt: riemannBench.fetchedAt.riemannBench,
+			sourceInputCount: riemannBench.riemannBenchModelScoreRows.length,
+			sourceRowStates: riemannBench.sourceRowStates,
+			fetchedAtKey: "riemannBench",
+		},
+		{
+			source: "browsecomp",
+			fetchedAt: browseComp.fetchedAt.browseComp,
+			sourceInputCount: browseComp.browseCompModelScoreRows.length,
+			sourceRowStates: browseComp.sourceRowStates,
+			fetchedAtKey: "browseComp",
+		},
+		{
+			source: "toolathlon",
+			fetchedAt: toolathlon.fetchedAt.toolathlon,
+			sourceInputCount: toolathlon.toolathlonModelScoreRows.length,
+			sourceRowStates: toolathlon.sourceRowStates,
+			fetchedAtKey: "toolathlon",
+		},
+		{
+			source: "cursorbench",
+			fetchedAt: cursorBench.fetchedAt.cursorBench,
+			sourceInputCount: cursorBench.cursorBenchModelScoreRows.length,
+			sourceRowStates: cursorBench.sourceRowStates,
+			fetchedAtKey: "cursorBench",
+		},
+	];
+	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	return {
 		snapshots: {
 			aaRawRows: aa.aaRawRows,
@@ -1168,31 +1245,8 @@ export async function loadSourceSnapshots(
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
-			sourceRowStates: [
-				...aa.sourceRowStates,
-				...modelsDev.sourceRowStates,
-				...deepSWE.sourceRowStates,
-				...terminalBench.sourceRowStates,
-				...agentsLastExam.sourceRowStates,
-				...blueprintBench.sourceRowStates,
-				...gdpPdf.sourceRowStates,
-				...riemannBench.sourceRowStates,
-				...browseComp.sourceRowStates,
-				...toolathlon.sourceRowStates,
-				...cursorBench.sourceRowStates,
-			],
-			fetchedAt: {
-				artificialAnalysis: aa.fetchedAt.artificialAnalysis,
-				deepSWE: deepSWE.fetchedAt.deepSWE,
-				terminalBench: terminalBench.fetchedAt.terminalBench,
-				agentsLastExam: agentsLastExam.fetchedAt.agentsLastExam,
-				blueprintBench: blueprintBench.fetchedAt.blueprintBench,
-				gdpPdf: gdpPdf.fetchedAt.gdpPdf,
-				riemannBench: riemannBench.fetchedAt.riemannBench,
-				browseComp: browseComp.fetchedAt.browseComp,
-				toolathlon: toolathlon.fetchedAt.toolathlon,
-				cursorBench: cursorBench.fetchedAt.cursorBench,
-			},
+			sourceRowStates: sourceSnapshotRowStates(sourceStatuses),
+			fetchedAt: sourceSnapshotFetchedAt(sourceStatuses),
 		},
 		sourceCache,
 	};
