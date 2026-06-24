@@ -1,12 +1,14 @@
+/** Verify public JSON projections and the dashboard bootstrap projection. */
+
 import assert from "node:assert/strict";
 
 import {
 	benchmarksJsonPayload,
 	coreJsonPayload,
 	fullJsonPayload,
-	leanDashboardPayload,
 	scoreJsonPayload,
 } from "../app/api/llm-stats/public-json";
+import { leanDashboardPayload } from "../app/dashboard/payload";
 import {
 	minimalLlmStatsModel,
 	minimalLlmStatsPayload,

@@ -1,20 +1,9 @@
-import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/constants";
+/** Build stable public JSON views for the Model Atlas stats endpoints. */
+
 import type {
-	BenchmarkPortfolio,
-	LlmStatsColumnTooltips,
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../../src/model-atlas/llm/stats/types";
-
-const leanDashboardTooltipKeys = [
-	"overall",
-	"intelligence",
-	"agentic",
-	"speed",
-	"value",
-	"blend",
-	"context",
-] as const;
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
@@ -129,6 +118,7 @@ const coreColumnKeys = [
 	"e2e_latency_seconds_median",
 ] as const;
 
+/** Select the public JSON projection requested by an API view parameter. */
 export function publicJsonPayload(
 	payload: LlmStatsPayload,
 	view: string | null,
@@ -146,6 +136,7 @@ export function publicJsonPayload(
 	}
 }
 
+/** Return the compact table-oriented public JSON projection. */
 export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 	return {
 		schema: CORE_SCHEMA,
@@ -157,6 +148,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 	};
 }
 
+/** Return the public ranking and relative score projection. */
 export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 	return {
 		schema: SCORE_SCHEMA,
@@ -167,6 +159,7 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 	};
 }
 
+/** Return public benchmark values for each model. */
 export function benchmarksJsonPayload(
 	payload: LlmStatsPayload,
 ): BenchmarksJsonPayload {
@@ -181,6 +174,7 @@ export function benchmarksJsonPayload(
 	};
 }
 
+/** Return the full public payload without dashboard-only model fields. */
 export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	return {
 		...payload,
@@ -188,80 +182,19 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	};
 }
 
-export function leanDashboardPayload(
-	payload: LlmStatsPayload,
-): LlmStatsPayload {
-	const frontierBenchmarkPortfolio = leanDashboardBenchmarkPortfolio(
-		payload.metadata.scoring.benchmark_portfolio,
-	);
-	return {
-		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-		metadata: {
-			artificial_analysis: {
-				available_benchmark_keys: [],
-				available_evaluation_keys: [],
-				available_intelligence_keys: [],
-			},
-			...(payload.metadata.source_health == null
-				? {}
-				: { source_health: payload.metadata.source_health }),
-			...(payload.metadata.benchmark_update_health == null
-				? {}
-				: {
-						benchmark_update_health: payload.metadata.benchmark_update_health,
-					}),
-			scoring: {
-				intelligence_benchmark_keys: [],
-				intelligence_benchmark_display_keys: [],
-				missing_intelligence_benchmark_keys: [],
-				agentic_benchmark_keys: [],
-				agentic_benchmark_display_keys: [],
-				missing_agentic_benchmark_keys: [],
-				selected_benchmark_keys: [],
-				benchmark_portfolio: frontierBenchmarkPortfolio,
-				price_profiles: {},
-				simulation_profiles: {},
-				simulation_input_token_seconds:
-					payload.metadata.scoring.simulation_input_token_seconds,
-				quality_score_weights: {
-					...payload.metadata.scoring.quality_score_weights,
-				},
-				overall_relative_score_weights: {
-					...payload.metadata.scoring.overall_relative_score_weights,
-				},
-				column_tooltips: leanDashboardColumnTooltips(
-					payload.metadata.scoring.column_tooltips,
-				),
-				snapshot_preservation_version:
-					payload.metadata.scoring.snapshot_preservation_version,
-			},
-		},
-		models: payload.models.map((model) =>
-			leanDashboardModel(model, frontierBenchmarkPortfolio),
-		),
-	};
-}
-
-function leanDashboardBenchmarkPortfolio(
-	benchmarkPortfolio: BenchmarkPortfolio,
-): BenchmarkPortfolio {
-	return Object.fromEntries(
-		Object.entries(benchmarkPortfolio).filter(
-			([, entry]) => entry.group === "frontier",
-		),
-	);
-}
-
+/** Summarize the score methodology in endpoint payloads. */
 function methodologyText(payload: LlmStatsPayload): string {
 	const weights = payload.metadata.scoring.overall_relative_score_weights;
 	return `Overall score is ${formatMethodologyWeight(weights.intelligence)} Intelligence, ${formatMethodologyWeight(weights.agentic)} Agentic, ${formatMethodologyWeight(weights.speed)} Speed, and ${formatMethodologyWeight(weights.value)} Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.`;
 }
 
+/** Format a fractional score weight as a percentage label. */
 function formatMethodologyWeight(weight: number): string {
 	const percent = Number((weight * 100).toFixed(2));
 	return `${percent}%`;
 }
 
+/** Strip internal rendering fields from the full public model projection. */
 function withoutUnusedModelFields(
 	model: LlmStatsModel,
 ): Omit<LlmStatsModel, "attachment" | "reasoning" | "logo"> {
@@ -274,6 +207,7 @@ function withoutUnusedModelFields(
 	return modelPayload;
 }
 
+/** Convert one stats model into the public score row shape. */
 function scoreJsonModel(model: LlmStatsModel, index: number): ScoreJsonModel {
 	return {
 		rank: index + 1,
@@ -290,6 +224,7 @@ function scoreJsonModel(model: LlmStatsModel, index: number): ScoreJsonModel {
 	};
 }
 
+/** Convert one stats model into the public benchmark row shape. */
 function benchmarksJsonModel(
 	model: LlmStatsModel,
 	index: number,
@@ -308,6 +243,7 @@ function benchmarksJsonModel(
 	};
 }
 
+/** Convert one stats model into the public core table row shape. */
 function coreJsonModel(model: LlmStatsModel, index: number): CoreJsonModel {
 	return {
 		rank: index + 1,
@@ -333,116 +269,4 @@ function coreJsonModel(model: LlmStatsModel, index: number): CoreJsonModel {
 		latency_seconds_median: model.speed.latency_seconds_median,
 		e2e_latency_seconds_median: model.speed.e2e_latency_seconds_median,
 	};
-}
-
-function leanDashboardColumnTooltips(
-	columnTooltips: LlmStatsColumnTooltips,
-): LlmStatsColumnTooltips {
-	return Object.fromEntries(
-		leanDashboardTooltipKeys.flatMap((key) => {
-			const tooltip = columnTooltips[key] ?? COLUMN_TOOLTIPS[key];
-			return tooltip == null ? [] : [[key, tooltip]];
-		}),
-	);
-}
-
-function leanDashboardModel(
-	model: LlmStatsModel,
-	benchmarkPortfolio: BenchmarkPortfolio,
-): LlmStatsModel {
-	return {
-		id: model.id,
-		name: model.name,
-		provider: model.provider,
-		logo: "",
-		release_date: model.release_date,
-		modalities: copyModalities(model.modalities),
-		open_weights: model.open_weights,
-		cost: leanDashboardCost(model.cost),
-		context_window:
-			model.context_window == null ? null : { ...model.context_window },
-		speed: { ...model.speed },
-		intelligence: leanDashboardIntelligence(model.intelligence),
-		intelligence_index_cost: null,
-		task_metrics: leanDashboardTaskMetrics(model.task_metrics),
-		evaluations: leanDashboardEvaluations(
-			model.evaluations,
-			benchmarkPortfolio,
-		),
-		scores: { ...model.scores },
-		relative_scores: { ...model.relative_scores },
-	} as LlmStatsModel;
-}
-
-function copyModalities(
-	modalities: LlmStatsModel["modalities"],
-): LlmStatsModel["modalities"] {
-	if (modalities == null) {
-		return null;
-	}
-	return {
-		...(modalities.input == null ? {} : { input: [...modalities.input] }),
-		...(modalities.output == null ? {} : { output: [...modalities.output] }),
-	};
-}
-
-function leanDashboardCost(cost: LlmStatsModel["cost"]): LlmStatsModel["cost"] {
-	if (cost == null) {
-		return null;
-	}
-	return {
-		...(cost.input == null ? {} : { input: cost.input }),
-		...(cost.output == null ? {} : { output: cost.output }),
-		...(cost.cache_read == null ? {} : { cache_read: cost.cache_read }),
-		...(cost.cache_write == null ? {} : { cache_write: cost.cache_write }),
-		...(cost.blended_price == null
-			? {}
-			: { blended_price: cost.blended_price }),
-	};
-}
-
-function leanDashboardIntelligence(
-	intelligence: LlmStatsModel["intelligence"],
-): LlmStatsModel["intelligence"] {
-	if (intelligence == null) {
-		return null;
-	}
-	return {
-		...(intelligence.intelligence_index == null
-			? {}
-			: { intelligence_index: intelligence.intelligence_index }),
-		...(intelligence.agentic_index == null
-			? {}
-			: { agentic_index: intelligence.agentic_index }),
-	};
-}
-
-function leanDashboardTaskMetrics(
-	taskMetrics: LlmStatsModel["task_metrics"],
-): LlmStatsModel["task_metrics"] {
-	if (taskMetrics == null) {
-		return null;
-	}
-	const leanTaskMetrics = Object.fromEntries(
-		Object.entries(taskMetrics).map(([key, value]) => [
-			key,
-			value == null ? null : { ...value },
-		]),
-	);
-	return Object.keys(leanTaskMetrics).length > 0 ? leanTaskMetrics : null;
-}
-
-function leanDashboardEvaluations(
-	evaluations: LlmStatsModel["evaluations"],
-	frontierBenchmarkPortfolio: BenchmarkPortfolio,
-): LlmStatsModel["evaluations"] {
-	const frontierEvaluations = Object.fromEntries(
-		Object.keys(frontierBenchmarkPortfolio).flatMap((key) => {
-			const value = evaluations?.[key];
-			return value == null ? [] : [[key, value]];
-		}),
-	);
-	return Object.keys(frontierEvaluations).length > 0
-		? frontierEvaluations
-		: null;
 }

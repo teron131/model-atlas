@@ -1,9 +1,11 @@
+/** Verify server-rendered dashboard markup for key loading and interaction states. */
+
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { leanDashboardPayload } from "../app/api/llm-stats/public-json";
+import { leanDashboardPayload } from "../app/dashboard/payload";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import type { TableRow } from "../app/dashboard/table/models";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
