@@ -5,12 +5,12 @@ import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
+import { EmptyChart } from "./ChartComponents";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
-	EmptyChart,
 	MedianCross,
 	PlotFrame,
 	PointHitTarget,
@@ -21,7 +21,7 @@ import {
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./ChartComponents";
+} from "./chartPrimitives";
 import { outputSpeedDistribution } from "./chartStats";
 import { finite, fmtCompact, fmtTooltipNumber } from "./format";
 import styles from "./graphs.module.css";

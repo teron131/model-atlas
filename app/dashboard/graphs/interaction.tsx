@@ -8,12 +8,12 @@ import type {
 import { providerPaletteColor } from "../shared/providerTheme";
 import { linearAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
+import { EmptyChart } from "./ChartComponents";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
-	EmptyChart,
 	MedianCross,
 	PlotFrame,
 	PointHitTarget,
@@ -24,7 +24,7 @@ import {
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./ChartComponents";
+} from "./chartPrimitives";
 import { extremeLabelRows, valueDistribution } from "./chartStats";
 import { finiteValue, fmtTooltipScore } from "./format";
 import { GraphToggle } from "./GraphToggle";

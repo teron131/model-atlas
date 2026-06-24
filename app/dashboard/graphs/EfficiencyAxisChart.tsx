@@ -23,7 +23,7 @@ import {
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./ChartComponents";
+} from "./chartPrimitives";
 import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./labelPlacement";
 import type { HoverRow, HoverSetter, Margin } from "./types";
