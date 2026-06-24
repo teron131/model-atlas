@@ -8,20 +8,17 @@ import {
 	appendBenchmarkUpdateOfficialRow,
 	type BenchmarkUpdateOfficialRow,
 	type BenchmarkUpdateOfficialRowsByKey,
-	buildBenchmarkUpdateHealth,
 } from "./stats/health";
 import { buildMatchedModelRows } from "./stats/matching";
+import { buildCurrentLlmStatsMetadata } from "./stats/metadata";
 import { enrichModelRowsWithOpenRouter } from "./stats/openrouter-enrichment";
 import { buildFinalModels } from "./stats/selection";
-import { SNAPSHOT_PRESERVATION_VERSION } from "./stats/snapshot-preservation";
 import { fetchSourceData } from "./stats/source-data";
 import type {
-	LlmStatsMetadata,
 	LlmStatsModel,
 	LlmStatsOptions,
 	LlmStatsPayload,
 	LlmStatsSourceData,
-	ModelAtlasStageConfig,
 } from "./stats/types";
 
 export type {
@@ -46,83 +43,6 @@ export type {
 	ModelAtlasStageConfig,
 	OverallRelativeScoreWeights,
 } from "./stats/types";
-
-/** Return sorted unique keys for metadata fields. */
-function sortedUniqueKeys(values: Iterable<string>): string[] {
-	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
-/** Collect available keys from a source model object field. */
-function keysFromModelField(
-	models: Array<Record<string, unknown> | LlmStatsModel>,
-	field: "evaluations" | "intelligence",
-): string[] {
-	return sortedUniqueKeys(
-		models.flatMap((model) => Object.keys(asRecord(model[field]))),
-	);
-}
-
-/** Build metadata that exposes available and selected benchmark fields. */
-function buildLlmStatsMetadata(
-	models: Array<Record<string, unknown> | LlmStatsModel>,
-	healthModels: readonly LlmStatsModel[],
-	scoringConfig: ModelAtlasStageConfig["scoring"],
-	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
-): LlmStatsMetadata {
-	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
-	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
-	const availableBenchmarkKeys = sortedUniqueKeys([
-		...availableEvaluationKeys,
-		...availableIntelligenceKeys,
-	]);
-	const selectedBenchmarkKeys = sortedUniqueKeys([
-		...scoringConfig.intelligenceBenchmarkKeys,
-		...scoringConfig.agenticBenchmarkKeys,
-	]);
-	return {
-		artificial_analysis: {
-			available_benchmark_keys: availableBenchmarkKeys,
-			available_evaluation_keys: availableEvaluationKeys,
-			available_intelligence_keys: availableIntelligenceKeys,
-		},
-		benchmark_update_health: buildBenchmarkUpdateHealth(
-			healthModels,
-			scoringConfig,
-			officialRowsByKey,
-			STAGE_CONFIG.matcher,
-		),
-		scoring: {
-			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
-			intelligence_benchmark_display_keys: [
-				...scoringConfig.intelligenceBenchmarkDisplayKeys,
-			],
-			missing_intelligence_benchmark_keys:
-				scoringConfig.intelligenceBenchmarkKeys.filter(
-					(key) => !availableBenchmarkKeys.includes(key),
-				),
-			agentic_benchmark_keys: [...scoringConfig.agenticBenchmarkKeys],
-			agentic_benchmark_display_keys: [
-				...scoringConfig.agenticBenchmarkDisplayKeys,
-			],
-			missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
-				(key) => !availableBenchmarkKeys.includes(key),
-			),
-			selected_benchmark_keys: selectedBenchmarkKeys,
-			benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
-			price_profiles: { ...scoringConfig.priceProfiles },
-			simulation_profiles: { ...scoringConfig.simulationProfiles },
-			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
-			quality_score_weights: {
-				...scoringConfig.qualityScoreWeights,
-			},
-			overall_relative_score_weights: {
-				...scoringConfig.overallRelativeScoreWeights,
-			},
-			column_tooltips: { ...scoringConfig.columnTooltips },
-			snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
-		},
-	};
-}
 
 function officialRowsFromSourceData(
 	sourceData: LlmStatsSourceData,
@@ -175,21 +95,15 @@ function withLlmStatsMetadata(
 	> = payload.models,
 	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
 ): LlmStatsPayload {
-	const currentMetadata = buildLlmStatsMetadata(
-		modelsForMetadata,
-		payload.models,
-		STAGE_CONFIG.scoring,
+	const metadata = buildCurrentLlmStatsMetadata({
+		models: modelsForMetadata,
+		healthModels: payload.models,
+		artificialAnalysis: payload.metadata?.artificial_analysis,
 		officialRowsByKey,
-	);
+	});
 	return {
 		...payload,
-		metadata: {
-			artificial_analysis:
-				payload.metadata?.artificial_analysis ??
-				currentMetadata.artificial_analysis,
-			benchmark_update_health: currentMetadata.benchmark_update_health,
-			scoring: currentMetadata.scoring,
-		},
+		metadata,
 	};
 }
 
