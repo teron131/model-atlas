@@ -2,7 +2,6 @@
 
 import { DatabaseSync } from "node:sqlite";
 
-import { STAGE_CONFIG } from "../../constants";
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
 import {
@@ -10,15 +9,13 @@ import {
 	appendBenchmarkUpdateOfficialRow,
 	type BenchmarkUpdateOfficialRow,
 	type BenchmarkUpdateOfficialRowsByKey,
-	buildBenchmarkUpdateHealth,
 } from "../stats/health";
-import { SNAPSHOT_PRESERVATION_VERSION } from "../stats/snapshot-preservation";
+import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
 import type {
 	LlmStatsContextWindow,
 	LlmStatsCost,
 	LlmStatsEvaluations,
 	LlmStatsIntelligence,
-	LlmStatsMetadata,
 	LlmStatsModalities,
 	LlmStatsNullableRelativeScores,
 	LlmStatsNullableScores,
@@ -257,78 +254,6 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 	};
 }
 
-/** Return sorted unique keys from model object fields. */
-function keysFromModelField(
-	models: LlmStatsScoredCandidate[],
-	field: "evaluations" | "intelligence",
-): string[] {
-	return [
-		...new Set(models.flatMap((model) => Object.keys(asRecord(model[field])))),
-	].sort((left, right) => left.localeCompare(right));
-}
-
-/** Build metadata for the DB-backed UI payload. */
-function buildMetadata(
-	models: LlmStatsScoredCandidate[],
-	sourceHealth?: LlmStatsSourceHealth,
-	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
-): LlmStatsMetadata {
-	const scoringConfig = STAGE_CONFIG.scoring;
-	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
-	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
-	const availableBenchmarkKeys = [
-		...new Set([...availableEvaluationKeys, ...availableIntelligenceKeys]),
-	].sort((left, right) => left.localeCompare(right));
-	const selectedBenchmarkKeys = [
-		...new Set([
-			...scoringConfig.intelligenceBenchmarkKeys,
-			...scoringConfig.agenticBenchmarkKeys,
-		]),
-	].sort((left, right) => left.localeCompare(right));
-	return {
-		artificial_analysis: {
-			available_benchmark_keys: availableBenchmarkKeys,
-			available_evaluation_keys: availableEvaluationKeys,
-			available_intelligence_keys: availableIntelligenceKeys,
-		},
-		...(sourceHealth == null ? {} : { source_health: sourceHealth }),
-		benchmark_update_health: buildBenchmarkUpdateHealth(
-			models,
-			scoringConfig,
-			officialRowsByKey,
-			STAGE_CONFIG.matcher,
-		),
-		scoring: {
-			intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
-			intelligence_benchmark_display_keys: [
-				...scoringConfig.intelligenceBenchmarkDisplayKeys,
-			],
-			missing_intelligence_benchmark_keys:
-				scoringConfig.intelligenceBenchmarkKeys.filter(
-					(key) => !availableBenchmarkKeys.includes(key),
-				),
-			agentic_benchmark_keys: [...scoringConfig.agenticBenchmarkKeys],
-			agentic_benchmark_display_keys: [
-				...scoringConfig.agenticBenchmarkDisplayKeys,
-			],
-			missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
-				(key) => !availableBenchmarkKeys.includes(key),
-			),
-			selected_benchmark_keys: selectedBenchmarkKeys,
-			benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
-			price_profiles: { ...scoringConfig.priceProfiles },
-			simulation_profiles: { ...scoringConfig.simulationProfiles },
-			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
-			quality_score_weights: { ...scoringConfig.qualityScoreWeights },
-			overall_relative_score_weights: {
-				...scoringConfig.overallRelativeScoreWeights,
-			},
-			column_tooltips: { ...scoringConfig.columnTooltips },
-			snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
-		},
-	};
-}
-
 /** Read the latest completed run id from SQLite. */
 function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
 	const row = asRecord(
@@ -500,7 +425,12 @@ export function buildModelAtlasPayloadFromRows(
 	);
 	return {
 		fetched_at_epoch_seconds: rows.run.fetchedAt,
-		metadata: buildMetadata(models, sourceHealth, officialRowsByKey),
+		metadata: buildCurrentLlmStatsMetadata({
+			models,
+			healthModels: models,
+			sourceHealth,
+			officialRowsByKey,
+		}),
 		deep_swe: {
 			rows: deepSWERowsFromRows(rows.deepSWERows),
 		},

@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { STAGE_CONFIG } from "../../../src/model-atlas/constants";
 import {
 	buildModelAtlasDatabase,
 	modelAtlasD1Configured,
@@ -14,13 +13,8 @@ import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
 } from "../../../src/model-atlas/llm/database/types";
-import { buildBenchmarkUpdateHealth } from "../../../src/model-atlas/llm/stats/health";
-import { SNAPSHOT_PRESERVATION_VERSION } from "../../../src/model-atlas/llm/stats/snapshot-preservation";
-import type {
-	LlmStatsMetadata,
-	LlmStatsModel,
-	LlmStatsPayload,
-} from "../../../src/model-atlas/llm/stats/types";
+import { buildCurrentLlmStatsMetadata } from "../../../src/model-atlas/llm/stats/metadata";
+import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
 
 const STATIC_SNAPSHOT_PATH = resolve(
 	process.cwd(),
@@ -276,100 +270,17 @@ async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
 function withCurrentSnapshotMetadata(
 	payload: LlmStatsPayload,
 ): LlmStatsPayload {
-	const artificialAnalysis =
-		payload.metadata?.artificial_analysis ??
-		buildArtificialAnalysisMetadata(payload.models);
-	const scoring = STAGE_CONFIG.scoring;
-	const availableBenchmarkKeys =
-		artificialAnalysis.available_benchmark_keys.length > 0
-			? artificialAnalysis.available_benchmark_keys
-			: sortedUniqueKeys([
-					...artificialAnalysis.available_evaluation_keys,
-					...artificialAnalysis.available_intelligence_keys,
-				]);
-	const selectedBenchmarkKeys = sortedUniqueKeys([
-		...scoring.intelligenceBenchmarkKeys,
-		...scoring.agenticBenchmarkKeys,
-	]);
 	return {
 		...payload,
-		metadata: {
-			artificial_analysis: artificialAnalysis,
-			...(payload.metadata?.source_health == null
-				? {}
-				: { source_health: payload.metadata.source_health }),
-			benchmark_update_health:
-				payload.metadata?.benchmark_update_health ??
-				buildBenchmarkUpdateHealth(
-					payload.models,
-					scoring,
-					{},
-					STAGE_CONFIG.matcher,
-				),
-			scoring: {
-				intelligence_benchmark_keys: [...scoring.intelligenceBenchmarkKeys],
-				intelligence_benchmark_display_keys: [
-					...scoring.intelligenceBenchmarkDisplayKeys,
-				],
-				missing_intelligence_benchmark_keys:
-					scoring.intelligenceBenchmarkKeys.filter(
-						(key) => !availableBenchmarkKeys.includes(key),
-					),
-				agentic_benchmark_keys: [...scoring.agenticBenchmarkKeys],
-				agentic_benchmark_display_keys: [
-					...scoring.agenticBenchmarkDisplayKeys,
-				],
-				missing_agentic_benchmark_keys: scoring.agenticBenchmarkKeys.filter(
-					(key) => !availableBenchmarkKeys.includes(key),
-				),
-				selected_benchmark_keys: selectedBenchmarkKeys,
-				benchmark_portfolio: { ...scoring.benchmarkPortfolio },
-				price_profiles: { ...scoring.priceProfiles },
-				simulation_profiles: { ...scoring.simulationProfiles },
-				simulation_input_token_seconds: scoring.simulationInputTokenSeconds,
-				quality_score_weights: { ...scoring.qualityScoreWeights },
-				overall_relative_score_weights: {
-					...scoring.overallRelativeScoreWeights,
-				},
-				column_tooltips: { ...scoring.columnTooltips },
-				snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
-			},
-		},
+		metadata: buildCurrentLlmStatsMetadata({
+			models: payload.models,
+			healthModels: payload.models,
+			artificialAnalysis: payload.metadata?.artificial_analysis,
+			sourceHealth: payload.metadata?.source_health,
+			benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,
+			availabilitySource: "artificial_analysis",
+		}),
 	};
-}
-
-function buildArtificialAnalysisMetadata(
-	models: LlmStatsModel[],
-): LlmStatsMetadata["artificial_analysis"] {
-	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
-	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
-	return {
-		available_benchmark_keys: sortedUniqueKeys([
-			...availableEvaluationKeys,
-			...availableIntelligenceKeys,
-		]),
-		available_evaluation_keys: availableEvaluationKeys,
-		available_intelligence_keys: availableIntelligenceKeys,
-	};
-}
-
-function keysFromModelField(
-	models: LlmStatsModel[],
-	field: "evaluations" | "intelligence",
-): string[] {
-	return sortedUniqueKeys(
-		models.flatMap((model) => Object.keys(asRecord(model[field]))),
-	);
-}
-
-function sortedUniqueKeys(values: Iterable<string>): string[] {
-	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-	return value != null && typeof value === "object"
-		? (value as Record<string, unknown>)
-		: {};
 }
 
 export function runtimeDatabasePath(): string | undefined {
