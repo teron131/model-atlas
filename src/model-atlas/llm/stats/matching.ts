@@ -6,19 +6,6 @@ import {
 	type LlmScraperFallbackMatchDiagnosticsPayload,
 } from "../matcher";
 import {
-	agentsLastExamBenchmarkScore,
-	findAgentsLastExamModelScore,
-} from "../scrapers/agents-last-exam";
-import { findAutomationBenchScoreRow } from "../scrapers/automation-bench";
-import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
-import { findBrowseCompScore } from "../scrapers/browsecomp";
-import { findCursorBenchScore } from "../scrapers/cursorbench";
-import { findDeepSWEModelScore } from "../scrapers/deep-swe";
-import { findGdpPdfScore } from "../scrapers/gdp-pdf";
-import { findRiemannBenchScore } from "../scrapers/riemann-bench";
-import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
-import { findToolathlonScore } from "../scrapers/toolathlon";
-import {
 	asFiniteNumber,
 	asRecord,
 	modelSlugFromModelId,
@@ -26,27 +13,18 @@ import {
 	normalizeProviderModelId,
 } from "../shared";
 
+import {
+	type BenchmarkEnrichmentLookups,
+	benchmarkEnrichment,
+} from "./benchmark-enrichment";
 import type {
 	ArtificialAnalysisModel,
-	LlmStatsScoringSources,
 	LlmStatsSourceData,
 	MatcherConfig,
 } from "./types";
 
-type MatchedRowLookups = Pick<
-	LlmStatsSourceData,
-	| "modelsDevById"
-	| "deepSWEScoreByModelName"
-	| "terminalBenchAccuracyByModelName"
-	| "agentsLastExamScoreByModelName"
-	| "automationBenchScoreByModelName"
-	| "blueprintBenchScoreByModelName"
-	| "gdpPdfScoreByModelName"
-	| "riemannBenchScoreByModelName"
-	| "browseCompScoreByModelName"
-	| "toolathlonScoreByModelName"
-	| "cursorBenchScoreByModelName"
->;
+type MatchedRowLookups = Pick<LlmStatsSourceData, "modelsDevById"> &
+	BenchmarkEnrichmentLookups;
 
 /** Helper for canonical model id. */
 function canonicalModelId(
@@ -171,84 +149,8 @@ function buildMatchedRow(
 		aaModelId,
 		aaSlug,
 	];
-	const deepSWEScore = findDeepSWEModelScore(
-		modelNameCandidates,
-		lookups.deepSWEScoreByModelName,
-	);
-	const agentsLastExamScore = findAgentsLastExamModelScore(
-		modelNameCandidates,
-		lookups.agentsLastExamScoreByModelName,
-	);
-	const scoringSources: NonNullable<LlmStatsScoringSources> = {
-		...(deepSWEScore == null ? {} : { deep_swe: deepSWEScore }),
-		...(agentsLastExamScore == null
-			? {}
-			: { agents_last_exam: agentsLastExamScore }),
-	};
-	if (deepSWEScore != null) {
-		evaluations.deep_swe = deepSWEScore.pass_at_1;
-	}
-	if (agentsLastExamScore != null) {
-		evaluations.agents_last_exam =
-			agentsLastExamBenchmarkScore(agentsLastExamScore);
-	}
-	const automationBenchScore = findAutomationBenchScoreRow(
-		modelNameCandidates,
-		lookups.automationBenchScoreByModelName,
-	);
-	if (automationBenchScore != null) {
-		scoringSources.automation_bench = automationBenchScore;
-		evaluations.automation_bench = automationBenchScore.adjusted_score;
-	}
-	const blueprintBenchScore = findBlueprintBenchScore(
-		modelNameCandidates,
-		lookups.blueprintBenchScoreByModelName,
-	);
-	if (blueprintBenchScore != null) {
-		evaluations.blueprint_bench_2 = blueprintBenchScore;
-	}
-	const gdpPdfScore = findGdpPdfScore(
-		modelNameCandidates,
-		lookups.gdpPdfScoreByModelName,
-	);
-	if (gdpPdfScore != null) {
-		evaluations.gdp_pdf = gdpPdfScore;
-	}
-	const riemannBenchScore = findRiemannBenchScore(
-		modelNameCandidates,
-		lookups.riemannBenchScoreByModelName,
-	);
-	if (riemannBenchScore != null) {
-		evaluations.riemann_bench = riemannBenchScore;
-	}
-	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
-		modelNameCandidates,
-		lookups.terminalBenchAccuracyByModelName,
-	);
-	if (terminalBenchAccuracy != null) {
-		evaluations.terminal_bench_2 = terminalBenchAccuracy;
-	}
-	const browseCompScore = findBrowseCompScore(
-		modelNameCandidates,
-		lookups.browseCompScoreByModelName,
-	);
-	if (browseCompScore != null) {
-		evaluations.browsecomp = browseCompScore;
-	}
-	const toolathlonScore = findToolathlonScore(
-		modelNameCandidates,
-		lookups.toolathlonScoreByModelName,
-	);
-	if (toolathlonScore != null) {
-		evaluations.toolathlon = toolathlonScore;
-	}
-	const cursorBenchScore = findCursorBenchScore(
-		modelNameCandidates,
-		lookups.cursorBenchScoreByModelName,
-	);
-	if (cursorBenchScore != null) {
-		evaluations.cursorbench = cursorBenchScore;
-	}
+	const benchmarkFields = benchmarkEnrichment(modelNameCandidates, lookups);
+	Object.assign(evaluations, benchmarkFields.evaluations);
 	const canonicalId = canonicalModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,
 		matchedModelsDev?.provider_id,
@@ -289,9 +191,9 @@ function buildMatchedRow(
 			: {
 					median_end_to_end_response_time_seconds: medianEndToEndResponseTime,
 				}),
-		...(Object.keys(scoringSources).length === 0
+		...(Object.keys(benchmarkFields.scoringSources).length === 0
 			? {}
-			: { scoring_sources: scoringSources }),
+			: { scoring_sources: benchmarkFields.scoringSources }),
 		evaluations,
 		intelligence,
 		intelligence_index_cost: intelligenceIndexCost,
