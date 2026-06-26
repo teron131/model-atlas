@@ -68,6 +68,7 @@ export type BenchmarkUpdateOfficialRowsByKey = Readonly<
 	Record<string, readonly BenchmarkUpdateOfficialRow[]>
 >;
 
+/** Appends benchmark update official row for benchmark update health. */
 export function appendBenchmarkUpdateOfficialRow(
 	rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]>,
 	key: string,
@@ -77,16 +78,19 @@ export function appendBenchmarkUpdateOfficialRow(
 	rowsByKey[key].push(row);
 }
 
+/** Accepts only finite numeric benchmark values for health checks. */
 function finiteNumber(value: NumberOrNull | undefined): number | null {
 	return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+/** Builds comparable model identity fields for health matching. */
 function modelIdentity(
 	model: Pick<LlmStatsModel, "id" | "name">,
 ): string | null {
 	return model.id ?? model.name ?? null;
 }
 
+/** Reads the benchmark value used to compare official and matched rows. */
 function benchmarkValue(
 	model: BenchmarkHealthModel,
 	key: string,
@@ -96,6 +100,7 @@ function benchmarkValue(
 	return finiteNumber(evaluations?.[key] ?? intelligence?.[key]);
 }
 
+/** Indexes reference benchmark rank by normalized model identity. */
 function referenceRankByModel(
 	models: readonly BenchmarkHealthModel[],
 ): Map<string, number> {
@@ -110,6 +115,7 @@ function referenceRankByModel(
 	return new Map(ranked.map((model, index) => [model.id, index + 1]));
 }
 
+/** Normalizes the official row source into a comparable slug. */
 function officialRowSourceSlug(row: BenchmarkUpdateOfficialRow): string {
 	if (row.id != null) {
 		const slug = row.id.split("/").at(-1);
@@ -120,6 +126,7 @@ function officialRowSourceSlug(row: BenchmarkUpdateOfficialRow): string {
 	return normalizeModelToken(row.label);
 }
 
+/** Checks whether matched source tokens cover the official row name. */
 function hasSourceTokenCoverage(
 	sourceSlug: string,
 	model: Pick<LlmStatsModel, "id" | "name">,
@@ -140,6 +147,7 @@ function hasSourceTokenCoverage(
 	});
 }
 
+/** Finds the source row that corresponds to one official benchmark row. */
 function matchedOfficialRowId(
 	row: BenchmarkUpdateOfficialRow,
 	models: readonly BenchmarkHealthModel[],
@@ -178,6 +186,7 @@ function matchedOfficialRowId(
 	return candidates[0]?.model_id ?? null;
 }
 
+/** Ranks Model Atlas benchmark rows for health comparison. */
 function benchmarkRankedModels(
 	models: readonly BenchmarkHealthModel[],
 	key: string,
@@ -201,6 +210,7 @@ function benchmarkRankedModels(
 		.sort((left, right) => right.value - left.value);
 }
 
+/** Ranks official benchmark rows for health comparison. */
 function officialRankedModels(
 	rows: readonly BenchmarkUpdateOfficialRow[],
 	models: readonly BenchmarkHealthModel[],
@@ -232,6 +242,7 @@ function officialRankedModels(
 		);
 }
 
+/** Keeps the official rows that matter for overlap checks. */
 function officialTopRows(
 	rows: readonly BenchmarkUpdateOfficialRow[] | undefined,
 ): BenchmarkUpdateOfficialRow[] {
@@ -240,6 +251,7 @@ function officialTopRows(
 		.slice(0, BENCHMARK_TOP_LIMIT);
 }
 
+/** Formats the official row identifier shown in health output. */
 function officialRowOutputId(row: BenchmarkUpdateOfficialRow): string {
 	if (row.id != null) {
 		return row.id;
@@ -252,6 +264,7 @@ function officialRowOutputId(row: BenchmarkUpdateOfficialRow): string {
 	return normalizeModelToken(row.label);
 }
 
+/** Updates status for benchmark update health. */
 function updateStatus({
 	checkedTopCount,
 	overlapCount,
@@ -270,6 +283,7 @@ function updateStatus({
 	return overlapCount > 0 ? "watch" : "stale_possible";
 }
 
+/** Computes the minimum top-row overlap required for healthy status. */
 function requiredOverlap(
 	checkedTopCount: number,
 	unrepresentedTopCount: number,
@@ -280,6 +294,7 @@ function requiredOverlap(
 	return Math.max(1, Math.ceil(checkedTopCount / 2));
 }
 
+/** Builds the benchmark update health report. */
 export function buildBenchmarkUpdateHealth(
 	models: readonly BenchmarkHealthModel[],
 	scoringConfig: ModelAtlasStageConfig["scoring"],

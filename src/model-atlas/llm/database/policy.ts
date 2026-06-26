@@ -12,16 +12,19 @@ import {
 	type SourceRowStatus,
 } from "./types";
 
+/** Builds the stable key used to compare source rows across refreshes. */
 export function sourceKey(
 	...parts: (number | string | null | undefined)[]
 ): string {
 	return parts.map((part) => String(part ?? "")).join("|");
 }
 
+/** Accepts only non-empty strings when comparing source rows. */
 function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** Reads a normalized string field from a source row. */
 export function rowStringValue(
 	row: Record<string, unknown>,
 	key: string,
@@ -29,6 +32,7 @@ export function rowStringValue(
 	return stringValue(row[key]);
 }
 
+/** Merges cached source rows for source-row preservation policy. */
 export function mergeCachedSourceRows<T>(
 	cachedRows: readonly T[],
 	fetchedRows: readonly T[],
@@ -64,6 +68,7 @@ export function mergeCachedSourceRows<T>(
 	return [...unkeyedCachedRows, ...keyedRows.values(), ...unkeyedFetchedRows];
 }
 
+/** Flattens source snapshots into rows that can be compared. */
 export function snapshotRows<T>(
 	cachedRows: readonly T[] | undefined,
 	fetchedRows: readonly T[],
@@ -99,6 +104,7 @@ type SnapshotRowsResult<T> = {
 	states: SourceRowState[];
 };
 
+/** Attaches preservation state to rows from a source snapshot. */
 export function snapshotRowsWithStates<T>(
 	config: SnapshotRowsConfig<T>,
 ): SnapshotRowsResult<T> {
@@ -150,6 +156,7 @@ export function snapshotRowsWithStates<T>(
 	return { rows, states };
 }
 
+/** Indexes the latest known source-row state by stable row key. */
 export function latestSourceRowStates(db: DatabaseSync): SourceRowState[] {
 	const row = asRecord(
 		db.prepare("SELECT MAX(run_id) AS run_id FROM source_row_states").get(),
@@ -194,6 +201,7 @@ export function latestSourceRowStates(db: DatabaseSync): SourceRowState[] {
 		});
 }
 
+/** Carries forward when missing source rows first disappeared. */
 export function missingSinceBySource(
 	states: readonly SourceRowState[],
 ): Record<RawSourceName, Map<string, number>> {
@@ -215,6 +223,7 @@ export function missingSinceBySource(
 	return missingSince;
 }
 
+/** Applies preservation state to models.dev payload rows. */
 export function sourceStatesForModelsDevPayload(
 	payload: ModelsDevPayload,
 	fetchedPayload: ModelsDevPayload | null,

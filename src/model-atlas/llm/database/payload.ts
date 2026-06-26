@@ -273,6 +273,7 @@ function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
 	};
 }
 
+/** Reconstructs source health metadata from database rows. */
 function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 	if (rows.length === 0) {
 		return undefined;
@@ -317,6 +318,7 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 	};
 }
 
+/** Reconstructs official benchmark rows from database rows. */
 function officialRowsFromRows(
 	aaRows: DbRow[],
 	browseCompRows: DbRow[],
@@ -414,6 +416,7 @@ export type ModelAtlasPayloadRows = {
 	deepSWERows: DbRow[];
 };
 
+/** Assembles the public Model Atlas payload from database row groups. */
 export function buildModelAtlasPayloadFromRows(
 	rows: ModelAtlasPayloadRows,
 ): LlmStatsPayload {
@@ -438,6 +441,7 @@ export function buildModelAtlasPayloadFromRows(
 	};
 }
 
+/** Reads source health rows for a completed pipeline run. */
 function readSourceHealthRows(db: DatabaseSync, runId: number): DbRow[] {
 	try {
 		return readRunRows(
@@ -450,6 +454,7 @@ function readSourceHealthRows(db: DatabaseSync, runId: number): DbRow[] {
 	}
 }
 
+/** Reads metadata for the completed pipeline run. */
 function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
 	return db
 		.prepare(sql)

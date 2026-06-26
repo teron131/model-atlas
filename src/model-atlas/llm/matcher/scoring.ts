@@ -29,12 +29,14 @@ const ACTIVE_B_MISMATCH_PENALTY = 2;
 const CHAR_PREFIX_REWARD_SCALE = 0.03;
 const LENGTH_GAP_PENALTY_SCALE = 0.005;
 
+/** Collects numeric version tokens from a normalized model name. */
 function numericVersionTokens(tokens: string[]): number[] {
 	return tokens
 		.filter((token) => /^\d+$/.test(token))
 		.map((token) => Number(token));
 }
 
+/** Splits a model version into comparable numeric parts. */
 function numericVersionParts(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -51,6 +53,7 @@ function numericVersionParts(
 	};
 }
 
+/** Checks whether a version starts with the exact numeric prefix. */
 function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
 	return (
 		left.length > 0 &&
@@ -59,6 +62,7 @@ function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
 	);
 }
 
+/** Checks whether two version strings share the same first number. */
 function sameLeadingNumber(
 	sourceNumbers: number[],
 	candidateNumbers: number[],
@@ -70,6 +74,7 @@ function sameLeadingNumber(
 	);
 }
 
+/** Detects mismatched leading version numbers during model matching. */
 function leadingNumberMismatch(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -89,6 +94,7 @@ function leadingNumberMismatch(
 	);
 }
 
+/** Rejects matches whose numeric versions conflict too strongly. */
 function numericPrefixConflict(
 	sourceSlug: string,
 	candidateModelId: string,

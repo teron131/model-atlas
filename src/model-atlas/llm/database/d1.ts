@@ -33,6 +33,7 @@ type D1ApiResponse = {
 
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
 
+/** Reads Cloudflare D1 connection settings from the runtime environment. */
 export function modelAtlasD1Config(): ModelAtlasD1Config | null {
 	const accountId = process.env.D1_ACCOUNT_ID;
 	const databaseId = process.env.D1_DATABASE_ID;
@@ -48,10 +49,12 @@ export function modelAtlasD1Config(): ModelAtlasD1Config | null {
 	};
 }
 
+/** Reports whether all required D1 environment variables are present. */
 export function modelAtlasD1Configured(): boolean {
 	return modelAtlasD1Config() != null;
 }
 
+/** Lists the D1 environment variables missing from the current runtime. */
 export function modelAtlasD1MissingEnvironment(): string[] {
 	const missing: string[] = [];
 	if (!process.env.D1_ACCOUNT_ID) {
@@ -66,10 +69,12 @@ export function modelAtlasD1MissingEnvironment(): string[] {
 	return missing;
 }
 
+/** Builds the Cloudflare D1 REST endpoint for the requested operation. */
 function d1Endpoint(config: ModelAtlasD1Config, path: "query"): string {
 	return `${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/${path}`;
 }
 
+/** Converts Cloudflare D1 error payloads into a single thrown error. */
 function d1Error(response: D1ApiResponse): Error {
 	const messages = response.errors
 		?.map((error) => error.message)
@@ -79,6 +84,7 @@ function d1Error(response: D1ApiResponse): Error {
 	);
 }
 
+/** Normalizes D1 query results into row objects. */
 function resultRows(result: D1QueryResult | undefined): D1Rows {
 	if (result?.results == null) {
 		return [];
@@ -92,6 +98,7 @@ function resultRows(result: D1QueryResult | undefined): D1Rows {
 	);
 }
 
+/** Sends a parameterized SQL query to Cloudflare D1. */
 async function queryD1(
 	sql: string,
 	params: D1Value[] = [],
@@ -121,21 +128,25 @@ async function queryD1(
 	return result ?? {};
 }
 
+/** Returns all row objects from a Cloudflare D1 SQL query. */
 async function allD1(sql: string, params: D1Value[] = []): Promise<D1Rows> {
 	return resultRows(await queryD1(sql, params));
 }
 
+/** Rejects unsafe SQL identifier names before interpolation. */
 function assertIdentifier(value: string): void {
 	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
 		throw new Error(`Unsafe SQL identifier: ${value}`);
 	}
 }
 
+/** Quotes a validated SQL identifier for D1 statements. */
 function quoteIdentifier(value: string): string {
 	assertIdentifier(value);
 	return `"${value}"`;
 }
 
+/** Splits the shared schema SQL into D1-compatible statements. */
 function splitSqlStatements(sql: string): string[] {
 	return sql
 		.split(";")
@@ -148,6 +159,7 @@ function splitSqlStatements(sql: string): string[] {
 		);
 }
 
+/** Applies the shared Model Atlas schema to Cloudflare D1. */
 export async function ensureModelAtlasD1Schema(): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
 	for (const statement of splitSqlStatements(schemaSql)) {
@@ -157,6 +169,7 @@ export async function ensureModelAtlasD1Schema(): Promise<string[]> {
 	return schemaTableNames(schemaSql);
 }
 
+/** Adds missing schema columns when D1 is behind the shared schema. */
 async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
 	for (const [table, columns] of schemaTableColumns(schemaSql)) {
 		const existingColumns = new Set(
@@ -174,11 +187,13 @@ async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
 	}
 }
 
+/** Parses nullable numeric values returned by D1. */
 function finiteNumberOrNull(value: unknown): number | null {
 	const numberValue = Number(value);
 	return Number.isFinite(numberValue) ? numberValue : null;
 }
 
+/** Reads the latest completed Model Atlas payload from D1. */
 export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null> {
 	if (!modelAtlasD1Configured()) {
 		return null;

@@ -12,6 +12,7 @@ import {
 	type SourceRowState,
 } from "./types";
 
+/** Classifies one raw source as fresh, cached, empty, or stale. */
 function sourceStatus(
 	status: RawSourceCacheStatus,
 ): LlmStatsSourceHealthStatus {
@@ -27,6 +28,7 @@ function sourceStatus(
 	return "using_cached_rows";
 }
 
+/** Counts active and quarantined rows for one raw source. */
 function stateCounts(
 	source: RawSourceName,
 	sourceRowStates: readonly SourceRowState[],
@@ -46,6 +48,7 @@ function stateCounts(
 	return { active, quarantined };
 }
 
+/** Builds source health metadata for the completed snapshot. */
 export function buildSourceHealth({
 	generatedAtEpochSeconds,
 	sourceCache,

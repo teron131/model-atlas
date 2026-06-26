@@ -44,6 +44,7 @@ export type {
 	OverallRelativeScoreWeights,
 } from "./stats/types";
 
+/** Converts source benchmark rows into official public rows. */
 function officialRowsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkUpdateOfficialRowsByKey {

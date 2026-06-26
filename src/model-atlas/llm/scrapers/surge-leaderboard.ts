@@ -1,3 +1,5 @@
+/** Surge leaderboard scraping for Model Atlas. */
+
 import {
 	htmlAttribute,
 	percentToUnitScore,
@@ -16,10 +18,12 @@ const LIST_ITEM_PATTERN =
 	/<div\b[^>]*\brole\s*=\s*["']listitem["'][\s\S]*?(?=<div\b[^>]*\brole\s*=\s*["']listitem["']|<section\b|$)/gi;
 const MODEL_RANKINGS_PATTERN = />\s*Model Rankings\s*</i;
 
+/** Escapes class names before building markup-matching regexes. */
 function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Extracts visible text from an element with the requested class. */
 function classText(html: string, className: string): string | null {
 	const classPattern = escapeRegExp(className);
 	const match = html.match(
@@ -32,6 +36,7 @@ function classText(html: string, className: string): string | null {
 	return text != null && text.length > 0 ? text : null;
 }
 
+/** Normalizes provider labels for brand/provider comparisons. */
 function normalizedLabel(value: string): string {
 	return value
 		.toLowerCase()
@@ -39,6 +44,7 @@ function normalizedLabel(value: string): string {
 		.replace(/^-|-$/g, "");
 }
 
+/** Combines brand and model text without duplicating provider names. */
 function combinedModelName(
 	brand: string | null,
 	name: string | null,
@@ -61,6 +67,7 @@ function combinedModelName(
 		: `${brand} ${name}`;
 }
 
+/** Limits parsing to the Model Rankings section when present. */
 function surgeLeaderboardSegment(pageHtml: string): string {
 	const markerMatch = pageHtml.match(MODEL_RANKINGS_PATTERN);
 	const start = markerMatch?.index ?? -1;
@@ -73,17 +80,20 @@ function surgeLeaderboardSegment(pageHtml: string): string {
 		: pageHtml.slice(start, nextSectionStart);
 }
 
+/** Splits the leaderboard section into list-item fragments. */
 function surgeLeaderboardRows(pageHtml: string): string[] {
 	return [...surgeLeaderboardSegment(pageHtml).matchAll(LIST_ITEM_PATTERN)].map(
 		(match) => match[0] ?? "",
 	);
 }
 
+/** Reads the leaderboard's visible last-updated date. */
 function surgeLastUpdated(pageHtml: string): string | null {
 	const match = pageHtml.match(/Last updated\s+(\d{2}\/\d{2}\/\d{4})/i);
 	return match?.[1] ?? null;
 }
 
+/** Reads the model name across current and legacy Surge markup. */
 function surgeModelName(rowHtml: string): string | null {
 	const legacyModel = classText(rowHtml, "corecraft-model");
 	if (legacyModel != null) {
@@ -96,10 +106,12 @@ function surgeModelName(rowHtml: string): string | null {
 	);
 }
 
+/** Reads the provider from the row logo alt text. */
 function surgeProvider(rowHtml: string): string | null {
 	return providerFromLogoAlt(htmlAttribute(rowHtml, "alt"));
 }
 
+/** Reads the score percentage from attribute or visible row text. */
 function surgeScorePercent(rowHtml: string): string | null {
 	const attributeScore = htmlAttribute(rowHtml, "data-score");
 	if (attributeScore != null && attributeScore.length > 0) {
@@ -112,6 +124,7 @@ function surgeScorePercent(rowHtml: string): string | null {
 	return score != null && score.length > 0 ? score : null;
 }
 
+/** Converts one Surge leaderboard item into a benchmark score row. */
 function surgeLeaderboardScoreRow(
 	rowHtml: string,
 	lastUpdated: string | null,
@@ -129,6 +142,7 @@ function surgeLeaderboardScoreRow(
 	};
 }
 
+/** Converts Surge leaderboard markup into Model Atlas score rows. */
 export function surgeLeaderboardScoreRows(
 	pageHtml: string,
 ): SurgeLeaderboardScoreRow[] {

@@ -253,6 +253,7 @@ export async function getDeepSWERawLeaderboardStats(
 	};
 }
 
+/** Returns the leaderboard URL for a DeepSWE source version. */
 export function deepSWEUrlForSourceVersion(
 	version: DeepSWESourceVersion | null,
 ): string {
@@ -261,6 +262,7 @@ export function deepSWEUrlForSourceVersion(
 		: DEEP_SWE_V1_1_LEADERBOARD_URL;
 }
 
+/** Infers the DeepSWE source version from a leaderboard URL. */
 function deepSWESourceVersionForUrl(url: string): DeepSWESourceVersion | null {
 	if (url.includes("/artifacts/v1.1/")) {
 		return "v1.1";
@@ -271,6 +273,7 @@ function deepSWESourceVersionForUrl(url: string): DeepSWESourceVersion | null {
 	return null;
 }
 
+/** Chooses the DeepSWE source version represented by scraped rows. */
 function deepSWESourceVersionForRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWESourceVersion | null {

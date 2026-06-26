@@ -1,3 +1,5 @@
+/** Payload smoke testing for Model Atlas. */
+
 import { getLiveLlmStats } from "../src/model-atlas/index";
 
 const started = Date.now();

@@ -1,3 +1,5 @@
+/** Provider icon generation for Model Atlas. */
+
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -61,6 +63,7 @@ console.log(
 	),
 );
 
+/** Reads already-normalized provider icons from the output directory. */
 async function readExistingAssets(): Promise<ProviderAssetMap> {
 	try {
 		const moduleUrl = pathToFileURL(resolve(GENERATED_PATH)).href;
@@ -73,6 +76,7 @@ async function readExistingAssets(): Promise<ProviderAssetMap> {
 	}
 }
 
+/** Reads provider logo source definitions before generation. */
 async function readProviderSources() {
 	const snapshot = JSON.parse(await readFile(SNAPSHOT_PATH, "utf8")) as {
 		models?: SnapshotModel[];
@@ -91,6 +95,7 @@ async function readProviderSources() {
 	return providers;
 }
 
+/** Loads provider logo source bytes from data URLs or files. */
 async function logoSourceBuffer(provider: string, source: string) {
 	if (source.startsWith("data:image/")) {
 		return dataUrlBuffer(source);
@@ -102,6 +107,7 @@ async function logoSourceBuffer(provider: string, source: string) {
 	}
 }
 
+/** Decodes base64 provider logo data URLs. */
 function dataUrlBuffer(source: string) {
 	const base64Marker = ";base64,";
 	const base64Index = source.indexOf(base64Marker);
@@ -118,6 +124,7 @@ function dataUrlBuffer(source: string) {
 	return Buffer.from(decodeURIComponent(source.slice(commaIndex + 1)), "utf8");
 }
 
+/** Encodes an SVG provider icon as a data URL. */
 function svgDataUrl(imageBuffer: Buffer) {
 	const imageHref = `data:image/png;base64,${imageBuffer.toString("base64")}`;
 	const svg = [
@@ -128,6 +135,7 @@ function svgDataUrl(imageBuffer: Buffer) {
 	return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
+/** Renders the generated provider asset TypeScript module. */
 function providerAssetsModule(assets: ProviderAssetMap) {
 	const entries = Object.entries(assets)
 		.sort(([left], [right]) => left.localeCompare(right))
@@ -155,10 +163,12 @@ function providerAssetsModule(assets: ProviderAssetMap) {
 	].join("\n");
 }
 
+/** Formats provider slugs as safe object keys. */
 function propertyKey(value: string) {
 	return /^[A-Za-z_$][\w$]*$/.test(value) ? value : JSON.stringify(value);
 }
 
+/** Normalizes provider names into logo asset slugs. */
 function providerSlug(provider: string | null | undefined) {
 	return String(provider ?? "")
 		.trim()

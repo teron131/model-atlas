@@ -30,6 +30,7 @@ const CATALOG_ALIAS_STRIP_SUFFIXES = [...CATALOG_ALIAS_SUFFIXES].sort(
 );
 const DATED_PREVIEW_ROUTE_PATTERN = /^(.+)-preview-\d{2}-(?:\d{2}|\d{4})$/;
 
+/** Removes dated and preview suffixes from OpenRouter model names. */
 function stripOpenRouterVersionSuffix(modelName: string): string {
 	return modelName
 		.replace(/-(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i, "")
@@ -39,6 +40,7 @@ function stripOpenRouterVersionSuffix(modelName: string): string {
 		.replace(/-\d{2}-\d{4}$/i, "");
 }
 
+/** Checks whether OpenRouter version suffix for model alias normalization. */
 function isOpenRouterVersionSuffix(value: string): boolean {
 	return (
 		/^(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i.test(value) ||
@@ -49,11 +51,13 @@ function isOpenRouterVersionSuffix(value: string): boolean {
 	);
 }
 
+/** Splits provider/model routes into normalized comparison parts. */
 function openRouterRouteParts(route: string): [string, string] | null {
 	const [provider, modelName = ""] = route.toLowerCase().split("/", 2);
 	return provider && modelName ? [provider, modelName] : null;
 }
 
+/** Checks whether same OpenRouter model version for model alias normalization. */
 function isSameOpenRouterModelVersion(
 	targetModelName: string,
 	candidateModelName: string,
@@ -73,6 +77,7 @@ function isSameOpenRouterModelVersion(
 	);
 }
 
+/** Checks whether same OpenRouter model route for model alias normalization. */
 export function isSameOpenRouterModelRoute(
 	targetRoute: string,
 	candidateRoute: string,
@@ -87,6 +92,7 @@ export function isSameOpenRouterModelRoute(
 	);
 }
 
+/** Removes catalog-only effort and alias suffixes before matching. */
 export function stripCatalogAliasSuffixes(value: string): string {
 	let normalized = value.replace(/-\d{8}$/, "");
 	for (const suffix of CATALOG_ALIAS_STRIP_SUFFIXES) {
@@ -98,6 +104,7 @@ export function stripCatalogAliasSuffixes(value: string): string {
 	return normalized;
 }
 
+/** Ranks Artificial Analysis aliases by reasoning-effort specificity. */
 export function reasoningEffortPriority(
 	aaSlug: string | null,
 	canonicalSlug: string | null,
@@ -123,12 +130,14 @@ export function reasoningEffortPriority(
 	return 0;
 }
 
+/** Maps free OpenRouter route IDs back to their paid base route. */
 export function nonFreeOpenRouterModelId(modelId: string): string | null {
 	return modelId.endsWith(OPENROUTER_FREE_ROUTE_SUFFIX)
 		? modelId.slice(0, -OPENROUTER_FREE_ROUTE_SUFFIX.length)
 		: null;
 }
 
+/** Builds the public OpenRouter ID after hiding free and dated variants. */
 export function publicOpenRouterModelId(modelId: string | null): string | null {
 	if (modelId == null) {
 		return null;
@@ -139,26 +148,31 @@ export function publicOpenRouterModelId(modelId: string | null): string | null {
 	);
 }
 
+/** Removes dated preview suffixes from public model IDs. */
 function stripDatedPreviewRoute(modelId: string): string {
 	return modelId.replace(DATED_PREVIEW_ROUTE_PATTERN, "$1");
 }
 
+/** Rewrites numeric release separators into public version notation. */
 function normalizePublicVersionSeparators(modelId: string): string {
 	return modelId.replace(/(^|[-/])(\d)-(\d)(?=$|-)/g, "$1$2.$3");
 }
 
+/** Checks whether OpenRouter free route ID for model alias normalization. */
 export function isOpenRouterFreeRouteId(
 	modelId: string | null | undefined,
 ): boolean {
 	return modelId?.endsWith(OPENROUTER_FREE_ROUTE_SUFFIX) === true;
 }
 
+/** Detects display names that still expose the free-route label. */
 export function hasPublicFreeRouteLabel(
 	modelName: string | null | undefined,
 ): boolean {
 	return /\s+\(free\)\s*$/i.test(modelName ?? "");
 }
 
+/** Removes transient preview/latest/free labels from public model names. */
 export function publicModelDisplayName(
 	modelName: string | null,
 ): string | null {

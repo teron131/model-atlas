@@ -35,6 +35,7 @@ export function processGdpPdfPageHtml(pageHtml: string): GdpPdfModelScoreRow[] {
 	return surgeLeaderboardScoreRows(pageHtml);
 }
 
+/** Normalizes model key candidates from benchmark source data. */
 function modelKeyCandidates(model: string): string[] {
 	const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
 	const slashParts = withoutParenthetical

@@ -69,14 +69,17 @@ export type AutomationBenchLeaderboardPayload = {
 	model_scores: AutomationBenchModelScoreRow[];
 };
 
+/** Converts AutomationBench percentage strings onto the 0-1 scoring scale. */
 function parseScorePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }
 
+/** Parses per-task dollar amounts with stable decimal precision. */
 function parseMoney(value: string): number {
 	return Number(Number(value).toFixed(6));
 }
 
+/** Applies the bounded domain-leadership lift to a leaderboard score. */
 function adjustedScore(
 	leaderboardScore: number,
 	domainLeadScoreMedian: number | null,
@@ -88,17 +91,21 @@ function adjustedScore(
 	return Number((leaderboardScore + domainLift).toFixed(6));
 }
 
+/** Extracts a trailing reasoning-effort label from the model name. */
 function parseReasoningEffort(model: string): string | null {
 	const match = model.match(/\(([^()]+)\)\s*$/);
 	return match?.[1]?.trim() ?? null;
 }
 
+/** Removes reasoning-effort suffixes from AutomationBench model names. */
 function baseModelName(model: string): string {
 	return model.replace(/\s*\([^()]+\)\s*$/, "").trim();
 }
 
+/** Builds lookup aliases for model labels that drift across sources. */
 function normalizedModelAliases(model: string): string[] {
 	const aliases = new Set<string>();
+	/** Adds a non-empty normalized alias plus common version variants. */
 	const addAlias = (value: string) => {
 		const key = normalizeModelToken(value);
 		if (key.length > 0) {
@@ -121,11 +128,13 @@ function normalizedModelAliases(model: string): string[] {
 	return [...aliases];
 }
 
+/** Orders duplicate rows by preferred reasoning-effort tier. */
 function reasoningEffortRank(row: AutomationBenchModelScoreRow): number {
 	const key = row.reasoning_effort?.toLowerCase().replace(/[^a-z0-9]+/g, "");
 	return key == null ? 0 : (REASONING_EFFORT_RANKS[key] ?? 0);
 }
 
+/** Chooses the stronger duplicate AutomationBench score row. */
 function prefersAutomationBenchRow(
 	existing: AutomationBenchModelScoreRow | undefined,
 	row: AutomationBenchModelScoreRow,
@@ -144,6 +153,7 @@ function prefersAutomationBenchRow(
 	return row.adjusted_score > existing.adjusted_score;
 }
 
+/** Stores preferred score row for AutomationBench scraping. */
 function setPreferredScoreRow(
 	scoreByModelName: AutomationBenchScoreByModelName,
 	key: string,
@@ -156,6 +166,7 @@ function setPreferredScoreRow(
 	}
 }
 
+/** Returns page-text lines inside a labeled AutomationBench section. */
 function linesBetween(
 	lines: string[],
 	startMarker: string,
@@ -227,6 +238,7 @@ export function processAutomationBenchOverallLines(
 	return rows;
 }
 
+/** Splits a domain-table model label into model, effort, and provider fields. */
 function splitModelProvider(value: string): AutomationBenchDomainModel {
 	const separator = " \u2014 ";
 	const separatorIndex = value.lastIndexOf(separator);
@@ -245,6 +257,7 @@ function splitModelProvider(value: string): AutomationBenchDomainModel {
 	};
 }
 
+/** Parses second-place domain winners, scores, and tie markers. */
 function parseSecondPlace(value: string): {
 	models: AutomationBenchDomainModel[];
 	score: number | null;
@@ -321,6 +334,7 @@ export function processAutomationBenchDomainLines(
 	return rows;
 }
 
+/** Collects domain-winning scores by normalized top-model alias. */
 function domainLeadScoresByModel(
 	rows: AutomationBenchDomainRow[],
 ): Map<string, number[]> {

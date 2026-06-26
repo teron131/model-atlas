@@ -1,3 +1,5 @@
+/** Benchmark portfolio configuration for Model Atlas. */
+
 import type {
 	BenchmarkGroup,
 	BenchmarkPortfolioEntry,
@@ -159,6 +161,7 @@ export const RESOURCE_COMPONENT_TOTAL_WEIGHT =
 	1 - RAW_RESOURCE_COMPONENT_WEIGHT;
 export const ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT = 14;
 
+/** Splits resource weighting between Artificial Analysis and frontier benchmarks. */
 export function resourceComponentWeightsFor({
 	aaResourceSourceCount = ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
 	frontierResourceSourceCount,
@@ -184,9 +187,11 @@ export function resourceComponentWeightsFor({
 	};
 }
 
+/** Looks up the portfolio entry for a benchmark key. */
 export const benchmarkPortfolioEntry = (key: string) =>
 	BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
 
+/** Resolves the resource policy attached to a benchmark key. */
 export const benchmarkResourcePolicy = (
 	key: string,
 	portfolio: Readonly<
@@ -194,9 +199,11 @@ export const benchmarkResourcePolicy = (
 	> = BENCHMARK_PORTFOLIO,
 ) => portfolio[key]?.resourcePolicy ?? null;
 
+/** Lists benchmark keys that belong to the requested portfolio group. */
 export const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
 	BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 
+/** Returns the benchmark's contribution to one quality dimension. */
 export const benchmarkDimensionPortion = (
 	key: string,
 	dimension: BenchmarkDimension,
@@ -209,6 +216,7 @@ export const benchmarkDimensionPortion = (
 			: entry.agenticPortion;
 };
 
+/** Lists benchmark keys that contribute to the requested quality dimension. */
 export const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
 	BENCHMARK_KEYS.filter((key) => benchmarkDimensionPortion(key, dimension) > 0);
 

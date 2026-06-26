@@ -41,6 +41,7 @@ export type ToolathlonModelScorePayload = {
 	data: ToolathlonModelScoreRow[];
 };
 
+/** Normalizes Toolathlon model score row from benchmark source data. */
 function toolathlonModelScoreRow(
 	value: unknown,
 ): ToolathlonModelScoreRow | null {

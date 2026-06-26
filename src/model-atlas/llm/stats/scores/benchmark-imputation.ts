@@ -59,10 +59,12 @@ export function firstMetricValue(
 	return null;
 }
 
+/** Chooses the index scale that should backfill a benchmark group. */
 export function indexScaleKey(indexKeys: readonly string[]): string {
 	return indexKeys.join(INDEX_SCALE_KEY_SEPARATOR);
 }
 
+/** Normalizes available metric values before benchmark imputation. */
 export function normalizedMetricValue(
 	valuesByKey: ReadonlyMap<string, readonly number[]>,
 	key: string,
@@ -100,6 +102,7 @@ function observedNormalizedEvidenceScore(
 	return finiteValueCount >= minEvidenceValues ? meanOfFinite(values) : null;
 }
 
+/** Estimates missing benchmark scores from correlated index metrics. */
 function imputedBenchmarkValue(
 	mappedValue: number | null,
 	floorValue: number | null,
@@ -232,6 +235,7 @@ export function buildBenchmarkImputationByModel(
 	return imputationByModel;
 }
 
+/** Merges benchmark imputations for benchmark imputation. */
 function mergeBenchmarkImputations(
 	...imputations: Array<Map<JsonObject, Map<string, number>>>
 ): Map<JsonObject, Map<string, number>> {

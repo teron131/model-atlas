@@ -108,12 +108,14 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 	);
 }
 
+/** Extracts the canonical model slug stored in an OpenRouter dedupe key. */
 function canonicalSlugFromDedupeKey(dedupeKey: string): string | null {
 	return dedupeKey.startsWith("aa:")
 		? dedupeKey.slice("aa:".length)
 		: modelSlugFromModelId(dedupeKey);
 }
 
+/** Builds a stable dedupe key from an OpenRouter row ID. */
 function dedupeKeyForRowId(modelId: string): string {
 	const normalizedId = normalizeProviderModelId(modelId);
 	if (!normalizedId.includes("/")) {
@@ -125,6 +127,7 @@ function dedupeKeyForRowId(modelId: string): string {
 	return `${provider}/${slug}`;
 }
 
+/** Groups OpenRouter rows that differ only by provider version label. */
 function versionKeyForRow(row: JsonObject): string | null {
 	const aaSlug = typeof row.aa_slug === "string" ? row.aa_slug : null;
 	const id = typeof row.id === "string" ? row.id : null;
@@ -134,6 +137,7 @@ function versionKeyForRow(row: JsonObject): string | null {
 		: stripCatalogAliasSuffixes(normalizeModelToken(slug));
 }
 
+/** Builds the merge key for duplicate OpenRouter rows. */
 function dedupeKeyForRow(
 	row: JsonObject,
 	benchmarkVersionKeys: ReadonlySet<string>,
@@ -149,6 +153,7 @@ function dedupeKeyForRow(
 	return dedupeKeyForRowId(id);
 }
 
+/** Merges object field for OpenRouter enrichment. */
 function mergeObjectField(
 	target: JsonObject,
 	field: (typeof MERGED_OBJECT_FIELDS)[number],
@@ -168,6 +173,7 @@ function mergeObjectField(
 	}
 }
 
+/** Chooses the paid public OpenRouter ID for a merged model group. */
 function primaryOpenRouterIdForGroup(
 	group: readonly JsonObject[],
 ): string | null {
@@ -183,6 +189,7 @@ function primaryOpenRouterIdForGroup(
 	return null;
 }
 
+/** Merges duplicate rows for OpenRouter enrichment. */
 function mergeDuplicateRows(
 	winner: JsonObject,
 	group: readonly JsonObject[],
@@ -201,6 +208,7 @@ function mergeDuplicateRows(
 	return merged;
 }
 
+/** Checks whether an OpenRouter speed row has usable latency or throughput. */
 function speedHasData(speed: JsonObject): boolean {
 	return (
 		asFiniteNumber(speed.throughput_tokens_per_second_median) != null ||
@@ -209,6 +217,7 @@ function speedHasData(speed: JsonObject): boolean {
 	);
 }
 
+/** Checks whether an OpenRouter pricing row has non-zero token prices. */
 function pricingHasData(pricing: JsonObject): boolean {
 	return (
 		(asFiniteNumber(pricing.weighted_input) ?? 0) > 0 ||
@@ -216,6 +225,7 @@ function pricingHasData(pricing: JsonObject): boolean {
 	);
 }
 
+/** Stores map value prefer data for OpenRouter enrichment. */
 function setMapValuePreferData(
 	map: Map<string, JsonObject>,
 	key: string,
@@ -228,6 +238,7 @@ function setMapValuePreferData(
 	}
 }
 
+/** Reads map entries through exact and normalized model IDs. */
 function getMapValueByExactOrNormalizedId(
 	map: Map<string, JsonObject>,
 	modelId: string,
@@ -235,6 +246,7 @@ function getMapValueByExactOrNormalizedId(
 	return map.get(modelId) ?? map.get(normalizeProviderModelId(modelId)) ?? null;
 }
 
+/** Stores map value for exact and normalized ID for OpenRouter enrichment. */
 function setMapValueForExactAndNormalizedId(
 	map: Map<string, JsonObject>,
 	modelId: string,
@@ -248,11 +260,13 @@ function setMapValueForExactAndNormalizedId(
 	}
 }
 
+/** Reads the public model ID from an OpenRouter enrichment row. */
 function rowModelId(row: Record<string, unknown>): string | null {
 	const id = asRecord(row).id;
 	return typeof id === "string" && id.length > 0 ? id : null;
 }
 
+/** Reads the original OpenRouter route ID from an enrichment row. */
 function rowOpenRouterModelId(row: Record<string, unknown>): string | null {
 	const rowRecord = asRecord(row);
 	const openRouterId = rowRecord.openrouter_id;
@@ -262,6 +276,7 @@ function rowOpenRouterModelId(row: Record<string, unknown>): string | null {
 	return rowModelId(row);
 }
 
+/** Copies OpenRouter enrichment from route aliases onto public rows. */
 function aliasOpenRouterDataToPublicRows(
 	rows: Record<string, unknown>[],
 	speedById: Map<string, JsonObject>,
