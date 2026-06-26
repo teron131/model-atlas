@@ -1,7 +1,10 @@
+/** Provider logo color extraction for Model Atlas. */
+
 const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;
 
+/** Extracts a stable dashboard color from provider logo pixels. */
 export async function providerIconColor(imageBuffer: Buffer) {
 	const { default: sharp } = await import("sharp");
 	const { data, info } = await sharp(imageBuffer)
@@ -12,6 +15,7 @@ export async function providerIconColor(imageBuffer: Buffer) {
 	return prominentIconColor(data, info.channels);
 }
 
+/** Chooses the dominant chromatic color from normalized logo pixels. */
 function prominentIconColor(data: Buffer, channels: number) {
 	const hueBins = new Map<number, HueBin>();
 	let visiblePixels = 0;
@@ -66,10 +70,12 @@ type Hsl = {
 	l: number;
 };
 
+/** Checks whether a pixel has enough saturation and lightness to represent a logo. */
 function isUsableChroma({ s, l }: Hsl) {
 	return s >= 0.28 && l >= 0.13 && l <= 0.9;
 }
 
+/** Converts RGB logo pixels into HSL for hue binning. */
 function rgbToHsl(red: number, green: number, blue: number): Hsl {
 	const r = red / 255;
 	const g = green / 255;
@@ -94,6 +100,7 @@ function rgbToHsl(red: number, green: number, blue: number): Hsl {
 	return { h: hue * 60, s: saturation, l: lightness };
 }
 
+/** Converts the selected HSL color back into a CSS hex color. */
 function hslToHex({ h, s, l }: Hsl) {
 	const chroma = (1 - Math.abs(2 * l - 1)) * s;
 	const hue = ((h % 360) + 360) % 360;
@@ -128,10 +135,12 @@ function hslToHex({ h, s, l }: Hsl) {
 	});
 }
 
+/** Bounds color channel values to the requested range. */
 function clamp(value: number, min: number, max: number) {
 	return Math.min(Math.max(value, min), max);
 }
 
+/** Converts RGB color channels into a CSS hex color. */
 function rgbToHex({
 	red,
 	green,
@@ -144,6 +153,7 @@ function rgbToHex({
 	return `#${hexByte(red)}${hexByte(green)}${hexByte(blue)}`;
 }
 
+/** Formats a color channel as a two-character hex byte. */
 function hexByte(value: number) {
 	return clamp(value, 0, 255).toString(16).padStart(2, "0");
 }

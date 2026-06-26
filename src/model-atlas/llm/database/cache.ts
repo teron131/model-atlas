@@ -84,6 +84,7 @@ const AA_COST_KEYS = [
 
 type RawDbRow = JsonObject;
 
+/** Runs a raw-cache query and coerces SQLite rows into JSON records. */
 function rows(db: DatabaseSync, sql: string): RawDbRow[] {
 	return db
 		.prepare(sql)
@@ -91,6 +92,7 @@ function rows(db: DatabaseSync, sql: string): RawDbRow[] {
 		.map((row) => asRecord(row));
 }
 
+/** Finds the first persisted fetch timestamp across raw source rows. */
 function firstEpochSecond(rowsToScan: readonly RawDbRow[]): number | null {
 	for (const row of rowsToScan) {
 		const fetchedAt = asFiniteNumber(row.fetched_at_epoch_seconds);
@@ -101,6 +103,7 @@ function firstEpochSecond(rowsToScan: readonly RawDbRow[]): number | null {
 	return null;
 }
 
+/** Checks whether the Artificial Analysis cache includes hidden retained rows. */
 function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
 	const row = asRecord(
 		db
@@ -117,6 +120,7 @@ function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
 	return (asFiniteNumber(row.row_count) ?? 0) > 0;
 }
 
+/** Checks whether OpenRouter cached candidates include scoped route IDs. */
 function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
 	const candidateRows = rows(
 		db,
@@ -136,6 +140,7 @@ function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
 	return candidateRows.length > 0;
 }
 
+/** Checks whether a source cache has the current persisted row shape. */
 function sourceCacheShapeIsCurrent(
 	db: DatabaseSync,
 	source: RawSourceName,
@@ -149,10 +154,12 @@ function sourceCacheShapeIsCurrent(
 	return true;
 }
 
+/** Reads non-empty string fields from persisted cache rows. */
 function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** Converts SQLite integer booleans back to true or false. */
 function booleanFromSql(value: unknown): boolean | null {
 	if (value === 1) {
 		return true;
@@ -163,6 +170,7 @@ function booleanFromSql(value: unknown): boolean | null {
 	return null;
 }
 
+/** Copies present string fields into reconstructed payload objects. */
 function assignIfString(target: JsonObject, key: string, value: unknown): void {
 	const parsed = stringValue(value);
 	if (parsed != null) {
@@ -170,6 +178,7 @@ function assignIfString(target: JsonObject, key: string, value: unknown): void {
 	}
 }
 
+/** Copies finite numeric fields into reconstructed payload objects. */
 function assignIfNumber(target: JsonObject, key: string, value: unknown): void {
 	const parsed = asFiniteNumber(value);
 	if (parsed != null) {
@@ -177,6 +186,7 @@ function assignIfNumber(target: JsonObject, key: string, value: unknown): void {
 	}
 }
 
+/** Copies persisted boolean flags into reconstructed payload objects. */
 function assignIfBoolean(
 	target: JsonObject,
 	key: string,
@@ -188,10 +198,12 @@ function assignIfBoolean(
 	}
 }
 
+/** Drops empty nested payload sections after reconstruction. */
 function nonEmptyRecord(record: JsonObject): JsonObject | null {
 	return Object.keys(record).length > 0 ? record : null;
 }
 
+/** Collects modality flags from prefixed raw cache columns. */
 function modalityList(
 	row: RawDbRow,
 	prefix: string,
@@ -202,6 +214,7 @@ function modalityList(
 	);
 }
 
+/** Builds nested Artificial Analysis numeric sections from raw cache rows. */
 function artificialAnalysisNestedNumbers(
 	row: RawDbRow,
 	keys: readonly string[],
@@ -213,6 +226,7 @@ function artificialAnalysisNestedNumbers(
 	return record;
 }
 
+/** Reconstructs an Artificial Analysis raw payload row from SQLite columns. */
 function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 	const tokenCounts: JsonObject = {};
 	assignIfNumber(tokenCounts, "inputTokens", row.input_tokens);
@@ -274,6 +288,7 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 	return rawRow;
 }
 
+/** Reconstructs a selected Artificial Analysis row from SQLite columns. */
 function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	const selectedRow: JsonObject = {};
 	assignIfString(selectedRow, "model_id", row.model_id);
@@ -316,6 +331,7 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	return selectedRow;
 }
 
+/** Reads Artificial Analysis raw and selected rows from the raw cache. */
 export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	aaRawRows: JsonObject[];
 	aaSelectedRows: JsonObject[];
@@ -332,6 +348,7 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reconstructs models.dev cost fields from raw cache columns. */
 function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	const cost: NonNullable<ModelRecord["cost"]> = {};
 	assignIfNumber(cost, "input", row.cost_input);
@@ -342,6 +359,7 @@ function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	return Object.keys(cost).length > 0 ? cost : undefined;
 }
 
+/** Reconstructs models.dev limit fields from raw cache columns. */
 function modelLimit(row: RawDbRow): ModelRecord["limit"] | undefined {
 	const limit: NonNullable<ModelRecord["limit"]> = {};
 	assignIfNumber(limit, "context", row.limit_context);
@@ -349,6 +367,7 @@ function modelLimit(row: RawDbRow): ModelRecord["limit"] | undefined {
 	return Object.keys(limit).length > 0 ? limit : undefined;
 }
 
+/** Reconstructs models.dev modality fields from raw cache columns. */
 function modelModalities(row: RawDbRow): ModelRecord["modalities"] | undefined {
 	const input = modalityList(row, "input_modality", [
 		"text",
@@ -373,6 +392,7 @@ function modelModalities(row: RawDbRow): ModelRecord["modalities"] | undefined {
 	return Object.keys(modalities).length > 0 ? modalities : undefined;
 }
 
+/** Reconstructs a models.dev model record from raw cache columns. */
 function modelsDevModelRecord(row: RawDbRow): ModelRecord {
 	const model: ModelRecord = {};
 	assignIfString(model, "id", row.model_id);
@@ -398,6 +418,7 @@ function modelsDevModelRecord(row: RawDbRow): ModelRecord {
 	return model;
 }
 
+/** Reads models.dev provider/model records from the raw cache. */
 export function readModelsDevRawCache(db: DatabaseSync): {
 	payload: ModelsDevPayload;
 	fetchedAt: number | null;
@@ -434,6 +455,7 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads DeepSWE rows, source version, and fetch time from the raw cache. */
 export function readDeepSWERawCache(db: DatabaseSync): {
 	rows: DeepSWERawLeaderboardRow[];
 	fetchedAt: number | null;
@@ -489,6 +511,7 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 	};
 }
 
+/** Restores a persisted DeepSWE source-version value when it is recognized. */
 function deepSWESourceVersionFromDb(
 	value: unknown,
 ): DeepSWESourceVersion | null {
@@ -496,6 +519,7 @@ function deepSWESourceVersionFromDb(
 	return version === "v1.1" || version === "v1" ? version : null;
 }
 
+/** Reads Terminal-Bench agent accuracy rows from the raw cache. */
 export function readTerminalBenchRawCache(db: DatabaseSync): {
 	rows: TerminalBenchAgentModelAccuracyRow[];
 	fetchedAt: number | null;
@@ -520,6 +544,7 @@ export function readTerminalBenchRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads Agents' Last Exam harness rows from the raw cache. */
 export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	rows: AgentsLastExamHarnessRow[];
 	fetchedAt: number | null;
@@ -580,6 +605,7 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated BrowseComp score rows from the raw cache. */
 export function readBrowseCompRawCache(db: DatabaseSync): {
 	rows: BrowseCompModelScoreRow[];
 	fetchedAt: number | null;
@@ -622,6 +648,7 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated Blueprint Bench score rows from the raw cache. */
 export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	rows: BlueprintBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -661,6 +688,7 @@ export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated GDP PDF score rows from the raw cache. */
 export function readGdpPdfRawCache(db: DatabaseSync): {
 	rows: GdpPdfModelScoreRow[];
 	fetchedAt: number | null;
@@ -695,6 +723,7 @@ export function readGdpPdfRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated Riemann Bench score rows from the raw cache. */
 export function readRiemannBenchRawCache(db: DatabaseSync): {
 	rows: RiemannBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -734,6 +763,7 @@ export function readRiemannBenchRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated Toolathlon score rows from the raw cache. */
 export function readToolathlonRawCache(db: DatabaseSync): {
 	rows: ToolathlonModelScoreRow[];
 	fetchedAt: number | null;
@@ -778,6 +808,7 @@ export function readToolathlonRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated CursorBench score rows from the raw cache. */
 export function readCursorBenchRawCache(db: DatabaseSync): {
 	rows: CursorBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -830,6 +861,7 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reconstructs OpenRouter stats response fields from cached rows. */
 function openRouterStatsResponse(
 	rowsToConvert: RawDbRow[],
 ): OpenRouterStatsResponse {
@@ -856,6 +888,7 @@ function openRouterStatsResponse(
 	};
 }
 
+/** Reconstructs OpenRouter pricing fields from cached rows. */
 function openRouterPricing(
 	row: RawDbRow | undefined,
 ): OpenRouterEffectivePricingResponse | null {
@@ -870,6 +903,7 @@ function openRouterPricing(
 	};
 }
 
+/** Reconstructs OpenRouter model rows from cached row variants. */
 function openRouterModelRows(
 	modelId: string,
 	rowsByKind: Map<string, RawDbRow[]>,
@@ -922,6 +956,7 @@ function openRouterModelRows(
 	};
 }
 
+/** Reassembles OpenRouter directory, permaslug, stat, and pricing rows. */
 export function readOpenRouterRawCache(
 	db: DatabaseSync,
 ): OpenRouterRawScrapedPayload | null {
@@ -970,6 +1005,7 @@ export function readOpenRouterRawCache(
 	};
 }
 
+/** Reports whether a raw-source cache table is populated and still fresh. */
 export function readRawSourceCacheStatus(
 	db: DatabaseSync,
 	source: RawSourceName,
@@ -999,6 +1035,7 @@ export function readRawSourceCacheStatus(
 	};
 }
 
+/** Builds cache status metadata for freshly fetched source rows. */
 export function refreshedCacheStatus(
 	lastFetchEpochSeconds: number | null,
 	sourceInputCount: number,

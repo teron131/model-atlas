@@ -143,6 +143,7 @@ export function agentsLastExamBenchmarkScore(
 	return Math.max(row.median_score, row.mean_score);
 }
 
+/** Normalizes per run from benchmark source data. */
 function perRun(value: number, row: AgentsLastExamHarnessRow): number | null {
 	return row.runs > 0 ? value / row.runs : null;
 }

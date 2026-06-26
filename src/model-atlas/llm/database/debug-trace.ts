@@ -36,6 +36,7 @@ function modelsDevRowIndexByKey(
 	return byKey;
 }
 
+/** Counts OpenRouter stats points that precede the model row in raw storage. */
 function statsPointCount(
 	model: OpenRouterRawScrapedPayload["models"][number],
 ): number {
@@ -66,6 +67,7 @@ function openRouterStatsRowById(
 	return byModelId;
 }
 
+/** Explains why a matcher candidate was selected, skipped, or rejected. */
 function debugRejectionReason(
 	isSelected: boolean,
 	hasVariantRejection: boolean,
@@ -83,6 +85,7 @@ function debugRejectionReason(
 	return "not_selected";
 }
 
+/** Builds a debug trace row for an unmatched matcher candidate. */
 function unmatchedDebugTraceRow(
 	model: LlmScraperFallbackMatchDiagnosticsPayload["models"][number],
 	aaRowById: Map<string, number>,

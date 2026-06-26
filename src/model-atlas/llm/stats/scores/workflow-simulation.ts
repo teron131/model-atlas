@@ -15,20 +15,24 @@ import type {
 
 const DEFAULT_INPUT_TOKEN_SECONDS = 0.0001;
 
+/** Accepts only positive finite inputs for workflow simulation math. */
 function positiveNumber(value: unknown): number | null {
 	const number = asFiniteNumber(value);
 	return number != null && number > 0 ? number : null;
 }
 
+/** Clamps workflow quality and cache fractions to the 0-1 scoring scale. */
 function clamp01(value: number): number {
 	return Math.min(1, Math.max(0, value));
 }
 
+/** Applies eased 0-1 scoring credit instead of a hard threshold. */
 function smoothstep(value: number): number {
 	const clamped = clamp01(value);
 	return clamped * clamped * (3 - 2 * clamped);
 }
 
+/** Estimates expected tokens for a log-uniform workflow size range. */
 function expectedLogUniformTokens(range: SimulationTokenRange): number {
 	if (range.lower <= 0 || range.upper <= 0 || range.lower === range.upper) {
 		return (range.lower + range.upper) / 2;
@@ -39,6 +43,7 @@ function expectedLogUniformTokens(range: SimulationTokenRange): number {
 	);
 }
 
+/** Rejects workflow profiles without positive weights or token ranges. */
 function validSimulationProfile(profile: SimulationProfile): boolean {
 	return (
 		profile.weight > 0 &&
@@ -48,6 +53,7 @@ function validSimulationProfile(profile: SimulationProfile): boolean {
 	);
 }
 
+/** Averages the configured cache hit-rate range onto the 0-1 scale. */
 function expectedCacheHitRate(profile: SimulationProfile): number {
 	return clamp01(
 		(profile.cache_hit_rate_after_first_call.lower +
@@ -56,6 +62,7 @@ function expectedCacheHitRate(profile: SimulationProfile): number {
 	);
 }
 
+/** Estimates latency plus generation time for one workflow profile. */
 function profileSeconds(
 	profile: SimulationProfile,
 	latencySeconds: number,
@@ -72,6 +79,7 @@ function profileSeconds(
 	);
 }
 
+/** Estimates prompt and output cost for one workflow profile. */
 function profileCost(
 	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
@@ -104,6 +112,7 @@ function profileCost(
 	return (firstCallInputCost + laterCallInputCost + outputCost) / 1_000_000;
 }
 
+/** Translates quality score into profile-specific workflow credit. */
 function profileQualityMultiplier(
 	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
@@ -119,6 +128,7 @@ function profileQualityMultiplier(
 		: smoothstep(qualityScore / profile.quality_full_credit_at);
 }
 
+/** Averages workflow profile values using configured profile weights. */
 function weightedProfileMean(
 	profiles: Iterable<SimulationProfile>,
 	valueForProfile: (profile: SimulationProfile) => number | null,

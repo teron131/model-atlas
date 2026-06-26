@@ -33,6 +33,7 @@ export type BlueprintBenchModelScorePayload = {
 	data: BlueprintBenchModelScoreRow[];
 };
 
+/** Normalizes parse score from benchmark source data. */
 function parseScore(value: string | undefined): number | null {
 	if (value == null) {
 		return null;
@@ -43,6 +44,7 @@ function parseScore(value: string | undefined): number | null {
 		: null;
 }
 
+/** Normalizes parse leaderboard cells from benchmark source data. */
 function parseLeaderboardCells(lines: string[]): BlueprintBenchModelScoreRow[] {
 	const rows: BlueprintBenchModelScoreRow[] = [];
 	for (let index = 0; index < lines.length - 2; index += 1) {

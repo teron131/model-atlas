@@ -1,3 +1,5 @@
+/** Public model projection for Model Atlas. */
+
 import { resolveStatsLogo } from "../../../logo";
 import {
 	asFiniteNumber,
@@ -37,10 +39,12 @@ const INTELLIGENCE_COST_TOTAL_COST_KEY = "intelligence_index_cost_total_cost";
 const INTELLIGENCE_COST_TOTAL_TOKENS_KEY =
 	"intelligence_index_cost_total_tokens";
 
+/** Checks whether an assembled public model section has fields. */
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
 }
 
+/** Copies finite numeric fields into public model sections. */
 function assignFiniteNumber(
 	target: Record<string, number>,
 	key: string,
@@ -52,6 +56,7 @@ function assignFiniteNumber(
 	}
 }
 
+/** Keeps only finite numeric fields in projected metric maps. */
 function buildNumericMap<T extends Record<string, number | null | undefined>>(
 	value: unknown,
 ): T | null {
@@ -62,6 +67,7 @@ function buildNumericMap<T extends Record<string, number | null | undefined>>(
 	return hasFields(numericFields) ? (numericFields as T) : null;
 }
 
+/** Extracts the provider prefix from a provider/model ID. */
 function providerFromId(modelId: unknown): string | null {
 	if (typeof modelId !== "string") {
 		return null;
@@ -73,6 +79,7 @@ function providerFromId(modelId: unknown): string | null {
 	return normalizeProviderId(modelId.slice(0, slashIndex));
 }
 
+/** Resolves the provider used by a projected public model. */
 function providerFromModel(model: JsonObject): string | null {
 	const fromId = providerFromId(model.id);
 	if (fromId) {
@@ -81,6 +88,7 @@ function providerFromModel(model: JsonObject): string | null {
 	return typeof model.provider_id === "string" ? model.provider_id : null;
 }
 
+/** Resolves the logo URL exposed on a public model row. */
 function buildLogo(model: JsonObject, provider: string | null): string {
 	return resolveStatsLogo({
 		provider,
@@ -88,6 +96,7 @@ function buildLogo(model: JsonObject, provider: string | null): string {
 	});
 }
 
+/** Projects input and output modalities when source data provides them. */
 function buildModalities(model: JsonObject): LlmStatsModalities | null {
 	const modalities = asRecord(model.modalities);
 	const input = Array.isArray(modalities.input)
@@ -110,6 +119,7 @@ function buildModalities(model: JsonObject): LlmStatsModalities | null {
 	return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
+/** Projects context window limits from source model metadata. */
 function buildContextWindow(model: JsonObject): LlmStatsContextWindow {
 	const limit = asRecord(model.limit);
 	const context = asFiniteNumber(limit.context);
@@ -125,6 +135,7 @@ function buildContextWindow(model: JsonObject): LlmStatsContextWindow {
 	};
 }
 
+/** Projects speed metrics, preferring OpenRouter telemetry when present. */
 function buildSpeed(
 	model: JsonObject,
 	modelId: string | null,
@@ -153,6 +164,7 @@ function buildSpeed(
 	};
 }
 
+/** Checks whether projected speed data contains usable values. */
 function speedHasData(speed: JsonObject): boolean {
 	return (
 		asFiniteNumber(speed.throughput_tokens_per_second_median) != null ||
@@ -161,6 +173,7 @@ function speedHasData(speed: JsonObject): boolean {
 	);
 }
 
+/** Checks whether projected pricing data contains usable values. */
 function pricingHasData(pricing: JsonObject): boolean {
 	return (
 		(asFiniteNumber(pricing.weighted_input) ?? 0) > 0 ||
@@ -168,6 +181,7 @@ function pricingHasData(pricing: JsonObject): boolean {
 	);
 }
 
+/** Looks up OpenRouter data by exact and normalized model IDs. */
 function lookupOpenRouterData(
 	valuesById: Map<string, JsonObject>,
 	modelId: string | null,
@@ -187,6 +201,7 @@ function lookupOpenRouterData(
 	return exact ?? normalized ?? null;
 }
 
+/** Projects token price fields from a source cost object. */
 function buildCostBreakdown(value: unknown): LlmStatsCostBreakdown | null {
 	const source = asRecord(value);
 	const cost: LlmStatsCostBreakdown = {};
@@ -209,6 +224,7 @@ function buildCostBreakdown(value: unknown): LlmStatsCostBreakdown | null {
 	return hasFields(cost) ? cost : null;
 }
 
+/** Projects one tiered pricing record for public output. */
 function buildCostTier(value: unknown): LlmStatsCostTier | null {
 	const source = asRecord(value);
 	const costTier: LlmStatsCostTier = {
@@ -226,6 +242,7 @@ function buildCostTier(value: unknown): LlmStatsCostTier | null {
 	return hasFields(costTier) ? costTier : null;
 }
 
+/** Projects model pricing and blended value score inputs. */
 function buildCost(
 	model: JsonObject,
 	openRouterPricing: JsonObject,
@@ -262,10 +279,12 @@ function buildCost(
 	return hasFields(cost) ? cost : null;
 }
 
+/** Projects benchmark evaluation scores for public output. */
 function buildEvaluations(model: JsonObject): LlmStatsEvaluations | null {
 	return buildNumericMap<LlmStatsEvaluations>(model.evaluations);
 }
 
+/** Projects Artificial Analysis intelligence indexes for public output. */
 function buildIntelligence(model: JsonObject): LlmStatsIntelligence | null {
 	const intelligence = { ...asRecord(model.intelligence) };
 	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
@@ -273,6 +292,7 @@ function buildIntelligence(model: JsonObject): LlmStatsIntelligence | null {
 	return buildNumericMap<LlmStatsIntelligence>(intelligence);
 }
 
+/** Projects cost inputs behind the intelligence index score. */
 function buildIntelligenceIndexCost(
 	model: JsonObject,
 ): LlmStatsIntelligenceIndexCost {
@@ -314,6 +334,7 @@ function buildIntelligenceIndexCost(
 	return hasFields(cost) ? cost : null;
 }
 
+/** Projects provenance for observed and imputed score fields. */
 function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 	const deepSWE = buildDeepSWEScoringSource(model);
 	const agentsLastExam = buildAgentsLastExamScoringSource(model);
@@ -326,6 +347,7 @@ function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 	return hasFields(scoringSources) ? scoringSources : null;
 }
 
+/** Projects AutomationBench provenance for public score metadata. */
 function buildAutomationBenchScoringSource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).automation_bench);
 	const costPerTaskUsd = asFiniteNumber(source.cost_per_task_usd);
@@ -353,6 +375,7 @@ function buildAutomationBenchScoringSource(model: JsonObject) {
 	};
 }
 
+/** Projects DeepSWE provenance for public score metadata. */
 function buildDeepSWEScoringSource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).deep_swe);
 	const passAt1 = asFiniteNumber(source.pass_at_1);
@@ -388,6 +411,7 @@ function buildDeepSWEScoringSource(model: JsonObject) {
 	};
 }
 
+/** Projects Agents Last Exam provenance for public score metadata. */
 function buildAgentsLastExamScoringSource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).agents_last_exam);
 	const medianScore = asFiniteNumber(source.median_score);

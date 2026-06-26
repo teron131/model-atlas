@@ -1,3 +1,5 @@
+/** Vercel environment syncing for Model Atlas. */
+
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -14,6 +16,7 @@ const targets = [
 const entries = envEntries();
 const localKeys = new Set(entries.map(([key]) => key));
 
+/** Removes one layer of shell quotes from dotenv values. */
 function unquote(value: string): string {
 	const trimmed = value.trim();
 	return (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
@@ -22,6 +25,7 @@ function unquote(value: string): string {
 		: trimmed;
 }
 
+/** Parses dotenv key/value entries for Vercel syncing. */
 function envEntries(): [string, string][] {
 	return readFileSync(envFile, "utf8")
 		.split(/\r?\n/)
@@ -34,6 +38,7 @@ function envEntries(): [string, string][] {
 		});
 }
 
+/** Runs the Vercel CLI with inherited stdio. */
 function vercel(
 	args: string[],
 	options: { secret?: string; printOutput?: boolean } = {},
@@ -62,6 +67,7 @@ type ListedEnv = {
 	gitBranch?: string;
 };
 
+/** Reads currently configured Vercel environment variables. */
 function listedEnvs(): ListedEnv[] {
 	const output = vercel(["env", "list", "--format", "json"]);
 	const json = JSON.parse(output.slice(output.indexOf("{"))) as {

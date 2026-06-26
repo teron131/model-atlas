@@ -64,6 +64,7 @@ function selectedBenchmarkScoreInputs(
 	return inputs;
 }
 
+/** Averages benchmark scores within one benchmark group. */
 function benchmarkGroupMean(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
 	group: BenchmarkGroup,

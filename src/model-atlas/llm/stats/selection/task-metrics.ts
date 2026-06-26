@@ -1,3 +1,5 @@
+/** Task metric projection for Model Atlas. */
+
 import { asFiniteNumber } from "../../shared";
 import type {
 	LlmStatsCost,
@@ -9,6 +11,7 @@ import type {
 
 type TaskMetricValues = LlmStatsTaskMetricValues;
 
+/** Checks whether task metric fields are present before projection. */
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
 }

@@ -1,3 +1,5 @@
+/** Public API cache headers for Model Atlas. */
+
 type PublicCacheHeaderOptions = {
 	browserMaxAgeSeconds: number;
 	cdnMaxAgeSeconds?: number;
@@ -5,6 +7,7 @@ type PublicCacheHeaderOptions = {
 	contentType?: string;
 };
 
+/** Builds shared cache headers for public JSON and logo responses. */
 export function publicCacheHeaders({
 	browserMaxAgeSeconds,
 	cdnMaxAgeSeconds,

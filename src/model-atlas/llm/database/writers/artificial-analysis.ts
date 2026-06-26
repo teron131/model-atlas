@@ -35,6 +35,7 @@ function artificialAnalysisRawRowKey(row: JsonObject): string | null {
 	return creatorSlug == null ? slug : `${creatorSlug}/${slug}`;
 }
 
+/** Indexes selected Artificial Analysis rows by benchmark key. */
 function artificialAnalysisSelectedRowsByKey(
 	rows: readonly JsonObject[],
 ): Map<string, JsonObject> {

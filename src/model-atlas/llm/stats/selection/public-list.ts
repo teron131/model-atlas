@@ -1,3 +1,5 @@
+/** Public model selection for Model Atlas. */
+
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
 	hasPublicFreeRouteLabel,
@@ -41,10 +43,12 @@ const REQUIRED_RELATIVE_SCORE_KEYS = [
 	"agentic_score",
 ] as const;
 
+/** Applies public model selection policy for model sort key. */
 function modelSortKey(model: LlmStatsModel): string {
 	return model.id ?? "";
 }
 
+/** Checks whether free route model for public model selection. */
 function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
 		isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name)
@@ -65,6 +69,7 @@ export function sortModelsByIntelligenceRelativeScore(
 	});
 }
 
+/** Applies public model selection policy for has minimum score signal. */
 function hasMinimumScoreSignal(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsModel {
@@ -93,10 +98,12 @@ export function filterLowSignalModels(
 	return models.filter(hasMinimumScoreSignal);
 }
 
+/** Checks whether plain object for public model selection. */
 function isPlainObject(value: unknown): value is JsonObject {
 	return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
+/** Checks whether within recent lookback for public model selection. */
 function isWithinRecentLookback(
 	releaseDate: string | null,
 	lookbackDays: number,
@@ -112,6 +119,7 @@ function isWithinRecentLookback(
 	return releaseTimestampMs >= cutoffMs;
 }
 
+/** Selects prune sample models for public model selection. */
 function selectPruneSampleModels(
 	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
@@ -125,6 +133,7 @@ function selectPruneSampleModels(
 	return recentModels.length > 0 ? recentModels : models;
 }
 
+/** Applies public model selection policy for count nullish top level key. */
 function countNullishTopLevelKey(models: LlmStatsModel[], key: string): number {
 	return models.reduce((count, model) => {
 		const modelRecord = asRecord(model);
@@ -132,6 +141,7 @@ function countNullishTopLevelKey(models: LlmStatsModel[], key: string): number {
 	}, 0);
 }
 
+/** Applies public model selection policy for count nullish nested key. */
 function countNullishNestedKey(
 	models: LlmStatsModel[],
 	parentKey: string,

@@ -127,10 +127,12 @@ function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
 	}
 }
 
+/** Escapes string values for generated SQLite INSERT statements. */
 function sqlStringLiteral(value: string): string {
 	return `'${value.replace(/'/g, "''")}'`;
 }
 
+/** Publishes a completed SQLite database to the configured runtime store. */
 async function publishDatabaseFile(
 	db: DatabaseSync,
 	outputPath: string,

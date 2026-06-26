@@ -37,6 +37,7 @@ function logoCachePath(source: string, cacheKey?: string | null): string {
 	return resolve(logoCacheDir, `${sourceHash}.png`);
 }
 
+/** Resolves the cache directory used for downloaded stats logos. */
 export function statsLogoCacheDir(): string {
 	if (process.env.MODEL_ATLAS_LOGO_CACHE_DIR) {
 		return resolve(process.env.MODEL_ATLAS_LOGO_CACHE_DIR);

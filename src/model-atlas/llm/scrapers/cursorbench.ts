@@ -61,6 +61,7 @@ type ParsedCursorBenchCellRow = {
 	consumedCells: number;
 };
 
+/** Stores an alias when it improves the score lookup for a model. */
 function addScoreRowAlias(
 	scoreByModelName: CursorBenchScoreByModelName,
 	alias: string,
@@ -76,6 +77,7 @@ function addScoreRowAlias(
 	}
 }
 
+/** Builds lookup aliases for CursorBench model names and base models. */
 function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
 	const aliases = new Set([row.model, row.base_model]);
 	if (/^(Fable|Opus|Sonnet)\s+\d/i.test(row.base_model)) {
@@ -88,6 +90,7 @@ function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
 	return [...aliases];
 }
 
+/** Finds the first leaderboard data row after either header shape. */
 function findLeaderboardBodyStart(lines: string[]): number {
 	const combinedHeaderIndex = lines.indexOf(LEADERBOARD_HEADER);
 	if (combinedHeaderIndex !== -1) {
@@ -110,6 +113,7 @@ function findLeaderboardBodyStart(lines: string[]): number {
 	return -1;
 }
 
+/** Extracts a trailing reasoning-effort label from the model name. */
 function parseReasoningEffort(model: string): string | null {
 	for (const effort of REASONING_EFFORTS) {
 		if (model.endsWith(` ${effort}`)) {
@@ -119,23 +123,28 @@ function parseReasoningEffort(model: string): string | null {
 	return null;
 }
 
+/** Removes reasoning-effort suffixes from CursorBench model names. */
 function baseModelName(model: string): string {
 	const effort = parseReasoningEffort(model);
 	return effort == null ? model : model.slice(0, -effort.length).trim();
 }
 
+/** Filters private Cursor-only models out of public benchmark rows. */
 function isPrivateCursorModel(model: string): boolean {
 	return PRIVATE_CURSOR_MODEL_PREFIX.test(baseModelName(model));
 }
 
+/** Converts CursorBench percentages onto the 0-1 scoring scale. */
 function parsePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }
 
+/** Parses comma-separated task and token counts from the leaderboard. */
 function parseCount(value: string): number {
 	return Number(value.replace(/,/g, ""));
 }
 
+/** Builds one CursorBench score row from parsed leaderboard cells. */
 function parseCursorBenchFields(
 	rankValue: string | undefined,
 	modelValue: string | undefined,
@@ -175,6 +184,7 @@ function parseCursorBenchFields(
 	};
 }
 
+/** Parses a compact text leaderboard row when cell boundaries collapse. */
 function parseCompactCursorBenchRow(
 	line: string,
 ): CursorBenchModelScoreRow | null {
@@ -191,6 +201,7 @@ function parseCompactCursorBenchRow(
 			);
 }
 
+/** Parses one CursorBench row from the visible text cell stream. */
 function parseCursorBenchCells(
 	lines: string[],
 	index: number,

@@ -17,6 +17,7 @@ type LogoRouteContext = {
 	}>;
 };
 
+/** Serves the HTTP GET response for provider logo API. */
 export async function GET(_request: Request, { params }: LogoRouteContext) {
 	const { logo } = await params;
 	const requestedLogo = logoSlug(logo);
@@ -40,6 +41,7 @@ export async function GET(_request: Request, { params }: LogoRouteContext) {
 	);
 }
 
+/** Normalizes the requested logo route parameter. */
 function logoSlug(logo: string | null | undefined) {
 	return String(logo ?? "")
 		.trim()

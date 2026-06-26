@@ -261,6 +261,7 @@ function shouldRetainModel(
 	);
 }
 
+/** Normalizes rank recent models from benchmark source data. */
 function rankRecentModels(
 	models: ModelsDevFlatModel[],
 	cutoffIsoDate: string,

@@ -38,6 +38,7 @@ export type D1PublishResult = {
 	};
 };
 
+/** Publishes the latest local Model Atlas run into Cloudflare D1. */
 export async function publishModelAtlasD1(): Promise<D1PublishResult> {
 	const config = modelAtlasD1Config();
 	if (config == null) {
@@ -64,6 +65,7 @@ export async function publishModelAtlasD1(): Promise<D1PublishResult> {
 	};
 }
 
+/** Keeps the source payload only when a row stores JSON text. */
 async function preservedPayload(databasePath: string) {
 	const refreshedPayload = readModelAtlasDatabasePayload(databasePath);
 	const previousPayload = await readD1ModelAtlasPayload().catch(() => null);
@@ -79,6 +81,7 @@ async function preservedPayload(databasePath: string) {
 	return payload;
 }
 
+/** Rewrites final model rows after snapshot preservation changes IDs. */
 function rewriteFinalModelRows(
 	databasePath: string,
 	models: LlmStatsModel[],
@@ -110,6 +113,7 @@ function rewriteFinalModelRows(
 	}
 }
 
+/** Writes a D1 import script for one completed pipeline run. */
 async function writeD1ImportSql(
 	databasePath: string,
 	outputPath: string,
@@ -145,6 +149,7 @@ async function writeD1ImportSql(
 	}
 }
 
+/** Finds the newest completed local pipeline run to publish. */
 function latestCompletedRun(db: DatabaseSync): {
 	id: number;
 	startedAt: number;
@@ -186,6 +191,7 @@ function latestCompletedRun(db: DatabaseSync): {
 	};
 }
 
+/** Builds the D1 insert statement for the pipeline run record. */
 function pipelineRunInsertStatement(
 	run: ReturnType<typeof latestCompletedRun>,
 ): string {
@@ -210,6 +216,7 @@ function pipelineRunInsertStatement(
 		.trim();
 }
 
+/** Builds D1 insert statements for tables keyed by run_id. */
 function runScopedTableInsertStatements(
 	db: DatabaseSync,
 	table: string,
@@ -224,6 +231,7 @@ function runScopedTableInsertStatements(
 	return insertStatements(table, columns, rows);
 }
 
+/** Reads ordered table columns from the local SQLite schema. */
 function tableColumns(db: DatabaseSync, table: string): string[] {
 	return db
 		.prepare(`PRAGMA table_info(${quoteIdentifier(table)})`)
@@ -233,6 +241,7 @@ function tableColumns(db: DatabaseSync, table: string): string[] {
 		);
 }
 
+/** Serializes SQLite rows as D1-compatible INSERT statements. */
 function insertStatements(
 	table: string,
 	columns: string[],
@@ -264,6 +273,7 @@ function insertStatements(
 	return statements;
 }
 
+/** Escapes JavaScript values as SQL literals for the D1 import script. */
 function sqlLiteral(value: unknown): string {
 	if (value == null) {
 		return "NULL";
@@ -277,17 +287,20 @@ function sqlLiteral(value: unknown): string {
 	return `'${String(value).replaceAll("'", "''")}'`;
 }
 
+/** Rejects unsafe SQL identifiers before building import SQL. */
 function assertIdentifier(value: string): void {
 	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
 		throw new Error(`Unsafe SQL identifier: ${value}`);
 	}
 }
 
+/** Quotes a validated SQL identifier for import statements. */
 function quoteIdentifier(value: string): string {
 	assertIdentifier(value);
 	return `"${value}"`;
 }
 
+/** Runs Wrangler to import the generated SQL into Cloudflare D1. */
 function runWranglerD1Import(
 	config: ModelAtlasD1Config,
 	filePath: string,
@@ -322,6 +335,7 @@ function runWranglerD1Import(
 	}
 }
 
+/** Verifies the remote D1 run after import completes. */
 async function d1Verification(
 	config: ModelAtlasD1Config,
 	runId: number,
@@ -357,6 +371,7 @@ async function d1Verification(
 	return { counts, deep_swe_versions: deepSweVersions };
 }
 
+/** Sends a SQL query directly to Cloudflare D1 for publication checks. */
 async function d1Query(
 	config: ModelAtlasD1Config,
 	sql: string,
@@ -390,6 +405,7 @@ async function d1Query(
 	return body.result?.[0]?.results ?? [];
 }
 
+/** Parses nullable numeric values returned by D1 publication queries. */
 function finiteNumberOrNull(value: unknown): number | null {
 	const numberValue = Number(value);
 	return Number.isFinite(numberValue) ? numberValue : null;

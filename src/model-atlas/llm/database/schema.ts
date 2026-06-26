@@ -1,3 +1,5 @@
+/** Shared database schema introspection for Model Atlas. */
+
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -38,6 +40,7 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	return db;
 }
 
+/** Parses column names and types from one CREATE TABLE statement. */
 function tableColumns(db: DatabaseSync, table: string): Set<string> {
 	return new Set(
 		db
@@ -47,6 +50,7 @@ function tableColumns(db: DatabaseSync, table: string): Set<string> {
 	);
 }
 
+/** Validates that the checked-in schema exposes required columns. */
 function ensureSchemaColumns(db: DatabaseSync, schemaSql: string): void {
 	for (const [table, columns] of schemaTableColumns(schemaSql)) {
 		const existingColumns = tableColumns(db, table);
@@ -58,6 +62,7 @@ function ensureSchemaColumns(db: DatabaseSync, schemaSql: string): void {
 	}
 }
 
+/** Parses table-to-column mappings from the shared schema SQL. */
 export function schemaTableColumns(
 	schemaSql: string,
 ): Map<string, [string, string][]> {
@@ -89,6 +94,7 @@ export function schemaTableColumns(
 	return tables;
 }
 
+/** Lists table names declared in the shared schema SQL. */
 export function schemaTableNames(schemaSql: string): string[] {
 	return [...schemaTableColumns(schemaSql).keys()];
 }

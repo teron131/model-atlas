@@ -159,6 +159,7 @@ function pickEvaluations(row: JsonObject): JsonObject {
 	return evaluations;
 }
 
+/** Normalizes evaluation key by source key from benchmark source data. */
 function evaluationKeyBySourceKey(key: string): string | null {
 	return (
 		EVALUATION_KEY_BY_SOURCE_KEY[

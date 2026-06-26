@@ -1,3 +1,5 @@
+/** Stage configuration for Model Atlas. */
+
 import type { ModelAtlasStageConfig } from "../llm/stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
