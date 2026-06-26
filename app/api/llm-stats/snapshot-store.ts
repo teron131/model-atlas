@@ -135,9 +135,6 @@ async function refreshDisplaySnapshotIfStale(
 		return payload;
 	}
 	const refreshPromise = startDisplayRefresh(refreshMode);
-	if (payload != null) {
-		return (await refreshPromise) ?? payload;
-	}
 	return (await refreshPromise) ?? payload;
 }
 
