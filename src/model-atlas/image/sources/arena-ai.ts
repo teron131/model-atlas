@@ -153,14 +153,13 @@ type ArenaAiImageGroupedAccumulator = Record<
 	ArenaAiImageGroupedAccumulatorValue
 >;
 /** Detect the group used for Arena AI image benchmark source. */
-
 function detectChallenge(html: string): boolean {
 	return /challenge-platform|__CF\$cv\$params|Verify you are human|Security Verification/i.test(
 		html,
 	);
 }
-/** Extract the leaderboard rows. */
 
+/** Extract the leaderboard rows. */
 function extractLeaderboardRows(html: string): ArenaAiImageRow[] {
 	const titleMatches = [...html.matchAll(/<a[^>]*\btitle="([^"]+)"/g)];
 	const rows: ArenaAiImageRow[] = [];
@@ -192,8 +191,8 @@ function extractLeaderboardRows(html: string): ArenaAiImageRow[] {
 
 	return rows;
 }
-/** Fetch the category. */
 
+/** Fetch the category. */
 async function fetchCategory(
 	baseUrl: string,
 	categorySlug: string,
@@ -241,13 +240,13 @@ async function fetchCategory(
 		};
 	}
 }
-/** Helper for round to4. */
 
+/** Helper for round to4. */
 function roundTo4(value: number): number {
 	return Number(value.toFixed(4));
 }
-/** Helper for weighted score or average. */
 
+/** Helper for weighted score or average. */
 function weightedScoreOrAverage(
 	weightedSum: number,
 	votesSum: number,
@@ -262,15 +261,15 @@ function weightedScoreOrAverage(
 	}
 	return null;
 }
-/** Detect the grouped category. */
 
+/** Detect the grouped category. */
 function detectGroupedCategory(
 	categorySlug: string,
 ): ArenaAiImageGroupedCategoryName | null {
 	return ARENA_AI_GROUP_BY_SLUG.get(categorySlug) ?? null;
 }
-/** Create the grouped accumulator. */
 
+/** Create the grouped accumulator. */
 function createGroupedAccumulator(): ArenaAiImageGroupedAccumulator {
 	return {
 		photorealistic: {
@@ -293,8 +292,8 @@ function createGroupedAccumulator(): ArenaAiImageGroupedAccumulator {
 		},
 	};
 }
-/** Build the grouped scores. */
 
+/** Build the grouped scores. */
 function buildGroupedScores(
 	categoryRows: Record<string, ArenaAiImageAggregatedCategoryRow>,
 ): Pick<ArenaAiImageAggregatedModel, "weighted_scores" | "grouped_votes"> {
@@ -364,8 +363,8 @@ function buildGroupedScores(
 		},
 	};
 }
-/** Build the aggregated rows. */
 
+/** Build the aggregated rows. */
 function buildAggregatedRows(
 	categoryPayloads: ArenaAiImageCategoryPayload[],
 ): ArenaAiImageAggregatedModel[] {

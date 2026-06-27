@@ -1,5 +1,4 @@
 /** Shared finite-number math helpers for stats scoring. */
-
 export type NumberOrNull = number | null;
 
 export type WeightedScorePart = {

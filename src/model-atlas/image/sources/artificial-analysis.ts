@@ -146,8 +146,8 @@ export type ArtificialAnalysisImageOutputPayload = {
 	};
 	data: ArtificialAnalysisImageEnrichedModel[];
 };
-/** Parse a release date into UTC for Artificial Analysis image benchmark source. */
 
+/** Parse a release date into UTC for Artificial Analysis image benchmark source. */
 function parseReleaseDateToUtc(releaseDate: string | undefined): number | null {
 	if (!releaseDate) {
 		return null;
@@ -167,8 +167,8 @@ function parseReleaseDateToUtc(releaseDate: string | undefined): number | null {
 	}
 	return null;
 }
-/** Return whether Artificial Analysis image benchmark source is older than the requested age. */
 
+/** Return whether Artificial Analysis image benchmark source is older than the requested age. */
 function isOlderThanDays(
 	releaseDate: string | undefined,
 	minAgeDays: number,
@@ -181,8 +181,8 @@ function isOlderThanDays(
 	const minAgeMs = minAgeDays * 24 * 60 * 60 * 1000;
 	return ageMs > minAgeMs;
 }
-/** Detect the group used for Artificial Analysis image benchmark source. */
 
+/** Detect the group used for Artificial Analysis image benchmark source. */
 function detectGroup(category: RawCategory): GroupName | null {
 	const style =
 		typeof category.style_category === "string" ? category.style_category : "";
@@ -196,8 +196,8 @@ function detectGroup(category: RawCategory): GroupName | null {
 		null
 	);
 }
-/** Initialize an accumulator for Artificial Analysis image benchmark source. */
 
+/** Initialize an accumulator for Artificial Analysis image benchmark source. */
 function initAccumulator(): Aggregator {
 	return {
 		Photorealistic: { weightedEloSum: 0, appearanceSum: 0 },
@@ -205,8 +205,8 @@ function initAccumulator(): Aggregator {
 		Contextual: { weightedEloSum: 0, appearanceSum: 0 },
 	};
 }
-/** Compute a frequency-weighted ELO score for Artificial Analysis image benchmark source. */
 
+/** Compute a frequency-weighted ELO score for Artificial Analysis image benchmark source. */
 function frequencyWeightedElo(
 	weightedEloSum: number,
 	appearanceSum: number,
@@ -219,8 +219,8 @@ function frequencyWeightedElo(
 	}
 	return Number((weightedEloSum / appearanceSum).toFixed(4));
 }
-/** Convert raw rows into aggregated fields for Artificial Analysis image benchmark source. */
 
+/** Convert raw rows into aggregated fields for Artificial Analysis image benchmark source. */
 function toAggregatedFields(accumulator: Aggregator) {
 	const photorealistic = frequencyWeightedElo(
 		accumulator.Photorealistic.weightedEloSum,
@@ -262,8 +262,8 @@ function toAggregatedFields(accumulator: Aggregator) {
 		},
 	};
 }
-/** Enrich the selected Artificial Analysis image benchmark source payload. */
 
+/** Enrich the selected Artificial Analysis image benchmark source payload. */
 function enrichPayload(
 	rawPayload: RawTextToImagePayload,
 	minModelAgeDays: number,
@@ -370,8 +370,8 @@ function enrichPayload(
 		data,
 	};
 }
-/** Build a failure payload for Artificial Analysis image benchmark source. */
 
+/** Build a failure payload for Artificial Analysis image benchmark source. */
 function createFailurePayload(
 	minModelAgeDays: number,
 ): ArtificialAnalysisImageOutputPayload {
