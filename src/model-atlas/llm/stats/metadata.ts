@@ -2,7 +2,8 @@
 
 import { STAGE_CONFIG } from "../../constants";
 import { asRecord } from "../shared";
-import { type BenchmarkRowsByKey, buildBenchmarkUpdateHealth } from "./health";
+import type { BenchmarkRowsByKey } from "./benchmarks";
+import { buildBenchmarkUpdateHealth } from "./health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 import type {
 	LlmStatsBenchmarkUpdateHealth,

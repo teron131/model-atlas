@@ -8,6 +8,7 @@ import {
 	scoreCandidate,
 } from "../matcher/scoring";
 import { normalizeModelToken, normalizeProviderModelId } from "../shared";
+import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "./benchmarks";
 import { hasVariantConflict } from "./matching";
 import type {
 	LlmStatsBenchmarkUpdateEntry,
@@ -22,18 +23,6 @@ import type {
 
 const BENCHMARK_TOP_LIMIT = 5;
 const REFERENCE_TOP_LIMIT = 10;
-export const ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS = [
-	"apex_agents",
-	"critpt",
-	"gdpval_normalized",
-	"gpqa",
-	"hle",
-	"lcr",
-	"mmmu_pro",
-	"scicode",
-	"tau_banking",
-	"terminalbench_v21",
-] as const;
 const COVERAGE_IGNORED_TOKENS = new Set([
 	"preview",
 	"ultra",
@@ -60,27 +49,6 @@ type RankedModel = {
 	referenceRank: number | null;
 	value: number;
 };
-
-export type BenchmarkSourceRow = {
-	id: string | null;
-	label: string;
-	provider: string | null;
-	value: number;
-};
-
-export type BenchmarkRowsByKey = Readonly<
-	Record<string, readonly BenchmarkSourceRow[]>
->;
-
-/** Appends one benchmark source row for benchmark update health. */
-export function addBenchmarkRow(
-	rowsByKey: Record<string, BenchmarkSourceRow[]>,
-	key: string,
-	row: BenchmarkSourceRow,
-): void {
-	rowsByKey[key] ??= [];
-	rowsByKey[key].push(row);
-}
 
 /** Accepts only finite numeric benchmark values for health checks. */
 function finiteNumber(value: NumberOrNull | undefined): number | null {
