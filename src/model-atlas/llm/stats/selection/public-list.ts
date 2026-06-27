@@ -55,8 +55,8 @@ function isFreeRouteModel(model: LlmStatsModel): boolean {
 	);
 }
 
-/** Sort the models by intelligence relative score. */
-export function sortModelsByIntelligenceRelativeScore(
+/** Sort the models by intelligence score. */
+export function sortModelsByIntelligenceScore(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
@@ -290,7 +290,7 @@ export function normalizePublicFreeRoutes(
 		}
 	}
 
-	return sortModelsByIntelligenceRelativeScore([
+	return sortModelsByIntelligenceScore([
 		...passthrough,
 		...[...modelByPublicId.values()].map(({ model }) => model),
 	]);
