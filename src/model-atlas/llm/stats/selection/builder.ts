@@ -13,7 +13,7 @@ import type {
 	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
-import { projectLlmStatsCandidate } from "./model-projection";
+import { buildModelCandidate } from "./model-candidate";
 import {
 	collapseOpenRouterFreeRoutes,
 	filterLowSignalModels,
@@ -37,7 +37,7 @@ export function buildScoredModelCandidates(
 		benchmarkImputationByModel,
 	);
 	const models = enrichedRows.rows.map((row) =>
-		projectLlmStatsCandidate(
+		buildModelCandidate(
 			row,
 			enrichedRows.openRouterSpeedById,
 			enrichedRows.openRouterPricingById,

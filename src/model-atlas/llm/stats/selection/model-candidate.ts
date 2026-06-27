@@ -1,4 +1,4 @@
-/** Public model projection for Model Atlas. */
+/** Public model candidate builder for Model Atlas. */
 
 import { resolveStatsLogo } from "../../../logo";
 import {
@@ -498,7 +498,7 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 }
 
 /** Build one public model candidate from an enriched intermediate row. */
-export function projectLlmStatsCandidate(
+export function buildModelCandidate(
 	row: unknown,
 	openRouterSpeedById: Map<string, JsonObject>,
 	openRouterPricingById: Map<string, JsonObject>,
