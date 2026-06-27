@@ -1,12 +1,12 @@
 /** Public model selection for Model Atlas. */
 
-import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
 	hasPublicFreeRouteLabel,
 	isOpenRouterFreeRouteId,
-	publicModelDisplayName,
 	publicOpenRouterModelId,
-} from "../model-aliases";
+	publicOpenRouterModelName,
+} from "../../openrouter-routes";
+import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
 	FinalStageConfig,
 	LlmStatsModel,
@@ -43,15 +43,15 @@ const REQUIRED_RELATIVE_SCORE_KEYS = [
 	"agentic_score",
 ] as const;
 
-/** Checks whether free route model for public model selection. */
+/** Detect whether a row represents an OpenRouter free route variant. */
 function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
 		isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name)
 	);
 }
 
-/** Sort the models by intelligence score. */
-export function sortModelsByIntelligenceScore(
+/** Order public rows by intelligence score with a stable ID tie-break. */
+function sortModelsByIntelligenceScore(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
@@ -66,7 +66,7 @@ export function sortModelsByIntelligenceScore(
 	});
 }
 
-/** Applies public model selection policy for has minimum score signal. */
+/** Require enough raw and normalized score signal for a public row. */
 function hasMinimumScoreSignal(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsModel {
@@ -88,19 +88,12 @@ function hasMinimumScoreSignal(
 	});
 }
 
-/** Filter out low-signal models from the public list. */
-export function filterLowSignalModels(
-	models: LlmStatsScoredCandidate[],
-): LlmStatsModel[] {
-	return models.filter(hasMinimumScoreSignal);
-}
-
-/** Checks whether plain object for public model selection. */
+/** Narrow nested model fields that can be safely copied and pruned. */
 function isPlainObject(value: unknown): value is JsonObject {
 	return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Checks whether within recent lookback for public model selection. */
+/** Check whether a release date belongs to the recent field-pruning sample. */
 function isWithinRecentLookback(
 	releaseDate: string | null,
 	lookbackDays: number,
@@ -116,7 +109,7 @@ function isWithinRecentLookback(
 	return releaseTimestampMs >= cutoffMs;
 }
 
-/** Selects prune sample models for public model selection. */
+/** Prefer recent rows when deciding whether fields are sparse. */
 function selectPruneSampleModels(
 	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
@@ -130,8 +123,8 @@ function selectPruneSampleModels(
 	return recentModels.length > 0 ? recentModels : models;
 }
 
-/** Prune the sparse fields. */
-export function pruneSparseFields(
+/** Remove mostly-empty non-contract fields from public model rows. */
+function pruneSparseFields(
 	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
@@ -224,8 +217,8 @@ export function pruneSparseFields(
 	});
 }
 
-/** Filter the models by id. */
-export function filterModelsById(
+/** Apply optional public ID filtering after OpenRouter route normalization. */
+function filterModelsById(
 	models: LlmStatsModel[],
 	id: string | null | undefined,
 ): LlmStatsModel[] {
@@ -238,7 +231,7 @@ export function filterModelsById(
 }
 
 /** Collapse OpenRouter free-route duplicates into canonical public rows. */
-export function collapseOpenRouterFreeRoutes(
+function collapseOpenRouterFreeRoutes(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
 	const modelByPublicId = new Map<
@@ -249,7 +242,7 @@ export function collapseOpenRouterFreeRoutes(
 
 	for (const model of models) {
 		const publicId = publicOpenRouterModelId(model.id);
-		const publicName = publicModelDisplayName(model.name);
+		const publicName = publicOpenRouterModelName(model.name);
 		const normalizedModel: LlmStatsModel = {
 			...model,
 			id: publicId,
@@ -273,4 +266,22 @@ export function collapseOpenRouterFreeRoutes(
 		...passthrough,
 		...[...modelByPublicId.values()].map(({ model }) => model),
 	]);
+}
+
+/** Apply public model selection policy after candidate scoring. */
+export function selectPublicModels(
+	scoredCandidates: LlmStatsScoredCandidate[],
+	id: string | null | undefined,
+	finalConfig: FinalStageConfig,
+	scoringConfig: ScoringConfig,
+): LlmStatsModel[] {
+	const signalModels = scoredCandidates.filter(hasMinimumScoreSignal);
+	const sortedModels = sortModelsByIntelligenceScore(signalModels);
+	const prunedModels = pruneSparseFields(
+		sortedModels,
+		finalConfig,
+		scoringConfig,
+	);
+	const normalizedModels = collapseOpenRouterFreeRoutes(prunedModels);
+	return filterModelsById(normalizedModels, id);
 }

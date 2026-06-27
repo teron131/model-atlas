@@ -1,8 +1,8 @@
 /** Pure OpenRouter stat normalization, permaslug resolution, and selection helpers. */
 
 import { medianOfFinite } from "../../../math-utils";
+import { isSameOpenRouterModelRoute } from "../../openrouter-routes";
 import { asRecord } from "../../shared";
-import { isSameOpenRouterModelRoute } from "../../stats/model-aliases";
 
 export type OpenRouterFrontendModel = {
 	slug?: string | null;

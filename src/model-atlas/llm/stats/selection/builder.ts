@@ -2,41 +2,26 @@
 
 import { cacheStatsLogos } from "../../../logo-cache";
 import { attachRelativeScores } from "../scores";
-import {
-	buildBenchmarkImputationByModel,
-	buildQualityScoringContext,
-} from "../scores/benchmark-imputation";
+import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
 import type {
 	FinalStageConfig,
 	LlmStatsEnrichmentResult,
 	LlmStatsModel,
-	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
 import { buildModelCandidate } from "./model-candidate";
-import {
-	collapseOpenRouterFreeRoutes,
-	filterLowSignalModels,
-	filterModelsById,
-	pruneSparseFields,
-	sortModelsByIntelligenceScore,
-} from "./public-list";
+import { selectPublicModels } from "./public-list";
 
-/** Build candidate models and attach nullable normalized ranking data. */
-export function buildScoredModelCandidates(
+/** Build the final LLM stats model list and attach the normalized ranking layer used for ordering. */
+export async function buildFinalModels(
 	enrichedRows: LlmStatsEnrichmentResult,
+	id: string | null | undefined,
+	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
-): LlmStatsScoredCandidate[] {
-	const benchmarkImputationByModel = buildBenchmarkImputationByModel(
-		enrichedRows.rows,
-		scoringConfig,
-	);
-	const qualityContext = buildQualityScoringContext(
-		enrichedRows.rows,
-		scoringConfig,
-		benchmarkImputationByModel,
-	);
-	const models = enrichedRows.rows.map((row) =>
+): Promise<LlmStatsModel[]> {
+	const { benchmarkImputationByModel, qualityContext } =
+		prepareBenchmarkScoring(enrichedRows.rows, scoringConfig);
+	const candidateModels = enrichedRows.rows.map((row) =>
 		buildModelCandidate(
 			row,
 			enrichedRows.openRouterSpeedById,
@@ -47,30 +32,9 @@ export function buildScoredModelCandidates(
 			qualityContext,
 		),
 	);
-	return attachRelativeScores(models, scoringConfig);
-}
-
-/** Build the final LLM stats model list and attach the normalized ranking layer used for ordering. */
-export async function buildFinalModels(
-	enrichedRows: LlmStatsEnrichmentResult,
-	id: string | null | undefined,
-	finalConfig: FinalStageConfig,
-	scoringConfig: ScoringConfig,
-): Promise<LlmStatsModel[]> {
-	const scoredCandidates = buildScoredModelCandidates(
-		enrichedRows,
-		scoringConfig,
-	);
-	const signalModels = filterLowSignalModels(scoredCandidates);
-	const sortedModels = sortModelsByIntelligenceScore(signalModels);
-	const prunedModels = pruneSparseFields(
-		sortedModels,
-		finalConfig,
-		scoringConfig,
-	);
-	const normalizedModels = collapseOpenRouterFreeRoutes(prunedModels);
+	const scoredCandidates = attachRelativeScores(candidateModels, scoringConfig);
 	return cacheStatsLogos(
-		filterModelsById(normalizedModels, id),
+		selectPublicModels(scoredCandidates, id, finalConfig, scoringConfig),
 		(model) => model.provider ?? model.id,
 	);
 }
