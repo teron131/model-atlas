@@ -5,7 +5,6 @@ import { getArtificialAnalysisImageStats } from "../sources/artificial-analysis"
 
 import type { ImageSourceData } from "./types";
 /** Fetch source rows for Source-stage image stats selection. */
-
 export async function fetchSourceData(): Promise<ImageSourceData> {
 	const [artificialAnalysisPayload, arenaPayload] = await Promise.all([
 		getArtificialAnalysisImageStats(),

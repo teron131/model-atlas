@@ -5,8 +5,7 @@ import { getImageMatchModelMapping } from "../matcher";
 
 import type { ImageSourceData, ImageUnionRow } from "./types";
 
-/** Merge the image row. */
-
+/** Merge matched image source rows into a unified stats row. */
 function mergeImageRow(
 	sourceData: ImageSourceData,
 	mappedModel: Pick<
@@ -37,8 +36,8 @@ function mergeImageRow(
 				: null,
 	};
 }
-/** Build matched rows for Matching-stage image stats selection. */
 
+/** Build matched rows for Matching-stage image stats selection. */
 export async function buildMatchedRows(
 	sourceData: ImageSourceData,
 ): Promise<ImageUnionRow[]> {

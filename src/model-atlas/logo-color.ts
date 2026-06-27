@@ -1,5 +1,4 @@
 /** Provider logo color extraction for Model Atlas. */
-
 const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;

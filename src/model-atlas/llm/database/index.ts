@@ -1,5 +1,4 @@
 /** Public database pipeline exports. */
-
 export { buildModelAtlasDatabase } from "./build";
 export {
 	ensureModelAtlasD1Schema,

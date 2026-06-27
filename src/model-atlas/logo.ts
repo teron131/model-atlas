@@ -1,5 +1,4 @@
 /** Shared Artificial Analysis provider-logo resolution helpers for stats payloads. */
-
 const ARTIFICIAL_ANALYSIS_LOGO_URL = "https://artificialanalysis.ai/img/logos";
 
 const ARTIFICIAL_ANALYSIS_LOGO_ASSET_BY_PROVIDER: Record<string, string> = {
