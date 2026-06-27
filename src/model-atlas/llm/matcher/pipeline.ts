@@ -1,7 +1,13 @@
-/** LLM model matching pipeline helpers. */
-
 /** Internal matcher pipeline: scope provider pools, collect candidates, and apply the final void threshold. */
-import { FALLBACK_PROVIDER_IDS, PRIMARY_PROVIDER_ID } from "../shared";
+
+import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis-evals";
+import { getModelsDevStats } from "../scrapers/models-dev";
+import {
+	asRecord,
+	FALLBACK_PROVIDER_IDS,
+	modelSlugFromModelId,
+	PRIMARY_PROVIDER_ID,
+} from "../shared";
 
 import {
 	compareCandidates,
@@ -9,41 +15,43 @@ import {
 	scoreCandidate,
 } from "./scoring";
 import type {
-	LlmMatchCandidate,
-	LlmMatchResult,
+	MatchCandidate,
+	MatchDiagnosticsOptions,
+	MatchDiagnosticsPayload,
 	MatcherRunOutput,
 	MatcherSourceModel,
+	MatchResult,
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "./types";
 
+const ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES = [
+	"-non-reasoning",
+	"-adaptive",
+	"-xhigh",
+	"-high",
+	"-medium",
+	"-low",
+	"-minimal",
+] as const;
+const DEFAULT_MAX_CANDIDATES = 5;
 const VOID_THRESHOLD_RANGE_RATIO = 0.35;
 
-/** Count unique models.dev model ids after provider scoping. */
-export function uniqueModelCount(modelsDevModels: ModelsDevModel[]): number {
-	return new Set(
-		modelsDevModels.map((modelsDevModel) => modelsDevModel.model_id),
-	).size;
+/** Collapse AA effort-specific rows to the base slug used for model matching. */
+function artificialAnalysisMatchSlug(sourceSlug: string): string {
+	for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
+		if (sourceSlug.endsWith(suffix)) {
+			return sourceSlug.slice(0, -suffix.length);
+		}
+	}
+	return sourceSlug;
 }
 
-/** Split models.dev rows into primary and fallback provider pools for deterministic matcher behavior. */
-export function splitPreferredProviderModels(
-	modelsDevModels: ModelsDevModel[],
-): PreferredProviderPools {
-	const primary = modelsDevModels.filter(
-		(modelsDevModel) => modelsDevModel.provider_id === PRIMARY_PROVIDER_ID,
-	);
-	const fallback = modelsDevModels.filter((modelsDevModel) =>
-		FALLBACK_PROVIDER_IDS.has(modelsDevModel.provider_id),
-	);
-	return { primary, fallback };
-}
-
-/** Helper for collect candidates for source slug. */
+/** Collect candidate models.dev rows for a normalized source slug. */
 function collectCandidatesForSourceSlug(
 	sourceSlug: string,
 	modelsDevModels: ModelsDevModel[],
-): LlmMatchCandidate[] {
+): MatchCandidate[] {
 	if (!sourceSlug) {
 		return [];
 	}
@@ -79,32 +87,13 @@ function collectCandidatesForSourceSlug(
 				score: candidateScore,
 			};
 		})
-		.filter((candidate): candidate is LlmMatchCandidate => candidate != null)
+		.filter((candidate): candidate is MatchCandidate => candidate != null)
 		.sort(compareCandidates);
-}
-
-/** Select preferred candidates for one source slug. */
-function preferredCandidatesForSourceSlug(
-	sourceSlug: string,
-	providerPools: PreferredProviderPools,
-): LlmMatchCandidate[] {
-	const primaryCandidates = collectCandidatesForSourceSlug(
-		sourceSlug,
-		providerPools.primary,
-	);
-	const fallbackCandidates = collectCandidatesForSourceSlug(
-		sourceSlug,
-		providerPools.fallback,
-	);
-	if (primaryCandidates.length === 0) {
-		return fallbackCandidates;
-	}
-	return [...primaryCandidates, ...fallbackCandidates].sort(compareCandidates);
 }
 
 /** Apply the max-min range-ratio void threshold. */
 function applyMaxMinRangeVoid<
-	T extends { best_match: LlmMatchResult; candidates?: unknown[] },
+	T extends { best_match: MatchResult; candidates?: unknown[] },
 >(models: T[]): { threshold: number | null; voided: number } {
 	const scores = models
 		.map((model) => model.best_match?.score)
@@ -140,9 +129,18 @@ export function runMatcher(
 ): MatcherRunOutput {
 	const models = sourceModels.map((sourceModel) => {
 		const matchSlug = sourceModel.sourceMatchSlug ?? sourceModel.sourceSlug;
-		const candidates = preferredCandidatesForSourceSlug(
+		const primaryCandidates = collectCandidatesForSourceSlug(
 			matchSlug,
-			providerPools,
+			providerPools.primary,
+		);
+		const fallbackCandidates = collectCandidatesForSourceSlug(
+			matchSlug,
+			providerPools.fallback,
+		);
+		const candidates = (
+			primaryCandidates.length === 0
+				? fallbackCandidates
+				: [...primaryCandidates, ...fallbackCandidates].sort(compareCandidates)
 		).slice(0, maxCandidates);
 		return {
 			artificial_analysis_slug: sourceModel.sourceSlug,
@@ -171,5 +169,72 @@ export function runMatcher(
 		preVoidUnmatchedCount,
 		matchedCount,
 		unmatchedCount,
+	};
+}
+
+/** Run the matcher algorithm against scraped Artificial Analysis rows. */
+export async function getMatchDiagnostics(
+	options: MatchDiagnosticsOptions = {},
+): Promise<MatchDiagnosticsPayload> {
+	const maxCandidates = options.maxCandidates ?? DEFAULT_MAX_CANDIDATES;
+	const scrapedStats =
+		options.scrapedRows != null
+			? {
+					fetched_at_epoch_seconds: null,
+					data: options.scrapedRows,
+				}
+			: await getArtificialAnalysisEvalsStats();
+	const modelsDevStats =
+		options.modelsDevModels != null
+			? {
+					fetched_at_epoch_seconds: null,
+					models: options.modelsDevModels,
+				}
+			: await getModelsDevStats();
+
+	const providerPools = {
+		primary: modelsDevStats.models.filter(
+			(modelsDevModel) => modelsDevModel.provider_id === PRIMARY_PROVIDER_ID,
+		),
+		fallback: modelsDevStats.models.filter((modelsDevModel) =>
+			FALLBACK_PROVIDER_IDS.has(modelsDevModel.provider_id),
+		),
+	};
+	const totalScopedModels = new Set(
+		[...providerPools.primary, ...providerPools.fallback].map(
+			(modelsDevModel) => modelsDevModel.model_id,
+		),
+	).size;
+	const sourceModels = scrapedStats.data.map((scrapedRow) => {
+		const scrapedRowRecord = asRecord(scrapedRow);
+		const modelId =
+			typeof scrapedRowRecord.model_id === "string"
+				? scrapedRowRecord.model_id
+				: null;
+		const sourceSlug = modelSlugFromModelId(modelId) ?? "";
+		return {
+			sourceSlug,
+			sourceMatchSlug: artificialAnalysisMatchSlug(sourceSlug),
+			sourceName: modelId,
+			sourceReleaseDate: null,
+		};
+	});
+	const matcherOutput = runMatcher(sourceModels, providerPools, maxCandidates);
+
+	return {
+		scraped_fetched_at_epoch_seconds: scrapedStats.fetched_at_epoch_seconds,
+		models_dev_fetched_at_epoch_seconds:
+			modelsDevStats.fetched_at_epoch_seconds,
+		total_scraped_models: scrapedStats.data.length,
+		total_models_dev_models: totalScopedModels,
+		max_candidates: maxCandidates,
+		pre_void_matched_count: matcherOutput.preVoidMatchedCount,
+		pre_void_unmatched_count: matcherOutput.preVoidUnmatchedCount,
+		void_mode: "maxmin_range",
+		void_threshold: matcherOutput.voidThreshold,
+		voided_count: matcherOutput.voidedCount,
+		matched_count: matcherOutput.matchedCount,
+		unmatched_count: matcherOutput.unmatchedCount,
+		models: matcherOutput.models,
 	};
 }

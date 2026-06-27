@@ -4,7 +4,7 @@ import { rename } from "node:fs/promises";
 import type { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../constants";
-import { getScraperFallbackMatchDiagnostics } from "../matcher";
+import { getMatchDiagnostics } from "../matcher";
 import {
 	buildAutomationBenchMap,
 	getAutomationBenchStats,
@@ -226,7 +226,7 @@ export async function buildModelAtlasDatabase(
 				scoreByModelName: buildAutomationBenchMap(automationBench.model_scores),
 			},
 		};
-		const matchDiagnostics = await getScraperFallbackMatchDiagnostics({
+		const matchDiagnostics = await getMatchDiagnostics({
 			scrapedRows: sourceData.artificialAnalysis.rows,
 			modelsDevModels: sourceData.modelsDev.rows,
 		});

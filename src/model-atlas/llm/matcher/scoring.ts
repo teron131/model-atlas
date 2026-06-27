@@ -11,7 +11,7 @@ import {
 	splitBaseModelTokens,
 	splitTokens,
 } from "./name-tokens";
-import type { LlmMatchCandidate } from "./types";
+import type { MatchCandidate } from "./types";
 
 const TOKEN_PREFIX_WEIGHTS = [5, 4, 3, 2, 1] as const;
 const TOKEN_PREFIX_REWARD_MULTIPLIER = 2;
@@ -29,13 +29,6 @@ const ACTIVE_B_MISMATCH_PENALTY = 2;
 const CHAR_PREFIX_REWARD_SCALE = 0.03;
 const LENGTH_GAP_PENALTY_SCALE = 0.005;
 
-/** Collects numeric version tokens from a normalized model name. */
-function numericVersionTokens(tokens: string[]): number[] {
-	return tokens
-		.filter((token) => /^\d+$/.test(token))
-		.map((token) => Number(token));
-}
-
 /** Splits a model version into comparable numeric parts. */
 function numericVersionParts(
 	sourceSlug: string,
@@ -47,9 +40,13 @@ function numericVersionParts(
 	candidateName: number[];
 } {
 	return {
-		source: numericVersionTokens(splitTokens(sourceSlug)),
-		candidateId: numericVersionTokens(splitBaseModelTokens(candidateModelId)),
-		candidateName: numericVersionTokens(splitTokens(candidateModelName)),
+		source: splitTokens(sourceSlug).filter(isNumericToken).map(Number),
+		candidateId: splitBaseModelTokens(candidateModelId)
+			.filter(isNumericToken)
+			.map(Number),
+		candidateName: splitTokens(candidateModelName)
+			.filter(isNumericToken)
+			.map(Number),
 	};
 }
 
@@ -59,18 +56,6 @@ function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
 		left.length > 0 &&
 		left.length < right.length &&
 		left.every((value, index) => value === right[index])
-	);
-}
-
-/** Checks whether two version strings share the same first number. */
-function sameLeadingNumber(
-	sourceNumbers: number[],
-	candidateNumbers: number[],
-): boolean {
-	return (
-		sourceNumbers.length === 0 ||
-		candidateNumbers.length === 0 ||
-		sourceNumbers[0] === candidateNumbers[0]
 	);
 }
 
@@ -88,10 +73,13 @@ function leadingNumberMismatch(
 	if (numbers.source.length === 0) {
 		return false;
 	}
-	return (
-		!sameLeadingNumber(numbers.source, numbers.candidateId) &&
-		!sameLeadingNumber(numbers.source, numbers.candidateName)
-	);
+	const idLeadingNumberMatches =
+		numbers.candidateId.length === 0 ||
+		numbers.source[0] === numbers.candidateId[0];
+	const nameLeadingNumberMatches =
+		numbers.candidateName.length === 0 ||
+		numbers.source[0] === numbers.candidateName[0];
+	return !idLeadingNumberMatches && !nameLeadingNumberMatches;
 }
 
 /** Rejects matches whose numeric versions conflict too strongly. */
@@ -402,8 +390,8 @@ export function scoreCandidate(
 
 /** Compare the candidates. */
 export function compareCandidates(
-	left: LlmMatchCandidate,
-	right: LlmMatchCandidate,
+	left: MatchCandidate,
+	right: MatchCandidate,
 ): number {
 	if (left.score !== right.score) {
 		return right.score - left.score;
