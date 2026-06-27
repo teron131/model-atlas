@@ -1,10 +1,7 @@
 /** Matching helpers for Model Atlas selection. */
 
 /** Turn scraper-first matcher diagnostics into merged source rows. */
-import {
-	getScraperFallbackMatchDiagnostics,
-	type LlmScraperFallbackMatchDiagnosticsPayload,
-} from "../matcher";
+import { getMatchDiagnostics, type MatchDiagnosticsPayload } from "../matcher";
 import {
 	asFiniteNumber,
 	asRecord,
@@ -209,13 +206,13 @@ function buildMatchedRow(
 	};
 }
 
-/** Build matched intermediate rows from precomputed scraper fallback diagnostics. */
+/** Build matched intermediate rows from precomputed match diagnostics. */
 export function modelRowsFromMatchDiagnostics(
 	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,
-	fallbackDiagnostics: LlmScraperFallbackMatchDiagnosticsPayload,
+	matchDiagnostics: MatchDiagnosticsPayload,
 ): Record<string, unknown>[] {
-	return fallbackDiagnostics.models
+	return matchDiagnostics.models
 		.map((matchedModel) => {
 			const matchedModelId = firstValidMatchId(
 				matchedModel.candidates,
@@ -240,18 +237,18 @@ export function modelRowsFromMatchDiagnostics(
 		.filter((row): row is Record<string, unknown> => row != null);
 }
 
-/** Build matched intermediate rows by running scraper fallback diagnostics and rejecting obvious variant mismatches. */
+/** Build matched intermediate rows by running match diagnostics and rejecting obvious variant mismatches. */
 export async function buildMatchedModelRows(
 	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,
 ): Promise<Record<string, unknown>[]> {
-	const fallbackDiagnostics = await getScraperFallbackMatchDiagnostics({
+	const matchDiagnostics = await getMatchDiagnostics({
 		scrapedRows: sourceData.artificialAnalysis.rows,
 		modelsDevModels: sourceData.modelsDev.rows,
 	});
 	return modelRowsFromMatchDiagnostics(
 		sourceData,
 		matcherConfig,
-		fallbackDiagnostics,
+		matchDiagnostics,
 	);
 }

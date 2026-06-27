@@ -1,6 +1,6 @@
 /** Debug trace row construction for Model Atlas database snapshots. */
 
-import type { LlmScraperFallbackMatchDiagnosticsPayload } from "../matcher";
+import type { MatchDiagnosticsPayload } from "../matcher";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { firstValidMatchId, hasVariantConflict } from "../stats/matching";
 import { publicOpenRouterModelId } from "../stats/model-aliases";
@@ -87,7 +87,7 @@ function debugRejectionReason(
 
 /** Builds a debug trace row for an unmatched matcher candidate. */
 function unmatchedDebugTraceRow(
-	model: LlmScraperFallbackMatchDiagnosticsPayload["models"][number],
+	model: MatchDiagnosticsPayload["models"][number],
 	aaRowById: Map<string, number>,
 ): DebugTraceRow {
 	return {
@@ -117,7 +117,7 @@ function unmatchedDebugTraceRow(
 export function buildDebugTraceRows(
 	snapshots: SourceSnapshots,
 	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined,
-	diagnostics: LlmScraperFallbackMatchDiagnosticsPayload,
+	diagnostics: MatchDiagnosticsPayload,
 	matcherConfig: MatcherConfig,
 ): DebugTraceRow[] {
 	const aaRowById = aaRowIndexById(snapshots);

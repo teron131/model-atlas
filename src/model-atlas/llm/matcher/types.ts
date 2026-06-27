@@ -1,15 +1,10 @@
 /** LLM model matching helpers. */
 
 /** Shared public and intermediate types for the LLM matcher pipeline. */
-import type { getArtificialAnalysisStats } from "../scrapers/artificial-analysis-api";
 import type { getModelsDevStats } from "../scrapers/models-dev";
 
 export type ModelsDevModel = Awaited<
 	ReturnType<typeof getModelsDevStats>
->["models"][number];
-
-export type ArtificialAnalysisModel = Awaited<
-	ReturnType<typeof getArtificialAnalysisStats>
 >["models"][number];
 
 export type MatcherSourceModel = {
@@ -20,7 +15,7 @@ export type MatcherSourceModel = {
 };
 
 /** Candidate model from models.dev for one Artificial Analysis source model. */
-export type LlmMatchCandidate = {
+export type MatchCandidate = {
 	model_id: string;
 	provider_id: string;
 	provider_name: string;
@@ -28,39 +23,25 @@ export type LlmMatchCandidate = {
 	score: number;
 };
 
-export type LlmMatchResult = LlmMatchCandidate | null;
+export type MatchResult = MatchCandidate | null;
 
 /** Mapping entry for one Artificial Analysis model and its ranked match candidates. */
-export type LlmMatchMappedModel = {
+export type MatchMappedModel = {
 	artificial_analysis_slug: string;
 	artificial_analysis_name: string | null;
 	artificial_analysis_release_date: string | null;
-	best_match: LlmMatchResult;
-	candidates: LlmMatchCandidate[];
+	best_match: MatchResult;
+	candidates: MatchCandidate[];
 };
 
-/** Full mapping payload for Artificial Analysis -> models.dev candidate resolution. */
-export type LlmMatchModelMappingPayload = {
-	artificial_analysis_fetched_at_epoch_seconds: number | null;
-	models_dev_fetched_at_epoch_seconds: number | null;
-	total_artificial_analysis_models: number;
-	total_models_dev_models: number;
-	max_candidates: number;
-	void_mode: "maxmin_range";
-	void_threshold: number | null;
-	voided_count: number;
-	models: LlmMatchMappedModel[];
-};
-
-/** Options for mapping generation and fallback-source injection. */
-export type LlmMatchModelMappingOptions = {
+/** Options for scraper-row match diagnostics. */
+export type MatchDiagnosticsOptions = {
 	maxCandidates?: number;
-	artificialAnalysisModels?: ArtificialAnalysisModel[];
 	modelsDevModels?: ModelsDevModel[];
 	scrapedRows?: unknown[];
 };
 
-export type LlmScraperFallbackMatchDiagnosticsPayload = {
+export type MatchDiagnosticsPayload = {
 	scraped_fetched_at_epoch_seconds: number | null;
 	models_dev_fetched_at_epoch_seconds: number | null;
 	total_scraped_models: number;
@@ -73,7 +54,7 @@ export type LlmScraperFallbackMatchDiagnosticsPayload = {
 	voided_count: number;
 	matched_count: number;
 	unmatched_count: number;
-	models: LlmMatchMappedModel[];
+	models: MatchMappedModel[];
 };
 
 export type PreferredProviderPools = {
@@ -82,7 +63,7 @@ export type PreferredProviderPools = {
 };
 
 export type MatcherRunOutput = {
-	models: LlmMatchMappedModel[];
+	models: MatchMappedModel[];
 	voidThreshold: number | null;
 	voidedCount: number;
 	preVoidMatchedCount: number;
