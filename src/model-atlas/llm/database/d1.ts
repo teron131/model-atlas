@@ -210,27 +210,67 @@ export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null>
 		return null;
 	}
 	const fetchedAt = finiteNumberOrNull(runRows[0]?.fetched_at_epoch_seconds);
-	const [modelRows, sourceHealthRows, aaRows, browseCompRows, deepSWERows] =
-		await Promise.all([
-			allD1(
-				"SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
-				[runId],
-			),
-			allD1("SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index", [
-				runId,
-			]),
-			allD1("SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index", [
-				runId,
-			]),
-			allD1(
-				"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
-				[runId],
-			),
-			allD1(
-				"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
-				[runId],
-			),
-		]);
+	const [
+		modelRows,
+		sourceHealthRows,
+		aaRows,
+		agentsLastExamRows,
+		blueprintBenchRows,
+		browseCompRows,
+		cursorBenchRows,
+		deepSWERows,
+		gdpPdfRows,
+		riemannBenchRows,
+		terminalBenchRows,
+		toolathlonRows,
+	] = await Promise.all([
+		allD1(
+			"SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
+			[runId],
+		),
+		allD1("SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index", [
+			runId,
+		]),
+		allD1("SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index", [
+			runId,
+		]),
+		allD1(
+			"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+		allD1(
+			"SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
+	]);
 	const rows: ModelAtlasPayloadRows = {
 		run: {
 			id: runId,
@@ -239,8 +279,15 @@ export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null>
 		modelRows,
 		sourceHealthRows,
 		aaRows,
+		agentsLastExamRows,
+		blueprintBenchRows,
 		browseCompRows,
+		cursorBenchRows,
 		deepSWERows,
+		gdpPdfRows,
+		riemannBenchRows,
+		terminalBenchRows,
+		toolathlonRows,
 	};
 	return buildModelAtlasPayloadFromRows(rows);
 }

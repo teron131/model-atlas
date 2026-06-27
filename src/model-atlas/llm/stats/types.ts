@@ -35,7 +35,10 @@ import type {
 	RiemannBenchModelScoreRow,
 	RiemannBenchScoreByModelName,
 } from "../scrapers/riemann-bench";
-import type { TerminalBenchAccuracyByModelName } from "../scrapers/terminal-bench";
+import type {
+	TerminalBenchAccuracyByModelName,
+	TerminalBenchModelMedianAccuracyRow,
+} from "../scrapers/terminal-bench";
 import type {
 	ToolathlonModelScoreRow,
 	ToolathlonScoreByModelName,
@@ -470,25 +473,26 @@ export type LlmStatsSourceData = {
 	preferredModelsDevModels: ModelsDevModel[];
 	modelsDevById: Map<string, ModelsDevModel>;
 	artificialAnalysisBySlug: Map<string, ArtificialAnalysisModel>;
-	deepSWEModelScoreRows: DeepSWEModelScoreRow[];
-	deepSWEScoreByModelName: DeepSWEScoreByModelName;
-	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName;
 	agentsLastExamModelScoreRows: AgentsLastExamModelScoreRow[];
 	agentsLastExamScoreByModelName: AgentsLastExamScoreByModelName;
 	automationBenchModelScoreRows: AutomationBenchModelScoreRow[];
 	automationBenchScoreByModelName: AutomationBenchScoreByModelName;
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
 	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName;
+	browseCompModelScoreRows: BrowseCompModelScoreRow[];
+	browseCompScoreByModelName: BrowseCompScoreByModelName;
+	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
+	cursorBenchScoreByModelName: CursorBenchScoreByModelName;
+	deepSWEModelScoreRows: DeepSWEModelScoreRow[];
+	deepSWEScoreByModelName: DeepSWEScoreByModelName;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	gdpPdfScoreByModelName: GdpPdfScoreByModelName;
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
 	riemannBenchScoreByModelName: RiemannBenchScoreByModelName;
-	browseCompModelScoreRows: BrowseCompModelScoreRow[];
-	browseCompScoreByModelName: BrowseCompScoreByModelName;
+	terminalBenchModelScoreRows: TerminalBenchModelMedianAccuracyRow[];
+	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	toolathlonScoreByModelName: ToolathlonScoreByModelName;
-	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
-	cursorBenchScoreByModelName: CursorBenchScoreByModelName;
 };
 
 export type LlmStatsEnrichmentResult = {

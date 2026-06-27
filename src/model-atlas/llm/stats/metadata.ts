@@ -2,10 +2,7 @@
 
 import { STAGE_CONFIG } from "../../constants";
 import { asRecord } from "../shared";
-import {
-	type BenchmarkUpdateOfficialRowsByKey,
-	buildBenchmarkUpdateHealth,
-} from "./health";
+import { type BenchmarkRowsByKey, buildBenchmarkUpdateHealth } from "./health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 import type {
 	LlmStatsBenchmarkUpdateHealth,
@@ -31,7 +28,7 @@ type CurrentLlmStatsMetadataOptions = {
 	artificialAnalysis?: LlmStatsMetadata["artificial_analysis"];
 	sourceHealth?: LlmStatsSourceHealth;
 	benchmarkUpdateHealth?: LlmStatsBenchmarkUpdateHealth;
-	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey;
+	sourceRowsByKey?: BenchmarkRowsByKey;
 	matcherConfig?: MatcherConfig;
 	availabilitySource?: MetadataAvailabilitySource;
 };
@@ -87,7 +84,7 @@ export function buildCurrentLlmStatsMetadata({
 	artificialAnalysis,
 	sourceHealth,
 	benchmarkUpdateHealth,
-	officialRowsByKey,
+	sourceRowsByKey,
 	matcherConfig = STAGE_CONFIG.matcher,
 	availabilitySource = "models",
 }: CurrentLlmStatsMetadataOptions): LlmStatsMetadata {
@@ -113,7 +110,7 @@ export function buildCurrentLlmStatsMetadata({
 			buildBenchmarkUpdateHealth(
 				healthModels,
 				scoringConfig,
-				officialRowsByKey,
+				sourceRowsByKey,
 				matcherConfig,
 			),
 		scoring: {

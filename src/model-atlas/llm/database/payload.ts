@@ -6,9 +6,9 @@ import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
 import {
 	ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS,
-	appendBenchmarkUpdateOfficialRow,
-	type BenchmarkUpdateOfficialRow,
-	type BenchmarkUpdateOfficialRowsByKey,
+	addBenchmarkRow,
+	type BenchmarkRowsByKey,
+	type BenchmarkSourceRow,
 } from "../stats/health";
 import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
 import type {
@@ -28,6 +28,14 @@ import type {
 import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
+
+type DbSourceSpec = {
+	key: string;
+	rows: readonly DbRow[];
+	scoreColumn: string;
+	providerColumn?: string;
+	rowKind?: string;
+};
 
 const INTELLIGENCE_KEYS = [
 	"intelligence_index",
@@ -318,13 +326,106 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 	};
 }
 
-/** Reconstructs official benchmark rows from database rows. */
-function officialRowsFromRows(
-	aaRows: DbRow[],
-	browseCompRows: DbRow[],
-): BenchmarkUpdateOfficialRowsByKey {
-	const rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]> = {};
-	for (const row of aaRows) {
+/** Return SQLite row mappings for one-benchmark source tables. */
+function dbSourceSpecs(rows: ModelAtlasPayloadRows): DbSourceSpec[] {
+	return [
+		{
+			key: "agents_last_exam",
+			rows: rows.agentsLastExamRows,
+			scoreColumn: "median_score",
+			rowKind: "model_score",
+		},
+		{
+			key: "blueprint_bench_2",
+			rows: rows.blueprintBenchRows,
+			scoreColumn: "score",
+		},
+		{
+			key: "browsecomp",
+			rows: rows.browseCompRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+		},
+		{
+			key: "cursorbench",
+			rows: rows.cursorBenchRows,
+			scoreColumn: "score",
+		},
+		{
+			key: "deep_swe",
+			rows: rows.deepSWERows,
+			scoreColumn: "pass_at_1",
+		},
+		{
+			key: "gdp_pdf",
+			rows: rows.gdpPdfRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+		},
+		{
+			key: "riemann_bench",
+			rows: rows.riemannBenchRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+		},
+		{
+			key: "terminal_bench_2",
+			rows: rows.terminalBenchRows,
+			scoreColumn: "median_accuracy",
+			rowKind: "model_score",
+		},
+		{
+			key: "toolathlon",
+			rows: rows.toolathlonRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+		},
+	];
+}
+
+/** Add one-benchmark SQLite source rows into the benchmark-keyed update map. */
+function addDbSourceRows(
+	rowsByKey: Record<string, BenchmarkSourceRow[]>,
+	sources: readonly DbSourceSpec[],
+): void {
+	for (const source of sources) {
+		for (const row of source.rows) {
+			addDbSourceRow(rowsByKey, source, row);
+		}
+	}
+}
+
+/** Add one SQLite source row when it has a usable model label and score. */
+function addDbSourceRow(
+	rowsByKey: Record<string, BenchmarkSourceRow[]>,
+	source: DbSourceSpec,
+	row: DbRow,
+): void {
+	if (source.rowKind != null && stringValue(row.row_kind) !== source.rowKind) {
+		return;
+	}
+	const label = stringValue(row.model);
+	const value = asFiniteNumber(row[source.scoreColumn]);
+	if (label == null || value == null) {
+		return;
+	}
+	addBenchmarkRow(rowsByKey, source.key, {
+		id: null,
+		label,
+		provider:
+			source.providerColumn == null
+				? null
+				: stringValue(row[source.providerColumn]),
+		value,
+	});
+}
+
+/** Add Artificial Analysis rows, which carry many benchmark keys in one payload. */
+function addArtificialAnalysisRows(
+	rowsByKey: Record<string, BenchmarkSourceRow[]>,
+	rows: readonly DbRow[],
+): void {
+	for (const row of rows) {
 		const modelId = stringValue(row.model_id);
 		const label =
 			stringValue(row.name) ?? stringValue(row.short_name) ?? modelId;
@@ -336,7 +437,7 @@ function officialRowsFromRows(
 			if (value == null) {
 				continue;
 			}
-			appendBenchmarkUpdateOfficialRow(rowsByKey, key, {
+			addBenchmarkRow(rowsByKey, key, {
 				id: modelId,
 				label,
 				provider: null,
@@ -344,19 +445,13 @@ function officialRowsFromRows(
 			});
 		}
 	}
-	for (const row of browseCompRows) {
-		const label = stringValue(row.model);
-		const value = asFiniteNumber(row.score);
-		if (label == null || value == null) {
-			continue;
-		}
-		appendBenchmarkUpdateOfficialRow(rowsByKey, "browsecomp", {
-			id: null,
-			label,
-			provider: stringValue(row.provider),
-			value,
-		});
-	}
+}
+
+/** Converts persisted benchmark source rows into benchmark-keyed update rows. */
+function benchmarkRowsFromDb(rows: ModelAtlasPayloadRows): BenchmarkRowsByKey {
+	const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
+	addArtificialAnalysisRows(rowsByKey, rows.aaRows);
+	addDbSourceRows(rowsByKey, dbSourceSpecs(rows));
 	return rowsByKey;
 }
 
@@ -412,8 +507,15 @@ export type ModelAtlasPayloadRows = {
 	modelRows: DbRow[];
 	sourceHealthRows: DbRow[];
 	aaRows: DbRow[];
+	agentsLastExamRows: DbRow[];
+	blueprintBenchRows: DbRow[];
 	browseCompRows: DbRow[];
+	cursorBenchRows: DbRow[];
 	deepSWERows: DbRow[];
+	gdpPdfRows: DbRow[];
+	riemannBenchRows: DbRow[];
+	terminalBenchRows: DbRow[];
+	toolathlonRows: DbRow[];
 };
 
 /** Assembles the public Model Atlas payload from database row groups. */
@@ -422,17 +524,14 @@ export function buildModelAtlasPayloadFromRows(
 ): LlmStatsPayload {
 	const models = rows.modelRows.map(modelFromRow);
 	const sourceHealth = sourceHealthFromRows(rows.sourceHealthRows);
-	const officialRowsByKey = officialRowsFromRows(
-		rows.aaRows,
-		rows.browseCompRows,
-	);
+	const sourceRowsByKey = benchmarkRowsFromDb(rows);
 	return {
 		fetched_at_epoch_seconds: rows.run.fetchedAt,
 		metadata: buildCurrentLlmStatsMetadata({
 			models,
 			healthModels: models,
 			sourceHealth,
-			officialRowsByKey,
+			sourceRowsByKey,
 		}),
 		deep_swe: {
 			rows: deepSWERowsFromRows(rows.deepSWERows),
@@ -483,14 +582,49 @@ export function readModelAtlasDatabasePayload(
 				"SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index",
 				run.id,
 			),
+			agentsLastExamRows: readRunRows(
+				db,
+				"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
+			blueprintBenchRows: readRunRows(
+				db,
+				"SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
 			browseCompRows: readRunRows(
 				db,
 				"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
 				run.id,
 			),
+			cursorBenchRows: readRunRows(
+				db,
+				"SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
 			deepSWERows: readRunRows(
 				db,
 				"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+				run.id,
+			),
+			gdpPdfRows: readRunRows(
+				db,
+				"SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
+			riemannBenchRows: readRunRows(
+				db,
+				"SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
+			terminalBenchRows: readRunRows(
+				db,
+				"SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+				run.id,
+			),
+			toolathlonRows: readRunRows(
+				db,
+				"SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
 				run.id,
 			),
 		});

@@ -57,22 +57,22 @@ type RankedModel = {
 	value: number;
 };
 
-export type BenchmarkUpdateOfficialRow = {
+export type BenchmarkSourceRow = {
 	id: string | null;
 	label: string;
 	provider: string | null;
 	value: number;
 };
 
-export type BenchmarkUpdateOfficialRowsByKey = Readonly<
-	Record<string, readonly BenchmarkUpdateOfficialRow[]>
+export type BenchmarkRowsByKey = Readonly<
+	Record<string, readonly BenchmarkSourceRow[]>
 >;
 
-/** Appends benchmark update official row for benchmark update health. */
-export function appendBenchmarkUpdateOfficialRow(
-	rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]>,
+/** Appends one benchmark source row for benchmark update health. */
+export function addBenchmarkRow(
+	rowsByKey: Record<string, BenchmarkSourceRow[]>,
 	key: string,
-	row: BenchmarkUpdateOfficialRow,
+	row: BenchmarkSourceRow,
 ): void {
 	rowsByKey[key] ??= [];
 	rowsByKey[key].push(row);
@@ -90,7 +90,7 @@ function modelIdentity(
 	return model.id ?? model.name ?? null;
 }
 
-/** Reads the benchmark value used to compare official and matched rows. */
+/** Reads the benchmark value used to compare source and matched rows. */
 function benchmarkValue(
 	model: BenchmarkHealthModel,
 	key: string,
@@ -115,8 +115,8 @@ function referenceRankByModel(
 	return new Map(ranked.map((model, index) => [model.id, index + 1]));
 }
 
-/** Normalizes the official row source into a comparable slug. */
-function officialRowSourceSlug(row: BenchmarkUpdateOfficialRow): string {
+/** Normalizes the source row into a comparable slug. */
+function sourceSlug(row: BenchmarkSourceRow): string {
 	if (row.id != null) {
 		const slug = row.id.split("/").at(-1);
 		if (slug != null) {
@@ -126,7 +126,7 @@ function officialRowSourceSlug(row: BenchmarkUpdateOfficialRow): string {
 	return normalizeModelToken(row.label);
 }
 
-/** Checks whether matched source tokens cover the official row name. */
+/** Checks whether matched model tokens cover the source row name. */
 function hasSourceTokenCoverage(
 	sourceSlug: string,
 	model: Pick<LlmStatsModel, "id" | "name">,
@@ -147,29 +147,29 @@ function hasSourceTokenCoverage(
 	});
 }
 
-/** Finds the source row that corresponds to one official benchmark row. */
-function matchedOfficialRowId(
-	row: BenchmarkUpdateOfficialRow,
+/** Finds the Atlas model row that corresponds to one source benchmark row. */
+function matchedSourceId(
+	row: BenchmarkSourceRow,
 	models: readonly BenchmarkHealthModel[],
 	matcherConfig: MatcherConfig | undefined,
 ): string | null {
 	if (matcherConfig == null) {
 		return null;
 	}
-	const sourceSlug = officialRowSourceSlug(row);
+	const rowSlug = sourceSlug(row);
 	const candidates = models
 		.flatMap((model) => {
 			const id = modelIdentity(model);
 			const name = model.name ?? "";
 			if (
 				id == null ||
-				!hasFirstTokenMatch(sourceSlug, id, name) ||
-				!hasSourceTokenCoverage(sourceSlug, model) ||
-				hasVariantConflict(sourceSlug, id, matcherConfig)
+				!hasFirstTokenMatch(rowSlug, id, name) ||
+				!hasSourceTokenCoverage(rowSlug, model) ||
+				hasVariantConflict(rowSlug, id, matcherConfig)
 			) {
 				return [];
 			}
-			const score = scoreCandidate(sourceSlug, id, name);
+			const score = scoreCandidate(rowSlug, id, name);
 			return score > 0
 				? [
 						{
@@ -210,16 +210,16 @@ function benchmarkRankedModels(
 		.sort((left, right) => right.value - left.value);
 }
 
-/** Ranks official benchmark rows for health comparison. */
-function officialRankedModels(
-	rows: readonly BenchmarkUpdateOfficialRow[],
+/** Ranks upstream benchmark source rows for health comparison. */
+function sourceRankedModels(
+	rows: readonly BenchmarkSourceRow[],
 	models: readonly BenchmarkHealthModel[],
 	referenceRanks: ReadonlyMap<string, number>,
 	matcherConfig: MatcherConfig | undefined,
 ): RankedModel[] {
 	return rows
 		.map((row) => {
-			const id = matchedOfficialRowId(row, models, matcherConfig);
+			const id = matchedSourceId(row, models, matcherConfig);
 			return {
 				id,
 				label: row.label,
@@ -242,17 +242,17 @@ function officialRankedModels(
 		);
 }
 
-/** Keeps the official rows that matter for overlap checks. */
-function officialTopRows(
-	rows: readonly BenchmarkUpdateOfficialRow[] | undefined,
-): BenchmarkUpdateOfficialRow[] {
+/** Keeps the upstream source rows that matter for overlap checks. */
+function sourceTopRows(
+	rows: readonly BenchmarkSourceRow[] | undefined,
+): BenchmarkSourceRow[] {
 	return [...(rows ?? [])]
 		.sort((left, right) => right.value - left.value)
 		.slice(0, BENCHMARK_TOP_LIMIT);
 }
 
-/** Formats the official row identifier shown in health output. */
-function officialRowOutputId(row: BenchmarkUpdateOfficialRow): string {
+/** Formats the source row identifier shown in health output. */
+function sourceRowOutputId(row: BenchmarkSourceRow): string {
 	if (row.id != null) {
 		return row.id;
 	}
@@ -298,7 +298,7 @@ function requiredOverlap(
 export function buildBenchmarkUpdateHealth(
 	models: readonly BenchmarkHealthModel[],
 	scoringConfig: ModelAtlasStageConfig["scoring"],
-	officialRowsByKey: BenchmarkUpdateOfficialRowsByKey = {},
+	sourceRowsByKey: BenchmarkRowsByKey = {},
 	matcherConfig?: MatcherConfig,
 ): LlmStatsBenchmarkUpdateHealth {
 	const referenceRanks = referenceRankByModel(models);
@@ -310,13 +310,13 @@ export function buildBenchmarkUpdateHealth(
 	].sort((left, right) => left.localeCompare(right));
 	return Object.fromEntries(
 		selectedBenchmarkKeys.map((key) => {
-			const officialRows = officialRowsByKey[key];
-			const officialTopSourceRows = officialTopRows(officialRows);
+			const sourceRows = sourceRowsByKey[key];
+			const topSourceRows = sourceTopRows(sourceRows);
 			const rankedModels =
-				officialRows == null
+				sourceRows == null
 					? benchmarkRankedModels(models, key, referenceRanks)
-					: officialRankedModels(
-							officialTopSourceRows,
+					: sourceRankedModels(
+							topSourceRows,
 							models,
 							referenceRanks,
 							matcherConfig,
@@ -325,8 +325,8 @@ export function buildBenchmarkUpdateHealth(
 			const overlapModels = topModels.filter(
 				(model) => model.referenceRank != null,
 			);
-			const unrepresentedTopSourceRows = officialTopSourceRows.filter(
-				(row) => matchedOfficialRowId(row, models, matcherConfig) == null,
+			const unrepresentedTopSourceRows = topSourceRows.filter(
+				(row) => matchedSourceId(row, models, matcherConfig) == null,
 			);
 			const entry: LlmStatsBenchmarkUpdateEntry = {
 				status: updateStatus({
@@ -334,19 +334,19 @@ export function buildBenchmarkUpdateHealth(
 					overlapCount: overlapModels.length,
 					unrepresentedTopCount: unrepresentedTopSourceRows.length,
 				}),
-				observed_count: officialRows?.length ?? rankedModels.length,
+				observed_count: sourceRows?.length ?? rankedModels.length,
 				checked_top_count: topModels.length,
 				reference_top_count: referenceRanks.size,
 				overlap_count: overlapModels.length,
 				overlap_model_ids: overlapModels.map((model) => model.id),
 				top_model_ids:
-					officialTopSourceRows.length > 0
-						? officialTopSourceRows.map(officialRowOutputId)
+					topSourceRows.length > 0
+						? topSourceRows.map(sourceRowOutputId)
 						: topModels.map((model) => model.id),
 				checked_model_ids: topModels.map((model) => model.id),
 				top_model_labels:
-					officialTopSourceRows.length > 0
-						? officialTopSourceRows.map((model) => model.label)
+					topSourceRows.length > 0
+						? topSourceRows.map((model) => model.label)
 						: topModels.map((model) => model.label),
 				unrepresented_top_model_labels: unrepresentedTopSourceRows.map(
 					(row) => row.label,

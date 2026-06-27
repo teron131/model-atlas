@@ -247,9 +247,6 @@ function modelStatsSourceData(
 			]),
 		),
 		artificialAnalysisBySlug,
-		deepSWEModelScoreRows: [],
-		deepSWEScoreByModelName: new Map(),
-		terminalBenchAccuracyByModelName: new Map(),
 		agentsLastExamModelScoreRows: [],
 		agentsLastExamScoreByModelName: new Map(),
 		automationBenchModelScoreRows: [],
@@ -258,21 +255,25 @@ function modelStatsSourceData(
 		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
 			blueprintBenchModelScoreRows,
 		),
+		browseCompModelScoreRows: [],
+		browseCompScoreByModelName: new Map(),
+		cursorBenchModelScoreRows,
+		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+			cursorBenchModelScoreRows,
+		),
+		deepSWEModelScoreRows: [],
+		deepSWEScoreByModelName: new Map(),
 		gdpPdfModelScoreRows,
 		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfModelScoreRows),
 		riemannBenchModelScoreRows,
 		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
 			riemannBenchModelScoreRows,
 		),
-		browseCompModelScoreRows: [],
-		browseCompScoreByModelName: new Map(),
+		terminalBenchModelScoreRows: [],
+		terminalBenchAccuracyByModelName: new Map(),
 		toolathlonModelScoreRows,
 		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
 			toolathlonModelScoreRows,
-		),
-		cursorBenchModelScoreRows,
-		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
-			cursorBenchModelScoreRows,
 		),
 	};
 }

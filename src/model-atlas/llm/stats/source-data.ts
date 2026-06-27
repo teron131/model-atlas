@@ -90,29 +90,29 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
 		aaStats,
 		modelsDevSourceStats,
-		deepSWEStats,
-		terminalBenchStats,
 		agentsLastExamStats,
 		automationBenchStats,
 		blueprintBenchStats,
+		browseCompStats,
+		cursorBenchStats,
+		deepSWEStats,
 		gdpPdfStats,
 		riemannBenchStats,
-		browseCompStats,
+		terminalBenchStats,
 		toolathlonStats,
-		cursorBenchStats,
 	] = await Promise.all([
 		getArtificialAnalysisScrapedEvalsOnlyStats(),
 		getModelsDevSourceStats(),
-		getDeepSWEModelScoreStats(),
-		getTerminalBenchModelMedianAccuracyStats(),
 		getAgentsLastExamModelScoreStats(),
 		getAutomationBenchLeaderboardStats(),
 		getBlueprintBenchModelScoreStats(),
+		getBrowseCompModelScoreStats(),
+		getCursorBenchModelScoreStats(),
+		getDeepSWEModelScoreStats(),
 		getGdpPdfModelScoreStats(),
 		getRiemannBenchModelScoreStats(),
-		getBrowseCompModelScoreStats(),
+		getTerminalBenchModelMedianAccuracyStats(),
 		getToolathlonModelScoreStats(),
-		getCursorBenchModelScoreStats(),
 	]);
 	const retainKeys = buildAaRetainKeys(aaStats.data);
 	const modelsDevModels = processModelsDevPayload(
@@ -126,11 +126,6 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		preferredModelsDevModels,
 		modelsDevById: buildModelsDevById(preferredModelsDevModels),
 		artificialAnalysisBySlug: buildAaBySlug(aaStats.data),
-		deepSWEModelScoreRows: deepSWEStats.data,
-		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(deepSWEStats.data),
-		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
-			terminalBenchStats.data,
-		),
 		agentsLastExamModelScoreRows: agentsLastExamStats.data,
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			agentsLastExamStats.data,
@@ -143,23 +138,29 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
 			blueprintBenchStats.data,
 		),
+		browseCompModelScoreRows: browseCompStats.data,
+		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
+			browseCompStats.data,
+		),
+		cursorBenchModelScoreRows: cursorBenchStats.data,
+		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+			cursorBenchStats.data,
+		),
+		deepSWEModelScoreRows: deepSWEStats.data,
+		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(deepSWEStats.data),
 		gdpPdfModelScoreRows: gdpPdfStats.data,
 		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfStats.data),
 		riemannBenchModelScoreRows: riemannBenchStats.data,
 		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
 			riemannBenchStats.data,
 		),
-		browseCompModelScoreRows: browseCompStats.data,
-		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
-			browseCompStats.data,
+		terminalBenchModelScoreRows: terminalBenchStats.data,
+		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
+			terminalBenchStats.data,
 		),
 		toolathlonModelScoreRows: toolathlonStats.data,
 		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
 			toolathlonStats.data,
-		),
-		cursorBenchModelScoreRows: cursorBenchStats.data,
-		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
-			cursorBenchStats.data,
 		),
 	};
 }
