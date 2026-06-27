@@ -491,7 +491,7 @@ export type LlmStatsSourceData = {
 	cursorBenchScoreByModelName: CursorBenchScoreByModelName;
 };
 
-export type EnrichedRows = {
+export type LlmStatsEnrichmentResult = {
 	rows: Record<string, unknown>[];
 	openRouterSpeedById: Map<string, JsonObject>;
 	openRouterPricingById: Map<string, JsonObject>;

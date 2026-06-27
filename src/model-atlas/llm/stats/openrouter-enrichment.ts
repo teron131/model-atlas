@@ -23,7 +23,11 @@ import {
 	stripCatalogAliasSuffixes,
 } from "./model-aliases";
 import { deriveSpeedOutputTokenAnchors } from "./scores";
-import type { EnrichedRows, OpenRouterConfig, ScoringConfig } from "./types";
+import type {
+	LlmStatsEnrichmentResult,
+	OpenRouterConfig,
+	ScoringConfig,
+} from "./types";
 
 /** OpenRouter enrichment for Model Atlas: dedupe rows, backfill free costs, and fetch speed/pricing enrichments. */
 const MERGED_OBJECT_FIELDS = [
@@ -472,7 +476,7 @@ export async function enrichModelRowsWithOpenRouter(
 	openrouterConfig: OpenRouterConfig,
 	scoringConfig: ScoringConfig,
 	cachedOpenRouterRawPayload?: OpenRouterRawScrapedPayload | null,
-): Promise<EnrichedRows> {
+): Promise<LlmStatsEnrichmentResult> {
 	const dedupedRows = dedupeRowsPreferOpenRouter(matchedRows);
 	const rows = backfillFreeModelCosts(dedupedRows);
 	const {

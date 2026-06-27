@@ -7,8 +7,8 @@ import {
 	buildQualityScoringContext,
 } from "../scores/benchmark-imputation";
 import type {
-	EnrichedRows,
 	FinalStageConfig,
+	LlmStatsEnrichmentResult,
 	LlmStatsModel,
 	LlmStatsScoredCandidate,
 	ScoringConfig,
@@ -24,7 +24,7 @@ import {
 
 /** Build candidate models and attach nullable normalized ranking data. */
 export function buildScoredModelCandidates(
-	enrichedRows: EnrichedRows,
+	enrichedRows: LlmStatsEnrichmentResult,
 	scoringConfig: ScoringConfig,
 ): LlmStatsScoredCandidate[] {
 	const benchmarkImputationByModel = buildBenchmarkImputationByModel(
@@ -52,7 +52,7 @@ export function buildScoredModelCandidates(
 
 /** Build the final LLM stats model list and attach the normalized ranking layer used for ordering. */
 export async function buildFinalModels(
-	enrichedRows: EnrichedRows,
+	enrichedRows: LlmStatsEnrichmentResult,
 	id: string | null | undefined,
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
