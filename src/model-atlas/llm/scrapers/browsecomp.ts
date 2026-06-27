@@ -46,7 +46,7 @@ export function processBrowseCompDetailsJson(
 }
 
 /** Build BrowseComp score rows by normalized model name. */
-export function buildBrowseCompScoreByModelName(
+export function buildBrowseCompMap(
 	rows: BrowseCompModelScoreRow[],
 ): BrowseCompScoreByModelName {
 	const scoreByModelName: BrowseCompScoreByModelName = new Map();
@@ -79,7 +79,7 @@ export function findBrowseCompScore(
 }
 
 /** Fetch BrowseComp model score rows from the JSON endpoint. */
-export async function getBrowseCompModelScoreStats(
+export async function getBrowseCompStats(
 	options: BrowseCompScraperOptions = {},
 ): Promise<BrowseCompModelScorePayload> {
 	try {

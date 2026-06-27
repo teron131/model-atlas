@@ -825,7 +825,7 @@ export async function getArtificialAnalysisScrapedStats(
 }
 
 /** Get the artificial analysis scraped evals only stats. */
-export async function getArtificialAnalysisScrapedEvalsOnlyStats(
+export async function getArtificialAnalysisEvalsStats(
 	options: Omit<ArtificialAnalysisScraperOptions, "selectedColumns"> = {},
 ): Promise<ArtificialAnalysisScrapedPayload> {
 	return getArtificialAnalysisScrapedStats({

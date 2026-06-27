@@ -50,7 +50,7 @@ function modelKeyCandidates(model: string): string[] {
 }
 
 /** Build GDP.pdf score rows by normalized model name. */
-export function buildGdpPdfScoreByModelName(
+export function buildGdpPdfMap(
 	rows: GdpPdfModelScoreRow[],
 ): GdpPdfScoreByModelName {
 	const scoreByModelName: GdpPdfScoreByModelName = new Map();
@@ -82,7 +82,7 @@ export function findGdpPdfScore(
 }
 
 /** Fetch GDP.pdf model score rows from the public page. */
-export async function getGdpPdfModelScoreStats(
+export async function getGdpPdfStats(
 	options: GdpPdfScraperOptions = {},
 ): Promise<GdpPdfModelScorePayload> {
 	try {

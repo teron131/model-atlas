@@ -1,5 +1,5 @@
 import {
-	buildCursorBenchScoreByModelName,
+	buildCursorBenchMap,
 	findCursorBenchScore,
 	processCursorBenchPageHtml,
 } from "../src/model-atlas/llm/scrapers/cursorbench";
@@ -110,7 +110,7 @@ assertDeepEqual(compactRows, [
 	},
 ]);
 
-const scoreByModelName = buildCursorBenchScoreByModelName(rows);
+const scoreByModelName = buildCursorBenchMap(rows);
 
 assertDeepEqual(
 	findCursorBenchScore(["missing", "GPT 5.5 Medium"], scoreByModelName),

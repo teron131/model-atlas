@@ -1,5 +1,5 @@
 import {
-	buildToolathlonScoreByModelName,
+	buildToolathlonMap,
 	findToolathlonScore,
 	processToolathlonDetailsJson,
 } from "../src/model-atlas/llm/scrapers/toolathlon";
@@ -77,7 +77,7 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildToolathlonScoreByModelName(rows);
+const scoreByModelName = buildToolathlonMap(rows);
 
 assertDeepEqual(
 	findToolathlonScore(["missing", "Claude Opus 4.8"], scoreByModelName),

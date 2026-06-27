@@ -1,5 +1,5 @@
 import {
-	buildAutomationBenchScoreByModelName,
+	buildAutomationBenchMap,
 	findAutomationBenchScore,
 	findAutomationBenchScoreRow,
 	processAutomationBenchPageHtml,
@@ -191,9 +191,7 @@ assertDeepEqual(parsed.model_scores, [
 	},
 ]);
 
-const scoreByModelName = buildAutomationBenchScoreByModelName(
-	parsed.model_scores,
-);
+const scoreByModelName = buildAutomationBenchMap(parsed.model_scores);
 assertDeepEqual(
 	findAutomationBenchScore(["fable-5.0-xhigh"], scoreByModelName),
 	0.16,

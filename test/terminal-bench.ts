@@ -1,5 +1,5 @@
 import {
-	buildTerminalBenchAccuracyByModelName,
+	buildTerminalBenchMap,
 	findTerminalBenchMedianAccuracy,
 	processTerminalBenchLeaderboardRows,
 	summarizeTerminalBenchModelMedianAccuracy,
@@ -35,7 +35,7 @@ assertDeepEqual(summarizeTerminalBenchModelMedianAccuracy(rows), [
 	{ model: "M1", median_accuracy: 0.4, mean_accuracy: 0.5, frequency: 3 },
 ]);
 
-const terminalBenchAccuracyByModelName = buildTerminalBenchAccuracyByModelName([
+const terminalBenchAccuracyByModelName = buildTerminalBenchMap([
 	{
 		model: "GPT-5.3 Codex",
 		median_accuracy: 0.8,

@@ -169,7 +169,7 @@ export function preferredDeepSWELeaderboardRows(
 }
 
 /** Build DeepSWE selected-score rows by normalized model name. */
-export function buildDeepSWEScoreByModelName(
+export function buildDeepSWEMap(
 	rows: DeepSWEModelScoreRow[],
 ): DeepSWEScoreByModelName {
 	const scoreByModelName: DeepSWEScoreByModelName = new Map();
@@ -287,7 +287,7 @@ function deepSWESourceVersionForRows(
 }
 
 /** Fetch DeepSWE default model score rows from the public leaderboard artifact. */
-export async function getDeepSWEModelScoreStats(
+export async function getDeepSWEStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {
 	const payload = await getDeepSWERawLeaderboardStats(options);

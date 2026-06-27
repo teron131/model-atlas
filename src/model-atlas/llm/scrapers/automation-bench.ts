@@ -396,7 +396,7 @@ export function processAutomationBenchPageHtml(
 }
 
 /** Build AutomationBench public top-10 score rows by normalized model name. */
-export function buildAutomationBenchScoreByModelName(
+export function buildAutomationBenchMap(
 	rows: AutomationBenchModelScoreRow[],
 ): AutomationBenchScoreByModelName {
 	const scoreByModelName: AutomationBenchScoreByModelName = new Map();
@@ -448,7 +448,7 @@ export function findAutomationBenchScore(
 }
 
 /** Fetch AutomationBench public top-10 and domain-winner leaderboard rows. */
-export async function getAutomationBenchLeaderboardStats(
+export async function getAutomationBenchStats(
 	options: AutomationBenchScraperOptions = {},
 ): Promise<AutomationBenchLeaderboardPayload> {
 	try {

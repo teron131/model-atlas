@@ -65,7 +65,7 @@ export function processToolathlonDetailsJson(
 }
 
 /** Build Toolathlon score rows by normalized model name. */
-export function buildToolathlonScoreByModelName(
+export function buildToolathlonMap(
 	rows: ToolathlonModelScoreRow[],
 ): ToolathlonScoreByModelName {
 	const scoreByModelName: ToolathlonScoreByModelName = new Map();
@@ -98,7 +98,7 @@ export function findToolathlonScore(
 }
 
 /** Fetch Toolathlon model score rows from the JSON endpoint. */
-export async function getToolathlonModelScoreStats(
+export async function getToolathlonStats(
 	options: ToolathlonScraperOptions = {},
 ): Promise<ToolathlonModelScorePayload> {
 	try {

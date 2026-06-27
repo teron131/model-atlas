@@ -265,7 +265,7 @@ export function processCursorBenchPageHtml(
 }
 
 /** Build CursorBench score rows by normalized model labels and public base-model aliases. */
-export function buildCursorBenchScoreByModelName(
+export function buildCursorBenchMap(
 	rows: CursorBenchModelScoreRow[],
 ): CursorBenchScoreByModelName {
 	const scoreByModelName: CursorBenchScoreByModelName = new Map();
@@ -297,7 +297,7 @@ export function findCursorBenchScore(
 }
 
 /** Fetch CursorBench model score rows from the public leaderboard page. */
-export async function getCursorBenchModelScoreStats(
+export async function getCursorBenchStats(
 	options: CursorBenchScraperOptions = {},
 ): Promise<CursorBenchModelScorePayload> {
 	try {

@@ -1,5 +1,5 @@
 import {
-	buildDeepSWEScoreByModelName,
+	buildDeepSWEMap,
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
 	DEEP_SWE_V1_LEADERBOARD_URL,
 	type DeepSWELeaderboardRow,
@@ -53,7 +53,7 @@ assertDeepEqual(
 	],
 );
 
-const scoreByModelName = buildDeepSWEScoreByModelName(rows);
+const scoreByModelName = buildDeepSWEMap(rows);
 
 assertDeepEqual(
 	findDeepSWEModelScore(["missing", "GPT 5.5"], scoreByModelName)?.pass_at_1,

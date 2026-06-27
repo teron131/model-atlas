@@ -6,8 +6,8 @@ import type { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../../constants";
 import { getScraperFallbackMatchDiagnostics } from "../matcher";
 import {
-	buildAutomationBenchScoreByModelName,
-	getAutomationBenchLeaderboardStats,
+	buildAutomationBenchMap,
+	getAutomationBenchStats,
 } from "../scrapers/automation-bench";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
@@ -218,11 +218,11 @@ export async function buildModelAtlasDatabase(
 			STAGE_CONFIG.scoring,
 			options,
 		);
-		const automationBench = await getAutomationBenchLeaderboardStats();
+		const automationBench = await getAutomationBenchStats();
 		const sourceData = {
 			...sourceDataFromSnapshots(snapshots),
 			automationBenchModelScoreRows: automationBench.model_scores,
-			automationBenchScoreByModelName: buildAutomationBenchScoreByModelName(
+			automationBenchScoreByModelName: buildAutomationBenchMap(
 				automationBench.model_scores,
 			),
 		};
