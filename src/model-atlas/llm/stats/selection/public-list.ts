@@ -65,7 +65,9 @@ export function sortModelsByIntelligenceScore(
 		if (leftIntelligence !== rightIntelligence) {
 			return rightIntelligence - leftIntelligence;
 		}
-		return modelSortKey(left).localeCompare(modelSortKey(right));
+		const leftKey = modelSortKey(left);
+		const rightKey = modelSortKey(right);
+		return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
 	});
 }
 

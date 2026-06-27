@@ -219,3 +219,39 @@ assert.deepEqual(benchmarksModel, {
 		deep_swe: 0.6,
 	},
 });
+
+const tiedPayload = minimalLlmStatsPayload({
+	fetchedAt: 123,
+	models: [
+		rankedModel("provider/first", "First", 100),
+		rankedModel("provider/second-a", "Second A", 90),
+		rankedModel("provider/second-b", "Second B", 90),
+		rankedModel("provider/fourth", "Fourth", 80),
+	],
+});
+assert.deepEqual(
+	scoreJsonPayload(tiedPayload).scores.map((model) => model.rank),
+	[1, 2, 2, 4],
+	"score JSON should use tied competition ranks",
+);
+assert.deepEqual(
+	coreJsonPayload(tiedPayload).models.map((model) => model.rank),
+	[1, 2, 2, 4],
+	"core JSON should use tied competition ranks",
+);
+assert.deepEqual(
+	benchmarksJsonPayload(tiedPayload).benchmarks.map((model) => model.rank),
+	[1, 2, 2, 4],
+	"benchmarks JSON should use tied competition ranks",
+);
+
+function rankedModel(id: string, name: string, intelligenceScore: number) {
+	const model = minimalLlmStatsModel({ id, name });
+	return {
+		...model,
+		relative_scores: {
+			...model.relative_scores,
+			intelligence_score: intelligenceScore,
+		},
+	};
+}

@@ -26,6 +26,23 @@ assert.deepEqual(
 	"row ranks should be tied to intelligence score, not source/display order",
 );
 
+const tiedIntelligenceRows = dedupeDisplayModels([
+	rankedModel("provider/first", "First", 100),
+	rankedModel("provider/second-a", "Second A", 90),
+	rankedModel("provider/second-b", "Second B", 90),
+	rankedModel("provider/fourth", "Fourth", 80),
+]);
+assert.deepEqual(
+	tiedIntelligenceRows.map((row) => [row.model.id, row.intelligenceRank]),
+	[
+		["provider/first", 1],
+		["provider/second-a", 2],
+		["provider/second-b", 2],
+		["provider/fourth", 4],
+	],
+	"equal intelligence scores should share competition ranks",
+);
+
 assert.deepEqual(
 	sortedRows(intelligenceRows, "", sort("model", "ascending")).map((row) => [
 		row.model.id,
