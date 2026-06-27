@@ -2,19 +2,7 @@
 
 import { asFiniteNumber, asRecord } from "../../shared";
 import type { LlmStatsSourceData } from "../types";
-
-export const ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS = [
-	"apex_agents",
-	"critpt",
-	"gdpval_normalized",
-	"gpqa",
-	"hle",
-	"lcr",
-	"mmmu_pro",
-	"scicode",
-	"tau_banking",
-	"terminalbench_v21",
-] as const;
+import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
 
 export type BenchmarkSourceRow = {
 	id: string | null;
@@ -147,7 +135,7 @@ function addArtificialAnalysisRows(
 			continue;
 		}
 		const evaluations = asRecord(record.evaluations);
-		for (const key of ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS) {
+		for (const key of ARTIFICIAL_ANALYSIS_EVALUATION_KEYS) {
 			const value = asFiniteNumber(evaluations[key]);
 			if (value == null) {
 				continue;

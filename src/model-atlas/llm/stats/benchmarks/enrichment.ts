@@ -3,17 +3,17 @@
 import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
-} from "../scrapers/agents-last-exam";
-import { findAutomationBenchScoreRow } from "../scrapers/automation-bench";
-import { findBlueprintBenchScore } from "../scrapers/blueprint-bench";
-import { findBrowseCompScore } from "../scrapers/browsecomp";
-import { findCursorBenchScore } from "../scrapers/cursorbench";
-import { findDeepSWEModelScore } from "../scrapers/deep-swe";
-import { findGdpPdfScore } from "../scrapers/gdp-pdf";
-import { findRiemannBenchScore } from "../scrapers/riemann-bench";
-import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
-import { findToolathlonScore } from "../scrapers/toolathlon";
-import type { LlmStatsScoringSources, LlmStatsSourceData } from "./types";
+} from "../../scrapers/agents-last-exam";
+import { findAutomationBenchScoreRow } from "../../scrapers/automation-bench";
+import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
+import { findBrowseCompScore } from "../../scrapers/browsecomp";
+import { findCursorBenchScore } from "../../scrapers/cursorbench";
+import { findDeepSWEModelScore } from "../../scrapers/deep-swe";
+import { findGdpPdfScore } from "../../scrapers/gdp-pdf";
+import { findRiemannBenchScore } from "../../scrapers/riemann-bench";
+import { findTerminalBenchMedianAccuracy } from "../../scrapers/terminal-bench";
+import { findToolathlonScore } from "../../scrapers/toolathlon";
+import type { LlmStatsScoringSources, LlmStatsSourceData } from "../types";
 
 export type BenchmarkEnrichmentLookups = {
 	agentsLastExam: Pick<

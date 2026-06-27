@@ -23,6 +23,10 @@ import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
 import type { TerminalBenchAgentModelAccuracyRow } from "../scrapers/terminal-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
+import {
+	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
+} from "../stats/benchmarks";
 import { isSameOpenRouterModelRoute } from "../stats/model-aliases";
 import {
 	RAW_SOURCE_CACHE_SECONDS,
@@ -45,27 +49,6 @@ const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	cursorbench: "cursorbench_raw_rows",
 	openrouter: "openrouter_raw_rows",
 };
-
-const AA_INTELLIGENCE_KEYS = [
-	"intelligence_index",
-	"agentic_index",
-	"coding_index",
-	"omniscience_index",
-	"omniscience_accuracy",
-] as const;
-
-const AA_EVALUATION_KEYS = [
-	"apex_agents",
-	"critpt",
-	"gdpval_normalized",
-	"gpqa",
-	"hle",
-	"lcr",
-	"mmmu_pro",
-	"scicode",
-	"tau_banking",
-	"terminalbench_v21",
-] as const;
 
 const AA_COST_KEYS = [
 	"input_cost",
@@ -267,10 +250,10 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 	assignIfBoolean(rawRow, "output_modality_image", row.output_modality_image);
 	assignIfBoolean(rawRow, "output_modality_video", row.output_modality_video);
 	assignIfBoolean(rawRow, "output_modality_speech", row.output_modality_speech);
-	for (const key of AA_INTELLIGENCE_KEYS) {
+	for (const key of ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS) {
 		assignIfNumber(rawRow, key, row[key]);
 	}
-	for (const key of AA_EVALUATION_KEYS) {
+	for (const key of ARTIFICIAL_ANALYSIS_EVALUATION_KEYS) {
 		assignIfNumber(rawRow, key, row[key]);
 	}
 	for (const key of AA_COST_KEYS) {
@@ -312,9 +295,12 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	);
 	const intelligence = artificialAnalysisNestedNumbers(
 		row,
-		AA_INTELLIGENCE_KEYS,
+		ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 	);
-	const evaluations = artificialAnalysisNestedNumbers(row, AA_EVALUATION_KEYS);
+	const evaluations = artificialAnalysisNestedNumbers(
+		row,
+		ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+	);
 	const intelligenceIndexCost = artificialAnalysisNestedNumbers(
 		row,
 		AA_COST_KEYS,

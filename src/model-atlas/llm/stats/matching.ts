@@ -13,7 +13,7 @@ import {
 import {
 	type BenchmarkEnrichmentLookups,
 	benchmarkEnrichment,
-} from "./benchmark-enrichment";
+} from "./benchmarks";
 import type {
 	ArtificialAnalysisModel,
 	LlmStatsSourceData,

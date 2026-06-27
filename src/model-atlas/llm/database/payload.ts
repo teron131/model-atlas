@@ -4,7 +4,11 @@ import { DatabaseSync } from "node:sqlite";
 
 import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
-import { benchmarkRowsFromDb } from "../stats/benchmarks";
+import {
+	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
+	benchmarkRowsFromDb,
+	MODEL_ATLAS_EVALUATION_KEYS,
+} from "../stats/benchmarks";
 import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
 import type {
 	LlmStatsContextWindow,
@@ -23,37 +27,6 @@ import type {
 import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
-
-const INTELLIGENCE_KEYS = [
-	"intelligence_index",
-	"agentic_index",
-	"coding_index",
-	"omniscience_index",
-	"omniscience_accuracy",
-] as const;
-
-const EVALUATION_KEYS = [
-	"apex_agents",
-	"critpt",
-	"gdpval_normalized",
-	"gpqa",
-	"hle",
-	"lcr",
-	"mmmu_pro",
-	"scicode",
-	"tau_banking",
-	"terminalbench_v21",
-	"deep_swe",
-	"terminal_bench_2",
-	"agents_last_exam",
-	"automation_bench",
-	"blueprint_bench_2",
-	"gdp_pdf",
-	"riemann_bench",
-	"browsecomp",
-	"toolathlon",
-	"cursorbench",
-] as const;
 
 const INPUT_MODALITY_COLUMNS = [
 	["input_modality_text", "text"],
@@ -240,10 +213,16 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 		cost: buildCost(row),
 		context_window: buildContextWindow(row),
 		speed: buildSpeed(row),
-		intelligence: numericObject<LlmStatsIntelligence>(row, INTELLIGENCE_KEYS),
+		intelligence: numericObject<LlmStatsIntelligence>(
+			row,
+			ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
+		),
 		intelligence_index_cost: null,
 		task_metrics: buildTaskMetrics(row),
-		evaluations: numericObject<LlmStatsEvaluations>(row, EVALUATION_KEYS),
+		evaluations: numericObject<LlmStatsEvaluations>(
+			row,
+			MODEL_ATLAS_EVALUATION_KEYS,
+		),
 		scores: buildScores(row),
 		relative_scores: buildRelativeScores(row),
 	};

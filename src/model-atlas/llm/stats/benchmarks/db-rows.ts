@@ -1,8 +1,8 @@
 /** Build benchmark-keyed source rows from persisted SQLite row groups. */
 
 import { asFiniteNumber } from "../../shared";
+import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
 import {
-	ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS,
 	addBenchmarkRow,
 	type BenchmarkRowsByKey,
 	type BenchmarkSourceRow,
@@ -142,7 +142,7 @@ function addArtificialAnalysisRows(
 		if (label == null) {
 			continue;
 		}
-		for (const key of ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS) {
+		for (const key of ARTIFICIAL_ANALYSIS_EVALUATION_KEYS) {
 			const value = asFiniteNumber(row[key]);
 			if (value == null) {
 				continue;
