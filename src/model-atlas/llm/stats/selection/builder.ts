@@ -19,7 +19,7 @@ import {
 	filterModelsById,
 	normalizePublicFreeRoutes,
 	pruneSparseFields,
-	sortModelsByIntelligenceRelativeScore,
+	sortModelsByIntelligenceScore,
 } from "./public-list";
 
 /** Build candidate models and attach nullable normalized ranking data. */
@@ -62,7 +62,7 @@ export async function buildFinalModels(
 		scoringConfig,
 	);
 	const signalModels = filterLowSignalModels(scoredCandidates);
-	const sortedModels = sortModelsByIntelligenceRelativeScore(signalModels);
+	const sortedModels = sortModelsByIntelligenceScore(signalModels);
 	const prunedModels = pruneSparseFields(
 		sortedModels,
 		finalConfig,
