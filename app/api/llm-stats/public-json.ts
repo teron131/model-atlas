@@ -138,24 +138,30 @@ export function publicJsonPayload(
 
 /** Return the compact table-oriented public JSON projection. */
 export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
+	const ranks = intelligenceRanks(payload.models);
 	return {
 		schema: CORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
 		methodology: methodologyText(payload),
 		columns: [...coreColumnKeys],
-		models: payload.models.map((model, index) => coreJsonModel(model, index)),
+		models: payload.models.map((model, index) =>
+			coreJsonModel(model, ranks[index] ?? index + 1),
+		),
 	};
 }
 
 /** Return the public ranking and relative score projection. */
 export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
+	const ranks = intelligenceRanks(payload.models);
 	return {
 		schema: SCORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
 		methodology: methodologyText(payload),
-		scores: payload.models.map((model, index) => scoreJsonModel(model, index)),
+		scores: payload.models.map((model, index) =>
+			scoreJsonModel(model, ranks[index] ?? index + 1),
+		),
 	};
 }
 
@@ -163,13 +169,14 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 export function benchmarksJsonPayload(
 	payload: LlmStatsPayload,
 ): BenchmarksJsonPayload {
+	const ranks = intelligenceRanks(payload.models);
 	return {
 		schema: BENCHMARKS_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		benchmark_scale: BENCHMARK_SCALE,
 		methodology: methodologyText(payload),
 		benchmarks: payload.models.map((model, index) =>
-			benchmarksJsonModel(model, index),
+			benchmarksJsonModel(model, ranks[index] ?? index + 1),
 		),
 	};
 }
@@ -194,6 +201,21 @@ function formatMethodologyWeight(weight: number): string {
 	return `${percent}%`;
 }
 
+/** Return competition ranks for models already sorted by intelligence score. */
+function intelligenceRanks(models: LlmStatsModel[]): number[] {
+	const ranks: number[] = [];
+	let previousScore: number | null = null;
+	let previousRank = 0;
+	for (const [index, model] of models.entries()) {
+		const score = model.relative_scores.intelligence_score;
+		const rank = score === previousScore ? previousRank : index + 1;
+		ranks.push(rank);
+		previousScore = score;
+		previousRank = rank;
+	}
+	return ranks;
+}
+
 /** Strip internal rendering fields from the full public model projection. */
 function withoutUnusedModelFields(
 	model: LlmStatsModel,
@@ -208,9 +230,9 @@ function withoutUnusedModelFields(
 }
 
 /** Convert one stats model into the public score row shape. */
-function scoreJsonModel(model: LlmStatsModel, index: number): ScoreJsonModel {
+function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 	return {
-		rank: index + 1,
+		rank,
 		id: model.id,
 		name: model.name,
 		provider: model.provider,
@@ -227,10 +249,10 @@ function scoreJsonModel(model: LlmStatsModel, index: number): ScoreJsonModel {
 /** Convert one stats model into the public benchmark row shape. */
 function benchmarksJsonModel(
 	model: LlmStatsModel,
-	index: number,
+	rank: number,
 ): BenchmarksJsonModel {
 	return {
-		rank: index + 1,
+		rank,
 		id: model.id,
 		name: model.name,
 		provider: model.provider,
@@ -244,9 +266,9 @@ function benchmarksJsonModel(
 }
 
 /** Convert one stats model into the public core table row shape. */
-function coreJsonModel(model: LlmStatsModel, index: number): CoreJsonModel {
+function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 	return {
-		rank: index + 1,
+		rank,
 		id: model.id,
 		name: model.name,
 		provider: model.provider,

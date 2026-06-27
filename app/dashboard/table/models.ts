@@ -534,7 +534,21 @@ function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
 	const rankedRows = [...rows].sort(compareIntelligenceRank);
 	const rankByOriginalIndex = new Map<number, number>();
 	for (const [rankIndex, row] of rankedRows.entries()) {
-		rankByOriginalIndex.set(row.originalIndex, rankIndex + 1);
+		const previousRow = rankedRows[rankIndex - 1];
+		const score = intelligenceScore(row);
+		const previousScore =
+			previousRow == null ? null : intelligenceScore(previousRow);
+		const previousRank =
+			previousRow == null
+				? 0
+				: (rankByOriginalIndex.get(previousRow.originalIndex) ?? 0);
+		const rank =
+			typeof score === "number" &&
+			Number.isFinite(score) &&
+			score === previousScore
+				? previousRank
+				: rankIndex + 1;
+		rankByOriginalIndex.set(row.originalIndex, rank);
 	}
 	return rows.map((row) => ({
 		...row,
