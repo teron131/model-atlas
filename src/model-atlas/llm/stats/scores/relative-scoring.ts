@@ -321,17 +321,18 @@ export function attachRelativeScores(
 	scoringConfig: ScoringConfig,
 ): LlmStatsScoredCandidate[] {
 	const frontierKeys = frontierResourceKeys(models, scoringConfig);
-	const aaResourceSourceCount = models.some((model) =>
+	const artificialAnalysisResourceSourceCount = models.some((model) =>
 		hasPositiveResourceMetric(model, "artificial_analysis"),
 	)
 		? ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT
 		: 0;
-	const { aaResourceWeight, frontierResourceWeight } =
+	const { artificialAnalysisResourceWeight, frontierResourceWeight } =
 		resourceComponentWeightsFor({
-			aaResourceSourceCount,
+			artificialAnalysisResourceSourceCount,
 			frontierResourceSourceCount: frontierKeys.length,
 		});
-	const aaResourcePairComponentWeight = aaResourceWeight / 2;
+	const artificialAnalysisResourcePairComponentWeight =
+		artificialAnalysisResourceWeight / 2;
 	const frontierResourcePairComponentWeight = frontierResourceWeight / 2;
 	const frontierValuesByKey = frontierBenchmarkValuesByKey(
 		models,
@@ -391,7 +392,7 @@ export function attachRelativeScores(
 	const artificialAnalysisSpeedValues = models.map((model) =>
 		inversePositive(taskMetricSeconds(model, "artificial_analysis")),
 	);
-	const aaResourceSpeedValues = models.map((_, index) =>
+	const artificialAnalysisResourceSpeedValues = models.map((_, index) =>
 		percentileScoreAt(artificialAnalysisSpeedValues, index),
 	);
 	const frontierResourceSpeedValues = models.map((model) =>
@@ -410,11 +411,11 @@ export function attachRelativeScores(
 			[
 				{
 					value: percentileScoreAt(artificialAnalysisCostValues, index),
-					weight: aaResourcePairComponentWeight,
+					weight: artificialAnalysisResourcePairComponentWeight,
 				},
 				{
 					value: percentileScoreAt(artificialAnalysisEfficiencyValues, index),
-					weight: aaResourcePairComponentWeight,
+					weight: artificialAnalysisResourcePairComponentWeight,
 				},
 				{
 					value: percentileScoreAt(frontierResourceCostValues, index),
@@ -444,8 +445,8 @@ export function attachRelativeScores(
 		weightedMeanOfFiniteWithMinimum(
 			[
 				{
-					value: aaResourceSpeedValues[index] ?? null,
-					weight: aaResourceWeight,
+					value: artificialAnalysisResourceSpeedValues[index] ?? null,
+					weight: artificialAnalysisResourceWeight,
 				},
 				{
 					value: frontierResourceSpeedValues[index] ?? null,

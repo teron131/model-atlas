@@ -8,14 +8,14 @@ import {
 } from "../src/model-atlas/llm/database/policy";
 import { mergeArtificialAnalysisRow } from "../src/model-atlas/llm/database/sources";
 
-type AaFixtureRow = {
+type ArtificialAnalysisFixtureRow = {
 	model_id: string;
 	name: string;
 	intelligenceIndex?: number;
 	deprecated?: boolean;
 };
 
-const cachedRows: AaFixtureRow[] = [
+const cachedRows: ArtificialAnalysisFixtureRow[] = [
 	{
 		model_id: "anthropic/claude-fable-5",
 		name: "Claude Fable 5",
@@ -28,7 +28,7 @@ const cachedRows: AaFixtureRow[] = [
 	},
 ];
 
-const fetchedRows: AaFixtureRow[] = [
+const fetchedRows: ArtificialAnalysisFixtureRow[] = [
 	{
 		model_id: "anthropic/claude-fable-5",
 		name: "Claude Fable 5 (not currently available)",
@@ -41,19 +41,22 @@ const fetchedRows: AaFixtureRow[] = [
 	},
 ];
 
-const rowKey = (row: AaFixtureRow) => row.model_id;
-const mergeAaRow = (cachedRow: AaFixtureRow, fetchedRow: AaFixtureRow) =>
+const rowKey = (row: ArtificialAnalysisFixtureRow) => row.model_id;
+const mergeArtificialAnalysisFixtureRow = (
+	cachedRow: ArtificialAnalysisFixtureRow,
+	fetchedRow: ArtificialAnalysisFixtureRow,
+) =>
 	mergeArtificialAnalysisRow(
 		cachedRow as Record<string, unknown>,
 		fetchedRow as Record<string, unknown>,
 		STAGE_CONFIG.scoring,
-	) as AaFixtureRow;
+	) as ArtificialAnalysisFixtureRow;
 
 const mergedRows = mergeCachedSourceRows(
 	cachedRows,
 	fetchedRows,
 	rowKey,
-	mergeAaRow,
+	mergeArtificialAnalysisFixtureRow,
 );
 
 assert.deepEqual(
@@ -86,7 +89,7 @@ assert.deepEqual(
 		1_800_000_000,
 		{},
 		rowKey,
-		mergeAaRow,
+		mergeArtificialAnalysisFixtureRow,
 	).map((row) => row.model_id),
 	["anthropic/claude-fable-5", "anthropic/claude-opus-4-6", "openai/gpt-5-5"],
 	"Normal refreshes should not remove cached rows absent from the fetch",
@@ -111,7 +114,7 @@ const quarantinedSnapshot = snapshotRowsWithStates({
 	options: {},
 	rowKey,
 	rowLabel: (row) => row.name,
-	mergeRow: mergeAaRow,
+	mergeRow: mergeArtificialAnalysisFixtureRow,
 	previousMissingSince: new Map(),
 	nowEpochSeconds: 1_800_000_123,
 });

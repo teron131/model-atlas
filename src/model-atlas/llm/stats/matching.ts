@@ -125,29 +125,38 @@ export function firstValidMatchId(
 
 /** Build one matched row from the Artificial Analysis source model. */
 function buildMatchedRow(
-	aaModel: ArtificialAnalysisModel,
+	artificialAnalysisModel: ArtificialAnalysisModel,
 	matchedModelId: string,
 	lookups: MatchedRowLookups,
 ): Record<string, unknown> {
-	const aaModelId =
-		typeof aaModel.model_id === "string" ? aaModel.model_id : null;
-	const aaSlug = modelSlugFromModelId(aaModelId);
-	const evaluations = { ...asRecord(aaModel.evaluations) };
-	const intelligence = asRecord(aaModel.intelligence);
-	const intelligenceIndexCost = asRecord(aaModel.intelligence_index_cost);
-	const logo = typeof aaModel.logo === "string" ? aaModel.logo : null;
+	const artificialAnalysisModelId =
+		typeof artificialAnalysisModel.model_id === "string"
+			? artificialAnalysisModel.model_id
+			: null;
+	const artificialAnalysisSlug = modelSlugFromModelId(
+		artificialAnalysisModelId,
+	);
+	const evaluations = { ...asRecord(artificialAnalysisModel.evaluations) };
+	const intelligence = asRecord(artificialAnalysisModel.intelligence);
+	const intelligenceIndexCost = asRecord(
+		artificialAnalysisModel.intelligence_index_cost,
+	);
+	const logo =
+		typeof artificialAnalysisModel.logo === "string"
+			? artificialAnalysisModel.logo
+			: null;
 	const matchedModelsDev = lookups.modelsDevById.get(matchedModelId) ?? null;
 	const matchedModelFields = asRecord(matchedModelsDev?.model);
 	const matchedModelName =
 		typeof matchedModelsDev?.model?.name === "string"
 			? matchedModelsDev.model.name
-			: aaModelId;
+			: artificialAnalysisModelId;
 	const modelNameCandidates = [
 		matchedModelName,
 		matchedModelsDev?.model_id,
 		matchedModelsDev?.model?.id,
-		aaModelId,
-		aaSlug,
+		artificialAnalysisModelId,
+		artificialAnalysisSlug,
 	];
 	const benchmarkFields = benchmarkEnrichment(modelNameCandidates, lookups);
 	Object.assign(evaluations, benchmarkFields.evaluations);
@@ -164,10 +173,10 @@ function buildMatchedRow(
 		slug: _matchedSlug,
 		...modelMetadata
 	} = matchedModelFields;
-	const medianSpeed = asFiniteNumber(aaModel.median_speed);
-	const medianTime = asFiniteNumber(aaModel.median_time);
+	const medianSpeed = asFiniteNumber(artificialAnalysisModel.median_speed);
+	const medianTime = asFiniteNumber(artificialAnalysisModel.median_time);
 	const medianEndToEndResponseTime = asFiniteNumber(
-		aaModel.median_end_to_end_response_time,
+		artificialAnalysisModel.median_end_to_end_response_time,
 	);
 
 	return {
@@ -175,8 +184,8 @@ function buildMatchedRow(
 		provider_id: matchedModelsDev?.provider_id ?? null,
 		openrouter_id: canonicalId,
 		name: matchedModelName,
-		aa_id: aaModelId,
-		aa_slug: aaSlug,
+		aa_id: artificialAnalysisModelId,
+		aa_slug: artificialAnalysisSlug,
 		family: matchedFamily,
 		logo,
 		...modelMetadata,
@@ -216,13 +225,17 @@ export function modelRowsFromMatchDiagnostics(
 			if (matchedModelId == null) {
 				return null;
 			}
-			const aaModel = sourceData.artificialAnalysisBySlug.get(
+			const artificialAnalysisModel = sourceData.artificialAnalysisBySlug.get(
 				matchedModel.artificial_analysis_slug,
 			);
-			if (!aaModel) {
+			if (!artificialAnalysisModel) {
 				return null;
 			}
-			return buildMatchedRow(aaModel, matchedModelId, sourceData);
+			return buildMatchedRow(
+				artificialAnalysisModel,
+				matchedModelId,
+				sourceData,
+			);
 		})
 		.filter((row): row is Record<string, unknown> => row != null);
 }

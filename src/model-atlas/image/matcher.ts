@@ -508,14 +508,14 @@ function hasFamilyAnchorOverlap(
 	artificialAnalysisModel: ArtificialAnalysisImageModel,
 	arenaModelName: string,
 ): boolean {
-	const aaAnchors = getArtificialAnalysisNames(artificialAnalysisModel).flatMap(
-		(name) => getFamilyAnchorTokens(name),
-	);
-	if (aaAnchors.length === 0) {
+	const artificialAnalysisAnchors = getArtificialAnalysisNames(
+		artificialAnalysisModel,
+	).flatMap((name) => getFamilyAnchorTokens(name));
+	if (artificialAnalysisAnchors.length === 0) {
 		return true;
 	}
 	const arenaAnchorSet = new Set(getFamilyAnchorTokens(arenaModelName));
-	return aaAnchors.some((token) => arenaAnchorSet.has(token));
+	return artificialAnalysisAnchors.some((token) => arenaAnchorSet.has(token));
 }
 
 /** Compute the candidate score. */
@@ -529,14 +529,15 @@ function computeCandidateScore(
 		artificialAnalysisModel,
 		arenaModel.model,
 	);
-	const aaProvider = getModelCreatorName(
+	const artificialAnalysisProvider = getModelCreatorName(
 		artificialAnalysisModel,
 	)?.toLowerCase();
 	const arenaProvider = providerPrefix(arenaModel.provider);
 	const providerMatchBonus =
-		aaProvider &&
+		artificialAnalysisProvider &&
 		arenaProvider &&
-		(aaProvider.includes(arenaProvider) || arenaProvider.includes(aaProvider))
+		(artificialAnalysisProvider.includes(arenaProvider) ||
+			arenaProvider.includes(artificialAnalysisProvider))
 			? PROVIDER_MATCH_REWARD
 			: 0;
 	const score =

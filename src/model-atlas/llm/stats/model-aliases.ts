@@ -106,24 +106,30 @@ export function stripCatalogAliasSuffixes(value: string): string {
 
 /** Ranks Artificial Analysis aliases by reasoning-effort specificity. */
 export function reasoningEffortPriority(
-	aaSlug: string | null,
+	artificialAnalysisSlug: string | null,
 	canonicalSlug: string | null,
 ): number {
-	if (aaSlug == null || canonicalSlug == null) {
+	if (artificialAnalysisSlug == null || canonicalSlug == null) {
 		return 0;
 	}
-	const normalizedAaSlug = normalizeProviderModelId(aaSlug);
+	const normalizedArtificialAnalysisSlug = normalizeProviderModelId(
+		artificialAnalysisSlug,
+	);
 	const normalizedCanonicalSlug = normalizeProviderModelId(canonicalSlug);
 	for (const suffix of EPHEMERAL_SUFFIXES) {
-		if (normalizedAaSlug === `${normalizedCanonicalSlug}${suffix}`) {
+		if (
+			normalizedArtificialAnalysisSlug === `${normalizedCanonicalSlug}${suffix}`
+		) {
 			return 6;
 		}
 	}
-	if (normalizedAaSlug === normalizedCanonicalSlug) {
+	if (normalizedArtificialAnalysisSlug === normalizedCanonicalSlug) {
 		return REASONING_EFFORT_SUFFIXES.length + 1;
 	}
 	for (const [index, suffix] of REASONING_EFFORT_SUFFIXES.entries()) {
-		if (normalizedAaSlug === `${normalizedCanonicalSlug}${suffix}`) {
+		if (
+			normalizedArtificialAnalysisSlug === `${normalizedCanonicalSlug}${suffix}`
+		) {
 			return REASONING_EFFORT_SUFFIXES.length - index;
 		}
 	}
