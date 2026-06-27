@@ -118,6 +118,11 @@ const coreColumnKeys = [
 	"e2e_latency_seconds_median",
 ] as const;
 
+type RankedModel = {
+	model: LlmStatsModel;
+	rank: number;
+};
+
 /** Select the public JSON projection requested by an API view parameter. */
 export function publicJsonPayload(
 	payload: LlmStatsPayload,
@@ -138,30 +143,26 @@ export function publicJsonPayload(
 
 /** Return the compact table-oriented public JSON projection. */
 export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
-	const ranks = intelligenceRanks(payload.models);
+	const rankedModels = rankModelsByIntelligence(payload.models);
 	return {
 		schema: CORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
 		methodology: methodologyText(payload),
 		columns: [...coreColumnKeys],
-		models: payload.models.map((model, index) =>
-			coreJsonModel(model, ranks[index] ?? index + 1),
-		),
+		models: rankedModels.map(({ model, rank }) => coreJsonModel(model, rank)),
 	};
 }
 
 /** Return the public ranking and relative score projection. */
 export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
-	const ranks = intelligenceRanks(payload.models);
+	const rankedModels = rankModelsByIntelligence(payload.models);
 	return {
 		schema: SCORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
 		methodology: methodologyText(payload),
-		scores: payload.models.map((model, index) =>
-			scoreJsonModel(model, ranks[index] ?? index + 1),
-		),
+		scores: rankedModels.map(({ model, rank }) => scoreJsonModel(model, rank)),
 	};
 }
 
@@ -169,14 +170,14 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 export function benchmarksJsonPayload(
 	payload: LlmStatsPayload,
 ): BenchmarksJsonPayload {
-	const ranks = intelligenceRanks(payload.models);
+	const rankedModels = rankModelsByIntelligence(payload.models);
 	return {
 		schema: BENCHMARKS_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		benchmark_scale: BENCHMARK_SCALE,
 		methodology: methodologyText(payload),
-		benchmarks: payload.models.map((model, index) =>
-			benchmarksJsonModel(model, ranks[index] ?? index + 1),
+		benchmarks: rankedModels.map(({ model, rank }) =>
+			benchmarksJsonModel(model, rank),
 		),
 	};
 }
@@ -201,19 +202,19 @@ function formatMethodologyWeight(weight: number): string {
 	return `${percent}%`;
 }
 
-/** Return competition ranks for models already sorted by intelligence score. */
-function intelligenceRanks(models: LlmStatsModel[]): number[] {
-	const ranks: number[] = [];
+/** Attach competition ranks to models already sorted by intelligence score. */
+function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
+	const rankedModels: RankedModel[] = [];
 	let previousScore: number | null = null;
 	let previousRank = 0;
 	for (const [index, model] of models.entries()) {
 		const score = model.relative_scores.intelligence_score;
 		const rank = score === previousScore ? previousRank : index + 1;
-		ranks.push(rank);
+		rankedModels.push({ model, rank });
 		previousScore = score;
 		previousRank = rank;
 	}
-	return ranks;
+	return rankedModels;
 }
 
 /** Strip internal rendering fields from the full public model projection. */

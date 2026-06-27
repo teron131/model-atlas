@@ -1,6 +1,6 @@
-/** Shared model alias rules for OpenRouter identity and public display cleanup. */
+/** Shared OpenRouter route identity rules for scraping, storage, and public stats rows. */
 
-import { normalizeProviderModelId } from "../shared";
+import { normalizeProviderModelId } from "./shared";
 
 export const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
 
@@ -43,7 +43,7 @@ function stripOpenRouterVersionSuffix(modelName: string): string {
 		.replace(/-\d{2}-\d{4}$/i, "");
 }
 
-/** Checks whether OpenRouter version suffix for model alias normalization. */
+/** Checks whether a suffix is an OpenRouter version label. */
 function isOpenRouterVersionSuffix(value: string): boolean {
 	return (
 		/^(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i.test(value) ||
@@ -60,7 +60,7 @@ function openRouterRouteParts(route: string): [string, string] | null {
 	return provider && modelName ? [provider, modelName] : null;
 }
 
-/** Checks whether same OpenRouter model version for model alias normalization. */
+/** Checks whether two OpenRouter model route names share the same base version. */
 function isSameOpenRouterModelVersion(
 	targetModelName: string,
 	candidateModelName: string,
@@ -80,7 +80,7 @@ function isSameOpenRouterModelVersion(
 	);
 }
 
-/** Checks whether same OpenRouter model route for model alias normalization. */
+/** Checks whether two OpenRouter provider/model routes identify the same model version. */
 export function isSameOpenRouterModelRoute(
 	targetRoute: string,
 	candidateRoute: string,
@@ -160,22 +160,22 @@ function normalizePublicVersionSeparators(modelId: string): string {
 	return modelId.replace(/(^|[-/])(\d)-(\d)(?=$|-)/g, "$1$2.$3");
 }
 
-/** Checks whether OpenRouter free route ID for model alias normalization. */
+/** Checks whether an ID is an OpenRouter free route. */
 export function isOpenRouterFreeRouteId(
 	modelId: string | null | undefined,
 ): boolean {
 	return modelId?.endsWith(OPENROUTER_FREE_ROUTE_SUFFIX) === true;
 }
 
-/** Detects display names that still expose the free-route label. */
+/** Detects display names that still expose the OpenRouter free-route label. */
 export function hasPublicFreeRouteLabel(
 	modelName: string | null | undefined,
 ): boolean {
 	return /\s+\(free\)\s*$/i.test(modelName ?? "");
 }
 
-/** Removes transient preview/latest/free labels from public model names. */
-export function publicModelDisplayName(
+/** Removes transient preview/latest/free labels from public OpenRouter model names. */
+export function publicOpenRouterModelName(
 	modelName: string | null,
 ): string | null {
 	return (

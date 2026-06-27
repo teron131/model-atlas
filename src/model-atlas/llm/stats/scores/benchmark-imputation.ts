@@ -20,6 +20,11 @@ export type QualityScoringContext = {
 	indexValuesByKey: ReadonlyMap<string, readonly number[]>;
 };
 
+type PreparedBenchmarkScoring = {
+	benchmarkImputationByModel: BenchmarkImputationByModel;
+	qualityContext: QualityScoringContext;
+};
+
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
 const MIN_FRONTIER_IMPUTATION_EVIDENCE_VALUES = 2;
@@ -290,4 +295,24 @@ export function buildQualityScoringContext(
 	}
 
 	return { benchmarkValuesByKey, indexValuesByKey };
+}
+
+/** Prepare benchmark imputations and quality normalization context in dependency order. */
+export function prepareBenchmarkScoring(
+	models: JsonObject[],
+	scoringConfig: ScoringConfig,
+): PreparedBenchmarkScoring {
+	const benchmarkImputationByModel = buildBenchmarkImputationByModel(
+		models,
+		scoringConfig,
+	);
+	const qualityContext = buildQualityScoringContext(
+		models,
+		scoringConfig,
+		benchmarkImputationByModel,
+	);
+	return {
+		benchmarkImputationByModel,
+		qualityContext,
+	};
 }

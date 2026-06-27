@@ -5,13 +5,13 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../../constants";
 import { getMatchDiagnostics } from "../matcher";
+import { publicOpenRouterModelId } from "../openrouter-routes";
 import {
 	buildAutomationBenchMap,
 	getAutomationBenchStats,
 } from "../scrapers/automation-bench";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
-import { publicOpenRouterModelId } from "../stats/model-aliases";
 import { enrichModelRowsWithOpenRouter } from "../stats/openrouter-enrichment";
 import { buildFinalModels } from "../stats/selection";
 import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";

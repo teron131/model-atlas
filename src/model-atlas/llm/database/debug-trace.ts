@@ -1,9 +1,9 @@
 /** Debug trace row construction for Model Atlas database snapshots. */
 
 import type { MatchDiagnosticsPayload } from "../matcher";
+import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { firstValidMatchId, hasVariantConflict } from "../stats/matching";
-import { publicOpenRouterModelId } from "../stats/model-aliases";
 import type { MatcherConfig } from "../stats/types";
 import type { DebugTraceRow, SourceSnapshots } from "./types";
 

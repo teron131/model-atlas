@@ -1,6 +1,13 @@
 /** OpenRouter enrichment helpers for Model Atlas selection. */
 
 import {
+	isOpenRouterFreeRouteId,
+	nonFreeOpenRouterModelId,
+	publicOpenRouterModelId,
+	reasoningEffortPriority,
+	stripCatalogAliasSuffixes,
+} from "../openrouter-routes";
+import {
 	getOpenRouterRawScrapedStats,
 	type OpenRouterRawScrapedPayload,
 	processOpenRouterModelStats,
@@ -15,13 +22,6 @@ import {
 	PRIMARY_PROVIDER_ID,
 } from "../shared";
 
-import {
-	isOpenRouterFreeRouteId,
-	nonFreeOpenRouterModelId,
-	publicOpenRouterModelId,
-	reasoningEffortPriority,
-	stripCatalogAliasSuffixes,
-} from "./model-aliases";
 import { deriveSpeedOutputTokenAnchors } from "./scores";
 import type {
 	LlmStatsEnrichmentResult,
