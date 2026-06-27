@@ -41,7 +41,17 @@ assertEqual(
 	publicOpenRouterModelId("anthropic/claude-opus-4.8-fast"),
 	"anthropic/claude-opus-4.8",
 );
+assertEqual(publicOpenRouterModelId("openai/gpt-5.5-ultra"), "openai/gpt-5.5");
+assertEqual(publicOpenRouterModelId("openai/gpt-5.5-max"), "openai/gpt-5.5");
+assertEqual(
+	publicOpenRouterModelId("openai/gpt-5.5-adaptive"),
+	"openai/gpt-5.5",
+);
 assertEqual(publicOpenRouterModelId("openai/gpt-5.5-xhigh"), "openai/gpt-5.5");
+assertEqual(
+	publicOpenRouterModelId("openai/gpt-5.5-non-reasoning"),
+	"openai/gpt-5.5",
+);
 assertEqual(
 	publicOpenRouterModelId("provider/model-pro-preview-06-2026"),
 	"provider/model-pro",

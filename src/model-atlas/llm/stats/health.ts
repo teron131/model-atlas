@@ -36,11 +36,15 @@ export const ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS = [
 ] as const;
 const COVERAGE_IGNORED_TOKENS = new Set([
 	"preview",
-	"high",
+	"ultra",
+	"max",
+	"adaptive",
 	"xhigh",
+	"high",
 	"medium",
 	"low",
 	"minimal",
+	"non",
 ]);
 
 type BenchmarkHealthModel = Pick<

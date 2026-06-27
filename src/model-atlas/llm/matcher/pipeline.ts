@@ -26,13 +26,15 @@ import type {
 } from "./types";
 
 const ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES = [
-	"-non-reasoning",
+	"-ultra",
+	"-max",
 	"-adaptive",
 	"-xhigh",
 	"-high",
 	"-medium",
 	"-low",
 	"-minimal",
+	"-non-reasoning",
 ] as const;
 const DEFAULT_MAX_CANDIDATES = 5;
 const VOID_THRESHOLD_RANGE_RATIO = 0.35;
