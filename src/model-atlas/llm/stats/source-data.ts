@@ -1,50 +1,38 @@
 /** Fetch raw Model Atlas benchmark rows and build lookup maps. */
 
 import {
-	buildAgentsLastExamScoreByModelName,
-	getAgentsLastExamModelScoreStats,
+	buildAgentsLastExamMap,
+	getAgentsLastExamStats,
 } from "../scrapers/agents-last-exam";
-import { getArtificialAnalysisScrapedEvalsOnlyStats } from "../scrapers/artificial-analysis-evals";
+import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis-evals";
 import {
-	buildAutomationBenchScoreByModelName,
-	getAutomationBenchLeaderboardStats,
+	buildAutomationBenchMap,
+	getAutomationBenchStats,
 } from "../scrapers/automation-bench";
 import {
-	buildBlueprintBenchScoreByModelName,
-	getBlueprintBenchModelScoreStats,
+	buildBlueprintBenchMap,
+	getBlueprintBenchStats,
 } from "../scrapers/blueprint-bench";
+import { buildBrowseCompMap, getBrowseCompStats } from "../scrapers/browsecomp";
 import {
-	buildBrowseCompScoreByModelName,
-	getBrowseCompModelScoreStats,
-} from "../scrapers/browsecomp";
-import {
-	buildCursorBenchScoreByModelName,
-	getCursorBenchModelScoreStats,
+	buildCursorBenchMap,
+	getCursorBenchStats,
 } from "../scrapers/cursorbench";
-import {
-	buildDeepSWEScoreByModelName,
-	getDeepSWEModelScoreStats,
-} from "../scrapers/deep-swe";
-import {
-	buildGdpPdfScoreByModelName,
-	getGdpPdfModelScoreStats,
-} from "../scrapers/gdp-pdf";
+import { buildDeepSWEMap, getDeepSWEStats } from "../scrapers/deep-swe";
+import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
 import {
 	getModelsDevSourceStats,
 	processModelsDevPayload,
 } from "../scrapers/models-dev";
 import {
-	buildRiemannBenchScoreByModelName,
-	getRiemannBenchModelScoreStats,
+	buildRiemannBenchMap,
+	getRiemannBenchStats,
 } from "../scrapers/riemann-bench";
 import {
-	buildTerminalBenchAccuracyByModelName,
-	getTerminalBenchModelMedianAccuracyStats,
+	buildTerminalBenchMap,
+	getTerminalBenchStats,
 } from "../scrapers/terminal-bench";
-import {
-	buildToolathlonScoreByModelName,
-	getToolathlonModelScoreStats,
-} from "../scrapers/toolathlon";
+import { buildToolathlonMap, getToolathlonStats } from "../scrapers/toolathlon";
 import { modelSlugFromModelId } from "../shared";
 import {
 	buildArtificialAnalysisRetainKeys,
@@ -95,7 +83,7 @@ function buildArtificialAnalysisBySlug(
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
 		artificialAnalysisStats,
-		modelsDevSourceStats,
+		modelsDevStats,
 		agentsLastExamStats,
 		automationBenchStats,
 		blueprintBenchStats,
@@ -107,70 +95,64 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		terminalBenchStats,
 		toolathlonStats,
 	] = await Promise.all([
-		getArtificialAnalysisScrapedEvalsOnlyStats(),
+		getArtificialAnalysisEvalsStats(),
 		getModelsDevSourceStats(),
-		getAgentsLastExamModelScoreStats(),
-		getAutomationBenchLeaderboardStats(),
-		getBlueprintBenchModelScoreStats(),
-		getBrowseCompModelScoreStats(),
-		getCursorBenchModelScoreStats(),
-		getDeepSWEModelScoreStats(),
-		getGdpPdfModelScoreStats(),
-		getRiemannBenchModelScoreStats(),
-		getTerminalBenchModelMedianAccuracyStats(),
-		getToolathlonModelScoreStats(),
+		getAgentsLastExamStats(),
+		getAutomationBenchStats(),
+		getBlueprintBenchStats(),
+		getBrowseCompStats(),
+		getCursorBenchStats(),
+		getDeepSWEStats(),
+		getGdpPdfStats(),
+		getRiemannBenchStats(),
+		getTerminalBenchStats(),
+		getToolathlonStats(),
 	]);
-	const retainKeys = buildArtificialAnalysisRetainKeys(
-		artificialAnalysisStats.data,
-	);
+	const artificialAnalysisRows = artificialAnalysisStats.data;
+	const agentsLastExamRows = agentsLastExamStats.data;
+	const automationBenchRows = automationBenchStats.model_scores;
+	const blueprintBenchRows = blueprintBenchStats.data;
+	const browseCompRows = browseCompStats.data;
+	const cursorBenchRows = cursorBenchStats.data;
+	const deepSWERows = deepSWEStats.data;
+	const gdpPdfRows = gdpPdfStats.data;
+	const riemannBenchRows = riemannBenchStats.data;
+	const terminalBenchRows = terminalBenchStats.data;
+	const toolathlonRows = toolathlonStats.data;
+	const retainKeys = buildArtificialAnalysisRetainKeys(artificialAnalysisRows);
 	const modelsDevModels = processModelsDevPayload(
-		modelsDevSourceStats.payload,
+		modelsDevStats.payload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
 		retainKeys,
 	);
 	const preferredModelsDevModels = pickPreferredModelsDevRows(modelsDevModels);
 	return {
-		artificialAnalysisRows: artificialAnalysisStats.data,
+		artificialAnalysisRows,
 		preferredModelsDevModels,
 		modelsDevById: buildModelsDevById(preferredModelsDevModels),
 		artificialAnalysisBySlug: buildArtificialAnalysisBySlug(
-			artificialAnalysisStats.data,
+			artificialAnalysisRows,
 		),
-		agentsLastExamModelScoreRows: agentsLastExamStats.data,
-		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
-			agentsLastExamStats.data,
-		),
-		automationBenchModelScoreRows: automationBenchStats.model_scores,
-		automationBenchScoreByModelName: buildAutomationBenchScoreByModelName(
-			automationBenchStats.model_scores,
-		),
-		blueprintBenchModelScoreRows: blueprintBenchStats.data,
-		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
-			blueprintBenchStats.data,
-		),
-		browseCompModelScoreRows: browseCompStats.data,
-		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
-			browseCompStats.data,
-		),
-		cursorBenchModelScoreRows: cursorBenchStats.data,
-		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
-			cursorBenchStats.data,
-		),
-		deepSWEModelScoreRows: deepSWEStats.data,
-		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(deepSWEStats.data),
-		gdpPdfModelScoreRows: gdpPdfStats.data,
-		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfStats.data),
-		riemannBenchModelScoreRows: riemannBenchStats.data,
-		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
-			riemannBenchStats.data,
-		),
-		terminalBenchModelScoreRows: terminalBenchStats.data,
-		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
-			terminalBenchStats.data,
-		),
-		toolathlonModelScoreRows: toolathlonStats.data,
-		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
-			toolathlonStats.data,
-		),
+		agentsLastExamModelScoreRows: agentsLastExamRows,
+		agentsLastExamScoreByModelName: buildAgentsLastExamMap(agentsLastExamRows),
+		automationBenchModelScoreRows: automationBenchRows,
+		automationBenchScoreByModelName:
+			buildAutomationBenchMap(automationBenchRows),
+		blueprintBenchModelScoreRows: blueprintBenchRows,
+		blueprintBenchScoreByModelName: buildBlueprintBenchMap(blueprintBenchRows),
+		browseCompModelScoreRows: browseCompRows,
+		browseCompScoreByModelName: buildBrowseCompMap(browseCompRows),
+		cursorBenchModelScoreRows: cursorBenchRows,
+		cursorBenchScoreByModelName: buildCursorBenchMap(cursorBenchRows),
+		deepSWEModelScoreRows: deepSWERows,
+		deepSWEScoreByModelName: buildDeepSWEMap(deepSWERows),
+		gdpPdfModelScoreRows: gdpPdfRows,
+		gdpPdfScoreByModelName: buildGdpPdfMap(gdpPdfRows),
+		riemannBenchModelScoreRows: riemannBenchRows,
+		riemannBenchScoreByModelName: buildRiemannBenchMap(riemannBenchRows),
+		terminalBenchModelScoreRows: terminalBenchRows,
+		terminalBenchAccuracyByModelName: buildTerminalBenchMap(terminalBenchRows),
+		toolathlonModelScoreRows: toolathlonRows,
+		toolathlonScoreByModelName: buildToolathlonMap(toolathlonRows),
 	};
 }

@@ -55,7 +55,7 @@ function modelKeyCandidates(model: string): string[] {
 }
 
 /** Build Riemann-bench score rows by normalized model name. */
-export function buildRiemannBenchScoreByModelName(
+export function buildRiemannBenchMap(
 	rows: RiemannBenchModelScoreRow[],
 ): RiemannBenchScoreByModelName {
 	const scoreByModelName: RiemannBenchScoreByModelName = new Map();
@@ -87,7 +87,7 @@ export function findRiemannBenchScore(
 }
 
 /** Fetch Riemann-bench model score rows from the public page. */
-export async function getRiemannBenchModelScoreStats(
+export async function getRiemannBenchStats(
 	options: RiemannBenchScraperOptions = {},
 ): Promise<RiemannBenchModelScorePayload> {
 	try {

@@ -1,5 +1,5 @@
 import {
-	buildBlueprintBenchScoreByModelName,
+	buildBlueprintBenchMap,
 	findBlueprintBenchScore,
 	processBlueprintBenchPageHtml,
 } from "../src/model-atlas/llm/scrapers/blueprint-bench";
@@ -43,7 +43,7 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildBlueprintBenchScoreByModelName(rows);
+const scoreByModelName = buildBlueprintBenchMap(rows);
 
 assertDeepEqual(
 	findBlueprintBenchScore(["missing", "GPT-5.5"], scoreByModelName),

@@ -1,5 +1,5 @@
 import {
-	buildGdpPdfScoreByModelName,
+	buildGdpPdfMap,
 	findGdpPdfScore,
 	processGdpPdfPageHtml,
 } from "../src/model-atlas/llm/scrapers/gdp-pdf";
@@ -87,7 +87,7 @@ assertDeepEqual(rowsWithoutRankingHeading, [
 	},
 ]);
 
-const scoreByModelName = buildGdpPdfScoreByModelName(rows);
+const scoreByModelName = buildGdpPdfMap(rows);
 
 assertDeepEqual(
 	findGdpPdfScore(["missing", "GPT-5.5"], scoreByModelName),

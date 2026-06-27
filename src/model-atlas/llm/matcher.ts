@@ -16,7 +16,7 @@ import type {
 } from "./matcher/types";
 /** Public matcher APIs for LLM model mapping and scraper fallback diagnostics. */
 import { getArtificialAnalysisStats } from "./scrapers/artificial-analysis-api";
-import { getArtificialAnalysisScrapedEvalsOnlyStats } from "./scrapers/artificial-analysis-evals";
+import { getArtificialAnalysisEvalsStats } from "./scrapers/artificial-analysis-evals";
 import { getModelsDevStats } from "./scrapers/models-dev";
 
 export type {
@@ -86,7 +86,7 @@ export async function getScraperFallbackMatchDiagnostics(
 					fetched_at_epoch_seconds: null,
 					data: options.scrapedRows,
 				}
-			: await getArtificialAnalysisScrapedEvalsOnlyStats();
+			: await getArtificialAnalysisEvalsStats();
 	const modelsDevStats =
 		options.modelsDevModels != null
 			? {

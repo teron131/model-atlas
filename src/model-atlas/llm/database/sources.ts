@@ -2,7 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 import {
-	buildAgentsLastExamScoreByModelName,
+	buildAgentsLastExamMap,
 	getAgentsLastExamHarnessStats,
 	summarizeAgentsLastExamModelScores,
 } from "../scrapers/agents-last-exam";
@@ -11,29 +11,23 @@ import {
 	getArtificialAnalysisScrapedRawStats,
 	processArtificialAnalysisScrapedRows,
 } from "../scrapers/artificial-analysis-evals";
-import { buildAutomationBenchScoreByModelName } from "../scrapers/automation-bench";
+import { buildAutomationBenchMap } from "../scrapers/automation-bench";
 import {
-	buildBlueprintBenchScoreByModelName,
-	getBlueprintBenchModelScoreStats,
+	buildBlueprintBenchMap,
+	getBlueprintBenchStats,
 } from "../scrapers/blueprint-bench";
+import { buildBrowseCompMap, getBrowseCompStats } from "../scrapers/browsecomp";
 import {
-	buildBrowseCompScoreByModelName,
-	getBrowseCompModelScoreStats,
-} from "../scrapers/browsecomp";
-import {
-	buildCursorBenchScoreByModelName,
-	getCursorBenchModelScoreStats,
+	buildCursorBenchMap,
+	getCursorBenchStats,
 } from "../scrapers/cursorbench";
 import {
-	buildDeepSWEScoreByModelName,
+	buildDeepSWEMap,
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultModelScores,
 } from "../scrapers/deep-swe";
-import {
-	buildGdpPdfScoreByModelName,
-	getGdpPdfModelScoreStats,
-} from "../scrapers/gdp-pdf";
+import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
 import {
 	getModelsDevSourceStats,
 	type ModelsDevPayload,
@@ -42,18 +36,15 @@ import {
 } from "../scrapers/models-dev";
 import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
 import {
-	buildRiemannBenchScoreByModelName,
-	getRiemannBenchModelScoreStats,
+	buildRiemannBenchMap,
+	getRiemannBenchStats,
 } from "../scrapers/riemann-bench";
 import {
-	buildTerminalBenchAccuracyByModelName,
+	buildTerminalBenchMap,
 	getTerminalBenchAgentModelAccuracyStats,
 	summarizeTerminalBenchModelMedianAccuracy,
 } from "../scrapers/terminal-bench";
-import {
-	buildToolathlonScoreByModelName,
-	getToolathlonModelScoreStats,
-} from "../scrapers/toolathlon";
+import { buildToolathlonMap, getToolathlonStats } from "../scrapers/toolathlon";
 import {
 	asFiniteNumber,
 	asRecord,
@@ -383,41 +374,37 @@ export function sourceDataFromSnapshots(
 			}),
 		),
 		agentsLastExamModelScoreRows: snapshots.agentsLastExamModelScores,
-		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
+		agentsLastExamScoreByModelName: buildAgentsLastExamMap(
 			snapshots.agentsLastExamModelScores,
 		),
 		automationBenchModelScoreRows: [],
-		automationBenchScoreByModelName: buildAutomationBenchScoreByModelName([]),
+		automationBenchScoreByModelName: buildAutomationBenchMap([]),
 		blueprintBenchModelScoreRows: snapshots.blueprintBenchModelScoreRows,
-		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
+		blueprintBenchScoreByModelName: buildBlueprintBenchMap(
 			snapshots.blueprintBenchModelScoreRows,
 		),
 		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
-		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
+		browseCompScoreByModelName: buildBrowseCompMap(
 			snapshots.browseCompModelScoreRows,
 		),
 		cursorBenchModelScoreRows: snapshots.cursorBenchModelScoreRows,
-		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+		cursorBenchScoreByModelName: buildCursorBenchMap(
 			snapshots.cursorBenchModelScoreRows,
 		),
 		deepSWEModelScoreRows: snapshots.deepSWEModelScoreRows,
-		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(
-			snapshots.deepSWEModelScoreRows,
-		),
+		deepSWEScoreByModelName: buildDeepSWEMap(snapshots.deepSWEModelScoreRows),
 		gdpPdfModelScoreRows: snapshots.gdpPdfModelScoreRows,
-		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(
-			snapshots.gdpPdfModelScoreRows,
-		),
+		gdpPdfScoreByModelName: buildGdpPdfMap(snapshots.gdpPdfModelScoreRows),
 		riemannBenchModelScoreRows: snapshots.riemannBenchModelScoreRows,
-		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
+		riemannBenchScoreByModelName: buildRiemannBenchMap(
 			snapshots.riemannBenchModelScoreRows,
 		),
 		terminalBenchModelScoreRows: snapshots.terminalBenchModelScores,
-		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
+		terminalBenchAccuracyByModelName: buildTerminalBenchMap(
 			snapshots.terminalBenchModelScores,
 		),
 		toolathlonModelScoreRows: snapshots.toolathlonModelScoreRows,
-		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
+		toolathlonScoreByModelName: buildToolathlonMap(
 			snapshots.toolathlonModelScoreRows,
 		),
 	};
@@ -925,7 +912,7 @@ async function browseCompSnapshot(
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getBrowseCompModelScoreStats,
+		fetchRows: getBrowseCompStats,
 		rowKey: (row) => sourceKey(row.provider, row.model),
 		rowLabel: (row) => row.model,
 	});
@@ -951,7 +938,7 @@ async function blueprintBenchSnapshot(
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getBlueprintBenchModelScoreStats,
+		fetchRows: getBlueprintBenchStats,
 		rowKey: (row) => sourceKey(row.model),
 		rowLabel: (row) => row.model,
 	});
@@ -977,7 +964,7 @@ async function gdpPdfSnapshot(
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getGdpPdfModelScoreStats,
+		fetchRows: getGdpPdfStats,
 		rowKey: (row) => sourceKey(row.provider, row.model),
 		rowLabel: (row) => row.model,
 	});
@@ -1003,7 +990,7 @@ async function riemannBenchSnapshot(
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getRiemannBenchModelScoreStats,
+		fetchRows: getRiemannBenchStats,
 		rowKey: (row) => sourceKey(row.provider, row.model),
 		rowLabel: (row) => row.model,
 	});
@@ -1029,7 +1016,7 @@ async function toolathlonSnapshot(
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getToolathlonModelScoreStats,
+		fetchRows: getToolathlonStats,
 		rowKey: (row) => sourceKey(row.provider, row.model),
 		rowLabel: (row) => row.model,
 	});
@@ -1055,7 +1042,7 @@ async function cursorBenchSnapshot(
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getCursorBenchModelScoreStats,
+		fetchRows: getCursorBenchStats,
 		rowKey: (row) => sourceKey(row.model, row.base_model, row.reasoning_effort),
 		rowLabel: (row) => row.model,
 	});

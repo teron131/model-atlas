@@ -229,7 +229,7 @@ export function summarizeAgentsLastExamModelScores(
 }
 
 /** Build Agents' Last Exam score rows by normalized model name. */
-export function buildAgentsLastExamScoreByModelName(
+export function buildAgentsLastExamMap(
 	rows: AgentsLastExamModelScoreRow[],
 ): AgentsLastExamScoreByModelName {
 	const scoreByModelName: AgentsLastExamScoreByModelName = new Map();
@@ -347,7 +347,7 @@ export async function getAgentsLastExamHarnessStats(
 }
 
 /** Fetch Agents' Last Exam model score rows. */
-export async function getAgentsLastExamModelScoreStats(
+export async function getAgentsLastExamStats(
 	options: AgentsLastExamScraperOptions = {},
 ): Promise<AgentsLastExamModelScorePayload> {
 	const payload = await getAgentsLastExamHarnessStats(options);

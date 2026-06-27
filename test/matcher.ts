@@ -7,11 +7,11 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/llm/matcher/types";
-import { buildBlueprintBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/blueprint-bench";
-import { buildCursorBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/cursorbench";
-import { buildGdpPdfScoreByModelName } from "../src/model-atlas/llm/scrapers/gdp-pdf";
-import { buildRiemannBenchScoreByModelName } from "../src/model-atlas/llm/scrapers/riemann-bench";
-import { buildToolathlonScoreByModelName } from "../src/model-atlas/llm/scrapers/toolathlon";
+import { buildBlueprintBenchMap } from "../src/model-atlas/llm/scrapers/blueprint-bench";
+import { buildCursorBenchMap } from "../src/model-atlas/llm/scrapers/cursorbench";
+import { buildGdpPdfMap } from "../src/model-atlas/llm/scrapers/gdp-pdf";
+import { buildRiemannBenchMap } from "../src/model-atlas/llm/scrapers/riemann-bench";
+import { buildToolathlonMap } from "../src/model-atlas/llm/scrapers/toolathlon";
 import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
 import type { LlmStatsSourceData } from "../src/model-atlas/llm/stats/types";
 
@@ -252,29 +252,25 @@ function modelStatsSourceData(
 		automationBenchModelScoreRows: [],
 		automationBenchScoreByModelName: new Map(),
 		blueprintBenchModelScoreRows,
-		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
+		blueprintBenchScoreByModelName: buildBlueprintBenchMap(
 			blueprintBenchModelScoreRows,
 		),
 		browseCompModelScoreRows: [],
 		browseCompScoreByModelName: new Map(),
 		cursorBenchModelScoreRows,
-		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
-			cursorBenchModelScoreRows,
-		),
+		cursorBenchScoreByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
 		deepSWEModelScoreRows: [],
 		deepSWEScoreByModelName: new Map(),
 		gdpPdfModelScoreRows,
-		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(gdpPdfModelScoreRows),
+		gdpPdfScoreByModelName: buildGdpPdfMap(gdpPdfModelScoreRows),
 		riemannBenchModelScoreRows,
-		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
+		riemannBenchScoreByModelName: buildRiemannBenchMap(
 			riemannBenchModelScoreRows,
 		),
 		terminalBenchModelScoreRows: [],
 		terminalBenchAccuracyByModelName: new Map(),
 		toolathlonModelScoreRows,
-		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
-			toolathlonModelScoreRows,
-		),
+		toolathlonScoreByModelName: buildToolathlonMap(toolathlonModelScoreRows),
 	};
 }
 

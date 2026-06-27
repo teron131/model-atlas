@@ -1,5 +1,5 @@
 import {
-	buildRiemannBenchScoreByModelName,
+	buildRiemannBenchMap,
 	findRiemannBenchScore,
 	processRiemannBenchPageHtml,
 } from "../src/model-atlas/llm/scrapers/riemann-bench";
@@ -78,7 +78,7 @@ assertDeepEqual(rowsWithoutRankingHeading, [
 	},
 ]);
 
-const scoreByModelName = buildRiemannBenchScoreByModelName(rows);
+const scoreByModelName = buildRiemannBenchMap(rows);
 
 assertDeepEqual(
 	findRiemannBenchScore(["missing", "GPT 5.5"], scoreByModelName),

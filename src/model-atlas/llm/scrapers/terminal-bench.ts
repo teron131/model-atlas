@@ -247,7 +247,7 @@ export function summarizeTerminalBenchModelMedianAccuracy(
 }
 
 /** Build Terminal-Bench 2.0 median accuracy rows by normalized model name. */
-export function buildTerminalBenchAccuracyByModelName(
+export function buildTerminalBenchMap(
 	rows: TerminalBenchModelMedianAccuracyRow[],
 ): TerminalBenchAccuracyByModelName {
 	const accuracyByModelName: TerminalBenchAccuracyByModelName = new Map();
@@ -316,7 +316,7 @@ export async function getTerminalBenchAgentModelAccuracyStats(
 }
 
 /** Fetch Terminal-Bench model median accuracy rows. */
-export async function getTerminalBenchModelMedianAccuracyStats(
+export async function getTerminalBenchStats(
 	options: TerminalBenchScraperOptions = {},
 ): Promise<TerminalBenchModelMedianAccuracyPayload> {
 	const payload = await getTerminalBenchAgentModelAccuracyStats(options);

@@ -90,7 +90,7 @@ export function processBlueprintBenchPageHtml(
 }
 
 /** Build Blueprint-Bench 2 score rows by normalized model name. */
-export function buildBlueprintBenchScoreByModelName(
+export function buildBlueprintBenchMap(
 	rows: BlueprintBenchModelScoreRow[],
 ): BlueprintBenchScoreByModelName {
 	const scoreByModelName: BlueprintBenchScoreByModelName = new Map();
@@ -123,7 +123,7 @@ export function findBlueprintBenchScore(
 }
 
 /** Fetch Blueprint-Bench 2 model score rows from the public page. */
-export async function getBlueprintBenchModelScoreStats(
+export async function getBlueprintBenchStats(
 	options: BlueprintBenchScraperOptions = {},
 ): Promise<BlueprintBenchModelScorePayload> {
 	try {

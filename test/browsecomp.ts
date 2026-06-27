@@ -1,5 +1,5 @@
 import {
-	buildBrowseCompScoreByModelName,
+	buildBrowseCompMap,
 	findBrowseCompScore,
 	processBrowseCompDetailsJson,
 } from "../src/model-atlas/llm/scrapers/browsecomp";
@@ -79,7 +79,7 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildBrowseCompScoreByModelName(rows);
+const scoreByModelName = buildBrowseCompMap(rows);
 
 assertDeepEqual(
 	findBrowseCompScore(["missing", "GPT 5.5 Pro"], scoreByModelName),

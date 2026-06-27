@@ -1,6 +1,6 @@
 import {
 	agentsLastExamBenchmarkScore,
-	buildAgentsLastExamScoreByModelName,
+	buildAgentsLastExamMap,
 	findAgentsLastExamModelScore,
 	processAgentsLastExamLeaderboardRows,
 	summarizeAgentsLastExamModelScores,
@@ -194,7 +194,7 @@ if (gptScore == null) {
 	throw new Error("Expected a gpt-5-5 score row");
 }
 
-const scoreByModelName = buildAgentsLastExamScoreByModelName([
+const scoreByModelName = buildAgentsLastExamMap([
 	...modelScores,
 	{
 		...gptScore,
@@ -226,7 +226,7 @@ assertDeepEqual(
 
 const slashProviderScore = findAgentsLastExamModelScore(
 	["anthropic/claude-fable-5"],
-	buildAgentsLastExamScoreByModelName([
+	buildAgentsLastExamMap([
 		{
 			...gptScore,
 			model: "anthropic-claude-fable-5",
