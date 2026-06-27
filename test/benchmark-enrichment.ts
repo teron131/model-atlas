@@ -31,18 +31,36 @@ const automationBenchRow = {
 };
 
 const enrichment = benchmarkEnrichment(["Example Model"], {
-	deepSWEScoreByModelName: new Map([["example-model", deepSWERow]]),
-	terminalBenchAccuracyByModelName: emptyLookup(),
-	agentsLastExamScoreByModelName: emptyLookup(),
-	automationBenchScoreByModelName: new Map([
-		["example-model", automationBenchRow],
-	]),
-	blueprintBenchScoreByModelName: emptyLookup(),
-	gdpPdfScoreByModelName: emptyLookup(),
-	riemannBenchScoreByModelName: emptyLookup(),
-	browseCompScoreByModelName: emptyLookup(),
-	toolathlonScoreByModelName: emptyLookup(),
-	cursorBenchScoreByModelName: emptyLookup(),
+	deepSWE: {
+		scoreByModelName: new Map([["example-model", deepSWERow]]),
+	},
+	terminalBench: {
+		accuracyByModelName: emptyLookup(),
+	},
+	agentsLastExam: {
+		scoreByModelName: emptyLookup(),
+	},
+	automationBench: {
+		scoreByModelName: new Map([["example-model", automationBenchRow]]),
+	},
+	blueprintBench: {
+		scoreByModelName: emptyLookup(),
+	},
+	gdpPdf: {
+		scoreByModelName: emptyLookup(),
+	},
+	riemannBench: {
+		scoreByModelName: emptyLookup(),
+	},
+	browseComp: {
+		scoreByModelName: emptyLookup(),
+	},
+	toolathlon: {
+		scoreByModelName: emptyLookup(),
+	},
+	cursorBench: {
+		scoreByModelName: emptyLookup(),
+	},
 } satisfies BenchmarkEnrichmentLookups);
 
 assert.deepEqual(enrichment.evaluations, {

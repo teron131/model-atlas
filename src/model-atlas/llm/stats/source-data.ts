@@ -127,32 +127,53 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	);
 	const preferredModelsDevModels = pickPreferredModelsDevRows(modelsDevModels);
 	return {
-		artificialAnalysisRows,
-		preferredModelsDevModels,
-		modelsDevById: buildModelsDevById(preferredModelsDevModels),
-		artificialAnalysisBySlug: buildArtificialAnalysisBySlug(
-			artificialAnalysisRows,
-		),
-		agentsLastExamModelScoreRows: agentsLastExamRows,
-		agentsLastExamScoreByModelName: buildAgentsLastExamMap(agentsLastExamRows),
-		automationBenchModelScoreRows: automationBenchRows,
-		automationBenchScoreByModelName:
-			buildAutomationBenchMap(automationBenchRows),
-		blueprintBenchModelScoreRows: blueprintBenchRows,
-		blueprintBenchScoreByModelName: buildBlueprintBenchMap(blueprintBenchRows),
-		browseCompModelScoreRows: browseCompRows,
-		browseCompScoreByModelName: buildBrowseCompMap(browseCompRows),
-		cursorBenchModelScoreRows: cursorBenchRows,
-		cursorBenchScoreByModelName: buildCursorBenchMap(cursorBenchRows),
-		deepSWEModelScoreRows: deepSWERows,
-		deepSWEScoreByModelName: buildDeepSWEMap(deepSWERows),
-		gdpPdfModelScoreRows: gdpPdfRows,
-		gdpPdfScoreByModelName: buildGdpPdfMap(gdpPdfRows),
-		riemannBenchModelScoreRows: riemannBenchRows,
-		riemannBenchScoreByModelName: buildRiemannBenchMap(riemannBenchRows),
-		terminalBenchModelScoreRows: terminalBenchRows,
-		terminalBenchAccuracyByModelName: buildTerminalBenchMap(terminalBenchRows),
-		toolathlonModelScoreRows: toolathlonRows,
-		toolathlonScoreByModelName: buildToolathlonMap(toolathlonRows),
+		artificialAnalysis: {
+			rows: artificialAnalysisRows,
+			bySlug: buildArtificialAnalysisBySlug(artificialAnalysisRows),
+		},
+		modelsDev: {
+			rows: preferredModelsDevModels,
+			byId: buildModelsDevById(preferredModelsDevModels),
+		},
+		agentsLastExam: {
+			rows: agentsLastExamRows,
+			scoreByModelName: buildAgentsLastExamMap(agentsLastExamRows),
+		},
+		automationBench: {
+			rows: automationBenchRows,
+			scoreByModelName: buildAutomationBenchMap(automationBenchRows),
+		},
+		blueprintBench: {
+			rows: blueprintBenchRows,
+			scoreByModelName: buildBlueprintBenchMap(blueprintBenchRows),
+		},
+		browseComp: {
+			rows: browseCompRows,
+			scoreByModelName: buildBrowseCompMap(browseCompRows),
+		},
+		cursorBench: {
+			rows: cursorBenchRows,
+			scoreByModelName: buildCursorBenchMap(cursorBenchRows),
+		},
+		deepSWE: {
+			rows: deepSWERows,
+			scoreByModelName: buildDeepSWEMap(deepSWERows),
+		},
+		gdpPdf: {
+			rows: gdpPdfRows,
+			scoreByModelName: buildGdpPdfMap(gdpPdfRows),
+		},
+		riemannBench: {
+			rows: riemannBenchRows,
+			scoreByModelName: buildRiemannBenchMap(riemannBenchRows),
+		},
+		terminalBench: {
+			rows: terminalBenchRows,
+			accuracyByModelName: buildTerminalBenchMap(terminalBenchRows),
+		},
+		toolathlon: {
+			rows: toolathlonRows,
+			scoreByModelName: buildToolathlonMap(toolathlonRows),
+		},
 	};
 }

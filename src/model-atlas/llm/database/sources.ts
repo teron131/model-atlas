@@ -358,55 +358,76 @@ export function sourceDataFromSnapshots(
 		snapshots.modelsDevModels,
 	);
 	return {
-		artificialAnalysisRows: snapshots.aaSelectedRows,
-		preferredModelsDevModels,
-		modelsDevById: new Map(
-			preferredModelsDevModels.map((modelsDevModel) => [
-				modelsDevModel.model_id,
-				modelsDevModel,
-			]),
-		),
-		artificialAnalysisBySlug: new Map(
-			snapshots.aaSelectedRows.flatMap((row) => {
-				const modelId = typeof row.model_id === "string" ? row.model_id : null;
-				const slug = modelSlugFromModelId(modelId);
-				return slug == null ? [] : [[slug, row]];
-			}),
-		),
-		agentsLastExamModelScoreRows: snapshots.agentsLastExamModelScores,
-		agentsLastExamScoreByModelName: buildAgentsLastExamMap(
-			snapshots.agentsLastExamModelScores,
-		),
-		automationBenchModelScoreRows: [],
-		automationBenchScoreByModelName: buildAutomationBenchMap([]),
-		blueprintBenchModelScoreRows: snapshots.blueprintBenchModelScoreRows,
-		blueprintBenchScoreByModelName: buildBlueprintBenchMap(
-			snapshots.blueprintBenchModelScoreRows,
-		),
-		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
-		browseCompScoreByModelName: buildBrowseCompMap(
-			snapshots.browseCompModelScoreRows,
-		),
-		cursorBenchModelScoreRows: snapshots.cursorBenchModelScoreRows,
-		cursorBenchScoreByModelName: buildCursorBenchMap(
-			snapshots.cursorBenchModelScoreRows,
-		),
-		deepSWEModelScoreRows: snapshots.deepSWEModelScoreRows,
-		deepSWEScoreByModelName: buildDeepSWEMap(snapshots.deepSWEModelScoreRows),
-		gdpPdfModelScoreRows: snapshots.gdpPdfModelScoreRows,
-		gdpPdfScoreByModelName: buildGdpPdfMap(snapshots.gdpPdfModelScoreRows),
-		riemannBenchModelScoreRows: snapshots.riemannBenchModelScoreRows,
-		riemannBenchScoreByModelName: buildRiemannBenchMap(
-			snapshots.riemannBenchModelScoreRows,
-		),
-		terminalBenchModelScoreRows: snapshots.terminalBenchModelScores,
-		terminalBenchAccuracyByModelName: buildTerminalBenchMap(
-			snapshots.terminalBenchModelScores,
-		),
-		toolathlonModelScoreRows: snapshots.toolathlonModelScoreRows,
-		toolathlonScoreByModelName: buildToolathlonMap(
-			snapshots.toolathlonModelScoreRows,
-		),
+		artificialAnalysis: {
+			rows: snapshots.aaSelectedRows,
+			bySlug: new Map(
+				snapshots.aaSelectedRows.flatMap((row) => {
+					const modelId =
+						typeof row.model_id === "string" ? row.model_id : null;
+					const slug = modelSlugFromModelId(modelId);
+					return slug == null ? [] : [[slug, row]];
+				}),
+			),
+		},
+		modelsDev: {
+			rows: preferredModelsDevModels,
+			byId: new Map(
+				preferredModelsDevModels.map((modelsDevModel) => [
+					modelsDevModel.model_id,
+					modelsDevModel,
+				]),
+			),
+		},
+		agentsLastExam: {
+			rows: snapshots.agentsLastExamModelScores,
+			scoreByModelName: buildAgentsLastExamMap(
+				snapshots.agentsLastExamModelScores,
+			),
+		},
+		automationBench: {
+			rows: [],
+			scoreByModelName: buildAutomationBenchMap([]),
+		},
+		blueprintBench: {
+			rows: snapshots.blueprintBenchModelScoreRows,
+			scoreByModelName: buildBlueprintBenchMap(
+				snapshots.blueprintBenchModelScoreRows,
+			),
+		},
+		browseComp: {
+			rows: snapshots.browseCompModelScoreRows,
+			scoreByModelName: buildBrowseCompMap(snapshots.browseCompModelScoreRows),
+		},
+		cursorBench: {
+			rows: snapshots.cursorBenchModelScoreRows,
+			scoreByModelName: buildCursorBenchMap(
+				snapshots.cursorBenchModelScoreRows,
+			),
+		},
+		deepSWE: {
+			rows: snapshots.deepSWEModelScoreRows,
+			scoreByModelName: buildDeepSWEMap(snapshots.deepSWEModelScoreRows),
+		},
+		gdpPdf: {
+			rows: snapshots.gdpPdfModelScoreRows,
+			scoreByModelName: buildGdpPdfMap(snapshots.gdpPdfModelScoreRows),
+		},
+		riemannBench: {
+			rows: snapshots.riemannBenchModelScoreRows,
+			scoreByModelName: buildRiemannBenchMap(
+				snapshots.riemannBenchModelScoreRows,
+			),
+		},
+		terminalBench: {
+			rows: snapshots.terminalBenchModelScores,
+			accuracyByModelName: buildTerminalBenchMap(
+				snapshots.terminalBenchModelScores,
+			),
+		},
+		toolathlon: {
+			rows: snapshots.toolathlonModelScoreRows,
+			scoreByModelName: buildToolathlonMap(snapshots.toolathlonModelScoreRows),
+		},
 	};
 }
 

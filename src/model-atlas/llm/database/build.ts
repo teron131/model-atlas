@@ -221,14 +221,14 @@ export async function buildModelAtlasDatabase(
 		const automationBench = await getAutomationBenchStats();
 		const sourceData = {
 			...sourceDataFromSnapshots(snapshots),
-			automationBenchModelScoreRows: automationBench.model_scores,
-			automationBenchScoreByModelName: buildAutomationBenchMap(
-				automationBench.model_scores,
-			),
+			automationBench: {
+				rows: automationBench.model_scores,
+				scoreByModelName: buildAutomationBenchMap(automationBench.model_scores),
+			},
 		};
 		const matchDiagnostics = await getScraperFallbackMatchDiagnostics({
-			scrapedRows: sourceData.artificialAnalysisRows,
-			modelsDevModels: sourceData.preferredModelsDevModels,
+			scrapedRows: sourceData.artificialAnalysis.rows,
+			modelsDevModels: sourceData.modelsDev.rows,
 		});
 		const matchedRows = modelRowsFromMatchDiagnostics(
 			sourceData,
@@ -259,7 +259,7 @@ export async function buildModelAtlasDatabase(
 		const models = await buildFinalModels(
 			{
 				...enrichedRows,
-				deepSWEModelScoreRows: sourceData.deepSWEModelScoreRows,
+				deepSWEModelScoreRows: sourceData.deepSWE.rows,
 			},
 			null,
 			STAGE_CONFIG.final,

@@ -127,7 +127,7 @@ export type SourceSnapshots = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEModelScoreRows: LlmStatsSourceData["deepSWEModelScoreRows"];
+	deepSWEModelScoreRows: LlmStatsSourceData["deepSWE"]["rows"];
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];

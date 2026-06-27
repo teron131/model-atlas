@@ -209,7 +209,7 @@ export function buildDatabaseCatalogRows(
 		rememberCatalogRow(row);
 	}
 	const catalogRows = filterDatabaseTextLlmRows(matchedRows);
-	const modelsDevCatalogRows = sourceData.preferredModelsDevModels
+	const modelsDevCatalogRows = sourceData.modelsDev.rows
 		.map((modelsDevModel) => modelsDevCatalogRow(modelsDevModel, sourceData))
 		.filter((row): row is Record<string, unknown> => row != null)
 		.sort(

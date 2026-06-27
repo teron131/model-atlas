@@ -468,31 +468,62 @@ export type ModelAtlasStageConfig = {
 	scoring: ScoringConfig;
 };
 
+export type LlmStatsScoreSourceRows<Row, Lookup> = {
+	rows: Row[];
+	scoreByModelName: Lookup;
+};
+
+export type LlmStatsAccuracySourceRows<Row, Lookup> = {
+	rows: Row[];
+	accuracyByModelName: Lookup;
+};
+
 export type LlmStatsSourceData = {
-	artificialAnalysisRows: unknown[];
-	preferredModelsDevModels: ModelsDevModel[];
-	modelsDevById: Map<string, ModelsDevModel>;
-	artificialAnalysisBySlug: Map<string, ArtificialAnalysisModel>;
-	agentsLastExamModelScoreRows: AgentsLastExamModelScoreRow[];
-	agentsLastExamScoreByModelName: AgentsLastExamScoreByModelName;
-	automationBenchModelScoreRows: AutomationBenchModelScoreRow[];
-	automationBenchScoreByModelName: AutomationBenchScoreByModelName;
-	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
-	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName;
-	browseCompModelScoreRows: BrowseCompModelScoreRow[];
-	browseCompScoreByModelName: BrowseCompScoreByModelName;
-	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
-	cursorBenchScoreByModelName: CursorBenchScoreByModelName;
-	deepSWEModelScoreRows: DeepSWEModelScoreRow[];
-	deepSWEScoreByModelName: DeepSWEScoreByModelName;
-	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
-	gdpPdfScoreByModelName: GdpPdfScoreByModelName;
-	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
-	riemannBenchScoreByModelName: RiemannBenchScoreByModelName;
-	terminalBenchModelScoreRows: TerminalBenchModelMedianAccuracyRow[];
-	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName;
-	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
-	toolathlonScoreByModelName: ToolathlonScoreByModelName;
+	artificialAnalysis: {
+		rows: unknown[];
+		bySlug: Map<string, ArtificialAnalysisModel>;
+	};
+	modelsDev: {
+		rows: ModelsDevModel[];
+		byId: Map<string, ModelsDevModel>;
+	};
+	agentsLastExam: LlmStatsScoreSourceRows<
+		AgentsLastExamModelScoreRow,
+		AgentsLastExamScoreByModelName
+	>;
+	automationBench: LlmStatsScoreSourceRows<
+		AutomationBenchModelScoreRow,
+		AutomationBenchScoreByModelName
+	>;
+	blueprintBench: LlmStatsScoreSourceRows<
+		BlueprintBenchModelScoreRow,
+		BlueprintBenchScoreByModelName
+	>;
+	browseComp: LlmStatsScoreSourceRows<
+		BrowseCompModelScoreRow,
+		BrowseCompScoreByModelName
+	>;
+	cursorBench: LlmStatsScoreSourceRows<
+		CursorBenchModelScoreRow,
+		CursorBenchScoreByModelName
+	>;
+	deepSWE: LlmStatsScoreSourceRows<
+		DeepSWEModelScoreRow,
+		DeepSWEScoreByModelName
+	>;
+	gdpPdf: LlmStatsScoreSourceRows<GdpPdfModelScoreRow, GdpPdfScoreByModelName>;
+	riemannBench: LlmStatsScoreSourceRows<
+		RiemannBenchModelScoreRow,
+		RiemannBenchScoreByModelName
+	>;
+	terminalBench: LlmStatsAccuracySourceRows<
+		TerminalBenchModelMedianAccuracyRow,
+		TerminalBenchAccuracyByModelName
+	>;
+	toolathlon: LlmStatsScoreSourceRows<
+		ToolathlonModelScoreRow,
+		ToolathlonScoreByModelName
+	>;
 };
 
 export type LlmStatsEnrichmentResult = {

@@ -15,19 +15,30 @@ import { findTerminalBenchMedianAccuracy } from "../scrapers/terminal-bench";
 import { findToolathlonScore } from "../scrapers/toolathlon";
 import type { LlmStatsScoringSources, LlmStatsSourceData } from "./types";
 
-export type BenchmarkEnrichmentLookups = Pick<
-	LlmStatsSourceData,
-	| "deepSWEScoreByModelName"
-	| "terminalBenchAccuracyByModelName"
-	| "agentsLastExamScoreByModelName"
-	| "automationBenchScoreByModelName"
-	| "blueprintBenchScoreByModelName"
-	| "gdpPdfScoreByModelName"
-	| "riemannBenchScoreByModelName"
-	| "browseCompScoreByModelName"
-	| "toolathlonScoreByModelName"
-	| "cursorBenchScoreByModelName"
->;
+export type BenchmarkEnrichmentLookups = {
+	agentsLastExam: Pick<
+		LlmStatsSourceData["agentsLastExam"],
+		"scoreByModelName"
+	>;
+	automationBench: Pick<
+		LlmStatsSourceData["automationBench"],
+		"scoreByModelName"
+	>;
+	blueprintBench: Pick<
+		LlmStatsSourceData["blueprintBench"],
+		"scoreByModelName"
+	>;
+	browseComp: Pick<LlmStatsSourceData["browseComp"], "scoreByModelName">;
+	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "scoreByModelName">;
+	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "scoreByModelName">;
+	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "scoreByModelName">;
+	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "scoreByModelName">;
+	terminalBench: Pick<
+		LlmStatsSourceData["terminalBench"],
+		"accuracyByModelName"
+	>;
+	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "scoreByModelName">;
+};
 
 export type BenchmarkEnrichment = {
 	evaluations: Record<string, unknown>;
@@ -43,7 +54,7 @@ export function benchmarkEnrichment(
 	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
 	const deepSWEScore = findDeepSWEModelScore(
 		modelNameCandidates,
-		lookups.deepSWEScoreByModelName,
+		lookups.deepSWE.scoreByModelName,
 	);
 	if (deepSWEScore != null) {
 		evaluations.deep_swe = deepSWEScore.pass_at_1;
@@ -52,7 +63,7 @@ export function benchmarkEnrichment(
 
 	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,
-		lookups.terminalBenchAccuracyByModelName,
+		lookups.terminalBench.accuracyByModelName,
 	);
 	if (terminalBenchAccuracy != null) {
 		evaluations.terminal_bench_2 = terminalBenchAccuracy;
@@ -60,7 +71,7 @@ export function benchmarkEnrichment(
 
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
-		lookups.agentsLastExamScoreByModelName,
+		lookups.agentsLastExam.scoreByModelName,
 	);
 	if (agentsLastExamScore != null) {
 		evaluations.agents_last_exam =
@@ -70,7 +81,7 @@ export function benchmarkEnrichment(
 
 	const automationBenchScore = findAutomationBenchScoreRow(
 		modelNameCandidates,
-		lookups.automationBenchScoreByModelName,
+		lookups.automationBench.scoreByModelName,
 	);
 	if (automationBenchScore != null) {
 		evaluations.automation_bench = automationBenchScore.adjusted_score;
@@ -79,7 +90,7 @@ export function benchmarkEnrichment(
 
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,
-		lookups.blueprintBenchScoreByModelName,
+		lookups.blueprintBench.scoreByModelName,
 	);
 	if (blueprintBenchScore != null) {
 		evaluations.blueprint_bench_2 = blueprintBenchScore;
@@ -87,7 +98,7 @@ export function benchmarkEnrichment(
 
 	const gdpPdfScore = findGdpPdfScore(
 		modelNameCandidates,
-		lookups.gdpPdfScoreByModelName,
+		lookups.gdpPdf.scoreByModelName,
 	);
 	if (gdpPdfScore != null) {
 		evaluations.gdp_pdf = gdpPdfScore;
@@ -95,7 +106,7 @@ export function benchmarkEnrichment(
 
 	const riemannBenchScore = findRiemannBenchScore(
 		modelNameCandidates,
-		lookups.riemannBenchScoreByModelName,
+		lookups.riemannBench.scoreByModelName,
 	);
 	if (riemannBenchScore != null) {
 		evaluations.riemann_bench = riemannBenchScore;
@@ -103,7 +114,7 @@ export function benchmarkEnrichment(
 
 	const browseCompScore = findBrowseCompScore(
 		modelNameCandidates,
-		lookups.browseCompScoreByModelName,
+		lookups.browseComp.scoreByModelName,
 	);
 	if (browseCompScore != null) {
 		evaluations.browsecomp = browseCompScore;
@@ -111,7 +122,7 @@ export function benchmarkEnrichment(
 
 	const toolathlonScore = findToolathlonScore(
 		modelNameCandidates,
-		lookups.toolathlonScoreByModelName,
+		lookups.toolathlon.scoreByModelName,
 	);
 	if (toolathlonScore != null) {
 		evaluations.toolathlon = toolathlonScore;
@@ -119,7 +130,7 @@ export function benchmarkEnrichment(
 
 	const cursorBenchScore = findCursorBenchScore(
 		modelNameCandidates,
-		lookups.cursorBenchScoreByModelName,
+		lookups.cursorBench.scoreByModelName,
 	);
 	if (cursorBenchScore != null) {
 		evaluations.cursorbench = cursorBenchScore;

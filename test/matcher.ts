@@ -238,39 +238,59 @@ function modelStatsSourceData(
 	}
 
 	return {
-		artificialAnalysisRows,
-		preferredModelsDevModels: modelsDevModels,
-		modelsDevById: new Map(
-			modelsDevModels.map((modelsDevModel) => [
-				modelsDevModel.model_id,
-				modelsDevModel,
-			]),
-		),
-		artificialAnalysisBySlug,
-		agentsLastExamModelScoreRows: [],
-		agentsLastExamScoreByModelName: new Map(),
-		automationBenchModelScoreRows: [],
-		automationBenchScoreByModelName: new Map(),
-		blueprintBenchModelScoreRows,
-		blueprintBenchScoreByModelName: buildBlueprintBenchMap(
-			blueprintBenchModelScoreRows,
-		),
-		browseCompModelScoreRows: [],
-		browseCompScoreByModelName: new Map(),
-		cursorBenchModelScoreRows,
-		cursorBenchScoreByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
-		deepSWEModelScoreRows: [],
-		deepSWEScoreByModelName: new Map(),
-		gdpPdfModelScoreRows,
-		gdpPdfScoreByModelName: buildGdpPdfMap(gdpPdfModelScoreRows),
-		riemannBenchModelScoreRows,
-		riemannBenchScoreByModelName: buildRiemannBenchMap(
-			riemannBenchModelScoreRows,
-		),
-		terminalBenchModelScoreRows: [],
-		terminalBenchAccuracyByModelName: new Map(),
-		toolathlonModelScoreRows,
-		toolathlonScoreByModelName: buildToolathlonMap(toolathlonModelScoreRows),
+		artificialAnalysis: {
+			rows: artificialAnalysisRows,
+			bySlug: artificialAnalysisBySlug,
+		},
+		modelsDev: {
+			rows: modelsDevModels,
+			byId: new Map(
+				modelsDevModels.map((modelsDevModel) => [
+					modelsDevModel.model_id,
+					modelsDevModel,
+				]),
+			),
+		},
+		agentsLastExam: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
+		automationBench: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
+		blueprintBench: {
+			rows: blueprintBenchModelScoreRows,
+			scoreByModelName: buildBlueprintBenchMap(blueprintBenchModelScoreRows),
+		},
+		browseComp: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
+		cursorBench: {
+			rows: cursorBenchModelScoreRows,
+			scoreByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
+		},
+		deepSWE: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
+		gdpPdf: {
+			rows: gdpPdfModelScoreRows,
+			scoreByModelName: buildGdpPdfMap(gdpPdfModelScoreRows),
+		},
+		riemannBench: {
+			rows: riemannBenchModelScoreRows,
+			scoreByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
+		},
+		terminalBench: {
+			rows: [],
+			accuracyByModelName: new Map(),
+		},
+		toolathlon: {
+			rows: toolathlonModelScoreRows,
+			scoreByModelName: buildToolathlonMap(toolathlonModelScoreRows),
+		},
 	};
 }
 
