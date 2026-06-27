@@ -15,9 +15,9 @@ import type {
 } from "../types";
 import { projectLlmStatsCandidate } from "./model-projection";
 import {
+	collapseOpenRouterFreeRoutes,
 	filterLowSignalModels,
 	filterModelsById,
-	normalizePublicFreeRoutes,
 	pruneSparseFields,
 	sortModelsByIntelligenceScore,
 } from "./public-list";
@@ -68,7 +68,7 @@ export async function buildFinalModels(
 		finalConfig,
 		scoringConfig,
 	);
-	const normalizedModels = normalizePublicFreeRoutes(prunedModels);
+	const normalizedModels = collapseOpenRouterFreeRoutes(prunedModels);
 	return cacheStatsLogos(
 		filterModelsById(normalizedModels, id),
 		(model) => model.provider ?? model.id,

@@ -43,11 +43,6 @@ const REQUIRED_RELATIVE_SCORE_KEYS = [
 	"agentic_score",
 ] as const;
 
-/** Applies public model selection policy for model sort key. */
-function modelSortKey(model: LlmStatsModel): string {
-	return model.id ?? "";
-}
-
 /** Checks whether free route model for public model selection. */
 function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
@@ -65,8 +60,8 @@ export function sortModelsByIntelligenceScore(
 		if (leftIntelligence !== rightIntelligence) {
 			return rightIntelligence - leftIntelligence;
 		}
-		const leftKey = modelSortKey(left);
-		const rightKey = modelSortKey(right);
+		const leftKey = left.id ?? "";
+		const rightKey = right.id ?? "";
 		return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
 	});
 }
@@ -135,30 +130,6 @@ function selectPruneSampleModels(
 	return recentModels.length > 0 ? recentModels : models;
 }
 
-/** Applies public model selection policy for count nullish top level key. */
-function countNullishTopLevelKey(models: LlmStatsModel[], key: string): number {
-	return models.reduce((count, model) => {
-		const modelRecord = asRecord(model);
-		return modelRecord[key] == null ? count + 1 : count;
-	}, 0);
-}
-
-/** Applies public model selection policy for count nullish nested key. */
-function countNullishNestedKey(
-	models: LlmStatsModel[],
-	parentKey: string,
-	nestedKey: string,
-): number {
-	return models.reduce((count, model) => {
-		const modelRecord = asRecord(model);
-		const parentValue = modelRecord[parentKey];
-		if (!isPlainObject(parentValue) || parentValue[nestedKey] == null) {
-			return count + 1;
-		}
-		return count;
-	}, 0);
-}
-
 /** Prune the sparse fields. */
 export function pruneSparseFields(
 	models: LlmStatsModel[],
@@ -197,7 +168,10 @@ export function pruneSparseFields(
 		if (STABLE_TOP_LEVEL_KEYS.has(key)) {
 			continue;
 		}
-		const nullCount = countNullishTopLevelKey(sampleModels, key);
+		const nullCount = sampleModels.reduce((count, model) => {
+			const modelRecord = asRecord(model);
+			return modelRecord[key] == null ? count + 1 : count;
+		}, 0);
 		if (nullCount / sampleTotal > finalConfig.nullFieldPruneThreshold) {
 			topLevelKeysToPrune.add(key);
 		}
@@ -213,11 +187,14 @@ export function pruneSparseFields(
 			if (selectedBenchmarkKeys.has(nestedKey)) {
 				continue;
 			}
-			const nullCount = countNullishNestedKey(
-				sampleModels,
-				parentKey,
-				nestedKey,
-			);
+			const nullCount = sampleModels.reduce((count, model) => {
+				const modelRecord = asRecord(model);
+				const parentValue = modelRecord[parentKey];
+				if (!isPlainObject(parentValue) || parentValue[nestedKey] == null) {
+					return count + 1;
+				}
+				return count;
+			}, 0);
 			if (nullCount / sampleTotal > finalConfig.nullFieldPruneThreshold) {
 				keysToPrune.add(nestedKey);
 			}
@@ -260,8 +237,8 @@ export function filterModelsById(
 			);
 }
 
-/** Normalize free-route public identifiers and collapse paid/free duplicate rows. */
-export function normalizePublicFreeRoutes(
+/** Collapse OpenRouter free-route duplicates into canonical public rows. */
+export function collapseOpenRouterFreeRoutes(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
 	const modelByPublicId = new Map<
