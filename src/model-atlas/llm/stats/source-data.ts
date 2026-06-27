@@ -47,7 +47,7 @@ import {
 } from "../scrapers/toolathlon";
 import { modelSlugFromModelId } from "../shared";
 import {
-	buildAaRetainKeys,
+	buildArtificialAnalysisRetainKeys,
 	isoDateDaysAgo,
 	MODELS_DEV_LOOKBACK_DAYS,
 	pickPreferredModelsDevRows,
@@ -71,24 +71,30 @@ function buildModelsDevById(
 }
 
 /** Index Artificial Analysis rows by the model slug used for matching. */
-function buildAaBySlug(
-	aaRows: unknown[],
+function buildArtificialAnalysisBySlug(
+	artificialAnalysisRows: unknown[],
 ): Map<string, ArtificialAnalysisModel> {
-	const aaBySlug = new Map<string, ArtificialAnalysisModel>();
-	for (const aaRow of aaRows) {
-		const aaModel = aaRow as ArtificialAnalysisModel;
-		const aaSlug = modelSlugFromModelId(aaModel.model_id);
-		if (aaSlug) {
-			aaBySlug.set(aaSlug, aaModel);
+	const artificialAnalysisBySlug = new Map<string, ArtificialAnalysisModel>();
+	for (const artificialAnalysisRow of artificialAnalysisRows) {
+		const artificialAnalysisModel =
+			artificialAnalysisRow as ArtificialAnalysisModel;
+		const artificialAnalysisSlug = modelSlugFromModelId(
+			artificialAnalysisModel.model_id,
+		);
+		if (artificialAnalysisSlug) {
+			artificialAnalysisBySlug.set(
+				artificialAnalysisSlug,
+				artificialAnalysisModel,
+			);
 		}
 	}
-	return aaBySlug;
+	return artificialAnalysisBySlug;
 }
 
 /** Fetch source snapshots and precompute lookup maps used by matching and enrichment. */
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
-		aaStats,
+		artificialAnalysisStats,
 		modelsDevSourceStats,
 		agentsLastExamStats,
 		automationBenchStats,
@@ -114,7 +120,9 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getTerminalBenchModelMedianAccuracyStats(),
 		getToolathlonModelScoreStats(),
 	]);
-	const retainKeys = buildAaRetainKeys(aaStats.data);
+	const retainKeys = buildArtificialAnalysisRetainKeys(
+		artificialAnalysisStats.data,
+	);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDevSourceStats.payload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
@@ -122,10 +130,12 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	);
 	const preferredModelsDevModels = pickPreferredModelsDevRows(modelsDevModels);
 	return {
-		artificialAnalysisRows: aaStats.data,
+		artificialAnalysisRows: artificialAnalysisStats.data,
 		preferredModelsDevModels,
 		modelsDevById: buildModelsDevById(preferredModelsDevModels),
-		artificialAnalysisBySlug: buildAaBySlug(aaStats.data),
+		artificialAnalysisBySlug: buildArtificialAnalysisBySlug(
+			artificialAnalysisStats.data,
+		),
 		agentsLastExamModelScoreRows: agentsLastExamStats.data,
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			agentsLastExamStats.data,

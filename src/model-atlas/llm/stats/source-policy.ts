@@ -14,7 +14,7 @@ import type { ModelsDevModel } from "./types";
 
 export const MODELS_DEV_LOOKBACK_DAYS = 365;
 
-export type AaRetainKeys = {
+export type ArtificialAnalysisRetainKeys = {
 	retainedModelIds: Set<string>;
 	retainedModelNames: Set<string>;
 };
@@ -27,24 +27,28 @@ export function isoDateDaysAgo(days: number): string {
 }
 
 /** Build source-backed retain keys so older exact OpenRouter routes can still match benchmark rows. */
-export function buildAaRetainKeys(aaRows: readonly unknown[]): AaRetainKeys {
+export function buildArtificialAnalysisRetainKeys(
+	artificialAnalysisRows: readonly unknown[],
+): ArtificialAnalysisRetainKeys {
 	const retainedModelIds = new Set<string>();
 	const retainedModelNames = new Set<string>();
 
-	for (const aaRow of aaRows) {
-		const aaModel = aaRow as {
+	for (const artificialAnalysisRow of artificialAnalysisRows) {
+		const artificialAnalysisModel = artificialAnalysisRow as {
 			model_id?: unknown;
 			name?: unknown;
 		};
-		if (typeof aaModel.model_id === "string") {
-			retainedModelIds.add(normalizeProviderModelId(aaModel.model_id));
-			const sourceSlug = modelSlugFromModelId(aaModel.model_id);
+		if (typeof artificialAnalysisModel.model_id === "string") {
+			retainedModelIds.add(
+				normalizeProviderModelId(artificialAnalysisModel.model_id),
+			);
+			const sourceSlug = modelSlugFromModelId(artificialAnalysisModel.model_id);
 			if (sourceSlug) {
 				retainedModelNames.add(normalizeModelToken(sourceSlug));
 			}
 		}
-		if (typeof aaModel.name === "string") {
-			retainedModelNames.add(normalizeModelToken(aaModel.name));
+		if (typeof artificialAnalysisModel.name === "string") {
+			retainedModelNames.add(normalizeModelToken(artificialAnalysisModel.name));
 		}
 	}
 

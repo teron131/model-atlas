@@ -93,18 +93,20 @@ function hasBenchmarkSignal(row: JsonObject): boolean {
 /** Score duplicate candidate rows before choosing the canonical row. */
 function rowPriority(row: JsonObject, normalizedId: string): number {
 	const providerId = row.provider_id;
-	const aaIdentityBoost = typeof row.aa_id === "string" ? 4_000_000 : 0;
+	const artificialAnalysisIdentityBoost =
+		typeof row.aa_id === "string" ? 4_000_000 : 0;
 	const openrouterBoost = providerId === PRIMARY_PROVIDER_ID ? 1_000_000 : 0;
 	const benchmarkBoost = hasBenchmarkSignal(row) ? 2_000_000 : 0;
 	const intelligenceCostBoost = hasIntelligenceCost(row) ? 1_000 : 0;
 	const scoreSignalBoost = hasScoreSignal(row) ? 10 : 0;
-	const aaSlug = typeof row.aa_slug === "string" ? row.aa_slug : null;
+	const artificialAnalysisSlug =
+		typeof row.aa_slug === "string" ? row.aa_slug : null;
 	const canonicalSlug = canonicalSlugFromDedupeKey(normalizedId);
 	const reasoningEffortBoost =
-		reasoningEffortPriority(aaSlug, canonicalSlug) * 10_000_000;
+		reasoningEffortPriority(artificialAnalysisSlug, canonicalSlug) * 10_000_000;
 	return (
 		reasoningEffortBoost +
-		aaIdentityBoost +
+		artificialAnalysisIdentityBoost +
 		benchmarkBoost +
 		openrouterBoost +
 		intelligenceCostBoost +
@@ -133,9 +135,11 @@ function dedupeKeyForRowId(modelId: string): string {
 
 /** Groups OpenRouter rows that differ only by provider version label. */
 function versionKeyForRow(row: JsonObject): string | null {
-	const aaSlug = typeof row.aa_slug === "string" ? row.aa_slug : null;
+	const artificialAnalysisSlug =
+		typeof row.aa_slug === "string" ? row.aa_slug : null;
 	const id = typeof row.id === "string" ? row.id : null;
-	const slug = aaSlug ?? (id == null ? null : modelSlugFromModelId(id));
+	const slug =
+		artificialAnalysisSlug ?? (id == null ? null : modelSlugFromModelId(id));
 	return slug == null
 		? null
 		: stripCatalogAliasSuffixes(normalizeModelToken(slug));

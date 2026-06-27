@@ -163,24 +163,24 @@ export const ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT = 14;
 
 /** Splits resource weighting between Artificial Analysis and frontier benchmarks. */
 export function resourceComponentWeightsFor({
-	aaResourceSourceCount = ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	artificialAnalysisResourceSourceCount = ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
 	frontierResourceSourceCount,
 }: {
-	aaResourceSourceCount?: number;
+	artificialAnalysisResourceSourceCount?: number;
 	frontierResourceSourceCount: number;
 }) {
 	const totalResourceSourceCount =
-		aaResourceSourceCount + frontierResourceSourceCount;
+		artificialAnalysisResourceSourceCount + frontierResourceSourceCount;
 	if (totalResourceSourceCount <= 0) {
 		return {
-			aaResourceWeight: 0,
+			artificialAnalysisResourceWeight: 0,
 			frontierResourceWeight: 0,
 		};
 	}
 	return {
-		aaResourceWeight:
+		artificialAnalysisResourceWeight:
 			RESOURCE_COMPONENT_TOTAL_WEIGHT *
-			(aaResourceSourceCount / totalResourceSourceCount),
+			(artificialAnalysisResourceSourceCount / totalResourceSourceCount),
 		frontierResourceWeight:
 			RESOURCE_COMPONENT_TOTAL_WEIGHT *
 			(frontierResourceSourceCount / totalResourceSourceCount),

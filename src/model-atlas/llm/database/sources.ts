@@ -65,7 +65,7 @@ import {
 	INTELLIGENCE_INDEX_KEYS,
 } from "../stats/scores/benchmark-imputation";
 import {
-	buildAaRetainKeys,
+	buildArtificialAnalysisRetainKeys,
 	isoDateDaysAgo,
 	MODELS_DEV_LOOKBACK_DAYS,
 	pickPreferredModelsDevRows,
@@ -130,7 +130,9 @@ function camelMetricKey(key: string): string {
 }
 
 /** Builds the Artificial Analysis fields that count as scoring signals. */
-function aaSignalKeys(scoringConfig: ScoringConfig): Set<string> {
+function artificialAnalysisSignalKeys(
+	scoringConfig: ScoringConfig,
+): Set<string> {
 	const keys = new Set<string>(AA_RESOURCE_SIGNAL_KEYS);
 	for (const key of [
 		...INTELLIGENCE_INDEX_KEYS,
@@ -145,14 +147,14 @@ function aaSignalKeys(scoringConfig: ScoringConfig): Set<string> {
 }
 
 /** Counts scoring signals present on an Artificial Analysis row. */
-function aaScoreSignalCount(
+function artificialAnalysisScoreSignalCount(
 	row: JsonObject,
 	scoringConfig: ScoringConfig,
 ): number {
 	const intelligence = asRecord(row.intelligence);
 	const evaluations = asRecord(row.evaluations);
 	const cost = asRecord(row.intelligence_index_cost);
-	const signalKeys = aaSignalKeys(scoringConfig);
+	const signalKeys = artificialAnalysisSignalKeys(scoringConfig);
 	return [...signalKeys].filter(
 		(key) =>
 			asFiniteNumber(row[key]) != null ||
@@ -163,7 +165,7 @@ function aaScoreSignalCount(
 }
 
 /** Checks whether an Artificial Analysis row marks a model as unavailable. */
-function aaRowIsUnavailable(row: JsonObject): boolean {
+function artificialAnalysisRowIsUnavailable(row: JsonObject): boolean {
 	const name = typeof row.name === "string" ? row.name.toLowerCase() : "";
 	return (
 		row.deprecated === true ||
@@ -179,9 +181,9 @@ export function mergeArtificialAnalysisRow(
 	scoringConfig: ScoringConfig,
 ): JsonObject {
 	if (
-		aaRowIsUnavailable(fetchedRow) &&
-		aaScoreSignalCount(cachedRow, scoringConfig) >
-			aaScoreSignalCount(fetchedRow, scoringConfig)
+		artificialAnalysisRowIsUnavailable(fetchedRow) &&
+		artificialAnalysisScoreSignalCount(cachedRow, scoringConfig) >
+			artificialAnalysisScoreSignalCount(fetchedRow, scoringConfig)
 	) {
 		return cachedRow;
 	}
@@ -1168,7 +1170,7 @@ export async function loadSourceSnapshots(
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
-		buildAaRetainKeys(aa.aaSelectedRows),
+		buildArtificialAnalysisRetainKeys(aa.aaSelectedRows),
 	);
 	const sourceStatuses: SnapshotSourceStatus[] = [
 		{

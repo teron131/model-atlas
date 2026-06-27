@@ -217,10 +217,11 @@ const BENCHMARK_LABEL_BY_KEY = {
 
 const FRONTIER_RESOURCE_SOURCE_COUNT = FRONTIER_BENCHMARKS.length;
 const {
-	aaResourceWeight: AA_RESOURCE_COMPONENT_WEIGHT,
+	artificialAnalysisResourceWeight: AA_RESOURCE_COMPONENT_WEIGHT,
 	frontierResourceWeight: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
 } = resourceComponentWeightsFor({
-	aaResourceSourceCount: ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	artificialAnalysisResourceSourceCount:
+		ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
 	frontierResourceSourceCount: FRONTIER_RESOURCE_SOURCE_COUNT,
 });
 
