@@ -23,7 +23,7 @@ import type {
 	MatcherConfig,
 } from "./types";
 
-type MatchedRowLookups = Pick<LlmStatsSourceData, "modelsDevById"> &
+type MatchedRowLookups = Pick<LlmStatsSourceData, "modelsDev"> &
 	BenchmarkEnrichmentLookups;
 
 /** Helper for canonical model id. */
@@ -145,7 +145,7 @@ function buildMatchedRow(
 		typeof artificialAnalysisModel.logo === "string"
 			? artificialAnalysisModel.logo
 			: null;
-	const matchedModelsDev = lookups.modelsDevById.get(matchedModelId) ?? null;
+	const matchedModelsDev = lookups.modelsDev.byId.get(matchedModelId) ?? null;
 	const matchedModelFields = asRecord(matchedModelsDev?.model);
 	const matchedModelName =
 		typeof matchedModelsDev?.model?.name === "string"
@@ -225,7 +225,7 @@ export function modelRowsFromMatchDiagnostics(
 			if (matchedModelId == null) {
 				return null;
 			}
-			const artificialAnalysisModel = sourceData.artificialAnalysisBySlug.get(
+			const artificialAnalysisModel = sourceData.artificialAnalysis.bySlug.get(
 				matchedModel.artificial_analysis_slug,
 			);
 			if (!artificialAnalysisModel) {
@@ -246,8 +246,8 @@ export async function buildMatchedModelRows(
 	matcherConfig: MatcherConfig,
 ): Promise<Record<string, unknown>[]> {
 	const fallbackDiagnostics = await getScraperFallbackMatchDiagnostics({
-		scrapedRows: sourceData.artificialAnalysisRows,
-		modelsDevModels: sourceData.preferredModelsDevModels,
+		scrapedRows: sourceData.artificialAnalysis.rows,
+		modelsDevModels: sourceData.modelsDev.rows,
 	});
 	return modelRowsFromMatchDiagnostics(
 		sourceData,

@@ -88,66 +88,46 @@ function addSourceRows(
 /** Return one-benchmark source row mappings for sparse benchmark sources. */
 function sparseBenchmarkSources(sourceData: LlmStatsSourceData): SourceSpec[] {
 	return [
-		sourceSpec(
-			"agents_last_exam",
-			sourceData.agentsLastExamModelScoreRows,
-			(row) => ({
-				label: row.model,
-				value: row.median_score,
-			}),
-		),
-		sourceSpec(
-			"automation_bench",
-			sourceData.automationBenchModelScoreRows,
-			(row) => ({
-				label: row.model,
-				value: row.adjusted_score,
-			}),
-		),
-		sourceSpec(
-			"blueprint_bench_2",
-			sourceData.blueprintBenchModelScoreRows,
-			(row) => ({
-				label: row.model,
-				value: row.score,
-			}),
-		),
-		sourceSpec("browsecomp", sourceData.browseCompModelScoreRows, (row) => ({
+		sourceSpec("agents_last_exam", sourceData.agentsLastExam.rows, (row) => ({
+			label: row.model,
+			value: row.median_score,
+		})),
+		sourceSpec("automation_bench", sourceData.automationBench.rows, (row) => ({
+			label: row.model,
+			value: row.adjusted_score,
+		})),
+		sourceSpec("blueprint_bench_2", sourceData.blueprintBench.rows, (row) => ({
+			label: row.model,
+			value: row.score,
+		})),
+		sourceSpec("browsecomp", sourceData.browseComp.rows, (row) => ({
 			label: row.model,
 			provider: row.provider,
 			value: row.score,
 		})),
-		sourceSpec("cursorbench", sourceData.cursorBenchModelScoreRows, (row) => ({
+		sourceSpec("cursorbench", sourceData.cursorBench.rows, (row) => ({
 			label: row.model,
 			value: row.score,
 		})),
-		sourceSpec("deep_swe", sourceData.deepSWEModelScoreRows, (row) => ({
+		sourceSpec("deep_swe", sourceData.deepSWE.rows, (row) => ({
 			label: row.model,
 			value: row.pass_at_1,
 		})),
-		sourceSpec("gdp_pdf", sourceData.gdpPdfModelScoreRows, (row) => ({
+		sourceSpec("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
 			label: row.model,
 			provider: row.provider,
 			value: row.score,
 		})),
-		sourceSpec(
-			"riemann_bench",
-			sourceData.riemannBenchModelScoreRows,
-			(row) => ({
-				label: row.model,
-				provider: row.provider,
-				value: row.score,
-			}),
-		),
-		sourceSpec(
-			"terminal_bench_2",
-			sourceData.terminalBenchModelScoreRows,
-			(row) => ({
-				label: row.model,
-				value: row.median_accuracy,
-			}),
-		),
-		sourceSpec("toolathlon", sourceData.toolathlonModelScoreRows, (row) => ({
+		sourceSpec("riemann_bench", sourceData.riemannBench.rows, (row) => ({
+			label: row.model,
+			provider: row.provider,
+			value: row.score,
+		})),
+		sourceSpec("terminal_bench_2", sourceData.terminalBench.rows, (row) => ({
+			label: row.model,
+			value: row.median_accuracy,
+		})),
+		sourceSpec("toolathlon", sourceData.toolathlon.rows, (row) => ({
 			label: row.model,
 			provider: row.provider,
 			value: row.score,
@@ -160,7 +140,7 @@ function addArtificialAnalysisRows(
 	rowsByKey: Record<string, BenchmarkSourceRow[]>,
 	sourceData: LlmStatsSourceData,
 ): void {
-	for (const row of sourceData.artificialAnalysisRows) {
+	for (const row of sourceData.artificialAnalysis.rows) {
 		const record = asRecord(row);
 		const modelId =
 			typeof record.model_id === "string" && record.model_id.length > 0
@@ -247,7 +227,7 @@ async function buildLlmStatsPayload(
 	const models = await buildFinalModels(
 		{
 			...enrichedRows,
-			deepSWEModelScoreRows: sourceData.deepSWEModelScoreRows,
+			deepSWEModelScoreRows: sourceData.deepSWE.rows,
 		},
 		modelId,
 		STAGE_CONFIG.final,
