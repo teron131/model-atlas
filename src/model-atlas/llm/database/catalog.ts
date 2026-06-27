@@ -7,7 +7,7 @@ import {
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../shared";
-import { benchmarkEnrichment } from "../stats/benchmark-enrichment";
+import { benchmarkEnrichment } from "../stats/benchmarks";
 import type { LlmStatsSourceData } from "../stats/types";
 
 /** Applies models.dev catalog filtering for canonical model ID. */

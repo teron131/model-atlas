@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
 	type BenchmarkEnrichmentLookups,
 	benchmarkEnrichment,
-} from "../src/model-atlas/llm/stats/benchmark-enrichment";
+} from "../src/model-atlas/llm/stats/benchmarks";
 
 const deepSWERow = {
 	model: "Example Model",
