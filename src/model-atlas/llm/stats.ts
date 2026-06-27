@@ -5,9 +5,9 @@ import { asFiniteNumber, nowEpochSeconds } from "../utils";
 import { asRecord } from "./shared";
 import {
 	ARTIFICIAL_ANALYSIS_HEALTH_BENCHMARK_KEYS,
-	appendBenchmarkUpdateOfficialRow,
-	type BenchmarkUpdateOfficialRow,
-	type BenchmarkUpdateOfficialRowsByKey,
+	addBenchmarkRow,
+	type BenchmarkRowsByKey,
+	type BenchmarkSourceRow,
 } from "./stats/health";
 import { buildMatchedModelRows } from "./stats/matching";
 import { buildCurrentLlmStatsMetadata } from "./stats/metadata";
@@ -44,11 +44,122 @@ export type {
 	OverallRelativeScoreWeights,
 } from "./stats/types";
 
-/** Converts source benchmark rows into official public rows. */
-function officialRowsFromSourceData(
+type SourceDraft = {
+	label: string;
+	provider?: string | null;
+	value: number | null;
+};
+
+type SourceSpec = {
+	key: string;
+	rows: readonly SourceDraft[];
+};
+
+/** Define how one source row list maps into benchmark update rows. */
+function sourceSpec<T>(
+	key: string,
+	rows: readonly T[],
+	toDraft: (row: T) => SourceDraft,
+): SourceSpec {
+	return {
+		key,
+		rows: rows.map(toDraft),
+	};
+}
+
+/** Add rows from one sparse benchmark source into the benchmark-keyed update map. */
+function addSourceRows(
+	rowsByKey: Record<string, BenchmarkSourceRow[]>,
+	source: SourceSpec,
+): void {
+	for (const draft of source.rows) {
+		if (draft.value == null || !Number.isFinite(draft.value)) {
+			continue;
+		}
+		addBenchmarkRow(rowsByKey, source.key, {
+			id: null,
+			label: draft.label,
+			provider: draft.provider ?? null,
+			value: draft.value,
+		});
+	}
+}
+
+/** Return one-benchmark source row mappings for sparse benchmark sources. */
+function sparseBenchmarkSources(sourceData: LlmStatsSourceData): SourceSpec[] {
+	return [
+		sourceSpec(
+			"agents_last_exam",
+			sourceData.agentsLastExamModelScoreRows,
+			(row) => ({
+				label: row.model,
+				value: row.median_score,
+			}),
+		),
+		sourceSpec(
+			"automation_bench",
+			sourceData.automationBenchModelScoreRows,
+			(row) => ({
+				label: row.model,
+				value: row.adjusted_score,
+			}),
+		),
+		sourceSpec(
+			"blueprint_bench_2",
+			sourceData.blueprintBenchModelScoreRows,
+			(row) => ({
+				label: row.model,
+				value: row.score,
+			}),
+		),
+		sourceSpec("browsecomp", sourceData.browseCompModelScoreRows, (row) => ({
+			label: row.model,
+			provider: row.provider,
+			value: row.score,
+		})),
+		sourceSpec("cursorbench", sourceData.cursorBenchModelScoreRows, (row) => ({
+			label: row.model,
+			value: row.score,
+		})),
+		sourceSpec("deep_swe", sourceData.deepSWEModelScoreRows, (row) => ({
+			label: row.model,
+			value: row.pass_at_1,
+		})),
+		sourceSpec("gdp_pdf", sourceData.gdpPdfModelScoreRows, (row) => ({
+			label: row.model,
+			provider: row.provider,
+			value: row.score,
+		})),
+		sourceSpec(
+			"riemann_bench",
+			sourceData.riemannBenchModelScoreRows,
+			(row) => ({
+				label: row.model,
+				provider: row.provider,
+				value: row.score,
+			}),
+		),
+		sourceSpec(
+			"terminal_bench_2",
+			sourceData.terminalBenchModelScoreRows,
+			(row) => ({
+				label: row.model,
+				value: row.median_accuracy,
+			}),
+		),
+		sourceSpec("toolathlon", sourceData.toolathlonModelScoreRows, (row) => ({
+			label: row.model,
+			provider: row.provider,
+			value: row.score,
+		})),
+	];
+}
+
+/** Add Artificial Analysis rows, which carry many benchmark keys in one payload. */
+function addArtificialAnalysisRows(
+	rowsByKey: Record<string, BenchmarkSourceRow[]>,
 	sourceData: LlmStatsSourceData,
-): BenchmarkUpdateOfficialRowsByKey {
-	const rowsByKey: Record<string, BenchmarkUpdateOfficialRow[]> = {};
+): void {
 	for (const row of sourceData.artificialAnalysisRows) {
 		const record = asRecord(row);
 		const modelId =
@@ -68,7 +179,7 @@ function officialRowsFromSourceData(
 			if (value == null) {
 				continue;
 			}
-			appendBenchmarkUpdateOfficialRow(rowsByKey, key, {
+			addBenchmarkRow(rowsByKey, key, {
 				id: modelId,
 				label,
 				provider: null,
@@ -76,13 +187,16 @@ function officialRowsFromSourceData(
 			});
 		}
 	}
-	for (const row of sourceData.browseCompModelScoreRows) {
-		appendBenchmarkUpdateOfficialRow(rowsByKey, "browsecomp", {
-			id: null,
-			label: row.model,
-			provider: row.provider,
-			value: row.score,
-		});
+}
+
+/** Converts source benchmark rows into benchmark-keyed update rows. */
+function benchmarkRowsFromSourceData(
+	sourceData: LlmStatsSourceData,
+): BenchmarkRowsByKey {
+	const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
+	addArtificialAnalysisRows(rowsByKey, sourceData);
+	for (const source of sparseBenchmarkSources(sourceData)) {
+		addSourceRows(rowsByKey, source);
 	}
 	return rowsByKey;
 }
@@ -94,13 +208,13 @@ function withLlmStatsMetadata(
 	modelsForMetadata: Array<
 		Record<string, unknown> | LlmStatsModel
 	> = payload.models,
-	officialRowsByKey?: BenchmarkUpdateOfficialRowsByKey,
+	sourceRowsByKey?: BenchmarkRowsByKey,
 ): LlmStatsPayload {
 	const metadata = buildCurrentLlmStatsMetadata({
 		models: modelsForMetadata,
 		healthModels: payload.models,
 		artificialAnalysis: payload.metadata?.artificial_analysis,
-		officialRowsByKey,
+		sourceRowsByKey,
 	});
 	return {
 		...payload,
@@ -146,7 +260,7 @@ async function buildLlmStatsPayload(
 			models,
 		},
 		enrichedRows.rows,
-		officialRowsFromSourceData(sourceData),
+		benchmarkRowsFromSourceData(sourceData),
 	);
 }
 

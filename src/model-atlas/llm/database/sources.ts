@@ -196,26 +196,17 @@ type ModelsDevSnapshot = Pick<
 	| "modelsDevStatusCode"
 > & { sourceRowStates: SourceRowState[] };
 
-type DeepSWESnapshot = {
-	deepSWERawRows: SourceSnapshots["deepSWERawRows"];
-	deepSWEModelScoreRows: SourceSnapshots["deepSWEModelScoreRows"];
-	deepSWESourceVersion: SourceSnapshots["deepSWESourceVersion"];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { deepSWE: number | null };
-};
-
-type TerminalBenchSnapshot = {
-	terminalBenchRows: SourceSnapshots["terminalBenchRows"];
-	terminalBenchModelScores: SourceSnapshots["terminalBenchModelScores"];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { terminalBench: number | null };
-};
-
 type AgentsLastExamSnapshot = {
 	agentsLastExamRows: SourceSnapshots["agentsLastExamRows"];
 	agentsLastExamModelScores: SourceSnapshots["agentsLastExamModelScores"];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: { agentsLastExam: number | null };
+};
+
+type BlueprintBenchSnapshot = {
+	blueprintBenchModelScoreRows: SourceSnapshots["blueprintBenchModelScoreRows"];
+	sourceRowStates: SourceRowState[];
+	fetchedAt: { blueprintBench: number | null };
 };
 
 type BrowseCompSnapshot = {
@@ -224,10 +215,18 @@ type BrowseCompSnapshot = {
 	fetchedAt: { browseComp: number | null };
 };
 
-type BlueprintBenchSnapshot = {
-	blueprintBenchModelScoreRows: SourceSnapshots["blueprintBenchModelScoreRows"];
+type CursorBenchSnapshot = {
+	cursorBenchModelScoreRows: SourceSnapshots["cursorBenchModelScoreRows"];
 	sourceRowStates: SourceRowState[];
-	fetchedAt: { blueprintBench: number | null };
+	fetchedAt: { cursorBench: number | null };
+};
+
+type DeepSWESnapshot = {
+	deepSWERawRows: SourceSnapshots["deepSWERawRows"];
+	deepSWEModelScoreRows: SourceSnapshots["deepSWEModelScoreRows"];
+	deepSWESourceVersion: SourceSnapshots["deepSWESourceVersion"];
+	sourceRowStates: SourceRowState[];
+	fetchedAt: { deepSWE: number | null };
 };
 
 type GdpPdfSnapshot = {
@@ -242,16 +241,17 @@ type RiemannBenchSnapshot = {
 	fetchedAt: { riemannBench: number | null };
 };
 
+type TerminalBenchSnapshot = {
+	terminalBenchRows: SourceSnapshots["terminalBenchRows"];
+	terminalBenchModelScores: SourceSnapshots["terminalBenchModelScores"];
+	sourceRowStates: SourceRowState[];
+	fetchedAt: { terminalBench: number | null };
+};
+
 type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: SourceSnapshots["toolathlonModelScoreRows"];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: { toolathlon: number | null };
-};
-
-type CursorBenchSnapshot = {
-	cursorBenchModelScoreRows: SourceSnapshots["cursorBenchModelScoreRows"];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { cursorBench: number | null };
 };
 
 type SnapshotSourceStatus = {
@@ -380,13 +380,6 @@ export function sourceDataFromSnapshots(
 				return slug == null ? [] : [[slug, row]];
 			}),
 		),
-		deepSWEModelScoreRows: snapshots.deepSWEModelScoreRows,
-		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(
-			snapshots.deepSWEModelScoreRows,
-		),
-		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
-			snapshots.terminalBenchModelScores,
-		),
 		agentsLastExamModelScoreRows: snapshots.agentsLastExamModelScores,
 		agentsLastExamScoreByModelName: buildAgentsLastExamScoreByModelName(
 			snapshots.agentsLastExamModelScores,
@@ -397,6 +390,18 @@ export function sourceDataFromSnapshots(
 		blueprintBenchScoreByModelName: buildBlueprintBenchScoreByModelName(
 			snapshots.blueprintBenchModelScoreRows,
 		),
+		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
+		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
+			snapshots.browseCompModelScoreRows,
+		),
+		cursorBenchModelScoreRows: snapshots.cursorBenchModelScoreRows,
+		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
+			snapshots.cursorBenchModelScoreRows,
+		),
+		deepSWEModelScoreRows: snapshots.deepSWEModelScoreRows,
+		deepSWEScoreByModelName: buildDeepSWEScoreByModelName(
+			snapshots.deepSWEModelScoreRows,
+		),
 		gdpPdfModelScoreRows: snapshots.gdpPdfModelScoreRows,
 		gdpPdfScoreByModelName: buildGdpPdfScoreByModelName(
 			snapshots.gdpPdfModelScoreRows,
@@ -405,17 +410,13 @@ export function sourceDataFromSnapshots(
 		riemannBenchScoreByModelName: buildRiemannBenchScoreByModelName(
 			snapshots.riemannBenchModelScoreRows,
 		),
-		browseCompModelScoreRows: snapshots.browseCompModelScoreRows,
-		browseCompScoreByModelName: buildBrowseCompScoreByModelName(
-			snapshots.browseCompModelScoreRows,
+		terminalBenchModelScoreRows: snapshots.terminalBenchModelScores,
+		terminalBenchAccuracyByModelName: buildTerminalBenchAccuracyByModelName(
+			snapshots.terminalBenchModelScores,
 		),
 		toolathlonModelScoreRows: snapshots.toolathlonModelScoreRows,
 		toolathlonScoreByModelName: buildToolathlonScoreByModelName(
 			snapshots.toolathlonModelScoreRows,
-		),
-		cursorBenchModelScoreRows: snapshots.cursorBenchModelScoreRows,
-		cursorBenchScoreByModelName: buildCursorBenchScoreByModelName(
-			snapshots.cursorBenchModelScoreRows,
 		),
 	};
 }
@@ -1184,20 +1185,6 @@ export async function loadSourceSnapshots(
 			sourceRowStates: modelsDev.sourceRowStates,
 		},
 		{
-			source: "deep_swe",
-			fetchedAt: deepSWE.fetchedAt.deepSWE,
-			sourceInputCount: deepSWE.deepSWERawRows.length,
-			sourceRowStates: deepSWE.sourceRowStates,
-			fetchedAtKey: "deepSWE",
-		},
-		{
-			source: "terminal_bench",
-			fetchedAt: terminalBench.fetchedAt.terminalBench,
-			sourceInputCount: terminalBench.terminalBenchRows.length,
-			sourceRowStates: terminalBench.sourceRowStates,
-			fetchedAtKey: "terminalBench",
-		},
-		{
 			source: "agents_last_exam",
 			fetchedAt: agentsLastExam.fetchedAt.agentsLastExam,
 			sourceInputCount: agentsLastExam.agentsLastExamRows.length,
@@ -1210,6 +1197,27 @@ export async function loadSourceSnapshots(
 			sourceInputCount: blueprintBench.blueprintBenchModelScoreRows.length,
 			sourceRowStates: blueprintBench.sourceRowStates,
 			fetchedAtKey: "blueprintBench",
+		},
+		{
+			source: "browsecomp",
+			fetchedAt: browseComp.fetchedAt.browseComp,
+			sourceInputCount: browseComp.browseCompModelScoreRows.length,
+			sourceRowStates: browseComp.sourceRowStates,
+			fetchedAtKey: "browseComp",
+		},
+		{
+			source: "cursorbench",
+			fetchedAt: cursorBench.fetchedAt.cursorBench,
+			sourceInputCount: cursorBench.cursorBenchModelScoreRows.length,
+			sourceRowStates: cursorBench.sourceRowStates,
+			fetchedAtKey: "cursorBench",
+		},
+		{
+			source: "deep_swe",
+			fetchedAt: deepSWE.fetchedAt.deepSWE,
+			sourceInputCount: deepSWE.deepSWERawRows.length,
+			sourceRowStates: deepSWE.sourceRowStates,
+			fetchedAtKey: "deepSWE",
 		},
 		{
 			source: "gdp_pdf",
@@ -1226,11 +1234,11 @@ export async function loadSourceSnapshots(
 			fetchedAtKey: "riemannBench",
 		},
 		{
-			source: "browsecomp",
-			fetchedAt: browseComp.fetchedAt.browseComp,
-			sourceInputCount: browseComp.browseCompModelScoreRows.length,
-			sourceRowStates: browseComp.sourceRowStates,
-			fetchedAtKey: "browseComp",
+			source: "terminal_bench",
+			fetchedAt: terminalBench.fetchedAt.terminalBench,
+			sourceInputCount: terminalBench.terminalBenchRows.length,
+			sourceRowStates: terminalBench.sourceRowStates,
+			fetchedAtKey: "terminalBench",
 		},
 		{
 			source: "toolathlon",
@@ -1238,13 +1246,6 @@ export async function loadSourceSnapshots(
 			sourceInputCount: toolathlon.toolathlonModelScoreRows.length,
 			sourceRowStates: toolathlon.sourceRowStates,
 			fetchedAtKey: "toolathlon",
-		},
-		{
-			source: "cursorbench",
-			fetchedAt: cursorBench.fetchedAt.cursorBench,
-			sourceInputCount: cursorBench.cursorBenchModelScoreRows.length,
-			sourceRowStates: cursorBench.sourceRowStates,
-			fetchedAtKey: "cursorBench",
 		},
 	];
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
@@ -1256,19 +1257,19 @@ export async function loadSourceSnapshots(
 			modelsDevModels,
 			modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
 			modelsDevStatusCode: modelsDev.modelsDevStatusCode,
-			deepSWERawRows: deepSWE.deepSWERawRows,
-			deepSWEModelScoreRows: deepSWE.deepSWEModelScoreRows,
-			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
-			terminalBenchRows: terminalBench.terminalBenchRows,
-			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			blueprintBenchModelScoreRows: blueprintBench.blueprintBenchModelScoreRows,
+			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
+			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
+			deepSWERawRows: deepSWE.deepSWERawRows,
+			deepSWEModelScoreRows: deepSWE.deepSWEModelScoreRows,
+			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
-			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
+			terminalBenchRows: terminalBench.terminalBenchRows,
+			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
-			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
 			sourceRowStates: sourceSnapshotRowStates(sourceStatuses),
 			fetchedAt: sourceSnapshotFetchedAt(sourceStatuses),
 		},
