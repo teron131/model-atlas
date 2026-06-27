@@ -33,6 +33,8 @@ const rows = processCursorBenchPageHtml(`
 			<tr><td>4</td><td>Gemini 3.5 Flash</td><td>49.8%</td><td>$1.94</td><td>35,105</td><td>79</td></tr>
 			<tr><td>5</td><td>Opus 4.8 High</td><td>58.4%</td><td>$4.41</td><td>36,788</td><td>45</td></tr>
 			<tr><td>6</td><td>Kimi 2.6</td><td>47.6%</td><td>$1.27</td><td>24,783</td><td>56</td></tr>
+			<tr><td>7</td><td>Claude Opus 4.8 Ultra</td><td>55.0%</td><td>$4.80</td><td>37,000</td><td>46</td></tr>
+			<tr><td>8</td><td>Claude Fable 5 Non Reasoning</td><td>45.0%</td><td>$1.80</td><td>17,000</td><td>40</td></tr>
 		</tbody>
 	</table>
 	<h2>Changelog</h2>
@@ -88,6 +90,26 @@ assertDeepEqual(rows, [
 		cost_per_task_usd: 1.27,
 		tokens_per_task: 24783,
 		steps_per_task: 56,
+	},
+	{
+		rank: 7,
+		model: "Claude Opus 4.8 Ultra",
+		base_model: "Claude Opus 4.8",
+		reasoning_effort: "Ultra",
+		score: 0.55,
+		cost_per_task_usd: 4.8,
+		tokens_per_task: 37000,
+		steps_per_task: 46,
+	},
+	{
+		rank: 8,
+		model: "Claude Fable 5 Non Reasoning",
+		base_model: "Claude Fable 5",
+		reasoning_effort: "Non Reasoning",
+		score: 0.45,
+		cost_per_task_usd: 1.8,
+		tokens_per_task: 17000,
+		steps_per_task: 40,
 	},
 ]);
 

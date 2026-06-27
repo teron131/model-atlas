@@ -14,11 +14,16 @@ const LEADERBOARD_START = "Leaderboard";
 const DOMAIN_START = "By domain";
 const DOMAIN_END_PREFIX = "Try the latest models in Zapier";
 const REASONING_EFFORT_RANKS: Readonly<Record<string, number>> = {
-	low: 1,
-	medium: 2,
-	high: 3,
-	xhigh: 4,
-	max: 5,
+	nonreasoning: 1,
+	minimal: 2,
+	low: 3,
+	medium: 4,
+	high: 5,
+	xhigh: 6,
+	extrahigh: 6,
+	adaptive: 7,
+	max: 8,
+	ultra: 9,
 };
 
 export type AutomationBenchScraperOptions = {

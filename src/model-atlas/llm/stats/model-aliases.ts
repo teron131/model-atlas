@@ -4,8 +4,12 @@ import { normalizeProviderModelId } from "../shared";
 
 export const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
 
-const EPHEMERAL_SUFFIXES = ["-adaptive"] as const;
 const REASONING_EFFORT_SUFFIXES = [
+	"-reasoning-ultra",
+	"-ultra",
+	"-reasoning-max",
+	"-max",
+	"-adaptive",
 	"-reasoning-xhigh",
 	"-xhigh",
 	"-reasoning-high",
@@ -20,7 +24,6 @@ const REASONING_EFFORT_SUFFIXES = [
 	"-non-reasoning",
 ] as const;
 const CATALOG_ALIAS_SUFFIXES = [
-	...EPHEMERAL_SUFFIXES,
 	"-fast",
 	"-non-reasoning-low-effort",
 	...REASONING_EFFORT_SUFFIXES,
@@ -116,13 +119,6 @@ export function reasoningEffortPriority(
 		artificialAnalysisSlug,
 	);
 	const normalizedCanonicalSlug = normalizeProviderModelId(canonicalSlug);
-	for (const suffix of EPHEMERAL_SUFFIXES) {
-		if (
-			normalizedArtificialAnalysisSlug === `${normalizedCanonicalSlug}${suffix}`
-		) {
-			return 6;
-		}
-	}
 	if (normalizedArtificialAnalysisSlug === normalizedCanonicalSlug) {
 		return REASONING_EFFORT_SUFFIXES.length + 1;
 	}

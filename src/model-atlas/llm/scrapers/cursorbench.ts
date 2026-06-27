@@ -26,11 +26,15 @@ const LEADERBOARD_HEADER_CELLS = [
 const LEADERBOARD_END = "Changelog";
 const PRIVATE_CURSOR_MODEL_PREFIX = /^composer\b/i;
 const REASONING_EFFORTS = [
-	"Extra High",
+	"Ultra",
 	"Max",
+	"Adaptive",
+	"Extra High",
 	"High",
 	"Medium",
 	"Low",
+	"Minimal",
+	"Non Reasoning",
 ] as const;
 
 export type CursorBenchScraperOptions = {
