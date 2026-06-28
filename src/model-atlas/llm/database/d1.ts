@@ -213,7 +213,7 @@ export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null>
 	const [
 		modelRows,
 		sourceHealthRows,
-		aaRows,
+		artificialAnalysisRows,
 		agentsLastExamRows,
 		blueprintBenchRows,
 		browseCompRows,
@@ -231,9 +231,10 @@ export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null>
 		allD1("SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index", [
 			runId,
 		]),
-		allD1("SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index", [
-			runId,
-		]),
+		allD1(
+			"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+			[runId],
+		),
 		allD1(
 			"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
 			[runId],
@@ -278,7 +279,7 @@ export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null>
 		},
 		modelRows,
 		sourceHealthRows,
-		aaRows,
+		artificialAnalysisRows,
 		agentsLastExamRows,
 		blueprintBenchRows,
 		browseCompRows,

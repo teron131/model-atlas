@@ -14,7 +14,7 @@ import {
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
 
-/** Derive the selected-row key represented by one raw AA row. */
+/** Derive the selected-row key represented by one raw Artificial Analysis row. */
 function artificialAnalysisRawRowKey(row: JsonObject): string | null {
 	const explicitModelId = firstString(row, ["model_id", "model_url", "id"]);
 	if (explicitModelId != null) {
@@ -193,10 +193,10 @@ export function insertArtificialAnalysisRawModels(
 	snapshots: SourceSnapshots,
 ): void {
 	const selectedRowsByKey = artificialAnalysisSelectedRowsByKey(
-		snapshots.aaSelectedRows,
+		snapshots.artificialAnalysisSelectedRows,
 	);
 	const statement = db.prepare(`
-		INSERT INTO aa_raw_models (
+		INSERT INTO artificial_analysis_raw_models (
 			run_id, row_index, fetched_at_epoch_seconds, url, model_id, name,
 			short_name, creator_name, model_url, release_date, deprecated,
 			reasoning_model, open_weights, commercial_allowed, input_modality_text,
@@ -214,10 +214,10 @@ export function insertArtificialAnalysisRawModels(
 			output_tokens_per_task, logo_url
 		) VALUES (${Array.from({ length: 53 }, () => "?").join(", ")})
 	`);
-	for (const [index, row] of snapshots.aaRawRows.entries()) {
+	for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
 		const selectedRow =
 			selectedRowsByKey.get(artificialAnalysisRawRowKey(row) ?? "") ??
-			snapshots.aaSelectedRows[index] ??
+			snapshots.artificialAnalysisSelectedRows[index] ??
 			{};
 		const creator = {
 			...asRecord(row.creator),

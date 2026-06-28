@@ -50,7 +50,7 @@ import {
 } from "./writers";
 
 const SNAPSHOT_TABLES = [
-	"aa_raw_models",
+	"artificial_analysis_raw_models",
 	"models_dev_raw_models",
 	"agents_last_exam_raw_rows",
 	"blueprint_bench_2_raw_rows",

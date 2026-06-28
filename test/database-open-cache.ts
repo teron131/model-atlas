@@ -15,7 +15,7 @@ try {
 	try {
 		firstDb
 			.prepare(`
-				INSERT INTO aa_raw_models (
+				INSERT INTO artificial_analysis_raw_models (
 					run_id, row_index, fetched_at_epoch_seconds, url, model_id, name
 				) VALUES (?, ?, ?, ?, ?, ?)
 			`)
@@ -67,7 +67,9 @@ try {
 	const reopenedDb = await openDatabase(databasePath);
 	try {
 		const row = reopenedDb
-			.prepare("SELECT COUNT(*) AS count FROM aa_raw_models WHERE model_id = ?")
+			.prepare(
+				"SELECT COUNT(*) AS count FROM artificial_analysis_raw_models WHERE model_id = ?",
+			)
 			.get("anthropic/claude-fable-5");
 		assert.equal(
 			Number(row?.count ?? 0),

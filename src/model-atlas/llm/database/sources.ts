@@ -101,14 +101,14 @@ type SourceSnapshotCacheResult = {
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
-type AaSnapshot = {
-	aaRawRows: SourceSnapshots["aaRawRows"];
-	aaSelectedRows: SourceSnapshots["aaSelectedRows"];
+type ArtificialAnalysisSnapshot = {
+	artificialAnalysisRawRows: SourceSnapshots["artificialAnalysisRawRows"];
+	artificialAnalysisSelectedRows: SourceSnapshots["artificialAnalysisSelectedRows"];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: { artificialAnalysis: number | null };
 };
 
-const AA_RESOURCE_SIGNAL_KEYS = [
+const ARTIFICIAL_ANALYSIS_RESOURCE_SIGNAL_KEYS = [
 	"cost_per_task",
 	"seconds_per_task",
 	"output_tokens_per_task",
@@ -125,7 +125,7 @@ function camelMetricKey(key: string): string {
 function artificialAnalysisSignalKeys(
 	scoringConfig: ScoringConfig,
 ): Set<string> {
-	const keys = new Set<string>(AA_RESOURCE_SIGNAL_KEYS);
+	const keys = new Set<string>(ARTIFICIAL_ANALYSIS_RESOURCE_SIGNAL_KEYS);
 	for (const key of [
 		...INTELLIGENCE_INDEX_KEYS,
 		...AGENTIC_INDEX_KEYS,
@@ -347,9 +347,9 @@ export function sourceDataFromSnapshots(
 	);
 	return {
 		artificialAnalysis: {
-			rows: snapshots.aaSelectedRows,
+			rows: snapshots.artificialAnalysisSelectedRows,
 			bySlug: new Map(
-				snapshots.aaSelectedRows.flatMap((row) => {
+				snapshots.artificialAnalysisSelectedRows.flatMap((row) => {
 					const modelId =
 						typeof row.model_id === "string" ? row.model_id : null;
 					const slug = modelSlugFromModelId(modelId);
@@ -547,15 +547,15 @@ function modelsDevSourceInputCount(
 	);
 }
 
-/** Builds the aa snapshot used by the database refresh pipeline. */
-async function aaSnapshot(
+/** Builds the Artificial Analysis snapshot used by the database refresh pipeline. */
+async function artificialAnalysisSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	scoringConfig: ScoringConfig,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
-): Promise<AaSnapshot> {
+): Promise<ArtificialAnalysisSnapshot> {
 	const cached = readArtificialAnalysisRawCache(db);
 	if (
 		status.cache_hit &&
@@ -564,7 +564,7 @@ async function aaSnapshot(
 	) {
 		const cachedSnapshot = snapshotRowsWithStates({
 			source: "artificial_analysis",
-			cachedRows: cached.aaRawRows,
+			cachedRows: cached.artificialAnalysisRawRows,
 			fetchedRows: [],
 			fetchedAtEpochSeconds: null,
 			options,
@@ -574,8 +574,8 @@ async function aaSnapshot(
 			nowEpochSeconds,
 		});
 		return {
-			aaRawRows: cachedSnapshot.rows,
-			aaSelectedRows: processArtificialAnalysisScrapedRows(
+			artificialAnalysisRawRows: cachedSnapshot.rows,
+			artificialAnalysisSelectedRows: processArtificialAnalysisScrapedRows(
 				cachedSnapshot.rows,
 				{
 					selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
@@ -592,7 +592,7 @@ async function aaSnapshot(
 	);
 	const snapshot = snapshotRowsWithStates({
 		source: "artificial_analysis",
-		cachedRows: cached?.aaRawRows,
+		cachedRows: cached?.artificialAnalysisRawRows,
 		fetchedRows: fetched.data,
 		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
 		options,
@@ -604,10 +604,13 @@ async function aaSnapshot(
 		nowEpochSeconds,
 	});
 	return {
-		aaRawRows: snapshot.rows,
-		aaSelectedRows: processArtificialAnalysisScrapedRows(snapshot.rows, {
-			selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
-		}),
+		artificialAnalysisRawRows: snapshot.rows,
+		artificialAnalysisSelectedRows: processArtificialAnalysisScrapedRows(
+			snapshot.rows,
+			{
+				selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
+			},
+		),
 		sourceRowStates: snapshot.states,
 		fetchedAt: {
 			artificialAnalysis: snapshotFetchedAt(
@@ -1072,7 +1075,7 @@ export async function loadSourceSnapshots(
 	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
 	const previousMissingSince = missingSinceBySource(latestSourceRowStates(db));
 	const [
-		aa,
+		artificialAnalysis,
 		modelsDev,
 		agentsLastExam,
 		blueprintBench,
@@ -1084,7 +1087,7 @@ export async function loadSourceSnapshots(
 		terminalBench,
 		toolathlon,
 	] = await Promise.all([
-		aaSnapshot(
+		artificialAnalysisSnapshot(
 			db,
 			sourceCache.artificial_analysis,
 			options,
@@ -1166,14 +1169,16 @@ export async function loadSourceSnapshots(
 	const modelsDevModels = processModelsDevPayload(
 		modelsDev.modelsDevPayload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
-		buildArtificialAnalysisRetainKeys(aa.aaSelectedRows),
+		buildArtificialAnalysisRetainKeys(
+			artificialAnalysis.artificialAnalysisSelectedRows,
+		),
 	);
 	const sourceStatuses: SnapshotSourceStatus[] = [
 		{
 			source: "artificial_analysis",
-			fetchedAt: aa.fetchedAt.artificialAnalysis,
-			sourceInputCount: aa.aaRawRows.length,
-			sourceRowStates: aa.sourceRowStates,
+			fetchedAt: artificialAnalysis.fetchedAt.artificialAnalysis,
+			sourceInputCount: artificialAnalysis.artificialAnalysisRawRows.length,
+			sourceRowStates: artificialAnalysis.sourceRowStates,
 			fetchedAtKey: "artificialAnalysis",
 		},
 		{
@@ -1249,8 +1254,9 @@ export async function loadSourceSnapshots(
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	return {
 		snapshots: {
-			aaRawRows: aa.aaRawRows,
-			aaSelectedRows: aa.aaSelectedRows,
+			artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
+			artificialAnalysisSelectedRows:
+				artificialAnalysis.artificialAnalysisSelectedRows,
 			modelsDevPayload: modelsDev.modelsDevPayload,
 			modelsDevModels,
 			modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
 	final_model_count INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS aa_raw_models (
+CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	provider_id TEXT,
 	openrouter_id TEXT,
 	name TEXT,
-	aa_id TEXT,
+	artificial_analysis_id TEXT,
 	family TEXT,
 	logo TEXT,
 	attachment INTEGER,
@@ -372,9 +372,9 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	riemann_bench REAL,
 	terminal_bench_2 REAL,
 	toolathlon REAL,
-	aa_task_cost REAL,
-	aa_task_seconds REAL,
-	aa_task_output_tokens REAL,
+	artificial_analysis_task_cost REAL,
+	artificial_analysis_task_seconds REAL,
+	artificial_analysis_task_output_tokens REAL,
 	agents_last_exam_task_cost REAL,
 	agents_last_exam_task_seconds REAL,
 	agents_last_exam_task_input_tokens REAL,
@@ -399,10 +399,10 @@ CREATE TABLE IF NOT EXISTS matcher_debug (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	trace_kind TEXT NOT NULL,
-	aa_id TEXT,
-	aa_slug TEXT,
-	aa_name TEXT,
-	aa_raw_row_index INTEGER,
+	artificial_analysis_id TEXT,
+	artificial_analysis_slug TEXT,
+	artificial_analysis_name TEXT,
+	artificial_analysis_raw_row_index INTEGER,
 	candidate_rank INTEGER,
 	candidate_model_id TEXT,
 	candidate_provider_id TEXT,
@@ -419,7 +419,8 @@ CREATE TABLE IF NOT EXISTS matcher_debug (
 	PRIMARY KEY (run_id, row_index)
 );
 
-CREATE INDEX IF NOT EXISTS idx_aa_raw_models_model_id ON aa_raw_models(model_id);
+CREATE INDEX IF NOT EXISTS idx_artificial_analysis_raw_models_model_id
+	ON artificial_analysis_raw_models(model_id);
 CREATE INDEX IF NOT EXISTS idx_models_dev_raw_models_model_id ON models_dev_raw_models(model_id);
 CREATE INDEX IF NOT EXISTS idx_openrouter_raw_rows_model_id ON openrouter_raw_rows(model_id);
 CREATE INDEX IF NOT EXISTS idx_source_row_states_source_key ON source_row_states(source, row_key);
@@ -427,6 +428,7 @@ CREATE INDEX IF NOT EXISTS idx_source_row_states_status ON source_row_states(sta
 CREATE INDEX IF NOT EXISTS idx_source_health_source ON source_health(source);
 CREATE INDEX IF NOT EXISTS idx_source_health_status ON source_health(status);
 CREATE INDEX IF NOT EXISTS idx_processed_models_model_id ON processed_models(model_id);
-CREATE INDEX IF NOT EXISTS idx_matcher_debug_aa_id ON matcher_debug(aa_id);
+CREATE INDEX IF NOT EXISTS idx_matcher_debug_artificial_analysis_id
+	ON matcher_debug(artificial_analysis_id);
 CREATE INDEX IF NOT EXISTS idx_matcher_debug_candidate_model_id ON matcher_debug(candidate_model_id);
 CREATE INDEX IF NOT EXISTS idx_matcher_debug_selected_model_id ON matcher_debug(selected_model_id);

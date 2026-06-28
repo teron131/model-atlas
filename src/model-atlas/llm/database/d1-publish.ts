@@ -341,7 +341,7 @@ async function d1Verification(
 	runId: number,
 ): Promise<D1PublishResult["verification"]> {
 	const tables = [
-		"aa_raw_models",
+		"artificial_analysis_raw_models",
 		"models_dev_raw_models",
 		"deep_swe_raw_rows",
 		"processed_models",

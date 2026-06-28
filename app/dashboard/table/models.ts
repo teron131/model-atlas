@@ -4,7 +4,7 @@ import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 
 const artificialAnalysisTaskMetricColumns = [
 	{
-		key: "aaCost",
+		key: "artificialAnalysisCost",
 		group: "tasks",
 		source: "artificial_analysis",
 		metric: "cost",
@@ -13,7 +13,7 @@ const artificialAnalysisTaskMetricColumns = [
 		label: "AA$",
 	},
 	{
-		key: "aaSeconds",
+		key: "artificialAnalysisSeconds",
 		group: "tasks",
 		source: "artificial_analysis",
 		metric: "seconds",
@@ -22,7 +22,7 @@ const artificialAnalysisTaskMetricColumns = [
 		label: "AA Time",
 	},
 	{
-		key: "aaTokens",
+		key: "artificialAnalysisTokens",
 		group: "tasks",
 		source: "artificial_analysis",
 		metric: "output_tokens",

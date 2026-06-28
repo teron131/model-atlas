@@ -139,9 +139,17 @@ function buildCost(row: DbRow): LlmStatsCost {
 /** Build the task metrics object from scalar columns. */
 function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	const artificialAnalysis: Record<string, number> = {};
-	assignNumber(artificialAnalysis, "cost", row.aa_task_cost);
-	assignNumber(artificialAnalysis, "seconds", row.aa_task_seconds);
-	assignNumber(artificialAnalysis, "output_tokens", row.aa_task_output_tokens);
+	assignNumber(artificialAnalysis, "cost", row.artificial_analysis_task_cost);
+	assignNumber(
+		artificialAnalysis,
+		"seconds",
+		row.artificial_analysis_task_seconds,
+	);
+	assignNumber(
+		artificialAnalysis,
+		"output_tokens",
+		row.artificial_analysis_task_output_tokens,
+	);
 	const agentsLastExam: Record<string, number> = {};
 	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
 	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
@@ -302,7 +310,7 @@ export type ModelAtlasPayloadRows = {
 	};
 	modelRows: DbRow[];
 	sourceHealthRows: DbRow[];
-	aaRows: DbRow[];
+	artificialAnalysisRows: DbRow[];
 	agentsLastExamRows: DbRow[];
 	blueprintBenchRows: DbRow[];
 	browseCompRows: DbRow[];
@@ -378,9 +386,9 @@ export function readModelAtlasDatabasePayload(
 			run,
 			modelRows,
 			sourceHealthRows: readSourceHealthRows(db, run.id),
-			aaRows: readRunRows(
+			artificialAnalysisRows: readRunRows(
 				db,
-				"SELECT * FROM aa_raw_models WHERE run_id = ? ORDER BY row_index",
+				"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
 				run.id,
 			),
 			agentsLastExamRows: readRunRows(

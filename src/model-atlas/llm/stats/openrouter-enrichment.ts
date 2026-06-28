@@ -94,13 +94,15 @@ function hasBenchmarkSignal(row: JsonObject): boolean {
 function rowPriority(row: JsonObject, normalizedId: string): number {
 	const providerId = row.provider_id;
 	const artificialAnalysisIdentityBoost =
-		typeof row.aa_id === "string" ? 4_000_000 : 0;
+		typeof row.artificial_analysis_id === "string" ? 4_000_000 : 0;
 	const openrouterBoost = providerId === PRIMARY_PROVIDER_ID ? 1_000_000 : 0;
 	const benchmarkBoost = hasBenchmarkSignal(row) ? 2_000_000 : 0;
 	const intelligenceCostBoost = hasIntelligenceCost(row) ? 1_000 : 0;
 	const scoreSignalBoost = hasScoreSignal(row) ? 10 : 0;
 	const artificialAnalysisSlug =
-		typeof row.aa_slug === "string" ? row.aa_slug : null;
+		typeof row.artificial_analysis_slug === "string"
+			? row.artificial_analysis_slug
+			: null;
 	const canonicalSlug = canonicalSlugFromDedupeKey(normalizedId);
 	const reasoningEffortBoost =
 		reasoningEffortPriority(artificialAnalysisSlug, canonicalSlug) * 10_000_000;
@@ -116,8 +118,8 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 
 /** Extracts the canonical model slug stored in an OpenRouter dedupe key. */
 function canonicalSlugFromDedupeKey(dedupeKey: string): string | null {
-	return dedupeKey.startsWith("aa:")
-		? dedupeKey.slice("aa:".length)
+	return dedupeKey.startsWith("artificial_analysis:")
+		? dedupeKey.slice("artificial_analysis:".length)
 		: modelSlugFromModelId(dedupeKey);
 }
 
@@ -136,7 +138,9 @@ function dedupeKeyForRowId(modelId: string): string {
 /** Groups OpenRouter rows that differ only by provider version label. */
 function versionKeyForRow(row: JsonObject): string | null {
 	const artificialAnalysisSlug =
-		typeof row.aa_slug === "string" ? row.aa_slug : null;
+		typeof row.artificial_analysis_slug === "string"
+			? row.artificial_analysis_slug
+			: null;
 	const id = typeof row.id === "string" ? row.id : null;
 	const slug =
 		artificialAnalysisSlug ?? (id == null ? null : modelSlugFromModelId(id));
@@ -156,7 +160,7 @@ function dedupeKeyForRow(
 	}
 	const versionKey = versionKeyForRow(row);
 	if (versionKey != null && benchmarkVersionKeys.has(versionKey)) {
-		return `aa:${versionKey}`;
+		return `artificial_analysis:${versionKey}`;
 	}
 	return dedupeKeyForRowId(id);
 }

@@ -217,7 +217,8 @@ const BENCHMARK_LABEL_BY_KEY = {
 
 const FRONTIER_RESOURCE_SOURCE_COUNT = FRONTIER_BENCHMARKS.length;
 const {
-	artificialAnalysisResourceWeight: AA_RESOURCE_COMPONENT_WEIGHT,
+	artificialAnalysisResourceWeight:
+		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT,
 	frontierResourceWeight: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
 } = resourceComponentWeightsFor({
 	artificialAnalysisResourceSourceCount:
@@ -226,7 +227,8 @@ const {
 });
 
 const SPEED_COMPONENT_WEIGHTS = {
-	aa_task_seconds: AA_RESOURCE_COMPONENT_WEIGHT,
+	artificial_analysis_task_seconds:
+		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT,
 	frontier_normalized_task_speed: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
 	workflow_simulated_seconds: RAW_RESOURCE_COMPONENT_WEIGHT,
 } as const;
@@ -234,8 +236,10 @@ const SPEED_COMPONENT_WEIGHTS = {
 const VALUE_RAW_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT / 3;
 
 const VALUE_COMPONENT_WEIGHTS = {
-	aa_resource_task_cost: AA_RESOURCE_COMPONENT_WEIGHT / 2,
-	aa_score_per_dollar: AA_RESOURCE_COMPONENT_WEIGHT / 2,
+	artificial_analysis_resource_task_cost:
+		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT / 2,
+	artificial_analysis_score_per_dollar:
+		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT / 2,
 	frontier_resource_task_cost: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
 	frontier_resource_score_per_dollar: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
 	blend_price: VALUE_RAW_COMPONENT_WEIGHT,
@@ -311,7 +315,10 @@ const speedInputRows = () =>
 	[
 		[
 			"AA task seconds",
-			componentWeightPercent(SPEED_COMPONENT_WEIGHTS, "aa_task_seconds"),
+			componentWeightPercent(
+				SPEED_COMPONENT_WEIGHTS,
+				"artificial_analysis_task_seconds",
+			),
 		],
 		[
 			"Frontier benchmark task speed",
@@ -336,11 +343,17 @@ const valueInputRows = () =>
 	[
 		[
 			"AA-sourced resource task cost",
-			componentWeightPercent(VALUE_COMPONENT_WEIGHTS, "aa_resource_task_cost"),
+			componentWeightPercent(
+				VALUE_COMPONENT_WEIGHTS,
+				"artificial_analysis_resource_task_cost",
+			),
 		],
 		[
 			"AA-sourced score per dollar",
-			componentWeightPercent(VALUE_COMPONENT_WEIGHTS, "aa_score_per_dollar"),
+			componentWeightPercent(
+				VALUE_COMPONENT_WEIGHTS,
+				"artificial_analysis_score_per_dollar",
+			),
 		],
 		[
 			"Frontier benchmark task cost",
@@ -526,7 +539,7 @@ export const COLUMN_TOOLTIPS = {
 			["Sort", HIGHER_FIRST_TEXT],
 		],
 	},
-	aaCost: {
+	artificialAnalysisCost: {
 		title: "AA cost per task",
 		body: "Artificial Analysis v4.1 reported cost for one Intelligence Index task.",
 		rows: [
@@ -536,7 +549,7 @@ export const COLUMN_TOOLTIPS = {
 			["Sort", LOWER_FIRST_TEXT],
 		],
 	},
-	aaSeconds: {
+	artificialAnalysisSeconds: {
 		title: "AA seconds per task",
 		body: "Artificial Analysis v4.1 reported runtime for one Intelligence Index task.",
 		rows: [
@@ -546,7 +559,7 @@ export const COLUMN_TOOLTIPS = {
 			["Sort", LOWER_FIRST_TEXT],
 		],
 	},
-	aaTokens: {
+	artificialAnalysisTokens: {
 		title: "AA output tokens per task",
 		body: "Artificial Analysis v4.1 reported output tokens for one Intelligence Index task.",
 		rows: [

@@ -82,46 +82,60 @@ const matchedRows = await buildMatchedModelRows(
 );
 
 assert.equal(
-	matchedRows.find((row) => row.aa_id === "google/example-2-5-flash")?.id,
+	matchedRows.find(
+		(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+	)?.id,
 	"google/example-2.5-flash",
 	"an exact OpenRouter route should win over flash-lite or image siblings",
 );
 assert.equal(
-	matchedRows.some((row) => row.aa_id === "google/example-3-pro"),
+	matchedRows.some(
+		(row) => row.artificial_analysis_id === "google/example-3-pro",
+	),
 	false,
 	"image and latest routes should not stand in for a base source row",
 );
 assert.equal(
 	asEvaluations(
-		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
 	).toolathlon,
 	0.42,
 	"Toolathlon scores should attach through the benchmark lookup path",
 );
 assert.equal(
 	asEvaluations(
-		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
 	).cursorbench,
 	0.58,
 	"CursorBench scores should attach through the benchmark lookup path",
 );
 assert.equal(
 	asEvaluations(
-		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
 	).blueprint_bench_2,
 	0.36,
 	"Blueprint-Bench 2 scores should attach through display-name matching",
 );
 assert.equal(
 	asEvaluations(
-		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
 	).gdp_pdf,
 	0.25,
 	"GDP.pdf scores should attach through normalized display-name matching",
 );
 assert.equal(
 	asEvaluations(
-		matchedRows.find((row) => row.aa_id === "google/example-2-5-flash"),
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
 	).riemann_bench,
 	0.31,
 	"Riemann-bench scores should attach through normalized display-name matching",

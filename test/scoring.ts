@@ -146,8 +146,8 @@ const scoredModels = attachRelativeScores(
 			intelligenceScore: 90,
 			agenticScore: 80,
 			blendPrice: 4,
-			aaCost: 0.1,
-			aaSeconds: 10,
+			artificialAnalysisCost: 0.1,
+			artificialAnalysisSeconds: 10,
 			deepSWECost: 0.2,
 			deepSWESeconds: 40,
 			tps: 100,
@@ -158,8 +158,8 @@ const scoredModels = attachRelativeScores(
 			intelligenceScore: 80,
 			agenticScore: 70,
 			blendPrice: 2,
-			aaCost: 0.2,
-			aaSeconds: 20,
+			artificialAnalysisCost: 0.2,
+			artificialAnalysisSeconds: 20,
 			deepSWECost: 0.1,
 			deepSWESeconds: 20,
 			tps: 50,
@@ -170,8 +170,8 @@ const scoredModels = attachRelativeScores(
 			intelligenceScore: 70,
 			agenticScore: 60,
 			blendPrice: 8,
-			aaCost: 0.05,
-			aaSeconds: 5,
+			artificialAnalysisCost: 0.05,
+			artificialAnalysisSeconds: 5,
 			deepSWECost: 0.4,
 			deepSWESeconds: 80,
 			tps: 200,
@@ -332,8 +332,8 @@ function modelCandidate(options: {
 	intelligenceScore?: number | null;
 	agenticScore?: number | null;
 	blendPrice?: number | null;
-	aaCost?: number | null;
-	aaSeconds?: number | null;
+	artificialAnalysisCost?: number | null;
+	artificialAnalysisSeconds?: number | null;
 	deepSWEScore?: number | null;
 	deepSWECost?: number | null;
 	deepSWESeconds?: number | null;
@@ -384,8 +384,8 @@ function modelCandidate(options: {
 		intelligence_index_cost: null,
 		task_metrics: {
 			artificial_analysis: {
-				cost: options.aaCost,
-				seconds: options.aaSeconds,
+				cost: options.artificialAnalysisCost,
+				seconds: options.artificialAnalysisSeconds,
 			},
 			deep_swe: {
 				cost: options.deepSWECost,

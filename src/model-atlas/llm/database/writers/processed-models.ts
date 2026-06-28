@@ -23,7 +23,7 @@ function processedIdentityValues(model: JsonObject): SqlValue[] {
 			null,
 		firstString(model, ["openrouter_id"]),
 		firstString(model, ["name"]),
-		firstString(model, ["aa_id"]),
+		firstString(model, ["artificial_analysis_id"]),
 		firstString(model, ["family"]),
 		firstString(model, ["logo"]),
 		booleanValue(model.attachment),
@@ -148,7 +148,7 @@ export function insertProcessedModelRows(
 	const statement = db.prepare(`
 		INSERT INTO processed_models (
 			run_id, stage, row_index, model_id, provider_id, openrouter_id, name,
-			aa_id, family, logo, attachment, reasoning, release_date,
+			artificial_analysis_id, family, logo, attachment, reasoning, release_date,
 			open_weights, context, context_input, context_output, input_modality_text,
 			input_modality_image, input_modality_audio, input_modality_video,
 			throughput_tokens_per_second_median, latency_seconds_median,
@@ -162,7 +162,8 @@ export function insertProcessedModelRows(
 			agents_last_exam, automation_bench, blueprint_bench_2, browsecomp,
 			cursorbench, deep_swe, gdp_pdf, riemann_bench, terminal_bench_2,
 			toolathlon,
-			aa_task_cost, aa_task_seconds, aa_task_output_tokens,
+			artificial_analysis_task_cost, artificial_analysis_task_seconds,
+			artificial_analysis_task_output_tokens,
 			agents_last_exam_task_cost, agents_last_exam_task_seconds,
 			agents_last_exam_task_input_tokens,
 			agents_last_exam_task_output_tokens,

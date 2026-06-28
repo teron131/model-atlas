@@ -14,7 +14,7 @@ const enriched = await enrichModelRowsWithOpenRouter(
 			id: "anthropic/claude-opus-4.8-fast",
 			openrouter_id: "anthropic/claude-opus-4.8-fast",
 			provider_id: "openrouter",
-			aa_id: "aa/claude-opus-4.8",
+			artificial_analysis_id: "aa/claude-opus-4.8",
 			intelligence: {
 				intelligence_index: 90,
 			},
