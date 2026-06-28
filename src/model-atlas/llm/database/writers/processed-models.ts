@@ -92,16 +92,16 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(evaluations.scicode),
 		asFiniteNumber(evaluations.tau_banking),
 		asFiniteNumber(evaluations.terminalbench_v21),
-		asFiniteNumber(evaluations.deep_swe),
-		asFiniteNumber(evaluations.terminal_bench_2),
 		asFiniteNumber(evaluations.agents_last_exam),
 		asFiniteNumber(evaluations.automation_bench),
 		asFiniteNumber(evaluations.blueprint_bench_2),
+		asFiniteNumber(evaluations.browsecomp),
+		asFiniteNumber(evaluations.cursorbench),
+		asFiniteNumber(evaluations.deep_swe),
 		asFiniteNumber(evaluations.gdp_pdf),
 		asFiniteNumber(evaluations.riemann_bench),
-		asFiniteNumber(evaluations.browsecomp),
+		asFiniteNumber(evaluations.terminal_bench_2),
 		asFiniteNumber(evaluations.toolathlon),
-		asFiniteNumber(evaluations.cursorbench),
 	];
 }
 
@@ -109,23 +109,23 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 function processedScoreValues(model: JsonObject): SqlValue[] {
 	const taskMetrics = asRecord(model.task_metrics);
 	const artificialAnalysisTask = asRecord(taskMetrics.artificial_analysis);
-	const deepSWETask = asRecord(taskMetrics.deep_swe);
-	const automationBenchTask = asRecord(taskMetrics.automation_bench);
 	const agentsLastExamTask = asRecord(taskMetrics.agents_last_exam);
+	const automationBenchTask = asRecord(taskMetrics.automation_bench);
+	const deepSWETask = asRecord(taskMetrics.deep_swe);
 	const scores = asRecord(model.scores);
 	const relativeScores = asRecord(model.relative_scores);
 	return [
 		asFiniteNumber(artificialAnalysisTask.cost),
 		asFiniteNumber(artificialAnalysisTask.seconds),
 		asFiniteNumber(artificialAnalysisTask.output_tokens),
-		asFiniteNumber(deepSWETask.cost),
-		asFiniteNumber(deepSWETask.seconds),
-		asFiniteNumber(deepSWETask.output_tokens),
-		asFiniteNumber(automationBenchTask.cost),
 		asFiniteNumber(agentsLastExamTask.cost),
 		asFiniteNumber(agentsLastExamTask.seconds),
 		asFiniteNumber(agentsLastExamTask.input_tokens),
 		asFiniteNumber(agentsLastExamTask.output_tokens),
+		asFiniteNumber(automationBenchTask.cost),
+		asFiniteNumber(deepSWETask.cost),
+		asFiniteNumber(deepSWETask.seconds),
+		asFiniteNumber(deepSWETask.output_tokens),
 		asFiniteNumber(scores.intelligence_score),
 		asFiniteNumber(scores.agentic_score),
 		asFiniteNumber(scores.speed_score),
@@ -159,15 +159,15 @@ export function insertProcessedModelRows(
 			intelligence_index, agentic_index, coding_index, omniscience_index,
 			omniscience_accuracy, apex_agents, critpt, gdpval_normalized, gpqa,
 			hle, lcr, mmmu_pro, scicode, tau_banking, terminalbench_v21,
-			deep_swe, terminal_bench_2, agents_last_exam, automation_bench,
-			blueprint_bench_2, gdp_pdf, riemann_bench, browsecomp, toolathlon,
-			cursorbench,
+			agents_last_exam, automation_bench, blueprint_bench_2, browsecomp,
+			cursorbench, deep_swe, gdp_pdf, riemann_bench, terminal_bench_2,
+			toolathlon,
 			aa_task_cost, aa_task_seconds, aa_task_output_tokens,
-			deep_swe_task_cost, deep_swe_task_seconds, deep_swe_task_output_tokens,
-			automation_bench_task_cost,
 			agents_last_exam_task_cost, agents_last_exam_task_seconds,
 			agents_last_exam_task_input_tokens,
 			agents_last_exam_task_output_tokens,
+			automation_bench_task_cost,
+			deep_swe_task_cost, deep_swe_task_seconds, deep_swe_task_output_tokens,
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_value_score, relative_intelligence_score, relative_agentic_score,
 			relative_speed_score, relative_value_score, relative_overall_score

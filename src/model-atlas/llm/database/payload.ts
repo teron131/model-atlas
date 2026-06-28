@@ -142,12 +142,6 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	assignNumber(artificialAnalysis, "cost", row.aa_task_cost);
 	assignNumber(artificialAnalysis, "seconds", row.aa_task_seconds);
 	assignNumber(artificialAnalysis, "output_tokens", row.aa_task_output_tokens);
-	const deepSWE: Record<string, number> = {};
-	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
-	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
-	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
-	const automationBench: Record<string, number> = {};
-	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
 	const agentsLastExam: Record<string, number> = {};
 	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
 	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
@@ -161,18 +155,24 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 		"output_tokens",
 		row.agents_last_exam_task_output_tokens,
 	);
+	const automationBench: Record<string, number> = {};
+	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
+	const deepSWE: Record<string, number> = {};
+	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
+	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
+	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
 	if (hasFields(artificialAnalysis)) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
 	}
-	if (hasFields(deepSWE)) {
-		taskMetrics.deep_swe = deepSWE;
+	if (hasFields(agentsLastExam)) {
+		taskMetrics.agents_last_exam = agentsLastExam;
 	}
 	if (hasFields(automationBench)) {
 		taskMetrics.automation_bench = automationBench;
 	}
-	if (hasFields(agentsLastExam)) {
-		taskMetrics.agents_last_exam = agentsLastExam;
+	if (hasFields(deepSWE)) {
+		taskMetrics.deep_swe = deepSWE;
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }

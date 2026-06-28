@@ -8,9 +8,9 @@ import type { BrowseCompModelScoreRow } from "../../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../../scrapers/cursorbench";
 import {
 	asDeepSWERawLeaderboardRow,
-	deepSWESourceVersionForRows,
 	type DeepSWERawLeaderboardRow,
 	type DeepSWESourceVersion,
+	deepSWESourceVersionForRows,
 } from "../../scrapers/deep-swe";
 import type { GdpPdfModelScoreRow } from "../../scrapers/gdp-pdf";
 import type { ModelRecord, ModelsDevPayload } from "../../scrapers/models-dev";
@@ -284,7 +284,6 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	};
 }
 
-
 /** Reconstructs models.dev cost fields from raw cache columns. */
 function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	const cost: NonNullable<ModelRecord["cost"]> = {};
@@ -392,56 +391,6 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 	};
 }
 
-
-/** Reads DeepSWE rows, source version, and fetch time from the raw cache. */
-export function readDeepSWERawCache(db: DatabaseSync): {
-	rows: DeepSWERawLeaderboardRow[];
-	fetchedAt: number | null;
-	sourceVersion: DeepSWESourceVersion | null;
-} | null {
-	const rawRows = rows(
-		db,
-		"SELECT * FROM deep_swe_raw_rows ORDER BY row_index",
-	);
-	if (rawRows.length === 0) {
-		return null;
-	}
-	const parsedRows = rawRows.flatMap((row) => {
-		const parsedRow = asDeepSWERawLeaderboardRow(row);
-		return parsedRow == null ? [] : [parsedRow];
-	});
-	return {
-		rows: parsedRows,
-		fetchedAt: firstEpochSecond(rawRows),
-		sourceVersion: deepSWESourceVersionForRows(parsedRows),
-	};
-}
-
-/** Reads Terminal-Bench agent accuracy rows from the raw cache. */
-export function readTerminalBenchRawCache(db: DatabaseSync): {
-	rows: TerminalBenchAgentModelAccuracyRow[];
-	fetchedAt: number | null;
-} | null {
-	const rawRows = rows(
-		db,
-		"SELECT * FROM terminal_bench_raw_rows WHERE row_kind = 'agent_accuracy' ORDER BY row_index",
-	);
-	if (rawRows.length === 0) {
-		return null;
-	}
-	return {
-		rows: rawRows.flatMap((row) => {
-			const agent = stringValue(row.agent);
-			const model = stringValue(row.model);
-			const accuracy = asFiniteNumber(row.accuracy);
-			return agent != null && model != null && accuracy != null
-				? [{ agent, model, accuracy }]
-				: [];
-		}),
-		fetchedAt: firstEpochSecond(rawRows),
-	};
-}
-
 /** Reads Agents' Last Exam harness rows from the raw cache. */
 export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	rows: AgentsLastExamHarnessRow[];
@@ -503,6 +452,46 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads validated Blueprint Bench score rows from the raw cache. */
+export function readBlueprintBenchRawCache(db: DatabaseSync): {
+	rows: BlueprintBenchModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	if (
+		rawRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.blueprint_bench_2,
+		)
+	) {
+		return null;
+	}
+	const cachedRows = rawRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return model != null && score != null
+			? [
+					{
+						model,
+						score,
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
 /** Reads validated BrowseComp score rows from the raw cache. */
 export function readBrowseCompRawCache(db: DatabaseSync): {
 	rows: BrowseCompModelScoreRow[];
@@ -546,33 +535,46 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated Blueprint Bench score rows from the raw cache. */
-export function readBlueprintBenchRawCache(db: DatabaseSync): {
-	rows: BlueprintBenchModelScoreRow[];
+/** Reads validated CursorBench score rows from the raw cache. */
+export function readCursorBenchRawCache(db: DatabaseSync): {
+	rows: CursorBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
 	const rawRows = rows(
 		db,
-		"SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
+		"SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
 	);
 	if (rawRows.length === 0) {
 		return null;
 	}
-	if (
-		rawRows.some(
-			(row) => stringValue(row.url) !== SOURCE_URLS.blueprint_bench_2,
-		)
-	) {
+	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.cursorbench)) {
 		return null;
 	}
 	const cachedRows = rawRows.flatMap((row) => {
+		const rank = asFiniteNumber(row.rank);
 		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
 		const score = asFiniteNumber(row.score);
-		return model != null && score != null
+		const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
+		const tokensPerTask = asFiniteNumber(row.tokens_per_task);
+		const stepsPerTask = asFiniteNumber(row.steps_per_task);
+		return rank != null &&
+			model != null &&
+			baseModel != null &&
+			score != null &&
+			costPerTaskUsd != null &&
+			tokensPerTask != null &&
+			stepsPerTask != null
 			? [
 					{
+						rank,
 						model,
+						base_model: baseModel,
+						reasoning_effort: stringValue(row.reasoning_effort),
 						score,
+						cost_per_task_usd: costPerTaskUsd,
+						tokens_per_task: tokensPerTask,
+						steps_per_task: stepsPerTask,
 					},
 				]
 			: [];
@@ -583,6 +585,30 @@ export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	return {
 		rows: cachedRows,
 		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
+/** Reads DeepSWE rows, source version, and fetch time from the raw cache. */
+export function readDeepSWERawCache(db: DatabaseSync): {
+	rows: DeepSWERawLeaderboardRow[];
+	fetchedAt: number | null;
+	sourceVersion: DeepSWESourceVersion | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM deep_swe_raw_rows ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	const parsedRows = rawRows.flatMap((row) => {
+		const parsedRow = asDeepSWERawLeaderboardRow(row);
+		return parsedRow == null ? [] : [parsedRow];
+	});
+	return {
+		rows: parsedRows,
+		fetchedAt: firstEpochSecond(rawRows),
+		sourceVersion: deepSWESourceVersionForRows(parsedRows),
 	};
 }
 
@@ -661,6 +687,31 @@ export function readRiemannBenchRawCache(db: DatabaseSync): {
 	};
 }
 
+/** Reads Terminal-Bench agent accuracy rows from the raw cache. */
+export function readTerminalBenchRawCache(db: DatabaseSync): {
+	rows: TerminalBenchAgentModelAccuracyRow[];
+	fetchedAt: number | null;
+} | null {
+	const rawRows = rows(
+		db,
+		"SELECT * FROM terminal_bench_raw_rows WHERE row_kind = 'agent_accuracy' ORDER BY row_index",
+	);
+	if (rawRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: rawRows.flatMap((row) => {
+			const agent = stringValue(row.agent);
+			const model = stringValue(row.model);
+			const accuracy = asFiniteNumber(row.accuracy);
+			return agent != null && model != null && accuracy != null
+				? [{ agent, model, accuracy }]
+				: [];
+		}),
+		fetchedAt: firstEpochSecond(rawRows),
+	};
+}
+
 /** Reads validated Toolathlon score rows from the raw cache. */
 export function readToolathlonRawCache(db: DatabaseSync): {
 	rows: ToolathlonModelScoreRow[];
@@ -693,59 +744,6 @@ export function readToolathlonRawCache(db: DatabaseSync): {
 						verified: booleanFromSql(row.verified),
 						self_reported: booleanFromSql(row.self_reported),
 						announcement_date: stringValue(row.announcement_date),
-					},
-				]
-			: [];
-	});
-	if (cachedRows.length === 0) {
-		return null;
-	}
-	return {
-		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
-	};
-}
-
-/** Reads validated CursorBench score rows from the raw cache. */
-export function readCursorBenchRawCache(db: DatabaseSync): {
-	rows: CursorBenchModelScoreRow[];
-	fetchedAt: number | null;
-} | null {
-	const rawRows = rows(
-		db,
-		"SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
-	);
-	if (rawRows.length === 0) {
-		return null;
-	}
-	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.cursorbench)) {
-		return null;
-	}
-	const cachedRows = rawRows.flatMap((row) => {
-		const rank = asFiniteNumber(row.rank);
-		const model = stringValue(row.model);
-		const baseModel = stringValue(row.base_model);
-		const score = asFiniteNumber(row.score);
-		const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
-		const tokensPerTask = asFiniteNumber(row.tokens_per_task);
-		const stepsPerTask = asFiniteNumber(row.steps_per_task);
-		return rank != null &&
-			model != null &&
-			baseModel != null &&
-			score != null &&
-			costPerTaskUsd != null &&
-			tokensPerTask != null &&
-			stepsPerTask != null
-			? [
-					{
-						rank,
-						model,
-						base_model: baseModel,
-						reasoning_effort: stringValue(row.reasoning_effort),
-						score,
-						cost_per_task_usd: costPerTaskUsd,
-						tokens_per_task: tokensPerTask,
-						steps_per_task: stepsPerTask,
 					},
 				]
 			: [];

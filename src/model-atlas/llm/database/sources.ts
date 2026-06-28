@@ -519,15 +519,15 @@ function sourceSnapshotFetchedAt(
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
 		artificialAnalysis: null,
-		deepSWE: null,
-		terminalBench: null,
 		agentsLastExam: null,
 		blueprintBench: null,
+		browseComp: null,
+		cursorBench: null,
+		deepSWE: null,
 		gdpPdf: null,
 		riemannBench: null,
-		browseComp: null,
+		terminalBench: null,
 		toolathlon: null,
-		cursorBench: null,
 	};
 	for (const sourceStatus of sourceStatuses) {
 		if (sourceStatus.fetchedAtKey != null) {
@@ -686,6 +686,152 @@ async function modelsDevSnapshot(
 	};
 }
 
+/** Builds the agents last exam snapshot used by the database refresh pipeline. */
+async function agentsLastExamSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<AgentsLastExamSnapshot> {
+	const cached = readAgentsLastExamRawCache(db);
+	if (
+		status.cache_hit &&
+		cached != null &&
+		options.replaceSourceRows !== true
+	) {
+		const cachedSnapshot = snapshotRowsWithStates({
+			source: "agents_last_exam",
+			cachedRows: cached.rows,
+			fetchedRows: [],
+			fetchedAtEpochSeconds: null,
+			options,
+			rowKey: (row) =>
+				sourceKey(row.split, row.harness, row.model, row.harness_variant),
+			rowLabel: (row) => `${row.model} ${row.split}`,
+			previousMissingSince,
+			nowEpochSeconds,
+		});
+		return {
+			agentsLastExamRows: cachedSnapshot.rows,
+			agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
+				cachedSnapshot.rows,
+			),
+			sourceRowStates: cachedSnapshot.states,
+			fetchedAt: { agentsLastExam: cached.fetchedAt },
+		};
+	}
+	const fetched = await getAgentsLastExamHarnessStats();
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched.fetched_at_epoch_seconds,
+		fetched.data.length,
+	);
+	const snapshot = snapshotRowsWithStates({
+		source: "agents_last_exam",
+		cachedRows: cached?.rows,
+		fetchedRows: fetched.data,
+		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		options,
+		rowKey: (row) =>
+			sourceKey(row.split, row.harness, row.model, row.harness_variant),
+		rowLabel: (row) => `${row.model} ${row.split}`,
+		previousMissingSince,
+		nowEpochSeconds,
+	});
+	return {
+		agentsLastExamRows: snapshot.rows,
+		agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
+			snapshot.rows,
+		),
+		sourceRowStates: snapshot.states,
+		fetchedAt: {
+			agentsLastExam: snapshotFetchedAt(
+				hasUsableFetchedRows,
+				cached?.fetchedAt,
+				fetched.fetched_at_epoch_seconds,
+			),
+		},
+	};
+}
+
+/** Builds the blueprint bench snapshot used by the database refresh pipeline. */
+async function blueprintBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BlueprintBenchSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "blueprint_bench_2",
+		cached: readBlueprintBenchRawCache(db),
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getBlueprintBenchStats,
+		rowKey: (row) => sourceKey(row.model),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		blueprintBenchModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { blueprintBench: snapshot.fetchedAt },
+	};
+}
+
+/** Builds the browse comp snapshot used by the database refresh pipeline. */
+async function browseCompSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BrowseCompSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "browsecomp",
+		cached: readBrowseCompRawCache(db),
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getBrowseCompStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		browseCompModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { browseComp: snapshot.fetchedAt },
+	};
+}
+
+/** Builds the cursor bench snapshot used by the database refresh pipeline. */
+async function cursorBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<CursorBenchSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "cursorbench",
+		cached: readCursorBenchRawCache(db),
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getCursorBenchStats,
+		rowKey: (row) => sourceKey(row.model, row.base_model, row.reasoning_effort),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		cursorBenchModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { cursorBench: snapshot.fetchedAt },
+	};
+}
+
 /** Chooses cached or fetched DeepSWE rows and preserves missing-row state. */
 async function deepSWESnapshot(
 	db: DatabaseSync,
@@ -772,6 +918,58 @@ async function deepSWESnapshot(
 	};
 }
 
+/** Builds the GDP PDF snapshot used by the database refresh pipeline. */
+async function gdpPdfSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<GdpPdfSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "gdp_pdf",
+		cached: readGdpPdfRawCache(db),
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getGdpPdfStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		gdpPdfModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { gdpPdf: snapshot.fetchedAt },
+	};
+}
+
+/** Builds the riemann bench snapshot used by the database refresh pipeline. */
+async function riemannBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<RiemannBenchSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "riemann_bench",
+		cached: readRiemannBenchRawCache(db),
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getRiemannBenchStats,
+		rowKey: (row) => sourceKey(row.provider, row.model),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		riemannBenchModelScoreRows: snapshot.rows,
+		sourceRowStates: snapshot.sourceRowStates,
+		fetchedAt: { riemannBench: snapshot.fetchedAt },
+	};
+}
+
 /** Builds the terminal bench snapshot used by the database refresh pipeline. */
 async function terminalBenchSnapshot(
 	db: DatabaseSync,
@@ -838,178 +1036,6 @@ async function terminalBenchSnapshot(
 	};
 }
 
-/** Builds the agents last exam snapshot used by the database refresh pipeline. */
-async function agentsLastExamSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<AgentsLastExamSnapshot> {
-	const cached = readAgentsLastExamRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "agents_last_exam",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) =>
-				sourceKey(row.split, row.harness, row.model, row.harness_variant),
-			rowLabel: (row) => `${row.model} ${row.split}`,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			agentsLastExamRows: cachedSnapshot.rows,
-			agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
-				cachedSnapshot.rows,
-			),
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { agentsLastExam: cached.fetchedAt },
-		};
-	}
-	const fetched = await getAgentsLastExamHarnessStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
-		source: "agents_last_exam",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
-		options,
-		rowKey: (row) =>
-			sourceKey(row.split, row.harness, row.model, row.harness_variant),
-		rowLabel: (row) => `${row.model} ${row.split}`,
-		previousMissingSince,
-		nowEpochSeconds,
-	});
-	return {
-		agentsLastExamRows: snapshot.rows,
-		agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
-			snapshot.rows,
-		),
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			agentsLastExam: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
-		},
-	};
-}
-
-/** Builds the browse comp snapshot used by the database refresh pipeline. */
-async function browseCompSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<BrowseCompSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "browsecomp",
-		cached: readBrowseCompRawCache(db),
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getBrowseCompStats,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
-	});
-	return {
-		browseCompModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { browseComp: snapshot.fetchedAt },
-	};
-}
-
-/** Builds the blueprint bench snapshot used by the database refresh pipeline. */
-async function blueprintBenchSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<BlueprintBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "blueprint_bench_2",
-		cached: readBlueprintBenchRawCache(db),
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getBlueprintBenchStats,
-		rowKey: (row) => sourceKey(row.model),
-		rowLabel: (row) => row.model,
-	});
-	return {
-		blueprintBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { blueprintBench: snapshot.fetchedAt },
-	};
-}
-
-/** Builds the GDP PDF snapshot used by the database refresh pipeline. */
-async function gdpPdfSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<GdpPdfSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "gdp_pdf",
-		cached: readGdpPdfRawCache(db),
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getGdpPdfStats,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
-	});
-	return {
-		gdpPdfModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { gdpPdf: snapshot.fetchedAt },
-	};
-}
-
-/** Builds the riemann bench snapshot used by the database refresh pipeline. */
-async function riemannBenchSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<RiemannBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "riemann_bench",
-		cached: readRiemannBenchRawCache(db),
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getRiemannBenchStats,
-		rowKey: (row) => sourceKey(row.provider, row.model),
-		rowLabel: (row) => row.model,
-	});
-	return {
-		riemannBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { riemannBench: snapshot.fetchedAt },
-	};
-}
-
 /** Builds the Toolathlon snapshot used by the database refresh pipeline. */
 async function toolathlonSnapshot(
 	db: DatabaseSync,
@@ -1036,32 +1062,6 @@ async function toolathlonSnapshot(
 	};
 }
 
-/** Builds the cursor bench snapshot used by the database refresh pipeline. */
-async function cursorBenchSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<CursorBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "cursorbench",
-		cached: readCursorBenchRawCache(db),
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getCursorBenchStats,
-		rowKey: (row) => sourceKey(row.model, row.base_model, row.reasoning_effort),
-		rowLabel: (row) => row.model,
-	});
-	return {
-		cursorBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { cursorBench: snapshot.fetchedAt },
-	};
-}
-
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
 export async function loadSourceSnapshots(
 	db: DatabaseSync,
@@ -1074,15 +1074,15 @@ export async function loadSourceSnapshots(
 	const [
 		aa,
 		modelsDev,
-		deepSWE,
-		terminalBench,
 		agentsLastExam,
 		blueprintBench,
+		browseComp,
+		cursorBench,
+		deepSWE,
 		gdpPdf,
 		riemannBench,
-		browseComp,
+		terminalBench,
 		toolathlon,
-		cursorBench,
 	] = await Promise.all([
 		aaSnapshot(
 			db,
@@ -1099,20 +1099,6 @@ export async function loadSourceSnapshots(
 			previousMissingSince.models_dev,
 			nowEpochSeconds,
 		),
-		deepSWESnapshot(
-			db,
-			sourceCache.deep_swe,
-			options,
-			previousMissingSince.deep_swe,
-			nowEpochSeconds,
-		),
-		terminalBenchSnapshot(
-			db,
-			sourceCache.terminal_bench,
-			options,
-			previousMissingSince.terminal_bench,
-			nowEpochSeconds,
-		),
 		agentsLastExamSnapshot(
 			db,
 			sourceCache.agents_last_exam,
@@ -1125,6 +1111,27 @@ export async function loadSourceSnapshots(
 			sourceCache.blueprint_bench_2,
 			options,
 			previousMissingSince.blueprint_bench_2,
+			nowEpochSeconds,
+		),
+		browseCompSnapshot(
+			db,
+			sourceCache.browsecomp,
+			options,
+			previousMissingSince.browsecomp,
+			nowEpochSeconds,
+		),
+		cursorBenchSnapshot(
+			db,
+			sourceCache.cursorbench,
+			options,
+			previousMissingSince.cursorbench,
+			nowEpochSeconds,
+		),
+		deepSWESnapshot(
+			db,
+			sourceCache.deep_swe,
+			options,
+			previousMissingSince.deep_swe,
 			nowEpochSeconds,
 		),
 		gdpPdfSnapshot(
@@ -1141,11 +1148,11 @@ export async function loadSourceSnapshots(
 			previousMissingSince.riemann_bench,
 			nowEpochSeconds,
 		),
-		browseCompSnapshot(
+		terminalBenchSnapshot(
 			db,
-			sourceCache.browsecomp,
+			sourceCache.terminal_bench,
 			options,
-			previousMissingSince.browsecomp,
+			previousMissingSince.terminal_bench,
 			nowEpochSeconds,
 		),
 		toolathlonSnapshot(
@@ -1153,13 +1160,6 @@ export async function loadSourceSnapshots(
 			sourceCache.toolathlon,
 			options,
 			previousMissingSince.toolathlon,
-			nowEpochSeconds,
-		),
-		cursorBenchSnapshot(
-			db,
-			sourceCache.cursorbench,
-			options,
-			previousMissingSince.cursorbench,
 			nowEpochSeconds,
 		),
 	]);

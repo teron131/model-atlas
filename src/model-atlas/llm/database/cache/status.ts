@@ -14,15 +14,15 @@ import { artificialAnalysisCacheHasHiddenRows } from "./source-readers";
 const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
 	artificial_analysis: "aa_raw_models",
 	models_dev: "models_dev_raw_models",
-	deep_swe: "deep_swe_raw_rows",
-	terminal_bench: "terminal_bench_raw_rows",
 	agents_last_exam: "agents_last_exam_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",
+	browsecomp: "browsecomp_raw_rows",
+	cursorbench: "cursorbench_raw_rows",
+	deep_swe: "deep_swe_raw_rows",
 	gdp_pdf: "gdp_pdf_raw_rows",
 	riemann_bench: "riemann_bench_raw_rows",
-	browsecomp: "browsecomp_raw_rows",
+	terminal_bench: "terminal_bench_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
-	cursorbench: "cursorbench_raw_rows",
 	openrouter: "openrouter_raw_rows",
 };
 
