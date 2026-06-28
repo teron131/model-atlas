@@ -1,56 +1,119 @@
-/** SQLite cache readers for raw Model Atlas source tables. */
+/** Raw source cache readers for persisted Model Atlas source tables. */
 
 import type { DatabaseSync } from "node:sqlite";
-import { isSameOpenRouterModelRoute } from "../openrouter-routes";
-import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
-import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
-import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
-import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
+
+import type { AgentsLastExamHarnessRow } from "../../scrapers/agents-last-exam";
+import type { BlueprintBenchModelScoreRow } from "../../scrapers/blueprint-bench";
+import type { BrowseCompModelScoreRow } from "../../scrapers/browsecomp";
+import type { CursorBenchModelScoreRow } from "../../scrapers/cursorbench";
 import {
 	asDeepSWERawLeaderboardRow,
+	deepSWESourceVersionForRows,
 	type DeepSWERawLeaderboardRow,
 	type DeepSWESourceVersion,
-	deepSWESourceVersionForRows,
-} from "../scrapers/deep-swe";
-import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
-import type { ModelRecord, ModelsDevPayload } from "../scrapers/models-dev";
-import type {
-	OpenRouterEffectivePricingResponse,
-	OpenRouterFrontendModel,
-	OpenRouterModelStats,
-	OpenRouterRawScrapedModel,
-	OpenRouterRawScrapedPayload,
-	OpenRouterStatsResponse,
-} from "../scrapers/openrouter";
-import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
-import type { TerminalBenchAgentModelAccuracyRow } from "../scrapers/terminal-bench";
-import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
-import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
+} from "../../scrapers/deep-swe";
+import type { GdpPdfModelScoreRow } from "../../scrapers/gdp-pdf";
+import type { ModelRecord, ModelsDevPayload } from "../../scrapers/models-dev";
+import type { RiemannBenchModelScoreRow } from "../../scrapers/riemann-bench";
+import type { TerminalBenchAgentModelAccuracyRow } from "../../scrapers/terminal-bench";
+import type { ToolathlonModelScoreRow } from "../../scrapers/toolathlon";
+import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
 	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
 	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
-} from "../stats/benchmarks";
-import {
-	RAW_SOURCE_CACHE_SECONDS,
-	type RawSourceCacheStatus,
-	type RawSourceName,
-	SOURCE_URLS,
-} from "./types";
+} from "../../stats/benchmarks";
+import { SOURCE_URLS } from "../types";
 
-const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
-	artificial_analysis: "aa_raw_models",
-	models_dev: "models_dev_raw_models",
-	deep_swe: "deep_swe_raw_rows",
-	terminal_bench: "terminal_bench_raw_rows",
-	agents_last_exam: "agents_last_exam_raw_rows",
-	blueprint_bench_2: "blueprint_bench_2_raw_rows",
-	gdp_pdf: "gdp_pdf_raw_rows",
-	riemann_bench: "riemann_bench_raw_rows",
-	browsecomp: "browsecomp_raw_rows",
-	toolathlon: "toolathlon_raw_rows",
-	cursorbench: "cursorbench_raw_rows",
-	openrouter: "openrouter_raw_rows",
-};
+export type RawDbRow = JsonObject;
+
+/** Runs a raw-cache query and coerces SQLite rows into JSON records. */
+export function rows(db: DatabaseSync, sql: string): RawDbRow[] {
+	return db
+		.prepare(sql)
+		.all()
+		.map((row) => asRecord(row));
+}
+
+/** Finds the first persisted fetch timestamp across raw source rows. */
+export function firstEpochSecond(
+	rowsToScan: readonly RawDbRow[],
+): number | null {
+	for (const row of rowsToScan) {
+		const fetchedAt = asFiniteNumber(row.fetched_at_epoch_seconds);
+		if (fetchedAt != null) {
+			return fetchedAt;
+		}
+	}
+	return null;
+}
+
+/** Reads non-empty string fields from persisted cache rows. */
+export function stringValue(value: unknown): string | null {
+	return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/** Converts SQLite integer booleans back to true or false. */
+export function booleanFromSql(value: unknown): boolean | null {
+	if (value === 1) {
+		return true;
+	}
+	if (value === 0) {
+		return false;
+	}
+	return null;
+}
+
+/** Copies present string fields into reconstructed payload objects. */
+export function assignIfString(
+	target: JsonObject,
+	key: string,
+	value: unknown,
+): void {
+	const parsed = stringValue(value);
+	if (parsed != null) {
+		target[key] = parsed;
+	}
+}
+
+/** Copies finite numeric fields into reconstructed payload objects. */
+export function assignIfNumber(
+	target: JsonObject,
+	key: string,
+	value: unknown,
+): void {
+	const parsed = asFiniteNumber(value);
+	if (parsed != null) {
+		target[key] = parsed;
+	}
+}
+
+/** Copies persisted boolean flags into reconstructed payload objects. */
+export function assignIfBoolean(
+	target: JsonObject,
+	key: string,
+	value: unknown,
+): void {
+	const parsed = booleanFromSql(value);
+	if (parsed != null) {
+		target[key] = parsed;
+	}
+}
+
+/** Drops empty nested payload sections after reconstruction. */
+export function nonEmptyRecord(record: JsonObject): JsonObject | null {
+	return Object.keys(record).length > 0 ? record : null;
+}
+
+/** Collects modality flags from prefixed raw cache columns. */
+export function modalityList(
+	row: RawDbRow,
+	prefix: string,
+	names: string[],
+): string[] {
+	return names.filter(
+		(name) => booleanFromSql(row[`${prefix}_${name}`]) === true,
+	);
+}
 
 const AA_COST_KEYS = [
 	"input_cost",
@@ -67,136 +130,21 @@ const AA_COST_KEYS = [
 	"output_tokens_per_task",
 ] as const;
 
-type RawDbRow = JsonObject;
-
-/** Runs a raw-cache query and coerces SQLite rows into JSON records. */
-function rows(db: DatabaseSync, sql: string): RawDbRow[] {
-	return db
-		.prepare(sql)
-		.all()
-		.map((row) => asRecord(row));
-}
-
-/** Finds the first persisted fetch timestamp across raw source rows. */
-function firstEpochSecond(rowsToScan: readonly RawDbRow[]): number | null {
-	for (const row of rowsToScan) {
-		const fetchedAt = asFiniteNumber(row.fetched_at_epoch_seconds);
-		if (fetchedAt != null) {
-			return fetchedAt;
-		}
-	}
-	return null;
-}
-
 /** Checks whether the Artificial Analysis cache includes hidden retained rows. */
-function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
-	const row = asRecord(
-		db
-			.prepare(
-				`
-				SELECT COUNT(*) AS row_count
-				FROM aa_raw_models
-				WHERE deprecated = 1
-					AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
-			`,
-			)
-			.get(),
-	);
-	return (asFiniteNumber(row.row_count) ?? 0) > 0;
-}
-
-/** Checks whether OpenRouter cached candidates include scoped route IDs. */
-function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
-	const candidateRows = rows(
-		db,
-		"SELECT model_id, permaslug FROM openrouter_raw_rows WHERE row_kind = 'permaslug_candidate'",
-	);
-	for (const row of candidateRows) {
-		const modelId = stringValue(row.model_id);
-		const permaslug = stringValue(row.permaslug);
-		if (
-			modelId == null ||
-			permaslug == null ||
-			!isSameOpenRouterModelRoute(modelId, permaslug)
-		) {
-			return false;
-		}
-	}
-	return candidateRows.length > 0;
-}
-
-/** Checks whether a source cache has the current persisted row shape. */
-function sourceCacheShapeIsCurrent(
+export function artificialAnalysisCacheHasHiddenRows(
 	db: DatabaseSync,
-	source: RawSourceName,
 ): boolean {
-	if (source === "artificial_analysis") {
-		return artificialAnalysisCacheHasHiddenRows(db);
-	}
-	if (source === "openrouter") {
-		return openRouterCacheHasScopedCandidates(db);
-	}
-	return true;
-}
-
-/** Reads non-empty string fields from persisted cache rows. */
-function stringValue(value: unknown): string | null {
-	return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-/** Converts SQLite integer booleans back to true or false. */
-function booleanFromSql(value: unknown): boolean | null {
-	if (value === 1) {
-		return true;
-	}
-	if (value === 0) {
-		return false;
-	}
-	return null;
-}
-
-/** Copies present string fields into reconstructed payload objects. */
-function assignIfString(target: JsonObject, key: string, value: unknown): void {
-	const parsed = stringValue(value);
-	if (parsed != null) {
-		target[key] = parsed;
-	}
-}
-
-/** Copies finite numeric fields into reconstructed payload objects. */
-function assignIfNumber(target: JsonObject, key: string, value: unknown): void {
-	const parsed = asFiniteNumber(value);
-	if (parsed != null) {
-		target[key] = parsed;
-	}
-}
-
-/** Copies persisted boolean flags into reconstructed payload objects. */
-function assignIfBoolean(
-	target: JsonObject,
-	key: string,
-	value: unknown,
-): void {
-	const parsed = booleanFromSql(value);
-	if (parsed != null) {
-		target[key] = parsed;
-	}
-}
-
-/** Drops empty nested payload sections after reconstruction. */
-function nonEmptyRecord(record: JsonObject): JsonObject | null {
-	return Object.keys(record).length > 0 ? record : null;
-}
-
-/** Collects modality flags from prefixed raw cache columns. */
-function modalityList(
-	row: RawDbRow,
-	prefix: string,
-	names: string[],
-): string[] {
-	return names.filter(
-		(name) => booleanFromSql(row[`${prefix}_${name}`]) === true,
+	const rawRows = rows(
+		db,
+		`
+			SELECT row_index
+			FROM aa_raw_models
+			WHERE deprecated = 1
+				AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
+			LIMIT 1
+		`,
 	);
+	return rawRows.length > 0;
 }
 
 /** Builds nested Artificial Analysis numeric sections from raw cache rows. */
@@ -336,6 +284,7 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	};
 }
 
+
 /** Reconstructs models.dev cost fields from raw cache columns. */
 function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	const cost: NonNullable<ModelRecord["cost"]> = {};
@@ -442,6 +391,7 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 		statusCode: asFiniteNumber(rawRows[0]?.status_code),
 	};
 }
+
 
 /** Reads DeepSWE rows, source version, and fetch time from the raw cache. */
 export function readDeepSWERawCache(db: DatabaseSync): {
@@ -806,192 +756,5 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 	return {
 		rows: cachedRows,
 		fetchedAt: firstEpochSecond(rawRows),
-	};
-}
-
-/** Reconstructs OpenRouter stats response fields from cached rows. */
-function openRouterStatsResponse(
-	rowsToConvert: RawDbRow[],
-): OpenRouterStatsResponse {
-	const pointsByX = new Map<
-		string,
-		{ x: string | null; y: Record<string, number | null> }
-	>();
-	for (const [index, row] of rowsToConvert.entries()) {
-		const series = stringValue(row.series);
-		if (series == null) {
-			continue;
-		}
-		const x = stringValue(row.x);
-		const key = x ?? `__null_${index}`;
-		const point = pointsByX.get(key) ?? { x, y: {} };
-		point.y[series] = asFiniteNumber(row.value);
-		pointsByX.set(key, point);
-	}
-	return {
-		data: [...pointsByX.values()].map((point) => ({
-			...(point.x != null ? { x: point.x } : {}),
-			y: point.y,
-		})),
-	};
-}
-
-/** Reconstructs OpenRouter pricing fields from cached rows. */
-function openRouterPricing(
-	row: RawDbRow | undefined,
-): OpenRouterEffectivePricingResponse | null {
-	if (row == null) {
-		return null;
-	}
-	return {
-		data: {
-			weightedInputPrice: asFiniteNumber(row.weighted_input_price_per_1m),
-			weightedOutputPrice: asFiniteNumber(row.weighted_output_price_per_1m),
-		},
-	};
-}
-
-/** Reconstructs OpenRouter model rows from cached row variants. */
-function openRouterModelRows(
-	modelId: string,
-	rowsByKind: Map<string, RawDbRow[]>,
-): OpenRouterRawScrapedModel {
-	const candidateRows = (rowsByKind.get("permaslug_candidate") ?? []).filter(
-		(row) => row.model_id === modelId,
-	);
-	const statRows = (rowsByKind.get("stat_point") ?? []).filter(
-		(row) => row.model_id === modelId,
-	);
-	const statsRow = (rowsByKind.get("model_stats") ?? []).find(
-		(row) => row.model_id === modelId,
-	);
-	const selectedPermaslug =
-		stringValue(statsRow?.selected_permaslug) ??
-		stringValue(statRows[0]?.selected_permaslug) ??
-		stringValue(candidateRows[0]?.selected_permaslug);
-	const performance: OpenRouterModelStats = {
-		summary: {
-			throughput_tokens_per_second_median:
-				asFiniteNumber(statsRow?.throughput_tokens_per_second_median) ?? null,
-			latency_seconds_median:
-				asFiniteNumber(statsRow?.latency_seconds_median) ?? null,
-			e2e_latency_seconds_median:
-				asFiniteNumber(statsRow?.e2e_latency_seconds_median) ?? null,
-		},
-		throughput: openRouterStatsResponse(
-			statRows.filter((row) => row.metric === "throughput"),
-		),
-		latency: openRouterStatsResponse(
-			statRows.filter((row) => row.metric === "latency"),
-		),
-		latency_e2e: openRouterStatsResponse(
-			statRows.filter((row) => row.metric === "latency_e2e"),
-		),
-	};
-	return {
-		id: modelId,
-		selected_permaslug: selectedPermaslug,
-		candidate_permaslugs: candidateRows
-			.sort(
-				(left, right) =>
-					(asFiniteNumber(left.candidate_index) ?? 0) -
-					(asFiniteNumber(right.candidate_index) ?? 0),
-			)
-			.map((row) => stringValue(row.permaslug))
-			.filter((permaslug): permaslug is string => permaslug != null),
-		performance,
-		pricing: openRouterPricing(statsRow),
-	};
-}
-
-/** Reassembles OpenRouter directory, permaslug, stat, and pricing rows. */
-export function readOpenRouterRawCache(
-	db: DatabaseSync,
-): OpenRouterRawScrapedPayload | null {
-	const rawRows = rows(
-		db,
-		"SELECT * FROM openrouter_raw_rows ORDER BY row_index",
-	);
-	if (rawRows.length === 0) {
-		return null;
-	}
-	const fetchedAt = firstEpochSecond(rawRows);
-	if (fetchedAt == null) {
-		return null;
-	}
-	const rowsByKind = new Map<string, RawDbRow[]>();
-	for (const row of rawRows) {
-		const rowKind = stringValue(row.row_kind);
-		if (rowKind == null) {
-			continue;
-		}
-		const groupedRows = rowsByKind.get(rowKind) ?? [];
-		groupedRows.push(row);
-		rowsByKind.set(rowKind, groupedRows);
-	}
-	const directory: OpenRouterFrontendModel[] = (
-		rowsByKind.get("directory_model") ?? []
-	).map((row) => ({
-		slug: stringValue(row.slug),
-		permaslug: stringValue(row.permaslug),
-	}));
-	const modelIds = new Set<string>();
-	for (const rowKind of ["permaslug_candidate", "stat_point", "model_stats"]) {
-		for (const row of rowsByKind.get(rowKind) ?? []) {
-			const modelId = stringValue(row.model_id);
-			if (modelId != null) {
-				modelIds.add(modelId);
-			}
-		}
-	}
-	return {
-		fetched_at_epoch_seconds: fetchedAt,
-		directory,
-		models: [...modelIds].map((modelId) =>
-			openRouterModelRows(modelId, rowsByKind),
-		),
-	};
-}
-
-/** Reports whether a raw-source cache table is populated and still fresh. */
-export function readRawSourceCacheStatus(
-	db: DatabaseSync,
-	source: RawSourceName,
-	nowEpochSeconds: number,
-): RawSourceCacheStatus {
-	const table = RAW_SOURCE_TABLES[source];
-	const row = asRecord(
-		db
-			.prepare(
-				`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table}`,
-			)
-			.get(),
-	);
-	const rowCount = asFiniteNumber(row.row_count) ?? 0;
-	const lastFetch = asFiniteNumber(row.last_fetch_epoch_seconds);
-	const cacheHit =
-		rowCount > 0 &&
-		lastFetch != null &&
-		nowEpochSeconds - lastFetch >= 0 &&
-		nowEpochSeconds - lastFetch <= RAW_SOURCE_CACHE_SECONDS &&
-		sourceCacheShapeIsCurrent(db, source);
-	return {
-		last_fetch_epoch_seconds: lastFetch,
-		source_input_count: rowCount,
-		cache_hit: cacheHit,
-		refreshed: false,
-	};
-}
-
-/** Builds cache status metadata for freshly fetched source rows. */
-export function refreshedCacheStatus(
-	lastFetchEpochSeconds: number | null,
-	sourceInputCount: number,
-): RawSourceCacheStatus {
-	return {
-		last_fetch_epoch_seconds: lastFetchEpochSeconds,
-		source_input_count: sourceInputCount,
-		cache_hit: false,
-		refreshed: true,
 	};
 }
