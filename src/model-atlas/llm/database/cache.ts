@@ -6,9 +6,11 @@ import type { AgentsLastExamHarnessRow } from "../scrapers/agents-last-exam";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
-import type {
-	DeepSWERawLeaderboardRow,
-	DeepSWESourceVersion,
+import {
+	asDeepSWERawLeaderboardRow,
+	type DeepSWERawLeaderboardRow,
+	type DeepSWESourceVersion,
+	deepSWESourceVersionForRows,
 } from "../scrapers/deep-swe";
 import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
 import type { ModelRecord, ModelsDevPayload } from "../scrapers/models-dev";
@@ -454,55 +456,15 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 	if (rawRows.length === 0) {
 		return null;
 	}
+	const parsedRows = rawRows.flatMap((row) => {
+		const parsedRow = asDeepSWERawLeaderboardRow(row);
+		return parsedRow == null ? [] : [parsedRow];
+	});
 	return {
-		rows: rawRows.flatMap((row) => {
-			const model = stringValue(row.model);
-			const reasoningEffort = stringValue(row.reasoning_effort);
-			const config = stringValue(row.config);
-			const passAt1 = asFiniteNumber(row.pass_at_1);
-			const ciLo = asFiniteNumber(row.ci_lo);
-			const ciHi = asFiniteNumber(row.ci_hi);
-			const ciHalf = asFiniteNumber(row.ci_half);
-			const tasksAttempted = asFiniteNumber(row.n_tasks_attempted);
-			const meanCostUsd = asFiniteNumber(row.mean_cost_usd);
-			const meanDurationSeconds = asFiniteNumber(row.mean_duration_seconds);
-			const meanOutputTokens = asFiniteNumber(row.mean_output_tokens);
-			return model != null &&
-				passAt1 != null &&
-				tasksAttempted != null &&
-				tasksAttempted > 0 &&
-				meanCostUsd != null &&
-				meanDurationSeconds != null &&
-				meanOutputTokens != null
-				? [
-						{
-							model,
-							reasoning_effort: reasoningEffort,
-							config,
-							pass_at_1: passAt1,
-							ci_lo: ciLo,
-							ci_hi: ciHi,
-							ci_half: ciHalf,
-							n_tasks_attempted: tasksAttempted,
-							mean_cost_usd: meanCostUsd,
-							mean_duration_seconds: meanDurationSeconds,
-							mean_output_tokens: meanOutputTokens,
-							source_version: deepSWESourceVersionFromDb(row.source_version),
-						},
-					]
-				: [];
-		}),
+		rows: parsedRows,
 		fetchedAt: firstEpochSecond(rawRows),
-		sourceVersion: deepSWESourceVersionFromDb(rawRows[0]?.source_version),
+		sourceVersion: deepSWESourceVersionForRows(parsedRows),
 	};
-}
-
-/** Restores a persisted DeepSWE source-version value when it is recognized. */
-function deepSWESourceVersionFromDb(
-	value: unknown,
-): DeepSWESourceVersion | null {
-	const version = stringValue(value);
-	return version === "v1.1" || version === "v1" ? version : null;
 }
 
 /** Reads Terminal-Bench agent accuracy rows from the raw cache. */

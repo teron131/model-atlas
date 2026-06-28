@@ -59,7 +59,9 @@ export type DeepSWERawLeaderboardPayload = {
 };
 
 /** Return a DeepSWE leaderboard row with only fields used by scoring. */
-function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
+export function asDeepSWELeaderboardRow(
+	value: unknown,
+): DeepSWELeaderboardRow | null {
 	const row = asRecord(value);
 	if (!row || typeof row.model !== "string" || row.model.length === 0) {
 		return null;
@@ -98,6 +100,24 @@ function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
 		mean_cost_usd: meanCostUsd,
 		mean_duration_seconds: meanDurationSeconds,
 		mean_output_tokens: meanOutputTokens,
+	};
+}
+
+/** Restore a raw DeepSWE leaderboard row from persisted source columns. */
+export function asDeepSWERawLeaderboardRow(
+	value: unknown,
+): DeepSWERawLeaderboardRow | null {
+	const row = asRecord(value);
+	const leaderboardRow = asDeepSWELeaderboardRow(row);
+	if (leaderboardRow == null) {
+		return null;
+	}
+	return {
+		...leaderboardRow,
+		source_version:
+			row.source_version === "v1.1" || row.source_version === "v1"
+				? row.source_version
+				: null,
 	};
 }
 
@@ -274,7 +294,7 @@ function deepSWESourceVersionForUrl(url: string): DeepSWESourceVersion | null {
 }
 
 /** Chooses the DeepSWE source version represented by scraped rows. */
-function deepSWESourceVersionForRows(
+export function deepSWESourceVersionForRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWESourceVersion | null {
 	if (rows.some((row) => row.source_version === "v1.1")) {

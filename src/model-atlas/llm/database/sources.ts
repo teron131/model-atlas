@@ -23,6 +23,7 @@ import {
 } from "../scrapers/cursorbench";
 import {
 	buildDeepSWEMap,
+	deepSWESourceVersionForRows,
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultModelScores,
@@ -335,19 +336,6 @@ async function modelScoreSnapshot<Row>(
 			fetched.fetched_at_epoch_seconds,
 		),
 	};
-}
-
-/** Chooses the DeepSWE source version to keep for refresh state. */
-function preferredDeepSWESourceVersion(
-	rows: SourceSnapshots["deepSWERawRows"],
-) {
-	if (rows.some((row) => row.source_version === "v1.1")) {
-		return "v1.1";
-	}
-	if (rows.some((row) => row.source_version === "v1")) {
-		return "v1";
-	}
-	return null;
 }
 
 /** Project loaded snapshots into the source data consumed by matching and enrichment. */
@@ -771,7 +759,7 @@ async function deepSWESnapshot(
 		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(preferredRows),
 		deepSWESourceVersion:
 			preferredRows.length > 0
-				? preferredDeepSWESourceVersion(snapshot.rows)
+				? deepSWESourceVersionForRows(snapshot.rows)
 				: (cached?.sourceVersion ?? null),
 		sourceRowStates: snapshot.states,
 		fetchedAt: {

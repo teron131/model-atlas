@@ -45,6 +45,56 @@ try {
 				},
 			},
 		]);
+		db.prepare(`
+			INSERT INTO deep_swe_raw_rows (
+				run_id, row_index, fetched_at_epoch_seconds, url, source_version,
+				model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
+				n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
+				mean_output_tokens
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run(
+			runId,
+			0,
+			1_800_000_000,
+			"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json",
+			"v1",
+			"Legacy DeepSWE Model",
+			null,
+			null,
+			0.4,
+			null,
+			null,
+			null,
+			113,
+			2,
+			4,
+			6,
+		);
+		db.prepare(`
+			INSERT INTO deep_swe_raw_rows (
+				run_id, row_index, fetched_at_epoch_seconds, url, source_version,
+				model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
+				n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
+				mean_output_tokens
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run(
+			runId,
+			1,
+			1_800_000_000,
+			"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
+			"v1.1",
+			"Current DeepSWE Model",
+			"xhigh",
+			null,
+			0.7,
+			null,
+			null,
+			null,
+			113,
+			2,
+			4,
+			6,
+		);
 	} finally {
 		db.close();
 	}
@@ -62,6 +112,12 @@ try {
 		),
 		true,
 		"Riemann-bench should be listed as a DB-backed available evaluation key",
+	);
+	assert.ok(payload.deep_swe);
+	assert.deepEqual(
+		payload.deep_swe.rows.map((row) => row.model),
+		["Current DeepSWE Model"],
+		"Database payloads should apply DeepSWE source-owned v1.1 preference when reconstructing graph rows",
 	);
 } finally {
 	await rm(tempDir, { force: true, recursive: true });
