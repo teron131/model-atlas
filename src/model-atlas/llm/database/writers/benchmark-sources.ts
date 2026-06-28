@@ -6,88 +6,6 @@ import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { booleanValue } from "./shared";
 
-/** Insert DeepSWE raw rows. */
-export function insertDeepSWERawRows(
-	db: DatabaseSync,
-	runId: number,
-	snapshots: SourceSnapshots,
-): void {
-	const statement = db.prepare(`
-		INSERT INTO deep_swe_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, source_version, model,
-			reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
-			n_tasks_attempted, mean_cost_usd, mean_duration_seconds, mean_output_tokens
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-	for (const [index, row] of snapshots.deepSWERawRows.entries()) {
-		statement.run(
-			runId,
-			index,
-			snapshots.fetchedAt.deepSWE,
-			deepSWEUrlForSourceVersion(row.source_version),
-			row.source_version,
-			row.model,
-			row.reasoning_effort,
-			row.config,
-			row.pass_at_1,
-			row.ci_lo,
-			row.ci_hi,
-			row.ci_half,
-			row.n_tasks_attempted,
-			row.mean_cost_usd,
-			row.mean_duration_seconds,
-			row.mean_output_tokens,
-		);
-	}
-}
-
-/** Insert Terminal-Bench raw agent rows and summarized model rows in one source table. */
-export function insertTerminalBenchRawRows(
-	db: DatabaseSync,
-	runId: number,
-	snapshots: SourceSnapshots,
-): void {
-	const statement = db.prepare(`
-		INSERT INTO terminal_bench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, agent, model,
-			accuracy, median_accuracy, mean_accuracy, frequency, row_kind
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-	let rowIndex = 0;
-	for (const row of snapshots.terminalBenchRows) {
-		statement.run(
-			runId,
-			rowIndex,
-			snapshots.fetchedAt.terminalBench,
-			SOURCE_URLS.terminal_bench,
-			row.agent,
-			row.model,
-			row.accuracy,
-			null,
-			null,
-			null,
-			"agent_accuracy",
-		);
-		rowIndex += 1;
-	}
-	for (const row of snapshots.terminalBenchModelScores) {
-		statement.run(
-			runId,
-			rowIndex,
-			snapshots.fetchedAt.terminalBench,
-			SOURCE_URLS.terminal_bench,
-			null,
-			row.model,
-			null,
-			row.median_accuracy,
-			row.mean_accuracy,
-			row.frequency,
-			"model_score",
-		);
-		rowIndex += 1;
-	}
-}
-
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 export function insertAgentsLastExamRawRows(
 	db: DatabaseSync,
@@ -192,6 +110,29 @@ export function insertAgentsLastExamRawRows(
 	}
 }
 
+/** Insert Blueprint-Bench 2 model score rows. */
+export function insertBlueprintBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO blueprint_bench_2_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, model, score
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.blueprintBenchModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.blueprintBench,
+			SOURCE_URLS.blueprint_bench_2,
+			row.model,
+			row.score,
+		);
+	}
+}
+
 /** Insert BrowseComp model score rows. */
 export function insertBrowseCompRawRows(
 	db: DatabaseSync,
@@ -222,25 +163,68 @@ export function insertBrowseCompRawRows(
 	}
 }
 
-/** Insert Blueprint-Bench 2 model score rows. */
-export function insertBlueprintBenchRawRows(
+/** Insert CursorBench model score rows. */
+export function insertCursorBenchRawRows(
 	db: DatabaseSync,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO blueprint_bench_2_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model, score
-		) VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO cursorbench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, rank, model,
+			base_model, reasoning_effort, score, cost_per_task_usd,
+			tokens_per_task, steps_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-	for (const [index, row] of snapshots.blueprintBenchModelScoreRows.entries()) {
+	for (const [index, row] of snapshots.cursorBenchModelScoreRows.entries()) {
 		statement.run(
 			runId,
 			index,
-			snapshots.fetchedAt.blueprintBench,
-			SOURCE_URLS.blueprint_bench_2,
+			snapshots.fetchedAt.cursorBench,
+			SOURCE_URLS.cursorbench,
+			row.rank,
 			row.model,
+			row.base_model,
+			row.reasoning_effort,
 			row.score,
+			row.cost_per_task_usd,
+			row.tokens_per_task,
+			row.steps_per_task,
+		);
+	}
+}
+
+/** Insert DeepSWE raw rows. */
+export function insertDeepSWERawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO deep_swe_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, source_version, model,
+			reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
+			n_tasks_attempted, mean_cost_usd, mean_duration_seconds, mean_output_tokens
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.deepSWERawRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.deepSWE,
+			deepSWEUrlForSourceVersion(row.source_version),
+			row.source_version,
+			row.model,
+			row.reasoning_effort,
+			row.config,
+			row.pass_at_1,
+			row.ci_lo,
+			row.ci_hi,
+			row.ci_half,
+			row.n_tasks_attempted,
+			row.mean_cost_usd,
+			row.mean_duration_seconds,
+			row.mean_output_tokens,
 		);
 	}
 }
@@ -297,6 +281,53 @@ export function insertRiemannBenchRawRows(
 	}
 }
 
+/** Insert Terminal-Bench raw agent rows and summarized model rows in one source table. */
+export function insertTerminalBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO terminal_bench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, agent, model,
+			accuracy, median_accuracy, mean_accuracy, frequency, row_kind
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	let rowIndex = 0;
+	for (const row of snapshots.terminalBenchRows) {
+		statement.run(
+			runId,
+			rowIndex,
+			snapshots.fetchedAt.terminalBench,
+			SOURCE_URLS.terminal_bench,
+			row.agent,
+			row.model,
+			row.accuracy,
+			null,
+			null,
+			null,
+			"agent_accuracy",
+		);
+		rowIndex += 1;
+	}
+	for (const row of snapshots.terminalBenchModelScores) {
+		statement.run(
+			runId,
+			rowIndex,
+			snapshots.fetchedAt.terminalBench,
+			SOURCE_URLS.terminal_bench,
+			null,
+			row.model,
+			null,
+			row.median_accuracy,
+			row.mean_accuracy,
+			row.frequency,
+			"model_score",
+		);
+		rowIndex += 1;
+	}
+}
+
 /** Insert Toolathlon model score rows. */
 export function insertToolathlonRawRows(
 	db: DatabaseSync,
@@ -326,37 +357,6 @@ export function insertToolathlonRawRows(
 			booleanValue(row.verified),
 			booleanValue(row.self_reported),
 			row.announcement_date ?? null,
-		);
-	}
-}
-
-/** Insert CursorBench model score rows. */
-export function insertCursorBenchRawRows(
-	db: DatabaseSync,
-	runId: number,
-	snapshots: SourceSnapshots,
-): void {
-	const statement = db.prepare(`
-		INSERT INTO cursorbench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, rank, model,
-			base_model, reasoning_effort, score, cost_per_task_usd,
-			tokens_per_task, steps_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-	for (const [index, row] of snapshots.cursorBenchModelScoreRows.entries()) {
-		statement.run(
-			runId,
-			index,
-			snapshots.fetchedAt.cursorBench,
-			SOURCE_URLS.cursorbench,
-			row.rank,
-			row.model,
-			row.base_model,
-			row.reasoning_effort,
-			row.score,
-			row.cost_per_task_usd,
-			row.tokens_per_task,
-			row.steps_per_task,
 		);
 	}
 }

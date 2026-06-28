@@ -23,14 +23,14 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_KEYS = [
 
 export const MODEL_ATLAS_EVALUATION_KEYS = [
 	...ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
-	"deep_swe",
-	"terminal_bench_2",
 	"agents_last_exam",
 	"automation_bench",
 	"blueprint_bench_2",
+	"browsecomp",
+	"cursorbench",
+	"deep_swe",
 	"gdp_pdf",
 	"riemann_bench",
-	"browsecomp",
+	"terminal_bench_2",
 	"toolathlon",
-	"cursorbench",
 ] as const;

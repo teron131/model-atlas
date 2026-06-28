@@ -52,15 +52,15 @@ import {
 const SNAPSHOT_TABLES = [
 	"aa_raw_models",
 	"models_dev_raw_models",
-	"deep_swe_raw_rows",
-	"terminal_bench_raw_rows",
 	"agents_last_exam_raw_rows",
 	"blueprint_bench_2_raw_rows",
+	"browsecomp_raw_rows",
+	"cursorbench_raw_rows",
+	"deep_swe_raw_rows",
 	"gdp_pdf_raw_rows",
 	"riemann_bench_raw_rows",
-	"browsecomp_raw_rows",
+	"terminal_bench_raw_rows",
 	"toolathlon_raw_rows",
-	"cursorbench_raw_rows",
 	"openrouter_raw_rows",
 	"source_row_states",
 	"source_health",
@@ -168,15 +168,15 @@ function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	const runId = insertPipelineRun(db, rows);
 	insertArtificialAnalysisRawModels(db, runId, rows.snapshots);
 	insertModelsDevRawModels(db, runId, rows.snapshots);
-	insertDeepSWERawRows(db, runId, rows.snapshots);
-	insertTerminalBenchRawRows(db, runId, rows.snapshots);
 	insertAgentsLastExamRawRows(db, runId, rows.snapshots);
 	insertBlueprintBenchRawRows(db, runId, rows.snapshots);
+	insertBrowseCompRawRows(db, runId, rows.snapshots);
+	insertCursorBenchRawRows(db, runId, rows.snapshots);
+	insertDeepSWERawRows(db, runId, rows.snapshots);
 	insertGdpPdfRawRows(db, runId, rows.snapshots);
 	insertRiemannBenchRawRows(db, runId, rows.snapshots);
-	insertBrowseCompRawRows(db, runId, rows.snapshots);
+	insertTerminalBenchRawRows(db, runId, rows.snapshots);
 	insertToolathlonRawRows(db, runId, rows.snapshots);
-	insertCursorBenchRawRows(db, runId, rows.snapshots);
 	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
 	insertSourceRowStates(db, runId, rows.snapshots);
 	insertSourceHealth(db, runId, rows.sourceHealth);

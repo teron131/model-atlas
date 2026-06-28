@@ -31,32 +31,32 @@ export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
 export const RAW_SOURCE_NAMES = [
 	"artificial_analysis",
 	"models_dev",
-	"deep_swe",
-	"terminal_bench",
 	"agents_last_exam",
 	"blueprint_bench_2",
+	"browsecomp",
+	"cursorbench",
+	"deep_swe",
 	"gdp_pdf",
 	"riemann_bench",
-	"browsecomp",
+	"terminal_bench",
 	"toolathlon",
-	"cursorbench",
 	"openrouter",
 ] as const;
 
 export const SOURCE_URLS = {
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
 	models_dev: "https://models.dev/api.json",
-	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
-	terminal_bench: "https://www.tbench.ai/leaderboard/terminal-bench/2.0",
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
-	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
-	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
 	browsecomp:
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
+	cursorbench: "https://cursor.com/cursorbench",
+	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
+	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
+	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
+	terminal_bench: "https://www.tbench.ai/leaderboard/terminal-bench/2.0",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
-	cursorbench: "https://cursor.com/cursorbench",
 	openrouter_models: "https://openrouter.ai/api/frontend/models",
 	openrouter_stats: "https://openrouter.ai/api/frontend/stats/*",
 } as const;

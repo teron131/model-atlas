@@ -52,23 +52,6 @@ export function benchmarkEnrichment(
 ): BenchmarkEnrichment {
 	const evaluations: Record<string, unknown> = {};
 	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
-	const deepSWEScore = findDeepSWEModelScore(
-		modelNameCandidates,
-		lookups.deepSWE.scoreByModelName,
-	);
-	if (deepSWEScore != null) {
-		evaluations.deep_swe = deepSWEScore.pass_at_1;
-		scoringSources.deep_swe = deepSWEScore;
-	}
-
-	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
-		modelNameCandidates,
-		lookups.terminalBench.accuracyByModelName,
-	);
-	if (terminalBenchAccuracy != null) {
-		evaluations.terminal_bench_2 = terminalBenchAccuracy;
-	}
-
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
 		lookups.agentsLastExam.scoreByModelName,
@@ -96,6 +79,31 @@ export function benchmarkEnrichment(
 		evaluations.blueprint_bench_2 = blueprintBenchScore;
 	}
 
+	const browseCompScore = findBrowseCompScore(
+		modelNameCandidates,
+		lookups.browseComp.scoreByModelName,
+	);
+	if (browseCompScore != null) {
+		evaluations.browsecomp = browseCompScore;
+	}
+
+	const cursorBenchScore = findCursorBenchScore(
+		modelNameCandidates,
+		lookups.cursorBench.scoreByModelName,
+	);
+	if (cursorBenchScore != null) {
+		evaluations.cursorbench = cursorBenchScore;
+	}
+
+	const deepSWEScore = findDeepSWEModelScore(
+		modelNameCandidates,
+		lookups.deepSWE.scoreByModelName,
+	);
+	if (deepSWEScore != null) {
+		evaluations.deep_swe = deepSWEScore.pass_at_1;
+		scoringSources.deep_swe = deepSWEScore;
+	}
+
 	const gdpPdfScore = findGdpPdfScore(
 		modelNameCandidates,
 		lookups.gdpPdf.scoreByModelName,
@@ -112,12 +120,12 @@ export function benchmarkEnrichment(
 		evaluations.riemann_bench = riemannBenchScore;
 	}
 
-	const browseCompScore = findBrowseCompScore(
+	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
 		modelNameCandidates,
-		lookups.browseComp.scoreByModelName,
+		lookups.terminalBench.accuracyByModelName,
 	);
-	if (browseCompScore != null) {
-		evaluations.browsecomp = browseCompScore;
+	if (terminalBenchAccuracy != null) {
+		evaluations.terminal_bench_2 = terminalBenchAccuracy;
 	}
 
 	const toolathlonScore = findToolathlonScore(
@@ -126,14 +134,6 @@ export function benchmarkEnrichment(
 	);
 	if (toolathlonScore != null) {
 		evaluations.toolathlon = toolathlonScore;
-	}
-
-	const cursorBenchScore = findCursorBenchScore(
-		modelNameCandidates,
-		lookups.cursorBench.scoreByModelName,
-	);
-	if (cursorBenchScore != null) {
-		evaluations.cursorbench = cursorBenchScore;
 	}
 
 	return {
