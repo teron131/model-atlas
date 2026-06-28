@@ -2,7 +2,10 @@
 
 import { DatabaseSync } from "node:sqlite";
 
-import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
+import {
+	asDeepSWERawLeaderboardRow,
+	preferredDeepSWELeaderboardRows,
+} from "../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../shared";
 import {
 	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
@@ -292,50 +295,6 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 	};
 }
 
-type DeepSWEPayloadRow = DeepSWELeaderboardRow & {
-	source_version: string | null;
-};
-
-/** Return the latest available DeepSWE artifact rows for graph-only display. */
-function deepSWERowsFromRows(rows: DbRow[]): DeepSWELeaderboardRow[] {
-	const parsedRows = rows.flatMap((row): DeepSWEPayloadRow[] => {
-		const record = asRecord(row);
-		const model = stringValue(record.model);
-		const passAt1 = asFiniteNumber(record.pass_at_1);
-		const tasksAttempted = asFiniteNumber(record.n_tasks_attempted);
-		const meanCostUsd = asFiniteNumber(record.mean_cost_usd);
-		const meanDurationSeconds = asFiniteNumber(record.mean_duration_seconds);
-		const meanOutputTokens = asFiniteNumber(record.mean_output_tokens);
-		return model != null &&
-			passAt1 != null &&
-			tasksAttempted != null &&
-			tasksAttempted > 0 &&
-			meanCostUsd != null &&
-			meanDurationSeconds != null &&
-			meanOutputTokens != null
-			? [
-					{
-						model,
-						reasoning_effort: stringValue(record.reasoning_effort),
-						config: stringValue(record.config),
-						pass_at_1: passAt1,
-						ci_lo: asFiniteNumber(record.ci_lo),
-						ci_hi: asFiniteNumber(record.ci_hi),
-						ci_half: asFiniteNumber(record.ci_half),
-						n_tasks_attempted: tasksAttempted,
-						mean_cost_usd: meanCostUsd,
-						mean_duration_seconds: meanDurationSeconds,
-						mean_output_tokens: meanOutputTokens,
-						source_version: stringValue(record.source_version),
-					},
-				]
-			: [];
-	});
-	const v11Rows = parsedRows.filter((row) => row.source_version === "v1.1");
-	const preferredRows = v11Rows.length > 0 ? v11Rows : parsedRows;
-	return preferredRows.map(({ source_version: _sourceVersion, ...row }) => row);
-}
-
 export type ModelAtlasPayloadRows = {
 	run: {
 		id: number;
@@ -371,7 +330,12 @@ export function buildModelAtlasPayloadFromRows(
 			sourceRowsByKey,
 		}),
 		deep_swe: {
-			rows: deepSWERowsFromRows(rows.deepSWERows),
+			rows: preferredDeepSWELeaderboardRows(
+				rows.deepSWERows.flatMap((row) => {
+					const parsedRow = asDeepSWERawLeaderboardRow(row);
+					return parsedRow == null ? [] : [parsedRow];
+				}),
+			),
 		},
 		models: models as LlmStatsPayload["models"],
 	};
