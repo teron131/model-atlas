@@ -81,7 +81,6 @@ function addScoreRowAlias(
 	}
 }
 
-/** Builds lookup aliases for CursorBench model names and base models. */
 function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
 	const aliases = new Set([row.model, row.base_model]);
 	if (/^(Fable|Opus|Sonnet)\s+\d/i.test(row.base_model)) {
@@ -117,7 +116,6 @@ function findLeaderboardBodyStart(lines: string[]): number {
 	return -1;
 }
 
-/** Extracts a trailing reasoning-effort label from the model name. */
 function parseReasoningEffort(model: string): string | null {
 	for (const effort of REASONING_EFFORTS) {
 		if (model.endsWith(` ${effort}`)) {
@@ -127,13 +125,11 @@ function parseReasoningEffort(model: string): string | null {
 	return null;
 }
 
-/** Removes reasoning-effort suffixes from CursorBench model names. */
 function baseModelName(model: string): string {
 	const effort = parseReasoningEffort(model);
 	return effort == null ? model : model.slice(0, -effort.length).trim();
 }
 
-/** Filters private Cursor-only models out of public benchmark rows. */
 function isPrivateCursorModel(model: string): boolean {
 	return PRIVATE_CURSOR_MODEL_PREFIX.test(baseModelName(model));
 }
@@ -143,12 +139,10 @@ function parsePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }
 
-/** Parses comma-separated task and token counts from the leaderboard. */
 function parseCount(value: string): number {
 	return Number(value.replace(/,/g, ""));
 }
 
-/** Builds one CursorBench score row from parsed leaderboard cells. */
 function parseCursorBenchFields(
 	rankValue: string | undefined,
 	modelValue: string | undefined,
@@ -188,7 +182,6 @@ function parseCursorBenchFields(
 	};
 }
 
-/** Parses a compact text leaderboard row when cell boundaries collapse. */
 function parseCompactCursorBenchRow(
 	line: string,
 ): CursorBenchModelScoreRow | null {
@@ -205,7 +198,6 @@ function parseCompactCursorBenchRow(
 			);
 }
 
-/** Parses one CursorBench row from the visible text cell stream. */
 function parseCursorBenchCells(
 	lines: string[],
 	index: number,
@@ -237,7 +229,6 @@ function parseCursorBenchCells(
 	return row == null ? null : { row, consumedCells: 6 };
 }
 
-/** Extract public CursorBench model score rows from the leaderboard page HTML. */
 export function processCursorBenchPageHtml(
 	pageHtml: string,
 ): CursorBenchModelScoreRow[] {
@@ -268,7 +259,6 @@ export function processCursorBenchPageHtml(
 	return rows.sort((left, right) => left.rank - right.rank);
 }
 
-/** Build CursorBench score rows by normalized model labels and public base-model aliases. */
 export function buildCursorBenchMap(
 	rows: CursorBenchModelScoreRow[],
 ): CursorBenchScoreByModelName {
@@ -281,7 +271,6 @@ export function buildCursorBenchMap(
 	return scoreByModelName;
 }
 
-/** Find a CursorBench score from exact model labels that may differ by punctuation. */
 export function findCursorBenchScore(
 	candidateNames: unknown[],
 	cursorBenchScoreByModelName: CursorBenchScoreByModelName,
@@ -300,7 +289,6 @@ export function findCursorBenchScore(
 	return null;
 }
 
-/** Fetch CursorBench model score rows from the public leaderboard page. */
 export async function getCursorBenchStats(
 	options: CursorBenchScraperOptions = {},
 ): Promise<CursorBenchModelScorePayload> {

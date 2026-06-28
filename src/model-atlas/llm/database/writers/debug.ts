@@ -1,10 +1,9 @@
-/** Matcher and lineage debug writer. */
+/** SQLite writer for matcher lineage rows used to explain why source candidates did or did not join. */
 
 import type { DatabaseSync } from "node:sqlite";
 
 import type { DebugTraceRow } from "../types";
 
-/** Insert matcher and lineage debug trace rows. */
 export function insertDebugTraceRows(
 	db: DatabaseSync,
 	runId: number,

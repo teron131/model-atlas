@@ -65,7 +65,6 @@ export async function publishModelAtlasD1(): Promise<D1PublishResult> {
 	};
 }
 
-/** Keeps the source payload only when a row stores JSON text. */
 async function preservedPayload(databasePath: string) {
 	const refreshedPayload = readModelAtlasDatabasePayload(databasePath);
 	const previousPayload = await readD1ModelAtlasPayload().catch(() => null);
@@ -241,7 +240,6 @@ function tableColumns(db: DatabaseSync, table: string): string[] {
 		);
 }
 
-/** Serializes SQLite rows as D1-compatible INSERT statements. */
 function insertStatements(
 	table: string,
 	columns: string[],
@@ -287,7 +285,6 @@ function sqlLiteral(value: unknown): string {
 	return `'${String(value).replaceAll("'", "''")}'`;
 }
 
-/** Rejects unsafe SQL identifiers before building import SQL. */
 function assertIdentifier(value: string): void {
 	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
 		throw new Error(`Unsafe SQL identifier: ${value}`);
@@ -405,7 +402,6 @@ async function d1Query(
 	return body.result?.[0]?.results ?? [];
 }
 
-/** Parses nullable numeric values returned by D1 publication queries. */
 function finiteNumberOrNull(value: unknown): number | null {
 	const numberValue = Number(value);
 	return Number.isFinite(numberValue) ? numberValue : null;

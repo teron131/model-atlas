@@ -223,7 +223,6 @@ export function missingSinceBySource(
 	return missingSince;
 }
 
-/** Applies preservation state to models.dev payload rows. */
 export function sourceStatesForModelsDevPayload(
 	payload: ModelsDevPayload,
 	fetchedPayload: ModelsDevPayload | null,

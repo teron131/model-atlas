@@ -27,12 +27,10 @@ import {
 	type SIMULATION_PROFILES,
 } from "./usage-profiles";
 
-/** Formats ratio values for tooltip percentages. */
 function percent(value: number, fractionDigits = 0): string {
 	return `${(value * 100).toFixed(fractionDigits)}%`;
 }
 
-/** Formats ratio values for tooltip percentages. */
 function weightPercent<T extends Record<string, number>>(
 	weights: T,
 	key: keyof T,
@@ -42,15 +40,12 @@ function weightPercent<T extends Record<string, number>>(
 	return total > 0 && weight != null ? percent(weight / total) : "-";
 }
 
-/** Formats scoring weights for tooltip explanations. */
 const overallWeight = (key: keyof typeof OVERALL_RELATIVE_SCORE_WEIGHTS) =>
 	percent(OVERALL_RELATIVE_SCORE_WEIGHTS[key]);
 
-/** Formats scoring weights for tooltip explanations. */
 const qualityWeight = (key: keyof typeof QUALITY_SCORE_WEIGHTS) =>
 	weightPercent(QUALITY_SCORE_WEIGHTS, key);
 
-/** Builds tooltip rows for price-profile weighting. */
 const priceProfileRow = (
 	label: string,
 	profile: keyof typeof PRICE_PROFILES,
@@ -62,7 +57,6 @@ const priceProfileRow = (
 	] as const;
 };
 
-/** Builds tooltip rows for price-profile weighting. */
 const priceProfileContributionRow = (
 	label: string,
 	profile: keyof typeof PRICE_PROFILES,
@@ -79,19 +73,16 @@ const priceProfileContributionRow = (
 	] as const;
 };
 
-/** Builds tooltip rows for price-profile weighting. */
 const priceProfileRows = () =>
 	PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
 		priceProfileRow(label, profile),
 	);
 
-/** Builds tooltip rows for price-profile weighting. */
 const priceProfileContributionRows = (side: "input" | "output") =>
 	PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
 		priceProfileContributionRow(label, profile, side),
 	);
 
-/** Builds tooltip rows for workflow simulation weighting. */
 const simulationProfileRow = (
 	label: string,
 	description: string,
@@ -131,7 +122,6 @@ const WORKFLOW_SIMULATION_TOOLTIP_ROWS = [
 	),
 ] as const;
 
-/** Builds tooltip metadata for effective price profile ratio. */
 const effectivePriceProfileRatio = (key: "input" | "output") => {
 	const totalWeight = Object.values(PRICE_PROFILES).reduce(
 		(sum, profile) => sum + profile.weight,
@@ -144,7 +134,6 @@ const effectivePriceProfileRatio = (key: "input" | "output") => {
 	return totalWeight > 0 ? percent(weightedRatio / totalWeight, 1) : "-";
 };
 
-/** Formats ratio values for tooltip percentages. */
 const benchmarkContributionPercent = (
 	keys: readonly string[],
 	key: string,
@@ -170,7 +159,6 @@ const benchmarkContributionPercent = (
 		: "-";
 };
 
-/** Formats ratio values for tooltip percentages. */
 const componentWeightPercent = (
 	weights: Record<string, number>,
 	key: string,
@@ -180,7 +168,6 @@ const componentWeightPercent = (
 	return total > 0 && weight != null ? percent(weight / total, 1) : "-";
 };
 
-/** Builds tooltip metadata for blend input text. */
 const blendInputText = (weights: Record<string, number>) => {
 	const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
 	return `${total.toFixed(1)} weighted component units`;
@@ -247,7 +234,6 @@ const VALUE_COMPONENT_WEIGHTS = {
 	workflow_simulated_value: VALUE_RAW_COMPONENT_WEIGHT,
 } as const;
 
-/** Builds tooltip rows for quality score components. */
 const qualityScoreRows = (indexLabel: string) =>
 	[
 		[indexLabel, qualityWeight("index")],
@@ -255,7 +241,6 @@ const qualityScoreRows = (indexLabel: string) =>
 		["Frontier benchmarks", qualityWeight("frontier")],
 	] as const;
 
-/** Builds tooltip rows for quality score components. */
 const qualityScoreRowsWithBenchmarkGroups = (
 	indexLabel: string,
 	benchmarkRows: Readonly<{
@@ -275,7 +260,6 @@ const qualityScoreRowsWithBenchmarkGroups = (
 		},
 	] as const;
 
-/** Builds tooltip rows that explain benchmark contributions. */
 const benchmarkTooltipRowsByGroup = (
 	keys: readonly BenchmarkKey[],
 	dimension: BenchmarkDimension,
@@ -310,7 +294,6 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
 	"agentic",
 );
 
-/** Builds tooltip rows for speed score inputs. */
 const speedInputRows = () =>
 	[
 		[
@@ -338,7 +321,6 @@ const speedInputRows = () =>
 		},
 	] as const;
 
-/** Builds tooltip rows for value score inputs. */
 const valueInputRows = () =>
 	[
 		[

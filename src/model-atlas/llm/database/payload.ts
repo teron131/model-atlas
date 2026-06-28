@@ -38,12 +38,10 @@ const INPUT_MODALITY_COLUMNS = [
 	["input_modality_video", "video"],
 ] as const;
 
-/** Return a non-empty string value from SQLite. */
 function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Convert SQLite integer booleans back to booleans. */
 function booleanValue(value: unknown): boolean | null {
 	if (value === 1) {
 		return true;
@@ -54,12 +52,10 @@ function booleanValue(value: unknown): boolean | null {
 	return null;
 }
 
-/** Return whether an object has at least one own field. */
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
 }
 
-/** Assign a finite numeric field when present. */
 function assignNumber(
 	target: Record<string, unknown>,
 	key: string,
@@ -71,7 +67,6 @@ function assignNumber(
 	}
 }
 
-/** Build an object from row columns with identical output keys. */
 function numericObject<T extends object>(
 	row: DbRow,
 	keys: readonly string[],
@@ -83,7 +78,6 @@ function numericObject<T extends object>(
 	return hasFields(record) ? (record as T) : null;
 }
 
-/** Build the modalities object from scalar input-modality columns. */
 function buildModalities(row: DbRow): LlmStatsModalities | null {
 	const input = INPUT_MODALITY_COLUMNS.flatMap(([column, modality]) =>
 		booleanValue(row[column]) === true ? [modality] : [],
@@ -91,7 +85,6 @@ function buildModalities(row: DbRow): LlmStatsModalities | null {
 	return input.length > 0 ? { input } : null;
 }
 
-/** Build the context window object from scalar columns. */
 function buildContextWindow(row: DbRow): LlmStatsContextWindow {
 	const contextWindow: NonNullable<LlmStatsContextWindow> = {};
 	assignNumber(contextWindow, "context", row.context);
@@ -100,7 +93,6 @@ function buildContextWindow(row: DbRow): LlmStatsContextWindow {
 	return hasFields(contextWindow) ? contextWindow : null;
 }
 
-/** Build the speed object from scalar columns. */
 function buildSpeed(row: DbRow): LlmStatsSpeed {
 	return {
 		throughput_tokens_per_second_median:
@@ -111,7 +103,6 @@ function buildSpeed(row: DbRow): LlmStatsSpeed {
 	};
 }
 
-/** Build the cost object from scalar columns. */
 function buildCost(row: DbRow): LlmStatsCost {
 	const cost: Record<string, unknown> = {};
 	assignNumber(cost, "input", row.cost_input);
@@ -136,7 +127,6 @@ function buildCost(row: DbRow): LlmStatsCost {
 	return hasFields(cost) ? (cost as NonNullable<LlmStatsCost>) : null;
 }
 
-/** Build the task metrics object from scalar columns. */
 function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	const artificialAnalysis: Record<string, number> = {};
 	assignNumber(artificialAnalysis, "cost", row.artificial_analysis_task_cost);
@@ -185,7 +175,6 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-/** Build nullable raw score fields from scalar columns. */
 function buildScores(row: DbRow): LlmStatsNullableScores {
 	return {
 		intelligence_score: asFiniteNumber(row.raw_intelligence_score) ?? null,
@@ -195,7 +184,6 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 	};
 }
 
-/** Build nullable relative score fields from scalar columns. */
 function buildRelativeScores(row: DbRow): LlmStatsNullableRelativeScores {
 	return {
 		intelligence_score: asFiniteNumber(row.relative_intelligence_score) ?? null,
@@ -258,7 +246,6 @@ function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
 	};
 }
 
-/** Reconstructs source health metadata from database rows. */
 function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 	if (rows.length === 0) {
 		return undefined;
@@ -362,7 +349,6 @@ function readSourceHealthRows(db: DatabaseSync, runId: number): DbRow[] {
 	}
 }
 
-/** Reads metadata for the completed pipeline run. */
 function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
 	return db
 		.prepare(sql)

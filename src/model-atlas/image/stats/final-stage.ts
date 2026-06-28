@@ -7,7 +7,6 @@ import { asRecord, type JsonObject } from "../../utils";
 
 import type { ImageStatsModel, ImageUnionRow } from "./types";
 
-/** Normalize a model record to its id for Final-stage image stats selection. */
 function toModelId(value: string): string {
 	return value
 		.toLowerCase()
@@ -17,7 +16,6 @@ function toModelId(value: string): string {
 		.replace(/^-+|-+$/g, "");
 }
 
-/** Resolve the provider for Final-stage image stats selection. */
 function providerFromArenaProvider(value: unknown): string | null {
 	if (typeof value !== "string") {
 		return null;
@@ -26,12 +24,10 @@ function providerFromArenaProvider(value: unknown): string | null {
 	return left && left.length > 0 ? left : null;
 }
 
-/** Return the record when it has fields, otherwise collapse it to null. */
 function recordOrNull(record: JsonObject): JsonObject | null {
 	return Object.keys(record).length > 0 ? record : null;
 }
 
-/** Return the first non-empty string from a prioritized list. */
 function preferredString(...values: unknown[]): string | null {
 	for (const value of values) {
 		if (typeof value === "string" && value.length > 0) {
@@ -49,7 +45,6 @@ function providerFromArtificialAnalysis(
 	return typeof modelCreator.name === "string" ? modelCreator.name : null;
 }
 
-/** Build the logo field for Final-stage image stats selection. */
 function buildLogo(model: JsonObject, provider: string | null): string {
 	const artificialAnalysis = asRecord(model.artificial_analysis);
 	const modelCreator = asRecord(artificialAnalysis.model_creator);
@@ -64,7 +59,6 @@ function buildLogo(model: JsonObject, provider: string | null): string {
 	});
 }
 
-/** Select the relevant score fields for Final-stage image stats selection. */
 function pickArtificialAnalysisPercentiles(
 	model: JsonObject,
 ): JsonObject | null {
@@ -73,24 +67,20 @@ function pickArtificialAnalysisPercentiles(
 	);
 }
 
-/** Select the relevant score fields for Final-stage image stats selection. */
 function pickArenaPercentiles(model: JsonObject): JsonObject | null {
 	return recordOrNull(asRecord(asRecord(model.arena_ai).percentiles));
 }
 
-/** Select the relevant score fields for Final-stage image stats selection. */
 function pickArtificialAnalysisScores(model: JsonObject): JsonObject | null {
 	return recordOrNull(
 		asRecord(asRecord(model.artificial_analysis).weighted_scores),
 	);
 }
 
-/** Select the relevant score fields for Final-stage image stats selection. */
 function pickArenaScores(model: JsonObject): JsonObject | null {
 	return recordOrNull(asRecord(asRecord(model.arena_ai).weighted_scores));
 }
 
-/** Map a source model into the selected Final-stage image stats selection payload. */
 function mapUnionModelToSelected(unionModel: ImageUnionRow): ImageStatsModel {
 	const model = unionModel as unknown as JsonObject;
 	const artificialAnalysis = asRecord(model.artificial_analysis);
@@ -183,7 +173,6 @@ function mapUnionModelToSelected(unionModel: ImageUnionRow): ImageStatsModel {
 	};
 }
 
-/** Filter the models by id. */
 function filterModelsById(
 	models: ImageStatsModel[],
 	id: string | null | undefined,
@@ -191,7 +180,6 @@ function filterModelsById(
 	return id == null ? models : models.filter((model) => model.id === id);
 }
 
-/** Build the final Final-stage image stats selection payload. */
 export async function buildFinalModels(
 	unionModels: ImageUnionRow[],
 	id?: string | null,

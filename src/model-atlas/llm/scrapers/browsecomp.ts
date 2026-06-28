@@ -35,7 +35,6 @@ export type BrowseCompModelScorePayload = {
 	data: BrowseCompModelScoreRow[];
 };
 
-/** Extract model/provider/score rows from the BrowseComp details JSON payload. */
 export function processBrowseCompDetailsJson(
 	payload: unknown,
 ): BrowseCompModelScoreRow[] {
@@ -45,7 +44,6 @@ export function processBrowseCompDetailsJson(
 	);
 }
 
-/** Build BrowseComp score rows by normalized model name. */
 export function buildBrowseCompMap(
 	rows: BrowseCompModelScoreRow[],
 ): BrowseCompScoreByModelName {
@@ -59,7 +57,6 @@ export function buildBrowseCompMap(
 	return scoreByModelName;
 }
 
-/** Find a BrowseComp score from model labels that may differ by punctuation. */
 export function findBrowseCompScore(
 	candidateNames: unknown[],
 	browseCompScoreByModelName: BrowseCompScoreByModelName,
@@ -78,7 +75,6 @@ export function findBrowseCompScore(
 	return null;
 }
 
-/** Fetch BrowseComp model score rows from the JSON endpoint. */
 export async function getBrowseCompStats(
 	options: BrowseCompScraperOptions = {},
 ): Promise<BrowseCompModelScorePayload> {

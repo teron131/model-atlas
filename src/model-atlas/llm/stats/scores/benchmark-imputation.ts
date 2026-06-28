@@ -39,7 +39,6 @@ export const AGENTIC_INDEX_KEYS = [
 	"artificial_analysis_agentic_index",
 ] as const;
 
-/** Read a benchmark metric from either intelligence or evaluation fields. */
 export function metricValue(model: JsonObject, key: string): number | null {
 	const intelligence = asRecord(model.intelligence);
 	const evaluations = asRecord(model.evaluations);
@@ -50,7 +49,6 @@ export function metricValue(model: JsonObject, key: string): number | null {
 	);
 }
 
-/** Return the first finite metric value from candidate keys. */
 export function firstMetricValue(
 	model: JsonObject,
 	keys: readonly string[],
@@ -64,12 +62,10 @@ export function firstMetricValue(
 	return null;
 }
 
-/** Chooses the index scale that should backfill a benchmark group. */
 export function indexScaleKey(indexKeys: readonly string[]): string {
 	return indexKeys.join(INDEX_SCALE_KEY_SEPARATOR);
 }
 
-/** Normalizes available metric values before benchmark imputation. */
 export function normalizedMetricValue(
 	valuesByKey: ReadonlyMap<string, readonly number[]>,
 	key: string,
@@ -78,7 +74,6 @@ export function normalizedMetricValue(
 	return minMaxScale(valuesByKey.get(key) ?? [], value);
 }
 
-/** Compute normalized evidence context for percentile-based benchmark imputation. */
 function observedNormalizedEvidenceScore(
 	model: JsonObject,
 	indexKeys: readonly string[],
@@ -240,7 +235,6 @@ export function buildBenchmarkImputationByModel(
 	return imputationByModel;
 }
 
-/** Merges benchmark imputations for benchmark imputation. */
 function mergeBenchmarkImputations(
 	...imputations: Array<Map<JsonObject, Map<string, number>>>
 ): Map<JsonObject, Map<string, number>> {

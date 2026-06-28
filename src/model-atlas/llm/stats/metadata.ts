@@ -34,7 +34,6 @@ type CurrentLlmStatsMetadataOptions = {
 	availabilitySource?: MetadataAvailabilitySource;
 };
 
-/** Return sorted unique keys for metadata fields. */
 function sortedUniqueKeys(values: Iterable<string>): string[] {
 	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
@@ -49,7 +48,6 @@ function keysFromModelField(
 	);
 }
 
-/** Build Artificial Analysis availability metadata from model rows. */
 function buildArtificialAnalysisMetadata(
 	models: readonly BenchmarkFieldModel[],
 ): LlmStatsMetadata["artificial_analysis"] {

@@ -12,18 +12,15 @@ const MODEL_NAME_TAG_TOKENS = new Set([
 	"online",
 	"nitro",
 ]);
-/** Return the model-id segment without the provider prefix. */
 export function splitBaseModelId(modelId: string): string {
 	const modelIdParts = modelId.split("/");
 	return modelIdParts.at(-1) ?? modelId;
 }
 
-/** Split the base model id into comparable name tokens. */
 export function splitBaseModelTokens(modelId: string): string[] {
 	return splitTokens(splitBaseModelId(modelId));
 }
 
-/** Return whether a token represents dense or active billion-parameter scale. */
 function isBScaleToken(token: string): boolean {
 	return /^\d+b$/.test(token) || /^a\d+b$/.test(token);
 }
@@ -36,7 +33,6 @@ function splitMixedAlphaNumericToken(token: string): string[] {
 	return token.split(/(?<=\D)(?=\d)|(?<=\d)(?=\D)/g).filter(Boolean);
 }
 
-/** Normalize a model name or id into matcher tokens. */
 export function splitTokens(value: string): string[] {
 	return normalizeModelToken(value)
 		.split("-")
@@ -44,7 +40,6 @@ export function splitTokens(value: string): string[] {
 		.filter((token) => token && !MODEL_NAME_TAG_TOKENS.has(token));
 }
 
-/** Return the first token value accepted by a parser. */
 export function firstParsedNumber(
 	tokens: string[],
 	parser: (token: string | undefined) => number | null,
@@ -58,12 +53,10 @@ export function firstParsedNumber(
 	return null;
 }
 
-/** Return whether a token is only decimal digits. */
 export function isNumericToken(token: string | undefined): boolean {
 	return Boolean(token && /^\d+$/.test(token));
 }
 
-/** Parse plain numbers plus dense or active billion-parameter scale tokens. */
 function parseNumericOrBScaleToken(token: string | undefined): number | null {
 	if (!token) {
 		return null;
@@ -82,7 +75,6 @@ function parseNumericOrBScaleToken(token: string | undefined): number | null {
 	return null;
 }
 
-/** Parse a dense billion-parameter scale token such as `70b`. */
 export function parseBScaleToken(token: string | undefined): number | null {
 	if (!token) {
 		return null;
@@ -91,7 +83,6 @@ export function parseBScaleToken(token: string | undefined): number | null {
 	return billionMatch ? Number(billionMatch[1]) : null;
 }
 
-/** Parse an active billion-parameter scale token such as `a3b`. */
 export function parseActiveBToken(token: string | undefined): number | null {
 	if (!token) {
 		return null;
@@ -100,14 +91,12 @@ export function parseActiveBToken(token: string | undefined): number | null {
 	return activeMatch ? Number(activeMatch[1]) : null;
 }
 
-/** Parse every numeric or parameter-scale token in order. */
 export function parsedNumericTokens(tokens: string[]): number[] {
 	return tokens
 		.map((token) => parseNumericOrBScaleToken(token))
 		.filter((value): value is number => value != null);
 }
 
-/** Count matching leading characters between two strings. */
 export function commonPrefixLength(left: string, right: string): number {
 	const maxLength = Math.min(left.length, right.length);
 	let index = 0;

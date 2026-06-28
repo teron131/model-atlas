@@ -41,7 +41,6 @@ export type ToolathlonModelScorePayload = {
 	data: ToolathlonModelScoreRow[];
 };
 
-/** Normalizes Toolathlon model score row from benchmark source data. */
 function toolathlonModelScoreRow(
 	value: unknown,
 ): ToolathlonModelScoreRow | null {
@@ -57,14 +56,12 @@ function toolathlonModelScoreRow(
 	};
 }
 
-/** Extract model/provider/score rows from the Toolathlon details JSON payload. */
 export function processToolathlonDetailsJson(
 	payload: unknown,
 ): ToolathlonModelScoreRow[] {
 	return zeroEvalModelRows(payload, toolathlonModelScoreRow);
 }
 
-/** Build Toolathlon score rows by normalized model name. */
 export function buildToolathlonMap(
 	rows: ToolathlonModelScoreRow[],
 ): ToolathlonScoreByModelName {
@@ -78,7 +75,6 @@ export function buildToolathlonMap(
 	return scoreByModelName;
 }
 
-/** Find a Toolathlon score from model labels that may differ by punctuation. */
 export function findToolathlonScore(
 	candidateNames: unknown[],
 	toolathlonScoreByModelName: ToolathlonScoreByModelName,
@@ -97,7 +93,6 @@ export function findToolathlonScore(
 	return null;
 }
 
-/** Fetch Toolathlon model score rows from the JSON endpoint. */
 export async function getToolathlonStats(
 	options: ToolathlonScraperOptions = {},
 ): Promise<ToolathlonModelScorePayload> {

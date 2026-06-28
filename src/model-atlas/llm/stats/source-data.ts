@@ -46,7 +46,6 @@ import type {
 	ModelsDevModel,
 } from "./types";
 
-/** Index preferred models.dev rows by canonical model id. */
 function buildModelsDevById(
 	modelsDevModels: ModelsDevModel[],
 ): Map<string, ModelsDevModel> {
@@ -58,7 +57,6 @@ function buildModelsDevById(
 	);
 }
 
-/** Index Artificial Analysis rows by the model slug used for matching. */
 function buildArtificialAnalysisBySlug(
 	artificialAnalysisRows: unknown[],
 ): Map<string, ArtificialAnalysisModel> {
@@ -79,7 +77,6 @@ function buildArtificialAnalysisBySlug(
 	return artificialAnalysisBySlug;
 }
 
-/** Fetch source snapshots and precompute lookup maps used by matching and enrichment. */
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
 		artificialAnalysisStats,

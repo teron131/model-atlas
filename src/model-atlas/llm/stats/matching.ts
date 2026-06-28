@@ -23,7 +23,6 @@ import type {
 type MatchedRowLookups = Pick<LlmStatsSourceData, "modelsDev"> &
 	BenchmarkEnrichmentLookups;
 
-/** Helper for canonical model id. */
 function canonicalModelId(
 	modelId: unknown,
 	providerId: unknown,
@@ -84,7 +83,6 @@ function variantLabels(
 	return labels;
 }
 
-/** Return whether a Model Atlas match candidate has a variant conflict. */
 export function hasVariantConflict(
 	artificialAnalysisSlug: string,
 	matchedModelId: string,
@@ -100,7 +98,6 @@ export function hasVariantConflict(
 	);
 }
 
-/** Pick the first candidate that survives post-score variant validation. */
 export function firstValidMatchId(
 	candidates: { model_id: string }[],
 	artificialAnalysisSlug: string,
@@ -120,7 +117,6 @@ export function firstValidMatchId(
 	return null;
 }
 
-/** Build one matched row from the Artificial Analysis source model. */
 function buildMatchedRow(
 	artificialAnalysisModel: ArtificialAnalysisModel,
 	matchedModelId: string,
@@ -206,7 +202,6 @@ function buildMatchedRow(
 	};
 }
 
-/** Build matched intermediate rows from precomputed match diagnostics. */
 export function modelRowsFromMatchDiagnostics(
 	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,

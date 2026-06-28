@@ -1,4 +1,4 @@
-/** Source row availability state writer. */
+/** SQLite writer for source-row preservation state and per-source health summaries. */
 
 import type { DatabaseSync } from "node:sqlite";
 

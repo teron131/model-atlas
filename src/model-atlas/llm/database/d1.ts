@@ -84,7 +84,6 @@ function d1Error(response: D1ApiResponse): Error {
 	);
 }
 
-/** Normalizes D1 query results into row objects. */
 function resultRows(result: D1QueryResult | undefined): D1Rows {
 	if (result?.results == null) {
 		return [];
@@ -133,7 +132,6 @@ async function allD1(sql: string, params: D1Value[] = []): Promise<D1Rows> {
 	return resultRows(await queryD1(sql, params));
 }
 
-/** Rejects unsafe SQL identifier names before interpolation. */
 function assertIdentifier(value: string): void {
 	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
 		throw new Error(`Unsafe SQL identifier: ${value}`);
@@ -187,7 +185,6 @@ async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
 	}
 }
 
-/** Parses nullable numeric values returned by D1. */
 function finiteNumberOrNull(value: unknown): number | null {
 	const numberValue = Number(value);
 	return Number.isFinite(numberValue) ? numberValue : null;

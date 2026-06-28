@@ -1,4 +1,4 @@
-/** Shared finite-number math helpers for stats scoring. */
+/** Shared numeric policies for Model Atlas scoring, chart scales, and public summaries. */
 export type NumberOrNull = number | null;
 
 export type WeightedScorePart = {
@@ -6,19 +6,16 @@ export type WeightedScorePart = {
 	weight: number;
 };
 
-/** Return finite numeric values from a mixed input list. */
 export function finiteNumbers(values: unknown[]): number[] {
 	return values
 		.map((value) => Number(value))
 		.filter((value) => Number.isFinite(value));
 }
 
-/** Return whether a value is a positive finite number. */
 export function isPositiveFinite(value: unknown): value is number {
 	return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
-/** Compute a finite-aware mean. */
 export function meanOfFinite(values: Array<number | null>): number | null {
 	const finiteValues = finiteScoreValues(values);
 	if (finiteValues.length === 0) {
@@ -29,7 +26,7 @@ export function meanOfFinite(values: Array<number | null>): number | null {
 	);
 }
 
-/** Return finite score values without coercing nullish entries into zero. */
+/** Keep missing score components out of averages instead of silently treating them as zero evidence. */
 export function finiteScoreValues(
 	values: ReadonlyArray<number | null | undefined>,
 ): number[] {
@@ -38,7 +35,6 @@ export function finiteScoreValues(
 	);
 }
 
-/** Map input items to finite numeric values. */
 export function mapFiniteNumbers<T>(
 	values: readonly T[],
 	valueForItem: (item: T) => number | null,
@@ -50,22 +46,18 @@ export function mapFiniteNumbers<T>(
 		);
 }
 
-/** Clamp a number into an inclusive range. */
 export function clamp(value: number, minValue: number, maxValue: number) {
 	return Math.max(minValue, Math.min(maxValue, value));
 }
 
-/** Linearly interpolate between two numbers. */
 export function interpolateLinear(start: number, end: number, ratio: number) {
 	return start + (end - start) * ratio;
 }
 
-/** Return distance between two positive values on a log10 scale. */
 export function logDistance(left: number, right: number) {
 	return Math.abs(Math.log10(left) - Math.log10(right));
 }
 
-/** Pick a human-friendly linear step near a raw step size. */
 export function niceLinearStep(rawStep: number) {
 	const exponent = Math.floor(Math.log10(rawStep));
 	const base = 10 ** exponent;
@@ -83,7 +75,6 @@ export function niceLinearStep(rawStep: number) {
 	return niceMantissa * base;
 }
 
-/** Round chart tick values without adding noisy floating-point tails. */
 export function roundTick(value: number) {
 	if (Math.abs(value) >= 100) {
 		return Number(value.toFixed(0));
@@ -97,7 +88,7 @@ export function roundTick(value: number) {
 	return Number(value.toPrecision(3));
 }
 
-/** Scale circle radius so visible area changes linearly with a normalized score. */
+/** Scale chart markers by visible area, not raw radius, so normalized score differences read proportionally. */
 export function areaScaledRadius(
 	minRadius: number,
 	maxRadius: number,
@@ -109,7 +100,6 @@ export function areaScaledRadius(
 	);
 }
 
-/** Compute a finite-aware mean only when enough components are present. */
 export function meanOfFiniteWithMinimum(
 	values: Array<number | null>,
 	minimumFiniteValues: number,
@@ -120,12 +110,10 @@ export function meanOfFiniteWithMinimum(
 		: null;
 }
 
-/** Return finite score values sorted ascending. */
 export function sortedFiniteScores(values: Array<number | null>): number[] {
 	return finiteScoreValues(values).sort((left, right) => left - right);
 }
 
-/** Compute a finite-aware weighted mean. */
 export function weightedMeanOfFinite(
 	parts: WeightedScorePart[],
 ): number | null {
@@ -149,7 +137,7 @@ export function weightedMeanOfFinite(
 	);
 }
 
-/** Compute a weighted score only when every configured part is present. */
+/** Require every configured part so fixed-weight scores do not reweight themselves around missing data. */
 export function fixedWeightedScore(parts: WeightedScorePart[]): number | null {
 	if (parts.some((part) => part.value == null)) {
 		return null;
@@ -164,13 +152,13 @@ export function fixedWeightedScore(parts: WeightedScorePart[]): number | null {
 	);
 }
 
-/** Compute a rounded finite-aware mean for public payload summaries. */
+/** Round finite-only means for public metadata where null means no numeric evidence was available. */
 export function meanOrNull(values: unknown[]): NumberOrNull {
 	const mean = meanOfFinite(finiteNumbers(values));
 	return mean == null ? null : Number(mean.toFixed(4));
 }
 
-/** Compute percentile rank within the finite values of the current comparison set. */
+/** Percentile ranks are local to the current comparison set, so adding or pruning models can change them. */
 export function percentileRank(
 	values: unknown[],
 	value: unknown,
@@ -190,12 +178,11 @@ export function percentileRank(
 	return Number(rawPercentile.toFixed(4));
 }
 
-/** Clamp a score-like number into the 0-100 range. */
+/** Clamp public score-scale values to 0-100 after normalization or interpolation. */
 export function clampScore(value: number): number {
 	return Math.min(100, Math.max(0, value));
 }
 
-/** Return a linearly interpolated quantile from an already sorted numeric list. */
 export function quantileFromSorted(
 	values: number[],
 	quantile: number,
@@ -222,7 +209,6 @@ export function quantileFromSorted(
 	return lowerValue + (upperValue - lowerValue) * ratio;
 }
 
-/** Return the median of finite values from an unsorted list. */
 export function medianOfFinite(
 	values: ReadonlyArray<number | null | undefined>,
 ): number | null {
@@ -232,7 +218,7 @@ export function medianOfFinite(
 	);
 }
 
-/** Min-max normalize one value against the current comparison set. */
+/** Normalize onto the 0-100 score scale, giving full credit when the comparison set has no spread. */
 export function minMaxScale(
 	values: ReadonlyArray<number | null>,
 	value: number | null,
@@ -252,7 +238,7 @@ export function minMaxScale(
 	return ((value - minValue) / (maxValue - minValue)) * 100;
 }
 
-/** Log-min-max normalize one positive value against a positive source distribution. */
+/** Normalize multiplicative resource differences on the 0-100 score scale while rejecting non-positive inputs. */
 export function logMinMaxScale(
 	values: Array<number | null>,
 	value: number | null,

@@ -93,7 +93,6 @@ function collectCandidatesForSourceSlug(
 		.sort(compareCandidates);
 }
 
-/** Apply the max-min range-ratio void threshold. */
 function applyMaxMinRangeVoid<
 	T extends { best_match: MatchResult; candidates?: unknown[] },
 >(models: T[]): { threshold: number | null; voided: number } {
@@ -174,7 +173,6 @@ export function runMatcher(
 	};
 }
 
-/** Run the matcher algorithm against scraped Artificial Analysis rows. */
 export async function getMatchDiagnostics(
 	options: MatchDiagnosticsOptions = {},
 ): Promise<MatchDiagnosticsPayload> {

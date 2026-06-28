@@ -114,14 +114,12 @@ const ARTIFICIAL_ANALYSIS_RESOURCE_SIGNAL_KEYS = [
 	"output_tokens_per_task",
 ] as const;
 
-/** Converts snake_case benchmark keys into camelCase source fields. */
 function camelMetricKey(key: string): string {
 	return key.replace(/_([a-z0-9])/g, (_match, char: string) =>
 		char.toUpperCase(),
 	);
 }
 
-/** Builds the Artificial Analysis fields that count as scoring signals. */
 function artificialAnalysisSignalKeys(
 	scoringConfig: ScoringConfig,
 ): Set<string> {
@@ -138,7 +136,6 @@ function artificialAnalysisSignalKeys(
 	return keys;
 }
 
-/** Counts scoring signals present on an Artificial Analysis row. */
 function artificialAnalysisScoreSignalCount(
 	row: JsonObject,
 	scoringConfig: ScoringConfig,
@@ -156,7 +153,6 @@ function artificialAnalysisScoreSignalCount(
 	).length;
 }
 
-/** Checks whether an Artificial Analysis row marks a model as unavailable. */
 function artificialAnalysisRowIsUnavailable(row: JsonObject): boolean {
 	const name = typeof row.name === "string" ? row.name.toLowerCase() : "";
 	return (
@@ -284,7 +280,6 @@ type ModelScoreSnapshotResult<Row> = {
 	fetchedAt: number | null;
 };
 
-/** Builds the model score snapshot used by the database refresh pipeline. */
 async function modelScoreSnapshot<Row>(
 	config: ModelScoreSnapshotConfig<Row>,
 ): Promise<ModelScoreSnapshotResult<Row>> {
@@ -338,7 +333,6 @@ async function modelScoreSnapshot<Row>(
 	};
 }
 
-/** Project loaded snapshots into the source data consumed by matching and enrichment. */
 export function sourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
 ): LlmStatsSourceData {
@@ -419,7 +413,6 @@ export function sourceDataFromSnapshots(
 	};
 }
 
-/** Builds source-cache metadata used by refresh decisions. */
 function sourceCacheDefaults(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
@@ -440,7 +433,6 @@ function shouldUseFetchedRows(
 	return fetchedAtEpochSeconds != null && rowCount > 0;
 }
 
-/** Reads the fetch timestamp attached to a source snapshot. */
 function snapshotFetchedAt(
 	hasUsableFetchedRows: boolean,
 	cachedFetchedAt: number | null | undefined,
@@ -451,7 +443,6 @@ function snapshotFetchedAt(
 		: cachedFetchedAt;
 }
 
-/** Merges models.dev payload for source refresh snapshots. */
 function mergeModelsDevPayload(
 	cachedPayload: ModelsDevPayload | undefined,
 	fetchedPayload: ModelsDevPayload,
@@ -492,7 +483,6 @@ function updatedSourceCacheStatus(
 	};
 }
 
-/** Apply fetched timestamps and row counts from each loaded source snapshot. */
 function updateSourceCacheStatuses(
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
 	sourceStatuses: SnapshotSourceStatus[],
@@ -513,7 +503,6 @@ function sourceSnapshotRowStates(
 	return sourceStatuses.flatMap((sourceStatus) => sourceStatus.sourceRowStates);
 }
 
-/** Project source snapshot timestamps into the public fetchedAt shape. */
 function sourceSnapshotFetchedAt(
 	sourceStatuses: SnapshotSourceStatus[],
 ): SourceSnapshots["fetchedAt"] {
@@ -537,7 +526,6 @@ function sourceSnapshotFetchedAt(
 	return fetchedAt;
 }
 
-/** Counts models.dev input rows represented in a refresh. */
 function modelsDevSourceInputCount(
 	payload: ModelsDevSnapshot["modelsDevPayload"],
 ): number {
@@ -547,7 +535,6 @@ function modelsDevSourceInputCount(
 	);
 }
 
-/** Builds the Artificial Analysis snapshot used by the database refresh pipeline. */
 async function artificialAnalysisSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -622,7 +609,6 @@ async function artificialAnalysisSnapshot(
 	};
 }
 
-/** Builds the models.dev snapshot used by the database refresh pipeline. */
 async function modelsDevSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -689,7 +675,6 @@ async function modelsDevSnapshot(
 	};
 }
 
-/** Builds the agents last exam snapshot used by the database refresh pipeline. */
 async function agentsLastExamSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -757,7 +742,6 @@ async function agentsLastExamSnapshot(
 	};
 }
 
-/** Builds the blueprint bench snapshot used by the database refresh pipeline. */
 async function blueprintBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -783,7 +767,6 @@ async function blueprintBenchSnapshot(
 	};
 }
 
-/** Builds the browse comp snapshot used by the database refresh pipeline. */
 async function browseCompSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -809,7 +792,6 @@ async function browseCompSnapshot(
 	};
 }
 
-/** Builds the cursor bench snapshot used by the database refresh pipeline. */
 async function cursorBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -921,7 +903,6 @@ async function deepSWESnapshot(
 	};
 }
 
-/** Builds the GDP PDF snapshot used by the database refresh pipeline. */
 async function gdpPdfSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -947,7 +928,6 @@ async function gdpPdfSnapshot(
 	};
 }
 
-/** Builds the riemann bench snapshot used by the database refresh pipeline. */
 async function riemannBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -973,7 +953,6 @@ async function riemannBenchSnapshot(
 	};
 }
 
-/** Builds the terminal bench snapshot used by the database refresh pipeline. */
 async function terminalBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -1039,7 +1018,6 @@ async function terminalBenchSnapshot(
 	};
 }
 
-/** Builds the Toolathlon snapshot used by the database refresh pipeline. */
 async function toolathlonSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,

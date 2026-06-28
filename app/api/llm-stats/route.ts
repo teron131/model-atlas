@@ -24,7 +24,6 @@ const refreshState = globalThis as typeof globalThis & {
 	__modelAtlasRefreshState?: RefreshState;
 };
 
-/** Serves the HTTP GET response for public LLM stats API. */
 export async function GET(request: Request) {
 	const view = jsonViewForRequest(request);
 	try {
@@ -55,7 +54,6 @@ export async function GET(request: Request) {
 	}
 }
 
-/** Resolves the requested public JSON view from URL and proxy headers. */
 function jsonViewForRequest(request: Request): string | null {
 	return (
 		new URL(request.url).searchParams.get("view") ??
@@ -63,14 +61,12 @@ function jsonViewForRequest(request: Request): string | null {
 	);
 }
 
-/** Builds the public JSON response for a selected payload view. */
 function jsonPayloadResponse(payload: LlmStatsPayload, view: string | null) {
 	return Response.json(publicJsonPayload(payload, view), {
 		headers: PUBLIC_SNAPSHOT_CACHE_HEADERS,
 	});
 }
 
-/** Returns current refresh state for dashboard polling. */
 function getRefreshState(): RefreshState {
 	refreshState.__modelAtlasRefreshState ??= {
 		payload: null,

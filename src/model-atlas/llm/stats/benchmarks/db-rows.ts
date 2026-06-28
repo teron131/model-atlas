@@ -31,12 +31,10 @@ export type BenchmarkDbRows = {
 	toolathlonRows: readonly DbBenchmarkRow[];
 };
 
-/** Return a non-empty string value from a persisted benchmark source row. */
 function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Return SQLite row mappings for one-benchmark source tables. */
 function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 	return [
 		{

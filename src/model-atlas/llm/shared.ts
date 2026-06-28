@@ -1,4 +1,4 @@
-/** Stats pipeline helpers. */
+/** Shared LLM stats normalization helpers used before source rows reach matcher and scoring policy. */
 import { asFiniteNumber, asRecord, type JsonObject } from "../utils";
 
 export { asFiniteNumber, asRecord, type JsonObject };
@@ -11,7 +11,6 @@ export const FALLBACK_PROVIDER_IDS: ReadonlySet<string> = new Set([
 	...TERTIARY_PROVIDER_IDS,
 ]);
 
-/** Normalize provider ids that appear under multiple spellings across sources. */
 export function normalizeProviderId(providerId: string): string {
 	return providerId.toLowerCase().replace(/^~+/, "");
 }
@@ -35,7 +34,6 @@ export function providerPreferenceRank(providerId: string): number | null {
 	return null;
 }
 
-/** Normalize a model token for matching. */
 export function normalizeModelToken(value: string): string {
 	return value
 		.toLowerCase()
@@ -45,7 +43,6 @@ export function normalizeModelToken(value: string): string {
 		.replace(/^[-/]+|[-/]+$/g, "");
 }
 
-/** Derive a model slug from a model id. */
 export function modelSlugFromModelId(modelId: unknown): string | null {
 	if (typeof modelId !== "string" || modelId.length === 0) {
 		return null;
@@ -54,7 +51,6 @@ export function modelSlugFromModelId(modelId: unknown): string | null {
 	return slug && slug.length > 0 ? slug : null;
 }
 
-/** Normalize a provider/model identifier. */
 export function normalizeProviderModelId(modelId: string): string {
 	const slashIndex = modelId.indexOf("/");
 	if (slashIndex <= 0) {

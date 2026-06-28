@@ -1,3 +1,5 @@
+/** JSON-friendly root routes that rewrite API-shaped requests to the stats endpoint while leaving browser navigation on the app shell. */
+
 import { type NextRequest, NextResponse } from "next/server";
 
 import type { LlmStatsJsonView } from "./app/api/llm-stats/public-json";

@@ -13,12 +13,10 @@ import type { ImageStatsPayload } from "./types";
 export const DEFAULT_OUTPUT_PATH = resolve(".cache/image_stats.json");
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
 
-/** Return the current Unix epoch time in seconds. */
 export function currentEpochSeconds(): number {
 	return nowEpochSeconds();
 }
 
-/** Write Cache selected image stats payloads data to disk. */
 export async function saveImageStatsToPath(
 	payload: ImageStatsPayload,
 	outputPath = DEFAULT_OUTPUT_PATH,
@@ -30,7 +28,6 @@ export async function saveImageStatsToPath(
 	}
 }
 
-/** Load Cache selected image stats payloads data from cache. */
 export async function loadImageStatsFromCache(
 	outputPath: string,
 ): Promise<ImageStatsPayload | null> {

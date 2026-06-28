@@ -15,7 +15,6 @@ import type {
 
 const DEFAULT_INPUT_TOKEN_SECONDS = 0.0001;
 
-/** Accepts only positive finite inputs for workflow simulation math. */
 function positiveNumber(value: unknown): number | null {
 	const number = asFiniteNumber(value);
 	return number != null && number > 0 ? number : null;
@@ -32,7 +31,6 @@ function smoothstep(value: number): number {
 	return clamped * clamped * (3 - 2 * clamped);
 }
 
-/** Estimates expected tokens for a log-uniform workflow size range. */
 function expectedLogUniformTokens(range: SimulationTokenRange): number {
 	if (range.lower <= 0 || range.upper <= 0 || range.lower === range.upper) {
 		return (range.lower + range.upper) / 2;
@@ -43,7 +41,6 @@ function expectedLogUniformTokens(range: SimulationTokenRange): number {
 	);
 }
 
-/** Rejects workflow profiles without positive weights or token ranges. */
 function validSimulationProfile(profile: SimulationProfile): boolean {
 	return (
 		profile.weight > 0 &&
@@ -62,7 +59,6 @@ function expectedCacheHitRate(profile: SimulationProfile): number {
 	);
 }
 
-/** Estimates latency plus generation time for one workflow profile. */
 function profileSeconds(
 	profile: SimulationProfile,
 	latencySeconds: number,
@@ -79,7 +75,6 @@ function profileSeconds(
 	);
 }
 
-/** Estimates prompt and output cost for one workflow profile. */
 function profileCost(
 	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
@@ -112,7 +107,6 @@ function profileCost(
 	return (firstCallInputCost + laterCallInputCost + outputCost) / 1_000_000;
 }
 
-/** Translates quality score into profile-specific workflow credit. */
 function profileQualityMultiplier(
 	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
@@ -128,7 +122,6 @@ function profileQualityMultiplier(
 		: smoothstep(qualityScore / profile.quality_full_credit_at);
 }
 
-/** Averages workflow profile values using configured profile weights. */
 function weightedProfileMean(
 	profiles: Iterable<SimulationProfile>,
 	valueForProfile: (profile: SimulationProfile) => number | null,
@@ -146,7 +139,6 @@ function weightedProfileMean(
 	return weightedMeanOfFinite(parts);
 }
 
-/** Estimate expected workflow seconds from latency, input friction, and decode throughput. */
 export function simulatedBlendSeconds(
 	speed: LlmStatsSpeed,
 	scoringConfig: ScoringConfig,
@@ -177,7 +169,6 @@ export function simulatedBlendSeconds(
 	);
 }
 
-/** Estimate quality-gated useful workflow per dollar, including cache reads for repeated calls. */
 export function workflowSimulatedValueSignal(
 	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,

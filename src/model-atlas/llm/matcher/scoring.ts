@@ -1,4 +1,4 @@
-/** LLM model matching score helpers. */
+/** Scoring policy for deciding whether benchmark source names and catalog model IDs refer to the same LLM. */
 import { normalizeModelToken } from "../shared";
 import {
 	commonPrefixLength,
@@ -29,7 +29,6 @@ const ACTIVE_B_MISMATCH_PENALTY = 2;
 const CHAR_PREFIX_REWARD_SCALE = 0.03;
 const LENGTH_GAP_PENALTY_SCALE = 0.005;
 
-/** Splits a model version into comparable numeric parts. */
 function numericVersionParts(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -50,7 +49,6 @@ function numericVersionParts(
 	};
 }
 
-/** Checks whether a version starts with the exact numeric prefix. */
 function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
 	return (
 		left.length > 0 &&
@@ -59,7 +57,6 @@ function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
 	);
 }
 
-/** Detects mismatched leading version numbers during model matching. */
 function leadingNumberMismatch(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -82,7 +79,6 @@ function leadingNumberMismatch(
 	return !idLeadingNumberMatches && !nameLeadingNumberMatches;
 }
 
-/** Rejects matches whose numeric versions conflict too strongly. */
 function numericPrefixConflict(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -106,7 +102,7 @@ function numericPrefixConflict(
 	);
 }
 
-/** Score token overlap for LLM model matching score. */
+/** Reward leading token agreement heavily because source labels usually differ in suffixes, not family prefixes. */
 function weightedTokenPrefixScore(
 	leftTokens: string[],
 	rightTokens: string[],
@@ -122,7 +118,6 @@ function weightedTokenPrefixScore(
 	return score;
 }
 
-/** Helper for numeric match reward. */
 function numericMatchReward(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -144,7 +139,6 @@ function numericMatchReward(
 	return 0;
 }
 
-/** Helper for numeric closeness reward. */
 function numericClosenessReward(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -172,7 +166,6 @@ function numericClosenessReward(
 	return NUMERIC_ALL_EQUAL_REWARD;
 }
 
-/** Helper for candidate scale value. */
 function candidateScaleValue(
 	candidateModelId: string,
 	candidateModelName: string,
@@ -186,7 +179,6 @@ function candidateScaleValue(
 	return baseValue ?? nameValue;
 }
 
-/** Helper for b scale reward or penalty. */
 function bScaleRewardOrPenalty(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -213,7 +205,6 @@ function bScaleRewardOrPenalty(
 	return -B_SCALE_MISMATCH_PENALTY;
 }
 
-/** Return whether LLM model matching score has a variant conflict. */
 function hasHardBScaleMismatch(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -237,7 +228,6 @@ function hasHardBScaleMismatch(
 	return candidateBScale !== sourceBScale;
 }
 
-/** Helper for active breward or penalty. */
 function activeBRewardOrPenalty(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -264,7 +254,6 @@ function activeBRewardOrPenalty(
 	return -ACTIVE_B_MISMATCH_PENALTY;
 }
 
-/** Helper for same variant reward. */
 function sameVariantReward(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -282,7 +271,6 @@ function sameVariantReward(
 	return 0;
 }
 
-/** Helper for coverage reward or penalty. */
 function coverageRewardOrPenalty(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -312,7 +300,6 @@ function coverageRewardOrPenalty(
 	return Math.max(compareSets(baseSet), compareSets(nameSet));
 }
 
-/** Return whether LLM model matching score has a matching token. */
 export function hasFirstTokenMatch(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -329,7 +316,6 @@ export function hasFirstTokenMatch(
 	);
 }
 
-/** Score the candidate. */
 export function scoreCandidate(
 	sourceSlug: string,
 	candidateModelId: string,
@@ -388,7 +374,6 @@ export function scoreCandidate(
 	);
 }
 
-/** Compare the candidates. */
 export function compareCandidates(
 	left: MatchCandidate,
 	right: MatchCandidate,

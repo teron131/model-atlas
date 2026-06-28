@@ -1,4 +1,4 @@
-/** Stage configuration for Model Atlas. */
+/** Pipeline stage switches that control how source rows are matched, enriched, pruned, and scored. */
 
 import type { ModelAtlasStageConfig } from "../llm/stats/types";
 import {

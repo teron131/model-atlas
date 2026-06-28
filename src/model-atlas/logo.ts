@@ -47,7 +47,6 @@ const ARTIFICIAL_ANALYSIS_LOGO_ASSET_BY_PROVIDER: Record<string, string> = {
 	"z-ai": "zai_small.svg",
 };
 
-/** Normalize empty or whitespace-only strings to null. */
 function nonEmptyString(value: string | null | undefined): string | null {
 	if (typeof value !== "string") {
 		return null;
@@ -56,7 +55,6 @@ function nonEmptyString(value: string | null | undefined): string | null {
 	return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
-/** Normalize provider names into Artificial Analysis logo keys. */
 function normalizeProvider(provider: string | null | undefined): string | null {
 	const providerValue = nonEmptyString(provider);
 	if (!providerValue) {
@@ -70,7 +68,6 @@ function normalizeProvider(provider: string | null | undefined): string | null {
 	return normalizedProvider.length > 0 ? normalizedProvider : null;
 }
 
-/** Resolve a possibly relative Artificial Analysis logo URL. */
 function toAbsoluteArtificialAnalysisLogoUrl(
 	logoUrl: string | null | undefined,
 ): string | null {
@@ -90,7 +87,6 @@ function toAbsoluteArtificialAnalysisLogoUrl(
 	return `${ARTIFICIAL_ANALYSIS_LOGO_URL}/${logoValue}`;
 }
 
-/** Build an Artificial Analysis logo URL from an asset file name. */
 function buildArtificialAnalysisLogoUrl(
 	asset: string | null | undefined,
 ): string | null {
@@ -101,7 +97,6 @@ function buildArtificialAnalysisLogoUrl(
 	return `${ARTIFICIAL_ANALYSIS_LOGO_URL}/${assetValue}`;
 }
 
-/** Return the known Artificial Analysis logo asset for a provider. */
 function artificialAnalysisLogoAsset(provider: string | null): string | null {
 	if (!provider) {
 		return null;
@@ -109,7 +104,6 @@ function artificialAnalysisLogoAsset(provider: string | null): string | null {
 	return ARTIFICIAL_ANALYSIS_LOGO_ASSET_BY_PROVIDER[provider] ?? null;
 }
 
-/** Resolve the best logo URL for a stats model row. */
 export function resolveStatsLogo(options: {
 	provider?: string | null;
 	explicitLogo?: string | null;

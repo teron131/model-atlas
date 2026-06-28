@@ -1,4 +1,4 @@
-/** Artificial Analysis image benchmark source helpers. */
+/** Artificial Analysis image scraper and recency-aware aggregation policy for text-to-image rows. */
 
 import { percentileRank } from "../../math-utils";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
@@ -104,9 +104,6 @@ type RawTextToImagePayload = {
 	[key: string]: unknown;
 };
 
-/**
- * Artificial Analysis text-to-image source options.
- */
 export type ArtificialAnalysisImageOptions = {
 	apiKey?: string;
 	minModelAgeDays?: number;
@@ -147,7 +144,6 @@ export type ArtificialAnalysisImageOutputPayload = {
 	data: ArtificialAnalysisImageEnrichedModel[];
 };
 
-/** Parse a release date into UTC for Artificial Analysis image benchmark source. */
 function parseReleaseDateToUtc(releaseDate: string | undefined): number | null {
 	if (!releaseDate) {
 		return null;
@@ -182,7 +178,6 @@ function isOlderThanDays(
 	return ageMs > minAgeMs;
 }
 
-/** Detect the group used for Artificial Analysis image benchmark source. */
 function detectGroup(category: RawCategory): GroupName | null {
 	const style =
 		typeof category.style_category === "string" ? category.style_category : "";
@@ -197,7 +192,6 @@ function detectGroup(category: RawCategory): GroupName | null {
 	);
 }
 
-/** Initialize an accumulator for Artificial Analysis image benchmark source. */
 function initAccumulator(): Aggregator {
 	return {
 		Photorealistic: { weightedEloSum: 0, appearanceSum: 0 },
@@ -206,7 +200,6 @@ function initAccumulator(): Aggregator {
 	};
 }
 
-/** Compute a frequency-weighted ELO score for Artificial Analysis image benchmark source. */
 function frequencyWeightedElo(
 	weightedEloSum: number,
 	appearanceSum: number,
@@ -220,7 +213,6 @@ function frequencyWeightedElo(
 	return Number((weightedEloSum / appearanceSum).toFixed(4));
 }
 
-/** Convert raw rows into aggregated fields for Artificial Analysis image benchmark source. */
 function toAggregatedFields(accumulator: Aggregator) {
 	const photorealistic = frequencyWeightedElo(
 		accumulator.Photorealistic.weightedEloSum,
@@ -371,7 +363,6 @@ function enrichPayload(
 	};
 }
 
-/** Build a failure payload for Artificial Analysis image benchmark source. */
 function createFailurePayload(
 	minModelAgeDays: number,
 ): ArtificialAnalysisImageOutputPayload {
@@ -383,9 +374,6 @@ function createFailurePayload(
 	};
 }
 
-/**
- * Fetch and enrich Artificial Analysis text-to-image leaderboard data.
- */
 export async function getArtificialAnalysisImageStats(
 	options: ArtificialAnalysisImageOptions = {},
 ): Promise<ArtificialAnalysisImageOutputPayload> {

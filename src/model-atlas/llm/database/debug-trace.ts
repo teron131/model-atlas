@@ -41,7 +41,6 @@ function modelsDevRowIndexByKey(
 	return byKey;
 }
 
-/** Counts OpenRouter stats points that precede the model row in raw storage. */
 function statsPointCount(
 	model: OpenRouterRawScrapedPayload["models"][number],
 ): number {
@@ -54,7 +53,6 @@ function statsPointCount(
 	return count;
 }
 
-/** Map OpenRouter model ids to the model_stats raw table row index. */
 function openRouterStatsRowById(
 	rawPayload: OpenRouterRawScrapedPayload | null | undefined,
 ): Map<string, number> {
@@ -90,7 +88,6 @@ function debugRejectionReason(
 	return "not_selected";
 }
 
-/** Builds a debug trace row for an unmatched matcher candidate. */
 function unmatchedDebugTraceRow(
 	model: MatchDiagnosticsPayload["models"][number],
 	artificialAnalysisRowById: Map<string, number>,
@@ -119,7 +116,6 @@ function unmatchedDebugTraceRow(
 	};
 }
 
-/** Build matcher candidate trace rows for debug lineage queries. */
 export function buildDebugTraceRows(
 	snapshots: SourceSnapshots,
 	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined,

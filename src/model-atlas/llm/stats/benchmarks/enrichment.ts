@@ -45,7 +45,6 @@ export type BenchmarkEnrichment = {
 	scoringSources: NonNullable<LlmStatsScoringSources>;
 };
 
-/** Return benchmark evaluations and scoring sources found for one model candidate set. */
 export function benchmarkEnrichment(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,

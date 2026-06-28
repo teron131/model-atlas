@@ -22,7 +22,6 @@ const DEFAULT_SNAPSHOT_PATH = "public/model-atlas-snapshot.json";
 const DEFAULT_PREVIOUS_SNAPSHOT_URL =
 	"https://llmstats.vercel.app/api/llm-stats?view=all";
 
-/** Reads an existing static snapshot so unchanged output can be skipped. */
 async function readPreviousSnapshot(
 	outputPath: string,
 ): Promise<LlmStatsPayload | null> {
@@ -73,7 +72,6 @@ export async function writeModelAtlasSnapshot(
 	return snapshotWriteResult(resolvedOutputPath, preservedPayload);
 }
 
-/** Writes a formatted static snapshot JSON file. */
 async function writeSnapshotFile(
 	resolvedOutputPath: string,
 	payload: LlmStatsPayload,
@@ -82,7 +80,6 @@ async function writeSnapshotFile(
 	await writeFile(resolvedOutputPath, `${JSON.stringify(payload)}\n`);
 }
 
-/** Builds the summary returned after a static snapshot write. */
 function snapshotWriteResult(
 	resolvedOutputPath: string,
 	payload: LlmStatsPayload,

@@ -63,7 +63,6 @@ export function booleanFromSql(value: unknown): boolean | null {
 	return null;
 }
 
-/** Copies present string fields into reconstructed payload objects. */
 export function assignIfString(
 	target: JsonObject,
 	key: string,
@@ -75,7 +74,6 @@ export function assignIfString(
 	}
 }
 
-/** Copies finite numeric fields into reconstructed payload objects. */
 export function assignIfNumber(
 	target: JsonObject,
 	key: string,
@@ -87,7 +85,6 @@ export function assignIfNumber(
 	}
 }
 
-/** Copies persisted boolean flags into reconstructed payload objects. */
 export function assignIfBoolean(
 	target: JsonObject,
 	key: string,
@@ -99,7 +96,6 @@ export function assignIfBoolean(
 	}
 }
 
-/** Drops empty nested payload sections after reconstruction. */
 export function nonEmptyRecord(record: JsonObject): JsonObject | null {
 	return Object.keys(record).length > 0 ? record : null;
 }
@@ -147,7 +143,6 @@ export function artificialAnalysisCacheHasHiddenRows(
 	return rawRows.length > 0;
 }
 
-/** Builds nested Artificial Analysis numeric sections from raw cache rows. */
 function artificialAnalysisNestedNumbers(
 	row: RawDbRow,
 	keys: readonly string[],
@@ -267,7 +262,6 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	return selectedRow;
 }
 
-/** Reads Artificial Analysis raw and selected rows from the raw cache. */
 export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
@@ -291,7 +285,6 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reconstructs models.dev cost fields from raw cache columns. */
 function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	const cost: NonNullable<ModelRecord["cost"]> = {};
 	assignIfNumber(cost, "input", row.cost_input);
@@ -302,7 +295,6 @@ function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	return Object.keys(cost).length > 0 ? cost : undefined;
 }
 
-/** Reconstructs models.dev limit fields from raw cache columns. */
 function modelLimit(row: RawDbRow): ModelRecord["limit"] | undefined {
 	const limit: NonNullable<ModelRecord["limit"]> = {};
 	assignIfNumber(limit, "context", row.limit_context);
@@ -310,7 +302,6 @@ function modelLimit(row: RawDbRow): ModelRecord["limit"] | undefined {
 	return Object.keys(limit).length > 0 ? limit : undefined;
 }
 
-/** Reconstructs models.dev modality fields from raw cache columns. */
 function modelModalities(row: RawDbRow): ModelRecord["modalities"] | undefined {
 	const input = modalityList(row, "input_modality", [
 		"text",
@@ -335,7 +326,6 @@ function modelModalities(row: RawDbRow): ModelRecord["modalities"] | undefined {
 	return Object.keys(modalities).length > 0 ? modalities : undefined;
 }
 
-/** Reconstructs a models.dev model record from raw cache columns. */
 function modelsDevModelRecord(row: RawDbRow): ModelRecord {
 	const model: ModelRecord = {};
 	assignIfString(model, "id", row.model_id);
@@ -361,7 +351,6 @@ function modelsDevModelRecord(row: RawDbRow): ModelRecord {
 	return model;
 }
 
-/** Reads models.dev provider/model records from the raw cache. */
 export function readModelsDevRawCache(db: DatabaseSync): {
 	payload: ModelsDevPayload;
 	fetchedAt: number | null;
@@ -398,7 +387,6 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads Agents' Last Exam harness rows from the raw cache. */
 export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	rows: AgentsLastExamHarnessRow[];
 	fetchedAt: number | null;
@@ -459,7 +447,6 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated Blueprint Bench score rows from the raw cache. */
 export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	rows: BlueprintBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -499,7 +486,6 @@ export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated BrowseComp score rows from the raw cache. */
 export function readBrowseCompRawCache(db: DatabaseSync): {
 	rows: BrowseCompModelScoreRow[];
 	fetchedAt: number | null;
@@ -542,7 +528,6 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated CursorBench score rows from the raw cache. */
 export function readCursorBenchRawCache(db: DatabaseSync): {
 	rows: CursorBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -595,7 +580,6 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads DeepSWE rows, source version, and fetch time from the raw cache. */
 export function readDeepSWERawCache(db: DatabaseSync): {
 	rows: DeepSWERawLeaderboardRow[];
 	fetchedAt: number | null;
@@ -619,7 +603,6 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated GDP PDF score rows from the raw cache. */
 export function readGdpPdfRawCache(db: DatabaseSync): {
 	rows: GdpPdfModelScoreRow[];
 	fetchedAt: number | null;
@@ -654,7 +637,6 @@ export function readGdpPdfRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated Riemann Bench score rows from the raw cache. */
 export function readRiemannBenchRawCache(db: DatabaseSync): {
 	rows: RiemannBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -694,7 +676,6 @@ export function readRiemannBenchRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads Terminal-Bench agent accuracy rows from the raw cache. */
 export function readTerminalBenchRawCache(db: DatabaseSync): {
 	rows: TerminalBenchAgentModelAccuracyRow[];
 	fetchedAt: number | null;
@@ -719,7 +700,6 @@ export function readTerminalBenchRawCache(db: DatabaseSync): {
 	};
 }
 
-/** Reads validated Toolathlon score rows from the raw cache. */
 export function readToolathlonRawCache(db: DatabaseSync): {
 	rows: ToolathlonModelScoreRow[];
 	fetchedAt: number | null;

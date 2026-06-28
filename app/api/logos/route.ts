@@ -11,7 +11,6 @@ const LOGO_CACHE_HEADERS = publicCacheHeaders({
 	staleWhileRevalidateSeconds: 604800,
 });
 
-/** Serves the HTTP GET response for provider logo API. */
 export function GET() {
 	return Response.json(
 		Object.fromEntries(

@@ -1,4 +1,4 @@
-/** Parsing scraping for Model Atlas. */
+/** Shared parser rules for benchmark pages that expose loose HTML, embedded JSON, and text-only rows. */
 
 import { asFiniteNumber, asRecord } from "../shared";
 
@@ -18,7 +18,6 @@ export function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Accepts only boolean fields from scraped payloads. */
 export function booleanValue(value: unknown): boolean | null {
 	return typeof value === "boolean" ? value : null;
 }
@@ -46,7 +45,6 @@ export function percentToUnitScore(
 	return Number((score / 100).toFixed(6));
 }
 
-/** Decodes the small HTML entity set used by benchmark pages. */
 export function decodeHtmlEntities(value: string): string {
 	return value
 		.replace(/&nbsp;/g, " ")
@@ -58,7 +56,6 @@ export function decodeHtmlEntities(value: string): string {
 		.replace(/&#8212;/g, "\u2014");
 }
 
-/** Removes markup while preserving readable benchmark text. */
 export function stripHtmlTags(value: string): string {
 	return decodeHtmlEntities(value.replace(/<[^>]+>/g, " "))
 		.replace(/\s+/g, " ")
@@ -70,7 +67,6 @@ function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Extracts and decodes one HTML attribute from scraped markup. */
 export function htmlAttribute(html: string, name: string): string | null {
 	const namePattern = escapeRegExp(name);
 	const match = html.match(
@@ -92,7 +88,6 @@ export function htmlTextLines(pageHtml: string): string[] {
 		.filter((line) => line.length > 0);
 }
 
-/** Extracts provider names from logo alt text. */
 export function providerFromLogoAlt(value: string | null): string | null {
 	if (value == null) {
 		return null;
@@ -101,7 +96,6 @@ export function providerFromLogoAlt(value: string | null): string | null {
 	return provider.length > 0 ? provider : null;
 }
 
-/** Normalizes one ZeroEval model row into Model Atlas score fields. */
 export function zeroEvalModelScoreFields(
 	value: unknown,
 ): ZeroEvalModelScoreFields | null {

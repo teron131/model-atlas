@@ -50,7 +50,6 @@ export const ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS = [
 	"intelligence_index_cost",
 	"evaluations",
 ] as const;
-/** Decode the flight payload used by Artificial Analysis scraper. */
 function decodeFlightChunk(raw: string): string {
 	try {
 		return JSON.parse(`"${raw}"`) as string;
@@ -59,7 +58,6 @@ function decodeFlightChunk(raw: string): string {
 	}
 }
 
-/** Convert Artificial Analysis logo paths to absolute URLs. */
 function toAbsoluteAaLogoUrl(value: unknown): string | null {
 	if (typeof value !== "string" || value.length === 0) {
 		return null;
@@ -109,7 +107,6 @@ const EVALUATION_KEY_BY_SOURCE_KEY = {
 	terminalbench_v21: "terminalbench_v21",
 } as const satisfies Readonly<Record<string, string>>;
 const NO_COLUMN_VALUE = Symbol("no_column_value");
-/** Return the first numeric value from the provided row keys. */
 function firstNumber(row: JsonObject, keys: string[]): number | null {
 	for (const key of keys) {
 		if (typeof row[key] === "number") {
@@ -119,7 +116,6 @@ function firstNumber(row: JsonObject, keys: string[]): number | null {
 	return null;
 }
 
-/** Return the first boolean value from the provided row keys. */
 function firstBoolean(row: JsonObject, keys: string[]): boolean | null {
 	for (const key of keys) {
 		if (typeof row[key] === "boolean") {
@@ -129,7 +125,6 @@ function firstBoolean(row: JsonObject, keys: string[]): boolean | null {
 	return null;
 }
 
-/** Return the first string value from the provided row keys. */
 function firstString(row: JsonObject, keys: string[]): string | null {
 	for (const key of keys) {
 		if (typeof row[key] === "string" && row[key].length > 0) {
@@ -139,12 +134,10 @@ function firstString(row: JsonObject, keys: string[]): string | null {
 	return null;
 }
 
-/** Convert Artificial Analysis metric keys into the stable snake_case payload keys. */
 function normalizeMetricKey(key: string): string {
 	return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
-/** Select the relevant score fields for Artificial Analysis scraper. */
 function pickEvaluations(row: JsonObject): JsonObject {
 	const evaluations: JsonObject = {};
 	for (const [key, value] of Object.entries(row)) {
@@ -159,7 +152,6 @@ function pickEvaluations(row: JsonObject): JsonObject {
 	return evaluations;
 }
 
-/** Normalizes evaluation key by source key from benchmark source data. */
 function evaluationKeyBySourceKey(key: string): string | null {
 	return (
 		EVALUATION_KEY_BY_SOURCE_KEY[
@@ -172,7 +164,6 @@ function evaluationKeyBySourceKey(key: string): string | null {
 	);
 }
 
-/** Select the relevant score fields for Artificial Analysis scraper. */
 function pickIntelligence(row: JsonObject): JsonObject {
 	const omniscienceBreakdown = asRecord(row.omniscienceBreakdown);
 	const omniscienceTotal = asRecord(omniscienceBreakdown.total);
@@ -197,7 +188,6 @@ function pickIntelligence(row: JsonObject): JsonObject {
 	return intelligence;
 }
 
-/** Select the relevant score fields for Artificial Analysis scraper. */
 function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 	const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
 	const costPerTask = asRecord(row.intelligenceIndexCostPerTask);
@@ -250,7 +240,6 @@ function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 	};
 }
 
-/** Normalize nullable values for Artificial Analysis scraper. */
 function normalizeUndefinedToNull(value: unknown): unknown {
 	if (value === undefined) {
 		return null;
@@ -269,13 +258,11 @@ function normalizeUndefinedToNull(value: unknown): unknown {
 	return value;
 }
 
-/** Decode the flight payload used by Artificial Analysis scraper. */
 function extractFlightCorpus(pageHtml: string): string {
 	const matches = [...pageHtml.matchAll(NEXT_FLIGHT_CHUNK_REGEX)];
 	return matches.map((match) => decodeFlightChunk(match[1] ?? "")).join("\n");
 }
 
-/** Parse JSON objects while scanning Artificial Analysis scraper. */
 function findObjectEnd(corpus: string, startIndex: number): number {
 	let depth = 0;
 	let inString = false;
@@ -311,7 +298,6 @@ function findObjectEnd(corpus: string, startIndex: number): number {
 	return -1;
 }
 
-/** Parse JSON objects while scanning Artificial Analysis scraper. */
 function parseJsonObject(value: string): JsonObject | null {
 	try {
 		return asRecord(JSON.parse(value));
@@ -320,7 +306,6 @@ function parseJsonObject(value: string): JsonObject | null {
 	}
 }
 
-/** Derive a row identifier for Artificial Analysis scraper. */
 function getRowIdentifier(row: JsonObject): string | null {
 	if (typeof row.id === "string") {
 		return row.id;
@@ -334,7 +319,6 @@ function getRowIdentifier(row: JsonObject): string | null {
 	return null;
 }
 
-/** Return whether a parsed object looks like a leaderboard model row. */
 function isLeaderboardModelRow(row: JsonObject): boolean {
 	if (!(ROW_DETECTION_KEY in row)) {
 		return false;
@@ -350,7 +334,6 @@ function isLeaderboardModelRow(row: JsonObject): boolean {
 	);
 }
 
-/** Flatten nested rows for Artificial Analysis scraper. */
 function flattenExpandedRow(row: JsonObject): JsonObject {
 	const timescaleData = asRecord(row.timescaleData);
 	const responseTimeMetrics = asRecord(row.end_to_end_response_time_metrics);
@@ -379,7 +362,6 @@ function flattenExpandedRow(row: JsonObject): JsonObject {
 	return flattenedRow;
 }
 
-/** Return whether null like is true. */
 function isNullLike(value: unknown): boolean {
 	return (
 		value == null ||
@@ -422,7 +404,6 @@ function dropMostlyNullColumns(
 	);
 }
 
-/** Sort rows to mirror the leaderboard's default intelligence-first order. */
 function sortLeaderboardRows(rows: JsonObject[]): JsonObject[] {
 	return [...rows].sort((left, right) => {
 		const leftIntelligence = firstNumber(left, ["intelligenceIndex"]);
@@ -455,7 +436,6 @@ type RowSelectionContext = {
 	creatorSlug: string | null;
 	modelUrlSlug: string | null;
 };
-/** Derive a provider slug for Artificial Analysis scraper. */
 function getProviderSlug(row: JsonObject, creator: JsonObject): string | null {
 	const providerName =
 		typeof creator.name === "string"
@@ -482,7 +462,6 @@ function flatCreatorFromRow(row: JsonObject): JsonObject {
 	};
 }
 
-/** Derive the model URL slug from relative or absolute Artificial Analysis URLs. */
 function modelUrlSlugFromRow(
 	row: JsonObject,
 	fallbackSlug: string | null,
@@ -496,7 +475,6 @@ function modelUrlSlugFromRow(
 	return urlPath.length > 0 ? urlPath : fallbackSlug;
 }
 
-/** Build a row-selection context for Artificial Analysis scraper. */
 function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 	const creator = {
 		...flatCreatorFromRow(row),
@@ -523,7 +501,6 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 	};
 }
 
-/** Select the preferred Artificial Analysis scraper values. */
 function selectModalities(row: JsonObject, type: "input" | "output"): string[] {
 	return [
 		row[`${type}_modality_text`] || row[`${type}ModalityText`] ? "text" : null,
@@ -539,12 +516,10 @@ function selectModalities(row: JsonObject, type: "input" | "output"): string[] {
 	].filter((value): value is string => value != null);
 }
 
-/** Select the preferred Artificial Analysis scraper values. */
 function selectReasoningFlag(row: JsonObject): boolean | null {
 	return firstBoolean(row, ["reasoningModel"]);
 }
 
-/** Return the selected column value for Artificial Analysis scraper. */
 function getSelectedColumnValue(
 	column: string,
 	row: JsonObject,
@@ -683,7 +658,6 @@ function getSelectedColumnValue(
 	}
 }
 
-/** Select the preferred Artificial Analysis scraper values. */
 function selectColumns(
 	rows: JsonObject[],
 	selectedColumns: string[],
@@ -712,7 +686,6 @@ function selectColumns(
 	});
 }
 
-/** Extract the rows from corpus. */
 function extractRowsFromCorpus(corpus: string): JsonObject[] {
 	const rowsById = new Map<string, JsonObject>();
 
@@ -752,7 +725,6 @@ function extractRowsFromCorpus(corpus: string): JsonObject[] {
 	return [...rowsById.values()];
 }
 
-/** Helper for process artificial analysis scraped rows. */
 export function processArtificialAnalysisScrapedRows(
 	rows: JsonObject[],
 	options: ArtificialAnalysisScraperProcessOptions = {},
@@ -824,7 +796,6 @@ export async function getArtificialAnalysisScrapedStats(
 	};
 }
 
-/** Get the artificial analysis scraped evals only stats. */
 export async function getArtificialAnalysisEvalsStats(
 	options: Omit<ArtificialAnalysisScraperOptions, "selectedColumns"> = {},
 ): Promise<ArtificialAnalysisScrapedPayload> {

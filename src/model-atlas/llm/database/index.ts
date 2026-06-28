@@ -1,4 +1,4 @@
-/** Public database pipeline exports. */
+/** Public database boundary for building snapshots, publishing D1 runs, and reading payloads back out. */
 export { buildModelAtlasDatabase } from "./build";
 export {
 	ensureModelAtlasD1Schema,

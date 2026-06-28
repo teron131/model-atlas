@@ -40,7 +40,6 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	return db;
 }
 
-/** Parses column names and types from one CREATE TABLE statement. */
 function tableColumns(db: DatabaseSync, table: string): Set<string> {
 	return new Set(
 		db
@@ -62,7 +61,6 @@ function ensureSchemaColumns(db: DatabaseSync, schemaSql: string): void {
 	}
 }
 
-/** Parses table-to-column mappings from the shared schema SQL. */
 export function schemaTableColumns(
 	schemaSql: string,
 ): Map<string, [string, string][]> {
@@ -94,7 +92,6 @@ export function schemaTableColumns(
 	return tables;
 }
 
-/** Lists table names declared in the shared schema SQL. */
 export function schemaTableNames(schemaSql: string): string[] {
 	return [...schemaTableColumns(schemaSql).keys()];
 }

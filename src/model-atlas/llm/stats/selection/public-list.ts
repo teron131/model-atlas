@@ -43,7 +43,6 @@ const REQUIRED_RELATIVE_SCORE_KEYS = [
 	"agentic_score",
 ] as const;
 
-/** Detect whether a row represents an OpenRouter free route variant. */
 function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
 		isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name)
@@ -93,7 +92,6 @@ function isPlainObject(value: unknown): value is JsonObject {
 	return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Check whether a release date belongs to the recent field-pruning sample. */
 function isWithinRecentLookback(
 	releaseDate: string | null,
 	lookbackDays: number,
@@ -109,7 +107,6 @@ function isWithinRecentLookback(
 	return releaseTimestampMs >= cutoffMs;
 }
 
-/** Prefer recent rows when deciding whether fields are sparse. */
 function selectPruneSampleModels(
 	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
@@ -217,7 +214,6 @@ function pruneSparseFields(
 	});
 }
 
-/** Apply optional public ID filtering after OpenRouter route normalization. */
 function filterModelsById(
 	models: LlmStatsModel[],
 	id: string | null | undefined,
@@ -268,7 +264,6 @@ function collapseOpenRouterFreeRoutes(
 	]);
 }
 
-/** Apply public model selection policy after candidate scoring. */
 export function selectPublicModels(
 	scoredCandidates: LlmStatsScoredCandidate[],
 	id: string | null | undefined,

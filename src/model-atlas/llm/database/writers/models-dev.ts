@@ -1,4 +1,4 @@
-/** models.dev raw row writer. */
+/** SQLite writer for models.dev catalog rows, preserving provider, pricing, limit, and modality fields. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -6,7 +6,6 @@ import type { ModelsDevPayload } from "../../scrapers/models-dev";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { booleanValue, hasModality } from "./shared";
 
-/** Insert models.dev raw model rows with provider, cost, limit, and modality fields. */
 export function insertModelsDevRawModels(
 	db: DatabaseSync,
 	runId: number,

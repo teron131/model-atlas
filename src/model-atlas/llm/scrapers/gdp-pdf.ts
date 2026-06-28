@@ -30,12 +30,10 @@ export type GdpPdfModelScorePayload = {
 	data: GdpPdfModelScoreRow[];
 };
 
-/** Extract model score rows from the public GDP.pdf leaderboard page. */
 export function processGdpPdfPageHtml(pageHtml: string): GdpPdfModelScoreRow[] {
 	return surgeLeaderboardScoreRows(pageHtml);
 }
 
-/** Normalizes model key candidates from benchmark source data. */
 function modelKeyCandidates(model: string): string[] {
 	const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
 	const slashParts = withoutParenthetical
@@ -49,7 +47,6 @@ function modelKeyCandidates(model: string): string[] {
 		);
 }
 
-/** Build GDP.pdf score rows by normalized model name. */
 export function buildGdpPdfMap(
 	rows: GdpPdfModelScoreRow[],
 ): GdpPdfScoreByModelName {
@@ -62,7 +59,6 @@ export function buildGdpPdfMap(
 	return scoreByModelName;
 }
 
-/** Find a GDP.pdf score from display names. */
 export function findGdpPdfScore(
 	candidateNames: unknown[],
 	gdpPdfScoreByModelName: GdpPdfScoreByModelName,
@@ -81,7 +77,6 @@ export function findGdpPdfScore(
 	return null;
 }
 
-/** Fetch GDP.pdf model score rows from the public page. */
 export async function getGdpPdfStats(
 	options: GdpPdfScraperOptions = {},
 ): Promise<GdpPdfModelScorePayload> {
