@@ -50,9 +50,6 @@ const DEFAULT_CONCURRENCY = 8;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_BASE_DELAY_MS = 300;
 
-/**
- * Options for scraping OpenRouter performance stats for a selected model list.
- */
 export type OpenRouterScraperOptions = {
 	modelIds: string[];
 	timeoutMs?: number;
@@ -79,7 +76,6 @@ function sleep(ms: number): Promise<void> {
 	});
 }
 
-/** Calculate the retry backoff for an OpenRouter request attempt. */
 function retryBackoffMs(
 	requestOptions: OpenRouterRequestOptions,
 	attempt: number,
@@ -90,7 +86,6 @@ function retryBackoffMs(
 	);
 }
 
-/** Fetch an OpenRouter URL with retry/backoff and caller-owned response parsing. */
 async function fetchOpenRouterWithRetry<T>(
 	url: string,
 	requestOptions: OpenRouterRequestOptions,
@@ -128,7 +123,6 @@ async function fetchOpenRouterWithRetry<T>(
 	throw lastError ?? new Error(`OpenRouter request failed: ${url}`);
 }
 
-/** Fetch JSON with retry/backoff for OpenRouter API endpoints. */
 async function fetchJsonWithRetry<T>(
 	url: string,
 	requestOptions: OpenRouterRequestOptions,
@@ -140,7 +134,6 @@ async function fetchJsonWithRetry<T>(
 	);
 }
 
-/** Fetch text with retry/backoff for OpenRouter public pages. */
 async function fetchTextWithRetry(
 	url: string,
 	requestOptions: OpenRouterRequestOptions,
@@ -150,7 +143,6 @@ async function fetchTextWithRetry(
 	);
 }
 
-/** Map items with bounded concurrency. */
 async function mapWithConcurrency<T, R>(
 	items: T[],
 	concurrency: number,
@@ -180,7 +172,6 @@ async function mapWithConcurrency<T, R>(
 	return results;
 }
 
-/** Build a permaslug lookup table from the OpenRouter catalog response. */
 function buildPermaslugLookup(
 	models: OpenRouterFrontendModel[],
 ): Map<string, string> {
@@ -199,7 +190,6 @@ function buildPermaslugLookup(
 	return permaslugBySlug;
 }
 
-/** Fetch performance stats for one OpenRouter permaslug. */
 async function fetchPerformanceForPermaslug(
 	permaslug: string,
 	requestOptions: OpenRouterRequestOptions,
@@ -251,13 +241,11 @@ async function fetchPerformanceForPermaslug(
 	};
 }
 
-/** Build the public performance page URL for an OpenRouter permaslug. */
 function performancePageUrl(permaslug: string): string {
 	const path = permaslug.split("/").map(encodeURIComponent).join("/");
 	return `${OPENROUTER_BASE_URL}/${path}/performance`;
 }
 
-/** Fetch weekly token usage from an OpenRouter performance page. */
 async function fetchWeeklyTokensForPermaslug(
 	permaslug: string,
 	requestOptions: OpenRouterRequestOptions,
@@ -271,7 +259,6 @@ async function fetchWeeklyTokensForPermaslug(
 	}
 }
 
-/** Fetch raw stats for the best available OpenRouter permaslug candidate. */
 async function fetchBestAvailableRawModelStats(
 	modelId: string,
 	availableSlugs: string[],

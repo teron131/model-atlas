@@ -11,17 +11,14 @@ export const maxDuration = 300;
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-/** Serves the HTTP GET response for snapshot refresh API. */
 export async function GET(request: Request) {
 	return refreshSnapshot(request);
 }
 
-/** Serves the HTTP POST response for snapshot refresh API. */
 export async function POST(request: Request) {
 	return refreshSnapshot(request);
 }
 
-/** Runs the protected snapshot refresh workflow for the API route. */
 async function refreshSnapshot(request: Request) {
 	if (!isAuthorized(request)) {
 		return new Response("Unauthorized", {
@@ -78,7 +75,6 @@ async function refreshSnapshot(request: Request) {
 	);
 }
 
-/** Checks whether authorized for snapshot refresh API. */
 function isAuthorized(request: Request): boolean {
 	const cronSecret = process.env.CRON_SECRET;
 	if (!cronSecret) {

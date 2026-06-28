@@ -37,17 +37,15 @@ const displayRefreshState = globalThis as typeof globalThis & {
 };
 const DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS = 30_000;
 
-/** Reports whether the runtime D1 snapshot store is configured. */
 export function runtimeSnapshotStoreConfigured(): boolean {
 	return modelAtlasD1Configured();
 }
 
-/** Lists missing environment variables for runtime snapshot storage. */
 export function runtimeSnapshotStoreMissingEnvironment(): string[] {
 	return modelAtlasD1MissingEnvironment();
 }
 
-/** Reads the best available snapshot payload for API callers. */
+/** Remote snapshot URLs override local storage so deployed readers can be pointed at a single known-good artifact. */
 export async function readSnapshotPayload(): Promise<LlmStatsPayload | null> {
 	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
 		return fetchRemoteSnapshot(process.env.MODEL_ATLAS_SNAPSHOT_URL);
@@ -55,7 +53,7 @@ export async function readSnapshotPayload(): Promise<LlmStatsPayload | null> {
 	return readSnapshotCache();
 }
 
-/** Reads D1, local database, and static snapshots in fallback order. */
+/** Prefer D1 when available, then choose between local SQLite and static JSON by benchmark coverage before freshness. */
 async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
 	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
 		[
@@ -71,7 +69,7 @@ async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
 	);
 }
 
-/** Reads the display snapshot through the shared in-memory cache. */
+/** Collapse concurrent dashboard reads onto one refresh and keep a short in-memory result for repeated server renders. */
 export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	if (state.cachedPayload != null && Date.now() < state.cacheExpiresAt) {
@@ -83,7 +81,7 @@ export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | nu
 	return state.readInFlight;
 }
 
-/** Reads a fresh display snapshot and updates refresh state afterward. */
+/** Display reads may trigger a background-quality refresh, but they still return the best stored payload on failure. */
 async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | null> {
 	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
 		const payload = await fetchRemoteSnapshot(
@@ -99,7 +97,6 @@ async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | n
 	return payload;
 }
 
-/** Caches display payload for runtime snapshot loading. */
 function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
 	if (payload == null) {
 		return;
@@ -110,7 +107,7 @@ function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
 		Date.now() + DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS;
 }
 
-/** Starts a single shared display refresh for stale snapshot reads. */
+/** Only one stale-display refresh may run per process, and failure must not erase the last usable payload. */
 function startDisplayRefresh(
 	refreshMode: Exclude<DisplaySnapshotRefreshMode, "none">,
 ): Promise<LlmStatsPayload | null> {
@@ -132,7 +129,6 @@ function startDisplayRefresh(
 	return state.refreshInFlight;
 }
 
-/** Refreshes stale display snapshots without dropping the current payload. */
 async function refreshDisplaySnapshotIfStale(
 	payload: LlmStatsPayload | null,
 ): Promise<LlmStatsPayload | null> {
@@ -149,12 +145,11 @@ async function refreshDisplaySnapshotIfStale(
 	return (await refreshPromise) ?? payload;
 }
 
-/** Rebuilds the payload used by explicit refresh requests. */
+/** Explicit refreshes rebuild through the runtime database path instead of reading a stale static artifact. */
 export async function refreshRequestPayload(): Promise<LlmStatsPayload> {
 	return refreshModelAtlasPayload(runtimeDatabasePath());
 }
 
-/** Rebuilds the Model Atlas database and reads its payload. */
 async function refreshModelAtlasPayload(
 	databasePath?: string,
 ): Promise<LlmStatsPayload> {
@@ -164,27 +159,24 @@ async function refreshModelAtlasPayload(
 	return readModelAtlasDatabasePayload(database.path);
 }
 
-/** Reads the latest runtime snapshot stored in D1. */
+/** D1 stores completed run payloads; readers overlay current metadata so old snapshots follow today’s scoring portfolio. */
 export async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
 	const payload = await readD1ModelAtlasPayload();
 	return payload == null ? null : withCurrentSnapshotMetadata(payload);
 }
 
-/** Reads the checked-in static snapshot artifact. */
 async function readStaticSnapshot(): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
 		JSON.parse(await readFile(STATIC_SNAPSHOT_PATH, "utf-8")),
 	);
 }
 
-/** Reads a snapshot from the local SQLite database. */
 async function readLocalDatabaseSnapshot(): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
 		readModelAtlasDatabasePayload(localDatabaseReadPath()),
 	);
 }
 
-/** Checks whether this runtime should prefer the checked-in static snapshot. */
 function shouldReadStaticSnapshot(): boolean {
 	return (
 		process.env.VERCEL === "1" ||
@@ -192,7 +184,6 @@ function shouldReadStaticSnapshot(): boolean {
 	);
 }
 
-/** Picks the snapshot with better selected-benchmark coverage and freshness. */
 export function bestSnapshotPayload(
 	left: LlmStatsPayload | null,
 	right: LlmStatsPayload | null,
@@ -211,12 +202,10 @@ export function bestSnapshotPayload(
 	return snapshotFetchedAt(right) > snapshotFetchedAt(left) ? right : left;
 }
 
-/** Reads the payload fetch timestamp used for freshness comparisons. */
 function snapshotFetchedAt(payload: LlmStatsPayload): number {
 	return payload.fetched_at_epoch_seconds ?? 0;
 }
 
-/** Counts selected benchmark keys represented in a payload. */
 function selectedBenchmarkCoverage(payload: LlmStatsPayload): number {
 	const selectedKeys = payload.metadata.scoring.selected_benchmark_keys;
 	if (selectedKeys.length === 0) {
@@ -230,7 +219,6 @@ function selectedBenchmarkCoverage(payload: LlmStatsPayload): number {
 	return selectedKeys.filter((key) => availableKeys.has(key)).length;
 }
 
-/** Chooses whether display reads should use stored or live refresh. */
 export function displaySnapshotRefreshMode(
 	payload: LlmStatsPayload | null,
 	now: number,
@@ -249,7 +237,6 @@ export function displaySnapshotRefreshMode(
 		: "none";
 }
 
-/** Reads the display refresh interval from environment settings. */
 function displayRefreshIntervalSeconds(): number {
 	const configured = Number.parseInt(
 		process.env.MODEL_ATLAS_DISPLAY_REFRESH_INTERVAL_SECONDS ?? "",
@@ -260,7 +247,6 @@ function displayRefreshIntervalSeconds(): number {
 		: RAW_SOURCE_CACHE_SECONDS;
 }
 
-/** Returns the process-wide display refresh state. */
 function getDisplayRefreshState(): DisplayRefreshState {
 	displayRefreshState.__modelAtlasDisplayRefreshState ??= {
 		cachedPayload: null,
@@ -271,12 +257,10 @@ function getDisplayRefreshState(): DisplayRefreshState {
 	return displayRefreshState.__modelAtlasDisplayRefreshState;
 }
 
-/** Returns the current epoch time in seconds. */
 function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
 
-/** Fetches remote snapshot for runtime snapshot loading. */
 async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
 	const response = await fetch(url, {
 		cache: "no-store",
@@ -289,7 +273,7 @@ async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(await response.json());
 }
 
-/** Updates snapshot metadata to the current scoring configuration. */
+/** Keep cached payload rows, but rebuild metadata from current code-owned benchmark and scoring policy. */
 function withCurrentSnapshotMetadata(
 	payload: LlmStatsPayload,
 ): LlmStatsPayload {
@@ -306,7 +290,6 @@ function withCurrentSnapshotMetadata(
 	};
 }
 
-/** Resolves the database path used for live refreshes. */
 export function runtimeDatabasePath(): string | undefined {
 	if (process.env.MODEL_ATLAS_DATABASE_PATH) {
 		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
@@ -317,7 +300,6 @@ export function runtimeDatabasePath(): string | undefined {
 	return undefined;
 }
 
-/** Resolves the database path used for local snapshot reads. */
 export function localDatabaseReadPath(): string | undefined {
 	if (process.env.MODEL_ATLAS_DATABASE_PATH) {
 		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);

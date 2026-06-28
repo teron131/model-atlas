@@ -11,12 +11,10 @@ import type {
 
 type TaskMetricValues = LlmStatsTaskMetricValues;
 
-/** Checks whether task metric fields are present before projection. */
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
 }
 
-/** Build normalized per-task metrics for Artificial Analysis, DeepSWE, and ALE runs. */
 export function buildTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
 	cost: LlmStatsCost,
@@ -44,7 +42,6 @@ export function buildTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-/** Use Artificial Analysis direct Intelligence per-task telemetry. */
 function buildArtificialAnalysisTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
 ): TaskMetricValues | null {
@@ -70,7 +67,6 @@ function buildArtificialAnalysisTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-/** Expose DeepSWE resources normalized by its scraped task count. */
 function buildDeepSWETaskMetrics(
 	scoringSources: LlmStatsScoringSources,
 ): TaskMetricValues | null {
@@ -121,7 +117,6 @@ function buildAgentsLastExamTaskMetrics(
 	return taskMetrics;
 }
 
-/** Expose AutomationBench's reported cost-per-task beside its score. */
 function buildAutomationBenchTaskMetrics(
 	scoringSources: LlmStatsScoringSources,
 ): TaskMetricValues | null {
@@ -134,7 +129,6 @@ function buildAutomationBenchTaskMetrics(
 	};
 }
 
-/** Estimate task cost from per-million input/output token prices and observed tokens. */
 function tokenUsageTaskCost(
 	cost: LlmStatsCost,
 	inputTokens: number,

@@ -25,7 +25,6 @@ function unquote(value: string): string {
 		: trimmed;
 }
 
-/** Parses dotenv key/value entries for Vercel syncing. */
 function envEntries(): [string, string][] {
 	return readFileSync(envFile, "utf8")
 		.split(/\r?\n/)
@@ -38,7 +37,6 @@ function envEntries(): [string, string][] {
 		});
 }
 
-/** Runs the Vercel CLI with inherited stdio. */
 function vercel(
 	args: string[],
 	options: { secret?: string; printOutput?: boolean } = {},
@@ -67,7 +65,6 @@ type ListedEnv = {
 	gitBranch?: string;
 };
 
-/** Reads currently configured Vercel environment variables. */
 function listedEnvs(): ListedEnv[] {
 	const output = vercel(["env", "list", "--format", "json"]);
 	const json = JSON.parse(output.slice(output.indexOf("{"))) as {

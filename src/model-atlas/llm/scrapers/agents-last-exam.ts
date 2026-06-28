@@ -127,7 +127,6 @@ function asAgentsLastExamHarnessRow(
 	};
 }
 
-/** Normalize the public API payload to harness/model rows. */
 export function processAgentsLastExamLeaderboardRows(
 	rows: unknown[],
 ): AgentsLastExamHarnessRow[] {
@@ -136,14 +135,12 @@ export function processAgentsLastExamLeaderboardRows(
 		.filter((row): row is AgentsLastExamHarnessRow => row != null);
 }
 
-/** Return the Agents' Last Exam score used for model matching and scoring. */
 export function agentsLastExamBenchmarkScore(
 	row: AgentsLastExamModelScoreRow,
 ): number {
 	return Math.max(row.median_score, row.mean_score);
 }
 
-/** Normalizes per run from benchmark source data. */
 function perRun(value: number, row: AgentsLastExamHarnessRow): number | null {
 	return row.runs > 0 ? value / row.runs : null;
 }
@@ -228,7 +225,6 @@ export function summarizeAgentsLastExamModelScores(
 		);
 }
 
-/** Build Agents' Last Exam score rows by normalized model name. */
 export function buildAgentsLastExamMap(
 	rows: AgentsLastExamModelScoreRow[],
 ): AgentsLastExamScoreByModelName {
@@ -252,7 +248,6 @@ export function buildAgentsLastExamMap(
 	return scoreByModelName;
 }
 
-/** Find an Agents' Last Exam score row from model labels that may differ by punctuation. */
 export function findAgentsLastExamModelScore(
 	candidateNames: unknown[],
 	scoreByModelName: AgentsLastExamScoreByModelName,
@@ -272,7 +267,6 @@ export function findAgentsLastExamModelScore(
 	return null;
 }
 
-/** Fetch leaderboard rows from the public JSON endpoint. */
 async function fetchApiRows(
 	apiUrl: string,
 	timeoutMs: number,
@@ -312,7 +306,6 @@ async function fetchPlaywrightRows(
 	}
 }
 
-/** Fetch Agents' Last Exam harness/model leaderboard rows. */
 export async function getAgentsLastExamHarnessStats(
 	options: AgentsLastExamScraperOptions = {},
 ): Promise<AgentsLastExamHarnessPayload> {
@@ -346,7 +339,6 @@ export async function getAgentsLastExamHarnessStats(
 	}
 }
 
-/** Fetch Agents' Last Exam model score rows. */
 export async function getAgentsLastExamStats(
 	options: AgentsLastExamScraperOptions = {},
 ): Promise<AgentsLastExamModelScorePayload> {

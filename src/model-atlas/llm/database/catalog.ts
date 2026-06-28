@@ -10,7 +10,6 @@ import {
 import { benchmarkEnrichment } from "../stats/benchmarks";
 import type { LlmStatsSourceData } from "../stats/types";
 
-/** Applies models.dev catalog filtering for canonical model ID. */
 function canonicalModelId(
 	modelId: unknown,
 	providerId: unknown,
@@ -28,13 +27,11 @@ function canonicalModelId(
 	return typeof modelId === "string" ? modelId : null;
 }
 
-/** Applies models.dev catalog filtering for normalized row ID. */
 function normalizedRowId(row: Record<string, unknown>): string | null {
 	const id = typeof row.id === "string" ? row.id : null;
 	return id == null ? null : normalizeProviderModelId(id);
 }
 
-/** Applies models.dev catalog filtering for normalized row provider. */
 function normalizedRowProvider(row: Record<string, unknown>): string | null {
 	const normalizedId = normalizedRowId(row);
 	const provider =
@@ -43,7 +40,6 @@ function normalizedRowProvider(row: Record<string, unknown>): string | null {
 	return provider == null ? null : normalizeProviderId(provider);
 }
 
-/** Applies models.dev catalog filtering for normalized row family. */
 function normalizedRowFamily(row: Record<string, unknown>): string | null {
 	if (typeof row.family !== "string" || row.family.length === 0) {
 		return null;
@@ -54,14 +50,12 @@ function normalizedRowFamily(row: Record<string, unknown>): string | null {
 		.replace(/-+/g, "-");
 }
 
-/** Applies models.dev catalog filtering for catalog family key. */
 function catalogFamilyKey(row: Record<string, unknown>): string | null {
 	const provider = normalizedRowProvider(row);
 	const family = normalizedRowFamily(row);
 	return provider == null || family == null ? null : `${provider}/${family}`;
 }
 
-/** Applies models.dev catalog filtering for row text. */
 function rowText(
 	row: Record<string, unknown>,
 	keys: readonly string[],
@@ -73,42 +67,35 @@ function rowText(
 		.toLowerCase();
 }
 
-/** Applies models.dev catalog filtering for row has explicit text output. */
 function rowHasExplicitTextOutput(row: Record<string, unknown>): boolean {
 	const modalities = asRecord(row.modalities);
 	return Array.isArray(modalities.output) && modalities.output.includes("text");
 }
 
-/** Applies models.dev catalog filtering for has obvious image model label. */
 function hasObviousImageModelLabel(row: Record<string, unknown>): boolean {
 	return rowText(row, ["id", "openrouter_id", "name", "family"]).includes(
 		"image",
 	);
 }
 
-/** Checks whether text LLM catalog row for models.dev catalog filtering. */
 function isTextLlmCatalogRow(row: Record<string, unknown>): boolean {
 	return rowHasExplicitTextOutput(row) && !hasObviousImageModelLabel(row);
 }
 
-/** Checks whether latest alias row for models.dev catalog filtering. */
 function isLatestAliasRow(row: Record<string, unknown>): boolean {
 	return rowText(row, ["id", "openrouter_id"]).includes("latest");
 }
 
-/** Checks whether dated alias row for models.dev catalog filtering. */
 function isDatedAliasRow(row: Record<string, unknown>): boolean {
 	const normalizedId = normalizedRowId(row);
 	return normalizedId != null && /-\d{8}$/.test(normalizedId);
 }
 
-/** Checks whether fast alias row for models.dev catalog filtering. */
 function isFastAliasRow(row: Record<string, unknown>): boolean {
 	const normalizedId = normalizedRowId(row);
 	return normalizedId != null && /-fast$/.test(normalizedId);
 }
 
-/** Applies models.dev catalog filtering for catalog alias priority. */
 function catalogAliasPriority(row: Record<string, unknown>): number {
 	if (isLatestAliasRow(row)) {
 		return 3;
@@ -129,14 +116,12 @@ export function filterDatabaseTextLlmRows(
 	return rows.filter(isTextLlmCatalogRow);
 }
 
-/** Applies models.dev catalog filtering for normalized catalog IDs. */
 function normalizedCatalogIds(row: Record<string, unknown>): string[] {
 	return [row.id, row.openrouter_id]
 		.filter((id): id is string => typeof id === "string" && id.length > 0)
 		.map(normalizeProviderModelId);
 }
 
-/** Applies models.dev catalog filtering for models.dev catalog row. */
 function modelsDevCatalogRow(
 	modelsDevModel: ModelsDevFlatModel,
 	sourceData: LlmStatsSourceData,
@@ -195,7 +180,6 @@ export function buildDatabaseCatalogRows(
 ): Record<string, unknown>[] {
 	const existingNormalizedIds = new Set<string>();
 	const existingConcreteFamilyKeys = new Set<string>();
-	/** Applies models.dev catalog filtering for remember catalog row. */
 	const rememberCatalogRow = (row: Record<string, unknown>) => {
 		for (const normalizedId of normalizedCatalogIds(row)) {
 			existingNormalizedIds.add(normalizedId);

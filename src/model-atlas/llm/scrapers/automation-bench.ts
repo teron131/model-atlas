@@ -79,7 +79,6 @@ function parseScorePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }
 
-/** Parses per-task dollar amounts with stable decimal precision. */
 function parseMoney(value: string): number {
 	return Number(Number(value).toFixed(6));
 }
@@ -96,13 +95,11 @@ function adjustedScore(
 	return Number((leaderboardScore + domainLift).toFixed(6));
 }
 
-/** Extracts a trailing reasoning-effort label from the model name. */
 function parseReasoningEffort(model: string): string | null {
 	const match = model.match(/\(([^()]+)\)\s*$/);
 	return match?.[1]?.trim() ?? null;
 }
 
-/** Removes reasoning-effort suffixes from AutomationBench model names. */
 function baseModelName(model: string): string {
 	return model.replace(/\s*\([^()]+\)\s*$/, "").trim();
 }
@@ -133,13 +130,11 @@ function normalizedModelAliases(model: string): string[] {
 	return [...aliases];
 }
 
-/** Orders duplicate rows by preferred reasoning-effort tier. */
 function reasoningEffortRank(row: AutomationBenchModelScoreRow): number {
 	const key = row.reasoning_effort?.toLowerCase().replace(/[^a-z0-9]+/g, "");
 	return key == null ? 0 : (REASONING_EFFORT_RANKS[key] ?? 0);
 }
 
-/** Chooses the stronger duplicate AutomationBench score row. */
 function prefersAutomationBenchRow(
 	existing: AutomationBenchModelScoreRow | undefined,
 	row: AutomationBenchModelScoreRow,
@@ -158,7 +153,6 @@ function prefersAutomationBenchRow(
 	return row.adjusted_score > existing.adjusted_score;
 }
 
-/** Stores preferred score row for AutomationBench scraping. */
 function setPreferredScoreRow(
 	scoreByModelName: AutomationBenchScoreByModelName,
 	key: string,
@@ -171,7 +165,6 @@ function setPreferredScoreRow(
 	}
 }
 
-/** Returns page-text lines inside a labeled AutomationBench section. */
 function linesBetween(
 	lines: string[],
 	startMarker: string,
@@ -193,7 +186,6 @@ function linesBetween(
 		: lines.slice(bodyStart, endIndex);
 }
 
-/** Parse the public top-10 AutomationBench leaderboard rows from page text. */
 export function processAutomationBenchOverallText(
 	leaderboardText: string,
 ): AutomationBenchOverallRow[] {
@@ -205,7 +197,6 @@ export function processAutomationBenchOverallText(
 	);
 }
 
-/** Parse the public top-10 AutomationBench leaderboard rows from table cells. */
 export function processAutomationBenchOverallLines(
 	lines: string[],
 ): AutomationBenchOverallRow[] {
@@ -243,7 +234,6 @@ export function processAutomationBenchOverallLines(
 	return rows;
 }
 
-/** Splits a domain-table model label into model, effort, and provider fields. */
 function splitModelProvider(value: string): AutomationBenchDomainModel {
 	const separator = " \u2014 ";
 	const separatorIndex = value.lastIndexOf(separator);
@@ -282,7 +272,6 @@ function parseSecondPlace(value: string): {
 	};
 }
 
-/** Parse the public AutomationBench domain-winner table rows from page text. */
 export function processAutomationBenchDomainText(
 	domainText: string,
 ): AutomationBenchDomainRow[] {
@@ -294,7 +283,6 @@ export function processAutomationBenchDomainText(
 	);
 }
 
-/** Parse the public AutomationBench domain-winner table rows from table cells. */
 export function processAutomationBenchDomainLines(
 	lines: string[],
 ): AutomationBenchDomainRow[] {
@@ -339,7 +327,6 @@ export function processAutomationBenchDomainLines(
 	return rows;
 }
 
-/** Collects domain-winning scores by normalized top-model alias. */
 function domainLeadScoresByModel(
 	rows: AutomationBenchDomainRow[],
 ): Map<string, number[]> {
@@ -375,7 +362,6 @@ export function summarizeAutomationBenchModelScores(
 	});
 }
 
-/** Parse AutomationBench leaderboard rows from the rendered page HTML. */
 export function processAutomationBenchPageHtml(
 	pageHtml: string,
 ): Pick<
@@ -400,7 +386,6 @@ export function processAutomationBenchPageHtml(
 	};
 }
 
-/** Build AutomationBench public top-10 score rows by normalized model name. */
 export function buildAutomationBenchMap(
 	rows: AutomationBenchModelScoreRow[],
 ): AutomationBenchScoreByModelName {
@@ -416,7 +401,6 @@ export function buildAutomationBenchMap(
 	return scoreByModelName;
 }
 
-/** Find an AutomationBench public score from model labels that may differ by punctuation. */
 export function findAutomationBenchScoreRow(
 	candidateNames: unknown[],
 	scoreByModelName: AutomationBenchScoreByModelName,
@@ -441,7 +425,6 @@ export function findAutomationBenchScoreRow(
 	return null;
 }
 
-/** Find an AutomationBench public score from model labels that may differ by punctuation. */
 export function findAutomationBenchScore(
 	candidateNames: unknown[],
 	scoreByModelName: AutomationBenchScoreByModelName,
@@ -452,7 +435,6 @@ export function findAutomationBenchScore(
 	);
 }
 
-/** Fetch AutomationBench public top-10 and domain-winner leaderboard rows. */
 export async function getAutomationBenchStats(
 	options: AutomationBenchScraperOptions = {},
 ): Promise<AutomationBenchLeaderboardPayload> {

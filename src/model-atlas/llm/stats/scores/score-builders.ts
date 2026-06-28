@@ -30,7 +30,6 @@ type BenchmarkScoreInput = {
 	weight: number;
 };
 
-/** Read selected benchmarks as group-owned, portion-weighted normalized score inputs. */
 function selectedBenchmarkScoreInputs(
 	model: JsonObject,
 	keys: readonly string[],
@@ -64,7 +63,6 @@ function selectedBenchmarkScoreInputs(
 	return inputs;
 }
 
-/** Averages benchmark scores within one benchmark group. */
 function benchmarkGroupMean(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
 	group: BenchmarkGroup,
@@ -136,7 +134,6 @@ export function blendedPriceValue(
 	);
 }
 
-/** Derive representative output-token anchors from OpenRouter latency/throughput observations. */
 export function deriveSpeedOutputTokenAnchors(
 	openRouterSpeedById: Map<string, JsonObject>,
 	scoringConfig: ScoringConfig,
@@ -200,7 +197,6 @@ export function deriveSpeedOutputTokenAnchors(
 	});
 }
 
-/** Compute the raw score bundle for a single final model row. */
 export function buildScores(
 	model: JsonObject,
 	cost: LlmStatsCost,

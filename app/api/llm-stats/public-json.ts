@@ -123,7 +123,7 @@ type RankedModel = {
 	rank: number;
 };
 
-/** Select the public JSON projection requested by an API view parameter. */
+/** Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly. */
 export function publicJsonPayload(
 	payload: LlmStatsPayload,
 	view: string | null,
@@ -141,7 +141,7 @@ export function publicJsonPayload(
 	}
 }
 
-/** Return the compact table-oriented public JSON projection. */
+/** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
 export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 	const rankedModels = rankModelsByIntelligence(payload.models);
 	return {
@@ -154,7 +154,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 	};
 }
 
-/** Return the public ranking and relative score projection. */
+/** The score view is the default public ranking surface and exposes only relative 0-100 score components. */
 export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 	const rankedModels = rankModelsByIntelligence(payload.models);
 	return {
@@ -166,7 +166,7 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 	};
 }
 
-/** Return public benchmark values for each model. */
+/** Benchmark rows stay in their native decimal scale so downstream users can distinguish raw task scores from Atlas-relative scores. */
 export function benchmarksJsonPayload(
 	payload: LlmStatsPayload,
 ): BenchmarksJsonPayload {
@@ -182,7 +182,7 @@ export function benchmarksJsonPayload(
 	};
 }
 
-/** Return the full public payload without dashboard-only model fields. */
+/** Preserve the internal payload shape for power users while removing fields that only make sense in the rendered dashboard. */
 export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	return {
 		...payload,
@@ -190,19 +190,18 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	};
 }
 
-/** Summarize the score methodology in endpoint payloads. */
+/** Derive methodology prose from live scoring weights so public JSON cannot drift from the configured portfolio. */
 function methodologyText(payload: LlmStatsPayload): string {
 	const weights = payload.metadata.scoring.overall_relative_score_weights;
 	return `Overall score is ${formatMethodologyWeight(weights.intelligence)} Intelligence, ${formatMethodologyWeight(weights.agentic)} Agentic, ${formatMethodologyWeight(weights.speed)} Speed, and ${formatMethodologyWeight(weights.value)} Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.`;
 }
 
-/** Format a fractional score weight as a percentage label. */
 function formatMethodologyWeight(weight: number): string {
 	const percent = Number((weight * 100).toFixed(2));
 	return `${percent}%`;
 }
 
-/** Attach competition ranks to models already sorted by intelligence score. */
+/** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
 function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 	const rankedModels: RankedModel[] = [];
 	let previousScore: number | null = null;
@@ -217,7 +216,6 @@ function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 	return rankedModels;
 }
 
-/** Strip internal rendering fields from the full public model projection. */
 function withoutUnusedModelFields(
 	model: LlmStatsModel,
 ): Omit<LlmStatsModel, "attachment" | "reasoning" | "logo"> {
@@ -230,7 +228,6 @@ function withoutUnusedModelFields(
 	return modelPayload;
 }
 
-/** Convert one stats model into the public score row shape. */
 function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 	return {
 		rank,
@@ -247,7 +244,6 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 	};
 }
 
-/** Convert one stats model into the public benchmark row shape. */
 function benchmarksJsonModel(
 	model: LlmStatsModel,
 	rank: number,
@@ -266,7 +262,6 @@ function benchmarksJsonModel(
 	};
 }
 
-/** Convert one stats model into the public core table row shape. */
 function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 	return {
 		rank,

@@ -54,7 +54,6 @@ type RawTerminalBenchLeaderboardRow = {
 	accuracy: number;
 };
 
-/** Decode one escaped Next flight chunk from the page HTML. */
 function decodeFlightChunk(escapedChunk: string): string {
 	try {
 		return JSON.parse(`"${escapedChunk}"`) as string;
@@ -63,14 +62,12 @@ function decodeFlightChunk(escapedChunk: string): string {
 	}
 }
 
-/** Extract and decode the full Next flight corpus used by Terminal-Bench pages. */
 function extractFlightCorpus(pageHtml: string): string {
 	return [...pageHtml.matchAll(NEXT_FLIGHT_CHUNK_REGEX)]
 		.map((match) => decodeFlightChunk(match[1] ?? ""))
 		.join("\n");
 }
 
-/** Return the end offset of a JSON object starting at startIndex. */
 function findObjectEnd(corpus: string, startIndex: number): number {
 	let depth = 0;
 	let inString = false;
@@ -106,7 +103,6 @@ function findObjectEnd(corpus: string, startIndex: number): number {
 	return -1;
 }
 
-/** Parse JSON objects while scanning Terminal-Bench scraper data. */
 function parseJsonObject(value: string): JsonObject | null {
 	try {
 		return asRecord(JSON.parse(value));
@@ -115,7 +111,6 @@ function parseJsonObject(value: string): JsonObject | null {
 	}
 }
 
-/** Return only string values from a possible Terminal-Bench model list. */
 function normalizeModelList(value: unknown): string[] {
 	return Array.isArray(value)
 		? value.filter((item): item is string => typeof item === "string")
@@ -168,7 +163,6 @@ function findLeaderboardRowAt(
 	return null;
 }
 
-/** Extract raw leaderboard rows from a decoded Next flight corpus. */
 function extractRowsFromCorpus(
 	corpus: string,
 ): RawTerminalBenchLeaderboardRow[] {
@@ -188,7 +182,6 @@ function extractRowsFromCorpus(
 	return rows;
 }
 
-/** Normalize raw Terminal-Bench rows to the minimal agent/model/accuracy surface. */
 export function processTerminalBenchLeaderboardRows(
 	rows: JsonObject[] | RawTerminalBenchLeaderboardRow[],
 ): TerminalBenchAgentModelAccuracyRow[] {
@@ -202,7 +195,6 @@ export function processTerminalBenchLeaderboardRows(
 		}));
 }
 
-/** Return the Terminal-Bench score used for model matching. */
 function terminalBenchScore(row: TerminalBenchModelMedianAccuracyRow): number {
 	return Math.max(row.median_accuracy, row.mean_accuracy);
 }
@@ -246,7 +238,6 @@ export function summarizeTerminalBenchModelMedianAccuracy(
 		);
 }
 
-/** Build Terminal-Bench 2.0 median accuracy rows by normalized model name. */
 export function buildTerminalBenchMap(
 	rows: TerminalBenchModelMedianAccuracyRow[],
 ): TerminalBenchAccuracyByModelName {
@@ -269,7 +260,6 @@ export function buildTerminalBenchMap(
 	return accuracyByModelName;
 }
 
-/** Find a Terminal-Bench 2.0 score from model labels that may differ by punctuation. */
 export function findTerminalBenchMedianAccuracy(
 	candidateNames: unknown[],
 	terminalBenchAccuracyByModelName: TerminalBenchAccuracyByModelName,
@@ -288,7 +278,6 @@ export function findTerminalBenchMedianAccuracy(
 	return null;
 }
 
-/** Fetch Terminal-Bench agent/model/accuracy leaderboard rows. */
 export async function getTerminalBenchAgentModelAccuracyStats(
 	options: TerminalBenchScraperOptions = {},
 ): Promise<TerminalBenchAgentModelAccuracyPayload> {
@@ -315,7 +304,6 @@ export async function getTerminalBenchAgentModelAccuracyStats(
 	}
 }
 
-/** Fetch Terminal-Bench model median accuracy rows. */
 export async function getTerminalBenchStats(
 	options: TerminalBenchScraperOptions = {},
 ): Promise<TerminalBenchModelMedianAccuracyPayload> {

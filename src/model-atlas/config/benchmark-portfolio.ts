@@ -191,7 +191,6 @@ export function resourceComponentWeightsFor({
 export const benchmarkPortfolioEntry = (key: string) =>
 	BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
 
-/** Resolves the resource policy attached to a benchmark key. */
 export const benchmarkResourcePolicy = (
 	key: string,
 	portfolio: Readonly<
@@ -199,11 +198,9 @@ export const benchmarkResourcePolicy = (
 	> = BENCHMARK_PORTFOLIO,
 ) => portfolio[key]?.resourcePolicy ?? null;
 
-/** Lists benchmark keys that belong to the requested portfolio group. */
 export const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
 	BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 
-/** Returns the benchmark's contribution to one quality dimension. */
 export const benchmarkDimensionPortion = (
 	key: string,
 	dimension: BenchmarkDimension,
@@ -216,7 +213,6 @@ export const benchmarkDimensionPortion = (
 			: entry.agenticPortion;
 };
 
-/** Lists benchmark keys that contribute to the requested quality dimension. */
 export const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
 	BENCHMARK_KEYS.filter((key) => benchmarkDimensionPortion(key, dimension) > 0);
 

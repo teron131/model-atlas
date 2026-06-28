@@ -58,7 +58,6 @@ export type DeepSWERawLeaderboardPayload = {
 	data: DeepSWERawLeaderboardRow[];
 };
 
-/** Return a DeepSWE leaderboard row with only fields used by scoring. */
 export function asDeepSWELeaderboardRow(
 	value: unknown,
 ): DeepSWELeaderboardRow | null {
@@ -121,7 +120,6 @@ export function asDeepSWERawLeaderboardRow(
 	};
 }
 
-/** Return one best DeepSWE configuration per model, ranked by pass@1. */
 export function summarizeDeepSWEBestModelScores(
 	rows: DeepSWELeaderboardRow[],
 ): DeepSWEModelScoreRow[] {
@@ -137,7 +135,6 @@ export function summarizeDeepSWEBestModelScores(
 	);
 }
 
-/** Return the quiet default score row per model, preferring xhigh when available. */
 export function summarizeDeepSWEDefaultModelScores(
 	rows: DeepSWELeaderboardRow[],
 ): DeepSWEModelScoreRow[] {
@@ -179,7 +176,6 @@ export function stripDeepSWESourceVersion(
 	};
 }
 
-/** Prefer the latest DeepSWE artifact for scoring/display, falling back to v1. */
 export function preferredDeepSWELeaderboardRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWELeaderboardRow[] {
@@ -188,7 +184,6 @@ export function preferredDeepSWELeaderboardRows(
 	return preferredRows.map(stripDeepSWESourceVersion);
 }
 
-/** Build DeepSWE selected-score rows by normalized model name. */
 export function buildDeepSWEMap(
 	rows: DeepSWEModelScoreRow[],
 ): DeepSWEScoreByModelName {
@@ -202,7 +197,6 @@ export function buildDeepSWEMap(
 	return scoreByModelName;
 }
 
-/** Find a DeepSWE score row from model labels that may differ by punctuation. */
 export function findDeepSWEModelScore(
 	candidateNames: unknown[],
 	deepSWEScoreByModelName: DeepSWEScoreByModelName,
@@ -260,7 +254,6 @@ export async function getDeepSWERawLeaderboardSourceRows(
 	};
 }
 
-/** Fetch preferred DeepSWE leaderboard rows for public scoring/display. */
 export async function getDeepSWERawLeaderboardStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {
@@ -273,7 +266,6 @@ export async function getDeepSWERawLeaderboardStats(
 	};
 }
 
-/** Returns the leaderboard URL for a DeepSWE source version. */
 export function deepSWEUrlForSourceVersion(
 	version: DeepSWESourceVersion | null,
 ): string {
@@ -293,7 +285,6 @@ function deepSWESourceVersionForUrl(url: string): DeepSWESourceVersion | null {
 	return null;
 }
 
-/** Chooses the DeepSWE source version represented by scraped rows. */
 export function deepSWESourceVersionForRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWESourceVersion | null {
@@ -306,7 +297,6 @@ export function deepSWESourceVersionForRows(
 	return null;
 }
 
-/** Fetch DeepSWE default model score rows from the public leaderboard artifact. */
 export async function getDeepSWEStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {

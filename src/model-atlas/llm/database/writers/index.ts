@@ -1,4 +1,4 @@
-/** Public SQLite writer exports. */
+/** Public SQLite writer surface for the database build pipeline. */
 export * from "./artificial-analysis";
 export * from "./benchmark-sources";
 export * from "./debug";

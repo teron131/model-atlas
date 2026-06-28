@@ -1,4 +1,4 @@
-/** External benchmark raw row writers. */
+/** SQLite writers for benchmark-owned source rows that feed matcher and scoring refreshes. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -110,7 +110,6 @@ export function insertAgentsLastExamRawRows(
 	}
 }
 
-/** Insert Blueprint-Bench 2 model score rows. */
 export function insertBlueprintBenchRawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -133,7 +132,6 @@ export function insertBlueprintBenchRawRows(
 	}
 }
 
-/** Insert BrowseComp model score rows. */
 export function insertBrowseCompRawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -163,7 +161,6 @@ export function insertBrowseCompRawRows(
 	}
 }
 
-/** Insert CursorBench model score rows. */
 export function insertCursorBenchRawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -194,7 +191,6 @@ export function insertCursorBenchRawRows(
 	}
 }
 
-/** Insert DeepSWE raw rows. */
 export function insertDeepSWERawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -229,7 +225,6 @@ export function insertDeepSWERawRows(
 	}
 }
 
-/** Insert GDP.pdf model score rows. */
 export function insertGdpPdfRawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -255,7 +250,6 @@ export function insertGdpPdfRawRows(
 	}
 }
 
-/** Insert Riemann-bench model score rows. */
 export function insertRiemannBenchRawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -328,7 +322,6 @@ export function insertTerminalBenchRawRows(
 	}
 }
 
-/** Insert Toolathlon model score rows. */
 export function insertToolathlonRawRows(
 	db: DatabaseSync,
 	runId: number,

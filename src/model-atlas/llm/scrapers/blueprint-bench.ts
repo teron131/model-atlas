@@ -33,7 +33,6 @@ export type BlueprintBenchModelScorePayload = {
 	data: BlueprintBenchModelScoreRow[];
 };
 
-/** Normalizes parse score from benchmark source data. */
 function parseScore(value: string | undefined): number | null {
 	if (value == null) {
 		return null;
@@ -44,7 +43,6 @@ function parseScore(value: string | undefined): number | null {
 		: null;
 }
 
-/** Normalizes parse leaderboard cells from benchmark source data. */
 function parseLeaderboardCells(lines: string[]): BlueprintBenchModelScoreRow[] {
 	const rows: BlueprintBenchModelScoreRow[] = [];
 	for (let index = 0; index < lines.length - 2; index += 1) {
@@ -67,7 +65,6 @@ function parseLeaderboardCells(lines: string[]): BlueprintBenchModelScoreRow[] {
 	return rows;
 }
 
-/** Extract model and normalized score rows from the public Blueprint-Bench 2 page. */
 export function processBlueprintBenchPageHtml(
 	pageHtml: string,
 ): BlueprintBenchModelScoreRow[] {
@@ -89,7 +86,6 @@ export function processBlueprintBenchPageHtml(
 	return parseLeaderboardCells(leaderboardLines.slice(headerIndex + 2));
 }
 
-/** Build Blueprint-Bench 2 score rows by normalized model name. */
 export function buildBlueprintBenchMap(
 	rows: BlueprintBenchModelScoreRow[],
 ): BlueprintBenchScoreByModelName {
@@ -103,7 +99,6 @@ export function buildBlueprintBenchMap(
 	return scoreByModelName;
 }
 
-/** Find a Blueprint-Bench 2 score from display names. */
 export function findBlueprintBenchScore(
 	candidateNames: unknown[],
 	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName,
@@ -122,7 +117,6 @@ export function findBlueprintBenchScore(
 	return null;
 }
 
-/** Fetch Blueprint-Bench 2 model score rows from the public page. */
 export async function getBlueprintBenchStats(
 	options: BlueprintBenchScraperOptions = {},
 ): Promise<BlueprintBenchModelScorePayload> {

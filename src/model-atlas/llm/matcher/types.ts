@@ -1,4 +1,4 @@
-/** LLM model matching helpers. */
+/** Contracts for LLM source-row matching diagnostics and candidate scoring. */
 
 /** Shared public and intermediate types for the LLM matcher pipeline. */
 import type { getModelsDevStats } from "../scrapers/models-dev";
@@ -34,7 +34,6 @@ export type MatchMappedModel = {
 	candidates: MatchCandidate[];
 };
 
-/** Options for scraper-row match diagnostics. */
 export type MatchDiagnosticsOptions = {
 	maxCandidates?: number;
 	modelsDevModels?: ModelsDevModel[];

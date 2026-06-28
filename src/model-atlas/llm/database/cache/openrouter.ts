@@ -19,7 +19,6 @@ import {
 	stringValue,
 } from "./source-readers";
 
-/** Checks whether OpenRouter cached candidates include scoped route IDs. */
 export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
 	const candidateRows = rows(
 		db,
@@ -39,7 +38,6 @@ export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
 	return candidateRows.length > 0;
 }
 
-/** Reconstructs OpenRouter stats response fields from cached rows. */
 function openRouterStatsResponse(
 	rowsToConvert: RawDbRow[],
 ): OpenRouterStatsResponse {
@@ -66,7 +64,6 @@ function openRouterStatsResponse(
 	};
 }
 
-/** Reconstructs OpenRouter pricing fields from cached rows. */
 function openRouterPricing(
 	row: RawDbRow | undefined,
 ): OpenRouterEffectivePricingResponse | null {
@@ -81,7 +78,6 @@ function openRouterPricing(
 	};
 }
 
-/** Reconstructs OpenRouter model rows from cached row variants. */
 function openRouterModelRows(
 	modelId: string,
 	rowsByKind: Map<string, RawDbRow[]>,

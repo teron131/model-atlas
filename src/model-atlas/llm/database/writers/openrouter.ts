@@ -1,4 +1,4 @@
-/** OpenRouter raw row writer. */
+/** SQLite writer for OpenRouter directory, route, stat-point, and pricing source rows. */
 
 import type { DatabaseSync, StatementSync } from "node:sqlite";
 import type {
@@ -16,7 +16,6 @@ type OpenRouterPointRow = {
 	value: number | null;
 };
 
-/** Build scalar OpenRouter stat point rows from one metric response. */
 function openRouterStatPointRows(
 	response: OpenRouterStatsResponse | null | undefined,
 ): OpenRouterPointRow[] {
@@ -33,7 +32,6 @@ function openRouterStatPointRows(
 	return rows;
 }
 
-/** Insert OpenRouter directory rows and return the next row index. */
 function insertOpenRouterDirectoryRows(
 	statement: StatementSync,
 	runId: number,
@@ -67,7 +65,6 @@ function insertOpenRouterDirectoryRows(
 	return rowIndex;
 }
 
-/** Insert OpenRouter permaslug candidate rows and return the next row index. */
 function insertOpenRouterPermaslugCandidateRows(
 	statement: StatementSync,
 	runId: number,
@@ -105,7 +102,6 @@ function insertOpenRouterPermaslugCandidateRows(
 	return rowIndex;
 }
 
-/** Insert OpenRouter daily stat point rows and return the next row index. */
 function insertOpenRouterStatPointRows(
 	statement: StatementSync,
 	runId: number,
@@ -142,7 +138,6 @@ function insertOpenRouterStatPointRows(
 	return rowIndex;
 }
 
-/** Insert one OpenRouter model summary row and return the next row index. */
 function insertOpenRouterModelStatsRow(
 	statement: StatementSync,
 	runId: number,

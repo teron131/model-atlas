@@ -84,18 +84,12 @@ type ModelsDevOutputPayload = {
 	models: ModelsDevFlatModel[];
 };
 
-/**
- * models.dev source options.
- *
- * Reserved for future extension.
- */
 export type ModelsDevOptions = Record<string, never>;
 
 type ProcessModelsDevPayloadOptions = {
 	retainedModelIds?: ReadonlySet<string>;
 	retainedModelNames?: ReadonlySet<string>;
 };
-/** Helper for iso date days ago. */
 function isoDateDaysAgo(days: number): string {
 	return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 		.toISOString()
@@ -138,7 +132,6 @@ function buildVercelModelRecord(
 	};
 }
 
-/** Extract live Vercel AI Gateway models from the public catalog page. */
 function extractVercelGatewayModels(html: string): VercelGatewayModelRecord[] {
 	const matches = [...html.matchAll(VERCEL_GATEWAY_MODEL_PATTERN)];
 	const byModelId = new Map<string, VercelGatewayModelRecord>();
@@ -160,7 +153,6 @@ function extractVercelGatewayModels(html: string): VercelGatewayModelRecord[] {
 	return [...byModelId.values()];
 }
 
-/** Fetch the Vercel AI Gateway models page and normalize it into models.dev-compatible rows. */
 async function fetchVercelGatewayModels(): Promise<VercelGatewayModelRecord[]> {
 	try {
 		const response = await fetchWithTimeout(
@@ -177,7 +169,6 @@ async function fetchVercelGatewayModels(): Promise<VercelGatewayModelRecord[]> {
 	}
 }
 
-/** Merge the live Vercel model list into the models.dev provider catalog. */
 function mergeVercelProvider(
 	payload: ModelsDevPayload,
 	liveVercelModels: VercelGatewayModelRecord[],
@@ -206,7 +197,6 @@ function mergeVercelProvider(
 	};
 }
 
-/** Fetch and cache Models.dev source recent model stats data. */
 async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
 	const [response, liveVercelModels] = await Promise.all([
 		fetchWithTimeout(MODELS_DEV_URL, {}, REQUEST_TIMEOUT_MS),
@@ -229,7 +219,6 @@ async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
 	};
 }
 
-/** Flatten nested rows for Models.dev source recent model stats. */
 function flattenModels(payload: ModelsDevPayload): ModelsDevFlatModel[] {
 	const rows: ModelsDevFlatModel[] = [];
 	for (const [providerId, provider] of Object.entries(payload)) {
@@ -247,7 +236,6 @@ function flattenModels(payload: ModelsDevPayload): ModelsDevFlatModel[] {
 	return rows;
 }
 
-/** Rank the recent models. */
 function shouldRetainModel(
 	row: ModelsDevFlatModel,
 	options: ProcessModelsDevPayloadOptions,
@@ -261,7 +249,6 @@ function shouldRetainModel(
 	);
 }
 
-/** Normalizes rank recent models from benchmark source data. */
 function rankRecentModels(
 	models: ModelsDevFlatModel[],
 	cutoffIsoDate: string,
@@ -296,7 +283,6 @@ export function processModelsDevPayload(
 	return rankRecentModels(flattenModels(payload), cutoffIsoDate, options);
 }
 
-/** Fetch the cacheable raw models.dev catalog plus the live Vercel Gateway overlay. */
 export async function getModelsDevSourceStats(
 	_options: ModelsDevOptions = {},
 ): Promise<ModelsDevSourcePayload> {

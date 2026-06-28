@@ -80,7 +80,6 @@ type SnapshotRows = {
 	sourceHealth: DatabaseBuildResult["source_health"];
 };
 
-/** Return the current epoch seconds. */
 function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
@@ -114,7 +113,7 @@ function tableCounts(db: DatabaseSync): Record<string, number> {
 	return counts;
 }
 
-/** Run synchronous SQLite writes inside one transaction. */
+/** Wrap the synchronous database build so partial snapshot writes roll back together on failure. */
 function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
 	db.exec("BEGIN");
 	try {
@@ -145,7 +144,6 @@ async function publishDatabaseFile(
 	await rename(persistedPath, outputPath);
 }
 
-/** Create the pipeline run row and return its id. */
 function insertPipelineRun(db: DatabaseSync, rows: SnapshotRows): number {
 	const result = db
 		.prepare(`
@@ -162,7 +160,6 @@ function insertPipelineRun(db: DatabaseSync, rows: SnapshotRows): number {
 	return Number(result.lastInsertRowid);
 }
 
-/** Write raw and processed rows for one runtime snapshot. */
 function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	clearSnapshotTables(db);
 	const runId = insertPipelineRun(db, rows);
@@ -191,7 +188,6 @@ function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	return runId;
 }
 
-/** Extract OpenRouter model ids from rows already scoped by matching. */
 function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
 	return Array.from(
 		new Set(
@@ -203,7 +199,6 @@ function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
 	);
 }
 
-/** Build the Model Atlas SQLite database snapshot. */
 export async function buildModelAtlasDatabase(
 	outputPath = DEFAULT_DATABASE_PATH,
 	options: DatabaseBuildOptions = {},

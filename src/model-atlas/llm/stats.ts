@@ -69,7 +69,6 @@ function emptyLlmStatsPayload(): LlmStatsPayload {
 	});
 }
 
-/** Build the LLM stats payload from the live pipeline. */
 async function buildLlmStatsPayload(
 	modelId: string | null = null,
 ): Promise<LlmStatsPayload> {
@@ -103,7 +102,6 @@ async function buildLlmStatsPayload(
 	);
 }
 
-/** Build the LLM stats payload. */
 async function getLlmStatsPayload(
 	options: LlmStatsOptions = {},
 ): Promise<LlmStatsPayload> {
@@ -115,14 +113,12 @@ async function getLlmStatsPayload(
 	}
 }
 
-/** Build the final LLM stats payload with cache-first list mode and in-memory single-model mode. */
 export async function getLlmStats(
 	options: LlmStatsOptions = {},
 ): Promise<LlmStatsPayload> {
 	return getLlmStatsPayload(options);
 }
 
-/** Build the final LLM stats payload from live sources without using cache. */
 export async function getLiveLlmStats(
 	options: LlmStatsOptions = {},
 ): Promise<LlmStatsPayload> {

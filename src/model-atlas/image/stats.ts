@@ -1,4 +1,4 @@
-/** Stats pipeline helpers. */
+/** Image stats pipeline entrypoint that serves cached public rows unless callers request a fresh rebuild. */
 
 /** Public image stats API: cache list payloads, rebuild from live sources when needed, and return failure-safe output. */
 import {
@@ -18,12 +18,10 @@ import type {
 
 export type { ImageStatsModel, ImageStatsOptions, ImageStatsPayload };
 
-/** Return whether the request is for the cacheable list payload. */
 function isListRequest(modelId: string | null | undefined): boolean {
 	return modelId == null;
 }
 
-/** Save the image stats pipeline payload. */
 export async function saveImageStats(
 	payload: ImageStatsPayload,
 	outputPath = DEFAULT_OUTPUT_PATH,
@@ -31,7 +29,6 @@ export async function saveImageStats(
 	await saveImageStatsToPath(payload, outputPath);
 }
 
-/** Return the image stats pipeline payload. */
 export async function getImageStats(
 	options: ImageStatsOptions = {},
 ): Promise<ImageStatsPayload> {

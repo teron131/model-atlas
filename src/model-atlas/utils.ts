@@ -1,4 +1,4 @@
-/** Shared stats utility helpers. */
+/** Cross-cutting runtime policies for coercing source values, checking freshness, and writing JSON artifacts. */
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -13,19 +13,18 @@ export {
 
 export type JsonObject = Record<string, unknown>;
 
-/** Helper for now epoch seconds. */
 export function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
 
-/** Convert the input into a plain record for Shared stats utility. */
+/** Treat only non-array objects as JSON records so callers can safely inspect scraper/API payload fields. */
 export function asRecord(value: unknown): JsonObject {
 	return value != null && typeof value === "object" && !Array.isArray(value)
 		? (value as JsonObject)
 		: {};
 }
 
-/** Convert the input into a finite number for Shared stats utility. */
+/** Coerce loose scraper values to finite numbers while preserving empty and invalid values as missing evidence. */
 export function asFiniteNumber(value: unknown): NumberOrNull {
 	if (value == null) {
 		return null;
@@ -37,7 +36,7 @@ export function asFiniteNumber(value: unknown): NumberOrNull {
 	return Number.isFinite(numericValue) ? numericValue : null;
 }
 
-/** Fetch the with timeout. */
+/** Bound external fetches with AbortController while preserving the caller's request options. */
 export async function fetchWithTimeout(
 	input: string | URL,
 	init: RequestInit,
@@ -55,7 +54,7 @@ export async function fetchWithTimeout(
 	}
 }
 
-/** Return whether the current value is valid for Shared stats utility. */
+/** Freshness checks reject future timestamps so bad clocks cannot extend cache lifetimes indefinitely. */
 export function isFreshEpochSeconds(
 	fetchedAtEpochSeconds: unknown,
 	ttlSeconds: number,
@@ -67,7 +66,6 @@ export function isFreshEpochSeconds(
 	return ageSeconds >= 0 && ageSeconds <= ttlSeconds;
 }
 
-/** Write Shared stats utility data to disk. */
 export async function writeJsonFile(
 	path: string,
 	payload: unknown,

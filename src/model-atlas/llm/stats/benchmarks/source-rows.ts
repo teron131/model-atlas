@@ -150,7 +150,6 @@ function addArtificialAnalysisRows(
 	}
 }
 
-/** Converts source benchmark rows into benchmark-keyed update rows. */
 export function benchmarkRowsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowsByKey {

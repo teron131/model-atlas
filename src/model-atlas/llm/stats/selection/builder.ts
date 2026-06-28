@@ -12,7 +12,6 @@ import type {
 import { buildModelCandidate } from "./model-candidate";
 import { selectPublicModels } from "./public-list";
 
-/** Build the final LLM stats model list and attach the normalized ranking layer used for ordering. */
 export async function buildFinalModels(
 	enrichedRows: LlmStatsEnrichmentResult,
 	id: string | null | undefined,

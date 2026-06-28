@@ -19,7 +19,6 @@ export type ArtificialAnalysisRetainKeys = {
 	retainedModelNames: Set<string>;
 };
 
-/** Return a YYYY-MM-DD cutoff string relative to the current clock. */
 export function isoDateDaysAgo(days: number): string {
 	return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 		.toISOString()

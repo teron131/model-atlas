@@ -37,7 +37,6 @@ function mergeImageRow(
 	};
 }
 
-/** Build matched rows for Matching-stage image stats selection. */
 export async function buildMatchedRows(
 	sourceData: ImageSourceData,
 ): Promise<ImageUnionRow[]> {

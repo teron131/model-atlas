@@ -55,14 +55,12 @@ function finiteNumber(value: NumberOrNull | undefined): number | null {
 	return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-/** Builds comparable model identity fields for health matching. */
 function modelIdentity(
 	model: Pick<LlmStatsModel, "id" | "name">,
 ): string | null {
 	return model.id ?? model.name ?? null;
 }
 
-/** Reads the benchmark value used to compare source and matched rows. */
 function benchmarkValue(
 	model: BenchmarkHealthModel,
 	key: string,
@@ -72,7 +70,6 @@ function benchmarkValue(
 	return finiteNumber(evaluations?.[key] ?? intelligence?.[key]);
 }
 
-/** Indexes reference benchmark rank by normalized model identity. */
 function referenceRankByModel(
 	models: readonly BenchmarkHealthModel[],
 ): Map<string, number> {
@@ -236,7 +233,6 @@ function sourceRowOutputId(row: BenchmarkSourceRow): string {
 	return normalizeModelToken(row.label);
 }
 
-/** Updates status for benchmark update health. */
 function updateStatus({
 	checkedTopCount,
 	overlapCount,
@@ -255,7 +251,6 @@ function updateStatus({
 	return overlapCount > 0 ? "watch" : "stale_possible";
 }
 
-/** Computes the minimum top-row overlap required for healthy status. */
 function requiredOverlap(
 	checkedTopCount: number,
 	unrepresentedTopCount: number,
@@ -266,7 +261,6 @@ function requiredOverlap(
 	return Math.max(1, Math.ceil(checkedTopCount / 2));
 }
 
-/** Builds the benchmark update health report. */
 export function buildBenchmarkUpdateHealth(
 	models: readonly BenchmarkHealthModel[],
 	scoringConfig: ModelAtlasStageConfig["scoring"],

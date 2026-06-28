@@ -1,4 +1,4 @@
-/** Artificial Analysis raw row writer. */
+/** SQLite writer for Artificial Analysis raw rows, selected benchmark fields, and source metadata. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -14,7 +14,6 @@ import {
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
 
-/** Derive the selected-row key represented by one raw Artificial Analysis row. */
 function artificialAnalysisRawRowKey(row: JsonObject): string | null {
 	const explicitModelId = firstString(row, ["model_id", "model_url", "id"]);
 	if (explicitModelId != null) {
@@ -35,7 +34,6 @@ function artificialAnalysisRawRowKey(row: JsonObject): string | null {
 	return creatorSlug == null ? slug : `${creatorSlug}/${slug}`;
 }
 
-/** Indexes selected Artificial Analysis rows by benchmark key. */
 function artificialAnalysisSelectedRowsByKey(
 	rows: readonly JsonObject[],
 ): Map<string, JsonObject> {
@@ -53,7 +51,6 @@ function artificialAnalysisSelectedRowsByKey(
 	return rowsByKey;
 }
 
-/** Return an absolute Artificial Analysis URL from a relative or absolute path. */
 function absoluteArtificialAnalysisUrl(value: string | null): string | null {
 	if (value == null) {
 		return null;
@@ -66,7 +63,6 @@ function absoluteArtificialAnalysisUrl(value: string | null): string | null {
 		: `${ARTIFICIAL_ANALYSIS_ORIGIN}/${value}`;
 }
 
-/** Build identity and model metadata values for one Artificial Analysis raw row. */
 function artificialAnalysisIdentityValues(
 	row: JsonObject,
 	selectedRow: JsonObject,
@@ -98,7 +94,6 @@ function artificialAnalysisIdentityValues(
 	];
 }
 
-/** Build modality values for one Artificial Analysis raw row. */
 function artificialAnalysisModalityValues(row: JsonObject): SqlValue[] {
 	return [
 		booleanValue(row.input_modality_text ?? row.inputModalityText),
@@ -112,7 +107,6 @@ function artificialAnalysisModalityValues(row: JsonObject): SqlValue[] {
 	];
 }
 
-/** Build benchmark metric values for one Artificial Analysis row pair. */
 function artificialAnalysisBenchmarkValues(
 	row: JsonObject,
 	selectedRow: JsonObject,
@@ -148,7 +142,6 @@ function artificialAnalysisBenchmarkValues(
 	];
 }
 
-/** Build cost, token, and logo values for one Artificial Analysis raw row. */
 function artificialAnalysisCostAndLogoValues(
 	row: JsonObject,
 	selectedRow: JsonObject,
@@ -186,7 +179,6 @@ function artificialAnalysisCostAndLogoValues(
 	];
 }
 
-/** Insert Artificial Analysis raw model rows with selected scalar metrics. */
 export function insertArtificialAnalysisRawModels(
 	db: DatabaseSync,
 	runId: number,

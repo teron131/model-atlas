@@ -39,7 +39,7 @@ type RelativeComponent = {
 	weight: number;
 };
 
-/** Converts a sorted metric position into a percentile-like 0-100 score. */
+/** Convert sorted metric positions onto the same 0-100 score scale used by public relative scores. */
 function percentileScoreAt(
 	values: Array<number | null>,
 	index: number,
@@ -48,7 +48,6 @@ function percentileScoreAt(
 	return value == null ? null : percentileRank(values, value);
 }
 
-/** Averages weighted metrics only when enough finite inputs are present. */
 function weightedMeanOfFiniteWithMinimum(
 	components: RelativeComponent[],
 	minimumFiniteValues: number,
@@ -65,7 +64,7 @@ function weightedMeanOfFiniteWithMinimum(
 		: null;
 }
 
-/** Fills absent score dimensions with the observed median score. */
+/** Median imputation keeps missing dimensions neutral instead of rewarding or punishing absent measurements. */
 function fillMissingScoresWithMedian(
 	targetScores: Array<number | null>,
 ): Array<number | null> {
@@ -77,7 +76,7 @@ function fillMissingScoresWithMedian(
 	return targetScores.map((targetScore) => targetScore ?? medianScore);
 }
 
-/** Mirrors quality score into missing value inputs when needed. */
+/** When cost is missing, infer value conservatively from quality so high-quality models do not get free value credit. */
 function fillMissingValuesWithQualityMirror(
 	qualityScores: Array<number | null>,
 	targetScores: Array<number | null>,
@@ -105,19 +104,17 @@ function fillMissingValuesWithQualityMirror(
 	});
 }
 
-/** Accepts only positive finite values for relative scoring inputs. */
 function positiveNumber(value: unknown): number | null {
 	const number = asFiniteNumber(value);
 	return number != null && number > 0 ? number : null;
 }
 
-/** Turns lower-is-better positive metrics into higher-is-better signals. */
+/** Invert lower-is-better resource metrics before percentile scoring so every downstream score remains higher-is-better. */
 function inversePositive(value: unknown): number | null {
 	const number = positiveNumber(value);
 	return number == null ? null : 1 / number;
 }
 
-/** Reads per-task cost from benchmark task metrics. */
 function taskMetricCost(
 	model: LlmStatsModelCandidate,
 	key: string,
@@ -125,7 +122,6 @@ function taskMetricCost(
 	return positiveNumber(model.task_metrics?.[key]?.cost);
 }
 
-/** Reads per-task duration from benchmark task metrics. */
 function taskMetricSeconds(
 	model: LlmStatsModelCandidate,
 	key: string,
@@ -133,7 +129,6 @@ function taskMetricSeconds(
 	return positiveNumber(model.task_metrics?.[key]?.seconds);
 }
 
-/** Reads a finite benchmark metric from model evaluation fields. */
 function benchmarkMetricValue(
 	model: LlmStatsModelCandidate,
 	key: string,
@@ -145,7 +140,6 @@ function benchmarkMetricValue(
 	);
 }
 
-/** Finds the resource metric attached to a frontier benchmark. */
 function frontierResourceTaskMetric(
 	model: LlmStatsModelCandidate,
 	key: string,
@@ -160,7 +154,6 @@ function frontierResourceTaskMetric(
 	return model.task_metrics?.[taskMetricKey] ?? null;
 }
 
-/** Checks whether a model has a positive resource metric for a benchmark. */
 function hasPositiveResourceMetric(
 	model: LlmStatsModelCandidate,
 	key: string,
@@ -171,7 +164,7 @@ function hasPositiveResourceMetric(
 	);
 }
 
-/** Checks whether a frontier benchmark has enough resource data to score. */
+/** A frontier benchmark contributes resource scoring only when at least one scored row has matching cost or latency data. */
 function hasBenchmarkFrontierResourceMetric(
 	models: LlmStatsModelCandidate[],
 	key: string,
@@ -190,7 +183,6 @@ function hasBenchmarkFrontierResourceMetric(
 	);
 }
 
-/** Lists frontier benchmarks that can contribute resource signals. */
 function frontierResourceKeys(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
@@ -200,7 +192,6 @@ function frontierResourceKeys(
 	);
 }
 
-/** Collects finite frontier benchmark values by benchmark key. */
 function frontierBenchmarkValuesByKey(
 	models: LlmStatsModelCandidate[],
 	keys: readonly string[],
@@ -217,7 +208,6 @@ function frontierBenchmarkValuesByKey(
 	);
 }
 
-/** Collects inverted frontier speed signals by benchmark key. */
 function frontierBenchmarkSpeedValuesByKey(
 	models: LlmStatsModelCandidate[],
 	keys: readonly string[],
@@ -242,7 +232,7 @@ function frontierBenchmarkSpeedValuesByKey(
 	);
 }
 
-/** Scores frontier benchmark cost as a lower-is-better resource signal. */
+/** Score frontier cost only for rows with benchmark evidence so cheap but untested models do not win resource credit. */
 function frontierResourceCostSignal(
 	model: LlmStatsModelCandidate,
 	keys: readonly string[],
@@ -304,7 +294,6 @@ function frontierResourceSpeedSignal(
 	);
 }
 
-/** Blends list-price and benchmark-measured cost signals. */
 function blendCost(
 	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,
@@ -315,7 +304,6 @@ function blendCost(
 	);
 }
 
-/** Attach `relative_scores`; quality is already benchmark-relative, while speed/value use percentiles. */
 export function attachRelativeScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,

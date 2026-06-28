@@ -43,7 +43,6 @@ function stripOpenRouterVersionSuffix(modelName: string): string {
 		.replace(/-\d{2}-\d{4}$/i, "");
 }
 
-/** Checks whether a suffix is an OpenRouter version label. */
 function isOpenRouterVersionSuffix(value: string): boolean {
 	return (
 		/^(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i.test(value) ||
@@ -54,13 +53,11 @@ function isOpenRouterVersionSuffix(value: string): boolean {
 	);
 }
 
-/** Splits provider/model routes into normalized comparison parts. */
 function openRouterRouteParts(route: string): [string, string] | null {
 	const [provider, modelName = ""] = route.toLowerCase().split("/", 2);
 	return provider && modelName ? [provider, modelName] : null;
 }
 
-/** Checks whether two OpenRouter model route names share the same base version. */
 function isSameOpenRouterModelVersion(
 	targetModelName: string,
 	candidateModelName: string,
@@ -80,7 +77,6 @@ function isSameOpenRouterModelVersion(
 	);
 }
 
-/** Checks whether two OpenRouter provider/model routes identify the same model version. */
 export function isSameOpenRouterModelRoute(
 	targetRoute: string,
 	candidateRoute: string,
@@ -107,7 +103,7 @@ export function stripCatalogAliasSuffixes(value: string): string {
 	return normalized;
 }
 
-/** Ranks Artificial Analysis aliases by reasoning-effort specificity. */
+/** Prefer the alias whose reasoning-effort suffix best matches the canonical route before falling back to generic names. */
 export function reasoningEffortPriority(
 	artificialAnalysisSlug: string | null,
 	canonicalSlug: string | null,
@@ -132,14 +128,12 @@ export function reasoningEffortPriority(
 	return 0;
 }
 
-/** Maps free OpenRouter route IDs back to their paid base route. */
 export function nonFreeOpenRouterModelId(modelId: string): string | null {
 	return modelId.endsWith(OPENROUTER_FREE_ROUTE_SUFFIX)
 		? modelId.slice(0, -OPENROUTER_FREE_ROUTE_SUFFIX.length)
 		: null;
 }
 
-/** Builds the public OpenRouter ID after hiding free and dated variants. */
 export function publicOpenRouterModelId(modelId: string | null): string | null {
 	if (modelId == null) {
 		return null;
@@ -160,14 +154,12 @@ function normalizePublicVersionSeparators(modelId: string): string {
 	return modelId.replace(/(^|[-/])(\d)-(\d)(?=$|-)/g, "$1$2.$3");
 }
 
-/** Checks whether an ID is an OpenRouter free route. */
 export function isOpenRouterFreeRouteId(
 	modelId: string | null | undefined,
 ): boolean {
 	return modelId?.endsWith(OPENROUTER_FREE_ROUTE_SUFFIX) === true;
 }
 
-/** Detects display names that still expose the OpenRouter free-route label. */
 export function hasPublicFreeRouteLabel(
 	modelName: string | null | undefined,
 ): boolean {

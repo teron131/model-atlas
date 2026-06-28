@@ -11,12 +11,10 @@ const LOGO_CACHE_SIZE = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
 const pendingCacheRequestBySource = new Map<string, Promise<string>>();
-/** Return whether the logo source needs remote fetching. */
 function isRemoteLogoSource(source: string): boolean {
 	return /^https?:\/\//i.test(source);
 }
 
-/** Return a filesystem-safe cache file stem for a provider or model slug. */
 function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
 	const normalized = cacheKey
 		?.trim()
@@ -26,7 +24,6 @@ function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
 	return normalized && normalized.length > 0 ? normalized : null;
 }
 
-/** Return the deterministic cache path for a logo source. */
 function logoCachePath(source: string, cacheKey?: string | null): string {
 	const logoCacheDir = statsLogoCacheDir();
 	const safeCacheKey = safeLogoCacheStem(cacheKey);
@@ -37,7 +34,6 @@ function logoCachePath(source: string, cacheKey?: string | null): string {
 	return resolve(logoCacheDir, `${sourceHash}.png`);
 }
 
-/** Resolves the cache directory used for downloaded stats logos. */
 export function statsLogoCacheDir(): string {
 	if (process.env.MODEL_ATLAS_LOGO_CACHE_DIR) {
 		return resolve(process.env.MODEL_ATLAS_LOGO_CACHE_DIR);
@@ -48,12 +44,10 @@ export function statsLogoCacheDir(): string {
 	return resolve(".cache/stats-logos");
 }
 
-/** Convert PNG bytes into an embeddable data URL. */
 function pngDataUrl(imageBuffer: Buffer): string {
 	return `data:image/png;base64,${imageBuffer.toString("base64")}`;
 }
 
-/** Load a cached logo as a normalized data URL when present. */
 async function loadCachedLogoDataUrl(
 	cachePath: string,
 ): Promise<string | null> {
@@ -80,7 +74,6 @@ async function loadCachedLogoDataUrl(
 	}
 }
 
-/** Persist resized logo bytes to the logo cache. */
 async function saveCachedLogoBuffer(
 	cachePath: string,
 	imageBuffer: Buffer,
@@ -116,7 +109,6 @@ export async function resizeLogoToPng(imageBuffer: Buffer): Promise<Buffer> {
 		.toBuffer();
 }
 
-/** Fetch, resize, store, and return a logo data URL. */
 async function buildCachedLogoDataUrl(
 	source: string,
 	cacheKey?: string | null,

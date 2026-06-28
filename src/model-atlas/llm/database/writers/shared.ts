@@ -1,4 +1,4 @@
-/** Shared SQLite writer value helpers. */
+/** Shared value coercion rules for writing nullable scraper fields into SQLite columns. */
 
 import { asFiniteNumber, type JsonObject } from "../../shared";
 
@@ -9,12 +9,10 @@ export function booleanValue(value: unknown): number | null {
 	return typeof value === "boolean" ? (value ? 1 : 0) : null;
 }
 
-/** Return whether a list contains a modality. */
 export function hasModality(values: unknown, modality: string): number {
 	return Array.isArray(values) && values.includes(modality) ? 1 : 0;
 }
 
-/** Read the first string value from a row. */
 export function firstString(
 	row: JsonObject,
 	keys: readonly string[],
@@ -28,7 +26,6 @@ export function firstString(
 	return null;
 }
 
-/** Read the first finite number from a row. */
 export function firstNumber(
 	row: JsonObject,
 	keys: readonly string[],

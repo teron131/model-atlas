@@ -14,7 +14,6 @@ import type {
 
 export const SNAPSHOT_PRESERVATION_VERSION = 2;
 
-/** Builds the identifiers used to match models across snapshots. */
 function modelKeys(model: LlmStatsModel): string[] {
 	const keys = new Set<string>();
 	for (const value of [model.id, model.name]) {
@@ -30,7 +29,6 @@ function modelKeys(model: LlmStatsModel): string[] {
 	return [...keys].filter((key) => key.length > 0);
 }
 
-/** Indexes prior snapshot models by every reusable model key. */
 function previousModelByKey(
 	previousPayload: LlmStatsPayload,
 ): Map<string, LlmStatsModel> {
@@ -50,7 +48,6 @@ function previousModelByKey(
 	return models;
 }
 
-/** Counts available score signals on a public model row. */
 function scoreSignalCount(
 	model: LlmStatsModel,
 	scoringConfig: ScoringConfig,
@@ -73,7 +70,6 @@ function scoreSignalCount(
 	].filter((value) => asFiniteNumber(value) != null).length;
 }
 
-/** Keeps prior rows when a refresh loses too many score signals. */
 function shouldPreservePreviousModel(
 	current: LlmStatsModel,
 	previous: LlmStatsModel,
@@ -91,7 +87,6 @@ function shouldPreservePreviousModel(
 	);
 }
 
-/** Orders preserved rows by intelligence score for snapshot trimming. */
 function sortByIntelligence(models: LlmStatsModel[]): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
 		const scoreDelta =
@@ -104,7 +99,7 @@ function sortByIntelligence(models: LlmStatsModel[]): LlmStatsModel[] {
 	});
 }
 
-/** Backfills strong prior models that disappeared from a weaker refresh. */
+/** Carry forward only stronger prior rows when a refresh loses evidence, keeping vanished-source protection narrow. */
 export function preserveHighSignalSnapshotModels(
 	payload: LlmStatsPayload,
 	previousPayload: LlmStatsPayload | null,

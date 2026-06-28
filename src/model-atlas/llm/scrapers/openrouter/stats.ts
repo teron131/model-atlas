@@ -1,4 +1,4 @@
-/** Pure OpenRouter stat normalization, permaslug resolution, and selection helpers. */
+/** Pure OpenRouter stat normalization, same-version permaslug resolution, and best-candidate selection policy. */
 
 import { medianOfFinite } from "../../../math-utils";
 import { isSameOpenRouterModelRoute } from "../../openrouter-routes";
@@ -84,7 +84,6 @@ export type OpenRouterRawScrapedPayload = {
 	models: OpenRouterRawScrapedModel[];
 };
 
-/** Normalize OpenRouter model IDs and route variants to comparable slugs. */
 export function sanitizeModelId(modelId: string): string {
 	return (
 		modelId
@@ -95,7 +94,6 @@ export function sanitizeModelId(modelId: string): string {
 	);
 }
 
-/** Convert the input into a finite number for OpenRouter stat calculations. */
 function asFiniteNumber(value: unknown): number | null {
 	if (value == null || value === "") {
 		return null;
@@ -104,7 +102,6 @@ function asFiniteNumber(value: unknown): number | null {
 	return Number.isFinite(numericValue) ? numericValue : null;
 }
 
-/** Average non-empty numeric values. */
 function average(values: number[]): number | null {
 	if (values.length === 0) {
 		return null;
@@ -112,7 +109,6 @@ function average(values: number[]): number | null {
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-/** Aggregate OpenRouter response values into daily averages. */
 function toDailyAveragedValues(
 	response: OpenRouterStatsResponse | null,
 	scaleToSeconds: boolean,
@@ -195,19 +191,16 @@ function summarizePricing(
 	};
 }
 
-/** Check whether raw OpenRouter performance carries a displayable metric. */
 function hasMeaningfulRawPerformance(stats: OpenRouterModelStats): boolean {
 	return hasMeaningfulPerformance(summarizePerformance(stats));
 }
 
-/** Check whether raw OpenRouter pricing carries a displayable metric. */
 function hasMeaningfulRawPricing(
 	pricing: OpenRouterEffectivePricingResponse | null,
 ): boolean {
 	return hasMeaningfulPricing(summarizePricing(pricing));
 }
 
-/** Create an empty normalized OpenRouter model stat record. */
 export function emptyScrapedModel(modelId: string): OpenRouterScrapedModel {
 	return {
 		id: modelId,
@@ -216,7 +209,6 @@ export function emptyScrapedModel(modelId: string): OpenRouterScrapedModel {
 	};
 }
 
-/** Create an empty raw OpenRouter model stat record. */
 export function emptyRawScrapedModel(
 	modelId: string,
 	candidatePermaslugs: string[] = [],
@@ -230,7 +222,6 @@ export function emptyRawScrapedModel(
 	};
 }
 
-/** Normalize raw OpenRouter performance and pricing responses for one model. */
 export function processOpenRouterModelStats(
 	modelId: string,
 	stats: OpenRouterModelStats,
@@ -243,7 +234,6 @@ export function processOpenRouterModelStats(
 	};
 }
 
-/** Check whether normalized OpenRouter performance carries any metric. */
 function hasMeaningfulPerformance(
 	performance: OpenRouterPerformanceSummary,
 ): boolean {
@@ -254,7 +244,6 @@ function hasMeaningfulPerformance(
 	);
 }
 
-/** Check whether normalized OpenRouter pricing carries any non-zero price. */
 function hasMeaningfulPricing(pricing: OpenRouterPricingSummary): boolean {
 	const weightedInput = pricing.weighted_input_price_per_1m;
 	const weightedOutput = pricing.weighted_output_price_per_1m;
@@ -263,7 +252,6 @@ function hasMeaningfulPricing(pricing: OpenRouterPricingSummary): boolean {
 	return hasInput || hasOutput;
 }
 
-/** Build same-version slug candidates for an OpenRouter model route. */
 export function buildOpenRouterSlugCandidates(
 	modelId: string,
 	availableSlugs: string[],
@@ -285,7 +273,6 @@ export function buildOpenRouterSlugCandidates(
 	return [normalized, ...versionCandidates];
 }
 
-/** Resolve permaslug candidates from comparable OpenRouter route slugs. */
 export function resolvePermaslugCandidates(
 	modelId: string,
 	availableSlugs: string[],
@@ -300,7 +287,6 @@ export function resolvePermaslugCandidates(
 		);
 }
 
-/** Parse weekly token usage from an OpenRouter performance page payload. */
 export function parseOpenRouterWeeklyTokens(html: string): number | null {
 	const marker = "weeklyTokensPromise";
 	const markerStart = html.indexOf(marker);
@@ -321,7 +307,6 @@ export function parseOpenRouterWeeklyTokens(html: string): number | null {
 	return asFiniteNumber(valueMatch?.[1]);
 }
 
-/** Sort OpenRouter candidate stats by descending weekly usage. */
 function compareCandidateUsage(
 	left: OpenRouterCandidateStats,
 	right: OpenRouterCandidateStats,
@@ -329,7 +314,6 @@ function compareCandidateUsage(
 	return (right.weekly_tokens ?? -1) - (left.weekly_tokens ?? -1);
 }
 
-/** Pick the highest-usage OpenRouter candidate satisfying a predicate. */
 function bestCandidateByUsage(
 	candidates: OpenRouterCandidateStats[],
 	predicate: (candidate: OpenRouterCandidateStats) => boolean,
@@ -349,7 +333,6 @@ function bestCandidateByUsage(
 	return bestCandidate;
 }
 
-/** Select the best raw OpenRouter model stats from permaslug candidates. */
 export function selectOpenRouterRawModelStats(
 	modelId: string,
 	candidates: OpenRouterCandidateStats[],

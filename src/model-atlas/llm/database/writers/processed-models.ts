@@ -1,4 +1,4 @@
-/** Processed model row writer. */
+/** SQLite writer for matched, enriched, and final model rows after source data has been joined. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -12,7 +12,6 @@ import {
 
 type ProcessedStage = "matched" | "catalog" | "enriched" | "final";
 
-/** Build identity and display values for one processed model row. */
 function processedIdentityValues(model: JsonObject): SqlValue[] {
 	const modelId = firstString(model, ["id"]);
 	return [
@@ -33,7 +32,6 @@ function processedIdentityValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-/** Build context and input-modality values for one processed model row. */
 function processedContextValues(model: JsonObject): SqlValue[] {
 	const context = asRecord(model.context_window);
 	const limit = asRecord(model.limit);
@@ -49,7 +47,6 @@ function processedContextValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-/** Build speed and cost values for one processed model row. */
 function processedSpeedAndCostValues(model: JsonObject): SqlValue[] {
 	const speed = asRecord(model.speed);
 	const cost = asRecord(model.cost);
@@ -72,7 +69,6 @@ function processedSpeedAndCostValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-/** Build benchmark metric values for one processed model row. */
 function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 	const intelligence = asRecord(model.intelligence);
 	const evaluations = asRecord(model.evaluations);
@@ -105,7 +101,6 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-/** Build task-metric and score values for one processed model row. */
 function processedScoreValues(model: JsonObject): SqlValue[] {
 	const taskMetrics = asRecord(model.task_metrics);
 	const artificialAnalysisTask = asRecord(taskMetrics.artificial_analysis);
@@ -138,7 +133,6 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-/** Insert matched, enriched, or final processed model rows. */
 export function insertProcessedModelRows(
 	db: DatabaseSync,
 	runId: number,

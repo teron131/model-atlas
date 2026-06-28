@@ -1,4 +1,4 @@
-/** Image model matching helpers. */
+/** Name, family, and rank heuristics for joining image benchmark rows into one public model list. */
 
 import { asRecord } from "../utils";
 import { getArenaAiImageStats } from "./sources/arena-ai";
@@ -117,7 +117,6 @@ export type ImageMatchModelMappingOptions = {
 	artificialAnalysisModels?: ArtificialAnalysisImageModel[];
 	arenaModels?: ArenaAiImageModel[];
 };
-/** Get the model creator name. */
 function getModelCreatorName(
 	model: ArtificialAnalysisImageModel,
 ): string | null {
@@ -125,7 +124,6 @@ function getModelCreatorName(
 	return typeof modelCreatorName === "string" ? modelCreatorName : null;
 }
 
-/** Normalize the model name. */
 function normalizeModelName(value: string): string {
 	return (
 		value
@@ -139,7 +137,6 @@ function normalizeModelName(value: string): string {
 	);
 }
 
-/** Split the tokens. */
 function splitTokens(value: string): string[] {
 	return normalizeModelName(value)
 		.split("-")
@@ -147,7 +144,6 @@ function splitTokens(value: string): string[] {
 		.filter(Boolean);
 }
 
-/** Resolve the provider for Image model matching. */
 function providerPrefix(provider: string | null | undefined): string | null {
 	if (!provider) {
 		return null;
@@ -156,7 +152,6 @@ function providerPrefix(provider: string | null | undefined): string | null {
 	return left && left.length > 0 ? left : null;
 }
 
-/** Rank the proximity bonus. */
 function rankProximityBonus(
 	artificialAnalysisRank: number | null,
 	arenaRank: number | null,
@@ -174,7 +169,6 @@ function rankProximityBonus(
 	);
 }
 
-/** Helper for common prefix length. */
 function commonPrefixLength(left: string, right: string): number {
 	const maxLength = Math.min(left.length, right.length);
 	let index = 0;
@@ -184,7 +178,6 @@ function commonPrefixLength(left: string, right: string): number {
 	return index;
 }
 
-/** Helper for to numeric token. */
 function toNumericToken(token: string): number | null {
 	if (!/^\d+$/.test(token)) {
 		return null;
@@ -193,7 +186,6 @@ function toNumericToken(token: string): number | null {
 	return Number.isFinite(numeric) ? numeric : null;
 }
 
-/** Extract the structured versions. */
 function extractStructuredVersions(value: string): string[] {
 	const matches = [
 		...value.toLowerCase().matchAll(/\b\d+\.\d+\b|\b\d+-\d+\b/g),
@@ -201,7 +193,6 @@ function extractStructuredVersions(value: string): string[] {
 	return [...new Set(matches.filter(Boolean))];
 }
 
-/** Helper for token similarity. */
 function tokenSimilarity(left: string, right: string): number {
 	if (left === right) {
 		return 1;
@@ -223,7 +214,6 @@ function tokenSimilarity(left: string, right: string): number {
 	return 0;
 }
 
-/** Helper for aligned token score. */
 function alignedTokenScore(
 	leftTokens: string[],
 	rightTokens: string[],
@@ -254,7 +244,6 @@ function alignedTokenScore(
 	return solve(0, 0);
 }
 
-/** Helper for set jaccard. */
 function setJaccard(leftTokens: string[], rightTokens: string[]): number {
 	const leftSet = new Set(leftTokens);
 	const rightSet = new Set(rightTokens);
@@ -271,7 +260,6 @@ function setJaccard(leftTokens: string[], rightTokens: string[]): number {
 	return union > 0 ? intersection / union : 0;
 }
 
-/** Helper for positional exact matches. */
 function positionalExactMatches(
 	leftTokens: string[],
 	rightTokens: string[],
@@ -286,12 +274,10 @@ function positionalExactMatches(
 	return matches;
 }
 
-/** Return whether distinctive token is true. */
 function isDistinctiveToken(token: string): boolean {
 	return token.length >= 3 && !NOISE_TOKENS.has(token) && !/^\d+$/.test(token);
 }
 
-/** Helper for distinctive coverage. */
 function distinctiveCoverage(
 	leftTokens: string[],
 	rightTokens: string[],
@@ -307,7 +293,6 @@ function distinctiveCoverage(
 	return matched / leftDistinctive.length;
 }
 
-/** Helper for qualifier signals. */
 function qualifierSignals(
 	leftTokens: string[],
 	rightTokens: string[],
@@ -337,7 +322,6 @@ function qualifierSignals(
 	};
 }
 
-/** Compute the name similarity. */
 function computeNameSimilarity(left: string, right: string): number {
 	const leftNormalized = normalizeModelName(left);
 	const rightNormalized = normalizeModelName(right);
@@ -451,7 +435,6 @@ function computeNameSimilarity(left: string, right: string): number {
 	return Number(weighted.toFixed(4));
 }
 
-/** Get the artificial analysis names. */
 function getArtificialAnalysisNames(
 	model: ArtificialAnalysisImageModel,
 ): string[] {
@@ -465,7 +448,6 @@ function getArtificialAnalysisNames(
 	return names.length > 0 ? names : [""];
 }
 
-/** Compute the artificial analysis name score. */
 function computeArtificialAnalysisNameScore(
 	model: ArtificialAnalysisImageModel,
 	arenaModelName: string,
@@ -492,7 +474,6 @@ function computeArtificialAnalysisNameScore(
 	return 0;
 }
 
-/** Get the family anchor tokens. */
 function getFamilyAnchorTokens(name: string): string[] {
 	const tokens = splitTokens(name).filter(
 		(token) =>
@@ -503,7 +484,6 @@ function getFamilyAnchorTokens(name: string): string[] {
 	return [...new Set(tokens)];
 }
 
-/** Return whether family anchor overlap is true. */
 function hasFamilyAnchorOverlap(
 	artificialAnalysisModel: ArtificialAnalysisImageModel,
 	arenaModelName: string,
@@ -518,7 +498,6 @@ function hasFamilyAnchorOverlap(
 	return artificialAnalysisAnchors.some((token) => arenaAnchorSet.has(token));
 }
 
-/** Compute the candidate score. */
 function computeCandidateScore(
 	artificialAnalysisModel: ArtificialAnalysisImageModel,
 	arenaModel: ArenaAiImageModel,
@@ -547,7 +526,6 @@ function computeCandidateScore(
 	return Number(score.toFixed(4));
 }
 
-/** Return whether accepted best candidate is true. */
 function isAcceptedBestCandidate(candidates: ImageMatchCandidate[]): boolean {
 	const best = candidates[0];
 	if (!best || best.score < MIN_ACCEPTED_CANDIDATE_SCORE) {
@@ -564,7 +542,6 @@ function isAcceptedBestCandidate(candidates: ImageMatchCandidate[]): boolean {
 	return true;
 }
 
-/** Return whether accepted best candidate for rank is true. */
 function isAcceptedBestCandidateForRank(
 	artificialAnalysisModel: ArtificialAnalysisImageModel,
 	candidates: ImageMatchCandidate[],
@@ -598,7 +575,6 @@ function isAcceptedBestCandidateForRank(
 	return false;
 }
 
-/** Apply the dynamic void. */
 function applyDynamicVoid<
 	T extends {
 		best_match: ImageMatchCandidate | null;
@@ -642,7 +618,6 @@ function applyDynamicVoid<
 	return { threshold, voided };
 }
 
-/** Map a source model into the selected Image model matching payload. */
 function mapModel(
 	artificialAnalysisModel: ArtificialAnalysisImageModel,
 	arenaModels: ArenaAiImageModel[],
@@ -686,7 +661,6 @@ function mapModel(
 	};
 }
 
-/** Get the image match model mapping. */
 export async function getImageMatchModelMapping(
 	options: ImageMatchModelMappingOptions = {},
 ): Promise<ImageMatchModelMappingPayload> {

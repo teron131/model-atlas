@@ -1,4 +1,4 @@
-/** Public OpenRouter scraper exports. */
+/** Public OpenRouter scraper surface; workflow owns I/O while stats owns normalization and candidate choice. */
 export type {
 	OpenRouterCandidateStats,
 	OpenRouterEffectivePricingResponse,

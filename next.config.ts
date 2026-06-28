@@ -1,3 +1,5 @@
+/** Next.js runtime configuration for local development and production builds. */
+
 import type { NextConfig } from "next";
 
 const DEV_WATCH_IGNORED_DIRECTORY_NAMES = [

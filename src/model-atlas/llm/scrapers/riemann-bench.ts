@@ -33,14 +33,12 @@ export type RiemannBenchModelScorePayload = {
 	data: RiemannBenchModelScoreRow[];
 };
 
-/** Extract model score rows from the public Riemann-bench leaderboard page. */
 export function processRiemannBenchPageHtml(
 	pageHtml: string,
 ): RiemannBenchModelScoreRow[] {
 	return surgeLeaderboardScoreRows(pageHtml);
 }
 
-/** Normalizes model key candidates from benchmark source data. */
 function modelKeyCandidates(model: string): string[] {
 	const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
 	const slashParts = withoutParenthetical
@@ -54,7 +52,6 @@ function modelKeyCandidates(model: string): string[] {
 		);
 }
 
-/** Build Riemann-bench score rows by normalized model name. */
 export function buildRiemannBenchMap(
 	rows: RiemannBenchModelScoreRow[],
 ): RiemannBenchScoreByModelName {
@@ -67,7 +64,6 @@ export function buildRiemannBenchMap(
 	return scoreByModelName;
 }
 
-/** Find a Riemann-bench score from display names. */
 export function findRiemannBenchScore(
 	candidateNames: unknown[],
 	riemannBenchScoreByModelName: RiemannBenchScoreByModelName,
@@ -86,7 +82,6 @@ export function findRiemannBenchScore(
 	return null;
 }
 
-/** Fetch Riemann-bench model score rows from the public page. */
 export async function getRiemannBenchStats(
 	options: RiemannBenchScraperOptions = {},
 ): Promise<RiemannBenchModelScorePayload> {
