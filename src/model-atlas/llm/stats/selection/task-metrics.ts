@@ -16,7 +16,7 @@ function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
 }
 
-/** Build normalized per-task metrics for AA Intelligence, DeepSWE, and ALE runs. */
+/** Build normalized per-task metrics for Artificial Analysis, DeepSWE, and ALE runs. */
 export function buildTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
 	cost: LlmStatsCost,
@@ -44,7 +44,7 @@ export function buildTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-/** Use AA's direct Intelligence per-task telemetry. */
+/** Use Artificial Analysis direct Intelligence per-task telemetry. */
 function buildArtificialAnalysisTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
 ): TaskMetricValues | null {

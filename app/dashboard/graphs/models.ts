@@ -107,7 +107,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		read: "Highlights when huge context is real leverage versus just a large number beside a weaker model.",
 	},
 	{
-		key: "aaCost",
+		key: "artificialAnalysisCost",
 		title: "Intelligence vs AA task cost",
 		fieldLabel: "AA cost",
 		lowerBetter: true,

@@ -7,10 +7,15 @@ import { firstValidMatchId, hasVariantConflict } from "../stats/matching";
 import type { MatcherConfig } from "../stats/types";
 import type { DebugTraceRow, SourceSnapshots } from "./types";
 
-/** Map AA model ids to raw table row indexes for debug joins. */
-function aaRowIndexById(snapshots: SourceSnapshots): Map<string, number> {
+/** Map Artificial Analysis model ids to raw table row indexes for debug joins. */
+function artificialAnalysisRowIndexById(
+	snapshots: SourceSnapshots,
+): Map<string, number> {
 	const byModelId = new Map<string, number>();
-	for (const [index, row] of snapshots.aaSelectedRows.entries()) {
+	for (const [
+		index,
+		row,
+	] of snapshots.artificialAnalysisSelectedRows.entries()) {
 		if (typeof row.model_id === "string") {
 			byModelId.set(row.model_id, index);
 		}
@@ -88,15 +93,16 @@ function debugRejectionReason(
 /** Builds a debug trace row for an unmatched matcher candidate. */
 function unmatchedDebugTraceRow(
 	model: MatchDiagnosticsPayload["models"][number],
-	aaRowById: Map<string, number>,
+	artificialAnalysisRowById: Map<string, number>,
 ): DebugTraceRow {
 	return {
 		trace_kind: "matcher_candidate",
-		aa_id: model.artificial_analysis_name,
-		aa_slug: model.artificial_analysis_slug,
-		aa_name: model.artificial_analysis_name,
-		aa_raw_row_index:
-			aaRowById.get(model.artificial_analysis_name ?? "") ?? null,
+		artificial_analysis_id: model.artificial_analysis_name,
+		artificial_analysis_slug: model.artificial_analysis_slug,
+		artificial_analysis_name: model.artificial_analysis_name,
+		artificial_analysis_raw_row_index:
+			artificialAnalysisRowById.get(model.artificial_analysis_name ?? "") ??
+			null,
 		candidate_rank: null,
 		candidate_model_id: null,
 		candidate_provider_id: null,
@@ -120,7 +126,7 @@ export function buildDebugTraceRows(
 	diagnostics: MatchDiagnosticsPayload,
 	matcherConfig: MatcherConfig,
 ): DebugTraceRow[] {
-	const aaRowById = aaRowIndexById(snapshots);
+	const artificialAnalysisRowById = artificialAnalysisRowIndexById(snapshots);
 	const modelsDevRowByKey = modelsDevRowIndexByKey(snapshots);
 	const openRouterRowById = openRouterStatsRowById(openRouterRawPayload);
 	const rows: DebugTraceRow[] = [];
@@ -132,7 +138,7 @@ export function buildDebugTraceRows(
 			matcherConfig,
 		);
 		if (model.candidates.length === 0) {
-			rows.push(unmatchedDebugTraceRow(model, aaRowById));
+			rows.push(unmatchedDebugTraceRow(model, artificialAnalysisRowById));
 			continue;
 		}
 		for (const [candidateIndex, candidate] of model.candidates.entries()) {
@@ -148,11 +154,12 @@ export function buildDebugTraceRows(
 					: null;
 			rows.push({
 				trace_kind: "matcher_candidate",
-				aa_id: model.artificial_analysis_name,
-				aa_slug: model.artificial_analysis_slug,
-				aa_name: model.artificial_analysis_name,
-				aa_raw_row_index:
-					aaRowById.get(model.artificial_analysis_name ?? "") ?? null,
+				artificial_analysis_id: model.artificial_analysis_name,
+				artificial_analysis_slug: model.artificial_analysis_slug,
+				artificial_analysis_name: model.artificial_analysis_name,
+				artificial_analysis_raw_row_index:
+					artificialAnalysisRowById.get(model.artificial_analysis_name ?? "") ??
+					null,
 				candidate_rank: candidateIndex,
 				candidate_model_id: candidate.model_id,
 				candidate_provider_id: candidate.provider_id,

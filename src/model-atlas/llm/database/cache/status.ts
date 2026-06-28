@@ -12,7 +12,7 @@ import { openRouterCacheHasScopedCandidates } from "./openrouter";
 import { artificialAnalysisCacheHasHiddenRows } from "./source-readers";
 
 const RAW_SOURCE_TABLES: Record<RawSourceName, string> = {
-	artificial_analysis: "aa_raw_models",
+	artificial_analysis: "artificial_analysis_raw_models",
 	models_dev: "models_dev_raw_models",
 	agents_last_exam: "agents_last_exam_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",

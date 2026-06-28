@@ -99,9 +99,9 @@ assert.deepEqual(
 assert.deepEqual(
 	metricColumnsForView("evals").map((column) => column.key),
 	[
-		"aaCost",
-		"aaSeconds",
-		"aaTokens",
+		"artificialAnalysisCost",
+		"artificialAnalysisSeconds",
+		"artificialAnalysisTokens",
 		"gpqa",
 		"hle",
 		"terminalBench",

@@ -39,7 +39,7 @@ const ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES = [
 const DEFAULT_MAX_CANDIDATES = 5;
 const VOID_THRESHOLD_RANGE_RATIO = 0.35;
 
-/** Collapse AA effort-specific rows to the base slug used for model matching. */
+/** Collapse Artificial Analysis effort-specific rows to the base slug used for model matching. */
 function artificialAnalysisMatchSlug(sourceSlug: string): string {
 	for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
 		if (sourceSlug.endsWith(suffix)) {

@@ -59,7 +59,7 @@ function decodeFlightChunk(raw: string): string {
 	}
 }
 
-/** Helper for to absolute aa logo url. */
+/** Convert Artificial Analysis logo paths to absolute URLs. */
 function toAbsoluteAaLogoUrl(value: unknown): string | null {
 	if (typeof value !== "string" || value.length === 0) {
 		return null;
@@ -75,7 +75,7 @@ function toAbsoluteAaLogoUrl(value: unknown): string | null {
 	return `https://artificialanalysis.ai${normalized}`;
 }
 
-/** Remove transient availability/fallback qualifiers from AA model names. */
+/** Remove transient availability/fallback qualifiers from Artificial Analysis model names. */
 export function cleanArtificialAnalysisModelName(
 	value: unknown,
 ): string | null {
@@ -139,7 +139,7 @@ function firstString(row: JsonObject, keys: string[]): string | null {
 	return null;
 }
 
-/** Convert AA metric keys into the stable snake_case payload keys. */
+/** Convert Artificial Analysis metric keys into the stable snake_case payload keys. */
 function normalizeMetricKey(key: string): string {
 	return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
@@ -472,7 +472,7 @@ function getProviderSlug(row: JsonObject, creator: JsonObject): string | null {
 		.replace(/^-+|-+$/g, "");
 }
 
-/** Build a creator-like object from flat row fields when AA inlines creator data. */
+/** Build a creator-like object from flat row fields when Artificial Analysis inlines creator data. */
 function flatCreatorFromRow(row: JsonObject): JsonObject {
 	return {
 		name: firstString(row, ["modelCreatorName"]),
@@ -482,7 +482,7 @@ function flatCreatorFromRow(row: JsonObject): JsonObject {
 	};
 }
 
-/** Derive the model URL slug from relative or absolute AA URLs. */
+/** Derive the model URL slug from relative or absolute Artificial Analysis URLs. */
 function modelUrlSlugFromRow(
 	row: JsonObject,
 	fallbackSlug: string | null,

@@ -115,7 +115,7 @@ export function modalityList(
 	);
 }
 
-const AA_COST_KEYS = [
+const ARTIFICIAL_ANALYSIS_COST_KEYS = [
 	"input_cost",
 	"reasoning_cost",
 	"output_cost",
@@ -138,7 +138,7 @@ export function artificialAnalysisCacheHasHiddenRows(
 		db,
 		`
 			SELECT row_index
-			FROM aa_raw_models
+			FROM artificial_analysis_raw_models
 			WHERE deprecated = 1
 				AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
 			LIMIT 1
@@ -206,7 +206,7 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 	for (const key of ARTIFICIAL_ANALYSIS_EVALUATION_KEYS) {
 		assignIfNumber(rawRow, key, row[key]);
 	}
-	for (const key of AA_COST_KEYS) {
+	for (const key of ARTIFICIAL_ANALYSIS_COST_KEYS) {
 		assignIfNumber(rawRow, key, row[key]);
 	}
 	if (nonEmptyRecord(tokenCounts) != null) {
@@ -253,7 +253,7 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	);
 	const intelligenceIndexCost = artificialAnalysisNestedNumbers(
 		row,
-		AA_COST_KEYS,
+		ARTIFICIAL_ANALYSIS_COST_KEYS,
 	);
 	if (nonEmptyRecord(intelligence) != null) {
 		selectedRow.intelligence = intelligence;
@@ -269,17 +269,24 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 
 /** Reads Artificial Analysis raw and selected rows from the raw cache. */
 export function readArtificialAnalysisRawCache(db: DatabaseSync): {
-	aaRawRows: JsonObject[];
-	aaSelectedRows: JsonObject[];
+	artificialAnalysisRawRows: JsonObject[];
+	artificialAnalysisSelectedRows: JsonObject[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(db, "SELECT * FROM aa_raw_models ORDER BY row_index");
+	const rawRows = rows(
+		db,
+		"SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
+	);
 	if (rawRows.length === 0) {
 		return null;
 	}
 	return {
-		aaRawRows: rawRows.map((row) => artificialAnalysisRawRow(row)),
-		aaSelectedRows: rawRows.map((row) => artificialAnalysisSelectedRow(row)),
+		artificialAnalysisRawRows: rawRows.map((row) =>
+			artificialAnalysisRawRow(row),
+		),
+		artificialAnalysisSelectedRows: rawRows.map((row) =>
+			artificialAnalysisSelectedRow(row),
+		),
 		fetchedAt: firstEpochSecond(rawRows),
 	};
 }

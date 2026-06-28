@@ -76,10 +76,10 @@ export type DatabaseBuildOptions = {
 
 export type DebugTraceRow = {
 	trace_kind: "matcher_candidate";
-	aa_id: string | null;
-	aa_slug: string | null;
-	aa_name: string | null;
-	aa_raw_row_index: number | null;
+	artificial_analysis_id: string | null;
+	artificial_analysis_slug: string | null;
+	artificial_analysis_name: string | null;
+	artificial_analysis_raw_row_index: number | null;
 	candidate_rank: number | null;
 	candidate_model_id: string | null;
 	candidate_provider_id: string | null;
@@ -115,8 +115,8 @@ export type SourceRowState = {
 };
 
 export type SourceSnapshots = {
-	aaRawRows: JsonObject[];
-	aaSelectedRows: JsonObject[];
+	artificialAnalysisRawRows: JsonObject[];
+	artificialAnalysisSelectedRows: JsonObject[];
 	modelsDevPayload: ModelsDevPayload;
 	modelsDevModels: ModelsDevFlatModel[];
 	modelsDevFetchedAt: number | null;

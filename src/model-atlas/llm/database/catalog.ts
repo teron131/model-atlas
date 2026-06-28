@@ -174,7 +174,7 @@ function modelsDevCatalogRow(
 			typeof modelsDevModel.model.name === "string"
 				? modelsDevModel.model.name
 				: modelsDevModel.model_id,
-		aa_id: null,
+		artificial_analysis_id: null,
 		family: matchedFamily,
 		...modelMetadata,
 		...(Object.keys(benchmarkFields.scoringSources).length === 0
@@ -188,7 +188,7 @@ function modelsDevCatalogRow(
 	};
 }
 
-/** Add preferred recent models.dev catalog rows that have no AA-matched row. */
+/** Add preferred recent models.dev catalog rows without an Artificial Analysis match. */
 export function buildDatabaseCatalogRows(
 	sourceData: LlmStatsSourceData,
 	matchedRows: Record<string, unknown>[],

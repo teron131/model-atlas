@@ -19,7 +19,7 @@ type DbSourceSpec = {
 };
 
 export type BenchmarkDbRows = {
-	aaRows: readonly DbBenchmarkRow[];
+	artificialAnalysisRows: readonly DbBenchmarkRow[];
 	agentsLastExamRows: readonly DbBenchmarkRow[];
 	blueprintBenchRows: readonly DbBenchmarkRow[];
 	browseCompRows: readonly DbBenchmarkRow[];
@@ -160,7 +160,7 @@ function addArtificialAnalysisRows(
 /** Converts persisted benchmark source rows into benchmark-keyed update rows. */
 export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
 	const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
-	addArtificialAnalysisRows(rowsByKey, rows.aaRows);
+	addArtificialAnalysisRows(rowsByKey, rows.artificialAnalysisRows);
 	addDbSourceRows(rowsByKey, dbSourceSpecs(rows));
 	return rowsByKey;
 }
