@@ -18,7 +18,7 @@ import { rowStringValue, snapshotRowsWithStates } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
-	SourceRowState,
+	SourceSnapshotStatus,
 	SourceSnapshots,
 } from "../types";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
@@ -26,8 +26,7 @@ import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 export type ArtificialAnalysisSnapshot = {
 	artificialAnalysisRawRows: SourceSnapshots["artificialAnalysisRawRows"];
 	artificialAnalysisSelectedRows: SourceSnapshots["artificialAnalysisSelectedRows"];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { artificialAnalysis: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 const ARTIFICIAL_ANALYSIS_RESOURCE_SIGNAL_KEYS = [
@@ -139,8 +138,13 @@ export async function artificialAnalysisSnapshot(
 			artificialAnalysisSelectedRows: selectedArtificialAnalysisRows(
 				cachedSnapshot.rows,
 			),
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { artificialAnalysis: cached.fetchedAt },
+			sourceStatus: {
+				source: "artificial_analysis",
+				fetchedAt: cached.fetchedAt,
+				sourceInputCount: cachedSnapshot.rows.length,
+				sourceRowStates: cachedSnapshot.states,
+				fetchedAtKey: "artificialAnalysis",
+			},
 		};
 	}
 	const fetched = await getArtificialAnalysisScrapedRawStats();
@@ -161,18 +165,22 @@ export async function artificialAnalysisSnapshot(
 		previousMissingSince,
 		nowEpochSeconds,
 	});
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched.fetched_at_epoch_seconds,
+	);
 	return {
 		artificialAnalysisRawRows: snapshot.rows,
 		artificialAnalysisSelectedRows: selectedArtificialAnalysisRows(
 			snapshot.rows,
 		),
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			artificialAnalysis: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
+		sourceStatus: {
+			source: "artificial_analysis",
+			fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.states,
+			fetchedAtKey: "artificialAnalysis",
 		},
 	};
 }

@@ -31,30 +31,27 @@ import { snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
-	SourceRowState,
+	SourceSnapshotStatus,
 } from "../types";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 
 export type AgentsLastExamSnapshot = {
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { agentsLastExam: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type DeepSWESnapshot = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
 	deepSWEModelScoreRows: ReturnType<typeof summarizeDeepSWEDefaultModelScores>;
 	deepSWESourceVersion: DeepSWESourceVersion | null;
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { deepSWE: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type TerminalBenchSnapshot = {
 	terminalBenchRows: TerminalBenchAgentModelAccuracyRow[];
 	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { terminalBench: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 /** Preserves Agents Last Exam harness rows while returning summarized model scores. */
@@ -88,8 +85,13 @@ export async function agentsLastExamSnapshot(
 			agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
 				cachedSnapshot.rows,
 			),
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { agentsLastExam: cached.fetchedAt },
+			sourceStatus: {
+				source: "agents_last_exam",
+				fetchedAt: cached.fetchedAt,
+				sourceInputCount: cachedSnapshot.rows.length,
+				sourceRowStates: cachedSnapshot.states,
+				fetchedAtKey: "agentsLastExam",
+			},
 		};
 	}
 	const fetched = await getAgentsLastExamHarnessStats();
@@ -109,18 +111,22 @@ export async function agentsLastExamSnapshot(
 		previousMissingSince,
 		nowEpochSeconds,
 	});
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched.fetched_at_epoch_seconds,
+	);
 	return {
 		agentsLastExamRows: snapshot.rows,
 		agentsLastExamModelScores: summarizeAgentsLastExamModelScores(
 			snapshot.rows,
 		),
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			agentsLastExam: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
+		sourceStatus: {
+			source: "agents_last_exam",
+			fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.states,
+			fetchedAtKey: "agentsLastExam",
 		},
 	};
 }
@@ -166,8 +172,13 @@ export async function deepSWESnapshot(
 				preferredDeepSWELeaderboardRows(cachedSnapshot.rows),
 			),
 			deepSWESourceVersion: cached.sourceVersion,
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { deepSWE: cached.fetchedAt },
+			sourceStatus: {
+				source: "deep_swe",
+				fetchedAt: cached.fetchedAt,
+				sourceInputCount: cachedSnapshot.rows.length,
+				sourceRowStates: cachedSnapshot.states,
+				fetchedAtKey: "deepSWE",
+			},
 		};
 	}
 	const fetched = await getDeepSWERawLeaderboardSourceRows();
@@ -193,6 +204,11 @@ export async function deepSWESnapshot(
 		nowEpochSeconds,
 	});
 	const preferredRows = preferredDeepSWELeaderboardRows(snapshot.rows);
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched.fetched_at_epoch_seconds,
+	);
 	return {
 		deepSWERawRows: snapshot.rows,
 		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(preferredRows),
@@ -200,13 +216,12 @@ export async function deepSWESnapshot(
 			preferredRows.length > 0
 				? deepSWESourceVersionForRows(snapshot.rows)
 				: (cached?.sourceVersion ?? null),
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			deepSWE: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
+		sourceStatus: {
+			source: "deep_swe",
+			fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.states,
+			fetchedAtKey: "deepSWE",
 		},
 	};
 }
@@ -241,8 +256,13 @@ export async function terminalBenchSnapshot(
 			terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(
 				cachedSnapshot.rows,
 			),
-			sourceRowStates: cachedSnapshot.states,
-			fetchedAt: { terminalBench: cached.fetchedAt },
+			sourceStatus: {
+				source: "terminal_bench",
+				fetchedAt: cached.fetchedAt,
+				sourceInputCount: cachedSnapshot.rows.length,
+				sourceRowStates: cachedSnapshot.states,
+				fetchedAtKey: "terminalBench",
+			},
 		};
 	}
 	const fetched = await getTerminalBenchAgentModelAccuracyStats();
@@ -261,18 +281,22 @@ export async function terminalBenchSnapshot(
 		previousMissingSince,
 		nowEpochSeconds,
 	});
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched.fetched_at_epoch_seconds,
+	);
 	return {
 		terminalBenchRows: snapshot.rows,
 		terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(
 			snapshot.rows,
 		),
-		sourceRowStates: snapshot.states,
-		fetchedAt: {
-			terminalBench: snapshotFetchedAt(
-				hasUsableFetchedRows,
-				cached?.fetchedAt,
-				fetched.fetched_at_epoch_seconds,
-			),
+		sourceStatus: {
+			source: "terminal_bench",
+			fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.states,
+			fetchedAtKey: "terminalBench",
 		},
 	};
 }

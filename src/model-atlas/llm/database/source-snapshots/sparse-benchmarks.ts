@@ -38,44 +38,38 @@ import { sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
-	SourceRowState,
+	SourceSnapshotStatus,
 } from "../types";
 import { modelScoreSnapshot } from "./model-score";
 
 export type BlueprintBenchSnapshot = {
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { blueprintBench: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type BrowseCompSnapshot = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { browseComp: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type CursorBenchSnapshot = {
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { cursorBench: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type GdpPdfSnapshot = {
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { gdpPdf: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type RiemannBenchSnapshot = {
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { riemannBench: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 export type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
-	sourceRowStates: SourceRowState[];
-	fetchedAt: { toolathlon: number | null };
+	sourceStatus: SourceSnapshotStatus;
 };
 
 /** Loads BlueprintBench rows keyed by model name for cache and missing-row tracking. */
@@ -99,8 +93,13 @@ export async function blueprintBenchSnapshot(
 	});
 	return {
 		blueprintBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { blueprintBench: snapshot.fetchedAt },
+		sourceStatus: {
+			source: "blueprint_bench_2",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "blueprintBench",
+		},
 	};
 }
 
@@ -125,8 +124,13 @@ export async function browseCompSnapshot(
 	});
 	return {
 		browseCompModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { browseComp: snapshot.fetchedAt },
+		sourceStatus: {
+			source: "browsecomp",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "browseComp",
+		},
 	};
 }
 
@@ -151,8 +155,13 @@ export async function cursorBenchSnapshot(
 	});
 	return {
 		cursorBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { cursorBench: snapshot.fetchedAt },
+		sourceStatus: {
+			source: "cursorbench",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "cursorBench",
+		},
 	};
 }
 
@@ -177,8 +186,13 @@ export async function gdpPdfSnapshot(
 	});
 	return {
 		gdpPdfModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { gdpPdf: snapshot.fetchedAt },
+		sourceStatus: {
+			source: "gdp_pdf",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "gdpPdf",
+		},
 	};
 }
 
@@ -203,8 +217,13 @@ export async function riemannBenchSnapshot(
 	});
 	return {
 		riemannBenchModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { riemannBench: snapshot.fetchedAt },
+		sourceStatus: {
+			source: "riemann_bench",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "riemannBench",
+		},
 	};
 }
 
@@ -229,7 +248,12 @@ export async function toolathlonSnapshot(
 	});
 	return {
 		toolathlonModelScoreRows: snapshot.rows,
-		sourceRowStates: snapshot.sourceRowStates,
-		fetchedAt: { toolathlon: snapshot.fetchedAt },
+		sourceStatus: {
+			source: "toolathlon",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "toolathlon",
+		},
 	};
 }
