@@ -43,6 +43,36 @@ export const RAW_SOURCE_NAMES = [
 	"openrouter",
 ] as const;
 
+export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
+
+/** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
+export const RAW_SOURCE_TABLES = {
+	artificial_analysis: "artificial_analysis_raw_models",
+	models_dev: "models_dev_raw_models",
+	agents_last_exam: "agents_last_exam_raw_rows",
+	blueprint_bench_2: "blueprint_bench_2_raw_rows",
+	browsecomp: "browsecomp_raw_rows",
+	cursorbench: "cursorbench_raw_rows",
+	deep_swe: "deep_swe_raw_rows",
+	gdp_pdf: "gdp_pdf_raw_rows",
+	riemann_bench: "riemann_bench_raw_rows",
+	terminal_bench: "terminal_bench_raw_rows",
+	toolathlon: "toolathlon_raw_rows",
+	openrouter: "openrouter_raw_rows",
+} as const satisfies Record<RawSourceName, string>;
+
+/** Tables owned by the local snapshot pipeline and rewritten as a completed run. */
+export const SNAPSHOT_TABLES = {
+	...RAW_SOURCE_TABLES,
+	source_row_states: "source_row_states",
+	source_health: "source_health",
+	processed_models: "processed_models",
+	matcher_debug: "matcher_debug",
+} as const;
+
+export type SnapshotTableName =
+	(typeof SNAPSHOT_TABLES)[keyof typeof SNAPSHOT_TABLES];
+
 export const SOURCE_URLS = {
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
 	models_dev: "https://models.dev/api.json",
@@ -94,8 +124,6 @@ export type DebugTraceRow = {
 	openrouter_model_id: string | null;
 	openrouter_model_stats_row_index: number | null;
 };
-
-export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
 
 export type RawSourceCacheStatus = {
 	last_fetch_epoch_seconds: number | null;

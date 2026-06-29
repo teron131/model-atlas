@@ -25,6 +25,8 @@ import {
 	type DatabaseBuildResult,
 	DEFAULT_DATABASE_PATH,
 	type DebugTraceRow,
+	SNAPSHOT_TABLES,
+	type SnapshotTableName,
 	type SourceSnapshots,
 } from "./types";
 import {
@@ -46,25 +48,6 @@ import {
 	insertToolathlonRawRows,
 } from "./writers";
 
-const SNAPSHOT_TABLES = [
-	"artificial_analysis_raw_models",
-	"models_dev_raw_models",
-	"agents_last_exam_raw_rows",
-	"blueprint_bench_2_raw_rows",
-	"browsecomp_raw_rows",
-	"cursorbench_raw_rows",
-	"deep_swe_raw_rows",
-	"gdp_pdf_raw_rows",
-	"riemann_bench_raw_rows",
-	"terminal_bench_raw_rows",
-	"toolathlon_raw_rows",
-	"openrouter_raw_rows",
-	"source_row_states",
-	"source_health",
-	"processed_models",
-	"matcher_debug",
-] as const;
-
 type SnapshotRows = {
 	startedAt: number;
 	snapshots: SourceSnapshots;
@@ -77,13 +60,104 @@ type SnapshotRows = {
 	sourceHealth: DatabaseBuildResult["source_health"];
 };
 
+type SnapshotWriter = {
+	table: SnapshotTableName;
+	write: (db: DatabaseSync, runId: number, rows: SnapshotRows) => void;
+};
+
+/** Pairs each snapshot-owned table with the write that repopulates it after clearing. */
+const SNAPSHOT_WRITERS = [
+	{
+		table: SNAPSHOT_TABLES.artificial_analysis,
+		write: (db, runId, rows) =>
+			insertArtificialAnalysisRawModels(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.models_dev,
+		write: (db, runId, rows) =>
+			insertModelsDevRawModels(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.agents_last_exam,
+		write: (db, runId, rows) =>
+			insertAgentsLastExamRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.blueprint_bench_2,
+		write: (db, runId, rows) =>
+			insertBlueprintBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.browsecomp,
+		write: (db, runId, rows) =>
+			insertBrowseCompRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.cursorbench,
+		write: (db, runId, rows) =>
+			insertCursorBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.deep_swe,
+		write: (db, runId, rows) => insertDeepSWERawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.gdp_pdf,
+		write: (db, runId, rows) => insertGdpPdfRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.riemann_bench,
+		write: (db, runId, rows) =>
+			insertRiemannBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.terminal_bench,
+		write: (db, runId, rows) =>
+			insertTerminalBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.toolathlon,
+		write: (db, runId, rows) =>
+			insertToolathlonRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.openrouter,
+		write: (db, runId, rows) =>
+			insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload),
+	},
+	{
+		table: SNAPSHOT_TABLES.source_row_states,
+		write: (db, runId, rows) =>
+			insertSourceRowStates(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.source_health,
+		write: (db, runId, rows) =>
+			insertSourceHealth(db, runId, rows.sourceHealth),
+	},
+	{
+		table: SNAPSHOT_TABLES.processed_models,
+		write: (db, runId, rows) => {
+			insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
+			insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);
+			insertProcessedModelRows(db, runId, "enriched", rows.enrichedRows);
+			insertProcessedModelRows(db, runId, "final", rows.selectedRows);
+		},
+	},
+	{
+		table: SNAPSHOT_TABLES.matcher_debug,
+		write: (db, runId, rows) =>
+			insertDebugTraceRows(db, runId, rows.debugTraceRows),
+	},
+] satisfies readonly SnapshotWriter[];
+
 function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
 
 /** Remove current snapshot rows before rewriting the runtime view. */
 function clearSnapshotTables(db: DatabaseSync): void {
-	for (const table of SNAPSHOT_TABLES) {
+	for (const { table } of SNAPSHOT_WRITERS) {
 		db.prepare(`DELETE FROM ${table}`).run();
 	}
 }
@@ -160,25 +234,9 @@ function insertPipelineRun(db: DatabaseSync, rows: SnapshotRows): number {
 function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
 	clearSnapshotTables(db);
 	const runId = insertPipelineRun(db, rows);
-	insertArtificialAnalysisRawModels(db, runId, rows.snapshots);
-	insertModelsDevRawModels(db, runId, rows.snapshots);
-	insertAgentsLastExamRawRows(db, runId, rows.snapshots);
-	insertBlueprintBenchRawRows(db, runId, rows.snapshots);
-	insertBrowseCompRawRows(db, runId, rows.snapshots);
-	insertCursorBenchRawRows(db, runId, rows.snapshots);
-	insertDeepSWERawRows(db, runId, rows.snapshots);
-	insertGdpPdfRawRows(db, runId, rows.snapshots);
-	insertRiemannBenchRawRows(db, runId, rows.snapshots);
-	insertTerminalBenchRawRows(db, runId, rows.snapshots);
-	insertToolathlonRawRows(db, runId, rows.snapshots);
-	insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload);
-	insertSourceRowStates(db, runId, rows.snapshots);
-	insertSourceHealth(db, runId, rows.sourceHealth);
-	insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
-	insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);
-	insertProcessedModelRows(db, runId, "enriched", rows.enrichedRows);
-	insertProcessedModelRows(db, runId, "final", rows.selectedRows);
-	insertDebugTraceRows(db, runId, rows.debugTraceRows);
+	for (const { write } of SNAPSHOT_WRITERS) {
+		write(db, runId, rows);
+	}
 	db.prepare(
 		"UPDATE pipeline_runs SET completed_at_epoch_seconds = ? WHERE id = ?",
 	).run(nowEpochSeconds(), runId);

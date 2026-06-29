@@ -18,7 +18,7 @@ import {
 } from "./d1";
 import { readModelAtlasDatabasePayload } from "./payload";
 import { loadSchemaSql, schemaTableColumns } from "./schema";
-import { DEFAULT_DATABASE_PATH } from "./types";
+import { DEFAULT_DATABASE_PATH, SNAPSHOT_TABLES } from "./types";
 import { insertProcessedModelRows } from "./writers";
 
 const DEFAULT_IMPORT_SQL_PATH = resolve(".cache/d1-publish.sql");
@@ -99,7 +99,7 @@ function rewriteFinalModelRows(
 		db.exec("BEGIN");
 		try {
 			db.prepare(
-				"DELETE FROM processed_models WHERE run_id = ? AND stage = 'final'",
+				`DELETE FROM ${SNAPSHOT_TABLES.processed_models} WHERE run_id = ? AND stage = 'final'`,
 			).run(runId);
 			insertProcessedModelRows(db, runId, "final", models);
 			db.exec("COMMIT");
@@ -338,11 +338,11 @@ async function d1Verification(
 	runId: number,
 ): Promise<D1PublishResult["verification"]> {
 	const tables = [
-		"artificial_analysis_raw_models",
-		"models_dev_raw_models",
-		"deep_swe_raw_rows",
-		"processed_models",
-		"source_row_states",
+		SNAPSHOT_TABLES.artificial_analysis,
+		SNAPSHOT_TABLES.models_dev,
+		SNAPSHOT_TABLES.deep_swe,
+		SNAPSHOT_TABLES.processed_models,
+		SNAPSHOT_TABLES.source_row_states,
 	];
 	const counts = Object.fromEntries(
 		await Promise.all(
@@ -362,7 +362,7 @@ async function d1Verification(
 	);
 	const deepSweVersions = await d1Query(
 		config,
-		`SELECT source_version, COUNT(*) AS count FROM deep_swe_raw_rows WHERE run_id = ? GROUP BY source_version ORDER BY source_version`,
+		`SELECT source_version, COUNT(*) AS count FROM ${quoteIdentifier(SNAPSHOT_TABLES.deep_swe)} WHERE run_id = ? GROUP BY source_version ORDER BY source_version`,
 		[runId],
 	);
 	return { counts, deep_swe_versions: deepSweVersions };
