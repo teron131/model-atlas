@@ -3,7 +3,7 @@
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 
-import { publishModelAtlasD1 } from "../src/model-atlas/llm/database/d1-publish";
+import { publishModelAtlasD1 } from "../src/model-atlas/database/d1-publish";
 
 if (existsSync(".env")) {
 	loadEnvFile(".env");

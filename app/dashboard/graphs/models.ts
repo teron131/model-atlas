@@ -1,12 +1,12 @@
 /** Graph data shaping, filter options, and hover helpers. */
 
 import type { PointerEvent } from "react";
-import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/llm/scrapers/deep-swe";
+import { minMaxScale } from "../../../src/model-atlas/math-utils";
+import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/scrapers/deep-swe";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
-} from "../../../src/model-atlas/llm/stats/types";
-import { minMaxScale } from "../../../src/model-atlas/math-utils";
+} from "../../../src/model-atlas/stats/types";
 import {
 	providerAssetLogo,
 	providerFilterKey,

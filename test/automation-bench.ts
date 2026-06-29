@@ -4,7 +4,7 @@ import {
 	findAutomationBenchScoreRow,
 	processAutomationBenchPageHtml,
 	summarizeAutomationBenchModelScores,
-} from "../src/model-atlas/llm/scrapers/automation-bench";
+} from "../src/model-atlas/scrapers/automation-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

@@ -4,7 +4,7 @@ import type {
 	BenchmarkGroup,
 	BenchmarkPortfolioEntry,
 	BenchmarkResourcePolicy,
-} from "../llm/stats/types";
+} from "../stats/types";
 
 const ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY = {
 	source: "artificial_analysis",

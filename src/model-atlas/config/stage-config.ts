@@ -1,6 +1,6 @@
 /** Pipeline stage switches that control how source rows are matched, enriched, pruned, and scored. */
 
-import type { ModelAtlasStageConfig } from "../llm/stats/types";
+import type { ModelAtlasStageConfig } from "../stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,

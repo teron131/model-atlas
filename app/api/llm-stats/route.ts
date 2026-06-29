@@ -1,6 +1,6 @@
 /** Public LLM stats API for Model Atlas. */
 
-import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
+import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { publicCacheHeaders } from "../cache-headers";
 import { publicJsonPayload } from "./public-json";
 import { readSnapshotPayload, refreshRequestPayload } from "./snapshot-store";

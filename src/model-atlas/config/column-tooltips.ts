@@ -3,7 +3,7 @@
 import type {
 	LlmStatsColumnTooltipRow,
 	LlmStatsColumnTooltips,
-} from "../llm/stats/types";
+} from "../stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,

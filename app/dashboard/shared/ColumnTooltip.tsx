@@ -9,7 +9,7 @@ import type {
 	LlmStatsColumnTooltipRow,
 	LlmStatsColumnTooltipSectionItem,
 	LlmStatsColumnTooltipSectionKind,
-} from "../../../src/model-atlas/llm/stats/types";
+} from "../../../src/model-atlas/stats/types";
 import type { SortKey } from "../table/models";
 import {
 	tooltipHorizontalPadding,

@@ -2,12 +2,12 @@
 
 import { median } from "d3-array";
 import { benchmarkResourcePolicy } from "../../../src/model-atlas/config/benchmark-portfolio";
+import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import type {
 	BenchmarkPortfolio,
 	BenchmarkResourcePolicy,
 	LlmStatsModel,
-} from "../../../src/model-atlas/llm/stats/types";
-import { minMaxScale } from "../../../src/model-atlas/math-utils";
+} from "../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../shared/constants";
 import type { AxisScale } from "./axisScale";
 import {

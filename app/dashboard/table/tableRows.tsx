@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { type CSSProperties, useState } from "react";
 
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import {
 	benchmarkPercentValue,
 	formatContext,

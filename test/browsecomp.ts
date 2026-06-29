@@ -2,7 +2,7 @@ import {
 	buildBrowseCompMap,
 	findBrowseCompScore,
 	processBrowseCompDetailsJson,
-} from "../src/model-atlas/llm/scrapers/browsecomp";
+} from "../src/model-atlas/scrapers/browsecomp";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

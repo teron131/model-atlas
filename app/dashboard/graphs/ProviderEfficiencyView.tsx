@@ -6,7 +6,7 @@ import type {
 	PointerEvent as ReactPointerEvent,
 } from "react";
 
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import {
 	providerAssetLogo,
 	providerFilterKey,

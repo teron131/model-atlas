@@ -10,13 +10,13 @@ import {
 	modelAtlasD1MissingEnvironment,
 	readD1ModelAtlasPayload,
 	readModelAtlasDatabasePayload,
-} from "../../../src/model-atlas/llm/database";
+} from "../../../src/model-atlas/database";
 import {
 	DEFAULT_DATABASE_PATH,
 	RAW_SOURCE_CACHE_SECONDS,
-} from "../../../src/model-atlas/llm/database/types";
-import { buildCurrentLlmStatsMetadata } from "../../../src/model-atlas/llm/stats/metadata";
-import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
+} from "../../../src/model-atlas/database/types";
+import { buildCurrentLlmStatsMetadata } from "../../../src/model-atlas/stats/metadata";
+import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 
 const STATIC_SNAPSHOT_PATH = resolve(
 	process.cwd(),

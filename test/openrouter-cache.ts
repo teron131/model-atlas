@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 
-import { readOpenRouterRawCache } from "../src/model-atlas/llm/database/cache";
+import { readOpenRouterRawCache } from "../src/model-atlas/database/cache";
 import {
 	openDatabase,
 	removeDatabaseFiles,
-} from "../src/model-atlas/llm/database/schema";
-import { insertOpenRouterRawRows } from "../src/model-atlas/llm/database/writers/openrouter";
+} from "../src/model-atlas/database/schema";
+import { insertOpenRouterRawRows } from "../src/model-atlas/database/writers/openrouter";
 
 const databasePath = ".cache/test-openrouter-cache.sqlite";
 

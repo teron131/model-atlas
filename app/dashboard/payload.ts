@@ -6,7 +6,7 @@ import type {
 	LlmStatsColumnTooltips,
 	LlmStatsModel,
 	LlmStatsPayload,
-} from "../../src/model-atlas/llm/stats/types";
+} from "../../src/model-atlas/stats/types";
 
 const leanDashboardTooltipKeys = [
 	"overall",

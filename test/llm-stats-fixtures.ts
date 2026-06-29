@@ -1,8 +1,8 @@
-import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/llm/stats/snapshot-preservation";
+import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/snapshot-preservation";
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,
-} from "../src/model-atlas/llm/stats/types";
+} from "../src/model-atlas/stats/types";
 
 export function minimalLlmStatsPayload({
 	fetchedAt,

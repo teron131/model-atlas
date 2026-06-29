@@ -3,7 +3,7 @@ import {
 	parseOpenRouterWeeklyTokens,
 	processOpenRouterModelStats,
 	selectOpenRouterRawModelStats,
-} from "../src/model-atlas/llm/scrapers/openrouter";
+} from "../src/model-atlas/scrapers/openrouter";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

@@ -4,7 +4,7 @@ import { Star } from "lucide-react";
 import type { CSSProperties, FocusEvent, MouseEvent } from "react";
 import { useCallback, useState } from "react";
 
-import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
+import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import {
 	ColumnTooltip,
 	type TooltipState,

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,
-} from "../../../src/model-atlas/llm/stats/types";
+} from "../../../src/model-atlas/stats/types";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { SummaryCard } from "./ChartComponents";
 import { linearBubbleRadius, valueDistribution } from "./chartStats";

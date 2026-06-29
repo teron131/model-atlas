@@ -3,12 +3,12 @@ import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
 	cleanArtificialAnalysisModelName,
 	processArtificialAnalysisScrapedRows,
-} from "../src/model-atlas/llm/scrapers/artificial-analysis-evals";
+} from "../src/model-atlas/scrapers/artificial-analysis-evals";
 import {
 	buildBenchmarkImputationByModel,
 	buildQualityScoringContext,
 	buildScores,
-} from "../src/model-atlas/llm/stats/scores";
+} from "../src/model-atlas/stats/scores";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = stableJson(actual);

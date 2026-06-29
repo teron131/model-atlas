@@ -2,7 +2,7 @@ import {
 	buildRiemannBenchMap,
 	findRiemannBenchScore,
 	processRiemannBenchPageHtml,
-} from "../src/model-atlas/llm/scrapers/riemann-bench";
+} from "../src/model-atlas/scrapers/riemann-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

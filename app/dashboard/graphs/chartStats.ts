@@ -1,7 +1,6 @@
 import { quantile } from "d3-array";
-
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
+import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import type { BoxWhiskerDistribution } from "./BoxWhiskerSummary";
 import { finite, finiteValue } from "./format";
 
