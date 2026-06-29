@@ -7,6 +7,7 @@ import {
 	type RawSourceCacheStatus,
 	type RawSourceName,
 } from "../src/model-atlas/llm/database/types";
+import { benchmarkRowsFromDb } from "../src/model-atlas/llm/stats/benchmarks";
 import { buildBenchmarkUpdateHealth } from "../src/model-atlas/llm/stats/health";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
@@ -175,6 +176,70 @@ assert.equal(
 	"current",
 	"Known-unrepresented official leaders should not make a benchmark look stale when represented rows still overlap current best models",
 );
+
+const dbBenchmarkRows = benchmarkRowsFromDb({
+	artificialAnalysisRows: [
+		{
+			model_id: "openai/gpt-5",
+			name: "GPT-5",
+			gpqa: 0.94,
+			deep_swe: 0.2,
+			not_a_benchmark: 1,
+		},
+	],
+	agentsLastExamRows: [
+		{
+			row_kind: "raw",
+			model: "Raw Harness Row",
+			median_score: 1,
+		},
+		{
+			row_kind: "model_score",
+			model: "Agent Score Row",
+			median_score: 0.81,
+		},
+	],
+	blueprintBenchRows: [],
+	browseCompRows: [
+		{
+			model: "Browse Row",
+			provider: "example",
+			score: 0.72,
+		},
+	],
+	cursorBenchRows: [],
+	deepSWERows: [],
+	gdpPdfRows: [],
+	riemannBenchRows: [],
+	terminalBenchRows: [],
+	toolathlonRows: [],
+});
+
+assert.deepEqual(dbBenchmarkRows.gpqa, [
+	{
+		id: "openai/gpt-5",
+		label: "GPT-5",
+		provider: null,
+		value: 0.94,
+	},
+]);
+assert.deepEqual(dbBenchmarkRows.agents_last_exam, [
+	{
+		id: null,
+		label: "Agent Score Row",
+		provider: null,
+		value: 0.81,
+	},
+]);
+assert.deepEqual(dbBenchmarkRows.browsecomp, [
+	{
+		id: null,
+		label: "Browse Row",
+		provider: "example",
+		value: 0.72,
+	},
+]);
+assert.equal(dbBenchmarkRows.deep_swe, undefined);
 
 const sourceHealth = buildSourceHealth({
 	generatedAtEpochSeconds: 1_800_000_000,
