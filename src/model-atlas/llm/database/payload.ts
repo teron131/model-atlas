@@ -31,6 +31,94 @@ import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
 
+export type ModelAtlasPayloadRows = {
+	run: {
+		id: number;
+		fetchedAt: number | null;
+	};
+	modelRows: DbRow[];
+	sourceHealthRows: DbRow[];
+	artificialAnalysisRows: DbRow[];
+	agentsLastExamRows: DbRow[];
+	blueprintBenchRows: DbRow[];
+	browseCompRows: DbRow[];
+	cursorBenchRows: DbRow[];
+	deepSWERows: DbRow[];
+	gdpPdfRows: DbRow[];
+	riemannBenchRows: DbRow[];
+	terminalBenchRows: DbRow[];
+	toolathlonRows: DbRow[];
+};
+
+type ModelAtlasPayloadRowKey = Exclude<keyof ModelAtlasPayloadRows, "run">;
+
+export type ModelAtlasPayloadRowGroup = {
+	key: ModelAtlasPayloadRowKey;
+	sql: string;
+	optional?: boolean;
+};
+
+export type ModelAtlasPayloadRowReader = (
+	rowGroup: ModelAtlasPayloadRowGroup,
+	runId: number,
+) => Promise<DbRow[]>;
+
+export const MODEL_ATLAS_COMPLETED_RUN_SQL =
+	"SELECT id, completed_at_epoch_seconds AS fetched_at_epoch_seconds FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1";
+
+export const MODEL_ATLAS_PAYLOAD_ROW_GROUPS: readonly ModelAtlasPayloadRowGroup[] =
+	[
+		{
+			key: "modelRows",
+			sql: "SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
+		},
+		{
+			key: "sourceHealthRows",
+			sql: "SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
+			optional: true,
+		},
+		{
+			key: "artificialAnalysisRows",
+			sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "agentsLastExamRows",
+			sql: "SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "blueprintBenchRows",
+			sql: "SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "browseCompRows",
+			sql: "SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "cursorBenchRows",
+			sql: "SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "deepSWERows",
+			sql: "SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+		},
+		{
+			key: "gdpPdfRows",
+			sql: "SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "riemannBenchRows",
+			sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "terminalBenchRows",
+			sql: "SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+		{
+			key: "toolathlonRows",
+			sql: "SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+		},
+	];
+
 const INPUT_MODALITY_COLUMNS = [
 	["input_modality_text", "text"],
 	["input_modality_image", "image"],
@@ -227,23 +315,93 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 	};
 }
 
-/** Read the latest completed run id from SQLite. */
-function latestRun(db: DatabaseSync): { id: number; fetchedAt: number | null } {
-	const row = asRecord(
-		db
-			.prepare(
-				"SELECT id, completed_at_epoch_seconds AS fetched_at_epoch_seconds FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1",
-			)
-			.get(),
-	);
-	const id = asFiniteNumber(row.id);
+/** Converts local SQLite and D1 run rows into the payload run contract. */
+export function modelAtlasPayloadRunFromRow(
+	row: unknown,
+): ModelAtlasPayloadRows["run"] | null {
+	const record = asRecord(row);
+	const id = asFiniteNumber(record.id);
 	if (id == null) {
-		throw new Error("No Model Atlas database run exists");
+		return null;
 	}
 	return {
 		id,
-		fetchedAt: asFiniteNumber(row.fetched_at_epoch_seconds),
+		fetchedAt: asFiniteNumber(record.fetched_at_epoch_seconds),
 	};
+}
+
+function latestRun(db: DatabaseSync): ModelAtlasPayloadRows["run"] {
+	const run = modelAtlasPayloadRunFromRow(
+		db.prepare(MODEL_ATLAS_COMPLETED_RUN_SQL).get(),
+	);
+	if (run == null) {
+		throw new Error("No Model Atlas database run exists");
+	}
+	return run;
+}
+
+/** Keeps every storage adapter aligned on the row groups required by the public payload. */
+function buildModelAtlasPayloadRows(
+	run: ModelAtlasPayloadRows["run"],
+	rowGroups: ReadonlyArray<readonly [ModelAtlasPayloadRowKey, DbRow[]]>,
+): ModelAtlasPayloadRows {
+	const rows = new Map(rowGroups);
+	return {
+		run,
+		modelRows: rows.get("modelRows") ?? [],
+		sourceHealthRows: rows.get("sourceHealthRows") ?? [],
+		artificialAnalysisRows: rows.get("artificialAnalysisRows") ?? [],
+		agentsLastExamRows: rows.get("agentsLastExamRows") ?? [],
+		blueprintBenchRows: rows.get("blueprintBenchRows") ?? [],
+		browseCompRows: rows.get("browseCompRows") ?? [],
+		cursorBenchRows: rows.get("cursorBenchRows") ?? [],
+		deepSWERows: rows.get("deepSWERows") ?? [],
+		gdpPdfRows: rows.get("gdpPdfRows") ?? [],
+		riemannBenchRows: rows.get("riemannBenchRows") ?? [],
+		terminalBenchRows: rows.get("terminalBenchRows") ?? [],
+		toolathlonRows: rows.get("toolathlonRows") ?? [],
+	};
+}
+
+function readPayloadRowGroup(
+	db: DatabaseSync,
+	rowGroup: ModelAtlasPayloadRowGroup,
+	runId: number,
+): DbRow[] {
+	try {
+		return readRunRows(db, rowGroup.sql, runId);
+	} catch (error) {
+		if (rowGroup.optional === true) {
+			return [];
+		}
+		throw error;
+	}
+}
+
+function readPayloadRowGroups(
+	db: DatabaseSync,
+	runId: number,
+): [ModelAtlasPayloadRowKey, DbRow[]][] {
+	return MODEL_ATLAS_PAYLOAD_ROW_GROUPS.map((rowGroup) => [
+		rowGroup.key,
+		readPayloadRowGroup(db, rowGroup, runId),
+	]);
+}
+
+/** Reads the row groups required by the public payload from any SQL storage adapter. */
+export async function readModelAtlasPayloadRows(
+	run: ModelAtlasPayloadRows["run"],
+	readRows: ModelAtlasPayloadRowReader,
+): Promise<ModelAtlasPayloadRows> {
+	const rowGroups = await Promise.all(
+		MODEL_ATLAS_PAYLOAD_ROW_GROUPS.map(async (rowGroup) => {
+			return [rowGroup.key, await readRows(rowGroup, run.id)] as [
+				ModelAtlasPayloadRowKey,
+				DbRow[],
+			];
+		}),
+	);
+	return buildModelAtlasPayloadRows(run, rowGroups);
 }
 
 function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
@@ -290,25 +448,6 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 	};
 }
 
-export type ModelAtlasPayloadRows = {
-	run: {
-		id: number;
-		fetchedAt: number | null;
-	};
-	modelRows: DbRow[];
-	sourceHealthRows: DbRow[];
-	artificialAnalysisRows: DbRow[];
-	agentsLastExamRows: DbRow[];
-	blueprintBenchRows: DbRow[];
-	browseCompRows: DbRow[];
-	cursorBenchRows: DbRow[];
-	deepSWERows: DbRow[];
-	gdpPdfRows: DbRow[];
-	riemannBenchRows: DbRow[];
-	terminalBenchRows: DbRow[];
-	toolathlonRows: DbRow[];
-};
-
 /** Assembles the public Model Atlas payload from database row groups. */
 export function buildModelAtlasPayloadFromRows(
 	rows: ModelAtlasPayloadRows,
@@ -336,19 +475,6 @@ export function buildModelAtlasPayloadFromRows(
 	};
 }
 
-/** Reads source health rows for a completed pipeline run. */
-function readSourceHealthRows(db: DatabaseSync, runId: number): DbRow[] {
-	try {
-		return readRunRows(
-			db,
-			"SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
-			runId,
-		);
-	} catch {
-		return [];
-	}
-}
-
 function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
 	return db
 		.prepare(sql)
@@ -363,66 +489,9 @@ export function readModelAtlasDatabasePayload(
 	const db = new DatabaseSync(databasePath);
 	try {
 		const run = latestRun(db);
-		const modelRows = readRunRows(
-			db,
-			"SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
-			run.id,
+		return buildModelAtlasPayloadFromRows(
+			buildModelAtlasPayloadRows(run, readPayloadRowGroups(db, run.id)),
 		);
-		return buildModelAtlasPayloadFromRows({
-			run,
-			modelRows,
-			sourceHealthRows: readSourceHealthRows(db, run.id),
-			artificialAnalysisRows: readRunRows(
-				db,
-				"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			agentsLastExamRows: readRunRows(
-				db,
-				"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			blueprintBenchRows: readRunRows(
-				db,
-				"SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			browseCompRows: readRunRows(
-				db,
-				"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			cursorBenchRows: readRunRows(
-				db,
-				"SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			deepSWERows: readRunRows(
-				db,
-				"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
-				run.id,
-			),
-			gdpPdfRows: readRunRows(
-				db,
-				"SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			riemannBenchRows: readRunRows(
-				db,
-				"SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			terminalBenchRows: readRunRows(
-				db,
-				"SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-			toolathlonRows: readRunRows(
-				db,
-				"SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
-				run.id,
-			),
-		});
 	} finally {
 		db.close();
 	}
