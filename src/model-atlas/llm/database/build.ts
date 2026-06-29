@@ -18,11 +18,8 @@ import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
 import { buildDebugTraceRows } from "./debug-trace";
 import { buildSourceHealth } from "./health";
 import { openDatabase, removeDatabaseFiles } from "./schema";
-import {
-	loadOpenRouterRawPayload,
-	loadSourceSnapshots,
-	sourceDataFromSnapshots,
-} from "./sources";
+import { sourceDataFromSnapshots } from "./source-snapshots/source-data";
+import { loadOpenRouterRawPayload, loadSourceSnapshots } from "./sources";
 import {
 	type DatabaseBuildOptions,
 	type DatabaseBuildResult,

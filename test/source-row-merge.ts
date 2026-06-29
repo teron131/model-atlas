@@ -6,7 +6,7 @@ import {
 	snapshotRows,
 	snapshotRowsWithStates,
 } from "../src/model-atlas/llm/database/policy";
-import { mergeArtificialAnalysisRow } from "../src/model-atlas/llm/database/sources";
+import { mergeArtificialAnalysisRow } from "../src/model-atlas/llm/database/source-snapshots/artificial-analysis";
 
 type ArtificialAnalysisFixtureRow = {
 	model_id: string;
