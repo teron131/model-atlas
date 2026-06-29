@@ -12,7 +12,7 @@ import { sourceStatesForModelsDevPayload } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
-	SourceRowState,
+	SourceSnapshotStatus,
 	SourceSnapshots,
 } from "../types";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
@@ -20,7 +20,7 @@ import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 export type ModelsDevSnapshot = Pick<
 	SourceSnapshots,
 	"modelsDevPayload" | "modelsDevFetchedAt" | "modelsDevStatusCode"
-> & { sourceRowStates: SourceRowState[] };
+> & { sourceStatus: SourceSnapshotStatus };
 
 function mergeModelsDevPayload(
 	cachedPayload: ModelsDevPayload | undefined,
@@ -70,18 +70,24 @@ export async function modelsDevSnapshot(
 		cached != null &&
 		options.replaceSourceRows !== true
 	) {
+		const sourceRowStates = sourceStatesForModelsDevPayload(
+			cached.payload,
+			null,
+			false,
+			previousMissingSince,
+			nowEpochSeconds,
+			options,
+		);
 		return {
 			modelsDevPayload: cached.payload,
 			modelsDevFetchedAt: cached.fetchedAt,
 			modelsDevStatusCode: cached.statusCode,
-			sourceRowStates: sourceStatesForModelsDevPayload(
-				cached.payload,
-				null,
-				false,
-				previousMissingSince,
-				nowEpochSeconds,
-				options,
-			),
+			sourceStatus: {
+				source: "models_dev",
+				fetchedAt: cached.fetchedAt,
+				sourceInputCount: modelsDevSourceInputCount(cached.payload),
+				sourceRowStates,
+			},
 		};
 	}
 	const fetched = await getModelsDevSourceStats();
@@ -92,24 +98,31 @@ export async function modelsDevSnapshot(
 	const payload = hasUsableFetchedRows
 		? mergeModelsDevPayload(cached?.payload, fetched.payload, options)
 		: (cached?.payload ?? fetched.payload);
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched.fetched_at_epoch_seconds,
+	);
+	const sourceRowStates = sourceStatesForModelsDevPayload(
+		payload,
+		fetched.payload,
+		hasUsableFetchedRows,
+		previousMissingSince,
+		nowEpochSeconds,
+		options,
+	);
 	return {
 		modelsDevPayload: payload,
-		sourceRowStates: sourceStatesForModelsDevPayload(
-			payload,
-			fetched.payload,
-			hasUsableFetchedRows,
-			previousMissingSince,
-			nowEpochSeconds,
-			options,
-		),
-		modelsDevFetchedAt: snapshotFetchedAt(
-			hasUsableFetchedRows,
-			cached?.fetchedAt,
-			fetched.fetched_at_epoch_seconds,
-		),
+		modelsDevFetchedAt: fetchedAt,
 		modelsDevStatusCode:
 			hasUsableFetchedRows || cached?.statusCode == null
 				? fetched.status_code
 				: cached.statusCode,
+		sourceStatus: {
+			source: "models_dev",
+			fetchedAt,
+			sourceInputCount: modelsDevSourceInputCount(payload),
+			sourceRowStates,
+		},
 	};
 }

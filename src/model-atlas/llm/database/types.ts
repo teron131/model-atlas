@@ -148,3 +148,11 @@ export type SourceSnapshots = {
 		toolathlon: number | null;
 	};
 };
+
+export type SourceSnapshotStatus = {
+	source: RawSourceName;
+	fetchedAt: number | null;
+	sourceInputCount: number;
+	sourceRowStates: SourceRowState[];
+	fetchedAtKey?: keyof SourceSnapshots["fetchedAt"];
+};

@@ -19,35 +19,19 @@ import {
 	refreshedCacheStatus,
 } from "./cache";
 import { latestSourceRowStates, missingSinceBySource } from "./policy";
+import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analysis";
+import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
-	type ArtificialAnalysisSnapshot,
-	artificialAnalysisSnapshot,
-} from "./source-snapshots/artificial-analysis";
-import {
-	type ModelsDevSnapshot,
-	modelsDevSnapshot,
-	modelsDevSourceInputCount,
-} from "./source-snapshots/models-dev";
-import {
-	type BlueprintBenchSnapshot,
-	type BrowseCompSnapshot,
 	blueprintBenchSnapshot,
 	browseCompSnapshot,
-	type CursorBenchSnapshot,
 	cursorBenchSnapshot,
-	type GdpPdfSnapshot,
 	gdpPdfSnapshot,
-	type RiemannBenchSnapshot,
 	riemannBenchSnapshot,
-	type ToolathlonSnapshot,
 	toolathlonSnapshot,
 } from "./source-snapshots/sparse-benchmarks";
 import {
-	type AgentsLastExamSnapshot,
 	agentsLastExamSnapshot,
-	type DeepSWESnapshot,
 	deepSWESnapshot,
-	type TerminalBenchSnapshot,
 	terminalBenchSnapshot,
 } from "./source-snapshots/summarized-benchmarks";
 import {
@@ -55,35 +39,13 @@ import {
 	RAW_SOURCE_NAMES,
 	type RawSourceCacheStatus,
 	type RawSourceName,
-	type SourceRowState,
+	type SourceSnapshotStatus,
 	type SourceSnapshots,
 } from "./types";
 
 type SourceSnapshotCacheResult = {
 	snapshots: SourceSnapshots;
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
-};
-
-type SnapshotSourceStatus = {
-	source: RawSourceName;
-	fetchedAt: number | null;
-	sourceInputCount: number;
-	sourceRowStates: SourceRowState[];
-	fetchedAtKey?: keyof SourceSnapshots["fetchedAt"];
-};
-
-type LoadedSourceSnapshots = {
-	artificialAnalysis: ArtificialAnalysisSnapshot;
-	modelsDev: ModelsDevSnapshot;
-	agentsLastExam: AgentsLastExamSnapshot;
-	blueprintBench: BlueprintBenchSnapshot;
-	browseComp: BrowseCompSnapshot;
-	cursorBench: CursorBenchSnapshot;
-	deepSWE: DeepSWESnapshot;
-	gdpPdf: GdpPdfSnapshot;
-	riemannBench: RiemannBenchSnapshot;
-	terminalBench: TerminalBenchSnapshot;
-	toolathlon: ToolathlonSnapshot;
 };
 
 function sourceCacheDefaults(
@@ -116,7 +78,7 @@ function updatedSourceCacheStatus(
 
 function updateSourceCacheStatuses(
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
-	sourceStatuses: SnapshotSourceStatus[],
+	sourceStatuses: SourceSnapshotStatus[],
 ): void {
 	for (const sourceStatus of sourceStatuses) {
 		sourceCache[sourceStatus.source] = updatedSourceCacheStatus(
@@ -128,7 +90,7 @@ function updateSourceCacheStatuses(
 }
 
 function fetchedAtFromSourceStatuses(
-	sourceStatuses: SnapshotSourceStatus[],
+	sourceStatuses: SourceSnapshotStatus[],
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
 		artificialAnalysis: null,
@@ -148,99 +110,6 @@ function fetchedAtFromSourceStatuses(
 		}
 	}
 	return fetchedAt;
-}
-
-function sourceStatusesFromSnapshots({
-	artificialAnalysis,
-	modelsDev,
-	agentsLastExam,
-	blueprintBench,
-	browseComp,
-	cursorBench,
-	deepSWE,
-	gdpPdf,
-	riemannBench,
-	terminalBench,
-	toolathlon,
-}: LoadedSourceSnapshots): SnapshotSourceStatus[] {
-	return [
-		{
-			source: "artificial_analysis",
-			fetchedAt: artificialAnalysis.fetchedAt.artificialAnalysis,
-			sourceInputCount: artificialAnalysis.artificialAnalysisRawRows.length,
-			sourceRowStates: artificialAnalysis.sourceRowStates,
-			fetchedAtKey: "artificialAnalysis",
-		},
-		{
-			source: "models_dev",
-			fetchedAt: modelsDev.modelsDevFetchedAt,
-			sourceInputCount: modelsDevSourceInputCount(modelsDev.modelsDevPayload),
-			sourceRowStates: modelsDev.sourceRowStates,
-		},
-		{
-			source: "agents_last_exam",
-			fetchedAt: agentsLastExam.fetchedAt.agentsLastExam,
-			sourceInputCount: agentsLastExam.agentsLastExamRows.length,
-			sourceRowStates: agentsLastExam.sourceRowStates,
-			fetchedAtKey: "agentsLastExam",
-		},
-		{
-			source: "blueprint_bench_2",
-			fetchedAt: blueprintBench.fetchedAt.blueprintBench,
-			sourceInputCount: blueprintBench.blueprintBenchModelScoreRows.length,
-			sourceRowStates: blueprintBench.sourceRowStates,
-			fetchedAtKey: "blueprintBench",
-		},
-		{
-			source: "browsecomp",
-			fetchedAt: browseComp.fetchedAt.browseComp,
-			sourceInputCount: browseComp.browseCompModelScoreRows.length,
-			sourceRowStates: browseComp.sourceRowStates,
-			fetchedAtKey: "browseComp",
-		},
-		{
-			source: "cursorbench",
-			fetchedAt: cursorBench.fetchedAt.cursorBench,
-			sourceInputCount: cursorBench.cursorBenchModelScoreRows.length,
-			sourceRowStates: cursorBench.sourceRowStates,
-			fetchedAtKey: "cursorBench",
-		},
-		{
-			source: "deep_swe",
-			fetchedAt: deepSWE.fetchedAt.deepSWE,
-			sourceInputCount: deepSWE.deepSWERawRows.length,
-			sourceRowStates: deepSWE.sourceRowStates,
-			fetchedAtKey: "deepSWE",
-		},
-		{
-			source: "gdp_pdf",
-			fetchedAt: gdpPdf.fetchedAt.gdpPdf,
-			sourceInputCount: gdpPdf.gdpPdfModelScoreRows.length,
-			sourceRowStates: gdpPdf.sourceRowStates,
-			fetchedAtKey: "gdpPdf",
-		},
-		{
-			source: "riemann_bench",
-			fetchedAt: riemannBench.fetchedAt.riemannBench,
-			sourceInputCount: riemannBench.riemannBenchModelScoreRows.length,
-			sourceRowStates: riemannBench.sourceRowStates,
-			fetchedAtKey: "riemannBench",
-		},
-		{
-			source: "terminal_bench",
-			fetchedAt: terminalBench.fetchedAt.terminalBench,
-			sourceInputCount: terminalBench.terminalBenchRows.length,
-			sourceRowStates: terminalBench.sourceRowStates,
-			fetchedAtKey: "terminalBench",
-		},
-		{
-			source: "toolathlon",
-			fetchedAt: toolathlon.fetchedAt.toolathlon,
-			sourceInputCount: toolathlon.toolathlonModelScoreRows.length,
-			sourceRowStates: toolathlon.sourceRowStates,
-			fetchedAtKey: "toolathlon",
-		},
-	];
 }
 
 function modelsDevRowsWithArtificialAnalysisRetainKeys(
@@ -359,19 +228,19 @@ export async function loadSourceSnapshots(
 		modelsDev.modelsDevPayload,
 		artificialAnalysis.artificialAnalysisSelectedRows,
 	);
-	const sourceStatuses = sourceStatusesFromSnapshots({
-		artificialAnalysis,
-		modelsDev,
-		agentsLastExam,
-		blueprintBench,
-		browseComp,
-		cursorBench,
-		deepSWE,
-		gdpPdf,
-		riemannBench,
-		terminalBench,
-		toolathlon,
-	});
+	const sourceStatuses: SourceSnapshotStatus[] = [
+		artificialAnalysis.sourceStatus,
+		modelsDev.sourceStatus,
+		agentsLastExam.sourceStatus,
+		blueprintBench.sourceStatus,
+		browseComp.sourceStatus,
+		cursorBench.sourceStatus,
+		deepSWE.sourceStatus,
+		gdpPdf.sourceStatus,
+		riemannBench.sourceStatus,
+		terminalBench.sourceStatus,
+		toolathlon.sourceStatus,
+	];
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	return {
 		snapshots: {
