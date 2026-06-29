@@ -1,11 +1,10 @@
-/** Build benchmark-keyed source rows from persisted SQLite row groups. */
+/** Translate persisted SQLite row groups into benchmark update source rows. */
 
-import { asFiniteNumber } from "../../shared";
-import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
 import {
-	addBenchmarkRow,
+	artificialAnalysisBenchmarkDrafts,
 	type BenchmarkRowsByKey,
-	type BenchmarkSourceRow,
+	type BenchmarkSourceRowDraft,
+	benchmarkRowsFromDrafts,
 } from "./source-rows";
 
 type DbBenchmarkRow = Record<string, unknown>;
@@ -91,74 +90,40 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 	];
 }
 
-/** Add one-benchmark SQLite source rows into the benchmark-keyed update map. */
-function addDbSourceRows(
-	rowsByKey: Record<string, BenchmarkSourceRow[]>,
-	sources: readonly DbSourceSpec[],
-): void {
-	for (const source of sources) {
-		for (const row of source.rows) {
-			addDbSourceRow(rowsByKey, source, row);
-		}
-	}
-}
-
-/** Add one SQLite source row when it has a usable model label and score. */
-function addDbSourceRow(
-	rowsByKey: Record<string, BenchmarkSourceRow[]>,
+function dbSourceRowDraft(
 	source: DbSourceSpec,
 	row: DbBenchmarkRow,
-): void {
+): BenchmarkSourceRowDraft | null {
 	if (source.rowKind != null && stringValue(row.row_kind) !== source.rowKind) {
-		return;
+		return null;
 	}
-	const label = stringValue(row.model);
-	const value = asFiniteNumber(row[source.scoreColumn]);
-	if (label == null || value == null) {
-		return;
-	}
-	addBenchmarkRow(rowsByKey, source.key, {
-		id: null,
-		label,
+	return {
+		key: source.key,
+		label: stringValue(row.model),
 		provider:
 			source.providerColumn == null
 				? null
 				: stringValue(row[source.providerColumn]),
-		value,
-	});
+		value: row[source.scoreColumn],
+	};
 }
 
-/** Add Artificial Analysis rows, which carry many benchmark keys in one payload. */
-function addArtificialAnalysisRows(
-	rowsByKey: Record<string, BenchmarkSourceRow[]>,
-	rows: readonly DbBenchmarkRow[],
-): void {
-	for (const row of rows) {
-		const modelId = stringValue(row.model_id);
-		const label =
-			stringValue(row.name) ?? stringValue(row.short_name) ?? modelId;
-		if (label == null) {
-			continue;
-		}
-		for (const key of ARTIFICIAL_ANALYSIS_EVALUATION_KEYS) {
-			const value = asFiniteNumber(row[key]);
-			if (value == null) {
-				continue;
-			}
-			addBenchmarkRow(rowsByKey, key, {
-				id: modelId,
-				label,
-				provider: null,
-				value,
-			});
-		}
-	}
+function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkSourceRowDraft[] {
+	return [
+		...artificialAnalysisBenchmarkDrafts({
+			rows: rows.artificialAnalysisRows,
+			modelId: (row) => stringValue(row.model_id),
+			label: (row, modelId) =>
+				stringValue(row.name) ?? stringValue(row.short_name) ?? modelId,
+			value: (row, key) => row[key],
+		}),
+		...dbSourceSpecs(rows).flatMap((source) =>
+			source.rows.flatMap((row) => dbSourceRowDraft(source, row) ?? []),
+		),
+	];
 }
 
 /** Converts persisted benchmark source rows into benchmark-keyed update rows. */
 export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
-	const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
-	addArtificialAnalysisRows(rowsByKey, rows.artificialAnalysisRows);
-	addDbSourceRows(rowsByKey, dbSourceSpecs(rows));
-	return rowsByKey;
+	return benchmarkRowsFromDrafts(dbBenchmarkDrafts(rows));
 }
