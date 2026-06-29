@@ -3,7 +3,9 @@
 import type { LlmStatsPayload } from "../stats/types";
 import {
 	buildModelAtlasPayloadFromRows,
-	type ModelAtlasPayloadRows,
+	MODEL_ATLAS_COMPLETED_RUN_SQL,
+	modelAtlasPayloadRunFromRow,
+	readModelAtlasPayloadRows,
 } from "./payload";
 import { loadSchemaSql, schemaTableColumns, schemaTableNames } from "./schema";
 
@@ -185,107 +187,20 @@ async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
 	}
 }
 
-function finiteNumberOrNull(value: unknown): number | null {
-	const numberValue = Number(value);
-	return Number.isFinite(numberValue) ? numberValue : null;
-}
-
 /** Reads the latest completed Model Atlas payload from D1. */
 export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null> {
 	if (!modelAtlasD1Configured()) {
 		return null;
 	}
-	const runRows = await allD1(`
-		SELECT id, completed_at_epoch_seconds AS fetched_at_epoch_seconds
-		FROM pipeline_runs
-		WHERE completed_at_epoch_seconds IS NOT NULL
-		ORDER BY id DESC
-		LIMIT 1
-	`);
-	const runId = finiteNumberOrNull(runRows[0]?.id);
-	if (runId == null) {
+	const run = modelAtlasPayloadRunFromRow(
+		(await allD1(MODEL_ATLAS_COMPLETED_RUN_SQL))[0],
+	);
+	if (run == null) {
 		return null;
 	}
-	const fetchedAt = finiteNumberOrNull(runRows[0]?.fetched_at_epoch_seconds);
-	const [
-		modelRows,
-		sourceHealthRows,
-		artificialAnalysisRows,
-		agentsLastExamRows,
-		blueprintBenchRows,
-		browseCompRows,
-		cursorBenchRows,
-		deepSWERows,
-		gdpPdfRows,
-		riemannBenchRows,
-		terminalBenchRows,
-		toolathlonRows,
-	] = await Promise.all([
-		allD1(
-			"SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
-			[runId],
+	return buildModelAtlasPayloadFromRows(
+		await readModelAtlasPayloadRows(run, (rowGroup, runId) =>
+			allD1(rowGroup.sql, [runId]),
 		),
-		allD1("SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index", [
-			runId,
-		]),
-		allD1(
-			"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-		allD1(
-			"SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
-			[runId],
-		),
-	]);
-	const rows: ModelAtlasPayloadRows = {
-		run: {
-			id: runId,
-			fetchedAt,
-		},
-		modelRows,
-		sourceHealthRows,
-		artificialAnalysisRows,
-		agentsLastExamRows,
-		blueprintBenchRows,
-		browseCompRows,
-		cursorBenchRows,
-		deepSWERows,
-		gdpPdfRows,
-		riemannBenchRows,
-		terminalBenchRows,
-		toolathlonRows,
-	};
-	return buildModelAtlasPayloadFromRows(rows);
+	);
 }
