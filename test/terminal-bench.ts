@@ -3,7 +3,7 @@ import {
 	findTerminalBenchMedianAccuracy,
 	processTerminalBenchLeaderboardRows,
 	summarizeTerminalBenchModelMedianAccuracy,
-} from "../src/model-atlas/llm/scrapers/terminal-bench";
+} from "../src/model-atlas/scrapers/terminal-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

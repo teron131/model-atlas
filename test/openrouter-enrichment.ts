@@ -1,6 +1,6 @@
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { publicOpenRouterModelId } from "../src/model-atlas/llm/openrouter-routes";
-import { enrichModelRowsWithOpenRouter } from "../src/model-atlas/llm/stats/openrouter-enrichment";
+import { publicOpenRouterModelId } from "../src/model-atlas/openrouter-routes";
+import { enrichModelRowsWithOpenRouter } from "../src/model-atlas/stats/openrouter-enrichment";
 
 function assertEqual(actual: unknown, expected: unknown): void {
 	if (actual !== expected) {

@@ -1,8 +1,8 @@
 import { median } from "d3-array";
 import { scaleLog } from "d3-scale";
 import type { CSSProperties } from "react";
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
+import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart } from "./ChartComponents";

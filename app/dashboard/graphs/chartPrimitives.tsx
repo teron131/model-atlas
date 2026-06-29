@@ -3,9 +3,8 @@
 /** Shared SVG primitives and cursor projection behavior for Model Atlas charts. */
 
 import { type PointerEvent as ReactPointerEvent, useState } from "react";
-
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
 import { clamp } from "../../../src/model-atlas/math-utils";
+import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import styles from "./graphs.module.css";
 import type { PointLabelPlacement } from "./labelPlacement";
 import { focusHover, modelName, pointHover, shortLabel } from "./models";

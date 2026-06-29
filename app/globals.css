@@ -26,8 +26,7 @@
 	--table-scrollbar-track: rgba(238, 238, 234, 0.12);
 	--table-scrollbar-thumb: rgba(238, 238, 234, 0.62);
 	--title-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.08),
-		0 14px 34px rgba(0, 0, 0, 0.26);
+		0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 34px rgba(0, 0, 0, 0.26);
 	--control-fill: rgba(238, 238, 234, 0.018);
 	--control-fill-soft: rgba(238, 238, 234, 0.014);
 	--control-fill-hover: rgba(238, 238, 234, 0.045);
@@ -44,8 +43,7 @@
 	--tooltip-surface: rgba(13, 14, 15, 0.97);
 	--tooltip-section-fill: rgba(255, 255, 255, 0.018);
 	--tooltip-shadow:
-		0 18px 48px rgba(0, 0, 0, 0.46),
-		inset 0 1px 0 rgba(255, 255, 255, 0.06);
+		0 18px 48px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 	--score-track: rgba(255, 255, 255, 0.12);
 	--table-edge-fade: rgba(9, 10, 11, 0);
 	--theme-toggle-fill: rgba(238, 238, 234, 0.035);
@@ -94,8 +92,7 @@ html[data-model-atlas-theme="light"] {
 	--table-scrollbar-track: rgba(20, 30, 20, 0.1);
 	--table-scrollbar-thumb: rgba(20, 30, 20, 0.46);
 	--title-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.76),
-		0 14px 30px rgba(20, 30, 20, 0.12);
+		0 1px 0 rgba(255, 255, 255, 0.76), 0 14px 30px rgba(20, 30, 20, 0.12);
 	--control-fill: rgba(20, 30, 20, 0.026);
 	--control-fill-soft: rgba(20, 30, 20, 0.018);
 	--control-fill-hover: rgba(20, 30, 20, 0.055);
@@ -112,8 +109,7 @@ html[data-model-atlas-theme="light"] {
 	--tooltip-surface: rgba(255, 255, 255, 0.97);
 	--tooltip-section-fill: rgba(20, 30, 20, 0.03);
 	--tooltip-shadow:
-		0 18px 48px rgba(20, 30, 20, 0.16),
-		inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		0 18px 48px rgba(20, 30, 20, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 	--score-track: rgba(20, 30, 20, 0.12);
 	--table-edge-fade: rgba(244, 245, 241, 0);
 	--theme-toggle-fill: rgb(var(--ink-rgb) / 0.035);
@@ -705,13 +701,8 @@ h1 {
 	touch-action: none;
 	background:
 		linear-gradient(var(--table-scrollbar-track), var(--table-scrollbar-track))
-			center / 100% 6px no-repeat,
-		linear-gradient(
-			90deg,
-			transparent,
-			rgb(var(--ink-rgb) / 0.14),
-			transparent
-		);
+		center / 100% 6px no-repeat,
+		linear-gradient(90deg, transparent, rgb(var(--ink-rgb) / 0.14), transparent);
 	border: 1px solid var(--frame-line-soft);
 	border-radius: 999px;
 }
@@ -739,27 +730,6 @@ h1 {
 
 .table-scrollbar[data-scrollable="false"] {
 	display: none;
-}
-
-.table-wrap thead {
-	pointer-events: none;
-	visibility: collapse;
-}
-
-.table-shell[data-sticky-head-ready="false"] .table-sticky-head {
-	display: none;
-}
-
-.table-shell[data-sticky-head-ready="false"] .table-wrap thead {
-	pointer-events: auto;
-	visibility: visible;
-}
-
-.table-shell[data-sticky-head-ready="false"] .table-wrap thead th {
-	position: sticky;
-	top: 0;
-	z-index: 6;
-	background: var(--surface);
 }
 
 table {
@@ -901,6 +871,32 @@ thead th {
 	z-index: 3;
 }
 
+th:nth-child(2),
+td:nth-child(2) {
+	text-align: left;
+}
+
+.table-wrap thead {
+	pointer-events: none;
+	visibility: collapse;
+}
+
+.table-shell[data-sticky-head-ready="false"] .table-sticky-head {
+	display: none;
+}
+
+.table-shell[data-sticky-head-ready="false"] .table-wrap thead {
+	pointer-events: auto;
+	visibility: visible;
+}
+
+.table-shell[data-sticky-head-ready="false"] .table-wrap thead th {
+	position: sticky;
+	top: 0;
+	z-index: 6;
+	background: var(--surface);
+}
+
 .table-shell[data-pinned-columns="true"] th:nth-child(1),
 .table-shell[data-pinned-columns="true"] th:nth-child(2),
 .table-shell[data-pinned-columns="true"] tbody td:nth-child(1):not(.empty),
@@ -932,11 +928,6 @@ thead th {
 .table-shell[data-pinned-columns="true"] th:nth-child(2),
 .table-shell[data-pinned-columns="true"] tbody td:nth-child(2):not(.empty) {
 	box-shadow: 1px 0 0 var(--frame-line-soft);
-}
-
-th:nth-child(2),
-td:nth-child(2) {
-	text-align: left;
 }
 
 .overall-column {
@@ -1289,25 +1280,6 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	font-size: var(--mono-label);
 }
 
-.column-tooltip-nested-section .column-tooltip-price-profile-table,
-.column-tooltip-nested-section .column-tooltip-price-share-table,
-.column-tooltip-nested-section .column-tooltip-workflow-table,
-.column-tooltip-nested-section > .column-tooltip-row {
-	box-sizing: border-box;
-	max-width: 100%;
-	margin-left: 0;
-}
-
-.column-tooltip-nested-section .column-tooltip-price-profile-table,
-.column-tooltip-nested-section .column-tooltip-price-share-table {
-	width: fit-content;
-}
-
-.column-tooltip-nested-section .column-tooltip-workflow-table,
-.column-tooltip-nested-section > .column-tooltip-row {
-	width: auto;
-}
-
 .column-tooltip-price-profile-table,
 .column-tooltip-price-share-table,
 .column-tooltip-workflow-table {
@@ -1352,6 +1324,25 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	overflow: hidden;
 	width: 100%;
 	margin-left: 0;
+}
+
+.column-tooltip-nested-section .column-tooltip-price-profile-table,
+.column-tooltip-nested-section .column-tooltip-price-share-table,
+.column-tooltip-nested-section .column-tooltip-workflow-table,
+.column-tooltip-nested-section > .column-tooltip-row {
+	box-sizing: border-box;
+	max-width: 100%;
+	margin-left: 0;
+}
+
+.column-tooltip-nested-section .column-tooltip-price-profile-table,
+.column-tooltip-nested-section .column-tooltip-price-share-table {
+	width: fit-content;
+}
+
+.column-tooltip-nested-section .column-tooltip-workflow-table,
+.column-tooltip-nested-section > .column-tooltip-row {
+	width: auto;
 }
 
 .column-tooltip-workflow-header,
@@ -1427,7 +1418,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 		white-space: normal;
 	}
 
-	.column-tooltip-workflow-table {
+	.column-tooltip-nested-section .column-tooltip-workflow-table {
 		--workflow-column-gap: 4px;
 		--workflow-grid-columns: minmax(0, 1fr) minmax(0, 25px) minmax(0, 47px)
 			minmax(0, 51px) minmax(0, 24px);
@@ -1790,8 +1781,8 @@ td.modality-cell {
 		max-width: var(--model-column-width);
 	}
 
-	th,
-	td {
+	.table-shell[data-sticky-head-ready][data-pinned-columns] table th,
+	.table-shell[data-sticky-head-ready][data-pinned-columns] table td {
 		padding: var(--table-row-padding-y) 7px;
 	}
 

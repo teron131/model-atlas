@@ -3,7 +3,7 @@
 /** Interactive chart view for LLM stats payloads. */
 
 import { useMemo, useState } from "react";
-import type { LlmStatsPayload } from "../../../src/model-atlas/llm/stats/types";
+import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
 import { FrontierEfficiencyPanel } from "./frontierEfficiency";

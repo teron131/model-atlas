@@ -4,7 +4,7 @@ import { type CSSProperties, useMemo, useState } from "react";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
-} from "../../../src/model-atlas/llm/stats/types";
+} from "../../../src/model-atlas/stats/types";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { linearAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";

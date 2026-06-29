@@ -7,7 +7,7 @@ import {
 	sortedRows,
 } from "../app/dashboard/table/models";
 import { metricColumnsForView } from "../app/dashboard/table/tableColumns";
-import type { LlmStatsModel } from "../src/model-atlas/llm/stats/types";
+import type { LlmStatsModel } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
 const intelligenceRows = dedupeDisplayModels([

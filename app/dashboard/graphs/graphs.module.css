@@ -115,11 +115,6 @@
 	background: transparent;
 }
 
-.dashboardGraphs .controls {
-	margin: 0;
-	border-top: 0;
-}
-
 .atlas *,
 .atlas *::before,
 .atlas *::after {
@@ -181,6 +176,11 @@
 	border-top: 1px solid var(--line-strong);
 	border-bottom: 1px solid var(--line);
 	background: transparent;
+}
+
+.dashboardGraphs .controls {
+	margin: 0;
+	border-top: 0;
 }
 
 .filtersToggle {
@@ -366,10 +366,6 @@
 	color: var(--paper);
 }
 
-.filterButton[aria-pressed="true"] .filterIcon {
-	color: var(--paper);
-}
-
 .filterIcon {
 	display: inline-flex;
 	align-items: center;
@@ -378,6 +374,10 @@
 	height: 16px;
 	flex: 0 0 16px;
 	color: var(--provider-color, var(--ink));
+}
+
+.filterButton[aria-pressed="true"] .filterIcon {
+	color: var(--paper);
 }
 
 .filterLogo {
@@ -751,11 +751,6 @@
 	margin-top: -6px;
 }
 
-.boxWhiskerStats.boxWhiskerStatsStripLayout .boxWhiskerDomainMinValue,
-.boxWhiskerStats.boxWhiskerStatsStripLayout .boxWhiskerDomainMaxValue {
-	top: 20px;
-}
-
 .boxWhiskerStats .boxWhiskerObservedStrip {
 	position: absolute;
 	top: 0;
@@ -789,6 +784,11 @@
 	color: var(--whisker-line);
 	top: 14px;
 	transform: translateX(-50%);
+}
+
+.boxWhiskerStats.boxWhiskerStatsStripLayout .boxWhiskerDomainMinValue,
+.boxWhiskerStats.boxWhiskerStatsStripLayout .boxWhiskerDomainMaxValue {
+	top: 20px;
 }
 
 .panel h2 {
@@ -1465,7 +1465,7 @@
 		padding: 12px 4px 36px;
 	}
 
-	.controls {
+	.dashboardGraphs .controls {
 		grid-template-columns: 1fr;
 	}
 

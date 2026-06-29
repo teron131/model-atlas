@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { runMatcher } from "../src/model-atlas/llm/matcher/pipeline";
+import { runMatcher } from "../src/model-atlas/matcher/pipeline";
 import type {
 	MatcherSourceModel,
 	ModelsDevModel,
 	PreferredProviderPools,
-} from "../src/model-atlas/llm/matcher/types";
-import { buildBlueprintBenchMap } from "../src/model-atlas/llm/scrapers/blueprint-bench";
-import { buildCursorBenchMap } from "../src/model-atlas/llm/scrapers/cursorbench";
-import { buildGdpPdfMap } from "../src/model-atlas/llm/scrapers/gdp-pdf";
-import { buildRiemannBenchMap } from "../src/model-atlas/llm/scrapers/riemann-bench";
-import { buildToolathlonMap } from "../src/model-atlas/llm/scrapers/toolathlon";
-import { buildMatchedModelRows } from "../src/model-atlas/llm/stats/matching";
-import type { LlmStatsSourceData } from "../src/model-atlas/llm/stats/types";
+} from "../src/model-atlas/matcher/types";
+import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
+import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
+import { buildGdpPdfMap } from "../src/model-atlas/scrapers/gdp-pdf";
+import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/riemann-bench";
+import { buildToolathlonMap } from "../src/model-atlas/scrapers/toolathlon";
+import { buildMatchedModelRows } from "../src/model-atlas/stats/matching";
+import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),

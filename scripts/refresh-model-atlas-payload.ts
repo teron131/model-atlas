@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import {
 	buildModelAtlasDatabase,
 	readModelAtlasDatabasePayload,
-} from "../src/model-atlas/llm/database";
+} from "../src/model-atlas/database";
 
 /** Refreshes the Model Atlas payload from the script entrypoint. */
 export async function refreshModelAtlasPayload(databasePath?: string) {

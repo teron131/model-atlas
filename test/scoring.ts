@@ -1,18 +1,18 @@
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import {
+	meanOfFiniteWithMinimum,
+	medianOfFinite,
+	quantileFromSorted,
+} from "../src/model-atlas/math-utils";
+import {
 	attachRelativeScores,
 	blendedPriceValue,
 	buildBenchmarkImputationByModel,
 	buildQualityScoringContext,
 	buildScores,
 	simulatedBlendSeconds,
-} from "../src/model-atlas/llm/stats/scores";
-import type { LlmStatsModelCandidate } from "../src/model-atlas/llm/stats/types";
-import {
-	meanOfFiniteWithMinimum,
-	medianOfFinite,
-	quantileFromSorted,
-} from "../src/model-atlas/math-utils";
+} from "../src/model-atlas/stats/scores";
+import type { LlmStatsModelCandidate } from "../src/model-atlas/stats/types";
 
 function assertEqual(actual: unknown, expected: unknown): void {
 	if (actual !== expected) {

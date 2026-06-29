@@ -10,8 +10,8 @@ import {
 	runtimeSnapshotStoreConfigured,
 } from "../app/api/llm-stats/snapshot-store";
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { preserveHighSignalSnapshotModels } from "../src/model-atlas/llm/stats/snapshot-preservation";
-import type { LlmStatsPayload } from "../src/model-atlas/llm/stats/types";
+import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/snapshot-preservation";
+import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
 import { refreshModelAtlasPayload } from "./refresh-model-atlas-payload";
 
 if (existsSync(".env")) {

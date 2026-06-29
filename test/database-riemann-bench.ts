@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { readModelAtlasDatabasePayload } from "../src/model-atlas/llm/database";
-import { openDatabase } from "../src/model-atlas/llm/database/schema";
-import { insertProcessedModelRows } from "../src/model-atlas/llm/database/writers";
+import { readModelAtlasDatabasePayload } from "../src/model-atlas/database";
+import { openDatabase } from "../src/model-atlas/database/schema";
+import { insertProcessedModelRows } from "../src/model-atlas/database/writers";
 
 const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");

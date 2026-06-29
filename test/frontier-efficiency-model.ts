@@ -13,7 +13,7 @@ import {
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
-} from "../src/model-atlas/llm/stats/types";
+} from "../src/model-atlas/stats/types";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
 const portfolio = {

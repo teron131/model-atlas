@@ -1,6 +1,6 @@
 /** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
-import type { LlmStatsModel } from "../../../src/model-atlas/llm/stats/types";
+import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 
 const artificialAnalysisTaskMetricColumns = [
 	{

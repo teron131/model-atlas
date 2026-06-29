@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { buildSourceHealth } from "../src/model-atlas/llm/database/health";
+import { buildSourceHealth } from "../src/model-atlas/database/health";
 import {
 	RAW_SOURCE_NAMES,
 	type RawSourceCacheStatus,
 	type RawSourceName,
-} from "../src/model-atlas/llm/database/types";
-import { benchmarkRowsFromDb } from "../src/model-atlas/llm/stats/benchmarks";
-import { buildBenchmarkUpdateHealth } from "../src/model-atlas/llm/stats/health";
+} from "../src/model-atlas/database/types";
+import { benchmarkRowsFromDb } from "../src/model-atlas/stats/benchmarks";
+import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/health";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
 const sparseHealth = buildBenchmarkUpdateHealth(

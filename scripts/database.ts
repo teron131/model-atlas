@@ -1,6 +1,6 @@
 /** Build the Model Atlas SQLite database snapshot. */
 
-import { buildModelAtlasDatabase } from "../src/model-atlas/llm/database";
+import { buildModelAtlasDatabase } from "../src/model-atlas/database";
 
 const result = await buildModelAtlasDatabase(undefined, {
 	replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",

@@ -2,7 +2,7 @@ import {
 	buildToolathlonMap,
 	findToolathlonScore,
 	processToolathlonDetailsJson,
-} from "../src/model-atlas/llm/scrapers/toolathlon";
+} from "../src/model-atlas/scrapers/toolathlon";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

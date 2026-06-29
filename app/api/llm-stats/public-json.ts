@@ -3,7 +3,7 @@
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,
-} from "../../../src/model-atlas/llm/stats/types";
+} from "../../../src/model-atlas/stats/types";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";

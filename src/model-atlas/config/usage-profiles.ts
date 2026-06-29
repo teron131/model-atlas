@@ -1,6 +1,6 @@
 /** Usage profile configuration for Model Atlas. */
 
-import type { SimulationProfile } from "../llm/stats/types";
+import type { SimulationProfile } from "../stats/types";
 
 export const PRICE_PROFILES = {
 	task: {

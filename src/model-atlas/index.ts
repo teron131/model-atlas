@@ -32,8 +32,8 @@ export type {
 	LlmStatsSpeed,
 	ModelAtlasStageConfig,
 	OverallRelativeScoreWeights,
-} from "./llm/stats";
+} from "./stats";
 export {
 	getLiveLlmStats,
 	getLlmStats,
-} from "./llm/stats";
+} from "./stats";

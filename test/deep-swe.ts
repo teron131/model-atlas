@@ -9,8 +9,8 @@ import {
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEBestModelScores,
 	summarizeDeepSWEDefaultModelScores,
-} from "../src/model-atlas/llm/scrapers/deep-swe";
-import { buildTaskMetrics } from "../src/model-atlas/llm/stats/selection/task-metrics";
+} from "../src/model-atlas/scrapers/deep-swe";
+import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

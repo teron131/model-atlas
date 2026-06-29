@@ -11,7 +11,7 @@ import {
 	runtimeSnapshotStoreConfigured,
 	runtimeSnapshotStoreMissingEnvironment,
 } from "../app/api/llm-stats/snapshot-store";
-import type { LlmStatsPayload } from "../src/model-atlas/llm/stats/types";
+import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsPayload } from "./llm-stats-fixtures";
 
 const freshPayload = payloadAt(900);

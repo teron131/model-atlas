@@ -18,7 +18,7 @@ import type {
 	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
 	LlmStatsPayload,
-} from "../../src/model-atlas/llm/stats/types";
+} from "../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
 import { DashboardGraphs } from "./graphs";
 import {

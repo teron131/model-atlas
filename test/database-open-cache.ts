@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 
-import { readDeepSWERawCache } from "../src/model-atlas/llm/database/cache";
+import { readDeepSWERawCache } from "../src/model-atlas/database/cache";
 import {
 	openDatabase,
 	removeDatabaseFiles,
-} from "../src/model-atlas/llm/database/schema";
+} from "../src/model-atlas/database/schema";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
 
