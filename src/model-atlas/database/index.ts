@@ -1,10 +1,11 @@
 /** Public database boundary for building snapshots, publishing D1 runs, and reading payloads back out. */
-export { buildModelAtlasDatabase } from "./build";
+export { buildDatabase } from "./build";
 export {
-	ensureModelAtlasD1Schema,
-	modelAtlasD1Config,
-	modelAtlasD1Configured,
-	modelAtlasD1MissingEnvironment,
-	readD1ModelAtlasPayload,
+	d1Config,
+	d1Configured,
+	ensureD1Schema,
+	missingD1Environment,
+	readD1Payload,
 } from "./d1";
-export { readModelAtlasDatabasePayload } from "./payload";
+export { publishD1Snapshot, refreshD1Snapshot } from "./d1-publish";
+export { readDatabasePayload } from "./payload";

@@ -1,7 +1,7 @@
 /** Snapshot refresh API for Model Atlas. */
 
 import {
-	readD1Snapshot,
+	refreshStoredSnapshot,
 	runtimeSnapshotStoreConfigured,
 	runtimeSnapshotStoreMissingEnvironment,
 } from "../snapshot-store";
@@ -44,12 +44,13 @@ async function refreshSnapshot(request: Request) {
 		);
 	}
 
-	const payload = await readD1Snapshot();
+	const payload = await refreshStoredSnapshot();
 	if (payload == null) {
 		return Response.json(
 			{
 				status: "error",
-				error: "Cloudflare D1 has no completed Model Atlas snapshot.",
+				error:
+					"Cloudflare D1 refresh completed without a readable Model Atlas snapshot.",
 			},
 			{
 				status: 404,

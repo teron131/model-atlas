@@ -5,11 +5,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
-	buildModelAtlasDatabase,
-	modelAtlasD1Configured,
-	modelAtlasD1MissingEnvironment,
-	readD1ModelAtlasPayload,
-	readModelAtlasDatabasePayload,
+	buildDatabase,
+	d1Configured,
+	missingD1Environment,
+	readD1Payload,
+	readDatabasePayload,
+	refreshD1Snapshot,
 } from "../../../src/model-atlas/database";
 import {
 	DEFAULT_DATABASE_PATH,
@@ -38,11 +39,11 @@ const displayRefreshState = globalThis as typeof globalThis & {
 const DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS = 30_000;
 
 export function runtimeSnapshotStoreConfigured(): boolean {
-	return modelAtlasD1Configured();
+	return d1Configured();
 }
 
 export function runtimeSnapshotStoreMissingEnvironment(): string[] {
-	return modelAtlasD1MissingEnvironment();
+	return missingD1Environment();
 }
 
 /** Remote snapshot URLs override local storage so deployed readers can be pointed at a single known-good artifact. */
@@ -113,7 +114,7 @@ function startDisplayRefresh(
 ): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
-		refreshMode === "stored" ? readD1Snapshot() : refreshRequestPayload()
+		refreshMode === "stored" ? refreshStoredSnapshot() : refreshRequestPayload()
 	)
 		.then((payload) => {
 			cacheDisplayPayload(payload);
@@ -147,21 +148,27 @@ async function refreshDisplaySnapshotIfStale(
 
 /** Explicit refreshes rebuild through the runtime database path instead of reading a stale static artifact. */
 export async function refreshRequestPayload(): Promise<LlmStatsPayload> {
-	return refreshModelAtlasPayload(runtimeDatabasePath());
+	return refreshRuntimePayload(runtimeDatabasePath());
 }
 
-async function refreshModelAtlasPayload(
+/** Rebuild and publish the runtime D1 snapshot before reading it back for display. */
+export async function refreshStoredSnapshot(): Promise<LlmStatsPayload | null> {
+	await refreshD1Snapshot(runtimeDatabasePath());
+	return readD1Snapshot();
+}
+
+async function refreshRuntimePayload(
 	databasePath?: string,
 ): Promise<LlmStatsPayload> {
-	const database = await buildModelAtlasDatabase(databasePath, {
+	const database = await buildDatabase(databasePath, {
 		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
 	});
-	return readModelAtlasDatabasePayload(database.path);
+	return readDatabasePayload(database.path);
 }
 
 /** D1 stores completed run payloads; readers overlay current metadata so old snapshots follow today’s scoring portfolio. */
 export async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
-	const payload = await readD1ModelAtlasPayload();
+	const payload = await readD1Payload();
 	return payload == null ? null : withCurrentSnapshotMetadata(payload);
 }
 
@@ -173,7 +180,7 @@ async function readStaticSnapshot(): Promise<LlmStatsPayload> {
 
 async function readLocalDatabaseSnapshot(): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
-		readModelAtlasDatabasePayload(localDatabaseReadPath()),
+		readDatabasePayload(localDatabaseReadPath()),
 	);
 }
 

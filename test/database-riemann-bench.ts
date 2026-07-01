@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { readModelAtlasDatabasePayload } from "../src/model-atlas/database";
+import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase } from "../src/model-atlas/database/schema";
 import { insertProcessedModelRows } from "../src/model-atlas/database/writers";
 
@@ -99,7 +99,7 @@ try {
 		db.close();
 	}
 
-	const payload = readModelAtlasDatabasePayload(databasePath);
+	const payload = readDatabasePayload(databasePath);
 	assert.equal(payload.models.length, 1);
 	assert.equal(
 		payload.models[0]?.evaluations?.riemann_bench,

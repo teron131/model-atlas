@@ -1,22 +1,25 @@
-/** Cloudflare D1 publishing via Wrangler import. */
+/** Cloudflare D1 publishing for local scripts and deployed refresh routes. */
 
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../constants";
 import { preserveHighSignalSnapshotModels } from "../stats/snapshot-preservation";
 import type { LlmStatsModel } from "../stats/types";
-import { buildModelAtlasDatabase } from "./build";
+import { buildDatabase } from "./build";
 import {
-	ensureModelAtlasD1Schema,
-	type ModelAtlasD1Config,
-	modelAtlasD1Config,
-	modelAtlasD1MissingEnvironment,
-	readD1ModelAtlasPayload,
+	type D1Config,
+	d1Config,
+	ensureD1Schema,
+	missingD1Environment,
+	queryD1,
+	queryD1Rows,
+	readD1Payload,
 } from "./d1";
-import { readModelAtlasDatabasePayload } from "./payload";
+import { readDatabasePayload } from "./payload";
 import { loadSchemaSql, schemaTableColumns } from "./schema";
 import { DEFAULT_DATABASE_PATH, SNAPSHOT_TABLES } from "./types";
 import { insertProcessedModelRows } from "./writers";
@@ -24,6 +27,14 @@ import { insertProcessedModelRows } from "./writers";
 const DEFAULT_IMPORT_SQL_PATH = resolve(".cache/d1-publish.sql");
 const INSERT_ROWS_PER_STATEMENT = 100;
 const MAX_INSERT_STATEMENT_CHARS = 20_000;
+
+export type D1ImportMode = "wrangler" | "rest";
+
+export type D1PublishOptions = {
+	databasePath?: string;
+	importMode?: D1ImportMode;
+	importSqlPath?: string;
+};
 
 export type D1PublishResult = {
 	storage: "cloudflare_d1";
@@ -38,36 +49,67 @@ export type D1PublishResult = {
 	};
 };
 
-/** Publishes the latest local Model Atlas run into Cloudflare D1. */
-export async function publishModelAtlasD1(): Promise<D1PublishResult> {
-	const config = modelAtlasD1Config();
+/** Publishes a freshly built Model Atlas run into Cloudflare D1. */
+export async function publishD1Snapshot(
+	options: D1PublishOptions = {},
+): Promise<D1PublishResult> {
+	const config = d1Config();
 	if (config == null) {
 		throw new Error(
-			`Cloudflare D1 is not configured. Missing ${modelAtlasD1MissingEnvironment().join(", ")}.`,
+			`Cloudflare D1 is not configured. Missing ${missingD1Environment().join(", ")}.`,
 		);
 	}
-	const database = await buildModelAtlasDatabase(DEFAULT_DATABASE_PATH, {
-		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
-	});
+	const database = await buildDatabase(
+		options.databasePath ?? DEFAULT_DATABASE_PATH,
+		{
+			replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+		},
+	);
 	const payload = await preservedPayload(database.path);
-	await ensureModelAtlasD1Schema();
-	await writeD1ImportSql(database.path, DEFAULT_IMPORT_SQL_PATH);
-	runWranglerD1Import(config, DEFAULT_IMPORT_SQL_PATH);
-	const verification = await d1Verification(config, database.run_id);
+	await ensureD1Schema();
+	const publishRunId = await nextD1RunId(database.run_id);
+	const importSqlPath =
+		options.importSqlPath ??
+		(options.importMode === "rest"
+			? resolve(tmpdir(), "model-atlas/d1-publish.sql")
+			: DEFAULT_IMPORT_SQL_PATH);
+	const importStatements = await writeD1ImportSql(
+		database.path,
+		importSqlPath,
+		publishRunId,
+	);
+	await runD1Import(
+		config,
+		importSqlPath,
+		importStatements,
+		options.importMode ?? "wrangler",
+	);
+	const verification = await d1Verification(publishRunId);
 	return {
 		storage: "cloudflare_d1",
 		database_id: config.databaseId,
-		run_id: database.run_id,
+		run_id: publishRunId,
 		model_count: payload.models.length,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds ?? null,
-		import_sql_path: DEFAULT_IMPORT_SQL_PATH,
+		import_sql_path: importSqlPath,
 		verification,
 	};
 }
 
+/** Publishes a freshly rebuilt runtime snapshot into Cloudflare D1 without relying on Wrangler. */
+export async function refreshD1Snapshot(
+	databasePath?: string,
+): Promise<D1PublishResult> {
+	return publishD1Snapshot({
+		databasePath,
+		importMode: "rest",
+		importSqlPath: resolve(tmpdir(), "model-atlas/d1-publish.sql"),
+	});
+}
+
 async function preservedPayload(databasePath: string) {
-	const refreshedPayload = readModelAtlasDatabasePayload(databasePath);
-	const previousPayload = await readD1ModelAtlasPayload().catch(() => null);
+	const refreshedPayload = readDatabasePayload(databasePath);
+	const previousPayload = await readD1Payload().catch(() => null);
 	const payload = preserveHighSignalSnapshotModels(
 		refreshedPayload,
 		previousPayload,
@@ -78,6 +120,14 @@ async function preservedPayload(databasePath: string) {
 		rewriteFinalModelRows(databasePath, payload.models);
 	}
 	return payload;
+}
+
+async function nextD1RunId(localRunId: number): Promise<number> {
+	const rows = await queryD1Rows(
+		"SELECT COALESCE(MAX(id), 0) AS max_id FROM pipeline_runs",
+	);
+	const maxRemoteRunId = finiteNumberOrNull(rows[0]?.max_id) ?? 0;
+	return Math.max(localRunId, maxRemoteRunId + 1);
 }
 
 /** Rewrites final model rows after snapshot preservation changes IDs. */
@@ -116,33 +166,48 @@ function rewriteFinalModelRows(
 async function writeD1ImportSql(
 	databasePath: string,
 	outputPath: string,
-): Promise<void> {
+	publishRunId: number,
+): Promise<string[]> {
 	await mkdir(dirname(outputPath), { recursive: true });
+	const statements = await d1ImportStatements(databasePath, publishRunId);
+	await writeFile(outputPath, statements.join("\n"), "utf-8");
+	return statements;
+}
+
+/** Builds import statements for one completed pipeline run. */
+async function d1ImportStatements(
+	databasePath: string,
+	publishRunId: number,
+): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
 	const tables = [...schemaTableColumns(schemaSql).keys()];
 	const db = new DatabaseSync(databasePath, { readOnly: true });
 	try {
 		const run = latestCompletedRun(db);
+		const publishRun = {
+			...run,
+			id: publishRunId,
+		};
 		const runScopedTables = tables.filter((table) => table !== "pipeline_runs");
 		const statements = [
 			...runScopedTables.map(
 				(table) =>
-					`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ${sqlLiteral(run.id)};`,
+					`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ${sqlLiteral(publishRun.id)};`,
 			),
-			`DELETE FROM pipeline_runs WHERE id = ${sqlLiteral(run.id)};`,
-			pipelineRunInsertStatement(run),
+			`DELETE FROM pipeline_runs WHERE id = ${sqlLiteral(publishRun.id)};`,
+			pipelineRunInsertStatement(publishRun),
 			...runScopedTables.flatMap((table) =>
-				runScopedTableInsertStatements(db, table, run.id),
+				runScopedTableInsertStatements(db, table, run.id, publishRun.id),
 			),
-			`UPDATE pipeline_runs SET completed_at_epoch_seconds = ${sqlLiteral(run.completedAt)} WHERE id = ${sqlLiteral(run.id)};`,
+			`UPDATE pipeline_runs SET completed_at_epoch_seconds = ${sqlLiteral(publishRun.completedAt)} WHERE id = ${sqlLiteral(publishRun.id)};`,
 			...runScopedTables.map(
 				(table) =>
-					`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${sqlLiteral(run.id)};`,
+					`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${sqlLiteral(publishRun.id)};`,
 			),
-			`DELETE FROM pipeline_runs WHERE id != ${sqlLiteral(run.id)};`,
+			`DELETE FROM pipeline_runs WHERE id != ${sqlLiteral(publishRun.id)};`,
 			"",
 		];
-		await writeFile(outputPath, statements.join("\n"), "utf-8");
+		return statements;
 	} finally {
 		db.close();
 	}
@@ -219,14 +284,19 @@ function pipelineRunInsertStatement(
 function runScopedTableInsertStatements(
 	db: DatabaseSync,
 	table: string,
-	runId: number,
+	sourceRunId: number,
+	publishRunId: number,
 ): string[] {
 	const columns = tableColumns(db, table);
 	const rows = db
 		.prepare(
 			`SELECT ${columns.map(quoteIdentifier).join(", ")} FROM ${quoteIdentifier(table)} WHERE run_id = ? ORDER BY row_index`,
 		)
-		.all(runId);
+		.all(sourceRunId)
+		.map((row) => ({
+			...row,
+			run_id: publishRunId,
+		}));
 	return insertStatements(table, columns, rows);
 }
 
@@ -297,11 +367,21 @@ function quoteIdentifier(value: string): string {
 	return `"${value}"`;
 }
 
-/** Runs Wrangler to import the generated SQL into Cloudflare D1. */
-function runWranglerD1Import(
-	config: ModelAtlasD1Config,
+/** Imports the generated SQL through the selected D1 publication mechanism. */
+async function runD1Import(
+	config: D1Config,
 	filePath: string,
-): void {
+	statements: string[],
+	mode: D1ImportMode,
+): Promise<void> {
+	if (mode === "wrangler") {
+		runWranglerD1Import(config, filePath);
+		return;
+	}
+	await runRestD1Import(statements);
+}
+
+function runWranglerD1Import(config: D1Config, filePath: string): void {
 	const result = spawnSync(
 		"pnpm",
 		[
@@ -332,9 +412,18 @@ function runWranglerD1Import(
 	}
 }
 
+/** Imports the generated run into D1 through the REST API for deployed runtimes. */
+async function runRestD1Import(statements: string[]): Promise<void> {
+	for (const statement of statements) {
+		if (statement.trim().length === 0) {
+			continue;
+		}
+		await queryD1(statement);
+	}
+}
+
 /** Verifies the remote D1 run after import completes. */
 async function d1Verification(
-	config: ModelAtlasD1Config,
 	runId: number,
 ): Promise<D1PublishResult["verification"]> {
 	const tables = [
@@ -351,7 +440,6 @@ async function d1Verification(
 				Number(
 					(
 						await d1Query(
-							config,
 							`SELECT COUNT(*) AS count FROM ${quoteIdentifier(table)} WHERE run_id = ?`,
 							[runId],
 						)
@@ -361,7 +449,6 @@ async function d1Verification(
 		),
 	);
 	const deepSweVersions = await d1Query(
-		config,
 		`SELECT source_version, COUNT(*) AS count FROM ${quoteIdentifier(SNAPSHOT_TABLES.deep_swe)} WHERE run_id = ? GROUP BY source_version ORDER BY source_version`,
 		[runId],
 	);
@@ -370,36 +457,19 @@ async function d1Verification(
 
 /** Sends a SQL query directly to Cloudflare D1 for publication checks. */
 async function d1Query(
-	config: ModelAtlasD1Config,
 	sql: string,
 	params: unknown[] = [],
 ): Promise<Record<string, unknown>[]> {
-	const response = await fetch(
-		`${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/query`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${config.apiToken}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ sql, params }),
-		},
+	return queryD1Rows(
+		sql,
+		params.map((param) =>
+			param == null
+				? null
+				: typeof param === "string" || typeof param === "number"
+					? param
+					: String(param),
+		),
 	);
-	const body = (await response.json()) as {
-		success?: boolean;
-		errors?: { message?: string }[];
-		result?: { success?: boolean; results?: Record<string, unknown>[] }[];
-	};
-	if (
-		!response.ok ||
-		body.success === false ||
-		body.result?.[0]?.success === false
-	) {
-		throw new Error(
-			`Cloudflare D1 verification failed: ${body.errors?.map((error) => error.message).join("; ") ?? response.statusText}`,
-		);
-	}
-	return body.result?.[0]?.results ?? [];
 }
 
 function finiteNumberOrNull(value: unknown): number | null {

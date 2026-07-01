@@ -2,17 +2,17 @@
 
 import type { LlmStatsPayload } from "../stats/types";
 import {
-	buildModelAtlasPayloadFromRows,
-	MODEL_ATLAS_COMPLETED_RUN_SQL,
-	modelAtlasPayloadRunFromRow,
-	readModelAtlasPayloadRows,
+	buildPayloadFromRows,
+	COMPLETED_RUN_SQL,
+	payloadRunFromRow,
+	readPayloadRows,
 } from "./payload";
 import { loadSchemaSql, schemaTableColumns, schemaTableNames } from "./schema";
 
-type D1Value = string | number | null;
-type D1Rows = Record<string, unknown>[];
+export type D1Value = string | number | null;
+export type D1Rows = Record<string, unknown>[];
 
-export type ModelAtlasD1Config = {
+export type D1Config = {
 	accountId: string;
 	databaseId: string;
 	apiToken: string;
@@ -36,7 +36,7 @@ type D1ApiResponse = {
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
 
 /** Reads Cloudflare D1 connection settings from the runtime environment. */
-export function modelAtlasD1Config(): ModelAtlasD1Config | null {
+export function d1Config(): D1Config | null {
 	const accountId = process.env.D1_ACCOUNT_ID;
 	const databaseId = process.env.D1_DATABASE_ID;
 	const apiToken = process.env.D1_API_TOKEN;
@@ -52,12 +52,12 @@ export function modelAtlasD1Config(): ModelAtlasD1Config | null {
 }
 
 /** Reports whether all required D1 environment variables are present. */
-export function modelAtlasD1Configured(): boolean {
-	return modelAtlasD1Config() != null;
+export function d1Configured(): boolean {
+	return d1Config() != null;
 }
 
 /** Lists the D1 environment variables missing from the current runtime. */
-export function modelAtlasD1MissingEnvironment(): string[] {
+export function missingD1Environment(): string[] {
 	const missing: string[] = [];
 	if (!process.env.D1_ACCOUNT_ID) {
 		missing.push("D1_ACCOUNT_ID");
@@ -72,7 +72,7 @@ export function modelAtlasD1MissingEnvironment(): string[] {
 }
 
 /** Builds the Cloudflare D1 REST endpoint for the requested operation. */
-function d1Endpoint(config: ModelAtlasD1Config, path: "query"): string {
+function d1Endpoint(config: D1Config, path: "query"): string {
 	return `${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/${path}`;
 }
 
@@ -100,14 +100,14 @@ function resultRows(result: D1QueryResult | undefined): D1Rows {
 }
 
 /** Sends a parameterized SQL query to Cloudflare D1. */
-async function queryD1(
+export async function queryD1(
 	sql: string,
 	params: D1Value[] = [],
 ): Promise<D1QueryResult> {
-	const config = modelAtlasD1Config();
+	const config = d1Config();
 	if (config == null) {
 		throw new Error(
-			`Cloudflare D1 is not configured. Missing ${modelAtlasD1MissingEnvironment().join(", ")}.`,
+			`Cloudflare D1 is not configured. Missing ${missingD1Environment().join(", ")}.`,
 		);
 	}
 	const response = await fetch(d1Endpoint(config, "query"), {
@@ -131,6 +131,14 @@ async function queryD1(
 
 /** Returns all row objects from a Cloudflare D1 SQL query. */
 async function allD1(sql: string, params: D1Value[] = []): Promise<D1Rows> {
+	return queryD1Rows(sql, params);
+}
+
+/** Returns row objects from a Cloudflare D1 SQL query. */
+export async function queryD1Rows(
+	sql: string,
+	params: D1Value[] = [],
+): Promise<D1Rows> {
 	return resultRows(await queryD1(sql, params));
 }
 
@@ -160,7 +168,7 @@ function splitSqlStatements(sql: string): string[] {
 }
 
 /** Applies the shared Model Atlas schema to Cloudflare D1. */
-export async function ensureModelAtlasD1Schema(): Promise<string[]> {
+export async function ensureD1Schema(): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
 	for (const statement of splitSqlStatements(schemaSql)) {
 		await queryD1(statement);
@@ -188,18 +196,16 @@ async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
 }
 
 /** Reads the latest completed Model Atlas payload from D1. */
-export async function readD1ModelAtlasPayload(): Promise<LlmStatsPayload | null> {
-	if (!modelAtlasD1Configured()) {
+export async function readD1Payload(): Promise<LlmStatsPayload | null> {
+	if (!d1Configured()) {
 		return null;
 	}
-	const run = modelAtlasPayloadRunFromRow(
-		(await allD1(MODEL_ATLAS_COMPLETED_RUN_SQL))[0],
-	);
+	const run = payloadRunFromRow((await allD1(COMPLETED_RUN_SQL))[0]);
 	if (run == null) {
 		return null;
 	}
-	return buildModelAtlasPayloadFromRows(
-		await readModelAtlasPayloadRows(run, (rowGroup, runId) =>
+	return buildPayloadFromRows(
+		await readPayloadRows(run, (rowGroup, runId) =>
 			allD1(rowGroup.sql, [runId]),
 		),
 	);
