@@ -254,7 +254,7 @@ function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
 	);
 }
 
-export async function buildModelAtlasDatabase(
+export async function buildDatabase(
 	outputPath = DEFAULT_DATABASE_PATH,
 	options: DatabaseBuildOptions = {},
 ): Promise<DatabaseBuildResult> {

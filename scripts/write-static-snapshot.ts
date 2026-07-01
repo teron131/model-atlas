@@ -12,7 +12,7 @@ import {
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/snapshot-preservation";
 import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
-import { refreshModelAtlasPayload } from "./refresh-model-atlas-payload";
+import { refreshPayload } from "./refresh-model-atlas-payload";
 
 if (existsSync(".env")) {
 	loadEnvFile(".env");
@@ -59,7 +59,7 @@ export async function writeModelAtlasSnapshot(
 			? undefined
 			: resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
 	const [payload, previousPayload] = await Promise.all([
-		refreshModelAtlasPayload(databasePath),
+		refreshPayload(databasePath),
 		readPreviousSnapshot(resolvedOutputPath),
 	]);
 	const preservedPayload = preserveHighSignalSnapshotModels(

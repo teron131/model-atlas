@@ -31,7 +31,7 @@ import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
 
-export type ModelAtlasPayloadRows = {
+export type PayloadRows = {
 	run: {
 		id: number;
 		fetchedAt: number | null;
@@ -50,74 +50,73 @@ export type ModelAtlasPayloadRows = {
 	toolathlonRows: DbRow[];
 };
 
-type ModelAtlasPayloadRowKey = Exclude<keyof ModelAtlasPayloadRows, "run">;
+type PayloadRowKey = Exclude<keyof PayloadRows, "run">;
 
-export type ModelAtlasPayloadRowGroup = {
-	key: ModelAtlasPayloadRowKey;
+export type PayloadRowGroup = {
+	key: PayloadRowKey;
 	sql: string;
 	optional?: boolean;
 };
 
-export type ModelAtlasPayloadRowReader = (
-	rowGroup: ModelAtlasPayloadRowGroup,
+export type PayloadRowReader = (
+	rowGroup: PayloadRowGroup,
 	runId: number,
 ) => Promise<DbRow[]>;
 
-export const MODEL_ATLAS_COMPLETED_RUN_SQL =
+export const COMPLETED_RUN_SQL =
 	"SELECT id, completed_at_epoch_seconds AS fetched_at_epoch_seconds FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1";
 
-export const MODEL_ATLAS_PAYLOAD_ROW_GROUPS: readonly ModelAtlasPayloadRowGroup[] =
-	[
-		{
-			key: "modelRows",
-			sql: "SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
-		},
-		{
-			key: "sourceHealthRows",
-			sql: "SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
-			optional: true,
-		},
-		{
-			key: "artificialAnalysisRows",
-			sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "agentsLastExamRows",
-			sql: "SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "blueprintBenchRows",
-			sql: "SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "browseCompRows",
-			sql: "SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "cursorBenchRows",
-			sql: "SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "deepSWERows",
-			sql: "SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
-		},
-		{
-			key: "gdpPdfRows",
-			sql: "SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "riemannBenchRows",
-			sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "terminalBenchRows",
-			sql: "SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-		{
-			key: "toolathlonRows",
-			sql: "SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
-		},
-	];
+export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
+	{
+		key: "modelRows",
+		sql: "SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
+	},
+	{
+		key: "sourceHealthRows",
+		sql: "SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
+		optional: true,
+	},
+	{
+		key: "artificialAnalysisRows",
+		sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "agentsLastExamRows",
+		sql: "SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "blueprintBenchRows",
+		sql: "SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "browseCompRows",
+		sql: "SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "cursorBenchRows",
+		sql: "SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "deepSWERows",
+		sql: "SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+	},
+	{
+		key: "gdpPdfRows",
+		sql: "SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "riemannBenchRows",
+		sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "terminalBenchRows",
+		sql: "SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "toolathlonRows",
+		sql: "SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+];
 
 const INPUT_MODALITY_COLUMNS = [
 	["input_modality_text", "text"],
@@ -316,9 +315,7 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 }
 
 /** Converts local SQLite and D1 run rows into the payload run contract. */
-export function modelAtlasPayloadRunFromRow(
-	row: unknown,
-): ModelAtlasPayloadRows["run"] | null {
+export function payloadRunFromRow(row: unknown): PayloadRows["run"] | null {
 	const record = asRecord(row);
 	const id = asFiniteNumber(record.id);
 	if (id == null) {
@@ -330,10 +327,8 @@ export function modelAtlasPayloadRunFromRow(
 	};
 }
 
-function latestRun(db: DatabaseSync): ModelAtlasPayloadRows["run"] {
-	const run = modelAtlasPayloadRunFromRow(
-		db.prepare(MODEL_ATLAS_COMPLETED_RUN_SQL).get(),
-	);
+function latestRun(db: DatabaseSync): PayloadRows["run"] {
+	const run = payloadRunFromRow(db.prepare(COMPLETED_RUN_SQL).get());
 	if (run == null) {
 		throw new Error("No Model Atlas database run exists");
 	}
@@ -341,10 +336,10 @@ function latestRun(db: DatabaseSync): ModelAtlasPayloadRows["run"] {
 }
 
 /** Keeps every storage adapter aligned on the row groups required by the public payload. */
-function buildModelAtlasPayloadRows(
-	run: ModelAtlasPayloadRows["run"],
-	rowGroups: ReadonlyArray<readonly [ModelAtlasPayloadRowKey, DbRow[]]>,
-): ModelAtlasPayloadRows {
+function buildPayloadRows(
+	run: PayloadRows["run"],
+	rowGroups: ReadonlyArray<readonly [PayloadRowKey, DbRow[]]>,
+): PayloadRows {
 	const rows = new Map(rowGroups);
 	return {
 		run,
@@ -365,7 +360,7 @@ function buildModelAtlasPayloadRows(
 
 function readPayloadRowGroup(
 	db: DatabaseSync,
-	rowGroup: ModelAtlasPayloadRowGroup,
+	rowGroup: PayloadRowGroup,
 	runId: number,
 ): DbRow[] {
 	try {
@@ -381,27 +376,27 @@ function readPayloadRowGroup(
 function readPayloadRowGroups(
 	db: DatabaseSync,
 	runId: number,
-): [ModelAtlasPayloadRowKey, DbRow[]][] {
-	return MODEL_ATLAS_PAYLOAD_ROW_GROUPS.map((rowGroup) => [
+): [PayloadRowKey, DbRow[]][] {
+	return PAYLOAD_ROW_GROUPS.map((rowGroup) => [
 		rowGroup.key,
 		readPayloadRowGroup(db, rowGroup, runId),
 	]);
 }
 
 /** Reads the row groups required by the public payload from any SQL storage adapter. */
-export async function readModelAtlasPayloadRows(
-	run: ModelAtlasPayloadRows["run"],
-	readRows: ModelAtlasPayloadRowReader,
-): Promise<ModelAtlasPayloadRows> {
+export async function readPayloadRows(
+	run: PayloadRows["run"],
+	readRows: PayloadRowReader,
+): Promise<PayloadRows> {
 	const rowGroups = await Promise.all(
-		MODEL_ATLAS_PAYLOAD_ROW_GROUPS.map(async (rowGroup) => {
+		PAYLOAD_ROW_GROUPS.map(async (rowGroup) => {
 			return [rowGroup.key, await readRows(rowGroup, run.id)] as [
-				ModelAtlasPayloadRowKey,
+				PayloadRowKey,
 				DbRow[],
 			];
 		}),
 	);
-	return buildModelAtlasPayloadRows(run, rowGroups);
+	return buildPayloadRows(run, rowGroups);
 }
 
 function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
@@ -449,9 +444,7 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 }
 
 /** Assembles the public Model Atlas payload from database row groups. */
-export function buildModelAtlasPayloadFromRows(
-	rows: ModelAtlasPayloadRows,
-): LlmStatsPayload {
+export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 	const models = rows.modelRows.map(modelFromRow);
 	const sourceHealth = sourceHealthFromRows(rows.sourceHealthRows);
 	const sourceRowsByKey = benchmarkRowsFromDb(rows);
@@ -483,14 +476,14 @@ function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
 }
 
 /** Read the UI payload from the latest SQLite selected rows. */
-export function readModelAtlasDatabasePayload(
+export function readDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
 ): LlmStatsPayload {
 	const db = new DatabaseSync(databasePath);
 	try {
 		const run = latestRun(db);
-		return buildModelAtlasPayloadFromRows(
-			buildModelAtlasPayloadRows(run, readPayloadRowGroups(db, run.id)),
+		return buildPayloadFromRows(
+			buildPayloadRows(run, readPayloadRowGroups(db, run.id)),
 		);
 	} finally {
 		db.close();
