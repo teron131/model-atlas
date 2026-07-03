@@ -6,7 +6,7 @@ import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
 	getArtificialAnalysisScrapedRawStats,
 	processArtificialAnalysisScrapedRows,
-} from "../../scrapers/artificial-analysis-evals";
+} from "../../scrapers/artificial-analysis/evals";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
 	AGENTIC_INDEX_KEYS,

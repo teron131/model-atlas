@@ -1,11 +1,11 @@
 /**
- * Artificial Analysis scraper helpers.
+ * Artificial Analysis main leaderboard scraper helpers.
  *
- * Page source: https://artificialanalysis.ai/leaderboards/models
+ * This centralized page is the broad model table for scores and general AA metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the main table omits.
  */
 
-import { asRecord, type JsonObject } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+import { asRecord, type JsonObject } from "../../shared";
+import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 
 const DEFAULT_SCRAPE_URL = "https://artificialanalysis.ai/leaderboards/models";
 const DEFAULT_TIMEOUT_MS = 30_000;

@@ -4,6 +4,7 @@ import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
 } from "../scrapers/agents-last-exam";
+import type { TerminalBenchAAResourceRow } from "../scrapers/artificial-analysis/terminal-bench";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
@@ -17,11 +18,15 @@ import type {
 	ModelsDevPayload,
 } from "../scrapers/models-dev";
 import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
-import type {
-	TerminalBenchAgentModelAccuracyRow,
-	TerminalBenchModelMedianAccuracyRow,
-} from "../scrapers/terminal-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
+import type {
+	ValsIndexModelScoreRow,
+	ValsIndexTaskScoreRow,
+} from "../scrapers/vals/index-benchmark";
+import type {
+	TerminalBenchValsModelHarnessRow,
+	TerminalBenchValsTaskRow,
+} from "../scrapers/vals/terminal-bench";
 import type { LlmStatsSourceData, LlmStatsSourceHealth } from "../stats/types";
 import type { JsonObject } from "../utils";
 
@@ -30,6 +35,7 @@ export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
 
 export const RAW_SOURCE_NAMES = [
 	"artificial_analysis",
+	"artificial_analysis_terminal_bench",
 	"models_dev",
 	"agents_last_exam",
 	"blueprint_bench_2",
@@ -38,8 +44,9 @@ export const RAW_SOURCE_NAMES = [
 	"deep_swe",
 	"gdp_pdf",
 	"riemann_bench",
-	"terminal_bench",
 	"toolathlon",
+	"vals_index",
+	"vals_terminal_bench",
 	"openrouter",
 ] as const;
 
@@ -48,6 +55,8 @@ export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
 /** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
 export const RAW_SOURCE_TABLES = {
 	artificial_analysis: "artificial_analysis_raw_models",
+	artificial_analysis_terminal_bench:
+		"artificial_analysis_terminal_bench_raw_rows",
 	models_dev: "models_dev_raw_models",
 	agents_last_exam: "agents_last_exam_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",
@@ -56,8 +65,9 @@ export const RAW_SOURCE_TABLES = {
 	deep_swe: "deep_swe_raw_rows",
 	gdp_pdf: "gdp_pdf_raw_rows",
 	riemann_bench: "riemann_bench_raw_rows",
-	terminal_bench: "terminal_bench_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
+	vals_index: "vals_index_raw_rows",
+	vals_terminal_bench: "vals_terminal_bench_raw_rows",
 	openrouter: "openrouter_raw_rows",
 } as const satisfies Record<RawSourceName, string>;
 
@@ -75,6 +85,8 @@ export type SnapshotTableName =
 
 export const SOURCE_URLS = {
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
+	artificial_analysis_terminal_bench:
+		"https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	models_dev: "https://models.dev/api.json",
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
@@ -84,9 +96,10 @@ export const SOURCE_URLS = {
 	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
 	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
 	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
-	terminal_bench: "https://www.tbench.ai/leaderboard/terminal-bench/2.0",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
+	vals_index: "https://www.vals.ai/benchmarks/vals_index",
+	vals_terminal_bench: "https://www.vals.ai/benchmarks/terminal-bench-2-1",
 	openrouter_models: "https://openrouter.ai/api/frontend/models",
 	openrouter_stats: "https://openrouter.ai/api/frontend/stats/*",
 } as const;
@@ -145,6 +158,7 @@ export type SourceRowState = {
 export type SourceSnapshots = {
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
+	artificialAnalysisTerminalBenchRows: TerminalBenchAAResourceRow[];
 	modelsDevPayload: ModelsDevPayload;
 	modelsDevModels: ModelsDevFlatModel[];
 	modelsDevFetchedAt: number | null;
@@ -159,12 +173,15 @@ export type SourceSnapshots = {
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
-	terminalBenchRows: TerminalBenchAgentModelAccuracyRow[];
-	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
+	valsIndexRows: ValsIndexTaskScoreRow[];
+	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
+	valsTerminalBenchRows: TerminalBenchValsTaskRow[];
+	valsTerminalBenchModelScoreRows: TerminalBenchValsModelHarnessRow[];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: {
 		artificialAnalysis: number | null;
+		artificialAnalysisTerminalBench: number | null;
 		agentsLastExam: number | null;
 		blueprintBench: number | null;
 		browseComp: number | null;
@@ -172,8 +189,9 @@ export type SourceSnapshots = {
 		deepSWE: number | null;
 		gdpPdf: number | null;
 		riemannBench: number | null;
-		terminalBench: number | null;
 		toolathlon: number | null;
+		valsIndex: number | null;
+		valsTerminalBench: number | null;
 	};
 };
 

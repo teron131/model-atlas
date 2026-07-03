@@ -87,11 +87,11 @@ assertEqual(
 	"70% resource / 30% raw",
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("7.8%"),
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("7.0%"),
 	true,
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes("7.8%"),
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes("7.0%"),
 	true,
 );
 

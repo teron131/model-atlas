@@ -40,51 +40,110 @@ const cursorBenchRow = {
 	tokens_per_task: 12345,
 	steps_per_task: 12,
 };
+const artificialAnalysisTerminalBenchRow = {
+	model_id: "test/example-model",
+	model: "Example Model",
+	provider: "Test",
+	provider_id: "test",
+	cost_per_task_usd: 0.32,
+	seconds_per_task: 40,
+	tokens_per_task: 555,
+	input_tokens_per_task: 111,
+	output_tokens_per_task: 444,
+};
+const valsTerminalBenchRow = {
+	task: "overall" as const,
+	task_label: "Overall",
+	raw_model_id: "test/example-model",
+	model_id: "test/example-model",
+	model: "Example Model",
+	provider: "Test",
+	harness: null,
+	score: 0.72,
+	cost_per_task_usd: 0.36,
+	seconds_per_task: 50,
+};
 
-const enrichment = benchmarkEnrichment(["Example Model"], {
-	deepSWE: {
-		scoreByModelName: new Map([["example-model", deepSWERow]]),
+const enrichment = benchmarkEnrichment(
+	["Example Model"],
+	{
+		artificialAnalysisTerminalBench: {
+			scoreByModelName: new Map([
+				["example-model", artificialAnalysisTerminalBenchRow],
+			]),
+		},
+		valsTerminalBench: {
+			scoreByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
+		},
+		deepSWE: {
+			scoreByModelName: new Map([["example-model", deepSWERow]]),
+		},
+		agentsLastExam: {
+			scoreByModelName: emptyLookup(),
+		},
+		automationBench: {
+			scoreByModelName: new Map([["example-model", automationBenchRow]]),
+		},
+		blueprintBench: {
+			scoreByModelName: emptyLookup(),
+		},
+		gdpPdf: {
+			scoreByModelName: emptyLookup(),
+		},
+		riemannBench: {
+			scoreByModelName: emptyLookup(),
+		},
+		browseComp: {
+			scoreByModelName: emptyLookup(),
+		},
+		toolathlon: {
+			scoreByModelName: emptyLookup(),
+		},
+		valsIndex: {
+			scoreByModelName: emptyLookup(),
+		},
+		cursorBench: {
+			scoreByModelName: new Map([["example-model", cursorBenchRow]]),
+		},
+	} satisfies BenchmarkEnrichmentLookups,
+	{
+		terminalbench_v21: 0.82,
 	},
-	terminalBench: {
-		accuracyByModelName: emptyLookup(),
-	},
-	agentsLastExam: {
-		scoreByModelName: emptyLookup(),
-	},
-	automationBench: {
-		scoreByModelName: new Map([["example-model", automationBenchRow]]),
-	},
-	blueprintBench: {
-		scoreByModelName: emptyLookup(),
-	},
-	gdpPdf: {
-		scoreByModelName: emptyLookup(),
-	},
-	riemannBench: {
-		scoreByModelName: emptyLookup(),
-	},
-	browseComp: {
-		scoreByModelName: emptyLookup(),
-	},
-	toolathlon: {
-		scoreByModelName: emptyLookup(),
-	},
-	cursorBench: {
-		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
-	},
-} satisfies BenchmarkEnrichmentLookups);
+);
 
 assert.deepEqual(enrichment.evaluations, {
+	terminalbench_v21: 0.82,
 	deep_swe: 0.72,
 	automation_bench: 0.68,
 	cursorbench: 0.52,
 });
 assert.deepEqual(enrichment.scoringSources, {
+	terminalbench_v21: {
+		model_id: "test/example-model",
+		model: "Example Model",
+		provider: "Test",
+		harness: null,
+		sources: ["artificial_analysis", "vals"],
+		source_count: 2,
+		score: 0.82,
+		cost_per_task_usd: 0.33999999999999997,
+		seconds_per_task: 45,
+		tokens_per_task: 555,
+		input_tokens_per_task: 111,
+		output_tokens_per_task: 444,
+	},
 	deep_swe: deepSWERow,
 	automation_bench: automationBenchRow,
 	cursorbench: cursorBenchRow,
 });
 assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
+	terminalbench_v21: {
+		cost: 0.33999999999999997,
+		seconds: 45,
+		tokens: 555,
+		input_tokens: 111,
+		output_tokens: 444,
+	},
 	automation_bench: {
 		cost: 0.12,
 	},

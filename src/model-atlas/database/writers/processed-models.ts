@@ -97,12 +97,14 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(evaluations.gdp_pdf),
 		asFiniteNumber(evaluations.riemann_bench),
 		asFiniteNumber(evaluations.toolathlon),
+		asFiniteNumber(evaluations.vals_index),
 	];
 }
 
 function processedScoreValues(model: JsonObject): SqlValue[] {
 	const taskMetrics = asRecord(model.task_metrics);
 	const artificialAnalysisTask = asRecord(taskMetrics.artificial_analysis);
+	const terminalBenchTask = asRecord(taskMetrics.terminalbench_v21);
 	const agentsLastExamTask = asRecord(taskMetrics.agents_last_exam);
 	const automationBenchTask = asRecord(taskMetrics.automation_bench);
 	const cursorBenchTask = asRecord(taskMetrics.cursorbench);
@@ -113,6 +115,11 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(artificialAnalysisTask.cost),
 		asFiniteNumber(artificialAnalysisTask.seconds),
 		asFiniteNumber(artificialAnalysisTask.output_tokens),
+		asFiniteNumber(terminalBenchTask.cost),
+		asFiniteNumber(terminalBenchTask.seconds),
+		asFiniteNumber(terminalBenchTask.tokens),
+		asFiniteNumber(terminalBenchTask.input_tokens),
+		asFiniteNumber(terminalBenchTask.output_tokens),
 		asFiniteNumber(agentsLastExamTask.cost),
 		asFiniteNumber(agentsLastExamTask.seconds),
 		asFiniteNumber(agentsLastExamTask.input_tokens),
@@ -156,9 +163,12 @@ export function insertProcessedModelRows(
 			omniscience_accuracy, apex_agents, critpt, gdpval_normalized, gpqa,
 			hle, lcr, mmmu_pro, scicode, tau_banking, terminalbench_v21,
 			agents_last_exam, automation_bench, blueprint_bench_2, browsecomp,
-			cursorbench, deep_swe, gdp_pdf, riemann_bench, toolathlon,
+			cursorbench, deep_swe, gdp_pdf, riemann_bench, toolathlon, vals_index,
 			artificial_analysis_task_cost, artificial_analysis_task_seconds,
 			artificial_analysis_task_output_tokens,
+			terminalbench_v21_task_cost, terminalbench_v21_task_seconds,
+			terminalbench_v21_task_tokens, terminalbench_v21_task_input_tokens,
+			terminalbench_v21_task_output_tokens,
 			agents_last_exam_task_cost, agents_last_exam_task_seconds,
 			agents_last_exam_task_input_tokens,
 			agents_last_exam_task_output_tokens,
@@ -168,7 +178,7 @@ export function insertProcessedModelRows(
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_value_score, relative_intelligence_score, relative_agentic_score,
 			relative_speed_score, relative_value_score, relative_overall_score
-		) VALUES (${Array.from({ length: 81 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 87 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

@@ -5,6 +5,10 @@ import type {
 	AgentsLastExamScoreByModelName,
 } from "../scrapers/agents-last-exam";
 import type {
+	TerminalBenchAAResourceByModelName,
+	TerminalBenchAAResourceRow,
+} from "../scrapers/artificial-analysis/terminal-bench";
+import type {
 	AutomationBenchModelScoreRow,
 	AutomationBenchScoreByModelName,
 } from "../scrapers/automation-bench";
@@ -36,14 +40,19 @@ import type {
 	RiemannBenchScoreByModelName,
 } from "../scrapers/riemann-bench";
 import type {
-	TerminalBenchAccuracyByModelName,
-	TerminalBenchModelMedianAccuracyRow,
-} from "../scrapers/terminal-bench";
-import type {
 	ToolathlonModelScoreRow,
 	ToolathlonScoreByModelName,
 } from "../scrapers/toolathlon";
+import type {
+	ValsIndexModelScoreRow,
+	ValsIndexScoreByModelName,
+} from "../scrapers/vals/index-benchmark";
+import type {
+	TerminalBenchValsByModelName,
+	TerminalBenchValsModelHarnessRow,
+} from "../scrapers/vals/terminal-bench";
 import type { JsonObject, NumberOrNull } from "../utils";
+import type { TerminalBenchAggregateRow } from "./benchmarks/terminal-bench";
 
 export type ModelsDevModel = Awaited<
 	ReturnType<typeof getModelsDevStats>
@@ -165,11 +174,14 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	toolathlon?: NumberOrNull;
 	cursorbench?: NumberOrNull;
 	terminalbench_v21?: NumberOrNull;
+	vals_index?: NumberOrNull;
 };
 
 export type LlmStatsScoringSourceRow =
 	| JsonObject
 	| AgentsLastExamModelScoreRow
+	| TerminalBenchAAResourceRow
+	| TerminalBenchAggregateRow
 	| AutomationBenchModelScoreRow
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow;
@@ -178,6 +190,7 @@ export type LlmStatsScoringSources =
 	| (Record<string, LlmStatsScoringSourceRow | null | undefined> & {
 			deep_swe?: DeepSWEModelScoreRow | null;
 			agents_last_exam?: AgentsLastExamModelScoreRow | null;
+			terminalbench_v21?: TerminalBenchAggregateRow | null;
 			automation_bench?: AutomationBenchModelScoreRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 	  })
@@ -484,16 +497,15 @@ export type LlmStatsScoreSourceRows<Row, Lookup> = {
 	scoreByModelName: Lookup;
 };
 
-export type LlmStatsAccuracySourceRows<Row, Lookup> = {
-	rows: Row[];
-	accuracyByModelName: Lookup;
-};
-
 export type LlmStatsSourceData = {
 	artificialAnalysis: {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
 	};
+	artificialAnalysisTerminalBench: LlmStatsScoreSourceRows<
+		TerminalBenchAAResourceRow,
+		TerminalBenchAAResourceByModelName
+	>;
 	modelsDev: {
 		rows: ModelsDevModel[];
 		byId: Map<string, ModelsDevModel>;
@@ -527,13 +539,17 @@ export type LlmStatsSourceData = {
 		RiemannBenchModelScoreRow,
 		RiemannBenchScoreByModelName
 	>;
-	terminalBench: LlmStatsAccuracySourceRows<
-		TerminalBenchModelMedianAccuracyRow,
-		TerminalBenchAccuracyByModelName
-	>;
 	toolathlon: LlmStatsScoreSourceRows<
 		ToolathlonModelScoreRow,
 		ToolathlonScoreByModelName
+	>;
+	valsIndex: LlmStatsScoreSourceRows<
+		ValsIndexModelScoreRow,
+		ValsIndexScoreByModelName
+	>;
+	valsTerminalBench: LlmStatsScoreSourceRows<
+		TerminalBenchValsModelHarnessRow,
+		TerminalBenchValsByModelName
 	>;
 };
 

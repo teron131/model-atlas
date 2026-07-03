@@ -1,7 +1,10 @@
 /** Sparse one-score benchmark source snapshot adapters. */
 
 import type { DatabaseSync } from "node:sqlite";
-
+import {
+	getTerminalBenchAAResourceStats,
+	type TerminalBenchAAResourceRow,
+} from "../../scrapers/artificial-analysis/terminal-bench";
 import {
 	type BlueprintBenchModelScoreRow,
 	getBlueprintBenchStats,
@@ -27,23 +30,45 @@ import {
 	type ToolathlonModelScoreRow,
 } from "../../scrapers/toolathlon";
 import {
+	getValsIndexStats,
+	type ValsIndexModelScoreRow,
+	type ValsIndexTaskScoreRow,
+} from "../../scrapers/vals/index-benchmark";
+import {
+	getTerminalBenchValsStats,
+	type TerminalBenchValsModelHarnessRow,
+	type TerminalBenchValsTaskRow,
+} from "../../scrapers/vals/terminal-bench";
+import {
+	readArtificialAnalysisTerminalBenchRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,
 	readGdpPdfRawCache,
 	readRiemannBenchRawCache,
 	readToolathlonRawCache,
+	readValsIndexRawCache,
+	readValsTerminalBenchRawCache,
 } from "../cache";
-import { sourceKey } from "../policy";
+import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
 	SourceSnapshotStatus,
 } from "../types";
-import { modelScoreSnapshot } from "./model-score";
+import {
+	modelScoreSnapshot,
+	shouldUseFetchedRows,
+	snapshotFetchedAt,
+} from "./model-score";
 
 export type BlueprintBenchSnapshot = {
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type ArtificialAnalysisTerminalBenchSnapshot = {
+	artificialAnalysisTerminalBenchRows: TerminalBenchAAResourceRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -71,6 +96,49 @@ export type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
+
+export type ValsIndexSnapshot = {
+	valsIndexRows: ValsIndexTaskScoreRow[];
+	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type TerminalBenchValsSnapshot = {
+	valsTerminalBenchRows: TerminalBenchValsTaskRow[];
+	valsTerminalBenchModelScoreRows: TerminalBenchValsModelHarnessRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+/** Loads dedicated AA Terminal-Bench v2.1 resource rows keyed by source model id. */
+export async function artificialAnalysisTerminalBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<ArtificialAnalysisTerminalBenchSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "artificial_analysis_terminal_bench",
+		cached: readArtificialAnalysisTerminalBenchRawCache(db),
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getTerminalBenchAAResourceStats,
+		rowKey: (row) => sourceKey(row.model_id),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		artificialAnalysisTerminalBenchRows: snapshot.rows,
+		sourceStatus: {
+			source: "artificial_analysis_terminal_bench",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "artificialAnalysisTerminalBench",
+		},
+	};
+}
 
 /** Loads BlueprintBench rows keyed by model name for cache and missing-row tracking. */
 export async function blueprintBenchSnapshot(
@@ -254,6 +322,121 @@ export async function toolathlonSnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "toolathlon",
+		},
+	};
+}
+
+/** Loads Vals Index task rows while using only overall rows for scoring health. */
+export async function valsIndexSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<ValsIndexSnapshot> {
+	const cached = readValsIndexRawCache(db);
+	const fetched =
+		status.cache_hit && cached != null && options.replaceSourceRows !== true
+			? null
+			: await getValsIndexStats();
+	const fetchedRows = fetched?.task_rows ?? [];
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched?.fetched_at_epoch_seconds ?? null,
+		fetchedRows.length,
+	);
+	const rows = snapshotRows(
+		cached?.rows,
+		fetchedRows,
+		fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		(row) => sourceKey(row.task, row.model_id),
+	);
+	const modelScores = rows.filter(
+		(row): row is ValsIndexModelScoreRow => row.task === "overall",
+	);
+	const states = snapshotRowsWithStates({
+		source: "vals_index",
+		cachedRows: cached?.modelScores,
+		fetchedRows: fetched?.model_scores ?? [],
+		fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		rowKey: (row) => sourceKey(row.model_id),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	}).states;
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched?.fetched_at_epoch_seconds ?? null,
+	);
+	return {
+		valsIndexRows: rows,
+		valsIndexModelScoreRows: modelScores,
+		sourceStatus: {
+			source: "vals_index",
+			fetchedAt,
+			sourceInputCount: modelScores.length,
+			sourceRowStates: states,
+			fetchedAtKey: "valsIndex",
+		},
+	};
+}
+
+/** Loads Vals Terminal-Bench rows while using overall model-harness rows for matching. */
+export async function valsTerminalBenchSnapshot(
+	db: DatabaseSync,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<TerminalBenchValsSnapshot> {
+	const cached = readValsTerminalBenchRawCache(db);
+	const fetched =
+		status.cache_hit && cached != null && options.replaceSourceRows !== true
+			? null
+			: await getTerminalBenchValsStats();
+	const fetchedRows = fetched?.task_rows ?? [];
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched?.fetched_at_epoch_seconds ?? null,
+		fetchedRows.length,
+	);
+	const rows = snapshotRows(
+		cached?.rows,
+		fetchedRows,
+		fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		(row) => sourceKey(row.task, row.raw_model_id, row.harness ?? "default"),
+	);
+	const modelScores = rows.filter(
+		(row): row is TerminalBenchValsModelHarnessRow => row.task === "overall",
+	);
+	const states = snapshotRowsWithStates({
+		source: "vals_terminal_bench",
+		cachedRows: cached?.modelScores,
+		fetchedRows: fetched?.model_scores ?? [],
+		fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		rowKey: (row) => sourceKey(row.raw_model_id, row.harness ?? "default"),
+		rowLabel: (row) =>
+			row.harness == null ? row.model : `${row.model} ${row.harness}`,
+		previousMissingSince,
+		nowEpochSeconds,
+	}).states;
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched?.fetched_at_epoch_seconds ?? null,
+	);
+	return {
+		valsTerminalBenchRows: rows,
+		valsTerminalBenchModelScoreRows: modelScores,
+		sourceStatus: {
+			source: "vals_terminal_bench",
+			fetchedAt,
+			sourceInputCount: modelScores.length,
+			sourceRowStates: states,
+			fetchedAtKey: "valsTerminalBench",
 		},
 	};
 }

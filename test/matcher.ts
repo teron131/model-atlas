@@ -12,6 +12,11 @@ import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
 import { buildGdpPdfMap } from "../src/model-atlas/scrapers/gdp-pdf";
 import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/riemann-bench";
 import { buildToolathlonMap } from "../src/model-atlas/scrapers/toolathlon";
+import {
+	buildValsIndexMap,
+	type ValsIndexModelScoreRow,
+} from "../src/model-atlas/scrapers/vals/index-benchmark";
+import { buildTerminalBenchValsMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
 import { buildMatchedModelRows } from "../src/model-atlas/stats/matching";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
@@ -140,6 +145,15 @@ assert.equal(
 	0.31,
 	"Riemann-bench scores should attach through normalized display-name matching",
 );
+assert.equal(
+	asEvaluations(
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
+	).vals_index,
+	0.64,
+	"Vals Index scores should attach through normalized model-id matching",
+);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -228,6 +242,16 @@ function modelStatsSourceData(
 			last_updated: "05/27/2026",
 		},
 	];
+	const valsIndexModelScoreRows: ValsIndexModelScoreRow[] = [
+		{
+			task: "overall",
+			task_label: "Overall",
+			model_id: "google/example-2.5-flash",
+			model: "example-2.5-flash",
+			provider: "Google",
+			score: 0.64,
+		},
+	];
 	const modelsDevModels = [
 		model(
 			"openrouter",
@@ -255,6 +279,10 @@ function modelStatsSourceData(
 		artificialAnalysis: {
 			rows: artificialAnalysisRows,
 			bySlug: artificialAnalysisBySlug,
+		},
+		artificialAnalysisTerminalBench: {
+			rows: [],
+			scoreByModelName: new Map(),
 		},
 		modelsDev: {
 			rows: modelsDevModels,
@@ -297,13 +325,17 @@ function modelStatsSourceData(
 			rows: riemannBenchModelScoreRows,
 			scoreByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
 		},
-		terminalBench: {
-			rows: [],
-			accuracyByModelName: new Map(),
-		},
 		toolathlon: {
 			rows: toolathlonModelScoreRows,
 			scoreByModelName: buildToolathlonMap(toolathlonModelScoreRows),
+		},
+		valsIndex: {
+			rows: valsIndexModelScoreRows,
+			scoreByModelName: buildValsIndexMap(valsIndexModelScoreRows),
+		},
+		valsTerminalBench: {
+			rows: [],
+			scoreByModelName: buildTerminalBenchValsMap([]),
 		},
 	};
 }

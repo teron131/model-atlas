@@ -179,6 +179,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	browsecomp: "BrowseComp",
 	toolathlon: "Toolathlon",
 	cursorbench: "CursorBench",
+	vals_index: "Vals Index",
 	blueprint_bench_2: "Blueprint-Bench 2",
 	gdp_pdf: "GDP.pdf",
 	riemann_bench: "Riemann-bench",

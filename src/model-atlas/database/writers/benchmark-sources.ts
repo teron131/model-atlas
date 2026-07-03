@@ -275,53 +275,6 @@ export function insertRiemannBenchRawRows(
 	}
 }
 
-/** Insert Terminal-Bench raw agent rows and summarized model rows in one source table. */
-export function insertTerminalBenchRawRows(
-	db: DatabaseSync,
-	runId: number,
-	snapshots: SourceSnapshots,
-): void {
-	const statement = db.prepare(`
-		INSERT INTO terminal_bench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, agent, model,
-			accuracy, median_accuracy, mean_accuracy, frequency, row_kind
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-	let rowIndex = 0;
-	for (const row of snapshots.terminalBenchRows) {
-		statement.run(
-			runId,
-			rowIndex,
-			snapshots.fetchedAt.terminalBench,
-			SOURCE_URLS.terminal_bench,
-			row.agent,
-			row.model,
-			row.accuracy,
-			null,
-			null,
-			null,
-			"agent_accuracy",
-		);
-		rowIndex += 1;
-	}
-	for (const row of snapshots.terminalBenchModelScores) {
-		statement.run(
-			runId,
-			rowIndex,
-			snapshots.fetchedAt.terminalBench,
-			SOURCE_URLS.terminal_bench,
-			null,
-			row.model,
-			null,
-			row.median_accuracy,
-			row.mean_accuracy,
-			row.frequency,
-			"model_score",
-		);
-		rowIndex += 1;
-	}
-}
-
 export function insertToolathlonRawRows(
 	db: DatabaseSync,
 	runId: number,
@@ -350,6 +303,67 @@ export function insertToolathlonRawRows(
 			booleanValue(row.verified),
 			booleanValue(row.self_reported),
 			row.announcement_date ?? null,
+		);
+	}
+}
+
+export function insertValsIndexRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO vals_index_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
+			row_kind, model_id, model, provider, score
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.valsIndexRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.valsIndex,
+			SOURCE_URLS.vals_index,
+			row.task,
+			row.task_label,
+			row.task === "overall" ? "overall" : "component",
+			row.model_id,
+			row.model,
+			row.provider,
+			row.score,
+		);
+	}
+}
+
+export function insertValsTerminalBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO vals_terminal_bench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
+			row_kind, raw_model_id, model_id, model, provider, harness, score,
+			cost_per_task_usd, seconds_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.valsTerminalBenchRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.valsTerminalBench,
+			SOURCE_URLS.vals_terminal_bench,
+			row.task,
+			row.task_label,
+			row.task === "overall" ? "overall" : "component",
+			row.raw_model_id,
+			row.model_id,
+			row.model,
+			row.provider,
+			row.harness,
+			row.score,
+			row.cost_per_task_usd,
+			row.seconds_per_task,
 		);
 	}
 }

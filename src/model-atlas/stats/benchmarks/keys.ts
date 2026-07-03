@@ -32,4 +32,5 @@ export const MODEL_ATLAS_EVALUATION_KEYS = [
 	"gdp_pdf",
 	"riemann_bench",
 	"toolathlon",
+	"vals_index",
 ] as const;

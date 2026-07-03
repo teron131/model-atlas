@@ -26,8 +26,9 @@ export type BenchmarkDbRows = {
 	deepSWERows: readonly DbBenchmarkRow[];
 	gdpPdfRows: readonly DbBenchmarkRow[];
 	riemannBenchRows: readonly DbBenchmarkRow[];
-	terminalBenchRows: readonly DbBenchmarkRow[];
 	toolathlonRows: readonly DbBenchmarkRow[];
+	valsIndexRows: readonly DbBenchmarkRow[];
+	valsTerminalBenchRows: readonly DbBenchmarkRow[];
 };
 
 function stringValue(value: unknown): string | null {
@@ -81,6 +82,20 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 			scoreColumn: "score",
 			providerColumn: "provider",
 		},
+		{
+			key: "vals_index",
+			rows: rows.valsIndexRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+			rowKind: "overall",
+		},
+		{
+			key: "terminalbench_v21",
+			rows: rows.valsTerminalBenchRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+			rowKind: "overall",
+		},
 	];
 }
 
@@ -93,6 +108,7 @@ function dbSourceRowDraft(
 	}
 	return {
 		key: source.key,
+		id: stringValue(row.model_id),
 		label: stringValue(row.model),
 		provider:
 			source.providerColumn == null

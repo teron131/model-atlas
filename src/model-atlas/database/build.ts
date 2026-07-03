@@ -32,6 +32,7 @@ import {
 import {
 	insertAgentsLastExamRawRows,
 	insertArtificialAnalysisRawModels,
+	insertArtificialAnalysisTerminalBenchRawRows,
 	insertBlueprintBenchRawRows,
 	insertBrowseCompRawRows,
 	insertCursorBenchRawRows,
@@ -44,8 +45,9 @@ import {
 	insertRiemannBenchRawRows,
 	insertSourceHealth,
 	insertSourceRowStates,
-	insertTerminalBenchRawRows,
 	insertToolathlonRawRows,
+	insertValsIndexRawRows,
+	insertValsTerminalBenchRawRows,
 } from "./writers";
 
 type SnapshotRows = {
@@ -71,6 +73,11 @@ const SNAPSHOT_WRITERS = [
 		table: SNAPSHOT_TABLES.artificial_analysis,
 		write: (db, runId, rows) =>
 			insertArtificialAnalysisRawModels(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.artificial_analysis_terminal_bench,
+		write: (db, runId, rows) =>
+			insertArtificialAnalysisTerminalBenchRawRows(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.models_dev,
@@ -111,14 +118,19 @@ const SNAPSHOT_WRITERS = [
 			insertRiemannBenchRawRows(db, runId, rows.snapshots),
 	},
 	{
-		table: SNAPSHOT_TABLES.terminal_bench,
-		write: (db, runId, rows) =>
-			insertTerminalBenchRawRows(db, runId, rows.snapshots),
-	},
-	{
 		table: SNAPSHOT_TABLES.toolathlon,
 		write: (db, runId, rows) =>
 			insertToolathlonRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.vals_index,
+		write: (db, runId, rows) =>
+			insertValsIndexRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.vals_terminal_bench,
+		write: (db, runId, rows) =>
+			insertValsTerminalBenchRawRows(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.openrouter,
