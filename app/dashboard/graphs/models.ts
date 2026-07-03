@@ -173,6 +173,11 @@ function meanNumber(values: number[]) {
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function deepSweMinutes(row: DeepSWEChartRow): number | null {
+	const seconds = finiteValue(row.row.mean_duration_seconds);
+	return seconds == null ? null : seconds / 60;
+}
+
 export const deepSweMetricConfig = {
 	cost: {
 		label: "Avg cost per task",
@@ -188,10 +193,14 @@ export const deepSweMetricConfig = {
 	time: {
 		label: "Avg time per task",
 		shortLabel: "Time",
-		get: (row: DeepSWEChartRow) => row.row.mean_duration_seconds / 60,
+		get: deepSweMinutes,
 		efficiencyLabel: "Best accuracy per minute",
-		efficiencyScore: (row: DeepSWEChartRow) =>
-			Number(percent(row.row.pass_at_1)) / (row.row.mean_duration_seconds / 60),
+		efficiencyScore: (row: DeepSWEChartRow) => {
+			const minutes = deepSweMinutes(row);
+			return minutes == null
+				? null
+				: Number(percent(row.row.pass_at_1)) / minutes;
+		},
 		formatEfficiency: (value: number) => value.toFixed(1),
 		format: (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)}m`,
 		ticks: [10, 20, 30, 45, 60],

@@ -1,22 +1,21 @@
 /** Column tooltip metadata for Model Atlas. */
 
 import type {
+	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltipRow,
 	LlmStatsColumnTooltips,
 } from "../stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
-	ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
+	BENCHMARK_KEYS,
 	type BenchmarkDimension,
 	type BenchmarkKey,
 	benchmarkDimensionPortion,
 	benchmarkPortfolioEntry,
-	FRONTIER_BENCHMARKS,
+	benchmarkResourcePolicy,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	OVERALL_RELATIVE_SCORE_WEIGHTS,
 	QUALITY_SCORE_WEIGHTS,
-	RAW_RESOURCE_COMPONENT_WEIGHT,
-	resourceComponentWeightsFor,
 } from "./benchmark-portfolio";
 import {
 	PRICE_PROFILE_ENTRIES,
@@ -159,19 +158,10 @@ const benchmarkContributionPercent = (
 		: "-";
 };
 
-const componentWeightPercent = (
-	weights: Record<string, number>,
-	key: string,
-): string => {
-	const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
-	const weight = weights[key];
-	return total > 0 && weight != null ? percent(weight / total, 1) : "-";
-};
-
-const blendInputText = (weights: Record<string, number>) => {
-	const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
-	return `${total.toFixed(1)} weighted component units`;
-};
+const RESOURCE_SIGNAL_WEIGHT = 0.7;
+const RAW_SIGNAL_WEIGHT = 0.3;
+const signalBlendText = () =>
+	`${percent(RESOURCE_SIGNAL_WEIGHT)} resource / ${percent(RAW_SIGNAL_WEIGHT)} raw`;
 
 const RELATIVE_SCORE_TEXT = "relative to this model set";
 const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
@@ -201,37 +191,90 @@ const BENCHMARK_LABEL_BY_KEY = {
 	deep_swe: "DeepSWE",
 } as const satisfies Record<BenchmarkKey, string>;
 
-const FRONTIER_RESOURCE_SOURCE_COUNT = FRONTIER_BENCHMARKS.length;
-const {
-	artificialAnalysisResourceWeight:
-		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT,
-	frontierResourceWeight: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
-} = resourceComponentWeightsFor({
-	artificialAnalysisResourceSourceCount:
-		ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
-	frontierResourceSourceCount: FRONTIER_RESOURCE_SOURCE_COUNT,
-});
+type CoreColumnTooltipKey =
+	| "overall"
+	| "intelligence"
+	| "agentic"
+	| "speed"
+	| "value"
+	| "blend"
+	| "context"
+	| "artificialAnalysisCost"
+	| "artificialAnalysisSeconds"
+	| "artificialAnalysisTokens"
+	| "deepSWE"
+	| "deepSWECost"
+	| "deepSWESeconds"
+	| "deepSWETokens"
+	| "agentsLastExam"
+	| "agentsLastExamCost";
+type CoreColumnTooltips = LlmStatsColumnTooltips &
+	Record<CoreColumnTooltipKey, LlmStatsColumnTooltip>;
 
-const SPEED_COMPONENT_WEIGHTS = {
-	artificial_analysis_task_seconds:
-		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT,
-	frontier_normalized_task_speed: FRONTIER_RESOURCE_COMPONENT_WEIGHT,
-	workflow_simulated_seconds: RAW_RESOURCE_COMPONENT_WEIGHT,
-} as const;
+export type ActiveResourceComponents = {
+	artificialAnalysisBenchmarkKeys: readonly string[];
+	directBenchmarkKeys: readonly string[];
+};
 
-const VALUE_RAW_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT / 3;
+const ALL_RESOURCE_COMPONENTS = {
+	artificialAnalysisBenchmarkKeys: BENCHMARK_KEYS.filter(
+		(key) => benchmarkResourcePolicy(key)?.source === "artificial_analysis",
+	),
+	directBenchmarkKeys: BENCHMARK_KEYS.filter(
+		(key) => benchmarkResourcePolicy(key)?.source === "benchmark",
+	),
+} as const satisfies ActiveResourceComponents;
 
-const VALUE_COMPONENT_WEIGHTS = {
-	artificial_analysis_resource_task_cost:
-		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT / 2,
-	artificial_analysis_score_per_dollar:
-		ARTIFICIAL_ANALYSIS_RESOURCE_COMPONENT_WEIGHT / 2,
-	frontier_resource_task_cost: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
-	frontier_resource_score_per_dollar: FRONTIER_RESOURCE_COMPONENT_WEIGHT / 2,
-	blend_price: VALUE_RAW_COMPONENT_WEIGHT,
-	quality_adjusted_blend_value: VALUE_RAW_COMPONENT_WEIGHT,
-	workflow_simulated_value: VALUE_RAW_COMPONENT_WEIGHT,
-} as const;
+function perComponentWeight(totalWeight: number, count: number): string {
+	return count > 0 ? percent(totalWeight / count, 1) : "-";
+}
+
+function groupedComponentWeight(
+	totalWeight: number,
+	groupCount: number,
+	totalCount: number,
+): string {
+	return totalCount > 0
+		? percent((totalWeight * groupCount) / totalCount, 1)
+		: "-";
+}
+
+function resourceBenchmarkKeys(
+	components: ActiveResourceComponents,
+): readonly string[] {
+	return [
+		...components.artificialAnalysisBenchmarkKeys,
+		...components.directBenchmarkKeys,
+	];
+}
+
+function benchmarkLabel(key: string): string {
+	return BENCHMARK_LABEL_BY_KEY[key as BenchmarkKey] ?? key;
+}
+
+function benchmarkResourceRows(
+	keys: readonly string[],
+	labelPrefix: string,
+	labelSuffix: string,
+	weight: string,
+): readonly LlmStatsColumnTooltipRow[] {
+	return keys.map((key) => [
+		`${labelPrefix}${benchmarkLabel(key)} ${labelSuffix}`,
+		weight,
+	]);
+}
+
+function artificialAnalysisResourceRow(
+	benchmarkCount: number,
+	labelSuffix: string,
+	weight: string,
+): LlmStatsColumnTooltipRow | null {
+	if (benchmarkCount === 0) {
+		return null;
+	}
+	const plural = benchmarkCount === 1 ? "benchmark" : "benchmarks";
+	return [`AA resource (${benchmarkCount} ${plural}) ${labelSuffix}`, weight];
+}
 
 const qualityScoreRows = (indexLabel: string) =>
 	[
@@ -293,345 +336,345 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
 	"agentic",
 );
 
-const speedInputRows = () =>
-	[
-		[
-			"AA task seconds",
-			componentWeightPercent(
-				SPEED_COMPONENT_WEIGHTS,
-				"artificial_analysis_task_seconds",
-			),
-		],
-		[
-			"Frontier benchmark task speed",
-			componentWeightPercent(
-				SPEED_COMPONENT_WEIGHTS,
-				"frontier_normalized_task_speed",
-			),
-		],
+const speedInputRows = (components: ActiveResourceComponents) => {
+	const resourceKeys = resourceBenchmarkKeys(components);
+	const artificialAnalysisWeight = groupedComponentWeight(
+		RESOURCE_SIGNAL_WEIGHT,
+		components.artificialAnalysisBenchmarkKeys.length,
+		resourceKeys.length,
+	);
+	const directWeight = perComponentWeight(
+		RESOURCE_SIGNAL_WEIGHT,
+		resourceKeys.length,
+	);
+	const rawWeight = percent(RAW_SIGNAL_WEIGHT);
+	const artificialAnalysisRow = artificialAnalysisResourceRow(
+		components.artificialAnalysisBenchmarkKeys.length,
+		"task seconds",
+		artificialAnalysisWeight,
+	);
+	return [
+		...(artificialAnalysisRow == null ? [] : [artificialAnalysisRow]),
+		...benchmarkResourceRows(
+			components.directBenchmarkKeys,
+			"",
+			"task speed",
+			directWeight,
+		),
 		{
 			title: "Workflow simulation mix",
 			kind: "workflow_simulation",
-			weight: componentWeightPercent(
-				SPEED_COMPONENT_WEIGHTS,
-				"workflow_simulated_seconds",
-			),
+			weight: rawWeight,
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
 	] as const;
+};
 
-const valueInputRows = () =>
-	[
-		[
-			"AA-sourced resource task cost",
-			componentWeightPercent(
-				VALUE_COMPONENT_WEIGHTS,
-				"artificial_analysis_resource_task_cost",
-			),
-		],
-		[
-			"AA-sourced score per dollar",
-			componentWeightPercent(
-				VALUE_COMPONENT_WEIGHTS,
-				"artificial_analysis_score_per_dollar",
-			),
-		],
-		[
-			"Frontier benchmark task cost",
-			componentWeightPercent(
-				VALUE_COMPONENT_WEIGHTS,
-				"frontier_resource_task_cost",
-			),
-		],
-		[
-			"Frontier benchmark score per dollar",
-			componentWeightPercent(
-				VALUE_COMPONENT_WEIGHTS,
-				"frontier_resource_score_per_dollar",
-			),
-		],
+const valueInputRows = (components: ActiveResourceComponents) => {
+	const resourceKeys = resourceBenchmarkKeys(components);
+	const artificialAnalysisValueWeight = groupedComponentWeight(
+		RESOURCE_SIGNAL_WEIGHT,
+		components.artificialAnalysisBenchmarkKeys.length,
+		resourceKeys.length,
+	);
+	const directValueWeight = perComponentWeight(
+		RESOURCE_SIGNAL_WEIGHT,
+		resourceKeys.length,
+	);
+	const rawWeight = perComponentWeight(RAW_SIGNAL_WEIGHT, 3);
+	const artificialAnalysisValueRow = artificialAnalysisResourceRow(
+		components.artificialAnalysisBenchmarkKeys.length,
+		"score per log dollar",
+		artificialAnalysisValueWeight,
+	);
+	return [
+		...(artificialAnalysisValueRow == null ? [] : [artificialAnalysisValueRow]),
+		...benchmarkResourceRows(
+			components.directBenchmarkKeys,
+			"",
+			"score per log dollar",
+			directValueWeight,
+		),
 		{
 			title: "Blend price profile",
 			kind: "price_profile",
-			weight: componentWeightPercent(VALUE_COMPONENT_WEIGHTS, "blend_price"),
+			weight: rawWeight,
 			rows: priceProfileRows(),
 		},
-		[
-			"Quality-adjusted blend value",
-			componentWeightPercent(
-				VALUE_COMPONENT_WEIGHTS,
-				"quality_adjusted_blend_value",
-			),
-		],
+		["Quality-adjusted blend value", rawWeight] as const,
 		{
 			title: "Workflow simulation mix",
 			kind: "workflow_simulation",
-			weight: componentWeightPercent(
-				VALUE_COMPONENT_WEIGHTS,
-				"workflow_simulated_value",
-			),
+			weight: rawWeight,
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
 	] as const;
+};
 
-export const COLUMN_TOOLTIPS = {
-	overall: {
-		title: "Overall score",
-		body: "Practical utility score from fixed relative component weights. The table defaults to Intelligence sort; missing Speed or Value is estimated for Overall only.",
-		rows: [["Scale", RELATIVE_SCORE_TEXT]],
-		sections: [
-			{
-				title: "Component weights",
-				rows: [
-					["Intelligence", overallWeight("intelligence")],
-					["Agentic", overallWeight("agentic")],
-					["Speed", overallWeight("speed")],
-					["Value", overallWeight("value")],
-				],
-			},
-			{
-				title: "Intelligence blend",
-				rows: qualityScoreRows("AA index"),
-			},
-			{
-				title: "Agentic blend",
-				rows: qualityScoreRows("AA index"),
-			},
-			{
-				title: "Speed inputs",
-				hideTitle: true,
-				rows: speedInputRows(),
-			},
-			{
-				title: "Value inputs",
-				hideTitle: true,
-				rows: valueInputRows(),
-			},
-		],
-	},
-	intelligence: {
-		title: "Intelligence score",
-		body: "Relative capability score from the AA Intelligence index plus the selected intelligence benchmarks.",
-		rows: [
-			["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-		sections: [
-			{
-				title: "Score blend",
-				hideTitle: true,
-				rows: qualityScoreRowsWithBenchmarkGroups(
-					"AA Intelligence Index",
-					INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
-				),
-			},
-		],
-	},
-	agentic: {
-		title: "Agentic score",
-		body: "Relative workflow and coding-task score from the AA Agentic index plus selected agentic benchmarks.",
-		rows: [
-			["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-		sections: [
-			{
-				title: "Score blend",
-				hideTitle: true,
-				rows: qualityScoreRowsWithBenchmarkGroups(
-					"AA Agentic Index",
-					AGENTIC_BENCHMARK_TOOLTIP_ROWS,
-				),
-			},
-		],
-	},
-	speed: {
-		title: "Speed score",
-		body: "Weighted percentile blend of served-speed simulation, task runtime, and frontier resource runtime. Displayed only when at least two speed components are present.",
-		rows: [
-			["Scale", PERCENTILE_SCORE_TEXT],
-			["Blend", blendInputText(SPEED_COMPONENT_WEIGHTS)],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-		sections: [
-			{
-				title: "Speed inputs",
-				hideTitle: true,
-				rows: speedInputRows(),
-			},
-		],
-	},
-	value: {
-		title: "Value score",
-		body: "Weighted percentile blend of raw price, task cost, quality per dollar, and frontier resource value. Displayed only when at least two value components are present.",
-		rows: [
-			["Scale", PERCENTILE_SCORE_TEXT],
-			["Blend", blendInputText(VALUE_COMPONENT_WEIGHTS)],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-		sections: [
-			{
-				title: "Value inputs",
-				hideTitle: true,
-				rows: valueInputRows(),
-			},
-		],
-	},
-	blend: {
-		title: "Blend price",
-		body: "Estimated USD per million tokens for a task/chat/agentic usage mix.",
-		rows: [
-			["Definition", "weighted input/output price"],
-			["Formula", "sum(profile weight x profile price)"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-		sections: [
-			{
-				title: "Price methodology",
-				rows: [
-					{
-						title: "Profile weights",
-						kind: "price_profile",
-						rows: priceProfileRows(),
-					},
-					{
-						title: "Input share",
-						kind: "price_share",
-						weight: effectivePriceProfileRatio("input"),
-						rows: priceProfileContributionRows("input"),
-					},
-					{
-						title: "Output share",
-						kind: "price_share",
-						weight: effectivePriceProfileRatio("output"),
-						rows: priceProfileContributionRows("output"),
-					},
-				],
-			},
-		],
-	},
-	context: {
-		title: "Context",
-		body: "Largest prompt context window available for the model.",
-		rows: [
-			["Definition", "maximum input tokens"],
-			["Unit", "tokens"],
-			["Source", "model context limit"],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-	},
-	artificialAnalysisCost: {
-		title: "AA cost per task",
-		body: "Artificial Analysis v4.1 reported cost for one Intelligence Index task.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Metric", "reported cost per Intelligence task"],
-			["Method", "direct AA per-task field"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	artificialAnalysisSeconds: {
-		title: "AA seconds per task",
-		body: "Artificial Analysis v4.1 reported runtime for one Intelligence Index task.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Metric", "reported time per Intelligence task"],
-			["Method", "direct AA per-task field"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	artificialAnalysisTokens: {
-		title: "AA output tokens per task",
-		body: "Artificial Analysis v4.1 reported output tokens for one Intelligence Index task.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Metric", "reported output tokens per Intelligence task"],
-			["Method", "direct AA per-task field"],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-	},
-	deepSWE: {
-		title: "DeepSWE",
-		body: "Coding-agent benchmark. This score uses each model's best pass@1 configuration.",
-		rows: [
-			["Source", "DeepSWE leaderboard"],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-	},
-	deepSWECost: {
-		title: "DeepSWE cost per task",
-		body: "Mean cost for one DeepSWE task.",
-		rows: [
-			["Source", "DeepSWE leaderboard"],
-			["Metric", "mean cost per task"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	deepSWESeconds: {
-		title: "DeepSWE seconds per task",
-		body: "Mean runtime for one DeepSWE task.",
-		rows: [
-			["Source", "DeepSWE leaderboard"],
-			["Metric", "mean runtime per task"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	deepSWETokens: {
-		title: "DeepSWE output tokens per task",
-		body: "Mean output tokens for one DeepSWE task.",
-		rows: [
-			["Source", "DeepSWE leaderboard"],
-			["Metric", "mean output tokens per task"],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-	},
-	agentsLastExam: {
-		title: "Agents' Last Exam",
-		body: "Real-world software and professional-workflow benchmark. The displayed value is the higher of median and mean partial-credit score.",
-		rows: [
-			["Source", "Agents' Last Exam"],
-			["Split", FULL_OVERALL_TEXT],
-			["Sort", HIGHER_FIRST_TEXT],
-		],
-	},
-	agentsLastExamCost: {
-		title: "Agents' Last Exam cost",
-		body: "Estimated cost per Full Overall run, using the lower of median and mean per-run token usage.",
-		rows: [
-			["Source", "Agents' Last Exam"],
-			["Split", FULL_OVERALL_TEXT],
-			["Metric", "cost per run"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	agentsLastExamSeconds: {
-		title: "Agents' Last Exam runtime",
-		body: "Runtime per Full Overall run, using the lower of median and mean per-run duration.",
-		rows: [
-			["Source", "Agents' Last Exam"],
-			["Split", FULL_OVERALL_TEXT],
-			["Metric", "runtime per run"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	agentsLastExamInputTokens: {
-		title: "Agents' Last Exam input tokens",
-		body: "Input tokens per Full Overall run, using the lower of median and mean per-run token usage.",
-		rows: [
-			["Source", "Agents' Last Exam"],
-			["Split", FULL_OVERALL_TEXT],
-			["Metric", "input tokens per run"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-	agentsLastExamOutputTokens: {
-		title: "Agents' Last Exam output tokens",
-		body: "Output tokens per Full Overall run, using the lower of median and mean per-run token usage.",
-		rows: [
-			["Source", "Agents' Last Exam"],
-			["Split", FULL_OVERALL_TEXT],
-			["Metric", "output tokens per run"],
-			["Sort", LOWER_FIRST_TEXT],
-		],
-	},
-} as const satisfies LlmStatsColumnTooltips;
+export function columnTooltipsForActiveComponents(
+	components: ActiveResourceComponents = ALL_RESOURCE_COMPONENTS,
+): CoreColumnTooltips {
+	return {
+		overall: {
+			title: "Overall score",
+			body: "Practical utility score from fixed relative component weights. The table defaults to Intelligence sort; missing Speed or Value is estimated for Overall only.",
+			rows: [["Scale", RELATIVE_SCORE_TEXT]],
+			sections: [
+				{
+					title: "Component weights",
+					rows: [
+						["Intelligence", overallWeight("intelligence")],
+						["Agentic", overallWeight("agentic")],
+						["Speed", overallWeight("speed")],
+						["Value", overallWeight("value")],
+					],
+				},
+				{
+					title: "Intelligence blend",
+					rows: qualityScoreRows("AA index"),
+				},
+				{
+					title: "Agentic blend",
+					rows: qualityScoreRows("AA index"),
+				},
+				{
+					title: "Speed inputs",
+					hideTitle: true,
+					rows: speedInputRows(components),
+				},
+				{
+					title: "Value inputs",
+					hideTitle: true,
+					rows: valueInputRows(components),
+				},
+			],
+		},
+		intelligence: {
+			title: "Intelligence score",
+			body: "Relative capability score from the AA Intelligence index plus the selected intelligence benchmarks.",
+			rows: [
+				["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+			sections: [
+				{
+					title: "Score blend",
+					hideTitle: true,
+					rows: qualityScoreRowsWithBenchmarkGroups(
+						"AA Intelligence Index",
+						INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
+					),
+				},
+			],
+		},
+		agentic: {
+			title: "Agentic score",
+			body: "Relative workflow and coding-task score from the AA Agentic index plus selected agentic benchmarks.",
+			rows: [
+				["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+			sections: [
+				{
+					title: "Score blend",
+					hideTitle: true,
+					rows: qualityScoreRowsWithBenchmarkGroups(
+						"AA Agentic Index",
+						AGENTIC_BENCHMARK_TOOLTIP_ROWS,
+					),
+				},
+			],
+		},
+		speed: {
+			title: "Speed score",
+			body: "Percentile score from a 70% task-runtime resource block and 30% served-speed workflow simulation block. Missing task runtime falls back to output tokens divided by served throughput. Displayed only when at least two speed components are present.",
+			rows: [
+				["Scale", PERCENTILE_SCORE_TEXT],
+				["Blend", signalBlendText()],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+			sections: [
+				{
+					title: "Speed inputs",
+					hideTitle: true,
+					rows: speedInputRows(components),
+				},
+			],
+		},
+		value: {
+			title: "Value score",
+			body: "Percentile score from a 70% resource-value block and 30% raw price/workflow block. Resource value uses benchmark-normalized score per log task dollar.",
+			rows: [
+				["Scale", PERCENTILE_SCORE_TEXT],
+				["Blend", signalBlendText()],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+			sections: [
+				{
+					title: "Value inputs",
+					hideTitle: true,
+					rows: valueInputRows(components),
+				},
+			],
+		},
+		blend: {
+			title: "Blend price",
+			body: "Estimated USD per million tokens for a task/chat/agentic usage mix.",
+			rows: [
+				["Definition", "weighted input/output price"],
+				["Formula", "sum(profile weight x profile price)"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+			sections: [
+				{
+					title: "Price methodology",
+					rows: [
+						{
+							title: "Profile weights",
+							kind: "price_profile",
+							rows: priceProfileRows(),
+						},
+						{
+							title: "Input share",
+							kind: "price_share",
+							weight: effectivePriceProfileRatio("input"),
+							rows: priceProfileContributionRows("input"),
+						},
+						{
+							title: "Output share",
+							kind: "price_share",
+							weight: effectivePriceProfileRatio("output"),
+							rows: priceProfileContributionRows("output"),
+						},
+					],
+				},
+			],
+		},
+		context: {
+			title: "Context",
+			body: "Largest prompt context window available for the model.",
+			rows: [
+				["Definition", "maximum input tokens"],
+				["Unit", "tokens"],
+				["Source", "model context limit"],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+		},
+		artificialAnalysisCost: {
+			title: "AA cost per task",
+			body: "Artificial Analysis v4.1 reported cost for one Intelligence Index task.",
+			rows: [
+				["Source", "Artificial Analysis"],
+				["Metric", "reported cost per Intelligence task"],
+				["Method", "direct AA per-task field"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		artificialAnalysisSeconds: {
+			title: "AA seconds per task",
+			body: "Artificial Analysis v4.1 reported runtime for one Intelligence Index task.",
+			rows: [
+				["Source", "Artificial Analysis"],
+				["Metric", "reported time per Intelligence task"],
+				["Method", "direct AA per-task field"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		artificialAnalysisTokens: {
+			title: "AA output tokens per task",
+			body: "Artificial Analysis v4.1 reported output tokens for one Intelligence Index task.",
+			rows: [
+				["Source", "Artificial Analysis"],
+				["Metric", "reported output tokens per Intelligence task"],
+				["Method", "direct AA per-task field"],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+		},
+		deepSWE: {
+			title: "DeepSWE",
+			body: "Coding-agent benchmark. This score uses each model's best pass@1 configuration.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+		},
+		deepSWECost: {
+			title: "DeepSWE cost per task",
+			body: "Mean cost for one DeepSWE task.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Metric", "mean cost per task"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		deepSWESeconds: {
+			title: "DeepSWE seconds per task",
+			body: "Mean runtime for one DeepSWE task.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Metric", "mean runtime per task"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		deepSWETokens: {
+			title: "DeepSWE output tokens per task",
+			body: "Mean output tokens for one DeepSWE task.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Metric", "mean output tokens per task"],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+		},
+		agentsLastExam: {
+			title: "Agents' Last Exam",
+			body: "Real-world software and professional-workflow benchmark. The displayed value is the higher of median and mean partial-credit score.",
+			rows: [
+				["Source", "Agents' Last Exam"],
+				["Split", FULL_OVERALL_TEXT],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+		},
+		agentsLastExamCost: {
+			title: "Agents' Last Exam cost",
+			body: "Estimated cost per Full Overall run, using the lower of median and mean per-run token usage.",
+			rows: [
+				["Source", "Agents' Last Exam"],
+				["Split", FULL_OVERALL_TEXT],
+				["Metric", "cost per run"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		agentsLastExamSeconds: {
+			title: "Agents' Last Exam runtime",
+			body: "Runtime per Full Overall run, using the lower of median and mean per-run duration.",
+			rows: [
+				["Source", "Agents' Last Exam"],
+				["Split", FULL_OVERALL_TEXT],
+				["Metric", "runtime per run"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		agentsLastExamInputTokens: {
+			title: "Agents' Last Exam input tokens",
+			body: "Input tokens per Full Overall run, using the lower of median and mean per-run token usage.",
+			rows: [
+				["Source", "Agents' Last Exam"],
+				["Split", FULL_OVERALL_TEXT],
+				["Metric", "input tokens per run"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+		agentsLastExamOutputTokens: {
+			title: "Agents' Last Exam output tokens",
+			body: "Output tokens per Full Overall run, using the lower of median and mean per-run token usage.",
+			rows: [
+				["Source", "Agents' Last Exam"],
+				["Split", FULL_OVERALL_TEXT],
+				["Metric", "output tokens per run"],
+				["Sort", LOWER_FIRST_TEXT],
+			],
+		},
+	};
+}
+
+export const COLUMN_TOOLTIPS = columnTooltipsForActiveComponents();

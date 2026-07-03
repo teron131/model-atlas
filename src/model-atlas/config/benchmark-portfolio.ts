@@ -65,6 +65,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		intelligencePortion: 0,
 		agenticPortion: 1,
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
 	},
 	hle: {
 		group: "frontier",
@@ -150,37 +151,6 @@ export const OVERALL_RELATIVE_SCORE_WEIGHTS = {
 	speed: 0.2,
 	value: 0.2,
 } as const;
-
-export const RAW_RESOURCE_COMPONENT_WEIGHT = 0.6;
-export const RESOURCE_COMPONENT_TOTAL_WEIGHT =
-	1 - RAW_RESOURCE_COMPONENT_WEIGHT;
-export const ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT = 14;
-
-/** Splits resource weighting between Artificial Analysis and frontier benchmarks. */
-export function resourceComponentWeightsFor({
-	artificialAnalysisResourceSourceCount = ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
-	frontierResourceSourceCount,
-}: {
-	artificialAnalysisResourceSourceCount?: number;
-	frontierResourceSourceCount: number;
-}) {
-	const totalResourceSourceCount =
-		artificialAnalysisResourceSourceCount + frontierResourceSourceCount;
-	if (totalResourceSourceCount <= 0) {
-		return {
-			artificialAnalysisResourceWeight: 0,
-			frontierResourceWeight: 0,
-		};
-	}
-	return {
-		artificialAnalysisResourceWeight:
-			RESOURCE_COMPONENT_TOTAL_WEIGHT *
-			(artificialAnalysisResourceSourceCount / totalResourceSourceCount),
-		frontierResourceWeight:
-			RESOURCE_COMPONENT_TOTAL_WEIGHT *
-			(frontierResourceSourceCount / totalResourceSourceCount),
-	};
-}
 
 /** Looks up the portfolio entry for a benchmark key. */
 export const benchmarkPortfolioEntry = (key: string) =>

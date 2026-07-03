@@ -36,7 +36,7 @@ export type DeepSWELeaderboardRow = {
 	ci_half: number | null;
 	n_tasks_attempted: number;
 	mean_cost_usd: number;
-	mean_duration_seconds: number;
+	mean_duration_seconds: number | null;
 	mean_output_tokens: number;
 };
 
@@ -76,7 +76,6 @@ export function asDeepSWELeaderboardRow(
 		tasksAttempted == null ||
 		tasksAttempted <= 0 ||
 		meanCostUsd == null ||
-		meanDurationSeconds == null ||
 		meanOutputTokens == null
 	) {
 		return null;
@@ -181,8 +180,22 @@ export function preferredDeepSWELeaderboardRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWELeaderboardRow[] {
 	const v11Rows = rows.filter((row) => row.source_version === "v1.1");
-	const preferredRows = v11Rows.length > 0 ? v11Rows : rows;
+	const v11RowKeys = new Set(v11Rows.map(deepSWEPreferenceKey));
+	const v1OnlyRows = rows.filter(
+		(row) =>
+			row.source_version !== "v1.1" &&
+			!v11RowKeys.has(deepSWEPreferenceKey(row)),
+	);
+	const preferredRows = v11Rows.length > 0 ? [...v11Rows, ...v1OnlyRows] : rows;
 	return preferredRows.map(stripDeepSWESourceVersion);
+}
+
+function deepSWEPreferenceKey(row: DeepSWERawLeaderboardRow): string {
+	return [
+		normalizeModelToken(row.model),
+		row.reasoning_effort ?? "",
+		row.config ?? "",
+	].join("\0");
 }
 
 export function buildDeepSWEMap(

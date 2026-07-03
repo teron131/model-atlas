@@ -8,6 +8,7 @@ export type WeightedScorePart = {
 
 export function finiteNumbers(values: unknown[]): number[] {
 	return values
+		.filter((value) => value != null)
 		.map((value) => Number(value))
 		.filter((value) => Number.isFinite(value));
 }

@@ -1,6 +1,6 @@
 /** Task metric projection for Model Atlas. */
 
-import { asFiniteNumber } from "../../shared";
+import { asFiniteNumber, asRecord } from "../../shared";
 import type {
 	LlmStatsCost,
 	LlmStatsIntelligenceIndexCost,
@@ -10,6 +10,41 @@ import type {
 } from "../types";
 
 type TaskMetricValues = LlmStatsTaskMetricValues;
+type TaskMetricKey = keyof TaskMetricValues;
+
+const GENERIC_TASK_METRIC_FIELDS = {
+	cost: [
+		"cost_per_task_usd",
+		"cost_per_task",
+		"mean_cost_usd",
+		"median_cost_usd",
+	],
+	seconds: [
+		"seconds_per_task",
+		"duration_seconds_per_task",
+		"mean_duration_seconds_per_run",
+		"median_duration_seconds_per_run",
+		"mean_duration_seconds",
+		"median_duration_seconds",
+	],
+	tokens: ["tokens_per_task", "mean_tokens_per_task", "median_tokens_per_task"],
+	input_tokens: [
+		"input_tokens_per_task",
+		"mean_input_tokens_per_task",
+		"median_input_tokens_per_task",
+		"mean_input_tokens_per_run",
+		"median_input_tokens_per_run",
+	],
+	output_tokens: [
+		"output_tokens_per_task",
+		"mean_output_tokens_per_task",
+		"median_output_tokens_per_task",
+		"mean_output_tokens_per_run",
+		"median_output_tokens_per_run",
+		"mean_output_tokens",
+		"median_output_tokens",
+	],
+} as const satisfies Record<TaskMetricKey, readonly string[]>;
 
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
@@ -21,6 +56,12 @@ export function buildTaskMetrics(
 	scoringSources: LlmStatsScoringSources,
 ): LlmStatsTaskMetrics {
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
+	for (const [key, source] of Object.entries(scoringSources ?? {})) {
+		const sourceTaskMetrics = buildGenericSourceTaskMetrics(source);
+		if (sourceTaskMetrics != null) {
+			taskMetrics[key] = sourceTaskMetrics;
+		}
+	}
 	const artificialAnalysis = buildArtificialAnalysisTaskMetrics(
 		intelligenceIndexCost,
 	);
@@ -38,6 +79,45 @@ export function buildTaskMetrics(
 	const automationBench = buildAutomationBenchTaskMetrics(scoringSources);
 	if (automationBench != null) {
 		taskMetrics.automation_bench = automationBench;
+	}
+	return hasFields(taskMetrics) ? taskMetrics : null;
+}
+
+function firstFiniteNumber(
+	record: Record<string, unknown>,
+	keys: readonly string[],
+): number | null {
+	for (const key of keys) {
+		const value = asFiniteNumber(record[key]);
+		if (value != null) {
+			return value;
+		}
+	}
+	return null;
+}
+
+function setNonNegativeMetric(
+	taskMetrics: TaskMetricValues,
+	key: TaskMetricKey,
+	value: number | null,
+): void {
+	if (value != null && value >= 0) {
+		taskMetrics[key] = value;
+	}
+}
+
+/** Extract common per-task telemetry field shapes from any benchmark source row. */
+function buildGenericSourceTaskMetrics(
+	source: unknown,
+): TaskMetricValues | null {
+	const row = asRecord(source);
+	const taskMetrics: TaskMetricValues = {};
+	for (const [key, fields] of Object.entries(GENERIC_TASK_METRIC_FIELDS)) {
+		setNonNegativeMetric(
+			taskMetrics,
+			key as TaskMetricKey,
+			firstFiniteNumber(row, fields),
+		);
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
@@ -74,15 +154,12 @@ function buildDeepSWETaskMetrics(
 	if (deepSWE == null) {
 		return null;
 	}
-	const taskCount = asFiniteNumber(deepSWE.n_tasks_attempted);
-	if (taskCount == null || taskCount <= 0) {
-		return null;
-	}
-	return {
-		cost: deepSWE.mean_cost_usd / taskCount,
-		seconds: deepSWE.mean_duration_seconds / taskCount,
-		output_tokens: deepSWE.mean_output_tokens / taskCount,
+	const taskMetrics: TaskMetricValues = {
+		cost: deepSWE.mean_cost_usd,
+		output_tokens: deepSWE.mean_output_tokens,
 	};
+	setNonNegativeMetric(taskMetrics, "seconds", deepSWE.mean_duration_seconds);
+	return taskMetrics;
 }
 
 /** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */

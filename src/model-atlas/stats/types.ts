@@ -132,6 +132,7 @@ export type LlmStatsIntelligenceIndexCost = {
 export type LlmStatsTaskMetricValues = {
 	cost?: NumberOrNull;
 	seconds?: NumberOrNull;
+	tokens?: NumberOrNull;
 	input_tokens?: NumberOrNull;
 	output_tokens?: NumberOrNull;
 };
@@ -166,11 +167,21 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	terminalbench_v21?: NumberOrNull;
 };
 
-export type LlmStatsScoringSources = {
-	deep_swe?: DeepSWEModelScoreRow | null;
-	agents_last_exam?: AgentsLastExamModelScoreRow | null;
-	automation_bench?: AutomationBenchModelScoreRow | null;
-} | null;
+export type LlmStatsScoringSourceRow =
+	| JsonObject
+	| AgentsLastExamModelScoreRow
+	| AutomationBenchModelScoreRow
+	| CursorBenchModelScoreRow
+	| DeepSWEModelScoreRow;
+
+export type LlmStatsScoringSources =
+	| (Record<string, LlmStatsScoringSourceRow | null | undefined> & {
+			deep_swe?: DeepSWEModelScoreRow | null;
+			agents_last_exam?: AgentsLastExamModelScoreRow | null;
+			automation_bench?: AutomationBenchModelScoreRow | null;
+			cursorbench?: CursorBenchModelScoreRow | null;
+	  })
+	| null;
 
 export type LlmStatsNullableScores = {
 	intelligence_score: NumberOrNull;

@@ -105,6 +105,7 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 	const artificialAnalysisTask = asRecord(taskMetrics.artificial_analysis);
 	const agentsLastExamTask = asRecord(taskMetrics.agents_last_exam);
 	const automationBenchTask = asRecord(taskMetrics.automation_bench);
+	const cursorBenchTask = asRecord(taskMetrics.cursorbench);
 	const deepSWETask = asRecord(taskMetrics.deep_swe);
 	const scores = asRecord(model.scores);
 	const relativeScores = asRecord(model.relative_scores);
@@ -117,6 +118,8 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(agentsLastExamTask.input_tokens),
 		asFiniteNumber(agentsLastExamTask.output_tokens),
 		asFiniteNumber(automationBenchTask.cost),
+		asFiniteNumber(cursorBenchTask.cost),
+		asFiniteNumber(cursorBenchTask.tokens),
 		asFiniteNumber(deepSWETask.cost),
 		asFiniteNumber(deepSWETask.seconds),
 		asFiniteNumber(deepSWETask.output_tokens),
@@ -160,11 +163,12 @@ export function insertProcessedModelRows(
 			agents_last_exam_task_input_tokens,
 			agents_last_exam_task_output_tokens,
 			automation_bench_task_cost,
+			cursorbench_task_cost, cursorbench_task_tokens,
 			deep_swe_task_cost, deep_swe_task_seconds, deep_swe_task_output_tokens,
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_value_score, relative_intelligence_score, relative_agentic_score,
 			relative_speed_score, relative_value_score, relative_overall_score
-		) VALUES (${Array.from({ length: 79 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 81 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

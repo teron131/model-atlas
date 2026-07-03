@@ -47,10 +47,14 @@ function withLlmStatsMetadata(
 	modelsForMetadata: Array<
 		Record<string, unknown> | LlmStatsModel
 	> = payload.models,
+	resourceModels: Array<
+		Record<string, unknown> | LlmStatsModel
+	> = payload.models,
 	sourceRowsByKey?: BenchmarkRowsByKey,
 ): LlmStatsPayload {
 	const metadata = buildCurrentLlmStatsMetadata({
 		models: modelsForMetadata,
+		resourceModels,
 		healthModels: payload.models,
 		artificialAnalysis: payload.metadata?.artificial_analysis,
 		sourceRowsByKey,
@@ -98,6 +102,7 @@ async function buildLlmStatsPayload(
 			models,
 		},
 		enrichedRows.rows,
+		models,
 		benchmarkRowsFromSourceData(sourceData),
 	);
 }

@@ -242,6 +242,9 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	);
 	const automationBench: Record<string, number> = {};
 	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
+	const cursorBench: Record<string, number> = {};
+	assignNumber(cursorBench, "cost", row.cursorbench_task_cost);
+	assignNumber(cursorBench, "tokens", row.cursorbench_task_tokens);
 	const deepSWE: Record<string, number> = {};
 	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
 	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
@@ -255,6 +258,9 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	}
 	if (hasFields(automationBench)) {
 		taskMetrics.automation_bench = automationBench;
+	}
+	if (hasFields(cursorBench)) {
+		taskMetrics.cursorbench = cursorBench;
 	}
 	if (hasFields(deepSWE)) {
 		taskMetrics.deep_swe = deepSWE;
