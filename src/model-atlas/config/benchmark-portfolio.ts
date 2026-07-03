@@ -63,7 +63,7 @@ export const BENCHMARK_PORTFOLIO = {
 		agenticPortion: 0.8,
 	},
 	cursorbench: {
-		group: "baseline",
+		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
 		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
