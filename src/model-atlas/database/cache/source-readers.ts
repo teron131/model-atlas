@@ -22,8 +22,8 @@ import type {
 	ValsIndexTaskScoreRow,
 } from "../../scrapers/vals/index-benchmark";
 import type {
-	TerminalBenchValsModelHarnessRow,
-	TerminalBenchValsTaskRow,
+	TerminalBenchModelHarnessRow,
+	TerminalBenchTaskRow,
 } from "../../scrapers/vals/terminal-bench";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
@@ -35,7 +35,7 @@ import { SOURCE_URLS } from "../types";
 export type RawDbRow = JsonObject;
 
 /** Runs a raw-cache query and coerces SQLite rows into JSON records. */
-export function rows(db: DatabaseSync, sql: string): RawDbRow[] {
+export function queryRawRows(db: DatabaseSync, sql: string): RawDbRow[] {
 	return db
 		.prepare(sql)
 		.all()
@@ -138,7 +138,7 @@ const ARTIFICIAL_ANALYSIS_COST_KEYS = [
 export function artificialAnalysisCacheHasHiddenRows(
 	db: DatabaseSync,
 ): boolean {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		`
 			SELECT row_index
@@ -277,7 +277,7 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	artificialAnalysisSelectedRows: JsonObject[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
 	);
@@ -301,7 +301,7 @@ export function readArtificialAnalysisEvaluationResourceRawCache(
 	rows: ArtificialAnalysisEvaluationResourceRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM artificial_analysis_evaluation_resource_raw_rows ORDER BY row_index",
 	);
@@ -436,7 +436,7 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 	fetchedAt: number | null;
 	statusCode: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM models_dev_raw_models ORDER BY row_index",
 	);
@@ -471,7 +471,7 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	rows: AgentsLastExamHarnessRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM agents_last_exam_raw_rows WHERE row_kind = 'harness_score' ORDER BY row_index",
 	);
@@ -531,7 +531,7 @@ export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	rows: BlueprintBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
 	);
@@ -570,7 +570,7 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 	rows: BrowseCompModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM browsecomp_raw_rows ORDER BY row_index",
 	);
@@ -612,7 +612,7 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 	rows: CursorBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
 	);
@@ -665,7 +665,7 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 	fetchedAt: number | null;
 	sourceVersion: DeepSWESourceVersion | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM deep_swe_raw_rows ORDER BY row_index",
 	);
@@ -687,7 +687,10 @@ export function readGdpPdfRawCache(db: DatabaseSync): {
 	rows: GdpPdfModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(db, "SELECT * FROM gdp_pdf_raw_rows ORDER BY row_index");
+	const rawRows = queryRawRows(
+		db,
+		"SELECT * FROM gdp_pdf_raw_rows ORDER BY row_index",
+	);
 	if (rawRows.length === 0) {
 		return null;
 	}
@@ -721,7 +724,7 @@ export function readRiemannBenchRawCache(db: DatabaseSync): {
 	rows: RiemannBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
 	);
@@ -760,7 +763,7 @@ export function readToolathlonRawCache(db: DatabaseSync): {
 	rows: ToolathlonModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM toolathlon_raw_rows ORDER BY row_index",
 	);
@@ -805,7 +808,7 @@ export function readValsIndexRawCache(db: DatabaseSync): {
 	modelScores: ValsIndexModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM vals_index_raw_rows ORDER BY row_index",
 	);
@@ -851,11 +854,11 @@ export function readValsIndexRawCache(db: DatabaseSync): {
 }
 
 export function readValsTerminalBenchRawCache(db: DatabaseSync): {
-	rows: TerminalBenchValsTaskRow[];
-	modelScores: TerminalBenchValsModelHarnessRow[];
+	rows: TerminalBenchTaskRow[];
+	modelScores: TerminalBenchModelHarnessRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM vals_terminal_bench_raw_rows ORDER BY row_index",
 	);
@@ -905,7 +908,7 @@ export function readValsTerminalBenchRawCache(db: DatabaseSync): {
 	return {
 		rows: cachedRows,
 		modelScores: cachedRows.filter(
-			(row): row is TerminalBenchValsModelHarnessRow => row.task === "overall",
+			(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
 		),
 		fetchedAt: firstEpochSecond(rawRows),
 	};

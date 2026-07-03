@@ -24,8 +24,8 @@ import type {
 	ValsIndexTaskScoreRow,
 } from "../scrapers/vals/index-benchmark";
 import type {
-	TerminalBenchValsModelHarnessRow,
-	TerminalBenchValsTaskRow,
+	TerminalBenchModelHarnessRow,
+	TerminalBenchTaskRow,
 } from "../scrapers/vals/terminal-bench";
 import type { LlmStatsSourceData, LlmStatsSourceHealth } from "../stats/types";
 import type { JsonObject } from "../utils";
@@ -176,8 +176,8 @@ export type SourceSnapshots = {
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	valsIndexRows: ValsIndexTaskScoreRow[];
 	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
-	valsTerminalBenchRows: TerminalBenchValsTaskRow[];
-	valsTerminalBenchModelScoreRows: TerminalBenchValsModelHarnessRow[];
+	valsTerminalBenchRows: TerminalBenchTaskRow[];
+	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: {
 		artificialAnalysis: number | null;

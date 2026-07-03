@@ -38,24 +38,24 @@ const displayRefreshState = globalThis as typeof globalThis & {
 };
 const DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS = 30_000;
 
-export function runtimeSnapshotStoreConfigured(): boolean {
+export function d1SnapshotStoreConfigured(): boolean {
 	return d1Configured();
 }
 
-export function runtimeSnapshotStoreMissingEnvironment(): string[] {
+export function missingD1SnapshotEnvironment(): string[] {
 	return missingD1Environment();
 }
 
 /** Remote snapshot URLs override local storage so deployed readers can be pointed at a single known-good artifact. */
-export async function readSnapshotPayload(): Promise<LlmStatsPayload | null> {
+export async function readBestStoredSnapshotPayload(): Promise<LlmStatsPayload | null> {
 	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
 		return fetchRemoteSnapshot(process.env.MODEL_ATLAS_SNAPSHOT_URL);
 	}
-	return readSnapshotCache();
+	return readBestSnapshotCache();
 }
 
 /** Prefer D1 when available, then choose between local SQLite and static JSON by benchmark coverage before freshness. */
-async function readSnapshotCache(): Promise<LlmStatsPayload | null> {
+async function readBestSnapshotCache(): Promise<LlmStatsPayload | null> {
 	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
 		[
 			readD1Snapshot().catch(() => null),
@@ -92,7 +92,7 @@ async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | n
 		return payload;
 	}
 	const payload = await refreshDisplaySnapshotIfStale(
-		await readSnapshotCache(),
+		await readBestSnapshotCache(),
 	);
 	cacheDisplayPayload(payload);
 	return payload;
@@ -114,7 +114,9 @@ function startDisplayRefresh(
 ): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
-		refreshMode === "stored" ? refreshStoredSnapshot() : refreshRequestPayload()
+		refreshMode === "stored"
+			? refreshD1StoredSnapshot()
+			: refreshLocalSnapshotPayload()
 	)
 		.then((payload) => {
 			cacheDisplayPayload(payload);
@@ -136,7 +138,7 @@ async function refreshDisplaySnapshotIfStale(
 	const refreshMode = displaySnapshotRefreshMode(
 		payload,
 		nowEpochSeconds(),
-		runtimeSnapshotStoreConfigured(),
+		d1SnapshotStoreConfigured(),
 		displayRefreshIntervalSeconds(),
 	);
 	if (refreshMode === "none") {
@@ -147,12 +149,12 @@ async function refreshDisplaySnapshotIfStale(
 }
 
 /** Explicit refreshes rebuild through the runtime database path instead of reading a stale static artifact. */
-export async function refreshRequestPayload(): Promise<LlmStatsPayload> {
+export async function refreshLocalSnapshotPayload(): Promise<LlmStatsPayload> {
 	return refreshRuntimePayload(runtimeDatabasePath());
 }
 
 /** Rebuild and publish the runtime D1 snapshot before reading it back for display. */
-export async function refreshStoredSnapshot(): Promise<LlmStatsPayload | null> {
+export async function refreshD1StoredSnapshot(): Promise<LlmStatsPayload | null> {
 	await refreshD1Snapshot(runtimeDatabasePath());
 	return readD1Snapshot();
 }

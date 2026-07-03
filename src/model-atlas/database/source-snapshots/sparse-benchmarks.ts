@@ -35,9 +35,9 @@ import {
 	type ValsIndexTaskScoreRow,
 } from "../../scrapers/vals/index-benchmark";
 import {
-	getTerminalBenchValsStats,
-	type TerminalBenchValsModelHarnessRow,
-	type TerminalBenchValsTaskRow,
+	getTerminalBenchStats,
+	type TerminalBenchModelHarnessRow,
+	type TerminalBenchTaskRow,
 } from "../../scrapers/vals/terminal-bench";
 import {
 	readArtificialAnalysisEvaluationResourceRawCache,
@@ -103,13 +103,13 @@ export type ValsIndexSnapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type TerminalBenchValsSnapshot = {
-	valsTerminalBenchRows: TerminalBenchValsTaskRow[];
-	valsTerminalBenchModelScoreRows: TerminalBenchValsModelHarnessRow[];
+export type TerminalBenchSnapshot = {
+	valsTerminalBenchRows: TerminalBenchTaskRow[];
+	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-/** Loads AA evaluation resource rows keyed by benchmark and source model id. */
+/** Loads Artificial Analysis evaluation resource rows keyed by benchmark and source model id. */
 export async function artificialAnalysisEvaluationResourceSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -383,19 +383,19 @@ export async function valsIndexSnapshot(
 	};
 }
 
-/** Loads Vals Terminal-Bench rows while using overall model-harness rows for matching. */
+/** Loads Terminal-Bench rows while using overall model-harness rows for matching. */
 export async function valsTerminalBenchSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
-): Promise<TerminalBenchValsSnapshot> {
+): Promise<TerminalBenchSnapshot> {
 	const cached = readValsTerminalBenchRawCache(db);
 	const fetched =
 		status.cache_hit && cached != null && options.replaceSourceRows !== true
 			? null
-			: await getTerminalBenchValsStats();
+			: await getTerminalBenchStats();
 	const fetchedRows = fetched?.task_rows ?? [];
 	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetched?.fetched_at_epoch_seconds ?? null,
@@ -409,7 +409,7 @@ export async function valsTerminalBenchSnapshot(
 		(row) => sourceKey(row.task, row.raw_model_id, row.harness ?? "default"),
 	);
 	const modelScores = rows.filter(
-		(row): row is TerminalBenchValsModelHarnessRow => row.task === "overall",
+		(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
 	);
 	const states = snapshotRowsWithStates({
 		source: "vals_terminal_bench",

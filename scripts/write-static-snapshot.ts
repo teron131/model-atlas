@@ -6,8 +6,8 @@ import { dirname, resolve } from "node:path";
 import { loadEnvFile } from "node:process";
 import { pathToFileURL } from "node:url";
 import {
+	d1SnapshotStoreConfigured,
 	readD1Snapshot,
-	runtimeSnapshotStoreConfigured,
 } from "../app/api/llm-stats/snapshot-store";
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/snapshot-preservation";
@@ -46,7 +46,7 @@ async function readPreviousSnapshot(
 export async function writeModelAtlasSnapshot(
 	outputPath = DEFAULT_SNAPSHOT_PATH,
 ) {
-	const d1Payload = runtimeSnapshotStoreConfigured()
+	const d1Payload = d1SnapshotStoreConfigured()
 		? await readD1Snapshot().catch(() => null)
 		: null;
 	const resolvedOutputPath = resolve(outputPath);

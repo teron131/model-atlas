@@ -1,9 +1,9 @@
 /** Snapshot refresh API for Model Atlas. */
 
 import {
-	refreshStoredSnapshot,
-	runtimeSnapshotStoreConfigured,
-	runtimeSnapshotStoreMissingEnvironment,
+	d1SnapshotStoreConfigured,
+	missingD1SnapshotEnvironment,
+	refreshD1StoredSnapshot,
 } from "../snapshot-store";
 
 export const dynamic = "force-dynamic";
@@ -29,11 +29,11 @@ async function refreshSnapshot(request: Request) {
 			},
 		});
 	}
-	if (!runtimeSnapshotStoreConfigured()) {
+	if (!d1SnapshotStoreConfigured()) {
 		return Response.json(
 			{
 				status: "error",
-				error: `Cloudflare D1 is not configured. Add ${runtimeSnapshotStoreMissingEnvironment().join(", ")}.`,
+				error: `Cloudflare D1 is not configured. Add ${missingD1SnapshotEnvironment().join(", ")}.`,
 			},
 			{
 				status: 503,
@@ -44,7 +44,7 @@ async function refreshSnapshot(request: Request) {
 		);
 	}
 
-	const payload = await refreshStoredSnapshot();
+	const payload = await refreshD1StoredSnapshot();
 	if (payload == null) {
 		return Response.json(
 			{

@@ -3,7 +3,10 @@
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { publicCacheHeaders } from "../cache-headers";
 import { publicJsonPayload } from "./public-json";
-import { readSnapshotPayload, refreshRequestPayload } from "./snapshot-store";
+import {
+	readBestStoredSnapshotPayload,
+	refreshLocalSnapshotPayload,
+} from "./snapshot-store";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,13 +30,13 @@ const refreshState = globalThis as typeof globalThis & {
 export async function GET(request: Request) {
 	const view = jsonViewForRequest(request);
 	try {
-		const deployedSnapshot = await readSnapshotPayload();
+		const deployedSnapshot = await readBestStoredSnapshotPayload();
 		if (deployedSnapshot != null) {
 			return jsonPayloadResponse(deployedSnapshot, view);
 		}
 
 		const state = getRefreshState();
-		state.refreshInFlight ??= refreshRequestPayload().finally(() => {
+		state.refreshInFlight ??= refreshLocalSnapshotPayload().finally(() => {
 			state.refreshInFlight = null;
 		});
 		const payload = await state.refreshInFlight;

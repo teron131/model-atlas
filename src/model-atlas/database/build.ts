@@ -18,7 +18,7 @@ import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
 import { buildDebugTraceRows } from "./debug-trace";
 import { buildSourceHealth } from "./health";
 import { openDatabase, removeDatabaseFiles } from "./schema";
-import { sourceDataFromSnapshots } from "./source-snapshots/source-data";
+import { cachedSourceDataFromSnapshots } from "./source-snapshots/source-data";
 import { loadOpenRouterRawPayload, loadSourceSnapshots } from "./sources";
 import {
 	type DatabaseBuildOptions,
@@ -50,21 +50,21 @@ import {
 	insertValsTerminalBenchRawRows,
 } from "./writers";
 
-type SnapshotRows = {
+type DatabaseRunRows = {
 	startedAt: number;
 	snapshots: SourceSnapshots;
 	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
-	textMatchedRows: readonly unknown[];
+	matchedTextLlmRows: readonly unknown[];
 	catalogRows: readonly unknown[];
 	enrichedRows: readonly unknown[];
-	selectedRows: readonly unknown[];
+	finalModelRows: readonly unknown[];
 	debugTraceRows: readonly DebugTraceRow[];
 	sourceHealth: DatabaseBuildResult["source_health"];
 };
 
 type SnapshotWriter = {
 	table: SnapshotTableName;
-	write: (db: DatabaseSync, runId: number, rows: SnapshotRows) => void;
+	write: (db: DatabaseSync, runId: number, rows: DatabaseRunRows) => void;
 };
 
 /** Pairs each snapshot-owned table with the write that repopulates it after clearing. */
@@ -154,10 +154,10 @@ const SNAPSHOT_WRITERS = [
 	{
 		table: SNAPSHOT_TABLES.processed_models,
 		write: (db, runId, rows) => {
-			insertProcessedModelRows(db, runId, "matched", rows.textMatchedRows);
+			insertProcessedModelRows(db, runId, "matched", rows.matchedTextLlmRows);
 			insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);
 			insertProcessedModelRows(db, runId, "enriched", rows.enrichedRows);
-			insertProcessedModelRows(db, runId, "final", rows.selectedRows);
+			insertProcessedModelRows(db, runId, "final", rows.finalModelRows);
 		},
 	},
 	{
@@ -231,7 +231,7 @@ async function publishDatabaseFile(
 	await rename(persistedPath, outputPath);
 }
 
-function insertPipelineRun(db: DatabaseSync, rows: SnapshotRows): number {
+function insertPipelineRun(db: DatabaseSync, rows: DatabaseRunRows): number {
 	const result = db
 		.prepare(`
 			INSERT INTO pipeline_runs (
@@ -240,14 +240,14 @@ function insertPipelineRun(db: DatabaseSync, rows: SnapshotRows): number {
 		`)
 		.run(
 			rows.startedAt,
-			rows.textMatchedRows.length,
+			rows.matchedTextLlmRows.length,
 			rows.enrichedRows.length,
-			rows.selectedRows.length,
+			rows.finalModelRows.length,
 		);
 	return Number(result.lastInsertRowid);
 }
 
-function writeSnapshot(db: DatabaseSync, rows: SnapshotRows): number {
+function writeSnapshot(db: DatabaseSync, rows: DatabaseRunRows): number {
 	clearSnapshotTables(db);
 	const runId = insertPipelineRun(db, rows);
 	for (const { write } of SNAPSHOT_WRITERS) {
@@ -286,7 +286,7 @@ export async function buildDatabase(
 		);
 		const automationBench = await getAutomationBenchStats();
 		const sourceData = {
-			...sourceDataFromSnapshots(snapshots),
+			...cachedSourceDataFromSnapshots(snapshots),
 			automationBench: {
 				rows: automationBench.model_scores,
 				scoreByModelName: buildAutomationBenchMap(automationBench.model_scores),
@@ -301,8 +301,11 @@ export async function buildDatabase(
 			STAGE_CONFIG.matcher,
 			matchDiagnostics,
 		);
-		const textMatchedRows = filterDatabaseTextLlmRows(matchedRows);
-		const catalogRows = buildDatabaseCatalogRows(sourceData, textMatchedRows);
+		const matchedTextLlmRows = filterDatabaseTextLlmRows(matchedRows);
+		const catalogRows = buildDatabaseCatalogRows(
+			sourceData,
+			matchedTextLlmRows,
+		);
 		const openRouter = await loadOpenRouterRawPayload(
 			db,
 			openRouterModelIds(catalogRows),
@@ -347,10 +350,10 @@ export async function buildDatabase(
 				startedAt,
 				snapshots,
 				openRouterRawPayload: openRouter.rawPayload,
-				textMatchedRows,
+				matchedTextLlmRows,
 				catalogRows,
 				enrichedRows: enrichedRows.rows,
-				selectedRows: models,
+				finalModelRows: models,
 				debugTraceRows,
 				sourceHealth,
 			}),

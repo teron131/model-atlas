@@ -98,9 +98,9 @@ export function benchmarkEnrichment(
 	const terminalBench = findTerminalBenchAggregate(
 		modelNameCandidates,
 		{
-			aaByBenchmark:
+			artificialAnalysisRowsByBenchmark:
 				lookups.artificialAnalysisEvaluationResources.scoreByModelName,
-			valsByModel: lookups.valsTerminalBench.scoreByModelName,
+			harnessRowsByModel: lookups.valsTerminalBench.scoreByModelName,
 		},
 		baseEvaluations.terminalbench_v21,
 	);

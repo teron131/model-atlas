@@ -1,5 +1,5 @@
 /**
- * Terminal-Bench aggregate policy over parsed AA and Vals source rows.
+ * Terminal-Bench aggregate policy over score/resource and harness source rows.
  *
  * The Artificial Analysis main leaderboard is the broad score table; benchmark-specific pages such as Terminal-Bench add per-task cost, time, and token resources that the main table does not carry.
  */
@@ -11,9 +11,9 @@ import {
 	findArtificialAnalysisEvaluationResourceRow,
 } from "../../scrapers/artificial-analysis/evaluation-resources";
 import {
-	findTerminalBenchValsRows,
-	type TerminalBenchValsByModelName,
-	type TerminalBenchValsModelHarnessRow,
+	findTerminalBenchRows,
+	type TerminalBenchModelHarnessRow,
+	type TerminalBenchRowsByModelName,
 } from "../../scrapers/vals/terminal-bench";
 import { asFiniteNumber } from "../../shared";
 
@@ -47,17 +47,17 @@ export type TerminalBenchAggregateRow = {
 };
 
 type AggregateInput = {
-	aaScore?: unknown;
-	terminalBenchAA?: ArtificialAnalysisEvaluationResourceRow | null;
-	terminalBenchVals?: readonly TerminalBenchValsModelHarnessRow[] | null;
+	artificialAnalysisScore?: unknown;
+	resourceRow?: ArtificialAnalysisEvaluationResourceRow | null;
+	harnessRows?: readonly TerminalBenchModelHarnessRow[] | null;
 };
 
 type SourceLookups = {
-	aaByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark;
-	valsByModel: TerminalBenchValsByModelName;
+	artificialAnalysisRowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark;
+	harnessRowsByModel: TerminalBenchRowsByModelName;
 };
 
-const AA_HARNESS = "Terminus 2";
+const ARTIFICIAL_ANALYSIS_HARNESS = "Terminus 2";
 
 function stringIdentity(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
@@ -73,7 +73,7 @@ function nonNegativeNumber(value: unknown): number | null {
 	return number != null && number >= 0 ? number : null;
 }
 
-function terminalBenchAAObservation(
+function resourceObservation(
 	score: unknown,
 	row: ArtificialAnalysisEvaluationResourceRow | null | undefined,
 ): Observation | null {
@@ -91,7 +91,7 @@ function terminalBenchAAObservation(
 		model_id: modelId,
 		model,
 		provider: row?.provider ?? null,
-		harness: AA_HARNESS,
+		harness: ARTIFICIAL_ANALYSIS_HARNESS,
 		score: parsedScore,
 		cost_per_task_usd: nonNegativeNumber(row?.cost_per_task_usd),
 		seconds_per_task: nonNegativeNumber(row?.seconds_per_task),
@@ -101,8 +101,8 @@ function terminalBenchAAObservation(
 	};
 }
 
-function terminalBenchValsObservation(
-	row: TerminalBenchValsModelHarnessRow | null | undefined,
+function harnessObservation(
+	row: TerminalBenchModelHarnessRow | null | undefined,
 ): Observation | null {
 	if (row == null) {
 		return null;
@@ -150,8 +150,8 @@ export function terminalBenchAggregateRow(
 	input: AggregateInput,
 ): TerminalBenchAggregateRow | null {
 	const observations = [
-		terminalBenchAAObservation(input.aaScore, input.terminalBenchAA),
-		...(input.terminalBenchVals ?? []).map(terminalBenchValsObservation),
+		resourceObservation(input.artificialAnalysisScore, input.resourceRow),
+		...(input.harnessRows ?? []).map(harnessObservation),
 	].filter((row): row is Observation => row != null);
 	const score = aggregateScore(observations.map((row) => row.score));
 	if (observations.length === 0 || score == null) {
@@ -186,20 +186,20 @@ export function terminalBenchAggregateRow(
 export function findTerminalBenchAggregate(
 	candidateNames: unknown[],
 	lookups: SourceLookups,
-	aaScore?: unknown,
+	artificialAnalysisScore?: unknown,
 ): TerminalBenchAggregateRow | null {
-	const terminalBenchAA = findArtificialAnalysisEvaluationResourceRow(
+	const resourceRow = findArtificialAnalysisEvaluationResourceRow(
 		"terminalbench_v21",
 		candidateNames,
-		lookups.aaByBenchmark,
+		lookups.artificialAnalysisRowsByBenchmark,
 	);
-	const terminalBenchVals = findTerminalBenchValsRows(
+	const harnessRows = findTerminalBenchRows(
 		candidateNames,
-		lookups.valsByModel,
+		lookups.harnessRowsByModel,
 	);
 	return terminalBenchAggregateRow({
-		aaScore,
-		terminalBenchAA,
-		terminalBenchVals,
+		artificialAnalysisScore,
+		resourceRow,
+		harnessRows,
 	});
 }

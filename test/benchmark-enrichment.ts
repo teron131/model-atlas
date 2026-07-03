@@ -40,7 +40,7 @@ const cursorBenchRow = {
 	tokens_per_task: 12345,
 	steps_per_task: 12,
 };
-const terminalBenchAAResourceRow: ArtificialAnalysisEvaluationResourceRow = {
+const terminalBenchResourceRow: ArtificialAnalysisEvaluationResourceRow = {
 	benchmark_key: "terminalbench_v21",
 	source_url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	model_id: "test/example-model",
@@ -97,7 +97,7 @@ const enrichment = benchmarkEnrichment(
 				["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
 				[
 					"terminalbench_v21",
-					new Map([["example-model", terminalBenchAAResourceRow]]),
+					new Map([["example-model", terminalBenchResourceRow]]),
 				],
 			]),
 		},

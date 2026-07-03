@@ -14,13 +14,13 @@ import type {
 import { asFiniteNumber } from "../../shared";
 import {
 	firstEpochSecond,
+	queryRawRows,
 	type RawDbRow,
-	rows,
 	stringValue,
 } from "./source-readers";
 
 export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
-	const candidateRows = rows(
+	const candidateRows = queryRawRows(
 		db,
 		"SELECT model_id, permaslug FROM openrouter_raw_rows WHERE row_kind = 'permaslug_candidate'",
 	);
@@ -134,7 +134,7 @@ function openRouterModelRows(
 export function readOpenRouterRawCache(
 	db: DatabaseSync,
 ): OpenRouterRawScrapedPayload | null {
-	const rawRows = rows(
+	const rawRows = queryRawRows(
 		db,
 		"SELECT * FROM openrouter_raw_rows ORDER BY row_index",
 	);

@@ -5,11 +5,11 @@ import { resolve } from "node:path";
 import {
 	bestSnapshotPayload,
 	type DisplaySnapshotRefreshMode,
+	d1SnapshotStoreConfigured,
 	displaySnapshotRefreshMode,
 	localDatabaseReadPath,
+	missingD1SnapshotEnvironment,
 	runtimeDatabasePath,
-	runtimeSnapshotStoreConfigured,
-	runtimeSnapshotStoreMissingEnvironment,
 } from "../app/api/llm-stats/snapshot-store";
 import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsPayload } from "./llm-stats-fixtures";
@@ -103,12 +103,12 @@ try {
 	delete process.env.D1_DATABASE_ID;
 	delete process.env.D1_API_TOKEN;
 	assert.equal(
-		runtimeSnapshotStoreConfigured(),
+		d1SnapshotStoreConfigured(),
 		false,
 		"runtime D1 storage should be disabled when required Cloudflare settings are absent",
 	);
 	assert.deepEqual(
-		runtimeSnapshotStoreMissingEnvironment(),
+		missingD1SnapshotEnvironment(),
 		["D1_ACCOUNT_ID", "D1_DATABASE_ID", "D1_API_TOKEN"],
 		"missing D1 environment should report the canonical variable names",
 	);
@@ -116,7 +116,7 @@ try {
 	process.env.D1_DATABASE_ID = "database";
 	process.env.D1_API_TOKEN = "token";
 	assert.equal(
-		runtimeSnapshotStoreConfigured(),
+		d1SnapshotStoreConfigured(),
 		true,
 		"runtime D1 storage should accept canonical D1 variable names",
 	);

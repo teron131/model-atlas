@@ -1,9 +1,9 @@
-/** Exercises Vals Terminal-Bench Astro parsing and model-name score matching. */
+/** Exercises Terminal-Bench Astro parsing and model-name score matching. */
 
 import {
-	buildTerminalBenchValsMap,
-	findTerminalBenchValsRows,
-	processTerminalBenchValsPageHtml,
+	buildTerminalBenchMap,
+	findTerminalBenchRows,
+	processTerminalBenchPageHtml,
 } from "../src/model-atlas/scrapers/vals/terminal-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -89,7 +89,7 @@ const props = {
 	}),
 };
 const pageHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" props="${JSON.stringify(props).replace(/"/g, "&quot;")}"></astro-island>`;
-const parsed = processTerminalBenchValsPageHtml(pageHtml);
+const parsed = processTerminalBenchPageHtml(pageHtml);
 
 assertDeepEqual(parsed.metadata, {
 	benchmark: "Terminal-Bench 2.1",
@@ -161,20 +161,20 @@ assertDeepEqual(
 	},
 );
 
-const rowsByModelName = buildTerminalBenchValsMap(parsed.model_scores);
+const rowsByModelName = buildTerminalBenchMap(parsed.model_scores);
 assertDeepEqual(
-	findTerminalBenchValsRows(["Claude Fable 5"], rowsByModelName).map(
+	findTerminalBenchRows(["Claude Fable 5"], rowsByModelName).map(
 		(row) => row.score,
 	),
 	[0.80524],
 );
 assertDeepEqual(
-	findTerminalBenchValsRows(["anthropic/claude-opus-4-8"], rowsByModelName).map(
+	findTerminalBenchRows(["anthropic/claude-opus-4-8"], rowsByModelName).map(
 		(row) => row.harness,
 	),
 	[null, "Claude Code"],
 );
-assertDeepEqual(processTerminalBenchValsPageHtml("<main>No island</main>"), {
+assertDeepEqual(processTerminalBenchPageHtml("<main>No island</main>"), {
 	metadata: null,
 	task_rows: [],
 	model_scores: [],

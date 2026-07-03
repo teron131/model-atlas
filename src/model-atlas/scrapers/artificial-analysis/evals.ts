@@ -1,7 +1,7 @@
 /**
  * Artificial Analysis main leaderboard scraper helpers.
  *
- * This centralized page is the broad model table for scores and general AA metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the main table omits.
+ * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the main table omits.
  */
 
 import { asRecord, type JsonObject } from "../../shared";

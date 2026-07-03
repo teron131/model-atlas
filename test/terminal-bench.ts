@@ -1,4 +1,4 @@
-/** Verifies Terminal-Bench AA and Vals aggregate score/resource policy. */
+/** Verifies Terminal-Bench aggregate score/resource policy across source rows. */
 
 import { terminalBenchAggregateRow } from "../src/model-atlas/stats/benchmarks/terminal-bench";
 
@@ -12,8 +12,8 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 
 assertDeepEqual(
 	terminalBenchAggregateRow({
-		aaScore: 0.84,
-		terminalBenchAA: {
+		artificialAnalysisScore: 0.84,
+		resourceRow: {
 			benchmark_key: "terminalbench_v21",
 			source_url:
 				"https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
@@ -32,7 +32,7 @@ assertDeepEqual(
 			answer_tokens_per_task: null,
 			reasoning_tokens_per_task: null,
 		},
-		terminalBenchVals: [
+		harnessRows: [
 			{
 				task: "overall",
 				task_label: "Overall",

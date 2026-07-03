@@ -48,8 +48,8 @@ import type {
 	ValsIndexScoreByModelName,
 } from "../scrapers/vals/index-benchmark";
 import type {
-	TerminalBenchValsByModelName,
-	TerminalBenchValsModelHarnessRow,
+	TerminalBenchModelHarnessRow,
+	TerminalBenchRowsByModelName,
 } from "../scrapers/vals/terminal-bench";
 import type { JsonObject, NumberOrNull } from "../utils";
 import type { TerminalBenchAggregateRow } from "./benchmarks/terminal-bench";
@@ -548,8 +548,8 @@ export type LlmStatsSourceData = {
 		ValsIndexScoreByModelName
 	>;
 	valsTerminalBench: LlmStatsScoreSourceRows<
-		TerminalBenchValsModelHarnessRow,
-		TerminalBenchValsByModelName
+		TerminalBenchModelHarnessRow,
+		TerminalBenchRowsByModelName
 	>;
 };
 

@@ -1,7 +1,7 @@
 /**
  * Artificial Analysis evaluation-page resource scraping for benchmark-level per-task telemetry.
  *
- * The AA main leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
+ * The Artificial Analysis main leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
  */
 
 import { normalizeModelToken } from "../../shared";
