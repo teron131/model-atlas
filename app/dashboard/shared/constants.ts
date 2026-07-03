@@ -37,7 +37,6 @@ export const benchmarkLabels: Record<string, string> = {
 	riemann_bench: "Riemann-bench",
 	scicode: "SciCode",
 	tau_banking: "tau3 Banking",
-	terminal_bench_2: "Terminal-Bench 2.0",
 	terminalbench_v21: "Terminal-Bench 2.1",
 	toolathlon: "Toolathlon",
 };
@@ -169,14 +168,6 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "DeepSWE leaderboard"],
 			["Role", "coding agent work"],
-		],
-	},
-	terminal_bench_2: {
-		title: "Terminal-Bench 2.0",
-		body: "Independent Terminal-Bench leaderboard signal, kept separate from AA's Terminal-Bench 2.1 field.",
-		rows: [
-			["Source", "Terminal-Bench"],
-			["Role", "terminal agent work"],
 		],
 	},
 	toolathlon: {

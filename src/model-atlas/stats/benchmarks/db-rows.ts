@@ -76,12 +76,6 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 			providerColumn: "provider",
 		},
 		{
-			key: "terminal_bench_2",
-			rows: rows.terminalBenchRows,
-			scoreColumn: "median_accuracy",
-			rowKind: "model_score",
-		},
-		{
 			key: "toolathlon",
 			rows: rows.toolathlonRows,
 			scoreColumn: "score",

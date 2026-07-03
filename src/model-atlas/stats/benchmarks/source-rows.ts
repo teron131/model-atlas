@@ -177,14 +177,6 @@ function sourceDataBenchmarkDrafts(
 			}),
 		),
 		...sparseBenchmarkDrafts(
-			"terminal_bench_2",
-			sourceData.terminalBench.rows,
-			(row) => ({
-				label: row.model,
-				value: row.median_accuracy,
-			}),
-		),
-		...sparseBenchmarkDrafts(
 			"toolathlon",
 			sourceData.toolathlon.rows,
 			(row) => ({

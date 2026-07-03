@@ -96,7 +96,6 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(evaluations.deep_swe),
 		asFiniteNumber(evaluations.gdp_pdf),
 		asFiniteNumber(evaluations.riemann_bench),
-		asFiniteNumber(evaluations.terminal_bench_2),
 		asFiniteNumber(evaluations.toolathlon),
 	];
 }
@@ -154,8 +153,7 @@ export function insertProcessedModelRows(
 			omniscience_accuracy, apex_agents, critpt, gdpval_normalized, gpqa,
 			hle, lcr, mmmu_pro, scicode, tau_banking, terminalbench_v21,
 			agents_last_exam, automation_bench, blueprint_bench_2, browsecomp,
-			cursorbench, deep_swe, gdp_pdf, riemann_bench, terminal_bench_2,
-			toolathlon,
+			cursorbench, deep_swe, gdp_pdf, riemann_bench, toolathlon,
 			artificial_analysis_task_cost, artificial_analysis_task_seconds,
 			artificial_analysis_task_output_tokens,
 			agents_last_exam_task_cost, agents_last_exam_task_seconds,
@@ -166,7 +164,7 @@ export function insertProcessedModelRows(
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_value_score, relative_intelligence_score, relative_agentic_score,
 			relative_speed_score, relative_value_score, relative_overall_score
-		) VALUES (${Array.from({ length: 80 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 79 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

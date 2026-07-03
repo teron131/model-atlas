@@ -160,7 +160,6 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	blueprint_bench_2?: NumberOrNull;
 	gdp_pdf?: NumberOrNull;
 	riemann_bench?: NumberOrNull;
-	terminal_bench_2?: NumberOrNull;
 	browsecomp?: NumberOrNull;
 	toolathlon?: NumberOrNull;
 	cursorbench?: NumberOrNull;

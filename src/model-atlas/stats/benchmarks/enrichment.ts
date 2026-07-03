@@ -119,14 +119,6 @@ export function benchmarkEnrichment(
 		evaluations.riemann_bench = riemannBenchScore;
 	}
 
-	const terminalBenchAccuracy = findTerminalBenchMedianAccuracy(
-		modelNameCandidates,
-		lookups.terminalBench.accuracyByModelName,
-	);
-	if (terminalBenchAccuracy != null) {
-		evaluations.terminal_bench_2 = terminalBenchAccuracy;
-	}
-
 	const toolathlonScore = findToolathlonScore(
 		modelNameCandidates,
 		lookups.toolathlon.scoreByModelName,

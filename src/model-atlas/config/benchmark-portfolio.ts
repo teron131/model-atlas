@@ -51,11 +51,6 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0,
 		agenticPortion: 1,
 	},
-	terminal_bench_2: {
-		group: "baseline",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-	},
 	browsecomp: {
 		group: "baseline",
 		intelligencePortion: 0,
