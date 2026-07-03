@@ -1,11 +1,6 @@
 /** Relative percentile scoring for final Model Atlas model rows. */
 
-import {
-	ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT,
-	benchmarkResourcePolicy,
-	RAW_RESOURCE_COMPONENT_WEIGHT,
-	resourceComponentWeightsFor,
-} from "../../config/benchmark-portfolio";
+import { benchmarkResourcePolicy } from "../../config/benchmark-portfolio";
 import {
 	clampScore,
 	fixedWeightedScore,
@@ -16,7 +11,12 @@ import {
 	sortedFiniteScores,
 	weightedMeanOfFinite,
 } from "../../math-utils";
-import { asFiniteNumber } from "../../shared";
+import {
+	benchmarkMetricValue,
+	effectiveTaskSeconds,
+	positiveNumber,
+	taskMetricFromModel,
+} from "../resource-metrics";
 import type {
 	LlmStatsModelCandidate,
 	LlmStatsScoredCandidate,
@@ -31,11 +31,18 @@ import {
 
 const MIN_DISPLAY_VALUE_COMPONENTS = 2;
 const MIN_DISPLAY_SPEED_COMPONENTS = 2;
-const VALUE_RAW_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT / 3;
-const SPEED_SIMULATION_COMPONENT_WEIGHT = RAW_RESOURCE_COMPONENT_WEIGHT;
+const ACTIVE_COMPONENT_WEIGHT = 1;
+const RESOURCE_SIGNAL_WEIGHT = 0.7;
+const RAW_SIGNAL_WEIGHT = 0.3;
 const VALUE_QUALITY_TRADEOFF_STRENGTH = 0.5;
 type RelativeComponent = {
 	value: number | null;
+	weight: number;
+};
+
+type ResourceGroup = {
+	metricKey: string;
+	benchmarkKeys: readonly string[];
 	weight: number;
 };
 
@@ -48,20 +55,45 @@ function percentileScoreAt(
 	return value == null ? null : percentileRank(values, value);
 }
 
-function weightedMeanOfFiniteWithMinimum(
-	components: RelativeComponent[],
-	minimumFiniteValues: number,
+function percentileScoreForSignal(
+	values: ReadonlyArray<number | null>,
+	value: number | null,
 ): number | null {
-	const finiteValueCount = components.filter(
+	return value == null ? null : percentileRank([...values], value);
+}
+
+function componentValueCount(components: RelativeComponent[]): number {
+	return components.filter(
 		(component) =>
 			component.value != null &&
 			Number.isFinite(component.value) &&
 			Number.isFinite(component.weight) &&
 			component.weight > 0,
 	).length;
-	return finiteValueCount >= minimumFiniteValues
-		? weightedMeanOfFinite(components)
-		: null;
+}
+
+function weightedSignalBlock(
+	resourceComponents: RelativeComponent[],
+	rawComponents: RelativeComponent[],
+	minimumFiniteValues: number,
+): number | null {
+	if (
+		componentValueCount(resourceComponents) +
+			componentValueCount(rawComponents) <
+		minimumFiniteValues
+	) {
+		return null;
+	}
+	return weightedMeanOfFinite([
+		{
+			value: weightedMeanOfFinite(resourceComponents),
+			weight: RESOURCE_SIGNAL_WEIGHT,
+		},
+		{
+			value: weightedMeanOfFinite(rawComponents),
+			weight: RAW_SIGNAL_WEIGHT,
+		},
+	]);
 }
 
 /** Median imputation keeps missing dimensions neutral instead of rewarding or punishing absent measurements. */
@@ -104,95 +136,128 @@ function fillMissingValuesWithQualityMirror(
 	});
 }
 
-function positiveNumber(value: unknown): number | null {
-	const number = asFiniteNumber(value);
-	return number != null && number > 0 ? number : null;
-}
-
 /** Invert lower-is-better resource metrics before percentile scoring so every downstream score remains higher-is-better. */
 function inversePositive(value: unknown): number | null {
 	const number = positiveNumber(value);
 	return number == null ? null : 1 / number;
 }
 
-function taskMetricCost(
-	model: LlmStatsModelCandidate,
-	key: string,
-): number | null {
-	return positiveNumber(model.task_metrics?.[key]?.cost);
+function logCostDenominator(value: unknown): number | null {
+	const number = positiveNumber(value);
+	if (number == null) {
+		return null;
+	}
+	const denominator = Math.log10(1 + number);
+	return denominator > 0 ? denominator : null;
 }
 
-function taskMetricSeconds(
-	model: LlmStatsModelCandidate,
-	key: string,
-): number | null {
-	return positiveNumber(model.task_metrics?.[key]?.seconds);
-}
-
-function benchmarkMetricValue(
-	model: LlmStatsModelCandidate,
-	key: string,
-): number | null {
-	return (
-		asFiniteNumber(model.intelligence?.[key]) ??
-		asFiniteNumber(model.evaluations?.[key]) ??
-		null
-	);
-}
-
-function frontierResourceTaskMetric(
+function resourceTaskMetricForBenchmark(
 	model: LlmStatsModelCandidate,
 	key: string,
 	scoringConfig: ScoringConfig,
 ): LlmStatsTaskMetricValues | null {
-	const policy = benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio);
-	if (policy == null) {
-		return null;
+	const directTask = taskMetricFromModel(model, key);
+	if (directTask != null) {
+		return directTask;
 	}
-	const taskMetricKey =
-		policy.source === "artificial_analysis" ? "artificial_analysis" : key;
-	return model.task_metrics?.[taskMetricKey] ?? null;
+	return benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
+		?.source === "artificial_analysis"
+		? taskMetricFromModel(model, "artificial_analysis")
+		: null;
 }
 
 function hasPositiveResourceMetric(
 	model: LlmStatsModelCandidate,
 	key: string,
+	scoringConfig: ScoringConfig,
 ): boolean {
-	const task = model.task_metrics?.[key];
+	const task = resourceTaskMetricForBenchmark(model, key, scoringConfig);
 	return (
-		positiveNumber(task?.cost) != null || positiveNumber(task?.seconds) != null
+		positiveNumber(task?.cost) != null ||
+		effectiveTaskSeconds(model, task) != null
 	);
 }
 
-/** A frontier benchmark contributes resource scoring only when at least one scored row has matching cost or latency data. */
-function hasBenchmarkFrontierResourceMetric(
+/** A benchmark contributes resource scoring when any scored row carries matching task telemetry. */
+function hasBenchmarkResourceMetric(
 	models: LlmStatsModelCandidate[],
 	key: string,
 	scoringConfig: ScoringConfig,
 ): boolean {
-	const policy = benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio);
-	if (policy == null) {
-		return false;
-	}
-	const taskMetricKey =
-		policy.source === "artificial_analysis" ? "artificial_analysis" : key;
 	return models.some(
 		(model) =>
 			benchmarkMetricValue(model, key) != null &&
-			hasPositiveResourceMetric(model, taskMetricKey),
+			hasPositiveResourceMetric(model, key, scoringConfig),
 	);
 }
 
-function frontierResourceKeys(
+function activeResourceBenchmarkKeys(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
 ): string[] {
-	return scoringConfig.frontierBenchmarkKeys.filter((key) =>
-		hasBenchmarkFrontierResourceMetric(models, key, scoringConfig),
+	const benchmarkKeys = new Set<string>();
+	for (const model of models) {
+		for (const key of Object.keys(model.evaluations ?? {})) {
+			benchmarkKeys.add(key);
+		}
+		for (const key of Object.keys(model.intelligence ?? {})) {
+			benchmarkKeys.add(key);
+		}
+	}
+	return [...benchmarkKeys]
+		.filter((key) => hasBenchmarkResourceMetric(models, key, scoringConfig))
+		.sort((left, right) => left.localeCompare(right));
+}
+
+function hasDirectResourceTaskMetric(
+	models: LlmStatsModelCandidate[],
+	key: string,
+): boolean {
+	return models.some(
+		(model) =>
+			benchmarkMetricValue(model, key) != null &&
+			taskMetricFromModel(model, key) != null,
 	);
 }
 
-function frontierBenchmarkValuesByKey(
+function resourceGroupMetricKey(
+	models: LlmStatsModelCandidate[],
+	key: string,
+	scoringConfig: ScoringConfig,
+): string {
+	if (hasDirectResourceTaskMetric(models, key)) {
+		return key;
+	}
+	return benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
+		?.source === "artificial_analysis"
+		? "artificial_analysis"
+		: key;
+}
+
+function activeResourceGroups(
+	models: LlmStatsModelCandidate[],
+	keys: readonly string[],
+	scoringConfig: ScoringConfig,
+): ResourceGroup[] {
+	const benchmarkKeysByMetricKey = new Map<string, string[]>();
+	for (const key of keys) {
+		const metricKey = resourceGroupMetricKey(models, key, scoringConfig);
+		const benchmarkKeys = benchmarkKeysByMetricKey.get(metricKey) ?? [];
+		benchmarkKeys.push(key);
+		benchmarkKeysByMetricKey.set(metricKey, benchmarkKeys);
+	}
+	return [...benchmarkKeysByMetricKey.entries()]
+		.map(([metricKey, benchmarkKeys]) => ({
+			metricKey,
+			benchmarkKeys: benchmarkKeys.sort((left, right) =>
+				left.localeCompare(right),
+			),
+			weight: benchmarkKeys.length,
+		}))
+		.sort((left, right) => left.metricKey.localeCompare(right.metricKey));
+}
+
+function benchmarkValuesByKey(
 	models: LlmStatsModelCandidate[],
 	keys: readonly string[],
 ) {
@@ -208,21 +273,51 @@ function frontierBenchmarkValuesByKey(
 	);
 }
 
-function frontierBenchmarkSpeedValuesByKey(
+function groupTaskMetric(
+	model: LlmStatsModelCandidate,
+	group: ResourceGroup,
+): LlmStatsTaskMetricValues | null {
+	return taskMetricFromModel(model, group.metricKey);
+}
+
+function groupHasBenchmarkScore(
+	model: LlmStatsModelCandidate,
+	group: ResourceGroup,
+): boolean {
+	return group.benchmarkKeys.some(
+		(key) => benchmarkMetricValue(model, key) != null,
+	);
+}
+
+function groupBenchmarkScore(
+	model: LlmStatsModelCandidate,
+	group: ResourceGroup,
+	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
+): number | null {
+	return meanOfFinite(
+		group.benchmarkKeys.map((key) =>
+			minMaxScale(
+				benchmarkValuesByKey.get(key) ?? [],
+				benchmarkMetricValue(model, key),
+			),
+		),
+	);
+}
+
+function resourceGroupSpeedValuesByKey(
 	models: LlmStatsModelCandidate[],
-	keys: readonly string[],
-	scoringConfig: ScoringConfig,
+	groups: readonly ResourceGroup[],
 ) {
 	return new Map(
-		keys.map((key) => [
-			key,
+		groups.map((group) => [
+			group.metricKey,
 			models
 				.map((model) => {
-					if (benchmarkMetricValue(model, key) == null) {
+					if (!groupHasBenchmarkScore(model, group)) {
 						return null;
 					}
 					return inversePositive(
-						frontierResourceTaskMetric(model, key, scoringConfig)?.seconds,
+						effectiveTaskSeconds(model, groupTaskMetric(model, group)),
 					);
 				})
 				.filter(
@@ -232,65 +327,68 @@ function frontierBenchmarkSpeedValuesByKey(
 	);
 }
 
-/** Score frontier cost only for rows with benchmark evidence so cheap but untested models do not win resource credit. */
-function frontierResourceCostSignal(
+function resourceGroupEfficiencyValue(
 	model: LlmStatsModelCandidate,
-	keys: readonly string[],
-	scoringConfig: ScoringConfig,
-): number | null {
-	return meanOfFinite(
-		keys.map((key) => {
-			if (benchmarkMetricValue(model, key) == null) {
-				return null;
-			}
-			return inversePositive(
-				frontierResourceTaskMetric(model, key, scoringConfig)?.cost,
-			);
-		}),
-	);
-}
-
-/** Scores quality per resource unit for frontier benchmarks. */
-function frontierResourceEfficiencySignal(
-	model: LlmStatsModelCandidate,
-	keys: readonly string[],
+	group: ResourceGroup,
 	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
-	scoringConfig: ScoringConfig,
 ): number | null {
-	return meanOfFinite(
-		keys.map((key) => {
-			const score = minMaxScale(
-				benchmarkValuesByKey.get(key) ?? [],
-				benchmarkMetricValue(model, key),
-			);
-			const cost = positiveNumber(
-				frontierResourceTaskMetric(model, key, scoringConfig)?.cost,
-			);
-			return score == null || cost == null ? null : score / cost;
-		}),
+	const score = groupBenchmarkScore(model, group, benchmarkValuesByKey);
+	const cost = logCostDenominator(groupTaskMetric(model, group)?.cost);
+	return score == null || cost == null ? null : score / cost;
+}
+
+function resourceGroupEfficiencyValuesByKey(
+	models: LlmStatsModelCandidate[],
+	groups: readonly ResourceGroup[],
+	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
+) {
+	return new Map(
+		groups.map((group) => [
+			group.metricKey,
+			models
+				.map((model) =>
+					resourceGroupEfficiencyValue(model, group, benchmarkValuesByKey),
+				)
+				.filter(
+					(value): value is number => value != null && Number.isFinite(value),
+				),
+		]),
 	);
 }
 
-/** Scores frontier benchmark speed as a lower-is-better signal. */
-function frontierResourceSpeedSignal(
+/** Scores quality per resource unit within one resource group before cross-group averaging. */
+function normalizedResourceGroupEfficiencyScore(
 	model: LlmStatsModelCandidate,
-	keys: readonly string[],
-	benchmarkSpeedValuesByKey: ReadonlyMap<string, readonly number[]>,
-	scoringConfig: ScoringConfig,
+	group: ResourceGroup,
+	groupEfficiencyValuesByKey: ReadonlyMap<string, readonly number[]>,
+	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
 ): number | null {
-	return meanOfFinite(
-		keys.map((key) => {
-			if (benchmarkMetricValue(model, key) == null) {
-				return null;
-			}
-			const speed = inversePositive(
-				frontierResourceTaskMetric(model, key, scoringConfig)?.seconds,
-			);
-			return percentileRank(
-				[...(benchmarkSpeedValuesByKey.get(key) ?? [])],
-				speed,
-			);
-		}),
+	const efficiency = resourceGroupEfficiencyValue(
+		model,
+		group,
+		benchmarkValuesByKey,
+	);
+	return percentileScoreForSignal(
+		groupEfficiencyValuesByKey.get(group.metricKey) ?? [],
+		efficiency,
+	);
+}
+
+/** Scores resource speed within one resource group so task duration scales do not dominate. */
+function normalizedResourceGroupSpeedScore(
+	model: LlmStatsModelCandidate,
+	group: ResourceGroup,
+	groupSpeedValuesByKey: ReadonlyMap<string, readonly number[]>,
+): number | null {
+	if (!groupHasBenchmarkScore(model, group)) {
+		return null;
+	}
+	const speed = inversePositive(
+		effectiveTaskSeconds(model, groupTaskMetric(model, group)),
+	);
+	return percentileScoreForSignal(
+		groupSpeedValuesByKey.get(group.metricKey) ?? [],
+		speed,
 	);
 }
 
@@ -308,28 +406,21 @@ export function attachRelativeScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
 ): LlmStatsScoredCandidate[] {
-	const frontierKeys = frontierResourceKeys(models, scoringConfig);
-	const artificialAnalysisResourceSourceCount = models.some((model) =>
-		hasPositiveResourceMetric(model, "artificial_analysis"),
-	)
-		? ARTIFICIAL_ANALYSIS_RESOURCE_SOURCE_COUNT
-		: 0;
-	const { artificialAnalysisResourceWeight, frontierResourceWeight } =
-		resourceComponentWeightsFor({
-			artificialAnalysisResourceSourceCount,
-			frontierResourceSourceCount: frontierKeys.length,
-		});
-	const artificialAnalysisResourcePairComponentWeight =
-		artificialAnalysisResourceWeight / 2;
-	const frontierResourcePairComponentWeight = frontierResourceWeight / 2;
-	const frontierValuesByKey = frontierBenchmarkValuesByKey(
+	const resourceKeys = activeResourceBenchmarkKeys(models, scoringConfig);
+	const resourceGroups = activeResourceGroups(
 		models,
-		frontierKeys,
-	);
-	const frontierSpeedValuesByKey = frontierBenchmarkSpeedValuesByKey(
-		models,
-		frontierKeys,
+		resourceKeys,
 		scoringConfig,
+	);
+	const resourceValuesByKey = benchmarkValuesByKey(models, resourceKeys);
+	const resourceSpeedValuesByKey = resourceGroupSpeedValuesByKey(
+		models,
+		resourceGroups,
+	);
+	const resourceEfficiencyValuesByKey = resourceGroupEfficiencyValuesByKey(
+		models,
+		resourceGroups,
+		resourceValuesByKey,
 	);
 	const intelligenceRelativeScores = models.map(
 		(model) => model.scores?.intelligence_score ?? null,
@@ -342,27 +433,6 @@ export function attachRelativeScores(
 			intelligenceRelativeScores[index] ?? null,
 			agenticRelativeScores[index] ?? null,
 		]),
-	);
-	const artificialAnalysisCostValues = models.map((model) =>
-		inversePositive(taskMetricCost(model, "artificial_analysis")),
-	);
-	const artificialAnalysisEfficiencyValues = models.map((model, index) => {
-		const cost = taskMetricCost(model, "artificial_analysis");
-		const intelligenceRelativeScore = intelligenceRelativeScores[index] ?? null;
-		return cost == null || intelligenceRelativeScore == null
-			? null
-			: intelligenceRelativeScore / cost;
-	});
-	const frontierResourceCostValues = models.map((model) =>
-		frontierResourceCostSignal(model, frontierKeys, scoringConfig),
-	);
-	const frontierResourceEfficiencyValues = models.map((model) =>
-		frontierResourceEfficiencySignal(
-			model,
-			frontierKeys,
-			frontierValuesByKey,
-			scoringConfig,
-		),
 	);
 	const blendCostValues = models.map((model) =>
 		inversePositive(blendCost(model, scoringConfig)),
@@ -377,76 +447,65 @@ export function attachRelativeScores(
 	const workflowSimulatedValueValues = models.map((model) =>
 		workflowSimulatedValueSignal(model, scoringConfig),
 	);
-	const artificialAnalysisSpeedValues = models.map((model) =>
-		inversePositive(taskMetricSeconds(model, "artificial_analysis")),
-	);
-	const artificialAnalysisResourceSpeedValues = models.map((_, index) =>
-		percentileScoreAt(artificialAnalysisSpeedValues, index),
-	);
-	const frontierResourceSpeedValues = models.map((model) =>
-		frontierResourceSpeedSignal(
-			model,
-			frontierKeys,
-			frontierSpeedValuesByKey,
-			scoringConfig,
-		),
-	);
 	const workflowSimulatedSpeedValues = models.map((model) =>
 		inversePositive(simulatedBlendSeconds(model.speed, scoringConfig)),
 	);
-	const valueRelativeScores = models.map((_, index) =>
-		weightedMeanOfFiniteWithMinimum(
-			[
-				{
-					value: percentileScoreAt(artificialAnalysisCostValues, index),
-					weight: artificialAnalysisResourcePairComponentWeight,
-				},
-				{
-					value: percentileScoreAt(artificialAnalysisEfficiencyValues, index),
-					weight: artificialAnalysisResourcePairComponentWeight,
-				},
-				{
-					value: percentileScoreAt(frontierResourceCostValues, index),
-					weight: frontierResourcePairComponentWeight,
-				},
-				{
-					value: percentileScoreAt(frontierResourceEfficiencyValues, index),
-					weight: frontierResourcePairComponentWeight,
-				},
-				{
-					value: percentileScoreAt(blendCostValues, index),
-					weight: VALUE_RAW_COMPONENT_WEIGHT,
-				},
-				{
-					value: percentileScoreAt(qualityAdjustedBlendCostValues, index),
-					weight: VALUE_RAW_COMPONENT_WEIGHT,
-				},
-				{
-					value: percentileScoreAt(workflowSimulatedValueValues, index),
-					weight: VALUE_RAW_COMPONENT_WEIGHT,
-				},
-			],
+	const valueCompositeSignals = models.map((model, index) => {
+		const resourceEfficiencyComponents = resourceGroups.map((group) => ({
+			value: normalizedResourceGroupEfficiencyScore(
+				model,
+				group,
+				resourceEfficiencyValuesByKey,
+				resourceValuesByKey,
+			),
+			weight: group.weight,
+		}));
+		const rawValueComponents = [
+			{
+				value: percentileScoreAt(blendCostValues, index),
+				weight: ACTIVE_COMPONENT_WEIGHT,
+			},
+			{
+				value: percentileScoreAt(qualityAdjustedBlendCostValues, index),
+				weight: ACTIVE_COMPONENT_WEIGHT,
+			},
+			{
+				value: percentileScoreAt(workflowSimulatedValueValues, index),
+				weight: ACTIVE_COMPONENT_WEIGHT,
+			},
+		];
+		return weightedSignalBlock(
+			resourceEfficiencyComponents,
+			rawValueComponents,
 			MIN_DISPLAY_VALUE_COMPONENTS,
-		),
-	);
-	const speedRelativeScores = models.map((_, index) =>
-		weightedMeanOfFiniteWithMinimum(
-			[
-				{
-					value: artificialAnalysisResourceSpeedValues[index] ?? null,
-					weight: artificialAnalysisResourceWeight,
-				},
-				{
-					value: frontierResourceSpeedValues[index] ?? null,
-					weight: frontierResourceWeight,
-				},
-				{
-					value: percentileScoreAt(workflowSimulatedSpeedValues, index),
-					weight: SPEED_SIMULATION_COMPONENT_WEIGHT,
-				},
-			],
+		);
+	});
+	const speedCompositeSignals = models.map((model, index) => {
+		const resourceSpeedComponents = resourceGroups.map((group) => ({
+			value: normalizedResourceGroupSpeedScore(
+				model,
+				group,
+				resourceSpeedValuesByKey,
+			),
+			weight: group.weight,
+		}));
+		const rawSpeedComponents = [
+			{
+				value: percentileScoreAt(workflowSimulatedSpeedValues, index),
+				weight: ACTIVE_COMPONENT_WEIGHT,
+			},
+		];
+		return weightedSignalBlock(
+			resourceSpeedComponents,
+			rawSpeedComponents,
 			MIN_DISPLAY_SPEED_COMPONENTS,
-		),
+		);
+	});
+	const valueRelativeScores = valueCompositeSignals.map((signal) =>
+		percentileScoreForSignal(valueCompositeSignals, signal),
+	);
+	const speedRelativeScores = speedCompositeSignals.map((signal) =>
+		percentileScoreForSignal(speedCompositeSignals, signal),
 	);
 	const overallSpeedScores = fillMissingScoresWithMedian(speedRelativeScores);
 	const overallValueScores = fillMissingValuesWithQualityMirror(

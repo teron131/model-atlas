@@ -320,14 +320,25 @@ function buildIntelligenceIndexCost(
 }
 
 function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
+	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
+	for (const [key, value] of Object.entries(asRecord(model.scoring_sources))) {
+		const source = asRecord(value);
+		if (hasFields(source)) {
+			scoringSources[key] = source;
+		}
+	}
 	const deepSWE = buildDeepSWEScoringSource(model);
 	const agentsLastExam = buildAgentsLastExamScoringSource(model);
 	const automationBench = buildAutomationBenchScoringSource(model);
-	const scoringSources = {
-		...(deepSWE == null ? {} : { deep_swe: deepSWE }),
-		...(agentsLastExam == null ? {} : { agents_last_exam: agentsLastExam }),
-		...(automationBench == null ? {} : { automation_bench: automationBench }),
-	};
+	if (deepSWE != null) {
+		scoringSources.deep_swe = deepSWE;
+	}
+	if (agentsLastExam != null) {
+		scoringSources.agents_last_exam = agentsLastExam;
+	}
+	if (automationBench != null) {
+		scoringSources.automation_bench = automationBench;
+	}
 	return hasFields(scoringSources) ? scoringSources : null;
 }
 
@@ -370,7 +381,6 @@ function buildDeepSWEScoringSource(model: JsonObject) {
 		passAt1 == null ||
 		tasksAttempted == null ||
 		meanCostUsd == null ||
-		meanDurationSeconds == null ||
 		meanOutputTokens == null
 	) {
 		return null;
@@ -388,7 +398,7 @@ function buildDeepSWEScoringSource(model: JsonObject) {
 		ci_half: asFiniteNumber(source.ci_half),
 		n_tasks_attempted: tasksAttempted,
 		mean_cost_usd: meanCostUsd,
-		mean_duration_seconds: meanDurationSeconds,
+		mean_duration_seconds: meanDurationSeconds ?? null,
 		mean_output_tokens: meanOutputTokens,
 	};
 }

@@ -1,9 +1,21 @@
 /** Build current Model Atlas scoring metadata for live, stored, and restored payloads. */
 
+import { benchmarkResourcePolicy } from "../config/benchmark-portfolio";
+import {
+	type ActiveResourceComponents,
+	columnTooltipsForActiveComponents,
+} from "../config/column-tooltips";
 import { STAGE_CONFIG } from "../constants";
 import { asRecord } from "../shared";
 import type { BenchmarkRowsByKey } from "./benchmarks";
 import { buildBenchmarkUpdateHealth } from "./health";
+import {
+	type BenchmarkMetricModel,
+	benchmarkMetricValue,
+	effectiveTaskSeconds,
+	positiveNumber,
+	type ResourceMetricModel,
+} from "./resource-metrics";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 import type {
 	LlmStatsBenchmarkUpdateHealth,
@@ -13,17 +25,13 @@ import type {
 	ModelAtlasStageConfig,
 } from "./types";
 
-type BenchmarkFieldModel = {
-	evaluations?: unknown;
-	intelligence?: unknown;
-};
-
 type BenchmarkHealthModels = Parameters<typeof buildBenchmarkUpdateHealth>[0];
 
 type MetadataAvailabilitySource = "models" | "artificial_analysis";
 
 type CurrentLlmStatsMetadataOptions = {
-	models: readonly BenchmarkFieldModel[];
+	models: readonly BenchmarkMetricModel[];
+	resourceModels?: readonly ResourceMetricModel[];
 	healthModels?: BenchmarkHealthModels;
 	scoringConfig?: ModelAtlasStageConfig["scoring"];
 	artificialAnalysis?: LlmStatsMetadata["artificial_analysis"];
@@ -40,7 +48,7 @@ function sortedUniqueKeys(values: Iterable<string>): string[] {
 
 /** Collect available benchmark-like keys from a model object field. */
 function keysFromModelField(
-	models: readonly BenchmarkFieldModel[],
+	models: readonly BenchmarkMetricModel[],
 	field: "evaluations" | "intelligence",
 ): string[] {
 	return sortedUniqueKeys(
@@ -49,7 +57,7 @@ function keysFromModelField(
 }
 
 function buildArtificialAnalysisMetadata(
-	models: readonly BenchmarkFieldModel[],
+	models: readonly BenchmarkMetricModel[],
 ): LlmStatsMetadata["artificial_analysis"] {
 	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
@@ -60,6 +68,87 @@ function buildArtificialAnalysisMetadata(
 		]),
 		available_evaluation_keys: availableEvaluationKeys,
 		available_intelligence_keys: availableIntelligenceKeys,
+	};
+}
+
+function hasPositiveTaskMetric(
+	model: ResourceMetricModel,
+	key: string,
+): boolean {
+	const task = asRecord(asRecord(model.task_metrics)[key]);
+	return (
+		positiveNumber(task.cost) != null ||
+		effectiveTaskSeconds(model, task) != null
+	);
+}
+
+function resourceTaskMetricKey(
+	model: ResourceMetricModel,
+	key: string,
+	scoringConfig: ModelAtlasStageConfig["scoring"],
+): string | null {
+	if (hasPositiveTaskMetric(model, key)) {
+		return key;
+	}
+	return benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
+		?.source === "artificial_analysis" &&
+		hasPositiveTaskMetric(model, "artificial_analysis")
+		? "artificial_analysis"
+		: null;
+}
+
+/** Return resource benchmarks that have both benchmark scores and task telemetry in this payload. */
+function activeResourceBenchmarkKeys(
+	models: readonly ResourceMetricModel[],
+	scoringConfig: ModelAtlasStageConfig["scoring"],
+): string[] {
+	const benchmarkKeys = sortedUniqueKeys(
+		models.flatMap((model) => [
+			...Object.keys(asRecord(model.evaluations)),
+			...Object.keys(asRecord(model.intelligence)),
+		]),
+	);
+	return benchmarkKeys.filter((key) =>
+		models.some(
+			(model) =>
+				benchmarkMetricValue(model, key) != null &&
+				resourceTaskMetricKey(model, key, scoringConfig) != null,
+		),
+	);
+}
+
+function activeResourceTaskMetricKeys(
+	models: readonly ResourceMetricModel[],
+	key: string,
+	scoringConfig: ModelAtlasStageConfig["scoring"],
+): string[] {
+	return sortedUniqueKeys(
+		models.flatMap((model) => {
+			if (benchmarkMetricValue(model, key) == null) {
+				return [];
+			}
+			const taskMetricKey = resourceTaskMetricKey(model, key, scoringConfig);
+			return taskMetricKey == null ? [] : [taskMetricKey];
+		}),
+	);
+}
+
+function activeResourceComponents(
+	models: readonly ResourceMetricModel[],
+	scoringConfig: ModelAtlasStageConfig["scoring"],
+): ActiveResourceComponents {
+	const activeKeys = activeResourceBenchmarkKeys(models, scoringConfig);
+	return {
+		artificialAnalysisBenchmarkKeys: activeKeys.filter((key) =>
+			activeResourceTaskMetricKeys(models, key, scoringConfig).every(
+				(taskMetricKey) => taskMetricKey === "artificial_analysis",
+			),
+		),
+		directBenchmarkKeys: activeKeys.filter((key) =>
+			activeResourceTaskMetricKeys(models, key, scoringConfig).some(
+				(taskMetricKey) => taskMetricKey !== "artificial_analysis",
+			),
+		),
 	};
 }
 
@@ -78,6 +167,7 @@ function availableBenchmarkKeysFrom(
 /** Build current metadata while preserving caller-owned source and restored metadata fields. */
 export function buildCurrentLlmStatsMetadata({
 	models,
+	resourceModels = models,
 	healthModels = models as BenchmarkHealthModels,
 	scoringConfig = STAGE_CONFIG.scoring,
 	artificialAnalysis,
@@ -101,6 +191,10 @@ export function buildCurrentLlmStatsMetadata({
 		...scoringConfig.intelligenceBenchmarkKeys,
 		...scoringConfig.agenticBenchmarkKeys,
 	]);
+	const resourceComponents = activeResourceComponents(
+		resourceModels,
+		scoringConfig,
+	);
 	return {
 		artificial_analysis: outputArtificialAnalysis,
 		...(sourceHealth == null ? {} : { source_health: sourceHealth }),
@@ -137,7 +231,10 @@ export function buildCurrentLlmStatsMetadata({
 			overall_relative_score_weights: {
 				...scoringConfig.overallRelativeScoreWeights,
 			},
-			column_tooltips: { ...scoringConfig.columnTooltips },
+			column_tooltips: {
+				...scoringConfig.columnTooltips,
+				...columnTooltipsForActiveComponents(resourceComponents),
+			},
 			snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 		},
 	};

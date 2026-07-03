@@ -77,7 +77,15 @@ assertDeepEqual(
 		{ ...row("v1-only", 0.42), source_version: "v1" },
 		{ ...row("v1.1-model", 0.4), source_version: "v1.1" },
 	]).map(({ model }) => model),
-	["v1.1-model"],
+	["v1.1-model", "v1-only"],
+);
+
+assertDeepEqual(
+	preferredDeepSWELeaderboardRows([
+		{ ...row("duplicate", 0.42), source_version: "v1" },
+		{ ...row("duplicate", 0.4), source_version: "v1.1" },
+	]).map(({ model, pass_at_1 }) => ({ model, pass_at_1 })),
+	[{ model: "duplicate", pass_at_1: 0.4 }],
 );
 
 assertDeepEqual(
@@ -96,7 +104,19 @@ assertDeepEqual(
 			mean_output_tokens: 11300,
 		},
 	})?.deep_swe,
-	{ cost: 2, seconds: 10, output_tokens: 100 },
+	{ cost: 226, output_tokens: 11300, seconds: 1130 },
+);
+
+assertDeepEqual(
+	buildTaskMetrics(null, null, {
+		deep_swe: {
+			...row("deepseek-v4-pro", 0.28),
+			mean_cost_usd: 4.22,
+			mean_duration_seconds: null,
+			mean_output_tokens: 11_300,
+		},
+	})?.deep_swe,
+	{ cost: 4.22, output_tokens: 11300 },
 );
 
 const fallbackRows = await getDeepSWERawLeaderboardStats({
@@ -131,11 +151,15 @@ const sourceVersions = new Set(
 if (!sourceVersions.has("v1.1") || !sourceVersions.has("v1")) {
 	throw new Error("Expected DeepSWE source rows to include v1.1 and v1");
 }
+const preferredSourceRows = preferredDeepSWELeaderboardRows(sourceRows.data);
 if (
-	preferredDeepSWELeaderboardRows(sourceRows.data).length !==
+	preferredSourceRows.length <
 	sourceRows.data.filter((row) => row.source_version === "v1.1").length
 ) {
-	throw new Error("Expected DeepSWE preferred rows to use v1.1 when present");
+	throw new Error("Expected DeepSWE preferred rows to retain v1.1 rows");
+}
+if (preferredSourceRows.length > sourceRows.data.length) {
+	throw new Error("Expected DeepSWE preferred rows not to invent rows");
 }
 if (v1Rows.data.length === 0) {
 	throw new Error("Expected DeepSWE v1 fetch to return rows");

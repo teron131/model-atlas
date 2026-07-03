@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	ci_half REAL,
 	n_tasks_attempted INTEGER,
 	mean_cost_usd REAL NOT NULL,
-	mean_duration_seconds REAL NOT NULL,
+	mean_duration_seconds REAL,
 	mean_output_tokens REAL NOT NULL,
 	PRIMARY KEY (run_id, row_index)
 );
@@ -379,6 +379,8 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	agents_last_exam_task_input_tokens REAL,
 	agents_last_exam_task_output_tokens REAL,
 	automation_bench_task_cost REAL,
+	cursorbench_task_cost REAL,
+	cursorbench_task_tokens REAL,
 	deep_swe_task_cost REAL,
 	deep_swe_task_seconds REAL,
 	deep_swe_task_output_tokens REAL,

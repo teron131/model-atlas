@@ -4,6 +4,7 @@ import {
 	medianOfFinite,
 	quantileFromSorted,
 } from "../src/model-atlas/math-utils";
+import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/metadata";
 import {
 	attachRelativeScores,
 	blendedPriceValue,
@@ -83,12 +84,180 @@ assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
 assertEqual(
 	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.[1]?.[1],
-	"1.0 weighted component units",
+	"70% resource / 30% raw",
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("20.0%"),
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("7.8%"),
 	true,
 );
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes("7.8%"),
+	true,
+);
+
+const aaOnlyResourceMetadata = buildCurrentLlmStatsMetadata({
+	models: [
+		{
+			evaluations: { hle: 90 },
+		},
+	],
+	resourceModels: [
+		{
+			evaluations: { hle: 90 },
+			task_metrics: {
+				artificial_analysis: { cost: 0.1, seconds: 10 },
+			},
+		},
+	],
+	benchmarkUpdateHealth: {},
+	scoringConfig: {
+		...STAGE_CONFIG.scoring,
+		frontierBenchmarkKeys: ["hle", "deep_swe"],
+	},
+});
+const aaOnlySpeedTooltip = JSON.stringify(
+	aaOnlyResourceMetadata.scoring.column_tooltips.speed,
+);
+const aaOnlyValueTooltip = JSON.stringify(
+	aaOnlyResourceMetadata.scoring.column_tooltips.value,
+);
+assertEqual(aaOnlySpeedTooltip.includes("70.0%"), true);
+assertEqual(
+	aaOnlySpeedTooltip.includes("Frontier benchmark task speed"),
+	false,
+);
+assertEqual(aaOnlyValueTooltip.includes("70.0%"), true);
+assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark task cost"), false);
+
+const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
+	models: [
+		{
+			evaluations: { hle: 90, deep_swe: 80 },
+		},
+	],
+	resourceModels: [
+		{
+			evaluations: { hle: 90, deep_swe: 80 },
+			task_metrics: {
+				artificial_analysis: { cost: 0.1, seconds: 10 },
+				deep_swe: { cost: 0.2, seconds: 20 },
+			},
+		},
+	],
+	benchmarkUpdateHealth: {},
+	scoringConfig: {
+		...STAGE_CONFIG.scoring,
+		frontierBenchmarkKeys: ["hle", "deep_swe"],
+	},
+});
+assertEqual(
+	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.speed).includes(
+		"35.0%",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.value).includes(
+		"35.0%",
+	),
+	true,
+);
+
+const tokenProxyResourceMetadata = buildCurrentLlmStatsMetadata({
+	models: [
+		{
+			evaluations: { deep_swe: 80 },
+		},
+	],
+	resourceModels: [
+		{
+			evaluations: { deep_swe: 80 },
+			speed: { throughput_tokens_per_second_median: 50 },
+			task_metrics: {
+				deep_swe: { cost: 0.2, output_tokens: 1_000 },
+			},
+		},
+	],
+	benchmarkUpdateHealth: {},
+	scoringConfig: {
+		...STAGE_CONFIG.scoring,
+		frontierBenchmarkKeys: ["deep_swe"],
+	},
+});
+assertEqual(
+	JSON.stringify(
+		tokenProxyResourceMetadata.scoring.column_tooltips.speed,
+	).includes("DeepSWE task speed"),
+	true,
+);
+
+const aaGroupedResourceModels = attachRelativeScores(
+	[
+		{
+			...modelCandidate({
+				id: "test/aa-group-winner",
+				gdpvalScore: 90,
+				deepSWEScore: 10,
+				artificialAnalysisSeconds: 1,
+				deepSWESeconds: 100,
+				tps: 100,
+				latency: 1,
+				disableBaseCost: true,
+			}),
+			evaluations: {
+				gdpval_normalized: 90,
+				hle: 90,
+				deep_swe: 10,
+			},
+		},
+		{
+			...modelCandidate({
+				id: "test/direct-group-winner",
+				gdpvalScore: 10,
+				deepSWEScore: 90,
+				artificialAnalysisSeconds: 100,
+				deepSWESeconds: 1,
+				tps: 100,
+				latency: 1,
+				disableBaseCost: true,
+			}),
+			evaluations: {
+				gdpval_normalized: 10,
+				hle: 10,
+				deep_swe: 90,
+			},
+		},
+	],
+	STAGE_CONFIG.scoring,
+);
+assertClose(aaGroupedResourceModels[0]?.relative_scores.speed_score, 100);
+assertClose(aaGroupedResourceModels[1]?.relative_scores.speed_score, 50);
+
+const tokenProxySpeedModels = attachRelativeScores(
+	[
+		modelCandidate({
+			id: "test/token-proxy-fast",
+			deepSWEScore: 90,
+			deepSWECost: 1,
+			deepSWEOutputTokens: 1_000,
+			tps: 100,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+		modelCandidate({
+			id: "test/token-proxy-slow",
+			deepSWEScore: 80,
+			deepSWECost: 1,
+			deepSWEOutputTokens: 1_000,
+			tps: 10,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+	],
+	STAGE_CONFIG.scoring,
+);
+assertClose(tokenProxySpeedModels[0]?.relative_scores.speed_score, 100);
+assertClose(tokenProxySpeedModels[1]?.relative_scores.speed_score, 50);
 
 const groupPolicyConfig = {
 	...STAGE_CONFIG.scoring,
@@ -181,12 +350,12 @@ const scoredModels = attachRelativeScores(
 	STAGE_CONFIG.scoring,
 );
 
-assertClose(scoredModels[0]?.relative_scores.value_score, 73.3334);
-assertClose(scoredModels[1]?.relative_scores.value_score, 66.6667);
-assertClose(scoredModels[2]?.relative_scores.value_score, 60.0);
-assertClose(scoredModels[0]?.relative_scores.speed_score, 66.6667);
-assertClose(scoredModels[1]?.relative_scores.speed_score, 33.3333);
-assertClose(scoredModels[2]?.relative_scores.speed_score, 100);
+assertClose(scoredModels[0]?.relative_scores.value_score, 66.6667);
+assertClose(scoredModels[1]?.relative_scores.value_score, 100);
+assertClose(scoredModels[2]?.relative_scores.value_score, 33.3333);
+assertEqual(scoredModels[0]?.relative_scores.speed_score, null);
+assertEqual(scoredModels[1]?.relative_scores.speed_score, null);
+assertEqual(scoredModels[2]?.relative_scores.speed_score, null);
 
 const sparseComponentModels = attachRelativeScores(
 	[
@@ -215,7 +384,7 @@ const sparseComponentModels = attachRelativeScores(
 assertEqual(sparseComponentModels[0]?.relative_scores.value_score, null);
 assertEqual(sparseComponentModels[0]?.relative_scores.speed_score, null);
 
-const frontierResourceScoredModels = attachRelativeScores(
+const directResourceScoredModels = attachRelativeScores(
 	[
 		modelCandidate({
 			id: "test/frontier-efficient",
@@ -224,7 +393,6 @@ const frontierResourceScoredModels = attachRelativeScores(
 			deepSWESeconds: 90,
 			tps: 100,
 			latency: 1,
-			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/frontier-middle",
@@ -233,7 +401,6 @@ const frontierResourceScoredModels = attachRelativeScores(
 			deepSWESeconds: 50,
 			tps: 100,
 			latency: 1,
-			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/frontier-fast",
@@ -242,7 +409,6 @@ const frontierResourceScoredModels = attachRelativeScores(
 			deepSWESeconds: 10,
 			tps: 100,
 			latency: 1,
-			disableBaseCost: true,
 		}),
 	],
 	{
@@ -250,24 +416,80 @@ const frontierResourceScoredModels = attachRelativeScores(
 		frontierBenchmarkKeys: ["deep_swe"],
 	},
 );
-assertClose(frontierResourceScoredModels[0]?.relative_scores.value_score, 100);
+assertClose(directResourceScoredModels[0]?.relative_scores.value_score, 100);
 assertClose(
-	frontierResourceScoredModels[1]?.relative_scores.value_score,
+	directResourceScoredModels[1]?.relative_scores.value_score,
 	66.6667,
 );
 assertClose(
-	frontierResourceScoredModels[2]?.relative_scores.value_score,
+	directResourceScoredModels[2]?.relative_scores.value_score,
 	33.3333,
 );
 assertClose(
-	frontierResourceScoredModels[0]?.relative_scores.speed_score,
-	73.3333,
+	directResourceScoredModels[0]?.relative_scores.speed_score,
+	33.3333,
 );
 assertClose(
-	frontierResourceScoredModels[1]?.relative_scores.speed_score,
-	86.6667,
+	directResourceScoredModels[1]?.relative_scores.speed_score,
+	66.6667,
 );
-assertClose(frontierResourceScoredModels[2]?.relative_scores.speed_score, 100);
+assertClose(directResourceScoredModels[2]?.relative_scores.speed_score, 100);
+
+const scaleNormalizedResourceConfig = {
+	...STAGE_CONFIG.scoring,
+	frontierBenchmarkKeys: ["cheap_frontier", "expensive_frontier"],
+	benchmarkPortfolio: {
+		cheap_frontier: {
+			group: "frontier",
+			intelligencePortion: 0,
+			agenticPortion: 1,
+			resourcePolicy: {
+				source: "benchmark",
+				unit: "per_task",
+				tokenMeasure: "tokens",
+			},
+		},
+		expensive_frontier: {
+			group: "frontier",
+			intelligencePortion: 0,
+			agenticPortion: 1,
+			resourcePolicy: {
+				source: "benchmark",
+				unit: "per_task",
+				tokenMeasure: "tokens",
+			},
+		},
+	},
+} as const;
+const scaleNormalizedResourceModels = attachRelativeScores(
+	[
+		{
+			...modelCandidate({
+				id: "test/cheap-scale-winner",
+				disableBaseCost: true,
+			}),
+			evaluations: { cheap_frontier: 1, expensive_frontier: 0.5 },
+			task_metrics: {
+				cheap_frontier: { cost: 1 },
+				expensive_frontier: { cost: 2000 },
+			},
+		},
+		{
+			...modelCandidate({
+				id: "test/expensive-scale-winner",
+				disableBaseCost: true,
+			}),
+			evaluations: { cheap_frontier: 0.5, expensive_frontier: 1 },
+			task_metrics: {
+				cheap_frontier: { cost: 2 },
+				expensive_frontier: { cost: 1000 },
+			},
+		},
+	],
+	scaleNormalizedResourceConfig,
+);
+assertClose(scaleNormalizedResourceModels[0]?.relative_scores.value_score, 100);
+assertClose(scaleNormalizedResourceModels[1]?.relative_scores.value_score, 100);
 
 const normalizedContextModels = [
 	imputationModel("observed-a", 0, 0, 0, 0),
@@ -337,6 +559,7 @@ function modelCandidate(options: {
 	deepSWEScore?: number | null;
 	deepSWECost?: number | null;
 	deepSWESeconds?: number | null;
+	deepSWEOutputTokens?: number | null;
 	tps?: number | null;
 	latency?: number | null;
 	gdpvalScore?: number | null;
@@ -390,6 +613,7 @@ function modelCandidate(options: {
 			deep_swe: {
 				cost: options.deepSWECost,
 				seconds: options.deepSWESeconds,
+				output_tokens: options.deepSWEOutputTokens,
 			},
 			...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
 		},

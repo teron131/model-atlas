@@ -116,8 +116,8 @@ try {
 	assert.ok(payload.deep_swe);
 	assert.deepEqual(
 		payload.deep_swe.rows.map((row) => row.model),
-		["Current DeepSWE Model"],
-		"Database payloads should apply DeepSWE source-owned v1.1 preference when reconstructing graph rows",
+		["Current DeepSWE Model", "Legacy DeepSWE Model"],
+		"Database payloads should preserve v1-only DeepSWE rows while preferring v1.1 duplicates",
 	);
 } finally {
 	await rm(tempDir, { force: true, recursive: true });

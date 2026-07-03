@@ -7,12 +7,11 @@ import {
 import { findAutomationBenchScoreRow } from "../../scrapers/automation-bench";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../../scrapers/browsecomp";
-import { findCursorBenchScore } from "../../scrapers/cursorbench";
 import { findDeepSWEModelScore } from "../../scrapers/deep-swe";
 import { findGdpPdfScore } from "../../scrapers/gdp-pdf";
 import { findRiemannBenchScore } from "../../scrapers/riemann-bench";
-import { findTerminalBenchMedianAccuracy } from "../../scrapers/terminal-bench";
 import { findToolathlonScore } from "../../scrapers/toolathlon";
+import { normalizeModelToken } from "../../shared";
 import type { LlmStatsScoringSources, LlmStatsSourceData } from "../types";
 
 export type BenchmarkEnrichmentLookups = {
@@ -44,6 +43,22 @@ export type BenchmarkEnrichment = {
 	evaluations: Record<string, unknown>;
 	scoringSources: NonNullable<LlmStatsScoringSources>;
 };
+
+function findSourceRow<T>(
+	candidateNames: unknown[],
+	scoreByModelName: ReadonlyMap<string, T>,
+): T | null {
+	for (const candidateName of candidateNames) {
+		if (typeof candidateName !== "string" || candidateName.length === 0) {
+			continue;
+		}
+		const row = scoreByModelName.get(normalizeModelToken(candidateName));
+		if (row != null) {
+			return row;
+		}
+	}
+	return null;
+}
 
 export function benchmarkEnrichment(
 	modelNameCandidates: unknown[],
@@ -86,12 +101,13 @@ export function benchmarkEnrichment(
 		evaluations.browsecomp = browseCompScore;
 	}
 
-	const cursorBenchScore = findCursorBenchScore(
+	const cursorBenchRow = findSourceRow(
 		modelNameCandidates,
 		lookups.cursorBench.scoreByModelName,
 	);
-	if (cursorBenchScore != null) {
-		evaluations.cursorbench = cursorBenchScore;
+	if (cursorBenchRow != null) {
+		evaluations.cursorbench = cursorBenchRow.score;
+		scoringSources.cursorbench = cursorBenchRow;
 	}
 
 	const deepSWEScore = findDeepSWEModelScore(

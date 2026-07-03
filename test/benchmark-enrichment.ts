@@ -6,6 +6,7 @@ import {
 	type BenchmarkEnrichmentLookups,
 	benchmarkEnrichment,
 } from "../src/model-atlas/stats/benchmarks";
+import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
 const deepSWERow = {
 	model: "Example Model",
@@ -28,6 +29,16 @@ const automationBenchRow = {
 	domain_lead_scores: [],
 	domain_lead_score_median: null,
 	adjusted_score: 0.68,
+};
+const cursorBenchRow = {
+	rank: 1,
+	model: "Example Model",
+	base_model: "Example Model",
+	reasoning_effort: null,
+	score: 0.52,
+	cost_per_task_usd: 0.42,
+	tokens_per_task: 12345,
+	steps_per_task: 12,
 };
 
 const enrichment = benchmarkEnrichment(["Example Model"], {
@@ -59,17 +70,33 @@ const enrichment = benchmarkEnrichment(["Example Model"], {
 		scoreByModelName: emptyLookup(),
 	},
 	cursorBench: {
-		scoreByModelName: emptyLookup(),
+		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
 	},
 } satisfies BenchmarkEnrichmentLookups);
 
 assert.deepEqual(enrichment.evaluations, {
 	deep_swe: 0.72,
 	automation_bench: 0.68,
+	cursorbench: 0.52,
 });
 assert.deepEqual(enrichment.scoringSources, {
 	deep_swe: deepSWERow,
 	automation_bench: automationBenchRow,
+	cursorbench: cursorBenchRow,
+});
+assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
+	automation_bench: {
+		cost: 0.12,
+	},
+	cursorbench: {
+		cost: 0.42,
+		tokens: 12345,
+	},
+	deep_swe: {
+		cost: 4.2,
+		seconds: 300,
+		output_tokens: 12000,
+	},
 });
 
 /** Return a typed empty lookup map for sources not involved in this test. */
