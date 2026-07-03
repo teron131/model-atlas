@@ -1,5 +1,5 @@
 /**
- * Vals Terminal-Bench scraper helpers.
+ * Terminal-Bench benchmark page scraper helpers.
  *
  * This benchmark-specific page is scraped separately because it contributes Terminal-Bench task stats and harness context outside the Artificial Analysis main model table.
  */
@@ -18,12 +18,12 @@ const DEFAULT_LEADERBOARD_URL =
 const DEFAULT_TIMEOUT_MS = 30_000;
 const OVERALL_TASK_KEY = "overall";
 
-export type TerminalBenchValsScraperOptions = {
+export type TerminalBenchScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
 
-export type TerminalBenchValsMetadata = {
+export type TerminalBenchMetadata = {
 	benchmark: string | null;
 	slug: string | null;
 	version: string | null;
@@ -33,7 +33,7 @@ export type TerminalBenchValsMetadata = {
 	task_labels: Record<string, string>;
 };
 
-export type TerminalBenchValsTaskRow = {
+export type TerminalBenchTaskRow = {
 	task: string;
 	task_label: string;
 	raw_model_id: string;
@@ -46,22 +46,22 @@ export type TerminalBenchValsTaskRow = {
 	seconds_per_task: number | null;
 };
 
-export type TerminalBenchValsModelHarnessRow = TerminalBenchValsTaskRow & {
+export type TerminalBenchModelHarnessRow = TerminalBenchTaskRow & {
 	task: "overall";
 };
 
-export type TerminalBenchValsByModelName = Map<
+export type TerminalBenchRowsByModelName = Map<
 	string,
-	TerminalBenchValsModelHarnessRow[]
+	TerminalBenchModelHarnessRow[]
 >;
 
-export type TerminalBenchValsParsedPage = {
-	metadata: TerminalBenchValsMetadata | null;
-	task_rows: TerminalBenchValsTaskRow[];
-	model_scores: TerminalBenchValsModelHarnessRow[];
+export type TerminalBenchParsedPage = {
+	metadata: TerminalBenchMetadata | null;
+	task_rows: TerminalBenchTaskRow[];
+	model_scores: TerminalBenchModelHarnessRow[];
 };
 
-export type TerminalBenchValsPayload = TerminalBenchValsParsedPage & {
+export type TerminalBenchPayload = TerminalBenchParsedPage & {
 	fetched_at_epoch_seconds: number | null;
 };
 
@@ -113,7 +113,7 @@ function taskLabelsFromMetadata(metadata: unknown): Record<string, string> {
 	return labels;
 }
 
-function terminalBenchValsMetadata(value: unknown): TerminalBenchValsMetadata {
+function terminalBenchMetadata(value: unknown): TerminalBenchMetadata {
 	const metadata = asRecord(value);
 	return {
 		benchmark: stringValue(metadata.benchmark),
@@ -173,13 +173,13 @@ function positiveNumber(value: unknown): number | null {
 	return number != null && number > 0 ? number : null;
 }
 
-function terminalBenchValsTaskRow(
+function terminalBenchTaskRow(
 	task: string,
 	taskLabel: string,
 	rawModelId: string,
 	value: unknown,
 	modelIds: ReadonlySet<string>,
-): TerminalBenchValsTaskRow | null {
+): TerminalBenchTaskRow | null {
 	const row = asRecord(value);
 	const score = percentToUnitScore(row.accuracy);
 	if (score == null || rawModelId.length === 0) {
@@ -202,14 +202,12 @@ function terminalBenchValsTaskRow(
 }
 
 function isOverallRow(
-	row: TerminalBenchValsTaskRow,
-): row is TerminalBenchValsModelHarnessRow {
+	row: TerminalBenchTaskRow,
+): row is TerminalBenchModelHarnessRow {
 	return row.task === OVERALL_TASK_KEY;
 }
 
-function sortTerminalBenchValsRows<T extends TerminalBenchValsTaskRow>(
-	rows: T[],
-): T[] {
+function sortTerminalBenchRows<T extends TerminalBenchTaskRow>(rows: T[]): T[] {
 	return [...rows].sort(
 		(left, right) =>
 			right.score - left.score ||
@@ -219,9 +217,9 @@ function sortTerminalBenchValsRows<T extends TerminalBenchValsTaskRow>(
 	);
 }
 
-export function processTerminalBenchValsPageHtml(
+export function processTerminalBenchPageHtml(
 	pageHtml: string,
-): TerminalBenchValsParsedPage {
+): TerminalBenchParsedPage {
 	const props = asRecord(benchmarkViewProps(pageHtml));
 	const benchmarkView = asRecord(props.benchmarkView);
 	const view = asRecord(benchmarkView.default);
@@ -229,16 +227,16 @@ export function processTerminalBenchValsPageHtml(
 	const metadata =
 		Object.keys(metadataRecord).length === 0
 			? null
-			: terminalBenchValsMetadata(metadataRecord);
+			: terminalBenchMetadata(metadataRecord);
 	const taskLabels = metadata?.task_labels ?? {};
 	const tasks = asRecord(view.tasks);
-	const taskRows: TerminalBenchValsTaskRow[] = [];
+	const taskRows: TerminalBenchTaskRow[] = [];
 	for (const [task, taskValue] of Object.entries(tasks)) {
 		const taskLabel = taskLabels[task] ?? task;
 		const taskModels = asRecord(taskValue);
 		const taskModelIds = new Set(Object.keys(taskModels));
 		for (const [rawModelId, rowValue] of Object.entries(taskModels)) {
-			const row = terminalBenchValsTaskRow(
+			const row = terminalBenchTaskRow(
 				task,
 				taskLabel,
 				rawModelId,
@@ -250,17 +248,15 @@ export function processTerminalBenchValsPageHtml(
 			}
 		}
 	}
-	const sortedTaskRows = sortTerminalBenchValsRows(taskRows);
+	const sortedTaskRows = sortTerminalBenchRows(taskRows);
 	return {
 		metadata,
 		task_rows: sortedTaskRows,
-		model_scores: sortTerminalBenchValsRows(
-			sortedTaskRows.filter(isOverallRow),
-		),
+		model_scores: sortTerminalBenchRows(sortedTaskRows.filter(isOverallRow)),
 	};
 }
 
-function modelKeyCandidates(row: TerminalBenchValsModelHarnessRow): string[] {
+function modelKeyCandidates(row: TerminalBenchModelHarnessRow): string[] {
 	const slug = modelSlug(row.model_id);
 	return [row.model_id, row.raw_model_id, row.model, slug]
 		.map(normalizeModelToken)
@@ -269,10 +265,10 @@ function modelKeyCandidates(row: TerminalBenchValsModelHarnessRow): string[] {
 		);
 }
 
-export function buildTerminalBenchValsMap(
-	rows: TerminalBenchValsModelHarnessRow[],
-): TerminalBenchValsByModelName {
-	const rowsByModelName: TerminalBenchValsByModelName = new Map();
+export function buildTerminalBenchMap(
+	rows: TerminalBenchModelHarnessRow[],
+): TerminalBenchRowsByModelName {
+	const rowsByModelName: TerminalBenchRowsByModelName = new Map();
 	for (const row of rows) {
 		for (const key of modelKeyCandidates(row)) {
 			const existingRows = rowsByModelName.get(key) ?? [];
@@ -283,10 +279,10 @@ export function buildTerminalBenchValsMap(
 	return rowsByModelName;
 }
 
-export function findTerminalBenchValsRows(
+export function findTerminalBenchRows(
 	candidateNames: unknown[],
-	rowsByModelName: TerminalBenchValsByModelName,
-): TerminalBenchValsModelHarnessRow[] {
+	rowsByModelName: TerminalBenchRowsByModelName,
+): TerminalBenchModelHarnessRow[] {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
@@ -299,19 +295,19 @@ export function findTerminalBenchValsRows(
 	return [];
 }
 
-export async function getTerminalBenchValsStats(
-	options: TerminalBenchValsScraperOptions = {},
-): Promise<TerminalBenchValsPayload> {
+export async function getTerminalBenchStats(
+	options: TerminalBenchScraperOptions = {},
+): Promise<TerminalBenchPayload> {
 	try {
 		const url = options.url ?? DEFAULT_LEADERBOARD_URL;
 		const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 		const response = await fetchWithTimeout(url, {}, timeoutMs);
 		if (!response.ok) {
-			throw new Error(`Vals Terminal-Bench scrape failed: ${response.status}`);
+			throw new Error(`Terminal-Bench scrape failed: ${response.status}`);
 		}
 		return {
 			fetched_at_epoch_seconds: nowEpochSeconds(),
-			...processTerminalBenchValsPageHtml(await response.text()),
+			...processTerminalBenchPageHtml(await response.text()),
 		};
 	} catch {
 		return {

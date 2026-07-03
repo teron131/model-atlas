@@ -38,8 +38,8 @@ import {
 	getValsIndexStats,
 } from "../scrapers/vals/index-benchmark";
 import {
-	buildTerminalBenchValsMap,
-	getTerminalBenchValsStats,
+	buildTerminalBenchMap,
+	getTerminalBenchStats,
 } from "../scrapers/vals/terminal-bench";
 import { modelSlugFromModelId } from "../shared";
 import {
@@ -115,7 +115,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getRiemannBenchStats(),
 		getToolathlonStats(),
 		getValsIndexStats(),
-		getTerminalBenchValsStats(),
+		getTerminalBenchStats(),
 	]);
 	const artificialAnalysisRows = artificialAnalysisStats.data;
 	const artificialAnalysisEvaluationResourceRows =
@@ -195,7 +195,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		},
 		valsTerminalBench: {
 			rows: valsTerminalBenchRows,
-			scoreByModelName: buildTerminalBenchValsMap(valsTerminalBenchRows),
+			scoreByModelName: buildTerminalBenchMap(valsTerminalBenchRows),
 		},
 	};
 }

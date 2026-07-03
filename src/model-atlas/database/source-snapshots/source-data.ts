@@ -11,14 +11,14 @@ import { buildGdpPdfMap } from "../../scrapers/gdp-pdf";
 import { buildRiemannBenchMap } from "../../scrapers/riemann-bench";
 import { buildToolathlonMap } from "../../scrapers/toolathlon";
 import { buildValsIndexMap } from "../../scrapers/vals/index-benchmark";
-import { buildTerminalBenchValsMap } from "../../scrapers/vals/terminal-bench";
+import { buildTerminalBenchMap } from "../../scrapers/vals/terminal-bench";
 import { modelSlugFromModelId } from "../../shared";
 import { pickPreferredModelsDevRows } from "../../stats/source-policy";
 import type { LlmStatsSourceData } from "../../stats/types";
 import type { SourceSnapshots } from "../types";
 
 /** Builds the lookup maps expected by stats from persisted snapshot row groups. */
-export function sourceDataFromSnapshots(
+export function cachedSourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
 ): LlmStatsSourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
@@ -101,7 +101,7 @@ export function sourceDataFromSnapshots(
 		},
 		valsTerminalBench: {
 			rows: snapshots.valsTerminalBenchModelScoreRows,
-			scoreByModelName: buildTerminalBenchValsMap(
+			scoreByModelName: buildTerminalBenchMap(
 				snapshots.valsTerminalBenchModelScoreRows,
 			),
 		},

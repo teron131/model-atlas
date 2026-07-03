@@ -16,7 +16,7 @@ import {
 	buildValsIndexMap,
 	type ValsIndexModelScoreRow,
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
-import { buildTerminalBenchValsMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
+import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
 import { buildMatchedModelRows } from "../src/model-atlas/stats/matching";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
@@ -335,7 +335,7 @@ function modelStatsSourceData(
 		},
 		valsTerminalBench: {
 			rows: [],
-			scoreByModelName: buildTerminalBenchValsMap([]),
+			scoreByModelName: buildTerminalBenchMap([]),
 		},
 	};
 }
