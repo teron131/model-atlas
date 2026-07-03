@@ -18,6 +18,7 @@ assertDeepEqual(
 			model: "Claude Fable 5",
 			provider: "Anthropic",
 			provider_id: "anthropic",
+			reasoning_effort: null,
 			cost_per_task_usd: 1.1,
 			seconds_per_task: 420,
 			tokens_per_task: 300_000,

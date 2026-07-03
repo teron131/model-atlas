@@ -11,7 +11,10 @@ import {
 	fetchWithTimeout,
 	nowEpochSeconds,
 } from "../../utils";
-import { cleanArtificialAnalysisModelName } from "./evals";
+import {
+	cleanArtificialAnalysisModelName,
+	parseArtificialAnalysisReasoningEffort,
+} from "./common";
 
 const DEFAULT_EVALUATION_URL =
 	"https://artificialanalysis.ai/evaluations/terminalbench-v2-1";
@@ -32,6 +35,7 @@ export type TerminalBenchAAResourceRow = {
 	model: string;
 	provider: string;
 	provider_id: string | null;
+	reasoning_effort: string | null;
 	cost_per_task_usd: number;
 	seconds_per_task: number;
 	tokens_per_task: number;
@@ -132,10 +136,11 @@ function terminalBenchResourceRow(
 	const provider =
 		stringValue(providerRecord.name) ?? stringValue(row.modelCreatorName);
 	const providerId = stringValue(providerRecord.slug) ?? providerSlug(provider);
-	const model =
-		cleanArtificialAnalysisModelName(
-			stringValue(row.short_name) ?? stringValue(row.shortName) ?? row.name,
-		) ?? modelSlug;
+	const sourceModelName =
+		stringValue(row.short_name) ?? stringValue(row.shortName) ?? row.name;
+	const model = cleanArtificialAnalysisModelName(sourceModelName) ?? modelSlug;
+	const reasoningEffort =
+		parseArtificialAnalysisReasoningEffort(sourceModelName);
 	const cost = asRecord(row.evalCost);
 	const tokenCounts = asRecord(row.tokenCounts);
 	const costPerTask = perTask(asFiniteNumber(cost.total));
@@ -164,6 +169,7 @@ function terminalBenchResourceRow(
 		model,
 		provider,
 		provider_id: providerId,
+		reasoning_effort: reasoningEffort,
 		cost_per_task_usd: costPerTask,
 		seconds_per_task: secondsPerTask,
 		tokens_per_task: tokensPerTask,

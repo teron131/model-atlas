@@ -2,7 +2,10 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { cleanArtificialAnalysisModelName } from "../../scrapers/artificial-analysis/evals";
+import {
+	cleanArtificialAnalysisModelName,
+	parseArtificialAnalysisReasoningEffort,
+} from "../../scrapers/artificial-analysis/common";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
@@ -72,15 +75,15 @@ function artificialAnalysisIdentityValues(
 		typeof selectedRow.model_id === "string"
 			? selectedRow.model_id
 			: firstString(row, ["model_id", "model_url", "id"]);
+	const sourceName =
+		firstString(row, ["shortName", "short_name", "name"]) ??
+		firstString(selectedRow, ["name"]);
 	return [
 		modelId,
 		cleanArtificialAnalysisModelName(
 			firstString(row, ["name"]) ?? firstString(selectedRow, ["name"]),
 		),
-		cleanArtificialAnalysisModelName(
-			firstString(row, ["shortName", "short_name"]) ??
-				firstString(selectedRow, ["name"]),
-		),
+		cleanArtificialAnalysisModelName(sourceName),
 		firstString(creator, ["name"]) ?? firstString(row, ["modelCreatorName"]),
 		absoluteArtificialAnalysisUrl(
 			firstString(selectedRow, ["model_url"]) ??
@@ -89,6 +92,8 @@ function artificialAnalysisIdentityValues(
 		firstString(row, ["releaseDate", "release_date"]),
 		booleanValue(row.deprecated),
 		booleanValue(row.reasoningModel),
+		firstString(selectedRow, ["reasoning_effort"]) ??
+			parseArtificialAnalysisReasoningEffort(sourceName),
 		booleanValue(row.isOpenWeights),
 		booleanValue(row.commercialAllowed),
 	];
@@ -191,8 +196,8 @@ export function insertArtificialAnalysisRawModels(
 		INSERT INTO artificial_analysis_raw_models (
 			run_id, row_index, fetched_at_epoch_seconds, url, model_id, name,
 			short_name, creator_name, model_url, release_date, deprecated,
-			reasoning_model, open_weights, commercial_allowed, input_modality_text,
-			input_modality_image, input_modality_video, input_modality_speech,
+			reasoning_model, reasoning_effort, open_weights, commercial_allowed,
+			input_modality_text, input_modality_image, input_modality_video, input_modality_speech,
 			output_modality_text, output_modality_image, output_modality_video,
 			output_modality_speech,
 			median_output_tokens_per_second,
@@ -204,7 +209,7 @@ export function insertArtificialAnalysisRawModels(
 			output_cost, total_cost, input_tokens, reasoning_tokens, answer_tokens,
 			output_tokens, total_tokens, cost_per_task, seconds_per_task,
 			output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 53 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 54 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
 		const selectedRow =
@@ -236,9 +241,9 @@ export function insertArtificialAnalysisTerminalBenchRawRows(
 	const statement = db.prepare(`
 		INSERT INTO artificial_analysis_terminal_bench_raw_rows (
 			run_id, row_index, fetched_at_epoch_seconds, url, model_id, model,
-			provider, provider_id, cost_per_task_usd, seconds_per_task,
+			provider, provider_id, reasoning_effort, cost_per_task_usd, seconds_per_task,
 			tokens_per_task, input_tokens_per_task, output_tokens_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [
 		index,
@@ -253,6 +258,7 @@ export function insertArtificialAnalysisTerminalBenchRawRows(
 			row.model,
 			row.provider,
 			row.provider_id,
+			row.reasoning_effort,
 			row.cost_per_task_usd,
 			row.seconds_per_task,
 			row.tokens_per_task,

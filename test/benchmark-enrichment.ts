@@ -45,6 +45,7 @@ const artificialAnalysisTerminalBenchRow = {
 	model: "Example Model",
 	provider: "Test",
 	provider_id: "test",
+	reasoning_effort: null,
 	cost_per_task_usd: 0.32,
 	seconds_per_task: 40,
 	tokens_per_task: 555,

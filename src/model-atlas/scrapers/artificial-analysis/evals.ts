@@ -6,6 +6,10 @@
 
 import { asRecord, type JsonObject } from "../../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import {
+	cleanArtificialAnalysisModelName,
+	parseArtificialAnalysisReasoningEffort,
+} from "./common";
 
 const DEFAULT_SCRAPE_URL = "https://artificialanalysis.ai/leaderboards/models";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -15,8 +19,6 @@ const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
 const MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD = 1_000_000;
 const NEXT_FLIGHT_CHUNK_REGEX =
 	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
-const DISPLAY_SUFFIX_PATTERN =
-	/\s*\((?:[^)]*(?:fallback|not currently available|unavailable|adaptive reasoning|max effort)[^)]*)\)\s*/gi;
 
 export type ArtificialAnalysisScraperOptions = {
 	url?: string;
@@ -44,6 +46,7 @@ export const ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS = [
 	"model_id",
 	"model_url",
 	"logo",
+	"reasoning_effort",
 	"median_speed",
 	"median_time",
 	"median_end_to_end_response_time",
@@ -72,20 +75,6 @@ function toAbsoluteAaLogoUrl(value: unknown): string | null {
 			? `/${value}`
 			: `/img/logos/${value}`;
 	return `https://artificialanalysis.ai${normalized}`;
-}
-
-/** Remove transient availability/fallback qualifiers from Artificial Analysis model names. */
-export function cleanArtificialAnalysisModelName(
-	value: unknown,
-): string | null {
-	if (typeof value !== "string" || value.length === 0) {
-		return null;
-	}
-	const cleaned = value
-		.replace(DISPLAY_SUFFIX_PATTERN, " ")
-		.replace(/\s+/g, " ")
-		.trim();
-	return cleaned.length > 0 ? cleaned : value;
 }
 
 const EVALUATION_KEY_BY_SOURCE_KEY = {
@@ -598,6 +587,10 @@ function getSelectedColumnValue(
 		case "reasoning":
 		case "reasoning_model":
 			return selectReasoningFlag(row);
+		case "reasoning_effort":
+			return parseArtificialAnalysisReasoningEffort(
+				row.short_name ?? row.shortName ?? row.name,
+			);
 		case "input_modalities":
 			return selectModalities(row, "input");
 		case "output_modalities":

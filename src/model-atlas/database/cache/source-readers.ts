@@ -176,6 +176,7 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 	assignIfString(rawRow, "model_url", row.model_url);
 	assignIfString(rawRow, "releaseDate", row.release_date);
 	assignIfString(rawRow, "logo_url", row.logo_url);
+	assignIfString(rawRow, "reasoning_effort", row.reasoning_effort);
 	assignIfNumber(
 		rawRow,
 		"median_output_speed",
@@ -231,6 +232,7 @@ function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
 	assignIfString(selectedRow, "name", row.name);
 	assignIfString(selectedRow, "model_url", row.model_url);
 	assignIfString(selectedRow, "logo", row.logo_url);
+	assignIfString(selectedRow, "reasoning_effort", row.reasoning_effort);
 	assignIfNumber(
 		selectedRow,
 		"median_speed",
@@ -332,6 +334,7 @@ export function readArtificialAnalysisTerminalBenchRawCache(db: DatabaseSync): {
 					model,
 					provider,
 					provider_id: stringValue(row.provider_id),
+					reasoning_effort: stringValue(row.reasoning_effort),
 					cost_per_task_usd: costPerTaskUsd,
 					seconds_per_task: secondsPerTask,
 					tokens_per_task: tokensPerTask,

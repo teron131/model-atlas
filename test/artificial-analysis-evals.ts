@@ -1,7 +1,7 @@
 import { SIMULATION_PROFILES } from "../src/model-atlas/constants";
+import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/common";
 import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
-	cleanArtificialAnalysisModelName,
 	processArtificialAnalysisScrapedRows,
 } from "../src/model-atlas/scrapers/artificial-analysis/evals";
 import {
@@ -89,6 +89,39 @@ assertDeepEqual(rows[1]?.evaluations, {
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
 assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
+assertDeepEqual(
+	processArtificialAnalysisScrapedRows(
+		[
+			{
+				slug: "gpt-5-5",
+				name: "GPT-5.5 (xhigh)",
+				modelCreatorName: "OpenAI",
+				modelCreatorSlug: "openai",
+				intelligenceIndex: 55,
+			},
+			{
+				slug: "claude-opus-4-7",
+				name: "Claude Opus 4.7 (Non-reasoning, high)",
+				modelCreatorName: "Anthropic",
+				modelCreatorSlug: "anthropic",
+				intelligenceIndex: 43,
+			},
+		],
+		{ selectedColumns: ["model_id", "name", "reasoning_effort"] },
+	),
+	[
+		{
+			model_id: "openai/gpt-5-5",
+			name: "GPT-5.5 (xhigh)",
+			reasoning_effort: "xhigh",
+		},
+		{
+			model_id: "anthropic/claude-opus-4-7",
+			name: "Claude Opus 4.7 (Non-reasoning, high)",
+			reasoning_effort: null,
+		},
+	],
+);
 assertDeepEqual(
 	processArtificialAnalysisScrapedRows(
 		[
