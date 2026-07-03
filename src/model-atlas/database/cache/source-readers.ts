@@ -3,7 +3,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import type { AgentsLastExamHarnessRow } from "../../scrapers/agents-last-exam";
-import type { TerminalBenchAAResourceRow } from "../../scrapers/artificial-analysis/terminal-bench";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/evaluation-resources";
 import type { BlueprintBenchModelScoreRow } from "../../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../../scrapers/cursorbench";
@@ -295,31 +295,41 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	};
 }
 
-export function readArtificialAnalysisTerminalBenchRawCache(db: DatabaseSync): {
-	rows: TerminalBenchAAResourceRow[];
+export function readArtificialAnalysisEvaluationResourceRawCache(
+	db: DatabaseSync,
+): {
+	rows: ArtificialAnalysisEvaluationResourceRow[];
 	fetchedAt: number | null;
 } | null {
 	const rawRows = rows(
 		db,
-		"SELECT * FROM artificial_analysis_terminal_bench_raw_rows ORDER BY row_index",
+		"SELECT * FROM artificial_analysis_evaluation_resource_raw_rows ORDER BY row_index",
 	);
 	if (rawRows.length === 0) {
 		return null;
 	}
 	return {
 		rows: rawRows.flatMap((row) => {
+			const benchmarkKey = stringValue(row.benchmark_key);
+			const sourceUrl = stringValue(row.url);
 			const modelId = stringValue(row.model_id);
 			const model = stringValue(row.model);
 			const provider = stringValue(row.provider);
+			const score = asFiniteNumber(row.score);
+			const taskCount = asFiniteNumber(row.task_count);
 			const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
 			const secondsPerTask = asFiniteNumber(row.seconds_per_task);
 			const tokensPerTask = asFiniteNumber(row.tokens_per_task);
 			const inputTokensPerTask = asFiniteNumber(row.input_tokens_per_task);
 			const outputTokensPerTask = asFiniteNumber(row.output_tokens_per_task);
 			if (
+				benchmarkKey == null ||
+				sourceUrl == null ||
 				modelId == null ||
 				model == null ||
 				provider == null ||
+				score == null ||
+				taskCount == null ||
 				costPerTaskUsd == null ||
 				secondsPerTask == null ||
 				tokensPerTask == null ||
@@ -330,16 +340,24 @@ export function readArtificialAnalysisTerminalBenchRawCache(db: DatabaseSync): {
 			}
 			return [
 				{
+					benchmark_key: benchmarkKey,
+					source_url: sourceUrl,
 					model_id: modelId,
 					model,
 					provider,
 					provider_id: stringValue(row.provider_id),
 					reasoning_effort: stringValue(row.reasoning_effort),
+					score,
+					task_count: taskCount,
 					cost_per_task_usd: costPerTaskUsd,
 					seconds_per_task: secondsPerTask,
 					tokens_per_task: tokensPerTask,
 					input_tokens_per_task: inputTokensPerTask,
 					output_tokens_per_task: outputTokensPerTask,
+					answer_tokens_per_task: asFiniteNumber(row.answer_tokens_per_task),
+					reasoning_tokens_per_task: asFiniteNumber(
+						row.reasoning_tokens_per_task,
+					),
 				},
 			];
 		}),

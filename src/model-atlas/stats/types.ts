@@ -5,9 +5,9 @@ import type {
 	AgentsLastExamScoreByModelName,
 } from "../scrapers/agents-last-exam";
 import type {
-	TerminalBenchAAResourceByModelName,
-	TerminalBenchAAResourceRow,
-} from "../scrapers/artificial-analysis/terminal-bench";
+	ArtificialAnalysisEvaluationResourceByBenchmark,
+	ArtificialAnalysisEvaluationResourceRow,
+} from "../scrapers/artificial-analysis/evaluation-resources";
 import type {
 	AutomationBenchModelScoreRow,
 	AutomationBenchScoreByModelName,
@@ -180,7 +180,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 export type LlmStatsScoringSourceRow =
 	| JsonObject
 	| AgentsLastExamModelScoreRow
-	| TerminalBenchAAResourceRow
+	| ArtificialAnalysisEvaluationResourceRow
 	| TerminalBenchAggregateRow
 	| AutomationBenchModelScoreRow
 	| CursorBenchModelScoreRow
@@ -502,9 +502,9 @@ export type LlmStatsSourceData = {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
 	};
-	artificialAnalysisTerminalBench: LlmStatsScoreSourceRows<
-		TerminalBenchAAResourceRow,
-		TerminalBenchAAResourceByModelName
+	artificialAnalysisEvaluationResources: LlmStatsScoreSourceRows<
+		ArtificialAnalysisEvaluationResourceRow,
+		ArtificialAnalysisEvaluationResourceByBenchmark
 	>;
 	modelsDev: {
 		rows: ModelsDevModel[];

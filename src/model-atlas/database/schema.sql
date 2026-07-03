@@ -68,21 +68,26 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	PRIMARY KEY (run_id, row_index)
 );
 
-CREATE TABLE IF NOT EXISTS artificial_analysis_terminal_bench_raw_rows (
+CREATE TABLE IF NOT EXISTS artificial_analysis_evaluation_resource_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
+	benchmark_key TEXT NOT NULL,
 	model_id TEXT NOT NULL,
 	model TEXT NOT NULL,
 	provider TEXT NOT NULL,
 	provider_id TEXT,
 	reasoning_effort TEXT,
+	score REAL NOT NULL,
+	task_count INTEGER NOT NULL,
 	cost_per_task_usd REAL NOT NULL,
 	seconds_per_task REAL NOT NULL,
 	tokens_per_task REAL NOT NULL,
 	input_tokens_per_task REAL NOT NULL,
 	output_tokens_per_task REAL NOT NULL,
+	answer_tokens_per_task REAL,
+	reasoning_tokens_per_task REAL,
 	PRIMARY KEY (run_id, row_index)
 );
 

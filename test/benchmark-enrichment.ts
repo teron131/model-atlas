@@ -1,7 +1,7 @@
 /** Verify shared benchmark enrichment maps source rows into evaluations and scoring sources. */
 
 import assert from "node:assert/strict";
-
+import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/evaluation-resources";
 import {
 	type BenchmarkEnrichmentLookups,
 	benchmarkEnrichment,
@@ -40,18 +40,42 @@ const cursorBenchRow = {
 	tokens_per_task: 12345,
 	steps_per_task: 12,
 };
-const artificialAnalysisTerminalBenchRow = {
+const terminalBenchAAResourceRow: ArtificialAnalysisEvaluationResourceRow = {
+	benchmark_key: "terminalbench_v21",
+	source_url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	model_id: "test/example-model",
 	model: "Example Model",
 	provider: "Test",
 	provider_id: "test",
 	reasoning_effort: null,
+	score: 0.82,
+	task_count: 267,
 	cost_per_task_usd: 0.32,
 	seconds_per_task: 40,
 	tokens_per_task: 555,
 	input_tokens_per_task: 111,
 	output_tokens_per_task: 444,
+	answer_tokens_per_task: null,
+	reasoning_tokens_per_task: null,
 };
+const artificialAnalysisHleResourceRow = {
+	benchmark_key: "hle",
+	source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+	model_id: "test/example-model",
+	model: "Example Model",
+	provider: "Test",
+	provider_id: "test",
+	reasoning_effort: null,
+	score: 0.4,
+	task_count: 2158,
+	cost_per_task_usd: 0.02,
+	seconds_per_task: 3,
+	tokens_per_task: 123,
+	input_tokens_per_task: 23,
+	output_tokens_per_task: 100,
+	answer_tokens_per_task: 40,
+	reasoning_tokens_per_task: 60,
+} satisfies ArtificialAnalysisEvaluationResourceRow;
 const valsTerminalBenchRow = {
 	task: "overall" as const,
 	task_label: "Overall",
@@ -68,9 +92,13 @@ const valsTerminalBenchRow = {
 const enrichment = benchmarkEnrichment(
 	["Example Model"],
 	{
-		artificialAnalysisTerminalBench: {
+		artificialAnalysisEvaluationResources: {
 			scoreByModelName: new Map([
-				["example-model", artificialAnalysisTerminalBenchRow],
+				["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
+				[
+					"terminalbench_v21",
+					new Map([["example-model", terminalBenchAAResourceRow]]),
+				],
 			]),
 		},
 		valsTerminalBench: {
@@ -108,6 +136,7 @@ const enrichment = benchmarkEnrichment(
 		},
 	} satisfies BenchmarkEnrichmentLookups,
 	{
+		hle: 0.4,
 		terminalbench_v21: 0.82,
 	},
 );
@@ -119,6 +148,7 @@ assert.deepEqual(enrichment.evaluations, {
 	cursorbench: 0.52,
 });
 assert.deepEqual(enrichment.scoringSources, {
+	hle: artificialAnalysisHleResourceRow,
 	terminalbench_v21: {
 		model_id: "test/example-model",
 		model: "Example Model",
@@ -138,6 +168,13 @@ assert.deepEqual(enrichment.scoringSources, {
 	cursorbench: cursorBenchRow,
 });
 assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
+	hle: {
+		cost: 0.02,
+		seconds: 3,
+		tokens: 123,
+		input_tokens: 23,
+		output_tokens: 100,
+	},
 	terminalbench_v21: {
 		cost: 0.33999999999999997,
 		seconds: 45,

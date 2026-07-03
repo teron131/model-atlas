@@ -4,6 +4,7 @@ import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
 } from "../../scrapers/agents-last-exam";
+import { findArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/evaluation-resources";
 import { findAutomationBenchScoreRow } from "../../scrapers/automation-bench";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../../scrapers/browsecomp";
@@ -21,8 +22,8 @@ export type BenchmarkEnrichmentLookups = {
 		LlmStatsSourceData["agentsLastExam"],
 		"scoreByModelName"
 	>;
-	artificialAnalysisTerminalBench: Pick<
-		LlmStatsSourceData["artificialAnalysisTerminalBench"],
+	artificialAnalysisEvaluationResources: Pick<
+		LlmStatsSourceData["artificialAnalysisEvaluationResources"],
 		"scoreByModelName"
 	>;
 	automationBench: Pick<
@@ -74,6 +75,16 @@ export function benchmarkEnrichment(
 ): BenchmarkEnrichment {
 	const evaluations: Record<string, unknown> = {};
 	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
+	for (const key of Object.keys(baseEvaluations)) {
+		const resourceRow = findArtificialAnalysisEvaluationResourceRow(
+			key,
+			modelNameCandidates,
+			lookups.artificialAnalysisEvaluationResources.scoreByModelName,
+		);
+		if (resourceRow != null) {
+			scoringSources[key] = resourceRow;
+		}
+	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
 		lookups.agentsLastExam.scoreByModelName,
@@ -87,7 +98,8 @@ export function benchmarkEnrichment(
 	const terminalBench = findTerminalBenchAggregate(
 		modelNameCandidates,
 		{
-			aaByModel: lookups.artificialAnalysisTerminalBench.scoreByModelName,
+			aaByBenchmark:
+				lookups.artificialAnalysisEvaluationResources.scoreByModelName,
 			valsByModel: lookups.valsTerminalBench.scoreByModelName,
 		},
 		baseEvaluations.terminalbench_v21,

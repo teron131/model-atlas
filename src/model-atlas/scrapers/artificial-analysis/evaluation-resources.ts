@@ -1,0 +1,393 @@
+/**
+ * Artificial Analysis evaluation-page resource scraping for benchmark-level per-task telemetry.
+ *
+ * The AA main leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
+ */
+
+import { normalizeModelToken } from "../../shared";
+import {
+	asFiniteNumber,
+	asRecord,
+	fetchWithTimeout,
+	nowEpochSeconds,
+} from "../../utils";
+import {
+	cleanArtificialAnalysisModelName,
+	parseArtificialAnalysisReasoningEffort,
+} from "./common";
+
+const DEFAULT_TIMEOUT_MS = 30_000;
+const NEXT_FLIGHT_CHUNK_REGEX =
+	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
+const ROW_DETECTION_KEY = "evalTimePerTask";
+const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
+
+export type ArtificialAnalysisEvaluationResourcePage = {
+	benchmark_key: string;
+	score_key?: string;
+	url: string;
+	task_count: number;
+};
+
+export type ArtificialAnalysisEvaluationResourceOptions = {
+	pages?: readonly ArtificialAnalysisEvaluationResourcePage[];
+	timeoutMs?: number;
+};
+
+export type ArtificialAnalysisEvaluationResourceRow = {
+	benchmark_key: string;
+	source_url: string;
+	model_id: string;
+	model: string;
+	provider: string;
+	provider_id: string | null;
+	reasoning_effort: string | null;
+	score: number;
+	task_count: number;
+	cost_per_task_usd: number;
+	seconds_per_task: number;
+	tokens_per_task: number;
+	input_tokens_per_task: number;
+	output_tokens_per_task: number;
+	answer_tokens_per_task: number | null;
+	reasoning_tokens_per_task: number | null;
+};
+
+export type ArtificialAnalysisEvaluationResourcePayload = {
+	fetched_at_epoch_seconds: number | null;
+	data: ArtificialAnalysisEvaluationResourceRow[];
+};
+
+export type ArtificialAnalysisEvaluationResourceByBenchmark = ReadonlyMap<
+	string,
+	ReadonlyMap<string, ArtificialAnalysisEvaluationResourceRow>
+>;
+
+export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
+	{
+		benchmark_key: "hle",
+		url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+		task_count: 2_158,
+	},
+	{
+		benchmark_key: "critpt",
+		url: "https://artificialanalysis.ai/evaluations/critpt",
+		task_count: 70,
+	},
+	{
+		benchmark_key: "gdpval_normalized",
+		url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
+		task_count: 220,
+	},
+	{
+		benchmark_key: "apex_agents",
+		url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
+		task_count: 452,
+	},
+	{
+		benchmark_key: "tau_banking",
+		url: "https://artificialanalysis.ai/evaluations/tau3-banking",
+		task_count: 97,
+	},
+	{
+		benchmark_key: "terminalbench_v21",
+		score_key: "terminalbench_v2_1",
+		url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
+		task_count: 89 * 3,
+	},
+] as const satisfies readonly ArtificialAnalysisEvaluationResourcePage[];
+
+function decodeFlightChunk(raw: string): string {
+	try {
+		return JSON.parse(`"${raw}"`) as string;
+	} catch {
+		return raw;
+	}
+}
+
+function extractFlightCorpus(pageHtml: string): string {
+	return [...pageHtml.matchAll(NEXT_FLIGHT_CHUNK_REGEX)]
+		.map((match) => decodeFlightChunk(match[1] ?? ""))
+		.join("\n");
+}
+
+function findObjectEnd(corpus: string, startIndex: number): number {
+	let depth = 0;
+	let inString = false;
+	let escaping = false;
+
+	for (let index = startIndex; index < corpus.length; index += 1) {
+		const char = corpus[index];
+		if (inString) {
+			if (escaping) {
+				escaping = false;
+			} else if (char === "\\") {
+				escaping = true;
+			} else if (char === '"') {
+				inString = false;
+			}
+			continue;
+		}
+		if (char === '"') {
+			inString = true;
+			continue;
+		}
+		if (char === "{") {
+			depth += 1;
+			continue;
+		}
+		if (char === "}") {
+			depth -= 1;
+			if (depth === 0) {
+				return index;
+			}
+		}
+	}
+	return -1;
+}
+
+function parseJsonObject(value: string): Record<string, unknown> | null {
+	try {
+		return asRecord(JSON.parse(value));
+	} catch {
+		return null;
+	}
+}
+
+function providerSlug(provider: string | null): string | null {
+	return provider == null
+		? null
+		: provider
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, "-")
+				.replace(/^-+|-+$/g, "");
+}
+
+function stringValue(value: unknown): string | null {
+	return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function perTask(value: number | null, taskCount: number): number | null {
+	return value == null ? null : value / taskCount;
+}
+
+function extractArtificialAnalysisEvaluationRowsFromPageHtml(
+	pageHtml: string,
+): Record<string, unknown>[] {
+	const corpus = extractFlightCorpus(pageHtml);
+	const rowsById = new Map<string, Record<string, unknown>>();
+	let cursor = 0;
+	while (true) {
+		const hitIndex = corpus.indexOf(`"${ROW_DETECTION_KEY}":`, cursor);
+		if (hitIndex === -1) {
+			break;
+		}
+		cursor = hitIndex + 1;
+		const searchStart = Math.max(0, hitIndex - MODEL_SEARCH_BACKTRACK_CHARS);
+		for (let backIndex = hitIndex; backIndex >= searchStart; backIndex -= 1) {
+			if (corpus[backIndex] !== "{") {
+				continue;
+			}
+			const endIndex = findObjectEnd(corpus, backIndex);
+			if (endIndex === -1 || endIndex < hitIndex) {
+				continue;
+			}
+			const row = parseJsonObject(corpus.slice(backIndex, endIndex + 1));
+			const rowId = stringValue(row?.id) ?? stringValue(row?.slug);
+			if (row == null || rowId == null || !(ROW_DETECTION_KEY in row)) {
+				continue;
+			}
+			rowsById.set(rowId, row);
+			break;
+		}
+	}
+	return [...rowsById.values()];
+}
+
+function artificialAnalysisEvaluationResourceRow(
+	value: unknown,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): ArtificialAnalysisEvaluationResourceRow | null {
+	const row = asRecord(value);
+	const modelSlug = stringValue(row.slug);
+	const providerRecord = asRecord(row.model_creators);
+	const provider =
+		stringValue(providerRecord.name) ?? stringValue(row.modelCreatorName);
+	const providerId = stringValue(providerRecord.slug) ?? providerSlug(provider);
+	const sourceModelName =
+		stringValue(row.short_name) ?? stringValue(row.shortName) ?? row.name;
+	const model = cleanArtificialAnalysisModelName(sourceModelName) ?? modelSlug;
+	const reasoningEffort =
+		parseArtificialAnalysisReasoningEffort(sourceModelName);
+	const cost = asRecord(row.evalCost);
+	const tokenCounts = asRecord(row.tokenCounts);
+	const score = asFiniteNumber(row[page.score_key ?? page.benchmark_key]);
+	const costPerTask = perTask(asFiniteNumber(cost.total), page.task_count);
+	const secondsPerTask = asFiniteNumber(row.evalTimePerTask);
+	const inputTokensPerTask = perTask(
+		asFiniteNumber(tokenCounts.inputTokens),
+		page.task_count,
+	);
+	const outputTokensPerTask = perTask(
+		asFiniteNumber(tokenCounts.outputTokens),
+		page.task_count,
+	);
+	const answerTokensPerTask = perTask(
+		asFiniteNumber(tokenCounts.answerTokens),
+		page.task_count,
+	);
+	const reasoningTokensPerTask = perTask(
+		asFiniteNumber(tokenCounts.reasoningTokens),
+		page.task_count,
+	);
+	const tokensPerTask =
+		inputTokensPerTask == null || outputTokensPerTask == null
+			? null
+			: inputTokensPerTask + outputTokensPerTask;
+	if (
+		modelSlug == null ||
+		provider == null ||
+		providerId == null ||
+		model == null ||
+		score == null ||
+		costPerTask == null ||
+		secondsPerTask == null ||
+		inputTokensPerTask == null ||
+		outputTokensPerTask == null ||
+		tokensPerTask == null
+	) {
+		return null;
+	}
+	return {
+		benchmark_key: page.benchmark_key,
+		source_url: page.url,
+		model_id: `${providerId}/${modelSlug}`,
+		model,
+		provider,
+		provider_id: providerId,
+		reasoning_effort: reasoningEffort,
+		score,
+		task_count: page.task_count,
+		cost_per_task_usd: costPerTask,
+		seconds_per_task: secondsPerTask,
+		tokens_per_task: tokensPerTask,
+		input_tokens_per_task: inputTokensPerTask,
+		output_tokens_per_task: outputTokensPerTask,
+		answer_tokens_per_task: answerTokensPerTask,
+		reasoning_tokens_per_task: reasoningTokensPerTask,
+	};
+}
+
+export function processArtificialAnalysisEvaluationResourceRows(
+	rows: unknown[],
+	page: ArtificialAnalysisEvaluationResourcePage,
+): ArtificialAnalysisEvaluationResourceRow[] {
+	return rows
+		.map((row) => artificialAnalysisEvaluationResourceRow(row, page))
+		.filter(
+			(row): row is ArtificialAnalysisEvaluationResourceRow => row != null,
+		)
+		.sort((left, right) =>
+			`${left.benchmark_key}/${left.model_id}`.localeCompare(
+				`${right.benchmark_key}/${right.model_id}`,
+			),
+		);
+}
+
+function processArtificialAnalysisEvaluationResourcePageHtml(
+	pageHtml: string,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): ArtificialAnalysisEvaluationResourceRow[] {
+	return processArtificialAnalysisEvaluationResourceRows(
+		extractArtificialAnalysisEvaluationRowsFromPageHtml(pageHtml),
+		page,
+	);
+}
+
+function modelKeyCandidates(
+	row: ArtificialAnalysisEvaluationResourceRow,
+): string[] {
+	return [row.model_id, row.model]
+		.map(normalizeModelToken)
+		.filter(
+			(key, index, keys) => key.length > 0 && keys.indexOf(key) === index,
+		);
+}
+
+export function buildArtificialAnalysisEvaluationResourceMap(
+	rows: ArtificialAnalysisEvaluationResourceRow[],
+): ArtificialAnalysisEvaluationResourceByBenchmark {
+	const rowsByBenchmark = new Map<
+		string,
+		Map<string, ArtificialAnalysisEvaluationResourceRow>
+	>();
+	for (const row of rows) {
+		let rowsByModelName = rowsByBenchmark.get(row.benchmark_key);
+		if (rowsByModelName == null) {
+			rowsByModelName = new Map();
+			rowsByBenchmark.set(row.benchmark_key, rowsByModelName);
+		}
+		for (const key of modelKeyCandidates(row)) {
+			rowsByModelName.set(key, row);
+		}
+	}
+	return rowsByBenchmark;
+}
+
+export function findArtificialAnalysisEvaluationResourceRow(
+	benchmarkKey: string,
+	candidateNames: unknown[],
+	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark,
+): ArtificialAnalysisEvaluationResourceRow | null {
+	const rowsByModelName = rowsByBenchmark.get(benchmarkKey);
+	if (rowsByModelName == null) {
+		return null;
+	}
+	for (const candidateName of candidateNames) {
+		if (typeof candidateName !== "string" || candidateName.length === 0) {
+			continue;
+		}
+		const row = rowsByModelName.get(normalizeModelToken(candidateName));
+		if (row != null) {
+			return row;
+		}
+	}
+	return null;
+}
+
+async function getEvaluationResourceRows(
+	page: ArtificialAnalysisEvaluationResourcePage,
+	timeoutMs: number,
+): Promise<ArtificialAnalysisEvaluationResourceRow[]> {
+	const response = await fetchWithTimeout(page.url, {}, timeoutMs);
+	if (!response.ok) {
+		throw new Error(
+			`Artificial Analysis evaluation resource scrape failed for ${page.benchmark_key}: ${response.status}`,
+		);
+	}
+	return processArtificialAnalysisEvaluationResourcePageHtml(
+		await response.text(),
+		page,
+	);
+}
+
+export async function getArtificialAnalysisEvaluationResourceStats(
+	options: ArtificialAnalysisEvaluationResourceOptions = {},
+): Promise<ArtificialAnalysisEvaluationResourcePayload> {
+	const pages = options.pages ?? ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES;
+	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+	const results = await Promise.allSettled(
+		pages.map((page) => getEvaluationResourceRows(page, timeoutMs)),
+	);
+	const data = results
+		.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+		.sort((left, right) =>
+			`${left.benchmark_key}/${left.model_id}`.localeCompare(
+				`${right.benchmark_key}/${right.model_id}`,
+			),
+		);
+	return {
+		fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
+		data,
+	};
+}

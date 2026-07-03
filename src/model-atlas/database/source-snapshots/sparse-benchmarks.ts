@@ -2,9 +2,9 @@
 
 import type { DatabaseSync } from "node:sqlite";
 import {
-	getTerminalBenchAAResourceStats,
-	type TerminalBenchAAResourceRow,
-} from "../../scrapers/artificial-analysis/terminal-bench";
+	type ArtificialAnalysisEvaluationResourceRow,
+	getArtificialAnalysisEvaluationResourceStats,
+} from "../../scrapers/artificial-analysis/evaluation-resources";
 import {
 	type BlueprintBenchModelScoreRow,
 	getBlueprintBenchStats,
@@ -40,7 +40,7 @@ import {
 	type TerminalBenchValsTaskRow,
 } from "../../scrapers/vals/terminal-bench";
 import {
-	readArtificialAnalysisTerminalBenchRawCache,
+	readArtificialAnalysisEvaluationResourceRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,
@@ -67,8 +67,8 @@ export type BlueprintBenchSnapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type ArtificialAnalysisTerminalBenchSnapshot = {
-	artificialAnalysisTerminalBenchRows: TerminalBenchAAResourceRow[];
+export type ArtificialAnalysisEvaluationResourceSnapshot = {
+	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -109,33 +109,33 @@ export type TerminalBenchValsSnapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
-/** Loads dedicated AA Terminal-Bench v2.1 resource rows keyed by source model id. */
-export async function artificialAnalysisTerminalBenchSnapshot(
+/** Loads AA evaluation resource rows keyed by benchmark and source model id. */
+export async function artificialAnalysisEvaluationResourceSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
-): Promise<ArtificialAnalysisTerminalBenchSnapshot> {
+): Promise<ArtificialAnalysisEvaluationResourceSnapshot> {
 	const snapshot = await modelScoreSnapshot({
-		source: "artificial_analysis_terminal_bench",
-		cached: readArtificialAnalysisTerminalBenchRawCache(db),
+		source: "artificial_analysis_evaluation_resources",
+		cached: readArtificialAnalysisEvaluationResourceRawCache(db),
 		status,
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getTerminalBenchAAResourceStats,
-		rowKey: (row) => sourceKey(row.model_id),
-		rowLabel: (row) => row.model,
+		fetchRows: getArtificialAnalysisEvaluationResourceStats,
+		rowKey: (row) => sourceKey(row.benchmark_key, row.model_id),
+		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
 	});
 	return {
-		artificialAnalysisTerminalBenchRows: snapshot.rows,
+		artificialAnalysisEvaluationResourceRows: snapshot.rows,
 		sourceStatus: {
-			source: "artificial_analysis_terminal_bench",
+			source: "artificial_analysis_evaluation_resources",
 			fetchedAt: snapshot.fetchedAt,
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
-			fetchedAtKey: "artificialAnalysisTerminalBench",
+			fetchedAtKey: "artificialAnalysisEvaluationResources",
 		},
 	};
 }

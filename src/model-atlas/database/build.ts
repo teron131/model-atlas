@@ -31,8 +31,8 @@ import {
 } from "./types";
 import {
 	insertAgentsLastExamRawRows,
+	insertArtificialAnalysisEvaluationResourceRawRows,
 	insertArtificialAnalysisRawModels,
-	insertArtificialAnalysisTerminalBenchRawRows,
 	insertBlueprintBenchRawRows,
 	insertBrowseCompRawRows,
 	insertCursorBenchRawRows,
@@ -75,9 +75,13 @@ const SNAPSHOT_WRITERS = [
 			insertArtificialAnalysisRawModels(db, runId, rows.snapshots),
 	},
 	{
-		table: SNAPSHOT_TABLES.artificial_analysis_terminal_bench,
+		table: SNAPSHOT_TABLES.artificial_analysis_evaluation_resources,
 		write: (db, runId, rows) =>
-			insertArtificialAnalysisTerminalBenchRawRows(db, runId, rows.snapshots),
+			insertArtificialAnalysisEvaluationResourceRawRows(
+				db,
+				runId,
+				rows.snapshots,
+			),
 	},
 	{
 		table: SNAPSHOT_TABLES.models_dev,

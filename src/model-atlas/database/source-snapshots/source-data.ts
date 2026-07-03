@@ -1,7 +1,7 @@
 /** Converts persisted source snapshots into in-memory stats source data. */
 
 import { buildAgentsLastExamMap } from "../../scrapers/agents-last-exam";
-import { buildTerminalBenchAAMap } from "../../scrapers/artificial-analysis/terminal-bench";
+import { buildArtificialAnalysisEvaluationResourceMap } from "../../scrapers/artificial-analysis/evaluation-resources";
 import { buildAutomationBenchMap } from "../../scrapers/automation-bench";
 import { buildBlueprintBenchMap } from "../../scrapers/blueprint-bench";
 import { buildBrowseCompMap } from "../../scrapers/browsecomp";
@@ -36,10 +36,10 @@ export function sourceDataFromSnapshots(
 				}),
 			),
 		},
-		artificialAnalysisTerminalBench: {
-			rows: snapshots.artificialAnalysisTerminalBenchRows,
-			scoreByModelName: buildTerminalBenchAAMap(
-				snapshots.artificialAnalysisTerminalBenchRows,
+		artificialAnalysisEvaluationResources: {
+			rows: snapshots.artificialAnalysisEvaluationResourceRows,
+			scoreByModelName: buildArtificialAnalysisEvaluationResourceMap(
+				snapshots.artificialAnalysisEvaluationResourceRows,
 			),
 		},
 		modelsDev: {

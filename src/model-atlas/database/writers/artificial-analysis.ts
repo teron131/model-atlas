@@ -233,37 +233,44 @@ export function insertArtificialAnalysisRawModels(
 	}
 }
 
-export function insertArtificialAnalysisTerminalBenchRawRows(
+export function insertArtificialAnalysisEvaluationResourceRawRows(
 	db: DatabaseSync,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO artificial_analysis_terminal_bench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model_id, model,
-			provider, provider_id, reasoning_effort, cost_per_task_usd, seconds_per_task,
-			tokens_per_task, input_tokens_per_task, output_tokens_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO artificial_analysis_evaluation_resource_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, benchmark_key, model_id,
+			model, provider, provider_id, reasoning_effort, score, task_count,
+			cost_per_task_usd, seconds_per_task, tokens_per_task,
+			input_tokens_per_task, output_tokens_per_task, answer_tokens_per_task,
+			reasoning_tokens_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [
 		index,
 		row,
-	] of snapshots.artificialAnalysisTerminalBenchRows.entries()) {
+	] of snapshots.artificialAnalysisEvaluationResourceRows.entries()) {
 		statement.run(
 			runId,
 			index,
-			snapshots.fetchedAt.artificialAnalysisTerminalBench,
-			SOURCE_URLS.artificial_analysis_terminal_bench,
+			snapshots.fetchedAt.artificialAnalysisEvaluationResources,
+			row.source_url,
+			row.benchmark_key,
 			row.model_id,
 			row.model,
 			row.provider,
 			row.provider_id,
 			row.reasoning_effort,
+			row.score,
+			row.task_count,
 			row.cost_per_task_usd,
 			row.seconds_per_task,
 			row.tokens_per_task,
 			row.input_tokens_per_task,
 			row.output_tokens_per_task,
+			row.answer_tokens_per_task,
+			row.reasoning_tokens_per_task,
 		);
 	}
 }
