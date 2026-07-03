@@ -1,6 +1,7 @@
 /** Converts persisted source snapshots into in-memory stats source data. */
 
 import { buildAgentsLastExamMap } from "../../scrapers/agents-last-exam";
+import { buildTerminalBenchAAMap } from "../../scrapers/artificial-analysis/terminal-bench";
 import { buildAutomationBenchMap } from "../../scrapers/automation-bench";
 import { buildBlueprintBenchMap } from "../../scrapers/blueprint-bench";
 import { buildBrowseCompMap } from "../../scrapers/browsecomp";
@@ -8,8 +9,9 @@ import { buildCursorBenchMap } from "../../scrapers/cursorbench";
 import { buildDeepSWEMap } from "../../scrapers/deep-swe";
 import { buildGdpPdfMap } from "../../scrapers/gdp-pdf";
 import { buildRiemannBenchMap } from "../../scrapers/riemann-bench";
-import { buildTerminalBenchMap } from "../../scrapers/terminal-bench";
 import { buildToolathlonMap } from "../../scrapers/toolathlon";
+import { buildValsIndexMap } from "../../scrapers/vals/index-benchmark";
+import { buildTerminalBenchValsMap } from "../../scrapers/vals/terminal-bench";
 import { modelSlugFromModelId } from "../../shared";
 import { pickPreferredModelsDevRows } from "../../stats/source-policy";
 import type { LlmStatsSourceData } from "../../stats/types";
@@ -32,6 +34,12 @@ export function sourceDataFromSnapshots(
 					const slug = modelSlugFromModelId(modelId);
 					return slug == null ? [] : [[slug, row]];
 				}),
+			),
+		},
+		artificialAnalysisTerminalBench: {
+			rows: snapshots.artificialAnalysisTerminalBenchRows,
+			scoreByModelName: buildTerminalBenchAAMap(
+				snapshots.artificialAnalysisTerminalBenchRows,
 			),
 		},
 		modelsDev: {
@@ -83,15 +91,19 @@ export function sourceDataFromSnapshots(
 				snapshots.riemannBenchModelScoreRows,
 			),
 		},
-		terminalBench: {
-			rows: snapshots.terminalBenchModelScores,
-			accuracyByModelName: buildTerminalBenchMap(
-				snapshots.terminalBenchModelScores,
-			),
-		},
 		toolathlon: {
 			rows: snapshots.toolathlonModelScoreRows,
 			scoreByModelName: buildToolathlonMap(snapshots.toolathlonModelScoreRows),
+		},
+		valsIndex: {
+			rows: snapshots.valsIndexModelScoreRows,
+			scoreByModelName: buildValsIndexMap(snapshots.valsIndexModelScoreRows),
+		},
+		valsTerminalBench: {
+			rows: snapshots.valsTerminalBenchModelScoreRows,
+			scoreByModelName: buildTerminalBenchValsMap(
+				snapshots.valsTerminalBenchModelScoreRows,
+			),
 		},
 	};
 }

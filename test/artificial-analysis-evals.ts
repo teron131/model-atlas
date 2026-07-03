@@ -3,7 +3,7 @@ import {
 	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
 	cleanArtificialAnalysisModelName,
 	processArtificialAnalysisScrapedRows,
-} from "../src/model-atlas/scrapers/artificial-analysis-evals";
+} from "../src/model-atlas/scrapers/artificial-analysis/evals";
 import {
 	buildBenchmarkImputationByModel,
 	buildQualityScoringContext,

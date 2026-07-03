@@ -1,9 +1,6 @@
-import {
-	buildTerminalBenchMap,
-	findTerminalBenchMedianAccuracy,
-	processTerminalBenchLeaderboardRows,
-	summarizeTerminalBenchModelMedianAccuracy,
-} from "../src/model-atlas/scrapers/terminal-bench";
+/** Verifies Terminal-Bench AA and Vals aggregate score/resource policy. */
+
+import { terminalBenchAggregateRow } from "../src/model-atlas/stats/benchmarks/terminal-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);
@@ -13,47 +10,47 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 	}
 }
 
-const rows = processTerminalBenchLeaderboardRows([
-	{ agent: "A", model: ["M1"], accuracy: 0.2 },
-	{ agent: "B", model: ["M1"], accuracy: 0.9 },
-	{ agent: "C", model: ["M1", "M2"], accuracy: 0.4 },
-	{ agent: "D", model: ["M2"], accuracy: 0.7 },
-	{ agent: "E", model: ["Multiple"], accuracy: 0.9 },
-	{ agent: "skip", model: [], accuracy: 0.9 },
-]);
-
-assertDeepEqual(rows, [
-	{ agent: "A", model: "M1", accuracy: 0.2 },
-	{ agent: "B", model: "M1", accuracy: 0.9 },
-	{ agent: "C", model: "M1, M2", accuracy: 0.4 },
-	{ agent: "D", model: "M2", accuracy: 0.7 },
-	{ agent: "E", model: "Multiple", accuracy: 0.9 },
-]);
-
-assertDeepEqual(summarizeTerminalBenchModelMedianAccuracy(rows), [
-	{ model: "M2", median_accuracy: 0.55, mean_accuracy: 0.55, frequency: 2 },
-	{ model: "M1", median_accuracy: 0.4, mean_accuracy: 0.5, frequency: 3 },
-]);
-
-const terminalBenchAccuracyByModelName = buildTerminalBenchMap([
-	{
-		model: "GPT-5.3 Codex",
-		median_accuracy: 0.8,
-		mean_accuracy: 0.8,
-		frequency: 1,
-	},
-	{
-		model: "GPT-5.3-Codex",
-		median_accuracy: 0.75,
-		mean_accuracy: 0.78,
-		frequency: 11,
-	},
-]);
-
 assertDeepEqual(
-	findTerminalBenchMedianAccuracy(
-		["missing", "GPT 5.3 Codex"],
-		terminalBenchAccuracyByModelName,
-	),
-	0.78,
+	terminalBenchAggregateRow({
+		aaScore: 0.84,
+		terminalBenchAA: {
+			model_id: "anthropic/claude-fable-5",
+			model: "Claude Fable 5",
+			provider: "Anthropic",
+			provider_id: "anthropic",
+			cost_per_task_usd: 1.1,
+			seconds_per_task: 420,
+			tokens_per_task: 300_000,
+			input_tokens_per_task: 280_000,
+			output_tokens_per_task: 20_000,
+		},
+		terminalBenchVals: [
+			{
+				task: "overall",
+				task_label: "Overall",
+				raw_model_id: "anthropic/claude-fable-5",
+				model_id: "anthropic/claude-fable-5",
+				model: "claude-fable-5",
+				provider: "Anthropic",
+				harness: null,
+				score: 0.8,
+				cost_per_task_usd: 1.3,
+				seconds_per_task: 500,
+			},
+		],
+	}),
+	{
+		model_id: "anthropic/claude-fable-5",
+		model: "Claude Fable 5",
+		provider: "Anthropic",
+		harness: null,
+		sources: ["artificial_analysis", "vals"],
+		source_count: 2,
+		score: 0.84,
+		cost_per_task_usd: 1.2000000000000002,
+		seconds_per_task: 460,
+		tokens_per_task: 300000,
+		input_tokens_per_task: 280000,
+		output_tokens_per_task: 20000,
+	},
 );

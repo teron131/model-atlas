@@ -9,6 +9,8 @@ const SCHEMA_SQL_PATH = resolve(
 	"src/model-atlas/database/schema.sql",
 );
 
+const ACCIDENTAL_VALS_INDEX_COLUMN = "raw_model_id";
+
 /** Load the SQLite schema file colocated with this database pipeline. */
 export async function loadSchemaSql(): Promise<string> {
 	try {
@@ -35,9 +37,19 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	await mkdir(dirname(outputPath), { recursive: true });
 	const db = new DatabaseSync(outputPath);
 	const schemaSql = await loadSchemaSql();
+	repairAccidentalValsIndexSchema(db);
 	db.exec(schemaSql);
 	ensureSchemaColumns(db, schemaSql);
 	return db;
+}
+
+/** Drops the bad Vals Index cache shape created by a brief local schema bug. */
+function repairAccidentalValsIndexSchema(db: DatabaseSync): void {
+	if (
+		tableColumns(db, "vals_index_raw_rows").has(ACCIDENTAL_VALS_INDEX_COLUMN)
+	) {
+		db.prepare("DROP TABLE IF EXISTS vals_index_raw_rows").run();
+	}
 }
 
 function tableColumns(db: DatabaseSync, table: string): Set<string> {

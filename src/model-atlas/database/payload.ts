@@ -46,8 +46,9 @@ export type PayloadRows = {
 	deepSWERows: DbRow[];
 	gdpPdfRows: DbRow[];
 	riemannBenchRows: DbRow[];
-	terminalBenchRows: DbRow[];
 	toolathlonRows: DbRow[];
+	valsIndexRows: DbRow[];
+	valsTerminalBenchRows: DbRow[];
 };
 
 type PayloadRowKey = Exclude<keyof PayloadRows, "run">;
@@ -109,12 +110,18 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 		sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
 	},
 	{
-		key: "terminalBenchRows",
-		sql: "SELECT * FROM terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-	},
-	{
 		key: "toolathlonRows",
 		sql: "SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "valsIndexRows",
+		sql: "SELECT * FROM vals_index_raw_rows WHERE run_id = ? ORDER BY row_index",
+		optional: true,
+	},
+	{
+		key: "valsTerminalBenchRows",
+		sql: "SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		optional: true,
 	},
 ];
 
@@ -227,6 +234,20 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 		"output_tokens",
 		row.artificial_analysis_task_output_tokens,
 	);
+	const terminalBench: Record<string, number> = {};
+	assignNumber(terminalBench, "cost", row.terminalbench_v21_task_cost);
+	assignNumber(terminalBench, "seconds", row.terminalbench_v21_task_seconds);
+	assignNumber(terminalBench, "tokens", row.terminalbench_v21_task_tokens);
+	assignNumber(
+		terminalBench,
+		"input_tokens",
+		row.terminalbench_v21_task_input_tokens,
+	);
+	assignNumber(
+		terminalBench,
+		"output_tokens",
+		row.terminalbench_v21_task_output_tokens,
+	);
 	const agentsLastExam: Record<string, number> = {};
 	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
 	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
@@ -252,6 +273,9 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
 	if (hasFields(artificialAnalysis)) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
+	}
+	if (hasFields(terminalBench)) {
+		taskMetrics.terminalbench_v21 = terminalBench;
 	}
 	if (hasFields(agentsLastExam)) {
 		taskMetrics.agents_last_exam = agentsLastExam;
@@ -359,8 +383,9 @@ function buildPayloadRows(
 		deepSWERows: rows.get("deepSWERows") ?? [],
 		gdpPdfRows: rows.get("gdpPdfRows") ?? [],
 		riemannBenchRows: rows.get("riemannBenchRows") ?? [],
-		terminalBenchRows: rows.get("terminalBenchRows") ?? [],
 		toolathlonRows: rows.get("toolathlonRows") ?? [],
+		valsIndexRows: rows.get("valsIndexRows") ?? [],
+		valsTerminalBenchRows: rows.get("valsTerminalBenchRows") ?? [],
 	};
 }
 

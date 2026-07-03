@@ -11,12 +11,18 @@ import { findDeepSWEModelScore } from "../../scrapers/deep-swe";
 import { findGdpPdfScore } from "../../scrapers/gdp-pdf";
 import { findRiemannBenchScore } from "../../scrapers/riemann-bench";
 import { findToolathlonScore } from "../../scrapers/toolathlon";
+import { findValsIndexScore } from "../../scrapers/vals/index-benchmark";
 import { normalizeModelToken } from "../../shared";
 import type { LlmStatsScoringSources, LlmStatsSourceData } from "../types";
+import { findTerminalBenchAggregate } from "./terminal-bench";
 
 export type BenchmarkEnrichmentLookups = {
 	agentsLastExam: Pick<
 		LlmStatsSourceData["agentsLastExam"],
+		"scoreByModelName"
+	>;
+	artificialAnalysisTerminalBench: Pick<
+		LlmStatsSourceData["artificialAnalysisTerminalBench"],
 		"scoreByModelName"
 	>;
 	automationBench: Pick<
@@ -32,11 +38,12 @@ export type BenchmarkEnrichmentLookups = {
 	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "scoreByModelName">;
 	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "scoreByModelName">;
 	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "scoreByModelName">;
-	terminalBench: Pick<
-		LlmStatsSourceData["terminalBench"],
-		"accuracyByModelName"
-	>;
 	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "scoreByModelName">;
+	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "scoreByModelName">;
+	valsTerminalBench: Pick<
+		LlmStatsSourceData["valsTerminalBench"],
+		"scoreByModelName"
+	>;
 };
 
 export type BenchmarkEnrichment = {
@@ -63,6 +70,7 @@ function findSourceRow<T>(
 export function benchmarkEnrichment(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
+	baseEvaluations: Record<string, unknown> = {},
 ): BenchmarkEnrichment {
 	const evaluations: Record<string, unknown> = {};
 	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
@@ -74,6 +82,19 @@ export function benchmarkEnrichment(
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
 		scoringSources.agents_last_exam = agentsLastExamScore;
+	}
+
+	const terminalBench = findTerminalBenchAggregate(
+		modelNameCandidates,
+		{
+			aaByModel: lookups.artificialAnalysisTerminalBench.scoreByModelName,
+			valsByModel: lookups.valsTerminalBench.scoreByModelName,
+		},
+		baseEvaluations.terminalbench_v21,
+	);
+	if (terminalBench != null) {
+		evaluations.terminalbench_v21 = terminalBench.score;
+		scoringSources.terminalbench_v21 = terminalBench;
 	}
 
 	const automationBenchScore = findAutomationBenchScoreRow(
@@ -141,6 +162,14 @@ export function benchmarkEnrichment(
 	);
 	if (toolathlonScore != null) {
 		evaluations.toolathlon = toolathlonScore;
+	}
+
+	const valsIndexScore = findValsIndexScore(
+		modelNameCandidates,
+		lookups.valsIndex.scoreByModelName,
+	);
+	if (valsIndexScore != null) {
+		evaluations.vals_index = valsIndexScore;
 	}
 
 	return {

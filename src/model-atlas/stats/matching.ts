@@ -151,7 +151,11 @@ function buildMatchedRow(
 		artificialAnalysisModelId,
 		artificialAnalysisSlug,
 	];
-	const benchmarkFields = benchmarkEnrichment(modelNameCandidates, lookups);
+	const benchmarkFields = benchmarkEnrichment(
+		modelNameCandidates,
+		lookups,
+		evaluations,
+	);
 	Object.assign(evaluations, benchmarkFields.evaluations);
 	const canonicalId = canonicalModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,

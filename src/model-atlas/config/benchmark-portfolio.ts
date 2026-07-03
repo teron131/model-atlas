@@ -50,6 +50,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		intelligencePortion: 0,
 		agenticPortion: 1,
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
 	},
 	browsecomp: {
 		group: "baseline",
@@ -66,6 +67,11 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0,
 		agenticPortion: 1,
 		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+	},
+	vals_index: {
+		group: "baseline",
+		intelligencePortion: 0.6,
+		agenticPortion: 0.4,
 	},
 	hle: {
 		group: "frontier",

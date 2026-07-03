@@ -185,6 +185,26 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
+		...sparseBenchmarkDrafts(
+			"vals_index",
+			sourceData.valsIndex.rows,
+			(row) => ({
+				id: row.model_id,
+				label: row.model,
+				provider: row.provider,
+				value: row.score,
+			}),
+		),
+		...sparseBenchmarkDrafts(
+			"terminalbench_v21",
+			sourceData.valsTerminalBench.rows,
+			(row) => ({
+				id: row.model_id,
+				label: row.model,
+				provider: row.provider,
+				value: row.score,
+			}),
+		),
 	];
 }
 

@@ -39,6 +39,7 @@ export const benchmarkLabels: Record<string, string> = {
 	tau_banking: "tau3 Banking",
 	terminalbench_v21: "Terminal-Bench 2.1",
 	toolathlon: "Toolathlon",
+	vals_index: "Vals Index",
 };
 
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
@@ -100,9 +101,9 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	terminalbench_v21: {
 		title: "Terminal-Bench 2.1",
-		body: "AA v4.1 terminal-agent benchmark for command-line task execution.",
+		body: "Best matched AA or Vals terminal-agent score for command-line task execution.",
 		rows: [
-			["Source", "Artificial Analysis"],
+			["Source", "AA + Vals"],
 			["Role", "terminal agent work"],
 		],
 	},
@@ -184,6 +185,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Cursor"],
 			["Role", "coding-agent workflow"],
+		],
+	},
+	vals_index: {
+		title: "Vals Index",
+		body: "Vals AI proprietary composite over finance and coding tasks. Model Atlas uses only the overall score as a normal baseline signal.",
+		rows: [
+			["Source", "Vals AI"],
+			["Role", "professional finance and coding work"],
 		],
 	},
 };

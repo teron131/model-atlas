@@ -22,17 +22,19 @@ import { latestSourceRowStates, missingSinceBySource } from "./policy";
 import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analysis";
 import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
+	artificialAnalysisTerminalBenchSnapshot,
 	blueprintBenchSnapshot,
 	browseCompSnapshot,
 	cursorBenchSnapshot,
 	gdpPdfSnapshot,
 	riemannBenchSnapshot,
 	toolathlonSnapshot,
+	valsIndexSnapshot,
+	valsTerminalBenchSnapshot,
 } from "./source-snapshots/sparse-benchmarks";
 import {
 	agentsLastExamSnapshot,
 	deepSWESnapshot,
-	terminalBenchSnapshot,
 } from "./source-snapshots/summarized-benchmarks";
 import {
 	type DatabaseBuildOptions,
@@ -94,6 +96,7 @@ function fetchedAtFromSourceStatuses(
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
 		artificialAnalysis: null,
+		artificialAnalysisTerminalBench: null,
 		agentsLastExam: null,
 		blueprintBench: null,
 		browseComp: null,
@@ -101,8 +104,9 @@ function fetchedAtFromSourceStatuses(
 		deepSWE: null,
 		gdpPdf: null,
 		riemannBench: null,
-		terminalBench: null,
 		toolathlon: null,
+		valsIndex: null,
+		valsTerminalBench: null,
 	};
 	for (const sourceStatus of sourceStatuses) {
 		if (sourceStatus.fetchedAtKey != null) {
@@ -134,6 +138,7 @@ export async function loadSourceSnapshots(
 	const previousMissingSince = missingSinceBySource(latestSourceRowStates(db));
 	const [
 		artificialAnalysis,
+		artificialAnalysisTerminalBench,
 		modelsDev,
 		agentsLastExam,
 		blueprintBench,
@@ -142,8 +147,9 @@ export async function loadSourceSnapshots(
 		deepSWE,
 		gdpPdf,
 		riemannBench,
-		terminalBench,
 		toolathlon,
+		valsIndex,
+		valsTerminalBench,
 	] = await Promise.all([
 		artificialAnalysisSnapshot(
 			db,
@@ -151,6 +157,13 @@ export async function loadSourceSnapshots(
 			options,
 			scoringConfig,
 			previousMissingSince.artificial_analysis,
+			nowEpochSeconds,
+		),
+		artificialAnalysisTerminalBenchSnapshot(
+			db,
+			sourceCache.artificial_analysis_terminal_bench,
+			options,
+			previousMissingSince.artificial_analysis_terminal_bench,
 			nowEpochSeconds,
 		),
 		modelsDevSnapshot(
@@ -209,18 +222,25 @@ export async function loadSourceSnapshots(
 			previousMissingSince.riemann_bench,
 			nowEpochSeconds,
 		),
-		terminalBenchSnapshot(
-			db,
-			sourceCache.terminal_bench,
-			options,
-			previousMissingSince.terminal_bench,
-			nowEpochSeconds,
-		),
 		toolathlonSnapshot(
 			db,
 			sourceCache.toolathlon,
 			options,
 			previousMissingSince.toolathlon,
+			nowEpochSeconds,
+		),
+		valsIndexSnapshot(
+			db,
+			sourceCache.vals_index,
+			options,
+			previousMissingSince.vals_index,
+			nowEpochSeconds,
+		),
+		valsTerminalBenchSnapshot(
+			db,
+			sourceCache.vals_terminal_bench,
+			options,
+			previousMissingSince.vals_terminal_bench,
 			nowEpochSeconds,
 		),
 	]);
@@ -230,6 +250,7 @@ export async function loadSourceSnapshots(
 	);
 	const sourceStatuses: SourceSnapshotStatus[] = [
 		artificialAnalysis.sourceStatus,
+		artificialAnalysisTerminalBench.sourceStatus,
 		modelsDev.sourceStatus,
 		agentsLastExam.sourceStatus,
 		blueprintBench.sourceStatus,
@@ -238,8 +259,9 @@ export async function loadSourceSnapshots(
 		deepSWE.sourceStatus,
 		gdpPdf.sourceStatus,
 		riemannBench.sourceStatus,
-		terminalBench.sourceStatus,
 		toolathlon.sourceStatus,
+		valsIndex.sourceStatus,
+		valsTerminalBench.sourceStatus,
 	];
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	return {
@@ -247,6 +269,8 @@ export async function loadSourceSnapshots(
 			artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
 			artificialAnalysisSelectedRows:
 				artificialAnalysis.artificialAnalysisSelectedRows,
+			artificialAnalysisTerminalBenchRows:
+				artificialAnalysisTerminalBench.artificialAnalysisTerminalBenchRows,
 			modelsDevPayload: modelsDev.modelsDevPayload,
 			modelsDevModels,
 			modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
@@ -261,9 +285,12 @@ export async function loadSourceSnapshots(
 			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
-			terminalBenchRows: terminalBench.terminalBenchRows,
-			terminalBenchModelScores: terminalBench.terminalBenchModelScores,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
+			valsIndexRows: valsIndex.valsIndexRows,
+			valsIndexModelScoreRows: valsIndex.valsIndexModelScoreRows,
+			valsTerminalBenchRows: valsTerminalBench.valsTerminalBenchRows,
+			valsTerminalBenchModelScoreRows:
+				valsTerminalBench.valsTerminalBenchModelScoreRows,
 			sourceRowStates: sourceStatuses.flatMap(
 				(sourceStatus) => sourceStatus.sourceRowStates,
 			),

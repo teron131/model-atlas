@@ -67,6 +67,23 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS artificial_analysis_terminal_bench_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	model_id TEXT NOT NULL,
+	model TEXT NOT NULL,
+	provider TEXT NOT NULL,
+	provider_id TEXT,
+	cost_per_task_usd REAL NOT NULL,
+	seconds_per_task REAL NOT NULL,
+	tokens_per_task REAL NOT NULL,
+	input_tokens_per_task REAL NOT NULL,
+	output_tokens_per_task REAL NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS models_dev_raw_models (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -228,21 +245,6 @@ CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
-CREATE TABLE IF NOT EXISTS terminal_bench_raw_rows (
-	run_id INTEGER NOT NULL,
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	agent TEXT,
-	model TEXT NOT NULL,
-	accuracy REAL,
-	median_accuracy REAL,
-	mean_accuracy REAL,
-	frequency INTEGER,
-	row_kind TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
-);
-
 CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -258,6 +260,40 @@ CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
 	verified INTEGER,
 	self_reported INTEGER,
 	announcement_date TEXT,
+	PRIMARY KEY (run_id, row_index)
+);
+
+CREATE TABLE IF NOT EXISTS vals_index_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	task TEXT NOT NULL,
+	task_label TEXT NOT NULL,
+	row_kind TEXT NOT NULL,
+	model_id TEXT NOT NULL,
+	model TEXT NOT NULL,
+	provider TEXT,
+	score REAL NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
+CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	task TEXT NOT NULL,
+	task_label TEXT NOT NULL,
+	row_kind TEXT NOT NULL,
+	raw_model_id TEXT,
+	model_id TEXT NOT NULL,
+	model TEXT NOT NULL,
+	provider TEXT,
+	harness TEXT,
+	score REAL NOT NULL,
+	cost_per_task_usd REAL,
+	seconds_per_task REAL,
 	PRIMARY KEY (run_id, row_index)
 );
 
@@ -371,9 +407,15 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	gdp_pdf REAL,
 	riemann_bench REAL,
 	toolathlon REAL,
+	vals_index REAL,
 	artificial_analysis_task_cost REAL,
 	artificial_analysis_task_seconds REAL,
 	artificial_analysis_task_output_tokens REAL,
+	terminalbench_v21_task_cost REAL,
+	terminalbench_v21_task_seconds REAL,
+	terminalbench_v21_task_tokens REAL,
+	terminalbench_v21_task_input_tokens REAL,
+	terminalbench_v21_task_output_tokens REAL,
 	agents_last_exam_task_cost REAL,
 	agents_last_exam_task_seconds REAL,
 	agents_last_exam_task_input_tokens REAL,

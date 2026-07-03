@@ -16,17 +16,7 @@ import {
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultModelScores,
 } from "../../scrapers/deep-swe";
-import {
-	getTerminalBenchAgentModelAccuracyStats,
-	summarizeTerminalBenchModelMedianAccuracy,
-	type TerminalBenchAgentModelAccuracyRow,
-	type TerminalBenchModelMedianAccuracyRow,
-} from "../../scrapers/terminal-bench";
-import {
-	readAgentsLastExamRawCache,
-	readDeepSWERawCache,
-	readTerminalBenchRawCache,
-} from "../cache";
+import { readAgentsLastExamRawCache, readDeepSWERawCache } from "../cache";
 import { snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
@@ -45,12 +35,6 @@ export type DeepSWESnapshot = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
 	deepSWEModelScoreRows: ReturnType<typeof summarizeDeepSWEDefaultModelScores>;
 	deepSWESourceVersion: DeepSWESourceVersion | null;
-	sourceStatus: SourceSnapshotStatus;
-};
-
-export type TerminalBenchSnapshot = {
-	terminalBenchRows: TerminalBenchAgentModelAccuracyRow[];
-	terminalBenchModelScores: TerminalBenchModelMedianAccuracyRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -222,81 +206,6 @@ export async function deepSWESnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.states,
 			fetchedAtKey: "deepSWE",
-		},
-	};
-}
-
-/** Preserves Terminal Bench agent rows while returning per-model median accuracy. */
-export async function terminalBenchSnapshot(
-	db: DatabaseSync,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<TerminalBenchSnapshot> {
-	const cached = readTerminalBenchRawCache(db);
-	if (
-		status.cache_hit &&
-		cached != null &&
-		options.replaceSourceRows !== true
-	) {
-		const cachedSnapshot = snapshotRowsWithStates({
-			source: "terminal_bench",
-			cachedRows: cached.rows,
-			fetchedRows: [],
-			fetchedAtEpochSeconds: null,
-			options,
-			rowKey: (row) => sourceKey(row.agent, row.model),
-			rowLabel: (row) => `${row.agent} ${row.model}`,
-			previousMissingSince,
-			nowEpochSeconds,
-		});
-		return {
-			terminalBenchRows: cachedSnapshot.rows,
-			terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(
-				cachedSnapshot.rows,
-			),
-			sourceStatus: {
-				source: "terminal_bench",
-				fetchedAt: cached.fetchedAt,
-				sourceInputCount: cachedSnapshot.rows.length,
-				sourceRowStates: cachedSnapshot.states,
-				fetchedAtKey: "terminalBench",
-			},
-		};
-	}
-	const fetched = await getTerminalBenchAgentModelAccuracyStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
-	);
-	const snapshot = snapshotRowsWithStates({
-		source: "terminal_bench",
-		cachedRows: cached?.rows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
-		options,
-		rowKey: (row) => sourceKey(row.agent, row.model),
-		rowLabel: (row) => `${row.agent} ${row.model}`,
-		previousMissingSince,
-		nowEpochSeconds,
-	});
-	const fetchedAt = snapshotFetchedAt(
-		hasUsableFetchedRows,
-		cached?.fetchedAt,
-		fetched.fetched_at_epoch_seconds,
-	);
-	return {
-		terminalBenchRows: snapshot.rows,
-		terminalBenchModelScores: summarizeTerminalBenchModelMedianAccuracy(
-			snapshot.rows,
-		),
-		sourceStatus: {
-			source: "terminal_bench",
-			fetchedAt,
-			sourceInputCount: snapshot.rows.length,
-			sourceRowStates: snapshot.states,
-			fetchedAtKey: "terminalBench",
 		},
 	};
 }

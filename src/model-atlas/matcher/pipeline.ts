@@ -1,6 +1,6 @@
 /** Internal matcher pipeline: scope provider pools, collect candidates, and apply the final void threshold. */
 
-import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis-evals";
+import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis/evals";
 import { getModelsDevStats } from "../scrapers/models-dev";
 import {
 	asRecord,

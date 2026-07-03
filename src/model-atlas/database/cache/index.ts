@@ -4,6 +4,7 @@ export { readOpenRouterRawCache } from "./openrouter";
 export {
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisRawCache,
+	readArtificialAnalysisTerminalBenchRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,
@@ -11,7 +12,8 @@ export {
 	readGdpPdfRawCache,
 	readModelsDevRawCache,
 	readRiemannBenchRawCache,
-	readTerminalBenchRawCache,
 	readToolathlonRawCache,
+	readValsIndexRawCache,
+	readValsTerminalBenchRawCache,
 } from "./source-readers";
 export { readRawSourceCacheStatus, refreshedCacheStatus } from "./status";

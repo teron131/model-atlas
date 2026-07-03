@@ -21,7 +21,7 @@ The ranking has two quality dimensions.
   - Captures workflow usefulness: coding or task execution with specific tools, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
   - Evidence comes from benchmarks with a non-zero Agentic portion in the benchmark portfolio.
 
-There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, AA Terminal-Bench 2.1, and AA tau3 Banking remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
+There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, Terminal-Bench 2.1, and AA tau3 Banking remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
 Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
@@ -32,10 +32,11 @@ For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow
 | Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to decide frontier top fights. |
 | LCR | baseline | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
 | SciCode | baseline | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
-| Terminal-Bench&nbsp;2.1&nbsp;(AA) | baseline | 0% | 100% | AA's upgraded terminal-agent benchmark tests command-line execution and environment handling. It stays baseline because stronger frontier agentic tests are more distinctive and the official 2.1 task set is not publicly uploaded yet. |
+| Terminal-Bench&nbsp;2.1 | baseline | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It stays baseline because stronger frontier agentic tests are more distinctive and the official 2.1 task set is not publicly uploaded yet. |
 | BrowseComp | baseline | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
 | Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding. Limited current row count and provenance keep it baseline. |
 | CursorBench | baseline | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks. Composer rows are excluded because their model data is not independently available. |
+| Vals Index | baseline | 60% | 40% | Proprietary Vals AI composite across finance and coding tasks. The overall score is useful as a normal baseline signal, but the opaque private subsets and overlap with other benchmark families keep it out of frontier status. |
 | HLE | frontier | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
 | CritPt | frontier | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
 | GDPval-AA&nbsp;v2 | frontier | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
@@ -67,6 +68,8 @@ Artificial Analysis is the primary benchmark source. It supplies the broad Intel
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated value. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
+Terminal-Bench 2.1 combines the AA leaderboard score, the dedicated AA Terminal-Bench evaluation page, and the Vals Terminal-Bench 2.1 page when they match the same model. The benchmark score is the best available AA or Vals overall score, matching the way people usually compare a model's best harness result. This intentionally gives a small reward to models with more harness coverage: if multiple independent harnesses can make the same model work, the ranking credits the strongest observed execution path instead of forcing a noisy cross-harness average. Cost and time are still the medians of available per-task resource values so one harness does not dominate resource estimates. AA cost and token totals are divided by the benchmark's 89 tasks and 3 repeats per task; AA time uses the page's reported per-task runtime. Vals supplies score, cost, time, and harness labels but no token counts, so token fields remain AA-only when present.
+
 DeepSWE supplies mean task cost, mean task duration, and mean output tokens for the Speed and Value resource components.
 
 Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime and token counts, while displayed ALE resource columns divide those totals by the source `runs` count and then use the lower of median and mean per-run values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
@@ -80,6 +83,8 @@ Blueprint-Bench 2 uses the normalized connectivity similarity score and preserve
 Riemann-bench uses the normalized public percent score and preserves provider, model label, and leaderboard last-updated date from the page.
 
 GDP.pdf uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date.
+
+Vals Index uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
 
 ## Scoring Shape
 

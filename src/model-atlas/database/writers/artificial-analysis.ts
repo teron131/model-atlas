@@ -2,7 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { cleanArtificialAnalysisModelName } from "../../scrapers/artificial-analysis-evals";
+import { cleanArtificialAnalysisModelName } from "../../scrapers/artificial-analysis/evals";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
@@ -224,6 +224,40 @@ export function insertArtificialAnalysisRawModels(
 			...artificialAnalysisModalityValues(row),
 			...artificialAnalysisBenchmarkValues(row, selectedRow),
 			...artificialAnalysisCostAndLogoValues(row, selectedRow, creator),
+		);
+	}
+}
+
+export function insertArtificialAnalysisTerminalBenchRawRows(
+	db: DatabaseSync,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO artificial_analysis_terminal_bench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, model_id, model,
+			provider, provider_id, cost_per_task_usd, seconds_per_task,
+			tokens_per_task, input_tokens_per_task, output_tokens_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [
+		index,
+		row,
+	] of snapshots.artificialAnalysisTerminalBenchRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.artificialAnalysisTerminalBench,
+			SOURCE_URLS.artificial_analysis_terminal_bench,
+			row.model_id,
+			row.model,
+			row.provider,
+			row.provider_id,
+			row.cost_per_task_usd,
+			row.seconds_per_task,
+			row.tokens_per_task,
+			row.input_tokens_per_task,
+			row.output_tokens_per_task,
 		);
 	}
 }

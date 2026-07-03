@@ -4,7 +4,11 @@ import {
 	buildAgentsLastExamMap,
 	getAgentsLastExamStats,
 } from "../scrapers/agents-last-exam";
-import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis-evals";
+import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis/evals";
+import {
+	buildTerminalBenchAAMap,
+	getTerminalBenchAAResourceStats,
+} from "../scrapers/artificial-analysis/terminal-bench";
 import {
 	buildAutomationBenchMap,
 	getAutomationBenchStats,
@@ -28,11 +32,15 @@ import {
 	buildRiemannBenchMap,
 	getRiemannBenchStats,
 } from "../scrapers/riemann-bench";
-import {
-	buildTerminalBenchMap,
-	getTerminalBenchStats,
-} from "../scrapers/terminal-bench";
 import { buildToolathlonMap, getToolathlonStats } from "../scrapers/toolathlon";
+import {
+	buildValsIndexMap,
+	getValsIndexStats,
+} from "../scrapers/vals/index-benchmark";
+import {
+	buildTerminalBenchValsMap,
+	getTerminalBenchValsStats,
+} from "../scrapers/vals/terminal-bench";
 import { modelSlugFromModelId } from "../shared";
 import {
 	buildArtificialAnalysisRetainKeys,
@@ -80,6 +88,7 @@ function buildArtificialAnalysisBySlug(
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
 		artificialAnalysisStats,
+		artificialAnalysisTerminalBenchStats,
 		modelsDevStats,
 		agentsLastExamStats,
 		automationBenchStats,
@@ -89,10 +98,12 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		deepSWEStats,
 		gdpPdfStats,
 		riemannBenchStats,
-		terminalBenchStats,
 		toolathlonStats,
+		valsIndexStats,
+		valsTerminalBenchStats,
 	] = await Promise.all([
 		getArtificialAnalysisEvalsStats(),
+		getTerminalBenchAAResourceStats(),
 		getModelsDevSourceStats(),
 		getAgentsLastExamStats(),
 		getAutomationBenchStats(),
@@ -102,10 +113,13 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getDeepSWEStats(),
 		getGdpPdfStats(),
 		getRiemannBenchStats(),
-		getTerminalBenchStats(),
 		getToolathlonStats(),
+		getValsIndexStats(),
+		getTerminalBenchValsStats(),
 	]);
 	const artificialAnalysisRows = artificialAnalysisStats.data;
+	const artificialAnalysisTerminalBenchRows =
+		artificialAnalysisTerminalBenchStats.data;
 	const agentsLastExamRows = agentsLastExamStats.data;
 	const automationBenchRows = automationBenchStats.model_scores;
 	const blueprintBenchRows = blueprintBenchStats.data;
@@ -114,8 +128,9 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const deepSWERows = deepSWEStats.data;
 	const gdpPdfRows = gdpPdfStats.data;
 	const riemannBenchRows = riemannBenchStats.data;
-	const terminalBenchRows = terminalBenchStats.data;
 	const toolathlonRows = toolathlonStats.data;
+	const valsIndexRows = valsIndexStats.model_scores;
+	const valsTerminalBenchRows = valsTerminalBenchStats.model_scores;
 	const retainKeys = buildArtificialAnalysisRetainKeys(artificialAnalysisRows);
 	const modelsDevModels = processModelsDevPayload(
 		modelsDevStats.payload,
@@ -127,6 +142,12 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		artificialAnalysis: {
 			rows: artificialAnalysisRows,
 			bySlug: buildArtificialAnalysisBySlug(artificialAnalysisRows),
+		},
+		artificialAnalysisTerminalBench: {
+			rows: artificialAnalysisTerminalBenchRows,
+			scoreByModelName: buildTerminalBenchAAMap(
+				artificialAnalysisTerminalBenchRows,
+			),
 		},
 		modelsDev: {
 			rows: preferredModelsDevModels,
@@ -164,13 +185,17 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 			rows: riemannBenchRows,
 			scoreByModelName: buildRiemannBenchMap(riemannBenchRows),
 		},
-		terminalBench: {
-			rows: terminalBenchRows,
-			accuracyByModelName: buildTerminalBenchMap(terminalBenchRows),
-		},
 		toolathlon: {
 			rows: toolathlonRows,
 			scoreByModelName: buildToolathlonMap(toolathlonRows),
+		},
+		valsIndex: {
+			rows: valsIndexRows,
+			scoreByModelName: buildValsIndexMap(valsIndexRows),
+		},
+		valsTerminalBench: {
+			rows: valsTerminalBenchRows,
+			scoreByModelName: buildTerminalBenchValsMap(valsTerminalBenchRows),
 		},
 	};
 }

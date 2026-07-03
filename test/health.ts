@@ -211,8 +211,25 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 	deepSWERows: [],
 	gdpPdfRows: [],
 	riemannBenchRows: [],
-	terminalBenchRows: [],
 	toolathlonRows: [],
+	valsIndexRows: [
+		{
+			row_kind: "overall",
+			model_id: "openai/gpt-5",
+			model: "GPT-5",
+			provider: "OpenAI",
+			score: 0.67,
+		},
+	],
+	valsTerminalBenchRows: [
+		{
+			row_kind: "overall",
+			model_id: "openai/gpt-5",
+			model: "GPT-5",
+			provider: "OpenAI",
+			score: 0.73,
+		},
+	],
 });
 
 assert.deepEqual(dbBenchmarkRows.gpqa, [
@@ -237,6 +254,22 @@ assert.deepEqual(dbBenchmarkRows.browsecomp, [
 		label: "Browse Row",
 		provider: "example",
 		value: 0.72,
+	},
+]);
+assert.deepEqual(dbBenchmarkRows.vals_index, [
+	{
+		id: "openai/gpt-5",
+		label: "GPT-5",
+		provider: "OpenAI",
+		value: 0.67,
+	},
+]);
+assert.deepEqual(dbBenchmarkRows.terminalbench_v21, [
+	{
+		id: "openai/gpt-5",
+		label: "GPT-5",
+		provider: "OpenAI",
+		value: 0.73,
 	},
 ]);
 assert.equal(dbBenchmarkRows.deep_swe, undefined);

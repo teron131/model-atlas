@@ -112,7 +112,7 @@ The SQLite snapshot preserves the raw source paths used by the matcher:
 
 - `aa_raw_models` stores scraped AA rows.
 - `models_dev_raw_models` stores flattened `models.dev` provider/model rows.
-- `deep_swe_raw_rows`, `terminal_bench_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `toolathlon_raw_rows`, `cursorbench_raw_rows`, and `riemann_bench_raw_rows` store supplemental benchmark rows before they are summarized or matched.
+- `deep_swe_raw_rows`, `artificial_analysis_terminal_bench_raw_rows`, `vals_terminal_bench_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `toolathlon_raw_rows`, `cursorbench_raw_rows`, `vals_index_raw_rows`, and `riemann_bench_raw_rows` store supplemental benchmark/resource rows before they are summarized or matched.
 - `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
 - `processed_models` stores the matched, catalog, enriched, and final stages.
 - `matcher_debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
