@@ -370,7 +370,6 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	deep_swe REAL,
 	gdp_pdf REAL,
 	riemann_bench REAL,
-	terminal_bench_2 REAL,
 	toolathlon REAL,
 	artificial_analysis_task_cost REAL,
 	artificial_analysis_task_seconds REAL,

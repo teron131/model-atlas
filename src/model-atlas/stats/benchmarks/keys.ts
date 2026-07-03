@@ -31,6 +31,5 @@ export const MODEL_ATLAS_EVALUATION_KEYS = [
 	"deep_swe",
 	"gdp_pdf",
 	"riemann_bench",
-	"terminal_bench_2",
 	"toolathlon",
 ] as const;

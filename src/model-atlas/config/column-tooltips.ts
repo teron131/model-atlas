@@ -186,7 +186,6 @@ const BENCHMARK_LABEL_BY_KEY = {
 	scicode: "SciCode",
 	tau_banking: "tau3 Banking",
 	terminalbench_v21: "Terminal-Bench 2.1",
-	terminal_bench_2: "Terminal-Bench 2.0",
 	browsecomp: "BrowseComp",
 	toolathlon: "Toolathlon",
 	cursorbench: "CursorBench",
