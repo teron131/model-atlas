@@ -4,7 +4,7 @@ import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
 } from "../scrapers/agents-last-exam";
-import type { TerminalBenchAAResourceRow } from "../scrapers/artificial-analysis/terminal-bench";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/evaluation-resources";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
@@ -35,7 +35,7 @@ export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
 
 export const RAW_SOURCE_NAMES = [
 	"artificial_analysis",
-	"artificial_analysis_terminal_bench",
+	"artificial_analysis_evaluation_resources",
 	"models_dev",
 	"agents_last_exam",
 	"blueprint_bench_2",
@@ -55,8 +55,8 @@ export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
 /** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
 export const RAW_SOURCE_TABLES = {
 	artificial_analysis: "artificial_analysis_raw_models",
-	artificial_analysis_terminal_bench:
-		"artificial_analysis_terminal_bench_raw_rows",
+	artificial_analysis_evaluation_resources:
+		"artificial_analysis_evaluation_resource_raw_rows",
 	models_dev: "models_dev_raw_models",
 	agents_last_exam: "agents_last_exam_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",
@@ -85,8 +85,8 @@ export type SnapshotTableName =
 
 export const SOURCE_URLS = {
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
-	artificial_analysis_terminal_bench:
-		"https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
+	artificial_analysis_evaluation_resources:
+		"https://artificialanalysis.ai/evaluations",
 	models_dev: "https://models.dev/api.json",
 	agents_last_exam: "https://agenthle.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
@@ -158,7 +158,7 @@ export type SourceRowState = {
 export type SourceSnapshots = {
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
-	artificialAnalysisTerminalBenchRows: TerminalBenchAAResourceRow[];
+	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
 	modelsDevPayload: ModelsDevPayload;
 	modelsDevModels: ModelsDevFlatModel[];
 	modelsDevFetchedAt: number | null;
@@ -181,7 +181,7 @@ export type SourceSnapshots = {
 	sourceRowStates: SourceRowState[];
 	fetchedAt: {
 		artificialAnalysis: number | null;
-		artificialAnalysisTerminalBench: number | null;
+		artificialAnalysisEvaluationResources: number | null;
 		agentsLastExam: number | null;
 		blueprintBench: number | null;
 		browseComp: number | null;

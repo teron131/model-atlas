@@ -280,7 +280,7 @@ function modelStatsSourceData(
 			rows: artificialAnalysisRows,
 			bySlug: artificialAnalysisBySlug,
 		},
-		artificialAnalysisTerminalBench: {
+		artificialAnalysisEvaluationResources: {
 			rows: [],
 			scoreByModelName: new Map(),
 		},

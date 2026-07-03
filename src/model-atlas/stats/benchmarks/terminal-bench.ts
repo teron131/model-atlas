@@ -6,10 +6,10 @@
 
 import { finiteScoreValues, medianOfFinite } from "../../math-utils";
 import {
-	findTerminalBenchAAResourceRow,
-	type TerminalBenchAAResourceByModelName,
-	type TerminalBenchAAResourceRow,
-} from "../../scrapers/artificial-analysis/terminal-bench";
+	type ArtificialAnalysisEvaluationResourceByBenchmark,
+	type ArtificialAnalysisEvaluationResourceRow,
+	findArtificialAnalysisEvaluationResourceRow,
+} from "../../scrapers/artificial-analysis/evaluation-resources";
 import {
 	findTerminalBenchValsRows,
 	type TerminalBenchValsByModelName,
@@ -48,12 +48,12 @@ export type TerminalBenchAggregateRow = {
 
 type AggregateInput = {
 	aaScore?: unknown;
-	terminalBenchAA?: TerminalBenchAAResourceRow | null;
+	terminalBenchAA?: ArtificialAnalysisEvaluationResourceRow | null;
 	terminalBenchVals?: readonly TerminalBenchValsModelHarnessRow[] | null;
 };
 
 type SourceLookups = {
-	aaByModel: TerminalBenchAAResourceByModelName;
+	aaByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark;
 	valsByModel: TerminalBenchValsByModelName;
 };
 
@@ -75,9 +75,9 @@ function nonNegativeNumber(value: unknown): number | null {
 
 function terminalBenchAAObservation(
 	score: unknown,
-	row: TerminalBenchAAResourceRow | null | undefined,
+	row: ArtificialAnalysisEvaluationResourceRow | null | undefined,
 ): Observation | null {
-	const parsedScore = finiteUnitScore(score);
+	const parsedScore = finiteUnitScore(score) ?? finiteUnitScore(row?.score);
 	if (parsedScore == null && row == null) {
 		return null;
 	}
@@ -133,7 +133,7 @@ function uniqueStrings(values: readonly (string | null)[]): string[] {
 	);
 }
 
-function sharedHarness(observations: readonly Observation[]) {
+function sharedHarness(observations: readonly Observation[]): string | null {
 	const firstHarness = observations[0]?.harness ?? null;
 	return observations.every((row) => row.harness === firstHarness)
 		? firstHarness
@@ -141,7 +141,7 @@ function sharedHarness(observations: readonly Observation[]) {
 }
 
 /** Rewards harness coverage lightly by scoring the best observed execution path. */
-function aggregateScore(values: Array<number | null>): number | null {
+function aggregateScore(values: readonly (number | null)[]): number | null {
 	const scores = finiteScoreValues(values);
 	return scores.length === 0 ? null : Math.max(...scores);
 }
@@ -188,9 +188,10 @@ export function findTerminalBenchAggregate(
 	lookups: SourceLookups,
 	aaScore?: unknown,
 ): TerminalBenchAggregateRow | null {
-	const terminalBenchAA = findTerminalBenchAAResourceRow(
+	const terminalBenchAA = findArtificialAnalysisEvaluationResourceRow(
+		"terminalbench_v21",
 		candidateNames,
-		lookups.aaByModel,
+		lookups.aaByBenchmark,
 	);
 	const terminalBenchVals = findTerminalBenchValsRows(
 		candidateNames,

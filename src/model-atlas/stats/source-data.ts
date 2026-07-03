@@ -6,9 +6,9 @@ import {
 } from "../scrapers/agents-last-exam";
 import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis/evals";
 import {
-	buildTerminalBenchAAMap,
-	getTerminalBenchAAResourceStats,
-} from "../scrapers/artificial-analysis/terminal-bench";
+	buildArtificialAnalysisEvaluationResourceMap,
+	getArtificialAnalysisEvaluationResourceStats,
+} from "../scrapers/artificial-analysis/evaluation-resources";
 import {
 	buildAutomationBenchMap,
 	getAutomationBenchStats,
@@ -88,7 +88,7 @@ function buildArtificialAnalysisBySlug(
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
 		artificialAnalysisStats,
-		artificialAnalysisTerminalBenchStats,
+		artificialAnalysisEvaluationResourceStats,
 		modelsDevStats,
 		agentsLastExamStats,
 		automationBenchStats,
@@ -103,7 +103,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		valsTerminalBenchStats,
 	] = await Promise.all([
 		getArtificialAnalysisEvalsStats(),
-		getTerminalBenchAAResourceStats(),
+		getArtificialAnalysisEvaluationResourceStats(),
 		getModelsDevSourceStats(),
 		getAgentsLastExamStats(),
 		getAutomationBenchStats(),
@@ -118,8 +118,8 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getTerminalBenchValsStats(),
 	]);
 	const artificialAnalysisRows = artificialAnalysisStats.data;
-	const artificialAnalysisTerminalBenchRows =
-		artificialAnalysisTerminalBenchStats.data;
+	const artificialAnalysisEvaluationResourceRows =
+		artificialAnalysisEvaluationResourceStats.data;
 	const agentsLastExamRows = agentsLastExamStats.data;
 	const automationBenchRows = automationBenchStats.model_scores;
 	const blueprintBenchRows = blueprintBenchStats.data;
@@ -143,10 +143,10 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 			rows: artificialAnalysisRows,
 			bySlug: buildArtificialAnalysisBySlug(artificialAnalysisRows),
 		},
-		artificialAnalysisTerminalBench: {
-			rows: artificialAnalysisTerminalBenchRows,
-			scoreByModelName: buildTerminalBenchAAMap(
-				artificialAnalysisTerminalBenchRows,
+		artificialAnalysisEvaluationResources: {
+			rows: artificialAnalysisEvaluationResourceRows,
+			scoreByModelName: buildArtificialAnalysisEvaluationResourceMap(
+				artificialAnalysisEvaluationResourceRows,
 			),
 		},
 		modelsDev: {

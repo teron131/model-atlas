@@ -3,8 +3,8 @@
 export { readOpenRouterRawCache } from "./openrouter";
 export {
 	readAgentsLastExamRawCache,
+	readArtificialAnalysisEvaluationResourceRawCache,
 	readArtificialAnalysisRawCache,
-	readArtificialAnalysisTerminalBenchRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,

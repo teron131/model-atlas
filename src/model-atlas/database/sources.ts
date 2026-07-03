@@ -22,7 +22,7 @@ import { latestSourceRowStates, missingSinceBySource } from "./policy";
 import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analysis";
 import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
-	artificialAnalysisTerminalBenchSnapshot,
+	artificialAnalysisEvaluationResourceSnapshot,
 	blueprintBenchSnapshot,
 	browseCompSnapshot,
 	cursorBenchSnapshot,
@@ -96,7 +96,7 @@ function fetchedAtFromSourceStatuses(
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
 		artificialAnalysis: null,
-		artificialAnalysisTerminalBench: null,
+		artificialAnalysisEvaluationResources: null,
 		agentsLastExam: null,
 		blueprintBench: null,
 		browseComp: null,
@@ -138,7 +138,7 @@ export async function loadSourceSnapshots(
 	const previousMissingSince = missingSinceBySource(latestSourceRowStates(db));
 	const [
 		artificialAnalysis,
-		artificialAnalysisTerminalBench,
+		artificialAnalysisEvaluationResources,
 		modelsDev,
 		agentsLastExam,
 		blueprintBench,
@@ -159,11 +159,11 @@ export async function loadSourceSnapshots(
 			previousMissingSince.artificial_analysis,
 			nowEpochSeconds,
 		),
-		artificialAnalysisTerminalBenchSnapshot(
+		artificialAnalysisEvaluationResourceSnapshot(
 			db,
-			sourceCache.artificial_analysis_terminal_bench,
+			sourceCache.artificial_analysis_evaluation_resources,
 			options,
-			previousMissingSince.artificial_analysis_terminal_bench,
+			previousMissingSince.artificial_analysis_evaluation_resources,
 			nowEpochSeconds,
 		),
 		modelsDevSnapshot(
@@ -250,7 +250,7 @@ export async function loadSourceSnapshots(
 	);
 	const sourceStatuses: SourceSnapshotStatus[] = [
 		artificialAnalysis.sourceStatus,
-		artificialAnalysisTerminalBench.sourceStatus,
+		artificialAnalysisEvaluationResources.sourceStatus,
 		modelsDev.sourceStatus,
 		agentsLastExam.sourceStatus,
 		blueprintBench.sourceStatus,
@@ -269,8 +269,8 @@ export async function loadSourceSnapshots(
 			artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
 			artificialAnalysisSelectedRows:
 				artificialAnalysis.artificialAnalysisSelectedRows,
-			artificialAnalysisTerminalBenchRows:
-				artificialAnalysisTerminalBench.artificialAnalysisTerminalBenchRows,
+			artificialAnalysisEvaluationResourceRows:
+				artificialAnalysisEvaluationResources.artificialAnalysisEvaluationResourceRows,
 			modelsDevPayload: modelsDev.modelsDevPayload,
 			modelsDevModels,
 			modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
