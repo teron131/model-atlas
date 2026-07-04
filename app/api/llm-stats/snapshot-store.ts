@@ -36,9 +36,9 @@ export type DisplaySnapshotRefreshMode = "none" | "stored" | "live";
 const displayRefreshState = globalThis as typeof globalThis & {
 	__modelAtlasDisplayRefreshState?: DisplayRefreshState;
 };
-const DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS = 30_000;
+const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
-export function d1SnapshotStoreConfigured(): boolean {
+export function d1SnapshotConfigured(): boolean {
 	return d1Configured();
 }
 
@@ -106,8 +106,7 @@ function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
 	}
 	const state = getDisplayRefreshState();
 	state.cachedPayload = payload;
-	state.cacheExpiresAt =
-		Date.now() + DISPLAY_SNAPSHOT_MEMORY_CACHE_MILLISECONDS;
+	state.cacheExpiresAt = Date.now() + DISPLAY_SNAPSHOT_CACHE_MS;
 }
 
 /** Only one stale-display refresh may run per process, and failure must not erase the last usable payload. */
@@ -140,7 +139,7 @@ async function refreshDisplaySnapshotIfStale(
 	const refreshMode = displaySnapshotRefreshMode(
 		payload,
 		nowEpochSeconds(),
-		d1SnapshotStoreConfigured(),
+		d1SnapshotConfigured(),
 		displayRefreshIntervalSeconds(),
 	);
 	if (refreshMode === "none") {

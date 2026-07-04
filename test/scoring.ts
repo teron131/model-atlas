@@ -83,11 +83,13 @@ assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
 assertEqual(
-	STAGE_CONFIG.scoring.columnTooltips.price?.rows?.[1]?.[1],
-	"log price / quality-adjusted price efficiency / workflow price efficiency",
+	STAGE_CONFIG.scoring.columnTooltips.costEfficiency?.rows?.[1]?.[1],
+	"equal per active benchmark",
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.price).includes("33.3%"),
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.costEfficiency).includes(
+		"10.0%",
+	),
 	true,
 );
 assertEqual(
@@ -119,14 +121,14 @@ const aaOnlySpeedTooltip = JSON.stringify(
 	aaOnlyResourceMetadata.scoring.column_tooltips.speed,
 );
 const aaOnlyValueTooltip = JSON.stringify(
-	aaOnlyResourceMetadata.scoring.column_tooltips.price,
+	aaOnlyResourceMetadata.scoring.column_tooltips.costEfficiency,
 );
 assertEqual(aaOnlySpeedTooltip.includes("70.0%"), true);
 assertEqual(
 	aaOnlySpeedTooltip.includes("Frontier benchmark task speed"),
 	false,
 );
-assertEqual(aaOnlyValueTooltip.includes("33.3%"), true);
+assertEqual(aaOnlyValueTooltip.includes("100.0%"), true);
 assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark task cost"), false);
 
 const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
@@ -157,9 +159,9 @@ assertEqual(
 	true,
 );
 assertEqual(
-	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.price).includes(
-		"33.3%",
-	),
+	JSON.stringify(
+		mixedResourceMetadata.scoring.column_tooltips.costEfficiency,
+	).includes("50.0%"),
 	true,
 );
 

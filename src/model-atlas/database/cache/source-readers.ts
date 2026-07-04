@@ -32,10 +32,10 @@ import {
 } from "../../stats/benchmarks";
 import { SOURCE_URLS } from "../types";
 
-export type RawDbRow = JsonObject;
+export type CacheDbRow = JsonObject;
 
 /** Runs a raw-cache query and coerces SQLite rows into JSON records. */
-export function queryRawRows(db: DatabaseSync, sql: string): RawDbRow[] {
+export function queryCacheRows(db: DatabaseSync, sql: string): CacheDbRow[] {
 	return db
 		.prepare(sql)
 		.all()
@@ -44,7 +44,7 @@ export function queryRawRows(db: DatabaseSync, sql: string): RawDbRow[] {
 
 /** Finds the first persisted fetch timestamp across raw source rows. */
 export function firstEpochSecond(
-	rowsToScan: readonly RawDbRow[],
+	rowsToScan: readonly CacheDbRow[],
 ): number | null {
 	for (const row of rowsToScan) {
 		const fetchedAt = asFiniteNumber(row.fetched_at_epoch_seconds);
@@ -110,7 +110,7 @@ export function nonEmptyRecord(record: JsonObject): JsonObject | null {
 
 /** Collects modality flags from prefixed raw cache columns. */
 export function modalityList(
-	row: RawDbRow,
+	row: CacheDbRow,
 	prefix: string,
 	names: string[],
 ): string[] {
@@ -138,7 +138,7 @@ const ARTIFICIAL_ANALYSIS_COST_KEYS = [
 export function artificialAnalysisCacheHasHiddenRows(
 	db: DatabaseSync,
 ): boolean {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		`
 			SELECT row_index
@@ -148,11 +148,11 @@ export function artificialAnalysisCacheHasHiddenRows(
 			LIMIT 1
 		`,
 	);
-	return rawRows.length > 0;
+	return cacheRows.length > 0;
 }
 
 function artificialAnalysisNestedNumbers(
-	row: RawDbRow,
+	row: CacheDbRow,
 	keys: readonly string[],
 ): JsonObject {
 	const record: JsonObject = {};
@@ -163,7 +163,7 @@ function artificialAnalysisNestedNumbers(
 }
 
 /** Reconstructs an Artificial Analysis raw payload row from SQLite columns. */
-function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
+function artificialAnalysisRawRow(row: CacheDbRow): JsonObject {
 	const tokenCounts: JsonObject = {};
 	assignIfNumber(tokenCounts, "inputTokens", row.input_tokens);
 	assignIfNumber(tokenCounts, "reasoningTokens", row.reasoning_tokens);
@@ -226,7 +226,7 @@ function artificialAnalysisRawRow(row: RawDbRow): JsonObject {
 }
 
 /** Reconstructs a selected Artificial Analysis row from SQLite columns. */
-function artificialAnalysisSelectedRow(row: RawDbRow): JsonObject {
+function artificialAnalysisSelectedRow(row: CacheDbRow): JsonObject {
 	const selectedRow: JsonObject = {};
 	assignIfString(selectedRow, "model_id", row.model_id);
 	assignIfString(selectedRow, "name", row.name);
@@ -277,21 +277,21 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	artificialAnalysisSelectedRows: JsonObject[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	return {
-		artificialAnalysisRawRows: rawRows.map((row) =>
+		artificialAnalysisRawRows: cacheRows.map((row) =>
 			artificialAnalysisRawRow(row),
 		),
-		artificialAnalysisSelectedRows: rawRows.map((row) =>
+		artificialAnalysisSelectedRows: cacheRows.map((row) =>
 			artificialAnalysisSelectedRow(row),
 		),
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -301,15 +301,15 @@ export function readArtificialAnalysisEvaluationResourceRawCache(
 	rows: ArtificialAnalysisEvaluationResourceRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM artificial_analysis_evaluation_resource_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	return {
-		rows: rawRows.flatMap((row) => {
+		rows: cacheRows.flatMap((row) => {
 			const benchmarkKey = stringValue(row.benchmark_key);
 			const sourceUrl = stringValue(row.url);
 			const modelId = stringValue(row.model_id);
@@ -361,11 +361,11 @@ export function readArtificialAnalysisEvaluationResourceRawCache(
 				},
 			];
 		}),
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
-function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
+function modelCost(row: CacheDbRow): ModelRecord["cost"] | undefined {
 	const cost: NonNullable<ModelRecord["cost"]> = {};
 	assignIfNumber(cost, "input", row.cost_input);
 	assignIfNumber(cost, "output", row.cost_output);
@@ -375,14 +375,16 @@ function modelCost(row: RawDbRow): ModelRecord["cost"] | undefined {
 	return Object.keys(cost).length > 0 ? cost : undefined;
 }
 
-function modelLimit(row: RawDbRow): ModelRecord["limit"] | undefined {
+function modelLimit(row: CacheDbRow): ModelRecord["limit"] | undefined {
 	const limit: NonNullable<ModelRecord["limit"]> = {};
 	assignIfNumber(limit, "context", row.limit_context);
 	assignIfNumber(limit, "output", row.limit_output);
 	return Object.keys(limit).length > 0 ? limit : undefined;
 }
 
-function modelModalities(row: RawDbRow): ModelRecord["modalities"] | undefined {
+function modelModalities(
+	row: CacheDbRow,
+): ModelRecord["modalities"] | undefined {
 	const input = modalityList(row, "input_modality", [
 		"text",
 		"image",
@@ -406,7 +408,7 @@ function modelModalities(row: RawDbRow): ModelRecord["modalities"] | undefined {
 	return Object.keys(modalities).length > 0 ? modalities : undefined;
 }
 
-function modelsDevModelRecord(row: RawDbRow): ModelRecord {
+function modelsDevModelRecord(row: CacheDbRow): ModelRecord {
 	const model: ModelRecord = {};
 	assignIfString(model, "id", row.model_id);
 	assignIfString(model, "name", row.name);
@@ -436,15 +438,15 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 	fetchedAt: number | null;
 	statusCode: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM models_dev_raw_models ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	const payload: ModelsDevPayload = {};
-	for (const row of rawRows) {
+	for (const row of cacheRows) {
 		const providerId = stringValue(row.provider_id);
 		const modelId = stringValue(row.model_id);
 		if (providerId == null || modelId == null) {
@@ -462,8 +464,8 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 	}
 	return {
 		payload,
-		fetchedAt: firstEpochSecond(rawRows),
-		statusCode: asFiniteNumber(rawRows[0]?.status_code),
+		fetchedAt: firstEpochSecond(cacheRows),
+		statusCode: asFiniteNumber(cacheRows[0]?.status_code),
 	};
 }
 
@@ -471,15 +473,15 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 	rows: AgentsLastExamHarnessRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM agents_last_exam_raw_rows WHERE row_kind = 'harness_score' ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	return {
-		rows: rawRows.flatMap((row) => {
+		rows: cacheRows.flatMap((row) => {
 			const split = stringValue(row.split);
 			const harness = stringValue(row.harness);
 			const model = stringValue(row.model);
@@ -523,7 +525,7 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 					]
 				: [];
 		}),
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -531,21 +533,21 @@ export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	rows: BlueprintBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	if (
-		rawRows.some(
+		cacheRows.some(
 			(row) => stringValue(row.url) !== SOURCE_URLS.blueprint_bench_2,
 		)
 	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const model = stringValue(row.model);
 		const score = asFiniteNumber(row.score);
 		return model != null && score != null
@@ -562,7 +564,7 @@ export function readBlueprintBenchRawCache(db: DatabaseSync): {
 	}
 	return {
 		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -570,17 +572,19 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 	rows: BrowseCompModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM browsecomp_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.browsecomp)) {
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.browsecomp)
+	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const model = stringValue(row.model);
 		const provider = stringValue(row.provider);
 		const score = asFiniteNumber(row.score);
@@ -604,7 +608,7 @@ export function readBrowseCompRawCache(db: DatabaseSync): {
 	}
 	return {
 		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -612,17 +616,19 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 	rows: CursorBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.cursorbench)) {
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.cursorbench)
+	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const rank = asFiniteNumber(row.rank);
 		const model = stringValue(row.model);
 		const baseModel = stringValue(row.base_model);
@@ -656,7 +662,7 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 	}
 	return {
 		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -665,21 +671,21 @@ export function readDeepSWERawCache(db: DatabaseSync): {
 	fetchedAt: number | null;
 	sourceVersion: DeepSWESourceVersion | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM deep_swe_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	const parsedRows = rawRows.flatMap((row) => {
+	const deepSweRows = cacheRows.flatMap((row) => {
 		const parsedRow = asDeepSWERawLeaderboardRow(row);
 		return parsedRow == null ? [] : [parsedRow];
 	});
 	return {
-		rows: parsedRows,
-		fetchedAt: firstEpochSecond(rawRows),
-		sourceVersion: deepSWESourceVersionForRows(parsedRows),
+		rows: deepSweRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+		sourceVersion: deepSWESourceVersionForRows(deepSweRows),
 	};
 }
 
@@ -687,17 +693,17 @@ export function readGdpPdfRawCache(db: DatabaseSync): {
 	rows: GdpPdfModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM gdp_pdf_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.gdp_pdf)) {
+	if (cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.gdp_pdf)) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const model = stringValue(row.model);
 		const score = asFiniteNumber(row.score);
 		return model != null && score != null
@@ -716,7 +722,7 @@ export function readGdpPdfRawCache(db: DatabaseSync): {
 	}
 	return {
 		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -724,19 +730,19 @@ export function readRiemannBenchRawCache(db: DatabaseSync): {
 	rows: RiemannBenchModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	if (
-		rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.riemann_bench)
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.riemann_bench)
 	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const model = stringValue(row.model);
 		const score = asFiniteNumber(row.score);
 		return model != null && score != null
@@ -755,7 +761,7 @@ export function readRiemannBenchRawCache(db: DatabaseSync): {
 	}
 	return {
 		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -763,17 +769,19 @@ export function readToolathlonRawCache(db: DatabaseSync): {
 	rows: ToolathlonModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM toolathlon_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.toolathlon)) {
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.toolathlon)
+	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const model = stringValue(row.model);
 		const provider = stringValue(row.provider);
 		const score = asFiniteNumber(row.score);
@@ -799,7 +807,7 @@ export function readToolathlonRawCache(db: DatabaseSync): {
 	}
 	return {
 		rows: cachedRows,
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -808,17 +816,19 @@ export function readValsIndexRawCache(db: DatabaseSync): {
 	modelScores: ValsIndexModelScoreRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM vals_index_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	if (rawRows.some((row) => stringValue(row.url) !== SOURCE_URLS.vals_index)) {
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.vals_index)
+	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const task = stringValue(row.task);
 		const taskLabel = stringValue(row.task_label);
 		const modelId = stringValue(row.model_id);
@@ -849,7 +859,7 @@ export function readValsIndexRawCache(db: DatabaseSync): {
 		modelScores: cachedRows.filter(
 			(row): row is ValsIndexModelScoreRow => row.task === "overall",
 		),
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }
 
@@ -858,21 +868,21 @@ export function readValsTerminalBenchRawCache(db: DatabaseSync): {
 	modelScores: TerminalBenchModelHarnessRow[];
 	fetchedAt: number | null;
 } | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM vals_terminal_bench_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
 	if (
-		rawRows.some(
+		cacheRows.some(
 			(row) => stringValue(row.url) !== SOURCE_URLS.vals_terminal_bench,
 		)
 	) {
 		return null;
 	}
-	const cachedRows = rawRows.flatMap((row) => {
+	const cachedRows = cacheRows.flatMap((row) => {
 		const task = stringValue(row.task);
 		const taskLabel = stringValue(row.task_label);
 		const modelId = stringValue(row.model_id);
@@ -910,6 +920,6 @@ export function readValsTerminalBenchRawCache(db: DatabaseSync): {
 		modelScores: cachedRows.filter(
 			(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
 		),
-		fetchedAt: firstEpochSecond(rawRows),
+		fetchedAt: firstEpochSecond(cacheRows),
 	};
 }

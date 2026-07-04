@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import {
 	bestSnapshotPayload,
 	type DisplaySnapshotRefreshMode,
-	d1SnapshotStoreConfigured,
+	d1SnapshotConfigured,
 	displaySnapshotRefreshMode,
 	localDatabaseReadPath,
 	missingD1SnapshotEnvironment,
@@ -103,7 +103,7 @@ try {
 	delete process.env.D1_DATABASE_ID;
 	delete process.env.D1_API_TOKEN;
 	assert.equal(
-		d1SnapshotStoreConfigured(),
+		d1SnapshotConfigured(),
 		false,
 		"runtime D1 storage should be disabled when required Cloudflare settings are absent",
 	);
@@ -116,7 +116,7 @@ try {
 	process.env.D1_DATABASE_ID = "database";
 	process.env.D1_API_TOKEN = "token";
 	assert.equal(
-		d1SnapshotStoreConfigured(),
+		d1SnapshotConfigured(),
 		true,
 		"runtime D1 storage should accept canonical D1 variable names",
 	);
