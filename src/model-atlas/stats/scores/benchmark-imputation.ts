@@ -27,8 +27,8 @@ type PreparedBenchmarkScoring = {
 
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
-const MIN_FRONTIER_IMPUTATION_EVIDENCE_VALUES = 2;
-const NON_FRONTIER_IMPUTATION_CONFIDENCE_MULTIPLIER = 0.5;
+const MIN_FRONTIER_EVIDENCE_VALUES = 2;
+const NON_FRONTIER_CONFIDENCE_MULTIPLIER = 0.5;
 const INDEX_SCALE_KEY_SEPARATOR = "\u0000";
 export const INTELLIGENCE_INDEX_KEYS = [
 	"intelligence_index",
@@ -115,8 +115,7 @@ function imputedBenchmarkValue(
 		return mappedValue;
 	}
 	return (
-		floorValue +
-		NON_FRONTIER_IMPUTATION_CONFIDENCE_MULTIPLIER * (mappedValue - floorValue)
+		floorValue + NON_FRONTIER_CONFIDENCE_MULTIPLIER * (mappedValue - floorValue)
 	);
 }
 
@@ -148,7 +147,7 @@ function buildDimensionBenchmarkImputations(
 			: benchmarkKeys;
 		const contextIndexKeys = isFrontierBenchmark ? [] : indexKeys;
 		const minEvidenceValues = isFrontierBenchmark
-			? MIN_FRONTIER_IMPUTATION_EVIDENCE_VALUES
+			? MIN_FRONTIER_EVIDENCE_VALUES
 			: MIN_IMPUTATION_EVIDENCE_VALUES;
 		const observedValues = models
 			.map((model) => metricValue(model, key))

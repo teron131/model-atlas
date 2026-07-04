@@ -1,7 +1,7 @@
 /** Snapshot refresh API for Model Atlas. */
 
 import {
-	d1SnapshotStoreConfigured,
+	d1SnapshotConfigured,
 	missingD1SnapshotEnvironment,
 	refreshD1StoredSnapshot,
 } from "../snapshot-store";
@@ -29,7 +29,7 @@ async function refreshSnapshot(request: Request) {
 			},
 		});
 	}
-	if (!d1SnapshotStoreConfigured()) {
+	if (!d1SnapshotConfigured()) {
 		return Response.json(
 			{
 				status: "error",

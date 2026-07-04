@@ -47,9 +47,9 @@ const RESOURCE_EVIDENCE_WEIGHT = 0.35;
 const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
 const COST_EFFICIENCY_QUALITY_SIGMA = 0.5;
 const MIN_BENCHMARK_DEVIATION = 0.35;
-const COST_EFFICIENCY_COVERAGE_CONFIDENCE_FLOOR = 0.1;
-const COST_EFFICIENCY_COVERAGE_CONFIDENCE_FULL = 0.6;
-type WeightedScoreComponent = {
+const COST_COVERAGE_FLOOR = 0.1;
+const COST_COVERAGE_FULL = 0.6;
+type WeightedSignal = {
 	value: number | null;
 	weight: number;
 };
@@ -61,65 +61,61 @@ type ResourceGroup = {
 	weight: number;
 };
 
-type CompositeScoreSignal = {
-	score: number | null;
-};
-
 type CostEfficiencyBenchmarkPoint = {
 	modelIndex: number;
 	qualityDeviation: number;
 	taskCost: number;
 };
 
-type CostEfficiencyBenchmarkScores = {
+type CostEfficiencyEvidence = {
 	benchmarkKeys: readonly string[];
-	localScoresByModel: number[][];
+	signalsByModel: number[][];
 };
 
-function blendedResourceAndWorkflowScore(
-	resourceComponents: WeightedScoreComponent[],
-	workflowComponents: WeightedScoreComponent[],
+function blendedResourceAndWorkflowSignal(
+	resourceSignals: WeightedSignal[],
+	workflowSignals: WeightedSignal[],
 	minimumFiniteValues: number,
 ): number | null {
 	if (
-		weightedFinitePartCount(resourceComponents) +
-			weightedFinitePartCount(workflowComponents) <
+		weightedFinitePartCount(resourceSignals) +
+			weightedFinitePartCount(workflowSignals) <
 		minimumFiniteValues
 	) {
 		return null;
 	}
 	return weightedMeanOfFinite([
 		{
-			value: resourceEvidenceAdjustedScore(resourceComponents),
+			value: resourceEvidenceAdjustedSignal(resourceSignals),
 			weight: RESOURCE_SIGNAL_WEIGHT,
 		},
 		{
-			value: weightedMeanOfFinite(workflowComponents),
+			value: weightedMeanOfFinite(workflowSignals),
 			weight: WORKFLOW_SIGNAL_WEIGHT,
 		},
 	]);
 }
 
-function componentMeanScore(
-	components: WeightedScoreComponent[],
+function meanSignal(
+	signals: WeightedSignal[],
 	minimumFiniteValues: number,
 ): number | null {
-	if (weightedFinitePartCount(components) < minimumFiniteValues) {
+	if (weightedFinitePartCount(signals) < minimumFiniteValues) {
 		return null;
 	}
-	return weightedMeanOfFinite(components);
+	return weightedMeanOfFinite(signals);
 }
 
-function resourceEvidenceAdjustedScore(
-	resourceComponents: WeightedScoreComponent[],
+function resourceEvidenceAdjustedSignal(
+	resourceSignals: WeightedSignal[],
 ): number | null {
-	const coverage = weightedCoverageRatio(resourceComponents);
+	const coverage = weightedCoverageRatio(resourceSignals);
 	if (coverage == null) {
 		return null;
 	}
 	return fixedWeightedScore([
 		{
-			value: weightedMeanOfFinite(resourceComponents) ?? 0,
+			value: weightedMeanOfFinite(resourceSignals) ?? 0,
 			weight: RESOURCE_PERFORMANCE_WEIGHT,
 		},
 		{
@@ -460,56 +456,52 @@ function costEfficiencyCoverageConfidence(
 		return 0;
 	}
 	const coverage = availableCount / totalCount;
-	if (coverage >= COST_EFFICIENCY_COVERAGE_CONFIDENCE_FULL) {
+	if (coverage >= COST_COVERAGE_FULL) {
 		return 1;
 	}
 	return smoothstep(
-		(coverage - COST_EFFICIENCY_COVERAGE_CONFIDENCE_FLOOR) /
-			(COST_EFFICIENCY_COVERAGE_CONFIDENCE_FULL -
-				COST_EFFICIENCY_COVERAGE_CONFIDENCE_FLOOR),
+		(coverage - COST_COVERAGE_FLOOR) /
+			(COST_COVERAGE_FULL - COST_COVERAGE_FLOOR),
 	);
 }
 
-function buildCostEfficiencyBenchmarkScores(
+function costEfficiencyEvidence(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
-): CostEfficiencyBenchmarkScores {
+): CostEfficiencyEvidence {
 	const benchmarkKeys = activeCostEfficiencyBenchmarkKeys(
 		models,
 		scoringConfig,
 	);
-	const localScoresByModel = models.map(() => [] as number[]);
+	const signalsByModel = models.map(() => [] as number[]);
 	for (const key of benchmarkKeys) {
 		const points = costEfficiencyBenchmarkPoints(models, key, scoringConfig);
 		for (const point of points) {
 			const score = localCostEfficiencyScore(point, points);
 			if (score != null) {
-				localScoresByModel[point.modelIndex]?.push(score);
+				signalsByModel[point.modelIndex]?.push(score);
 			}
 		}
 	}
 	return {
 		benchmarkKeys,
-		localScoresByModel,
+		signalsByModel,
 	};
 }
 
-function costEfficiencyCompositeSignals({
+function costEfficiencySignals({
 	benchmarkKeys,
-	localScoresByModel,
-}: CostEfficiencyBenchmarkScores): CompositeScoreSignal[] {
-	return localScoresByModel.map((scores) => {
-		const meanScore = meanOfFinite(scores);
-		return {
-			score:
-				meanScore == null
-					? null
-					: meanScore *
-						costEfficiencyCoverageConfidence(
-							scores.length,
-							benchmarkKeys.length,
-						),
-		};
+	signalsByModel,
+}: CostEfficiencyEvidence): Array<number | null> {
+	return signalsByModel.map((signals) => {
+		const meanValue = meanOfFinite(signals);
+		return meanValue == null
+			? null
+			: meanValue *
+					costEfficiencyCoverageConfidence(
+						signals.length,
+						benchmarkKeys.length,
+					);
 	});
 }
 
@@ -530,118 +522,100 @@ export function attachRelativeScores(
 		resourceValuesByKey,
 		scoringConfig,
 	);
-	const intelligenceRelativeScores = models.map(
+	const intelligenceScores = models.map(
 		(model) => model.scores?.intelligence_score ?? null,
 	);
-	const agenticRelativeScores = models.map(
+	const agenticScores = models.map(
 		(model) => model.scores?.agentic_score ?? null,
 	);
-	const qualityMeanScores = models.map((_, index) =>
+	const qualityScores = models.map((_, index) =>
 		meanOfFinite([
-			intelligenceRelativeScores[index] ?? null,
-			agenticRelativeScores[index] ?? null,
+			intelligenceScores[index] ?? null,
+			agenticScores[index] ?? null,
 		]),
 	);
-	const logBlendCheapnessSignals = models.map((model) =>
+	const cheapnessSignals = models.map((model) =>
 		inverseLogCostSignal(blendCost(model, scoringConfig)),
 	);
-	const qualityAdjustedPriceSignals = models.map((model, index) => {
+	const qualityPriceSignals = models.map((model, index) => {
 		const cost = blendCost(model, scoringConfig);
 		const logCost = log10OnePlusPositive(cost);
-		const qualityMeanScore = qualityMeanScores[index] ?? null;
-		return logCost == null || qualityMeanScore == null
+		const qualityScore = qualityScores[index] ?? null;
+		return logCost == null || qualityScore == null
 			? null
-			: qualityMeanScore / logCost;
+			: qualityScore / logCost;
 	});
-	const workflowPriceEfficiencySignals = models.map((model) =>
+	const workflowPriceSignals = models.map((model) =>
 		workflowPriceEfficiencySignal(model, scoringConfig),
 	);
 	const workflowSpeedSignals = models.map((model) =>
 		inversePositiveFinite(simulatedBlendSeconds(model.speed, scoringConfig)),
 	);
-	const priceCompositeSignals = models.map<CompositeScoreSignal>((_, index) => {
-		const priceComponentScores = [
+	const priceSignals = models.map((_, index) => {
+		const priceComponents = [
 			{
-				value: percentileScoreAt(logBlendCheapnessSignals, index),
+				value: percentileScoreAt(cheapnessSignals, index),
 				weight: ACTIVE_COMPONENT_WEIGHT,
 			},
 			{
-				value: percentileScoreAt(qualityAdjustedPriceSignals, index),
+				value: percentileScoreAt(qualityPriceSignals, index),
 				weight: ACTIVE_COMPONENT_WEIGHT,
 			},
 			{
-				value: percentileScoreAt(workflowPriceEfficiencySignals, index),
+				value: percentileScoreAt(workflowPriceSignals, index),
 				weight: ACTIVE_COMPONENT_WEIGHT,
 			},
 		];
-		return {
-			score: componentMeanScore(
-				priceComponentScores,
-				MIN_DISPLAY_PRICE_COMPONENTS,
-			),
-		};
+		return meanSignal(priceComponents, MIN_DISPLAY_PRICE_COMPONENTS);
 	});
-	const speedCompositeSignals = models.map<CompositeScoreSignal>(
-		(model, index) => {
-			const resourceSpeedComponents = resourceGroups.map((group) => ({
-				value: normalizedResourceGroupSpeedScore(
-					model,
-					group,
-					resourceSpeedValuesByKey,
-					resourceValuesByKey,
-					scoringConfig,
-				),
-				weight: group.weight,
-			}));
-			const workflowSpeedComponents = [
-				{
-					value: percentileScoreAt(workflowSpeedSignals, index),
-					weight: ACTIVE_COMPONENT_WEIGHT,
-				},
-			];
-			return {
-				score: blendedResourceAndWorkflowScore(
-					resourceSpeedComponents,
-					workflowSpeedComponents,
-					MIN_DISPLAY_SPEED_COMPONENTS,
-				),
-			};
-		},
-	);
-	const costEfficiencyBenchmarkScores = buildCostEfficiencyBenchmarkScores(
+	const speedSignals = models.map((model, index) => {
+		const resourceSpeedSignals = resourceGroups.map((group) => ({
+			value: normalizedResourceGroupSpeedScore(
+				model,
+				group,
+				resourceSpeedValuesByKey,
+				resourceValuesByKey,
+				scoringConfig,
+			),
+			weight: group.weight,
+		}));
+		const workflowSpeedComponents = [
+			{
+				value: percentileScoreAt(workflowSpeedSignals, index),
+				weight: ACTIVE_COMPONENT_WEIGHT,
+			},
+		];
+		return blendedResourceAndWorkflowSignal(
+			resourceSpeedSignals,
+			workflowSpeedComponents,
+			MIN_DISPLAY_SPEED_COMPONENTS,
+		);
+	});
+	const costEfficiencyBenchmarkEvidence = costEfficiencyEvidence(
 		models,
 		scoringConfig,
 	);
-	const costEfficiencySignals = costEfficiencyCompositeSignals(
-		costEfficiencyBenchmarkScores,
+	const taskCostSignals = costEfficiencySignals(
+		costEfficiencyBenchmarkEvidence,
 	);
-	const priceCompositeScores = priceCompositeSignals.map(
-		(signal) => signal.score,
+	const priceRelativeScores = priceSignals.map((signal) =>
+		percentileScoreForValue(priceSignals, signal),
 	);
-	const speedCompositeScores = speedCompositeSignals.map(
-		(signal) => signal.score,
+	const speedRelativeScores = speedSignals.map((signal) =>
+		percentileScoreForValue(speedSignals, signal),
 	);
-	const costEfficiencyCompositeScores = costEfficiencySignals.map(
-		(signal) => signal.score,
-	);
-	const priceRelativeScores = priceCompositeSignals.map((signal) =>
-		percentileScoreForValue(priceCompositeScores, signal.score),
-	);
-	const speedRelativeScores = speedCompositeSignals.map((signal) =>
-		percentileScoreForValue(speedCompositeScores, signal.score),
-	);
-	const costEfficiencyRelativeScores = costEfficiencySignals.map((signal) =>
-		percentileScoreForValue(costEfficiencyCompositeScores, signal.score),
+	const costEfficiencyRelativeScores = taskCostSignals.map((signal) =>
+		percentileScoreForValue(taskCostSignals, signal),
 	);
 	const overallSpeedScores = fillMissingWithMedian(speedRelativeScores);
 	const overallCostEfficiencyScores = fillMissingWithQualityMirror(
-		qualityMeanScores,
+		qualityScores,
 		costEfficiencyRelativeScores,
 		PRICE_QUALITY_TRADEOFF_STRENGTH,
 	);
 	return models.map((model, index) => {
-		const intelligenceRelativeScore = intelligenceRelativeScores[index] ?? null;
-		const agenticRelativeScore = agenticRelativeScores[index] ?? null;
+		const intelligenceRelativeScore = intelligenceScores[index] ?? null;
+		const agenticRelativeScore = agenticScores[index] ?? null;
 		const priceRelativeScore = priceRelativeScores[index] ?? null;
 		const speedRelativeScore = speedRelativeScores[index] ?? null;
 		const costEfficiencyRelativeScore =

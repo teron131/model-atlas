@@ -497,7 +497,7 @@ export function positiveDomain(values: number[]): [number, number] {
 	return [Math.max(10 ** (logLow - logPad), 0.001), 10 ** (logHigh + logPad)];
 }
 
-export function deepSWECi(row: DeepSWELeaderboardRow) {
+export function deepSweCi(row: DeepSWELeaderboardRow) {
 	return row.ci_lo != null && row.ci_hi != null
 		? `${fmtTooltipPercent(row.ci_lo)}-${fmtTooltipPercent(row.ci_hi)}`
 		: "--";
@@ -521,7 +521,7 @@ function prefixBareFableModelName(match: string, offset: number, name: string) {
 	return previousToken === "Claude " ? match : `Claude ${match}`;
 }
 
-export function deepSWELabel(row: DeepSWEChartRow, includeEffort: boolean) {
+export function deepSweLabel(row: DeepSWEChartRow, includeEffort: boolean) {
 	const base = row.displayName.replace(" Preview", "");
 	return includeEffort && row.effortLabel !== "default"
 		? `${base} (${row.effortLabel})`

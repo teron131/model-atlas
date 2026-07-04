@@ -13,14 +13,14 @@ import type {
 } from "../../scrapers/openrouter";
 import { asFiniteNumber } from "../../shared";
 import {
+	type CacheDbRow,
 	firstEpochSecond,
-	queryRawRows,
-	type RawDbRow,
+	queryCacheRows,
 	stringValue,
 } from "./source-readers";
 
 export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
-	const candidateRows = queryRawRows(
+	const candidateRows = queryCacheRows(
 		db,
 		"SELECT model_id, permaslug FROM openrouter_raw_rows WHERE row_kind = 'permaslug_candidate'",
 	);
@@ -39,7 +39,7 @@ export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
 }
 
 function openRouterStatsResponse(
-	rowsToConvert: RawDbRow[],
+	rowsToConvert: CacheDbRow[],
 ): OpenRouterStatsResponse {
 	const pointsByX = new Map<
 		string,
@@ -65,7 +65,7 @@ function openRouterStatsResponse(
 }
 
 function openRouterPricing(
-	row: RawDbRow | undefined,
+	row: CacheDbRow | undefined,
 ): OpenRouterEffectivePricingResponse | null {
 	if (row == null) {
 		return null;
@@ -80,7 +80,7 @@ function openRouterPricing(
 
 function openRouterModelRows(
 	modelId: string,
-	rowsByKind: Map<string, RawDbRow[]>,
+	rowsByKind: Map<string, CacheDbRow[]>,
 ): OpenRouterRawScrapedModel {
 	const candidateRows = (rowsByKind.get("permaslug_candidate") ?? []).filter(
 		(row) => row.model_id === modelId,
@@ -134,19 +134,19 @@ function openRouterModelRows(
 export function readOpenRouterRawCache(
 	db: DatabaseSync,
 ): OpenRouterRawScrapedPayload | null {
-	const rawRows = queryRawRows(
+	const cacheRows = queryCacheRows(
 		db,
 		"SELECT * FROM openrouter_raw_rows ORDER BY row_index",
 	);
-	if (rawRows.length === 0) {
+	if (cacheRows.length === 0) {
 		return null;
 	}
-	const fetchedAt = firstEpochSecond(rawRows);
+	const fetchedAt = firstEpochSecond(cacheRows);
 	if (fetchedAt == null) {
 		return null;
 	}
-	const rowsByKind = new Map<string, RawDbRow[]>();
-	for (const row of rawRows) {
+	const rowsByKind = new Map<string, CacheDbRow[]>();
+	for (const row of cacheRows) {
 		const rowKind = stringValue(row.row_kind);
 		if (rowKind == null) {
 			continue;

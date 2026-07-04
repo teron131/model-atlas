@@ -52,8 +52,7 @@ import {
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
-const LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY =
-	"model-atlas:selected-payload-refresh-at";
+const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 const DASHBOARD_THEME_STORAGE_KEY = "model-atlas:dashboard-theme";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
@@ -537,8 +536,7 @@ function refreshGuardRemainingMs(): number {
 	}
 	try {
 		const refreshedAt = Number.parseInt(
-			window.sessionStorage.getItem(LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY) ??
-				"",
+			window.sessionStorage.getItem(PAYLOAD_REFRESH_ATTEMPT_KEY) ?? "",
 			10,
 		);
 		if (!Number.isFinite(refreshedAt)) {
@@ -556,7 +554,7 @@ function recordRefreshAttempt(): void {
 	}
 	try {
 		window.sessionStorage.setItem(
-			LLM_STATS_PAYLOAD_REFRESH_ATTEMPT_KEY,
+			PAYLOAD_REFRESH_ATTEMPT_KEY,
 			String(Date.now()),
 		);
 	} catch {}

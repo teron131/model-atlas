@@ -138,7 +138,7 @@ const FRONTIER_SCORE_AXIS_OPTIONS = {
 	formatTick: (tick: number) => `${tick}%`,
 };
 
-const SELECTED_BENCHMARK_SCORE_AXIS_OPTIONS = {
+const BENCHMARK_SCORE_AXIS_OPTIONS = {
 	formatTick: (tick: number) => `${tick}%`,
 	max: 100,
 	minimumTicks: 5,
@@ -434,7 +434,7 @@ export function frontierScoreAxisScale(
 	if (isAllBenchmark) {
 		return scoreAxisScale(values, FRONTIER_SCORE_AXIS_OPTIONS);
 	}
-	return steppedLinearAxisScale(values, SELECTED_BENCHMARK_SCORE_AXIS_OPTIONS);
+	return steppedLinearAxisScale(values, BENCHMARK_SCORE_AXIS_OPTIONS);
 }
 
 /** Compute the x-axis scale for the selected resource metric. */
