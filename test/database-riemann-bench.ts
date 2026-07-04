@@ -34,13 +34,14 @@ try {
 					intelligence_score: 70,
 					agentic_score: 10,
 					speed_score: 50,
-					value_score: 60,
+					price_score: 60,
 				},
 				relative_scores: {
 					intelligence_score: 90,
 					agentic_score: 20,
 					speed_score: 50,
-					value_score: 60,
+					price_score: 60,
+					cost_efficiency_score: 65,
 					overall_score: 70,
 				},
 			},
@@ -58,7 +59,7 @@ try {
 			1_800_000_000,
 			"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json",
 			"v1",
-			"Legacy DeepSWE Model",
+			"Previous DeepSWE Model",
 			null,
 			null,
 			0.4,
@@ -116,7 +117,7 @@ try {
 	assert.ok(payload.deep_swe);
 	assert.deepEqual(
 		payload.deep_swe.rows.map((row) => row.model),
-		["Current DeepSWE Model", "Legacy DeepSWE Model"],
+		["Current DeepSWE Model", "Previous DeepSWE Model"],
 		"Database payloads should preserve v1-only DeepSWE rows while preferring v1.1 duplicates",
 	);
 } finally {

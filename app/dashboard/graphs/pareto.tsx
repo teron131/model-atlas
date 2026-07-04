@@ -62,21 +62,21 @@ export function ParetoFrontierPanel({
 		.filter(
 			(model) =>
 				finite(model.relative_scores?.intelligence_score) &&
-				finite(model.relative_scores?.value_score) &&
+				finite(model.relative_scores?.cost_efficiency_score) &&
 				finite(model.cost?.blended_price) &&
 				Number(model.cost?.blended_price) > 0,
 		)
 		.sort(
 			(left, right) =>
-				Number(left.relative_scores?.value_score) -
-				Number(right.relative_scores?.value_score),
+				Number(left.relative_scores?.cost_efficiency_score) -
+				Number(right.relative_scores?.cost_efficiency_score),
 		);
 
 	if (candidates.length === 0 && providerRows.length === 0) {
 		return (
 			<Panel
 				title="Pareto frontier"
-				copy="A tradeoff scatter for intelligence versus value score."
+				copy="A tradeoff scatter for intelligence versus cost efficiency score."
 			>
 				<EmptyChart />
 			</Panel>
@@ -96,7 +96,7 @@ export function ParetoFrontierPanel({
 		return (
 			<Panel
 				title="Pareto frontier"
-				copy="Each point is one provider: median quality against median value across the current model set."
+				copy="Each point is one provider: median quality against median cost efficiency across the current model set."
 				summary={
 					<BoxWhiskerSummary
 						label="Provider quality"
@@ -108,7 +108,10 @@ export function ParetoFrontierPanel({
 					/>
 				}
 				note={
-					<>Step line: strongest observed provider quality/value envelope.</>
+					<>
+						Step line: strongest observed provider quality/cost efficiency
+						envelope.
+					</>
 				}
 			>
 				<div className={styles.chartToolbar}>
@@ -134,7 +137,7 @@ export function ParetoFrontierPanel({
 	const height = 500;
 	const margin = { top: 26, right: 34, bottom: 68, left: 62 };
 	const values = candidates.map((model) =>
-		Number(model.relative_scores.value_score),
+		Number(model.relative_scores.cost_efficiency_score),
 	);
 	const scores = candidates.map(
 		(model) => model.relative_scores.intelligence_score,
@@ -143,8 +146,8 @@ export function ParetoFrontierPanel({
 	let bestFromRight = -Infinity;
 	for (const model of [...candidates].sort(
 		(left, right) =>
-			Number(right.relative_scores.value_score) -
-			Number(left.relative_scores.value_score),
+			Number(right.relative_scores.cost_efficiency_score) -
+			Number(left.relative_scores.cost_efficiency_score),
 	)) {
 		const score = model.relative_scores.intelligence_score;
 		if (score > bestFromRight) {
@@ -172,7 +175,7 @@ export function ParetoFrontierPanel({
 	const medianScore = median(scores) ?? 50;
 	const frontierIds = new Set(frontier.map(modelKey));
 	const frontierPath = frontier.reduce((path, model, index) => {
-		const nextX = xPoint(Number(model.relative_scores.value_score));
+		const nextX = xPoint(Number(model.relative_scores.cost_efficiency_score));
 		const nextY = yPoint(model.relative_scores.intelligence_score);
 		return index === 0 ? `M${nextX},${nextY}` : `${path} H${nextX} V${nextY}`;
 	}, "");
@@ -191,7 +194,7 @@ export function ParetoFrontierPanel({
 		10,
 	);
 	const projectionPoints = plottedCandidates.map((model) => {
-		const xValue = Number(model.relative_scores.value_score);
+		const xValue = Number(model.relative_scores.cost_efficiency_score);
 		const yValue = model.relative_scores.intelligence_score;
 		return {
 			x: xPoint(xValue),
@@ -207,14 +210,14 @@ export function ParetoFrontierPanel({
 	const frontierLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({
-			cx: xPoint(Number(model.relative_scores.value_score)),
+			cx: xPoint(Number(model.relative_scores.cost_efficiency_score)),
 			cy: yPoint(model.relative_scores.intelligence_score),
 			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
 		})),
 		labels: frontier.map((model, index) => ({
 			key: modelKey(model),
 			label: shortLabel(model),
-			cx: xPoint(Number(model.relative_scores.value_score)),
+			cx: xPoint(Number(model.relative_scores.cost_efficiency_score)),
 			cy: yPoint(model.relative_scores.intelligence_score),
 			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
 			priority: frontier.length - index,
@@ -227,7 +230,7 @@ export function ParetoFrontierPanel({
 	return (
 		<Panel
 			title="Pareto frontier"
-			copy="Intelligence score plotted against value score."
+			copy="Intelligence score plotted against cost efficiency score."
 			summary={
 				<BoxWhiskerSummary
 					label="Intelligence score"
@@ -237,7 +240,10 @@ export function ParetoFrontierPanel({
 				/>
 			}
 			note={
-				<>Step line: strongest observed intelligence/value tradeoff envelope.</>
+				<>
+					Step line: strongest observed intelligence/cost-efficiency tradeoff
+					envelope.
+				</>
 			}
 		>
 			<div className={styles.chartToolbar}>
@@ -261,7 +267,7 @@ export function ParetoFrontierPanel({
 				<svg
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
-					aria-label="Intelligence by value score scatter plot"
+					aria-label="Intelligence by cost efficiency score scatter plot"
 					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
@@ -284,7 +290,7 @@ export function ParetoFrontierPanel({
 						width={width}
 						height={height}
 						margin={margin}
-						x="Value score"
+						x="Cost efficiency score"
 						y="Intelligence score"
 						xTitleOffset={48}
 					/>
@@ -306,7 +312,9 @@ export function ParetoFrontierPanel({
 						<path className={styles.frontier} d={frontierPath} />
 					) : null}
 					{plottedCandidates.map((model) => {
-						const cx = xPoint(Number(model.relative_scores.value_score));
+						const cx = xPoint(
+							Number(model.relative_scores.cost_efficiency_score),
+						);
 						const cy = yPoint(model.relative_scores.intelligence_score);
 						const isFrontier = frontierIds.has(modelKey(model));
 						const rows: HoverRow[] = [
@@ -323,8 +331,8 @@ export function ParetoFrontierPanel({
 								fmtTooltipScore(model.relative_scores.speed_score),
 							],
 							[
-								"Value score",
-								fmtTooltipScore(model.relative_scores.value_score),
+								"Cost efficiency score",
+								fmtTooltipScore(model.relative_scores.cost_efficiency_score),
 							],
 							[
 								"Blend price",
@@ -361,7 +369,7 @@ export function ParetoFrontierPanel({
 									snapProjection={{
 										x: cx,
 										y: cy,
-										xValue: Number(model.relative_scores.value_score),
+										xValue: Number(model.relative_scores.cost_efficiency_score),
 										yValue: model.relative_scores.intelligence_score,
 									}}
 									setCursorProjection={setCursorProjection}

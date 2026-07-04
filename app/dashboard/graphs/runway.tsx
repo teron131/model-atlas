@@ -49,8 +49,8 @@ export function RunwayPanel({
 		)
 		.sort(
 			(left, right) =>
-				right.relative_scores.overall_score -
-				left.relative_scores.overall_score,
+				right.relative_scores.intelligence_score -
+				left.relative_scores.intelligence_score,
 		);
 
 	if (candidates.length === 0) {
@@ -108,7 +108,8 @@ export function RunwayPanel({
 	for (const model of [...plottedCandidates]
 		.filter(
 			(candidate) =>
-				Number(candidate.relative_scores.overall_score) >= labelQualityFloor,
+				Number(candidate.relative_scores.intelligence_score) >=
+				labelQualityFloor,
 		)
 		.sort(
 			(left, right) =>
@@ -206,7 +207,7 @@ export function RunwayPanel({
 		points: projectionPoints,
 	});
 	const runwayRadius = (model: LlmStatsModel) =>
-		clamp((model.relative_scores.value_score ?? 25) / 9, 3, 10);
+		clamp((model.relative_scores.cost_efficiency_score ?? 25) / 9, 3, 10);
 	const runwayLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({
@@ -242,7 +243,7 @@ export function RunwayPanel({
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble size = value score
+						Bubble size = cost efficiency score
 					</span>
 				</div>
 			</div>

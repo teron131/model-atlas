@@ -29,7 +29,19 @@ export type CoreJsonPayload = {
 };
 
 export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
-	models: Array<Omit<LlmStatsModel, "attachment" | "reasoning" | "logo">>;
+	models: PublicFullJsonModel[];
+};
+
+type PublicRelativeScores = Omit<
+	LlmStatsModel["relative_scores"],
+	"price_score"
+>;
+
+type PublicFullJsonModel = Omit<
+	LlmStatsModel,
+	"attachment" | "reasoning" | "logo" | "relative_scores"
+> & {
+	relative_scores: PublicRelativeScores;
 };
 
 export type ScoreJsonPayload = {
@@ -46,11 +58,11 @@ export type ScoreJsonModel = {
 	name: string | null;
 	provider: string | null;
 	score: {
-		overall: number;
 		intelligence: number;
 		agentic: number;
 		speed: number | null;
-		value: number | null;
+		cost_efficiency: number | null;
+		overall: number;
 	};
 };
 
@@ -79,11 +91,11 @@ export type CoreJsonModel = {
 	input_modalities: string[];
 	output_modalities: string[];
 	open_weights: boolean | null;
-	overall_score: number;
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: number | null;
-	value_score: number | null;
+	cost_efficiency_score: number | null;
+	overall_score: number;
 	blended_price: number | null;
 	context_window_tokens: number | null;
 	input_cost_per_million_tokens: number | null;
@@ -103,11 +115,11 @@ const coreColumnKeys = [
 	"input_modalities",
 	"output_modalities",
 	"open_weights",
-	"overall_score",
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
-	"value_score",
+	"cost_efficiency_score",
+	"overall_score",
 	"blended_price",
 	"context_window_tokens",
 	"input_cost_per_million_tokens",
@@ -148,7 +160,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 		schema: CORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
-		methodology: methodologyText(payload),
+		methodology: methodologyText(),
 		columns: [...coreColumnKeys],
 		models: rankedModels.map(({ model, rank }) => coreJsonModel(model, rank)),
 	};
@@ -161,7 +173,7 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 		schema: SCORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
-		methodology: methodologyText(payload),
+		methodology: methodologyText(),
 		scores: rankedModels.map(({ model, rank }) => scoreJsonModel(model, rank)),
 	};
 }
@@ -175,7 +187,7 @@ export function benchmarksJsonPayload(
 		schema: BENCHMARKS_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		benchmark_scale: BENCHMARK_SCALE,
-		methodology: methodologyText(payload),
+		methodology: methodologyText(),
 		benchmarks: rankedModels.map(({ model, rank }) =>
 			benchmarksJsonModel(model, rank),
 		),
@@ -190,15 +202,8 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	};
 }
 
-/** Derive methodology prose from live scoring weights so public JSON cannot drift from the configured portfolio. */
-function methodologyText(payload: LlmStatsPayload): string {
-	const weights = payload.metadata.scoring.overall_relative_score_weights;
-	return `Overall score is ${formatMethodologyWeight(weights.intelligence)} Intelligence, ${formatMethodologyWeight(weights.agentic)} Agentic, ${formatMethodologyWeight(weights.speed)} Speed, and ${formatMethodologyWeight(weights.value)} Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.`;
-}
-
-function formatMethodologyWeight(weight: number): string {
-	const percent = Number((weight * 100).toFixed(2));
-	return `${percent}%`;
+function methodologyText(): string {
+	return "Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. Speed uses percentile-ranked benchmark task runtime and workflow speed signals. Cost efficiency measures benchmark task-cost value against similarly scoring models; higher means better cost value at comparable benchmark quality.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
@@ -216,16 +221,19 @@ function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 	return rankedModels;
 }
 
-function withoutUnusedModelFields(
-	model: LlmStatsModel,
-): Omit<LlmStatsModel, "attachment" | "reasoning" | "logo"> {
+function withoutUnusedModelFields(model: LlmStatsModel): PublicFullJsonModel {
 	const {
 		attachment: _attachment,
 		logo: _logo,
+		relative_scores: relativeScores,
 		reasoning: _reasoning,
 		...modelPayload
 	} = model;
-	return modelPayload;
+	const { price_score: _priceScore, ...publicRelativeScores } = relativeScores;
+	return {
+		...modelPayload,
+		relative_scores: publicRelativeScores,
+	};
 }
 
 function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
@@ -235,11 +243,11 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 		name: model.name,
 		provider: model.provider,
 		score: {
-			overall: model.relative_scores.overall_score,
 			intelligence: model.relative_scores.intelligence_score,
 			agentic: model.relative_scores.agentic_score,
 			speed: model.relative_scores.speed_score,
-			value: model.relative_scores.value_score,
+			cost_efficiency: model.relative_scores.cost_efficiency_score,
+			overall: model.relative_scores.overall_score,
 		},
 	};
 }
@@ -272,11 +280,11 @@ function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 		input_modalities: [...(model.modalities?.input ?? [])],
 		output_modalities: [...(model.modalities?.output ?? [])],
 		open_weights: model.open_weights,
-		overall_score: model.relative_scores.overall_score,
 		intelligence_score: model.relative_scores.intelligence_score,
 		agentic_score: model.relative_scores.agentic_score,
 		speed_score: model.relative_scores.speed_score,
-		value_score: model.relative_scores.value_score,
+		cost_efficiency_score: model.relative_scores.cost_efficiency_score,
+		overall_score: model.relative_scores.overall_score,
 		blended_price: model.cost?.blended_price ?? null,
 		context_window_tokens: model.context_window?.context ?? null,
 		input_cost_per_million_tokens: model.cost?.input ?? null,

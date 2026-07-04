@@ -31,8 +31,8 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
 		label: metricLabel(<LightningIcon />, "Speed"),
 	},
 	{
-		key: "value",
-		label: metricLabel(<DollarIcon />, "Value"),
+		key: "costEfficiency",
+		label: metricLabel(<DollarIcon />, "Cost"),
 	},
 	{ key: "overall", label: "Ovrll" },
 	{ key: "blend", label: "Blend" },

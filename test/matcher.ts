@@ -7,6 +7,10 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/matcher/types";
+import {
+	type ArtificialAnalysisEvaluationResourceRow,
+	buildArtificialAnalysisEvaluationResourceMap,
+} from "../src/model-atlas/scrapers/artificial-analysis/evaluation-resources";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
 import { buildGdpPdfMap } from "../src/model-atlas/scrapers/gdp-pdf";
@@ -154,6 +158,15 @@ assert.equal(
 	0.64,
 	"Vals Index scores should attach through normalized model-id matching",
 );
+assert.equal(
+	asScoringSources(
+		matchedRows.find(
+			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+		),
+	).hle?.cost_per_task_usd,
+	2,
+	"AA resource rows should prefer exact source model id over a generic display-name match",
+);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -186,7 +199,7 @@ function sourceModel(
 	return {
 		model_id: modelId,
 		intelligence: { intelligence_index: intelligenceIndex },
-		evaluations: {},
+		evaluations: { hle: 0.4 },
 		intelligence_index_cost: {},
 	};
 }
@@ -252,6 +265,47 @@ function modelStatsSourceData(
 			score: 0.64,
 		},
 	];
+	const artificialAnalysisResourceRows: ArtificialAnalysisEvaluationResourceRow[] =
+		[
+			{
+				benchmark_key: "hle",
+				source_url:
+					"https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+				model_id: "google/example-2-5-flash",
+				model: "Example 2.5 Flash (high)",
+				provider: "Google",
+				provider_id: "google",
+				reasoning_effort: "high",
+				score: 0.4,
+				task_count: 2,
+				cost_per_task_usd: 2,
+				seconds_per_task: 20,
+				tokens_per_task: 200,
+				input_tokens_per_task: 80,
+				output_tokens_per_task: 120,
+				answer_tokens_per_task: 40,
+				reasoning_tokens_per_task: 80,
+			},
+			{
+				benchmark_key: "hle",
+				source_url:
+					"https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+				model_id: "google/example-2-5-flash-non-reasoning",
+				model: "Example 2.5 Flash",
+				provider: "Google",
+				provider_id: "google",
+				reasoning_effort: "non-reasoning",
+				score: 0.1,
+				task_count: 2,
+				cost_per_task_usd: 0.1,
+				seconds_per_task: 2,
+				tokens_per_task: 20,
+				input_tokens_per_task: 8,
+				output_tokens_per_task: 12,
+				answer_tokens_per_task: 12,
+				reasoning_tokens_per_task: 0,
+			},
+		];
 	const modelsDevModels = [
 		model(
 			"openrouter",
@@ -281,8 +335,10 @@ function modelStatsSourceData(
 			bySlug: artificialAnalysisBySlug,
 		},
 		artificialAnalysisEvaluationResources: {
-			rows: [],
-			scoreByModelName: new Map(),
+			rows: artificialAnalysisResourceRows,
+			scoreByModelName: buildArtificialAnalysisEvaluationResourceMap(
+				artificialAnalysisResourceRows,
+			),
 		},
 		modelsDev: {
 			rows: modelsDevModels,
@@ -345,5 +401,16 @@ function asEvaluations(
 ): Record<string, unknown> {
 	return row?.evaluations && typeof row.evaluations === "object"
 		? (row.evaluations as Record<string, unknown>)
+		: {};
+}
+
+function asScoringSources(
+	row: Record<string, unknown> | undefined,
+): Record<string, ArtificialAnalysisEvaluationResourceRow> {
+	return row?.scoring_sources && typeof row.scoring_sources === "object"
+		? (row.scoring_sources as Record<
+				string,
+				ArtificialAnalysisEvaluationResourceRow
+			>)
 		: {};
 }

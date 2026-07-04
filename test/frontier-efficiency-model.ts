@@ -42,7 +42,7 @@ const efficient = frontierModel({
 	seconds: 30,
 	inputTokens: 1_000,
 	outputTokens: 200,
-	valueScore: 95,
+	priceScore: 95,
 	speedScore: 80,
 	intelligenceScore: 72,
 });
@@ -54,7 +54,7 @@ const expensive = frontierModel({
 	seconds: 120,
 	inputTokens: 2_000,
 	outputTokens: 1_000,
-	valueScore: 40,
+	priceScore: 40,
 	speedScore: 20,
 	intelligenceScore: 91,
 });
@@ -82,9 +82,9 @@ assert.equal(
 	"highest scoring model should remain the chart leader",
 );
 assert.equal(
-	summaryRows?.paretoRow.model.id,
+	summaryRows?.highScoreAxisRow.model.id,
 	"provider/efficient",
-	"pareto row should prefer the cheaper model above the leader score floor",
+	"high-score axis row should prefer the cheaper model above the leader score floor",
 );
 
 assert.deepEqual(
@@ -129,7 +129,7 @@ function frontierModel({
 	seconds,
 	inputTokens,
 	outputTokens,
-	valueScore,
+	priceScore,
 	speedScore,
 	intelligenceScore,
 }: {
@@ -140,7 +140,7 @@ function frontierModel({
 	seconds: number;
 	inputTokens: number;
 	outputTokens: number;
-	valueScore: number;
+	priceScore: number;
 	speedScore: number;
 	intelligenceScore: number;
 }): LlmStatsModel {
@@ -162,7 +162,8 @@ function frontierModel({
 			intelligence_score: intelligenceScore,
 			agentic_score: 0,
 			speed_score: speedScore,
-			value_score: valueScore,
+			price_score: priceScore,
+			cost_efficiency_score: priceScore,
 			overall_score: 0,
 		},
 	};

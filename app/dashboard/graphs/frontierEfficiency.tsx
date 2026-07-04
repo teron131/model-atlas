@@ -47,7 +47,8 @@ export function FrontierEfficiencyPanel({
 	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const [axisKey, setAxisKey] = useState<FrontierEfficiencyAxisKey>("value");
+	const [axisKey, setAxisKey] =
+		useState<FrontierEfficiencyAxisKey>("costEfficiency");
 	const [benchmarkKey, setBenchmarkKey] = useState("all");
 	const allRows = useMemo(
 		() =>
@@ -127,7 +128,8 @@ export function FrontierEfficiencyPanel({
 	if (summaryRows == null) {
 		return null;
 	}
-	const { leader, paretoRow, budgetRow, labeledRows } = summaryRows;
+	const { leader, highScoreAxisRow, medianScoreAxisRow, labeledRows } =
+		summaryRows;
 	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
 	const yAxisLabel = isAllBenchmark
@@ -223,14 +225,14 @@ export function FrontierEfficiencyPanel({
 					detail={leaderDetail}
 				/>
 				<SummaryCard
-					label="Pareto (Scored > 80% of leader)"
-					value={modelName(paretoRow.model)}
-					detail={axisSummaryDetail(paretoRow, axisConfig)}
+					label={`${axisConfig.shortLabel} (Scored > 80% of leader)`}
+					value={modelName(highScoreAxisRow.model)}
+					detail={axisSummaryDetail(highScoreAxisRow, axisConfig)}
 				/>
 				<SummaryCard
-					label="Budget (Scored > median)"
-					value={modelName(budgetRow.model)}
-					detail={axisSummaryDetail(budgetRow, axisConfig)}
+					label={`${axisConfig.shortLabel} (Scored > median)`}
+					value={modelName(medianScoreAxisRow.model)}
+					detail={axisSummaryDetail(medianScoreAxisRow, axisConfig)}
 				/>
 			</div>
 		</Panel>

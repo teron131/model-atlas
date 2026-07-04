@@ -17,6 +17,11 @@ export function isPositiveFinite(value: unknown): value is number {
 	return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
+export function positiveFiniteNumber(value: unknown): number | null {
+	const number = Number(value);
+	return Number.isFinite(number) && number > 0 ? number : null;
+}
+
 export function meanOfFinite(values: Array<number | null>): number | null {
 	const finiteValues = finiteScoreValues(values);
 	if (finiteValues.length === 0) {
@@ -51,8 +56,19 @@ export function clamp(value: number, minValue: number, maxValue: number) {
 	return Math.max(minValue, Math.min(maxValue, value));
 }
 
+export function clamp01(value: number) {
+	return clamp(value, 0, 1);
+}
+
 export function interpolateLinear(start: number, end: number, ratio: number) {
 	return start + (end - start) * ratio;
+}
+
+export function expectedLogUniformValue(lower: number, upper: number): number {
+	if (lower <= 0 || upper <= 0 || lower === upper) {
+		return (lower + upper) / 2;
+	}
+	return (upper - lower) / (Math.log(upper) - Math.log(lower));
 }
 
 export function logDistance(left: number, right: number) {
@@ -138,6 +154,40 @@ export function weightedMeanOfFinite(
 	);
 }
 
+export function weightedFinitePartCount(parts: WeightedScorePart[]): number {
+	return parts.filter(
+		(part) =>
+			part.value != null &&
+			Number.isFinite(part.value) &&
+			Number.isFinite(part.weight) &&
+			part.weight > 0,
+	).length;
+}
+
+export function weightedCoverageRatio(
+	parts: WeightedScorePart[],
+): number | null {
+	const totalWeight = parts.reduce(
+		(total, part) =>
+			Number.isFinite(part.weight) && part.weight > 0
+				? total + part.weight
+				: total,
+		0,
+	);
+	if (totalWeight <= 0) {
+		return null;
+	}
+	const coveredWeight = parts.reduce((total, part) => {
+		if (!Number.isFinite(part.weight) || part.weight <= 0) {
+			return total;
+		}
+		return part.value == null || !Number.isFinite(part.value)
+			? total
+			: total + part.weight;
+	}, 0);
+	return coveredWeight / totalWeight;
+}
+
 /** Require every configured part so fixed-weight scores do not reweight themselves around missing data. */
 export function fixedWeightedScore(parts: WeightedScorePart[]): number | null {
 	if (parts.some((part) => part.value == null)) {
@@ -179,6 +229,21 @@ export function percentileRank(
 	return Number(rawPercentile.toFixed(4));
 }
 
+export function percentileScoreAt(
+	values: Array<number | null>,
+	index: number,
+): NumberOrNull {
+	const value = values[index] ?? null;
+	return value == null ? null : percentileRank(values, value);
+}
+
+export function percentileScoreForValue(
+	values: ReadonlyArray<number | null>,
+	value: number | null,
+): NumberOrNull {
+	return value == null ? null : percentileRank([...values], value);
+}
+
 /** Clamp public score-scale values to 0-100 after normalization or interpolation. */
 export function clampScore(value: number): number {
 	return Math.min(100, Math.max(0, value));
@@ -217,6 +282,91 @@ export function medianOfFinite(
 		finiteScoreValues(values).sort((left, right) => left - right),
 		0.5,
 	);
+}
+
+export function fillMissingWithMedian(
+	values: Array<number | null>,
+): Array<number | null> {
+	const knownValues = sortedFiniteScores(values);
+	const medianValue = quantileFromSorted(knownValues, 0.5);
+	if (medianValue == null) {
+		return values;
+	}
+	return values.map((value) => value ?? medianValue);
+}
+
+export function fillMissingWithQualityMirror(
+	qualityScores: Array<number | null>,
+	targetScores: Array<number | null>,
+	tradeoffStrength: number,
+): Array<number | null> {
+	const knownScores = sortedFiniteScores(targetScores);
+	if (knownScores.length === 0) {
+		return targetScores;
+	}
+	const qualityDistribution = finiteScoreValues(qualityScores);
+	return targetScores.map((targetScore, index) => {
+		if (targetScore != null) {
+			return targetScore;
+		}
+		const qualityScore = qualityScores[index] ?? null;
+		const qualityPercentile = percentileRank(qualityDistribution, qualityScore);
+		if (qualityPercentile == null) {
+			return null;
+		}
+		const targetPercentile = clampScore(
+			50 - tradeoffStrength * (qualityPercentile - 50),
+		);
+		return quantileFromSorted(knownScores, targetPercentile / 100);
+	});
+}
+
+export function inversePositiveFinite(value: unknown): number | null {
+	const number = positiveFiniteNumber(value);
+	return number == null ? null : 1 / number;
+}
+
+export function log10OnePlusPositive(value: unknown): number | null {
+	const number = positiveFiniteNumber(value);
+	if (number == null) {
+		return null;
+	}
+	const scaledValue = Math.log10(1 + number);
+	return scaledValue > 0 ? scaledValue : null;
+}
+
+export function probabilityLogit(value: number): number {
+	const clamped = clamp(value, 0.001, 0.999);
+	return Math.log(clamped / (1 - clamped));
+}
+
+export function logitBenchmarkScore(value: number): number {
+	return probabilityLogit(value > 1 ? value / 100 : value);
+}
+
+export function benchmarkDeviation(
+	values: number[],
+	minimumDeviation: number,
+): number | null {
+	const q25 = quantileFromSorted(values, 0.25);
+	const q75 = quantileFromSorted(values, 0.75);
+	if (q25 == null || q75 == null) {
+		return null;
+	}
+	return Math.max((q75 - q25) / 1.349, minimumDeviation);
+}
+
+export function gaussianWeight(
+	leftValue: number,
+	rightValue: number,
+	sigma: number,
+): number {
+	return Math.exp(-0.5 * ((leftValue - rightValue) / sigma) ** 2);
+}
+
+export function smoothstep(ratio: number): number {
+	const clampedRatio = clamp(ratio, 0, 1);
+	return clampedRatio * clampedRatio * (3 - 2 * clampedRatio);
 }
 
 /** Normalize onto the 0-100 score scale, giving full credit when the comparison set has no spread. */

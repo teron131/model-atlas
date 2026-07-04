@@ -21,6 +21,23 @@ const NEXT_FLIGHT_CHUNK_REGEX =
 	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 const ROW_DETECTION_KEY = "evalTimePerTask";
 const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
+const REASONING_EFFORT_RANK = {
+	"non-reasoning": 0,
+	low: 1,
+	medium: 2,
+	high: 3,
+	xhigh: 4,
+	max: 5,
+} as const satisfies Readonly<Record<string, number>>;
+const REASONING_EFFORT_SUFFIXES = [
+	"non-reasoning",
+	"extra-high",
+	"xhigh",
+	"high",
+	"medium",
+	"low",
+	"max",
+] as const;
 
 export type ArtificialAnalysisEvaluationResourcePage = {
 	benchmark_key: string;
@@ -314,10 +331,55 @@ function modelKeyCandidates(
 		);
 }
 
+function familyModelKeyCandidates(
+	row: ArtificialAnalysisEvaluationResourceRow,
+): string[] {
+	return modelKeyCandidates(row)
+		.map(withoutReasoningEffortSuffix)
+		.filter(
+			(key, index, keys) => key.length > 0 && keys.indexOf(key) === index,
+		);
+}
+
+function withoutReasoningEffortSuffix(key: string): string {
+	let base = key;
+	for (const suffix of REASONING_EFFORT_SUFFIXES) {
+		if (base.endsWith(`-${suffix}`)) {
+			base = base.slice(0, -suffix.length - 1);
+			break;
+		}
+	}
+	return base;
+}
+
+function reasoningEffortRank(
+	row: ArtificialAnalysisEvaluationResourceRow,
+): number {
+	return row.reasoning_effort == null
+		? 0
+		: (REASONING_EFFORT_RANK[
+				row.reasoning_effort as keyof typeof REASONING_EFFORT_RANK
+			] ?? 0);
+}
+
+function higherEffortResourceRow(
+	left: ArtificialAnalysisEvaluationResourceRow | undefined,
+	right: ArtificialAnalysisEvaluationResourceRow,
+): ArtificialAnalysisEvaluationResourceRow {
+	if (left == null) {
+		return right;
+	}
+	return reasoningEffortRank(right) > reasoningEffortRank(left) ? right : left;
+}
+
 export function buildArtificialAnalysisEvaluationResourceMap(
 	rows: ArtificialAnalysisEvaluationResourceRow[],
 ): ArtificialAnalysisEvaluationResourceByBenchmark {
 	const rowsByBenchmark = new Map<
+		string,
+		Map<string, ArtificialAnalysisEvaluationResourceRow>
+	>();
+	const bestRowsByBenchmarkAndFamily = new Map<
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
@@ -328,6 +390,43 @@ export function buildArtificialAnalysisEvaluationResourceMap(
 			rowsByBenchmark.set(row.benchmark_key, rowsByModelName);
 		}
 		for (const key of modelKeyCandidates(row)) {
+			rowsByModelName.set(key, row);
+		}
+		let bestRowsByFamily = bestRowsByBenchmarkAndFamily.get(row.benchmark_key);
+		if (bestRowsByFamily == null) {
+			bestRowsByFamily = new Map();
+			bestRowsByBenchmarkAndFamily.set(row.benchmark_key, bestRowsByFamily);
+		}
+		for (const key of familyModelKeyCandidates(row)) {
+			bestRowsByFamily.set(
+				key,
+				higherEffortResourceRow(bestRowsByFamily.get(key), row),
+			);
+		}
+	}
+	for (const [benchmarkKey, bestRowsByFamily] of bestRowsByBenchmarkAndFamily) {
+		const rowsByModelName = rowsByBenchmark.get(benchmarkKey);
+		if (rowsByModelName == null) {
+			continue;
+		}
+		for (const row of rows.filter(
+			(item) => item.benchmark_key === benchmarkKey,
+		)) {
+			const bestFamilyRow = familyModelKeyCandidates(row).reduce<
+				ArtificialAnalysisEvaluationResourceRow | undefined
+			>(
+				(bestRow, key) =>
+					higherEffortResourceRow(bestRow, bestRowsByFamily.get(key) ?? row),
+				undefined,
+			);
+			if (bestFamilyRow == null) {
+				continue;
+			}
+			for (const key of modelKeyCandidates(row)) {
+				rowsByModelName.set(key, bestFamilyRow);
+			}
+		}
+		for (const [key, row] of bestRowsByFamily) {
 			rowsByModelName.set(key, row);
 		}
 	}

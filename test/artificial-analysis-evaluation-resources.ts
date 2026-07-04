@@ -149,3 +149,79 @@ assertDeepEqual(
 		reasoning_tokens_per_task: null,
 	},
 );
+
+const effortRows = processArtificialAnalysisEvaluationResourceRows(
+	[
+		{
+			short_name: "GPT-5.2",
+			slug: "gpt-5-2-non-reasoning",
+			model_creators: {
+				name: "OpenAI",
+				slug: "openai",
+			},
+			hle: 0.1,
+			evalCost: {
+				total: 0.2,
+			},
+			evalTimePerTask: 2,
+			tokenCounts: {
+				inputTokens: 8,
+				outputTokens: 12,
+			},
+		},
+		{
+			short_name: "GPT-5.2 (low)",
+			slug: "gpt-5-2-low",
+			model_creators: {
+				name: "OpenAI",
+				slug: "openai",
+			},
+			hle: 0.2,
+			evalCost: {
+				total: 1,
+			},
+			evalTimePerTask: 10,
+			tokenCounts: {
+				inputTokens: 20,
+				outputTokens: 30,
+			},
+		},
+		{
+			short_name: "GPT-5.2 (xhigh)",
+			slug: "gpt-5-2",
+			model_creators: {
+				name: "OpenAI",
+				slug: "openai",
+			},
+			hle: 0.3,
+			evalCost: {
+				total: 4,
+			},
+			evalTimePerTask: 40,
+			tokenCounts: {
+				inputTokens: 80,
+				outputTokens: 120,
+			},
+		},
+	],
+	page,
+);
+const effortRowsByBenchmark =
+	buildArtificialAnalysisEvaluationResourceMap(effortRows);
+for (const candidateName of [
+	"GPT-5.2",
+	"GPT-5.2 low",
+	"GPT-5.2 xhigh",
+	"openai/gpt-5-2-non-reasoning",
+	"openai/gpt-5-2-low",
+	"openai/gpt-5-2",
+]) {
+	assertDeepEqual(
+		findArtificialAnalysisEvaluationResourceRow(
+			"hle",
+			[candidateName],
+			effortRowsByBenchmark,
+		)?.reasoning_effort,
+		"xhigh",
+	);
+}

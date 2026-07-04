@@ -38,7 +38,6 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 ]);
 const REQUIRED_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 const REQUIRED_RELATIVE_SCORE_KEYS = [
-	"overall_score",
 	"intelligence_score",
 	"agentic_score",
 ] as const;

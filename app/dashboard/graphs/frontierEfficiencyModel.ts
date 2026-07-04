@@ -26,10 +26,14 @@ import {
 import { correlationValue, formatCorrelation, modelKey } from "./models";
 import type { HoverRow } from "./types";
 
-export type FrontierEfficiencyAxisKey = "value" | "cost" | "time" | "tokens";
+export type FrontierEfficiencyAxisKey =
+	| "costEfficiency"
+	| "cost"
+	| "time"
+	| "tokens";
 type FrontierEfficiencyResourceMetric = Exclude<
 	FrontierEfficiencyAxisKey,
-	"value"
+	"costEfficiency"
 >;
 
 export type FrontierEfficiencyRow = {
@@ -72,8 +76,8 @@ export type FrontierEfficiencyAxisOption = {
 
 export type FrontierEfficiencySummaryRows = {
 	leader: FrontierEfficiencyRow;
-	paretoRow: FrontierEfficiencyRow;
-	budgetRow: FrontierEfficiencyRow;
+	highScoreAxisRow: FrontierEfficiencyRow;
+	medianScoreAxisRow: FrontierEfficiencyRow;
 	labeledRows: Set<FrontierEfficiencyRow>;
 };
 
@@ -81,16 +85,17 @@ export const frontierEfficiencyAxisConfig: Record<
 	FrontierEfficiencyAxisKey,
 	FrontierEfficiencyAxisConfig
 > = {
-	value: {
-		label: "Value score",
-		shortLabel: "Value",
-		get: (row) => finiteValue(row.model.relative_scores?.value_score) ?? 0,
+	costEfficiency: {
+		label: "Cost efficiency score",
+		shortLabel: "Efficiency",
+		get: (row) =>
+			finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0,
 		selectionScore: (row) =>
-			finiteValue(row.model.relative_scores?.value_score) ?? 0,
+			finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0,
 		format: (value) => value.toFixed(0),
-		detailLabel: () => "Value score",
-		normalizedLabel: "Value score",
-		normalizedDetailLabel: "Value score",
+		detailLabel: () => "Cost efficiency score",
+		normalizedLabel: "Cost efficiency score",
+		normalizedDetailLabel: "Cost efficiency score",
 		xHigherBetter: true,
 	},
 	cost: {
@@ -100,8 +105,8 @@ export const frontierEfficiencyAxisConfig: Record<
 		selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
 		format: fmtMoney,
 		detailLabel: (row) => resourceMetricLabel(row, "cost"),
-		normalizedLabel: "Mean normalized cost score",
-		normalizedDetailLabel: "Mean normalized cost score",
+		normalizedLabel: "Mean normalized resource cost score",
+		normalizedDetailLabel: "Mean normalized resource cost score",
 	},
 	time: {
 		label: "Resource time",
@@ -345,7 +350,7 @@ export function frontierEfficiencyAxisConfigFor(
 	isAllBenchmark: boolean,
 ): FrontierEfficiencyAxisConfig {
 	const axisConfig = frontierEfficiencyAxisConfig[axisKey];
-	if (!isAllBenchmark || axisKey === "value") {
+	if (!isAllBenchmark || axisKey === "costEfficiency") {
 		return axisConfig;
 	}
 	return {
@@ -375,7 +380,7 @@ export function frontierAxisMetricLabel(
 	return row == null ? axisConfig.label : axisConfig.detailLabel(row);
 }
 
-/** Summarize leader, pareto, and budget rows for the panel cards and labels. */
+/** Summarize leader, cost-efficiency, and budget rows for the panel cards and labels. */
 export function frontierEfficiencySummaryRows(
 	rows: FrontierEfficiencyRow[],
 	axisConfig: FrontierEfficiencyAxisConfig,
@@ -385,28 +390,28 @@ export function frontierEfficiencySummaryRows(
 		return null;
 	}
 	const medianScore = median(rows.map((row) => row.score)) ?? leader.score;
-	const paretoScoreFloor = leader.score * 0.8;
-	const budgetRow = bestAxisRowAtOrAboveScore(
+	const highScoreFloor = leader.score * 0.8;
+	const medianScoreAxisRow = bestAxisRowAtOrAboveScore(
 		rows,
 		axisConfig,
 		medianScore,
 		leader,
 	);
-	const paretoRow = bestAxisRowAtOrAboveScore(
+	const highScoreAxisRow = bestAxisRowAtOrAboveScore(
 		rows,
 		axisConfig,
-		paretoScoreFloor,
+		highScoreFloor,
 		leader,
 	);
 	const labeledRows = new Set(
-		[leader, paretoRow, budgetRow].filter(
+		[leader, highScoreAxisRow, medianScoreAxisRow].filter(
 			(row): row is FrontierEfficiencyRow => row != null,
 		),
 	);
 	return {
 		leader,
-		paretoRow,
-		budgetRow,
+		highScoreAxisRow,
+		medianScoreAxisRow,
 		labeledRows,
 	};
 }
@@ -438,7 +443,7 @@ export function frontierXAxisScale(
 	axisKey: FrontierEfficiencyAxisKey,
 	axisConfig: FrontierEfficiencyAxisConfig,
 ): AxisScale {
-	if (axisKey === "value") {
+	if (axisKey === "costEfficiency") {
 		return scoreAxisScale(values, {
 			formatTick: axisConfig.format,
 		});
@@ -500,9 +505,7 @@ function frontierResourceTaskMetrics(
 	if (resourcePolicy == null) {
 		return null;
 	}
-	return resourcePolicy.source === "artificial_analysis"
-		? taskMetrics.artificial_analysis
-		: taskMetrics[benchmarkKey];
+	return taskMetrics[benchmarkKey];
 }
 
 /** Calculate the token metric selected by the benchmark resource policy. */
