@@ -155,7 +155,7 @@ export const OVERALL_RELATIVE_SCORE_WEIGHTS = {
 	intelligence: 0.35,
 	agentic: 0.25,
 	speed: 0.2,
-	value: 0.2,
+	price: 0.2,
 } as const;
 
 /** Looks up the portfolio entry for a benchmark key. */

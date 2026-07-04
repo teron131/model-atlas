@@ -180,7 +180,8 @@ async function d1ImportStatements(
 	publishRunId: number,
 ): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
-	const tables = [...schemaTableColumns(schemaSql).keys()];
+	const columnsByTable = schemaTableColumns(schemaSql);
+	const tables = [...columnsByTable.keys()];
 	const db = new DatabaseSync(databasePath, { readOnly: true });
 	try {
 		const run = latestCompletedRun(db);
@@ -197,7 +198,13 @@ async function d1ImportStatements(
 			`DELETE FROM pipeline_runs WHERE id = ${sqlLiteral(publishRun.id)};`,
 			pipelineRunInsertStatement(publishRun),
 			...runScopedTables.flatMap((table) =>
-				runScopedTableInsertStatements(db, table, run.id, publishRun.id),
+				runScopedTableInsertStatements(
+					db,
+					table,
+					columnsByTable.get(table)?.map(([column]) => column) ?? [],
+					run.id,
+					publishRun.id,
+				),
 			),
 			`UPDATE pipeline_runs SET completed_at_epoch_seconds = ${sqlLiteral(publishRun.completedAt)} WHERE id = ${sqlLiteral(publishRun.id)};`,
 			...runScopedTables.map(
@@ -284,10 +291,10 @@ function pipelineRunInsertStatement(
 function runScopedTableInsertStatements(
 	db: DatabaseSync,
 	table: string,
+	columns: string[],
 	sourceRunId: number,
 	publishRunId: number,
 ): string[] {
-	const columns = tableColumns(db, table);
 	const rows = db
 		.prepare(
 			`SELECT ${columns.map(quoteIdentifier).join(", ")} FROM ${quoteIdentifier(table)} WHERE run_id = ? ORDER BY row_index`,
@@ -298,16 +305,6 @@ function runScopedTableInsertStatements(
 			run_id: publishRunId,
 		}));
 	return insertStatements(table, columns, rows);
-}
-
-/** Reads ordered table columns from the local SQLite schema. */
-function tableColumns(db: DatabaseSync, table: string): string[] {
-	return db
-		.prepare(`PRAGMA table_info(${quoteIdentifier(table)})`)
-		.all()
-		.flatMap((row) =>
-			typeof row.name === "string" && row.name.length > 0 ? [row.name] : [],
-		);
 }
 
 function insertStatements(

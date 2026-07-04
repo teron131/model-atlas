@@ -14,7 +14,6 @@ import {
 	benchmarkPortfolioEntry,
 	benchmarkResourcePolicy,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	OVERALL_RELATIVE_SCORE_WEIGHTS,
 	QUALITY_SCORE_WEIGHTS,
 } from "./benchmark-portfolio";
 import {
@@ -38,9 +37,6 @@ function weightPercent<T extends Record<string, number>>(
 	const weight = weights[key];
 	return total > 0 && weight != null ? percent(weight / total) : "-";
 }
-
-const overallWeight = (key: keyof typeof OVERALL_RELATIVE_SCORE_WEIGHTS) =>
-	percent(OVERALL_RELATIVE_SCORE_WEIGHTS[key]);
 
 const qualityWeight = (key: keyof typeof QUALITY_SCORE_WEIGHTS) =>
 	weightPercent(QUALITY_SCORE_WEIGHTS, key);
@@ -159,11 +155,10 @@ const benchmarkContributionPercent = (
 };
 
 const RESOURCE_SIGNAL_WEIGHT = 0.7;
-const RAW_SIGNAL_WEIGHT = 0.3;
+const WORKFLOW_SIGNAL_WEIGHT = 0.3;
 const signalBlendText = () =>
-	`${percent(RESOURCE_SIGNAL_WEIGHT)} resource / ${percent(RAW_SIGNAL_WEIGHT)} raw`;
+	`${percent(RESOURCE_SIGNAL_WEIGHT)} resource / ${percent(WORKFLOW_SIGNAL_WEIGHT)} workflow`;
 
-const RELATIVE_SCORE_TEXT = "relative to this model set";
 const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
 const PERCENTILE_SCORE_TEXT = "percentile; higher is better";
 const LOWER_FIRST_TEXT = "lower values sort first";
@@ -193,11 +188,10 @@ const BENCHMARK_LABEL_BY_KEY = {
 } as const satisfies Record<BenchmarkKey, string>;
 
 type CoreColumnTooltipKey =
-	| "overall"
 	| "intelligence"
 	| "agentic"
 	| "speed"
-	| "value"
+	| "costEfficiency"
 	| "blend"
 	| "context"
 	| "artificialAnalysisCost"
@@ -230,23 +224,15 @@ function perComponentWeight(totalWeight: number, count: number): string {
 	return count > 0 ? percent(totalWeight / count, 1) : "-";
 }
 
-function groupedComponentWeight(
-	totalWeight: number,
-	groupCount: number,
-	totalCount: number,
-): string {
-	return totalCount > 0
-		? percent((totalWeight * groupCount) / totalCount, 1)
-		: "-";
-}
-
 function resourceBenchmarkKeys(
 	components: ActiveResourceComponents,
 ): readonly string[] {
 	return [
 		...components.artificialAnalysisBenchmarkKeys,
 		...components.directBenchmarkKeys,
-	];
+	].sort((left, right) =>
+		benchmarkLabel(left).localeCompare(benchmarkLabel(right)),
+	);
 }
 
 function benchmarkLabel(key: string): string {
@@ -264,25 +250,6 @@ function benchmarkResourceRows(
 		weight,
 	]);
 }
-
-function artificialAnalysisResourceRow(
-	benchmarkCount: number,
-	labelSuffix: string,
-	weight: string,
-): LlmStatsColumnTooltipRow | null {
-	if (benchmarkCount === 0) {
-		return null;
-	}
-	const plural = benchmarkCount === 1 ? "benchmark" : "benchmarks";
-	return [`AA resource (${benchmarkCount} ${plural}) ${labelSuffix}`, weight];
-}
-
-const qualityScoreRows = (indexLabel: string) =>
-	[
-		[indexLabel, qualityWeight("index")],
-		["Baseline benchmarks", qualityWeight("baseline")],
-		["Frontier benchmarks", qualityWeight("frontier")],
-	] as const;
 
 const qualityScoreRowsWithBenchmarkGroups = (
 	indexLabel: string,
@@ -339,76 +306,32 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
 
 const speedInputRows = (components: ActiveResourceComponents) => {
 	const resourceKeys = resourceBenchmarkKeys(components);
-	const artificialAnalysisWeight = groupedComponentWeight(
-		RESOURCE_SIGNAL_WEIGHT,
-		components.artificialAnalysisBenchmarkKeys.length,
-		resourceKeys.length,
-	);
-	const directWeight = perComponentWeight(
+	const resourceWeight = perComponentWeight(
 		RESOURCE_SIGNAL_WEIGHT,
 		resourceKeys.length,
 	);
-	const rawWeight = percent(RAW_SIGNAL_WEIGHT);
-	const artificialAnalysisRow = artificialAnalysisResourceRow(
-		components.artificialAnalysisBenchmarkKeys.length,
-		"task seconds",
-		artificialAnalysisWeight,
-	);
+	const workflowWeight = percent(WORKFLOW_SIGNAL_WEIGHT);
 	return [
-		...(artificialAnalysisRow == null ? [] : [artificialAnalysisRow]),
-		...benchmarkResourceRows(
-			components.directBenchmarkKeys,
-			"",
-			"task speed",
-			directWeight,
-		),
+		...benchmarkResourceRows(resourceKeys, "", "task speed", resourceWeight),
 		{
 			title: "Workflow simulation mix",
 			kind: "workflow_simulation",
-			weight: rawWeight,
+			weight: workflowWeight,
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
 	] as const;
 };
 
-const valueInputRows = (components: ActiveResourceComponents) => {
+const costInputRows = (components: ActiveResourceComponents) => {
 	const resourceKeys = resourceBenchmarkKeys(components);
-	const artificialAnalysisValueWeight = groupedComponentWeight(
-		RESOURCE_SIGNAL_WEIGHT,
-		components.artificialAnalysisBenchmarkKeys.length,
-		resourceKeys.length,
-	);
-	const directValueWeight = perComponentWeight(
-		RESOURCE_SIGNAL_WEIGHT,
-		resourceKeys.length,
-	);
-	const rawWeight = perComponentWeight(RAW_SIGNAL_WEIGHT, 3);
-	const artificialAnalysisValueRow = artificialAnalysisResourceRow(
-		components.artificialAnalysisBenchmarkKeys.length,
-		"score per log dollar",
-		artificialAnalysisValueWeight,
-	);
+	const componentWeight = perComponentWeight(1, resourceKeys.length);
 	return [
-		...(artificialAnalysisValueRow == null ? [] : [artificialAnalysisValueRow]),
 		...benchmarkResourceRows(
-			components.directBenchmarkKeys,
+			resourceKeys,
 			"",
-			"score per log dollar",
-			directValueWeight,
+			"cost per task",
+			componentWeight,
 		),
-		{
-			title: "Blend price profile",
-			kind: "price_profile",
-			weight: rawWeight,
-			rows: priceProfileRows(),
-		},
-		["Quality-adjusted blend value", rawWeight] as const,
-		{
-			title: "Workflow simulation mix",
-			kind: "workflow_simulation",
-			weight: rawWeight,
-			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
-		},
 	] as const;
 };
 
@@ -416,40 +339,6 @@ export function columnTooltipsForActiveComponents(
 	components: ActiveResourceComponents = ALL_RESOURCE_COMPONENTS,
 ): CoreColumnTooltips {
 	return {
-		overall: {
-			title: "Overall score",
-			body: "Practical utility score from fixed relative component weights. The table defaults to Intelligence sort; missing Speed or Value is estimated for Overall only.",
-			rows: [["Scale", RELATIVE_SCORE_TEXT]],
-			sections: [
-				{
-					title: "Component weights",
-					rows: [
-						["Intelligence", overallWeight("intelligence")],
-						["Agentic", overallWeight("agentic")],
-						["Speed", overallWeight("speed")],
-						["Value", overallWeight("value")],
-					],
-				},
-				{
-					title: "Intelligence blend",
-					rows: qualityScoreRows("AA index"),
-				},
-				{
-					title: "Agentic blend",
-					rows: qualityScoreRows("AA index"),
-				},
-				{
-					title: "Speed inputs",
-					hideTitle: true,
-					rows: speedInputRows(components),
-				},
-				{
-					title: "Value inputs",
-					hideTitle: true,
-					rows: valueInputRows(components),
-				},
-			],
-		},
 		intelligence: {
 			title: "Intelligence score",
 			body: "Relative capability score from the AA Intelligence index plus the selected intelligence benchmarks.",
@@ -488,7 +377,7 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "Percentile score from a 70% task-runtime resource block and 30% served-speed workflow simulation block. Missing task runtime falls back to output tokens divided by served throughput. Displayed only when at least two speed components are present.",
+			body: "Percentile score from a 70% benchmark task-runtime block and 30% served-speed workflow simulation block. AA-backed benchmarks use AA evaluation-page per-task resources; missing task runtime falls back to output tokens divided by served throughput. Displayed only when at least two speed components are present.",
 			rows: [
 				["Scale", PERCENTILE_SCORE_TEXT],
 				["Blend", signalBlendText()],
@@ -502,19 +391,19 @@ export function columnTooltipsForActiveComponents(
 				},
 			],
 		},
-		value: {
-			title: "Value score",
-			body: "Percentile score from a 70% resource-value block and 30% raw price/workflow block. Resource value uses benchmark-normalized score per log task dollar.",
+		costEfficiency: {
+			title: "Cost efficiency score",
+			body: "Among models with similar benchmark quality, this asks which one delivers the result for less task cost. Higher means better cost value versus comparable-quality models.",
 			rows: [
 				["Scale", PERCENTILE_SCORE_TEXT],
-				["Blend", signalBlendText()],
+				["Weights", "equal per active benchmark"],
 				["Sort", HIGHER_FIRST_TEXT],
 			],
 			sections: [
 				{
-					title: "Value inputs",
+					title: "Cost inputs",
 					hideTitle: true,
-					rows: valueInputRows(components),
+					rows: costInputRows(components),
 				},
 			],
 		},

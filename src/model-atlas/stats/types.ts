@@ -200,17 +200,18 @@ export type LlmStatsNullableScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
-	value_score: NumberOrNull;
+	price_score: NumberOrNull;
 };
 
 export type LlmStatsScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
-	value_score: NumberOrNull;
+	price_score: NumberOrNull;
 };
 
 export type LlmStatsNullableRelativeScores = LlmStatsNullableScores & {
+	cost_efficiency_score: NumberOrNull;
 	overall_score: NumberOrNull;
 };
 
@@ -218,7 +219,8 @@ export type LlmStatsRelativeScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
-	value_score: NumberOrNull;
+	price_score: NumberOrNull;
+	cost_efficiency_score: NumberOrNull;
 	overall_score: number;
 };
 
@@ -262,7 +264,7 @@ export type OverallRelativeScoreWeights = {
 	intelligence: number;
 	agentic: number;
 	speed: number;
-	value: number;
+	price: number;
 };
 
 export type QualityScoreWeights = {

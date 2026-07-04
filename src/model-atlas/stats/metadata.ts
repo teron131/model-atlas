@@ -6,6 +6,7 @@ import {
 	columnTooltipsForActiveComponents,
 } from "../config/column-tooltips";
 import { STAGE_CONFIG } from "../constants";
+import { positiveFiniteNumber } from "../math-utils";
 import { asRecord } from "../shared";
 import type { BenchmarkRowsByKey } from "./benchmarks";
 import { buildBenchmarkUpdateHealth } from "./health";
@@ -13,7 +14,6 @@ import {
 	type BenchmarkMetricModel,
 	benchmarkMetricValue,
 	effectiveTaskSeconds,
-	positiveNumber,
 	type ResourceMetricModel,
 } from "./resource-metrics";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
@@ -74,27 +74,28 @@ function buildArtificialAnalysisMetadata(
 function hasPositiveTaskMetric(
 	model: ResourceMetricModel,
 	key: string,
+	scoringConfig: ModelAtlasStageConfig["scoring"],
 ): boolean {
-	const task = asRecord(asRecord(model.task_metrics)[key]);
+	const resourcePolicy = benchmarkResourcePolicy(
+		key,
+		scoringConfig.benchmarkPortfolio,
+	);
+	const taskMetricKey =
+		resourcePolicy?.source === "artificial_analysis"
+			? "artificial_analysis"
+			: key;
+	const taskMetrics = asRecord(model.task_metrics);
+	const task =
+		taskMetricKey === key
+			? asRecord(taskMetrics[taskMetricKey])
+			: {
+					...asRecord(taskMetrics[taskMetricKey]),
+					...asRecord(taskMetrics[key]),
+				};
 	return (
-		positiveNumber(task.cost) != null ||
+		positiveFiniteNumber(task.cost) != null ||
 		effectiveTaskSeconds(model, task) != null
 	);
-}
-
-function resourceTaskMetricKey(
-	model: ResourceMetricModel,
-	key: string,
-	scoringConfig: ModelAtlasStageConfig["scoring"],
-): string | null {
-	if (hasPositiveTaskMetric(model, key)) {
-		return key;
-	}
-	return benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
-		?.source === "artificial_analysis" &&
-		hasPositiveTaskMetric(model, "artificial_analysis")
-		? "artificial_analysis"
-		: null;
 }
 
 /** Return resource benchmarks that have both benchmark scores and task telemetry in this payload. */
@@ -112,24 +113,8 @@ function activeResourceBenchmarkKeys(
 		models.some(
 			(model) =>
 				benchmarkMetricValue(model, key) != null &&
-				resourceTaskMetricKey(model, key, scoringConfig) != null,
+				hasPositiveTaskMetric(model, key, scoringConfig),
 		),
-	);
-}
-
-function activeResourceTaskMetricKeys(
-	models: readonly ResourceMetricModel[],
-	key: string,
-	scoringConfig: ModelAtlasStageConfig["scoring"],
-): string[] {
-	return sortedUniqueKeys(
-		models.flatMap((model) => {
-			if (benchmarkMetricValue(model, key) == null) {
-				return [];
-			}
-			const taskMetricKey = resourceTaskMetricKey(model, key, scoringConfig);
-			return taskMetricKey == null ? [] : [taskMetricKey];
-		}),
 	);
 }
 
@@ -139,15 +124,15 @@ function activeResourceComponents(
 ): ActiveResourceComponents {
 	const activeKeys = activeResourceBenchmarkKeys(models, scoringConfig);
 	return {
-		artificialAnalysisBenchmarkKeys: activeKeys.filter((key) =>
-			activeResourceTaskMetricKeys(models, key, scoringConfig).every(
-				(taskMetricKey) => taskMetricKey === "artificial_analysis",
-			),
+		artificialAnalysisBenchmarkKeys: activeKeys.filter(
+			(key) =>
+				benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
+					?.source === "artificial_analysis",
 		),
-		directBenchmarkKeys: activeKeys.filter((key) =>
-			activeResourceTaskMetricKeys(models, key, scoringConfig).some(
-				(taskMetricKey) => taskMetricKey !== "artificial_analysis",
-			),
+		directBenchmarkKeys: activeKeys.filter(
+			(key) =>
+				benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
+					?.source !== "artificial_analysis",
 		),
 	};
 }

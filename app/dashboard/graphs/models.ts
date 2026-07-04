@@ -274,24 +274,26 @@ export function groupBy<T, TKey>(
 
 export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 	type ProviderOptionDraft = ProviderOption & {
-		overallScores: number[];
+		intelligenceScores: number[];
 	};
 
 	const byProvider = new Map<string, ProviderOptionDraft>();
 	for (const model of models) {
 		const slug = providerFilterKey(model.provider);
-		const overallScore = finiteValue(model.relative_scores?.overall_score);
+		const intelligenceScore = finiteValue(
+			model.relative_scores?.intelligence_score,
+		);
 		const current = byProvider.get(slug) ?? {
 			slug,
 			label: providerName(model),
 			count: 0,
 			color: providerPaletteColor(model.provider),
 			logo: providerLogoSource(model),
-			overallScores: [],
+			intelligenceScores: [],
 		};
 		current.count += 1;
-		if (overallScore != null) {
-			current.overallScores.push(overallScore);
+		if (intelligenceScore != null) {
+			current.intelligenceScores.push(intelligenceScore);
 		}
 		byProvider.set(slug, current);
 	}
@@ -305,7 +307,7 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 	return providerShortlist
 		.map((option) => ({
 			...option,
-			orderScore: meanTopProviderScore(option.overallScores),
+			orderScore: meanTopProviderScore(option.intelligenceScores),
 		}))
 		.sort(
 			(left, right) =>
@@ -365,8 +367,8 @@ function modelIntelligenceScore(model: LlmStatsModel) {
 	return finiteValue(model.relative_scores?.intelligence_score) ?? -Infinity;
 }
 
-function meanTopProviderScore(overallScores: number[]) {
-	const topScores = [...overallScores]
+function meanTopProviderScore(scores: number[]) {
+	const topScores = [...scores]
 		.sort((left, right) => right - left)
 		.slice(0, PROVIDER_ORDER_TOP_SCORE_COUNT);
 	return topScores.length > 0

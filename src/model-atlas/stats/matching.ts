@@ -145,11 +145,11 @@ function buildMatchedRow(
 			? matchedModelsDev.model.name
 			: artificialAnalysisModelId;
 	const modelNameCandidates = [
-		matchedModelName,
+		artificialAnalysisModelId,
 		matchedModelsDev?.model_id,
 		matchedModelsDev?.model?.id,
-		artificialAnalysisModelId,
 		artificialAnalysisSlug,
+		matchedModelName,
 	];
 	const benchmarkFields = benchmarkEnrichment(
 		modelNameCandidates,

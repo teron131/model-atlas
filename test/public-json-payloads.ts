@@ -87,13 +87,6 @@ fullPayload.metadata.scoring.benchmark_portfolio = {
 		agenticPortion: 1,
 	},
 };
-fullPayload.metadata.scoring.overall_relative_score_weights = {
-	intelligence: 0.11,
-	agentic: 0.22,
-	speed: 0.33,
-	value: 0.34,
-};
-
 const leanPayload = leanDashboardPayload(fullPayload);
 const model = leanPayload.models[0];
 const scorePayload = scoreJsonPayload(fullPayload);
@@ -104,7 +97,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"Overall score is 11% Intelligence, 22% Agentic, 33% Speed, and 34% Value. Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores; Speed and Value use percentile-ranked, use-case-weighted latency, throughput, cost, and resource-efficiency signals. Higher is better.";
+	"Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. Speed uses percentile-ranked benchmark task runtime and workflow speed signals. Cost efficiency measures benchmark task-cost value against similarly scoring models; higher means better cost value at comparable benchmark quality.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
@@ -119,7 +112,7 @@ assert.deepEqual(scoreModel, {
 		intelligence: 0,
 		agentic: 0,
 		speed: 0,
-		value: null,
+		cost_efficiency: null,
 	},
 });
 
@@ -176,11 +169,11 @@ assert.deepEqual(corePayload.columns, [
 	"input_modalities",
 	"output_modalities",
 	"open_weights",
-	"overall_score",
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
-	"value_score",
+	"cost_efficiency_score",
+	"overall_score",
 	"blended_price",
 	"context_window_tokens",
 	"input_cost_per_million_tokens",
@@ -206,6 +199,11 @@ assert.equal("attachment" in (model ?? {}), false);
 assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
+assert.equal("price_score" in (fullJsonModel?.relative_scores ?? {}), false);
+assert.equal(
+	"cost_efficiency_score" in (fullJsonModel?.relative_scores ?? {}),
+	true,
+);
 assert.equal(benchmarksPayload.schema, "model_atlas.benchmarks");
 assert.equal(benchmarksPayload.benchmark_scale, "decimal");
 assert.equal(benchmarksPayload.methodology, methodology);

@@ -58,7 +58,9 @@ export async function readBestStoredSnapshotPayload(): Promise<LlmStatsPayload |
 async function readBestSnapshotCache(): Promise<LlmStatsPayload | null> {
 	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
 		[
-			readD1Snapshot().catch(() => null),
+			shouldReadD1Snapshot()
+				? readD1Snapshot().catch(() => null)
+				: Promise.resolve(null),
 			shouldReadStaticSnapshot()
 				? Promise.resolve(null)
 				: readLocalDatabaseSnapshot().catch(() => null),
@@ -184,6 +186,10 @@ async function readLocalDatabaseSnapshot(): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
 		readDatabasePayload(localDatabaseReadPath()),
 	);
+}
+
+function shouldReadD1Snapshot(): boolean {
+	return process.env.VERCEL === "1" || process.env.MODEL_ATLAS_USE_D1 === "1";
 }
 
 function shouldReadStaticSnapshot(): boolean {

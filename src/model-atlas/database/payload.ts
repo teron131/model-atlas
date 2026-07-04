@@ -172,6 +172,20 @@ function numericObject<T extends object>(
 	return hasFields(record) ? (record as T) : null;
 }
 
+function taskMetricsFromJson(value: unknown): LlmStatsTaskMetrics {
+	if (typeof value !== "string" || value.length === 0) {
+		return null;
+	}
+	try {
+		const taskMetrics = asRecord(JSON.parse(value));
+		return hasFields(taskMetrics)
+			? (taskMetrics as NonNullable<LlmStatsTaskMetrics>)
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 function buildModalities(row: DbRow): LlmStatsModalities | null {
 	const input = INPUT_MODALITY_COLUMNS.flatMap(([column, modality]) =>
 		booleanValue(row[column]) === true ? [modality] : [],
@@ -222,6 +236,23 @@ function buildCost(row: DbRow): LlmStatsCost {
 }
 
 function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
+	const storedTaskMetrics = taskMetricsFromJson(row.task_metrics_json);
+	if (storedTaskMetrics != null) {
+		return storedTaskMetrics;
+	}
+	const agentsLastExam: Record<string, number> = {};
+	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
+	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
+	assignNumber(
+		agentsLastExam,
+		"input_tokens",
+		row.agents_last_exam_task_input_tokens,
+	);
+	assignNumber(
+		agentsLastExam,
+		"output_tokens",
+		row.agents_last_exam_task_output_tokens,
+	);
 	const artificialAnalysis: Record<string, number> = {};
 	assignNumber(artificialAnalysis, "cost", row.artificial_analysis_task_cost);
 	assignNumber(
@@ -234,6 +265,15 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 		"output_tokens",
 		row.artificial_analysis_task_output_tokens,
 	);
+	const automationBench: Record<string, number> = {};
+	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
+	const cursorBench: Record<string, number> = {};
+	assignNumber(cursorBench, "cost", row.cursorbench_task_cost);
+	assignNumber(cursorBench, "tokens", row.cursorbench_task_tokens);
+	const deepSWE: Record<string, number> = {};
+	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
+	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
+	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
 	const terminalBench: Record<string, number> = {};
 	assignNumber(terminalBench, "cost", row.terminalbench_v21_task_cost);
 	assignNumber(terminalBench, "seconds", row.terminalbench_v21_task_seconds);
@@ -248,37 +288,12 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 		"output_tokens",
 		row.terminalbench_v21_task_output_tokens,
 	);
-	const agentsLastExam: Record<string, number> = {};
-	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
-	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
-	assignNumber(
-		agentsLastExam,
-		"input_tokens",
-		row.agents_last_exam_task_input_tokens,
-	);
-	assignNumber(
-		agentsLastExam,
-		"output_tokens",
-		row.agents_last_exam_task_output_tokens,
-	);
-	const automationBench: Record<string, number> = {};
-	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
-	const cursorBench: Record<string, number> = {};
-	assignNumber(cursorBench, "cost", row.cursorbench_task_cost);
-	assignNumber(cursorBench, "tokens", row.cursorbench_task_tokens);
-	const deepSWE: Record<string, number> = {};
-	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
-	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
-	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
-	if (hasFields(artificialAnalysis)) {
-		taskMetrics.artificial_analysis = artificialAnalysis;
-	}
-	if (hasFields(terminalBench)) {
-		taskMetrics.terminalbench_v21 = terminalBench;
-	}
 	if (hasFields(agentsLastExam)) {
 		taskMetrics.agents_last_exam = agentsLastExam;
+	}
+	if (hasFields(artificialAnalysis)) {
+		taskMetrics.artificial_analysis = artificialAnalysis;
 	}
 	if (hasFields(automationBench)) {
 		taskMetrics.automation_bench = automationBench;
@@ -289,6 +304,9 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	if (hasFields(deepSWE)) {
 		taskMetrics.deep_swe = deepSWE;
 	}
+	if (hasFields(terminalBench)) {
+		taskMetrics.terminalbench_v21 = terminalBench;
+	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
@@ -297,7 +315,7 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 		intelligence_score: asFiniteNumber(row.raw_intelligence_score) ?? null,
 		agentic_score: asFiniteNumber(row.raw_agentic_score) ?? null,
 		speed_score: asFiniteNumber(row.raw_speed_score) ?? null,
-		value_score: asFiniteNumber(row.raw_value_score) ?? null,
+		price_score: asFiniteNumber(row.raw_price_score) ?? null,
 	};
 }
 
@@ -306,7 +324,9 @@ function buildRelativeScores(row: DbRow): LlmStatsNullableRelativeScores {
 		intelligence_score: asFiniteNumber(row.relative_intelligence_score) ?? null,
 		agentic_score: asFiniteNumber(row.relative_agentic_score) ?? null,
 		speed_score: asFiniteNumber(row.relative_speed_score) ?? null,
-		value_score: asFiniteNumber(row.relative_value_score) ?? null,
+		price_score: asFiniteNumber(row.relative_price_score) ?? null,
+		cost_efficiency_score:
+			asFiniteNumber(row.relative_cost_efficiency_score) ?? null,
 		overall_score: asFiniteNumber(row.relative_overall_score) ?? null,
 	};
 }

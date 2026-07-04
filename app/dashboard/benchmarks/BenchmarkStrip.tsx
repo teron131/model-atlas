@@ -21,7 +21,7 @@ const loadingWeightRows = [
 	"intelligence",
 	"agentic",
 	"speed",
-	"value",
+	"price",
 ] as const;
 const loadingBenchmarkCounts: Record<string, number> = {
 	Intelligence: 6,

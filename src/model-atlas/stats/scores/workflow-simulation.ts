@@ -1,42 +1,23 @@
 /** Workflow-shaped runtime and value simulation for Model Atlas scoring. */
 
-import { type WeightedScorePart, weightedMeanOfFinite } from "../../math-utils";
+import {
+	clamp01,
+	expectedLogUniformValue,
+	log10OnePlusPositive,
+	positiveFiniteNumber,
+	smoothstep,
+	type WeightedScorePart,
+	weightedMeanOfFinite,
+} from "../../math-utils";
 import { asFiniteNumber } from "../../shared";
 import type {
 	LlmStatsModelCandidate,
 	LlmStatsSpeed,
 	ScoringConfig,
 	SimulationProfile,
-	SimulationTokenRange,
 } from "../types";
 
 const DEFAULT_INPUT_TOKEN_SECONDS = 0.0001;
-
-function positiveNumber(value: unknown): number | null {
-	const number = asFiniteNumber(value);
-	return number != null && number > 0 ? number : null;
-}
-
-/** Clamps workflow quality and cache fractions to the 0-1 scoring scale. */
-function clamp01(value: number): number {
-	return Math.min(1, Math.max(0, value));
-}
-
-/** Applies eased 0-1 scoring credit instead of a hard threshold. */
-function smoothstep(value: number): number {
-	const clamped = clamp01(value);
-	return clamped * clamped * (3 - 2 * clamped);
-}
-
-function expectedLogUniformTokens(range: SimulationTokenRange): number {
-	if (range.lower <= 0 || range.upper <= 0 || range.lower === range.upper) {
-		return (range.lower + range.upper) / 2;
-	}
-	return (
-		(range.upper - range.lower) /
-		(Math.log(range.upper) - Math.log(range.lower))
-	);
-}
 
 function validSimulationProfile(profile: SimulationProfile): boolean {
 	return (
@@ -62,8 +43,14 @@ function profileSeconds(
 	throughputTokensPerSecond: number,
 	inputTokenSeconds: number,
 ): number {
-	const inputTokens = expectedLogUniformTokens(profile.input_tokens_per_call);
-	const outputTokens = expectedLogUniformTokens(profile.output_tokens_per_call);
+	const inputTokens = expectedLogUniformValue(
+		profile.input_tokens_per_call.lower,
+		profile.input_tokens_per_call.upper,
+	);
+	const outputTokens = expectedLogUniformValue(
+		profile.output_tokens_per_call.lower,
+		profile.output_tokens_per_call.upper,
+	);
 	return (
 		profile.calls *
 		(latencySeconds +
@@ -82,8 +69,14 @@ function profileCost(
 	if (inputPrice == null || outputPrice == null) {
 		return null;
 	}
-	const inputTokens = expectedLogUniformTokens(profile.input_tokens_per_call);
-	const outputTokens = expectedLogUniformTokens(profile.output_tokens_per_call);
+	const inputTokens = expectedLogUniformValue(
+		profile.input_tokens_per_call.lower,
+		profile.input_tokens_per_call.upper,
+	);
+	const outputTokens = expectedLogUniformValue(
+		profile.output_tokens_per_call.lower,
+		profile.output_tokens_per_call.upper,
+	);
 	if (!useCache || profile.calls <= 1) {
 		return (
 			(profile.calls *
@@ -140,7 +133,7 @@ export function simulatedBlendSeconds(
 	speed: LlmStatsSpeed,
 	scoringConfig: ScoringConfig,
 ): number | null {
-	const throughputTokensPerSecond = positiveNumber(
+	const throughputTokensPerSecond = positiveFiniteNumber(
 		speed.throughput_tokens_per_second_median,
 	);
 	const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
@@ -166,7 +159,7 @@ export function simulatedBlendSeconds(
 	);
 }
 
-export function workflowSimulatedValueSignal(
+export function workflowPriceEfficiencySignal(
 	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,
 ): number | null {
@@ -174,10 +167,11 @@ export function workflowSimulatedValueSignal(
 		Object.values(scoringConfig.simulationProfiles),
 		(profile) => {
 			const cost = profileCost(model, profile, true);
+			const logCost = log10OnePlusPositive(cost);
 			const multiplier = profileQualityMultiplier(model, profile);
-			return cost == null || cost <= 0 || multiplier == null
+			return logCost == null || multiplier == null
 				? null
-				: multiplier / cost;
+				: multiplier / logCost;
 		},
 	);
 }

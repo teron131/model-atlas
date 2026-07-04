@@ -4,6 +4,7 @@
  * This benchmark-specific page is scraped separately because it contributes Terminal-Bench task stats and harness context outside the Artificial Analysis main model table.
  */
 
+import { positiveFiniteNumber } from "../../math-utils";
 import { normalizeModelToken } from "../../shared";
 import {
 	asFiniteNumber,
@@ -168,11 +169,6 @@ function nonNegativeNumber(value: unknown): number | null {
 	return number != null && number >= 0 ? number : null;
 }
 
-function positiveNumber(value: unknown): number | null {
-	const number = asFiniteNumber(value);
-	return number != null && number > 0 ? number : null;
-}
-
 function terminalBenchTaskRow(
 	task: string,
 	taskLabel: string,
@@ -197,7 +193,7 @@ function terminalBenchTaskRow(
 		harness,
 		score,
 		cost_per_task_usd: nonNegativeNumber(row.cost_per_test),
-		seconds_per_task: positiveNumber(row.latency),
+		seconds_per_task: positiveFiniteNumber(row.latency),
 	};
 }
 

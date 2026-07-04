@@ -170,11 +170,33 @@ function splitSqlStatements(sql: string): string[] {
 /** Applies the shared Model Atlas schema to Cloudflare D1. */
 export async function ensureD1Schema(): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
-	for (const statement of splitSqlStatements(schemaSql)) {
+	await repairProcessedModelsColumnLimit();
+	const statements = splitSqlStatements(schemaSql);
+	for (const statement of statements.filter(
+		(statement) => !/^CREATE\s+INDEX\b/i.test(statement),
+	)) {
 		await queryD1(statement);
 	}
 	await ensureD1SchemaColumns(schemaSql);
+	for (const statement of statements.filter((statement) =>
+		/^CREATE\s+INDEX\b/i.test(statement),
+	)) {
+		await queryD1(statement);
+	}
 	return schemaTableNames(schemaSql);
+}
+
+/** Recreate processed_models when a failed migration filled D1's column limit with stale columns. */
+async function repairProcessedModelsColumnLimit(): Promise<void> {
+	const columns = await allD1("PRAGMA table_info(processed_models)").catch(
+		() => [],
+	);
+	if (
+		columns.length >= 100 &&
+		!columns.some((row) => row.name === "task_metrics_json")
+	) {
+		await queryD1("DROP TABLE IF EXISTS processed_models");
+	}
 }
 
 /** Adds missing schema columns when D1 is behind the shared schema. */

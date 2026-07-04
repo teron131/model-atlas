@@ -95,7 +95,7 @@ export function EfficiencyAxisChart<Row>({
 	const metricValues = rows.map(metric.get);
 	const xTicks =
 		providedXTicks ??
-		(metric.label === "Value score"
+		(metric.label === "Cost efficiency score"
 			? roundedLinearTicks(xDomain, 10)
 			: linearTicksForValues(metricValues, metric.format));
 	const x = scaleLinear()

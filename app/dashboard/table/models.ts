@@ -297,7 +297,7 @@ export type SortKey =
 	| "intelligence"
 	| "agentic"
 	| "speed"
-	| "value"
+	| "costEfficiency"
 	| "blend"
 	| "context"
 	| ProfileMetricColumn["key"]
@@ -386,10 +386,10 @@ export const sorters: Record<SortKey, Sorter> = {
 		type: "number",
 		value: (row) => row.model.relative_scores?.speed_score,
 	},
-	value: {
+	costEfficiency: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.relative_scores?.value_score,
+		value: (row) => row.model.relative_scores?.cost_efficiency_score,
 	},
 	blend: {
 		direction: "ascending",

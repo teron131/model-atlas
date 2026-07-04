@@ -349,7 +349,7 @@ const scoringConfig = {
 		intelligence: 0.4,
 		agentic: 0.4,
 		speed: 0.1,
-		value: 0.1,
+		price: 0.1,
 	},
 	columnTooltips: {},
 } as const;
@@ -379,6 +379,6 @@ const scoreWithMissingApex = buildScores(
 assertDeepEqual(scoreWithMissingApex, {
 	agentic_score: 74.99999999999997,
 	intelligence_score: null,
-	value_score: null,
+	price_score: null,
 	speed_score: null,
 });

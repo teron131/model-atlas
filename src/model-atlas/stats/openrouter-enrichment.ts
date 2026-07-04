@@ -73,7 +73,7 @@ function hasScoreSignal(row: JsonObject): boolean {
 		asFiniteNumber(scores.intelligence_score) != null ||
 		asFiniteNumber(scores.agentic_score) != null ||
 		asFiniteNumber(scores.speed_score) != null ||
-		asFiniteNumber(scores.value_score) != null
+		asFiniteNumber(scores.price_score) != null
 	);
 }
 

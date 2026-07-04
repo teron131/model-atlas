@@ -1,5 +1,6 @@
 /** Shared resource-metric rules for benchmark cost, speed, and availability scoring. */
 
+import { positiveFiniteNumber } from "../math-utils";
 import { asFiniteNumber, asRecord } from "../shared";
 import type { LlmStatsModelCandidate, LlmStatsTaskMetricValues } from "./types";
 
@@ -12,11 +13,6 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
 	speed?: unknown;
 	task_metrics?: unknown;
 };
-
-export function positiveNumber(value: unknown): number | null {
-	const number = asFiniteNumber(value);
-	return number != null && number > 0 ? number : null;
-}
 
 export function benchmarkMetricValue(
 	model: BenchmarkMetricModel,
@@ -31,13 +27,16 @@ export function benchmarkMetricValue(
 
 function taskOutputTokens(task: unknown): number | null {
 	const record = asRecord(task);
-	return positiveNumber(record.output_tokens) ?? positiveNumber(record.tokens);
+	return (
+		positiveFiniteNumber(record.output_tokens) ??
+		positiveFiniteNumber(record.tokens)
+	);
 }
 
 function modelThroughputTokensPerSecond(
 	model: ResourceMetricModel,
 ): number | null {
-	return positiveNumber(
+	return positiveFiniteNumber(
 		asRecord(model.speed).throughput_tokens_per_second_median,
 	);
 }
@@ -48,7 +47,7 @@ export function effectiveTaskSeconds(
 	task: unknown,
 ): number | null {
 	const taskRecord = asRecord(task);
-	const explicitSeconds = positiveNumber(taskRecord.seconds);
+	const explicitSeconds = positiveFiniteNumber(taskRecord.seconds);
 	if (explicitSeconds != null) {
 		return explicitSeconds;
 	}

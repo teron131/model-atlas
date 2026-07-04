@@ -250,7 +250,7 @@ export function buildScores(
 		speed.throughput_tokens_per_second_median,
 	);
 	const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
-	const valueScore =
+	const priceScore =
 		blendedPrice != null && blendedPrice > 0 ? 1 / blendedPrice : null;
 	const imaginedSpeedScore = meanOfFinite(
 		speedOutputTokenAnchors.map((targetTokens) =>
@@ -276,7 +276,7 @@ export function buildScores(
 	if (
 		intelligenceScore == null &&
 		agenticScore == null &&
-		valueScore == null &&
+		priceScore == null &&
 		speedScore == null
 	) {
 		return null;
@@ -285,6 +285,6 @@ export function buildScores(
 		intelligence_score: intelligenceScore,
 		agentic_score: agenticScore,
 		speed_score: speedScore,
-		value_score: valueScore,
+		price_score: priceScore,
 	};
 }
