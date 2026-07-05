@@ -2,21 +2,17 @@
 
 import {
 	benchmarkDeviation,
-	fillMissingWithMedian,
 	fillMissingWithQualityMirror,
 	fixedWeightedScore,
 	gaussianWeight,
-	inversePositiveFinite,
 	log10OnePlusPositive,
 	logitBenchmarkScore,
 	meanOfFinite,
-	minMaxScale,
 	percentileScoreAt,
 	percentileScoreForValue,
 	positiveFiniteNumber,
 	quantileFromSorted,
 	smoothstep,
-	weightedCoverageRatio,
 	weightedFinitePartCount,
 	weightedMeanOfFinite,
 } from "../../math-utils";
@@ -39,62 +35,30 @@ import {
 
 const MIN_DISPLAY_PRICE_COMPONENTS = 2;
 const MIN_DISPLAY_SPEED_COMPONENTS = 2;
+const MIN_RAW_SPEED_COMPONENTS = 2;
 const ACTIVE_COMPONENT_WEIGHT = 1;
-const RESOURCE_SIGNAL_WEIGHT = 0.7;
-const WORKFLOW_SIGNAL_WEIGHT = 0.3;
-const RESOURCE_PERFORMANCE_WEIGHT = 0.65;
-const RESOURCE_EVIDENCE_WEIGHT = 0.35;
+const SPEED_RAW_STATS_WEIGHT = 0.5;
+const SPEED_WORKFLOW_WEIGHT = 0.5;
 const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
-const COST_EFFICIENCY_QUALITY_SIGMA = 0.5;
+const RESOURCE_EFFICIENCY_QUALITY_SIGMA = 0.5;
 const MIN_BENCHMARK_DEVIATION = 0.35;
-const COST_COVERAGE_FLOOR = 0.1;
-const COST_COVERAGE_FULL = 0.6;
+const RESOURCE_COVERAGE_FLOOR = 0.1;
+const RESOURCE_COVERAGE_FULL = 0.6;
 type WeightedSignal = {
 	value: number | null;
 	weight: number;
 };
 
-type ResourceGroup = {
-	metricKey: string;
-	taskMetricKey: string;
-	benchmarkKeys: readonly string[];
-	weight: number;
-};
-
-type CostEfficiencyBenchmarkPoint = {
+type ResourceEfficiencyBenchmarkPoint = {
 	modelIndex: number;
 	qualityDeviation: number;
-	taskCost: number;
+	resourceAmount: number;
 };
 
-type CostEfficiencyEvidence = {
+type ResourceEfficiencyEvidence = {
 	benchmarkKeys: readonly string[];
 	signalsByModel: number[][];
 };
-
-function blendedResourceAndWorkflowSignal(
-	resourceSignals: WeightedSignal[],
-	workflowSignals: WeightedSignal[],
-	minimumFiniteValues: number,
-): number | null {
-	if (
-		weightedFinitePartCount(resourceSignals) +
-			weightedFinitePartCount(workflowSignals) <
-		minimumFiniteValues
-	) {
-		return null;
-	}
-	return weightedMeanOfFinite([
-		{
-			value: resourceEvidenceAdjustedSignal(resourceSignals),
-			weight: RESOURCE_SIGNAL_WEIGHT,
-		},
-		{
-			value: weightedMeanOfFinite(workflowSignals),
-			weight: WORKFLOW_SIGNAL_WEIGHT,
-		},
-	]);
-}
 
 function meanSignal(
 	signals: WeightedSignal[],
@@ -106,23 +70,24 @@ function meanSignal(
 	return weightedMeanOfFinite(signals);
 }
 
-function resourceEvidenceAdjustedSignal(
-	resourceSignals: WeightedSignal[],
+function lowerIsBetterPercentileScoreAt(
+	values: Array<number | null>,
+	index: number,
 ): number | null {
-	const coverage = weightedCoverageRatio(resourceSignals);
-	if (coverage == null) {
+	const value = values[index] ?? null;
+	if (value == null || !Number.isFinite(value)) {
 		return null;
 	}
-	return fixedWeightedScore([
-		{
-			value: weightedMeanOfFinite(resourceSignals) ?? 0,
-			weight: RESOURCE_PERFORMANCE_WEIGHT,
-		},
-		{
-			value: coverage * 100,
-			weight: RESOURCE_EVIDENCE_WEIGHT,
-		},
-	]);
+	const finiteValues = values.filter(
+		(item): item is number => item != null && Number.isFinite(item),
+	);
+	if (finiteValues.length === 0) {
+		return null;
+	}
+	const greaterOrEqualCount = finiteValues.filter(
+		(item) => item >= value,
+	).length;
+	return Number(((greaterOrEqualCount / finiteValues.length) * 100).toFixed(4));
 }
 
 function hasPositiveResourceMetric(
@@ -178,27 +143,6 @@ function resourceTaskMetricKey(
 		: key;
 }
 
-function hasDirectResourceTaskMetric(
-	models: readonly LlmStatsModelCandidate[],
-	key: string,
-): boolean {
-	return models.some(
-		(model) =>
-			benchmarkMetricValue(model, key) != null &&
-			hasUsableResourceTask(model, taskMetricFromModel(model, key)),
-	);
-}
-
-function resourceGroupMetricKey(
-	models: readonly LlmStatsModelCandidate[],
-	key: string,
-	scoringConfig: ScoringConfig,
-): string {
-	return hasDirectResourceTaskMetric(models, key)
-		? key
-		: resourceTaskMetricKey(key, scoringConfig);
-}
-
 function hasUsableResourceTask(
 	model: LlmStatsModelCandidate,
 	task: LlmStatsTaskMetricValues | null,
@@ -226,138 +170,6 @@ function resourceTaskMetric(
 	return primaryTask;
 }
 
-function activeResourceGroups(
-	models: readonly LlmStatsModelCandidate[],
-	keys: readonly string[],
-	scoringConfig: ScoringConfig,
-): ResourceGroup[] {
-	const benchmarkKeysByMetricKey = new Map<string, string[]>();
-	for (const key of keys) {
-		const metricKey = resourceGroupMetricKey(models, key, scoringConfig);
-		const benchmarkKeys = benchmarkKeysByMetricKey.get(metricKey) ?? [];
-		benchmarkKeys.push(key);
-		benchmarkKeysByMetricKey.set(metricKey, benchmarkKeys);
-	}
-	return [...benchmarkKeysByMetricKey.entries()]
-		.map(([metricKey, benchmarkKeys]) => ({
-			metricKey,
-			taskMetricKey: metricKey,
-			benchmarkKeys: benchmarkKeys.sort((left, right) =>
-				left.localeCompare(right),
-			),
-			weight: benchmarkKeys.length,
-		}))
-		.sort((left, right) => left.metricKey.localeCompare(right.metricKey));
-}
-
-function benchmarkValuesByKey(
-	models: LlmStatsModelCandidate[],
-	keys: readonly string[],
-) {
-	return new Map(
-		keys.map((key) => [
-			key,
-			models
-				.map((model) => benchmarkMetricValue(model, key))
-				.filter(
-					(value): value is number => value != null && Number.isFinite(value),
-				),
-		]),
-	);
-}
-
-function groupTaskMetric(
-	model: LlmStatsModelCandidate,
-	group: ResourceGroup,
-	scoringConfig: ScoringConfig,
-): LlmStatsTaskMetricValues | null {
-	const primaryTask = taskMetricFromModel(model, group.taskMetricKey);
-	if (hasUsableResourceTask(model, primaryTask)) {
-		return primaryTask;
-	}
-	for (const benchmarkKey of group.benchmarkKeys) {
-		const task = resourceTaskMetric(model, benchmarkKey, scoringConfig);
-		if (hasUsableResourceTask(model, task)) {
-			return task;
-		}
-	}
-	return primaryTask;
-}
-
-function groupBenchmarkScore(
-	model: LlmStatsModelCandidate,
-	group: ResourceGroup,
-	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
-): number | null {
-	return meanOfFinite(
-		group.benchmarkKeys.map((key) =>
-			minMaxScale(
-				benchmarkValuesByKey.get(key) ?? [],
-				benchmarkMetricValue(model, key),
-			),
-		),
-	);
-}
-
-function resourceGroupSpeedValuesByKey(
-	models: LlmStatsModelCandidate[],
-	groups: readonly ResourceGroup[],
-	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
-	scoringConfig: ScoringConfig,
-) {
-	return new Map(
-		groups.map((group) => [
-			group.metricKey,
-			models
-				.map((model) =>
-					resourceGroupSpeedValue(
-						model,
-						group,
-						benchmarkValuesByKey,
-						scoringConfig,
-					),
-				)
-				.filter(
-					(value): value is number => value != null && Number.isFinite(value),
-				),
-		]),
-	);
-}
-
-function resourceGroupSpeedValue(
-	model: LlmStatsModelCandidate,
-	group: ResourceGroup,
-	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
-	scoringConfig: ScoringConfig,
-): number | null {
-	const score = groupBenchmarkScore(model, group, benchmarkValuesByKey);
-	const seconds = effectiveTaskSeconds(
-		model,
-		groupTaskMetric(model, group, scoringConfig),
-	);
-	return score == null || seconds == null ? null : score / seconds;
-}
-
-/** Scores resource speed within one resource group so task duration scales do not dominate. */
-function normalizedResourceGroupSpeedScore(
-	model: LlmStatsModelCandidate,
-	group: ResourceGroup,
-	groupSpeedValuesByKey: ReadonlyMap<string, readonly number[]>,
-	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>,
-	scoringConfig: ScoringConfig,
-): number | null {
-	const speed = resourceGroupSpeedValue(
-		model,
-		group,
-		benchmarkValuesByKey,
-		scoringConfig,
-	);
-	return percentileScoreForValue(
-		groupSpeedValuesByKey.get(group.metricKey) ?? [],
-		speed,
-	);
-}
-
 function blendCost(
 	model: LlmStatsModelCandidate,
 	scoringConfig: ScoringConfig,
@@ -373,27 +185,51 @@ function inverseLogCostSignal(cost: unknown): number | null {
 	return logCost == null ? null : 1 / logCost;
 }
 
-function activeCostEfficiencyBenchmarkKeys(
+type TaskResourceAmount = (
+	model: LlmStatsModelCandidate,
+	key: string,
+	scoringConfig: ScoringConfig,
+) => number | null;
+
+const taskCostAmount: TaskResourceAmount = (model, key, scoringConfig) =>
+	positiveFiniteNumber(resourceTaskMetric(model, key, scoringConfig)?.cost);
+
+const taskSecondsAmount: TaskResourceAmount = (model, key, scoringConfig) =>
+	effectiveTaskSeconds(model, resourceTaskMetric(model, key, scoringConfig));
+
+function throughputSpeedSignal(model: LlmStatsModelCandidate): number | null {
+	return positiveFiniteNumber(model.speed?.throughput_tokens_per_second_median);
+}
+
+function latencySecondsSignal(model: LlmStatsModelCandidate): number | null {
+	return positiveFiniteNumber(model.speed?.latency_seconds_median);
+}
+
+function e2eSecondsSignal(model: LlmStatsModelCandidate): number | null {
+	return positiveFiniteNumber(model.speed?.e2e_latency_seconds_median);
+}
+
+function activeResourceEfficiencyBenchmarkKeys(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
+	resourceAmountFor: TaskResourceAmount,
 ): string[] {
 	return activeResourceBenchmarkKeys(models, scoringConfig).filter((key) =>
 		models.some((model) => {
 			return (
 				benchmarkMetricValue(model, key) != null &&
-				positiveFiniteNumber(
-					resourceTaskMetric(model, key, scoringConfig)?.cost,
-				) != null
+				resourceAmountFor(model, key, scoringConfig) != null
 			);
 		}),
 	);
 }
 
-function costEfficiencyBenchmarkPoints(
+function resourceEfficiencyBenchmarkPoints(
 	models: LlmStatsModelCandidate[],
 	key: string,
 	scoringConfig: ScoringConfig,
-): CostEfficiencyBenchmarkPoint[] {
+	resourceAmountFor: TaskResourceAmount,
+): ResourceEfficiencyBenchmarkPoint[] {
 	const logitQualityValues = models
 		.map((model) => benchmarkMetricValue(model, key))
 		.filter((value): value is number => value != null && Number.isFinite(value))
@@ -409,9 +245,8 @@ function costEfficiencyBenchmarkPoints(
 	}
 	return models.flatMap((model, modelIndex) => {
 		const score = benchmarkMetricValue(model, key);
-		const task = resourceTaskMetric(model, key, scoringConfig);
-		const cost = positiveFiniteNumber(task?.cost);
-		if (score == null || cost == null) {
+		const resourceAmount = resourceAmountFor(model, key, scoringConfig);
+		if (score == null || resourceAmount == null) {
 			return [];
 		}
 		return [
@@ -420,35 +255,33 @@ function costEfficiencyBenchmarkPoints(
 				qualityDeviation:
 					(logitBenchmarkScore(score) - benchmarkQualityMedian) /
 					benchmarkQualityDeviation,
-				taskCost: cost,
+				resourceAmount,
 			},
 		];
 	});
 }
 
-function localCostEfficiencyScore(
-	point: CostEfficiencyBenchmarkPoint,
-	points: readonly CostEfficiencyBenchmarkPoint[],
+function localResourceEfficiencyScore(
+	point: ResourceEfficiencyBenchmarkPoint,
+	points: readonly ResourceEfficiencyBenchmarkPoint[],
 ): number | null {
 	let totalWeight = 0;
-	let atLeastAsExpensiveWeight = 0;
+	let atLeastAsLargeWeight = 0;
 	for (const comparisonPoint of points) {
 		const weight = gaussianWeight(
 			point.qualityDeviation,
 			comparisonPoint.qualityDeviation,
-			COST_EFFICIENCY_QUALITY_SIGMA,
+			RESOURCE_EFFICIENCY_QUALITY_SIGMA,
 		);
 		totalWeight += weight;
-		if (comparisonPoint.taskCost >= point.taskCost) {
-			atLeastAsExpensiveWeight += weight;
+		if (comparisonPoint.resourceAmount >= point.resourceAmount) {
+			atLeastAsLargeWeight += weight;
 		}
 	}
-	return totalWeight > 0
-		? (100 * atLeastAsExpensiveWeight) / totalWeight
-		: null;
+	return totalWeight > 0 ? (100 * atLeastAsLargeWeight) / totalWeight : null;
 }
 
-function costEfficiencyCoverageConfidence(
+function resourceEfficiencyCoverageConfidence(
 	availableCount: number,
 	totalCount: number,
 ) {
@@ -456,28 +289,35 @@ function costEfficiencyCoverageConfidence(
 		return 0;
 	}
 	const coverage = availableCount / totalCount;
-	if (coverage >= COST_COVERAGE_FULL) {
+	if (coverage >= RESOURCE_COVERAGE_FULL) {
 		return 1;
 	}
 	return smoothstep(
-		(coverage - COST_COVERAGE_FLOOR) /
-			(COST_COVERAGE_FULL - COST_COVERAGE_FLOOR),
+		(coverage - RESOURCE_COVERAGE_FLOOR) /
+			(RESOURCE_COVERAGE_FULL - RESOURCE_COVERAGE_FLOOR),
 	);
 }
 
-function costEfficiencyEvidence(
+function resourceEfficiencyEvidence(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
-): CostEfficiencyEvidence {
-	const benchmarkKeys = activeCostEfficiencyBenchmarkKeys(
+	resourceAmountFor: TaskResourceAmount,
+): ResourceEfficiencyEvidence {
+	const benchmarkKeys = activeResourceEfficiencyBenchmarkKeys(
 		models,
 		scoringConfig,
+		resourceAmountFor,
 	);
 	const signalsByModel = models.map(() => [] as number[]);
 	for (const key of benchmarkKeys) {
-		const points = costEfficiencyBenchmarkPoints(models, key, scoringConfig);
+		const points = resourceEfficiencyBenchmarkPoints(
+			models,
+			key,
+			scoringConfig,
+			resourceAmountFor,
+		);
 		for (const point of points) {
-			const score = localCostEfficiencyScore(point, points);
+			const score = localResourceEfficiencyScore(point, points);
 			if (score != null) {
 				signalsByModel[point.modelIndex]?.push(score);
 			}
@@ -489,16 +329,16 @@ function costEfficiencyEvidence(
 	};
 }
 
-function costEfficiencySignals({
+function resourceEfficiencySignals({
 	benchmarkKeys,
 	signalsByModel,
-}: CostEfficiencyEvidence): Array<number | null> {
+}: ResourceEfficiencyEvidence): Array<number | null> {
 	return signalsByModel.map((signals) => {
 		const meanValue = meanOfFinite(signals);
 		return meanValue == null
 			? null
 			: meanValue *
-					costEfficiencyCoverageConfidence(
+					resourceEfficiencyCoverageConfidence(
 						signals.length,
 						benchmarkKeys.length,
 					);
@@ -509,19 +349,6 @@ export function attachRelativeScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
 ): LlmStatsScoredCandidate[] {
-	const resourceKeys = activeResourceBenchmarkKeys(models, scoringConfig);
-	const resourceGroups = activeResourceGroups(
-		models,
-		resourceKeys,
-		scoringConfig,
-	);
-	const resourceValuesByKey = benchmarkValuesByKey(models, resourceKeys);
-	const resourceSpeedValuesByKey = resourceGroupSpeedValuesByKey(
-		models,
-		resourceGroups,
-		resourceValuesByKey,
-		scoringConfig,
-	);
 	const intelligenceScores = models.map(
 		(model) => model.scores?.intelligence_score ?? null,
 	);
@@ -548,8 +375,11 @@ export function attachRelativeScores(
 	const workflowPriceSignals = models.map((model) =>
 		workflowPriceEfficiencySignal(model, scoringConfig),
 	);
-	const workflowSpeedSignals = models.map((model) =>
-		inversePositiveFinite(simulatedBlendSeconds(model.speed, scoringConfig)),
+	const throughputSpeedSignals = models.map(throughputSpeedSignal);
+	const latencySecondsSignals = models.map(latencySecondsSignal);
+	const e2eSecondsSignals = models.map(e2eSecondsSignal);
+	const workflowSecondsSignals = models.map((model) =>
+		simulatedBlendSeconds(model.speed, scoringConfig),
 	);
 	const priceSignals = models.map((_, index) => {
 		const priceComponents = [
@@ -568,46 +398,71 @@ export function attachRelativeScores(
 		];
 		return meanSignal(priceComponents, MIN_DISPLAY_PRICE_COMPONENTS);
 	});
-	const speedSignals = models.map((model, index) => {
-		const resourceSpeedSignals = resourceGroups.map((group) => ({
-			value: normalizedResourceGroupSpeedScore(
-				model,
-				group,
-				resourceSpeedValuesByKey,
-				resourceValuesByKey,
-				scoringConfig,
-			),
-			weight: group.weight,
-		}));
-		const workflowSpeedComponents = [
-			{
-				value: percentileScoreAt(workflowSpeedSignals, index),
-				weight: ACTIVE_COMPONENT_WEIGHT,
-			},
-		];
-		return blendedResourceAndWorkflowSignal(
-			resourceSpeedSignals,
-			workflowSpeedComponents,
+	const rawSpeedStatScores = models.map((_, index) =>
+		meanSignal(
+			[
+				{
+					value: percentileScoreAt(throughputSpeedSignals, index),
+					weight: ACTIVE_COMPONENT_WEIGHT,
+				},
+				{
+					value: lowerIsBetterPercentileScoreAt(latencySecondsSignals, index),
+					weight: ACTIVE_COMPONENT_WEIGHT,
+				},
+				{
+					value: lowerIsBetterPercentileScoreAt(e2eSecondsSignals, index),
+					weight: ACTIVE_COMPONENT_WEIGHT,
+				},
+			],
+			MIN_RAW_SPEED_COMPONENTS,
+		),
+	);
+	const speedSignals = models.map((_, index) =>
+		meanSignal(
+			[
+				{
+					value: rawSpeedStatScores[index] ?? null,
+					weight: SPEED_RAW_STATS_WEIGHT,
+				},
+				{
+					value: lowerIsBetterPercentileScoreAt(workflowSecondsSignals, index),
+					weight: SPEED_WORKFLOW_WEIGHT,
+				},
+			],
 			MIN_DISPLAY_SPEED_COMPONENTS,
-		);
-	});
-	const costEfficiencyBenchmarkEvidence = costEfficiencyEvidence(
+		),
+	);
+	const timeEfficiencyBenchmarkEvidence = resourceEfficiencyEvidence(
 		models,
 		scoringConfig,
+		taskSecondsAmount,
 	);
-	const taskCostSignals = costEfficiencySignals(
+	const costEfficiencyBenchmarkEvidence = resourceEfficiencyEvidence(
+		models,
+		scoringConfig,
+		taskCostAmount,
+	);
+	const taskTimeSignals = resourceEfficiencySignals(
+		timeEfficiencyBenchmarkEvidence,
+	);
+	const taskCostSignals = resourceEfficiencySignals(
 		costEfficiencyBenchmarkEvidence,
 	);
 	const priceRelativeScores = priceSignals.map((signal) =>
 		percentileScoreForValue(priceSignals, signal),
 	);
-	const speedRelativeScores = speedSignals.map((signal) =>
-		percentileScoreForValue(speedSignals, signal),
+	const speedRelativeScores = speedSignals;
+	const timeEfficiencyRelativeScores = taskTimeSignals.map((signal) =>
+		percentileScoreForValue(taskTimeSignals, signal),
 	);
 	const costEfficiencyRelativeScores = taskCostSignals.map((signal) =>
 		percentileScoreForValue(taskCostSignals, signal),
 	);
-	const overallSpeedScores = fillMissingWithMedian(speedRelativeScores);
+	const overallTimeEfficiencyScores = fillMissingWithQualityMirror(
+		qualityScores,
+		timeEfficiencyRelativeScores,
+		PRICE_QUALITY_TRADEOFF_STRENGTH,
+	);
 	const overallCostEfficiencyScores = fillMissingWithQualityMirror(
 		qualityScores,
 		costEfficiencyRelativeScores,
@@ -618,6 +473,8 @@ export function attachRelativeScores(
 		const agenticRelativeScore = agenticScores[index] ?? null;
 		const priceRelativeScore = priceRelativeScores[index] ?? null;
 		const speedRelativeScore = speedRelativeScores[index] ?? null;
+		const timeEfficiencyRelativeScore =
+			timeEfficiencyRelativeScores[index] ?? null;
 		const costEfficiencyRelativeScore =
 			costEfficiencyRelativeScores[index] ?? null;
 		const overallRelativeScore = fixedWeightedScore([
@@ -630,7 +487,7 @@ export function attachRelativeScores(
 				weight: scoringConfig.overallRelativeScoreWeights.agentic,
 			},
 			{
-				value: overallSpeedScores[index] ?? null,
+				value: overallTimeEfficiencyScores[index] ?? null,
 				weight: scoringConfig.overallRelativeScoreWeights.speed,
 			},
 			{
@@ -644,6 +501,7 @@ export function attachRelativeScores(
 				intelligence_score: intelligenceRelativeScore,
 				agentic_score: agenticRelativeScore,
 				speed_score: speedRelativeScore,
+				time_efficiency_score: timeEfficiencyRelativeScore,
 				price_score: priceRelativeScore,
 				cost_efficiency_score: costEfficiencyRelativeScore,
 				overall_score: overallRelativeScore,

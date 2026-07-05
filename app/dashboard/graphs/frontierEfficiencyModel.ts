@@ -468,14 +468,14 @@ export function frontierEfficiencyHoverRows(
 			fmtPercentScore(row.score),
 		],
 		[axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
-		["Speed score", speedScore(row).toFixed(1)],
+		["Time efficiency score", timeEfficiencyScore(row).toFixed(1)],
 	);
 	return rows;
 }
 
-/** Return the model speed score used for Frontier Efficiency bubble size. */
-export function speedScore(row: FrontierEfficiencyRow): number {
-	return finiteValue(row.model.relative_scores?.speed_score) ?? 0;
+/** Return the time efficiency score used for Frontier Efficiency bubble size. */
+export function timeEfficiencyScore(row: FrontierEfficiencyRow): number {
+	return finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0;
 }
 
 /** Check that a resource metric can be plotted on a lower-is-better axis. */

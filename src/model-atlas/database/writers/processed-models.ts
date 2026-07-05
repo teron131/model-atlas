@@ -138,6 +138,7 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(relativeScores.intelligence_score),
 		asFiniteNumber(relativeScores.agentic_score),
 		asFiniteNumber(relativeScores.speed_score),
+		asFiniteNumber(relativeScores.time_efficiency_score),
 		asFiniteNumber(relativeScores.price_score),
 		asFiniteNumber(relativeScores.cost_efficiency_score),
 		asFiniteNumber(relativeScores.overall_score),
@@ -180,10 +181,11 @@ export function insertProcessedModelRows(
 			terminalbench_v21_task_output_tokens,
 			raw_intelligence_score, raw_agentic_score, raw_speed_score,
 			raw_price_score, relative_intelligence_score, relative_agentic_score,
-			relative_speed_score, relative_price_score,
+			relative_speed_score, relative_time_efficiency_score,
+			relative_price_score,
 			relative_cost_efficiency_score,
 			relative_overall_score
-		) VALUES (${Array.from({ length: 89 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 90 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

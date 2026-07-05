@@ -64,6 +64,20 @@ function openRouterStatsResponse(
 	};
 }
 
+function openRouterSeriesTokenWeights(
+	statRows: CacheDbRow[],
+): Record<string, number> {
+	const weights: Record<string, number> = {};
+	for (const row of statRows) {
+		const series = stringValue(row.series);
+		const weight = asFiniteNumber(row.series_token_weight);
+		if (series != null && weight != null && weight > 0) {
+			weights[series] = weight;
+		}
+	}
+	return weights;
+}
+
 function openRouterPricing(
 	row: CacheDbRow | undefined,
 ): OpenRouterEffectivePricingResponse | null {
@@ -113,6 +127,7 @@ function openRouterModelRows(
 		latency_e2e: openRouterStatsResponse(
 			statRows.filter((row) => row.metric === "latency_e2e"),
 		),
+		series_token_weights: openRouterSeriesTokenWeights(statRows),
 	};
 	return {
 		id: modelId,

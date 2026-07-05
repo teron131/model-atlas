@@ -210,7 +210,12 @@ export type LlmStatsScores = {
 	price_score: NumberOrNull;
 };
 
-export type LlmStatsNullableRelativeScores = LlmStatsNullableScores & {
+export type LlmStatsNullableRelativeScores = {
+	intelligence_score: NumberOrNull;
+	agentic_score: NumberOrNull;
+	speed_score: NumberOrNull;
+	time_efficiency_score: NumberOrNull;
+	price_score: NumberOrNull;
 	cost_efficiency_score: NumberOrNull;
 	overall_score: NumberOrNull;
 };
@@ -219,6 +224,7 @@ export type LlmStatsRelativeScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
+	time_efficiency_score: NumberOrNull;
 	price_score: NumberOrNull;
 	cost_efficiency_score: NumberOrNull;
 	overall_score: number;

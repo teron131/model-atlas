@@ -23,13 +23,21 @@ export type OpenRouterModelStats = {
 	throughput?: OpenRouterStatsResponse | null;
 	latency?: OpenRouterStatsResponse | null;
 	latency_e2e?: OpenRouterStatsResponse | null;
+	series_token_weights?: Record<string, number | null> | null;
 };
 
 export type OpenRouterEndpointStatsResponse = {
 	data?: Array<{
+		id?: string | null;
+		provider_display_name?: string | null;
+		provider_name?: string | null;
+		provider_info?: {
+			displayName?: string | null;
+		} | null;
 		stats?: {
 			p50_throughput?: number | null;
 			p50_latency?: number | null;
+			request_count?: number | null;
 		} | null;
 	}>;
 };
@@ -38,6 +46,10 @@ export type OpenRouterEffectivePricingResponse = {
 	data?: {
 		weightedInputPrice?: number | null;
 		weightedOutputPrice?: number | null;
+		providerSummaries?: Array<{
+			providerName?: string | null;
+			totalTokens?: number | null;
+		}>;
 	};
 };
 
@@ -45,6 +57,30 @@ export type OpenRouterPerformanceSummary = {
 	throughput_tokens_per_second_median: number | null;
 	latency_seconds_median: number | null;
 	e2e_latency_seconds_median: number | null;
+};
+
+export type OpenRouterPerformanceMetric =
+	| "throughput"
+	| "latency"
+	| "latency_e2e";
+
+export type OpenRouterPerformanceEstimateKind =
+	| "openrouter_aggregate"
+	| "series_median"
+	| "token_weighted_mean"
+	| "final";
+
+export type OpenRouterPerformanceEstimate = {
+	metric: OpenRouterPerformanceMetric;
+	estimate_kind: OpenRouterPerformanceEstimateKind;
+	value: number | null;
+};
+
+type PerformanceEstimateSource = {
+	metric: OpenRouterPerformanceMetric;
+	summaryValue: number | null;
+	series: OpenRouterStatsResponse | null;
+	scaleToSeconds: boolean;
 };
 
 export type OpenRouterPricingSummary = {
@@ -109,7 +145,7 @@ function average(values: number[]): number | null {
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function toDailyAveragedValues(
+function dailyAveragedValues(
 	response: OpenRouterStatsResponse | null,
 	scaleToSeconds: boolean,
 ): number[] {
@@ -133,29 +169,205 @@ function toDailyAveragedValues(
 		);
 }
 
+function tokenWeightedMeanValue(
+	response: OpenRouterStatsResponse | null,
+	seriesTokenWeights: Record<string, number | null> | null | undefined,
+	scaleToSeconds: boolean,
+): number | null {
+	if (
+		!response ||
+		!Array.isArray(response.data) ||
+		seriesTokenWeights == null
+	) {
+		return null;
+	}
+	let weightedSum = 0;
+	let totalWeight = 0;
+	for (const point of response.data) {
+		const y = asRecord(point.y);
+		for (const [series, value] of Object.entries(y)) {
+			const numericValue = asFiniteNumber(value);
+			const weight = asFiniteNumber(seriesTokenWeights[series]);
+			if (numericValue == null || weight == null || weight <= 0) {
+				continue;
+			}
+			weightedSum +=
+				(scaleToSeconds ? numericValue / 1000 : numericValue) * weight;
+			totalWeight += weight;
+		}
+	}
+	return totalWeight > 0 ? weightedSum / totalWeight : null;
+}
+
+function performanceEstimateSources(
+	stats: OpenRouterModelStats,
+): PerformanceEstimateSource[] {
+	return [
+		{
+			metric: "throughput",
+			summaryValue: stats.summary?.throughput_tokens_per_second_median ?? null,
+			series: stats.throughput ?? null,
+			scaleToSeconds: false,
+		},
+		{
+			metric: "latency",
+			summaryValue: stats.summary?.latency_seconds_median ?? null,
+			series: stats.latency ?? null,
+			scaleToSeconds: true,
+		},
+		{
+			metric: "latency_e2e",
+			summaryValue: stats.summary?.e2e_latency_seconds_median ?? null,
+			series: stats.latency_e2e ?? null,
+			scaleToSeconds: true,
+		},
+	];
+}
+
+function performanceEstimatesForSource(
+	source: PerformanceEstimateSource,
+	seriesTokenWeights: Record<string, number | null> | null | undefined,
+): OpenRouterPerformanceEstimate[] {
+	const estimates: OpenRouterPerformanceEstimate[] = [
+		{
+			metric: source.metric,
+			estimate_kind: "openrouter_aggregate",
+			value: source.summaryValue,
+		},
+		{
+			metric: source.metric,
+			estimate_kind: "series_median",
+			value: medianOfFinite(
+				dailyAveragedValues(source.series, source.scaleToSeconds),
+			),
+		},
+		{
+			metric: source.metric,
+			estimate_kind: "token_weighted_mean",
+			value: tokenWeightedMeanValue(
+				source.series,
+				seriesTokenWeights,
+				source.scaleToSeconds,
+			),
+		},
+	];
+	return [
+		...estimates,
+		{
+			metric: source.metric,
+			estimate_kind: "final",
+			value: medianOfFinite(estimates.map((estimate) => estimate.value)),
+		},
+	];
+}
+
+export function summarizeOpenRouterPerformanceEstimates(
+	stats: OpenRouterModelStats,
+): OpenRouterPerformanceEstimate[] {
+	const estimatesByMetric = performanceEstimateSources(stats).map((source) =>
+		performanceEstimatesForSource(source, stats.series_token_weights),
+	);
+	return [
+		...estimatesByMetric.flatMap((estimates) => estimates.slice(0, -1)),
+		...estimatesByMetric.flatMap((estimates) => estimates.slice(-1)),
+	];
+}
+
 /** Summarize OpenRouter historical performance series into stable medians. */
 function summarizePerformance(
 	stats: OpenRouterModelStats,
 ): OpenRouterPerformanceSummary {
-	const summary = stats.summary;
-	const throughputValues = toDailyAveragedValues(
-		stats.throughput ?? null,
-		false,
-	);
-	const latencyValues = toDailyAveragedValues(stats.latency ?? null, true);
-	const e2eLatencyValues = toDailyAveragedValues(
-		stats.latency_e2e ?? null,
-		true,
-	);
-
+	const estimates = summarizeOpenRouterPerformanceEstimates(stats);
+	const finalValue = (metric: OpenRouterPerformanceMetric) =>
+		estimates.find(
+			(estimate) =>
+				estimate.metric === metric && estimate.estimate_kind === "final",
+		)?.value ?? null;
 	return {
-		throughput_tokens_per_second_median:
-			summary?.throughput_tokens_per_second_median ??
-			medianOfFinite(throughputValues),
-		latency_seconds_median:
-			summary?.latency_seconds_median ?? medianOfFinite(latencyValues),
-		e2e_latency_seconds_median: medianOfFinite(e2eLatencyValues),
+		throughput_tokens_per_second_median: finalValue("throughput"),
+		latency_seconds_median: finalValue("latency"),
+		e2e_latency_seconds_median: finalValue("latency_e2e"),
 	};
+}
+
+function endpointProviderName(
+	endpoint: NonNullable<OpenRouterEndpointStatsResponse["data"]>[number],
+): string | null {
+	return (
+		endpoint.provider_display_name ??
+		endpoint.provider_info?.displayName ??
+		endpoint.provider_name ??
+		null
+	);
+}
+
+function endpointSeriesKey(endpointId: string): string {
+	return `${endpointId}::default`;
+}
+
+export function buildOpenRouterSeriesTokenWeights(
+	endpointResponse: OpenRouterEndpointStatsResponse | null,
+	pricingResponse: OpenRouterEffectivePricingResponse | null,
+): Record<string, number> {
+	const endpoints = Array.isArray(endpointResponse?.data)
+		? endpointResponse.data
+		: [];
+	const providerSummaries = pricingResponse?.data?.providerSummaries ?? [];
+	const totalTokensByProviderName = new Map(
+		providerSummaries.flatMap((provider) => {
+			const name = provider.providerName;
+			const totalTokens = asFiniteNumber(provider.totalTokens);
+			return name != null && totalTokens != null && totalTokens > 0
+				? [[name, totalTokens] as const]
+				: [];
+		}),
+	);
+	const endpointsByProviderName = new Map<
+		string,
+		Array<{
+			id: string;
+			requestCount: number | null;
+		}>
+	>();
+	for (const endpoint of endpoints) {
+		const id = endpoint.id;
+		const providerName = endpointProviderName(endpoint);
+		if (id == null || providerName == null) {
+			continue;
+		}
+		const providerEndpoints = endpointsByProviderName.get(providerName) ?? [];
+		providerEndpoints.push({
+			id,
+			requestCount: asFiniteNumber(endpoint.stats?.request_count),
+		});
+		endpointsByProviderName.set(providerName, providerEndpoints);
+	}
+	const weights: Record<string, number> = {};
+	for (const [providerName, providerEndpoints] of endpointsByProviderName) {
+		const totalTokens = totalTokensByProviderName.get(providerName);
+		if (totalTokens == null) {
+			continue;
+		}
+		const requestCountSum = providerEndpoints.reduce(
+			(sum, endpoint) => sum + (endpoint.requestCount ?? 0),
+			0,
+		);
+		if (requestCountSum > 0) {
+			for (const endpoint of providerEndpoints) {
+				if (endpoint.requestCount == null || endpoint.requestCount <= 0) {
+					continue;
+				}
+				weights[endpointSeriesKey(endpoint.id)] =
+					(totalTokens * endpoint.requestCount) / requestCountSum;
+			}
+			continue;
+		}
+		const tokenShare = totalTokens / providerEndpoints.length;
+		for (const endpoint of providerEndpoints) {
+			weights[endpointSeriesKey(endpoint.id)] = tokenShare;
+		}
+	}
+	return weights;
 }
 
 /** Summarize endpoint-level OpenRouter performance into one model summary. */

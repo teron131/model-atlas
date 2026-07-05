@@ -11,6 +11,7 @@
 
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import {
+	buildOpenRouterSeriesTokenWeights,
 	emptyRawScrapedModel,
 	emptyScrapedModel,
 	type OpenRouterCandidateStats,
@@ -236,6 +237,10 @@ async function fetchPerformanceForPermaslug(
 			throughput,
 			latency,
 			latency_e2e: latencyE2e,
+			series_token_weights: buildOpenRouterSeriesTokenWeights(
+				endpointStats,
+				effectivePricing,
+			),
 		},
 		pricing: effectivePricing,
 	};

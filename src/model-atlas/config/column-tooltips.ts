@@ -154,10 +154,10 @@ const benchmarkContributionPercent = (
 		: "-";
 };
 
-const RESOURCE_SIGNAL_WEIGHT = 0.7;
-const WORKFLOW_SIGNAL_WEIGHT = 0.3;
-const signalBlendText = () =>
-	`${percent(RESOURCE_SIGNAL_WEIGHT)} resource / ${percent(WORKFLOW_SIGNAL_WEIGHT)} workflow`;
+const SPEED_RAW_STATS_WEIGHT = 0.5;
+const SPEED_WORKFLOW_WEIGHT = 0.5;
+const speedBlendText = () =>
+	`${percent(SPEED_RAW_STATS_WEIGHT)} raw stats / ${percent(SPEED_WORKFLOW_WEIGHT)} workflow`;
 
 const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
 const PERCENTILE_SCORE_TEXT = "percentile; higher is better";
@@ -191,6 +191,7 @@ type CoreColumnTooltipKey =
 	| "intelligence"
 	| "agentic"
 	| "speed"
+	| "timeEfficiency"
 	| "costEfficiency"
 	| "blend"
 	| "context"
@@ -304,21 +305,32 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
 	"agentic",
 );
 
-const speedInputRows = (components: ActiveResourceComponents) => {
-	const resourceKeys = resourceBenchmarkKeys(components);
-	const resourceWeight = perComponentWeight(
-		RESOURCE_SIGNAL_WEIGHT,
-		resourceKeys.length,
-	);
-	const workflowWeight = percent(WORKFLOW_SIGNAL_WEIGHT);
+const speedInputRows = () => {
+	const rawStatWeight = percent(SPEED_RAW_STATS_WEIGHT / 3, 1);
 	return [
-		...benchmarkResourceRows(resourceKeys, "", "task speed", resourceWeight),
+		{
+			title: "Raw provider speed stats",
+			weight: percent(SPEED_RAW_STATS_WEIGHT),
+			rows: [
+				["Throughput tokens per second", rawStatWeight],
+				["Latency seconds, lower is better", rawStatWeight],
+				["End-to-end seconds, lower is better", rawStatWeight],
+			],
+		},
 		{
 			title: "Workflow simulation mix",
 			kind: "workflow_simulation",
-			weight: workflowWeight,
+			weight: percent(SPEED_WORKFLOW_WEIGHT),
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
+	] as const;
+};
+
+const timeEfficiencyInputRows = (components: ActiveResourceComponents) => {
+	const resourceKeys = resourceBenchmarkKeys(components);
+	const componentWeight = perComponentWeight(1, resourceKeys.length);
+	return [
+		...benchmarkResourceRows(resourceKeys, "", "task time", componentWeight),
 	] as const;
 };
 
@@ -377,17 +389,33 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "Percentile score from a 70% benchmark task-runtime block and 30% served-speed workflow simulation block. AA-backed benchmarks use AA evaluation-page per-task resources; missing task runtime falls back to output tokens divided by served throughput. Displayed only when at least two speed components are present.",
+			body: "Percentile score from raw provider speed stats and served-speed workflow simulation. Throughput ranks higher when larger; latency and end-to-end time rank higher when lower.",
 			rows: [
 				["Scale", PERCENTILE_SCORE_TEXT],
-				["Blend", signalBlendText()],
+				["Blend", speedBlendText()],
 				["Sort", HIGHER_FIRST_TEXT],
 			],
 			sections: [
 				{
 					title: "Speed inputs",
 					hideTitle: true,
-					rows: speedInputRows(components),
+					rows: speedInputRows(),
+				},
+			],
+		},
+		timeEfficiency: {
+			title: "Time efficiency score",
+			body: "Among models with similar benchmark quality, this asks which one completes the task in less time. Missing task runtime falls back to output tokens divided by served throughput.",
+			rows: [
+				["Scale", PERCENTILE_SCORE_TEXT],
+				["Weights", "equal per active benchmark"],
+				["Sort", HIGHER_FIRST_TEXT],
+			],
+			sections: [
+				{
+					title: "Time inputs",
+					hideTitle: true,
+					rows: timeEfficiencyInputRows(components),
 				},
 			],
 		},

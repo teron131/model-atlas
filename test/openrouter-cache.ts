@@ -43,6 +43,9 @@ try {
 								},
 							],
 						},
+						series_token_weights: {
+							p50: 123,
+						},
 					},
 					pricing: {
 						data: {
@@ -54,11 +57,33 @@ try {
 			],
 		});
 
+		const estimateRows = db
+			.prepare(
+				`SELECT metric, series, value
+				FROM openrouter_raw_rows
+				WHERE row_kind = 'performance_estimate'
+				ORDER BY row_index`,
+			)
+			.all();
+		assert.equal(
+			estimateRows.length,
+			12,
+			"OpenRouter raw rows should retain estimate variants for DB inspection",
+		);
+		assert.equal(estimateRows.at(-1)?.metric, "latency_e2e");
+		assert.equal(estimateRows.at(-1)?.series, "final");
+		assert.equal(estimateRows.at(-1)?.value, 16.22);
+
 		const cached = readOpenRouterRawCache(db);
 		assert.equal(
 			cached?.models[0]?.performance.summary?.e2e_latency_seconds_median,
 			16.22,
 			"OpenRouter cache reads should preserve stored end-to-end latency",
+		);
+		assert.equal(
+			cached?.models[0]?.performance.series_token_weights?.p50,
+			123,
+			"OpenRouter cache reads should preserve token-share weights",
 		);
 	} finally {
 		db.close();

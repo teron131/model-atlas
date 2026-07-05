@@ -61,6 +61,7 @@ const leanInteractionPayload = leanDashboardPayload(
 					intelligence_score: 90,
 					agentic_score: 80,
 					speed_score: 70,
+					time_efficiency_score: 70,
 					price_score: 60,
 					cost_efficiency_score: 65,
 					overall_score: 95,

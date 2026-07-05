@@ -11,6 +11,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { RiRobot3Line } from "react-icons/ri";
+import { RxTimer } from "react-icons/rx";
 
 export function RefreshIcon() {
 	return <RefreshCcw aria-hidden="true" />;
@@ -39,6 +40,15 @@ export function BotIcon() {
 
 export function LightningIcon() {
 	return <Zap aria-hidden="true" />;
+}
+
+export function ClockIcon() {
+	return (
+		<RxTimer
+			aria-hidden="true"
+			style={{ fill: "currentColor", stroke: "none" }}
+		/>
+	);
 }
 
 export function DollarIcon() {
