@@ -1,4 +1,4 @@
-/** Verifies AA evaluation resource task metrics survive the processed_models database path. */
+/** Verifies AA evaluation resource task metrics survive the model_stage_rows database path. */
 
 import assert from "node:assert/strict";
 
@@ -7,7 +7,7 @@ import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import { insertProcessedModelRows } from "../src/model-atlas/database/writers";
+import { insertModelStageRows } from "../src/model-atlas/database/writers";
 
 const databasePath = ".cache/test-database-aa-resource-task-metrics.sqlite";
 
@@ -25,7 +25,7 @@ try {
 			`)
 			.run(1_800_000_000, 1_800_000_001, 1, 1, 1);
 		const runId = Number(run.lastInsertRowid);
-		insertProcessedModelRows(db, runId, "final", [
+		insertModelStageRows(db, runId, "final", [
 			{
 				id: "example/aa-resource-model",
 				provider: "example",

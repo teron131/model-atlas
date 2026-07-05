@@ -406,7 +406,7 @@ export async function valsTerminalBenchSnapshot(
 		fetchedRows,
 		fetched?.fetched_at_epoch_seconds ?? null,
 		options,
-		(row) => sourceKey(row.task, row.raw_model_id, row.harness ?? "default"),
+		(row) => sourceKey(row.task, row.source_model_id, row.harness ?? "default"),
 	);
 	const modelScores = rows.filter(
 		(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
@@ -417,7 +417,7 @@ export async function valsTerminalBenchSnapshot(
 		fetchedRows: fetched?.model_scores ?? [],
 		fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
 		options,
-		rowKey: (row) => sourceKey(row.raw_model_id, row.harness ?? "default"),
+		rowKey: (row) => sourceKey(row.source_model_id, row.harness ?? "default"),
 		rowLabel: (row) =>
 			row.harness == null ? row.model : `${row.model} ${row.harness}`,
 		previousMissingSince,

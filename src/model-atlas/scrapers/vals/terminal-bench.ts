@@ -37,7 +37,7 @@ export type TerminalBenchMetadata = {
 export type TerminalBenchTaskRow = {
 	task: string;
 	task_label: string;
-	raw_model_id: string;
+	source_model_id: string;
 	model_id: string;
 	model: string;
 	provider: string | null;
@@ -186,7 +186,7 @@ function terminalBenchTaskRow(
 	return {
 		task,
 		task_label: taskLabel,
-		raw_model_id: rawModelId,
+		source_model_id: rawModelId,
 		model_id: modelId,
 		model: modelSlug(modelId),
 		provider: stringValue(row.provider),
@@ -254,7 +254,7 @@ export function processTerminalBenchPageHtml(
 
 function modelKeyCandidates(row: TerminalBenchModelHarnessRow): string[] {
 	const slug = modelSlug(row.model_id);
-	return [row.model_id, row.raw_model_id, row.model, slug]
+	return [row.model_id, row.source_model_id, row.model, slug]
 		.map(normalizeModelToken)
 		.filter(
 			(key, index, keys) => key.length > 0 && keys.indexOf(key) === index,

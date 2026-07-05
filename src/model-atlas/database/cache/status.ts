@@ -10,7 +10,10 @@ import {
 	type RawSourceName,
 } from "../types";
 import { openRouterCacheHasScopedCandidates } from "./openrouter";
-import { artificialAnalysisCacheHasHiddenRows } from "./source-readers";
+import {
+	artificialAnalysisCacheHasHiddenRows,
+	latestTableRunId,
+} from "./source-readers";
 
 /** Checks whether a source cache has the current persisted row shape. */
 function sourceCacheShapeIsCurrent(
@@ -33,12 +36,13 @@ export function readRawSourceCacheStatus(
 	nowEpochSeconds: number,
 ): RawSourceCacheStatus {
 	const table = RAW_SOURCE_TABLES[source];
+	const runId = latestTableRunId(db, table);
 	const row = asRecord(
 		db
 			.prepare(
-				`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table}`,
+				`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table} WHERE run_id = ?`,
 			)
-			.get(),
+			.get(runId ?? -1),
 	);
 	const rowCount = asFiniteNumber(row.row_count) ?? 0;
 	const lastFetch = asFiniteNumber(row.last_fetch_epoch_seconds);

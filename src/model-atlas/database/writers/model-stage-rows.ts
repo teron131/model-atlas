@@ -10,9 +10,9 @@ import {
 	type SqlValue,
 } from "./shared";
 
-type ProcessedStage = "matched" | "catalog" | "enriched" | "final";
+type ModelStage = "matched" | "catalog" | "enriched" | "final";
 
-function processedIdentityValues(model: JsonObject): SqlValue[] {
+function modelStageIdentityValues(model: JsonObject): SqlValue[] {
 	const modelId = firstString(model, ["id"]);
 	return [
 		modelId,
@@ -32,7 +32,7 @@ function processedIdentityValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-function processedContextValues(model: JsonObject): SqlValue[] {
+function modelStageContextValues(model: JsonObject): SqlValue[] {
 	const context = asRecord(model.context_window);
 	const limit = asRecord(model.limit);
 	const modalities = asRecord(model.modalities);
@@ -47,7 +47,7 @@ function processedContextValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-function processedSpeedAndCostValues(model: JsonObject): SqlValue[] {
+function modelStageSpeedAndCostValues(model: JsonObject): SqlValue[] {
 	const speed = asRecord(model.speed);
 	const cost = asRecord(model.cost);
 	const contextOver200k = asRecord(cost.context_over_200k);
@@ -69,7 +69,7 @@ function processedSpeedAndCostValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-function processedBenchmarkValues(model: JsonObject): SqlValue[] {
+function modelStageBenchmarkValues(model: JsonObject): SqlValue[] {
 	const intelligence = asRecord(model.intelligence);
 	const evaluations = asRecord(model.evaluations);
 	return [
@@ -101,7 +101,7 @@ function processedBenchmarkValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-function processedScoreValues(model: JsonObject): SqlValue[] {
+function modelStageScoreValues(model: JsonObject): SqlValue[] {
 	const taskMetrics = asRecord(model.task_metrics);
 	const artificialAnalysisTask = asRecord(taskMetrics.artificial_analysis);
 	const terminalBenchTask = asRecord(taskMetrics.terminalbench_v21);
@@ -142,14 +142,14 @@ function processedScoreValues(model: JsonObject): SqlValue[] {
 	];
 }
 
-export function insertProcessedModelRows(
+export function insertModelStageRows(
 	db: DatabaseSync,
 	runId: number,
-	stage: ProcessedStage,
+	stage: ModelStage,
 	rows: readonly unknown[],
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO processed_models (
+		INSERT INTO model_stage_rows (
 			run_id, stage, row_index, model_id, provider_id, openrouter_id, name,
 			artificial_analysis_id, family, logo, attachment, reasoning, release_date,
 			open_weights, context, context_input, context_output, input_modality_text,
@@ -176,7 +176,7 @@ export function insertProcessedModelRows(
 			terminalbench_v21_task_cost, terminalbench_v21_task_seconds,
 			terminalbench_v21_task_tokens, terminalbench_v21_task_input_tokens,
 			terminalbench_v21_task_output_tokens,
-			raw_intelligence_score, raw_agentic_score, raw_speed_score,
+			component_intelligence_score, component_agentic_score, component_speed_score,
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score,
@@ -189,11 +189,11 @@ export function insertProcessedModelRows(
 			runId,
 			stage,
 			index,
-			...processedIdentityValues(model),
-			...processedContextValues(model),
-			...processedSpeedAndCostValues(model),
-			...processedBenchmarkValues(model),
-			...processedScoreValues(model),
+			...modelStageIdentityValues(model),
+			...modelStageContextValues(model),
+			...modelStageSpeedAndCostValues(model),
+			...modelStageBenchmarkValues(model),
+			...modelStageScoreValues(model),
 		);
 	}
 }

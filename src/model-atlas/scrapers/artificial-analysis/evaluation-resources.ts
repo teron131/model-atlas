@@ -43,7 +43,7 @@ export type ArtificialAnalysisEvaluationResourcePage = {
 	benchmark_key: string;
 	score_key?: string;
 	url: string;
-	task_count: number;
+	task_run_count: number;
 };
 
 export type ArtificialAnalysisEvaluationResourceOptions = {
@@ -60,7 +60,7 @@ export type ArtificialAnalysisEvaluationResourceRow = {
 	provider_id: string | null;
 	reasoning_effort: string | null;
 	score: number;
-	task_count: number;
+	task_run_count: number;
 	cost_per_task_usd: number;
 	seconds_per_task: number;
 	tokens_per_task: number;
@@ -84,33 +84,33 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 	{
 		benchmark_key: "hle",
 		url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
-		task_count: 2_158,
+		task_run_count: 2_158,
 	},
 	{
 		benchmark_key: "critpt",
 		url: "https://artificialanalysis.ai/evaluations/critpt",
-		task_count: 70,
+		task_run_count: 70,
 	},
 	{
 		benchmark_key: "gdpval_normalized",
 		url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
-		task_count: 220,
+		task_run_count: 220,
 	},
 	{
 		benchmark_key: "apex_agents",
 		url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
-		task_count: 452,
+		task_run_count: 452,
 	},
 	{
 		benchmark_key: "tau_banking",
 		url: "https://artificialanalysis.ai/evaluations/tau3-banking",
-		task_count: 97,
+		task_run_count: 97,
 	},
 	{
 		benchmark_key: "terminalbench_v21",
 		score_key: "terminalbench_v2_1",
 		url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-		task_count: 89 * 3,
+		task_run_count: 89 * 3,
 	},
 ] as const satisfies readonly ArtificialAnalysisEvaluationResourcePage[];
 
@@ -239,23 +239,23 @@ function artificialAnalysisEvaluationResourceRow(
 	const cost = asRecord(row.evalCost);
 	const tokenCounts = asRecord(row.tokenCounts);
 	const score = asFiniteNumber(row[page.score_key ?? page.benchmark_key]);
-	const costPerTask = perTask(asFiniteNumber(cost.total), page.task_count);
+	const costPerTask = perTask(asFiniteNumber(cost.total), page.task_run_count);
 	const secondsPerTask = asFiniteNumber(row.evalTimePerTask);
 	const inputTokensPerTask = perTask(
 		asFiniteNumber(tokenCounts.inputTokens),
-		page.task_count,
+		page.task_run_count,
 	);
 	const outputTokensPerTask = perTask(
 		asFiniteNumber(tokenCounts.outputTokens),
-		page.task_count,
+		page.task_run_count,
 	);
 	const answerTokensPerTask = perTask(
 		asFiniteNumber(tokenCounts.answerTokens),
-		page.task_count,
+		page.task_run_count,
 	);
 	const reasoningTokensPerTask = perTask(
 		asFiniteNumber(tokenCounts.reasoningTokens),
-		page.task_count,
+		page.task_run_count,
 	);
 	const tokensPerTask =
 		inputTokensPerTask == null || outputTokensPerTask == null
@@ -284,7 +284,7 @@ function artificialAnalysisEvaluationResourceRow(
 		provider_id: providerId,
 		reasoning_effort: reasoningEffort,
 		score,
-		task_count: page.task_count,
+		task_run_count: page.task_run_count,
 		cost_per_task_usd: costPerTask,
 		seconds_per_task: secondsPerTask,
 		tokens_per_task: tokensPerTask,

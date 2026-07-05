@@ -107,7 +107,7 @@ assertDeepEqual(parsed.model_scores, [
 	{
 		task: "overall",
 		task_label: "Overall",
-		raw_model_id: "anthropic/claude-fable-5",
+		source_model_id: "anthropic/claude-fable-5",
 		model_id: "anthropic/claude-fable-5",
 		model: "claude-fable-5",
 		provider: "Anthropic",
@@ -119,7 +119,7 @@ assertDeepEqual(parsed.model_scores, [
 	{
 		task: "overall",
 		task_label: "Overall",
-		raw_model_id: "anthropic/claude-opus-4-8",
+		source_model_id: "anthropic/claude-opus-4-8",
 		model_id: "anthropic/claude-opus-4-8",
 		model: "claude-opus-4-8",
 		provider: "Anthropic",
@@ -131,7 +131,7 @@ assertDeepEqual(parsed.model_scores, [
 	{
 		task: "overall",
 		task_label: "Overall",
-		raw_model_id: "anthropic/claude-opus-4-8-claude-code",
+		source_model_id: "anthropic/claude-opus-4-8-claude-code",
 		model_id: "anthropic/claude-opus-4-8",
 		model: "claude-opus-4-8",
 		provider: "Anthropic",
@@ -145,12 +145,12 @@ assertDeepEqual(
 	parsed.task_rows.find(
 		(row) =>
 			row.task === "hard" &&
-			row.raw_model_id === "anthropic/claude-opus-4-8-claude-code",
+			row.source_model_id === "anthropic/claude-opus-4-8-claude-code",
 	),
 	{
 		task: "hard",
 		task_label: "Hard",
-		raw_model_id: "anthropic/claude-opus-4-8-claude-code",
+		source_model_id: "anthropic/claude-opus-4-8-claude-code",
 		model_id: "anthropic/claude-opus-4-8-claude-code",
 		model: "claude-opus-4-8-claude-code",
 		provider: "Anthropic",

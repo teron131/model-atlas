@@ -56,7 +56,7 @@ export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
 export const RAW_SOURCE_TABLES = {
 	artificial_analysis: "artificial_analysis_raw_models",
 	artificial_analysis_evaluation_resources:
-		"artificial_analysis_evaluation_resource_raw_rows",
+		"artificial_analysis_evaluations_raw_rows",
 	models_dev: "models_dev_raw_models",
 	agents_last_exam: "agents_last_exam_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",
@@ -76,8 +76,8 @@ export const SNAPSHOT_TABLES = {
 	...RAW_SOURCE_TABLES,
 	source_row_states: "source_row_states",
 	source_health: "source_health",
-	processed_models: "processed_models",
-	matcher_debug: "matcher_debug",
+	model_stage_rows: "model_stage_rows",
+	model_match_debug: "model_match_debug",
 } as const;
 
 export type SnapshotTableName =

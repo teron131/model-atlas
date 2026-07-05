@@ -23,7 +23,7 @@ assertDeepEqual(
 			provider_id: "anthropic",
 			reasoning_effort: null,
 			score: 0.84,
-			task_count: 267,
+			task_run_count: 267,
 			cost_per_task_usd: 1.1,
 			seconds_per_task: 420,
 			tokens_per_task: 300_000,
@@ -36,7 +36,7 @@ assertDeepEqual(
 			{
 				task: "overall",
 				task_label: "Overall",
-				raw_model_id: "anthropic/claude-fable-5",
+				source_model_id: "anthropic/claude-fable-5",
 				model_id: "anthropic/claude-fable-5",
 				model: "claude-fable-5",
 				provider: "Anthropic",

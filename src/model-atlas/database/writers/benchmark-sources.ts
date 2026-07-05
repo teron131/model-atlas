@@ -343,7 +343,7 @@ export function insertValsTerminalBenchRawRows(
 	const statement = db.prepare(`
 		INSERT INTO vals_terminal_bench_raw_rows (
 			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
-			row_kind, raw_model_id, model_id, model, provider, harness, score,
+			row_kind, source_model_id, model_id, model, provider, harness, score,
 			cost_per_task_usd, seconds_per_task
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
@@ -356,7 +356,7 @@ export function insertValsTerminalBenchRawRows(
 			row.task,
 			row.task_label,
 			row.task === "overall" ? "overall" : "component",
-			row.raw_model_id,
+			row.source_model_id,
 			row.model_id,
 			row.model,
 			row.provider,
