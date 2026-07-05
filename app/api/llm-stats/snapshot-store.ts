@@ -33,37 +33,61 @@ type DisplayRefreshState = {
 
 export type DisplaySnapshotRefreshMode = "none" | "stored" | "live";
 
+export type SnapshotRuntime = {
+	remoteSnapshotUrl?: string;
+	buildDatabasePath?: string;
+	readDatabasePath: string | undefined;
+	useD1Snapshot: boolean;
+	useStaticSnapshot: boolean;
+	hasD1SnapshotStore: boolean;
+	missingD1Environment: string[];
+	replaceSourceRows: boolean;
+	displayRefreshIntervalSeconds: number;
+};
+
 const displayRefreshState = globalThis as typeof globalThis & {
 	__modelAtlasDisplayRefreshState?: DisplayRefreshState;
 };
 const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
-export function d1SnapshotConfigured(): boolean {
-	return d1Configured();
-}
-
-export function missingD1SnapshotEnvironment(): string[] {
-	return missingD1Environment();
+export function snapshotRuntime(): SnapshotRuntime {
+	return {
+		remoteSnapshotUrl: process.env.MODEL_ATLAS_SNAPSHOT_URL,
+		buildDatabasePath: resolveBuildDatabasePath(),
+		readDatabasePath: resolveReadDatabasePath(),
+		useD1Snapshot:
+			process.env.VERCEL === "1" || process.env.MODEL_ATLAS_USE_D1 === "1",
+		useStaticSnapshot:
+			process.env.VERCEL === "1" ||
+			process.env.MODEL_ATLAS_STATIC_SNAPSHOT === "1",
+		hasD1SnapshotStore: d1Configured(),
+		missingD1Environment: missingD1Environment(),
+		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+		displayRefreshIntervalSeconds: displayRefreshIntervalSeconds(),
+	};
 }
 
 /** Remote snapshot URLs override local storage so deployed readers can be pointed at a single known-good artifact. */
 export async function readBestStoredSnapshotPayload(): Promise<LlmStatsPayload | null> {
-	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
-		return fetchRemoteSnapshot(process.env.MODEL_ATLAS_SNAPSHOT_URL);
+	const runtime = snapshotRuntime();
+	if (runtime.remoteSnapshotUrl) {
+		return fetchRemoteSnapshot(runtime.remoteSnapshotUrl);
 	}
-	return readBestSnapshotCache();
+	return readBestSnapshotCache(runtime);
 }
 
 /** Prefer D1 when available, then choose between local SQLite and static JSON by benchmark coverage before freshness. */
-async function readBestSnapshotCache(): Promise<LlmStatsPayload | null> {
+async function readBestSnapshotCache(
+	runtime: SnapshotRuntime,
+): Promise<LlmStatsPayload | null> {
 	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
 		[
-			shouldReadD1Snapshot()
+			runtime.useD1Snapshot
 				? readD1Snapshot().catch(() => null)
 				: Promise.resolve(null),
-			shouldReadStaticSnapshot()
+			runtime.useStaticSnapshot
 				? Promise.resolve(null)
-				: readLocalDatabaseSnapshot().catch(() => null),
+				: readLocalDatabaseSnapshot(runtime).catch(() => null),
 			readStaticSnapshot().catch(() => null),
 		],
 	);
@@ -86,15 +110,17 @@ export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | nu
 
 /** Display reads may trigger a background-quality refresh, but they still return the best stored payload on failure. */
 async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | null> {
-	if (process.env.MODEL_ATLAS_SNAPSHOT_URL) {
-		const payload = await fetchRemoteSnapshot(
-			process.env.MODEL_ATLAS_SNAPSHOT_URL,
-		).catch(() => null);
+	const runtime = snapshotRuntime();
+	if (runtime.remoteSnapshotUrl) {
+		const payload = await fetchRemoteSnapshot(runtime.remoteSnapshotUrl).catch(
+			() => null,
+		);
 		cacheDisplayPayload(payload);
 		return payload;
 	}
 	const payload = await refreshDisplaySnapshotIfStale(
-		await readBestSnapshotCache(),
+		await readBestSnapshotCache(runtime),
+		runtime,
 	);
 	cacheDisplayPayload(payload);
 	return payload;
@@ -112,12 +138,13 @@ function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
 /** Only one stale-display refresh may run per process, and failure must not erase the last usable payload. */
 function startDisplayRefresh(
 	refreshMode: Exclude<DisplaySnapshotRefreshMode, "none">,
+	runtime: SnapshotRuntime,
 ): Promise<LlmStatsPayload | null> {
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
 		refreshMode === "stored"
-			? refreshD1StoredSnapshot()
-			: refreshLocalSnapshotPayload()
+			? refreshD1StoredSnapshot(runtime)
+			: refreshLocalSnapshotPayload(runtime)
 	)
 		.then((payload) => {
 			cacheDisplayPayload(payload);
@@ -135,36 +162,41 @@ function startDisplayRefresh(
 
 async function refreshDisplaySnapshotIfStale(
 	payload: LlmStatsPayload | null,
+	runtime: SnapshotRuntime,
 ): Promise<LlmStatsPayload | null> {
 	const refreshMode = displaySnapshotRefreshMode(
 		payload,
 		nowEpochSeconds(),
-		d1SnapshotConfigured(),
-		displayRefreshIntervalSeconds(),
+		runtime.hasD1SnapshotStore,
+		runtime.displayRefreshIntervalSeconds,
 	);
 	if (refreshMode === "none") {
 		return payload;
 	}
-	const refreshPromise = startDisplayRefresh(refreshMode);
+	const refreshPromise = startDisplayRefresh(refreshMode, runtime);
 	return (await refreshPromise) ?? payload;
 }
 
 /** Explicit refreshes rebuild through the runtime database path instead of reading a stale static artifact. */
-export async function refreshLocalSnapshotPayload(): Promise<LlmStatsPayload> {
-	return refreshRuntimePayload(runtimeDatabasePath());
+export async function refreshLocalSnapshotPayload(
+	runtime = snapshotRuntime(),
+): Promise<LlmStatsPayload> {
+	return refreshRuntimePayload(runtime);
 }
 
 /** Rebuild and publish the runtime D1 snapshot before reading it back for display. */
-export async function refreshD1StoredSnapshot(): Promise<LlmStatsPayload | null> {
-	await refreshD1Snapshot(runtimeDatabasePath());
+export async function refreshD1StoredSnapshot(
+	runtime = snapshotRuntime(),
+): Promise<LlmStatsPayload | null> {
+	await refreshD1Snapshot(runtime.buildDatabasePath);
 	return readD1Snapshot();
 }
 
 async function refreshRuntimePayload(
-	databasePath?: string,
+	runtime: SnapshotRuntime,
 ): Promise<LlmStatsPayload> {
-	const database = await buildDatabase(databasePath, {
-		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+	const database = await buildDatabase(runtime.buildDatabasePath, {
+		replaceSourceRows: runtime.replaceSourceRows,
 	});
 	return readDatabasePayload(database.path);
 }
@@ -181,20 +213,11 @@ async function readStaticSnapshot(): Promise<LlmStatsPayload> {
 	);
 }
 
-async function readLocalDatabaseSnapshot(): Promise<LlmStatsPayload> {
+async function readLocalDatabaseSnapshot(
+	runtime: SnapshotRuntime,
+): Promise<LlmStatsPayload> {
 	return withCurrentSnapshotMetadata(
-		readDatabasePayload(localDatabaseReadPath()),
-	);
-}
-
-function shouldReadD1Snapshot(): boolean {
-	return process.env.VERCEL === "1" || process.env.MODEL_ATLAS_USE_D1 === "1";
-}
-
-function shouldReadStaticSnapshot(): boolean {
-	return (
-		process.env.VERCEL === "1" ||
-		process.env.MODEL_ATLAS_STATIC_SNAPSHOT === "1"
+		readDatabasePayload(runtime.readDatabasePath),
 	);
 }
 
@@ -304,7 +327,7 @@ function withCurrentSnapshotMetadata(
 	};
 }
 
-export function runtimeDatabasePath(): string | undefined {
+function resolveBuildDatabasePath(): string | undefined {
 	if (process.env.MODEL_ATLAS_DATABASE_PATH) {
 		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
 	}
@@ -314,7 +337,7 @@ export function runtimeDatabasePath(): string | undefined {
 	return undefined;
 }
 
-export function localDatabaseReadPath(): string | undefined {
+function resolveReadDatabasePath(): string | undefined {
 	if (process.env.MODEL_ATLAS_DATABASE_PATH) {
 		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
 	}

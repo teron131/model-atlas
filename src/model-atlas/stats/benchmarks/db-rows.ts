@@ -1,10 +1,10 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
 import {
-	artificialAnalysisBenchmarkDrafts,
+	artificialAnalysisBenchmarkRowDrafts,
+	type BenchmarkRowDraft,
 	type BenchmarkRowsByKey,
-	type BenchmarkSourceRowDraft,
-	benchmarkRowsFromDrafts,
+	finalizeBenchmarkRows,
 } from "./source-rows";
 
 type DbBenchmarkRow = Record<string, unknown>;
@@ -102,7 +102,7 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 function dbSourceRowDraft(
 	source: DbSourceSpec,
 	row: DbBenchmarkRow,
-): BenchmarkSourceRowDraft | null {
+): BenchmarkRowDraft | null {
 	if (source.rowKind != null && stringValue(row.row_kind) !== source.rowKind) {
 		return null;
 	}
@@ -118,9 +118,9 @@ function dbSourceRowDraft(
 	};
 }
 
-function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkSourceRowDraft[] {
+function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 	return [
-		...artificialAnalysisBenchmarkDrafts({
+		...artificialAnalysisBenchmarkRowDrafts({
 			rows: rows.artificialAnalysisRows,
 			modelId: (row) => stringValue(row.model_id),
 			label: (row, modelId) =>
@@ -135,5 +135,5 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkSourceRowDraft[] {
 
 /** Converts persisted benchmark source rows into benchmark-keyed update rows. */
 export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
-	return benchmarkRowsFromDrafts(dbBenchmarkDrafts(rows));
+	return finalizeBenchmarkRows(dbBenchmarkDrafts(rows));
 }
