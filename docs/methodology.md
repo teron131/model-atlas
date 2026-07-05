@@ -25,28 +25,31 @@ There is no standalone coding score in the current ranking. Coding difficulty do
 
 Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
-For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow: choose the group, then assign Intelligence and Agentic portions that sum to 100%. These portions allocate the benchmark's capability signal between the two quality dimensions; they are not arbitrary standalone weights. A proprietary or first-party agent workflow benchmark can be kept `baseline` and `0%` Intelligence / `100%` Agentic when the evidence is useful but too opaque to act as a frontier model-quality claim.
+For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow: choose the group, then assign Intelligence and Agentic portions that sum to 100%. These portions allocate the benchmark's capability signal between the two quality dimensions; they are not arbitrary standalone weights. A first-party or partly opaque agent workflow benchmark can be kept `baseline` and `0%` Intelligence / `100%` Agentic when the evidence is useful but too narrow or source-specific to act as a frontier model-quality claim.
+
+When the benchmark portfolio changes, this table should change with it. Additions, removals, or group/portion changes should explain the capability being measured, why the benchmark earns or loses ranking space, and whether its task resources can feed Time or Cost Efficiency.
 
 | Benchmark | Group | Intelligence Portion | Agentic Portion | Description and Decision Note |
 | --- | --- | ---: | ---: | --- |
 | Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to decide frontier top fights. |
 | LCR | baseline | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
 | SciCode | baseline | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
-| Terminal-Bench&nbsp;2.1 | baseline | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It stays baseline because stronger frontier agentic tests are more distinctive and the official 2.1 task set is not publicly uploaded yet. |
+| Terminal-Bench&nbsp;2.1 | baseline | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It stays baseline because stronger frontier agentic tests are more distinctive, and public task exposure plus mixed harnesses make it better as a broad anchor than as a top-rank decider. |
 | BrowseComp | baseline | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
 | Toolathlon | baseline | 20% | 80% | Multi-tool workflow execution with some planning and domain understanding. Limited current row count and provenance keep it baseline. |
-| Vals Index | baseline | 60% | 40% | Proprietary Vals AI composite across finance and coding tasks. The overall score is useful as a normal baseline signal, but the opaque private subsets and overlap with other benchmark families keep it out of frontier status. |
+| Vals Index | baseline | 60% | 40% | Vals aggregate over finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, but its formula also includes public coding benchmarks. Model Atlas keeps it baseline because the aggregate mixes Vals-specific tasks with benchmark families represented elsewhere. |
 | HLE | frontier | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
 | CritPt | frontier | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
 | GDPval-AA&nbsp;v2 | frontier | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
 | Riemann-bench | frontier | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
 | APEX&nbsp;Agents | frontier | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
+| AutomationBench | frontier | 0% | 100% | Zapier workflow-automation benchmark over realistic app tasks. It is frontier because it tests business-process execution with tool-like constraints, and its per-task cost can feed Cost Efficiency. |
 | tau3&nbsp;Banking&nbsp;(AA) | frontier | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It is frontier because current models still struggle and the task shape is close to deployable support work. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
 | Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
 | GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
 | CursorBench | frontier | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks from real editor sessions. It is frontier because it separates current coding agents on practical workflow tasks; Composer rows are excluded because their model data is not independently available. |
-| DeepSWE | frontier | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using each model's best pass@1 configuration. |
+| DeepSWE | frontier | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using the default xhigh row when available and otherwise the best reported pass@1 row. |
 
 The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
 
@@ -62,7 +65,7 @@ Working quality mix is the same for Intelligence and Agentic:
 
 Baseline and frontier benchmark groups are portion-weighted before they are combined. This keeps the grouping legible: the AA index anchors the dimension, baseline gives broad coverage, and frontier gets extra force as the proof-heavy separation signal.
 
-Cost efficiency and speed are secondary. They still matter because downstream applications have budgets and latency constraints, and they now have enough observed signal to act as practical utility components without overtaking quality. Cost efficiency compares benchmark task cost among similarly scoring benchmark results.
+Speed, Time Efficiency, and Cost Efficiency are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Time and Cost Efficiency compare task resources among models with similar benchmark results, rather than rewarding cheap or fast weak models.
 
 ## Source Notes
 
@@ -72,13 +75,15 @@ OpenRouter supplies current route pricing and speed measurements used for blend 
 
 Terminal-Bench 2.1 combines the AA leaderboard score, the dedicated AA Terminal-Bench evaluation page, and the Vals Terminal-Bench 2.1 page when they match the same model. The benchmark score is the best available AA or Vals overall score, matching the way people usually compare a model's best harness result. This intentionally gives a small reward to models with more harness coverage: if multiple independent harnesses can make the same model work, the ranking credits the strongest observed execution path instead of forcing a noisy cross-harness average. Cost and time are still the medians of available per-task resource values so one harness does not dominate resource estimates. AA cost and token totals are divided by the benchmark's 89 tasks and 3 repeats per task; AA time uses the page's reported per-task runtime. Vals supplies score, cost, time, and harness labels but no token counts, so token fields remain AA-only when present.
 
-DeepSWE supplies mean task cost, mean task duration, and mean output tokens. Task duration can feed Speed, task cost can feed Cost Efficiency, and token totals remain source context.
+DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. Model Atlas preserves effort/config rows but scores the default xhigh row when present, falling back to the best pass@1 row only when xhigh is absent. Task duration can feed Time Efficiency, task cost can feed Cost Efficiency, and token totals remain source context.
 
 Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime and token counts, while displayed ALE resource columns divide those totals by the source `runs` count and then use the lower of median and mean per-run values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
-Toolathlon uses the reported Pass@1-style score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
+Toolathlon uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
 CursorBench preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
+
+AutomationBench supplies public workflow-automation scores, reasoning-effort labels, per-task cost, and domain winners. Model Atlas uses the overall leaderboard score with a bounded domain-leadership lift, so strong domain leaders get a small credit without overriding the main leaderboard. Per-task cost can feed Cost Efficiency; AutomationBench does not feed Speed unless comparable runtime appears.
 
 Blueprint-Bench 2 uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
 
@@ -86,54 +91,42 @@ Riemann-bench uses the normalized public percent score and preserves provider, m
 
 GDP.pdf uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date.
 
-Vals Index uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. Its reported cost and latency stay out of Speed and Cost Efficiency because they are Vals harness-local measurements rather than comparable task-resource inputs.
+Vals Index uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks such as SWE-bench Verified and Terminal-Bench 2.1. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Cost Efficiency because they are Vals harness-local measurements rather than comparable task-resource inputs.
 
 ## Scoring Shape
 
 The scoring map is:
 
 $$
-\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{percentile-scored Speed/Cost Efficiency}
+\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Time Efficiency, Cost Efficiency, Overall}
 $$
 
-Quality is normalized before averaging. Time becomes a percentile score after converting raw seconds into "higher is better" components. Cost Efficiency is computed from benchmark task costs and benchmark quality neighborhoods.
+Quality is normalized before averaging. Displayed Speed is a provider/runtime component. Time Efficiency and Cost Efficiency are benchmark-task resource scores: they compare task seconds or task cost among models with nearby benchmark quality, then percentile-rank the resulting task-resource signal.
 
 AA's `coding_index` can be kept as source context when available, but it is not used to compute any score. There is no standalone coding score.
 
-## Math Mapping Details
+## Scoring Details
 
-### Symbols
-
-$$
-\begin{aligned}
-m&=\text{model}\\
-b&=\text{benchmark or AA index field}\\
-x_{m,b}&=\text{raw value for model }m\text{ on field }b\\
-x_{\min,b}&=\min_m x_{m,b}\\
-x_{\max,b}&=\max_m x_{m,b}
-\end{aligned}
-$$
-
-In formulas, $\operatorname{Percentile}(y)$ means the 0-100 percentile of $y$ within the current finite comparison set for that component.
+This section gives the scoring rules at the level needed to understand rank movement. Variables are introduced where they are used. $\operatorname{Percentile}(y)$ means the 0-100 percentile of $y$ among models with a value for that component. $\operatorname{Percentile}_{\text{lower}}(y)$ reverses the direction for lower-is-better values.
 
 ### Quality Normalization
 
-Each quality input is first converted into a benchmark-relative score:
+Each quality input is first converted into a benchmark-relative score. For model $m$ and benchmark or AA index field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
 
 $$
 z_{m,b}=100\cdot\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}}
 $$
 
-Quality scaling uses the observed minimum and maximum for each field. The minimum maps to $0$, the maximum maps to $100$, and every benchmark is normalized before it enters a dimension average.
+The observed minimum maps to $0$, the observed maximum maps to $100$, and every benchmark is normalized before it enters a dimension average.
 
-Within each dimension, benchmark groups are averaged before they are combined. Let $R_b$ be the set of selected baseline benchmarks for dimension $D$, let $R_f$ be the set of selected frontier benchmarks for dimension $D$, and let $p_{b,D}$ be benchmark $b$'s configured portion for dimension $D$.
-
-$$
-B_{m,D}^{\text{baseline}}=\frac{\sum_{b\in R_b}p_{b,D}z_{m,b}}{\sum_{b\in R_b}p_{b,D}}
-$$
+Within each dimension, benchmark groups are averaged before they are combined. The selected baseline set $\mathcal{B}^{\text{baseline}}_D$ and frontier set $\mathcal{B}^{\text{frontier}}_D$ contain the benchmarks for dimension $D$, and each benchmark contributes through its configured dimension portion $p_{b,D}$.
 
 $$
-B_{m,D}^{\text{frontier}}=\frac{\sum_{b\in R_f}p_{b,D}z_{m,b}}{\sum_{b\in R_f}p_{b,D}}
+B_{m,D}^{\text{baseline}}=\frac{\sum_{b\in\mathcal{B}^{\text{baseline}}_D}p_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}^{\text{baseline}}_D}p_{b,D}}
+$$
+
+$$
+B_{m,D}^{\text{frontier}}=\frac{\sum_{b\in\mathcal{B}^{\text{frontier}}_D}p_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}^{\text{frontier}}_D}p_{b,D}}
 $$
 
 The final quality dimension score uses the same component weights for Intelligence and Agentic:
@@ -151,9 +144,9 @@ $$
 
 ### Benchmark Imputation
 
-Missing benchmark values are imputed only for scoring. They are not treated as observed source values.
+Missing benchmark values are imputed only for scoring. They are not treated or displayed as observed source values.
 
-Missing frontier benchmarks use other selected frontier benchmarks as the percentile context:
+Missing frontier benchmarks use other selected frontier benchmarks as the percentile context. For model $m$, missing benchmark $b$, and context benchmark $k$, the model's available frontier evidence estimates where it should sit in benchmark $b$'s observed distribution:
 
 $$
 C_{m,b}^{\text{frontier}}=\operatorname{mean}\left(z_{m,k}:k\in D\cap\text{Frontier},k\neq b,z_{m,k}\text{ available}\right)
@@ -163,7 +156,7 @@ $$
 x_{m,b}^{\text{imputed}}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\operatorname{Percentile}(C_{m,b}^{\text{frontier}})/100\right),\quad b\in\text{Frontier}
 $$
 
-Other missing benchmarks use same-dimension evidence and keep a conservative shrink toward the observed floor:
+Other missing benchmarks use same-dimension evidence and keep a conservative shrink toward the observed floor. Here the context benchmark $k$ can be any other selected benchmark in dimension $D$:
 
 $$
 C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}\right)
@@ -177,13 +170,7 @@ $$
 x_{m,b}^{\text{imputed}}=\min_j x_{j,b}+c\left(\hat{x}_{m,b}-\min_j x_{j,b}\right)
 $$
 
-The shrink confidence is fixed at:
-
-$$
-c=0.5
-$$
-
-The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
+The shrink confidence is fixed at $c=0.5$ so missing non-frontier benchmarks can help order models without pretending the imputed value is as strong as source evidence. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
 
 ### Price Profiles
 
@@ -198,9 +185,13 @@ $$
 \end{aligned}
 $$
 
+The profile weights are simple usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy; the blended price leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
+
 ### Workflow Simulation
 
 #### Scenario Mix
+
+The workflow simulation is a fixed stress mix rather than a workload trace. It includes small calls, long-context calls, repeated chat, and agentic loops so latency, throughput, cache pricing, and output-heavy work all have a chance to matter.
 
 | Scenario | Weight | Calls | Input tokens/call | Output tokens/call |
 | --- | ---: | ---: | ---: | ---: |
@@ -213,10 +204,10 @@ $$
 
 #### Log-Uniform Token Ranges
 
-Input and output token counts use the expected value of a log-uniform range:
+Input and output token counts use the expected value of a log-uniform range. Log-uniform ranges keep broad token spans from being dominated by their largest endpoint, which is closer to how prompt sizes vary across real usage:
 
 $$
-\operatorname{ELogUniform}(x_{\min},x_{\max})=\frac{x_{\max}-x_{\min}}{\log x_{\max}-\log x_{\min}}
+\operatorname{ELogUniform}(L,U)=\frac{U-L}{\log U-\log L}
 $$
 
 #### Workflow Runtime
@@ -228,81 +219,124 @@ T_{\text{workflow},m}&=\sum_s w_sT_{m,s}
 \end{aligned}
 $$
 
-where $\ell_m$ is latency, $\tau_m$ is output throughput, $n_s$ is scenario call count, and $\lambda=0.0001$ seconds per input token is the explicit input-token friction used when no reliable per-model prefill throughput is available.
+Workflow runtime combines model latency $\ell_m$, model output throughput $\tau_m$, scenario call count $n_s$, and input-token friction $\lambda=0.0001$ seconds per input token. The input-token friction is explicit because there is no reliable per-model prefill throughput source.
 
 #### Workflow Price Signal
 
-Workflow Price uses the same scenario mix, but each scenario contributes useful work per log dollar:
+Workflow Price uses the same scenario mix, but each scenario contributes useful work per log dollar. This is a separate price signal kept for internal comparison and legacy score fields; public Cost Efficiency is the benchmark-task resource score described below.
 
 $$
 U_{m,s}=\frac{\operatorname{smoothstep}\left(q_{m,s}/q_{\text{full},s}\right)}{\log_{10}(1+\text{scenario cost}_{m,s})}
 $$
 
-where $q_{m,s}$ is the scenario-specific intelligence/agentic blend and $q_{\text{full},s}$ is the good-enough threshold for that scenario. Repeated chat and agentic scenarios model cache-read pricing after the first call: chat treats 50% of input as cacheable and agentic treats 70% of input as cacheable, with a midpoint 70% hit rate from the configured `50..90%` range. One-shot scenarios do not receive cache benefit.
+The scenario quality blend $q_{m,s}$ combines Intelligence and Agentic scores for model $m$ under scenario $s$, and $q_{\text{full},s}$ is that scenario's full-credit threshold. The smoothstep quality multiplier gives little credit below the scenario threshold and then saturates, because being far above "good enough" should not let quality swamp price in a value signal. Repeated chat and agentic scenarios model cache-read pricing after the first call: chat treats 50% of input as cacheable and agentic treats 70% of input as cacheable, with a midpoint 70% hit rate from the configured `50..90%` range. One-shot scenarios do not receive cache benefit.
 
 ### Speed Score
 
-#### OpenRouter Speed Anchors
-
-Speed anchors are derived from OpenRouter observations:
-
-$$
-\text{implied output tokens}=(\text{end-to-end latency}-\text{latency})\cdot\text{throughput}
-$$
-
-#### Raw Speed Diagnostics
-
-$$
-g_m(t)=\frac{t}{\ell_m+t/\tau_m}
-$$
-
-where $\ell_m$ is latency and $\tau_m$ is throughput.
-
-$$
-\text{observed speed}_m=\operatorname{median}(\text{anchors})/\text{end-to-end latency}_m
-$$
-
-$$
-\text{raw speed}_m=\operatorname{mean}_{\text{finite}}\left(\operatorname{mean}_t g_m(t),\text{observed speed}_m\right)
-$$
-
-#### Relative Speed Components
+Displayed Speed is a public relative score from provider speed stats and the workflow runtime simulation. It is meant to capture served responsiveness, not benchmark task efficiency:
 
 $$
 \begin{aligned}
-Q^{\text{resource}}_{m,g}&=\text{benchmark-normalized quality for resource group }g\\
-T_{m,g}&=\text{task seconds for resource group }g\\
-S_{m,g}&=\operatorname{Percentile}\left(Q^{\text{resource}}_{m,g}/T_{m,g}\right)\\
-S_{\text{workflow},m}&=\operatorname{Percentile}\left(1/\text{workflow simulated seconds}_m\right)
+S^{\text{stats}}_m&=\operatorname{mean}\left(
+\operatorname{Percentile}(\tau_m),
+\operatorname{Percentile}_{\text{lower}}(\ell_m),
+\operatorname{Percentile}_{\text{lower}}(\text{end-to-end latency}_m)
+\right)\\
+S^{\text{workflow}}_m&=\operatorname{Percentile}_{\text{lower}}(T_{\text{workflow},m})\\
+S_m&=0.5S^{\text{stats}}_m+0.5S^{\text{workflow}}_m
 \end{aligned}
 $$
+
+Higher throughput ranks higher, while lower latency, lower end-to-end latency, and lower workflow seconds rank higher. The 50/50 blend keeps live provider stats and the workflow simulation from dominating each other. The raw stats component requires at least two provider speed stats. Displayed Speed then requires both the raw stats component and the workflow component; otherwise no Speed score is shown.
+
+### Task Resource Efficiency
+
+Time Efficiency and Cost Efficiency share the same neighborhood method. The only difference is the resource amount:
 
 $$
 \begin{aligned}
-C^{\text{speed}}_m&=\text{coverage share of active resource groups}\\
-S^{\text{resource}}_m&=0.65\cdot\operatorname{mean}_{\text{finite}}(S_{m,g})+0.35\cdot100C^{\text{speed}}_m\\
-S_m&=0.7\cdot S^{\text{resource}}_m+0.3\cdot S_{\text{workflow},m}
+A^{\text{time}}_{m,b}&=\text{effective task seconds}_{m,b}\\
+A^{\text{cost}}_{m,b}&=\text{task cost}_{m,b}
 \end{aligned}
 $$
 
-Resource groups are active benchmark task-resource sources in the current model set. A benchmark can use direct per-benchmark telemetry, or the AA per-task resource metric when the benchmark portfolio marks it as AA-backed. If a benchmark reports output tokens but not wall time, task seconds fall back to output tokens divided by served throughput. Displayed Speed requires at least two finite components. If fewer than two Speed components exist, the displayed Speed is `null`.
+Task resources can come from direct per-benchmark telemetry or from the AA per-task resource metric when the benchmark portfolio marks the benchmark as AA-backed. If a benchmark reports output tokens but not wall time, effective task seconds fall back to output tokens divided by served throughput.
 
-### Cost Efficiency Score
-
-For each benchmark with task cost, score first becomes a benchmark-local quality coordinate. Task cost can come from direct benchmark telemetry or from the AA per-task resource metric when the benchmark portfolio marks the benchmark as AA-backed:
+For each active benchmark resource source, the benchmark score first becomes a local quality coordinate. The score $q_{m,b}$ is model $m$'s benchmark score for benchmark $b$ on the 0-1 scale. Percent-style source scores use $q_{m,b}=x_{m,b}/100$; already-normalized source scores use $q_{m,b}=x_{m,b}$.
 
 $$
-Z_{m,b}^{\text{cost-efficiency}}=\frac{\operatorname{logit}(x_{m,b}/100)-\operatorname{median}_j(\operatorname{logit}(x_{j,b}/100))}{\operatorname{deviation}_b}
+Z_{m,b}=\frac{\operatorname{logit}(q_{m,b})-\operatorname{median}_j(\operatorname{logit}(q_{j,b}))}{\operatorname{deviation}_b}
 $$
 
-Models compare task cost mostly against nearby-quality models. In practical terms, the score asks which model gives better benchmark-result value than other models at a similar benchmark quality level. The neighborhood weight uses $\sigma=0.5$:
+The logit transform puts benchmark percentages on an odds-like scale before measuring "similar quality." A one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction. Using logit keeps resource comparisons local to models that are genuinely close in benchmark difficulty, especially on hard or high-scoring benchmarks.
+
+The denominator is a robust benchmark-local spread on the same logit scale:
 
 $$
-w_{m,j,b}=\exp\left(-\frac{1}{2}\left(\frac{Z_{m,b}^{\text{cost-efficiency}}-Z_{j,b}^{\text{cost-efficiency}}}{0.5}\right)^2\right)
+\operatorname{deviation}_b=\max\left(\frac{Q_{75}(\{\operatorname{logit}(q_{j,b})\})-Q_{25}(\{\operatorname{logit}(q_{j,b})\})}{1.349},0.35\right)
 $$
 
-The benchmark-level cost efficiency score is the weighted share of similarly scoring benchmark results that are at least as expensive. Higher means better task-cost value versus comparable-quality models:
+The $1.349$ factor converts interquartile range into a standard-deviation-like spread for a roughly normal distribution, and the $0.35$ floor prevents a nearly tied benchmark from making small quality differences dominate the neighborhood comparison.
+
+Models compare resource use mostly against nearby-quality models. In practical terms, the score asks which model uses less task time or task cost than other models at a similar benchmark quality level. The neighborhood weight uses $\sigma=0.5$, which is tight enough to keep comparisons quality-local but wide enough that a benchmark does not require exact score ties:
 
 $$
-R_{m,b}=100\cdot\frac{\sum_j w_{m,j,b}\mathbf{1}[\text{task cost}_{j,b}\ge\text{task cost}_{m,b}]}{\sum_j w_{m,j,b}}
+w_{m,j,b}=\exp\left(-\frac{1}{2}\left(\frac{Z_{m,b}-Z_{j,b}}{0.5}\right)^2\right)
 $$
+
+The benchmark-level resource efficiency score is the weighted share of similarly scoring benchmark results that use at least as much of that resource. Higher means better task-resource value versus comparable-quality models:
+
+$$
+R^{r}_{m,b}=100\cdot\frac{\sum_j w_{m,j,b}\mathbf{1}[A^{r}_{j,b}\ge A^{r}_{m,b}]}{\sum_j w_{m,j,b}},\quad r\in\{\text{time},\text{cost}\}
+$$
+
+Each model's task-resource signal is the mean of its available benchmark resource scores, multiplied by a coverage confidence. Coverage is the share of active benchmark resource sources that the model actually has:
+
+$$
+\bar{R}^{r}_m=\operatorname{mean}\left(R^{r}_{m,b}:R^{r}_{m,b}\text{ available}\right)
+$$
+
+$$
+\operatorname{coverage}_{m,r}=\frac{\text{available benchmark resource scores for model }m\text{ and resource }r}{\text{active benchmark resource sources for resource }r}
+$$
+
+$$
+\gamma^{r}_m=
+\begin{cases}
+1,& \operatorname{coverage}_{m,r}\ge0.6\\
+\operatorname{smoothstep}\left(\frac{\operatorname{coverage}_{m,r}-0.1}{0.5}\right),& \operatorname{coverage}_{m,r}<0.6
+\end{cases}
+$$
+
+$$
+E^{r}_m=\bar{R}^{r}_m\gamma^{r}_m
+$$
+
+$\operatorname{smoothstep}$ is clamped to the 0-1 range. Models get full confidence once they cover at least 60% of active task-resource sources, and near-zero confidence below roughly 10% coverage. That ramp avoids rewarding a model for one lucky resource row while also not requiring complete coverage from sparse benchmark sources.
+
+The public Time Efficiency and Cost Efficiency scores are percentiles of these confidence-adjusted signals:
+
+$$
+\begin{aligned}
+\text{Time Efficiency}_m&=\operatorname{Percentile}(E^{\text{time}}_m)\\
+\text{Cost Efficiency}_m&=\operatorname{Percentile}(E^{\text{cost}}_m)
+\end{aligned}
+$$
+
+### Overall Score
+
+Overall combines quality with task-resource efficiency:
+
+$$
+\text{Overall}_m=0.35I_m+0.25A_m+0.20\widetilde{T}_m+0.20\widetilde{C}_m
+$$
+
+The overall weights keep 60% of the final score on quality and 40% on task-resource utility. Intelligence gets the largest single share because broad capability is still the primary ranking target; Agentic, Time Efficiency, and Cost Efficiency are large enough to move rankings when models are otherwise close.
+
+The overall blend uses filled Time Efficiency $\widetilde{T}_m$ and filled Cost Efficiency $\widetilde{C}_m$. Missing task-resource efficiency is filled only for the overall blend, not as observed evidence. The fill uses the known task-resource score distribution and a half-strength quality tradeoff prior:
+
+$$
+\operatorname{fillPercentile}_m=50-0.5\left(\operatorname{Percentile}(\operatorname{mean}(I_m,A_m))-50\right)
+$$
+
+The filled value is the known task-resource score at that percentile. Displayed Time Efficiency and Cost Efficiency stay blank when direct task-resource evidence is missing.
