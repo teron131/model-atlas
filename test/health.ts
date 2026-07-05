@@ -45,7 +45,7 @@ assert.deepEqual(sparseHealth.sparse_benchmark, {
 	top_model_labels: ["Frontier A", "Frontier B", "Older C", "Older D"],
 	unrepresented_top_model_labels: [],
 	top_model_reference_rank: 1,
-	reference_metric: "relative_overall_score",
+	reference_metric: "overall_score",
 });
 
 const staleSparseHealth = buildBenchmarkUpdateHealth(
@@ -326,7 +326,6 @@ function model(
 			intelligence_score: overallScore,
 			agentic_score: overallScore,
 			speed_score: null,
-			time_efficiency_score: null,
 			price_score: null,
 			cost_efficiency_score: null,
 			overall_score: overallScore,

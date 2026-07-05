@@ -318,7 +318,7 @@ export function buildBenchmarkUpdateHealth(
 					(row) => row.label,
 				),
 				top_model_reference_rank: topModels[0]?.referenceRank ?? null,
-				reference_metric: "relative_overall_score",
+				reference_metric: "overall_score",
 			};
 			return [key, entry];
 		}),

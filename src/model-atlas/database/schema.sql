@@ -439,13 +439,12 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	raw_agentic_score REAL,
 	raw_speed_score REAL,
 	raw_price_score REAL,
-	relative_intelligence_score REAL,
-	relative_agentic_score REAL,
-	relative_speed_score REAL,
-	relative_time_efficiency_score REAL,
-	relative_price_score REAL,
-	relative_cost_efficiency_score REAL,
-	relative_overall_score REAL,
+	intelligence_score REAL,
+	agentic_score REAL,
+	speed_score REAL,
+	price_score REAL,
+	cost_efficiency_score REAL,
+	overall_score REAL,
 	PRIMARY KEY (run_id, stage, row_index)
 );
 

@@ -64,7 +64,6 @@ function scoreSignalCount(
 	return [
 		...benchmarkKeys.flatMap((key) => [intelligence[key], evaluations[key]]),
 		model.relative_scores.speed_score,
-		model.relative_scores.time_efficiency_score,
 		speed.throughput_tokens_per_second_median,
 		speed.latency_seconds_median,
 		speed.e2e_latency_seconds_median,

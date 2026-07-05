@@ -34,11 +34,8 @@ import {
 } from "./workflow-simulation";
 
 const MIN_DISPLAY_PRICE_COMPONENTS = 2;
-const MIN_DISPLAY_SPEED_COMPONENTS = 2;
 const MIN_RAW_SPEED_COMPONENTS = 2;
 const ACTIVE_COMPONENT_WEIGHT = 1;
-const SPEED_RAW_STATS_WEIGHT = 0.5;
-const SPEED_WORKFLOW_WEIGHT = 0.5;
 const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
 const RESOURCE_EFFICIENCY_QUALITY_SIGMA = 0.5;
 const MIN_BENCHMARK_DEVIATION = 0.35;
@@ -345,6 +342,25 @@ function resourceEfficiencySignals({
 	});
 }
 
+function equalComponentScore(
+	signals: Array<number | null>,
+	totalCount: number,
+): number | null {
+	const meanValue = meanOfFinite(signals);
+	return meanValue == null
+		? null
+		: meanValue *
+				resourceEfficiencyCoverageConfidence(
+					weightedFinitePartCount(
+						signals.map((value) => ({
+							value,
+							weight: ACTIVE_COMPONENT_WEIGHT,
+						})),
+					),
+					totalCount,
+				);
+}
+
 export function attachRelativeScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
@@ -378,7 +394,7 @@ export function attachRelativeScores(
 	const throughputSpeedSignals = models.map(throughputSpeedSignal);
 	const latencySecondsSignals = models.map(latencySecondsSignal);
 	const e2eSecondsSignals = models.map(e2eSecondsSignal);
-	const workflowSecondsSignals = models.map((model) =>
+	const workflowRuntimeSeconds = models.map((model) =>
 		simulatedBlendSeconds(model.speed, scoringConfig),
 	);
 	const priceSignals = models.map((_, index) => {
@@ -398,7 +414,7 @@ export function attachRelativeScores(
 		];
 		return meanSignal(priceComponents, MIN_DISPLAY_PRICE_COMPONENTS);
 	});
-	const rawSpeedStatScores = models.map((_, index) =>
+	const providerSpeedComponents = models.map((_, index) =>
 		meanSignal(
 			[
 				{
@@ -417,22 +433,7 @@ export function attachRelativeScores(
 			MIN_RAW_SPEED_COMPONENTS,
 		),
 	);
-	const speedSignals = models.map((_, index) =>
-		meanSignal(
-			[
-				{
-					value: rawSpeedStatScores[index] ?? null,
-					weight: SPEED_RAW_STATS_WEIGHT,
-				},
-				{
-					value: lowerIsBetterPercentileScoreAt(workflowSecondsSignals, index),
-					weight: SPEED_WORKFLOW_WEIGHT,
-				},
-			],
-			MIN_DISPLAY_SPEED_COMPONENTS,
-		),
-	);
-	const timeEfficiencyBenchmarkEvidence = resourceEfficiencyEvidence(
+	const taskTimeComponentEvidence = resourceEfficiencyEvidence(
 		models,
 		scoringConfig,
 		taskSecondsAmount,
@@ -442,25 +443,35 @@ export function attachRelativeScores(
 		scoringConfig,
 		taskCostAmount,
 	);
-	const taskTimeSignals = resourceEfficiencySignals(
-		timeEfficiencyBenchmarkEvidence,
-	);
+	const taskTimeSignals = resourceEfficiencySignals(taskTimeComponentEvidence);
 	const taskCostSignals = resourceEfficiencySignals(
 		costEfficiencyBenchmarkEvidence,
 	);
 	const priceRelativeScores = priceSignals.map((signal) =>
 		percentileScoreForValue(priceSignals, signal),
 	);
-	const speedRelativeScores = speedSignals;
-	const timeEfficiencyRelativeScores = taskTimeSignals.map((signal) =>
+	const taskTimeOverallComponents = taskTimeSignals.map((signal) =>
 		percentileScoreForValue(taskTimeSignals, signal),
+	);
+	const workflowSpeedComponents = workflowRuntimeSeconds.map((_, index) =>
+		lowerIsBetterPercentileScoreAt(workflowRuntimeSeconds, index),
+	);
+	const blendedSpeedScores = models.map((_, index) =>
+		equalComponentScore(
+			[
+				providerSpeedComponents[index] ?? null,
+				workflowSpeedComponents[index] ?? null,
+				...(taskTimeComponentEvidence.signalsByModel[index] ?? []),
+			],
+			taskTimeComponentEvidence.benchmarkKeys.length + 2,
+		),
 	);
 	const costEfficiencyRelativeScores = taskCostSignals.map((signal) =>
 		percentileScoreForValue(taskCostSignals, signal),
 	);
-	const overallTimeEfficiencyScores = fillMissingWithQualityMirror(
+	const overallTaskTimeComponents = fillMissingWithQualityMirror(
 		qualityScores,
-		timeEfficiencyRelativeScores,
+		taskTimeOverallComponents,
 		PRICE_QUALITY_TRADEOFF_STRENGTH,
 	);
 	const overallCostEfficiencyScores = fillMissingWithQualityMirror(
@@ -472,9 +483,7 @@ export function attachRelativeScores(
 		const intelligenceRelativeScore = intelligenceScores[index] ?? null;
 		const agenticRelativeScore = agenticScores[index] ?? null;
 		const priceRelativeScore = priceRelativeScores[index] ?? null;
-		const speedRelativeScore = speedRelativeScores[index] ?? null;
-		const timeEfficiencyRelativeScore =
-			timeEfficiencyRelativeScores[index] ?? null;
+		const blendedSpeedScore = blendedSpeedScores[index] ?? null;
 		const costEfficiencyRelativeScore =
 			costEfficiencyRelativeScores[index] ?? null;
 		const overallRelativeScore = fixedWeightedScore([
@@ -487,7 +496,7 @@ export function attachRelativeScores(
 				weight: scoringConfig.overallRelativeScoreWeights.agentic,
 			},
 			{
-				value: overallTimeEfficiencyScores[index] ?? null,
+				value: overallTaskTimeComponents[index] ?? null,
 				weight: scoringConfig.overallRelativeScoreWeights.speed,
 			},
 			{
@@ -500,8 +509,7 @@ export function attachRelativeScores(
 			relative_scores: {
 				intelligence_score: intelligenceRelativeScore,
 				agentic_score: agenticRelativeScore,
-				speed_score: speedRelativeScore,
-				time_efficiency_score: timeEfficiencyRelativeScore,
+				speed_score: blendedSpeedScore,
 				price_score: priceRelativeScore,
 				cost_efficiency_score: costEfficiencyRelativeScore,
 				overall_score: overallRelativeScore,
