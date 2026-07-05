@@ -10,6 +10,7 @@ const SCHEMA_SQL_PATH = resolve(
 );
 
 const ACCIDENTAL_VALS_INDEX_COLUMN = "raw_model_id";
+const GENERATED_TABLES = ["processed_models"] as const;
 
 /** Load the SQLite schema file colocated with this database pipeline. */
 export async function loadSchemaSql(): Promise<string> {
@@ -38,6 +39,7 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	const db = new DatabaseSync(outputPath);
 	const schemaSql = await loadSchemaSql();
 	repairAccidentalValsIndexSchema(db);
+	recreateGeneratedTablesOnSchemaDrift(db, schemaSql);
 	db.exec(schemaSql);
 	ensureSchemaColumns(db, schemaSql);
 	return db;
@@ -58,6 +60,32 @@ function tableColumns(db: DatabaseSync, table: string): Set<string> {
 			.prepare(`PRAGMA table_info(${table})`)
 			.all()
 			.flatMap((row) => (typeof row.name === "string" ? [row.name] : [])),
+	);
+}
+
+/** Recreate generated tables when their stored shape no longer matches the checked-in schema. */
+function recreateGeneratedTablesOnSchemaDrift(
+	db: DatabaseSync,
+	schemaSql: string,
+): void {
+	const schemaColumns = schemaTableColumns(schemaSql);
+	for (const table of GENERATED_TABLES) {
+		const existingColumns = tableColumns(db, table);
+		const expectedColumns = new Set(
+			(schemaColumns.get(table) ?? []).map(([column]) => column),
+		);
+		if (
+			existingColumns.size > 0 &&
+			!sameSet(existingColumns, expectedColumns)
+		) {
+			db.prepare(`DROP TABLE ${table}`).run();
+		}
+	}
+}
+
+function sameSet(left: Set<string>, right: Set<string>): boolean {
+	return (
+		left.size === right.size && [...left].every((value) => right.has(value))
 	);
 }
 

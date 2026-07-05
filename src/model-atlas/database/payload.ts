@@ -321,15 +321,12 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 
 function buildRelativeScores(row: DbRow): LlmStatsNullableRelativeScores {
 	return {
-		intelligence_score: asFiniteNumber(row.relative_intelligence_score) ?? null,
-		agentic_score: asFiniteNumber(row.relative_agentic_score) ?? null,
-		speed_score: asFiniteNumber(row.relative_speed_score) ?? null,
-		time_efficiency_score:
-			asFiniteNumber(row.relative_time_efficiency_score) ?? null,
-		price_score: asFiniteNumber(row.relative_price_score) ?? null,
-		cost_efficiency_score:
-			asFiniteNumber(row.relative_cost_efficiency_score) ?? null,
-		overall_score: asFiniteNumber(row.relative_overall_score) ?? null,
+		intelligence_score: asFiniteNumber(row.intelligence_score) ?? null,
+		agentic_score: asFiniteNumber(row.agentic_score) ?? null,
+		speed_score: asFiniteNumber(row.speed_score) ?? null,
+		price_score: asFiniteNumber(row.price_score) ?? null,
+		cost_efficiency_score: asFiniteNumber(row.cost_efficiency_score) ?? null,
+		overall_score: asFiniteNumber(row.overall_score) ?? null,
 	};
 }
 

@@ -28,13 +28,12 @@ import type { HoverRow } from "./types";
 
 export type FrontierEfficiencyAxisKey =
 	| "costEfficiency"
-	| "timeEfficiency"
 	| "cost"
 	| "time"
 	| "tokens";
 type FrontierEfficiencyResourceMetric = Exclude<
 	FrontierEfficiencyAxisKey,
-	"costEfficiency" | "timeEfficiency"
+	"costEfficiency"
 >;
 
 export type FrontierEfficiencyRow = {
@@ -97,19 +96,6 @@ export const frontierEfficiencyAxisConfig: Record<
 		detailLabel: () => "Cost Efficiency score",
 		normalizedLabel: "Cost Efficiency score",
 		normalizedDetailLabel: "Cost Efficiency score",
-		xHigherBetter: true,
-	},
-	timeEfficiency: {
-		label: "Time Efficiency score",
-		shortLabel: "Time Efficiency",
-		get: (row) =>
-			finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0,
-		selectionScore: (row) =>
-			finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0,
-		format: (value) => value.toFixed(0),
-		detailLabel: () => "Time Efficiency score",
-		normalizedLabel: "Time Efficiency score",
-		normalizedDetailLabel: "Time Efficiency score",
 		xHigherBetter: true,
 	},
 	cost: {
@@ -397,9 +383,6 @@ export function frontierAxisDescription(
 	if (axisKey === "costEfficiency") {
 		return "COST EFFICIENCY is a relative value score: benchmark quality per dollar compared with similarly scoring models.";
 	}
-	if (axisKey === "timeEfficiency") {
-		return "TIME EFFICIENCY is a relative value score: benchmark quality per task time compared with similarly scoring models.";
-	}
 	if (axisKey === "cost") {
 		return isAllBenchmark
 			? "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy; lower is better."
@@ -518,31 +501,31 @@ export function frontierEfficiencyHoverRows(
 			fmtPercentScore(row.score),
 		],
 		[axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
-		["Efficiency blend", efficiencyBlendScore(row).toFixed(1)],
+		["Speed + Cost blend", speedCostBlendScore(row).toFixed(1)],
 	);
 	return rows;
 }
 
-/** Return the time side of the Frontier Efficiency blend. */
-export function timeEfficiencyScore(row: FrontierEfficiencyRow): number {
-	return finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0;
+/** Return the public speed side of the bubble blend. */
+export function speedScore(row: FrontierEfficiencyRow): number {
+	return finiteValue(row.model.relative_scores?.speed_score) ?? 0;
 }
 
-/** Return the cost side of the Frontier Efficiency blend. */
+/** Return the cost side of the bubble blend. */
 export function costEfficiencyScore(row: FrontierEfficiencyRow): number {
 	return finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0;
 }
 
-/** Return the 50/50 efficiency blend used for Frontier Efficiency bubble size. */
-export function efficiencyBlendScore(row: FrontierEfficiencyRow): number {
-	return (costEfficiencyScore(row) + timeEfficiencyScore(row)) / 2;
+/** Return the 50/50 speed-cost blend used for Frontier Efficiency bubble size. */
+export function speedCostBlendScore(row: FrontierEfficiencyRow): number {
+	return (costEfficiencyScore(row) + speedScore(row)) / 2;
 }
 
 /** Check whether the selected x-axis is a relative efficiency score. */
 export function isEfficiencyScoreAxis(
 	axisKey: FrontierEfficiencyAxisKey,
 ): boolean {
-	return axisKey === "costEfficiency" || axisKey === "timeEfficiency";
+	return axisKey === "costEfficiency";
 }
 
 /** Check that a resource metric can be plotted on a lower-is-better axis. */

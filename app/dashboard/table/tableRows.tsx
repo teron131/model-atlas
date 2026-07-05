@@ -148,7 +148,6 @@ export function ModelRow({
 			{scoreCell(relativeScores.intelligence_score, model.provider)}
 			{scoreCell(relativeScores.agentic_score, model.provider)}
 			{scoreCell(relativeScores.speed_score, model.provider)}
-			{scoreCell(relativeScores.time_efficiency_score, model.provider)}
 			{scoreCell(relativeScores.cost_efficiency_score, model.provider)}
 			{scoreCell(relativeScores.overall_score, model.provider, "overall")}
 			<TableCell

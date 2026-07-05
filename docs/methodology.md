@@ -65,7 +65,7 @@ Working quality mix is the same for Intelligence and Agentic:
 
 Baseline and frontier benchmark groups are portion-weighted before they are combined. This keeps the grouping legible: the AA index anchors the dimension, baseline gives broad coverage, and frontier gets extra force as the proof-heavy separation signal.
 
-Speed, Time Efficiency, and Cost Efficiency are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Time and Cost Efficiency compare task resources among models with similar benchmark results, rather than rewarding cheap or fast weak models.
+Speed and Cost Efficiency are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input, while Cost Efficiency compares task cost among models with similar benchmark results rather than rewarding cheap weak models.
 
 ## Source Notes
 
@@ -75,7 +75,7 @@ OpenRouter supplies current route pricing and speed measurements used for blend 
 
 Terminal-Bench 2.1 combines the AA leaderboard score, the dedicated AA Terminal-Bench evaluation page, and the Vals Terminal-Bench 2.1 page when they match the same model. The benchmark score is the best available AA or Vals overall score, matching the way people usually compare a model's best harness result. This intentionally gives a small reward to models with more harness coverage: if multiple independent harnesses can make the same model work, the ranking credits the strongest observed execution path instead of forcing a noisy cross-harness average. Cost and time are still the medians of available per-task resource values so one harness does not dominate resource estimates. AA cost and token totals are divided by the benchmark's 89 tasks and 3 repeats per task; AA time uses the page's reported per-task runtime. Vals supplies score, cost, time, and harness labels but no token counts, so token fields remain AA-only when present.
 
-DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. Model Atlas preserves effort/config rows but scores the default xhigh row when present, falling back to the best pass@1 row only when xhigh is absent. Task duration can feed Time Efficiency, task cost can feed Cost Efficiency, and token totals remain source context.
+DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. Model Atlas preserves effort/config rows but scores the default xhigh row when present, falling back to the best pass@1 row only when xhigh is absent. Task duration can feed Speed's benchmark task-time component, task cost can feed Cost Efficiency, and token totals remain source context.
 
 Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime and token counts, while displayed ALE resource columns divide those totals by the source `runs` count and then use the lower of median and mean per-run values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
@@ -98,10 +98,10 @@ Vals Index uses the overall percentage score as a normalized benchmark score and
 The scoring map is:
 
 $$
-\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Time Efficiency, Cost Efficiency, Overall}
+\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Cost Efficiency, Overall}
 $$
 
-Quality is normalized before averaging. Displayed Speed is a provider/runtime component. Time Efficiency and Cost Efficiency are benchmark-task resource scores: they compare task seconds or task cost among models with nearby benchmark quality, then percentile-rank the resulting task-resource signal.
+Quality is normalized before averaging. Displayed Speed is the only public runtime score: it combines provider/runtime evidence, workflow simulation, and benchmark task-time components. Cost Efficiency is a benchmark-task resource score: it compares task cost among models with nearby benchmark quality, then percentile-ranks the resulting task-resource signal.
 
 AA's `coding_index` can be kept as source context when available, but it is not used to compute any score. There is no standalone coding score.
 
@@ -233,7 +233,7 @@ The scenario quality blend $q_{m,s}$ combines Intelligence and Agentic scores fo
 
 ### Speed Score
 
-Displayed Speed is a public relative score from provider speed stats and the workflow runtime simulation. It is meant to capture served responsiveness, not benchmark task efficiency:
+Displayed Speed is a public relative score that gives equal weight to raw provider speed stats, the workflow runtime simulation, and each active benchmark task-time input:
 
 $$
 \begin{aligned}
@@ -242,16 +242,15 @@ S^{\text{stats}}_m&=\operatorname{mean}\left(
 \operatorname{Percentile}_{\text{lower}}(\ell_m),
 \operatorname{Percentile}_{\text{lower}}(\text{end-to-end latency}_m)
 \right)\\
-S^{\text{workflow}}_m&=\operatorname{Percentile}_{\text{lower}}(T_{\text{workflow},m})\\
-S_m&=0.5S^{\text{stats}}_m+0.5S^{\text{workflow}}_m
+S^{\text{workflow}}_m&=\operatorname{Percentile}_{\text{lower}}(T_{\text{workflow},m})
 \end{aligned}
 $$
 
-Higher throughput ranks higher, while lower latency, lower end-to-end latency, and lower workflow seconds rank higher. The 50/50 blend keeps live provider stats and the workflow simulation from dominating each other. The raw stats component requires at least two provider speed stats. Displayed Speed then requires both the raw stats component and the workflow component; otherwise no Speed score is shown.
+Higher throughput ranks higher, while lower latency, lower end-to-end latency, and lower workflow seconds rank higher. The raw stats component requires at least two provider speed stats.
 
 ### Task Resource Efficiency
 
-Time Efficiency and Cost Efficiency share the same neighborhood method. The only difference is the resource amount:
+Speed's benchmark task-time component and Cost Efficiency share the same neighborhood method. The only difference is the resource amount:
 
 $$
 \begin{aligned}
@@ -314,14 +313,17 @@ $$
 
 $\operatorname{smoothstep}$ is clamped to the 0-1 range. Models get full confidence once they cover at least 60% of active task-resource sources, and near-zero confidence below roughly 10% coverage. That ramp avoids rewarding a model for one lucky resource row while also not requiring complete coverage from sparse benchmark sources.
 
-The public Time Efficiency and Cost Efficiency scores are percentiles of these confidence-adjusted signals:
+The public Speed score uses each benchmark task-time input as its own equally weighted component, while Cost Efficiency is the public percentile of the confidence-adjusted task-cost signal:
 
 $$
 \begin{aligned}
-\text{Time Efficiency}_m&=\operatorname{Percentile}(E^{\text{time}}_m)\\
+\text{TaskTime}_{m,b}&=R^{\text{time}}_{m,b}\\
+\text{Speed}_m&=C^{\text{speed}}_m\cdot\operatorname{mean}\left(S^{\text{stats}}_m,S^{\text{workflow}}_m,\{\text{TaskTime}_{m,b}\}\right)\\
 \text{Cost Efficiency}_m&=\operatorname{Percentile}(E^{\text{cost}}_m)
 \end{aligned}
 $$
+
+$C^{\text{speed}}_m$ is the same coverage-confidence ramp applied over the raw stats component, workflow component, and active benchmark task-time components.
 
 ### Overall Score
 
@@ -331,12 +333,12 @@ $$
 \text{Overall}_m=0.35I_m+0.25A_m+0.20\widetilde{T}_m+0.20\widetilde{C}_m
 $$
 
-The overall weights keep 60% of the final score on quality and 40% on task-resource utility. Intelligence gets the largest single share because broad capability is still the primary ranking target; Agentic, Time Efficiency, and Cost Efficiency are large enough to move rankings when models are otherwise close.
+The overall weights keep 60% of the final score on quality and 40% on task-resource utility. Intelligence gets the largest single share because broad capability is still the primary ranking target; Agentic, the benchmark task-time component, and Cost Efficiency are large enough to move rankings when models are otherwise close.
 
-The overall blend uses filled Time Efficiency $\widetilde{T}_m$ and filled Cost Efficiency $\widetilde{C}_m$. Missing task-resource efficiency is filled only for the overall blend, not as observed evidence. The fill uses the known task-resource score distribution and a half-strength quality tradeoff prior:
+The overall blend uses filled benchmark task-time component $\widetilde{T}_m$ and filled Cost Efficiency $\widetilde{C}_m$. Missing task-resource evidence is filled only for the overall blend, not as observed evidence. The fill uses the known task-resource score distribution and a half-strength quality tradeoff prior:
 
 $$
 \operatorname{fillPercentile}_m=50-0.5\left(\operatorname{Percentile}(\operatorname{mean}(I_m,A_m))-50\right)
 $$
 
-The filled value is the known task-resource score at that percentile. Displayed Time Efficiency and Cost Efficiency stay blank when direct task-resource evidence is missing.
+The filled value is the known task-resource score at that percentile. Displayed Speed and Cost Efficiency stay blank when their required direct evidence is missing.

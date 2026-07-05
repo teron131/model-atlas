@@ -154,10 +154,15 @@ const benchmarkContributionPercent = (
 		: "-";
 };
 
-const SPEED_RAW_STATS_WEIGHT = 0.5;
-const SPEED_WORKFLOW_WEIGHT = 0.5;
-const speedBlendText = () =>
-	`${percent(SPEED_RAW_STATS_WEIGHT)} raw stats / ${percent(SPEED_WORKFLOW_WEIGHT)} workflow`;
+const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
+const speedComponentCount = (components: ActiveResourceComponents) =>
+	resourceBenchmarkKeys(components).length +
+	SPEED_NON_BENCHMARK_COMPONENT_COUNT;
+const speedBlendText = (components: ActiveResourceComponents) =>
+	`equal slots: provider speed, workflow runtime, and each benchmark runtime (${perComponentWeight(
+		1,
+		speedComponentCount(components),
+	)} each)`;
 
 const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
 const PERCENTILE_SCORE_TEXT = "percentile; higher is better";
@@ -191,7 +196,6 @@ type CoreColumnTooltipKey =
 	| "intelligence"
 	| "agentic"
 	| "speed"
-	| "timeEfficiency"
 	| "costEfficiency"
 	| "blend"
 	| "context"
@@ -305,32 +309,46 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
 	"agentic",
 );
 
-const speedInputRows = () => {
-	const rawStatWeight = percent(SPEED_RAW_STATS_WEIGHT / 3, 1);
+const speedInputRows = (components: ActiveResourceComponents) => {
+	const componentCount = speedComponentCount(components);
+	const componentWeight = perComponentWeight(1, componentCount);
+	const rawStatWeight = percent(1 / componentCount / 3, 1);
 	return [
 		{
-			title: "Raw provider speed stats",
-			weight: percent(SPEED_RAW_STATS_WEIGHT),
+			title: "Benchmark runtimes (lower is faster)",
+			rows: benchmarkTaskTimeRows(components, componentWeight),
+		},
+		{
+			title: "Provider speed",
+			weight: componentWeight,
 			rows: [
-				["Throughput tokens per second", rawStatWeight],
-				["Latency seconds, lower is better", rawStatWeight],
-				["End-to-end seconds, lower is better", rawStatWeight],
+				["Throughput, higher is faster", rawStatWeight],
+				["Latency, lower is faster", rawStatWeight],
+				["End-to-end latency, lower is faster", rawStatWeight],
 			],
 		},
 		{
-			title: "Workflow simulation mix",
+			title: "Workflow runtime simulation (lower is faster)",
 			kind: "workflow_simulation",
-			weight: percent(SPEED_WORKFLOW_WEIGHT),
+			weight: componentWeight,
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
 		},
 	] as const;
 };
 
-const timeEfficiencyInputRows = (components: ActiveResourceComponents) => {
+const benchmarkTaskTimeRows = (
+	components: ActiveResourceComponents,
+	weight?: string,
+) => {
 	const resourceKeys = resourceBenchmarkKeys(components);
-	const componentWeight = perComponentWeight(1, resourceKeys.length);
+	const componentWeight = weight ?? perComponentWeight(1, resourceKeys.length);
 	return [
-		...benchmarkResourceRows(resourceKeys, "", "task time", componentWeight),
+		...benchmarkResourceRows(
+			resourceKeys,
+			"",
+			"runtime, lower is faster",
+			componentWeight,
+		),
 	] as const;
 };
 
@@ -389,33 +407,17 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "SPEED is a percentile score from raw provider speed stats and served-speed workflow simulation. Throughput ranks higher when larger; latency and end-to-end time rank higher when lower.",
+			body: "SPEED is higher when models are faster. Runtime inputs are inverted, so lower workflow seconds and lower benchmark runtimes raise the score. Each active input gets one equal slot.",
 			rows: [
-				["Scale", PERCENTILE_SCORE_TEXT],
-				["Blend", speedBlendText()],
-				["Sort", HIGHER_FIRST_TEXT],
+				["Scale", "0-100 percentile; higher means faster"],
+				["Blend", speedBlendText(components)],
+				["Sort", "higher scores rank first"],
 			],
 			sections: [
 				{
 					title: "Speed inputs",
 					hideTitle: true,
-					rows: speedInputRows(),
-				},
-			],
-		},
-		timeEfficiency: {
-			title: "Time Efficiency score",
-			body: "TIME EFFICIENCY asks which model completes benchmark tasks in less time among models with similar quality. Missing task runtime falls back to output tokens divided by served throughput.",
-			rows: [
-				["Scale", PERCENTILE_SCORE_TEXT],
-				["Weights", "equal per active benchmark"],
-				["Sort", HIGHER_FIRST_TEXT],
-			],
-			sections: [
-				{
-					title: "Time inputs",
-					hideTitle: true,
-					rows: timeEfficiencyInputRows(components),
+					rows: speedInputRows(components),
 				},
 			],
 		},

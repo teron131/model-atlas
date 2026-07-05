@@ -297,7 +297,6 @@ export type SortKey =
 	| "intelligence"
 	| "agentic"
 	| "speed"
-	| "timeEfficiency"
 	| "costEfficiency"
 	| "blend"
 	| "context"
@@ -386,11 +385,6 @@ export const sorters: Record<SortKey, Sorter> = {
 		direction: "descending",
 		type: "number",
 		value: (row) => row.model.relative_scores?.speed_score,
-	},
-	timeEfficiency: {
-		direction: "descending",
-		type: "number",
-		value: (row) => row.model.relative_scores?.time_efficiency_score,
 	},
 	costEfficiency: {
 		direction: "descending",

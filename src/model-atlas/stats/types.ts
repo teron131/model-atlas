@@ -214,7 +214,6 @@ export type LlmStatsNullableRelativeScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
-	time_efficiency_score: NumberOrNull;
 	price_score: NumberOrNull;
 	cost_efficiency_score: NumberOrNull;
 	overall_score: NumberOrNull;
@@ -224,7 +223,6 @@ export type LlmStatsRelativeScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
-	time_efficiency_score: NumberOrNull;
 	price_score: NumberOrNull;
 	cost_efficiency_score: NumberOrNull;
 	overall_score: number;
@@ -343,7 +341,7 @@ export type LlmStatsBenchmarkUpdateEntry = {
 	top_model_labels: string[];
 	unrepresented_top_model_labels: string[];
 	top_model_reference_rank: number | null;
-	reference_metric: "relative_overall_score";
+	reference_metric: "overall_score";
 };
 
 export type LlmStatsBenchmarkUpdateHealth = Record<

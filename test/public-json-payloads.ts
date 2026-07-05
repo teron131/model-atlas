@@ -97,7 +97,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED blends raw provider speed stats and workflow simulation: higher throughput ranks higher, while lower latency and workflow seconds rank higher. TIME EFFICIENCY measures benchmark task-time value against similarly scoring models; when explicit runtime is missing, served throughput estimates task time from output tokens. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
+	"INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
@@ -112,7 +112,6 @@ assert.deepEqual(scoreModel, {
 		intelligence: 0,
 		agentic: 0,
 		speed: 0,
-		time_efficiency: 0,
 		cost_efficiency: null,
 	},
 });
@@ -173,7 +172,6 @@ assert.deepEqual(corePayload.columns, [
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
-	"time_efficiency_score",
 	"cost_efficiency_score",
 	"overall_score",
 	"blended_price",

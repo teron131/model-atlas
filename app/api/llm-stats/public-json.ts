@@ -61,7 +61,6 @@ export type ScoreJsonModel = {
 		intelligence: number;
 		agentic: number;
 		speed: number | null;
-		time_efficiency: number | null;
 		cost_efficiency: number | null;
 		overall: number;
 	};
@@ -95,7 +94,6 @@ export type CoreJsonModel = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: number | null;
-	time_efficiency_score: number | null;
 	cost_efficiency_score: number | null;
 	overall_score: number;
 	blended_price: number | null;
@@ -120,7 +118,6 @@ const coreColumnKeys = [
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
-	"time_efficiency_score",
 	"cost_efficiency_score",
 	"overall_score",
 	"blended_price",
@@ -206,7 +203,7 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED blends raw provider speed stats and workflow simulation: higher throughput ranks higher, while lower latency and workflow seconds rank higher. TIME EFFICIENCY measures benchmark task-time value against similarly scoring models; when explicit runtime is missing, served throughput estimates task time from output tokens. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
+	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
@@ -249,7 +246,6 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 			intelligence: model.relative_scores.intelligence_score,
 			agentic: model.relative_scores.agentic_score,
 			speed: model.relative_scores.speed_score,
-			time_efficiency: model.relative_scores.time_efficiency_score,
 			cost_efficiency: model.relative_scores.cost_efficiency_score,
 			overall: model.relative_scores.overall_score,
 		},
@@ -287,7 +283,6 @@ function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 		intelligence_score: model.relative_scores.intelligence_score,
 		agentic_score: model.relative_scores.agentic_score,
 		speed_score: model.relative_scores.speed_score,
-		time_efficiency_score: model.relative_scores.time_efficiency_score,
 		cost_efficiency_score: model.relative_scores.cost_efficiency_score,
 		overall_score: model.relative_scores.overall_score,
 		blended_price: model.cost?.blended_price ?? null,
