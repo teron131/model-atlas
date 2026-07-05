@@ -11,7 +11,7 @@ import {
 	frontierEfficiencyRows,
 	frontierEfficiencySummaryRows,
 	selectedFrontierEfficiencyAxisKey,
-	speedCostBlendScore,
+	speedValueBlendScore,
 } from "../app/dashboard/graphs/frontierEfficiencyModel";
 import type {
 	BenchmarkPortfolio,
@@ -45,7 +45,7 @@ const efficient = frontierModel({
 	seconds: 30,
 	inputTokens: 1_000,
 	outputTokens: 200,
-	priceScore: 95,
+	valueScore: 95,
 	speedScore: 80,
 	intelligenceScore: 72,
 });
@@ -57,7 +57,7 @@ const expensive = frontierModel({
 	seconds: 120,
 	inputTokens: 2_000,
 	outputTokens: 1_000,
-	priceScore: 40,
+	valueScore: 40,
 	speedScore: 20,
 	intelligenceScore: 91,
 });
@@ -95,9 +95,9 @@ assert.deepEqual(
 	[
 		["Benchmark score", "90%"],
 		["DeepSWE cost per task", "$8.0"],
-		["Speed + Cost blend", "30.0"],
+		["Speed and Value scores", "30.0"],
 	],
-	"hover rows should describe selected benchmark score, resource axis, and speed-cost bubble blend",
+	"hover rows should describe selected benchmark score, resource axis, and Efficiency score",
 );
 
 assert.equal(
@@ -107,21 +107,21 @@ assert.equal(
 );
 
 assert.equal(
-	speedCostBlendScore(topRow),
+	speedValueBlendScore(topRow),
 	30,
-	"bubble size should use a 50/50 blend of Cost Efficiency and Speed",
+	"bubble size should use a 50/50 blend of Value and Speed",
 );
 
 const axisOptions = frontierEfficiencyAxisOptions(rows, false);
 assert.deepEqual(
 	axisOptions.map((option) => [option.key, option.label]),
 	[
-		["costEfficiency", "Cost Efficiency"],
+		["speedValue", "Efficiency"],
 		["cost", "Task Cost"],
 		["time", "Task Time"],
 		["tokens", "Task Tokens"],
 	],
-	"axis options should separate Cost Efficiency from raw resource units",
+	"axis options should separate the combined score from raw resource units",
 );
 assert.equal(
 	frontierAxisDescription("cost", true),
@@ -139,9 +139,9 @@ assert.equal(
 	"benchmark token axis should use Task Tokens wording",
 );
 assert.equal(
-	frontierAxisDescription("costEfficiency", true),
-	"COST EFFICIENCY is a relative value score: benchmark quality per dollar compared with similarly scoring models.",
-	"Cost Efficiency should describe the relative value score separately from raw cost",
+	frontierAxisDescription("speedValue", true),
+	"Efficiency combines public Speed and Value scores with equal weight; higher is better.",
+	"combined score should describe speed and value separately from raw cost",
 );
 const allCostAxis = frontierEfficiencyAxisConfigFor("cost", true);
 assert.equal(
@@ -184,8 +184,7 @@ const totalModel = {
 		intelligence_score: 70,
 		agentic_score: 0,
 		speed_score: 60,
-		price_score: 50,
-		cost_efficiency_score: 40,
+		value_score: 40,
 		overall_score: 0,
 	},
 } satisfies LlmStatsModel;
@@ -196,7 +195,7 @@ assert.deepEqual(
 	[
 		["Benchmark score", "70%"],
 		["Agents' Last Exam total cost", "$99"],
-		["Speed + Cost blend", "50.0"],
+		["Speed and Value scores", "50.0"],
 	],
 	"total-resource benchmarks should say total instead of per task",
 );
@@ -217,7 +216,7 @@ assert.equal(
 			option.key === "time" ? { ...option, disabled: true } : option,
 		),
 	),
-	"costEfficiency",
+	"speedValue",
 	"disabled axes should fall back to the default available efficiency axis",
 );
 
@@ -230,7 +229,7 @@ function frontierModel({
 	seconds,
 	inputTokens,
 	outputTokens,
-	priceScore,
+	valueScore,
 	speedScore,
 	intelligenceScore,
 }: {
@@ -241,7 +240,7 @@ function frontierModel({
 	seconds: number;
 	inputTokens: number;
 	outputTokens: number;
-	priceScore: number;
+	valueScore: number;
 	speedScore: number;
 	intelligenceScore: number;
 }): LlmStatsModel {
@@ -263,8 +262,7 @@ function frontierModel({
 			intelligence_score: intelligenceScore,
 			agentic_score: 0,
 			speed_score: speedScore,
-			price_score: priceScore,
-			cost_efficiency_score: priceScore,
+			value_score: valueScore,
 			overall_score: 0,
 		},
 	};

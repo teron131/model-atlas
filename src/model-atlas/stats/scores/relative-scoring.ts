@@ -33,7 +33,6 @@ import {
 	workflowPriceEfficiencySignal,
 } from "./workflow-simulation";
 
-const MIN_DISPLAY_PRICE_COMPONENTS = 2;
 const MIN_RAW_SPEED_COMPONENTS = 2;
 const ACTIVE_COMPONENT_WEIGHT = 1;
 const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
@@ -377,10 +376,10 @@ export function attachRelativeScores(
 			agenticScores[index] ?? null,
 		]),
 	);
-	const cheapnessSignals = models.map((model) =>
+	const blendedPriceSignals = models.map((model) =>
 		inverseLogCostSignal(blendCost(model, scoringConfig)),
 	);
-	const qualityPriceSignals = models.map((model, index) => {
+	const qualityPerPriceSignals = models.map((model, index) => {
 		const cost = blendCost(model, scoringConfig);
 		const logCost = log10OnePlusPositive(cost);
 		const qualityScore = qualityScores[index] ?? null;
@@ -388,32 +387,20 @@ export function attachRelativeScores(
 			? null
 			: qualityScore / logCost;
 	});
-	const workflowPriceSignals = models.map((model) =>
+	const workflowPriceValueSignals = models.map((model) =>
 		workflowPriceEfficiencySignal(model, scoringConfig),
 	);
+	const valueInputScoresByModel = models.map((_, index) => [
+		percentileScoreAt(blendedPriceSignals, index),
+		percentileScoreAt(qualityPerPriceSignals, index),
+		percentileScoreAt(workflowPriceValueSignals, index),
+	]);
 	const throughputSpeedSignals = models.map(throughputSpeedSignal);
 	const latencySecondsSignals = models.map(latencySecondsSignal);
 	const e2eSecondsSignals = models.map(e2eSecondsSignal);
 	const workflowRuntimeSeconds = models.map((model) =>
 		simulatedBlendSeconds(model.speed, scoringConfig),
 	);
-	const priceSignals = models.map((_, index) => {
-		const priceComponents = [
-			{
-				value: percentileScoreAt(cheapnessSignals, index),
-				weight: ACTIVE_COMPONENT_WEIGHT,
-			},
-			{
-				value: percentileScoreAt(qualityPriceSignals, index),
-				weight: ACTIVE_COMPONENT_WEIGHT,
-			},
-			{
-				value: percentileScoreAt(workflowPriceSignals, index),
-				weight: ACTIVE_COMPONENT_WEIGHT,
-			},
-		];
-		return meanSignal(priceComponents, MIN_DISPLAY_PRICE_COMPONENTS);
-	});
 	const providerSpeedComponents = models.map((_, index) =>
 		meanSignal(
 			[
@@ -438,18 +425,12 @@ export function attachRelativeScores(
 		scoringConfig,
 		taskSecondsAmount,
 	);
-	const costEfficiencyBenchmarkEvidence = resourceEfficiencyEvidence(
+	const taskCostComponentEvidence = resourceEfficiencyEvidence(
 		models,
 		scoringConfig,
 		taskCostAmount,
 	);
 	const taskTimeSignals = resourceEfficiencySignals(taskTimeComponentEvidence);
-	const taskCostSignals = resourceEfficiencySignals(
-		costEfficiencyBenchmarkEvidence,
-	);
-	const priceRelativeScores = priceSignals.map((signal) =>
-		percentileScoreForValue(priceSignals, signal),
-	);
 	const taskTimeOverallComponents = taskTimeSignals.map((signal) =>
 		percentileScoreForValue(taskTimeSignals, signal),
 	);
@@ -466,26 +447,30 @@ export function attachRelativeScores(
 			taskTimeComponentEvidence.benchmarkKeys.length + 2,
 		),
 	);
-	const costEfficiencyRelativeScores = taskCostSignals.map((signal) =>
-		percentileScoreForValue(taskCostSignals, signal),
+	const valueScores = models.map((_, index) =>
+		equalComponentScore(
+			[
+				...(valueInputScoresByModel[index] ?? []),
+				...(taskCostComponentEvidence.signalsByModel[index] ?? []),
+			],
+			taskCostComponentEvidence.benchmarkKeys.length + 3,
+		),
 	);
 	const overallTaskTimeComponents = fillMissingWithQualityMirror(
 		qualityScores,
 		taskTimeOverallComponents,
 		PRICE_QUALITY_TRADEOFF_STRENGTH,
 	);
-	const overallCostEfficiencyScores = fillMissingWithQualityMirror(
+	const overallValueScores = fillMissingWithQualityMirror(
 		qualityScores,
-		costEfficiencyRelativeScores,
+		valueScores,
 		PRICE_QUALITY_TRADEOFF_STRENGTH,
 	);
 	return models.map((model, index) => {
 		const intelligenceRelativeScore = intelligenceScores[index] ?? null;
 		const agenticRelativeScore = agenticScores[index] ?? null;
-		const priceRelativeScore = priceRelativeScores[index] ?? null;
 		const blendedSpeedScore = blendedSpeedScores[index] ?? null;
-		const costEfficiencyRelativeScore =
-			costEfficiencyRelativeScores[index] ?? null;
+		const valueScore = valueScores[index] ?? null;
 		const overallRelativeScore = fixedWeightedScore([
 			{
 				value: intelligenceRelativeScore,
@@ -500,8 +485,8 @@ export function attachRelativeScores(
 				weight: scoringConfig.overallRelativeScoreWeights.speed,
 			},
 			{
-				value: overallCostEfficiencyScores[index] ?? null,
-				weight: scoringConfig.overallRelativeScoreWeights.price,
+				value: overallValueScores[index] ?? null,
+				weight: scoringConfig.overallRelativeScoreWeights.value,
 			},
 		]);
 		return {
@@ -510,8 +495,7 @@ export function attachRelativeScores(
 				intelligence_score: intelligenceRelativeScore,
 				agentic_score: agenticRelativeScore,
 				speed_score: blendedSpeedScore,
-				price_score: priceRelativeScore,
-				cost_efficiency_score: costEfficiencyRelativeScore,
+				value_score: valueScore,
 				overall_score: overallRelativeScore,
 			},
 		};

@@ -207,7 +207,7 @@ export function RunwayPanel({
 		points: projectionPoints,
 	});
 	const runwayRadius = (model: LlmStatsModel) =>
-		clamp((model.relative_scores.cost_efficiency_score ?? 25) / 9, 3, 10);
+		clamp((model.relative_scores.value_score ?? 25) / 9, 3, 10);
 	const runwayLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({
@@ -243,7 +243,7 @@ export function RunwayPanel({
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble size = COST EFFICIENCY score
+						Bubble size = VALUE score
 					</span>
 				</div>
 			</div>

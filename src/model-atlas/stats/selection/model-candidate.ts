@@ -529,7 +529,6 @@ export function buildModelCandidate(
 		scoring_sources: scoringSources,
 		scores: buildScores(
 			model,
-			cost,
 			speed,
 			speedOutputTokenAnchors,
 			scoringConfig,

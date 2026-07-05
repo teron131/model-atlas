@@ -164,8 +164,16 @@ const speedBlendText = (components: ActiveResourceComponents) =>
 		speedComponentCount(components),
 	)} each)`;
 
+const VALUE_PRICE_COMPONENT_COUNT = 3;
+const valueComponentCount = (components: ActiveResourceComponents) =>
+	resourceBenchmarkKeys(components).length + VALUE_PRICE_COMPONENT_COUNT;
+const valueBlendText = (components: ActiveResourceComponents) =>
+	`equal slots: blended price, quality per price, workflow price value, and each benchmark cost (${perComponentWeight(
+		1,
+		valueComponentCount(components),
+	)} each)`;
+
 const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
-const PERCENTILE_SCORE_TEXT = "percentile; higher is better";
 const LOWER_FIRST_TEXT = "lower values sort first";
 const HIGHER_FIRST_TEXT = "higher values sort first";
 const FULL_OVERALL_TEXT = "Full Overall";
@@ -196,7 +204,7 @@ type CoreColumnTooltipKey =
 	| "intelligence"
 	| "agentic"
 	| "speed"
-	| "costEfficiency"
+	| "value"
 	| "blend"
 	| "context"
 	| "artificialAnalysisCost"
@@ -352,16 +360,30 @@ const benchmarkTaskTimeRows = (
 	] as const;
 };
 
-const costInputRows = (components: ActiveResourceComponents) => {
+const valueInputRows = (components: ActiveResourceComponents) => {
 	const resourceKeys = resourceBenchmarkKeys(components);
-	const componentWeight = perComponentWeight(1, resourceKeys.length);
+	const componentWeight = perComponentWeight(
+		1,
+		valueComponentCount(components),
+	);
 	return [
-		...benchmarkResourceRows(
-			resourceKeys,
-			"",
-			"cost per task",
-			componentWeight,
-		),
+		{
+			title: "Price components",
+			rows: [
+				["Blended price, lower is cheaper", componentWeight],
+				["Quality per blended price, higher is better", componentWeight],
+				["Workflow price value, higher is better", componentWeight],
+			],
+		},
+		{
+			title: "Benchmark costs (lower is cheaper)",
+			rows: benchmarkResourceRows(
+				resourceKeys,
+				"",
+				"cost, lower is cheaper",
+				componentWeight,
+			),
+		},
 	] as const;
 };
 
@@ -421,19 +443,19 @@ export function columnTooltipsForActiveComponents(
 				},
 			],
 		},
-		costEfficiency: {
-			title: "Cost Efficiency score",
-			body: "COST EFFICIENCY asks which model delivers benchmark results for less task cost among models with similar quality. Higher means better cost value versus comparable-quality models.",
+		value: {
+			title: "Value score",
+			body: "VALUE is higher when models deliver more quality per dollar. Lower blended price and lower benchmark costs raise the score; quality-adjusted price signals also raise it. Each active input gets one equal slot.",
 			rows: [
-				["Scale", PERCENTILE_SCORE_TEXT],
-				["Weights", "equal per active benchmark"],
-				["Sort", HIGHER_FIRST_TEXT],
+				["Scale", "0-100 percentile; higher means better value"],
+				["Blend", valueBlendText(components)],
+				["Sort", "higher scores rank first"],
 			],
 			sections: [
 				{
-					title: "Cost inputs",
+					title: "Value inputs",
 					hideTitle: true,
-					rows: costInputRows(components),
+					rows: valueInputRows(components),
 				},
 			],
 		},

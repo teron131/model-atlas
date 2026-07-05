@@ -83,12 +83,18 @@ assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
 assertEqual(
-	STAGE_CONFIG.scoring.columnTooltips.costEfficiency?.rows?.[1]?.[1],
-	"equal per active benchmark",
+	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.[1]?.[1],
+	"equal slots: blended price, quality per price, workflow price value, and each benchmark cost (7.7% each)",
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.costEfficiency).includes(
-		"10.0%",
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
+		"Blended price, lower is cheaper",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
+		"cost, lower is cheaper",
 	),
 	true,
 );
@@ -139,12 +145,12 @@ const aaOnlyTimeTooltip = JSON.stringify(
 	aaOnlyResourceMetadata.scoring.column_tooltips.speed,
 );
 const aaOnlyValueTooltip = JSON.stringify(
-	aaOnlyResourceMetadata.scoring.column_tooltips.costEfficiency,
+	aaOnlyResourceMetadata.scoring.column_tooltips.value,
 );
 assertEqual(aaOnlyTimeTooltip.includes("33.3% each"), true);
 assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark runtime"), false);
-assertEqual(aaOnlyValueTooltip.includes("100.0%"), true);
-assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark task cost"), false);
+assertEqual(aaOnlyValueTooltip.includes("25.0% each"), true);
+assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark cost"), false);
 
 const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
 	models: [
@@ -174,9 +180,9 @@ assertEqual(
 	true,
 );
 assertEqual(
-	JSON.stringify(
-		mixedResourceMetadata.scoring.column_tooltips.costEfficiency,
-	).includes("50.0%"),
+	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.value).includes(
+		"20.0% each",
+	),
 	true,
 );
 
@@ -208,68 +214,6 @@ assertEqual(
 	true,
 );
 
-const aaGroupedResourceModels = attachRelativeScores(
-	[
-		{
-			...modelCandidate({
-				id: "test/aa-group-winner",
-				gdpvalScore: 90,
-				deepSWEScore: 10,
-				artificialAnalysisCost: 10,
-				artificialAnalysisSeconds: 100,
-				gdpvalCost: 0.1,
-				gdpvalSeconds: 1,
-				deepSWESeconds: 100,
-				deepSWECost: 10,
-				tps: 100,
-				latency: 1,
-				disableBaseCost: true,
-			}),
-			evaluations: {
-				gdpval_normalized: 90,
-				hle: 90,
-				deep_swe: 10,
-			},
-			task_metrics: {
-				artificial_analysis: { cost: 10, seconds: 100 },
-				gdpval_normalized: { cost: 0.1, seconds: 1 },
-				hle: { cost: 0.1, seconds: 1 },
-				deep_swe: { cost: 10, seconds: 100 },
-			},
-		},
-		{
-			...modelCandidate({
-				id: "test/direct-group-winner",
-				gdpvalScore: 10,
-				deepSWEScore: 90,
-				artificialAnalysisCost: 0.1,
-				artificialAnalysisSeconds: 1,
-				gdpvalCost: 10,
-				gdpvalSeconds: 100,
-				deepSWESeconds: 1,
-				deepSWECost: 0.1,
-				tps: 100,
-				latency: 1,
-				disableBaseCost: true,
-			}),
-			evaluations: {
-				gdpval_normalized: 10,
-				hle: 10,
-				deep_swe: 90,
-			},
-			task_metrics: {
-				artificial_analysis: { cost: 0.1, seconds: 1 },
-				gdpval_normalized: { cost: 10, seconds: 100 },
-				hle: { cost: 10, seconds: 100 },
-				deep_swe: { cost: 0.1, seconds: 1 },
-			},
-		},
-	],
-	STAGE_CONFIG.scoring,
-);
-assertEqual(aaGroupedResourceModels[0]?.relative_scores.price_score, null);
-assertEqual(aaGroupedResourceModels[1]?.relative_scores.price_score, null);
-
 const broadAAResourceOnlyModels = attachRelativeScores(
 	[
 		{
@@ -299,15 +243,8 @@ const broadAAResourceOnlyModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertEqual(broadAAResourceOnlyModels[0]?.relative_scores.price_score, null);
-assertClose(
-	broadAAResourceOnlyModels[0]?.relative_scores.cost_efficiency_score,
-	100,
-);
-assertClose(
-	broadAAResourceOnlyModels[1]?.relative_scores.cost_efficiency_score,
-	50,
-);
+assertClose(broadAAResourceOnlyModels[0]?.relative_scores.value_score, 64.8);
+assertClose(broadAAResourceOnlyModels[1]?.relative_scores.value_score, 64.8);
 
 const tokenProxySpeedModels = attachRelativeScores(
 	[
@@ -390,7 +327,6 @@ const groupPolicyModels = [
 ];
 const groupPolicyScores = buildScores(
 	groupPolicyModels[2] ?? {},
-	{},
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
@@ -401,78 +337,6 @@ const groupPolicyScores = buildScores(
 	buildQualityScoringContext(groupPolicyModels, groupPolicyConfig, new Map()),
 );
 assertClose(groupPolicyScores?.intelligence_score, 70);
-
-const scoredModels = attachRelativeScores(
-	[
-		modelCandidate({
-			id: "test/a",
-			intelligenceScore: 90,
-			agenticScore: 80,
-			blendPrice: 4,
-			artificialAnalysisCost: 0.1,
-			artificialAnalysisSeconds: 10,
-			deepSWECost: 0.2,
-			deepSWESeconds: 40,
-			tps: 100,
-			latency: 1,
-		}),
-		modelCandidate({
-			id: "test/b",
-			intelligenceScore: 80,
-			agenticScore: 70,
-			blendPrice: 2,
-			artificialAnalysisCost: 0.2,
-			artificialAnalysisSeconds: 20,
-			deepSWECost: 0.1,
-			deepSWESeconds: 20,
-			tps: 50,
-			latency: 2,
-		}),
-		modelCandidate({
-			id: "test/c",
-			intelligenceScore: 70,
-			agenticScore: 60,
-			blendPrice: 8,
-			artificialAnalysisCost: 0.05,
-			artificialAnalysisSeconds: 5,
-			deepSWECost: 0.4,
-			deepSWESeconds: 80,
-			tps: 200,
-			latency: 0.5,
-		}),
-	],
-	STAGE_CONFIG.scoring,
-);
-
-assertClose(scoredModels[0]?.relative_scores.price_score, 66.6667);
-assertClose(scoredModels[1]?.relative_scores.price_score, 100);
-assertClose(scoredModels[2]?.relative_scores.price_score, 33.3333);
-
-const sparseComponentModels = attachRelativeScores(
-	[
-		modelCandidate({
-			id: "test/sparse-a",
-			blendPrice: 2,
-			tps: 100,
-			latency: 1,
-		}),
-		modelCandidate({
-			id: "test/sparse-b",
-			blendPrice: 4,
-			tps: 50,
-			latency: 2,
-		}),
-		modelCandidate({
-			id: "test/sparse-c",
-			blendPrice: 8,
-			tps: 25,
-			latency: 3,
-		}),
-	],
-	STAGE_CONFIG.scoring,
-);
-
-assertEqual(sparseComponentModels[0]?.relative_scores.price_score, null);
 
 const directResourceScoredModels = attachRelativeScores(
 	[
@@ -506,20 +370,14 @@ const directResourceScoredModels = attachRelativeScores(
 		frontierBenchmarkKeys: ["deep_swe"],
 	},
 );
-assertEqual(directResourceScoredModels[0]?.relative_scores.price_score, null);
-assertEqual(directResourceScoredModels[1]?.relative_scores.price_score, null);
-assertEqual(directResourceScoredModels[2]?.relative_scores.price_score, null);
+assertClose(directResourceScoredModels[0]?.relative_scores.value_score, 89.6);
 assertClose(
-	directResourceScoredModels[0]?.relative_scores.cost_efficiency_score,
-	100,
+	directResourceScoredModels[1]?.relative_scores.value_score,
+	88.4821,
 );
 assertClose(
-	directResourceScoredModels[1]?.relative_scores.cost_efficiency_score,
-	66.6667,
-);
-assertClose(
-	directResourceScoredModels[2]?.relative_scores.cost_efficiency_score,
-	33.3333,
+	directResourceScoredModels[2]?.relative_scores.value_score,
+	88.4535,
 );
 assertClose(directResourceScoredModels[0]?.relative_scores.speed_score, 99.147);
 assertClose(
@@ -528,7 +386,7 @@ assertClose(
 );
 assertClose(directResourceScoredModels[2]?.relative_scores.speed_score, 100);
 
-const costEfficiencyScoredModels = attachRelativeScores(
+const valueScoredModels = attachRelativeScores(
 	[
 		modelCandidate({
 			id: "test/cost-efficiency-cheap",
@@ -554,18 +412,9 @@ const costEfficiencyScoredModels = attachRelativeScores(
 		frontierBenchmarkKeys: ["deep_swe"],
 	},
 );
-assertClose(
-	costEfficiencyScoredModels[0]?.relative_scores.cost_efficiency_score,
-	100,
-);
-assertClose(
-	costEfficiencyScoredModels[1]?.relative_scores.cost_efficiency_score,
-	66.6667,
-);
-assertClose(
-	costEfficiencyScoredModels[2]?.relative_scores.cost_efficiency_score,
-	33.3333,
-);
+assertClose(valueScoredModels[0]?.relative_scores.value_score, 21.6);
+assertClose(valueScoredModels[1]?.relative_scores.value_score, 14.4);
+assertClose(valueScoredModels[2]?.relative_scores.value_score, 7.2);
 
 const scaleNormalizedResourceConfig = {
 	...STAGE_CONFIG.scoring,
@@ -620,21 +469,13 @@ const scaleNormalizedResourceModels = attachRelativeScores(
 	],
 	scaleNormalizedResourceConfig,
 );
-assertEqual(
-	scaleNormalizedResourceModels[0]?.relative_scores.price_score,
-	null,
-);
-assertEqual(
-	scaleNormalizedResourceModels[1]?.relative_scores.price_score,
-	null,
+assertClose(
+	scaleNormalizedResourceModels[0]?.relative_scores.value_score,
+	64.8,
 );
 assertClose(
-	scaleNormalizedResourceModels[0]?.relative_scores.cost_efficiency_score,
-	100,
-);
-assertClose(
-	scaleNormalizedResourceModels[1]?.relative_scores.cost_efficiency_score,
-	100,
+	scaleNormalizedResourceModels[1]?.relative_scores.value_score,
+	64.8,
 );
 
 const sparseResourceCoverageModels = attachRelativeScores(
@@ -674,13 +515,10 @@ const sparseResourceCoverageModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
+assertClose(sparseResourceCoverageModels[0]?.relative_scores.value_score, 89.6);
 assertClose(
-	sparseResourceCoverageModels[0]?.relative_scores.cost_efficiency_score,
-	100,
-);
-assertClose(
-	sparseResourceCoverageModels[1]?.relative_scores.cost_efficiency_score,
-	50,
+	sparseResourceCoverageModels[1]?.relative_scores.value_score,
+	4.8593,
 );
 
 const normalizedContextModels = [
@@ -814,7 +652,6 @@ function modelCandidate(options: {
 			intelligence_score: options.intelligenceScore ?? null,
 			agentic_score: options.agenticScore ?? null,
 			speed_score: null,
-			price_score: null,
 		},
 		relative_scores: null,
 	};
