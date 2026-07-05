@@ -243,7 +243,7 @@ export function RunwayPanel({
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble size = cost efficiency score
+						Bubble size = COST EFFICIENCY score
 					</span>
 				</div>
 			</div>

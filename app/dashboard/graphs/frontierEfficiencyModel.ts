@@ -28,12 +28,13 @@ import type { HoverRow } from "./types";
 
 export type FrontierEfficiencyAxisKey =
 	| "costEfficiency"
+	| "timeEfficiency"
 	| "cost"
 	| "time"
 	| "tokens";
 type FrontierEfficiencyResourceMetric = Exclude<
 	FrontierEfficiencyAxisKey,
-	"costEfficiency"
+	"costEfficiency" | "timeEfficiency"
 >;
 
 export type FrontierEfficiencyRow = {
@@ -86,42 +87,55 @@ export const frontierEfficiencyAxisConfig: Record<
 	FrontierEfficiencyAxisConfig
 > = {
 	costEfficiency: {
-		label: "Cost efficiency score",
-		shortLabel: "Efficiency",
+		label: "Cost Efficiency score",
+		shortLabel: "Cost Efficiency",
 		get: (row) =>
 			finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0,
 		selectionScore: (row) =>
 			finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0,
 		format: (value) => value.toFixed(0),
-		detailLabel: () => "Cost efficiency score",
-		normalizedLabel: "Cost efficiency score",
-		normalizedDetailLabel: "Cost efficiency score",
+		detailLabel: () => "Cost Efficiency score",
+		normalizedLabel: "Cost Efficiency score",
+		normalizedDetailLabel: "Cost Efficiency score",
+		xHigherBetter: true,
+	},
+	timeEfficiency: {
+		label: "Time Efficiency score",
+		shortLabel: "Time Efficiency",
+		get: (row) =>
+			finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0,
+		selectionScore: (row) =>
+			finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0,
+		format: (value) => value.toFixed(0),
+		detailLabel: () => "Time Efficiency score",
+		normalizedLabel: "Time Efficiency score",
+		normalizedDetailLabel: "Time Efficiency score",
 		xHigherBetter: true,
 	},
 	cost: {
-		label: "Resource cost",
-		shortLabel: "Cost",
+		label: "Task Cost",
+		shortLabel: "Task Cost",
 		get: (row) => row.cost,
 		selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
 		format: fmtMoney,
 		detailLabel: (row) => resourceMetricLabel(row, "cost"),
-		normalizedLabel: "Mean normalized resource cost score",
-		normalizedDetailLabel: "Mean normalized resource cost score",
+		normalizedLabel: "MEAN NORMALIZED cost (per task/total)",
+		normalizedDetailLabel: "MEAN NORMALIZED cost (per task/total)",
 	},
 	time: {
-		label: "Resource time",
-		shortLabel: "Time",
+		label: "Task Time",
+		shortLabel: "Task Time",
 		get: (row) => row.seconds,
 		selectionScore: (row) =>
 			row.seconds == null ? null : row.score / (row.seconds / 86_400),
 		format: fmtDurationShort,
 		detailLabel: (row) => resourceMetricLabel(row, "time"),
-		normalizedLabel: "Mean normalized time score",
-		normalizedDetailLabel: "Mean normalized time score",
+		normalizedLabel: "MEAN NORMALIZED time (per task/total)",
+		normalizedDetailLabel: "MEAN NORMALIZED time (per task/total)",
 	},
 	tokens: {
-		label: "Resource tokens",
-		shortLabel: "Tokens",
+		label: "Task Tokens",
+		shortLabel: "Task Tokens",
 		get: (row) => row.totalTokens,
 		selectionScore: (row) =>
 			row.totalTokens == null
@@ -129,8 +143,8 @@ export const frontierEfficiencyAxisConfig: Record<
 				: row.score / (row.totalTokens / 1_000_000),
 		format: fmtCompact,
 		detailLabel: (row) => resourceMetricLabel(row, "tokens"),
-		normalizedLabel: "Mean normalized tokens score",
-		normalizedDetailLabel: "Mean normalized tokens score",
+		normalizedLabel: "MEAN NORMALIZED tokens (per task/total)",
+		normalizedDetailLabel: "MEAN NORMALIZED tokens (per task/total)",
 	},
 };
 
@@ -338,10 +352,19 @@ export function selectedFrontierEfficiencyAxisKey(
 		(option) => option.key === axisKey && !option.disabled,
 	)
 		? axisKey
-		: (axisOptions.find((option) => option.key === "cost" && !option.disabled)
-				?.key ??
+		: (firstAvailableAxis(axisOptions, "costEfficiency") ??
+				firstAvailableAxis(axisOptions, "cost") ??
 				axisOptions.find((option) => !option.disabled)?.key ??
 				axisKey);
+}
+
+/** Return the requested axis when it can be selected in the current row set. */
+function firstAvailableAxis(
+	axisOptions: FrontierEfficiencyAxisOption[],
+	axisKey: FrontierEfficiencyAxisKey,
+): FrontierEfficiencyAxisKey | null {
+	const option = axisOptions.find((candidate) => candidate.key === axisKey);
+	return option != null && !option.disabled ? option.key : null;
 }
 
 /** Adapt axis config for aggregate normalized benchmark rows. */
@@ -350,7 +373,7 @@ export function frontierEfficiencyAxisConfigFor(
 	isAllBenchmark: boolean,
 ): FrontierEfficiencyAxisConfig {
 	const axisConfig = frontierEfficiencyAxisConfig[axisKey];
-	if (!isAllBenchmark || axisKey === "costEfficiency") {
+	if (!isAllBenchmark || isEfficiencyScoreAxis(axisKey)) {
 		return axisConfig;
 	}
 	return {
@@ -363,6 +386,33 @@ export function frontierEfficiencyAxisConfigFor(
 		format: (value) => value.toFixed(0),
 		detailLabel: () => axisConfig.normalizedDetailLabel,
 	};
+}
+
+/** Describe what the selected Frontier Efficiency x-axis means. */
+export function frontierAxisDescription(
+	axisKey: FrontierEfficiencyAxisKey,
+	isAllBenchmark: boolean,
+	row?: FrontierEfficiencyRow,
+): string {
+	if (axisKey === "costEfficiency") {
+		return "COST EFFICIENCY is a relative value score: benchmark quality per dollar compared with similarly scoring models.";
+	}
+	if (axisKey === "timeEfficiency") {
+		return "TIME EFFICIENCY is a relative value score: benchmark quality per task time compared with similarly scoring models.";
+	}
+	if (axisKey === "cost") {
+		return isAllBenchmark
+			? "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy; lower is better."
+			: `Task Cost is the observed ${resourceUnitPhrase(row)} dollars for the selected benchmark; lower is better.`;
+	}
+	if (axisKey === "time") {
+		return isAllBenchmark
+			? "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy; lower is better."
+			: `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark; lower is better.`;
+	}
+	return isAllBenchmark
+		? "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy; lower is better."
+		: `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUsePhrase(row)} for the selected benchmark; lower is better.`;
 }
 
 /** Return the visible x-axis label for the selected benchmark and metric. */
@@ -443,7 +493,7 @@ export function frontierXAxisScale(
 	axisKey: FrontierEfficiencyAxisKey,
 	axisConfig: FrontierEfficiencyAxisConfig,
 ): AxisScale {
-	if (axisKey === "costEfficiency") {
+	if (isEfficiencyScoreAxis(axisKey)) {
 		return scoreAxisScale(values, {
 			formatTick: axisConfig.format,
 		});
@@ -463,19 +513,36 @@ export function frontierEfficiencyHoverRows(
 	rows.push(
 		[
 			row.benchmarkKey === "all"
-				? "Normalized benchmark score"
+				? "MEAN NORMALIZED benchmark score"
 				: "Benchmark score",
 			fmtPercentScore(row.score),
 		],
 		[axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
-		["Time efficiency score", timeEfficiencyScore(row).toFixed(1)],
+		["Efficiency blend", efficiencyBlendScore(row).toFixed(1)],
 	);
 	return rows;
 }
 
-/** Return the time efficiency score used for Frontier Efficiency bubble size. */
+/** Return the time side of the Frontier Efficiency blend. */
 export function timeEfficiencyScore(row: FrontierEfficiencyRow): number {
 	return finiteValue(row.model.relative_scores?.time_efficiency_score) ?? 0;
+}
+
+/** Return the cost side of the Frontier Efficiency blend. */
+export function costEfficiencyScore(row: FrontierEfficiencyRow): number {
+	return finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0;
+}
+
+/** Return the 50/50 efficiency blend used for Frontier Efficiency bubble size. */
+export function efficiencyBlendScore(row: FrontierEfficiencyRow): number {
+	return (costEfficiencyScore(row) + timeEfficiencyScore(row)) / 2;
+}
+
+/** Check whether the selected x-axis is a relative efficiency score. */
+export function isEfficiencyScoreAxis(
+	axisKey: FrontierEfficiencyAxisKey,
+): boolean {
+	return axisKey === "costEfficiency" || axisKey === "timeEfficiency";
 }
 
 /** Check that a resource metric can be plotted on a lower-is-better axis. */
@@ -600,19 +667,29 @@ function resourceMetricLabel(
 	metric: FrontierEfficiencyResourceMetric,
 ): string {
 	if (row.benchmarkKey === "all") {
-		return `Mean resource ${resourceMetricName(metric)}`;
+		return `MEAN NORMALIZED ${resourceMetricName(metric)} (per task/total)`;
 	}
 	const policy = row.resourcePolicy;
 	if (policy == null) {
-		return `Resource ${resourceMetricName(metric)}`;
+		return `${row.benchmarkLabel} ${resourceMetricName(metric)}`;
 	}
 	const metricName = resourceMetricName(metric, policy);
 	if (policy.unit === "total") {
-		return `Total ${metricName}`;
+		return `${row.benchmarkLabel} total ${metricName}`;
 	}
-	const sourcePrefix =
-		policy.source === "artificial_analysis" ? "AA" : "Benchmark";
-	return `${sourcePrefix} ${metricName} per task`;
+	return `${row.benchmarkLabel} ${metricName} per task`;
+}
+
+/** Return the selected benchmark resource unit as prose. */
+function resourceUnitPhrase(row?: FrontierEfficiencyRow): string {
+	return row?.resourcePolicy?.unit === "total" ? "total" : "per-task";
+}
+
+/** Return the token unit selected by the benchmark policy. */
+function tokenUsePhrase(row?: FrontierEfficiencyRow): string {
+	return row?.resourcePolicy?.tokenMeasure === "output_tokens"
+		? "output-token use"
+		: "token use";
 }
 
 /** Return the human resource metric name for a policy and metric key. */

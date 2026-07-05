@@ -131,7 +131,7 @@ export function ProviderEfficiencyView({
 }) {
 	if (rows.length === 0) {
 		return (
-			<EmptyChart message="No provider rows have quality and cost efficiency scores in the current model set." />
+			<EmptyChart message="No provider rows have quality and COST EFFICIENCY scores in the current model set." />
 		);
 	}
 
@@ -146,12 +146,12 @@ export function ProviderEfficiencyView({
 					detail={`${summary.bestQuality.quality.toFixed(1)} quality`}
 				/>
 				<SummaryCard
-					label="Best median cost efficiency"
+					label="Best median Cost Efficiency"
 					value={summary.bestCost.label}
-					detail={`${summary.bestCost.costEfficiency.toFixed(1)} cost efficiency`}
+					detail={`${summary.bestCost.costEfficiency.toFixed(1)} COST EFFICIENCY`}
 				/>
 				<SummaryCard
-					label="Best quality / cost efficiency"
+					label="Best quality / Cost Efficiency"
 					value={summary.bestQualityPerCost.label}
 					detail={`${providerQualityPerCost(summary.bestQualityPerCost).toFixed(2)} ratio`}
 				/>
@@ -276,7 +276,7 @@ function ProviderEfficiencyChart({
 			<svg
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
-				aria-label="Provider median quality by median cost efficiency scatter plot"
+				aria-label="Provider median quality by median Cost Efficiency scatter plot"
 				{...cursorProjectionHandlers}
 			>
 				<PlotFrame width={width} height={height} margin={margin} />
@@ -300,7 +300,7 @@ function ProviderEfficiencyChart({
 					width={width}
 					height={height}
 					margin={margin}
-					x="Median cost efficiency score"
+					x="Median Cost Efficiency score"
 					y="Median quality score"
 					xTitleOffset={52}
 				/>
@@ -441,9 +441,9 @@ function providerHoverState(row: ProviderEfficiencyRow) {
 		.join(", ");
 	const rows: HoverRow[] = [
 		["Median quality score", row.quality.toFixed(1)],
-		["Median cost efficiency score", row.costEfficiency.toFixed(1)],
+		["Median Cost Efficiency score", row.costEfficiency.toFixed(1)],
 		["Eligible models", fmtCompact(row.models.length)],
-		["Top intelligence models", topModelNames || "--"],
+		["Top INTELLIGENCE models", topModelNames || "--"],
 	];
 	return {
 		model: row.label,
