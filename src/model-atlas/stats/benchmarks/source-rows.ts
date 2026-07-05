@@ -1,4 +1,4 @@
-/** Build benchmark-keyed source rows for update-health checks. */
+/** Own the benchmark row draft contract shared by source and database adapters. */
 
 import { asFiniteNumber, asRecord } from "../../shared";
 import type { LlmStatsSourceData } from "../types";
@@ -15,7 +15,7 @@ export type BenchmarkRowsByKey = Readonly<
 	Record<string, readonly BenchmarkSourceRow[]>
 >;
 
-export type BenchmarkSourceRowDraft = {
+export type BenchmarkRowDraft = {
 	key: string;
 	id?: string | null;
 	label: string | null;
@@ -23,27 +23,27 @@ export type BenchmarkSourceRowDraft = {
 	value: unknown;
 };
 
-type ArtificialAnalysisDraftSource<Row> = {
+type ArtificialAnalysisBenchmarkDraftSource<Row> = {
 	rows: readonly Row[];
 	modelId: (row: Row) => string | null;
 	label: (row: Row, modelId: string | null) => string | null;
 	value: (row: Row, key: string) => unknown;
 };
 
-function sparseBenchmarkDrafts<T>(
+function sparseBenchmarkRowDrafts<T>(
 	key: string,
 	rows: readonly T[],
-	toDraft: (row: T) => Omit<BenchmarkSourceRowDraft, "key">,
-): BenchmarkSourceRowDraft[] {
+	toDraft: (row: T) => Omit<BenchmarkRowDraft, "key">,
+): BenchmarkRowDraft[] {
 	return rows.map((row) => ({
 		key,
 		...toDraft(row),
 	}));
 }
 
-function addBenchmarkDraft(
+function addBenchmarkRowDraft(
 	rowsByKey: Record<string, BenchmarkSourceRow[]>,
-	draft: BenchmarkSourceRowDraft,
+	draft: BenchmarkRowDraft,
 ): void {
 	const value = asFiniteNumber(draft.value);
 	if (draft.label == null || value == null) {
@@ -62,24 +62,24 @@ function addBenchmarkDraft(
 	});
 }
 
-/** Groups normalized benchmark row drafts and drops rows without a label or finite value. */
-export function benchmarkRowsFromDrafts(
-	drafts: readonly BenchmarkSourceRowDraft[],
+/** Finalizes normalized benchmark row drafts and drops rows without a label or finite value. */
+export function finalizeBenchmarkRows(
+	drafts: readonly BenchmarkRowDraft[],
 ): BenchmarkRowsByKey {
 	const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
 	for (const draft of drafts) {
-		addBenchmarkDraft(rowsByKey, draft);
+		addBenchmarkRowDraft(rowsByKey, draft);
 	}
 	return rowsByKey;
 }
 
 /** Expands Artificial Analysis rows into one draft per supported evaluation key. */
-export function artificialAnalysisBenchmarkDrafts<Row>({
+export function artificialAnalysisBenchmarkRowDrafts<Row>({
 	rows,
 	modelId,
 	label,
 	value,
-}: ArtificialAnalysisDraftSource<Row>): BenchmarkSourceRowDraft[] {
+}: ArtificialAnalysisBenchmarkDraftSource<Row>): BenchmarkRowDraft[] {
 	return rows.flatMap((row) => {
 		const rowModelId = modelId(row);
 		const rowLabel = label(row, rowModelId);
@@ -99,9 +99,9 @@ export function artificialAnalysisBenchmarkDrafts<Row>({
 /** Return benchmark update row drafts from in-memory source-data rows. */
 function sourceDataBenchmarkDrafts(
 	sourceData: LlmStatsSourceData,
-): BenchmarkSourceRowDraft[] {
+): BenchmarkRowDraft[] {
 	return [
-		...artificialAnalysisBenchmarkDrafts({
+		...artificialAnalysisBenchmarkRowDrafts({
 			rows: sourceData.artificialAnalysis.rows,
 			modelId: (row) => {
 				const record = asRecord(row);
@@ -117,7 +117,7 @@ function sourceDataBenchmarkDrafts(
 			},
 			value: (row, key) => asRecord(asRecord(row).evaluations)[key],
 		}),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"agents_last_exam",
 			sourceData.agentsLastExam.rows,
 			(row) => ({
@@ -125,7 +125,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.median_score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"automation_bench",
 			sourceData.automationBench.rows,
 			(row) => ({
@@ -133,7 +133,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.adjusted_score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"blueprint_bench_2",
 			sourceData.blueprintBench.rows,
 			(row) => ({
@@ -141,7 +141,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"browsecomp",
 			sourceData.browseComp.rows,
 			(row) => ({
@@ -150,7 +150,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"cursorbench",
 			sourceData.cursorBench.rows,
 			(row) => ({
@@ -158,16 +158,16 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
-		...sparseBenchmarkDrafts("deep_swe", sourceData.deepSWE.rows, (row) => ({
+		...sparseBenchmarkRowDrafts("deep_swe", sourceData.deepSWE.rows, (row) => ({
 			label: row.model,
 			value: row.pass_at_1,
 		})),
-		...sparseBenchmarkDrafts("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
+		...sparseBenchmarkRowDrafts("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
 			label: row.model,
 			provider: row.provider,
 			value: row.score,
 		})),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"riemann_bench",
 			sourceData.riemannBench.rows,
 			(row) => ({
@@ -176,7 +176,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"toolathlon",
 			sourceData.toolathlon.rows,
 			(row) => ({
@@ -185,7 +185,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"vals_index",
 			sourceData.valsIndex.rows,
 			(row) => ({
@@ -195,7 +195,7 @@ function sourceDataBenchmarkDrafts(
 				value: row.score,
 			}),
 		),
-		...sparseBenchmarkDrafts(
+		...sparseBenchmarkRowDrafts(
 			"terminalbench_v21",
 			sourceData.valsTerminalBench.rows,
 			(row) => ({
@@ -212,5 +212,5 @@ function sourceDataBenchmarkDrafts(
 export function benchmarkRowsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowsByKey {
-	return benchmarkRowsFromDrafts(sourceDataBenchmarkDrafts(sourceData));
+	return finalizeBenchmarkRows(sourceDataBenchmarkDrafts(sourceData));
 }

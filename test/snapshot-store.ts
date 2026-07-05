@@ -5,11 +5,8 @@ import { resolve } from "node:path";
 import {
 	bestSnapshotPayload,
 	type DisplaySnapshotRefreshMode,
-	d1SnapshotConfigured,
 	displaySnapshotRefreshMode,
-	localDatabaseReadPath,
-	missingD1SnapshotEnvironment,
-	runtimeDatabasePath,
+	snapshotRuntime,
 } from "../app/api/llm-stats/snapshot-store";
 import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsPayload } from "./llm-stats-fixtures";
@@ -67,35 +64,35 @@ try {
 	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	delete process.env.VERCEL;
 	assert.equal(
-		runtimeDatabasePath(),
+		snapshotRuntime().buildDatabasePath,
 		undefined,
 		"local runtime refreshes should use the normal database default",
 	);
 	assert.equal(
-		localDatabaseReadPath(),
+		snapshotRuntime().readDatabasePath,
 		resolve(".cache/database.sqlite"),
 		"local display reads should use the normal repo SQLite snapshot",
 	);
 	process.env.MODEL_ATLAS_DATABASE_PATH = "custom.sqlite";
 	assert.equal(
-		runtimeDatabasePath(),
+		snapshotRuntime().buildDatabasePath,
 		resolve("custom.sqlite"),
 		"explicit runtime database paths should still be honored",
 	);
 	assert.equal(
-		localDatabaseReadPath(),
+		snapshotRuntime().readDatabasePath,
 		resolve("custom.sqlite"),
 		"explicit database paths should also control local snapshot reads",
 	);
 	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	process.env.VERCEL = "1";
 	assert.equal(
-		runtimeDatabasePath(),
+		snapshotRuntime().buildDatabasePath,
 		resolve(tmpdir(), "model-atlas/database.sqlite"),
 		"Vercel runtime refreshes should use the writable temp database path",
 	);
 	assert.equal(
-		localDatabaseReadPath(),
+		snapshotRuntime().readDatabasePath,
 		resolve(tmpdir(), "model-atlas/database.sqlite"),
 		"Vercel display reads should use the writable temp database path",
 	);
@@ -103,12 +100,12 @@ try {
 	delete process.env.D1_DATABASE_ID;
 	delete process.env.D1_API_TOKEN;
 	assert.equal(
-		d1SnapshotConfigured(),
+		snapshotRuntime().hasD1SnapshotStore,
 		false,
 		"runtime D1 storage should be disabled when required Cloudflare settings are absent",
 	);
 	assert.deepEqual(
-		missingD1SnapshotEnvironment(),
+		snapshotRuntime().missingD1Environment,
 		["D1_ACCOUNT_ID", "D1_DATABASE_ID", "D1_API_TOKEN"],
 		"missing D1 environment should report the canonical variable names",
 	);
@@ -116,7 +113,7 @@ try {
 	process.env.D1_DATABASE_ID = "database";
 	process.env.D1_API_TOKEN = "token";
 	assert.equal(
-		d1SnapshotConfigured(),
+		snapshotRuntime().hasD1SnapshotStore,
 		true,
 		"runtime D1 storage should accept canonical D1 variable names",
 	);
