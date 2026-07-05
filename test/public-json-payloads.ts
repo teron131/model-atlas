@@ -97,7 +97,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
+	"INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
@@ -112,7 +112,7 @@ assert.deepEqual(scoreModel, {
 		intelligence: 0,
 		agentic: 0,
 		speed: 0,
-		cost_efficiency: null,
+		value: null,
 	},
 });
 
@@ -172,7 +172,7 @@ assert.deepEqual(corePayload.columns, [
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
-	"cost_efficiency_score",
+	"value_score",
 	"overall_score",
 	"blended_price",
 	"context_window_tokens",
@@ -199,11 +199,13 @@ assert.equal("attachment" in (model ?? {}), false);
 assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
-assert.equal("price_score" in (fullJsonModel?.relative_scores ?? {}), false);
-assert.equal(
-	"cost_efficiency_score" in (fullJsonModel?.relative_scores ?? {}),
-	true,
-);
+assert.deepEqual(Object.keys(fullJsonModel?.relative_scores ?? {}), [
+	"intelligence_score",
+	"agentic_score",
+	"speed_score",
+	"value_score",
+	"overall_score",
+]);
 assert.equal(benchmarksPayload.schema, "model_atlas.benchmarks");
 assert.equal(benchmarksPayload.benchmark_scale, "decimal");
 assert.equal(benchmarksPayload.methodology, methodology);

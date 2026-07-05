@@ -8,7 +8,6 @@ import {
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
 	BenchmarkGroup,
-	LlmStatsCost,
 	LlmStatsNullableScores,
 	LlmStatsSpeed,
 	ScoringConfig,
@@ -199,7 +198,6 @@ export function deriveSpeedOutputTokenAnchors(
 
 export function buildScores(
 	model: JsonObject,
-	cost: LlmStatsCost,
 	speed: LlmStatsSpeed,
 	speedOutputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
@@ -244,14 +242,11 @@ export function buildScores(
 		agenticBenchmarkInputs,
 		scoringConfig,
 	);
-	const blendedPrice = blendedPriceValue(cost, scoringConfig);
 	const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
 	const throughputTokensPerSecond = asFiniteNumber(
 		speed.throughput_tokens_per_second_median,
 	);
 	const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
-	const priceScore =
-		blendedPrice != null && blendedPrice > 0 ? 1 / blendedPrice : null;
 	const imaginedSpeedScore = meanOfFinite(
 		speedOutputTokenAnchors.map((targetTokens) =>
 			latencySeconds != null &&
@@ -273,18 +268,12 @@ export function buildScores(
 			? representativeTargetTokens / e2eLatencySeconds
 			: null;
 	const speedScore = meanOfFinite([imaginedSpeedScore, observedE2eSpeedScore]);
-	if (
-		intelligenceScore == null &&
-		agenticScore == null &&
-		priceScore == null &&
-		speedScore == null
-	) {
+	if (intelligenceScore == null && agenticScore == null && speedScore == null) {
 		return null;
 	}
 	return {
 		intelligence_score: intelligenceScore,
 		agentic_score: agenticScore,
 		speed_score: speedScore,
-		price_score: priceScore,
 	};
 }

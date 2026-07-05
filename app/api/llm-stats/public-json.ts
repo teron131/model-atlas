@@ -32,10 +32,7 @@ export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
 	models: PublicFullJsonModel[];
 };
 
-type PublicRelativeScores = Omit<
-	LlmStatsModel["relative_scores"],
-	"price_score"
->;
+type PublicRelativeScores = LlmStatsModel["relative_scores"];
 
 type PublicFullJsonModel = Omit<
 	LlmStatsModel,
@@ -61,7 +58,7 @@ export type ScoreJsonModel = {
 		intelligence: number;
 		agentic: number;
 		speed: number | null;
-		cost_efficiency: number | null;
+		value: number | null;
 		overall: number;
 	};
 };
@@ -94,7 +91,7 @@ export type CoreJsonModel = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: number | null;
-	cost_efficiency_score: number | null;
+	value_score: number | null;
 	overall_score: number;
 	blended_price: number | null;
 	context_window_tokens: number | null;
@@ -118,7 +115,7 @@ const coreColumnKeys = [
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
-	"cost_efficiency_score",
+	"value_score",
 	"overall_score",
 	"blended_price",
 	"context_window_tokens",
@@ -203,7 +200,7 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
+	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
@@ -229,10 +226,9 @@ function withoutUnusedModelFields(model: LlmStatsModel): PublicFullJsonModel {
 		reasoning: _reasoning,
 		...modelPayload
 	} = model;
-	const { price_score: _priceScore, ...publicRelativeScores } = relativeScores;
 	return {
 		...modelPayload,
-		relative_scores: publicRelativeScores,
+		relative_scores: relativeScores,
 	};
 }
 
@@ -246,7 +242,7 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 			intelligence: model.relative_scores.intelligence_score,
 			agentic: model.relative_scores.agentic_score,
 			speed: model.relative_scores.speed_score,
-			cost_efficiency: model.relative_scores.cost_efficiency_score,
+			value: model.relative_scores.value_score,
 			overall: model.relative_scores.overall_score,
 		},
 	};
@@ -283,7 +279,7 @@ function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 		intelligence_score: model.relative_scores.intelligence_score,
 		agentic_score: model.relative_scores.agentic_score,
 		speed_score: model.relative_scores.speed_score,
-		cost_efficiency_score: model.relative_scores.cost_efficiency_score,
+		value_score: model.relative_scores.value_score,
 		overall_score: model.relative_scores.overall_score,
 		blended_price: model.cost?.blended_price ?? null,
 		context_window_tokens: model.context_window?.context ?? null,

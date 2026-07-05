@@ -13,7 +13,7 @@ const leanDashboardTooltipKeys = [
 	"intelligence",
 	"agentic",
 	"speed",
-	"costEfficiency",
+	"value",
 	"blend",
 	"context",
 ] as const;

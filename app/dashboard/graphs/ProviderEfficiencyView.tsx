@@ -48,7 +48,7 @@ type ProviderModelPoint = {
 	model: LlmStatsModel;
 	intelligence: number;
 	quality: number;
-	costEfficiency: number;
+	value: number;
 };
 
 export type ProviderEfficiencyRow = {
@@ -58,7 +58,7 @@ export type ProviderEfficiencyRow = {
 	logo: string;
 	models: ProviderModelPoint[];
 	quality: number;
-	costEfficiency: number;
+	value: number;
 	topIntelligenceModels: ProviderModelPoint[];
 };
 
@@ -69,15 +69,13 @@ export function providerEfficiencyRows(
 	for (const model of models) {
 		const intelligence = finiteValue(model.relative_scores?.intelligence_score);
 		const agentic = finiteValue(model.relative_scores?.agentic_score);
-		const costEfficiency = finiteValue(
-			model.relative_scores?.cost_efficiency_score,
-		);
-		if (intelligence == null || agentic == null || costEfficiency == null) {
+		const value = finiteValue(model.relative_scores?.value_score);
+		if (intelligence == null || agentic == null || value == null) {
 			continue;
 		}
 		const quality = providerQualityScore(intelligence, agentic);
 		const key = providerFilterKey(providerName(model.provider));
-		const point = { model, intelligence, quality, costEfficiency };
+		const point = { model, intelligence, quality, value };
 		const current = grouped.get(key);
 		if (current == null) {
 			grouped.set(key, [point]);
@@ -103,15 +101,12 @@ export function providerEfficiencyRows(
 				logo: providerAssetLogo(provider),
 				models: providerModels,
 				quality: median(providerModels.map((point) => point.quality)) ?? 0,
-				costEfficiency:
-					median(providerModels.map((point) => point.costEfficiency)) ?? 0,
+				value: median(providerModels.map((point) => point.value)) ?? 0,
 				topIntelligenceModels,
 			};
 		})
 		.sort(
-			(left, right) =>
-				right.quality - left.quality ||
-				right.costEfficiency - left.costEfficiency,
+			(left, right) => right.quality - left.quality || right.value - left.value,
 		);
 }
 
@@ -131,7 +126,7 @@ export function ProviderEfficiencyView({
 }) {
 	if (rows.length === 0) {
 		return (
-			<EmptyChart message="No provider rows have quality and COST EFFICIENCY scores in the current model set." />
+			<EmptyChart message="No provider rows have quality and VALUE scores in the current model set." />
 		);
 	}
 
@@ -146,14 +141,14 @@ export function ProviderEfficiencyView({
 					detail={`${summary.bestQuality.quality.toFixed(1)} quality`}
 				/>
 				<SummaryCard
-					label="Best median Cost Efficiency"
-					value={summary.bestCost.label}
-					detail={`${summary.bestCost.costEfficiency.toFixed(1)} COST EFFICIENCY`}
+					label="Best median Value"
+					value={summary.bestValue.label}
+					detail={`${summary.bestValue.value.toFixed(1)} VALUE`}
 				/>
 				<SummaryCard
-					label="Best quality / Cost Efficiency"
-					value={summary.bestQualityPerCost.label}
-					detail={`${providerQualityPerCost(summary.bestQualityPerCost).toFixed(2)} ratio`}
+					label="Best quality + Value"
+					value={summary.bestQualityValueBlend.label}
+					detail={`${providerQualityValueBlend(summary.bestQualityValueBlend).toFixed(1)} blend`}
 				/>
 			</div>
 		</>
@@ -166,33 +161,31 @@ function providerEfficiencySummary(rows: ProviderEfficiencyRow[]) {
 		throw new Error("Provider efficiency summary requires at least one row.");
 	}
 	let bestQuality = first;
-	let bestCost = first;
-	let bestQualityPerCost = first;
+	let bestValue = first;
+	let bestQualityValueBlend = first;
 	for (const row of rows) {
 		if (row.quality > bestQuality.quality) {
 			bestQuality = row;
 		}
-		if (row.costEfficiency > bestCost.costEfficiency) {
-			bestCost = row;
+		if (row.value > bestValue.value) {
+			bestValue = row;
 		}
 		if (
-			providerQualityPerCost(row) > providerQualityPerCost(bestQualityPerCost)
+			providerQualityValueBlend(row) >
+			providerQualityValueBlend(bestQualityValueBlend)
 		) {
-			bestQualityPerCost = row;
+			bestQualityValueBlend = row;
 		}
 	}
 	return {
 		bestQuality,
-		bestCost,
-		bestQualityPerCost,
+		bestValue,
+		bestQualityValueBlend,
 	};
 }
 
-function providerQualityPerCost({
-	quality,
-	costEfficiency,
-}: ProviderEfficiencyRow) {
-	return costEfficiency > 0 ? quality / costEfficiency : 0;
+function providerQualityValueBlend({ quality, value }: ProviderEfficiencyRow) {
+	return (quality + value) / 2;
 }
 
 function ProviderEfficiencyChart({
@@ -211,15 +204,15 @@ function ProviderEfficiencyChart({
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
 		useCursorProjection();
 	const plot = plotBoundsFor(width, height, margin);
-	const costScores = rows.map((row) => row.costEfficiency);
+	const valueScores = rows.map((row) => row.value);
 	const qualities = rows.map((row) => row.quality);
-	const medianCost = median(costScores) ?? 0;
+	const medianValue = median(valueScores) ?? 0;
 	const medianQuality = median(qualities) ?? 0;
-	const costAxis = scoreAxisScale(costScores, PROVIDER_SCORE_AXIS_OPTIONS);
+	const valueAxis = scoreAxisScale(valueScores, PROVIDER_SCORE_AXIS_OPTIONS);
 	const qualityAxis = scoreAxisScale(qualities, PROVIDER_SCORE_AXIS_OPTIONS);
-	const xDomain = costAxis.domain;
+	const xDomain = valueAxis.domain;
 	const yDomain = qualityAxis.domain;
-	const xTicks = costAxis.ticks;
+	const xTicks = valueAxis.ticks;
 	const yTicks = qualityAxis.ticks;
 	const x = scaleLinear()
 		.domain(xDomain)
@@ -240,9 +233,9 @@ function ProviderEfficiencyChart({
 	const envelopeKeys = new Set(envelopeRows.map((row) => row.key));
 	const envelopePath = providerEnvelopeStepPath(envelopeRows, xPoint, yPoint);
 	const projectionPoints = rows.map((row) => ({
-		x: xPoint(row.costEfficiency),
+		x: xPoint(row.value),
 		y: yPoint(row.quality),
-		xValue: row.costEfficiency,
+		xValue: row.value,
 		yValue: row.quality,
 	}));
 	const cursorProjectionHandlers = cursorHandlers({
@@ -252,14 +245,14 @@ function ProviderEfficiencyChart({
 	const labelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: rows.map((row) => ({
-			cx: xPoint(row.costEfficiency),
+			cx: xPoint(row.value),
 			cy: yPoint(row.quality),
 			radius: radius(row.models.length),
 		})),
 		labels: rows.map((row, index) => ({
 			key: row.key,
 			label: row.label,
-			cx: xPoint(row.costEfficiency),
+			cx: xPoint(row.value),
 			cy: yPoint(row.quality),
 			radius: radius(row.models.length),
 			priority: rows.length - index,
@@ -276,7 +269,7 @@ function ProviderEfficiencyChart({
 			<svg
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
-				aria-label="Provider median quality by median Cost Efficiency scatter plot"
+				aria-label="Provider median quality by median Value scatter plot"
 				{...cursorProjectionHandlers}
 			>
 				<PlotFrame width={width} height={height} margin={margin} />
@@ -300,15 +293,15 @@ function ProviderEfficiencyChart({
 					width={width}
 					height={height}
 					margin={margin}
-					x="Median Cost Efficiency score"
+					x="Median Value score"
 					y="Median quality score"
 					xTitleOffset={52}
 				/>
 				<MedianCross
-					x={xPoint(medianCost)}
+					x={xPoint(medianValue)}
 					y={yPoint(medianQuality)}
 					bounds={plot}
-					xLabel={medianCost.toFixed(0)}
+					xLabel={medianValue.toFixed(0)}
 					yLabel={medianQuality.toFixed(0)}
 				/>
 				<CornerDirectionArrow bounds={plot} corner="upper-right" />
@@ -325,7 +318,7 @@ function ProviderEfficiencyChart({
 					</g>
 				) : null}
 				{rows.map((row) => {
-					const cx = xPoint(row.costEfficiency);
+					const cx = xPoint(row.value);
 					const cy = yPoint(row.quality);
 					const r = radius(row.models.length);
 					const onEnvelope = envelopeKeys.has(row.key);
@@ -352,7 +345,7 @@ function ProviderEfficiencyChart({
 								setCursorProjection({
 									x: cx,
 									y: cy,
-									xValue: row.costEfficiency,
+									xValue: row.value,
 									yValue: row.quality,
 								});
 								setProviderHover(event, row, setHover);
@@ -366,7 +359,7 @@ function ProviderEfficiencyChart({
 								setCursorProjection({
 									x: cx,
 									y: cy,
-									xValue: row.costEfficiency,
+									xValue: row.value,
 									yValue: row.quality,
 								});
 								setProviderFocusHover(event, row, setHover);
@@ -382,7 +375,7 @@ function ProviderEfficiencyChart({
 					<DeepSWEPointLabel
 						key={`provider-label-${row.key}`}
 						label={row.label}
-						cx={xPoint(row.costEfficiency)}
+						cx={xPoint(row.value)}
 						cy={yPoint(row.quality)}
 						width={width}
 						margin={margin}
@@ -441,7 +434,7 @@ function providerHoverState(row: ProviderEfficiencyRow) {
 		.join(", ");
 	const rows: HoverRow[] = [
 		["Median quality score", row.quality.toFixed(1)],
-		["Median Cost Efficiency score", row.costEfficiency.toFixed(1)],
+		["Median Value score", row.value.toFixed(1)],
 		["Eligible models", fmtCompact(row.models.length)],
 		["Top INTELLIGENCE models", topModelNames || "--"],
 	];
@@ -459,9 +452,7 @@ function providerEnvelopeRows(
 ): ProviderEfficiencyRow[] {
 	const envelopeRows: ProviderEfficiencyRow[] = [];
 	let bestQuality = -Infinity;
-	for (const row of [...rows].sort(
-		(left, right) => right.costEfficiency - left.costEfficiency,
-	)) {
+	for (const row of [...rows].sort((left, right) => right.value - left.value)) {
 		if (row.quality > bestQuality) {
 			envelopeRows.push(row);
 			bestQuality = row.quality;
@@ -472,11 +463,11 @@ function providerEnvelopeRows(
 
 function providerEnvelopeStepPath(
 	rows: ProviderEfficiencyRow[],
-	x: (costEfficiency: number) => number,
-	y: (costEfficiency: number) => number,
+	x: (value: number) => number,
+	y: (value: number) => number,
 ): string | null {
 	return rows.reduce<string | null>((path, row, index) => {
-		const nextX = x(row.costEfficiency);
+		const nextX = x(row.value);
 		const nextY = y(row.quality);
 		if (index === 0) {
 			return `M${nextX},${nextY}`;

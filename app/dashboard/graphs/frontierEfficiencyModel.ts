@@ -27,13 +27,13 @@ import { correlationValue, formatCorrelation, modelKey } from "./models";
 import type { HoverRow } from "./types";
 
 export type FrontierEfficiencyAxisKey =
-	| "costEfficiency"
+	| "speedValue"
 	| "cost"
 	| "time"
 	| "tokens";
 type FrontierEfficiencyResourceMetric = Exclude<
 	FrontierEfficiencyAxisKey,
-	"costEfficiency"
+	"speedValue"
 >;
 
 export type FrontierEfficiencyRow = {
@@ -85,17 +85,15 @@ export const frontierEfficiencyAxisConfig: Record<
 	FrontierEfficiencyAxisKey,
 	FrontierEfficiencyAxisConfig
 > = {
-	costEfficiency: {
-		label: "Cost Efficiency score",
-		shortLabel: "Cost Efficiency",
-		get: (row) =>
-			finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0,
-		selectionScore: (row) =>
-			finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0,
+	speedValue: {
+		label: "Speed and Value scores",
+		shortLabel: "Efficiency",
+		get: speedValueBlendScore,
+		selectionScore: speedValueBlendScore,
 		format: (value) => value.toFixed(0),
-		detailLabel: () => "Cost Efficiency score",
-		normalizedLabel: "Cost Efficiency score",
-		normalizedDetailLabel: "Cost Efficiency score",
+		detailLabel: () => "Speed and Value scores",
+		normalizedLabel: "Speed and Value scores",
+		normalizedDetailLabel: "Speed and Value scores",
 		xHigherBetter: true,
 	},
 	cost: {
@@ -338,7 +336,7 @@ export function selectedFrontierEfficiencyAxisKey(
 		(option) => option.key === axisKey && !option.disabled,
 	)
 		? axisKey
-		: (firstAvailableAxis(axisOptions, "costEfficiency") ??
+		: (firstAvailableAxis(axisOptions, "speedValue") ??
 				firstAvailableAxis(axisOptions, "cost") ??
 				axisOptions.find((option) => !option.disabled)?.key ??
 				axisKey);
@@ -380,8 +378,8 @@ export function frontierAxisDescription(
 	isAllBenchmark: boolean,
 	row?: FrontierEfficiencyRow,
 ): string {
-	if (axisKey === "costEfficiency") {
-		return "COST EFFICIENCY is a relative value score: benchmark quality per dollar compared with similarly scoring models.";
+	if (axisKey === "speedValue") {
+		return "Efficiency combines public Speed and Value scores with equal weight; higher is better.";
 	}
 	if (axisKey === "cost") {
 		return isAllBenchmark
@@ -501,8 +499,10 @@ export function frontierEfficiencyHoverRows(
 			fmtPercentScore(row.score),
 		],
 		[axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
-		["Speed + Cost blend", speedCostBlendScore(row).toFixed(1)],
 	);
+	if (axisConfig.get !== speedValueBlendScore) {
+		rows.push(["Speed and Value scores", speedValueBlendScore(row).toFixed(1)]);
+	}
 	return rows;
 }
 
@@ -511,21 +511,21 @@ export function speedScore(row: FrontierEfficiencyRow): number {
 	return finiteValue(row.model.relative_scores?.speed_score) ?? 0;
 }
 
-/** Return the cost side of the bubble blend. */
-export function costEfficiencyScore(row: FrontierEfficiencyRow): number {
-	return finiteValue(row.model.relative_scores?.cost_efficiency_score) ?? 0;
+/** Return the value side of the bubble blend. */
+export function valueScore(row: FrontierEfficiencyRow): number {
+	return finiteValue(row.model.relative_scores?.value_score) ?? 0;
 }
 
-/** Return the 50/50 speed-cost blend used for Frontier Efficiency bubble size. */
-export function speedCostBlendScore(row: FrontierEfficiencyRow): number {
-	return (costEfficiencyScore(row) + speedScore(row)) / 2;
+/** Return the 50/50 speed-value blend used for Frontier Efficiency bubble size. */
+export function speedValueBlendScore(row: FrontierEfficiencyRow): number {
+	return (valueScore(row) + speedScore(row)) / 2;
 }
 
 /** Check whether the selected x-axis is a relative efficiency score. */
 export function isEfficiencyScoreAxis(
 	axisKey: FrontierEfficiencyAxisKey,
 ): boolean {
-	return axisKey === "costEfficiency";
+	return axisKey === "speedValue";
 }
 
 /** Check that a resource metric can be plotted on a lower-is-better axis. */
