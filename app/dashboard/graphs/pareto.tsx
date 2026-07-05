@@ -76,7 +76,7 @@ export function ParetoFrontierPanel({
 		return (
 			<Panel
 				title="Pareto frontier"
-				copy="A tradeoff scatter for intelligence versus cost efficiency score."
+				copy="A tradeoff scatter for INTELLIGENCE score versus COST EFFICIENCY score."
 			>
 				<EmptyChart />
 			</Panel>
@@ -96,7 +96,7 @@ export function ParetoFrontierPanel({
 		return (
 			<Panel
 				title="Pareto frontier"
-				copy="Each point is one provider: median quality against median cost efficiency across the current model set."
+				copy="Each point is one provider: median quality against median COST EFFICIENCY across the current model set."
 				summary={
 					<BoxWhiskerSummary
 						label="Provider quality"
@@ -109,8 +109,8 @@ export function ParetoFrontierPanel({
 				}
 				note={
 					<>
-						Step line: strongest observed provider quality/cost efficiency
-						envelope.
+						Step line: strongest observed provider quality versus COST
+						EFFICIENCY envelope.
 					</>
 				}
 			>
@@ -230,7 +230,7 @@ export function ParetoFrontierPanel({
 	return (
 		<Panel
 			title="Pareto frontier"
-			copy="Intelligence score plotted against cost efficiency score."
+			copy="INTELLIGENCE score plotted against COST EFFICIENCY score."
 			summary={
 				<BoxWhiskerSummary
 					label="Intelligence score"
@@ -241,8 +241,8 @@ export function ParetoFrontierPanel({
 			}
 			note={
 				<>
-					Step line: strongest observed intelligence/cost-efficiency tradeoff
-					envelope.
+					Step line: strongest observed INTELLIGENCE versus COST EFFICIENCY
+					tradeoff envelope.
 				</>
 			}
 		>
@@ -267,7 +267,7 @@ export function ParetoFrontierPanel({
 				<svg
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
-					aria-label="Intelligence by cost efficiency score scatter plot"
+					aria-label="Intelligence by Cost Efficiency score scatter plot"
 					{...cursorProjectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
@@ -290,7 +290,7 @@ export function ParetoFrontierPanel({
 						width={width}
 						height={height}
 						margin={margin}
-						x="Cost efficiency score"
+						x="Cost Efficiency score"
 						y="Intelligence score"
 						xTitleOffset={48}
 					/>
@@ -331,11 +331,11 @@ export function ParetoFrontierPanel({
 								fmtTooltipScore(model.relative_scores.speed_score),
 							],
 							[
-								"Time efficiency score",
+								"Time Efficiency score",
 								fmtTooltipScore(model.relative_scores.time_efficiency_score),
 							],
 							[
-								"Cost efficiency score",
+								"Cost Efficiency score",
 								fmtTooltipScore(model.relative_scores.cost_efficiency_score),
 							],
 							[

@@ -353,7 +353,7 @@ export function columnTooltipsForActiveComponents(
 	return {
 		intelligence: {
 			title: "Intelligence score",
-			body: "Relative capability score from the AA Intelligence index plus the selected intelligence benchmarks.",
+			body: "Relative capability score from the AA INTELLIGENCE index plus the selected INTELLIGENCE benchmarks.",
 			rows: [
 				["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
 				["Sort", HIGHER_FIRST_TEXT],
@@ -371,7 +371,7 @@ export function columnTooltipsForActiveComponents(
 		},
 		agentic: {
 			title: "Agentic score",
-			body: "Relative workflow and coding-task score from the AA Agentic index plus selected agentic benchmarks.",
+			body: "Relative workflow and coding-task score from the AA AGENTIC index plus selected AGENTIC benchmarks.",
 			rows: [
 				["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
 				["Sort", HIGHER_FIRST_TEXT],
@@ -389,7 +389,7 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "Percentile score from raw provider speed stats and served-speed workflow simulation. Throughput ranks higher when larger; latency and end-to-end time rank higher when lower.",
+			body: "SPEED is a percentile score from raw provider speed stats and served-speed workflow simulation. Throughput ranks higher when larger; latency and end-to-end time rank higher when lower.",
 			rows: [
 				["Scale", PERCENTILE_SCORE_TEXT],
 				["Blend", speedBlendText()],
@@ -404,8 +404,8 @@ export function columnTooltipsForActiveComponents(
 			],
 		},
 		timeEfficiency: {
-			title: "Time efficiency score",
-			body: "Among models with similar benchmark quality, this asks which one completes the task in less time. Missing task runtime falls back to output tokens divided by served throughput.",
+			title: "Time Efficiency score",
+			body: "TIME EFFICIENCY asks which model completes benchmark tasks in less time among models with similar quality. Missing task runtime falls back to output tokens divided by served throughput.",
 			rows: [
 				["Scale", PERCENTILE_SCORE_TEXT],
 				["Weights", "equal per active benchmark"],
@@ -420,8 +420,8 @@ export function columnTooltipsForActiveComponents(
 			],
 		},
 		costEfficiency: {
-			title: "Cost efficiency score",
-			body: "Among models with similar benchmark quality, this asks which one delivers the result for less task cost. Higher means better cost value versus comparable-quality models.",
+			title: "Cost Efficiency score",
+			body: "COST EFFICIENCY asks which model delivers benchmark results for less task cost among models with similar quality. Higher means better cost value versus comparable-quality models.",
 			rows: [
 				["Scale", PERCENTILE_SCORE_TEXT],
 				["Weights", "equal per active benchmark"],

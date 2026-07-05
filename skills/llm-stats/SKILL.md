@@ -1,6 +1,6 @@
 ---
 name: llm-stats
-description: Use when comparing LLM model quality, speed, price, cost efficiency, benchmark coverage, Model Atlas scores, or current model tradeoffs for model selection and leaderboard analysis.
+description: Use when comparing LLM model quality, speed, price, TIME EFFICIENCY, COST EFFICIENCY, benchmark coverage, Model Atlas scores, or current model tradeoffs for model selection and leaderboard analysis.
 ---
 
 # LLM Stats
@@ -16,7 +16,7 @@ https://llmstats.vercel.app/api/llm-stats?view=all
 
 Views:
 
-- `score`: compact rank and intelligence/agentic/speed/cost-efficiency scores.
+- `score`: compact rank and intelligence/agentic/speed/TIME EFFICIENCY/COST EFFICIENCY scores.
 - `core`: model selection columns such as date, modalities, price, context, speed, and score.
 - `benchmarks`: selected benchmark values by model.
 - `all`: fuller Model Atlas payload.

@@ -3,6 +3,9 @@
 import assert from "node:assert/strict";
 import {
 	axisSummaryDetail,
+	efficiencyBlendScore,
+	frontierAxisDescription,
+	frontierAxisMetricLabel,
 	frontierEfficiencyAxisConfigFor,
 	frontierEfficiencyAxisOptions,
 	frontierEfficiencyHoverRows,
@@ -91,19 +94,133 @@ assert.deepEqual(
 	frontierEfficiencyHoverRows(topRow, costAxis),
 	[
 		["Benchmark score", "90%"],
-		["Benchmark cost per task", "$8.0"],
-		["Time efficiency score", "20.0"],
+		["DeepSWE cost per task", "$8.0"],
+		["Efficiency blend", "30.0"],
 	],
-	"hover rows should describe selected benchmark score, resource axis, and time efficiency",
+	"hover rows should describe selected benchmark score, resource axis, and efficiency blend",
 );
 
 assert.equal(
 	axisSummaryDetail(secondRow, costAxis),
-	"82% / Benchmark cost per task $2.0",
+	"82% / DeepSWE cost per task $2.0",
 	"summary detail should combine benchmark score and selected axis metric",
 );
 
+const timeEfficiencyAxis = frontierEfficiencyAxisConfigFor(
+	"timeEfficiency",
+	false,
+);
+assert.deepEqual(
+	frontierEfficiencyHoverRows(topRow, timeEfficiencyAxis),
+	[
+		["Benchmark score", "90%"],
+		["Time Efficiency score", "20"],
+		["Efficiency blend", "30.0"],
+	],
+	"Time Efficiency views should show the 50/50 efficiency blend as the bubble metric",
+);
+
+assert.equal(
+	efficiencyBlendScore(topRow),
+	30,
+	"bubble size should use a 50/50 blend of Cost Efficiency and Time Efficiency",
+);
+
 const axisOptions = frontierEfficiencyAxisOptions(rows, false);
+assert.deepEqual(
+	axisOptions.map((option) => [option.key, option.label]),
+	[
+		["costEfficiency", "Cost Efficiency"],
+		["timeEfficiency", "Time Efficiency"],
+		["cost", "Task Cost"],
+		["time", "Task Time"],
+		["tokens", "Task Tokens"],
+	],
+	"axis options should separate Cost Efficiency and Time Efficiency from raw resource units",
+);
+assert.equal(
+	frontierAxisDescription("cost", true),
+	"Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy; lower is better.",
+	"aggregate raw resource axes should explain that they are normalized amounts, not efficiency scores",
+);
+assert.equal(
+	frontierAxisDescription("time", true),
+	"Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy; lower is better.",
+	"aggregate time axis should use MEAN NORMALIZED task wording",
+);
+assert.equal(
+	frontierAxisDescription("tokens", false, topRow),
+	"Task Tokens is the observed per-task token use for the selected benchmark; lower is better.",
+	"benchmark token axis should use Task Tokens wording",
+);
+assert.equal(
+	frontierAxisDescription("costEfficiency", true),
+	"COST EFFICIENCY is a relative value score: benchmark quality per dollar compared with similarly scoring models.",
+	"Cost Efficiency should describe the relative value score separately from raw cost",
+);
+const allCostAxis = frontierEfficiencyAxisConfigFor("cost", true);
+assert.equal(
+	frontierAxisMetricLabel(allCostAxis, true, rows),
+	"MEAN NORMALIZED cost (per task/total)",
+	"aggregate resource axes should use MEAN NORMALIZED task labels",
+);
+assert.equal(
+	frontierAxisMetricLabel(costAxis, false, rows),
+	"DeepSWE cost per task",
+	"benchmark resource axes should name the selected benchmark resource",
+);
+
+const totalPortfolio = {
+	agents_last_exam: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+		resourcePolicy: {
+			source: "benchmark",
+			unit: "total",
+			tokenMeasure: "tokens",
+		},
+	},
+} satisfies BenchmarkPortfolio;
+const totalModel = {
+	...minimalLlmStatsModel({ id: "provider/total", name: "Total" }),
+	evaluations: {
+		agents_last_exam: 0.7,
+	},
+	task_metrics: {
+		agents_last_exam: {
+			cost: 99,
+			seconds: 3_600,
+			input_tokens: 10_000,
+			output_tokens: 2_000,
+		},
+	},
+	relative_scores: {
+		intelligence_score: 70,
+		agentic_score: 0,
+		speed_score: 0,
+		time_efficiency_score: 60,
+		price_score: 50,
+		cost_efficiency_score: 40,
+		overall_score: 0,
+	},
+} satisfies LlmStatsModel;
+const totalRow = frontierEfficiencyRows([totalModel], totalPortfolio)[0];
+assert.ok(totalRow);
+assert.deepEqual(
+	frontierEfficiencyHoverRows(totalRow, costAxis),
+	[
+		["Benchmark score", "70%"],
+		["Agents' Last Exam total cost", "$99"],
+		["Efficiency blend", "50.0"],
+	],
+	"total-resource benchmarks should say total instead of per task",
+);
+assert.equal(
+	frontierAxisDescription("cost", false, totalRow),
+	"Task Cost is the observed total dollars for the selected benchmark; lower is better.",
+	"total-resource benchmark descriptions should say total instead of per task",
+);
 assert.equal(
 	selectedFrontierEfficiencyAxisKey("tokens", axisOptions),
 	"tokens",
@@ -116,8 +233,8 @@ assert.equal(
 			option.key === "time" ? { ...option, disabled: true } : option,
 		),
 	),
-	"cost",
-	"disabled axes should fall back to the default available cost axis",
+	"costEfficiency",
+	"disabled axes should fall back to the default available efficiency axis",
 );
 
 /** Build a minimal model with one Frontier Efficiency benchmark observation. */

@@ -60,7 +60,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "Blended price per 1M tokens",
 		hoverLabel: "Blend price",
-		read: "Shows whether price actually buys broad intelligence, and where cheap high-ceiling models break the curve.",
+		read: "Shows whether price actually buys broad INTELLIGENCE, and where cheap high-ceiling models break the curve.",
 	},
 	{
 		key: "speed",
@@ -88,7 +88,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		format: fmtSeconds,
 		tooltipFormat: (value) => `${fmtTooltipNumber(value)}s`,
 		xLabel: "End-to-end response time",
-		read: "Makes the practical waiting-time tradeoff visible instead of ranking intelligence in isolation.",
+		read: "Makes the practical waiting-time tradeoff visible instead of ranking INTELLIGENCE in isolation.",
 	},
 	{
 		key: "context",
@@ -130,8 +130,8 @@ export const interactionConfigs: InteractionConfig[] = [
 			context.frontierScoreByModel.get(modelKey(model)) ?? null,
 		format: (value) => `${value.toFixed(0)}%`,
 		tooltipFormat: fmtPercentScore,
-		xLabel: "Frontier benchmark normalized score",
-		read: "Shows whether broad intelligence agrees with each model's mean normalized frontier benchmark score.",
+		xLabel: "MEAN NORMALIZED frontier benchmark score",
+		read: "Shows whether broad INTELLIGENCE agrees with each model's MEAN NORMALIZED frontier benchmark score.",
 	},
 ];
 

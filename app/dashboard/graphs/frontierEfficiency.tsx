@@ -12,8 +12,10 @@ import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import { finite, fmtPercentScore } from "./format";
 import {
 	axisSummaryDetail,
+	efficiencyBlendScore,
 	type FrontierEfficiencyAxisKey,
 	type FrontierEfficiencyRow,
+	frontierAxisDescription,
 	frontierAxisMetricLabel,
 	frontierEfficiencyAxisConfig,
 	frontierEfficiencyAxisConfigFor,
@@ -29,7 +31,6 @@ import {
 	normalizedFrontierEfficiencyRows,
 	positiveMetric,
 	selectedFrontierEfficiencyAxisKey,
-	timeEfficiencyScore,
 } from "./frontierEfficiencyModel";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
@@ -122,7 +123,7 @@ export function FrontierEfficiencyPanel({
 	const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
 	const scoreValues = rows.map((row) => row.score).filter(finite);
 	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
-	const bubbleValue = timeEfficiencyScore;
+	const bubbleValue = efficiencyBlendScore;
 	const bubbleRadius = linearBubbleRadius(rows.map(bubbleValue), 4, 13);
 	const summaryRows = frontierEfficiencySummaryRows(rows, axisConfig);
 	if (summaryRows == null) {
@@ -133,14 +134,22 @@ export function FrontierEfficiencyPanel({
 	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
 	const plotRows = [...rows].sort((left, right) => left.score - right.score);
 	const yAxisLabel = isAllBenchmark
-		? "Normalized benchmark score"
+		? "MEAN NORMALIZED benchmark score"
 		: "Benchmark score";
 	const summaryLabel = isAllBenchmark
-		? "Mean normalized frontier score"
+		? "MEAN NORMALIZED frontier score"
 		: "Benchmark score";
+	const axisDescription = frontierAxisDescription(
+		selectedAxisKey,
+		isAllBenchmark,
+		rows[0],
+	);
+	const xMetricProseLabel = xMetricLabel
+		.replace(/cost efficiency/gi, "COST EFFICIENCY")
+		.replace(/time efficiency/gi, "TIME EFFICIENCY");
 	const panelCopy = isAllBenchmark
-		? `Each point is one model: mean normalized frontier benchmark score against ${xMetricLabel.toLowerCase()}.`
-		: `${leader.benchmarkLabel} score plotted against ${xMetricLabel.toLowerCase()}.`;
+		? `Each point is one model: MEAN NORMALIZED frontier benchmark score against ${xMetricProseLabel}. ${axisDescription}`
+		: `${leader.benchmarkLabel} score plotted against ${xMetricProseLabel}. ${axisDescription}`;
 	const leaderDetail = axisSummaryDetail(leader, axisConfig);
 
 	return (
@@ -160,7 +169,7 @@ export function FrontierEfficiencyPanel({
 		>
 			<div className={styles.chartToolbar}>
 				<GraphToggle
-					legend="Frontier Efficiency benchmark"
+					legend="Frontier efficiency benchmark"
 					options={[
 						{
 							key: "all",
@@ -178,7 +187,7 @@ export function FrontierEfficiencyPanel({
 					layout="stacked"
 				/>
 				<GraphToggle
-					legend="Frontier Efficiency axis"
+					legend="Frontier efficiency axis"
 					options={Object.entries(frontierEfficiencyAxisConfig).map(
 						([key, config]) =>
 							axisOptions.find((option) => option.key === key) ?? {
@@ -192,7 +201,7 @@ export function FrontierEfficiencyPanel({
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble size = time efficiency score
+						Bubble size = Efficiency
 					</span>
 				</div>
 			</div>
@@ -205,7 +214,7 @@ export function FrontierEfficiencyPanel({
 				yTicks={scoreAxis.ticks}
 				yAxisLabel={yAxisLabel}
 				keyPrefix={`frontier-efficiency-${selectedBenchmarkKey}-${selectedAxisKey}`}
-				ariaLabel="Frontier Efficiency scatter plot"
+				ariaLabel={`${axisConfig.label} frontier scatter plot`}
 				bubbleValue={bubbleValue}
 				bubbleRadius={bubbleRadius}
 				getScore={(row) => row.score}

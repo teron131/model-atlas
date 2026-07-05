@@ -206,7 +206,7 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-	return "Intelligence and Agentic blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. Speed blends raw provider speed stats and workflow simulation: higher throughput ranks higher, while lower latency and workflow seconds rank higher. Time efficiency measures benchmark task-time value against similarly scoring models; when explicit runtime is missing, served throughput estimates task time from output tokens. Cost efficiency measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
+	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED blends raw provider speed stats and workflow simulation: higher throughput ranks higher, while lower latency and workflow seconds rank higher. TIME EFFICIENCY measures benchmark task-time value against similarly scoring models; when explicit runtime is missing, served throughput estimates task time from output tokens. COST EFFICIENCY measures benchmark task-cost value against similarly scoring models; higher means better resource value at comparable benchmark quality.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
