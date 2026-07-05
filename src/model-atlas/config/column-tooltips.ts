@@ -510,7 +510,7 @@ export function columnTooltipsForActiveComponents(
 		},
 		deepSWE: {
 			title: "DeepSWE",
-			body: "Coding-agent benchmark. This score uses each model's best pass@1 configuration.",
+			body: "Coding-agent benchmark. This score uses the xhigh row when available, otherwise the best reported pass@1 row.",
 			rows: [
 				["Source", "DeepSWE leaderboard"],
 				["Sort", HIGHER_FIRST_TEXT],

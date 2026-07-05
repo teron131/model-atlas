@@ -165,7 +165,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	deep_swe: {
 		title: "DeepSWE",
-		body: "Coding-agent benchmark. This score uses each model's best pass@1 configuration.",
+		body: "Coding-agent benchmark. This score uses the xhigh row when available, otherwise the best reported pass@1 row.",
 		rows: [
 			["Source", "DeepSWE leaderboard"],
 			["Role", "coding agent work"],
@@ -189,7 +189,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	vals_index: {
 		title: "Vals Index",
-		body: "Vals AI proprietary composite over finance and coding tasks. Model Atlas uses only the overall score as a normal baseline signal.",
+		body: "Vals Index aggregates finance and coding tasks, including non-public Vals-built components. Model Atlas uses only the overall score as a normal baseline signal.",
 		rows: [
 			["Source", "Vals AI"],
 			["Role", "professional finance and coding work"],
