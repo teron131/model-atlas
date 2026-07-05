@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	PRIMARY KEY (run_id, row_index)
 );
 
-CREATE TABLE IF NOT EXISTS artificial_analysis_evaluation_resource_raw_rows (
+CREATE TABLE IF NOT EXISTS artificial_analysis_evaluations_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_evaluation_resource_raw_rows (
 	provider_id TEXT,
 	reasoning_effort TEXT,
 	score REAL NOT NULL,
-	task_count INTEGER NOT NULL,
+	task_run_count INTEGER NOT NULL,
 	cost_per_task_usd REAL NOT NULL,
 	seconds_per_task REAL NOT NULL,
 	tokens_per_task REAL NOT NULL,
@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
 	task TEXT NOT NULL,
 	task_label TEXT NOT NULL,
 	row_kind TEXT NOT NULL,
-	raw_model_id TEXT,
+	source_model_id TEXT,
 	model_id TEXT NOT NULL,
 	model TEXT NOT NULL,
 	provider TEXT,
@@ -355,7 +355,7 @@ CREATE TABLE IF NOT EXISTS source_health (
 	PRIMARY KEY (run_id, row_index)
 );
 
-CREATE TABLE IF NOT EXISTS processed_models (
+CREATE TABLE IF NOT EXISTS model_stage_rows (
 	run_id INTEGER NOT NULL,
 	stage TEXT NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -435,9 +435,9 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	terminalbench_v21_task_tokens REAL,
 	terminalbench_v21_task_input_tokens REAL,
 	terminalbench_v21_task_output_tokens REAL,
-	raw_intelligence_score REAL,
-	raw_agentic_score REAL,
-	raw_speed_score REAL,
+	component_intelligence_score REAL,
+	component_agentic_score REAL,
+	component_speed_score REAL,
 	intelligence_score REAL,
 	agentic_score REAL,
 	speed_score REAL,
@@ -446,7 +446,7 @@ CREATE TABLE IF NOT EXISTS processed_models (
 	PRIMARY KEY (run_id, stage, row_index)
 );
 
-CREATE TABLE IF NOT EXISTS matcher_debug (
+CREATE TABLE IF NOT EXISTS model_match_debug (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	trace_kind TEXT NOT NULL,
@@ -478,8 +478,10 @@ CREATE INDEX IF NOT EXISTS idx_source_row_states_source_key ON source_row_states
 CREATE INDEX IF NOT EXISTS idx_source_row_states_status ON source_row_states(status);
 CREATE INDEX IF NOT EXISTS idx_source_health_source ON source_health(source);
 CREATE INDEX IF NOT EXISTS idx_source_health_status ON source_health(status);
-CREATE INDEX IF NOT EXISTS idx_processed_models_model_id ON processed_models(model_id);
-CREATE INDEX IF NOT EXISTS idx_matcher_debug_artificial_analysis_id
-	ON matcher_debug(artificial_analysis_id);
-CREATE INDEX IF NOT EXISTS idx_matcher_debug_candidate_model_id ON matcher_debug(candidate_model_id);
-CREATE INDEX IF NOT EXISTS idx_matcher_debug_selected_model_id ON matcher_debug(selected_model_id);
+CREATE INDEX IF NOT EXISTS idx_model_stage_rows_model_id ON model_stage_rows(model_id);
+CREATE INDEX IF NOT EXISTS idx_model_match_debug_artificial_analysis_id
+	ON model_match_debug(artificial_analysis_id);
+CREATE INDEX IF NOT EXISTS idx_model_match_debug_candidate_model_id
+	ON model_match_debug(candidate_model_id);
+CREATE INDEX IF NOT EXISTS idx_model_match_debug_selected_model_id
+	ON model_match_debug(selected_model_id);

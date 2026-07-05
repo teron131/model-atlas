@@ -10,7 +10,7 @@ export function insertDebugTraceRows(
 	rows: readonly DebugTraceRow[],
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO matcher_debug (
+		INSERT INTO model_match_debug (
 			run_id, row_index, trace_kind, artificial_analysis_id,
 			artificial_analysis_slug, artificial_analysis_name,
 			artificial_analysis_raw_row_index, candidate_rank,

@@ -17,13 +17,13 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 const page = {
 	benchmark_key: "hle",
 	url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
-	task_count: 2,
+	task_run_count: 2,
 };
 const terminalBenchPage = {
 	benchmark_key: "terminalbench_v21",
 	score_key: "terminalbench_v2_1",
 	url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-	task_count: 2,
+	task_run_count: 2,
 };
 
 const rows = processArtificialAnalysisEvaluationResourceRows(
@@ -78,7 +78,7 @@ assertDeepEqual(rows, [
 		provider_id: "anthropic",
 		reasoning_effort: "max",
 		score: 0.42,
-		task_count: 2,
+		task_run_count: 2,
 		cost_per_task_usd: 2,
 		seconds_per_task: 12,
 		tokens_per_task: 50,
@@ -139,7 +139,7 @@ assertDeepEqual(
 		provider_id: "openai",
 		reasoning_effort: "xhigh",
 		score: 0.84,
-		task_count: 2,
+		task_run_count: 2,
 		cost_per_task_usd: 1,
 		seconds_per_task: 100,
 		tokens_per_task: 10,

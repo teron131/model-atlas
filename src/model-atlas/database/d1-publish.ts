@@ -22,7 +22,7 @@ import {
 import { readDatabasePayload } from "./payload";
 import { loadSchemaSql, schemaTableColumns } from "./schema";
 import { DEFAULT_DATABASE_PATH, SNAPSHOT_TABLES } from "./types";
-import { insertProcessedModelRows } from "./writers";
+import { insertModelStageRows } from "./writers";
 
 const DEFAULT_IMPORT_SQL_PATH = resolve(".cache/d1-publish.sql");
 const INSERT_ROWS_PER_STATEMENT = 100;
@@ -149,9 +149,9 @@ function rewriteFinalModelRows(
 		db.exec("BEGIN");
 		try {
 			db.prepare(
-				`DELETE FROM ${SNAPSHOT_TABLES.processed_models} WHERE run_id = ? AND stage = 'final'`,
+				`DELETE FROM ${SNAPSHOT_TABLES.model_stage_rows} WHERE run_id = ? AND stage = 'final'`,
 			).run(runId);
-			insertProcessedModelRows(db, runId, "final", models);
+			insertModelStageRows(db, runId, "final", models);
 			db.exec("COMMIT");
 		} catch (error) {
 			db.exec("ROLLBACK");
@@ -427,7 +427,7 @@ async function d1Verification(
 		SNAPSHOT_TABLES.artificial_analysis,
 		SNAPSHOT_TABLES.models_dev,
 		SNAPSHOT_TABLES.deep_swe,
-		SNAPSHOT_TABLES.processed_models,
+		SNAPSHOT_TABLES.model_stage_rows,
 		SNAPSHOT_TABLES.source_row_states,
 	];
 	const counts = Object.fromEntries(

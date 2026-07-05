@@ -7,7 +7,13 @@ import {
 	payloadRunFromRow,
 	readPayloadRows,
 } from "./payload";
-import { loadSchemaSql, schemaTableColumns, schemaTableNames } from "./schema";
+import {
+	loadSchemaSql,
+	quoteIdentifier,
+	type SchemaColumnShape,
+	schemaTableMatches,
+	schemaTableShapes,
+} from "./schema";
 
 export type D1Value = string | number | null;
 export type D1Rows = Record<string, unknown>[];
@@ -129,29 +135,12 @@ export async function queryD1(
 	return result ?? {};
 }
 
-/** Returns all row objects from a Cloudflare D1 SQL query. */
-async function allD1(sql: string, params: D1Value[] = []): Promise<D1Rows> {
-	return queryD1Rows(sql, params);
-}
-
 /** Returns row objects from a Cloudflare D1 SQL query. */
 export async function queryD1Rows(
 	sql: string,
 	params: D1Value[] = [],
 ): Promise<D1Rows> {
 	return resultRows(await queryD1(sql, params));
-}
-
-function assertIdentifier(value: string): void {
-	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
-		throw new Error(`Unsafe SQL identifier: ${value}`);
-	}
-}
-
-/** Quotes a validated SQL identifier for D1 statements. */
-function quoteIdentifier(value: string): string {
-	assertIdentifier(value);
-	return `"${value}"`;
 }
 
 /** Splits the shared schema SQL into D1-compatible statements. */
@@ -170,50 +159,65 @@ function splitSqlStatements(sql: string): string[] {
 /** Applies the shared Model Atlas schema to Cloudflare D1. */
 export async function ensureD1Schema(): Promise<string[]> {
 	const schemaSql = await loadSchemaSql();
-	await repairProcessedModelsColumnLimit();
+	await replaceD1SchemaOnDrift(schemaSql);
 	const statements = splitSqlStatements(schemaSql);
 	for (const statement of statements.filter(
 		(statement) => !/^CREATE\s+INDEX\b/i.test(statement),
 	)) {
 		await queryD1(statement);
 	}
-	await ensureD1SchemaColumns(schemaSql);
 	for (const statement of statements.filter((statement) =>
 		/^CREATE\s+INDEX\b/i.test(statement),
 	)) {
 		await queryD1(statement);
 	}
-	return schemaTableNames(schemaSql);
+	return [...schemaTableShapes(schemaSql).keys()];
 }
 
-/** Recreate processed_models when a failed migration filled D1's column limit with stale columns. */
-async function repairProcessedModelsColumnLimit(): Promise<void> {
-	const columns = await allD1("PRAGMA table_info(processed_models)").catch(
-		() => [],
-	);
-	if (
-		columns.length >= 100 &&
-		!columns.some((row) => row.name === "task_metrics_json")
-	) {
-		await queryD1("DROP TABLE IF EXISTS processed_models");
-	}
-}
-
-/** Adds missing schema columns when D1 is behind the shared schema. */
-async function ensureD1SchemaColumns(schemaSql: string): Promise<void> {
-	for (const [table, columns] of schemaTableColumns(schemaSql)) {
-		const existingColumns = new Set(
-			(await allD1(`PRAGMA table_info(${quoteIdentifier(table)})`)).flatMap(
-				(row) => (typeof row.name === "string" ? [row.name] : []),
-			),
-		);
-		for (const [column, type] of columns) {
-			if (!existingColumns.has(column)) {
-				await queryD1(
-					`ALTER TABLE ${quoteIdentifier(table)} ADD COLUMN ${quoteIdentifier(column)} ${type}`,
-				);
+async function d1TableColumns(
+	table: string,
+): Promise<Map<string, SchemaColumnShape>> {
+	return new Map(
+		(
+			await queryD1Rows(`PRAGMA table_info(${quoteIdentifier(table)})`).catch(
+				() => [],
+			)
+		).flatMap((row) => {
+			if (typeof row.name !== "string") {
+				return [];
 			}
-		}
+			return [
+				[
+					row.name,
+					{
+						type: typeof row.type === "string" ? row.type.toUpperCase() : "",
+						notNull: row.notnull === 1,
+						primaryKey: typeof row.pk === "number" ? row.pk : 0,
+					},
+				] satisfies [string, SchemaColumnShape],
+			];
+		}),
+	);
+}
+
+/** Replace D1 snapshot tables when any existing table drifts from the shared schema. */
+async function replaceD1SchemaOnDrift(schemaSql: string): Promise<void> {
+	const schemaTables = schemaTableShapes(schemaSql);
+	const tableEntries = [...schemaTables];
+	const driftChecks = await Promise.all(
+		tableEntries.map(async ([table, columns]) => {
+			const existingColumns = await d1TableColumns(table);
+			return (
+				existingColumns.size > 0 &&
+				!schemaTableMatches(existingColumns, columns)
+			);
+		}),
+	);
+	if (!driftChecks.some(Boolean)) {
+		return;
+	}
+	for (const table of schemaTables.keys()) {
+		await queryD1(`DROP TABLE IF EXISTS ${quoteIdentifier(table)}`);
 	}
 }
 
@@ -222,13 +226,13 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 	if (!d1Configured()) {
 		return null;
 	}
-	const run = payloadRunFromRow((await allD1(COMPLETED_RUN_SQL))[0]);
+	const run = payloadRunFromRow((await queryD1Rows(COMPLETED_RUN_SQL))[0]);
 	if (run == null) {
 		return null;
 	}
 	return buildPayloadFromRows(
 		await readPayloadRows(run, (rowGroup, runId) =>
-			allD1(rowGroup.sql, [runId]),
+			queryD1Rows(rowGroup.sql, [runId]),
 		),
 	);
 }

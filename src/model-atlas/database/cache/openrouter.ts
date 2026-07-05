@@ -15,14 +15,15 @@ import { asFiniteNumber } from "../../shared";
 import {
 	type CacheDbRow,
 	firstEpochSecond,
-	queryCacheRows,
+	queryLatestCacheRows,
 	stringValue,
 } from "./source-readers";
 
 export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
-	const candidateRows = queryCacheRows(
+	const candidateRows = queryLatestCacheRows(
 		db,
-		"SELECT model_id, permaslug FROM openrouter_raw_rows WHERE row_kind = 'permaslug_candidate'",
+		"openrouter_raw_rows",
+		"SELECT model_id, permaslug FROM openrouter_raw_rows WHERE run_id = ? AND row_kind = 'permaslug_candidate'",
 	);
 	for (const row of candidateRows) {
 		const modelId = stringValue(row.model_id);
@@ -149,9 +150,10 @@ function openRouterModelRows(
 export function readOpenRouterRawCache(
 	db: DatabaseSync,
 ): OpenRouterRawScrapedPayload | null {
-	const cacheRows = queryCacheRows(
+	const cacheRows = queryLatestCacheRows(
 		db,
-		"SELECT * FROM openrouter_raw_rows ORDER BY row_index",
+		"openrouter_raw_rows",
+		"SELECT * FROM openrouter_raw_rows WHERE run_id = ? ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;

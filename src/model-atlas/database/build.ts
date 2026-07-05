@@ -39,9 +39,9 @@ import {
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
 	insertGdpPdfRawRows,
+	insertModelStageRows,
 	insertModelsDevRawModels,
 	insertOpenRouterRawRows,
-	insertProcessedModelRows,
 	insertRiemannBenchRawRows,
 	insertSourceHealth,
 	insertSourceRowStates,
@@ -152,16 +152,16 @@ const SNAPSHOT_WRITERS = [
 			insertSourceHealth(db, runId, rows.sourceHealth),
 	},
 	{
-		table: SNAPSHOT_TABLES.processed_models,
+		table: SNAPSHOT_TABLES.model_stage_rows,
 		write: (db, runId, rows) => {
-			insertProcessedModelRows(db, runId, "matched", rows.matchedTextLlmRows);
-			insertProcessedModelRows(db, runId, "catalog", rows.catalogRows);
-			insertProcessedModelRows(db, runId, "enriched", rows.enrichedRows);
-			insertProcessedModelRows(db, runId, "final", rows.finalModelRows);
+			insertModelStageRows(db, runId, "matched", rows.matchedTextLlmRows);
+			insertModelStageRows(db, runId, "catalog", rows.catalogRows);
+			insertModelStageRows(db, runId, "enriched", rows.enrichedRows);
+			insertModelStageRows(db, runId, "final", rows.finalModelRows);
 		},
 	},
 	{
-		table: SNAPSHOT_TABLES.matcher_debug,
+		table: SNAPSHOT_TABLES.model_match_debug,
 		write: (db, runId, rows) =>
 			insertDebugTraceRows(db, runId, rows.debugTraceRows),
 	},

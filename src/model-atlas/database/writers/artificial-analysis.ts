@@ -239,9 +239,9 @@ export function insertArtificialAnalysisEvaluationResourceRawRows(
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO artificial_analysis_evaluation_resource_raw_rows (
+		INSERT INTO artificial_analysis_evaluations_raw_rows (
 			run_id, row_index, fetched_at_epoch_seconds, url, benchmark_key, model_id,
-			model, provider, provider_id, reasoning_effort, score, task_count,
+			model, provider, provider_id, reasoning_effort, score, task_run_count,
 			cost_per_task_usd, seconds_per_task, tokens_per_task,
 			input_tokens_per_task, output_tokens_per_task, answer_tokens_per_task,
 			reasoning_tokens_per_task
@@ -263,7 +263,7 @@ export function insertArtificialAnalysisEvaluationResourceRawRows(
 			row.provider_id,
 			row.reasoning_effort,
 			row.score,
-			row.task_count,
+			row.task_run_count,
 			row.cost_per_task_usd,
 			row.seconds_per_task,
 			row.tokens_per_task,

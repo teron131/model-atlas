@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase } from "../src/model-atlas/database/schema";
-import { insertProcessedModelRows } from "../src/model-atlas/database/writers";
+import { insertModelStageRows } from "../src/model-atlas/database/writers";
 
 const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");
@@ -22,7 +22,7 @@ try {
 			`)
 			.run(1_800_000_000, 1_800_000_001, 1, 1, 1);
 		const runId = Number(run.lastInsertRowid);
-		insertProcessedModelRows(db, runId, "final", [
+		insertModelStageRows(db, runId, "final", [
 			{
 				id: "example/math-model",
 				provider: "example",
@@ -103,7 +103,7 @@ try {
 	assert.equal(
 		payload.models[0]?.evaluations?.riemann_bench,
 		0.42,
-		"Riemann-bench should survive the main processed_models DB payload path",
+		"Riemann-bench should survive the main model_stage_rows DB payload path",
 	);
 	assert.equal(
 		payload.metadata.artificial_analysis.available_evaluation_keys.includes(

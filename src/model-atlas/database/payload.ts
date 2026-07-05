@@ -70,7 +70,7 @@ export const COMPLETED_RUN_SQL =
 export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 	{
 		key: "modelRows",
-		sql: "SELECT * FROM processed_models WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
+		sql: "SELECT * FROM model_stage_rows WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
 	},
 	{
 		key: "sourceHealthRows",
@@ -312,9 +312,10 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 
 function buildScores(row: DbRow): LlmStatsNullableScores {
 	return {
-		intelligence_score: asFiniteNumber(row.raw_intelligence_score) ?? null,
-		agentic_score: asFiniteNumber(row.raw_agentic_score) ?? null,
-		speed_score: asFiniteNumber(row.raw_speed_score) ?? null,
+		intelligence_score:
+			asFiniteNumber(row.component_intelligence_score) ?? null,
+		agentic_score: asFiniteNumber(row.component_agentic_score) ?? null,
+		speed_score: asFiniteNumber(row.component_speed_score) ?? null,
 	};
 }
 
@@ -438,10 +439,17 @@ export async function readPayloadRows(
 ): Promise<PayloadRows> {
 	const rowGroups = await Promise.all(
 		PAYLOAD_ROW_GROUPS.map(async (rowGroup) => {
-			return [rowGroup.key, await readRows(rowGroup, run.id)] as [
-				PayloadRowKey,
-				DbRow[],
-			];
+			try {
+				return [rowGroup.key, await readRows(rowGroup, run.id)] as [
+					PayloadRowKey,
+					DbRow[],
+				];
+			} catch (error) {
+				if (rowGroup.optional === true) {
+					return [rowGroup.key, []] as [PayloadRowKey, DbRow[]];
+				}
+				throw error;
+			}
 		}),
 	);
 	return buildPayloadRows(run, rowGroups);
