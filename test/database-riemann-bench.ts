@@ -40,6 +40,7 @@ try {
 					intelligence_score: 90,
 					agentic_score: 20,
 					speed_score: 50,
+					time_efficiency_score: 50,
 					price_score: 60,
 					cost_efficiency_score: 65,
 					overall_score: 70,

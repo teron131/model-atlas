@@ -5,6 +5,9 @@ export type {
 	OpenRouterEndpointStatsResponse,
 	OpenRouterFrontendModel,
 	OpenRouterModelStats,
+	OpenRouterPerformanceEstimate,
+	OpenRouterPerformanceEstimateKind,
+	OpenRouterPerformanceMetric,
 	OpenRouterPerformanceSummary,
 	OpenRouterPricingSummary,
 	OpenRouterRawScrapedModel,
@@ -15,10 +18,12 @@ export type {
 	OpenRouterStatsResponse,
 } from "./stats";
 export {
+	buildOpenRouterSeriesTokenWeights,
 	buildOpenRouterSlugCandidates,
 	parseOpenRouterWeeklyTokens,
 	processOpenRouterModelStats,
 	selectOpenRouterRawModelStats,
+	summarizeOpenRouterPerformanceEstimates,
 } from "./stats";
 export type {
 	OpenRouterScraperOptions,

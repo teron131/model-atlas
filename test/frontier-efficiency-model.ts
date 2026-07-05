@@ -43,7 +43,7 @@ const efficient = frontierModel({
 	inputTokens: 1_000,
 	outputTokens: 200,
 	priceScore: 95,
-	speedScore: 80,
+	timeEfficiencyScore: 80,
 	intelligenceScore: 72,
 });
 const expensive = frontierModel({
@@ -55,7 +55,7 @@ const expensive = frontierModel({
 	inputTokens: 2_000,
 	outputTokens: 1_000,
 	priceScore: 40,
-	speedScore: 20,
+	timeEfficiencyScore: 20,
 	intelligenceScore: 91,
 });
 
@@ -92,9 +92,9 @@ assert.deepEqual(
 	[
 		["Benchmark score", "90%"],
 		["Benchmark cost per task", "$8.0"],
-		["Speed score", "20.0"],
+		["Time efficiency score", "20.0"],
 	],
-	"hover rows should describe selected benchmark score, resource axis, and speed",
+	"hover rows should describe selected benchmark score, resource axis, and time efficiency",
 );
 
 assert.equal(
@@ -130,7 +130,7 @@ function frontierModel({
 	inputTokens,
 	outputTokens,
 	priceScore,
-	speedScore,
+	timeEfficiencyScore,
 	intelligenceScore,
 }: {
 	id: string;
@@ -141,7 +141,7 @@ function frontierModel({
 	inputTokens: number;
 	outputTokens: number;
 	priceScore: number;
-	speedScore: number;
+	timeEfficiencyScore: number;
 	intelligenceScore: number;
 }): LlmStatsModel {
 	return {
@@ -161,7 +161,8 @@ function frontierModel({
 		relative_scores: {
 			intelligence_score: intelligenceScore,
 			agentic_score: 0,
-			speed_score: speedScore,
+			speed_score: 0,
+			time_efficiency_score: timeEfficiencyScore,
 			price_score: priceScore,
 			cost_efficiency_score: priceScore,
 			overall_score: 0,

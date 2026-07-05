@@ -29,7 +29,7 @@ import {
 	normalizedFrontierEfficiencyRows,
 	positiveMetric,
 	selectedFrontierEfficiencyAxisKey,
-	speedScore,
+	timeEfficiencyScore,
 } from "./frontierEfficiencyModel";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
@@ -122,7 +122,7 @@ export function FrontierEfficiencyPanel({
 	const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
 	const scoreValues = rows.map((row) => row.score).filter(finite);
 	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
-	const bubbleValue = speedScore;
+	const bubbleValue = timeEfficiencyScore;
 	const bubbleRadius = linearBubbleRadius(rows.map(bubbleValue), 4, 13);
 	const summaryRows = frontierEfficiencySummaryRows(rows, axisConfig);
 	if (summaryRows == null) {
@@ -192,7 +192,7 @@ export function FrontierEfficiencyPanel({
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
-						Bubble size = speed score
+						Bubble size = time efficiency score
 					</span>
 				</div>
 			</div>

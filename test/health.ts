@@ -326,6 +326,7 @@ function model(
 			intelligence_score: overallScore,
 			agentic_score: overallScore,
 			speed_score: null,
+			time_efficiency_score: null,
 			price_score: null,
 			cost_efficiency_score: null,
 			overall_score: overallScore,

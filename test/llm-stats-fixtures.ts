@@ -88,6 +88,7 @@ export function minimalLlmStatsModel({
 			intelligence_score: 0,
 			agentic_score: 0,
 			speed_score: 0,
+			time_efficiency_score: 0,
 			price_score: null,
 			cost_efficiency_score: null,
 			overall_score: 0,

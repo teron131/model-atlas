@@ -331,6 +331,10 @@ export function ParetoFrontierPanel({
 								fmtTooltipScore(model.relative_scores.speed_score),
 							],
 							[
+								"Time efficiency score",
+								fmtTooltipScore(model.relative_scores.time_efficiency_score),
+							],
+							[
 								"Cost efficiency score",
 								fmtTooltipScore(model.relative_scores.cost_efficiency_score),
 							],

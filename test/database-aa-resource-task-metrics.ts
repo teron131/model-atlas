@@ -64,6 +64,7 @@ try {
 					intelligence_score: 90,
 					agentic_score: 80,
 					speed_score: 70,
+					time_efficiency_score: 70,
 					price_score: 60,
 					cost_efficiency_score: 65,
 					overall_score: 75,
@@ -90,12 +91,12 @@ try {
 		input_tokens: 80,
 		output_tokens: 120,
 	});
-	const speedTooltip = JSON.stringify(
-		payload.metadata.scoring.column_tooltips.speed,
+	const timeTooltip = JSON.stringify(
+		payload.metadata.scoring.column_tooltips.timeEfficiency,
 	);
-	assert.equal(speedTooltip.includes("GDPval-AA v2 task speed"), true);
-	assert.equal(speedTooltip.includes("HLE task speed"), true);
-	assert.equal(speedTooltip.includes("Frontier benchmark task speed"), false);
+	assert.equal(timeTooltip.includes("GDPval-AA v2 task time"), true);
+	assert.equal(timeTooltip.includes("HLE task time"), true);
+	assert.equal(timeTooltip.includes("Frontier benchmark task time"), false);
 } finally {
 	await removeDatabaseFiles(databasePath);
 }

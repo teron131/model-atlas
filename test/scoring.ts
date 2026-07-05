@@ -93,7 +93,15 @@ assertEqual(
 	true,
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes("7.0%"),
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
+		"Latency seconds, lower is better",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.timeEfficiency).includes(
+		"task time",
+	),
 	true,
 );
 
@@ -117,17 +125,14 @@ const aaOnlyResourceMetadata = buildCurrentLlmStatsMetadata({
 		frontierBenchmarkKeys: ["hle", "deep_swe"],
 	},
 });
-const aaOnlySpeedTooltip = JSON.stringify(
-	aaOnlyResourceMetadata.scoring.column_tooltips.speed,
+const aaOnlyTimeTooltip = JSON.stringify(
+	aaOnlyResourceMetadata.scoring.column_tooltips.timeEfficiency,
 );
 const aaOnlyValueTooltip = JSON.stringify(
 	aaOnlyResourceMetadata.scoring.column_tooltips.costEfficiency,
 );
-assertEqual(aaOnlySpeedTooltip.includes("70.0%"), true);
-assertEqual(
-	aaOnlySpeedTooltip.includes("Frontier benchmark task speed"),
-	false,
-);
+assertEqual(aaOnlyTimeTooltip.includes("100.0%"), true);
+assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark task time"), false);
 assertEqual(aaOnlyValueTooltip.includes("100.0%"), true);
 assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark task cost"), false);
 
@@ -153,9 +158,9 @@ const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
 	},
 });
 assertEqual(
-	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.speed).includes(
-		"35.0%",
-	),
+	JSON.stringify(
+		mixedResourceMetadata.scoring.column_tooltips.timeEfficiency,
+	).includes("50.0%"),
 	true,
 );
 assertEqual(
@@ -188,8 +193,8 @@ const tokenProxyResourceMetadata = buildCurrentLlmStatsMetadata({
 });
 assertEqual(
 	JSON.stringify(
-		tokenProxyResourceMetadata.scoring.column_tooltips.speed,
-	).includes("DeepSWE task speed"),
+		tokenProxyResourceMetadata.scoring.column_tooltips.timeEfficiency,
+	).includes("DeepSWE task time"),
 	true,
 );
 
@@ -252,8 +257,14 @@ const aaGroupedResourceModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(aaGroupedResourceModels[0]?.relative_scores.speed_score, 100);
-assertClose(aaGroupedResourceModels[1]?.relative_scores.speed_score, 50);
+assertClose(
+	aaGroupedResourceModels[0]?.relative_scores.time_efficiency_score,
+	100,
+);
+assertClose(
+	aaGroupedResourceModels[1]?.relative_scores.time_efficiency_score,
+	50,
+);
 assertEqual(aaGroupedResourceModels[0]?.relative_scores.price_score, null);
 assertEqual(aaGroupedResourceModels[1]?.relative_scores.price_score, null);
 
@@ -286,7 +297,10 @@ const broadAAResourceOnlyModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(broadAAResourceOnlyModels[0]?.relative_scores.speed_score, 100);
+assertClose(
+	broadAAResourceOnlyModels[0]?.relative_scores.time_efficiency_score,
+	100,
+);
 assertEqual(broadAAResourceOnlyModels[0]?.relative_scores.price_score, null);
 assertClose(
 	broadAAResourceOnlyModels[0]?.relative_scores.cost_efficiency_score,
@@ -320,8 +334,34 @@ const tokenProxySpeedModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(tokenProxySpeedModels[0]?.relative_scores.speed_score, 100);
-assertClose(tokenProxySpeedModels[1]?.relative_scores.speed_score, 50);
+assertClose(
+	tokenProxySpeedModels[0]?.relative_scores.time_efficiency_score,
+	100,
+);
+assertClose(
+	tokenProxySpeedModels[1]?.relative_scores.time_efficiency_score,
+	50,
+);
+
+const latencySpeedModels = attachRelativeScores(
+	[
+		modelCandidate({
+			id: "test/low-latency",
+			tps: 100,
+			latency: 1,
+		}),
+		modelCandidate({
+			id: "test/high-latency",
+			tps: 100,
+			latency: 10,
+		}),
+	],
+	STAGE_CONFIG.scoring,
+);
+assertClose(latencySpeedModels[0]?.relative_scores.speed_score, 100);
+assertClose(latencySpeedModels[1]?.relative_scores.speed_score, 62.5);
+assertEqual(latencySpeedModels[0]?.relative_scores.time_efficiency_score, null);
+assertEqual(latencySpeedModels[1]?.relative_scores.time_efficiency_score, null);
 
 const groupPolicyConfig = {
 	...STAGE_CONFIG.scoring,
@@ -417,9 +457,9 @@ const scoredModels = attachRelativeScores(
 assertClose(scoredModels[0]?.relative_scores.price_score, 66.6667);
 assertClose(scoredModels[1]?.relative_scores.price_score, 100);
 assertClose(scoredModels[2]?.relative_scores.price_score, 33.3333);
-assertEqual(scoredModels[0]?.relative_scores.speed_score, null);
-assertEqual(scoredModels[1]?.relative_scores.speed_score, null);
-assertEqual(scoredModels[2]?.relative_scores.speed_score, null);
+assertEqual(scoredModels[0]?.relative_scores.time_efficiency_score, null);
+assertEqual(scoredModels[1]?.relative_scores.time_efficiency_score, null);
+assertEqual(scoredModels[2]?.relative_scores.time_efficiency_score, null);
 
 const sparseComponentModels = attachRelativeScores(
 	[
@@ -446,7 +486,10 @@ const sparseComponentModels = attachRelativeScores(
 );
 
 assertEqual(sparseComponentModels[0]?.relative_scores.price_score, null);
-assertEqual(sparseComponentModels[0]?.relative_scores.speed_score, null);
+assertEqual(
+	sparseComponentModels[0]?.relative_scores.time_efficiency_score,
+	null,
+);
 
 const directResourceScoredModels = attachRelativeScores(
 	[
@@ -495,14 +538,17 @@ assertClose(
 	directResourceScoredModels[2]?.relative_scores.cost_efficiency_score,
 	33.3333,
 );
-assertClose(directResourceScoredModels[0]?.relative_scores.speed_score, 100);
 assertClose(
-	directResourceScoredModels[1]?.relative_scores.speed_score,
+	directResourceScoredModels[0]?.relative_scores.time_efficiency_score,
+	33.3333,
+);
+assertClose(
+	directResourceScoredModels[1]?.relative_scores.time_efficiency_score,
 	66.6667,
 );
 assertClose(
-	directResourceScoredModels[2]?.relative_scores.speed_score,
-	33.3333,
+	directResourceScoredModels[2]?.relative_scores.time_efficiency_score,
+	100,
 );
 
 const costEfficiencyScoredModels = attachRelativeScores(
@@ -651,8 +697,14 @@ const sparseResourceCoverageModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(sparseResourceCoverageModels[0]?.relative_scores.speed_score, 100);
-assertClose(sparseResourceCoverageModels[1]?.relative_scores.speed_score, 50);
+assertClose(
+	sparseResourceCoverageModels[0]?.relative_scores.time_efficiency_score,
+	100,
+);
+assertClose(
+	sparseResourceCoverageModels[1]?.relative_scores.time_efficiency_score,
+	50,
+);
 assertClose(
 	sparseResourceCoverageModels[0]?.relative_scores.cost_efficiency_score,
 	100,
