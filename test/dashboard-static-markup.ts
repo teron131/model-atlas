@@ -57,7 +57,7 @@ const leanInteractionPayload = leanDashboardPayload(
 				evaluations: {
 					deep_swe: 0.6,
 				},
-				relative_scores: {
+				scores: {
 					intelligence_score: 90,
 					agentic_score: 80,
 					speed_score: 70,

@@ -1,45 +1,27 @@
 /** Build final LLM stats rows from enriched model candidates. */
 
 import { cacheStatsLogos } from "../../logo-cache";
-import { attachRelativeScores } from "../scores";
+import { attachFinalScores } from "../scores";
 import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
 import type {
 	FinalStageConfig,
 	LlmStatsEnrichmentResult,
 	LlmStatsModel,
-	LlmStatsModelCandidate,
 	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
 import { buildModelCandidate } from "./model-candidate";
 import { selectPublicModels } from "./public-list";
 
-function publicModelCandidate(model: LlmStatsModel): LlmStatsModelCandidate {
-	return {
-		...model,
-		relative_scores: null,
-	};
-}
-
-function hasPublicRelativeScores(
+function hasPublicScores(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsModel {
 	return (
+		model.component_scores?.intelligence_score != null &&
+		model.component_scores.agentic_score != null &&
 		model.scores?.intelligence_score != null &&
-		model.scores.agentic_score != null &&
-		model.relative_scores.intelligence_score != null &&
-		model.relative_scores.agentic_score != null
+		model.scores.agentic_score != null
 	);
-}
-
-function attachPublicRelativeScores(
-	models: LlmStatsModel[],
-	scoringConfig: ScoringConfig,
-): LlmStatsModel[] {
-	return attachRelativeScores(
-		models.map(publicModelCandidate),
-		scoringConfig,
-	).filter(hasPublicRelativeScores);
 }
 
 export async function buildFinalModels(
@@ -61,15 +43,22 @@ export async function buildFinalModels(
 			qualityContext,
 		),
 	);
-	const scoredCandidates = attachRelativeScores(candidateModels, scoringConfig);
+	const scoredCandidates = attachFinalScores(candidateModels, scoringConfig);
 	const publicModels = selectPublicModels(
 		scoredCandidates,
 		id,
 		finalConfig,
 		scoringConfig,
 	);
+	const rescoredPublicModels = attachFinalScores(
+		publicModels.map((model) => ({
+			...model,
+			scores: null,
+		})),
+		scoringConfig,
+	).filter(hasPublicScores);
 	return cacheStatsLogos(
-		attachPublicRelativeScores(publicModels, scoringConfig),
+		rescoredPublicModels,
 		(model) => model.provider ?? model.id,
 	);
 }

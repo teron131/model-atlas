@@ -322,7 +322,7 @@ function model(
 ) {
 	return {
 		...minimalLlmStatsModel({ id, name }),
-		relative_scores: {
+		scores: {
 			intelligence_score: overallScore,
 			agentic_score: overallScore,
 			speed_score: null,

@@ -54,12 +54,12 @@ try {
 						output_tokens: 120,
 					},
 				},
-				scores: {
+				component_scores: {
 					intelligence_score: 90,
 					agentic_score: 80,
 					speed_score: 70,
 				},
-				relative_scores: {
+				scores: {
 					intelligence_score: 90,
 					agentic_score: 80,
 					speed_score: 70,

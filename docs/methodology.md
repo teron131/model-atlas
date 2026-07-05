@@ -65,7 +65,7 @@ Working quality mix is the same for Intelligence and Agentic:
 
 Baseline and frontier benchmark groups are portion-weighted before they are combined. This keeps the grouping legible: the AA index anchors the dimension, baseline gives broad coverage, and frontier gets extra force as the proof-heavy separation signal.
 
-Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input.
+Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input.
 
 ## Source Notes
 
@@ -98,7 +98,7 @@ Vals Index uses the overall percentage score as a normalized benchmark score and
 The scoring map is:
 
 $$
-\text{raw source fields}\rightarrow\text{benchmark-relative quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value, Overall}
+\text{raw source fields}\rightarrow\text{normalized quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value, Overall}
 $$
 
 Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and benchmark task-time components. Displayed Value combines provider price evidence, workflow price value, and benchmark task-cost components.
@@ -111,7 +111,7 @@ This section gives the scoring rules at the level needed to understand rank move
 
 ### Quality Normalization
 
-Each quality input is first converted into a benchmark-relative score. For model $m$ and benchmark or AA index field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
+Each quality input is first converted into a normalized 0-100 benchmark score. For model $m$ and benchmark or AA index field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
 
 $$
 z_{m,b}=100\cdot\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}}
@@ -129,7 +129,7 @@ $$
 B_{m,D}^{\text{frontier}}=\frac{\sum_{b\in\mathcal{B}^{\text{frontier}}_D}p_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}^{\text{frontier}}_D}p_{b,D}}
 $$
 
-The final quality dimension score uses the same component weights for Intelligence and Agentic:
+The component quality dimension score uses the same component weights for Intelligence and Agentic:
 
 $$
 D_m=0.30z_{m,\text{AA index }D}+0.30B_{m,D}^{\text{baseline}}+0.40B_{m,D}^{\text{frontier}}
@@ -233,7 +233,7 @@ The scenario quality blend $q_{m,s}$ combines Intelligence and Agentic scores fo
 
 ### Speed Score
 
-Displayed Speed is a public relative score that gives equal weight to raw provider speed stats, the workflow runtime simulation, and each active benchmark task-time input:
+Displayed Speed is a public score that gives equal weight to provider speed stats, the workflow runtime simulation, and each active benchmark task-time input:
 
 $$
 \begin{aligned}
@@ -246,7 +246,7 @@ S^{\text{workflow}}_m&=\operatorname{Percentile}_{\text{lower}}(T_{\text{workflo
 \end{aligned}
 $$
 
-Higher throughput ranks higher, while lower latency, lower end-to-end latency, and lower workflow seconds rank higher. The raw stats component requires at least two provider speed stats.
+Higher throughput ranks higher, while lower latency, lower end-to-end latency, and lower workflow seconds rank higher. The provider stats component requires at least two provider speed stats.
 
 ### Task Resource Efficiency
 
@@ -323,7 +323,7 @@ $$
 \end{aligned}
 $$
 
-$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the raw stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over blended price, quality per price, workflow price value, and active benchmark task-cost components.
+$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over blended price, quality per price, workflow price value, and active benchmark task-cost components.
 
 $P^{\text{blend}}_m$ is the lower-is-better percentile for blended provider price, $P^{\text{quality}}_m$ is quality per blended price, and $P^{\text{workflow}}_m$ is the workflow price-value signal.
 
@@ -335,7 +335,7 @@ $$
 \text{Overall}_m=0.35I_m+0.25A_m+0.20\widetilde{T}_m+0.20\widetilde{C}_m
 $$
 
-The overall weights keep 60% of the final score on quality and 40% on task-resource utility. Intelligence gets the largest single share because broad capability is still the primary ranking target; Agentic, the benchmark task-time component, and Value are large enough to move rankings when models are otherwise close.
+The overall weights keep 60% of the overall score on quality and 40% on task-resource utility. Intelligence gets the largest single share because broad capability is still the primary ranking target; Agentic, the benchmark task-time component, and Value are large enough to move rankings when models are otherwise close.
 
 The overall blend uses filled benchmark task-time component $\widetilde{T}_m$ and filled Value $\widetilde{V}_m$. Missing resource evidence is filled only for the overall blend, not as observed evidence. The fill uses the known resource score distribution and a half-strength quality tradeoff prior:
 

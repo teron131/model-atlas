@@ -67,9 +67,9 @@ export function providerEfficiencyRows(
 ): ProviderEfficiencyRow[] {
 	const grouped = new Map<string, ProviderModelPoint[]>();
 	for (const model of models) {
-		const intelligence = finiteValue(model.relative_scores?.intelligence_score);
-		const agentic = finiteValue(model.relative_scores?.agentic_score);
-		const value = finiteValue(model.relative_scores?.value_score);
+		const intelligence = finiteValue(model.scores?.intelligence_score);
+		const agentic = finiteValue(model.scores?.agentic_score);
+		const value = finiteValue(model.scores?.value_score);
 		if (intelligence == null || agentic == null || value == null) {
 			continue;
 		}

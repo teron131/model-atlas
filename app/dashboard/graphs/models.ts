@@ -280,9 +280,7 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 	const byProvider = new Map<string, ProviderOptionDraft>();
 	for (const model of models) {
 		const slug = providerFilterKey(model.provider);
-		const intelligenceScore = finiteValue(
-			model.relative_scores?.intelligence_score,
-		);
+		const intelligenceScore = finiteValue(model.scores?.intelligence_score);
 		const current = byProvider.get(slug) ?? {
 			slug,
 			label: providerName(model),
@@ -364,7 +362,7 @@ function modelMatchesControls(
 }
 
 function modelIntelligenceScore(model: LlmStatsModel) {
-	return finiteValue(model.relative_scores?.intelligence_score) ?? -Infinity;
+	return finiteValue(model.scores?.intelligence_score) ?? -Infinity;
 }
 
 function meanTopProviderScore(scores: number[]) {
@@ -427,10 +425,10 @@ export function stepPath(
 	if (first == null) {
 		return "";
 	}
-	let path = `M${x(Number(first.cost?.blended_price))},${y(first.relative_scores.intelligence_score)}`;
+	let path = `M${x(Number(first.cost?.blended_price))},${y(first.scores.intelligence_score)}`;
 	for (const point of rest) {
 		const nextX = x(Number(point.cost?.blended_price));
-		const nextY = y(point.relative_scores.intelligence_score);
+		const nextY = y(point.scores.intelligence_score);
 		path += ` H${nextX} V${nextY}`;
 	}
 	return path;

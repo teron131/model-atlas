@@ -1,4 +1,4 @@
-/** Relative percentile scoring for final Model Atlas model rows. */
+/** Final percentile scoring for public Model Atlas model rows. */
 
 import {
 	benchmarkDeviation,
@@ -341,7 +341,7 @@ function resourceEfficiencySignals({
 	});
 }
 
-function equalComponentScore(
+function equalWeightedScore(
 	signals: Array<number | null>,
 	totalCount: number,
 ): number | null {
@@ -360,15 +360,15 @@ function equalComponentScore(
 				);
 }
 
-export function attachRelativeScores(
+export function attachFinalScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
 ): LlmStatsScoredCandidate[] {
 	const intelligenceScores = models.map(
-		(model) => model.scores?.intelligence_score ?? null,
+		(model) => model.component_scores?.intelligence_score ?? null,
 	);
 	const agenticScores = models.map(
-		(model) => model.scores?.agentic_score ?? null,
+		(model) => model.component_scores?.agentic_score ?? null,
 	);
 	const qualityScores = models.map((_, index) =>
 		meanOfFinite([
@@ -438,7 +438,7 @@ export function attachRelativeScores(
 		lowerIsBetterPercentileScoreAt(workflowRuntimeSeconds, index),
 	);
 	const blendedSpeedScores = models.map((_, index) =>
-		equalComponentScore(
+		equalWeightedScore(
 			[
 				providerSpeedComponents[index] ?? null,
 				workflowSpeedComponents[index] ?? null,
@@ -448,7 +448,7 @@ export function attachRelativeScores(
 		),
 	);
 	const valueScores = models.map((_, index) =>
-		equalComponentScore(
+		equalWeightedScore(
 			[
 				...(valueInputScoresByModel[index] ?? []),
 				...(taskCostComponentEvidence.signalsByModel[index] ?? []),
@@ -467,36 +467,36 @@ export function attachRelativeScores(
 		PRICE_QUALITY_TRADEOFF_STRENGTH,
 	);
 	return models.map((model, index) => {
-		const intelligenceRelativeScore = intelligenceScores[index] ?? null;
-		const agenticRelativeScore = agenticScores[index] ?? null;
+		const intelligenceScore = intelligenceScores[index] ?? null;
+		const agenticScore = agenticScores[index] ?? null;
 		const blendedSpeedScore = blendedSpeedScores[index] ?? null;
 		const valueScore = valueScores[index] ?? null;
-		const overallRelativeScore = fixedWeightedScore([
+		const overallScore = fixedWeightedScore([
 			{
-				value: intelligenceRelativeScore,
-				weight: scoringConfig.overallRelativeScoreWeights.intelligence,
+				value: intelligenceScore,
+				weight: scoringConfig.overallScoreWeights.intelligence,
 			},
 			{
-				value: agenticRelativeScore,
-				weight: scoringConfig.overallRelativeScoreWeights.agentic,
+				value: agenticScore,
+				weight: scoringConfig.overallScoreWeights.agentic,
 			},
 			{
 				value: overallTaskTimeComponents[index] ?? null,
-				weight: scoringConfig.overallRelativeScoreWeights.speed,
+				weight: scoringConfig.overallScoreWeights.speed,
 			},
 			{
 				value: overallValueScores[index] ?? null,
-				weight: scoringConfig.overallRelativeScoreWeights.value,
+				weight: scoringConfig.overallScoreWeights.value,
 			},
 		]);
 		return {
 			...model,
-			relative_scores: {
-				intelligence_score: intelligenceRelativeScore,
-				agentic_score: agenticRelativeScore,
+			scores: {
+				intelligence_score: intelligenceScore,
+				agentic_score: agenticScore,
 				speed_score: blendedSpeedScore,
 				value_score: valueScore,
-				overall_score: overallRelativeScore,
+				overall_score: overallScore,
 			},
 		};
 	});

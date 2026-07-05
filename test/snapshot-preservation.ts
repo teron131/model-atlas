@@ -27,7 +27,7 @@ const preservedFable = {
 		lcr: 0.7,
 		terminalbench_v21: 0.84,
 	},
-	relative_scores: {
+	scores: {
 		intelligence_score: 97.4,
 		agentic_score: 91.6,
 		speed_score: 57.9,
@@ -45,7 +45,7 @@ const degradedFable = {
 		intelligence_index: 59.8,
 		agentic_index: 80.5,
 	},
-	relative_scores: {
+	scores: {
 		intelligence_score: 78.5,
 		agentic_score: 81.6,
 		speed_score: null,
@@ -61,7 +61,7 @@ const preserved = preserveHighSignalSnapshotModels(
 			degradedFable,
 			{
 				...minimalLlmStatsModel({ id: "openai/gpt-5-5", name: "GPT-5.5" }),
-				relative_scores: {
+				scores: {
 					intelligence_score: 93,
 					agentic_score: 87,
 					speed_score: 58,
@@ -81,7 +81,7 @@ const preserved = preserveHighSignalSnapshotModels(
 
 assert.equal(preserved.models[0]?.id, "anthropic/claude-fable-5");
 assert.equal(
-	preserved.models[0]?.relative_scores.intelligence_score,
+	preserved.models[0]?.scores.intelligence_score,
 	97.4,
 	"previous high-signal top models should survive cold snapshot degradation",
 );
@@ -117,8 +117,8 @@ const normalUpdate = preserveHighSignalSnapshotModels(
 		models: [
 			{
 				...preservedFable,
-				relative_scores: {
-					...preservedFable.relative_scores,
+				scores: {
+					...preservedFable.scores,
 					intelligence_score: 95,
 				},
 			},
@@ -130,7 +130,7 @@ const normalUpdate = preserveHighSignalSnapshotModels(
 );
 
 assert.equal(
-	normalUpdate.models[0]?.relative_scores.intelligence_score,
+	normalUpdate.models[0]?.scores.intelligence_score,
 	95,
 	"normal small score changes should not be frozen to the previous snapshot",
 );

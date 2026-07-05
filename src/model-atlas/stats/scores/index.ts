@@ -7,10 +7,10 @@ export {
 	buildBenchmarkImputationByModel,
 	buildQualityScoringContext,
 } from "./benchmark-imputation";
-export { attachRelativeScores } from "./relative-scoring";
+export { attachFinalScores } from "./final-scoring";
 export {
 	blendedPriceValue,
-	buildScores,
+	buildComponentScores,
 	deriveSpeedOutputTokenAnchors,
 } from "./score-builders";
 export { simulatedBlendSeconds } from "./workflow-simulation";

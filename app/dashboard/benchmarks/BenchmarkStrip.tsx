@@ -80,7 +80,7 @@ export function BenchmarkStrip({
 					);
 				})}
 				<WeightsGroup
-					weights={scoring?.overall_relative_score_weights ?? {}}
+					weights={scoring?.overall_score_weights ?? {}}
 					isLoading={isLoading}
 				/>
 			</div>

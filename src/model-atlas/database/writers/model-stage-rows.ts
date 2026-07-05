@@ -109,8 +109,8 @@ function modelStageScoreValues(model: JsonObject): SqlValue[] {
 	const automationBenchTask = asRecord(taskMetrics.automation_bench);
 	const cursorBenchTask = asRecord(taskMetrics.cursorbench);
 	const deepSWETask = asRecord(taskMetrics.deep_swe);
+	const componentScores = asRecord(model.component_scores);
 	const scores = asRecord(model.scores);
-	const relativeScores = asRecord(model.relative_scores);
 	return [
 		Object.keys(taskMetrics).length > 0 ? JSON.stringify(taskMetrics) : null,
 		asFiniteNumber(agentsLastExamTask.cost),
@@ -131,14 +131,14 @@ function modelStageScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(terminalBenchTask.tokens),
 		asFiniteNumber(terminalBenchTask.input_tokens),
 		asFiniteNumber(terminalBenchTask.output_tokens),
+		asFiniteNumber(componentScores.intelligence_score),
+		asFiniteNumber(componentScores.agentic_score),
+		asFiniteNumber(componentScores.speed_score),
 		asFiniteNumber(scores.intelligence_score),
 		asFiniteNumber(scores.agentic_score),
 		asFiniteNumber(scores.speed_score),
-		asFiniteNumber(relativeScores.intelligence_score),
-		asFiniteNumber(relativeScores.agentic_score),
-		asFiniteNumber(relativeScores.speed_score),
-		asFiniteNumber(relativeScores.value_score),
-		asFiniteNumber(relativeScores.overall_score),
+		asFiniteNumber(scores.value_score),
+		asFiniteNumber(scores.overall_score),
 	];
 }
 

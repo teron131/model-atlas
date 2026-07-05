@@ -57,8 +57,8 @@ export function leanDashboardPayload(
 				quality_score_weights: {
 					...payload.metadata.scoring.quality_score_weights,
 				},
-				overall_relative_score_weights: {
-					...payload.metadata.scoring.overall_relative_score_weights,
+				overall_score_weights: {
+					...payload.metadata.scoring.overall_score_weights,
 				},
 				column_tooltips: leanDashboardColumnTooltips(
 					payload.metadata.scoring.column_tooltips,
@@ -120,8 +120,8 @@ function leanDashboardModel(
 			model.evaluations,
 			benchmarkPortfolio,
 		),
+		component_scores: { ...model.component_scores },
 		scores: { ...model.scores },
-		relative_scores: { ...model.relative_scores },
 	} as LlmStatsModel;
 }
 

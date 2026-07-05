@@ -19,7 +19,7 @@ import type {
 	LlmStatsEvaluations,
 	LlmStatsIntelligence,
 	LlmStatsModalities,
-	LlmStatsNullableRelativeScores,
+	LlmStatsNullableComponentScores,
 	LlmStatsNullableScores,
 	LlmStatsPayload,
 	LlmStatsScoredCandidate,
@@ -310,7 +310,7 @@ function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-function buildScores(row: DbRow): LlmStatsNullableScores {
+function buildComponentScores(row: DbRow): LlmStatsNullableComponentScores {
 	return {
 		intelligence_score:
 			asFiniteNumber(row.component_intelligence_score) ?? null,
@@ -319,7 +319,7 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 	};
 }
 
-function buildRelativeScores(row: DbRow): LlmStatsNullableRelativeScores {
+function buildScores(row: DbRow): LlmStatsNullableScores {
 	return {
 		intelligence_score: asFiniteNumber(row.intelligence_score) ?? null,
 		agentic_score: asFiniteNumber(row.agentic_score) ?? null,
@@ -357,8 +357,8 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 			row,
 			MODEL_ATLAS_EVALUATION_KEYS,
 		),
+		component_scores: buildComponentScores(row),
 		scores: buildScores(row),
-		relative_scores: buildRelativeScores(row),
 	};
 }
 

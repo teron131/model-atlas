@@ -21,6 +21,7 @@ export type {
 	LlmStatsBenchmarkValues,
 	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
+	LlmStatsComponentScores,
 	LlmStatsContextWindow,
 	LlmStatsCost,
 	LlmStatsCostBreakdown,
@@ -33,11 +34,10 @@ export type {
 	LlmStatsModel,
 	LlmStatsOptions,
 	LlmStatsPayload,
-	LlmStatsRelativeScores,
 	LlmStatsScores,
 	LlmStatsSpeed,
 	ModelAtlasStageConfig,
-	OverallRelativeScoreWeights,
+	OverallScoreWeights,
 } from "./stats/types";
 
 /** Ensure cached or freshly built payloads expose current scoring metadata. */

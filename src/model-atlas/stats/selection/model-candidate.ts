@@ -11,7 +11,7 @@ import {
 import {
 	type BenchmarkImputationByModel,
 	blendedPriceValue,
-	buildScores,
+	buildComponentScores,
 	type QualityScoringContext,
 } from "../scores";
 import type {
@@ -527,7 +527,7 @@ export function buildModelCandidate(
 		task_metrics: buildTaskMetrics(intelligenceIndexCost, cost, scoringSources),
 		evaluations: buildEvaluations(model),
 		scoring_sources: scoringSources,
-		scores: buildScores(
+		component_scores: buildComponentScores(
 			model,
 			speed,
 			speedOutputTokenAnchors,
@@ -535,6 +535,6 @@ export function buildModelCandidate(
 			qualityContext,
 			benchmarkImputationByModel.get(model),
 		),
-		relative_scores: null,
+		scores: null,
 	};
 }

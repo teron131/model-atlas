@@ -151,7 +151,7 @@ export const QUALITY_SCORE_WEIGHTS = {
 	frontier: 0.4,
 } as const;
 
-export const OVERALL_RELATIVE_SCORE_WEIGHTS = {
+export const OVERALL_SCORE_WEIGHTS = {
 	intelligence: 0.35,
 	agentic: 0.25,
 	speed: 0.2,

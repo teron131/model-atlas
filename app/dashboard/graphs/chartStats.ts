@@ -24,7 +24,7 @@ export function intelligenceDistribution(
 ): BoxWhiskerDistribution {
 	return valueDistribution(
 		models
-			.map((model) => finiteValue(model.relative_scores?.intelligence_score))
+			.map((model) => finiteValue(model.scores?.intelligence_score))
 			.filter(finite),
 	);
 }

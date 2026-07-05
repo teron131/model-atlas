@@ -179,7 +179,7 @@ function interactionTabCorrelation(
 ) {
 	const pairs = models.flatMap((model) => {
 		const xValue = config.get(model, context);
-		const yValue = finiteValue(model.relative_scores?.intelligence_score);
+		const yValue = finiteValue(model.scores?.intelligence_score);
 		if (xValue == null || yValue == null || (config.log && xValue <= 0)) {
 			return [];
 		}
@@ -211,7 +211,7 @@ function InteractionPlot({
 	const modelPoints = models.map((model) => ({
 		model,
 		x: config.get(model, context),
-		y: finiteValue(model.relative_scores?.intelligence_score),
+		y: finiteValue(model.scores?.intelligence_score),
 	}));
 	const data = modelPoints.filter(
 		(point): point is Point =>

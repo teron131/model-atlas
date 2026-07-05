@@ -180,7 +180,7 @@ const totalModel = {
 			output_tokens: 2_000,
 		},
 	},
-	relative_scores: {
+	scores: {
 		intelligence_score: 70,
 		agentic_score: 0,
 		speed_score: 60,
@@ -258,7 +258,7 @@ function frontierModel({
 				output_tokens: outputTokens,
 			},
 		},
-		relative_scores: {
+		scores: {
 			intelligence_score: intelligenceScore,
 			agentic_score: 0,
 			speed_score: speedScore,

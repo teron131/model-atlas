@@ -50,13 +50,11 @@ export function DashboardGraphs({
 		return (initialPayload?.models ?? [])
 			.filter(
 				(model) =>
-					model.name != null &&
-					finite(model.relative_scores?.intelligence_score),
+					model.name != null && finite(model.scores?.intelligence_score),
 			)
 			.sort(
 				(left, right) =>
-					right.relative_scores.intelligence_score -
-					left.relative_scores.intelligence_score,
+					right.scores.intelligence_score - left.scores.intelligence_score,
 			);
 	}, [initialPayload]);
 

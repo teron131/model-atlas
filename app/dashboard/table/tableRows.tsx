@@ -125,7 +125,7 @@ export function ModelRow({
 	const model = rowData.model;
 	const visibleName = visibleModelName(model.name);
 	const visibleSlug = visibleModelSlug(model.id);
-	const relativeScores = model.relative_scores ?? {};
+	const scores = model.scores ?? {};
 	return (
 		<tr>
 			<TableCell
@@ -145,11 +145,11 @@ export function ModelRow({
 					</div>
 				</div>
 			</td>
-			{scoreCell(relativeScores.intelligence_score, model.provider)}
-			{scoreCell(relativeScores.agentic_score, model.provider)}
-			{scoreCell(relativeScores.speed_score, model.provider)}
-			{scoreCell(relativeScores.value_score, model.provider)}
-			{scoreCell(relativeScores.overall_score, model.provider, "overall")}
+			{scoreCell(scores.intelligence_score, model.provider)}
+			{scoreCell(scores.agentic_score, model.provider)}
+			{scoreCell(scores.speed_score, model.provider)}
+			{scoreCell(scores.value_score, model.provider)}
+			{scoreCell(scores.overall_score, model.provider, "overall")}
 			<TableCell
 				text={formatCost(model.cost?.blended_price)}
 				className="data-cell"
@@ -341,7 +341,7 @@ function TableCell({ text, className }: { text: string; className?: string }) {
 	return <td className={`${className ?? ""}${missingClass}`.trim()}>{text}</td>;
 }
 
-/** Renders a relative score cell with provider-colored meter styling. */
+/** Renders a score cell with provider-colored meter styling. */
 function scoreCell(
 	value: number | null | undefined,
 	provider: string | null | undefined,

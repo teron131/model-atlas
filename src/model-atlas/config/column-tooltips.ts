@@ -173,7 +173,7 @@ const valueBlendText = (components: ActiveResourceComponents) =>
 		valueComponentCount(components),
 	)} each)`;
 
-const MIN_MAX_RELATIVE_SCORE_TEXT = "min-max relative score across models";
+const MIN_MAX_SCORE_TEXT = "min-max score across models";
 const LOWER_FIRST_TEXT = "lower values sort first";
 const HIGHER_FIRST_TEXT = "higher values sort first";
 const FULL_OVERALL_TEXT = "Full Overall";
@@ -393,9 +393,9 @@ export function columnTooltipsForActiveComponents(
 	return {
 		intelligence: {
 			title: "Intelligence score",
-			body: "Relative capability score from the AA INTELLIGENCE index plus the selected INTELLIGENCE benchmarks.",
+			body: "Atlas capability score from the AA INTELLIGENCE index plus the selected INTELLIGENCE benchmarks.",
 			rows: [
-				["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
+				["Scale", MIN_MAX_SCORE_TEXT],
 				["Sort", HIGHER_FIRST_TEXT],
 			],
 			sections: [
@@ -411,9 +411,9 @@ export function columnTooltipsForActiveComponents(
 		},
 		agentic: {
 			title: "Agentic score",
-			body: "Relative workflow and coding-task score from the AA AGENTIC index plus selected AGENTIC benchmarks.",
+			body: "Atlas workflow and coding-task score from the AA AGENTIC index plus selected AGENTIC benchmarks.",
 			rows: [
-				["Scale", MIN_MAX_RELATIVE_SCORE_TEXT],
+				["Scale", MIN_MAX_SCORE_TEXT],
 				["Sort", HIGHER_FIRST_TEXT],
 			],
 			sections: [

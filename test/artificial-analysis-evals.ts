@@ -6,8 +6,8 @@ import {
 } from "../src/model-atlas/scrapers/artificial-analysis/evals";
 import {
 	buildBenchmarkImputationByModel,
+	buildComponentScores,
 	buildQualityScoringContext,
-	buildScores,
 } from "../src/model-atlas/stats/scores";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -345,7 +345,7 @@ const scoringConfig = {
 		},
 	},
 	frontierBenchmarkKeys: ["gdpval_normalized", "apex_agents"],
-	overallRelativeScoreWeights: {
+	overallScoreWeights: {
 		intelligence: 0.4,
 		agentic: 0.4,
 		speed: 0.1,
@@ -367,7 +367,7 @@ const emptySpeed = {
 	latency_seconds_median: null,
 	e2e_latency_seconds_median: null,
 };
-const scoreWithMissingApex = buildScores(
+const componentScoresWithMissingApex = buildComponentScores(
 	scoringRows[3] ?? {},
 	emptySpeed,
 	[],
@@ -375,7 +375,7 @@ const scoreWithMissingApex = buildScores(
 	qualityScoringContext,
 	benchmarkImputationByModel.get(scoringRows[3] ?? {}),
 );
-assertDeepEqual(scoreWithMissingApex, {
+assertDeepEqual(componentScoresWithMissingApex, {
 	agentic_score: 74.99999999999997,
 	intelligence_score: null,
 	speed_score: null,

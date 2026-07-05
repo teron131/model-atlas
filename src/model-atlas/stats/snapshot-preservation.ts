@@ -38,8 +38,7 @@ function previousModelByKey(
 			const existing = models.get(key);
 			if (
 				existing == null ||
-				model.relative_scores.intelligence_score >
-					existing.relative_scores.intelligence_score
+				model.scores.intelligence_score > existing.scores.intelligence_score
 			) {
 				models.set(key, model);
 			}
@@ -63,7 +62,7 @@ function scoreSignalCount(
 	];
 	return [
 		...benchmarkKeys.flatMap((key) => [intelligence[key], evaluations[key]]),
-		model.relative_scores.speed_score,
+		model.scores.speed_score,
 		speed.throughput_tokens_per_second_median,
 		speed.latency_seconds_median,
 		speed.e2e_latency_seconds_median,
@@ -76,8 +75,8 @@ function shouldPreservePreviousModel(
 	policy: SnapshotPreservationConfig,
 	scoringConfig: ScoringConfig,
 ): boolean {
-	const previousIntelligence = previous.relative_scores.intelligence_score;
-	const currentIntelligence = current.relative_scores.intelligence_score;
+	const previousIntelligence = previous.scores.intelligence_score;
+	const currentIntelligence = current.scores.intelligence_score;
 	return (
 		previousIntelligence >= policy.minPreviousIntelligenceScore &&
 		previousIntelligence - currentIntelligence >=
@@ -90,8 +89,7 @@ function shouldPreservePreviousModel(
 function sortByIntelligence(models: LlmStatsModel[]): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
 		const scoreDelta =
-			right.relative_scores.intelligence_score -
-			left.relative_scores.intelligence_score;
+			right.scores.intelligence_score - left.scores.intelligence_score;
 		if (scoreDelta !== 0) {
 			return scoreDelta;
 		}

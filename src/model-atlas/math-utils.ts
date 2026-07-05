@@ -32,7 +32,7 @@ export function meanOfFinite(values: Array<number | null>): number | null {
 	);
 }
 
-/** Keep missing score components out of averages instead of silently treating them as zero evidence. */
+/** Keep missing score values out of averages instead of silently treating them as zero evidence. */
 export function finiteScoreValues(
 	values: ReadonlyArray<number | null | undefined>,
 ): number[] {
