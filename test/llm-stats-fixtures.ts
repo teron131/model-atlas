@@ -36,7 +36,7 @@ export function minimalLlmStatsPayload({
 					baseline: 0,
 					frontier: 0,
 				},
-				overall_relative_score_weights: {
+				overall_score_weights: {
 					intelligence: 0,
 					agentic: 0,
 					speed: 0,
@@ -78,12 +78,12 @@ export function minimalLlmStatsModel({
 		intelligence_index_cost: null,
 		task_metrics: null,
 		evaluations: null,
-		scores: {
+		component_scores: {
 			intelligence_score: 0,
 			agentic_score: 0,
 			speed_score: 0,
 		},
-		relative_scores: {
+		scores: {
 			intelligence_score: 0,
 			agentic_score: 0,
 			speed_score: 0,

@@ -196,19 +196,19 @@ export type LlmStatsScoringSources =
 	  })
 	| null;
 
-export type LlmStatsNullableScores = {
+export type LlmStatsNullableComponentScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
 };
 
-export type LlmStatsScores = {
+export type LlmStatsComponentScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
 };
 
-export type LlmStatsNullableRelativeScores = {
+export type LlmStatsNullableScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
@@ -216,7 +216,7 @@ export type LlmStatsNullableRelativeScores = {
 	overall_score: NumberOrNull;
 };
 
-export type LlmStatsRelativeScores = {
+export type LlmStatsScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
@@ -245,22 +245,22 @@ type LlmStatsModelFields = {
 
 export type LlmStatsModelCandidate = LlmStatsModelFields & {
 	scoring_sources?: LlmStatsScoringSources;
-	scores: LlmStatsNullableScores | null;
-	relative_scores: null;
+	component_scores: LlmStatsNullableComponentScores | null;
+	scores: null;
 };
 
 export type LlmStatsScoredCandidate = LlmStatsModelFields & {
 	scoring_sources?: LlmStatsScoringSources;
-	scores: LlmStatsNullableScores | null;
-	relative_scores: LlmStatsNullableRelativeScores;
+	component_scores: LlmStatsNullableComponentScores | null;
+	scores: LlmStatsNullableScores;
 };
 
 export type LlmStatsModel = LlmStatsModelFields & {
+	component_scores: LlmStatsComponentScores;
 	scores: LlmStatsScores;
-	relative_scores: LlmStatsRelativeScores;
 };
 
-export type OverallRelativeScoreWeights = {
+export type OverallScoreWeights = {
 	intelligence: number;
 	agentic: number;
 	speed: number;
@@ -430,7 +430,7 @@ export type LlmStatsMetadata = {
 		simulation_profiles: SimulationProfiles;
 		simulation_input_token_seconds: number;
 		quality_score_weights: QualityScoreWeights;
-		overall_relative_score_weights: OverallRelativeScoreWeights;
+		overall_score_weights: OverallScoreWeights;
 		column_tooltips: LlmStatsColumnTooltips;
 		snapshot_preservation_version: number;
 	};
@@ -482,7 +482,7 @@ export type ScoringConfig = {
 	benchmarkPortfolio: BenchmarkPortfolio;
 	frontierBenchmarkKeys: readonly string[];
 	qualityScoreWeights: QualityScoreWeights;
-	overallRelativeScoreWeights: OverallRelativeScoreWeights;
+	overallScoreWeights: OverallScoreWeights;
 	columnTooltips: LlmStatsColumnTooltips;
 };
 

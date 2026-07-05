@@ -369,7 +369,7 @@ export const sorters: Record<SortKey, Sorter> = {
 	overall: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.relative_scores?.overall_score,
+		value: (row) => row.model.scores?.overall_score,
 	},
 	intelligence: {
 		direction: "descending",
@@ -379,17 +379,17 @@ export const sorters: Record<SortKey, Sorter> = {
 	agentic: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.relative_scores?.agentic_score,
+		value: (row) => row.model.scores?.agentic_score,
 	},
 	speed: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.relative_scores?.speed_score,
+		value: (row) => row.model.scores?.speed_score,
 	},
 	value: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.relative_scores?.value_score,
+		value: (row) => row.model.scores?.value_score,
 	},
 	blend: {
 		direction: "ascending",
@@ -577,7 +577,7 @@ function compareIntelligenceRank(
 }
 
 function intelligenceScore(row: Pick<TableRow, "model">) {
-	return row.model.relative_scores?.intelligence_score;
+	return row.model.scores?.intelligence_score;
 }
 
 function compareMissingValues(sorter: Sorter, left: unknown, right: unknown) {

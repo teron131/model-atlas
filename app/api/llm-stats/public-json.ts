@@ -32,14 +32,10 @@ export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
 	models: PublicFullJsonModel[];
 };
 
-type PublicRelativeScores = LlmStatsModel["relative_scores"];
-
 type PublicFullJsonModel = Omit<
 	LlmStatsModel,
-	"attachment" | "reasoning" | "logo" | "relative_scores"
-> & {
-	relative_scores: PublicRelativeScores;
-};
+	"attachment" | "reasoning" | "logo"
+>;
 
 export type ScoreJsonPayload = {
 	schema: typeof SCORE_SCHEMA;
@@ -163,7 +159,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 	};
 }
 
-/** The score view is the default public ranking surface and exposes only relative 0-100 score components. */
+/** The score view is the default public ranking surface and exposes only Atlas 0-100 score fields. */
 export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 	const rankedModels = rankModelsByIntelligence(payload.models);
 	return {
@@ -175,7 +171,7 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 	};
 }
 
-/** Benchmark rows stay in their native decimal scale so downstream users can distinguish raw task scores from Atlas-relative scores. */
+/** Benchmark rows stay in their native decimal scale so downstream users can distinguish raw task scores from Atlas scores. */
 export function benchmarksJsonPayload(
 	payload: LlmStatsPayload,
 ): BenchmarksJsonPayload {
@@ -200,7 +196,7 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
+	return "INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
@@ -209,7 +205,7 @@ function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 	let previousScore: number | null = null;
 	let previousRank = 0;
 	for (const [index, model] of models.entries()) {
-		const score = model.relative_scores.intelligence_score;
+		const score = model.scores.intelligence_score;
 		const rank = score === previousScore ? previousRank : index + 1;
 		rankedModels.push({ model, rank });
 		previousScore = score;
@@ -222,14 +218,10 @@ function withoutUnusedModelFields(model: LlmStatsModel): PublicFullJsonModel {
 	const {
 		attachment: _attachment,
 		logo: _logo,
-		relative_scores: relativeScores,
 		reasoning: _reasoning,
 		...modelPayload
 	} = model;
-	return {
-		...modelPayload,
-		relative_scores: relativeScores,
-	};
+	return modelPayload;
 }
 
 function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
@@ -239,11 +231,11 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 		name: model.name,
 		provider: model.provider,
 		score: {
-			intelligence: model.relative_scores.intelligence_score,
-			agentic: model.relative_scores.agentic_score,
-			speed: model.relative_scores.speed_score,
-			value: model.relative_scores.value_score,
-			overall: model.relative_scores.overall_score,
+			intelligence: model.scores.intelligence_score,
+			agentic: model.scores.agentic_score,
+			speed: model.scores.speed_score,
+			value: model.scores.value_score,
+			overall: model.scores.overall_score,
 		},
 	};
 }
@@ -276,11 +268,11 @@ function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 		input_modalities: [...(model.modalities?.input ?? [])],
 		output_modalities: [...(model.modalities?.output ?? [])],
 		open_weights: model.open_weights,
-		intelligence_score: model.relative_scores.intelligence_score,
-		agentic_score: model.relative_scores.agentic_score,
-		speed_score: model.relative_scores.speed_score,
-		value_score: model.relative_scores.value_score,
-		overall_score: model.relative_scores.overall_score,
+		intelligence_score: model.scores.intelligence_score,
+		agentic_score: model.scores.agentic_score,
+		speed_score: model.scores.speed_score,
+		value_score: model.scores.value_score,
+		overall_score: model.scores.overall_score,
 		blended_price: model.cost?.blended_price ?? null,
 		context_window_tokens: model.context_window?.context ?? null,
 		input_cost_per_million_tokens: model.cost?.input ?? null,

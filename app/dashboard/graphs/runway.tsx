@@ -49,8 +49,7 @@ export function RunwayPanel({
 		)
 		.sort(
 			(left, right) =>
-				right.relative_scores.intelligence_score -
-				left.relative_scores.intelligence_score,
+				right.scores.intelligence_score - left.scores.intelligence_score,
 		);
 
 	if (candidates.length === 0) {
@@ -108,8 +107,7 @@ export function RunwayPanel({
 	for (const model of [...plottedCandidates]
 		.filter(
 			(candidate) =>
-				Number(candidate.relative_scores.intelligence_score) >=
-				labelQualityFloor,
+				Number(candidate.scores.intelligence_score) >= labelQualityFloor,
 		)
 		.sort(
 			(left, right) =>
@@ -207,7 +205,7 @@ export function RunwayPanel({
 		points: projectionPoints,
 	});
 	const runwayRadius = (model: LlmStatsModel) =>
-		clamp((model.relative_scores.value_score ?? 25) / 9, 3, 10);
+		clamp((model.scores.value_score ?? 25) / 9, 3, 10);
 	const runwayLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({

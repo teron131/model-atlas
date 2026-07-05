@@ -508,12 +508,12 @@ export function frontierEfficiencyHoverRows(
 
 /** Return the public speed side of the bubble blend. */
 export function speedScore(row: FrontierEfficiencyRow): number {
-	return finiteValue(row.model.relative_scores?.speed_score) ?? 0;
+	return finiteValue(row.model.scores?.speed_score) ?? 0;
 }
 
 /** Return the value side of the bubble blend. */
 export function valueScore(row: FrontierEfficiencyRow): number {
-	return finiteValue(row.model.relative_scores?.value_score) ?? 0;
+	return finiteValue(row.model.scores?.value_score) ?? 0;
 }
 
 /** Return the 50/50 speed-value blend used for Frontier Efficiency bubble size. */
@@ -521,7 +521,7 @@ export function speedValueBlendScore(row: FrontierEfficiencyRow): number {
 	return (valueScore(row) + speedScore(row)) / 2;
 }
 
-/** Check whether the selected x-axis is a relative efficiency score. */
+/** Check whether the selected x-axis is a normalized efficiency score. */
 export function isEfficiencyScoreAxis(
 	axisKey: FrontierEfficiencyAxisKey,
 ): boolean {
@@ -615,7 +615,7 @@ function frontierEfficiencyCorrelation(rows: FrontierEfficiencyRow[]): string {
 		correlationValue(
 			rows.flatMap((row) => {
 				const intelligenceScore = finiteValue(
-					row.model.relative_scores?.intelligence_score,
+					row.model.scores?.intelligence_score,
 				);
 				if (intelligenceScore == null) {
 					return [];

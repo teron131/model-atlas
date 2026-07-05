@@ -148,8 +148,8 @@ function rankedModel(
 	const model = minimalLlmStatsModel({ id, name });
 	return {
 		...model,
-		relative_scores: {
-			...model.relative_scores,
+		scores: {
+			...model.scores,
 			intelligence_score: intelligenceScore,
 		},
 	};
@@ -164,8 +164,8 @@ function scoredModel(
 	const model = rankedModel(id, name, intelligenceScore);
 	return {
 		...model,
-		relative_scores: {
-			...model.relative_scores,
+		scores: {
+			...model.scores,
 			overall_score: overallScore,
 		},
 	};

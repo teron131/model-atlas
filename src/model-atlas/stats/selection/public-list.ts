@@ -10,12 +10,12 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
 	FinalStageConfig,
 	LlmStatsModel,
-	LlmStatsNullableScores,
+	LlmStatsNullableComponentScores,
 	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
 
-const MIN_REQUIRED_RELATIVE_SCORE = 10;
+const MIN_REQUIRED_SCORE = 10;
 const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"id",
 	"name",
@@ -33,14 +33,14 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"intelligence_index_cost",
 	"task_metrics",
 	"evaluations",
+	"component_scores",
 	"scores",
-	"relative_scores",
 ]);
-const REQUIRED_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
-const REQUIRED_RELATIVE_SCORE_KEYS = [
+const REQUIRED_COMPONENT_SCORE_KEYS = [
 	"intelligence_score",
 	"agentic_score",
 ] as const;
+const REQUIRED_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
 function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
@@ -53,8 +53,8 @@ function sortModelsByIntelligenceScore(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
-		const leftIntelligence = left.relative_scores.intelligence_score;
-		const rightIntelligence = right.relative_scores.intelligence_score;
+		const leftIntelligence = left.scores.intelligence_score;
+		const rightIntelligence = right.scores.intelligence_score;
 		if (leftIntelligence !== rightIntelligence) {
 			return rightIntelligence - leftIntelligence;
 		}
@@ -64,25 +64,28 @@ function sortModelsByIntelligenceScore(
 	});
 }
 
-/** Require enough raw and normalized score signal for a public row. */
+/** Require enough component and public score signal for a public row. */
 function hasMinimumScoreSignal(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsModel {
-	const scores: LlmStatsNullableScores | null = model.scores;
-	if (scores == null) {
+	const componentScores: LlmStatsNullableComponentScores | null =
+		model.component_scores;
+	if (componentScores == null) {
 		return false;
 	}
-	const hasRequiredRawScores = REQUIRED_SCORE_KEYS.every((key) => {
-		const value = scores[key];
-		return value != null;
-	});
-	if (!hasRequiredRawScores) {
+	const hasRequiredComponentScores = REQUIRED_COMPONENT_SCORE_KEYS.every(
+		(key) => {
+			const value = componentScores[key];
+			return value != null;
+		},
+	);
+	if (!hasRequiredComponentScores) {
 		return false;
 	}
-	const relativeScores = model.relative_scores;
-	return REQUIRED_RELATIVE_SCORE_KEYS.every((key) => {
-		const value = asFiniteNumber(relativeScores[key]);
-		return value != null && value >= MIN_REQUIRED_RELATIVE_SCORE;
+	const scores = model.scores;
+	return REQUIRED_SCORE_KEYS.every((key) => {
+		const value = asFiniteNumber(scores[key]);
+		return value != null && value >= MIN_REQUIRED_SCORE;
 	});
 }
 

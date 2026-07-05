@@ -1,4 +1,4 @@
-/** Raw score builders for final Model Atlas model rows. */
+/** Component score builders for final Model Atlas model rows. */
 
 import {
 	meanOfFinite,
@@ -8,7 +8,7 @@ import {
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
 	BenchmarkGroup,
-	LlmStatsNullableScores,
+	LlmStatsNullableComponentScores,
 	LlmStatsSpeed,
 	ScoringConfig,
 } from "../types";
@@ -196,14 +196,14 @@ export function deriveSpeedOutputTokenAnchors(
 	});
 }
 
-export function buildScores(
+export function buildComponentScores(
 	model: JsonObject,
 	speed: LlmStatsSpeed,
 	speedOutputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
 	qualityContext: QualityScoringContext,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-): LlmStatsNullableScores | null {
+): LlmStatsNullableComponentScores | null {
 	const intelligenceIndex = firstMetricValue(model, INTELLIGENCE_INDEX_KEYS);
 	const agenticIndex = firstMetricValue(model, AGENTIC_INDEX_KEYS);
 	const intelligenceIndexScore = normalizedMetricValue(

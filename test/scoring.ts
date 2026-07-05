@@ -6,11 +6,11 @@ import {
 } from "../src/model-atlas/math-utils";
 import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/metadata";
 import {
-	attachRelativeScores,
+	attachFinalScores,
 	blendedPriceValue,
 	buildBenchmarkImputationByModel,
+	buildComponentScores,
 	buildQualityScoringContext,
-	buildScores,
 	simulatedBlendSeconds,
 } from "../src/model-atlas/stats/scores";
 import type { LlmStatsModelCandidate } from "../src/model-atlas/stats/types";
@@ -214,7 +214,7 @@ assertEqual(
 	true,
 );
 
-const broadAAResourceOnlyModels = attachRelativeScores(
+const broadAAResourceOnlyModels = attachFinalScores(
 	[
 		{
 			...modelCandidate({
@@ -243,10 +243,10 @@ const broadAAResourceOnlyModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(broadAAResourceOnlyModels[0]?.relative_scores.value_score, 64.8);
-assertClose(broadAAResourceOnlyModels[1]?.relative_scores.value_score, 64.8);
+assertClose(broadAAResourceOnlyModels[0]?.scores.value_score, 64.8);
+assertClose(broadAAResourceOnlyModels[1]?.scores.value_score, 64.8);
 
-const tokenProxySpeedModels = attachRelativeScores(
+const tokenProxySpeedModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/token-proxy-fast",
@@ -269,10 +269,10 @@ const tokenProxySpeedModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(tokenProxySpeedModels[0]?.relative_scores.speed_score, 100);
-assertClose(tokenProxySpeedModels[1]?.relative_scores.speed_score, 74.9993);
+assertClose(tokenProxySpeedModels[0]?.scores.speed_score, 100);
+assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 74.9993);
 
-const latencySpeedModels = attachRelativeScores(
+const latencySpeedModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/low-latency",
@@ -287,8 +287,8 @@ const latencySpeedModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(latencySpeedModels[0]?.relative_scores.speed_score, 100);
-assertClose(latencySpeedModels[1]?.relative_scores.speed_score, 62.5);
+assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
+assertClose(latencySpeedModels[1]?.scores.speed_score, 62.5);
 
 const groupPolicyConfig = {
 	...STAGE_CONFIG.scoring,
@@ -325,7 +325,7 @@ const groupPolicyModels = [
 		evaluations: { omniscience_accuracy: 0, hle: 100 },
 	},
 ];
-const groupPolicyScores = buildScores(
+const groupPolicyComponentScores = buildComponentScores(
 	groupPolicyModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
@@ -336,9 +336,9 @@ const groupPolicyScores = buildScores(
 	groupPolicyConfig,
 	buildQualityScoringContext(groupPolicyModels, groupPolicyConfig, new Map()),
 );
-assertClose(groupPolicyScores?.intelligence_score, 70);
+assertClose(groupPolicyComponentScores?.intelligence_score, 70);
 
-const directResourceScoredModels = attachRelativeScores(
+const directResourceScoredModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/frontier-efficient",
@@ -370,23 +370,14 @@ const directResourceScoredModels = attachRelativeScores(
 		frontierBenchmarkKeys: ["deep_swe"],
 	},
 );
-assertClose(directResourceScoredModels[0]?.relative_scores.value_score, 89.6);
-assertClose(
-	directResourceScoredModels[1]?.relative_scores.value_score,
-	88.4821,
-);
-assertClose(
-	directResourceScoredModels[2]?.relative_scores.value_score,
-	88.4535,
-);
-assertClose(directResourceScoredModels[0]?.relative_scores.speed_score, 99.147);
-assertClose(
-	directResourceScoredModels[1]?.relative_scores.speed_score,
-	99.1683,
-);
-assertClose(directResourceScoredModels[2]?.relative_scores.speed_score, 100);
+assertClose(directResourceScoredModels[0]?.scores.value_score, 89.6);
+assertClose(directResourceScoredModels[1]?.scores.value_score, 88.4821);
+assertClose(directResourceScoredModels[2]?.scores.value_score, 88.4535);
+assertClose(directResourceScoredModels[0]?.scores.speed_score, 99.147);
+assertClose(directResourceScoredModels[1]?.scores.speed_score, 99.1683);
+assertClose(directResourceScoredModels[2]?.scores.speed_score, 100);
 
-const valueScoredModels = attachRelativeScores(
+const valueScoredModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/cost-efficiency-cheap",
@@ -412,9 +403,9 @@ const valueScoredModels = attachRelativeScores(
 		frontierBenchmarkKeys: ["deep_swe"],
 	},
 );
-assertClose(valueScoredModels[0]?.relative_scores.value_score, 21.6);
-assertClose(valueScoredModels[1]?.relative_scores.value_score, 14.4);
-assertClose(valueScoredModels[2]?.relative_scores.value_score, 7.2);
+assertClose(valueScoredModels[0]?.scores.value_score, 21.6);
+assertClose(valueScoredModels[1]?.scores.value_score, 14.4);
+assertClose(valueScoredModels[2]?.scores.value_score, 7.2);
 
 const scaleNormalizedResourceConfig = {
 	...STAGE_CONFIG.scoring,
@@ -442,7 +433,7 @@ const scaleNormalizedResourceConfig = {
 		},
 	},
 } as const;
-const scaleNormalizedResourceModels = attachRelativeScores(
+const scaleNormalizedResourceModels = attachFinalScores(
 	[
 		{
 			...modelCandidate({
@@ -469,16 +460,10 @@ const scaleNormalizedResourceModels = attachRelativeScores(
 	],
 	scaleNormalizedResourceConfig,
 );
-assertClose(
-	scaleNormalizedResourceModels[0]?.relative_scores.value_score,
-	64.8,
-);
-assertClose(
-	scaleNormalizedResourceModels[1]?.relative_scores.value_score,
-	64.8,
-);
+assertClose(scaleNormalizedResourceModels[0]?.scores.value_score, 64.8);
+assertClose(scaleNormalizedResourceModels[1]?.scores.value_score, 64.8);
 
-const sparseResourceCoverageModels = attachRelativeScores(
+const sparseResourceCoverageModels = attachFinalScores(
 	[
 		{
 			...modelCandidate({
@@ -515,11 +500,8 @@ const sparseResourceCoverageModels = attachRelativeScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(sparseResourceCoverageModels[0]?.relative_scores.value_score, 89.6);
-assertClose(
-	sparseResourceCoverageModels[1]?.relative_scores.value_score,
-	4.8593,
-);
+assertClose(sparseResourceCoverageModels[0]?.scores.value_score, 89.6);
+assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 4.8593);
 
 const normalizedContextModels = [
 	imputationModel("observed-a", 0, 0, 0, 0),
@@ -648,12 +630,12 @@ function modelCandidate(options: {
 			...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
 		},
 		evaluations: Object.keys(evaluations).length === 0 ? null : evaluations,
-		scores: {
+		component_scores: {
 			intelligence_score: options.intelligenceScore ?? null,
 			agentic_score: options.agenticScore ?? null,
 			speed_score: null,
 		},
-		relative_scores: null,
+		scores: null,
 	};
 }
 

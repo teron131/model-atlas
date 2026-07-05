@@ -69,7 +69,7 @@ Hard rejects:
 - hard billion-scale mismatch when both sides expose a scale
 - numeric version-prefix conflicts, such as matching a source `3` row to a candidate `3.5` or matching a source `3.5` row to a candidate `3`
 - leading numeric identity mismatches when neither the candidate id nor candidate display name shares the source's leading version number
-- non-positive final score
+- non-positive match score
 - first-token mismatch
 
 The score is only meant to rank plausible candidates. It is not a probability.

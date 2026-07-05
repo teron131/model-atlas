@@ -101,8 +101,10 @@ function profileQualityMultiplier(
 	model: LlmStatsModelCandidate,
 	profile: SimulationProfile,
 ): number | null {
-	const intelligenceScore = asFiniteNumber(model.scores?.intelligence_score);
-	const agenticScore = asFiniteNumber(model.scores?.agentic_score);
+	const intelligenceScore = asFiniteNumber(
+		model.component_scores?.intelligence_score,
+	);
+	const agenticScore = asFiniteNumber(model.component_scores?.agentic_score);
 	const qualityScore = weightedMeanOfFinite([
 		{ value: intelligenceScore, weight: profile.quality_blend.intelligence },
 		{ value: agenticScore, weight: profile.quality_blend.agentic },

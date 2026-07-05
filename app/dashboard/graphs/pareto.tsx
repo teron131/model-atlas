@@ -61,15 +61,14 @@ export function ParetoFrontierPanel({
 	const candidates = models
 		.filter(
 			(model) =>
-				finite(model.relative_scores?.intelligence_score) &&
-				finite(model.relative_scores?.value_score) &&
+				finite(model.scores?.intelligence_score) &&
+				finite(model.scores?.value_score) &&
 				finite(model.cost?.blended_price) &&
 				Number(model.cost?.blended_price) > 0,
 		)
 		.sort(
 			(left, right) =>
-				Number(left.relative_scores?.value_score) -
-				Number(right.relative_scores?.value_score),
+				Number(left.scores?.value_score) - Number(right.scores?.value_score),
 		);
 
 	if (candidates.length === 0 && providerRows.length === 0) {
@@ -136,20 +135,15 @@ export function ParetoFrontierPanel({
 	const width = 820;
 	const height = 500;
 	const margin = { top: 26, right: 34, bottom: 68, left: 62 };
-	const values = candidates.map((model) =>
-		Number(model.relative_scores.value_score),
-	);
-	const scores = candidates.map(
-		(model) => model.relative_scores.intelligence_score,
-	);
+	const values = candidates.map((model) => Number(model.scores.value_score));
+	const scores = candidates.map((model) => model.scores.intelligence_score);
 	const frontierDescending: LlmStatsModel[] = [];
 	let bestFromRight = -Infinity;
 	for (const model of [...candidates].sort(
 		(left, right) =>
-			Number(right.relative_scores.value_score) -
-			Number(left.relative_scores.value_score),
+			Number(right.scores.value_score) - Number(left.scores.value_score),
 	)) {
-		const score = model.relative_scores.intelligence_score;
+		const score = model.scores.intelligence_score;
 		if (score > bestFromRight) {
 			frontierDescending.push(model);
 			bestFromRight = score;
@@ -175,8 +169,8 @@ export function ParetoFrontierPanel({
 	const medianScore = median(scores) ?? 50;
 	const frontierIds = new Set(frontier.map(modelKey));
 	const frontierPath = frontier.reduce((path, model, index) => {
-		const nextX = xPoint(Number(model.relative_scores.value_score));
-		const nextY = yPoint(model.relative_scores.intelligence_score);
+		const nextX = xPoint(Number(model.scores.value_score));
+		const nextY = yPoint(model.scores.intelligence_score);
 		return index === 0 ? `M${nextX},${nextY}` : `${path} H${nextX} V${nextY}`;
 	}, "");
 	const plot = plotBoundsFor(width, height, margin);
@@ -186,16 +180,16 @@ export function ParetoFrontierPanel({
 	const xTicks = valueAxis.ticks;
 	const plottedCandidates = candidates;
 	const capabilityBubbleValue = (model: LlmStatsModel) =>
-		Number(model.relative_scores.intelligence_score) *
-		Number(model.relative_scores.agentic_score ?? 0);
+		Number(model.scores.intelligence_score) *
+		Number(model.scores.agentic_score ?? 0);
 	const capabilityBubbleRadius = linearBubbleRadius(
 		plottedCandidates.map(capabilityBubbleValue),
 		3,
 		10,
 	);
 	const projectionPoints = plottedCandidates.map((model) => {
-		const xValue = Number(model.relative_scores.value_score);
-		const yValue = model.relative_scores.intelligence_score;
+		const xValue = Number(model.scores.value_score);
+		const yValue = model.scores.intelligence_score;
 		return {
 			x: xPoint(xValue),
 			y: yPoint(yValue),
@@ -210,15 +204,15 @@ export function ParetoFrontierPanel({
 	const frontierLabelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({
-			cx: xPoint(Number(model.relative_scores.value_score)),
-			cy: yPoint(model.relative_scores.intelligence_score),
+			cx: xPoint(Number(model.scores.value_score)),
+			cy: yPoint(model.scores.intelligence_score),
 			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
 		})),
 		labels: frontier.map((model, index) => ({
 			key: modelKey(model),
 			label: shortLabel(model),
-			cx: xPoint(Number(model.relative_scores.value_score)),
-			cy: yPoint(model.relative_scores.intelligence_score),
+			cx: xPoint(Number(model.scores.value_score)),
+			cy: yPoint(model.scores.intelligence_score),
 			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
 			priority: frontier.length - index,
 		})),
@@ -312,26 +306,17 @@ export function ParetoFrontierPanel({
 						<path className={styles.frontier} d={frontierPath} />
 					) : null}
 					{plottedCandidates.map((model) => {
-						const cx = xPoint(Number(model.relative_scores.value_score));
-						const cy = yPoint(model.relative_scores.intelligence_score);
+						const cx = xPoint(Number(model.scores.value_score));
+						const cy = yPoint(model.scores.intelligence_score);
 						const isFrontier = frontierIds.has(modelKey(model));
 						const rows: HoverRow[] = [
 							[
 								"Intelligence score",
-								fmtTooltipScore(model.relative_scores.intelligence_score),
+								fmtTooltipScore(model.scores.intelligence_score),
 							],
-							[
-								"Agentic score",
-								fmtTooltipScore(model.relative_scores.agentic_score),
-							],
-							[
-								"Speed score",
-								fmtTooltipScore(model.relative_scores.speed_score),
-							],
-							[
-								"Value score",
-								fmtTooltipScore(model.relative_scores.value_score),
-							],
+							["Agentic score", fmtTooltipScore(model.scores.agentic_score)],
+							["Speed score", fmtTooltipScore(model.scores.speed_score)],
+							["Value score", fmtTooltipScore(model.scores.value_score)],
 							[
 								"Blend price",
 								fmtTooltipMoney(Number(model.cost?.blended_price)),
@@ -367,8 +352,8 @@ export function ParetoFrontierPanel({
 									snapProjection={{
 										x: cx,
 										y: cy,
-										xValue: Number(model.relative_scores.value_score),
-										yValue: model.relative_scores.intelligence_score,
+										xValue: Number(model.scores.value_score),
+										yValue: model.scores.intelligence_score,
 									}}
 									setCursorProjection={setCursorProjection}
 								/>

@@ -97,7 +97,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to raw provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
+	"INTELLIGENCE and AGENTIC blend normalized upstream indexes with linearly normalized baseline/frontier benchmark scores. SPEED gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
@@ -199,7 +199,7 @@ assert.equal("attachment" in (model ?? {}), false);
 assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
-assert.deepEqual(Object.keys(fullJsonModel?.relative_scores ?? {}), [
+assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
 	"intelligence_score",
 	"agentic_score",
 	"speed_score",
@@ -249,8 +249,8 @@ function rankedModel(id: string, name: string, intelligenceScore: number) {
 	const model = minimalLlmStatsModel({ id, name });
 	return {
 		...model,
-		relative_scores: {
-			...model.relative_scores,
+		scores: {
+			...model.scores,
 			intelligence_score: intelligenceScore,
 		},
 	};

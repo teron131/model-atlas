@@ -30,12 +30,12 @@ try {
 				logo: "https://example.com/logo.svg",
 				modalities: { input: ["text"] },
 				evaluations: { riemann_bench: 0.42 },
-				scores: {
+				component_scores: {
 					intelligence_score: 70,
 					agentic_score: 10,
 					speed_score: 50,
 				},
-				relative_scores: {
+				scores: {
 					intelligence_score: 90,
 					agentic_score: 20,
 					speed_score: 50,

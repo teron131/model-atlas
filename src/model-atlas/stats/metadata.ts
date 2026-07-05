@@ -213,8 +213,8 @@ export function buildCurrentLlmStatsMetadata({
 			simulation_profiles: { ...scoringConfig.simulationProfiles },
 			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
 			quality_score_weights: { ...scoringConfig.qualityScoreWeights },
-			overall_relative_score_weights: {
-				...scoringConfig.overallRelativeScoreWeights,
+			overall_score_weights: {
+				...scoringConfig.overallScoreWeights,
 			},
 			column_tooltips: {
 				...scoringConfig.columnTooltips,

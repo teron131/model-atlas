@@ -38,7 +38,7 @@ const MERGED_OBJECT_FIELDS = [
 	"limit",
 	"modalities",
 	"scoring_sources",
-	"scores",
+	"component_scores",
 ] as const;
 
 function normalizeOpenRouterSpeed(performance: unknown): JsonObject {
@@ -67,12 +67,12 @@ function hasIntelligenceCost(row: JsonObject): boolean {
 	return asFiniteNumber(intelligenceIndexCost.total_cost) != null;
 }
 
-function hasScoreSignal(row: JsonObject): boolean {
-	const scores = asRecord(row.scores);
+function hasComponentScoreSignal(row: JsonObject): boolean {
+	const componentScores = asRecord(row.component_scores);
 	return (
-		asFiniteNumber(scores.intelligence_score) != null ||
-		asFiniteNumber(scores.agentic_score) != null ||
-		asFiniteNumber(scores.speed_score) != null
+		asFiniteNumber(componentScores.intelligence_score) != null ||
+		asFiniteNumber(componentScores.agentic_score) != null ||
+		asFiniteNumber(componentScores.speed_score) != null
 	);
 }
 
@@ -92,7 +92,7 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 	const openrouterBoost = providerId === PRIMARY_PROVIDER_ID ? 1_000_000 : 0;
 	const benchmarkBoost = hasBenchmarkSignal(row) ? 2_000_000 : 0;
 	const intelligenceCostBoost = hasIntelligenceCost(row) ? 1_000 : 0;
-	const scoreSignalBoost = hasScoreSignal(row) ? 10 : 0;
+	const componentScoreBoost = hasComponentScoreSignal(row) ? 10 : 0;
 	const artificialAnalysisSlug =
 		typeof row.artificial_analysis_slug === "string"
 			? row.artificial_analysis_slug
@@ -106,7 +106,7 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 		benchmarkBoost +
 		openrouterBoost +
 		intelligenceCostBoost +
-		scoreSignalBoost
+		componentScoreBoost
 	);
 }
 

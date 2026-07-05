@@ -16,7 +16,7 @@ import type {
 	LlmStatsEvaluations,
 	LlmStatsIntelligence,
 	LlmStatsModel,
-	LlmStatsNullableRelativeScores,
+	LlmStatsNullableScores,
 	MatcherConfig,
 	ModelAtlasStageConfig,
 } from "./types";
@@ -40,7 +40,7 @@ type BenchmarkHealthModel = Pick<
 	LlmStatsModel,
 	"id" | "name" | "evaluations" | "intelligence"
 > & {
-	relative_scores?: LlmStatsNullableRelativeScores | null;
+	scores?: LlmStatsNullableScores | null;
 };
 
 type RankedModel = {
@@ -76,7 +76,7 @@ function referenceRankByModel(
 	const ranked = models
 		.flatMap((model) => {
 			const id = modelIdentity(model);
-			const score = finiteNumber(model.relative_scores?.overall_score);
+			const score = finiteNumber(model.scores?.overall_score);
 			return id == null || score == null ? [] : [{ id, score }];
 		})
 		.sort((left, right) => right.score - left.score)
