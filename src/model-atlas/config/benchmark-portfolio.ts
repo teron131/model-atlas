@@ -47,7 +47,7 @@ export const BENCHMARK_PORTFOLIO = {
 		agenticPortion: 0.2,
 	},
 	terminalbench_v21: {
-		group: "baseline",
+		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
 		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,

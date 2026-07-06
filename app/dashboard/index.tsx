@@ -65,16 +65,20 @@ const AUTOMATIC_LIVE_REFRESH_ENABLED =
 	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
 
 const benchmarkColumnTooltipKeys = {
-	gpqa: "gpqa",
-	hle: "hle",
-	terminalBench: "terminalbench_v21",
+	agentsLastExam: "agents_last_exam",
 	automationBench: "automation_bench",
 	blueprintBench: "blueprint_bench_2",
-	gdpPdf: "gdp_pdf",
-	riemannBench: "riemann_bench",
+	critpt: "critpt",
 	cursorBench: "cursorbench",
 	deepSWE: "deep_swe",
-	agentsLastExam: "agents_last_exam",
+	gdpPdf: "gdp_pdf",
+	gdpval: "gdpval_normalized",
+	hle: "hle",
+	riemannBench: "riemann_bench",
+	tauBanking: "tau_banking",
+	terminalBench: "terminalbench_v21",
+	lcr: "lcr",
+	scicode: "scicode",
 } as const satisfies Partial<Record<SortKey, keyof typeof benchmarkTooltips>>;
 
 const benchmarkTableColumnTooltips = Object.fromEntries(
