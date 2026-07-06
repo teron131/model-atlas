@@ -1,22 +1,18 @@
 /** Component score builders for final Model Atlas model rows. */
 
 import {
+	coverageConfidence,
 	meanOfFinite,
 	quantileFromSorted,
 	weightedMeanOfFinite,
 } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type {
-	BenchmarkGroup,
 	LlmStatsNullableComponentScores,
 	LlmStatsSpeed,
 	ScoringConfig,
 } from "../types";
 import {
-	AGENTIC_INDEX_KEYS,
-	firstMetricValue,
-	INTELLIGENCE_INDEX_KEYS,
-	indexScaleKey,
 	metricValue,
 	normalizedMetricValue,
 	type QualityScoringContext,
@@ -25,8 +21,7 @@ import {
 type BenchmarkDimension = "intelligence" | "agentic";
 type BenchmarkScoreInput = {
 	value: number | null;
-	group: BenchmarkGroup;
-	weight: number;
+	observed: boolean;
 };
 
 function selectedBenchmarkScoreInputs(
@@ -43,57 +38,39 @@ function selectedBenchmarkScoreInputs(
 		if (portfolioEntry == null) {
 			continue;
 		}
-		const weight =
+		const dimensionPortion =
 			dimension === "intelligence"
 				? portfolioEntry.intelligencePortion
 				: portfolioEntry.agenticPortion;
-		if (!(weight > 0)) {
+		if (!(dimensionPortion > 0)) {
 			continue;
 		}
-		const rawValue =
-			metricValue(model, key) ?? imputedValuesByKey.get(key) ?? null;
+		const observedValue = metricValue(model, key);
+		const rawValue = observedValue ?? imputedValuesByKey.get(key) ?? null;
 		const value = normalizedMetricValue(
 			qualityContext.benchmarkValuesByKey,
 			key,
 			rawValue,
 		);
-		inputs.push({ value, group: portfolioEntry.group, weight });
+		inputs.push({ value, observed: observedValue != null });
 	}
 	return inputs;
 }
 
-function benchmarkGroupMean(
-	benchmarkScoreInputs: BenchmarkScoreInput[],
-	group: BenchmarkGroup,
-): number | null {
-	return weightedMeanOfFinite(
-		benchmarkScoreInputs.filter((input) => input.group === group),
-	);
-}
-
-/** Blend an upstream quality index with baseline and frontier benchmark means. */
+/** Score selected benchmarks equally while penalizing dimensions with sparse observed coverage. */
 function qualityScore(
-	qualityIndexScore: number | null,
 	benchmarkScoreInputs: BenchmarkScoreInput[],
-	scoringConfig: ScoringConfig,
 ): number | null {
-	const baselineMean = benchmarkGroupMean(benchmarkScoreInputs, "baseline");
-	const frontierMean = benchmarkGroupMean(benchmarkScoreInputs, "frontier");
-	const qualityMean = weightedMeanOfFinite([
-		{
-			value: qualityIndexScore,
-			weight: scoringConfig.qualityScoreWeights.index,
-		},
-		{
-			value: baselineMean,
-			weight: scoringConfig.qualityScoreWeights.baseline,
-		},
-		{
-			value: frontierMean,
-			weight: scoringConfig.qualityScoreWeights.frontier,
-		},
-	]);
-	return qualityMean;
+	const qualityMean = meanOfFinite(
+		benchmarkScoreInputs.map((input) => input.value),
+	);
+	return qualityMean == null
+		? null
+		: qualityMean *
+				coverageConfidence(
+					benchmarkScoreInputs.filter((input) => input.observed).length,
+					benchmarkScoreInputs.length,
+				);
 }
 
 /** Estimate a blended price from effective input/output prices, falling back to base models.dev prices. */
@@ -204,18 +181,6 @@ export function buildComponentScores(
 	qualityContext: QualityScoringContext,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
 ): LlmStatsNullableComponentScores | null {
-	const intelligenceIndex = firstMetricValue(model, INTELLIGENCE_INDEX_KEYS);
-	const agenticIndex = firstMetricValue(model, AGENTIC_INDEX_KEYS);
-	const intelligenceIndexScore = normalizedMetricValue(
-		qualityContext.indexValuesByKey,
-		indexScaleKey(INTELLIGENCE_INDEX_KEYS),
-		intelligenceIndex,
-	);
-	const agenticIndexScore = normalizedMetricValue(
-		qualityContext.indexValuesByKey,
-		indexScaleKey(AGENTIC_INDEX_KEYS),
-		agenticIndex,
-	);
 	const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
 		scoringConfig.intelligenceBenchmarkKeys,
@@ -232,16 +197,8 @@ export function buildComponentScores(
 		scoringConfig,
 		imputedValuesByKey,
 	);
-	const intelligenceScore = qualityScore(
-		intelligenceIndexScore,
-		intelligenceBenchmarkInputs,
-		scoringConfig,
-	);
-	const agenticScore = qualityScore(
-		agenticIndexScore,
-		agenticBenchmarkInputs,
-		scoringConfig,
-	);
+	const intelligenceScore = qualityScore(intelligenceBenchmarkInputs);
+	const agenticScore = qualityScore(agenticBenchmarkInputs);
 	const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
 	const throughputTokensPerSecond = asFiniteNumber(
 		speed.throughput_tokens_per_second_median,

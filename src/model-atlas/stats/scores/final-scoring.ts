@@ -2,6 +2,7 @@
 
 import {
 	benchmarkDeviation,
+	coverageConfidence,
 	fillMissingWithQualityMirror,
 	fixedWeightedScore,
 	gaussianWeight,
@@ -12,7 +13,6 @@ import {
 	percentileScoreForValue,
 	positiveFiniteNumber,
 	quantileFromSorted,
-	smoothstep,
 	weightedFinitePartCount,
 	weightedMeanOfFinite,
 } from "../../math-utils";
@@ -38,8 +38,6 @@ const ACTIVE_COMPONENT_WEIGHT = 1;
 const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
 const RESOURCE_EFFICIENCY_QUALITY_SIGMA = 0.5;
 const MIN_BENCHMARK_DEVIATION = 0.35;
-const RESOURCE_COVERAGE_FLOOR = 0.1;
-const RESOURCE_COVERAGE_FULL = 0.6;
 type WeightedSignal = {
 	value: number | null;
 	weight: number;
@@ -277,23 +275,6 @@ function localResourceEfficiencyScore(
 	return totalWeight > 0 ? (100 * atLeastAsLargeWeight) / totalWeight : null;
 }
 
-function resourceEfficiencyCoverageConfidence(
-	availableCount: number,
-	totalCount: number,
-) {
-	if (totalCount <= 0) {
-		return 0;
-	}
-	const coverage = availableCount / totalCount;
-	if (coverage >= RESOURCE_COVERAGE_FULL) {
-		return 1;
-	}
-	return smoothstep(
-		(coverage - RESOURCE_COVERAGE_FLOOR) /
-			(RESOURCE_COVERAGE_FULL - RESOURCE_COVERAGE_FLOOR),
-	);
-}
-
 function resourceEfficiencyEvidence(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
@@ -333,11 +314,7 @@ function resourceEfficiencySignals({
 		const meanValue = meanOfFinite(signals);
 		return meanValue == null
 			? null
-			: meanValue *
-					resourceEfficiencyCoverageConfidence(
-						signals.length,
-						benchmarkKeys.length,
-					);
+			: meanValue * coverageConfidence(signals.length, benchmarkKeys.length);
 	});
 }
 
@@ -349,7 +326,7 @@ function equalWeightedScore(
 	return meanValue == null
 		? null
 		: meanValue *
-				resourceEfficiencyCoverageConfidence(
+				coverageConfidence(
 					weightedFinitePartCount(
 						signals.map((value) => ({
 							value,

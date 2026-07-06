@@ -296,7 +296,7 @@ const latencySpeedModels = attachFinalScores(
 assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
 assertClose(latencySpeedModels[1]?.scores.speed_score, 62.5);
 
-const groupPolicyConfig = {
+const equalBenchmarkConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: ["omniscience_accuracy", "hle"],
 	agenticBenchmarkKeys: [],
@@ -314,35 +314,93 @@ const groupPolicyConfig = {
 	},
 	frontierBenchmarkKeys: [],
 } as const;
-const groupPolicyModels = [
+const equalBenchmarkModels = [
 	{
-		id: "group-min",
-		intelligence: { intelligence_index: 0 },
+		id: "equal-min",
 		evaluations: { omniscience_accuracy: 0, hle: 0 },
 	},
 	{
-		id: "group-max",
-		intelligence: { intelligence_index: 100 },
+		id: "equal-max",
 		evaluations: { omniscience_accuracy: 100, hle: 100 },
 	},
 	{
-		id: "group-target",
-		intelligence: { intelligence_index: 100 },
+		id: "equal-target",
 		evaluations: { omniscience_accuracy: 0, hle: 100 },
 	},
 ];
-const groupPolicyComponentScores = buildComponentScores(
-	groupPolicyModels[2] ?? {},
+const equalBenchmarkComponentScores = buildComponentScores(
+	equalBenchmarkModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
 		e2e_latency_seconds_median: null,
 	},
 	[],
-	groupPolicyConfig,
-	buildQualityScoringContext(groupPolicyModels, groupPolicyConfig, new Map()),
+	equalBenchmarkConfig,
+	buildQualityScoringContext(
+		equalBenchmarkModels,
+		equalBenchmarkConfig,
+		new Map(),
+	),
 );
-assertClose(groupPolicyComponentScores?.intelligence_score, 70);
+assertClose(equalBenchmarkComponentScores?.intelligence_score, 50);
+
+const sparseBenchmarkKeys = Array.from(
+	{ length: 12 },
+	(_, index) => `quality_${index}`,
+);
+const sparseCoverageBenchmarkPortfolio = Object.fromEntries(
+	sparseBenchmarkKeys.map((key) => [
+		key,
+		{
+			group: "frontier",
+			intelligencePortion: 1,
+			agenticPortion: 0,
+		},
+	]),
+) as Record<
+	string,
+	{ group: "frontier"; intelligencePortion: 1; agenticPortion: 0 }
+>;
+const sparseCoverageConfig = {
+	...STAGE_CONFIG.scoring,
+	intelligenceBenchmarkKeys: sparseBenchmarkKeys,
+	agenticBenchmarkKeys: [],
+	benchmarkPortfolio: sparseCoverageBenchmarkPortfolio,
+	frontierBenchmarkKeys: sparseBenchmarkKeys,
+} as const;
+const sparseCoverageModels = [
+	{
+		id: "sparse-min",
+		evaluations: Object.fromEntries(sparseBenchmarkKeys.map((key) => [key, 0])),
+	},
+	{
+		id: "sparse-max",
+		evaluations: Object.fromEntries(
+			sparseBenchmarkKeys.map((key) => [key, 100]),
+		),
+	},
+	{
+		id: "sparse-target",
+		evaluations: { quality_0: 100 },
+	},
+];
+const sparseCoverageComponentScores = buildComponentScores(
+	sparseCoverageModels[2] ?? {},
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	sparseCoverageConfig,
+	buildQualityScoringContext(
+		sparseCoverageModels,
+		sparseCoverageConfig,
+		new Map(),
+	),
+);
+assertClose(sparseCoverageComponentScores?.intelligence_score, 0);
 
 const directResourceScoredModels = attachFinalScores(
 	[
@@ -518,7 +576,7 @@ const normalizedContextModels = [
 ];
 const normalizedContextConfig = {
 	...STAGE_CONFIG.scoring,
-	intelligenceBenchmarkKeys: ["target", "wide", "narrow"],
+	intelligenceBenchmarkKeys: ["target", "wide", "narrow", "steady"],
 	agenticBenchmarkKeys: [],
 	frontierBenchmarkKeys: [],
 };
@@ -648,14 +706,14 @@ function modelCandidate(options: {
 function imputationModel(
 	id: string,
 	target: number | null,
-	intelligenceIndex: number,
+	steady: number,
 	wide: number,
 	narrow: number,
 ) {
 	return {
 		id,
 		intelligence: {
-			intelligence_index: intelligenceIndex,
+			steady,
 			wide,
 			narrow,
 			...(target == null ? {} : { target }),

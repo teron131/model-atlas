@@ -7,8 +7,10 @@ export {
 	benchmarkEnrichment,
 } from "./enrichment";
 export {
+	AGENTIC_INDEX_KEYS,
 	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
 	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
+	INTELLIGENCE_INDEX_KEYS,
 	MODEL_ATLAS_EVALUATION_KEYS,
 } from "./keys";
 export {

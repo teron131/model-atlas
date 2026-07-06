@@ -369,6 +369,23 @@ export function smoothstep(ratio: number): number {
 	return clampedRatio * clampedRatio * (3 - 2 * clampedRatio);
 }
 
+const COVERAGE_CONFIDENCE_FLOOR = 0.1;
+const COVERAGE_CONFIDENCE_FULL = 0.6;
+
+export function coverageConfidence(availableCount: number, totalCount: number) {
+	if (totalCount <= 0) {
+		return 0;
+	}
+	const coverage = availableCount / totalCount;
+	if (coverage >= COVERAGE_CONFIDENCE_FULL) {
+		return 1;
+	}
+	return smoothstep(
+		(coverage - COVERAGE_CONFIDENCE_FLOOR) /
+			(COVERAGE_CONFIDENCE_FULL - COVERAGE_CONFIDENCE_FLOOR),
+	);
+}
+
 /** Normalize onto the 0-100 score scale, giving full credit when the comparison set has no spread. */
 export function minMaxScale(
 	values: ReadonlyArray<number | null>,

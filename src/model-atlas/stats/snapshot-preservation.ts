@@ -1,10 +1,7 @@
 /** Preserve high-signal snapshot rows when a refresh loses source evidence. */
 
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
-import {
-	AGENTIC_INDEX_KEYS,
-	INTELLIGENCE_INDEX_KEYS,
-} from "./scores/benchmark-imputation";
+import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "./benchmarks";
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,

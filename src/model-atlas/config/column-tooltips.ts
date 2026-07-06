@@ -8,13 +8,10 @@ import type {
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_KEYS,
-	type BenchmarkDimension,
 	type BenchmarkKey,
-	benchmarkDimensionPortion,
 	benchmarkPortfolioEntry,
 	benchmarkResourcePolicy,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	QUALITY_SCORE_WEIGHTS,
 } from "./benchmark-portfolio";
 import {
 	PRICE_PROFILE_ENTRIES,
@@ -37,9 +34,6 @@ function weightPercent<T extends Record<string, number>>(
 	const weight = weights[key];
 	return total > 0 && weight != null ? percent(weight / total) : "-";
 }
-
-const qualityWeight = (key: keyof typeof QUALITY_SCORE_WEIGHTS) =>
-	weightPercent(QUALITY_SCORE_WEIGHTS, key);
 
 const priceProfileRow = (
 	label: string,
@@ -129,30 +123,8 @@ const effectivePriceProfileRatio = (key: "input" | "output") => {
 	return totalWeight > 0 ? percent(weightedRatio / totalWeight, 1) : "-";
 };
 
-const benchmarkContributionPercent = (
-	keys: readonly string[],
-	key: string,
-	dimension: BenchmarkDimension,
-) => {
-	const entry = benchmarkPortfolioEntry(key);
-	if (entry == null) {
-		return "-";
-	}
-	const groupKeys = keys.filter(
-		(benchmarkKey) =>
-			benchmarkPortfolioEntry(benchmarkKey)?.group === entry.group,
-	);
-	const groupPortionTotal = groupKeys.reduce(
-		(sum, benchmarkKey) =>
-			sum + benchmarkDimensionPortion(benchmarkKey, dimension),
-		0,
-	);
-	const groupWeight = QUALITY_SCORE_WEIGHTS[entry.group];
-	const portion = benchmarkDimensionPortion(key, dimension);
-	return groupPortionTotal > 0
-		? percent((groupWeight * portion) / groupPortionTotal)
-		: "-";
-};
+const benchmarkContributionPercent = (keys: readonly string[]) =>
+	perComponentWeight(1, keys.length);
 
 const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
 const speedComponentCount = (components: ActiveResourceComponents) =>
@@ -252,15 +224,16 @@ function benchmarkResourceRows(
 	]);
 }
 
-const qualityScoreRowsWithBenchmarkGroups = (
-	indexLabel: string,
+const qualityBenchmarkRows = (
+	keys: readonly BenchmarkKey[],
 	benchmarkRows: Readonly<{
 		baseline: readonly LlmStatsColumnTooltipRow[];
 		frontier: readonly LlmStatsColumnTooltipRow[];
 	}>,
 ) =>
 	[
-		[indexLabel, qualityWeight("index")],
+		["Benchmark slot", benchmarkContributionPercent(keys)],
+		["Coverage confidence", "10%-60% observed benchmark ramp"],
 		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,
@@ -271,17 +244,14 @@ const qualityScoreRowsWithBenchmarkGroups = (
 		},
 	] as const;
 
-const benchmarkTooltipRowsByGroup = (
-	keys: readonly BenchmarkKey[],
-	dimension: BenchmarkDimension,
-) => ({
+const benchmarkRowsByGroup = (keys: readonly BenchmarkKey[]) => ({
 	baseline: keys
 		.filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline")
 		.map(
 			(key) =>
 				[
 					BENCHMARK_LABEL_BY_KEY[key],
-					benchmarkContributionPercent(keys, key, dimension),
+					benchmarkContributionPercent(keys),
 				] as const,
 		),
 	frontier: keys
@@ -290,19 +260,17 @@ const benchmarkTooltipRowsByGroup = (
 			(key) =>
 				[
 					BENCHMARK_LABEL_BY_KEY[key],
-					benchmarkContributionPercent(keys, key, dimension),
+					benchmarkContributionPercent(keys),
 				] as const,
 		),
 });
 
-const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
+const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	"intelligence",
 );
 
-const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkTooltipRowsByGroup(
+const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
-	"agentic",
 );
 
 const speedInputRows = (components: ActiveResourceComponents) => {
@@ -371,14 +339,14 @@ export function columnTooltipsForActiveComponents(
 	return {
 		intelligence: {
 			title: "Intelligence score",
-			body: "Atlas capability score from the AA INTELLIGENCE index plus the selected INTELLIGENCE benchmarks.",
+			body: "Atlas capability score from equally weighted selected INTELLIGENCE benchmarks, penalized when observed benchmark coverage is sparse.",
 			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
 					title: "Score blend",
 					hideTitle: true,
-					rows: qualityScoreRowsWithBenchmarkGroups(
-						"AA Intelligence Index",
+					rows: qualityBenchmarkRows(
+						INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 						INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
 					),
 				},
@@ -386,14 +354,14 @@ export function columnTooltipsForActiveComponents(
 		},
 		agentic: {
 			title: "Agentic score",
-			body: "Atlas workflow and coding-task score from the AA AGENTIC index plus selected AGENTIC benchmarks.",
+			body: "Atlas workflow and coding-task score from equally weighted selected AGENTIC benchmarks, penalized when observed benchmark coverage is sparse.",
 			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
 					title: "Score blend",
 					hideTitle: true,
-					rows: qualityScoreRowsWithBenchmarkGroups(
-						"AA Agentic Index",
+					rows: qualityBenchmarkRows(
+						AGENTIC_BENCHMARK_DISPLAY_KEYS,
 						AGENTIC_BENCHMARK_TOOLTIP_ROWS,
 					),
 				},

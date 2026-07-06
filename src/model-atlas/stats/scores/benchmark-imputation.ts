@@ -17,7 +17,6 @@ export type BenchmarkImputationByModel = ReadonlyMap<
 
 export type QualityScoringContext = {
 	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
-	indexValuesByKey: ReadonlyMap<string, readonly number[]>;
 };
 
 type PreparedBenchmarkScoring = {
@@ -29,15 +28,6 @@ const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
 const MIN_FRONTIER_EVIDENCE_VALUES = 2;
 const NON_FRONTIER_CONFIDENCE_MULTIPLIER = 0.5;
-const INDEX_SCALE_KEY_SEPARATOR = "\u0000";
-export const INTELLIGENCE_INDEX_KEYS = [
-	"intelligence_index",
-	"artificial_analysis_intelligence_index",
-] as const;
-export const AGENTIC_INDEX_KEYS = [
-	"agentic_index",
-	"artificial_analysis_agentic_index",
-] as const;
 
 export function metricValue(model: JsonObject, key: string): number | null {
 	const intelligence = asRecord(model.intelligence);
@@ -47,23 +37,6 @@ export function metricValue(model: JsonObject, key: string): number | null {
 		asFiniteNumber(evaluations[key]) ??
 		null
 	);
-}
-
-export function firstMetricValue(
-	model: JsonObject,
-	keys: readonly string[],
-): number | null {
-	for (const key of keys) {
-		const value = metricValue(model, key);
-		if (value != null) {
-			return value;
-		}
-	}
-	return null;
-}
-
-export function indexScaleKey(indexKeys: readonly string[]): string {
-	return indexKeys.join(INDEX_SCALE_KEY_SEPARATOR);
 }
 
 export function normalizedMetricValue(
@@ -76,33 +49,23 @@ export function normalizedMetricValue(
 
 function observedNormalizedEvidenceScore(
 	model: JsonObject,
-	indexKeys: readonly string[],
 	benchmarkKeys: readonly string[],
 	excludedBenchmarkKey: string,
 	valuesByKey: ReadonlyMap<string, readonly number[]>,
 	minEvidenceValues: number,
 ): number | null {
-	const values = [
-		indexKeys.length > 0
-			? normalizedMetricValue(
-					valuesByKey,
-					indexScaleKey(indexKeys),
-					firstMetricValue(model, indexKeys),
-				)
-			: null,
-		...benchmarkKeys
-			.filter((key) => key !== excludedBenchmarkKey)
-			.map((key) =>
-				normalizedMetricValue(valuesByKey, key, metricValue(model, key)),
-			),
-	];
+	const values = benchmarkKeys
+		.filter((key) => key !== excludedBenchmarkKey)
+		.map((key) =>
+			normalizedMetricValue(valuesByKey, key, metricValue(model, key)),
+		);
 	const finiteValueCount = values.filter(
 		(value): value is number => value != null && Number.isFinite(value),
 	).length;
 	return finiteValueCount >= minEvidenceValues ? meanOfFinite(values) : null;
 }
 
-/** Estimates missing benchmark scores from correlated index metrics. */
+/** Estimates missing benchmark scores from correlated selected-benchmark evidence. */
 function imputedBenchmarkValue(
 	mappedValue: number | null,
 	floorValue: number | null,
@@ -122,16 +85,11 @@ function imputedBenchmarkValue(
 /** Impute missing selected benchmark values by mapping same-dimension score percentile onto that benchmark's observed distribution. */
 function buildDimensionBenchmarkImputations(
 	models: JsonObject[],
-	indexKeys: readonly string[],
 	benchmarkKeys: readonly string[],
 	frontierBenchmarkKeys: ReadonlySet<string>,
 ): Map<JsonObject, Map<string, number>> {
 	const imputationByModel = new Map<JsonObject, Map<string, number>>();
 	const valuesByKey = new Map<string, number[]>();
-	valuesByKey.set(
-		indexScaleKey(indexKeys),
-		mapFiniteNumbers(models, (model) => firstMetricValue(model, indexKeys)),
-	);
 	for (const key of benchmarkKeys) {
 		valuesByKey.set(
 			key,
@@ -145,7 +103,6 @@ function buildDimensionBenchmarkImputations(
 					frontierBenchmarkKeys.has(benchmarkKey),
 				)
 			: benchmarkKeys;
-		const contextIndexKeys = isFrontierBenchmark ? [] : indexKeys;
 		const minEvidenceValues = isFrontierBenchmark
 			? MIN_FRONTIER_EVIDENCE_VALUES
 			: MIN_IMPUTATION_EVIDENCE_VALUES;
@@ -160,7 +117,6 @@ function buildDimensionBenchmarkImputations(
 			.map((model) =>
 				observedNormalizedEvidenceScore(
 					model,
-					contextIndexKeys,
 					contextBenchmarkKeys,
 					key,
 					valuesByKey,
@@ -182,7 +138,6 @@ function buildDimensionBenchmarkImputations(
 			}
 			const contextScore = observedNormalizedEvidenceScore(
 				model,
-				contextIndexKeys,
 				contextBenchmarkKeys,
 				key,
 				valuesByKey,
@@ -220,13 +175,11 @@ export function buildBenchmarkImputationByModel(
 	const imputationByModel = mergeBenchmarkImputations(
 		buildDimensionBenchmarkImputations(
 			models,
-			INTELLIGENCE_INDEX_KEYS,
 			scoringConfig.intelligenceBenchmarkKeys,
 			frontierBenchmarkKeys,
 		),
 		buildDimensionBenchmarkImputations(
 			models,
-			AGENTIC_INDEX_KEYS,
 			scoringConfig.agenticBenchmarkKeys,
 			frontierBenchmarkKeys,
 		),
@@ -277,17 +230,7 @@ export function buildQualityScoringContext(
 		benchmarkValuesByKey.set(key, values);
 	}
 
-	const indexValuesByKey = new Map<string, number[]>();
-	for (const indexKeys of [INTELLIGENCE_INDEX_KEYS, AGENTIC_INDEX_KEYS]) {
-		const values = models
-			.map((model) => firstMetricValue(model, indexKeys))
-			.filter(
-				(value): value is number => value != null && Number.isFinite(value),
-			);
-		indexValuesByKey.set(indexScaleKey(indexKeys), values);
-	}
-
-	return { benchmarkValuesByKey, indexValuesByKey };
+	return { benchmarkValuesByKey };
 }
 
 /** Prepare benchmark imputations and quality normalization context in dependency order. */

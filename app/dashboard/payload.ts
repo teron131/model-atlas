@@ -54,9 +54,6 @@ export function leanDashboardPayload(
 				simulation_profiles: {},
 				simulation_input_token_seconds:
 					payload.metadata.scoring.simulation_input_token_seconds,
-				quality_score_weights: {
-					...payload.metadata.scoring.quality_score_weights,
-				},
 				overall_score_weights: {
 					...payload.metadata.scoring.overall_score_weights,
 				},
