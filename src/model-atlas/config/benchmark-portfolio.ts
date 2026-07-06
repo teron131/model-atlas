@@ -95,7 +95,7 @@ export const BENCHMARK_PORTFOLIO = {
 		agenticPortion: 0,
 	},
 	tau_banking: {
-		group: "frontier",
+		group: "baseline",
 		intelligencePortion: 0,
 		agenticPortion: 1,
 		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
