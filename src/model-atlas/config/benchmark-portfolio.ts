@@ -31,78 +31,7 @@ const BENCHMARK_TOTAL_RESOURCE_POLICY = {
 } as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_PORTFOLIO = {
-	omniscience_accuracy: {
-		group: "baseline",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-	},
-	lcr: {
-		group: "baseline",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-	},
-	scicode: {
-		group: "baseline",
-		intelligencePortion: 0.8,
-		agenticPortion: 0.2,
-	},
-	terminalbench_v21: {
-		group: "frontier",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
-	},
-	browsecomp: {
-		group: "baseline",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-	},
-	toolathlon: {
-		group: "baseline",
-		intelligencePortion: 0.2,
-		agenticPortion: 0.8,
-	},
-	cursorbench: {
-		group: "frontier",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
-	},
-	vals_index: {
-		group: "baseline",
-		intelligencePortion: 0.6,
-		agenticPortion: 0.4,
-	},
-	hle: {
-		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
-	},
-	critpt: {
-		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
-	},
-	gdpval_normalized: {
-		group: "frontier",
-		intelligencePortion: 0.6,
-		agenticPortion: 0.4,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
-	},
-	riemann_bench: {
-		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-	},
 	apex_agents: {
-		group: "frontier",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
-	},
-	tau_banking: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
@@ -125,16 +54,87 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 1,
 		agenticPortion: 0,
 	},
-	gdp_pdf: {
+	critpt: {
 		group: "frontier",
-		intelligencePortion: 0.9,
-		agenticPortion: 0.1,
+		intelligencePortion: 1,
+		agenticPortion: 0,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+	},
+	cursorbench: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
 	},
 	deep_swe: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
 		resourcePolicy: BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY,
+	},
+	gdp_pdf: {
+		group: "frontier",
+		intelligencePortion: 0.9,
+		agenticPortion: 0.1,
+	},
+	gdpval_normalized: {
+		group: "frontier",
+		intelligencePortion: 0.6,
+		agenticPortion: 0.4,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+	},
+	hle: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+	},
+	riemann_bench: {
+		group: "frontier",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
+	tau_banking: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+	},
+	terminalbench_v21: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+	},
+	browsecomp: {
+		group: "baseline",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+	},
+	lcr: {
+		group: "baseline",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
+	omniscience_accuracy: {
+		group: "baseline",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
+	scicode: {
+		group: "baseline",
+		intelligencePortion: 0.8,
+		agenticPortion: 0.2,
+	},
+	toolathlon: {
+		group: "baseline",
+		intelligencePortion: 0.2,
+		agenticPortion: 0.8,
+	},
+	vals_index: {
+		group: "baseline",
+		intelligencePortion: 0.6,
+		agenticPortion: 0.4,
 	},
 } as const satisfies Readonly<Record<string, BenchmarkPortfolioEntry>>;
 

@@ -103,7 +103,7 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		title: "Terminal-Bench 2.1",
 		body: "Best matched AA or Vals terminal-agent score for command-line task execution.",
 		rows: [
-			["Source", "AA + Vals"],
+			["Source", "Artificial Analysis & Vals"],
 			["Role", "terminal agent work"],
 		],
 	},

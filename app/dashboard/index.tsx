@@ -13,7 +13,10 @@ import {
 	useTransition,
 } from "react";
 
-import { COLUMN_TOOLTIPS } from "../../src/model-atlas/constants";
+import {
+	COLUMN_TOOLTIPS,
+	OVERALL_SCORE_WEIGHTS,
+} from "../../src/model-atlas/constants";
 import type {
 	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
@@ -33,7 +36,7 @@ import {
 	tooltipPositionFromElement,
 } from "./shared/ColumnTooltip";
 import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
-import { cacheBustedPath } from "./shared/format";
+import { cacheBustedPath, formatWeight } from "./shared/format";
 import { MoonIcon, RefreshIcon, SunIcon } from "./shared/icons";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
@@ -42,6 +45,8 @@ import {
 	type SortState,
 	sortedRows,
 	sorters,
+	type TaskMetricColumn,
+	taskMetricColumns,
 } from "./table/models";
 import {
 	type ColumnView,
@@ -92,12 +97,214 @@ const benchmarkTableColumnTooltips = Object.fromEntries(
 	),
 ) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
 
+const taskMetricTableColumnTooltips = Object.fromEntries(
+	taskMetricColumns.flatMap((column) => taskMetricTooltipEntry(column)),
+) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+
+const staticTableColumnTooltips = {
+	rank: {
+		title: "Rank",
+		body: "Competition rank by Model Atlas Intelligence score.",
+		rows: [["Sort", "lower values sort first"]],
+	},
+	model: {
+		title: "Model",
+		body: "Model display name and provider route id.",
+		rows: [["Sort", "alphabetical by model name"]],
+	},
+	overall: {
+		title: "Overall score",
+		body: "Weighted Model Atlas score combining Intelligence, Agentic, Speed, and Value.",
+		rows: [
+			["Intelligence", formatWeight(OVERALL_SCORE_WEIGHTS.intelligence)],
+			["Agentic", formatWeight(OVERALL_SCORE_WEIGHTS.agentic)],
+			["Speed", formatWeight(OVERALL_SCORE_WEIGHTS.speed)],
+			["Value", formatWeight(OVERALL_SCORE_WEIGHTS.value)],
+			["Sort", "higher values sort first"],
+		],
+	},
+	release: {
+		title: "Release date",
+		body: "Known model release date from the selected model metadata.",
+		rows: [["Sort", "newer releases sort first"]],
+	},
+	openWeights: {
+		title: "Open weights",
+		body: "Whether the model is available with open weights in the selected metadata.",
+		rows: [["Sort", "open-weight models sort first"]],
+	},
+	modalities: {
+		title: "Input modalities",
+		body: "Input types the model route advertises for text, image, audio, and video.",
+		rows: [["Sort", "more input capabilities sort first"]],
+	},
+	inputCost: {
+		title: "Input cost",
+		body: "Published input price per 1M tokens for the selected route.",
+		rows: [["Sort", "lower values sort first"]],
+	},
+	outputCost: {
+		title: "Output cost",
+		body: "Published output price per 1M tokens for the selected route.",
+		rows: [["Sort", "lower values sort first"]],
+	},
+	cacheReadCost: {
+		title: "Cache read cost",
+		body: "Published cache-read price per 1M tokens when available.",
+		rows: [["Sort", "lower values sort first"]],
+	},
+	throughput: {
+		title: "Output throughput",
+		body: "Median output tokens per second from provider speed data.",
+		rows: [["Sort", "higher values sort first"]],
+	},
+	latency: {
+		title: "Latency",
+		body: "Median time to first token from provider speed data.",
+		rows: [["Sort", "lower values sort first"]],
+	},
+	e2eLatency: {
+		title: "End-to-end latency",
+		body: "Median total response time from provider speed data.",
+		rows: [["Sort", "lower values sort first"]],
+	},
+} as const satisfies Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+
 const tableColumnFallbackTooltips: Partial<
 	Record<SortKey, LlmStatsColumnTooltip>
 > = {
+	...staticTableColumnTooltips,
 	...benchmarkTableColumnTooltips,
-	agentsLastExamCost: COLUMN_TOOLTIPS.agentsLastExamCost,
+	...taskMetricTableColumnTooltips,
 };
+
+function taskMetricTooltipEntry(
+	column: TaskMetricColumn,
+): Array<[SortKey, LlmStatsColumnTooltip]> {
+	const configuredTooltip = COLUMN_TOOLTIPS[column.key];
+	if (configuredTooltip != null) {
+		return [[column.key, configuredTooltip]];
+	}
+	const benchmarkTooltip = benchmarkTooltips[column.source];
+	if (benchmarkTooltip == null) {
+		return [];
+	}
+	const metricTooltip = taskMetricTooltipFor(column);
+	return [
+		[
+			column.key,
+			{
+				title: `${benchmarkTooltip.title} ${metricTooltip.title}`,
+				body: `${metricTooltip.body} for ${benchmarkTooltip.title}.`,
+				rows: [
+					["Source", taskMetricTooltipSource(column, benchmarkTooltip)],
+					["Metric", metricTooltip.row],
+					[
+						"Sort",
+						column.direction === "ascending"
+							? "lower values sort first"
+							: "higher values sort first",
+					],
+				],
+			},
+		],
+	];
+}
+
+function taskMetricTooltipSource(
+	column: TaskMetricColumn,
+	tooltip: LlmStatsColumnTooltip,
+) {
+	if (column.source === "terminalbench_v21") {
+		return isTokenTaskMetric(column.metric)
+			? "Artificial Analysis"
+			: "Artificial Analysis & Vals";
+	}
+	return (
+		tooltip.rows?.find(([label]) => label === "Source")?.[1] ?? tooltip.title
+	);
+}
+
+function taskMetricTooltipFor(column: TaskMetricColumn) {
+	if (column.source === "terminalbench_v21") {
+		return terminalBenchMetricTooltipFor(column);
+	}
+	switch (column.metric) {
+		case "cost":
+			return {
+				title: "cost per task",
+				body: "Reported task cost",
+				row: "cost per task",
+			};
+		case "seconds":
+			return {
+				title: "seconds per task",
+				body: "Reported task runtime",
+				row: "runtime per task",
+			};
+		case "tokens":
+			return {
+				title: "tokens per task",
+				body: "Reported token use",
+				row: "tokens per task",
+			};
+		case "input_tokens":
+			return {
+				title: "input tokens per task",
+				body: "Reported input token use",
+				row: "input tokens per task",
+			};
+		case "output_tokens":
+			return {
+				title: "output tokens per task",
+				body: "Reported output token use",
+				row: "output tokens per task",
+			};
+	}
+}
+
+function terminalBenchMetricTooltipFor(column: TaskMetricColumn) {
+	switch (column.metric) {
+		case "cost":
+			return {
+				title: "cost per task",
+				body: "Median available task cost",
+				row: "median cost per task",
+			};
+		case "seconds":
+			return {
+				title: "seconds per task",
+				body: "Median available task runtime",
+				row: "median runtime per task",
+			};
+		case "tokens":
+			return {
+				title: "tokens per task",
+				body: "Artificial Analysis reported token use",
+				row: "AA tokens per task",
+			};
+		case "input_tokens":
+			return {
+				title: "input tokens per task",
+				body: "Artificial Analysis reported input token use",
+				row: "AA input tokens per task",
+			};
+		case "output_tokens":
+			return {
+				title: "output tokens per task",
+				body: "Artificial Analysis reported output token use",
+				row: "AA output tokens per task",
+			};
+	}
+}
+
+function isTokenTaskMetric(metric: TaskMetricColumn["metric"]) {
+	return (
+		metric === "tokens" ||
+		metric === "input_tokens" ||
+		metric === "output_tokens"
+	);
+}
 
 function tooltipForColumn(
 	key: SortKey,
