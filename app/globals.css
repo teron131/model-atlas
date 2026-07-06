@@ -1655,8 +1655,8 @@ td.modality-cell {
 		--mono-chip: 12px;
 		--mono-data: 12px;
 		--sans-note: 13px;
-		--model-name: 15px;
-		--model-id: 11px;
+		--model-name: 14px;
+		--model-id: 10.5px;
 	}
 
 	main {
@@ -1791,13 +1791,13 @@ td.modality-cell {
 	}
 
 	.model-cell {
-		grid-template-columns: 26px max-content;
-		gap: 6px;
+		grid-template-columns: 23px max-content;
+		gap: 5px;
 	}
 
 	.provider-logo {
-		width: 26px;
-		height: 26px;
+		width: 23px;
+		height: 23px;
 	}
 
 	.score-cell {
