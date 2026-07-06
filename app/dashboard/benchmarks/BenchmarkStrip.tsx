@@ -15,14 +15,7 @@ import {
 	benchmarkLabels,
 	benchmarkTooltips,
 } from "../shared/constants";
-import { formatWeight } from "../shared/format";
 
-const loadingWeightRows = [
-	"intelligence",
-	"agentic",
-	"speed",
-	"price",
-] as const;
 const loadingBenchmarkCounts: Record<string, number> = {
 	Intelligence: 6,
 	Agent: 5,
@@ -79,10 +72,6 @@ export function BenchmarkStrip({
 						/>
 					);
 				})}
-				<WeightsGroup
-					weights={scoring?.overall_score_weights ?? {}}
-					isLoading={isLoading}
-				/>
 			</div>
 			{tooltip != null && activeTooltipContent != null && (
 				<ColumnTooltip
@@ -196,62 +185,6 @@ function LoadingBenchmarkList({ label }: { label: string }) {
 	);
 }
 
-function WeightsGroup({
-	weights,
-	isLoading,
-}: {
-	weights: Record<string, number | undefined>;
-	isLoading: boolean;
-}) {
-	return (
-		<div className="benchmark-group">
-			<div
-				className="benchmark-group-label"
-				data-count={isLoading ? "sync" : "overall"}
-			>
-				<span>Weights</span>
-			</div>
-			{isLoading ? <LoadingWeightList /> : <WeightList weights={weights} />}
-		</div>
-	);
-}
-
-function WeightList({
-	weights,
-}: {
-	weights: Record<string, number | undefined>;
-}) {
-	return (
-		<ul className="benchmark-list weight-list">
-			{Object.entries(weights).map(([name, value]) => (
-				<li key={name}>
-					<samp>
-						{name} <b>{formatWeight(value)}</b>
-					</samp>
-				</li>
-			))}
-		</ul>
-	);
-}
-
-function LoadingWeightList() {
-	return (
-		<ul className="benchmark-list weight-list weight-list-loading">
-			{loadingWeightRows.map((name, index) => (
-				<li key={name}>
-					<samp
-						className="loading-weight-row"
-						style={loadingStyle("--loading-row-index", index)}
-					>
-						<span>{name}</span>
-						<b />
-					</samp>
-				</li>
-			))}
-		</ul>
-	);
-}
-
 function loadingBenchmarkKeys(label: string): string[] {
 	const prefix = label.toLowerCase();
 	const count = loadingBenchmarkCounts[label] ?? 5;
@@ -259,7 +192,7 @@ function loadingBenchmarkKeys(label: string): string[] {
 }
 
 function loadingStyle(
-	name: "--loading-chip-index" | "--loading-row-index",
+	name: "--loading-chip-index",
 	value: number,
 ): CSSProperties {
 	return { [name]: value } as CSSProperties;

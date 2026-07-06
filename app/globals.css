@@ -406,40 +406,6 @@ h1 {
 	box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-.weight-list {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 6px;
-}
-
-.weight-list samp {
-	display: grid;
-	grid-template-columns: 1fr auto;
-	gap: 12px;
-	min-width: 160px;
-	color: var(--muted);
-}
-
-.weight-list b {
-	color: var(--ink);
-	font-weight: 700;
-}
-
-.loading-weight-row span,
-.loading-weight-row b {
-	display: block;
-	height: 1em;
-	border-radius: 1px;
-}
-
-.loading-weight-row span {
-	width: 82px;
-}
-
-.loading-weight-row b {
-	width: 32px;
-}
-
 .dashboard-deck {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
@@ -793,9 +759,7 @@ tbody tr:nth-child(2n):hover {
 
 .loading-block,
 .loading-logo,
-.benchmark-chip-loading,
-.loading-weight-row span,
-.loading-weight-row b {
+.benchmark-chip-loading {
 	position: relative;
 	overflow: hidden;
 	background:
