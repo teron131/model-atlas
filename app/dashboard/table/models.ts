@@ -32,36 +32,6 @@ const artificialAnalysisTaskMetricColumns = [
 	},
 ] as const;
 
-const deepSWETaskMetricColumns = [
-	{
-		key: "deepSWECost",
-		group: "tasks",
-		source: "deep_swe",
-		metric: "cost",
-		direction: "ascending",
-		type: "number",
-		label: "DSWE$",
-	},
-	{
-		key: "deepSWESeconds",
-		group: "tasks",
-		source: "deep_swe",
-		metric: "seconds",
-		direction: "ascending",
-		type: "number",
-		label: "DSWE Sec",
-	},
-	{
-		key: "deepSWETokens",
-		group: "tasks",
-		source: "deep_swe",
-		metric: "output_tokens",
-		direction: "descending",
-		type: "number",
-		label: "DSWE Tok",
-	},
-] as const;
-
 const agentsLastExamTaskMetricColumns = [
 	{
 		key: "agentsLastExamCost",
@@ -101,10 +71,230 @@ const agentsLastExamTaskMetricColumns = [
 	},
 ] as const;
 
+const automationBenchTaskMetricColumns = [
+	{
+		key: "automationBenchCost",
+		group: "tasks",
+		source: "automation_bench",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "Auto$",
+	},
+] as const;
+
+const critptTaskMetricColumns = [
+	{
+		key: "critptCost",
+		group: "tasks",
+		source: "critpt",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "Crit$",
+	},
+	{
+		key: "critptSeconds",
+		group: "tasks",
+		source: "critpt",
+		metric: "seconds",
+		direction: "ascending",
+		type: "number",
+		label: "Crit Sec",
+	},
+	{
+		key: "critptTokens",
+		group: "tasks",
+		source: "critpt",
+		metric: "tokens",
+		direction: "ascending",
+		type: "number",
+		label: "Crit Tok",
+	},
+] as const;
+
+const cursorBenchTaskMetricColumns = [
+	{
+		key: "cursorBenchCost",
+		group: "tasks",
+		source: "cursorbench",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "Cursor$",
+	},
+	{
+		key: "cursorBenchTokens",
+		group: "tasks",
+		source: "cursorbench",
+		metric: "tokens",
+		direction: "ascending",
+		type: "number",
+		label: "Cursor Tok",
+	},
+] as const;
+
+const deepSWETaskMetricColumns = [
+	{
+		key: "deepSWECost",
+		group: "tasks",
+		source: "deep_swe",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "DSWE$",
+	},
+	{
+		key: "deepSWESeconds",
+		group: "tasks",
+		source: "deep_swe",
+		metric: "seconds",
+		direction: "ascending",
+		type: "number",
+		label: "DSWE Sec",
+	},
+	{
+		key: "deepSWETokens",
+		group: "tasks",
+		source: "deep_swe",
+		metric: "output_tokens",
+		direction: "descending",
+		type: "number",
+		label: "DSWE Tok",
+	},
+] as const;
+
+const gdpvalTaskMetricColumns = [
+	{
+		key: "gdpvalCost",
+		group: "tasks",
+		source: "gdpval_normalized",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "GDP$",
+	},
+	{
+		key: "gdpvalSeconds",
+		group: "tasks",
+		source: "gdpval_normalized",
+		metric: "seconds",
+		direction: "ascending",
+		type: "number",
+		label: "GDP Sec",
+	},
+	{
+		key: "gdpvalTokens",
+		group: "tasks",
+		source: "gdpval_normalized",
+		metric: "tokens",
+		direction: "ascending",
+		type: "number",
+		label: "GDP Tok",
+	},
+] as const;
+
+const hleTaskMetricColumns = [
+	{
+		key: "hleCost",
+		group: "tasks",
+		source: "hle",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "HLE$",
+	},
+	{
+		key: "hleSeconds",
+		group: "tasks",
+		source: "hle",
+		metric: "seconds",
+		direction: "ascending",
+		type: "number",
+		label: "HLE Sec",
+	},
+	{
+		key: "hleTokens",
+		group: "tasks",
+		source: "hle",
+		metric: "tokens",
+		direction: "ascending",
+		type: "number",
+		label: "HLE Tok",
+	},
+] as const;
+
+const tauBankingTaskMetricColumns = [
+	{
+		key: "tauBankingCost",
+		group: "tasks",
+		source: "tau_banking",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "tau3$",
+	},
+	{
+		key: "tauBankingSeconds",
+		group: "tasks",
+		source: "tau_banking",
+		metric: "seconds",
+		direction: "ascending",
+		type: "number",
+		label: "tau3 Sec",
+	},
+	{
+		key: "tauBankingTokens",
+		group: "tasks",
+		source: "tau_banking",
+		metric: "tokens",
+		direction: "ascending",
+		type: "number",
+		label: "tau3 Tok",
+	},
+] as const;
+
+const terminalBenchTaskMetricColumns = [
+	{
+		key: "terminalBenchCost",
+		group: "tasks",
+		source: "terminalbench_v21",
+		metric: "cost",
+		direction: "ascending",
+		type: "number",
+		label: "TB$",
+	},
+	{
+		key: "terminalBenchSeconds",
+		group: "tasks",
+		source: "terminalbench_v21",
+		metric: "seconds",
+		direction: "ascending",
+		type: "number",
+		label: "TB Sec",
+	},
+	{
+		key: "terminalBenchTokens",
+		group: "tasks",
+		source: "terminalbench_v21",
+		metric: "tokens",
+		direction: "ascending",
+		type: "number",
+		label: "TB Tok",
+	},
+] as const;
+
 export const taskMetricColumns = [
 	...artificialAnalysisTaskMetricColumns,
-	...deepSWETaskMetricColumns,
 	...agentsLastExamTaskMetricColumns,
+	...automationBenchTaskMetricColumns,
+	...critptTaskMetricColumns,
+	...cursorBenchTaskMetricColumns,
+	...deepSWETaskMetricColumns,
+	...gdpvalTaskMetricColumns,
+	...hleTaskMetricColumns,
+	...tauBankingTaskMetricColumns,
+	...terminalBenchTaskMetricColumns,
 ] as const;
 
 const profileMetricColumns = [
@@ -197,28 +387,12 @@ const inputModalityScores = [
 
 export const benchmarkMetricColumns = [
 	{
-		key: "gpqa",
+		key: "agentsLastExam",
 		group: "benchmarks",
-		benchmark: "gpqa",
+		benchmark: "agents_last_exam",
 		direction: "descending",
 		type: "number",
-		label: "GPQA",
-	},
-	{
-		key: "hle",
-		group: "benchmarks",
-		benchmark: "hle",
-		direction: "descending",
-		type: "number",
-		label: "HLE",
-	},
-	{
-		key: "terminalBench",
-		group: "benchmarks",
-		benchmark: "terminalbench_v21",
-		direction: "descending",
-		type: "number",
-		label: "TBench",
+		label: "ALE",
 	},
 	{
 		key: "automationBench",
@@ -237,20 +411,12 @@ export const benchmarkMetricColumns = [
 		label: "BB2",
 	},
 	{
-		key: "gdpPdf",
+		key: "critpt",
 		group: "benchmarks",
-		benchmark: "gdp_pdf",
+		benchmark: "critpt",
 		direction: "descending",
 		type: "number",
-		label: "GDP.pdf",
-	},
-	{
-		key: "riemannBench",
-		group: "benchmarks",
-		benchmark: "riemann_bench",
-		direction: "descending",
-		type: "number",
-		label: "Riemann",
+		label: "CritPt",
 	},
 	{
 		key: "cursorBench",
@@ -269,12 +435,68 @@ export const benchmarkMetricColumns = [
 		label: "DSWE",
 	},
 	{
-		key: "agentsLastExam",
+		key: "gdpPdf",
 		group: "benchmarks",
-		benchmark: "agents_last_exam",
+		benchmark: "gdp_pdf",
 		direction: "descending",
 		type: "number",
-		label: "ALE",
+		label: "GDP.pdf",
+	},
+	{
+		key: "gdpval",
+		group: "benchmarks",
+		benchmark: "gdpval_normalized",
+		direction: "descending",
+		type: "number",
+		label: "GDPval",
+	},
+	{
+		key: "hle",
+		group: "benchmarks",
+		benchmark: "hle",
+		direction: "descending",
+		type: "number",
+		label: "HLE",
+	},
+	{
+		key: "riemannBench",
+		group: "benchmarks",
+		benchmark: "riemann_bench",
+		direction: "descending",
+		type: "number",
+		label: "Riemann",
+	},
+	{
+		key: "tauBanking",
+		group: "benchmarks",
+		benchmark: "tau_banking",
+		direction: "descending",
+		type: "number",
+		label: "tau3",
+	},
+	{
+		key: "terminalBench",
+		group: "benchmarks",
+		benchmark: "terminalbench_v21",
+		direction: "descending",
+		type: "number",
+		label: "TBench",
+	},
+	{
+		key: "lcr",
+		group: "benchmarks",
+		benchmark: "lcr",
+		direction: "descending",
+		type: "number",
+		label: "LCR",
+	},
+	{
+		key: "scicode",
+		group: "benchmarks",
+		benchmark: "scicode",
+		direction: "descending",
+		type: "number",
+		label: "SciCode",
 	},
 ] as const;
 
@@ -314,8 +536,15 @@ export type SortState = {
 const taskMetricColumnsByBenchmark: Partial<
 	Record<BenchmarkMetricColumn["key"], readonly TaskMetricColumn[]>
 > = {
-	deepSWE: deepSWETaskMetricColumns,
 	agentsLastExam: agentsLastExamTaskMetricColumns,
+	automationBench: automationBenchTaskMetricColumns,
+	critpt: critptTaskMetricColumns,
+	cursorBench: cursorBenchTaskMetricColumns,
+	deepSWE: deepSWETaskMetricColumns,
+	gdpval: gdpvalTaskMetricColumns,
+	hle: hleTaskMetricColumns,
+	tauBanking: tauBankingTaskMetricColumns,
+	terminalBench: terminalBenchTaskMetricColumns,
 };
 
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
