@@ -97,29 +97,29 @@ export const frontierEfficiencyAxisConfig: Record<
 		xHigherBetter: true,
 	},
 	cost: {
-		label: "Task Cost",
-		shortLabel: "Task Cost",
+		label: "Task Cost ↓",
+		shortLabel: "Task Cost ↓",
 		get: (row) => row.cost,
 		selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
 		format: fmtMoney,
 		detailLabel: (row) => resourceMetricLabel(row, "cost"),
-		normalizedLabel: "MEAN NORMALIZED cost (per task/total)",
-		normalizedDetailLabel: "MEAN NORMALIZED cost (per task/total)",
+		normalizedLabel: "MEAN NORMALIZED cost ↓ (per task/total)",
+		normalizedDetailLabel: "MEAN NORMALIZED cost ↓ (per task/total)",
 	},
 	time: {
-		label: "Task Time",
-		shortLabel: "Task Time",
+		label: "Task Time ↓",
+		shortLabel: "Task Time ↓",
 		get: (row) => row.seconds,
 		selectionScore: (row) =>
 			row.seconds == null ? null : row.score / (row.seconds / 86_400),
 		format: fmtDurationShort,
 		detailLabel: (row) => resourceMetricLabel(row, "time"),
-		normalizedLabel: "MEAN NORMALIZED time (per task/total)",
-		normalizedDetailLabel: "MEAN NORMALIZED time (per task/total)",
+		normalizedLabel: "MEAN NORMALIZED time ↓ (per task/total)",
+		normalizedDetailLabel: "MEAN NORMALIZED time ↓ (per task/total)",
 	},
 	tokens: {
-		label: "Task Tokens",
-		shortLabel: "Task Tokens",
+		label: "Task Tokens ↓",
+		shortLabel: "Task Tokens ↓",
 		get: (row) => row.totalTokens,
 		selectionScore: (row) =>
 			row.totalTokens == null
@@ -127,8 +127,8 @@ export const frontierEfficiencyAxisConfig: Record<
 				: row.score / (row.totalTokens / 1_000_000),
 		format: fmtCompact,
 		detailLabel: (row) => resourceMetricLabel(row, "tokens"),
-		normalizedLabel: "MEAN NORMALIZED tokens (per task/total)",
-		normalizedDetailLabel: "MEAN NORMALIZED tokens (per task/total)",
+		normalizedLabel: "MEAN NORMALIZED tokens ↓ (per task/total)",
+		normalizedDetailLabel: "MEAN NORMALIZED tokens ↓ (per task/total)",
 	},
 };
 
@@ -379,21 +379,21 @@ export function frontierAxisDescription(
 	row?: FrontierEfficiencyRow,
 ): string {
 	if (axisKey === "speedValue") {
-		return "Efficiency combines public Speed and Value scores with equal weight; higher is better.";
+		return "Efficiency combines public Speed and Value scores with equal weight.";
 	}
 	if (axisKey === "cost") {
 		return isAllBenchmark
-			? "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy; lower is better."
-			: `Task Cost is the observed ${resourceUnitPhrase(row)} dollars for the selected benchmark; lower is better.`;
+			? "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy."
+			: `Task Cost is the observed ${resourceUnitPhrase(row)} dollars for the selected benchmark.`;
 	}
 	if (axisKey === "time") {
 		return isAllBenchmark
-			? "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy; lower is better."
-			: `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark; lower is better.`;
+			? "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy."
+			: `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark.`;
 	}
 	return isAllBenchmark
-		? "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy; lower is better."
-		: `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUsePhrase(row)} for the selected benchmark; lower is better.`;
+		? "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy."
+		: `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUsePhrase(row)} for the selected benchmark.`;
 }
 
 /** Return the visible x-axis label for the selected benchmark and metric. */

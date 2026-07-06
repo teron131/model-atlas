@@ -83,30 +83,36 @@ assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
 assertEqual(
-	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.[1]?.[1],
-	"equal slots: blended price, quality per price, workflow price value, and each benchmark cost (7.7% each)",
+	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.some(
+		([label]) => label === "Blend",
+	),
+	false,
+);
+assertEqual(
+	STAGE_CONFIG.scoring.columnTooltips.speed?.rows?.some(
+		([label]) => label === "Blend",
+	),
+	false,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
-		"Blended price, lower is cheaper",
+		"Blended price ↓",
 	),
 	true,
 );
 assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
-		"cost, lower is cheaper",
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("cost ↓"),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
+		"Throughput",
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"Throughput, higher is faster",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"Latency, lower is faster",
+		"Latency ↓",
 	),
 	true,
 );
@@ -147,9 +153,9 @@ const aaOnlyTimeTooltip = JSON.stringify(
 const aaOnlyValueTooltip = JSON.stringify(
 	aaOnlyResourceMetadata.scoring.column_tooltips.value,
 );
-assertEqual(aaOnlyTimeTooltip.includes("33.3% each"), true);
+assertEqual(aaOnlyTimeTooltip.includes("33.3% each"), false);
 assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark runtime"), false);
-assertEqual(aaOnlyValueTooltip.includes("25.0% each"), true);
+assertEqual(aaOnlyValueTooltip.includes("25.0% each"), false);
 assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark cost"), false);
 
 const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
@@ -177,13 +183,13 @@ assertEqual(
 	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.speed).includes(
 		"25.0% each",
 	),
-	true,
+	false,
 );
 assertEqual(
 	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.value).includes(
 		"20.0% each",
 	),
-	true,
+	false,
 );
 
 const tokenProxyResourceMetadata = buildCurrentLlmStatsMetadata({

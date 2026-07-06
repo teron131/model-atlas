@@ -117,36 +117,36 @@ assert.deepEqual(
 	axisOptions.map((option) => [option.key, option.label]),
 	[
 		["speedValue", "Efficiency"],
-		["cost", "Task Cost"],
-		["time", "Task Time"],
-		["tokens", "Task Tokens"],
+		["cost", "Task Cost ↓"],
+		["time", "Task Time ↓"],
+		["tokens", "Task Tokens ↓"],
 	],
 	"axis options should separate the combined score from raw resource units",
 );
 assert.equal(
 	frontierAxisDescription("cost", true),
-	"Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy; lower is better.",
+	"Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy.",
 	"aggregate raw resource axes should explain that they are normalized amounts, not efficiency scores",
 );
 assert.equal(
 	frontierAxisDescription("time", true),
-	"Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy; lower is better.",
+	"Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy.",
 	"aggregate time axis should use MEAN NORMALIZED task wording",
 );
 assert.equal(
 	frontierAxisDescription("tokens", false, topRow),
-	"Task Tokens is the observed per-task token use for the selected benchmark; lower is better.",
+	"Task Tokens is the observed per-task token use for the selected benchmark.",
 	"benchmark token axis should use Task Tokens wording",
 );
 assert.equal(
 	frontierAxisDescription("speedValue", true),
-	"Efficiency combines public Speed and Value scores with equal weight; higher is better.",
+	"Efficiency combines public Speed and Value scores with equal weight.",
 	"combined score should describe speed and value separately from raw cost",
 );
 const allCostAxis = frontierEfficiencyAxisConfigFor("cost", true);
 assert.equal(
 	frontierAxisMetricLabel(allCostAxis, true, rows),
-	"MEAN NORMALIZED cost (per task/total)",
+	"MEAN NORMALIZED cost ↓ (per task/total)",
 	"aggregate resource axes should use MEAN NORMALIZED task labels",
 );
 assert.equal(
@@ -201,7 +201,7 @@ assert.deepEqual(
 );
 assert.equal(
 	frontierAxisDescription("cost", false, totalRow),
-	"Task Cost is the observed total dollars for the selected benchmark; lower is better.",
+	"Task Cost is the observed total dollars for the selected benchmark.",
 	"total-resource benchmark descriptions should say total instead of per task",
 );
 assert.equal(

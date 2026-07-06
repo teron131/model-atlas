@@ -158,24 +158,12 @@ const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
 const speedComponentCount = (components: ActiveResourceComponents) =>
 	resourceBenchmarkKeys(components).length +
 	SPEED_NON_BENCHMARK_COMPONENT_COUNT;
-const speedBlendText = (components: ActiveResourceComponents) =>
-	`equal slots: provider speed, workflow runtime, and each benchmark runtime (${perComponentWeight(
-		1,
-		speedComponentCount(components),
-	)} each)`;
 
 const VALUE_PRICE_COMPONENT_COUNT = 3;
 const valueComponentCount = (components: ActiveResourceComponents) =>
 	resourceBenchmarkKeys(components).length + VALUE_PRICE_COMPONENT_COUNT;
-const valueBlendText = (components: ActiveResourceComponents) =>
-	`equal slots: blended price, quality per price, workflow price value, and each benchmark cost (${perComponentWeight(
-		1,
-		valueComponentCount(components),
-	)} each)`;
 
 const MIN_MAX_SCORE_TEXT = "min-max score across models";
-const LOWER_FIRST_TEXT = "lower values sort first";
-const HIGHER_FIRST_TEXT = "higher values sort first";
 const FULL_OVERALL_TEXT = "Full Overall";
 
 const BENCHMARK_LABEL_BY_KEY = {
@@ -323,20 +311,20 @@ const speedInputRows = (components: ActiveResourceComponents) => {
 	const rawStatWeight = percent(1 / componentCount / 3, 1);
 	return [
 		{
-			title: "Benchmark runtimes (lower is faster)",
+			title: "Benchmark runtimes ↓",
 			rows: benchmarkTaskTimeRows(components, componentWeight),
 		},
 		{
 			title: "Provider speed",
 			weight: componentWeight,
 			rows: [
-				["Throughput, higher is faster", rawStatWeight],
-				["Latency, lower is faster", rawStatWeight],
-				["End-to-end latency, lower is faster", rawStatWeight],
+				["Throughput", rawStatWeight],
+				["Latency ↓", rawStatWeight],
+				["End-to-end latency ↓", rawStatWeight],
 			],
 		},
 		{
-			title: "Workflow runtime simulation (lower is faster)",
+			title: "Workflow runtime simulation ↓",
 			kind: "workflow_simulation",
 			weight: componentWeight,
 			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
@@ -351,12 +339,7 @@ const benchmarkTaskTimeRows = (
 	const resourceKeys = resourceBenchmarkKeys(components);
 	const componentWeight = weight ?? perComponentWeight(1, resourceKeys.length);
 	return [
-		...benchmarkResourceRows(
-			resourceKeys,
-			"",
-			"runtime, lower is faster",
-			componentWeight,
-		),
+		...benchmarkResourceRows(resourceKeys, "", "runtime ↓", componentWeight),
 	] as const;
 };
 
@@ -370,19 +353,14 @@ const valueInputRows = (components: ActiveResourceComponents) => {
 		{
 			title: "Price components",
 			rows: [
-				["Blended price, lower is cheaper", componentWeight],
-				["Quality per blended price, higher is better", componentWeight],
-				["Workflow price value, higher is better", componentWeight],
+				["Blended price ↓", componentWeight],
+				["Quality per blended price", componentWeight],
+				["Workflow price value", componentWeight],
 			],
 		},
 		{
-			title: "Benchmark costs (lower is cheaper)",
-			rows: benchmarkResourceRows(
-				resourceKeys,
-				"",
-				"cost, lower is cheaper",
-				componentWeight,
-			),
+			title: "Benchmark costs ↓",
+			rows: benchmarkResourceRows(resourceKeys, "", "cost ↓", componentWeight),
 		},
 	] as const;
 };
@@ -394,10 +372,7 @@ export function columnTooltipsForActiveComponents(
 		intelligence: {
 			title: "Intelligence score",
 			body: "Atlas capability score from the AA INTELLIGENCE index plus the selected INTELLIGENCE benchmarks.",
-			rows: [
-				["Scale", MIN_MAX_SCORE_TEXT],
-				["Sort", HIGHER_FIRST_TEXT],
-			],
+			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
 					title: "Score blend",
@@ -412,10 +387,7 @@ export function columnTooltipsForActiveComponents(
 		agentic: {
 			title: "Agentic score",
 			body: "Atlas workflow and coding-task score from the AA AGENTIC index plus selected AGENTIC benchmarks.",
-			rows: [
-				["Scale", MIN_MAX_SCORE_TEXT],
-				["Sort", HIGHER_FIRST_TEXT],
-			],
+			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
 					title: "Score blend",
@@ -429,12 +401,8 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "SPEED is higher when models are faster. Runtime inputs are inverted, so lower workflow seconds and lower benchmark runtimes raise the score. Each active input gets one equal slot.",
-			rows: [
-				["Scale", "0-100 percentile; higher means faster"],
-				["Blend", speedBlendText(components)],
-				["Sort", "higher scores rank first"],
-			],
+			body: "Runtime inputs are inverted, so lower workflow seconds and lower benchmark runtimes raise the score. Each active input gets one equal slot.",
+			rows: [["Scale", "0-100 percentile"]],
 			sections: [
 				{
 					title: "Speed inputs",
@@ -445,12 +413,8 @@ export function columnTooltipsForActiveComponents(
 		},
 		value: {
 			title: "Value score",
-			body: "VALUE is higher when models deliver more quality per dollar. Lower blended price and lower benchmark costs raise the score; quality-adjusted price signals also raise it. Each active input gets one equal slot.",
-			rows: [
-				["Scale", "0-100 percentile; higher means better value"],
-				["Blend", valueBlendText(components)],
-				["Sort", "higher scores rank first"],
-			],
+			body: "Lower blended price and lower benchmark costs raise the score. Quality-adjusted price signals also contribute. Each active input gets one equal slot.",
+			rows: [["Scale", "0-100 percentile"]],
 			sections: [
 				{
 					title: "Value inputs",
@@ -460,12 +424,11 @@ export function columnTooltipsForActiveComponents(
 			],
 		},
 		blend: {
-			title: "Blend price",
+			title: "Blend price ↓",
 			body: "Estimated USD per million tokens for a task/chat/agentic usage mix.",
 			rows: [
 				["Definition", "weighted input/output price"],
 				["Formula", "sum(profile weight x profile price)"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 			sections: [
 				{
@@ -499,27 +462,24 @@ export function columnTooltipsForActiveComponents(
 				["Definition", "maximum input tokens"],
 				["Unit", "tokens"],
 				["Source", "model context limit"],
-				["Sort", HIGHER_FIRST_TEXT],
 			],
 		},
 		artificialAnalysisCost: {
-			title: "AA cost per task",
+			title: "AA cost per task ↓",
 			body: "Artificial Analysis v4.1 reported cost for one Intelligence Index task.",
 			rows: [
 				["Source", "Artificial Analysis"],
 				["Metric", "reported cost per Intelligence task"],
 				["Method", "direct AA per-task field"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		artificialAnalysisSeconds: {
-			title: "AA seconds per task",
+			title: "AA seconds per task ↓",
 			body: "Artificial Analysis v4.1 reported runtime for one Intelligence Index task.",
 			rows: [
 				["Source", "Artificial Analysis"],
 				["Metric", "reported time per Intelligence task"],
 				["Method", "direct AA per-task field"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		artificialAnalysisTokens: {
@@ -529,33 +489,27 @@ export function columnTooltipsForActiveComponents(
 				["Source", "Artificial Analysis"],
 				["Metric", "reported output tokens per Intelligence task"],
 				["Method", "direct AA per-task field"],
-				["Sort", HIGHER_FIRST_TEXT],
 			],
 		},
 		deepSWE: {
 			title: "DeepSWE",
 			body: "Coding-agent benchmark. This score uses the xhigh row when available, otherwise the best reported pass@1 row.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Sort", HIGHER_FIRST_TEXT],
-			],
+			rows: [["Source", "DeepSWE leaderboard"]],
 		},
 		deepSWECost: {
-			title: "DeepSWE cost per task",
+			title: "DeepSWE cost per task ↓",
 			body: "Mean cost for one DeepSWE task.",
 			rows: [
 				["Source", "DeepSWE leaderboard"],
 				["Metric", "mean cost per task"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		deepSWESeconds: {
-			title: "DeepSWE seconds per task",
+			title: "DeepSWE seconds per task ↓",
 			body: "Mean runtime for one DeepSWE task.",
 			rows: [
 				["Source", "DeepSWE leaderboard"],
 				["Metric", "mean runtime per task"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		deepSWETokens: {
@@ -564,7 +518,6 @@ export function columnTooltipsForActiveComponents(
 			rows: [
 				["Source", "DeepSWE leaderboard"],
 				["Metric", "mean output tokens per task"],
-				["Sort", HIGHER_FIRST_TEXT],
 			],
 		},
 		agentsLastExam: {
@@ -573,47 +526,42 @@ export function columnTooltipsForActiveComponents(
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
-				["Sort", HIGHER_FIRST_TEXT],
 			],
 		},
 		agentsLastExamCost: {
-			title: "Agents' Last Exam cost",
+			title: "Agents' Last Exam cost ↓",
 			body: "Estimated cost per Full Overall run, using the lower of median and mean per-run token usage.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
 				["Metric", "cost per run"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		agentsLastExamSeconds: {
-			title: "Agents' Last Exam runtime",
+			title: "Agents' Last Exam runtime ↓",
 			body: "Runtime per Full Overall run, using the lower of median and mean per-run duration.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
 				["Metric", "runtime per run"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		agentsLastExamInputTokens: {
-			title: "Agents' Last Exam input tokens",
+			title: "Agents' Last Exam input tokens ↓",
 			body: "Input tokens per Full Overall run, using the lower of median and mean per-run token usage.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
 				["Metric", "input tokens per run"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 		agentsLastExamOutputTokens: {
-			title: "Agents' Last Exam output tokens",
+			title: "Agents' Last Exam output tokens ↓",
 			body: "Output tokens per Full Overall run, using the lower of median and mean per-run token usage.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
 				["Metric", "output tokens per run"],
-				["Sort", LOWER_FIRST_TEXT],
 			],
 		},
 	};

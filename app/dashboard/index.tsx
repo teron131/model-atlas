@@ -103,9 +103,8 @@ const taskMetricTableColumnTooltips = Object.fromEntries(
 
 const staticTableColumnTooltips = {
 	rank: {
-		title: "Rank",
+		title: "Rank ↓",
 		body: "Competition rank by Model Atlas Intelligence score.",
-		rows: [["Sort", "lower values sort first"]],
 	},
 	model: {
 		title: "Model",
@@ -120,7 +119,6 @@ const staticTableColumnTooltips = {
 			["Agentic", formatWeight(OVERALL_SCORE_WEIGHTS.agentic)],
 			["Speed", formatWeight(OVERALL_SCORE_WEIGHTS.speed)],
 			["Value", formatWeight(OVERALL_SCORE_WEIGHTS.value)],
-			["Sort", "higher values sort first"],
 		],
 	},
 	release: {
@@ -139,34 +137,28 @@ const staticTableColumnTooltips = {
 		rows: [["Sort", "more input capabilities sort first"]],
 	},
 	inputCost: {
-		title: "Input cost",
+		title: "Input cost ↓",
 		body: "Published input price per 1M tokens for the selected route.",
-		rows: [["Sort", "lower values sort first"]],
 	},
 	outputCost: {
-		title: "Output cost",
+		title: "Output cost ↓",
 		body: "Published output price per 1M tokens for the selected route.",
-		rows: [["Sort", "lower values sort first"]],
 	},
 	cacheReadCost: {
-		title: "Cache read cost",
+		title: "Cache read cost ↓",
 		body: "Published cache-read price per 1M tokens when available.",
-		rows: [["Sort", "lower values sort first"]],
 	},
 	throughput: {
 		title: "Output throughput",
 		body: "Median output tokens per second from provider speed data.",
-		rows: [["Sort", "higher values sort first"]],
 	},
 	latency: {
-		title: "Latency",
+		title: "Latency ↓",
 		body: "Median time to first token from provider speed data.",
-		rows: [["Sort", "lower values sort first"]],
 	},
 	e2eLatency: {
-		title: "End-to-end latency",
+		title: "End-to-end latency ↓",
 		body: "Median total response time from provider speed data.",
-		rows: [["Sort", "lower values sort first"]],
 	},
 } as const satisfies Partial<Record<SortKey, LlmStatsColumnTooltip>>;
 
@@ -194,17 +186,13 @@ function taskMetricTooltipEntry(
 		[
 			column.key,
 			{
-				title: `${benchmarkTooltip.title} ${metricTooltip.title}`,
+				title: `${benchmarkTooltip.title} ${metricTooltip.title}${
+					column.direction === "ascending" ? " ↓" : ""
+				}`,
 				body: `${metricTooltip.body} for ${benchmarkTooltip.title}.`,
 				rows: [
 					["Source", taskMetricTooltipSource(column, benchmarkTooltip)],
 					["Metric", metricTooltip.row],
-					[
-						"Sort",
-						column.direction === "ascending"
-							? "lower values sort first"
-							: "higher values sort first",
-					],
 				],
 			},
 		],
@@ -316,10 +304,7 @@ function tooltipForColumn(
 function benchmarkTableTooltip(
 	tooltip: LlmStatsColumnTooltip,
 ): LlmStatsColumnTooltip {
-	return {
-		...tooltip,
-		rows: [...(tooltip.rows ?? []), ["Sort", "higher values sort first"]],
-	};
+	return tooltip;
 }
 
 type RefreshPayloadOptions = {
