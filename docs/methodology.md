@@ -55,15 +55,9 @@ The baseline group anchors breadth, stability, and coverage. The frontier group 
 
 ### Quality Mix
 
-Working quality mix is the same for Intelligence and Agentic:
+Intelligence and Agentic use the same scoring rule: each selected benchmark gets one equal slot. The AA Intelligence and Agentic indexes remain source context only.
 
-| Component | Share |
-| --- | ---: |
-| AA index | 30% |
-| baseline benchmarks | 30% |
-| frontier benchmarks | 40% |
-
-Baseline and frontier benchmark groups are portion-weighted before they are combined. This keeps the grouping legible: the AA index anchors the dimension, baseline gives broad coverage, and frontier gets extra force as the proof-heavy separation signal.
+Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed coverage below 10% earns no confidence, observed coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the benchmark mean, but only observed benchmark values count toward coverage confidence.
 
 Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input.
 
@@ -111,28 +105,30 @@ This section gives the scoring rules at the level needed to understand rank move
 
 ### Quality Normalization
 
-Each quality input is first converted into a normalized 0-100 benchmark score. For model $m$ and benchmark or AA index field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
+Each quality input is first converted into a normalized 0-100 benchmark score. For model $m$ and benchmark field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
 
 $$
 z_{m,b}=100\cdot\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}}
 $$
 
-The observed minimum maps to $0$, the observed maximum maps to $100$, and every benchmark is normalized before it enters a dimension average.
+The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average.
 
-Within each dimension, benchmark groups are averaged before they are combined. The selected baseline set $\mathcal{B}^{\text{baseline}}_D$ and frontier set $\mathcal{B}^{\text{frontier}}_D$ contain the benchmarks for dimension $D$, and each benchmark contributes through its configured dimension portion $p_{b,D}$.
-
-$$
-B_{m,D}^{\text{baseline}}=\frac{\sum_{b\in\mathcal{B}^{\text{baseline}}_D}p_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}^{\text{baseline}}_D}p_{b,D}}
-$$
+Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Each admitted benchmark receives equal weight.
 
 $$
-B_{m,D}^{\text{frontier}}=\frac{\sum_{b\in\mathcal{B}^{\text{frontier}}_D}p_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}^{\text{frontier}}_D}p_{b,D}}
+\bar{B}_{m,D}=\operatorname{mean}\left(z_{m,b}:b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}\right)
 $$
 
-The component quality dimension score uses the same component weights for Intelligence and Agentic:
+Let $o_{m,D}$ be the number of observed selected benchmark values for model $m$ in dimension $D$, and let $n_D=|\mathcal{B}_D|$. The observed coverage ratio is:
 
 $$
-D_m=0.30z_{m,\text{AA index }D}+0.30B_{m,D}^{\text{baseline}}+0.40B_{m,D}^{\text{frontier}}
+c_{m,D}=\frac{o_{m,D}}{n_D}
+$$
+
+The coverage confidence $C(c)$ is $0$ at or below $10\%$ observed coverage, $1$ at or above $60\%$ observed coverage, and a smoothstep interpolation between those bounds.
+
+$$
+D_m=\bar{B}_{m,D}C(c_{m,D})
 $$
 
 $$

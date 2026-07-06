@@ -11,7 +11,7 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
 	AGENTIC_INDEX_KEYS,
 	INTELLIGENCE_INDEX_KEYS,
-} from "../../stats/scores/benchmark-imputation";
+} from "../../stats/benchmarks";
 import type { ScoringConfig } from "../../stats/types";
 import { readArtificialAnalysisRawCache } from "../cache";
 import { rowStringValue, snapshotRowsWithStates } from "../policy";

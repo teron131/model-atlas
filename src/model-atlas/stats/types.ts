@@ -267,12 +267,6 @@ export type OverallScoreWeights = {
 	value: number;
 };
 
-export type QualityScoreWeights = {
-	index: number;
-	baseline: number;
-	frontier: number;
-};
-
 export type BenchmarkGroup = "baseline" | "frontier";
 
 export type BenchmarkResourceSource = "artificial_analysis" | "benchmark";
@@ -429,7 +423,6 @@ export type LlmStatsMetadata = {
 		price_profiles: PriceProfiles;
 		simulation_profiles: SimulationProfiles;
 		simulation_input_token_seconds: number;
-		quality_score_weights: QualityScoreWeights;
 		overall_score_weights: OverallScoreWeights;
 		column_tooltips: LlmStatsColumnTooltips;
 		snapshot_preservation_version: number;
@@ -481,7 +474,6 @@ export type ScoringConfig = {
 	simulationInputTokenSeconds: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
 	frontierBenchmarkKeys: readonly string[];
-	qualityScoreWeights: QualityScoreWeights;
 	overallScoreWeights: OverallScoreWeights;
 	columnTooltips: LlmStatsColumnTooltips;
 };

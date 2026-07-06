@@ -31,11 +31,6 @@ export function minimalLlmStatsPayload({
 				price_profiles: {},
 				simulation_profiles: {},
 				simulation_input_token_seconds: 0,
-				quality_score_weights: {
-					index: 0,
-					baseline: 0,
-					frontier: 0,
-				},
 				overall_score_weights: {
 					intelligence: 0,
 					agentic: 0,

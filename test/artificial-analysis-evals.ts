@@ -312,11 +312,6 @@ const scoringConfig = {
 	},
 	simulationProfiles: SIMULATION_PROFILES,
 	simulationInputTokenSeconds: 0.0001,
-	qualityScoreWeights: {
-		index: 0.3,
-		baseline: 0.3,
-		frontier: 0.4,
-	},
 	benchmarkPortfolio: {
 		scicode: {
 			group: "baseline",

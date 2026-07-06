@@ -145,12 +145,6 @@ export const BENCHMARK_KEYS = Object.keys(
 	BENCHMARK_PORTFOLIO,
 ) as BenchmarkKey[];
 
-export const QUALITY_SCORE_WEIGHTS = {
-	index: 0.3,
-	baseline: 0.3,
-	frontier: 0.4,
-} as const;
-
 export const OVERALL_SCORE_WEIGHTS = {
 	intelligence: 0.35,
 	agentic: 0.25,
