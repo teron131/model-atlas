@@ -18,8 +18,6 @@ export type BoxWhiskerDistribution = {
 
 const TOP_LABEL_COLLISION_RATIO = 0.12;
 
-type TopLabelMode = "spread" | "stagger" | null;
-
 export function BoxWhiskerSummary({
 	label,
 	distribution,
@@ -83,18 +81,15 @@ export function BoxWhiskerSummary({
 		) / domainSpan;
 	const observedRangeRatio =
 		Math.abs(distribution.max - distribution.min) / domainSpan;
-	const topLabelMode = boxWhiskerTopLabelMode({
+	const separateTopLabels = shouldSeparateTopLabels({
 		nearestObservedLabelRatio,
 		observedRangeRatio,
 		staggerTopMedian,
 		usesObservedTopLabels,
 	});
-	const topLabelClassName =
-		topLabelMode === "spread"
-			? `${styles.boxWhiskerTopLabelsSeparated} ${styles.boxWhiskerTopLabelsSpread}`
-			: topLabelMode === "stagger"
-				? `${styles.boxWhiskerTopLabelsSeparated} ${styles.boxWhiskerTopLabelsStaggered}`
-				: "";
+	const topLabelClassName = separateTopLabels
+		? styles.boxWhiskerTopLabelsSeparated
+		: "";
 
 	useEffect(() => {
 		const root = rootRef.current;
@@ -134,7 +129,7 @@ export function BoxWhiskerSummary({
 		const resizeObserver = new ResizeObserver(measure);
 		resizeObserver.observe(root);
 		return () => resizeObserver.disconnect();
-	}, [usesObservedTopLabels]);
+	});
 
 	return (
 		<div
@@ -233,7 +228,7 @@ export function BoxWhiskerSummary({
 	);
 }
 
-function boxWhiskerTopLabelMode({
+function shouldSeparateTopLabels({
 	nearestObservedLabelRatio,
 	observedRangeRatio,
 	staggerTopMedian,
@@ -243,20 +238,20 @@ function boxWhiskerTopLabelMode({
 	observedRangeRatio: number;
 	staggerTopMedian: boolean;
 	usesObservedTopLabels: boolean;
-}): TopLabelMode {
+}) {
 	if (!usesObservedTopLabels) {
-		return null;
+		return false;
 	}
 	if (observedRangeRatio < TOP_LABEL_COLLISION_RATIO) {
-		return "spread";
+		return true;
 	}
 	if (
 		staggerTopMedian &&
 		nearestObservedLabelRatio < TOP_LABEL_COLLISION_RATIO
 	) {
-		return "stagger";
+		return true;
 	}
-	return null;
+	return false;
 }
 
 function hasHorizontalOverlap(
