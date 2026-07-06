@@ -539,7 +539,7 @@
 .boxWhiskerSummary {
 	display: grid;
 	gap: 8px;
-	width: min(clamp(220px, 18vw, 280px), 100%);
+	width: min(280px, 100%);
 	max-width: 100%;
 	color: var(--muted);
 	font-family: "SF Mono", Menlo, Consolas, monospace;
@@ -555,7 +555,14 @@
 	white-space: nowrap;
 }
 
+.boxWhiskerTop span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .boxWhiskerTop b {
+	flex: 0 0 auto;
 	color: var(--ink);
 }
 
@@ -638,31 +645,20 @@
 	color: var(--whisker-label);
 	font-size: 10px;
 	white-space: nowrap;
-	transform: translateX(-50%);
 }
 
 .boxWhiskerMinLabel {
 	left: var(--whisker-min);
+	transform: translateX(-75%);
 }
 
 .boxWhiskerMaxLabel {
 	left: var(--whisker-max);
+	transform: translateX(-25%);
 }
 
-.boxWhiskerTopLabelsStaggered .boxWhiskerMedianLabel {
+.boxWhiskerTopLabelsSeparated .boxWhiskerMedianLabel {
 	top: 16px;
-}
-
-.boxWhiskerTopLabelsSpread .boxWhiskerMinLabel {
-	transform: translateX(calc(-100% - 5px));
-}
-
-.boxWhiskerTopLabelsSpread .boxWhiskerMedianLabel {
-	top: 16px;
-}
-
-.boxWhiskerTopLabelsSpread .boxWhiskerMaxLabel {
-	transform: translateX(5px);
 }
 
 .boxWhiskerTopLabelsSeparated .boxWhiskerLine,
@@ -683,14 +679,6 @@
 .boxWhiskerFixedDomain .boxWhiskerTopLabelsSeparated .boxWhiskerMin,
 .boxWhiskerFixedDomain .boxWhiskerTopLabelsSeparated .boxWhiskerMax {
 	top: 25px;
-}
-
-.boxWhiskerEdgeStartLabel {
-	transform: translateX(0);
-}
-
-.boxWhiskerEdgeEndLabel {
-	transform: translateX(-100%);
 }
 
 .boxWhiskerMin,
