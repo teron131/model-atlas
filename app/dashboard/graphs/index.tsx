@@ -121,61 +121,65 @@ export function DashboardGraphs({
 					<i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
 				</button>
 				<div className={styles.filterPanel} hidden={!filtersExpanded}>
-					<FilterSection label="Provider filter" value={providerLabel}>
-						<div className={styles.filterRow}>
-							<FilterButton
-								active={provider === "all"}
-								color="var(--ink)"
-								label="All"
-								count={allModels.length}
-								onClick={() => onProviderChange("all")}
-							/>
-							{providers.map((option) => (
+					<div className={styles.controlRow}>
+						<FilterSection label="Provider filter" value={providerLabel}>
+							<div className={styles.filterRow}>
 								<FilterButton
-									key={option.slug}
-									active={provider === option.slug}
-									color={option.color}
-									logo={option.logo}
-									label={option.label}
-									count={option.count}
-									onClick={() => onProviderChange(option.slug)}
+									active={provider === "all"}
+									color="var(--ink)"
+									label="All"
+									count={allModels.length}
+									onClick={() => onProviderChange("all")}
 								/>
-							))}
-						</div>
-					</FilterSection>
-					<FilterSection label="Max blended cost" value={costLabel}>
-						<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-							{costFilterOptions.map((option) => (
-								<button
-									key={String(option)}
-									type="button"
-									className={styles.costFilterButton}
-									aria-pressed={maxCost === option}
-									onClick={() => onMaxCostChange(option)}
-								>
-									<span>
-										{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}
-									</span>
-								</button>
-							))}
-						</div>
-					</FilterSection>
-					<FilterSection label="Model count" value={visibleModelLabel}>
-						<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-							{modelLimitOptions.map((option) => (
-								<button
-									key={String(option)}
-									type="button"
-									className={styles.costFilterButton}
-									aria-pressed={modelLimit === option}
-									onClick={() => onModelLimitChange(option)}
-								>
-									<span>{option === "all" ? "All" : `Top ${option}`}</span>
-								</button>
-							))}
-						</div>
-					</FilterSection>
-					{benchmarkControls}
+								{providers.map((option) => (
+									<FilterButton
+										key={option.slug}
+										active={provider === option.slug}
+										color={option.color}
+										logo={option.logo}
+										label={option.label}
+										count={option.count}
+										onClick={() => onProviderChange(option.slug)}
+									/>
+								))}
+							</div>
+						</FilterSection>
+						<FilterSection label="Max blended cost" value={costLabel}>
+							<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+								{costFilterOptions.map((option) => (
+									<button
+										key={String(option)}
+										type="button"
+										className={styles.costFilterButton}
+										aria-pressed={maxCost === option}
+										onClick={() => onMaxCostChange(option)}
+									>
+										<span>
+											{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}
+										</span>
+									</button>
+								))}
+							</div>
+						</FilterSection>
+						<FilterSection label="Model count" value={visibleModelLabel}>
+							<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+								{modelLimitOptions.map((option) => (
+									<button
+										key={String(option)}
+										type="button"
+										className={styles.costFilterButton}
+										aria-pressed={modelLimit === option}
+										onClick={() => onModelLimitChange(option)}
+									>
+										<span>{option === "all" ? "All" : `Top ${option}`}</span>
+									</button>
+								))}
+							</div>
+						</FilterSection>
+					</div>
+					{benchmarkControls != null && (
+						<div className={styles.benchmarkRow}>{benchmarkControls}</div>
+					)}
 				</div>
 			</section>
 			{afterLead}

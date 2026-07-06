@@ -226,15 +226,25 @@
 
 .filterPanel {
 	display: grid;
-	grid-template-columns:
-		minmax(0, 1.25fr) minmax(0, 0.88fr) minmax(0, 0.78fr)
-		minmax(0, 1fr);
-	align-items: start;
+	gap: 0;
 	border-top: 1px solid var(--line);
 }
 
 .filterPanel[hidden] {
 	display: none;
+}
+
+.controlRow {
+	display: grid;
+	grid-template-columns:
+		minmax(0, 1.4fr) minmax(0, 1fr)
+		minmax(0, 0.9fr);
+	align-items: start;
+}
+
+.benchmarkRow {
+	min-width: 0;
+	border-top: 1px solid var(--line);
 }
 
 .controlGroup {
@@ -244,26 +254,33 @@
 	border-right: 1px solid var(--line);
 }
 
-.controlGroup:last-child {
+.controlRow .controlGroup:last-child {
 	border-right: 0;
 }
 
-.filterPanel :global(.benchmarks) {
+.benchmarkRow :global(.benchmarks) {
 	min-width: 0;
 	margin: 0;
-	padding: 14px 16px;
+	padding: 12px 16px 14px;
 }
 
-.filterPanel :global(.benchmark-groups) {
+.benchmarkRow :global(.benchmark-groups) {
 	margin: 0;
+	flex-wrap: wrap;
+	gap: 4px 0;
+	overflow-x: visible;
 }
 
-.filterPanel :global(.benchmark-group) {
-	min-width: 170px;
-	padding: 0 12px 0 0;
+.benchmarkRow :global(.benchmark-group) {
+	min-width: 200px;
+	max-width: none;
+	flex: 1 1 240px;
+	padding: 4px 20px 4px 0;
+	border-right: 1px solid var(--line);
 }
 
-.filterPanel :global(.benchmark-group:last-child) {
+.benchmarkRow :global(.benchmark-group:last-child) {
+	border-right: 0;
 	padding-right: 0;
 }
 
@@ -1469,7 +1486,7 @@
 		grid-template-columns: 1fr;
 	}
 
-	.filterPanel {
+	.controlRow {
 		grid-template-columns: 1fr;
 	}
 
@@ -1514,8 +1531,20 @@
 		border-bottom: 1px solid var(--line);
 	}
 
-	.filterPanel :global(.benchmarks) {
+	.benchmarkRow :global(.benchmarks) {
 		padding: 14px 16px;
+	}
+
+	.benchmarkRow :global(.benchmark-group) {
+		min-width: 0;
+		flex-basis: 100%;
+		padding-right: 0;
+		border-right: 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.benchmarkRow :global(.benchmark-group:last-child) {
+		border-bottom: 0;
 	}
 
 	.interactionPlot,
