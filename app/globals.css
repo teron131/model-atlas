@@ -60,7 +60,7 @@
 	--sans-note: 14px;
 	--model-name: 16px;
 	--model-id: 12px;
-	--model-column-width: 255px;
+	--model-column-width: max-content;
 }
 
 html[data-model-atlas-theme="light"] {
@@ -782,7 +782,7 @@ tbody tr:nth-child(2n):hover {
 }
 
 .loading-model-cell {
-	width: 212px;
+	width: max-content;
 }
 
 .loading-model-copy {
