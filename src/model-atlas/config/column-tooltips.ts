@@ -274,12 +274,12 @@ const qualityScoreRowsWithBenchmarkGroups = (
 	[
 		[indexLabel, qualityWeight("index")],
 		{
-			title: "Baseline benchmarks",
-			rows: benchmarkRows.baseline,
-		},
-		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,
+		},
+		{
+			title: "Baseline benchmarks",
+			rows: benchmarkRows.baseline,
 		},
 	] as const;
 
