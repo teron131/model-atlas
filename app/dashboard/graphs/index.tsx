@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import { FrontierEfficiencyPanel } from "./frontierEfficiency";
+import { FrontierBenchmarksPanel } from "./frontierBenchmarks";
 import styles from "./graphs.module.css";
 import { InteractionMatrix } from "./interaction";
 import {
@@ -17,6 +17,7 @@ import {
 	providerOptions,
 } from "./models";
 import { ParetoFrontierPanel } from "./pareto";
+import { PriceEfficiencyComparisonPanel } from "./priceEfficiencyComparison";
 import { RunwayPanel } from "./runway";
 import type { CostFilter, HoverState, ModelLimit } from "./types";
 
@@ -192,9 +193,16 @@ export function DashboardGraphs({
 				<>
 					<section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
 						<ParetoFrontierPanel models={models} setHover={setHover} />
+						<PriceEfficiencyComparisonPanel
+							benchmarkPortfolio={
+								initialPayload.metadata.scoring.benchmark_portfolio
+							}
+							models={models}
+							setHover={setHover}
+						/>
 					</section>
 					<section className={styles.sectionGrid}>
-						<FrontierEfficiencyPanel
+						<FrontierBenchmarksPanel
 							payload={initialPayload}
 							models={models}
 							setHover={setHover}

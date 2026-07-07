@@ -1,18 +1,18 @@
-/** Behavior checks for the Frontier Efficiency chart data model. */
+/** Behavior checks for the Frontier Benchmarks chart data model. */
 
 import assert from "node:assert/strict";
 import {
 	axisSummaryDetail,
 	frontierAxisDescription,
 	frontierAxisMetricLabel,
-	frontierEfficiencyAxisConfigFor,
-	frontierEfficiencyAxisOptions,
-	frontierEfficiencyHoverRows,
-	frontierEfficiencyRows,
-	frontierEfficiencySummaryRows,
-	selectedFrontierEfficiencyAxisKey,
+	frontierBenchmarkAxisConfigFor,
+	frontierBenchmarkAxisOptions,
+	frontierBenchmarkHoverRows,
+	frontierBenchmarkRows,
+	frontierBenchmarkSummaryRows,
+	selectedFrontierBenchmarkAxisKey,
 	speedValueBlendScore,
-} from "../app/dashboard/graphs/frontierEfficiencyModel";
+} from "../app/dashboard/graphs/frontierBenchmarksModel";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
@@ -62,7 +62,7 @@ const expensive = frontierModel({
 	intelligenceScore: 91,
 });
 
-const rows = frontierEfficiencyRows([efficient, expensive], portfolio);
+const rows = frontierBenchmarkRows([efficient, expensive], portfolio);
 const topRow = rows[0];
 const secondRow = rows[1];
 assert.ok(topRow);
@@ -77,8 +77,8 @@ assert.deepEqual(
 	"frontier rows should normalize percentages and attach resource metrics",
 );
 
-const costAxis = frontierEfficiencyAxisConfigFor("cost", false);
-const summaryRows = frontierEfficiencySummaryRows(rows, costAxis);
+const costAxis = frontierBenchmarkAxisConfigFor("cost", false);
+const summaryRows = frontierBenchmarkSummaryRows(rows, costAxis);
 assert.equal(
 	summaryRows?.leader.model.id,
 	"provider/expensive",
@@ -91,7 +91,7 @@ assert.equal(
 );
 
 assert.deepEqual(
-	frontierEfficiencyHoverRows(topRow, costAxis),
+	frontierBenchmarkHoverRows(topRow, costAxis),
 	[
 		["Benchmark score", "90%"],
 		["DeepSWE cost per task", "$8.0"],
@@ -112,7 +112,7 @@ assert.equal(
 	"bubble size should use a 50/50 blend of Value and Speed",
 );
 
-const axisOptions = frontierEfficiencyAxisOptions(rows, false);
+const axisOptions = frontierBenchmarkAxisOptions(rows, false);
 assert.deepEqual(
 	axisOptions.map((option) => [option.key, option.label]),
 	[
@@ -143,7 +143,7 @@ assert.equal(
 	"Efficiency combines public Speed and Value scores with equal weight.",
 	"combined score should describe speed and value separately from raw cost",
 );
-const allCostAxis = frontierEfficiencyAxisConfigFor("cost", true);
+const allCostAxis = frontierBenchmarkAxisConfigFor("cost", true);
 assert.equal(
 	frontierAxisMetricLabel(allCostAxis, true, rows),
 	"MEAN NORMALIZED cost ↓ (per task/total)",
@@ -188,10 +188,10 @@ const totalModel = {
 		overall_score: 0,
 	},
 } satisfies LlmStatsModel;
-const totalRow = frontierEfficiencyRows([totalModel], totalPortfolio)[0];
+const totalRow = frontierBenchmarkRows([totalModel], totalPortfolio)[0];
 assert.ok(totalRow);
 assert.deepEqual(
-	frontierEfficiencyHoverRows(totalRow, costAxis),
+	frontierBenchmarkHoverRows(totalRow, costAxis),
 	[
 		["Benchmark score", "70%"],
 		["Agents' Last Exam total cost", "$99"],
@@ -205,12 +205,12 @@ assert.equal(
 	"total-resource benchmark descriptions should say total instead of per task",
 );
 assert.equal(
-	selectedFrontierEfficiencyAxisKey("tokens", axisOptions),
+	selectedFrontierBenchmarkAxisKey("tokens", axisOptions),
 	"tokens",
 	"available requested axes should remain selected",
 );
 assert.equal(
-	selectedFrontierEfficiencyAxisKey(
+	selectedFrontierBenchmarkAxisKey(
 		"time",
 		axisOptions.map((option) =>
 			option.key === "time" ? { ...option, disabled: true } : option,
@@ -220,7 +220,7 @@ assert.equal(
 	"disabled axes should fall back to the default available efficiency axis",
 );
 
-/** Build a minimal model with one Frontier Efficiency benchmark observation. */
+/** Build a minimal model with one Frontier Benchmarks observation. */
 function frontierModel({
 	id,
 	name,

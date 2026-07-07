@@ -1,6 +1,9 @@
+/** Model-level Pareto frontier chart for intelligence and value tradeoffs. */
+
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
-import { type CSSProperties, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { scoreAxisScale } from "./axisScale";
@@ -28,20 +31,7 @@ import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./labelPlacement";
 import { modelKey, shortLabel } from "./models";
 import { Panel } from "./Panel";
-import {
-	ProviderEfficiencyView,
-	providerEfficiencyRows,
-} from "./ProviderEfficiencyView";
 import type { HoverRow, HoverSetter } from "./types";
-
-type ParetoViewKey = "models" | "providers";
-
-type ParetoViewToggleProps = {
-	activeView: ParetoViewKey;
-	modelCount: number;
-	providerCount: number;
-	onViewChange: (viewKey: ParetoViewKey) => void;
-};
 
 const SCORE_AXIS_FORMAT_OPTIONS = {
 	formatTick: (tick: number) => tick.toFixed(0),
@@ -54,10 +44,8 @@ export function ParetoFrontierPanel({
 	models: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const [viewKey, setViewKey] = useState<ParetoViewKey>("models");
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
 		useCursorProjection();
-	const providerRows = useMemo(() => providerEfficiencyRows(models), [models]);
 	const candidates = models
 		.filter(
 			(model) =>
@@ -71,63 +59,13 @@ export function ParetoFrontierPanel({
 				Number(left.scores?.value_score) - Number(right.scores?.value_score),
 		);
 
-	if (candidates.length === 0 && providerRows.length === 0) {
+	if (candidates.length === 0) {
 		return (
 			<Panel
 				title="Pareto frontier"
 				copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
 			>
 				<EmptyChart />
-			</Panel>
-		);
-	}
-
-	const activeView =
-		(viewKey === "providers" || candidates.length === 0) &&
-		providerRows.length > 0
-			? "providers"
-			: "models";
-
-	if (activeView === "providers") {
-		const providerQualityDistribution = valueDistribution(
-			providerRows.map((row) => row.quality),
-		);
-		return (
-			<Panel
-				title="Pareto frontier"
-				copy="Each point is one provider: median quality against median VALUE across the current model set."
-				summary={
-					<BoxWhiskerSummary
-						label="Provider quality"
-						distribution={providerQualityDistribution}
-						domainMax={100}
-						formatValue={(value) => value.toFixed(0)}
-						countLabel="providers"
-						showDomainEndpoints
-					/>
-				}
-				note={
-					<>
-						Step line: strongest observed provider quality versus VALUE
-						EFFICIENCY envelope.
-					</>
-				}
-			>
-				<div className={styles.chartToolbar}>
-					<ParetoViewToggle
-						activeView="providers"
-						modelCount={candidates.length}
-						providerCount={providerRows.length}
-						onViewChange={setViewKey}
-					/>
-					<div className={styles.chartToolbarCaption}>
-						<span className={styles.markerKey}>
-							<span className={styles.bubbleMarkerKey} />
-							Bubble size = eligible model count
-						</span>
-					</div>
-				</div>
-				<ProviderEfficiencyView rows={providerRows} setHover={setHover} />
 			</Panel>
 		);
 	}
@@ -241,12 +179,6 @@ export function ParetoFrontierPanel({
 			}
 		>
 			<div className={styles.chartToolbar}>
-				<ParetoViewToggle
-					activeView="models"
-					modelCount={candidates.length}
-					providerCount={providerRows.length}
-					onViewChange={setViewKey}
-				/>
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
@@ -374,34 +306,5 @@ export function ParetoFrontierPanel({
 				</svg>
 			</div>
 		</Panel>
-	);
-}
-
-function ParetoViewToggle({
-	activeView,
-	modelCount,
-	providerCount,
-	onViewChange,
-}: ParetoViewToggleProps) {
-	return (
-		<fieldset className={styles.metricToggle}>
-			<legend className={styles.visuallyHidden}>Pareto frontier view</legend>
-			<button
-				type="button"
-				aria-pressed={activeView === "models"}
-				disabled={modelCount === 0}
-				onClick={() => onViewChange("models")}
-			>
-				Models <span>{modelCount}</span>
-			</button>
-			<button
-				type="button"
-				aria-pressed={activeView === "providers"}
-				disabled={providerCount === 0}
-				onClick={() => onViewChange("providers")}
-			>
-				Providers <span>{providerCount}</span>
-			</button>
-		</fieldset>
 	);
 }
