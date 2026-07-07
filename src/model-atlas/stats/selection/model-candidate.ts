@@ -1,4 +1,4 @@
-/** Public model candidate builder for Model Atlas. */
+/** Model candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
 
 import { resolveStatsLogo } from "../../logo";
 import {

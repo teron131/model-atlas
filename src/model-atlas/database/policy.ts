@@ -1,4 +1,4 @@
-/** Source row merge and quarantine policy for cached raw inputs. */
+/** Source row policy preserves cached evidence while marking refreshed sources that stopped returning known rows. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -12,19 +12,17 @@ import {
 	type SourceRowStatus,
 } from "./types";
 
-/** Builds the stable key used to compare source rows across refreshes. */
+/** Stable source-row keys are persisted, so every caller must use the same empty-part normalization. */
 export function sourceKey(
 	...parts: (number | string | null | undefined)[]
 ): string {
 	return parts.map((part) => String(part ?? "")).join("|");
 }
 
-/** Accepts only non-empty strings when comparing source rows. */
 function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Reads a normalized string field from a source row. */
 export function rowStringValue(
 	row: Record<string, unknown>,
 	key: string,
@@ -32,7 +30,7 @@ export function rowStringValue(
 	return stringValue(row[key]);
 }
 
-/** Merges cached source rows for source-row preservation policy. */
+/** Fresh keyed rows replace cached keyed rows while unkeyed rows stay in their original cache/fetch groups. */
 export function mergeCachedSourceRows<T>(
 	cachedRows: readonly T[],
 	fetchedRows: readonly T[],
@@ -68,7 +66,7 @@ export function mergeCachedSourceRows<T>(
 	return [...unkeyedCachedRows, ...keyedRows.values(), ...unkeyedFetchedRows];
 }
 
-/** Flattens source snapshots into rows that can be compared. */
+/** Empty or failed refreshes keep cached rows unless the caller explicitly replaces source state. */
 export function snapshotRows<T>(
 	cachedRows: readonly T[] | undefined,
 	fetchedRows: readonly T[],
@@ -104,7 +102,7 @@ type SnapshotRowsResult<T> = {
 	states: SourceRowState[];
 };
 
-/** Attaches preservation state to rows from a source snapshot. */
+/** Preservation state records which known rows vanished without deleting their cached evidence immediately. */
 export function snapshotRowsWithStates<T>(
 	config: SnapshotRowsConfig<T>,
 ): SnapshotRowsResult<T> {
@@ -156,7 +154,7 @@ export function snapshotRowsWithStates<T>(
 	return { rows, states };
 }
 
-/** Indexes the latest known source-row state by stable row key. */
+/** The latest persisted run is the only source-row state that participates in the next preservation pass. */
 export function latestSourceRowStates(db: DatabaseSync): SourceRowState[] {
 	const row = asRecord(
 		db.prepare("SELECT MAX(run_id) AS run_id FROM source_row_states").get(),
@@ -201,7 +199,7 @@ export function latestSourceRowStates(db: DatabaseSync): SourceRowState[] {
 		});
 }
 
-/** Carries forward when missing source rows first disappeared. */
+/** Missing-since maps keep quarantine age stable across refreshes that still omit the same source rows. */
 export function missingSinceBySource(
 	states: readonly SourceRowState[],
 ): Record<RawSourceName, Map<string, number>> {

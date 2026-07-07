@@ -1,5 +1,5 @@
 /**
- * Models.dev source helpers for recent model stats.
+ * Models.dev scraper owns provider flattening plus Vercel overlay details for recent model rows.
  *
  * JSON source: https://models.dev/api.json
  * Overlay page source: https://vercel.com/ai-gateway/models
@@ -75,7 +75,7 @@ export type VercelGatewayModelRecord = {
 };
 
 /**
- * Normalized models.dev response after flattening and ranking.
+ * Flattened models.dev output keeps failed fetches on the same payload contract as successful fetches.
  *
  * When fetching fails, `fetched_at_epoch_seconds` and `status_code` are `null` and `models` is an empty array.
  */
@@ -97,7 +97,6 @@ function isoDateDaysAgo(days: number): string {
 		.slice(0, 10);
 }
 
-/** Return whether the current value is valid for Models.dev source recent model stats. */
 function isRecentDate(
 	isoDate: string | undefined,
 	cutoffIsoDate: string,
@@ -108,18 +107,17 @@ function isRecentDate(
 	return isoDate >= cutoffIsoDate;
 }
 
-/** Convert the input into a finite number for Models.dev source recent model stats. */
 function asFiniteNumber(value: unknown): number | null {
 	const numeric = Number(value);
 	return Number.isFinite(numeric) ? numeric : null;
 }
 
-/** Return whether the current value is a sentinel string from upstream page markup. */
+/** Vercel serializes missing page fields as sentinel strings, not JSON null. */
 function isSentinelString(value: string | null | undefined): boolean {
 	return !value || value === "$undefined";
 }
 
-/** Build one Vercel-backed model record, preferring the live page name and keeping models.dev metadata. */
+/** Vercel overlay rows prefer the live page name while preserving models.dev metadata fields. */
 function buildVercelModelRecord(
 	model: VercelGatewayModelRecord,
 	fallbackModel: ModelRecord | undefined,
@@ -300,7 +298,7 @@ export async function getModelsDevSourceStats(
 }
 
 /**
- * Fetch, flatten, and rank recent models from models.dev.
+ * Models.dev fetches are failure-safe because refresh callers can continue with cached or empty rows.
  *
  * This API is failure-safe by design and returns an empty payload on errors.
  */

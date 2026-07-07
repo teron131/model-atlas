@@ -1,4 +1,4 @@
-/** Public benchmark helpers for LLM stats metadata. */
+/** Public benchmark exports keep scoring, metadata, and database reconstruction on the same key set. */
 
 export { benchmarkRowsFromDb } from "./db-rows";
 export {

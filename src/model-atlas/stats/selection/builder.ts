@@ -1,4 +1,4 @@
-/** Build final LLM stats rows from enriched model candidates. */
+/** Final model building owns candidate scoring, public filtering, rescoring, and logo cache hydration. */
 
 import { cacheStatsLogos } from "../../logo-cache";
 import { attachFinalScores } from "../scores";

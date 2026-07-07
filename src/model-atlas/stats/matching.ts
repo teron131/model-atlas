@@ -1,6 +1,5 @@
-/** Matching helpers for Model Atlas selection. */
+/** Stats matching turns scraper-first diagnostics into merged source rows for selection. */
 
-/** Turn scraper-first matcher diagnostics into merged source rows. */
 import { getMatchDiagnostics, type MatchDiagnosticsPayload } from "../matcher";
 import {
 	asFiniteNumber,
@@ -40,7 +39,7 @@ function canonicalModelId(
 	return typeof modelId === "string" ? modelId : null;
 }
 
-/** Return configured variant labels present in a model id, preferring longer labels like flash-lite over flash. */
+/** Variant labels are matched longest-first so compound variants like flash-lite do not double-count flash. */
 function variantLabels(
 	modelId: string,
 	matcherConfig: MatcherConfig,
@@ -236,7 +235,7 @@ export function modelRowsFromMatchDiagnostics(
 		.filter((row): row is Record<string, unknown> => row != null);
 }
 
-/** Build matched intermediate rows by running match diagnostics and rejecting obvious variant mismatches. */
+/** Match diagnostics are rechecked for configured variant conflicts before selection consumes merged rows. */
 export async function buildMatchedModelRows(
 	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,

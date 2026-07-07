@@ -1,4 +1,4 @@
-/** Models.dev catalog filtering for Model Atlas. */
+/** Models.dev catalog rows fill public coverage gaps without duplicating matched Artificial Analysis models. */
 
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import {

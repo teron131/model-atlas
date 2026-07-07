@@ -1,4 +1,4 @@
-/** Read the latest SQLite selected rows as the payload consumed by the minimal UI. */
+/** Database payload readers enforce the public stats shape shared by SQLite snapshots and D1. */
 
 import { DatabaseSync } from "node:sqlite";
 
@@ -329,7 +329,7 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 	};
 }
 
-/** Convert one SQLite selected row into the model payload shape. */
+/** One selected-row record becomes the public model contract while nested JSON columns are rehydrated. */
 function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 	const modelId = stringValue(row.model_id);
 	const provider =
@@ -362,7 +362,7 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 	};
 }
 
-/** Converts local SQLite and D1 run rows into the payload run contract. */
+/** Run metadata is accepted only after the database marks the snapshot completed. */
 export function payloadRunFromRow(row: unknown): PayloadRows["run"] | null {
 	const record = asRecord(row);
 	const id = asFiniteNumber(record.id);
@@ -432,7 +432,7 @@ function readPayloadRowGroups(
 	]);
 }
 
-/** Reads the row groups required by the public payload from any SQL storage adapter. */
+/** Payload row groups share one reader contract across local SQLite and Cloudflare D1. */
 export async function readPayloadRows(
 	run: PayloadRows["run"],
 	readRows: PayloadRowReader,
@@ -531,7 +531,7 @@ function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
 		.map((row) => asRecord(row));
 }
 
-/** Read the UI payload from the latest SQLite selected rows. */
+/** Local SQLite payload reads follow the same latest-completed-run boundary as D1. */
 export function readDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
 ): LlmStatsPayload {

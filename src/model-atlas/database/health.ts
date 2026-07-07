@@ -48,7 +48,7 @@ function stateCounts(
 	return { active, quarantined };
 }
 
-/** Builds source health metadata for the completed snapshot. */
+/** Completed snapshot health records source freshness and row-preservation status beside the run. */
 export function buildSourceHealth({
 	generatedAtEpochSeconds,
 	sourceCache,

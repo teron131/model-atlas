@@ -1,4 +1,4 @@
-/** Disk-backed logo caching helpers for stats payloads. */
+/** Disk-backed provider logo caching owns fetch coalescing, resize bounds, and local/Vercel cache paths. */
 
 import { createHash } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -136,7 +136,7 @@ async function buildCachedLogoDataUrl(
 	return pngDataUrl(resizedLogoBuffer);
 }
 
-/** Return unique non-empty logo sources from a model list. */
+/** Logo fetches are deduplicated by source while cache files can still use stable model or provider keys. */
 function uniqueLogoSources<TModel extends { logo: string }>(
 	models: TModel[],
 	cacheKeyForModel: (model: TModel) => string | null | undefined,

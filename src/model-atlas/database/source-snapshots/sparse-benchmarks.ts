@@ -1,4 +1,4 @@
-/** Sparse one-score benchmark source snapshot adapters. */
+/** Sparse benchmark snapshots keep each source's identity fields intact before shared missing-row policy runs. */
 
 import type { DatabaseSync } from "node:sqlite";
 import {

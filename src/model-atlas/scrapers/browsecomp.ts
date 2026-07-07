@@ -1,5 +1,5 @@
 /**
- * BrowseComp source helpers.
+ * BrowseComp scraper owns ZeroEval payload normalization for the BrowseComp benchmark.
  *
  * Page source: https://llm-stats.com/benchmarks/browsecomp
  * JSON source: https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details

@@ -1,4 +1,4 @@
-/** Build benchmark evaluation and scoring-source fields from source lookup maps. */
+/** Benchmark enrichment is the single bridge from source lookup maps to evaluation and scoring-source fields. */
 
 import {
 	agentsLastExamBenchmarkScore,

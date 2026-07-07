@@ -1,5 +1,5 @@
 /**
- * DeepSWE leaderboard scraper helpers.
+ * DeepSWE scraper owns versioned artifact fallback and resource-row normalization.
  *
  * JSON source: https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json
  * Fallback: https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json
@@ -227,7 +227,7 @@ export function findDeepSWEModelScore(
 	return null;
 }
 
-/** Fetch raw DeepSWE source rows from all configured public artifacts. */
+/** DeepSWE fetches every configured artifact version so the freshest version can fill gaps in older rows. */
 export async function getDeepSWERawLeaderboardSourceRows(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWERawLeaderboardPayload> {

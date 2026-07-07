@@ -1,5 +1,5 @@
 /**
- * Terminal-Bench benchmark page scraper helpers.
+ * Terminal-Bench scraper owns Vals harness rows used to cross-check benchmark resource data.
  *
  * This benchmark-specific page is scraped separately because it contributes Terminal-Bench task stats and harness context outside the Artificial Analysis main model table.
  */

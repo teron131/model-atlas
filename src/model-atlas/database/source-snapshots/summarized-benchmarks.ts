@@ -1,4 +1,4 @@
-/** Benchmark snapshots that preserve raw rows and derived model summaries together. */
+/** Summary benchmark snapshots persist raw evidence beside the derived model rows consumed by scoring. */
 
 import type { DatabaseSync } from "node:sqlite";
 

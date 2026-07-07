@@ -1,4 +1,4 @@
-/** Operational health checks for source freshness and benchmark update signals. */
+/** Operational health checks compare public rows against fresh benchmark source evidence. */
 
 import { splitBaseModelTokens, splitTokens } from "../matcher/name-tokens";
 import {
@@ -50,7 +50,6 @@ type RankedModel = {
 	value: number;
 };
 
-/** Accepts only finite numeric benchmark values for health checks. */
 function finiteNumber(value: NumberOrNull | undefined): number | null {
 	return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -84,7 +83,6 @@ function referenceRankByModel(
 	return new Map(ranked.map((model, index) => [model.id, index + 1]));
 }
 
-/** Normalizes the source row into a comparable slug. */
 function sourceSlug(row: BenchmarkSourceRow): string {
 	if (row.id != null) {
 		const slug = row.id.split("/").at(-1);
@@ -95,7 +93,7 @@ function sourceSlug(row: BenchmarkSourceRow): string {
 	return normalizeModelToken(row.label);
 }
 
-/** Checks whether matched model tokens cover the source row name. */
+/** Token coverage rejects accidental first-token matches that miss the benchmark source's distinguishing words. */
 function hasSourceTokenCoverage(
 	sourceSlug: string,
 	model: Pick<LlmStatsModel, "id" | "name">,
@@ -116,7 +114,6 @@ function hasSourceTokenCoverage(
 	});
 }
 
-/** Finds the Atlas model row that corresponds to one source benchmark row. */
 function matchedSourceId(
 	row: BenchmarkSourceRow,
 	models: readonly BenchmarkHealthModel[],
@@ -155,7 +152,6 @@ function matchedSourceId(
 	return candidates[0]?.model_id ?? null;
 }
 
-/** Ranks Model Atlas benchmark rows for health comparison. */
 function benchmarkRankedModels(
 	models: readonly BenchmarkHealthModel[],
 	key: string,
@@ -179,7 +175,6 @@ function benchmarkRankedModels(
 		.sort((left, right) => right.value - left.value);
 }
 
-/** Ranks upstream benchmark source rows for health comparison. */
 function sourceRankedModels(
 	rows: readonly BenchmarkSourceRow[],
 	models: readonly BenchmarkHealthModel[],
@@ -211,7 +206,6 @@ function sourceRankedModels(
 		);
 }
 
-/** Keeps the upstream source rows that matter for overlap checks. */
 function sourceTopRows(
 	rows: readonly BenchmarkSourceRow[] | undefined,
 ): BenchmarkSourceRow[] {
@@ -220,7 +214,6 @@ function sourceTopRows(
 		.slice(0, BENCHMARK_TOP_LIMIT);
 }
 
-/** Formats the source row identifier shown in health output. */
 function sourceRowOutputId(row: BenchmarkSourceRow): string {
 	if (row.id != null) {
 		return row.id;

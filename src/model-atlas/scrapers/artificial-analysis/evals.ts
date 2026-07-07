@@ -1,5 +1,5 @@
 /**
- * Artificial Analysis main leaderboard scraper helpers.
+ * Artificial Analysis main leaderboard scraper owns the broad score table and general model metrics.
  *
  * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the main table omits.
  */
@@ -442,7 +442,7 @@ function getProviderSlug(row: JsonObject, creator: JsonObject): string | null {
 		.replace(/^-+|-+$/g, "");
 }
 
-/** Build a creator-like object from flat row fields when Artificial Analysis inlines creator data. */
+/** Inline creator fields are normalized to the nested creator shape used by hydrated page rows. */
 function flatCreatorFromRow(row: JsonObject): JsonObject {
 	return {
 		name: firstString(row, ["modelCreatorName"]),
@@ -741,7 +741,7 @@ export function processArtificialAnalysisScrapedRows(
 }
 
 /**
- * Fetch raw rows from Artificial Analysis leaderboard page payload.
+ * Raw Artificial Analysis page rows stay unflattened so downstream snapshot code owns projection.
  *
  * This function intentionally performs no flattening/cleaning/selection.
  */

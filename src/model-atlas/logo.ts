@@ -1,4 +1,4 @@
-/** Shared Artificial Analysis provider-logo resolution helpers for stats payloads. */
+/** Provider logo resolution maps source and provider hints to Artificial Analysis assets before stats caching. */
 const ARTIFICIAL_ANALYSIS_LOGO_URL = "https://artificialanalysis.ai/img/logos";
 
 const ARTIFICIAL_ANALYSIS_LOGO_ASSET_BY_PROVIDER: Record<string, string> = {

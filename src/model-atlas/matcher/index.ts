@@ -1,4 +1,4 @@
-/** Public matcher API for LLM model diagnostics. */
+/** Matcher exports expose diagnostics without leaking pipeline internals into stats callers. */
 
 export { getMatchDiagnostics } from "./pipeline";
 export type {

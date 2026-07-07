@@ -1,4 +1,4 @@
-/** Raw source cache readers for persisted Model Atlas source tables. */
+/** Raw source cache readers reconstruct scraper-owned payload shapes from persisted SQLite source tables. */
 
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 
@@ -35,7 +35,7 @@ import { SOURCE_URLS } from "../types";
 
 export type CacheDbRow = JsonObject;
 
-/** Runs a raw-cache query and coerces SQLite rows into JSON records. */
+/** Cache readers normalize SQLite's loose row objects before source-specific reconstruction begins. */
 export function queryCacheRows(
 	db: DatabaseSync,
 	sql: string,
@@ -68,7 +68,7 @@ export function queryLatestCacheRows(
 	return runId == null ? [] : queryCacheRows(db, sql, [runId]);
 }
 
-/** Finds the first persisted fetch timestamp across raw source rows. */
+/** Source cache freshness follows the persisted fetch timestamp carried by the source row set. */
 export function firstEpochSecond(
 	rowsToScan: readonly CacheDbRow[],
 ): number | null {
@@ -81,12 +81,10 @@ export function firstEpochSecond(
 	return null;
 }
 
-/** Reads non-empty string fields from persisted cache rows. */
 export function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Converts SQLite integer booleans back to true or false. */
 export function booleanFromSql(value: unknown): boolean | null {
 	if (value === 1) {
 		return true;
@@ -134,7 +132,6 @@ export function nonEmptyRecord(record: JsonObject): JsonObject | null {
 	return Object.keys(record).length > 0 ? record : null;
 }
 
-/** Collects modality flags from prefixed raw cache columns. */
 export function modalityList(
 	row: CacheDbRow,
 	prefix: string,
@@ -160,7 +157,7 @@ const ARTIFICIAL_ANALYSIS_COST_KEYS = [
 	"output_tokens_per_task",
 ] as const;
 
-/** Checks whether the Artificial Analysis cache includes hidden retained rows. */
+/** Hidden retained Artificial Analysis rows prove the cache is new enough to preserve deprecated benchmark carriers. */
 export function artificialAnalysisCacheHasHiddenRows(
 	db: DatabaseSync,
 ): boolean {
@@ -190,7 +187,6 @@ function artificialAnalysisNestedNumbers(
 	return record;
 }
 
-/** Reconstructs an Artificial Analysis raw payload row from SQLite columns. */
 function artificialAnalysisRawRow(row: CacheDbRow): JsonObject {
 	const tokenCounts: JsonObject = {};
 	assignIfNumber(tokenCounts, "inputTokens", row.input_tokens);
@@ -253,7 +249,6 @@ function artificialAnalysisRawRow(row: CacheDbRow): JsonObject {
 	return rawRow;
 }
 
-/** Reconstructs a selected Artificial Analysis row from SQLite columns. */
 function artificialAnalysisSelectedRow(row: CacheDbRow): JsonObject {
 	const selectedRow: JsonObject = {};
 	assignIfString(selectedRow, "model_id", row.model_id);

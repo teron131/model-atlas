@@ -1,3 +1,5 @@
+-- SQLite snapshot schema for source evidence, staged model rows, public payload rows, and matcher audit traces.
+
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 

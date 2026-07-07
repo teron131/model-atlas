@@ -1,4 +1,4 @@
-/** Cloudflare D1 reads and schema management for the Model Atlas SQLite schema. */
+/** Cloudflare D1 adapter keeps deployed reads and schema checks aligned with the SQLite snapshot contract. */
 
 import type { LlmStatsPayload } from "../stats/types";
 import {
@@ -41,7 +41,7 @@ type D1ApiResponse = {
 
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
 
-/** Reads Cloudflare D1 connection settings from the runtime environment. */
+/** D1 configuration is complete only when every required deployment secret is present. */
 export function d1Config(): D1Config | null {
 	const accountId = process.env.D1_ACCOUNT_ID;
 	const databaseId = process.env.D1_DATABASE_ID;
@@ -57,7 +57,6 @@ export function d1Config(): D1Config | null {
 	};
 }
 
-/** Reports whether all required D1 environment variables are present. */
 export function d1Configured(): boolean {
 	return d1Config() != null;
 }
@@ -77,12 +76,10 @@ export function missingD1Environment(): string[] {
 	return missing;
 }
 
-/** Builds the Cloudflare D1 REST endpoint for the requested operation. */
 function d1Endpoint(config: D1Config, path: "query"): string {
 	return `${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/${path}`;
 }
 
-/** Converts Cloudflare D1 error payloads into a single thrown error. */
 function d1Error(response: D1ApiResponse): Error {
 	const messages = response.errors
 		?.map((error) => error.message)
@@ -135,7 +132,6 @@ export async function queryD1(
 	return result ?? {};
 }
 
-/** Returns row objects from a Cloudflare D1 SQL query. */
 export async function queryD1Rows(
 	sql: string,
 	params: D1Value[] = [],
@@ -200,7 +196,7 @@ async function d1TableColumns(
 	);
 }
 
-/** Replace D1 snapshot tables when any existing table drifts from the shared schema. */
+/** D1 schema drift is repaired by rebuilding checked-in snapshot tables before import. */
 async function replaceD1SchemaOnDrift(schemaSql: string): Promise<void> {
 	const schemaTables = schemaTableShapes(schemaSql);
 	const tableEntries = [...schemaTables];
@@ -221,7 +217,7 @@ async function replaceD1SchemaOnDrift(schemaSql: string): Promise<void> {
 	}
 }
 
-/** Reads the latest completed Model Atlas payload from D1. */
+/** D1 reads only expose the latest completed run so partial imports never become public payloads. */
 export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 	if (!d1Configured()) {
 		return null;

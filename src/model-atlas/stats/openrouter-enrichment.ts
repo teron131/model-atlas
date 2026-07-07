@@ -1,4 +1,4 @@
-/** OpenRouter enrichment helpers for Model Atlas selection. */
+/** OpenRouter enrichment owns late-bound route stats, duplicate selection, and free-route cost continuity for final model rows. */
 
 import {
 	isOpenRouterFreeRouteId,
@@ -29,7 +29,6 @@ import type {
 	ScoringConfig,
 } from "./types";
 
-/** OpenRouter enrichment for Model Atlas: dedupe rows, backfill free costs, and fetch speed/pricing enrichments. */
 const MERGED_OBJECT_FIELDS = [
 	"cost",
 	"evaluations",
@@ -84,7 +83,7 @@ function hasBenchmarkSignal(row: JsonObject): boolean {
 	);
 }
 
-/** Score duplicate candidate rows before choosing the canonical row. */
+/** Duplicate resolution favors benchmark-bearing rows first, then OpenRouter-backed rows with usable public scoring data. */
 function rowPriority(row: JsonObject, normalizedId: string): number {
 	const providerId = row.provider_id;
 	const artificialAnalysisIdentityBoost =
@@ -110,7 +109,6 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 	);
 }
 
-/** Extracts the canonical model slug stored in an OpenRouter dedupe key. */
 function canonicalSlugFromDedupeKey(dedupeKey: string): string | null {
 	return dedupeKey.startsWith("artificial_analysis:")
 		? dedupeKey.slice("artificial_analysis:".length)
@@ -128,7 +126,6 @@ function dedupeKeyForRowId(modelId: string): string {
 	return `${provider}/${slug}`;
 }
 
-/** Groups OpenRouter rows that differ only by provider version label. */
 function versionKeyForRow(row: JsonObject): string | null {
 	const artificialAnalysisSlug =
 		typeof row.artificial_analysis_slug === "string"
@@ -142,7 +139,7 @@ function versionKeyForRow(row: JsonObject): string | null {
 		: stripCatalogAliasSuffixes(normalizeModelToken(slug));
 }
 
-/** Builds the merge key for duplicate OpenRouter rows. */
+/** Benchmark-version keys keep Artificial Analysis rows attached while provider suffixes collapse into one public route. */
 function dedupeKeyForRow(
 	row: JsonObject,
 	benchmarkVersionKeys: ReadonlySet<string>,
@@ -225,7 +222,6 @@ function pricingHasData(pricing: JsonObject): boolean {
 	);
 }
 
-/** Stores map value prefer data for OpenRouter enrichment. */
 function setMapValuePreferData(
 	map: Map<string, JsonObject>,
 	key: string,
@@ -245,7 +241,6 @@ function getMapValueByExactOrNormalizedId(
 	return map.get(modelId) ?? map.get(normalizeProviderModelId(modelId)) ?? null;
 }
 
-/** Stores map value for exact and normalized ID for OpenRouter enrichment. */
 function setMapValueForExactAndNormalizedId(
 	map: Map<string, JsonObject>,
 	modelId: string,
@@ -305,7 +300,6 @@ function aliasOpenRouterDataToPublicRows(
 	}
 }
 
-/** Deduplicate OpenRouter enrichment Model Atlas selection rows while preferring OpenRouter data. */
 function dedupeRowsPreferOpenRouter(
 	rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
@@ -349,7 +343,7 @@ function hasPositiveCostFields(cost: JsonObject): boolean {
 	return input != null && input > 0 && output != null && output > 0;
 }
 
-/** Backfill missing free-model costs for OpenRouter enrichment Model Atlas selection. */
+/** Free OpenRouter routes inherit the paid route's base costs so price comparisons keep a realistic fallback. */
 function backfillFreeModelCosts(
 	rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
@@ -460,7 +454,7 @@ async function buildOpenRouterDataById(
 	}
 }
 
-/** Fetch OpenRouter enrichments for the matched rows and return the late-bound speed/pricing maps. */
+/** Enrich matched rows with route-level OpenRouter speed and pricing without making the source snapshot depend on live route stats. */
 export async function enrichModelRowsWithOpenRouter(
 	matchedRows: Record<string, unknown>[],
 	openrouterConfig: OpenRouterConfig,

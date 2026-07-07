@@ -31,7 +31,7 @@ export function unitScore(value: unknown): number | null {
 	return Number(score.toFixed(6));
 }
 
-/** Converts percentage strings onto the 0-1 benchmark scale. */
+/** Source-page percentages enter benchmark scoring on the shared 0-1 scale. */
 export function percentToUnitScore(
 	value: string | null | undefined,
 ): number | null {

@@ -1,4 +1,4 @@
-/** Model-name token helpers for matcher scoring. */
+/** Matcher tokenization strips non-identity labels while preserving model scale and version evidence. */
 import { normalizeModelToken } from "../shared";
 
 const MODEL_NAME_TAG_TOKENS = new Set([

@@ -1,4 +1,4 @@
-/** Provider logo color extraction for Model Atlas. */
+/** Provider logo color extraction collapses raster icons to one UI-safe accent or monochrome fallback. */
 const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;
@@ -130,7 +130,6 @@ function hslToHex({ h, s, l }: Hsl) {
 	});
 }
 
-/** Bounds color channel values to the requested range. */
 function clamp(value: number, min: number, max: number) {
 	return Math.min(Math.max(value, min), max);
 }

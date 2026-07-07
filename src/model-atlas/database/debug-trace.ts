@@ -1,4 +1,4 @@
-/** Debug trace row construction for Model Atlas database snapshots. */
+/** Debug trace rows preserve matcher decisions with enough source indexes to audit snapshot joins. */
 
 import type { MatchDiagnosticsPayload } from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
@@ -7,7 +7,7 @@ import { firstValidMatchId, hasVariantConflict } from "../stats/matching";
 import type { MatcherConfig } from "../stats/types";
 import type { DebugTraceRow, SourceSnapshots } from "./types";
 
-/** Map Artificial Analysis model ids to raw table row indexes for debug joins. */
+/** Artificial Analysis raw indexes let debug traces point back to the scraped model row. */
 function artificialAnalysisRowIndexById(
 	snapshots: SourceSnapshots,
 ): Map<string, number> {
@@ -23,7 +23,7 @@ function artificialAnalysisRowIndexById(
 	return byModelId;
 }
 
-/** Map provider/model ids to models.dev raw table row indexes for debug joins. */
+/** Models.dev raw indexes let debug traces point back to the catalog candidate row. */
 function modelsDevRowIndexByKey(
 	snapshots: SourceSnapshots,
 ): Map<string, number> {
