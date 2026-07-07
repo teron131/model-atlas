@@ -35,17 +35,6 @@ function weightPercent<T extends Record<string, number>>(
 	return total > 0 && weight != null ? percent(weight / total) : "-";
 }
 
-const priceProfileRow = (
-	label: string,
-	profile: keyof typeof PRICE_PROFILES,
-) => {
-	const profileConfig = PRICE_PROFILES[profile];
-	return [
-		`${label} input/output split ${percent(profileConfig.input)}/${percent(profileConfig.output)}`,
-		weightPercent(PRICE_PROFILE_WEIGHTS, profile),
-	] as const;
-};
-
 const priceProfileContributionRow = (
 	label: string,
 	profile: keyof typeof PRICE_PROFILES,
@@ -61,11 +50,6 @@ const priceProfileContributionRow = (
 		percent(profileWeight * profileConfig[side], 1),
 	] as const;
 };
-
-const priceProfileRows = () =>
-	PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
-		priceProfileRow(label, profile),
-	);
 
 const priceProfileContributionRows = (side: "input" | "output") =>
 	PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
@@ -127,13 +111,7 @@ const benchmarkContributionPercent = (keys: readonly string[]) =>
 	perComponentWeight(1, keys.length);
 
 const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
-const speedComponentCount = (components: ActiveResourceComponents) =>
-	resourceBenchmarkKeys(components).length +
-	SPEED_NON_BENCHMARK_COMPONENT_COUNT;
-
 const VALUE_PRICE_COMPONENT_COUNT = 3;
-const valueComponentCount = (components: ActiveResourceComponents) =>
-	resourceBenchmarkKeys(components).length + VALUE_PRICE_COMPONENT_COUNT;
 
 const MIN_MAX_SCORE_TEXT = "min-max score across models";
 const FULL_OVERALL_TEXT = "Full Overall";
@@ -274,13 +252,20 @@ const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
 );
 
 const speedInputRows = (components: ActiveResourceComponents) => {
-	const componentCount = speedComponentCount(components);
+	const resourceKeys = resourceBenchmarkKeys(components);
+	const componentCount =
+		resourceKeys.length + SPEED_NON_BENCHMARK_COMPONENT_COUNT;
 	const componentWeight = perComponentWeight(1, componentCount);
 	const rawStatWeight = percent(1 / componentCount / 3, 1);
 	return [
 		{
 			title: "Benchmark runtimes ↓",
-			rows: benchmarkTaskTimeRows(components, componentWeight),
+			rows: benchmarkResourceRows(
+				resourceKeys,
+				"",
+				"runtime ↓",
+				componentWeight,
+			),
 		},
 		{
 			title: "Provider speed",
@@ -300,22 +285,11 @@ const speedInputRows = (components: ActiveResourceComponents) => {
 	] as const;
 };
 
-const benchmarkTaskTimeRows = (
-	components: ActiveResourceComponents,
-	weight?: string,
-) => {
-	const resourceKeys = resourceBenchmarkKeys(components);
-	const componentWeight = weight ?? perComponentWeight(1, resourceKeys.length);
-	return [
-		...benchmarkResourceRows(resourceKeys, "", "runtime ↓", componentWeight),
-	] as const;
-};
-
 const valueInputRows = (components: ActiveResourceComponents) => {
 	const resourceKeys = resourceBenchmarkKeys(components);
 	const componentWeight = perComponentWeight(
 		1,
-		valueComponentCount(components),
+		resourceKeys.length + VALUE_PRICE_COMPONENT_COUNT,
 	);
 	return [
 		{
@@ -405,7 +379,13 @@ export function columnTooltipsForActiveComponents(
 						{
 							title: "Profile weights",
 							kind: "price_profile",
-							rows: priceProfileRows(),
+							rows: PRICE_PROFILE_ENTRIES.map(([label, profile]) => {
+								const profileConfig = PRICE_PROFILES[profile];
+								return [
+									`${label} input/output split ${percent(profileConfig.input)}/${percent(profileConfig.output)}`,
+									weightPercent(PRICE_PROFILE_WEIGHTS, profile),
+								] as const;
+							}),
 						},
 						{
 							title: "Input share",

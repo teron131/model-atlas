@@ -139,19 +139,11 @@ export function publicOpenRouterModelId(modelId: string | null): string | null {
 		return null;
 	}
 	const paidModelId = nonFreeOpenRouterModelId(modelId) ?? modelId;
-	return normalizePublicVersionSeparators(
-		stripDatedPreviewRoute(stripCatalogAliasSuffixes(paidModelId)),
+	const publicModelId = stripCatalogAliasSuffixes(paidModelId).replace(
+		DATED_PREVIEW_ROUTE_PATTERN,
+		"$1",
 	);
-}
-
-/** Removes dated preview suffixes from public model IDs. */
-function stripDatedPreviewRoute(modelId: string): string {
-	return modelId.replace(DATED_PREVIEW_ROUTE_PATTERN, "$1");
-}
-
-/** Rewrites numeric release separators into public version notation. */
-function normalizePublicVersionSeparators(modelId: string): string {
-	return modelId.replace(/(^|[-/])(\d)-(\d)(?=$|-)/g, "$1$2.$3");
+	return publicModelId.replace(/(^|[-/])(\d)-(\d)(?=$|-)/g, "$1$2.$3");
 }
 
 export function isOpenRouterFreeRouteId(

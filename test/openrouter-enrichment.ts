@@ -69,6 +69,45 @@ assertEqual(
 	"provider/model-family-12-05",
 );
 
+const qwenRouteEnriched = await enrichModelRowsWithOpenRouter(
+	[
+		{
+			id: "qwen/qwen3.7",
+			openrouter_id: "qwen/qwen3.7",
+			provider_id: "qwen",
+			intelligence: {
+				intelligence_index: 90,
+			},
+		},
+	],
+	STAGE_CONFIG.openrouter,
+	STAGE_CONFIG.scoring,
+	{
+		fetched_at_epoch_seconds: 123,
+		directory: [],
+		models: [
+			{
+				id: "qwen/qwen3.7-max",
+				selected_permaslug: "qwen/qwen3.7-max-20260520",
+				candidate_permaslugs: ["qwen/qwen3.7-max-20260520"],
+				performance: {
+					summary: {
+						throughput_tokens_per_second_median: 47,
+						latency_seconds_median: 1.58,
+						e2e_latency_seconds_median: null,
+					},
+				},
+				pricing: null,
+			},
+		],
+	},
+);
+assertEqual(
+	qwenRouteEnriched.openRouterSpeedById.get("qwen/qwen3.7")
+		?.throughput_tokens_per_second_median,
+	47,
+);
+
 const aliasOnlyEnriched = await enrichModelRowsWithOpenRouter(
 	[
 		{

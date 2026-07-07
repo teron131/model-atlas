@@ -506,10 +506,6 @@ function selectModalities(row: JsonObject, type: "input" | "output"): string[] {
 	].filter((value): value is string => value != null);
 }
 
-function selectReasoningFlag(row: JsonObject): boolean | null {
-	return firstBoolean(row, ["reasoningModel"]);
-}
-
 function getSelectedColumnValue(
 	column: string,
 	row: JsonObject,
@@ -586,7 +582,7 @@ function getSelectedColumnValue(
 			);
 		case "reasoning":
 		case "reasoning_model":
-			return selectReasoningFlag(row);
+			return firstBoolean(row, ["reasoningModel"]);
 		case "reasoning_effort":
 			return parseArtificialAnalysisReasoningEffort(
 				row.short_name ?? row.shortName ?? row.name,

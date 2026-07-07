@@ -254,6 +254,19 @@ function setMapValueForExactAndNormalizedId(
 	}
 }
 
+function setMapValueForOpenRouterRoute(
+	map: Map<string, JsonObject>,
+	modelId: string,
+	value: JsonObject,
+	hasData: (value: JsonObject) => boolean,
+): void {
+	setMapValueForExactAndNormalizedId(map, modelId, value, hasData);
+	const publicId = publicOpenRouterModelId(modelId);
+	if (publicId != null && publicId !== modelId) {
+		setMapValueForExactAndNormalizedId(map, publicId, value, hasData);
+	}
+}
+
 function rowModelId(row: Record<string, unknown>): string | null {
 	const id = asRecord(row).id;
 	return typeof id === "string" && id.length > 0 ? id : null;
@@ -430,13 +443,8 @@ async function buildOpenRouterDataById(
 		for (const model of models) {
 			const speed = normalizeOpenRouterSpeed(model.performance);
 			const pricing = normalizeOpenRouterPricing(model.pricing);
-			setMapValueForExactAndNormalizedId(
-				speedById,
-				model.id,
-				speed,
-				speedHasData,
-			);
-			setMapValueForExactAndNormalizedId(
+			setMapValueForOpenRouterRoute(speedById, model.id, speed, speedHasData);
+			setMapValueForOpenRouterRoute(
 				pricingById,
 				model.id,
 				pricing,

@@ -11,9 +11,6 @@ const LOGO_CACHE_SIZE = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
 const pendingCacheRequestBySource = new Map<string, Promise<string>>();
-function isRemoteLogoSource(source: string): boolean {
-	return /^https?:\/\//i.test(source);
-}
 
 function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
 	const normalized = cacheKey
@@ -162,7 +159,7 @@ export async function cacheStatsLogo(
 	source: string,
 	cacheKey?: string | null,
 ): Promise<string> {
-	if (source.length === 0 || !isRemoteLogoSource(source)) {
+	if (source.length === 0 || !/^https?:\/\//i.test(source)) {
 		return source;
 	}
 
