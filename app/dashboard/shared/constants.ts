@@ -1,3 +1,5 @@
+/** Shared dashboard constants for live data paths, tooltips, and benchmark labels. */
+
 import type { LlmStatsColumnTooltip } from "../../../src/model-atlas/stats/types";
 
 export const liveStatsPath = "/api/llm-stats?view=all";

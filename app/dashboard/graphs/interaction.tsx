@@ -1,3 +1,5 @@
+/** Interaction-metric scatter plot matrix for dashboard graphs. */
+
 import { extent, median } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { type CSSProperties, useMemo, useState } from "react";

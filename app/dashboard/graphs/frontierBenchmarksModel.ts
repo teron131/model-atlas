@@ -23,7 +23,12 @@ import {
 	fmtPercentScore,
 	percent,
 } from "./format";
-import { correlationValue, formatCorrelation, modelKey } from "./models";
+import {
+	correlationValue,
+	formatCorrelation,
+	groupBy,
+	modelKey,
+} from "./models";
 import type { HoverRow } from "./types";
 
 export type FrontierBenchmarkAxisKey =
@@ -143,7 +148,6 @@ const BENCHMARK_SCORE_AXIS_OPTIONS = {
 	steps: [10, 5, 2] as const,
 };
 
-/** Build one benchmark-resource row per model and frontier benchmark score. */
 export function frontierBenchmarkRows(
 	models: LlmStatsModel[],
 	portfolio: BenchmarkPortfolio,
@@ -197,18 +201,10 @@ export function frontierBenchmarkRows(
 		.sort((left, right) => right.score - left.score);
 }
 
-/** Average normalized frontier rows into one aggregate row per model. */
 export function meanFrontierBenchmarkRows(
 	rows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkRow[] {
-	const rowsByModel = new Map<string, FrontierBenchmarkRow[]>();
-	for (const row of rows) {
-		const key = modelKey(row.model);
-		const current = rowsByModel.get(key) ?? [];
-		current.push(row);
-		rowsByModel.set(key, current);
-	}
-	return [...rowsByModel.values()]
+	return [...groupBy(rows, (row) => modelKey(row.model)).values()]
 		.map((modelRows): FrontierBenchmarkRow | null => {
 			const first = modelRows[0];
 			if (first == null) {
@@ -232,7 +228,6 @@ export function meanFrontierBenchmarkRows(
 		.sort((left, right) => right.score - left.score);
 }
 
-/** Normalize each frontier benchmark before building aggregate model means. */
 export function normalizedFrontierBenchmarkRows(
 	rows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkRow[] {
@@ -269,7 +264,6 @@ export function normalizedFrontierBenchmarkRows(
 	}));
 }
 
-/** Build available benchmark toggle options ordered by row count and label. */
 export function frontierBenchmarkOptions(
 	rows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkOption[] {
@@ -289,7 +283,6 @@ export function frontierBenchmarkOptions(
 	);
 }
 
-/** Build correlation labels for the aggregate and each frontier benchmark. */
 export function frontierBenchmarkCorrelationByBenchmark(
 	allRows: FrontierBenchmarkRow[],
 	meanRows: FrontierBenchmarkRow[],
@@ -297,13 +290,15 @@ export function frontierBenchmarkCorrelationByBenchmark(
 	const correlations = new Map<string, string>([
 		["all", frontierBenchmarkCorrelation(meanRows)],
 	]);
-	for (const [benchmarkKey, benchmarkRows] of groupRowsByBenchmark(allRows)) {
+	for (const [benchmarkKey, benchmarkRows] of groupBy(
+		allRows,
+		(row) => row.benchmarkKey,
+	)) {
 		correlations.set(benchmarkKey, frontierBenchmarkCorrelation(benchmarkRows));
 	}
 	return correlations;
 }
 
-/** Choose axis toggle options and disable unavailable resource metrics. */
 export function frontierBenchmarkAxisOptions(
 	sourceRows: FrontierBenchmarkRow[],
 	isAllBenchmark: boolean,
@@ -324,7 +319,6 @@ export function frontierBenchmarkAxisOptions(
 	});
 }
 
-/** Pick the requested axis or fall back to the first useful resource axis. */
 export function selectedFrontierBenchmarkAxisKey(
 	axisKey: FrontierBenchmarkAxisKey,
 	axisOptions: FrontierBenchmarkAxisOption[],
@@ -339,7 +333,6 @@ export function selectedFrontierBenchmarkAxisKey(
 				axisKey);
 }
 
-/** Return the requested axis when it can be selected in the current row set. */
 function firstAvailableAxis(
 	axisOptions: FrontierBenchmarkAxisOption[],
 	axisKey: FrontierBenchmarkAxisKey,
@@ -348,7 +341,6 @@ function firstAvailableAxis(
 	return option != null && !option.disabled ? option.key : null;
 }
 
-/** Adapt axis config for aggregate normalized benchmark rows. */
 export function frontierBenchmarkAxisConfigFor(
 	axisKey: FrontierBenchmarkAxisKey,
 	isAllBenchmark: boolean,
@@ -369,7 +361,6 @@ export function frontierBenchmarkAxisConfigFor(
 	};
 }
 
-/** Describe what the selected Frontier Benchmarks x-axis means. */
 export function frontierAxisDescription(
 	axisKey: FrontierBenchmarkAxisKey,
 	isAllBenchmark: boolean,
@@ -393,7 +384,6 @@ export function frontierAxisDescription(
 		: `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUsePhrase(row)} for the selected benchmark.`;
 }
 
-/** Return the visible x-axis label for the selected benchmark and metric. */
 export function frontierAxisMetricLabel(
 	axisConfig: FrontierBenchmarkAxisConfig,
 	isAllBenchmark: boolean,
@@ -408,7 +398,6 @@ export function frontierAxisMetricLabel(
 	return row == null ? axisConfig.label : axisConfig.detailLabel(row);
 }
 
-/** Summarize leader, cost-efficiency, and budget rows for the panel cards and labels. */
 export function frontierBenchmarkSummaryRows(
 	rows: FrontierBenchmarkRow[],
 	axisConfig: FrontierBenchmarkAxisConfig,
@@ -444,7 +433,6 @@ export function frontierBenchmarkSummaryRows(
 	};
 }
 
-/** Format the score and resource metric detail for a summary card. */
 export function axisSummaryDetail(
 	row: FrontierBenchmarkRow,
 	axisConfig: FrontierBenchmarkAxisConfig,
@@ -454,7 +442,6 @@ export function axisSummaryDetail(
 	)}`;
 }
 
-/** Compute the y-axis scale for aggregate or selected benchmark scores. */
 export function frontierScoreAxisScale(
 	values: number[],
 	isAllBenchmark: boolean,
@@ -465,7 +452,6 @@ export function frontierScoreAxisScale(
 	return steppedLinearAxisScale(values, BENCHMARK_SCORE_AXIS_OPTIONS);
 }
 
-/** Compute the x-axis scale for the selected resource metric. */
 export function frontierXAxisScale(
 	values: number[],
 	axisKey: FrontierBenchmarkAxisKey,
@@ -482,7 +468,6 @@ export function frontierXAxisScale(
 	});
 }
 
-/** Build hover table rows for a Frontier Benchmarks point. */
 export function frontierBenchmarkHoverRows(
 	row: FrontierBenchmarkRow,
 	axisConfig: FrontierBenchmarkAxisConfig,
@@ -503,39 +488,32 @@ export function frontierBenchmarkHoverRows(
 	return rows;
 }
 
-/** Return the public speed side of the bubble blend. */
 export function speedScore(row: FrontierBenchmarkRow): number {
 	return finiteValue(row.model.scores?.speed_score) ?? 0;
 }
 
-/** Return the value side of the bubble blend. */
 export function valueScore(row: FrontierBenchmarkRow): number {
 	return finiteValue(row.model.scores?.value_score) ?? 0;
 }
 
-/** Return the 50/50 speed-value blend used for Frontier Benchmarks bubble size. */
 export function speedValueBlendScore(row: FrontierBenchmarkRow): number {
 	return (valueScore(row) + speedScore(row)) / 2;
 }
 
-/** Check whether the selected x-axis is a normalized efficiency score. */
 export function isEfficiencyScoreAxis(
 	axisKey: FrontierBenchmarkAxisKey,
 ): boolean {
 	return axisKey === "speedValue";
 }
 
-/** Check that a resource metric can be plotted on a lower-is-better axis. */
 export function positiveMetric(value: number | null): value is number {
 	return value != null && value > 0;
 }
 
-/** Calculate the arithmetic mean for non-empty numeric values. */
 function meanNumber(values: number[]): number {
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-/** Calculate the arithmetic mean while ignoring missing metrics. */
 function meanFiniteMetric(values: Array<number | null>): number | null {
 	const finiteValues = values.filter(
 		(value): value is number => value != null && Number.isFinite(value),
@@ -543,7 +521,6 @@ function meanFiniteMetric(values: Array<number | null>): number | null {
 	return finiteValues.length === 0 ? null : meanNumber(finiteValues);
 }
 
-/** Return the task metric object selected by a benchmark resource policy. */
 function frontierResourceTaskMetrics(
 	resourcePolicy: BenchmarkResourcePolicy | null,
 	benchmarkKey: string,
@@ -555,7 +532,6 @@ function frontierResourceTaskMetrics(
 	return taskMetrics[benchmarkKey];
 }
 
-/** Calculate the token metric selected by the benchmark resource policy. */
 function frontierResourceTokens(
 	resourcePolicy: BenchmarkResourcePolicy | null,
 	inputTokens: number | null,
@@ -574,7 +550,6 @@ function frontierResourceTokens(
 			: null;
 }
 
-/** Append present benchmark values into their per-benchmark bucket. */
 function pushBenchmarkValue(
 	valuesByBenchmark: Map<string, number[]>,
 	benchmarkKey: string,
@@ -588,7 +563,6 @@ function pushBenchmarkValue(
 	valuesByBenchmark.set(benchmarkKey, values);
 }
 
-/** Return the best resource-efficiency row above the requested score. */
 function bestAxisRowAtOrAboveScore(
 	rows: FrontierBenchmarkRow[],
 	axisConfig: FrontierBenchmarkAxisConfig,
@@ -606,7 +580,6 @@ function bestAxisRowAtOrAboveScore(
 	);
 }
 
-/** Format the intelligence-score correlation label for chart rows. */
 function frontierBenchmarkCorrelation(rows: FrontierBenchmarkRow[]): string {
 	return formatCorrelation(
 		correlationValue(
@@ -628,20 +601,6 @@ function frontierBenchmarkCorrelation(rows: FrontierBenchmarkRow[]): string {
 	);
 }
 
-/** Group rows by the benchmark key that produced them. */
-function groupRowsByBenchmark(
-	rows: FrontierBenchmarkRow[],
-): Map<string, FrontierBenchmarkRow[]> {
-	const rowsByBenchmark = new Map<string, FrontierBenchmarkRow[]>();
-	for (const row of rows) {
-		const current = rowsByBenchmark.get(row.benchmarkKey) ?? [];
-		current.push(row);
-		rowsByBenchmark.set(row.benchmarkKey, current);
-	}
-	return rowsByBenchmark;
-}
-
-/** Format the metric label shown for the selected resource policy. */
 function resourceMetricLabel(
 	row: FrontierBenchmarkRow,
 	metric: FrontierBenchmarkResourceMetric,
@@ -660,19 +619,16 @@ function resourceMetricLabel(
 	return `${row.benchmarkLabel} ${metricName} per task`;
 }
 
-/** Return the selected benchmark resource unit as prose. */
 function resourceUnitPhrase(row?: FrontierBenchmarkRow): string {
 	return row?.resourcePolicy?.unit === "total" ? "total" : "per-task";
 }
 
-/** Return the token unit selected by the benchmark policy. */
 function tokenUsePhrase(row?: FrontierBenchmarkRow): string {
 	return row?.resourcePolicy?.tokenMeasure === "output_tokens"
 		? "output-token use"
 		: "token use";
 }
 
-/** Return the human resource metric name for a policy and metric key. */
 function resourceMetricName(
 	metric: FrontierBenchmarkResourceMetric,
 	policy?: BenchmarkResourcePolicy,

@@ -1,3 +1,5 @@
+/** Axis scale and tick helpers shared by dashboard charts. */
+
 import { niceLinearStep, roundTick } from "../../../src/model-atlas/math-utils";
 
 export type AxisScale = {

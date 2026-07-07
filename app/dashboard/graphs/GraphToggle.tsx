@@ -1,3 +1,5 @@
+/** Segmented toggle control shared by dashboard graph panels. */
+
 import type { ReactNode } from "react";
 
 import styles from "./graphs.module.css";

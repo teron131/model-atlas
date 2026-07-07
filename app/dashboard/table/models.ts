@@ -2,287 +2,247 @@
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 
-const artificialAnalysisTaskMetricColumns = [
-	{
-		key: "artificialAnalysisCost",
-		group: "tasks",
-		source: "artificial_analysis",
-		metric: "cost",
-		direction: "ascending",
-		type: "number",
-		label: "AA$",
-	},
-	{
-		key: "artificialAnalysisSeconds",
-		group: "tasks",
-		source: "artificial_analysis",
-		metric: "seconds",
-		direction: "ascending",
-		type: "number",
-		label: "AA Time",
-	},
-	{
-		key: "artificialAnalysisTokens",
-		group: "tasks",
-		source: "artificial_analysis",
-		metric: "output_tokens",
-		direction: "descending",
-		type: "number",
-		label: "AA Out",
-	},
-] as const;
+export type Direction = "ascending" | "descending";
 
-const agentsLastExamTaskMetricColumns = [
-	{
-		key: "agentsLastExamCost",
-		group: "tasks",
-		source: "agents_last_exam",
-		metric: "cost",
-		direction: "ascending",
-		type: "number",
-		label: "ALE$",
-	},
-	{
-		key: "agentsLastExamSeconds",
-		group: "tasks",
-		source: "agents_last_exam",
-		metric: "seconds",
-		direction: "ascending",
-		type: "number",
-		label: "ALE Sec",
-	},
-	{
-		key: "agentsLastExamInputTokens",
-		group: "tasks",
-		source: "agents_last_exam",
-		metric: "input_tokens",
-		direction: "ascending",
-		type: "number",
-		label: "ALE In",
-	},
-	{
-		key: "agentsLastExamOutputTokens",
-		group: "tasks",
-		source: "agents_last_exam",
-		metric: "output_tokens",
-		direction: "ascending",
-		type: "number",
-		label: "ALE Out",
-	},
-] as const;
+type TaskMetricColumnInput = {
+	key: string;
+	metric: string;
+	direction: Direction;
+	label: string;
+};
 
-const automationBenchTaskMetricColumns = [
-	{
-		key: "automationBenchCost",
-		group: "tasks",
-		source: "automation_bench",
-		metric: "cost",
-		direction: "ascending",
-		type: "number",
-		label: "Auto$",
-	},
-] as const;
+type TaskMetricColumns<
+	TSource extends string,
+	TColumns extends readonly TaskMetricColumnInput[],
+> = {
+	readonly [Index in keyof TColumns]: TColumns[Index] & {
+		readonly group: "tasks";
+		readonly source: TSource;
+		readonly type: "number";
+	};
+};
 
-const critptTaskMetricColumns = [
+function defineTaskMetricColumns<
+	const TSource extends string,
+	const TColumns extends readonly TaskMetricColumnInput[],
+>(source: TSource, columns: TColumns): TaskMetricColumns<TSource, TColumns> {
+	return columns.map((column) => ({
+		...column,
+		group: "tasks" as const,
+		source,
+		type: "number" as const,
+	})) as TaskMetricColumns<TSource, TColumns>;
+}
+
+const artificialAnalysisTaskMetricColumns = defineTaskMetricColumns(
+	"artificial_analysis",
+	[
+		{
+			key: "artificialAnalysisCost",
+			metric: "cost",
+			direction: "ascending",
+			label: "AA$",
+		},
+		{
+			key: "artificialAnalysisSeconds",
+			metric: "seconds",
+			direction: "ascending",
+			label: "AA Time",
+		},
+		{
+			key: "artificialAnalysisTokens",
+			metric: "output_tokens",
+			direction: "descending",
+			label: "AA Out",
+		},
+	] as const,
+);
+
+const agentsLastExamTaskMetricColumns = defineTaskMetricColumns(
+	"agents_last_exam",
+	[
+		{
+			key: "agentsLastExamCost",
+			metric: "cost",
+			direction: "ascending",
+			label: "ALE$",
+		},
+		{
+			key: "agentsLastExamSeconds",
+			metric: "seconds",
+			direction: "ascending",
+			label: "ALE Sec",
+		},
+		{
+			key: "agentsLastExamInputTokens",
+			metric: "input_tokens",
+			direction: "ascending",
+			label: "ALE In",
+		},
+		{
+			key: "agentsLastExamOutputTokens",
+			metric: "output_tokens",
+			direction: "ascending",
+			label: "ALE Out",
+		},
+	] as const,
+);
+
+const automationBenchTaskMetricColumns = defineTaskMetricColumns(
+	"automation_bench",
+	[
+		{
+			key: "automationBenchCost",
+			metric: "cost",
+			direction: "ascending",
+			label: "Auto$",
+		},
+	] as const,
+);
+
+const critptTaskMetricColumns = defineTaskMetricColumns("critpt", [
 	{
 		key: "critptCost",
-		group: "tasks",
-		source: "critpt",
 		metric: "cost",
 		direction: "ascending",
-		type: "number",
 		label: "Crit$",
 	},
 	{
 		key: "critptSeconds",
-		group: "tasks",
-		source: "critpt",
 		metric: "seconds",
 		direction: "ascending",
-		type: "number",
 		label: "Crit Sec",
 	},
 	{
 		key: "critptTokens",
-		group: "tasks",
-		source: "critpt",
 		metric: "tokens",
 		direction: "ascending",
-		type: "number",
 		label: "Crit Tok",
 	},
-] as const;
+] as const);
 
-const cursorBenchTaskMetricColumns = [
+const cursorBenchTaskMetricColumns = defineTaskMetricColumns("cursorbench", [
 	{
 		key: "cursorBenchCost",
-		group: "tasks",
-		source: "cursorbench",
 		metric: "cost",
 		direction: "ascending",
-		type: "number",
 		label: "Cursor$",
 	},
 	{
 		key: "cursorBenchTokens",
-		group: "tasks",
-		source: "cursorbench",
 		metric: "tokens",
 		direction: "ascending",
-		type: "number",
 		label: "Cursor Tok",
 	},
-] as const;
+] as const);
 
-const deepSWETaskMetricColumns = [
+const deepSWETaskMetricColumns = defineTaskMetricColumns("deep_swe", [
 	{
 		key: "deepSWECost",
-		group: "tasks",
-		source: "deep_swe",
 		metric: "cost",
 		direction: "ascending",
-		type: "number",
 		label: "DSWE$",
 	},
 	{
 		key: "deepSWESeconds",
-		group: "tasks",
-		source: "deep_swe",
 		metric: "seconds",
 		direction: "ascending",
-		type: "number",
 		label: "DSWE Sec",
 	},
 	{
 		key: "deepSWETokens",
-		group: "tasks",
-		source: "deep_swe",
 		metric: "output_tokens",
 		direction: "descending",
-		type: "number",
 		label: "DSWE Tok",
 	},
-] as const;
+] as const);
 
-const gdpvalTaskMetricColumns = [
+const gdpvalTaskMetricColumns = defineTaskMetricColumns("gdpval_normalized", [
 	{
 		key: "gdpvalCost",
-		group: "tasks",
-		source: "gdpval_normalized",
 		metric: "cost",
 		direction: "ascending",
-		type: "number",
 		label: "GDP$",
 	},
 	{
 		key: "gdpvalSeconds",
-		group: "tasks",
-		source: "gdpval_normalized",
 		metric: "seconds",
 		direction: "ascending",
-		type: "number",
 		label: "GDP Sec",
 	},
 	{
 		key: "gdpvalTokens",
-		group: "tasks",
-		source: "gdpval_normalized",
 		metric: "tokens",
 		direction: "ascending",
-		type: "number",
 		label: "GDP Tok",
 	},
-] as const;
+] as const);
 
-const hleTaskMetricColumns = [
+const hleTaskMetricColumns = defineTaskMetricColumns("hle", [
 	{
 		key: "hleCost",
-		group: "tasks",
-		source: "hle",
 		metric: "cost",
 		direction: "ascending",
-		type: "number",
 		label: "HLE$",
 	},
 	{
 		key: "hleSeconds",
-		group: "tasks",
-		source: "hle",
 		metric: "seconds",
 		direction: "ascending",
-		type: "number",
 		label: "HLE Sec",
 	},
 	{
 		key: "hleTokens",
-		group: "tasks",
-		source: "hle",
 		metric: "tokens",
 		direction: "ascending",
-		type: "number",
 		label: "HLE Tok",
 	},
-] as const;
+] as const);
 
-const tauBankingTaskMetricColumns = [
+const tauBankingTaskMetricColumns = defineTaskMetricColumns("tau_banking", [
 	{
 		key: "tauBankingCost",
-		group: "tasks",
-		source: "tau_banking",
 		metric: "cost",
 		direction: "ascending",
-		type: "number",
 		label: "tau3$",
 	},
 	{
 		key: "tauBankingSeconds",
-		group: "tasks",
-		source: "tau_banking",
 		metric: "seconds",
 		direction: "ascending",
-		type: "number",
 		label: "tau3 Sec",
 	},
 	{
 		key: "tauBankingTokens",
-		group: "tasks",
-		source: "tau_banking",
 		metric: "tokens",
 		direction: "ascending",
-		type: "number",
 		label: "tau3 Tok",
 	},
-] as const;
+] as const);
 
-const terminalBenchTaskMetricColumns = [
-	{
-		key: "terminalBenchCost",
-		group: "tasks",
-		source: "terminalbench_v21",
-		metric: "cost",
-		direction: "ascending",
-		type: "number",
-		label: "TB$",
-	},
-	{
-		key: "terminalBenchSeconds",
-		group: "tasks",
-		source: "terminalbench_v21",
-		metric: "seconds",
-		direction: "ascending",
-		type: "number",
-		label: "TB Sec",
-	},
-	{
-		key: "terminalBenchTokens",
-		group: "tasks",
-		source: "terminalbench_v21",
-		metric: "tokens",
-		direction: "ascending",
-		type: "number",
-		label: "TB Tok",
-	},
-] as const;
+const terminalBenchTaskMetricColumns = defineTaskMetricColumns(
+	"terminalbench_v21",
+	[
+		{
+			key: "terminalBenchCost",
+			metric: "cost",
+			direction: "ascending",
+			label: "TB$",
+		},
+		{
+			key: "terminalBenchSeconds",
+			metric: "seconds",
+			direction: "ascending",
+			label: "TB Sec",
+		},
+		{
+			key: "terminalBenchTokens",
+			metric: "tokens",
+			direction: "ascending",
+			label: "TB Tok",
+		},
+	] as const,
+);
 
 export const taskMetricColumns = [
 	...artificialAnalysisTaskMetricColumns,
@@ -500,7 +460,6 @@ export const benchmarkMetricColumns = [
 	},
 ] as const;
 
-export type Direction = "ascending" | "descending";
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
 export type ProfileMetricColumn = (typeof profileMetricColumns)[number];
 export type CostMetricColumn = (typeof costMetricColumns)[number];

@@ -1,3 +1,5 @@
+/** Number formatting helpers for graph labels and hover details. */
+
 export function finite(value: unknown): value is number {
 	return typeof value === "number" && Number.isFinite(value);
 }

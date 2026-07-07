@@ -90,12 +90,72 @@ const benchmarkTableColumnTooltips = Object.fromEntries(
 	Object.entries(benchmarkColumnTooltipKeys).flatMap(
 		([columnKey, benchmarkKey]) => {
 			const tooltip = benchmarkTooltips[benchmarkKey];
-			return tooltip == null
-				? []
-				: [[columnKey, benchmarkTableTooltip(tooltip)]];
+			return tooltip == null ? [] : [[columnKey, tooltip]];
 		},
 	),
 ) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+
+type TaskMetricTooltipCopy = {
+	title: string;
+	body: string;
+	row: string;
+};
+
+const defaultTaskMetricTooltipCopy: Record<string, TaskMetricTooltipCopy> = {
+	cost: {
+		title: "cost per task",
+		body: "Reported task cost",
+		row: "cost per task",
+	},
+	seconds: {
+		title: "seconds per task",
+		body: "Reported task runtime",
+		row: "runtime per task",
+	},
+	tokens: {
+		title: "tokens per task",
+		body: "Reported token use",
+		row: "tokens per task",
+	},
+	input_tokens: {
+		title: "input tokens per task",
+		body: "Reported input token use",
+		row: "input tokens per task",
+	},
+	output_tokens: {
+		title: "output tokens per task",
+		body: "Reported output token use",
+		row: "output tokens per task",
+	},
+};
+
+const terminalBenchMetricTooltipCopy: Record<string, TaskMetricTooltipCopy> = {
+	cost: {
+		title: "cost per task",
+		body: "Median available task cost",
+		row: "median cost per task",
+	},
+	seconds: {
+		title: "seconds per task",
+		body: "Median available task runtime",
+		row: "median runtime per task",
+	},
+	tokens: {
+		title: "tokens per task",
+		body: "Artificial Analysis reported token use",
+		row: "AA tokens per task",
+	},
+	input_tokens: {
+		title: "input tokens per task",
+		body: "Artificial Analysis reported input token use",
+		row: "AA input tokens per task",
+	},
+	output_tokens: {
+		title: "output tokens per task",
+		body: "Artificial Analysis reported output token use",
+		row: "AA output tokens per task",
+	},
+};
 
 const taskMetricTableColumnTooltips = Object.fromEntries(
 	taskMetricColumns.flatMap((column) => taskMetricTooltipEntry(column)),
@@ -213,77 +273,15 @@ function taskMetricTooltipSource(
 	);
 }
 
-function taskMetricTooltipFor(column: TaskMetricColumn) {
-	if (column.source === "terminalbench_v21") {
-		return terminalBenchMetricTooltipFor(column);
+function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipCopy {
+	const metricTooltip =
+		column.source === "terminalbench_v21"
+			? terminalBenchMetricTooltipCopy[column.metric]
+			: defaultTaskMetricTooltipCopy[column.metric];
+	if (metricTooltip == null) {
+		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
 	}
-	switch (column.metric) {
-		case "cost":
-			return {
-				title: "cost per task",
-				body: "Reported task cost",
-				row: "cost per task",
-			};
-		case "seconds":
-			return {
-				title: "seconds per task",
-				body: "Reported task runtime",
-				row: "runtime per task",
-			};
-		case "tokens":
-			return {
-				title: "tokens per task",
-				body: "Reported token use",
-				row: "tokens per task",
-			};
-		case "input_tokens":
-			return {
-				title: "input tokens per task",
-				body: "Reported input token use",
-				row: "input tokens per task",
-			};
-		case "output_tokens":
-			return {
-				title: "output tokens per task",
-				body: "Reported output token use",
-				row: "output tokens per task",
-			};
-	}
-}
-
-function terminalBenchMetricTooltipFor(column: TaskMetricColumn) {
-	switch (column.metric) {
-		case "cost":
-			return {
-				title: "cost per task",
-				body: "Median available task cost",
-				row: "median cost per task",
-			};
-		case "seconds":
-			return {
-				title: "seconds per task",
-				body: "Median available task runtime",
-				row: "median runtime per task",
-			};
-		case "tokens":
-			return {
-				title: "tokens per task",
-				body: "Artificial Analysis reported token use",
-				row: "AA tokens per task",
-			};
-		case "input_tokens":
-			return {
-				title: "input tokens per task",
-				body: "Artificial Analysis reported input token use",
-				row: "AA input tokens per task",
-			};
-		case "output_tokens":
-			return {
-				title: "output tokens per task",
-				body: "Artificial Analysis reported output token use",
-				row: "AA output tokens per task",
-			};
-	}
+	return metricTooltip;
 }
 
 function isTokenTaskMetric(metric: TaskMetricColumn["metric"]) {
@@ -299,12 +297,6 @@ function tooltipForColumn(
 	columnTooltips: LlmStatsColumnTooltips,
 ) {
 	return tableColumnFallbackTooltips[key] ?? columnTooltips[key];
-}
-
-function benchmarkTableTooltip(
-	tooltip: LlmStatsColumnTooltip,
-): LlmStatsColumnTooltip {
-	return tooltip;
 }
 
 type RefreshPayloadOptions = {

@@ -10,7 +10,6 @@ import { fmtCompact } from "./format";
 import styles from "./graphs.module.css";
 import type { HoverState } from "./types";
 
-/** Render the floating model hover card for graph points. */
 export function HoverCard({ hover }: { hover: HoverState }) {
 	const left = Math.min(Math.max(14, hover.left + 16), window.innerWidth - 280);
 	const top = Math.min(Math.max(14, hover.top + 16), window.innerHeight - 210);
@@ -57,7 +56,6 @@ export function HoverCard({ hover }: { hover: HoverState }) {
 	);
 }
 
-/** Render a graph-local empty state message. */
 export function EmptyChart({
 	message = "No models match the current filters.",
 }: {
@@ -66,7 +64,6 @@ export function EmptyChart({
 	return <div className={styles.error}>{message}</div>;
 }
 
-/** Render a provider or aggregate filter button with logo fallback handling. */
 export function FilterButton({
 	active,
 	color,
@@ -119,7 +116,6 @@ export function FilterButton({
 	);
 }
 
-/** Render a compact chart summary statistic card. */
 export function SummaryCard({
 	label,
 	value,

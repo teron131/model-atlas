@@ -1,3 +1,5 @@
+/** Collision-aware label placement for dense chart callouts. */
+
 import { clamp } from "../../../src/model-atlas/math-utils";
 
 const LABEL_DIRECTIONS = [

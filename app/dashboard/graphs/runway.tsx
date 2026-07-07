@@ -1,3 +1,5 @@
+/** Context-window runway chart for intelligence and usable context tradeoffs. */
+
 import { median } from "d3-array";
 import { scaleLog } from "d3-scale";
 import type { CSSProperties } from "react";

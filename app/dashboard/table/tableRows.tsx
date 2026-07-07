@@ -52,7 +52,6 @@ const inputModalities = [
 	{ key: "video", label: "video", Icon: VideoInputIcon },
 ] as const;
 
-/** Renders the table-wide empty message with the correct current column span. */
 export function EmptyStateRow({
 	message,
 	columnCount,
@@ -69,7 +68,6 @@ export function EmptyStateRow({
 	);
 }
 
-/** Renders deterministic skeleton rows that match the current visible columns. */
 export function LoadingRows({ columnKeys }: { columnKeys: SortKey[] }) {
 	return (
 		<>
@@ -80,7 +78,6 @@ export function LoadingRows({ columnKeys }: { columnKeys: SortKey[] }) {
 	);
 }
 
-/** Renders one skeleton table row with rank, model, and metric placeholders. */
 function LoadingRow({
 	index,
 	columnKeys,
@@ -114,7 +111,6 @@ function LoadingRow({
 	);
 }
 
-/** Renders a ranked model row and all static plus selected metric cells. */
 export function ModelRow({
 	rowData,
 	metricColumns,
@@ -165,7 +161,6 @@ export function ModelRow({
 	);
 }
 
-/** Renders a configured dashboard metric cell for one model. */
 function DashboardMetricCell({
 	model,
 	column,
@@ -194,7 +189,6 @@ function DashboardMetricCell({
 	);
 }
 
-/** Renders benchmark values with the same provider-colored score meter. */
 function BenchmarkMetricCell({
 	value,
 	text,
@@ -223,7 +217,6 @@ function BenchmarkMetricCell({
 	);
 }
 
-/** Renders model input modality icons with an accessible text label. */
 function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 	const availableSet = inputModalitySet(inputs);
 	const availableModalities = inputModalities.filter((modality) =>
@@ -254,12 +247,10 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 	);
 }
 
-/** Normalizes provider modality labels into a case-insensitive lookup set. */
 function inputModalitySet(inputs: string[] | undefined) {
 	return new Set((inputs ?? []).map((input) => input.toLowerCase()));
 }
 
-/** Removes low-signal suffixes from visible model names. */
 function visibleModelName(name: string | null | undefined) {
 	if (name == null || name.length === 0) {
 		return "-";
@@ -267,7 +258,6 @@ function visibleModelName(name: string | null | undefined) {
 	return stripModelDisplayTokens(name, " ");
 }
 
-/** Removes provider prefixes and low-signal suffixes from visible model IDs. */
 function visibleModelSlug(id: string | null | undefined) {
 	if (id == null || id.length === 0) {
 		return "-";
@@ -279,7 +269,6 @@ function visibleModelSlug(id: string | null | undefined) {
 	);
 }
 
-/** Filters hidden display tokens while preserving the original fallback text. */
 function stripModelDisplayTokens(value: string, separator: " " | "-") {
 	const tokens = value.split(separator).filter((token) => token.length > 0);
 	const visibleTokens = tokens.filter((token) => !isHiddenDisplayToken(token));
@@ -289,17 +278,14 @@ function stripModelDisplayTokens(value: string, separator: " " | "-") {
 	return visibleTokens.join(separator) || value;
 }
 
-/** Checks whether a model display token should be hidden in the compact table. */
 function isHiddenDisplayToken(token: string) {
 	return HIDDEN_MODEL_DISPLAY_TOKENS.has(token.toLowerCase());
 }
 
-/** Checks whether a token is a trailing release year. */
 function isReleaseDateToken(token: string | undefined) {
 	return token != null && RELEASE_DATE_TOKEN_PATTERN.test(token);
 }
 
-/** Renders the preferred provider logo and hides broken image sources. */
 function ProviderLogo({ model }: { model: LlmStatsModel }) {
 	const [hidden, setHidden] = useState(false);
 	const logoSrc = logoSource(model);
@@ -323,7 +309,6 @@ function ProviderLogo({ model }: { model: LlmStatsModel }) {
 	);
 }
 
-/** Selects the local provider asset before falling back to source metadata. */
 function logoSource(model: LlmStatsModel) {
 	const providerLogo = providerAssetLogo(model.provider);
 	if (providerLogo.length > 0) {
@@ -335,13 +320,11 @@ function logoSource(model: LlmStatsModel) {
 	return "";
 }
 
-/** Renders plain table text while marking missing placeholders. */
 function TableCell({ text, className }: { text: string; className?: string }) {
 	const missingClass = text === "-" ? " missing" : "";
 	return <td className={`${className ?? ""}${missingClass}`.trim()}>{text}</td>;
 }
 
-/** Renders a score cell with provider-colored meter styling. */
 function scoreCell(
 	value: number | null | undefined,
 	provider: string | null | undefined,

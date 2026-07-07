@@ -1,3 +1,5 @@
+/** Dashboard table and control formatting helpers. */
+
 import type { DashboardMetricColumn, TaskMetricColumn } from "../table/models";
 
 export const formatScore = (value: number | null | undefined) =>

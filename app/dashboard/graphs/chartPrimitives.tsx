@@ -124,7 +124,6 @@ export function useCursorProjection() {
 	};
 }
 
-/** Render the invisible SVG hit area used for cursor projection. */
 export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
 	return (
 		<rect
@@ -137,7 +136,6 @@ export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
 	);
 }
 
-/** Render chart median guide lines and labels. */
 export function MedianCross({
 	x,
 	y,
@@ -182,7 +180,6 @@ export function MedianCross({
 	);
 }
 
-/** Render cursor projection guide lines and value labels. */
 export function CursorProjectionLayer({
 	projection,
 	bounds,
@@ -233,7 +230,6 @@ export function CursorProjectionLayer({
 	);
 }
 
-/** Render horizontal axis ticks with optional label thinning. */
 export function XAxisTicks({
 	ticks,
 	xPoint,
@@ -290,7 +286,6 @@ export function XAxisTicks({
 	));
 }
 
-/** Render vertical axis ticks and labels. */
 export function YAxisTicks({
 	ticks,
 	yPoint,
@@ -329,7 +324,6 @@ export function YAxisTicks({
 	));
 }
 
-/** Render the filled plot frame behind chart marks. */
 export function PlotFrame({
 	width,
 	height,
@@ -350,7 +344,6 @@ export function PlotFrame({
 	);
 }
 
-/** Render a corner arrow showing the desirable chart direction. */
 export function CornerDirectionArrow({
 	bounds: plot,
 	corner,
@@ -395,7 +388,6 @@ export function CornerDirectionArrow({
 	);
 }
 
-/** Render x and y axis titles for an SVG chart. */
 export function AxisTitles({
 	width,
 	height,
@@ -442,7 +434,6 @@ export function AxisTitles({
 	);
 }
 
-/** Render the focusable hit target used to show point hover details. */
 export function PointHitTarget({
 	cx,
 	cy,
@@ -517,7 +508,6 @@ export function PointHitTarget({
 	);
 }
 
-/** Render a model label with optional callout placement. */
 export function PointLabel({
 	model,
 	cx,
@@ -564,7 +554,6 @@ export function PointLabel({
 	);
 }
 
-/** Render a task-efficiency label with optional callout placement. */
 export function DeepSWEPointLabel({
 	label,
 	cx,

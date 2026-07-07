@@ -1,3 +1,5 @@
+/** Tick selection for graph axes with linear and logarithmic interaction scales. */
+
 import {
 	interpolateLinear,
 	logDistance,

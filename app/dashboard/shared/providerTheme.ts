@@ -1,3 +1,5 @@
+/** Provider display names, colors, and local logo lookup for the dashboard. */
+
 import { safeSlug } from "./format";
 import { providerAssets } from "./providerAssets.generated";
 

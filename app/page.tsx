@@ -9,7 +9,6 @@ export const revalidate = 300;
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/** Render the home dashboard route with embedded score JSON and initial table data. */
 export default async function Home() {
 	const initialPayload = await readDisplaySnapshotPayload();
 	const scorePayload =
