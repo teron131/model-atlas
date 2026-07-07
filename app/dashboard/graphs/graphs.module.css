@@ -432,6 +432,7 @@
 
 .leadGrid {
 	margin-top: 6px;
+	margin-bottom: 32px;
 }
 
 .panel {
@@ -937,39 +938,12 @@
 	opacity: 0.58;
 }
 
-.providerEnvelopeHalo,
-.providerEnvelopeLine {
-	fill: none;
-	stroke-linecap: square;
-	stroke-linejoin: miter;
-	pointer-events: none;
-}
-
-.providerEnvelopeHalo {
-	stroke: rgba(255, 90, 70, 0.12);
-	stroke-width: 8;
-}
-
-.providerEnvelopeLine {
-	stroke: var(--analysis-accent);
-	stroke-width: 2;
-}
-
 .datavizPoint {
 	outline: none;
 	transition:
 		opacity 0.16s ease,
 		r 0.16s ease,
 		stroke 0.16s ease;
-}
-
-.providerEfficiencyPoint {
-	cursor: pointer;
-}
-
-.providerEfficiencyPoint:focus-visible {
-	stroke: var(--ink);
-	stroke-width: 2.4;
 }
 
 .pointButton {
@@ -1019,11 +993,74 @@
 	stroke-width: 0.8px;
 }
 
+.slopeRail {
+	stroke: var(--chart-grid);
+	stroke-width: 1.2px;
+}
+
+.slopeRailTitle,
+.slopeLabel {
+	font-family: "SF Mono", Menlo, Consolas, monospace;
+	letter-spacing: 0;
+}
+
+.slopeRailTitle {
+	fill: var(--muted);
+	font-size: 13px;
+	font-weight: 900;
+	text-transform: uppercase;
+}
+
+.slopeLine {
+	stroke-width: 1.8px;
+	stroke-linecap: round;
+	transition:
+		opacity 0.12s ease,
+		stroke-width 0.12s ease;
+}
+
+.slopePoint {
+	stroke: var(--chart-point-stroke);
+	stroke-width: 1px;
+	transition:
+		opacity 0.12s ease,
+		r 0.12s ease;
+}
+
+.slopeHitLine {
+	fill: none;
+	stroke: transparent;
+	stroke-linecap: round;
+	stroke-width: 14px;
+	pointer-events: stroke;
+}
+
+.slopeHitRect {
+	fill: transparent;
+	pointer-events: all;
+}
+
+.slopeLabel {
+	font-size: 12px;
+	font-weight: 900;
+	paint-order: stroke;
+	stroke: var(--chart-point-label-stroke);
+	stroke-width: 3px;
+	stroke-linejoin: round;
+}
+
+.slopeLabelLeader {
+	stroke: var(--chart-point-line-soft);
+	stroke-linecap: round;
+	stroke-width: 0.8px;
+}
+
 .chartSummary {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
 	gap: clamp(10px, 2vw, 22px);
-	margin-top: 10px;
+	margin-top: 0;
+	margin-bottom: 24px;
 }
 
 .summaryCard {
@@ -1252,8 +1289,7 @@
 .interactionControls {
 	display: flex;
 	justify-content: flex-start;
-	padding: 4px 0 12px;
-	border-top: 1px solid var(--line);
+	padding: 8px 0 12px;
 }
 
 .metricToggleStacked {
@@ -1288,7 +1324,6 @@
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	gap: 0;
-	border-top: 1px solid var(--line);
 }
 
 .interactionPlot {

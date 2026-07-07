@@ -1,4 +1,4 @@
-/** Frontier Efficiency panel presentation for the dashboard graph surface. */
+/** Frontier Benchmarks panel presentation for the dashboard graph surface. */
 
 import { useMemo, useState } from "react";
 import type {
@@ -12,34 +12,34 @@ import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import { finite, fmtPercentScore } from "./format";
 import {
 	axisSummaryDetail,
-	type FrontierEfficiencyAxisKey,
-	type FrontierEfficiencyRow,
+	type FrontierBenchmarkAxisKey,
+	type FrontierBenchmarkRow,
 	frontierAxisDescription,
 	frontierAxisMetricLabel,
-	frontierEfficiencyAxisConfig,
-	frontierEfficiencyAxisConfigFor,
-	frontierEfficiencyAxisOptions,
-	frontierEfficiencyCorrelationByBenchmark,
-	frontierEfficiencyHoverRows,
-	frontierEfficiencyOptions,
-	frontierEfficiencyRows,
-	frontierEfficiencySummaryRows,
+	frontierBenchmarkAxisConfig,
+	frontierBenchmarkAxisConfigFor,
+	frontierBenchmarkAxisOptions,
+	frontierBenchmarkCorrelationByBenchmark,
+	frontierBenchmarkHoverRows,
+	frontierBenchmarkOptions,
+	frontierBenchmarkRows,
+	frontierBenchmarkSummaryRows,
 	frontierScoreAxisScale,
 	frontierXAxisScale,
-	meanFrontierEfficiencyRows,
-	normalizedFrontierEfficiencyRows,
+	meanFrontierBenchmarkRows,
+	normalizedFrontierBenchmarkRows,
 	positiveMetric,
-	selectedFrontierEfficiencyAxisKey,
+	selectedFrontierBenchmarkAxisKey,
 	speedValueBlendScore,
-} from "./frontierEfficiencyModel";
+} from "./frontierBenchmarksModel";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
 import { modelKey, modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import type { HoverSetter } from "./types";
 
-/** Render the Frontier Efficiency scatter plot and its chart controls. */
-export function FrontierEfficiencyPanel({
+/** Render the Frontier Benchmarks scatter plot and its chart controls. */
+export function FrontierBenchmarksPanel({
 	payload,
 	models,
 	setHover,
@@ -49,26 +49,26 @@ export function FrontierEfficiencyPanel({
 	setHover: HoverSetter;
 }) {
 	const [axisKey, setAxisKey] =
-		useState<FrontierEfficiencyAxisKey>("speedValue");
+		useState<FrontierBenchmarkAxisKey>("speedValue");
 	const [benchmarkKey, setBenchmarkKey] = useState("all");
 	const allRows = useMemo(
 		() =>
-			frontierEfficiencyRows(
+			frontierBenchmarkRows(
 				models,
 				payload.metadata.scoring.benchmark_portfolio,
 			),
 		[models, payload.metadata.scoring.benchmark_portfolio],
 	);
 	const meanRows = useMemo(
-		() => meanFrontierEfficiencyRows(normalizedFrontierEfficiencyRows(allRows)),
+		() => meanFrontierBenchmarkRows(normalizedFrontierBenchmarkRows(allRows)),
 		[allRows],
 	);
 	const benchmarkOptions = useMemo(
-		() => frontierEfficiencyOptions(allRows),
+		() => frontierBenchmarkOptions(allRows),
 		[allRows],
 	);
 	const correlationByBenchmark = useMemo(
-		() => frontierEfficiencyCorrelationByBenchmark(allRows, meanRows),
+		() => frontierBenchmarkCorrelationByBenchmark(allRows, meanRows),
 		[allRows, meanRows],
 	);
 	const selectedBenchmarkKey =
@@ -85,14 +85,14 @@ export function FrontierEfficiencyPanel({
 	);
 	const isAllBenchmark = selectedBenchmarkKey === "all";
 	const axisOptions = useMemo(
-		() => frontierEfficiencyAxisOptions(sourceRows, isAllBenchmark),
+		() => frontierBenchmarkAxisOptions(sourceRows, isAllBenchmark),
 		[isAllBenchmark, sourceRows],
 	);
-	const selectedAxisKey = selectedFrontierEfficiencyAxisKey(
+	const selectedAxisKey = selectedFrontierBenchmarkAxisKey(
 		axisKey,
 		axisOptions,
 	);
-	const axisConfig = frontierEfficiencyAxisConfigFor(
+	const axisConfig = frontierBenchmarkAxisConfigFor(
 		selectedAxisKey,
 		isAllBenchmark,
 	);
@@ -108,7 +108,7 @@ export function FrontierEfficiencyPanel({
 	const chartMetric = useMemo(
 		() => ({
 			label: xMetricLabel,
-			get: (row: FrontierEfficiencyRow) => axisConfig.get(row) ?? 0,
+			get: (row: FrontierBenchmarkRow) => axisConfig.get(row) ?? 0,
 			format: axisConfig.format,
 			xHigherBetter: axisConfig.xHigherBetter,
 		}),
@@ -125,7 +125,7 @@ export function FrontierEfficiencyPanel({
 	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
 	const bubbleValue = speedValueBlendScore;
 	const bubbleRadius = linearBubbleRadius(rows.map(bubbleValue), 4, 13);
-	const summaryRows = frontierEfficiencySummaryRows(rows, axisConfig);
+	const summaryRows = frontierBenchmarkSummaryRows(rows, axisConfig);
 	if (summaryRows == null) {
 		return null;
 	}
@@ -137,7 +137,7 @@ export function FrontierEfficiencyPanel({
 		? "MEAN NORMALIZED benchmark score"
 		: "Benchmark score";
 	const summaryLabel = isAllBenchmark
-		? "MEAN NORMALIZED frontier score"
+		? "MEAN NORMALIZED benchmark score"
 		: "Benchmark score";
 	const axisDescription = frontierAxisDescription(
 		selectedAxisKey,
@@ -152,7 +152,7 @@ export function FrontierEfficiencyPanel({
 
 	return (
 		<Panel
-			title="Frontier Efficiency"
+			title="Frontier Benchmarks"
 			copy={panelCopy}
 			summary={
 				<BoxWhiskerSummary
@@ -167,7 +167,7 @@ export function FrontierEfficiencyPanel({
 		>
 			<div className={styles.chartToolbar}>
 				<GraphToggle
-					legend="Frontier efficiency benchmark"
+					legend="Frontier benchmark"
 					options={[
 						{
 							key: "all",
@@ -185,11 +185,11 @@ export function FrontierEfficiencyPanel({
 					layout="stacked"
 				/>
 				<GraphToggle
-					legend="Frontier efficiency axis"
-					options={Object.entries(frontierEfficiencyAxisConfig).map(
+					legend="Comparison axis"
+					options={Object.entries(frontierBenchmarkAxisConfig).map(
 						([key, config]) =>
 							axisOptions.find((option) => option.key === key) ?? {
-								key: key as FrontierEfficiencyAxisKey,
+								key: key as FrontierBenchmarkAxisKey,
 								label: config.shortLabel,
 							},
 					)}
@@ -211,7 +211,7 @@ export function FrontierEfficiencyPanel({
 				yDomain={scoreAxis.domain}
 				yTicks={scoreAxis.ticks}
 				yAxisLabel={yAxisLabel}
-				keyPrefix={`frontier-efficiency-${selectedBenchmarkKey}-${selectedAxisKey}`}
+				keyPrefix={`frontier-benchmarks-${selectedBenchmarkKey}-${selectedAxisKey}`}
 				ariaLabel={`${axisConfig.label} frontier scatter plot`}
 				bubbleValue={bubbleValue}
 				bubbleRadius={bubbleRadius}
@@ -219,7 +219,7 @@ export function FrontierEfficiencyPanel({
 				getModel={(row) => row.model}
 				getKey={(row) => `${row.benchmarkKey}-${modelKey(row.model)}`}
 				getHoverTitle={(row) => modelName(row.model)}
-				getHoverRows={(row) => frontierEfficiencyHoverRows(row, axisConfig)}
+				getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig)}
 				labelRows={labeledRows}
 				getLabel={(row) => shortLabel(row.model)}
 				setHover={setHover}
@@ -232,12 +232,12 @@ export function FrontierEfficiencyPanel({
 					detail={leaderDetail}
 				/>
 				<SummaryCard
-					label={`${axisConfig.shortLabel} (Scored > 80% of leader)`}
+					label="Best near leader"
 					value={modelName(highScoreAxisRow.model)}
 					detail={axisSummaryDetail(highScoreAxisRow, axisConfig)}
 				/>
 				<SummaryCard
-					label={`${axisConfig.shortLabel} (Scored > median)`}
+					label="Best above median"
 					value={modelName(medianScoreAxisRow.model)}
 					detail={axisSummaryDetail(medianScoreAxisRow, axisConfig)}
 				/>
