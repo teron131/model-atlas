@@ -249,12 +249,10 @@ export function useTableViewport({
 	};
 }
 
-/** Clamp a number inside an inclusive range. */
 export function clampNumber(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(value, max));
 }
 
-/** Measure visible table columns from the first complete body row or header. */
 function measuredTableColumnWidths(
 	table: HTMLTableElement | null,
 	expectedColumnCount: number,
@@ -270,12 +268,10 @@ function measuredTableColumnWidths(
 	);
 }
 
-/** Sum the leading rank and model-name columns that can become pinned. */
 function leadingColumnsWidth(columnWidths: number[]): number {
 	return (columnWidths[0] ?? 0) + (columnWidths[1] ?? 0);
 }
 
-/** Decide whether pinned columns fit the current table viewport. */
 function nextPinnedColumnsEnabled(
 	scrollElement: HTMLElement | null,
 	leadingColumnsWidth: number,
@@ -305,7 +301,6 @@ function sameNumberList(left: number[], right: number[]): boolean {
 	);
 }
 
-/** Read normalized horizontal scroll bounds from an element. */
 function horizontalScrollState(element: HTMLElement | null): {
 	scrollLeft: number;
 	maxScrollLeft: number;
@@ -318,7 +313,6 @@ function horizontalScrollState(element: HTMLElement | null): {
 	return { scrollLeft, maxScrollLeft };
 }
 
-/** Capture the current horizontal scroll metrics for the custom rail. */
 function horizontalScrollSnapshot(
 	element: HTMLElement | null,
 ): TableViewportSnapshot {
@@ -334,7 +328,6 @@ function horizontalScrollSnapshot(
 	};
 }
 
-/** Return the inert scroll snapshot used before the table is measurable. */
 function emptyHorizontalScrollSnapshot(): TableViewportSnapshot {
 	return {
 		scrollLeft: 0,
@@ -357,13 +350,11 @@ function sameHorizontalScrollSnapshot(
 	);
 }
 
-/** Apply a wheel delta to an element's bounded horizontal scroll position. */
 function getNextScrollLeft(element: HTMLElement, deltaX: number): number {
 	const { scrollLeft, maxScrollLeft } = horizontalScrollState(element);
 	return clampNumber(scrollLeft + deltaX, 0, maxScrollLeft);
 }
 
-/** Mirror one horizontal scroll container into another. */
 function syncHorizontalScroll(
 	sourceElement: HTMLElement,
 	targetElement: HTMLElement | null,

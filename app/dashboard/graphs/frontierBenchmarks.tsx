@@ -38,7 +38,6 @@ import { modelKey, modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import type { HoverSetter } from "./types";
 
-/** Render the Frontier Benchmarks scatter plot and its chart controls. */
 export function FrontierBenchmarksPanel({
 	payload,
 	models,

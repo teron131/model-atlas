@@ -18,7 +18,6 @@ const leanDashboardTooltipKeys = [
 	"context",
 ] as const;
 
-/** Return the payload subset needed for server-readable dashboard markup and first interaction. */
 export function leanDashboardPayload(
 	payload: LlmStatsPayload,
 ): LlmStatsPayload {
@@ -70,7 +69,6 @@ export function leanDashboardPayload(
 	};
 }
 
-/** Keep only frontier benchmark portfolio entries needed for dashboard interactions. */
 function leanDashboardBenchmarkPortfolio(
 	benchmarkPortfolio: BenchmarkPortfolio,
 ): BenchmarkPortfolio {
@@ -81,7 +79,6 @@ function leanDashboardBenchmarkPortfolio(
 	);
 }
 
-/** Return the lean tooltip map rendered by dashboard table columns. */
 function leanDashboardColumnTooltips(
 	columnTooltips: LlmStatsColumnTooltips,
 ): LlmStatsColumnTooltips {
@@ -93,7 +90,6 @@ function leanDashboardColumnTooltips(
 	);
 }
 
-/** Return one dashboard model with fields needed for initial table and graph interactions. */
 function leanDashboardModel(
 	model: LlmStatsModel,
 	benchmarkPortfolio: BenchmarkPortfolio,
@@ -122,7 +118,6 @@ function leanDashboardModel(
 	} as LlmStatsModel;
 }
 
-/** Copy modality arrays without carrying the original object identity. */
 function copyModalities(
 	modalities: LlmStatsModel["modalities"],
 ): LlmStatsModel["modalities"] {
@@ -135,7 +130,6 @@ function copyModalities(
 	};
 }
 
-/** Return only cost fields used by the dashboard before full payload hydration. */
 function leanDashboardCost(cost: LlmStatsModel["cost"]): LlmStatsModel["cost"] {
 	if (cost == null) {
 		return null;
@@ -151,7 +145,6 @@ function leanDashboardCost(cost: LlmStatsModel["cost"]): LlmStatsModel["cost"] {
 	};
 }
 
-/** Return only intelligence index fields needed by the dashboard before hydration. */
 function leanDashboardIntelligence(
 	intelligence: LlmStatsModel["intelligence"],
 ): LlmStatsModel["intelligence"] {
@@ -168,7 +161,6 @@ function leanDashboardIntelligence(
 	};
 }
 
-/** Copy task metrics used by dashboard interaction panels. */
 function leanDashboardTaskMetrics(
 	taskMetrics: LlmStatsModel["task_metrics"],
 ): LlmStatsModel["task_metrics"] {
@@ -184,7 +176,6 @@ function leanDashboardTaskMetrics(
 	return Object.keys(leanTaskMetrics).length > 0 ? leanTaskMetrics : null;
 }
 
-/** Return frontier benchmark evaluations needed by dashboard interaction panels. */
 function leanDashboardEvaluations(
 	evaluations: LlmStatsModel["evaluations"],
 	frontierBenchmarkPortfolio: BenchmarkPortfolio,

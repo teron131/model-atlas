@@ -21,7 +21,7 @@ import {
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart, SummaryCard } from "./ChartComponents";
 import { stableSvgScale } from "./chartPrimitives";
-import { valueDistribution } from "./chartStats";
+import { bestByScore, valueDistribution } from "./chartStats";
 import styles from "./graphs.module.css";
 import { focusHover, modelKey, modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
@@ -54,7 +54,6 @@ type SlopeHoverEvent =
 	| ReactMouseEvent<SVGElement>
 	| ReactPointerEvent<SVGElement>;
 
-/** Render reconstructed price-vs-cost-efficiency score comparison. */
 export function PriceEfficiencyComparisonPanel({
 	benchmarkPortfolio,
 	models,
@@ -84,9 +83,9 @@ export function PriceEfficiencyComparisonPanel({
 	const plottedRows = [...rows].sort(
 		(left, right) => left.costEfficiencyScore - right.costEfficiencyScore,
 	);
-	const efficiencyLeader = bestBy(rows, (row) => row.costEfficiencyScore);
-	const bestLift = bestBy(rows, (row) => row.deltaScore);
-	const worstDrop = bestBy(rows, (row) => -row.deltaScore);
+	const efficiencyLeader = bestByScore(rows, (row) => row.costEfficiencyScore);
+	const bestLift = bestByScore(rows, (row) => row.deltaScore);
+	const worstDrop = bestByScore(rows, (row) => -row.deltaScore);
 	const scoreDistribution = valueDistribution(
 		rows.map((row) => row.costEfficiencyScore),
 	);
@@ -557,17 +556,4 @@ function distributedLabelPositions(
 		}
 	}
 	return new Map(placed.map(({ row, y }) => [row, y]));
-}
-
-function bestBy(
-	rows: PriceEfficiencyComparisonRow[],
-	score: (row: PriceEfficiencyComparisonRow) => number | null,
-): PriceEfficiencyComparisonRow | null {
-	return (
-		[...rows].sort(
-			(left, right) =>
-				(score(right) ?? Number.NEGATIVE_INFINITY) -
-				(score(left) ?? Number.NEGATIVE_INFINITY),
-		)[0] ?? null
-	);
 }

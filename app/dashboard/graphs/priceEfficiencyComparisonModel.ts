@@ -118,7 +118,6 @@ function priceEligibleModel(model: LlmStatsModel): boolean {
 	return log10OnePlusPositive(blendedPrice) != null && qualityScore != null;
 }
 
-/** Build hover table rows for a reconstructed price-efficiency point. */
 export function priceEfficiencyHoverRows(
 	row: PriceEfficiencyComparisonRow,
 ): HoverRow[] {
@@ -131,7 +130,6 @@ export function priceEfficiencyHoverRows(
 	];
 }
 
-/** Summarize one row with the old-style score pair and current blended price. */
 export function priceEfficiencySummaryDetail(
 	row: PriceEfficiencyComparisonRow,
 ): string {
@@ -140,7 +138,6 @@ export function priceEfficiencySummaryDetail(
 	)} price / ${fmtMoney(row.blendedPrice)}`;
 }
 
-/** Format the benchmark-efficiency lift relative to provider price score. */
 export function priceEfficiencyDeltaDetail(
 	row: PriceEfficiencyComparisonRow,
 ): string {
@@ -276,19 +273,6 @@ function taskCost(
 function positiveTaskCost(task: LlmStatsTaskMetricValues | null | undefined) {
 	const cost = finiteValue(task?.cost);
 	return cost != null && cost > 0 ? cost : null;
-}
-
-function bestRow(
-	rows: PriceEfficiencyComparisonRow[],
-	score: (row: PriceEfficiencyComparisonRow) => number | null,
-): PriceEfficiencyComparisonRow | null {
-	return (
-		[...rows].sort(
-			(left, right) =>
-				(score(right) ?? Number.NEGATIVE_INFINITY) -
-				(score(left) ?? Number.NEGATIVE_INFINITY),
-		)[0] ?? null
-	);
 }
 
 function signedScore(value: number): string {

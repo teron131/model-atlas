@@ -1,3 +1,5 @@
+/** Chart summary statistics and bubble radius helpers for dashboard graphs. */
+
 import { quantile } from "d3-array";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
@@ -84,7 +86,7 @@ export function linearBubbleRadius(
 	};
 }
 
-function bestByScore<T>(
+export function bestByScore<T>(
 	rows: readonly T[],
 	score: (row: T) => number | null,
 ): T | null {

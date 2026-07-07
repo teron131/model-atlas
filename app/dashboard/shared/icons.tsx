@@ -1,3 +1,5 @@
+/** Dashboard icon wrappers used by table and chart controls. */
+
 import {
 	AudioLines,
 	BrainCircuit,
