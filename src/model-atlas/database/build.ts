@@ -171,12 +171,6 @@ function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
 
-function clearSnapshotTables(db: DatabaseSync): void {
-	for (const { table } of SNAPSHOT_WRITERS) {
-		db.prepare(`DELETE FROM ${table}`).run();
-	}
-}
-
 function tableCounts(db: DatabaseSync): Record<string, number> {
 	const rows = db
 		.prepare(`
@@ -245,7 +239,9 @@ function insertPipelineRun(db: DatabaseSync, rows: DatabaseRunRows): number {
 }
 
 function writeSnapshot(db: DatabaseSync, rows: DatabaseRunRows): number {
-	clearSnapshotTables(db);
+	for (const { table } of SNAPSHOT_WRITERS) {
+		db.prepare(`DELETE FROM ${table}`).run();
+	}
 	const runId = insertPipelineRun(db, rows);
 	for (const { write } of SNAPSHOT_WRITERS) {
 		write(db, runId, rows);

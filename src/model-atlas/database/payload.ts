@@ -413,23 +413,16 @@ function readPayloadRowGroup(
 	runId: number,
 ): DbRow[] {
 	try {
-		return readRunRows(db, rowGroup.sql, runId);
+		return db
+			.prepare(rowGroup.sql)
+			.all(runId)
+			.map((row) => asRecord(row));
 	} catch (error) {
 		if (rowGroup.optional === true) {
 			return [];
 		}
 		throw error;
 	}
-}
-
-function readPayloadRowGroups(
-	db: DatabaseSync,
-	runId: number,
-): [PayloadRowKey, DbRow[]][] {
-	return PAYLOAD_ROW_GROUPS.map((rowGroup) => [
-		rowGroup.key,
-		readPayloadRowGroup(db, rowGroup, runId),
-	]);
 }
 
 /** Payload row groups share one reader contract across local SQLite and Cloudflare D1. */
@@ -524,13 +517,6 @@ export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 	};
 }
 
-function readRunRows(db: DatabaseSync, sql: string, runId: number): DbRow[] {
-	return db
-		.prepare(sql)
-		.all(runId)
-		.map((row) => asRecord(row));
-}
-
 /** Local SQLite payload reads follow the same latest-completed-run boundary as D1. */
 export function readDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
@@ -539,7 +525,13 @@ export function readDatabasePayload(
 	try {
 		const run = latestRun(db);
 		return buildPayloadFromRows(
-			buildPayloadRows(run, readPayloadRowGroups(db, run.id)),
+			buildPayloadRows(
+				run,
+				PAYLOAD_ROW_GROUPS.map((rowGroup) => [
+					rowGroup.key,
+					readPayloadRowGroup(db, rowGroup, run.id),
+				]),
+			),
 		);
 	} finally {
 		db.close();

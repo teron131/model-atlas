@@ -214,18 +214,6 @@ function pruneSparseFields(
 	});
 }
 
-function filterModelsById(
-	models: LlmStatsModel[],
-	id: string | null | undefined,
-): LlmStatsModel[] {
-	const normalizedId = publicOpenRouterModelId(id ?? null);
-	return normalizedId == null
-		? models
-		: models.filter(
-				(model) => publicOpenRouterModelId(model.id) === normalizedId,
-			);
-}
-
 /** Free-route variants collapse into the canonical paid route unless they are the only available public row. */
 function collapseOpenRouterFreeRoutes(
 	models: LlmStatsModel[],
@@ -278,5 +266,10 @@ export function selectPublicModels(
 		scoringConfig,
 	);
 	const normalizedModels = collapseOpenRouterFreeRoutes(prunedModels);
-	return filterModelsById(normalizedModels, id);
+	const normalizedId = publicOpenRouterModelId(id ?? null);
+	return normalizedId == null
+		? normalizedModels
+		: normalizedModels.filter(
+				(model) => publicOpenRouterModelId(model.id) === normalizedId,
+			);
 }

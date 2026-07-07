@@ -19,8 +19,6 @@ import type {
 	LlmStatsCost,
 	LlmStatsCostBreakdown,
 	LlmStatsCostTier,
-	LlmStatsEvaluations,
-	LlmStatsIntelligence,
 	LlmStatsIntelligenceIndexCost,
 	LlmStatsModalities,
 	LlmStatsModelCandidate,
@@ -43,23 +41,15 @@ function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
 }
 
-function assignFiniteNumber(
-	target: Record<string, number>,
-	key: string,
-	value: unknown,
-): void {
-	const numericValue = asFiniteNumber(value);
-	if (numericValue != null) {
-		target[key] = numericValue;
-	}
-}
-
 function buildNumericMap<T extends Record<string, number | null | undefined>>(
 	value: unknown,
 ): T | null {
 	const numericFields: Record<string, number> = {};
 	for (const [key, fieldValue] of Object.entries(asRecord(value))) {
-		assignFiniteNumber(numericFields, key, fieldValue);
+		const numericValue = asFiniteNumber(fieldValue);
+		if (numericValue != null) {
+			numericFields[key] = numericValue;
+		}
 	}
 	return hasFields(numericFields) ? (numericFields as T) : null;
 }
@@ -81,13 +71,6 @@ function providerFromModel(model: JsonObject): string | null {
 		return fromId;
 	}
 	return typeof model.provider_id === "string" ? model.provider_id : null;
-}
-
-function buildLogo(model: JsonObject, provider: string | null): string {
-	return resolveStatsLogo({
-		provider,
-		explicitLogo: typeof model.logo === "string" ? model.logo : null,
-	});
 }
 
 /** Projects input and output modalities when source data provides them. */
@@ -265,17 +248,6 @@ function buildCost(
 		cost.blended_price = blendedPrice;
 	}
 	return hasFields(cost) ? cost : null;
-}
-
-function buildEvaluations(model: JsonObject): LlmStatsEvaluations | null {
-	return buildNumericMap<LlmStatsEvaluations>(model.evaluations);
-}
-
-function buildIntelligence(model: JsonObject): LlmStatsIntelligence | null {
-	const intelligence = { ...asRecord(model.intelligence) };
-	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
-	delete intelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY];
-	return buildNumericMap<LlmStatsIntelligence>(intelligence);
 }
 
 function buildIntelligenceIndexCost(
@@ -507,11 +479,17 @@ export function buildModelCandidate(
 	const cost = buildCost(model, pricing, scoringConfig);
 	const intelligenceIndexCost = buildIntelligenceIndexCost(model);
 	const scoringSources = buildScoringSources(model);
+	const intelligence = { ...asRecord(model.intelligence) };
+	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
+	delete intelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY];
 	return {
 		id: modelId,
 		name: typeof model.name === "string" ? model.name : null,
 		provider,
-		logo: buildLogo(model, provider),
+		logo: resolveStatsLogo({
+			provider,
+			explicitLogo: typeof model.logo === "string" ? model.logo : null,
+		}),
 		attachment: typeof model.attachment === "boolean" ? model.attachment : null,
 		reasoning: typeof model.reasoning === "boolean" ? model.reasoning : null,
 		release_date:
@@ -522,10 +500,10 @@ export function buildModelCandidate(
 		cost,
 		context_window: buildContextWindow(model),
 		speed,
-		intelligence: buildIntelligence(model),
+		intelligence: buildNumericMap(intelligence),
 		intelligence_index_cost: intelligenceIndexCost,
 		task_metrics: buildTaskMetrics(intelligenceIndexCost, cost, scoringSources),
-		evaluations: buildEvaluations(model),
+		evaluations: buildNumericMap(model.evaluations),
 		scoring_sources: scoringSources,
 		component_scores: buildComponentScores(
 			model,
