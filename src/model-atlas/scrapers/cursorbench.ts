@@ -1,5 +1,5 @@
 /**
- * CursorBench leaderboard scraper helpers.
+ * CursorBench scraper owns page-text extraction and percent normalization for CursorBench scores.
  *
  * Page source: https://cursor.com/cursorbench
  */
@@ -135,7 +135,7 @@ function isPrivateCursorModel(model: string): boolean {
 	return PRIVATE_CURSOR_MODEL_PREFIX.test(baseModelName(model));
 }
 
-/** Converts CursorBench percentages onto the 0-1 scoring scale. */
+/** CursorBench percentages enter scoring on the same 0-1 scale as other benchmark sources. */
 function parsePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }

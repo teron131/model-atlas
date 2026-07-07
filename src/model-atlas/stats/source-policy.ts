@@ -1,4 +1,4 @@
-/** Shared source-selection policy for Model Atlas stages. */
+/** Source-selection policy keeps benchmark-retained catalog rows and provider preference in one stage boundary. */
 
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import {
@@ -25,7 +25,7 @@ export function isoDateDaysAgo(days: number): string {
 		.slice(0, 10);
 }
 
-/** Build source-backed retain keys so older exact OpenRouter routes can still match benchmark rows. */
+/** Artificial Analysis identities retain older catalog rows that still carry current benchmark evidence. */
 export function buildArtificialAnalysisRetainKeys(
 	artificialAnalysisRows: readonly unknown[],
 ): ArtificialAnalysisRetainKeys {
@@ -54,7 +54,7 @@ export function buildArtificialAnalysisRetainKeys(
 	return { retainedModelIds, retainedModelNames };
 }
 
-/** Keep one preferred models.dev row per model id with OpenRouter first and trusted providers as fallback. */
+/** Provider preference collapses duplicate catalog rows before matching so callers do not rank providers themselves. */
 export function pickPreferredModelsDevRows<
 	Model extends ModelsDevModel | ModelsDevFlatModel,
 >(modelsDevModels: readonly Model[]): Model[] {

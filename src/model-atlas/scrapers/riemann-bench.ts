@@ -1,5 +1,5 @@
 /**
- * Riemann-bench leaderboard scraper helpers.
+ * Riemann-bench scraper owns Surge leaderboard normalization for math-proof scores.
  *
  * Page source: https://surgehq.ai/leaderboards/riemann-bench
  * Paper source: https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/69c2d73f5d377a9428089ff7_048c62b8b526b0f06e87457bcca0e6fa_RiemannBench.pdf

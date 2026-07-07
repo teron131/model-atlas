@@ -1,4 +1,4 @@
-/** Column tooltip metadata for Model Atlas. */
+/** Column tooltip copy stays aligned with active scoring weights and benchmark resource policy. */
 
 import type {
 	LlmStatsColumnTooltip,

@@ -5,7 +5,6 @@ import type { DatabaseSync } from "node:sqlite";
 import type { LlmStatsSourceHealth } from "../../stats/types";
 import type { SourceSnapshots } from "../types";
 
-/** Insert source row states for one runtime snapshot. */
 export function insertSourceRowStates(
 	db: DatabaseSync,
 	runId: number,
@@ -30,7 +29,6 @@ export function insertSourceRowStates(
 	}
 }
 
-/** Insert source health summaries for one runtime snapshot. */
 export function insertSourceHealth(
 	db: DatabaseSync,
 	runId: number,

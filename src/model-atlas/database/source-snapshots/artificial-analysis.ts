@@ -1,4 +1,4 @@
-/** Artificial Analysis source snapshot retention and selected-row projection. */
+/** Artificial Analysis snapshots retain benchmark-carrier rows while projecting selected public model fields. */
 
 import type { DatabaseSync } from "node:sqlite";
 

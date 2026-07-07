@@ -1,5 +1,5 @@
 /**
- * AutomationBench leaderboard scraper helpers.
+ * AutomationBench scraper owns benchmark-page parsing plus domain-leadership score adjustment.
  *
  * Page source: https://zapier.com/benchmarks
  */
@@ -74,7 +74,7 @@ export type AutomationBenchLeaderboardPayload = {
 	model_scores: AutomationBenchModelScoreRow[];
 };
 
-/** Converts AutomationBench percentage strings onto the 0-1 scoring scale. */
+/** AutomationBench percentages enter scoring on the same 0-1 scale as other benchmark sources. */
 function parseScorePercent(value: string): number {
 	return Number((Number(value) / 100).toFixed(6));
 }
@@ -104,7 +104,7 @@ function baseModelName(model: string): string {
 	return model.replace(/\s*\([^()]+\)\s*$/, "").trim();
 }
 
-/** Builds lookup aliases for model labels that drift across sources. */
+/** Alias labels keep source-specific model spellings comparable without changing the original row label. */
 function normalizedModelAliases(model: string): string[] {
 	const aliases = new Set<string>();
 	/** Adds a non-empty normalized alias plus common version variants. */
@@ -252,7 +252,7 @@ function splitModelProvider(value: string): AutomationBenchDomainModel {
 	};
 }
 
-/** Parses second-place domain winners, scores, and tie markers. */
+/** Domain parser keeps runner-up rows because they still contribute the benchmark's leadership lift. */
 function parseSecondPlace(value: string): {
 	models: AutomationBenchDomainModel[];
 	score: number | null;
@@ -343,7 +343,7 @@ function domainLeadScoresByModel(
 	return scoresByModel;
 }
 
-/** Build AutomationBench model scores with a bounded domain-leadership lift. */
+/** AutomationBench model scores add a bounded domain-leadership lift without letting it dominate the overall score. */
 export function summarizeAutomationBenchModelScores(
 	overallRows: AutomationBenchOverallRow[],
 	domainRows: AutomationBenchDomainRow[],

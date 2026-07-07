@@ -1,4 +1,4 @@
-/** SQLite snapshot pipeline for cacheable Model Atlas source rows and derived scores. */
+/** SQLite snapshot pipeline owns local source refresh, staged model rows, and atomic database publication. */
 
 import { rename } from "node:fs/promises";
 import type { DatabaseSync } from "node:sqlite";
@@ -171,14 +171,12 @@ function nowEpochSeconds(): number {
 	return Math.floor(Date.now() / 1000);
 }
 
-/** Remove current snapshot rows before rewriting the runtime view. */
 function clearSnapshotTables(db: DatabaseSync): void {
 	for (const { table } of SNAPSHOT_WRITERS) {
 		db.prepare(`DELETE FROM ${table}`).run();
 	}
 }
 
-/** Count source rows by table for the build result summary. */
 function tableCounts(db: DatabaseSync): Record<string, number> {
 	const rows = db
 		.prepare(`
@@ -213,12 +211,11 @@ function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
 	}
 }
 
-/** Escapes string values for generated SQLite INSERT statements. */
 function sqlStringLiteral(value: string): string {
 	return `'${value.replace(/'/g, "''")}'`;
 }
 
-/** Publishes a completed SQLite database to the configured runtime store. */
+/** Publish by vacuuming to a replacement file first so readers never see a partially rewritten database. */
 async function publishDatabaseFile(
 	db: DatabaseSync,
 	outputPath: string,

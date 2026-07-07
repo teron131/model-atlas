@@ -29,7 +29,7 @@ function sourceCacheShapeIsCurrent(
 	return true;
 }
 
-/** Reports whether a raw-source cache table is populated and still fresh. */
+/** Cache hits require populated rows, a nonfuture fetch time, freshness, and the source's current persisted shape. */
 export function readRawSourceCacheStatus(
 	db: DatabaseSync,
 	source: RawSourceName,
@@ -60,7 +60,6 @@ export function readRawSourceCacheStatus(
 	};
 }
 
-/** Builds cache status metadata for freshly fetched source rows. */
 export function refreshedCacheStatus(
 	lastFetchEpochSeconds: number | null,
 	sourceInputCount: number,

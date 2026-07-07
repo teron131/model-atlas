@@ -1,4 +1,4 @@
-/** Shared LLM stats normalization helpers used before source rows reach matcher and scoring policy. */
+/** Shared normalization defines provider preference and model-token identity before matching and scoring. */
 import { asFiniteNumber, asRecord, type JsonObject } from "./utils";
 
 export { asFiniteNumber, asRecord, type JsonObject };
@@ -15,7 +15,7 @@ export function normalizeProviderId(providerId: string): string {
 	return providerId.toLowerCase().replace(/^~+/, "");
 }
 
-/** Return the provider preference rank used by the stats matcher and source stage. */
+/** Provider preference is OpenRouter first, Vercel second, then trusted first-party fallbacks. */
 export function providerPreferenceRank(providerId: string): number | null {
 	const normalizedProviderId = normalizeProviderId(providerId);
 	if (normalizedProviderId === PRIMARY_PROVIDER_ID) {

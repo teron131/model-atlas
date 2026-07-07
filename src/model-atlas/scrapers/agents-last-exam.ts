@@ -1,5 +1,5 @@
 /**
- * Agents' Last Exam leaderboard scraper helpers.
+ * Agents' Last Exam scraper owns the API/browser fallback and harness-row summary policy.
  *
  * Page source: https://agenthle.org/leaderboard
  * JSON source: https://agenthle.org/api/demo/leaderboard
@@ -74,7 +74,7 @@ export type AgentsLastExamModelScorePayload = {
 	data: AgentsLastExamModelScoreRow[];
 };
 
-/** Convert one API row to the stable source row shape. */
+/** API rows are narrowed to the stable source shape before summary and harness joins run. */
 function asAgentsLastExamHarnessRow(
 	value: unknown,
 ): AgentsLastExamHarnessRow | null {
@@ -281,7 +281,7 @@ async function fetchApiRows(
 		: [];
 }
 
-/** Fetch leaderboard rows through the browser page when the JSON endpoint cannot be read directly. */
+/** Browser fallback keeps the source usable when the direct JSON endpoint blocks plain fetches. */
 async function fetchPlaywrightRows(
 	url: string,
 	apiUrl: string,

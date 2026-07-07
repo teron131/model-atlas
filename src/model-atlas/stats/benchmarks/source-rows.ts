@@ -1,4 +1,4 @@
-/** Own the benchmark row draft contract shared by source and database adapters. */
+/** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
 import { asFiniteNumber, asRecord } from "../../shared";
 import type { LlmStatsSourceData } from "../types";
@@ -62,7 +62,7 @@ function addBenchmarkRowDraft(
 	});
 }
 
-/** Finalizes normalized benchmark row drafts and drops rows without a label or finite value. */
+/** Only labeled finite benchmark evidence is allowed into update-health comparisons. */
 export function finalizeBenchmarkRows(
 	drafts: readonly BenchmarkRowDraft[],
 ): BenchmarkRowsByKey {
@@ -73,7 +73,7 @@ export function finalizeBenchmarkRows(
 	return rowsByKey;
 }
 
-/** Expands Artificial Analysis rows into one draft per supported evaluation key. */
+/** Artificial Analysis rows carry many benchmark keys, so each supported key becomes separate source evidence. */
 export function artificialAnalysisBenchmarkRowDrafts<Row>({
 	rows,
 	modelId,
@@ -96,7 +96,6 @@ export function artificialAnalysisBenchmarkRowDrafts<Row>({
 	});
 }
 
-/** Return benchmark update row drafts from in-memory source-data rows. */
 function sourceDataBenchmarkDrafts(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
@@ -208,7 +207,7 @@ function sourceDataBenchmarkDrafts(
 	];
 }
 
-/** Builds benchmark update rows from fresh source snapshots using the shared draft contract. */
+/** Live source data enters benchmark-update health through the same draft contract as database restorations. */
 export function benchmarkRowsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowsByKey {

@@ -1,4 +1,4 @@
-/** Public Model Atlas API: rebuild from live sources and return failure-safe output. */
+/** Stats API coordinates live source refresh, enrichment, scoring, and failure-safe payload shape. */
 
 import { STAGE_CONFIG } from "./constants";
 import {
@@ -40,7 +40,7 @@ export type {
 	OverallScoreWeights,
 } from "./stats/types";
 
-/** Ensure cached or freshly built payloads expose current scoring metadata. */
+/** Metadata is refreshed around cached or rebuilt payload rows so public scoring copy tracks current config. */
 function withLlmStatsMetadata(
 	payload: Omit<LlmStatsPayload, "metadata"> &
 		Partial<Pick<LlmStatsPayload, "metadata">>,
@@ -65,7 +65,7 @@ function withLlmStatsMetadata(
 	};
 }
 
-/** Return an empty LLM stats payload for failure-safe fallback paths. */
+/** Failure-safe fallbacks still expose current metadata even when no model rows are available. */
 function emptyLlmStatsPayload(): LlmStatsPayload {
 	return withLlmStatsMetadata({
 		fetched_at_epoch_seconds: null,

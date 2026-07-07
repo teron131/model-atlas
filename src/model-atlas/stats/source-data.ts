@@ -1,4 +1,4 @@
-/** Fetch raw Model Atlas benchmark rows and build lookup maps. */
+/** Live source-data loading owns parallel scraper fetches and the lookup maps used by matching and scoring. */
 
 import {
 	buildAgentsLastExamMap,

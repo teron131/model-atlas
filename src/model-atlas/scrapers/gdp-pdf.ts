@@ -1,5 +1,5 @@
 /**
- * GDP.pdf leaderboard scraper helpers.
+ * GDP.pdf scraper owns Surge leaderboard normalization for the document-reasoning benchmark.
  *
  * Page source: https://surgehq.ai/leaderboards/gdp-pdf
  * Dataset source: https://huggingface.co/datasets/surgeai/GDP.pdf

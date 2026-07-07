@@ -1,4 +1,4 @@
-/** Cloudflare D1 publishing for local scripts and deployed refresh routes. */
+/** Cloudflare D1 publishing rebuilds local snapshots, assigns fresh remote run ids, and verifies deployed rows. */
 
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -162,7 +162,6 @@ function rewriteFinalModelRows(
 	}
 }
 
-/** Writes a D1 import script for one completed pipeline run. */
 async function writeD1ImportSql(
 	databasePath: string,
 	outputPath: string,
@@ -174,7 +173,7 @@ async function writeD1ImportSql(
 	return statements;
 }
 
-/** Builds import statements for one completed pipeline run. */
+/** D1 imports rewrite every run-scoped row under the fresh remote run id before pruning older snapshots. */
 async function d1ImportStatements(
 	databasePath: string,
 	publishRunId: number,
@@ -262,7 +261,6 @@ function latestCompletedRun(db: DatabaseSync): {
 	};
 }
 
-/** Builds the D1 insert statement for the pipeline run record. */
 function pipelineRunInsertStatement(
 	run: ReturnType<typeof latestCompletedRun>,
 ): string {
@@ -287,7 +285,7 @@ function pipelineRunInsertStatement(
 		.trim();
 }
 
-/** Builds D1 insert statements for tables keyed by run_id. */
+/** Run-scoped tables preserve local row order while publishing under the remote run id. */
 function runScopedTableInsertStatements(
 	db: DatabaseSync,
 	table: string,
@@ -452,7 +450,6 @@ async function d1Verification(
 	return { counts, deep_swe_versions: deepSweVersions };
 }
 
-/** Sends a SQL query directly to Cloudflare D1 for publication checks. */
 async function d1Query(
 	sql: string,
 	params: unknown[] = [],

@@ -46,7 +46,7 @@ function mergeModelsDevPayload(
 	return mergedPayload;
 }
 
-/** Counts concrete Models.dev model entries for source freshness metadata. */
+/** Freshness counts concrete Models.dev model rows rather than provider wrapper objects. */
 export function modelsDevSourceInputCount(
 	payload: ModelsDevSnapshot["modelsDevPayload"],
 ): number {

@@ -1,4 +1,4 @@
-/** Public model selection for Model Atlas. */
+/** Public model selection owns score gating, sparse-field pruning, and OpenRouter free-route collapse. */
 
 import {
 	hasPublicFreeRouteLabel,
@@ -48,7 +48,6 @@ function isFreeRouteModel(model: LlmStatsModel): boolean {
 	);
 }
 
-/** Order public rows by intelligence score with a stable ID tie-break. */
 function sortModelsByIntelligenceScore(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
@@ -64,7 +63,7 @@ function sortModelsByIntelligenceScore(
 	});
 }
 
-/** Require enough component and public score signal for a public row. */
+/** Public rows need both core component scores and a minimum public score floor. */
 function hasMinimumScoreSignal(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsModel {
@@ -89,7 +88,6 @@ function hasMinimumScoreSignal(
 	});
 }
 
-/** Narrow nested model fields that can be safely copied and pruned. */
 function isPlainObject(value: unknown): value is JsonObject {
 	return value != null && typeof value === "object" && !Array.isArray(value);
 }
@@ -122,7 +120,7 @@ function selectPruneSampleModels(
 	return recentModels.length > 0 ? recentModels : models;
 }
 
-/** Remove mostly-empty non-contract fields from public model rows. */
+/** Null-heavy optional fields are pruned from recent public rows while stable contract fields remain fixed. */
 function pruneSparseFields(
 	models: LlmStatsModel[],
 	finalConfig: FinalStageConfig,
@@ -228,7 +226,7 @@ function filterModelsById(
 			);
 }
 
-/** Collapse OpenRouter free-route duplicates into canonical public rows. */
+/** Free-route variants collapse into the canonical paid route unless they are the only available public row. */
 function collapseOpenRouterFreeRoutes(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {

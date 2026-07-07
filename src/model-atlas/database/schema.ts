@@ -1,4 +1,4 @@
-/** Shared database schema introspection for Model Atlas. */
+/** Database schema introspection is the single drift check shared by SQLite builds and D1 publishing. */
 
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -9,7 +9,7 @@ const SCHEMA_SQL_PATH = resolve(
 	"src/model-atlas/database/schema.sql",
 );
 
-/** Load the SQLite schema file colocated with this database pipeline. */
+/** Schema loading prefers the source tree but falls back to the module URL for packaged CLIs. */
 export async function loadSchemaSql(): Promise<string> {
 	try {
 		return await readFile(SCHEMA_SQL_PATH, "utf-8");
@@ -30,7 +30,7 @@ export async function removeDatabaseFiles(path: string): Promise<void> {
 	]);
 }
 
-/** Open the SQLite database and ensure the checked-in schema exists. */
+/** Opening a snapshot database applies the checked-in schema after replacing drifted owned tables. */
 export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
 	await mkdir(dirname(outputPath), { recursive: true });
 	const db = new DatabaseSync(outputPath);

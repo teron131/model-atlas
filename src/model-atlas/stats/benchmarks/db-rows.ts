@@ -133,7 +133,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 	];
 }
 
-/** Converts persisted benchmark source rows into benchmark-keyed update rows. */
+/** Persisted benchmark rows enter update-health checks through the same benchmark-keyed contract as live rows. */
 export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
 	return finalizeBenchmarkRows(dbBenchmarkDrafts(rows));
 }

@@ -1,4 +1,4 @@
-/** Stable SQLite database contracts for the Model Atlas snapshot pipeline. */
+/** SQLite row contracts define the handoff between scrapers, snapshot writers, and public payload readers. */
 
 import type {
 	AgentsLastExamHarnessRow,

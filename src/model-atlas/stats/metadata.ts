@@ -1,4 +1,4 @@
-/** Build current Model Atlas scoring metadata for live, stored, and restored payloads. */
+/** Metadata assembly keeps live, stored, and restored payloads aligned with the current scoring contract. */
 
 import { benchmarkResourcePolicy } from "../config/benchmark-portfolio";
 import {
@@ -46,7 +46,6 @@ function sortedUniqueKeys(values: Iterable<string>): string[] {
 	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
-/** Collect available benchmark-like keys from a model object field. */
 function keysFromModelField(
 	models: readonly BenchmarkMetricModel[],
 	field: "evaluations" | "intelligence",
@@ -98,7 +97,7 @@ function hasPositiveTaskMetric(
 	);
 }
 
-/** Return resource benchmarks that have both benchmark scores and task telemetry in this payload. */
+/** Resource components activate only when this payload has both benchmark values and comparable cost or runtime telemetry. */
 function activeResourceBenchmarkKeys(
 	models: readonly ResourceMetricModel[],
 	scoringConfig: ModelAtlasStageConfig["scoring"],
@@ -137,7 +136,7 @@ function activeResourceComponents(
 	};
 }
 
-/** Return benchmark keys, falling back to split metadata fields when old snapshots omit the combined field. */
+/** Older stored payloads may lack the combined benchmark-key field, so split fields remain the read fallback. */
 function availableBenchmarkKeysFrom(
 	artificialAnalysis: LlmStatsMetadata["artificial_analysis"],
 ): string[] {
@@ -149,7 +148,7 @@ function availableBenchmarkKeysFrom(
 			]);
 }
 
-/** Build current metadata while preserving caller-owned source and restored metadata fields. */
+/** Preserve caller-owned source metadata while refreshing scoring fields from the active stage configuration. */
 export function buildCurrentLlmStatsMetadata({
 	models,
 	resourceModels = models,

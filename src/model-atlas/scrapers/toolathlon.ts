@@ -1,5 +1,5 @@
 /**
- * Toolathlon source helpers.
+ * Toolathlon scraper owns ZeroEval payload normalization for tool-use benchmark scores.
  *
  * Page source: https://llm-stats.com/benchmarks/toolathlon
  * JSON source: https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details

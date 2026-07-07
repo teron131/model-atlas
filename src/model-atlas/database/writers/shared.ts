@@ -1,10 +1,9 @@
-/** Shared value coercion rules for writing nullable scraper fields into SQLite columns. */
+/** SQLite writer coercion rules keep nullable scraper fields and booleans stored consistently across sources. */
 
 import { asFiniteNumber, type JsonObject } from "../../shared";
 
 export type SqlValue = string | number | null;
 
-/** Convert a boolean-ish value to SQLite integer storage. */
 export function booleanValue(value: unknown): number | null {
 	return typeof value === "boolean" ? (value ? 1 : 0) : null;
 }

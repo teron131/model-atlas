@@ -1,4 +1,4 @@
-/** Task metric projection for Model Atlas. */
+/** Task metric projection normalizes benchmark resource telemetry into one public per-task shape. */
 
 import { asFiniteNumber, asRecord } from "../../shared";
 import type {

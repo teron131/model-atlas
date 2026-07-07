@@ -1,4 +1,4 @@
-/** Converts persisted source snapshots into in-memory stats source data. */
+/** Persisted snapshot rows are reconstructed into the same lookup maps as a live source refresh. */
 
 import { buildAgentsLastExamMap } from "../../scrapers/agents-last-exam";
 import { buildArtificialAnalysisEvaluationResourceMap } from "../../scrapers/artificial-analysis/evaluation-resources";
@@ -17,7 +17,7 @@ import { pickPreferredModelsDevRows } from "../../stats/source-policy";
 import type { LlmStatsSourceData } from "../../stats/types";
 import type { SourceSnapshots } from "../types";
 
-/** Builds the lookup maps expected by stats from persisted snapshot row groups. */
+/** Restored source rows rebuild lookup maps without refetching external benchmark pages. */
 export function cachedSourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
 ): LlmStatsSourceData {
