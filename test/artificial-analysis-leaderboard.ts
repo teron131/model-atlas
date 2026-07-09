@@ -1,9 +1,11 @@
+/** Exercises Artificial Analysis leaderboard projection and scoring inputs. */
+
 import { SIMULATION_PROFILES } from "../src/model-atlas/constants";
 import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/common";
 import {
-	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
-	processArtificialAnalysisScrapedRows,
-} from "../src/model-atlas/scrapers/artificial-analysis/evals";
+	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+	processArtificialAnalysisLeaderboardRows,
+} from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
 import {
 	buildBenchmarkImputationByModel,
 	buildComponentScores,
@@ -31,7 +33,7 @@ function stableJson(value: unknown): string {
 	return JSON.stringify(value);
 }
 
-const rows = processArtificialAnalysisScrapedRows(
+const rows = processArtificialAnalysisLeaderboardRows(
 	[
 		{
 			slug: "alpha",
@@ -69,7 +71,7 @@ const rows = processArtificialAnalysisScrapedRows(
 		},
 	],
 	{
-		selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
+		selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
 	},
 );
 
@@ -90,7 +92,7 @@ assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
 assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
 assertDeepEqual(
-	processArtificialAnalysisScrapedRows(
+	processArtificialAnalysisLeaderboardRows(
 		[
 			{
 				slug: "gpt-5-5",
@@ -123,7 +125,7 @@ assertDeepEqual(
 	],
 );
 assertDeepEqual(
-	processArtificialAnalysisScrapedRows(
+	processArtificialAnalysisLeaderboardRows(
 		[
 			{
 				slug: "claude-fable-5",
@@ -145,7 +147,7 @@ assertDeepEqual(
 	],
 );
 assertDeepEqual(
-	processArtificialAnalysisScrapedRows(
+	processArtificialAnalysisLeaderboardRows(
 		[
 			{
 				model_id: "anthropic/claude-fable-5",

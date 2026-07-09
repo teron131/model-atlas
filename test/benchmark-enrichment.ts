@@ -1,7 +1,7 @@
 /** Verify shared benchmark enrichment maps source rows into evaluations and scoring sources. */
 
 import assert from "node:assert/strict";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/evaluation-resources";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import {
 	type BenchmarkEnrichmentLookups,
 	benchmarkEnrichment,

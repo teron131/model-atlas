@@ -1,6 +1,6 @@
 /** Internal matcher pipeline: scope provider pools, collect candidates, and apply the final void threshold. */
 
-import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis/evals";
+import { getArtificialAnalysisLeaderboardStats } from "../scrapers/artificial-analysis/leaderboard";
 import { getModelsDevStats } from "../scrapers/models-dev";
 import {
 	asRecord,
@@ -183,7 +183,7 @@ export async function getMatchDiagnostics(
 					fetched_at_epoch_seconds: null,
 					data: options.scrapedRows,
 				}
-			: await getArtificialAnalysisEvalsStats();
+			: await getArtificialAnalysisLeaderboardStats();
 	const modelsDevStats =
 		options.modelsDevModels != null
 			? {

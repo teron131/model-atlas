@@ -1,7 +1,7 @@
 /**
  * Artificial Analysis evaluation-page resource scraping for benchmark-level per-task telemetry.
  *
- * The Artificial Analysis main leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
+ * The Artificial Analysis leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
  */
 
 import { normalizeModelToken } from "../../shared";
@@ -13,12 +13,13 @@ import {
 } from "../../utils";
 import {
 	cleanArtificialAnalysisModelName,
+	extractArtificialAnalysisFlightCorpus,
+	findArtificialAnalysisFlightObjectEnd,
+	parseArtificialAnalysisFlightObject,
 	parseArtificialAnalysisReasoningEffort,
 } from "./common";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-const NEXT_FLIGHT_CHUNK_REGEX =
-	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 const ROW_DETECTION_KEY = "evalTimePerTask";
 const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
 const REASONING_EFFORT_RANK = {
@@ -178,63 +179,6 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 	},
 ] as const satisfies readonly ArtificialAnalysisEvaluationResourcePage[];
 
-function decodeFlightChunk(raw: string): string {
-	try {
-		return JSON.parse(`"${raw}"`) as string;
-	} catch {
-		return raw;
-	}
-}
-
-function extractFlightCorpus(pageHtml: string): string {
-	return [...pageHtml.matchAll(NEXT_FLIGHT_CHUNK_REGEX)]
-		.map((match) => decodeFlightChunk(match[1] ?? ""))
-		.join("\n");
-}
-
-function findObjectEnd(corpus: string, startIndex: number): number {
-	let depth = 0;
-	let inString = false;
-	let escaping = false;
-
-	for (let index = startIndex; index < corpus.length; index += 1) {
-		const char = corpus[index];
-		if (inString) {
-			if (escaping) {
-				escaping = false;
-			} else if (char === "\\") {
-				escaping = true;
-			} else if (char === '"') {
-				inString = false;
-			}
-			continue;
-		}
-		if (char === '"') {
-			inString = true;
-			continue;
-		}
-		if (char === "{") {
-			depth += 1;
-			continue;
-		}
-		if (char === "}") {
-			depth -= 1;
-			if (depth === 0) {
-				return index;
-			}
-		}
-	}
-	return -1;
-}
-
-function parseJsonObject(value: string): Record<string, unknown> | null {
-	try {
-		return asRecord(JSON.parse(value));
-	} catch {
-		return null;
-	}
-}
-
 function providerSlug(provider: string | null): string | null {
 	return provider == null
 		? null
@@ -363,42 +307,52 @@ function extractArtificialAnalysisEvaluationRowsFromPageHtml(
 	pageHtml: string,
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): Record<string, unknown>[] {
-	const corpus = extractFlightCorpus(pageHtml);
-	const rowsById = new Map<string, Record<string, unknown>>();
+	const flightCorpus = extractArtificialAnalysisFlightCorpus(pageHtml);
+	const resourceRowsById = new Map<string, Record<string, unknown>>();
 	const rowDetectionKey = page.row_detection_key ?? ROW_DETECTION_KEY;
 	let cursor = 0;
 	while (true) {
-		const hitIndex = corpus.indexOf(`"${rowDetectionKey}":`, cursor);
+		const hitIndex = flightCorpus.indexOf(`"${rowDetectionKey}":`, cursor);
 		if (hitIndex === -1) {
 			break;
 		}
 		cursor = hitIndex + 1;
 		const searchStart = Math.max(0, hitIndex - MODEL_SEARCH_BACKTRACK_CHARS);
 		for (let backIndex = hitIndex; backIndex >= searchStart; backIndex -= 1) {
-			if (corpus[backIndex] !== "{") {
+			if (flightCorpus[backIndex] !== "{") {
 				continue;
 			}
-			const endIndex = findObjectEnd(corpus, backIndex);
+			const endIndex = findArtificialAnalysisFlightObjectEnd(
+				flightCorpus,
+				backIndex,
+			);
 			if (endIndex === -1 || endIndex < hitIndex) {
 				continue;
 			}
-			const row = parseJsonObject(corpus.slice(backIndex, endIndex + 1));
-			const rowId = stringValue(row?.id) ?? stringValue(row?.slug);
-			if (row == null || rowId == null || !(rowDetectionKey in row)) {
+			const candidateRow = parseArtificialAnalysisFlightObject(
+				flightCorpus.slice(backIndex, endIndex + 1),
+			);
+			const rowId =
+				stringValue(candidateRow?.id) ?? stringValue(candidateRow?.slug);
+			if (
+				candidateRow == null ||
+				rowId == null ||
+				!(rowDetectionKey in candidateRow)
+			) {
 				continue;
 			}
-			rowsById.set(rowId, row);
+			resourceRowsById.set(rowId, candidateRow);
 			break;
 		}
 	}
-	return [...rowsById.values()];
+	return [...resourceRowsById.values()];
 }
 
 function artificialAnalysisEvaluationResourceRow(
-	value: unknown,
+	sourceRow: unknown,
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): ArtificialAnalysisEvaluationResourceRow | null {
-	const row = asRecord(value);
+	const row = asRecord(sourceRow);
 	const modelSlug = stringValue(row.slug);
 	const providerRecord = asRecord(row.model_creators);
 	const provider =
@@ -429,18 +383,18 @@ function artificialAnalysisEvaluationResourceRow(
 		tokenCount(tokenCounts, ["reasoningTokens", "reasoning"]),
 		page.task_run_count,
 	);
-	const outputTokensPerTaskValue =
+	const effectiveOutputTokensPerTask =
 		outputTokensPerTask ??
 		(answerTokensPerTask == null && reasoningTokensPerTask == null
 			? null
 			: (answerTokensPerTask ?? 0) + (reasoningTokensPerTask ?? 0));
 	const tokensPerTask =
-		inputTokensPerTask == null || outputTokensPerTaskValue == null
+		inputTokensPerTask == null || effectiveOutputTokensPerTask == null
 			? null
-			: inputTokensPerTask + outputTokensPerTaskValue;
-	const secondsPerTaskValue = secondsPerTask(
+			: inputTokensPerTask + effectiveOutputTokensPerTask;
+	const resolvedSecondsPerTask = secondsPerTask(
 		row,
-		outputTokensPerTaskValue,
+		effectiveOutputTokensPerTask,
 		page,
 	);
 	if (
@@ -450,9 +404,9 @@ function artificialAnalysisEvaluationResourceRow(
 		model == null ||
 		score == null ||
 		costPerTask == null ||
-		secondsPerTaskValue == null ||
+		resolvedSecondsPerTask == null ||
 		inputTokensPerTask == null ||
-		outputTokensPerTaskValue == null ||
+		effectiveOutputTokensPerTask == null ||
 		tokensPerTask == null
 	) {
 		return null;
@@ -468,10 +422,10 @@ function artificialAnalysisEvaluationResourceRow(
 		score,
 		task_run_count: page.task_run_count,
 		cost_per_task_usd: costPerTask,
-		seconds_per_task: secondsPerTaskValue,
+		seconds_per_task: resolvedSecondsPerTask,
 		tokens_per_task: tokensPerTask,
 		input_tokens_per_task: inputTokensPerTask,
-		output_tokens_per_task: outputTokensPerTaskValue,
+		output_tokens_per_task: effectiveOutputTokensPerTask,
 		answer_tokens_per_task: answerTokensPerTask,
 		reasoning_tokens_per_task: reasoningTokensPerTask,
 	};
@@ -513,7 +467,7 @@ function modelKeyCandidates(
 		);
 }
 
-function familyModelKeyCandidates(
+function reasoningFamilyKeyCandidates(
 	row: ArtificialAnalysisEvaluationResourceRow,
 ): string[] {
 	return modelKeyCandidates(row)
@@ -561,55 +515,65 @@ export function buildArtificialAnalysisEvaluationResourceMap(
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
-	const bestRowsByBenchmarkAndFamily = new Map<
+	const highestEffortRowsByBenchmarkAndFamilyKey = new Map<
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
 	for (const row of rows) {
-		let rowsByModelName = rowsByBenchmark.get(row.benchmark_key);
-		if (rowsByModelName == null) {
-			rowsByModelName = new Map();
-			rowsByBenchmark.set(row.benchmark_key, rowsByModelName);
+		let rowsByModelKey = rowsByBenchmark.get(row.benchmark_key);
+		if (rowsByModelKey == null) {
+			rowsByModelKey = new Map();
+			rowsByBenchmark.set(row.benchmark_key, rowsByModelKey);
 		}
 		for (const key of modelKeyCandidates(row)) {
-			rowsByModelName.set(key, row);
+			rowsByModelKey.set(key, row);
 		}
-		let bestRowsByFamily = bestRowsByBenchmarkAndFamily.get(row.benchmark_key);
-		if (bestRowsByFamily == null) {
-			bestRowsByFamily = new Map();
-			bestRowsByBenchmarkAndFamily.set(row.benchmark_key, bestRowsByFamily);
+		let highestEffortRowsByFamilyKey =
+			highestEffortRowsByBenchmarkAndFamilyKey.get(row.benchmark_key);
+		if (highestEffortRowsByFamilyKey == null) {
+			highestEffortRowsByFamilyKey = new Map();
+			highestEffortRowsByBenchmarkAndFamilyKey.set(
+				row.benchmark_key,
+				highestEffortRowsByFamilyKey,
+			);
 		}
-		for (const key of familyModelKeyCandidates(row)) {
-			bestRowsByFamily.set(
+		for (const key of reasoningFamilyKeyCandidates(row)) {
+			highestEffortRowsByFamilyKey.set(
 				key,
-				higherEffortResourceRow(bestRowsByFamily.get(key), row),
+				higherEffortResourceRow(highestEffortRowsByFamilyKey.get(key), row),
 			);
 		}
 	}
-	for (const [benchmarkKey, bestRowsByFamily] of bestRowsByBenchmarkAndFamily) {
-		const rowsByModelName = rowsByBenchmark.get(benchmarkKey);
-		if (rowsByModelName == null) {
+	for (const [
+		benchmarkKey,
+		highestEffortRowsByFamilyKey,
+	] of highestEffortRowsByBenchmarkAndFamilyKey) {
+		const rowsByModelKey = rowsByBenchmark.get(benchmarkKey);
+		if (rowsByModelKey == null) {
 			continue;
 		}
 		for (const row of rows.filter(
 			(item) => item.benchmark_key === benchmarkKey,
 		)) {
-			const bestFamilyRow = familyModelKeyCandidates(row).reduce<
+			const highestEffortFamilyRow = reasoningFamilyKeyCandidates(row).reduce<
 				ArtificialAnalysisEvaluationResourceRow | undefined
 			>(
 				(bestRow, key) =>
-					higherEffortResourceRow(bestRow, bestRowsByFamily.get(key) ?? row),
+					higherEffortResourceRow(
+						bestRow,
+						highestEffortRowsByFamilyKey.get(key) ?? row,
+					),
 				undefined,
 			);
-			if (bestFamilyRow == null) {
+			if (highestEffortFamilyRow == null) {
 				continue;
 			}
 			for (const key of modelKeyCandidates(row)) {
-				rowsByModelName.set(key, bestFamilyRow);
+				rowsByModelKey.set(key, highestEffortFamilyRow);
 			}
 		}
-		for (const [key, row] of bestRowsByFamily) {
-			rowsByModelName.set(key, row);
+		for (const [key, row] of highestEffortRowsByFamilyKey) {
+			rowsByModelKey.set(key, row);
 		}
 	}
 	return rowsByBenchmark;
@@ -620,15 +584,15 @@ export function findArtificialAnalysisEvaluationResourceRow(
 	candidateNames: unknown[],
 	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark,
 ): ArtificialAnalysisEvaluationResourceRow | null {
-	const rowsByModelName = rowsByBenchmark.get(benchmarkKey);
-	if (rowsByModelName == null) {
+	const rowsByModelKey = rowsByBenchmark.get(benchmarkKey);
+	if (rowsByModelKey == null) {
 		return null;
 	}
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = rowsByModelName.get(normalizeModelToken(candidateName));
+		const row = rowsByModelKey.get(normalizeModelToken(candidateName));
 		if (row != null) {
 			return row;
 		}
@@ -657,10 +621,10 @@ export async function getArtificialAnalysisEvaluationResourceStats(
 ): Promise<ArtificialAnalysisEvaluationResourcePayload> {
 	const pages = options.pages ?? ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES;
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-	const results = await Promise.allSettled(
+	const pageResults = await Promise.allSettled(
 		pages.map((page) => getEvaluationResourceRows(page, timeoutMs)),
 	);
-	const data = results
+	const resourceRows = pageResults
 		.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
 		.sort((left, right) =>
 			`${left.benchmark_key}/${left.model_id}`.localeCompare(
@@ -668,7 +632,8 @@ export async function getArtificialAnalysisEvaluationResourceStats(
 			),
 		);
 	return {
-		fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
-		data,
+		fetched_at_epoch_seconds:
+			resourceRows.length > 0 ? nowEpochSeconds() : null,
+		data: resourceRows,
 	};
 }
