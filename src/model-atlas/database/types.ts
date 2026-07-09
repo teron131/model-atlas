@@ -88,7 +88,7 @@ export const SOURCE_URLS = {
 	artificial_analysis_evaluation_resources:
 		"https://artificialanalysis.ai/evaluations",
 	models_dev: "https://models.dev/api.json",
-	agents_last_exam: "https://agenthle.org/leaderboard",
+	agents_last_exam: "https://agents-last-exam.org/leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
 	browsecomp:
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",

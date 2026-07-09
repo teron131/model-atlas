@@ -1,3 +1,5 @@
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import {
 	buildDeepSWEMap,
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
@@ -169,4 +171,59 @@ if (v1Rows.source_version !== "v1") {
 }
 if (!v1Rows.data.every((row) => row.n_tasks_attempted > 0)) {
 	throw new Error("Expected DeepSWE v1 rows to include attempted tasks");
+}
+
+let activeRequests = 0;
+let maxActiveRequests = 0;
+let completedRequests = 0;
+const server = createServer((_request, response) => {
+	activeRequests += 1;
+	maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+	setTimeout(() => {
+		activeRequests -= 1;
+		completedRequests += 1;
+		response.writeHead(200, { "content-type": "application/json" });
+		response.end(
+			JSON.stringify({
+				rows: [
+					{
+						model: `model-${completedRequests}`,
+						pass_at_1: 0.5,
+						n_tasks_attempted: 113,
+						mean_cost_usd: 2,
+						mean_duration_seconds: 4,
+						mean_output_tokens: 6,
+					},
+				],
+			}),
+		);
+	}, 20);
+});
+
+await new Promise<void>((resolve) => {
+	server.listen(0, "127.0.0.1", resolve);
+});
+try {
+	const address = server.address() as AddressInfo;
+	const boundedRows = await getDeepSWERawLeaderboardSourceRows({
+		concurrency: 2,
+		timeoutMs: 1_000,
+		urls: Array.from(
+			{ length: 6 },
+			(_, index) => `http://127.0.0.1:${address.port}/${index}`,
+		),
+	});
+	assertDeepEqual(completedRequests, 6);
+	assertDeepEqual(maxActiveRequests, 2);
+	assertDeepEqual(boundedRows.data.length, 6);
+} finally {
+	await new Promise<void>((resolve, reject) => {
+		server.close((error) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			resolve();
+		});
+	});
 }

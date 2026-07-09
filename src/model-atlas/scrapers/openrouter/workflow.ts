@@ -9,7 +9,11 @@
  * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
  */
 
-import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import {
+	fetchWithTimeout,
+	mapWithConcurrency,
+	nowEpochSeconds,
+} from "../../utils";
 import {
 	buildOpenRouterSeriesTokenWeights,
 	emptyRawScrapedModel,
@@ -142,35 +146,6 @@ async function fetchTextWithRetry(
 	return fetchOpenRouterWithRetry(url, requestOptions, (response) =>
 		response.text(),
 	);
-}
-
-async function mapWithConcurrency<T, R>(
-	items: T[],
-	concurrency: number,
-	mapper: (item: T, index: number) => Promise<R>,
-): Promise<R[]> {
-	const safeConcurrency = Math.max(1, Math.floor(concurrency));
-	const results = new Array<R>(items.length);
-	let cursor = 0;
-
-	/** Consume queued items until the shared cursor is exhausted. */
-	async function worker(): Promise<void> {
-		for (;;) {
-			const index = cursor;
-			cursor += 1;
-			if (index >= items.length) {
-				return;
-			}
-			results[index] = await mapper(items[index] as T, index);
-		}
-	}
-
-	await Promise.all(
-		Array.from({ length: Math.min(safeConcurrency, items.length) }, () =>
-			worker(),
-		),
-	);
-	return results;
 }
 
 function buildPermaslugLookup(
