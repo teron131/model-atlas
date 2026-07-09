@@ -122,5 +122,5 @@ export function fmtDurationShort(seconds: number) {
 	if (seconds >= 7_200) {
 		return `${Number((seconds / 3_600).toFixed(seconds >= 36_000 ? 0 : 1))}h`;
 	}
-	return `${fmtCompact(seconds)}s`;
+	return fmtSeconds(seconds);
 }

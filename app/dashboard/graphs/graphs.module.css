@@ -905,6 +905,10 @@
 	font-weight: 900;
 }
 
+.axisLabel {
+	text-transform: none;
+}
+
 .axisTitle {
 	fill: var(--chart-label-strong);
 	font-family: "SF Mono", Menlo, Consolas, monospace;

@@ -279,7 +279,8 @@ export function frontierBenchmarkOptions(
 	}
 	return [...counts.values()].sort(
 		(left, right) =>
-			right.count - left.count || left.label.localeCompare(right.label),
+			left.label.localeCompare(right.label, undefined, { numeric: true }) ||
+			right.count - left.count,
 	);
 }
 

@@ -197,6 +197,9 @@ export function FrontierBenchmarksPanel({
 				/>
 				<div className={styles.chartToolbarCaption}>
 					<span className={styles.markerKey}>
+						CORR = correlation to Intelligence score
+					</span>
+					<span className={styles.markerKey}>
 						<span className={styles.bubbleMarkerKey} />
 						Bubble size = Efficiency
 					</span>
