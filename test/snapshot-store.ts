@@ -26,8 +26,8 @@ assert.equal(
 );
 assert.equal(
 	mode(stalePayload, false, 1000),
-	"none",
-	"stale display snapshots without Blob should not force live refresh",
+	"live",
+	"stale display snapshots without D1 should refresh from the live runtime payload",
 );
 assert.equal(
 	mode(stalePayload, true, 1000),
