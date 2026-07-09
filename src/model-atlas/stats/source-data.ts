@@ -4,11 +4,11 @@ import {
 	buildAgentsLastExamMap,
 	getAgentsLastExamStats,
 } from "../scrapers/agents-last-exam";
-import { getArtificialAnalysisEvalsStats } from "../scrapers/artificial-analysis/evals";
 import {
 	buildArtificialAnalysisEvaluationResourceMap,
 	getArtificialAnalysisEvaluationResourceStats,
-} from "../scrapers/artificial-analysis/evaluation-resources";
+} from "../scrapers/artificial-analysis/benchmark-resources";
+import { getArtificialAnalysisLeaderboardStats } from "../scrapers/artificial-analysis/leaderboard";
 import {
 	buildBlueprintBenchMap,
 	getBlueprintBenchStats,
@@ -97,7 +97,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		valsIndexStats,
 		valsTerminalBenchStats,
 	] = await Promise.all([
-		getArtificialAnalysisEvalsStats(),
+		getArtificialAnalysisLeaderboardStats(),
 		getArtificialAnalysisEvaluationResourceStats(),
 		getModelsDevSourceStats(),
 		getAgentsLastExamStats(),

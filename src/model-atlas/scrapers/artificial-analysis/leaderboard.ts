@@ -1,13 +1,16 @@
 /**
- * Artificial Analysis main leaderboard scraper owns the broad score table and general model metrics.
+ * Artificial Analysis leaderboard scraper owns the broad score table and general model metrics.
  *
- * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the main table omits.
+ * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the leaderboard omits.
  */
 
 import { asRecord, type JsonObject } from "../../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import {
 	cleanArtificialAnalysisModelName,
+	extractArtificialAnalysisFlightCorpus,
+	findArtificialAnalysisFlightObjectEnd,
+	parseArtificialAnalysisFlightObject,
 	parseArtificialAnalysisReasoningEffort,
 } from "./common";
 
@@ -17,10 +20,8 @@ const ROW_DETECTION_KEY = "intelligenceIndex";
 const SPARSE_COLUMN_NULL_RATIO = 0.5;
 const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
 const MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD = 1_000_000;
-const NEXT_FLIGHT_CHUNK_REGEX =
-	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 
-export type ArtificialAnalysisScraperOptions = {
+export type ArtificialAnalysisLeaderboardOptions = {
 	url?: string;
 	timeoutMs?: number;
 	flatten?: boolean;
@@ -28,21 +29,22 @@ export type ArtificialAnalysisScraperOptions = {
 	selectedColumns?: string[];
 };
 
-export type ArtificialAnalysisScraperProcessOptions = {
+export type ArtificialAnalysisLeaderboardProcessOptions = {
 	flatten?: boolean;
 	dropMostlyNullColumns?: boolean;
 	selectedColumns?: string[];
 };
 
-export type ArtificialAnalysisScrapedRawPayload = {
+export type ArtificialAnalysisLeaderboardRawPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: JsonObject[];
 };
 
-export type ArtificialAnalysisScrapedPayload =
-	ArtificialAnalysisScrapedRawPayload;
+export type ArtificialAnalysisLeaderboardPayload =
+	ArtificialAnalysisLeaderboardRawPayload;
 
-export const ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS = [
+/** Leaderboard projection columns keep source-data callers off the larger raw page row shape. */
+export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
 	"model_id",
 	"model_url",
 	"logo",
@@ -54,13 +56,6 @@ export const ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS = [
 	"intelligence_index_cost",
 	"evaluations",
 ] as const;
-function decodeFlightChunk(raw: string): string {
-	try {
-		return JSON.parse(`"${raw}"`) as string;
-	} catch {
-		return raw;
-	}
-}
 
 function toAbsoluteAaLogoUrl(value: unknown): string | null {
 	if (typeof value !== "string" || value.length === 0) {
@@ -77,7 +72,7 @@ function toAbsoluteAaLogoUrl(value: unknown): string | null {
 	return `https://artificialanalysis.ai${normalized}`;
 }
 
-const EVALUATION_KEY_BY_SOURCE_KEY = {
+const BENCHMARK_KEY_BY_SOURCE_KEY = {
 	apexAgents: "apex_agents",
 	apex_agents: "apex_agents",
 	critpt: "critpt",
@@ -131,24 +126,24 @@ function normalizeMetricKey(key: string): string {
 function pickEvaluations(row: JsonObject): JsonObject {
 	const evaluations: JsonObject = {};
 	for (const [key, value] of Object.entries(row)) {
-		const normalizedKey = evaluationKeyBySourceKey(key);
-		if (normalizedKey == null) {
+		const benchmarkKey = benchmarkKeyBySourceKey(key);
+		if (benchmarkKey == null) {
 			continue;
 		}
 		if (typeof value === "number" || typeof value === "boolean") {
-			evaluations[normalizedKey] = value;
+			evaluations[benchmarkKey] = value;
 		}
 	}
 	return evaluations;
 }
 
-function evaluationKeyBySourceKey(key: string): string | null {
+function benchmarkKeyBySourceKey(key: string): string | null {
 	return (
-		EVALUATION_KEY_BY_SOURCE_KEY[
-			key as keyof typeof EVALUATION_KEY_BY_SOURCE_KEY
+		BENCHMARK_KEY_BY_SOURCE_KEY[
+			key as keyof typeof BENCHMARK_KEY_BY_SOURCE_KEY
 		] ??
-		EVALUATION_KEY_BY_SOURCE_KEY[
-			normalizeMetricKey(key) as keyof typeof EVALUATION_KEY_BY_SOURCE_KEY
+		BENCHMARK_KEY_BY_SOURCE_KEY[
+			normalizeMetricKey(key) as keyof typeof BENCHMARK_KEY_BY_SOURCE_KEY
 		] ??
 		null
 	);
@@ -157,7 +152,7 @@ function evaluationKeyBySourceKey(key: string): string | null {
 function pickIntelligence(row: JsonObject): JsonObject {
 	const omniscienceBreakdown = asRecord(row.omniscienceBreakdown);
 	const omniscienceTotal = asRecord(omniscienceBreakdown.total);
-	const intelligence: JsonObject = {
+	const intelligenceMetrics: JsonObject = {
 		intelligence_index: firstNumber(row, [
 			"intelligenceIndex",
 			"intelligence_index",
@@ -170,19 +165,19 @@ function pickIntelligence(row: JsonObject): JsonObject {
 			"omniscience_accuracy",
 		]),
 	};
-	if (intelligence.omniscience_accuracy == null) {
-		intelligence.omniscience_accuracy = firstNumber(omniscienceTotal, [
+	if (intelligenceMetrics.omniscience_accuracy == null) {
+		intelligenceMetrics.omniscience_accuracy = firstNumber(omniscienceTotal, [
 			"accuracy",
 		]);
 	}
-	return intelligence;
+	return intelligenceMetrics;
 }
 
 function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 	const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
-	const costPerTask = asRecord(row.intelligenceIndexCostPerTask);
-	const costPerTaskBreakdown = asRecord(costPerTask.cost);
-	const outputTokensPerTask = asRecord(
+	const costPerTaskRecord = asRecord(row.intelligenceIndexCostPerTask);
+	const costPerTaskBreakdown = asRecord(costPerTaskRecord.cost);
+	const outputTokensPerTaskRecord = asRecord(
 		row.intelligenceIndexOutputTokensPerTask,
 	);
 	const inputTokens = firstNumber(intelligenceTokenCounts, ["inputTokens"]);
@@ -225,7 +220,7 @@ function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 			"seconds_per_task",
 		]),
 		output_tokens_per_task:
-			firstNumber(outputTokensPerTask, ["output"]) ??
+			firstNumber(outputTokensPerTaskRecord, ["output"]) ??
 			firstNumber(row, ["output_tokens_per_task"]),
 	};
 }
@@ -246,54 +241,6 @@ function normalizeUndefinedToNull(value: unknown): unknown {
 		);
 	}
 	return value;
-}
-
-function extractFlightCorpus(pageHtml: string): string {
-	const matches = [...pageHtml.matchAll(NEXT_FLIGHT_CHUNK_REGEX)];
-	return matches.map((match) => decodeFlightChunk(match[1] ?? "")).join("\n");
-}
-
-function findObjectEnd(corpus: string, startIndex: number): number {
-	let depth = 0;
-	let inString = false;
-	let escaping = false;
-
-	for (let index = startIndex; index < corpus.length; index += 1) {
-		const char = corpus[index];
-		if (inString) {
-			if (escaping) {
-				escaping = false;
-			} else if (char === "\\") {
-				escaping = true;
-			} else if (char === '"') {
-				inString = false;
-			}
-			continue;
-		}
-		if (char === '"') {
-			inString = true;
-			continue;
-		}
-		if (char === "{") {
-			depth += 1;
-			continue;
-		}
-		if (char === "}") {
-			depth -= 1;
-			if (depth === 0) {
-				return index;
-			}
-		}
-	}
-	return -1;
-}
-
-function parseJsonObject(value: string): JsonObject | null {
-	try {
-		return asRecord(JSON.parse(value));
-	} catch {
-		return null;
-	}
 }
 
 function getRowIdentifier(row: JsonObject): string | null {
@@ -333,8 +280,8 @@ function flattenExpandedRow(row: JsonObject): JsonObject {
 
 	const flattenedRow: JsonObject = { ...row };
 
-	for (const source of [timescaleData, responseTimeMetrics]) {
-		for (const [key, value] of Object.entries(source)) {
+	for (const metricSource of [timescaleData, responseTimeMetrics]) {
+		for (const [key, value] of Object.entries(metricSource)) {
 			if (flattenedRow[key] == null && value !== undefined) {
 				flattenedRow[key] = value;
 			}
@@ -423,9 +370,10 @@ type RowSelectionContext = {
 	modelCreators: JsonObject;
 	providerSlug: string | null;
 	modelSlug: string | null;
-	creatorSlug: string | null;
-	modelUrlSlug: string | null;
+	modelRouteCreatorSlug: string | null;
+	modelUrlPath: string | null;
 };
+
 function getProviderSlug(row: JsonObject, creator: JsonObject): string | null {
 	const providerName =
 		typeof creator.name === "string"
@@ -443,7 +391,7 @@ function getProviderSlug(row: JsonObject, creator: JsonObject): string | null {
 }
 
 /** Inline creator fields are normalized to the nested creator shape used by hydrated page rows. */
-function flatCreatorFromRow(row: JsonObject): JsonObject {
+function flatCreatorFieldsFromRow(row: JsonObject): JsonObject {
 	return {
 		name: firstString(row, ["modelCreatorName"]),
 		slug: firstString(row, ["modelCreatorSlug"]),
@@ -452,7 +400,7 @@ function flatCreatorFromRow(row: JsonObject): JsonObject {
 	};
 }
 
-function modelUrlSlugFromRow(
+function modelUrlPathFromRow(
 	row: JsonObject,
 	fallbackSlug: string | null,
 ): string | null {
@@ -467,27 +415,27 @@ function modelUrlSlugFromRow(
 
 function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 	const creator = {
-		...flatCreatorFromRow(row),
+		...flatCreatorFieldsFromRow(row),
 		...asRecord(row.creator),
 	};
 	const modelCreators = {
-		...flatCreatorFromRow(row),
+		...flatCreatorFieldsFromRow(row),
 		...asRecord(row.model_creators),
 	};
 	const providerSlug = getProviderSlug(row, creator);
 	const modelSlug = firstString(row, ["slug"]);
-	const creatorSlug =
+	const modelRouteCreatorSlug =
 		firstString(modelCreators, ["slug"]) ??
 		firstString(creator, ["slug"]) ??
 		providerSlug;
-	const modelUrlSlug = modelUrlSlugFromRow(row, modelSlug);
+	const modelUrlPath = modelUrlPathFromRow(row, modelSlug);
 	return {
 		creator,
 		modelCreators,
 		providerSlug,
 		modelSlug,
-		creatorSlug,
-		modelUrlSlug,
+		modelRouteCreatorSlug,
+		modelUrlPath,
 	};
 }
 
@@ -516,8 +464,8 @@ function getSelectedColumnValue(
 		modelCreators,
 		providerSlug,
 		modelSlug,
-		creatorSlug,
-		modelUrlSlug,
+		modelRouteCreatorSlug,
+		modelUrlPath,
 	} = context;
 
 	switch (column) {
@@ -528,17 +476,17 @@ function getSelectedColumnValue(
 		case "model_url":
 			return (
 				row.model_url ??
-				(creatorSlug && modelSlug
-					? `/models/${creatorSlug}/${modelSlug}`
+				(modelRouteCreatorSlug && modelSlug
+					? `/models/${modelRouteCreatorSlug}/${modelSlug}`
 					: null) ??
 				(typeof row.id === "string" ? row.id : null)
 			);
 		case "model_id":
-			return typeof modelUrlSlug === "string" && modelUrlSlug.includes("/")
-				? modelUrlSlug
-				: creatorSlug && modelUrlSlug
-					? `${creatorSlug}/${modelUrlSlug}`
-					: (modelUrlSlug ?? row.model_url ?? null);
+			return typeof modelUrlPath === "string" && modelUrlPath.includes("/")
+				? modelUrlPath
+				: modelRouteCreatorSlug && modelUrlPath
+					? `${modelRouteCreatorSlug}/${modelUrlPath}`
+					: (modelUrlPath ?? row.model_url ?? null);
 		case "name":
 			return cleanArtificialAnalysisModelName(
 				row.short_name ??
@@ -652,36 +600,40 @@ function selectColumns(
 	rows: JsonObject[],
 	selectedColumns: string[],
 ): JsonObject[] {
-	const keepSet = new Set(
+	const selectedColumnSet = new Set(
 		selectedColumns.filter(
 			(column) => typeof column === "string" && column.length > 0,
 		),
 	);
-	if (keepSet.size === 0) {
+	if (selectedColumnSet.size === 0) {
 		return rows;
 	}
 	return rows.map((row) => {
-		const selectedRow: JsonObject = {};
-		const context = buildRowSelectionContext(row);
+		const projectedRow: JsonObject = {};
+		const selectionContext = buildRowSelectionContext(row);
 
-		for (const column of keepSet) {
-			const columnValue = getSelectedColumnValue(column, row, context);
-			if (columnValue !== NO_COLUMN_VALUE) {
-				selectedRow[column] = normalizeUndefinedToNull(columnValue);
+		for (const column of selectedColumnSet) {
+			const projectedValue = getSelectedColumnValue(
+				column,
+				row,
+				selectionContext,
+			);
+			if (projectedValue !== NO_COLUMN_VALUE) {
+				projectedRow[column] = normalizeUndefinedToNull(projectedValue);
 			} else {
-				selectedRow[column] = normalizeUndefinedToNull(row[column] ?? null);
+				projectedRow[column] = normalizeUndefinedToNull(row[column] ?? null);
 			}
 		}
-		return selectedRow;
+		return projectedRow;
 	});
 }
 
-function extractRowsFromCorpus(corpus: string): JsonObject[] {
-	const rowsById = new Map<string, JsonObject>();
+function extractLeaderboardRowsFromCorpus(flightCorpus: string): JsonObject[] {
+	const leaderboardRowsById = new Map<string, JsonObject>();
 
 	let cursor = 0;
 	while (true) {
-		const hitIndex = corpus.indexOf(`"${ROW_DETECTION_KEY}":`, cursor);
+		const hitIndex = flightCorpus.indexOf(`"${ROW_DETECTION_KEY}":`, cursor);
 		if (hitIndex === -1) {
 			break;
 		}
@@ -689,51 +641,55 @@ function extractRowsFromCorpus(corpus: string): JsonObject[] {
 
 		const searchStart = Math.max(0, hitIndex - MODEL_SEARCH_BACKTRACK_CHARS);
 		for (let backIndex = hitIndex; backIndex >= searchStart; backIndex -= 1) {
-			if (corpus[backIndex] !== "{") {
+			if (flightCorpus[backIndex] !== "{") {
 				continue;
 			}
-			const endIndex = findObjectEnd(corpus, backIndex);
+			const endIndex = findArtificialAnalysisFlightObjectEnd(
+				flightCorpus,
+				backIndex,
+			);
 			if (endIndex === -1 || endIndex < hitIndex) {
 				continue;
 			}
-			const candidateText = corpus.slice(backIndex, endIndex + 1);
-			const row = parseJsonObject(candidateText);
-			if (!row) {
+			const candidateRowText = flightCorpus.slice(backIndex, endIndex + 1);
+			const candidateRow =
+				parseArtificialAnalysisFlightObject(candidateRowText);
+			if (!candidateRow) {
 				continue;
 			}
-			if (!(ROW_DETECTION_KEY in row)) {
+			if (!(ROW_DETECTION_KEY in candidateRow)) {
 				continue;
 			}
-			const rowId = getRowIdentifier(row);
+			const rowId = getRowIdentifier(candidateRow);
 			if (!rowId) {
 				continue;
 			}
-			rowsById.set(rowId, row);
+			leaderboardRowsById.set(rowId, candidateRow);
 			break;
 		}
 	}
-	return [...rowsById.values()];
+	return [...leaderboardRowsById.values()];
 }
 
-export function processArtificialAnalysisScrapedRows(
+export function processArtificialAnalysisLeaderboardRows(
 	rows: JsonObject[],
-	options: ArtificialAnalysisScraperProcessOptions = {},
+	options: ArtificialAnalysisLeaderboardProcessOptions = {},
 ): JsonObject[] {
 	const shouldFlatten = options.flatten ?? true;
 	const shouldDropMostlyNullColumns = options.dropMostlyNullColumns ?? true;
 	const selectedColumns = options.selectedColumns ?? [];
 
-	const currentRows = sortLeaderboardRows(rows);
-	const normalizedRows = shouldFlatten
-		? currentRows.map(flattenExpandedRow)
-		: currentRows;
+	const sortedRows = sortLeaderboardRows(rows);
+	const flattenedRows = shouldFlatten
+		? sortedRows.map(flattenExpandedRow)
+		: sortedRows;
 	if (selectedColumns.length > 0) {
-		return selectColumns(normalizedRows, selectedColumns);
+		return selectColumns(flattenedRows, selectedColumns);
 	}
-	const cleanedRows = shouldDropMostlyNullColumns
-		? dropMostlyNullColumns(normalizedRows, SPARSE_COLUMN_NULL_RATIO)
-		: normalizedRows;
-	return selectColumns(cleanedRows, selectedColumns);
+	const nonSparseRows = shouldDropMostlyNullColumns
+		? dropMostlyNullColumns(flattenedRows, SPARSE_COLUMN_NULL_RATIO)
+		: flattenedRows;
+	return selectColumns(nonSparseRows, selectedColumns);
 }
 
 /**
@@ -741,9 +697,9 @@ export function processArtificialAnalysisScrapedRows(
  *
  * This function intentionally performs no flattening/cleaning/selection.
  */
-export async function getArtificialAnalysisScrapedRawStats(
-	options: Pick<ArtificialAnalysisScraperOptions, "url" | "timeoutMs"> = {},
-): Promise<ArtificialAnalysisScrapedRawPayload> {
+export async function getArtificialAnalysisLeaderboardRawStats(
+	options: Pick<ArtificialAnalysisLeaderboardOptions, "url" | "timeoutMs"> = {},
+): Promise<ArtificialAnalysisLeaderboardRawPayload> {
 	try {
 		const url = options.url ?? DEFAULT_SCRAPE_URL;
 		const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -753,14 +709,16 @@ export async function getArtificialAnalysisScrapedRawStats(
 			throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
 		}
 		const pageHtml = await response.text();
-		const corpus = extractFlightCorpus(pageHtml);
-		const data = sortLeaderboardRows(
-			extractRowsFromCorpus(corpus).filter(isLeaderboardModelRow),
+		const flightCorpus = extractArtificialAnalysisFlightCorpus(pageHtml);
+		const leaderboardRows = sortLeaderboardRows(
+			extractLeaderboardRowsFromCorpus(flightCorpus).filter(
+				isLeaderboardModelRow,
+			),
 		);
 
 		return {
 			fetched_at_epoch_seconds: nowEpochSeconds(),
-			data,
+			data: leaderboardRows,
 		};
 	} catch {
 		return {
@@ -770,27 +728,16 @@ export async function getArtificialAnalysisScrapedRawStats(
 	}
 }
 
-/**
- * Scrape expanded LLM leaderboard rows from Artificial Analysis page payload.
- *
- * This parser targets Next.js flight chunks embedded in HTML and is best-effort.
- * It is failure-safe and returns an empty payload on any fetch/parse failure.
- */
-export async function getArtificialAnalysisScrapedStats(
-	options: ArtificialAnalysisScraperOptions = {},
-): Promise<ArtificialAnalysisScrapedPayload> {
-	const rawPayload = await getArtificialAnalysisScrapedRawStats(options);
+/** Scrape the Artificial Analysis leaderboard with the selected columns used by source matching and scoring. */
+export async function getArtificialAnalysisLeaderboardStats(
+	options: Omit<ArtificialAnalysisLeaderboardOptions, "selectedColumns"> = {},
+): Promise<ArtificialAnalysisLeaderboardPayload> {
+	const rawPayload = await getArtificialAnalysisLeaderboardRawStats(options);
 	return {
 		fetched_at_epoch_seconds: rawPayload.fetched_at_epoch_seconds,
-		data: processArtificialAnalysisScrapedRows(rawPayload.data, options),
+		data: processArtificialAnalysisLeaderboardRows(rawPayload.data, {
+			...options,
+			selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
+		}),
 	};
-}
-
-export async function getArtificialAnalysisEvalsStats(
-	options: Omit<ArtificialAnalysisScraperOptions, "selectedColumns"> = {},
-): Promise<ArtificialAnalysisScrapedPayload> {
-	return getArtificialAnalysisScrapedStats({
-		...options,
-		selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
-	});
 }

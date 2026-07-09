@@ -1,7 +1,7 @@
 /** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
 import { normalizeElo } from "../../math-utils";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/evaluation-resources";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
 import { asFiniteNumber, asRecord } from "../../shared";
 import type { LlmStatsSourceData } from "../types";
 import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";

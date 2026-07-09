@@ -4,7 +4,7 @@ import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
 } from "../scrapers/agents-last-exam";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/evaluation-resources";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../scrapers/browsecomp";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";

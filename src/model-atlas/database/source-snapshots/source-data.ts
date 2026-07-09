@@ -1,7 +1,7 @@
 /** Persisted snapshot rows are reconstructed into the same lookup maps as a live source refresh. */
 
 import { buildAgentsLastExamMap } from "../../scrapers/agents-last-exam";
-import { buildArtificialAnalysisEvaluationResourceMap } from "../../scrapers/artificial-analysis/evaluation-resources";
+import { buildArtificialAnalysisEvaluationResourceMap } from "../../scrapers/artificial-analysis/benchmark-resources";
 import { buildBlueprintBenchMap } from "../../scrapers/blueprint-bench";
 import { buildBrowseCompMap } from "../../scrapers/browsecomp";
 import { buildCursorBenchMap } from "../../scrapers/cursorbench";

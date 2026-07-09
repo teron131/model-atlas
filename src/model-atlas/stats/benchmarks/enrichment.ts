@@ -9,7 +9,7 @@ import {
 	type ArtificialAnalysisEvaluationResourceByBenchmark,
 	type ArtificialAnalysisEvaluationResourceRow,
 	findArtificialAnalysisEvaluationResourceRow,
-} from "../../scrapers/artificial-analysis/evaluation-resources";
+} from "../../scrapers/artificial-analysis/benchmark-resources";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../../scrapers/browsecomp";
 import { findDeepSWEModelScore } from "../../scrapers/deep-swe";

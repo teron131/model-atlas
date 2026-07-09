@@ -10,7 +10,7 @@ import type {
 import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	buildArtificialAnalysisEvaluationResourceMap,
-} from "../src/model-atlas/scrapers/artificial-analysis/evaluation-resources";
+} from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
 import { buildGdpPdfMap } from "../src/model-atlas/scrapers/gdp-pdf";

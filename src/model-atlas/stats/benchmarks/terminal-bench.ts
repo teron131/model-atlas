@@ -1,7 +1,7 @@
 /**
  * Terminal-Bench aggregate policy over score/resource and harness source rows.
  *
- * The Artificial Analysis main leaderboard is the broad score table; benchmark-specific pages such as Terminal-Bench add per-task cost, time, and token resources that the main table does not carry.
+ * The Artificial Analysis leaderboard is the broad score table; benchmark-specific pages such as Terminal-Bench add per-task cost, time, and token resources that the leaderboard does not carry.
  */
 
 import { finiteScoreValues, medianOfFinite } from "../../math-utils";
@@ -9,7 +9,7 @@ import {
 	type ArtificialAnalysisEvaluationResourceByBenchmark,
 	type ArtificialAnalysisEvaluationResourceRow,
 	findArtificialAnalysisEvaluationResourceRow,
-} from "../../scrapers/artificial-analysis/evaluation-resources";
+} from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
 	findTerminalBenchRows,
 	type TerminalBenchModelHarnessRow,

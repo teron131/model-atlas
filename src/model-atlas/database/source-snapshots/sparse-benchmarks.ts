@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
-} from "../../scrapers/artificial-analysis/evaluation-resources";
+} from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
 	type BlueprintBenchModelScoreRow,
 	getBlueprintBenchStats,

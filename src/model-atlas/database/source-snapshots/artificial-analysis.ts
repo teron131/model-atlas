@@ -3,10 +3,10 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import {
-	ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS,
-	getArtificialAnalysisScrapedRawStats,
-	processArtificialAnalysisScrapedRows,
-} from "../../scrapers/artificial-analysis/evals";
+	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+	getArtificialAnalysisLeaderboardRawStats,
+	processArtificialAnalysisLeaderboardRows,
+} from "../../scrapers/artificial-analysis/leaderboard";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
 	AGENTIC_INDEX_KEYS,
@@ -86,8 +86,8 @@ function artificialAnalysisRowIsUnavailable(row: JsonObject): boolean {
 function selectedArtificialAnalysisRows(
 	rows: SourceSnapshots["artificialAnalysisRawRows"],
 ): SourceSnapshots["artificialAnalysisSelectedRows"] {
-	return processArtificialAnalysisScrapedRows(rows, {
-		selectedColumns: [...ARTIFICIAL_ANALYSIS_EVALS_ONLY_COLUMNS],
+	return processArtificialAnalysisLeaderboardRows(rows, {
+		selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
 	});
 }
 
@@ -107,7 +107,7 @@ export function mergeArtificialAnalysisRow(
 	return fetchedRow;
 }
 
-/** Loads raw Artificial Analysis rows and projects the eval-only rows consumed by stats. */
+/** Loads raw Artificial Analysis rows and projects the leaderboard rows consumed by stats. */
 export async function artificialAnalysisSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -122,7 +122,7 @@ export async function artificialAnalysisSnapshot(
 		cached != null &&
 		options.replaceSourceRows !== true
 	) {
-		const cachedSnapshot = snapshotRowsWithStates({
+		const cachedRowSnapshot = snapshotRowsWithStates({
 			source: "artificial_analysis",
 			cachedRows: cached.artificialAnalysisRawRows,
 			fetchedRows: [],
@@ -134,29 +134,30 @@ export async function artificialAnalysisSnapshot(
 			nowEpochSeconds,
 		});
 		return {
-			artificialAnalysisRawRows: cachedSnapshot.rows,
+			artificialAnalysisRawRows: cachedRowSnapshot.rows,
 			artificialAnalysisSelectedRows: selectedArtificialAnalysisRows(
-				cachedSnapshot.rows,
+				cachedRowSnapshot.rows,
 			),
 			sourceStatus: {
 				source: "artificial_analysis",
 				fetchedAt: cached.fetchedAt,
-				sourceInputCount: cachedSnapshot.rows.length,
-				sourceRowStates: cachedSnapshot.states,
+				sourceInputCount: cachedRowSnapshot.rows.length,
+				sourceRowStates: cachedRowSnapshot.states,
 				fetchedAtKey: "artificialAnalysis",
 			},
 		};
 	}
-	const fetched = await getArtificialAnalysisScrapedRawStats();
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched.fetched_at_epoch_seconds,
-		fetched.data.length,
+	const fetchedLeaderboardPayload =
+		await getArtificialAnalysisLeaderboardRawStats();
+	const hasUsableFetchedLeaderboardRows = shouldUseFetchedRows(
+		fetchedLeaderboardPayload.fetched_at_epoch_seconds,
+		fetchedLeaderboardPayload.data.length,
 	);
-	const snapshot = snapshotRowsWithStates({
+	const rowSnapshot = snapshotRowsWithStates({
 		source: "artificial_analysis",
 		cachedRows: cached?.artificialAnalysisRawRows,
-		fetchedRows: fetched.data,
-		fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+		fetchedRows: fetchedLeaderboardPayload.data,
+		fetchedAtEpochSeconds: fetchedLeaderboardPayload.fetched_at_epoch_seconds,
 		options,
 		rowKey: (row) => rowStringValue(row, "model_id"),
 		rowLabel: (row) => rowStringValue(row, "name"),
@@ -166,20 +167,20 @@ export async function artificialAnalysisSnapshot(
 		nowEpochSeconds,
 	});
 	const fetchedAt = snapshotFetchedAt(
-		hasUsableFetchedRows,
+		hasUsableFetchedLeaderboardRows,
 		cached?.fetchedAt,
-		fetched.fetched_at_epoch_seconds,
+		fetchedLeaderboardPayload.fetched_at_epoch_seconds,
 	);
 	return {
-		artificialAnalysisRawRows: snapshot.rows,
+		artificialAnalysisRawRows: rowSnapshot.rows,
 		artificialAnalysisSelectedRows: selectedArtificialAnalysisRows(
-			snapshot.rows,
+			rowSnapshot.rows,
 		),
 		sourceStatus: {
 			source: "artificial_analysis",
 			fetchedAt,
-			sourceInputCount: snapshot.rows.length,
-			sourceRowStates: snapshot.states,
+			sourceInputCount: rowSnapshot.rows.length,
+			sourceRowStates: rowSnapshot.states,
 			fetchedAtKey: "artificialAnalysis",
 		},
 	};
