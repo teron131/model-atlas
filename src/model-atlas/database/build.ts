@@ -6,10 +6,6 @@ import type { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../constants";
 import { getMatchDiagnostics } from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
-import {
-	buildAutomationBenchMap,
-	getAutomationBenchStats,
-} from "../scrapers/automation-bench";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
 import { enrichModelRowsWithOpenRouter } from "../stats/openrouter-enrichment";
@@ -277,14 +273,7 @@ export async function buildDatabase(
 			STAGE_CONFIG.scoring,
 			options,
 		);
-		const automationBench = await getAutomationBenchStats();
-		const sourceData = {
-			...cachedSourceDataFromSnapshots(snapshots),
-			automationBench: {
-				rows: automationBench.model_scores,
-				scoreByModelName: buildAutomationBenchMap(automationBench.model_scores),
-			},
-		};
+		const sourceData = cachedSourceDataFromSnapshots(snapshots);
 		const matchDiagnostics = await getMatchDiagnostics({
 			scrapedRows: sourceData.artificialAnalysis.rows,
 			modelsDevModels: sourceData.modelsDev.rows,

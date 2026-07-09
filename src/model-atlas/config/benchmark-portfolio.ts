@@ -12,6 +12,12 @@ const ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY = {
 	tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
+const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY = {
+	source: "artificial_analysis",
+	unit: "per_task",
+	tokenMeasure: "output_tokens",
+} as const satisfies BenchmarkResourcePolicy;
+
 const BENCHMARK_PER_TASK_RESOURCE_POLICY = {
 	source: "benchmark",
 	unit: "per_task",
@@ -31,12 +37,6 @@ const BENCHMARK_TOTAL_RESOURCE_POLICY = {
 } as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_PORTFOLIO = {
-	aa_briefcase: {
-		group: "frontier",
-		intelligencePortion: 0.25,
-		agenticPortion: 0.75,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
-	},
 	agents_last_exam: {
 		group: "frontier",
 		intelligencePortion: 0.2,
@@ -47,18 +47,24 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	automation_bench: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	blueprint_bench_2: {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
+	},
+	briefcase: {
+		group: "frontier",
+		intelligencePortion: 0.25,
+		agenticPortion: 0.75,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	browsecomp: {
 		group: "baseline",
@@ -69,7 +75,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	cursorbench: {
 		group: "frontier",
@@ -92,13 +98,13 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 0.6,
 		agenticPortion: 0.4,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	hle: {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	lcr: {
 		group: "baseline",
@@ -124,13 +130,13 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		intelligencePortion: 0,
 		agenticPortion: 1,
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	terminalbench_v21: {
 		group: "frontier",
 		intelligencePortion: 0,
 		agenticPortion: 1,
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
 	toolathlon: {
 		group: "baseline",

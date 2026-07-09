@@ -117,11 +117,11 @@ const MIN_MAX_SCORE_TEXT = "min-max score across models";
 const FULL_OVERALL_TEXT = "Full Overall";
 
 const BENCHMARK_LABEL_BY_KEY = {
-	aa_briefcase: "AA-Briefcase",
 	agents_last_exam: "Agents' Last Exam",
 	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
 	blueprint_bench_2: "Blueprint-Bench 2",
+	briefcase: "Briefcase",
 	browsecomp: "BrowseComp",
 	critpt: "CritPt",
 	cursorbench: "CursorBench",

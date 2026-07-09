@@ -32,11 +32,11 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_KEYS = [
 ] as const;
 
 export const MODEL_ATLAS_EVALUATION_KEYS = [
-	"aa_briefcase",
 	"agents_last_exam",
 	"apex_agents",
 	"automation_bench",
 	"blueprint_bench_2",
+	"briefcase",
 	"browsecomp",
 	"critpt",
 	"cursorbench",

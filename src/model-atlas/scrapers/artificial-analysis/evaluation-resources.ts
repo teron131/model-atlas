@@ -39,13 +39,50 @@ const REASONING_EFFORT_SUFFIXES = [
 	"max",
 ] as const;
 
+type JsonPath = readonly string[];
+
+type OutputSpeedAndToolMsFallback = {
+	kind: "output_speed_plus_tool_ms";
+	output_speed_path: JsonPath;
+	tool_ms_path: JsonPath;
+};
+
+type SecondsPerTaskPolicy =
+	| {
+			kind: "value";
+			path: JsonPath;
+	  }
+	| {
+			kind: "total_ms";
+			paths: readonly JsonPath[];
+			fallback?: OutputSpeedAndToolMsFallback;
+	  };
+
+const DEFAULT_SECONDS_PER_TASK_POLICY = {
+	kind: "value",
+	path: ["evalTimePerTask"],
+} as const satisfies SecondsPerTaskPolicy;
+
+const BRIEFCASE_SECONDS_PER_TASK_POLICY = {
+	kind: "total_ms",
+	paths: [
+		["briefcase_breakdown", "telemetry", "total_generation_ms"],
+		["briefcaseBreakdown", "telemetry", "total_generation_ms"],
+	],
+	fallback: {
+		kind: "output_speed_plus_tool_ms",
+		output_speed_path: ["timescaleData", "median_output_speed"],
+		tool_ms_path: ["briefcase", "totalToolMs"],
+	},
+} as const satisfies SecondsPerTaskPolicy;
+
 export type ArtificialAnalysisEvaluationResourcePage = {
 	benchmark_key: string;
 	score_key?: string;
-	score_path?: readonly string[];
-	cost_path?: readonly string[];
-	token_counts_path?: readonly string[];
-	seconds_per_task?: "eval_time_per_task" | "briefcase_estimate";
+	score_path?: JsonPath;
+	cost_path?: JsonPath;
+	token_counts_path?: JsonPath;
+	seconds_policy?: SecondsPerTaskPolicy;
 	row_detection_key?: string;
 	url: string;
 	task_run_count: number;
@@ -87,19 +124,25 @@ export type ArtificialAnalysisEvaluationResourceByBenchmark = ReadonlyMap<
 
 export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 	{
-		benchmark_key: "aa_briefcase",
-		score_path: ["briefcase", "elo"],
-		cost_path: ["briefcaseCost"],
-		token_counts_path: ["canonicalEvalTokenCounts", "briefcase"],
-		seconds_per_task: "briefcase_estimate",
-		row_detection_key: "briefcase",
-		url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
-		task_run_count: 91,
-	},
-	{
 		benchmark_key: "apex_agents",
 		url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
 		task_run_count: 452,
+	},
+	{
+		benchmark_key: "automation_bench",
+		score_path: ["automation_bench_breakdown", "summary", "completion"],
+		url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
+		task_run_count: 657,
+	},
+	{
+		benchmark_key: "briefcase",
+		score_path: ["briefcase", "elo"],
+		cost_path: ["briefcaseCost"],
+		token_counts_path: ["canonicalEvalTokenCounts", "briefcase"],
+		seconds_policy: BRIEFCASE_SECONDS_PER_TASK_POLICY,
+		row_detection_key: "briefcase",
+		url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+		task_run_count: 91,
 	},
 	{
 		benchmark_key: "critpt",
@@ -255,21 +298,36 @@ function tokenCountsRecord(
 	);
 }
 
-function estimatedBriefcaseSecondsPerTask(
+function firstNestedNumber(
+	row: Record<string, unknown>,
+	paths: readonly JsonPath[],
+): number | null {
+	for (const path of paths) {
+		const value = asFiniteNumber(nestedValue(row, path));
+		if (value != null) {
+			return value;
+		}
+	}
+	return null;
+}
+
+function fallbackSecondsPerTask(
 	row: Record<string, unknown>,
 	outputTokensPerTask: number | null,
-	page: ArtificialAnalysisEvaluationResourcePage,
+	taskRunCount: number,
+	fallback: OutputSpeedAndToolMsFallback | undefined,
 ): number | null {
+	if (fallback == null) {
+		return null;
+	}
 	const outputSpeed = asFiniteNumber(
-		asRecord(row.timescaleData).median_output_speed,
+		nestedValue(row, fallback.output_speed_path),
 	);
-	const toolMs = asFiniteNumber(nestedValue(row, ["briefcase", "totalToolMs"]));
+	const toolMs = asFiniteNumber(nestedValue(row, fallback.tool_ms_path));
 	if (outputSpeed == null || outputTokensPerTask == null || toolMs == null) {
 		return null;
 	}
-	return (
-		outputTokensPerTask / outputSpeed + toolMs / 1000 / page.task_run_count
-	);
+	return outputTokensPerTask / outputSpeed + toolMs / 1000 / taskRunCount;
 }
 
 function secondsPerTask(
@@ -277,9 +335,22 @@ function secondsPerTask(
 	outputTokensPerTask: number | null,
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): number | null {
-	return page.seconds_per_task === "briefcase_estimate"
-		? estimatedBriefcaseSecondsPerTask(row, outputTokensPerTask, page)
-		: asFiniteNumber(row.evalTimePerTask);
+	const policy = page.seconds_policy ?? DEFAULT_SECONDS_PER_TASK_POLICY;
+	if (policy.kind === "value") {
+		return asFiniteNumber(nestedValue(row, policy.path));
+	}
+	const msPerTask = perTask(
+		firstNestedNumber(row, policy.paths),
+		page.task_run_count,
+	);
+	return msPerTask == null
+		? fallbackSecondsPerTask(
+				row,
+				outputTokensPerTask,
+				page.task_run_count,
+				policy.fallback,
+			)
+		: msPerTask / 1000;
 }
 
 function extractArtificialAnalysisEvaluationRowsFromPageHtml(

@@ -31,11 +31,11 @@ When the benchmark portfolio changes, this table should change with it. Addition
 
 | Benchmark | Group | Intelligence Portion | Agentic Portion | Description and Decision Note |
 | --- | --- | ---: | ---: | --- |
-| AA-Briefcase | frontier | 25% | 75% | Long-horizon professional knowledge-work benchmark over multi-file deliverables. It is mostly agentic because models must manage file outputs and extended work, with some intelligence credit for professional reasoning and synthesis. The raw Elo score is normalized with the same AA GDPval-style `clamp((Elo - 500) / 2000)` transform before it enters Model Atlas quality scoring. |
-| APEX&nbsp;Agents | frontier | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
-| AutomationBench | frontier | 0% | 100% | Zapier workflow-automation benchmark over realistic app tasks. It is frontier because it tests business-process execution with tool-like constraints, and its per-task cost can feed Value. |
+| APEX&nbsp;Agents | frontier | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
+| AutomationBench | frontier | 0% | 100% | Artificial Analysis implementation of Zapier workflow-automation tasks over simulated SaaS app environments. It is frontier because it tests business-process execution with tool-like constraints, and its AA per-task resources can feed Speed and Value. |
 | Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
+| Briefcase | frontier | 25% | 75% | Artificial Analysis long-horizon professional knowledge-work benchmark over multi-file deliverables. It is mostly agentic because models must manage file outputs and extended work, with some intelligence credit for professional reasoning and synthesis. The raw Elo score is normalized with the same AA GDPval-style `clamp((Elo - 500) / 2000)` transform before it enters Model Atlas quality scoring. |
 | CritPt | frontier | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
 | CursorBench | frontier | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks from real editor sessions. It is frontier because it separates current coding agents on practical workflow tasks; Composer rows are excluded because their model data is not independently available. |
 | DeepSWE | frontier | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using the default xhigh row when available and otherwise the best reported pass@1 row. |
@@ -66,7 +66,7 @@ Speed and Value are secondary. They matter because downstream applications have 
 
 Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio.
 
-AA-Briefcase comes from the dedicated Artificial Analysis evaluation page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA evaluation-resource benchmarks.
+Briefcase comes from the dedicated Artificial Analysis evaluation page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA evaluation-resource benchmarks.
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated price efficiency. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
@@ -80,7 +80,7 @@ Toolathlon uses the reported score only, preserves self-reported provenance, and
 
 CursorBench preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
-AutomationBench supplies public workflow-automation scores, reasoning-effort labels, per-task cost, and domain winners. Model Atlas uses the overall leaderboard score with a bounded domain-leadership lift, so strong domain leaders get a small credit without overriding the main leaderboard. Per-task cost can feed Value; AutomationBench does not feed Speed unless comparable runtime appears.
+AutomationBench comes from the dedicated Artificial Analysis evaluation page, not Zapier's hosted leaderboard. Model Atlas uses the AA headline score directly and keeps the page's reasoning-effort label, per-task cost, runtime, and token telemetry for resource scoring.
 
 Blueprint-Bench 2 uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
 

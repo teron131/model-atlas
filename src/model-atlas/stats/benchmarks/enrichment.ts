@@ -5,8 +5,11 @@ import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
 } from "../../scrapers/agents-last-exam";
-import { findArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/evaluation-resources";
-import { findAutomationBenchScoreRow } from "../../scrapers/automation-bench";
+import {
+	type ArtificialAnalysisEvaluationResourceByBenchmark,
+	type ArtificialAnalysisEvaluationResourceRow,
+	findArtificialAnalysisEvaluationResourceRow,
+} from "../../scrapers/artificial-analysis/evaluation-resources";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../../scrapers/browsecomp";
 import { findDeepSWEModelScore } from "../../scrapers/deep-swe";
@@ -25,10 +28,6 @@ export type BenchmarkEnrichmentLookups = {
 	>;
 	artificialAnalysisEvaluationResources: Pick<
 		LlmStatsSourceData["artificialAnalysisEvaluationResources"],
-		"scoreByModelName"
-	>;
-	automationBench: Pick<
-		LlmStatsSourceData["automationBench"],
 		"scoreByModelName"
 	>;
 	blueprintBench: Pick<
@@ -53,6 +52,11 @@ export type BenchmarkEnrichment = {
 	scoringSources: NonNullable<LlmStatsScoringSources>;
 };
 
+type ArtificialAnalysisResourceLookup = {
+	modelNameCandidates: unknown[];
+	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark;
+};
+
 function findSourceRow<T>(
 	candidateNames: unknown[],
 	scoreByModelName: ReadonlyMap<string, T>,
@@ -69,6 +73,25 @@ function findSourceRow<T>(
 	return null;
 }
 
+function addArtificialAnalysisResourceEvaluation(
+	evaluations: Record<string, unknown>,
+	scoringSources: NonNullable<LlmStatsScoringSources>,
+	lookup: ArtificialAnalysisResourceLookup,
+	key: string,
+	score: (row: ArtificialAnalysisEvaluationResourceRow) => unknown,
+): void {
+	const row = findArtificialAnalysisEvaluationResourceRow(
+		key,
+		lookup.modelNameCandidates,
+		lookup.rowsByBenchmark,
+	);
+	if (row == null) {
+		return;
+	}
+	evaluations[key] = score(row);
+	scoringSources[key] = row;
+}
+
 export function benchmarkEnrichment(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
@@ -76,6 +99,11 @@ export function benchmarkEnrichment(
 ): BenchmarkEnrichment {
 	const evaluations: Record<string, unknown> = {};
 	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
+	const artificialAnalysisResourceLookup = {
+		modelNameCandidates,
+		rowsByBenchmark:
+			lookups.artificialAnalysisEvaluationResources.scoreByModelName,
+	};
 	for (const key of Object.keys(baseEvaluations)) {
 		const resourceRow = findArtificialAnalysisEvaluationResourceRow(
 			key,
@@ -86,15 +114,13 @@ export function benchmarkEnrichment(
 			scoringSources[key] = resourceRow;
 		}
 	}
-	const aaBriefcase = findArtificialAnalysisEvaluationResourceRow(
-		"aa_briefcase",
-		modelNameCandidates,
-		lookups.artificialAnalysisEvaluationResources.scoreByModelName,
+	addArtificialAnalysisResourceEvaluation(
+		evaluations,
+		scoringSources,
+		artificialAnalysisResourceLookup,
+		"briefcase",
+		(row) => normalizeElo(row.score, 500, 2000),
 	);
-	if (aaBriefcase != null) {
-		evaluations.aa_briefcase = normalizeElo(aaBriefcase.score, 500, 2000);
-		scoringSources.aa_briefcase = aaBriefcase;
-	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
 		lookups.agentsLastExam.scoreByModelName,
@@ -119,14 +145,13 @@ export function benchmarkEnrichment(
 		scoringSources.terminalbench_v21 = terminalBench;
 	}
 
-	const automationBenchScore = findAutomationBenchScoreRow(
-		modelNameCandidates,
-		lookups.automationBench.scoreByModelName,
+	addArtificialAnalysisResourceEvaluation(
+		evaluations,
+		scoringSources,
+		artificialAnalysisResourceLookup,
+		"automation_bench",
+		(row) => row.score,
 	);
-	if (automationBenchScore != null) {
-		evaluations.automation_bench = automationBenchScore.adjusted_score;
-		scoringSources.automation_bench = automationBenchScore;
-	}
 
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,
