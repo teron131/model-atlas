@@ -4,7 +4,7 @@ import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { publicCacheHeaders } from "../cache-headers";
 import { publicJsonPayload } from "./public-json";
 import {
-	readBestStoredSnapshotPayload,
+	readDisplaySnapshotPayload,
 	refreshLocalSnapshotPayload,
 } from "./snapshot-store";
 
@@ -30,7 +30,7 @@ const refreshState = globalThis as typeof globalThis & {
 export async function GET(request: Request) {
 	const view = jsonViewForRequest(request);
 	try {
-		const deployedSnapshot = await readBestStoredSnapshotPayload();
+		const deployedSnapshot = await readDisplaySnapshotPayload();
 		if (deployedSnapshot != null) {
 			return jsonPayloadResponse(deployedSnapshot, view);
 		}
