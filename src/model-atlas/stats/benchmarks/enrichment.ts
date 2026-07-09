@@ -1,5 +1,6 @@
 /** Benchmark enrichment is the single bridge from source lookup maps to evaluation and scoring-source fields. */
 
+import { normalizeElo } from "../../math-utils";
 import {
 	agentsLastExamBenchmarkScore,
 	findAgentsLastExamModelScore,
@@ -84,6 +85,15 @@ export function benchmarkEnrichment(
 		if (resourceRow != null) {
 			scoringSources[key] = resourceRow;
 		}
+	}
+	const aaBriefcase = findArtificialAnalysisEvaluationResourceRow(
+		"aa_briefcase",
+		modelNameCandidates,
+		lookups.artificialAnalysisEvaluationResources.scoreByModelName,
+	);
+	if (aaBriefcase != null) {
+		evaluations.aa_briefcase = normalizeElo(aaBriefcase.score, 500, 2000);
+		scoringSources.aa_briefcase = aaBriefcase;
 	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,

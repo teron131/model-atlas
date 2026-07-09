@@ -42,6 +42,11 @@ const REASONING_EFFORT_SUFFIXES = [
 export type ArtificialAnalysisEvaluationResourcePage = {
 	benchmark_key: string;
 	score_key?: string;
+	score_path?: readonly string[];
+	cost_path?: readonly string[];
+	token_counts_path?: readonly string[];
+	seconds_per_task?: "eval_time_per_task" | "briefcase_estimate";
+	row_detection_key?: string;
 	url: string;
 	task_run_count: number;
 };
@@ -82,9 +87,19 @@ export type ArtificialAnalysisEvaluationResourceByBenchmark = ReadonlyMap<
 
 export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 	{
-		benchmark_key: "hle",
-		url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
-		task_run_count: 2_158,
+		benchmark_key: "aa_briefcase",
+		score_path: ["briefcase", "elo"],
+		cost_path: ["briefcaseCost"],
+		token_counts_path: ["canonicalEvalTokenCounts", "briefcase"],
+		seconds_per_task: "briefcase_estimate",
+		row_detection_key: "briefcase",
+		url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+		task_run_count: 91,
+	},
+	{
+		benchmark_key: "apex_agents",
+		url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
+		task_run_count: 452,
 	},
 	{
 		benchmark_key: "critpt",
@@ -97,9 +112,9 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 		task_run_count: 220,
 	},
 	{
-		benchmark_key: "apex_agents",
-		url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
-		task_run_count: 452,
+		benchmark_key: "hle",
+		url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+		task_run_count: 2_158,
 	},
 	{
 		benchmark_key: "tau_banking",
@@ -184,18 +199,99 @@ function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function nestedValue(row: Record<string, unknown>, path: readonly string[]) {
+	let value: unknown = row;
+	for (const key of path) {
+		value = asRecord(value)[key];
+	}
+	return value;
+}
+
 function perTask(value: number | null, taskCount: number): number | null {
 	return value == null ? null : value / taskCount;
 }
 
+function tokenCount(
+	tokenCounts: Record<string, unknown>,
+	keys: readonly string[],
+): number | null {
+	for (const key of keys) {
+		const value = asFiniteNumber(tokenCounts[key]);
+		if (value != null) {
+			return value;
+		}
+	}
+	return null;
+}
+
+function scoreValue(
+	row: Record<string, unknown>,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): number | null {
+	return asFiniteNumber(
+		page.score_path == null
+			? row[page.score_key ?? page.benchmark_key]
+			: nestedValue(row, page.score_path),
+	);
+}
+
+function costRecord(
+	row: Record<string, unknown>,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): Record<string, unknown> {
+	return asRecord(
+		page.cost_path == null ? row.evalCost : nestedValue(row, page.cost_path),
+	);
+}
+
+function tokenCountsRecord(
+	row: Record<string, unknown>,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): Record<string, unknown> {
+	return asRecord(
+		page.token_counts_path == null
+			? row.tokenCounts
+			: nestedValue(row, page.token_counts_path),
+	);
+}
+
+function estimatedBriefcaseSecondsPerTask(
+	row: Record<string, unknown>,
+	outputTokensPerTask: number | null,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): number | null {
+	const outputSpeed = asFiniteNumber(
+		asRecord(row.timescaleData).median_output_speed,
+	);
+	const toolMs = asFiniteNumber(nestedValue(row, ["briefcase", "totalToolMs"]));
+	if (outputSpeed == null || outputTokensPerTask == null || toolMs == null) {
+		return null;
+	}
+	return (
+		outputTokensPerTask / outputSpeed + toolMs / 1000 / page.task_run_count
+	);
+}
+
+function secondsPerTask(
+	row: Record<string, unknown>,
+	outputTokensPerTask: number | null,
+	page: ArtificialAnalysisEvaluationResourcePage,
+): number | null {
+	return page.seconds_per_task === "briefcase_estimate"
+		? estimatedBriefcaseSecondsPerTask(row, outputTokensPerTask, page)
+		: asFiniteNumber(row.evalTimePerTask);
+}
+
 function extractArtificialAnalysisEvaluationRowsFromPageHtml(
 	pageHtml: string,
+	page: ArtificialAnalysisEvaluationResourcePage,
 ): Record<string, unknown>[] {
 	const corpus = extractFlightCorpus(pageHtml);
 	const rowsById = new Map<string, Record<string, unknown>>();
+	const rowDetectionKey = page.row_detection_key ?? ROW_DETECTION_KEY;
 	let cursor = 0;
 	while (true) {
-		const hitIndex = corpus.indexOf(`"${ROW_DETECTION_KEY}":`, cursor);
+		const hitIndex = corpus.indexOf(`"${rowDetectionKey}":`, cursor);
 		if (hitIndex === -1) {
 			break;
 		}
@@ -211,7 +307,7 @@ function extractArtificialAnalysisEvaluationRowsFromPageHtml(
 			}
 			const row = parseJsonObject(corpus.slice(backIndex, endIndex + 1));
 			const rowId = stringValue(row?.id) ?? stringValue(row?.slug);
-			if (row == null || rowId == null || !(ROW_DETECTION_KEY in row)) {
+			if (row == null || rowId == null || !(rowDetectionKey in row)) {
 				continue;
 			}
 			rowsById.set(rowId, row);
@@ -236,31 +332,40 @@ function artificialAnalysisEvaluationResourceRow(
 	const model = cleanArtificialAnalysisModelName(sourceModelName) ?? modelSlug;
 	const reasoningEffort =
 		parseArtificialAnalysisReasoningEffort(sourceModelName);
-	const cost = asRecord(row.evalCost);
-	const tokenCounts = asRecord(row.tokenCounts);
-	const score = asFiniteNumber(row[page.score_key ?? page.benchmark_key]);
+	const cost = costRecord(row, page);
+	const tokenCounts = tokenCountsRecord(row, page);
+	const score = scoreValue(row, page);
 	const costPerTask = perTask(asFiniteNumber(cost.total), page.task_run_count);
-	const secondsPerTask = asFiniteNumber(row.evalTimePerTask);
 	const inputTokensPerTask = perTask(
-		asFiniteNumber(tokenCounts.inputTokens),
+		tokenCount(tokenCounts, ["inputTokens", "input"]),
 		page.task_run_count,
 	);
 	const outputTokensPerTask = perTask(
-		asFiniteNumber(tokenCounts.outputTokens),
+		tokenCount(tokenCounts, ["outputTokens", "output"]),
 		page.task_run_count,
 	);
 	const answerTokensPerTask = perTask(
-		asFiniteNumber(tokenCounts.answerTokens),
+		tokenCount(tokenCounts, ["answerTokens", "answer"]),
 		page.task_run_count,
 	);
 	const reasoningTokensPerTask = perTask(
-		asFiniteNumber(tokenCounts.reasoningTokens),
+		tokenCount(tokenCounts, ["reasoningTokens", "reasoning"]),
 		page.task_run_count,
 	);
-	const tokensPerTask =
-		inputTokensPerTask == null || outputTokensPerTask == null
+	const outputTokensPerTaskValue =
+		outputTokensPerTask ??
+		(answerTokensPerTask == null && reasoningTokensPerTask == null
 			? null
-			: inputTokensPerTask + outputTokensPerTask;
+			: (answerTokensPerTask ?? 0) + (reasoningTokensPerTask ?? 0));
+	const tokensPerTask =
+		inputTokensPerTask == null || outputTokensPerTaskValue == null
+			? null
+			: inputTokensPerTask + outputTokensPerTaskValue;
+	const secondsPerTaskValue = secondsPerTask(
+		row,
+		outputTokensPerTaskValue,
+		page,
+	);
 	if (
 		modelSlug == null ||
 		provider == null ||
@@ -268,9 +373,9 @@ function artificialAnalysisEvaluationResourceRow(
 		model == null ||
 		score == null ||
 		costPerTask == null ||
-		secondsPerTask == null ||
+		secondsPerTaskValue == null ||
 		inputTokensPerTask == null ||
-		outputTokensPerTask == null ||
+		outputTokensPerTaskValue == null ||
 		tokensPerTask == null
 	) {
 		return null;
@@ -286,10 +391,10 @@ function artificialAnalysisEvaluationResourceRow(
 		score,
 		task_run_count: page.task_run_count,
 		cost_per_task_usd: costPerTask,
-		seconds_per_task: secondsPerTask,
+		seconds_per_task: secondsPerTaskValue,
 		tokens_per_task: tokensPerTask,
 		input_tokens_per_task: inputTokensPerTask,
-		output_tokens_per_task: outputTokensPerTask,
+		output_tokens_per_task: outputTokensPerTaskValue,
 		answer_tokens_per_task: answerTokensPerTask,
 		reasoning_tokens_per_task: reasoningTokensPerTask,
 	};
@@ -316,7 +421,7 @@ function processArtificialAnalysisEvaluationResourcePageHtml(
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): ArtificialAnalysisEvaluationResourceRow[] {
 	return processArtificialAnalysisEvaluationResourceRows(
-		extractArtificialAnalysisEvaluationRowsFromPageHtml(pageHtml),
+		extractArtificialAnalysisEvaluationRowsFromPageHtml(pageHtml, page),
 		page,
 	);
 }

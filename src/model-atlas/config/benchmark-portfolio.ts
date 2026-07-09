@@ -31,10 +31,10 @@ const BENCHMARK_TOTAL_RESOURCE_POLICY = {
 } as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_PORTFOLIO = {
-	apex_agents: {
+	aa_briefcase: {
 		group: "frontier",
-		intelligencePortion: 0,
-		agenticPortion: 1,
+		intelligencePortion: 0.25,
+		agenticPortion: 0.75,
 		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	agents_last_exam: {
@@ -42,6 +42,12 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0.2,
 		agenticPortion: 0.8,
 		resourcePolicy: BENCHMARK_TOTAL_RESOURCE_POLICY,
+	},
+	apex_agents: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
 	automation_bench: {
 		group: "frontier",
@@ -53,6 +59,11 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
+	},
+	browsecomp: {
+		group: "baseline",
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 	critpt: {
 		group: "frontier",
@@ -89,10 +100,25 @@ export const BENCHMARK_PORTFOLIO = {
 		agenticPortion: 0,
 		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
 	},
+	lcr: {
+		group: "baseline",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
+	omniscience_accuracy: {
+		group: "baseline",
+		intelligencePortion: 1,
+		agenticPortion: 0,
+	},
 	riemann_bench: {
 		group: "frontier",
 		intelligencePortion: 1,
 		agenticPortion: 0,
+	},
+	scicode: {
+		group: "baseline",
+		intelligencePortion: 0.8,
+		agenticPortion: 0.2,
 	},
 	tau_banking: {
 		group: "baseline",
@@ -105,26 +131,6 @@ export const BENCHMARK_PORTFOLIO = {
 		intelligencePortion: 0,
 		agenticPortion: 1,
 		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
-	},
-	browsecomp: {
-		group: "baseline",
-		intelligencePortion: 0,
-		agenticPortion: 1,
-	},
-	lcr: {
-		group: "baseline",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-	},
-	omniscience_accuracy: {
-		group: "baseline",
-		intelligencePortion: 1,
-		agenticPortion: 0,
-	},
-	scicode: {
-		group: "baseline",
-		intelligencePortion: 0.8,
-		agenticPortion: 0.2,
 	},
 	toolathlon: {
 		group: "baseline",

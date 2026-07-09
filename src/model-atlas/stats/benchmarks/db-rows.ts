@@ -77,6 +77,13 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 			providerColumn: "provider",
 		},
 		{
+			key: "terminalbench_v21",
+			rows: rows.valsTerminalBenchRows,
+			scoreColumn: "score",
+			providerColumn: "provider",
+			rowKind: "overall",
+		},
+		{
 			key: "toolathlon",
 			rows: rows.toolathlonRows,
 			scoreColumn: "score",
@@ -85,13 +92,6 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 		{
 			key: "vals_index",
 			rows: rows.valsIndexRows,
-			scoreColumn: "score",
-			providerColumn: "provider",
-			rowKind: "overall",
-		},
-		{
-			key: "terminalbench_v21",
-			rows: rows.valsTerminalBenchRows,
 			scoreColumn: "score",
 			providerColumn: "provider",
 			rowKind: "overall",

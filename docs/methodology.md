@@ -31,6 +31,7 @@ When the benchmark portfolio changes, this table should change with it. Addition
 
 | Benchmark | Group | Intelligence Portion | Agentic Portion | Description and Decision Note |
 | --- | --- | ---: | ---: | --- |
+| AA-Briefcase | frontier | 25% | 75% | Long-horizon professional knowledge-work benchmark over multi-file deliverables. It is mostly agentic because models must manage file outputs and extended work, with some intelligence credit for professional reasoning and synthesis. The raw Elo score is normalized with the same AA GDPval-style `clamp((Elo - 500) / 2000)` transform before it enters Model Atlas quality scoring. |
 | APEX&nbsp;Agents | frontier | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
 | AutomationBench | frontier | 0% | 100% | Zapier workflow-automation benchmark over realistic app tasks. It is frontier because it tests business-process execution with tool-like constraints, and its per-task cost can feed Value. |
@@ -64,6 +65,8 @@ Speed and Value are secondary. They matter because downstream applications have 
 ## Source Notes
 
 Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio.
+
+AA-Briefcase comes from the dedicated Artificial Analysis evaluation page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA evaluation-resource benchmarks.
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated price efficiency. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 

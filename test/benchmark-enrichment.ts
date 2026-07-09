@@ -76,6 +76,24 @@ const artificialAnalysisHleResourceRow = {
 	answer_tokens_per_task: 40,
 	reasoning_tokens_per_task: 60,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
+const aaBriefcaseResourceRow = {
+	benchmark_key: "aa_briefcase",
+	source_url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+	model_id: "test/example-model",
+	model: "Example Model",
+	provider: "Test",
+	provider_id: "test",
+	reasoning_effort: null,
+	score: 1500,
+	task_run_count: 91,
+	cost_per_task_usd: 2.5,
+	seconds_per_task: 120,
+	tokens_per_task: 1000,
+	input_tokens_per_task: 800,
+	output_tokens_per_task: 200,
+	answer_tokens_per_task: 80,
+	reasoning_tokens_per_task: 120,
+} satisfies ArtificialAnalysisEvaluationResourceRow;
 const valsTerminalBenchRow = {
 	task: "overall" as const,
 	task_label: "Overall",
@@ -94,6 +112,7 @@ const enrichment = benchmarkEnrichment(
 	{
 		artificialAnalysisEvaluationResources: {
 			scoreByModelName: new Map([
+				["aa_briefcase", new Map([["example-model", aaBriefcaseResourceRow]])],
 				["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
 				[
 					"terminalbench_v21",
@@ -142,12 +161,14 @@ const enrichment = benchmarkEnrichment(
 );
 
 assert.deepEqual(enrichment.evaluations, {
+	aa_briefcase: 0.5,
 	terminalbench_v21: 0.82,
 	deep_swe: 0.72,
 	automation_bench: 0.68,
 	cursorbench: 0.52,
 });
 assert.deepEqual(enrichment.scoringSources, {
+	aa_briefcase: aaBriefcaseResourceRow,
 	hle: artificialAnalysisHleResourceRow,
 	terminalbench_v21: {
 		model_id: "test/example-model",
@@ -168,6 +189,13 @@ assert.deepEqual(enrichment.scoringSources, {
 	cursorbench: cursorBenchRow,
 });
 assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
+	aa_briefcase: {
+		cost: 2.5,
+		seconds: 120,
+		tokens: 1000,
+		input_tokens: 800,
+		output_tokens: 200,
+	},
 	hle: {
 		cost: 0.02,
 		seconds: 3,

@@ -1,5 +1,6 @@
 /** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
+import { normalizeElo } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../shared";
 import type { LlmStatsSourceData } from "../types";
 import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
@@ -100,6 +101,18 @@ function sourceDataBenchmarkDrafts(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
 	return [
+		...sparseBenchmarkRowDrafts(
+			"aa_briefcase",
+			sourceData.artificialAnalysisEvaluationResources.rows.filter(
+				(row) => row.benchmark_key === "aa_briefcase",
+			),
+			(row) => ({
+				id: row.model_id,
+				label: row.model,
+				provider: row.provider,
+				value: normalizeElo(row.score, 500, 2000),
+			}),
+		),
 		...artificialAnalysisBenchmarkRowDrafts({
 			rows: sourceData.artificialAnalysis.rows,
 			modelId: (row) => {
@@ -176,6 +189,16 @@ function sourceDataBenchmarkDrafts(
 			}),
 		),
 		...sparseBenchmarkRowDrafts(
+			"terminalbench_v21",
+			sourceData.valsTerminalBench.rows,
+			(row) => ({
+				id: row.model_id,
+				label: row.model,
+				provider: row.provider,
+				value: row.score,
+			}),
+		),
+		...sparseBenchmarkRowDrafts(
 			"toolathlon",
 			sourceData.toolathlon.rows,
 			(row) => ({
@@ -187,16 +210,6 @@ function sourceDataBenchmarkDrafts(
 		...sparseBenchmarkRowDrafts(
 			"vals_index",
 			sourceData.valsIndex.rows,
-			(row) => ({
-				id: row.model_id,
-				label: row.model,
-				provider: row.provider,
-				value: row.score,
-			}),
-		),
-		...sparseBenchmarkRowDrafts(
-			"terminalbench_v21",
-			sourceData.valsTerminalBench.rows,
 			(row) => ({
 				id: row.model_id,
 				label: row.model,

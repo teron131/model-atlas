@@ -4,9 +4,9 @@ The stats pipeline has to join model rows from sources that do not use the same 
 
 ## Source Shape
 
-The source stage fetches AA scraper rows, `models.dev` rows, and supplemental benchmark sources. AA rows are keyed by the model slug derived from `model_id`, usually the part after the provider slash. `models.dev` rows are first reduced to preferred providers: OpenRouter is primary, Vercel is secondary, and OpenAI/Google/Anthropic are trusted fallbacks. When multiple rows share a model id, the preferred provider wins. The recent-model cutoff keeps the catalog small, but AA-backed exact ids and normalized AA names are retained even when the catalog row is older than the cutoff. This lets stable OpenRouter rows such as older Gemini routes or provider-renamed Mistral routes remain matchable when AA still reports benchmark rows for them.
+The source stage fetches AA scraper rows, AA evaluation-resource rows, `models.dev` rows, and non-AA benchmark sources. AA rows are keyed by the model slug derived from `model_id`, usually the part after the provider slash. `models.dev` rows are first reduced to preferred providers: OpenRouter is primary, Vercel is secondary, and OpenAI/Google/Anthropic are trusted fallbacks. When multiple rows share a model id, the preferred provider wins. The recent-model cutoff keeps the catalog small, but AA-backed exact ids and normalized AA names are retained even when the catalog row is older than the cutoff. This lets stable OpenRouter rows such as older Gemini routes or provider-renamed Mistral routes remain matchable when AA still reports benchmark rows for them.
 
-DeepSWE, Terminal-Bench 2, and Agents Last Exam are not identity authorities. They are joined later by display-name/id candidates after the AA-to-`models.dev` match has chosen a stable provider/model id.
+AA evaluation-resource pages are still Artificial Analysis sources, but they are not identity authorities. Non-AA benchmark sources are also not identity authorities. Both kinds of resource rows are joined later by display-name/id candidates after the AA-to-`models.dev` match has chosen a stable provider/model id.
 
 The matcher input is intentionally small:
 
@@ -101,8 +101,8 @@ Once a match survives, the final matched row prefers the OpenRouter provider/mod
 - display name from `models.dev` when available
 - family, modalities, context, cost, attachment/reasoning/open-weights fields from `models.dev`
 - evaluations, intelligence fields, and intelligence-index cost fields from AA
-- supplemental benchmark values from DeepSWE, Terminal-Bench 2, Agents Last Exam, BrowseComp, Toolathlon, and CursorBench when a model-name candidate matches those sources
-- `scoring_sources` with the raw supplemental rows used to derive DeepSWE and Agents Last Exam task metrics
+- selected benchmark values from AA evaluation-resource pages and non-AA benchmark sources when their model-name candidates match the selected identity
+- `scoring_sources` with the raw AA evaluation-resource and non-AA source rows used to derive task metrics
 
 The later OpenRouter enrichment stage can merge route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, and Gemini `Preview` labels. This keeps the public payload aligned with route-level pricing and speed while still making it possible to trace a score back to the AA row that supplied the benchmark data.
 
