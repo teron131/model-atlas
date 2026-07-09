@@ -1,6 +1,7 @@
 /** Verifies AA evaluation-page resource parsing for benchmark telemetry. */
 
 import {
+	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES,
 	buildArtificialAnalysisEvaluationResourceMap,
 	findArtificialAnalysisEvaluationResourceRow,
 	processArtificialAnalysisEvaluationResourceRows,
@@ -25,16 +26,23 @@ const terminalBenchPage = {
 	url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	task_run_count: 2,
 };
+const configuredBriefcasePage =
+	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES.find(
+		(page) => page.benchmark_key === "briefcase",
+	);
+if (configuredBriefcasePage == null) {
+	throw new Error("Briefcase AA evaluation resource page is missing");
+}
 const briefcasePage = {
-	benchmark_key: "aa_briefcase",
-	score_path: ["briefcase", "elo"],
-	cost_path: ["briefcaseCost"],
-	token_counts_path: ["canonicalEvalTokenCounts", "briefcase"],
-	seconds_per_task: "briefcase_estimate",
-	row_detection_key: "briefcase",
-	url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+	...configuredBriefcasePage,
 	task_run_count: 2,
-} as const;
+};
+const automationBenchPage = {
+	benchmark_key: "automation_bench",
+	score_path: ["automation_bench_breakdown", "summary", "completion"],
+	url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
+	task_run_count: 2,
+};
 
 const rows = processArtificialAnalysisEvaluationResourceRows(
 	[
@@ -190,9 +198,48 @@ assertDeepEqual(
 			},
 		],
 		briefcasePage,
+	)[0]?.seconds_per_task,
+	6,
+);
+
+assertDeepEqual(
+	processArtificialAnalysisEvaluationResourceRows(
+		[
+			{
+				short_name: "Claude Fable 5 (max)",
+				slug: "claude-fable-5",
+				model_creators: {
+					name: "Anthropic",
+					slug: "anthropic",
+				},
+				briefcase: {
+					elo: 1500,
+					totalToolMs: 4000,
+				},
+				briefcase_breakdown: {
+					telemetry: {
+						total_generation_ms: 18_000,
+					},
+				},
+				briefcaseCost: {
+					total: 6,
+				},
+				canonicalEvalTokenCounts: {
+					briefcase: {
+						input: 20,
+						answer: 30,
+						reasoning: 50,
+					},
+				},
+				timescaleData: {
+					median_output_speed: 10,
+				},
+			},
+		],
+		briefcasePage,
 	)[0],
 	{
-		benchmark_key: "aa_briefcase",
+		benchmark_key: "briefcase",
 		source_url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
 		model_id: "anthropic/claude-fable-5",
 		model: "Claude Fable 5 (max)",
@@ -202,12 +249,60 @@ assertDeepEqual(
 		score: 1500,
 		task_run_count: 2,
 		cost_per_task_usd: 3,
-		seconds_per_task: 6,
+		seconds_per_task: 9,
 		tokens_per_task: 50,
 		input_tokens_per_task: 10,
 		output_tokens_per_task: 40,
 		answer_tokens_per_task: 15,
 		reasoning_tokens_per_task: 25,
+	},
+);
+
+assertDeepEqual(
+	processArtificialAnalysisEvaluationResourceRows(
+		[
+			{
+				short_name: "Grok 4.5",
+				slug: "grok-4-5",
+				model_creators: {
+					name: "xAI",
+					slug: "x-ai",
+				},
+				automation_bench_breakdown: {
+					summary: {
+						completion: 0.72,
+					},
+				},
+				evalCost: {
+					total: 1,
+				},
+				evalTimePerTask: 91,
+				tokenCounts: {
+					inputTokens: 20,
+					answerTokens: 6,
+					reasoningTokens: 4,
+				},
+			},
+		],
+		automationBenchPage,
+	)[0],
+	{
+		benchmark_key: "automation_bench",
+		source_url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
+		model_id: "x-ai/grok-4-5",
+		model: "Grok 4.5",
+		provider: "xAI",
+		provider_id: "x-ai",
+		reasoning_effort: null,
+		score: 0.72,
+		task_run_count: 2,
+		cost_per_task_usd: 0.5,
+		seconds_per_task: 91,
+		tokens_per_task: 15,
+		input_tokens_per_task: 10,
+		output_tokens_per_task: 5,
+		answer_tokens_per_task: 3,
+		reasoning_tokens_per_task: 2,
 	},
 );
 

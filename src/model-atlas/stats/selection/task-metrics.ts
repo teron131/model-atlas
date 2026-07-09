@@ -76,10 +76,6 @@ export function buildTaskMetrics(
 	if (agentsLastExam != null) {
 		taskMetrics.agents_last_exam = agentsLastExam;
 	}
-	const automationBench = buildAutomationBenchTaskMetrics(scoringSources);
-	if (automationBench != null) {
-		taskMetrics.automation_bench = automationBench;
-	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
@@ -192,18 +188,6 @@ function buildAgentsLastExamTaskMetrics(
 		taskMetrics.cost = taskCost;
 	}
 	return taskMetrics;
-}
-
-function buildAutomationBenchTaskMetrics(
-	scoringSources: LlmStatsScoringSources,
-): TaskMetricValues | null {
-	const automationBench = scoringSources?.automation_bench;
-	if (automationBench == null) {
-		return null;
-	}
-	return {
-		cost: automationBench.cost_per_task_usd,
-	};
 }
 
 function tokenUsageTaskCost(

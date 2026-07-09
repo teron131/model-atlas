@@ -301,44 +301,13 @@ function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 	}
 	const deepSWE = buildDeepSWEScoringSource(model);
 	const agentsLastExam = buildAgentsLastExamScoringSource(model);
-	const automationBench = buildAutomationBenchScoringSource(model);
 	if (deepSWE != null) {
 		scoringSources.deep_swe = deepSWE;
 	}
 	if (agentsLastExam != null) {
 		scoringSources.agents_last_exam = agentsLastExam;
 	}
-	if (automationBench != null) {
-		scoringSources.automation_bench = automationBench;
-	}
 	return hasFields(scoringSources) ? scoringSources : null;
-}
-
-function buildAutomationBenchScoringSource(model: JsonObject) {
-	const source = asRecord(asRecord(model.scoring_sources).automation_bench);
-	const costPerTaskUsd = asFiniteNumber(source.cost_per_task_usd);
-	const adjustedScore = asFiniteNumber(source.adjusted_score);
-	const score = asFiniteNumber(source.score);
-	if (costPerTaskUsd == null || adjustedScore == null || score == null) {
-		return null;
-	}
-	return {
-		model: typeof source.model === "string" ? source.model : "",
-		reasoning_effort:
-			typeof source.reasoning_effort === "string"
-				? source.reasoning_effort
-				: null,
-		score,
-		cost_per_task_usd: costPerTaskUsd,
-		domain_lead_scores: Array.isArray(source.domain_lead_scores)
-			? source.domain_lead_scores
-					.map(asFiniteNumber)
-					.filter((value) => value != null)
-			: [],
-		domain_lead_score_median:
-			asFiniteNumber(source.domain_lead_score_median) ?? null,
-		adjusted_score: adjustedScore,
-	};
 }
 
 function buildDeepSWEScoringSource(model: JsonObject) {

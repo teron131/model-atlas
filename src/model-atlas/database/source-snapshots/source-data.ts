@@ -2,7 +2,6 @@
 
 import { buildAgentsLastExamMap } from "../../scrapers/agents-last-exam";
 import { buildArtificialAnalysisEvaluationResourceMap } from "../../scrapers/artificial-analysis/evaluation-resources";
-import { buildAutomationBenchMap } from "../../scrapers/automation-bench";
 import { buildBlueprintBenchMap } from "../../scrapers/blueprint-bench";
 import { buildBrowseCompMap } from "../../scrapers/browsecomp";
 import { buildCursorBenchMap } from "../../scrapers/cursorbench";
@@ -56,10 +55,6 @@ export function cachedSourceDataFromSnapshots(
 			scoreByModelName: buildAgentsLastExamMap(
 				snapshots.agentsLastExamModelScores,
 			),
-		},
-		automationBench: {
-			rows: [],
-			scoreByModelName: buildAutomationBenchMap([]),
 		},
 		blueprintBench: {
 			rows: snapshots.blueprintBenchModelScoreRows,

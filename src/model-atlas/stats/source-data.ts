@@ -10,10 +10,6 @@ import {
 	getArtificialAnalysisEvaluationResourceStats,
 } from "../scrapers/artificial-analysis/evaluation-resources";
 import {
-	buildAutomationBenchMap,
-	getAutomationBenchStats,
-} from "../scrapers/automation-bench";
-import {
 	buildBlueprintBenchMap,
 	getBlueprintBenchStats,
 } from "../scrapers/blueprint-bench";
@@ -91,7 +87,6 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		artificialAnalysisEvaluationResourceStats,
 		modelsDevStats,
 		agentsLastExamStats,
-		automationBenchStats,
 		blueprintBenchStats,
 		browseCompStats,
 		cursorBenchStats,
@@ -106,7 +101,6 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getArtificialAnalysisEvaluationResourceStats(),
 		getModelsDevSourceStats(),
 		getAgentsLastExamStats(),
-		getAutomationBenchStats(),
 		getBlueprintBenchStats(),
 		getBrowseCompStats(),
 		getCursorBenchStats(),
@@ -121,7 +115,6 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const artificialAnalysisEvaluationResourceRows =
 		artificialAnalysisEvaluationResourceStats.data;
 	const agentsLastExamRows = agentsLastExamStats.data;
-	const automationBenchRows = automationBenchStats.model_scores;
 	const blueprintBenchRows = blueprintBenchStats.data;
 	const browseCompRows = browseCompStats.data;
 	const cursorBenchRows = cursorBenchStats.data;
@@ -156,10 +149,6 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		agentsLastExam: {
 			rows: agentsLastExamRows,
 			scoreByModelName: buildAgentsLastExamMap(agentsLastExamRows),
-		},
-		automationBench: {
-			rows: automationBenchRows,
-			scoreByModelName: buildAutomationBenchMap(automationBenchRows),
 		},
 		blueprintBench: {
 			rows: blueprintBenchRows,

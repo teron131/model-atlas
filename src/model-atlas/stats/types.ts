@@ -9,10 +9,6 @@ import type {
 	ArtificialAnalysisEvaluationResourceRow,
 } from "../scrapers/artificial-analysis/evaluation-resources";
 import type {
-	AutomationBenchModelScoreRow,
-	AutomationBenchScoreByModelName,
-} from "../scrapers/automation-bench";
-import type {
 	BlueprintBenchModelScoreRow,
 	BlueprintBenchScoreByModelName,
 } from "../scrapers/blueprint-bench";
@@ -155,26 +151,26 @@ export type LlmStatsTaskMetrics =
 	| null;
 
 export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
-	aa_briefcase?: NumberOrNull;
+	agents_last_exam?: NumberOrNull;
 	apex_agents?: NumberOrNull;
+	automation_bench?: NumberOrNull;
+	blueprint_bench_2?: NumberOrNull;
+	briefcase?: NumberOrNull;
+	browsecomp?: NumberOrNull;
 	critpt?: NumberOrNull;
+	cursorbench?: NumberOrNull;
+	deep_swe?: NumberOrNull;
+	gdp_pdf?: NumberOrNull;
 	gdpval_normalized?: NumberOrNull;
 	gpqa?: NumberOrNull;
 	hle?: NumberOrNull;
 	lcr?: NumberOrNull;
 	mmmu_pro?: NumberOrNull;
+	riemann_bench?: NumberOrNull;
 	scicode?: NumberOrNull;
 	tau_banking?: NumberOrNull;
-	deep_swe?: NumberOrNull;
-	agents_last_exam?: NumberOrNull;
-	automation_bench?: NumberOrNull;
-	blueprint_bench_2?: NumberOrNull;
-	gdp_pdf?: NumberOrNull;
-	riemann_bench?: NumberOrNull;
-	browsecomp?: NumberOrNull;
-	toolathlon?: NumberOrNull;
-	cursorbench?: NumberOrNull;
 	terminalbench_v21?: NumberOrNull;
+	toolathlon?: NumberOrNull;
 	vals_index?: NumberOrNull;
 };
 
@@ -183,7 +179,6 @@ export type LlmStatsScoringSourceRow =
 	| AgentsLastExamModelScoreRow
 	| ArtificialAnalysisEvaluationResourceRow
 	| TerminalBenchAggregateRow
-	| AutomationBenchModelScoreRow
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow;
 
@@ -192,7 +187,7 @@ export type LlmStatsScoringSources =
 			deep_swe?: DeepSWEModelScoreRow | null;
 			agents_last_exam?: AgentsLastExamModelScoreRow | null;
 			terminalbench_v21?: TerminalBenchAggregateRow | null;
-			automation_bench?: AutomationBenchModelScoreRow | null;
+			automation_bench?: ArtificialAnalysisEvaluationResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 	  })
 	| null;
@@ -508,10 +503,6 @@ export type LlmStatsSourceData = {
 	agentsLastExam: LlmStatsScoreSourceRows<
 		AgentsLastExamModelScoreRow,
 		AgentsLastExamScoreByModelName
-	>;
-	automationBench: LlmStatsScoreSourceRows<
-		AutomationBenchModelScoreRow,
-		AutomationBenchScoreByModelName
 	>;
 	blueprintBench: LlmStatsScoreSourceRows<
 		BlueprintBenchModelScoreRow,

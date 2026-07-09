@@ -1,6 +1,7 @@
 /** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
 import { normalizeElo } from "../../math-utils";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/evaluation-resources";
 import { asFiniteNumber, asRecord } from "../../shared";
 import type { LlmStatsSourceData } from "../types";
 import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
@@ -40,6 +41,23 @@ function sparseBenchmarkRowDrafts<T>(
 		key,
 		...toDraft(row),
 	}));
+}
+
+function artificialAnalysisEvaluationResourceDrafts(
+	key: string,
+	rows: readonly ArtificialAnalysisEvaluationResourceRow[],
+	value: (row: ArtificialAnalysisEvaluationResourceRow) => unknown,
+): BenchmarkRowDraft[] {
+	return sparseBenchmarkRowDrafts(
+		key,
+		rows.filter((row) => row.benchmark_key === key),
+		(row) => ({
+			id: row.model_id,
+			label: row.model,
+			provider: row.provider,
+			value: value(row),
+		}),
+	);
 }
 
 function addBenchmarkRowDraft(
@@ -101,18 +119,6 @@ function sourceDataBenchmarkDrafts(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
 	return [
-		...sparseBenchmarkRowDrafts(
-			"aa_briefcase",
-			sourceData.artificialAnalysisEvaluationResources.rows.filter(
-				(row) => row.benchmark_key === "aa_briefcase",
-			),
-			(row) => ({
-				id: row.model_id,
-				label: row.model,
-				provider: row.provider,
-				value: normalizeElo(row.score, 500, 2000),
-			}),
-		),
 		...artificialAnalysisBenchmarkRowDrafts({
 			rows: sourceData.artificialAnalysis.rows,
 			modelId: (row) => {
@@ -137,13 +143,10 @@ function sourceDataBenchmarkDrafts(
 				value: row.median_score,
 			}),
 		),
-		...sparseBenchmarkRowDrafts(
+		...artificialAnalysisEvaluationResourceDrafts(
 			"automation_bench",
-			sourceData.automationBench.rows,
-			(row) => ({
-				label: row.model,
-				value: row.adjusted_score,
-			}),
+			sourceData.artificialAnalysisEvaluationResources.rows,
+			(row) => row.score,
 		),
 		...sparseBenchmarkRowDrafts(
 			"blueprint_bench_2",
@@ -152,6 +155,11 @@ function sourceDataBenchmarkDrafts(
 				label: row.model,
 				value: row.score,
 			}),
+		),
+		...artificialAnalysisEvaluationResourceDrafts(
+			"briefcase",
+			sourceData.artificialAnalysisEvaluationResources.rows,
+			(row) => normalizeElo(row.score, 500, 2000),
 		),
 		...sparseBenchmarkRowDrafts(
 			"browsecomp",

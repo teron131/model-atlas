@@ -353,10 +353,6 @@ function modelStatsSourceData(
 			rows: [],
 			scoreByModelName: new Map(),
 		},
-		automationBench: {
-			rows: [],
-			scoreByModelName: new Map(),
-		},
 		blueprintBench: {
 			rows: blueprintBenchModelScoreRows,
 			scoreByModelName: buildBlueprintBenchMap(blueprintBenchModelScoreRows),

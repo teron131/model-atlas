@@ -23,11 +23,11 @@ export const benchmarkGroups = [
 ] as const;
 
 export const benchmarkLabels: Record<string, string> = {
-	aa_briefcase: "AA-Briefcase",
 	agents_last_exam: "Agents' Last Exam",
 	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
 	blueprint_bench_2: "Blueprint-Bench 2",
+	briefcase: "Briefcase",
 	browsecomp: "BrowseComp",
 	critpt: "CritPt",
 	cursorbench: "CursorBench",
@@ -46,14 +46,6 @@ export const benchmarkLabels: Record<string, string> = {
 };
 
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
-	aa_briefcase: {
-		title: "AA-Briefcase",
-		body: "AA long-horizon knowledge-work benchmark over multi-file professional deliverables, scored with rubric and pairwise quality judgments. Model Atlas normalizes the Elo score onto the shared 0-1 benchmark scale.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "agentic knowledge work"],
-		],
-	},
 	agents_last_exam: {
 		title: "Agents' Last Exam",
 		body: "Real-world software and professional-workflow benchmark. Model Atlas uses the partial-credit score.",
@@ -72,10 +64,10 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 	},
 	automation_bench: {
 		title: "AutomationBench",
-		body: "Zapier workflow automation benchmark. Model Atlas uses the public leaderboard score.",
+		body: "Artificial Analysis implementation of the Zapier workflow-automation benchmark. Model Atlas uses the AA evaluation-page score and task resources.",
 		rows: [
-			["Source", "Zapier"],
-			["Role", "business workflow automation"],
+			["Source", "Artificial Analysis"],
+			["Role", "agentic SaaS workflow"],
 		],
 	},
 	blueprint_bench_2: {
@@ -84,6 +76,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Andon Labs"],
 			["Role", "spatial reasoning"],
+		],
+	},
+	briefcase: {
+		title: "Briefcase",
+		body: "Artificial Analysis long-horizon knowledge-work benchmark over multi-file professional deliverables, scored with rubric and pairwise quality judgments. Model Atlas normalizes the Elo score onto the shared 0-1 benchmark scale.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "agentic knowledge work"],
 		],
 	},
 	browsecomp: {
