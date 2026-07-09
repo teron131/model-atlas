@@ -155,6 +155,12 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 		task_run_count: 220,
 	},
 	{
+		benchmark_key: "harvey_lab",
+		score_path: ["harvey_lab_breakdown", "all_pass"],
+		url: "https://artificialanalysis.ai/evaluations/harvey-lab-aa",
+		task_run_count: 120,
+	},
+	{
 		benchmark_key: "hle",
 		url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
 		task_run_count: 2_158,

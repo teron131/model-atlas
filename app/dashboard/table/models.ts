@@ -178,6 +178,27 @@ const gdpvalTaskMetricColumns = defineTaskMetricColumns("gdpval_normalized", [
 	},
 ] as const);
 
+const harveyLabTaskMetricColumns = defineTaskMetricColumns("harvey_lab", [
+	{
+		key: "harveyLabCost",
+		metric: "cost",
+		direction: "ascending",
+		label: "HLAB$",
+	},
+	{
+		key: "harveyLabSeconds",
+		metric: "seconds",
+		direction: "ascending",
+		label: "HLAB Sec",
+	},
+	{
+		key: "harveyLabTokens",
+		metric: "tokens",
+		direction: "ascending",
+		label: "HLAB Tok",
+	},
+] as const);
+
 const hleTaskMetricColumns = defineTaskMetricColumns("hle", [
 	{
 		key: "hleCost",
@@ -252,6 +273,7 @@ export const taskMetricColumns = [
 	...cursorBenchTaskMetricColumns,
 	...deepSWETaskMetricColumns,
 	...gdpvalTaskMetricColumns,
+	...harveyLabTaskMetricColumns,
 	...hleTaskMetricColumns,
 	...tauBankingTaskMetricColumns,
 	...terminalBenchTaskMetricColumns,
@@ -411,6 +433,14 @@ export const benchmarkMetricColumns = [
 		label: "GDPval",
 	},
 	{
+		key: "harveyLab",
+		group: "benchmarks",
+		benchmark: "harvey_lab",
+		direction: "descending",
+		type: "number",
+		label: "HLAB",
+	},
+	{
 		key: "hle",
 		group: "benchmarks",
 		benchmark: "hle",
@@ -501,6 +531,7 @@ const taskMetricColumnsByBenchmark: Partial<
 	cursorBench: cursorBenchTaskMetricColumns,
 	deepSWE: deepSWETaskMetricColumns,
 	gdpval: gdpvalTaskMetricColumns,
+	harveyLab: harveyLabTaskMetricColumns,
 	hle: hleTaskMetricColumns,
 	tauBanking: tauBankingTaskMetricColumns,
 	terminalBench: terminalBenchTaskMetricColumns,

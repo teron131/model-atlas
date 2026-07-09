@@ -78,6 +78,7 @@ const benchmarkColumnTooltipKeys = {
 	deepSWE: "deep_swe",
 	gdpPdf: "gdp_pdf",
 	gdpval: "gdpval_normalized",
+	harveyLab: "harvey_lab",
 	hle: "hle",
 	riemannBench: "riemann_bench",
 	tauBanking: "tau_banking",

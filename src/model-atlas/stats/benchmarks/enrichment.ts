@@ -152,6 +152,13 @@ export function benchmarkEnrichment(
 		"automation_bench",
 		(row) => row.score,
 	);
+	addArtificialAnalysisResourceEvaluation(
+		evaluations,
+		scoringSources,
+		artificialAnalysisResourceLookup,
+		"harvey_lab",
+		(row) => row.score,
+	);
 
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,

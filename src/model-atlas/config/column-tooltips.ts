@@ -128,6 +128,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	deep_swe: "DeepSWE",
 	gdp_pdf: "GDP.pdf",
 	gdpval_normalized: "GDPval-AA v2",
+	harvey_lab: "Harvey LAB",
 	hle: "HLE",
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience accuracy",
