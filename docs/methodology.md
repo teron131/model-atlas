@@ -41,6 +41,7 @@ When the benchmark portfolio changes, this table should change with it. Addition
 | DeepSWE | frontier | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using the default xhigh row when available and otherwise the best reported pass@1 row. |
 | GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
 | GDPval-AA&nbsp;v2 | frontier | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
+| Harvey LAB | frontier | 0% | 100% | Artificial Analysis implementation of Harvey's Legal Agent Benchmark over private legal-agent tasks. It is frontier because the all-pass legal deliverable score remains low, current, and strongly separated among frontier models; the signal is pure Agentic because models work in a sandbox over matter files and produce legal work product. |
 | HLE | frontier | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
 | Riemann-bench | frontier | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
 | Terminal-Bench&nbsp;2.1 | frontier | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It is frontier because terminal task execution is a current agentic stress test with meaningful separation among strong systems. |
@@ -81,6 +82,8 @@ Toolathlon uses the reported score only, preserves self-reported provenance, and
 CursorBench preserves score, average cost per task, tokens per task, steps per task, and reasoning effort where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the best reported score while preserving all raw effort rows. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
 AutomationBench comes from the dedicated Artificial Analysis evaluation page, not Zapier's hosted leaderboard. Model Atlas uses the AA headline score directly and keeps the page's reasoning-effort label, per-task cost, runtime, and token telemetry for resource scoring.
+
+Harvey LAB comes from the dedicated Artificial Analysis evaluation page, not the Vals page or Harvey's repository examples. Model Atlas uses the AA all-pass rate directly because the benchmark's strict pass condition is the frontier signal; criterion pass rate remains source context only.
 
 Blueprint-Bench 2 uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
 

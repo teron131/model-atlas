@@ -100,6 +100,12 @@ export const BENCHMARK_PORTFOLIO = {
 		agenticPortion: 0.4,
 		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
+	harvey_lab: {
+		group: "frontier",
+		intelligencePortion: 0,
+		agenticPortion: 1,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+	},
 	hle: {
 		group: "frontier",
 		intelligencePortion: 1,

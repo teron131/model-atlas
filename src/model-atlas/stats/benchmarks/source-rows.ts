@@ -187,6 +187,11 @@ function sourceDataBenchmarkDrafts(
 			provider: row.provider,
 			value: row.score,
 		})),
+		...artificialAnalysisEvaluationResourceDrafts(
+			"harvey_lab",
+			sourceData.artificialAnalysisEvaluationResources.rows,
+			(row) => row.score,
+		),
 		...sparseBenchmarkRowDrafts(
 			"riemann_bench",
 			sourceData.riemannBench.rows,

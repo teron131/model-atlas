@@ -34,6 +34,7 @@ export const benchmarkLabels: Record<string, string> = {
 	deep_swe: "DeepSWE",
 	gdp_pdf: "GDP.pdf",
 	gdpval_normalized: "GDPval-AA v2",
+	harvey_lab: "Harvey LAB",
 	hle: "HLE",
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience",
@@ -132,6 +133,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "real work completion"],
+		],
+	},
+	harvey_lab: {
+		title: "Harvey LAB",
+		body: "Artificial Analysis implementation of Harvey's Legal Agent Benchmark, scored by strict all-pass legal deliverable completion across private legal-agent tasks.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "legal agent work"],
 		],
 	},
 	hle: {

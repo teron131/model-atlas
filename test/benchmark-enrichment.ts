@@ -103,6 +103,24 @@ const automationBenchResourceRow = {
 	answer_tokens_per_task: 60,
 	reasoning_tokens_per_task: 40,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
+const harveyLabResourceRow = {
+	benchmark_key: "harvey_lab",
+	source_url: "https://artificialanalysis.ai/evaluations/harvey-lab-aa",
+	model_id: "test/example-model",
+	model: "Example Model",
+	provider: "Test",
+	provider_id: "test",
+	reasoning_effort: null,
+	score: 0.142,
+	task_run_count: 120,
+	cost_per_task_usd: 4.2,
+	seconds_per_task: 240,
+	tokens_per_task: 900,
+	input_tokens_per_task: 700,
+	output_tokens_per_task: 200,
+	answer_tokens_per_task: 120,
+	reasoning_tokens_per_task: 80,
+} satisfies ArtificialAnalysisEvaluationResourceRow;
 const valsTerminalBenchRow = {
 	task: "overall" as const,
 	task_label: "Overall",
@@ -127,6 +145,7 @@ const enrichment = benchmarkEnrichment(
 					new Map([["example-model", automationBenchResourceRow]]),
 				],
 				["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
+				["harvey_lab", new Map([["example-model", harveyLabResourceRow]])],
 				[
 					"terminalbench_v21",
 					new Map([["example-model", terminalBenchResourceRow]]),
@@ -175,6 +194,7 @@ assert.deepEqual(enrichment.evaluations, {
 	terminalbench_v21: 0.82,
 	deep_swe: 0.72,
 	automation_bench: 0.68,
+	harvey_lab: 0.142,
 	cursorbench: 0.52,
 });
 assert.deepEqual(enrichment.scoringSources, {
@@ -196,6 +216,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	},
 	deep_swe: deepSWERow,
 	automation_bench: automationBenchResourceRow,
+	harvey_lab: harveyLabResourceRow,
 	cursorbench: cursorBenchRow,
 });
 assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
@@ -226,6 +247,13 @@ assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
 		tokens: 700,
 		input_tokens: 600,
 		output_tokens: 100,
+	},
+	harvey_lab: {
+		cost: 4.2,
+		seconds: 240,
+		tokens: 900,
+		input_tokens: 700,
+		output_tokens: 200,
 	},
 	cursorbench: {
 		cost: 0.42,

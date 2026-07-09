@@ -163,6 +163,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	gdp_pdf?: NumberOrNull;
 	gdpval_normalized?: NumberOrNull;
 	gpqa?: NumberOrNull;
+	harvey_lab?: NumberOrNull;
 	hle?: NumberOrNull;
 	lcr?: NumberOrNull;
 	mmmu_pro?: NumberOrNull;
@@ -188,6 +189,7 @@ export type LlmStatsScoringSources =
 			agents_last_exam?: AgentsLastExamModelScoreRow | null;
 			terminalbench_v21?: TerminalBenchAggregateRow | null;
 			automation_bench?: ArtificialAnalysisEvaluationResourceRow | null;
+			harvey_lab?: ArtificialAnalysisEvaluationResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 	  })
 	| null;
