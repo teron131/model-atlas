@@ -6,7 +6,11 @@
  */
 
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+import {
+	fetchWithTimeout,
+	mapWithConcurrency,
+	nowEpochSeconds,
+} from "../utils";
 
 export const DEEP_SWE_V1_1_LEADERBOARD_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
@@ -17,11 +21,13 @@ const DEFAULT_LEADERBOARD_URLS = [
 	DEEP_SWE_V1_LEADERBOARD_URL,
 ] as const;
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_CONCURRENCY = 2;
 
 export type DeepSWEScraperOptions = {
 	url?: string;
 	urls?: readonly string[];
 	timeoutMs?: number;
+	concurrency?: number;
 };
 
 export type DeepSWESourceVersion = "v1.1" | "v1";
@@ -198,6 +204,28 @@ function deepSWEPreferenceKey(row: DeepSWERawLeaderboardRow): string {
 	].join("\0");
 }
 
+/** Fetch one DeepSWE artifact without letting a stale version block fresher rows. */
+async function getDeepSWERawRowsForUrl(
+	url: string,
+	timeoutMs: number,
+): Promise<DeepSWERawLeaderboardRow[]> {
+	const response = await fetchWithTimeout(url, {}, timeoutMs);
+	if (!response.ok) {
+		return [];
+	}
+	const payload = asRecord(await response.json());
+	const rows = Array.isArray(payload.rows)
+		? payload.rows
+				.map((row) => asDeepSWELeaderboardRow(row))
+				.filter((row): row is DeepSWELeaderboardRow => row != null)
+		: [];
+	const sourceVersion = deepSWESourceVersionForUrl(url);
+	return rows.map((row) => ({
+		...row,
+		source_version: sourceVersion,
+	}));
+}
+
 export function buildDeepSWEMap(
 	rows: DeepSWEModelScoreRow[],
 ): DeepSWEScoreByModelName {
@@ -227,7 +255,7 @@ export function findDeepSWEModelScore(
 	return null;
 }
 
-/** DeepSWE fetches every configured artifact version so the freshest version can fill gaps in older rows. */
+/** DeepSWE fetches configured artifact versions through a bounded worker pool so custom URL lists cannot burst. */
 export async function getDeepSWERawLeaderboardSourceRows(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWERawLeaderboardPayload> {
@@ -235,35 +263,18 @@ export async function getDeepSWERawLeaderboardSourceRows(
 		options.url != null
 			? [options.url]
 			: (options.urls ?? DEFAULT_LEADERBOARD_URLS);
-	const data: DeepSWERawLeaderboardRow[] = [];
-	let fetchedAtEpochSeconds: number | null = null;
-	for (const url of urls) {
+	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+	const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
+	const results = await mapWithConcurrency(urls, concurrency, async (url) => {
 		try {
-			const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-			const response = await fetchWithTimeout(url, {}, timeoutMs);
-			if (!response.ok) {
-				continue;
-			}
-			const payload = asRecord(await response.json());
-			const rows = Array.isArray(payload.rows)
-				? payload.rows
-						.map((row) => asDeepSWELeaderboardRow(row))
-						.filter((row): row is DeepSWELeaderboardRow => row != null)
-				: [];
-			const sourceVersion = deepSWESourceVersionForUrl(url);
-			data.push(
-				...rows.map((row) => ({
-					...row,
-					source_version: sourceVersion,
-				})),
-			);
-			if (rows.length > 0 && fetchedAtEpochSeconds == null) {
-				fetchedAtEpochSeconds = nowEpochSeconds();
-			}
-		} catch {}
-	}
+			return await getDeepSWERawRowsForUrl(url, timeoutMs);
+		} catch {
+			return [];
+		}
+	});
+	const data = results.flat();
 	return {
-		fetched_at_epoch_seconds: data.length > 0 ? fetchedAtEpochSeconds : null,
+		fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
 		data,
 	};
 }

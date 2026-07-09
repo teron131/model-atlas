@@ -1,15 +1,15 @@
 /**
  * Agents' Last Exam scraper owns the API/browser fallback and harness-row summary policy.
  *
- * Page source: https://agenthle.org/leaderboard
- * JSON source: https://agenthle.org/api/demo/leaderboard
+ * Page source: https://agents-last-exam.org/leaderboard
+ * JSON source: https://agents-last-exam.org/api/demo/leaderboard
  */
 import { meanOfFinite, medianOfFinite } from "../math-utils";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../utils";
 
-const DEFAULT_LEADERBOARD_URL = "https://agenthle.org/leaderboard";
-const DEFAULT_API_URL = "https://agenthle.org/api/demo/leaderboard";
+const DEFAULT_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";
+const DEFAULT_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_SCORE_SPLIT = "full/overall";
 

@@ -1,9 +1,12 @@
 /** Verifies AA evaluation-page resource parsing for benchmark telemetry. */
 
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import {
 	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES,
 	buildArtificialAnalysisEvaluationResourceMap,
 	findArtificialAnalysisEvaluationResourceRow,
+	getArtificialAnalysisEvaluationResourceStats,
 	processArtificialAnalysisEvaluationResourceRows,
 } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 
@@ -434,4 +437,47 @@ for (const candidateName of [
 		)?.reasoning_effort,
 		"xhigh",
 	);
+}
+
+let activeRequests = 0;
+let maxActiveRequests = 0;
+let completedRequests = 0;
+const server = createServer((_request, response) => {
+	activeRequests += 1;
+	maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+	setTimeout(() => {
+		activeRequests -= 1;
+		completedRequests += 1;
+		response.writeHead(404, { "content-type": "text/plain" });
+		response.end("not found");
+	}, 20);
+});
+
+await new Promise<void>((resolve) => {
+	server.listen(0, "127.0.0.1", resolve);
+});
+try {
+	const address = server.address() as AddressInfo;
+	await getArtificialAnalysisEvaluationResourceStats({
+		concurrency: 2,
+		requestJitterMs: 0,
+		timeoutMs: 1_000,
+		pages: Array.from({ length: 6 }, (_, index) => ({
+			benchmark_key: `test_${index}`,
+			url: `http://127.0.0.1:${address.port}/${index}`,
+			task_run_count: 1,
+		})),
+	});
+	assertDeepEqual(completedRequests, 6);
+	assertDeepEqual(maxActiveRequests, 2);
+} finally {
+	await new Promise<void>((resolve, reject) => {
+		server.close((error) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			resolve();
+		});
+	});
 }

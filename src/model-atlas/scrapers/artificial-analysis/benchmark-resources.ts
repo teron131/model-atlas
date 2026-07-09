@@ -9,6 +9,7 @@ import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
+	mapWithConcurrency,
 	nowEpochSeconds,
 } from "../../utils";
 import {
@@ -20,6 +21,8 @@ import {
 } from "./common";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_CONCURRENCY = 3;
+const DEFAULT_REQUEST_JITTER_MS = 250;
 const ROW_DETECTION_KEY = "evalTimePerTask";
 const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
 const REASONING_EFFORT_RANK = {
@@ -92,6 +95,8 @@ export type ArtificialAnalysisEvaluationResourcePage = {
 export type ArtificialAnalysisEvaluationResourceOptions = {
 	pages?: readonly ArtificialAnalysisEvaluationResourcePage[];
 	timeoutMs?: number;
+	concurrency?: number;
+	requestJitterMs?: number;
 };
 
 export type ArtificialAnalysisEvaluationResourceRow = {
@@ -515,6 +520,10 @@ export function buildArtificialAnalysisEvaluationResourceMap(
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
+	const rowListByBenchmark = new Map<
+		string,
+		ArtificialAnalysisEvaluationResourceRow[]
+	>();
 	const highestEffortRowsByBenchmarkAndFamilyKey = new Map<
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
@@ -525,6 +534,9 @@ export function buildArtificialAnalysisEvaluationResourceMap(
 			rowsByModelKey = new Map();
 			rowsByBenchmark.set(row.benchmark_key, rowsByModelKey);
 		}
+		const benchmarkRows = rowListByBenchmark.get(row.benchmark_key) ?? [];
+		benchmarkRows.push(row);
+		rowListByBenchmark.set(row.benchmark_key, benchmarkRows);
 		for (const key of modelKeyCandidates(row)) {
 			rowsByModelKey.set(key, row);
 		}
@@ -552,9 +564,7 @@ export function buildArtificialAnalysisEvaluationResourceMap(
 		if (rowsByModelKey == null) {
 			continue;
 		}
-		for (const row of rows.filter(
-			(item) => item.benchmark_key === benchmarkKey,
-		)) {
+		for (const row of rowListByBenchmark.get(benchmarkKey) ?? []) {
 			const highestEffortFamilyRow = reasoningFamilyKeyCandidates(row).reduce<
 				ArtificialAnalysisEvaluationResourceRow | undefined
 			>(
@@ -616,16 +626,38 @@ async function getEvaluationResourceRows(
 	);
 }
 
+/** Random start jitter spreads same-origin page requests without changing row parsing semantics. */
+async function waitForRequestJitter(maxDelayMs: number): Promise<void> {
+	const safeMaxDelayMs = Math.max(0, Math.floor(maxDelayMs));
+	if (safeMaxDelayMs === 0) {
+		return;
+	}
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, Math.floor(Math.random() * safeMaxDelayMs));
+	});
+}
+
 export async function getArtificialAnalysisEvaluationResourceStats(
 	options: ArtificialAnalysisEvaluationResourceOptions = {},
 ): Promise<ArtificialAnalysisEvaluationResourcePayload> {
 	const pages = options.pages ?? ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES;
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-	const pageResults = await Promise.allSettled(
-		pages.map((page) => getEvaluationResourceRows(page, timeoutMs)),
+	const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
+	const requestJitterMs = options.requestJitterMs ?? DEFAULT_REQUEST_JITTER_MS;
+	const pageResults = await mapWithConcurrency(
+		pages,
+		concurrency,
+		async (page) => {
+			try {
+				await waitForRequestJitter(requestJitterMs);
+				return await getEvaluationResourceRows(page, timeoutMs);
+			} catch {
+				return [];
+			}
+		},
 	);
 	const resourceRows = pageResults
-		.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+		.flat()
 		.sort((left, right) =>
 			`${left.benchmark_key}/${left.model_id}`.localeCompare(
 				`${right.benchmark_key}/${right.model_id}`,

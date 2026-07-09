@@ -54,6 +54,35 @@ export async function fetchWithTimeout(
 	}
 }
 
+/** Run async work through a small worker pool so scraper fan-out stays friendly to source hosts. */
+export async function mapWithConcurrency<T, R>(
+	items: readonly T[],
+	concurrency: number,
+	mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+	const safeConcurrency = Math.max(1, Math.floor(concurrency));
+	const results = new Array<R>(items.length);
+	let cursor = 0;
+
+	async function worker(): Promise<void> {
+		for (;;) {
+			const index = cursor;
+			cursor += 1;
+			if (index >= items.length) {
+				return;
+			}
+			results[index] = await mapper(items[index] as T, index);
+		}
+	}
+
+	await Promise.all(
+		Array.from({ length: Math.min(safeConcurrency, items.length) }, () =>
+			worker(),
+		),
+	);
+	return results;
+}
+
 /** Freshness checks reject future timestamps so bad clocks cannot extend cache lifetimes indefinitely. */
 export function isFreshEpochSeconds(
 	fetchedAtEpochSeconds: unknown,
