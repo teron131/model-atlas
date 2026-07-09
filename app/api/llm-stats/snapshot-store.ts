@@ -143,7 +143,7 @@ function startDisplayRefresh(
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
 		refreshMode === "stored"
-			? refreshD1StoredSnapshot(runtime)
+			? refreshStoredOrLiveSnapshot(runtime)
 			: refreshLocalSnapshotPayload(runtime)
 	)
 		.then((payload) => {
@@ -182,6 +182,23 @@ export async function refreshLocalSnapshotPayload(
 	runtime = snapshotRuntime(),
 ): Promise<LlmStatsPayload> {
 	return refreshRuntimePayload(runtime);
+}
+
+/** Stored refreshes should not block public freshness when the persistent store is temporarily unavailable. */
+export async function refreshStoredOrLiveSnapshot(
+	runtime = snapshotRuntime(),
+): Promise<LlmStatsPayload> {
+	if (runtime.hasD1SnapshotStore) {
+		try {
+			const payload = await refreshD1StoredSnapshot(runtime);
+			if (payload != null) {
+				return payload;
+			}
+		} catch (error) {
+			console.error("Unable to refresh stored display snapshot", error);
+		}
+	}
+	return refreshLocalSnapshotPayload(runtime);
 }
 
 /** Rebuild and publish the runtime D1 snapshot before reading it back for display. */
@@ -265,13 +282,11 @@ export function displaySnapshotRefreshMode(
 	if (payload == null) {
 		return hasRuntimeSnapshotStore ? "stored" : "live";
 	}
-	if (!hasRuntimeSnapshotStore) {
+	const fetchedAt = snapshotFetchedAt(payload);
+	if (fetchedAt !== 0 && now - fetchedAt < refreshIntervalSeconds) {
 		return "none";
 	}
-	const fetchedAt = snapshotFetchedAt(payload);
-	return fetchedAt === 0 || now - fetchedAt >= refreshIntervalSeconds
-		? "stored"
-		: "none";
+	return hasRuntimeSnapshotStore ? "stored" : "live";
 }
 
 function displayRefreshIntervalSeconds(): number {
