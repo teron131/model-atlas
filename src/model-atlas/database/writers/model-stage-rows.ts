@@ -78,6 +78,7 @@ function modelStageBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(intelligence.coding_index),
 		asFiniteNumber(intelligence.omniscience_index),
 		asFiniteNumber(intelligence.omniscience_accuracy),
+		asFiniteNumber(evaluations.aa_briefcase),
 		asFiniteNumber(evaluations.apex_agents),
 		asFiniteNumber(evaluations.critpt),
 		asFiniteNumber(evaluations.gdpval_normalized),
@@ -160,7 +161,7 @@ export function insertModelStageRows(
 			cost_blended_price, context_over_200k_input, context_over_200k_output,
 			context_over_200k_cache_read, context_over_200k_cache_write,
 			intelligence_index, agentic_index, coding_index, omniscience_index,
-			omniscience_accuracy, apex_agents, critpt, gdpval_normalized, gpqa,
+			omniscience_accuracy, aa_briefcase, apex_agents, critpt, gdpval_normalized, gpqa,
 			hle, lcr, mmmu_pro, scicode, tau_banking, terminalbench_v21,
 			agents_last_exam, automation_bench, blueprint_bench_2, browsecomp,
 			cursorbench, deep_swe, gdp_pdf, riemann_bench, toolathlon, vals_index,
@@ -181,7 +182,7 @@ export function insertModelStageRows(
 			speed_score,
 			value_score,
 			overall_score
-		) VALUES (${Array.from({ length: 87 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 88 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

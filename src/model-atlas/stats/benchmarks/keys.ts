@@ -32,15 +32,25 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_KEYS = [
 ] as const;
 
 export const MODEL_ATLAS_EVALUATION_KEYS = [
-	...ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+	"aa_briefcase",
 	"agents_last_exam",
+	"apex_agents",
 	"automation_bench",
 	"blueprint_bench_2",
 	"browsecomp",
+	"critpt",
 	"cursorbench",
 	"deep_swe",
 	"gdp_pdf",
+	"gdpval_normalized",
+	"gpqa",
+	"hle",
+	"lcr",
+	"mmmu_pro",
 	"riemann_bench",
+	"scicode",
+	"tau_banking",
+	"terminalbench_v21",
 	"toolathlon",
 	"vals_index",
 ] as const;

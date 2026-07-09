@@ -117,25 +117,26 @@ const MIN_MAX_SCORE_TEXT = "min-max score across models";
 const FULL_OVERALL_TEXT = "Full Overall";
 
 const BENCHMARK_LABEL_BY_KEY = {
-	omniscience_accuracy: "Omniscience accuracy",
+	aa_briefcase: "AA-Briefcase",
+	agents_last_exam: "Agents' Last Exam",
+	apex_agents: "APEX Agents",
+	automation_bench: "AutomationBench",
+	blueprint_bench_2: "Blueprint-Bench 2",
+	browsecomp: "BrowseComp",
+	critpt: "CritPt",
+	cursorbench: "CursorBench",
+	deep_swe: "DeepSWE",
+	gdp_pdf: "GDP.pdf",
+	gdpval_normalized: "GDPval-AA v2",
+	hle: "HLE",
 	lcr: "LCR",
+	omniscience_accuracy: "Omniscience accuracy",
+	riemann_bench: "Riemann-bench",
 	scicode: "SciCode",
 	tau_banking: "tau3 Banking",
 	terminalbench_v21: "Terminal-Bench 2.1",
-	browsecomp: "BrowseComp",
 	toolathlon: "Toolathlon",
-	cursorbench: "CursorBench",
 	vals_index: "Vals Index",
-	blueprint_bench_2: "Blueprint-Bench 2",
-	gdp_pdf: "GDP.pdf",
-	riemann_bench: "Riemann-bench",
-	hle: "HLE",
-	critpt: "CritPt",
-	gdpval_normalized: "GDPval-AA v2",
-	apex_agents: "APEX Agents",
-	agents_last_exam: "Agents' Last Exam",
-	automation_bench: "AutomationBench",
-	deep_swe: "DeepSWE",
 } as const satisfies Record<BenchmarkKey, string>;
 
 type CoreColumnTooltipKey =
@@ -148,12 +149,12 @@ type CoreColumnTooltipKey =
 	| "artificialAnalysisCost"
 	| "artificialAnalysisSeconds"
 	| "artificialAnalysisTokens"
+	| "agentsLastExam"
+	| "agentsLastExamCost"
 	| "deepSWE"
 	| "deepSWECost"
 	| "deepSWESeconds"
-	| "deepSWETokens"
-	| "agentsLastExam"
-	| "agentsLastExamCost";
+	| "deepSWETokens";
 type CoreColumnTooltips = LlmStatsColumnTooltips &
 	Record<CoreColumnTooltipKey, LlmStatsColumnTooltip>;
 
@@ -175,19 +176,18 @@ function perComponentWeight(totalWeight: number, count: number): string {
 	return count > 0 ? percent(totalWeight / count, 1) : "-";
 }
 
+function benchmarkLabel(key: string): string {
+	return BENCHMARK_LABEL_BY_KEY[key as BenchmarkKey] ?? key;
+}
+
 function resourceBenchmarkKeys(
 	components: ActiveResourceComponents,
 ): readonly string[] {
-	return [
+	const componentKeys = new Set([
 		...components.artificialAnalysisBenchmarkKeys,
 		...components.directBenchmarkKeys,
-	].sort((left, right) =>
-		benchmarkLabel(left).localeCompare(benchmarkLabel(right)),
-	);
-}
-
-function benchmarkLabel(key: string): string {
-	return BENCHMARK_LABEL_BY_KEY[key as BenchmarkKey] ?? key;
+	]);
+	return BENCHMARK_KEYS.filter((key) => componentKeys.has(key));
 }
 
 function benchmarkResourceRows(
@@ -439,35 +439,6 @@ export function columnTooltipsForActiveComponents(
 				["Method", "direct AA per-task field"],
 			],
 		},
-		deepSWE: {
-			title: "DeepSWE",
-			body: "Coding-agent benchmark. This score uses the xhigh row when available, otherwise the best reported pass@1 row.",
-			rows: [["Source", "DeepSWE leaderboard"]],
-		},
-		deepSWECost: {
-			title: "DeepSWE cost per task ↓",
-			body: "Mean cost for one DeepSWE task.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Metric", "mean cost per task"],
-			],
-		},
-		deepSWESeconds: {
-			title: "DeepSWE seconds per task ↓",
-			body: "Mean runtime for one DeepSWE task.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Metric", "mean runtime per task"],
-			],
-		},
-		deepSWETokens: {
-			title: "DeepSWE output tokens per task",
-			body: "Mean output tokens for one DeepSWE task.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Metric", "mean output tokens per task"],
-			],
-		},
 		agentsLastExam: {
 			title: "Agents' Last Exam",
 			body: "Real-world software and professional-workflow benchmark. The displayed value is the higher of median and mean partial-credit score.",
@@ -510,6 +481,35 @@ export function columnTooltipsForActiveComponents(
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
 				["Metric", "output tokens per run"],
+			],
+		},
+		deepSWE: {
+			title: "DeepSWE",
+			body: "Coding-agent benchmark. This score uses the xhigh row when available, otherwise the best reported pass@1 row.",
+			rows: [["Source", "DeepSWE leaderboard"]],
+		},
+		deepSWECost: {
+			title: "DeepSWE cost per task ↓",
+			body: "Mean cost for one DeepSWE task.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Metric", "mean cost per task"],
+			],
+		},
+		deepSWESeconds: {
+			title: "DeepSWE seconds per task ↓",
+			body: "Mean runtime for one DeepSWE task.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Metric", "mean runtime per task"],
+			],
+		},
+		deepSWETokens: {
+			title: "DeepSWE output tokens per task",
+			body: "Mean output tokens for one DeepSWE task.",
+			rows: [
+				["Source", "DeepSWE leaderboard"],
+				["Metric", "mean output tokens per task"],
 			],
 		},
 	};

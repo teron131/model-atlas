@@ -23,8 +23,9 @@ export const benchmarkGroups = [
 ] as const;
 
 export const benchmarkLabels: Record<string, string> = {
-	apex_agents: "APEX Agents",
+	aa_briefcase: "AA-Briefcase",
 	agents_last_exam: "Agents' Last Exam",
+	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
 	blueprint_bench_2: "Blueprint-Bench 2",
 	browsecomp: "BrowseComp",
@@ -45,84 +46,12 @@ export const benchmarkLabels: Record<string, string> = {
 };
 
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
-	gpqa: {
-		title: "GPQA",
-		body: "Graduate-level Google-proof science questions, used here as a compact reasoning benchmark.",
+	aa_briefcase: {
+		title: "AA-Briefcase",
+		body: "AA long-horizon knowledge-work benchmark over multi-file professional deliverables, scored with rubric and pairwise quality judgments. Model Atlas normalizes the Elo score onto the shared 0-1 benchmark scale.",
 		rows: [
 			["Source", "Artificial Analysis"],
-			["Role", "science reasoning"],
-		],
-	},
-	omniscience_accuracy: {
-		title: "Omniscience",
-		body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "knowledge accuracy"],
-		],
-	},
-	lcr: {
-		title: "AA-LCR",
-		body: "Long-context reasoning over large document sets, checked with an equality grader.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "long context reasoning"],
-		],
-	},
-	hle: {
-		title: "HLE",
-		body: "Humanity's Last Exam: difficult academic reasoning and knowledge questions.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "frontier reasoning"],
-		],
-	},
-	scicode: {
-		title: "SciCode",
-		body: "Scientific Python problem solving with unit-tested subproblems.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "structured code reasoning"],
-		],
-	},
-	critpt: {
-		title: "CritPt",
-		body: "Research-level physics reasoning with numeric, symbolic, and code answers.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "physics reasoning"],
-		],
-	},
-	gdpval_normalized: {
-		title: "GDPval-AA v2",
-		body: "AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "real work completion"],
-		],
-	},
-	terminalbench_v21: {
-		title: "Terminal-Bench 2.1",
-		body: "Best matched AA or Vals terminal-agent score for command-line task execution.",
-		rows: [
-			["Source", "Artificial Analysis & Vals"],
-			["Role", "terminal agent work"],
-		],
-	},
-	tau_banking: {
-		title: "tau3 Banking",
-		body: "AA v4.1 banking-agent benchmark for realistic tool-mediated banking scenarios.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "banking agent work"],
-		],
-	},
-	apex_agents: {
-		title: "APEX Agents",
-		body: "Long-horizon professional-services agent tasks in consulting, banking, and law settings.",
-		rows: [
-			["Source", "Artificial Analysis"],
-			["Role", "agentic task completion"],
+			["Role", "agentic knowledge work"],
 		],
 	},
 	agents_last_exam: {
@@ -131,6 +60,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Agents' Last Exam"],
 			["Role", "agentic real-world work"],
+		],
+	},
+	apex_agents: {
+		title: "APEX Agents",
+		body: "Long-horizon professional-services agent tasks in consulting, banking, and law settings.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "agentic task completion"],
 		],
 	},
 	automation_bench: {
@@ -149,20 +86,28 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "spatial reasoning"],
 		],
 	},
-	gdp_pdf: {
-		title: "GDP.pdf",
-		body: "Surge AI document-understanding benchmark over real professional PDFs. Model Atlas uses the public leaderboard score.",
+	browsecomp: {
+		title: "BrowseComp",
+		body: "OpenAI's web-browsing benchmark for finding difficult-to-locate information.",
 		rows: [
-			["Source", "Surge AI"],
-			["Role", "document reasoning"],
+			["Source", "LLM Stats / ZeroEval"],
+			["Role", "web information retrieval"],
 		],
 	},
-	riemann_bench: {
-		title: "Riemann-bench",
-		body: "Surge AI extreme mathematics benchmark over private frontier math problems. Model Atlas uses the public leaderboard score.",
+	critpt: {
+		title: "CritPt",
+		body: "Research-level physics reasoning with numeric, symbolic, and code answers.",
 		rows: [
-			["Source", "Surge AI"],
-			["Role", "frontier math reasoning"],
+			["Source", "Artificial Analysis"],
+			["Role", "physics reasoning"],
+		],
+	},
+	cursorbench: {
+		title: "CursorBench",
+		body: "Cursor's first-party coding-agent benchmark over ambiguous, multi-file tasks. Composer rows are excluded.",
+		rows: [
+			["Source", "Cursor"],
+			["Role", "coding-agent workflow"],
 		],
 	},
 	deep_swe: {
@@ -173,20 +118,84 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "coding agent work"],
 		],
 	},
+	gdp_pdf: {
+		title: "GDP.pdf",
+		body: "Surge AI document-understanding benchmark over real professional PDFs. Model Atlas uses the public leaderboard score.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "document reasoning"],
+		],
+	},
+	gdpval_normalized: {
+		title: "GDPval-AA v2",
+		body: "AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "real work completion"],
+		],
+	},
+	hle: {
+		title: "HLE",
+		body: "Humanity's Last Exam: difficult academic reasoning and knowledge questions.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "frontier reasoning"],
+		],
+	},
+	lcr: {
+		title: "AA-LCR",
+		body: "Long-context reasoning over large document sets, checked with an equality grader.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "long context reasoning"],
+		],
+	},
+	omniscience_accuracy: {
+		title: "Omniscience",
+		body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "knowledge accuracy"],
+		],
+	},
+	riemann_bench: {
+		title: "Riemann-bench",
+		body: "Surge AI extreme mathematics benchmark over private frontier math problems. Model Atlas uses the public leaderboard score.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "frontier math reasoning"],
+		],
+	},
+	scicode: {
+		title: "SciCode",
+		body: "Scientific Python problem solving with unit-tested subproblems.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "structured code reasoning"],
+		],
+	},
+	tau_banking: {
+		title: "tau3 Banking",
+		body: "AA v4.1 banking-agent benchmark for realistic tool-mediated banking scenarios.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "banking agent work"],
+		],
+	},
+	terminalbench_v21: {
+		title: "Terminal-Bench 2.1",
+		body: "Best matched AA or Vals terminal-agent score for command-line task execution.",
+		rows: [
+			["Source", "Artificial Analysis & Vals"],
+			["Role", "terminal agent work"],
+		],
+	},
 	toolathlon: {
 		title: "Toolathlon",
 		body: "Multi-tool workflow benchmark from ZeroEval. Model Atlas uses the LLM Stats score.",
 		rows: [
 			["Source", "LLM Stats / ZeroEval"],
 			["Role", "multi-tool agent work"],
-		],
-	},
-	cursorbench: {
-		title: "CursorBench",
-		body: "Cursor's first-party coding-agent benchmark over ambiguous, multi-file tasks. Composer rows are excluded.",
-		rows: [
-			["Source", "Cursor"],
-			["Role", "coding-agent workflow"],
 		],
 	},
 	vals_index: {

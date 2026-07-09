@@ -398,6 +398,7 @@ CREATE TABLE IF NOT EXISTS model_stage_rows (
 	coding_index REAL,
 	omniscience_index REAL,
 	omniscience_accuracy REAL,
+	aa_briefcase REAL,
 	apex_agents REAL,
 	critpt REAL,
 	gdpval_normalized REAL,

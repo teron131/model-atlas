@@ -155,6 +155,7 @@ export type LlmStatsTaskMetrics =
 	| null;
 
 export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
+	aa_briefcase?: NumberOrNull;
 	apex_agents?: NumberOrNull;
 	critpt?: NumberOrNull;
 	gdpval_normalized?: NumberOrNull;

@@ -25,6 +25,16 @@ const terminalBenchPage = {
 	url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	task_run_count: 2,
 };
+const briefcasePage = {
+	benchmark_key: "aa_briefcase",
+	score_path: ["briefcase", "elo"],
+	cost_path: ["briefcaseCost"],
+	token_counts_path: ["canonicalEvalTokenCounts", "briefcase"],
+	seconds_per_task: "briefcase_estimate",
+	row_detection_key: "briefcase",
+	url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+	task_run_count: 2,
+} as const;
 
 const rows = processArtificialAnalysisEvaluationResourceRows(
 	[
@@ -147,6 +157,57 @@ assertDeepEqual(
 		output_tokens_per_task: 6,
 		answer_tokens_per_task: null,
 		reasoning_tokens_per_task: null,
+	},
+);
+
+assertDeepEqual(
+	processArtificialAnalysisEvaluationResourceRows(
+		[
+			{
+				short_name: "Claude Fable 5 (max)",
+				slug: "claude-fable-5",
+				model_creators: {
+					name: "Anthropic",
+					slug: "anthropic",
+				},
+				briefcase: {
+					elo: 1500,
+					totalToolMs: 4000,
+				},
+				briefcaseCost: {
+					total: 6,
+				},
+				canonicalEvalTokenCounts: {
+					briefcase: {
+						input: 20,
+						answer: 30,
+						reasoning: 50,
+					},
+				},
+				timescaleData: {
+					median_output_speed: 10,
+				},
+			},
+		],
+		briefcasePage,
+	)[0],
+	{
+		benchmark_key: "aa_briefcase",
+		source_url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+		model_id: "anthropic/claude-fable-5",
+		model: "Claude Fable 5 (max)",
+		provider: "Anthropic",
+		provider_id: "anthropic",
+		reasoning_effort: "max",
+		score: 1500,
+		task_run_count: 2,
+		cost_per_task_usd: 3,
+		seconds_per_task: 6,
+		tokens_per_task: 50,
+		input_tokens_per_task: 10,
+		output_tokens_per_task: 40,
+		answer_tokens_per_task: 15,
+		reasoning_tokens_per_task: 25,
 	},
 );
 

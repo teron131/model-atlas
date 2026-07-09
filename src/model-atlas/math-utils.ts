@@ -60,6 +60,11 @@ export function clamp01(value: number) {
 	return clamp(value, 0, 1);
 }
 
+/** Map Elo-like ratings onto a clamped 0-1 interval from a source-defined lower bound and range. */
+export function normalizeElo(value: number, lowerBound: number, range: number) {
+	return clamp01((value - lowerBound) / range);
+}
+
 export function interpolateLinear(start: number, end: number, ratio: number) {
 	return start + (end - start) * ratio;
 }
