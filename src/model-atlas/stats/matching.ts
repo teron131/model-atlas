@@ -11,7 +11,7 @@ import {
 
 import {
 	type BenchmarkEnrichmentLookups,
-	benchmarkEnrichment,
+	benchmarkObservationEnrichment,
 } from "./benchmarks";
 import type {
 	ArtificialAnalysisModel,
@@ -143,15 +143,13 @@ function buildMatchedRow(
 		typeof matchedModelsDev?.model?.name === "string"
 			? matchedModelsDev.model.name
 			: artificialAnalysisModelId;
-	const modelNameCandidates = [
+	const observationNameCandidates = [
 		artificialAnalysisModelId,
-		matchedModelsDev?.model_id,
-		matchedModelsDev?.model?.id,
 		artificialAnalysisSlug,
-		matchedModelName,
+		artificialAnalysisModel.name,
 	];
-	const benchmarkFields = benchmarkEnrichment(
-		modelNameCandidates,
+	const benchmarkFields = benchmarkObservationEnrichment(
+		observationNameCandidates,
 		lookups,
 		evaluations,
 	);
@@ -182,6 +180,10 @@ function buildMatchedRow(
 		name: matchedModelName,
 		artificial_analysis_id: artificialAnalysisModelId,
 		artificial_analysis_slug: artificialAnalysisSlug,
+		reasoning_effort:
+			typeof artificialAnalysisModel.reasoning_effort === "string"
+				? artificialAnalysisModel.reasoning_effort
+				: null,
 		family: matchedFamily,
 		logo,
 		...modelMetadata,

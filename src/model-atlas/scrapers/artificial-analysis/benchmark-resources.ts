@@ -4,7 +4,7 @@
  * The Artificial Analysis leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
  */
 
-import { normalizeModelToken } from "../../shared";
+import { normalizeModelToken, reasoningEffortRank } from "../../shared";
 import {
 	asFiniteNumber,
 	asRecord,
@@ -25,14 +25,6 @@ const DEFAULT_CONCURRENCY = 3;
 const DEFAULT_REQUEST_JITTER_MS = 250;
 const ROW_DETECTION_KEY = "evalTimePerTask";
 const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
-const REASONING_EFFORT_RANK = {
-	"non-reasoning": 0,
-	low: 1,
-	medium: 2,
-	high: 3,
-	xhigh: 4,
-	max: 5,
-} as const satisfies Readonly<Record<string, number>>;
 const REASONING_EFFORT_SUFFIXES = [
 	"non-reasoning",
 	"extra-high",
@@ -367,7 +359,8 @@ function artificialAnalysisEvaluationResourceRow(
 		stringValue(row.short_name) ?? stringValue(row.shortName) ?? row.name;
 	const model = cleanArtificialAnalysisModelName(sourceModelName) ?? modelSlug;
 	const reasoningEffort =
-		parseArtificialAnalysisReasoningEffort(sourceModelName);
+		parseArtificialAnalysisReasoningEffort(sourceModelName) ??
+		reasoningEffortFromModelSlug(modelSlug);
 	const cost = costRecord(row, page);
 	const tokenCounts = tokenCountsRecord(row, page);
 	const score = scoreValue(row, page);
@@ -436,6 +429,18 @@ function artificialAnalysisEvaluationResourceRow(
 	};
 }
 
+function reasoningEffortFromModelSlug(modelSlug: string | null): string | null {
+	if (modelSlug == null) {
+		return null;
+	}
+	for (const suffix of REASONING_EFFORT_SUFFIXES) {
+		if (modelSlug.endsWith(`-${suffix}`)) {
+			return suffix === "extra-high" ? "xhigh" : suffix;
+		}
+	}
+	return null;
+}
+
 export function processArtificialAnalysisEvaluationResourceRows(
 	rows: unknown[],
 	page: ArtificialAnalysisEvaluationResourcePage,
@@ -493,16 +498,6 @@ function withoutReasoningEffortSuffix(key: string): string {
 	return base;
 }
 
-function reasoningEffortRank(
-	row: ArtificialAnalysisEvaluationResourceRow,
-): number {
-	return row.reasoning_effort == null
-		? 0
-		: (REASONING_EFFORT_RANK[
-				row.reasoning_effort as keyof typeof REASONING_EFFORT_RANK
-			] ?? 0);
-}
-
 function higherEffortResourceRow(
 	left: ArtificialAnalysisEvaluationResourceRow | undefined,
 	right: ArtificialAnalysisEvaluationResourceRow,
@@ -510,21 +505,17 @@ function higherEffortResourceRow(
 	if (left == null) {
 		return right;
 	}
-	return reasoningEffortRank(right) > reasoningEffortRank(left) ? right : left;
+	return reasoningEffortRank(right.reasoning_effort) >
+		reasoningEffortRank(left.reasoning_effort)
+		? right
+		: left;
 }
 
-export function buildArtificialAnalysisEvaluationResourceMap(
+/** Builds exact benchmark-resource lookups without collapsing effort observations. */
+export function buildArtificialAnalysisObservationResourceMap(
 	rows: ArtificialAnalysisEvaluationResourceRow[],
 ): ArtificialAnalysisEvaluationResourceByBenchmark {
 	const rowsByBenchmark = new Map<
-		string,
-		Map<string, ArtificialAnalysisEvaluationResourceRow>
-	>();
-	const rowListByBenchmark = new Map<
-		string,
-		ArtificialAnalysisEvaluationResourceRow[]
-	>();
-	const highestEffortRowsByBenchmarkAndFamilyKey = new Map<
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
@@ -534,55 +525,78 @@ export function buildArtificialAnalysisEvaluationResourceMap(
 			rowsByModelKey = new Map();
 			rowsByBenchmark.set(row.benchmark_key, rowsByModelKey);
 		}
-		const benchmarkRows = rowListByBenchmark.get(row.benchmark_key) ?? [];
-		benchmarkRows.push(row);
-		rowListByBenchmark.set(row.benchmark_key, benchmarkRows);
 		for (const key of modelKeyCandidates(row)) {
 			rowsByModelKey.set(key, row);
 		}
-		let highestEffortRowsByFamilyKey =
-			highestEffortRowsByBenchmarkAndFamilyKey.get(row.benchmark_key);
-		if (highestEffortRowsByFamilyKey == null) {
-			highestEffortRowsByFamilyKey = new Map();
-			highestEffortRowsByBenchmarkAndFamilyKey.set(
+	}
+	return rowsByBenchmark;
+}
+
+/** Builds aggregate lookups whose aliases resolve to the default highest-effort observation. */
+export function buildArtificialAnalysisDefaultEffortResourceMap(
+	rows: ArtificialAnalysisEvaluationResourceRow[],
+): ArtificialAnalysisEvaluationResourceByBenchmark {
+	const rowsByBenchmark = new Map(
+		[...buildArtificialAnalysisObservationResourceMap(rows)].map(
+			([benchmarkKey, rowsByModel]) => [benchmarkKey, new Map(rowsByModel)],
+		),
+	);
+	const defaultRowsByBenchmarkAndFamilyKey = new Map<
+		string,
+		Map<string, ArtificialAnalysisEvaluationResourceRow>
+	>();
+	for (const row of rows) {
+		let defaultRowsByFamilyKey = defaultRowsByBenchmarkAndFamilyKey.get(
+			row.benchmark_key,
+		);
+		if (defaultRowsByFamilyKey == null) {
+			defaultRowsByFamilyKey = new Map();
+			defaultRowsByBenchmarkAndFamilyKey.set(
 				row.benchmark_key,
-				highestEffortRowsByFamilyKey,
+				defaultRowsByFamilyKey,
 			);
 		}
 		for (const key of reasoningFamilyKeyCandidates(row)) {
-			highestEffortRowsByFamilyKey.set(
+			defaultRowsByFamilyKey.set(
 				key,
-				higherEffortResourceRow(highestEffortRowsByFamilyKey.get(key), row),
+				higherEffortResourceRow(defaultRowsByFamilyKey.get(key), row),
 			);
+		}
+	}
+	for (const row of rows) {
+		const rowsByModelKey = rowsByBenchmark.get(row.benchmark_key);
+		if (rowsByModelKey == null) {
+			continue;
+		}
+		const defaultRowsByFamilyKey = defaultRowsByBenchmarkAndFamilyKey.get(
+			row.benchmark_key,
+		);
+		const defaultFamilyRow = reasoningFamilyKeyCandidates(row).reduce<
+			ArtificialAnalysisEvaluationResourceRow | undefined
+		>(
+			(defaultRow, key) =>
+				higherEffortResourceRow(
+					defaultRow,
+					defaultRowsByFamilyKey?.get(key) ?? row,
+				),
+			undefined,
+		);
+		if (defaultFamilyRow == null) {
+			continue;
+		}
+		for (const key of modelKeyCandidates(row)) {
+			rowsByModelKey.set(key, defaultFamilyRow);
 		}
 	}
 	for (const [
 		benchmarkKey,
-		highestEffortRowsByFamilyKey,
-	] of highestEffortRowsByBenchmarkAndFamilyKey) {
+		defaultRowsByFamilyKey,
+	] of defaultRowsByBenchmarkAndFamilyKey) {
 		const rowsByModelKey = rowsByBenchmark.get(benchmarkKey);
 		if (rowsByModelKey == null) {
 			continue;
 		}
-		for (const row of rowListByBenchmark.get(benchmarkKey) ?? []) {
-			const highestEffortFamilyRow = reasoningFamilyKeyCandidates(row).reduce<
-				ArtificialAnalysisEvaluationResourceRow | undefined
-			>(
-				(bestRow, key) =>
-					higherEffortResourceRow(
-						bestRow,
-						highestEffortRowsByFamilyKey.get(key) ?? row,
-					),
-				undefined,
-			);
-			if (highestEffortFamilyRow == null) {
-				continue;
-			}
-			for (const key of modelKeyCandidates(row)) {
-				rowsByModelKey.set(key, highestEffortFamilyRow);
-			}
-		}
-		for (const [key, row] of highestEffortRowsByFamilyKey) {
+		for (const [key, row] of defaultRowsByFamilyKey) {
 			rowsByModelKey.set(key, row);
 		}
 	}

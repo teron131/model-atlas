@@ -6,9 +6,9 @@ const MODEL_NAME_TAG_TOKENS = new Set([
 	"extended",
 	"exacto",
 	"instruct",
-	"vl",
 	"thinking",
 	"reasoning",
+	"preview",
 	"online",
 	"nitro",
 ]);
@@ -19,6 +19,11 @@ export function splitBaseModelId(modelId: string): string {
 
 export function splitBaseModelTokens(modelId: string): string[] {
 	return splitTokens(splitBaseModelId(modelId));
+}
+
+/** Produces a strict model identity key after removing matcher-owned non-identity labels. */
+export function modelNameIdentityKey(value: string): string {
+	return splitBaseModelTokens(value).join("-");
 }
 
 function isBScaleToken(token: string): boolean {

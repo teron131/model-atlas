@@ -17,6 +17,7 @@ import type {
 	ModelsDevFlatModel,
 	ModelsDevPayload,
 } from "../scrapers/models-dev";
+import { OPENROUTER_MODELS_URL } from "../scrapers/openrouter";
 import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import type {
@@ -100,8 +101,8 @@ export const SOURCE_URLS = {
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 	vals_index: "https://www.vals.ai/benchmarks/vals_index",
 	vals_terminal_bench: "https://www.vals.ai/benchmarks/terminal-bench-2-1",
-	openrouter_models: "https://openrouter.ai/api/frontend/models",
-	openrouter_stats: "https://openrouter.ai/api/frontend/stats/*",
+	openrouter_models: OPENROUTER_MODELS_URL,
+	openrouter_stats: "https://openrouter.ai/api/frontend/v1/stats/*",
 } as const;
 
 export type DatabaseBuildResult = {
@@ -169,7 +170,7 @@ export type SourceSnapshots = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEModelScoreRows: LlmStatsSourceData["deepSWE"]["rows"];
+	deepSWEDefaultEffortRows: LlmStatsSourceData["deepSWE"]["defaultEffortRows"];
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];

@@ -2,7 +2,9 @@
 
 import { normalizeElo } from "../../math-utils";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
-import { asFiniteNumber, asRecord } from "../../shared";
+import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
+import { asFiniteNumber, asRecord, normalizeModelToken } from "../../shared";
+import { aggregateModelRows } from "../openrouter-enrichment";
 import type { LlmStatsSourceData } from "../types";
 import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
 
@@ -20,15 +22,23 @@ export type BenchmarkRowsByKey = Readonly<
 export type BenchmarkRowDraft = {
 	key: string;
 	id?: string | null;
+	identity?: string | null;
 	label: string | null;
 	provider?: string | null;
+	reasoningEffort?: unknown;
 	value: unknown;
+};
+
+type AggregatableBenchmarkSourceRow = BenchmarkSourceRow & {
+	identity: string;
+	reasoningEffort: unknown;
 };
 
 type ArtificialAnalysisBenchmarkDraftSource<Row> = {
 	rows: readonly Row[];
 	modelId: (row: Row) => string | null;
 	label: (row: Row, modelId: string | null) => string | null;
+	reasoningEffort: (row: Row) => unknown;
 	value: (row: Row, key: string) => unknown;
 };
 
@@ -53,15 +63,17 @@ function artificialAnalysisEvaluationResourceDrafts(
 		rows.filter((row) => row.benchmark_key === key),
 		(row) => ({
 			id: row.model_id,
+			identity: row.model_id,
 			label: row.model,
 			provider: row.provider,
+			reasoningEffort: row.reasoning_effort,
 			value: value(row),
 		}),
 	);
 }
 
 function addBenchmarkRowDraft(
-	rowsByKey: Record<string, BenchmarkSourceRow[]>,
+	rowsByKey: Record<string, AggregatableBenchmarkSourceRow[]>,
 	draft: BenchmarkRowDraft,
 ): void {
 	const value = asFiniteNumber(draft.value);
@@ -75,21 +87,55 @@ function addBenchmarkRowDraft(
 	}
 	rows.push({
 		id: draft.id ?? null,
+		identity:
+			draft.identity ??
+			draft.id ??
+			`${draft.provider ?? "benchmark"}/${draft.label}`,
 		label: draft.label,
 		provider: draft.provider ?? null,
+		reasoningEffort: draft.reasoningEffort ?? null,
 		value,
 	});
+}
+
+function aggregateBenchmarkSourceRows(
+	key: string,
+	rows: AggregatableBenchmarkSourceRow[],
+): BenchmarkSourceRow[] {
+	return aggregateModelRows(
+		rows.map((row) => {
+			const identity = normalizeModelToken(row.identity);
+			return {
+				id: identity,
+				artificial_analysis_id: identity,
+				artificial_analysis_slug: identity.split("/").at(-1),
+				reasoning_effort: row.reasoningEffort,
+				evaluations: { [key]: row.value },
+				benchmark_source_row: {
+					id: row.id,
+					label: row.label,
+					provider: row.provider,
+					value: row.value,
+				} satisfies BenchmarkSourceRow,
+			};
+		}),
+	).map((row) => row.benchmark_source_row as BenchmarkSourceRow);
 }
 
 /** Only labeled finite benchmark evidence is allowed into update-health comparisons. */
 export function finalizeBenchmarkRows(
 	drafts: readonly BenchmarkRowDraft[],
 ): BenchmarkRowsByKey {
-	const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
+	const rowsByKey: Record<string, AggregatableBenchmarkSourceRow[]> = {};
 	for (const draft of drafts) {
 		addBenchmarkRowDraft(rowsByKey, draft);
 	}
-	return rowsByKey;
+	return Object.fromEntries(
+		Object.entries(rowsByKey).map(([key, rows]) => [
+			key,
+			aggregateBenchmarkSourceRows(key, rows),
+		]),
+	);
 }
 
 /** Artificial Analysis rows carry many benchmark keys, so each supported key becomes separate source evidence. */
@@ -97,6 +143,7 @@ export function artificialAnalysisBenchmarkRowDrafts<Row>({
 	rows,
 	modelId,
 	label,
+	reasoningEffort,
 	value,
 }: ArtificialAnalysisBenchmarkDraftSource<Row>): BenchmarkRowDraft[] {
 	return rows.flatMap((row) => {
@@ -108,8 +155,10 @@ export function artificialAnalysisBenchmarkRowDrafts<Row>({
 		return ARTIFICIAL_ANALYSIS_EVALUATION_KEYS.map((key) => ({
 			key,
 			id: rowModelId,
+			identity: rowModelId,
 			label: rowLabel,
 			provider: null,
+			reasoningEffort: reasoningEffort(row),
 			value: value(row, key),
 		}));
 	});
@@ -133,6 +182,7 @@ function sourceDataBenchmarkDrafts(
 					? record.name
 					: modelId;
 			},
+			reasoningEffort: (row) => asRecord(row).reasoning_effort,
 			value: (row, key) => asRecord(asRecord(row).evaluations)[key],
 		}),
 		...sparseBenchmarkRowDrafts(
@@ -173,15 +223,27 @@ function sourceDataBenchmarkDrafts(
 		...sparseBenchmarkRowDrafts(
 			"cursorbench",
 			sourceData.cursorBench.rows,
+			(row) => {
+				const canonicalName = cursorBenchCanonicalModelName(row.base_model);
+				return {
+					identity: canonicalName,
+					label: canonicalName,
+					reasoningEffort: row.reasoning_effort,
+					value: row.score,
+				};
+			},
+		),
+		...sparseBenchmarkRowDrafts(
+			"deep_swe",
+			sourceData.deepSWE.defaultEffortRows,
 			(row) => ({
+				id: row.model,
+				identity: row.model,
 				label: row.model,
-				value: row.score,
+				reasoningEffort: row.reasoning_effort,
+				value: row.pass_at_1,
 			}),
 		),
-		...sparseBenchmarkRowDrafts("deep_swe", sourceData.deepSWE.rows, (row) => ({
-			label: row.model,
-			value: row.pass_at_1,
-		})),
 		...sparseBenchmarkRowDrafts("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
 			label: row.model,
 			provider: row.provider,

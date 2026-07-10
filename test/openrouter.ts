@@ -1,3 +1,6 @@
+/** Verifies OpenRouter parsing, route candidates, provenance, and statistics. */
+
+import { SOURCE_URLS } from "../src/model-atlas/database/types";
 import {
 	buildOpenRouterSeriesTokenWeights,
 	buildOpenRouterSlugCandidates,
@@ -14,6 +17,15 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 		throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
 	}
 }
+
+assertDeepEqual(
+	SOURCE_URLS.openrouter_models,
+	"https://openrouter.ai/api/frontend/v1/catalog/models",
+);
+assertDeepEqual(
+	SOURCE_URLS.openrouter_stats,
+	"https://openrouter.ai/api/frontend/v1/stats/*",
+);
 
 const performanceStats = {
 	summary: {

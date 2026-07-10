@@ -1,4 +1,10 @@
+/** Verifies models.dev parsing, source retention, and public catalog eligibility. */
+
 import { processModelsDevPayload } from "../src/model-atlas/scrapers/models-dev";
+import {
+	buildArtificialAnalysisRetainKeys,
+	pickPreferredModelsDevRows,
+} from "../src/model-atlas/stats/source-policy";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);
@@ -66,4 +72,60 @@ assertDeepEqual(
 			model_id: "unknown-cost",
 		},
 	],
+);
+
+const selectedCatalogModels = pickPreferredModelsDevRows(
+	processModelsDevPayload(
+		{
+			vercel: {
+				models: {
+					"meta/muse-spark-1.1": {
+						id: "meta/muse-spark-1.1",
+						name: "Muse Spark 1.1",
+						release_date: "2026-06-01",
+					},
+					"openai/text-embedding-3-small": {
+						id: "openai/text-embedding-3-small",
+						name: "Text Embedding 3 Small",
+						release_date: "2026-02-20",
+					},
+					"cohere/rerank-v4-pro": {
+						id: "cohere/rerank-v4-pro",
+						name: "Rerank 4 Pro",
+						release_date: "2026-02-20",
+					},
+				},
+			},
+		},
+		"2025-06-01",
+	),
+);
+assertDeepEqual(
+	selectedCatalogModels.map((row) => row.model_id),
+	["meta/muse-spark-1.1"],
+);
+
+const retainedClaudeModels = processModelsDevPayload(
+	{
+		openrouter: {
+			models: {
+				"anthropic/claude-sonnet-3.5": {
+					id: "anthropic/claude-sonnet-3.5",
+					name: "Claude Sonnet 3.5",
+					release_date: "2025-05-22",
+				},
+			},
+		},
+	},
+	"2025-07-01",
+	buildArtificialAnalysisRetainKeys([
+		{
+			model_id: "anthropic/claude-35-sonnet",
+			name: "Claude 3.5 Sonnet",
+		},
+	]),
+);
+assertDeepEqual(
+	retainedClaudeModels.map((row) => row.model_id),
+	["anthropic/claude-sonnet-3.5"],
 );

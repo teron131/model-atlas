@@ -1,10 +1,14 @@
-/** OpenRouter enrichment owns late-bound route stats, duplicate selection, and free-route cost continuity for final model rows. */
+/** Model aggregation and OpenRouter enrichment own effort collapse, route stats, and free-route cost continuity. */
 
+import {
+	claudeIdentityKey,
+	parseClaudeIdentity,
+} from "../matcher/claude-identity";
 import {
 	isOpenRouterFreeRouteId,
 	nonFreeOpenRouterModelId,
 	publicOpenRouterModelId,
-	reasoningEffortPriority,
+	reasoningEffortSelectionPriority,
 	stripCatalogAliasSuffixes,
 } from "../openrouter-routes";
 import {
@@ -29,16 +33,16 @@ import type {
 	ScoringConfig,
 } from "./types";
 
-const MERGED_OBJECT_FIELDS = [
-	"cost",
+const CATALOG_MERGED_OBJECT_FIELDS = ["cost", "limit", "modalities"] as const;
+const ALIAS_MERGED_OBJECT_FIELDS = [
+	...CATALOG_MERGED_OBJECT_FIELDS,
 	"evaluations",
 	"intelligence",
 	"intelligence_index_cost",
-	"limit",
-	"modalities",
 	"scoring_sources",
 	"component_scores",
 ] as const;
+type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
 
 function normalizeOpenRouterSpeed(performance: unknown): JsonObject {
 	const parsed = asRecord(performance);
@@ -98,7 +102,11 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 			: null;
 	const canonicalSlug = canonicalSlugFromDedupeKey(normalizedId);
 	const reasoningEffortBoost =
-		reasoningEffortPriority(artificialAnalysisSlug, canonicalSlug) * 10_000_000;
+		reasoningEffortSelectionPriority(
+			row.reasoning_effort,
+			artificialAnalysisSlug,
+			canonicalSlug,
+		) * 10_000_000;
 	return (
 		reasoningEffortBoost +
 		artificialAnalysisIdentityBoost +
@@ -134,9 +142,13 @@ function versionKeyForRow(row: JsonObject): string | null {
 	const id = typeof row.id === "string" ? row.id : null;
 	const slug =
 		artificialAnalysisSlug ?? (id == null ? null : modelSlugFromModelId(id));
-	return slug == null
-		? null
-		: stripCatalogAliasSuffixes(normalizeModelToken(slug));
+	if (slug == null) {
+		return null;
+	}
+	const claudeIdentity = parseClaudeIdentity(slug);
+	return claudeIdentity == null
+		? stripCatalogAliasSuffixes(normalizeModelToken(slug))
+		: claudeIdentityKey(claudeIdentity);
 }
 
 /** Benchmark-version keys keep Artificial Analysis rows attached while provider suffixes collapse into one public route. */
@@ -157,7 +169,7 @@ function dedupeKeyForRow(
 
 function mergeObjectField(
 	target: JsonObject,
-	field: (typeof MERGED_OBJECT_FIELDS)[number],
+	field: MergedObjectField,
 	candidates: readonly JsonObject[],
 ): void {
 	const merged: JsonObject = { ...asRecord(target[field]) };
@@ -192,9 +204,10 @@ function primaryOpenRouterIdForGroup(
 function mergeDuplicateRows(
 	winner: JsonObject,
 	group: readonly JsonObject[],
+	objectFields: readonly MergedObjectField[],
 ): JsonObject {
 	const merged: JsonObject = { ...winner };
-	for (const field of MERGED_OBJECT_FIELDS) {
+	for (const field of objectFields) {
 		mergeObjectField(merged, field, group);
 	}
 	const openRouterId =
@@ -205,6 +218,19 @@ function mergeDuplicateRows(
 		merged.openrouter_id = openRouterId;
 	}
 	return merged;
+}
+
+function mergeDefaultEffortRows(
+	winner: JsonObject,
+	group: readonly JsonObject[],
+): JsonObject {
+	const aggregate = mergeDuplicateRows(
+		winner,
+		group,
+		CATALOG_MERGED_OBJECT_FIELDS,
+	);
+	delete aggregate.reasoning_effort;
+	return aggregate;
 }
 
 function speedHasData(speed: JsonObject): boolean {
@@ -313,7 +339,8 @@ function aliasOpenRouterDataToPublicRows(
 	}
 }
 
-function dedupeRowsPreferOpenRouter(
+/** Collapses route aliases and effort observations into one explicit aggregate model row. */
+export function aggregateModelRows(
 	rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
 	const groupedByNormalizedId = new Map<string, JsonObject[]>();
@@ -344,7 +371,11 @@ function dedupeRowsPreferOpenRouter(
 			(left, right) =>
 				rowPriority(right, normalizedId) - rowPriority(left, normalizedId),
 		)[0] as JsonObject;
-		dedupedRows.push(mergeDuplicateRows(winner, group));
+		dedupedRows.push(
+			normalizedId.startsWith("artificial_analysis:")
+				? mergeDefaultEffortRows(winner, group)
+				: mergeDuplicateRows(winner, group, ALIAS_MERGED_OBJECT_FIELDS),
+		);
 	}
 
 	return [...passthrough, ...dedupedRows];
@@ -464,19 +495,18 @@ async function buildOpenRouterDataById(
 
 /** Enrich matched rows with route-level OpenRouter speed and pricing without making the source snapshot depend on live route stats. */
 export async function enrichModelRowsWithOpenRouter(
-	matchedRows: Record<string, unknown>[],
+	rows: Record<string, unknown>[],
 	openrouterConfig: OpenRouterConfig,
 	scoringConfig: ScoringConfig,
 	cachedOpenRouterRawPayload?: OpenRouterRawScrapedPayload | null,
 ): Promise<LlmStatsEnrichmentResult> {
-	const dedupedRows = dedupeRowsPreferOpenRouter(matchedRows);
-	const rows = backfillFreeModelCosts(dedupedRows);
+	const costBackfilledRows = backfillFreeModelCosts(rows);
 	const {
 		speedById: openRouterSpeedById,
 		pricingById: openRouterPricingById,
 		rawPayload: openRouterRawPayload,
 	} = await buildOpenRouterDataById(
-		rows,
+		costBackfilledRows,
 		openrouterConfig.speedConcurrency,
 		cachedOpenRouterRawPayload,
 	);
@@ -485,7 +515,7 @@ export async function enrichModelRowsWithOpenRouter(
 		scoringConfig,
 	);
 	return {
-		rows,
+		rows: costBackfilledRows,
 		openRouterSpeedById,
 		openRouterPricingById,
 		speedOutputTokenAnchors,

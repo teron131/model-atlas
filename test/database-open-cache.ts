@@ -17,6 +17,8 @@ import {
 const databasePath = ".cache/test-database-open-cache.sqlite";
 const DEEP_SWE_V1_1_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
+const DEEP_SWE_V1_URL =
+	"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json";
 const DEEP_SWE_INSERT_SQL = `
 	INSERT INTO deep_swe_raw_rows (
 		run_id, row_index, fetched_at_epoch_seconds, url, source_version,
@@ -132,6 +134,13 @@ try {
 		);
 		assert(
 			reopenedDb
+				.prepare("PRAGMA table_info(model_stage_rows)")
+				.all()
+				.some((column) => column.name === "reasoning_effort"),
+			"Model stage rows should persist effort observations",
+		);
+		assert(
+			reopenedDb
 				.prepare("PRAGMA table_info(browsecomp_raw_rows)")
 				.all()
 				.some((column) => column.name === "provider_name"),
@@ -187,6 +196,29 @@ try {
 			deepSWEStatus.last_fetch_epoch_seconds,
 			1_800_000_010,
 			"source cache status should use the latest table run timestamp",
+		);
+		deepSWEStatement.run(
+			3,
+			0,
+			1_800_000_020,
+			DEEP_SWE_V1_URL,
+			"v1",
+			"Fallback DeepSWE Model",
+			"xhigh",
+			null,
+			0.6,
+			null,
+			null,
+			null,
+			113,
+			1,
+			3,
+			5,
+		);
+		assert.equal(
+			readRawSourceCacheStatus(reopenedDb, "deep_swe", 1_800_000_030).cache_hit,
+			false,
+			"A fallback-only DeepSWE run should not suppress a v1.1 retry",
 		);
 	} finally {
 		reopenedDb.close();

@@ -10,6 +10,18 @@ export const FALLBACK_PROVIDER_IDS: ReadonlySet<string> = new Set([
 	SECONDARY_PROVIDER_ID,
 	...TERTIARY_PROVIDER_IDS,
 ]);
+const REASONING_EFFORT_RANK = {
+	"non-reasoning": 0,
+	minimal: 1,
+	low: 2,
+	medium: 3,
+	high: 4,
+	"extra-high": 5,
+	xhigh: 5,
+	adaptive: 6,
+	max: 7,
+	ultra: 8,
+} as const satisfies Readonly<Record<string, number>>;
 
 export function normalizeProviderId(providerId: string): string {
 	return providerId.toLowerCase().replace(/^~+/, "");
@@ -41,6 +53,24 @@ export function normalizeModelToken(value: string): string {
 		.replace(/[^a-z0-9/-]+/g, "")
 		.replace(/-+/g, "-")
 		.replace(/^[-/]+|[-/]+$/g, "");
+}
+
+/** Unlabelled rows are the source's default highest-effort configuration. */
+export function reasoningEffortRank(value: unknown): number {
+	if (
+		value == null ||
+		(typeof value === "string" && value.trim().length === 0)
+	) {
+		return Object.keys(REASONING_EFFORT_RANK).length;
+	}
+	if (typeof value !== "string") {
+		return -1;
+	}
+	const normalized = normalizeModelToken(value);
+	return (
+		REASONING_EFFORT_RANK[normalized as keyof typeof REASONING_EFFORT_RANK] ??
+		-1
+	);
 }
 
 export function modelSlugFromModelId(modelId: unknown): string | null {

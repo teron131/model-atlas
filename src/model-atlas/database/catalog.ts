@@ -3,11 +3,9 @@
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import {
 	asRecord,
-	modelSlugFromModelId,
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../shared";
-import { benchmarkEnrichment } from "../stats/benchmarks";
 import type { LlmStatsSourceData } from "../stats/types";
 
 function canonicalModelId(
@@ -124,7 +122,6 @@ function normalizedCatalogIds(row: Record<string, unknown>): string[] {
 
 function modelsDevCatalogRow(
 	modelsDevModel: ModelsDevFlatModel,
-	sourceData: LlmStatsSourceData,
 ): Record<string, unknown> | null {
 	const modelFields = asRecord(modelsDevModel.model);
 	const canonicalId = canonicalModelId(
@@ -143,14 +140,6 @@ function modelsDevCatalogRow(
 		slug: _matchedSlug,
 		...modelMetadata
 	} = modelFields;
-	const modelNameCandidates = [
-		modelsDevModel.model.name,
-		modelsDevModel.model_id,
-		modelsDevModel.model.id,
-		canonicalId,
-		modelSlugFromModelId(canonicalId),
-	];
-	const benchmarkFields = benchmarkEnrichment(modelNameCandidates, sourceData);
 	return {
 		id: canonicalId,
 		provider_id: modelsDevModel.provider_id,
@@ -162,14 +151,6 @@ function modelsDevCatalogRow(
 		artificial_analysis_id: null,
 		family: matchedFamily,
 		...modelMetadata,
-		...(Object.keys(benchmarkFields.scoringSources).length === 0
-			? {}
-			: {
-					scoring_sources: benchmarkFields.scoringSources,
-				}),
-		...(Object.keys(benchmarkFields.evaluations).length === 0
-			? {}
-			: { evaluations: benchmarkFields.evaluations }),
 	};
 }
 
@@ -194,7 +175,7 @@ export function buildDatabaseCatalogRows(
 	}
 	const catalogRows = filterDatabaseTextLlmRows(matchedRows);
 	const modelsDevCatalogRows = sourceData.modelsDev.rows
-		.map((modelsDevModel) => modelsDevCatalogRow(modelsDevModel, sourceData))
+		.map((modelsDevModel) => modelsDevCatalogRow(modelsDevModel))
 		.filter((row): row is Record<string, unknown> => row != null)
 		.sort(
 			(left, right) => catalogAliasPriority(left) - catalogAliasPriority(right),

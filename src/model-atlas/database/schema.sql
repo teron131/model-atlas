@@ -367,6 +367,7 @@ CREATE TABLE IF NOT EXISTS model_stage_rows (
 	openrouter_id TEXT,
 	name TEXT,
 	artificial_analysis_id TEXT,
+	reasoning_effort TEXT,
 	family TEXT,
 	logo TEXT,
 	attachment INTEGER,

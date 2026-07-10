@@ -57,6 +57,7 @@ export type ModelsDevModel = Awaited<
 export type ArtificialAnalysisModel = {
 	model_id?: unknown;
 	name?: unknown;
+	reasoning_effort?: unknown;
 	logo?: unknown;
 	median_speed?: unknown;
 	median_time?: unknown;
@@ -329,7 +330,7 @@ export type LlmStatsBenchmarkUpdateEntry = {
 	top_model_labels: string[];
 	unrepresented_top_model_labels: string[];
 	top_model_reference_rank: number | null;
-	reference_metric: "overall_score";
+	reference_metric: "intelligence_score";
 };
 
 export type LlmStatsBenchmarkUpdateHealth = Record<
@@ -494,10 +495,11 @@ export type LlmStatsSourceData = {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
 	};
-	artificialAnalysisEvaluationResources: LlmStatsScoreSourceRows<
-		ArtificialAnalysisEvaluationResourceRow,
-		ArtificialAnalysisEvaluationResourceByBenchmark
-	>;
+	artificialAnalysisEvaluationResources: {
+		rows: ArtificialAnalysisEvaluationResourceRow[];
+		observationByModelName: ArtificialAnalysisEvaluationResourceByBenchmark;
+		defaultEffortByModelName: ArtificialAnalysisEvaluationResourceByBenchmark;
+	};
 	modelsDev: {
 		rows: ModelsDevModel[];
 		byId: Map<string, ModelsDevModel>;
@@ -518,10 +520,11 @@ export type LlmStatsSourceData = {
 		CursorBenchModelScoreRow,
 		CursorBenchScoreByModelName
 	>;
-	deepSWE: LlmStatsScoreSourceRows<
-		DeepSWEModelScoreRow,
-		DeepSWEScoreByModelName
-	>;
+	deepSWE: {
+		effortRows: DeepSWELeaderboardRow[];
+		defaultEffortRows: DeepSWEModelScoreRow[];
+		scoreByModelName: DeepSWEScoreByModelName;
+	};
 	gdpPdf: LlmStatsScoreSourceRows<GdpPdfModelScoreRow, GdpPdfScoreByModelName>;
 	riemannBench: LlmStatsScoreSourceRows<
 		RiemannBenchModelScoreRow,
@@ -546,6 +549,6 @@ export type LlmStatsEnrichmentResult = {
 	openRouterSpeedById: Map<string, JsonObject>;
 	openRouterPricingById: Map<string, JsonObject>;
 	speedOutputTokenAnchors: number[];
-	deepSWEModelScoreRows?: readonly DeepSWEModelScoreRow[];
+	deepSWEDefaultEffortRows?: readonly DeepSWEModelScoreRow[];
 	openRouterRawPayload?: OpenRouterRawScrapedPayload | null;
 };

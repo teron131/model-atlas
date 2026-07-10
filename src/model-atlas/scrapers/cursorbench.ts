@@ -4,7 +4,7 @@
  * Page source: https://cursor.com/cursorbench
  */
 
-import { normalizeModelToken } from "../shared";
+import { normalizeModelToken, reasoningEffortRank } from "../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../utils";
 import { htmlTextLines } from "./parsing";
 
@@ -66,8 +66,8 @@ type ParsedCursorBenchCellRow = {
 	consumedCells: number;
 };
 
-/** Stores an alias when it improves the score lookup for a model. */
-function addScoreRowAlias(
+/** Stores the source-default or highest-effort row under each model alias. */
+function addDefaultEffortRowAlias(
 	scoreByModelName: CursorBenchScoreByModelName,
 	alias: string,
 	row: CursorBenchModelScoreRow,
@@ -77,20 +77,32 @@ function addScoreRowAlias(
 		return;
 	}
 	const existing = scoreByModelName.get(key);
-	if (existing == null || row.score > existing.score) {
+	if (
+		existing == null ||
+		reasoningEffortRank(row.reasoning_effort) >
+			reasoningEffortRank(existing.reasoning_effort)
+	) {
 		scoreByModelName.set(key, row);
 	}
 }
 
-function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
-	const aliases = new Set([row.model, row.base_model]);
-	if (/^(Fable|Opus|Sonnet)\s+\d/i.test(row.base_model)) {
-		aliases.add(`Claude ${row.base_model}`);
+export function cursorBenchCanonicalModelName(baseModel: string): string {
+	if (/^(Fable|Opus|Sonnet)\s+\d/i.test(baseModel)) {
+		return `Claude ${baseModel}`;
 	}
-	const kimiVersion = row.base_model.match(/^Kimi\s+(\d(?:\.\d+)?)$/i)?.[1];
+	const kimiVersion = baseModel.match(/^Kimi\s+(\d(?:\.\d+)?)$/i)?.[1];
 	if (kimiVersion != null) {
-		aliases.add(`Kimi K${kimiVersion}`);
+		return `Kimi K${kimiVersion}`;
 	}
+	return baseModel;
+}
+
+function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
+	const aliases = new Set([
+		row.model,
+		row.base_model,
+		cursorBenchCanonicalModelName(row.base_model),
+	]);
 	return [...aliases];
 }
 
@@ -266,7 +278,7 @@ export function buildCursorBenchMap(
 	const scoreByModelName: CursorBenchScoreByModelName = new Map();
 	for (const row of rows) {
 		for (const alias of cursorBenchModelAliases(row)) {
-			addScoreRowAlias(scoreByModelName, alias, row);
+			addDefaultEffortRowAlias(scoreByModelName, alias, row);
 		}
 	}
 	return scoreByModelName;

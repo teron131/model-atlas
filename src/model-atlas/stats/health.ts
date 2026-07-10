@@ -75,7 +75,7 @@ function referenceRankByModel(
 	const ranked = models
 		.flatMap((model) => {
 			const id = modelIdentity(model);
-			const score = finiteNumber(model.scores?.overall_score);
+			const score = finiteNumber(model.scores?.intelligence_score);
 			return id == null || score == null ? [] : [{ id, score }];
 		})
 		.sort((left, right) => right.score - left.score)
@@ -311,7 +311,7 @@ export function buildBenchmarkUpdateHealth(
 					(row) => row.label,
 				),
 				top_model_reference_rank: topModels[0]?.referenceRank ?? null,
-				reference_metric: "overall_score",
+				reference_metric: "intelligence_score",
 			};
 			return [key, entry];
 		}),

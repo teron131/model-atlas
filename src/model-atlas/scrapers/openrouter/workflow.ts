@@ -36,7 +36,7 @@ import {
 	summarizeEndpointPerformance,
 } from "./stats";
 
-const OPENROUTER_MODELS_URL =
+export const OPENROUTER_MODELS_URL =
 	"https://openrouter.ai/api/frontend/v1/catalog/models";
 const OPENROUTER_BASE_URL = "https://openrouter.ai";
 const OPENROUTER_ENDPOINT_URL =

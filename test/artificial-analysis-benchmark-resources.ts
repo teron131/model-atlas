@@ -4,7 +4,8 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import {
 	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES,
-	buildArtificialAnalysisEvaluationResourceMap,
+	buildArtificialAnalysisDefaultEffortResourceMap,
+	buildArtificialAnalysisObservationResourceMap,
 	findArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
 	processArtificialAnalysisEvaluationResourceRows,
@@ -116,7 +117,7 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const rowsByBenchmark = buildArtificialAnalysisEvaluationResourceMap(rows);
+const rowsByBenchmark = buildArtificialAnalysisDefaultEffortResourceMap(rows);
 assertDeepEqual(
 	findArtificialAnalysisEvaluationResourceRow(
 		"hle",
@@ -389,7 +390,7 @@ const effortRows = processArtificialAnalysisEvaluationResourceRows(
 				name: "OpenAI",
 				slug: "openai",
 			},
-			hle: 0.2,
+			hle: 0.4,
 			evalCost: {
 				total: 1,
 			},
@@ -416,11 +417,46 @@ const effortRows = processArtificialAnalysisEvaluationResourceRows(
 				outputTokens: 120,
 			},
 		},
+		{
+			short_name: "GPT-5.2 (max)",
+			slug: "gpt-5-2-max",
+			model_creators: {
+				name: "OpenAI",
+				slug: "openai",
+			},
+			hle: 0.35,
+			evalCost: {
+				total: 6,
+			},
+			evalTimePerTask: 60,
+			tokenCounts: {
+				inputTokens: 100,
+				outputTokens: 140,
+			},
+		},
 	],
 	page,
 );
 const effortRowsByBenchmark =
-	buildArtificialAnalysisEvaluationResourceMap(effortRows);
+	buildArtificialAnalysisDefaultEffortResourceMap(effortRows);
+const effortObservationsByBenchmark =
+	buildArtificialAnalysisObservationResourceMap(effortRows);
+assertDeepEqual(
+	findArtificialAnalysisEvaluationResourceRow(
+		"hle",
+		["openai/gpt-5-2-low"],
+		effortObservationsByBenchmark,
+	)?.reasoning_effort,
+	"low",
+);
+assertDeepEqual(
+	findArtificialAnalysisEvaluationResourceRow(
+		"hle",
+		["openai/gpt-5-2-max"],
+		effortObservationsByBenchmark,
+	)?.reasoning_effort,
+	"max",
+);
 for (const candidateName of [
 	"GPT-5.2",
 	"GPT-5.2 low",
@@ -428,15 +464,16 @@ for (const candidateName of [
 	"openai/gpt-5-2-non-reasoning",
 	"openai/gpt-5-2-low",
 	"openai/gpt-5-2",
+	"openai/gpt-5-2-max",
 ]) {
-	assertDeepEqual(
-		findArtificialAnalysisEvaluationResourceRow(
-			"hle",
-			[candidateName],
-			effortRowsByBenchmark,
-		)?.reasoning_effort,
-		"xhigh",
+	const defaultRow = findArtificialAnalysisEvaluationResourceRow(
+		"hle",
+		[candidateName],
+		effortRowsByBenchmark,
 	);
+	assertDeepEqual(defaultRow?.reasoning_effort, "max");
+	assertDeepEqual(defaultRow?.score, 0.35);
+	assertDeepEqual(defaultRow?.cost_per_task_usd, 3);
 }
 
 let activeRequests = 0;

@@ -281,7 +281,7 @@ export async function loadSourceSnapshots(
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
 			deepSWERawRows: deepSWE.deepSWERawRows,
-			deepSWEModelScoreRows: deepSWE.deepSWEModelScoreRows,
+			deepSWEDefaultEffortRows: deepSWE.deepSWEDefaultEffortRows,
 			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,

@@ -1,11 +1,17 @@
 /** Persisted snapshot rows are reconstructed into the same lookup maps as a live source refresh. */
 
 import { buildAgentsLastExamMap } from "../../scrapers/agents-last-exam";
-import { buildArtificialAnalysisEvaluationResourceMap } from "../../scrapers/artificial-analysis/benchmark-resources";
+import {
+	buildArtificialAnalysisDefaultEffortResourceMap,
+	buildArtificialAnalysisObservationResourceMap,
+} from "../../scrapers/artificial-analysis/benchmark-resources";
 import { buildBlueprintBenchMap } from "../../scrapers/blueprint-bench";
 import { buildBrowseCompMap } from "../../scrapers/browsecomp";
 import { buildCursorBenchMap } from "../../scrapers/cursorbench";
-import { buildDeepSWEMap } from "../../scrapers/deep-swe";
+import {
+	buildDeepSWEMap,
+	preferredDeepSWELeaderboardRows,
+} from "../../scrapers/deep-swe";
 import { buildGdpPdfMap } from "../../scrapers/gdp-pdf";
 import { buildRiemannBenchMap } from "../../scrapers/riemann-bench";
 import { buildToolathlonMap } from "../../scrapers/toolathlon";
@@ -37,7 +43,10 @@ export function cachedSourceDataFromSnapshots(
 		},
 		artificialAnalysisEvaluationResources: {
 			rows: snapshots.artificialAnalysisEvaluationResourceRows,
-			scoreByModelName: buildArtificialAnalysisEvaluationResourceMap(
+			observationByModelName: buildArtificialAnalysisObservationResourceMap(
+				snapshots.artificialAnalysisEvaluationResourceRows,
+			),
+			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
 				snapshots.artificialAnalysisEvaluationResourceRows,
 			),
 		},
@@ -73,8 +82,9 @@ export function cachedSourceDataFromSnapshots(
 			),
 		},
 		deepSWE: {
-			rows: snapshots.deepSWEModelScoreRows,
-			scoreByModelName: buildDeepSWEMap(snapshots.deepSWEModelScoreRows),
+			effortRows: preferredDeepSWELeaderboardRows(snapshots.deepSWERawRows),
+			defaultEffortRows: snapshots.deepSWEDefaultEffortRows,
+			scoreByModelName: buildDeepSWEMap(snapshots.deepSWEDefaultEffortRows),
 		},
 		gdpPdf: {
 			rows: snapshots.gdpPdfModelScoreRows,

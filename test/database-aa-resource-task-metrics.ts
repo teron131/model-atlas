@@ -25,6 +25,13 @@ try {
 			`)
 			.run(1_800_000_000, 1_800_000_001, 1, 1, 1);
 		const runId = Number(run.lastInsertRowid);
+		insertModelStageRows(db, runId, "matched", [
+			{
+				id: "example/aa-resource-model",
+				artificial_analysis_id: "example/aa-resource-model-xhigh",
+				reasoning_effort: "xhigh",
+			},
+		]);
 		insertModelStageRows(db, runId, "final", [
 			{
 				id: "example/aa-resource-model",
@@ -68,6 +75,14 @@ try {
 				},
 			},
 		]);
+		assert.equal(
+			db
+				.prepare(
+					"SELECT reasoning_effort FROM model_stage_rows WHERE run_id = ? AND stage = 'matched'",
+				)
+				.get(runId)?.reasoning_effort,
+			"xhigh",
+		);
 	} finally {
 		db.close();
 	}

@@ -2,6 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
+import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../../shared";
 import {
 	RAW_SOURCE_CACHE_SECONDS,
@@ -15,6 +16,21 @@ import {
 	latestTableRunId,
 } from "./source-readers";
 
+/** Fallback DeepSWE rows remain usable evidence but cannot make the preferred source cache current. */
+function deepSWECacheHasPreferredVersion(db: DatabaseSync): boolean {
+	const runId = latestTableRunId(db, RAW_SOURCE_TABLES.deep_swe);
+	if (runId == null) {
+		return false;
+	}
+	return (
+		db
+			.prepare(
+				"SELECT 1 FROM deep_swe_raw_rows WHERE run_id = ? AND source_version = ? LIMIT 1",
+			)
+			.get(runId, DEEP_SWE_PREFERRED_SOURCE_VERSION) != null
+	);
+}
+
 /** Checks whether a source cache has the current persisted row shape. */
 function sourceCacheShapeIsCurrent(
 	db: DatabaseSync,
@@ -22,6 +38,9 @@ function sourceCacheShapeIsCurrent(
 ): boolean {
 	if (source === "artificial_analysis") {
 		return artificialAnalysisCacheHasHiddenRows(db);
+	}
+	if (source === "deep_swe") {
+		return deepSWECacheHasPreferredVersion(db);
 	}
 	if (source === "openrouter") {
 		return openRouterCacheHasScopedCandidates(db);
