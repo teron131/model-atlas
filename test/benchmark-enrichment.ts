@@ -27,6 +27,7 @@ const cursorBenchRow = {
 	model: "Example Model",
 	base_model: "Example Model",
 	reasoning_effort: null,
+	score_eligible: true,
 	score: 0.52,
 	cost_per_task_usd: 0.42,
 	tokens_per_task: 12345,
