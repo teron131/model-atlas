@@ -169,9 +169,9 @@ export function insertCursorBenchRawRows(
 	const statement = db.prepare(`
 		INSERT INTO cursorbench_raw_rows (
 			run_id, row_index, fetched_at_epoch_seconds, url, rank, model,
-			base_model, reasoning_effort, score, cost_per_task_usd,
+			base_model, reasoning_effort, score_eligible, score, cost_per_task_usd,
 			tokens_per_task, steps_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.cursorBenchModelScoreRows.entries()) {
 		statement.run(
@@ -183,6 +183,7 @@ export function insertCursorBenchRawRows(
 			row.model,
 			row.base_model,
 			row.reasoning_effort,
+			booleanValue(row.score_eligible),
 			row.score,
 			row.cost_per_task_usd,
 			row.tokens_per_task,

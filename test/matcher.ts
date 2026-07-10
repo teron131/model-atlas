@@ -405,6 +405,7 @@ function modelStatsSourceData(
 			model: "Example 2.5 Flash",
 			base_model: "Example 2.5 Flash",
 			reasoning_effort: null,
+			score_eligible: true,
 			score: 0.58,
 			cost_per_task_usd: 1.25,
 			tokens_per_task: 12_000,

@@ -13,7 +13,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const LEADERBOARD_HEADER =
 	"Model Score Cost Cost / task Tokens Tokens / task Steps Steps / task";
 const COMPACT_ROW_PATTERN =
-	/^(?<rank>\d+)\s+(?<model>.+?)\s+(?<score>\d+(?:\.\d+)?)%\s*\$?(?<cost>\d+(?:\.\d+)?)\s+(?<tokens>[\d,]+)\s+(?<steps>\d+)$/;
+	/^(?<rank>\d+)\s+(?<model>.+?)(?:(?<scoreCaveat>\*)|\s+)\s*(?<score>\d+(?:\.\d+)?)%\s*\$?(?<cost>\d+(?:\.\d+)?)\s+(?<tokens>[\d,]+)\s+(?<steps>\d+)$/;
 const LEADERBOARD_HEADER_CELLS = [
 	"Model",
 	"Score",
@@ -48,6 +48,7 @@ export type CursorBenchModelScoreRow = {
 	model: string;
 	base_model: string;
 	reasoning_effort: string | null;
+	score_eligible: boolean;
 	score: number;
 	cost_per_task_usd: number;
 	tokens_per_task: number;
@@ -156,6 +157,7 @@ function parseCount(value: string): number {
 	return Number(value.replace(/,/g, ""));
 }
 
+/** Preserve source-caveated rows while normalizing inline or separate footnote markers into score eligibility. */
 function parseCursorBenchFields(
 	rankValue: string | undefined,
 	modelValue: string | undefined,
@@ -163,8 +165,11 @@ function parseCursorBenchFields(
 	costValue: string | undefined,
 	tokensValue: string | undefined,
 	stepsValue: string | undefined,
+	hasSeparateScoreCaveat = false,
 ): CursorBenchModelScoreRow | null {
-	const model = modelValue?.trim();
+	const rawModel = modelValue?.trim();
+	const hasInlineScoreCaveat = rawModel?.endsWith("*") === true;
+	const model = hasInlineScoreCaveat ? rawModel?.slice(0, -1).trim() : rawModel;
 	const rank = Number(rankValue);
 	const scoreText = scoreValue?.replace(/%$/, "") ?? "";
 	const score = parsePercent(scoreText);
@@ -188,6 +193,7 @@ function parseCursorBenchFields(
 		model,
 		base_model: baseModelName(model),
 		reasoning_effort: parseReasoningEffort(model),
+		score_eligible: !hasSeparateScoreCaveat && !hasInlineScoreCaveat,
 		score,
 		cost_per_task_usd: Number(costPerTaskUsd.toFixed(6)),
 		tokens_per_task: tokensPerTask,
@@ -208,6 +214,7 @@ function parseCompactCursorBenchRow(
 				match.groups.cost,
 				match.groups.tokens,
 				match.groups.steps,
+				match.groups.scoreCaveat === "*",
 			);
 }
 
@@ -220,16 +227,24 @@ function parseCursorBenchCells(
 	if (rank == null || model == null || !/^\d+$/.test(rank)) {
 		return null;
 	}
-	if (lines[index + 3] === "%" && lines[index + 4] === "$") {
+	const hasSeparateScoreCaveat = lines[index + 2] === "*";
+	const scoreIndex = index + (hasSeparateScoreCaveat ? 3 : 2);
+	if (
+		lines[scoreIndex + 1] === "%" &&
+		lines[scoreIndex + 2] === "$"
+	) {
 		const row = parseCursorBenchFields(
 			rank,
 			model,
-			lines[index + 2],
-			lines[index + 5],
-			lines[index + 6],
-			lines[index + 7],
+			lines[scoreIndex],
+			lines[scoreIndex + 3],
+			lines[scoreIndex + 4],
+			lines[scoreIndex + 5],
+			hasSeparateScoreCaveat,
 		);
-		return row == null ? null : { row, consumedCells: 8 };
+		return row == null
+			? null
+			: { row, consumedCells: scoreIndex - index + 6 };
 	}
 	const row = parseCursorBenchFields(
 		rank,
@@ -272,11 +287,15 @@ export function processCursorBenchPageHtml(
 	return rows.sort((left, right) => left.rank - right.rank);
 }
 
+/** Build the scoring lookup from eligible rows while leaving caveated rows available as raw evidence. */
 export function buildCursorBenchMap(
 	rows: CursorBenchModelScoreRow[],
 ): CursorBenchScoreByModelName {
 	const scoreByModelName: CursorBenchScoreByModelName = new Map();
 	for (const row of rows) {
+		if (!row.score_eligible) {
+			continue;
+		}
 		for (const alias of cursorBenchModelAliases(row)) {
 			addDefaultEffortRowAlias(scoreByModelName, alias, row);
 		}

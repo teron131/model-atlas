@@ -204,6 +204,7 @@ CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
 	model TEXT NOT NULL,
 	base_model TEXT NOT NULL,
 	reasoning_effort TEXT,
+	score_eligible INTEGER NOT NULL,
 	score REAL NOT NULL,
 	cost_per_task_usd REAL NOT NULL,
 	tokens_per_task INTEGER NOT NULL,

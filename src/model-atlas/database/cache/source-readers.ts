@@ -662,6 +662,7 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 		const rank = asFiniteNumber(row.rank);
 		const model = stringValue(row.model);
 		const baseModel = stringValue(row.base_model);
+		const scoreEligible = booleanFromSql(row.score_eligible);
 		const score = asFiniteNumber(row.score);
 		const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
 		const tokensPerTask = asFiniteNumber(row.tokens_per_task);
@@ -669,6 +670,7 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 		return rank != null &&
 			model != null &&
 			baseModel != null &&
+			scoreEligible != null &&
 			score != null &&
 			costPerTaskUsd != null &&
 			tokensPerTask != null &&
@@ -679,6 +681,7 @@ export function readCursorBenchRawCache(db: DatabaseSync): {
 						model,
 						base_model: baseModel,
 						reasoning_effort: stringValue(row.reasoning_effort),
+						score_eligible: scoreEligible,
 						score,
 						cost_per_task_usd: costPerTaskUsd,
 						tokens_per_task: tokensPerTask,
