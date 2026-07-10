@@ -17,6 +17,11 @@ assert.equal(
 	true,
 	"logo API should include generated provider logos",
 );
+assert.equal(
+	allPayload.meta.startsWith("data:image/svg+xml;base64,"),
+	true,
+	"logo API should expose the generated Meta logo",
+);
 
 const openaiResponse = await getLogo(
 	new Request("https://example.com/api/logos/openai"),

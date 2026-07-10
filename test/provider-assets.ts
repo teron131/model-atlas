@@ -8,6 +8,7 @@ import {
 
 const openaiLogo = providerAssetLogo("openai");
 const openaiSvg = svgText(openaiLogo);
+const metaLogo = providerAssetLogo("meta");
 
 assert.equal(
 	openaiLogo.startsWith("data:image/svg+xml;base64,"),
@@ -28,6 +29,11 @@ assert.match(
 	openaiSvg,
 	/<image href="data:image\/png;base64,[^"]+" width="64" height="64"\/>/,
 	"generated provider SVGs should wrap normalized PNG bytes",
+);
+assert.equal(
+	metaLogo.startsWith("data:image/svg+xml;base64,"),
+	true,
+	"Meta models should resolve through the generated provider logo dictionary",
 );
 assert.equal(
 	Object.values(providerAssets).every((asset) =>
