@@ -226,7 +226,7 @@ function collapseOpenRouterFreeRoutes(
 
 	for (const model of models) {
 		const publicId = publicOpenRouterModelId(model.id);
-		const publicName = publicOpenRouterModelName(model.name);
+		const publicName = publicOpenRouterModelName(model.name, publicId);
 		const normalizedModel: LlmStatsModel = {
 			...model,
 			id: publicId,

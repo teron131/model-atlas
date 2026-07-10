@@ -5,7 +5,12 @@
  * Fallback: https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json
  */
 
-import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
+import {
+	asFiniteNumber,
+	asRecord,
+	normalizeModelToken,
+	reasoningEffortRank,
+} from "../shared";
 import {
 	fetchWithTimeout,
 	mapWithConcurrency,
@@ -16,6 +21,7 @@ export const DEEP_SWE_V1_1_LEADERBOARD_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
 export const DEEP_SWE_V1_LEADERBOARD_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json";
+export const DEEP_SWE_PREFERRED_SOURCE_VERSION = "v1.1" as const;
 const DEFAULT_LEADERBOARD_URLS = [
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
 	DEEP_SWE_V1_LEADERBOARD_URL,
@@ -30,7 +36,9 @@ export type DeepSWEScraperOptions = {
 	concurrency?: number;
 };
 
-export type DeepSWESourceVersion = "v1.1" | "v1";
+export type DeepSWESourceVersion =
+	| typeof DEEP_SWE_PREFERRED_SOURCE_VERSION
+	| "v1";
 
 export type DeepSWELeaderboardRow = {
 	model: string;
@@ -126,41 +134,24 @@ export function asDeepSWERawLeaderboardRow(
 	};
 }
 
-export function summarizeDeepSWEBestModelScores(
+/** Selects each model's default highest-effort observation while raw effort rows remain preserved. */
+export function summarizeDeepSWEDefaultEffortRows(
 	rows: DeepSWELeaderboardRow[],
 ): DeepSWEModelScoreRow[] {
-	const bestByModel = new Map<string, DeepSWEModelScoreRow>();
+	const defaultByModel = new Map<string, DeepSWEModelScoreRow>();
 	for (const row of rows) {
-		const existing = bestByModel.get(row.model);
-		if (!existing || row.pass_at_1 > existing.pass_at_1) {
-			bestByModel.set(row.model, row);
+		const existing = defaultByModel.get(row.model);
+		if (
+			existing == null ||
+			reasoningEffortRank(row.reasoning_effort) >
+				reasoningEffortRank(existing.reasoning_effort)
+		) {
+			defaultByModel.set(row.model, row);
 		}
 	}
-	return [...bestByModel.values()].sort(
+	return [...defaultByModel.values()].sort(
 		(left, right) => right.pass_at_1 - left.pass_at_1,
 	);
-}
-
-export function summarizeDeepSWEDefaultModelScores(
-	rows: DeepSWELeaderboardRow[],
-): DeepSWEModelScoreRow[] {
-	const rowsByModel = new Map<string, DeepSWELeaderboardRow[]>();
-	for (const row of rows) {
-		const existing = rowsByModel.get(row.model) ?? [];
-		existing.push(row);
-		rowsByModel.set(row.model, existing);
-	}
-	return [...rowsByModel.values()]
-		.map((modelRows) => {
-			return (
-				modelRows.find((row) => row.reasoning_effort === "xhigh") ??
-				[...modelRows].sort(
-					(left, right) => right.pass_at_1 - left.pass_at_1,
-				)[0]
-			);
-		})
-		.filter((row): row is DeepSWEModelScoreRow => row != null)
-		.sort((left, right) => right.pass_at_1 - left.pass_at_1);
 }
 
 /** Strip raw-source provenance from DeepSWE rows before public/scoring use. */
@@ -226,33 +217,24 @@ async function getDeepSWERawRowsForUrl(
 	}));
 }
 
+/** Indexes normalized source labels while retaining the default highest-effort row on collisions. */
 export function buildDeepSWEMap(
 	rows: DeepSWEModelScoreRow[],
 ): DeepSWEScoreByModelName {
 	const scoreByModelName: DeepSWEScoreByModelName = new Map();
 	for (const row of rows) {
 		const key = normalizeModelToken(row.model);
-		if (key.length > 0) {
+		const existing = scoreByModelName.get(key);
+		if (
+			key.length > 0 &&
+			(existing == null ||
+				reasoningEffortRank(row.reasoning_effort) >
+					reasoningEffortRank(existing.reasoning_effort))
+		) {
 			scoreByModelName.set(key, row);
 		}
 	}
 	return scoreByModelName;
-}
-
-export function findDeepSWEModelScore(
-	candidateNames: unknown[],
-	deepSWEScoreByModelName: DeepSWEScoreByModelName,
-): DeepSWEModelScoreRow | null {
-	for (const candidateName of candidateNames) {
-		if (typeof candidateName !== "string" || candidateName.length === 0) {
-			continue;
-		}
-		const row = deepSWEScoreByModelName.get(normalizeModelToken(candidateName));
-		if (row) {
-			return row;
-		}
-	}
-	return null;
 }
 
 /** DeepSWE fetches configured artifact versions through a bounded worker pool so custom URL lists cannot burst. */
@@ -329,6 +311,6 @@ export async function getDeepSWEStats(
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		source_version: payload.source_version,
-		data: summarizeDeepSWEDefaultModelScores(payload.data),
+		data: summarizeDeepSWEDefaultEffortRows(payload.data),
 	};
 }

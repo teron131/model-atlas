@@ -1,6 +1,9 @@
+/** Verifies model identity matching, provider preference, and benchmark attachment. */
+
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import { modelNameIdentityKey } from "../src/model-atlas/matcher/name-tokens";
 import { runMatcher } from "../src/model-atlas/matcher/pipeline";
 import type {
 	MatcherSourceModel,
@@ -9,7 +12,8 @@ import type {
 } from "../src/model-atlas/matcher/types";
 import {
 	type ArtificialAnalysisEvaluationResourceRow,
-	buildArtificialAnalysisEvaluationResourceMap,
+	buildArtificialAnalysisDefaultEffortResourceMap,
+	buildArtificialAnalysisObservationResourceMap,
 } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
@@ -21,13 +25,24 @@ import {
 	type ValsIndexModelScoreRow,
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
 import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
+import { enrichAggregatedModelRowsWithBenchmarks } from "../src/model-atlas/stats/benchmarks";
 import { buildMatchedModelRows } from "../src/model-atlas/stats/matching";
+import { aggregateModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),
 	source("example-medium-3", "Example Medium 3"),
 ];
+
+assert.equal(
+	modelNameIdentityKey("google/gemini-3-flash-preview"),
+	modelNameIdentityKey("Gemini 3 Flash"),
+);
+assert.notEqual(
+	modelNameIdentityKey("google/gemini-3.1-pro-preview"),
+	modelNameIdentityKey("Gemini 3.5 Pro"),
+);
 
 const providerPools: PreferredProviderPools = {
 	primary: [
@@ -81,19 +96,194 @@ assert.equal(
 	"claude-fable-5",
 );
 
+const unsafeVersionOutput = runMatcher(
+	[source("grok-4-20-0309", "Grok 4.20")],
+	{
+		primary: [model("openrouter", "x-ai/grok-4.5", "Grok 4.5")],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	unsafeVersionOutput.models[0]?.best_match,
+	null,
+	"different secondary version numbers must not attach to a nearby model",
+);
+
+const reorderedClaudeOutput = runMatcher(
+	[source("claude-3-opus", "Claude 3 Opus")],
+	{
+		primary: [
+			model("openrouter", "anthropic/claude-3-haiku", "Claude 3 Haiku"),
+			model("openrouter", "anthropic/claude-opus-3", "Claude Opus 3"),
+		],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	reorderedClaudeOutput.models[0]?.best_match?.model_id,
+	"anthropic/claude-opus-3",
+	"Claude tier and version identity should survive historical token reordering",
+);
+
+const compactClaudeVersionOutput = runMatcher(
+	[source("claude-35-sonnet", "Claude 3.5 Sonnet")],
+	{
+		primary: [
+			model("openrouter", "anthropic/claude-sonnet-3.5", "Claude Sonnet 3.5"),
+		],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	compactClaudeVersionOutput.models[0]?.best_match?.model_id,
+	"anthropic/claude-sonnet-3.5",
+	"Claude's legacy compact 35 token should normalize to version 3.5",
+);
+
+const missingClaudeTierOutput = runMatcher(
+	[source("claude-3-opus", "Claude 3 Opus")],
+	{
+		primary: [
+			model("openrouter", "anthropic/claude-3-haiku", "Claude 3 Haiku"),
+		],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	missingClaudeTierOutput.models[0]?.best_match,
+	null,
+	"Claude rows should remain unmatched when only a different tier is available",
+);
+
+const missingScaleOutput = runMatcher(
+	[source("qwen3-5-2b", "Qwen3.5 2B")],
+	{
+		primary: [model("openrouter", "alibaba/qwen3.5-plus", "Qwen3.5 Plus")],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	missingScaleOutput.models[0]?.best_match,
+	null,
+	"parameter-scale source rows must not attach to an unscaled catalog model",
+);
+
+for (const [sourceSlug, sourceName, candidateId, candidateName] of [
+	[
+		"qwen3-30b-a3b-instruct",
+		"Qwen3 30B A3B Instruct",
+		"qwen/qwen3-vl-30b-a3b-instruct",
+		"Qwen3 VL 30B A3B Instruct",
+	],
+	[
+		"qwen2-5-32b-instruct",
+		"Qwen2.5 32B Instruct",
+		"qwen/qwen-2.5-coder-32b-instruct",
+		"Qwen2.5 Coder 32B Instruct",
+	],
+	[
+		"granite-4-0-h-small",
+		"Granite 4.0 H Small",
+		"ibm-granite/granite-4.0-h-micro",
+		"Granite 4.0 H Micro",
+	],
+	[
+		"deepseek-v3-2-0925",
+		"DeepSeek V3.2 0925",
+		"deepseek/deepseek-v3",
+		"DeepSeek V3 0324",
+	],
+] as const) {
+	const conflictOutput = runMatcher(
+		[source(sourceSlug, sourceName)],
+		{
+			primary: [model("openrouter", candidateId, candidateName)],
+			fallback: [],
+		},
+		5,
+	);
+	assert.equal(
+		conflictOutput.models[0]?.best_match,
+		null,
+		`${sourceSlug} must not match a different model configuration or version`,
+	);
+}
+
+const exactVisionLanguageOutput = runMatcher(
+	[source("qwen3-vl-30b-a3b-instruct", "Qwen3 VL 30B A3B Instruct")],
+	{
+		primary: [
+			model(
+				"openrouter",
+				"qwen/qwen3-vl-30b-a3b-instruct",
+				"Qwen3 VL 30B A3B Instruct",
+			),
+		],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	exactVisionLanguageOutput.models[0]?.best_match?.model_id,
+	"qwen/qwen3-vl-30b-a3b-instruct",
+	"an exact vision-language identity should remain matchable",
+);
+
+const unversionedCurrentModelOutput = runMatcher(
+	[
+		source("alpha-beta-charlie-delta", "Alpha Beta Charlie Delta"),
+		source("muse-spark", "Muse Spark"),
+		source("claude-fable-5", "Claude Fable 5"),
+	],
+	{
+		primary: [
+			model("openrouter", "test/alpha-z", "Alpha Z"),
+			model("vercel", "meta/muse-spark-1.1", "Muse Spark 1.1"),
+			model("openrouter", "anthropic/claude-fable-5", "Claude Fable 5"),
+		],
+		fallback: [],
+	},
+	5,
+);
+assert.equal(
+	unversionedCurrentModelOutput.models[1]?.best_match?.model_id,
+	"meta/muse-spark-1.1",
+	"an unversioned source family should match its current versioned catalog row",
+);
+
 const sourceData = modelStatsSourceData([
-	sourceModel("google/example-2-5-flash", 20),
+	sourceModel("google/example-2-5-flash", 20, "high", 0.4),
+	sourceModel(
+		"google/example-2-5-flash-non-reasoning",
+		10,
+		"non-reasoning",
+		0.1,
+	),
 	sourceModel("google/example-3-pro", 50),
 ]);
 const matchedRows = await buildMatchedModelRows(
 	sourceData,
 	STAGE_CONFIG.matcher,
 );
+const matchedExample = matchedRows.find(
+	(row) => row.artificial_analysis_id === "google/example-2-5-flash",
+);
+const aggregateExample = enrichAggregatedModelRowsWithBenchmarks(
+	aggregateModelRows(matchedRows),
+	sourceData,
+).find((row) => row.id === "google/example-2.5-flash");
+const nonReasoningObservation = matchedRows.find(
+	(row) =>
+		row.artificial_analysis_id === "google/example-2-5-flash-non-reasoning",
+);
 
 assert.equal(
-	matchedRows.find(
-		(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-	)?.id,
+	matchedExample?.id,
 	"google/example-2.5-flash",
 	"an exact OpenRouter route should win over flash-lite or image siblings",
 );
@@ -105,68 +295,53 @@ assert.equal(
 	"image and latest routes should not stand in for a base source row",
 );
 assert.equal(
-	asEvaluations(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).toolathlon,
-	0.42,
-	"Toolathlon scores should attach through the benchmark lookup path",
+	asEvaluations(matchedExample).toolathlon,
+	undefined,
+	"supplemental benchmarks should not enter effort observations",
 );
 assert.equal(
-	asEvaluations(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).cursorbench,
+	asEvaluations(aggregateExample).toolathlon,
+	0.42,
+	"Toolathlon scores should attach through the aggregate benchmark layer",
+);
+assert.equal(
+	asEvaluations(aggregateExample).cursorbench,
 	0.58,
 	"CursorBench scores should attach through the benchmark lookup path",
 );
 assert.equal(
-	asEvaluations(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).blueprint_bench_2,
+	asEvaluations(aggregateExample).blueprint_bench_2,
 	0.36,
 	"Blueprint-Bench 2 scores should attach through display-name matching",
 );
 assert.equal(
-	asEvaluations(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).gdp_pdf,
+	asEvaluations(aggregateExample).gdp_pdf,
 	0.25,
 	"GDP.pdf scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asEvaluations(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).riemann_bench,
+	asEvaluations(aggregateExample).riemann_bench,
 	0.31,
 	"Riemann-bench scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asEvaluations(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).vals_index,
+	asEvaluations(aggregateExample).vals_index,
 	0.64,
 	"Vals Index scores should attach through normalized model-id matching",
 );
 assert.equal(
-	asScoringSources(
-		matchedRows.find(
-			(row) => row.artificial_analysis_id === "google/example-2-5-flash",
-		),
-	).hle?.cost_per_task_usd,
+	asScoringSources(matchedExample).hle?.cost_per_task_usd,
 	2,
 	"AA resource rows should prefer exact source model id over a generic display-name match",
 );
+assert.equal(nonReasoningObservation?.reasoning_effort, "non-reasoning");
+assert.equal(
+	asScoringSources(nonReasoningObservation).hle?.cost_per_task_usd,
+	0.1,
+	"matched effort rows should retain their exact resource observation",
+);
+assert.equal(asEvaluations(aggregateExample).hle, 0.4);
+assert.equal(aggregateExample?.reasoning_effort, undefined);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -195,11 +370,14 @@ function model(
 function sourceModel(
 	modelId: string,
 	intelligenceIndex: number,
+	reasoningEffort: string | null = null,
+	hle = 0.4,
 ): Record<string, unknown> {
 	return {
 		model_id: modelId,
+		reasoning_effort: reasoningEffort,
 		intelligence: { intelligence_index: intelligenceIndex },
-		evaluations: { hle: 0.4 },
+		evaluations: { hle },
 		intelligence_index_cost: {},
 	};
 }
@@ -336,7 +514,10 @@ function modelStatsSourceData(
 		},
 		artificialAnalysisEvaluationResources: {
 			rows: artificialAnalysisResourceRows,
-			scoreByModelName: buildArtificialAnalysisEvaluationResourceMap(
+			observationByModelName: buildArtificialAnalysisObservationResourceMap(
+				artificialAnalysisResourceRows,
+			),
+			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
 				artificialAnalysisResourceRows,
 			),
 		},
@@ -366,7 +547,8 @@ function modelStatsSourceData(
 			scoreByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
 		},
 		deepSWE: {
-			rows: [],
+			effortRows: [],
+			defaultEffortRows: [],
 			scoreByModelName: new Map(),
 		},
 		gdpPdf: {

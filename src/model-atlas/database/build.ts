@@ -7,8 +7,12 @@ import { STAGE_CONFIG } from "../constants";
 import { getMatchDiagnostics } from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
+import { enrichAggregatedModelRowsWithBenchmarks } from "../stats/benchmarks";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
-import { enrichModelRowsWithOpenRouter } from "../stats/openrouter-enrichment";
+import {
+	aggregateModelRows,
+	enrichModelRowsWithOpenRouter,
+} from "../stats/openrouter-enrichment";
 import { buildFinalModels } from "../stats/selection";
 import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
 import { buildDebugTraceRows } from "./debug-trace";
@@ -288,15 +292,20 @@ export async function buildDatabase(
 			sourceData,
 			matchedTextLlmRows,
 		);
+		const aggregatedRows = aggregateModelRows(catalogRows);
+		const benchmarkEnrichedRows = enrichAggregatedModelRowsWithBenchmarks(
+			aggregatedRows,
+			sourceData,
+		);
 		const openRouter = await loadOpenRouterRawPayload(
 			db,
-			openRouterModelIds(catalogRows),
+			openRouterModelIds(benchmarkEnrichedRows),
 			STAGE_CONFIG.openrouter.speedConcurrency,
 			startedAt,
 			options,
 		);
 		const enrichedRows = await enrichModelRowsWithOpenRouter(
-			catalogRows,
+			benchmarkEnrichedRows,
 			STAGE_CONFIG.openrouter,
 			STAGE_CONFIG.scoring,
 			openRouter.rawPayload,
@@ -310,7 +319,7 @@ export async function buildDatabase(
 		const models = await buildFinalModels(
 			{
 				...enrichedRows,
-				deepSWEModelScoreRows: sourceData.deepSWE.rows,
+				deepSWEDefaultEffortRows: sourceData.deepSWE.defaultEffortRows,
 			},
 			null,
 			STAGE_CONFIG.final,

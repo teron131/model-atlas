@@ -486,7 +486,7 @@ export function columnTooltipsForActiveComponents(
 		},
 		deepSWE: {
 			title: "DeepSWE",
-			body: "Coding-agent benchmark. This score uses the xhigh row when available, otherwise the best reported pass@1 row.",
+			body: "Coding-agent benchmark. This score uses the source-default or highest reported reasoning effort.",
 			rows: [["Source", "DeepSWE leaderboard"]],
 		},
 		deepSWECost: {

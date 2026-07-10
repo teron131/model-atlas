@@ -1,3 +1,5 @@
+/** Verifies CursorBench parsing, canonical names, and default-effort selection. */
+
 import {
 	buildCursorBenchMap,
 	findCursorBenchScore,
@@ -141,9 +143,27 @@ assertDeepEqual(
 
 assertDeepEqual(
 	findCursorBenchScore(["Claude Opus 4.8"], scoreByModelName),
-	0.584,
+	0.55,
 );
 
 assertDeepEqual(findCursorBenchScore(["Kimi K2.6"], scoreByModelName), 0.476);
 
 assertDeepEqual(findCursorBenchScore(["Composer 2.5"], scoreByModelName), null);
+
+const sourceDefaultRow = rows.find((row) => row.model === "Gemini 3.5 Flash");
+if (sourceDefaultRow == null) {
+	throw new Error("Expected the source-default Gemini fixture row");
+}
+const sourceDefaultScoreByModelName = buildCursorBenchMap([
+	sourceDefaultRow,
+	{
+		...sourceDefaultRow,
+		model: "Gemini 3.5 Flash High",
+		reasoning_effort: "High",
+		score: 0.9,
+	},
+]);
+assertDeepEqual(
+	findCursorBenchScore(["Gemini 3.5 Flash"], sourceDefaultScoreByModelName),
+	0.498,
+);

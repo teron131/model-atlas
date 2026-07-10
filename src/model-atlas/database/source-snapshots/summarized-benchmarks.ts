@@ -14,7 +14,7 @@ import {
 	deepSWESourceVersionForRows,
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
-	summarizeDeepSWEDefaultModelScores,
+	summarizeDeepSWEDefaultEffortRows,
 } from "../../scrapers/deep-swe";
 import { readAgentsLastExamRawCache, readDeepSWERawCache } from "../cache";
 import { snapshotRowsWithStates, sourceKey } from "../policy";
@@ -33,7 +33,9 @@ export type AgentsLastExamSnapshot = {
 
 export type DeepSWESnapshot = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEModelScoreRows: ReturnType<typeof summarizeDeepSWEDefaultModelScores>;
+	deepSWEDefaultEffortRows: ReturnType<
+		typeof summarizeDeepSWEDefaultEffortRows
+	>;
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	sourceStatus: SourceSnapshotStatus;
 };
@@ -115,7 +117,7 @@ export async function agentsLastExamSnapshot(
 	};
 }
 
-/** Preserves DeepSWE raw leaderboard rows and derives default-effort model scores. */
+/** Preserves DeepSWE raw leaderboard rows and derives default highest-effort model scores. */
 export async function deepSWESnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -152,7 +154,7 @@ export async function deepSWESnapshot(
 		});
 		return {
 			deepSWERawRows: cachedSnapshot.rows,
-			deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(
+			deepSWEDefaultEffortRows: summarizeDeepSWEDefaultEffortRows(
 				preferredDeepSWELeaderboardRows(cachedSnapshot.rows),
 			),
 			deepSWESourceVersion: cached.sourceVersion,
@@ -195,7 +197,7 @@ export async function deepSWESnapshot(
 	);
 	return {
 		deepSWERawRows: snapshot.rows,
-		deepSWEModelScoreRows: summarizeDeepSWEDefaultModelScores(preferredRows),
+		deepSWEDefaultEffortRows: summarizeDeepSWEDefaultEffortRows(preferredRows),
 		deepSWESourceVersion:
 			preferredRows.length > 0
 				? deepSWESourceVersionForRows(snapshot.rows)

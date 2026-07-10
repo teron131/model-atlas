@@ -1,3 +1,5 @@
+/** Verifies source health, benchmark coverage, and database row reconstruction. */
+
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
@@ -45,7 +47,7 @@ assert.deepEqual(sparseHealth.sparse_benchmark, {
 	top_model_labels: ["Frontier A", "Frontier B", "Older C", "Older D"],
 	unrepresented_top_model_labels: [],
 	top_model_reference_rank: 1,
-	reference_metric: "overall_score",
+	reference_metric: "intelligence_score",
 });
 
 const staleSparseHealth = buildBenchmarkUpdateHealth(
@@ -76,6 +78,23 @@ assert.equal(
 	staleSparseHealth.sparse_benchmark?.status,
 	"stale_possible",
 	"Sparse benchmarks should warn when their top rows miss the current top models entirely",
+);
+
+const intelligenceReferenceHealth = buildBenchmarkUpdateHealth(
+	[
+		model("intelligence/leader", "Intelligence Leader", 10, 0.9, 100),
+		model("overall/leader", "Overall Leader", 100, 0.8, 20),
+	],
+	{
+		...STAGE_CONFIG.scoring,
+		intelligenceBenchmarkKeys: ["sparse_benchmark"],
+		agenticBenchmarkKeys: [],
+	},
+);
+assert.equal(
+	intelligenceReferenceHealth.sparse_benchmark?.top_model_reference_rank,
+	1,
+	"Benchmark agreement should follow the public Intelligence ranking rather than Overall score",
 );
 
 const officialRowHealth = buildBenchmarkUpdateHealth(
@@ -207,8 +226,42 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.72,
 		},
 	],
-	cursorBenchRows: [],
-	deepSWERows: [],
+	cursorBenchRows: [
+		{
+			model: "Fable 5 Extra High",
+			base_model: "Fable 5",
+			reasoning_effort: "Extra High",
+			score: 0.7,
+		},
+		{
+			model: "Fable 5 Max",
+			base_model: "Fable 5",
+			reasoning_effort: "Max",
+			score: 0.69,
+		},
+	],
+	deepSWERows: [
+		{
+			source_version: "v1.1",
+			model: "gpt-5-6-sol",
+			reasoning_effort: "xhigh",
+			config: "sol-xhigh",
+			pass_at_1: 0.71,
+			n_tasks_attempted: 113,
+			mean_cost_usd: 4,
+			mean_output_tokens: 40_000,
+		},
+		{
+			source_version: "v1.1",
+			model: "gpt-5-6-sol",
+			reasoning_effort: "max",
+			config: "sol-max",
+			pass_at_1: 0.73,
+			n_tasks_attempted: 113,
+			mean_cost_usd: 8,
+			mean_output_tokens: 60_000,
+		},
+	],
 	gdpPdfRows: [],
 	riemannBenchRows: [],
 	toolathlonRows: [],
@@ -256,6 +309,22 @@ assert.deepEqual(dbBenchmarkRows.browsecomp, [
 		value: 0.72,
 	},
 ]);
+assert.deepEqual(dbBenchmarkRows.cursorbench, [
+	{
+		id: null,
+		label: "Claude Fable 5",
+		provider: null,
+		value: 0.69,
+	},
+]);
+assert.deepEqual(dbBenchmarkRows.deep_swe, [
+	{
+		id: "gpt-5-6-sol",
+		label: "gpt-5-6-sol",
+		provider: null,
+		value: 0.73,
+	},
+]);
 assert.deepEqual(dbBenchmarkRows.vals_index, [
 	{
 		id: "openai/gpt-5",
@@ -272,7 +341,6 @@ assert.deepEqual(dbBenchmarkRows.terminalbench_v21, [
 		value: 0.73,
 	},
 ]);
-assert.equal(dbBenchmarkRows.deep_swe, undefined);
 
 const sourceHealth = buildSourceHealth({
 	generatedAtEpochSeconds: 1_800_000_000,
@@ -319,11 +387,12 @@ function model(
 	name: string,
 	overallScore: number,
 	benchmarkScore: number | null,
+	intelligenceScore = overallScore,
 ) {
 	return {
 		...minimalLlmStatsModel({ id, name }),
 		scores: {
-			intelligence_score: overallScore,
+			intelligence_score: intelligenceScore,
 			agentic_score: overallScore,
 			speed_score: null,
 			value_score: null,

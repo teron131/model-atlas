@@ -1,5 +1,10 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
+import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
+import {
+	asDeepSWERawLeaderboardRow,
+	preferredDeepSWELeaderboardRows,
+} from "../../scrapers/deep-swe";
 import {
 	artificialAnalysisBenchmarkRowDrafts,
 	type BenchmarkRowDraft,
@@ -53,16 +58,6 @@ function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 			rows: rows.browseCompRows,
 			scoreColumn: "score",
 			providerColumn: "provider",
-		},
-		{
-			key: "cursorbench",
-			rows: rows.cursorBenchRows,
-			scoreColumn: "score",
-		},
-		{
-			key: "deep_swe",
-			rows: rows.deepSWERows,
-			scoreColumn: "pass_at_1",
 		},
 		{
 			key: "gdp_pdf",
@@ -119,17 +114,48 @@ function dbSourceRowDraft(
 }
 
 function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
+	const deepSWERows = preferredDeepSWELeaderboardRows(
+		rows.deepSWERows.flatMap((row) => {
+			const parsed = asDeepSWERawLeaderboardRow(row);
+			return parsed == null ? [] : [parsed];
+		}),
+	);
 	return [
 		...artificialAnalysisBenchmarkRowDrafts({
 			rows: rows.artificialAnalysisRows,
 			modelId: (row) => stringValue(row.model_id),
 			label: (row, modelId) =>
 				stringValue(row.name) ?? stringValue(row.short_name) ?? modelId,
+			reasoningEffort: (row) => row.reasoning_effort,
 			value: (row, key) => row[key],
 		}),
 		...dbSourceSpecs(rows).flatMap((source) =>
 			source.rows.flatMap((row) => dbSourceRowDraft(source, row) ?? []),
 		),
+		...rows.cursorBenchRows.flatMap((row) => {
+			const baseModel = stringValue(row.base_model);
+			if (baseModel == null) {
+				return [];
+			}
+			const canonicalName = cursorBenchCanonicalModelName(baseModel);
+			return [
+				{
+					key: "cursorbench",
+					identity: canonicalName,
+					label: canonicalName,
+					reasoningEffort: row.reasoning_effort,
+					value: row.score,
+				},
+			];
+		}),
+		...deepSWERows.map((row) => ({
+			key: "deep_swe",
+			id: row.model,
+			identity: row.model,
+			label: row.model,
+			reasoningEffort: row.reasoning_effort,
+			value: row.pass_at_1,
+		})),
 	];
 }
 

@@ -23,6 +23,7 @@ function modelStageIdentityValues(model: JsonObject): SqlValue[] {
 		firstString(model, ["openrouter_id"]),
 		firstString(model, ["name"]),
 		firstString(model, ["artificial_analysis_id"]),
+		firstString(model, ["reasoning_effort"]),
 		firstString(model, ["family"]),
 		firstString(model, ["logo"]),
 		booleanValue(model.attachment),
@@ -153,7 +154,8 @@ export function insertModelStageRows(
 	const statement = db.prepare(`
 		INSERT INTO model_stage_rows (
 			run_id, stage, row_index, model_id, provider_id, openrouter_id, name,
-			artificial_analysis_id, family, logo, attachment, reasoning, release_date,
+			artificial_analysis_id, reasoning_effort, family, logo, attachment,
+			reasoning, release_date,
 			open_weights, context, context_input, context_output, input_modality_text,
 			input_modality_image, input_modality_audio, input_modality_video,
 			throughput_tokens_per_second_median, latency_seconds_median,
@@ -184,7 +186,7 @@ export function insertModelStageRows(
 			speed_score,
 			value_score,
 			overall_score
-		) VALUES (${Array.from({ length: 89 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 90 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

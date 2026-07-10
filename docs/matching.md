@@ -84,9 +84,15 @@ $$
 
 Any best match below that threshold is voided. In the diagnostics payload this is reported as `void_mode: "maxmin_range"`. The point is to remove weak matches after seeing the score range for the batch.
 
+## Claude Identity Policy
+
+Claude tier and version are structural identity fields even though Anthropic changed their order over time. Historical names such as `Claude 3 Opus` and `claude-3-opus` normalize with the current-style `Claude Opus 3` form, while the known compact `claude-35-sonnet` form maps to Claude Sonnet 3.5. Current OpenRouter routes such as `claude-opus-4.6` also recognize reordered dated permaslugs such as `claude-4.6-opus-20260205`.
+
+The tier is never treated as noise: `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. If the correct tier is unavailable, the source row remains unmatched instead of borrowing another Claude tier. Dates and route labels remain outside model identity, while reasoning or configuration labels such as `thinking` stay separate observations. A missing source `reasoning_effort` remains null; the aggregate groups Claude configuration observations by tier/version and treats the canonical unlabelled observation as the source default rather than inferring an effort or choosing among null observations by score.
+
 ## Variant Conflict Check
 
-After the matcher scores candidates, the Model Atlas match stage applies another guardrail using configured variant tokens from `src/model-atlas/constants.ts`: `flash-lite`, `flash`, `pro`, `preview`, `nano`, `mini`, `lite`, `max`, `image`, `omni`, `multi-agent`, and `latest`.
+After the matcher scores candidates, the Model Atlas match stage applies another guardrail using configured variant tokens from `src/model-atlas/config/stage-config.ts`: `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`.
 
 If the AA slug has one of those labels and the candidate model id does not, or the candidate model id has one and the AA slug does not, that candidate is rejected. Multi-token labels are matched as labels, so `flash-lite` does not count as plain `flash`. The match stage walks the ranked candidate list and keeps the first candidate that survives this guardrail. This is deliberately blunt. Matching a `flash` row to a `flash-lite` model, an `omni` row to a non-omni model, or a base model row to an `image` or `latest` route is worse than dropping the row.
 
@@ -104,24 +110,24 @@ Once a match survives, the final matched row prefers the OpenRouter provider/mod
 - selected benchmark values from AA evaluation-resource pages and non-AA benchmark sources when their model-name candidates match the selected identity
 - `scoring_sources` with the raw AA evaluation-resource and non-AA source rows used to derive task metrics
 
-The later OpenRouter enrichment stage can merge route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, and Gemini `Preview` labels. This keeps the public payload aligned with route-level pricing and speed while still making it possible to trace a score back to the AA row that supplied the benchmark data.
+The explicit aggregation stage merges route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. Matched reasoning-effort observations remain separate rows with their own `reasoning_effort` and exact AA resource rows. The aggregate selects the source-default row when effort is unlabelled, or the highest reported effort when labels are present, and keeps that observation's score and resource fields together. Only after selection does benchmark enrichment attach default-effort AA resources and effort-unspecified supplemental sources such as DeepSWE or Vals. Benchmark-update health applies the same model/effort aggregation before comparing source leaders with the public Intelligence ranking. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, plain `Latest`, and Gemini `Preview` labels.
 
 ## Database Traceability
 
 The SQLite snapshot preserves the raw source paths used by the matcher:
 
-- `aa_raw_models` stores scraped AA rows.
+- `artificial_analysis_raw_models` stores scraped AA rows, including separate reasoning-effort observations.
 - `models_dev_raw_models` stores flattened `models.dev` provider/model rows.
 - `deep_swe_raw_rows`, `artificial_analysis_evaluations_raw_rows`, `vals_terminal_bench_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `toolathlon_raw_rows`, `cursorbench_raw_rows`, `vals_index_raw_rows`, and `riemann_bench_raw_rows` store supplemental benchmark/resource rows before they are summarized or matched.
 - `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
-- `model_stage_rows` stores the matched, catalog, enriched, and final stages.
-- `matcher_debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
+- `model_stage_rows` stores the effort-preserving matched and catalog stages, including `reasoning_effort`, followed by derived enriched and final aggregate stages.
+- `model_match_debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
 
-`matcher_debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, selected/rejected flags, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
+`model_match_debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, selected/rejected flags, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
 
 ## Debugging Bad Matches
 
-Start with the matcher diagnostics or the `matcher_debug` table rather than the final payload. Check:
+Start with the matcher diagnostics or the `model_match_debug` table rather than the final payload. Check:
 
 - the AA slug and source name
 - the best candidate id and score
@@ -129,6 +135,6 @@ Start with the matcher diagnostics or the `matcher_debug` table rather than the 
 - whether the row was voided
 - whether a variant token mismatch rejected it later
 - whether OpenRouter won when a direct fallback provider exact match would have been cleaner
-- the raw row indexes linked from `matcher_debug` when the final payload is not enough
+- the raw row indexes linked from `model_match_debug` when the final payload is not enough
 
 Most bad matches come from one of four cases: source slug changed upstream, candidate id changed upstream, two sibling variants are too similar, or a route tag looked like identity even though it was just a serving route.

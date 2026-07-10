@@ -5,7 +5,8 @@ import {
 	getAgentsLastExamStats,
 } from "../scrapers/agents-last-exam";
 import {
-	buildArtificialAnalysisEvaluationResourceMap,
+	buildArtificialAnalysisDefaultEffortResourceMap,
+	buildArtificialAnalysisObservationResourceMap,
 	getArtificialAnalysisEvaluationResourceStats,
 } from "../scrapers/artificial-analysis/benchmark-resources";
 import { getArtificialAnalysisLeaderboardStats } from "../scrapers/artificial-analysis/leaderboard";
@@ -18,7 +19,11 @@ import {
 	buildCursorBenchMap,
 	getCursorBenchStats,
 } from "../scrapers/cursorbench";
-import { buildDeepSWEMap, getDeepSWEStats } from "../scrapers/deep-swe";
+import {
+	buildDeepSWEMap,
+	getDeepSWERawLeaderboardStats,
+	summarizeDeepSWEDefaultEffortRows,
+} from "../scrapers/deep-swe";
 import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
 import {
 	getModelsDevSourceStats,
@@ -104,7 +109,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getBlueprintBenchStats(),
 		getBrowseCompStats(),
 		getCursorBenchStats(),
-		getDeepSWEStats(),
+		getDeepSWERawLeaderboardStats(),
 		getGdpPdfStats(),
 		getRiemannBenchStats(),
 		getToolathlonStats(),
@@ -118,7 +123,9 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const blueprintBenchRows = blueprintBenchStats.data;
 	const browseCompRows = browseCompStats.data;
 	const cursorBenchRows = cursorBenchStats.data;
-	const deepSWERows = deepSWEStats.data;
+	const deepSWEEffortRows = deepSWEStats.data;
+	const deepSWEDefaultEffortRows =
+		summarizeDeepSWEDefaultEffortRows(deepSWEEffortRows);
 	const gdpPdfRows = gdpPdfStats.data;
 	const riemannBenchRows = riemannBenchStats.data;
 	const toolathlonRows = toolathlonStats.data;
@@ -138,7 +145,10 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		},
 		artificialAnalysisEvaluationResources: {
 			rows: artificialAnalysisEvaluationResourceRows,
-			scoreByModelName: buildArtificialAnalysisEvaluationResourceMap(
+			observationByModelName: buildArtificialAnalysisObservationResourceMap(
+				artificialAnalysisEvaluationResourceRows,
+			),
+			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
 				artificialAnalysisEvaluationResourceRows,
 			),
 		},
@@ -163,8 +173,9 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 			scoreByModelName: buildCursorBenchMap(cursorBenchRows),
 		},
 		deepSWE: {
-			rows: deepSWERows,
-			scoreByModelName: buildDeepSWEMap(deepSWERows),
+			effortRows: deepSWEEffortRows,
+			defaultEffortRows: deepSWEDefaultEffortRows,
+			scoreByModelName: buildDeepSWEMap(deepSWEDefaultEffortRows),
 		},
 		gdpPdf: {
 			rows: gdpPdfRows,

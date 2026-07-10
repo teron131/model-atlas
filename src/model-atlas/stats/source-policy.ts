@@ -1,5 +1,9 @@
 /** Source-selection policy keeps benchmark-retained catalog rows and provider preference in one stage boundary. */
 
+import {
+	claudeIdentityKey,
+	parseClaudeIdentity,
+} from "../matcher/claude-identity";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import {
 	FALLBACK_PROVIDER_IDS,
@@ -17,6 +21,7 @@ export const MODELS_DEV_LOOKBACK_DAYS = 365;
 export type ArtificialAnalysisRetainKeys = {
 	retainedModelIds: Set<string>;
 	retainedModelNames: Set<string>;
+	retainedClaudeIdentityKeys: Set<string>;
 };
 
 export function isoDateDaysAgo(days: number): string {
@@ -31,6 +36,13 @@ export function buildArtificialAnalysisRetainKeys(
 ): ArtificialAnalysisRetainKeys {
 	const retainedModelIds = new Set<string>();
 	const retainedModelNames = new Set<string>();
+	const retainedClaudeIdentityKeys = new Set<string>();
+	const retainClaudeIdentityKey = (value: string) => {
+		const identity = parseClaudeIdentity(value);
+		if (identity != null) {
+			retainedClaudeIdentityKeys.add(claudeIdentityKey(identity));
+		}
+	};
 
 	for (const artificialAnalysisRow of artificialAnalysisRows) {
 		const artificialAnalysisModel = artificialAnalysisRow as {
@@ -38,6 +50,7 @@ export function buildArtificialAnalysisRetainKeys(
 			name?: unknown;
 		};
 		if (typeof artificialAnalysisModel.model_id === "string") {
+			retainClaudeIdentityKey(artificialAnalysisModel.model_id);
 			retainedModelIds.add(
 				normalizeProviderModelId(artificialAnalysisModel.model_id),
 			);
@@ -47,11 +60,16 @@ export function buildArtificialAnalysisRetainKeys(
 			}
 		}
 		if (typeof artificialAnalysisModel.name === "string") {
+			retainClaudeIdentityKey(artificialAnalysisModel.name);
 			retainedModelNames.add(normalizeModelToken(artificialAnalysisModel.name));
 		}
 	}
 
-	return { retainedModelIds, retainedModelNames };
+	return {
+		retainedModelIds,
+		retainedModelNames,
+		retainedClaudeIdentityKeys,
+	};
 }
 
 /** Provider preference collapses duplicate catalog rows before matching so callers do not rank providers themselves. */

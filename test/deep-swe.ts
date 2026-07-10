@@ -1,3 +1,5 @@
+/** Verifies DeepSWE parsing, source preference, default-effort scoring, and task metrics. */
+
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import {
@@ -5,12 +7,10 @@ import {
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
 	DEEP_SWE_V1_LEADERBOARD_URL,
 	type DeepSWELeaderboardRow,
-	findDeepSWEModelScore,
 	getDeepSWERawLeaderboardSourceRows,
 	getDeepSWERawLeaderboardStats,
 	preferredDeepSWELeaderboardRows,
-	summarizeDeepSWEBestModelScores,
-	summarizeDeepSWEDefaultModelScores,
+	summarizeDeepSWEDefaultEffortRows,
 } from "../src/model-atlas/scrapers/deep-swe";
 import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
@@ -38,9 +38,9 @@ function row(model: string, passAt1: number): DeepSWELeaderboardRow {
 	};
 }
 
-const rows = summarizeDeepSWEBestModelScores([
-	row("gpt-5-5", 0.48),
-	row("gpt-5-5", 0.7),
+const rows = summarizeDeepSWEDefaultEffortRows([
+	{ ...row("gpt-5-5", 0.7), reasoning_effort: "xhigh" },
+	{ ...row("gpt-5-5", 0.62), reasoning_effort: "max" },
 	row("claude-opus-4-8", 0.58),
 ]);
 
@@ -50,28 +50,41 @@ assertDeepEqual(
 		pass_at_1,
 	})),
 	[
-		{ model: "gpt-5-5", pass_at_1: 0.7 },
-		{ model: "claude-opus-4-8", pass_at_1: 0.58 },
-	],
-);
-
-const scoreByModelName = buildDeepSWEMap(rows);
-
-assertDeepEqual(
-	findDeepSWEModelScore(["missing", "GPT 5.5"], scoreByModelName)?.pass_at_1,
-	0.7,
-);
-
-assertDeepEqual(
-	summarizeDeepSWEDefaultModelScores([
-		{ ...row("gpt-5-5", 0.7), reasoning_effort: "max" },
-		{ ...row("gpt-5-5", 0.62), reasoning_effort: "xhigh" },
-		row("claude-opus-4-8", 0.58),
-	]).map(({ model, pass_at_1 }) => ({ model, pass_at_1 })),
-	[
 		{ model: "gpt-5-5", pass_at_1: 0.62 },
 		{ model: "claude-opus-4-8", pass_at_1: 0.58 },
 	],
+);
+
+const scoreByModelName = buildDeepSWEMap([
+	...rows,
+	row("gemini-3-flash-preview", 0.05),
+]);
+
+assertDeepEqual(scoreByModelName.get("gpt-5-5")?.pass_at_1, 0.62);
+assertDeepEqual(
+	scoreByModelName.get("gemini-3-flash-preview")?.pass_at_1,
+	0.05,
+);
+assertDeepEqual(scoreByModelName.get("gemini-3-flash"), undefined);
+
+const collisionMap = buildDeepSWEMap([
+	{
+		...row("Example.Model", 0.7),
+		reasoning_effort: "xhigh",
+	},
+	{
+		...row("Example Model", 0.6),
+		reasoning_effort: "max",
+	},
+]);
+assertDeepEqual(collisionMap.get("example-model")?.pass_at_1, 0.6);
+
+assertDeepEqual(
+	summarizeDeepSWEDefaultEffortRows([
+		row("source-default", 0.4),
+		{ ...row("source-default", 0.8), reasoning_effort: "max" },
+	])[0]?.pass_at_1,
+	0.4,
 );
 
 assertDeepEqual(

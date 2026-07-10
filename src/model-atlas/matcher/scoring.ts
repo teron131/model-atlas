@@ -1,5 +1,7 @@
 /** Scoring policy for deciding whether benchmark source names and catalog model IDs refer to the same LLM. */
+
 import { normalizeModelToken } from "../shared";
+import { claudeIdentityKey, parseClaudeIdentity } from "./claude-identity";
 import {
 	commonPrefixLength,
 	firstParsedNumber,
@@ -28,6 +30,32 @@ const ACTIVE_B_EXACT_REWARD = 2;
 const ACTIVE_B_MISMATCH_PENALTY = 2;
 const CHAR_PREFIX_REWARD_SCALE = 0.03;
 const LENGTH_GAP_PENALTY_SCALE = 0.005;
+const CLAUDE_IDENTITY_EXACT_REWARD = 20;
+const UNVERSIONED_CURRENT_VERSION_REWARD = 6;
+const REQUIRED_IDENTITY_LABELS = ["vl", "coder"] as const;
+const EXCLUSIVE_SIZE_LABELS = ["small", "micro"] as const;
+
+/** Claude tier/version identity is structural even though Anthropic changed its token order. */
+function claudeIdentityMatch(
+	sourceSlug: string,
+	candidateModelId: string,
+	candidateModelName: string,
+): boolean | null {
+	const sourceIdentity = parseClaudeIdentity(sourceSlug);
+	if (sourceIdentity == null) {
+		return null;
+	}
+	const sourceIdentityKey = claudeIdentityKey(sourceIdentity);
+	const candidateIdentities = [candidateModelId, candidateModelName]
+		.map(parseClaudeIdentity)
+		.filter((identity) => identity != null);
+	if (candidateIdentities.length === 0) {
+		return null;
+	}
+	return candidateIdentities.some(
+		(identity) => claudeIdentityKey(identity) === sourceIdentityKey,
+	);
+}
 
 function numericVersionParts(
 	sourceSlug: string,
@@ -97,9 +125,86 @@ function numericPrefixConflict(
 	}
 	return (
 		numbers.candidateName.length === 0 ||
-		hasStrictNumericPrefix(numbers.source, numbers.candidateName) ||
-		hasStrictNumericPrefix(numbers.candidateName, numbers.source)
+		numbers.source.length !== numbers.candidateName.length ||
+		numbers.source.some(
+			(value, index) => value !== numbers.candidateName[index],
+		)
 	);
+}
+
+function hasStructuralLabelConflict(
+	sourceSlug: string,
+	candidateModelId: string,
+	candidateModelName: string,
+): boolean {
+	const sourceTokens = new Set(splitTokens(sourceSlug));
+	const candidateTokens = new Set([
+		...splitBaseModelTokens(candidateModelId),
+		...splitTokens(candidateModelName),
+	]);
+	if (
+		REQUIRED_IDENTITY_LABELS.some(
+			(label) => sourceTokens.has(label) !== candidateTokens.has(label),
+		)
+	) {
+		return true;
+	}
+	const sourceSize = EXCLUSIVE_SIZE_LABELS.find((label) =>
+		sourceTokens.has(label),
+	);
+	const candidateSize = EXCLUSIVE_SIZE_LABELS.find((label) =>
+		candidateTokens.has(label),
+	);
+	return (
+		sourceSize != null && candidateSize != null && sourceSize !== candidateSize
+	);
+}
+
+/** An unversioned multi-token family may represent the catalog's current explicitly versioned route. */
+function unversionedCurrentVersionReward(
+	sourceSlug: string,
+	candidateModelId: string,
+	candidateModelName: string,
+): number {
+	const sourceTokens = splitTokens(sourceSlug);
+	if (
+		sourceTokens.length < 2 ||
+		sourceTokens.some((token) => isNumericToken(token))
+	) {
+		return 0;
+	}
+	const isCurrentVersion = (candidateTokens: string[]) =>
+		candidateTokens.length > sourceTokens.length &&
+		sourceTokens.every((token, index) => candidateTokens[index] === token) &&
+		candidateTokens.slice(sourceTokens.length).every(isNumericToken);
+	return [
+		splitBaseModelTokens(candidateModelId),
+		splitTokens(candidateModelName),
+	].some(isCurrentVersion)
+		? UNVERSIONED_CURRENT_VERSION_REWARD
+		: 0;
+}
+
+function numericVersionConflict(
+	sourceSlug: string,
+	candidateModelId: string,
+	candidateModelName: string,
+): boolean {
+	const numbers = numericVersionParts(
+		sourceSlug,
+		candidateModelId,
+		candidateModelName,
+	);
+	const overlapsWithDifferentVersion = (candidate: number[]) =>
+		candidate.some(
+			(value, index) =>
+				numbers.source[index] != null && numbers.source[index] !== value,
+		);
+	const idHasConflict = overlapsWithDifferentVersion(numbers.candidateId);
+	const nameHasConflict =
+		numbers.candidateName.length === 0 ||
+		overlapsWithDifferentVersion(numbers.candidateName);
+	return idHasConflict && nameHasConflict;
 }
 
 /** Reward leading token agreement heavily because source labels usually differ in suffixes, not family prefixes. */
@@ -222,10 +327,7 @@ function hasHardBScaleMismatch(
 		candidateModelName,
 		parseBScaleToken,
 	);
-	if (candidateBScale == null) {
-		return false;
-	}
-	return candidateBScale !== sourceBScale;
+	return candidateBScale == null || candidateBScale !== sourceBScale;
 }
 
 function activeBRewardOrPenalty(
@@ -321,10 +423,25 @@ export function scoreCandidate(
 	candidateModelId: string,
 	candidateModelName: string,
 ): number {
-	if (leadingNumberMismatch(sourceSlug, candidateModelId, candidateModelName)) {
+	const matchesClaudeIdentity = claudeIdentityMatch(
+		sourceSlug,
+		candidateModelId,
+		candidateModelName,
+	);
+	if (matchesClaudeIdentity === false) {
 		return 0;
 	}
-	if (numericPrefixConflict(sourceSlug, candidateModelId, candidateModelName)) {
+	if (
+		hasStructuralLabelConflict(sourceSlug, candidateModelId, candidateModelName)
+	) {
+		return 0;
+	}
+	if (
+		matchesClaudeIdentity !== true &&
+		(leadingNumberMismatch(sourceSlug, candidateModelId, candidateModelName) ||
+			numericPrefixConflict(sourceSlug, candidateModelId, candidateModelName) ||
+			numericVersionConflict(sourceSlug, candidateModelId, candidateModelName))
+	) {
 		return 0;
 	}
 	// Prefix reward addresses cross-family false positives.
@@ -368,6 +485,12 @@ export function scoreCandidate(
 		bScaleRewardOrPenalty(sourceSlug, candidateModelId, candidateModelName) +
 		activeBRewardOrPenalty(sourceSlug, candidateModelId, candidateModelName) +
 		coverageRewardOrPenalty(sourceSlug, candidateModelId, candidateModelName) +
+		unversionedCurrentVersionReward(
+			sourceSlug,
+			candidateModelId,
+			candidateModelName,
+		) +
+		(matchesClaudeIdentity === true ? CLAUDE_IDENTITY_EXACT_REWARD : 0) +
 		maxPrefixLength * CHAR_PREFIX_REWARD_SCALE -
 		Math.abs(normalizedSourceSlug.length - normalizedModelBase.length) *
 			LENGTH_GAP_PENALTY_SCALE

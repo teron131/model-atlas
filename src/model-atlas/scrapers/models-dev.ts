@@ -5,6 +5,10 @@
  * Overlay page source: https://vercel.com/ai-gateway/models
  */
 
+import {
+	claudeIdentityKey,
+	parseClaudeIdentity,
+} from "../matcher/claude-identity";
 import { normalizeModelToken, normalizeProviderModelId } from "../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../utils";
 
@@ -14,6 +18,13 @@ const LOOKBACK_DAYS = 365;
 const REQUEST_TIMEOUT_MS = 30_000;
 const VERCEL_PROVIDER_ID = "vercel";
 const VERCEL_PROVIDER_NAME = "Vercel AI Gateway";
+const NON_GENERATIVE_MODEL_TOKENS = new Set([
+	"embed",
+	"embedding",
+	"embeddings",
+	"rerank",
+	"reranker",
+]);
 const VERCEL_GATEWAY_MODEL_PATTERN =
 	/\\"displayName\\":\\"([^\\"]*)\\",\\"creatorOrganization\\":\\"[^\\"]*\\",\\"copyString\\":\\"([^\\"]+)\\",[\s\S]*?\\"releaseDate\\":\\"([^\\"]*)\\"/g;
 
@@ -90,6 +101,7 @@ export type ModelsDevOptions = Record<string, never>;
 type ProcessModelsDevPayloadOptions = {
 	retainedModelIds?: ReadonlySet<string>;
 	retainedModelNames?: ReadonlySet<string>;
+	retainedClaudeIdentityKeys?: ReadonlySet<string>;
 };
 function isoDateDaysAgo(days: number): string {
 	return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
@@ -239,12 +251,37 @@ function shouldRetainModel(
 	row: ModelsDevFlatModel,
 	options: ProcessModelsDevPayloadOptions,
 ): boolean {
+	const matchesRetainedClaudeIdentity = [row.model_id, row.model.name].some(
+		(value) => {
+			if (typeof value !== "string") {
+				return false;
+			}
+			const identity = parseClaudeIdentity(value);
+			return (
+				identity != null &&
+				options.retainedClaudeIdentityKeys?.has(claudeIdentityKey(identity)) ===
+					true
+			);
+		},
+	);
 	return (
 		options.retainedModelIds?.has(normalizeProviderModelId(row.model_id)) ===
 			true ||
 		(typeof row.model.name === "string" &&
 			options.retainedModelNames?.has(normalizeModelToken(row.model.name)) ===
-				true)
+				true) ||
+		matchesRetainedClaudeIdentity
+	);
+}
+
+/** Excludes catalog task models while raw models.dev source rows remain preserved separately. */
+function isGenerativeModel(row: ModelsDevFlatModel): boolean {
+	return ![row.model_id, row.model.name].some(
+		(value) =>
+			typeof value === "string" &&
+			normalizeModelToken(value)
+				.split(/[-/]/)
+				.some((token) => NON_GENERATIVE_MODEL_TOKENS.has(token)),
 	);
 }
 
@@ -254,6 +291,7 @@ function rankRecentModels(
 	options: ProcessModelsDevPayloadOptions = {},
 ): ModelsDevFlatModel[] {
 	return models
+		.filter(isGenerativeModel)
 		.filter(
 			(row) =>
 				isRecentDate(row.model.release_date, cutoffIsoDate) ||

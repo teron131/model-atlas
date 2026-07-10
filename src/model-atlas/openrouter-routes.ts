@@ -1,28 +1,38 @@
 /** Shared OpenRouter route identity rules for scraping, storage, and public stats rows. */
 
-import { normalizeProviderModelId } from "./shared";
+import { claudeRouteIdentityKey } from "./matcher/claude-identity";
+import {
+	modelSlugFromModelId,
+	normalizeProviderModelId,
+	reasoningEffortRank,
+} from "./shared";
 
 export const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
 
-const REASONING_EFFORT_SUFFIXES = [
-	"-reasoning-ultra",
-	"-ultra",
-	"-reasoning-max",
-	"-max",
-	"-adaptive",
-	"-reasoning-xhigh",
-	"-xhigh",
-	"-reasoning-high",
-	"-high",
-	"-reasoning-medium",
-	"-medium",
-	"-reasoning-low",
-	"-low",
-	"-reasoning-minimal",
-	"-minimal",
-	"-reasoning",
-	"-non-reasoning",
+const REASONING_EFFORT_ROUTES = [
+	["-reasoning-ultra", "ultra"],
+	["-ultra", "ultra"],
+	["-reasoning-max", "max"],
+	["-max", "max"],
+	["-adaptive", "adaptive"],
+	["-reasoning-xhigh", "xhigh"],
+	["-xhigh", "xhigh"],
+	["-reasoning-high", "high"],
+	["-high", "high"],
+	["-reasoning-medium", "medium"],
+	["-medium", "medium"],
+	["-reasoning-low", "low"],
+	["-low", "low"],
+	["-reasoning-minimal", "minimal"],
+	["-minimal", "minimal"],
+	["-reasoning", "minimal"],
+	["-non-reasoning", "non-reasoning"],
 ] as const;
+const REASONING_EFFORT_SUFFIXES = REASONING_EFFORT_ROUTES.map(
+	([suffix]) => suffix,
+);
+const GPT_5_6_PRO_ROUTE_PATTERN =
+	/(^|\/)gpt(?:[.-])5(?:[.-])6-(?:sol|terra|luna)-pro$/;
 const CATALOG_ALIAS_SUFFIXES = [
 	"-fast",
 	"-non-reasoning-low-effort",
@@ -58,6 +68,10 @@ function openRouterRouteParts(route: string): [string, string] | null {
 	return provider && modelName ? [provider, modelName] : null;
 }
 
+function normalizedEffortSelectionRoute(route: string): string {
+	return claudeRouteIdentityKey(route) ?? normalizeProviderModelId(route);
+}
+
 function isSameOpenRouterModelVersion(
 	targetModelName: string,
 	candidateModelName: string,
@@ -65,7 +79,11 @@ function isSameOpenRouterModelVersion(
 	const targetBase = stripOpenRouterVersionSuffix(targetModelName);
 	const candidateBase = stripOpenRouterVersionSuffix(candidateModelName);
 	if (candidateBase !== targetBase) {
-		return false;
+		const targetClaudeIdentity = claudeRouteIdentityKey(targetBase);
+		return (
+			targetClaudeIdentity != null &&
+			targetClaudeIdentity === claudeRouteIdentityKey(candidateBase)
+		);
 	}
 	if (candidateModelName === targetBase) {
 		return true;
@@ -94,6 +112,10 @@ export function isSameOpenRouterModelRoute(
 /** Removes catalog-only effort and alias suffixes before matching. */
 export function stripCatalogAliasSuffixes(value: string): string {
 	let normalized = value.replace(/-\d{8}$/, "");
+	// GPT-5.6 keeps Pro as a request mode on each tier, despite catalog aliases presenting it like a model suffix.
+	if (GPT_5_6_PRO_ROUTE_PATTERN.test(normalized)) {
+		return normalized.slice(0, -"-pro".length);
+	}
 	for (const suffix of CATALOG_ALIAS_STRIP_SUFFIXES) {
 		if (normalized.endsWith(suffix)) {
 			normalized = normalized.slice(0, -suffix.length);
@@ -103,29 +125,46 @@ export function stripCatalogAliasSuffixes(value: string): string {
 	return normalized;
 }
 
-/** Prefer the alias whose reasoning-effort suffix best matches the canonical route before falling back to generic names. */
-export function reasoningEffortPriority(
+/** Ranks an effort observation by its reported label, using route suffixes only when the source omits that label. */
+export function reasoningEffortSelectionPriority(
+	reasoningEffort: unknown,
 	artificialAnalysisSlug: string | null,
 	canonicalSlug: string | null,
 ): number {
 	if (artificialAnalysisSlug == null || canonicalSlug == null) {
 		return 0;
 	}
-	const normalizedArtificialAnalysisSlug = normalizeProviderModelId(
+	const normalizedArtificialAnalysisSlug = normalizedEffortSelectionRoute(
 		artificialAnalysisSlug,
 	);
-	const normalizedCanonicalSlug = normalizeProviderModelId(canonicalSlug);
-	if (normalizedArtificialAnalysisSlug === normalizedCanonicalSlug) {
-		return REASONING_EFFORT_SUFFIXES.length + 1;
+	const normalizedCanonicalSlug = normalizedEffortSelectionRoute(canonicalSlug);
+	const exactRoute =
+		normalizedArtificialAnalysisSlug === normalizedCanonicalSlug;
+	const routeIndex = exactRoute
+		? -1
+		: REASONING_EFFORT_ROUTES.findIndex(
+				([suffix]) =>
+					normalizedArtificialAnalysisSlug ===
+					`${normalizedCanonicalSlug}${suffix}`,
+			);
+	const reportedRank =
+		typeof reasoningEffort === "string" && reasoningEffort.trim().length > 0
+			? reasoningEffortRank(reasoningEffort)
+			: -1;
+	const inferredRank = exactRoute
+		? reasoningEffortRank(null)
+		: routeIndex >= 0
+			? reasoningEffortRank(REASONING_EFFORT_ROUTES[routeIndex]?.[1])
+			: -1;
+	const effortRank = reportedRank >= 0 ? reportedRank : inferredRank;
+	if (effortRank < 0) {
+		return 0;
 	}
-	for (const [index, suffix] of REASONING_EFFORT_SUFFIXES.entries()) {
-		if (
-			normalizedArtificialAnalysisSlug === `${normalizedCanonicalSlug}${suffix}`
-		) {
-			return REASONING_EFFORT_SUFFIXES.length - index;
-		}
-	}
-	return 0;
+	const routeTieBreak =
+		exactRoute || routeIndex < 0
+			? REASONING_EFFORT_ROUTES.length + 1
+			: REASONING_EFFORT_ROUTES.length - routeIndex;
+	return (effortRank + 1) * 100 + routeTieBreak;
 }
 
 export function nonFreeOpenRouterModelId(modelId: string): string | null {
@@ -161,15 +200,27 @@ export function hasPublicFreeRouteLabel(
 /** Removes transient preview/latest/free labels from public OpenRouter model names. */
 export function publicOpenRouterModelName(
 	modelName: string | null,
+	modelId: string | null = null,
 ): string | null {
-	return (
-		modelName
-			?.replace(
-				/^Gemini (.+?) Preview(?: \d{2}-\d{2}|\s+\d{2}-\d{4})?$/i,
-				"Gemini $1",
-			)
-			?.replace(/\s+\(latest\)\s*$/i, "")
-			.replace(/\s+\(free\)\s*$/i, "")
-			.trim() ?? null
-	);
+	if (modelName == null) {
+		return null;
+	}
+	const hasPlainLatestSuffix = /\s+latest\s*$/i.test(modelName);
+	let publicName = modelName
+		.replace(
+			/^Gemini (.+?) Preview(?: \d{2}-\d{2}|\s+\d{2}-\d{4})?$/i,
+			"Gemini $1",
+		)
+		.replace(/\s+(?:\(latest\)|latest)\s*$/i, "")
+		.replace(/\s+\(free\)\s*$/i, "")
+		.trim();
+	if (hasPlainLatestSuffix && !/\d/.test(publicName)) {
+		const version = modelSlugFromModelId(modelId)?.match(
+			/(?:^|-)(\d+(?:\.\d+)+)$/,
+		)?.[1];
+		if (version != null) {
+			publicName = `${publicName} ${version}`;
+		}
+	}
+	return publicName;
 }

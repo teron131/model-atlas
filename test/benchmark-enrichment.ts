@@ -4,12 +4,13 @@ import assert from "node:assert/strict";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import {
 	type BenchmarkEnrichmentLookups,
-	benchmarkEnrichment,
+	benchmarkAggregateEnrichment,
+	benchmarkObservationEnrichment,
 } from "../src/model-atlas/stats/benchmarks";
 import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
 const deepSWERow = {
-	model: "Example Model",
+	model: "Example Model Preview",
 	reasoning_effort: null,
 	config: null,
 	pass_at_1: 0.72,
@@ -134,60 +135,80 @@ const valsTerminalBenchRow = {
 	seconds_per_task: 50,
 };
 
-const enrichment = benchmarkEnrichment(
+const resourceRowsByBenchmark = new Map([
+	["briefcase", new Map([["example-model", briefcaseResourceRow]])],
+	[
+		"automation_bench",
+		new Map([["example-model", automationBenchResourceRow]]),
+	],
+	["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
+	["harvey_lab", new Map([["example-model", harveyLabResourceRow]])],
+	["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
+]);
+const lookups = {
+	artificialAnalysisEvaluationResources: {
+		observationByModelName: resourceRowsByBenchmark,
+		defaultEffortByModelName: resourceRowsByBenchmark,
+	},
+	valsTerminalBench: {
+		scoreByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
+	},
+	deepSWE: {
+		scoreByModelName: new Map([["example-model-preview", deepSWERow]]),
+	},
+	agentsLastExam: {
+		scoreByModelName: emptyLookup(),
+	},
+	blueprintBench: {
+		scoreByModelName: emptyLookup(),
+	},
+	gdpPdf: {
+		scoreByModelName: emptyLookup(),
+	},
+	riemannBench: {
+		scoreByModelName: emptyLookup(),
+	},
+	browseComp: {
+		scoreByModelName: emptyLookup(),
+	},
+	toolathlon: {
+		scoreByModelName: emptyLookup(),
+	},
+	valsIndex: {
+		scoreByModelName: emptyLookup(),
+	},
+	cursorBench: {
+		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
+	},
+} satisfies BenchmarkEnrichmentLookups;
+
+const observationEnrichment = benchmarkObservationEnrichment(
 	["Example Model"],
-	{
-		artificialAnalysisEvaluationResources: {
-			scoreByModelName: new Map([
-				["briefcase", new Map([["example-model", briefcaseResourceRow]])],
-				[
-					"automation_bench",
-					new Map([["example-model", automationBenchResourceRow]]),
-				],
-				["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
-				["harvey_lab", new Map([["example-model", harveyLabResourceRow]])],
-				[
-					"terminalbench_v21",
-					new Map([["example-model", terminalBenchResourceRow]]),
-				],
-			]),
-		},
-		valsTerminalBench: {
-			scoreByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
-		},
-		deepSWE: {
-			scoreByModelName: new Map([["example-model", deepSWERow]]),
-		},
-		agentsLastExam: {
-			scoreByModelName: emptyLookup(),
-		},
-		blueprintBench: {
-			scoreByModelName: emptyLookup(),
-		},
-		gdpPdf: {
-			scoreByModelName: emptyLookup(),
-		},
-		riemannBench: {
-			scoreByModelName: emptyLookup(),
-		},
-		browseComp: {
-			scoreByModelName: emptyLookup(),
-		},
-		toolathlon: {
-			scoreByModelName: emptyLookup(),
-		},
-		valsIndex: {
-			scoreByModelName: emptyLookup(),
-		},
-		cursorBench: {
-			scoreByModelName: new Map([["example-model", cursorBenchRow]]),
-		},
-	} satisfies BenchmarkEnrichmentLookups,
+	lookups,
 	{
 		hle: 0.4,
 		terminalbench_v21: 0.82,
 	},
 );
+assert.deepEqual(observationEnrichment.evaluations, {
+	briefcase: 0.5,
+	terminalbench_v21: 0.82,
+	automation_bench: 0.68,
+	harvey_lab: 0.142,
+});
+assert.equal(
+	(observationEnrichment.evaluations as Record<string, unknown>).deep_swe,
+	undefined,
+);
+assert.equal(
+	(observationEnrichment.evaluations as Record<string, unknown>).cursorbench,
+	undefined,
+);
+
+const enrichment = benchmarkAggregateEnrichment(["Example Model"], lookups, {
+	hle: 0.4,
+	terminalbench_v21: 0.82,
+});
 
 assert.deepEqual(enrichment.evaluations, {
 	briefcase: 0.5,
