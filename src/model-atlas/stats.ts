@@ -70,14 +70,6 @@ function withLlmStatsMetadata(
 	};
 }
 
-/** Failure-safe fallbacks still expose current metadata even when no model rows are available. */
-function emptyLlmStatsPayload(): LlmStatsPayload {
-	return withLlmStatsMetadata({
-		fetched_at_epoch_seconds: null,
-		models: [],
-	});
-}
-
 async function buildLlmStatsPayload(
 	modelId: string | null = null,
 ): Promise<LlmStatsPayload> {
@@ -123,6 +115,9 @@ export async function getLiveLlmStats(
 		const modelId = options.id ?? null;
 		return await buildLlmStatsPayload(modelId);
 	} catch {
-		return emptyLlmStatsPayload();
+		return withLlmStatsMetadata({
+			fetched_at_epoch_seconds: null,
+			models: [],
+		});
 	}
 }

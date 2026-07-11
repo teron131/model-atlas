@@ -171,29 +171,26 @@ function BenchmarkList({
 }
 
 function LoadingBenchmarkList({ label }: { label: string }) {
+	const prefix = label.toLowerCase();
+	const count = loadingBenchmarkCounts[label] ?? 5;
+	const keys = Array.from(
+		{ length: count },
+		(_, index) => `${prefix}-${index}`,
+	);
 	return (
 		<ul className="benchmark-list benchmark-list-loading">
-			{loadingBenchmarkKeys(label).map((key, index) => (
+			{keys.map((key, index) => (
 				<li key={key}>
 					<span
 						className="benchmark-chip benchmark-chip-loading"
-						style={loadingStyle("--loading-chip-index", index)}
+						style={
+							{
+								"--loading-chip-index": index,
+							} as CSSProperties
+						}
 					/>
 				</li>
 			))}
 		</ul>
 	);
-}
-
-function loadingBenchmarkKeys(label: string): string[] {
-	const prefix = label.toLowerCase();
-	const count = loadingBenchmarkCounts[label] ?? 5;
-	return Array.from({ length: count }, (_, index) => `${prefix}-${index}`);
-}
-
-function loadingStyle(
-	name: "--loading-chip-index",
-	value: number,
-): CSSProperties {
-	return { [name]: value } as CSSProperties;
 }

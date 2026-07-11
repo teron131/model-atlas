@@ -28,7 +28,9 @@ const refreshState = globalThis as typeof globalThis & {
 };
 
 export async function GET(request: Request) {
-	const view = jsonViewForRequest(request);
+	const view =
+		new URL(request.url).searchParams.get("view") ??
+		request.headers.get("x-model-atlas-view");
 	try {
 		const deployedSnapshot = await readDisplaySnapshotPayload();
 		if (deployedSnapshot != null) {
@@ -55,13 +57,6 @@ export async function GET(request: Request) {
 			},
 		});
 	}
-}
-
-function jsonViewForRequest(request: Request): string | null {
-	return (
-		new URL(request.url).searchParams.get("view") ??
-		request.headers.get("x-model-atlas-view")
-	);
 }
 
 function jsonPayloadResponse(payload: LlmStatsPayload, view: string | null) {

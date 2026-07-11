@@ -165,7 +165,9 @@ function PriceEfficiencySlopeGraph({
 	);
 	const graphRows: SlopeGraphRow[] = rows.map((row, index) => {
 		const key = priceEfficiencyRowKey(row, index);
-		const logo = providerLogoForModel(row.model);
+		const logo =
+			providerAssetLogo(row.model.provider) ||
+			(typeof row.model.logo === "string" ? row.model.logo : "");
 		const hasLogo = logo.length > 0;
 		const leftY = yPoint(row.priceScore);
 		const rightY = yPoint(row.costEfficiencyScore);
@@ -446,13 +448,6 @@ function leftRowHoverTarget(
 	return !(
 		relatedTarget instanceof Node && currentTarget.contains(relatedTarget)
 	);
-}
-
-function providerLogoForModel(model: LlmStatsModel) {
-	const logo =
-		providerAssetLogo(model.provider) ||
-		(typeof model.logo === "string" ? model.logo : "");
-	return logo;
 }
 
 function ProviderLogoMark({

@@ -137,7 +137,7 @@ async function refreshDisplaySnapshotIfStale(
 ): Promise<LlmStatsPayload | null> {
 	const refreshMode = displaySnapshotRefreshMode(
 		payload,
-		nowEpochSeconds(),
+		Math.floor(Date.now() / 1000),
 		runtime.requiresD1,
 		runtime.displayRefreshIntervalSeconds,
 	);
@@ -203,10 +203,6 @@ async function readLocalDatabaseSnapshot(
 	);
 }
 
-function snapshotFetchedAt(payload: LlmStatsPayload): number {
-	return payload.fetched_at_epoch_seconds ?? 0;
-}
-
 export function displaySnapshotRefreshMode(
 	payload: LlmStatsPayload | null,
 	now: number,
@@ -216,7 +212,7 @@ export function displaySnapshotRefreshMode(
 	if (payload == null) {
 		return hasRuntimeSnapshotStore ? "stored" : "live";
 	}
-	const fetchedAt = snapshotFetchedAt(payload);
+	const fetchedAt = payload.fetched_at_epoch_seconds ?? 0;
 	if (fetchedAt !== 0 && now - fetchedAt < refreshIntervalSeconds) {
 		return "none";
 	}
@@ -241,10 +237,6 @@ function getDisplayRefreshState(): DisplayRefreshState {
 		refreshInFlight: null,
 	};
 	return displayRefreshState.__modelAtlasDisplayRefreshState;
-}
-
-function nowEpochSeconds(): number {
-	return Math.floor(Date.now() / 1000);
 }
 
 async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {

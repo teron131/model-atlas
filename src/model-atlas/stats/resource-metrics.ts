@@ -25,22 +25,6 @@ export function benchmarkMetricValue(
 	);
 }
 
-function taskOutputTokens(task: unknown): number | null {
-	const record = asRecord(task);
-	return (
-		positiveFiniteNumber(record.output_tokens) ??
-		positiveFiniteNumber(record.tokens)
-	);
-}
-
-function modelThroughputTokensPerSecond(
-	model: ResourceMetricModel,
-): number | null {
-	return positiveFiniteNumber(
-		asRecord(model.speed).throughput_tokens_per_second_median,
-	);
-}
-
 /** Use served throughput as the runtime proxy when a benchmark reports output tokens but not wall time. */
 export function effectiveTaskSeconds(
 	model: ResourceMetricModel,
@@ -51,8 +35,12 @@ export function effectiveTaskSeconds(
 	if (explicitSeconds != null) {
 		return explicitSeconds;
 	}
-	const outputTokens = taskOutputTokens(task);
-	const throughput = modelThroughputTokensPerSecond(model);
+	const outputTokens =
+		positiveFiniteNumber(taskRecord.output_tokens) ??
+		positiveFiniteNumber(taskRecord.tokens);
+	const throughput = positiveFiniteNumber(
+		asRecord(model.speed).throughput_tokens_per_second_median,
+	);
 	return outputTokens != null && throughput != null
 		? outputTokens / throughput
 		: null;
