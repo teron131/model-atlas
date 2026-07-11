@@ -3,6 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { readDatabasePayload } from "../src/model-atlas/database";
 import {
 	resizeLogoToPng,
 	statsLogoCacheDir,
@@ -16,19 +17,13 @@ type ProviderAsset = {
 
 type ProviderAssetMap = Record<string, ProviderAsset>;
 
-type SnapshotModel = {
-	provider?: string | null;
-	logo?: string | null;
-};
-
-const SNAPSHOT_PATH = "public/model-atlas-snapshot.json";
 const GENERATED_PATH = "app/dashboard/shared/providerAssets.generated.ts";
 const LOGO_SIZE = 64;
 
 const force = process.argv.includes("--force");
 
 const existingAssets = force ? {} : await readExistingAssets();
-const providerSources = await readProviderSources();
+const providerSources = readProviderSources();
 const nextAssets: ProviderAssetMap = { ...existingAssets };
 
 for (const [provider, source] of [...providerSources].sort()) {
@@ -75,12 +70,9 @@ async function readExistingAssets(): Promise<ProviderAssetMap> {
 	}
 }
 
-async function readProviderSources() {
-	const snapshot = JSON.parse(await readFile(SNAPSHOT_PATH, "utf8")) as {
-		models?: SnapshotModel[];
-	};
+function readProviderSources() {
 	const providers = new Map<string, string>();
-	for (const model of snapshot.models ?? []) {
+	for (const model of readDatabasePayload().models) {
 		const provider = providerSlug(model.provider);
 		if (provider.length === 0) {
 			continue;

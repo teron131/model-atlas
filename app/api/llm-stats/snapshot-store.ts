@@ -1,6 +1,5 @@
 /** Runtime snapshot loading for Model Atlas. */
 
-import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -19,11 +18,6 @@ import {
 import { buildCurrentLlmStatsMetadata } from "../../../src/model-atlas/stats/metadata";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 
-const STATIC_SNAPSHOT_PATH = resolve(
-	process.cwd(),
-	"public/model-atlas-snapshot.json",
-);
-
 type DisplayRefreshState = {
 	refreshInFlight: Promise<LlmStatsPayload | null> | null;
 	readInFlight: Promise<LlmStatsPayload | null> | null;
@@ -37,7 +31,6 @@ export type SnapshotRuntime = {
 	remoteSnapshotUrl?: string;
 	buildDatabasePath?: string;
 	readDatabasePath: string | undefined;
-	useStaticSnapshot: boolean;
 	requiresD1: boolean;
 	hasD1SnapshotStore: boolean;
 	missingD1Environment: string[];
@@ -55,7 +48,6 @@ export function snapshotRuntime(): SnapshotRuntime {
 		remoteSnapshotUrl: process.env.MODEL_ATLAS_SNAPSHOT_URL,
 		buildDatabasePath: resolveBuildDatabasePath(),
 		readDatabasePath: resolveReadDatabasePath(),
-		useStaticSnapshot: process.env.MODEL_ATLAS_STATIC_SNAPSHOT === "1",
 		requiresD1: process.env.VERCEL === "1",
 		hasD1SnapshotStore: d1Configured(),
 		missingD1Environment: missingD1Environment(),
@@ -64,7 +56,7 @@ export function snapshotRuntime(): SnapshotRuntime {
 	};
 }
 
-/** Production reads require D1; local development compares file-backed snapshots. */
+/** Production reads require D1; local development reads its SQLite database. */
 async function readBestSnapshotCache(
 	runtime: SnapshotRuntime,
 ): Promise<LlmStatsPayload | null> {
@@ -72,13 +64,7 @@ async function readBestSnapshotCache(
 	if (runtime.requiresD1) {
 		return readD1Snapshot();
 	}
-	const [localDatabaseSnapshot, staticSnapshot] = await Promise.all([
-		runtime.useStaticSnapshot
-			? Promise.resolve(null)
-			: readLocalDatabaseSnapshot(runtime).catch(() => null),
-		readStaticSnapshot().catch(() => null),
-	]);
-	return bestSnapshotPayload(localDatabaseSnapshot, staticSnapshot);
+	return readLocalDatabaseSnapshot(runtime).catch(() => null);
 }
 
 /** Collapse concurrent dashboard reads onto one refresh and keep a short in-memory result for repeated server renders. */
@@ -209,12 +195,6 @@ function assertD1Configured(runtime: SnapshotRuntime): void {
 	}
 }
 
-async function readStaticSnapshot(): Promise<LlmStatsPayload> {
-	return withCurrentSnapshotMetadata(
-		JSON.parse(await readFile(STATIC_SNAPSHOT_PATH, "utf-8")),
-	);
-}
-
 async function readLocalDatabaseSnapshot(
 	runtime: SnapshotRuntime,
 ): Promise<LlmStatsPayload> {
@@ -223,39 +203,8 @@ async function readLocalDatabaseSnapshot(
 	);
 }
 
-export function bestSnapshotPayload(
-	left: LlmStatsPayload | null,
-	right: LlmStatsPayload | null,
-): LlmStatsPayload | null {
-	if (left == null) {
-		return right;
-	}
-	if (right == null) {
-		return left;
-	}
-	const leftCoverage = selectedBenchmarkCoverage(left);
-	const rightCoverage = selectedBenchmarkCoverage(right);
-	if (leftCoverage !== rightCoverage) {
-		return rightCoverage > leftCoverage ? right : left;
-	}
-	return snapshotFetchedAt(right) > snapshotFetchedAt(left) ? right : left;
-}
-
 function snapshotFetchedAt(payload: LlmStatsPayload): number {
 	return payload.fetched_at_epoch_seconds ?? 0;
-}
-
-function selectedBenchmarkCoverage(payload: LlmStatsPayload): number {
-	const selectedKeys = payload.metadata.scoring.selected_benchmark_keys;
-	if (selectedKeys.length === 0) {
-		return 0;
-	}
-	const availableKeys = new Set([
-		...payload.metadata.artificial_analysis.available_benchmark_keys,
-		...payload.metadata.artificial_analysis.available_evaluation_keys,
-		...payload.metadata.artificial_analysis.available_intelligence_keys,
-	]);
-	return selectedKeys.filter((key) => availableKeys.has(key)).length;
 }
 
 export function displaySnapshotRefreshMode(
@@ -342,7 +291,7 @@ function resolveReadDatabasePath(): string | undefined {
 		return resolve(process.env.MODEL_ATLAS_DATABASE_PATH);
 	}
 	if (process.env.VERCEL === "1") {
-		return resolve(tmpdir(), "model-atlas/database.sqlite");
+		return undefined;
 	}
 	return resolve(DEFAULT_DATABASE_PATH);
 }

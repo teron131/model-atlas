@@ -16,7 +16,6 @@
 		"test": "tsx scripts/test.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"database": "tsx scripts/database.ts",
-		"snapshot": "tsx scripts/write-static-snapshot.ts",
 		"smoke": "tsx scripts/smoke-model-atlas.ts",
 		"d1:publish": "tsx scripts/publish-d1.ts",
 		"env:sync": "tsx scripts/sync-vercel-env.ts",

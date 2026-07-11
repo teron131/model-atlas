@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
-	bestSnapshotPayload,
 	type DisplaySnapshotRefreshMode,
 	displaySnapshotRefreshMode,
 	readDisplaySnapshotPayload,
@@ -24,7 +23,7 @@ assert.equal(
 assert.equal(
 	mode(freshPayload, false, 1000),
 	"none",
-	"fresh display snapshots without Blob should render from cache",
+	"fresh display snapshots without D1 should render from cache",
 );
 assert.equal(
 	mode(stalePayload, false, 1000),
@@ -35,26 +34,6 @@ assert.equal(
 	mode(stalePayload, true, 1000),
 	"stored",
 	"stale display snapshots with D1 should refresh the stored snapshot",
-);
-
-const olderCompleteSnapshot = payloadWithBenchmarks(100, [
-	"gdp_pdf",
-	"deep_swe",
-]);
-const newerIncompleteSnapshot = payloadWithBenchmarks(900, ["gdp_pdf"]);
-assert.equal(
-	bestSnapshotPayload(newerIncompleteSnapshot, olderCompleteSnapshot),
-	olderCompleteSnapshot,
-	"snapshot selection should keep richer benchmark coverage over a newer incomplete local database",
-);
-const newerEquallyCompleteSnapshot = payloadWithBenchmarks(900, [
-	"gdp_pdf",
-	"deep_swe",
-]);
-assert.equal(
-	bestSnapshotPayload(olderCompleteSnapshot, newerEquallyCompleteSnapshot),
-	newerEquallyCompleteSnapshot,
-	"snapshot selection should use freshness when selected benchmark coverage is equal",
 );
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
@@ -96,8 +75,8 @@ try {
 	);
 	assert.equal(
 		snapshotRuntime().readDatabasePath,
-		resolve(tmpdir(), "model-atlas/database.sqlite"),
-		"Vercel display reads should use the writable temp database path",
+		undefined,
+		"Vercel display reads should not expose the temporary build database",
 	);
 	delete process.env.D1_ACCOUNT_ID;
 	delete process.env.D1_DATABASE_ID;
@@ -163,27 +142,6 @@ function mode(
 
 function payloadAt(fetchedAt: number): LlmStatsPayload {
 	return minimalLlmStatsPayload({ fetchedAt });
-}
-
-function payloadWithBenchmarks(
-	fetchedAt: number,
-	availableBenchmarkKeys: string[],
-): LlmStatsPayload {
-	const payload = payloadAt(fetchedAt);
-	return {
-		...payload,
-		metadata: {
-			...payload.metadata,
-			artificial_analysis: {
-				...payload.metadata.artificial_analysis,
-				available_benchmark_keys: availableBenchmarkKeys,
-			},
-			scoring: {
-				...payload.metadata.scoring,
-				selected_benchmark_keys: ["gdp_pdf", "deep_swe"],
-			},
-		},
-	};
 }
 
 function restoreEnv(key: string, value: string | undefined): void {
