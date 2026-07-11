@@ -1,0 +1,509 @@
+/** Benchmark source cache reconstruction from persisted leaderboard rows. */
+
+import type { DatabaseSync } from "node:sqlite";
+
+import type { AgentsLastExamHarnessRow } from "../../scrapers/agents-last-exam";
+import type { BlueprintBenchModelScoreRow } from "../../scrapers/blueprint-bench";
+import type { BrowseCompModelScoreRow } from "../../scrapers/browsecomp";
+import type { CursorBenchModelScoreRow } from "../../scrapers/cursorbench";
+import {
+	asDeepSWERawLeaderboardRow,
+	type DeepSWERawLeaderboardRow,
+	type DeepSWESourceVersion,
+	deepSWESourceVersionForRows,
+} from "../../scrapers/deep-swe";
+import type { GdpPdfModelScoreRow } from "../../scrapers/gdp-pdf";
+import type { RiemannBenchModelScoreRow } from "../../scrapers/riemann-bench";
+import type { ToolathlonModelScoreRow } from "../../scrapers/toolathlon";
+import type {
+	ValsIndexModelScoreRow,
+	ValsIndexTaskScoreRow,
+} from "../../scrapers/vals/index-benchmark";
+import type {
+	TerminalBenchModelHarnessRow,
+	TerminalBenchTaskRow,
+} from "../../scrapers/vals/terminal-bench";
+import { asFiniteNumber } from "../../shared";
+import { SOURCE_URLS } from "../types";
+import {
+	booleanFromSql,
+	firstEpochSecond,
+	queryLatestCacheRows,
+	stringValue,
+} from "./rows";
+
+export function readAgentsLastExamRawCache(db: DatabaseSync): {
+	rows: AgentsLastExamHarnessRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"agents_last_exam_raw_rows",
+		"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? AND row_kind = 'harness_score' ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cacheRows.flatMap((row) => {
+			const split = stringValue(row.split);
+			const harness = stringValue(row.harness);
+			const model = stringValue(row.model);
+			const runs = asFiniteNumber(row.runs);
+			const tasks = asFiniteNumber(row.tasks);
+			const splitTasks = asFiniteNumber(row.split_tasks);
+			const passes = asFiniteNumber(row.passes);
+			const accuracy = asFiniteNumber(row.accuracy);
+			const score = asFiniteNumber(row.score);
+			const totalDurationSeconds = asFiniteNumber(row.total_duration_seconds);
+			const totalInputTokens = asFiniteNumber(row.total_input_tokens);
+			const totalOutputTokens = asFiniteNumber(row.total_output_tokens);
+			const totalCostUsd = asFiniteNumber(row.total_cost_usd);
+			return split != null &&
+				harness != null &&
+				model != null &&
+				runs != null &&
+				tasks != null &&
+				splitTasks != null &&
+				passes != null &&
+				accuracy != null &&
+				score != null &&
+				totalDurationSeconds != null &&
+				totalInputTokens != null &&
+				totalOutputTokens != null
+				? [
+						{
+							split,
+							harness,
+							model,
+							harness_variant: stringValue(row.harness_variant),
+							runs,
+							tasks,
+							split_tasks: splitTasks,
+							passes,
+							accuracy,
+							score,
+							total_duration_seconds: totalDurationSeconds,
+							total_input_tokens: totalInputTokens,
+							total_output_tokens: totalOutputTokens,
+							total_cost_usd: totalCostUsd,
+							cost_source: stringValue(row.cost_source),
+						},
+					]
+				: [];
+		}),
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readBlueprintBenchRawCache(db: DatabaseSync): {
+	rows: BlueprintBenchModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"blueprint_bench_2_raw_rows",
+		"SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (
+		cacheRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.blueprint_bench_2,
+		)
+	) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return model != null && score != null
+			? [
+					{
+						model,
+						score,
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readBrowseCompRawCache(db: DatabaseSync): {
+	rows: BrowseCompModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"browsecomp_raw_rows",
+		"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.browsecomp)
+	) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const provider = stringValue(row.provider);
+		const score = asFiniteNumber(row.score);
+		return model != null && provider != null && score != null
+			? [
+					{
+						model,
+						provider,
+						provider_name: stringValue(row.provider_name),
+						score,
+						source_url: stringValue(row.source_url),
+						analysis_method: stringValue(row.analysis_method),
+						verified: booleanFromSql(row.verified),
+						self_reported: booleanFromSql(row.self_reported),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readCursorBenchRawCache(db: DatabaseSync): {
+	rows: CursorBenchModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"cursorbench_raw_rows",
+		"SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.cursorbench)
+	) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const rank = asFiniteNumber(row.rank);
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const scoreEligible = booleanFromSql(row.score_eligible);
+		const score = asFiniteNumber(row.score);
+		const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
+		const tokensPerTask = asFiniteNumber(row.tokens_per_task);
+		const stepsPerTask = asFiniteNumber(row.steps_per_task);
+		return rank != null &&
+			model != null &&
+			baseModel != null &&
+			scoreEligible != null &&
+			score != null &&
+			costPerTaskUsd != null &&
+			tokensPerTask != null &&
+			stepsPerTask != null
+			? [
+					{
+						rank,
+						model,
+						base_model: baseModel,
+						reasoning_effort: stringValue(row.reasoning_effort),
+						score_eligible: scoreEligible,
+						score,
+						cost_per_task_usd: costPerTaskUsd,
+						tokens_per_task: tokensPerTask,
+						steps_per_task: stepsPerTask,
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readDeepSWERawCache(db: DatabaseSync): {
+	rows: DeepSWERawLeaderboardRow[];
+	fetchedAt: number | null;
+	sourceVersion: DeepSWESourceVersion | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"deep_swe_raw_rows",
+		"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	const deepSweRows = cacheRows.flatMap((row) => {
+		const parsedRow = asDeepSWERawLeaderboardRow(row);
+		return parsedRow == null ? [] : [parsedRow];
+	});
+	return {
+		rows: deepSweRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+		sourceVersion: deepSWESourceVersionForRows(deepSweRows),
+	};
+}
+
+export function readGdpPdfRawCache(db: DatabaseSync): {
+	rows: GdpPdfModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"gdp_pdf_raw_rows",
+		"SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.gdp_pdf)) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return model != null && score != null
+			? [
+					{
+						provider: stringValue(row.provider),
+						model,
+						score,
+						last_updated: stringValue(row.last_updated),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readRiemannBenchRawCache(db: DatabaseSync): {
+	rows: RiemannBenchModelScoreRow[];
+	fetchedAt: number | null;
+	sourceUrl: string;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"riemann_bench_raw_rows",
+		"SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	const sourceUrls = new Set(cacheRows.map((row) => stringValue(row.url)));
+	if (sourceUrls.size !== 1 || sourceUrls.has(null)) {
+		return null;
+	}
+	const sourceUrl = [...sourceUrls][0];
+	if (sourceUrl == null) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return model != null && score != null
+			? [
+					{
+						provider: stringValue(row.provider),
+						model,
+						score,
+						last_updated: stringValue(row.last_updated),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+		sourceUrl,
+	};
+}
+
+export function readToolathlonRawCache(db: DatabaseSync): {
+	rows: ToolathlonModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"toolathlon_raw_rows",
+		"SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.toolathlon)
+	) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const provider = stringValue(row.provider);
+		const score = asFiniteNumber(row.score);
+		return model != null && provider != null && score != null
+			? [
+					{
+						rank: asFiniteNumber(row.rank),
+						model,
+						provider,
+						provider_name: stringValue(row.provider_name),
+						score,
+						source_url: stringValue(row.source_url),
+						analysis_method: stringValue(row.analysis_method),
+						verified: booleanFromSql(row.verified),
+						self_reported: booleanFromSql(row.self_reported),
+						announcement_date: stringValue(row.announcement_date),
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readValsIndexRawCache(db: DatabaseSync): {
+	rows: ValsIndexTaskScoreRow[];
+	modelScores: ValsIndexModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"vals_index_raw_rows",
+		"SELECT * FROM vals_index_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.vals_index)
+	) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const task = stringValue(row.task);
+		const taskLabel = stringValue(row.task_label);
+		const modelId = stringValue(row.model_id);
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		return task != null &&
+			taskLabel != null &&
+			modelId != null &&
+			model != null &&
+			score != null
+			? [
+					{
+						task,
+						task_label: taskLabel,
+						model_id: modelId,
+						model,
+						provider: stringValue(row.provider),
+						score,
+					},
+				]
+			: [];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		modelScores: cachedRows.filter(
+			(row): row is ValsIndexModelScoreRow => row.task === "overall",
+		),
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readValsTerminalBenchRawCache(db: DatabaseSync): {
+	rows: TerminalBenchTaskRow[];
+	modelScores: TerminalBenchModelHarnessRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"vals_terminal_bench_raw_rows",
+		"SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	if (
+		cacheRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.vals_terminal_bench,
+		)
+	) {
+		return null;
+	}
+	const cachedRows = cacheRows.flatMap((row) => {
+		const task = stringValue(row.task);
+		const taskLabel = stringValue(row.task_label);
+		const modelId = stringValue(row.model_id);
+		const model = stringValue(row.model);
+		const score = asFiniteNumber(row.score);
+		if (
+			task == null ||
+			taskLabel == null ||
+			modelId == null ||
+			model == null ||
+			score == null
+		) {
+			return [];
+		}
+		return [
+			{
+				task,
+				task_label: taskLabel,
+				source_model_id: stringValue(row.source_model_id) ?? modelId,
+				model_id: modelId,
+				model,
+				provider: stringValue(row.provider),
+				harness: stringValue(row.harness),
+				score,
+				cost_per_task_usd: asFiniteNumber(row.cost_per_task_usd),
+				seconds_per_task: asFiniteNumber(row.seconds_per_task),
+			},
+		];
+	});
+	if (cachedRows.length === 0) {
+		return null;
+	}
+	return {
+		rows: cachedRows,
+		modelScores: cachedRows.filter(
+			(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
+		),
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
