@@ -364,24 +364,26 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 		source.median_total_output_tokens,
 	);
 	const meanTotalOutputTokens = asFiniteNumber(source.mean_total_output_tokens);
-	const medianDurationSecondsPerRun = asFiniteNumber(
-		source.median_duration_seconds_per_run,
+	const medianDurationSecondsPerTask = asFiniteNumber(
+		source.median_duration_seconds_per_task,
 	);
-	const meanDurationSecondsPerRun = asFiniteNumber(
-		source.mean_duration_seconds_per_run,
+	const meanDurationSecondsPerTask = asFiniteNumber(
+		source.mean_duration_seconds_per_task,
 	);
-	const medianInputTokensPerRun = asFiniteNumber(
-		source.median_input_tokens_per_run,
+	const medianInputTokensPerTask = asFiniteNumber(
+		source.median_input_tokens_per_task,
 	);
-	const meanInputTokensPerRun = asFiniteNumber(
-		source.mean_input_tokens_per_run,
+	const meanInputTokensPerTask = asFiniteNumber(
+		source.mean_input_tokens_per_task,
 	);
-	const medianOutputTokensPerRun = asFiniteNumber(
-		source.median_output_tokens_per_run,
+	const medianOutputTokensPerTask = asFiniteNumber(
+		source.median_output_tokens_per_task,
 	);
-	const meanOutputTokensPerRun = asFiniteNumber(
-		source.mean_output_tokens_per_run,
+	const meanOutputTokensPerTask = asFiniteNumber(
+		source.mean_output_tokens_per_task,
 	);
+	const medianCostUsdPerTask = asFiniteNumber(source.median_cost_usd_per_task);
+	const meanCostUsdPerTask = asFiniteNumber(source.mean_cost_usd_per_task);
 	const frequency = asFiniteNumber(source.frequency);
 	if (
 		typeof source.model !== "string" ||
@@ -396,12 +398,12 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 		meanTotalInputTokens == null ||
 		medianTotalOutputTokens == null ||
 		meanTotalOutputTokens == null ||
-		medianDurationSecondsPerRun == null ||
-		meanDurationSecondsPerRun == null ||
-		medianInputTokensPerRun == null ||
-		meanInputTokensPerRun == null ||
-		medianOutputTokensPerRun == null ||
-		meanOutputTokensPerRun == null ||
+		medianDurationSecondsPerTask == null ||
+		meanDurationSecondsPerTask == null ||
+		medianInputTokensPerTask == null ||
+		meanInputTokensPerTask == null ||
+		medianOutputTokensPerTask == null ||
+		meanOutputTokensPerTask == null ||
 		frequency == null
 	) {
 		return null;
@@ -419,12 +421,14 @@ function buildAgentsLastExamScoringSource(model: JsonObject) {
 		mean_total_input_tokens: meanTotalInputTokens,
 		median_total_output_tokens: medianTotalOutputTokens,
 		mean_total_output_tokens: meanTotalOutputTokens,
-		median_duration_seconds_per_run: medianDurationSecondsPerRun,
-		mean_duration_seconds_per_run: meanDurationSecondsPerRun,
-		median_input_tokens_per_run: medianInputTokensPerRun,
-		mean_input_tokens_per_run: meanInputTokensPerRun,
-		median_output_tokens_per_run: medianOutputTokensPerRun,
-		mean_output_tokens_per_run: meanOutputTokensPerRun,
+		median_duration_seconds_per_task: medianDurationSecondsPerTask,
+		mean_duration_seconds_per_task: meanDurationSecondsPerTask,
+		median_input_tokens_per_task: medianInputTokensPerTask,
+		mean_input_tokens_per_task: meanInputTokensPerTask,
+		median_output_tokens_per_task: medianOutputTokensPerTask,
+		mean_output_tokens_per_task: meanOutputTokensPerTask,
+		median_cost_usd_per_task: medianCostUsdPerTask,
+		mean_cost_usd_per_task: meanCostUsdPerTask,
 		frequency,
 	};
 }
@@ -471,7 +475,7 @@ export function buildModelCandidate(
 		speed,
 		intelligence: buildNumericMap(intelligence),
 		intelligence_index_cost: intelligenceIndexCost,
-		task_metrics: buildTaskMetrics(intelligenceIndexCost, cost, scoringSources),
+		task_metrics: buildTaskMetrics(intelligenceIndexCost, scoringSources),
 		evaluations: buildNumericMap(model.evaluations),
 		scoring_sources: scoringSources,
 		component_scores: buildComponentScores(

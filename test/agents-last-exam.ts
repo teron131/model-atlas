@@ -30,6 +30,8 @@ const rows = processAgentsLastExamLeaderboardRows([
 		totalDurationS: 291_752,
 		totalInputTokens: 577_686_408,
 		totalOutputTokens: 3_856_937,
+		totalCostUsd: 290,
+		costSource: "db",
 	},
 	{
 		split: "full/overall",
@@ -45,6 +47,8 @@ const rows = processAgentsLastExamLeaderboardRows([
 		totalDurationS: 98_570,
 		totalInputTokens: 116_041_374,
 		totalOutputTokens: 1_132_752,
+		totalCostUsd: 106,
+		costSource: "list",
 	},
 	{
 		split: "cli",
@@ -60,6 +64,8 @@ const rows = processAgentsLastExamLeaderboardRows([
 		totalDurationS: 127_482,
 		totalInputTokens: 375_083_014,
 		totalOutputTokens: 2_384_819,
+		totalCostUsd: 206,
+		costSource: "db",
 	},
 	{
 		split: "full/overall",
@@ -75,6 +81,8 @@ const rows = processAgentsLastExamLeaderboardRows([
 		totalDurationS: 1_151_355,
 		totalInputTokens: 112_447_742,
 		totalOutputTokens: 1_784_448,
+		totalCostUsd: 306,
+		costSource: "official",
 	},
 	{ split: "skip", harness: "skip", model: "skip", avgScore: 0.9 },
 ]);
@@ -94,6 +102,8 @@ assertDeepEqual(rows, [
 		total_duration_seconds: 291_752,
 		total_input_tokens: 577_686_408,
 		total_output_tokens: 3_856_937,
+		total_cost_usd: 290,
+		cost_source: "db",
 	},
 	{
 		split: "full/overall",
@@ -109,6 +119,8 @@ assertDeepEqual(rows, [
 		total_duration_seconds: 98_570,
 		total_input_tokens: 116_041_374,
 		total_output_tokens: 1_132_752,
+		total_cost_usd: 106,
+		cost_source: "list",
 	},
 	{
 		split: "cli",
@@ -124,6 +136,8 @@ assertDeepEqual(rows, [
 		total_duration_seconds: 127_482,
 		total_input_tokens: 375_083_014,
 		total_output_tokens: 2_384_819,
+		total_cost_usd: 206,
+		cost_source: "db",
 	},
 	{
 		split: "full/overall",
@@ -139,6 +153,8 @@ assertDeepEqual(rows, [
 		total_duration_seconds: 1_151_355,
 		total_input_tokens: 112_447_742,
 		total_output_tokens: 1_784_448,
+		total_cost_usd: 306,
+		cost_source: "official",
 	},
 ]);
 
@@ -158,12 +174,14 @@ assertDeepEqual(modelScores, [
 		mean_total_input_tokens: 346_863_891,
 		median_total_output_tokens: 2_494_844.5,
 		mean_total_output_tokens: 2_494_844.5,
-		median_duration_seconds_per_run: (291_752 / 146 + 98_570 / 53) / 2,
-		mean_duration_seconds_per_run: (291_752 / 146 + 98_570 / 53) / 2,
-		median_input_tokens_per_run: (577_686_408 / 146 + 116_041_374 / 53) / 2,
-		mean_input_tokens_per_run: (577_686_408 / 146 + 116_041_374 / 53) / 2,
-		median_output_tokens_per_run: (3_856_937 / 146 + 1_132_752 / 53) / 2,
-		mean_output_tokens_per_run: (3_856_937 / 146 + 1_132_752 / 53) / 2,
+		median_duration_seconds_per_task: (291_752 / 145 + 98_570 / 53) / 2,
+		mean_duration_seconds_per_task: (291_752 / 145 + 98_570 / 53) / 2,
+		median_input_tokens_per_task: (577_686_408 / 145 + 116_041_374 / 53) / 2,
+		mean_input_tokens_per_task: (577_686_408 / 145 + 116_041_374 / 53) / 2,
+		median_output_tokens_per_task: (3_856_937 / 145 + 1_132_752 / 53) / 2,
+		mean_output_tokens_per_task: (3_856_937 / 145 + 1_132_752 / 53) / 2,
+		median_cost_usd_per_task: 2,
+		mean_cost_usd_per_task: 2,
 		frequency: 2,
 	},
 	{
@@ -179,12 +197,14 @@ assertDeepEqual(modelScores, [
 		mean_total_input_tokens: 112_447_742,
 		median_total_output_tokens: 1_784_448,
 		mean_total_output_tokens: 1_784_448,
-		median_duration_seconds_per_run: 1_151_355 / 102,
-		mean_duration_seconds_per_run: 1_151_355 / 102,
-		median_input_tokens_per_run: 112_447_742 / 102,
-		mean_input_tokens_per_run: 112_447_742 / 102,
-		median_output_tokens_per_run: 1_784_448 / 102,
-		mean_output_tokens_per_run: 1_784_448 / 102,
+		median_duration_seconds_per_task: 1_151_355 / 102,
+		mean_duration_seconds_per_task: 1_151_355 / 102,
+		median_input_tokens_per_task: 112_447_742 / 102,
+		mean_input_tokens_per_task: 112_447_742 / 102,
+		median_output_tokens_per_task: 1_784_448 / 102,
+		mean_output_tokens_per_task: 1_784_448 / 102,
+		median_cost_usd_per_task: 3,
+		mean_cost_usd_per_task: 3,
 		frequency: 1,
 	},
 ]);
@@ -214,13 +234,14 @@ assertDeepEqual(matchedScore?.frequency, 7);
 assertDeepEqual(agentsLastExamBenchmarkScore(matchedScore ?? gptScore), 0.37);
 
 assertDeepEqual(
-	buildTaskMetrics(null, null, {
+	buildTaskMetrics(null, {
 		agents_last_exam: gptScore,
 	})?.agents_last_exam,
 	{
-		seconds: (291_752 / 146 + 98_570 / 53) / 2,
-		input_tokens: (577_686_408 / 146 + 116_041_374 / 53) / 2,
-		output_tokens: (3_856_937 / 146 + 1_132_752 / 53) / 2,
+		seconds: (291_752 / 145 + 98_570 / 53) / 2,
+		input_tokens: (577_686_408 / 145 + 116_041_374 / 53) / 2,
+		output_tokens: (3_856_937 / 145 + 1_132_752 / 53) / 2,
+		cost: 2,
 	},
 );
 

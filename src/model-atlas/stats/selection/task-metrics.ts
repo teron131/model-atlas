@@ -2,7 +2,6 @@
 
 import { asFiniteNumber, asRecord } from "../../shared";
 import type {
-	LlmStatsCost,
 	LlmStatsIntelligenceIndexCost,
 	LlmStatsScoringSources,
 	LlmStatsTaskMetrics,
@@ -22,8 +21,8 @@ const GENERIC_TASK_METRIC_FIELDS = {
 	seconds: [
 		"seconds_per_task",
 		"duration_seconds_per_task",
-		"mean_duration_seconds_per_run",
-		"median_duration_seconds_per_run",
+		"mean_duration_seconds_per_task",
+		"median_duration_seconds_per_task",
 		"mean_duration_seconds",
 		"median_duration_seconds",
 	],
@@ -32,15 +31,11 @@ const GENERIC_TASK_METRIC_FIELDS = {
 		"input_tokens_per_task",
 		"mean_input_tokens_per_task",
 		"median_input_tokens_per_task",
-		"mean_input_tokens_per_run",
-		"median_input_tokens_per_run",
 	],
 	output_tokens: [
 		"output_tokens_per_task",
 		"mean_output_tokens_per_task",
 		"median_output_tokens_per_task",
-		"mean_output_tokens_per_run",
-		"median_output_tokens_per_run",
 		"mean_output_tokens",
 		"median_output_tokens",
 	],
@@ -52,7 +47,6 @@ function hasFields(record: object): boolean {
 
 export function buildTaskMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
-	cost: LlmStatsCost,
 	scoringSources: LlmStatsScoringSources,
 ): LlmStatsTaskMetrics {
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
@@ -72,7 +66,7 @@ export function buildTaskMetrics(
 	if (deepSWE != null) {
 		taskMetrics.deep_swe = deepSWE;
 	}
-	const agentsLastExam = buildAgentsLastExamTaskMetrics(scoringSources, cost);
+	const agentsLastExam = buildAgentsLastExamTaskMetrics(scoringSources);
 	if (agentsLastExam != null) {
 		taskMetrics.agents_last_exam = agentsLastExam;
 	}
@@ -161,48 +155,33 @@ function buildDeepSWETaskMetrics(
 /** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */
 function buildAgentsLastExamTaskMetrics(
 	scoringSources: LlmStatsScoringSources,
-	cost: LlmStatsCost,
 ): TaskMetricValues | null {
 	const agentsLastExam = scoringSources?.agents_last_exam;
 	if (agentsLastExam == null) {
 		return null;
 	}
 	const inputTokens = Math.min(
-		agentsLastExam.median_input_tokens_per_run,
-		agentsLastExam.mean_input_tokens_per_run,
+		agentsLastExam.median_input_tokens_per_task,
+		agentsLastExam.mean_input_tokens_per_task,
 	);
 	const outputTokens = Math.min(
-		agentsLastExam.median_output_tokens_per_run,
-		agentsLastExam.mean_output_tokens_per_run,
+		agentsLastExam.median_output_tokens_per_task,
+		agentsLastExam.mean_output_tokens_per_task,
 	);
 	const taskMetrics: TaskMetricValues = {
 		seconds: Math.min(
-			agentsLastExam.median_duration_seconds_per_run,
-			agentsLastExam.mean_duration_seconds_per_run,
+			agentsLastExam.median_duration_seconds_per_task,
+			agentsLastExam.mean_duration_seconds_per_task,
 		),
 		input_tokens: inputTokens,
 		output_tokens: outputTokens,
 	};
-	const taskCost = tokenUsageTaskCost(cost, inputTokens, outputTokens);
-	if (taskCost != null) {
-		taskMetrics.cost = taskCost;
+	const costPerTask = Math.min(
+		agentsLastExam.median_cost_usd_per_task ?? Number.POSITIVE_INFINITY,
+		agentsLastExam.mean_cost_usd_per_task ?? Number.POSITIVE_INFINITY,
+	);
+	if (Number.isFinite(costPerTask)) {
+		taskMetrics.cost = costPerTask;
 	}
 	return taskMetrics;
-}
-
-function tokenUsageTaskCost(
-	cost: LlmStatsCost,
-	inputTokens: number,
-	outputTokens: number,
-): number | null {
-	const inputCost =
-		asFiniteNumber(cost?.weighted_input) ?? asFiniteNumber(cost?.input);
-	const outputCost =
-		asFiniteNumber(cost?.weighted_output) ?? asFiniteNumber(cost?.output);
-	return inputCost != null &&
-		inputCost > 0 &&
-		outputCost != null &&
-		outputCost > 0
-		? (inputTokens * inputCost + outputTokens * outputCost) / 1_000_000
-		: null;
 }

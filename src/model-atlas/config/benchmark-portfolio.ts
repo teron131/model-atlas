@@ -30,18 +30,12 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY = {
 	tokenMeasure: "output_tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
-const BENCHMARK_TOTAL_RESOURCE_POLICY = {
-	source: "benchmark",
-	unit: "total",
-	tokenMeasure: "tokens",
-} as const satisfies BenchmarkResourcePolicy;
-
 export const BENCHMARK_PORTFOLIO = {
 	agents_last_exam: {
 		group: "frontier",
 		intelligencePortion: 0.2,
 		agenticPortion: 0.8,
-		resourcePolicy: BENCHMARK_TOTAL_RESOURCE_POLICY,
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
 	},
 	apex_agents: {
 		group: "frontier",

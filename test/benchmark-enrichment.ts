@@ -241,7 +241,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	harvey_lab: harveyLabResourceRow,
 	cursorbench: cursorBenchRow,
 });
-assert.deepEqual(buildTaskMetrics(null, null, enrichment.scoringSources), {
+assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 	briefcase: {
 		cost: 2.5,
 		seconds: 120,
