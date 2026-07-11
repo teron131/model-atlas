@@ -111,7 +111,7 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
-	buildTaskMetrics(null, null, {
+	buildTaskMetrics(null, {
 		deep_swe: {
 			...row("gpt-5-5", 0.7),
 			mean_cost_usd: 226,
@@ -123,7 +123,7 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
-	buildTaskMetrics(null, null, {
+	buildTaskMetrics(null, {
 		deep_swe: {
 			...row("deepseek-v4-pro", 0.28),
 			mean_cost_usd: 4.22,

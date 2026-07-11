@@ -521,6 +521,7 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 			const totalDurationSeconds = asFiniteNumber(row.total_duration_seconds);
 			const totalInputTokens = asFiniteNumber(row.total_input_tokens);
 			const totalOutputTokens = asFiniteNumber(row.total_output_tokens);
+			const totalCostUsd = asFiniteNumber(row.total_cost_usd);
 			return split != null &&
 				harness != null &&
 				model != null &&
@@ -548,6 +549,8 @@ export function readAgentsLastExamRawCache(db: DatabaseSync): {
 							total_duration_seconds: totalDurationSeconds,
 							total_input_tokens: totalInputTokens,
 							total_output_tokens: totalOutputTokens,
+							total_cost_usd: totalCostUsd,
+							cost_source: stringValue(row.cost_source),
 						},
 					]
 				: [];
