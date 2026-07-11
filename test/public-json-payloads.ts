@@ -8,7 +8,7 @@ import {
 	fullJsonPayload,
 	scoreJsonPayload,
 } from "../app/api/llm-stats/public-json";
-import { leanDashboardPayload } from "../app/dashboard/payload";
+import { compactDashboardPayload } from "../app/dashboard/payload";
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import { selectPublicModels } from "../src/model-atlas/stats/selection/public-list";
 import type { LlmStatsScoredCandidate } from "../src/model-atlas/stats/types";
@@ -154,8 +154,8 @@ fullPayload.metadata.scoring.benchmark_portfolio = {
 		agenticPortion: 1,
 	},
 };
-const leanPayload = leanDashboardPayload(fullPayload);
-const model = leanPayload.models[0];
+const compactPayload = compactDashboardPayload(fullPayload);
+const model = compactPayload.models[0];
 const scorePayload = scoreJsonPayload(fullPayload);
 const scoreModel = scorePayload.scores[0];
 const corePayload = coreJsonPayload(fullPayload);
@@ -183,13 +183,13 @@ assert.deepEqual(scoreModel, {
 	},
 });
 
-assert.equal(leanPayload.deep_swe, undefined);
+assert.equal(compactPayload.deep_swe, undefined);
 assert.deepEqual(
-	leanPayload.metadata.artificial_analysis.available_benchmark_keys,
+	compactPayload.metadata.artificial_analysis.available_benchmark_keys,
 	[],
 );
-assert.deepEqual(leanPayload.metadata.scoring.selected_benchmark_keys, []);
-assert.deepEqual(leanPayload.metadata.scoring.benchmark_portfolio, {
+assert.deepEqual(compactPayload.metadata.scoring.selected_benchmark_keys, []);
+assert.deepEqual(compactPayload.metadata.scoring.benchmark_portfolio, {
 	deep_swe: {
 		group: "frontier",
 		intelligencePortion: 1,

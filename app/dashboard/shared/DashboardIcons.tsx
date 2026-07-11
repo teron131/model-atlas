@@ -1,4 +1,4 @@
-/** Dashboard icon wrappers used by table and chart controls. */
+/** Icon wrappers used by dashboard table and chart controls. */
 
 import {
 	AudioLines,

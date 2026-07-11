@@ -200,7 +200,7 @@ function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
 	);
 }
 
-function leadingNumberMismatch(
+function hasLeadingNumberMismatch(
 	sourceSlug: string,
 	candidateModelId: string,
 	candidateModelName: string,
@@ -222,7 +222,7 @@ function leadingNumberMismatch(
 	return !idLeadingNumberMatches && !nameLeadingNumberMatches;
 }
 
-function numericPrefixConflict(
+function hasNumericPrefixConflict(
 	sourceSlug: string,
 	candidateModelId: string,
 	candidateModelName: string,
@@ -300,7 +300,7 @@ function unversionedCurrentVersionReward(
 		: 0;
 }
 
-function numericVersionConflict(
+function hasNumericVersionConflict(
 	sourceSlug: string,
 	candidateModelId: string,
 	candidateModelName: string,
@@ -553,9 +553,21 @@ function scoreCandidate(
 	}
 	if (
 		matchesClaudeIdentity !== true &&
-		(leadingNumberMismatch(sourceSlug, candidateModelId, candidateModelName) ||
-			numericPrefixConflict(sourceSlug, candidateModelId, candidateModelName) ||
-			numericVersionConflict(sourceSlug, candidateModelId, candidateModelName))
+		(hasLeadingNumberMismatch(
+			sourceSlug,
+			candidateModelId,
+			candidateModelName,
+		) ||
+			hasNumericPrefixConflict(
+				sourceSlug,
+				candidateModelId,
+				candidateModelName,
+			) ||
+			hasNumericVersionConflict(
+				sourceSlug,
+				candidateModelId,
+				candidateModelName,
+			))
 	) {
 		return 0;
 	}

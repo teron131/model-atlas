@@ -1,4 +1,4 @@
-/** Interaction-metric scatter plot matrix for dashboard graphs. */
+/** Interaction metric matrix for dashboard scatter plots. */
 
 import { extent, median } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
@@ -11,22 +11,6 @@ import { providerPaletteColor } from "../shared/providerTheme";
 import { linearAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart } from "./ChartComponents";
-import {
-	AxisTitles,
-	CornerDirectionArrow,
-	CursorCapture,
-	CursorProjectionLayer,
-	MedianCross,
-	PlotFrame,
-	PointHitTarget,
-	PointLabel,
-	plotBoundsFor,
-	stableSvgNumber,
-	stableSvgScale,
-	useCursorProjection,
-	XAxisTicks,
-	YAxisTicks,
-} from "./chartPrimitives";
 import { extremeLabelRows, valueDistribution } from "./chartStats";
 import { finiteValue, fmtTooltipScore } from "./format";
 import { GraphToggle } from "./GraphToggle";
@@ -44,6 +28,22 @@ import {
 	shortLabel,
 } from "./models";
 import { Panel } from "./Panel";
+import {
+	AxisTitles,
+	CornerDirectionArrow,
+	CursorCapture,
+	CursorProjectionLayer,
+	MedianCross,
+	PlotFrame,
+	PointHitTarget,
+	PointLabel,
+	plotBoundsFor,
+	stableSvgNumber,
+	stableSvgScale,
+	useCursorProjection,
+	XAxisTicks,
+	YAxisTicks,
+} from "./PlotPrimitives";
 import type {
 	HoverRow,
 	HoverSetter,

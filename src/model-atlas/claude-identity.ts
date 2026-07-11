@@ -4,7 +4,7 @@ import { normalizeModelToken } from "./shared";
 
 const CLAUDE_TIERS = ["haiku", "sonnet", "opus", "fable"] as const;
 const CLAUDE_TIER_PATTERN = CLAUDE_TIERS.join("|");
-const LEGACY_COMPACT_CLAUDE_VERSIONS = new Map([["35", "3.5"]]);
+const COMPACT_CLAUDE_VERSION_ALIASES = new Map([["35", "3.5"]]);
 const VERSION_FIRST_PATTERN = new RegExp(
 	`(?:^|[-/])claude-(\\d{1,2})(?:-(\\d{1,2}))?-(${CLAUDE_TIER_PATTERN})(?:-|$)`,
 );
@@ -35,12 +35,12 @@ function buildClaudeIdentity(
 		tier: tier as ClaudeTier,
 		version:
 			minor == null
-				? (LEGACY_COMPACT_CLAUDE_VERSIONS.get(major) ?? major)
+				? (COMPACT_CLAUDE_VERSION_ALIASES.get(major) ?? major)
 				: `${major}.${minor}`,
 	};
 }
 
-/** Parses historical ordering and the legacy compact `35` token alongside current tier-first names. */
+/** Parses historical ordering and the compact `35` token alongside current tier-first names. */
 export function parseClaudeIdentity(value: string): ClaudeIdentity | null {
 	const normalized = normalizeModelToken(value);
 	const versionFirstMatch = normalized.match(VERSION_FIRST_PATTERN);

@@ -5,10 +5,10 @@
 import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { FilterButton, HoverCard } from "./ChartComponents";
+import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import { FrontierBenchmarksPanel } from "./frontierBenchmarks";
 import styles from "./graphs.module.css";
-import { InteractionMatrix } from "./interaction";
+import { InteractionMatrix } from "./InteractionMatrix";
 import {
 	costFilterOptions,
 	filterByModelControls,
@@ -16,9 +16,9 @@ import {
 	modelLimitOptions,
 	providerOptions,
 } from "./models";
-import { ParetoFrontierPanel } from "./pareto";
-import { PriceEfficiencyComparisonPanel } from "./priceEfficiencyComparison";
-import { RunwayPanel } from "./runway";
+import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
+import { PriceEfficiencyComparisonPanel } from "./PriceEfficiencyComparisonPanel";
+import { RunwayPanel } from "./RunwayPanel";
 import type { CostFilter, HoverState, ModelLimit } from "./types";
 
 export function DashboardGraphs({

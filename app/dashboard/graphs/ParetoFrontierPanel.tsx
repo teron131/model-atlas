@@ -1,4 +1,4 @@
-/** Model-level Pareto frontier chart for intelligence and value tradeoffs. */
+/** Pareto frontier panel for model intelligence and value tradeoffs. */
 
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
@@ -9,6 +9,12 @@ import { providerPaletteColor } from "../shared/providerTheme";
 import { scoreAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart } from "./ChartComponents";
+import { linearBubbleRadius, valueDistribution } from "./chartStats";
+import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
+import styles from "./graphs.module.css";
+import { calloutLabelPlacements } from "./labelPlacement";
+import { modelKey, shortLabel } from "./models";
+import { Panel } from "./Panel";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
@@ -24,13 +30,7 @@ import {
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./chartPrimitives";
-import { linearBubbleRadius, valueDistribution } from "./chartStats";
-import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
-import styles from "./graphs.module.css";
-import { calloutLabelPlacements } from "./labelPlacement";
-import { modelKey, shortLabel } from "./models";
-import { Panel } from "./Panel";
+} from "./PlotPrimitives";
 import type { HoverRow, HoverSetter } from "./types";
 
 const SCORE_AXIS_FORMAT_OPTIONS = {

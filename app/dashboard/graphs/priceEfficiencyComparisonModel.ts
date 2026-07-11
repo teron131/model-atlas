@@ -54,7 +54,7 @@ export function priceEfficiencyComparisonRows(
 	models: LlmStatsModel[],
 	portfolio: BenchmarkPortfolio,
 ): PriceEfficiencyComparisonRow[] {
-	const pricedModels = models.filter(priceEligibleModel);
+	const pricedModels = models.filter(isPriceEligibleModel);
 	const benchmarkCostEfficiencyScores = benchmarkCostEfficiencyByModel(
 		pricedModels,
 		portfolio,
@@ -109,7 +109,7 @@ export function priceEfficiencyComparisonRows(
 	});
 }
 
-function priceEligibleModel(model: LlmStatsModel): boolean {
+function isPriceEligibleModel(model: LlmStatsModel): boolean {
 	const blendedPrice = finiteValue(model.cost?.blended_price);
 	const qualityScore = meanOfFinite([
 		finiteValue(model.scores?.intelligence_score),

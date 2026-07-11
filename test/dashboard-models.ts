@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { limitByIntelligenceScore } from "../app/dashboard/graphs/models";
 import { cacheBustedPath } from "../app/dashboard/shared/format";
+import { metricColumnsForView } from "../app/dashboard/table/Columns";
 import {
 	dedupeDisplayModels,
 	type SortState,
 	sortedRows,
 } from "../app/dashboard/table/models";
-import { metricColumnsForView } from "../app/dashboard/table/tableColumns";
 import type { LlmStatsModel } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 

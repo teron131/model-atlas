@@ -1,8 +1,13 @@
-/** Dashboard table columns shared by the body and sticky header. */
+/** Leaderboard column definitions shared by the body and sticky header. */
 
 import type { ReactNode } from "react";
 
-import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../shared/icons";
+import {
+	BotIcon,
+	BrainIcon,
+	DollarIcon,
+	LightningIcon,
+} from "../shared/DashboardIcons";
 import {
 	type DashboardMetricColumn,
 	dashboardMetricColumns,

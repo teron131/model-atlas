@@ -1,4 +1,4 @@
-/** Frontier Benchmarks panel presentation for the dashboard graph surface. */
+/** Frontier Benchmarks panel for the dashboard graph surface. */
 
 import { useMemo, useState } from "react";
 import type {

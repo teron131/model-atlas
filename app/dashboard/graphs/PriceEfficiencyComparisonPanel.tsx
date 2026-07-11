@@ -1,4 +1,4 @@
-/** Price and cost-efficiency comparison panel for the dashboard graph surface. */
+/** Price-efficiency comparison panel for the dashboard graph surface. */
 
 import { scaleLinear } from "d3-scale";
 import {
@@ -20,11 +20,11 @@ import {
 } from "../shared/providerTheme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart, SummaryCard } from "./ChartComponents";
-import { stableSvgScale } from "./chartPrimitives";
 import { bestByScore, valueDistribution } from "./chartStats";
 import styles from "./graphs.module.css";
 import { focusHover, modelKey, modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
+import { stableSvgScale } from "./PlotPrimitives";
 import {
 	type PriceEfficiencyComparisonRow,
 	priceEfficiencyComparisonRows,

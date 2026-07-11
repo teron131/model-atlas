@@ -59,7 +59,7 @@ export function useTableViewport({
 	const syncScrollSnapshot = useCallback(() => {
 		const snapshot = horizontalScrollSnapshot(tableScrollRef.current);
 		setScrollSnapshot((current) =>
-			sameHorizontalScrollSnapshot(current, snapshot) ? current : snapshot,
+			areHorizontalScrollSnapshotsEqual(current, snapshot) ? current : snapshot,
 		);
 	}, []);
 	const syncTableLayoutMeasurements = useCallback(() => {
@@ -70,7 +70,7 @@ export function useTableViewport({
 			return;
 		}
 		setColumnWidths((current) =>
-			sameNumberList(current, widths) ? current : widths,
+			areNumberListsEqual(current, widths) ? current : widths,
 		);
 		widestLeadingColumnsWidthRef.current = Math.max(
 			widestLeadingColumnsWidthRef.current,
@@ -291,7 +291,7 @@ function nextPinnedColumnsEnabled(
 }
 
 /** Compare measured column lists while tolerating subpixel jitter. */
-function sameNumberList(left: number[], right: number[]): boolean {
+function areNumberListsEqual(left: number[], right: number[]): boolean {
 	return (
 		left.length === right.length &&
 		left.every((leftValue, index) => {
@@ -338,7 +338,7 @@ function emptyHorizontalScrollSnapshot(): TableViewportSnapshot {
 }
 
 /** Compare scroll snapshots while tolerating subpixel browser differences. */
-function sameHorizontalScrollSnapshot(
+function areHorizontalScrollSnapshotsEqual(
 	left: TableViewportSnapshot,
 	right: TableViewportSnapshot,
 ): boolean {

@@ -1,4 +1,4 @@
-/** Context-window runway chart for intelligence and usable context tradeoffs. */
+/** Runway panel for intelligence and usable context tradeoffs. */
 
 import { median } from "d3-array";
 import { scaleLog } from "d3-scale";
@@ -8,6 +8,12 @@ import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart } from "./ChartComponents";
+import { outputSpeedDistribution } from "./chartStats";
+import { finite, fmtCompact, fmtTooltipNumber } from "./format";
+import styles from "./graphs.module.css";
+import { calloutLabelPlacements } from "./labelPlacement";
+import { modelKey, positiveDomain, shortLabel } from "./models";
+import { Panel } from "./Panel";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
@@ -23,13 +29,7 @@ import {
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./chartPrimitives";
-import { outputSpeedDistribution } from "./chartStats";
-import { finite, fmtCompact, fmtTooltipNumber } from "./format";
-import styles from "./graphs.module.css";
-import { calloutLabelPlacements } from "./labelPlacement";
-import { modelKey, positiveDomain, shortLabel } from "./models";
-import { Panel } from "./Panel";
+} from "./PlotPrimitives";
 import type { HoverRow, HoverSetter } from "./types";
 
 export function RunwayPanel({

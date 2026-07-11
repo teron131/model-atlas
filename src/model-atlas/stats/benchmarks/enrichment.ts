@@ -110,7 +110,7 @@ function addArtificialAnalysisResourceEvaluation(
 	scoringSources[key] = row;
 }
 
-function artificialAnalysisResourceEnrichment(
+function enrichArtificialAnalysisResources(
 	modelNameCandidates: unknown[],
 	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark,
 	baseEvaluations: Record<string, unknown> = {},
@@ -169,12 +169,12 @@ function artificialAnalysisResourceEnrichment(
 }
 
 /** Enriches one matched effort observation only with effort-specific AA resource rows. */
-export function benchmarkObservationEnrichment(
+export function enrichBenchmarkObservation(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
 	baseEvaluations: Record<string, unknown> = {},
 ): BenchmarkEnrichment {
-	return artificialAnalysisResourceEnrichment(
+	return enrichArtificialAnalysisResources(
 		modelNameCandidates,
 		lookups.artificialAnalysisEvaluationResources.observationByModelName,
 		baseEvaluations,
@@ -182,12 +182,12 @@ export function benchmarkObservationEnrichment(
 }
 
 /** Enriches one aggregate row with default-effort and effort-unspecified benchmark sources. */
-export function benchmarkAggregateEnrichment(
+export function enrichBenchmarkAggregate(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
 	baseEvaluations: Record<string, unknown> = {},
 ): BenchmarkEnrichment {
-	const { evaluations, scoringSources } = artificialAnalysisResourceEnrichment(
+	const { evaluations, scoringSources } = enrichArtificialAnalysisResources(
 		modelNameCandidates,
 		lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
 		baseEvaluations,
@@ -241,13 +241,13 @@ export function benchmarkAggregateEnrichment(
 		scoringSources.cursorbench = cursorBenchRow;
 	}
 
-	const deepSWEScore = findSourceRow(
+	const deepSWERow = findSourceRow(
 		modelNameCandidates,
 		lookups.deepSWE.scoreByModelName,
 	);
-	if (deepSWEScore != null) {
-		evaluations.deep_swe = deepSWEScore.pass_at_1;
-		scoringSources.deep_swe = deepSWEScore;
+	if (deepSWERow != null) {
+		evaluations.deep_swe = deepSWERow.pass_at_1;
+		scoringSources.deep_swe = deepSWERow;
 	}
 
 	const gdpPdfScore = findGdpPdfScore(
@@ -295,7 +295,7 @@ export function enrichAggregatedModelRowsWithBenchmarks(
 ): Record<string, unknown>[] {
 	return rows.map((row) => {
 		const baseEvaluations = asRecord(row.evaluations);
-		const benchmarkFields = benchmarkAggregateEnrichment(
+		const benchmarkEnrichment = enrichBenchmarkAggregate(
 			[
 				row.id,
 				row.openrouter_id,
@@ -309,11 +309,11 @@ export function enrichAggregatedModelRowsWithBenchmarks(
 		);
 		const evaluations = {
 			...baseEvaluations,
-			...benchmarkFields.evaluations,
+			...benchmarkEnrichment.evaluations,
 		};
 		const scoringSources = {
 			...asRecord(row.scoring_sources),
-			...benchmarkFields.scoringSources,
+			...benchmarkEnrichment.scoringSources,
 		};
 		return {
 			...row,

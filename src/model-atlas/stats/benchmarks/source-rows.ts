@@ -165,7 +165,7 @@ export function artificialAnalysisBenchmarkRowDrafts<Row>({
 	});
 }
 
-function sourceDataBenchmarkDrafts(
+function benchmarkDraftsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
 	return [
@@ -300,5 +300,5 @@ function sourceDataBenchmarkDrafts(
 export function benchmarkRowsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowsByKey {
-	return finalizeBenchmarkRows(sourceDataBenchmarkDrafts(sourceData));
+	return finalizeBenchmarkRows(benchmarkDraftsFromSourceData(sourceData));
 }
