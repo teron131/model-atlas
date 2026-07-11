@@ -37,7 +37,6 @@ export type SnapshotRuntime = {
 	remoteSnapshotUrl?: string;
 	buildDatabasePath?: string;
 	readDatabasePath: string | undefined;
-	useD1Snapshot: boolean;
 	useStaticSnapshot: boolean;
 	hasD1SnapshotStore: boolean;
 	missingD1Environment: string[];
@@ -55,8 +54,6 @@ export function snapshotRuntime(): SnapshotRuntime {
 		remoteSnapshotUrl: process.env.MODEL_ATLAS_SNAPSHOT_URL,
 		buildDatabasePath: resolveBuildDatabasePath(),
 		readDatabasePath: resolveReadDatabasePath(),
-		useD1Snapshot:
-			process.env.VERCEL === "1" || process.env.MODEL_ATLAS_USE_D1 === "1",
 		useStaticSnapshot:
 			process.env.VERCEL === "1" ||
 			process.env.MODEL_ATLAS_STATIC_SNAPSHOT === "1",
@@ -82,7 +79,7 @@ async function readBestSnapshotCache(
 ): Promise<LlmStatsPayload | null> {
 	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
 		[
-			runtime.useD1Snapshot
+			runtime.hasD1SnapshotStore
 				? readD1Snapshot().catch(() => null)
 				: Promise.resolve(null),
 			runtime.useStaticSnapshot
