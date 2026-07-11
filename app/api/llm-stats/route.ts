@@ -5,7 +5,7 @@ import { publicCacheHeaders } from "../cache-headers";
 import { publicJsonPayload } from "./public-json";
 import {
 	readDisplaySnapshotPayload,
-	refreshLocalSnapshotPayload,
+	refreshStoredSnapshot,
 } from "./snapshot-store";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 		}
 
 		const state = getRefreshState();
-		state.refreshInFlight ??= refreshLocalSnapshotPayload().finally(() => {
+		state.refreshInFlight ??= refreshStoredSnapshot().finally(() => {
 			state.refreshInFlight = null;
 		});
 		const payload = await state.refreshInFlight;

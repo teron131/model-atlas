@@ -1,6 +1,6 @@
 /** Snapshot refresh API for Model Atlas. */
 
-import { refreshStoredOrLiveSnapshot } from "../snapshot-store";
+import { refreshStoredSnapshot } from "../snapshot-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -25,7 +25,7 @@ async function refreshSnapshot(request: Request) {
 			},
 		});
 	}
-	const payload = await refreshStoredOrLiveSnapshot();
+	const payload = await refreshStoredSnapshot();
 	return Response.json(
 		{
 			status: "ok",
