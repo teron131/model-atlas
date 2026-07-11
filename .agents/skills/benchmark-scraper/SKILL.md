@@ -23,7 +23,7 @@ Find the current files by role before broad edits:
 - Database schema, writers, and payload readers: where raw rows, summarized rows, processed models, and public payloads are stored.
 - Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users.
 - Public exports and tests: package surface plus focused scraper/matcher/scoring/payload tests.
-- Snapshot refresh scripts: the entrypoints behind `pnpm atlas:snapshot`.
+- Database refresh scripts: `pnpm run database` for local SQLite and `pnpm run d1:publish` for production D1.
 
 ## Research And Tooling Methods
 
@@ -99,7 +99,7 @@ After scoring policy is agreed:
 - Wire the benchmark through source data, model matching, score inputs, database schema/writers, payload reading, public exports, dashboard labels, and tooltips as needed.
 - Add or update tests for scraper, matching, scoring, and payload behavior.
 - Run focused tests first, then the repo checks appropriate to the touched surface.
-- Run `pnpm atlas:snapshot` so the database and static snapshot reflect the new benchmark.
+- Run `pnpm run database` so the local database reflects the new benchmark; publish with `pnpm run d1:publish` only when production refresh is in scope.
 - Run `pnpm run typecheck` and `pnpm run build` when TypeScript or UI surfaces changed.
 - Check `git diff --check`.
 - Summarize the final benchmark role, scoring method, refresh result, and any unmatched or excluded rows.
