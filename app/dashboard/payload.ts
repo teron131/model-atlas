@@ -8,7 +8,7 @@ import type {
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
 
-const leanDashboardTooltipKeys = [
+const compactDashboardTooltipKeys = [
 	"overall",
 	"intelligence",
 	"agentic",
@@ -18,10 +18,10 @@ const leanDashboardTooltipKeys = [
 	"context",
 ] as const;
 
-export function leanDashboardPayload(
+export function compactDashboardPayload(
 	payload: LlmStatsPayload,
 ): LlmStatsPayload {
-	const frontierBenchmarkPortfolio = leanDashboardBenchmarkPortfolio(
+	const frontierBenchmarkPortfolio = compactDashboardBenchmarkPortfolio(
 		payload.metadata.scoring.benchmark_portfolio,
 	);
 	return {
@@ -56,7 +56,7 @@ export function leanDashboardPayload(
 				overall_score_weights: {
 					...payload.metadata.scoring.overall_score_weights,
 				},
-				column_tooltips: leanDashboardColumnTooltips(
+				column_tooltips: compactDashboardColumnTooltips(
 					payload.metadata.scoring.column_tooltips,
 				),
 				snapshot_preservation_version:
@@ -64,12 +64,12 @@ export function leanDashboardPayload(
 			},
 		},
 		models: payload.models.map((model) =>
-			leanDashboardModel(model, frontierBenchmarkPortfolio),
+			compactDashboardModel(model, frontierBenchmarkPortfolio),
 		),
 	};
 }
 
-function leanDashboardBenchmarkPortfolio(
+function compactDashboardBenchmarkPortfolio(
 	benchmarkPortfolio: BenchmarkPortfolio,
 ): BenchmarkPortfolio {
 	return Object.fromEntries(
@@ -79,18 +79,18 @@ function leanDashboardBenchmarkPortfolio(
 	);
 }
 
-function leanDashboardColumnTooltips(
+function compactDashboardColumnTooltips(
 	columnTooltips: LlmStatsColumnTooltips,
 ): LlmStatsColumnTooltips {
 	return Object.fromEntries(
-		leanDashboardTooltipKeys.flatMap((key) => {
+		compactDashboardTooltipKeys.flatMap((key) => {
 			const tooltip = columnTooltips[key] ?? COLUMN_TOOLTIPS[key];
 			return tooltip == null ? [] : [[key, tooltip]];
 		}),
 	);
 }
 
-function leanDashboardModel(
+function compactDashboardModel(
 	model: LlmStatsModel,
 	benchmarkPortfolio: BenchmarkPortfolio,
 ): LlmStatsModel {
@@ -102,14 +102,14 @@ function leanDashboardModel(
 		release_date: model.release_date,
 		modalities: copyModalities(model.modalities),
 		open_weights: model.open_weights,
-		cost: leanDashboardCost(model.cost),
+		cost: compactDashboardCost(model.cost),
 		context_window:
 			model.context_window == null ? null : { ...model.context_window },
 		speed: { ...model.speed },
-		intelligence: leanDashboardIntelligence(model.intelligence),
+		intelligence: compactDashboardIntelligence(model.intelligence),
 		intelligence_index_cost: null,
-		task_metrics: leanDashboardTaskMetrics(model.task_metrics),
-		evaluations: leanDashboardEvaluations(
+		task_metrics: compactDashboardTaskMetrics(model.task_metrics),
+		evaluations: compactDashboardEvaluations(
 			model.evaluations,
 			benchmarkPortfolio,
 		),
@@ -130,7 +130,9 @@ function copyModalities(
 	};
 }
 
-function leanDashboardCost(cost: LlmStatsModel["cost"]): LlmStatsModel["cost"] {
+function compactDashboardCost(
+	cost: LlmStatsModel["cost"],
+): LlmStatsModel["cost"] {
 	if (cost == null) {
 		return null;
 	}
@@ -145,7 +147,7 @@ function leanDashboardCost(cost: LlmStatsModel["cost"]): LlmStatsModel["cost"] {
 	};
 }
 
-function leanDashboardIntelligence(
+function compactDashboardIntelligence(
 	intelligence: LlmStatsModel["intelligence"],
 ): LlmStatsModel["intelligence"] {
 	if (intelligence == null) {
@@ -161,22 +163,22 @@ function leanDashboardIntelligence(
 	};
 }
 
-function leanDashboardTaskMetrics(
+function compactDashboardTaskMetrics(
 	taskMetrics: LlmStatsModel["task_metrics"],
 ): LlmStatsModel["task_metrics"] {
 	if (taskMetrics == null) {
 		return null;
 	}
-	const leanTaskMetrics = Object.fromEntries(
+	const compactTaskMetrics = Object.fromEntries(
 		Object.entries(taskMetrics).map(([key, value]) => [
 			key,
 			value == null ? null : { ...value },
 		]),
 	);
-	return Object.keys(leanTaskMetrics).length > 0 ? leanTaskMetrics : null;
+	return Object.keys(compactTaskMetrics).length > 0 ? compactTaskMetrics : null;
 }
 
-function leanDashboardEvaluations(
+function compactDashboardEvaluations(
 	evaluations: LlmStatsModel["evaluations"],
 	frontierBenchmarkPortfolio: BenchmarkPortfolio,
 ): LlmStatsModel["evaluations"] {

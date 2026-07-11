@@ -99,7 +99,7 @@ export type CoreJsonModel = {
 	e2e_latency_seconds_median: number | null;
 };
 
-const coreColumnKeys = [
+const CORE_MODEL_COLUMNS = [
 	"rank",
 	"id",
 	"name",
@@ -154,7 +154,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		score_scale: SCORE_SCALE,
 		methodology: methodologyText(),
-		columns: [...coreColumnKeys],
+		columns: [...CORE_MODEL_COLUMNS],
 		models: rankedModels.map(({ model, rank }) => coreJsonModel(model, rank)),
 	};
 }
@@ -191,7 +191,7 @@ export function benchmarksJsonPayload(
 export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	return {
 		...payload,
-		models: payload.models.map(withoutUnusedModelFields),
+		models: payload.models.map(fullJsonModel),
 	};
 }
 
@@ -214,7 +214,7 @@ function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 	return rankedModels;
 }
 
-function withoutUnusedModelFields(model: LlmStatsModel): PublicFullJsonModel {
+function fullJsonModel(model: LlmStatsModel): PublicFullJsonModel {
 	const {
 		attachment: _attachment,
 		logo: _logo,

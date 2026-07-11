@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import {
 	type BenchmarkEnrichmentLookups,
-	benchmarkAggregateEnrichment,
-	benchmarkObservationEnrichment,
+	enrichBenchmarkAggregate,
+	enrichBenchmarkObservation,
 } from "../src/model-atlas/stats/benchmarks";
 import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
@@ -183,7 +183,7 @@ const lookups = {
 	},
 } satisfies BenchmarkEnrichmentLookups;
 
-const observationEnrichment = benchmarkObservationEnrichment(
+const observationEnrichment = enrichBenchmarkObservation(
 	["Example Model"],
 	lookups,
 	{
@@ -206,7 +206,7 @@ assert.equal(
 	undefined,
 );
 
-const enrichment = benchmarkAggregateEnrichment(["Example Model"], lookups, {
+const enrichment = enrichBenchmarkAggregate(["Example Model"], lookups, {
 	hle: 0.4,
 	terminalbench_v21: 0.82,
 });

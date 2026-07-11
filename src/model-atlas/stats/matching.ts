@@ -14,7 +14,7 @@ import {
 
 import {
 	type BenchmarkEnrichmentLookups,
-	benchmarkObservationEnrichment,
+	enrichBenchmarkObservation,
 } from "./benchmarks";
 import type { ArtificialAnalysisModel, LlmStatsSourceData } from "./types";
 
@@ -53,12 +53,12 @@ function buildMatchedRow(
 		artificialAnalysisSlug,
 		artificialAnalysisModel.name,
 	];
-	const benchmarkFields = benchmarkObservationEnrichment(
+	const benchmarkEnrichment = enrichBenchmarkObservation(
 		observationNameCandidates,
 		lookups,
 		evaluations,
 	);
-	Object.assign(evaluations, benchmarkFields.evaluations);
+	Object.assign(evaluations, benchmarkEnrichment.evaluations);
 	const canonicalId = canonicalProviderModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,
 		matchedModelsDev?.provider_id,
@@ -103,9 +103,9 @@ function buildMatchedRow(
 			: {
 					median_end_to_end_response_time_seconds: medianEndToEndResponseTime,
 				}),
-		...(Object.keys(benchmarkFields.scoringSources).length === 0
+		...(Object.keys(benchmarkEnrichment.scoringSources).length === 0
 			? {}
-			: { scoring_sources: benchmarkFields.scoringSources }),
+			: { scoring_sources: benchmarkEnrichment.scoringSources }),
 		evaluations,
 		intelligence,
 		intelligence_index_cost: intelligenceIndexCost,

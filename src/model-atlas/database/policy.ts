@@ -221,7 +221,7 @@ export function missingSinceBySource(
 	return missingSince;
 }
 
-export function sourceStatesForModelsDevPayload(
+export function buildModelsDevSourceStates(
 	payload: ModelsDevPayload,
 	fetchedPayload: ModelsDevPayload | null,
 	hasUsableFetchedRows: boolean,

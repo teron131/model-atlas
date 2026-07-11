@@ -230,7 +230,7 @@ function mergeDefaultEffortRows(
 	return aggregate;
 }
 
-function speedHasData(speed: JsonObject): boolean {
+function hasSpeedData(speed: JsonObject): boolean {
 	return (
 		asFiniteNumber(speed.throughput_tokens_per_second_median) != null ||
 		asFiniteNumber(speed.latency_seconds_median) != null ||
@@ -238,14 +238,14 @@ function speedHasData(speed: JsonObject): boolean {
 	);
 }
 
-function pricingHasData(pricing: JsonObject): boolean {
+function hasPricingData(pricing: JsonObject): boolean {
 	return (
 		(asFiniteNumber(pricing.weighted_input) ?? 0) > 0 ||
 		(asFiniteNumber(pricing.weighted_output) ?? 0) > 0
 	);
 }
 
-function setMapValuePreferData(
+function setMapValuePreferPopulated(
 	map: Map<string, JsonObject>,
 	key: string,
 	value: JsonObject,
@@ -270,10 +270,10 @@ function setMapValueForExactAndNormalizedId(
 	value: JsonObject,
 	hasData: (value: JsonObject) => boolean,
 ): void {
-	setMapValuePreferData(map, modelId, value, hasData);
+	setMapValuePreferPopulated(map, modelId, value, hasData);
 	const normalizedId = normalizeProviderModelId(modelId);
 	if (normalizedId !== modelId) {
-		setMapValuePreferData(map, normalizedId, value, hasData);
+		setMapValuePreferPopulated(map, normalizedId, value, hasData);
 	}
 }
 
@@ -330,7 +330,7 @@ function aliasOpenRouterDataToPublicRows(
 				speedById,
 				publicId,
 				speed,
-				speedHasData,
+				hasSpeedData,
 			);
 		}
 		const pricing = getMapValueByExactOrNormalizedId(pricingById, openRouterId);
@@ -339,7 +339,7 @@ function aliasOpenRouterDataToPublicRows(
 				pricingById,
 				publicId,
 				pricing,
-				pricingHasData,
+				hasPricingData,
 			);
 		}
 	}
@@ -480,12 +480,12 @@ async function buildOpenRouterDataById(
 		for (const model of models) {
 			const speed = normalizeOpenRouterSpeed(model.performance);
 			const pricing = normalizeOpenRouterPricing(model.pricing);
-			setMapValueForOpenRouterRoute(speedById, model.id, speed, speedHasData);
+			setMapValueForOpenRouterRoute(speedById, model.id, speed, hasSpeedData);
 			setMapValueForOpenRouterRoute(
 				pricingById,
 				model.id,
 				pricing,
-				pricingHasData,
+				hasPricingData,
 			);
 		}
 		aliasOpenRouterDataToPublicRows(rows, speedById, pricingById);

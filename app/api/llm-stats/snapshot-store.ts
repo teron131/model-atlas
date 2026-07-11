@@ -187,7 +187,7 @@ export async function refreshStoredOrLiveSnapshot(
 ): Promise<LlmStatsPayload> {
 	if (runtime.hasD1SnapshotStore) {
 		try {
-			const payload = await refreshD1StoredSnapshot(runtime);
+			const payload = await refreshD1SnapshotPayload(runtime);
 			if (payload != null) {
 				return payload;
 			}
@@ -199,7 +199,7 @@ export async function refreshStoredOrLiveSnapshot(
 }
 
 /** Rebuild and publish the runtime D1 snapshot before reading it back for display. */
-export async function refreshD1StoredSnapshot(
+export async function refreshD1SnapshotPayload(
 	runtime = snapshotRuntime(),
 ): Promise<LlmStatsPayload | null> {
 	await refreshD1Snapshot(runtime.buildDatabasePath);

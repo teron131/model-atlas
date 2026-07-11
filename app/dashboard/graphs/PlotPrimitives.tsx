@@ -1,6 +1,6 @@
 "use client";
 
-/** Shared SVG primitives and cursor projection behavior for Model Atlas charts. */
+/** Shared SVG plot primitives and cursor projection behavior for Model Atlas charts. */
 
 import { type PointerEvent as ReactPointerEvent, useState } from "react";
 import { clamp } from "../../../src/model-atlas/math-utils";

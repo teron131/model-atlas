@@ -8,7 +8,7 @@ import {
 	type ProviderRecord,
 } from "../../scrapers/models-dev";
 import { readModelsDevRawCache } from "../cache";
-import { sourceStatesForModelsDevPayload } from "../policy";
+import { buildModelsDevSourceStates } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -70,7 +70,7 @@ export async function modelsDevSnapshot(
 		cached != null &&
 		options.replaceSourceRows !== true
 	) {
-		const sourceRowStates = sourceStatesForModelsDevPayload(
+		const sourceRowStates = buildModelsDevSourceStates(
 			cached.payload,
 			null,
 			false,
@@ -103,7 +103,7 @@ export async function modelsDevSnapshot(
 		cached?.fetchedAt,
 		fetched.fetched_at_epoch_seconds,
 	);
-	const sourceRowStates = sourceStatesForModelsDevPayload(
+	const sourceRowStates = buildModelsDevSourceStates(
 		payload,
 		fetched.payload,
 		hasUsableFetchedRows,

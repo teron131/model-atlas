@@ -17,7 +17,7 @@ import {
 
 const MODELS_DEV_LOOKBACK_DAYS = 365;
 
-type ArtificialAnalysisRetainKeys = {
+type ArtificialAnalysisRetentionKeys = {
 	retainedModelIds: Set<string>;
 	retainedModelNames: Set<string>;
 	retainedClaudeIdentityKeys: Set<string>;
@@ -30,13 +30,13 @@ function isoDateDaysAgo(days: number): string {
 }
 
 /** Artificial Analysis identities retain older catalog rows that still carry current benchmark evidence. */
-function buildArtificialAnalysisRetainKeys(
+function buildArtificialAnalysisRetentionKeys(
 	artificialAnalysisRows: readonly unknown[],
-): ArtificialAnalysisRetainKeys {
+): ArtificialAnalysisRetentionKeys {
 	const retainedModelIds = new Set<string>();
 	const retainedModelNames = new Set<string>();
 	const retainedClaudeIdentityKeys = new Set<string>();
-	const retainClaudeIdentityKey = (value: string) => {
+	const addClaudeIdentityKey = (value: string) => {
 		const identity = parseClaudeIdentity(value);
 		if (identity != null) {
 			retainedClaudeIdentityKeys.add(claudeIdentityKey(identity));
@@ -49,7 +49,7 @@ function buildArtificialAnalysisRetainKeys(
 			name?: unknown;
 		};
 		if (typeof artificialAnalysisModel.model_id === "string") {
-			retainClaudeIdentityKey(artificialAnalysisModel.model_id);
+			addClaudeIdentityKey(artificialAnalysisModel.model_id);
 			retainedModelIds.add(
 				normalizeProviderModelId(artificialAnalysisModel.model_id),
 			);
@@ -59,7 +59,7 @@ function buildArtificialAnalysisRetainKeys(
 			}
 		}
 		if (typeof artificialAnalysisModel.name === "string") {
-			retainClaudeIdentityKey(artificialAnalysisModel.name);
+			addClaudeIdentityKey(artificialAnalysisModel.name);
 			retainedModelNames.add(normalizeModelToken(artificialAnalysisModel.name));
 		}
 	}
@@ -79,7 +79,7 @@ export function selectModelsDevRowsForArtificialAnalysis(
 	return processModelsDevPayload(
 		modelsDevPayload,
 		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
-		buildArtificialAnalysisRetainKeys(artificialAnalysisRows),
+		buildArtificialAnalysisRetentionKeys(artificialAnalysisRows),
 	);
 }
 
@@ -93,14 +93,14 @@ export function pickPreferredModelsDevRows<Model extends ModelsDevFlatModel>(
 			FALLBACK_PROVIDER_IDS.has(modelsDevModel.provider_id),
 	);
 	const byModelId = new Map<string, Model>();
-	const withPriority = preferredModels.map((modelsDevModel) => ({
+	const prioritizedModels = preferredModels.map((modelsDevModel) => ({
 		modelsDevModel,
 		priority:
 			providerPreferenceRank(modelsDevModel.provider_id) ??
 			Number.POSITIVE_INFINITY,
 	}));
-	withPriority.sort((left, right) => left.priority - right.priority);
-	for (const { modelsDevModel } of withPriority) {
+	prioritizedModels.sort((left, right) => left.priority - right.priority);
+	for (const { modelsDevModel } of prioritizedModels) {
 		byModelId.set(
 			modelsDevModel.model_id,
 			byModelId.get(modelsDevModel.model_id) ?? modelsDevModel,

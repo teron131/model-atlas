@@ -119,7 +119,7 @@ function buildSpeed(
 	const openRouterSpeed = lookupOpenRouterData(
 		openRouterSpeedById,
 		modelId,
-		speedHasData,
+		hasSpeedData,
 	);
 	const throughput =
 		asFiniteNumber(openRouterSpeed?.throughput_tokens_per_second_median) ??
@@ -139,7 +139,7 @@ function buildSpeed(
 	};
 }
 
-function speedHasData(speed: JsonObject): boolean {
+function hasSpeedData(speed: JsonObject): boolean {
 	return (
 		asFiniteNumber(speed.throughput_tokens_per_second_median) != null ||
 		asFiniteNumber(speed.latency_seconds_median) != null ||
@@ -147,7 +147,7 @@ function speedHasData(speed: JsonObject): boolean {
 	);
 }
 
-function pricingHasData(pricing: JsonObject): boolean {
+function hasPricingData(pricing: JsonObject): boolean {
 	return (
 		(asFiniteNumber(pricing.weighted_input) ?? 0) > 0 ||
 		(asFiniteNumber(pricing.weighted_output) ?? 0) > 0
@@ -447,7 +447,7 @@ export function buildModelCandidate(
 	const modelId = typeof model.id === "string" ? model.id : null;
 	const speed = buildSpeed(model, modelId, openRouterSpeedById);
 	const pricing =
-		lookupOpenRouterData(openRouterPricingById, modelId, pricingHasData) ??
+		lookupOpenRouterData(openRouterPricingById, modelId, hasPricingData) ??
 		EMPTY_OPENROUTER_PRICING;
 	const cost = buildCost(model, pricing, scoringConfig);
 	const intelligenceIndexCost = buildIntelligenceIndexCost(model);

@@ -8,6 +8,8 @@ import type { CSSProperties } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { providerPaletteColor } from "../shared/providerTheme";
+import styles from "./graphs.module.css";
+import { calloutLabelPlacements } from "./labelPlacement";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
@@ -23,9 +25,7 @@ import {
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
-} from "./chartPrimitives";
-import styles from "./graphs.module.css";
-import { calloutLabelPlacements } from "./labelPlacement";
+} from "./PlotPrimitives";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 
 export type EfficiencyAxisMetric<Row> = {

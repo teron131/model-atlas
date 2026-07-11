@@ -1,9 +1,9 @@
-/** Render the dashboard page with lean server-provided stats payloads. */
+/** Render the dashboard page with compact server-provided stats payloads. */
 
 import { scoreJsonPayload } from "./api/llm-stats/public-json";
 import { readDisplaySnapshotPayload } from "./api/llm-stats/snapshot-store";
 import { Dashboard } from "./dashboard";
-import { leanDashboardPayload } from "./dashboard/payload";
+import { compactDashboardPayload } from "./dashboard/payload";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export default async function Home() {
 	const scorePayload =
 		initialPayload == null ? null : scoreJsonPayload(initialPayload);
 	const dashboardPayload =
-		initialPayload == null ? null : leanDashboardPayload(initialPayload);
+		initialPayload == null ? null : compactDashboardPayload(initialPayload);
 	return (
 		<>
 			<link

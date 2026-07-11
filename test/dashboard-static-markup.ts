@@ -5,7 +5,7 @@ import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { leanDashboardPayload } from "../app/dashboard/payload";
+import { compactDashboardPayload } from "../app/dashboard/payload";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import type { TableRow } from "../app/dashboard/table/models";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
@@ -40,7 +40,7 @@ const payload = minimalLlmStatsPayload({
 		}),
 	],
 });
-const leanInteractionPayload = leanDashboardPayload(
+const compactInteractionPayload = compactDashboardPayload(
 	minimalLlmStatsPayload({
 		fetchedAt: 901,
 		models: [
@@ -75,8 +75,8 @@ const html = renderToStaticMarkup(
 const loadingHtml = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: null }),
 );
-const leanInteractionHtml = renderToStaticMarkup(
-	React.createElement(Dashboard, { initialPayload: leanInteractionPayload }),
+const compactInteractionHtml = renderToStaticMarkup(
+	React.createElement(Dashboard, { initialPayload: compactInteractionPayload }),
 );
 
 assert.equal(
@@ -110,24 +110,24 @@ assert.equal(
 	"initial loading markup should include benchmark placeholder chips",
 );
 assert.equal(
-	leanInteractionHtml.includes("AA cost"),
+	compactInteractionHtml.includes("AA cost"),
 	true,
-	"lean dashboard payload should expose the AA task-cost interaction field immediately",
+	"compact dashboard payload should expose the AA task-cost interaction field immediately",
 );
 assert.equal(
-	leanInteractionHtml.includes("Frontier"),
+	compactInteractionHtml.includes("Frontier"),
 	true,
-	"lean dashboard payload should expose the frontier benchmark interaction field immediately",
+	"compact dashboard payload should expose the frontier benchmark interaction field immediately",
 );
 assert.equal(
-	leanInteractionHtml.includes("CORR"),
+	compactInteractionHtml.includes("CORR"),
 	true,
-	"lean dashboard payload should render field correlation labels immediately",
+	"compact dashboard payload should render field correlation labels immediately",
 );
 assert.equal(
-	leanInteractionHtml.includes("Loading full metric payload"),
+	compactInteractionHtml.includes("Loading full metric payload"),
 	false,
-	"lean dashboard payload should not show a loading card for interaction metrics it already carries",
+	"compact dashboard payload should not show a loading card for interaction metrics it already carries",
 );
 
 const visibleRankRows: TableRow[] = [

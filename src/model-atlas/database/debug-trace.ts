@@ -56,7 +56,7 @@ function statsPointCount(
 	return count;
 }
 
-function openRouterStatsRowById(
+function openRouterStatsRowIndexById(
 	rawPayload: OpenRouterRawScrapedPayload | null | undefined,
 ): Map<string, number> {
 	const byModelId = new Map<string, number>();
@@ -126,7 +126,8 @@ export function buildDebugTraceRows(
 ): DebugTraceRow[] {
 	const artificialAnalysisRowById = artificialAnalysisRowIndexById(snapshots);
 	const modelsDevRowByKey = modelsDevRowIndexByKey(snapshots);
-	const openRouterRowById = openRouterStatsRowById(openRouterRawPayload);
+	const openRouterStatsRowIndexes =
+		openRouterStatsRowIndexById(openRouterRawPayload);
 	const rows: DebugTraceRow[] = [];
 
 	for (const model of diagnostics.models) {
@@ -179,7 +180,7 @@ export function buildDebugTraceRows(
 				openrouter_model_stats_row_index:
 					openRouterModelId == null
 						? null
-						: (openRouterRowById.get(openRouterModelId) ?? null),
+						: (openRouterStatsRowIndexes.get(openRouterModelId) ?? null),
 			});
 		}
 	}

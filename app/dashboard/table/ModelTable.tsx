@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
+import { staticSortableColumns } from "./Columns";
 import type {
 	DashboardMetricColumn,
 	Direction,
@@ -18,8 +19,7 @@ import type {
 	SortState,
 	TableRow,
 } from "./models";
-import { staticSortableColumns } from "./tableColumns";
-import { EmptyStateRow, LoadingRows, ModelRow } from "./tableRows";
+import { EmptyStateRow, LoadingRows, ModelRow } from "./Rows";
 import {
 	clampNumber,
 	type TableViewportSnapshot,

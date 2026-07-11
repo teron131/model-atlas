@@ -57,7 +57,7 @@ function artificialAnalysisSignalKeys(
 	return keys;
 }
 
-function artificialAnalysisScoreSignalCount(
+function artificialAnalysisSignalCount(
 	row: JsonObject,
 	scoringConfig: ScoringConfig,
 ): number {
@@ -74,7 +74,7 @@ function artificialAnalysisScoreSignalCount(
 	).length;
 }
 
-function artificialAnalysisRowIsUnavailable(row: JsonObject): boolean {
+function isArtificialAnalysisRowUnavailable(row: JsonObject): boolean {
 	const name = typeof row.name === "string" ? row.name.toLowerCase() : "";
 	return (
 		row.deprecated === true ||
@@ -83,7 +83,7 @@ function artificialAnalysisRowIsUnavailable(row: JsonObject): boolean {
 	);
 }
 
-function selectedArtificialAnalysisRows(
+function projectArtificialAnalysisRows(
 	rows: SourceSnapshots["artificialAnalysisRawRows"],
 ): SourceSnapshots["artificialAnalysisSelectedRows"] {
 	return processArtificialAnalysisLeaderboardRows(rows, {
@@ -98,9 +98,9 @@ export function mergeArtificialAnalysisRow(
 	scoringConfig: ScoringConfig,
 ): JsonObject {
 	if (
-		artificialAnalysisRowIsUnavailable(fetchedRow) &&
-		artificialAnalysisScoreSignalCount(cachedRow, scoringConfig) >
-			artificialAnalysisScoreSignalCount(fetchedRow, scoringConfig)
+		isArtificialAnalysisRowUnavailable(fetchedRow) &&
+		artificialAnalysisSignalCount(cachedRow, scoringConfig) >
+			artificialAnalysisSignalCount(fetchedRow, scoringConfig)
 	) {
 		return cachedRow;
 	}
@@ -135,7 +135,7 @@ export async function artificialAnalysisSnapshot(
 		});
 		return {
 			artificialAnalysisRawRows: cachedRowSnapshot.rows,
-			artificialAnalysisSelectedRows: selectedArtificialAnalysisRows(
+			artificialAnalysisSelectedRows: projectArtificialAnalysisRows(
 				cachedRowSnapshot.rows,
 			),
 			sourceStatus: {
@@ -173,7 +173,7 @@ export async function artificialAnalysisSnapshot(
 	);
 	return {
 		artificialAnalysisRawRows: rowSnapshot.rows,
-		artificialAnalysisSelectedRows: selectedArtificialAnalysisRows(
+		artificialAnalysisSelectedRows: projectArtificialAnalysisRows(
 			rowSnapshot.rows,
 		),
 		sourceStatus: {

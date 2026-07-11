@@ -15,7 +15,7 @@ import { openRouterCacheHasScopedCandidates } from "./openrouter";
 import { latestTableRunId } from "./rows";
 
 /** Fallback DeepSWE rows remain usable evidence but cannot make the preferred source cache current. */
-function deepSWECacheHasPreferredVersion(db: DatabaseSync): boolean {
+function hasPreferredDeepSWECacheVersion(db: DatabaseSync): boolean {
 	const runId = latestTableRunId(db, RAW_SOURCE_TABLES.deep_swe);
 	if (runId == null) {
 		return false;
@@ -30,7 +30,7 @@ function deepSWECacheHasPreferredVersion(db: DatabaseSync): boolean {
 }
 
 /** Checks whether a source cache has the current persisted row shape. */
-function sourceCacheShapeIsCurrent(
+function isSourceCacheShapeCurrent(
 	db: DatabaseSync,
 	source: RawSourceName,
 ): boolean {
@@ -38,7 +38,7 @@ function sourceCacheShapeIsCurrent(
 		return artificialAnalysisCacheHasHiddenRows(db);
 	}
 	if (source === "deep_swe") {
-		return deepSWECacheHasPreferredVersion(db);
+		return hasPreferredDeepSWECacheVersion(db);
 	}
 	if (source === "openrouter") {
 		return openRouterCacheHasScopedCandidates(db);
@@ -68,7 +68,7 @@ export function readRawSourceCacheStatus(
 		lastFetch != null &&
 		nowEpochSeconds - lastFetch >= 0 &&
 		nowEpochSeconds - lastFetch <= RAW_SOURCE_CACHE_SECONDS &&
-		sourceCacheShapeIsCurrent(db, source);
+		isSourceCacheShapeCurrent(db, source);
 	return {
 		last_fetch_epoch_seconds: lastFetch,
 		source_input_count: rowCount,

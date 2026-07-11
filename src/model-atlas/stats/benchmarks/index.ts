@@ -4,9 +4,9 @@ export { benchmarkRowsFromDb } from "./db-rows";
 export {
 	type BenchmarkEnrichment,
 	type BenchmarkEnrichmentLookups,
-	benchmarkAggregateEnrichment,
-	benchmarkObservationEnrichment,
 	enrichAggregatedModelRowsWithBenchmarks,
+	enrichBenchmarkAggregate,
+	enrichBenchmarkObservation,
 } from "./enrichment";
 export {
 	AGENTIC_INDEX_KEYS,

@@ -19,7 +19,7 @@ import type {
 
 const DEFAULT_INPUT_TOKEN_SECONDS = 0.0001;
 
-function validSimulationProfile(profile: SimulationProfile): boolean {
+function isValidSimulationProfile(profile: SimulationProfile): boolean {
 	return (
 		profile.weight > 0 &&
 		profile.calls > 0 &&
@@ -120,7 +120,7 @@ function weightedProfileMean(
 ): number | null {
 	const parts: WeightedScorePart[] = [];
 	for (const profile of profiles) {
-		if (!validSimulationProfile(profile)) {
+		if (!isValidSimulationProfile(profile)) {
 			continue;
 		}
 		parts.push({

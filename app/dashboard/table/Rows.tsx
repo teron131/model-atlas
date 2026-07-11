@@ -1,9 +1,15 @@
-/** Row rendering for the leaderboard table body and its model display rules. */
+/** Leaderboard row components and model display rules. */
 
 import Image from "next/image";
 import { type CSSProperties, useState } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import {
+	AudioInputIcon,
+	ImageInputIcon,
+	TextInputIcon,
+	VideoInputIcon,
+} from "../shared/DashboardIcons";
 import {
 	benchmarkPercentValue,
 	formatContext,
@@ -11,12 +17,6 @@ import {
 	formatDashboardMetric,
 	formatScore,
 } from "../shared/format";
-import {
-	AudioInputIcon,
-	ImageInputIcon,
-	TextInputIcon,
-	VideoInputIcon,
-} from "../shared/icons";
 import {
 	providerAssetLogo,
 	providerDisplayColor,

@@ -23,7 +23,7 @@ import type {
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
-import { DashboardGraphs } from "./graphs";
+import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import {
 	filterByModelControls,
 	limitByIntelligenceScore,
@@ -36,8 +36,14 @@ import {
 	tooltipPositionFromElement,
 } from "./shared/ColumnTooltip";
 import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
+import { MoonIcon, RefreshIcon, SunIcon } from "./shared/DashboardIcons";
 import { cacheBustedPath, formatWeight } from "./shared/format";
-import { MoonIcon, RefreshIcon, SunIcon } from "./shared/icons";
+import {
+	type ColumnView,
+	columnViewOptions,
+	isSortKeyVisible,
+	metricColumnsForView,
+} from "./table/Columns";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dedupeDisplayModels,
@@ -48,12 +54,6 @@ import {
 	type TaskMetricColumn,
 	taskMetricColumns,
 } from "./table/models";
-import {
-	type ColumnView,
-	columnViewOptions,
-	isSortKeyVisible,
-	metricColumnsForView,
-} from "./table/tableColumns";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
@@ -69,7 +69,7 @@ const AUTOMATIC_LIVE_REFRESH_ENABLED =
 	process.env.NODE_ENV === "production" ||
 	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
 
-const benchmarkColumnTooltipKeys = {
+const benchmarkKeyByColumn = {
 	agentsLastExam: "agents_last_exam",
 	automationBench: "automation_bench",
 	blueprintBench: "blueprint_bench_2",
@@ -88,21 +88,19 @@ const benchmarkColumnTooltipKeys = {
 } as const satisfies Partial<Record<SortKey, keyof typeof benchmarkTooltips>>;
 
 const benchmarkTableColumnTooltips = Object.fromEntries(
-	Object.entries(benchmarkColumnTooltipKeys).flatMap(
-		([columnKey, benchmarkKey]) => {
-			const tooltip = benchmarkTooltips[benchmarkKey];
-			return tooltip == null ? [] : [[columnKey, tooltip]];
-		},
-	),
+	Object.entries(benchmarkKeyByColumn).flatMap(([columnKey, benchmarkKey]) => {
+		const tooltip = benchmarkTooltips[benchmarkKey];
+		return tooltip == null ? [] : [[columnKey, tooltip]];
+	}),
 ) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
 
-type TaskMetricTooltipCopy = {
+type TaskMetricTooltipText = {
 	title: string;
 	body: string;
 	row: string;
 };
 
-const defaultTaskMetricTooltipCopy: Record<string, TaskMetricTooltipCopy> = {
+const defaultTaskMetricTooltipText: Record<string, TaskMetricTooltipText> = {
 	cost: {
 		title: "cost per task",
 		body: "Reported task cost",
@@ -130,7 +128,7 @@ const defaultTaskMetricTooltipCopy: Record<string, TaskMetricTooltipCopy> = {
 	},
 };
 
-const terminalBenchMetricTooltipCopy: Record<string, TaskMetricTooltipCopy> = {
+const terminalBenchMetricTooltipText: Record<string, TaskMetricTooltipText> = {
 	cost: {
 		title: "cost per task",
 		body: "Median available task cost",
@@ -274,11 +272,11 @@ function taskMetricTooltipSource(
 	);
 }
 
-function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipCopy {
+function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
 	const metricTooltip =
 		column.source === "terminalbench_v21"
-			? terminalBenchMetricTooltipCopy[column.metric]
-			: defaultTaskMetricTooltipCopy[column.metric];
+			? terminalBenchMetricTooltipText[column.metric]
+			: defaultTaskMetricTooltipText[column.metric];
 	if (metricTooltip == null) {
 		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
 	}
