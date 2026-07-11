@@ -1,0 +1,121 @@
+/** models.dev cache reconstruction from persisted provider and model rows. */
+
+import type { DatabaseSync } from "node:sqlite";
+
+import type { ModelRecord, ModelsDevPayload } from "../../scrapers/models-dev";
+import { asFiniteNumber } from "../../shared";
+import {
+	assignIfBoolean,
+	assignIfNumber,
+	assignIfString,
+	type CacheDbRow,
+	firstEpochSecond,
+	modalityList,
+	queryLatestCacheRows,
+	stringValue,
+} from "./rows";
+
+function modelCost(row: CacheDbRow): ModelRecord["cost"] | undefined {
+	const cost: NonNullable<ModelRecord["cost"]> = {};
+	assignIfNumber(cost, "input", row.cost_input);
+	assignIfNumber(cost, "output", row.cost_output);
+	assignIfNumber(cost, "cache_read", row.cost_cache_read);
+	assignIfNumber(cost, "cache_write", row.cost_cache_write);
+	assignIfNumber(cost, "output_audio", row.cost_output_audio);
+	return Object.keys(cost).length > 0 ? cost : undefined;
+}
+
+function modelLimit(row: CacheDbRow): ModelRecord["limit"] | undefined {
+	const limit: NonNullable<ModelRecord["limit"]> = {};
+	assignIfNumber(limit, "context", row.limit_context);
+	assignIfNumber(limit, "output", row.limit_output);
+	return Object.keys(limit).length > 0 ? limit : undefined;
+}
+
+function modelModalities(
+	row: CacheDbRow,
+): ModelRecord["modalities"] | undefined {
+	const input = modalityList(row, "input_modality", [
+		"text",
+		"image",
+		"audio",
+		"video",
+		"pdf",
+	]);
+	const output = modalityList(row, "output_modality", [
+		"text",
+		"image",
+		"audio",
+		"video",
+	]);
+	const modalities: NonNullable<ModelRecord["modalities"]> = {};
+	if (input.length > 0) {
+		modalities.input = input;
+	}
+	if (output.length > 0) {
+		modalities.output = output;
+	}
+	return Object.keys(modalities).length > 0 ? modalities : undefined;
+}
+
+function modelsDevModelRecord(row: CacheDbRow): ModelRecord {
+	const model: ModelRecord = {};
+	assignIfString(model, "id", row.model_id);
+	assignIfString(model, "name", row.name);
+	assignIfString(model, "family", row.family);
+	assignIfString(model, "release_date", row.release_date);
+	assignIfString(model, "last_updated", row.last_updated);
+	assignIfBoolean(model, "open_weights", row.open_weights);
+	assignIfBoolean(model, "reasoning", row.reasoning);
+	assignIfBoolean(model, "tool_call", row.tool_call);
+	const cost = modelCost(row);
+	const limit = modelLimit(row);
+	const modalities = modelModalities(row);
+	if (cost != null) {
+		model.cost = cost;
+	}
+	if (limit != null) {
+		model.limit = limit;
+	}
+	if (modalities != null) {
+		model.modalities = modalities;
+	}
+	return model;
+}
+
+export function readModelsDevRawCache(db: DatabaseSync): {
+	payload: ModelsDevPayload;
+	fetchedAt: number | null;
+	statusCode: number | null;
+} | null {
+	const cacheRows = queryLatestCacheRows(
+		db,
+		"models_dev_raw_models",
+		"SELECT * FROM models_dev_raw_models WHERE run_id = ? ORDER BY row_index",
+	);
+	if (cacheRows.length === 0) {
+		return null;
+	}
+	const payload: ModelsDevPayload = {};
+	for (const row of cacheRows) {
+		const providerId = stringValue(row.provider_id);
+		const modelId = stringValue(row.model_id);
+		if (providerId == null || modelId == null) {
+			continue;
+		}
+		const provider = payload[providerId] ?? {
+			id: providerId,
+			name: stringValue(row.provider_name) ?? providerId,
+			api: stringValue(row.provider_api) ?? undefined,
+			models: {},
+		};
+		provider.models ??= {};
+		provider.models[modelId] = modelsDevModelRecord(row);
+		payload[providerId] = provider;
+	}
+	return {
+		payload,
+		fetchedAt: firstEpochSecond(cacheRows),
+		statusCode: asFiniteNumber(cacheRows[0]?.status_code),
+	};
+}

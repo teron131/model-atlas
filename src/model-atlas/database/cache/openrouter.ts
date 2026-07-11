@@ -17,7 +17,7 @@ import {
 	firstEpochSecond,
 	queryLatestCacheRows,
 	stringValue,
-} from "./source-readers";
+} from "./rows";
 
 export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
 	const candidateRows = queryLatestCacheRows(

@@ -10,11 +10,9 @@ import {
 	type RawSourceCacheStatus,
 	type RawSourceName,
 } from "../types";
+import { artificialAnalysisCacheHasHiddenRows } from "./artificial-analysis";
 import { openRouterCacheHasScopedCandidates } from "./openrouter";
-import {
-	artificialAnalysisCacheHasHiddenRows,
-	latestTableRunId,
-} from "./source-readers";
+import { latestTableRunId } from "./rows";
 
 /** Fallback DeepSWE rows remain usable evidence but cannot make the preferred source cache current. */
 function deepSWECacheHasPreferredVersion(db: DatabaseSync): boolean {
