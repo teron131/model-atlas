@@ -154,7 +154,8 @@ function interactionXDistribution(
 	config: InteractionConfig,
 	context: InteractionContext,
 ) {
-	const formatValue = interactionSummaryFormat(config);
+	const formatValue =
+		config.key === "context" ? config.format : config.tooltipFormat;
 	const values = models
 		.map((model) => config.get(model, context))
 		.filter(
@@ -168,10 +169,6 @@ function interactionXDistribution(
 		domainMin: distribution.min,
 		formatValue,
 	};
-}
-
-function interactionSummaryFormat(config: InteractionConfig) {
-	return config.key === "context" ? config.format : config.tooltipFormat;
 }
 
 function interactionTabCorrelation(

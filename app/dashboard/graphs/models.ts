@@ -163,14 +163,14 @@ export function frontierBenchmarkScoreByModel(
 			return [minMaxScale(benchmarkScores, score) ?? score];
 		});
 		if (normalizedScores.length > 0) {
-			scoreByModel.set(modelKey(model), meanNumber(normalizedScores));
+			scoreByModel.set(
+				modelKey(model),
+				normalizedScores.reduce((sum, value) => sum + value, 0) /
+					normalizedScores.length,
+			);
 		}
 	}
 	return scoreByModel;
-}
-
-function meanNumber(values: number[]) {
-	return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function deepSweMinutes(row: DeepSWEChartRow): number | null {
