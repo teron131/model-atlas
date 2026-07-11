@@ -1,4 +1,4 @@
-/** Summary benchmark snapshots persist raw evidence beside the derived model rows consumed by scoring. */
+/** Benchmark snapshots preserve raw evidence and source-owned summaries needed by refresh. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -14,7 +14,6 @@ import {
 	deepSWESourceVersionForRows,
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
-	summarizeDeepSWEDefaultEffortRows,
 } from "../../scrapers/deep-swe";
 import { readAgentsLastExamRawCache, readDeepSWERawCache } from "../cache";
 import { snapshotRowsWithStates, sourceKey } from "../policy";
@@ -33,9 +32,6 @@ export type AgentsLastExamSnapshot = {
 
 export type DeepSWESnapshot = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEDefaultEffortRows: ReturnType<
-		typeof summarizeDeepSWEDefaultEffortRows
-	>;
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	sourceStatus: SourceSnapshotStatus;
 };
@@ -117,7 +113,7 @@ export async function agentsLastExamSnapshot(
 	};
 }
 
-/** Preserves DeepSWE raw leaderboard rows and derives default highest-effort model scores. */
+/** Preserves DeepSWE raw leaderboard rows and records the preferred source version. */
 export async function deepSWESnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -154,9 +150,6 @@ export async function deepSWESnapshot(
 		});
 		return {
 			deepSWERawRows: cachedSnapshot.rows,
-			deepSWEDefaultEffortRows: summarizeDeepSWEDefaultEffortRows(
-				preferredDeepSWELeaderboardRows(cachedSnapshot.rows),
-			),
 			deepSWESourceVersion: cached.sourceVersion,
 			sourceStatus: {
 				source: "deep_swe",
@@ -197,7 +190,6 @@ export async function deepSWESnapshot(
 	);
 	return {
 		deepSWERawRows: snapshot.rows,
-		deepSWEDefaultEffortRows: summarizeDeepSWEDefaultEffortRows(preferredRows),
 		deepSWESourceVersion:
 			preferredRows.length > 0
 				? deepSWESourceVersionForRows(snapshot.rows)

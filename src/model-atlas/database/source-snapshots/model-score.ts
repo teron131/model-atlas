@@ -11,10 +11,12 @@ import type {
 type RawRowsCache<Row> = {
 	rows: Row[];
 	fetchedAt: number | null;
+	sourceUrl?: string;
 };
 
 type ModelScoreRowsPayload<Row> = {
 	fetched_at_epoch_seconds: number | null;
+	source_url?: string;
 	data: Row[];
 };
 
@@ -34,6 +36,7 @@ type ModelScoreSnapshotResult<Row> = {
 	rows: Row[];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: number | null;
+	sourceUrl: string | null;
 };
 
 /** Decides whether fetched rows should replace cached source rows. */
@@ -53,6 +56,17 @@ export function snapshotFetchedAt(
 	return hasUsableFetchedRows || cachedFetchedAt == null
 		? fetchedAtEpochSeconds
 		: cachedFetchedAt;
+}
+
+/** Keep provenance aligned with the source rows selected for the snapshot. */
+function snapshotSourceUrl(
+	hasUsableFetchedRows: boolean,
+	cachedSourceUrl: string | undefined,
+	fetchedSourceUrl: string | undefined,
+): string | null {
+	return hasUsableFetchedRows || cachedSourceUrl == null
+		? (fetchedSourceUrl ?? null)
+		: cachedSourceUrl;
 }
 
 /** Loads one-score source rows from cache or fetches them while preserving missing-row state. */
@@ -79,6 +93,7 @@ export async function modelScoreSnapshot<Row>(
 			rows: cachedSnapshot.rows,
 			sourceRowStates: cachedSnapshot.states,
 			fetchedAt: config.cached.fetchedAt,
+			sourceUrl: config.cached.sourceUrl ?? null,
 		};
 	}
 
@@ -105,6 +120,11 @@ export async function modelScoreSnapshot<Row>(
 			hasUsableFetchedRows,
 			config.cached?.fetchedAt,
 			fetched.fetched_at_epoch_seconds,
+		),
+		sourceUrl: snapshotSourceUrl(
+			hasUsableFetchedRows,
+			config.cached?.sourceUrl,
+			fetched.source_url,
 		),
 	};
 }

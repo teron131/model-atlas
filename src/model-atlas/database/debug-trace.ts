@@ -1,10 +1,13 @@
 /** Debug trace rows preserve matcher decisions with enough source indexes to audit snapshot joins. */
 
-import type { MatchDiagnosticsPayload } from "../matcher";
+import {
+	artificialAnalysisMatchSlug,
+	hasVariantConflict,
+	type MatchDiagnosticsPayload,
+	type MatcherConfig,
+} from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
-import { firstValidMatchId, hasVariantConflict } from "../stats/matching";
-import type { MatcherConfig } from "../stats/types";
 import type { DebugTraceRow, SourceSnapshots } from "./types";
 
 /** Artificial Analysis raw indexes let debug traces point back to the scraped model row. */
@@ -94,12 +97,11 @@ function unmatchedDebugTraceRow(
 ): DebugTraceRow {
 	return {
 		trace_kind: "matcher_candidate",
-		artificial_analysis_id: model.artificial_analysis_name,
+		artificial_analysis_id: model.artificial_analysis_id,
 		artificial_analysis_slug: model.artificial_analysis_slug,
 		artificial_analysis_name: model.artificial_analysis_name,
 		artificial_analysis_raw_row_index:
-			artificialAnalysisRowById.get(model.artificial_analysis_name ?? "") ??
-			null,
+			artificialAnalysisRowById.get(model.artificial_analysis_id ?? "") ?? null,
 		candidate_rank: null,
 		candidate_model_id: null,
 		candidate_provider_id: null,
@@ -128,10 +130,9 @@ export function buildDebugTraceRows(
 	const rows: DebugTraceRow[] = [];
 
 	for (const model of diagnostics.models) {
-		const selectedModelId = firstValidMatchId(
-			model.candidates,
+		const selectedModelId = model.best_match?.model_id ?? null;
+		const matchSlug = artificialAnalysisMatchSlug(
 			model.artificial_analysis_slug,
-			matcherConfig,
 		);
 		if (model.candidates.length === 0) {
 			rows.push(unmatchedDebugTraceRow(model, artificialAnalysisRowById));
@@ -140,7 +141,7 @@ export function buildDebugTraceRows(
 		for (const [candidateIndex, candidate] of model.candidates.entries()) {
 			const selected = candidate.model_id === selectedModelId;
 			const variantRejected = hasVariantConflict(
-				model.artificial_analysis_slug,
+				matchSlug,
 				candidate.model_id,
 				matcherConfig,
 			);
@@ -150,11 +151,11 @@ export function buildDebugTraceRows(
 					: null;
 			rows.push({
 				trace_kind: "matcher_candidate",
-				artificial_analysis_id: model.artificial_analysis_name,
+				artificial_analysis_id: model.artificial_analysis_id,
 				artificial_analysis_slug: model.artificial_analysis_slug,
 				artificial_analysis_name: model.artificial_analysis_name,
 				artificial_analysis_raw_row_index:
-					artificialAnalysisRowById.get(model.artificial_analysis_name ?? "") ??
+					artificialAnalysisRowById.get(model.artificial_analysis_id ?? "") ??
 					null,
 				candidate_rank: candidateIndex,
 				candidate_model_id: candidate.model_id,

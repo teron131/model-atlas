@@ -1,6 +1,6 @@
 /** Claude identity parsing normalizes historical and current tier/version order without absorbing configuration labels. */
 
-import { normalizeModelToken } from "../shared";
+import { normalizeModelToken } from "./shared";
 
 const CLAUDE_TIERS = ["haiku", "sonnet", "opus", "fable"] as const;
 const CLAUDE_TIER_PATTERN = CLAUDE_TIERS.join("|");

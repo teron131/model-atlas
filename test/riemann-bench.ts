@@ -1,7 +1,13 @@
+/** Verifies Riemann Bench parsing, matching, and source URL provenance. */
+
+import assert from "node:assert/strict";
+
 import {
 	buildRiemannBenchMap,
 	findRiemannBenchScore,
+	getRiemannBenchStats,
 	processRiemannBenchPageHtml,
+	RIEMANN_BENCH_LEADERBOARD_URL,
 } from "../src/model-atlas/scrapers/riemann-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -89,3 +95,44 @@ assertDeepEqual(
 	findRiemannBenchScore(["Claude Fable 5"], scoreByModelName),
 	0.55,
 );
+
+assert.equal(
+	RIEMANN_BENCH_LEADERBOARD_URL,
+	"https://surgehq.ai/leaderboards/riemann-bench",
+	"the scraper should retain the canonical default leaderboard URL",
+);
+
+const customSourceUrl = "https://example.test/custom-riemann-bench";
+const originalFetch = globalThis.fetch;
+const requestedUrls: string[] = [];
+globalThis.fetch = async (input) => {
+	requestedUrls.push(String(input));
+	return new Response(`
+		<div class="txt fs-12">Last updated 05/27/2026</div>
+		<div class="renamed-ranking-row" data-kind="score-row" role="listitem">
+			<img alt="Example logo" />
+			<div class="head-rank-table-name-wrap">
+				<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Example</div></div>
+				<div class="head-rank-table-name"><div class="txt fs-14 fw-med">Custom Math Model</div></div>
+			</div>
+			<div data-score="" fs-list-field="foundational-score" class="txt fs-14">62</div><div>%</div>
+		</div>
+	`);
+};
+try {
+	const defaultPayload = await getRiemannBenchStats();
+	const customPayload = await getRiemannBenchStats({ url: customSourceUrl });
+	assert.equal(defaultPayload.source_url, RIEMANN_BENCH_LEADERBOARD_URL);
+	assert.deepEqual(requestedUrls, [
+		RIEMANN_BENCH_LEADERBOARD_URL,
+		customSourceUrl,
+	]);
+	assert.equal(
+		customPayload.source_url,
+		customSourceUrl,
+		"the scraper payload should report the URL it actually fetched",
+	);
+	assert.equal(customPayload.data[0]?.model, "Custom Math Model");
+} finally {
+	globalThis.fetch = originalFetch;
+}

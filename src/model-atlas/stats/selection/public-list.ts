@@ -63,10 +63,10 @@ function sortModelsByIntelligenceScore(
 	});
 }
 
-/** Public rows need both core component scores and a minimum public score floor. */
+/** Public rows need core component scores, a minimum score floor, and a finite overall score. */
 function hasMinimumScoreSignal(
 	model: LlmStatsScoredCandidate,
-): model is LlmStatsModel {
+): model is LlmStatsScoredCandidate & LlmStatsModel {
 	const componentScores: LlmStatsNullableComponentScores | null =
 		model.component_scores;
 	if (componentScores == null) {
@@ -82,10 +82,54 @@ function hasMinimumScoreSignal(
 		return false;
 	}
 	const scores = model.scores;
-	return REQUIRED_SCORE_KEYS.every((key) => {
+	const hasRequiredScores = REQUIRED_SCORE_KEYS.every((key) => {
 		const value = asFiniteNumber(scores[key]);
 		return value != null && value >= MIN_REQUIRED_SCORE;
 	});
+	return hasRequiredScores && asFiniteNumber(scores.overall_score) != null;
+}
+
+/** Project scored candidates onto the public contract before pruning can preserve internal fields. */
+function toPublicModel(
+	model: LlmStatsScoredCandidate & LlmStatsModel,
+): LlmStatsModel {
+	return {
+		id: model.id,
+		name: model.name,
+		provider: model.provider,
+		logo: model.logo,
+		attachment: model.attachment,
+		reasoning: model.reasoning,
+		release_date: model.release_date,
+		modalities: model.modalities,
+		open_weights: model.open_weights,
+		cost: model.cost,
+		context_window: model.context_window,
+		speed: model.speed,
+		intelligence: model.intelligence,
+		intelligence_index_cost: model.intelligence_index_cost,
+		task_metrics: model.task_metrics,
+		evaluations: model.evaluations,
+		component_scores: {
+			intelligence_score: model.component_scores.intelligence_score,
+			agentic_score: model.component_scores.agentic_score,
+			speed_score: model.component_scores.speed_score,
+		},
+		scores: {
+			intelligence_score: model.scores.intelligence_score,
+			agentic_score: model.scores.agentic_score,
+			speed_score: model.scores.speed_score,
+			value_score: model.scores.value_score,
+			overall_score: model.scores.overall_score,
+		},
+	};
+}
+
+/** Validate and project one scored candidate onto the exact public model contract. */
+export function publicModelFromCandidate(
+	model: LlmStatsScoredCandidate,
+): LlmStatsModel | null {
+	return hasMinimumScoreSignal(model) ? toPublicModel(model) : null;
 }
 
 function isPlainObject(value: unknown): value is JsonObject {
@@ -258,7 +302,10 @@ export function selectPublicModels(
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
 ): LlmStatsModel[] {
-	const signalModels = scoredCandidates.filter(hasMinimumScoreSignal);
+	const signalModels = scoredCandidates.flatMap((model) => {
+		const publicModel = publicModelFromCandidate(model);
+		return publicModel == null ? [] : [publicModel];
+	});
 	const sortedModels = sortModelsByIntelligenceScore(signalModels);
 	const prunedModels = pruneSparseFields(
 		sortedModels,

@@ -6,6 +6,7 @@ import {
 	benchmarkRowsFromSourceData,
 	enrichAggregatedModelRowsWithBenchmarks,
 } from "./stats/benchmarks";
+import { buildModelCatalogRows } from "./stats/catalog";
 import { buildMatchedModelRows } from "./stats/matching";
 import { buildCurrentLlmStatsMetadata } from "./stats/metadata";
 import {
@@ -81,11 +82,9 @@ async function buildLlmStatsPayload(
 	modelId: string | null = null,
 ): Promise<LlmStatsPayload> {
 	const sourceData = await fetchSourceData();
-	const matchedRows = await buildMatchedModelRows(
-		sourceData,
-		STAGE_CONFIG.matcher,
-	);
-	const aggregatedRows = aggregateModelRows(matchedRows);
+	const matchedRows = buildMatchedModelRows(sourceData, STAGE_CONFIG.matcher);
+	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
+	const aggregatedRows = aggregateModelRows(catalogRows);
 	const benchmarkEnrichedRows = enrichAggregatedModelRowsWithBenchmarks(
 		aggregatedRows,
 		sourceData,
@@ -117,7 +116,7 @@ async function buildLlmStatsPayload(
 	);
 }
 
-async function getLlmStatsPayload(
+export async function getLiveLlmStats(
 	options: LlmStatsOptions = {},
 ): Promise<LlmStatsPayload> {
 	try {
@@ -126,16 +125,4 @@ async function getLlmStatsPayload(
 	} catch {
 		return emptyLlmStatsPayload();
 	}
-}
-
-export async function getLlmStats(
-	options: LlmStatsOptions = {},
-): Promise<LlmStatsPayload> {
-	return getLlmStatsPayload(options);
-}
-
-export async function getLiveLlmStats(
-	options: LlmStatsOptions = {},
-): Promise<LlmStatsPayload> {
-	return getLlmStatsPayload(options);
 }

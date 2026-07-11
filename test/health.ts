@@ -216,6 +216,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			row_kind: "model_score",
 			model: "Agent Score Row",
 			median_score: 0.81,
+			mean_score: 0.83,
 		},
 	],
 	blueprintBenchRows: [],
@@ -298,7 +299,7 @@ assert.deepEqual(dbBenchmarkRows.agents_last_exam, [
 		id: null,
 		label: "Agent Score Row",
 		provider: null,
-		value: 0.81,
+		value: 0.83,
 	},
 ]);
 assert.deepEqual(dbBenchmarkRows.browsecomp, [

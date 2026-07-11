@@ -1,5 +1,7 @@
 /** Shared public and handoff types for the LLM stats pipeline. */
 
+import type { MatcherConfig } from "../matcher";
+import type { NumberOrNull } from "../math-utils";
 import type {
 	AgentsLastExamModelScoreRow,
 	AgentsLastExamScoreByModelName,
@@ -29,7 +31,7 @@ import type {
 	GdpPdfModelScoreRow,
 	GdpPdfScoreByModelName,
 } from "../scrapers/gdp-pdf";
-import type { getModelsDevStats } from "../scrapers/models-dev";
+import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type {
 	RiemannBenchModelScoreRow,
@@ -47,12 +49,10 @@ import type {
 	TerminalBenchModelHarnessRow,
 	TerminalBenchRowsByModelName,
 } from "../scrapers/vals/terminal-bench";
-import type { JsonObject, NumberOrNull } from "../utils";
+import type { JsonObject } from "../utils";
 import type { TerminalBenchAggregateRow } from "./benchmarks/terminal-bench";
 
-export type ModelsDevModel = Awaited<
-	ReturnType<typeof getModelsDevStats>
->["models"][number];
+export type ModelsDevModel = ModelsDevFlatModel;
 
 export type ArtificialAnalysisModel = {
 	model_id?: unknown;
@@ -439,10 +439,6 @@ export type LlmStatsPayload = {
 
 export type LlmStatsOptions = {
 	id?: string | null;
-};
-
-export type MatcherConfig = {
-	variantTokens: readonly string[];
 };
 
 export type OpenRouterConfig = {

@@ -3,27 +3,11 @@
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import {
 	asRecord,
+	canonicalProviderModelId,
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../shared";
-import type { LlmStatsSourceData } from "../stats/types";
-
-function canonicalModelId(
-	modelId: unknown,
-	providerId: unknown,
-	fallbackModelId: unknown,
-): string | null {
-	if (typeof modelId === "string" && modelId.includes("/")) {
-		return modelId;
-	}
-	if (typeof providerId === "string" && typeof modelId === "string") {
-		return `${providerId}/${modelId}`;
-	}
-	if (typeof providerId === "string" && typeof fallbackModelId === "string") {
-		return `${providerId}/${fallbackModelId}`;
-	}
-	return typeof modelId === "string" ? modelId : null;
-}
+import type { LlmStatsSourceData } from "./types";
 
 function normalizedRowId(row: Record<string, unknown>): string | null {
 	const id = typeof row.id === "string" ? row.id : null;
@@ -107,8 +91,8 @@ function catalogAliasPriority(row: Record<string, unknown>): number {
 	return 0;
 }
 
-/** Keep processed DB stages scoped to text-output LLM rows and exclude obvious image models. */
-export function filterDatabaseTextLlmRows(
+/** Keep model-building stages scoped to text-output LLM rows and exclude obvious image models. */
+export function filterTextLlmRows(
 	rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
 	return rows.filter(isTextLlmCatalogRow);
@@ -124,7 +108,7 @@ function modelsDevCatalogRow(
 	modelsDevModel: ModelsDevFlatModel,
 ): Record<string, unknown> | null {
 	const modelFields = asRecord(modelsDevModel.model);
-	const canonicalId = canonicalModelId(
+	const canonicalId = canonicalProviderModelId(
 		modelsDevModel.model.id ?? modelsDevModel.model_id,
 		modelsDevModel.provider_id,
 		modelsDevModel.model_id,
@@ -143,7 +127,7 @@ function modelsDevCatalogRow(
 	return {
 		id: canonicalId,
 		provider_id: modelsDevModel.provider_id,
-		openrouter_id: modelsDevModel.model.id ?? modelsDevModel.model_id,
+		openrouter_id: canonicalId,
 		name:
 			typeof modelsDevModel.model.name === "string"
 				? modelsDevModel.model.name
@@ -155,8 +139,8 @@ function modelsDevCatalogRow(
 }
 
 /** Add preferred recent models.dev catalog rows without an Artificial Analysis match. */
-export function buildDatabaseCatalogRows(
-	sourceData: LlmStatsSourceData,
+export function buildModelCatalogRows(
+	sourceData: Pick<LlmStatsSourceData, "modelsDev">,
 	matchedRows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
 	const existingNormalizedIds = new Set<string>();
@@ -173,7 +157,7 @@ export function buildDatabaseCatalogRows(
 	for (const row of matchedRows) {
 		rememberCatalogRow(row);
 	}
-	const catalogRows = filterDatabaseTextLlmRows(matchedRows);
+	const catalogRows = filterTextLlmRows(matchedRows);
 	const modelsDevCatalogRows = sourceData.modelsDev.rows
 		.map((modelsDevModel) => modelsDevCatalogRow(modelsDevModel))
 		.filter((row): row is Record<string, unknown> => row != null)

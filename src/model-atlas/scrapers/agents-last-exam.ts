@@ -145,8 +145,9 @@ export function processAgentsLastExamLeaderboardRows(
 		.filter((row): row is AgentsLastExamHarnessRow => row != null);
 }
 
+/** The public ALE benchmark keeps the stronger median or mean harness summary. */
 export function agentsLastExamBenchmarkScore(
-	row: AgentsLastExamModelScoreRow,
+	row: Pick<AgentsLastExamModelScoreRow, "median_score" | "mean_score">,
 ): number {
 	return Math.max(row.median_score, row.mean_score);
 }

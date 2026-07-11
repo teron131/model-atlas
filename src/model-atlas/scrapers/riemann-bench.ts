@@ -9,7 +9,8 @@ import { normalizeModelToken } from "../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../utils";
 import { surgeLeaderboardScoreRows } from "./surge-leaderboard";
 
-const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
+export const RIEMANN_BENCH_LEADERBOARD_URL =
+	"https://surgehq.ai/leaderboards/riemann-bench";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 export type RiemannBenchScraperOptions = {
@@ -31,6 +32,7 @@ export type RiemannBenchScoreByModelName = Map<
 
 export type RiemannBenchModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
+	source_url: string;
 	data: RiemannBenchModelScoreRow[];
 };
 
@@ -86,20 +88,22 @@ export function findRiemannBenchScore(
 export async function getRiemannBenchStats(
 	options: RiemannBenchScraperOptions = {},
 ): Promise<RiemannBenchModelScorePayload> {
+	const sourceUrl = options.url ?? RIEMANN_BENCH_LEADERBOARD_URL;
 	try {
-		const url = options.url ?? DEFAULT_LEADERBOARD_URL;
 		const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-		const response = await fetchWithTimeout(url, {}, timeoutMs);
+		const response = await fetchWithTimeout(sourceUrl, {}, timeoutMs);
 		if (!response.ok) {
 			throw new Error(`Riemann-bench scrape failed: ${response.status}`);
 		}
 		return {
 			fetched_at_epoch_seconds: nowEpochSeconds(),
+			source_url: sourceUrl,
 			data: processRiemannBenchPageHtml(await response.text()),
 		};
 	} catch {
 		return {
 			fetched_at_epoch_seconds: null,
+			source_url: sourceUrl,
 			data: [],
 		};
 	}

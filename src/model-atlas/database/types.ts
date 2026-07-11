@@ -28,7 +28,7 @@ import type {
 	TerminalBenchModelHarnessRow,
 	TerminalBenchTaskRow,
 } from "../scrapers/vals/terminal-bench";
-import type { LlmStatsSourceData, LlmStatsSourceHealth } from "../stats/types";
+import type { LlmStatsSourceHealth } from "../stats/types";
 import type { JsonObject } from "../utils";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
@@ -96,7 +96,6 @@ export const SOURCE_URLS = {
 	cursorbench: "https://cursor.com/cursorbench",
 	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
 	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
-	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 	vals_index: "https://www.vals.ai/benchmarks/vals_index",
@@ -170,10 +169,10 @@ export type SourceSnapshots = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEDefaultEffortRows: LlmStatsSourceData["deepSWE"]["defaultEffortRows"];
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
+	riemannBenchSourceUrl: string;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	valsIndexRows: ValsIndexTaskScoreRow[];
 	valsIndexModelScoreRows: ValsIndexModelScoreRow[];

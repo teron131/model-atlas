@@ -74,6 +74,24 @@ try {
 					overall_score: 75,
 				},
 			},
+			{
+				id: "example/missing-overall-score",
+				provider: "example",
+				name: "Missing Overall Score",
+				logo: "https://example.com/logo.svg",
+				component_scores: {
+					intelligence_score: 90,
+					agentic_score: 80,
+					speed_score: null,
+				},
+				scores: {
+					intelligence_score: 90,
+					agentic_score: 80,
+					speed_score: null,
+					value_score: null,
+					overall_score: null,
+				},
+			},
 		]);
 		assert.equal(
 			db
@@ -88,6 +106,7 @@ try {
 	}
 
 	const payload = readDatabasePayload(databasePath);
+	assert.equal(payload.models.length, 1);
 	const model = payload.models[0];
 	assert.deepEqual(model?.task_metrics?.hle, {
 		cost: 0.1,

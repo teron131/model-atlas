@@ -1,6 +1,6 @@
 /** Benchmark enrichment is the single bridge from source lookup maps to evaluation and scoring-source fields. */
 
-import { modelNameIdentityKey } from "../../matcher/name-tokens";
+import { modelNameIdentityKey } from "../../matcher";
 import { normalizeElo } from "../../math-utils";
 import {
 	agentsLastExamBenchmarkScore,

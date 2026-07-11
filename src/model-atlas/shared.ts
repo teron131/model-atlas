@@ -27,6 +27,24 @@ export function normalizeProviderId(providerId: string): string {
 	return providerId.toLowerCase().replace(/^~+/, "");
 }
 
+/** Preserve qualified model IDs; otherwise qualify the usable primary or fallback ID with its provider. */
+export function canonicalProviderModelId(
+	modelId: unknown,
+	providerId: unknown,
+	fallbackModelId: unknown,
+): string | null {
+	if (typeof modelId === "string" && modelId.includes("/")) {
+		return modelId;
+	}
+	if (typeof providerId === "string" && typeof modelId === "string") {
+		return `${providerId}/${modelId}`;
+	}
+	if (typeof providerId === "string" && typeof fallbackModelId === "string") {
+		return `${providerId}/${fallbackModelId}`;
+	}
+	return typeof modelId === "string" ? modelId : null;
+}
+
 /** Provider preference is OpenRouter first, Vercel second, then trusted first-party fallbacks. */
 export function providerPreferenceRank(providerId: string): number | null {
 	const normalizedProviderId = normalizeProviderId(providerId);

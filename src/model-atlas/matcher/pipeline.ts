@@ -1,7 +1,5 @@
 /** Internal matcher pipeline: scope provider pools, collect candidates, and apply the final void threshold. */
 
-import { getArtificialAnalysisLeaderboardStats } from "../scrapers/artificial-analysis/leaderboard";
-import { getModelsDevStats } from "../scrapers/models-dev";
 import {
 	asRecord,
 	FALLBACK_PROVIDER_IDS,
@@ -10,14 +8,16 @@ import {
 } from "../shared";
 
 import {
+	artificialAnalysisMatchSlug,
 	compareCandidates,
-	hasFirstTokenMatch,
-	scoreCandidate,
+	firstVariantCompatibleCandidate,
+	rankMatchCandidates,
 } from "./scoring";
 import type {
 	MatchCandidate,
 	MatchDiagnosticsOptions,
 	MatchDiagnosticsPayload,
+	MatcherConfig,
 	MatcherRunOutput,
 	MatcherSourceModel,
 	MatchResult,
@@ -25,72 +25,29 @@ import type {
 	PreferredProviderPools,
 } from "./types";
 
-const ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES = [
-	"-ultra",
-	"-max",
-	"-adaptive",
-	"-xhigh",
-	"-high",
-	"-medium",
-	"-low",
-	"-minimal",
-	"-non-reasoning",
-] as const;
 const DEFAULT_MAX_CANDIDATES = 5;
 const VOID_THRESHOLD_RANGE_RATIO = 0.35;
-
-/** Collapse Artificial Analysis effort-specific rows to the base slug used for model matching. */
-function artificialAnalysisMatchSlug(sourceSlug: string): string {
-	for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
-		if (sourceSlug.endsWith(suffix)) {
-			return sourceSlug.slice(0, -suffix.length);
-		}
-	}
-	return sourceSlug;
-}
 
 /** Collect candidate models.dev rows for a normalized source slug. */
 function collectCandidatesForSourceSlug(
 	sourceSlug: string,
 	modelsDevModels: ModelsDevModel[],
 ): MatchCandidate[] {
-	if (!sourceSlug) {
-		return [];
-	}
-
-	return modelsDevModels
-		.map((modelsDevModel) => {
+	return rankMatchCandidates(
+		sourceSlug,
+		modelsDevModels.map((modelsDevModel) => {
 			const modelsDevModelName =
 				typeof modelsDevModel.model.name === "string"
 					? modelsDevModel.model.name
 					: "";
-			if (
-				!hasFirstTokenMatch(
-					sourceSlug,
-					modelsDevModel.model_id,
-					modelsDevModelName,
-				)
-			) {
-				return null;
-			}
-			const candidateScore = scoreCandidate(
-				sourceSlug,
-				modelsDevModel.model_id,
-				modelsDevModelName,
-			);
-			if (candidateScore <= 0) {
-				return null;
-			}
 			return {
 				model_id: modelsDevModel.model_id,
 				provider_id: modelsDevModel.provider_id,
 				provider_name: modelsDevModel.provider_name,
 				model_name: modelsDevModelName || null,
-				score: candidateScore,
 			};
-		})
-		.filter((candidate): candidate is MatchCandidate => candidate != null)
-		.sort(compareCandidates);
+		}),
+	);
 }
 
 function applyMaxMinRangeVoid<
@@ -127,9 +84,10 @@ export function runMatcher(
 	sourceModels: MatcherSourceModel[],
 	providerPools: PreferredProviderPools,
 	maxCandidates: number,
+	matcherConfig: MatcherConfig,
 ): MatcherRunOutput {
 	const models = sourceModels.map((sourceModel) => {
-		const matchSlug = sourceModel.sourceMatchSlug ?? sourceModel.sourceSlug;
+		const matchSlug = artificialAnalysisMatchSlug(sourceModel.sourceSlug);
 		const primaryCandidates = collectCandidatesForSourceSlug(
 			matchSlug,
 			providerPools.primary,
@@ -144,10 +102,15 @@ export function runMatcher(
 				: [...primaryCandidates, ...fallbackCandidates].sort(compareCandidates)
 		).slice(0, maxCandidates);
 		return {
+			artificial_analysis_id: sourceModel.sourceId,
 			artificial_analysis_slug: sourceModel.sourceSlug,
 			artificial_analysis_name: sourceModel.sourceName,
 			artificial_analysis_release_date: sourceModel.sourceReleaseDate,
-			best_match: candidates[0] ?? null,
+			best_match: firstVariantCompatibleCandidate(
+				matchSlug,
+				candidates,
+				matcherConfig,
+			),
 			candidates,
 		};
 	});
@@ -173,30 +136,16 @@ export function runMatcher(
 	};
 }
 
-export async function getMatchDiagnostics(
-	options: MatchDiagnosticsOptions = {},
-): Promise<MatchDiagnosticsPayload> {
+/** Build deterministic diagnostics from caller-supplied normalized rows without fetching sources. */
+export function buildMatchDiagnostics(
+	options: MatchDiagnosticsOptions,
+): MatchDiagnosticsPayload {
 	const maxCandidates = options.maxCandidates ?? DEFAULT_MAX_CANDIDATES;
-	const scrapedStats =
-		options.scrapedRows != null
-			? {
-					fetched_at_epoch_seconds: null,
-					data: options.scrapedRows,
-				}
-			: await getArtificialAnalysisLeaderboardStats();
-	const modelsDevStats =
-		options.modelsDevModels != null
-			? {
-					fetched_at_epoch_seconds: null,
-					models: options.modelsDevModels,
-				}
-			: await getModelsDevStats();
-
 	const providerPools = {
-		primary: modelsDevStats.models.filter(
+		primary: options.modelsDevModels.filter(
 			(modelsDevModel) => modelsDevModel.provider_id === PRIMARY_PROVIDER_ID,
 		),
-		fallback: modelsDevStats.models.filter((modelsDevModel) =>
+		fallback: options.modelsDevModels.filter((modelsDevModel) =>
 			FALLBACK_PROVIDER_IDS.has(modelsDevModel.provider_id),
 		),
 	};
@@ -205,7 +154,7 @@ export async function getMatchDiagnostics(
 			(modelsDevModel) => modelsDevModel.model_id,
 		),
 	).size;
-	const sourceModels = scrapedStats.data.map((scrapedRow) => {
+	const sourceModels = options.scrapedRows.map((scrapedRow) => {
 		const scrapedRowRecord = asRecord(scrapedRow);
 		const modelId =
 			typeof scrapedRowRecord.model_id === "string"
@@ -213,19 +162,27 @@ export async function getMatchDiagnostics(
 				: null;
 		const sourceSlug = modelSlugFromModelId(modelId) ?? "";
 		return {
+			sourceId: modelId,
 			sourceSlug,
-			sourceMatchSlug: artificialAnalysisMatchSlug(sourceSlug),
-			sourceName: modelId,
-			sourceReleaseDate: null,
+			sourceName:
+				typeof scrapedRowRecord.name === "string"
+					? scrapedRowRecord.name
+					: null,
+			sourceReleaseDate:
+				typeof scrapedRowRecord.release_date === "string"
+					? scrapedRowRecord.release_date
+					: null,
 		};
 	});
-	const matcherOutput = runMatcher(sourceModels, providerPools, maxCandidates);
+	const matcherOutput = runMatcher(
+		sourceModels,
+		providerPools,
+		maxCandidates,
+		options.matcherConfig,
+	);
 
 	return {
-		scraped_fetched_at_epoch_seconds: scrapedStats.fetched_at_epoch_seconds,
-		models_dev_fetched_at_epoch_seconds:
-			modelsDevStats.fetched_at_epoch_seconds,
-		total_scraped_models: scrapedStats.data.length,
+		total_scraped_models: options.scrapedRows.length,
 		total_models_dev_models: totalScopedModels,
 		max_candidates: maxCandidates,
 		pre_void_matched_count: matcherOutput.preVoidMatchedCount,

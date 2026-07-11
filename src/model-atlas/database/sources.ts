@@ -2,16 +2,8 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import {
-	type ModelsDevPayload,
-	processModelsDevPayload,
-} from "../scrapers/models-dev";
 import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
-import {
-	buildArtificialAnalysisRetainKeys,
-	isoDateDaysAgo,
-	MODELS_DEV_LOOKBACK_DAYS,
-} from "../stats/source-policy";
+import { selectModelsDevRowsForArtificialAnalysis } from "../stats/source-policy";
 import type { ScoringConfig } from "../stats/types";
 import {
 	readOpenRouterRawCache,
@@ -114,17 +106,6 @@ function fetchedAtFromSourceStatuses(
 		}
 	}
 	return fetchedAt;
-}
-
-function modelsDevRowsWithArtificialAnalysisRetainKeys(
-	modelsDevPayload: ModelsDevPayload,
-	artificialAnalysisSelectedRows: SourceSnapshots["artificialAnalysisSelectedRows"],
-): SourceSnapshots["modelsDevModels"] {
-	return processModelsDevPayload(
-		modelsDevPayload,
-		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
-		buildArtificialAnalysisRetainKeys(artificialAnalysisSelectedRows),
-	);
 }
 
 /** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
@@ -244,7 +225,7 @@ export async function loadSourceSnapshots(
 			nowEpochSeconds,
 		),
 	]);
-	const modelsDevModels = modelsDevRowsWithArtificialAnalysisRetainKeys(
+	const modelsDevModels = selectModelsDevRowsForArtificialAnalysis(
 		modelsDev.modelsDevPayload,
 		artificialAnalysis.artificialAnalysisSelectedRows,
 	);
@@ -281,10 +262,10 @@ export async function loadSourceSnapshots(
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
 			deepSWERawRows: deepSWE.deepSWERawRows,
-			deepSWEDefaultEffortRows: deepSWE.deepSWEDefaultEffortRows,
 			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
+			riemannBenchSourceUrl: riemannBench.riemannBenchSourceUrl,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			valsIndexRows: valsIndex.valsIndexRows,
 			valsIndexModelScoreRows: valsIndex.valsIndexModelScoreRows,

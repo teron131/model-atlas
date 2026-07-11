@@ -295,6 +295,17 @@ assertEqual(aliasOnlyEnriched.rows.length, 1);
 assertEqual(aliasOnlyEnriched.rows[0]?.id, "openai/gpt-5.5");
 assertEqual(aliasOnlyEnriched.rows[0]?.openrouter_id, "openai/gpt-5.5");
 
+const qualifiedFallbackRows = aggregateModelRows([
+	{
+		id: "openai/gpt-test",
+		openrouter_id: "gpt-test",
+		provider_id: "openai",
+		intelligence: { intelligence_index: 50 },
+	},
+]);
+assertEqual(qualifiedFallbackRows[0]?.id, "openai/gpt-test");
+assertEqual(qualifiedFallbackRows[0]?.openrouter_id, "openai/gpt-test");
+
 const datedGeminiPreviewEnriched = await enrichModelRowsWithOpenRouter(
 	aggregateModelRows([
 		{

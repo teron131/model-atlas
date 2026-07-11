@@ -1,120 +1,25 @@
 /** Stats matching turns scraper-first diagnostics into merged source rows for selection. */
 
-import { getMatchDiagnostics, type MatchDiagnosticsPayload } from "../matcher";
+import {
+	buildMatchDiagnostics,
+	type MatchDiagnosticsPayload,
+	type MatcherConfig,
+} from "../matcher";
 import {
 	asFiniteNumber,
 	asRecord,
+	canonicalProviderModelId,
 	modelSlugFromModelId,
-	normalizeModelToken,
-	normalizeProviderModelId,
 } from "../shared";
 
 import {
 	type BenchmarkEnrichmentLookups,
 	benchmarkObservationEnrichment,
 } from "./benchmarks";
-import type {
-	ArtificialAnalysisModel,
-	LlmStatsSourceData,
-	MatcherConfig,
-} from "./types";
+import type { ArtificialAnalysisModel, LlmStatsSourceData } from "./types";
 
 type MatchedRowLookups = Pick<LlmStatsSourceData, "modelsDev"> &
 	BenchmarkEnrichmentLookups;
-
-function canonicalModelId(
-	modelId: unknown,
-	providerId: unknown,
-	fallbackModelId: unknown,
-): string | null {
-	if (typeof modelId === "string" && modelId.includes("/")) {
-		return modelId;
-	}
-	if (typeof providerId === "string" && typeof modelId === "string") {
-		return `${providerId}/${modelId}`;
-	}
-	if (typeof providerId === "string" && typeof fallbackModelId === "string") {
-		return `${providerId}/${fallbackModelId}`;
-	}
-	return typeof modelId === "string" ? modelId : null;
-}
-
-/** Variant labels are matched longest-first so compound variants like flash-lite do not double-count flash. */
-function variantLabels(
-	modelId: string,
-	matcherConfig: MatcherConfig,
-): Set<string> {
-	const tokens = normalizeProviderModelId(modelId)
-		.split(/[-/]/)
-		.filter(Boolean);
-	const occupied = new Set<number>();
-	const labels = new Set<string>();
-	const variants = [...matcherConfig.variantTokens].sort(
-		(left, right) =>
-			normalizeModelToken(right).split("-").length -
-			normalizeModelToken(left).split("-").length,
-	);
-
-	for (const variant of variants) {
-		const variantTokens = normalizeModelToken(variant).split("-");
-		for (
-			let index = 0;
-			index <= tokens.length - variantTokens.length;
-			index += 1
-		) {
-			if (
-				variantTokens.some((token, offset) => tokens[index + offset] !== token)
-			) {
-				continue;
-			}
-			if (
-				variantTokens.some((_token, offset) => occupied.has(index + offset))
-			) {
-				continue;
-			}
-			for (let offset = 0; offset < variantTokens.length; offset += 1) {
-				occupied.add(index + offset);
-			}
-			labels.add(variant);
-		}
-	}
-
-	return labels;
-}
-
-export function hasVariantConflict(
-	artificialAnalysisSlug: string,
-	matchedModelId: string,
-	matcherConfig: MatcherConfig,
-): boolean {
-	const artificialAnalysisLabels = variantLabels(
-		artificialAnalysisSlug,
-		matcherConfig,
-	);
-	const matchedLabels = variantLabels(matchedModelId, matcherConfig);
-	return matcherConfig.variantTokens.some(
-		(token) => artificialAnalysisLabels.has(token) !== matchedLabels.has(token),
-	);
-}
-
-export function firstValidMatchId(
-	candidates: { model_id: string }[],
-	artificialAnalysisSlug: string,
-	matcherConfig: MatcherConfig,
-): string | null {
-	for (const candidate of candidates) {
-		if (
-			!hasVariantConflict(
-				artificialAnalysisSlug,
-				candidate.model_id,
-				matcherConfig,
-			)
-		) {
-			return candidate.model_id;
-		}
-	}
-	return null;
-}
 
 function buildMatchedRow(
 	artificialAnalysisModel: ArtificialAnalysisModel,
@@ -154,7 +59,7 @@ function buildMatchedRow(
 		evaluations,
 	);
 	Object.assign(evaluations, benchmarkFields.evaluations);
-	const canonicalId = canonicalModelId(
+	const canonicalId = canonicalProviderModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,
 		matchedModelsDev?.provider_id,
 		matchedModelsDev?.model_id,
@@ -209,16 +114,11 @@ function buildMatchedRow(
 
 export function modelRowsFromMatchDiagnostics(
 	sourceData: LlmStatsSourceData,
-	matcherConfig: MatcherConfig,
 	matchDiagnostics: MatchDiagnosticsPayload,
 ): Record<string, unknown>[] {
 	return matchDiagnostics.models
 		.map((matchedModel) => {
-			const matchedModelId = firstValidMatchId(
-				matchedModel.candidates,
-				matchedModel.artificial_analysis_slug,
-				matcherConfig,
-			);
+			const matchedModelId = matchedModel.best_match?.model_id ?? null;
 			if (matchedModelId == null) {
 				return null;
 			}
@@ -237,18 +137,15 @@ export function modelRowsFromMatchDiagnostics(
 		.filter((row): row is Record<string, unknown> => row != null);
 }
 
-/** Match diagnostics are rechecked for configured variant conflicts before selection consumes merged rows. */
-export async function buildMatchedModelRows(
+/** Match diagnostics provide the finalized matcher decision consumed by merged source rows. */
+export function buildMatchedModelRows(
 	sourceData: LlmStatsSourceData,
 	matcherConfig: MatcherConfig,
-): Promise<Record<string, unknown>[]> {
-	const matchDiagnostics = await getMatchDiagnostics({
+): Record<string, unknown>[] {
+	const matchDiagnostics = buildMatchDiagnostics({
+		matcherConfig,
 		scrapedRows: sourceData.artificialAnalysis.rows,
 		modelsDevModels: sourceData.modelsDev.rows,
 	});
-	return modelRowsFromMatchDiagnostics(
-		sourceData,
-		matcherConfig,
-		matchDiagnostics,
-	);
+	return modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
 }

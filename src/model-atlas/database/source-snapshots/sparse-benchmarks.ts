@@ -89,6 +89,7 @@ export type GdpPdfSnapshot = {
 
 export type RiemannBenchSnapshot = {
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
+	riemannBenchSourceUrl: string;
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -283,8 +284,12 @@ export async function riemannBenchSnapshot(
 		rowKey: (row) => sourceKey(row.provider, row.model),
 		rowLabel: (row) => row.model,
 	});
+	if (snapshot.sourceUrl == null) {
+		throw new Error("Riemann Bench snapshot is missing its source URL");
+	}
 	return {
 		riemannBenchModelScoreRows: snapshot.rows,
+		riemannBenchSourceUrl: snapshot.sourceUrl,
 		sourceStatus: {
 			source: "riemann_bench",
 			fetchedAt: snapshot.fetchedAt,

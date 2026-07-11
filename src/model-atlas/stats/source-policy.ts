@@ -1,10 +1,11 @@
 /** Source-selection policy keeps benchmark-retained catalog rows and provider preference in one stage boundary. */
 
+import { claudeIdentityKey, parseClaudeIdentity } from "../claude-identity";
 import {
-	claudeIdentityKey,
-	parseClaudeIdentity,
-} from "../matcher/claude-identity";
-import type { ModelsDevFlatModel } from "../scrapers/models-dev";
+	type ModelsDevFlatModel,
+	type ModelsDevPayload,
+	processModelsDevPayload,
+} from "../scrapers/models-dev";
 import {
 	FALLBACK_PROVIDER_IDS,
 	modelSlugFromModelId,
@@ -14,24 +15,22 @@ import {
 	providerPreferenceRank,
 } from "../shared";
 
-import type { ModelsDevModel } from "./types";
+const MODELS_DEV_LOOKBACK_DAYS = 365;
 
-export const MODELS_DEV_LOOKBACK_DAYS = 365;
-
-export type ArtificialAnalysisRetainKeys = {
+type ArtificialAnalysisRetainKeys = {
 	retainedModelIds: Set<string>;
 	retainedModelNames: Set<string>;
 	retainedClaudeIdentityKeys: Set<string>;
 };
 
-export function isoDateDaysAgo(days: number): string {
+function isoDateDaysAgo(days: number): string {
 	return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 		.toISOString()
 		.slice(0, 10);
 }
 
 /** Artificial Analysis identities retain older catalog rows that still carry current benchmark evidence. */
-export function buildArtificialAnalysisRetainKeys(
+function buildArtificialAnalysisRetainKeys(
 	artificialAnalysisRows: readonly unknown[],
 ): ArtificialAnalysisRetainKeys {
 	const retainedModelIds = new Set<string>();
@@ -72,10 +71,22 @@ export function buildArtificialAnalysisRetainKeys(
 	};
 }
 
+/** Apply the shared lookback and Artificial Analysis retention policy to a raw models.dev payload. */
+export function selectModelsDevRowsForArtificialAnalysis(
+	modelsDevPayload: ModelsDevPayload,
+	artificialAnalysisRows: readonly unknown[],
+): ModelsDevFlatModel[] {
+	return processModelsDevPayload(
+		modelsDevPayload,
+		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
+		buildArtificialAnalysisRetainKeys(artificialAnalysisRows),
+	);
+}
+
 /** Provider preference collapses duplicate catalog rows before matching so callers do not rank providers themselves. */
-export function pickPreferredModelsDevRows<
-	Model extends ModelsDevModel | ModelsDevFlatModel,
->(modelsDevModels: readonly Model[]): Model[] {
+export function pickPreferredModelsDevRows<Model extends ModelsDevFlatModel>(
+	modelsDevModels: readonly Model[],
+): Model[] {
 	const preferredModels = modelsDevModels.filter(
 		(modelsDevModel) =>
 			modelsDevModel.provider_id === PRIMARY_PROVIDER_ID ||

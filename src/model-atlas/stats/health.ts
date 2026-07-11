@@ -1,15 +1,13 @@
 /** Operational health checks compare public rows against fresh benchmark source evidence. */
 
-import { splitBaseModelTokens, splitTokens } from "../matcher/name-tokens";
 import {
-	compareCandidates,
-	hasFirstTokenMatch,
-	scoreCandidate,
-} from "../matcher/scoring";
+	firstVariantCompatibleCandidate,
+	type MatcherConfig,
+	rankMatchCandidates,
+} from "../matcher";
+import type { NumberOrNull } from "../math-utils";
 import { normalizeModelToken, normalizeProviderModelId } from "../shared";
-import type { NumberOrNull } from "../utils";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "./benchmarks";
-import { hasVariantConflict } from "./matching";
 import type {
 	LlmStatsBenchmarkUpdateEntry,
 	LlmStatsBenchmarkUpdateHealth,
@@ -17,25 +15,11 @@ import type {
 	LlmStatsIntelligence,
 	LlmStatsModel,
 	LlmStatsNullableScores,
-	MatcherConfig,
 	ModelAtlasStageConfig,
 } from "./types";
 
 const BENCHMARK_TOP_LIMIT = 5;
 const REFERENCE_TOP_LIMIT = 10;
-const COVERAGE_IGNORED_TOKENS = new Set([
-	"preview",
-	"ultra",
-	"max",
-	"adaptive",
-	"xhigh",
-	"high",
-	"medium",
-	"low",
-	"minimal",
-	"non",
-]);
-
 type BenchmarkHealthModel = Pick<
 	LlmStatsModel,
 	"id" | "name" | "evaluations" | "intelligence"
@@ -93,27 +77,6 @@ function sourceSlug(row: BenchmarkSourceRow): string {
 	return normalizeModelToken(row.label);
 }
 
-/** Token coverage rejects accidental first-token matches that miss the benchmark source's distinguishing words. */
-function hasSourceTokenCoverage(
-	sourceSlug: string,
-	model: Pick<LlmStatsModel, "id" | "name">,
-): boolean {
-	const sourceTokens = splitTokens(sourceSlug).filter(
-		(token) => !COVERAGE_IGNORED_TOKENS.has(token),
-	);
-	if (sourceTokens.length === 0) {
-		return false;
-	}
-	const candidateTokenSets = [
-		model.id == null ? [] : splitBaseModelTokens(model.id),
-		model.name == null ? [] : splitTokens(model.name),
-	];
-	return candidateTokenSets.some((candidateTokens) => {
-		const candidateTokenSet = new Set(candidateTokens);
-		return sourceTokens.every((token) => candidateTokenSet.has(token));
-	});
-}
-
 function matchedSourceId(
 	row: BenchmarkSourceRow,
 	models: readonly BenchmarkHealthModel[],
@@ -123,33 +86,29 @@ function matchedSourceId(
 		return null;
 	}
 	const rowSlug = sourceSlug(row);
-	const candidates = models
-		.flatMap((model) => {
+	const candidates = rankMatchCandidates(
+		rowSlug,
+		models.flatMap((model) => {
 			const id = modelIdentity(model);
 			const name = model.name ?? "";
-			if (
-				id == null ||
-				!hasFirstTokenMatch(rowSlug, id, name) ||
-				!hasSourceTokenCoverage(rowSlug, model) ||
-				hasVariantConflict(rowSlug, id, matcherConfig)
-			) {
+			if (id == null) {
 				return [];
 			}
-			const score = scoreCandidate(rowSlug, id, name);
-			return score > 0
-				? [
-						{
-							model_id: id,
-							provider_id: id.split("/")[0] ?? "",
-							provider_name: "",
-							model_name: name || null,
-							score,
-						},
-					]
-				: [];
-		})
-		.sort(compareCandidates);
-	return candidates[0]?.model_id ?? null;
+			return [
+				{
+					model_id: id,
+					provider_id: id.split("/")[0] ?? "",
+					provider_name: "",
+					model_name: name || null,
+				},
+			];
+		}),
+		{ requireSourceTokenCoverage: true },
+	);
+	return (
+		firstVariantCompatibleCandidate(rowSlug, candidates, matcherConfig)
+			?.model_id ?? null
+	);
 }
 
 function benchmarkRankedModels(

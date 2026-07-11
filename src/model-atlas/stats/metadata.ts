@@ -6,6 +6,7 @@ import {
 	columnTooltipsForActiveComponents,
 } from "../config/column-tooltips";
 import { STAGE_CONFIG } from "../constants";
+import type { MatcherConfig } from "../matcher";
 import { positiveFiniteNumber } from "../math-utils";
 import { asRecord } from "../shared";
 import type { BenchmarkRowsByKey } from "./benchmarks";
@@ -21,7 +22,6 @@ import type {
 	LlmStatsBenchmarkUpdateHealth,
 	LlmStatsMetadata,
 	LlmStatsSourceHealth,
-	MatcherConfig,
 	ModelAtlasStageConfig,
 } from "./types";
 

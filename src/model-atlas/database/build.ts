@@ -4,17 +4,18 @@ import { rename } from "node:fs/promises";
 import type { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../constants";
-import { getMatchDiagnostics } from "../matcher";
+import { buildMatchDiagnostics } from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { enrichAggregatedModelRowsWithBenchmarks } from "../stats/benchmarks";
+import { buildModelCatalogRows, filterTextLlmRows } from "../stats/catalog";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
 import {
 	aggregateModelRows,
 	enrichModelRowsWithOpenRouter,
 } from "../stats/openrouter-enrichment";
 import { buildFinalModels } from "../stats/selection";
-import { buildDatabaseCatalogRows, filterDatabaseTextLlmRows } from "./catalog";
+import { nowEpochSeconds } from "../utils";
 import { buildDebugTraceRows } from "./debug-trace";
 import { buildSourceHealth } from "./health";
 import { openDatabase, removeDatabaseFiles } from "./schema";
@@ -167,10 +168,6 @@ const SNAPSHOT_WRITERS = [
 	},
 ] satisfies readonly SnapshotWriter[];
 
-function nowEpochSeconds(): number {
-	return Math.floor(Date.now() / 1000);
-}
-
 function tableCounts(db: DatabaseSync): Record<string, number> {
 	const rows = db
 		.prepare(`
@@ -278,20 +275,17 @@ export async function buildDatabase(
 			options,
 		);
 		const sourceData = cachedSourceDataFromSnapshots(snapshots);
-		const matchDiagnostics = await getMatchDiagnostics({
+		const matchDiagnostics = buildMatchDiagnostics({
+			matcherConfig: STAGE_CONFIG.matcher,
 			scrapedRows: sourceData.artificialAnalysis.rows,
 			modelsDevModels: sourceData.modelsDev.rows,
 		});
 		const matchedRows = modelRowsFromMatchDiagnostics(
 			sourceData,
-			STAGE_CONFIG.matcher,
 			matchDiagnostics,
 		);
-		const matchedTextLlmRows = filterDatabaseTextLlmRows(matchedRows);
-		const catalogRows = buildDatabaseCatalogRows(
-			sourceData,
-			matchedTextLlmRows,
-		);
+		const matchedTextLlmRows = filterTextLlmRows(matchedRows);
+		const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
 		const aggregatedRows = aggregateModelRows(catalogRows);
 		const benchmarkEnrichedRows = enrichAggregatedModelRowsWithBenchmarks(
 			aggregatedRows,
