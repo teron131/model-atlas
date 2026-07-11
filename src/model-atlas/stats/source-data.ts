@@ -1,4 +1,4 @@
-/** Live source-data loading owns parallel scraper fetches and the lookup maps used by matching and scoring. */
+/** Normalized source-data assembly owns lookup maps while live loading supplies source rows. */
 
 import {
 	buildAgentsLastExamMap,
@@ -25,10 +25,7 @@ import {
 	summarizeDeepSWEDefaultEffortRows,
 } from "../scrapers/deep-swe";
 import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
-import {
-	getModelsDevSourceStats,
-	processModelsDevPayload,
-} from "../scrapers/models-dev";
+import { getModelsDevSourceStats } from "../scrapers/models-dev";
 import {
 	buildRiemannBenchMap,
 	getRiemannBenchStats,
@@ -44,27 +41,10 @@ import {
 } from "../scrapers/vals/terminal-bench";
 import { modelSlugFromModelId } from "../shared";
 import {
-	buildArtificialAnalysisRetainKeys,
-	isoDateDaysAgo,
-	MODELS_DEV_LOOKBACK_DAYS,
 	pickPreferredModelsDevRows,
+	selectModelsDevRowsForArtificialAnalysis,
 } from "./source-policy";
-import type {
-	ArtificialAnalysisModel,
-	LlmStatsSourceData,
-	ModelsDevModel,
-} from "./types";
-
-function buildModelsDevById(
-	modelsDevModels: ModelsDevModel[],
-): Map<string, ModelsDevModel> {
-	return new Map(
-		modelsDevModels.map((modelsDevModel) => [
-			modelsDevModel.model_id,
-			modelsDevModel,
-		]),
-	);
-}
+import type { ArtificialAnalysisModel, LlmStatsSourceData } from "./types";
 
 function buildArtificialAnalysisBySlug(
 	artificialAnalysisRows: unknown[],
@@ -84,6 +64,97 @@ function buildArtificialAnalysisBySlug(
 		}
 	}
 	return artificialAnalysisBySlug;
+}
+
+export type LlmStatsSourceRows = {
+	artificialAnalysisRows: LlmStatsSourceData["artificialAnalysis"]["rows"];
+	artificialAnalysisEvaluationResourceRows: LlmStatsSourceData["artificialAnalysisEvaluationResources"]["rows"];
+	modelsDevModels: LlmStatsSourceData["modelsDev"]["rows"];
+	agentsLastExamRows: LlmStatsSourceData["agentsLastExam"]["rows"];
+	blueprintBenchRows: LlmStatsSourceData["blueprintBench"]["rows"];
+	browseCompRows: LlmStatsSourceData["browseComp"]["rows"];
+	cursorBenchRows: LlmStatsSourceData["cursorBench"]["rows"];
+	deepSWEEffortRows: LlmStatsSourceData["deepSWE"]["effortRows"];
+	gdpPdfRows: LlmStatsSourceData["gdpPdf"]["rows"];
+	riemannBenchRows: LlmStatsSourceData["riemannBench"]["rows"];
+	toolathlonRows: LlmStatsSourceData["toolathlon"]["rows"];
+	valsIndexRows: LlmStatsSourceData["valsIndex"]["rows"];
+	valsTerminalBenchRows: LlmStatsSourceData["valsTerminalBench"]["rows"];
+};
+
+/** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
+export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
+	const preferredModelsDevModels = pickPreferredModelsDevRows(
+		rows.modelsDevModels,
+	);
+	const deepSWEDefaultEffortRows = summarizeDeepSWEDefaultEffortRows(
+		rows.deepSWEEffortRows,
+	);
+	return {
+		artificialAnalysis: {
+			rows: rows.artificialAnalysisRows,
+			bySlug: buildArtificialAnalysisBySlug(rows.artificialAnalysisRows),
+		},
+		artificialAnalysisEvaluationResources: {
+			rows: rows.artificialAnalysisEvaluationResourceRows,
+			observationByModelName: buildArtificialAnalysisObservationResourceMap(
+				rows.artificialAnalysisEvaluationResourceRows,
+			),
+			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
+				rows.artificialAnalysisEvaluationResourceRows,
+			),
+		},
+		modelsDev: {
+			rows: preferredModelsDevModels,
+			byId: new Map(
+				preferredModelsDevModels.map((modelsDevModel) => [
+					modelsDevModel.model_id,
+					modelsDevModel,
+				]),
+			),
+		},
+		agentsLastExam: {
+			rows: rows.agentsLastExamRows,
+			scoreByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
+		},
+		blueprintBench: {
+			rows: rows.blueprintBenchRows,
+			scoreByModelName: buildBlueprintBenchMap(rows.blueprintBenchRows),
+		},
+		browseComp: {
+			rows: rows.browseCompRows,
+			scoreByModelName: buildBrowseCompMap(rows.browseCompRows),
+		},
+		cursorBench: {
+			rows: rows.cursorBenchRows,
+			scoreByModelName: buildCursorBenchMap(rows.cursorBenchRows),
+		},
+		deepSWE: {
+			effortRows: rows.deepSWEEffortRows,
+			defaultEffortRows: deepSWEDefaultEffortRows,
+			scoreByModelName: buildDeepSWEMap(deepSWEDefaultEffortRows),
+		},
+		gdpPdf: {
+			rows: rows.gdpPdfRows,
+			scoreByModelName: buildGdpPdfMap(rows.gdpPdfRows),
+		},
+		riemannBench: {
+			rows: rows.riemannBenchRows,
+			scoreByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
+		},
+		toolathlon: {
+			rows: rows.toolathlonRows,
+			scoreByModelName: buildToolathlonMap(rows.toolathlonRows),
+		},
+		valsIndex: {
+			rows: rows.valsIndexRows,
+			scoreByModelName: buildValsIndexMap(rows.valsIndexRows),
+		},
+		valsTerminalBench: {
+			rows: rows.valsTerminalBenchRows,
+			scoreByModelName: buildTerminalBenchMap(rows.valsTerminalBenchRows),
+		},
+	};
 }
 
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
@@ -124,78 +195,28 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const browseCompRows = browseCompStats.data;
 	const cursorBenchRows = cursorBenchStats.data;
 	const deepSWEEffortRows = deepSWEStats.data;
-	const deepSWEDefaultEffortRows =
-		summarizeDeepSWEDefaultEffortRows(deepSWEEffortRows);
 	const gdpPdfRows = gdpPdfStats.data;
 	const riemannBenchRows = riemannBenchStats.data;
 	const toolathlonRows = toolathlonStats.data;
 	const valsIndexRows = valsIndexStats.model_scores;
 	const valsTerminalBenchRows = valsTerminalBenchStats.model_scores;
-	const retainKeys = buildArtificialAnalysisRetainKeys(artificialAnalysisRows);
-	const modelsDevModels = processModelsDevPayload(
+	const modelsDevModels = selectModelsDevRowsForArtificialAnalysis(
 		modelsDevStats.payload,
-		isoDateDaysAgo(MODELS_DEV_LOOKBACK_DAYS),
-		retainKeys,
+		artificialAnalysisRows,
 	);
-	const preferredModelsDevModels = pickPreferredModelsDevRows(modelsDevModels);
-	return {
-		artificialAnalysis: {
-			rows: artificialAnalysisRows,
-			bySlug: buildArtificialAnalysisBySlug(artificialAnalysisRows),
-		},
-		artificialAnalysisEvaluationResources: {
-			rows: artificialAnalysisEvaluationResourceRows,
-			observationByModelName: buildArtificialAnalysisObservationResourceMap(
-				artificialAnalysisEvaluationResourceRows,
-			),
-			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
-				artificialAnalysisEvaluationResourceRows,
-			),
-		},
-		modelsDev: {
-			rows: preferredModelsDevModels,
-			byId: buildModelsDevById(preferredModelsDevModels),
-		},
-		agentsLastExam: {
-			rows: agentsLastExamRows,
-			scoreByModelName: buildAgentsLastExamMap(agentsLastExamRows),
-		},
-		blueprintBench: {
-			rows: blueprintBenchRows,
-			scoreByModelName: buildBlueprintBenchMap(blueprintBenchRows),
-		},
-		browseComp: {
-			rows: browseCompRows,
-			scoreByModelName: buildBrowseCompMap(browseCompRows),
-		},
-		cursorBench: {
-			rows: cursorBenchRows,
-			scoreByModelName: buildCursorBenchMap(cursorBenchRows),
-		},
-		deepSWE: {
-			effortRows: deepSWEEffortRows,
-			defaultEffortRows: deepSWEDefaultEffortRows,
-			scoreByModelName: buildDeepSWEMap(deepSWEDefaultEffortRows),
-		},
-		gdpPdf: {
-			rows: gdpPdfRows,
-			scoreByModelName: buildGdpPdfMap(gdpPdfRows),
-		},
-		riemannBench: {
-			rows: riemannBenchRows,
-			scoreByModelName: buildRiemannBenchMap(riemannBenchRows),
-		},
-		toolathlon: {
-			rows: toolathlonRows,
-			scoreByModelName: buildToolathlonMap(toolathlonRows),
-		},
-		valsIndex: {
-			rows: valsIndexRows,
-			scoreByModelName: buildValsIndexMap(valsIndexRows),
-		},
-		valsTerminalBench: {
-			rows: valsTerminalBenchRows,
-			scoreByModelName: buildTerminalBenchMap(valsTerminalBenchRows),
-		},
-	};
+	return buildSourceData({
+		artificialAnalysisRows,
+		artificialAnalysisEvaluationResourceRows,
+		modelsDevModels,
+		agentsLastExamRows,
+		blueprintBenchRows,
+		browseCompRows,
+		cursorBenchRows,
+		deepSWEEffortRows,
+		gdpPdfRows,
+		riemannBenchRows,
+		toolathlonRows,
+		valsIndexRows,
+		valsTerminalBenchRows,
+	});
 }

@@ -5,16 +5,12 @@
  * Overlay page source: https://vercel.com/ai-gateway/models
  */
 
-import {
-	claudeIdentityKey,
-	parseClaudeIdentity,
-} from "../matcher/claude-identity";
+import { claudeIdentityKey, parseClaudeIdentity } from "../claude-identity";
 import { normalizeModelToken, normalizeProviderModelId } from "../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../utils";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
 const VERCEL_AI_GATEWAY_MODELS_URL = "https://vercel.com/ai-gateway/models";
-const LOOKBACK_DAYS = 365;
 const REQUEST_TIMEOUT_MS = 30_000;
 const VERCEL_PROVIDER_ID = "vercel";
 const VERCEL_PROVIDER_NAME = "Vercel AI Gateway";
@@ -85,30 +81,11 @@ export type VercelGatewayModelRecord = {
 	release_date: string | null;
 };
 
-/**
- * Flattened models.dev output keeps failed fetches on the same payload contract as successful fetches.
- *
- * When fetching fails, `fetched_at_epoch_seconds` and `status_code` are `null` and `models` is an empty array.
- */
-type ModelsDevOutputPayload = {
-	fetched_at_epoch_seconds: number | null;
-	status_code: number | null;
-	models: ModelsDevFlatModel[];
-};
-
-export type ModelsDevOptions = Record<string, never>;
-
 type ProcessModelsDevPayloadOptions = {
 	retainedModelIds?: ReadonlySet<string>;
 	retainedModelNames?: ReadonlySet<string>;
 	retainedClaudeIdentityKeys?: ReadonlySet<string>;
 };
-function isoDateDaysAgo(days: number): string {
-	return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
-		.toISOString()
-		.slice(0, 10);
-}
-
 function isRecentDate(
 	isoDate: string | undefined,
 	cutoffIsoDate: string,
@@ -320,9 +297,7 @@ export function processModelsDevPayload(
 	return rankRecentModels(flattenModels(payload), cutoffIsoDate, options);
 }
 
-export async function getModelsDevSourceStats(
-	_options: ModelsDevOptions = {},
-): Promise<ModelsDevSourcePayload> {
+export async function getModelsDevSourceStats(): Promise<ModelsDevSourcePayload> {
 	try {
 		return await fetchModelsDev();
 	} catch {
@@ -331,31 +306,6 @@ export async function getModelsDevSourceStats(
 			status_code: null,
 			payload: {},
 			live_vercel_models: [],
-		};
-	}
-}
-
-/**
- * Models.dev fetches are failure-safe because refresh callers can continue with cached or empty rows.
- *
- * This API is failure-safe by design and returns an empty payload on errors.
- */
-export async function getModelsDevStats(
-	_options: ModelsDevOptions = {},
-): Promise<ModelsDevOutputPayload> {
-	try {
-		const sourcePayload = await getModelsDevSourceStats();
-		const cutoffIsoDate = isoDateDaysAgo(LOOKBACK_DAYS);
-		return {
-			fetched_at_epoch_seconds: sourcePayload.fetched_at_epoch_seconds,
-			status_code: sourcePayload.status_code,
-			models: processModelsDevPayload(sourcePayload.payload, cutoffIsoDate),
-		};
-	} catch {
-		return {
-			fetched_at_epoch_seconds: null,
-			status_code: null,
-			models: [],
 		};
 	}
 }

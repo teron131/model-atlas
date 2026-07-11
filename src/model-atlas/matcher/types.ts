@@ -1,25 +1,31 @@
 /** Contracts for LLM source-row matching diagnostics and candidate scoring. */
 
-/** Shared public and intermediate types for the LLM matcher pipeline. */
-import type { getModelsDevStats } from "../scrapers/models-dev";
+import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 
-export type ModelsDevModel = Awaited<
-	ReturnType<typeof getModelsDevStats>
->["models"][number];
+export type ModelsDevModel = ModelsDevFlatModel;
 
 export type MatcherSourceModel = {
+	sourceId: string | null;
 	sourceSlug: string;
-	sourceMatchSlug?: string;
 	sourceName: string | null;
 	sourceReleaseDate: string | null;
 };
 
-/** Candidate model from models.dev for one Artificial Analysis source model. */
-export type MatchCandidate = {
+/** Variant labels that must agree between source slugs and catalog model ids. */
+export type MatcherConfig = {
+	variantTokens: readonly string[];
+};
+
+/** Identity fields needed to score one candidate against a source slug. */
+export type MatchCandidateInput = {
 	model_id: string;
 	provider_id: string;
 	provider_name: string;
 	model_name: string | null;
+};
+
+/** Candidate model from models.dev for one Artificial Analysis source model. */
+export type MatchCandidate = MatchCandidateInput & {
 	score: number;
 };
 
@@ -27,6 +33,7 @@ export type MatchResult = MatchCandidate | null;
 
 /** Mapping entry for one Artificial Analysis model and its ranked match candidates. */
 export type MatchMappedModel = {
+	artificial_analysis_id: string | null;
 	artificial_analysis_slug: string;
 	artificial_analysis_name: string | null;
 	artificial_analysis_release_date: string | null;
@@ -35,14 +42,13 @@ export type MatchMappedModel = {
 };
 
 export type MatchDiagnosticsOptions = {
+	matcherConfig: MatcherConfig;
 	maxCandidates?: number;
-	modelsDevModels?: ModelsDevModel[];
-	scrapedRows?: unknown[];
+	modelsDevModels: ModelsDevModel[];
+	scrapedRows: unknown[];
 };
 
 export type MatchDiagnosticsPayload = {
-	scraped_fetched_at_epoch_seconds: number | null;
-	models_dev_fetched_at_epoch_seconds: number | null;
 	total_scraped_models: number;
 	total_models_dev_models: number;
 	max_candidates: number;

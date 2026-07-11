@@ -1,10 +1,12 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
+import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
 import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
 import {
 	asDeepSWERawLeaderboardRow,
 	preferredDeepSWELeaderboardRows,
 } from "../../scrapers/deep-swe";
+import { asFiniteNumber } from "../../shared";
 import {
 	artificialAnalysisBenchmarkRowDrafts,
 	type BenchmarkRowDraft,
@@ -17,7 +19,7 @@ type DbBenchmarkRow = Record<string, unknown>;
 type DbSourceSpec = {
 	key: string;
 	rows: readonly DbBenchmarkRow[];
-	scoreColumn: string;
+	value: (row: DbBenchmarkRow) => unknown;
 	providerColumn?: string;
 	rowKind?: string;
 };
@@ -40,54 +42,66 @@ function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** Persisted ALE health rows use the same median-or-mean rule as scoring. */
+function agentsLastExamDbScore(row: DbBenchmarkRow): number | null {
+	const medianScore = asFiniteNumber(row.median_score);
+	const meanScore = asFiniteNumber(row.mean_score);
+	return medianScore == null || meanScore == null
+		? null
+		: agentsLastExamBenchmarkScore({
+				median_score: medianScore,
+				mean_score: meanScore,
+			});
+}
+
 function dbSourceSpecs(rows: BenchmarkDbRows): DbSourceSpec[] {
 	return [
 		{
 			key: "agents_last_exam",
 			rows: rows.agentsLastExamRows,
-			scoreColumn: "median_score",
+			value: agentsLastExamDbScore,
 			rowKind: "model_score",
 		},
 		{
 			key: "blueprint_bench_2",
 			rows: rows.blueprintBenchRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 		},
 		{
 			key: "browsecomp",
 			rows: rows.browseCompRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 			providerColumn: "provider",
 		},
 		{
 			key: "gdp_pdf",
 			rows: rows.gdpPdfRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 			providerColumn: "provider",
 		},
 		{
 			key: "riemann_bench",
 			rows: rows.riemannBenchRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 			providerColumn: "provider",
 		},
 		{
 			key: "terminalbench_v21",
 			rows: rows.valsTerminalBenchRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 			providerColumn: "provider",
 			rowKind: "overall",
 		},
 		{
 			key: "toolathlon",
 			rows: rows.toolathlonRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 			providerColumn: "provider",
 		},
 		{
 			key: "vals_index",
 			rows: rows.valsIndexRows,
-			scoreColumn: "score",
+			value: (row) => row.score,
 			providerColumn: "provider",
 			rowKind: "overall",
 		},
@@ -109,7 +123,7 @@ function dbSourceRowDraft(
 			source.providerColumn == null
 				? null
 				: stringValue(row[source.providerColumn]),
-		value: row[source.scoreColumn],
+		value: source.value(row),
 	};
 }
 

@@ -1,7 +1,7 @@
 /** Scoring policy for deciding whether benchmark source names and catalog model IDs refer to the same LLM. */
 
-import { normalizeModelToken } from "../shared";
-import { claudeIdentityKey, parseClaudeIdentity } from "./claude-identity";
+import { claudeIdentityKey, parseClaudeIdentity } from "../claude-identity";
+import { normalizeModelToken, normalizeProviderModelId } from "../shared";
 import {
 	commonPrefixLength,
 	firstParsedNumber,
@@ -13,7 +13,11 @@ import {
 	splitBaseModelTokens,
 	splitTokens,
 } from "./name-tokens";
-import type { MatchCandidate } from "./types";
+import type {
+	MatchCandidate,
+	MatchCandidateInput,
+	MatcherConfig,
+} from "./types";
 
 const TOKEN_PREFIX_WEIGHTS = [5, 4, 3, 2, 1] as const;
 const TOKEN_PREFIX_REWARD_MULTIPLIER = 2;
@@ -34,6 +38,117 @@ const CLAUDE_IDENTITY_EXACT_REWARD = 20;
 const UNVERSIONED_CURRENT_VERSION_REWARD = 6;
 const REQUIRED_IDENTITY_LABELS = ["vl", "coder"] as const;
 const EXCLUSIVE_SIZE_LABELS = ["small", "micro"] as const;
+const ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES = [
+	"-ultra",
+	"-max",
+	"-adaptive",
+	"-xhigh",
+	"-high",
+	"-medium",
+	"-low",
+	"-minimal",
+	"-non-reasoning",
+] as const;
+const COVERAGE_IGNORED_TOKENS = new Set([
+	"preview",
+	"ultra",
+	"max",
+	"adaptive",
+	"xhigh",
+	"high",
+	"medium",
+	"low",
+	"minimal",
+	"non",
+]);
+
+/** Collapse Artificial Analysis effort-specific rows to the base slug used for identity matching. */
+export function artificialAnalysisMatchSlug(sourceSlug: string): string {
+	for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
+		if (sourceSlug.endsWith(suffix)) {
+			return sourceSlug.slice(0, -suffix.length);
+		}
+	}
+	return sourceSlug;
+}
+
+/** Variant labels are matched longest-first so compound variants like flash-lite do not double-count flash. */
+function variantLabels(
+	modelId: string,
+	matcherConfig: MatcherConfig,
+): Set<string> {
+	const tokens = normalizeProviderModelId(modelId)
+		.split(/[-/]/)
+		.filter(Boolean);
+	const occupied = new Set<number>();
+	const labels = new Set<string>();
+	const variants = [...matcherConfig.variantTokens].sort(
+		(left, right) =>
+			normalizeModelToken(right).split("-").length -
+			normalizeModelToken(left).split("-").length,
+	);
+
+	for (const variant of variants) {
+		const variantTokens = normalizeModelToken(variant).split("-");
+		for (
+			let index = 0;
+			index <= tokens.length - variantTokens.length;
+			index += 1
+		) {
+			if (
+				variantTokens.some((token, offset) => tokens[index + offset] !== token)
+			) {
+				continue;
+			}
+			if (
+				variantTokens.some((_token, offset) => occupied.has(index + offset))
+			) {
+				continue;
+			}
+			for (let offset = 0; offset < variantTokens.length; offset += 1) {
+				occupied.add(index + offset);
+			}
+			labels.add(variant);
+		}
+	}
+
+	return labels;
+}
+
+/** Reject candidates whose configured model variants disagree with the source identity. */
+export function hasVariantConflict(
+	sourceSlug: string,
+	candidateModelId: string,
+	matcherConfig: MatcherConfig,
+): boolean {
+	const sourceLabels = variantLabels(sourceSlug, matcherConfig);
+	const candidateLabels = variantLabels(candidateModelId, matcherConfig);
+	return matcherConfig.variantTokens.some(
+		(token) => sourceLabels.has(token) !== candidateLabels.has(token),
+	);
+}
+
+/** Require every distinguishing source token to appear in a candidate id or display name. */
+function hasSourceTokenCoverage(
+	sourceSlug: string,
+	candidateModelId: string,
+	candidateModelName: string,
+): boolean {
+	const sourceTokens = splitTokens(sourceSlug).filter(
+		(token) => !COVERAGE_IGNORED_TOKENS.has(token),
+	);
+	if (sourceTokens.length === 0) {
+		return false;
+	}
+	const candidateTokenSets = [
+		splitBaseModelTokens(candidateModelId),
+		splitTokens(candidateModelName),
+	];
+	return candidateTokenSets.some((candidateTokens) => {
+		const candidateTokenSet = new Set(candidateTokens);
+		return sourceTokens.every((token) => candidateTokenSet.has(token));
+	});
+}
 
 /** Claude tier/version identity is structural even though Anthropic changed its token order. */
 function claudeIdentityMatch(
@@ -402,7 +517,7 @@ function coverageRewardOrPenalty(
 	return Math.max(compareSets(baseSet), compareSets(nameSet));
 }
 
-export function hasFirstTokenMatch(
+function hasFirstTokenMatch(
 	sourceSlug: string,
 	candidateModelId: string,
 	candidateModelName: string,
@@ -418,7 +533,7 @@ export function hasFirstTokenMatch(
 	);
 }
 
-export function scoreCandidate(
+function scoreCandidate(
 	sourceSlug: string,
 	candidateModelId: string,
 	candidateModelName: string,
@@ -505,4 +620,51 @@ export function compareCandidates(
 		return right.score - left.score;
 	}
 	return left.model_id.localeCompare(right.model_id);
+}
+
+/** Apply the matcher-owned first-token gate and scoring order to normalized candidate identities. */
+export function rankMatchCandidates(
+	sourceSlug: string,
+	candidates: readonly MatchCandidateInput[],
+	options: { requireSourceTokenCoverage?: boolean } = {},
+): MatchCandidate[] {
+	if (sourceSlug.length === 0) {
+		return [];
+	}
+	return candidates
+		.flatMap((candidate) => {
+			const candidateName = candidate.model_name ?? "";
+			if (
+				!hasFirstTokenMatch(sourceSlug, candidate.model_id, candidateName) ||
+				(options.requireSourceTokenCoverage === true &&
+					!hasSourceTokenCoverage(
+						sourceSlug,
+						candidate.model_id,
+						candidateName,
+					))
+			) {
+				return [];
+			}
+			const score = scoreCandidate(
+				sourceSlug,
+				candidate.model_id,
+				candidateName,
+			);
+			return score > 0 ? [{ ...candidate, score }] : [];
+		})
+		.sort(compareCandidates);
+}
+
+/** Select the highest-ranked candidate whose configured model variants agree with the source. */
+export function firstVariantCompatibleCandidate(
+	sourceSlug: string,
+	candidates: readonly MatchCandidate[],
+	matcherConfig: MatcherConfig,
+): MatchCandidate | null {
+	return (
+		candidates.find(
+			(candidate) =>
+				!hasVariantConflict(sourceSlug, candidate.model_id, matcherConfig),
+		) ?? null
+	);
 }

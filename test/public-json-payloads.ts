@@ -1,4 +1,4 @@
-/** Verify public JSON projections and the dashboard bootstrap projection. */
+/** Verify the public model boundary, JSON projections, and dashboard bootstrap projection. */
 
 import assert from "node:assert/strict";
 
@@ -9,10 +9,77 @@ import {
 	scoreJsonPayload,
 } from "../app/api/llm-stats/public-json";
 import { leanDashboardPayload } from "../app/dashboard/payload";
+import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import { selectPublicModels } from "../src/model-atlas/stats/selection/public-list";
+import type { LlmStatsScoredCandidate } from "../src/model-atlas/stats/types";
 import {
 	minimalLlmStatsModel,
 	minimalLlmStatsPayload,
 } from "./llm-stats-fixtures";
+
+const internalCandidate = {
+	...minimalLlmStatsModel({
+		id: "provider/internal-candidate",
+		name: "Internal Candidate",
+	}),
+	scoring_sources: {
+		regression_probe: { raw_score: 0.8 },
+	},
+	internal_probe: "must not be public",
+	component_scores: {
+		intelligence_score: 80,
+		agentic_score: 70,
+		speed_score: 60,
+	},
+	scores: {
+		intelligence_score: 80,
+		agentic_score: 70,
+		speed_score: 60,
+		value_score: 50,
+		overall_score: 70,
+	},
+} satisfies LlmStatsScoredCandidate & { internal_probe: string };
+const [projectedPublicModel] = selectPublicModels(
+	[internalCandidate],
+	null,
+	STAGE_CONFIG.final,
+	STAGE_CONFIG.scoring,
+);
+assert.deepEqual(
+	Object.keys(projectedPublicModel ?? {}).sort(),
+	Object.keys(
+		minimalLlmStatsModel({
+			id: "provider/internal-candidate",
+			name: "Internal Candidate",
+		}),
+	).sort(),
+	"public selection should project candidates onto the exact public model surface",
+);
+assert.equal(
+	"scoring_sources" in (projectedPublicModel ?? {}),
+	false,
+	"public selection should not expose scoring provenance",
+);
+
+const missingOverallScoreCandidate: LlmStatsScoredCandidate = {
+	...internalCandidate,
+	id: "provider/missing-overall-score",
+	name: "Missing Overall Score",
+	scores: {
+		...internalCandidate.scores,
+		overall_score: null,
+	},
+};
+assert.deepEqual(
+	selectPublicModels(
+		[missingOverallScoreCandidate],
+		null,
+		STAGE_CONFIG.final,
+		STAGE_CONFIG.scoring,
+	),
+	[],
+	"public selection should exclude candidates without a finite overall score",
+);
 
 const fullPayload = minimalLlmStatsPayload({
 	fetchedAt: 123,

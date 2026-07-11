@@ -33,7 +33,4 @@ export type {
 	ModelAtlasStageConfig,
 	OverallScoreWeights,
 } from "./stats";
-export {
-	getLiveLlmStats,
-	getLlmStats,
-} from "./stats";
+export { getLiveLlmStats } from "./stats";

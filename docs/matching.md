@@ -92,9 +92,11 @@ The tier is never treated as noise: `haiku`, `sonnet`, `opus`, and `fable` are m
 
 ## Variant Conflict Check
 
-After the matcher scores candidates, the Model Atlas match stage applies another guardrail using configured variant tokens from `src/model-atlas/config/stage-config.ts`: `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`.
+After scoring candidates, the matcher applies another guardrail using configured variant tokens from `src/model-atlas/config/stage-config.ts`: `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`. Artificial Analysis reasoning-effort suffixes are collapsed before this check, so an effort row such as `model-max` still matches the base model identity.
 
 If the AA slug has one of those labels and the candidate model id does not, or the candidate model id has one and the AA slug does not, that candidate is rejected. Multi-token labels are matched as labels, so `flash-lite` does not count as plain `flash`. The match stage walks the ranked candidate list and keeps the first candidate that survives this guardrail. This is deliberately blunt. Matching a `flash` row to a `flash-lite` model, an `omni` row to a non-omni model, or a base model row to an `image` or `latest` route is worse than dropping the row.
+
+Benchmark-update health uses the same candidate ranking and variant-selection boundary with stricter full-token coverage enabled. That keeps an official source row explicitly unrepresented when only a weak family-prefix match exists.
 
 ## Final Matched Row
 
@@ -133,7 +135,7 @@ Start with the matcher diagnostics or the `model_match_debug` table rather than 
 - the best candidate id and score
 - the next few candidates
 - whether the row was voided
-- whether a variant token mismatch rejected it later
+- whether the matcher rejected it for a variant token mismatch
 - whether OpenRouter won when a direct fallback provider exact match would have been cleaner
 - the raw row indexes linked from `model_match_debug` when the final payload is not enough
 

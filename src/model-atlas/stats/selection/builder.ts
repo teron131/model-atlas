@@ -1,6 +1,7 @@
 /** Final model building owns candidate scoring, public filtering, rescoring, and logo cache hydration. */
 
 import { cacheStatsLogos } from "../../logo-cache";
+import { asFiniteNumber } from "../../shared";
 import { attachFinalScores } from "../scores";
 import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
 import type {
@@ -20,7 +21,8 @@ function hasPublicScores(
 		model.component_scores?.intelligence_score != null &&
 		model.component_scores.agentic_score != null &&
 		model.scores?.intelligence_score != null &&
-		model.scores.agentic_score != null
+		model.scores.agentic_score != null &&
+		asFiniteNumber(model.scores.overall_score) != null
 	);
 }
 

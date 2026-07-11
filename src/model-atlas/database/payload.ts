@@ -13,6 +13,7 @@ import {
 	MODEL_ATLAS_EVALUATION_KEYS,
 } from "../stats/benchmarks";
 import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
+import { publicModelFromCandidate } from "../stats/selection";
 import type {
 	LlmStatsContextWindow,
 	LlmStatsCost,
@@ -494,7 +495,10 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 
 /** Assembles the public Model Atlas payload from database row groups. */
 export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
-	const models = rows.modelRows.map(modelFromRow);
+	const models = rows.modelRows.flatMap((row) => {
+		const model = publicModelFromCandidate(modelFromRow(row));
+		return model == null ? [] : [model];
+	});
 	const sourceHealth = sourceHealthFromRows(rows.sourceHealthRows);
 	const sourceRowsByKey = benchmarkRowsFromDb(rows);
 	return {
@@ -513,7 +517,7 @@ export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 				}),
 			),
 		},
-		models: models as LlmStatsPayload["models"],
+		models,
 	};
 }
 

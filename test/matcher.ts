@@ -3,6 +3,9 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import { buildDebugTraceRows } from "../src/model-atlas/database/debug-trace";
+import type { SourceSnapshots } from "../src/model-atlas/database/types";
+import { buildMatchDiagnostics } from "../src/model-atlas/matcher";
 import { modelNameIdentityKey } from "../src/model-atlas/matcher/name-tokens";
 import { runMatcher } from "../src/model-atlas/matcher/pipeline";
 import type {
@@ -26,7 +29,7 @@ import {
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
 import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
 import { enrichAggregatedModelRowsWithBenchmarks } from "../src/model-atlas/stats/benchmarks";
-import { buildMatchedModelRows } from "../src/model-atlas/stats/matching";
+import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/stats/matching";
 import { aggregateModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
@@ -54,7 +57,7 @@ const providerPools: PreferredProviderPools = {
 	],
 };
 
-const output = runMatcher(sourceRows, providerPools, 5);
+const output = runMatcher(sourceRows, providerPools, 5, STAGE_CONFIG.matcher);
 
 assert.equal(
 	output.models[0]?.best_match?.provider_id,
@@ -84,6 +87,7 @@ const exactFallbackOutput = runMatcher(
 		fallback: [model("anthropic", "claude-fable-5", "Claude Fable 5")],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 
 assert.equal(
@@ -103,6 +107,7 @@ const unsafeVersionOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	unsafeVersionOutput.models[0]?.best_match,
@@ -120,6 +125,7 @@ const reorderedClaudeOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	reorderedClaudeOutput.models[0]?.best_match?.model_id,
@@ -136,6 +142,7 @@ const compactClaudeVersionOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	compactClaudeVersionOutput.models[0]?.best_match?.model_id,
@@ -152,6 +159,7 @@ const missingClaudeTierOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	missingClaudeTierOutput.models[0]?.best_match,
@@ -166,11 +174,115 @@ const missingScaleOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	missingScaleOutput.models[0]?.best_match,
 	null,
 	"parameter-scale source rows must not attach to an unscaled catalog model",
+);
+
+const lowerValidVariantOutput = runMatcher(
+	[source("example-3-flash", "Example 3 Flash")],
+	{
+		primary: [
+			model("openrouter", "google/example-3", "Example 3 Flash"),
+			model("openrouter", "google/example-3-flash-preview", "Example Preview"),
+		],
+		fallback: [],
+	},
+	5,
+	STAGE_CONFIG.matcher,
+);
+assert.deepEqual(
+	lowerValidVariantOutput.models[0]?.candidates.map(
+		(candidate) => candidate.model_id,
+	),
+	["google/example-3", "google/example-3-flash-preview"],
+	"diagnostics should retain the higher-ranked variant conflict",
+);
+assert.equal(
+	lowerValidVariantOutput.models[0]?.best_match?.model_id,
+	"google/example-3-flash-preview",
+	"the matcher should select the first variant-compatible candidate",
+);
+assert.equal(lowerValidVariantOutput.matchedCount, 1);
+
+const effortDiagnostics = buildMatchDiagnostics({
+	matcherConfig: STAGE_CONFIG.matcher,
+	scrapedRows: [
+		{
+			model_id: "example/example-3-max",
+			name: "Example 3 Max Effort",
+		},
+	],
+	modelsDevModels: [
+		model("openrouter", "example/example-3", "Example 3"),
+		model("openrouter", "example/example-3-preview", "Example 3 Preview"),
+	],
+});
+const effortDiagnostic = effortDiagnostics.models[0];
+assert.equal(
+	effortDiagnostic?.best_match?.model_id,
+	"example/example-3",
+	"reasoning-effort suffixes should not be treated as model-variant labels",
+);
+assert.equal(effortDiagnostic?.artificial_analysis_id, "example/example-3-max");
+assert.equal(
+	effortDiagnostic?.artificial_analysis_name,
+	"Example 3 Max Effort",
+);
+const effortTraceRows = buildDebugTraceRows(
+	{
+		artificialAnalysisSelectedRows: [
+			{
+				model_id: "example/example-3-max",
+				name: "Example 3 Max Effort",
+			},
+		],
+		modelsDevPayload: {},
+	} as unknown as SourceSnapshots,
+	null,
+	effortDiagnostics,
+	STAGE_CONFIG.matcher,
+);
+assert.equal(
+	effortTraceRows.find(
+		(row) => row.candidate_model_id === "example/example-3-preview",
+	)?.rejection_reason,
+	"lower_rank",
+	"debug traces should use the same effort-normalized variant identity as selection",
+);
+assert.equal(
+	effortTraceRows[0]?.artificial_analysis_id,
+	"example/example-3-max",
+);
+assert.equal(
+	effortTraceRows[0]?.artificial_analysis_name,
+	"Example 3 Max Effort",
+);
+
+const allVariantConflictsOutput = runMatcher(
+	[source("example-3-pro", "Example 3 Pro")],
+	{
+		primary: [model("openrouter", "google/example-3", "Example 3 Pro")],
+		fallback: [],
+	},
+	5,
+	STAGE_CONFIG.matcher,
+);
+assert.equal(
+	allVariantConflictsOutput.models[0]?.best_match,
+	null,
+	"the matcher decision must agree with downstream selection when every candidate has a variant conflict",
+);
+assert.equal(allVariantConflictsOutput.preVoidMatchedCount, 0);
+assert.equal(allVariantConflictsOutput.matchedCount, 0);
+assert.equal(allVariantConflictsOutput.unmatchedCount, 1);
+assert.equal(
+	allVariantConflictsOutput.models[0]?.candidates.length,
+	1,
+	"rejected candidates should remain available for diagnostics",
 );
 
 for (const [sourceSlug, sourceName, candidateId, candidateName] of [
@@ -206,6 +318,7 @@ for (const [sourceSlug, sourceName, candidateId, candidateName] of [
 			fallback: [],
 		},
 		5,
+		STAGE_CONFIG.matcher,
 	);
 	assert.equal(
 		conflictOutput.models[0]?.best_match,
@@ -227,6 +340,7 @@ const exactVisionLanguageOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	exactVisionLanguageOutput.models[0]?.best_match?.model_id,
@@ -249,6 +363,7 @@ const unversionedCurrentModelOutput = runMatcher(
 		fallback: [],
 	},
 	5,
+	STAGE_CONFIG.matcher,
 );
 assert.equal(
 	unversionedCurrentModelOutput.models[1]?.best_match?.model_id,
@@ -266,10 +381,49 @@ const sourceData = modelStatsSourceData([
 	),
 	sourceModel("google/example-3-pro", 50),
 ]);
-const matchedRows = await buildMatchedModelRows(
-	sourceData,
-	STAGE_CONFIG.matcher,
+const matchDiagnostics = buildMatchDiagnostics({
+	matcherConfig: STAGE_CONFIG.matcher,
+	scrapedRows: sourceData.artificialAnalysis.rows,
+	modelsDevModels: sourceData.modelsDev.rows,
+});
+const unmatchedProDiagnostics = matchDiagnostics.models.find(
+	(model) => model.artificial_analysis_slug === "example-3-pro",
 );
+assert.equal(
+	unmatchedProDiagnostics?.best_match,
+	null,
+	"diagnostics must not count a row that stats selection rejects for variant conflicts",
+);
+assert.equal(matchDiagnostics.matched_count, 2);
+assert.equal(matchDiagnostics.unmatched_count, 1);
+assert.ok(
+	unmatchedProDiagnostics != null &&
+		unmatchedProDiagnostics.candidates.length > 0,
+	"variant-rejected candidates should remain inspectable",
+);
+const unmatchedProTraceRows = buildDebugTraceRows(
+	{
+		artificialAnalysisSelectedRows: [],
+		modelsDevPayload: {},
+	} as unknown as SourceSnapshots,
+	null,
+	matchDiagnostics,
+	STAGE_CONFIG.matcher,
+).filter((row) => row.artificial_analysis_slug === "example-3-pro");
+assert.ok(unmatchedProTraceRows.length > 0);
+assert.equal(
+	unmatchedProTraceRows.some((row) => row.selected),
+	false,
+	"debug traces should consume the finalized matcher decision",
+);
+assert.equal(
+	unmatchedProTraceRows.every(
+		(row) => row.rejection_reason === "variant_conflict",
+	),
+	true,
+	"debug traces should explain matcher-owned variant rejections",
+);
+const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
 const matchedExample = matchedRows.find(
 	(row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
@@ -345,6 +499,7 @@ assert.equal(aggregateExample?.reasoning_effort, undefined);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
+		sourceId: sourceSlug,
 		sourceSlug,
 		sourceName,
 		sourceReleaseDate: null,

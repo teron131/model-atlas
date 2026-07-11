@@ -264,7 +264,12 @@ export function insertGdpPdfRawRows(
 export function insertRiemannBenchRawRows(
 	db: DatabaseSync,
 	runId: number,
-	snapshots: SourceSnapshots,
+	snapshots: Pick<
+		SourceSnapshots,
+		"riemannBenchModelScoreRows" | "riemannBenchSourceUrl"
+	> & {
+		fetchedAt: Pick<SourceSnapshots["fetchedAt"], "riemannBench">;
+	},
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO riemann_bench_raw_rows (
@@ -277,7 +282,7 @@ export function insertRiemannBenchRawRows(
 			runId,
 			index,
 			snapshots.fetchedAt.riemannBench,
-			SOURCE_URLS.riemann_bench,
+			snapshots.riemannBenchSourceUrl,
 			row.provider,
 			row.model,
 			row.score,

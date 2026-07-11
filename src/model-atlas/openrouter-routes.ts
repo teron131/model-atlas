@@ -1,6 +1,6 @@
 /** Shared OpenRouter route identity rules for scraping, storage, and public stats rows. */
 
-import { claudeRouteIdentityKey } from "./matcher/claude-identity";
+import { claudeRouteIdentityKey } from "./claude-identity";
 import {
 	modelSlugFromModelId,
 	normalizeProviderModelId,

@@ -1,14 +1,22 @@
+/** Verifies Riemann Bench model payloads and raw-source URL cache round-trips. */
+
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
+import { readRiemannBenchRawCache } from "../src/model-atlas/database/cache";
 import { openDatabase } from "../src/model-atlas/database/schema";
-import { insertModelStageRows } from "../src/model-atlas/database/writers";
+import { riemannBenchSnapshot } from "../src/model-atlas/database/source-snapshots/sparse-benchmarks";
+import {
+	insertModelStageRows,
+	insertRiemannBenchRawRows,
+} from "../src/model-atlas/database/writers";
 
 const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");
+const customSourceUrl = "https://example.test/custom-riemann-bench";
 
 try {
 	const db = await openDatabase(databasePath);
@@ -44,6 +52,80 @@ try {
 				},
 			},
 		]);
+		db.prepare(`
+			INSERT INTO riemann_bench_raw_rows (
+				run_id, row_index, fetched_at_epoch_seconds, url, provider,
+				model, score, last_updated
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`).run(
+			runId,
+			0,
+			1_800_000_000,
+			customSourceUrl,
+			"Example",
+			"Custom Math Model",
+			0.62,
+			"05/27/2026",
+		);
+		const cachedRows = readRiemannBenchRawCache(db);
+		assert.equal(
+			cachedRows?.sourceUrl,
+			customSourceUrl,
+			"cache reconstruction should accept a consistent custom source URL",
+		);
+		const cachedSnapshot = await riemannBenchSnapshot(
+			db,
+			{
+				last_fetch_epoch_seconds: 1_800_000_000,
+				source_input_count: 1,
+				cache_hit: true,
+				refreshed: false,
+			},
+			{},
+			new Map(),
+			1_800_000_100,
+		);
+		assert.equal(cachedSnapshot.riemannBenchSourceUrl, customSourceUrl);
+
+		const copiedRunId = runId + 1;
+		insertRiemannBenchRawRows(db, copiedRunId, {
+			riemannBenchModelScoreRows: cachedSnapshot.riemannBenchModelScoreRows,
+			riemannBenchSourceUrl: cachedSnapshot.riemannBenchSourceUrl,
+			fetchedAt: {
+				riemannBench: cachedSnapshot.sourceStatus.fetchedAt,
+			},
+		});
+		assert.equal(
+			db
+				.prepare(
+					"SELECT url FROM riemann_bench_raw_rows WHERE run_id = ? AND row_index = 0",
+				)
+				.get(copiedRunId)?.url,
+			customSourceUrl,
+			"the writer should persist snapshot provenance instead of recreating a default URL",
+		);
+		assert.equal(readRiemannBenchRawCache(db)?.sourceUrl, customSourceUrl);
+
+		db.prepare(`
+			INSERT INTO riemann_bench_raw_rows (
+				run_id, row_index, fetched_at_epoch_seconds, url, provider,
+				model, score, last_updated
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`).run(
+			copiedRunId,
+			1,
+			1_800_000_000,
+			"https://example.test/different-riemann-bench",
+			"Example",
+			"Conflicting Math Model",
+			0.41,
+			null,
+		);
+		assert.equal(
+			readRiemannBenchRawCache(db),
+			null,
+			"cache reconstruction should reject a run with mixed source URLs",
+		);
 		db.prepare(`
 			INSERT INTO deep_swe_raw_rows (
 				run_id, row_index, fetched_at_epoch_seconds, url, source_version,

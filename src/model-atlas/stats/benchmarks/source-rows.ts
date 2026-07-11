@@ -1,6 +1,7 @@
 /** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
 import { normalizeElo } from "../../math-utils";
+import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
 import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
 import { asFiniteNumber, asRecord, normalizeModelToken } from "../../shared";
@@ -190,7 +191,7 @@ function sourceDataBenchmarkDrafts(
 			sourceData.agentsLastExam.rows,
 			(row) => ({
 				label: row.model,
-				value: row.median_score,
+				value: agentsLastExamBenchmarkScore(row),
 			}),
 		),
 		...artificialAnalysisEvaluationResourceDrafts(

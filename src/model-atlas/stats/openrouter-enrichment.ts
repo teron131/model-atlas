@@ -1,9 +1,6 @@
 /** Model aggregation and OpenRouter enrichment own effort collapse, route stats, and free-route cost continuity. */
 
-import {
-	claudeIdentityKey,
-	parseClaudeIdentity,
-} from "../matcher/claude-identity";
+import { claudeIdentityKey, parseClaudeIdentity } from "../claude-identity";
 import {
 	isOpenRouterFreeRouteId,
 	nonFreeOpenRouterModelId,
@@ -301,10 +298,19 @@ function rowModelId(row: Record<string, unknown>): string | null {
 function rowOpenRouterModelId(row: Record<string, unknown>): string | null {
 	const rowRecord = asRecord(row);
 	const openRouterId = rowRecord.openrouter_id;
-	if (typeof openRouterId === "string" && openRouterId.length > 0) {
+	if (
+		typeof openRouterId === "string" &&
+		openRouterId.length > 0 &&
+		openRouterId.includes("/")
+	) {
 		return openRouterId;
 	}
-	return rowModelId(row);
+	return (
+		rowModelId(row) ??
+		(typeof openRouterId === "string" && openRouterId.length > 0
+			? openRouterId
+			: null)
+	);
 }
 
 function aliasOpenRouterDataToPublicRows(

@@ -2,8 +2,8 @@
 
 import { processModelsDevPayload } from "../src/model-atlas/scrapers/models-dev";
 import {
-	buildArtificialAnalysisRetainKeys,
 	pickPreferredModelsDevRows,
+	selectModelsDevRowsForArtificialAnalysis,
 } from "../src/model-atlas/stats/source-policy";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -105,7 +105,7 @@ assertDeepEqual(
 	["meta/muse-spark-1.1"],
 );
 
-const retainedClaudeModels = processModelsDevPayload(
+const retainedClaudeModels = selectModelsDevRowsForArtificialAnalysis(
 	{
 		openrouter: {
 			models: {
@@ -117,13 +117,12 @@ const retainedClaudeModels = processModelsDevPayload(
 			},
 		},
 	},
-	"2025-07-01",
-	buildArtificialAnalysisRetainKeys([
+	[
 		{
 			model_id: "anthropic/claude-35-sonnet",
 			name: "Claude 3.5 Sonnet",
 		},
-	]),
+	],
 );
 assertDeepEqual(
 	retainedClaudeModels.map((row) => row.model_id),
