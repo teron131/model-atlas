@@ -1,15 +1,6 @@
-/** Cross-cutting runtime policies for coercing source values, checking freshness, and writing JSON artifacts. */
+/** Cross-cutting runtime policies for coercing source values and bounded async work. */
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import type { NumberOrNull } from "./math-utils";
-
-export type { NumberOrNull } from "./math-utils";
-export {
-	finiteNumbers,
-	meanOrNull,
-	percentileRank,
-} from "./math-utils";
 
 export type JsonObject = Record<string, unknown>;
 
@@ -81,24 +72,4 @@ export async function mapWithConcurrency<T, R>(
 		),
 	);
 	return results;
-}
-
-/** Freshness checks reject future timestamps so bad clocks cannot extend cache lifetimes indefinitely. */
-export function isFreshEpochSeconds(
-	fetchedAtEpochSeconds: unknown,
-	ttlSeconds: number,
-): boolean {
-	if (typeof fetchedAtEpochSeconds !== "number") {
-		return false;
-	}
-	const ageSeconds = nowEpochSeconds() - fetchedAtEpochSeconds;
-	return ageSeconds >= 0 && ageSeconds <= ttlSeconds;
-}
-
-export async function writeJsonFile(
-	path: string,
-	payload: unknown,
-): Promise<void> {
-	await mkdir(dirname(path), { recursive: true });
-	await writeFile(path, `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
 }
