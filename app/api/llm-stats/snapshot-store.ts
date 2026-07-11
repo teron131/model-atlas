@@ -38,6 +38,7 @@ export type SnapshotRuntime = {
 	buildDatabasePath?: string;
 	readDatabasePath: string | undefined;
 	useStaticSnapshot: boolean;
+	requiresD1: boolean;
 	hasD1SnapshotStore: boolean;
 	missingD1Environment: string[];
 	replaceSourceRows: boolean;
@@ -54,9 +55,8 @@ export function snapshotRuntime(): SnapshotRuntime {
 		remoteSnapshotUrl: process.env.MODEL_ATLAS_SNAPSHOT_URL,
 		buildDatabasePath: resolveBuildDatabasePath(),
 		readDatabasePath: resolveReadDatabasePath(),
-		useStaticSnapshot:
-			process.env.VERCEL === "1" ||
-			process.env.MODEL_ATLAS_STATIC_SNAPSHOT === "1",
+		useStaticSnapshot: process.env.MODEL_ATLAS_STATIC_SNAPSHOT === "1",
+		requiresD1: process.env.VERCEL === "1",
 		hasD1SnapshotStore: d1Configured(),
 		missingD1Environment: missingD1Environment(),
 		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
@@ -64,33 +64,21 @@ export function snapshotRuntime(): SnapshotRuntime {
 	};
 }
 
-/** Remote snapshot URLs override local storage so deployed readers can be pointed at a single known-good artifact. */
-export async function readBestStoredSnapshotPayload(): Promise<LlmStatsPayload | null> {
-	const runtime = snapshotRuntime();
-	if (runtime.remoteSnapshotUrl) {
-		return fetchRemoteSnapshot(runtime.remoteSnapshotUrl);
-	}
-	return readBestSnapshotCache(runtime);
-}
-
-/** Prefer D1 when available, then choose between local SQLite and static JSON by benchmark coverage before freshness. */
+/** Production reads require D1; local development compares file-backed snapshots. */
 async function readBestSnapshotCache(
 	runtime: SnapshotRuntime,
 ): Promise<LlmStatsPayload | null> {
-	const [d1Snapshot, localDatabaseSnapshot, staticSnapshot] = await Promise.all(
-		[
-			runtime.hasD1SnapshotStore
-				? readD1Snapshot().catch(() => null)
-				: Promise.resolve(null),
-			runtime.useStaticSnapshot
-				? Promise.resolve(null)
-				: readLocalDatabaseSnapshot(runtime).catch(() => null),
-			readStaticSnapshot().catch(() => null),
-		],
-	);
-	return (
-		d1Snapshot ?? bestSnapshotPayload(localDatabaseSnapshot, staticSnapshot)
-	);
+	assertD1Configured(runtime);
+	if (runtime.requiresD1) {
+		return readD1Snapshot();
+	}
+	const [localDatabaseSnapshot, staticSnapshot] = await Promise.all([
+		runtime.useStaticSnapshot
+			? Promise.resolve(null)
+			: readLocalDatabaseSnapshot(runtime).catch(() => null),
+		readStaticSnapshot().catch(() => null),
+	]);
+	return bestSnapshotPayload(localDatabaseSnapshot, staticSnapshot);
 }
 
 /** Collapse concurrent dashboard reads onto one refresh and keep a short in-memory result for repeated server renders. */
@@ -105,10 +93,10 @@ export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | nu
 	return state.readInFlight;
 }
 
-/** Display reads may trigger a background-quality refresh, but they still return the best stored payload on failure. */
+/** Display reads use D1 in production and retain local snapshot fallbacks only outside Vercel. */
 async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | null> {
 	const runtime = snapshotRuntime();
-	if (runtime.remoteSnapshotUrl) {
+	if (!runtime.requiresD1 && runtime.remoteSnapshotUrl) {
 		const payload = await fetchRemoteSnapshot(runtime.remoteSnapshotUrl).catch(
 			() => null,
 		);
@@ -140,8 +128,8 @@ function startDisplayRefresh(
 	const state = getDisplayRefreshState();
 	state.refreshInFlight ??= (
 		refreshMode === "stored"
-			? refreshStoredOrLiveSnapshot(runtime)
-			: refreshLocalSnapshotPayload(runtime)
+			? refreshStoredSnapshot(runtime)
+			: refreshRuntimePayload(runtime)
 	)
 		.then((payload) => {
 			cacheDisplayPayload(payload);
@@ -164,7 +152,7 @@ async function refreshDisplaySnapshotIfStale(
 	const refreshMode = displaySnapshotRefreshMode(
 		payload,
 		nowEpochSeconds(),
-		runtime.hasD1SnapshotStore,
+		runtime.requiresD1,
 		runtime.displayRefreshIntervalSeconds,
 	);
 	if (refreshMode === "none") {
@@ -174,32 +162,23 @@ async function refreshDisplaySnapshotIfStale(
 	return (await refreshPromise) ?? payload;
 }
 
-/** Explicit refreshes rebuild through the runtime database path instead of reading a stale static artifact. */
-export async function refreshLocalSnapshotPayload(
+/** Refreshes production D1; local development rebuilds directly through SQLite. */
+export async function refreshStoredSnapshot(
 	runtime = snapshotRuntime(),
 ): Promise<LlmStatsPayload> {
+	assertD1Configured(runtime);
+	if (runtime.requiresD1) {
+		const payload = await refreshD1SnapshotPayload(runtime);
+		if (payload != null) {
+			return payload;
+		}
+		throw new Error("D1 refresh completed without a readable snapshot");
+	}
 	return refreshRuntimePayload(runtime);
 }
 
-/** Stored refreshes should not block public freshness when the persistent store is temporarily unavailable. */
-export async function refreshStoredOrLiveSnapshot(
-	runtime = snapshotRuntime(),
-): Promise<LlmStatsPayload> {
-	if (runtime.hasD1SnapshotStore) {
-		try {
-			const payload = await refreshD1SnapshotPayload(runtime);
-			if (payload != null) {
-				return payload;
-			}
-		} catch (error) {
-			console.error("Unable to refresh stored display snapshot", error);
-		}
-	}
-	return refreshLocalSnapshotPayload(runtime);
-}
-
 /** Rebuild and publish the runtime D1 snapshot before reading it back for display. */
-export async function refreshD1SnapshotPayload(
+async function refreshD1SnapshotPayload(
 	runtime = snapshotRuntime(),
 ): Promise<LlmStatsPayload | null> {
 	await refreshD1Snapshot(runtime.buildDatabasePath);
@@ -219,6 +198,15 @@ async function refreshRuntimePayload(
 export async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
 	const payload = await readD1Payload();
 	return payload == null ? null : withCurrentSnapshotMetadata(payload);
+}
+
+/** Prevent production reads from silently substituting a build-time or local snapshot for D1. */
+function assertD1Configured(runtime: SnapshotRuntime): void {
+	if (runtime.requiresD1 && !runtime.hasD1SnapshotStore) {
+		throw new Error(
+			`Cloudflare D1 is required in production. Missing ${runtime.missingD1Environment.join(", ")}.`,
+		);
+	}
 }
 
 async function readStaticSnapshot(): Promise<LlmStatsPayload> {

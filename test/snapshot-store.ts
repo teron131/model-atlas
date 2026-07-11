@@ -6,6 +6,8 @@ import {
 	bestSnapshotPayload,
 	type DisplaySnapshotRefreshMode,
 	displaySnapshotRefreshMode,
+	readDisplaySnapshotPayload,
+	refreshStoredSnapshot,
 	snapshotRuntime,
 } from "../app/api/llm-stats/snapshot-store";
 import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
@@ -60,6 +62,7 @@ const originalVercel = process.env.VERCEL;
 const originalD1AccountId = process.env.D1_ACCOUNT_ID;
 const originalD1DatabaseId = process.env.D1_DATABASE_ID;
 const originalD1ApiToken = process.env.D1_API_TOKEN;
+const originalSnapshotUrl = process.env.MODEL_ATLAS_SNAPSHOT_URL;
 try {
 	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	delete process.env.VERCEL;
@@ -104,10 +107,26 @@ try {
 		false,
 		"runtime D1 storage should be disabled when required Cloudflare settings are absent",
 	);
+	assert.equal(
+		snapshotRuntime().requiresD1,
+		true,
+		"Vercel runtime should reject non-D1 snapshot fallbacks",
+	);
 	assert.deepEqual(
 		snapshotRuntime().missingD1Environment,
 		["D1_ACCOUNT_ID", "D1_DATABASE_ID", "D1_API_TOKEN"],
 		"missing D1 environment should report the canonical variable names",
+	);
+	process.env.MODEL_ATLAS_SNAPSHOT_URL = "https://example.com/snapshot.json";
+	await assert.rejects(
+		readDisplaySnapshotPayload,
+		/Cloudflare D1 is required in production/,
+		"Vercel display reads must not fall back when D1 is unavailable",
+	);
+	await assert.rejects(
+		() => refreshStoredSnapshot(),
+		/Cloudflare D1 is required in production/,
+		"Vercel refreshes must not rebuild a local-only snapshot when D1 is unavailable",
 	);
 	process.env.D1_ACCOUNT_ID = "account";
 	process.env.D1_DATABASE_ID = "database";
@@ -131,6 +150,7 @@ try {
 	restoreEnv("D1_ACCOUNT_ID", originalD1AccountId);
 	restoreEnv("D1_DATABASE_ID", originalD1DatabaseId);
 	restoreEnv("D1_API_TOKEN", originalD1ApiToken);
+	restoreEnv("MODEL_ATLAS_SNAPSHOT_URL", originalSnapshotUrl);
 }
 
 function mode(
