@@ -6,7 +6,7 @@ import {
 	asDeepSWERawLeaderboardRow,
 	preferredDeepSWELeaderboardRows,
 } from "../scrapers/deep-swe";
-import { asFiniteNumber, asRecord } from "../shared";
+import { asFiniteNumber, asRecord, canonicalReasoningEffort } from "../shared";
 import {
 	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 	benchmarkRowsFromDb,
@@ -342,6 +342,7 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 		logo: stringValue(row.logo) ?? "",
 		attachment: booleanValue(row.attachment),
 		reasoning: booleanValue(row.reasoning),
+		reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
 		release_date: stringValue(row.release_date),
 		modalities: buildModalities(row),
 		open_weights: booleanValue(row.open_weights),

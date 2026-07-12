@@ -5,6 +5,7 @@ import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import { modelVariantKey } from "../shared/modelDisplay";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { scoreAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
@@ -13,7 +14,7 @@ import { linearBubbleRadius, valueDistribution } from "./chartStats";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./labelPlacement";
-import { modelKey, shortLabel } from "./models";
+import { shortLabel } from "./models";
 import { Panel } from "./Panel";
 import {
 	AxisTitles,
@@ -105,7 +106,7 @@ export function ParetoFrontierPanel({
 	const yPoint = stableSvgScale(y);
 	const medianValue = median(values) ?? xDomain[0];
 	const medianScore = median(scores) ?? 50;
-	const frontierIds = new Set(frontier.map(modelKey));
+	const frontierIds = new Set(frontier.map(modelVariantKey));
 	const frontierPath = frontier.reduce((path, model, index) => {
 		const nextX = xPoint(Number(model.scores.value_score));
 		const nextY = yPoint(model.scores.intelligence_score);
@@ -147,7 +148,7 @@ export function ParetoFrontierPanel({
 			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
 		})),
 		labels: frontier.map((model, index) => ({
-			key: modelKey(model),
+			key: modelVariantKey(model),
 			label: shortLabel(model),
 			cx: xPoint(Number(model.scores.value_score)),
 			cy: yPoint(model.scores.intelligence_score),
@@ -240,7 +241,7 @@ export function ParetoFrontierPanel({
 					{plottedCandidates.map((model) => {
 						const cx = xPoint(Number(model.scores.value_score));
 						const cy = yPoint(model.scores.intelligence_score);
-						const isFrontier = frontierIds.has(modelKey(model));
+						const isFrontier = frontierIds.has(modelVariantKey(model));
 						const rows: HoverRow[] = [
 							[
 								"Intelligence score",
@@ -257,7 +258,7 @@ export function ParetoFrontierPanel({
 						return (
 							<g
 								className={isFrontier ? styles.frontierPoint : undefined}
-								key={model.id ?? model.name ?? `${cx}-${cy}`}
+								key={modelVariantKey(model) || `${cx}-${cy}`}
 							>
 								<circle
 									className={styles.datavizPoint}
@@ -297,7 +298,9 @@ export function ParetoFrontierPanel({
 										width={width}
 										margin={margin}
 										height={height}
-										placement={frontierLabelPlacements.get(modelKey(model))}
+										placement={frontierLabelPlacements.get(
+											modelVariantKey(model),
+										)}
 									/>
 								) : null}
 							</g>

@@ -4,8 +4,13 @@ import { normalizeElo } from "../../math-utils";
 import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
 import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
-import { asFiniteNumber, asRecord, normalizeModelToken } from "../../shared";
-import { aggregateModelRows } from "../openrouter-enrichment";
+import {
+	asFiniteNumber,
+	asRecord,
+	canonicalReasoningEffort,
+	normalizeModelToken,
+} from "../../shared";
+import { aggregateCollapsedModelRows } from "../openrouter-enrichment";
 import type { LlmStatsSourceData } from "../types";
 import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "./keys";
 
@@ -94,7 +99,7 @@ function addBenchmarkRowDraft(
 			`${draft.provider ?? "benchmark"}/${draft.label}`,
 		label: draft.label,
 		provider: draft.provider ?? null,
-		reasoningEffort: draft.reasoningEffort ?? null,
+		reasoningEffort: canonicalReasoningEffort(draft.reasoningEffort),
 		value,
 	});
 }
@@ -103,7 +108,7 @@ function aggregateBenchmarkSourceRows(
 	key: string,
 	rows: AggregatableBenchmarkSourceRow[],
 ): BenchmarkSourceRow[] {
-	return aggregateModelRows(
+	return aggregateCollapsedModelRows(
 		rows.map((row) => {
 			const identity = normalizeModelToken(row.identity);
 			return {

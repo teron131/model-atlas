@@ -99,6 +99,7 @@ function compactDashboardModel(
 		name: model.name,
 		provider: model.provider,
 		logo: "",
+		reasoning_effort: model.reasoning_effort,
 		release_date: model.release_date,
 		modalities: copyModalities(model.modalities),
 		open_weights: model.open_weights,

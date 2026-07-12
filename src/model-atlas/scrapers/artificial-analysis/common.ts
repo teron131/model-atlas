@@ -7,7 +7,7 @@ const DISPLAY_SUFFIX_PATTERN =
 const NEXT_FLIGHT_CHUNK_REGEX =
 	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 const REASONING_EFFORT_BY_LABEL = {
-	"non reasoning": "non-reasoning",
+	"non reasoning": "none",
 	max: "max",
 	"max effort": "max",
 	xhigh: "xhigh",

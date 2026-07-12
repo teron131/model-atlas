@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
+import { modelCount } from "../shared/modelDisplay";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { finite, fmtCompact, fmtMoney } from "./format";
@@ -22,24 +23,28 @@ import { RunwayPanel } from "./RunwayPanel";
 import type { CostFilter, HoverState, ModelLimit } from "./types";
 
 export function DashboardGraphs({
-	initialPayload,
+	payload,
 	fullPayloadLoaded,
 	benchmarkControls,
 	afterLead,
 	provider,
 	maxCost,
 	modelLimit,
+	expandReasoningVariants,
+	onExpandReasoningVariantsChange,
 	onProviderChange,
 	onMaxCostChange,
 	onModelLimitChange,
 }: {
-	initialPayload: LlmStatsPayload | null;
+	payload: LlmStatsPayload | null;
 	fullPayloadLoaded: boolean;
 	benchmarkControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
 	provider: string;
 	maxCost: CostFilter;
 	modelLimit: ModelLimit;
+	expandReasoningVariants: boolean;
+	onExpandReasoningVariantsChange: (enabled: boolean) => void;
 	onProviderChange: (provider: string) => void;
 	onMaxCostChange: (maxCost: CostFilter) => void;
 	onModelLimitChange: (modelLimit: ModelLimit) => void;
@@ -48,7 +53,7 @@ export function DashboardGraphs({
 	const [filtersExpanded, setFiltersExpanded] = useState(false);
 
 	const allModels = useMemo(() => {
-		return (initialPayload?.models ?? [])
+		return (payload?.models ?? [])
 			.filter(
 				(model) =>
 					model.name != null && finite(model.scores?.intelligence_score),
@@ -57,7 +62,7 @@ export function DashboardGraphs({
 				(left, right) =>
 					right.scores.intelligence_score - left.scores.intelligence_score,
 			);
-	}, [initialPayload]);
+	}, [payload]);
 
 	const providers = useMemo(() => providerOptions(allModels), [allModels]);
 
@@ -76,10 +81,17 @@ export function DashboardGraphs({
 		);
 	}, [filteredModels, modelLimit]);
 
-	const visibleModelLabel =
-		modelLimit === "all" || filteredModels.length <= modelLimit
-			? `${fmtCompact(filteredModels.length)} shown`
-			: `Top ${modelLimit} of ${fmtCompact(filteredModels.length)}`;
+	const filteredModelCount = modelCount(filteredModels);
+	const visibleModelCount = modelCount(models);
+	const visibleModelLabel = expandReasoningVariants
+		? `${
+				modelLimit === "all" || filteredModelCount <= modelLimit
+					? fmtCompact(visibleModelCount)
+					: `Top ${modelLimit} of ${fmtCompact(filteredModelCount)}`
+			} models / ${fmtCompact(models.length)} variants`
+		: modelLimit === "all" || filteredModelCount <= modelLimit
+			? `${fmtCompact(visibleModelCount)} models`
+			: `Top ${modelLimit} of ${fmtCompact(filteredModelCount)} models`;
 	const providerLabel =
 		provider === "all"
 			? "All providers"
@@ -90,7 +102,7 @@ export function DashboardGraphs({
 	const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
 	const filterSummary = `${providerLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
 
-	if (!initialPayload || allModels.length === 0) {
+	if (!payload || allModels.length === 0) {
 		return (
 			<section
 				className={`${styles.atlas} ${styles.dashboardGraphs}`}
@@ -111,16 +123,42 @@ export function DashboardGraphs({
 			aria-label="Model graphs"
 		>
 			<section className={styles.controls} aria-label="Filters">
-				<button
-					type="button"
-					className={styles.filtersToggle}
-					aria-expanded={filtersExpanded}
-					onClick={() => setFiltersExpanded((current) => !current)}
-				>
-					<span>Filters</span>
-					<b>{filterSummary}</b>
-					<i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
-				</button>
+				<div className={styles.controlsBar}>
+					<button
+						type="button"
+						className={styles.filtersToggle}
+						aria-expanded={filtersExpanded}
+						onClick={() => setFiltersExpanded((current) => !current)}
+					>
+						<span>Filters</span>
+						<b>{filterSummary}</b>
+						<i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
+					</button>
+					<fieldset className={styles.variantSwitch}>
+						<legend className={styles.visuallyHidden}>
+							Reasoning variant display
+						</legend>
+						<span className={styles.variantSwitchLabel}>Variants</span>
+						<div className={styles.variantOptions}>
+							<button
+								type="button"
+								className={styles.variantOption}
+								aria-pressed={!expandReasoningVariants}
+								onClick={() => onExpandReasoningVariantsChange(false)}
+							>
+								Collapsed
+							</button>
+							<button
+								type="button"
+								className={styles.variantOption}
+								aria-pressed={expandReasoningVariants}
+								onClick={() => onExpandReasoningVariantsChange(true)}
+							>
+								Expanded
+							</button>
+						</div>
+					</fieldset>
+				</div>
 				<div className={styles.filterPanel} hidden={!filtersExpanded}>
 					<div className={styles.controlRow}>
 						<FilterSection label="Provider filter" value={providerLabel}>
@@ -129,7 +167,7 @@ export function DashboardGraphs({
 									active={provider === "all"}
 									color="var(--ink)"
 									label="All"
-									count={allModels.length}
+									count={modelCount(allModels)}
 									onClick={() => onProviderChange("all")}
 								/>
 								{providers.map((option) => (
@@ -194,24 +232,20 @@ export function DashboardGraphs({
 					<section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
 						<ParetoFrontierPanel models={models} setHover={setHover} />
 						<PriceEfficiencyComparisonPanel
-							benchmarkPortfolio={
-								initialPayload.metadata.scoring.benchmark_portfolio
-							}
+							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
 							models={models}
 							setHover={setHover}
 						/>
 					</section>
 					<section className={styles.sectionGrid}>
 						<FrontierBenchmarksPanel
-							payload={initialPayload}
+							payload={payload}
 							models={models}
 							setHover={setHover}
 						/>
 						<InteractionMatrix
 							models={models}
-							benchmarkPortfolio={
-								initialPayload.metadata.scoring.benchmark_portfolio
-							}
+							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
 							fullPayloadLoaded={fullPayloadLoaded}
 							setHover={setHover}
 						/>

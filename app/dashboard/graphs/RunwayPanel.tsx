@@ -5,6 +5,7 @@ import { scaleLog } from "d3-scale";
 import type { CSSProperties } from "react";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import { modelVariantKey } from "../shared/modelDisplay";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart } from "./ChartComponents";
@@ -12,7 +13,7 @@ import { outputSpeedDistribution } from "./chartStats";
 import { finite, fmtCompact, fmtTooltipNumber } from "./format";
 import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./labelPlacement";
-import { modelKey, positiveDomain, shortLabel } from "./models";
+import { positiveDomain, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import {
 	AxisTitles,
@@ -151,7 +152,7 @@ export function RunwayPanel({
 	if (
 		maxContextModel != null &&
 		!runwayLabelCandidates.some(
-			(model) => modelKey(model) === modelKey(maxContextModel),
+			(model) => modelVariantKey(model) === modelVariantKey(maxContextModel),
 		)
 	) {
 		runwayLabelCandidates.push(maxContextModel);
@@ -181,7 +182,7 @@ export function RunwayPanel({
 			}
 			return selected;
 		}, []);
-	const labelSet = new Set(runwayLabels.map((model) => modelKey(model)));
+	const labelSet = new Set(runwayLabels.map(modelVariantKey));
 	const medianContext =
 		median(
 			plottedCandidates.map((model) => Number(model.context_window?.context)),
@@ -216,7 +217,7 @@ export function RunwayPanel({
 			radius: runwayRadius(model),
 		})),
 		labels: runwayLabels.map((model, index) => ({
-			key: modelKey(model),
+			key: modelVariantKey(model),
 			label: shortLabel(model),
 			cx: xPoint(Number(model.context_window?.context)),
 			cy: yPoint(Number(model.speed?.throughput_tokens_per_second_median)),
@@ -309,7 +310,7 @@ export function RunwayPanel({
 						const cy = yPoint(
 							Number(model.speed?.throughput_tokens_per_second_median),
 						);
-						const labeled = labelSet.has(modelKey(model));
+						const labeled = labelSet.has(modelVariantKey(model));
 						const rows: HoverRow[] = [
 							[
 								"Context",
@@ -323,7 +324,7 @@ export function RunwayPanel({
 							],
 						];
 						return (
-							<g key={model.id ?? model.name}>
+							<g key={modelVariantKey(model)}>
 								<circle
 									className={styles.datavizPoint}
 									cx={cx}
@@ -358,7 +359,9 @@ export function RunwayPanel({
 										width={width}
 										margin={margin}
 										height={height}
-										placement={runwayLabelPlacements.get(modelKey(model))}
+										placement={runwayLabelPlacements.get(
+											modelVariantKey(model),
+										)}
 									/>
 								) : null}
 							</g>

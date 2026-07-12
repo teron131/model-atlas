@@ -90,6 +90,13 @@ assert.equal(
 	"server-readable dashboard markup should include model row ids",
 );
 assert.equal(
+	html.includes("Reasoning variant display") &&
+		html.includes("Collapsed") &&
+		html.includes("Expanded"),
+	true,
+	"the always-visible variant switch should expose both display modes",
+);
+assert.equal(
 	matchCount(html, 'data-column-key="model"'),
 	2,
 	"server-readable dashboard markup should include the sticky and source table headers",

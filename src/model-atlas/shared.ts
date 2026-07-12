@@ -11,7 +11,7 @@ export const FALLBACK_PROVIDER_IDS: ReadonlySet<string> = new Set([
 	...TERTIARY_PROVIDER_IDS,
 ]);
 const REASONING_EFFORT_RANK = {
-	"non-reasoning": 0,
+	none: 0,
 	minimal: 1,
 	low: 2,
 	medium: 3,
@@ -73,6 +73,18 @@ export function normalizeModelToken(value: string): string {
 		.replace(/^[-/]+|[-/]+$/g, "");
 }
 
+/** Canonicalize source effort labels while preserving actual null for unknown or unreported values. */
+export function canonicalReasoningEffort(value: unknown): string | null {
+	if (typeof value !== "string") {
+		return null;
+	}
+	const normalized = normalizeModelToken(value);
+	if (normalized.length === 0 || normalized === "null") {
+		return null;
+	}
+	return normalized === "non-reasoning" ? "none" : normalized;
+}
+
 /** Unlabelled rows are the source's default highest-effort configuration. */
 export function reasoningEffortRank(value: unknown): number {
 	if (
@@ -84,7 +96,10 @@ export function reasoningEffortRank(value: unknown): number {
 	if (typeof value !== "string") {
 		return -1;
 	}
-	const normalized = normalizeModelToken(value);
+	const normalized = canonicalReasoningEffort(value);
+	if (normalized == null) {
+		return Object.keys(REASONING_EFFORT_RANK).length;
+	}
 	return (
 		REASONING_EFFORT_RANK[normalized as keyof typeof REASONING_EFFORT_RANK] ??
 		-1

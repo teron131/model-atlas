@@ -444,6 +444,14 @@ const effortObservationsByBenchmark =
 assertDeepEqual(
 	findArtificialAnalysisEvaluationResourceRow(
 		"hle",
+		["openai/gpt-5-2-non-reasoning"],
+		effortObservationsByBenchmark,
+	)?.reasoning_effort,
+	"none",
+);
+assertDeepEqual(
+	findArtificialAnalysisEvaluationResourceRow(
+		"hle",
 		["openai/gpt-5-2-low"],
 		effortObservationsByBenchmark,
 	)?.reasoning_effort,

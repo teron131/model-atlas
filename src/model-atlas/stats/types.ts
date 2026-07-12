@@ -230,6 +230,7 @@ type LlmStatsModelFields = {
 	logo: string;
 	attachment: boolean | null;
 	reasoning: boolean | null;
+	reasoning_effort: string | null;
 	release_date: string | null;
 	modalities: LlmStatsModalities | null;
 	open_weights: boolean | null;

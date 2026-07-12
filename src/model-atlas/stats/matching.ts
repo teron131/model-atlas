@@ -9,6 +9,7 @@ import {
 	asFiniteNumber,
 	asRecord,
 	canonicalProviderModelId,
+	canonicalReasoningEffort,
 	modelSlugFromModelId,
 } from "../shared";
 
@@ -85,10 +86,9 @@ function buildMatchedRow(
 		name: matchedModelName,
 		artificial_analysis_id: artificialAnalysisModelId,
 		artificial_analysis_slug: artificialAnalysisSlug,
-		reasoning_effort:
-			typeof artificialAnalysisModel.reasoning_effort === "string"
-				? artificialAnalysisModel.reasoning_effort
-				: null,
+		reasoning_effort: canonicalReasoningEffort(
+			artificialAnalysisModel.reasoning_effort,
+		),
 		family: matchedFamily,
 		logo,
 		...modelMetadata,

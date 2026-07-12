@@ -9,6 +9,7 @@ import type {
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../shared/constants";
+import { modelVariantKey } from "../shared/modelDisplay";
 import type { AxisScale } from "./axisScale";
 import {
 	linearAxisScale,
@@ -23,12 +24,7 @@ import {
 	fmtPercentScore,
 	percent,
 } from "./format";
-import {
-	correlationValue,
-	formatCorrelation,
-	groupBy,
-	modelKey,
-} from "./models";
+import { correlationValue, formatCorrelation, groupBy } from "./models";
 import type { HoverRow } from "./types";
 
 export type FrontierBenchmarkAxisKey =
@@ -204,7 +200,7 @@ export function frontierBenchmarkRows(
 export function meanFrontierBenchmarkRows(
 	rows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkRow[] {
-	return [...groupBy(rows, (row) => modelKey(row.model)).values()]
+	return [...groupBy(rows, (row) => modelVariantKey(row.model)).values()]
 		.map((modelRows): FrontierBenchmarkRow | null => {
 			const first = modelRows[0];
 			if (first == null) {

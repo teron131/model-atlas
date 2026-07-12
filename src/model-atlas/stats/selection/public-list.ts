@@ -23,6 +23,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"logo",
 	"attachment",
 	"reasoning",
+	"reasoning_effort",
 	"release_date",
 	"modalities",
 	"open_weights",
@@ -41,6 +42,31 @@ const REQUIRED_COMPONENT_SCORE_KEYS = [
 	"agentic_score",
 ] as const;
 const REQUIRED_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
+
+/** Model identity excludes reasoning effort because efforts are variants of one model. */
+export function modelIdentityKey(
+	model: Pick<LlmStatsModel, "id" | "name">,
+): string {
+	return (model.id ?? model.name ?? "").toLowerCase();
+}
+
+/** Select the highest-intelligence variant as the representative row for each model. */
+export function strongestModelVariants(
+	models: readonly LlmStatsModel[],
+): LlmStatsModel[] {
+	const strongestByModel = new Map<string, LlmStatsModel>();
+	for (const model of models) {
+		const key = modelIdentityKey(model);
+		const existing = strongestByModel.get(key);
+		if (
+			existing == null ||
+			model.scores.intelligence_score > existing.scores.intelligence_score
+		) {
+			strongestByModel.set(key, model);
+		}
+	}
+	return [...strongestByModel.values()];
+}
 
 function isFreeRouteModel(model: LlmStatsModel): boolean {
 	return (
@@ -100,6 +126,7 @@ function toPublicModel(
 		logo: model.logo,
 		attachment: model.attachment,
 		reasoning: model.reasoning,
+		reasoning_effort: model.reasoning_effort,
 		release_date: model.release_date,
 		modalities: model.modalities,
 		open_weights: model.open_weights,
@@ -258,8 +285,8 @@ function pruneSparseFields(
 	});
 }
 
-/** Free-route variants collapse into the canonical paid route unless they are the only available public row. */
-function collapseOpenRouterFreeRoutes(
+/** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
+function collapseOpenRouterFreeRoutesByVariant(
 	models: LlmStatsModel[],
 ): LlmStatsModel[] {
 	const modelByPublicId = new Map<
@@ -281,9 +308,10 @@ function collapseOpenRouterFreeRoutes(
 			continue;
 		}
 		const candidateIsFreeRoute = isFreeRouteModel(model);
-		const existing = modelByPublicId.get(publicId);
+		const variantId = `${publicId}\u0000${model.reasoning_effort ?? ""}`;
+		const existing = modelByPublicId.get(variantId);
 		if (!existing || (existing.isFreeRoute && !candidateIsFreeRoute)) {
-			modelByPublicId.set(publicId, {
+			modelByPublicId.set(variantId, {
 				model: normalizedModel,
 				isFreeRoute: candidateIsFreeRoute,
 			});
@@ -312,7 +340,7 @@ export function selectPublicModels(
 		finalConfig,
 		scoringConfig,
 	);
-	const normalizedModels = collapseOpenRouterFreeRoutes(prunedModels);
+	const normalizedModels = collapseOpenRouterFreeRoutesByVariant(prunedModels);
 	const normalizedId = publicOpenRouterModelId(id ?? null);
 	return normalizedId == null
 		? normalizedModels

@@ -5,6 +5,7 @@ import type {
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../../src/model-atlas/stats/types";
+import { modelVariantKey } from "../shared/modelDisplay";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { SummaryCard } from "./ChartComponents";
 import { linearBubbleRadius, valueDistribution } from "./chartStats";
@@ -34,7 +35,7 @@ import {
 } from "./frontierBenchmarksModel";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
-import { modelKey, modelName, shortLabel } from "./models";
+import { modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import type { HoverSetter } from "./types";
 
@@ -219,7 +220,7 @@ export function FrontierBenchmarksPanel({
 				bubbleRadius={bubbleRadius}
 				getScore={(row) => row.score}
 				getModel={(row) => row.model}
-				getKey={(row) => `${row.benchmarkKey}-${modelKey(row.model)}`}
+				getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}
 				getHoverTitle={(row) => modelName(row.model)}
 				getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig)}
 				labelRows={labeledRows}

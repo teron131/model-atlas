@@ -435,6 +435,9 @@ function reasoningEffortFromModelSlug(modelSlug: string | null): string | null {
 	}
 	for (const suffix of REASONING_EFFORT_SUFFIXES) {
 		if (modelSlug.endsWith(`-${suffix}`)) {
+			if (suffix === "non-reasoning") {
+				return "none";
+			}
 			return suffix === "extra-high" ? "xhigh" : suffix;
 		}
 	}
@@ -477,7 +480,7 @@ function modelKeyCandidates(
 		);
 }
 
-function reasoningFamilyKeyCandidates(
+function reasoningModelKeyCandidates(
 	row: ArtificialAnalysisEvaluationResourceRow,
 ): string[] {
 	return modelKeyCandidates(row)
@@ -541,25 +544,25 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 			([benchmarkKey, rowsByModel]) => [benchmarkKey, new Map(rowsByModel)],
 		),
 	);
-	const defaultRowsByBenchmarkAndFamilyKey = new Map<
+	const defaultRowsByBenchmarkAndModelKey = new Map<
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
 	for (const row of rows) {
-		let defaultRowsByFamilyKey = defaultRowsByBenchmarkAndFamilyKey.get(
+		let defaultRowsByModelKey = defaultRowsByBenchmarkAndModelKey.get(
 			row.benchmark_key,
 		);
-		if (defaultRowsByFamilyKey == null) {
-			defaultRowsByFamilyKey = new Map();
-			defaultRowsByBenchmarkAndFamilyKey.set(
+		if (defaultRowsByModelKey == null) {
+			defaultRowsByModelKey = new Map();
+			defaultRowsByBenchmarkAndModelKey.set(
 				row.benchmark_key,
-				defaultRowsByFamilyKey,
+				defaultRowsByModelKey,
 			);
 		}
-		for (const key of reasoningFamilyKeyCandidates(row)) {
-			defaultRowsByFamilyKey.set(
+		for (const key of reasoningModelKeyCandidates(row)) {
+			defaultRowsByModelKey.set(
 				key,
-				higherEffortResourceRow(defaultRowsByFamilyKey.get(key), row),
+				higherEffortResourceRow(defaultRowsByModelKey.get(key), row),
 			);
 		}
 	}
@@ -568,35 +571,35 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 		if (rowsByModelKey == null) {
 			continue;
 		}
-		const defaultRowsByFamilyKey = defaultRowsByBenchmarkAndFamilyKey.get(
+		const defaultRowsByModelKey = defaultRowsByBenchmarkAndModelKey.get(
 			row.benchmark_key,
 		);
-		const defaultFamilyRow = reasoningFamilyKeyCandidates(row).reduce<
+		const defaultModelRow = reasoningModelKeyCandidates(row).reduce<
 			ArtificialAnalysisEvaluationResourceRow | undefined
 		>(
 			(defaultRow, key) =>
 				higherEffortResourceRow(
 					defaultRow,
-					defaultRowsByFamilyKey?.get(key) ?? row,
+					defaultRowsByModelKey?.get(key) ?? row,
 				),
 			undefined,
 		);
-		if (defaultFamilyRow == null) {
+		if (defaultModelRow == null) {
 			continue;
 		}
 		for (const key of modelKeyCandidates(row)) {
-			rowsByModelKey.set(key, defaultFamilyRow);
+			rowsByModelKey.set(key, defaultModelRow);
 		}
 	}
 	for (const [
 		benchmarkKey,
-		defaultRowsByFamilyKey,
-	] of defaultRowsByBenchmarkAndFamilyKey) {
+		defaultRowsByModelKey,
+	] of defaultRowsByBenchmarkAndModelKey) {
 		const rowsByModelKey = rowsByBenchmark.get(benchmarkKey);
 		if (rowsByModelKey == null) {
 			continue;
 		}
-		for (const [key, row] of defaultRowsByFamilyKey) {
+		for (const [key, row] of defaultRowsByModelKey) {
 			rowsByModelKey.set(key, row);
 		}
 	}

@@ -81,6 +81,39 @@ assert.deepEqual(
 	"public selection should exclude candidates without a finite overall score",
 );
 
+const reasoningEffortModels = selectPublicModels(
+	[
+		{ ...internalCandidate, reasoning_effort: "high" },
+		{
+			...internalCandidate,
+			reasoning_effort: "max",
+			scores: { ...internalCandidate.scores, intelligence_score: 90 },
+		},
+	],
+	null,
+	STAGE_CONFIG.final,
+	STAGE_CONFIG.scoring,
+);
+assert.deepEqual(
+	reasoningEffortModels.map((model) => model.reasoning_effort),
+	["max", "high"],
+	"the dashboard payload should retain separately scored reasoning-effort variants",
+);
+assert.equal(
+	scoreJsonPayload(
+		minimalLlmStatsPayload({ fetchedAt: 123, models: reasoningEffortModels }),
+	).scores.length,
+	1,
+	"the default public score view should keep one representative variant per model",
+);
+assert.equal(
+	scoreJsonPayload(
+		minimalLlmStatsPayload({ fetchedAt: 123, models: reasoningEffortModels }),
+	).scores[0]?.score.intelligence,
+	90,
+	"collapsed public views should use the strongest variant for each model",
+);
+
 const fullPayload = minimalLlmStatsPayload({
 	fetchedAt: 123,
 	models: [
@@ -266,6 +299,7 @@ assert.equal("attachment" in (model ?? {}), false);
 assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
+assert.equal("reasoning_effort" in (fullJsonModel ?? {}), false);
 assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
 	"intelligence_score",
 	"agentic_score",

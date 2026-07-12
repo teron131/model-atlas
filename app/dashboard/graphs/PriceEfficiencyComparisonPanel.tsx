@@ -13,6 +13,7 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
+import { modelVariantKey } from "../shared/modelDisplay";
 import {
 	providerAssetLogo,
 	providerName,
@@ -22,7 +23,7 @@ import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart, SummaryCard } from "./ChartComponents";
 import { bestByScore, valueDistribution } from "./chartStats";
 import styles from "./graphs.module.css";
-import { focusHover, modelKey, modelName, shortLabel } from "./models";
+import { focusHover, modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import { stableSvgScale } from "./PlotPrimitives";
 import {
@@ -35,6 +36,8 @@ import {
 import type { HoverSetter } from "./types";
 
 const SCORE_DOMAIN: [number, number] = [0, 100];
+const SLOPE_GRAPH_BASE_HEIGHT = 940;
+const SLOPE_LABEL_MIN_GAP = 22;
 
 type SlopeGraphRow = {
 	row: PriceEfficiencyComparisonRow;
@@ -141,8 +144,14 @@ function PriceEfficiencySlopeGraph({
 	setHover: HoverSetter;
 }) {
 	const width = 940;
-	const height = 940;
 	const margin = { top: 34, right: 196, bottom: 30, left: 196 };
+	const minimumLabelY = margin.top + 18;
+	const height = Math.max(
+		SLOPE_GRAPH_BASE_HEIGHT,
+		minimumLabelY +
+			Math.max(0, rows.length - 1) * SLOPE_LABEL_MIN_GAP +
+			margin.bottom,
+	);
 	const leftX = 310;
 	const rightX = width - 310;
 	const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
@@ -154,13 +163,13 @@ function PriceEfficiencySlopeGraph({
 	const leftLabels = distributedLabelPositions(
 		rows,
 		(row) => yPoint(row.priceScore),
-		margin.top + 18,
+		minimumLabelY,
 		height - margin.bottom,
 	);
 	const rightLabels = distributedLabelPositions(
 		rows,
 		(row) => yPoint(row.costEfficiencyScore),
-		margin.top + 18,
+		minimumLabelY,
 		height - margin.bottom,
 	);
 	const graphRows: SlopeGraphRow[] = rows.map((row, index) => {
@@ -255,7 +264,7 @@ function PriceEfficiencySlopeGraph({
 
 	return (
 		<div
-			className={styles.chartWrap}
+			className={`${styles.chartWrap} ${styles.slopeChartWrap}`}
 			style={{ "--chart-max-width": `${width}px` } as CSSProperties}
 		>
 			<svg
@@ -438,7 +447,7 @@ function priceEfficiencyRowKey(
 	row: PriceEfficiencyComparisonRow,
 	index: number,
 ) {
-	return modelKey(row.model) || `${row.model.provider}-${index}`;
+	return modelVariantKey(row.model) || `${row.model.provider}-${index}`;
 }
 
 function leftRowHoverTarget(
@@ -502,7 +511,6 @@ function distributedLabelPositions(
 	minY: number,
 	maxY: number,
 ): Map<PriceEfficiencyComparisonRow, number> {
-	const minGap = 22;
 	const sorted = [...rows].sort(
 		(left, right) => yForRow(left) - yForRow(right),
 	);
@@ -519,9 +527,9 @@ function distributedLabelPositions(
 		if (
 			previous != null &&
 			current != null &&
-			current.y - previous.y < minGap
+			current.y - previous.y < SLOPE_LABEL_MIN_GAP
 		) {
-			current.y = previous.y + minGap;
+			current.y = previous.y + SLOPE_LABEL_MIN_GAP;
 		}
 	}
 	const last = placed[placed.length - 1];
@@ -531,8 +539,12 @@ function distributedLabelPositions(
 	for (let index = placed.length - 2; index >= 0; index -= 1) {
 		const current = placed[index];
 		const next = placed[index + 1];
-		if (current != null && next != null && next.y - current.y < minGap) {
-			current.y = next.y - minGap;
+		if (
+			current != null &&
+			next != null &&
+			next.y - current.y < SLOPE_LABEL_MIN_GAP
+		) {
+			current.y = next.y - SLOPE_LABEL_MIN_GAP;
 		}
 	}
 	const first = placed[0];
@@ -545,9 +557,9 @@ function distributedLabelPositions(
 		if (
 			previous != null &&
 			current != null &&
-			current.y - previous.y < minGap
+			current.y - previous.y < SLOPE_LABEL_MIN_GAP
 		) {
-			current.y = previous.y + minGap;
+			current.y = previous.y + SLOPE_LABEL_MIN_GAP;
 		}
 	}
 	return new Map(placed.map(({ row, y }) => [row, y]));

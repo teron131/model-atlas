@@ -3,10 +3,16 @@
 import type { PointerEvent } from "react";
 import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/scrapers/deep-swe";
+import { modelIdentityKey } from "../../../src/model-atlas/stats/selection/public-list";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
+import {
+	modelBaseDisplayName,
+	modelDisplayName,
+	modelVariantKey,
+} from "../shared/modelDisplay";
 import {
 	providerAssetLogo,
 	providerFilterKey,
@@ -127,7 +133,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		log: false,
 		ticks: [0, 20, 40, 60, 80, 100],
 		get: (model, context) =>
-			context.frontierScoreByModel.get(modelKey(model)) ?? null,
+			context.frontierScoreByModel.get(modelVariantKey(model)) ?? null,
 		format: (value) => `${value.toFixed(0)}%`,
 		tooltipFormat: fmtPercentScore,
 		xLabel: "MEAN NORMALIZED frontier benchmark score",
@@ -164,7 +170,7 @@ export function frontierBenchmarkScoreByModel(
 		});
 		if (normalizedScores.length > 0) {
 			scoreByModel.set(
-				modelKey(model),
+				modelVariantKey(model),
 				normalizedScores.reduce((sum, value) => sum + value, 0) /
 					normalizedScores.length,
 			);
@@ -225,7 +231,10 @@ export function deepSweRows(
 	mode: DeepSWEEffortMode,
 ): DeepSWEChartRow[] {
 	const modelsByKey = new Map(
-		models.map((model) => [providerFilterKey(modelName(model)), model]),
+		models.map((model) => [
+			providerFilterKey(graphModelName(modelBaseDisplayName(model))),
+			model,
+		]),
 	);
 	const chartRows = rows
 		.flatMap((row): DeepSWEChartRow[] => {
@@ -274,7 +283,8 @@ export function groupBy<T, TKey>(
 
 export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 	type ProviderOptionDraft = ProviderOption & {
-		intelligenceScores: number[];
+		modelKeys: Set<string>;
+		bestScoreByModel: Map<string, number>;
 	};
 
 	const byProvider = new Map<string, ProviderOptionDraft>();
@@ -287,12 +297,21 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 			count: 0,
 			color: providerPaletteColor(model.provider),
 			logo: providerLogoSource(model),
-			intelligenceScores: [],
+			modelKeys: new Set(),
+			bestScoreByModel: new Map(),
 		};
-		current.count += 1;
+		const modelKey = modelIdentityKey(model);
+		current.modelKeys.add(modelKey);
 		if (intelligenceScore != null) {
-			current.intelligenceScores.push(intelligenceScore);
+			current.bestScoreByModel.set(
+				modelKey,
+				Math.max(
+					current.bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
+					intelligenceScore,
+				),
+			);
 		}
+		current.count = current.modelKeys.size;
 		byProvider.set(slug, current);
 	}
 	const providerShortlist = [...byProvider.values()]
@@ -305,7 +324,7 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 	return providerShortlist
 		.map((option) => ({
 			...option,
-			orderScore: meanTopProviderScore(option.intelligenceScores),
+			orderScore: meanTopProviderScore([...option.bestScoreByModel.values()]),
 		}))
 		.sort(
 			(left, right) =>
@@ -338,13 +357,27 @@ export function limitByIntelligenceScore<T>(
 	if (limit === "all") {
 		return items;
 	}
-	return [...items]
-		.sort(
-			(left, right) =>
-				modelIntelligenceScore(getModel(right)) -
-				modelIntelligenceScore(getModel(left)),
-		)
-		.slice(0, limit);
+	const bestScoreByModel = new Map<string, number>();
+	for (const item of items) {
+		const model = getModel(item);
+		const modelKey = modelIdentityKey(model);
+		bestScoreByModel.set(
+			modelKey,
+			Math.max(
+				bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
+				modelIntelligenceScore(model),
+			),
+		);
+	}
+	const selectedModels = new Set(
+		[...bestScoreByModel]
+			.sort((left, right) => right[1] - left[1])
+			.slice(0, limit)
+			.map(([modelKey]) => modelKey),
+	);
+	return items.filter((item) =>
+		selectedModels.has(modelIdentityKey(getModel(item))),
+	);
 }
 
 function modelMatchesControls(
@@ -372,10 +405,6 @@ function meanTopProviderScore(scores: number[]) {
 	return topScores.length > 0
 		? topScores.reduce((total, score) => total + score, 0) / topScores.length
 		: Number.NEGATIVE_INFINITY;
-}
-
-export function modelKey(model: LlmStatsModel) {
-	return model.id ?? model.name ?? "";
 }
 
 export function pointHover(
@@ -502,7 +531,7 @@ export function deepSweCi(row: DeepSWELeaderboardRow) {
 }
 
 export function modelName(model: LlmStatsModel) {
-	return graphModelName(model.name ?? model.id ?? "Unknown model");
+	return graphModelName(modelDisplayName(model));
 }
 
 function graphModelName(name: string) {

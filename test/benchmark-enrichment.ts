@@ -6,6 +6,7 @@ import {
 	type BenchmarkEnrichmentLookups,
 	enrichBenchmarkAggregate,
 	enrichBenchmarkObservation,
+	enrichModelRowsWithSupplementalBenchmarks,
 } from "../src/model-atlas/stats/benchmarks";
 import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
@@ -288,6 +289,55 @@ assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 	},
 });
 
+const variantAutomationBenchResourceRow = {
+	...automationBenchResourceRow,
+	model_id: "test/example-model-medium",
+	model: "Example Model (medium)",
+	reasoning_effort: "medium",
+	score: 0.61,
+	cost_per_task_usd: 0.04,
+	seconds_per_task: 6,
+} satisfies ArtificialAnalysisEvaluationResourceRow;
+const [supplementedObservation] = enrichModelRowsWithSupplementalBenchmarks(
+	[
+		{
+			id: "test/example-model",
+			name: "Example Model",
+			artificial_analysis_id: "test/example-model-medium",
+			reasoning_effort: "medium",
+			evaluations: {
+				automation_bench: variantAutomationBenchResourceRow.score,
+			},
+			scoring_sources: {
+				automation_bench: variantAutomationBenchResourceRow,
+			},
+		},
+	],
+	lookups,
+);
+assert.ok(
+	supplementedObservation,
+	"supplemental enrichment must preserve the input observation",
+);
+assert.equal(
+	(supplementedObservation.evaluations as Record<string, unknown>)
+		.automation_bench,
+	variantAutomationBenchResourceRow.score,
+	"supplemental aggregate benchmarks must not overwrite an effort observation's benchmark value",
+);
+assert.equal(
+	(
+		(supplementedObservation.scoring_sources as Record<string, unknown>)
+			.automation_bench as ArtificialAnalysisEvaluationResourceRow
+	).cost_per_task_usd,
+	variantAutomationBenchResourceRow.cost_per_task_usd,
+	"supplemental aggregate benchmarks must not overwrite effort-specific resources",
+);
+assert.equal(
+	(supplementedObservation.evaluations as Record<string, unknown>).cursorbench,
+	cursorBenchRow.score,
+	"supplemental benchmarks should still fill missing observation evidence",
+);
 /** Return a typed empty lookup map for sources not involved in this test. */
 function emptyLookup(): Map<string, never> {
 	return new Map<string, never>();

@@ -4,13 +4,13 @@ import { STAGE_CONFIG } from "./constants";
 import {
 	type BenchmarkRowsByKey,
 	benchmarkRowsFromSourceData,
-	enrichAggregatedModelRowsWithBenchmarks,
+	enrichModelRowsWithSupplementalBenchmarks,
 } from "./stats/benchmarks";
 import { buildModelCatalogRows } from "./stats/catalog";
 import { buildMatchedModelRows } from "./stats/matching";
 import { buildCurrentLlmStatsMetadata } from "./stats/metadata";
 import {
-	aggregateModelRows,
+	aggregateExpandedModelRows,
 	enrichModelRowsWithOpenRouter,
 } from "./stats/openrouter-enrichment";
 import { buildFinalModels } from "./stats/selection";
@@ -76,8 +76,8 @@ async function buildLlmStatsPayload(
 	const sourceData = await fetchSourceData();
 	const matchedRows = buildMatchedModelRows(sourceData, STAGE_CONFIG.matcher);
 	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
-	const aggregatedRows = aggregateModelRows(catalogRows);
-	const benchmarkEnrichedRows = enrichAggregatedModelRowsWithBenchmarks(
+	const aggregatedRows = aggregateExpandedModelRows(catalogRows);
+	const benchmarkEnrichedRows = enrichModelRowsWithSupplementalBenchmarks(
 		aggregatedRows,
 		sourceData,
 	);

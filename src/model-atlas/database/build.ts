@@ -7,11 +7,11 @@ import { STAGE_CONFIG } from "../constants";
 import { buildMatchDiagnostics } from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
-import { enrichAggregatedModelRowsWithBenchmarks } from "../stats/benchmarks";
+import { enrichModelRowsWithSupplementalBenchmarks } from "../stats/benchmarks";
 import { buildModelCatalogRows, filterTextLlmRows } from "../stats/catalog";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
 import {
-	aggregateModelRows,
+	aggregateExpandedModelRows,
 	enrichModelRowsWithOpenRouter,
 } from "../stats/openrouter-enrichment";
 import { buildFinalModels } from "../stats/selection";
@@ -286,8 +286,8 @@ export async function buildDatabase(
 		);
 		const matchedTextLlmRows = filterTextLlmRows(matchedRows);
 		const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
-		const aggregatedRows = aggregateModelRows(catalogRows);
-		const benchmarkEnrichedRows = enrichAggregatedModelRowsWithBenchmarks(
+		const aggregatedRows = aggregateExpandedModelRows(catalogRows);
+		const benchmarkEnrichedRows = enrichModelRowsWithSupplementalBenchmarks(
 			aggregatedRows,
 			sourceData,
 		);
