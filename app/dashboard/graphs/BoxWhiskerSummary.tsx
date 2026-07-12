@@ -50,8 +50,8 @@ export function BoxWhiskerSummary({
 	const toPosition = (value: number) => {
 		const ratio = clamp((value - minValue) / domainSpan, 0, 1);
 		const inset = 28;
-		const percent = ratio * 100;
-		const offset = inset * (1 - ratio * 2);
+		const percent = stableCssNumber(ratio * 100);
+		const offset = stableCssNumber(inset * (1 - ratio * 2));
 		const operator = offset < 0 ? "-" : "+";
 		return `calc(${percent}% ${operator} ${Math.abs(offset)}px)`;
 	};
@@ -226,6 +226,11 @@ export function BoxWhiskerSummary({
 			</div>
 		</div>
 	);
+}
+
+/** Keep server and browser style serialization identical at sub-pixel precision. */
+function stableCssNumber(value: number): number {
+	return Math.round(value * 1_000_000) / 1_000_000;
 }
 
 function shouldSeparateTopLabels({

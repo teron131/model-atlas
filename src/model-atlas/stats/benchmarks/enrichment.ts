@@ -288,8 +288,8 @@ export function enrichBenchmarkAggregate(
 	};
 }
 
-/** Attaches supplemental benchmark aggregates only after effort observations have collapsed. */
-export function enrichAggregatedModelRowsWithBenchmarks(
+/** Fill missing benchmark evidence without replacing observation-level values or resources. */
+export function enrichModelRowsWithSupplementalBenchmarks(
 	rows: Record<string, unknown>[],
 	lookups: BenchmarkEnrichmentLookups,
 ): Record<string, unknown>[] {
@@ -308,12 +308,12 @@ export function enrichAggregatedModelRowsWithBenchmarks(
 			baseEvaluations,
 		);
 		const evaluations = {
-			...baseEvaluations,
 			...benchmarkEnrichment.evaluations,
+			...baseEvaluations,
 		};
 		const scoringSources = {
-			...asRecord(row.scoring_sources),
 			...benchmarkEnrichment.scoringSources,
+			...asRecord(row.scoring_sources),
 		};
 		return {
 			...row,

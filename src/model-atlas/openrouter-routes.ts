@@ -26,7 +26,7 @@ const REASONING_EFFORT_ROUTES = [
 	["-reasoning-minimal", "minimal"],
 	["-minimal", "minimal"],
 	["-reasoning", "minimal"],
-	["-non-reasoning", "non-reasoning"],
+	["-non-reasoning", "none"],
 ] as const;
 const REASONING_EFFORT_SUFFIXES = REASONING_EFFORT_ROUTES.map(
 	([suffix]) => suffix,

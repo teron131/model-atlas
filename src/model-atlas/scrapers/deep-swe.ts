@@ -8,6 +8,7 @@
 import {
 	asFiniteNumber,
 	asRecord,
+	canonicalReasoningEffort,
 	normalizeModelToken,
 	reasoningEffortRank,
 } from "../shared";
@@ -96,11 +97,7 @@ export function asDeepSWELeaderboardRow(
 	}
 	return {
 		model: row.model,
-		reasoning_effort:
-			typeof row.reasoning_effort === "string" &&
-			row.reasoning_effort.length > 0
-				? row.reasoning_effort
-				: null,
+		reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
 		config:
 			typeof row.config === "string" && row.config.length > 0
 				? row.config

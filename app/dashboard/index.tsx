@@ -38,6 +38,7 @@ import {
 import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
 import { MoonIcon, RefreshIcon, SunIcon } from "./shared/DashboardIcons";
 import { cacheBustedPath, formatWeight } from "./shared/format";
+import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
 import {
 	type ColumnView,
 	columnViewOptions,
@@ -59,6 +60,8 @@ const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 const DASHBOARD_THEME_STORAGE_KEY = "model-atlas:dashboard-theme";
+const REASONING_VARIANT_DISPLAY_STORAGE_KEY =
+	"model-atlas:expand-reasoning-variants";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
@@ -318,6 +321,8 @@ export function Dashboard({
 	const dashboardRef = useRef<HTMLElement>(null);
 	const tooltipFadeTimeoutRef = useRef<number | null>(null);
 	const [theme, setTheme] = useDashboardTheme();
+	const [expandReasoningVariants, setExpandReasoningVariants] =
+		useReasoningVariantDisplay();
 	const [sortState, setSortState] = useState<SortState>({
 		key: "intelligence",
 		direction: "descending",
@@ -333,9 +338,18 @@ export function Dashboard({
 	const { payload, isRefreshing, errorMessage, refreshPayload } =
 		useLivePayload(initialPayload);
 
+	const displayPayload = useMemo(() => {
+		if (payload == null) {
+			return null;
+		}
+		return {
+			...payload,
+			models: modelsForVariantDisplay(payload.models, expandReasoningVariants),
+		};
+	}, [payload, expandReasoningVariants]);
 	const tableRows = useMemo(
-		() => dedupeDisplayModels(payload?.models ?? []),
-		[payload],
+		() => dedupeDisplayModels(displayPayload?.models ?? []),
+		[displayPayload],
 	);
 	const metricColumns = useMemo(
 		() => metricColumnsForView(columnView),
@@ -364,7 +378,9 @@ export function Dashboard({
 	const rowCountLabel =
 		payload == null
 			? "Loading"
-			: `${visibleRows.length} of ${filteredTableRows.length} models`;
+			: expandReasoningVariants
+				? `${modelCount(visibleRows.map((row) => row.model))} models / ${visibleRows.length} variants`
+				: `${visibleRows.length} of ${filteredTableRows.length} models`;
 	const emptyMessage =
 		errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
@@ -492,11 +508,13 @@ export function Dashboard({
 		>
 			<DashboardHeader theme={theme} onThemeChange={setTheme} />
 			<DashboardGraphs
-				initialPayload={payload}
+				payload={displayPayload}
 				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
 				provider={providerFilter}
 				maxCost={maxCostFilter}
 				modelLimit={modelLimit}
+				expandReasoningVariants={expandReasoningVariants}
+				onExpandReasoningVariantsChange={setExpandReasoningVariants}
 				onProviderChange={setProviderFilter}
 				onMaxCostChange={setMaxCostFilter}
 				onModelLimitChange={setModelLimit}
@@ -589,6 +607,32 @@ function writeDashboardTheme(theme: DashboardTheme): void {
 	try {
 		window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, theme);
 	} catch {}
+}
+
+function useReasoningVariantDisplay() {
+	const hydratedModeRef = useRef(false);
+	const [expandReasoningVariants, setExpandReasoningVariants] = useState(false);
+
+	useLayoutEffect(() => {
+		if (!hydratedModeRef.current) {
+			hydratedModeRef.current = true;
+			try {
+				setExpandReasoningVariants(
+					window.localStorage.getItem(REASONING_VARIANT_DISPLAY_STORAGE_KEY) ===
+						"true",
+				);
+			} catch {}
+			return;
+		}
+		try {
+			window.localStorage.setItem(
+				REASONING_VARIANT_DISPLAY_STORAGE_KEY,
+				String(expandReasoningVariants),
+			);
+		} catch {}
+	}, [expandReasoningVariants]);
+
+	return [expandReasoningVariants, setExpandReasoningVariants] as const;
 }
 
 function useLivePayload(initialPayload: LlmStatsPayload | null) {

@@ -4,6 +4,7 @@ import { resolveStatsLogo } from "../../logo";
 import {
 	asFiniteNumber,
 	asRecord,
+	canonicalReasoningEffort,
 	type JsonObject,
 	normalizeProviderId,
 	normalizeProviderModelId,
@@ -465,6 +466,7 @@ export function buildModelCandidate(
 		}),
 		attachment: typeof model.attachment === "boolean" ? model.attachment : null,
 		reasoning: typeof model.reasoning === "boolean" ? model.reasoning : null,
+		reasoning_effort: canonicalReasoningEffort(model.reasoning_effort),
 		release_date:
 			typeof model.release_date === "string" ? model.release_date : null,
 		modalities: buildModalities(model),

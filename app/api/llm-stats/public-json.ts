@@ -1,5 +1,6 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
+import { strongestModelVariants } from "../../../src/model-atlas/stats/selection/public-list";
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,
@@ -11,13 +12,20 @@ const BENCHMARKS_SCHEMA = "model_atlas.benchmarks";
 const SCORE_SCALE = "percentage";
 const BENCHMARK_SCALE = "decimal";
 
-export type LlmStatsJsonView = "score" | "core" | "benchmarks" | "all" | "full";
+export type LlmStatsJsonView =
+	| "score"
+	| "core"
+	| "benchmarks"
+	| "all"
+	| "full"
+	| "dashboard";
 
 export type PublicJsonPayload =
 	| ScoreJsonPayload
 	| CoreJsonPayload
 	| BenchmarksJsonPayload
-	| FullJsonPayload;
+	| FullJsonPayload
+	| LlmStatsPayload;
 
 export type CoreJsonPayload = {
 	schema: typeof CORE_SCHEMA;
@@ -34,7 +42,7 @@ export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
 
 type PublicFullJsonModel = Omit<
 	LlmStatsModel,
-	"attachment" | "reasoning" | "logo"
+	"attachment" | "reasoning" | "reasoning_effort" | "logo"
 >;
 
 export type ScoreJsonPayload = {
@@ -134,6 +142,8 @@ export function publicJsonPayload(
 	view: string | null,
 ): PublicJsonPayload {
 	switch (view) {
+		case "dashboard":
+			return payload;
 		case "all":
 		case "full":
 			return fullJsonPayload(payload);
@@ -148,7 +158,9 @@ export function publicJsonPayload(
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
 export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
-	const rankedModels = rankModelsByIntelligence(payload.models);
+	const rankedModels = rankModelsByIntelligence(
+		strongestModelVariants(payload.models),
+	);
 	return {
 		schema: CORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -161,7 +173,9 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 
 /** The score view is the default public ranking surface and exposes only Atlas 0-100 score fields. */
 export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
-	const rankedModels = rankModelsByIntelligence(payload.models);
+	const rankedModels = rankModelsByIntelligence(
+		strongestModelVariants(payload.models),
+	);
 	return {
 		schema: SCORE_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -175,7 +189,9 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 export function benchmarksJsonPayload(
 	payload: LlmStatsPayload,
 ): BenchmarksJsonPayload {
-	const rankedModels = rankModelsByIntelligence(payload.models);
+	const rankedModels = rankModelsByIntelligence(
+		strongestModelVariants(payload.models),
+	);
 	return {
 		schema: BENCHMARKS_SCHEMA,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -191,7 +207,7 @@ export function benchmarksJsonPayload(
 export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	return {
 		...payload,
-		models: payload.models.map(fullJsonModel),
+		models: strongestModelVariants(payload.models).map(fullJsonModel),
 	};
 }
 
@@ -219,6 +235,7 @@ function fullJsonModel(model: LlmStatsModel): PublicFullJsonModel {
 		attachment: _attachment,
 		logo: _logo,
 		reasoning: _reasoning,
+		reasoning_effort: _reasoningEffort,
 		...modelPayload
 	} = model;
 	return modelPayload;

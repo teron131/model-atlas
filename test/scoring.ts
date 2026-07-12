@@ -663,6 +663,7 @@ function modelCandidate(options: {
 		logo: "",
 		attachment: null,
 		reasoning: null,
+		reasoning_effort: null,
 		release_date: null,
 		modalities: null,
 		open_weights: null,

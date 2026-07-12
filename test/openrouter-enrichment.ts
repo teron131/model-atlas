@@ -7,7 +7,8 @@ import {
 	publicOpenRouterModelName,
 } from "../src/model-atlas/openrouter-routes";
 import {
-	aggregateModelRows,
+	aggregateCollapsedModelRows,
+	aggregateExpandedModelRows,
 	enrichModelRowsWithOpenRouter,
 } from "../src/model-atlas/stats/openrouter-enrichment";
 
@@ -18,7 +19,7 @@ function assertEqual(actual: unknown, expected: unknown): void {
 }
 
 const enriched = await enrichModelRowsWithOpenRouter(
-	aggregateModelRows([
+	aggregateCollapsedModelRows([
 		{
 			id: "anthropic/claude-opus-4.8-fast",
 			openrouter_id: "anthropic/claude-opus-4.8-fast",
@@ -69,7 +70,22 @@ const effortObservations = [
 	},
 ] as const;
 const preservedEffortObservations = JSON.stringify(effortObservations);
-const defaultEffortRows = aggregateModelRows([...effortObservations]);
+const defaultEffortRows = aggregateCollapsedModelRows([...effortObservations]);
+const expandedVariantRows = aggregateExpandedModelRows([...effortObservations]);
+assertEqual(expandedVariantRows.length, 2);
+assertEqual(expandedVariantRows[0]?.reasoning_effort, "max");
+assertEqual(expandedVariantRows[1]?.reasoning_effort, "xhigh");
+const [canonicalNoneVariant] = aggregateExpandedModelRows([
+	{
+		id: "openai/gpt-5.6-sol",
+		provider_id: "openai",
+		artificial_analysis_id: "openai/gpt-5-6-sol-non-reasoning",
+		artificial_analysis_slug: "gpt-5-6-sol-non-reasoning",
+		reasoning_effort: "non-reasoning",
+		evaluations: { scicode: 0.4 },
+	},
+]);
+assertEqual(canonicalNoneVariant?.reasoning_effort, "none");
 const defaultEffortRow = defaultEffortRows[0] as Record<string, unknown>;
 const defaultEffortEvaluations = defaultEffortRow.evaluations as Record<
 	string,
@@ -91,7 +107,7 @@ assertEqual(defaultEffortIntelligence.intelligence_index, 59);
 assertEqual(defaultEffortIntelligenceCost.total_cost, 12);
 assertEqual(JSON.stringify(effortObservations), preservedEffortObservations);
 
-const separatelyNamedMaxRow = aggregateModelRows([
+const separatelyNamedMaxRow = aggregateCollapsedModelRows([
 	{
 		id: "anthropic/claude-opus-4.6",
 		provider_id: "anthropic",
@@ -140,7 +156,7 @@ const nullClaudeConfigurationObservations = [
 const preservedNullClaudeConfigurationObservations = JSON.stringify(
 	nullClaudeConfigurationObservations,
 );
-const nullClaudeConfigurationRows = aggregateModelRows([
+const nullClaudeConfigurationRows = aggregateCollapsedModelRows([
 	...nullClaudeConfigurationObservations,
 ]);
 assertEqual(nullClaudeConfigurationRows.length, 1);
@@ -276,7 +292,7 @@ assertEqual(
 );
 
 const aliasOnlyEnriched = await enrichModelRowsWithOpenRouter(
-	aggregateModelRows([
+	aggregateCollapsedModelRows([
 		{
 			id: "openai/gpt-5.5-xhigh",
 			openrouter_id: "openai/gpt-5.5-xhigh",
@@ -295,7 +311,7 @@ assertEqual(aliasOnlyEnriched.rows.length, 1);
 assertEqual(aliasOnlyEnriched.rows[0]?.id, "openai/gpt-5.5");
 assertEqual(aliasOnlyEnriched.rows[0]?.openrouter_id, "openai/gpt-5.5");
 
-const qualifiedFallbackRows = aggregateModelRows([
+const qualifiedFallbackRows = aggregateCollapsedModelRows([
 	{
 		id: "openai/gpt-test",
 		openrouter_id: "gpt-test",
@@ -307,7 +323,7 @@ assertEqual(qualifiedFallbackRows[0]?.id, "openai/gpt-test");
 assertEqual(qualifiedFallbackRows[0]?.openrouter_id, "openai/gpt-test");
 
 const datedGeminiPreviewEnriched = await enrichModelRowsWithOpenRouter(
-	aggregateModelRows([
+	aggregateCollapsedModelRows([
 		{
 			id: "google/gemini-2.5-flash-preview-09-2025",
 			openrouter_id: "google/gemini-2.5-flash-preview-09-2025",

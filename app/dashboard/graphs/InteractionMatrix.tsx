@@ -7,6 +7,7 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
+import { modelVariantKey } from "../shared/modelDisplay";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { linearAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
@@ -23,7 +24,6 @@ import {
 	formatCorrelation,
 	frontierBenchmarkScoreByModel,
 	interactionConfigs,
-	modelKey,
 	positiveDomain,
 	shortLabel,
 } from "./models";
@@ -297,7 +297,7 @@ function InteractionPlot({
 			? topIntelligenceScoreRows(plottedPoints)
 			: extremeLabelRows(
 					plottedPoints,
-					(point) => modelKey(point.model),
+					(point) => modelVariantKey(point.model),
 					(point) => point.x,
 					(point) => point.y,
 					{ xHigherBetter: !config.lowerBetter },
@@ -312,7 +312,7 @@ function InteractionPlot({
 		labels: plottedPoints
 			.filter((point) => labeledPoints.has(point))
 			.map((point, index) => ({
-				key: modelKey(point.model),
+				key: modelVariantKey(point.model),
 				label: shortLabel(point.model),
 				cx: xPoint(point.x),
 				cy: yPoint(point.y),
@@ -390,7 +390,7 @@ function InteractionPlot({
 						[config.hoverLabel ?? config.xLabel, config.tooltipFormat(point.x)],
 					];
 					return (
-						<g key={point.model.id ?? `${point.x}-${point.y}`}>
+						<g key={modelVariantKey(point.model) || `${point.x}-${point.y}`}>
 							<circle
 								className={styles.datavizPoint}
 								cx={cx}
@@ -421,14 +421,16 @@ function InteractionPlot({
 				{plottedPoints.map((point) =>
 					labeledPoints.has(point) ? (
 						<PointLabel
-							key={`label-${point.model.id ?? `${point.x}-${point.y}`}`}
+							key={`label-${modelVariantKey(point.model) || `${point.x}-${point.y}`}`}
 							model={point.model}
 							cx={xPoint(point.x)}
 							cy={yPoint(point.y)}
 							width={width}
 							margin={margin}
 							height={height}
-							placement={interactionLabelPlacements.get(modelKey(point.model))}
+							placement={interactionLabelPlacements.get(
+								modelVariantKey(point.model),
+							)}
 						/>
 					) : null,
 				)}

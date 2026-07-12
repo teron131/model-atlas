@@ -16,6 +16,7 @@ import {
 import {
 	asFiniteNumber,
 	asRecord,
+	canonicalReasoningEffort,
 	type JsonObject,
 	modelSlugFromModelId,
 	normalizeModelToken,
@@ -40,6 +41,8 @@ const ALIAS_MERGED_OBJECT_FIELDS = [
 	"component_scores",
 ] as const;
 type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
+
+type VariantAggregation = "expand" | "collapse";
 
 function normalizeOpenRouterSpeed(performance: unknown): JsonObject {
 	const parsed = asRecord(performance);
@@ -217,7 +220,7 @@ function mergeDuplicateRows(
 	return merged;
 }
 
-function mergeDefaultEffortRows(
+function mergeCollapsedVariantRows(
 	winner: JsonObject,
 	group: readonly JsonObject[],
 ): JsonObject {
@@ -228,6 +231,30 @@ function mergeDefaultEffortRows(
 	);
 	delete aggregate.reasoning_effort;
 	return aggregate;
+}
+
+/** Preserve one Artificial Analysis observation per explicit effort while sharing route-owned catalog fields. */
+function mergeReasoningVariants(
+	group: readonly JsonObject[],
+	normalizedId: string,
+): JsonObject[] {
+	const rowsByEffort = new Map<string | null, JsonObject[]>();
+	for (const row of group) {
+		const effort = canonicalReasoningEffort(row.reasoning_effort);
+		const effortRows = rowsByEffort.get(effort) ?? [];
+		effortRows.push(row);
+		rowsByEffort.set(effort, effortRows);
+	}
+	return [...rowsByEffort].map(([effort, effortRows]) => {
+		const winner = [...effortRows].sort(
+			(left, right) =>
+				rowPriority(right, normalizedId) - rowPriority(left, normalizedId),
+		)[0] as JsonObject;
+		return {
+			...mergeDuplicateRows(winner, group, CATALOG_MERGED_OBJECT_FIELDS),
+			reasoning_effort: effort,
+		};
+	});
 }
 
 function hasSpeedData(speed: JsonObject): boolean {
@@ -345,9 +372,9 @@ function aliasOpenRouterDataToPublicRows(
 	}
 }
 
-/** Collapses route aliases and effort observations into one explicit aggregate model row. */
-export function aggregateModelRows(
+function aggregateRows(
 	rows: Record<string, unknown>[],
+	variantAggregation: VariantAggregation,
 ): Record<string, unknown>[] {
 	const groupedByNormalizedId = new Map<string, JsonObject[]>();
 	const passthrough: Record<string, unknown>[] = [];
@@ -377,14 +404,34 @@ export function aggregateModelRows(
 			(left, right) =>
 				rowPriority(right, normalizedId) - rowPriority(left, normalizedId),
 		)[0] as JsonObject;
+		if (normalizedId.startsWith("artificial_analysis:")) {
+			dedupedRows.push(
+				...(variantAggregation === "expand"
+					? mergeReasoningVariants(group, normalizedId)
+					: [mergeCollapsedVariantRows(winner, group)]),
+			);
+			continue;
+		}
 		dedupedRows.push(
-			normalizedId.startsWith("artificial_analysis:")
-				? mergeDefaultEffortRows(winner, group)
-				: mergeDuplicateRows(winner, group, ALIAS_MERGED_OBJECT_FIELDS),
+			mergeDuplicateRows(winner, group, ALIAS_MERGED_OBJECT_FIELDS),
 		);
 	}
 
 	return [...passthrough, ...dedupedRows];
+}
+
+/** Collapse route aliases while preserving Artificial Analysis reasoning variants as distinct model rows. */
+export function aggregateExpandedModelRows(
+	rows: Record<string, unknown>[],
+): Record<string, unknown>[] {
+	return aggregateRows(rows, "expand");
+}
+
+/** Collapse route aliases and reasoning variants into one representative row per model. */
+export function aggregateCollapsedModelRows(
+	rows: Record<string, unknown>[],
+): Record<string, unknown>[] {
+	return aggregateRows(rows, "collapse");
 }
 
 function hasPositiveCostFields(cost: JsonObject): boolean {

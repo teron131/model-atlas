@@ -17,6 +17,7 @@ import {
 	formatDashboardMetric,
 	formatScore,
 } from "../shared/format";
+import { modelDisplayName } from "../shared/modelDisplay";
 import {
 	providerAssetLogo,
 	providerDisplayColor,
@@ -119,7 +120,7 @@ export function ModelRow({
 	metricColumns: DashboardMetricColumn[];
 }) {
 	const model = rowData.model;
-	const visibleName = visibleModelName(model.name);
+	const visibleName = visibleModelName(modelDisplayName(model));
 	const visibleSlug = visibleModelSlug(model.id);
 	const scores = model.scores ?? {};
 	return (

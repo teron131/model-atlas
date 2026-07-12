@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
+import { modelVariantKey } from "../shared/modelDisplay";
 import { staticSortableColumns } from "./Columns";
 import type {
 	DashboardMetricColumn,
@@ -139,7 +140,10 @@ export function ModelTable({
 							<>
 								{visibleRows.map((rowData) => (
 									<ModelRow
-										key={rowData.model.id ?? `${rowData.originalIndex}`}
+										key={
+											modelVariantKey(rowData.model) ||
+											`${rowData.originalIndex}`
+										}
 										rowData={rowData}
 										metricColumns={metricColumns}
 									/>

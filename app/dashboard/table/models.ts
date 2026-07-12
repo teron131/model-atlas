@@ -1,6 +1,7 @@
 /** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import { modelDisplayName } from "../shared/modelDisplay";
 
 export type Direction = "ascending" | "descending";
 
@@ -583,7 +584,7 @@ export const sorters: Record<SortKey, Sorter> = {
 	model: {
 		direction: "ascending",
 		type: "text",
-		value: (row) => row.model.name ?? row.model.id ?? "",
+		value: (row) => modelDisplayName(row.model),
 	},
 	overall: {
 		direction: "descending",
@@ -742,7 +743,7 @@ function filteredRows(rows: TableRow[], filterQuery: string) {
 		return [...rows];
 	}
 	return rows.filter(({ model }) => {
-		const searchable = [model.name, model.id, model.provider]
+		const searchable = [modelDisplayName(model), model.id, model.provider]
 			.join(" ")
 			.toLowerCase();
 		return searchable.includes(query);
@@ -834,7 +835,7 @@ function canonicalDisplayModelId(model: LlmStatsModel) {
 	const id = typeof model.id === "string" ? model.id : "";
 	const slashIndex = id.indexOf("/");
 	if (slashIndex <= 0) {
-		return id.toLowerCase().replace(/\./g, "-").replace(/-+/g, "-");
+		return `${id.toLowerCase().replace(/\./g, "-").replace(/-+/g, "-")}\u0000${model.reasoning_effort ?? ""}`;
 	}
 	const slug = id
 		.slice(slashIndex + 1)
@@ -844,7 +845,7 @@ function canonicalDisplayModelId(model: LlmStatsModel) {
 		.replace(/-\d{8}$/, "")
 		.replace(/-fast$/, "");
 	const provider = canonicalProviderId(id.slice(0, slashIndex), slug);
-	return `${provider}/${slug}`;
+	return `${provider}/${slug}\u0000${model.reasoning_effort ?? ""}`;
 }
 
 function canonicalProviderId(provider: string, slug: string) {

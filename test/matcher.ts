@@ -28,9 +28,9 @@ import {
 	type ValsIndexModelScoreRow,
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
 import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
-import { enrichAggregatedModelRowsWithBenchmarks } from "../src/model-atlas/stats/benchmarks";
+import { enrichModelRowsWithSupplementalBenchmarks } from "../src/model-atlas/stats/benchmarks";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/stats/matching";
-import { aggregateModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
+import { aggregateCollapsedModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
 const sourceRows: MatcherSourceModel[] = [
@@ -373,12 +373,7 @@ assert.equal(
 
 const sourceData = modelStatsSourceData([
 	sourceModel("google/example-2-5-flash", 20, "high", 0.4),
-	sourceModel(
-		"google/example-2-5-flash-non-reasoning",
-		10,
-		"non-reasoning",
-		0.1,
-	),
+	sourceModel("google/example-2-5-flash-non-reasoning", 10, "none", 0.1),
 	sourceModel("google/example-3-pro", 50),
 ]);
 const matchDiagnostics = buildMatchDiagnostics({
@@ -427,11 +422,11 @@ const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
 const matchedExample = matchedRows.find(
 	(row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
-const aggregateExample = enrichAggregatedModelRowsWithBenchmarks(
-	aggregateModelRows(matchedRows),
+const aggregateExample = enrichModelRowsWithSupplementalBenchmarks(
+	aggregateCollapsedModelRows(matchedRows),
 	sourceData,
 ).find((row) => row.id === "google/example-2.5-flash");
-const nonReasoningObservation = matchedRows.find(
+const noneEffortObservation = matchedRows.find(
 	(row) =>
 		row.artificial_analysis_id === "google/example-2-5-flash-non-reasoning",
 );
@@ -488,9 +483,9 @@ assert.equal(
 	2,
 	"AA resource rows should prefer exact source model id over a generic display-name match",
 );
-assert.equal(nonReasoningObservation?.reasoning_effort, "non-reasoning");
+assert.equal(noneEffortObservation?.reasoning_effort, "none");
 assert.equal(
-	asScoringSources(nonReasoningObservation).hle?.cost_per_task_usd,
+	asScoringSources(noneEffortObservation).hle?.cost_per_task_usd,
 	0.1,
 	"matched effort rows should retain their exact resource observation",
 );
@@ -628,7 +623,7 @@ function modelStatsSourceData(
 				model: "Example 2.5 Flash",
 				provider: "Google",
 				provider_id: "google",
-				reasoning_effort: "non-reasoning",
+				reasoning_effort: "none",
 				score: 0.1,
 				task_run_count: 2,
 				cost_per_task_usd: 0.1,
