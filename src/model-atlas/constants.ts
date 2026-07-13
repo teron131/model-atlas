@@ -6,7 +6,7 @@ export {
 	BENCHMARK_PORTFOLIO,
 	type BenchmarkDimension,
 	type BenchmarkKey,
-	benchmarkDimensionPortion,
+	benchmarkDimensionWeight,
 	benchmarkKeysInGroup,
 	benchmarkPortfolioEntry,
 	FRONTIER_BENCHMARKS,
@@ -15,6 +15,7 @@ export {
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
 	selectedBenchmarksForDimension,
+	validateBenchmarkPortfolio,
 } from "./config/benchmark-portfolio";
 export { COLUMN_TOOLTIPS } from "./config/column-tooltips";
 export { STAGE_CONFIG } from "./config/stage-config";

@@ -18,50 +18,50 @@ The ranking has two quality dimensions.
 
 - Intelligence
   - Captures broad capability: factual accuracy, hard reasoning, professional knowledge, and structured problem solving outside harness/tool execution.
-  - Evidence comes from benchmarks with a non-zero Intelligence portion in the benchmark portfolio.
+  - Evidence comes from benchmarks with a non-zero Intelligence loading in the benchmark portfolio.
 - Agentic
   - Captures workflow usefulness: coding or task execution with specific tools, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
-  - Evidence comes from benchmarks with a non-zero Agentic portion in the benchmark portfolio.
+  - Evidence comes from benchmarks with a non-zero Agentic loading in the benchmark portfolio.
 
 There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, Terminal-Bench 2.1, and AA tau3 Banking remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
 
-Selected benchmarks have one scoring group: `baseline` or `frontier`. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
+Selected benchmarks have one missing-data group: `baseline` or `frontier`. Group does not change the weight of an observed benchmark; it only controls how missing benchmark evidence is handled. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
 
-For accepted benchmarks, the per-benchmark scoring knobs are deliberately narrow: choose the group, then assign Intelligence and Agentic portions that sum to 100%. These portions allocate the benchmark's capability signal between the two quality dimensions; they are not arbitrary standalone weights. A first-party or partly opaque agent workflow benchmark can be kept `baseline` and `0%` Intelligence / `100%` Agentic when the evidence is useful but too narrow or source-specific to act as a frontier model-quality claim.
+Each accepted benchmark has three separate settings. `benchmarkImportance` controls how much the benchmark matters relative to other benchmarks, Intelligence and Agentic loadings sum to 100% and allocate that importance between the two quality dimensions, and `group` controls missing-data handling only. The effective weight for dimension $D$ is $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$. A first-party or partly opaque agent workflow benchmark can be kept `baseline` with a `0%` Intelligence / `100%` Agentic loading split when the evidence is useful but too narrow or source-specific to act as a frontier model-quality claim.
 
-When the benchmark portfolio changes, this table should change with it. Additions, removals, or group/portion changes should explain the capability being measured, why the benchmark earns or loses ranking space, and whether its task resources can feed Speed or Value.
+When the benchmark portfolio changes, this table should change with it. Additions, removals, or group, importance, or loading changes should explain the capability being measured, why the benchmark earns or loses ranking space, and whether its task resources can feed Speed or Value.
 
-| Benchmark | Group | Intelligence Portion | Agentic Portion | Description and Decision Note |
-| --- | --- | ---: | ---: | --- |
-| Agents'&nbsp;Last&nbsp;Exam | frontier | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
-| APEX&nbsp;Agents | frontier | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
-| AutomationBench | frontier | 0% | 100% | Artificial Analysis implementation of Zapier workflow-automation tasks over simulated SaaS app environments. It is frontier because it tests business-process execution with tool-like constraints, and its AA per-task resources can feed Speed and Value. |
-| Blueprint-Bench&nbsp;2 | frontier | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
-| Briefcase | frontier | 25% | 75% | Artificial Analysis long-horizon professional knowledge-work benchmark over multi-file deliverables. It is mostly agentic because models must manage file outputs and extended work, with some intelligence credit for professional reasoning and synthesis. The raw Elo score is normalized with the same AA GDPval-style `clamp((Elo - 500) / 2000)` transform before it enters Model Atlas quality scoring. |
-| CritPt | frontier | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
-| CursorBench | frontier | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks from real editor sessions. It is frontier because it separates current coding agents on practical workflow tasks; Composer rows are excluded because their model data is not independently available. |
-| DeepSWE | frontier | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using the source-default or highest reported reasoning effort. |
-| GDP.pdf | frontier | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
-| GDPval-AA&nbsp;v2 | frontier | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
-| Harvey LAB | frontier | 0% | 100% | Artificial Analysis implementation of Harvey's Legal Agent Benchmark over private legal-agent tasks. It is frontier because the all-pass legal deliverable score remains low, current, and strongly separated among frontier models; the signal is pure Agentic because models work in a sandbox over matter files and produce legal work product. |
-| HLE | frontier | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
-| Riemann-bench | frontier | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
-| Terminal-Bench&nbsp;2.1 | frontier | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It is frontier because terminal task execution is a current agentic stress test with meaningful separation among strong systems. |
-| BrowseComp | baseline | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
-| LCR | baseline | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
-| Omniscience&nbsp;Accuracy | baseline | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to decide frontier top fights. |
-| SciCode | baseline | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
-| tau3&nbsp;Banking&nbsp;(AA) | baseline | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
-| Toolathlon | baseline | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Its planning and domain reasoning occur inside the harnessed workflow, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
-| Vals Index | baseline | 60% | 40% | Vals aggregate over finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, but its formula also includes public coding benchmarks. Model Atlas keeps it baseline because the aggregate mixes Vals-specific tasks with benchmark families represented elsewhere. |
+| Benchmark | Missing-data Group | Importance | Intelligence Loading | Agentic Loading | Description and Decision Note |
+| --- | --- | ---: | ---: | ---: | --- |
+| Agents'&nbsp;Last&nbsp;Exam | frontier | 1 | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
+| APEX&nbsp;Agents | frontier | 1 | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
+| AutomationBench | frontier | 1 | 0% | 100% | Artificial Analysis implementation of Zapier workflow-automation tasks over simulated SaaS app environments. It is frontier because it tests business-process execution with tool-like constraints, and its AA per-task resources can feed Speed and Value. |
+| Blueprint-Bench&nbsp;2 | frontier | 1 | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
+| Briefcase | frontier | 1 | 25% | 75% | Artificial Analysis long-horizon professional knowledge-work benchmark over multi-file deliverables. It is mostly agentic because models must manage file outputs and extended work, with some intelligence credit for professional reasoning and synthesis. The raw Elo score is normalized with the same AA GDPval-style `clamp((Elo - 500) / 2000)` transform before it enters Model Atlas quality scoring. |
+| CritPt | frontier | 1 | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
+| CursorBench | frontier | 1 | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks from real editor sessions. It is frontier because it separates current coding agents on practical workflow tasks; Composer rows are excluded because their model data is not independently available. |
+| DeepSWE | frontier | 1 | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using the source-default or highest reported reasoning effort. |
+| GDP.pdf | frontier | 1 | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
+| GDPval-AA&nbsp;v2 | frontier | 1 | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
+| Harvey LAB | frontier | 1 | 0% | 100% | Artificial Analysis implementation of Harvey's Legal Agent Benchmark over private legal-agent tasks. It is frontier because the all-pass legal deliverable score remains low, current, and strongly separated among frontier models; the signal is pure Agentic because models work in a sandbox over matter files and produce legal work product. |
+| HLE | frontier | 1 | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
+| Riemann-bench | frontier | 1 | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
+| Terminal-Bench&nbsp;2.1 | frontier | 1 | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It is frontier because terminal task execution is a current agentic stress test with meaningful separation among strong systems. |
+| BrowseComp | baseline | 1 | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
+| LCR | baseline | 1 | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
+| Omniscience&nbsp;Accuracy | baseline | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to decide frontier top fights. |
+| SciCode | baseline | 1 | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
+| tau3&nbsp;Banking&nbsp;(AA) | baseline | 1 | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
+| Toolathlon | baseline | 1 | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Its planning and domain reasoning occur inside the harnessed workflow, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
+| Vals Index | baseline | 1 | 60% | 40% | Vals aggregate over finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, but its formula also includes public coding benchmarks. Model Atlas keeps it baseline because the aggregate mixes Vals-specific tasks with benchmark families represented elsewhere. |
 
-The baseline group anchors breadth, stability, and coverage. The frontier group marks benchmarks that are distinctive enough to matter more, but sparse enough that absence should count against a model until there is source evidence. Diagnostics and exclusions are not scoring groups.
+The baseline and frontier labels describe how missing benchmark evidence is handled. They do not increase or decrease the contribution of observed scores; benchmark importance owns that decision. Diagnostics and exclusions are not scoring groups.
 
 ### Quality Mix
 
-Intelligence and Agentic use the same scoring rule: each selected benchmark is weighted by its configured portion for that dimension. A benchmark's Intelligence and Agentic portions split its capability signal across the two dimensions. The AA Intelligence and Agentic indexes remain source context only.
+Intelligence and Agentic use the same scoring rule: each selected benchmark is weighted by its benchmark importance multiplied by its loading for that dimension. Intelligence and Agentic loadings split the benchmark's importance across the two dimensions. The AA Intelligence and Agentic indexes remain source context only.
 
-Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed portion coverage below 10% earns no confidence, observed portion coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the portion-weighted benchmark mean, but only observed benchmark values count toward portion coverage confidence.
+Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed weight coverage below 10% earns no confidence, observed weight coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the weighted benchmark mean, but only observed benchmark values count toward coverage confidence.
 
 Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input.
 
@@ -121,13 +121,13 @@ $$
 
 The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average.
 
-Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Let $w_{b,D}$ be benchmark $b$'s configured portion for dimension $D$. The normalized dimension mean is weighted by those portions:
+Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Let $i_b$ be benchmark $b$'s importance and $\lambda_{b,D}$ its loading for dimension $D$, so $w_{b,D}=i_b\lambda_{b,D}$. The normalized dimension mean is weighted by those effective weights:
 
 $$
 \bar{B}_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}}
 $$
 
-The observed coverage ratio uses the same portions. Missing a small fractional contribution therefore reduces confidence less than missing a large contribution:
+The observed coverage ratio uses the same effective weights. Missing a small contribution therefore reduces confidence less than missing a large contribution:
 
 $$
 c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ observed}}w_{b,D}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
@@ -148,7 +148,7 @@ $$
 
 ### Benchmark Imputation
 
-Same-dimension evidence used for benchmark imputation is also averaged with the configured dimension portions. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
+Same-dimension evidence used for benchmark imputation is also averaged with benchmark importance multiplied by the configured dimension loading. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
 
 Missing benchmark values are imputed only for scoring. They are not treated or displayed as observed source values.
 

@@ -1,6 +1,10 @@
 /** Benchmark imputation and quality normalization context for Model Atlas scoring. */
 
 import {
+	type BenchmarkDimension,
+	benchmarkDimensionWeight,
+} from "../../config/benchmark-portfolio";
+import {
 	mapFiniteNumbers,
 	minMaxScale,
 	percentileRank,
@@ -24,8 +28,6 @@ type PreparedBenchmarkScoring = {
 	benchmarkImputationByModel: BenchmarkImputationByModel;
 	qualityContext: QualityScoringContext;
 };
-
-type BenchmarkDimension = "intelligence" | "agentic";
 
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
@@ -90,21 +92,23 @@ function imputedBenchmarkValue(
 function buildDimensionBenchmarkImputations(
 	models: JsonObject[],
 	benchmarkKeys: readonly string[],
-	frontierBenchmarkKeys: ReadonlySet<string>,
 	dimension: BenchmarkDimension,
 	scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
 	const imputationByModel = new Map<JsonObject, Map<string, number>>();
 	const valuesByKey = new Map<string, number[]>();
 	const benchmarkWeights = new Map(
-		benchmarkKeys.map((key) => {
-			const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
-			const weight =
-				dimension === "intelligence"
-					? portfolioEntry?.intelligencePortion
-					: portfolioEntry?.agenticPortion;
-			return [key, weight ?? 0] as const;
-		}),
+		benchmarkKeys.map(
+			(key) =>
+				[
+					key,
+					benchmarkDimensionWeight(
+						key,
+						dimension,
+						scoringConfig.benchmarkPortfolio,
+					),
+				] as const,
+		),
 	);
 	for (const key of benchmarkKeys) {
 		valuesByKey.set(
@@ -113,10 +117,13 @@ function buildDimensionBenchmarkImputations(
 		);
 	}
 	for (const key of benchmarkKeys) {
-		const isFrontierBenchmark = frontierBenchmarkKeys.has(key);
+		const isFrontierBenchmark =
+			scoringConfig.benchmarkPortfolio[key]?.group === "frontier";
 		const contextBenchmarkKeys = isFrontierBenchmark
-			? benchmarkKeys.filter((benchmarkKey) =>
-					frontierBenchmarkKeys.has(benchmarkKey),
+			? benchmarkKeys.filter(
+					(benchmarkKey) =>
+						scoringConfig.benchmarkPortfolio[benchmarkKey]?.group ===
+						"frontier",
 				)
 			: benchmarkKeys;
 		const minEvidenceValues = isFrontierBenchmark
@@ -189,19 +196,16 @@ export function buildBenchmarkImputationByModel(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
-	const frontierBenchmarkKeys = new Set(scoringConfig.frontierBenchmarkKeys);
 	const imputationByModel = mergeBenchmarkImputations(
 		buildDimensionBenchmarkImputations(
 			models,
 			scoringConfig.intelligenceBenchmarkKeys,
-			frontierBenchmarkKeys,
 			"intelligence",
 			scoringConfig,
 		),
 		buildDimensionBenchmarkImputations(
 			models,
 			scoringConfig.agenticBenchmarkKeys,
-			frontierBenchmarkKeys,
 			"agentic",
 			scoringConfig,
 		),

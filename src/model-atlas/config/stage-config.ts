@@ -4,7 +4,6 @@ import type { ModelAtlasStageConfig } from "../stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
-	FRONTIER_BENCHMARKS,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	OVERALL_SCORE_WEIGHTS,
 	SELECTED_AGENTIC_BENCHMARKS,
@@ -63,7 +62,6 @@ export const STAGE_CONFIG = {
 		simulationProfiles: SIMULATION_PROFILES,
 		simulationInputTokenSeconds: SIMULATION_INPUT_TOKEN_SECONDS,
 		benchmarkPortfolio: BENCHMARK_PORTFOLIO,
-		frontierBenchmarkKeys: FRONTIER_BENCHMARKS,
 		overallScoreWeights: OVERALL_SCORE_WEIGHTS,
 		columnTooltips: COLUMN_TOOLTIPS,
 	},

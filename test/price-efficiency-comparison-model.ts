@@ -15,8 +15,8 @@ import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 const portfolio = {
 	deep_swe: {
 		group: "frontier",
-		intelligencePortion: 0,
-		agenticPortion: 1,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
 		resourcePolicy: {
 			source: "benchmark",
 			unit: "per_task",
