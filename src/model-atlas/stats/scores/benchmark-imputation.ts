@@ -33,6 +33,7 @@ const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
 const MIN_FRONTIER_EVIDENCE_VALUES = 2;
 const NON_FRONTIER_CONFIDENCE_MULTIPLIER = 0.5;
+const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
 
 export function metricValue(model: JsonObject, key: string): number | null {
 	const intelligence = asRecord(model.intelligence);
@@ -88,17 +89,33 @@ function imputedBenchmarkValue(
 	);
 }
 
-/** Impute missing selected benchmark values by mapping same-dimension score percentile onto that benchmark's observed distribution. */
-function buildDimensionBenchmarkImputations(
+/** Build one dimension-specific predictor from observed context and target values only. */
+function buildDimensionBenchmarkPredictor(
 	models: JsonObject[],
-	benchmarkKeys: readonly string[],
+	targetBenchmarkKey: string,
+	observedTargetValues: number[],
 	dimension: BenchmarkDimension,
 	scoringConfig: ScoringConfig,
-): Map<JsonObject, Map<string, number>> {
-	const imputationByModel = new Map<JsonObject, Map<string, number>>();
-	const valuesByKey = new Map<string, number[]>();
+	valuesByKey: ReadonlyMap<string, readonly number[]>,
+): ((model: JsonObject) => number | null) | null {
+	const targetGroup =
+		scoringConfig.benchmarkPortfolio[targetBenchmarkKey]?.group;
+	const selectedBenchmarkKeys =
+		dimension === "intelligence"
+			? scoringConfig.intelligenceBenchmarkKeys
+			: scoringConfig.agenticBenchmarkKeys;
+	const contextBenchmarkKeys =
+		targetGroup === "frontier"
+			? selectedBenchmarkKeys.filter(
+					(key) => scoringConfig.benchmarkPortfolio[key]?.group === "frontier",
+				)
+			: selectedBenchmarkKeys;
+	const minEvidenceValues =
+		targetGroup === "frontier"
+			? MIN_FRONTIER_EVIDENCE_VALUES
+			: MIN_IMPUTATION_EVIDENCE_VALUES;
 	const benchmarkWeights = new Map(
-		benchmarkKeys.map(
+		selectedBenchmarkKeys.map(
 			(key) =>
 				[
 					key,
@@ -110,74 +127,103 @@ function buildDimensionBenchmarkImputations(
 				] as const,
 		),
 	);
-	for (const key of benchmarkKeys) {
-		valuesByKey.set(
-			key,
-			mapFiniteNumbers(models, (model) => metricValue(model, key)),
+	const referenceContextScores = models
+		.filter((model) => metricValue(model, targetBenchmarkKey) != null)
+		.map((model) =>
+			observedNormalizedEvidenceScore(
+				model,
+				contextBenchmarkKeys,
+				benchmarkWeights,
+				targetBenchmarkKey,
+				valuesByKey,
+				minEvidenceValues,
+			),
+		)
+		.filter(
+			(value): value is number => value != null && Number.isFinite(value),
 		);
+	if (
+		observedTargetValues.length < MIN_IMPUTATION_REFERENCE_VALUES ||
+		referenceContextScores.length < MIN_IMPUTATION_REFERENCE_VALUES
+	) {
+		return null;
 	}
-	for (const key of benchmarkKeys) {
-		const isFrontierBenchmark =
-			scoringConfig.benchmarkPortfolio[key]?.group === "frontier";
-		const contextBenchmarkKeys = isFrontierBenchmark
-			? benchmarkKeys.filter(
-					(benchmarkKey) =>
-						scoringConfig.benchmarkPortfolio[benchmarkKey]?.group ===
-						"frontier",
-				)
-			: benchmarkKeys;
-		const minEvidenceValues = isFrontierBenchmark
-			? MIN_FRONTIER_EVIDENCE_VALUES
-			: MIN_IMPUTATION_EVIDENCE_VALUES;
-		const observedValues = models
-			.map((model) => metricValue(model, key))
-			.filter(
-				(value): value is number => value != null && Number.isFinite(value),
-			)
-			.sort((left, right) => left - right);
-		const referenceContextScores = models
-			.filter((model) => metricValue(model, key) != null)
-			.map((model) =>
-				observedNormalizedEvidenceScore(
-					model,
-					contextBenchmarkKeys,
-					benchmarkWeights,
+	return (model) => {
+		const contextScore = observedNormalizedEvidenceScore(
+			model,
+			contextBenchmarkKeys,
+			benchmarkWeights,
+			targetBenchmarkKey,
+			valuesByKey,
+			minEvidenceValues,
+		);
+		if (contextScore == null) {
+			return null;
+		}
+		const percentile = percentileRank(referenceContextScores, contextScore);
+		return percentile == null
+			? null
+			: quantileFromSorted(observedTargetValues, percentile / 100);
+	};
+}
+
+/** Precompute one benchmark-owned imputation from observed evidence only; source fields stay nullable. */
+export function buildBenchmarkImputationByModel(
+	models: JsonObject[],
+	scoringConfig: ScoringConfig,
+): Map<JsonObject, Map<string, number>> {
+	const imputationByModel = new Map<JsonObject, Map<string, number>>();
+	const benchmarkKeys = [
+		...new Set([
+			...scoringConfig.intelligenceBenchmarkKeys,
+			...scoringConfig.agenticBenchmarkKeys,
+		]),
+	];
+	const valuesByKey = new Map(
+		benchmarkKeys.map(
+			(key) =>
+				[
 					key,
-					valuesByKey,
-					minEvidenceValues,
-				),
-			)
-			.filter(
-				(value): value is number => value != null && Number.isFinite(value),
-			);
-		if (
-			observedValues.length < MIN_IMPUTATION_REFERENCE_VALUES ||
-			referenceContextScores.length < MIN_IMPUTATION_REFERENCE_VALUES
-		) {
+					mapFiniteNumbers(models, (model) => metricValue(model, key)),
+				] as const,
+		),
+	);
+	for (const key of benchmarkKeys) {
+		const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
+		if (portfolioEntry == null) {
 			continue;
 		}
+		const observedValues = [...(valuesByKey.get(key) ?? [])].sort(
+			(left, right) => left - right,
+		);
+		const dimensionPredictors = IMPUTATION_DIMENSIONS.map((dimension) => ({
+			predict:
+				portfolioEntry.dimensionLoadings[dimension] > 0
+					? buildDimensionBenchmarkPredictor(
+							models,
+							key,
+							observedValues,
+							dimension,
+							scoringConfig,
+							valuesByKey,
+						)
+					: null,
+			weight: portfolioEntry.dimensionLoadings[dimension],
+		}));
 		for (const model of models) {
 			if (metricValue(model, key) != null) {
 				continue;
 			}
-			const contextScore = observedNormalizedEvidenceScore(
-				model,
-				contextBenchmarkKeys,
-				benchmarkWeights,
-				key,
-				valuesByKey,
-				minEvidenceValues,
+			const mappedValue = weightedMeanOfFinite(
+				dimensionPredictors.map(({ predict, weight }) => ({
+					value: predict?.(model) ?? null,
+					weight,
+				})),
 			);
-			const percentile = percentileRank(referenceContextScores, contextScore);
-			const mappedValue =
-				percentile == null
-					? null
-					: quantileFromSorted(observedValues, percentile / 100);
-			const floorValue = observedValues[0] ?? null;
 			const imputedValue = imputedBenchmarkValue(
 				mappedValue,
-				floorValue,
-				isFrontierBenchmark,
+				observedValues[0] ?? null,
+				portfolioEntry.group === "frontier",
 			);
 			if (imputedValue == null || !Number.isFinite(imputedValue)) {
 				continue;
@@ -189,44 +235,6 @@ function buildDimensionBenchmarkImputations(
 		}
 	}
 	return imputationByModel;
-}
-
-/** Precompute benchmark imputations for scoring only; source benchmark fields stay nullable. */
-export function buildBenchmarkImputationByModel(
-	models: JsonObject[],
-	scoringConfig: ScoringConfig,
-): Map<JsonObject, Map<string, number>> {
-	const imputationByModel = mergeBenchmarkImputations(
-		buildDimensionBenchmarkImputations(
-			models,
-			scoringConfig.intelligenceBenchmarkKeys,
-			"intelligence",
-			scoringConfig,
-		),
-		buildDimensionBenchmarkImputations(
-			models,
-			scoringConfig.agenticBenchmarkKeys,
-			"agentic",
-			scoringConfig,
-		),
-	);
-	return imputationByModel;
-}
-
-function mergeBenchmarkImputations(
-	...imputations: Array<Map<JsonObject, Map<string, number>>>
-): Map<JsonObject, Map<string, number>> {
-	const merged = new Map<JsonObject, Map<string, number>>();
-	for (const imputation of imputations) {
-		for (const [model, valuesByKey] of imputation) {
-			const mergedValues = merged.get(model) ?? new Map<string, number>();
-			for (const [key, value] of valuesByKey) {
-				mergedValues.set(key, value);
-			}
-			merged.set(model, mergedValues);
-		}
-	}
-	return merged;
 }
 
 /** Precompute raw comparison distributions used to normalize quality fields before averaging. */

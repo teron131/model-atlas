@@ -763,6 +763,95 @@ assertClose(
 	0.8,
 );
 
+const sharedTargetModels = [
+	dualContextImputationModel("shared-observed-a", 0, 0, 0),
+	dualContextImputationModel("shared-observed-b", 10, 1, 1),
+	dualContextImputationModel("shared-observed-c", 20, 2, 2),
+	dualContextImputationModel("shared-observed-d", 30, 3, 3),
+	dualContextImputationModel("shared-missing", null, 3, 0),
+];
+const sharedTargetConfig = {
+	...STAGE_CONFIG.scoring,
+	intelligenceBenchmarkKeys: ["shared_target", "i1", "i2", "i3"],
+	agenticBenchmarkKeys: ["shared_target", "a1", "a2", "a3"],
+	benchmarkPortfolio: {
+		shared_target: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+		},
+		i1: intelligenceBenchmarkEntry(),
+		i2: intelligenceBenchmarkEntry(),
+		i3: intelligenceBenchmarkEntry(),
+		a1: agenticBenchmarkEntry(),
+		a2: agenticBenchmarkEntry(),
+		a3: agenticBenchmarkEntry(),
+	},
+} as const;
+const sharedTargetModel = sharedTargetModels.at(-1);
+if (sharedTargetModel == null) {
+	throw new Error("Expected a shared-target missing model");
+}
+const sharedTargetImputation = buildBenchmarkImputationByModel(
+	sharedTargetModels,
+	sharedTargetConfig,
+)
+	.get(sharedTargetModel)
+	?.get("shared_target");
+assertClose(sharedTargetImputation, 6.5625);
+const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(
+	sharedTargetModels,
+	{
+		...sharedTargetConfig,
+		intelligenceBenchmarkKeys: ["i3", "i2", "i1", "shared_target"],
+		agenticBenchmarkKeys: ["a3", "a2", "a1", "shared_target"],
+	},
+)
+	.get(sharedTargetModel)
+	?.get("shared_target");
+assertClose(reorderedSharedTargetImputation, 6.5625);
+assertEqual("shared_target" in sharedTargetModel.evaluations, false);
+
+const nonRecursiveReferenceModels = [0, 1, 2, 3].map((value) => ({
+	id: `non-recursive-observed-${value}`,
+	evaluations: {
+		target: value * 10,
+		bridge: value * 10,
+		i1: value,
+		i2: value,
+		a1: value,
+		a2: value,
+		a3: value,
+	},
+}));
+const nonRecursiveMissingModel = {
+	id: "non-recursive-missing",
+	evaluations: { i1: 3, i2: 3, a1: 3, a2: 3, a3: 3 },
+};
+const nonRecursiveImputations = buildBenchmarkImputationByModel(
+	[...nonRecursiveReferenceModels, nonRecursiveMissingModel],
+	{
+		...STAGE_CONFIG.scoring,
+		intelligenceBenchmarkKeys: ["target", "bridge", "i1", "i2"],
+		agenticBenchmarkKeys: ["bridge", "a1", "a2", "a3"],
+		benchmarkPortfolio: {
+			target: intelligenceBenchmarkEntry(),
+			bridge: {
+				group: "baseline",
+				benchmarkImportance: 1,
+				dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+			},
+			i1: intelligenceBenchmarkEntry(),
+			i2: intelligenceBenchmarkEntry(),
+			a1: agenticBenchmarkEntry(),
+			a2: agenticBenchmarkEntry(),
+			a3: agenticBenchmarkEntry(),
+		},
+	},
+).get(nonRecursiveMissingModel);
+assertClose(nonRecursiveImputations?.get("bridge"), 15);
+assertEqual(nonRecursiveImputations?.has("target"), false);
+
 function modelCandidate(options: {
 	id: string;
 	intelligenceScore?: number | null;
@@ -859,4 +948,40 @@ function imputationModel(
 		},
 		evaluations: null,
 	};
+}
+
+function dualContextImputationModel(
+	id: string,
+	target: number | null,
+	intelligenceContext: number,
+	agenticContext: number,
+) {
+	return {
+		id,
+		evaluations: {
+			i1: intelligenceContext,
+			i2: intelligenceContext,
+			i3: intelligenceContext,
+			a1: agenticContext,
+			a2: agenticContext,
+			a3: agenticContext,
+			...(target == null ? {} : { shared_target: target }),
+		},
+	};
+}
+
+function intelligenceBenchmarkEntry() {
+	return {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	} as const;
+}
+
+function agenticBenchmarkEntry() {
+	return {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	} as const;
 }
