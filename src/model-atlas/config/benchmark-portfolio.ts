@@ -140,8 +140,8 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	toolathlon: {
 		group: "baseline",
-		intelligencePortion: 0.2,
-		agenticPortion: 0.8,
+		intelligencePortion: 0,
+		agenticPortion: 1,
 	},
 	vals_index: {
 		group: "baseline",
