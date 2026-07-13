@@ -2,10 +2,11 @@
 
 import {
 	mapFiniteNumbers,
-	meanOfFinite,
 	minMaxScale,
 	percentileRank,
 	quantileFromSorted,
+	weightedFinitePartCount,
+	weightedMeanOfFinite,
 } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import type { ScoringConfig } from "../types";
@@ -23,6 +24,8 @@ type PreparedBenchmarkScoring = {
 	benchmarkImputationByModel: BenchmarkImputationByModel;
 	qualityContext: QualityScoringContext;
 };
+
+type BenchmarkDimension = "intelligence" | "agentic";
 
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_VALUES = 3;
@@ -50,19 +53,20 @@ export function normalizedMetricValue(
 function observedNormalizedEvidenceScore(
 	model: JsonObject,
 	benchmarkKeys: readonly string[],
+	benchmarkWeights: ReadonlyMap<string, number>,
 	excludedBenchmarkKey: string,
 	valuesByKey: ReadonlyMap<string, readonly number[]>,
 	minEvidenceValues: number,
 ): number | null {
-	const values = benchmarkKeys
+	const parts = benchmarkKeys
 		.filter((key) => key !== excludedBenchmarkKey)
-		.map((key) =>
-			normalizedMetricValue(valuesByKey, key, metricValue(model, key)),
-		);
-	const finiteValueCount = values.filter(
-		(value): value is number => value != null && Number.isFinite(value),
-	).length;
-	return finiteValueCount >= minEvidenceValues ? meanOfFinite(values) : null;
+		.map((key) => ({
+			value: normalizedMetricValue(valuesByKey, key, metricValue(model, key)),
+			weight: benchmarkWeights.get(key) ?? 0,
+		}));
+	return weightedFinitePartCount(parts) >= minEvidenceValues
+		? weightedMeanOfFinite(parts)
+		: null;
 }
 
 /** Estimates missing benchmark scores from correlated selected-benchmark evidence. */
@@ -87,9 +91,21 @@ function buildDimensionBenchmarkImputations(
 	models: JsonObject[],
 	benchmarkKeys: readonly string[],
 	frontierBenchmarkKeys: ReadonlySet<string>,
+	dimension: BenchmarkDimension,
+	scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
 	const imputationByModel = new Map<JsonObject, Map<string, number>>();
 	const valuesByKey = new Map<string, number[]>();
+	const benchmarkWeights = new Map(
+		benchmarkKeys.map((key) => {
+			const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
+			const weight =
+				dimension === "intelligence"
+					? portfolioEntry?.intelligencePortion
+					: portfolioEntry?.agenticPortion;
+			return [key, weight ?? 0] as const;
+		}),
+	);
 	for (const key of benchmarkKeys) {
 		valuesByKey.set(
 			key,
@@ -118,6 +134,7 @@ function buildDimensionBenchmarkImputations(
 				observedNormalizedEvidenceScore(
 					model,
 					contextBenchmarkKeys,
+					benchmarkWeights,
 					key,
 					valuesByKey,
 					minEvidenceValues,
@@ -139,6 +156,7 @@ function buildDimensionBenchmarkImputations(
 			const contextScore = observedNormalizedEvidenceScore(
 				model,
 				contextBenchmarkKeys,
+				benchmarkWeights,
 				key,
 				valuesByKey,
 				minEvidenceValues,
@@ -177,11 +195,15 @@ export function buildBenchmarkImputationByModel(
 			models,
 			scoringConfig.intelligenceBenchmarkKeys,
 			frontierBenchmarkKeys,
+			"intelligence",
+			scoringConfig,
 		),
 		buildDimensionBenchmarkImputations(
 			models,
 			scoringConfig.agenticBenchmarkKeys,
 			frontierBenchmarkKeys,
+			"agentic",
+			scoringConfig,
 		),
 	);
 	return imputationByModel;

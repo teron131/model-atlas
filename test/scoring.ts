@@ -110,6 +110,12 @@ assertEqual(
 	),
 	true,
 );
+
+for (const benchmark of Object.values(
+	STAGE_CONFIG.scoring.benchmarkPortfolio,
+)) {
+	assertClose(benchmark.intelligencePortion + benchmark.agenticPortion, 1);
+}
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
 		"Latency ↓",
@@ -296,54 +302,71 @@ const latencySpeedModels = attachFinalScores(
 assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
 assertClose(latencySpeedModels[1]?.scores.speed_score, 62.5);
 
-const equalBenchmarkConfig = {
+const fractionalBenchmarkConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: ["omniscience_accuracy", "hle"],
 	agenticBenchmarkKeys: [],
 	benchmarkPortfolio: {
 		omniscience_accuracy: {
 			group: "baseline",
-			intelligencePortion: 1,
-			agenticPortion: 0,
+			intelligencePortion: 0.8,
+			agenticPortion: 0.2,
 		},
 		hle: {
 			group: "frontier",
-			intelligencePortion: 1,
-			agenticPortion: 0,
+			intelligencePortion: 0.2,
+			agenticPortion: 0.8,
 		},
 	},
 	frontierBenchmarkKeys: [],
 } as const;
-const equalBenchmarkModels = [
+const fractionalBenchmarkModels = [
 	{
-		id: "equal-min",
+		id: "fractional-min",
 		evaluations: { omniscience_accuracy: 0, hle: 0 },
 	},
 	{
-		id: "equal-max",
+		id: "fractional-max",
 		evaluations: { omniscience_accuracy: 100, hle: 100 },
 	},
 	{
-		id: "equal-target",
+		id: "fractional-target",
 		evaluations: { omniscience_accuracy: 0, hle: 100 },
 	},
 ];
-const equalBenchmarkComponentScores = buildComponentScores(
-	equalBenchmarkModels[2] ?? {},
+const fractionalBenchmarkComponentScores = buildComponentScores(
+	fractionalBenchmarkModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
 		e2e_latency_seconds_median: null,
 	},
 	[],
-	equalBenchmarkConfig,
+	fractionalBenchmarkConfig,
 	buildQualityScoringContext(
-		equalBenchmarkModels,
-		equalBenchmarkConfig,
+		fractionalBenchmarkModels,
+		fractionalBenchmarkConfig,
 		new Map(),
 	),
 );
-assertClose(equalBenchmarkComponentScores?.intelligence_score, 50);
+assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
+
+const fractionalCoverageComponentScores = buildComponentScores(
+	{ id: "fractional-sparse", evaluations: { hle: 100 } },
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	fractionalBenchmarkConfig,
+	buildQualityScoringContext(
+		fractionalBenchmarkModels,
+		fractionalBenchmarkConfig,
+		new Map(),
+	),
+);
+assertClose(fractionalCoverageComponentScores?.intelligence_score, 10.4);
 
 const sparseBenchmarkKeys = Array.from(
 	{ length: 12 },
@@ -574,11 +597,32 @@ const normalizedContextModels = [
 	imputationModel("observed-d", 30, 100, 1_000, 1),
 	imputationModel("missing", null, 0, 1_000, 0),
 ];
+const normalizedContextBenchmarkKeys = [
+	"target",
+	"wide",
+	"narrow",
+	"steady",
+] as const;
+const normalizedContextBenchmarkPortfolio = Object.fromEntries(
+	normalizedContextBenchmarkKeys.map((key) => {
+		const intelligencePortion =
+			key === "wide" ? 0.8 : key === "target" ? 1 : 0.1;
+		return [
+			key,
+			{
+				group: "baseline",
+				intelligencePortion,
+				agenticPortion: 1 - intelligencePortion,
+			},
+		] as const;
+	}),
+);
 const normalizedContextConfig = {
 	...STAGE_CONFIG.scoring,
-	intelligenceBenchmarkKeys: ["target", "wide", "narrow", "steady"],
+	intelligenceBenchmarkKeys: normalizedContextBenchmarkKeys,
 	agenticBenchmarkKeys: [],
 	frontierBenchmarkKeys: [],
+	benchmarkPortfolio: normalizedContextBenchmarkPortfolio,
 };
 const normalizedContextImputations = buildBenchmarkImputationByModel(
 	normalizedContextModels,
@@ -588,13 +632,14 @@ assertClose(
 	normalizedContextImputations
 		.get(normalizedContextModels.at(-1) ?? {})
 		?.get("target"),
-	7.5,
+	11.25,
 );
 
 const frontierPercentileConfig = {
 	...normalizedContextConfig,
 	intelligenceBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
 	frontierBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
+	benchmarkPortfolio: STAGE_CONFIG.scoring.benchmarkPortfolio,
 };
 const frontierPercentileModels = [
 	{
