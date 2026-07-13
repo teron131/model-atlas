@@ -7,6 +7,8 @@ import {
 	snapshotRowsWithStates,
 } from "../src/model-atlas/database/policy";
 import { mergeArtificialAnalysisRow } from "../src/model-atlas/database/source-snapshots/artificial-analysis";
+import { artificialAnalysisEvaluationResourceSourceKey } from "../src/model-atlas/database/source-snapshots/sparse-benchmarks";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 
 type ArtificialAnalysisFixtureRow = {
 	model_id: string;
@@ -162,4 +164,47 @@ assert.equal(
 	)?.missing_from_source_since_epoch_seconds,
 	1_800_000_123,
 	"Existing quarantine timestamps should survive source outages",
+);
+
+const effortResourceRow = (
+	reasoningEffort: string,
+	secondsPerTask: number,
+): ArtificialAnalysisEvaluationResourceRow => ({
+	benchmark_key: "terminalbench_v21",
+	source_url: "https://example.com/terminalbench",
+	model_id: "openai/gpt-test",
+	model: `GPT Test (${reasoningEffort})`,
+	provider: "OpenAI",
+	provider_id: "openai",
+	reasoning_effort: reasoningEffort,
+	score: 0.8,
+	task_run_count: 10,
+	cost_per_task_usd: 1,
+	seconds_per_task: secondsPerTask,
+	tokens_per_task: 1_000,
+	input_tokens_per_task: 500,
+	output_tokens_per_task: 500,
+	answer_tokens_per_task: null,
+	reasoning_tokens_per_task: null,
+});
+const cachedEffortResources = [
+	effortResourceRow("high", 100),
+	effortResourceRow("low", 50),
+];
+const refreshedEffortResources = [effortResourceRow("high", 90)];
+const preservedEffortResources = mergeCachedSourceRows(
+	cachedEffortResources,
+	refreshedEffortResources,
+	artificialAnalysisEvaluationResourceSourceKey,
+);
+assert.deepEqual(
+	preservedEffortResources.map((row) => [
+		row.reasoning_effort,
+		row.seconds_per_task,
+	]),
+	[
+		["high", 90],
+		["low", 50],
+	],
+	"AA resource refreshes should update one effort without deleting sibling effort telemetry",
 );

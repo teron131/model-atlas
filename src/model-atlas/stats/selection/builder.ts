@@ -1,4 +1,4 @@
-/** Final model building owns candidate scoring, public filtering, rescoring, and logo cache hydration. */
+/** Final model building owns candidate scoring, public admission, rescoring, and logo cache hydration. */
 
 import { cacheStatsLogos } from "../../logo-cache";
 import { asFiniteNumber } from "../../shared";
@@ -80,45 +80,36 @@ export async function buildFinalModels(
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
 ): Promise<LlmStatsModel[]> {
-	const initialScoringPreparation = prepareBenchmarkScoring(
+	const scoringPreparation = prepareBenchmarkScoring(
 		enrichedRows.rows,
 		scoringConfig,
 	);
-	const initialCandidates = buildCandidates(
+	const candidateModels = buildCandidates(
 		enrichedRows.rows,
 		enrichedRows,
 		scoringConfig,
-		initialScoringPreparation,
+		scoringPreparation,
 	);
-	const admittedRows = enrichedRows.rows.filter((_, index) => {
-		const candidate = initialCandidates[index];
-		return candidate != null && hasRequiredBasicSpecs(candidate);
-	});
-	const candidateModels =
-		admittedRows.length === enrichedRows.rows.length
-			? initialCandidates
-			: buildCandidates(
-					admittedRows,
-					enrichedRows,
-					scoringConfig,
-					prepareBenchmarkScoring(admittedRows, scoringConfig),
-				);
 	const scoredCandidates = attachFinalScores(candidateModels, scoringConfig);
-	const publicModels = selectPublicModels(
+	const selectedReferenceModels = selectPublicModels(
 		scoredCandidates,
 		id,
 		finalConfig,
 		scoringConfig,
 	);
-	const rescoredPublicModels = attachFinalScores(
-		publicModels.map((model) => ({
+	const rescoredReferenceModels = attachFinalScores(
+		selectedReferenceModels.map((model) => ({
 			...model,
 			scores: null,
 		})),
 		scoringConfig,
-	).filter(hasPublicScores);
+	);
+	// Basic-spec admission is output-only and must not redefine the scoring reference population.
+	const admittedPublicModels = rescoredReferenceModels
+		.filter(hasRequiredBasicSpecs)
+		.filter(hasPublicScores);
 	return cacheStatsLogos(
-		rescoredPublicModels,
+		admittedPublicModels,
 		(model) => model.provider ?? model.id,
 	);
 }

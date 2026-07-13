@@ -6,7 +6,7 @@ This project is trying to build the best current version of my opinionated LLM r
 
 The ranking is not an average of everything available upstream. Many benchmarks are low-signal for this purpose: some are saturated, some are stale, some are noisy, and some reward capabilities that do not matter much for the downstream model choices I care about. A benchmark only belongs here if it still creates a useful relative ordering among current models.
 
-The main ranking choices are explicit: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, and speed anchors.
+The main ranking choices are explicit: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, and resource normalization.
 
 The current leaderboard adds an explicit default-effort aggregation layer above preserved reasoning-effort observations. When a source does not label effort, its published row is treated as the default highest-effort configuration. When efforts are labelled, the aggregate selects the highest reported effort as one whole runnable observation; it does not combine field-wise maxima from different efforts. Raw and matched effort rows remain separate source evidence for a future effort-breakdown view.
 
@@ -63,7 +63,7 @@ Intelligence and Agentic use the same scoring rule: each selected benchmark is w
 
 Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed weight coverage below 10% earns no confidence, observed weight coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the weighted benchmark mean, but only observed benchmark values count toward coverage confidence.
 
-Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input.
+Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to log blended price, quality per log blended price, workflow price efficiency, and each active benchmark task-cost input.
 
 ## Source Notes
 
@@ -103,13 +103,13 @@ $$
 \text{raw source fields}\rightarrow\text{normalized quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value, Overall}
 $$
 
-Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and benchmark task-time components. Displayed Value combines provider price evidence, workflow price value, and benchmark task-cost components.
+Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and benchmark task-time components. Displayed Value combines log blended price, quality per log blended price, workflow price efficiency, and benchmark task-cost components.
 
 AA's `coding_index` can be kept as source context when available, but it is not used to compute any score. There is no standalone coding score.
 
 ## Scoring Details
 
-This section gives the scoring rules at the level needed to understand rank movement. Variables are introduced where they are used. $\operatorname{Percentile}(y)$ means the 0-100 percentile of $y$ among models with a value for that component. $\operatorname{Percentile}_{\text{lower}}(y)$ reverses the direction for lower-is-better values.
+Each selected quality benchmark is min-max normalized before aggregation. Raw provider speed and workflow runtime inputs are logged before min-max normalization. Value signals log their price input, then min-max normalize the resulting signal without logging that output again. Benchmark task time and cost are scored relative to models with similar benchmark quality. Percentiles are used only for benchmark imputation and Overall's missing-resource fallback.
 
 ### Quality Normalization
 
@@ -119,7 +119,7 @@ $$
 z_{m,b}=100\cdot\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}}
 $$
 
-The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average.
+The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average. This linear transformation preserves all within-benchmark gap ratios; unlike percentile rank, it does not turn uneven performance gaps into evenly spaced positions.
 
 Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Let $i_b$ be benchmark $b$'s importance and $\lambda_{b,D}$ its loading for dimension $D$, so $w_{b,D}=i_b\lambda_{b,D}$. The normalized dimension mean is weighted by those effective weights:
 
@@ -313,6 +313,20 @@ $$
 
 $\operatorname{smoothstep}$ is clamped to the 0-1 range. Models get full confidence once they cover at least 60% of active task-resource sources, and near-zero confidence below roughly 10% coverage. That ramp avoids rewarding a model for one lucky resource row while also not requiring complete coverage from sparse benchmark sources.
 
+Provider speed and workflow runtime use $\log x$ as their input to min-max normalization. Value uses three completed signals: log blended price, quality per log blended price, and workflow price efficiency based on log cost. Those completed Value signals are min-max normalized directly; they are not logged a second time. This preserves multiplicative input differences without converting the completed signals into percentile ranks.
+
+$$
+S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-y_{\min}}{y_{\max}-y_{\min}},0,1\right)
+$$
+
+Here $g(x)$ is the completed input signal and $y_{\min}$ and $y_{\max}$ are its minimum and maximum finite values. For raw provider and workflow inputs, $g(x)=\log x$. For Value, $g(x)$ is the completed price signal, which already contains its log-price input. The formula above applies when higher values are better, such as throughput. Lower-is-better inputs reverse the scale:
+
+$$
+S_{\downarrow}(x)=100\operatorname{clamp}\left(\frac{y_{\max}-g(x)}{y_{\max}-y_{\min}},0,1\right)
+$$
+
+The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. Adding an interior value does not change existing scores, while a new extreme rescales the component. Benchmark task-time and task-cost efficiency remain quality-local comparison scores.
+
 The public Speed score uses each benchmark task-time input as its own equally weighted component. The public Value score uses each price and benchmark-cost input as its own equally weighted component:
 
 $$
@@ -323,9 +337,9 @@ $$
 \end{aligned}
 $$
 
-$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over blended price, quality per price, workflow price value, and active benchmark task-cost components.
+$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over log blended price, quality per log blended price, workflow price efficiency, and active benchmark task-cost components.
 
-$P^{\text{blend}}_m$ is the lower-is-better percentile for blended provider price, $P^{\text{quality}}_m$ is quality per blended price, and $P^{\text{workflow}}_m$ is the workflow price-value signal.
+$P^{\text{blend}}_m$, $P^{\text{quality}}_m$, and $P^{\text{workflow}}_m$ are the min-max scores for log blended price, quality per log blended price, and workflow price efficiency.
 
 ### Overall Score
 
