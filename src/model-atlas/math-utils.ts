@@ -411,25 +411,27 @@ export function minMaxScale(
 	return ((value - minValue) / (maxValue - minValue)) * 100;
 }
 
-/** Normalize multiplicative resource differences on the 0-100 score scale while rejecting non-positive inputs. */
-export function logMinMaxScale(
-	values: Array<number | null>,
-	value: number | null,
-): number | null {
-	if (!isPositiveFinite(value)) {
-		return null;
-	}
-	const logs = values
-		.filter(isPositiveFinite)
-		.map((candidate) => Math.log(candidate));
-	if (logs.length === 0) {
-		return null;
-	}
-	const minLog = Math.min(...logs);
-	const maxLog = Math.max(...logs);
-	if (maxLog === minLog) {
-		return 100;
-	}
-	const score = ((Math.log(value) - minLog) / (maxLog - minLog)) * 100;
-	return Math.max(0, Math.min(100, score));
+/** Min-max normalize finite signals in the requested scoring direction. */
+export function minMaxScores(
+	values: ReadonlyArray<number | null>,
+	direction: "higher" | "lower",
+): Array<number | null> {
+	const directionMultiplier = direction === "higher" ? 1 : -1;
+	const directedValues = values.map((value) =>
+		value != null && Number.isFinite(value)
+			? directionMultiplier * value
+			: null,
+	);
+	return directedValues.map((value) => minMaxScale(directedValues, value));
+}
+
+/** Log raw positive inputs before min-max normalization in the requested direction. */
+export function logInputMinMaxScores(
+	values: ReadonlyArray<number | null>,
+	direction: "higher" | "lower",
+): Array<number | null> {
+	return minMaxScores(
+		values.map((value) => (isPositiveFinite(value) ? Math.log(value) : null)),
+		direction,
+	);
 }

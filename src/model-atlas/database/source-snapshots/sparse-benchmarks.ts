@@ -110,7 +110,14 @@ export type TerminalBenchSnapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
-/** Loads Artificial Analysis evaluation resource rows keyed by benchmark and source model id. */
+/** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
+export function artificialAnalysisEvaluationResourceSourceKey(
+	row: ArtificialAnalysisEvaluationResourceRow,
+): string {
+	return sourceKey(row.benchmark_key, row.model_id, row.reasoning_effort);
+}
+
+/** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
 export async function artificialAnalysisEvaluationResourceSnapshot(
 	db: DatabaseSync,
 	status: RawSourceCacheStatus,
@@ -126,7 +133,7 @@ export async function artificialAnalysisEvaluationResourceSnapshot(
 		previousMissingSince,
 		nowEpochSeconds,
 		fetchRows: getArtificialAnalysisEvaluationResourceStats,
-		rowKey: (row) => sourceKey(row.benchmark_key, row.model_id),
+		rowKey: artificialAnalysisEvaluationResourceSourceKey,
 		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
 	});
 	return {

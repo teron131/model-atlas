@@ -315,9 +315,9 @@ const valueInputRows = (components: ActiveResourceComponents) => {
 		{
 			title: "Price components",
 			rows: [
-				["Blended price ↓", componentWeight],
-				["Quality per blended price", componentWeight],
-				["Workflow price value", componentWeight],
+				["Log blended price ↓", componentWeight],
+				["Quality per log blended price", componentWeight],
+				["Workflow price efficiency", componentWeight],
 			],
 		},
 		{
@@ -357,8 +357,11 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "Runtime inputs are inverted, so lower workflow seconds and lower benchmark runtimes raise the score. Each active input gets one equal slot.",
-			rows: [["Scale", "0-100 percentile"]],
+			body: "Provider and workflow inputs are logged before min-max normalization. Runtime inputs are inverted, so lower latency, workflow time, and benchmark runtime raise the score. Each active input gets one equal slot.",
+			rows: [
+				["Provider and workflow", "log input, then min-max"],
+				["Benchmark runtimes", "quality-local 0-100 score"],
+			],
 			sections: [
 				{
 					title: "Speed inputs",
@@ -369,8 +372,12 @@ export function columnTooltipsForActiveComponents(
 		},
 		value: {
 			title: "Value score",
-			body: "Lower blended price and lower benchmark costs raise the score. Quality-adjusted price signals also contribute. Each active input gets one equal slot.",
-			rows: [["Scale", "0-100 percentile"]],
+			body: "Price signals log their cost input before min-max normalization. Derived quality and workflow outputs are not logged again. Lower prices and benchmark costs raise the score. Each active input gets one equal slot.",
+			rows: [
+				["Blended price", "log input, then min-max"],
+				["Derived price signals", "min-max, no second log"],
+				["Benchmark costs", "quality-local 0-100 score"],
+			],
 			sections: [
 				{
 					title: "Value inputs",

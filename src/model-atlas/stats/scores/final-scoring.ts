@@ -1,4 +1,4 @@
-/** Final percentile scoring for public Model Atlas model rows. */
+/** Final component scoring for public Model Atlas model rows. */
 
 import {
 	benchmarkDeviation,
@@ -7,9 +7,10 @@ import {
 	fixedWeightedScore,
 	gaussianWeight,
 	log10OnePlusPositive,
+	logInputMinMaxScores,
 	logitBenchmarkScore,
 	meanOfFinite,
-	percentileScoreAt,
+	minMaxScores,
 	percentileScoreForValue,
 	positiveFiniteNumber,
 	quantileFromSorted,
@@ -62,26 +63,6 @@ function meanSignal(
 		return null;
 	}
 	return weightedMeanOfFinite(signals);
-}
-
-function lowerIsBetterPercentileScoreAt(
-	values: Array<number | null>,
-	index: number,
-): number | null {
-	const value = values[index] ?? null;
-	if (value == null || !Number.isFinite(value)) {
-		return null;
-	}
-	const finiteValues = values.filter(
-		(item): item is number => item != null && Number.isFinite(item),
-	);
-	if (finiteValues.length === 0) {
-		return null;
-	}
-	const greaterOrEqualCount = finiteValues.filter(
-		(item) => item >= value,
-	).length;
-	return Number(((greaterOrEqualCount / finiteValues.length) * 100).toFixed(4));
 }
 
 function hasPositiveResourceMetric(
@@ -172,11 +153,6 @@ function blendCost(
 		positiveFiniteNumber(model.cost?.blended_price) ??
 		blendedPriceValue(model.cost, scoringConfig)
 	);
-}
-
-function inverseLogCostSignal(cost: unknown): number | null {
-	const logCost = log10OnePlusPositive(cost);
-	return logCost == null ? null : 1 / logCost;
 }
 
 type TaskResourceAmount = (
@@ -353,28 +329,45 @@ export function attachFinalScores(
 			agenticScores[index] ?? null,
 		]),
 	);
-	const blendedPriceSignals = models.map((model) =>
-		inverseLogCostSignal(blendCost(model, scoringConfig)),
+	const logBlendedPriceSignals = models.map((model) =>
+		log10OnePlusPositive(blendCost(model, scoringConfig)),
 	);
-	const qualityPerPriceSignals = models.map((model, index) => {
-		const cost = blendCost(model, scoringConfig);
-		const logCost = log10OnePlusPositive(cost);
+	const qualityPerLogBlendedPriceSignals = models.map((_, index) => {
+		const logCost = logBlendedPriceSignals[index] ?? null;
 		const qualityScore = qualityScores[index] ?? null;
 		return logCost == null || qualityScore == null
 			? null
 			: qualityScore / logCost;
 	});
-	const workflowPriceValueSignals = models.map((model) =>
+	const workflowPriceEfficiencySignals = models.map((model) =>
 		workflowPriceEfficiencySignal(model, scoringConfig),
 	);
+	const logBlendedPriceScores = minMaxScores(logBlendedPriceSignals, "lower");
+	const qualityPerLogBlendedPriceScores = minMaxScores(
+		qualityPerLogBlendedPriceSignals,
+		"higher",
+	);
+	const workflowPriceEfficiencyScores = minMaxScores(
+		workflowPriceEfficiencySignals,
+		"higher",
+	);
 	const valueInputScoresByModel = models.map((_, index) => [
-		percentileScoreAt(blendedPriceSignals, index),
-		percentileScoreAt(qualityPerPriceSignals, index),
-		percentileScoreAt(workflowPriceValueSignals, index),
+		logBlendedPriceScores[index] ?? null,
+		qualityPerLogBlendedPriceScores[index] ?? null,
+		workflowPriceEfficiencyScores[index] ?? null,
 	]);
 	const throughputSpeedSignals = models.map(throughputSpeedSignal);
 	const latencySecondsSignals = models.map(latencySecondsSignal);
 	const e2eSecondsSignals = models.map(e2eSecondsSignal);
+	const throughputSpeedScores = logInputMinMaxScores(
+		throughputSpeedSignals,
+		"higher",
+	);
+	const latencySpeedScores = logInputMinMaxScores(
+		latencySecondsSignals,
+		"lower",
+	);
+	const e2eSpeedScores = logInputMinMaxScores(e2eSecondsSignals, "lower");
 	const workflowRuntimeSeconds = models.map((model) =>
 		simulatedBlendSeconds(model.speed, scoringConfig),
 	);
@@ -382,15 +375,15 @@ export function attachFinalScores(
 		meanSignal(
 			[
 				{
-					value: percentileScoreAt(throughputSpeedSignals, index),
+					value: throughputSpeedScores[index] ?? null,
 					weight: ACTIVE_COMPONENT_WEIGHT,
 				},
 				{
-					value: lowerIsBetterPercentileScoreAt(latencySecondsSignals, index),
+					value: latencySpeedScores[index] ?? null,
 					weight: ACTIVE_COMPONENT_WEIGHT,
 				},
 				{
-					value: lowerIsBetterPercentileScoreAt(e2eSecondsSignals, index),
+					value: e2eSpeedScores[index] ?? null,
 					weight: ACTIVE_COMPONENT_WEIGHT,
 				},
 			],
@@ -411,8 +404,9 @@ export function attachFinalScores(
 	const taskTimeOverallComponents = taskTimeSignals.map((signal) =>
 		percentileScoreForValue(taskTimeSignals, signal),
 	);
-	const workflowSpeedComponents = workflowRuntimeSeconds.map((_, index) =>
-		lowerIsBetterPercentileScoreAt(workflowRuntimeSeconds, index),
+	const workflowSpeedComponents = logInputMinMaxScores(
+		workflowRuntimeSeconds,
+		"lower",
 	);
 	const blendedSpeedScores = models.map((_, index) =>
 		equalWeightedScore(

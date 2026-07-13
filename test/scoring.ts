@@ -1,10 +1,15 @@
+/** Exercises component scoring, benchmark imputation, anchors, and scoring configuration invariants. */
+
 import {
 	STAGE_CONFIG,
 	validateBenchmarkPortfolio,
 } from "../src/model-atlas/constants";
 import {
+	logInputMinMaxScores,
 	meanOfFiniteWithMinimum,
 	medianOfFinite,
+	minMaxScores,
+	percentileRank,
 	quantileFromSorted,
 } from "../src/model-atlas/math-utils";
 import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/metadata";
@@ -116,7 +121,7 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
-		"Blended price ↓",
+		"Log blended price ↓",
 	),
 	true,
 );
@@ -127,6 +132,18 @@ assertEqual(
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
 		"Throughput",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
+		"min-max score across models",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
+		"log input, then min-max",
 	),
 	true,
 );
@@ -322,7 +339,7 @@ const tokenProxySpeedModels = attachFinalScores(
 	STAGE_CONFIG.scoring,
 );
 assertClose(tokenProxySpeedModels[0]?.scores.speed_score, 100);
-assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 74.9993);
+assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 49.9993);
 
 const latencySpeedModels = attachFinalScores(
 	[
@@ -340,7 +357,55 @@ const latencySpeedModels = attachFinalScores(
 	STAGE_CONFIG.scoring,
 );
 assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
-assertClose(latencySpeedModels[1]?.scores.speed_score, 62.5);
+assertClose(latencySpeedModels[1]?.scores.speed_score, 25);
+
+const gapExampleValues = [1, 2, 3, 50, 60, 70, 95, 99];
+const minMaxGapScores = minMaxScores(gapExampleValues, "higher");
+const percentileGapScores = gapExampleValues.map((value) =>
+	percentileRank(gapExampleValues, value),
+);
+assertClose(minMaxGapScores[3], 50);
+assertClose(minMaxGapScores[4], 60.2040816327);
+assertClose(
+	((minMaxGapScores[3] ?? 0) - (minMaxGapScores[2] ?? 0)) /
+		((minMaxGapScores[4] ?? 0) - (minMaxGapScores[3] ?? 0)),
+	4.7,
+);
+assertClose(
+	((percentileGapScores[3] ?? 0) - (percentileGapScores[2] ?? 0)) /
+		((percentileGapScores[4] ?? 0) - (percentileGapScores[3] ?? 0)),
+	1,
+);
+assertClose(logInputMinMaxScores([1, 10, 100], "higher")[1], 50);
+assertClose(logInputMinMaxScores([1, 10, 100], "lower")[1], 50);
+
+// Provider speed inputs are logged before outer min-max normalization.
+const absoluteGapSpeedModels = attachFinalScores(
+	[10, 20, 100].map((tps) =>
+		modelCandidate({
+			id: `test/absolute-gap-speed-${tps}`,
+			tps,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+	),
+	STAGE_CONFIG.scoring,
+);
+assertClose(absoluteGapSpeedModels[1]?.scores.speed_score, 48.1885);
+
+// Log price is transformed once before min-max; derived price signals are not logged again.
+const absoluteGapValueModels = attachFinalScores(
+	[1, 10, 100].map((blendPrice) =>
+		modelCandidate({
+			id: `test/absolute-gap-value-${blendPrice}`,
+			intelligenceScore: 50,
+			agenticScore: 50,
+			blendPrice,
+		}),
+	),
+	STAGE_CONFIG.scoring,
+);
+assertClose(absoluteGapValueModels[1]?.scores.value_score, 57.6251);
 
 const fractionalBenchmarkConfig = {
 	...STAGE_CONFIG.scoring,

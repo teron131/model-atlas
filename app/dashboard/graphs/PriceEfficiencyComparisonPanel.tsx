@@ -96,7 +96,7 @@ export function PriceEfficiencyComparisonPanel({
 	return (
 		<Panel
 			title="Price vs Cost Efficiency"
-			copy="Each point is one model: Price score on the left is the percentile rank of blended price, where blended price comes from unit prices applied through the workflow simulation mix and lower blended price ranks higher. Benchmark cost efficiency on the right compares task cost among similarly scoring benchmark rows and ignores provider price, workflow price value, and quality-per-price signals."
+			copy="Each point is one model: Price score on the left is the log blended price normalized from the current observed minimum to maximum, with lower price scoring higher. Benchmark cost efficiency on the right compares task cost among similarly scoring benchmark rows and excludes provider and workflow price signals."
 			summary={
 				<BoxWhiskerSummary
 					label="Benchmark cost efficiency"
