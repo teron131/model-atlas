@@ -225,7 +225,7 @@ const qualityBenchmarkRows = (
 	[
 		["Effective weight", "importance x dimension loading"],
 		["Aggregation", "weights normalized within dimension"],
-		["Missing-data group", "frontier or baseline"],
+		["Missing-data penalty", "frontier: 1.0x error; baseline: 0.5x error"],
 		["Coverage confidence", "10%-60% observed weight ramp"],
 		{
 			title: "Frontier benchmarks",

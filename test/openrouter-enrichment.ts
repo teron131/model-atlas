@@ -196,15 +196,15 @@ assertEqual(
 );
 assertEqual(
 	publicOpenRouterModelId("openai/gpt-5.6-sol-pro"),
-	"openai/gpt-5.6-sol",
+	"openai/gpt-5.6-sol-pro",
 );
 assertEqual(
 	publicOpenRouterModelId("openai/gpt-5.6-terra-pro"),
-	"openai/gpt-5.6-terra",
+	"openai/gpt-5.6-terra-pro",
 );
 assertEqual(
 	publicOpenRouterModelId("openai/gpt-5.6-luna-pro"),
-	"openai/gpt-5.6-luna",
+	"openai/gpt-5.6-luna-pro",
 );
 assertEqual(
 	publicOpenRouterModelId("openai/gpt-5.6-sol"),
