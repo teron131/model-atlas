@@ -1,10 +1,13 @@
 /** Public scoring entrypoints for the final LLM stats pipeline. */
 export type {
 	BenchmarkImputationByModel,
+	BenchmarkImputationDiagnostic,
+	BenchmarkImputationDiagnosticsByKey,
 	QualityScoringContext,
 } from "./benchmark-imputation";
 export {
 	buildBenchmarkImputationByModel,
+	buildBenchmarkImputationDiagnosticsByKey,
 	buildQualityScoringContext,
 } from "./benchmark-imputation";
 export { attachFinalScores } from "./final-scoring";

@@ -152,17 +152,7 @@ Same-dimension evidence used for benchmark imputation is also averaged with benc
 
 Missing benchmark values are imputed only for scoring. Every model-benchmark pair receives at most one imputed value, and only observed benchmark values can provide evidence for another benchmark, so imputation is non-recursive. Imputed values are not treated or displayed as observed source values.
 
-Missing frontier benchmarks use other selected frontier benchmarks as the percentile context. For model $m$, missing benchmark $b$, and context benchmark $k$, the model's available frontier evidence estimates where it should sit in benchmark $b$'s observed distribution:
-
-$$
-C_{m,b}^{\text{frontier}}=\operatorname{mean}\left(z_{m,k}:k\in D\cap\text{Frontier},k\neq b,z_{m,k}\text{ available}\right)
-$$
-
-$$
-x_{m,b}^{\text{imputed}}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\operatorname{Percentile}(C_{m,b}^{\text{frontier}})/100\right),\quad b\in\text{Frontier}
-$$
-
-Other missing benchmarks use same-dimension evidence and keep a conservative shrink toward the observed floor. Here the context benchmark $k$ can be any other selected benchmark in dimension $D$:
+The context benchmark $k$ can be any other selected benchmark in dimension $D$. Frontier and baseline use the same prediction evidence:
 
 $$
 C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}\right)
@@ -172,11 +162,15 @@ $$
 \hat{x}_{m,b}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\operatorname{Percentile}(C_{m,b})/100\right)
 $$
 
+Each benchmark imputer is validated by withholding every model with an observed target value from all calibration evidence, predicting that value, and measuring absolute error after benchmark min-max normalization. Let $e_b$ be the median normalized leave-one-model-out error converted back to the benchmark's observed raw range. Imputation is refused unless at least four held-out predictions are valid and the normalized median absolute error is at most 25 points.
+
 $$
-x_{m,b}^{\text{imputed}}=\min_j x_{j,b}+c\left(\hat{x}_{m,b}-\min_j x_{j,b}\right)
+x_{m,b}^{\text{imputed}}=\max\left(0,\hat{x}_{m,b}-\kappa_g e_b\right)
 $$
 
-The shrink confidence is fixed at $c=0.5$ so missing non-frontier benchmarks can help order models without pretending the imputed value is as strong as source evidence. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
+The missing-data multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline}}=0.5$. Group changes only this penalty; it does not change context selection, validation evidence, or observed benchmark weight. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
+
+Observed-weight coverage confidence remains in addition to the benchmark-local error penalty. The error penalty controls whether an individual imputation is trustworthy; coverage confidence controls whether the aggregate dimension rests on enough observed benchmark weight.
 
 ### Price Profiles
 

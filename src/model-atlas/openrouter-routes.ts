@@ -31,8 +31,6 @@ const REASONING_EFFORT_ROUTES = [
 const REASONING_EFFORT_SUFFIXES = REASONING_EFFORT_ROUTES.map(
 	([suffix]) => suffix,
 );
-const GPT_5_6_PRO_ROUTE_PATTERN =
-	/(^|\/)gpt(?:[.-])5(?:[.-])6-(?:sol|terra|luna)-pro$/;
 const CATALOG_ALIAS_SUFFIXES = [
 	"-fast",
 	"-non-reasoning-low-effort",
@@ -112,10 +110,6 @@ export function isSameOpenRouterModelRoute(
 /** Removes catalog-only effort and alias suffixes before matching. */
 export function stripCatalogAliasSuffixes(value: string): string {
 	let normalized = value.replace(/-\d{8}$/, "");
-	// GPT-5.6 keeps Pro as a request mode on each tier, despite catalog aliases presenting it like a model suffix.
-	if (GPT_5_6_PRO_ROUTE_PATTERN.test(normalized)) {
-		return normalized.slice(0, -"-pro".length);
-	}
 	for (const suffix of CATALOG_ALIAS_STRIP_SUFFIXES) {
 		if (normalized.endsWith(suffix)) {
 			normalized = normalized.slice(0, -suffix.length);

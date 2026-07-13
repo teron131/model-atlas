@@ -12,6 +12,7 @@ import {
 	attachFinalScores,
 	blendedPriceValue,
 	buildBenchmarkImputationByModel,
+	buildBenchmarkImputationDiagnosticsByKey,
 	buildComponentScores,
 	buildQualityScoringContext,
 	simulatedBlendSeconds,
@@ -684,9 +685,11 @@ assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 4.8593);
 
 const normalizedContextModels = [
 	imputationModel("observed-a", 0, 0, 0, 0),
-	imputationModel("observed-b", 10, 33, 333, 0.33),
-	imputationModel("observed-c", 20, 66, 666, 0.66),
-	imputationModel("observed-d", 30, 100, 1_000, 1),
+	imputationModel("observed-b", 10, 20, 200, 0.2),
+	imputationModel("observed-c", 20, 40, 400, 0.4),
+	imputationModel("observed-d", 30, 60, 600, 0.6),
+	imputationModel("observed-e", 40, 80, 800, 0.8),
+	imputationModel("observed-f", 50, 100, 1_000, 1),
 	imputationModel("missing", null, 0, 1_000, 0),
 ];
 const normalizedContextBenchmarkKeys = [
@@ -726,7 +729,7 @@ assertClose(
 	normalizedContextImputations
 		.get(normalizedContextModels.at(-1) ?? {})
 		?.get("target"),
-	11.25,
+	38.66665,
 );
 
 const frontierPercentileConfig = {
@@ -756,11 +759,59 @@ const frontierPercentileImputations = buildBenchmarkImputationByModel(
 	frontierPercentileModels,
 	frontierPercentileConfig,
 );
-assertClose(
+assertEqual(
 	frontierPercentileImputations
 		.get(frontierPercentileModels.at(-1) ?? {})
-		?.get("agents_last_exam"),
-	0.8,
+		?.has("agents_last_exam") ?? false,
+	false,
+);
+const sparseFrontierDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	frontierPercentileModels,
+	frontierPercentileConfig,
+).get("agents_last_exam");
+assertEqual(sparseFrontierDiagnostic?.validationSampleCount, 0);
+assertEqual(sparseFrontierDiagnostic?.normalizedMedianAbsoluteError, null);
+assertEqual(sparseFrontierDiagnostic?.rawPenalty, null);
+assertEqual(sparseFrontierDiagnostic?.imputationAllowed, false);
+
+const unreliableReferenceModels = [0, 1, 2, 3, 4].map((value) => ({
+	id: `unreliable-observed-${value}`,
+	evaluations: {
+		target: value % 2 === 0 ? 0 : 100,
+		c1: value,
+		c2: value,
+		c3: value,
+	},
+}));
+const unreliableMissingModel = {
+	id: "unreliable-missing",
+	evaluations: { c1: 4, c2: 4, c3: 4 },
+};
+const unreliableConfig = {
+	...STAGE_CONFIG.scoring,
+	intelligenceBenchmarkKeys: ["target", "c1", "c2", "c3"],
+	agenticBenchmarkKeys: [],
+	benchmarkPortfolio: {
+		target: intelligenceBenchmarkEntry(),
+		c1: intelligenceBenchmarkEntry(),
+		c2: intelligenceBenchmarkEntry(),
+		c3: intelligenceBenchmarkEntry(),
+	},
+} as const;
+const unreliableModels = [...unreliableReferenceModels, unreliableMissingModel];
+const unreliableDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	unreliableModels,
+	unreliableConfig,
+).get("target");
+assertEqual(unreliableDiagnostic?.validationSampleCount, 5);
+assertClose(unreliableDiagnostic?.normalizedMedianAbsoluteError, 75);
+assertClose(unreliableDiagnostic?.rawPenalty, 75);
+assertEqual(unreliableDiagnostic?.imputationAllowed, false);
+assertEqual(
+	buildBenchmarkImputationByModel(unreliableModels, unreliableConfig)
+		.get(unreliableMissingModel)
+		?.has("target") ?? false,
+	false,
 );
 
 const sharedTargetModels = [
@@ -768,7 +819,9 @@ const sharedTargetModels = [
 	dualContextImputationModel("shared-observed-b", 10, 1, 1),
 	dualContextImputationModel("shared-observed-c", 20, 2, 2),
 	dualContextImputationModel("shared-observed-d", 30, 3, 3),
-	dualContextImputationModel("shared-missing", null, 3, 0),
+	dualContextImputationModel("shared-observed-e", 40, 4, 4),
+	dualContextImputationModel("shared-observed-f", 50, 5, 5),
+	dualContextImputationModel("shared-missing", null, 5, 0),
 ];
 const sharedTargetConfig = {
 	...STAGE_CONFIG.scoring,
@@ -798,7 +851,7 @@ const sharedTargetImputation = buildBenchmarkImputationByModel(
 )
 	.get(sharedTargetModel)
 	?.get("shared_target");
-assertClose(sharedTargetImputation, 6.5625);
+assertClose(sharedTargetImputation, 15.75001);
 const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(
 	sharedTargetModels,
 	{
@@ -809,14 +862,71 @@ const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(
 )
 	.get(sharedTargetModel)
 	?.get("shared_target");
-assertClose(reorderedSharedTargetImputation, 6.5625);
+assertClose(reorderedSharedTargetImputation, 15.75001);
 assertEqual("shared_target" in sharedTargetModel.evaluations, false);
 
-const nonRecursiveReferenceModels = [0, 1, 2, 3].map((value) => ({
+const missingGroupPenaltyPortfolio = {
+	...sharedTargetConfig.benchmarkPortfolio,
+	i1: { ...intelligenceBenchmarkEntry(), group: "frontier" },
+	i2: { ...intelligenceBenchmarkEntry(), group: "frontier" },
+	i3: { ...intelligenceBenchmarkEntry(), group: "frontier" },
+	a1: { ...agenticBenchmarkEntry(), group: "frontier" },
+	a2: { ...agenticBenchmarkEntry(), group: "frontier" },
+	a3: { ...agenticBenchmarkEntry(), group: "frontier" },
+} as const;
+const baselineMissingConfig = {
+	...sharedTargetConfig,
+	benchmarkPortfolio: missingGroupPenaltyPortfolio,
+};
+const frontierMissingConfig = {
+	...baselineMissingConfig,
+	benchmarkPortfolio: {
+		...missingGroupPenaltyPortfolio,
+		shared_target: {
+			...missingGroupPenaltyPortfolio.shared_target,
+			group: "frontier",
+		},
+	},
+} as const;
+const baselineMissingDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	sharedTargetModels,
+	baselineMissingConfig,
+).get("shared_target");
+const frontierMissingDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	sharedTargetModels,
+	frontierMissingConfig,
+).get("shared_target");
+assertEqual(baselineMissingDiagnostic?.imputationAllowed, true);
+assertClose(
+	frontierMissingDiagnostic?.normalizedMedianAbsoluteError,
+	baselineMissingDiagnostic?.normalizedMedianAbsoluteError ?? 0,
+);
+const baselineMissingValue = buildBenchmarkImputationByModel(
+	sharedTargetModels,
+	baselineMissingConfig,
+)
+	.get(sharedTargetModel)
+	?.get("shared_target");
+const frontierMissingValue = buildBenchmarkImputationByModel(
+	sharedTargetModels,
+	frontierMissingConfig,
+)
+	.get(sharedTargetModel)
+	?.get("shared_target");
+assertClose(baselineMissingValue, 15.75001);
+assertClose(frontierMissingValue, 12.75001);
+assertEqual(
+	(frontierMissingValue ?? Number.POSITIVE_INFINITY) <
+		(baselineMissingValue ?? Number.NEGATIVE_INFINITY),
+	true,
+);
+
+const nonRecursiveReferenceModels = [0, 1, 2, 3, 4, 5].map((value) => ({
 	id: `non-recursive-observed-${value}`,
 	evaluations: {
 		target: value * 10,
 		bridge: value * 10,
+		bridge2: value * 10,
 		i1: value,
 		i2: value,
 		a1: value,
@@ -826,17 +936,22 @@ const nonRecursiveReferenceModels = [0, 1, 2, 3].map((value) => ({
 }));
 const nonRecursiveMissingModel = {
 	id: "non-recursive-missing",
-	evaluations: { i1: 3, i2: 3, a1: 3, a2: 3, a3: 3 },
+	evaluations: { i1: 5, i2: 5, a1: 5, a2: 5, a3: 5 },
 };
 const nonRecursiveImputations = buildBenchmarkImputationByModel(
 	[...nonRecursiveReferenceModels, nonRecursiveMissingModel],
 	{
 		...STAGE_CONFIG.scoring,
-		intelligenceBenchmarkKeys: ["target", "bridge", "i1", "i2"],
-		agenticBenchmarkKeys: ["bridge", "a1", "a2", "a3"],
+		intelligenceBenchmarkKeys: ["target", "bridge", "bridge2", "i1", "i2"],
+		agenticBenchmarkKeys: ["bridge", "bridge2", "a1", "a2", "a3"],
 		benchmarkPortfolio: {
 			target: intelligenceBenchmarkEntry(),
 			bridge: {
+				group: "baseline",
+				benchmarkImportance: 1,
+				dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+			},
+			bridge2: {
 				group: "baseline",
 				benchmarkImportance: 1,
 				dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
@@ -849,7 +964,8 @@ const nonRecursiveImputations = buildBenchmarkImputationByModel(
 		},
 	},
 ).get(nonRecursiveMissingModel);
-assertClose(nonRecursiveImputations?.get("bridge"), 15);
+assertClose(nonRecursiveImputations?.get("bridge"), 47);
+assertClose(nonRecursiveImputations?.get("bridge2"), 47);
 assertEqual(nonRecursiveImputations?.has("target"), false);
 
 function modelCandidate(options: {
