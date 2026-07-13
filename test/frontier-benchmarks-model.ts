@@ -22,8 +22,8 @@ import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 const portfolio = {
 	deep_swe: {
 		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 0,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
 		resourcePolicy: {
 			source: "benchmark",
 			unit: "per_task",
@@ -32,8 +32,8 @@ const portfolio = {
 	},
 	gpqa: {
 		group: "baseline",
-		intelligencePortion: 1,
-		agenticPortion: 0,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
 } satisfies BenchmarkPortfolio;
 
@@ -158,8 +158,8 @@ assert.equal(
 const totalPortfolio = {
 	agents_last_exam: {
 		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 0,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
 		resourcePolicy: {
 			source: "benchmark",
 			unit: "total",

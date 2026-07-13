@@ -178,13 +178,13 @@ fullPayload.metadata.scoring.selected_benchmark_keys = ["gpqa", "deep_swe"];
 fullPayload.metadata.scoring.benchmark_portfolio = {
 	gpqa: {
 		group: "baseline",
-		intelligencePortion: 1,
-		agenticPortion: 0,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
 	deep_swe: {
 		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 1,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 };
 const compactPayload = compactDashboardPayload(fullPayload);
@@ -197,7 +197,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"INTELLIGENCE and AGENTIC average selected linearly normalized benchmarks using each benchmark's configured dimension portion, then apply portion-weighted observed benchmark coverage confidence. SPEED gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
+	"INTELLIGENCE and AGENTIC average selected linearly normalized benchmarks using benchmark importance multiplied by the dimension loading, then apply weight-based observed benchmark coverage confidence. Frontier or baseline group affects only missing-data handling. SPEED gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input; lower costs raise the score.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
@@ -225,8 +225,8 @@ assert.deepEqual(compactPayload.metadata.scoring.selected_benchmark_keys, []);
 assert.deepEqual(compactPayload.metadata.scoring.benchmark_portfolio, {
 	deep_swe: {
 		group: "frontier",
-		intelligencePortion: 1,
-		agenticPortion: 1,
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 });
 assert.deepEqual(model?.evaluations, {

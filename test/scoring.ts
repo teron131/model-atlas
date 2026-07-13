@@ -1,4 +1,7 @@
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import {
+	STAGE_CONFIG,
+	validateBenchmarkPortfolio,
+} from "../src/model-atlas/constants";
 import {
 	meanOfFiniteWithMinimum,
 	medianOfFinite,
@@ -13,7 +16,10 @@ import {
 	buildQualityScoringContext,
 	simulatedBlendSeconds,
 } from "../src/model-atlas/stats/scores";
-import type { LlmStatsModelCandidate } from "../src/model-atlas/stats/types";
+import type {
+	BenchmarkPortfolio,
+	LlmStatsModelCandidate,
+} from "../src/model-atlas/stats/types";
 
 function assertEqual(actual: unknown, expected: unknown): void {
 	if (actual !== expected) {
@@ -29,6 +35,19 @@ function assertClose(
 	if (typeof actual !== "number" || Math.abs(actual - expected) > epsilon) {
 		throw new Error(`Expected ${expected}, got ${actual}`);
 	}
+}
+
+function assertThrowsWithMessage(
+	action: () => void,
+	expectedMessage: string,
+): void {
+	try {
+		action();
+	} catch (error) {
+		assertEqual((error as Error).message, expectedMessage);
+		return;
+	}
+	throw new Error(`Expected error: ${expectedMessage}`);
 }
 
 assertEqual(
@@ -111,11 +130,40 @@ assertEqual(
 	true,
 );
 
-for (const benchmark of Object.values(
-	STAGE_CONFIG.scoring.benchmarkPortfolio,
-)) {
-	assertClose(benchmark.intelligencePortion + benchmark.agenticPortion, 1);
-}
+validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+assertThrowsWithMessage(
+	() =>
+		validateBenchmarkPortfolio({
+			test: {
+				group: "frontier",
+				benchmarkImportance: 0,
+				dimensionLoadings: { intelligence: 1, agentic: 0 },
+			},
+		}),
+	"Benchmark importance must be finite and positive for test",
+);
+assertThrowsWithMessage(
+	() =>
+		validateBenchmarkPortfolio({
+			test: {
+				group: "frontier",
+				benchmarkImportance: 1,
+				dimensionLoadings: { intelligence: 0.8, agentic: 0.3 },
+			},
+		}),
+	"Dimension loadings must be finite, non-negative, and sum to one for test",
+);
+assertThrowsWithMessage(
+	() =>
+		validateBenchmarkPortfolio({
+			test: {
+				group: "invalid",
+				benchmarkImportance: 1,
+				dimensionLoadings: { intelligence: 1, agentic: 0 },
+			},
+		} as unknown as BenchmarkPortfolio),
+	"Invalid benchmark group for test: invalid",
+);
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
 		"Latency ↓",
@@ -148,10 +196,7 @@ const aaOnlyResourceMetadata = buildCurrentLlmStatsMetadata({
 		},
 	],
 	benchmarkUpdateHealth: {},
-	scoringConfig: {
-		...STAGE_CONFIG.scoring,
-		frontierBenchmarkKeys: ["hle", "deep_swe"],
-	},
+	scoringConfig: STAGE_CONFIG.scoring,
 });
 const aaOnlyTimeTooltip = JSON.stringify(
 	aaOnlyResourceMetadata.scoring.column_tooltips.speed,
@@ -180,10 +225,7 @@ const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
 		},
 	],
 	benchmarkUpdateHealth: {},
-	scoringConfig: {
-		...STAGE_CONFIG.scoring,
-		frontierBenchmarkKeys: ["hle", "deep_swe"],
-	},
+	scoringConfig: STAGE_CONFIG.scoring,
 });
 assertEqual(
 	JSON.stringify(mixedResourceMetadata.scoring.column_tooltips.speed).includes(
@@ -214,10 +256,7 @@ const tokenProxyResourceMetadata = buildCurrentLlmStatsMetadata({
 		},
 	],
 	benchmarkUpdateHealth: {},
-	scoringConfig: {
-		...STAGE_CONFIG.scoring,
-		frontierBenchmarkKeys: ["deep_swe"],
-	},
+	scoringConfig: STAGE_CONFIG.scoring,
 });
 assertEqual(
 	JSON.stringify(
@@ -309,16 +348,15 @@ const fractionalBenchmarkConfig = {
 	benchmarkPortfolio: {
 		omniscience_accuracy: {
 			group: "baseline",
-			intelligencePortion: 0.8,
-			agenticPortion: 0.2,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
 		},
 		hle: {
 			group: "frontier",
-			intelligencePortion: 0.2,
-			agenticPortion: 0.8,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
 		},
 	},
-	frontierBenchmarkKeys: [],
 } as const;
 const fractionalBenchmarkModels = [
 	{
@@ -351,6 +389,64 @@ const fractionalBenchmarkComponentScores = buildComponentScores(
 );
 assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
 
+const importanceWeightedConfig = {
+	...fractionalBenchmarkConfig,
+	benchmarkPortfolio: {
+		omniscience_accuracy: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+		},
+		hle: {
+			group: "frontier",
+			benchmarkImportance: 3,
+			dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+		},
+	},
+} as const;
+const importanceWeightedContext = buildQualityScoringContext(
+	fractionalBenchmarkModels,
+	importanceWeightedConfig,
+	new Map(),
+);
+const importanceWeightedScores = buildComponentScores(
+	fractionalBenchmarkModels[2] ?? {},
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	importanceWeightedConfig,
+	importanceWeightedContext,
+);
+assertClose(importanceWeightedScores?.intelligence_score, 75);
+
+const groupFlippedScores = buildComponentScores(
+	fractionalBenchmarkModels[2] ?? {},
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	{
+		...importanceWeightedConfig,
+		benchmarkPortfolio: {
+			omniscience_accuracy: {
+				...importanceWeightedConfig.benchmarkPortfolio.omniscience_accuracy,
+				group: "frontier",
+			},
+			hle: {
+				...importanceWeightedConfig.benchmarkPortfolio.hle,
+				group: "baseline",
+			},
+		},
+	},
+	importanceWeightedContext,
+);
+assertClose(groupFlippedScores?.intelligence_score, 75);
+
 const fractionalCoverageComponentScores = buildComponentScores(
 	{ id: "fractional-sparse", evaluations: { hle: 100 } },
 	{
@@ -377,20 +473,23 @@ const sparseCoverageBenchmarkPortfolio = Object.fromEntries(
 		key,
 		{
 			group: "frontier",
-			intelligencePortion: 1,
-			agenticPortion: 0,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 1, agentic: 0 },
 		},
 	]),
 ) as Record<
 	string,
-	{ group: "frontier"; intelligencePortion: 1; agenticPortion: 0 }
+	{
+		group: "frontier";
+		benchmarkImportance: 1;
+		dimensionLoadings: { intelligence: 1; agentic: 0 };
+	}
 >;
 const sparseCoverageConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: sparseBenchmarkKeys,
 	agenticBenchmarkKeys: [],
 	benchmarkPortfolio: sparseCoverageBenchmarkPortfolio,
-	frontierBenchmarkKeys: sparseBenchmarkKeys,
 } as const;
 const sparseCoverageModels = [
 	{
@@ -452,10 +551,7 @@ const directResourceScoredModels = attachFinalScores(
 			latency: 1,
 		}),
 	],
-	{
-		...STAGE_CONFIG.scoring,
-		frontierBenchmarkKeys: ["deep_swe"],
-	},
+	STAGE_CONFIG.scoring,
 );
 assertClose(directResourceScoredModels[0]?.scores.value_score, 89.6);
 assertClose(directResourceScoredModels[1]?.scores.value_score, 88.4821);
@@ -485,10 +581,7 @@ const valueScoredModels = attachFinalScores(
 			disableBaseCost: true,
 		}),
 	],
-	{
-		...STAGE_CONFIG.scoring,
-		frontierBenchmarkKeys: ["deep_swe"],
-	},
+	STAGE_CONFIG.scoring,
 );
 assertClose(valueScoredModels[0]?.scores.value_score, 21.6);
 assertClose(valueScoredModels[1]?.scores.value_score, 14.4);
@@ -496,12 +589,11 @@ assertClose(valueScoredModels[2]?.scores.value_score, 7.2);
 
 const scaleNormalizedResourceConfig = {
 	...STAGE_CONFIG.scoring,
-	frontierBenchmarkKeys: ["cheap_frontier", "expensive_frontier"],
 	benchmarkPortfolio: {
 		cheap_frontier: {
 			group: "frontier",
-			intelligencePortion: 0,
-			agenticPortion: 1,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0, agentic: 1 },
 			resourcePolicy: {
 				source: "benchmark",
 				unit: "per_task",
@@ -510,8 +602,8 @@ const scaleNormalizedResourceConfig = {
 		},
 		expensive_frontier: {
 			group: "frontier",
-			intelligencePortion: 0,
-			agenticPortion: 1,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0, agentic: 1 },
 			resourcePolicy: {
 				source: "benchmark",
 				unit: "per_task",
@@ -605,14 +697,17 @@ const normalizedContextBenchmarkKeys = [
 ] as const;
 const normalizedContextBenchmarkPortfolio = Object.fromEntries(
 	normalizedContextBenchmarkKeys.map((key) => {
-		const intelligencePortion =
+		const intelligenceLoading =
 			key === "wide" ? 0.8 : key === "target" ? 1 : 0.1;
 		return [
 			key,
 			{
 				group: "baseline",
-				intelligencePortion,
-				agenticPortion: 1 - intelligencePortion,
+				benchmarkImportance: 1,
+				dimensionLoadings: {
+					intelligence: intelligenceLoading,
+					agentic: 1 - intelligenceLoading,
+				},
 			},
 		] as const;
 	}),
@@ -621,7 +716,6 @@ const normalizedContextConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: normalizedContextBenchmarkKeys,
 	agenticBenchmarkKeys: [],
-	frontierBenchmarkKeys: [],
 	benchmarkPortfolio: normalizedContextBenchmarkPortfolio,
 };
 const normalizedContextImputations = buildBenchmarkImputationByModel(
@@ -638,7 +732,6 @@ assertClose(
 const frontierPercentileConfig = {
 	...normalizedContextConfig,
 	intelligenceBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
-	frontierBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
 	benchmarkPortfolio: STAGE_CONFIG.scoring.benchmarkPortfolio,
 };
 const frontierPercentileModels = [

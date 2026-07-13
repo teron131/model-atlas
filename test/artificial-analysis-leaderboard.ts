@@ -317,31 +317,30 @@ const scoringConfig = {
 	benchmarkPortfolio: {
 		scicode: {
 			group: "baseline",
-			intelligencePortion: 0.8,
-			agenticPortion: 0.2,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
 		},
 		tau_banking: {
 			group: "baseline",
-			intelligencePortion: 0.2,
-			agenticPortion: 0.8,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
 		},
 		terminalbench_v21: {
 			group: "baseline",
-			intelligencePortion: 0.2,
-			agenticPortion: 0.8,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
 		},
 		gdpval_normalized: {
 			group: "frontier",
-			intelligencePortion: 0.6,
-			agenticPortion: 0.4,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
 		},
 		apex_agents: {
 			group: "frontier",
-			intelligencePortion: 0.45,
-			agenticPortion: 0.55,
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
 		},
 	},
-	frontierBenchmarkKeys: ["gdpval_normalized", "apex_agents"],
 	overallScoreWeights: {
 		intelligence: 0.4,
 		agentic: 0.4,

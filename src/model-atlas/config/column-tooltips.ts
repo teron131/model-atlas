@@ -9,7 +9,7 @@ import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_KEYS,
 	type BenchmarkKey,
-	benchmarkDimensionPortion,
+	benchmarkDimensionWeight,
 	benchmarkPortfolioEntry,
 	benchmarkResourcePolicy,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
@@ -113,13 +113,13 @@ const benchmarkContributionPercent = (
 	key: BenchmarkKey,
 	dimension: "intelligence" | "agentic",
 ) => {
-	const totalPortion = keys.reduce(
+	const totalWeight = keys.reduce(
 		(sum, benchmarkKey) =>
-			sum + benchmarkDimensionPortion(benchmarkKey, dimension),
+			sum + benchmarkDimensionWeight(benchmarkKey, dimension),
 		0,
 	);
-	return totalPortion > 0
-		? percent(benchmarkDimensionPortion(key, dimension) / totalPortion, 1)
+	return totalWeight > 0
+		? percent(benchmarkDimensionWeight(key, dimension) / totalWeight, 1)
 		: "-";
 };
 
@@ -223,8 +223,10 @@ const qualityBenchmarkRows = (
 	}>,
 ) =>
 	[
-		["Benchmark weights", "normalized within dimension"],
-		["Coverage confidence", "10%-60% observed portion ramp"],
+		["Effective weight", "importance x dimension loading"],
+		["Aggregation", "weights normalized within dimension"],
+		["Missing-data group", "frontier or baseline"],
+		["Coverage confidence", "10%-60% observed weight ramp"],
 		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,
@@ -331,7 +333,7 @@ export function columnTooltipsForActiveComponents(
 	return {
 		intelligence: {
 			title: "Intelligence score",
-			body: "Atlas capability score from selected INTELLIGENCE benchmarks weighted by their configured Intelligence portions, penalized when observed portion coverage is sparse.",
+			body: "Atlas capability score from selected INTELLIGENCE benchmarks. Each benchmark's weight is its importance multiplied by its Intelligence loading; frontier or baseline group affects only missing-data handling.",
 			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
@@ -343,7 +345,7 @@ export function columnTooltipsForActiveComponents(
 		},
 		agentic: {
 			title: "Agentic score",
-			body: "Atlas workflow and coding-task score from selected AGENTIC benchmarks weighted by their configured Agentic portions, penalized when observed portion coverage is sparse.",
+			body: "Atlas workflow and coding-task score from selected AGENTIC benchmarks. Each benchmark's weight is its importance multiplied by its Agentic loading; frontier or baseline group affects only missing-data handling.",
 			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{

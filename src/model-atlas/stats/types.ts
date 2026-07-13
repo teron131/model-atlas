@@ -279,10 +279,15 @@ export type BenchmarkResourcePolicy = {
 	tokenMeasure: BenchmarkResourceTokenMeasure;
 };
 
+export type BenchmarkDimensionLoadings = {
+	intelligence: number;
+	agentic: number;
+};
+
 export type BenchmarkPortfolioEntry = {
 	group: BenchmarkGroup;
-	intelligencePortion: number;
-	agenticPortion: number;
+	benchmarkImportance: number;
+	dimensionLoadings: BenchmarkDimensionLoadings;
 	resourcePolicy?: BenchmarkResourcePolicy;
 };
 
@@ -469,7 +474,6 @@ export type ScoringConfig = {
 	simulationProfiles: SimulationProfiles;
 	simulationInputTokenSeconds: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
-	frontierBenchmarkKeys: readonly string[];
 	overallScoreWeights: OverallScoreWeights;
 	columnTooltips: LlmStatsColumnTooltips;
 };

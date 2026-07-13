@@ -1,6 +1,10 @@
 /** Component score builders for final Model Atlas model rows. */
 
 import {
+	type BenchmarkDimension,
+	benchmarkDimensionWeight,
+} from "../../config/benchmark-portfolio";
+import {
 	coverageConfidence,
 	meanOfFinite,
 	quantileFromSorted,
@@ -19,7 +23,6 @@ import {
 	type QualityScoringContext,
 } from "./benchmark-imputation";
 
-type BenchmarkDimension = "intelligence" | "agentic";
 type BenchmarkScoreInput = {
 	value: number | null;
 	observed: boolean;
@@ -36,15 +39,12 @@ function selectedBenchmarkScoreInputs(
 ): BenchmarkScoreInput[] {
 	const inputs: BenchmarkScoreInput[] = [];
 	for (const key of keys) {
-		const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
-		if (portfolioEntry == null) {
-			continue;
-		}
-		const dimensionPortion =
-			dimension === "intelligence"
-				? portfolioEntry.intelligencePortion
-				: portfolioEntry.agenticPortion;
-		if (!(dimensionPortion > 0)) {
+		const dimensionWeight = benchmarkDimensionWeight(
+			key,
+			dimension,
+			scoringConfig.benchmarkPortfolio,
+		);
+		if (!(dimensionWeight > 0)) {
 			continue;
 		}
 		const observedValue = metricValue(model, key);
@@ -57,13 +57,13 @@ function selectedBenchmarkScoreInputs(
 		inputs.push({
 			value,
 			observed: observedValue != null,
-			weight: dimensionPortion,
+			weight: dimensionWeight,
 		});
 	}
 	return inputs;
 }
 
-/** Score selected benchmarks by dimension portion while penalizing sparse observed portion coverage. */
+/** Score selected benchmarks by effective dimension weight while penalizing sparse observed weight coverage. */
 function qualityScore(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
 ): number | null {
