@@ -4,6 +4,7 @@ import {
 	coverageConfidence,
 	meanOfFinite,
 	quantileFromSorted,
+	weightedCoverageRatio,
 	weightedMeanOfFinite,
 } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
@@ -22,6 +23,7 @@ type BenchmarkDimension = "intelligence" | "agentic";
 type BenchmarkScoreInput = {
 	value: number | null;
 	observed: boolean;
+	weight: number;
 };
 
 function selectedBenchmarkScoreInputs(
@@ -52,25 +54,31 @@ function selectedBenchmarkScoreInputs(
 			key,
 			rawValue,
 		);
-		inputs.push({ value, observed: observedValue != null });
+		inputs.push({
+			value,
+			observed: observedValue != null,
+			weight: dimensionPortion,
+		});
 	}
 	return inputs;
 }
 
-/** Score selected benchmarks equally while penalizing dimensions with sparse observed coverage. */
+/** Score selected benchmarks by dimension portion while penalizing sparse observed portion coverage. */
 function qualityScore(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
 ): number | null {
-	const qualityMean = meanOfFinite(
-		benchmarkScoreInputs.map((input) => input.value),
+	const qualityMean = weightedMeanOfFinite(
+		benchmarkScoreInputs.map(({ value, weight }) => ({ value, weight })),
 	);
-	return qualityMean == null
+	const observedCoverage = weightedCoverageRatio(
+		benchmarkScoreInputs.map(({ observed, weight }) => ({
+			value: observed ? 1 : null,
+			weight,
+		})),
+	);
+	return qualityMean == null || observedCoverage == null
 		? null
-		: qualityMean *
-				coverageConfidence(
-					benchmarkScoreInputs.filter((input) => input.observed).length,
-					benchmarkScoreInputs.length,
-				);
+		: qualityMean * coverageConfidence(observedCoverage, 1);
 }
 
 /** Estimate a blended price from effective input/output prices, falling back to base models.dev prices. */

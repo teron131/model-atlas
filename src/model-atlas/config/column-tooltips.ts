@@ -9,6 +9,7 @@ import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_KEYS,
 	type BenchmarkKey,
+	benchmarkDimensionPortion,
 	benchmarkPortfolioEntry,
 	benchmarkResourcePolicy,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
@@ -107,8 +108,20 @@ const effectivePriceProfileRatio = (key: "input" | "output") => {
 	return totalWeight > 0 ? percent(weightedRatio / totalWeight, 1) : "-";
 };
 
-const benchmarkContributionPercent = (keys: readonly string[]) =>
-	perComponentWeight(1, keys.length);
+const benchmarkContributionPercent = (
+	keys: readonly BenchmarkKey[],
+	key: BenchmarkKey,
+	dimension: "intelligence" | "agentic",
+) => {
+	const totalPortion = keys.reduce(
+		(sum, benchmarkKey) =>
+			sum + benchmarkDimensionPortion(benchmarkKey, dimension),
+		0,
+	);
+	return totalPortion > 0
+		? percent(benchmarkDimensionPortion(key, dimension) / totalPortion, 1)
+		: "-";
+};
 
 const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
 const VALUE_PRICE_COMPONENT_COUNT = 3;
@@ -204,15 +217,14 @@ function benchmarkResourceRows(
 }
 
 const qualityBenchmarkRows = (
-	keys: readonly BenchmarkKey[],
 	benchmarkRows: Readonly<{
 		baseline: readonly LlmStatsColumnTooltipRow[];
 		frontier: readonly LlmStatsColumnTooltipRow[];
 	}>,
 ) =>
 	[
-		["Benchmark slot", benchmarkContributionPercent(keys)],
-		["Coverage confidence", "10%-60% observed benchmark ramp"],
+		["Benchmark weights", "normalized within dimension"],
+		["Coverage confidence", "10%-60% observed portion ramp"],
 		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,
@@ -223,14 +235,17 @@ const qualityBenchmarkRows = (
 		},
 	] as const;
 
-const benchmarkRowsByGroup = (keys: readonly BenchmarkKey[]) => ({
+const benchmarkRowsByGroup = (
+	keys: readonly BenchmarkKey[],
+	dimension: "intelligence" | "agentic",
+) => ({
 	baseline: keys
 		.filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline")
 		.map(
 			(key) =>
 				[
 					BENCHMARK_LABEL_BY_KEY[key],
-					benchmarkContributionPercent(keys),
+					benchmarkContributionPercent(keys, key, dimension),
 				] as const,
 		),
 	frontier: keys
@@ -239,17 +254,19 @@ const benchmarkRowsByGroup = (keys: readonly BenchmarkKey[]) => ({
 			(key) =>
 				[
 					BENCHMARK_LABEL_BY_KEY[key],
-					benchmarkContributionPercent(keys),
+					benchmarkContributionPercent(keys, key, dimension),
 				] as const,
 		),
 });
 
 const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+	"intelligence",
 );
 
 const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
+	"agentic",
 );
 
 const speedInputRows = (components: ActiveResourceComponents) => {
@@ -314,31 +331,25 @@ export function columnTooltipsForActiveComponents(
 	return {
 		intelligence: {
 			title: "Intelligence score",
-			body: "Atlas capability score from equally weighted selected INTELLIGENCE benchmarks, penalized when observed benchmark coverage is sparse.",
+			body: "Atlas capability score from selected INTELLIGENCE benchmarks weighted by their configured Intelligence portions, penalized when observed portion coverage is sparse.",
 			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
 					title: "Score blend",
 					hideTitle: true,
-					rows: qualityBenchmarkRows(
-						INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-						INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS,
-					),
+					rows: qualityBenchmarkRows(INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS),
 				},
 			],
 		},
 		agentic: {
 			title: "Agentic score",
-			body: "Atlas workflow and coding-task score from equally weighted selected AGENTIC benchmarks, penalized when observed benchmark coverage is sparse.",
+			body: "Atlas workflow and coding-task score from selected AGENTIC benchmarks weighted by their configured Agentic portions, penalized when observed portion coverage is sparse.",
 			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
 			sections: [
 				{
 					title: "Score blend",
 					hideTitle: true,
-					rows: qualityBenchmarkRows(
-						AGENTIC_BENCHMARK_DISPLAY_KEYS,
-						AGENTIC_BENCHMARK_TOOLTIP_ROWS,
-					),
+					rows: qualityBenchmarkRows(AGENTIC_BENCHMARK_TOOLTIP_ROWS),
 				},
 			],
 		},

@@ -59,9 +59,9 @@ The baseline group anchors breadth, stability, and coverage. The frontier group 
 
 ### Quality Mix
 
-Intelligence and Agentic use the same scoring rule: each selected benchmark gets one equal slot. The AA Intelligence and Agentic indexes remain source context only.
+Intelligence and Agentic use the same scoring rule: each selected benchmark is weighted by its configured portion for that dimension. A benchmark's Intelligence and Agentic portions split its capability signal across the two dimensions. The AA Intelligence and Agentic indexes remain source context only.
 
-Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed coverage below 10% earns no confidence, observed coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the benchmark mean, but only observed benchmark values count toward coverage confidence.
+Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed portion coverage below 10% earns no confidence, observed portion coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the portion-weighted benchmark mean, but only observed benchmark values count toward portion coverage confidence.
 
 Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to blended price, quality per price, workflow price value, and each active benchmark task-cost input.
 
@@ -121,16 +121,16 @@ $$
 
 The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average.
 
-Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Each admitted benchmark receives equal weight.
+Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Let $w_{b,D}$ be benchmark $b$'s configured portion for dimension $D$. The normalized dimension mean is weighted by those portions:
 
 $$
-\bar{B}_{m,D}=\operatorname{mean}\left(z_{m,b}:b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}\right)
+\bar{B}_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}}
 $$
 
-Let $o_{m,D}$ be the number of observed selected benchmark values for model $m$ in dimension $D$, and let $n_D=|\mathcal{B}_D|$. The observed coverage ratio is:
+The observed coverage ratio uses the same portions. Missing a small fractional contribution therefore reduces confidence less than missing a large contribution:
 
 $$
-c_{m,D}=\frac{o_{m,D}}{n_D}
+c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ observed}}w_{b,D}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
 $$
 
 The coverage confidence $C(c)$ is $0$ at or below $10\%$ observed coverage, $1$ at or above $60\%$ observed coverage, and a smoothstep interpolation between those bounds.
@@ -147,6 +147,8 @@ A_m&=D_{m,\text{Agentic}}
 $$
 
 ### Benchmark Imputation
+
+Same-dimension evidence used for benchmark imputation is also averaged with the configured dimension portions. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
 
 Missing benchmark values are imputed only for scoring. They are not treated or displayed as observed source values.
 
