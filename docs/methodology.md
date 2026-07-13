@@ -148,9 +148,9 @@ $$
 
 ### Benchmark Imputation
 
-Same-dimension evidence used for benchmark imputation is also averaged with benchmark importance multiplied by the configured dimension loading. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
+Same-dimension evidence used for benchmark imputation is also averaged with benchmark importance multiplied by the configured dimension loading. For a benchmark selected in both dimensions, Model Atlas produces an Intelligence-context prediction and an Agentic-context prediction, then combines the available predictions using that benchmark's dimension loadings. Available loadings are renormalized when only one context can make a prediction. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
 
-Missing benchmark values are imputed only for scoring. They are not treated or displayed as observed source values.
+Missing benchmark values are imputed only for scoring. Every model-benchmark pair receives at most one imputed value, and only observed benchmark values can provide evidence for another benchmark, so imputation is non-recursive. Imputed values are not treated or displayed as observed source values.
 
 Missing frontier benchmarks use other selected frontier benchmarks as the percentile context. For model $m$, missing benchmark $b$, and context benchmark $k$, the model's available frontier evidence estimates where it should sit in benchmark $b$'s observed distribution:
 
