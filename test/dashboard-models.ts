@@ -269,6 +269,17 @@ assert.deepEqual(
 	["Reasoner (high)", "Reasoner (max)"],
 	"expanded mode should preserve and label each reasoning effort as a model variant",
 );
+assert.deepEqual(
+	modelsForVariantDisplay(
+		[
+			rankedModel("alibaba/qwen3.6-plus", "Qwen 3.6 Plus", 40),
+			rankedModel("qwen/qwen3.6-plus", "Qwen 3.6 Plus", 50),
+		],
+		true,
+	).map((model) => model.id),
+	["qwen/qwen3.6-plus"],
+	"expanded mode should not present provider aliases as model variants",
+);
 
 function rankedModel(
 	id: string,

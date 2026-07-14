@@ -11,6 +11,7 @@ import {
 } from "../../shared";
 import {
 	type BenchmarkImputationByModel,
+	type BenchmarkImputationConfidenceByModel,
 	blendedPriceValue,
 	buildComponentScores,
 	type QualityScoringContext,
@@ -441,6 +442,7 @@ export function buildModelCandidate(
 	speedOutputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
 	benchmarkImputationByModel: BenchmarkImputationByModel,
+	benchmarkImputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
 	qualityContext: QualityScoringContext,
 ): LlmStatsModelCandidate {
 	const model = asRecord(row);
@@ -487,6 +489,7 @@ export function buildModelCandidate(
 			scoringConfig,
 			qualityContext,
 			benchmarkImputationByModel.get(model),
+			benchmarkImputationConfidenceByModel.get(model),
 		),
 		scores: null,
 	};

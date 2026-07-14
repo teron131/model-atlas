@@ -52,31 +52,90 @@ const expensiveStrong = priceModel({
 	agenticScore: 90,
 	valueScore: 1,
 });
+const referenceModels = [
+	cheapWeak,
+	middleStrong,
+	expensiveStrong,
+	priceModel({
+		id: "provider/missing-price",
+		name: "Missing Price",
+		price: null,
+		benchmarkCost: 0.01,
+		intelligenceScore: 100,
+		agenticScore: 100,
+		valueScore: 100,
+	}),
+	priceModel({
+		id: "provider/missing-benchmark-cost",
+		name: "Missing Benchmark Cost",
+		price: 0.1,
+		benchmarkCost: null,
+		intelligenceScore: 100,
+		agenticScore: 100,
+		valueScore: 100,
+	}),
+];
 const rows = priceEfficiencyComparisonRows(
-	[
-		cheapWeak,
-		middleStrong,
-		expensiveStrong,
-		priceModel({
-			id: "provider/missing-price",
-			name: "Missing Price",
-			price: null,
-			benchmarkCost: 0.01,
-			intelligenceScore: 100,
-			agenticScore: 100,
-			valueScore: 100,
-		}),
-		priceModel({
-			id: "provider/missing-benchmark-cost",
-			name: "Missing Benchmark Cost",
-			price: 0.1,
-			benchmarkCost: null,
-			intelligenceScore: 100,
-			agenticScore: 100,
-			valueScore: 100,
-		}),
-	],
+	referenceModels,
+	referenceModels,
 	portfolio,
+	true,
+);
+
+assert.deepEqual(
+	priceEfficiencyComparisonRows(
+		[middleStrong],
+		referenceModels,
+		portfolio,
+		true,
+	)[0]?.priceScore,
+	rows.find((row) => row.model === middleStrong)?.priceScore,
+	"filters should not redefine chart calibration",
+);
+const effortReference = { ...middleStrong, reasoning_effort: "max" };
+assert.equal(
+	priceEfficiencyComparisonRows(
+		[{ ...effortReference, reasoning_effort: null }],
+		[effortReference],
+		portfolio,
+		false,
+	).length,
+	1,
+	"collapsed display rows should resolve to their strongest scored variant",
+);
+const unavailableStrongestVariant = {
+	...priceModel({
+		id: "provider/effort-model",
+		name: "Effort Model",
+		price: 2,
+		benchmarkCost: null,
+		intelligenceScore: 90,
+		agenticScore: 90,
+		valueScore: 90,
+	}),
+	reasoning_effort: "max",
+};
+const availableWeakerVariant = {
+	...priceModel({
+		id: "provider/effort-model",
+		name: "Effort Model",
+		price: 2,
+		benchmarkCost: 0.5,
+		intelligenceScore: 80,
+		agenticScore: 80,
+		valueScore: 80,
+	}),
+	reasoning_effort: "high",
+};
+assert.equal(
+	priceEfficiencyComparisonRows(
+		[{ ...unavailableStrongestVariant, reasoning_effort: null }],
+		[unavailableStrongestVariant, availableWeakerVariant, cheapWeak],
+		portfolio,
+		false,
+	).length,
+	0,
+	"collapsed charts should not substitute another variant when the displayed variant lacks resource evidence",
 );
 
 assert.deepEqual(
@@ -88,11 +147,11 @@ assert.deepEqual(
 		row.blendedPrice,
 	]),
 	[
-		["provider/expensive-strong", 33.3333, 100, 90, 10],
-		["provider/middle-strong", 66.6667, 66.6667, 80, 2],
-		["provider/cheap-weak", 100, 33.3333, 30, 1],
+		["provider/expensive-strong", 0, 75, 90, 10],
+		["provider/middle-strong", 57.54775894572896, 48.6088, 80, 2],
+		["provider/cheap-weak", 75.5065936163239, 33.3333, 30, 1],
 	],
-	"rows should rebuild price percentiles and plot benchmark-only cost efficiency",
+	"rows should rebuild winsorized price and hybrid quality-adjusted benchmark cost scores",
 );
 
 const topRow = rows[0];
@@ -100,17 +159,17 @@ assert.ok(topRow);
 assert.deepEqual(
 	priceEfficiencyHoverRows(topRow),
 	[
-		["Price score", "33.3"],
-		["Cost efficiency score", "100.0"],
-		["Benchmark lift", "+66.7"],
-		["Blend price", "$10.00"],
+		["Price score", "0.0"],
+		["Cost efficiency score", "75.0"],
+		["Benchmark lift", "+75.0"],
+		["Blended price", "$10.00"],
 		["Quality score", "90.0"],
 	],
 	"hover rows should show reconstructed price, benchmark cost efficiency, raw price, and quality",
 );
 assert.equal(
 	priceEfficiencySummaryDetail(topRow),
-	"100.0 efficiency / 33.3 price / $10",
+	"75.0 efficiency / 0.0 price / $10",
 	"summary detail should combine the reconstructed score pair with raw price",
 );
 

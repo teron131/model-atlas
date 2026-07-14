@@ -509,6 +509,7 @@ export function Dashboard({
 			<DashboardHeader theme={theme} onThemeChange={setTheme} />
 			<DashboardGraphs
 				payload={displayPayload}
+				referenceModels={payload?.models ?? []}
 				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
 				provider={providerFilter}
 				maxCost={maxCostFilter}

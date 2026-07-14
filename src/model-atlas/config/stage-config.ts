@@ -44,6 +44,10 @@ export const STAGE_CONFIG = {
 	final: {
 		nullFieldPruneThreshold: 0.5,
 		nullFieldPruneRecentLookbackDays: 90,
+		benchmarkCoverage: {
+			minimumObservedWeight: 0.35,
+			minimumObservedBenchmarks: 2,
+		},
 	},
 	snapshotPreservation: {
 		minPreviousIntelligenceScore: 90,

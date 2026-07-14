@@ -298,23 +298,37 @@ const variantAutomationBenchResourceRow = {
 	cost_per_task_usd: 0.04,
 	seconds_per_task: 6,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
-const [supplementedObservation] = enrichModelRowsWithSupplementalBenchmarks(
-	[
-		{
-			id: "test/example-model",
-			name: "Example Model",
-			artificial_analysis_id: "test/example-model-medium",
-			reasoning_effort: "medium",
-			evaluations: {
-				automation_bench: variantAutomationBenchResourceRow.score,
+const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
+	enrichModelRowsWithSupplementalBenchmarks(
+		[
+			{
+				id: "test/example-model",
+				name: "Example Model",
+				artificial_analysis_id: "test/example-model-medium",
+				reasoning_effort: "medium",
+				evaluations: {
+					automation_bench: variantAutomationBenchResourceRow.score,
+				},
+				scoring_sources: {
+					automation_bench: variantAutomationBenchResourceRow,
+				},
 			},
-			scoring_sources: {
-				automation_bench: variantAutomationBenchResourceRow,
+			{
+				id: "test/example-model",
+				name: "Example Model",
+				artificial_analysis_id: "test/example-model",
+				reasoning_effort: "max",
+				evaluations: {},
 			},
-		},
-	],
-	lookups,
-);
+			{
+				id: "test/example-model-fast",
+				name: "Example Model (Fast)",
+				reasoning_effort: null,
+				evaluations: {},
+			},
+		],
+		lookups,
+	);
 assert.ok(
 	supplementedObservation,
 	"supplemental enrichment must preserve the input observation",
@@ -335,8 +349,20 @@ assert.equal(
 );
 assert.equal(
 	(supplementedObservation.evaluations as Record<string, unknown>).cursorbench,
+	undefined,
+	"model-level benchmarks should not be copied onto lower effort variants",
+);
+assert.ok(supplementedDefault, "expected the default-effort observation");
+assert.equal(
+	(supplementedDefault.evaluations as Record<string, unknown>).cursorbench,
 	cursorBenchRow.score,
-	"supplemental benchmarks should still fill missing observation evidence",
+	"model-level benchmarks should belong to the highest default effort",
+);
+assert.ok(supplementedFastRoute, "expected the catalog-only fast route");
+assert.equal(
+	(supplementedFastRoute.evaluations as Record<string, unknown>).cursorbench,
+	undefined,
+	"catalog-only routes should not outrank matched effort observations",
 );
 /** Return a typed empty lookup map for sources not involved in this test. */
 function emptyLookup(): Map<string, never> {

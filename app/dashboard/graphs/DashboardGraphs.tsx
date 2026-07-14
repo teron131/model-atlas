@@ -24,6 +24,7 @@ import type { CostFilter, HoverState, ModelLimit } from "./types";
 
 export function DashboardGraphs({
 	payload,
+	referenceModels,
 	fullPayloadLoaded,
 	benchmarkControls,
 	afterLead,
@@ -37,6 +38,7 @@ export function DashboardGraphs({
 	onModelLimitChange,
 }: {
 	payload: LlmStatsPayload | null;
+	referenceModels: LlmStatsPayload["models"];
 	fullPayloadLoaded: boolean;
 	benchmarkControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
@@ -233,7 +235,9 @@ export function DashboardGraphs({
 						<ParetoFrontierPanel models={models} setHover={setHover} />
 						<PriceEfficiencyComparisonPanel
 							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
+							expandReasoningVariants={expandReasoningVariants}
 							models={models}
+							referenceModels={referenceModels}
 							setHover={setHover}
 						/>
 					</section>

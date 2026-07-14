@@ -6,6 +6,11 @@ export type WeightedScorePart = {
 	weight: number;
 };
 
+type FiniteWeightedValue = {
+	value: number;
+	weight: number;
+};
+
 export function finiteNumbers(values: unknown[]): number[] {
 	return values
 		.filter((value) => value != null)
@@ -193,6 +198,172 @@ export function weightedCoverageRatio(
 	return coveredWeight / totalWeight;
 }
 
+/** Convert unequal positive weights into the equivalent count of equally weighted observations. */
+export function effectiveSampleSize(weights: readonly number[]): number {
+	const finiteWeights = weights.filter(
+		(weight) => Number.isFinite(weight) && weight > 0,
+	);
+	const totalWeight = finiteWeights.reduce((sum, weight) => sum + weight, 0);
+	const squaredWeightTotal = finiteWeights.reduce(
+		(sum, weight) => sum + weight ** 2,
+		0,
+	);
+	return squaredWeightTotal > 0 ? totalWeight ** 2 / squaredWeightTotal : 0;
+}
+
+function sortedWeightedValues(
+	parts: readonly WeightedScorePart[],
+): FiniteWeightedValue[] {
+	const weightByValue = new Map<number, number>();
+	for (const part of parts) {
+		if (
+			part.value == null ||
+			!Number.isFinite(part.value) ||
+			!Number.isFinite(part.weight) ||
+			part.weight <= 0
+		) {
+			continue;
+		}
+		weightByValue.set(
+			part.value,
+			(weightByValue.get(part.value) ?? 0) + part.weight,
+		);
+	}
+	return [...weightByValue].map(([value, weight]) => ({ value, weight }));
+}
+
+function positionedWeightedValues(
+	parts: readonly WeightedScorePart[],
+): Array<FiniteWeightedValue & { position: number }> {
+	let cumulativeWeight = 0;
+	return sortedWeightedValues(parts)
+		.sort((left, right) => left.value - right.value)
+		.map((observation) => {
+			cumulativeWeight += observation.weight;
+			return {
+				...observation,
+				position: cumulativeWeight - observation.weight / 2,
+			};
+		});
+}
+
+/** Generalize the empirical less-than-or-equal percentile to weighted observations. */
+export function weightedPercentileRank(
+	parts: readonly WeightedScorePart[],
+	value: number | null,
+): number | null {
+	if (value == null || !Number.isFinite(value)) {
+		return null;
+	}
+	const observations = sortedWeightedValues(parts);
+	const totalWeight = observations.reduce(
+		(sum, observation) => sum + observation.weight,
+		0,
+	);
+	if (totalWeight <= 0) {
+		return null;
+	}
+	const lessOrEqualWeight = observations.reduce(
+		(sum, observation) =>
+			observation.value <= value ? sum + observation.weight : sum,
+		0,
+	);
+	return Number(((100 * lessOrEqualWeight) / totalWeight).toFixed(4));
+}
+
+/** Interpolate a quantile across weighted empirical value masses. */
+export function weightedQuantile(
+	parts: readonly WeightedScorePart[],
+	quantile: number,
+): number | null {
+	const positioned = positionedWeightedValues(parts);
+	if (positioned.length === 0) {
+		return null;
+	}
+	const first = positioned[0];
+	const last = positioned.at(-1);
+	if (first == null || last == null) {
+		return null;
+	}
+	if (positioned.length === 1) {
+		return first.value;
+	}
+	const clampedQuantile = clamp01(quantile);
+	const targetPosition = interpolateLinear(
+		first.position,
+		last.position,
+		clampedQuantile,
+	);
+	for (let index = 1; index < positioned.length; index += 1) {
+		const upper = positioned[index];
+		const lower = positioned[index - 1];
+		if (upper == null || lower == null || targetPosition > upper.position) {
+			continue;
+		}
+		const positionRange = upper.position - lower.position;
+		if (positionRange <= 0) {
+			return upper.value;
+		}
+		return interpolateLinear(
+			lower.value,
+			upper.value,
+			(targetPosition - lower.position) / positionRange,
+		);
+	}
+	return last.value;
+}
+
+/** Locate a value on the same weighted mid-mass axis used by weightedQuantile. */
+export function weightedQuantileRank(
+	parts: readonly WeightedScorePart[],
+	value: number | null,
+): number | null {
+	if (value == null || !Number.isFinite(value)) {
+		return null;
+	}
+	const positioned = positionedWeightedValues(parts);
+	const first = positioned[0];
+	const last = positioned.at(-1);
+	if (first == null || last == null) {
+		return null;
+	}
+	if (first.value === last.value) {
+		return 50;
+	}
+	if (value <= first.value) {
+		return 0;
+	}
+	if (value >= last.value) {
+		return 100;
+	}
+	for (let index = 1; index < positioned.length; index += 1) {
+		const upper = positioned[index];
+		const lower = positioned[index - 1];
+		if (upper == null || lower == null || value > upper.value) {
+			continue;
+		}
+		const valueRatio = (value - lower.value) / (upper.value - lower.value);
+		const position = interpolateLinear(
+			lower.position,
+			upper.position,
+			valueRatio,
+		);
+		return Number(
+			(
+				(100 * (position - first.position)) /
+				(last.position - first.position)
+			).toFixed(4),
+		);
+	}
+	return 100;
+}
+
+export function weightedMedianOfFinite(
+	parts: readonly WeightedScorePart[],
+): number | null {
+	return weightedQuantile(parts, 0.5);
+}
+
 /** Require every configured part so fixed-weight scores do not reweight themselves around missing data. */
 export function fixedWeightedScore(parts: WeightedScorePart[]): number | null {
 	if (parts.some((part) => part.value == null)) {
@@ -300,32 +471,6 @@ export function fillMissingWithMedian(
 	return values.map((value) => value ?? medianValue);
 }
 
-export function fillMissingWithQualityMirror(
-	qualityScores: Array<number | null>,
-	targetScores: Array<number | null>,
-	tradeoffStrength: number,
-): Array<number | null> {
-	const knownScores = sortedFiniteScores(targetScores);
-	if (knownScores.length === 0) {
-		return targetScores;
-	}
-	const qualityDistribution = finiteScoreValues(qualityScores);
-	return targetScores.map((targetScore, index) => {
-		if (targetScore != null) {
-			return targetScore;
-		}
-		const qualityScore = qualityScores[index] ?? null;
-		const qualityPercentile = percentileRank(qualityDistribution, qualityScore);
-		if (qualityPercentile == null) {
-			return null;
-		}
-		const targetPercentile = clampScore(
-			50 - tradeoffStrength * (qualityPercentile - 50),
-		);
-		return quantileFromSorted(knownScores, targetPercentile / 100);
-	});
-}
-
 export function inversePositiveFinite(value: unknown): number | null {
 	const number = positiveFiniteNumber(value);
 	return number == null ? null : 1 / number;
@@ -349,12 +494,17 @@ export function logitBenchmarkScore(value: number): number {
 	return probabilityLogit(value > 1 ? value / 100 : value);
 }
 
-export function benchmarkDeviation(
-	values: number[],
+/** Transform a public 0-100 score into its log-odds coordinate. */
+export function logitPercentageScore(value: number): number {
+	return probabilityLogit(value / 100);
+}
+
+export function weightedRobustDeviation(
+	values: readonly WeightedScorePart[],
 	minimumDeviation: number,
 ): number | null {
-	const q25 = quantileFromSorted(values, 0.25);
-	const q75 = quantileFromSorted(values, 0.75);
+	const q25 = weightedQuantile(values, 0.25);
+	const q75 = weightedQuantile(values, 0.75);
 	if (q25 == null || q75 == null) {
 		return null;
 	}
@@ -423,6 +573,39 @@ export function minMaxScores(
 			: null,
 	);
 	return directedValues.map((value) => minMaxScale(directedValues, value));
+}
+
+/** Min-max normalize against weighted anchors while winsorizing only the favorable tail. */
+export function winsorizedMinMaxScores(
+	values: ReadonlyArray<number | null>,
+	calibrationValues: readonly WeightedScorePart[],
+	direction: "higher" | "lower",
+	tailShare: number,
+): Array<number | null> {
+	const boundedTailShare = Math.min(0.5, clamp01(tailShare));
+	const lower = weightedQuantile(
+		calibrationValues,
+		direction === "lower" ? boundedTailShare : 0,
+	);
+	const upper = weightedQuantile(
+		calibrationValues,
+		direction === "higher" ? 1 - boundedTailShare : 1,
+	);
+	if (lower == null || upper == null) {
+		return values.map(() => null);
+	}
+	if (upper <= lower) {
+		return values.map((value) =>
+			value == null || !Number.isFinite(value) ? null : 100,
+		);
+	}
+	return values.map((value) => {
+		if (value == null || !Number.isFinite(value)) {
+			return null;
+		}
+		const normalized = (clamp(value, lower, upper) - lower) / (upper - lower);
+		return 100 * (direction === "higher" ? normalized : 1 - normalized);
+	});
 }
 
 /** Log raw positive inputs before min-max normalization in the requested direction. */

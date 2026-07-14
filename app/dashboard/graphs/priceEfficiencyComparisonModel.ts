@@ -1,20 +1,21 @@
 /** Chart-only reconstruction of price and cost-efficiency score signals. */
 
 import {
-	benchmarkDeviation,
 	coverageConfidence,
-	gaussianWeight,
 	log10OnePlusPositive,
-	logitBenchmarkScore,
 	meanOfFinite,
-	percentileScoreForValue,
-	quantileFromSorted,
 } from "../../../src/model-atlas/math-utils";
+import { canonicalModelKey } from "../../../src/model-atlas/shared";
+import {
+	benchmarkResourceEfficiencyScores,
+	modelBalancedMinMaxScores,
+} from "../../../src/model-atlas/stats/scores/final-scoring";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 	LlmStatsTaskMetricValues,
 } from "../../../src/model-atlas/stats/types";
+import { modelVariantKey } from "../shared/modelDisplay";
 import {
 	finiteValue,
 	fmtMoney,
@@ -36,31 +37,31 @@ type PriceEfficiencyDraft = {
 	model: LlmStatsModel;
 	qualityScore: number;
 	blendedPrice: number;
-	priceSignal: number;
+	priceScore: number;
 	costEfficiencyScore: number;
 };
 
-type BenchmarkCostPoint = {
-	modelIndex: number;
-	qualityDeviation: number;
-	cost: number;
-};
-
-const MIN_BENCHMARK_DEVIATION = 0.35;
-const COST_EFFICIENCY_QUALITY_SIGMA = 0.5;
-
-/** Rebuild old-style price percentiles and pair them with benchmark-only task-cost efficiency. */
+/** Rebuild the scored absolute-price and benchmark-only task-cost signals for chart comparison. */
 export function priceEfficiencyComparisonRows(
-	models: LlmStatsModel[],
+	visibleModels: LlmStatsModel[],
+	referenceModels: LlmStatsModel[],
 	portfolio: BenchmarkPortfolio,
+	expandReasoningVariants: boolean,
 ): PriceEfficiencyComparisonRow[] {
-	const pricedModels = models.filter(isPriceEligibleModel);
+	const pricedModels = referenceModels.filter(isPriceEligibleModel);
+	const priceScores = modelBalancedMinMaxScores(
+		pricedModels,
+		pricedModels.map((model) =>
+			log10OnePlusPositive(finiteValue(model.cost?.blended_price)),
+		),
+		"lower",
+	);
 	const benchmarkCostEfficiencyScores = benchmarkCostEfficiencyByModel(
 		pricedModels,
 		portfolio,
 	);
-	const drafts = pricedModels
-		.flatMap((model, index): PriceEfficiencyDraft[] => {
+	const drafts = pricedModels.flatMap(
+		(model, index): PriceEfficiencyDraft[] => {
 			const blendedPrice = finiteValue(model.cost?.blended_price);
 			const logCost = log10OnePlusPositive(blendedPrice);
 			const qualityScore = meanOfFinite([
@@ -69,11 +70,13 @@ export function priceEfficiencyComparisonRows(
 			]);
 			const benchmarkEfficiencyScore =
 				benchmarkCostEfficiencyScores[index] ?? null;
+			const priceScore = priceScores[index] ?? null;
 			if (
 				blendedPrice == null ||
 				logCost == null ||
 				qualityScore == null ||
-				benchmarkEfficiencyScore == null
+				benchmarkEfficiencyScore == null ||
+				priceScore == null
 			) {
 				return [];
 			}
@@ -82,31 +85,59 @@ export function priceEfficiencyComparisonRows(
 					model,
 					qualityScore,
 					blendedPrice,
-					priceSignal: 1 / logCost,
 					costEfficiencyScore: benchmarkEfficiencyScore,
+					priceScore,
+				},
+			];
+		},
+	);
+	const strongestReferenceByIdentity = new Map<string, LlmStatsModel>();
+	for (const model of referenceModels) {
+		const key = comparisonIdentity(model, expandReasoningVariants);
+		const existing = strongestReferenceByIdentity.get(key);
+		if (
+			existing == null ||
+			model.scores.intelligence_score > existing.scores.intelligence_score
+		) {
+			strongestReferenceByIdentity.set(key, model);
+		}
+	}
+	const draftByReference = new Map(drafts.map((draft) => [draft.model, draft]));
+	return visibleModels
+		.flatMap((model): PriceEfficiencyComparisonRow[] => {
+			const strongestReference = strongestReferenceByIdentity.get(
+				comparisonIdentity(model, expandReasoningVariants),
+			);
+			const draft =
+				strongestReference == null
+					? null
+					: draftByReference.get(strongestReference);
+			if (draft == null) {
+				return [];
+			}
+			return [
+				{
+					model: draft.model,
+					priceScore: draft.priceScore,
+					costEfficiencyScore: draft.costEfficiencyScore,
+					qualityScore: draft.qualityScore,
+					blendedPrice: draft.blendedPrice,
+					deltaScore: draft.costEfficiencyScore - draft.priceScore,
 				},
 			];
 		})
 		.sort(
 			(left, right) => right.costEfficiencyScore - left.costEfficiencyScore,
 		);
-	const priceSignals = drafts.map((draft) => draft.priceSignal);
-	return drafts.flatMap((draft): PriceEfficiencyComparisonRow[] => {
-		const priceScore = percentileScoreForValue(priceSignals, draft.priceSignal);
-		if (priceScore == null) {
-			return [];
-		}
-		return [
-			{
-				model: draft.model,
-				priceScore,
-				costEfficiencyScore: draft.costEfficiencyScore,
-				qualityScore: draft.qualityScore,
-				blendedPrice: draft.blendedPrice,
-				deltaScore: draft.costEfficiencyScore - priceScore,
-			},
-		];
-	});
+}
+
+function comparisonIdentity(
+	model: LlmStatsModel,
+	expandReasoningVariants: boolean,
+): string {
+	return expandReasoningVariants
+		? modelVariantKey(model)
+		: canonicalModelKey(model);
 }
 
 function isPriceEligibleModel(model: LlmStatsModel): boolean {
@@ -125,7 +156,7 @@ export function priceEfficiencyHoverRows(
 		["Price score", fmtTooltipScore(row.priceScore)],
 		["Cost efficiency score", fmtTooltipScore(row.costEfficiencyScore)],
 		["Benchmark lift", signedScore(row.deltaScore)],
-		["Blend price", fmtTooltipMoney(row.blendedPrice)],
+		["Blended price", fmtTooltipMoney(row.blendedPrice)],
 		["Quality score", fmtTooltipScore(row.qualityScore)],
 	];
 }
@@ -151,11 +182,17 @@ function benchmarkCostEfficiencyByModel(
 	const benchmarkKeys = activeBenchmarkCostKeys(models, portfolio);
 	const signalsByModel = models.map(() => [] as number[]);
 	for (const benchmarkKey of benchmarkKeys) {
-		const points = benchmarkCostPoints(models, portfolio, benchmarkKey);
-		for (const point of points) {
-			const score = localBenchmarkCostEfficiency(point, points);
+		const scores = benchmarkResourceEfficiencyScores(
+			models,
+			models.map((model) => benchmarkScore(model, benchmarkKey)),
+			models.map((model) => {
+				const cost = taskCost(model, portfolio, benchmarkKey);
+				return cost == null ? null : Math.log(cost);
+			}),
+		);
+		for (const [modelIndex, score] of scores.entries()) {
 			if (score != null) {
-				signalsByModel[point.modelIndex]?.push(score);
+				signalsByModel[modelIndex]?.push(score);
 			}
 		}
 	}
@@ -191,68 +228,11 @@ function activeBenchmarkCostKeys(
 		.sort((left, right) => left.localeCompare(right));
 }
 
-function benchmarkCostPoints(
-	models: LlmStatsModel[],
-	portfolio: BenchmarkPortfolio,
-	key: string,
-): BenchmarkCostPoint[] {
-	const logitScores = models
-		.map((model) => benchmarkScore(model, key))
-		.filter((score): score is number => score != null && Number.isFinite(score))
-		.map(logitBenchmarkScore)
-		.sort((left, right) => left - right);
-	const medianScore = quantileFromSorted(logitScores, 0.5);
-	const scoreDeviation = benchmarkDeviation(
-		logitScores,
-		MIN_BENCHMARK_DEVIATION,
-	);
-	if (medianScore == null || scoreDeviation == null) {
-		return [];
-	}
-	return models.flatMap((model, modelIndex): BenchmarkCostPoint[] => {
-		const benchmarkValue = benchmarkScore(model, key);
-		const cost = taskCost(model, portfolio, key);
-		if (benchmarkValue == null || cost == null) {
-			return [];
-		}
-		return [
-			{
-				modelIndex,
-				qualityDeviation:
-					(logitBenchmarkScore(benchmarkValue) - medianScore) / scoreDeviation,
-				cost,
-			},
-		];
-	});
-}
-
 function benchmarkScore(model: LlmStatsModel, key: string): number | null {
 	return (
 		finiteValue(model.intelligence?.[key]) ??
 		finiteValue(model.evaluations?.[key])
 	);
-}
-
-function localBenchmarkCostEfficiency(
-	point: BenchmarkCostPoint,
-	points: readonly BenchmarkCostPoint[],
-): number | null {
-	let totalWeight = 0;
-	let atLeastAsExpensiveWeight = 0;
-	for (const comparisonPoint of points) {
-		const weight = gaussianWeight(
-			point.qualityDeviation,
-			comparisonPoint.qualityDeviation,
-			COST_EFFICIENCY_QUALITY_SIGMA,
-		);
-		totalWeight += weight;
-		if (comparisonPoint.cost >= point.cost) {
-			atLeastAsExpensiveWeight += weight;
-		}
-	}
-	return totalWeight > 0
-		? (100 * atLeastAsExpensiveWeight) / totalWeight
-		: null;
 }
 
 function taskCost(

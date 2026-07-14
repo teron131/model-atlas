@@ -59,16 +59,26 @@ type SlopeHoverEvent =
 
 export function PriceEfficiencyComparisonPanel({
 	benchmarkPortfolio,
+	expandReasoningVariants,
 	models,
+	referenceModels,
 	setHover,
 }: {
 	benchmarkPortfolio: BenchmarkPortfolio;
+	expandReasoningVariants: boolean;
 	models: LlmStatsModel[];
+	referenceModels: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
 	const rows = useMemo(
-		() => priceEfficiencyComparisonRows(models, benchmarkPortfolio),
-		[benchmarkPortfolio, models],
+		() =>
+			priceEfficiencyComparisonRows(
+				models,
+				referenceModels,
+				benchmarkPortfolio,
+				expandReasoningVariants,
+			),
+		[benchmarkPortfolio, expandReasoningVariants, models, referenceModels],
 	);
 
 	if (rows.length === 0) {
@@ -96,7 +106,7 @@ export function PriceEfficiencyComparisonPanel({
 	return (
 		<Panel
 			title="Price vs Cost Efficiency"
-			copy="Each point is one model: Price score on the left is the log blended price normalized from the current observed minimum to maximum, with lower price scoring higher. Benchmark cost efficiency on the right compares task cost among similarly scoring benchmark rows and excludes provider and workflow price signals."
+			copy="Each point is one visible model variant. Both axes keep the full public leaderboard as their reference population, so filters only change which points are shown. Price score uses log blended price with model-balanced 2.5% one-sided winsorization. Benchmark cost efficiency averages model-balanced percentile and winsorized min-max mappings of logged cost residuals from the model-excluded expectation at comparable benchmark quality; it excludes provider and workflow price signals."
 			summary={
 				<BoxWhiskerSummary
 					label="Benchmark cost efficiency"

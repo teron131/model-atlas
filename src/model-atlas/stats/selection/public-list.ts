@@ -6,7 +6,12 @@ import {
 	publicOpenRouterModelId,
 	publicOpenRouterModelName,
 } from "../../openrouter-routes";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
+import {
+	asFiniteNumber,
+	asRecord,
+	canonicalModelKey,
+	type JsonObject,
+} from "../../shared";
 import type {
 	FinalStageConfig,
 	LlmStatsModel,
@@ -15,7 +20,6 @@ import type {
 	ScoringConfig,
 } from "../types";
 
-const MIN_REQUIRED_SCORE = 10;
 const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"id",
 	"name",
@@ -43,20 +47,13 @@ const REQUIRED_COMPONENT_SCORE_KEYS = [
 ] as const;
 const REQUIRED_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
-/** Model identity excludes reasoning effort because efforts are variants of one model. */
-export function modelIdentityKey(
-	model: Pick<LlmStatsModel, "id" | "name">,
-): string {
-	return (model.id ?? model.name ?? "").toLowerCase();
-}
-
 /** Select the highest-intelligence variant as the representative row for each model. */
 export function strongestModelVariants(
 	models: readonly LlmStatsModel[],
 ): LlmStatsModel[] {
 	const strongestByModel = new Map<string, LlmStatsModel>();
 	for (const model of models) {
-		const key = modelIdentityKey(model);
+		const key = canonicalModelKey(model);
 		const existing = strongestByModel.get(key);
 		if (
 			existing == null ||
@@ -89,8 +86,8 @@ function sortModelsByIntelligenceScore(
 	});
 }
 
-/** Public rows need core component scores, a minimum score floor, and a finite overall score. */
-function hasMinimumScoreSignal(
+/** Public rows need finite core component scores; evidence sufficiency is enforced separately. */
+function hasRequiredScoreSignal(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsScoredCandidate & LlmStatsModel {
 	const componentScores: LlmStatsNullableComponentScores | null =
@@ -108,10 +105,9 @@ function hasMinimumScoreSignal(
 		return false;
 	}
 	const scores = model.scores;
-	const hasRequiredScores = REQUIRED_SCORE_KEYS.every((key) => {
-		const value = asFiniteNumber(scores[key]);
-		return value != null && value >= MIN_REQUIRED_SCORE;
-	});
+	const hasRequiredScores = REQUIRED_SCORE_KEYS.every(
+		(key) => asFiniteNumber(scores[key]) != null,
+	);
 	return hasRequiredScores && asFiniteNumber(scores.overall_score) != null;
 }
 
@@ -156,7 +152,7 @@ function toPublicModel(
 export function publicModelFromCandidate(
 	model: LlmStatsScoredCandidate,
 ): LlmStatsModel | null {
-	return hasMinimumScoreSignal(model) ? toPublicModel(model) : null;
+	return hasRequiredScoreSignal(model) ? toPublicModel(model) : null;
 }
 
 function isPlainObject(value: unknown): value is JsonObject {

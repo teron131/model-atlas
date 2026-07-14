@@ -22,6 +22,8 @@ const REASONING_EFFORT_RANK = {
 	max: 7,
 	ultra: 8,
 } as const satisfies Readonly<Record<string, number>>;
+const MODEL_CONFIGURATION_LABEL_PATTERN =
+	/\s+\((?:fast|free|online|reasoning|thinking)\)\s*$/i;
 
 export function normalizeProviderId(providerId: string): string {
 	return providerId.toLowerCase().replace(/^~+/, "");
@@ -126,4 +128,20 @@ export function normalizeProviderModelId(modelId: string): string {
 		.replace(/\./g, "-")
 		.replace(/-+/g, "-");
 	return `${provider}/${baseModelId}`;
+}
+
+/** Group reasoning-effort variants under one canonical model identity. */
+export function canonicalModelKey(model: {
+	id?: unknown;
+	name?: unknown;
+}): string {
+	if (typeof model.name === "string" && model.name.length > 0) {
+		return `name:${normalizeModelToken(
+			model.name.replace(MODEL_CONFIGURATION_LABEL_PATTERN, ""),
+		)}`;
+	}
+	if (typeof model.id === "string" && model.id.length > 0) {
+		return normalizeProviderModelId(model.id);
+	}
+	return "name:";
 }
