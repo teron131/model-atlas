@@ -23,21 +23,21 @@ const LOGO_SIZE = 64;
 const force = process.argv.includes("--force");
 
 const existingAssets = force ? {} : await readExistingAssets();
-const providerSources = readProviderSources();
+const logoSources = readLogoSources();
 const nextAssets: ProviderAssetMap = { ...existingAssets };
 
-for (const [provider, source] of [...providerSources].sort()) {
+for (const [provider, source] of [...logoSources].sort()) {
 	if (nextAssets[provider] != null) {
 		continue;
 	}
-	const sourceBuffer = await logoSourceBuffer(provider, source);
-	if (sourceBuffer == null) {
+	const logoBuffer = await readLogoBuffer(provider, source);
+	if (logoBuffer == null) {
 		continue;
 	}
-	const normalizedLogo = await resizeLogoToPng(sourceBuffer);
-	const color = (await providerIconColor(normalizedLogo)) ?? "#eeeeea";
+	const logoPng = await resizeLogoToPng(logoBuffer);
+	const color = (await providerIconColor(logoPng)) ?? "#eeeeea";
 	nextAssets[provider] = {
-		logo: svgDataUrl(normalizedLogo),
+		logo: svgDataUrl(logoPng),
 		color,
 	};
 }
@@ -70,24 +70,24 @@ async function readExistingAssets(): Promise<ProviderAssetMap> {
 	}
 }
 
-function readProviderSources() {
-	const providers = new Map<string, string>();
+function readLogoSources() {
+	const sources = new Map<string, string>();
 	for (const model of readDatabasePayload().models) {
 		const provider = providerSlug(model.provider);
 		if (provider.length === 0) {
 			continue;
 		}
 		const logo = typeof model.logo === "string" ? model.logo : "";
-		if (!providers.has(provider) || (providers.get(provider) === "" && logo)) {
-			providers.set(provider, logo);
+		if (!sources.has(provider) || (sources.get(provider) === "" && logo)) {
+			sources.set(provider, logo);
 		}
 	}
-	return providers;
+	return sources;
 }
 
-async function logoSourceBuffer(provider: string, source: string) {
+async function readLogoBuffer(provider: string, source: string) {
 	if (source.startsWith("data:image/")) {
-		return dataUrlBuffer(source);
+		return decodeDataUrl(source);
 	}
 	try {
 		return await readFile(resolve(statsLogoCacheDir(), `${provider}.png`));
@@ -96,7 +96,7 @@ async function logoSourceBuffer(provider: string, source: string) {
 	}
 }
 
-function dataUrlBuffer(source: string) {
+function decodeDataUrl(source: string) {
 	const base64Marker = ";base64,";
 	const base64Index = source.indexOf(base64Marker);
 	if (base64Index >= 0) {

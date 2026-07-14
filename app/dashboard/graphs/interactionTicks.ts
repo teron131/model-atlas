@@ -20,7 +20,7 @@ export function interactionXAxisTicks(
 			(tick) => tick >= domain[0] && tick <= domain[1],
 		);
 	}
-	return config.log
+	return config.logScale
 		? logStepTicks(domain, config.format)
 		: linearAxisTicks(domain, config.format);
 }

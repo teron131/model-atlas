@@ -206,17 +206,17 @@ async function readLocalDatabaseSnapshot(
 export function displaySnapshotRefreshMode(
 	payload: LlmStatsPayload | null,
 	now: number,
-	hasRuntimeSnapshotStore: boolean,
+	usesStoredRefresh: boolean,
 	refreshIntervalSeconds: number,
 ): DisplaySnapshotRefreshMode {
 	if (payload == null) {
-		return hasRuntimeSnapshotStore ? "stored" : "live";
+		return usesStoredRefresh ? "stored" : "live";
 	}
 	const fetchedAt = payload.fetched_at_epoch_seconds ?? 0;
 	if (fetchedAt !== 0 && now - fetchedAt < refreshIntervalSeconds) {
 		return "none";
 	}
-	return hasRuntimeSnapshotStore ? "stored" : "live";
+	return usesStoredRefresh ? "stored" : "live";
 }
 
 function displayRefreshIntervalSeconds(): number {

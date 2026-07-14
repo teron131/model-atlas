@@ -1,7 +1,11 @@
 /** Scoring policy for deciding whether benchmark source names and catalog model IDs refer to the same LLM. */
 
 import { claudeIdentityKey, parseClaudeIdentity } from "../claude-identity";
-import { normalizeModelToken, normalizeProviderModelId } from "../shared";
+import {
+	modelSlugFromModelId,
+	normalizeModelToken,
+	normalizeProviderModelId,
+} from "../shared";
 import {
 	commonPrefixLength,
 	firstParsedNumber,
@@ -9,7 +13,6 @@ import {
 	parseActiveBToken,
 	parseBScaleToken,
 	parsedNumericTokens,
-	splitBaseModelId,
 	splitBaseModelTokens,
 	splitTokens,
 } from "./name-tokens";
@@ -574,7 +577,7 @@ function scoreCandidate(
 	// Prefix reward addresses cross-family false positives.
 	const normalizedSourceSlug = normalizeModelToken(sourceSlug);
 	const normalizedModelBase = normalizeModelToken(
-		splitBaseModelId(candidateModelId),
+		modelSlugFromModelId(candidateModelId) ?? candidateModelId,
 	);
 	const normalizedModelName = normalizeModelToken(candidateModelName);
 	const sourceTokens = splitTokens(sourceSlug);

@@ -40,15 +40,15 @@ export type InteractionConfig = {
 	key: string;
 	title: string;
 	fieldLabel: string;
-	lowerBetter: boolean;
-	log: boolean;
+	lowerIsBetter: boolean;
+	logScale: boolean;
 	ticks: number[];
 	get: (model: LlmStatsModel, context: InteractionContext) => number | null;
 	format: (value: number) => string;
 	tooltipFormat: (value: number) => string;
 	xLabel: string;
 	hoverLabel?: string;
-	read: string;
+	insight: string;
 };
 
 export type Margin = {

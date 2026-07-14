@@ -194,7 +194,7 @@ function tableRow(
 		model: minimalLlmStatsModel({ id, name }),
 		intelligenceRank,
 		originalIndex,
-		priority: 0,
+		aliasPriority: 0,
 	};
 }
 

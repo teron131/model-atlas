@@ -58,22 +58,23 @@ export const interactionConfigs: InteractionConfig[] = [
 		key: "price",
 		title: "Intelligence vs blended price",
 		fieldLabel: "Price",
-		lowerBetter: true,
-		log: true,
+		lowerIsBetter: true,
+		logScale: true,
 		ticks: [0.25, 0.5, 1, 2, 5, 10, 25],
 		get: (model) => finiteValue(model.cost?.blended_price),
 		format: fmtMoney,
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "Blended price per 1M tokens",
 		hoverLabel: "Blended price",
-		read: "Shows whether price actually buys broad INTELLIGENCE, and where cheap high-ceiling models break the curve.",
+		insight:
+			"Shows whether price actually buys broad INTELLIGENCE, and where cheap high-ceiling models break the curve.",
 	},
 	{
 		key: "speed",
 		title: "Intelligence vs throughput",
 		fieldLabel: "Throughput",
-		lowerBetter: false,
-		log: true,
+		lowerIsBetter: false,
+		logScale: true,
 		ticks: [20, 50, 100, 250, 500, 1000, 2500],
 		get: (model) =>
 			finiteValue(model.speed?.throughput_tokens_per_second_median),
@@ -81,27 +82,29 @@ export const interactionConfigs: InteractionConfig[] = [
 		tooltipFormat: (value) => `${fmtTooltipNumber(value)} t/s`,
 		xLabel: "Output tokens per second (t/s)",
 		hoverLabel: "Throughput",
-		read: "Separates fast utility models from models that are both fast enough and genuinely capable.",
+		insight:
+			"Separates fast utility models from models that are both fast enough and genuinely capable.",
 	},
 	{
 		key: "response",
 		title: "Intelligence vs response time",
 		fieldLabel: "Response",
-		lowerBetter: true,
-		log: true,
+		lowerIsBetter: true,
+		logScale: true,
 		ticks: [2.5, 5, 10, 20, 40, 80],
 		get: (model) => finiteValue(model.speed?.e2e_latency_seconds_median),
 		format: fmtSeconds,
 		tooltipFormat: (value) => `${fmtTooltipNumber(value)}s`,
 		xLabel: "End-to-end response time",
-		read: "Makes the practical waiting-time tradeoff visible instead of ranking INTELLIGENCE in isolation.",
+		insight:
+			"Makes the practical waiting-time tradeoff visible instead of ranking INTELLIGENCE in isolation.",
 	},
 	{
 		key: "context",
 		title: "Intelligence vs context window",
 		fieldLabel: "Context",
-		lowerBetter: false,
-		log: true,
+		lowerIsBetter: false,
+		logScale: true,
 		ticks: [
 			32_000, 128_000, 256_000, 400_000, 1_000_000, 2_000_000, 10_000_000,
 		],
@@ -110,34 +113,37 @@ export const interactionConfigs: InteractionConfig[] = [
 		tooltipFormat: fmtTooltipNumber,
 		xLabel: "Context tokens",
 		hoverLabel: "Context window",
-		read: "Highlights when huge context is real leverage versus just a large number beside a weaker model.",
+		insight:
+			"Highlights when huge context is real leverage versus just a large number beside a weaker model.",
 	},
 	{
 		key: "artificialAnalysisCost",
 		title: "Intelligence vs AA task cost",
 		fieldLabel: "AA cost",
-		lowerBetter: true,
-		log: true,
+		lowerIsBetter: true,
+		logScale: true,
 		ticks: [0.02, 0.05, 0.1, 0.25, 0.5, 1],
 		get: (model) => finiteValue(model.task_metrics?.artificial_analysis?.cost),
 		format: fmtMoney,
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "AA task cost",
-		read: "Connects benchmark quality to the cost of producing that quality during the evaluation workload.",
+		insight:
+			"Connects benchmark quality to the cost of producing that quality during the evaluation workload.",
 	},
 	{
 		key: "frontierScore",
 		title: "Intelligence vs frontier benchmark score",
 		fieldLabel: "Frontier",
-		lowerBetter: false,
-		log: false,
+		lowerIsBetter: false,
+		logScale: false,
 		ticks: [0, 20, 40, 60, 80, 100],
 		get: (model, context) =>
 			context.frontierScoreByModel.get(modelVariantKey(model)) ?? null,
 		format: (value) => `${value.toFixed(0)}%`,
 		tooltipFormat: fmtPercentScore,
 		xLabel: "MEAN NORMALIZED frontier benchmark score",
-		read: "Shows whether broad INTELLIGENCE agrees with each model's MEAN NORMALIZED frontier benchmark score.",
+		insight:
+			"Shows whether broad INTELLIGENCE agrees with each model's MEAN NORMALIZED frontier benchmark score.",
 	},
 ];
 
@@ -271,14 +277,14 @@ export function groupBy<T, TKey>(
 	values: T[],
 	getKey: (value: T) => TKey,
 ): Map<TKey, T[]> {
-	const grouped = new Map<TKey, T[]>();
+	const groups = new Map<TKey, T[]>();
 	for (const value of values) {
 		const key = getKey(value);
-		const current = grouped.get(key) ?? [];
-		current.push(value);
-		grouped.set(key, current);
+		const group = groups.get(key) ?? [];
+		group.push(value);
+		groups.set(key, group);
 	}
-	return grouped;
+	return groups;
 }
 
 export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
@@ -287,11 +293,11 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 		bestScoreByModel: Map<string, number>;
 	};
 
-	const byProvider = new Map<string, ProviderOptionDraft>();
+	const optionsBySlug = new Map<string, ProviderOptionDraft>();
 	for (const model of models) {
 		const slug = providerFilterKey(model.provider);
 		const intelligenceScore = finiteValue(model.scores?.intelligence_score);
-		const current = byProvider.get(slug) ?? {
+		const option = optionsBySlug.get(slug) ?? {
 			slug,
 			label: providerName(model),
 			count: 0,
@@ -301,20 +307,20 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 			bestScoreByModel: new Map(),
 		};
 		const modelKey = canonicalModelKey(model);
-		current.modelKeys.add(modelKey);
+		option.modelKeys.add(modelKey);
 		if (intelligenceScore != null) {
-			current.bestScoreByModel.set(
+			option.bestScoreByModel.set(
 				modelKey,
 				Math.max(
-					current.bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
+					option.bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
 					intelligenceScore,
 				),
 			);
 		}
-		current.count = current.modelKeys.size;
-		byProvider.set(slug, current);
+		option.count = option.modelKeys.size;
+		optionsBySlug.set(slug, option);
 	}
-	const providerShortlist = [...byProvider.values()]
+	const providerShortlist = [...optionsBySlug.values()]
 		.sort(
 			(left, right) =>
 				right.count - left.count || left.label.localeCompare(right.label),

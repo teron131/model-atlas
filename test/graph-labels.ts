@@ -16,13 +16,13 @@ const rows: Row[] = [
 ];
 
 assert.deepEqual(
-	labelIds({ xHigherBetter: false }),
+	labelIds({ xHigherIsBetter: false }),
 	["best-y", "best-min-x", "best-min-tradeoff"],
 	"extreme labels should use the minimum x value when lower x is better",
 );
 
 assert.deepEqual(
-	labelIds({ xHigherBetter: true }),
+	labelIds({ xHigherIsBetter: true }),
 	["best-y", "best-max-x", "best-max-tradeoff"],
 	"extreme labels should use the maximum x value when higher x is better",
 );
@@ -37,14 +37,14 @@ assert.deepEqual(
 			(row) => row.id,
 			(row) => row.x,
 			(row) => row.y,
-			{ xHigherBetter: true },
+			{ xHigherIsBetter: true },
 		),
 	].map((row) => row.id),
 	["same"],
 	"extreme labels should dedupe rows selected by more than one role",
 );
 
-function labelIds(options: { xHigherBetter: boolean }) {
+function labelIds(options: { xHigherIsBetter: boolean }) {
 	return [
 		...extremeLabelRows(
 			rows,

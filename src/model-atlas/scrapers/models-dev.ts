@@ -24,7 +24,7 @@ const NON_GENERATIVE_MODEL_TOKENS = new Set([
 const VERCEL_GATEWAY_MODEL_PATTERN =
 	/\\"displayName\\":\\"([^\\"]*)\\",\\"creatorOrganization\\":\\"[^\\"]*\\",\\"copyString\\":\\"([^\\"]+)\\",[\s\S]*?\\"releaseDate\\":\\"([^\\"]*)\\"/g;
 
-export type ModelRecord = {
+export type ModelsDevModelRecord = {
 	id?: string;
 	name?: string;
 	family?: string;
@@ -51,21 +51,21 @@ export type ModelRecord = {
 	[key: string]: unknown;
 };
 
-export type ProviderRecord = {
+export type ModelsDevProviderRecord = {
 	id?: string;
 	name?: string;
 	api?: string;
-	models?: Record<string, ModelRecord>;
+	models?: Record<string, ModelsDevModelRecord>;
 	[key: string]: unknown;
 };
 
-export type ModelsDevPayload = Record<string, ProviderRecord>;
+export type ModelsDevPayload = Record<string, ModelsDevProviderRecord>;
 
 export type ModelsDevFlatModel = {
 	provider_id: string;
 	provider_name: string;
 	model_id: string;
-	model: ModelRecord;
+	model: ModelsDevModelRecord;
 };
 
 export type ModelsDevSourcePayload = {
@@ -109,8 +109,8 @@ function isSentinelString(value: string | null | undefined): boolean {
 /** Vercel overlay rows prefer the live page name while preserving models.dev metadata fields. */
 function buildVercelModelRecord(
 	model: VercelGatewayModelRecord,
-	fallbackModel: ModelRecord | undefined,
-): ModelRecord {
+	fallbackModel: ModelsDevModelRecord | undefined,
+): ModelsDevModelRecord {
 	return {
 		...fallbackModel,
 		id: model.model_id,

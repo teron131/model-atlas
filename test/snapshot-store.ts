@@ -16,22 +16,22 @@ const freshPayload = payloadAt(900);
 const stalePayload = payloadAt(100);
 
 assert.equal(
-	mode(null, false, 1000),
+	refreshMode(null, false, 1000),
 	"live",
 	"missing display snapshots should use the live server payload fallback",
 );
 assert.equal(
-	mode(freshPayload, false, 1000),
+	refreshMode(freshPayload, false, 1000),
 	"none",
 	"fresh display snapshots without D1 should render from cache",
 );
 assert.equal(
-	mode(stalePayload, false, 1000),
+	refreshMode(stalePayload, false, 1000),
 	"live",
 	"stale display snapshots without D1 should refresh from the live runtime payload",
 );
 assert.equal(
-	mode(stalePayload, true, 1000),
+	refreshMode(stalePayload, true, 1000),
 	"stored",
 	"stale display snapshots with D1 should refresh the stored snapshot",
 );
@@ -132,16 +132,21 @@ try {
 	restoreEnv("MODEL_ATLAS_SNAPSHOT_URL", originalSnapshotUrl);
 }
 
-function mode(
+function refreshMode(
 	payload: LlmStatsPayload | null,
-	hasRuntimeSnapshotStore: boolean,
-	now: number,
+	usesStoredRefresh: boolean,
+	currentEpochSeconds: number,
 ): DisplaySnapshotRefreshMode {
-	return displaySnapshotRefreshMode(payload, now, hasRuntimeSnapshotStore, 300);
+	return displaySnapshotRefreshMode(
+		payload,
+		currentEpochSeconds,
+		usesStoredRefresh,
+		300,
+	);
 }
 
-function payloadAt(fetchedAt: number): LlmStatsPayload {
-	return minimalLlmStatsPayload({ fetchedAt });
+function payloadAt(fetchedAtEpochSeconds: number): LlmStatsPayload {
+	return minimalLlmStatsPayload({ fetchedAt: fetchedAtEpochSeconds });
 }
 
 function restoreEnv(key: string, value: string | undefined): void {

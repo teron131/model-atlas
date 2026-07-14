@@ -19,7 +19,7 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 	}
 }
 
-const page = {
+const hlePage = {
 	benchmark_key: "hle",
 	url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
 	task_run_count: 2,
@@ -54,7 +54,7 @@ const harveyLabPage = {
 	task_run_count: 2,
 };
 
-const rows = processArtificialAnalysisEvaluationResourceRows(
+const hleRows = processArtificialAnalysisEvaluationResourceRows(
 	[
 		{
 			name: "Claude Fable 5 (Adaptive Reasoning, Max Effort)",
@@ -93,10 +93,10 @@ const rows = processArtificialAnalysisEvaluationResourceRows(
 			},
 		},
 	],
-	page,
+	hlePage,
 );
 
-assertDeepEqual(rows, [
+assertDeepEqual(hleRows, [
 	{
 		benchmark_key: "hle",
 		source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
@@ -117,12 +117,13 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const rowsByBenchmark = buildArtificialAnalysisDefaultEffortResourceMap(rows);
+const hleRowsByBenchmark =
+	buildArtificialAnalysisDefaultEffortResourceMap(hleRows);
 assertDeepEqual(
 	findArtificialAnalysisEvaluationResourceRow(
 		"hle",
 		["Claude Fable 5 max"],
-		rowsByBenchmark,
+		hleRowsByBenchmark,
 	)?.cost_per_task_usd,
 	2,
 );
@@ -130,7 +131,7 @@ assertDeepEqual(
 	findArtificialAnalysisEvaluationResourceRow(
 		"critpt",
 		["Claude Fable 5 max"],
-		rowsByBenchmark,
+		hleRowsByBenchmark,
 	),
 	null,
 );
@@ -435,7 +436,7 @@ const effortRows = processArtificialAnalysisEvaluationResourceRows(
 			},
 		},
 	],
-	page,
+	hlePage,
 );
 const effortRowsByBenchmark =
 	buildArtificialAnalysisDefaultEffortResourceMap(effortRows);

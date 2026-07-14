@@ -12,13 +12,13 @@ import {
 	weightedMeanOfFinite,
 } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
+import { benchmarkMetricValue } from "../resource-metrics";
 import type {
 	LlmStatsNullableComponentScores,
 	LlmStatsSpeed,
 	ScoringConfig,
 } from "../types";
 import {
-	metricValue,
 	normalizedMetricValue,
 	type QualityScoringContext,
 } from "./benchmark-imputation";
@@ -30,7 +30,7 @@ type BenchmarkScoreInput = {
 };
 
 function isObservedBenchmark(model: JsonObject, key: string): boolean {
-	return metricValue(model, key) != null;
+	return benchmarkMetricValue(model, key) != null;
 }
 
 /** Measure the observed share of one dimension's configured benchmark weight. */
@@ -102,7 +102,7 @@ function selectedBenchmarkScoreInputs(
 		if (!(dimensionWeight > 0)) {
 			continue;
 		}
-		const observedValue = metricValue(model, key);
+		const observedValue = benchmarkMetricValue(model, key);
 		const imputedValue = imputedValuesByKey.get(key) ?? null;
 		const rawValue = observedValue ?? imputedValue;
 		const value = normalizedMetricValue(
@@ -218,20 +218,20 @@ export function deriveSpeedOutputTokenAnchors(
 		quantileFromSorted(impliedTokenUsages, quantile),
 	);
 	const q4 = impliedTokenUsages.at(-1) ?? null;
-	const numericQuantileAnchors = [q0, q1, q2, q3, q4].filter(
+	const anchors = [q0, q1, q2, q3, q4].filter(
 		(value): value is number => value != null && Number.isFinite(value),
 	);
-	if (numericQuantileAnchors.length !== 5) {
+	if (anchors.length !== 5) {
 		return [...scoringConfig.defaultSpeedOutputTokenAnchors];
 	}
 
-	const sourceMin = numericQuantileAnchors[0] as number;
-	const sourceMax = numericQuantileAnchors.at(-1) as number;
+	const sourceMin = anchors[0] as number;
+	const sourceMax = anchors.at(-1) as number;
 	if (!(sourceMax > sourceMin)) {
 		return [...scoringConfig.defaultSpeedOutputTokenAnchors];
 	}
 
-	return numericQuantileAnchors.map((anchor) => {
+	return anchors.map((anchor) => {
 		const normalized = (anchor - sourceMin) / (sourceMax - sourceMin);
 		const mapped =
 			scoringConfig.speedOutputTokenRangeMin +

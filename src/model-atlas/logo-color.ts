@@ -5,27 +5,27 @@ const MIN_CHROMA_SHARE = 0.04;
 
 export async function providerIconColor(imageBuffer: Buffer) {
 	const { default: sharp } = await import("sharp");
-	const { data, info } = await sharp(imageBuffer)
+	const { data: pixels, info } = await sharp(imageBuffer)
 		.ensureAlpha()
 		.resize(64, 64, { fit: "inside" })
 		.raw()
 		.toBuffer({ resolveWithObject: true });
-	return prominentIconColor(data, info.channels);
+	return prominentIconColor(pixels, info.channels);
 }
 
-function prominentIconColor(data: Buffer, channels: number) {
+function prominentIconColor(pixels: Buffer, channels: number) {
 	const hueBins = new Map<number, HueBin>();
 	let visiblePixels = 0;
 	let chromaticPixels = 0;
-	for (let offset = 0; offset < data.length; offset += channels) {
-		const alpha = data[offset + 3] ?? 255;
+	for (let offset = 0; offset < pixels.length; offset += channels) {
+		const alpha = pixels[offset + 3] ?? 255;
 		if (alpha < 40) {
 			continue;
 		}
 		visiblePixels += 1;
-		const red = data[offset] ?? 0;
-		const green = data[offset + 1] ?? 0;
-		const blue = data[offset + 2] ?? 0;
+		const red = pixels[offset] ?? 0;
+		const green = pixels[offset + 1] ?? 0;
+		const blue = pixels[offset + 2] ?? 0;
 		const hsl = rgbToHsl(red, green, blue);
 		if (!isUsableChroma(hsl)) {
 			continue;

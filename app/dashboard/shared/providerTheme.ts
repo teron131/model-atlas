@@ -70,10 +70,10 @@ const fallbackProviderColors = [
 	"#d7d46a",
 ];
 
-export function providerName(model: ProviderLike | string | null) {
-	const rawProvider = typeof model === "string" ? model : model?.provider;
-	const key = providerFilterKey(rawProvider);
-	return providerLabels[key] ?? rawProvider ?? "Unknown";
+export function providerName(source: ProviderLike | string | null) {
+	const provider = typeof source === "string" ? source : source?.provider;
+	const key = providerFilterKey(provider);
+	return providerLabels[key] ?? provider ?? "Unknown";
 }
 
 export function providerFilterKey(provider: string | null | undefined) {

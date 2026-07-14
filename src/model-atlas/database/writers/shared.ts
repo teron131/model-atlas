@@ -4,11 +4,11 @@ import { asFiniteNumber, type JsonObject } from "../../shared";
 
 export type SqlValue = string | number | null;
 
-export function booleanValue(value: unknown): number | null {
+export function sqliteBooleanValue(value: unknown): number | null {
 	return typeof value === "boolean" ? (value ? 1 : 0) : null;
 }
 
-export function hasModality(values: unknown, modality: string): number {
+export function modalityFlagValue(values: unknown, modality: string): number {
 	return Array.isArray(values) && values.includes(modality) ? 1 : 0;
 }
 

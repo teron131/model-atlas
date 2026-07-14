@@ -16,7 +16,7 @@ import {
 	benchmarkTooltips,
 } from "../shared/constants";
 
-const loadingBenchmarkCounts: Record<string, number> = {
+const loadingCounts: Record<string, number> = {
 	Intelligence: 6,
 	Agent: 5,
 };
@@ -29,7 +29,7 @@ export function BenchmarkStrip({
 	isLoading: boolean;
 }) {
 	const scoring = payload?.metadata?.scoring;
-	const frontierBenchmarkKeys = new Set(
+	const frontierKeys = new Set(
 		Object.entries(scoring?.benchmark_portfolio ?? {})
 			.filter(([, entry]) => entry.group === "frontier")
 			.map(([key]) => key),
@@ -65,7 +65,7 @@ export function BenchmarkStrip({
 							key={field}
 							label={label}
 							keys={keys}
-							frontierBenchmarkKeys={frontierBenchmarkKeys}
+							frontierBenchmarkKeys={frontierKeys}
 							isLoading={isLoading}
 							onTooltip={showTooltip}
 							onTooltipEnd={clearTooltip}
@@ -172,7 +172,7 @@ function BenchmarkList({
 
 function LoadingBenchmarkList({ label }: { label: string }) {
 	const prefix = label.toLowerCase();
-	const count = loadingBenchmarkCounts[label] ?? 5;
+	const count = loadingCounts[label] ?? 5;
 	const keys = Array.from(
 		{ length: count },
 		(_, index) => `${prefix}-${index}`,

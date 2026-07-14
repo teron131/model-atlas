@@ -34,9 +34,9 @@ import {
 	CursorCapture,
 	CursorProjectionLayer,
 	MedianCross,
+	ModelPointLabel,
 	PlotFrame,
 	PointHitTarget,
-	PointLabel,
 	plotBoundsFor,
 	stableSvgNumber,
 	stableSvgScale,
@@ -160,7 +160,9 @@ function interactionXDistribution(
 		.map((model) => config.get(model, context))
 		.filter(
 			(value): value is number =>
-				value != null && Number.isFinite(value) && (!config.log || value > 0),
+				value != null &&
+				Number.isFinite(value) &&
+				(!config.logScale || value > 0),
 		);
 	const distribution = valueDistribution(values);
 	return {
@@ -179,12 +181,12 @@ function interactionTabCorrelation(
 	const pairs = models.flatMap((model) => {
 		const xValue = config.get(model, context);
 		const yValue = finiteValue(model.scores?.intelligence_score);
-		if (xValue == null || yValue == null || (config.log && xValue <= 0)) {
+		if (xValue == null || yValue == null || (config.logScale && xValue <= 0)) {
 			return [];
 		}
 		return [
 			{
-				x: config.log ? Math.log10(Math.max(xValue, 0.001)) : xValue,
+				x: config.logScale ? Math.log10(Math.max(xValue, 0.001)) : xValue,
 				y: yValue,
 			},
 		];
@@ -212,12 +214,12 @@ function InteractionPlot({
 		x: config.get(model, context),
 		y: finiteValue(model.scores?.intelligence_score),
 	}));
-	const data = modelPoints.filter(
+	const chartPoints = modelPoints.filter(
 		(point): point is Point =>
-			point.x != null && point.y != null && (!config.log || point.x > 0),
+			point.x != null && point.y != null && (!config.logScale || point.x > 0),
 	);
 
-	if (data.length === 0) {
+	if (chartPoints.length === 0) {
 		if (!fullPayloadLoaded) {
 			return null;
 		}
@@ -235,22 +237,22 @@ function InteractionPlot({
 	const width = INTERACTION_CHART_WIDTH;
 	const height = INTERACTION_CHART_HEIGHT;
 	const margin = INTERACTION_CHART_MARGIN;
-	const [rawMin, rawMax] = extent(data, (point) => point.x);
+	const [rawMin, rawMax] = extent(chartPoints, (point) => point.x);
 	const xMin = rawMin ?? 1;
 	const xMax = rawMax ?? xMin * 2;
-	const xAxis = config.log
+	const xAxis = config.logScale
 		? null
 		: linearAxisScale(
-				data.map((point) => point.x),
+				chartPoints.map((point) => point.x),
 				{
 					paddingRatio: 0.06,
 				},
 			);
-	const xDomain: [number, number] = config.log
-		? positiveDomain(data.map((point) => point.x))
+	const xDomain: [number, number] = config.logScale
+		? positiveDomain(chartPoints.map((point) => point.x))
 		: (xAxis?.domain ?? [0, 1]);
 	const xTickDomain: [number, number] = xMin < xMax ? [xMin, xMax] : xDomain;
-	const yValues = data.map((point) => point.y);
+	const yValues = chartPoints.map((point) => point.y);
 	const yAxis = linearAxisScale(yValues, {
 		formatTick: (tick) => String(tick),
 		max: 100,
@@ -260,7 +262,7 @@ function InteractionPlot({
 	});
 	const yDomain = yAxis.domain;
 	const yTicks = yAxis.ticks;
-	const x = (config.log ? scaleLog() : scaleLinear())
+	const x = (config.logScale ? scaleLog() : scaleLinear())
 		.domain(xDomain)
 		.range([margin.left, width - margin.right])
 		.clamp(true);
@@ -273,11 +275,11 @@ function InteractionPlot({
 	const yPoint = stableSvgScale(y);
 	const plot = plotBoundsFor(width, height, margin);
 	const transformX = (value: number) =>
-		config.log ? Math.log10(Math.max(value, 0.001)) : value;
-	const rLabel = correlationLabel(data, transformX);
+		config.logScale ? Math.log10(Math.max(value, 0.001)) : value;
+	const correlationText = correlationLabel(chartPoints, transformX);
 	// Keep lower-is-better axes visually conventional: cheaper/faster remains left, while a small arrow marks the better corner.
-	const bestCornerIsRight = !config.lowerBetter;
-	const plottedPoints = data.slice(0, 130);
+	const bestCornerIsRight = !config.lowerIsBetter;
+	const plottedPoints = chartPoints.slice(0, 130);
 	const medianXValue =
 		median(plottedPoints.map((point) => point.x)) ?? xDomain[0];
 	const medianYValue =
@@ -288,7 +290,7 @@ function InteractionPlot({
 		xValue: point.x,
 		yValue: point.y,
 	}));
-	const cursorProjectionHandlers = cursorHandlers({
+	const projectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
 	});
@@ -300,9 +302,9 @@ function InteractionPlot({
 					(point) => modelVariantKey(point.model),
 					(point) => point.x,
 					(point) => point.y,
-					{ xHigherBetter: !config.lowerBetter },
+					{ xHigherIsBetter: !config.lowerIsBetter },
 				);
-	const interactionLabelPlacements = calloutLabelPlacements({
+	const labelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedPoints.map((point) => ({
 			cx: xPoint(point.x),
@@ -329,13 +331,13 @@ function InteractionPlot({
 		>
 			<div className={styles.interactionPlotHead}>
 				<div className={styles.interactionTitle}>{config.title}</div>
-				<div className={styles.interactionBadge}>{rLabel}</div>
+				<div className={styles.interactionBadge}>{correlationText}</div>
 			</div>
 			<svg
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
 				aria-label={`${config.title} scatter plot`}
-				{...cursorProjectionHandlers}
+				{...projectionHandlers}
 			>
 				<PlotFrame width={width} height={height} margin={margin} />
 				<CursorCapture bounds={plot} />
@@ -420,7 +422,7 @@ function InteractionPlot({
 				})}
 				{plottedPoints.map((point) =>
 					labeledPoints.has(point) ? (
-						<PointLabel
+						<ModelPointLabel
 							key={`label-${modelVariantKey(point.model) || `${point.x}-${point.y}`}`}
 							model={point.model}
 							cx={xPoint(point.x)}
@@ -428,14 +430,12 @@ function InteractionPlot({
 							width={width}
 							margin={margin}
 							height={height}
-							placement={interactionLabelPlacements.get(
-								modelVariantKey(point.model),
-							)}
+							placement={labelPlacements.get(modelVariantKey(point.model))}
 						/>
 					) : null,
 				)}
 			</svg>
-			<div className={styles.interactionRead}>{config.read}</div>
+			<div className={styles.interactionRead}>{config.insight}</div>
 		</div>
 	);
 }

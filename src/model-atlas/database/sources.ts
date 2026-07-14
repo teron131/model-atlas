@@ -42,7 +42,7 @@ type SourceSnapshotCacheResult = {
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
-function sourceCacheDefaults(
+function readSourceCacheStatuses(
 	db: DatabaseSync,
 	nowEpochSeconds: number,
 ): Record<RawSourceName, RawSourceCacheStatus> {
@@ -115,7 +115,7 @@ export async function loadSourceSnapshots(
 	scoringConfig: ScoringConfig,
 	options: DatabaseBuildOptions = {},
 ): Promise<SourceSnapshotCacheResult> {
-	const sourceCache = sourceCacheDefaults(db, nowEpochSeconds);
+	const sourceCache = readSourceCacheStatuses(db, nowEpochSeconds);
 	const previousMissingSince = missingSinceBySource(latestSourceRowStates(db));
 	const [
 		artificialAnalysis,

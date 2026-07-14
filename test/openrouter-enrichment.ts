@@ -135,7 +135,7 @@ assertEqual(
 	44,
 );
 
-const nullClaudeConfigurationObservations = [
+const unlabeledEffortObservations = [
 	{
 		id: "anthropic/claude-sonnet-4.5",
 		provider_id: "anthropic",
@@ -153,30 +153,28 @@ const nullClaudeConfigurationObservations = [
 		intelligence: { intelligence_index: 36 },
 	},
 ] as const;
-const preservedNullClaudeConfigurationObservations = JSON.stringify(
-	nullClaudeConfigurationObservations,
-);
-const nullClaudeConfigurationRows = aggregateCollapsedModelRows([
-	...nullClaudeConfigurationObservations,
+const originalUnlabeledEffortJson = JSON.stringify(unlabeledEffortObservations);
+const collapsedUnlabeledRows = aggregateCollapsedModelRows([
+	...unlabeledEffortObservations,
 ]);
-assertEqual(nullClaudeConfigurationRows.length, 1);
-const nullClaudeConfigurationRow = nullClaudeConfigurationRows[0] as Record<
+assertEqual(collapsedUnlabeledRows.length, 1);
+const collapsedUnlabeledRow = collapsedUnlabeledRows[0] as Record<
 	string,
 	unknown
 >;
 assertEqual(
-	nullClaudeConfigurationRow.artificial_analysis_id,
+	collapsedUnlabeledRow.artificial_analysis_id,
 	"anthropic/claude-4-5-sonnet",
 );
 assertEqual(
-	(nullClaudeConfigurationRow.intelligence as Record<string, unknown>)
+	(collapsedUnlabeledRow.intelligence as Record<string, unknown>)
 		.intelligence_index,
 	29,
 );
-assertEqual(nullClaudeConfigurationRow.reasoning_effort, undefined);
+assertEqual(collapsedUnlabeledRow.reasoning_effort, undefined);
 assertEqual(
-	JSON.stringify(nullClaudeConfigurationObservations),
-	preservedNullClaudeConfigurationObservations,
+	JSON.stringify(unlabeledEffortObservations),
+	originalUnlabeledEffortJson,
 );
 
 assertEqual(

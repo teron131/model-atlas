@@ -5,7 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 import {
 	getModelsDevSourceStats,
 	type ModelsDevPayload,
-	type ProviderRecord,
+	type ModelsDevProviderRecord,
 } from "../../scrapers/models-dev";
 import { readModelsDevRawCache } from "../cache";
 import { buildModelsDevSourceStates } from "../policy";
@@ -33,7 +33,7 @@ function mergeModelsDevPayload(
 	const mergedPayload: ModelsDevPayload = structuredClone(cachedPayload);
 	for (const [providerId, fetchedProvider] of Object.entries(fetchedPayload)) {
 		const cachedProvider = mergedPayload[providerId];
-		const mergedProvider: ProviderRecord = {
+		const mergedProvider: ModelsDevProviderRecord = {
 			...cachedProvider,
 			...fetchedProvider,
 			models: {

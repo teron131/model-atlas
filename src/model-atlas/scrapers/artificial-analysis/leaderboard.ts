@@ -19,7 +19,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const ROW_DETECTION_KEY = "intelligenceIndex";
 const SPARSE_COLUMN_NULL_RATIO = 0.5;
 const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
-const MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD = 1_000_000;
+const MIN_INTELLIGENCE_COST_TOTAL_TOKENS = 1_000_000;
 
 export type ArtificialAnalysisLeaderboardOptions = {
 	url?: string;
@@ -57,7 +57,7 @@ export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
 	"evaluations",
 ] as const;
 
-function toAbsoluteAaLogoUrl(value: unknown): string | null {
+function absoluteLogoUrl(value: unknown): string | null {
 	if (typeof value !== "string" || value.length === 0) {
 		return null;
 	}
@@ -209,7 +209,7 @@ function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
 		output_tokens: outputTokens ?? firstNumber(row, ["output_tokens"]),
 		total_tokens:
 			typeof totalTokens === "number" &&
-			totalTokens >= MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD
+			totalTokens >= MIN_INTELLIGENCE_COST_TOTAL_TOKENS
 				? totalTokens
 				: firstNumber(row, ["total_tokens"]),
 		cost_per_task:
@@ -439,16 +439,21 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 	};
 }
 
-function selectModalities(row: JsonObject, type: "input" | "output"): string[] {
+function selectModalities(
+	row: JsonObject,
+	direction: "input" | "output",
+): string[] {
 	return [
-		row[`${type}_modality_text`] || row[`${type}ModalityText`] ? "text" : null,
-		row[`${type}_modality_image`] || row[`${type}ModalityImage`]
+		row[`${direction}_modality_text`] || row[`${direction}ModalityText`]
+			? "text"
+			: null,
+		row[`${direction}_modality_image`] || row[`${direction}ModalityImage`]
 			? "image"
 			: null,
-		row[`${type}_modality_video`] || row[`${type}ModalityVideo`]
+		row[`${direction}_modality_video`] || row[`${direction}ModalityVideo`]
 			? "video"
 			: null,
-		row[`${type}_modality_speech`] || row[`${type}ModalitySpeech`]
+		row[`${direction}_modality_speech`] || row[`${direction}ModalitySpeech`]
 			? "speech"
 			: null,
 	].filter((value): value is string => value != null);
@@ -504,7 +509,7 @@ function getSelectedColumnValue(
 				null
 			);
 		case "logo":
-			return toAbsoluteAaLogoUrl(
+			return absoluteLogoUrl(
 				row.logo_small_url ??
 					row.logo_url ??
 					row.logoSmall ??

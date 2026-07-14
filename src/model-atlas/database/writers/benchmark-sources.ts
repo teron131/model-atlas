@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
-import { booleanValue } from "./shared";
+import { sqliteBooleanValue } from "./shared";
 
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 export function insertAgentsLastExamRawRows(
@@ -165,8 +165,8 @@ export function insertBrowseCompRawRows(
 			row.score,
 			row.source_url ?? null,
 			row.analysis_method ?? null,
-			booleanValue(row.verified),
-			booleanValue(row.self_reported),
+			sqliteBooleanValue(row.verified),
+			sqliteBooleanValue(row.self_reported),
 		);
 	}
 }
@@ -193,7 +193,7 @@ export function insertCursorBenchRawRows(
 			row.model,
 			row.base_model,
 			row.reasoning_effort,
-			booleanValue(row.score_eligible),
+			sqliteBooleanValue(row.score_eligible),
 			row.score,
 			row.cost_per_task_usd,
 			row.tokens_per_task,
@@ -316,8 +316,8 @@ export function insertToolathlonRawRows(
 			row.score,
 			row.source_url ?? null,
 			row.analysis_method ?? null,
-			booleanValue(row.verified),
-			booleanValue(row.self_reported),
+			sqliteBooleanValue(row.verified),
+			sqliteBooleanValue(row.self_reported),
 			row.announcement_date ?? null,
 		);
 	}

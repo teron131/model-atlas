@@ -10,7 +10,7 @@ import { fetchWithTimeout } from "./utils";
 const LOGO_CACHE_SIZE = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
-const pendingCacheRequestBySource = new Map<string, Promise<string>>();
+const pendingLogoRequestByKey = new Map<string, Promise<string>>();
 
 function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
 	const normalized = cacheKey
@@ -164,7 +164,7 @@ export async function cacheStatsLogo(
 	}
 
 	const requestKey = `${safeLogoCacheStem(cacheKey) ?? source}:${source}`;
-	const existingRequest = pendingCacheRequestBySource.get(requestKey);
+	const existingRequest = pendingLogoRequestByKey.get(requestKey);
 	if (existingRequest) {
 		return existingRequest;
 	}
@@ -172,9 +172,9 @@ export async function cacheStatsLogo(
 	const request = buildCachedLogoDataUrl(source, cacheKey)
 		.catch(() => source)
 		.finally(() => {
-			pendingCacheRequestBySource.delete(requestKey);
+			pendingLogoRequestByKey.delete(requestKey);
 		});
-	pendingCacheRequestBySource.set(requestKey, request);
+	pendingLogoRequestByKey.set(requestKey, request);
 	return request;
 }
 

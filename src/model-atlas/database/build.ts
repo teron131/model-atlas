@@ -168,7 +168,7 @@ const SNAPSHOT_WRITERS = [
 	},
 ] satisfies readonly SnapshotWriter[];
 
-function tableCounts(db: DatabaseSync): Record<string, number> {
+function countTableRows(db: DatabaseSync): Record<string, number> {
 	const rows = db
 		.prepare(`
 			SELECT name
@@ -310,7 +310,7 @@ export async function buildDatabase(
 			matchDiagnostics,
 			STAGE_CONFIG.matcher,
 		);
-		const models = await buildFinalModels(
+		const finalModels = await buildFinalModels(
 			{
 				...enrichedRows,
 				deepSWEDefaultEffortRows: sourceData.deepSWE.defaultEffortRows,
@@ -338,19 +338,19 @@ export async function buildDatabase(
 				matchedTextLlmRows,
 				catalogRows,
 				enrichedRows: enrichedRows.rows,
-				finalModelRows: models,
+				finalModelRows: finalModels,
 				debugTraceRows,
 				sourceHealth,
 			}),
 		);
-		const counts = tableCounts(activeDb);
+		const tableRowCounts = countTableRows(activeDb);
 		const result = {
 			path: outputPath,
 			run_id: runId,
-			source_rows: counts,
+			source_rows: tableRowCounts,
 			source_cache: finalSourceCache,
 			source_health: sourceHealth,
-			final_model_count: models.length,
+			final_model_count: finalModels.length,
 		};
 		await publishDatabaseFile(activeDb, outputPath);
 		db = null;

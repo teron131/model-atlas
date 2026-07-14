@@ -9,10 +9,10 @@ import {
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
-	booleanValue,
 	firstNumber,
 	firstString,
 	type SqlValue,
+	sqliteBooleanValue,
 } from "./shared";
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
@@ -90,25 +90,25 @@ function artificialAnalysisIdentityValues(
 				firstString(row, ["model_url"]),
 		),
 		firstString(row, ["releaseDate", "release_date"]),
-		booleanValue(row.deprecated),
-		booleanValue(row.reasoningModel),
+		sqliteBooleanValue(row.deprecated),
+		sqliteBooleanValue(row.reasoningModel),
 		firstString(selectedRow, ["reasoning_effort"]) ??
 			parseArtificialAnalysisReasoningEffort(sourceName),
-		booleanValue(row.isOpenWeights),
-		booleanValue(row.commercialAllowed),
+		sqliteBooleanValue(row.isOpenWeights),
+		sqliteBooleanValue(row.commercialAllowed),
 	];
 }
 
 function artificialAnalysisModalityValues(row: JsonObject): SqlValue[] {
 	return [
-		booleanValue(row.input_modality_text ?? row.inputModalityText),
-		booleanValue(row.input_modality_image ?? row.inputModalityImage),
-		booleanValue(row.input_modality_video ?? row.inputModalityVideo),
-		booleanValue(row.input_modality_speech ?? row.inputModalitySpeech),
-		booleanValue(row.output_modality_text ?? row.outputModalityText),
-		booleanValue(row.output_modality_image ?? row.outputModalityImage),
-		booleanValue(row.output_modality_video ?? row.outputModalityVideo),
-		booleanValue(row.output_modality_speech ?? row.outputModalitySpeech),
+		sqliteBooleanValue(row.input_modality_text ?? row.inputModalityText),
+		sqliteBooleanValue(row.input_modality_image ?? row.inputModalityImage),
+		sqliteBooleanValue(row.input_modality_video ?? row.inputModalityVideo),
+		sqliteBooleanValue(row.input_modality_speech ?? row.inputModalitySpeech),
+		sqliteBooleanValue(row.output_modality_text ?? row.outputModalityText),
+		sqliteBooleanValue(row.output_modality_image ?? row.outputModalityImage),
+		sqliteBooleanValue(row.output_modality_video ?? row.outputModalityVideo),
+		sqliteBooleanValue(row.output_modality_speech ?? row.outputModalitySpeech),
 	];
 }
 

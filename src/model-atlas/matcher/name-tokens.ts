@@ -1,5 +1,5 @@
 /** Matcher tokenization strips non-identity labels while preserving model scale and version evidence. */
-import { normalizeModelToken } from "../shared";
+import { modelSlugFromModelId, normalizeModelToken } from "../shared";
 
 const MODEL_NAME_TAG_TOKENS = new Set([
 	"free",
@@ -12,13 +12,8 @@ const MODEL_NAME_TAG_TOKENS = new Set([
 	"online",
 	"nitro",
 ]);
-export function splitBaseModelId(modelId: string): string {
-	const modelIdParts = modelId.split("/");
-	return modelIdParts.at(-1) ?? modelId;
-}
-
 export function splitBaseModelTokens(modelId: string): string[] {
-	return splitTokens(splitBaseModelId(modelId));
+	return splitTokens(modelSlugFromModelId(modelId) ?? modelId);
 }
 
 /** Produces a strict model identity key after removing matcher-owned non-identity labels. */

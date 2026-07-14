@@ -60,7 +60,7 @@ export type FrontierBenchmarkAxisConfig = {
 	detailLabel: (row: FrontierBenchmarkRow) => string;
 	normalizedLabel: string;
 	normalizedDetailLabel: string;
-	xHigherBetter?: boolean;
+	xHigherIsBetter?: boolean;
 };
 
 export type FrontierBenchmarkOption = {
@@ -95,7 +95,7 @@ export const frontierBenchmarkAxisConfig: Record<
 		detailLabel: () => "Speed and Value scores",
 		normalizedLabel: "Speed and Value scores",
 		normalizedDetailLabel: "Speed and Value scores",
-		xHigherBetter: true,
+		xHigherIsBetter: true,
 	},
 	cost: {
 		label: "Task Cost ↓",
@@ -263,17 +263,17 @@ export function normalizedFrontierBenchmarkRows(
 export function frontierBenchmarkOptions(
 	rows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkOption[] {
-	const counts = new Map<string, FrontierBenchmarkOption>();
+	const options = new Map<string, FrontierBenchmarkOption>();
 	for (const row of rows) {
-		const current = counts.get(row.benchmarkKey) ?? {
+		const option = options.get(row.benchmarkKey) ?? {
 			key: row.benchmarkKey,
 			label: row.benchmarkLabel,
 			count: 0,
 		};
-		current.count += 1;
-		counts.set(row.benchmarkKey, current);
+		option.count += 1;
+		options.set(row.benchmarkKey, option);
 	}
-	return [...counts.values()].sort(
+	return [...options.values()].sort(
 		(left, right) =>
 			left.label.localeCompare(right.label, undefined, { numeric: true }) ||
 			right.count - left.count,
@@ -281,60 +281,53 @@ export function frontierBenchmarkOptions(
 }
 
 export function frontierBenchmarkCorrelationByBenchmark(
-	allRows: FrontierBenchmarkRow[],
+	benchmarkRows: FrontierBenchmarkRow[],
 	meanRows: FrontierBenchmarkRow[],
 ): Map<string, string> {
 	const correlations = new Map<string, string>([
 		["all", frontierBenchmarkCorrelation(meanRows)],
 	]);
-	for (const [benchmarkKey, benchmarkRows] of groupBy(
-		allRows,
+	for (const [benchmarkKey, rows] of groupBy(
+		benchmarkRows,
 		(row) => row.benchmarkKey,
 	)) {
-		correlations.set(benchmarkKey, frontierBenchmarkCorrelation(benchmarkRows));
+		correlations.set(benchmarkKey, frontierBenchmarkCorrelation(rows));
 	}
 	return correlations;
 }
 
 export function frontierBenchmarkAxisOptions(
-	sourceRows: FrontierBenchmarkRow[],
+	rows: FrontierBenchmarkRow[],
 	isAllBenchmark: boolean,
 ): FrontierBenchmarkAxisOption[] {
 	return Object.entries(frontierBenchmarkAxisConfig).map(([key, config]) => {
-		const axisOptionKey = key as FrontierBenchmarkAxisKey;
-		const axisOptionConfig = frontierBenchmarkAxisConfigFor(
-			axisOptionKey,
-			isAllBenchmark,
-		);
+		const axisKey = key as FrontierBenchmarkAxisKey;
+		const axisConfig = frontierBenchmarkAxisConfigFor(axisKey, isAllBenchmark);
 		return {
-			key: axisOptionKey,
+			key: axisKey,
 			label: config.shortLabel,
-			disabled: !sourceRows.some((row) =>
-				positiveMetric(axisOptionConfig.get(row)),
-			),
+			disabled: !rows.some((row) => positiveMetric(axisConfig.get(row))),
 		};
 	});
 }
 
 export function selectedFrontierBenchmarkAxisKey(
 	axisKey: FrontierBenchmarkAxisKey,
-	axisOptions: FrontierBenchmarkAxisOption[],
+	options: FrontierBenchmarkAxisOption[],
 ): FrontierBenchmarkAxisKey {
-	return axisOptions.some(
-		(option) => option.key === axisKey && !option.disabled,
-	)
+	return options.some((option) => option.key === axisKey && !option.disabled)
 		? axisKey
-		: (firstAvailableAxis(axisOptions, "speedValue") ??
-				firstAvailableAxis(axisOptions, "cost") ??
-				axisOptions.find((option) => !option.disabled)?.key ??
+		: (firstAvailableAxis(options, "speedValue") ??
+				firstAvailableAxis(options, "cost") ??
+				options.find((option) => !option.disabled)?.key ??
 				axisKey);
 }
 
 function firstAvailableAxis(
-	axisOptions: FrontierBenchmarkAxisOption[],
+	options: FrontierBenchmarkAxisOption[],
 	axisKey: FrontierBenchmarkAxisKey,
 ): FrontierBenchmarkAxisKey | null {
-	const option = axisOptions.find((candidate) => candidate.key === axisKey);
+	const option = options.find((candidate) => candidate.key === axisKey);
 	return option != null && !option.disabled ? option.key : null;
 }
 

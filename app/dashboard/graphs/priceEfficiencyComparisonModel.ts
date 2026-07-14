@@ -56,7 +56,7 @@ export function priceEfficiencyComparisonRows(
 		),
 		"lower",
 	);
-	const benchmarkCostEfficiencyScores = benchmarkCostEfficiencyByModel(
+	const costEfficiencyScores = benchmarkCostEfficiencyByModel(
 		pricedModels,
 		portfolio,
 	);
@@ -68,14 +68,13 @@ export function priceEfficiencyComparisonRows(
 				finiteValue(model.scores?.intelligence_score),
 				finiteValue(model.scores?.agentic_score),
 			]);
-			const benchmarkEfficiencyScore =
-				benchmarkCostEfficiencyScores[index] ?? null;
+			const costEfficiencyScore = costEfficiencyScores[index] ?? null;
 			const priceScore = priceScores[index] ?? null;
 			if (
 				blendedPrice == null ||
 				logCost == null ||
 				qualityScore == null ||
-				benchmarkEfficiencyScore == null ||
+				costEfficiencyScore == null ||
 				priceScore == null
 			) {
 				return [];
@@ -85,7 +84,7 @@ export function priceEfficiencyComparisonRows(
 					model,
 					qualityScore,
 					blendedPrice,
-					costEfficiencyScore: benchmarkEfficiencyScore,
+					costEfficiencyScore,
 					priceScore,
 				},
 			];
@@ -180,7 +179,7 @@ function benchmarkCostEfficiencyByModel(
 	portfolio: BenchmarkPortfolio,
 ): Array<number | null> {
 	const benchmarkKeys = activeBenchmarkCostKeys(models, portfolio);
-	const signalsByModel = models.map(() => [] as number[]);
+	const scoresByModel = models.map(() => [] as number[]);
 	for (const benchmarkKey of benchmarkKeys) {
 		const scores = benchmarkResourceEfficiencyScores(
 			models,
@@ -192,15 +191,15 @@ function benchmarkCostEfficiencyByModel(
 		);
 		for (const [modelIndex, score] of scores.entries()) {
 			if (score != null) {
-				signalsByModel[modelIndex]?.push(score);
+				scoresByModel[modelIndex]?.push(score);
 			}
 		}
 	}
-	return signalsByModel.map((signals) => {
-		const meanValue = meanOfFinite(signals);
-		return meanValue == null
+	return scoresByModel.map((scores) => {
+		const meanScore = meanOfFinite(scores);
+		return meanScore == null
 			? null
-			: meanValue * coverageConfidence(signals.length, benchmarkKeys.length);
+			: meanScore * coverageConfidence(scores.length, benchmarkKeys.length);
 	});
 }
 
@@ -210,48 +209,53 @@ function activeBenchmarkCostKeys(
 ): string[] {
 	const benchmarkKeys = new Set<string>();
 	for (const model of models) {
-		for (const key of Object.keys(model.evaluations ?? {})) {
-			benchmarkKeys.add(key);
+		for (const benchmarkKey of Object.keys(model.evaluations ?? {})) {
+			benchmarkKeys.add(benchmarkKey);
 		}
-		for (const key of Object.keys(model.intelligence ?? {})) {
-			benchmarkKeys.add(key);
+		for (const benchmarkKey of Object.keys(model.intelligence ?? {})) {
+			benchmarkKeys.add(benchmarkKey);
 		}
 	}
 	return [...benchmarkKeys]
-		.filter((key) =>
+		.filter((benchmarkKey) =>
 			models.some(
 				(model) =>
-					benchmarkScore(model, key) != null &&
-					taskCost(model, portfolio, key) != null,
+					benchmarkScore(model, benchmarkKey) != null &&
+					taskCost(model, portfolio, benchmarkKey) != null,
 			),
 		)
 		.sort((left, right) => left.localeCompare(right));
 }
 
-function benchmarkScore(model: LlmStatsModel, key: string): number | null {
+function benchmarkScore(
+	model: LlmStatsModel,
+	benchmarkKey: string,
+): number | null {
 	return (
-		finiteValue(model.intelligence?.[key]) ??
-		finiteValue(model.evaluations?.[key])
+		finiteValue(model.intelligence?.[benchmarkKey]) ??
+		finiteValue(model.evaluations?.[benchmarkKey])
 	);
 }
 
 function taskCost(
 	model: LlmStatsModel,
 	portfolio: BenchmarkPortfolio,
-	key: string,
+	benchmarkKey: string,
 ): number | null {
-	const directCost = positiveTaskCost(model.task_metrics?.[key]);
+	const directCost = positiveTaskCost(model.task_metrics?.[benchmarkKey]);
 	if (directCost != null) {
 		return directCost;
 	}
-	const resourcePolicy = portfolio[key]?.resourcePolicy;
+	const resourcePolicy = portfolio[benchmarkKey]?.resourcePolicy;
 	return resourcePolicy?.source === "artificial_analysis"
 		? positiveTaskCost(model.task_metrics?.artificial_analysis)
 		: null;
 }
 
-function positiveTaskCost(task: LlmStatsTaskMetricValues | null | undefined) {
-	const cost = finiteValue(task?.cost);
+function positiveTaskCost(
+	taskMetrics: LlmStatsTaskMetricValues | null | undefined,
+) {
+	const cost = finiteValue(taskMetrics?.cost);
 	return cost != null && cost > 0 ? cost : null;
 }
 

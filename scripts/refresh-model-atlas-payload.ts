@@ -9,10 +9,10 @@ import {
 
 /** Refreshes the payload from the script entrypoint. */
 export async function refreshPayload(databasePath?: string) {
-	const database = await buildDatabase(databasePath, {
+	const result = await buildDatabase(databasePath, {
 		replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
 	});
-	return readDatabasePayload(database.path);
+	return readDatabasePayload(result.path);
 }
 
 if (
