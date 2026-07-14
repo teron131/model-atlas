@@ -19,8 +19,10 @@ import { findToolathlonScore } from "../../scrapers/toolathlon";
 import { findValsIndexScore } from "../../scrapers/vals/index-benchmark";
 import {
 	asRecord,
+	canonicalModelKey,
 	modelSlugFromModelId,
 	normalizeModelToken,
+	reasoningEffortRank,
 } from "../../shared";
 import type { LlmStatsScoringSources, LlmStatsSourceData } from "../types";
 import {
@@ -293,17 +295,42 @@ export function enrichModelRowsWithSupplementalBenchmarks(
 	rows: Record<string, unknown>[],
 	lookups: BenchmarkEnrichmentLookups,
 ): Record<string, unknown>[] {
+	const defaultRowByModel = new Map<string, Record<string, unknown>>();
+	for (const row of rows) {
+		const modelKey = canonicalModelKey(row);
+		const currentDefault = defaultRowByModel.get(modelKey);
+		const hasMatchedObservation =
+			typeof row.artificial_analysis_id === "string";
+		const currentHasMatchedObservation =
+			typeof currentDefault?.artificial_analysis_id === "string";
+		if (
+			currentDefault == null ||
+			(hasMatchedObservation && !currentHasMatchedObservation) ||
+			(hasMatchedObservation === currentHasMatchedObservation &&
+				reasoningEffortRank(row.reasoning_effort) >
+					reasoningEffortRank(currentDefault.reasoning_effort))
+		) {
+			defaultRowByModel.set(modelKey, row);
+		}
+	}
 	return rows.map((row) => {
+		if (defaultRowByModel.get(canonicalModelKey(row)) !== row) {
+			return row;
+		}
 		const baseEvaluations = asRecord(row.evaluations);
+		const hasVariantObservation =
+			typeof row.artificial_analysis_id === "string";
 		const benchmarkEnrichment = enrichBenchmarkAggregate(
-			[
-				row.id,
-				row.openrouter_id,
-				modelSlugFromModelId(row.id),
-				row.name,
-				row.artificial_analysis_id,
-				row.artificial_analysis_slug,
-			],
+			hasVariantObservation
+				? [
+						row.id,
+						row.openrouter_id,
+						modelSlugFromModelId(row.id),
+						row.name,
+						row.artificial_analysis_id,
+						row.artificial_analysis_slug,
+					]
+				: [row.name],
 			lookups,
 			baseEvaluations,
 		);

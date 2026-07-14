@@ -61,9 +61,9 @@ The baseline and frontier labels describe how missing benchmark evidence is hand
 
 Intelligence and Agentic use the same scoring rule: each selected benchmark is weighted by its benchmark importance multiplied by its loading for that dimension. Intelligence and Agentic loadings split the benchmark's importance across the two dimensions. The AA Intelligence and Agentic indexes remain source context only.
 
-Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring: observed weight coverage below 10% earns no confidence, observed weight coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Imputed benchmark values can help estimate the weighted benchmark mean, but only observed benchmark values count toward coverage confidence.
+Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring. Observed values receive full evidence credit, and validated imputations receive partial credit based on the held-out error of the predictor actually used. Missing values receive none. Evidence coverage below 10% earns no confidence, evidence coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Public admission remains stricter and counts observed values only.
 
-Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active benchmark task-time input. Value gives equal weight to log blended price, quality per log blended price, workflow price efficiency, and each active benchmark task-cost input.
+Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active quality-adjusted benchmark task-time input. Value gives equal weight to log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.
 
 ## Source Notes
 
@@ -81,7 +81,7 @@ Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall spl
 
 Toolathlon uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
-CursorBench preserves score, average cost per task, tokens per task, steps per task, reasoning effort, and source score eligibility where shown. When multiple public effort rows map to the same base model, the scoring lookup uses the source-default row when effort is unlabelled, or the highest reported effort when it is labelled, while preserving all raw effort rows. Source-caveated scores remain in the raw rows but are excluded from scoring; this currently applies to Grok 4.5 because Cursor discloses that an earlier Cursor codebase snapshot was included in training and the score impact is unknown. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
+CursorBench preserves score, average cost per task, tokens per task, steps per task, reasoning effort, and source score eligibility where shown. When multiple public effort rows map to variants of the same model, the scoring lookup uses the source-default row when effort is unlabelled, or the highest reported effort when it is labelled, while preserving all raw effort rows. Source-caveated scores remain in the raw rows but are excluded from scoring; this currently applies to Grok 4.5 because Cursor discloses that an earlier Cursor codebase snapshot was included in training and the score impact is unknown. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 
 AutomationBench comes from the dedicated Artificial Analysis evaluation page, not Zapier's hosted leaderboard. Model Atlas uses the AA headline score directly and keeps the page's reasoning-effort label, per-task cost, runtime, and token telemetry for resource scoring.
 
@@ -103,23 +103,33 @@ $$
 \text{raw source fields}\rightarrow\text{normalized quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value, Overall}
 $$
 
-Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and benchmark task-time components. Displayed Value combines log blended price, quality per log blended price, workflow price efficiency, and benchmark task-cost components.
+Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and quality-adjusted benchmark task-time components. Displayed Value combines absolute log blended price with quality-adjusted price, workflow, and benchmark task-cost components.
 
 AA's `coding_index` can be kept as source context when available, but it is not used to compute any score. There is no standalone coding score.
 
 ## Scoring Details
 
-Each selected quality benchmark is min-max normalized before aggregation. Raw provider speed and workflow runtime inputs are logged before min-max normalization. Value signals log their price input, then min-max normalize the resulting signal without logging that output again. Benchmark task time and cost are scored relative to models with similar benchmark quality. Percentiles are used only for benchmark imputation and Overall's missing-resource fallback.
+Each selected quality benchmark is min-max normalized before aggregation. Raw provider speed and workflow runtime inputs are logged before min-max normalization. Resource efficiency subtracts the model-balanced expected signal at comparable quality, then averages a model-balanced percentile score with a min-max score using 2.5% one-sided winsorization of the favorable residual tail. Price and benchmark resource inputs are logged once; the completed workflow-efficiency output is not logged again. Model-balanced empirical distributions also support benchmark imputation and Overall's missing-resource fallback.
+
+### Calibration Population
+
+Reasoning-effort variants remain separate scored configurations, but they do not multiply a model's influence on empirical reference distributions. Model identity uses the normalized public model name, with route ID as a fallback when no name is available. For any distribution, let $n_m$ be the number of included variants of model $m$. Variant $v$ receives calibration weight
+
+$$
+a_{m,v}=\frac{1}{n_m}
+$$
+
+so every represented model contributes one total unit of mass. The included-variant count is recomputed for each distribution because a variant can have one metric and lack another. Model weights apply to percentile and quantile mappings, imputation validation errors, quality-local expectations, residual percentiles, and winsorized min-max anchors. Scoring diagnostics report both contributing row count and effective model count.
 
 ### Quality Normalization
 
 Each quality input is first converted into a normalized 0-100 benchmark score. For model $m$ and benchmark field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
 
 $$
-z_{m,b}=100\cdot\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}}
+z_{m,b}=100\cdot\operatorname{clamp}\left(\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}},0,1\right)
 $$
 
-The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average. This linear transformation preserves all within-benchmark gap ratios; unlike percentile rank, it does not turn uneven performance gaps into evenly spaced positions.
+The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average. Imputed values use these frozen observed anchors and are clamped to the same score range, so imputation cannot redefine a benchmark's scale. This linear transformation preserves all within-benchmark gap ratios; unlike percentile rank, it does not turn uneven performance gaps into evenly spaced positions.
 
 Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Let $i_b$ be benchmark $b$'s importance and $\lambda_{b,D}$ its loading for dimension $D$, so $w_{b,D}=i_b\lambda_{b,D}$. The normalized dimension mean is weighted by those effective weights:
 
@@ -127,13 +137,15 @@ $$
 \bar{B}_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}}
 $$
 
-The observed coverage ratio uses the same effective weights. Missing a small contribution therefore reduces confidence less than missing a large contribution:
+The evidence coverage ratio uses the same effective weights. Let $q_{m,b}=1$ for an observed value, $q_{m,b}=\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1)$ for a validated imputation, and $q_{m,b}=0$ for a missing value. Here $\tilde e_{m,b}$ is the one-dimensional normalized held-out median absolute error for a direct prediction or the cross-only error when that row actually uses both benchmark and sibling-effort evidence. Missing a small contribution therefore reduces confidence less than missing a large contribution:
 
 $$
-c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ observed}}w_{b,D}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
+c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D}w_{b,D}q_{m,b}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
 $$
 
-The coverage confidence $C(c)$ is $0$ at or below $10\%$ observed coverage, $1$ at or above $60\%$ observed coverage, and a smoothstep interpolation between those bounds.
+The coverage confidence $C(c)$ is $0$ at or below $10\%$ evidence coverage, $1$ at or above $60\%$ evidence coverage, and a smoothstep interpolation between those bounds.
+
+Public admission first requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. Benchmark admission is dimension-neutral. A model variant must have at least two observed selected benchmarks covering at least $35\%$ of total selected benchmark importance. Intelligence and Agentic loadings affect the later component scores, but they do not decide whether the underlying benchmark evidence is sufficient for publication. A benchmark without a reported effort belongs to the model's default highest-effort variant; explicitly labelled observations belong to their matching variants. Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in at least one of Intelligence, Agentic, Speed, or Value; Overall does not satisfy this floor. These admission gates only remove public rows after reference scoring; they do not themselves recalibrate the reference population.
 
 $$
 D_m=\bar{B}_{m,D}C(c_{m,D})
@@ -159,18 +171,22 @@ C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}
 $$
 
 $$
-\hat{x}_{m,b}=\operatorname{quantile}\left(\{x_{j,b}:x_{j,b}\text{ observed}\},\operatorname{Percentile}(C_{m,b})/100\right)
+\hat{x}_{m,b}=\operatorname{weightedQuantile}\left(\{(x_{j,b},a_j):x_{j,b}\text{ and }C_{j,b}\text{ observed}\},\operatorname{weightedQuantileRank}(C_{m,b})/100\right)
 $$
 
-Each benchmark imputer is validated by withholding every model with an observed target value from all calibration evidence, predicting that value, and measuring absolute error after benchmark min-max normalization. Let $e_b$ be the median normalized leave-one-model-out error converted back to the benchmark's observed raw range. Imputation is refused unless at least four held-out predictions are valid and the normalized median absolute error is at most 25 points.
+The target and context distributions use the same paired calibration rows, and the quantile rank uses the same weighted mid-mass positions as the weighted quantile. Each benchmark imputer is validated by withholding every variant of the observed model from calibration evidence and predicting that value. Let $e_b$ be the model-weighted median raw absolute leave-one-model-out error. Imputation is refused unless at least four effective models produce valid held-out predictions and the separately measured normalized median absolute error is at most 25 points.
+
+When a model has multiple reasoning efforts, the imputer also tests a two-dimensional candidate. The original predictor still requires at least three other observed benchmarks at the target effort. A cross-effort predictor requires a sibling effort with at least three observed selected benchmarks and at least four effective reference models that pair the same target and source efforts. Every sibling benchmark is normalized on its own benchmark scale before aggregation; the resulting context percentile is mapped into the target benchmark distribution exactly as in the one-dimensional predictor. No raw score difference is transferred between benchmarks. Each ordered effort transition is calibrated separately, so either a higher or lower sibling may provide evidence when that direction has enough support.
+
+The two-dimensional candidate gives one equal slot to the original direct prediction and one to the available cross-effort predictions. It is used for a benchmark only when leave-one-model-out validation reduces normalized median absolute error by at least 2% relative to an allowed one-dimensional predictor, or when it brings a refused one-dimensional predictor within the 25-point error limit. At least four independent held-out models must actually use the cross-effort path, and their cross-only normalized median absolute error must not exceed 25 points. For an individual missing value, both the target-effort benchmark context and the sibling-effort context must still pass their evidence thresholds. If the sibling context is sparse, that value falls back to the separately validated one-dimensional predictor and penalty; if the one-dimensional predictor is also unreliable, the value remains missing. Other observations from the held-out model may provide query context, but every variant of that model remains excluded from the mapping fitted for its validation prediction. Imputed values never become context for another imputation.
 
 $$
 x_{m,b}^{\text{imputed}}=\max\left(0,\hat{x}_{m,b}-\kappa_g e_b\right)
 $$
 
-The missing-data multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline}}=0.5$. Group changes only this penalty; it does not change context selection, validation evidence, or observed benchmark weight. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
+The missing-data multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline}}=0.5$. Group changes only this penalty; it does not change context selection, validation evidence, or observed benchmark weight. A value that actually uses the two-dimensional predictor subtracts the cross-only raw held-out median error; a one-dimensional fallback subtracts the one-dimensional error. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
 
-Observed-weight coverage confidence remains in addition to the benchmark-local error penalty. The error penalty controls whether an individual imputation is trustworthy; coverage confidence controls whether the aggregate dimension rests on enough observed benchmark weight.
+Validation-weighted evidence coverage remains in addition to the benchmark-local error subtraction. The subtraction makes every imputed value conservative, while evidence credit reflects the held-out reliability of the predictor actually used for that row. A sparse sibling-effort context falls back to the separately validated one-dimensional value, penalty, and confidence. Imputations remain ineligible for public admission regardless of that credit.
 
 ### Price Profiles
 
@@ -238,11 +254,11 @@ Displayed Speed is a public score that gives equal weight to provider speed stat
 $$
 \begin{aligned}
 S^{\text{stats}}_m&=\operatorname{mean}\left(
-\operatorname{Percentile}(\tau_m),
-\operatorname{Percentile}_{\text{lower}}(\ell_m),
-\operatorname{Percentile}_{\text{lower}}(\text{end-to-end latency}_m)
+\operatorname{MinMax}(\log \tau_m),
+\operatorname{MinMax}_{\text{lower}}(\log \ell_m),
+\operatorname{MinMax}_{\text{lower}}(\log \text{end-to-end latency}_m)
 \right)\\
-S^{\text{workflow}}_m&=\operatorname{Percentile}_{\text{lower}}(T_{\text{workflow},m})
+S^{\text{workflow}}_m&=\operatorname{MinMax}_{\text{lower}}(\log T_{\text{workflow},m})
 \end{aligned}
 $$
 
@@ -264,7 +280,7 @@ Task resources can come from direct per-benchmark telemetry or from the AA per-t
 For each active benchmark resource source, the benchmark score first becomes a local quality coordinate. The score $q_{m,b}$ is model $m$'s benchmark score for benchmark $b$ on the 0-1 scale. Percent-style source scores use $q_{m,b}=x_{m,b}/100$; already-normalized source scores use $q_{m,b}=x_{m,b}$.
 
 $$
-Z_{m,b}=\frac{\operatorname{logit}(q_{m,b})-\operatorname{median}_j(\operatorname{logit}(q_{j,b}))}{\operatorname{deviation}_b}
+Z_{m,b}=\frac{\operatorname{logit}(q_{m,b})-\operatorname{weightedMedian}_j(\operatorname{logit}(q_{j,b}),a_{j,b})}{\operatorname{deviation}_b}
 $$
 
 The logit transform puts benchmark percentages on an odds-like scale before measuring "similar quality." A one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction. Using logit keeps resource comparisons local to models that are genuinely close in benchmark difficulty, especially on hard or high-scoring benchmarks.
@@ -272,22 +288,49 @@ The logit transform puts benchmark percentages on an odds-like scale before meas
 The denominator is a robust benchmark-local spread on the same logit scale:
 
 $$
-\operatorname{deviation}_b=\max\left(\frac{Q_{75}(\{\operatorname{logit}(q_{j,b})\})-Q_{25}(\{\operatorname{logit}(q_{j,b})\})}{1.349},0.35\right)
+\operatorname{deviation}_b=\max\left(\frac{Q^{a}_{75}(\{\operatorname{logit}(q_{j,b})\})-Q^{a}_{25}(\{\operatorname{logit}(q_{j,b})\})}{1.349},0.35\right)
 $$
 
 The $1.349$ factor converts interquartile range into a standard-deviation-like spread for a roughly normal distribution, and the $0.35$ floor prevents a nearly tied benchmark from making small quality differences dominate the neighborhood comparison.
 
-Models compare resource use mostly against nearby-quality models. In practical terms, the score asks which model uses less task time or task cost than other models at a similar benchmark quality level. The neighborhood weight uses $\sigma=0.5$, which is tight enough to keep comparisons quality-local but wide enough that a benchmark does not require exact score ties:
+Models compare resource use mostly against nearby-quality models. The neighborhood weight uses $\sigma=0.5$, which is tight enough to keep comparisons quality-local but wide enough that a benchmark does not require exact score ties. Every variant of the focal model is excluded from its expectation so its own effort variants cannot manufacture support:
 
 $$
-w_{m,j,b}=\exp\left(-\frac{1}{2}\left(\frac{Z_{m,b}-Z_{j,b}}{0.5}\right)^2\right)
+w_{m,j,b}=\mathbf{1}[\operatorname{model}(m)\ne\operatorname{model}(j)]a_{j,b}\exp\left(-\frac{1}{2}\left(\frac{Z_{m,b}-Z_{j,b}}{0.5}\right)^2\right)
 $$
 
-The benchmark-level resource efficiency score is the weighted share of similarly scoring benchmark results that use at least as much of that resource. Higher means better task-resource value versus comparable-quality models:
+Here $a_{j,b}$ divides one model's unit mass across its variants that have both quality and resource evidence for benchmark $b$.
+
+Cost and runtime are logged before calculating the expected resource signal and its residual:
 
 $$
-R^{r}_{m,b}=100\cdot\frac{\sum_j w_{m,j,b}\mathbf{1}[A^{r}_{j,b}\ge A^{r}_{m,b}]}{\sum_j w_{m,j,b}},\quad r\in\{\text{time},\text{cost}\}
+\mu^{r}_{m,b}=\frac{\sum_j w_{m,j,b}\log A^{r}_{j,b}}{\sum_j w_{m,j,b}},\qquad
+\epsilon^{r}_{m,b}=\log A^{r}_{m,b}-\mu^{r}_{m,b}
 $$
+
+A negative residual means the model uses less resource than expected for its quality. Comparison weights are first combined by model so multiple variants cannot manufacture peer support. Let $W_{m,k,b}$ be the total neighborhood weight for comparison model $k$. The supported peer mass is
+
+$$
+s_{m,b}=\min\left(\sum_k W_{m,k,b},\frac{(\sum_k W_{m,k,b})^2}{\sum_k W_{m,k,b}^2}\right)
+$$
+
+and its support confidence is $h_{m,b}=\operatorname{smoothstep}((s_{m,b}-1)/2)$. The first term prevents many distant, near-zero neighbors from appearing well supported; the second is the effective independent-model count. Support of one or less gives no comparative confidence, while support of three gives full confidence. An observed resource with no supported comparison remains neutral at $50$ rather than becoming missing or receiving self-credit.
+
+For each resource signal, let $L$ be the model-balanced 2.5th percentile of supported residuals and let $U$ be the largest supported residual. Only the favorable low-residual tail is winsorized. The magnitude-preserving score is
+
+$$
+M^{r}_{m,b}=100\cdot\frac{U-\operatorname{clamp}(\epsilon^{r}_{m,b},L,U)}{U-L}.
+$$
+
+Let $P^{r}_{m,b}$ be the model-balanced percentile of $-\epsilon^{r}_{m,b}$ among supported residuals, so lower resource use receives the higher percentile. The mapped resource score averages magnitude and distribution position:
+
+$$
+H^{r}_{m,b}=\frac{M^{r}_{m,b}+P^{r}_{m,b}}{2},
+\qquad
+R^{r}_{m,b}=50+h_{m,b}(H^{r}_{m,b}-50).
+$$
+
+The equal mean retains half of the residual's logged magnitude information and half of its model-balanced distribution position. One-sided winsorization prevents one exceptionally cheap or fast model from setting the entire magnitude scale. Unsupported quality extremes shrink to neutral instead of being expanded by either mapping. If the supported residuals have no meaningful spread, every observed residual receives the neutral score of $50$.
 
 Each model's task-resource signal is the mean of its available benchmark resource scores, multiplied by a coverage confidence. Coverage is the share of active benchmark resource sources that the model actually has:
 
@@ -313,19 +356,19 @@ $$
 
 $\operatorname{smoothstep}$ is clamped to the 0-1 range. Models get full confidence once they cover at least 60% of active task-resource sources, and near-zero confidence below roughly 10% coverage. That ramp avoids rewarding a model for one lucky resource row while also not requiring complete coverage from sparse benchmark sources.
 
-Provider speed and workflow runtime use $\log x$ as their input to min-max normalization. Value uses three completed signals: log blended price, quality per log blended price, and workflow price efficiency based on log cost. Those completed Value signals are min-max normalized directly; they are not logged a second time. This preserves multiplicative input differences without converting the completed signals into percentile ranks.
+Provider speed and workflow runtime use $\log x$ as their input to ordinary min-max normalization. Value's absolute price component uses $\log_{10}(1+\text{blended price})$ with model-balanced 2.5% favorable-tail winsorized min-max. Its quality-adjusted log blended price component subtracts the locally expected log blended price at the model's aggregate quality, then uses the residual percentile/min-max mean above. Its workflow component applies the same residual hybrid to the locally expected negative workflow-efficiency signal; the completed workflow output is not logged again.
 
 $$
 S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-y_{\min}}{y_{\max}-y_{\min}},0,1\right)
 $$
 
-Here $g(x)$ is the completed input signal and $y_{\min}$ and $y_{\max}$ are its minimum and maximum finite values. For raw provider and workflow inputs, $g(x)=\log x$. For Value, $g(x)$ is the completed price signal, which already contains its log-price input. The formula above applies when higher values are better, such as throughput. Lower-is-better inputs reverse the scale:
+Here $g(x)$ is the completed input signal and $y_{\min}$ and $y_{\max}$ are its minimum and maximum finite values. For raw provider and workflow inputs, $g(x)=\log x$. The formula above applies when higher values are better, such as throughput. Lower-is-better inputs reverse the scale:
 
 $$
 S_{\downarrow}(x)=100\operatorname{clamp}\left(\frac{y_{\max}-g(x)}{y_{\max}-y_{\min}},0,1\right)
 $$
 
-The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. Adding an interior value does not change existing scores, while a new extreme rescales the component. Benchmark task-time and task-cost efficiency remain quality-local comparison scores.
+The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. Absolute-price inputs instead use one-sided winsorized anchors. Quality-conditioned residual inputs average their one-sided winsorized min-max score with their model-balanced percentile score.
 
 The public Speed score uses each benchmark task-time input as its own equally weighted component. The public Value score uses each price and benchmark-cost input as its own equally weighted component:
 
@@ -337,9 +380,9 @@ $$
 \end{aligned}
 $$
 
-$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over log blended price, quality per log blended price, workflow price efficiency, and active benchmark task-cost components.
+$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active benchmark task-cost components.
 
-$P^{\text{blend}}_m$, $P^{\text{quality}}_m$, and $P^{\text{workflow}}_m$ are the min-max scores for log blended price, quality per log blended price, and workflow price efficiency.
+$P^{\text{blend}}_m$ is the winsorized min-max score for absolute log blended price. $P^{\text{quality}}_m$ and $P^{\text{workflow}}_m$ are the percentile/min-max means for the quality-conditioned log-price and workflow-efficiency residuals.
 
 ### Overall Score
 

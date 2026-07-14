@@ -226,7 +226,7 @@ const qualityBenchmarkRows = (
 		["Effective weight", "importance x dimension loading"],
 		["Aggregation", "weights normalized within dimension"],
 		["Missing-data penalty", "frontier: 1.0x error; baseline: 0.5x error"],
-		["Coverage confidence", "10%-60% observed weight ramp"],
+		["Coverage confidence", "10%-60% validation-weighted evidence ramp"],
 		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,
@@ -316,8 +316,8 @@ const valueInputRows = (components: ActiveResourceComponents) => {
 			title: "Price components",
 			rows: [
 				["Log blended price ↓", componentWeight],
-				["Quality per log blended price", componentWeight],
-				["Workflow price efficiency", componentWeight],
+				["Quality-adjusted log blended price ↓", componentWeight],
+				["Quality-adjusted workflow price efficiency", componentWeight],
 			],
 		},
 		{
@@ -357,10 +357,10 @@ export function columnTooltipsForActiveComponents(
 		},
 		speed: {
 			title: "Speed score",
-			body: "Provider and workflow inputs are logged before min-max normalization. Runtime inputs are inverted, so lower latency, workflow time, and benchmark runtime raise the score. Each active input gets one equal slot.",
+			body: "Provider and workflow inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Each active input gets one equal slot.",
 			rows: [
 				["Provider and workflow", "log input, then min-max"],
-				["Benchmark runtimes", "quality-local 0-100 score"],
+				["Benchmark runtimes", "quality-adjusted residual hybrid"],
 			],
 			sections: [
 				{
@@ -372,11 +372,11 @@ export function columnTooltipsForActiveComponents(
 		},
 		value: {
 			title: "Value score",
-			body: "Price signals log their cost input before min-max normalization. Derived quality and workflow outputs are not logged again. Lower prices and benchmark costs raise the score. Each active input gets one equal slot.",
+			body: "Blended price uses logged one-sided winsorized min-max normalization. Other price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality; the workflow output is not logged again. Each active input gets one equal slot.",
 			rows: [
-				["Blended price", "log input, then min-max"],
-				["Derived price signals", "min-max, no second log"],
-				["Benchmark costs", "quality-local 0-100 score"],
+				["Blended price", "log input, then winsorized min-max"],
+				["Quality-adjusted price signals", "residual percentile/min-max mean"],
+				["Benchmark costs", "logged residual percentile/min-max mean"],
 			],
 			sections: [
 				{
@@ -387,7 +387,7 @@ export function columnTooltipsForActiveComponents(
 			],
 		},
 		blend: {
-			title: "Blend price ↓",
+			title: "Blended price ↓",
 			body: "Estimated USD per million tokens for a task/chat/agentic usage mix.",
 			rows: [
 				["Definition", "weighted input/output price"],

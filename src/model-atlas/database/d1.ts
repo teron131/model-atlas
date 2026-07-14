@@ -139,9 +139,10 @@ export async function queryD1Rows(
 	return resultRows(await queryD1(sql, params));
 }
 
-/** Splits the shared schema SQL into D1-compatible statements. */
+/** Remove line comments and SQLite-only pragmas while splitting shared schema SQL for D1. */
 function splitSqlStatements(sql: string): string[] {
 	return sql
+		.replace(/^\s*--.*$/gm, "")
 		.split(";")
 		.map((statement) => statement.trim())
 		.filter((statement) => statement.length > 0)

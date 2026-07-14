@@ -3,7 +3,7 @@
 import type { PointerEvent } from "react";
 import { minMaxScale } from "../../../src/model-atlas/math-utils";
 import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/scrapers/deep-swe";
-import { modelIdentityKey } from "../../../src/model-atlas/stats/selection/public-list";
+import { canonicalModelKey } from "../../../src/model-atlas/shared";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
@@ -65,7 +65,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		format: fmtMoney,
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "Blended price per 1M tokens",
-		hoverLabel: "Blend price",
+		hoverLabel: "Blended price",
 		read: "Shows whether price actually buys broad INTELLIGENCE, and where cheap high-ceiling models break the curve.",
 	},
 	{
@@ -300,7 +300,7 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 			modelKeys: new Set(),
 			bestScoreByModel: new Map(),
 		};
-		const modelKey = modelIdentityKey(model);
+		const modelKey = canonicalModelKey(model);
 		current.modelKeys.add(modelKey);
 		if (intelligenceScore != null) {
 			current.bestScoreByModel.set(
@@ -360,7 +360,7 @@ export function limitByIntelligenceScore<T>(
 	const bestScoreByModel = new Map<string, number>();
 	for (const item of items) {
 		const model = getModel(item);
-		const modelKey = modelIdentityKey(model);
+		const modelKey = canonicalModelKey(model);
 		bestScoreByModel.set(
 			modelKey,
 			Math.max(
@@ -376,7 +376,7 @@ export function limitByIntelligenceScore<T>(
 			.map(([modelKey]) => modelKey),
 	);
 	return items.filter((item) =>
-		selectedModels.has(modelIdentityKey(getModel(item))),
+		selectedModels.has(canonicalModelKey(getModel(item))),
 	);
 }
 

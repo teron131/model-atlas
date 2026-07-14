@@ -5,12 +5,18 @@ import {
 	validateBenchmarkPortfolio,
 } from "../src/model-atlas/constants";
 import {
+	effectiveSampleSize,
 	logInputMinMaxScores,
+	logitPercentageScore,
 	meanOfFiniteWithMinimum,
 	medianOfFinite,
 	minMaxScores,
 	percentileRank,
 	quantileFromSorted,
+	weightedPercentileRank,
+	weightedQuantile,
+	weightedQuantileRank,
+	winsorizedMinMaxScores,
 } from "../src/model-atlas/math-utils";
 import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/metadata";
 import {
@@ -22,6 +28,8 @@ import {
 	buildQualityScoringContext,
 	simulatedBlendSeconds,
 } from "../src/model-atlas/stats/scores";
+import { prepareBenchmarkScoring } from "../src/model-atlas/stats/scores/benchmark-imputation";
+import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/stats/scores/final-scoring";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModelCandidate,
@@ -104,6 +112,45 @@ assertEqual(quantileFromSorted(sparseQuantileValues, 0.05), 5);
 assertEqual(quantileFromSorted(sparseQuantileValues, 0.5), 50);
 assertEqual(quantileFromSorted(sparseQuantileValues, 0.95), 95);
 assertEqual(quantileFromSorted(sparseQuantileValues, 1), 100);
+const weightedCalibrationValues = [
+	{ value: 0, weight: 1 },
+	{ value: 50, weight: 1 },
+	{ value: 100, weight: 1 },
+];
+const splitWeightedCalibrationValues = [
+	{ value: 0, weight: 1 },
+	{ value: 50, weight: 0.5 },
+	{ value: 50, weight: 0.5 },
+	{ value: 100, weight: 1 },
+];
+assertClose(
+	weightedQuantile(splitWeightedCalibrationValues, 0.75),
+	weightedQuantile(weightedCalibrationValues, 0.75) ?? 0,
+);
+assertClose(
+	weightedPercentileRank(splitWeightedCalibrationValues, 50),
+	weightedPercentileRank(weightedCalibrationValues, 50) ?? 0,
+);
+assertClose(weightedQuantileRank(weightedCalibrationValues, 50), 50);
+assertClose(
+	weightedQuantile(
+		weightedCalibrationValues,
+		(weightedQuantileRank(weightedCalibrationValues, 50) ?? 0) / 100,
+	),
+	50,
+);
+assertClose(effectiveSampleSize([1, 1, 1]), 3);
+assertClose(effectiveSampleSize([0.5, 0.5]), 2);
+assertEqual(logitPercentageScore(1.01) > logitPercentageScore(1), true);
+const winsorizedScores = winsorizedMinMaxScores(
+	[1, 2, 3, 10],
+	[1, 2, 3, 10].map((value) => ({ value, weight: 1 })),
+	"lower",
+	0.25,
+);
+assertClose(winsorizedScores[0], 100);
+assertClose(winsorizedScores[3], 0);
+assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
 assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
@@ -122,6 +169,12 @@ assertEqual(
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
 		"Log blended price ↓",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
+		"Quality-adjusted log blended price ↓",
 	),
 	true,
 );
@@ -190,7 +243,7 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"Runtime inputs are inverted",
+		"model-excluded expectation",
 	),
 	true,
 );
@@ -312,8 +365,8 @@ const broadAAResourceOnlyModels = attachFinalScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(broadAAResourceOnlyModels[0]?.scores.value_score, 64.8);
-assertClose(broadAAResourceOnlyModels[1]?.scores.value_score, 64.8);
+assertClose(broadAAResourceOnlyModels[0]?.scores.value_score, 32.4);
+assertClose(broadAAResourceOnlyModels[1]?.scores.value_score, 32.4);
 
 const tokenProxySpeedModels = attachFinalScores(
 	[
@@ -338,8 +391,8 @@ const tokenProxySpeedModels = attachFinalScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(tokenProxySpeedModels[0]?.scores.speed_score, 100);
-assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 49.9993);
+assertClose(tokenProxySpeedModels[0]?.scores.speed_score, 83.3333);
+assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 33.3333);
 
 const latencySpeedModels = attachFinalScores(
 	[
@@ -393,7 +446,7 @@ const absoluteGapSpeedModels = attachFinalScores(
 );
 assertClose(absoluteGapSpeedModels[1]?.scores.speed_score, 48.1885);
 
-// Log price is transformed once before min-max; derived price signals are not logged again.
+// Price inputs are logged once; conditional and workflow-derived signals are not logged again.
 const absoluteGapValueModels = attachFinalScores(
 	[1, 10, 100].map((blendPrice) =>
 		modelCandidate({
@@ -405,7 +458,7 @@ const absoluteGapValueModels = attachFinalScores(
 	),
 	STAGE_CONFIG.scoring,
 );
-assertClose(absoluteGapValueModels[1]?.scores.value_score, 57.6251);
+assertClose(absoluteGapValueModels[1]?.scores.value_score, 54.6345);
 
 const fractionalBenchmarkConfig = {
 	...STAGE_CONFIG.scoring,
@@ -450,7 +503,6 @@ const fractionalBenchmarkComponentScores = buildComponentScores(
 	buildQualityScoringContext(
 		fractionalBenchmarkModels,
 		fractionalBenchmarkConfig,
-		new Map(),
 	),
 );
 assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
@@ -473,7 +525,6 @@ const importanceWeightedConfig = {
 const importanceWeightedContext = buildQualityScoringContext(
 	fractionalBenchmarkModels,
 	importanceWeightedConfig,
-	new Map(),
 );
 const importanceWeightedScores = buildComponentScores(
 	fractionalBenchmarkModels[2] ?? {},
@@ -525,7 +576,6 @@ const fractionalCoverageComponentScores = buildComponentScores(
 	buildQualityScoringContext(
 		fractionalBenchmarkModels,
 		fractionalBenchmarkConfig,
-		new Map(),
 	),
 );
 assertClose(fractionalCoverageComponentScores?.intelligence_score, 10.4);
@@ -582,11 +632,7 @@ const sparseCoverageComponentScores = buildComponentScores(
 	},
 	[],
 	sparseCoverageConfig,
-	buildQualityScoringContext(
-		sparseCoverageModels,
-		sparseCoverageConfig,
-		new Map(),
-	),
+	buildQualityScoringContext(sparseCoverageModels, sparseCoverageConfig),
 );
 assertClose(sparseCoverageComponentScores?.intelligence_score, 0);
 
@@ -619,12 +665,72 @@ const directResourceScoredModels = attachFinalScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(directResourceScoredModels[0]?.scores.value_score, 89.6);
-assertClose(directResourceScoredModels[1]?.scores.value_score, 88.4821);
-assertClose(directResourceScoredModels[2]?.scores.value_score, 88.4535);
-assertClose(directResourceScoredModels[0]?.scores.speed_score, 99.147);
-assertClose(directResourceScoredModels[1]?.scores.speed_score, 99.1683);
-assertClose(directResourceScoredModels[2]?.scores.speed_score, 100);
+assertClose(directResourceScoredModels[0]?.scores.value_score, 67.2);
+assertClose(directResourceScoredModels[1]?.scores.value_score, 67.2);
+assertClose(directResourceScoredModels[2]?.scores.value_score, 67.2);
+assertClose(directResourceScoredModels[0]?.scores.speed_score, 83.3333);
+assertClose(directResourceScoredModels[1]?.scores.speed_score, 83.3333);
+assertClose(directResourceScoredModels[2]?.scores.speed_score, 83.3333);
+
+const isolatedQualityResourceModels = attachFinalScores(
+	[
+		modelCandidate({
+			id: "test/ordinary-quality-a",
+			deepSWEScore: 10,
+			deepSWECost: 1,
+			disableBaseCost: true,
+		}),
+		modelCandidate({
+			id: "test/ordinary-quality-b",
+			deepSWEScore: 20,
+			deepSWECost: 1,
+			disableBaseCost: true,
+		}),
+		modelCandidate({
+			id: "test/ordinary-quality-c",
+			deepSWEScore: 30,
+			deepSWECost: 1,
+			disableBaseCost: true,
+		}),
+		modelCandidate({
+			id: "test/isolated-expensive-frontier",
+			deepSWEScore: 99,
+			deepSWECost: 1_000,
+			disableBaseCost: true,
+		}),
+	],
+	STAGE_CONFIG.scoring,
+);
+assertEqual(
+	(isolatedQualityResourceModels.at(-1)?.scores.value_score ?? 100) < 20,
+	true,
+);
+
+const flatResidualScores = benchmarkResourceEfficiencyScores(
+	[
+		{ id: "test/flat-resource-a" },
+		{ id: "test/flat-resource-b" },
+		{ id: "test/flat-resource-c" },
+		{ id: "test/flat-resource-d" },
+	],
+	[50, 50, 50, 50],
+	[1, 1, 1, 1],
+);
+for (const score of flatResidualScores) {
+	assertClose(score, 50);
+}
+const orderedHybridResourceScores = benchmarkResourceEfficiencyScores(
+	[
+		{ id: "test/ordered-resource-a" },
+		{ id: "test/ordered-resource-b" },
+		{ id: "test/ordered-resource-c" },
+		{ id: "test/ordered-resource-d" },
+	],
+	[50, 50, 50, 50],
+	[1, 2, 3, 4],
+);
+assertClose(orderedHybridResourceScores[0], 100);
+assertClose(orderedHybridResourceScores[3], 12.5);
 
 const valueScoredModels = attachFinalScores(
 	[
@@ -649,8 +755,8 @@ const valueScoredModels = attachFinalScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(valueScoredModels[0]?.scores.value_score, 21.6);
-assertClose(valueScoredModels[1]?.scores.value_score, 14.4);
+assertClose(valueScoredModels[0]?.scores.value_score, 16.2);
+assertClose(valueScoredModels[1]?.scores.value_score, 10.4995);
 assertClose(valueScoredModels[2]?.scores.value_score, 7.2);
 
 const scaleNormalizedResourceConfig = {
@@ -705,8 +811,8 @@ const scaleNormalizedResourceModels = attachFinalScores(
 	],
 	scaleNormalizedResourceConfig,
 );
-assertClose(scaleNormalizedResourceModels[0]?.scores.value_score, 64.8);
-assertClose(scaleNormalizedResourceModels[1]?.scores.value_score, 64.8);
+assertClose(scaleNormalizedResourceModels[0]?.scores.value_score, 32.4);
+assertClose(scaleNormalizedResourceModels[1]?.scores.value_score, 32.4);
 
 const sparseResourceCoverageModels = attachFinalScores(
 	[
@@ -745,8 +851,46 @@ const sparseResourceCoverageModels = attachFinalScores(
 	],
 	STAGE_CONFIG.scoring,
 );
-assertClose(sparseResourceCoverageModels[0]?.scores.value_score, 89.6);
-assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 4.8593);
+assertClose(sparseResourceCoverageModels[0]?.scores.value_score, 44.8);
+assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 2.4296);
+
+const resourceModelVariants = [
+	resourceModel("b", 2, "low"),
+	resourceModel("b", 4, "high"),
+];
+const resourceComparisonModel = resourceModel("c", 3);
+const resourceModels = [
+	resourceModel("a", 1),
+	...resourceModelVariants,
+	resourceComparisonModel,
+	resourceModel("d", 8),
+];
+const modelBalancedResourceScore = attachFinalScores(
+	resourceModels,
+	STAGE_CONFIG.scoring,
+).find((model) => model.id === resourceComparisonModel.id)?.scores;
+const duplicatedModelResourceScore = attachFinalScores(
+	[
+		...resourceModels,
+		...resourceModelVariants.map((model) => ({
+			...model,
+			task_metrics: { ...model.task_metrics },
+		})),
+	],
+	STAGE_CONFIG.scoring,
+).find((model) => model.id === resourceComparisonModel.id)?.scores;
+assertClose(
+	duplicatedModelResourceScore?.speed_score,
+	modelBalancedResourceScore?.speed_score ?? 0,
+);
+assertClose(
+	duplicatedModelResourceScore?.value_score,
+	modelBalancedResourceScore?.value_score ?? 0,
+);
+assertClose(
+	duplicatedModelResourceScore?.overall_score,
+	modelBalancedResourceScore?.overall_score ?? 0,
+);
 
 const normalizedContextModels = [
 	imputationModel("observed-a", 0, 0, 0, 0),
@@ -794,7 +938,72 @@ assertClose(
 	normalizedContextImputations
 		.get(normalizedContextModels.at(-1) ?? {})
 		?.get("target"),
-	38.66665,
+	37.5,
+);
+
+const repeatedModelVariants = [
+	{
+		...imputationModel("model-b", 10, 20, 200, 0.2),
+		reasoning_effort: "low",
+	},
+	{
+		...imputationModel("model-b", 20, 40, 400, 0.4),
+		reasoning_effort: "high",
+	},
+];
+const modelBalancedMissingModel = imputationModel(
+	"model-missing",
+	null,
+	100,
+	1_000,
+	1,
+);
+const modelBalancedModels = [
+	imputationModel("model-a", 0, 0, 0, 0),
+	...repeatedModelVariants,
+	imputationModel("model-c", 30, 60, 600, 0.6),
+	imputationModel("model-d", 40, 80, 800, 0.8),
+	imputationModel("model-e", 50, 100, 1_000, 1),
+	imputationModel("model-f", 60, 120, 1_200, 1.2),
+	modelBalancedMissingModel,
+];
+const modelsWithDuplicatedVariants = [
+	...modelBalancedModels.slice(0, -1),
+	...repeatedModelVariants.map((model) => ({
+		...model,
+		intelligence: { ...model.intelligence },
+	})),
+	modelBalancedMissingModel,
+];
+const modelBalancedImputation = buildBenchmarkImputationByModel(
+	modelBalancedModels,
+	normalizedContextConfig,
+)
+	.get(modelBalancedMissingModel)
+	?.get("target");
+const duplicatedModelImputation = buildBenchmarkImputationByModel(
+	modelsWithDuplicatedVariants,
+	normalizedContextConfig,
+)
+	.get(modelBalancedMissingModel)
+	?.get("target");
+assertEqual(modelBalancedImputation != null, true);
+assertClose(duplicatedModelImputation, modelBalancedImputation ?? 0);
+const modelBalancedDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	modelBalancedModels,
+	normalizedContextConfig,
+).get("target");
+const duplicatedModelDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	modelsWithDuplicatedVariants,
+	normalizedContextConfig,
+).get("target");
+assertEqual(modelBalancedDiagnostic?.validationSampleCount, 7);
+assertEqual(duplicatedModelDiagnostic?.validationSampleCount, 9);
+assertEqual(modelBalancedDiagnostic?.effectiveModelCount, 6);
+assertEqual(duplicatedModelDiagnostic?.effectiveModelCount, 6);
+assertClose(
+	duplicatedModelDiagnostic?.normalizedMedianAbsoluteError,
+	modelBalancedDiagnostic?.normalizedMedianAbsoluteError ?? 0,
 );
 
 const frontierPercentileConfig = {
@@ -835,6 +1044,7 @@ const sparseFrontierDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
 	frontierPercentileConfig,
 ).get("agents_last_exam");
 assertEqual(sparseFrontierDiagnostic?.validationSampleCount, 0);
+assertEqual(sparseFrontierDiagnostic?.effectiveModelCount, 0);
 assertEqual(sparseFrontierDiagnostic?.normalizedMedianAbsoluteError, null);
 assertEqual(sparseFrontierDiagnostic?.rawPenalty, null);
 assertEqual(sparseFrontierDiagnostic?.imputationAllowed, false);
@@ -869,8 +1079,9 @@ const unreliableDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
 	unreliableConfig,
 ).get("target");
 assertEqual(unreliableDiagnostic?.validationSampleCount, 5);
-assertClose(unreliableDiagnostic?.normalizedMedianAbsoluteError, 75);
-assertClose(unreliableDiagnostic?.rawPenalty, 75);
+assertEqual(unreliableDiagnostic?.effectiveModelCount, 5);
+assertClose(unreliableDiagnostic?.normalizedMedianAbsoluteError, 50);
+assertClose(unreliableDiagnostic?.rawPenalty, 50);
 assertEqual(unreliableDiagnostic?.imputationAllowed, false);
 assertEqual(
 	buildBenchmarkImputationByModel(unreliableModels, unreliableConfig)
@@ -916,7 +1127,13 @@ const sharedTargetImputation = buildBenchmarkImputationByModel(
 )
 	.get(sharedTargetModel)
 	?.get("shared_target");
-assertClose(sharedTargetImputation, 15.75001);
+assertClose(sharedTargetImputation, 10);
+assertClose(
+	prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig)
+		.benchmarkImputationConfidenceByModel.get(sharedTargetModel)
+		?.get("shared_target"),
+	0.5,
+);
 const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(
 	sharedTargetModels,
 	{
@@ -927,7 +1144,7 @@ const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(
 )
 	.get(sharedTargetModel)
 	?.get("shared_target");
-assertClose(reorderedSharedTargetImputation, 15.75001);
+assertClose(reorderedSharedTargetImputation, 10);
 assertEqual("shared_target" in sharedTargetModel.evaluations, false);
 
 const missingGroupPenaltyPortfolio = {
@@ -978,8 +1195,8 @@ const frontierMissingValue = buildBenchmarkImputationByModel(
 )
 	.get(sharedTargetModel)
 	?.get("shared_target");
-assertClose(baselineMissingValue, 15.75001);
-assertClose(frontierMissingValue, 12.75001);
+assertClose(baselineMissingValue, 10);
+assertClose(frontierMissingValue, 7.5);
 assertEqual(
 	(frontierMissingValue ?? Number.POSITIVE_INFINITY) <
 		(baselineMissingValue ?? Number.NEGATIVE_INFINITY),
@@ -1029,9 +1246,187 @@ const nonRecursiveImputations = buildBenchmarkImputationByModel(
 		},
 	},
 ).get(nonRecursiveMissingModel);
-assertClose(nonRecursiveImputations?.get("bridge"), 47);
-assertClose(nonRecursiveImputations?.get("bridge2"), 47);
+assertClose(nonRecursiveImputations?.get("bridge"), 47.5);
+assertClose(nonRecursiveImputations?.get("bridge2"), 47.5);
 assertEqual(nonRecursiveImputations?.has("target"), false);
+
+const crossEffortConfig = {
+	...STAGE_CONFIG.scoring,
+	intelligenceBenchmarkKeys: ["target", "c1", "c2", "c3"],
+	agenticBenchmarkKeys: [],
+	benchmarkPortfolio: {
+		target: intelligenceBenchmarkEntry(),
+		c1: intelligenceBenchmarkEntry(),
+		c2: intelligenceBenchmarkEntry(),
+		c3: intelligenceBenchmarkEntry(),
+	},
+} as const;
+const crossEffortModels = crossEffortImputationModels(7);
+const crossEffortTarget = crossEffortModels.at(-1);
+if (crossEffortTarget == null) {
+	throw new Error("Expected a cross-effort imputation target");
+}
+const crossEffortValue = buildBenchmarkImputationByModel(
+	crossEffortModels,
+	crossEffortConfig,
+)
+	.get(crossEffortTarget)
+	?.get("target");
+assertClose(crossEffortValue, 19.3707);
+const crossEffortConfidence = prepareBenchmarkScoring(
+	crossEffortModels,
+	crossEffortConfig,
+)
+	.benchmarkImputationConfidenceByModel.get(crossEffortTarget)
+	?.get("target");
+if (!(crossEffortConfidence != null && crossEffortConfidence > 0)) {
+	throw new Error("Expected validated cross-effort evidence credit");
+}
+const crossEffortDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
+	crossEffortModels,
+	crossEffortConfig,
+).get("target");
+assertEqual(crossEffortDiagnostic?.crossEffortUsed, true);
+if (!((crossEffortDiagnostic?.crossEffortEffectiveModelCount ?? 0) >= 4)) {
+	throw new Error("Expected independent cross-effort validation coverage");
+}
+
+const reverseCrossEffortModels = reverseCrossEffortImputationModels(7);
+const reverseCrossEffortTarget = reverseCrossEffortModels.at(-2);
+if (reverseCrossEffortTarget == null) {
+	throw new Error("Expected a reverse cross-effort imputation target");
+}
+const reverseCrossEffortValue = buildBenchmarkImputationByModel(
+	reverseCrossEffortModels,
+	crossEffortConfig,
+)
+	.get(reverseCrossEffortTarget)
+	?.get("target");
+if (!(reverseCrossEffortValue != null && reverseCrossEffortValue > 0)) {
+	throw new Error(
+		"Expected lower-effort evidence to inform the maximum effort",
+	);
+}
+
+const unlinkedEffortModels = crossEffortModels.map((model) => ({
+	...model,
+	name: `${model.name} ${model.reasoning_effort}`,
+}));
+assertClose(
+	buildBenchmarkImputationByModel(unlinkedEffortModels, crossEffortConfig)
+		.get(unlinkedEffortModels.at(-1) ?? {})
+		?.get("target"),
+	0,
+);
+assertEqual(
+	prepareBenchmarkScoring(unlinkedEffortModels, crossEffortConfig)
+		.benchmarkImputationConfidenceByModel.get(unlinkedEffortModels.at(-1) ?? {})
+		?.has("target") ?? false,
+	true,
+);
+
+const sparseTransitionModels = crossEffortImputationModels(4);
+assertClose(
+	buildBenchmarkImputationByModel(sparseTransitionModels, crossEffortConfig)
+		.get(sparseTransitionModels.at(-1) ?? {})
+		?.get("target"),
+	0,
+);
+assertEqual(
+	buildBenchmarkImputationDiagnosticsByKey(
+		sparseTransitionModels,
+		crossEffortConfig,
+	).get("target")?.crossEffortUsed,
+	false,
+);
+
+const sparseBenchmarkContextModels = crossEffortModels.map((model, index) =>
+	index === crossEffortModels.length - 1
+		? { ...model, evaluations: { c1: 0 } }
+		: model,
+);
+assertEqual(
+	buildBenchmarkImputationByModel(
+		sparseBenchmarkContextModels,
+		crossEffortConfig,
+	)
+		.get(sparseBenchmarkContextModels.at(-1) ?? {})
+		?.has("target") ?? false,
+	false,
+);
+
+const sparseSiblingContextModels = crossEffortModels.map((model, index) =>
+	index === crossEffortModels.length - 2
+		? {
+				...model,
+				evaluations: {
+					target: model.evaluations.target,
+					c1: model.evaluations.c1,
+				},
+			}
+		: model,
+);
+assertClose(
+	buildBenchmarkImputationByModel(sparseSiblingContextModels, crossEffortConfig)
+		.get(sparseSiblingContextModels.at(-1) ?? {})
+		?.get("target"),
+	0,
+);
+
+const imputationCoverageModels = [
+	{
+		id: "imputation-coverage-min",
+		evaluations: { target: 0, c1: 0, c2: 0, c3: 0 },
+	},
+	{
+		id: "imputation-coverage-max",
+		evaluations: { target: 100, c1: 100, c2: 100, c3: 100 },
+	},
+];
+const imputationCoverageContext = buildQualityScoringContext(
+	imputationCoverageModels,
+	crossEffortConfig,
+);
+const imputationCoverageTarget = {
+	id: "imputation-coverage-target",
+	evaluations: { c1: 100 },
+};
+const imputedHighValues = new Map([
+	["target", 100],
+	["c2", 100],
+	["c3", 100],
+]);
+const untrustedImputationScores = buildComponentScores(
+	imputationCoverageTarget,
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	crossEffortConfig,
+	imputationCoverageContext,
+	imputedHighValues,
+);
+const validatedImputationScores = buildComponentScores(
+	imputationCoverageTarget,
+	{
+		throughput_tokens_per_second_median: null,
+		latency_seconds_median: null,
+		e2e_latency_seconds_median: null,
+	},
+	[],
+	crossEffortConfig,
+	imputationCoverageContext,
+	imputedHighValues,
+	new Map([
+		["target", 0.5],
+		["c2", 0.5],
+		["c3", 0.5],
+	]),
+);
+assertClose(untrustedImputationScores?.intelligence_score, 21.6);
+assertClose(validatedImputationScores?.intelligence_score, 100);
 
 function modelCandidate(options: {
 	id: string;
@@ -1112,6 +1507,27 @@ function modelCandidate(options: {
 	};
 }
 
+function resourceModel(
+	modelKey: string,
+	resourceAmount: number,
+	reasoningEffort: string | null = null,
+): LlmStatsModelCandidate {
+	return {
+		...modelCandidate({
+			id: `test/resource-model-${modelKey}`,
+			intelligenceScore: 50,
+			agenticScore: 50,
+			deepSWEScore: 50,
+			deepSWECost: resourceAmount,
+			deepSWESeconds: resourceAmount * 10,
+			tps: 100,
+			latency: 1,
+			disableBaseCost: true,
+		}),
+		reasoning_effort: reasoningEffort,
+	};
+}
+
 function imputationModel(
 	id: string,
 	target: number | null,
@@ -1149,6 +1565,66 @@ function dualContextImputationModel(
 			...(target == null ? {} : { shared_target: target }),
 		},
 	};
+}
+
+function crossEffortImputationModels(modelCount: number) {
+	return Array.from({ length: modelCount }, (_, index) => {
+		const name = `Cross-effort Model ${index}`;
+		return [
+			{
+				id: `test/cross-effort-${index}`,
+				name,
+				reasoning_effort: "max",
+				evaluations: {
+					target: index * 20,
+					c1: index * 20,
+					c2: index * 20,
+					c3: index * 20,
+				},
+			},
+			{
+				id: `test/cross-effort-${index}`,
+				name,
+				reasoning_effort: "low",
+				evaluations: {
+					...(index === modelCount - 1 ? {} : { target: index * 10 }),
+					c1: 0,
+					c2: 0,
+					c3: 0,
+				},
+			},
+		];
+	}).flat();
+}
+
+function reverseCrossEffortImputationModels(modelCount: number) {
+	return Array.from({ length: modelCount }, (_, index) => {
+		const name = `Reverse cross-effort Model ${index}`;
+		return [
+			{
+				id: `test/reverse-cross-effort-${index}`,
+				name,
+				reasoning_effort: "max",
+				evaluations: {
+					...(index === modelCount - 1 ? {} : { target: index * 20 }),
+					c1: 0,
+					c2: 0,
+					c3: 0,
+				},
+			},
+			{
+				id: `test/reverse-cross-effort-${index}`,
+				name,
+				reasoning_effort: "low",
+				evaluations: {
+					target: index * 10,
+					c1: index * 10,
+					c2: index * 10,
+					c3: index * 10,
+				},
+			},
+		];
+	}).flat();
 }
 
 function intelligenceBenchmarkEntry() {

@@ -120,7 +120,7 @@ assertDeepEqual(
 		{
 			model_id: "anthropic/claude-opus-4-7",
 			name: "Claude Opus 4.7 (Non-reasoning, high)",
-			reasoning_effort: null,
+			reasoning_effort: "none",
 		},
 	],
 );
@@ -356,7 +356,6 @@ const benchmarkImputationByModel = buildBenchmarkImputationByModel(
 const qualityScoringContext = buildQualityScoringContext(
 	scoringRows,
 	scoringConfig,
-	benchmarkImputationByModel,
 );
 const emptySpeed = {
 	throughput_tokens_per_second_median: null,

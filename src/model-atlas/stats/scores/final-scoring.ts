@@ -1,21 +1,24 @@
 /** Final component scoring for public Model Atlas model rows. */
 
 import {
-	benchmarkDeviation,
+	clampScore,
 	coverageConfidence,
-	fillMissingWithQualityMirror,
+	effectiveSampleSize,
 	fixedWeightedScore,
 	gaussianWeight,
 	log10OnePlusPositive,
 	logInputMinMaxScores,
 	logitBenchmarkScore,
+	logitPercentageScore,
 	meanOfFinite,
-	minMaxScores,
-	percentileScoreForValue,
 	positiveFiniteNumber,
-	quantileFromSorted,
+	smoothstep,
 	weightedFinitePartCount,
 	weightedMeanOfFinite,
+	weightedPercentileRank,
+	weightedQuantile,
+	weightedRobustDeviation,
+	winsorizedMinMaxScores,
 } from "../../math-utils";
 import {
 	benchmarkMetricValue,
@@ -28,6 +31,7 @@ import type {
 	LlmStatsTaskMetricValues,
 	ScoringConfig,
 } from "../types";
+import { calibrationObservations } from "./calibration-population";
 import { blendedPriceValue } from "./score-builders";
 import {
 	simulatedBlendSeconds,
@@ -37,17 +41,13 @@ import {
 const MIN_RAW_SPEED_COMPONENTS = 2;
 const ACTIVE_COMPONENT_WEIGHT = 1;
 const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
-const RESOURCE_EFFICIENCY_QUALITY_SIGMA = 0.5;
+const RESOURCE_QUALITY_SIGMA = 0.5;
 const MIN_BENCHMARK_DEVIATION = 0.35;
+const RESOURCE_TAIL_SHARE = 0.025;
+const FULL_RESOURCE_SUPPORT = 3;
 type WeightedSignal = {
 	value: number | null;
 	weight: number;
-};
-
-type ResourceEfficiencyBenchmarkPoint = {
-	modelIndex: number;
-	qualityDeviation: number;
-	resourceAmount: number;
 };
 
 type ResourceEfficiencyEvidence = {
@@ -138,11 +138,7 @@ function resourceTaskMetric(
 		return directTask;
 	}
 	const taskMetricKey = resourceTaskMetricKey(key, scoringConfig);
-	const primaryTask = taskMetricFromModel(model, taskMetricKey);
-	if (hasUsableResourceTask(model, primaryTask)) {
-		return primaryTask;
-	}
-	return primaryTask;
+	return taskMetricFromModel(model, taskMetricKey);
 }
 
 function blendCost(
@@ -179,7 +175,7 @@ function e2eSecondsSignal(model: LlmStatsModelCandidate): number | null {
 	return positiveFiniteNumber(model.speed?.e2e_latency_seconds_median);
 }
 
-function activeResourceEfficiencyBenchmarkKeys(
+function activeResourceKeys(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
@@ -194,61 +190,175 @@ function activeResourceEfficiencyBenchmarkKeys(
 	);
 }
 
-function resourceEfficiencyBenchmarkPoints(
-	models: LlmStatsModelCandidate[],
-	key: string,
-	scoringConfig: ScoringConfig,
-	resourceAmountFor: TaskResourceAmount,
-): ResourceEfficiencyBenchmarkPoint[] {
-	const logitQualityValues = models
-		.map((model) => benchmarkMetricValue(model, key))
-		.filter((value): value is number => value != null && Number.isFinite(value))
-		.map(logitBenchmarkScore)
-		.sort((left, right) => left - right);
-	const benchmarkQualityMedian = quantileFromSorted(logitQualityValues, 0.5);
-	const benchmarkQualityDeviation = benchmarkDeviation(
-		logitQualityValues,
+function observationsFromValues<T extends { id?: unknown; name?: unknown }>(
+	models: readonly T[],
+	values: readonly (number | null)[],
+) {
+	const valueByModel = new Map(
+		models.map((model, index) => [model, values[index] ?? null] as const),
+	);
+	return calibrationObservations(
+		models,
+		(model) => valueByModel.get(model) ?? null,
+	);
+}
+
+/** Score resource magnitude after removing the model-balanced local expectation at comparable quality. */
+function qualityLocalResourceScores<T extends { id?: unknown; name?: unknown }>(
+	models: readonly T[],
+	qualityCoordinates: readonly (number | null)[],
+	resourceSignals: readonly (number | null)[],
+): Array<number | null> {
+	const modelIndexByModel = new Map(
+		models.map((model, index) => [model, index] as const),
+	);
+	const qualityObservations = calibrationObservations(models, (model) => {
+		const modelIndex = modelIndexByModel.get(model);
+		const qualityCoordinate =
+			modelIndex == null ? null : (qualityCoordinates[modelIndex] ?? null);
+		const resourceSignal =
+			modelIndex == null ? null : (resourceSignals[modelIndex] ?? null);
+		return qualityCoordinate == null || resourceSignal == null
+			? null
+			: qualityCoordinate;
+	});
+	const benchmarkQualityMedian = weightedQuantile(qualityObservations, 0.5);
+	const benchmarkQualityDeviation = weightedRobustDeviation(
+		qualityObservations,
 		MIN_BENCHMARK_DEVIATION,
 	);
 	if (benchmarkQualityMedian == null || benchmarkQualityDeviation == null) {
-		return [];
+		return models.map(() => null);
 	}
-	return models.flatMap((model, modelIndex) => {
-		const score = benchmarkMetricValue(model, key);
-		const resourceAmount = resourceAmountFor(model, key, scoringConfig);
-		if (score == null || resourceAmount == null) {
-			return [];
+	const points = qualityObservations.flatMap(
+		({ modelKey, item: model, value: logitQuality, weight }) => {
+			const modelIndex = modelIndexByModel.get(model);
+			const resourceSignal =
+				modelIndex == null ? null : (resourceSignals[modelIndex] ?? null);
+			return modelIndex == null || resourceSignal == null
+				? []
+				: [
+						{
+							modelIndex,
+							modelKey,
+							calibrationWeight: weight,
+							qualityDeviation:
+								(logitQuality - benchmarkQualityMedian) /
+								benchmarkQualityDeviation,
+							resourceSignal,
+						},
+					];
+		},
+	);
+	const residuals = models.map(() => null as number | null);
+	const supportConfidence = models.map(() => 0);
+	for (const point of points) {
+		residuals[point.modelIndex] = 0;
+		const comparisonsByModel = new Map<
+			string,
+			{ resourceTotal: number; weight: number }
+		>();
+		for (const comparisonPoint of points) {
+			if (comparisonPoint.modelKey === point.modelKey) {
+				continue;
+			}
+			const weight =
+				comparisonPoint.calibrationWeight *
+				gaussianWeight(
+					point.qualityDeviation,
+					comparisonPoint.qualityDeviation,
+					RESOURCE_QUALITY_SIGMA,
+				);
+			const comparison = comparisonsByModel.get(comparisonPoint.modelKey) ?? {
+				resourceTotal: 0,
+				weight: 0,
+			};
+			comparison.resourceTotal += weight * comparisonPoint.resourceSignal;
+			comparison.weight += weight;
+			comparisonsByModel.set(comparisonPoint.modelKey, comparison);
 		}
-		return [
-			{
-				modelIndex,
-				qualityDeviation:
-					(logitBenchmarkScore(score) - benchmarkQualityMedian) /
-					benchmarkQualityDeviation,
-				resourceAmount,
-			},
-		];
+		const comparisons = [...comparisonsByModel.values()];
+		const totalWeight = comparisons.reduce(
+			(sum, comparison) => sum + comparison.weight,
+			0,
+		);
+		if (totalWeight > 0) {
+			residuals[point.modelIndex] =
+				point.resourceSignal -
+				comparisons.reduce(
+					(sum, comparison) => sum + comparison.resourceTotal,
+					0,
+				) /
+					totalWeight;
+			const effectivePeers = Math.min(
+				totalWeight,
+				effectiveSampleSize(comparisons.map((comparison) => comparison.weight)),
+			);
+			supportConfidence[point.modelIndex] = smoothstep(
+				(effectivePeers - 1) / (FULL_RESOURCE_SUPPORT - 1),
+			);
+		}
+	}
+	const supportedResiduals = residuals.map((residual, index) =>
+		(supportConfidence[index] ?? 0) > 0 ? residual : null,
+	);
+	const finiteSupportedResiduals = supportedResiduals.filter(
+		(residual): residual is number =>
+			residual != null && Number.isFinite(residual),
+	);
+	const residualRange =
+		finiteSupportedResiduals.length > 1
+			? Math.max(...finiteSupportedResiduals) -
+				Math.min(...finiteSupportedResiduals)
+			: 0;
+	const residualScale = Math.max(1, ...finiteSupportedResiduals.map(Math.abs));
+	const hasMeaningfulSpread =
+		residualRange > Number.EPSILON * residualScale * 32;
+	if (!hasMeaningfulSpread) {
+		return residuals.map((residual) => (residual == null ? null : 50));
+	}
+	const minMaxScores = modelBalancedMinMaxScores(
+		models,
+		supportedResiduals,
+		"lower",
+	);
+	const inverseResidualObservations = observationsFromValues(
+		models,
+		supportedResiduals.map((residual) => (residual == null ? null : -residual)),
+	);
+	const percentileScores = supportedResiduals.map((residual) =>
+		residual == null
+			? null
+			: weightedPercentileRank(inverseResidualObservations, -residual),
+	);
+	return residuals.map((residual, index) => {
+		if (residual == null) {
+			return null;
+		}
+		const confidence = supportConfidence[index] ?? 0;
+		const hybridScore = meanOfFinite([
+			minMaxScores[index] ?? null,
+			percentileScores[index] ?? null,
+		]);
+		return 50 + confidence * ((hybridScore ?? 50) - 50);
 	});
 }
 
-function localResourceEfficiencyScore(
-	point: ResourceEfficiencyBenchmarkPoint,
-	points: readonly ResourceEfficiencyBenchmarkPoint[],
-): number | null {
-	let totalWeight = 0;
-	let atLeastAsLargeWeight = 0;
-	for (const comparisonPoint of points) {
-		const weight = gaussianWeight(
-			point.qualityDeviation,
-			comparisonPoint.qualityDeviation,
-			RESOURCE_EFFICIENCY_QUALITY_SIGMA,
-		);
-		totalWeight += weight;
-		if (comparisonPoint.resourceAmount >= point.resourceAmount) {
-			atLeastAsLargeWeight += weight;
-		}
-	}
-	return totalWeight > 0 ? (100 * atLeastAsLargeWeight) / totalWeight : null;
+/** Score benchmark resource use within quality-local comparisons. */
+export function benchmarkResourceEfficiencyScores<
+	T extends { id?: unknown; name?: unknown },
+>(
+	models: readonly T[],
+	benchmarkScores: readonly (number | null)[],
+	resourceSignals: readonly (number | null)[],
+): Array<number | null> {
+	return qualityLocalResourceScores(
+		models,
+		benchmarkScores.map((score) =>
+			score == null ? null : logitBenchmarkScore(score),
+		),
+		resourceSignals,
+	);
 }
 
 function resourceEfficiencyEvidence(
@@ -256,23 +366,24 @@ function resourceEfficiencyEvidence(
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
 ): ResourceEfficiencyEvidence {
-	const benchmarkKeys = activeResourceEfficiencyBenchmarkKeys(
+	const benchmarkKeys = activeResourceKeys(
 		models,
 		scoringConfig,
 		resourceAmountFor,
 	);
 	const signalsByModel = models.map(() => [] as number[]);
 	for (const key of benchmarkKeys) {
-		const points = resourceEfficiencyBenchmarkPoints(
+		const scores = benchmarkResourceEfficiencyScores(
 			models,
-			key,
-			scoringConfig,
-			resourceAmountFor,
+			models.map((model) => benchmarkMetricValue(model, key)),
+			models.map((model) => {
+				const resourceAmount = resourceAmountFor(model, key, scoringConfig);
+				return resourceAmount == null ? null : Math.log(resourceAmount);
+			}),
 		);
-		for (const point of points) {
-			const score = localResourceEfficiencyScore(point, points);
+		for (const [modelIndex, score] of scores.entries()) {
 			if (score != null) {
-				signalsByModel[point.modelIndex]?.push(score);
+				signalsByModel[modelIndex]?.push(score);
 			}
 		}
 	}
@@ -313,6 +424,48 @@ function equalWeightedScore(
 				);
 }
 
+/** Apply the scoring policy's model-balanced favorable-tail anchors to a completed signal. */
+export function modelBalancedMinMaxScores<
+	T extends { id?: unknown; name?: unknown },
+>(
+	models: readonly T[],
+	scores: readonly (number | null)[],
+	direction: "higher" | "lower",
+): Array<number | null> {
+	return winsorizedMinMaxScores(
+		scores,
+		observationsFromValues(models, scores),
+		direction,
+		RESOURCE_TAIL_SHARE,
+	);
+}
+
+/** Fill Overall-only missing resources against model-balanced quality and resource distributions. */
+function fillMissingResourceScores(
+	models: readonly LlmStatsModelCandidate[],
+	qualityScores: readonly (number | null)[],
+	targetScores: readonly (number | null)[],
+): Array<number | null> {
+	const qualityObservations = observationsFromValues(models, qualityScores);
+	const targetObservations = observationsFromValues(models, targetScores);
+	return targetScores.map((targetScore, index) => {
+		if (targetScore != null) {
+			return targetScore;
+		}
+		const qualityPercentile = weightedPercentileRank(
+			qualityObservations,
+			qualityScores[index] ?? null,
+		);
+		if (qualityPercentile == null) {
+			return null;
+		}
+		const targetPercentile = clampScore(
+			50 - PRICE_QUALITY_TRADEOFF_STRENGTH * (qualityPercentile - 50),
+		);
+		return weightedQuantile(targetObservations, targetPercentile / 100);
+	});
+}
+
 export function attachFinalScores(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
@@ -332,28 +485,32 @@ export function attachFinalScores(
 	const logBlendedPriceSignals = models.map((model) =>
 		log10OnePlusPositive(blendCost(model, scoringConfig)),
 	);
-	const qualityPerLogBlendedPriceSignals = models.map((_, index) => {
-		const logCost = logBlendedPriceSignals[index] ?? null;
-		const qualityScore = qualityScores[index] ?? null;
-		return logCost == null || qualityScore == null
-			? null
-			: qualityScore / logCost;
-	});
 	const workflowPriceEfficiencySignals = models.map((model) =>
 		workflowPriceEfficiencySignal(model, scoringConfig),
 	);
-	const logBlendedPriceScores = minMaxScores(logBlendedPriceSignals, "lower");
-	const qualityPerLogBlendedPriceScores = minMaxScores(
-		qualityPerLogBlendedPriceSignals,
-		"higher",
+	const logBlendedPriceScores = modelBalancedMinMaxScores(
+		models,
+		logBlendedPriceSignals,
+		"lower",
 	);
-	const workflowPriceEfficiencyScores = minMaxScores(
-		workflowPriceEfficiencySignals,
-		"higher",
+	const qualityCoordinates = qualityScores.map((score) =>
+		score == null ? null : logitPercentageScore(score),
+	);
+	const qualityAdjustedBlendedPriceScores = qualityLocalResourceScores(
+		models,
+		qualityCoordinates,
+		logBlendedPriceSignals,
+	);
+	const workflowPriceEfficiencyScores = qualityLocalResourceScores(
+		models,
+		qualityCoordinates,
+		workflowPriceEfficiencySignals.map((signal) =>
+			signal == null ? null : -signal,
+		),
 	);
 	const valueInputScoresByModel = models.map((_, index) => [
 		logBlendedPriceScores[index] ?? null,
-		qualityPerLogBlendedPriceScores[index] ?? null,
+		qualityAdjustedBlendedPriceScores[index] ?? null,
 		workflowPriceEfficiencyScores[index] ?? null,
 	]);
 	const throughputSpeedSignals = models.map(throughputSpeedSignal);
@@ -401,9 +558,6 @@ export function attachFinalScores(
 		taskCostAmount,
 	);
 	const taskTimeSignals = resourceEfficiencySignals(taskTimeComponentEvidence);
-	const taskTimeOverallComponents = taskTimeSignals.map((signal) =>
-		percentileScoreForValue(taskTimeSignals, signal),
-	);
 	const workflowSpeedComponents = logInputMinMaxScores(
 		workflowRuntimeSeconds,
 		"lower",
@@ -427,15 +581,15 @@ export function attachFinalScores(
 			taskCostComponentEvidence.benchmarkKeys.length + 3,
 		),
 	);
-	const overallTaskTimeComponents = fillMissingWithQualityMirror(
+	const overallTaskTimeComponents = fillMissingResourceScores(
+		models,
 		qualityScores,
-		taskTimeOverallComponents,
-		PRICE_QUALITY_TRADEOFF_STRENGTH,
+		taskTimeSignals,
 	);
-	const overallValueScores = fillMissingWithQualityMirror(
+	const overallValueScores = fillMissingResourceScores(
+		models,
 		qualityScores,
 		valueScores,
-		PRICE_QUALITY_TRADEOFF_STRENGTH,
 	);
 	return models.map((model, index) => {
 		const intelligenceScore = intelligenceScores[index] ?? null;

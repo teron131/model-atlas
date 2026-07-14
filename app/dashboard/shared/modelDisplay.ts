@@ -1,13 +1,11 @@
 /** Dashboard model display rules own model identity, variant expansion, labels, and UI identity. */
 
-import {
-	modelIdentityKey,
-	strongestModelVariants,
-} from "../../../src/model-atlas/stats/selection/public-list";
+import { canonicalModelKey } from "../../../src/model-atlas/shared";
+import { strongestModelVariants } from "../../../src/model-atlas/stats/selection/public-list";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 
 export function modelCount(models: LlmStatsModel[]): number {
-	return new Set(models.map(modelIdentityKey)).size;
+	return new Set(models.map(canonicalModelKey)).size;
 }
 
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
@@ -15,10 +13,22 @@ export function modelsForVariantDisplay(
 	models: LlmStatsModel[],
 	expandReasoningVariants: boolean,
 ): LlmStatsModel[] {
-	if (expandReasoningVariants) {
-		return models;
+	const variantsByIdentity = new Map<string, LlmStatsModel>();
+	for (const model of models) {
+		const key = modelVariantKey(model);
+		const existing = variantsByIdentity.get(key);
+		if (
+			existing == null ||
+			model.scores.intelligence_score > existing.scores.intelligence_score
+		) {
+			variantsByIdentity.set(key, model);
+		}
 	}
-	return strongestModelVariants(models).map((model) => ({
+	const modelVariants = [...variantsByIdentity.values()];
+	if (expandReasoningVariants) {
+		return modelVariants;
+	}
+	return strongestModelVariants(modelVariants).map((model) => ({
 		...model,
 		reasoning_effort: null,
 	}));
@@ -36,5 +46,5 @@ export function modelDisplayName(model: LlmStatsModel): string {
 }
 
 export function modelVariantKey(model: LlmStatsModel): string {
-	return `${model.id ?? model.name ?? ""}\u0000${model.reasoning_effort ?? ""}`;
+	return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
 }

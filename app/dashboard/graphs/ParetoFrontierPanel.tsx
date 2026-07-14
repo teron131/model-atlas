@@ -251,7 +251,7 @@ export function ParetoFrontierPanel({
 							["Speed score", fmtTooltipScore(model.scores.speed_score)],
 							["Value score", fmtTooltipScore(model.scores.value_score)],
 							[
-								"Blend price",
+								"Blended price",
 								fmtTooltipMoney(Number(model.cost?.blended_price)),
 							],
 						];

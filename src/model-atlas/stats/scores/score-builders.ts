@@ -25,9 +25,63 @@ import {
 
 type BenchmarkScoreInput = {
 	value: number | null;
-	observed: boolean;
+	evidenceConfidence: number;
 	weight: number;
 };
+
+function isObservedBenchmark(model: JsonObject, key: string): boolean {
+	return metricValue(model, key) != null;
+}
+
+/** Measure the observed share of one dimension's configured benchmark weight. */
+export function observedBenchmarkCoverage(
+	model: unknown,
+	keys: readonly string[],
+	dimension: BenchmarkDimension,
+	scoringConfig: ScoringConfig,
+): number | null {
+	const modelRecord = asRecord(model);
+	return weightedCoverageRatio(
+		keys.flatMap((key) => {
+			const weight = benchmarkDimensionWeight(
+				key,
+				dimension,
+				scoringConfig.benchmarkPortfolio,
+			);
+			const isObserved = isObservedBenchmark(modelRecord, key);
+			return weight > 0 ? [{ value: isObserved ? 1 : null, weight }] : [];
+		}),
+	);
+}
+
+/** Measure observed coverage across the selected portfolio without dimension loadings. */
+export function observedBenchmarkPortfolioCoverage(
+	model: unknown,
+	keys: readonly string[],
+	scoringConfig: ScoringConfig,
+): number | null {
+	const modelRecord = asRecord(model);
+	return weightedCoverageRatio(
+		keys.flatMap((key) => {
+			const weight =
+				scoringConfig.benchmarkPortfolio[key]?.benchmarkImportance ?? 0;
+			const isObserved = isObservedBenchmark(modelRecord, key);
+			return weight > 0 ? [{ value: isObserved ? 1 : null, weight }] : [];
+		}),
+	);
+}
+
+/** Count observed benchmarks without allowing imputed values to satisfy admission. */
+export function observedBenchmarkCount(
+	model: unknown,
+	keys: readonly string[],
+): number {
+	const modelRecord = asRecord(model);
+	return keys.reduce(
+		(count, key) => count + (isObservedBenchmark(modelRecord, key) ? 1 : 0),
+		0,
+	);
+}
 
 function selectedBenchmarkScoreInputs(
 	model: JsonObject,
@@ -36,6 +90,7 @@ function selectedBenchmarkScoreInputs(
 	qualityContext: QualityScoringContext,
 	scoringConfig: ScoringConfig,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
+	imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
 ): BenchmarkScoreInput[] {
 	const inputs: BenchmarkScoreInput[] = [];
 	for (const key of keys) {
@@ -48,7 +103,8 @@ function selectedBenchmarkScoreInputs(
 			continue;
 		}
 		const observedValue = metricValue(model, key);
-		const rawValue = observedValue ?? imputedValuesByKey.get(key) ?? null;
+		const imputedValue = imputedValuesByKey.get(key) ?? null;
+		const rawValue = observedValue ?? imputedValue;
 		const value = normalizedMetricValue(
 			qualityContext.benchmarkValuesByKey,
 			key,
@@ -56,32 +112,37 @@ function selectedBenchmarkScoreInputs(
 		);
 		inputs.push({
 			value,
-			observed: observedValue != null,
+			evidenceConfidence:
+				observedValue != null
+					? 1
+					: imputedValue == null
+						? 0
+						: (imputedConfidenceByKey.get(key) ?? 0),
 			weight: dimensionWeight,
 		});
 	}
 	return inputs;
 }
 
-/** Score selected benchmarks by effective dimension weight while penalizing sparse observed weight coverage. */
+/** Score selected benchmarks while scaling confidence by observed and validated-imputed evidence. */
 function qualityScore(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
 ): number | null {
 	const qualityMean = weightedMeanOfFinite(
 		benchmarkScoreInputs.map(({ value, weight }) => ({ value, weight })),
 	);
-	const observedCoverage = weightedCoverageRatio(
-		benchmarkScoreInputs.map(({ observed, weight }) => ({
-			value: observed ? 1 : null,
+	const evidenceCoverage = weightedMeanOfFinite(
+		benchmarkScoreInputs.map(({ evidenceConfidence, weight }) => ({
+			value: evidenceConfidence,
 			weight,
 		})),
 	);
-	return qualityMean == null || observedCoverage == null
+	return qualityMean == null || evidenceCoverage == null
 		? null
-		: qualityMean * coverageConfidence(observedCoverage, 1);
+		: qualityMean * coverageConfidence(evidenceCoverage, 1);
 }
 
-/** Estimate a blended price from effective input/output prices, falling back to base models.dev prices. */
+/** Estimate a blended price from effective input/output prices, falling back to published models.dev prices. */
 export function blendedPriceValue(
 	costLike: unknown,
 	scoringConfig: ScoringConfig,
@@ -188,6 +249,7 @@ export function buildComponentScores(
 	scoringConfig: ScoringConfig,
 	qualityContext: QualityScoringContext,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
+	imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
 ): LlmStatsNullableComponentScores | null {
 	const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
@@ -196,6 +258,7 @@ export function buildComponentScores(
 		qualityContext,
 		scoringConfig,
 		imputedValuesByKey,
+		imputedConfidenceByKey,
 	);
 	const agenticBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
@@ -204,6 +267,7 @@ export function buildComponentScores(
 		qualityContext,
 		scoringConfig,
 		imputedValuesByKey,
+		imputedConfidenceByKey,
 	);
 	const intelligenceScore = qualityScore(intelligenceBenchmarkInputs);
 	const agenticScore = qualityScore(agenticBenchmarkInputs);

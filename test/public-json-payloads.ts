@@ -81,6 +81,33 @@ assert.deepEqual(
 	"public selection should exclude candidates without a finite overall score",
 );
 
+const lowScoreCandidate: LlmStatsScoredCandidate = {
+	...internalCandidate,
+	id: "provider/low-score",
+	name: "Low Score",
+	component_scores: {
+		...internalCandidate.component_scores,
+		intelligence_score: 5,
+		agentic_score: 4,
+	},
+	scores: {
+		...internalCandidate.scores,
+		intelligence_score: 5,
+		agentic_score: 4,
+		overall_score: 5,
+	},
+};
+assert.equal(
+	selectPublicModels(
+		[lowScoreCandidate],
+		null,
+		STAGE_CONFIG.final,
+		STAGE_CONFIG.scoring,
+	).length,
+	1,
+	"low finite scores should remain public when evidence admission is handled separately",
+);
+
 const reasoningEffortModels = selectPublicModels(
 	[
 		{ ...internalCandidate, reasoning_effort: "high" },
@@ -197,7 +224,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"INTELLIGENCE and AGENTIC first min-max normalize each selected benchmark independently, then average them using benchmark importance multiplied by the dimension loading and apply weight-based observed benchmark coverage confidence. Missing values use one non-recursive, leave-one-model-out-validated imputation; frontier subtracts 1.0x validated error and baseline subtracts 0.5x. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input; benchmark task-time compares runtime among similarly scoring models. VALUE logs price inputs before deriving its price signals, then min-max normalizes those outputs without a second log; it gives equal weight to log blended price, quality per log blended price, workflow price efficiency, and each active benchmark task-cost input.";
+	"INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply validation-weighted evidence coverage. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled benchmark belongs to the model's default highest effort. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE gives equal weight to winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");

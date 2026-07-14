@@ -1,6 +1,7 @@
 /** Public scoring entrypoints for the final LLM stats pipeline. */
 export type {
 	BenchmarkImputationByModel,
+	BenchmarkImputationConfidenceByModel,
 	BenchmarkImputationDiagnostic,
 	BenchmarkImputationDiagnosticsByKey,
 	QualityScoringContext,
