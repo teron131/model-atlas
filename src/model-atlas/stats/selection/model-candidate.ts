@@ -34,7 +34,7 @@ const EMPTY_OPENROUTER_PRICING = {
 	weighted_input: null,
 	weighted_output: null,
 } as const;
-const MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD = 1_000_000;
+const MIN_INTELLIGENCE_COST_TOTAL_TOKENS = 1_000_000;
 const INTELLIGENCE_COST_TOTAL_COST_KEY = "intelligence_index_cost_total_cost";
 const INTELLIGENCE_COST_TOTAL_TOKENS_KEY =
 	"intelligence_index_cost_total_tokens";
@@ -286,7 +286,7 @@ function buildIntelligenceIndexCost(
 	}
 	if (
 		totalTokens != null &&
-		totalTokens >= MIN_INTELLIGENCE_COST_TOKEN_THRESHOLD
+		totalTokens >= MIN_INTELLIGENCE_COST_TOTAL_TOKENS
 	) {
 		cost.total_tokens = totalTokens;
 	}

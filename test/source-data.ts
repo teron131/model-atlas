@@ -46,7 +46,7 @@ function deepSWERow(
 	};
 }
 
-function contract(sourceData: LlmStatsSourceData) {
+function summary(sourceData: LlmStatsSourceData) {
 	const defaultDeepSWE = sourceData.deepSWE.defaultEffortRows[0];
 	const indexedDeepSWE = sourceData.deepSWE.scoreByModelName.get("deep-model");
 	return {
@@ -116,8 +116,8 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	valsTerminalBenchModelScoreRows: [],
 } as unknown as SourceSnapshots);
 
-assert.deepEqual(contract(cachedSourceData), contract(liveSourceData));
-assert.deepEqual(contract(liveSourceData), {
+assert.deepEqual(summary(cachedSourceData), summary(liveSourceData));
+assert.deepEqual(summary(liveSourceData), {
 	artificialAnalysisModelId: "google/example-model",
 	modelsDevRows: [
 		["shared/model", "openrouter"],

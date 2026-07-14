@@ -7,8 +7,8 @@ import {
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
 	DEEP_SWE_V1_LEADERBOARD_URL,
 	type DeepSWELeaderboardRow,
+	getDeepSWELeaderboardStats,
 	getDeepSWERawLeaderboardSourceRows,
-	getDeepSWERawLeaderboardStats,
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultEffortRows,
 } from "../src/model-atlas/scrapers/deep-swe";
@@ -134,13 +134,13 @@ assertDeepEqual(
 	{ cost: 4.22, output_tokens: 11300 },
 );
 
-const fallbackRows = await getDeepSWERawLeaderboardStats({
+const fallbackRows = await getDeepSWELeaderboardStats({
 	urls: [
 		"https://deepswe.datacurve.ai/artifacts/missing.json",
 		DEEP_SWE_V1_1_LEADERBOARD_URL,
 	],
 });
-const v1Rows = await getDeepSWERawLeaderboardStats({
+const v1Rows = await getDeepSWELeaderboardStats({
 	url: DEEP_SWE_V1_LEADERBOARD_URL,
 });
 

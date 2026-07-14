@@ -524,16 +524,16 @@ function distributedLabelPositions(
 	const sorted = [...rows].sort(
 		(left, right) => yForRow(left) - yForRow(right),
 	);
-	const placed = sorted.map((row) => ({
+	const placements = sorted.map((row) => ({
 		row,
 		y: Math.min(maxY, Math.max(minY, yForRow(row))),
 	}));
-	if (placed.length === 0) {
+	if (placements.length === 0) {
 		return new Map();
 	}
-	for (let index = 1; index < placed.length; index += 1) {
-		const previous = placed[index - 1];
-		const current = placed[index];
+	for (let index = 1; index < placements.length; index += 1) {
+		const previous = placements[index - 1];
+		const current = placements[index];
 		if (
 			previous != null &&
 			current != null &&
@@ -542,13 +542,13 @@ function distributedLabelPositions(
 			current.y = previous.y + SLOPE_LABEL_MIN_GAP;
 		}
 	}
-	const last = placed[placed.length - 1];
+	const last = placements[placements.length - 1];
 	if (last != null && last.y > maxY) {
 		last.y = maxY;
 	}
-	for (let index = placed.length - 2; index >= 0; index -= 1) {
-		const current = placed[index];
-		const next = placed[index + 1];
+	for (let index = placements.length - 2; index >= 0; index -= 1) {
+		const current = placements[index];
+		const next = placements[index + 1];
 		if (
 			current != null &&
 			next != null &&
@@ -557,13 +557,13 @@ function distributedLabelPositions(
 			current.y = next.y - SLOPE_LABEL_MIN_GAP;
 		}
 	}
-	const first = placed[0];
+	const first = placements[0];
 	if (first != null && first.y < minY) {
 		first.y = minY;
 	}
-	for (let index = 1; index < placed.length; index += 1) {
-		const previous = placed[index - 1];
-		const current = placed[index];
+	for (let index = 1; index < placements.length; index += 1) {
+		const previous = placements[index - 1];
+		const current = placements[index];
 		if (
 			previous != null &&
 			current != null &&
@@ -572,5 +572,5 @@ function distributedLabelPositions(
 			current.y = previous.y + SLOPE_LABEL_MIN_GAP;
 		}
 	}
-	return new Map(placed.map(({ row, y }) => [row, y]));
+	return new Map(placements.map(({ row, y }) => [row, y]));
 }

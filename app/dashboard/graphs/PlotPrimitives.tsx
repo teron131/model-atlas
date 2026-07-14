@@ -508,7 +508,7 @@ export function PointHitTarget({
 	);
 }
 
-export function PointLabel({
+export function ModelPointLabel({
 	model,
 	cx,
 	cy,
@@ -554,7 +554,7 @@ export function PointLabel({
 	);
 }
 
-export function DeepSWEPointLabel({
+export function TextPointLabel({
 	label,
 	cx,
 	cy,

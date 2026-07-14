@@ -15,13 +15,13 @@ import {
 	CornerDirectionArrow,
 	CursorCapture,
 	CursorProjectionLayer,
-	DeepSWEPointLabel,
 	MedianCross,
 	PlotFrame,
 	PointHitTarget,
 	plotBoundsFor,
 	stableSvgNumber,
 	stableSvgScale,
+	TextPointLabel,
 	useCursorProjection,
 	XAxisTicks,
 	YAxisTicks,
@@ -32,7 +32,7 @@ export type EfficiencyAxisMetric<Row> = {
 	label: string;
 	get: (row: Row) => number;
 	format: (value: number) => string;
-	xHigherBetter?: boolean;
+	xHigherIsBetter?: boolean;
 };
 
 export type EfficiencyEffortLine<Row> = {
@@ -121,7 +121,7 @@ export function EfficiencyAxisChart<Row>({
 			yValue,
 		};
 	});
-	const cursorProjectionHandlers = cursorHandlers({
+	const projectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
 	});
@@ -153,7 +153,7 @@ export function EfficiencyAxisChart<Row>({
 				viewBox={`0 0 ${width} ${height}`}
 				role="img"
 				aria-label={ariaLabel}
-				{...cursorProjectionHandlers}
+				{...projectionHandlers}
 			>
 				<PlotFrame width={width} height={height} margin={margin} />
 				<CursorCapture bounds={plot} />
@@ -189,7 +189,7 @@ export function EfficiencyAxisChart<Row>({
 				/>
 				<CornerDirectionArrow
 					bounds={plot}
-					corner={metric.xHigherBetter ? "upper-right" : "upper-left"}
+					corner={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
 				/>
 				<CursorProjectionLayer
 					projection={cursorProjection}
@@ -258,7 +258,7 @@ export function EfficiencyAxisChart<Row>({
 					const cx = xPoint(axisValue);
 					const cy = yPoint(getScore(row));
 					return labelRows.has(row) ? (
-						<DeepSWEPointLabel
+						<TextPointLabel
 							key={`label-${getKey(row)}`}
 							label={getLabel(row)}
 							cx={cx}

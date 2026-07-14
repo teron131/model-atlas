@@ -140,7 +140,7 @@ export function buildDebugTraceRows(
 			continue;
 		}
 		for (const [candidateIndex, candidate] of model.candidates.entries()) {
-			const selected = candidate.model_id === selectedModelId;
+			const isSelected = candidate.model_id === selectedModelId;
 			const variantRejected = hasVariantConflict(
 				matchSlug,
 				candidate.model_id,
@@ -164,10 +164,10 @@ export function buildDebugTraceRows(
 				candidate_provider_name: candidate.provider_name,
 				candidate_name: candidate.model_name,
 				candidate_score: candidate.score,
-				selected,
-				rejected: !selected,
+				selected: isSelected,
+				rejected: !isSelected,
 				rejection_reason: debugRejectionReason(
-					selected,
+					isSelected,
 					variantRejected,
 					selectedModelId,
 				),

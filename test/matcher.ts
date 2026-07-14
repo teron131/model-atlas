@@ -57,19 +57,24 @@ const providerPools: PreferredProviderPools = {
 	],
 };
 
-const output = runMatcher(sourceRows, providerPools, 5, STAGE_CONFIG.matcher);
+const preferredProviderOutput = runMatcher(
+	sourceRows,
+	providerPools,
+	5,
+	STAGE_CONFIG.matcher,
+);
 
 assert.equal(
-	output.models[0]?.best_match?.provider_id,
+	preferredProviderOutput.models[0]?.best_match?.provider_id,
 	"openrouter",
 	"OpenRouter should remain the preferred identity even when fallback providers expose an exact slug",
 );
 assert.equal(
-	output.models[0]?.best_match?.model_id,
+	preferredProviderOutput.models[0]?.best_match?.model_id,
 	"example/example-medium-3-5",
 );
 assert.equal(
-	output.models[1]?.best_match,
+	preferredProviderOutput.models[1]?.best_match,
 	null,
 	"an older numeric version should not match a newer OpenRouter sibling when the exact row is absent",
 );
@@ -419,10 +424,10 @@ assert.equal(
 	"debug traces should explain matcher-owned variant rejections",
 );
 const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
-const matchedExample = matchedRows.find(
+const matchedFlashRow = matchedRows.find(
 	(row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
-const aggregateExample = enrichModelRowsWithSupplementalBenchmarks(
+const aggregatedFlashModel = enrichModelRowsWithSupplementalBenchmarks(
 	aggregateCollapsedModelRows(matchedRows),
 	sourceData,
 ).find((row) => row.id === "google/example-2.5-flash");
@@ -432,7 +437,7 @@ const noneEffortObservation = matchedRows.find(
 );
 
 assert.equal(
-	matchedExample?.id,
+	matchedFlashRow?.id,
 	"google/example-2.5-flash",
 	"an exact OpenRouter route should win over flash-lite or image siblings",
 );
@@ -444,42 +449,42 @@ assert.equal(
 	"image and latest routes should not stand in for a base source row",
 );
 assert.equal(
-	asEvaluations(matchedExample).toolathlon,
+	asEvaluations(matchedFlashRow).toolathlon,
 	undefined,
 	"supplemental benchmarks should not enter effort observations",
 );
 assert.equal(
-	asEvaluations(aggregateExample).toolathlon,
+	asEvaluations(aggregatedFlashModel).toolathlon,
 	0.42,
 	"Toolathlon scores should attach through the aggregate benchmark layer",
 );
 assert.equal(
-	asEvaluations(aggregateExample).cursorbench,
+	asEvaluations(aggregatedFlashModel).cursorbench,
 	0.58,
 	"CursorBench scores should attach through the benchmark lookup path",
 );
 assert.equal(
-	asEvaluations(aggregateExample).blueprint_bench_2,
+	asEvaluations(aggregatedFlashModel).blueprint_bench_2,
 	0.36,
 	"Blueprint-Bench 2 scores should attach through display-name matching",
 );
 assert.equal(
-	asEvaluations(aggregateExample).gdp_pdf,
+	asEvaluations(aggregatedFlashModel).gdp_pdf,
 	0.25,
 	"GDP.pdf scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asEvaluations(aggregateExample).riemann_bench,
+	asEvaluations(aggregatedFlashModel).riemann_bench,
 	0.31,
 	"Riemann-bench scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asEvaluations(aggregateExample).vals_index,
+	asEvaluations(aggregatedFlashModel).vals_index,
 	0.64,
 	"Vals Index scores should attach through normalized model-id matching",
 );
 assert.equal(
-	asScoringSources(matchedExample).hle?.cost_per_task_usd,
+	asScoringSources(matchedFlashRow).hle?.cost_per_task_usd,
 	2,
 	"AA resource rows should prefer exact source model id over a generic display-name match",
 );
@@ -489,8 +494,8 @@ assert.equal(
 	0.1,
 	"matched effort rows should retain their exact resource observation",
 );
-assert.equal(asEvaluations(aggregateExample).hle, 0.4);
-assert.equal(aggregateExample?.reasoning_effort, undefined);
+assert.equal(asEvaluations(aggregatedFlashModel).hle, 0.4);
+assert.equal(aggregatedFlashModel?.reasoning_effort, undefined);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {

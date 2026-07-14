@@ -396,10 +396,10 @@ export function summarizeEndpointPerformance(
 function summarizePricing(
 	response: OpenRouterEffectivePricingResponse | null,
 ): OpenRouterPricingSummary {
-	const data = asRecord(response?.data);
+	const pricing = asRecord(response?.data);
 	return {
-		weighted_input_price_per_1m: asFiniteNumber(data.weightedInputPrice),
-		weighted_output_price_per_1m: asFiniteNumber(data.weightedOutputPrice),
+		weighted_input_price_per_1m: asFiniteNumber(pricing.weightedInputPrice),
+		weighted_output_price_per_1m: asFiniteNumber(pricing.weightedOutputPrice),
 	};
 }
 

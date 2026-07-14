@@ -5,12 +5,12 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const testDir = "test";
-const tests = readdirSync(testDir)
+const testFiles = readdirSync(testDir)
 	.filter((file) => file.endsWith(".ts") && !file.endsWith("-fixtures.ts"))
 	.sort();
 
-for (const test of tests) {
-	const testPath = join(testDir, test);
+for (const testFile of testFiles) {
+	const testPath = join(testDir, testFile);
 	console.log(`\n${testPath}`);
 	const result = spawnSync("tsx", [testPath], { stdio: "inherit" });
 	if (result.status !== 0) {

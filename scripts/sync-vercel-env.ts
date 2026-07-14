@@ -13,7 +13,7 @@ const targets = [
 	["development"],
 	...previewBranches.map((branch) => ["preview", branch]),
 ];
-const entries = envEntries();
+const entries = readEnvEntries();
 const localKeys = new Set(entries.map(([key]) => key));
 
 /** Removes one layer of shell quotes from dotenv values. */
@@ -25,7 +25,7 @@ function unquote(value: string): string {
 		: trimmed;
 }
 
-function envEntries(): [string, string][] {
+function readEnvEntries(): [string, string][] {
 	return readFileSync(envFile, "utf8")
 		.split(/\r?\n/)
 		.flatMap((line) => {
@@ -37,7 +37,7 @@ function envEntries(): [string, string][] {
 		});
 }
 
-function vercel(
+function runVercel(
 	args: string[],
 	options: { secret?: string; printOutput?: boolean } = {},
 ): string {
@@ -47,11 +47,11 @@ function vercel(
 	}
 	if (result.status !== 0) {
 		const rawOutput = `${result.stderr}${result.stdout}`;
-		const output = options.secret
+		const errorOutput = options.secret
 			? rawOutput.replaceAll(options.secret, "<redacted>")
 			: rawOutput;
 		throw new Error(
-			[`vercel ${args.slice(0, 4).join(" ")} failed`, output.trim()]
+			[`vercel ${args.slice(0, 4).join(" ")} failed`, errorOutput.trim()]
 				.filter(Boolean)
 				.join("\n"),
 		);
@@ -65,29 +65,29 @@ type ListedEnv = {
 	gitBranch?: string;
 };
 
-function listedEnvs(): ListedEnv[] {
-	const output = vercel(["env", "list", "--format", "json"]);
-	const json = JSON.parse(output.slice(output.indexOf("{"))) as {
+function listEnvs(): ListedEnv[] {
+	const output = runVercel(["env", "list", "--format", "json"]);
+	const response = JSON.parse(output.slice(output.indexOf("{"))) as {
 		envs: ListedEnv[];
 	};
-	return json.envs;
+	return response.envs;
 }
 
 for (const [key, value] of entries) {
 	for (const target of targets) {
 		console.log(`sync ${key} ${target.join("/")}`);
-		vercel(
+		runVercel(
 			["env", "add", key, ...target, "--value", value, "--yes", "--force"],
 			{ secret: value },
 		);
 	}
 }
 
-for (const env of listedEnvs().filter((env) => !localKeys.has(env.key))) {
+for (const env of listEnvs().filter((env) => !localKeys.has(env.key))) {
 	for (const target of env.target) {
 		const branch = env.gitBranch ? [env.gitBranch] : [];
 		console.log(`remove ${env.key} ${[target, ...branch].join("/")}`);
-		vercel(["env", "remove", env.key, target, ...branch, "--yes"]);
+		runVercel(["env", "remove", env.key, target, ...branch, "--yes"]);
 	}
 }
 
@@ -97,4 +97,4 @@ if (previewBranches.length === 0) {
 	);
 }
 
-vercel(["env", "ls"], { printOutput: true });
+runVercel(["env", "ls"], { printOutput: true });

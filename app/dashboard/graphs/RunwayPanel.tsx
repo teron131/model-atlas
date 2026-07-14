@@ -21,9 +21,9 @@ import {
 	CursorCapture,
 	CursorProjectionLayer,
 	MedianCross,
+	ModelPointLabel,
 	PlotFrame,
 	PointHitTarget,
-	PointLabel,
 	plotBoundsFor,
 	stableSvgNumber,
 	stableSvgScale,
@@ -90,7 +90,7 @@ export function RunwayPanel({
 	const yPoint = stableSvgScale(y);
 	const plot = plotBoundsFor(width, height, margin);
 	const plottedCandidates = candidates.slice(0, 90);
-	const runwayLabelCandidates: LlmStatsModel[] = [];
+	const labelCandidates: LlmStatsModel[] = [];
 	const labelContextRatio = 1.12;
 	const labelQualityFloor = 55;
 	let contextCluster: LlmStatsModel[] = [];
@@ -105,7 +105,7 @@ export function RunwayPanel({
 				? model
 				: bestModel,
 		);
-		runwayLabelCandidates.push(winner);
+		labelCandidates.push(winner);
 	};
 	for (const model of [...plottedCandidates]
 		.filter(
@@ -151,13 +151,13 @@ export function RunwayPanel({
 	);
 	if (
 		maxContextModel != null &&
-		!runwayLabelCandidates.some(
+		!labelCandidates.some(
 			(model) => modelVariantKey(model) === modelVariantKey(maxContextModel),
 		)
 	) {
-		runwayLabelCandidates.push(maxContextModel);
+		labelCandidates.push(maxContextModel);
 	}
-	const runwayLabels = runwayLabelCandidates
+	const labels = labelCandidates
 		.sort(
 			(left, right) =>
 				Number(right.speed?.throughput_tokens_per_second_median) -
@@ -182,7 +182,7 @@ export function RunwayPanel({
 			}
 			return selected;
 		}, []);
-	const labelSet = new Set(runwayLabels.map(modelVariantKey));
+	const labelSet = new Set(labels.map(modelVariantKey));
 	const medianContext =
 		median(
 			plottedCandidates.map((model) => Number(model.context_window?.context)),
@@ -203,26 +203,26 @@ export function RunwayPanel({
 			yValue,
 		};
 	});
-	const cursorProjectionHandlers = cursorHandlers({
+	const projectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
 	});
-	const runwayRadius = (model: LlmStatsModel) =>
+	const bubbleRadius = (model: LlmStatsModel) =>
 		clamp((model.scores.value_score ?? 25) / 9, 3, 10);
-	const runwayLabelPlacements = calloutLabelPlacements({
+	const labelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({
 			cx: xPoint(Number(model.context_window?.context)),
 			cy: yPoint(Number(model.speed?.throughput_tokens_per_second_median)),
-			radius: runwayRadius(model),
+			radius: bubbleRadius(model),
 		})),
-		labels: runwayLabels.map((model, index) => ({
+		labels: labels.map((model, index) => ({
 			key: modelVariantKey(model),
 			label: shortLabel(model),
 			cx: xPoint(Number(model.context_window?.context)),
 			cy: yPoint(Number(model.speed?.throughput_tokens_per_second_median)),
-			radius: runwayRadius(model),
-			priority: runwayLabels.length - index,
+			radius: bubbleRadius(model),
+			priority: labels.length - index,
 		})),
 	});
 
@@ -256,7 +256,7 @@ export function RunwayPanel({
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
 					aria-label="Context window by output throughput scatter plot"
-					{...cursorProjectionHandlers}
+					{...projectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
 					<CursorCapture bounds={plot} />
@@ -329,7 +329,7 @@ export function RunwayPanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={stableSvgNumber(runwayRadius(model))}
+									r={stableSvgNumber(bubbleRadius(model))}
 									fill={providerPaletteColor(model.provider)}
 									stroke="var(--chart-point-stroke)"
 									strokeWidth={1}
@@ -352,16 +352,14 @@ export function RunwayPanel({
 									setCursorProjection={setCursorProjection}
 								/>
 								{labeled ? (
-									<PointLabel
+									<ModelPointLabel
 										model={model}
 										cx={cx}
 										cy={cy}
 										width={width}
 										margin={margin}
 										height={height}
-										placement={runwayLabelPlacements.get(
-											modelVariantKey(model),
-										)}
+										placement={labelPlacements.get(modelVariantKey(model))}
 									/>
 								) : null}
 							</g>

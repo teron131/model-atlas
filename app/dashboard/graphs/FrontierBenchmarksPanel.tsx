@@ -51,7 +51,7 @@ export function FrontierBenchmarksPanel({
 	const [axisKey, setAxisKey] =
 		useState<FrontierBenchmarkAxisKey>("speedValue");
 	const [benchmarkKey, setBenchmarkKey] = useState("all");
-	const allRows = useMemo(
+	const benchmarkRows = useMemo(
 		() =>
 			frontierBenchmarkRows(
 				models,
@@ -60,33 +60,36 @@ export function FrontierBenchmarksPanel({
 		[models, payload.metadata.scoring.benchmark_portfolio],
 	);
 	const meanRows = useMemo(
-		() => meanFrontierBenchmarkRows(normalizedFrontierBenchmarkRows(allRows)),
-		[allRows],
+		() =>
+			meanFrontierBenchmarkRows(normalizedFrontierBenchmarkRows(benchmarkRows)),
+		[benchmarkRows],
 	);
 	const benchmarkOptions = useMemo(
-		() => frontierBenchmarkOptions(allRows),
-		[allRows],
+		() => frontierBenchmarkOptions(benchmarkRows),
+		[benchmarkRows],
 	);
 	const correlationByBenchmark = useMemo(
-		() => frontierBenchmarkCorrelationByBenchmark(allRows, meanRows),
-		[allRows, meanRows],
+		() => frontierBenchmarkCorrelationByBenchmark(benchmarkRows, meanRows),
+		[benchmarkRows, meanRows],
 	);
 	const selectedBenchmarkKey =
 		benchmarkKey !== "all" &&
 		benchmarkOptions.some((option) => option.key === benchmarkKey)
 			? benchmarkKey
 			: "all";
-	const sourceRows = useMemo(
+	const selectedRows = useMemo(
 		() =>
 			selectedBenchmarkKey === "all"
 				? meanRows
-				: allRows.filter((row) => row.benchmarkKey === selectedBenchmarkKey),
-		[allRows, meanRows, selectedBenchmarkKey],
+				: benchmarkRows.filter(
+						(row) => row.benchmarkKey === selectedBenchmarkKey,
+					),
+		[benchmarkRows, meanRows, selectedBenchmarkKey],
 	);
 	const isAllBenchmark = selectedBenchmarkKey === "all";
 	const axisOptions = useMemo(
-		() => frontierBenchmarkAxisOptions(sourceRows, isAllBenchmark),
-		[isAllBenchmark, sourceRows],
+		() => frontierBenchmarkAxisOptions(selectedRows, isAllBenchmark),
+		[isAllBenchmark, selectedRows],
 	);
 	const selectedAxisKey = selectedFrontierBenchmarkAxisKey(
 		axisKey,
@@ -96,43 +99,47 @@ export function FrontierBenchmarksPanel({
 		selectedAxisKey,
 		isAllBenchmark,
 	);
-	const rows = useMemo(
-		() => sourceRows.filter((row) => positiveMetric(axisConfig.get(row))),
-		[axisConfig, sourceRows],
+	const chartRows = useMemo(
+		() => selectedRows.filter((row) => positiveMetric(axisConfig.get(row))),
+		[axisConfig, selectedRows],
 	);
 	const xMetricLabel = frontierAxisMetricLabel(
 		axisConfig,
 		isAllBenchmark,
-		sourceRows,
+		selectedRows,
 	);
 	const chartMetric = useMemo(
 		() => ({
 			label: xMetricLabel,
 			get: (row: FrontierBenchmarkRow) => axisConfig.get(row) ?? 0,
 			format: axisConfig.format,
-			xHigherBetter: axisConfig.xHigherBetter,
+			xHigherIsBetter: axisConfig.xHigherIsBetter,
 		}),
 		[axisConfig, xMetricLabel],
 	);
 
-	if (rows.length === 0) {
+	if (chartRows.length === 0) {
 		return null;
 	}
 
-	const axisValues = rows.map(axisConfig.get).filter(finite);
+	const axisValues = chartRows.map(axisConfig.get).filter(finite);
 	const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
-	const scoreValues = rows.map((row) => row.score).filter(finite);
+	const scoreValues = chartRows.map((row) => row.score).filter(finite);
 	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
 	const bubbleValue = speedValueBlendScore;
-	const bubbleRadius = linearBubbleRadius(rows.map(bubbleValue), 4, 13);
-	const summaryRows = frontierBenchmarkSummaryRows(rows, axisConfig);
+	const bubbleRadius = linearBubbleRadius(chartRows.map(bubbleValue), 4, 13);
+	const summaryRows = frontierBenchmarkSummaryRows(chartRows, axisConfig);
 	if (summaryRows == null) {
 		return null;
 	}
 	const { leader, highScoreAxisRow, medianScoreAxisRow, labeledRows } =
 		summaryRows;
-	const scoreDistribution = valueDistribution(rows.map((row) => row.score));
-	const plotRows = [...rows].sort((left, right) => left.score - right.score);
+	const scoreDistribution = valueDistribution(
+		chartRows.map((row) => row.score),
+	);
+	const plotRows = [...chartRows].sort(
+		(left, right) => left.score - right.score,
+	);
 	const yAxisLabel = isAllBenchmark
 		? "MEAN NORMALIZED benchmark score"
 		: "Benchmark score";
@@ -142,7 +149,7 @@ export function FrontierBenchmarksPanel({
 	const axisDescription = frontierAxisDescription(
 		selectedAxisKey,
 		isAllBenchmark,
-		rows[0],
+		chartRows[0],
 	);
 	const xMetricProseLabel = xMetricLabel.replace(/efficiency/gi, "EFFICIENCY");
 	const panelCopy = isAllBenchmark

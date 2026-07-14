@@ -21,7 +21,7 @@ import {
 } from "../scrapers/cursorbench";
 import {
 	buildDeepSWEMap,
-	getDeepSWERawLeaderboardStats,
+	getDeepSWELeaderboardStats,
 	summarizeDeepSWEDefaultEffortRows,
 } from "../scrapers/deep-swe";
 import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
@@ -47,23 +47,17 @@ import {
 import type { ArtificialAnalysisModel, LlmStatsSourceData } from "./types";
 
 function buildArtificialAnalysisBySlug(
-	artificialAnalysisRows: unknown[],
+	rows: unknown[],
 ): Map<string, ArtificialAnalysisModel> {
-	const artificialAnalysisBySlug = new Map<string, ArtificialAnalysisModel>();
-	for (const artificialAnalysisRow of artificialAnalysisRows) {
-		const artificialAnalysisModel =
-			artificialAnalysisRow as ArtificialAnalysisModel;
-		const artificialAnalysisSlug = modelSlugFromModelId(
-			artificialAnalysisModel.model_id,
-		);
-		if (artificialAnalysisSlug) {
-			artificialAnalysisBySlug.set(
-				artificialAnalysisSlug,
-				artificialAnalysisModel,
-			);
+	const bySlug = new Map<string, ArtificialAnalysisModel>();
+	for (const row of rows) {
+		const model = row as ArtificialAnalysisModel;
+		const slug = modelSlugFromModelId(model.model_id);
+		if (slug) {
+			bySlug.set(slug, model);
 		}
 	}
-	return artificialAnalysisBySlug;
+	return bySlug;
 }
 
 export type LlmStatsSourceRows = {
@@ -180,7 +174,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getBlueprintBenchStats(),
 		getBrowseCompStats(),
 		getCursorBenchStats(),
-		getDeepSWERawLeaderboardStats(),
+		getDeepSWELeaderboardStats(),
 		getGdpPdfStats(),
 		getRiemannBenchStats(),
 		getToolathlonStats(),

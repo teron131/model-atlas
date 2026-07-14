@@ -2,7 +2,10 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import type { ModelRecord, ModelsDevPayload } from "../../scrapers/models-dev";
+import type {
+	ModelsDevModelRecord,
+	ModelsDevPayload,
+} from "../../scrapers/models-dev";
 import { asFiniteNumber } from "../../shared";
 import {
 	assignIfBoolean,
@@ -15,8 +18,8 @@ import {
 	stringValue,
 } from "./rows";
 
-function modelCost(row: CacheDbRow): ModelRecord["cost"] | undefined {
-	const cost: NonNullable<ModelRecord["cost"]> = {};
+function modelCost(row: CacheDbRow): ModelsDevModelRecord["cost"] | undefined {
+	const cost: NonNullable<ModelsDevModelRecord["cost"]> = {};
 	assignIfNumber(cost, "input", row.cost_input);
 	assignIfNumber(cost, "output", row.cost_output);
 	assignIfNumber(cost, "cache_read", row.cost_cache_read);
@@ -25,8 +28,10 @@ function modelCost(row: CacheDbRow): ModelRecord["cost"] | undefined {
 	return Object.keys(cost).length > 0 ? cost : undefined;
 }
 
-function modelLimit(row: CacheDbRow): ModelRecord["limit"] | undefined {
-	const limit: NonNullable<ModelRecord["limit"]> = {};
+function modelLimit(
+	row: CacheDbRow,
+): ModelsDevModelRecord["limit"] | undefined {
+	const limit: NonNullable<ModelsDevModelRecord["limit"]> = {};
 	assignIfNumber(limit, "context", row.limit_context);
 	assignIfNumber(limit, "output", row.limit_output);
 	return Object.keys(limit).length > 0 ? limit : undefined;
@@ -34,7 +39,7 @@ function modelLimit(row: CacheDbRow): ModelRecord["limit"] | undefined {
 
 function modelModalities(
 	row: CacheDbRow,
-): ModelRecord["modalities"] | undefined {
+): ModelsDevModelRecord["modalities"] | undefined {
 	const input = modalityList(row, "input_modality", [
 		"text",
 		"image",
@@ -48,7 +53,7 @@ function modelModalities(
 		"audio",
 		"video",
 	]);
-	const modalities: NonNullable<ModelRecord["modalities"]> = {};
+	const modalities: NonNullable<ModelsDevModelRecord["modalities"]> = {};
 	if (input.length > 0) {
 		modalities.input = input;
 	}
@@ -58,8 +63,8 @@ function modelModalities(
 	return Object.keys(modalities).length > 0 ? modalities : undefined;
 }
 
-function modelsDevModelRecord(row: CacheDbRow): ModelRecord {
-	const model: ModelRecord = {};
+function modelsDevModelRecord(row: CacheDbRow): ModelsDevModelRecord {
+	const model: ModelsDevModelRecord = {};
 	assignIfString(model, "id", row.model_id);
 	assignIfString(model, "name", row.name);
 	assignIfString(model, "family", row.family);

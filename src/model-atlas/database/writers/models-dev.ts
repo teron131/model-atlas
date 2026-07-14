@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import type { ModelsDevPayload } from "../../scrapers/models-dev";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
-import { booleanValue, hasModality } from "./shared";
+import { modalityFlagValue, sqliteBooleanValue } from "./shared";
 
 export function insertModelsDevRawModels(
 	db: DatabaseSync,
@@ -46,9 +46,9 @@ export function insertModelsDevRawModels(
 				model.family ?? null,
 				model.release_date ?? null,
 				model.last_updated ?? null,
-				booleanValue(model.open_weights),
-				booleanValue(model.reasoning),
-				booleanValue(model.tool_call),
+				sqliteBooleanValue(model.open_weights),
+				sqliteBooleanValue(model.reasoning),
+				sqliteBooleanValue(model.tool_call),
 				cost.input ?? null,
 				cost.output ?? null,
 				cost.cache_read ?? null,
@@ -56,15 +56,15 @@ export function insertModelsDevRawModels(
 				cost.output_audio ?? null,
 				limit.context ?? null,
 				limit.output ?? null,
-				hasModality(inputModalities, "text"),
-				hasModality(inputModalities, "image"),
-				hasModality(inputModalities, "audio"),
-				hasModality(inputModalities, "video"),
-				hasModality(inputModalities, "pdf"),
-				hasModality(outputModalities, "text"),
-				hasModality(outputModalities, "image"),
-				hasModality(outputModalities, "audio"),
-				hasModality(outputModalities, "video"),
+				modalityFlagValue(inputModalities, "text"),
+				modalityFlagValue(inputModalities, "image"),
+				modalityFlagValue(inputModalities, "audio"),
+				modalityFlagValue(inputModalities, "video"),
+				modalityFlagValue(inputModalities, "pdf"),
+				modalityFlagValue(outputModalities, "text"),
+				modalityFlagValue(outputModalities, "image"),
+				modalityFlagValue(outputModalities, "audio"),
+				modalityFlagValue(outputModalities, "video"),
 			);
 			rowIndex += 1;
 		}

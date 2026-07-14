@@ -22,9 +22,9 @@ import {
 	CursorCapture,
 	CursorProjectionLayer,
 	MedianCross,
+	ModelPointLabel,
 	PlotFrame,
 	PointHitTarget,
-	PointLabel,
 	plotBoundsFor,
 	stableSvgNumber,
 	stableSvgScale,
@@ -118,11 +118,11 @@ export function ParetoFrontierPanel({
 	const yTicks = intelligenceAxis.ticks;
 	const xTicks = valueAxis.ticks;
 	const plottedCandidates = candidates;
-	const capabilityBubbleValue = (model: LlmStatsModel) =>
+	const bubbleValue = (model: LlmStatsModel) =>
 		Number(model.scores.intelligence_score) *
 		Number(model.scores.agentic_score ?? 0);
-	const capabilityBubbleRadius = linearBubbleRadius(
-		plottedCandidates.map(capabilityBubbleValue),
+	const bubbleRadius = linearBubbleRadius(
+		plottedCandidates.map(bubbleValue),
 		3,
 		10,
 	);
@@ -136,23 +136,23 @@ export function ParetoFrontierPanel({
 			yValue,
 		};
 	});
-	const cursorProjectionHandlers = cursorHandlers({
+	const projectionHandlers = cursorHandlers({
 		bounds: plot,
 		points: projectionPoints,
 	});
-	const frontierLabelPlacements = calloutLabelPlacements({
+	const labelPlacements = calloutLabelPlacements({
 		bounds: plot,
 		obstacles: plottedCandidates.map((model) => ({
 			cx: xPoint(Number(model.scores.value_score)),
 			cy: yPoint(model.scores.intelligence_score),
-			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
+			radius: bubbleRadius(bubbleValue(model)),
 		})),
 		labels: frontier.map((model, index) => ({
 			key: modelVariantKey(model),
 			label: shortLabel(model),
 			cx: xPoint(Number(model.scores.value_score)),
 			cy: yPoint(model.scores.intelligence_score),
-			radius: capabilityBubbleRadius(capabilityBubbleValue(model)),
+			radius: bubbleRadius(bubbleValue(model)),
 			priority: frontier.length - index,
 		})),
 		fontSize: 11,
@@ -195,7 +195,7 @@ export function ParetoFrontierPanel({
 					viewBox={`0 0 ${width} ${height}`}
 					role="img"
 					aria-label="Intelligence by Value score scatter plot"
-					{...cursorProjectionHandlers}
+					{...projectionHandlers}
 				>
 					<PlotFrame width={width} height={height} margin={margin} />
 					<CursorCapture bounds={plot} />
@@ -264,9 +264,7 @@ export function ParetoFrontierPanel({
 									className={styles.datavizPoint}
 									cx={cx}
 									cy={cy}
-									r={stableSvgNumber(
-										capabilityBubbleRadius(capabilityBubbleValue(model)),
-									)}
+									r={stableSvgNumber(bubbleRadius(bubbleValue(model)))}
 									fill={providerPaletteColor(model.provider)}
 									stroke={
 										isFrontier
@@ -291,16 +289,14 @@ export function ParetoFrontierPanel({
 									setCursorProjection={setCursorProjection}
 								/>
 								{isFrontier ? (
-									<PointLabel
+									<ModelPointLabel
 										model={model}
 										cx={cx}
 										cy={cy}
 										width={width}
 										margin={margin}
 										height={height}
-										placement={frontierLabelPlacements.get(
-											modelVariantKey(model),
-										)}
+										placement={labelPlacements.get(modelVariantKey(model))}
 									/>
 								) : null}
 							</g>

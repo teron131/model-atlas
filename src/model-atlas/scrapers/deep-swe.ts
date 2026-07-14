@@ -244,29 +244,29 @@ export async function getDeepSWERawLeaderboardSourceRows(
 			: (options.urls ?? DEFAULT_LEADERBOARD_URLS);
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
-	const results = await mapWithConcurrency(urls, concurrency, async (url) => {
+	const batches = await mapWithConcurrency(urls, concurrency, async (url) => {
 		try {
 			return await getDeepSWERawRowsForUrl(url, timeoutMs);
 		} catch {
 			return [];
 		}
 	});
-	const data = results.flat();
+	const rows = batches.flat();
 	return {
-		fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
-		data,
+		fetched_at_epoch_seconds: rows.length > 0 ? nowEpochSeconds() : null,
+		data: rows,
 	};
 }
 
-export async function getDeepSWERawLeaderboardStats(
+export async function getDeepSWELeaderboardStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {
 	const payload = await getDeepSWERawLeaderboardSourceRows(options);
-	const data = preferredDeepSWELeaderboardRows(payload.data);
+	const preferredRows = preferredDeepSWELeaderboardRows(payload.data);
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		source_version: deepSWESourceVersionForRows(payload.data),
-		data,
+		data: preferredRows,
 	};
 }
 
@@ -304,7 +304,7 @@ export function deepSWESourceVersionForRows(
 export async function getDeepSWEStats(
 	options: DeepSWEScraperOptions = {},
 ): Promise<DeepSWELeaderboardPayload> {
-	const payload = await getDeepSWERawLeaderboardStats(options);
+	const payload = await getDeepSWELeaderboardStats(options);
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		source_version: payload.source_version,

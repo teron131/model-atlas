@@ -15,7 +15,7 @@ import { modelVariantKey } from "../shared/modelDisplay";
 import { staticSortableColumns } from "./Columns";
 import type {
 	DashboardMetricColumn,
-	Direction,
+	SortDirection,
 	SortKey,
 	SortState,
 	TableRow,
@@ -413,6 +413,6 @@ function SortableHeader({
 	);
 }
 
-export function reverseDirection(direction: Direction): Direction {
+export function reverseDirection(direction: SortDirection): SortDirection {
 	return direction === "ascending" ? "descending" : "ascending";
 }

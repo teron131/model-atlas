@@ -37,7 +37,7 @@ export default async function Home() {
 			/>
 			{scorePayload == null ? null : (
 				<script id="model-atlas-score-json" type="application/json">
-					{jsonScriptPayload(scorePayload)}
+					{scriptJson(scorePayload)}
 				</script>
 			)}
 			<Dashboard initialPayload={dashboardPayload} />
@@ -46,7 +46,7 @@ export default async function Home() {
 }
 
 /** Escape JSON for safe embedding inside an HTML script element. */
-function jsonScriptPayload(value: unknown): string {
+function scriptJson(value: unknown): string {
 	return JSON.stringify(value)
 		.replaceAll("<", "\\u003c")
 		.replaceAll(">", "\\u003e")

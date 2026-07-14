@@ -303,7 +303,7 @@ function tooltipForColumn(
 
 type RefreshPayloadOptions = {
 	bypassGuard?: boolean;
-	forceFresh?: boolean;
+	bypassHttpCache?: boolean;
 	retryWhenGuarded?: boolean;
 };
 
@@ -534,7 +534,7 @@ export function Dashboard({
 							onRefresh={() =>
 								void refreshPayload({
 									bypassGuard: true,
-									forceFresh: true,
+									bypassHttpCache: true,
 								})
 							}
 						/>
@@ -669,8 +669,8 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 		setIsRefreshing(true);
 		setErrorMessage(null);
 		refreshInFlightRef.current = fetch(
-			options?.forceFresh ? cacheBustedPath(liveStatsPath) : liveStatsPath,
-			options?.forceFresh ? { cache: "no-store" } : undefined,
+			options?.bypassHttpCache ? cacheBustedPath(liveStatsPath) : liveStatsPath,
+			options?.bypassHttpCache ? { cache: "no-store" } : undefined,
 		)
 			.then((response) => {
 				if (!response.ok) {
@@ -723,7 +723,7 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			return;
 		}
 		const interval = window.setInterval(() => {
-			void refreshPayload({ forceFresh: true });
+			void refreshPayload({ bypassHttpCache: true });
 		}, SCHEDULED_REFRESH_INTERVAL_MS);
 		return () => {
 			window.clearInterval(interval);

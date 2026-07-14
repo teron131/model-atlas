@@ -52,10 +52,9 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-	sortedRows(intelligenceRows, "", sort("model", "ascending")).map((row) => [
-		row.model.id,
-		row.intelligenceRank,
-	]),
+	sortedRows(intelligenceRows, "", sortState("model", "ascending")).map(
+		(row) => [row.model.id, row.intelligenceRank],
+	),
 	[
 		["provider/first", 1],
 		["provider/second", 2],
@@ -65,7 +64,7 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-	sortedRows(intelligenceRows, "", sort("rank", "ascending")).map(
+	sortedRows(intelligenceRows, "", sortState("rank", "ascending")).map(
 		(row) => row.model.id,
 	),
 	["provider/first", "provider/second", "provider/third"],
@@ -156,7 +155,7 @@ const modalityRows = dedupeDisplayModels([
 ]);
 
 assert.deepEqual(
-	sortedRows(modalityRows, "", sort("modalities", "descending")).map(
+	sortedRows(modalityRows, "", sortState("modalities", "descending")).map(
 		(row) => row.model.id,
 	),
 	["provider/all", "provider/vision", "provider/text"],
@@ -325,6 +324,6 @@ function modalityModel(
 	};
 }
 
-function sort(key: SortState["key"], direction: SortState["direction"]) {
+function sortState(key: SortState["key"], direction: SortState["direction"]) {
 	return { key, direction };
 }

@@ -4,10 +4,10 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
-	booleanValue,
 	firstString,
-	hasModality,
+	modalityFlagValue,
 	type SqlValue,
+	sqliteBooleanValue,
 } from "./shared";
 
 type ModelStage = "matched" | "catalog" | "enriched" | "final";
@@ -26,10 +26,10 @@ function modelStageIdentityValues(model: JsonObject): SqlValue[] {
 		firstString(model, ["reasoning_effort"]),
 		firstString(model, ["family"]),
 		firstString(model, ["logo"]),
-		booleanValue(model.attachment),
-		booleanValue(model.reasoning),
+		sqliteBooleanValue(model.attachment),
+		sqliteBooleanValue(model.reasoning),
 		firstString(model, ["release_date"]),
-		booleanValue(model.open_weights),
+		sqliteBooleanValue(model.open_weights),
 	];
 }
 
@@ -41,10 +41,10 @@ function modelStageContextValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(context.context) ?? asFiniteNumber(limit.context),
 		asFiniteNumber(context.input) ?? asFiniteNumber(limit.input),
 		asFiniteNumber(context.output) ?? asFiniteNumber(limit.output),
-		hasModality(modalities.input, "text"),
-		hasModality(modalities.input, "image"),
-		hasModality(modalities.input, "audio"),
-		hasModality(modalities.input, "video"),
+		modalityFlagValue(modalities.input, "text"),
+		modalityFlagValue(modalities.input, "image"),
+		modalityFlagValue(modalities.input, "audio"),
+		modalityFlagValue(modalities.input, "video"),
 	];
 }
 

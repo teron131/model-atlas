@@ -344,8 +344,8 @@ const broadAAResourceOnlyModels = attachFinalScores(
 				gdpvalScore: 90,
 				artificialAnalysisCost: 0.1,
 				artificialAnalysisSeconds: 1,
-				tps: 100,
-				latency: 1,
+				throughputTokensPerSecond: 100,
+				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
 			evaluations: { gdpval_normalized: 90, hle: 90 },
@@ -356,8 +356,8 @@ const broadAAResourceOnlyModels = attachFinalScores(
 				gdpvalScore: 10,
 				artificialAnalysisCost: 10,
 				artificialAnalysisSeconds: 100,
-				tps: 50,
-				latency: 2,
+				throughputTokensPerSecond: 50,
+				latencySeconds: 2,
 				disableBaseCost: true,
 			}),
 			evaluations: { gdpval_normalized: 10, hle: 10 },
@@ -375,8 +375,8 @@ const tokenProxySpeedModels = attachFinalScores(
 			deepSWEScore: 90,
 			deepSWECost: 1,
 			deepSWEOutputTokens: 1_000,
-			tps: 100,
-			latency: 1,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
@@ -384,8 +384,8 @@ const tokenProxySpeedModels = attachFinalScores(
 			deepSWEScore: 80,
 			deepSWECost: 1,
 			deepSWEOutputTokens: 1_000,
-			tps: 10,
-			latency: 1,
+			throughputTokensPerSecond: 10,
+			latencySeconds: 1,
 			disableBaseCost: true,
 		}),
 	],
@@ -398,13 +398,13 @@ const latencySpeedModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/low-latency",
-			tps: 100,
-			latency: 1,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 1,
 		}),
 		modelCandidate({
 			id: "test/high-latency",
-			tps: 100,
-			latency: 10,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 10,
 		}),
 	],
 	STAGE_CONFIG.scoring,
@@ -434,11 +434,11 @@ assertClose(logInputMinMaxScores([1, 10, 100], "lower")[1], 50);
 
 // Provider speed inputs are logged before outer min-max normalization.
 const absoluteGapSpeedModels = attachFinalScores(
-	[10, 20, 100].map((tps) =>
+	[10, 20, 100].map((throughputTokensPerSecond) =>
 		modelCandidate({
-			id: `test/absolute-gap-speed-${tps}`,
-			tps,
-			latency: 1,
+			id: `test/absolute-gap-speed-${throughputTokensPerSecond}`,
+			throughputTokensPerSecond,
+			latencySeconds: 1,
 			disableBaseCost: true,
 		}),
 	),
@@ -448,12 +448,12 @@ assertClose(absoluteGapSpeedModels[1]?.scores.speed_score, 48.1885);
 
 // Price inputs are logged once; conditional and workflow-derived signals are not logged again.
 const absoluteGapValueModels = attachFinalScores(
-	[1, 10, 100].map((blendPrice) =>
+	[1, 10, 100].map((blendedPrice) =>
 		modelCandidate({
-			id: `test/absolute-gap-value-${blendPrice}`,
+			id: `test/absolute-gap-value-${blendedPrice}`,
 			intelligenceScore: 50,
 			agenticScore: 50,
-			blendPrice,
+			blendedPrice,
 		}),
 	),
 	STAGE_CONFIG.scoring,
@@ -643,24 +643,24 @@ const directResourceScoredModels = attachFinalScores(
 			deepSWEScore: 90,
 			deepSWECost: 0.1,
 			deepSWESeconds: 90,
-			tps: 100,
-			latency: 1,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 1,
 		}),
 		modelCandidate({
 			id: "test/frontier-middle",
 			deepSWEScore: 50,
 			deepSWECost: 0.5,
 			deepSWESeconds: 50,
-			tps: 100,
-			latency: 1,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 1,
 		}),
 		modelCandidate({
 			id: "test/frontier-fast",
 			deepSWEScore: 10,
 			deepSWECost: 0.9,
 			deepSWESeconds: 10,
-			tps: 100,
-			latency: 1,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 1,
 		}),
 	],
 	STAGE_CONFIG.scoring,
@@ -819,8 +819,8 @@ const sparseResourceCoverageModels = attachFinalScores(
 		{
 			...modelCandidate({
 				id: "test/full-resource-coverage",
-				tps: 100,
-				latency: 1,
+				throughputTokensPerSecond: 100,
+				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
 			evaluations: {
@@ -837,8 +837,8 @@ const sparseResourceCoverageModels = attachFinalScores(
 		{
 			...modelCandidate({
 				id: "test/sparse-resource-sprinter",
-				tps: 100,
-				latency: 1,
+				throughputTokensPerSecond: 100,
+				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
 			evaluations: {
@@ -1286,7 +1286,7 @@ const crossEffortDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
 	crossEffortModels,
 	crossEffortConfig,
 ).get("target");
-assertEqual(crossEffortDiagnostic?.crossEffortUsed, true);
+assertEqual(crossEffortDiagnostic?.includesCrossEffort, true);
 if (!((crossEffortDiagnostic?.crossEffortEffectiveModelCount ?? 0) >= 4)) {
 	throw new Error("Expected independent cross-effort validation coverage");
 }
@@ -1336,7 +1336,7 @@ assertEqual(
 	buildBenchmarkImputationDiagnosticsByKey(
 		sparseTransitionModels,
 		crossEffortConfig,
-	).get("target")?.crossEffortUsed,
+	).get("target")?.includesCrossEffort,
 	false,
 );
 
@@ -1432,15 +1432,15 @@ function modelCandidate(options: {
 	id: string;
 	intelligenceScore?: number | null;
 	agenticScore?: number | null;
-	blendPrice?: number | null;
+	blendedPrice?: number | null;
 	artificialAnalysisCost?: number | null;
 	artificialAnalysisSeconds?: number | null;
 	deepSWEScore?: number | null;
 	deepSWECost?: number | null;
 	deepSWESeconds?: number | null;
 	deepSWEOutputTokens?: number | null;
-	tps?: number | null;
-	latency?: number | null;
+	throughputTokensPerSecond?: number | null;
+	latencySeconds?: number | null;
 	gdpvalScore?: number | null;
 	gdpvalCost?: number | null;
 	gdpvalSeconds?: number | null;
@@ -1475,12 +1475,13 @@ function modelCandidate(options: {
 			: {
 					input: 1,
 					output: 1,
-					blended_price: options.blendPrice ?? null,
+					blended_price: options.blendedPrice ?? null,
 				},
 		context_window: null,
 		speed: {
-			throughput_tokens_per_second_median: options.tps ?? null,
-			latency_seconds_median: options.latency ?? null,
+			throughput_tokens_per_second_median:
+				options.throughputTokensPerSecond ?? null,
+			latency_seconds_median: options.latencySeconds ?? null,
 			e2e_latency_seconds_median: null,
 		},
 		intelligence: null,
@@ -1509,7 +1510,7 @@ function modelCandidate(options: {
 
 function resourceModel(
 	modelKey: string,
-	resourceAmount: number,
+	resourceScale: number,
 	reasoningEffort: string | null = null,
 ): LlmStatsModelCandidate {
 	return {
@@ -1518,10 +1519,10 @@ function resourceModel(
 			intelligenceScore: 50,
 			agenticScore: 50,
 			deepSWEScore: 50,
-			deepSWECost: resourceAmount,
-			deepSWESeconds: resourceAmount * 10,
-			tps: 100,
-			latency: 1,
+			deepSWECost: resourceScale,
+			deepSWESeconds: resourceScale * 10,
+			throughputTokensPerSecond: 100,
+			latencySeconds: 1,
 			disableBaseCost: true,
 		}),
 		reasoning_effort: reasoningEffort,

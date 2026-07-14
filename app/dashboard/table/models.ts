@@ -3,12 +3,12 @@
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { modelDisplayName } from "../shared/modelDisplay";
 
-export type Direction = "ascending" | "descending";
+export type SortDirection = "ascending" | "descending";
 
 type TaskMetricColumnInput = {
 	key: string;
 	metric: string;
-	direction: Direction;
+	direction: SortDirection;
 	label: string;
 };
 
@@ -520,7 +520,7 @@ export type SortKey =
 
 export type SortState = {
 	key: SortKey;
-	direction: Direction;
+	direction: SortDirection;
 };
 
 const taskMetricColumnsByBenchmark: Partial<
@@ -553,15 +553,15 @@ export type TableRow = {
 	model: LlmStatsModel;
 	intelligenceRank: number;
 	originalIndex: number;
-	priority: number;
+	aliasPriority: number;
 };
 
 type UnrankedTableRow = Omit<TableRow, "intelligenceRank">;
 
 type Sorter = {
-	direction: Direction;
+	direction: SortDirection;
 	type: "number" | "text";
-	value: (row: TableRow) => number | string | null | undefined;
+	get: (row: TableRow) => number | string | null | undefined;
 };
 
 const dashboardMetricSorters = Object.fromEntries(
@@ -570,7 +570,7 @@ const dashboardMetricSorters = Object.fromEntries(
 		{
 			direction: column.direction,
 			type: column.type,
-			value: (row: TableRow) => dashboardMetricValue(row.model, column),
+			get: (row: TableRow) => dashboardMetricValue(row.model, column),
 		},
 	]),
 ) as Record<DashboardMetricColumn["key"], Sorter>;
@@ -579,47 +579,47 @@ export const sorters: Record<SortKey, Sorter> = {
 	rank: {
 		direction: "ascending",
 		type: "number",
-		value: (row) => row.intelligenceRank,
+		get: (row) => row.intelligenceRank,
 	},
 	model: {
 		direction: "ascending",
 		type: "text",
-		value: (row) => modelDisplayName(row.model),
+		get: (row) => modelDisplayName(row.model),
 	},
 	overall: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.scores?.overall_score,
+		get: (row) => row.model.scores?.overall_score,
 	},
 	intelligence: {
 		direction: "descending",
 		type: "number",
-		value: intelligenceScore,
+		get: intelligenceScore,
 	},
 	agentic: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.scores?.agentic_score,
+		get: (row) => row.model.scores?.agentic_score,
 	},
 	speed: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.scores?.speed_score,
+		get: (row) => row.model.scores?.speed_score,
 	},
 	value: {
 		direction: "descending",
 		type: "number",
-		value: (row) => row.model.scores?.value_score,
+		get: (row) => row.model.scores?.value_score,
 	},
 	blend: {
 		direction: "ascending",
 		type: "number",
-		value: (row) => row.model.cost?.blended_price,
+		get: (row) => row.model.cost?.blended_price,
 	},
 	context: {
 		direction: "descending",
 		type: "number",
-		value: (row) => contextWindowValue(row.model),
+		get: (row) => contextWindowValue(row.model),
 	},
 	...dashboardMetricSorters,
 };
@@ -633,8 +633,8 @@ export function sortedRows(
 	const sorter = sorters[sortState.key] ?? sorters.rank;
 	const direction = sortState.direction === "descending" ? -1 : 1;
 	return filteredRows(rows, filterQuery).sort((left, right) => {
-		const leftValue = sorter.value(left);
-		const rightValue = sorter.value(right);
+		const leftValue = sorter.get(left);
+		const rightValue = sorter.get(right);
 		const missingCompared = compareMissingValues(sorter, leftValue, rightValue);
 		if (missingCompared !== 0) {
 			return missingCompared;
@@ -649,20 +649,20 @@ export function sortedRows(
 
 /** Collapse duplicate model routes before assigning display ranks. */
 export function dedupeDisplayModels(models: LlmStatsModel[]) {
-	const byDisplayId = new Map<string, UnrankedTableRow>();
+	const rowsByIdentity = new Map<string, UnrankedTableRow>();
 	for (const [originalIndex, model] of models.entries()) {
-		const key = canonicalDisplayModelId(model);
+		const key = displayKey(model);
 		const candidate = {
 			model,
 			originalIndex,
-			priority: displayAliasPriority(model),
+			aliasPriority: displayAliasPriority(model),
 		};
-		const existing = byDisplayId.get(key);
-		if (!existing || candidate.priority < existing.priority) {
-			byDisplayId.set(key, candidate);
+		const existing = rowsByIdentity.get(key);
+		if (!existing || candidate.aliasPriority < existing.aliasPriority) {
+			rowsByIdentity.set(key, candidate);
 		}
 	}
-	return attachIntelligenceRanks([...byDisplayId.values()]).sort(
+	return attachIntelligenceRanks([...rowsByIdentity.values()]).sort(
 		(left, right) => left.originalIndex - right.originalIndex,
 	);
 }
@@ -831,7 +831,7 @@ function compareSortValues(sorter: Sorter, left: unknown, right: unknown) {
 	return Number(left) - Number(right);
 }
 
-function canonicalDisplayModelId(model: LlmStatsModel) {
+function displayKey(model: LlmStatsModel) {
 	const id = typeof model.id === "string" ? model.id : "";
 	const slashIndex = id.indexOf("/");
 	if (slashIndex <= 0) {
