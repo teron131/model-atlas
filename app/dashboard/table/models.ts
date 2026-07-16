@@ -1,7 +1,7 @@
 /** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
-import { modelDisplayName } from "../shared/modelDisplay";
+import { modelDisplayName, modelMatchesQuery } from "../shared/modelDisplay";
 
 export type SortDirection = "ascending" | "descending";
 
@@ -738,16 +738,7 @@ function inputModalityRank(model: LlmStatsModel) {
 }
 
 function filteredRows(rows: TableRow[], filterQuery: string) {
-	const query = filterQuery.trim().toLowerCase();
-	if (!query) {
-		return [...rows];
-	}
-	return rows.filter(({ model }) => {
-		const searchable = [modelDisplayName(model), model.id, model.provider]
-			.join(" ")
-			.toLowerCase();
-		return searchable.includes(query);
-	});
+	return rows.filter(({ model }) => modelMatchesQuery(model, filterQuery));
 }
 
 function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {

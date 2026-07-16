@@ -7,13 +7,23 @@ import {
 	type MouseEvent as ReactMouseEvent,
 	type PointerEvent as ReactPointerEvent,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../shared/modelDisplay";
+import { CaptureButton } from "../capture/capture-button";
+import { captureFileToken } from "../capture/export-png";
+import { useDisplayLimit } from "../shared/display-controls";
+import { ModelControlToolbar } from "../shared/model-control-toolbar";
+import {
+	modelCount,
+	modelMatchesQuery,
+	modelsForVariantDisplay,
+	modelVariantKey,
+} from "../shared/modelDisplay";
 import {
 	providerAssetLogo,
 	providerName,
@@ -23,7 +33,13 @@ import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart, SummaryCard } from "./ChartComponents";
 import { bestByScore, valueDistribution } from "./chartStats";
 import styles from "./graphs.module.css";
-import { focusHover, modelName, shortLabel } from "./models";
+import {
+	filterByModelControls,
+	focusHover,
+	modelName,
+	providerOptions,
+	shortLabel,
+} from "./models";
 import { Panel } from "./Panel";
 import { stableSvgScale } from "./PlotPrimitives";
 import {
@@ -33,11 +49,12 @@ import {
 	priceEfficiencyHoverRows,
 	priceEfficiencySummaryDetail,
 } from "./priceEfficiencyComparisonModel";
-import type { HoverSetter } from "./types";
+import type { CostFilter, HoverSetter } from "./types";
 
 const SCORE_DOMAIN: [number, number] = [0, 100];
-const SLOPE_GRAPH_BASE_HEIGHT = 940;
-const SLOPE_LABEL_MIN_GAP = 22;
+const SLOPE_LABEL_MIN_GAP = 24;
+const PRICE_EFFICIENCY_CHART_WIDTH = 1100;
+const PANEL_TITLE = "Price vs Cost Efficiency";
 
 type SlopeGraphRow = {
 	row: PriceEfficiencyComparisonRow;
@@ -59,35 +76,131 @@ type SlopeHoverEvent =
 
 export function PriceEfficiencyComparisonPanel({
 	benchmarkPortfolio,
-	expandReasoningVariants,
-	models,
+	maxCost,
+	selectedProviders,
+	onSelectedProvidersChange,
 	referenceModels,
 	setHover,
 }: {
 	benchmarkPortfolio: BenchmarkPortfolio;
-	expandReasoningVariants: boolean;
-	models: LlmStatsModel[];
+	maxCost: CostFilter;
+	selectedProviders: string[];
+	onSelectedProvidersChange: (providers: string[]) => void;
 	referenceModels: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const rows = useMemo(
+	const [displayExpanded, setDisplayExpanded] = useState(false);
+	const [filterQuery, setFilterQuery] = useState("");
+	const panelRef = useRef<HTMLElement>(null);
+	const displayModels = useMemo(
 		() =>
-			priceEfficiencyComparisonRows(
-				models,
-				referenceModels,
-				benchmarkPortfolio,
-				expandReasoningVariants,
-			),
-		[benchmarkPortfolio, expandReasoningVariants, models, referenceModels],
+			modelsForVariantDisplay(referenceModels, displayExpanded)
+				.filter(
+					(model) =>
+						model.name != null &&
+						Number.isFinite(model.scores?.intelligence_score),
+				)
+				.sort(
+					(left, right) =>
+						right.scores.intelligence_score - left.scores.intelligence_score,
+				),
+		[displayExpanded, referenceModels],
 	);
-
+	const providerChoices = useMemo(
+		() => providerOptions(displayModels),
+		[displayModels],
+	);
+	const providerModelCount = modelCount(displayModels);
+	const availableRows = useMemo(() => {
+		const filteredModels = filterByModelControls(
+			displayModels,
+			(model) => model,
+			{ providers: selectedProviders, maxCost },
+		);
+		return priceEfficiencyComparisonRows(
+			filteredModels,
+			referenceModels,
+			benchmarkPortfolio,
+			displayExpanded,
+		).sort(
+			(left, right) =>
+				right.model.scores.intelligence_score -
+				left.model.scores.intelligence_score,
+		);
+	}, [
+		benchmarkPortfolio,
+		displayModels,
+		displayExpanded,
+		maxCost,
+		referenceModels,
+		selectedProviders,
+	]);
+	const maximumLimit = availableRows.length;
+	const [effectiveLimit, setDisplayLimit] = useDisplayLimit(maximumLimit);
+	const matchingRows = useMemo(
+		() =>
+			availableRows.filter((row) => modelMatchesQuery(row.model, filterQuery)),
+		[availableRows, filterQuery],
+	);
+	const rows = matchingRows.slice(0, effectiveLimit);
+	const itemKind = displayExpanded ? "variants" : "models";
+	const captureFileName = [
+		`model-atlas-price-vs-cost-efficiency-top-${effectiveLimit}-${itemKind}`,
+		...(selectedProviders.length === 0
+			? []
+			: [`providers-${selectedProviders.map(captureFileToken).join("-")}`]),
+		...(filterQuery.trim().length === 0
+			? []
+			: [`filter-${captureFileToken(filterQuery)}`]),
+	].join("-");
+	const controls = (
+		<ModelControlToolbar
+			filterQuery={filterQuery}
+			rowCountLabel={
+				filterQuery.trim().length === 0
+					? null
+					: `${matchingRows.length} matches`
+			}
+			provider={{
+				id: "price-efficiency-provider-menu",
+				label: "Filter price efficiency providers",
+				options: providerChoices,
+				totalCount: providerModelCount,
+				selectedProviders,
+				onSelectedProvidersChange,
+			}}
+			display={{
+				id: "price-efficiency-model-limit",
+				label: "Price efficiency graph display",
+				expanded: displayExpanded,
+				itemKind,
+				maximum: maximumLimit,
+				value: effectiveLimit,
+				onExpandedChange: setDisplayExpanded,
+				onValueChange: setDisplayLimit,
+			}}
+			screenshotControl={
+				<CaptureButton
+					targetRef={panelRef}
+					title={PANEL_TITLE}
+					captureWidth={PRICE_EFFICIENCY_CHART_WIDTH + 48}
+					fileName={captureFileName}
+				/>
+			}
+			onFilterQueryChange={setFilterQuery}
+		/>
+	);
 	if (rows.length === 0) {
 		return (
 			<Panel
-				title="Price vs Cost Efficiency"
+				captureEnabled={false}
+				captureWidth={PRICE_EFFICIENCY_CHART_WIDTH}
+				panelRef={panelRef}
+				title={PANEL_TITLE}
 				copy="Price score plotted against benchmark task-cost efficiency."
 				wide
 			>
+				{controls}
 				<EmptyChart message="No models have enough blended price and benchmark task-cost data for the price-efficiency comparison." />
 			</Panel>
 		);
@@ -105,11 +218,15 @@ export function PriceEfficiencyComparisonPanel({
 
 	return (
 		<Panel
-			title="Price vs Cost Efficiency"
+			captureEnabled={false}
+			captureWidth={PRICE_EFFICIENCY_CHART_WIDTH}
+			panelRef={panelRef}
+			title={PANEL_TITLE}
 			copy="Each point is one visible model variant. Both axes keep the full public leaderboard as their reference population, so filters only change which points are shown. Price score uses log blended price with model-balanced 2.5% one-sided winsorization. Benchmark cost efficiency averages model-balanced percentile and winsorized min-max mappings of logged cost residuals from the model-excluded expectation at comparable benchmark quality; it excludes provider and workflow price signals."
 			summary={
 				<BoxWhiskerSummary
 					label="Benchmark cost efficiency"
+					countLabel={itemKind}
 					distribution={scoreDistribution}
 					domainMax={100}
 					formatValue={(value) => value.toFixed(0)}
@@ -118,6 +235,7 @@ export function PriceEfficiencyComparisonPanel({
 			}
 			wide
 		>
+			{controls}
 			<PriceEfficiencySlopeGraph rows={plottedRows} setHover={setHover} />
 			<div className={styles.chartSummary}>
 				{efficiencyLeader == null ? null : (
@@ -153,17 +271,15 @@ function PriceEfficiencySlopeGraph({
 	rows: PriceEfficiencyComparisonRow[];
 	setHover: HoverSetter;
 }) {
-	const width = 940;
-	const margin = { top: 34, right: 196, bottom: 30, left: 196 };
+	const width = PRICE_EFFICIENCY_CHART_WIDTH;
+	const margin = { top: 34, right: 380, bottom: 30, left: 330 };
 	const minimumLabelY = margin.top + 18;
-	const height = Math.max(
-		SLOPE_GRAPH_BASE_HEIGHT,
+	const height =
 		minimumLabelY +
-			Math.max(0, rows.length - 1) * SLOPE_LABEL_MIN_GAP +
-			margin.bottom,
-	);
-	const leftX = 310;
-	const rightX = width - 310;
+		Math.max(0, rows.length - 1) * SLOPE_LABEL_MIN_GAP +
+		margin.bottom;
+	const leftX = margin.left;
+	const rightX = width - margin.right;
 	const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
 	const y = scaleLinear()
 		.domain(SCORE_DOMAIN)

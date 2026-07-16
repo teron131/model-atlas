@@ -45,6 +45,31 @@ export function modelDisplayName(model: LlmStatsModel): string {
 		: `${baseName} (${model.reasoning_effort})`;
 }
 
+/** Match the model identity fields exposed by dashboard search controls. */
+export function modelMatchesQuery(
+	model: LlmStatsModel,
+	filterQuery: string,
+): boolean {
+	const query = filterQuery.trim().toLowerCase();
+	if (!query) {
+		return true;
+	}
+	const searchable = [modelDisplayName(model), model.id, model.provider]
+		.join(" ")
+		.toLowerCase();
+	return query.split(/\s+/).every((term) => searchable.includes(term));
+}
+
+/** Toggle one provider while an empty selection continues to represent All. */
+export function toggleProviderFilter(
+	selectedProviders: string[],
+	provider: string,
+): string[] {
+	return selectedProviders.includes(provider)
+		? selectedProviders.filter((selected) => selected !== provider)
+		: [...selectedProviders, provider];
+}
+
 export function modelVariantKey(model: LlmStatsModel): string {
 	return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
 }

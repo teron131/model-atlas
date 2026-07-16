@@ -457,6 +457,7 @@ export function PointHitTarget({
 	const displayName = hoverTitle ?? modelName(model);
 	return (
 		<foreignObject
+			data-capture-exclude
 			x={cx - size / 2}
 			y={cy - size / 2}
 			width={size}

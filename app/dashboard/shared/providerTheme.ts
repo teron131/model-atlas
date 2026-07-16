@@ -45,7 +45,6 @@ const providerLabels: Record<string, string> = {
 	meta: "Meta",
 	minimax: "MiniMax",
 	mistral: "Mistral",
-	mistralai: "Mistral",
 	moonshotai: "Moonshot AI",
 	"nex-agi": "Nex AGI",
 	nvidia: "NVIDIA",
@@ -54,10 +53,15 @@ const providerLabels: Record<string, string> = {
 	tencent: "Tencent",
 	upstage: "Upstage",
 	xai: "xAI",
-	"x-ai": "xAI",
 	xiaomi: "Xiaomi",
 	zai: "Z AI",
-	"z-ai": "Z AI",
+};
+
+const providerFilterAliases: Record<string, string> = {
+	"meta-llama": "meta",
+	mistralai: "mistral",
+	"x-ai": "xai",
+	"z-ai": "zai",
 };
 
 const fallbackProviderColors = [
@@ -77,11 +81,12 @@ export function providerName(source: ProviderLike | string | null) {
 }
 
 export function providerFilterKey(provider: string | null | undefined) {
-	return String(provider ?? "unknown")
+	const key = String(provider ?? "unknown")
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "");
+	return providerFilterAliases[key] ?? key;
 }
 
 export function providerColorKey(provider: string | null | undefined) {

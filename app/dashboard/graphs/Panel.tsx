@@ -1,7 +1,13 @@
 /** Section wrapper used by dashboard graph panels. */
 
-import type { ReactNode } from "react";
+import {
+	type CSSProperties,
+	type ReactNode,
+	type RefObject,
+	useRef,
+} from "react";
 
+import { CaptureButton } from "../capture/capture-button";
 import styles from "./graphs.module.css";
 
 export function Panel({
@@ -13,6 +19,10 @@ export function Panel({
 	children,
 	note,
 	wide = false,
+	captureWidth,
+	captureFileName,
+	captureEnabled = true,
+	panelRef,
 }: {
 	kicker?: string;
 	title: string;
@@ -22,7 +32,17 @@ export function Panel({
 	children: ReactNode;
 	note?: ReactNode;
 	wide?: boolean;
+	captureWidth: number;
+	captureFileName?: string;
+	captureEnabled?: boolean;
+	panelRef?: RefObject<HTMLElement | null>;
 }) {
+	const internalPanelRef = useRef<HTMLElement>(null);
+	const resolvedPanelRef = panelRef ?? internalPanelRef;
+	const artifactWidth = captureWidth + 48;
+	const captureStyle = {
+		"--capture-artifact-width": `${artifactWidth}px`,
+	} as CSSProperties;
 	const showChips = chips != null && chips.length > 0;
 	const panelClassName = [
 		styles.panel,
@@ -33,7 +53,11 @@ export function Panel({
 		.join(" ");
 
 	return (
-		<article className={panelClassName}>
+		<article
+			className={panelClassName}
+			ref={resolvedPanelRef}
+			style={captureStyle}
+		>
 			<div className={styles.panelHead}>
 				<div className={styles.panelMeta}>
 					{kicker ? <p className={styles.chartKicker}>{kicker}</p> : null}
@@ -55,6 +79,14 @@ export function Panel({
 				<div className={styles.panelTitleBlock}>
 					<div className={styles.panelTitleWrap}>
 						<h2>{title}</h2>
+						{captureEnabled ? (
+							<CaptureButton
+								captureWidth={artifactWidth}
+								fileName={captureFileName}
+								targetRef={resolvedPanelRef}
+								title={title}
+							/>
+						) : null}
 					</div>
 					{copy ? <p className={styles.panelCopy}>{copy}</p> : null}
 				</div>
