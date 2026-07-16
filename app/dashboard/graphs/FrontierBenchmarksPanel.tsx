@@ -5,6 +5,7 @@ import type {
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../../src/model-atlas/stats/types";
+import { captureFileToken } from "../capture/export-png";
 import { modelVariantKey } from "../shared/modelDisplay";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { SummaryCard } from "./ChartComponents";
@@ -38,6 +39,8 @@ import styles from "./graphs.module.css";
 import { modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import type { HoverSetter } from "./types";
+
+const FRONTIER_CHART_WIDTH = 760;
 
 export function FrontierBenchmarksPanel({
 	payload,
@@ -95,6 +98,16 @@ export function FrontierBenchmarksPanel({
 		axisKey,
 		axisOptions,
 	);
+	const selectedBenchmarkLabel =
+		selectedBenchmarkKey === "all"
+			? "all"
+			: (benchmarkOptions.find((option) => option.key === selectedBenchmarkKey)
+					?.label ?? selectedBenchmarkKey);
+	const captureFileName = [
+		"model-atlas-frontier-benchmarks",
+		captureFileToken(selectedBenchmarkLabel),
+		captureFileToken(frontierBenchmarkAxisConfig[selectedAxisKey].shortLabel),
+	].join("-");
 	const axisConfig = frontierBenchmarkAxisConfigFor(
 		selectedAxisKey,
 		isAllBenchmark,
@@ -159,6 +172,8 @@ export function FrontierBenchmarksPanel({
 
 	return (
 		<Panel
+			captureWidth={FRONTIER_CHART_WIDTH}
+			captureFileName={captureFileName}
 			title="Frontier Benchmarks"
 			copy={panelCopy}
 			summary={
@@ -233,6 +248,7 @@ export function FrontierBenchmarksPanel({
 				labelRows={labeledRows}
 				getLabel={(row) => shortLabel(row.model)}
 				setHover={setHover}
+				width={FRONTIER_CHART_WIDTH}
 				height={520}
 			/>
 			<div className={styles.chartSummary}>

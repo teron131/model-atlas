@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import {
+	filterByModelControls,
 	limitByIntelligenceScore,
 	providerOptions,
 } from "../app/dashboard/graphs/models";
 import { cacheBustedPath } from "../app/dashboard/shared/format";
 import {
 	modelDisplayName,
+	modelMatchesQuery,
 	modelsForVariantDisplay,
+	toggleProviderFilter,
 } from "../app/dashboard/shared/modelDisplay";
-import { metricColumnsForView } from "../app/dashboard/table/Columns";
 import {
 	dedupeDisplayModels,
 	type SortState,
@@ -142,10 +144,62 @@ assert.equal(
 	2,
 	"provider counts should count models instead of variants",
 );
+
+const providerAliasOptions = providerOptions([
+	{ ...rankedModel("meta/llama-alpha", "Llama Alpha", 80), provider: "Meta" },
+	{
+		...rankedModel("meta-llama/llama-beta", "Llama Beta", 70),
+		provider: "Meta-Llama",
+	},
+	{
+		...rankedModel("mistral/large", "Mistral Large", 75),
+		provider: "Mistral",
+	},
+	{
+		...rankedModel("mistralai/small", "Mistral Small", 65),
+		provider: "MistralAI",
+	},
+]);
+assert.deepEqual(
+	providerAliasOptions
+		.filter((option) => option.slug === "meta" || option.slug === "mistral")
+		.map(({ slug, label, count }) => ({ slug, label, count }))
+		.sort((left, right) => left.slug.localeCompare(right.slug)),
+	[
+		{ slug: "meta", label: "Meta", count: 2 },
+		{ slug: "mistral", label: "Mistral", count: 2 },
+	],
+	"provider aliases should share one filter option and canonical label",
+);
 assert.equal(
 	providerModelOptions[0]?.slug,
 	"anthropic",
 	"provider ordering should score each model once instead of overweighting variants",
+);
+
+assert.deepEqual(toggleProviderFilter([], "openai"), ["openai"]);
+assert.deepEqual(toggleProviderFilter(["openai"], "anthropic"), [
+	"openai",
+	"anthropic",
+]);
+assert.deepEqual(toggleProviderFilter(["openai", "anthropic"], "openai"), [
+	"anthropic",
+]);
+assert.deepEqual(
+	filterByModelControls(
+		[
+			{ ...rankedModel("openai/first", "First", 90), provider: "OpenAI" },
+			{
+				...rankedModel("anthropic/second", "Second", 80),
+				provider: "Anthropic",
+			},
+			{ ...rankedModel("google/third", "Third", 70), provider: "Google" },
+		],
+		(model) => model,
+		{ providers: ["openai", "anthropic"], maxCost: "all" },
+	).map((model) => model.id),
+	["openai/first", "anthropic/second"],
+	"provider filtering should include the union of every selected provider",
 );
 
 const modalityRows = dedupeDisplayModels([
@@ -160,59 +214,6 @@ assert.deepEqual(
 	),
 	["provider/all", "provider/vision", "provider/text"],
 	"input modality sort should order by capability coverage, not icon label text",
-);
-
-assert.deepEqual(
-	metricColumnsForView("evals").map((column) => column.key),
-	[
-		"artificialAnalysisCost",
-		"artificialAnalysisSeconds",
-		"artificialAnalysisTokens",
-		"agentsLastExam",
-		"agentsLastExamCost",
-		"agentsLastExamSeconds",
-		"agentsLastExamInputTokens",
-		"agentsLastExamOutputTokens",
-		"automationBench",
-		"automationBenchCost",
-		"blueprintBench",
-		"critpt",
-		"critptCost",
-		"critptSeconds",
-		"critptTokens",
-		"cursorBench",
-		"cursorBenchCost",
-		"cursorBenchTokens",
-		"deepSWE",
-		"deepSWECost",
-		"deepSWESeconds",
-		"deepSWETokens",
-		"gdpPdf",
-		"gdpval",
-		"gdpvalCost",
-		"gdpvalSeconds",
-		"gdpvalTokens",
-		"harveyLab",
-		"harveyLabCost",
-		"harveyLabSeconds",
-		"harveyLabTokens",
-		"hle",
-		"hleCost",
-		"hleSeconds",
-		"hleTokens",
-		"riemannBench",
-		"tauBanking",
-		"tauBankingCost",
-		"tauBankingSeconds",
-		"tauBankingTokens",
-		"terminalBench",
-		"terminalBenchCost",
-		"terminalBenchSeconds",
-		"terminalBenchTokens",
-		"lcr",
-		"scicode",
-	],
-	"eval columns should put frontier benchmarks before baseline benchmarks, with resource metrics next to their benchmark",
 );
 
 assert.deepEqual(
@@ -260,6 +261,21 @@ assert.deepEqual(
 	]),
 	[["Reasoner", 90]],
 	"collapsed mode should keep the strongest variant and omit its effort label",
+);
+const searchableVariant = {
+	...rankedModel("provider/reasoner", "Reasoner", 90),
+	provider: "Example Provider",
+	reasoning_effort: "max",
+};
+assert.equal(
+	modelMatchesQuery(searchableVariant, "reasoner max"),
+	true,
+	"model search should include the visible reasoning variant label",
+);
+assert.equal(
+	modelMatchesQuery(searchableVariant, "unrelated"),
+	false,
+	"model search should reject unrelated identity text",
 );
 assert.deepEqual(
 	dedupeDisplayModels(modelsForVariantDisplay(effortVariants, true)).map(

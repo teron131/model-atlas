@@ -3,21 +3,17 @@
 import {
 	AudioLines,
 	BrainCircuit,
+	Camera,
 	CircleDollarSign,
 	FileText,
 	Image as ImageSymbol,
 	Moon,
-	RefreshCcw,
 	Sun,
 	Video,
 	Zap,
 } from "lucide-react";
 import { RiRobot3Line } from "react-icons/ri";
 import { RxTimer } from "react-icons/rx";
-
-export function RefreshIcon() {
-	return <RefreshCcw aria-hidden="true" />;
-}
 
 export function MoonIcon() {
 	return <Moon aria-hidden="true" />;
@@ -55,6 +51,10 @@ export function ClockIcon() {
 
 export function DollarIcon() {
 	return <CircleDollarSign aria-hidden="true" />;
+}
+
+export function ScreenshotIcon() {
+	return <Camera aria-hidden="true" />;
 }
 
 export function TextInputIcon() {

@@ -120,11 +120,42 @@ export function ModelRow({
 	metricColumns: DashboardMetricColumn[];
 }) {
 	const model = rowData.model;
+	const scores = model.scores ?? {};
+	return (
+		<tr>
+			<ModelScoreCells rowData={rowData} />
+			{scoreCell(scores.overall_score, model.provider, "overall")}
+			<TableCell
+				text={formatCost(model.cost?.blended_price)}
+				className="data-cell"
+			/>
+			<TableCell
+				text={formatContext(contextWindowValue(model))}
+				className="data-cell"
+			/>
+			{metricColumns.map((column) => (
+				<DashboardMetricCell key={column.key} model={model} column={column} />
+			))}
+		</tr>
+	);
+}
+
+/** Render the leaderboard identity and four score columns used by PNG exports. */
+export function ScoreModelRow({ rowData }: { rowData: TableRow }) {
+	return (
+		<tr>
+			<ModelScoreCells rowData={rowData} />
+		</tr>
+	);
+}
+
+function ModelScoreCells({ rowData }: { rowData: TableRow }) {
+	const model = rowData.model;
 	const visibleName = visibleModelName(modelDisplayName(model));
 	const visibleSlug = visibleModelSlug(model.id);
 	const scores = model.scores ?? {};
 	return (
-		<tr>
+		<>
 			<TableCell
 				text={String(rowData.intelligenceRank).padStart(2, "0")}
 				className="rank"
@@ -146,19 +177,7 @@ export function ModelRow({
 			{scoreCell(scores.agentic_score, model.provider)}
 			{scoreCell(scores.speed_score, model.provider)}
 			{scoreCell(scores.value_score, model.provider)}
-			{scoreCell(scores.overall_score, model.provider, "overall")}
-			<TableCell
-				text={formatCost(model.cost?.blended_price)}
-				className="data-cell"
-			/>
-			<TableCell
-				text={formatContext(contextWindowValue(model))}
-				className="data-cell"
-			/>
-			{metricColumns.map((column) => (
-				<DashboardMetricCell key={column.key} model={model} column={column} />
-			))}
-		</tr>
+		</>
 	);
 }
 
@@ -230,7 +249,7 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 	return (
 		<td className="data-cell modality-cell">
 			<span className="modality-icons" title={`Inputs: ${label}`}>
-				<span className="column-filter-label">Inputs: {label}</span>
+				<span className="visually-hidden">Inputs: {label}</span>
 				{inputModalities.map(({ Icon, key, label }) => {
 					const isAvailable = availableSet.has(key);
 					return (

@@ -8,11 +8,7 @@ import {
 	DollarIcon,
 	LightningIcon,
 } from "../shared/DashboardIcons";
-import {
-	type DashboardMetricColumn,
-	dashboardMetricColumns,
-	type SortKey,
-} from "./models";
+import type { SortKey } from "./models";
 
 export type SortableColumnDefinition = {
 	key: SortKey;
@@ -20,9 +16,7 @@ export type SortableColumnDefinition = {
 	className?: string;
 };
 
-export const staticSortableColumns: SortableColumnDefinition[] = [
-	{ key: "rank", label: "#", className: "rank" },
-	{ key: "model", label: "Model", className: "model-column" },
+export const scoreMetricColumns: SortableColumnDefinition[] = [
 	{
 		key: "intelligence",
 		label: metricLabel(<BrainIcon />, "Intel"),
@@ -39,58 +33,20 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
 		key: "value",
 		label: metricLabel(<DollarIcon />, "Value"),
 	},
+];
+
+export const scoreSortableColumns: SortableColumnDefinition[] = [
+	{ key: "rank", label: "#", className: "rank" },
+	{ key: "model", label: "Model", className: "model-column" },
+	...scoreMetricColumns,
+];
+
+export const staticSortableColumns: SortableColumnDefinition[] = [
+	...scoreSortableColumns,
 	{ key: "overall", label: "Ovrll" },
 	{ key: "blend", label: "Blend" },
 	{ key: "context", label: "Context" },
 ];
-
-export type ColumnView = "specs" | "evals" | "all";
-
-export const columnViewOptions: Array<{ key: ColumnView; label: string }> = [
-	{ key: "specs", label: "Specs" },
-	{ key: "evals", label: "Evals" },
-	{ key: "all", label: "All" },
-];
-
-const specsMetricKeys = new Set<SortKey>([
-	"modalities",
-	"inputCost",
-	"outputCost",
-	"cacheReadCost",
-	"throughput",
-	"latency",
-	"e2eLatency",
-]);
-
-export function metricColumnsForView(
-	columnView: ColumnView,
-): DashboardMetricColumn[] {
-	switch (columnView) {
-		case "specs":
-			return dashboardMetricColumns.filter((column) =>
-				specsMetricKeys.has(column.key),
-			);
-		case "evals":
-			return dashboardMetricColumns.filter(
-				(column) => column.group === "benchmarks" || column.group === "tasks",
-			);
-		case "all":
-			return dashboardMetricColumns;
-	}
-	const exhaustiveView: never = columnView;
-	return exhaustiveView;
-}
-
-export function columnKeysForView(columnView: ColumnView) {
-	return [
-		...staticSortableColumns.map((column) => column.key),
-		...metricColumnsForView(columnView).map((column) => column.key),
-	];
-}
-
-export function isSortKeyVisible(columnView: ColumnView, sortKey: SortKey) {
-	return columnKeysForView(columnView).includes(sortKey);
-}
 
 function metricLabel(icon: ReactNode, text: string) {
 	return (

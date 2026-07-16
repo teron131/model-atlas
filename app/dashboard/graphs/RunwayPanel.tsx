@@ -33,6 +33,8 @@ import {
 } from "./PlotPrimitives";
 import type { HoverRow, HoverSetter } from "./types";
 
+const RUNWAY_CHART_WIDTH = 760;
+
 export function RunwayPanel({
 	models,
 	setHover,
@@ -58,6 +60,7 @@ export function RunwayPanel({
 	if (candidates.length === 0) {
 		return (
 			<Panel
+				captureWidth={RUNWAY_CHART_WIDTH}
 				title="Context runway"
 				copy="Context runway appears when context and throughput metrics are available under the current filters."
 			>
@@ -66,7 +69,7 @@ export function RunwayPanel({
 		);
 	}
 
-	const width = 760;
+	const width = RUNWAY_CHART_WIDTH;
 	const height = 460;
 	const margin = { top: 30, right: 64, bottom: 72, left: 66 };
 	const xDomain = positiveDomain(
@@ -228,6 +231,7 @@ export function RunwayPanel({
 
 	return (
 		<Panel
+			captureWidth={RUNWAY_CHART_WIDTH}
 			title="Context runway"
 			copy="Context window plotted against median output throughput."
 			summary={

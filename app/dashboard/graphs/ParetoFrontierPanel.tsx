@@ -37,6 +37,7 @@ import type { HoverRow, HoverSetter } from "./types";
 const SCORE_AXIS_FORMAT_OPTIONS = {
 	formatTick: (tick: number) => tick.toFixed(0),
 };
+const PARETO_CHART_WIDTH = 820;
 
 export function ParetoFrontierPanel({
 	models,
@@ -63,6 +64,7 @@ export function ParetoFrontierPanel({
 	if (candidates.length === 0) {
 		return (
 			<Panel
+				captureWidth={PARETO_CHART_WIDTH}
 				title="Pareto frontier"
 				copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
 			>
@@ -71,7 +73,7 @@ export function ParetoFrontierPanel({
 		);
 	}
 
-	const width = 820;
+	const width = PARETO_CHART_WIDTH;
 	const height = 500;
 	const margin = { top: 26, right: 34, bottom: 68, left: 62 };
 	const values = candidates.map((model) => Number(model.scores.value_score));
@@ -162,6 +164,7 @@ export function ParetoFrontierPanel({
 
 	return (
 		<Panel
+			captureWidth={PARETO_CHART_WIDTH}
 			title="Pareto frontier"
 			copy="INTELLIGENCE score plotted against VALUE score."
 			summary={

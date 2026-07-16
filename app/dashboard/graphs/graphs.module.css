@@ -598,6 +598,9 @@
 }
 
 .panelTitleWrap {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
 	max-width: 880px;
 }
 
@@ -1101,7 +1104,7 @@
 
 .slopeRailTitle {
 	fill: var(--muted);
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 900;
 	text-transform: uppercase;
 }
@@ -1136,7 +1139,7 @@
 }
 
 .slopeLabel {
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: 900;
 	paint-order: stroke;
 	stroke: var(--chart-point-label-stroke);
@@ -1772,4 +1775,175 @@
 	.chartSummary {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
+}
+
+/* Graph exports use chart-owned intrinsic geometry instead of the browser viewport. */
+.panel[data-capture-layout="artifact"] {
+	width: var(--capture-artifact-width);
+	max-width: none;
+	overflow: hidden;
+	padding: 0 24px 20px;
+	background: var(--paper);
+}
+
+.panel[data-capture-layout="artifact"] .panelHead,
+.noKicker[data-capture-layout="artifact"] .panelHead {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+	column-gap: 35px;
+	row-gap: 10px;
+	align-items: start;
+	padding: 18px 0 10px;
+}
+
+.panel[data-capture-layout="artifact"] .panelTitleBlock,
+.noKicker[data-capture-layout="artifact"] .panelTitleBlock {
+	grid-column: 1;
+	grid-row: 1;
+	width: 100%;
+}
+
+.panel[data-capture-layout="artifact"] .panelMeta .panelSide,
+.noKicker[data-capture-layout="artifact"] .panelMeta .panelSide {
+	grid-column: 2;
+	grid-row: 1;
+	justify-self: end;
+	justify-items: end;
+	width: auto;
+}
+
+.panel[data-capture-layout="artifact"] .boxWhiskerSummary {
+	width: min(280px, 100%);
+}
+
+.panel[data-capture-layout="artifact"] h2 {
+	font-size: 30px;
+	line-height: 0.96;
+	overflow-wrap: normal;
+}
+
+.panel[data-capture-layout="artifact"] .panelCopy {
+	display: block;
+	max-width: 620px;
+	margin-top: 10px;
+	font-size: 15px;
+	line-height: 1.35;
+	text-wrap: wrap;
+	white-space: normal;
+}
+
+.panel[data-capture-layout="artifact"] .chartWrap {
+	width: 100%;
+	overflow: hidden;
+	padding: 10px 0 8px;
+	scrollbar-width: none;
+}
+
+.panel[data-capture-layout="artifact"] .chartWrap svg,
+.panel[data-capture-layout="artifact"] .slopeChartWrap svg {
+	width: 100%;
+	max-width: 100%;
+	margin-inline: auto;
+}
+
+.panel[data-capture-layout="artifact"] .chartSummary {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14px;
+}
+
+.panel[data-capture-layout="artifact"] .summaryCard {
+	padding-top: 10px;
+}
+
+.panel[data-capture-layout="artifact"] .summaryValue {
+	overflow: hidden;
+	font-size: 14px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.panel[data-capture-layout="artifact"] .summaryDetail,
+.panel[data-capture-layout="artifact"] .summaryLabel {
+	font-size: 11px;
+	line-height: 1.25;
+}
+
+.panel[data-capture-layout="artifact"] .axisLabel,
+.panel[data-capture-layout="artifact"] .axisTitle,
+.panel[data-capture-layout="artifact"] .calloutLabel,
+.panel[data-capture-layout="artifact"] .cursorProjectionLabel,
+.panel[data-capture-layout="artifact"] .medianLabel {
+	font-size: 11px;
+}
+
+.panel[data-capture-layout="artifact"] .axisTitle {
+	fill: var(--chart-label-strong);
+}
+
+.panel[data-capture-layout="artifact"] .calloutLabel {
+	fill: var(--chart-callout-fill);
+}
+
+.panel[data-capture-layout="artifact"] .cursorProjectionLabel {
+	fill: var(--chart-point-label-soft);
+}
+
+.panel[data-capture-layout="artifact"] .medianLabel {
+	fill: var(--chart-label-fill);
+}
+
+.panel[data-capture-layout="artifact"] .pointLabel {
+	fill: var(--chart-point-label);
+	font-size: 12px;
+	stroke: var(--chart-point-label-stroke);
+	stroke-width: 3px;
+}
+
+.panel[data-capture-layout="artifact"] .frontierPoint .pointLabel,
+.panel[data-capture-layout="artifact"] .interactionPlot .pointLabel {
+	fill: var(--chart-point-label-soft);
+	font-size: 11px;
+	stroke: var(--chart-point-label-stroke-soft);
+	stroke-width: 2px;
+}
+
+.panel[data-capture-layout="artifact"] .pointLabelLine {
+	stroke: var(--chart-point-line);
+}
+
+.panel[data-capture-layout="artifact"] .pointButton {
+	display: none;
+}
+
+.panel[data-capture-layout="artifact"] .interactionPlot .pointLabelLine {
+	stroke: var(--chart-point-line-soft);
+}
+
+.panel[data-capture-layout="artifact"] .cornerDirectionGlyph {
+	fill: var(--chart-corner-fill);
+}
+
+.panel[data-capture-layout="artifact"] .chartToolbar {
+	padding: 8px 0 0;
+}
+
+.panel[data-capture-layout="artifact"] .interactionControls {
+	padding: 8px 0 12px;
+}
+
+.panel[data-capture-layout="artifact"] .interactionPlot,
+.panel[data-capture-layout="artifact"] .interactionPlot:nth-child(2n) {
+	border-right: 0;
+	border-bottom: 0;
+}
+
+.panel[data-capture-layout="artifact"]
+	.interactionControls
+	.metricToggleStacked {
+	width: 100%;
+	flex-wrap: nowrap;
+}
+
+.panel[data-capture-layout="artifact"] .slopeChartWrap::-webkit-scrollbar {
+	display: none;
 }

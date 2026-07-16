@@ -40,6 +40,7 @@ import type {
 	InteractionConfig,
 	ModelLimit,
 	Point,
+	ProviderFilters,
 	ProviderOption,
 } from "./types";
 
@@ -49,7 +50,7 @@ const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 
 export type ModelControlFilters = {
-	provider: string;
+	providers: ProviderFilters;
 	maxCost: CostFilter;
 };
 
@@ -388,9 +389,12 @@ export function limitByIntelligenceScore<T>(
 
 function modelMatchesControls(
 	model: LlmStatsModel,
-	{ maxCost, provider }: ModelControlFilters,
+	{ maxCost, providers }: ModelControlFilters,
 ) {
-	if (provider !== "all" && providerFilterKey(model.provider) !== provider) {
+	if (
+		providers.length > 0 &&
+		!providers.includes(providerFilterKey(model.provider))
+	) {
 		return false;
 	}
 	if (maxCost === "all") {

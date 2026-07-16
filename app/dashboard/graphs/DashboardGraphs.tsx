@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
-import { modelCount } from "../shared/modelDisplay";
+import { modelCount, toggleProviderFilter } from "../shared/modelDisplay";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { finite, fmtCompact, fmtMoney } from "./format";
@@ -15,12 +15,16 @@ import {
 	filterByModelControls,
 	limitByIntelligenceScore,
 	modelLimitOptions,
-	providerOptions,
 } from "./models";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import { PriceEfficiencyComparisonPanel } from "./PriceEfficiencyComparisonPanel";
 import { RunwayPanel } from "./RunwayPanel";
-import type { CostFilter, HoverState, ModelLimit } from "./types";
+import type {
+	CostFilter,
+	HoverState,
+	ModelLimit,
+	ProviderOption,
+} from "./types";
 
 export function DashboardGraphs({
 	payload,
@@ -28,12 +32,13 @@ export function DashboardGraphs({
 	fullPayloadLoaded,
 	benchmarkControls,
 	afterLead,
-	provider,
+	selectedProviders,
+	providerChoices,
 	maxCost,
 	modelLimit,
 	expandReasoningVariants,
 	onExpandReasoningVariantsChange,
-	onProviderChange,
+	onSelectedProvidersChange,
 	onMaxCostChange,
 	onModelLimitChange,
 }: {
@@ -42,12 +47,13 @@ export function DashboardGraphs({
 	fullPayloadLoaded: boolean;
 	benchmarkControls?: React.ReactNode;
 	afterLead?: React.ReactNode;
-	provider: string;
+	selectedProviders: string[];
+	providerChoices: ProviderOption[];
 	maxCost: CostFilter;
 	modelLimit: ModelLimit;
 	expandReasoningVariants: boolean;
 	onExpandReasoningVariantsChange: (enabled: boolean) => void;
-	onProviderChange: (provider: string) => void;
+	onSelectedProvidersChange: (providers: string[]) => void;
 	onMaxCostChange: (maxCost: CostFilter) => void;
 	onModelLimitChange: (modelLimit: ModelLimit) => void;
 }) {
@@ -66,14 +72,12 @@ export function DashboardGraphs({
 			);
 	}, [payload]);
 
-	const providers = useMemo(() => providerOptions(allModels), [allModels]);
-
 	const filteredModels = useMemo(() => {
 		return filterByModelControls(allModels, (model) => model, {
-			provider,
+			providers: selectedProviders,
 			maxCost,
 		});
-	}, [allModels, provider, maxCost]);
+	}, [allModels, selectedProviders, maxCost]);
 
 	const models = useMemo(() => {
 		return limitByIntelligenceScore(
@@ -94,21 +98,29 @@ export function DashboardGraphs({
 		: modelLimit === "all" || filteredModelCount <= modelLimit
 			? `${fmtCompact(visibleModelCount)} models`
 			: `Top ${modelLimit} of ${fmtCompact(filteredModelCount)} models`;
+	const selectedProviderChoices = providerChoices.filter((option) =>
+		selectedProviders.includes(option.slug),
+	);
 	const providerLabel =
-		provider === "all"
+		selectedProviderChoices.length === 0
 			? "All providers"
-			: (providers.find((item) => item.slug === provider)?.label ?? provider);
+			: selectedProviderChoices.map((option) => option.label).join(" + ");
+	const compactProviderLabel =
+		selectedProviderChoices.length <= 1
+			? providerLabel
+			: `${selectedProviderChoices.length} providers`;
 	const costLabel = maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`;
 	const compactCostLabel =
 		maxCost === "all" ? "Any" : `<= ${fmtMoney(maxCost)}`;
 	const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
-	const filterSummary = `${providerLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
+	const filterSummary = `${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
 
 	if (!payload || allModels.length === 0) {
 		return (
 			<section
 				className={`${styles.atlas} ${styles.dashboardGraphs}`}
 				aria-label="Model graphs"
+				data-capture-theme
 			>
 				{benchmarkControls}
 				<div className={styles.error}>
@@ -123,8 +135,9 @@ export function DashboardGraphs({
 		<section
 			className={`${styles.atlas} ${styles.dashboardGraphs}`}
 			aria-label="Model graphs"
+			data-capture-theme
 		>
-			<section className={styles.controls} aria-label="Filters">
+			<section className={styles.controls} aria-label="Global view">
 				<div className={styles.controlsBar}>
 					<button
 						type="button"
@@ -132,7 +145,7 @@ export function DashboardGraphs({
 						aria-expanded={filtersExpanded}
 						onClick={() => setFiltersExpanded((current) => !current)}
 					>
-						<span>Filters</span>
+						<span>Global view</span>
 						<b>{filterSummary}</b>
 						<i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
 					</button>
@@ -166,21 +179,25 @@ export function DashboardGraphs({
 						<FilterSection label="Provider filter" value={providerLabel}>
 							<div className={styles.filterRow}>
 								<FilterButton
-									active={provider === "all"}
+									active={selectedProviders.length === 0}
 									color="var(--ink)"
 									label="All"
 									count={modelCount(allModels)}
-									onClick={() => onProviderChange("all")}
+									onClick={() => onSelectedProvidersChange([])}
 								/>
-								{providers.map((option) => (
+								{providerChoices.map((option) => (
 									<FilterButton
 										key={option.slug}
-										active={provider === option.slug}
+										active={selectedProviders.includes(option.slug)}
 										color={option.color}
 										logo={option.logo}
 										label={option.label}
 										count={option.count}
-										onClick={() => onProviderChange(option.slug)}
+										onClick={() =>
+											onSelectedProvidersChange(
+												toggleProviderFilter(selectedProviders, option.slug),
+											)
+										}
 									/>
 								))}
 							</div>
@@ -235,8 +252,9 @@ export function DashboardGraphs({
 						<ParetoFrontierPanel models={models} setHover={setHover} />
 						<PriceEfficiencyComparisonPanel
 							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
-							expandReasoningVariants={expandReasoningVariants}
-							models={models}
+							maxCost={maxCost}
+							selectedProviders={selectedProviders}
+							onSelectedProvidersChange={onSelectedProvidersChange}
 							referenceModels={referenceModels}
 							setHover={setHover}
 						/>

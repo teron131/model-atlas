@@ -97,6 +97,11 @@ assert.equal(
 	"the always-visible variant switch should expose both display modes",
 );
 assert.equal(
+	html.includes("data-capture-theme"),
+	true,
+	"graph exports should have a stable theme boundary independent of CSS-module class names",
+);
+assert.equal(
 	matchCount(html, 'data-column-key="model"'),
 	2,
 	"server-readable dashboard markup should include the sticky and source table headers",

@@ -23,12 +23,10 @@ import type {
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
+import { LeaderboardCapture } from "./capture/leaderboard-capture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
-import {
-	filterByModelControls,
-	limitByIntelligenceScore,
-} from "./graphs/models";
-import type { CostFilter, ModelLimit } from "./graphs/types";
+import { filterByModelControls, providerOptions } from "./graphs/models";
+import type { CostFilter, ModelLimit, ProviderFilters } from "./graphs/types";
 import {
 	ColumnTooltip,
 	type HeaderTooltipHandler,
@@ -36,17 +34,17 @@ import {
 	tooltipPositionFromElement,
 } from "./shared/ColumnTooltip";
 import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
-import { MoonIcon, RefreshIcon, SunIcon } from "./shared/DashboardIcons";
-import { cacheBustedPath, formatWeight } from "./shared/format";
-import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
+import { MoonIcon, SunIcon } from "./shared/DashboardIcons";
 import {
-	type ColumnView,
-	columnViewOptions,
-	isSortKeyVisible,
-	metricColumnsForView,
-} from "./table/Columns";
+	DEFAULT_DISPLAY_ITEMS,
+	useDisplayLimit,
+} from "./shared/display-controls";
+import { cacheBustedPath, formatWeight } from "./shared/format";
+import { ModelControlToolbar } from "./shared/model-control-toolbar";
+import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
+	dashboardMetricColumns,
 	dedupeDisplayModels,
 	type SortKey,
 	type SortState,
@@ -302,7 +300,6 @@ function tooltipForColumn(
 }
 
 type RefreshPayloadOptions = {
-	bypassGuard?: boolean;
 	bypassHttpCache?: boolean;
 	retryWhenGuarded?: boolean;
 };
@@ -329,14 +326,17 @@ export function Dashboard({
 	});
 	const [filterQuery, setFilterQuery] = useState("");
 	const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
-	const [columnView, setColumnView] = useState<ColumnView>("specs");
-	const [providerFilter, setProviderFilter] = useState("all");
+	const [selectedProviders, setSelectedProviders] = useState<ProviderFilters>(
+		[],
+	);
 	const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
-	const [modelLimit, setModelLimit] = useState<ModelLimit>(30);
+	const [modelLimit, setModelLimit] = useState<ModelLimit>(
+		DEFAULT_DISPLAY_ITEMS,
+	);
+	const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
 	const deferredFilterQuery = useDeferredValue(filterQuery);
 	const [, startSortTransition] = useTransition();
-	const { payload, isRefreshing, errorMessage, refreshPayload } =
-		useLivePayload(initialPayload);
+	const { payload, errorMessage } = useLivePayload(initialPayload);
 
 	const displayPayload = useMemo(() => {
 		if (payload == null) {
@@ -348,27 +348,46 @@ export function Dashboard({
 		};
 	}, [payload, expandReasoningVariants]);
 	const tableRows = useMemo(
-		() => dedupeDisplayModels(displayPayload?.models ?? []),
-		[displayPayload],
+		() =>
+			dedupeDisplayModels(
+				modelsForVariantDisplay(payload?.models ?? [], leaderboardExpanded),
+			),
+		[leaderboardExpanded, payload],
 	);
-	const metricColumns = useMemo(
-		() => metricColumnsForView(columnView),
-		[columnView],
+	const providerChoices = useMemo(
+		() => providerOptions(tableRows.map((row) => row.model)),
+		[tableRows],
+	);
+	const providerModelCount = useMemo(
+		() => modelCount(tableRows.map((row) => row.model)),
+		[tableRows],
 	);
 	const filteredTableRows = useMemo(() => {
-		const filteredRows = filterByModelControls(tableRows, (row) => row.model, {
-			provider: providerFilter,
+		return filterByModelControls(tableRows, (row) => row.model, {
+			providers: selectedProviders,
 			maxCost: maxCostFilter,
 		});
-		return limitByIntelligenceScore(
-			filteredRows,
-			(row) => row.model,
-			modelLimit,
-		);
-	}, [tableRows, providerFilter, maxCostFilter, modelLimit]);
+	}, [tableRows, selectedProviders, maxCostFilter]);
+	const maximumLeaderboardLimit = filteredTableRows.length;
+	const [effectiveLeaderboardLimit, setLeaderboardLimit] = useDisplayLimit(
+		maximumLeaderboardLimit,
+	);
+	const leaderboardRowKind = leaderboardExpanded ? "variants" : "models";
+	const matchingTableRows = useMemo(
+		() =>
+			sortedRows(filteredTableRows, deferredFilterQuery, {
+				key: "intelligence",
+				direction: "descending",
+			}),
+		[deferredFilterQuery, filteredTableRows],
+	);
+	const limitedTableRows = useMemo(
+		() => matchingTableRows.slice(0, effectiveLeaderboardLimit),
+		[effectiveLeaderboardLimit, matchingTableRows],
+	);
 	const visibleRows = useMemo(
-		() => sortedRows(filteredTableRows, deferredFilterQuery, sortState),
-		[deferredFilterQuery, sortState, filteredTableRows],
+		() => sortedRows(limitedTableRows, "", sortState),
+		[limitedTableRows, sortState],
 	);
 	const columnTooltips =
 		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
@@ -376,11 +395,9 @@ export function Dashboard({
 		tooltip == null ? undefined : tooltipForColumn(tooltip.key, columnTooltips);
 	const isInitialLoading = payload == null && errorMessage == null;
 	const rowCountLabel =
-		payload == null
-			? "Loading"
-			: expandReasoningVariants
-				? `${modelCount(visibleRows.map((row) => row.model))} models / ${visibleRows.length} variants`
-				: `${visibleRows.length} of ${filteredTableRows.length} models`;
+		deferredFilterQuery.length > 0
+			? `${matchingTableRows.length} matches`
+			: null;
 	const emptyMessage =
 		errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
@@ -395,18 +412,6 @@ export function Dashboard({
 						: defaultDirection,
 			}));
 		});
-	}, []);
-
-	const handleColumnViewChange = useCallback((nextColumnView: ColumnView) => {
-		setColumnView(nextColumnView);
-		setSortState((current) =>
-			isSortKeyVisible(nextColumnView, current.key)
-				? current
-				: {
-						key: "intelligence",
-						direction: sorters.intelligence.direction,
-					},
-		);
 	}, []);
 
 	const clearTooltipFadeTimeout = useCallback(() => {
@@ -511,12 +516,13 @@ export function Dashboard({
 				payload={displayPayload}
 				referenceModels={payload?.models ?? []}
 				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
-				provider={providerFilter}
+				selectedProviders={selectedProviders}
+				providerChoices={providerChoices}
 				maxCost={maxCostFilter}
 				modelLimit={modelLimit}
 				expandReasoningVariants={expandReasoningVariants}
 				onExpandReasoningVariantsChange={setExpandReasoningVariants}
-				onProviderChange={setProviderFilter}
+				onSelectedProvidersChange={setSelectedProviders}
 				onMaxCostChange={setMaxCostFilter}
 				onModelLimitChange={setModelLimit}
 				benchmarkControls={
@@ -524,26 +530,42 @@ export function Dashboard({
 				}
 				afterLead={
 					<section className="dashboard-deck" aria-label="Model leaderboard">
-						<DashboardControls
-							columnView={columnView}
+						<ModelControlToolbar
 							filterQuery={filterQuery}
 							rowCountLabel={rowCountLabel}
-							isRefreshing={isRefreshing}
-							onColumnViewChange={handleColumnViewChange}
-							onFilterQueryChange={setFilterQuery}
-							onRefresh={() =>
-								void refreshPayload({
-									bypassGuard: true,
-									bypassHttpCache: true,
-								})
+							provider={{
+								id: "leaderboard-provider-menu",
+								label: "Filter leaderboard providers",
+								options: providerChoices,
+								totalCount: providerModelCount,
+								selectedProviders,
+								onSelectedProvidersChange: setSelectedProviders,
+							}}
+							display={{
+								id: "leaderboard-model-limit",
+								label: "Leaderboard display",
+								expanded: leaderboardExpanded,
+								itemKind: leaderboardRowKind,
+								maximum: maximumLeaderboardLimit,
+								value: effectiveLeaderboardLimit,
+								onExpandedChange: setLeaderboardExpanded,
+								onValueChange: setLeaderboardLimit,
+							}}
+							screenshotControl={
+								<LeaderboardCapture
+									rows={visibleRows}
+									rowKind={leaderboardRowKind}
+									sortState={sortState}
+								/>
 							}
+							onFilterQueryChange={setFilterQuery}
 						/>
 						<ModelTable
 							sortState={sortState}
 							visibleRows={visibleRows}
 							emptyMessage={emptyMessage}
 							isLoading={isInitialLoading}
-							metricColumns={metricColumns}
+							metricColumns={dashboardMetricColumns}
 							onSort={handleSort}
 							onTooltip={showTooltip}
 							onTooltipEnd={clearTooltip}
@@ -640,7 +662,6 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 	const [payload, setPayload] = useState<LlmStatsPayload | null>(
 		initialPayload,
 	);
-	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const refreshInFlightRef = useRef<Promise<void> | null>(null);
 	const refreshRetryTimeoutRef = useRef<number | null>(null);
@@ -649,9 +670,7 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 		if (refreshInFlightRef.current != null) {
 			return refreshInFlightRef.current;
 		}
-		const remainingGuardMs = options?.bypassGuard
-			? 0
-			: refreshGuardRemainingMs();
+		const remainingGuardMs = refreshGuardRemainingMs();
 		if (remainingGuardMs > 0) {
 			if (options?.retryWhenGuarded && refreshRetryTimeoutRef.current == null) {
 				refreshRetryTimeoutRef.current = window.setTimeout(() => {
@@ -666,7 +685,6 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			refreshRetryTimeoutRef.current = null;
 		}
 		recordRefreshAttempt();
-		setIsRefreshing(true);
 		setErrorMessage(null);
 		refreshInFlightRef.current = fetch(
 			options?.bypassHttpCache ? cacheBustedPath(liveStatsPath) : liveStatsPath,
@@ -688,7 +706,6 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			})
 			.finally(() => {
 				refreshInFlightRef.current = null;
-				setIsRefreshing(false);
 			});
 		return refreshInFlightRef.current;
 	}, []);
@@ -730,7 +747,7 @@ function useLivePayload(initialPayload: LlmStatsPayload | null) {
 		};
 	}, [payload, refreshPayload]);
 
-	return { payload, isRefreshing, errorMessage, refreshPayload };
+	return { payload, errorMessage };
 }
 
 function isLlmStatsPayload(payload: unknown): payload is LlmStatsPayload {
@@ -841,66 +858,6 @@ function DashboardHeader({
 				{theme === "dark" ? <SunIcon /> : <MoonIcon />}
 			</button>
 		</header>
-	);
-}
-
-function DashboardControls({
-	columnView,
-	filterQuery,
-	rowCountLabel,
-	isRefreshing,
-	onColumnViewChange,
-	onFilterQueryChange,
-	onRefresh,
-}: {
-	columnView: ColumnView;
-	filterQuery: string;
-	rowCountLabel: string;
-	isRefreshing: boolean;
-	onColumnViewChange: (columnView: ColumnView) => void;
-	onFilterQueryChange: (value: string) => void;
-	onRefresh: () => void;
-}) {
-	return (
-		<div className="controls">
-			<input
-				className="model-filter"
-				type="search"
-				autoComplete="off"
-				spellCheck="false"
-				placeholder="Filter models"
-				value={filterQuery}
-				onChange={(event) => onFilterQueryChange(event.target.value)}
-			/>
-			<fieldset className="column-filter">
-				<legend className="column-filter-label">Table columns</legend>
-				{columnViewOptions.map((option) => (
-					<button
-						key={option.key}
-						className="column-filter-button"
-						type="button"
-						aria-pressed={columnView === option.key}
-						onClick={() => onColumnViewChange(option.key)}
-					>
-						{option.label}
-					</button>
-				))}
-			</fieldset>
-			<div className="control-meta">
-				<div className="row-count">{rowCountLabel}</div>
-				<button
-					className="refresh-button"
-					type="button"
-					aria-label="Refresh"
-					title="Refresh"
-					aria-busy={isRefreshing}
-					disabled={isRefreshing}
-					onClick={onRefresh}
-				>
-					<RefreshIcon />
-				</button>
-			</div>
-		</div>
 	);
 }
 

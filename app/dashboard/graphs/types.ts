@@ -60,6 +60,7 @@ export type Margin = {
 
 export type ModelLimit = 30 | 60 | "all";
 export type CostFilter = "all" | number;
+export type ProviderFilters = string[];
 export type DeepSWEEffortMode = "best" | "all";
 
 export type DeepSWEChartRow = {

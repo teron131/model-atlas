@@ -106,6 +106,7 @@ export function InteractionMatrix({
 
 	return (
 		<Panel
+			captureWidth={INTERACTION_CHART_WIDTH}
 			title="Intelligence interaction matrix"
 			copy="Switch between price, throughput, response time, context, AA task cost, and MEAN NORMALIZED frontier benchmark score."
 			summary={

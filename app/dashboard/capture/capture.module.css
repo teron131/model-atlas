@@ -1,0 +1,246 @@
+/** Direct PNG actions and the export-only leaderboard surface. */
+
+.graphButton,
+.leaderboardButton {
+	font-family: "SF Mono", Menlo, Consolas, monospace;
+	font-weight: 900;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition:
+		background-color 0.16s ease,
+		border-color 0.16s ease,
+		color 0.16s ease,
+		transform 0.16s ease;
+}
+
+.graphButton {
+	display: inline-grid;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	place-items: center;
+	border: 1px solid var(--chart-control-border);
+	border-radius: 0;
+	background: var(--chart-control-fill);
+	color: var(--muted);
+}
+
+.graphButton:hover,
+.graphButton:focus-visible,
+.graphButton[data-state="saved"] {
+	border-color: var(--chart-control-border-active);
+	background: var(--ink);
+	color: var(--paper);
+	outline: 0;
+}
+
+.graphButton:focus-visible,
+.leaderboardButton:focus-visible {
+	box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.graphButton:active,
+.leaderboardButton:active {
+	transform: translateY(1px);
+}
+
+.graphButton:disabled,
+.leaderboardButton:disabled {
+	cursor: wait;
+	opacity: 0.58;
+}
+
+.graphButton svg,
+.leaderboardButton svg {
+	width: 16px;
+	height: 16px;
+	stroke: currentColor;
+	fill: none;
+	stroke-width: 2;
+}
+
+.leaderboardCapture {
+	position: relative;
+	flex: 0 0 auto;
+}
+
+.leaderboardButton {
+	display: inline-grid;
+	width: 34px;
+	height: 34px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: var(--muted);
+}
+
+.leaderboardButton:hover,
+.leaderboardButton:focus-visible,
+.leaderboardButton[data-state="saved"] {
+	background: var(--control-fill-hover);
+	color: var(--ink);
+	outline: 0;
+}
+
+.stage {
+	position: fixed;
+	top: 0;
+	left: -10000px;
+	z-index: -1;
+	pointer-events: none;
+}
+
+.leaderboard {
+	position: relative;
+	width: 1180px;
+	overflow: hidden;
+	padding: 8px;
+	background: var(--paper);
+	color: var(--ink);
+}
+
+.leaderboard::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: repeating-linear-gradient(
+		0deg,
+		transparent,
+		transparent 2px,
+		var(--page-scanline) 2px,
+		var(--page-scanline) 4px
+	);
+}
+
+.leaderboard table {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	min-width: 100%;
+	table-layout: fixed;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-family: "SF Mono", Menlo, Consolas, monospace;
+	font-size: 22px;
+	font-variant-numeric: tabular-nums;
+}
+
+.rankColumn {
+	width: 72px;
+}
+
+.modelColumn {
+	width: 460px;
+}
+
+.scoreColumn {
+	width: 158px;
+}
+
+.leaderboard th,
+.leaderboard td {
+	height: 88px;
+	padding: 14px 20px;
+	border-bottom: 1px solid var(--row-line);
+	text-align: right;
+	vertical-align: middle;
+}
+
+.leaderboard thead th {
+	height: 72px;
+	background: var(--surface);
+	color: var(--muted);
+	font-size: 18px;
+	text-transform: uppercase;
+}
+
+.leaderboard th:nth-child(2),
+.leaderboard td:nth-child(2) {
+	text-align: left;
+}
+
+.leaderboard tbody tr {
+	height: 104px;
+	background: var(--paper);
+}
+
+.leaderboard tbody tr:nth-child(2n) {
+	background: var(--row-alt);
+}
+
+.captureHeader {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 9px;
+	white-space: nowrap;
+}
+
+.leaderboard th:nth-child(2) .captureHeader {
+	justify-content: flex-start;
+}
+
+.captureHeader :global(.metric-head) {
+	gap: 8px;
+}
+
+.captureHeader :global(.metric-head svg) {
+	width: 25px;
+	height: 25px;
+}
+
+.captureHeader :global(.sort-indicator) {
+	width: 9px;
+	height: 16px;
+	gap: 3px;
+}
+
+.captureHeader :global(.sort-indicator)::before,
+.captureHeader :global(.sort-indicator)::after {
+	border-right-width: 4px;
+	border-left-width: 4px;
+}
+
+.leaderboard :global(.rank) {
+	color: var(--faint);
+	font-size: 22px;
+}
+
+.leaderboard :global(.model-cell) {
+	grid-template-columns: 54px max-content;
+	gap: 14px;
+}
+
+.leaderboard :global(.provider-logo) {
+	width: 54px;
+	height: 54px;
+	flex-basis: 54px;
+}
+
+.leaderboard :global(.model) {
+	font-size: 28px;
+	line-height: 1.05;
+}
+
+.leaderboard :global(.id) {
+	margin-top: 7px;
+	font-size: 20px;
+}
+
+.leaderboard :global(.score-cell) {
+	min-width: 0;
+	font-size: 23px;
+}
+
+.leaderboard :global(.score-value) {
+	font-size: 23px;
+}
+
+.leaderboard :global(.score-meter) {
+	width: 76px;
+	height: 6px;
+	margin-top: 10px;
+}
