@@ -22,6 +22,7 @@ export {
 	buildOpenRouterSlugCandidates,
 	parseOpenRouterWeeklyTokens,
 	processOpenRouterModelStats,
+	sanitizeModelId,
 	selectOpenRouterRawModelStats,
 	summarizeOpenRouterPerformanceEstimates,
 } from "./stats";

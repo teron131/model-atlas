@@ -1,7 +1,5 @@
 /** Artificial Analysis snapshots retain benchmark-carrier rows while projecting selected public model fields. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import {
 	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
 	getArtificialAnalysisLeaderboardRawStats,
@@ -13,8 +11,12 @@ import {
 	INTELLIGENCE_INDEX_KEYS,
 } from "../../stats/benchmarks";
 import type { ScoringConfig } from "../../stats/types";
-import { readArtificialAnalysisRawCache } from "../cache";
-import { rowStringValue, snapshotRowsWithStates } from "../policy";
+import type { readArtificialAnalysisRawCache } from "../cache";
+import {
+	mergeSourceEvidence,
+	rowStringValue,
+	snapshotRowsWithStates,
+} from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -104,19 +106,18 @@ export function mergeArtificialAnalysisRow(
 	) {
 		return cachedRow;
 	}
-	return fetchedRow;
+	return mergeSourceEvidence(cachedRow, fetchedRow);
 }
 
 /** Loads raw Artificial Analysis rows and projects the leaderboard rows consumed by stats. */
 export async function artificialAnalysisSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readArtificialAnalysisRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	scoringConfig: ScoringConfig,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisSnapshot> {
-	const cached = readArtificialAnalysisRawCache(db);
 	if (
 		status.cache_hit &&
 		cached != null &&

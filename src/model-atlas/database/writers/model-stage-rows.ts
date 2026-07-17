@@ -1,9 +1,8 @@
 /** SQLite writer for matched, enriched, and final model rows after source data has been joined. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import {
+	type DatabaseWriter,
 	firstString,
 	modalityFlagValue,
 	type SqlValue,
@@ -146,7 +145,7 @@ function modelStageScoreValues(model: JsonObject): SqlValue[] {
 }
 
 export function insertModelStageRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	stage: ModelStage,
 	rows: readonly unknown[],

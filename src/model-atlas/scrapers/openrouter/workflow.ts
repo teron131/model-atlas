@@ -57,6 +57,7 @@ const DEFAULT_RETRY_BASE_DELAY_MS = 300;
 
 export type OpenRouterScraperOptions = {
 	modelIds: string[];
+	modelDirectory?: readonly OpenRouterFrontendModel[];
 	timeoutMs?: number;
 	concurrency?: number;
 	maxRetries?: number;
@@ -300,10 +301,14 @@ export async function getOpenRouterRawScrapedStats(
 		new Set(options.modelIds.map((modelId) => modelId.trim()).filter(Boolean)),
 	);
 
-	const modelDirectory = await fetchJsonWithRetry<{
-		data?: OpenRouterFrontendModel[];
-	}>(OPENROUTER_MODELS_URL, requestOptions);
-	const directory = modelDirectory.data ?? [];
+	const directory =
+		options.modelDirectory == null
+			? ((
+					await fetchJsonWithRetry<{
+						data?: OpenRouterFrontendModel[];
+					}>(OPENROUTER_MODELS_URL, requestOptions)
+				).data ?? [])
+			: [...options.modelDirectory];
 	const permaslugBySlug = buildPermaslugLookup(directory);
 	const availableSlugs = [...permaslugBySlug.keys()];
 

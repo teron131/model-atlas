@@ -30,13 +30,40 @@ export function rowStringValue(
 	return stringValue(row[key]);
 }
 
-/** Fresh keyed rows replace cached keyed rows while unkeyed rows stay in their original cache/fetch groups. */
+/** Existing source evidence is monotonic: refreshes fill missing values but do not rewrite populated facts. */
+export function mergeSourceEvidence<T>(cachedValue: T, fetchedValue: T): T {
+	if (cachedValue == null) {
+		return fetchedValue;
+	}
+	if (fetchedValue == null) {
+		return cachedValue;
+	}
+	if (Array.isArray(cachedValue) && Array.isArray(fetchedValue)) {
+		return (cachedValue.length > 0 ? cachedValue : fetchedValue) as T;
+	}
+	if (
+		typeof cachedValue === "object" &&
+		typeof fetchedValue === "object" &&
+		!Array.isArray(cachedValue) &&
+		!Array.isArray(fetchedValue)
+	) {
+		const cached = cachedValue as Record<string, unknown>;
+		const fetched = fetchedValue as Record<string, unknown>;
+		return Object.fromEntries(
+			[...new Set([...Object.keys(cached), ...Object.keys(fetched)])].map(
+				(key) => [key, mergeSourceEvidence(cached[key], fetched[key])],
+			),
+		) as T;
+	}
+	return cachedValue;
+}
+
+/** Fresh keyed rows fill cached keyed rows while unkeyed rows stay in their original cache/fetch groups. */
 export function mergeCachedSourceRows<T>(
 	cachedRows: readonly T[],
 	fetchedRows: readonly T[],
 	rowKey: (row: T) => string | null,
-	mergeRow: (cachedRow: T, fetchedRow: T) => T = (_cachedRow, fetchedRow) =>
-		fetchedRow,
+	mergeRow: (cachedRow: T, fetchedRow: T) => T = mergeSourceEvidence,
 ): T[] {
 	const keyedRows = new Map<string, T>();
 	const unkeyedCachedRows: T[] = [];
@@ -163,40 +190,48 @@ export function latestSourceRowStates(db: DatabaseSync): SourceRowState[] {
 	if (runId == null) {
 		return [];
 	}
-	return db
-		.prepare(
-			"SELECT source, row_key, row_label, status, missing_from_source_since_epoch_seconds FROM source_row_states WHERE run_id = ?",
-		)
-		.all(runId)
-		.flatMap((stateRow) => {
-			const state = asRecord(stateRow);
-			const source =
-				typeof state.source === "string" &&
-				RAW_SOURCE_NAMES.includes(state.source as RawSourceName)
-					? (state.source as RawSourceName)
-					: null;
-			const rowKeyValue = stringValue(state.row_key);
-			const status =
-				state.status === "active" ||
-				state.status === "quarantined_missing_from_source"
-					? state.status
-					: null;
-			if (source == null || rowKeyValue == null || status == null) {
-				return [];
-			}
-			return [
-				{
-					source,
-					row_key: rowKeyValue,
-					row_label: stringValue(state.row_label),
-					status,
-					missing_from_source_since_epoch_seconds:
-						typeof state.missing_from_source_since_epoch_seconds === "number"
-							? state.missing_from_source_since_epoch_seconds
-							: null,
-				},
-			];
-		});
+	return sourceRowStatesFromRows(
+		db
+			.prepare(
+				"SELECT source, row_key, row_label, status, missing_from_source_since_epoch_seconds FROM source_row_states WHERE run_id = ?",
+			)
+			.all(runId),
+	);
+}
+
+/** Decodes persisted source-row state independently of the storage transport. */
+export function sourceRowStatesFromRows(
+	rows: readonly Record<string, unknown>[],
+): SourceRowState[] {
+	return rows.flatMap((stateRow) => {
+		const state = asRecord(stateRow);
+		const source =
+			typeof state.source === "string" &&
+			RAW_SOURCE_NAMES.includes(state.source as RawSourceName)
+				? (state.source as RawSourceName)
+				: null;
+		const rowKeyValue = stringValue(state.row_key);
+		const status =
+			state.status === "active" ||
+			state.status === "quarantined_missing_from_source"
+				? state.status
+				: null;
+		if (source == null || rowKeyValue == null || status == null) {
+			return [];
+		}
+		return [
+			{
+				source,
+				row_key: rowKeyValue,
+				row_label: stringValue(state.row_label),
+				status,
+				missing_from_source_since_epoch_seconds:
+					typeof state.missing_from_source_since_epoch_seconds === "number"
+						? state.missing_from_source_since_epoch_seconds
+						: null,
+			},
+		];
+	});
 }
 
 /** Missing-since maps keep quarantine age stable across refreshes that still omit the same source rows. */

@@ -4,6 +4,15 @@ import { asFiniteNumber, type JsonObject } from "../../shared";
 
 export type SqlValue = string | number | null;
 
+export type DatabaseStatement = {
+	run: (...values: SqlValue[]) => unknown;
+};
+
+/** Minimal write surface shared by SQLite and the direct D1 row collector. */
+export type DatabaseWriter = {
+	prepare: (sql: string) => DatabaseStatement;
+};
+
 export function sqliteBooleanValue(value: unknown): number | null {
 	return typeof value === "boolean" ? (value ? 1 : 0) : null;
 }

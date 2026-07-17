@@ -1,40 +1,14 @@
+/** Verifies D1-only runtime reads, refresh guards, and batched database access. */
+
 import assert from "node:assert/strict";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
 
 import {
-	type DisplaySnapshotRefreshMode,
-	displaySnapshotRefreshMode,
 	readDisplaySnapshotPayload,
 	refreshStoredSnapshot,
 	snapshotRuntime,
 } from "../app/api/llm-stats/snapshot-store";
-import type { LlmStatsPayload } from "../src/model-atlas/stats/types";
-import { minimalLlmStatsPayload } from "./llm-stats-fixtures";
-
-const freshPayload = payloadAt(900);
-const stalePayload = payloadAt(100);
-
-assert.equal(
-	refreshMode(null, false, 1000),
-	"live",
-	"missing display snapshots should use the live server payload fallback",
-);
-assert.equal(
-	refreshMode(freshPayload, false, 1000),
-	"none",
-	"fresh display snapshots without D1 should render from cache",
-);
-assert.equal(
-	refreshMode(stalePayload, false, 1000),
-	"live",
-	"stale display snapshots without D1 should refresh from the live runtime payload",
-);
-assert.equal(
-	refreshMode(stalePayload, true, 1000),
-	"stored",
-	"stale display snapshots with D1 should refresh the stored snapshot",
-);
+import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
+import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload";
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
 const originalVercel = process.env.VERCEL;
@@ -42,42 +16,11 @@ const originalD1AccountId = process.env.D1_ACCOUNT_ID;
 const originalD1DatabaseId = process.env.D1_DATABASE_ID;
 const originalD1ApiToken = process.env.D1_API_TOKEN;
 const originalSnapshotUrl = process.env.MODEL_ATLAS_SNAPSHOT_URL;
+const originalFetch = globalThis.fetch;
 try {
 	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	delete process.env.VERCEL;
-	assert.equal(
-		snapshotRuntime().buildDatabasePath,
-		undefined,
-		"local runtime refreshes should use the normal database default",
-	);
-	assert.equal(
-		snapshotRuntime().readDatabasePath,
-		resolve(".cache/database.sqlite"),
-		"local display reads should use the normal repo SQLite snapshot",
-	);
-	process.env.MODEL_ATLAS_DATABASE_PATH = "custom.sqlite";
-	assert.equal(
-		snapshotRuntime().buildDatabasePath,
-		resolve("custom.sqlite"),
-		"explicit runtime database paths should still be honored",
-	);
-	assert.equal(
-		snapshotRuntime().readDatabasePath,
-		resolve("custom.sqlite"),
-		"explicit database paths should also control local snapshot reads",
-	);
-	delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	process.env.VERCEL = "1";
-	assert.equal(
-		snapshotRuntime().buildDatabasePath,
-		resolve(tmpdir(), "model-atlas/database.sqlite"),
-		"Vercel runtime refreshes should use the writable temp database path",
-	);
-	assert.equal(
-		snapshotRuntime().readDatabasePath,
-		undefined,
-		"Vercel display reads should not expose the temporary build database",
-	);
 	delete process.env.D1_ACCOUNT_ID;
 	delete process.env.D1_DATABASE_ID;
 	delete process.env.D1_API_TOKEN;
@@ -99,12 +42,12 @@ try {
 	process.env.MODEL_ATLAS_SNAPSHOT_URL = "https://example.com/snapshot.json";
 	await assert.rejects(
 		readDisplaySnapshotPayload,
-		/Cloudflare D1 is required in production/,
+		/Cloudflare D1 is required by the runtime/,
 		"Vercel display reads must not fall back when D1 is unavailable",
 	);
 	await assert.rejects(
 		() => refreshStoredSnapshot(),
-		/Cloudflare D1 is required in production/,
+		/Cloudflare D1 is required by the runtime/,
 		"Vercel refreshes must not rebuild a local-only snapshot when D1 is unavailable",
 	);
 	process.env.D1_ACCOUNT_ID = "account";
@@ -115,7 +58,71 @@ try {
 		true,
 		"runtime D1 storage should accept canonical D1 variable names",
 	);
+	const requestBodies: unknown[] = [];
+	let completedRunVisible = false;
+	globalThis.fetch = async (_input, init) => {
+		const body = JSON.parse(String(init?.body)) as {
+			batch?: unknown[];
+		};
+		requestBodies.push(body);
+		return Response.json({
+			success: true,
+			result:
+				body.batch == null
+					? [
+							{
+								success: true,
+								results: completedRunVisible
+									? [
+											{
+												id: 7,
+												fetched_at_epoch_seconds: 1_800_000_000,
+											},
+										]
+									: [],
+							},
+						]
+					: body.batch.map(() => ({ success: true, results: [] })),
+		});
+	};
+	assert.equal(
+		await readDisplaySnapshotPayload(),
+		null,
+		"production reads should return an empty D1 snapshot without starting a refresh",
+	);
+	assert.equal(
+		requestBodies.length,
+		1,
+		"production display reads should issue only the completed-run query",
+	);
+	completedRunVisible = true;
+	assert.deepEqual(
+		(await readD1Payload())?.models,
+		[],
+		"D1 payload reads should assemble an empty completed snapshot",
+	);
+	const payloadBatch = requestBodies[2] as { batch: unknown[] };
+	assert.equal(
+		payloadBatch.batch.length,
+		PAYLOAD_ROW_GROUPS.length,
+		"D1 payload row groups should share one REST batch",
+	);
+	await queryD1Batch([
+		{ sql: "DELETE FROM example" },
+		{ sql: "INSERT example" },
+	]);
+	assert.deepEqual(
+		requestBodies[3],
+		{
+			batch: [
+				{ sql: "DELETE FROM example", params: [] },
+				{ sql: "INSERT example", params: [] },
+			],
+		},
+		"D1 publications should use one transactional REST batch",
+	);
 } finally {
+	globalThis.fetch = originalFetch;
 	if (originalDatabasePath == null) {
 		delete process.env.MODEL_ATLAS_DATABASE_PATH;
 	} else {
@@ -130,23 +137,6 @@ try {
 	restoreEnv("D1_DATABASE_ID", originalD1DatabaseId);
 	restoreEnv("D1_API_TOKEN", originalD1ApiToken);
 	restoreEnv("MODEL_ATLAS_SNAPSHOT_URL", originalSnapshotUrl);
-}
-
-function refreshMode(
-	payload: LlmStatsPayload | null,
-	usesStoredRefresh: boolean,
-	currentEpochSeconds: number,
-): DisplaySnapshotRefreshMode {
-	return displaySnapshotRefreshMode(
-		payload,
-		currentEpochSeconds,
-		usesStoredRefresh,
-		300,
-	);
-}
-
-function payloadAt(fetchedAtEpochSeconds: number): LlmStatsPayload {
-	return minimalLlmStatsPayload({ fetchedAt: fetchedAtEpochSeconds });
 }
 
 function restoreEnv(key: string, value: string | undefined): void {

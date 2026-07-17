@@ -64,7 +64,7 @@ const mergedRows = mergeCachedSourceRows(
 assert.deepEqual(
 	mergedRows.map((row) => row.model_id),
 	["anthropic/claude-fable-5", "anthropic/claude-opus-4-6", "openai/gpt-5-5"],
-	"Fetched rows should update matching rows, append new rows, and preserve cached rows missing from the fetch",
+	"Fetched rows should fill matching rows, append new rows, and preserve cached rows missing from the fetch",
 );
 assert.equal(
 	mergedRows[0]?.name,
@@ -203,8 +203,8 @@ assert.deepEqual(
 		row.seconds_per_task,
 	]),
 	[
-		["high", 90],
+		["high", 100],
 		["low", 50],
 	],
-	"AA resource refreshes should update one effort without deleting sibling effort telemetry",
+	"AA resource refreshes should preserve known telemetry and sibling effort rows",
 );

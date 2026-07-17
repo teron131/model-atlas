@@ -1,7 +1,5 @@
 /** Benchmark snapshots preserve raw evidence and source-owned summaries needed by refresh. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import {
 	type AgentsLastExamHarnessRow,
 	type AgentsLastExamModelScoreRow,
@@ -15,7 +13,7 @@ import {
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
 } from "../../scrapers/deep-swe";
-import { readAgentsLastExamRawCache, readDeepSWERawCache } from "../cache";
+import type { readAgentsLastExamRawCache, readDeepSWERawCache } from "../cache";
 import { snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
@@ -38,13 +36,12 @@ export type DeepSWESnapshot = {
 
 /** Preserves Agents Last Exam harness rows while returning summarized model scores. */
 export async function agentsLastExamSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readAgentsLastExamRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<AgentsLastExamSnapshot> {
-	const cached = readAgentsLastExamRawCache(db);
 	if (
 		status.cache_hit &&
 		cached != null &&
@@ -115,13 +112,12 @@ export async function agentsLastExamSnapshot(
 
 /** Preserves DeepSWE raw leaderboard rows and records the preferred source version. */
 export async function deepSWESnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readDeepSWERawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<DeepSWESnapshot> {
-	const cached = readDeepSWERawCache(db);
 	const cachedHasEffortMetadata = cached?.rows.some(
 		(row) => row.reasoning_effort != null || row.config != null,
 	);

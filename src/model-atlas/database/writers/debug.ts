@@ -1,11 +1,10 @@
 /** SQLite writer for matcher lineage rows used to explain why source candidates did or did not join. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import type { DebugTraceRow } from "../types";
+import type { DatabaseWriter } from "./shared";
 
 export function insertDebugTraceRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	rows: readonly DebugTraceRow[],
 ): void {

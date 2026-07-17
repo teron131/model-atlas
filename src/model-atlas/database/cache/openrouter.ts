@@ -3,13 +3,14 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { isSameOpenRouterModelRoute } from "../../openrouter-routes";
-import type {
-	OpenRouterEffectivePricingResponse,
-	OpenRouterFrontendModel,
-	OpenRouterModelStats,
-	OpenRouterRawScrapedModel,
-	OpenRouterRawScrapedPayload,
-	OpenRouterStatsResponse,
+import {
+	type OpenRouterEffectivePricingResponse,
+	type OpenRouterFrontendModel,
+	type OpenRouterModelStats,
+	type OpenRouterRawScrapedModel,
+	type OpenRouterRawScrapedPayload,
+	type OpenRouterStatsResponse,
+	sanitizeModelId,
 } from "../../scrapers/openrouter";
 import { asFiniteNumber } from "../../shared";
 import {
@@ -19,19 +20,49 @@ import {
 	stringValue,
 } from "./rows";
 
-export function openRouterCacheHasScopedCandidates(db: DatabaseSync): boolean {
-	const candidateRows = queryLatestCacheRows(
-		db,
-		"openrouter_raw_rows",
-		"SELECT model_id, permaslug FROM openrouter_raw_rows WHERE run_id = ? AND row_kind = 'permaslug_candidate'",
+type CacheSource = DatabaseSync | CacheDbRow[];
+
+function openRouterCacheRows(cache: CacheSource): CacheDbRow[] {
+	return Array.isArray(cache)
+		? cache
+		: queryLatestCacheRows(
+				cache,
+				"openrouter_raw_rows",
+				"SELECT * FROM openrouter_raw_rows WHERE run_id = ? ORDER BY row_index",
+			);
+}
+
+/** Confirms persisted candidates still map to the requested model route through the catalog slug. */
+export function openRouterCacheHasScopedCandidates(
+	cache: CacheSource,
+): boolean {
+	const cacheRows = openRouterCacheRows(cache);
+	const slugByPermaslug = new Map<string, string>();
+	for (const row of cacheRows) {
+		if (row.row_kind !== "directory_model") {
+			continue;
+		}
+		const slug = stringValue(row.slug);
+		const permaslug = stringValue(row.permaslug);
+		if (slug != null && permaslug != null) {
+			slugByPermaslug.set(permaslug, slug);
+		}
+	}
+	const candidateRows = cacheRows.filter(
+		(row) => row.row_kind === "permaslug_candidate",
 	);
 	for (const row of candidateRows) {
 		const modelId = stringValue(row.model_id);
 		const permaslug = stringValue(row.permaslug);
+		const candidateRoute =
+			permaslug == null ? null : (slugByPermaslug.get(permaslug) ?? permaslug);
 		if (
 			modelId == null ||
-			permaslug == null ||
-			!isSameOpenRouterModelRoute(modelId, permaslug)
+			candidateRoute == null ||
+			!isSameOpenRouterModelRoute(
+				sanitizeModelId(modelId),
+				sanitizeModelId(candidateRoute),
+			)
 		) {
 			return false;
 		}
@@ -93,6 +124,21 @@ function openRouterPricing(
 	};
 }
 
+function openRouterAggregateEstimate(
+	estimateRows: CacheDbRow[],
+	metric: string,
+	fallbackValue: unknown,
+): number | null {
+	if (estimateRows.length === 0) {
+		return asFiniteNumber(fallbackValue);
+	}
+	return asFiniteNumber(
+		estimateRows.find(
+			(row) => row.metric === metric && row.series === "openrouter_aggregate",
+		)?.value,
+	);
+}
+
 function openRouterModelRows(
 	modelId: string,
 	rowsByKind: Map<string, CacheDbRow[]>,
@@ -106,18 +152,30 @@ function openRouterModelRows(
 	const statsRow = (rowsByKind.get("model_stats") ?? []).find(
 		(row) => row.model_id === modelId,
 	);
+	const estimateRows = (rowsByKind.get("performance_estimate") ?? []).filter(
+		(row) => row.model_id === modelId,
+	);
 	const selectedPermaslug =
 		stringValue(statsRow?.selected_permaslug) ??
 		stringValue(statRows[0]?.selected_permaslug) ??
 		stringValue(candidateRows[0]?.selected_permaslug);
 	const performance: OpenRouterModelStats = {
 		summary: {
-			throughput_tokens_per_second_median:
-				asFiniteNumber(statsRow?.throughput_tokens_per_second_median) ?? null,
-			latency_seconds_median:
-				asFiniteNumber(statsRow?.latency_seconds_median) ?? null,
-			e2e_latency_seconds_median:
-				asFiniteNumber(statsRow?.e2e_latency_seconds_median) ?? null,
+			throughput_tokens_per_second_median: openRouterAggregateEstimate(
+				estimateRows,
+				"throughput",
+				statsRow?.throughput_tokens_per_second_median,
+			),
+			latency_seconds_median: openRouterAggregateEstimate(
+				estimateRows,
+				"latency",
+				statsRow?.latency_seconds_median,
+			),
+			e2e_latency_seconds_median: openRouterAggregateEstimate(
+				estimateRows,
+				"latency_e2e",
+				statsRow?.e2e_latency_seconds_median,
+			),
 		},
 		throughput: openRouterStatsResponse(
 			statRows.filter((row) => row.metric === "throughput"),
@@ -148,13 +206,9 @@ function openRouterModelRows(
 
 /** Reassembles OpenRouter directory, permaslug, stat, and pricing rows. */
 export function readOpenRouterRawCache(
-	db: DatabaseSync,
+	cache: CacheSource,
 ): OpenRouterRawScrapedPayload | null {
-	const cacheRows = queryLatestCacheRows(
-		db,
-		"openrouter_raw_rows",
-		"SELECT * FROM openrouter_raw_rows WHERE run_id = ? ORDER BY row_index",
-	);
+	const cacheRows = openRouterCacheRows(cache);
 	if (cacheRows.length === 0) {
 		return null;
 	}

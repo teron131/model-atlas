@@ -1,6 +1,8 @@
 /** Public cache reader surface for raw database sources. */
 
 export {
+	artificialAnalysisEvaluationResourceRawCacheFromRows,
+	artificialAnalysisRawCacheFromRows,
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readArtificialAnalysisRawCache,
 } from "./artificial-analysis";
@@ -16,6 +18,10 @@ export {
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
 } from "./benchmark-sources";
-export { readModelsDevRawCache } from "./models-dev";
+export { modelsDevRawCacheFromRows, readModelsDevRawCache } from "./models-dev";
 export { readOpenRouterRawCache } from "./openrouter";
-export { readRawSourceCacheStatus, refreshedCacheStatus } from "./status";
+export {
+	rawSourceCacheStatusFromRows,
+	readRawSourceCacheStatus,
+	refreshedCacheStatus,
+} from "./status";

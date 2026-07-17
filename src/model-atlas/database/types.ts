@@ -33,6 +33,8 @@ import type { JsonObject } from "../utils";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
 export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
+/** Bump when data-pipeline semantics change so fresh snapshots are derived once under the new contract. */
+export const DATABASE_PIPELINE_REVISION = 1;
 
 export const RAW_SOURCE_NAMES = [
 	"artificial_analysis",

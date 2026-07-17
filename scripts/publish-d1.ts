@@ -1,4 +1,4 @@
-/** Refresh the local Model Atlas database and publish it to Cloudflare D1. */
+/** Refresh source evidence and publish derived Model Atlas rows directly to Cloudflare D1. */
 
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
@@ -9,6 +9,6 @@ if (existsSync(".env")) {
 	loadEnvFile(".env");
 }
 
-const result = await publishD1Snapshot();
+const { result } = await publishD1Snapshot();
 
 console.log(JSON.stringify(result, null, 2));

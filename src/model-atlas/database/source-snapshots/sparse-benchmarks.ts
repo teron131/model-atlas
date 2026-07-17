@@ -1,6 +1,5 @@
 /** Sparse benchmark snapshots keep each source's identity fields intact before shared missing-row policy runs. */
 
-import type { DatabaseSync } from "node:sqlite";
 import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
@@ -39,7 +38,7 @@ import {
 	type TerminalBenchModelHarnessRow,
 	type TerminalBenchTaskRow,
 } from "../../scrapers/vals/terminal-bench";
-import {
+import type {
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
@@ -119,7 +118,7 @@ export function artificialAnalysisEvaluationResourceSourceKey(
 
 /** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
 export async function artificialAnalysisEvaluationResourceSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readArtificialAnalysisEvaluationResourceRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -127,7 +126,7 @@ export async function artificialAnalysisEvaluationResourceSnapshot(
 ): Promise<ArtificialAnalysisEvaluationResourceSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "artificial_analysis_evaluation_resources",
-		cached: readArtificialAnalysisEvaluationResourceRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -150,7 +149,7 @@ export async function artificialAnalysisEvaluationResourceSnapshot(
 
 /** Loads BlueprintBench rows keyed by model name for cache and missing-row tracking. */
 export async function blueprintBenchSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readBlueprintBenchRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -158,7 +157,7 @@ export async function blueprintBenchSnapshot(
 ): Promise<BlueprintBenchSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "blueprint_bench_2",
-		cached: readBlueprintBenchRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -181,7 +180,7 @@ export async function blueprintBenchSnapshot(
 
 /** Loads BrowseComp rows keyed by provider and model for update-health source rows. */
 export async function browseCompSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readBrowseCompRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -189,7 +188,7 @@ export async function browseCompSnapshot(
 ): Promise<BrowseCompSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "browsecomp",
-		cached: readBrowseCompRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -212,7 +211,7 @@ export async function browseCompSnapshot(
 
 /** Loads CursorBench rows keyed by model, base model, and reasoning effort. */
 export async function cursorBenchSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readCursorBenchRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -220,7 +219,7 @@ export async function cursorBenchSnapshot(
 ): Promise<CursorBenchSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "cursorbench",
-		cached: readCursorBenchRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -243,7 +242,7 @@ export async function cursorBenchSnapshot(
 
 /** Loads GDP PDF rows keyed by provider and model for cache row continuity. */
 export async function gdpPdfSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readGdpPdfRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -251,7 +250,7 @@ export async function gdpPdfSnapshot(
 ): Promise<GdpPdfSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "gdp_pdf",
-		cached: readGdpPdfRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -274,7 +273,7 @@ export async function gdpPdfSnapshot(
 
 /** Loads Riemann Bench rows keyed by provider and model for cache row continuity. */
 export async function riemannBenchSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readRiemannBenchRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -282,7 +281,7 @@ export async function riemannBenchSnapshot(
 ): Promise<RiemannBenchSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "riemann_bench",
-		cached: readRiemannBenchRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -309,7 +308,7 @@ export async function riemannBenchSnapshot(
 
 /** Loads Toolathlon rows keyed by provider and model for cache row continuity. */
 export async function toolathlonSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readToolathlonRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -317,7 +316,7 @@ export async function toolathlonSnapshot(
 ): Promise<ToolathlonSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source: "toolathlon",
-		cached: readToolathlonRawCache(db),
+		cached,
 		status,
 		options,
 		previousMissingSince,
@@ -340,13 +339,12 @@ export async function toolathlonSnapshot(
 
 /** Loads Vals Index task rows while using only overall rows for scoring health. */
 export async function valsIndexSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readValsIndexRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<ValsIndexSnapshot> {
-	const cached = readValsIndexRawCache(db);
 	const fetched =
 		status.cache_hit && cached != null && options.replaceSourceRows !== true
 			? null
@@ -397,13 +395,12 @@ export async function valsIndexSnapshot(
 
 /** Loads Terminal-Bench rows while using overall model-harness rows for matching. */
 export async function valsTerminalBenchSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readValsTerminalBenchRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<TerminalBenchSnapshot> {
-	const cached = readValsTerminalBenchRawCache(db);
 	const fetched =
 		status.cache_hit && cached != null && options.replaceSourceRows !== true
 			? null

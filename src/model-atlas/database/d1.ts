@@ -3,20 +3,28 @@
 import type { LlmStatsPayload } from "../stats/types";
 import {
 	buildPayloadFromRows,
+	buildPayloadRows,
 	COMPLETED_RUN_SQL,
+	PAYLOAD_ROW_GROUPS,
 	payloadRunFromRow,
-	readPayloadRows,
 } from "./payload";
 import {
+	catalogTableMatchesSchema,
 	loadSchemaSql,
 	quoteIdentifier,
-	type SchemaColumnShape,
-	schemaTableMatches,
-	schemaTableShapes,
+	SCHEMA_MANIFEST_TABLE,
+	type SchemaCatalogRow,
+	type SchemaManifestRow,
+	type SchemaReconciliationPlan,
+	schemaReconciliationPlan,
 } from "./schema";
 
 export type D1Value = string | number | null;
 export type D1Rows = Record<string, unknown>[];
+export type D1Query = {
+	sql: string;
+	params?: D1Value[];
+};
 
 export type D1Config = {
 	accountId: string;
@@ -38,6 +46,8 @@ type D1ApiResponse = {
 	errors?: { message?: string }[];
 	result?: D1QueryResult[];
 };
+
+type D1QueryBody = D1Query | { batch: D1Query[] };
 
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
 
@@ -102,11 +112,7 @@ function resultRows(result: D1QueryResult | undefined): D1Rows {
 	);
 }
 
-/** Sends a parameterized SQL query to Cloudflare D1. */
-export async function queryD1(
-	sql: string,
-	params: D1Value[] = [],
-): Promise<D1QueryResult> {
+async function sendD1Query(body: D1QueryBody): Promise<D1QueryResult[]> {
 	const config = d1Config();
 	if (config == null) {
 		throw new Error(
@@ -119,17 +125,44 @@ export async function queryD1(
 			Authorization: `Bearer ${config.apiToken}`,
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify({ sql, params }),
+		body: JSON.stringify(body),
 	});
 	const payload = (await response.json()) as D1ApiResponse;
 	if (!response.ok || payload.success === false) {
 		throw d1Error(payload);
 	}
-	const result = payload.result?.[0];
-	if (result?.success === false) {
+	const results = payload.result ?? [];
+	if (results.some((result) => result.success === false)) {
 		throw d1Error(payload);
 	}
-	return result ?? {};
+	return results;
+}
+
+/** Sends a parameterized SQL query to Cloudflare D1. */
+export async function queryD1(
+	sql: string,
+	params: D1Value[] = [],
+): Promise<D1QueryResult> {
+	return (await sendD1Query({ sql, params }))[0] ?? {};
+}
+
+/** Executes one atomic D1 batch so publication cannot expose a partial run. */
+export async function queryD1Batch(
+	queries: readonly D1Query[],
+): Promise<D1QueryResult[]> {
+	if (queries.length === 0) {
+		return [];
+	}
+	return sendD1Query({
+		batch: queries.map(({ sql, params = [] }) => ({ sql, params })),
+	});
+}
+
+/** Returns row groups for several read queries in one D1 round trip. */
+export async function queryD1BatchRows(
+	queries: readonly D1Query[],
+): Promise<D1Rows[]> {
+	return (await queryD1Batch(queries)).map((result) => resultRows(result));
 }
 
 export async function queryD1Rows(
@@ -139,83 +172,23 @@ export async function queryD1Rows(
 	return resultRows(await queryD1(sql, params));
 }
 
-/** Remove line comments and SQLite-only pragmas while splitting shared schema SQL for D1. */
-function splitSqlStatements(sql: string): string[] {
-	return sql
-		.replace(/^\s*--.*$/gm, "")
-		.split(";")
-		.map((statement) => statement.trim())
-		.filter((statement) => statement.length > 0)
-		.filter(
-			(statement) =>
-				!/^PRAGMA\s+journal_mode\b/i.test(statement) &&
-				!/^PRAGMA\s+synchronous\b/i.test(statement),
-		);
-}
-
-/** Applies the shared Model Atlas schema to Cloudflare D1. */
-export async function ensureD1Schema(): Promise<string[]> {
+/** Reconciles D1 schema objects atomically while preserving rows in tables whose primary keys still match. */
+export async function ensureD1Schema(): Promise<SchemaReconciliationPlan> {
 	const schemaSql = await loadSchemaSql();
-	await replaceD1SchemaOnDrift(schemaSql);
-	const statements = splitSqlStatements(schemaSql);
-	for (const statement of statements.filter(
-		(statement) => !/^CREATE\s+INDEX\b/i.test(statement),
-	)) {
-		await queryD1(statement);
+	const catalogRows = (await queryD1Rows(
+		"SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')",
+	)) as SchemaCatalogRow[];
+	let manifestRows: SchemaManifestRow[] = [];
+	if (
+		catalogTableMatchesSchema(catalogRows, schemaSql, SCHEMA_MANIFEST_TABLE)
+	) {
+		manifestRows = (await queryD1Rows(
+			`SELECT object_type, object_name FROM ${quoteIdentifier(SCHEMA_MANIFEST_TABLE)}`,
+		)) as SchemaManifestRow[];
 	}
-	for (const statement of statements.filter((statement) =>
-		/^CREATE\s+INDEX\b/i.test(statement),
-	)) {
-		await queryD1(statement);
-	}
-	return [...schemaTableShapes(schemaSql).keys()];
-}
-
-async function d1TableColumns(
-	table: string,
-): Promise<Map<string, SchemaColumnShape>> {
-	return new Map(
-		(
-			await queryD1Rows(`PRAGMA table_info(${quoteIdentifier(table)})`).catch(
-				() => [],
-			)
-		).flatMap((row) => {
-			if (typeof row.name !== "string") {
-				return [];
-			}
-			return [
-				[
-					row.name,
-					{
-						type: typeof row.type === "string" ? row.type.toUpperCase() : "",
-						notNull: row.notnull === 1,
-						primaryKey: typeof row.pk === "number" ? row.pk : 0,
-					},
-				] satisfies [string, SchemaColumnShape],
-			];
-		}),
-	);
-}
-
-/** D1 schema drift is repaired by rebuilding checked-in snapshot tables before import. */
-async function replaceD1SchemaOnDrift(schemaSql: string): Promise<void> {
-	const schemaTables = schemaTableShapes(schemaSql);
-	const tableEntries = [...schemaTables];
-	const driftChecks = await Promise.all(
-		tableEntries.map(async ([table, columns]) => {
-			const existingColumns = await d1TableColumns(table);
-			return (
-				existingColumns.size > 0 &&
-				!schemaTableMatches(existingColumns, columns)
-			);
-		}),
-	);
-	if (!driftChecks.some(Boolean)) {
-		return;
-	}
-	for (const table of schemaTables.keys()) {
-		await queryD1(`DROP TABLE IF EXISTS ${quoteIdentifier(table)}`);
-	}
+	const plan = schemaReconciliationPlan(schemaSql, catalogRows, manifestRows);
+	await queryD1Batch(plan.statements.map((sql) => ({ sql })));
+	return plan;
 }
 
 /** D1 reads only expose the latest completed run so partial imports never become public payloads. */
@@ -227,9 +200,24 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 	if (run == null) {
 		return null;
 	}
+	const rowGroups = await queryD1BatchRows(
+		PAYLOAD_ROW_GROUPS.map((rowGroup) =>
+			rowGroup.sourceTable == null
+				? { sql: rowGroup.sql, params: [run.id] }
+				: {
+						sql: rowGroup.sql.replace(
+							"run_id = ?",
+							`run_id = (SELECT MAX(run_id) FROM ${quoteIdentifier(rowGroup.sourceTable)})`,
+						),
+					},
+		),
+	);
 	return buildPayloadFromRows(
-		await readPayloadRows(run, (rowGroup, runId) =>
-			queryD1Rows(rowGroup.sql, [runId]),
+		buildPayloadRows(
+			run,
+			PAYLOAD_ROW_GROUPS.map(
+				(rowGroup, index) => [rowGroup.key, rowGroups[index] ?? []] as const,
+			),
 		),
 	);
 }

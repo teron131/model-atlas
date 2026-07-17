@@ -207,6 +207,11 @@ assertDeepEqual(
 	],
 );
 
+assertDeepEqual(
+	buildOpenRouterSlugCandidates("xai/grok-4.1-fast", ["x-ai/grok-4.1-fast"]),
+	["x-ai/grok-4.1-fast"],
+);
+
 const selected = selectOpenRouterRawModelStats("provider/model", [
 	{
 		permaslug: "provider/model-low-volume",

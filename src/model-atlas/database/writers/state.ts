@@ -1,12 +1,11 @@
 /** SQLite writer for source-row preservation state and per-source health summaries. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import type { LlmStatsSourceHealth } from "../../stats/types";
 import type { SourceSnapshots } from "../types";
+import type { DatabaseWriter } from "./shared";
 
 export function insertSourceRowStates(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -30,7 +29,7 @@ export function insertSourceRowStates(
 }
 
 export function insertSourceHealth(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	sourceHealth: LlmStatsSourceHealth,
 ): void {
