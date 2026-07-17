@@ -166,13 +166,6 @@ export const BENCHMARK_KEYS = Object.keys(
 	BENCHMARK_PORTFOLIO,
 ) as BenchmarkKey[];
 
-export const OVERALL_SCORE_WEIGHTS = {
-	intelligence: 0.35,
-	agentic: 0.25,
-	speed: 0.2,
-	value: 0.2,
-} as const;
-
 /** Reject benchmark configuration whose importance, loadings, or missing-data group violate the scoring contract. */
 export function validateBenchmarkPortfolio(
 	portfolio: BenchmarkPortfolio,

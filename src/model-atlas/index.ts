@@ -5,7 +5,6 @@ export {
 	BENCHMARK_PORTFOLIO,
 	FRONTIER_BENCHMARKS,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	OVERALL_SCORE_WEIGHTS,
 	PRICE_PROFILES,
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
@@ -31,6 +30,5 @@ export type {
 	LlmStatsScores,
 	LlmStatsSpeed,
 	ModelAtlasStageConfig,
-	OverallScoreWeights,
 } from "./stats";
 export { getLiveLlmStats } from "./stats";

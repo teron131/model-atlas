@@ -5,7 +5,6 @@ import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	OVERALL_SCORE_WEIGHTS,
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "./benchmark-portfolio";
@@ -66,7 +65,6 @@ export const STAGE_CONFIG = {
 		simulationProfiles: SIMULATION_PROFILES,
 		simulationInputTokenSeconds: SIMULATION_INPUT_TOKEN_SECONDS,
 		benchmarkPortfolio: BENCHMARK_PORTFOLIO,
-		overallScoreWeights: OVERALL_SCORE_WEIGHTS,
 		columnTooltips: COLUMN_TOOLTIPS,
 	},
 } satisfies ModelAtlasStageConfig;

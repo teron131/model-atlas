@@ -211,9 +211,6 @@ export function buildCurrentLlmStatsMetadata({
 			price_profiles: { ...scoringConfig.priceProfiles },
 			simulation_profiles: { ...scoringConfig.simulationProfiles },
 			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
-			overall_score_weights: {
-				...scoringConfig.overallScoreWeights,
-			},
 			column_tooltips: {
 				...scoringConfig.columnTooltips,
 				...columnTooltipsForActiveComponents(resourceComponents),

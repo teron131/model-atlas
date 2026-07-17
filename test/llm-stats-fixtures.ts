@@ -31,12 +31,6 @@ export function minimalLlmStatsPayload({
 				price_profiles: {},
 				simulation_profiles: {},
 				simulation_input_token_seconds: 0,
-				overall_score_weights: {
-					intelligence: 0,
-					agentic: 0,
-					speed: 0,
-					value: 0,
-				},
 				column_tooltips: {},
 				snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 			},
@@ -84,7 +78,6 @@ export function minimalLlmStatsModel({
 			agentic_score: 0,
 			speed_score: 0,
 			value_score: null,
-			overall_score: 0,
 		},
 	};
 }

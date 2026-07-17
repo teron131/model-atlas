@@ -141,7 +141,6 @@ function modelStageScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(scores.agentic_score),
 		asFiniteNumber(scores.speed_score),
 		asFiniteNumber(scores.value_score),
-		asFiniteNumber(scores.overall_score),
 	];
 }
 
@@ -185,9 +184,8 @@ export function insertModelStageRows(
 			component_intelligence_score, component_agentic_score, component_speed_score,
 			intelligence_score, agentic_score,
 			speed_score,
-			value_score,
-			overall_score
-		) VALUES (${Array.from({ length: 91 }, () => "?").join(", ")})
+			value_score
+		) VALUES (${Array.from({ length: 90 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

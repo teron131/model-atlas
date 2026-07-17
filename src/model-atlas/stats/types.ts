@@ -214,7 +214,6 @@ export type LlmStatsNullableScores = {
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
 	value_score: NumberOrNull;
-	overall_score: NumberOrNull;
 };
 
 export type LlmStatsScores = {
@@ -222,7 +221,6 @@ export type LlmStatsScores = {
 	agentic_score: number;
 	speed_score: NumberOrNull;
 	value_score: NumberOrNull;
-	overall_score: number;
 };
 
 type LlmStatsModelFields = {
@@ -260,13 +258,6 @@ export type LlmStatsScoredCandidate = LlmStatsModelFields & {
 export type LlmStatsModel = LlmStatsModelFields & {
 	component_scores: LlmStatsComponentScores;
 	scores: LlmStatsScores;
-};
-
-export type OverallScoreWeights = {
-	intelligence: number;
-	agentic: number;
-	speed: number;
-	value: number;
 };
 
 export type BenchmarkGroup = "baseline" | "frontier";
@@ -430,7 +421,6 @@ export type LlmStatsMetadata = {
 		price_profiles: PriceProfiles;
 		simulation_profiles: SimulationProfiles;
 		simulation_input_token_seconds: number;
-		overall_score_weights: OverallScoreWeights;
 		column_tooltips: LlmStatsColumnTooltips;
 		snapshot_preservation_version: number;
 	};
@@ -482,7 +472,6 @@ export type ScoringConfig = {
 	simulationProfiles: SimulationProfiles;
 	simulationInputTokenSeconds: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
-	overallScoreWeights: OverallScoreWeights;
 	columnTooltips: LlmStatsColumnTooltips;
 };
 

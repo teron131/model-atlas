@@ -38,7 +38,6 @@ const internalCandidate = {
 		agentic_score: 70,
 		speed_score: 60,
 		value_score: 50,
-		overall_score: 70,
 	},
 } satisfies LlmStatsScoredCandidate & { internal_probe: string };
 const [projectedPublicModel] = selectPublicModels(
@@ -63,24 +62,35 @@ assert.equal(
 	"public selection should not expose scoring provenance",
 );
 
-const missingOverallScoreCandidate: LlmStatsScoredCandidate = {
+const sparseResourceCandidate: LlmStatsScoredCandidate = {
 	...internalCandidate,
-	id: "provider/missing-overall-score",
-	name: "Missing Overall Score",
+	id: "provider/sparse-resource-candidate",
+	name: "Sparse Resource Candidate",
+	component_scores: {
+		...internalCandidate.component_scores,
+		speed_score: null,
+	},
 	scores: {
 		...internalCandidate.scores,
-		overall_score: null,
+		speed_score: null,
+		value_score: null,
 	},
 };
+const [sparseResourceModel] = selectPublicModels(
+	[sparseResourceCandidate],
+	null,
+	STAGE_CONFIG.final,
+	STAGE_CONFIG.scoring,
+);
 assert.deepEqual(
-	selectPublicModels(
-		[missingOverallScoreCandidate],
-		null,
-		STAGE_CONFIG.final,
-		STAGE_CONFIG.scoring,
-	),
-	[],
-	"public selection should exclude candidates without a finite overall score",
+	sparseResourceModel?.scores,
+	{
+		intelligence_score: 80,
+		agentic_score: 70,
+		speed_score: null,
+		value_score: null,
+	},
+	"public selection should preserve models without optional resource scores",
 );
 
 const lowScoreCandidate: LlmStatsScoredCandidate = {
@@ -96,7 +106,6 @@ const lowScoreCandidate: LlmStatsScoredCandidate = {
 		...internalCandidate.scores,
 		intelligence_score: 5,
 		agentic_score: 4,
-		overall_score: 5,
 	},
 };
 assert.equal(
@@ -239,7 +248,7 @@ const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
 const fullJsonModel = fullJsonPayload(fullPayload).models[0];
 const methodology =
-	"INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply validation-weighted evidence coverage. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled benchmark belongs to the model's default highest effort. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE gives equal weight to winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.";
+	"Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE independently and ranks public views by INTELLIGENCE. INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply validation-weighted evidence coverage. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled benchmark belongs to the model's default highest effort. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE gives equal weight to winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.";
 
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
@@ -250,7 +259,6 @@ assert.deepEqual(scoreModel, {
 	name: "Model",
 	provider: null,
 	score: {
-		overall: 0,
 		intelligence: 0,
 		agentic: 0,
 		speed: 0,
@@ -315,7 +323,6 @@ assert.deepEqual(corePayload.columns, [
 	"agentic_score",
 	"speed_score",
 	"value_score",
-	"overall_score",
 	"blended_price",
 	"context_window_tokens",
 	"input_cost_per_million_tokens",
@@ -347,7 +354,6 @@ assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
 	"agentic_score",
 	"speed_score",
 	"value_score",
-	"overall_score",
 ]);
 assert.equal(benchmarksPayload.schema, "model_atlas.benchmarks");
 assert.equal(benchmarksPayload.benchmark_scale, "decimal");

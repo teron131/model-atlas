@@ -911,10 +911,6 @@ assertClose(
 	duplicatedModelResourceScore?.value_score,
 	modelBalancedResourceScore?.value_score ?? 0,
 );
-assertClose(
-	duplicatedModelResourceScore?.overall_score,
-	modelBalancedResourceScore?.overall_score ?? 0,
-);
 
 const normalizedContextModels = [
 	imputationModel("observed-a", 0, 0, 0, 0),

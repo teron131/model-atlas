@@ -62,7 +62,6 @@ const compactInteractionPayload = compactDashboardPayload(
 					agentic_score: 80,
 					speed_score: 70,
 					value_score: 65,
-					overall_score: 95,
 				},
 			},
 		],

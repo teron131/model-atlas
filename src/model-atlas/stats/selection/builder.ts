@@ -18,7 +18,10 @@ import type {
 	ScoringConfig,
 } from "../types";
 import { buildModelCandidate } from "./model-candidate";
-import { selectPublicModels } from "./public-list";
+import {
+	hasRequiredQualityScores,
+	selectPublicModels,
+} from "./public-list";
 
 const MIN_PUBLIC_COMPONENT_SCORE = 10;
 const PUBLIC_COMPONENT_SCORE_KEYS = [
@@ -27,18 +30,6 @@ const PUBLIC_COMPONENT_SCORE_KEYS = [
 	"speed_score",
 	"value_score",
 ] as const;
-
-function hasPublicScores(
-	model: LlmStatsScoredCandidate,
-): model is LlmStatsModel {
-	return (
-		model.component_scores?.intelligence_score != null &&
-		model.component_scores.agentic_score != null &&
-		model.scores?.intelligence_score != null &&
-		model.scores.agentic_score != null &&
-		asFiniteNumber(model.scores.overall_score) != null
-	);
-}
 
 type BasicSpecCandidate = Pick<
 	LlmStatsModelCandidate,
@@ -167,7 +158,7 @@ export async function buildFinalModels(
 				finalConfig.benchmarkCoverage,
 			),
 		)
-		.filter(hasPublicScores)
+		.filter(hasRequiredQualityScores)
 		.filter(hasRequiredPublicScore);
 	return cacheStatsLogos(
 		admittedPublicModels,

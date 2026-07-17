@@ -103,7 +103,7 @@ Vals Index uses the overall percentage score as a normalized benchmark score and
 The scoring map is:
 
 $$
-\text{raw source fields}\rightarrow\text{normalized quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value, Overall}
+\text{raw source fields}\rightarrow\text{normalized quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value}
 $$
 
 Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and quality-adjusted benchmark task-time components. Displayed Value combines absolute log blended price with quality-adjusted price, workflow, and benchmark task-cost components.
@@ -112,7 +112,7 @@ AA's `coding_index` can be kept as source context when available, but it is not 
 
 ## Scoring Details
 
-Each selected quality benchmark is min-max normalized before aggregation. Raw provider speed and workflow runtime inputs are logged before min-max normalization. Resource efficiency subtracts the model-balanced expected signal at comparable quality, then averages a model-balanced percentile score with a min-max score using 2.5% one-sided winsorization of the favorable residual tail. Price and benchmark resource inputs are logged once; the completed workflow-efficiency output is not logged again. Model-balanced empirical distributions also support benchmark imputation and Overall's missing-resource fallback.
+Each selected quality benchmark is min-max normalized before aggregation. Raw provider speed and workflow runtime inputs are logged before min-max normalization. Resource efficiency subtracts the model-balanced expected signal at comparable quality, then averages a model-balanced percentile score with a min-max score using 2.5% one-sided winsorization of the favorable residual tail. Price and benchmark resource inputs are logged once; the completed workflow-efficiency output is not logged again. Model-balanced empirical distributions also support benchmark imputation.
 
 ### Calibration Population
 
@@ -148,7 +148,7 @@ $$
 
 The coverage confidence $C(c)$ is $0$ at or below $10\%$ evidence coverage, $1$ at or above $60\%$ evidence coverage, and a smoothstep interpolation between those bounds.
 
-Public admission first requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. Benchmark admission is dimension-neutral. A model variant must have at least two observed selected benchmarks covering at least $35\%$ of total selected benchmark importance. Intelligence and Agentic loadings affect the later component scores, but they do not decide whether the underlying benchmark evidence is sufficient for publication. A benchmark without a reported effort belongs to the model's default highest-effort variant; explicitly labelled observations belong to their matching variants. Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in at least one of Intelligence, Agentic, Speed, or Value; Overall does not satisfy this floor. These admission gates only remove public rows after reference scoring; they do not themselves recalibrate the reference population.
+Public admission first requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. Benchmark admission is dimension-neutral. A model variant must have at least two observed selected benchmarks covering at least $35\%$ of total selected benchmark importance. Intelligence and Agentic loadings affect the later component scores, but they do not decide whether the underlying benchmark evidence is sufficient for publication. A benchmark without a reported effort belongs to the model's default highest-effort variant; explicitly labelled observations belong to their matching variants. Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in at least one of Intelligence, Agentic, Speed, or Value. These admission gates only remove public rows after reference scoring; they do not themselves recalibrate the reference population.
 
 $$
 D_m=\bar{B}_{m,D}C(c_{m,D})
@@ -386,21 +386,3 @@ $$
 $C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active benchmark task-cost components.
 
 $P^{\text{blend}}_m$ is the winsorized min-max score for absolute log blended price. $P^{\text{quality}}_m$ and $P^{\text{workflow}}_m$ are the percentile/min-max means for the quality-conditioned log-price and workflow-efficiency residuals.
-
-### Overall Score
-
-Overall combines quality with task-resource efficiency:
-
-$$
-\text{Overall}_m=0.35I_m+0.25A_m+0.20\widetilde{T}_m+0.20\widetilde{C}_m
-$$
-
-The overall weights keep 60% of the overall score on quality and 40% on task-resource utility. Intelligence gets the largest single share because broad capability is still the primary ranking target; Agentic, the benchmark task-time component, and Value are large enough to move rankings when models are otherwise close.
-
-The overall blend uses filled benchmark task-time component $\widetilde{T}_m$ and filled Value $\widetilde{V}_m$. Missing resource evidence is filled only for the overall blend, not as observed evidence. The fill uses the known resource score distribution and a half-strength quality tradeoff prior:
-
-$$
-\operatorname{fillPercentile}_m=50-0.5\left(\operatorname{Percentile}(\operatorname{mean}(I_m,A_m))-50\right)
-$$
-
-The filled value is the known resource score at that percentile. Displayed Speed and Value stay blank when their required direct evidence is missing.

@@ -13,10 +13,7 @@ import {
 	useTransition,
 } from "react";
 
-import {
-	COLUMN_TOOLTIPS,
-	OVERALL_SCORE_WEIGHTS,
-} from "../../src/model-atlas/constants";
+import { COLUMN_TOOLTIPS } from "../../src/model-atlas/constants";
 import type {
 	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
@@ -39,7 +36,7 @@ import {
 	DEFAULT_DISPLAY_ITEMS,
 	useDisplayLimit,
 } from "./shared/display-controls";
-import { cacheBustedPath, formatWeight } from "./shared/format";
+import { cacheBustedPath } from "./shared/format";
 import { ModelControlToolbar } from "./shared/model-control-toolbar";
 import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
@@ -170,16 +167,6 @@ const staticTableColumnTooltips = {
 		title: "Model",
 		body: "Model display name and provider route id.",
 		rows: [["Sort", "alphabetical by model name"]],
-	},
-	overall: {
-		title: "Overall score",
-		body: "Weighted Model Atlas score combining Intelligence, Agentic, Speed, and Value.",
-		rows: [
-			["Intelligence", formatWeight(OVERALL_SCORE_WEIGHTS.intelligence)],
-			["Agentic", formatWeight(OVERALL_SCORE_WEIGHTS.agentic)],
-			["Speed", formatWeight(OVERALL_SCORE_WEIGHTS.speed)],
-			["Value", formatWeight(OVERALL_SCORE_WEIGHTS.value)],
-		],
 	},
 	release: {
 		title: "Release date",

@@ -1,10 +1,8 @@
 /** Final component scoring for public Model Atlas model rows. */
 
 import {
-	clampScore,
 	coverageConfidence,
 	effectiveSampleSize,
-	fixedWeightedScore,
 	gaussianWeight,
 	log10OnePlusPositive,
 	logInputMinMaxScores,
@@ -40,7 +38,6 @@ import {
 
 const MIN_RAW_SPEED_COMPONENTS = 2;
 const ACTIVE_COMPONENT_WEIGHT = 1;
-const PRICE_QUALITY_TRADEOFF_STRENGTH = 0.5;
 const RESOURCE_QUALITY_SIGMA = 0.5;
 const MIN_BENCHMARK_DEVIATION = 0.35;
 const RESOURCE_TAIL_SHARE = 0.025;
@@ -393,18 +390,6 @@ function resourceEfficiencyEvidence(
 	};
 }
 
-function resourceEfficiencySignals({
-	benchmarkKeys,
-	signalsByModel,
-}: ResourceEfficiencyEvidence): Array<number | null> {
-	return signalsByModel.map((signals) => {
-		const meanValue = meanOfFinite(signals);
-		return meanValue == null
-			? null
-			: meanValue * coverageConfidence(signals.length, benchmarkKeys.length);
-	});
-}
-
 function equalWeightedScore(
 	signals: Array<number | null>,
 	totalCount: number,
@@ -438,32 +423,6 @@ export function modelBalancedMinMaxScores<
 		direction,
 		RESOURCE_TAIL_SHARE,
 	);
-}
-
-/** Fill Overall-only missing resources against model-balanced quality and resource distributions. */
-function fillMissingResourceScores(
-	models: readonly LlmStatsModelCandidate[],
-	qualityScores: readonly (number | null)[],
-	targetScores: readonly (number | null)[],
-): Array<number | null> {
-	const qualityObservations = observationsFromValues(models, qualityScores);
-	const targetObservations = observationsFromValues(models, targetScores);
-	return targetScores.map((targetScore, index) => {
-		if (targetScore != null) {
-			return targetScore;
-		}
-		const qualityPercentile = weightedPercentileRank(
-			qualityObservations,
-			qualityScores[index] ?? null,
-		);
-		if (qualityPercentile == null) {
-			return null;
-		}
-		const targetPercentile = clampScore(
-			50 - PRICE_QUALITY_TRADEOFF_STRENGTH * (qualityPercentile - 50),
-		);
-		return weightedQuantile(targetObservations, targetPercentile / 100);
-	});
 }
 
 export function attachFinalScores(
@@ -557,7 +516,6 @@ export function attachFinalScores(
 		scoringConfig,
 		taskCostAmount,
 	);
-	const taskTimeSignals = resourceEfficiencySignals(taskTimeComponentEvidence);
 	const workflowSpeedComponents = logInputMinMaxScores(
 		workflowRuntimeSeconds,
 		"lower",
@@ -581,39 +539,11 @@ export function attachFinalScores(
 			taskCostComponentEvidence.benchmarkKeys.length + 3,
 		),
 	);
-	const overallTaskTimeComponents = fillMissingResourceScores(
-		models,
-		qualityScores,
-		taskTimeSignals,
-	);
-	const overallValueScores = fillMissingResourceScores(
-		models,
-		qualityScores,
-		valueScores,
-	);
 	return models.map((model, index) => {
 		const intelligenceScore = intelligenceScores[index] ?? null;
 		const agenticScore = agenticScores[index] ?? null;
 		const blendedSpeedScore = blendedSpeedScores[index] ?? null;
 		const valueScore = valueScores[index] ?? null;
-		const overallScore = fixedWeightedScore([
-			{
-				value: intelligenceScore,
-				weight: scoringConfig.overallScoreWeights.intelligence,
-			},
-			{
-				value: agenticScore,
-				weight: scoringConfig.overallScoreWeights.agentic,
-			},
-			{
-				value: overallTaskTimeComponents[index] ?? null,
-				weight: scoringConfig.overallScoreWeights.speed,
-			},
-			{
-				value: overallValueScores[index] ?? null,
-				weight: scoringConfig.overallScoreWeights.value,
-			},
-		]);
 		return {
 			...model,
 			scores: {
@@ -621,7 +551,6 @@ export function attachFinalScores(
 				agentic_score: agenticScore,
 				speed_score: blendedSpeedScore,
 				value_score: valueScore,
-				overall_score: overallScore,
 			},
 		};
 	});

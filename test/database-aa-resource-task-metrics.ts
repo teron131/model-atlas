@@ -23,7 +23,7 @@ try {
 					matched_row_count, enriched_row_count, final_model_count
 				) VALUES (?, ?, ?, ?, ?)
 			`)
-			.run(1_800_000_000, 1_800_000_001, 1, 1, 1);
+			.run(1_800_000_000, 1_800_000_001, 1, 1, 2);
 		const runId = Number(run.lastInsertRowid);
 		insertModelStageRows(db, runId, "matched", [
 			{
@@ -71,13 +71,12 @@ try {
 					agentic_score: 80,
 					speed_score: 70,
 					value_score: 65,
-					overall_score: 75,
 				},
 			},
 			{
-				id: "example/missing-overall-score",
+				id: "example/sparse-resource-model",
 				provider: "example",
-				name: "Missing Overall Score",
+				name: "Sparse Resource Model",
 				logo: "https://example.com/logo.svg",
 				component_scores: {
 					intelligence_score: 90,
@@ -89,7 +88,6 @@ try {
 					agentic_score: 80,
 					speed_score: null,
 					value_score: null,
-					overall_score: null,
 				},
 			},
 		]);
@@ -106,8 +104,10 @@ try {
 	}
 
 	const payload = readDatabasePayload(databasePath);
-	assert.equal(payload.models.length, 1);
-	const model = payload.models[0];
+	assert.equal(payload.models.length, 2);
+	const model = payload.models.find(
+		(candidate) => candidate.id === "example/aa-resource-model",
+	);
 	assert.deepEqual(model?.task_metrics?.hle, {
 		cost: 0.1,
 		seconds: 10,
@@ -128,6 +128,18 @@ try {
 	assert.equal(speedTooltip.includes("GDPval-AA v2 runtime"), true);
 	assert.equal(speedTooltip.includes("HLE runtime"), true);
 	assert.equal(speedTooltip.includes("Frontier benchmark runtime"), false);
+	assert.deepEqual(
+		payload.models.find(
+			(candidate) => candidate.id === "example/sparse-resource-model",
+		)?.scores,
+		{
+			intelligence_score: 90,
+			agentic_score: 80,
+			speed_score: null,
+			value_score: null,
+		},
+		"database payloads should preserve models without optional resource scores",
+	);
 } finally {
 	await removeDatabaseFiles(databasePath);
 }

@@ -505,7 +505,6 @@ export type DashboardMetricColumn =
 export type SortKey =
 	| "rank"
 	| "model"
-	| "overall"
 	| "intelligence"
 	| "agentic"
 	| "speed"
@@ -585,11 +584,6 @@ export const sorters: Record<SortKey, Sorter> = {
 		direction: "ascending",
 		type: "text",
 		get: (row) => modelDisplayName(row.model),
-	},
-	overall: {
-		direction: "descending",
-		type: "number",
-		get: (row) => row.model.scores?.overall_score,
 	},
 	intelligence: {
 		direction: "descending",

@@ -48,7 +48,6 @@ try {
 					agentic_score: 20,
 					speed_score: 50,
 					value_score: 65,
-					overall_score: 70,
 				},
 			},
 		]);

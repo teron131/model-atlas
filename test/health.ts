@@ -83,7 +83,7 @@ assert.equal(
 const intelligenceReferenceHealth = buildBenchmarkUpdateHealth(
 	[
 		model("intelligence/leader", "Intelligence Leader", 10, 0.9, 100),
-		model("overall/leader", "Overall Leader", 100, 0.8, 20),
+		model("agentic/leader", "Agentic Leader", 100, 0.8, 20),
 	],
 	{
 		...STAGE_CONFIG.scoring,
@@ -94,7 +94,7 @@ const intelligenceReferenceHealth = buildBenchmarkUpdateHealth(
 assert.equal(
 	intelligenceReferenceHealth.sparse_benchmark?.top_model_reference_rank,
 	1,
-	"Benchmark agreement should follow the public Intelligence ranking rather than Overall score",
+	"Benchmark agreement should follow the public Intelligence ranking",
 );
 
 const officialRowHealth = buildBenchmarkUpdateHealth(
@@ -386,18 +386,17 @@ assert.deepEqual(sourceHealth.sources.gdp_pdf, {
 function model(
 	id: string,
 	name: string,
-	overallScore: number,
+	agenticScore: number,
 	benchmarkScore: number | null,
-	intelligenceScore = overallScore,
+	intelligenceScore = agenticScore,
 ) {
 	return {
 		...minimalLlmStatsModel({ id, name }),
 		scores: {
 			intelligence_score: intelligenceScore,
-			agentic_score: overallScore,
+			agentic_score: agenticScore,
 			speed_score: null,
 			value_score: null,
-			overall_score: overallScore,
 		},
 		evaluations:
 			benchmarkScore == null

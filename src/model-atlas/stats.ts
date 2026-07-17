@@ -42,7 +42,6 @@ export type {
 	LlmStatsScores,
 	LlmStatsSpeed,
 	ModelAtlasStageConfig,
-	OverallScoreWeights,
 } from "./stats/types";
 
 /** Metadata is refreshed around cached or rebuilt payload rows so public scoring copy tracks current config. */

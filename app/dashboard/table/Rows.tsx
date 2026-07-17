@@ -120,11 +120,9 @@ export function ModelRow({
 	metricColumns: DashboardMetricColumn[];
 }) {
 	const model = rowData.model;
-	const scores = model.scores ?? {};
 	return (
 		<tr>
 			<ModelScoreCells rowData={rowData} />
-			{scoreCell(scores.overall_score, model.provider, "overall")}
 			<TableCell
 				text={formatCost(model.cost?.blended_price)}
 				className="data-cell"
