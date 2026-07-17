@@ -143,6 +143,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	gdpval_normalized: "GDPval-AA v2",
 	harvey_lab: "Harvey LAB",
 	hle: "HLE",
+	itbench_sre: "ITBench",
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience accuracy",
 	riemann_bench: "Riemann-bench",

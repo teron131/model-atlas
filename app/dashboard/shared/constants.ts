@@ -36,6 +36,7 @@ export const benchmarkLabels: Record<string, string> = {
 	gdpval_normalized: "GDPval-AA v2",
 	harvey_lab: "Harvey LAB",
 	hle: "HLE",
+	itbench_sre: "ITBench",
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience",
 	riemann_bench: "Riemann-bench",
@@ -149,6 +150,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "frontier reasoning"],
+		],
+	},
+	itbench_sre: {
+		title: "ITBench",
+		body: "Artificial Analysis implementation of the ITBench Kubernetes incident root-cause benchmark, using average precision at full recall over offline alerts, events, traces, metrics, and topology.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "SRE agent investigation"],
 		],
 	},
 	lcr: {

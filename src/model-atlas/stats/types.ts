@@ -166,6 +166,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	gpqa?: NumberOrNull;
 	harvey_lab?: NumberOrNull;
 	hle?: NumberOrNull;
+	itbench_sre?: NumberOrNull;
 	lcr?: NumberOrNull;
 	mmmu_pro?: NumberOrNull;
 	riemann_bench?: NumberOrNull;
@@ -191,6 +192,7 @@ export type LlmStatsScoringSources =
 			terminalbench_v21?: TerminalBenchAggregateRow | null;
 			automation_bench?: ArtificialAnalysisEvaluationResourceRow | null;
 			harvey_lab?: ArtificialAnalysisEvaluationResourceRow | null;
+			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 	  })
 	| null;

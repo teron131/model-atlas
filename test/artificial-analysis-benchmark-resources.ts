@@ -30,6 +30,19 @@ const terminalBenchPage = {
 	url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	task_run_count: 2,
 };
+const configuredItbenchPage =
+	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES.find(
+		(page) => page.benchmark_key === "itbench_sre",
+	);
+if (configuredItbenchPage == null) {
+	throw new Error("ITBench evaluation resource page is missing");
+}
+assertDeepEqual(configuredItbenchPage, {
+	benchmark_key: "itbench_sre",
+	score_key: "it_bench_sre",
+	url: "https://artificialanalysis.ai/evaluations/itbench-aa",
+	task_run_count: 177,
+});
 const configuredBriefcasePage =
 	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES.find(
 		(page) => page.benchmark_key === "briefcase",
@@ -176,6 +189,49 @@ assertDeepEqual(
 		output_tokens_per_task: 6,
 		answer_tokens_per_task: null,
 		reasoning_tokens_per_task: null,
+	},
+);
+
+assertDeepEqual(
+	processArtificialAnalysisEvaluationResourceRows(
+		[
+			{
+				short_name: "GPT-5.6 Sol (max)",
+				slug: "gpt-5-6-sol",
+				model_creators: {
+					name: "OpenAI",
+					slug: "openai",
+				},
+				it_bench_sre: 0.56,
+				evalCost: { total: 177 },
+				evalTimePerTask: 100,
+				tokenCounts: {
+					inputTokens: 17_700,
+					answerTokens: 1_770,
+					reasoningTokens: 1_770,
+					outputTokens: 3_540,
+				},
+			},
+		],
+		configuredItbenchPage,
+	)[0],
+	{
+		benchmark_key: "itbench_sre",
+		source_url: "https://artificialanalysis.ai/evaluations/itbench-aa",
+		model_id: "openai/gpt-5-6-sol",
+		model: "GPT-5.6 Sol (max)",
+		provider: "OpenAI",
+		provider_id: "openai",
+		reasoning_effort: "max",
+		score: 0.56,
+		task_run_count: 177,
+		cost_per_task_usd: 1,
+		seconds_per_task: 100,
+		tokens_per_task: 120,
+		input_tokens_per_task: 100,
+		output_tokens_per_task: 20,
+		answer_tokens_per_task: 10,
+		reasoning_tokens_per_task: 10,
 	},
 );
 
