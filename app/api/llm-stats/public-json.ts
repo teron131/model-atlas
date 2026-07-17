@@ -42,7 +42,7 @@ export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
 
 type PublicFullJsonModel = Omit<
 	LlmStatsModel,
-	"attachment" | "reasoning" | "reasoning_effort" | "logo"
+	"attachment" | "reasoning" | "logo"
 >;
 
 export type ScoreJsonPayload = {
@@ -203,11 +203,11 @@ export function benchmarksJsonPayload(
 	};
 }
 
-/** Preserve the internal payload shape for power users while removing fields that only make sense in the rendered dashboard. */
+/** Preserve every scored variant for power users while removing fields that only make sense in the rendered dashboard. */
 export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	return {
 		...payload,
-		models: strongestModelVariants(payload.models).map(fullJsonModel),
+		models: payload.models.map(fullJsonModel),
 	};
 }
 
@@ -235,7 +235,6 @@ function fullJsonModel(model: LlmStatsModel): PublicFullJsonModel {
 		attachment: _attachment,
 		logo: _logo,
 		reasoning: _reasoning,
-		reasoning_effort: _reasoningEffort,
 		...modelPayload
 	} = model;
 	return modelPayload;
