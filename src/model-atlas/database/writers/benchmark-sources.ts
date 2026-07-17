@@ -1,14 +1,12 @@
 /** SQLite writers for benchmark-owned source rows that feed matcher and scoring refreshes. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
-import { sqliteBooleanValue } from "./shared";
+import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
 
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 export function insertAgentsLastExamRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -121,7 +119,7 @@ export function insertAgentsLastExamRawRows(
 }
 
 export function insertBlueprintBenchRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -143,7 +141,7 @@ export function insertBlueprintBenchRawRows(
 }
 
 export function insertBrowseCompRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -172,7 +170,7 @@ export function insertBrowseCompRawRows(
 }
 
 export function insertCursorBenchRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -203,7 +201,7 @@ export function insertCursorBenchRawRows(
 }
 
 export function insertDeepSWERawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -237,7 +235,7 @@ export function insertDeepSWERawRows(
 }
 
 export function insertGdpPdfRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -262,7 +260,7 @@ export function insertGdpPdfRawRows(
 }
 
 export function insertRiemannBenchRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: Pick<
 		SourceSnapshots,
@@ -292,7 +290,7 @@ export function insertRiemannBenchRawRows(
 }
 
 export function insertToolathlonRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -324,7 +322,7 @@ export function insertToolathlonRawRows(
 }
 
 export function insertValsIndexRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -352,7 +350,7 @@ export function insertValsIndexRawRows(
 }
 
 export function insertValsTerminalBenchRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {

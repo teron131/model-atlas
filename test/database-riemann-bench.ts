@@ -74,7 +74,7 @@ try {
 			"cache reconstruction should accept a consistent custom source URL",
 		);
 		const cachedSnapshot = await riemannBenchSnapshot(
-			db,
+			cachedRows,
 			{
 				last_fetch_epoch_seconds: 1_800_000_000,
 				source_input_count: 1,

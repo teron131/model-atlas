@@ -120,14 +120,22 @@ export type OpenRouterRawScrapedPayload = {
 	models: OpenRouterRawScrapedModel[];
 };
 
+const OPENROUTER_PROVIDER_ALIASES: Readonly<Record<string, string>> = {
+	xai: "x-ai",
+};
+
 export function sanitizeModelId(modelId: string): string {
-	return (
-		modelId
-			.trim()
-			.toLowerCase()
-			// Normalize OpenRouter route suffixes (e.g. :free, :exacto) to base model id.
-			.replace(/:[a-z0-9._-]+$/i, "")
-	);
+	const normalized = modelId
+		.trim()
+		.toLowerCase()
+		// Normalize OpenRouter route suffixes (e.g. :free, :exacto) to base model id.
+		.replace(/:[a-z0-9._-]+$/i, "");
+	const slashIndex = normalized.indexOf("/");
+	if (slashIndex <= 0) {
+		return normalized;
+	}
+	const provider = normalized.slice(0, slashIndex);
+	return `${OPENROUTER_PROVIDER_ALIASES[provider] ?? provider}${normalized.slice(slashIndex)}`;
 }
 
 function asFiniteNumber(value: unknown): number | null {

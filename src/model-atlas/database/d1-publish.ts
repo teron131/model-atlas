@@ -1,40 +1,68 @@
-/** Cloudflare D1 publishing rebuilds local snapshots, assigns fresh remote run ids, and verifies deployed rows. */
+/** Direct D1 refresh preserves source evidence, skips unchanged writes, and publishes derived runs atomically. */
 
-import { spawnSync } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { createHash } from "node:crypto";
 
 import { STAGE_CONFIG } from "../constants";
 import { preserveHighSignalSnapshotModels } from "../stats/snapshot-preservation";
-import type { LlmStatsModel } from "../stats/types";
-import { buildDatabase } from "./build";
+import type { LlmStatsPayload } from "../stats/types";
+import { nowEpochSeconds } from "../utils";
 import {
-	type D1Config,
+	artificialAnalysisEvaluationResourceRawCacheFromRows,
+	artificialAnalysisRawCacheFromRows,
+	modelsDevRawCacheFromRows,
+	rawSourceCacheStatusFromRows,
+	readAgentsLastExamRawCache,
+	readBlueprintBenchRawCache,
+	readBrowseCompRawCache,
+	readCursorBenchRawCache,
+	readDeepSWERawCache,
+	readGdpPdfRawCache,
+	readOpenRouterRawCache,
+	readRiemannBenchRawCache,
+	readToolathlonRawCache,
+	readValsIndexRawCache,
+	readValsTerminalBenchRawCache,
+} from "./cache";
+import type { CacheDbRow } from "./cache/rows";
+import {
 	d1Config,
 	ensureD1Schema,
 	missingD1Environment,
-	queryD1,
+	queryD1Batch,
+	queryD1BatchRows,
 	queryD1Rows,
 	readD1Payload,
 } from "./d1";
-import { readDatabasePayload } from "./payload";
-import { loadSchemaSql, schemaTableColumns } from "./schema";
-import { DEFAULT_DATABASE_PATH, SNAPSHOT_TABLES } from "./types";
-import { insertModelStageRows } from "./writers";
+import { buildPayloadFromRows, type PayloadRows } from "./payload";
+import { deriveDatabaseRun, writeDatabaseRunRows } from "./pipeline";
+import { sourceRowStatesFromRows } from "./policy";
+import type { SchemaReconciliationPlan } from "./schema";
+import {
+	refreshOpenRouterRawPayload,
+	refreshSourceSnapshots,
+	type SourceCaches,
+} from "./sources";
+import {
+	DATABASE_PIPELINE_REVISION,
+	RAW_SOURCE_CACHE_SECONDS,
+	RAW_SOURCE_NAMES,
+	RAW_SOURCE_TABLES,
+	type RawSourceCacheStatus,
+	type RawSourceName,
+	SNAPSHOT_TABLES,
+} from "./types";
+import { SnapshotRowCollector } from "./writers";
+import type { CollectedTableRows } from "./writers/collector";
+import type { SqlValue } from "./writers/shared";
 
-const DEFAULT_IMPORT_SQL_PATH = resolve(".cache/d1-publish.sql");
+const DERIVED_TABLES = [
+	SNAPSHOT_TABLES.source_row_states,
+	SNAPSHOT_TABLES.source_health,
+	SNAPSHOT_TABLES.model_stage_rows,
+	SNAPSHOT_TABLES.model_match_debug,
+] as const;
 const INSERT_ROWS_PER_STATEMENT = 100;
 const MAX_INSERT_STATEMENT_CHARS = 20_000;
-
-export type D1ImportMode = "wrangler" | "rest";
-
-export type D1PublishOptions = {
-	databasePath?: string;
-	importMode?: D1ImportMode;
-	importSqlPath?: string;
-};
 
 export type D1PublishResult = {
 	storage: "cloudflare_d1";
@@ -42,282 +70,434 @@ export type D1PublishResult = {
 	run_id: number;
 	model_count: number;
 	fetched_at_epoch_seconds: number | null;
-	import_sql_path: string;
-	verification: {
-		counts: Record<string, number>;
-		deep_swe_versions: Record<string, unknown>[];
-	};
+	published: boolean;
+	changed_sources: RawSourceName[];
+	statement_count: number;
+	schema_statement_count: number;
+	schema_changed_tables: string[];
+	schema_removed_tables: string[];
+	schema_changed_indexes: string[];
+	schema_removed_indexes: string[];
 };
 
-/** Publishes a freshly built Model Atlas run into Cloudflare D1. */
-export async function publishD1Snapshot(
-	options: D1PublishOptions = {},
-): Promise<D1PublishResult> {
+type D1RefreshState = {
+	previousRunId: number;
+	previousPipelineRevision: number | null;
+	rawRows: Record<RawSourceName, CacheDbRow[]>;
+	caches: SourceCaches;
+	statuses: Record<RawSourceName, RawSourceCacheStatus>;
+	previousSourceRowStates: ReturnType<typeof sourceRowStatesFromRows>;
+	previousPayload: LlmStatsPayload | null;
+};
+
+export type D1Publication = {
+	result: D1PublishResult;
+	payload: LlmStatsPayload;
+};
+
+/** Refreshes D1 directly and returns both publication diagnostics and the assembled payload. */
+export async function publishD1Snapshot(): Promise<D1Publication> {
 	const config = d1Config();
 	if (config == null) {
 		throw new Error(
 			`Cloudflare D1 is not configured. Missing ${missingD1Environment().join(", ")}.`,
 		);
 	}
-	const database = await buildDatabase(
-		options.databasePath ?? DEFAULT_DATABASE_PATH,
+	const schema = await ensureD1Schema();
+	const startedAt = nowEpochSeconds();
+	const replaceSourceRows = process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1";
+	const reusableSnapshot = await readReusableFreshD1Snapshot(
+		startedAt,
+		schema,
+		replaceSourceRows,
+	);
+	if (reusableSnapshot != null) {
+		return {
+			result: publishResult(
+				config.databaseId,
+				reusableSnapshot.payload,
+				reusableSnapshot.runId,
+				false,
+				[],
+				0,
+				schema,
+			),
+			payload: reusableSnapshot.payload,
+		};
+	}
+	const current = await readD1RefreshState(startedAt);
+	const refreshed = await refreshSourceSnapshots(
+		current.caches,
+		current.statuses,
+		current.previousSourceRowStates,
+		startedAt,
+		STAGE_CONFIG.scoring,
 		{
-			replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+			replaceSourceRows,
 		},
 	);
-	const payload = await preservedPayload(database.path);
-	await ensureD1Schema();
-	const publishRunId = await nextD1RunId(database.run_id);
-	const importSqlPath =
-		options.importSqlPath ??
-		(options.importMode === "rest"
-			? resolve(tmpdir(), "model-atlas/d1-publish.sql")
-			: DEFAULT_IMPORT_SQL_PATH);
-	const importStatements = await writeD1ImportSql(
-		database.path,
-		importSqlPath,
-		publishRunId,
+	const derived = await deriveDatabaseRun(
+		startedAt,
+		refreshed.snapshots,
+		refreshed.sourceCache,
+		(modelIds) =>
+			refreshOpenRouterRawPayload(
+				current.caches.openRouter,
+				current.statuses.openrouter,
+				modelIds,
+				STAGE_CONFIG.openrouter.speedConcurrency,
+				{
+					replaceSourceRows,
+				},
+			),
 	);
-	await runD1Import(
-		config,
-		importSqlPath,
-		importStatements,
-		options.importMode ?? "wrangler",
-	);
-	const verification = await d1Verification(publishRunId);
-	return {
-		storage: "cloudflare_d1",
-		database_id: config.databaseId,
-		run_id: publishRunId,
-		model_count: payload.models.length,
-		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds ?? null,
-		import_sql_path: importSqlPath,
-		verification,
-	};
-}
-
-/** Publishes a freshly rebuilt runtime snapshot into Cloudflare D1 without relying on Wrangler. */
-export async function refreshD1Snapshot(
-	databasePath?: string,
-): Promise<D1PublishResult> {
-	return publishD1Snapshot({
-		databasePath,
-		importMode: "rest",
-		importSqlPath: resolve(tmpdir(), "model-atlas/d1-publish.sql"),
-	});
-}
-
-async function preservedPayload(databasePath: string) {
-	const refreshedPayload = readDatabasePayload(databasePath);
-	const previousPayload = await readD1Payload().catch(() => null);
-	const payload = preserveHighSignalSnapshotModels(
-		refreshedPayload,
-		previousPayload,
+	const runId = current.previousRunId + 1;
+	let collector = collectDatabaseRun(runId, derived.rows);
+	const previewPayload = payloadFromCollector(runId, startedAt, collector);
+	const preservedPayload = preserveHighSignalSnapshotModels(
+		previewPayload,
+		current.previousPayload,
 		STAGE_CONFIG.snapshotPreservation,
 		STAGE_CONFIG.scoring,
 	);
-	if (payload !== refreshedPayload) {
-		rewriteFinalModelRows(databasePath, payload.models);
+	if (preservedPayload !== previewPayload) {
+		derived.rows.finalModelRows = preservedPayload.models;
+		collector = collectDatabaseRun(runId, derived.rows);
 	}
-	return payload;
-}
-
-async function nextD1RunId(localRunId: number): Promise<number> {
-	const rows = await queryD1Rows(
-		"SELECT COALESCE(MAX(id), 0) AS max_id FROM pipeline_runs",
+	const changedSources = RAW_SOURCE_NAMES.filter(
+		(source) =>
+			tableContentHash(collector.records(RAW_SOURCE_TABLES[source])) !==
+			tableContentHash(current.rawRows[source]),
 	);
-	const maxRemoteRunId = finiteNumberOrNull(rows[0]?.max_id) ?? 0;
-	return Math.max(localRunId, maxRemoteRunId + 1);
-}
-
-/** Rewrites final model rows after snapshot preservation changes IDs. */
-function rewriteFinalModelRows(
-	databasePath: string,
-	models: LlmStatsModel[],
-): void {
-	const db = new DatabaseSync(databasePath);
-	try {
-		const row = db
-			.prepare(
-				"SELECT id FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1",
-			)
-			.get() as { id?: number | bigint } | undefined;
-		const runId = Number(row?.id);
-		if (!Number.isFinite(runId)) {
-			throw new Error("No completed Model Atlas database run exists");
-		}
-		db.exec("BEGIN");
-		try {
-			db.prepare(
-				`DELETE FROM ${SNAPSHOT_TABLES.model_stage_rows} WHERE run_id = ? AND stage = 'final'`,
-			).run(runId);
-			insertModelStageRows(db, runId, "final", models);
-			db.exec("COMMIT");
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	} finally {
-		db.close();
-	}
-}
-
-async function writeD1ImportSql(
-	databasePath: string,
-	outputPath: string,
-	publishRunId: number,
-): Promise<string[]> {
-	await mkdir(dirname(outputPath), { recursive: true });
-	const statements = await d1ImportStatements(databasePath, publishRunId);
-	await writeFile(outputPath, statements.join("\n"), "utf-8");
-	return statements;
-}
-
-/** D1 imports rewrite every run-scoped row under the fresh remote run id before pruning older snapshots. */
-async function d1ImportStatements(
-	databasePath: string,
-	publishRunId: number,
-): Promise<string[]> {
-	const schemaSql = await loadSchemaSql();
-	const columnsByTable = schemaTableColumns(schemaSql);
-	const tables = [...columnsByTable.keys()];
-	const db = new DatabaseSync(databasePath, { readOnly: true });
-	try {
-		const run = latestCompletedRun(db);
-		const publishRun = {
-			...run,
-			id: publishRunId,
+	const nextPayload = payloadFromCollector(runId, startedAt, collector);
+	if (
+		schema.statements.length === 0 &&
+		current.previousPipelineRevision === DATABASE_PIPELINE_REVISION &&
+		changedSources.length === 0 &&
+		current.previousPayload != null &&
+		publicContentHash(nextPayload) ===
+			publicContentHash(current.previousPayload)
+	) {
+		const statements = sourceHealthStatements(current.previousRunId, collector);
+		await queryD1Batch(statements.map((sql) => ({ sql })));
+		const payload = withSourceHealth(
+			current.previousPayload,
+			derived.rows.sourceHealth,
+		);
+		return {
+			result: publishResult(
+				config.databaseId,
+				payload,
+				current.previousRunId,
+				false,
+				[],
+				statements.length,
+				schema,
+			),
+			payload,
 		};
-		const runScopedTables = tables.filter((table) => table !== "pipeline_runs");
-		const statements = [
-			...runScopedTables.map(
-				(table) =>
-					`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ${sqlLiteral(publishRun.id)};`,
-			),
-			`DELETE FROM pipeline_runs WHERE id = ${sqlLiteral(publishRun.id)};`,
-			pipelineRunInsertStatement(publishRun),
-			...runScopedTables.flatMap((table) =>
-				runScopedTableInsertStatements(
-					db,
-					table,
-					columnsByTable.get(table)?.map(([column]) => column) ?? [],
-					run.id,
-					publishRun.id,
-				),
-			),
-			`UPDATE pipeline_runs SET completed_at_epoch_seconds = ${sqlLiteral(publishRun.completedAt)} WHERE id = ${sqlLiteral(publishRun.id)};`,
-			...runScopedTables.map(
-				(table) =>
-					`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${sqlLiteral(publishRun.id)};`,
-			),
-			`DELETE FROM pipeline_runs WHERE id != ${sqlLiteral(publishRun.id)};`,
-			"",
-		];
-		return statements;
-	} finally {
-		db.close();
 	}
-}
-
-/** Finds the newest completed local pipeline run to publish. */
-function latestCompletedRun(db: DatabaseSync): {
-	id: number;
-	startedAt: number;
-	completedAt: number;
-	matchedRows: number | null;
-	enrichedRows: number | null;
-	finalModels: number | null;
-} {
-	const row = db
-		.prepare(
-			`
-			SELECT
-				id,
-				started_at_epoch_seconds,
-				completed_at_epoch_seconds,
-				matched_row_count,
-				enriched_row_count,
-				final_model_count
-			FROM pipeline_runs
-			WHERE completed_at_epoch_seconds IS NOT NULL
-			ORDER BY id DESC
-			LIMIT 1
-		`,
-		)
-		.get() as Record<string, unknown> | undefined;
-	const id = finiteNumberOrNull(row?.id);
-	const startedAt = finiteNumberOrNull(row?.started_at_epoch_seconds);
-	const completedAt = finiteNumberOrNull(row?.completed_at_epoch_seconds);
-	if (id == null || startedAt == null || completedAt == null) {
-		throw new Error("No completed Model Atlas SQLite run exists to publish");
-	}
-	return {
-		id,
-		startedAt,
+	const completedAt = nowEpochSeconds();
+	const statements = publicationStatements(
+		runId,
+		derived.rows.startedAt,
 		completedAt,
-		matchedRows: finiteNumberOrNull(row?.matched_row_count),
-		enrichedRows: finiteNumberOrNull(row?.enriched_row_count),
-		finalModels: finiteNumberOrNull(row?.final_model_count),
+		collector,
+		changedSources,
+	);
+	await queryD1Batch(statements.map((sql) => ({ sql })));
+	const payload = payloadFromCollector(runId, completedAt, collector);
+	return {
+		result: publishResult(
+			config.databaseId,
+			payload,
+			runId,
+			true,
+			changedSources,
+			statements.length,
+			schema,
+		),
+		payload,
 	};
 }
 
-function pipelineRunInsertStatement(
-	run: ReturnType<typeof latestCompletedRun>,
-): string {
-	return `
-		INSERT INTO pipeline_runs (
-			id,
-			started_at_epoch_seconds,
-			completed_at_epoch_seconds,
-			matched_row_count,
-			enriched_row_count,
-			final_model_count
-		) VALUES (
-			${sqlLiteral(run.id)},
-			${sqlLiteral(run.startedAt)},
-			NULL,
-			${sqlLiteral(run.matchedRows)},
-			${sqlLiteral(run.enrichedRows)},
-			${sqlLiteral(run.finalModels)}
-		);
-	`
-		.replace(/\s+/g, " ")
-		.trim();
+/** Reuses the completed payload only when every source and the derivation contract are still current. */
+async function readReusableFreshD1Snapshot(
+	currentEpochSeconds: number,
+	schema: SchemaReconciliationPlan,
+	replaceSourceRows: boolean,
+): Promise<{ runId: number; payload: LlmStatsPayload } | null> {
+	if (schema.statements.length > 0 || replaceSourceRows) {
+		return null;
+	}
+	const [state] = await queryD1Rows(
+		`SELECT
+			p.id,
+			p.pipeline_revision,
+			COUNT(DISTINCT h.source) AS source_count,
+			COUNT(DISTINCT CASE
+				WHEN h.status IN ('cache_hit', 'fresh')
+					AND h.source_input_count > 0
+					AND h.last_fetch_epoch_seconds BETWEEN ? AND ?
+				THEN h.source
+			END) AS fresh_source_count
+		FROM pipeline_runs p
+		LEFT JOIN source_health h ON h.run_id = p.id
+		WHERE p.id = (
+			SELECT MAX(id) FROM pipeline_runs
+			WHERE completed_at_epoch_seconds IS NOT NULL
+		)
+		GROUP BY p.id, p.pipeline_revision`,
+		[currentEpochSeconds - RAW_SOURCE_CACHE_SECONDS, currentEpochSeconds],
+	);
+	const runId = Number(state?.id);
+	if (
+		!Number.isInteger(runId) ||
+		Number(state?.pipeline_revision) !== DATABASE_PIPELINE_REVISION ||
+		Number(state?.source_count) !== RAW_SOURCE_NAMES.length ||
+		Number(state?.fresh_source_count) !== RAW_SOURCE_NAMES.length
+	) {
+		return null;
+	}
+	const payload = await readD1Payload();
+	return payload == null ? null : { runId, payload };
 }
 
-/** Run-scoped tables preserve local row order while publishing under the remote run id. */
-function runScopedTableInsertStatements(
-	db: DatabaseSync,
-	table: string,
-	columns: string[],
-	sourceRunId: number,
-	publishRunId: number,
+function publishResult(
+	databaseId: string,
+	payload: LlmStatsPayload,
+	runId: number,
+	published: boolean,
+	changedSources: RawSourceName[],
+	statementCount: number,
+	schema: SchemaReconciliationPlan,
+): D1PublishResult {
+	return {
+		storage: "cloudflare_d1",
+		database_id: databaseId,
+		run_id: runId,
+		model_count: payload.models.length,
+		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+		published,
+		changed_sources: changedSources,
+		statement_count: statementCount,
+		schema_statement_count: schema.statements.length,
+		schema_changed_tables: schema.changedTables,
+		schema_removed_tables: schema.removedTables,
+		schema_changed_indexes: schema.changedIndexes,
+		schema_removed_indexes: schema.removedIndexes,
+	};
+}
+
+async function readD1RefreshState(now: number): Promise<D1RefreshState> {
+	const rawRows = await readD1RawRows();
+	const [previousRows, previousPayload] = await Promise.all([
+		queryD1BatchRows([
+			{
+				sql: "SELECT source, row_key, row_label, status, missing_from_source_since_epoch_seconds FROM source_row_states WHERE run_id = (SELECT MAX(run_id) FROM source_row_states) ORDER BY row_index",
+			},
+			{
+				sql: "SELECT id AS max_id, pipeline_revision FROM pipeline_runs ORDER BY id DESC LIMIT 1",
+			},
+		]),
+		readD1Payload(),
+	]);
+	const previousSourceRows = previousRows[0] ?? [];
+	const previousRunId = Number(previousRows[1]?.[0]?.max_id ?? 0);
+	const previousPipelineRevision = Number.isFinite(
+		Number(previousRows[1]?.[0]?.pipeline_revision),
+	)
+		? Number(previousRows[1]?.[0]?.pipeline_revision)
+		: null;
+	const previousHealth = previousPayload?.metadata.source_health?.sources;
+	return {
+		previousRunId,
+		previousPipelineRevision,
+		rawRows,
+		caches: sourceCachesFromRows(rawRows),
+		statuses: Object.fromEntries(
+			RAW_SOURCE_NAMES.map((source) => [
+				source,
+				rawSourceCacheStatusFromRows(
+					source,
+					rawRows[source],
+					now,
+					previousHealth?.[source],
+				),
+			]),
+		) as Record<RawSourceName, RawSourceCacheStatus>,
+		previousSourceRowStates: sourceRowStatesFromRows(previousSourceRows),
+		previousPayload,
+	};
+}
+
+async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
+	const rowGroups = await queryD1BatchRows(
+		RAW_SOURCE_NAMES.map((source) => {
+			const table = RAW_SOURCE_TABLES[source];
+			return {
+				sql: `SELECT * FROM ${quoteIdentifier(table)} WHERE run_id = (SELECT MAX(run_id) FROM ${quoteIdentifier(table)}) ORDER BY row_index`,
+			};
+		}),
+	);
+	return Object.fromEntries(
+		RAW_SOURCE_NAMES.map((source, index) => [
+			source,
+			(rowGroups[index] ?? []) as CacheDbRow[],
+		]),
+	) as Record<RawSourceName, CacheDbRow[]>;
+}
+
+function sourceCachesFromRows(
+	rows: Record<RawSourceName, CacheDbRow[]>,
+): SourceCaches {
+	return {
+		artificialAnalysis: artificialAnalysisRawCacheFromRows(
+			rows.artificial_analysis,
+		),
+		artificialAnalysisEvaluationResources:
+			artificialAnalysisEvaluationResourceRawCacheFromRows(
+				rows.artificial_analysis_evaluation_resources,
+			),
+		modelsDev: modelsDevRawCacheFromRows(rows.models_dev),
+		agentsLastExam: readAgentsLastExamRawCache(rows.agents_last_exam),
+		blueprintBench: readBlueprintBenchRawCache(rows.blueprint_bench_2),
+		browseComp: readBrowseCompRawCache(rows.browsecomp),
+		cursorBench: readCursorBenchRawCache(rows.cursorbench),
+		deepSWE: readDeepSWERawCache(rows.deep_swe),
+		gdpPdf: readGdpPdfRawCache(rows.gdp_pdf),
+		riemannBench: readRiemannBenchRawCache(rows.riemann_bench),
+		toolathlon: readToolathlonRawCache(rows.toolathlon),
+		valsIndex: readValsIndexRawCache(rows.vals_index),
+		valsTerminalBench: readValsTerminalBenchRawCache(rows.vals_terminal_bench),
+		openRouter: readOpenRouterRawCache(rows.openrouter),
+	};
+}
+
+function collectDatabaseRun(
+	runId: number,
+	rows: Parameters<typeof writeDatabaseRunRows>[2],
+): SnapshotRowCollector {
+	const collector = new SnapshotRowCollector();
+	writeDatabaseRunRows(collector, runId, rows);
+	return collector;
+}
+
+/** Replaces only refresh metadata when source and derived content are unchanged. */
+function sourceHealthStatements(
+	runId: number,
+	collector: SnapshotRowCollector,
 ): string[] {
-	const rows = db
-		.prepare(
-			`SELECT ${columns.map(quoteIdentifier).join(", ")} FROM ${quoteIdentifier(table)} WHERE run_id = ? ORDER BY row_index`,
-		)
-		.all(sourceRunId)
-		.map((row) => ({
-			...row,
-			run_id: publishRunId,
-		}));
-	return insertStatements(table, columns, rows);
+	const collected = collector.tables.get(SNAPSHOT_TABLES.source_health);
+	if (collected == null) {
+		return [];
+	}
+	const runIdIndex = collected.columns.indexOf("run_id");
+	if (runIdIndex < 0) {
+		throw new Error("Collected source health rows do not include run_id");
+	}
+	return [
+		`DELETE FROM ${quoteIdentifier(SNAPSHOT_TABLES.source_health)} WHERE run_id = ${runId};`,
+		...insertStatements(SNAPSHOT_TABLES.source_health, {
+			columns: collected.columns,
+			rows: collected.rows.map((row) =>
+				row.map((value, index) => (index === runIdIndex ? runId : value)),
+			),
+		}),
+	];
+}
+
+function withSourceHealth(
+	payload: LlmStatsPayload,
+	sourceHealth: NonNullable<LlmStatsPayload["metadata"]["source_health"]>,
+): LlmStatsPayload {
+	return {
+		...payload,
+		metadata: {
+			...payload.metadata,
+			source_health: sourceHealth,
+		},
+	};
+}
+
+function payloadFromCollector(
+	runId: number,
+	fetchedAt: number,
+	collector: SnapshotRowCollector,
+): LlmStatsPayload {
+	const rows: PayloadRows = {
+		run: { id: runId, fetchedAt },
+		modelRows: collector
+			.records(SNAPSHOT_TABLES.model_stage_rows)
+			.filter((row) => row.stage === "final"),
+		sourceHealthRows: collector.records(SNAPSHOT_TABLES.source_health),
+		artificialAnalysisRows: collector.records(
+			SNAPSHOT_TABLES.artificial_analysis,
+		),
+		agentsLastExamRows: collector.records(SNAPSHOT_TABLES.agents_last_exam),
+		blueprintBenchRows: collector.records(SNAPSHOT_TABLES.blueprint_bench_2),
+		browseCompRows: collector.records(SNAPSHOT_TABLES.browsecomp),
+		cursorBenchRows: collector.records(SNAPSHOT_TABLES.cursorbench),
+		deepSWERows: collector.records(SNAPSHOT_TABLES.deep_swe),
+		gdpPdfRows: collector.records(SNAPSHOT_TABLES.gdp_pdf),
+		riemannBenchRows: collector.records(SNAPSHOT_TABLES.riemann_bench),
+		toolathlonRows: collector.records(SNAPSHOT_TABLES.toolathlon),
+		valsIndexRows: collector.records(SNAPSHOT_TABLES.vals_index),
+		valsTerminalBenchRows: collector.records(
+			SNAPSHOT_TABLES.vals_terminal_bench,
+		),
+	};
+	return buildPayloadFromRows(rows);
+}
+
+function publicationStatements(
+	runId: number,
+	startedAt: number,
+	completedAt: number,
+	collector: SnapshotRowCollector,
+	changedSources: RawSourceName[],
+): string[] {
+	const changedRawTables = changedSources.map(
+		(source) => RAW_SOURCE_TABLES[source],
+	);
+	const tablesToInsert = [...changedRawTables, ...DERIVED_TABLES];
+	return [
+		...tablesToInsert.map(
+			(table) =>
+				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ${runId};`,
+		),
+		`DELETE FROM pipeline_runs WHERE id = ${runId};`,
+		`INSERT INTO pipeline_runs (id, started_at_epoch_seconds, completed_at_epoch_seconds, matched_row_count, enriched_row_count, final_model_count, pipeline_revision) VALUES (${runId}, ${startedAt}, NULL, ${collector.records(SNAPSHOT_TABLES.model_stage_rows).filter((row) => row.stage === "matched").length}, ${collector.records(SNAPSHOT_TABLES.model_stage_rows).filter((row) => row.stage === "enriched").length}, ${collector.records(SNAPSHOT_TABLES.model_stage_rows).filter((row) => row.stage === "final").length}, ${DATABASE_PIPELINE_REVISION});`,
+		...tablesToInsert.flatMap((table) =>
+			insertStatements(table, collector.tables.get(table)),
+		),
+		`UPDATE pipeline_runs SET completed_at_epoch_seconds = ${completedAt} WHERE id = ${runId};`,
+		...changedRawTables.map(
+			(table) =>
+				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${runId};`,
+		),
+		...DERIVED_TABLES.map(
+			(table) =>
+				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${runId};`,
+		),
+		`DELETE FROM pipeline_runs WHERE id != ${runId};`,
+	];
 }
 
 function insertStatements(
 	table: string,
-	columns: string[],
-	rows: Record<string, unknown>[],
+	collected: CollectedTableRows | undefined,
 ): string[] {
-	const prefix = `INSERT INTO ${quoteIdentifier(table)} (${columns.map(quoteIdentifier).join(", ")}) VALUES `;
+	if (collected == null || collected.rows.length === 0) {
+		return [];
+	}
+	const prefix = `INSERT INTO ${quoteIdentifier(table)} (${collected.columns.map(quoteIdentifier).join(", ")}) VALUES `;
 	const statements: string[] = [];
 	let chunk: string[] = [];
-	let chunkLength = prefix.length + 1;
-	for (const row of rows) {
-		const valueSql = `(${columns.map((column) => sqlLiteral(row[column])).join(", ")})`;
-		const nextLength =
-			chunkLength + valueSql.length + (chunk.length > 0 ? 2 : 0);
+	let chunkLength = prefix.length;
+	for (const row of collected.rows) {
+		const valueSql = `(${row.map(sqlLiteral).join(", ")})`;
+		const nextLength = chunkLength + valueSql.length + 2;
 		if (
 			chunk.length > 0 &&
 			(chunk.length >= INSERT_ROWS_PER_STATEMENT ||
@@ -325,10 +505,10 @@ function insertStatements(
 		) {
 			statements.push(`${prefix}${chunk.join(", ")};`);
 			chunk = [];
-			chunkLength = prefix.length + 1;
+			chunkLength = prefix.length;
 		}
 		chunk.push(valueSql);
-		chunkLength += valueSql.length + (chunk.length > 1 ? 2 : 0);
+		chunkLength += valueSql.length + 2;
 	}
 	if (chunk.length > 0) {
 		statements.push(`${prefix}${chunk.join(", ")};`);
@@ -336,137 +516,53 @@ function insertStatements(
 	return statements;
 }
 
-/** Escapes JavaScript values as SQL literals for the D1 import script. */
-function sqlLiteral(value: unknown): string {
+function tableContentHash(rows: readonly Record<string, unknown>[]): string {
+	return stableHash(
+		rows.map(({ run_id, row_index, fetched_at_epoch_seconds, ...row }) => row),
+	);
+}
+
+function publicContentHash(payload: LlmStatsPayload): string {
+	return stableHash({
+		models: payload.models,
+		deep_swe: payload.deep_swe,
+		scoring: payload.metadata.scoring,
+	});
+}
+
+function stableHash(value: unknown): string {
+	return createHash("sha256")
+		.update(JSON.stringify(canonicalize(value)))
+		.digest("hex");
+}
+
+function canonicalize(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map(canonicalize);
+	}
+	if (value != null && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value as Record<string, unknown>)
+				.sort(([left], [right]) => left.localeCompare(right))
+				.map(([key, entry]) => [key, canonicalize(entry)]),
+		);
+	}
+	return value;
+}
+
+function sqlLiteral(value: SqlValue): string {
 	if (value == null) {
 		return "NULL";
 	}
 	if (typeof value === "number") {
 		return Number.isFinite(value) ? String(value) : "NULL";
 	}
-	if (typeof value === "bigint") {
-		return String(value);
-	}
-	return `'${String(value).replaceAll("'", "''")}'`;
+	return `'${value.replaceAll("'", "''")}'`;
 }
 
-function assertIdentifier(value: string): void {
+function quoteIdentifier(value: string): string {
 	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
 		throw new Error(`Unsafe SQL identifier: ${value}`);
 	}
-}
-
-/** Quotes a validated SQL identifier for import statements. */
-function quoteIdentifier(value: string): string {
-	assertIdentifier(value);
 	return `"${value}"`;
-}
-
-/** Imports the generated SQL through the selected D1 publication mechanism. */
-async function runD1Import(
-	config: D1Config,
-	filePath: string,
-	statements: string[],
-	mode: D1ImportMode,
-): Promise<void> {
-	if (mode === "wrangler") {
-		runWranglerD1Import(config, filePath);
-		return;
-	}
-	await runRestD1Import(statements);
-}
-
-function runWranglerD1Import(config: D1Config, filePath: string): void {
-	const result = spawnSync(
-		"pnpm",
-		[
-			"exec",
-			"wrangler",
-			"d1",
-			"execute",
-			config.databaseId,
-			"--remote",
-			"--file",
-			filePath,
-			"--yes",
-		],
-		{
-			stdio: ["ignore", "pipe", "pipe"],
-			encoding: "utf-8",
-			env: {
-				...process.env,
-				CLOUDFLARE_ACCOUNT_ID: config.accountId,
-				CLOUDFLARE_API_TOKEN: config.apiToken,
-			},
-		},
-	);
-	if (result.status !== 0) {
-		throw new Error(
-			`Wrangler D1 import failed.\n${result.stderr || result.stdout}`,
-		);
-	}
-}
-
-/** Imports the generated run into D1 through the REST API for deployed runtimes. */
-async function runRestD1Import(statements: string[]): Promise<void> {
-	for (const statement of statements) {
-		if (statement.trim().length === 0) {
-			continue;
-		}
-		await queryD1(statement);
-	}
-}
-
-/** Verifies the remote D1 run after import completes. */
-async function d1Verification(
-	runId: number,
-): Promise<D1PublishResult["verification"]> {
-	const tables = [
-		SNAPSHOT_TABLES.artificial_analysis,
-		SNAPSHOT_TABLES.models_dev,
-		SNAPSHOT_TABLES.deep_swe,
-		SNAPSHOT_TABLES.model_stage_rows,
-		SNAPSHOT_TABLES.source_row_states,
-	];
-	const counts = Object.fromEntries(
-		await Promise.all(
-			tables.map(async (table) => [
-				table,
-				Number(
-					(
-						await d1Query(
-							`SELECT COUNT(*) AS count FROM ${quoteIdentifier(table)} WHERE run_id = ?`,
-							[runId],
-						)
-					)[0]?.count,
-				),
-			]),
-		),
-	);
-	const deepSweVersions = await d1Query(
-		`SELECT source_version, COUNT(*) AS count FROM ${quoteIdentifier(SNAPSHOT_TABLES.deep_swe)} WHERE run_id = ? GROUP BY source_version ORDER BY source_version`,
-		[runId],
-	);
-	return { counts, deep_swe_versions: deepSweVersions };
-}
-
-async function d1Query(
-	sql: string,
-	params: unknown[] = [],
-): Promise<Record<string, unknown>[]> {
-	return queryD1Rows(
-		sql,
-		params.map((param) =>
-			param == null
-				? null
-				: typeof param === "string" || typeof param === "number"
-					? param
-					: String(param),
-		),
-	);
-}
-
-function finiteNumberOrNull(value: unknown): number | null {
-	const numberValue = Number(value);
-	return Number.isFinite(numberValue) ? numberValue : null;
 }

@@ -3,13 +3,20 @@
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 
+CREATE TABLE IF NOT EXISTS model_atlas_schema_manifest (
+	object_type TEXT NOT NULL,
+	object_name TEXT NOT NULL,
+	PRIMARY KEY (object_type, object_name)
+);
+
 CREATE TABLE IF NOT EXISTS pipeline_runs (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	started_at_epoch_seconds INTEGER NOT NULL,
 	completed_at_epoch_seconds INTEGER,
 	matched_row_count INTEGER,
 	enriched_row_count INTEGER,
-	final_model_count INTEGER
+	final_model_count INTEGER,
+	pipeline_revision INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (

@@ -88,16 +88,11 @@ function modelsDevModelRecord(row: CacheDbRow): ModelsDevModelRecord {
 	return model;
 }
 
-export function readModelsDevRawCache(db: DatabaseSync): {
+export function modelsDevRawCacheFromRows(cacheRows: CacheDbRow[]): {
 	payload: ModelsDevPayload;
 	fetchedAt: number | null;
 	statusCode: number | null;
 } | null {
-	const cacheRows = queryLatestCacheRows(
-		db,
-		"models_dev_raw_models",
-		"SELECT * FROM models_dev_raw_models WHERE run_id = ? ORDER BY row_index",
-	);
 	if (cacheRows.length === 0) {
 		return null;
 	}
@@ -123,4 +118,14 @@ export function readModelsDevRawCache(db: DatabaseSync): {
 		fetchedAt: firstEpochSecond(cacheRows),
 		statusCode: asFiniteNumber(cacheRows[0]?.status_code),
 	};
+}
+
+export function readModelsDevRawCache(db: DatabaseSync) {
+	return modelsDevRawCacheFromRows(
+		queryLatestCacheRows(
+			db,
+			"models_dev_raw_models",
+			"SELECT * FROM models_dev_raw_models WHERE run_id = ? ORDER BY row_index",
+		),
+	);
 }

@@ -174,16 +174,11 @@ function artificialAnalysisSelectedRow(row: CacheDbRow): JsonObject {
 	return selectedRow;
 }
 
-export function readArtificialAnalysisRawCache(db: DatabaseSync): {
+export function artificialAnalysisRawCacheFromRows(cacheRows: CacheDbRow[]): {
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
 	fetchedAt: number | null;
 } | null {
-	const cacheRows = queryLatestCacheRows(
-		db,
-		"artificial_analysis_raw_models",
-		"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
-	);
 	if (cacheRows.length === 0) {
 		return null;
 	}
@@ -198,17 +193,22 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
 	};
 }
 
-export function readArtificialAnalysisEvaluationResourceRawCache(
-	db: DatabaseSync,
+export function readArtificialAnalysisRawCache(db: DatabaseSync) {
+	return artificialAnalysisRawCacheFromRows(
+		queryLatestCacheRows(
+			db,
+			"artificial_analysis_raw_models",
+			"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+		),
+	);
+}
+
+export function artificialAnalysisEvaluationResourceRawCacheFromRows(
+	cacheRows: CacheDbRow[],
 ): {
 	rows: ArtificialAnalysisEvaluationResourceRow[];
 	fetchedAt: number | null;
 } | null {
-	const cacheRows = queryLatestCacheRows(
-		db,
-		"artificial_analysis_evaluations_raw_rows",
-		"SELECT * FROM artificial_analysis_evaluations_raw_rows WHERE run_id = ? ORDER BY row_index",
-	);
 	if (cacheRows.length === 0) {
 		return null;
 	}
@@ -267,4 +267,16 @@ export function readArtificialAnalysisEvaluationResourceRawCache(
 		}),
 		fetchedAt: firstEpochSecond(cacheRows),
 	};
+}
+
+export function readArtificialAnalysisEvaluationResourceRawCache(
+	db: DatabaseSync,
+) {
+	return artificialAnalysisEvaluationResourceRawCacheFromRows(
+		queryLatestCacheRows(
+			db,
+			"artificial_analysis_evaluations_raw_rows",
+			"SELECT * FROM artificial_analysis_evaluations_raw_rows WHERE run_id = ? ORDER BY row_index",
+		),
+	);
 }

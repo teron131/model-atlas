@@ -1,7 +1,8 @@
-/** Exercises schema replacement, payload fallback, and latest-run raw cache reads. */
+/** Exercises keyed schema reconciliation, payload fallback, and latest-run raw cache reads. */
 
 import assert from "node:assert/strict";
 import {
+	rawSourceCacheStatusFromRows,
 	readDeepSWERawCache,
 	readRawSourceCacheStatus,
 } from "../src/model-atlas/database/cache";
@@ -10,9 +11,14 @@ import {
 	loadSchemaSql,
 	openDatabase,
 	removeDatabaseFiles,
+	SCHEMA_MANIFEST_TABLE,
+	type SchemaCatalogRow,
+	type SchemaManifestRow,
+	schemaReconciliationPlan,
 	schemaTableColumns,
 	schemaTableShapes,
 } from "../src/model-atlas/database/schema";
+import { DATABASE_PIPELINE_REVISION } from "../src/model-atlas/database/types";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
 const DEEP_SWE_V1_1_URL =
@@ -37,6 +43,13 @@ assert.equal(
 	"TEXT NOT NULL",
 	"schema parsing should preserve complete column definitions",
 );
+assert.equal(
+	schemaColumns
+		.get("pipeline_runs")
+		?.find(([column]) => column === "pipeline_revision")?.[1],
+	`INTEGER NOT NULL DEFAULT ${DATABASE_PIPELINE_REVISION}`,
+	"The persisted schema default should match the code-owned pipeline revision",
+);
 const processedModelShape =
 	schemaTableShapes(schemaSql).get("model_stage_rows");
 assert.deepEqual(
@@ -47,6 +60,24 @@ assert.deepEqual(
 	],
 	[1, 2, 3],
 	"schema drift checks should preserve table-level primary key order",
+);
+
+const staleSourceRows = [{ fetched_at_epoch_seconds: 1_800_000_000 }];
+assert.equal(
+	rawSourceCacheStatusFromRows("browsecomp", staleSourceRows, 1_900_000_000, {
+		last_fetch_epoch_seconds: 1_900_000_000,
+		source_input_count: 1,
+	}).cache_hit,
+	true,
+	"Persisted refresh metadata should keep unchanged raw rows fresh",
+);
+assert.equal(
+	rawSourceCacheStatusFromRows("browsecomp", staleSourceRows, 1_900_000_000, {
+		last_fetch_epoch_seconds: null,
+		source_input_count: 1,
+	}).cache_hit,
+	false,
+	"An explicit missing refresh timestamp should not fall back to an old raw-row timestamp",
 );
 
 const payloadRows = await readPayloadRows(
@@ -83,6 +114,43 @@ try {
 				"anthropic/claude-fable-5",
 				"Claude Fable 5",
 			);
+		firstDb
+			.prepare(
+				"INSERT INTO model_stage_rows (run_id, stage, row_index, model_id) VALUES (?, ?, ?, ?)",
+			)
+			.run(1, "final", 0, "anthropic/claude-fable-5");
+		firstDb
+			.prepare(`
+				INSERT INTO browsecomp_raw_rows (
+					run_id, row_index, fetched_at_epoch_seconds, url, model,
+					provider, provider_name, score
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			`)
+			.run(
+				1,
+				0,
+				1_800_000_000,
+				"https://example.com/browsecomp",
+				"Claude Fable 5",
+				"Anthropic",
+				"Anthropic",
+				0.5,
+			);
+		firstDb
+			.prepare(
+				"ALTER TABLE artificial_analysis_raw_models ADD COLUMN legacy_note TEXT",
+			)
+			.run();
+		firstDb
+			.prepare(
+				"CREATE TABLE legacy_snapshot_rows (id INTEGER PRIMARY KEY, value TEXT)",
+			)
+			.run();
+		firstDb
+			.prepare(
+				`INSERT INTO ${SCHEMA_MANIFEST_TABLE} (object_type, object_name) VALUES (?, ?)`,
+			)
+			.run("table", "legacy_snapshot_rows");
 		firstDb
 			.prepare("ALTER TABLE model_stage_rows DROP COLUMN cursorbench")
 			.run();
@@ -122,8 +190,15 @@ try {
 			.get("anthropic/claude-fable-5");
 		assert.equal(
 			Number(row?.count ?? 0),
-			0,
-			"Opening a mismatched database should replace stale snapshot rows",
+			1,
+			"Schema reconciliation should preserve rows when the primary keys still match",
+		);
+		assert(
+			!reopenedDb
+				.prepare("PRAGMA table_info(artificial_analysis_raw_models)")
+				.all()
+				.some((column) => column.name === "legacy_note"),
+			"Schema reconciliation should omit columns no longer owned by the checked-in schema",
 		);
 		assert(
 			reopenedDb
@@ -146,6 +221,102 @@ try {
 				.some((column) => column.name === "provider_name"),
 			"Opening the database should recreate raw source columns",
 		);
+		assert.equal(
+			Number(
+				reopenedDb
+					.prepare(
+						"SELECT COUNT(*) AS count FROM model_stage_rows WHERE run_id = 1 AND stage = 'final'",
+					)
+					.get()?.count ?? 0,
+			),
+			1,
+			"Changed derived tables should preserve rows when their primary keys still match",
+		);
+		assert.equal(
+			reopenedDb
+				.prepare(
+					"SELECT cursorbench FROM model_stage_rows WHERE run_id = 1 AND stage = 'final'",
+				)
+				.get()?.cursorbench,
+			null,
+			"New nullable columns should be added without inventing evidence",
+		);
+		assert.equal(
+			Number(
+				reopenedDb
+					.prepare("SELECT COUNT(*) AS count FROM browsecomp_raw_rows")
+					.get()?.count ?? 0,
+			),
+			1,
+			"Changed raw tables should preserve rows when their primary keys still match",
+		);
+		assert.equal(
+			reopenedDb.prepare("SELECT provider_name FROM browsecomp_raw_rows").get()
+				?.provider_name,
+			null,
+			"Reintroduced nullable source columns should start empty",
+		);
+		assert.equal(
+			reopenedDb
+				.prepare(
+					"SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'legacy_snapshot_rows'",
+				)
+				.get(),
+			undefined,
+			"Previously managed tables absent from the schema should be removed",
+		);
+		const reconciledCatalog = reopenedDb
+			.prepare(
+				"SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')",
+			)
+			.all() as SchemaCatalogRow[];
+		const reconciledManifest = reopenedDb
+			.prepare(`SELECT object_type, object_name FROM ${SCHEMA_MANIFEST_TABLE}`)
+			.all() as SchemaManifestRow[];
+		assert.deepEqual(
+			schemaReconciliationPlan(schemaSql, reconciledCatalog, reconciledManifest)
+				.statements,
+			[],
+			"A reconciled schema should not produce repeated DDL operations",
+		);
+		assert.throws(
+			() =>
+				schemaReconciliationPlan(
+					schemaSql.replace(
+						"PRIMARY KEY (run_id, stage, row_index)",
+						"PRIMARY KEY (run_id, row_index)",
+					),
+					reconciledCatalog,
+					reconciledManifest,
+				),
+			/primary key changed/,
+			"Automatic reconciliation should refuse incompatible stable-key changes",
+		);
+		assert.throws(
+			() =>
+				schemaReconciliationPlan(
+					schemaSql.replace(
+						"\tlogo_url TEXT,\n\tPRIMARY KEY (run_id, row_index)",
+						"\tlogo_url TEXT,\n\tnew_required_field TEXT NOT NULL,\n\tPRIMARY KEY (run_id, row_index)",
+					),
+					reconciledCatalog,
+					reconciledManifest,
+				),
+			/new required column new_required_field needs a DEFAULT/,
+			"Automatic reconciliation should refuse required columns without a migration value",
+		);
+		assert.deepEqual(
+			schemaReconciliationPlan(
+				schemaSql.replace(
+					`INTEGER NOT NULL DEFAULT ${DATABASE_PIPELINE_REVISION}`,
+					`INTEGER NOT NULL DEFAULT ${DATABASE_PIPELINE_REVISION + 1}`,
+				),
+				reconciledCatalog,
+				reconciledManifest,
+			).changedTables,
+			["pipeline_runs"],
+			"Schema reconciliation should detect changed defaults, not only changed column shapes",
+		);
 		const deepSWEStatement = reopenedDb.prepare(DEEP_SWE_INSERT_SQL);
 		for (const [
 			runId,
@@ -155,10 +326,7 @@ try {
 			cost,
 			seconds,
 			outputTokens,
-		] of [
-			[1, 1_800_000_000, "Current DeepSWE Model", 0.7, 2, 4, 6],
-			[2, 1_800_000_010, "Latest DeepSWE Model", 0.8, 3, 5, 7],
-		] as const) {
+		] of [[2, 1_800_000_010, "Latest DeepSWE Model", 0.8, 3, 5, 7]] as const) {
 			deepSWEStatement.run(
 				runId,
 				0,

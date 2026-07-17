@@ -1,6 +1,5 @@
 /** SQLite writer for OpenRouter directory, route, stat-point, and pricing source rows. */
 
-import type { DatabaseSync, StatementSync } from "node:sqlite";
 import type {
 	OpenRouterRawScrapedModel,
 	OpenRouterRawScrapedPayload,
@@ -12,6 +11,7 @@ import {
 } from "../../scrapers/openrouter";
 import { asFiniteNumber, asRecord } from "../../shared";
 import { SOURCE_URLS } from "../types";
+import type { DatabaseStatement, DatabaseWriter } from "./shared";
 
 type OpenRouterPointRow = {
 	x: string | null;
@@ -51,7 +51,7 @@ type OpenRouterRawRow = {
 };
 
 function insertOpenRouterRawRow(
-	statement: StatementSync,
+	statement: DatabaseStatement,
 	row: OpenRouterRawRow,
 ): void {
 	statement.run(
@@ -97,7 +97,7 @@ function openRouterStatPointRows(
 }
 
 function insertOpenRouterDirectoryRows(
-	statement: StatementSync,
+	statement: DatabaseStatement,
 	runId: number,
 	rawPayload: OpenRouterRawScrapedPayload,
 	rowIndex: number,
@@ -118,7 +118,7 @@ function insertOpenRouterDirectoryRows(
 }
 
 function insertOpenRouterPermaslugCandidateRows(
-	statement: StatementSync,
+	statement: DatabaseStatement,
 	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -145,7 +145,7 @@ function insertOpenRouterPermaslugCandidateRows(
 }
 
 function insertOpenRouterStatPointRows(
-	statement: StatementSync,
+	statement: DatabaseStatement,
 	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -178,7 +178,7 @@ function insertOpenRouterStatPointRows(
 }
 
 function insertOpenRouterPerformanceEstimateRows(
-	statement: StatementSync,
+	statement: DatabaseStatement,
 	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -187,6 +187,9 @@ function insertOpenRouterPerformanceEstimateRows(
 	for (const estimate of summarizeOpenRouterPerformanceEstimates(
 		model.performance,
 	)) {
+		if (estimate.value == null) {
+			continue;
+		}
 		insertOpenRouterRawRow(statement, {
 			runId,
 			rowIndex,
@@ -206,7 +209,7 @@ function insertOpenRouterPerformanceEstimateRows(
 }
 
 function insertOpenRouterModelStatsRow(
-	statement: StatementSync,
+	statement: DatabaseStatement,
 	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -238,7 +241,7 @@ function insertOpenRouterModelStatsRow(
 
 /** Insert OpenRouter raw directory rows, candidate rows, stat points, and model summaries in one source table. */
 export function insertOpenRouterRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	rawPayload: OpenRouterRawScrapedPayload | null | undefined,
 ): void {

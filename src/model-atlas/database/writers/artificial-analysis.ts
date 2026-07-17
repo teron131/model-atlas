@@ -1,7 +1,5 @@
 /** SQLite writer for Artificial Analysis raw rows, selected benchmark fields, and source metadata. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import {
 	cleanArtificialAnalysisModelName,
 	parseArtificialAnalysisReasoningEffort,
@@ -9,6 +7,7 @@ import {
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
+	type DatabaseWriter,
 	firstNumber,
 	firstString,
 	type SqlValue,
@@ -186,7 +185,7 @@ function artificialAnalysisCostAndLogoValues(
 }
 
 export function insertArtificialAnalysisRawModels(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
@@ -235,7 +234,7 @@ export function insertArtificialAnalysisRawModels(
 }
 
 export function insertArtificialAnalysisEvaluationResourceRawRows(
-	db: DatabaseSync,
+	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {

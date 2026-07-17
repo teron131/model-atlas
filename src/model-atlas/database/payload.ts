@@ -1,6 +1,4 @@
-/** Database payload readers enforce the public stats shape shared by SQLite snapshots and D1. */
-
-import { DatabaseSync } from "node:sqlite";
+/** Storage-independent payload assembly enforces the public stats shape shared by local snapshots and D1. */
 
 import {
 	asDeepSWERawLeaderboardRow,
@@ -28,7 +26,6 @@ import type {
 	LlmStatsSpeed,
 	LlmStatsTaskMetrics,
 } from "../stats/types";
-import { DEFAULT_DATABASE_PATH } from "./types";
 
 type DbRow = Record<string, unknown>;
 
@@ -57,6 +54,7 @@ type PayloadRowKey = Exclude<keyof PayloadRows, "run">;
 export type PayloadRowGroup = {
 	key: PayloadRowKey;
 	sql: string;
+	sourceTable?: string;
 	optional?: boolean;
 };
 
@@ -81,47 +79,58 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 	{
 		key: "artificialAnalysisRows",
 		sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "artificial_analysis_raw_models",
 	},
 	{
 		key: "agentsLastExamRows",
 		sql: "SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "agents_last_exam_raw_rows",
 	},
 	{
 		key: "blueprintBenchRows",
 		sql: "SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "blueprint_bench_2_raw_rows",
 	},
 	{
 		key: "browseCompRows",
 		sql: "SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "browsecomp_raw_rows",
 	},
 	{
 		key: "cursorBenchRows",
 		sql: "SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "cursorbench_raw_rows",
 	},
 	{
 		key: "deepSWERows",
 		sql: "SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
+		sourceTable: "deep_swe_raw_rows",
 	},
 	{
 		key: "gdpPdfRows",
 		sql: "SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "gdp_pdf_raw_rows",
 	},
 	{
 		key: "riemannBenchRows",
 		sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "riemann_bench_raw_rows",
 	},
 	{
 		key: "toolathlonRows",
 		sql: "SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "toolathlon_raw_rows",
 	},
 	{
 		key: "valsIndexRows",
 		sql: "SELECT * FROM vals_index_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "vals_index_raw_rows",
 		optional: true,
 	},
 	{
 		key: "valsTerminalBenchRows",
 		sql: "SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "vals_terminal_bench_raw_rows",
 		optional: true,
 	},
 ];
@@ -377,16 +386,8 @@ export function payloadRunFromRow(row: unknown): PayloadRows["run"] | null {
 	};
 }
 
-function latestRun(db: DatabaseSync): PayloadRows["run"] {
-	const run = payloadRunFromRow(db.prepare(COMPLETED_RUN_SQL).get());
-	if (run == null) {
-		throw new Error("No Model Atlas database run exists");
-	}
-	return run;
-}
-
 /** Keeps every storage adapter aligned on the row groups required by the public payload. */
-function buildPayloadRows(
+export function buildPayloadRows(
 	run: PayloadRows["run"],
 	rowGroups: ReadonlyArray<readonly [PayloadRowKey, DbRow[]]>,
 ): PayloadRows {
@@ -407,24 +408,6 @@ function buildPayloadRows(
 		valsIndexRows: rows.get("valsIndexRows") ?? [],
 		valsTerminalBenchRows: rows.get("valsTerminalBenchRows") ?? [],
 	};
-}
-
-function readPayloadRowGroup(
-	db: DatabaseSync,
-	rowGroup: PayloadRowGroup,
-	runId: number,
-): DbRow[] {
-	try {
-		return db
-			.prepare(rowGroup.sql)
-			.all(runId)
-			.map((row) => asRecord(row));
-	} catch (error) {
-		if (rowGroup.optional === true) {
-			return [];
-		}
-		throw error;
-	}
 }
 
 /** Payload row groups share one reader contract across local SQLite and Cloudflare D1. */
@@ -520,25 +503,4 @@ export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 		},
 		models,
 	};
-}
-
-/** Local SQLite payload reads follow the same latest-completed-run boundary as D1. */
-export function readDatabasePayload(
-	databasePath = DEFAULT_DATABASE_PATH,
-): LlmStatsPayload {
-	const db = new DatabaseSync(databasePath);
-	try {
-		const run = latestRun(db);
-		return buildPayloadFromRows(
-			buildPayloadRows(
-				run,
-				PAYLOAD_ROW_GROUPS.map((rowGroup) => [
-					rowGroup.key,
-					readPayloadRowGroup(db, rowGroup, run.id),
-				]),
-			),
-		);
-	} finally {
-		db.close();
-	}
 }

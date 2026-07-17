@@ -1,4 +1,4 @@
-/** Source snapshot orchestration for the Model Atlas SQLite database pipeline. */
+/** Source snapshot orchestration shares one cache-aware workflow across local SQLite and production D1. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -6,11 +6,28 @@ import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
 import { selectModelsDevRowsForArtificialAnalysis } from "../stats/source-policy";
 import type { ScoringConfig } from "../stats/types";
 import {
+	readAgentsLastExamRawCache,
+	readArtificialAnalysisEvaluationResourceRawCache,
+	readArtificialAnalysisRawCache,
+	readBlueprintBenchRawCache,
+	readBrowseCompRawCache,
+	readCursorBenchRawCache,
+	readDeepSWERawCache,
+	readGdpPdfRawCache,
+	readModelsDevRawCache,
 	readOpenRouterRawCache,
 	readRawSourceCacheStatus,
+	readRiemannBenchRawCache,
+	readToolathlonRawCache,
+	readValsIndexRawCache,
+	readValsTerminalBenchRawCache,
 	refreshedCacheStatus,
 } from "./cache";
-import { latestSourceRowStates, missingSinceBySource } from "./policy";
+import {
+	latestSourceRowStates,
+	mergeCachedSourceRows,
+	missingSinceBySource,
+} from "./policy";
 import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analysis";
 import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
@@ -33,6 +50,7 @@ import {
 	RAW_SOURCE_NAMES,
 	type RawSourceCacheStatus,
 	type RawSourceName,
+	type SourceRowState,
 	type SourceSnapshotStatus,
 	type SourceSnapshots,
 } from "./types";
@@ -41,6 +59,48 @@ type SourceSnapshotCacheResult = {
 	snapshots: SourceSnapshots;
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
 };
+
+const PARTIAL_OPENROUTER_TIMEOUT_MS = 10_000;
+const PARTIAL_OPENROUTER_MAX_RETRIES = 1;
+
+export type SourceCaches = {
+	artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
+	artificialAnalysisEvaluationResources: ReturnType<
+		typeof readArtificialAnalysisEvaluationResourceRawCache
+	>;
+	modelsDev: ReturnType<typeof readModelsDevRawCache>;
+	agentsLastExam: ReturnType<typeof readAgentsLastExamRawCache>;
+	blueprintBench: ReturnType<typeof readBlueprintBenchRawCache>;
+	browseComp: ReturnType<typeof readBrowseCompRawCache>;
+	cursorBench: ReturnType<typeof readCursorBenchRawCache>;
+	deepSWE: ReturnType<typeof readDeepSWERawCache>;
+	gdpPdf: ReturnType<typeof readGdpPdfRawCache>;
+	riemannBench: ReturnType<typeof readRiemannBenchRawCache>;
+	toolathlon: ReturnType<typeof readToolathlonRawCache>;
+	valsIndex: ReturnType<typeof readValsIndexRawCache>;
+	valsTerminalBench: ReturnType<typeof readValsTerminalBenchRawCache>;
+	openRouter: ReturnType<typeof readOpenRouterRawCache>;
+};
+
+function readSqliteSourceCaches(db: DatabaseSync): SourceCaches {
+	return {
+		artificialAnalysis: readArtificialAnalysisRawCache(db),
+		artificialAnalysisEvaluationResources:
+			readArtificialAnalysisEvaluationResourceRawCache(db),
+		modelsDev: readModelsDevRawCache(db),
+		agentsLastExam: readAgentsLastExamRawCache(db),
+		blueprintBench: readBlueprintBenchRawCache(db),
+		browseComp: readBrowseCompRawCache(db),
+		cursorBench: readCursorBenchRawCache(db),
+		deepSWE: readDeepSWERawCache(db),
+		gdpPdf: readGdpPdfRawCache(db),
+		riemannBench: readRiemannBenchRawCache(db),
+		toolathlon: readToolathlonRawCache(db),
+		valsIndex: readValsIndexRawCache(db),
+		valsTerminalBench: readValsTerminalBenchRawCache(db),
+		openRouter: readOpenRouterRawCache(db),
+	};
+}
 
 function readSourceCacheStatuses(
 	db: DatabaseSync,
@@ -115,8 +175,26 @@ export async function loadSourceSnapshots(
 	scoringConfig: ScoringConfig,
 	options: DatabaseBuildOptions = {},
 ): Promise<SourceSnapshotCacheResult> {
-	const sourceCache = readSourceCacheStatuses(db, nowEpochSeconds);
-	const previousMissingSince = missingSinceBySource(latestSourceRowStates(db));
+	return refreshSourceSnapshots(
+		readSqliteSourceCaches(db),
+		readSourceCacheStatuses(db, nowEpochSeconds),
+		latestSourceRowStates(db),
+		nowEpochSeconds,
+		scoringConfig,
+		options,
+	);
+}
+
+/** Refreshes normalized source snapshots from storage-independent cached source values. */
+export async function refreshSourceSnapshots(
+	caches: SourceCaches,
+	sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
+	previousSourceRowStates: readonly SourceRowState[],
+	nowEpochSeconds: number,
+	scoringConfig: ScoringConfig,
+	options: DatabaseBuildOptions = {},
+): Promise<SourceSnapshotCacheResult> {
+	const previousMissingSince = missingSinceBySource(previousSourceRowStates);
 	const [
 		artificialAnalysis,
 		artificialAnalysisEvaluationResources,
@@ -133,7 +211,7 @@ export async function loadSourceSnapshots(
 		valsTerminalBench,
 	] = await Promise.all([
 		artificialAnalysisSnapshot(
-			db,
+			caches.artificialAnalysis,
 			sourceCache.artificial_analysis,
 			options,
 			scoringConfig,
@@ -141,84 +219,84 @@ export async function loadSourceSnapshots(
 			nowEpochSeconds,
 		),
 		artificialAnalysisEvaluationResourceSnapshot(
-			db,
+			caches.artificialAnalysisEvaluationResources,
 			sourceCache.artificial_analysis_evaluation_resources,
 			options,
 			previousMissingSince.artificial_analysis_evaluation_resources,
 			nowEpochSeconds,
 		),
 		modelsDevSnapshot(
-			db,
+			caches.modelsDev,
 			sourceCache.models_dev,
 			options,
 			previousMissingSince.models_dev,
 			nowEpochSeconds,
 		),
 		agentsLastExamSnapshot(
-			db,
+			caches.agentsLastExam,
 			sourceCache.agents_last_exam,
 			options,
 			previousMissingSince.agents_last_exam,
 			nowEpochSeconds,
 		),
 		blueprintBenchSnapshot(
-			db,
+			caches.blueprintBench,
 			sourceCache.blueprint_bench_2,
 			options,
 			previousMissingSince.blueprint_bench_2,
 			nowEpochSeconds,
 		),
 		browseCompSnapshot(
-			db,
+			caches.browseComp,
 			sourceCache.browsecomp,
 			options,
 			previousMissingSince.browsecomp,
 			nowEpochSeconds,
 		),
 		cursorBenchSnapshot(
-			db,
+			caches.cursorBench,
 			sourceCache.cursorbench,
 			options,
 			previousMissingSince.cursorbench,
 			nowEpochSeconds,
 		),
 		deepSWESnapshot(
-			db,
+			caches.deepSWE,
 			sourceCache.deep_swe,
 			options,
 			previousMissingSince.deep_swe,
 			nowEpochSeconds,
 		),
 		gdpPdfSnapshot(
-			db,
+			caches.gdpPdf,
 			sourceCache.gdp_pdf,
 			options,
 			previousMissingSince.gdp_pdf,
 			nowEpochSeconds,
 		),
 		riemannBenchSnapshot(
-			db,
+			caches.riemannBench,
 			sourceCache.riemann_bench,
 			options,
 			previousMissingSince.riemann_bench,
 			nowEpochSeconds,
 		),
 		toolathlonSnapshot(
-			db,
+			caches.toolathlon,
 			sourceCache.toolathlon,
 			options,
 			previousMissingSince.toolathlon,
 			nowEpochSeconds,
 		),
 		valsIndexSnapshot(
-			db,
+			caches.valsIndex,
 			sourceCache.vals_index,
 			options,
 			previousMissingSince.vals_index,
 			nowEpochSeconds,
 		),
 		valsTerminalBenchSnapshot(
-			db,
+			caches.valsTerminalBench,
 			sourceCache.vals_terminal_bench,
 			options,
 			previousMissingSince.vals_terminal_bench,
@@ -292,34 +370,114 @@ export async function loadOpenRouterRawPayload(
 	rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
 	cacheStatus: RawSourceCacheStatus;
 }> {
-	const status = readRawSourceCacheStatus(db, "openrouter", nowEpochSeconds);
-	const cached = readOpenRouterRawCache(db);
-	const cachedModelIds = new Set(cached?.models.map((model) => model.id) ?? []);
-	const cacheCoversModels = modelIds.every((modelId) =>
-		cachedModelIds.has(modelId),
+	return refreshOpenRouterRawPayload(
+		readOpenRouterRawCache(db),
+		readRawSourceCacheStatus(db, "openrouter", nowEpochSeconds),
+		modelIds,
+		speedConcurrency,
+		options,
+	);
+}
+
+/** Fresh OpenRouter caches fetch only uncovered model IDs; stale or explicitly replaced caches refresh the full requested set. */
+export function openRouterModelIdsToRefresh(
+	cached: SourceCaches["openRouter"],
+	status: RawSourceCacheStatus,
+	modelIds: readonly string[],
+	replaceSourceRows: boolean,
+): string[] {
+	const requestedModelIds = [...new Set(modelIds)];
+	if (cached == null || !status.cache_hit || replaceSourceRows) {
+		return requestedModelIds;
+	}
+	const cachedModelIds = new Set(cached.models.map((model) => model.id));
+	return requestedModelIds.filter((modelId) => !cachedModelIds.has(modelId));
+}
+
+/** Keeps cached OpenRouter evidence only for current requested keys, while an empty request preserves all cached data. */
+function reconcileOpenRouterCacheModels(
+	cached: SourceCaches["openRouter"],
+	requestedModelIds: readonly string[],
+): SourceCaches["openRouter"] {
+	if (cached == null || requestedModelIds.length === 0) {
+		return cached;
+	}
+	const requestedModelIdSet = new Set(requestedModelIds);
+	return {
+		...cached,
+		models: cached.models.filter((model) => requestedModelIdSet.has(model.id)),
+	};
+}
+
+/** Refreshes OpenRouter data from a storage-independent cache value. */
+export async function refreshOpenRouterRawPayload(
+	cached: SourceCaches["openRouter"],
+	status: RawSourceCacheStatus,
+	modelIds: string[],
+	speedConcurrency: number,
+	options: DatabaseBuildOptions = {},
+): Promise<{
+	rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
+	cacheStatus: RawSourceCacheStatus;
+}> {
+	const replaceSourceRows = options.replaceSourceRows === true;
+	const requestedModelIds = [...new Set(modelIds)];
+	const scopedCache = reconcileOpenRouterCacheModels(cached, requestedModelIds);
+	const modelIdsToRefresh = openRouterModelIdsToRefresh(
+		scopedCache,
+		status,
+		requestedModelIds,
+		replaceSourceRows,
 	);
 	if (
-		status.cache_hit &&
-		cached != null &&
-		cacheCoversModels &&
-		options.replaceSourceRows !== true
+		scopedCache != null &&
+		modelIdsToRefresh.length === 0 &&
+		!replaceSourceRows
 	) {
 		return {
-			rawPayload: cached,
+			rawPayload: scopedCache,
 			cacheStatus: {
 				...status,
-				source_input_count: cached.directory.length + cached.models.length,
+				source_input_count:
+					scopedCache.directory.length + scopedCache.models.length,
 			},
 		};
 	}
 	try {
-		const rawPayload =
-			modelIds.length === 0
+		const useCachedDirectory =
+			status.cache_hit && scopedCache != null && !replaceSourceRows;
+		const fetchedPayload =
+			modelIdsToRefresh.length === 0
 				? null
 				: await getOpenRouterRawScrapedStats({
-						modelIds,
+						modelIds: modelIdsToRefresh,
 						concurrency: speedConcurrency,
+						...(useCachedDirectory
+							? {
+									modelDirectory: scopedCache.directory,
+									timeoutMs: PARTIAL_OPENROUTER_TIMEOUT_MS,
+									maxRetries: PARTIAL_OPENROUTER_MAX_RETRIES,
+								}
+							: {}),
 					});
+		const rawPayload =
+			fetchedPayload == null
+				? scopedCache
+				: scopedCache == null || replaceSourceRows
+					? fetchedPayload
+					: {
+							fetched_at_epoch_seconds: fetchedPayload.fetched_at_epoch_seconds,
+							directory: mergeCachedSourceRows(
+								scopedCache.directory,
+								fetchedPayload.directory,
+								(row) => row.permaslug ?? row.slug ?? null,
+							),
+							models: mergeCachedSourceRows(
+								scopedCache.models,
+								fetchedPayload.models,
+								(row) => row.id,
+							),
+						};
 		return {
 			rawPayload,
 			cacheStatus: refreshedCacheStatus(
@@ -329,11 +487,12 @@ export async function loadOpenRouterRawPayload(
 		};
 	} catch {
 		return {
-			rawPayload: cached,
+			rawPayload: scopedCache,
 			cacheStatus: {
 				...status,
 				source_input_count:
-					(cached?.directory.length ?? 0) + (cached?.models.length ?? 0),
+					(scopedCache?.directory.length ?? 0) +
+					(scopedCache?.models.length ?? 0),
 			},
 		};
 	}

@@ -1,14 +1,12 @@
 /** Models.dev source snapshot merge policy and row-state preservation. */
 
-import type { DatabaseSync } from "node:sqlite";
-
 import {
 	getModelsDevSourceStats,
 	type ModelsDevPayload,
 	type ModelsDevProviderRecord,
 } from "../../scrapers/models-dev";
-import { readModelsDevRawCache } from "../cache";
-import { buildModelsDevSourceStates } from "../policy";
+import type { readModelsDevRawCache } from "../cache";
+import { buildModelsDevSourceStates, mergeSourceEvidence } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -33,14 +31,10 @@ function mergeModelsDevPayload(
 	const mergedPayload: ModelsDevPayload = structuredClone(cachedPayload);
 	for (const [providerId, fetchedProvider] of Object.entries(fetchedPayload)) {
 		const cachedProvider = mergedPayload[providerId];
-		const mergedProvider: ModelsDevProviderRecord = {
-			...cachedProvider,
-			...fetchedProvider,
-			models: {
-				...(cachedProvider?.models ?? {}),
-				...(fetchedProvider.models ?? {}),
-			},
-		};
+		const mergedProvider: ModelsDevProviderRecord = mergeSourceEvidence(
+			cachedProvider ?? fetchedProvider,
+			fetchedProvider,
+		);
 		mergedPayload[providerId] = mergedProvider;
 	}
 	return mergedPayload;
@@ -58,13 +52,12 @@ export function modelsDevSourceInputCount(
 
 /** Merges refreshed Models.dev providers into cache while preserving per-model row state. */
 export async function modelsDevSnapshot(
-	db: DatabaseSync,
+	cached: ReturnType<typeof readModelsDevRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<ModelsDevSnapshot> {
-	const cached = readModelsDevRawCache(db);
 	if (
 		status.cache_hit &&
 		cached != null &&
