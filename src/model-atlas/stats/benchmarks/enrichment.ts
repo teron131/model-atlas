@@ -167,6 +167,13 @@ function enrichArtificialAnalysisResources(
 		"harvey_lab",
 		(row) => row.score,
 	);
+	addArtificialAnalysisResourceEvaluation(
+		evaluations,
+		scoringSources,
+		artificialAnalysisResourceLookup,
+		"itbench_sre",
+		(row) => row.score,
+	);
 	return { evaluations, scoringSources };
 }
 

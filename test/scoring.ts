@@ -202,6 +202,30 @@ assertEqual(
 );
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+assertEqual(
+	STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.group,
+	"frontier",
+);
+assertEqual(
+	STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.benchmarkImportance,
+	1,
+);
+assertEqual(
+	STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings
+		.agentic,
+	1,
+);
+assertEqual(
+	STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings
+		.intelligence,
+	0,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
+		'["ITBench","7.9%"]',
+	),
+	true,
+);
 assertThrowsWithMessage(
 	() =>
 		validateBenchmarkPortfolio({

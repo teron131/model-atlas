@@ -164,6 +164,12 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
 		task_run_count: 2_158,
 	},
 	{
+		benchmark_key: "itbench_sre",
+		score_key: "it_bench_sre",
+		url: "https://artificialanalysis.ai/evaluations/itbench-aa",
+		task_run_count: 59 * 3,
+	},
+	{
 		benchmark_key: "tau_banking",
 		url: "https://artificialanalysis.ai/evaluations/tau3-banking",
 		task_run_count: 97,

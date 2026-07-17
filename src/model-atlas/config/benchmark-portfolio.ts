@@ -109,6 +109,12 @@ export const BENCHMARK_PORTFOLIO = {
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
+	itbench_sre: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+	},
 	lcr: {
 		group: "baseline",
 		benchmarkImportance: 1,

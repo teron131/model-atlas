@@ -996,7 +996,6 @@ th[data-sort-state="descending"] .sort-indicator::after {
 }
 
 .column-tooltip-section .column-tooltip-row {
-	grid-template-columns: minmax(0, 1fr) max-content;
 	gap: 14px;
 	min-width: 0;
 	font-size: var(--mono-label);
@@ -1009,7 +1008,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .column-tooltip-section .column-tooltip-value {
 	text-align: right;
-	white-space: nowrap;
+	white-space: normal;
 }
 
 .workflow-tooltip .column-tooltip-section {

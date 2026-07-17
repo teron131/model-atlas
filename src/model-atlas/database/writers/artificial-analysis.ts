@@ -139,6 +139,7 @@ function artificialAnalysisBenchmarkValues(
 		asFiniteNumber(evaluations.gpqa),
 		asFiniteNumber(evaluations.harvey_lab),
 		asFiniteNumber(evaluations.hle),
+		asFiniteNumber(evaluations.itbench_sre),
 		asFiniteNumber(evaluations.lcr),
 		asFiniteNumber(evaluations.mmmu_pro),
 		asFiniteNumber(evaluations.scicode),
@@ -204,12 +205,13 @@ export function insertArtificialAnalysisRawModels(
 			median_time_to_first_token_seconds,
 			median_end_to_end_response_time_seconds, intelligence_index,
 			agentic_index, coding_index, omniscience_index, omniscience_accuracy,
-			apex_agents, critpt, gdpval_normalized, gpqa, harvey_lab, hle, lcr,
+			apex_agents, critpt, gdpval_normalized, gpqa, harvey_lab, hle,
+			itbench_sre, lcr,
 			mmmu_pro, scicode, tau_banking, terminalbench_v21, input_cost,
 			reasoning_cost, output_cost, total_cost, input_tokens, reasoning_tokens,
 			answer_tokens, output_tokens, total_tokens, cost_per_task,
 			seconds_per_task, output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 55 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 56 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
 		const selectedRow =

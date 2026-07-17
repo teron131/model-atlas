@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
 	matched_row_count INTEGER,
 	enriched_row_count INTEGER,
 	final_model_count INTEGER,
-	pipeline_revision INTEGER NOT NULL DEFAULT 1
+	pipeline_revision INTEGER NOT NULL DEFAULT 2
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	gpqa REAL,
 	harvey_lab REAL,
 	hle REAL,
+	itbench_sre REAL,
 	lcr REAL,
 	mmmu_pro REAL,
 	scicode REAL,
@@ -426,6 +427,7 @@ CREATE TABLE IF NOT EXISTS model_stage_rows (
 	gpqa REAL,
 	harvey_lab REAL,
 	hle REAL,
+	itbench_sre REAL,
 	lcr REAL,
 	mmmu_pro REAL,
 	riemann_bench REAL,

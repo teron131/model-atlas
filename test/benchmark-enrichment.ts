@@ -124,6 +124,24 @@ const harveyLabResourceRow = {
 	answer_tokens_per_task: 120,
 	reasoning_tokens_per_task: 80,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
+const itbenchResourceRow = {
+	benchmark_key: "itbench_sre",
+	source_url: "https://artificialanalysis.ai/evaluations/itbench-aa",
+	model_id: "test/example-model",
+	model: "Example Model",
+	provider: "Test",
+	provider_id: "test",
+	reasoning_effort: null,
+	score: 0.56,
+	task_run_count: 177,
+	cost_per_task_usd: 1.2,
+	seconds_per_task: 180,
+	tokens_per_task: 1500,
+	input_tokens_per_task: 1300,
+	output_tokens_per_task: 200,
+	answer_tokens_per_task: 80,
+	reasoning_tokens_per_task: 120,
+} satisfies ArtificialAnalysisEvaluationResourceRow;
 const valsTerminalBenchRow = {
 	task: "overall" as const,
 	task_label: "Overall",
@@ -145,6 +163,7 @@ const resourceRowsByBenchmark = new Map([
 	],
 	["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
 	["harvey_lab", new Map([["example-model", harveyLabResourceRow]])],
+	["itbench_sre", new Map([["example-model", itbenchResourceRow]])],
 	["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
 ]);
 const lookups = {
@@ -197,6 +216,7 @@ assert.deepEqual(observationEnrichment.evaluations, {
 	terminalbench_v21: 0.82,
 	automation_bench: 0.68,
 	harvey_lab: 0.142,
+	itbench_sre: 0.56,
 });
 assert.equal(
 	(observationEnrichment.evaluations as Record<string, unknown>).deep_swe,
@@ -218,6 +238,7 @@ assert.deepEqual(enrichment.evaluations, {
 	deep_swe: 0.72,
 	automation_bench: 0.68,
 	harvey_lab: 0.142,
+	itbench_sre: 0.56,
 	cursorbench: 0.52,
 });
 assert.deepEqual(enrichment.scoringSources, {
@@ -240,6 +261,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	deep_swe: deepSWERow,
 	automation_bench: automationBenchResourceRow,
 	harvey_lab: harveyLabResourceRow,
+	itbench_sre: itbenchResourceRow,
 	cursorbench: cursorBenchRow,
 });
 assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
@@ -276,6 +298,13 @@ assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 		seconds: 240,
 		tokens: 900,
 		input_tokens: 700,
+		output_tokens: 200,
+	},
+	itbench_sre: {
+		cost: 1.2,
+		seconds: 180,
+		tokens: 1500,
+		input_tokens: 1300,
 		output_tokens: 200,
 	},
 	cursorbench: {
