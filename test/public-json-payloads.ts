@@ -5,7 +5,9 @@ import assert from "node:assert/strict";
 import {
 	benchmarksJsonPayload,
 	coreJsonPayload,
+	type FullJsonPayload,
 	fullJsonPayload,
+	publicJsonPayload,
 	scoreJsonPayload,
 } from "../app/api/llm-stats/public-json";
 import { compactDashboardPayload } from "../app/dashboard/payload";
@@ -126,19 +128,32 @@ assert.deepEqual(
 	["max", "high"],
 	"the dashboard payload should retain separately scored reasoning-effort variants",
 );
-assert.equal(
-	scoreJsonPayload(
-		minimalLlmStatsPayload({ fetchedAt: 123, models: reasoningEffortModels }),
-	).scores.length,
-	1,
-	"the default public score view should keep one representative variant per model",
+const reasoningVariantPayload = minimalLlmStatsPayload({
+	fetchedAt: 123,
+	models: reasoningEffortModels,
+});
+assert.deepEqual(
+	[
+		scoreJsonPayload(reasoningVariantPayload).scores.length,
+		coreJsonPayload(reasoningVariantPayload).models.length,
+		benchmarksJsonPayload(reasoningVariantPayload).benchmarks.length,
+	],
+	[1, 1, 1],
+	"compact public views should keep one representative variant per model",
 );
 assert.equal(
-	scoreJsonPayload(
-		minimalLlmStatsPayload({ fetchedAt: 123, models: reasoningEffortModels }),
-	).scores[0]?.score.intelligence,
+	scoreJsonPayload(reasoningVariantPayload).scores[0]?.score.intelligence,
 	90,
 	"collapsed public views should use the strongest variant for each model",
+);
+const allVariantPayload = publicJsonPayload(
+	reasoningVariantPayload,
+	"all",
+) as FullJsonPayload;
+assert.deepEqual(
+	allVariantPayload.models.map((model) => model.reasoning_effort),
+	["max", "high"],
+	"the all view should expose every reasoning-effort variant",
 );
 
 const fullPayload = minimalLlmStatsPayload({
@@ -326,7 +341,7 @@ assert.equal("attachment" in (model ?? {}), false);
 assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
-assert.equal("reasoning_effort" in (fullJsonModel ?? {}), false);
+assert.equal(fullJsonModel?.reasoning_effort, null);
 assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
 	"intelligence_score",
 	"agentic_score",
