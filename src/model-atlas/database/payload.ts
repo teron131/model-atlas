@@ -335,7 +335,6 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 		agentic_score: asFiniteNumber(row.agentic_score) ?? null,
 		speed_score: asFiniteNumber(row.speed_score) ?? null,
 		value_score: asFiniteNumber(row.value_score) ?? null,
-		overall_score: asFiniteNumber(row.overall_score) ?? null,
 	};
 }
 

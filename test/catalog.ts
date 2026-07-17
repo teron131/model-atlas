@@ -98,7 +98,6 @@ assert.equal(
 			agentic_score: 9,
 			speed_score: 10,
 			value_score: 9,
-			overall_score: 1,
 		},
 	}),
 	true,
@@ -111,11 +110,10 @@ assert.equal(
 			agentic_score: 9,
 			speed_score: 9,
 			value_score: 9,
-			overall_score: 100,
 		},
 	}),
 	false,
-	"overall score should not satisfy the public score floor",
+	"scores below the public floor should not qualify",
 );
 
 const coveragePortfolio = {

@@ -462,7 +462,6 @@ CREATE TABLE IF NOT EXISTS model_stage_rows (
 	agentic_score REAL,
 	speed_score REAL,
 	value_score REAL,
-	overall_score REAL,
 	PRIMARY KEY (run_id, stage, row_index)
 );
 

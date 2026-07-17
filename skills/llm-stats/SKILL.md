@@ -16,7 +16,7 @@ https://llmstats.vercel.app/api/llm-stats?view=all
 
 Views:
 
-- `score`: compact rank and overall/intelligence/agentic/speed/value scores.
+- `score`: compact rank and intelligence/agentic/speed/value scores.
 - `core`: model selection columns such as date, modalities, price, context, speed, and score.
 - `benchmarks`: selected benchmark values by model.
 - `all`: fuller Model Atlas payload with every scored reasoning-effort variant. Use `reasoning_effort` to distinguish variants; `null` means the source did not report a separate effort label, not `none`.

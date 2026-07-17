@@ -9,7 +9,6 @@ import type {
 } from "../../src/model-atlas/stats/types";
 
 const compactDashboardTooltipKeys = [
-	"overall",
 	"intelligence",
 	"agentic",
 	"speed",
@@ -53,9 +52,6 @@ export function compactDashboardPayload(
 				simulation_profiles: {},
 				simulation_input_token_seconds:
 					payload.metadata.scoring.simulation_input_token_seconds,
-				overall_score_weights: {
-					...payload.metadata.scoring.overall_score_weights,
-				},
 				column_tooltips: compactDashboardColumnTooltips(
 					payload.metadata.scoring.column_tooltips,
 				),

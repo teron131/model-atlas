@@ -32,7 +32,6 @@ const preservedFable = {
 		agentic_score: 91.6,
 		speed_score: 57.9,
 		value_score: 61,
-		overall_score: 80.5,
 	},
 };
 
@@ -50,7 +49,6 @@ const degradedFable = {
 		agentic_score: 81.6,
 		speed_score: null,
 		value_score: 50,
-		overall_score: 68.5,
 	},
 };
 
@@ -66,7 +64,6 @@ const preserved = preserveHighSignalSnapshotModels(
 					agentic_score: 87,
 					speed_score: 58,
 					value_score: 63,
-					overall_score: 79,
 				},
 			},
 		],

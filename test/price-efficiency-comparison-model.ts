@@ -214,7 +214,6 @@ function priceModel({
 			agentic_score: agenticScore,
 			speed_score: 0,
 			value_score: valueScore,
-			overall_score: 0,
 		},
 	};
 }

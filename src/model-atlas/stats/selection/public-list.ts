@@ -41,11 +41,10 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"component_scores",
 	"scores",
 ]);
-const REQUIRED_COMPONENT_SCORE_KEYS = [
+const REQUIRED_QUALITY_SCORE_KEYS = [
 	"intelligence_score",
 	"agentic_score",
 ] as const;
-const REQUIRED_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
 /** Select the highest-intelligence variant as the representative row for each model. */
 export function strongestModelVariants(
@@ -86,8 +85,8 @@ function sortModelsByIntelligenceScore(
 	});
 }
 
-/** Public rows need finite core component scores; evidence sufficiency is enforced separately. */
-function hasRequiredScoreSignal(
+/** Public rows need finite core quality scores; evidence sufficiency is enforced separately. */
+export function hasRequiredQualityScores(
 	model: LlmStatsScoredCandidate,
 ): model is LlmStatsScoredCandidate & LlmStatsModel {
 	const componentScores: LlmStatsNullableComponentScores | null =
@@ -95,7 +94,7 @@ function hasRequiredScoreSignal(
 	if (componentScores == null) {
 		return false;
 	}
-	const hasRequiredComponentScores = REQUIRED_COMPONENT_SCORE_KEYS.every(
+	const hasRequiredComponentScores = REQUIRED_QUALITY_SCORE_KEYS.every(
 		(key) => {
 			const value = componentScores[key];
 			return value != null;
@@ -105,10 +104,9 @@ function hasRequiredScoreSignal(
 		return false;
 	}
 	const scores = model.scores;
-	const hasRequiredScores = REQUIRED_SCORE_KEYS.every(
+	return REQUIRED_QUALITY_SCORE_KEYS.every(
 		(key) => asFiniteNumber(scores[key]) != null,
 	);
-	return hasRequiredScores && asFiniteNumber(scores.overall_score) != null;
 }
 
 /** Project scored candidates onto the public contract before pruning can preserve internal fields. */
@@ -143,7 +141,6 @@ function toPublicModel(
 			agentic_score: model.scores.agentic_score,
 			speed_score: model.scores.speed_score,
 			value_score: model.scores.value_score,
-			overall_score: model.scores.overall_score,
 		},
 	};
 }
@@ -152,7 +149,7 @@ function toPublicModel(
 export function publicModelFromCandidate(
 	model: LlmStatsScoredCandidate,
 ): LlmStatsModel | null {
-	return hasRequiredScoreSignal(model) ? toPublicModel(model) : null;
+	return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
 }
 
 function isPlainObject(value: unknown): value is JsonObject {

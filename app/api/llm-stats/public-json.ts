@@ -63,7 +63,6 @@ export type ScoreJsonModel = {
 		agentic: number;
 		speed: number | null;
 		value: number | null;
-		overall: number;
 	};
 };
 
@@ -96,7 +95,6 @@ export type CoreJsonModel = {
 	agentic_score: number;
 	speed_score: number | null;
 	value_score: number | null;
-	overall_score: number;
 	blended_price: number | null;
 	context_window_tokens: number | null;
 	input_cost_per_million_tokens: number | null;
@@ -120,7 +118,6 @@ const CORE_MODEL_COLUMNS = [
 	"agentic_score",
 	"speed_score",
 	"value_score",
-	"overall_score",
 	"blended_price",
 	"context_window_tokens",
 	"input_cost_per_million_tokens",
@@ -212,7 +209,7 @@ export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-	return "INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply validation-weighted evidence coverage. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled benchmark belongs to the model's default highest effort. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE gives equal weight to winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.";
+	return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE independently and ranks public views by INTELLIGENCE. INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply validation-weighted evidence coverage. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled benchmark belongs to the model's default highest effort. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE gives equal weight to winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
@@ -251,7 +248,6 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 			agentic: model.scores.agentic_score,
 			speed: model.scores.speed_score,
 			value: model.scores.value_score,
-			overall: model.scores.overall_score,
 		},
 	};
 }
@@ -288,7 +284,6 @@ function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
 		agentic_score: model.scores.agentic_score,
 		speed_score: model.scores.speed_score,
 		value_score: model.scores.value_score,
-		overall_score: model.scores.overall_score,
 		blended_price: model.cost?.blended_price ?? null,
 		context_window_tokens: model.context_window?.context ?? null,
 		input_cost_per_million_tokens: model.cost?.input ?? null,

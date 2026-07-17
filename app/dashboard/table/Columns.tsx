@@ -43,7 +43,6 @@ export const scoreSortableColumns: SortableColumnDefinition[] = [
 
 export const staticSortableColumns: SortableColumnDefinition[] = [
 	...scoreSortableColumns,
-	{ key: "overall", label: "Ovrll" },
 	{ key: "blend", label: "Blend" },
 	{ key: "context", label: "Context" },
 ];

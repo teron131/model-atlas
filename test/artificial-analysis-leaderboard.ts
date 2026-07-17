@@ -341,12 +341,6 @@ const scoringConfig = {
 			dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
 		},
 	},
-	overallScoreWeights: {
-		intelligence: 0.4,
-		agentic: 0.4,
-		speed: 0.1,
-		value: 0.1,
-	},
 	columnTooltips: {},
 } as const;
 const benchmarkImputationByModel = buildBenchmarkImputationByModel(

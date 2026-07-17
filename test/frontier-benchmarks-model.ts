@@ -185,7 +185,6 @@ const totalModel = {
 		agentic_score: 0,
 		speed_score: 60,
 		value_score: 40,
-		overall_score: 0,
 	},
 } satisfies LlmStatsModel;
 const totalRow = frontierBenchmarkRows([totalModel], totalPortfolio)[0];
@@ -263,7 +262,6 @@ function frontierModel({
 			agentic_score: 0,
 			speed_score: speedScore,
 			value_score: valueScore,
-			overall_score: 0,
 		},
 	};
 }
