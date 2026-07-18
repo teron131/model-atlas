@@ -8,7 +8,7 @@ import {
 	getRiemannBenchStats,
 	processRiemannBenchPageHtml,
 	RIEMANN_BENCH_LEADERBOARD_URL,
-} from "../src/model-atlas/scrapers/riemann-bench";
+} from "../src/model-atlas/scrapers/surge/riemann-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

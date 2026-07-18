@@ -21,17 +21,17 @@ import {
 	getCursorBenchStats,
 } from "../../scrapers/cursorbench";
 import {
-	type GdpPdfModelScoreRow,
-	getGdpPdfStats,
-} from "../../scrapers/gdp-pdf";
-import {
 	getMercorApexAgentsStats,
 	type MercorApexAgentsRow,
 } from "../../scrapers/mercor-apex-agents";
 import {
+	type GdpPdfModelScoreRow,
+	getGdpPdfStats,
+} from "../../scrapers/surge/gdp-pdf";
+import {
 	getRiemannBenchStats,
 	type RiemannBenchModelScoreRow,
-} from "../../scrapers/riemann-bench";
+} from "../../scrapers/surge/riemann-bench";
 import {
 	getToolathlonStats,
 	type ToolathlonModelScoreRow,
