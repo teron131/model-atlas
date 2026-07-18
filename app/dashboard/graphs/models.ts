@@ -67,8 +67,6 @@ export const interactionConfigs: InteractionConfig[] = [
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "Blended price per 1M tokens",
 		hoverLabel: "Blended price",
-		insight:
-			"Shows whether price actually buys broad INTELLIGENCE, and where cheap high-ceiling models break the curve.",
 	},
 	{
 		key: "speed",

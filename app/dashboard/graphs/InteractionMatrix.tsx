@@ -438,7 +438,9 @@ function InteractionPlot({
 					) : null,
 				)}
 			</svg>
-			<div className={styles.interactionRead}>{config.insight}</div>
+			{config.insight && (
+				<div className={styles.interactionRead}>{config.insight}</div>
+			)}
 		</div>
 	);
 }
