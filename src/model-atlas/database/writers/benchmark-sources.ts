@@ -33,6 +33,35 @@ export function insertAgentArenaRawRows(
 	}
 }
 
+/** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
+export function insertMercorApexAgentsRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO mercor_apex_agents_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, model_id, source_model,
+			model, base_model, reasoning_effort, organization, score
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.mercorApexAgentsRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.mercorApexAgents,
+			SOURCE_URLS.mercor_apex_agents,
+			row.model_id,
+			row.source_model,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.organization,
+			row.score,
+		);
+	}
+}
+
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 export function insertAgentsLastExamRawRows(
 	db: DatabaseWriter,

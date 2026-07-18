@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
 	matched_row_count INTEGER,
 	enriched_row_count INTEGER,
 	final_model_count INTEGER,
-	pipeline_revision INTEGER NOT NULL DEFAULT 3
+	pipeline_revision INTEGER NOT NULL DEFAULT 4
 );
 
 CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
@@ -26,6 +26,21 @@ CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
 	url TEXT NOT NULL,
 	rank INTEGER NOT NULL,
 	contender_name TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	organization TEXT NOT NULL,
+	score REAL NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
+CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	model_id TEXT NOT NULL,
+	source_model TEXT NOT NULL,
 	model TEXT NOT NULL,
 	base_model TEXT NOT NULL,
 	reasoning_effort TEXT,

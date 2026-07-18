@@ -19,8 +19,10 @@ import { findToolathlonScore } from "../../scrapers/toolathlon";
 import { findValsIndexScore } from "../../scrapers/vals/index-benchmark";
 import {
 	asRecord,
+	type BenchmarkModelRow,
 	benchmarkModelEffort,
 	canonicalModelKey,
+	canonicalReasoningEffort,
 	modelSlugFromModelId,
 	normalizeModelToken,
 	reasoningEffortRank,
@@ -49,6 +51,10 @@ export type BenchmarkEnrichmentLookups = {
 	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "scoreByModelName">;
 	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "scoreByModelName">;
 	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "scoreByModelName">;
+	mercorApexAgents: Pick<
+		LlmStatsSourceData["mercorApexAgents"],
+		"scoreByModelName"
+	>;
 	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "scoreByModelName">;
 	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "scoreByModelName">;
 	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "scoreByModelName">;
@@ -106,6 +112,26 @@ function findAggregateBenchmarkSourceRow<T>(
 			: candidateName,
 	);
 	return findSourceRow(baseModelCandidates, scoreByModelName);
+}
+
+function findEffortBenchmarkSourceRow<T extends BenchmarkModelRow>(
+	candidateNames: unknown[],
+	targetReasoningEffort: unknown,
+	scoreByModelName: ReadonlyMap<string, T>,
+): T | null {
+	const effort = canonicalReasoningEffort(targetReasoningEffort);
+	if (effort == null) {
+		return findSourceRow(candidateNames, scoreByModelName);
+	}
+	const effortCandidates = candidateNames.flatMap((candidateName) => {
+		if (typeof candidateName !== "string") {
+			return [];
+		}
+		const baseModel = benchmarkModelEffort(candidateName).baseModel;
+		return [`${baseModel} (${effort})`];
+	});
+	const row = findSourceRow(effortCandidates, scoreByModelName);
+	return row?.reasoning_effort === effort ? row : null;
 }
 
 function addArtificialAnalysisResourceEvaluation(
@@ -197,12 +223,22 @@ export function enrichBenchmarkObservation(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
 	baseEvaluations: Record<string, unknown> = {},
+	targetReasoningEffort: unknown = null,
 ): BenchmarkEnrichment {
-	return enrichArtificialAnalysisResources(
+	const enrichment = enrichArtificialAnalysisResources(
 		modelNameCandidates,
 		lookups.artificialAnalysisEvaluationResources.observationByModelName,
 		baseEvaluations,
 	);
+	const mercorRow = findEffortBenchmarkSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.mercorApexAgents.scoreByModelName,
+	);
+	if (mercorRow != null) {
+		enrichment.scoringSources.apex_agents_mercor = mercorRow;
+	}
+	return enrichment;
 }
 
 /** Enriches one aggregate row with default-effort and effort-unspecified benchmark sources. */
@@ -210,6 +246,7 @@ export function enrichBenchmarkAggregate(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
 	baseEvaluations: Record<string, unknown> = {},
+	targetReasoningEffort: unknown = null,
 ): BenchmarkEnrichment {
 	const { evaluations, scoringSources } = enrichArtificialAnalysisResources(
 		modelNameCandidates,
@@ -223,6 +260,14 @@ export function enrichBenchmarkAggregate(
 	if (agentArenaRow != null) {
 		evaluations.agent_arena = agentArenaRow.score;
 		scoringSources.agent_arena = agentArenaRow;
+	}
+	const mercorRow = findEffortBenchmarkSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.mercorApexAgents.scoreByModelName,
+	);
+	if (mercorRow != null) {
+		scoringSources.apex_agents_mercor = mercorRow;
 	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
@@ -372,6 +417,7 @@ export function enrichModelRowsWithSupplementalBenchmarks(
 				: [row.name],
 			lookups,
 			baseEvaluations,
+			row.reasoning_effort,
 		);
 		const evaluations = {
 			...benchmarkEnrichment.evaluations,

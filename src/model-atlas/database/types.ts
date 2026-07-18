@@ -14,6 +14,7 @@ import type {
 	DeepSWESourceVersion,
 } from "../scrapers/deep-swe";
 import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
+import type { MercorApexAgentsRow } from "../scrapers/mercor-apex-agents";
 import type {
 	ModelsDevFlatModel,
 	ModelsDevPayload,
@@ -36,7 +37,7 @@ import type { JsonObject } from "../utils";
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
 export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
 /** Bump when data-pipeline semantics change so fresh snapshots are derived once under the new contract. */
-export const DATABASE_PIPELINE_REVISION = 3;
+export const DATABASE_PIPELINE_REVISION = 4;
 
 export const RAW_SOURCE_NAMES = [
 	"agent_arena",
@@ -49,6 +50,7 @@ export const RAW_SOURCE_NAMES = [
 	"cursorbench",
 	"deep_swe",
 	"gdp_pdf",
+	"mercor_apex_agents",
 	"riemann_bench",
 	"toolathlon",
 	"vals_index",
@@ -72,6 +74,7 @@ export const RAW_SOURCE_TABLES = {
 	cursorbench: "cursorbench_raw_rows",
 	deep_swe: "deep_swe_raw_rows",
 	gdp_pdf: "gdp_pdf_raw_rows",
+	mercor_apex_agents: "mercor_apex_agents_raw_rows",
 	riemann_bench: "riemann_bench_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
 	vals_index: "vals_index_raw_rows",
@@ -105,6 +108,7 @@ export const SOURCE_URLS = {
 	cursorbench: "https://cursor.com/cursorbench",
 	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
 	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
+	mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 	vals_index: "https://www.vals.ai/benchmarks/vals_index",
@@ -182,6 +186,7 @@ export type SourceSnapshots = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
+	mercorApexAgentsRows: MercorApexAgentsRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
 	riemannBenchSourceUrl: string;
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
@@ -202,6 +207,7 @@ export type SourceSnapshots = {
 		cursorBench: number | null;
 		deepSWE: number | null;
 		gdpPdf: number | null;
+		mercorApexAgents: number | null;
 		riemannBench: number | null;
 		toolathlon: number | null;
 		valsIndex: number | null;

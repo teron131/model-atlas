@@ -25,6 +25,10 @@ import {
 	getGdpPdfStats,
 } from "../../scrapers/gdp-pdf";
 import {
+	getMercorApexAgentsStats,
+	type MercorApexAgentsRow,
+} from "../../scrapers/mercor-apex-agents";
+import {
 	getRiemannBenchStats,
 	type RiemannBenchModelScoreRow,
 } from "../../scrapers/riemann-bench";
@@ -53,6 +57,7 @@ import type {
 	readBrowseCompRawCache,
 	readCursorBenchRawCache,
 	readGdpPdfRawCache,
+	readMercorApexAgentsRawCache,
 	readRiemannBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
@@ -98,6 +103,11 @@ export type CursorBenchSnapshot = {
 
 export type GdpPdfSnapshot = {
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type MercorApexAgentsSnapshot = {
+	mercorApexAgentsRows: MercorApexAgentsRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -157,6 +167,37 @@ export async function agentArenaSnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "agentArena",
+		},
+	};
+}
+
+/** Loads Mercor APEX rows keyed by its stable contender ID and effort. */
+export async function mercorApexAgentsSnapshot(
+	cached: ReturnType<typeof readMercorApexAgentsRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<MercorApexAgentsSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "mercor_apex_agents",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getMercorApexAgentsStats,
+		rowKey: (row) => sourceKey(row.model_id, row.reasoning_effort),
+		rowLabel: (row) => row.source_model,
+	});
+	return {
+		mercorApexAgentsRows: snapshot.rows,
+		sourceStatus: {
+			source: "mercor_apex_agents",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "mercorApexAgents",
 		},
 	};
 }

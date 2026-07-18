@@ -16,6 +16,8 @@ import {
 	weightedQuantileRank,
 } from "../../math-utils";
 import {
+	asFiniteNumber,
+	asRecord,
 	canonicalModelKey,
 	canonicalReasoningEffort,
 	type JsonObject,
@@ -26,6 +28,7 @@ import {
 	calibrationObservations,
 	effectiveModelCount,
 } from "./calibration-population";
+import { buildAdditiveSourceCrosswalk } from "./source-crosswalk";
 
 export type BenchmarkImputationByModel = ReadonlyMap<
 	JsonObject,
@@ -64,9 +67,12 @@ type PreparedBenchmarkScoring = {
 	qualityContext: QualityScoringContext;
 };
 
-type BenchmarkImputationPreparation = {
+type MutableBenchmarkImputationMaps = {
 	benchmarkImputationByModel: Map<JsonObject, Map<string, number>>;
 	benchmarkImputationConfidenceByModel: Map<JsonObject, Map<string, number>>;
+};
+
+type BenchmarkImputationPreparation = MutableBenchmarkImputationMaps & {
 	benchmarkImputationDiagnosticsByKey: Map<
 		string,
 		BenchmarkImputationDiagnostic
@@ -85,6 +91,10 @@ const BASELINE_MISSING_ERROR_MULTIPLIER = 0.5;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const EFFORT_TRANSITION_SEPARATOR = "\u001f";
+const APEX_AGENTS_KEY = "apex_agents";
+const MERCOR_APEX_SOURCE_KEY = "apex_agents_mercor";
+const MIN_APEX_CROSSWALK_MODELS = 3;
+const MAX_APEX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.02;
 
 type EffortRowsByModel = ReadonlyMap<
 	string,
@@ -95,6 +105,45 @@ type DimensionBenchmarkContext = {
 	benchmarkKeys: readonly string[];
 	benchmarkWeights: ReadonlyMap<string, number>;
 };
+
+function mercorApexScore(model: JsonObject): number | null {
+	return asFiniteNumber(
+		asRecord(asRecord(model.scoring_sources)[MERCOR_APEX_SOURCE_KEY]).score,
+	);
+}
+
+function buildMercorApexImputation(
+	models: JsonObject[],
+): MutableBenchmarkImputationMaps {
+	const crosswalk = buildAdditiveSourceCrosswalk(models, {
+		primaryValue: (model) => benchmarkMetricValue(model, APEX_AGENTS_KEY),
+		fallbackValue: mercorApexScore,
+		minimumEffectiveModels: MIN_APEX_CROSSWALK_MODELS,
+		maximumMedianAbsoluteError: MAX_APEX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
+		normalizeProjection: clamp01,
+	});
+	const benchmarkImputationByModel = new Map<JsonObject, Map<string, number>>();
+	const benchmarkImputationConfidenceByModel = new Map<
+		JsonObject,
+		Map<string, number>
+	>();
+	if (crosswalk.confidence != null) {
+		for (const [model, projection] of crosswalk.projectionByItem) {
+			benchmarkImputationByModel.set(
+				model,
+				new Map([[APEX_AGENTS_KEY, projection]]),
+			);
+			benchmarkImputationConfidenceByModel.set(
+				model,
+				new Map([[APEX_AGENTS_KEY, crosswalk.confidence]]),
+			);
+		}
+	}
+	return {
+		benchmarkImputationByModel,
+		benchmarkImputationConfidenceByModel,
+	};
+}
 
 export function normalizedMetricValue(
 	valuesByKey: ReadonlyMap<string, readonly number[]>,
@@ -686,13 +735,18 @@ function prepareBenchmarkImputation(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): BenchmarkImputationPreparation {
-	const imputationByModel = new Map<JsonObject, Map<string, number>>();
-	const imputationConfidenceByModel = new Map<
-		JsonObject,
-		Map<string, number>
-	>();
-	const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
 	const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
+	const mercorApexImputation: MutableBenchmarkImputationMaps =
+		benchmarkKeys.includes(APEX_AGENTS_KEY)
+			? buildMercorApexImputation(models)
+			: {
+					benchmarkImputationByModel: new Map(),
+					benchmarkImputationConfidenceByModel: new Map(),
+				};
+	const imputationByModel = mercorApexImputation.benchmarkImputationByModel;
+	const imputationConfidenceByModel =
+		mercorApexImputation.benchmarkImputationConfidenceByModel;
+	const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
 	const valuesByKey = observedValuesByBenchmark(models, benchmarkKeys);
 	for (const key of benchmarkKeys) {
 		const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
@@ -733,7 +787,10 @@ function prepareBenchmarkImputation(
 			useCrossEffort,
 		);
 		for (const model of models) {
-			if (benchmarkMetricValue(model, key) != null) {
+			if (
+				benchmarkMetricValue(model, key) != null ||
+				imputationByModel.get(model)?.has(key)
+			) {
 				continue;
 			}
 			const prediction = predictedBenchmarkValue(model, selectedPredictors);
