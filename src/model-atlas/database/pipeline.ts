@@ -23,6 +23,7 @@ import type {
 } from "./types";
 import { SNAPSHOT_TABLES } from "./types";
 import {
+	insertAgentArenaRawRows,
 	insertAgentsLastExamRawRows,
 	insertArtificialAnalysisEvaluationResourceRawRows,
 	insertArtificialAnalysisRawModels,
@@ -41,6 +42,7 @@ import {
 	insertToolathlonRawRows,
 	insertValsIndexRawRows,
 	insertValsTerminalBenchRawRows,
+	insertVendingBench2RawRows,
 } from "./writers";
 import type { DatabaseWriter } from "./writers/shared";
 
@@ -72,6 +74,11 @@ type SnapshotWriter = {
 };
 
 const SNAPSHOT_WRITERS = [
+	{
+		table: SNAPSHOT_TABLES.agent_arena,
+		write: (db, runId, rows) =>
+			insertAgentArenaRawRows(db, runId, rows.snapshots),
+	},
 	{
 		table: SNAPSHOT_TABLES.artificial_analysis,
 		write: (db, runId, rows) =>
@@ -138,6 +145,11 @@ const SNAPSHOT_WRITERS = [
 		table: SNAPSHOT_TABLES.vals_terminal_bench,
 		write: (db, runId, rows) =>
 			insertValsTerminalBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.vending_bench_2,
+		write: (db, runId, rows) =>
+			insertVendingBench2RawRows(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.openrouter,

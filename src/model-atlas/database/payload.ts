@@ -36,6 +36,7 @@ export type PayloadRows = {
 	};
 	modelRows: DbRow[];
 	sourceHealthRows: DbRow[];
+	agentArenaRows: DbRow[];
 	artificialAnalysisRows: DbRow[];
 	agentsLastExamRows: DbRow[];
 	blueprintBenchRows: DbRow[];
@@ -47,6 +48,7 @@ export type PayloadRows = {
 	toolathlonRows: DbRow[];
 	valsIndexRows: DbRow[];
 	valsTerminalBenchRows: DbRow[];
+	vendingBench2Rows: DbRow[];
 };
 
 type PayloadRowKey = Exclude<keyof PayloadRows, "run">;
@@ -74,6 +76,12 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 	{
 		key: "sourceHealthRows",
 		sql: "SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
+		optional: true,
+	},
+	{
+		key: "agentArenaRows",
+		sql: "SELECT * FROM agent_arena_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "agent_arena_raw_rows",
 		optional: true,
 	},
 	{
@@ -131,6 +139,12 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 		key: "valsTerminalBenchRows",
 		sql: "SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
 		sourceTable: "vals_terminal_bench_raw_rows",
+		optional: true,
+	},
+	{
+		key: "vendingBench2Rows",
+		sql: "SELECT * FROM vending_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "vending_bench_2_raw_rows",
 		optional: true,
 	},
 ];
@@ -395,6 +409,7 @@ export function buildPayloadRows(
 		run,
 		modelRows: rows.get("modelRows") ?? [],
 		sourceHealthRows: rows.get("sourceHealthRows") ?? [],
+		agentArenaRows: rows.get("agentArenaRows") ?? [],
 		artificialAnalysisRows: rows.get("artificialAnalysisRows") ?? [],
 		agentsLastExamRows: rows.get("agentsLastExamRows") ?? [],
 		blueprintBenchRows: rows.get("blueprintBenchRows") ?? [],
@@ -406,6 +421,7 @@ export function buildPayloadRows(
 		toolathlonRows: rows.get("toolathlonRows") ?? [],
 		valsIndexRows: rows.get("valsIndexRows") ?? [],
 		valsTerminalBenchRows: rows.get("valsTerminalBenchRows") ?? [],
+		vendingBench2Rows: rows.get("vendingBench2Rows") ?? [],
 	};
 }
 

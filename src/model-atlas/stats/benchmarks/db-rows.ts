@@ -25,6 +25,7 @@ type DbSourceSpec = {
 };
 
 export type BenchmarkDbRows = {
+	agentArenaRows: readonly DbBenchmarkRow[];
 	artificialAnalysisRows: readonly DbBenchmarkRow[];
 	agentsLastExamRows: readonly DbBenchmarkRow[];
 	blueprintBenchRows: readonly DbBenchmarkRow[];
@@ -36,6 +37,7 @@ export type BenchmarkDbRows = {
 	toolathlonRows: readonly DbBenchmarkRow[];
 	valsIndexRows: readonly DbBenchmarkRow[];
 	valsTerminalBenchRows: readonly DbBenchmarkRow[];
+	vendingBench2Rows: readonly DbBenchmarkRow[];
 };
 
 function stringValue(value: unknown): string | null {
@@ -135,6 +137,15 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 		}),
 	);
 	return [
+		...rows.agentArenaRows.map((row) => ({
+			key: "agent_arena",
+			id: stringValue(row.contender_name),
+			identity: stringValue(row.base_model),
+			label: stringValue(row.model),
+			provider: stringValue(row.organization),
+			reasoningEffort: row.reasoning_effort,
+			value: row.score,
+		})),
 		...artificialAnalysisBenchmarkRowDrafts({
 			rows: rows.artificialAnalysisRows,
 			modelId: (row) => stringValue(row.model_id),
@@ -169,6 +180,13 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			label: row.model,
 			reasoningEffort: row.reasoning_effort,
 			value: row.pass_at_1,
+		})),
+		...rows.vendingBench2Rows.map((row) => ({
+			key: "vending_bench_2",
+			identity: stringValue(row.base_model),
+			label: stringValue(row.model),
+			reasoningEffort: row.reasoning_effort,
+			value: row.final_balance_usd,
 		})),
 	];
 }

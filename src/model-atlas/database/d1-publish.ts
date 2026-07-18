@@ -11,6 +11,7 @@ import {
 	artificialAnalysisRawCacheFromRows,
 	modelsDevRawCacheFromRows,
 	rawSourceCacheStatusFromRows,
+	readAgentArenaRawCache,
 	readAgentsLastExamRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
@@ -22,6 +23,7 @@ import {
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
+	readVendingBench2RawCache,
 } from "./cache";
 import type { CacheDbRow } from "./cache/rows";
 import {
@@ -154,12 +156,14 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	const runId = current.previousRunId + 1;
 	let collector = collectDatabaseRun(runId, derived.rows);
 	const previewPayload = payloadFromCollector(runId, startedAt, collector);
-	const preservedPayload = preserveHighSignalSnapshotModels(
-		previewPayload,
-		current.previousPayload,
-		STAGE_CONFIG.snapshotPreservation,
-		STAGE_CONFIG.scoring,
-	);
+	const preservedPayload = replaceSourceRows
+		? previewPayload
+		: preserveHighSignalSnapshotModels(
+				previewPayload,
+				current.previousPayload,
+				STAGE_CONFIG.snapshotPreservation,
+				STAGE_CONFIG.scoring,
+			);
 	if (preservedPayload !== previewPayload) {
 		derived.rows.finalModelRows = preservedPayload.models;
 		collector = collectDatabaseRun(runId, derived.rows);
@@ -352,6 +356,7 @@ function sourceCachesFromRows(
 	rows: Record<RawSourceName, CacheDbRow[]>,
 ): SourceCaches {
 	return {
+		agentArena: readAgentArenaRawCache(rows.agent_arena),
 		artificialAnalysis: artificialAnalysisRawCacheFromRows(
 			rows.artificial_analysis,
 		),
@@ -370,6 +375,7 @@ function sourceCachesFromRows(
 		toolathlon: readToolathlonRawCache(rows.toolathlon),
 		valsIndex: readValsIndexRawCache(rows.vals_index),
 		valsTerminalBench: readValsTerminalBenchRawCache(rows.vals_terminal_bench),
+		vendingBench2: readVendingBench2RawCache(rows.vending_bench_2),
 		openRouter: readOpenRouterRawCache(rows.openrouter),
 	};
 }
@@ -431,6 +437,7 @@ function payloadFromCollector(
 			.records(SNAPSHOT_TABLES.model_stage_rows)
 			.filter((row) => row.stage === "final"),
 		sourceHealthRows: collector.records(SNAPSHOT_TABLES.source_health),
+		agentArenaRows: collector.records(SNAPSHOT_TABLES.agent_arena),
 		artificialAnalysisRows: collector.records(
 			SNAPSHOT_TABLES.artificial_analysis,
 		),
@@ -446,6 +453,7 @@ function payloadFromCollector(
 		valsTerminalBenchRows: collector.records(
 			SNAPSHOT_TABLES.vals_terminal_bench,
 		),
+		vendingBench2Rows: collector.records(SNAPSHOT_TABLES.vending_bench_2),
 	};
 	return buildPayloadFromRows(rows);
 }

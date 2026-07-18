@@ -1,3 +1,5 @@
+/** Verify snapshot preservation retains evidence only for the same runnable model effort. */
+
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
@@ -130,4 +132,23 @@ assert.equal(
 	normalUpdate.models[0]?.scores.intelligence_score,
 	95,
 	"normal small score changes should not be frozen to the previous snapshot",
+);
+
+const effortSpecificPreservation = preserveHighSignalSnapshotModels(
+	minimalLlmStatsPayload({
+		fetchedAt: 2,
+		models: [{ ...degradedFable, reasoning_effort: "low" }],
+	}),
+	minimalLlmStatsPayload({
+		fetchedAt: 1,
+		models: [{ ...preservedFable, reasoning_effort: "max" }],
+	}),
+	STAGE_CONFIG.snapshotPreservation,
+	STAGE_CONFIG.scoring,
+);
+
+assert.equal(
+	effortSpecificPreservation.models[0]?.scores.intelligence_score,
+	78.5,
+	"snapshot preservation must not replace a lower-effort row with a previous max-effort row",
 );

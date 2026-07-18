@@ -24,6 +24,19 @@ const REASONING_EFFORT_RANK = {
 } as const satisfies Readonly<Record<string, number>>;
 const MODEL_CONFIGURATION_LABEL_PATTERN =
 	/\s+\((?:fast|free|online|reasoning|thinking)\)\s*$/i;
+const BENCHMARK_EFFORT_SUFFIX_PATTERN =
+	/^(.*?)(?:\s+\((xhigh|extra[- ]high|max|high|medium|low|none)\)|\s+-\s+(xhigh|extra[- ]high|max|high|medium|low|none))\s*$/i;
+
+export type BenchmarkModelEffort = {
+	baseModel: string;
+	reasoningEffort: string | null;
+};
+
+export type BenchmarkModelRow = {
+	model: string;
+	base_model: string;
+	reasoning_effort: string | null;
+};
 
 export function normalizeProviderId(providerId: string): string {
 	return providerId.toLowerCase().replace(/^~+/, "");
@@ -85,6 +98,49 @@ export function canonicalReasoningEffort(value: unknown): string | null {
 		return null;
 	}
 	return normalized === "non-reasoning" ? "none" : normalized;
+}
+
+/** Strip only recognized effort suffixes so configuration names such as Thinking remain distinct models. */
+export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
+	const match = BENCHMARK_EFFORT_SUFFIX_PATTERN.exec(value);
+	if (match == null) {
+		return { baseModel: value, reasoningEffort: null };
+	}
+	const baseModel = match[1]?.trim();
+	const reasoningEffort = canonicalReasoningEffort(match[2] ?? match[3]);
+	return baseModel == null || baseModel.length === 0 || reasoningEffort == null
+		? { baseModel: value, reasoningEffort: null }
+		: { baseModel, reasoningEffort };
+}
+
+/** Index effort-labelled benchmark rows while making the highest effort the base-model default. */
+export function buildBenchmarkModelMap<Row extends BenchmarkModelRow>(
+	rows: readonly Row[],
+): Map<string, Row> {
+	const rowsByModel = new Map<string, Row>();
+	const defaultRowsByBaseModel = new Map<string, Row>();
+	for (const row of rows) {
+		const modelKey = normalizeModelToken(row.model);
+		if (modelKey.length > 0) {
+			rowsByModel.set(modelKey, row);
+		}
+		const baseKey = normalizeModelToken(row.base_model);
+		if (baseKey.length === 0) {
+			continue;
+		}
+		const currentDefault = defaultRowsByBaseModel.get(baseKey);
+		if (
+			currentDefault == null ||
+			reasoningEffortRank(row.reasoning_effort) >
+				reasoningEffortRank(currentDefault.reasoning_effort)
+		) {
+			defaultRowsByBaseModel.set(baseKey, row);
+		}
+	}
+	for (const [baseKey, row] of defaultRowsByBaseModel) {
+		rowsByModel.set(baseKey, row);
+	}
+	return rowsByModel;
 }
 
 /** Unlabelled rows are the source's default highest-effort configuration. */

@@ -16,7 +16,22 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
 	matched_row_count INTEGER,
 	enriched_row_count INTEGER,
 	final_model_count INTEGER,
-	pipeline_revision INTEGER NOT NULL DEFAULT 2
+	pipeline_revision INTEGER NOT NULL DEFAULT 3
+);
+
+CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	rank INTEGER NOT NULL,
+	contender_name TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	organization TEXT NOT NULL,
+	score REAL NOT NULL,
+	PRIMARY KEY (run_id, row_index)
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
@@ -320,6 +335,22 @@ CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
 	PRIMARY KEY (run_id, row_index)
 );
 
+CREATE TABLE IF NOT EXISTS vending_bench_2_raw_rows (
+	run_id INTEGER NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	data_url TEXT,
+	rank INTEGER NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	run_count INTEGER NOT NULL,
+	final_balance_usd REAL NOT NULL,
+	daily_balance_usd_json TEXT NOT NULL,
+	PRIMARY KEY (run_id, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
@@ -413,6 +444,7 @@ CREATE TABLE IF NOT EXISTS model_stage_rows (
 	coding_index REAL,
 	omniscience_index REAL,
 	omniscience_accuracy REAL,
+	agent_arena REAL,
 	agents_last_exam REAL,
 	apex_agents REAL,
 	automation_bench REAL,
@@ -436,6 +468,7 @@ CREATE TABLE IF NOT EXISTS model_stage_rows (
 	terminalbench_v21 REAL,
 	toolathlon REAL,
 	vals_index REAL,
+	vending_bench_2 REAL,
 	task_metrics_json TEXT,
 	agents_last_exam_task_cost REAL,
 	agents_last_exam_task_seconds REAL,

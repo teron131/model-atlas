@@ -7,6 +7,7 @@ export {
 	readArtificialAnalysisRawCache,
 } from "./artificial-analysis";
 export {
+	readAgentArenaRawCache,
 	readAgentsLastExamRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
@@ -17,6 +18,7 @@ export {
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
+	readVendingBench2RawCache,
 } from "./benchmark-sources";
 export { modelsDevRawCacheFromRows, readModelsDevRawCache } from "./models-dev";
 export { readOpenRouterRawCache } from "./openrouter";

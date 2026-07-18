@@ -1,6 +1,10 @@
 /** Sparse benchmark snapshots keep each source's identity fields intact before shared missing-row policy runs. */
 
 import {
+	type AgentArenaModelScoreRow,
+	getAgentArenaStats,
+} from "../../scrapers/agent-arena";
+import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
@@ -38,7 +42,12 @@ import {
 	type TerminalBenchModelHarnessRow,
 	type TerminalBenchTaskRow,
 } from "../../scrapers/vals/terminal-bench";
+import {
+	getVendingBench2Stats,
+	type VendingBench2ModelScoreRow,
+} from "../../scrapers/vending-bench-2";
 import type {
+	readAgentArenaRawCache,
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
@@ -48,6 +57,7 @@ import type {
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
+	readVendingBench2RawCache,
 } from "../cache";
 import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
@@ -63,6 +73,11 @@ import {
 
 export type BlueprintBenchSnapshot = {
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type AgentArenaSnapshot = {
+	agentArenaModelScoreRows: AgentArenaModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -108,6 +123,43 @@ export type TerminalBenchSnapshot = {
 	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
+
+export type VendingBench2Snapshot = {
+	vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
+	vendingBench2DataUrl: string | null;
+	sourceStatus: SourceSnapshotStatus;
+};
+
+/** Loads Agent Arena rows keyed by contender identity so renamed display labels remain auditable. */
+export async function agentArenaSnapshot(
+	cached: ReturnType<typeof readAgentArenaRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<AgentArenaSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "agent_arena",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getAgentArenaStats,
+		rowKey: (row) => sourceKey(row.contender_name, row.reasoning_effort),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		agentArenaModelScoreRows: snapshot.rows,
+		sourceStatus: {
+			source: "agent_arena",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "agentArena",
+		},
+	};
+}
 
 /** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
 export function artificialAnalysisEvaluationResourceSourceKey(
@@ -333,6 +385,38 @@ export async function toolathlonSnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "toolathlon",
+		},
+	};
+}
+
+/** Loads Vending-Bench 2 model curves and records the versioned official data-module URL. */
+export async function vendingBench2Snapshot(
+	cached: ReturnType<typeof readVendingBench2RawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<VendingBench2Snapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "vending_bench_2",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getVendingBench2Stats,
+		rowKey: (row) => sourceKey(row.model, row.reasoning_effort),
+		rowLabel: (row) => row.model,
+	});
+	return {
+		vendingBench2ModelScoreRows: snapshot.rows,
+		vendingBench2DataUrl: snapshot.sourceUrl ?? null,
+		sourceStatus: {
+			source: "vending_bench_2",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "vendingBench2",
 		},
 	};
 }

@@ -8,7 +8,10 @@ import {
 	snapshotRuntime,
 } from "../app/api/llm-stats/snapshot-store";
 import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
-import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload";
+import {
+	COMPLETED_RUN_SQL,
+	PAYLOAD_ROW_GROUPS,
+} from "../src/model-atlas/database/payload";
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
 const originalVercel = process.env.VERCEL;
@@ -120,6 +123,54 @@ try {
 			],
 		},
 		"D1 publications should use one transactional REST batch",
+	);
+	requestBodies.length = 0;
+	globalThis.fetch = async (_input, init) => {
+		const body = JSON.parse(String(init?.body)) as {
+			batch?: unknown[];
+			sql?: string;
+		};
+		requestBodies.push(body);
+		if (body.batch != null) {
+			return Response.json({
+				success: false,
+				errors: [{ message: "no such table: agent_arena_raw_rows" }],
+			});
+		}
+		if (body.sql === COMPLETED_RUN_SQL) {
+			return Response.json({
+				success: true,
+				result: [
+					{
+						success: true,
+						results: [
+							{
+								id: 7,
+								fetched_at_epoch_seconds: 1_800_000_000,
+							},
+						],
+					},
+				],
+			});
+		}
+		if (
+			body.sql?.includes("agent_arena_raw_rows") === true ||
+			body.sql?.includes("vending_bench_2_raw_rows") === true
+		) {
+			return Response.json({
+				success: false,
+				errors: [{ message: "no such optional benchmark table" }],
+			});
+		}
+		return Response.json({
+			success: true,
+			result: [{ success: true, results: [] }],
+		});
+	};
+	assert.deepEqual(
+		(await readD1Payload())?.models,
+		[],
+		"D1 payload reads should survive optional benchmark tables until schema publication",
 	);
 } finally {
 	globalThis.fetch = originalFetch;

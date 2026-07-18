@@ -1,3 +1,5 @@
+/** Verify cached source preservation merges equivalent live rows without duplicating model identities. */
+
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/constants";
@@ -9,6 +11,7 @@ import {
 import { mergeArtificialAnalysisRow } from "../src/model-atlas/database/source-snapshots/artificial-analysis";
 import { artificialAnalysisEvaluationResourceSourceKey } from "../src/model-atlas/database/source-snapshots/sparse-benchmarks";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
+import { artificialAnalysisModelId } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
 
 type ArtificialAnalysisFixtureRow = {
 	model_id: string;
@@ -53,6 +56,29 @@ const mergeArtificialAnalysisFixtureRow = (
 		fetchedRow as Record<string, unknown>,
 		STAGE_CONFIG.scoring,
 	) as ArtificialAnalysisFixtureRow;
+
+const cachedArtificialAnalysisRow = {
+	model_id: "openai/gpt-5-6-sol",
+	name: "GPT-5.6 Sol",
+	intelligence_index: 58.8,
+};
+const liveArtificialAnalysisRow = {
+	id: "live-page-uuid",
+	slug: "gpt-5-6-sol",
+	modelCreatorSlug: "openai",
+	name: "GPT-5.6 Sol (Adaptive Reasoning, Max Effort)",
+	intelligenceIndex: 58.9,
+};
+const mergedArtificialAnalysisShapes = mergeCachedSourceRows(
+	[cachedArtificialAnalysisRow],
+	[liveArtificialAnalysisRow],
+	artificialAnalysisModelId,
+);
+assert.equal(
+	mergedArtificialAnalysisShapes.length,
+	1,
+	"Persisted and live Artificial Analysis shapes for one model must merge into one source row",
+);
 
 const mergedRows = mergeCachedSourceRows(
 	cachedRows,

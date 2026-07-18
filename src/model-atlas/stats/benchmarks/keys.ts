@@ -34,6 +34,7 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_KEYS = [
 ] as const;
 
 export const MODEL_ATLAS_EVALUATION_KEYS = [
+	"agent_arena",
 	"agents_last_exam",
 	"apex_agents",
 	"automation_bench",
@@ -57,4 +58,5 @@ export const MODEL_ATLAS_EVALUATION_KEYS = [
 	"terminalbench_v21",
 	"toolathlon",
 	"vals_index",
+	"vending_bench_2",
 ] as const;

@@ -6,6 +6,7 @@ import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
 import { selectModelsDevRowsForArtificialAnalysis } from "../stats/source-policy";
 import type { ScoringConfig } from "../stats/types";
 import {
+	readAgentArenaRawCache,
 	readAgentsLastExamRawCache,
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readArtificialAnalysisRawCache,
@@ -21,6 +22,7 @@ import {
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
+	readVendingBench2RawCache,
 	refreshedCacheStatus,
 } from "./cache";
 import {
@@ -31,6 +33,7 @@ import {
 import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analysis";
 import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
+	agentArenaSnapshot,
 	artificialAnalysisEvaluationResourceSnapshot,
 	blueprintBenchSnapshot,
 	browseCompSnapshot,
@@ -40,6 +43,7 @@ import {
 	toolathlonSnapshot,
 	valsIndexSnapshot,
 	valsTerminalBenchSnapshot,
+	vendingBench2Snapshot,
 } from "./source-snapshots/sparse-benchmarks";
 import {
 	agentsLastExamSnapshot,
@@ -64,6 +68,7 @@ const PARTIAL_OPENROUTER_TIMEOUT_MS = 10_000;
 const PARTIAL_OPENROUTER_MAX_RETRIES = 1;
 
 export type SourceCaches = {
+	agentArena: ReturnType<typeof readAgentArenaRawCache>;
 	artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
 	artificialAnalysisEvaluationResources: ReturnType<
 		typeof readArtificialAnalysisEvaluationResourceRawCache
@@ -79,11 +84,13 @@ export type SourceCaches = {
 	toolathlon: ReturnType<typeof readToolathlonRawCache>;
 	valsIndex: ReturnType<typeof readValsIndexRawCache>;
 	valsTerminalBench: ReturnType<typeof readValsTerminalBenchRawCache>;
+	vendingBench2: ReturnType<typeof readVendingBench2RawCache>;
 	openRouter: ReturnType<typeof readOpenRouterRawCache>;
 };
 
 function readSqliteSourceCaches(db: DatabaseSync): SourceCaches {
 	return {
+		agentArena: readAgentArenaRawCache(db),
 		artificialAnalysis: readArtificialAnalysisRawCache(db),
 		artificialAnalysisEvaluationResources:
 			readArtificialAnalysisEvaluationResourceRawCache(db),
@@ -98,6 +105,7 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceCaches {
 		toolathlon: readToolathlonRawCache(db),
 		valsIndex: readValsIndexRawCache(db),
 		valsTerminalBench: readValsTerminalBenchRawCache(db),
+		vendingBench2: readVendingBench2RawCache(db),
 		openRouter: readOpenRouterRawCache(db),
 	};
 }
@@ -147,6 +155,7 @@ function fetchedAtFromSourceStatuses(
 	sourceStatuses: SourceSnapshotStatus[],
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
+		agentArena: null,
 		artificialAnalysis: null,
 		artificialAnalysisEvaluationResources: null,
 		agentsLastExam: null,
@@ -159,6 +168,7 @@ function fetchedAtFromSourceStatuses(
 		toolathlon: null,
 		valsIndex: null,
 		valsTerminalBench: null,
+		vendingBench2: null,
 	};
 	for (const sourceStatus of sourceStatuses) {
 		if (sourceStatus.fetchedAtKey != null) {
@@ -196,6 +206,7 @@ export async function refreshSourceSnapshots(
 ): Promise<SourceSnapshotCacheResult> {
 	const previousMissingSince = missingSinceBySource(previousSourceRowStates);
 	const [
+		agentArena,
 		artificialAnalysis,
 		artificialAnalysisEvaluationResources,
 		modelsDev,
@@ -209,7 +220,15 @@ export async function refreshSourceSnapshots(
 		toolathlon,
 		valsIndex,
 		valsTerminalBench,
+		vendingBench2,
 	] = await Promise.all([
+		agentArenaSnapshot(
+			caches.agentArena,
+			sourceCache.agent_arena,
+			options,
+			previousMissingSince.agent_arena,
+			nowEpochSeconds,
+		),
 		artificialAnalysisSnapshot(
 			caches.artificialAnalysis,
 			sourceCache.artificial_analysis,
@@ -302,12 +321,20 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.vals_terminal_bench,
 			nowEpochSeconds,
 		),
+		vendingBench2Snapshot(
+			caches.vendingBench2,
+			sourceCache.vending_bench_2,
+			options,
+			previousMissingSince.vending_bench_2,
+			nowEpochSeconds,
+		),
 	]);
 	const modelsDevModels = selectModelsDevRowsForArtificialAnalysis(
 		modelsDev.modelsDevPayload,
 		artificialAnalysis.artificialAnalysisSelectedRows,
 	);
 	const sourceStatuses: SourceSnapshotStatus[] = [
+		agentArena.sourceStatus,
 		artificialAnalysis.sourceStatus,
 		artificialAnalysisEvaluationResources.sourceStatus,
 		modelsDev.sourceStatus,
@@ -321,10 +348,12 @@ export async function refreshSourceSnapshots(
 		toolathlon.sourceStatus,
 		valsIndex.sourceStatus,
 		valsTerminalBench.sourceStatus,
+		vendingBench2.sourceStatus,
 	];
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	return {
 		snapshots: {
+			agentArenaModelScoreRows: agentArena.agentArenaModelScoreRows,
 			artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
 			artificialAnalysisSelectedRows:
 				artificialAnalysis.artificialAnalysisSelectedRows,
@@ -350,6 +379,8 @@ export async function refreshSourceSnapshots(
 			valsTerminalBenchRows: valsTerminalBench.valsTerminalBenchRows,
 			valsTerminalBenchModelScoreRows:
 				valsTerminalBench.valsTerminalBenchModelScoreRows,
+			vendingBench2ModelScoreRows: vendingBench2.vendingBench2ModelScoreRows,
+			vendingBench2DataUrl: vendingBench2.vendingBench2DataUrl,
 			sourceRowStates: sourceStatuses.flatMap(
 				(sourceStatus) => sourceStatus.sourceRowStates,
 			),

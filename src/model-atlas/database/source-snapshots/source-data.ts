@@ -10,6 +10,7 @@ export function cachedSourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
 ): LlmStatsSourceData {
 	return buildSourceData({
+		agentArenaRows: snapshots.agentArenaModelScoreRows,
 		artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
 		artificialAnalysisEvaluationResourceRows:
 			snapshots.artificialAnalysisEvaluationResourceRows,
@@ -26,5 +27,6 @@ export function cachedSourceDataFromSnapshots(
 		toolathlonRows: snapshots.toolathlonModelScoreRows,
 		valsIndexRows: snapshots.valsIndexModelScoreRows,
 		valsTerminalBenchRows: snapshots.valsTerminalBenchModelScoreRows,
+		vendingBench2Rows: snapshots.vendingBench2ModelScoreRows,
 	});
 }

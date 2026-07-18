@@ -28,7 +28,10 @@ import {
 	buildQualityScoringContext,
 	simulatedBlendSeconds,
 } from "../src/model-atlas/stats/scores";
-import { prepareBenchmarkScoring } from "../src/model-atlas/stats/scores/benchmark-imputation";
+import {
+	normalizedMetricValue,
+	prepareBenchmarkScoring,
+} from "../src/model-atlas/stats/scores/benchmark-imputation";
 import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/stats/scores/final-scoring";
 import type {
 	BenchmarkPortfolio,
@@ -63,6 +66,19 @@ function assertThrowsWithMessage(
 	}
 	throw new Error(`Expected error: ${expectedMessage}`);
 }
+
+const rawAgentBenchmarkValues = new Map([
+	["agent_arena", [-0.15305257102824063, 0, 0.1394124051275084]],
+	["vending_bench_2", [-31.18399999999995, 9_000, 10_936.763333333334]],
+]);
+assertClose(
+	normalizedMetricValue(rawAgentBenchmarkValues, "agent_arena", 0),
+	52.3319,
+);
+assertClose(
+	normalizedMetricValue(rawAgentBenchmarkValues, "vending_bench_2", 9_000),
+	82.3416,
+);
 
 assertEqual(
 	blendedPriceValue(
@@ -222,7 +238,19 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ITBench","7.9%"]',
+		'["ITBench","6.8%"]',
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
+		'["Agent Arena","6.8%"]',
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
+		'["Vending-Bench 2","6.8%"]',
 	),
 	true,
 );

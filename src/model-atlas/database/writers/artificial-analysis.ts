@@ -4,6 +4,7 @@ import {
 	cleanArtificialAnalysisModelName,
 	parseArtificialAnalysisReasoningEffort,
 } from "../../scrapers/artificial-analysis/common";
+import { artificialAnalysisModelId } from "../../scrapers/artificial-analysis/leaderboard";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
@@ -16,38 +17,14 @@ import {
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
 
-function artificialAnalysisRawRowKey(row: JsonObject): string | null {
-	const explicitModelId = firstString(row, ["model_id", "model_url", "id"]);
-	if (explicitModelId != null) {
-		return explicitModelId;
-	}
-	const slug = firstString(row, ["slug"]);
-	if (slug == null) {
-		return null;
-	}
-	const creator = {
-		...asRecord(row.creator),
-		...asRecord(row.model_creators),
-	};
-	const creatorSlug =
-		firstString(row, ["modelCreatorSlug"]) ??
-		firstString(creator, ["slug"]) ??
-		firstString(row, ["modelCreatorName"]);
-	return creatorSlug == null ? slug : `${creatorSlug}/${slug}`;
-}
-
 function artificialAnalysisSelectedRowsByKey(
 	rows: readonly JsonObject[],
 ): Map<string, JsonObject> {
 	const rowsByKey = new Map<string, JsonObject>();
 	for (const row of rows) {
-		for (const key of [
-			firstString(row, ["model_id"]),
-			firstString(row, ["model_url"]),
-		]) {
-			if (key != null) {
-				rowsByKey.set(key, row);
-			}
+		const key = artificialAnalysisModelId(row);
+		if (key != null) {
+			rowsByKey.set(key, row);
 		}
 	}
 	return rowsByKey;
@@ -215,7 +192,7 @@ export function insertArtificialAnalysisRawModels(
 	`);
 	for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
 		const selectedRow =
-			selectedRowsByKey.get(artificialAnalysisRawRowKey(row) ?? "") ??
+			selectedRowsByKey.get(artificialAnalysisModelId(row) ?? "") ??
 			snapshots.artificialAnalysisSelectedRows[index] ??
 			{};
 		const creator = {

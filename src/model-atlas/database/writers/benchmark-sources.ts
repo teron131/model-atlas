@@ -4,6 +4,35 @@ import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
 
+/** Insert Agent Arena's source identity and headline causal effect. */
+export function insertAgentArenaRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO agent_arena_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, rank, contender_name,
+			model, base_model, reasoning_effort, organization, score
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.agentArenaModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.agentArena,
+			SOURCE_URLS.agent_arena,
+			row.rank,
+			row.contender_name,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.organization,
+			row.score,
+		);
+	}
+}
+
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 export function insertAgentsLastExamRawRows(
 	db: DatabaseWriter,
@@ -345,6 +374,36 @@ export function insertValsIndexRawRows(
 			row.model,
 			row.provider,
 			row.score,
+		);
+	}
+}
+
+/** Insert Vending-Bench 2 outcomes while retaining the official average daily balance curves. */
+export function insertVendingBench2RawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO vending_bench_2_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, data_url, rank, model,
+			base_model, reasoning_effort, run_count, final_balance_usd, daily_balance_usd_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.vendingBench2ModelScoreRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.vendingBench2,
+			SOURCE_URLS.vending_bench_2,
+			snapshots.vendingBench2DataUrl,
+			row.rank,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.run_count,
+			row.final_balance_usd,
+			JSON.stringify(row.daily_balance_usd),
 		);
 	}
 }

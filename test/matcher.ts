@@ -664,6 +664,10 @@ function modelStatsSourceData(
 	}
 
 	return {
+		agentArena: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
 		artificialAnalysis: {
 			rows: artificialAnalysisRows,
 			bySlug: artificialAnalysisBySlug,
@@ -726,6 +730,10 @@ function modelStatsSourceData(
 		valsTerminalBench: {
 			rows: [],
 			scoreByModelName: buildTerminalBenchMap([]),
+		},
+		vendingBench2: {
+			rows: [],
+			scoreByModelName: new Map(),
 		},
 	};
 }
