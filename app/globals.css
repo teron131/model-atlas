@@ -15,7 +15,6 @@
 	--hover: rgba(238, 238, 234, 0.04);
 	--accent: #eeeeea;
 	--accent-soft: rgba(238, 238, 234, 0.18);
-	--signal: #aef24a;
 	--provider-openai-color: #eeeeea;
 	--page-scanline: rgba(255, 255, 255, 0.014);
 	--page-dot: rgba(255, 255, 255, 0.055);
@@ -737,10 +736,6 @@ td:nth-child(2) {
 	box-shadow: 1px 0 0 var(--frame-line-soft);
 }
 
-.overall-column {
-	min-width: 66px;
-}
-
 th:last-child,
 td:last-child {
 	min-width: 80px;
@@ -1376,14 +1371,6 @@ tbody tr:nth-child(-n + 3) .rank {
 	inset: 0 auto 0 0;
 	width: calc(var(--score, 0) * 1%);
 	background: var(--score-color, var(--ink));
-}
-
-.score-cell.overall .score-meter::before {
-	background: var(--score-color, var(--accent));
-}
-
-.score-cell.overall .score-meter {
-	width: 30px;
 }
 
 .benchmark-cell {
