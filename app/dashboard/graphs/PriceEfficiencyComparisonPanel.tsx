@@ -6,6 +6,7 @@ import {
 	type FocusEvent as ReactFocusEvent,
 	type MouseEvent as ReactMouseEvent,
 	type PointerEvent as ReactPointerEvent,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -54,11 +55,21 @@ import type { CostFilter, HoverSetter } from "./types";
 const SCORE_DOMAIN: [number, number] = [0, 100];
 const SLOPE_LABEL_MIN_GAP = 24;
 const PRICE_EFFICIENCY_CHART_WIDTH = 1100;
+const COMPACT_PRICE_EFFICIENCY_CHART_WIDTH = 660;
+const COMPACT_CHART_MEDIA_QUERY = "(max-width: 520px)";
 const PANEL_TITLE = "Price vs Cost Efficiency";
+const COMPACT_EFFORT_LABELS: Record<string, string> = {
+	low: "LO",
+	medium: "MED",
+	high: "HI",
+	xhigh: "XH",
+	max: "MAX",
+};
 
 type SlopeGraphRow = {
 	row: PriceEfficiencyComparisonRow;
 	key: string;
+	label: string;
 	color: string;
 	logo: string;
 	leftY: number;
@@ -76,22 +87,29 @@ type SlopeHoverEvent =
 
 export function PriceEfficiencyComparisonPanel({
 	benchmarkPortfolio,
+	displayExpanded,
 	maxCost,
+	onDisplayExpandedChange,
 	selectedProviders,
 	onSelectedProvidersChange,
 	referenceModels,
 	setHover,
 }: {
 	benchmarkPortfolio: BenchmarkPortfolio;
+	displayExpanded: boolean;
 	maxCost: CostFilter;
+	onDisplayExpandedChange: (expanded: boolean) => void;
 	selectedProviders: string[];
 	onSelectedProvidersChange: (providers: string[]) => void;
 	referenceModels: LlmStatsModel[];
 	setHover: HoverSetter;
 }) {
-	const [displayExpanded, setDisplayExpanded] = useState(false);
 	const [filterQuery, setFilterQuery] = useState("");
 	const panelRef = useRef<HTMLElement>(null);
+	const compactChartLayout = useCompactChartLayout();
+	const chartWidth = compactChartLayout
+		? COMPACT_PRICE_EFFICIENCY_CHART_WIDTH
+		: PRICE_EFFICIENCY_CHART_WIDTH;
 	const displayModels = useMemo(
 		() =>
 			modelsForVariantDisplay(referenceModels, displayExpanded)
@@ -172,18 +190,20 @@ export function PriceEfficiencyComparisonPanel({
 			display={{
 				id: "price-efficiency-model-limit",
 				label: "Price efficiency graph display",
-				expanded: displayExpanded,
 				itemKind,
 				maximum: maximumLimit,
 				value: effectiveLimit,
-				onExpandedChange: setDisplayExpanded,
 				onValueChange: setDisplayLimit,
+				variantControl: {
+					expanded: displayExpanded,
+					onExpandedChange: onDisplayExpandedChange,
+				},
 			}}
 			screenshotControl={
 				<CaptureButton
 					targetRef={panelRef}
 					title={PANEL_TITLE}
-					captureWidth={PRICE_EFFICIENCY_CHART_WIDTH + 48}
+					captureWidth={chartWidth + 48}
 					fileName={captureFileName}
 				/>
 			}
@@ -194,7 +214,7 @@ export function PriceEfficiencyComparisonPanel({
 		return (
 			<Panel
 				captureEnabled={false}
-				captureWidth={PRICE_EFFICIENCY_CHART_WIDTH}
+				captureWidth={chartWidth}
 				panelRef={panelRef}
 				title={PANEL_TITLE}
 				copy="Price score plotted against benchmark task-cost efficiency."
@@ -219,7 +239,7 @@ export function PriceEfficiencyComparisonPanel({
 	return (
 		<Panel
 			captureEnabled={false}
-			captureWidth={PRICE_EFFICIENCY_CHART_WIDTH}
+			captureWidth={chartWidth}
 			panelRef={panelRef}
 			title={PANEL_TITLE}
 			copy="Each point is one visible model variant. Both axes keep the full public leaderboard as their reference population, so filters only change which points are shown. Price score uses log blended price with model-balanced 2.5% one-sided winsorization. Benchmark cost efficiency averages model-balanced percentile and winsorized min-max mappings of logged cost residuals from the model-excluded expectation at comparable benchmark quality; it excludes provider and workflow price signals."
@@ -236,7 +256,11 @@ export function PriceEfficiencyComparisonPanel({
 			wide
 		>
 			{controls}
-			<PriceEfficiencySlopeGraph rows={plottedRows} setHover={setHover} />
+			<PriceEfficiencySlopeGraph
+				compactLayout={compactChartLayout}
+				rows={plottedRows}
+				setHover={setHover}
+			/>
 			<div className={styles.chartSummary}>
 				{efficiencyLeader == null ? null : (
 					<SummaryCard
@@ -265,14 +289,20 @@ export function PriceEfficiencyComparisonPanel({
 }
 
 function PriceEfficiencySlopeGraph({
+	compactLayout,
 	rows,
 	setHover,
 }: {
+	compactLayout: boolean;
 	rows: PriceEfficiencyComparisonRow[];
 	setHover: HoverSetter;
 }) {
-	const width = PRICE_EFFICIENCY_CHART_WIDTH;
-	const margin = { top: 34, right: 380, bottom: 30, left: 330 };
+	const width = compactLayout
+		? COMPACT_PRICE_EFFICIENCY_CHART_WIDTH
+		: PRICE_EFFICIENCY_CHART_WIDTH;
+	const margin = compactLayout
+		? { top: 34, right: 220, bottom: 30, left: 200 }
+		: { top: 34, right: 380, bottom: 30, left: 330 };
 	const minimumLabelY = margin.top + 18;
 	const height =
 		minimumLabelY +
@@ -309,15 +339,24 @@ function PriceEfficiencySlopeGraph({
 		return {
 			row,
 			key,
+			label: compactLayout
+				? compactSlopeLabel(row.model)
+				: shortLabel(row.model),
 			color: providerPaletteColor(row.model.provider),
 			logo,
 			leftY,
 			rightY,
 			leftLabelY: leftLabels.get(row) ?? leftY,
 			rightLabelY: rightLabels.get(row) ?? rightY,
-			leftNameX: hasLogo ? leftX - 64 : leftX - 48,
-			leftScoreX: hasLogo ? leftX - 32 : leftX - 28,
-			rightNameX: hasLogo ? rightX + 72 : rightX + 52,
+			leftNameX: hasLogo
+				? leftX - (compactLayout ? 50 : 64)
+				: leftX - (compactLayout ? 36 : 48),
+			leftScoreX: hasLogo
+				? leftX - (compactLayout ? 22 : 32)
+				: leftX - (compactLayout ? 18 : 28),
+			rightNameX: hasLogo
+				? rightX + (compactLayout ? 52 : 72)
+				: rightX + (compactLayout ? 38 : 52),
 		};
 	});
 
@@ -404,7 +443,7 @@ function PriceEfficiencySlopeGraph({
 					y={18}
 					textAnchor="middle"
 				>
-					Price score
+					{compactLayout ? "Price" : "Price score"}
 				</text>
 				<text
 					className={styles.slopeRailTitle}
@@ -412,7 +451,7 @@ function PriceEfficiencySlopeGraph({
 					y={18}
 					textAnchor="middle"
 				>
-					Benchmark cost efficiency
+					{compactLayout ? "Cost efficiency" : "Benchmark cost efficiency"}
 				</text>
 				<line
 					className={styles.slopeRail}
@@ -475,6 +514,10 @@ function PriceEfficiencySlopeGraph({
 				})}
 				{graphRows.map((graphRow) => {
 					const hasLogo = graphRow.logo.length > 0;
+					const labelLeaderOffset = compactLayout ? 12 : 22;
+					const leftLogoX = leftX - (compactLayout ? 42 : 56);
+					const rightScoreX = rightX + (compactLayout ? 14 : 24);
+					const rightLogoX = rightX + (compactLayout ? 32 : 48);
 					const labelOpacity =
 						highlightedKey != null && highlightedKey !== graphRow.key
 							? 0.24
@@ -487,22 +530,22 @@ function PriceEfficiencySlopeGraph({
 						>
 							<rect
 								className={styles.slopeHitRect}
-								x={leftX - 230}
+								x={leftX - (compactLayout ? 180 : 230)}
 								y={graphRow.leftLabelY - 13}
-								width={208}
+								width={compactLayout ? 168 : 208}
 								height={20}
 							/>
 							<rect
 								className={styles.slopeHitRect}
-								x={rightX + 22}
+								x={rightX + labelLeaderOffset}
 								y={graphRow.rightLabelY - 13}
-								width={250}
+								width={compactLayout ? 198 : 250}
 								height={20}
 							/>
 							<LabelLeader
 								fromX={leftX}
 								fromY={graphRow.leftY}
-								toX={leftX - 22}
+								toX={leftX - labelLeaderOffset}
 								toY={graphRow.leftLabelY}
 							/>
 							<text
@@ -512,12 +555,12 @@ function PriceEfficiencySlopeGraph({
 								textAnchor="end"
 								fill="var(--ink)"
 							>
-								{shortLabel(graphRow.row.model)}
+								{graphRow.label}
 							</text>
 							{hasLogo ? (
 								<ProviderLogoMark
 									logo={graphRow.logo}
-									x={leftX - 56}
+									x={leftLogoX}
 									y={graphRow.leftLabelY - 12}
 								/>
 							) : null}
@@ -532,7 +575,7 @@ function PriceEfficiencySlopeGraph({
 							</text>
 							<text
 								className={styles.slopeLabel}
-								x={rightX + 24}
+								x={rightScoreX}
 								y={graphRow.rightLabelY}
 								textAnchor="start"
 								fill="var(--ink)"
@@ -542,14 +585,14 @@ function PriceEfficiencySlopeGraph({
 							{hasLogo ? (
 								<ProviderLogoMark
 									logo={graphRow.logo}
-									x={rightX + 48}
+									x={rightLogoX}
 									y={graphRow.rightLabelY - 12}
 								/>
 							) : null}
 							<LabelLeader
 								fromX={rightX}
 								fromY={graphRow.rightY}
-								toX={rightX + 22}
+								toX={rightX + labelLeaderOffset}
 								toY={graphRow.rightLabelY}
 							/>
 							<text
@@ -559,7 +602,7 @@ function PriceEfficiencySlopeGraph({
 								textAnchor="start"
 								fill="var(--ink)"
 							>
-								{shortLabel(graphRow.row.model)}
+								{graphRow.label}
 							</text>
 						</g>
 					);
@@ -567,6 +610,42 @@ function PriceEfficiencySlopeGraph({
 			</svg>
 		</div>
 	);
+}
+
+/** Follow the phone breakpoint without changing the server-rendered layout. */
+function useCompactChartLayout(): boolean {
+	const [compact, setCompact] = useState(false);
+
+	useEffect(() => {
+		const query = window.matchMedia(COMPACT_CHART_MEDIA_QUERY);
+		const update = () => setCompact(query.matches);
+		update();
+		query.addEventListener("change", update);
+		return () => query.removeEventListener("change", update);
+	}, []);
+
+	return compact;
+}
+
+/** Keep effort identity visible while fitting model labels beside both mobile rails. */
+function compactSlopeLabel(model: LlmStatsModel): string {
+	const label = shortLabel(model);
+	const effort = model.reasoning_effort;
+	const effortSuffix =
+		effort == null
+			? ""
+			: `·${COMPACT_EFFORT_LABELS[effort] ?? effort.slice(0, 2).toUpperCase()}`;
+	const effortLabel = effort == null ? "" : ` (${effort})`;
+	const baseLabel =
+		effortLabel.length > 0 && label.endsWith(effortLabel)
+			? label.slice(0, -effortLabel.length)
+			: label;
+	const maximumBaseLength = 14 - effortSuffix.length;
+	const compactBase =
+		baseLabel.length <= maximumBaseLength
+			? baseLabel
+			: `${baseLabel.slice(0, Math.max(1, maximumBaseLength - 1))}…`;
+	return `${compactBase}${effortSuffix}`;
 }
 
 function priceEfficiencyRowKey(

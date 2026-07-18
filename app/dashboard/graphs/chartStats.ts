@@ -31,18 +31,6 @@ export function intelligenceDistribution(
 	);
 }
 
-export function outputSpeedDistribution(
-	models: LlmStatsModel[],
-): BoxWhiskerDistribution {
-	return valueDistribution(
-		models
-			.map((model) =>
-				finiteValue(model.speed?.throughput_tokens_per_second_median),
-			)
-			.filter(finite),
-	);
-}
-
 export function inverseLogBubbleRadius(values: number[], maxRadius = 16) {
 	const minRadius = 5;
 	const logs = values

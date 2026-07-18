@@ -8,7 +8,7 @@ import type {
 import { captureFileToken } from "../capture/export-png";
 import { modelVariantKey } from "../shared/modelDisplay";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { SummaryCard } from "./ChartComponents";
+import { BubbleScaleLegend, SummaryCard } from "./ChartComponents";
 import { linearBubbleRadius, valueDistribution } from "./chartStats";
 import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import { finite, fmtPercentScore } from "./format";
@@ -222,10 +222,7 @@ export function FrontierBenchmarksPanel({
 					<span className={styles.markerKey}>
 						CORR = correlation to Intelligence score
 					</span>
-					<span className={styles.markerKey}>
-						<span className={styles.bubbleMarkerKey} />
-						Bubble size = Efficiency
-					</span>
+					<BubbleScaleLegend metric="Efficiency" />
 				</div>
 			</div>
 			<EfficiencyAxisChart

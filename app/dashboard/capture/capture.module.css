@@ -19,18 +19,17 @@
 	height: 32px;
 	padding: 0;
 	place-items: center;
-	border: 1px solid var(--chart-control-border);
+	border: 0;
 	border-radius: 0;
-	background: var(--chart-control-fill);
+	background: transparent;
 	color: var(--muted);
 }
 
 .graphButton:hover,
 .graphButton:focus-visible,
 .graphButton[data-state="saved"] {
-	border-color: var(--chart-control-border-active);
-	background: var(--ink);
-	color: var(--paper);
+	background: var(--chart-control-hover);
+	color: var(--ink);
 	outline: 0;
 }
 

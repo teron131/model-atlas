@@ -4,7 +4,7 @@
 
 import { Boxes } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { DisplayControls } from "./display-controls";
+import { DisplayControls, type DisplayControlsProps } from "./display-controls";
 import styles from "./model-control-toolbar.module.css";
 import { toggleProviderFilter } from "./modelDisplay";
 
@@ -24,17 +24,6 @@ type ProviderControl = {
 	onSelectedProvidersChange: (providers: string[]) => void;
 };
 
-type DisplayControl = {
-	id: string;
-	label: string;
-	expanded: boolean;
-	itemKind: "models" | "variants";
-	maximum: number;
-	value: number;
-	onExpandedChange: (expanded: boolean) => void;
-	onValueChange: (value: number) => void;
-};
-
 /** Render the shared model-control layout without owning its filtering state. */
 export function ModelControlToolbar({
 	filterQuery,
@@ -47,7 +36,7 @@ export function ModelControlToolbar({
 	filterQuery: string;
 	rowCountLabel: string | null;
 	provider: ProviderControl;
-	display: DisplayControl;
+	display: DisplayControlsProps;
 	screenshotControl: ReactNode;
 	onFilterQueryChange: (value: string) => void;
 }) {
