@@ -13,8 +13,8 @@ import {
 } from "../../scrapers/artificial-analysis/benchmark-resources";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../../scrapers/browsecomp";
-import { findGdpPdfScore } from "../../scrapers/gdp-pdf";
-import { findRiemannBenchScore } from "../../scrapers/riemann-bench";
+import { findGdpPdfScore } from "../../scrapers/surge/gdp-pdf";
+import { findRiemannBenchScore } from "../../scrapers/surge/riemann-bench";
 import { findToolathlonScore } from "../../scrapers/toolathlon";
 import { findValsIndexScore } from "../../scrapers/vals/index-benchmark";
 import {

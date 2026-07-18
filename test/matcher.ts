@@ -20,8 +20,8 @@ import {
 } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
-import { buildGdpPdfMap } from "../src/model-atlas/scrapers/gdp-pdf";
-import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/riemann-bench";
+import { buildGdpPdfMap } from "../src/model-atlas/scrapers/surge/gdp-pdf";
+import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/surge/riemann-bench";
 import { buildToolathlonMap } from "../src/model-atlas/scrapers/toolathlon";
 import {
 	buildValsIndexMap,

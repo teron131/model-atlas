@@ -32,19 +32,19 @@ import type {
 	DeepSWEScoreByModelName,
 } from "../scrapers/deep-swe";
 import type {
-	GdpPdfModelScoreRow,
-	GdpPdfScoreByModelName,
-} from "../scrapers/gdp-pdf";
-import type {
 	MercorApexAgentsRow,
 	MercorApexAgentsScoreByModelName,
 } from "../scrapers/mercor-apex-agents";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type {
+	GdpPdfModelScoreRow,
+	GdpPdfScoreByModelName,
+} from "../scrapers/surge/gdp-pdf";
+import type {
 	RiemannBenchModelScoreRow,
 	RiemannBenchScoreByModelName,
-} from "../scrapers/riemann-bench";
+} from "../scrapers/surge/riemann-bench";
 import type {
 	ToolathlonModelScoreRow,
 	ToolathlonScoreByModelName,

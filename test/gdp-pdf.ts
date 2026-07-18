@@ -2,7 +2,7 @@ import {
 	buildGdpPdfMap,
 	findGdpPdfScore,
 	processGdpPdfPageHtml,
-} from "../src/model-atlas/scrapers/gdp-pdf";
+} from "../src/model-atlas/scrapers/surge/gdp-pdf";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

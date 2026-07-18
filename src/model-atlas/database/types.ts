@@ -13,14 +13,14 @@ import type {
 	DeepSWERawLeaderboardRow,
 	DeepSWESourceVersion,
 } from "../scrapers/deep-swe";
-import type { GdpPdfModelScoreRow } from "../scrapers/gdp-pdf";
 import type { MercorApexAgentsRow } from "../scrapers/mercor-apex-agents";
 import type {
 	ModelsDevFlatModel,
 	ModelsDevPayload,
 } from "../scrapers/models-dev";
 import { OPENROUTER_MODELS_URL } from "../scrapers/openrouter";
-import type { RiemannBenchModelScoreRow } from "../scrapers/riemann-bench";
+import type { GdpPdfModelScoreRow } from "../scrapers/surge/gdp-pdf";
+import type { RiemannBenchModelScoreRow } from "../scrapers/surge/riemann-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import type {
 	ValsIndexModelScoreRow,

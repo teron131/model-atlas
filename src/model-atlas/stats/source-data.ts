@@ -25,16 +25,16 @@ import {
 	getDeepSWELeaderboardStats,
 	summarizeDeepSWEDefaultEffortRows,
 } from "../scrapers/deep-swe";
-import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
 import {
 	getMercorApexAgentsStats,
 	type MercorApexAgentsRow,
 } from "../scrapers/mercor-apex-agents";
 import { getModelsDevSourceStats } from "../scrapers/models-dev";
+import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/surge/gdp-pdf";
 import {
 	buildRiemannBenchMap,
 	getRiemannBenchStats,
-} from "../scrapers/riemann-bench";
+} from "../scrapers/surge/riemann-bench";
 import { buildToolathlonMap, getToolathlonStats } from "../scrapers/toolathlon";
 import {
 	buildValsIndexMap,
