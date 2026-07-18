@@ -50,7 +50,7 @@
 }
 
 :global(.dashboard-main[data-theme="light"]) .atlas {
-	--paper: #f4f5f1;
+	--paper: #ffffff;
 	--surface: #ffffff;
 	--ink: var(--light-ink);
 	--ink-rgb: var(--light-ink-rgb);
