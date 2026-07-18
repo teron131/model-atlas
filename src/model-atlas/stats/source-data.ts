@@ -1,5 +1,6 @@
 /** Normalized source-data assembly owns lookup maps while live loading supplies source rows. */
 
+import { getAgentArenaStats } from "../scrapers/agent-arena";
 import {
 	buildAgentsLastExamMap,
 	getAgentsLastExamStats,
@@ -39,7 +40,8 @@ import {
 	buildTerminalBenchMap,
 	getTerminalBenchStats,
 } from "../scrapers/vals/terminal-bench";
-import { modelSlugFromModelId } from "../shared";
+import { getVendingBench2Stats } from "../scrapers/vending-bench-2";
+import { buildBenchmarkModelMap, modelSlugFromModelId } from "../shared";
 import {
 	pickPreferredModelsDevRows,
 	selectModelsDevRowsForArtificialAnalysis,
@@ -61,6 +63,7 @@ function buildArtificialAnalysisBySlug(
 }
 
 export type LlmStatsSourceRows = {
+	agentArenaRows: LlmStatsSourceData["agentArena"]["rows"];
 	artificialAnalysisRows: LlmStatsSourceData["artificialAnalysis"]["rows"];
 	artificialAnalysisEvaluationResourceRows: LlmStatsSourceData["artificialAnalysisEvaluationResources"]["rows"];
 	modelsDevModels: LlmStatsSourceData["modelsDev"]["rows"];
@@ -74,6 +77,7 @@ export type LlmStatsSourceRows = {
 	toolathlonRows: LlmStatsSourceData["toolathlon"]["rows"];
 	valsIndexRows: LlmStatsSourceData["valsIndex"]["rows"];
 	valsTerminalBenchRows: LlmStatsSourceData["valsTerminalBench"]["rows"];
+	vendingBench2Rows: LlmStatsSourceData["vendingBench2"]["rows"];
 };
 
 /** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
@@ -85,6 +89,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 		rows.deepSWEEffortRows,
 	);
 	return {
+		agentArena: {
+			rows: rows.agentArenaRows,
+			scoreByModelName: buildBenchmarkModelMap(rows.agentArenaRows),
+		},
 		artificialAnalysis: {
 			rows: rows.artificialAnalysisRows,
 			bySlug: buildArtificialAnalysisBySlug(rows.artificialAnalysisRows),
@@ -148,11 +156,16 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.valsTerminalBenchRows,
 			scoreByModelName: buildTerminalBenchMap(rows.valsTerminalBenchRows),
 		},
+		vendingBench2: {
+			rows: rows.vendingBench2Rows,
+			scoreByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
+		},
 	};
 }
 
 export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const [
+		agentArenaStats,
 		artificialAnalysisStats,
 		artificialAnalysisEvaluationResourceStats,
 		modelsDevStats,
@@ -166,7 +179,9 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		toolathlonStats,
 		valsIndexStats,
 		valsTerminalBenchStats,
+		vendingBench2Stats,
 	] = await Promise.all([
+		getAgentArenaStats(),
 		getArtificialAnalysisLeaderboardStats(),
 		getArtificialAnalysisEvaluationResourceStats(),
 		getModelsDevSourceStats(),
@@ -180,7 +195,9 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getToolathlonStats(),
 		getValsIndexStats(),
 		getTerminalBenchStats(),
+		getVendingBench2Stats(),
 	]);
+	const agentArenaRows = agentArenaStats.data;
 	const artificialAnalysisRows = artificialAnalysisStats.data;
 	const artificialAnalysisEvaluationResourceRows =
 		artificialAnalysisEvaluationResourceStats.data;
@@ -194,11 +211,13 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const toolathlonRows = toolathlonStats.data;
 	const valsIndexRows = valsIndexStats.model_scores;
 	const valsTerminalBenchRows = valsTerminalBenchStats.model_scores;
+	const vendingBench2Rows = vendingBench2Stats.data;
 	const modelsDevModels = selectModelsDevRowsForArtificialAnalysis(
 		modelsDevStats.payload,
 		artificialAnalysisRows,
 	);
 	return buildSourceData({
+		agentArenaRows,
 		artificialAnalysisRows,
 		artificialAnalysisEvaluationResourceRows,
 		modelsDevModels,
@@ -212,5 +231,6 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		toolathlonRows,
 		valsIndexRows,
 		valsTerminalBenchRows,
+		vendingBench2Rows,
 	});
 }

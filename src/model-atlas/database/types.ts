@@ -1,5 +1,6 @@
 /** SQLite row contracts define the handoff between scrapers, snapshot writers, and public payload readers. */
 
+import type { AgentArenaModelScoreRow } from "../scrapers/agent-arena";
 import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
@@ -28,15 +29,17 @@ import type {
 	TerminalBenchModelHarnessRow,
 	TerminalBenchTaskRow,
 } from "../scrapers/vals/terminal-bench";
+import type { VendingBench2ModelScoreRow } from "../scrapers/vending-bench-2";
 import type { LlmStatsSourceHealth } from "../stats/types";
 import type { JsonObject } from "../utils";
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
 export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
 /** Bump when data-pipeline semantics change so fresh snapshots are derived once under the new contract. */
-export const DATABASE_PIPELINE_REVISION = 2;
+export const DATABASE_PIPELINE_REVISION = 3;
 
 export const RAW_SOURCE_NAMES = [
+	"agent_arena",
 	"artificial_analysis",
 	"artificial_analysis_evaluation_resources",
 	"models_dev",
@@ -50,6 +53,7 @@ export const RAW_SOURCE_NAMES = [
 	"toolathlon",
 	"vals_index",
 	"vals_terminal_bench",
+	"vending_bench_2",
 	"openrouter",
 ] as const;
 
@@ -57,6 +61,7 @@ export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
 
 /** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
 export const RAW_SOURCE_TABLES = {
+	agent_arena: "agent_arena_raw_rows",
 	artificial_analysis: "artificial_analysis_raw_models",
 	artificial_analysis_evaluation_resources:
 		"artificial_analysis_evaluations_raw_rows",
@@ -71,6 +76,7 @@ export const RAW_SOURCE_TABLES = {
 	toolathlon: "toolathlon_raw_rows",
 	vals_index: "vals_index_raw_rows",
 	vals_terminal_bench: "vals_terminal_bench_raw_rows",
+	vending_bench_2: "vending_bench_2_raw_rows",
 	openrouter: "openrouter_raw_rows",
 } as const satisfies Record<RawSourceName, string>;
 
@@ -87,6 +93,7 @@ export type SnapshotTableName =
 	(typeof SNAPSHOT_TABLES)[keyof typeof SNAPSHOT_TABLES];
 
 export const SOURCE_URLS = {
+	agent_arena: "https://arena.ai/leaderboard/agent",
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
 	artificial_analysis_evaluation_resources:
 		"https://artificialanalysis.ai/evaluations",
@@ -102,6 +109,7 @@ export const SOURCE_URLS = {
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 	vals_index: "https://www.vals.ai/benchmarks/vals_index",
 	vals_terminal_bench: "https://www.vals.ai/benchmarks/terminal-bench-2-1",
+	vending_bench_2: "https://andonlabs.com/evals/vending-bench-2",
 	openrouter_models: OPENROUTER_MODELS_URL,
 	openrouter_stats: "https://openrouter.ai/api/frontend/v1/stats/*",
 } as const;
@@ -158,6 +166,7 @@ export type SourceRowState = {
 };
 
 export type SourceSnapshots = {
+	agentArenaModelScoreRows: AgentArenaModelScoreRow[];
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
 	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
@@ -180,8 +189,11 @@ export type SourceSnapshots = {
 	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
 	valsTerminalBenchRows: TerminalBenchTaskRow[];
 	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
+	vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
+	vendingBench2DataUrl: string | null;
 	sourceRowStates: SourceRowState[];
 	fetchedAt: {
+		agentArena: number | null;
 		artificialAnalysis: number | null;
 		artificialAnalysisEvaluationResources: number | null;
 		agentsLastExam: number | null;
@@ -194,6 +206,7 @@ export type SourceSnapshots = {
 		toolathlon: number | null;
 		valsIndex: number | null;
 		valsTerminalBench: number | null;
+		vendingBench2: number | null;
 	};
 };
 

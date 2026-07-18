@@ -78,6 +78,7 @@ const modelsDevModels = [
 ];
 const deepSWEEffortRows = [deepSWERow("max", 0.8), deepSWERow(null, 0.4)];
 const sourceRows: LlmStatsSourceRows = {
+	agentArenaRows: [],
 	artificialAnalysisRows: [{ model_id: "google/example-model" }],
 	artificialAnalysisEvaluationResourceRows: [],
 	modelsDevModels,
@@ -91,10 +92,12 @@ const sourceRows: LlmStatsSourceRows = {
 	toolathlonRows: [],
 	valsIndexRows: [],
 	valsTerminalBenchRows: [],
+	vendingBench2Rows: [],
 };
 
 const liveSourceData = buildSourceData(sourceRows);
 const cachedSourceData = cachedSourceDataFromSnapshots({
+	agentArenaModelScoreRows: [],
 	artificialAnalysisSelectedRows: sourceRows.artificialAnalysisRows,
 	artificialAnalysisEvaluationResourceRows:
 		sourceRows.artificialAnalysisEvaluationResourceRows,
@@ -114,6 +117,7 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	toolathlonModelScoreRows: [],
 	valsIndexModelScoreRows: [],
 	valsTerminalBenchModelScoreRows: [],
+	vendingBench2ModelScoreRows: [],
 } as unknown as SourceSnapshots);
 
 assert.deepEqual(summary(cachedSourceData), summary(liveSourceData));

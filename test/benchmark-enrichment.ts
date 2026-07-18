@@ -1,7 +1,9 @@
 /** Verify shared benchmark enrichment maps source rows into evaluations and scoring sources. */
 
 import assert from "node:assert/strict";
+import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
+import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
 import {
 	type BenchmarkEnrichmentLookups,
 	enrichBenchmarkAggregate,
@@ -33,6 +35,24 @@ const cursorBenchRow = {
 	cost_per_task_usd: 0.42,
 	tokens_per_task: 12345,
 	steps_per_task: 12,
+};
+const agentArenaRow: AgentArenaModelScoreRow = {
+	rank: 1,
+	contender_name: "contenders/example-model-agent",
+	model: "Example Model",
+	base_model: "Example Model",
+	reasoning_effort: null,
+	organization: "Test",
+	score: 0.14,
+};
+const vendingBench2Row: VendingBench2ModelScoreRow = {
+	rank: 1,
+	model: "Example Model",
+	base_model: "Example Model",
+	reasoning_effort: null,
+	run_count: 5,
+	final_balance_usd: 9_000,
+	daily_balance_usd: [500, 9_000],
 };
 const terminalBenchResourceRow: ArtificialAnalysisEvaluationResourceRow = {
 	benchmark_key: "terminalbench_v21",
@@ -167,6 +187,9 @@ const resourceRowsByBenchmark = new Map([
 	["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
 ]);
 const lookups = {
+	agentArena: {
+		scoreByModelName: new Map([["example-model", agentArenaRow]]),
+	},
 	artificialAnalysisEvaluationResources: {
 		observationByModelName: resourceRowsByBenchmark,
 		defaultEffortByModelName: resourceRowsByBenchmark,
@@ -201,6 +224,9 @@ const lookups = {
 	cursorBench: {
 		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
 	},
+	vendingBench2: {
+		scoreByModelName: new Map([["example-model", vendingBench2Row]]),
+	},
 } satisfies BenchmarkEnrichmentLookups;
 
 const observationEnrichment = enrichBenchmarkObservation(
@@ -233,6 +259,7 @@ const enrichment = enrichBenchmarkAggregate(["Example Model"], lookups, {
 });
 
 assert.deepEqual(enrichment.evaluations, {
+	agent_arena: 0.14,
 	briefcase: 0.5,
 	terminalbench_v21: 0.82,
 	deep_swe: 0.72,
@@ -240,8 +267,10 @@ assert.deepEqual(enrichment.evaluations, {
 	harvey_lab: 0.142,
 	itbench_sre: 0.56,
 	cursorbench: 0.52,
+	vending_bench_2: 9_000,
 });
 assert.deepEqual(enrichment.scoringSources, {
+	agent_arena: agentArenaRow,
 	briefcase: briefcaseResourceRow,
 	hle: artificialAnalysisHleResourceRow,
 	terminalbench_v21: {
@@ -263,6 +292,19 @@ assert.deepEqual(enrichment.scoringSources, {
 	harvey_lab: harveyLabResourceRow,
 	itbench_sre: itbenchResourceRow,
 	cursorbench: cursorBenchRow,
+	vending_bench_2: vendingBench2Row,
+});
+const effortQualifiedAggregate = enrichBenchmarkAggregate(
+	["Example Model - Max"],
+	lookups,
+);
+assert.deepEqual(effortQualifiedAggregate.evaluations, {
+	agent_arena: 0.14,
+	vending_bench_2: 9_000,
+});
+assert.deepEqual(effortQualifiedAggregate.scoringSources, {
+	agent_arena: agentArenaRow,
+	vending_bench_2: vendingBench2Row,
 });
 assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 	briefcase: {

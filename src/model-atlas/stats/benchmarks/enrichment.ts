@@ -19,6 +19,7 @@ import { findToolathlonScore } from "../../scrapers/toolathlon";
 import { findValsIndexScore } from "../../scrapers/vals/index-benchmark";
 import {
 	asRecord,
+	benchmarkModelEffort,
 	canonicalModelKey,
 	modelSlugFromModelId,
 	normalizeModelToken,
@@ -31,6 +32,7 @@ import {
 } from "./terminal-bench";
 
 export type BenchmarkEnrichmentLookups = {
+	agentArena: Pick<LlmStatsSourceData["agentArena"], "scoreByModelName">;
 	agentsLastExam: Pick<
 		LlmStatsSourceData["agentsLastExam"],
 		"scoreByModelName"
@@ -54,6 +56,7 @@ export type BenchmarkEnrichmentLookups = {
 		LlmStatsSourceData["valsTerminalBench"],
 		"scoreByModelName"
 	>;
+	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "scoreByModelName">;
 };
 
 export type BenchmarkEnrichment = {
@@ -91,6 +94,18 @@ function findSourceRow<T>(
 		}
 	}
 	return null;
+}
+
+function findAggregateBenchmarkSourceRow<T>(
+	candidateNames: unknown[],
+	scoreByModelName: ReadonlyMap<string, T>,
+): T | null {
+	const baseModelCandidates = candidateNames.map((candidateName) =>
+		typeof candidateName === "string"
+			? benchmarkModelEffort(candidateName).baseModel
+			: candidateName,
+	);
+	return findSourceRow(baseModelCandidates, scoreByModelName);
 }
 
 function addArtificialAnalysisResourceEvaluation(
@@ -201,6 +216,14 @@ export function enrichBenchmarkAggregate(
 		lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
 		baseEvaluations,
 	);
+	const agentArenaRow = findAggregateBenchmarkSourceRow(
+		modelNameCandidates,
+		lookups.agentArena.scoreByModelName,
+	);
+	if (agentArenaRow != null) {
+		evaluations.agent_arena = agentArenaRow.score;
+		scoringSources.agent_arena = agentArenaRow;
+	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
 		lookups.agentsLastExam.scoreByModelName,
@@ -289,6 +312,15 @@ export function enrichBenchmarkAggregate(
 	);
 	if (valsIndexScore != null) {
 		evaluations.vals_index = valsIndexScore;
+	}
+
+	const vendingBench2Row = findAggregateBenchmarkSourceRow(
+		modelNameCandidates,
+		lookups.vendingBench2.scoreByModelName,
+	);
+	if (vendingBench2Row != null) {
+		evaluations.vending_bench_2 = vendingBench2Row.final_balance_usd;
+		scoringSources.vending_bench_2 = vendingBench2Row;
 	}
 
 	return {

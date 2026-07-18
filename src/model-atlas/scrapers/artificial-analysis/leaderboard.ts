@@ -7,10 +7,12 @@
 import { asRecord, type JsonObject } from "../../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import {
+	extractNextFlightCorpus,
+	findObjectEnd,
+	parseFlightJsonObject,
+} from "../parsing";
+import {
 	cleanArtificialAnalysisModelName,
-	extractArtificialAnalysisFlightCorpus,
-	findArtificialAnalysisFlightObjectEnd,
-	parseArtificialAnalysisFlightObject,
 	parseArtificialAnalysisReasoningEffort,
 } from "./common";
 
@@ -439,6 +441,23 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
 	};
 }
 
+/** Resolve one stable model identity from both live page rows and persisted leaderboard rows. */
+export function artificialAnalysisModelId(row: JsonObject): string | null {
+	const explicitModelId = firstString(row, ["model_id"]);
+	if (explicitModelId != null) {
+		return explicitModelId;
+	}
+	const { modelRouteCreatorSlug, modelSlug, modelUrlPath } =
+		buildRowSelectionContext(row);
+	if (typeof modelUrlPath === "string" && modelUrlPath.includes("/")) {
+		return modelUrlPath;
+	}
+	if (modelRouteCreatorSlug != null && modelUrlPath != null) {
+		return `${modelRouteCreatorSlug}/${modelUrlPath}`;
+	}
+	return modelUrlPath ?? modelSlug;
+}
+
 function selectModalities(
 	row: JsonObject,
 	direction: "input" | "output",
@@ -470,7 +489,6 @@ function getSelectedColumnValue(
 		providerSlug,
 		modelSlug,
 		modelRouteCreatorSlug,
-		modelUrlPath,
 	} = context;
 
 	switch (column) {
@@ -487,11 +505,7 @@ function getSelectedColumnValue(
 				(typeof row.id === "string" ? row.id : null)
 			);
 		case "model_id":
-			return typeof modelUrlPath === "string" && modelUrlPath.includes("/")
-				? modelUrlPath
-				: modelRouteCreatorSlug && modelUrlPath
-					? `${modelRouteCreatorSlug}/${modelUrlPath}`
-					: (modelUrlPath ?? row.model_url ?? null);
+			return artificialAnalysisModelId(row);
 		case "name":
 			return cleanArtificialAnalysisModelName(
 				row.short_name ??
@@ -649,16 +663,12 @@ function extractLeaderboardRowsFromCorpus(flightCorpus: string): JsonObject[] {
 			if (flightCorpus[backIndex] !== "{") {
 				continue;
 			}
-			const endIndex = findArtificialAnalysisFlightObjectEnd(
-				flightCorpus,
-				backIndex,
-			);
+			const endIndex = findObjectEnd(flightCorpus, backIndex);
 			if (endIndex === -1 || endIndex < hitIndex) {
 				continue;
 			}
 			const candidateRowText = flightCorpus.slice(backIndex, endIndex + 1);
-			const candidateRow =
-				parseArtificialAnalysisFlightObject(candidateRowText);
+			const candidateRow = parseFlightJsonObject(candidateRowText);
 			if (!candidateRow) {
 				continue;
 			}
@@ -714,7 +724,7 @@ export async function getArtificialAnalysisLeaderboardRawStats(
 			throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
 		}
 		const pageHtml = await response.text();
-		const flightCorpus = extractArtificialAnalysisFlightCorpus(pageHtml);
+		const flightCorpus = extractNextFlightCorpus(pageHtml);
 		const leaderboardRows = sortLeaderboardRows(
 			extractLeaderboardRowsFromCorpus(flightCorpus).filter(
 				isLeaderboardModelRow,

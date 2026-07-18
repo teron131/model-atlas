@@ -197,6 +197,7 @@ assert.equal(
 );
 
 const dbBenchmarkRows = benchmarkRowsFromDb({
+	agentArenaRows: [],
 	artificialAnalysisRows: [
 		{
 			model_id: "openai/gpt-5",
@@ -284,6 +285,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.73,
 		},
 	],
+	vendingBench2Rows: [],
 });
 
 assert.deepEqual(dbBenchmarkRows.gpqa, [

@@ -130,6 +130,7 @@ const MIN_MAX_SCORE_TEXT = "min-max score across models";
 const FULL_OVERALL_TEXT = "Full Overall";
 
 const BENCHMARK_LABEL_BY_KEY = {
+	agent_arena: "Agent Arena",
 	agents_last_exam: "Agents' Last Exam",
 	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
@@ -152,6 +153,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	terminalbench_v21: "Terminal-Bench 2.1",
 	toolathlon: "Toolathlon",
 	vals_index: "Vals Index",
+	vending_bench_2: "Vending-Bench 2",
 } as const satisfies Record<BenchmarkKey, string>;
 
 type CoreColumnTooltipKey =

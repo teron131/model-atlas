@@ -1,6 +1,11 @@
 /** Preserve high-signal snapshot rows when a refresh loses source evidence. */
 
-import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
+import {
+	asFiniteNumber,
+	asRecord,
+	canonicalReasoningEffort,
+	normalizeModelToken,
+} from "../shared";
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "./benchmarks";
 import type {
 	LlmStatsModel,
@@ -10,20 +15,30 @@ import type {
 } from "./types";
 
 export const SNAPSHOT_PRESERVATION_VERSION = 2;
+const DEFAULT_EFFORT_KEY = "\u0000default";
+const MODEL_EFFORT_SEPARATOR = "\u001f";
 
 function modelKeys(model: LlmStatsModel): string[] {
 	const keys = new Set<string>();
+	const effort =
+		canonicalReasoningEffort(model.reasoning_effort) ?? DEFAULT_EFFORT_KEY;
 	for (const value of [model.id, model.name]) {
 		if (typeof value !== "string" || value.length === 0) {
 			continue;
 		}
-		keys.add(normalizeModelToken(value));
+		const normalizedValue = normalizeModelToken(value);
+		if (normalizedValue.length > 0) {
+			keys.add(`${normalizedValue}${MODEL_EFFORT_SEPARATOR}${effort}`);
+		}
 		const slug = value.split("/").at(-1);
 		if (slug != null && slug.length > 0) {
-			keys.add(normalizeModelToken(slug));
+			const normalizedSlug = normalizeModelToken(slug);
+			if (normalizedSlug.length > 0) {
+				keys.add(`${normalizedSlug}${MODEL_EFFORT_SEPARATOR}${effort}`);
+			}
 		}
 	}
-	return [...keys].filter((key) => key.length > 0);
+	return [...keys];
 }
 
 function previousModelByKey(

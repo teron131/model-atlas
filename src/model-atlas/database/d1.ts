@@ -7,6 +7,7 @@ import {
 	COMPLETED_RUN_SQL,
 	PAYLOAD_ROW_GROUPS,
 	payloadRunFromRow,
+	readPayloadRows,
 } from "./payload";
 import {
 	catalogTableMatchesSchema,
@@ -200,24 +201,35 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 	if (run == null) {
 		return null;
 	}
-	const rowGroups = await queryD1BatchRows(
-		PAYLOAD_ROW_GROUPS.map((rowGroup) =>
-			rowGroup.sourceTable == null
-				? { sql: rowGroup.sql, params: [run.id] }
-				: {
-						sql: rowGroup.sql.replace(
-							"run_id = ?",
-							`run_id = (SELECT MAX(run_id) FROM ${quoteIdentifier(rowGroup.sourceTable)})`,
-						),
-					},
-		),
+	const queries = PAYLOAD_ROW_GROUPS.map((rowGroup) =>
+		rowGroup.sourceTable == null
+			? { sql: rowGroup.sql, params: [run.id] }
+			: {
+					sql: rowGroup.sql.replace(
+						"run_id = ?",
+						`run_id = (SELECT MAX(run_id) FROM ${quoteIdentifier(rowGroup.sourceTable)})`,
+					),
+				},
 	);
-	return buildPayloadFromRows(
-		buildPayloadRows(
-			run,
-			PAYLOAD_ROW_GROUPS.map(
-				(rowGroup, index) => [rowGroup.key, rowGroups[index] ?? []] as const,
+	try {
+		const rowGroups = await queryD1BatchRows(queries);
+		return buildPayloadFromRows(
+			buildPayloadRows(
+				run,
+				PAYLOAD_ROW_GROUPS.map(
+					(rowGroup, index) => [rowGroup.key, rowGroups[index] ?? []] as const,
+				),
 			),
-		),
-	);
+		);
+	} catch (error) {
+		if (!(error instanceof Error) || !/no such table:/i.test(error.message)) {
+			throw error;
+		}
+		const rows = await readPayloadRows(run, async (rowGroup) => {
+			const index = PAYLOAD_ROW_GROUPS.indexOf(rowGroup);
+			const query = queries[index];
+			return query == null ? [] : queryD1Rows(query.sql, query.params ?? []);
+		});
+		return buildPayloadFromRows(rows);
+	}
 }

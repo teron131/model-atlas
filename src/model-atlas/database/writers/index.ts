@@ -5,6 +5,7 @@ export {
 	insertArtificialAnalysisRawModels,
 } from "./artificial-analysis";
 export {
+	insertAgentArenaRawRows,
 	insertAgentsLastExamRawRows,
 	insertBlueprintBenchRawRows,
 	insertBrowseCompRawRows,
@@ -15,6 +16,7 @@ export {
 	insertToolathlonRawRows,
 	insertValsIndexRawRows,
 	insertValsTerminalBenchRawRows,
+	insertVendingBench2RawRows,
 } from "./benchmark-sources";
 export { SnapshotRowCollector } from "./collector";
 export { insertDebugTraceRows } from "./debug";

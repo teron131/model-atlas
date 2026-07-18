@@ -174,6 +174,18 @@ function benchmarkDraftsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
 	return [
+		...sparseBenchmarkRowDrafts(
+			"agent_arena",
+			sourceData.agentArena.rows,
+			(row) => ({
+				id: row.contender_name,
+				identity: row.base_model,
+				label: row.model,
+				provider: row.organization,
+				reasoningEffort: row.reasoning_effort,
+				value: row.score,
+			}),
+		),
 		...artificialAnalysisBenchmarkRowDrafts({
 			rows: sourceData.artificialAnalysis.rows,
 			modelId: (row) => {
@@ -296,6 +308,16 @@ function benchmarkDraftsFromSourceData(
 				label: row.model,
 				provider: row.provider,
 				value: row.score,
+			}),
+		),
+		...sparseBenchmarkRowDrafts(
+			"vending_bench_2",
+			sourceData.vendingBench2.rows,
+			(row) => ({
+				identity: row.base_model,
+				label: row.model,
+				reasoningEffort: row.reasoning_effort,
+				value: row.final_balance_usd,
 			}),
 		),
 	];

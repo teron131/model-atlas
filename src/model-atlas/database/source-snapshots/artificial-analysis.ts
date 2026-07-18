@@ -2,6 +2,7 @@
 
 import {
 	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+	artificialAnalysisModelId,
 	getArtificialAnalysisLeaderboardRawStats,
 	processArtificialAnalysisLeaderboardRows,
 } from "../../scrapers/artificial-analysis/leaderboard";
@@ -129,7 +130,7 @@ export async function artificialAnalysisSnapshot(
 			fetchedRows: [],
 			fetchedAtEpochSeconds: null,
 			options,
-			rowKey: (row) => rowStringValue(row, "model_id"),
+			rowKey: artificialAnalysisModelId,
 			rowLabel: (row) => rowStringValue(row, "name"),
 			previousMissingSince,
 			nowEpochSeconds,
@@ -160,7 +161,7 @@ export async function artificialAnalysisSnapshot(
 		fetchedRows: fetchedLeaderboardPayload.data,
 		fetchedAtEpochSeconds: fetchedLeaderboardPayload.fetched_at_epoch_seconds,
 		options,
-		rowKey: (row) => rowStringValue(row, "model_id"),
+		rowKey: artificialAnalysisModelId,
 		rowLabel: (row) => rowStringValue(row, "name"),
 		mergeRow: (cachedRow, fetchedRow) =>
 			mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),

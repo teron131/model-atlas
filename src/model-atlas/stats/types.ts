@@ -3,6 +3,10 @@
 import type { MatcherConfig } from "../matcher";
 import type { NumberOrNull } from "../math-utils";
 import type {
+	AgentArenaModelScoreRow,
+	AgentArenaScoreByModelName,
+} from "../scrapers/agent-arena";
+import type {
 	AgentsLastExamModelScoreRow,
 	AgentsLastExamScoreByModelName,
 } from "../scrapers/agents-last-exam";
@@ -49,6 +53,10 @@ import type {
 	TerminalBenchModelHarnessRow,
 	TerminalBenchRowsByModelName,
 } from "../scrapers/vals/terminal-bench";
+import type {
+	VendingBench2ModelScoreRow,
+	VendingBench2ScoreByModelName,
+} from "../scrapers/vending-bench-2";
 import type { JsonObject } from "../utils";
 import type { TerminalBenchAggregateRow } from "./benchmarks/terminal-bench";
 
@@ -152,6 +160,7 @@ export type LlmStatsTaskMetrics =
 	| null;
 
 export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
+	agent_arena?: NumberOrNull;
 	agents_last_exam?: NumberOrNull;
 	apex_agents?: NumberOrNull;
 	automation_bench?: NumberOrNull;
@@ -175,6 +184,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	terminalbench_v21?: NumberOrNull;
 	toolathlon?: NumberOrNull;
 	vals_index?: NumberOrNull;
+	vending_bench_2?: NumberOrNull;
 };
 
 export type LlmStatsScoringSourceRow =
@@ -183,7 +193,9 @@ export type LlmStatsScoringSourceRow =
 	| ArtificialAnalysisEvaluationResourceRow
 	| TerminalBenchAggregateRow
 	| CursorBenchModelScoreRow
-	| DeepSWEModelScoreRow;
+	| DeepSWEModelScoreRow
+	| AgentArenaModelScoreRow
+	| VendingBench2ModelScoreRow;
 
 export type LlmStatsScoringSources =
 	| (Record<string, LlmStatsScoringSourceRow | null | undefined> & {
@@ -194,6 +206,8 @@ export type LlmStatsScoringSources =
 			harvey_lab?: ArtificialAnalysisEvaluationResourceRow | null;
 			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
+			agent_arena?: AgentArenaModelScoreRow | null;
+			vending_bench_2?: VendingBench2ModelScoreRow | null;
 	  })
 	| null;
 
@@ -489,6 +503,10 @@ export type LlmStatsScoreSourceRows<Row, Lookup> = {
 };
 
 export type LlmStatsSourceData = {
+	agentArena: LlmStatsScoreSourceRows<
+		AgentArenaModelScoreRow,
+		AgentArenaScoreByModelName
+	>;
 	artificialAnalysis: {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
@@ -539,6 +557,10 @@ export type LlmStatsSourceData = {
 	valsTerminalBench: LlmStatsScoreSourceRows<
 		TerminalBenchModelHarnessRow,
 		TerminalBenchRowsByModelName
+	>;
+	vendingBench2: LlmStatsScoreSourceRows<
+		VendingBench2ModelScoreRow,
+		VendingBench2ScoreByModelName
 	>;
 };
 

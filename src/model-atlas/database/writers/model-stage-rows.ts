@@ -78,6 +78,7 @@ function modelStageBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(intelligence.coding_index),
 		asFiniteNumber(intelligence.omniscience_index),
 		asFiniteNumber(intelligence.omniscience_accuracy),
+		asFiniteNumber(evaluations.agent_arena),
 		asFiniteNumber(evaluations.agents_last_exam),
 		asFiniteNumber(evaluations.apex_agents),
 		asFiniteNumber(evaluations.automation_bench),
@@ -101,6 +102,7 @@ function modelStageBenchmarkValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(evaluations.terminalbench_v21),
 		asFiniteNumber(evaluations.toolathlon),
 		asFiniteNumber(evaluations.vals_index),
+		asFiniteNumber(evaluations.vending_bench_2),
 	];
 }
 
@@ -163,12 +165,12 @@ export function insertModelStageRows(
 			cost_blended_price, context_over_200k_input, context_over_200k_output,
 			context_over_200k_cache_read, context_over_200k_cache_write,
 			intelligence_index, agentic_index, coding_index, omniscience_index,
-			omniscience_accuracy, agents_last_exam, apex_agents, automation_bench,
+			omniscience_accuracy, agent_arena, agents_last_exam, apex_agents, automation_bench,
 			blueprint_bench_2, briefcase, browsecomp, critpt, cursorbench, deep_swe,
 			gdp_pdf, gdpval_normalized, gpqa, harvey_lab, hle, itbench_sre, lcr,
 			mmmu_pro,
 			riemann_bench, scicode, tau_banking, terminalbench_v21, toolathlon,
-			vals_index,
+			vals_index, vending_bench_2,
 			task_metrics_json,
 			agents_last_exam_task_cost, agents_last_exam_task_seconds,
 			agents_last_exam_task_input_tokens,
@@ -185,7 +187,7 @@ export function insertModelStageRows(
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score
-		) VALUES (${Array.from({ length: 90 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 92 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

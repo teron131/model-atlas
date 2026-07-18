@@ -33,6 +33,7 @@ When the benchmark portfolio changes, this table should change with it. Addition
 
 | Benchmark | Missing-data Group | Importance | Intelligence Loading | Agentic Loading | Description and Decision Note |
 | --- | --- | ---: | ---: | ---: | --- |
+| Agent&nbsp;Arena | frontier | 1 | 0% | 100% | Randomized real-world Agent Mode sessions estimate the orchestrator model's causal effect across confirmed success, praise versus complaint, steerability, bash recovery, and tool hallucination. The large current sample and direct workflow signal earn frontier status, while the score remains relative to Arena's time-weighted model and task distribution. |
 | Agents'&nbsp;Last&nbsp;Exam | frontier | 1 | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
 | APEX&nbsp;Agents | frontier | 1 | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
 | AutomationBench | frontier | 1 | 0% | 100% | Artificial Analysis implementation of Zapier workflow-automation tasks over simulated SaaS app environments. It is frontier because it tests business-process execution with tool-like constraints, and its AA per-task resources can feed Speed and Value. |
@@ -55,6 +56,7 @@ When the benchmark portfolio changes, this table should change with it. Addition
 | tau3&nbsp;Banking&nbsp;(AA) | baseline | 1 | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
 | Toolathlon | baseline | 1 | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Its planning and domain reasoning occur inside the harnessed workflow, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
 | Vals Index | baseline | 1 | 60% | 40% | Vals aggregate over finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, but its formula also includes public coding benchmarks. Model Atlas keeps it baseline because the aggregate mixes Vals-specific tasks with benchmark families represented elsewhere. |
+| Vending-Bench&nbsp;2 | baseline | 1 | 0% | 100% | Year-long simulated business operation tests sustained tool use, inventory, pricing, negotiation, and coherence over thousands of messages. Its long horizon is distinctive, but the small run count and stochastic trading-like outcome make it stabilizing baseline evidence rather than a frontier missing-data claim. |
 
 The baseline and frontier labels describe how missing benchmark evidence is handled. They do not increase or decrease the contribution of observed scores; benchmark importance owns that decision. Diagnostics and exclusions are not scoring groups.
 
@@ -79,6 +81,10 @@ Terminal-Bench 2.1 combines the AA leaderboard score, the dedicated AA Terminal-
 DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. The backend preserves preferred-version effort/config observations in `deep_swe.rows` and separately derives one default-effort row per model for matching and scoring. The dashboard model row displays the source-default or highest reported effort as one whole observation. Task duration can feed Speed's benchmark task-time component, task cost can feed Value, and token totals remain source context.
 
 Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime and token counts, while displayed ALE resource columns divide those totals by the source `runs` count and then use the lower of median and mean per-run values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
+
+Agent Arena uses the published Net Improvement point estimate directly as the raw benchmark value. The value is a signed causal treatment effect against the current randomized model mixture, not a probability or Bradley-Terry logit, so Model Atlas applies its ordinary observed per-benchmark min-max normalization without a sigmoid transform.
+
+Vending-Bench 2 uses the official average final money balance as its raw benchmark value. Model Atlas preserves the number of runs and the complete published 365-day average balance curve for audit, then applies ordinary observed per-benchmark min-max normalization to the final balance. Costs and other chart-only derived comparisons do not enter Speed or Value, and the score should be interpreted as a stochastic long-horizon business simulation rather than an absolute success rate.
 
 Toolathlon uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 

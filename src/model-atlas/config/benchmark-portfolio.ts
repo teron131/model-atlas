@@ -34,6 +34,11 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY = {
 } as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_PORTFOLIO = {
+	agent_arena: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
 	agents_last_exam: {
 		group: "frontier",
 		benchmarkImportance: 1,
@@ -156,6 +161,11 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
+	},
+	vending_bench_2: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 } as const satisfies Readonly<Record<string, BenchmarkPortfolioEntry>>;
 

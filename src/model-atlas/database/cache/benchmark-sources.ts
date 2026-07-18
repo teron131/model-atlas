@@ -1,7 +1,7 @@
 /** Benchmark source cache reconstruction from persisted leaderboard rows. */
 
 import type { DatabaseSync } from "node:sqlite";
-
+import type { AgentArenaModelScoreRow } from "../../scrapers/agent-arena";
 import type { AgentsLastExamHarnessRow } from "../../scrapers/agents-last-exam";
 import type { BlueprintBenchModelScoreRow } from "../../scrapers/blueprint-bench";
 import type { BrowseCompModelScoreRow } from "../../scrapers/browsecomp";
@@ -23,6 +23,7 @@ import type {
 	TerminalBenchModelHarnessRow,
 	TerminalBenchTaskRow,
 } from "../../scrapers/vals/terminal-bench";
+import type { VendingBench2ModelScoreRow } from "../../scrapers/vending-bench-2";
 import { asFiniteNumber } from "../../shared";
 import { SOURCE_URLS } from "../types";
 import {
@@ -35,12 +36,75 @@ import {
 
 type CacheSource = DatabaseSync | CacheDbRow[];
 
+function numberArray(value: unknown): number[] | null {
+	if (typeof value !== "string") {
+		return null;
+	}
+	try {
+		const parsed: unknown = JSON.parse(value);
+		return Array.isArray(parsed) &&
+			parsed.length > 0 &&
+			parsed.every((item) => typeof item === "number" && Number.isFinite(item))
+			? parsed
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 function sourceRows(
 	cache: CacheSource,
 	table: string,
 	sql: string,
 ): CacheDbRow[] {
 	return Array.isArray(cache) ? cache : queryLatestCacheRows(cache, table, sql);
+}
+
+export function readAgentArenaRawCache(cache: CacheSource): {
+	rows: AgentArenaModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = sourceRows(
+		cache,
+		"agent_arena_raw_rows",
+		"SELECT * FROM agent_arena_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (
+		cacheRows.length === 0 ||
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.agent_arena)
+	) {
+		return null;
+	}
+	const rows = cacheRows.flatMap((row) => {
+		const rank = asFiniteNumber(row.rank);
+		const contenderName = stringValue(row.contender_name);
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const reasoningEffort = stringValue(row.reasoning_effort);
+		const organization = stringValue(row.organization);
+		const score = asFiniteNumber(row.score);
+		return rank != null &&
+			contenderName != null &&
+			model != null &&
+			baseModel != null &&
+			organization != null &&
+			score != null
+			? [
+					{
+						rank,
+						contender_name: contenderName,
+						model,
+						base_model: baseModel,
+						reasoning_effort: reasoningEffort,
+						organization,
+						score,
+					},
+				]
+			: [];
+	});
+	return rows.length === 0
+		? null
+		: { rows, fetchedAt: firstEpochSecond(cacheRows) };
 }
 
 export function readAgentsLastExamRawCache(cache: CacheSource): {
@@ -401,6 +465,61 @@ export function readToolathlonRawCache(cache: CacheSource): {
 	return {
 		rows: cachedRows,
 		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
+export function readVendingBench2RawCache(cache: CacheSource): {
+	rows: VendingBench2ModelScoreRow[];
+	fetchedAt: number | null;
+	sourceUrl?: string;
+} | null {
+	const cacheRows = sourceRows(
+		cache,
+		"vending_bench_2_raw_rows",
+		"SELECT * FROM vending_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (
+		cacheRows.length === 0 ||
+		cacheRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.vending_bench_2,
+		)
+	) {
+		return null;
+	}
+	const rows = cacheRows.flatMap((row) => {
+		const rank = asFiniteNumber(row.rank);
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const reasoningEffort = stringValue(row.reasoning_effort);
+		const runCount = asFiniteNumber(row.run_count);
+		const finalBalanceUsd = asFiniteNumber(row.final_balance_usd);
+		const dailyBalanceUsd = numberArray(row.daily_balance_usd_json);
+		return rank != null &&
+			model != null &&
+			baseModel != null &&
+			runCount != null &&
+			finalBalanceUsd != null &&
+			dailyBalanceUsd != null
+			? [
+					{
+						rank,
+						model,
+						base_model: baseModel,
+						reasoning_effort: reasoningEffort,
+						run_count: runCount,
+						final_balance_usd: finalBalanceUsd,
+						daily_balance_usd: dailyBalanceUsd,
+					},
+				]
+			: [];
+	});
+	if (rows.length === 0) {
+		return null;
+	}
+	return {
+		rows,
+		fetchedAt: firstEpochSecond(cacheRows),
+		sourceUrl: stringValue(cacheRows[0]?.data_url) ?? undefined,
 	};
 }
 

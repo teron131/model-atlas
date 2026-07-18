@@ -1,6 +1,9 @@
 /** Shared parser rules for benchmark pages that expose loose HTML, embedded JSON, and text-only rows. */
 
-import { asFiniteNumber, asRecord } from "../shared";
+import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
+
+const NEXT_FLIGHT_CHUNK_REGEX =
+	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 
 export type ZeroEvalModelScoreFields = {
 	model: string;
@@ -20,6 +23,66 @@ export function stringValue(value: unknown): string | null {
 
 export function booleanValue(value: unknown): boolean | null {
 	return typeof value === "boolean" ? value : null;
+}
+
+function decodeFlightChunk(raw: string): string {
+	try {
+		return JSON.parse(`"${raw}"`) as string;
+	} catch {
+		return raw;
+	}
+}
+
+/** Collect escaped Next.js Flight chunks into searchable decoded text. */
+export function extractNextFlightCorpus(pageHtml: string): string {
+	return [...pageHtml.matchAll(NEXT_FLIGHT_CHUNK_REGEX)]
+		.map((match) => decodeFlightChunk(match[1] ?? ""))
+		.join("\n");
+}
+
+/** Find one JSON object's closing brace without treating quoted braces as structure. */
+export function findObjectEnd(value: string, startIndex: number): number {
+	let depth = 0;
+	let inString = false;
+	let escaping = false;
+
+	for (let index = startIndex; index < value.length; index += 1) {
+		const char = value[index];
+		if (inString) {
+			if (escaping) {
+				escaping = false;
+			} else if (char === "\\") {
+				escaping = true;
+			} else if (char === '"') {
+				inString = false;
+			}
+			continue;
+		}
+		if (char === '"') {
+			inString = true;
+			continue;
+		}
+		if (char === "{") {
+			depth += 1;
+			continue;
+		}
+		if (char === "}") {
+			depth -= 1;
+			if (depth === 0) {
+				return index;
+			}
+		}
+	}
+	return -1;
+}
+
+/** Parse a candidate Flight object without letting malformed page fragments abort a scrape. */
+export function parseFlightJsonObject(value: string): JsonObject | null {
+	try {
+		return asRecord(JSON.parse(value));
+	} catch {
+		return null;
+	}
 }
 
 /** Accepts source scores that are already on the 0-1 benchmark scale. */

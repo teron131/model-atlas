@@ -13,10 +13,12 @@ import {
 	nowEpochSeconds,
 } from "../../utils";
 import {
+	extractNextFlightCorpus,
+	findObjectEnd,
+	parseFlightJsonObject,
+} from "../parsing";
+import {
 	cleanArtificialAnalysisModelName,
-	extractArtificialAnalysisFlightCorpus,
-	findArtificialAnalysisFlightObjectEnd,
-	parseArtificialAnalysisFlightObject,
 	parseArtificialAnalysisReasoningEffort,
 } from "./common";
 
@@ -310,7 +312,7 @@ function extractArtificialAnalysisEvaluationRowsFromPageHtml(
 	pageHtml: string,
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): Record<string, unknown>[] {
-	const flightCorpus = extractArtificialAnalysisFlightCorpus(pageHtml);
+	const flightCorpus = extractNextFlightCorpus(pageHtml);
 	const resourceRowsById = new Map<string, Record<string, unknown>>();
 	const rowDetectionKey = page.row_detection_key ?? ROW_DETECTION_KEY;
 	let cursor = 0;
@@ -325,14 +327,11 @@ function extractArtificialAnalysisEvaluationRowsFromPageHtml(
 			if (flightCorpus[backIndex] !== "{") {
 				continue;
 			}
-			const endIndex = findArtificialAnalysisFlightObjectEnd(
-				flightCorpus,
-				backIndex,
-			);
+			const endIndex = findObjectEnd(flightCorpus, backIndex);
 			if (endIndex === -1 || endIndex < hitIndex) {
 				continue;
 			}
-			const candidateRow = parseArtificialAnalysisFlightObject(
+			const candidateRow = parseFlightJsonObject(
 				flightCorpus.slice(backIndex, endIndex + 1),
 			);
 			const rowId =
