@@ -23,6 +23,7 @@ export function cachedSourceDataFromSnapshots(
 			snapshots.deepSWERawRows,
 		),
 		gdpPdfRows: snapshots.gdpPdfModelScoreRows,
+		mercorApexAgentsRows: snapshots.mercorApexAgentsRows,
 		riemannBenchRows: snapshots.riemannBenchModelScoreRows,
 		toolathlonRows: snapshots.toolathlonModelScoreRows,
 		valsIndexRows: snapshots.valsIndexModelScoreRows,

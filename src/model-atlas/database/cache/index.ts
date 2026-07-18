@@ -14,6 +14,7 @@ export {
 	readCursorBenchRawCache,
 	readDeepSWERawCache,
 	readGdpPdfRawCache,
+	readMercorApexAgentsRawCache,
 	readRiemannBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,

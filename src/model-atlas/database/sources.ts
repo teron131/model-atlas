@@ -15,6 +15,7 @@ import {
 	readCursorBenchRawCache,
 	readDeepSWERawCache,
 	readGdpPdfRawCache,
+	readMercorApexAgentsRawCache,
 	readModelsDevRawCache,
 	readOpenRouterRawCache,
 	readRawSourceCacheStatus,
@@ -39,6 +40,7 @@ import {
 	browseCompSnapshot,
 	cursorBenchSnapshot,
 	gdpPdfSnapshot,
+	mercorApexAgentsSnapshot,
 	riemannBenchSnapshot,
 	toolathlonSnapshot,
 	valsIndexSnapshot,
@@ -80,6 +82,7 @@ export type SourceCaches = {
 	cursorBench: ReturnType<typeof readCursorBenchRawCache>;
 	deepSWE: ReturnType<typeof readDeepSWERawCache>;
 	gdpPdf: ReturnType<typeof readGdpPdfRawCache>;
+	mercorApexAgents: ReturnType<typeof readMercorApexAgentsRawCache>;
 	riemannBench: ReturnType<typeof readRiemannBenchRawCache>;
 	toolathlon: ReturnType<typeof readToolathlonRawCache>;
 	valsIndex: ReturnType<typeof readValsIndexRawCache>;
@@ -101,6 +104,7 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceCaches {
 		cursorBench: readCursorBenchRawCache(db),
 		deepSWE: readDeepSWERawCache(db),
 		gdpPdf: readGdpPdfRawCache(db),
+		mercorApexAgents: readMercorApexAgentsRawCache(db),
 		riemannBench: readRiemannBenchRawCache(db),
 		toolathlon: readToolathlonRawCache(db),
 		valsIndex: readValsIndexRawCache(db),
@@ -164,6 +168,7 @@ function fetchedAtFromSourceStatuses(
 		cursorBench: null,
 		deepSWE: null,
 		gdpPdf: null,
+		mercorApexAgents: null,
 		riemannBench: null,
 		toolathlon: null,
 		valsIndex: null,
@@ -216,6 +221,7 @@ export async function refreshSourceSnapshots(
 		cursorBench,
 		deepSWE,
 		gdpPdf,
+		mercorApexAgents,
 		riemannBench,
 		toolathlon,
 		valsIndex,
@@ -293,6 +299,13 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.gdp_pdf,
 			nowEpochSeconds,
 		),
+		mercorApexAgentsSnapshot(
+			caches.mercorApexAgents,
+			sourceCache.mercor_apex_agents,
+			options,
+			previousMissingSince.mercor_apex_agents,
+			nowEpochSeconds,
+		),
 		riemannBenchSnapshot(
 			caches.riemannBench,
 			sourceCache.riemann_bench,
@@ -344,6 +357,7 @@ export async function refreshSourceSnapshots(
 		cursorBench.sourceStatus,
 		deepSWE.sourceStatus,
 		gdpPdf.sourceStatus,
+		mercorApexAgents.sourceStatus,
 		riemannBench.sourceStatus,
 		toolathlon.sourceStatus,
 		valsIndex.sourceStatus,
@@ -371,6 +385,7 @@ export async function refreshSourceSnapshots(
 			deepSWERawRows: deepSWE.deepSWERawRows,
 			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
+			mercorApexAgentsRows: mercorApexAgents.mercorApexAgentsRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
 			riemannBenchSourceUrl: riemannBench.riemannBenchSourceUrl,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,

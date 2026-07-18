@@ -26,6 +26,10 @@ import {
 	summarizeDeepSWEDefaultEffortRows,
 } from "../scrapers/deep-swe";
 import { buildGdpPdfMap, getGdpPdfStats } from "../scrapers/gdp-pdf";
+import {
+	getMercorApexAgentsStats,
+	type MercorApexAgentsRow,
+} from "../scrapers/mercor-apex-agents";
 import { getModelsDevSourceStats } from "../scrapers/models-dev";
 import {
 	buildRiemannBenchMap,
@@ -73,6 +77,7 @@ export type LlmStatsSourceRows = {
 	cursorBenchRows: LlmStatsSourceData["cursorBench"]["rows"];
 	deepSWEEffortRows: LlmStatsSourceData["deepSWE"]["effortRows"];
 	gdpPdfRows: LlmStatsSourceData["gdpPdf"]["rows"];
+	mercorApexAgentsRows: MercorApexAgentsRow[];
 	riemannBenchRows: LlmStatsSourceData["riemannBench"]["rows"];
 	toolathlonRows: LlmStatsSourceData["toolathlon"]["rows"];
 	valsIndexRows: LlmStatsSourceData["valsIndex"]["rows"];
@@ -140,6 +145,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.gdpPdfRows,
 			scoreByModelName: buildGdpPdfMap(rows.gdpPdfRows),
 		},
+		mercorApexAgents: {
+			rows: rows.mercorApexAgentsRows,
+			scoreByModelName: buildBenchmarkModelMap(rows.mercorApexAgentsRows),
+		},
 		riemannBench: {
 			rows: rows.riemannBenchRows,
 			scoreByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
@@ -175,6 +184,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		cursorBenchStats,
 		deepSWEStats,
 		gdpPdfStats,
+		mercorApexAgentsStats,
 		riemannBenchStats,
 		toolathlonStats,
 		valsIndexStats,
@@ -191,6 +201,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getCursorBenchStats(),
 		getDeepSWELeaderboardStats(),
 		getGdpPdfStats(),
+		getMercorApexAgentsStats(),
 		getRiemannBenchStats(),
 		getToolathlonStats(),
 		getValsIndexStats(),
@@ -207,6 +218,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const cursorBenchRows = cursorBenchStats.data;
 	const deepSWEEffortRows = deepSWEStats.data;
 	const gdpPdfRows = gdpPdfStats.data;
+	const mercorApexAgentsRows = mercorApexAgentsStats.data;
 	const riemannBenchRows = riemannBenchStats.data;
 	const toolathlonRows = toolathlonStats.data;
 	const valsIndexRows = valsIndexStats.model_scores;
@@ -227,6 +239,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		cursorBenchRows,
 		deepSWEEffortRows,
 		gdpPdfRows,
+		mercorApexAgentsRows,
 		riemannBenchRows,
 		toolathlonRows,
 		valsIndexRows,

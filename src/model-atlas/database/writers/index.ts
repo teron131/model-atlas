@@ -12,6 +12,7 @@ export {
 	insertCursorBenchRawRows,
 	insertDeepSWERawRows,
 	insertGdpPdfRawRows,
+	insertMercorApexAgentsRawRows,
 	insertRiemannBenchRawRows,
 	insertToolathlonRawRows,
 	insertValsIndexRawRows,

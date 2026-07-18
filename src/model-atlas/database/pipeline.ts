@@ -33,6 +33,7 @@ import {
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
 	insertGdpPdfRawRows,
+	insertMercorApexAgentsRawRows,
 	insertModelStageRows,
 	insertModelsDevRawModels,
 	insertOpenRouterRawRows,
@@ -125,6 +126,11 @@ const SNAPSHOT_WRITERS = [
 	{
 		table: SNAPSHOT_TABLES.gdp_pdf,
 		write: (db, runId, rows) => insertGdpPdfRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.mercor_apex_agents,
+		write: (db, runId, rows) =>
+			insertMercorApexAgentsRawRows(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.riemann_bench,

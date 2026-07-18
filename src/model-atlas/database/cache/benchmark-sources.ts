@@ -13,6 +13,7 @@ import {
 	deepSWESourceVersionForRows,
 } from "../../scrapers/deep-swe";
 import type { GdpPdfModelScoreRow } from "../../scrapers/gdp-pdf";
+import type { MercorApexAgentsRow } from "../../scrapers/mercor-apex-agents";
 import type { RiemannBenchModelScoreRow } from "../../scrapers/riemann-bench";
 import type { ToolathlonModelScoreRow } from "../../scrapers/toolathlon";
 import type {
@@ -96,6 +97,54 @@ export function readAgentArenaRawCache(cache: CacheSource): {
 						model,
 						base_model: baseModel,
 						reasoning_effort: reasoningEffort,
+						organization,
+						score,
+					},
+				]
+			: [];
+	});
+	return rows.length === 0
+		? null
+		: { rows, fetchedAt: firstEpochSecond(cacheRows) };
+}
+
+export function readMercorApexAgentsRawCache(cache: CacheSource): {
+	rows: MercorApexAgentsRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = sourceRows(
+		cache,
+		"mercor_apex_agents_raw_rows",
+		"SELECT * FROM mercor_apex_agents_raw_rows WHERE run_id = ? ORDER BY row_index",
+	);
+	if (
+		cacheRows.length === 0 ||
+		cacheRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.mercor_apex_agents,
+		)
+	) {
+		return null;
+	}
+	const rows = cacheRows.flatMap((row) => {
+		const modelId = stringValue(row.model_id);
+		const sourceModel = stringValue(row.source_model);
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const organization = stringValue(row.organization);
+		const score = asFiniteNumber(row.score);
+		return modelId != null &&
+			sourceModel != null &&
+			model != null &&
+			baseModel != null &&
+			organization != null &&
+			score != null
+			? [
+					{
+						model_id: modelId,
+						source_model: sourceModel,
+						model,
+						base_model: baseModel,
+						reasoning_effort: stringValue(row.reasoning_effort),
 						organization,
 						score,
 					},

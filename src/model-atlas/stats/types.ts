@@ -35,6 +35,10 @@ import type {
 	GdpPdfModelScoreRow,
 	GdpPdfScoreByModelName,
 } from "../scrapers/gdp-pdf";
+import type {
+	MercorApexAgentsRow,
+	MercorApexAgentsScoreByModelName,
+} from "../scrapers/mercor-apex-agents";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type {
@@ -195,6 +199,7 @@ export type LlmStatsScoringSourceRow =
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow
 	| AgentArenaModelScoreRow
+	| MercorApexAgentsRow
 	| VendingBench2ModelScoreRow;
 
 export type LlmStatsScoringSources =
@@ -207,6 +212,7 @@ export type LlmStatsScoringSources =
 			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 			agent_arena?: AgentArenaModelScoreRow | null;
+			apex_agents_mercor?: MercorApexAgentsRow | null;
 			vending_bench_2?: VendingBench2ModelScoreRow | null;
 	  })
 	| null;
@@ -542,6 +548,10 @@ export type LlmStatsSourceData = {
 		scoreByModelName: DeepSWEScoreByModelName;
 	};
 	gdpPdf: LlmStatsScoreSourceRows<GdpPdfModelScoreRow, GdpPdfScoreByModelName>;
+	mercorApexAgents: LlmStatsScoreSourceRows<
+		MercorApexAgentsRow,
+		MercorApexAgentsScoreByModelName
+	>;
 	riemannBench: LlmStatsScoreSourceRows<
 		RiemannBenchModelScoreRow,
 		RiemannBenchScoreByModelName

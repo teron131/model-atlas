@@ -72,6 +72,8 @@ Speed and Value are secondary. They matter because downstream applications have 
 
 Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio.
 
+APEX Agents uses Artificial Analysis when available. A missing AA value can use Mercor's Loop Pass@1 score for the same model and assigned reasoning effort after the current AA-Mercor overlap passes the source crosswalk validation described below; an unlabelled AA row uses the source-default highest effort under the ordinary matching rule.
+
 Briefcase comes from the dedicated Artificial Analysis evaluation page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA evaluation-resource benchmarks.
 
 OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated price efficiency. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
@@ -172,6 +174,26 @@ $$
 Same-dimension evidence used for benchmark imputation is also averaged with benchmark importance multiplied by the configured dimension loading. For a benchmark selected in both dimensions, Model Atlas produces an Intelligence-context prediction and an Agentic-context prediction, then combines the available predictions using that benchmark's dimension loadings. Available loadings are renormalized when only one context can make a prediction. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
 
 Missing benchmark values are imputed only for scoring. Every model-benchmark pair receives at most one imputed value, and only observed benchmark values can provide evidence for another benchmark, so imputation is non-recursive. Imputed values are not treated or displayed as observed source values.
+
+APEX Agents first tests a source-specific Mercor-to-AA crosswalk. Let $S$ contain rows where Mercor Loop Pass@1 and AA match the same model and assigned reasoning effort, let $M_i$ and $A_i$ be their normalized scores, and let $w_i$ give every base-model family one total unit of weight across its variants. The fitted source offset is:
+
+$$
+\delta=\operatorname{weightedMedian}_{i\in S}(M_i-A_i;w_i)
+$$
+
+Validation withholds the entire base-model family of each overlap row. For family $f$, Model Atlas refits $\delta_{-f}$ without that family, then measures the family-balanced held-out error:
+
+$$
+e=\operatorname{weightedMedian}_{i\in S}\left(\left|M_i-\delta_{-f(i)}-A_i\right|;w_i\right)
+$$
+
+The crosswalk requires at least three effective overlap families, at least three effective families with valid held-out predictions, and $e\le 0.02$. When it passes, a model-effort row that has Mercor but no AA result receives:
+
+$$
+\hat A_m=\operatorname{clamp}(M_m-\delta,0,1),\qquad q_m=\operatorname{clamp}\left(1-\frac{e}{0.02},0,1\right)
+$$
+
+$q_m$ is the imputed row's evidence credit before the ordinary benchmark-coverage confidence curve. Observed AA values are never replaced, Mercor rows do not change the observed APEX normalization anchors, and Mercor-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, APEX Agents falls through to the ordinary benchmark imputer.
 
 The context benchmark $k$ can be any other selected benchmark in dimension $D$. Frontier and baseline use the same prediction evidence:
 

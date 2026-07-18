@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
+import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
 import {
 	type BenchmarkEnrichmentLookups,
@@ -44,6 +45,15 @@ const agentArenaRow: AgentArenaModelScoreRow = {
 	reasoning_effort: null,
 	organization: "Test",
 	score: 0.14,
+};
+const mercorApexRow: MercorApexAgentsRow = {
+	model_id: "test/example-model",
+	source_model: "Example Model (High)",
+	model: "Example Model (high)",
+	base_model: "Example Model",
+	reasoning_effort: "high",
+	organization: "Test",
+	score: 0.4,
 };
 const vendingBench2Row: VendingBench2ModelScoreRow = {
 	rank: 1,
@@ -209,6 +219,9 @@ const lookups = {
 	gdpPdf: {
 		scoreByModelName: emptyLookup(),
 	},
+	mercorApexAgents: {
+		scoreByModelName: new Map([["example-model", mercorApexRow]]),
+	},
 	riemannBench: {
 		scoreByModelName: emptyLookup(),
 	},
@@ -271,6 +284,7 @@ assert.deepEqual(enrichment.evaluations, {
 });
 assert.deepEqual(enrichment.scoringSources, {
 	agent_arena: agentArenaRow,
+	apex_agents_mercor: mercorApexRow,
 	briefcase: briefcaseResourceRow,
 	hle: artificialAnalysisHleResourceRow,
 	terminalbench_v21: {
@@ -297,6 +311,8 @@ assert.deepEqual(enrichment.scoringSources, {
 const effortQualifiedAggregate = enrichBenchmarkAggregate(
 	["Example Model - Max"],
 	lookups,
+	{},
+	"max",
 );
 assert.deepEqual(effortQualifiedAggregate.evaluations, {
 	agent_arena: 0.14,

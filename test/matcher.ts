@@ -681,6 +681,10 @@ function modelStatsSourceData(
 				artificialAnalysisResourceRows,
 			),
 		},
+		mercorApexAgents: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
 		modelsDev: {
 			rows: modelsDevModels,
 			byId: new Map(

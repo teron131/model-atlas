@@ -58,6 +58,7 @@ function buildMatchedRow(
 		observationNameCandidates,
 		lookups,
 		evaluations,
+		artificialAnalysisModel.reasoning_effort,
 	);
 	Object.assign(evaluations, benchmarkEnrichment.evaluations);
 	const canonicalId = canonicalProviderModelId(
