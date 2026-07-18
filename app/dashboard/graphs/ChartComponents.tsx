@@ -133,3 +133,23 @@ export function SummaryCard({
 		</div>
 	);
 }
+
+export function BubbleScaleLegend({ metric }: { metric: string }) {
+	return (
+		<span className={styles.bubbleScaleLegend}>
+			<svg
+				className={styles.bubbleScaleGraphic}
+				viewBox="0 0 38 22"
+				aria-hidden="true"
+			>
+				<circle cx="27" cy="11" r="9" />
+				<circle cx="16" cy="14" r="6" />
+				<circle cx="7" cy="17" r="3" />
+			</svg>
+			<span className={styles.bubbleScaleCopy}>
+				<b>Bubble area</b>
+				<span>{metric}</span>
+			</span>
+		</span>
+	);
+}

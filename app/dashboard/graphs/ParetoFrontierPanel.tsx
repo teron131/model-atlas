@@ -1,6 +1,6 @@
 /** Pareto frontier panel for model intelligence and value tradeoffs. */
 
-import { median } from "d3-array";
+import { median, pairs } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
@@ -9,7 +9,7 @@ import { modelVariantKey } from "../shared/modelDisplay";
 import { providerPaletteColor } from "../shared/providerTheme";
 import { scoreAxisScale } from "./axisScale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { EmptyChart } from "./ChartComponents";
+import { BubbleScaleLegend, EmptyChart } from "./ChartComponents";
 import { linearBubbleRadius, valueDistribution } from "./chartStats";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import styles from "./graphs.module.css";
@@ -109,11 +109,24 @@ export function ParetoFrontierPanel({
 	const medianValue = median(values) ?? xDomain[0];
 	const medianScore = median(scores) ?? 50;
 	const frontierIds = new Set(frontier.map(modelVariantKey));
-	const frontierPath = frontier.reduce((path, model, index) => {
-		const nextX = xPoint(Number(model.scores.value_score));
-		const nextY = yPoint(model.scores.intelligence_score);
-		return index === 0 ? `M${nextX},${nextY}` : `${path} H${nextX} V${nextY}`;
-	}, "");
+	const frontierSegments = pairs(frontier).map(
+		([fromModel, toModel], index) => {
+			const fromX = xPoint(Number(fromModel.scores.value_score));
+			const fromY = yPoint(fromModel.scores.intelligence_score);
+			const toX = xPoint(Number(toModel.scores.value_score));
+			const toY = yPoint(toModel.scores.intelligence_score);
+			return {
+				gradientId: `pareto-frontier-gradient-${index + 1}`,
+				fromColor: providerPaletteColor(fromModel.provider),
+				toColor: providerPaletteColor(toModel.provider),
+				fromX,
+				fromY,
+				toX,
+				toY,
+				path: `M${fromX},${fromY} H${toX} V${toY}`,
+			};
+		},
+	);
 	const plot = plotBoundsFor(width, height, margin);
 	const medianX = xPoint(medianValue);
 	const medianY = yPoint(medianScore);
@@ -184,10 +197,7 @@ export function ParetoFrontierPanel({
 		>
 			<div className={styles.chartToolbar}>
 				<div className={styles.chartToolbarCaption}>
-					<span className={styles.markerKey}>
-						<span className={styles.bubbleMarkerKey} />
-						Bubble size = quality
-					</span>
+					<BubbleScaleLegend metric="Intel × Agent" />
 				</div>
 			</div>
 			<div
@@ -200,6 +210,22 @@ export function ParetoFrontierPanel({
 					aria-label="Intelligence by Value score scatter plot"
 					{...projectionHandlers}
 				>
+					<defs>
+						{frontierSegments.map((segment) => (
+							<linearGradient
+								id={segment.gradientId}
+								key={segment.gradientId}
+								gradientUnits="userSpaceOnUse"
+								x1={segment.fromX}
+								y1={segment.fromY}
+								x2={segment.toX}
+								y2={segment.toY}
+							>
+								<stop offset="0" stopColor={segment.fromColor} />
+								<stop offset="1" stopColor={segment.toColor} />
+							</linearGradient>
+						))}
+					</defs>
 					<PlotFrame width={width} height={height} margin={margin} />
 					<CursorCapture bounds={plot} />
 					<YAxisTicks
@@ -231,16 +257,25 @@ export function ParetoFrontierPanel({
 						xLabel={medianValue.toFixed(0)}
 						yLabel={medianScore.toFixed(0)}
 					/>
-					<CornerDirectionArrow bounds={plot} corner="upper-right" />
+					<CornerDirectionArrow
+						bounds={plot}
+						corner="upper-right"
+						label="Better"
+					/>
 					<CursorProjectionLayer
 						projection={cursorProjection}
 						bounds={plot}
 						xLabel={cursorProjection ? cursorProjection.xValue.toFixed(1) : ""}
 						yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
 					/>
-					{frontierPath ? (
-						<path className={styles.frontier} d={frontierPath} />
-					) : null}
+					{frontierSegments.map((segment) => (
+						<path
+							className={styles.frontier}
+							d={segment.path}
+							key={segment.gradientId}
+							stroke={`url(#${segment.gradientId})`}
+						/>
+					))}
 					{plottedCandidates.map((model) => {
 						const cx = xPoint(Number(model.scores.value_score));
 						const cy = yPoint(model.scores.intelligence_score);
@@ -260,7 +295,11 @@ export function ParetoFrontierPanel({
 						];
 						return (
 							<g
-								className={isFrontier ? styles.frontierPoint : undefined}
+								className={
+									isFrontier
+										? styles.frontierPoint
+										: styles.paretoBackgroundPoint
+								}
 								key={modelVariantKey(model) || `${cx}-${cy}`}
 							>
 								<circle
@@ -271,7 +310,7 @@ export function ParetoFrontierPanel({
 									fill={providerPaletteColor(model.provider)}
 									stroke={
 										isFrontier
-											? "var(--chart-frontier-point-stroke)"
+											? "var(--chart-point-stroke-strong)"
 											: "var(--chart-point-stroke)"
 									}
 									strokeWidth={isFrontier ? 1.4 : 1}

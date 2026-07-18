@@ -531,12 +531,14 @@ export function Dashboard({
 							display={{
 								id: "leaderboard-model-limit",
 								label: "Leaderboard display",
-								expanded: leaderboardExpanded,
 								itemKind: leaderboardRowKind,
 								maximum: maximumLeaderboardLimit,
 								value: effectiveLeaderboardLimit,
-								onExpandedChange: setLeaderboardExpanded,
 								onValueChange: setLeaderboardLimit,
+								variantControl: {
+									expanded: leaderboardExpanded,
+									onExpandedChange: setLeaderboardExpanded,
+								},
 							}}
 							screenshotControl={
 								<LeaderboardCapture

@@ -60,7 +60,7 @@ const INTERACTION_CHART_MARGIN = {
 	bottom: 72,
 	left: 66,
 };
-const INTERACTION_POINT_RADIUS = 4;
+const INTERACTION_POINT_RADIUS = 5;
 const INTERACTION_LABEL_METRICS = {
 	fontSize: 11,
 	charWidth: 6.5,
@@ -368,8 +368,9 @@ function InteractionPlot({
 					x={xPoint(medianXValue)}
 					y={yPoint(medianYValue)}
 					bounds={plot}
-					xLabel={config.format(medianXValue)}
-					yLabel={medianYValue.toFixed(0)}
+					xLabel={`MED ${config.format(medianXValue)}`}
+					yLabel={`MED ${medianYValue.toFixed(0)}`}
+					yLabelInside
 				/>
 				<CursorProjectionLayer
 					projection={cursorProjection}
@@ -384,6 +385,7 @@ function InteractionPlot({
 				<CornerDirectionArrow
 					bounds={plot}
 					corner={bestCornerIsRight ? "upper-right" : "upper-left"}
+					label="Better"
 				/>
 				{plottedPoints.map((point) => {
 					const cx = xPoint(point.x);

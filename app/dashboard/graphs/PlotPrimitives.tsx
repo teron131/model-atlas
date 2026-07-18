@@ -142,12 +142,14 @@ export function MedianCross({
 	bounds,
 	xLabel,
 	yLabel,
+	yLabelInside = false,
 }: {
 	x: number;
 	y: number;
 	bounds: PlotBounds;
 	xLabel: string;
 	yLabel: string;
+	yLabelInside?: boolean;
 }) {
 	return (
 		<>
@@ -173,7 +175,12 @@ export function MedianCross({
 			>
 				{xLabel}
 			</text>
-			<text className={styles.medianLabel} x={bounds.right + 12} y={y + 5}>
+			<text
+				className={styles.medianLabel}
+				x={yLabelInside ? bounds.right - 8 : bounds.right + 12}
+				y={y + 5}
+				textAnchor={yLabelInside ? "end" : undefined}
+			>
 				{yLabel}
 			</text>
 		</>
@@ -347,9 +354,11 @@ export function PlotFrame({
 export function CornerDirectionArrow({
 	bounds: plot,
 	corner,
+	label,
 }: {
 	bounds: PlotBounds;
 	corner: "upper-left" | "upper-right";
+	label: string;
 }) {
 	const direction = corner === "upper-right" ? 1 : -1;
 	const tipX = corner === "upper-right" ? plot.right - 4 : plot.left + 4;
@@ -384,6 +393,14 @@ export function CornerDirectionArrow({
 	return (
 		<g className={styles.cornerDirection}>
 			<polygon className={styles.cornerDirectionGlyph} points={points} />
+			<text
+				className={styles.cornerDirectionLabel}
+				x={corner === "upper-right" ? plot.right - 28 : plot.left + 28}
+				y={plot.top + 8}
+				textAnchor={corner === "upper-right" ? "end" : "start"}
+			>
+				{label}
+			</text>
 		</g>
 	);
 }

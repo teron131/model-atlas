@@ -18,7 +18,6 @@ import {
 } from "./models";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import { PriceEfficiencyComparisonPanel } from "./PriceEfficiencyComparisonPanel";
-import { RunwayPanel } from "./RunwayPanel";
 import type {
 	CostFilter,
 	HoverState,
@@ -252,7 +251,9 @@ export function DashboardGraphs({
 						<ParetoFrontierPanel models={models} setHover={setHover} />
 						<PriceEfficiencyComparisonPanel
 							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
+							displayExpanded={expandReasoningVariants}
 							maxCost={maxCost}
+							onDisplayExpandedChange={onExpandReasoningVariantsChange}
 							selectedProviders={selectedProviders}
 							onSelectedProvidersChange={onSelectedProvidersChange}
 							referenceModels={referenceModels}
@@ -271,7 +272,6 @@ export function DashboardGraphs({
 							fullPayloadLoaded={fullPayloadLoaded}
 							setHover={setHover}
 						/>
-						<RunwayPanel models={models} setHover={setHover} />
 					</section>
 				</>
 			)}

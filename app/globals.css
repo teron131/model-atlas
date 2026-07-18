@@ -53,8 +53,8 @@
 	--dashboard-icon-button-size: 34px;
 	--dashboard-icon-button-icon-size: 18px;
 	--dashboard-icon-button-stroke: 2;
-	--mono-label: 12px;
-	--mono-chip: 13px;
+	--mono-label: 11px;
+	--mono-chip: 12px;
 	--mono-data: 13px;
 	--sans-note: 14px;
 	--model-name: 16px;
@@ -186,7 +186,7 @@ main {
 	width: min(var(--dashboard-frame-width, 1080px), 100%);
 	min-height: 100dvh;
 	margin: 0 auto;
-	padding: 24px clamp(24px, 4.2vw, 72px) 34px;
+	padding: 28px clamp(24px, 4.2vw, 72px) 46px;
 }
 
 .dashboard-header {
@@ -195,19 +195,19 @@ main {
 	justify-content: space-between;
 	gap: 20px;
 	width: 100%;
-	padding-bottom: 16px;
+	padding-bottom: 24px;
 }
 
 .brand-lockup {
 	display: flex;
 	align-items: center;
-	gap: 18px;
+	gap: 16px;
 }
 
 .brand-mark {
 	display: block;
-	width: 76px;
-	height: 76px;
+	width: 70px;
+	height: 70px;
 	flex: 0 0 auto;
 	background: var(--ink);
 	mask: url("/icons/icon.png") center / contain no-repeat;
@@ -216,9 +216,9 @@ main {
 
 h1 {
 	margin: 0;
-	font-size: 56px;
-	line-height: 0.84;
-	letter-spacing: 0;
+	font-size: clamp(44px, 5vw, 56px);
+	line-height: 0.88;
+	letter-spacing: 0.02em;
 	text-transform: uppercase;
 	text-shadow: var(--title-shadow);
 }
@@ -240,7 +240,7 @@ h1 {
 	flex: 0 0 auto;
 	width: var(--dashboard-icon-button-size);
 	height: var(--dashboard-icon-button-size);
-	margin-top: 4px;
+	margin-top: 2px;
 	padding: 0;
 	place-items: center;
 	border: 0;
@@ -249,8 +249,8 @@ h1 {
 	font-family: "SF Mono", Menlo, Consolas, monospace;
 	cursor: pointer;
 	transition:
-		background-color 0.18s ease,
 		color 0.18s ease,
+		opacity 0.18s ease,
 		transform 0.18s ease;
 }
 
@@ -258,6 +258,7 @@ h1 {
 .theme-toggle:focus-visible {
 	background: transparent;
 	color: var(--theme-toggle-icon);
+	opacity: 1;
 	outline: 0;
 }
 
@@ -421,7 +422,7 @@ h1 {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	min-width: 0;
-	margin: 30px 0 38px;
+	margin: 24px 0 48px;
 	overflow: visible;
 	border-bottom: 1px solid var(--frame-line);
 	background: transparent;
@@ -668,7 +669,8 @@ th {
 	border-bottom-color: transparent;
 	color: var(--muted);
 	font-size: var(--mono-label);
-	letter-spacing: 0;
+	font-weight: 700;
+	letter-spacing: 0.025em;
 	text-transform: uppercase;
 }
 
@@ -1292,7 +1294,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .rank {
 	width: 48px;
 	color: var(--faint);
-	letter-spacing: 0;
+	font-weight: 600;
+	letter-spacing: 0.02em;
 }
 
 tbody tr:nth-child(-n + 3) .rank {
@@ -1320,13 +1323,13 @@ tbody tr:nth-child(-n + 3) .rank {
 .model {
 	font-family: "Helvetica Neue", Arial, sans-serif;
 	font-size: var(--model-name);
-	font-weight: 800;
-	letter-spacing: 0;
+	font-weight: 700;
+	letter-spacing: -0.015em;
 	white-space: nowrap;
 }
 
 .id {
-	margin-top: 4px;
+	margin-top: 3px;
 	color: var(--muted);
 	font-size: var(--model-id);
 	letter-spacing: 0;
@@ -1351,7 +1354,7 @@ tbody tr:nth-child(-n + 3) .rank {
 
 .score-value {
 	display: block;
-	font-weight: 700;
+	font-weight: 650;
 	letter-spacing: 0;
 }
 

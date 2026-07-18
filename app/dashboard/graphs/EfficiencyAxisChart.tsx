@@ -184,12 +184,14 @@ export function EfficiencyAxisChart<Row>({
 					x={xPoint(medianMetric)}
 					y={yPoint(medianScore)}
 					bounds={plot}
-					xLabel={metric.format(medianMetric)}
-					yLabel={`${medianScore.toFixed(0)}%`}
+					xLabel={`MED ${metric.format(medianMetric)}`}
+					yLabel={`MED ${medianScore.toFixed(0)}%`}
+					yLabelInside
 				/>
 				<CornerDirectionArrow
 					bounds={plot}
 					corner={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
+					label="Better"
 				/>
 				<CursorProjectionLayer
 					projection={cursorProjection}
