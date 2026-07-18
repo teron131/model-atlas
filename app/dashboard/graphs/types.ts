@@ -48,7 +48,7 @@ export type InteractionConfig = {
 	tooltipFormat: (value: number) => string;
 	xLabel: string;
 	hoverLabel?: string;
-	insight: string;
+	insight?: string;
 };
 
 export type Margin = {

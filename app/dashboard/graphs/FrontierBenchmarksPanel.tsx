@@ -188,6 +188,9 @@ export function FrontierBenchmarksPanel({
 			wide
 		>
 			<div className={styles.chartToolbar}>
+				<span className={styles.toolbarControlTitle} aria-hidden="true">
+					Benchmark
+				</span>
 				<GraphToggle
 					legend="Frontier benchmark"
 					options={[
@@ -206,6 +209,9 @@ export function FrontierBenchmarksPanel({
 					onSelect={setBenchmarkKey}
 					layout="stacked"
 				/>
+				<span className={styles.toolbarControlTitle} aria-hidden="true">
+					Measure by
+				</span>
 				<GraphToggle
 					legend="Comparison axis"
 					options={Object.entries(frontierBenchmarkAxisConfig).map(
