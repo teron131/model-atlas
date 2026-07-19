@@ -8,7 +8,7 @@ import { canonicalModelKey } from "../src/model-atlas/shared";
 import { buildModelCatalogRows } from "../src/model-atlas/stats/catalog";
 import {
 	hasRequiredBasicSpecs,
-	hasRequiredBenchmarkCoverage,
+	hasRequiredBenchmarkEvidence,
 	hasRequiredPublicScore,
 } from "../src/model-atlas/stats/selection/builder";
 import type {
@@ -116,39 +116,40 @@ assert.equal(
 	"scores below the public floor should not qualify",
 );
 
-const coveragePortfolio = {
+const evidencePortfolio = {
 	intelligence_observed: {
 		group: "baseline",
-		benchmarkImportance: 0.35,
+		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
 	intelligence_missing: {
 		group: "baseline",
-		benchmarkImportance: 0.65,
+		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
 	agentic_observed: {
 		group: "baseline",
-		benchmarkImportance: 0.35,
+		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 	agentic_missing: {
 		group: "baseline",
-		benchmarkImportance: 0.65,
+		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 } satisfies BenchmarkPortfolio;
-const coverageScoringConfig = {
+const evidenceScoringConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: ["intelligence_observed", "intelligence_missing"],
 	agenticBenchmarkKeys: ["agentic_observed", "agentic_missing"],
-	benchmarkPortfolio: coveragePortfolio,
+	benchmarkPortfolio: evidencePortfolio,
 } satisfies ScoringConfig;
-const coverageAdmissionConfig = {
-	minimumObservedWeight: 0.35,
+const benchmarkAdmissionConfig = {
+	indexBenchmarkKeys: ["intelligence_observed"],
 	minimumObservedBenchmarks: 2,
+	minimumObservedBenchmarksPerDimension: 1,
 } as const;
-const minimumCoverageModel = {
+const minimumEvidenceModel = {
 	...minimalLlmStatsModel({ id: "provider/model", name: "Model" }),
 	evaluations: {
 		intelligence_observed: 0.5,
@@ -156,71 +157,60 @@ const minimumCoverageModel = {
 	},
 };
 assert.equal(
-	hasRequiredBenchmarkCoverage(
-		minimumCoverageModel,
-		coverageScoringConfig,
-		coverageAdmissionConfig,
+	hasRequiredBenchmarkEvidence(
+		minimumEvidenceModel,
+		evidenceScoringConfig,
+		benchmarkAdmissionConfig,
 	),
 	true,
-	"two observed benchmarks covering 35% of portfolio importance should be visible",
+	"observed evidence in both dimensions should be visible",
 );
 assert.equal(
-	hasRequiredBenchmarkCoverage(
-		minimumCoverageModel,
+	hasRequiredBenchmarkEvidence(
 		{
-			...coverageScoringConfig,
-			benchmarkPortfolio: {
-				...coveragePortfolio,
-				intelligence_observed: {
-					...coveragePortfolio.intelligence_observed,
-					benchmarkImportance: 0.349,
-				},
-				intelligence_missing: {
-					...coveragePortfolio.intelligence_missing,
-					benchmarkImportance: 0.651,
-				},
-				agentic_observed: {
-					...coveragePortfolio.agentic_observed,
-					benchmarkImportance: 0.349,
-				},
-				agentic_missing: {
-					...coveragePortfolio.agentic_missing,
-					benchmarkImportance: 0.651,
-				},
-			},
+			...minimumEvidenceModel,
+			evaluations: { intelligence_observed: 0.5 },
 		},
-		coverageAdmissionConfig,
+		evidenceScoringConfig,
+		{ ...benchmarkAdmissionConfig, minimumObservedBenchmarks: 1 },
 	),
 	false,
-	"portfolio coverage below 35% should be hidden",
+	"intelligence-only evidence should be hidden",
 );
 assert.equal(
-	hasRequiredBenchmarkCoverage(minimumCoverageModel, coverageScoringConfig, {
-		...coverageAdmissionConfig,
+	hasRequiredBenchmarkEvidence(minimumEvidenceModel, evidenceScoringConfig, {
+		...benchmarkAdmissionConfig,
 		minimumObservedBenchmarks: 3,
 	}),
 	false,
-	"weighted coverage should not replace the minimum benchmark count",
+	"dimension coverage should not replace the minimum benchmark count",
 );
 assert.equal(
-	hasRequiredBenchmarkCoverage(
-		minimumCoverageModel,
+	hasRequiredBenchmarkEvidence(
 		{
-			...coverageScoringConfig,
-			benchmarkPortfolio: Object.fromEntries(
-				Object.entries(coveragePortfolio).map(([key, entry]) => [
-					key,
-					{
-						...entry,
-						dimensionLoadings: { intelligence: 1, agentic: 0 },
-					},
-				]),
-			) as BenchmarkPortfolio,
+			...minimumEvidenceModel,
+			evaluations: { agentic_observed: 0.5 },
 		},
-		coverageAdmissionConfig,
+		evidenceScoringConfig,
+		{ ...benchmarkAdmissionConfig, minimumObservedBenchmarks: 1 },
 	),
-	true,
-	"dimension loadings should not affect benchmark data sufficiency",
+	false,
+	"agentic-only evidence should be hidden",
+);
+assert.equal(
+	hasRequiredBenchmarkEvidence(
+		{
+			...minimumEvidenceModel,
+			evaluations: {
+				intelligence_missing: 0.5,
+				agentic_observed: 0.5,
+			},
+		},
+		evidenceScoringConfig,
+		benchmarkAdmissionConfig,
+	),
+	false,
+	"models without an aggregate index should be hidden",
 );
 assert.equal(
 	catalogRows.find((row) => row.id === "provider/other")?.openrouter_id,

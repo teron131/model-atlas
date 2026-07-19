@@ -26,6 +26,7 @@ export const benchmarkGroups = [
 ] as const;
 
 export const benchmarkLabels: Record<string, string> = {
+	aa_intelligence_index: "AA Intelligence Index",
 	agent_arena: "Agent Arena",
 	agents_last_exam: "Agents' Last Exam",
 	apex_agents: "APEX Agents",
@@ -89,6 +90,14 @@ function benchmarkGroupOrder(group: "frontier" | "baseline" | undefined) {
 }
 
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
+	aa_intelligence_index: {
+		title: "AA Intelligence Index",
+		body: "Artificial Analysis aggregate of current reasoning and knowledge evaluations. Model Atlas gives the overlapping index half importance.",
+		rows: [
+			["Source", "Artificial Analysis"],
+			["Role", "broad intelligence index"],
+		],
+	},
 	agent_arena: {
 		title: "Agent Arena",
 		body: "Causal evaluation of orchestrator models across real Agent Mode work. Model Atlas uses the leaderboard's signed average-score estimate.",

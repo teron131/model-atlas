@@ -19,6 +19,7 @@ import {
 	winsorizedMinMaxScores,
 } from "../src/model-atlas/math-utils";
 import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/metadata";
+import { benchmarkMetricValue } from "../src/model-atlas/stats/resource-metrics";
 import {
 	attachFinalScores,
 	blendedPriceValue,
@@ -218,6 +219,31 @@ assertEqual(
 );
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys),
+	JSON.stringify([
+		"aa_intelligence_index",
+		"epoch_capabilities_index",
+		"vals_index",
+	]),
+);
+for (const key of [
+	"aa_intelligence_index",
+	"epoch_capabilities_index",
+	"vals_index",
+] as const) {
+	assertEqual(
+		STAGE_CONFIG.scoring.benchmarkPortfolio[key].benchmarkImportance,
+		0.5,
+	);
+}
+assertEqual(
+	benchmarkMetricValue(
+		{ intelligence: { intelligence_index: 73.5 } },
+		"aa_intelligence_index",
+	),
+	73.5,
+);
 assertEqual(
 	STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.group,
 	"frontier",
