@@ -394,6 +394,12 @@ function defineBenchmarkMetricColumn<
 }
 
 const benchmarkMetricColumnDefinitions = [
+	defineBenchmarkMetricColumn(
+		"aaIntelligenceIndex",
+		"aa_intelligence_index",
+		"AA Index",
+		"number",
+	),
 	defineBenchmarkMetricColumn("agentArena", "agent_arena", "Arena", "number"),
 	defineBenchmarkMetricColumn("agentsLastExam", "agents_last_exam", "ALE"),
 	defineBenchmarkMetricColumn("apexAgents", "apex_agents", "APEX"),

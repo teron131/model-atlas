@@ -4,6 +4,7 @@ import type { ModelAtlasStageConfig } from "../stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
+	INDEX_BENCHMARK_KEYS,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
@@ -43,9 +44,10 @@ export const STAGE_CONFIG = {
 	final: {
 		nullFieldPruneThreshold: 0.5,
 		nullFieldPruneRecentLookbackDays: 90,
-		benchmarkCoverage: {
-			minimumObservedWeight: 0.35,
-			minimumObservedBenchmarks: 2,
+		benchmarkAdmission: {
+			indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
+			minimumObservedBenchmarks: 8,
+			minimumObservedBenchmarksPerDimension: 1,
 		},
 	},
 	snapshotPreservation: {

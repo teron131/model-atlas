@@ -34,6 +34,11 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY = {
 } as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_PORTFOLIO = {
+	aa_intelligence_index: {
+		group: "baseline",
+		benchmarkImportance: 0.5,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
 	agent_arena: {
 		group: "frontier",
 		benchmarkImportance: 1,
@@ -199,7 +204,7 @@ export const BENCHMARK_PORTFOLIO = {
 	},
 	vals_index: {
 		group: "baseline",
-		benchmarkImportance: 1,
+		benchmarkImportance: 0.5,
 		dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
 	},
 	vending_bench_2: {
@@ -220,6 +225,12 @@ export type BenchmarkDimension = "intelligence" | "agentic";
 export const BENCHMARK_KEYS = Object.keys(
 	BENCHMARK_PORTFOLIO,
 ) as BenchmarkKey[];
+
+export const INDEX_BENCHMARK_KEYS = [
+	"aa_intelligence_index",
+	"epoch_capabilities_index",
+	"vals_index",
+] as const satisfies readonly BenchmarkKey[];
 
 /** Reject benchmark configuration whose importance, loadings, or missing-data group violate the scoring contract. */
 export function validateBenchmarkPortfolio(

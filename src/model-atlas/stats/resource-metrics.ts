@@ -14,12 +14,20 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
 	task_metrics?: unknown;
 };
 
+/** Translate canonical benchmark keys to exact fields retained from provider payloads. */
+const INTELLIGENCE_SOURCE_FIELD_BY_BENCHMARK: Readonly<
+	Record<string, string>
+> = {
+	aa_intelligence_index: "intelligence_index",
+};
+
 export function benchmarkMetricValue(
 	model: BenchmarkMetricModel,
 	key: string,
 ): number | null {
+	const intelligenceKey = INTELLIGENCE_SOURCE_FIELD_BY_BENCHMARK[key] ?? key;
 	return (
-		asFiniteNumber(asRecord(model.intelligence)[key]) ??
+		asFiniteNumber(asRecord(model.intelligence)[intelligenceKey]) ??
 		asFiniteNumber(asRecord(model.evaluations)[key]) ??
 		null
 	);

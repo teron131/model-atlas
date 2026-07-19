@@ -491,12 +491,13 @@ export type OpenRouterConfig = {
 export type FinalStageConfig = {
 	nullFieldPruneThreshold: number;
 	nullFieldPruneRecentLookbackDays: number;
-	benchmarkCoverage: BenchmarkCoverageAdmissionConfig;
+	benchmarkAdmission: BenchmarkAdmissionConfig;
 };
 
-export type BenchmarkCoverageAdmissionConfig = {
-	minimumObservedWeight: number;
+export type BenchmarkAdmissionConfig = {
+	indexBenchmarkKeys: readonly string[];
 	minimumObservedBenchmarks: number;
+	minimumObservedBenchmarksPerDimension: number;
 };
 
 export type SnapshotPreservationConfig = {

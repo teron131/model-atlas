@@ -4,12 +4,9 @@ import { cacheStatsLogos } from "../../logo-cache";
 import { asFiniteNumber } from "../../shared";
 import { attachFinalScores } from "../scores";
 import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
-import {
-	observedBenchmarkCount,
-	observedBenchmarkPortfolioCoverage,
-} from "../scores/score-builders";
+import { observedBenchmarkCount } from "../scores/score-builders";
 import type {
-	BenchmarkCoverageAdmissionConfig,
+	BenchmarkAdmissionConfig,
 	FinalStageConfig,
 	LlmStatsEnrichmentResult,
 	LlmStatsModel,
@@ -38,7 +35,7 @@ type BasicSpecCandidate = Pick<
 	| "context_window"
 	| "speed"
 >;
-type BenchmarkCoverageCandidate = Pick<
+type BenchmarkEvidenceCandidate = Pick<
 	LlmStatsScoredCandidate,
 	"intelligence" | "evaluations"
 >;
@@ -60,11 +57,11 @@ export function hasRequiredBasicSpecs(model: BasicSpecCandidate): boolean {
 	);
 }
 
-/** Admit variants with enough observed evidence across the selected benchmark portfolio. */
-export function hasRequiredBenchmarkCoverage(
-	model: BenchmarkCoverageCandidate,
+/** Admit variants with broad evidence, both quality dimensions, and at least one aggregate index. */
+export function hasRequiredBenchmarkEvidence(
+	model: BenchmarkEvidenceCandidate,
 	scoringConfig: ScoringConfig,
-	coverageConfig: BenchmarkCoverageAdmissionConfig,
+	admissionConfig: BenchmarkAdmissionConfig,
 ): boolean {
 	const selectedKeys = [
 		...new Set([
@@ -73,15 +70,25 @@ export function hasRequiredBenchmarkCoverage(
 		]),
 	];
 	const observedCount = observedBenchmarkCount(model, selectedKeys);
-	const observedWeight = observedBenchmarkPortfolioCoverage(
+	const observedIntelligenceCount = observedBenchmarkCount(
 		model,
-		selectedKeys,
-		scoringConfig,
+		scoringConfig.intelligenceBenchmarkKeys,
+	);
+	const observedAgenticCount = observedBenchmarkCount(
+		model,
+		scoringConfig.agenticBenchmarkKeys,
+	);
+	const observedIndexCount = observedBenchmarkCount(
+		model,
+		admissionConfig.indexBenchmarkKeys,
 	);
 	return (
-		observedCount >= coverageConfig.minimumObservedBenchmarks &&
-		observedWeight != null &&
-		observedWeight >= coverageConfig.minimumObservedWeight
+		observedCount >= admissionConfig.minimumObservedBenchmarks &&
+		observedIntelligenceCount >=
+			admissionConfig.minimumObservedBenchmarksPerDimension &&
+		observedAgenticCount >=
+			admissionConfig.minimumObservedBenchmarksPerDimension &&
+		observedIndexCount >= 1
 	);
 }
 
@@ -149,10 +156,10 @@ export async function buildFinalModels(
 	const admittedPublicModels = rescoredReferenceModels
 		.filter(hasRequiredBasicSpecs)
 		.filter((model) =>
-			hasRequiredBenchmarkCoverage(
+			hasRequiredBenchmarkEvidence(
 				model,
 				scoringConfig,
-				finalConfig.benchmarkCoverage,
+				finalConfig.benchmarkAdmission,
 			),
 		)
 		.filter(hasRequiredQualityScores)
