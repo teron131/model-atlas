@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This project is trying to build the best current version of my opinionated LLM ranking. It starts from Artificial Analysis because AA is the best benchmark aggregation source I have found so far, but the point is not to mirror AA exactly. The point is to keep the parts of AA and related provider data that help separate current models in a subjectively meaningful way.
+Model Atlas is an opinionated ranking for comparing current general-purpose LLMs on broad capability, agentic workflow performance, speed, and value. It starts from Artificial Analysis because AA provides broad, current benchmark aggregation, but it does not mirror AA exactly. It retains the AA and related provider evidence that helps separate current models for practical model selection.
 
-The ranking is not an average of everything available upstream. Many benchmarks are low-signal for this purpose: some are saturated, some are stale, some are noisy, and some reward capabilities that do not matter much for the downstream model choices I care about. A benchmark only belongs here if it still creates a useful relative ordering among current models.
+The ranking is not an average of everything available upstream. Many benchmarks are low-signal for this purpose: some are saturated, some are stale, some are noisy, and some reward capabilities that do not matter much for the model-selection decisions this ranking is meant to support. A benchmark only belongs here if it still creates a useful relative ordering among current models.
 
 The main ranking choices are explicit: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, and resource normalization.
 
-The current leaderboard adds an explicit default-effort aggregation layer above preserved reasoning-effort observations. When a source does not label effort, its published row is treated as the default highest-effort configuration. When efforts are labelled, the aggregate selects the highest reported effort as one whole runnable observation; it does not combine field-wise maxima from different efforts. Raw and matched effort rows remain separate source evidence for a future effort-breakdown view.
+The scoring pipeline preserves reasoning-effort observations and selects one source-default observation for benchmark enrichment. An unlabelled row is the source default; when every row is labelled, source aggregation selects the highest reported effort. It keeps that runnable observation whole rather than combining field-wise maxima from different efforts. Raw and matched effort rows remain separate source evidence, and scored variants remain separate until compact public views represent each base model with its highest-Intelligence variant. The `all` API view preserves every scored effort variant.
 
 ## Benchmark Selection
 
@@ -56,11 +56,11 @@ When the benchmark portfolio changes, this table should change with it. Addition
 | Artificial Analysis Intelligence Index | baseline | 0.5 | 100% | 0% | Artificial Analysis's aggregate index provides broad current Intelligence coverage. Its aggregation overlaps several individually selected benchmarks, so it contributes at half importance. |
 | BrowseComp | baseline | 1 | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
 | Chess Puzzles | baseline | 1 | 100% | 0% | Exact-move chess puzzle solving supplies a distinct planning and tactical-reasoning signal. It remains baseline because it is a narrow specialist capability rather than a broad frontier claim. |
-| EBR-Bench | baseline | 0.5 | 0% | 100% | Long-horizon economic and business research workflows provide useful Agentic evidence, but narrow coverage and a small current leaderboard keep it at half importance. |
+| EBR-Bench | baseline | 0.5 | 0% | 100% | Repeated play of the unfamiliar Earthborne Rangers campaign tests whether an agent can learn from experience through exploration and persistent notes. The narrow game environment, small current leaderboard, and simple benchmark harness make it useful Agentic evidence at half importance rather than a broad frontier workflow claim. |
 | EnterpriseBench CoreCraft | baseline | 0.5 | 0% | 100% | Enterprise workflows inside one simulated company provide practical Agentic breadth. The single-company environment, first-party judge rubrics, and overlap with other agent benchmarks keep it stabilizing half-weight evidence. |
 | Epoch Capabilities Index | baseline | 0.5 | 100% | 0% | Epoch's multi-benchmark capabilities index adds broad stabilizing Intelligence evidence alongside AA and Vals. Its aggregate nature earns half importance, while source confidence intervals remain preserved for audit. |
 | LCR | baseline | 1 | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
-| Omniscience&nbsp;Accuracy | baseline | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to decide frontier top fights. |
+| Omniscience&nbsp;Accuracy | baseline | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to distinguish the frontier leaders. |
 | SciCode | baseline | 1 | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
 | tau3&nbsp;Banking&nbsp;(AA) | baseline | 1 | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
 | Toolathlon | baseline | 1 | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Its planning and domain reasoning occur inside the harnessed workflow, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
@@ -90,9 +90,9 @@ OpenRouter supplies current route pricing and speed measurements used for blend 
 
 Terminal-Bench 2.1 combines the AA leaderboard score, the dedicated AA Terminal-Bench evaluation page, and the Vals Terminal-Bench 2.1 page when they match the same model. The benchmark score is the best available AA or Vals overall score, matching the way people usually compare a model's best harness result. This intentionally gives a small reward to models with more harness coverage: if multiple independent harnesses can make the same model work, the ranking credits the strongest observed execution path instead of forcing a noisy cross-harness average. Cost and time are still the medians of available per-task resource values so one harness does not dominate resource estimates. AA cost and token totals are divided by the benchmark's 89 tasks and 3 repeats per task; AA time uses the page's reported per-task runtime. Vals supplies score, cost, time, and harness labels but no token counts, so token fields remain AA-only when present.
 
-DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. The backend preserves preferred-version effort/config observations in `deep_swe.rows` and separately derives one default-effort row per model for matching and scoring. The dashboard model row displays the source-default or highest reported effort as one whole observation. Task duration can feed Speed's benchmark task-time component, task cost can feed Value, and token totals remain source context.
+DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. The backend preserves preferred-version effort/config observations in `deep_swe.rows` and separately derives one source-default row per model for benchmark matching. The default DeepSWE observation uses the source-default or highest reported effort as one whole observation; compact public views independently select the model variant with the highest Intelligence score. Task duration can feed Speed's benchmark task-time component, task cost can feed Value, and token totals remain source context.
 
-Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime and token counts, while displayed ALE resource columns divide those totals by the source `runs` count and then use the lower of median and mean per-run values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
+Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime, token counts, and cost. Each harness row divides those totals by its evaluated task count, and the displayed ALE resource columns use the lower of the resulting median and mean per-task values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 Agent Arena uses the published Net Improvement point estimate directly as the raw benchmark value. The value is a signed causal treatment effect against the current randomized model mixture, not a probability or Bradley-Terry logit, so Model Atlas applies its ordinary observed per-benchmark min-max normalization without a sigmoid transform.
 
@@ -213,10 +213,10 @@ $$
 
 $q_m$ is the imputed row's evidence credit before the ordinary benchmark-coverage confidence curve. Observed AA values are never replaced, Mercor rows do not change the observed APEX normalization anchors, and Mercor-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, APEX Agents falls through to the ordinary benchmark imputer.
 
-The context benchmark $k$ can be any other selected benchmark in dimension $D$. Frontier and baseline use the same prediction evidence:
+The context benchmark $k$ can be any other selected benchmark in dimension $D$. Frontier and baseline use the same prediction evidence, weighted by benchmark importance multiplied by the configured loading for the dimension:
 
 $$
-C_{m,b}=\operatorname{mean}\left(z_{m,k}:k\in D,k\neq b,z_{m,k}\text{ available}\right)
+C_{m,b}=\frac{\sum_{k\in D,k\neq b,z_{m,k}\text{ available}}w_{k,D}z_{m,k}}{\sum_{k\in D,k\neq b,z_{m,k}\text{ available}}w_{k,D}}
 $$
 
 $$

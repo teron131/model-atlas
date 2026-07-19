@@ -126,7 +126,6 @@ const benchmarkContributionPercent = (
 const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
 const VALUE_PRICE_COMPONENT_COUNT = 3;
 
-const MIN_MAX_SCORE_TEXT = "min-max score across models";
 const FULL_OVERALL_TEXT = "Full Overall";
 
 const BENCHMARK_LABEL_BY_KEY = {
@@ -238,7 +237,10 @@ const qualityBenchmarkRows = (
 	[
 		["Effective weight", "importance x dimension loading"],
 		["Aggregation", "weights normalized within dimension"],
-		["Missing-data penalty", "frontier: 1.0x error; baseline: 0.5x error"],
+		[
+			"Imputed-value penalty",
+			"frontier subtracts 1.0x error; baseline subtracts 0.5x error",
+		],
 		["Coverage confidence", "10%-60% validation-weighted evidence ramp"],
 		{
 			title: "Frontier benchmarks",
@@ -347,7 +349,10 @@ export function columnTooltipsForActiveComponents(
 		intelligence: {
 			title: "Intelligence score",
 			body: "Atlas capability score from selected INTELLIGENCE benchmarks. Each benchmark's weight is its importance multiplied by its Intelligence loading; frontier or baseline group affects only missing-data handling.",
-			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
+			rows: [
+				["Benchmark normalization", "observed min-max range to 0-100"],
+				["Final score", "weighted mean x evidence confidence"],
+			],
 			sections: [
 				{
 					title: "Score blend",
@@ -359,7 +364,10 @@ export function columnTooltipsForActiveComponents(
 		agentic: {
 			title: "Agentic score",
 			body: "Atlas workflow and coding-task score from selected AGENTIC benchmarks. Each benchmark's weight is its importance multiplied by its Agentic loading; frontier or baseline group affects only missing-data handling.",
-			rows: [["Scale", MIN_MAX_SCORE_TEXT]],
+			rows: [
+				["Benchmark normalization", "observed min-max range to 0-100"],
+				["Final score", "weighted mean x evidence confidence"],
+			],
 			sections: [
 				{
 					title: "Score blend",
@@ -483,38 +491,38 @@ export function columnTooltipsForActiveComponents(
 		},
 		agentsLastExamCost: {
 			title: "Agents' Last Exam cost ↓",
-			body: "Estimated cost per Full Overall run, using the lower of median and mean per-run token usage.",
+			body: "Estimated cost per Full Overall task, using the lower of median and mean per-task cost.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
-				["Metric", "cost per run"],
+				["Metric", "cost per task"],
 			],
 		},
 		agentsLastExamSeconds: {
 			title: "Agents' Last Exam runtime ↓",
-			body: "Runtime per Full Overall run, using the lower of median and mean per-run duration.",
+			body: "Runtime per Full Overall task, using the lower of median and mean per-task duration.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
-				["Metric", "runtime per run"],
+				["Metric", "runtime per task"],
 			],
 		},
 		agentsLastExamInputTokens: {
 			title: "Agents' Last Exam input tokens ↓",
-			body: "Input tokens per Full Overall run, using the lower of median and mean per-run token usage.",
+			body: "Input tokens per Full Overall task, using the lower of median and mean per-task token usage.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
-				["Metric", "input tokens per run"],
+				["Metric", "input tokens per task"],
 			],
 		},
 		agentsLastExamOutputTokens: {
 			title: "Agents' Last Exam output tokens ↓",
-			body: "Output tokens per Full Overall run, using the lower of median and mean per-run token usage.",
+			body: "Output tokens per Full Overall task, using the lower of median and mean per-task token usage.",
 			rows: [
 				["Source", "Agents' Last Exam"],
 				["Split", FULL_OVERALL_TEXT],
-				["Metric", "output tokens per run"],
+				["Metric", "output tokens per task"],
 			],
 		},
 		deepSWE: {

@@ -207,7 +207,29 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
-		"min-max score across models",
+		"observed min-max range to 0-100",
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
+		"weighted mean x evidence confidence",
+	),
+	true,
+);
+assertEqual(
+	STAGE_CONFIG.scoring.columnTooltips.agentsLastExamCost?.body,
+	"Estimated cost per Full Overall task, using the lower of median and mean per-task cost.",
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips).includes(
+		"per Full Overall run",
+	),
+	false,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
+		"frontier subtracts 1.0x error; baseline subtracts 0.5x error",
 	),
 	true,
 );

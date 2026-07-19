@@ -1,11 +1,11 @@
 ---
 name: benchmark-scraper
-description: Use when adding, auditing, scraping, or wiring a benchmark leaderboard into Model Atlas. Enforces staged user discussion before field selection, scoring policy, and final database refresh.
+description: Use when implementing, scraping, or wiring an approved benchmark leaderboard into Model Atlas. Enforces staged user discussion before field selection, scoring policy, and final database refresh. Use benchmark-review instead for standalone admission, retention, or drift review.
 ---
 
 # Benchmark Scraper
 
-Use this for benchmark additions in this repo, especially leaderboard scrapers that will feed scoring, database payloads, or dashboard display.
+Use this after benchmark merit has been reviewed and the user wants to implement ingestion, especially for leaderboard scrapers that feed scoring, database payloads, or dashboard display. Use `$benchmark-review` for review-only work or a new candidate whose admission has not been decided.
 
 ## Rule
 
@@ -83,10 +83,10 @@ After the scraper works:
 - Show the fetched row shape and representative parsed output.
 - Discuss scoring with the user before wiring it into Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
-- Decide the accepted class (`baseline` or `frontier`) and the Intelligence/Agentic split. These are the only benchmark-quality knobs; the two portions must sum to 100%.
+- Decide the accepted class (`baseline` or `frontier`), positive benchmark importance, and Intelligence/Agentic split. The two dimension portions must sum to 100%; importance controls observed contribution, while class controls the imputation-error penalty.
 - Treat Agentic as coding workflow execution or specific tool use: terminals, browsers, files, repositories, APIs, harnesses, or other external environments. Do not assign Agentic portion just because the task is hard coding; static coding or scientific programming can be Intelligence when it mainly tests professional knowledge and reasoning.
 - Check effort sensitivity before scoring. If the same model regresses at higher reasoning effort, explain whether this looks like real overthinking, timeout pressure, brittle formatting, harness mismatch, or another benchmark artifact.
-- Do not invent arbitrary per-benchmark weights. Explain the expected impact through the existing baseline/frontier group weights and Intelligence/Agentic portions.
+- Choose benchmark importance deliberately rather than deriving it from class. Explain the expected impact through importance, dimension loadings, and the class-specific imputation-error penalty.
 - Decide whether any non-quality data contributes to speed, value, bonus-only display, or raw display only.
 - Preserve extra dimensions even if the initial scoring uses only one summary.
 

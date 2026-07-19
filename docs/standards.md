@@ -21,7 +21,7 @@ It should make frontier systems struggle. The best scores should not be near the
 
 A frontier benchmark should have fresh or protected tasks, credible grading, and enough difficulty that model differences still matter. It should test a serious capability, not a benchmark format. It should show that one model is ahead of another in a way that matches real qualitative differences, not random prompt noise.
 
-Frontier benchmarks are the sharp edge of the ranking. They decide the top fights.
+Frontier benchmarks provide the strongest separation among the leading models.
 
 ## Baseline Benchmarks
 
@@ -29,9 +29,9 @@ A baseline benchmark is not necessarily the hardest current stress test, but it 
 
 Baseline benchmarks stabilize the ranking. They measure important capabilities that should not disappear just because a few new frontier tests are available: expert knowledge, professional reasoning, factual precision, long-context understanding, scientific coding, document analysis, and work-like output.
 
-A baseline benchmark should still have useful score spread, current model coverage, decent grading, and a clear capability meaning. It should not be heavily saturated, obviously contaminated, format-cringe, or redundant with a stronger benchmark.
+A baseline benchmark should still have useful score spread, current model coverage, credible grading, and a clear capability meaning. It should not be heavily saturated, obviously contaminated, dominated by format artifacts, or redundant with a stronger benchmark.
 
-Baseline benchmarks are the map. Frontier benchmarks are the battlefield.
+Baseline benchmarks provide stable capability coverage, while frontier benchmarks separate the current leaders.
 
 ## Rejected Benchmarks
 
@@ -41,15 +41,15 @@ Common rejection reasons:
 
 - frontier models are saturated or tightly clustered near the ceiling
 - the benchmark is stale, public, memorized, or contamination-heavy
-- the format is mostly multiple-choice trivia, toy puzzles, keyword-count games, or artificial issue patching
-- grading is vague, judge-vibes-heavy, or easy to exploit
+- the format is mostly multiple-choice trivia, toy puzzles, keyword matching, or artificial patch tasks
+- grading is underspecified, subjective without calibration, or easy to exploit
 - results mostly measure the harness, scaffold, or custom agent framework rather than the model
 - the benchmark mainly tests safety or policy behavior instead of capability
 - the signal is redundant with a better benchmark
-- current model coverage is missing
+- no results from current serious models are available
 - the only evidence comes from vendor claims or isolated release tables
 
-Good task texture does not save a saturated benchmark. Hard questions do not save a contaminated benchmark. A famous benchmark does not deserve retirement benefits.
+Realistic tasks do not rescue a saturated benchmark, difficulty does not rescue a contaminated benchmark, and familiarity does not justify retaining a benchmark that no longer adds signal.
 
 ## What To Inspect
 
@@ -79,7 +79,7 @@ Benchmarks with multiple reasoning-effort or budget settings should be inspected
 
 For the same base model, higher reasoning effort should usually improve performance or plateau. A material regression at higher effort is a warning sign. It can mean the benchmark is measuring overthinking, verbosity penalties, timeout pressure, brittle output formatting, over-engineered patches, or harness mismatch rather than clean model capability.
 
-This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report effort sensitivity. The main leaderboard uses the source-default configuration when effort is not labelled, or the highest reported effort when it is labelled. The selected row remains one runnable configuration; lower-effort observations remain available for breakdowns and diagnostics.
+This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report effort sensitivity. Source aggregation treats an unlabelled configuration as the source default; when every configuration is labelled, it selects the highest reported effort as one runnable observation. Compact public views later represent each base model with its highest-Intelligence scored variant. The full payload preserves scored effort variants, while raw evidence and diagnostics preserve source observations.
 
 ## Harness Interpretation
 
@@ -110,4 +110,4 @@ A vetted high-standard benchmark that still adds useful capability signal.
 `rejected`
 A benchmark that should not affect the ranking.
 
-The final report should explain why each accepted benchmark earns ranking space and why each rejected benchmark should be killed.
+The final report should explain why each accepted benchmark earns ranking space and why each rejected benchmark is excluded.
