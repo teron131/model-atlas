@@ -191,6 +191,14 @@ function DashboardMetricCell({
 	}
 	const value = dashboardMetricValue(model, column);
 	if ("benchmark" in column) {
+		if (column.format !== "percent") {
+			return (
+				<TableCell
+					text={formatDashboardMetric(value, column)}
+					className="data-cell"
+				/>
+			);
+		}
 		return (
 			<BenchmarkMetricCell
 				value={typeof value === "number" ? value : null}

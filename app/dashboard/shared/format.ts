@@ -64,11 +64,24 @@ export function benchmarkPercentValue(value: number | null | undefined) {
 	return Math.abs(value) <= 1 ? value * 100 : value;
 }
 
-export function formatBenchmarkMetric(value: number | null | undefined) {
-	const percent = benchmarkPercentValue(value);
-	if (percent == null) {
+export function formatBenchmarkMetric(
+	value: number | null | undefined,
+	format: "percent" | "number" | "currency" = "percent",
+) {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
 		return "-";
 	}
+	if (format === "number") {
+		return value.toFixed(1);
+	}
+	if (format === "currency") {
+		const absolute = Math.abs(value).toLocaleString("en-US", {
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 1,
+		});
+		return `${value < 0 ? "-" : ""}$${absolute}`;
+	}
+	const percent = benchmarkPercentValue(value) as number;
 	return `${percent.toFixed(1)}%`;
 }
 
@@ -80,7 +93,7 @@ export function formatDashboardMetric(
 		return formatTaskMetric(numberValue(value), column);
 	}
 	if ("benchmark" in column) {
-		return formatBenchmarkMetric(numberValue(value));
+		return formatBenchmarkMetric(numberValue(value), column.format);
 	}
 	if (column.group === "costs") {
 		return formatCost(numberValue(value));

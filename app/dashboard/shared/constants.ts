@@ -1,6 +1,9 @@
 /** Shared dashboard constants for live data paths, tooltips, and benchmark labels. */
 
-import type { LlmStatsColumnTooltip } from "../../../src/model-atlas/stats/types";
+import type {
+	BenchmarkPortfolio,
+	LlmStatsColumnTooltip,
+} from "../../../src/model-atlas/stats/types";
 
 export const liveStatsPath = "/api/llm-stats?view=dashboard";
 
@@ -23,31 +26,77 @@ export const benchmarkGroups = [
 ] as const;
 
 export const benchmarkLabels: Record<string, string> = {
+	agent_arena: "Agent Arena",
 	agents_last_exam: "Agents' Last Exam",
 	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
 	blueprint_bench_2: "Blueprint-Bench 2",
 	briefcase: "Briefcase",
 	browsecomp: "BrowseComp",
+	chartography: "Chartography",
+	chess_puzzles: "Chess Puzzles",
 	critpt: "CritPt",
 	cursorbench: "CursorBench",
 	deep_swe: "DeepSWE",
+	ebr_bench: "EBR-Bench",
+	enterprisebench_corecraft: "EnterpriseBench CoreCraft",
+	epoch_capabilities_index: "Epoch Capabilities Index",
+	frontiermath_tier_4: "FrontierMath Tier 4",
 	gdp_pdf: "GDP.pdf",
 	gdpval_normalized: "GDPval-AA v2",
+	handbook_md: "HANDBOOK.md",
 	harvey_lab: "Harvey LAB",
 	hle: "HLE",
 	itbench_sre: "ITBench",
 	lcr: "LCR",
 	omniscience_accuracy: "Omniscience",
+	proofbench: "ProofBench",
 	riemann_bench: "Riemann-bench",
 	scicode: "SciCode",
 	tau_banking: "tau3 Banking",
 	terminalbench_v21: "Terminal-Bench 2.1",
 	toolathlon: "Toolathlon",
 	vals_index: "Vals Index",
+	vending_bench_2: "Vending-Bench 2",
+	weirdml: "WeirdML",
 };
 
+/** Order benchmark displays by scoring priority, then alphabetically within each group. */
+export function compareBenchmarkDisplayKeys(
+	left: string,
+	right: string,
+	portfolio: BenchmarkPortfolio,
+): number {
+	const groupDifference =
+		benchmarkGroupOrder(portfolio[left]?.group) -
+		benchmarkGroupOrder(portfolio[right]?.group);
+	if (groupDifference !== 0) {
+		return groupDifference;
+	}
+	const labelDifference = (benchmarkLabels[left] ?? left).localeCompare(
+		benchmarkLabels[right] ?? right,
+		"en",
+		{ sensitivity: "base" },
+	);
+	return labelDifference !== 0 ? labelDifference : left.localeCompare(right);
+}
+
+function benchmarkGroupOrder(group: "frontier" | "baseline" | undefined) {
+	if (group === "frontier") {
+		return 0;
+	}
+	return group === "baseline" ? 1 : 2;
+}
+
 export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
+	agent_arena: {
+		title: "Agent Arena",
+		body: "Causal evaluation of orchestrator models across real Agent Mode work. Model Atlas uses the leaderboard's signed average-score estimate.",
+		rows: [
+			["Source", "Arena"],
+			["Role", "real-world agent performance"],
+		],
+	},
 	agents_last_exam: {
 		title: "Agents' Last Exam",
 		body: "Real-world software and professional-workflow benchmark. Model Atlas uses the partial-credit score.",
@@ -96,6 +145,22 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "web information retrieval"],
 		],
 	},
+	chartography: {
+		title: "Chartography",
+		body: "Professional chart-understanding benchmark over specialized graphics, testing visual perception, domain interpretation, and multi-step graphical reasoning.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "professional graphical reasoning"],
+		],
+	},
+	chess_puzzles: {
+		title: "Chess Puzzles",
+		body: "One hundred novel engine-generated chess positions where models must select the single best next move from a FEN board state.",
+		rows: [
+			["Source", "Epoch AI"],
+			["Role", "planning and game reasoning"],
+		],
+	},
 	critpt: {
 		title: "CritPt",
 		body: "Research-level physics reasoning with numeric, symbolic, and code answers.",
@@ -120,6 +185,38 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "coding agent work"],
 		],
 	},
+	ebr_bench: {
+		title: "EBR-Bench",
+		body: "Long-horizon Earthborne Rangers benchmark that tests whether agents improve at an unfamiliar task through repeated play and persistent notes.",
+		rows: [
+			["Source", "Epoch AI"],
+			["Role", "learning from experience"],
+		],
+	},
+	enterprisebench_corecraft: {
+		title: "EnterpriseBench CoreCraft",
+		body: "Enterprise-agent benchmark inside a simulated computer-hardware startup, requiring active discovery, tool use, and policy-aware task completion.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "enterprise tool use"],
+		],
+	},
+	epoch_capabilities_index: {
+		title: "Epoch Capabilities Index",
+		body: "Composite capability scale that combines results from many benchmarks so models can be compared across tasks and over time.",
+		rows: [
+			["Source", "Epoch AI"],
+			["Role", "general capability context"],
+		],
+	},
+	frontiermath_tier_4: {
+		title: "FrontierMath Tier 4",
+		body: "Exceptionally difficult original mathematics problems written and vetted by expert mathematicians, often requiring research-level work.",
+		rows: [
+			["Source", "Epoch AI"],
+			["Role", "research-level mathematics"],
+		],
+	},
 	gdp_pdf: {
 		title: "GDP.pdf",
 		body: "Surge AI document-understanding benchmark over real professional PDFs. Model Atlas uses the public leaderboard score.",
@@ -134,6 +231,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "real work completion"],
+		],
+	},
+	handbook_md: {
+		title: "HANDBOOK.md",
+		body: "Long-context enterprise benchmark where agents must follow company handbooks while using internal tools and external MCP servers.",
+		rows: [
+			["Source", "Surge AI"],
+			["Role", "policy-grounded agent work"],
 		],
 	},
 	harvey_lab: {
@@ -174,6 +279,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "knowledge accuracy"],
+		],
+	},
+	proofbench: {
+		title: "ProofBench",
+		body: "Graduate and advanced-undergraduate mathematics problems where agents must produce Lean 4 proofs accepted by a formal checker.",
+		rows: [
+			["Source", "Vals AI"],
+			["Role", "formal theorem proving"],
 		],
 	},
 	riemann_bench: {
@@ -222,6 +335,22 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Vals AI"],
 			["Role", "professional finance and coding work"],
+		],
+	},
+	vending_bench_2: {
+		title: "Vending-Bench 2",
+		body: "Year-long simulated business benchmark where agents manage inventory, suppliers, pricing, and cash flow to maximize final balance.",
+		rows: [
+			["Source", "Andon Labs"],
+			["Role", "long-horizon business operation"],
+		],
+	},
+	weirdml: {
+		title: "WeirdML",
+		body: "Novel machine-learning tasks where models design working PyTorch solutions and iteratively improve them from execution feedback.",
+		rows: [
+			["Source", "WeirdML"],
+			["Role", "iterative ML engineering"],
 		],
 	},
 };
