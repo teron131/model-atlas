@@ -19,7 +19,6 @@ import type {
 	LlmStatsColumnTooltips,
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
-import { BenchmarkStrip } from "./benchmarks/BenchmarkStrip";
 import { LeaderboardCapture } from "./capture/leaderboard-capture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";
@@ -41,6 +40,7 @@ import { ModelControlToolbar } from "./shared/model-control-toolbar";
 import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
+	benchmarkMetricColumns,
 	dashboardMetricColumns,
 	dedupeDisplayModels,
 	type SortKey,
@@ -67,28 +67,10 @@ const AUTOMATIC_LIVE_REFRESH_ENABLED =
 	process.env.NODE_ENV === "production" ||
 	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
 
-const benchmarkKeyByColumn = {
-	agentsLastExam: "agents_last_exam",
-	automationBench: "automation_bench",
-	blueprintBench: "blueprint_bench_2",
-	critpt: "critpt",
-	cursorBench: "cursorbench",
-	deepSWE: "deep_swe",
-	gdpPdf: "gdp_pdf",
-	gdpval: "gdpval_normalized",
-	harveyLab: "harvey_lab",
-	hle: "hle",
-	riemannBench: "riemann_bench",
-	tauBanking: "tau_banking",
-	terminalBench: "terminalbench_v21",
-	lcr: "lcr",
-	scicode: "scicode",
-} as const satisfies Partial<Record<SortKey, keyof typeof benchmarkTooltips>>;
-
 const benchmarkTableColumnTooltips = Object.fromEntries(
-	Object.entries(benchmarkKeyByColumn).flatMap(([columnKey, benchmarkKey]) => {
-		const tooltip = benchmarkTooltips[benchmarkKey];
-		return tooltip == null ? [] : [[columnKey, tooltip]];
+	benchmarkMetricColumns.flatMap((column) => {
+		const tooltip = benchmarkTooltips[column.benchmark];
+		return tooltip == null ? [] : [[column.key, tooltip]];
 	}),
 ) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
 
@@ -503,6 +485,7 @@ export function Dashboard({
 				payload={displayPayload}
 				referenceModels={payload?.models ?? []}
 				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
+				benchmarksLoading={isInitialLoading}
 				selectedProviders={selectedProviders}
 				providerChoices={providerChoices}
 				maxCost={maxCostFilter}
@@ -512,9 +495,6 @@ export function Dashboard({
 				onSelectedProvidersChange={setSelectedProviders}
 				onMaxCostChange={setMaxCostFilter}
 				onModelLimitChange={setModelLimit}
-				benchmarkControls={
-					<BenchmarkStrip payload={payload} isLoading={isInitialLoading} />
-				}
 				afterLead={
 					<section className="dashboard-deck" aria-label="Model leaderboard">
 						<ModelControlToolbar

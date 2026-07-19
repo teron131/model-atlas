@@ -7,7 +7,20 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { compactDashboardPayload } from "../app/dashboard/payload";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
-import type { TableRow } from "../app/dashboard/table/models";
+import {
+	benchmarkLabels,
+	benchmarkTooltips,
+} from "../app/dashboard/shared/constants";
+import { formatBenchmarkMetric } from "../app/dashboard/shared/format";
+import {
+	benchmarkMetricColumns,
+	type TableRow,
+} from "../app/dashboard/table/models";
+import {
+	AGENTIC_BENCHMARK_DISPLAY_KEYS,
+	BENCHMARK_PORTFOLIO,
+	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+} from "../src/model-atlas/config/benchmark-portfolio";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
 import {
 	minimalLlmStatsModel,
@@ -29,6 +42,9 @@ registerHooks({
 });
 
 const { Dashboard } = await import("../app/dashboard/index");
+const { BenchmarkStrip } = await import(
+	"../app/dashboard/benchmarks/BenchmarkStrip"
+);
 const { ModelTable } = await import("../app/dashboard/table/ModelTable");
 
 const payload = minimalLlmStatsPayload({
@@ -78,6 +94,66 @@ const compactInteractionHtml = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: compactInteractionPayload }),
 );
 
+const coverageModels = [
+	{
+		...minimalLlmStatsModel({
+			id: "openai/gpt-5.5",
+			name: "GPT-5.5",
+		}),
+		evaluations: { deep_swe: 0.6 },
+	},
+	minimalLlmStatsModel({
+		id: "anthropic/claude-opus-4.6",
+		name: "Claude Opus 4.6",
+	}),
+];
+const coveragePayload = minimalLlmStatsPayload({
+	fetchedAt: 902,
+	models: coverageModels,
+});
+coveragePayload.metadata.scoring.agentic_benchmark_display_keys = ["deep_swe"];
+coveragePayload.metadata.scoring.benchmark_portfolio = {
+	deep_swe: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
+};
+const benchmarkCoverageHtml = renderToStaticMarkup(
+	React.createElement(BenchmarkStrip, {
+		payload: coveragePayload,
+		models: coverageModels,
+		isLoading: false,
+	}),
+);
+const benchmarkOrderPayload = minimalLlmStatsPayload({
+	fetchedAt: 903,
+	models: coverageModels,
+});
+benchmarkOrderPayload.metadata.scoring.intelligence_benchmark_display_keys = [
+	"weirdml",
+	"riemann_bench",
+	"lcr",
+	"agents_last_exam",
+];
+benchmarkOrderPayload.metadata.scoring.benchmark_portfolio = {
+	agents_last_exam: BENCHMARK_PORTFOLIO.agents_last_exam,
+	lcr: BENCHMARK_PORTFOLIO.lcr,
+	riemann_bench: BENCHMARK_PORTFOLIO.riemann_bench,
+	weirdml: BENCHMARK_PORTFOLIO.weirdml,
+};
+const benchmarkOrderHtml = renderToStaticMarkup(
+	React.createElement(BenchmarkStrip, {
+		payload: benchmarkOrderPayload,
+		models: coverageModels,
+		isLoading: false,
+	}),
+);
+const displayedBenchmarkKeys = new Set([
+	...INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+	...AGENTIC_BENCHMARK_DISPLAY_KEYS,
+]);
+
 assert.equal(
 	html.includes("Loading stats"),
 	false,
@@ -119,6 +195,83 @@ assert.equal(
 	loadingHtml.includes("benchmark-chip-loading"),
 	true,
 	"initial loading markup should include benchmark placeholder chips",
+);
+assert.equal(
+	benchmarkCoverageHtml.includes('benchmark-chip-coverage">50%</span>'),
+	true,
+	"benchmark chips should show observed coverage for the current model view",
+);
+assert.equal(
+	benchmarkCoverageHtml.includes("50% coverage in current model view"),
+	true,
+	"benchmark coverage should be explained in the chip's accessible label",
+);
+assert.deepEqual(
+	[...displayedBenchmarkKeys].filter((key) => benchmarkLabels[key] == null),
+	[],
+	"every displayed benchmark should have a human-readable label",
+);
+assert.deepEqual(
+	[...displayedBenchmarkKeys].filter((key) => benchmarkTooltips[key] == null),
+	[],
+	"every displayed benchmark should have tooltip content",
+);
+assert.deepEqual(
+	[...displayedBenchmarkKeys].filter(
+		(key) => !benchmarkMetricColumns.some((column) => column.benchmark === key),
+	),
+	[],
+	"every displayed benchmark should have a leaderboard table column",
+);
+assert.deepEqual(
+	benchmarkMetricColumns.map((column) =>
+		BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1,
+	),
+	benchmarkMetricColumns
+		.map((column) =>
+			BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1,
+		)
+		.sort(),
+	"table benchmark columns should place frontier benchmarks before baseline benchmarks",
+);
+for (const group of ["frontier", "baseline"] as const) {
+	const labels = benchmarkMetricColumns
+		.filter((column) => BENCHMARK_PORTFOLIO[column.benchmark].group === group)
+		.map((column) => benchmarkLabels[column.benchmark] ?? column.benchmark);
+	assert.deepEqual(
+		labels,
+		[...labels].sort((left, right) => left.localeCompare(right, "en")),
+		`${group} table benchmark columns should be alphabetical`,
+	);
+}
+assert.equal(
+	benchmarkOrderHtml.indexOf("Agents&#x27; Last Exam") <
+		benchmarkOrderHtml.indexOf("Riemann-bench") &&
+		benchmarkOrderHtml.indexOf("Riemann-bench") <
+			benchmarkOrderHtml.indexOf("LCR") &&
+		benchmarkOrderHtml.indexOf("LCR") < benchmarkOrderHtml.indexOf("WeirdML"),
+	true,
+	"benchmark chips should be alphabetical within frontier and baseline groups",
+);
+assert.equal(
+	benchmarkOrderHtml.includes('class="benchmark-baseline-divider"'),
+	true,
+	"benchmark chips should mark the frontier-to-baseline boundary",
+);
+assert.equal(
+	formatBenchmarkMetric(161.77, "number"),
+	"161.8",
+	"raw benchmark indexes should not be labeled as percentages",
+);
+assert.equal(
+	formatBenchmarkMetric(-0.153, "number"),
+	"-0.2",
+	"signed benchmark effects should not be labeled as percentages",
+);
+assert.equal(
+	formatBenchmarkMetric(10_936.76, "currency"),
+	"$10,936.8",
+	"currency benchmarks should retain their unit in the table",
 );
 assert.equal(
 	compactInteractionHtml.includes("AA cost"),

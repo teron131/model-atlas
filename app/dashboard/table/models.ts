@@ -1,6 +1,9 @@
 /** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
+import { BENCHMARK_PORTFOLIO } from "../../../src/model-atlas/config/benchmark-portfolio";
+import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/stats/resource-metrics";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { modelDisplayName, modelMatchesQuery } from "../shared/modelDisplay";
 
 export type SortDirection = "ascending" | "descending";
@@ -368,128 +371,91 @@ const inputModalityScores = [
 	["video", 1],
 ] as const;
 
-export const benchmarkMetricColumns = [
-	{
-		key: "agentsLastExam",
-		group: "benchmarks",
-		benchmark: "agents_last_exam",
-		direction: "descending",
-		type: "number",
-		label: "ALE",
-	},
-	{
-		key: "automationBench",
-		group: "benchmarks",
-		benchmark: "automation_bench",
-		direction: "descending",
-		type: "number",
-		label: "Auto",
-	},
-	{
-		key: "blueprintBench",
-		group: "benchmarks",
-		benchmark: "blueprint_bench_2",
-		direction: "descending",
-		type: "number",
-		label: "BB2",
-	},
-	{
-		key: "critpt",
-		group: "benchmarks",
-		benchmark: "critpt",
-		direction: "descending",
-		type: "number",
-		label: "CritPt",
-	},
-	{
-		key: "cursorBench",
-		group: "benchmarks",
-		benchmark: "cursorbench",
-		direction: "descending",
-		type: "number",
-		label: "Cursor",
-	},
-	{
-		key: "deepSWE",
-		group: "benchmarks",
-		benchmark: "deep_swe",
-		direction: "descending",
-		type: "number",
-		label: "DSWE",
-	},
-	{
-		key: "gdpPdf",
-		group: "benchmarks",
-		benchmark: "gdp_pdf",
-		direction: "descending",
-		type: "number",
-		label: "GDP.pdf",
-	},
-	{
-		key: "gdpval",
-		group: "benchmarks",
-		benchmark: "gdpval_normalized",
-		direction: "descending",
-		type: "number",
-		label: "GDPval",
-	},
-	{
-		key: "harveyLab",
-		group: "benchmarks",
-		benchmark: "harvey_lab",
-		direction: "descending",
-		type: "number",
-		label: "HLAB",
-	},
-	{
-		key: "hle",
-		group: "benchmarks",
-		benchmark: "hle",
-		direction: "descending",
-		type: "number",
-		label: "HLE",
-	},
-	{
-		key: "riemannBench",
-		group: "benchmarks",
-		benchmark: "riemann_bench",
-		direction: "descending",
-		type: "number",
-		label: "Riemann",
-	},
-	{
-		key: "tauBanking",
-		group: "benchmarks",
-		benchmark: "tau_banking",
-		direction: "descending",
-		type: "number",
-		label: "tau3",
-	},
-	{
-		key: "terminalBench",
-		group: "benchmarks",
-		benchmark: "terminalbench_v21",
-		direction: "descending",
-		type: "number",
-		label: "TBench",
-	},
-	{
-		key: "lcr",
-		group: "benchmarks",
-		benchmark: "lcr",
-		direction: "descending",
-		type: "number",
-		label: "LCR",
-	},
-	{
-		key: "scicode",
-		group: "benchmarks",
-		benchmark: "scicode",
-		direction: "descending",
-		type: "number",
-		label: "SciCode",
-	},
+type BenchmarkMetricFormat = "percent" | "number" | "currency";
+
+function defineBenchmarkMetricColumn<
+	const TKey extends string,
+	const TBenchmark extends string,
+>(
+	key: TKey,
+	benchmark: TBenchmark,
+	label: string,
+	format: BenchmarkMetricFormat = "percent",
+) {
+	return {
+		key,
+		group: "benchmarks" as const,
+		benchmark,
+		direction: "descending" as const,
+		type: "number" as const,
+		label,
+		format,
+	};
+}
+
+const benchmarkMetricColumnDefinitions = [
+	defineBenchmarkMetricColumn("agentArena", "agent_arena", "Arena", "number"),
+	defineBenchmarkMetricColumn("agentsLastExam", "agents_last_exam", "ALE"),
+	defineBenchmarkMetricColumn("apexAgents", "apex_agents", "APEX"),
+	defineBenchmarkMetricColumn("automationBench", "automation_bench", "Auto"),
+	defineBenchmarkMetricColumn("blueprintBench", "blueprint_bench_2", "BB2"),
+	defineBenchmarkMetricColumn("briefcase", "briefcase", "Briefcase"),
+	defineBenchmarkMetricColumn("browseComp", "browsecomp", "Browse"),
+	defineBenchmarkMetricColumn("chartography", "chartography", "Chart"),
+	defineBenchmarkMetricColumn("chessPuzzles", "chess_puzzles", "Chess"),
+	defineBenchmarkMetricColumn("critpt", "critpt", "CritPt"),
+	defineBenchmarkMetricColumn("cursorBench", "cursorbench", "Cursor"),
+	defineBenchmarkMetricColumn("deepSWE", "deep_swe", "DSWE"),
+	defineBenchmarkMetricColumn("ebrBench", "ebr_bench", "EBR"),
+	defineBenchmarkMetricColumn(
+		"enterpriseBenchCoreCraft",
+		"enterprisebench_corecraft",
+		"CoreCraft",
+	),
+	defineBenchmarkMetricColumn(
+		"epochCapabilitiesIndex",
+		"epoch_capabilities_index",
+		"ECI",
+		"number",
+	),
+	defineBenchmarkMetricColumn(
+		"frontierMathTier4",
+		"frontiermath_tier_4",
+		"FM T4",
+	),
+	defineBenchmarkMetricColumn("gdpPdf", "gdp_pdf", "GDP.pdf"),
+	defineBenchmarkMetricColumn("gdpval", "gdpval_normalized", "GDPval"),
+	defineBenchmarkMetricColumn("handbookMd", "handbook_md", "Handbook"),
+	defineBenchmarkMetricColumn("harveyLab", "harvey_lab", "HLAB"),
+	defineBenchmarkMetricColumn("hle", "hle", "HLE"),
+	defineBenchmarkMetricColumn("itBench", "itbench_sre", "ITBench"),
+	defineBenchmarkMetricColumn("lcr", "lcr", "LCR"),
+	defineBenchmarkMetricColumn("omniscience", "omniscience_accuracy", "Omni"),
+	defineBenchmarkMetricColumn("proofBench", "proofbench", "Proof"),
+	defineBenchmarkMetricColumn("riemannBench", "riemann_bench", "Riemann"),
+	defineBenchmarkMetricColumn("scicode", "scicode", "SciCode"),
+	defineBenchmarkMetricColumn("tauBanking", "tau_banking", "tau3"),
+	defineBenchmarkMetricColumn("terminalBench", "terminalbench_v21", "TBench"),
+	defineBenchmarkMetricColumn("toolathlon", "toolathlon", "Toolathlon"),
+	defineBenchmarkMetricColumn("valsIndex", "vals_index", "Vals"),
+	defineBenchmarkMetricColumn(
+		"vendingBench2",
+		"vending_bench_2",
+		"Vending",
+		"currency",
+	),
+	defineBenchmarkMetricColumn("weirdMl", "weirdml", "WeirdML"),
 ] as const;
+
+export const benchmarkMetricColumns = [
+	...benchmarkMetricColumnDefinitions,
+].sort((left, right) =>
+	compareBenchmarkDisplayKeys(
+		left.benchmark,
+		right.benchmark,
+		BENCHMARK_PORTFOLIO,
+	),
+);
 
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
 export type ProfileMetricColumn = (typeof profileMetricColumns)[number];
@@ -672,7 +638,7 @@ export function benchmarkMetricValue(
 	model: LlmStatsModel,
 	column: BenchmarkMetricColumn,
 ) {
-	return model.evaluations?.[column.benchmark];
+	return modelBenchmarkMetricValue(model, column.benchmark);
 }
 
 export function contextWindowValue(model: LlmStatsModel) {

@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
+import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
 import { modelCount, toggleProviderFilter } from "../shared/modelDisplay";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
@@ -29,7 +30,7 @@ export function DashboardGraphs({
 	payload,
 	referenceModels,
 	fullPayloadLoaded,
-	benchmarkControls,
+	benchmarksLoading,
 	afterLead,
 	selectedProviders,
 	providerChoices,
@@ -44,7 +45,7 @@ export function DashboardGraphs({
 	payload: LlmStatsPayload | null;
 	referenceModels: LlmStatsPayload["models"];
 	fullPayloadLoaded: boolean;
-	benchmarkControls?: React.ReactNode;
+	benchmarksLoading: boolean;
 	afterLead?: React.ReactNode;
 	selectedProviders: string[];
 	providerChoices: ProviderOption[];
@@ -121,7 +122,11 @@ export function DashboardGraphs({
 				aria-label="Model graphs"
 				data-capture-theme
 			>
-				{benchmarkControls}
+				<BenchmarkStrip
+					payload={payload}
+					models={[]}
+					isLoading={benchmarksLoading}
+				/>
 				<div className={styles.error}>
 					Unable to load the Model Atlas snapshot.
 				</div>
@@ -234,9 +239,13 @@ export function DashboardGraphs({
 							</div>
 						</FilterSection>
 					</div>
-					{benchmarkControls != null && (
-						<div className={styles.benchmarkRow}>{benchmarkControls}</div>
-					)}
+					<div className={styles.benchmarkRow}>
+						<BenchmarkStrip
+							payload={payload}
+							models={models}
+							isLoading={benchmarksLoading}
+						/>
+					</div>
 				</div>
 			</section>
 			{afterLead}
