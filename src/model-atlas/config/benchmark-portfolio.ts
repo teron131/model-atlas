@@ -73,6 +73,16 @@ export const BENCHMARK_PORTFOLIO = {
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
+	chartography: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
+	chess_puzzles: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
 	critpt: {
 		group: "frontier",
 		benchmarkImportance: 1,
@@ -91,6 +101,26 @@ export const BENCHMARK_PORTFOLIO = {
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 		resourcePolicy: BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY,
 	},
+	ebr_bench: {
+		group: "baseline",
+		benchmarkImportance: 0.5,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
+	enterprisebench_corecraft: {
+		group: "baseline",
+		benchmarkImportance: 0.5,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
+	epoch_capabilities_index: {
+		group: "baseline",
+		benchmarkImportance: 0.5,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
+	frontiermath_tier_4: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
 	gdp_pdf: {
 		group: "frontier",
 		benchmarkImportance: 1,
@@ -101,6 +131,11 @@ export const BENCHMARK_PORTFOLIO = {
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
 		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+	},
+	handbook_md: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 	harvey_lab: {
 		group: "frontier",
@@ -129,6 +164,11 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
+	proofbench: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.7, agentic: 0.3 },
 	},
 	riemann_bench: {
 		group: "frontier",
@@ -166,6 +206,11 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
+	weirdml: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
 	},
 } as const satisfies Readonly<Record<string, BenchmarkPortfolioEntry>>;
 

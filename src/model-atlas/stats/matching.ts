@@ -82,11 +82,11 @@ function buildMatchedRow(
 
 	return {
 		id: canonicalId,
-		provider_id: matchedModelsDev?.provider_id ?? null,
-		openrouter_id: canonicalId,
 		name: matchedModelName,
 		artificial_analysis_id: artificialAnalysisModelId,
 		artificial_analysis_slug: artificialAnalysisSlug,
+		provider_id: matchedModelsDev?.provider_id ?? null,
+		openrouter_id: canonicalId,
 		reasoning_effort: canonicalReasoningEffort(
 			artificialAnalysisModel.reasoning_effort,
 		),

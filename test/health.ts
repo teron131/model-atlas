@@ -197,7 +197,6 @@ assert.equal(
 );
 
 const dbBenchmarkRows = benchmarkRowsFromDb({
-	agentArenaRows: [],
 	artificialAnalysisRows: [
 		{
 			model_id: "openai/gpt-5",
@@ -207,6 +206,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			not_a_benchmark: 1,
 		},
 	],
+	agentArenaRows: [],
 	agentsLastExamRows: [
 		{
 			row_kind: "raw",
@@ -228,6 +228,8 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.72,
 		},
 	],
+	chartographyRows: [],
+	chessPuzzleRows: [],
 	cursorBenchRows: [
 		{
 			model: "Fable 5 Extra High",
@@ -264,8 +266,23 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			mean_output_tokens: 60_000,
 		},
 	],
+	ebrBenchRows: [],
+	enterpriseBenchCoreCraftRows: [],
+	epochCapabilitiesIndexRows: [],
+	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
+	handbookMdRows: [],
+	proofBenchRows: [],
 	riemannBenchRows: [],
+	valsTerminalBenchRows: [
+		{
+			row_kind: "overall",
+			model_id: "openai/gpt-5",
+			model: "GPT-5",
+			provider: "OpenAI",
+			score: 0.73,
+		},
+	],
 	toolathlonRows: [],
 	valsIndexRows: [
 		{
@@ -276,16 +293,8 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.67,
 		},
 	],
-	valsTerminalBenchRows: [
-		{
-			row_kind: "overall",
-			model_id: "openai/gpt-5",
-			model: "GPT-5",
-			provider: "OpenAI",
-			score: 0.73,
-		},
-	],
 	vendingBench2Rows: [],
+	weirdMlRows: [],
 });
 
 assert.deepEqual(dbBenchmarkRows.gpqa, [

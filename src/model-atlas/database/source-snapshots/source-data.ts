@@ -10,24 +10,33 @@ export function cachedSourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
 ): LlmStatsSourceData {
 	return buildSourceData({
-		agentArenaRows: snapshots.agentArenaModelScoreRows,
 		artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
 		artificialAnalysisEvaluationResourceRows:
 			snapshots.artificialAnalysisEvaluationResourceRows,
 		modelsDevModels: snapshots.modelsDevModels,
+		agentArenaRows: snapshots.agentArenaModelScoreRows,
 		agentsLastExamRows: snapshots.agentsLastExamModelScores,
 		blueprintBenchRows: snapshots.blueprintBenchModelScoreRows,
 		browseCompRows: snapshots.browseCompModelScoreRows,
+		chartographyRows: snapshots.chartographyRows,
+		chessPuzzleRows: snapshots.chessPuzzleRows,
 		cursorBenchRows: snapshots.cursorBenchModelScoreRows,
 		deepSWEEffortRows: preferredDeepSWELeaderboardRows(
 			snapshots.deepSWERawRows,
 		),
+		ebrBenchRows: snapshots.ebrBenchRows,
+		enterpriseBenchCoreCraftRows: snapshots.enterpriseBenchCoreCraftRows,
+		epochCapabilitiesIndexRows: snapshots.epochCapabilitiesIndexRows,
+		frontierMathTier4Rows: snapshots.frontierMathTier4Rows,
 		gdpPdfRows: snapshots.gdpPdfModelScoreRows,
+		handbookMdRows: snapshots.handbookMdRows,
 		mercorApexAgentsRows: snapshots.mercorApexAgentsRows,
+		proofBenchRows: snapshots.proofBenchRows,
 		riemannBenchRows: snapshots.riemannBenchModelScoreRows,
+		valsTerminalBenchRows: snapshots.valsTerminalBenchModelScoreRows,
 		toolathlonRows: snapshots.toolathlonModelScoreRows,
 		valsIndexRows: snapshots.valsIndexModelScoreRows,
-		valsTerminalBenchRows: snapshots.valsTerminalBenchModelScoreRows,
 		vendingBench2Rows: snapshots.vendingBench2ModelScoreRows,
+		weirdMlRows: snapshots.weirdMlRows,
 	});
 }

@@ -25,7 +25,17 @@ const REASONING_EFFORT_RANK = {
 const MODEL_CONFIGURATION_LABEL_PATTERN =
 	/\s+\((?:fast|free|online|reasoning|thinking)\)\s*$/i;
 const BENCHMARK_EFFORT_SUFFIX_PATTERN =
-	/^(.*?)(?:\s+\((xhigh|extra[- ]high|max|high|medium|low|none)\)|\s+-\s+(xhigh|extra[- ]high|max|high|medium|low|none))\s*$/i;
+	/^(.*?)(?:\s+\(([^()]*)\)|\s+-\s+([^()]+))\s*$/i;
+const BENCHMARK_EFFORT_LABELS = new Set([
+	"xhigh",
+	"extra-high",
+	"max",
+	"high",
+	"medium",
+	"low",
+	"none",
+	"adaptive",
+]);
 
 export type BenchmarkModelEffort = {
 	baseModel: string;
@@ -107,7 +117,24 @@ export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
 		return { baseModel: value, reasoningEffort: null };
 	}
 	const baseModel = match[1]?.trim();
-	const reasoningEffort = canonicalReasoningEffort(match[2] ?? match[3]);
+	const rawLabel = (match[2] ?? match[3] ?? "").toLowerCase().trim();
+	if (rawLabel === "default") {
+		return baseModel == null || baseModel.length === 0
+			? { baseModel: value, reasoningEffort: null }
+			: { baseModel, reasoningEffort: null };
+	}
+	const labelTokens = rawLabel
+		.replace(/reasoning/g, "")
+		.split(/[,/]+/)
+		.map((label) => canonicalReasoningEffort(label.trim()))
+		.filter(
+			(label): label is string =>
+				label != null && BENCHMARK_EFFORT_LABELS.has(label),
+		);
+	const reasoningEffort =
+		labelTokens.sort(
+			(left, right) => reasoningEffortRank(right) - reasoningEffortRank(left),
+		)[0] ?? null;
 	return baseModel == null || baseModel.length === 0 || reasoningEffort == null
 		? { baseModel: value, reasoningEffort: null }
 		: { baseModel, reasoningEffort };

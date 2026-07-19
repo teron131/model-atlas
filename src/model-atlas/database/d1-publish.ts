@@ -15,16 +15,25 @@ import {
 	readAgentsLastExamRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
+	readChartographyRawCache,
+	readChessPuzzlesRawCache,
 	readCursorBenchRawCache,
 	readDeepSWERawCache,
+	readEbrBenchRawCache,
+	readEnterpriseBenchCoreCraftRawCache,
+	readEpochCapabilitiesIndexRawCache,
+	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
+	readHandbookMdRawCache,
 	readMercorApexAgentsRawCache,
 	readOpenRouterRawCache,
+	readProofBenchRawCache,
 	readRiemannBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
 	readVendingBench2RawCache,
+	readWeirdMlRawCache,
 } from "./cache";
 import type { CacheDbRow } from "./cache/rows";
 import {
@@ -33,7 +42,6 @@ import {
 	missingD1Environment,
 	queryD1Batch,
 	queryD1BatchRows,
-	queryD1Rows,
 	readD1Payload,
 } from "./d1";
 import { buildPayloadFromRows, type PayloadRows } from "./payload";
@@ -46,8 +54,6 @@ import {
 	type SourceCaches,
 } from "./sources";
 import {
-	DATABASE_PIPELINE_REVISION,
-	RAW_SOURCE_CACHE_SECONDS,
 	RAW_SOURCE_NAMES,
 	RAW_SOURCE_TABLES,
 	type RawSourceCacheStatus,
@@ -59,9 +65,11 @@ import type { CollectedTableRows } from "./writers/collector";
 import type { SqlValue } from "./writers/shared";
 
 const DERIVED_TABLES = [
-	SNAPSHOT_TABLES.source_row_states,
+	SNAPSHOT_TABLES.source_quarantines,
 	SNAPSHOT_TABLES.source_health,
-	SNAPSHOT_TABLES.model_stage_rows,
+	SNAPSHOT_TABLES.models,
+	SNAPSHOT_TABLES.model_evaluations,
+	SNAPSHOT_TABLES.model_task_metrics,
 	SNAPSHOT_TABLES.model_match_debug,
 ] as const;
 const INSERT_ROWS_PER_STATEMENT = 100;
@@ -85,7 +93,6 @@ export type D1PublishResult = {
 
 type D1RefreshState = {
 	previousRunId: number;
-	previousPipelineRevision: number | null;
 	rawRows: Record<RawSourceName, CacheDbRow[]>;
 	caches: SourceCaches;
 	statuses: Record<RawSourceName, RawSourceCacheStatus>;
@@ -109,25 +116,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	const schema = await ensureD1Schema();
 	const startedAt = nowEpochSeconds();
 	const replaceSourceRows = process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1";
-	const reusableSnapshot = await readReusableFreshD1Snapshot(
-		startedAt,
-		schema,
-		replaceSourceRows,
-	);
-	if (reusableSnapshot != null) {
-		return {
-			result: publishResult(
-				config.databaseId,
-				reusableSnapshot.payload,
-				reusableSnapshot.runId,
-				false,
-				[],
-				0,
-				schema,
-			),
-			payload: reusableSnapshot.payload,
-		};
-	}
 	const current = await readD1RefreshState(startedAt);
 	const refreshed = await refreshSourceSnapshots(
 		current.caches,
@@ -177,7 +165,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	const nextPayload = payloadFromCollector(runId, startedAt, collector);
 	if (
 		schema.statements.length === 0 &&
-		current.previousPipelineRevision === DATABASE_PIPELINE_REVISION &&
 		changedSources.length === 0 &&
 		current.previousPayload != null &&
 		publicContentHash(nextPayload) ===
@@ -205,7 +192,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	const completedAt = nowEpochSeconds();
 	const statements = publicationStatements(
 		runId,
-		derived.rows.startedAt,
 		completedAt,
 		collector,
 		changedSources,
@@ -224,48 +210,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 		),
 		payload,
 	};
-}
-
-/** Reuses the completed payload only when every source and the derivation contract are still current. */
-async function readReusableFreshD1Snapshot(
-	currentEpochSeconds: number,
-	schema: SchemaReconciliationPlan,
-	replaceSourceRows: boolean,
-): Promise<{ runId: number; payload: LlmStatsPayload } | null> {
-	if (schema.statements.length > 0 || replaceSourceRows) {
-		return null;
-	}
-	const [state] = await queryD1Rows(
-		`SELECT
-			p.id,
-			p.pipeline_revision,
-			COUNT(DISTINCT h.source) AS source_count,
-			COUNT(DISTINCT CASE
-				WHEN h.status IN ('cache_hit', 'fresh')
-					AND h.source_input_count > 0
-					AND h.last_fetch_epoch_seconds BETWEEN ? AND ?
-				THEN h.source
-			END) AS fresh_source_count
-		FROM pipeline_runs p
-		LEFT JOIN source_health h ON h.run_id = p.id
-		WHERE p.id = (
-			SELECT MAX(id) FROM pipeline_runs
-			WHERE completed_at_epoch_seconds IS NOT NULL
-		)
-		GROUP BY p.id, p.pipeline_revision`,
-		[currentEpochSeconds - RAW_SOURCE_CACHE_SECONDS, currentEpochSeconds],
-	);
-	const runId = Number(state?.id);
-	if (
-		!Number.isInteger(runId) ||
-		Number(state?.pipeline_revision) !== DATABASE_PIPELINE_REVISION ||
-		Number(state?.source_count) !== RAW_SOURCE_NAMES.length ||
-		Number(state?.fresh_source_count) !== RAW_SOURCE_NAMES.length
-	) {
-		return null;
-	}
-	const payload = await readD1Payload();
-	return payload == null ? null : { runId, payload };
 }
 
 function publishResult(
@@ -299,25 +243,19 @@ async function readD1RefreshState(now: number): Promise<D1RefreshState> {
 	const [previousRows, previousPayload] = await Promise.all([
 		queryD1BatchRows([
 			{
-				sql: "SELECT source, row_key, row_label, status, missing_from_source_since_epoch_seconds FROM source_row_states WHERE run_id = (SELECT MAX(run_id) FROM source_row_states) ORDER BY row_index",
+				sql: "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines WHERE run_id = (SELECT MAX(run_id) FROM source_quarantines) ORDER BY source, row_key",
 			},
 			{
-				sql: "SELECT id AS max_id, pipeline_revision FROM pipeline_runs ORDER BY id DESC LIMIT 1",
+				sql: "SELECT id AS max_id FROM pipeline_runs ORDER BY id DESC LIMIT 1",
 			},
 		]),
 		readD1Payload(),
 	]);
 	const previousSourceRows = previousRows[0] ?? [];
 	const previousRunId = Number(previousRows[1]?.[0]?.max_id ?? 0);
-	const previousPipelineRevision = Number.isFinite(
-		Number(previousRows[1]?.[0]?.pipeline_revision),
-	)
-		? Number(previousRows[1]?.[0]?.pipeline_revision)
-		: null;
 	const previousHealth = previousPayload?.metadata.source_health?.sources;
 	return {
 		previousRunId,
-		previousPipelineRevision,
 		rawRows,
 		caches: sourceCachesFromRows(rawRows),
 		statuses: Object.fromEntries(
@@ -357,7 +295,6 @@ function sourceCachesFromRows(
 	rows: Record<RawSourceName, CacheDbRow[]>,
 ): SourceCaches {
 	return {
-		agentArena: readAgentArenaRawCache(rows.agent_arena),
 		artificialAnalysis: artificialAnalysisRawCacheFromRows(
 			rows.artificial_analysis,
 		),
@@ -366,19 +303,33 @@ function sourceCachesFromRows(
 				rows.artificial_analysis_evaluation_resources,
 			),
 		modelsDev: modelsDevRawCacheFromRows(rows.models_dev),
+		openRouter: readOpenRouterRawCache(rows.openrouter),
+		agentArena: readAgentArenaRawCache(rows.agent_arena),
 		agentsLastExam: readAgentsLastExamRawCache(rows.agents_last_exam),
 		blueprintBench: readBlueprintBenchRawCache(rows.blueprint_bench_2),
 		browseComp: readBrowseCompRawCache(rows.browsecomp),
+		chartography: readChartographyRawCache(rows.chartography),
+		chessPuzzles: readChessPuzzlesRawCache(rows.chess_puzzles),
 		cursorBench: readCursorBenchRawCache(rows.cursorbench),
 		deepSWE: readDeepSWERawCache(rows.deep_swe),
+		ebrBench: readEbrBenchRawCache(rows.ebr_bench),
+		enterpriseBenchCoreCraft: readEnterpriseBenchCoreCraftRawCache(
+			rows.enterprisebench_corecraft,
+		),
+		epochCapabilitiesIndex: readEpochCapabilitiesIndexRawCache(
+			rows.epoch_capabilities_index,
+		),
+		frontierMathTier4: readFrontierMathTier4RawCache(rows.frontiermath_tier_4),
 		gdpPdf: readGdpPdfRawCache(rows.gdp_pdf),
+		handbookMd: readHandbookMdRawCache(rows.handbook_md),
 		mercorApexAgents: readMercorApexAgentsRawCache(rows.mercor_apex_agents),
+		proofBench: readProofBenchRawCache(rows.proofbench),
 		riemannBench: readRiemannBenchRawCache(rows.riemann_bench),
+		valsTerminalBench: readValsTerminalBenchRawCache(rows.vals_terminal_bench),
 		toolathlon: readToolathlonRawCache(rows.toolathlon),
 		valsIndex: readValsIndexRawCache(rows.vals_index),
-		valsTerminalBench: readValsTerminalBenchRawCache(rows.vals_terminal_bench),
 		vendingBench2: readVendingBench2RawCache(rows.vending_bench_2),
-		openRouter: readOpenRouterRawCache(rows.openrouter),
+		weirdMl: readWeirdMlRawCache(rows.weirdml),
 	};
 }
 
@@ -435,34 +386,48 @@ function payloadFromCollector(
 ): LlmStatsPayload {
 	const rows: PayloadRows = {
 		run: { id: runId, fetchedAt },
-		modelRows: collector
-			.records(SNAPSHOT_TABLES.model_stage_rows)
-			.filter((row) => row.stage === "final"),
+		modelRows: collector.records(SNAPSHOT_TABLES.models),
+		modelEvaluationRows: collector.records(SNAPSHOT_TABLES.model_evaluations),
+		modelTaskMetricRows: collector.records(SNAPSHOT_TABLES.model_task_metrics),
 		sourceHealthRows: collector.records(SNAPSHOT_TABLES.source_health),
-		agentArenaRows: collector.records(SNAPSHOT_TABLES.agent_arena),
 		artificialAnalysisRows: collector.records(
 			SNAPSHOT_TABLES.artificial_analysis,
 		),
+		agentArenaRows: collector.records(SNAPSHOT_TABLES.agent_arena),
 		agentsLastExamRows: collector.records(SNAPSHOT_TABLES.agents_last_exam),
 		blueprintBenchRows: collector.records(SNAPSHOT_TABLES.blueprint_bench_2),
 		browseCompRows: collector.records(SNAPSHOT_TABLES.browsecomp),
+		chartographyRows: collector.records(SNAPSHOT_TABLES.chartography),
+		chessPuzzleRows: collector.records(SNAPSHOT_TABLES.chess_puzzles),
 		cursorBenchRows: collector.records(SNAPSHOT_TABLES.cursorbench),
 		deepSWERows: collector.records(SNAPSHOT_TABLES.deep_swe),
+		ebrBenchRows: collector.records(SNAPSHOT_TABLES.ebr_bench),
+		enterpriseBenchCoreCraftRows: collector.records(
+			SNAPSHOT_TABLES.enterprisebench_corecraft,
+		),
+		epochCapabilitiesIndexRows: collector.records(
+			SNAPSHOT_TABLES.epoch_capabilities_index,
+		),
+		frontierMathTier4Rows: collector.records(
+			SNAPSHOT_TABLES.frontiermath_tier_4,
+		),
 		gdpPdfRows: collector.records(SNAPSHOT_TABLES.gdp_pdf),
+		handbookMdRows: collector.records(SNAPSHOT_TABLES.handbook_md),
+		proofBenchRows: collector.records(SNAPSHOT_TABLES.proofbench),
 		riemannBenchRows: collector.records(SNAPSHOT_TABLES.riemann_bench),
-		toolathlonRows: collector.records(SNAPSHOT_TABLES.toolathlon),
-		valsIndexRows: collector.records(SNAPSHOT_TABLES.vals_index),
 		valsTerminalBenchRows: collector.records(
 			SNAPSHOT_TABLES.vals_terminal_bench,
 		),
+		toolathlonRows: collector.records(SNAPSHOT_TABLES.toolathlon),
+		valsIndexRows: collector.records(SNAPSHOT_TABLES.vals_index),
 		vendingBench2Rows: collector.records(SNAPSHOT_TABLES.vending_bench_2),
+		weirdMlRows: collector.records(SNAPSHOT_TABLES.weirdml),
 	};
 	return buildPayloadFromRows(rows);
 }
 
 function publicationStatements(
 	runId: number,
-	startedAt: number,
 	completedAt: number,
 	collector: SnapshotRowCollector,
 	changedSources: RawSourceName[],
@@ -477,7 +442,7 @@ function publicationStatements(
 				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ${runId};`,
 		),
 		`DELETE FROM pipeline_runs WHERE id = ${runId};`,
-		`INSERT INTO pipeline_runs (id, started_at_epoch_seconds, completed_at_epoch_seconds, matched_row_count, enriched_row_count, final_model_count, pipeline_revision) VALUES (${runId}, ${startedAt}, NULL, ${collector.records(SNAPSHOT_TABLES.model_stage_rows).filter((row) => row.stage === "matched").length}, ${collector.records(SNAPSHOT_TABLES.model_stage_rows).filter((row) => row.stage === "enriched").length}, ${collector.records(SNAPSHOT_TABLES.model_stage_rows).filter((row) => row.stage === "final").length}, ${DATABASE_PIPELINE_REVISION});`,
+		`INSERT INTO pipeline_runs (id, completed_at_epoch_seconds) VALUES (${runId}, NULL);`,
 		...tablesToInsert.flatMap((table) =>
 			insertStatements(table, collector.tables.get(table)),
 		),

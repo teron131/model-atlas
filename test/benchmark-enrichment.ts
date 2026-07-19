@@ -3,13 +3,17 @@
 import assert from "node:assert/strict";
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
+import {
+	type BenchmarkScoreRow,
+	buildBenchmarkScoreMap,
+} from "../src/model-atlas/scrapers/benchmark-score";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
 import {
 	type BenchmarkEnrichmentLookups,
 	enrichBenchmarkAggregate,
 	enrichBenchmarkObservation,
-	enrichModelRowsWithSupplementalBenchmarks,
+	enrichModelRowsWithBenchmarks,
 } from "../src/model-atlas/stats/benchmarks";
 import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
@@ -197,18 +201,12 @@ const resourceRowsByBenchmark = new Map([
 	["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
 ]);
 const lookups = {
-	agentArena: {
-		scoreByModelName: new Map([["example-model", agentArenaRow]]),
-	},
 	artificialAnalysisEvaluationResources: {
 		observationByModelName: resourceRowsByBenchmark,
 		defaultEffortByModelName: resourceRowsByBenchmark,
 	},
-	valsTerminalBench: {
-		scoreByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
-	},
-	deepSWE: {
-		scoreByModelName: new Map([["example-model-preview", deepSWERow]]),
+	agentArena: {
+		scoreByModelName: new Map([["example-model", agentArenaRow]]),
 	},
 	agentsLastExam: {
 		scoreByModelName: emptyLookup(),
@@ -216,17 +214,34 @@ const lookups = {
 	blueprintBench: {
 		scoreByModelName: emptyLookup(),
 	},
+	browseComp: {
+		scoreByModelName: emptyLookup(),
+	},
+	chartography: { scoreByModelName: new Map() },
+	chessPuzzles: { scoreByModelName: new Map() },
+	cursorBench: {
+		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
+	},
+	deepSWE: {
+		scoreByModelName: new Map([["example-model-preview", deepSWERow]]),
+	},
+	ebrBench: { scoreByModelName: new Map() },
+	enterpriseBenchCoreCraft: { scoreByModelName: new Map() },
+	epochCapabilitiesIndex: { scoreByModelName: new Map() },
+	frontierMathTier4: { scoreByModelName: new Map() },
 	gdpPdf: {
 		scoreByModelName: emptyLookup(),
 	},
+	handbookMd: { scoreByModelName: new Map() },
 	mercorApexAgents: {
 		scoreByModelName: new Map([["example-model", mercorApexRow]]),
 	},
+	proofBench: { scoreByModelName: new Map() },
 	riemannBench: {
 		scoreByModelName: emptyLookup(),
 	},
-	browseComp: {
-		scoreByModelName: emptyLookup(),
+	valsTerminalBench: {
+		scoreByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
 	},
 	toolathlon: {
 		scoreByModelName: emptyLookup(),
@@ -234,12 +249,10 @@ const lookups = {
 	valsIndex: {
 		scoreByModelName: emptyLookup(),
 	},
-	cursorBench: {
-		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
-	},
 	vendingBench2: {
 		scoreByModelName: new Map([["example-model", vendingBench2Row]]),
 	},
+	weirdMl: { scoreByModelName: new Map() },
 } satisfies BenchmarkEnrichmentLookups;
 
 const observationEnrichment = enrichBenchmarkObservation(
@@ -251,11 +264,11 @@ const observationEnrichment = enrichBenchmarkObservation(
 	},
 );
 assert.deepEqual(observationEnrichment.evaluations, {
-	briefcase: 0.5,
-	terminalbench_v21: 0.82,
 	automation_bench: 0.68,
+	briefcase: 0.5,
 	harvey_lab: 0.142,
 	itbench_sre: 0.56,
+	terminalbench_v21: 0.82,
 });
 assert.equal(
 	(observationEnrichment.evaluations as Record<string, unknown>).deep_swe,
@@ -273,20 +286,25 @@ const enrichment = enrichBenchmarkAggregate(["Example Model"], lookups, {
 
 assert.deepEqual(enrichment.evaluations, {
 	agent_arena: 0.14,
-	briefcase: 0.5,
-	terminalbench_v21: 0.82,
-	deep_swe: 0.72,
 	automation_bench: 0.68,
+	briefcase: 0.5,
+	cursorbench: 0.52,
+	deep_swe: 0.72,
 	harvey_lab: 0.142,
 	itbench_sre: 0.56,
-	cursorbench: 0.52,
+	terminalbench_v21: 0.82,
 	vending_bench_2: 9_000,
 });
 assert.deepEqual(enrichment.scoringSources, {
 	agent_arena: agentArenaRow,
 	apex_agents_mercor: mercorApexRow,
+	automation_bench: automationBenchResourceRow,
 	briefcase: briefcaseResourceRow,
+	cursorbench: cursorBenchRow,
+	deep_swe: deepSWERow,
+	harvey_lab: harveyLabResourceRow,
 	hle: artificialAnalysisHleResourceRow,
+	itbench_sre: itbenchResourceRow,
 	terminalbench_v21: {
 		model_id: "test/example-model",
 		model: "Example Model",
@@ -301,11 +319,6 @@ assert.deepEqual(enrichment.scoringSources, {
 		input_tokens_per_task: 111,
 		output_tokens_per_task: 444,
 	},
-	deep_swe: deepSWERow,
-	automation_bench: automationBenchResourceRow,
-	harvey_lab: harveyLabResourceRow,
-	itbench_sre: itbenchResourceRow,
-	cursorbench: cursorBenchRow,
 	vending_bench_2: vendingBench2Row,
 });
 const effortQualifiedAggregate = enrichBenchmarkAggregate(
@@ -323,27 +336,6 @@ assert.deepEqual(effortQualifiedAggregate.scoringSources, {
 	vending_bench_2: vendingBench2Row,
 });
 assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
-	briefcase: {
-		cost: 2.5,
-		seconds: 120,
-		tokens: 1000,
-		input_tokens: 800,
-		output_tokens: 200,
-	},
-	hle: {
-		cost: 0.02,
-		seconds: 3,
-		tokens: 123,
-		input_tokens: 23,
-		output_tokens: 100,
-	},
-	terminalbench_v21: {
-		cost: 0.33999999999999997,
-		seconds: 45,
-		tokens: 555,
-		input_tokens: 111,
-		output_tokens: 444,
-	},
 	automation_bench: {
 		cost: 0.12,
 		seconds: 15,
@@ -351,18 +343,11 @@ assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 		input_tokens: 600,
 		output_tokens: 100,
 	},
-	harvey_lab: {
-		cost: 4.2,
-		seconds: 240,
-		tokens: 900,
-		input_tokens: 700,
-		output_tokens: 200,
-	},
-	itbench_sre: {
-		cost: 1.2,
-		seconds: 180,
-		tokens: 1500,
-		input_tokens: 1300,
+	briefcase: {
+		cost: 2.5,
+		seconds: 120,
+		tokens: 1000,
+		input_tokens: 800,
 		output_tokens: 200,
 	},
 	cursorbench: {
@@ -373,6 +358,34 @@ assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 		cost: 4.2,
 		seconds: 300,
 		output_tokens: 12000,
+	},
+	harvey_lab: {
+		cost: 4.2,
+		seconds: 240,
+		tokens: 900,
+		input_tokens: 700,
+		output_tokens: 200,
+	},
+	hle: {
+		cost: 0.02,
+		seconds: 3,
+		tokens: 123,
+		input_tokens: 23,
+		output_tokens: 100,
+	},
+	itbench_sre: {
+		cost: 1.2,
+		seconds: 180,
+		tokens: 1500,
+		input_tokens: 1300,
+		output_tokens: 200,
+	},
+	terminalbench_v21: {
+		cost: 0.33999999999999997,
+		seconds: 45,
+		tokens: 555,
+		input_tokens: 111,
+		output_tokens: 444,
 	},
 });
 
@@ -386,7 +399,7 @@ const variantAutomationBenchResourceRow = {
 	seconds_per_task: 6,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
 const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
-	enrichModelRowsWithSupplementalBenchmarks(
+	enrichModelRowsWithBenchmarks(
 		[
 			{
 				id: "test/example-model",
@@ -418,13 +431,13 @@ const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
 	);
 assert.ok(
 	supplementedObservation,
-	"supplemental enrichment must preserve the input observation",
+	"benchmark enrichment must preserve the input observation",
 );
 assert.equal(
 	(supplementedObservation.evaluations as Record<string, unknown>)
 		.automation_bench,
 	variantAutomationBenchResourceRow.score,
-	"supplemental aggregate benchmarks must not overwrite an effort observation's benchmark value",
+	"aggregate benchmarks must not overwrite an effort observation's benchmark value",
 );
 assert.equal(
 	(
@@ -432,7 +445,7 @@ assert.equal(
 			.automation_bench as ArtificialAnalysisEvaluationResourceRow
 	).cost_per_task_usd,
 	variantAutomationBenchResourceRow.cost_per_task_usd,
-	"supplemental aggregate benchmarks must not overwrite effort-specific resources",
+	"aggregate benchmarks must not overwrite effort-specific resources",
 );
 assert.equal(
 	(supplementedObservation.evaluations as Record<string, unknown>).cursorbench,
@@ -450,6 +463,67 @@ assert.equal(
 	(supplementedFastRoute.evaluations as Record<string, unknown>).cursorbench,
 	undefined,
 	"catalog-only routes should not outrank matched effort observations",
+);
+
+const chartographyRows = [
+	{
+		benchmark_key: "chartography",
+		source: "surge",
+		source_url: "https://surgehq.ai/benchmarks/chartography",
+		model_id: null,
+		model: "Example Model",
+		base_model: "Example Model",
+		reasoning_effort: null,
+		provider: "Test",
+		rank: 2,
+		score: 0.295,
+		score_eligible: true,
+		standard_error: null,
+		confidence_low: null,
+		confidence_high: null,
+		observed_at: null,
+		metadata: {},
+	},
+	{
+		benchmark_key: "chartography",
+		source: "surge",
+		source_url: "https://surgehq.ai/benchmarks/chartography",
+		model_id: null,
+		model: "Example Model (max)",
+		base_model: "Example Model",
+		reasoning_effort: "max",
+		provider: "Test",
+		rank: 1,
+		score: 0.348,
+		score_eligible: true,
+		standard_error: null,
+		confidence_low: null,
+		confidence_high: null,
+		observed_at: null,
+		metadata: {},
+	},
+] satisfies BenchmarkScoreRow[];
+const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
+	[
+		{
+			id: "test/example-model",
+			name: "Example Model",
+			artificial_analysis_id: "test/example-model",
+			reasoning_effort: null,
+			evaluations: { chartography: 0.295 },
+		},
+	],
+	{
+		...lookups,
+		chartography: {
+			scoreByModelName: buildBenchmarkScoreMap(chartographyRows),
+		},
+	},
+);
+assert.equal(
+	(defaultOnlyModel?.evaluations as Record<string, unknown>).chartography,
+	0.348,
+	"a source max effort should become the sole Atlas row's default",
 );
 /** Return a typed empty lookup map for sources not involved in this test. */
 function emptyLookup(): Map<string, never> {

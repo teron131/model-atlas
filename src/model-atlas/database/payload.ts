@@ -8,7 +8,6 @@ import { asFiniteNumber, asRecord, canonicalReasoningEffort } from "../shared";
 import {
 	ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 	benchmarkRowsFromDb,
-	MODEL_ATLAS_EVALUATION_KEYS,
 } from "../stats/benchmarks";
 import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
 import { publicModelFromCandidate } from "../stats/selection";
@@ -25,6 +24,7 @@ import type {
 	LlmStatsSourceHealth,
 	LlmStatsSpeed,
 	LlmStatsTaskMetrics,
+	LlmStatsTaskMetricValues,
 } from "../stats/types";
 
 type DbRow = Record<string, unknown>;
@@ -35,20 +35,31 @@ export type PayloadRows = {
 		fetchedAt: number | null;
 	};
 	modelRows: DbRow[];
+	modelEvaluationRows: DbRow[];
+	modelTaskMetricRows: DbRow[];
 	sourceHealthRows: DbRow[];
-	agentArenaRows: DbRow[];
 	artificialAnalysisRows: DbRow[];
+	agentArenaRows: DbRow[];
 	agentsLastExamRows: DbRow[];
 	blueprintBenchRows: DbRow[];
 	browseCompRows: DbRow[];
+	chartographyRows: DbRow[];
+	chessPuzzleRows: DbRow[];
 	cursorBenchRows: DbRow[];
 	deepSWERows: DbRow[];
+	ebrBenchRows: DbRow[];
+	enterpriseBenchCoreCraftRows: DbRow[];
+	epochCapabilitiesIndexRows: DbRow[];
+	frontierMathTier4Rows: DbRow[];
 	gdpPdfRows: DbRow[];
+	handbookMdRows: DbRow[];
+	proofBenchRows: DbRow[];
 	riemannBenchRows: DbRow[];
+	valsTerminalBenchRows: DbRow[];
 	toolathlonRows: DbRow[];
 	valsIndexRows: DbRow[];
-	valsTerminalBenchRows: DbRow[];
 	vendingBench2Rows: DbRow[];
+	weirdMlRows: DbRow[];
 };
 
 type PayloadRowKey = Exclude<keyof PayloadRows, "run">;
@@ -71,7 +82,15 @@ export const COMPLETED_RUN_SQL =
 export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 	{
 		key: "modelRows",
-		sql: "SELECT * FROM model_stage_rows WHERE run_id = ? AND stage = 'final' ORDER BY row_index",
+		sql: "SELECT * FROM models WHERE run_id = ? ORDER BY row_index",
+	},
+	{
+		key: "modelEvaluationRows",
+		sql: "SELECT * FROM model_evaluations WHERE run_id = ? ORDER BY model_row_index, benchmark_key",
+	},
+	{
+		key: "modelTaskMetricRows",
+		sql: "SELECT * FROM model_task_metrics WHERE run_id = ? ORDER BY model_row_index, source_key",
 	},
 	{
 		key: "sourceHealthRows",
@@ -79,15 +98,15 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 		optional: true,
 	},
 	{
+		key: "artificialAnalysisRows",
+		sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "artificial_analysis_raw_models",
+	},
+	{
 		key: "agentArenaRows",
 		sql: "SELECT * FROM agent_arena_raw_rows WHERE run_id = ? ORDER BY row_index",
 		sourceTable: "agent_arena_raw_rows",
 		optional: true,
-	},
-	{
-		key: "artificialAnalysisRows",
-		sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "artificial_analysis_raw_models",
 	},
 	{
 		key: "agentsLastExamRows",
@@ -105,6 +124,18 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 		sourceTable: "browsecomp_raw_rows",
 	},
 	{
+		key: "chartographyRows",
+		sql: "SELECT * FROM chartography_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "chartography_raw_rows",
+		optional: true,
+	},
+	{
+		key: "chessPuzzleRows",
+		sql: "SELECT * FROM chess_puzzles_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "chess_puzzles_raw_rows",
+		optional: true,
+	},
+	{
 		key: "cursorBenchRows",
 		sql: "SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
 		sourceTable: "cursorbench_raw_rows",
@@ -115,14 +146,56 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 		sourceTable: "deep_swe_raw_rows",
 	},
 	{
+		key: "ebrBenchRows",
+		sql: "SELECT * FROM ebr_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "ebr_bench_raw_rows",
+		optional: true,
+	},
+	{
+		key: "enterpriseBenchCoreCraftRows",
+		sql: "SELECT * FROM enterprisebench_corecraft_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "enterprisebench_corecraft_raw_rows",
+		optional: true,
+	},
+	{
+		key: "epochCapabilitiesIndexRows",
+		sql: "SELECT * FROM epoch_capabilities_index_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "epoch_capabilities_index_raw_rows",
+		optional: true,
+	},
+	{
+		key: "frontierMathTier4Rows",
+		sql: "SELECT * FROM frontiermath_tier_4_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "frontiermath_tier_4_raw_rows",
+		optional: true,
+	},
+	{
 		key: "gdpPdfRows",
 		sql: "SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
 		sourceTable: "gdp_pdf_raw_rows",
 	},
 	{
+		key: "handbookMdRows",
+		sql: "SELECT * FROM handbook_md_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "handbook_md_raw_rows",
+		optional: true,
+	},
+	{
+		key: "proofBenchRows",
+		sql: "SELECT * FROM proofbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "proofbench_raw_rows",
+		optional: true,
+	},
+	{
 		key: "riemannBenchRows",
 		sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
 		sourceTable: "riemann_bench_raw_rows",
+	},
+	{
+		key: "valsTerminalBenchRows",
+		sql: "SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "vals_terminal_bench_raw_rows",
+		optional: true,
 	},
 	{
 		key: "toolathlonRows",
@@ -136,15 +209,15 @@ export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 		optional: true,
 	},
 	{
-		key: "valsTerminalBenchRows",
-		sql: "SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "vals_terminal_bench_raw_rows",
-		optional: true,
-	},
-	{
 		key: "vendingBench2Rows",
 		sql: "SELECT * FROM vending_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
 		sourceTable: "vending_bench_2_raw_rows",
+		optional: true,
+	},
+	{
+		key: "weirdMlRows",
+		sql: "SELECT * FROM weirdml_raw_rows WHERE run_id = ? ORDER BY row_index",
+		sourceTable: "weirdml_raw_rows",
 		optional: true,
 	},
 ];
@@ -196,20 +269,6 @@ function numericObject<T extends object>(
 	return hasFields(record) ? (record as T) : null;
 }
 
-function taskMetricsFromJson(value: unknown): LlmStatsTaskMetrics {
-	if (typeof value !== "string" || value.length === 0) {
-		return null;
-	}
-	try {
-		const taskMetrics = asRecord(JSON.parse(value));
-		return hasFields(taskMetrics)
-			? (taskMetrics as NonNullable<LlmStatsTaskMetrics>)
-			: null;
-	} catch {
-		return null;
-	}
-}
-
 function buildModalities(row: DbRow): LlmStatsModalities | null {
 	const input = INPUT_MODALITY_COLUMNS.flatMap(([column, modality]) =>
 		booleanValue(row[column]) === true ? [modality] : [],
@@ -259,81 +318,6 @@ function buildCost(row: DbRow): LlmStatsCost {
 	return hasFields(cost) ? (cost as NonNullable<LlmStatsCost>) : null;
 }
 
-function buildTaskMetrics(row: DbRow): LlmStatsTaskMetrics {
-	const storedTaskMetrics = taskMetricsFromJson(row.task_metrics_json);
-	if (storedTaskMetrics != null) {
-		return storedTaskMetrics;
-	}
-	const agentsLastExam: Record<string, number> = {};
-	assignNumber(agentsLastExam, "cost", row.agents_last_exam_task_cost);
-	assignNumber(agentsLastExam, "seconds", row.agents_last_exam_task_seconds);
-	assignNumber(
-		agentsLastExam,
-		"input_tokens",
-		row.agents_last_exam_task_input_tokens,
-	);
-	assignNumber(
-		agentsLastExam,
-		"output_tokens",
-		row.agents_last_exam_task_output_tokens,
-	);
-	const artificialAnalysis: Record<string, number> = {};
-	assignNumber(artificialAnalysis, "cost", row.artificial_analysis_task_cost);
-	assignNumber(
-		artificialAnalysis,
-		"seconds",
-		row.artificial_analysis_task_seconds,
-	);
-	assignNumber(
-		artificialAnalysis,
-		"output_tokens",
-		row.artificial_analysis_task_output_tokens,
-	);
-	const automationBench: Record<string, number> = {};
-	assignNumber(automationBench, "cost", row.automation_bench_task_cost);
-	const cursorBench: Record<string, number> = {};
-	assignNumber(cursorBench, "cost", row.cursorbench_task_cost);
-	assignNumber(cursorBench, "tokens", row.cursorbench_task_tokens);
-	const deepSWE: Record<string, number> = {};
-	assignNumber(deepSWE, "cost", row.deep_swe_task_cost);
-	assignNumber(deepSWE, "seconds", row.deep_swe_task_seconds);
-	assignNumber(deepSWE, "output_tokens", row.deep_swe_task_output_tokens);
-	const terminalBench: Record<string, number> = {};
-	assignNumber(terminalBench, "cost", row.terminalbench_v21_task_cost);
-	assignNumber(terminalBench, "seconds", row.terminalbench_v21_task_seconds);
-	assignNumber(terminalBench, "tokens", row.terminalbench_v21_task_tokens);
-	assignNumber(
-		terminalBench,
-		"input_tokens",
-		row.terminalbench_v21_task_input_tokens,
-	);
-	assignNumber(
-		terminalBench,
-		"output_tokens",
-		row.terminalbench_v21_task_output_tokens,
-	);
-	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
-	if (hasFields(agentsLastExam)) {
-		taskMetrics.agents_last_exam = agentsLastExam;
-	}
-	if (hasFields(artificialAnalysis)) {
-		taskMetrics.artificial_analysis = artificialAnalysis;
-	}
-	if (hasFields(automationBench)) {
-		taskMetrics.automation_bench = automationBench;
-	}
-	if (hasFields(cursorBench)) {
-		taskMetrics.cursorbench = cursorBench;
-	}
-	if (hasFields(deepSWE)) {
-		taskMetrics.deep_swe = deepSWE;
-	}
-	if (hasFields(terminalBench)) {
-		taskMetrics.terminalbench_v21 = terminalBench;
-	}
-	return hasFields(taskMetrics) ? taskMetrics : null;
-}
-
 function buildComponentScores(row: DbRow): LlmStatsNullableComponentScores {
 	return {
 		intelligence_score:
@@ -352,8 +336,12 @@ function buildScores(row: DbRow): LlmStatsNullableScores {
 	};
 }
 
-/** One selected-row record becomes the public model contract while nested JSON columns are rehydrated. */
-function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
+/** One selected model row and its normalized child records become the public model contract. */
+function modelFromRow(
+	row: DbRow,
+	evaluations: LlmStatsEvaluations | null,
+	taskMetrics: LlmStatsTaskMetrics,
+): LlmStatsScoredCandidate {
 	const modelId = stringValue(row.model_id);
 	const provider =
 		stringValue(row.provider_id) ?? modelId?.split("/")[0] ?? null;
@@ -376,11 +364,8 @@ function modelFromRow(row: DbRow): LlmStatsScoredCandidate {
 			ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 		),
 		intelligence_index_cost: null,
-		task_metrics: buildTaskMetrics(row),
-		evaluations: numericObject<LlmStatsEvaluations>(
-			row,
-			MODEL_ATLAS_EVALUATION_KEYS,
-		),
+		task_metrics: taskMetrics,
+		evaluations,
 		component_scores: buildComponentScores(row),
 		scores: buildScores(row),
 	};
@@ -408,21 +393,77 @@ export function buildPayloadRows(
 	return {
 		run,
 		modelRows: rows.get("modelRows") ?? [],
+		modelEvaluationRows: rows.get("modelEvaluationRows") ?? [],
+		modelTaskMetricRows: rows.get("modelTaskMetricRows") ?? [],
 		sourceHealthRows: rows.get("sourceHealthRows") ?? [],
-		agentArenaRows: rows.get("agentArenaRows") ?? [],
 		artificialAnalysisRows: rows.get("artificialAnalysisRows") ?? [],
+		agentArenaRows: rows.get("agentArenaRows") ?? [],
 		agentsLastExamRows: rows.get("agentsLastExamRows") ?? [],
 		blueprintBenchRows: rows.get("blueprintBenchRows") ?? [],
 		browseCompRows: rows.get("browseCompRows") ?? [],
+		chartographyRows: rows.get("chartographyRows") ?? [],
+		chessPuzzleRows: rows.get("chessPuzzleRows") ?? [],
 		cursorBenchRows: rows.get("cursorBenchRows") ?? [],
 		deepSWERows: rows.get("deepSWERows") ?? [],
+		ebrBenchRows: rows.get("ebrBenchRows") ?? [],
+		enterpriseBenchCoreCraftRows:
+			rows.get("enterpriseBenchCoreCraftRows") ?? [],
+		epochCapabilitiesIndexRows: rows.get("epochCapabilitiesIndexRows") ?? [],
+		frontierMathTier4Rows: rows.get("frontierMathTier4Rows") ?? [],
 		gdpPdfRows: rows.get("gdpPdfRows") ?? [],
+		handbookMdRows: rows.get("handbookMdRows") ?? [],
+		proofBenchRows: rows.get("proofBenchRows") ?? [],
 		riemannBenchRows: rows.get("riemannBenchRows") ?? [],
+		valsTerminalBenchRows: rows.get("valsTerminalBenchRows") ?? [],
 		toolathlonRows: rows.get("toolathlonRows") ?? [],
 		valsIndexRows: rows.get("valsIndexRows") ?? [],
-		valsTerminalBenchRows: rows.get("valsTerminalBenchRows") ?? [],
 		vendingBench2Rows: rows.get("vendingBench2Rows") ?? [],
+		weirdMlRows: rows.get("weirdMlRows") ?? [],
 	};
+}
+
+function evaluationsByModelRow(
+	rows: readonly DbRow[],
+): Map<number, LlmStatsEvaluations> {
+	const evaluationsByModel = new Map<number, LlmStatsEvaluations>();
+	for (const row of rows) {
+		const modelRowIndex = asFiniteNumber(row.model_row_index);
+		const benchmarkKey = stringValue(row.benchmark_key);
+		const value = asFiniteNumber(row.value);
+		if (modelRowIndex == null || benchmarkKey == null || value == null) {
+			continue;
+		}
+		const evaluations = evaluationsByModel.get(modelRowIndex) ?? {};
+		evaluations[benchmarkKey] = value;
+		evaluationsByModel.set(modelRowIndex, evaluations);
+	}
+	return evaluationsByModel;
+}
+
+function taskMetricsByModelRow(
+	rows: readonly DbRow[],
+): Map<number, NonNullable<LlmStatsTaskMetrics>> {
+	const taskMetricsByModel = new Map<
+		number,
+		NonNullable<LlmStatsTaskMetrics>
+	>();
+	for (const row of rows) {
+		const modelRowIndex = asFiniteNumber(row.model_row_index);
+		const sourceKey = stringValue(row.source_key);
+		if (modelRowIndex == null || sourceKey == null) {
+			continue;
+		}
+		const metrics: LlmStatsTaskMetricValues = {};
+		assignNumber(metrics, "cost", row.cost);
+		assignNumber(metrics, "seconds", row.seconds);
+		assignNumber(metrics, "tokens", row.tokens);
+		assignNumber(metrics, "input_tokens", row.input_tokens);
+		assignNumber(metrics, "output_tokens", row.output_tokens);
+		const taskMetrics = taskMetricsByModel.get(modelRowIndex) ?? {};
+		taskMetrics[sourceKey] = metrics;
+		taskMetricsByModel.set(modelRowIndex, taskMetrics);
+	}
+	return taskMetricsByModel;
 }
 
 /** Payload row groups share one reader contract across local SQLite and Cloudflare D1. */
@@ -448,11 +489,13 @@ export async function readPayloadRows(
 	return buildPayloadRows(run, rowGroups);
 }
 
-function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
+function sourceHealthFromRows(
+	rows: DbRow[],
+	generatedAt: number | null,
+): LlmStatsSourceHealth | undefined {
 	if (rows.length === 0) {
 		return undefined;
 	}
-	const generatedAt = asFiniteNumber(rows[0]?.generated_at_epoch_seconds);
 	return {
 		generated_at_epoch_seconds: generatedAt,
 		sources: Object.fromEntries(
@@ -478,9 +521,9 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 								row.last_fetch_epoch_seconds,
 							),
 							source_input_count: asFiniteNumber(row.source_input_count) ?? 0,
-							cache_hit: booleanValue(row.cache_hit) ?? false,
-							refreshed: booleanValue(row.refreshed) ?? false,
-							using_cached_rows: booleanValue(row.using_cached_rows) ?? false,
+							cache_hit: status === "cache_hit",
+							refreshed: status === "fresh",
+							using_cached_rows: status === "using_cached_rows",
 							active_row_count: asFiniteNumber(row.active_row_count) ?? 0,
 							quarantined_row_count:
 								asFiniteNumber(row.quarantined_row_count) ?? 0,
@@ -494,11 +537,27 @@ function sourceHealthFromRows(rows: DbRow[]): LlmStatsSourceHealth | undefined {
 
 /** Assembles the public Model Atlas payload from database row groups. */
 export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
+	const evaluationsByModel = evaluationsByModelRow(rows.modelEvaluationRows);
+	const taskMetricsByModel = taskMetricsByModelRow(rows.modelTaskMetricRows);
 	const models = rows.modelRows.flatMap((row) => {
-		const model = publicModelFromCandidate(modelFromRow(row));
+		const modelRowIndex = asFiniteNumber(row.row_index);
+		const model = publicModelFromCandidate(
+			modelFromRow(
+				row,
+				modelRowIndex == null
+					? null
+					: (evaluationsByModel.get(modelRowIndex) ?? null),
+				modelRowIndex == null
+					? null
+					: (taskMetricsByModel.get(modelRowIndex) ?? null),
+			),
+		);
 		return model == null ? [] : [model];
 	});
-	const sourceHealth = sourceHealthFromRows(rows.sourceHealthRows);
+	const sourceHealth = sourceHealthFromRows(
+		rows.sourceHealthRows,
+		rows.run.fetchedAt,
+	);
 	const sourceRowsByKey = benchmarkRowsFromDb(rows);
 	return {
 		fetched_at_epoch_seconds: rows.run.fetchedAt,

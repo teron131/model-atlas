@@ -10,7 +10,8 @@ import { readRiemannBenchRawCache } from "../src/model-atlas/database/cache";
 import { openDatabase } from "../src/model-atlas/database/schema";
 import { riemannBenchSnapshot } from "../src/model-atlas/database/source-snapshots/sparse-benchmarks";
 import {
-	insertModelStageRows,
+	insertModelEvaluations,
+	insertModels,
 	insertRiemannBenchRawRows,
 } from "../src/model-atlas/database/writers";
 
@@ -22,15 +23,12 @@ try {
 	const db = await openDatabase(databasePath);
 	try {
 		const run = db
-			.prepare(`
-				INSERT INTO pipeline_runs (
-					started_at_epoch_seconds, completed_at_epoch_seconds,
-					matched_row_count, enriched_row_count, final_model_count
-				) VALUES (?, ?, ?, ?, ?)
-			`)
-			.run(1_800_000_000, 1_800_000_001, 1, 1, 1);
+			.prepare(
+				"INSERT INTO pipeline_runs (completed_at_epoch_seconds) VALUES (?)",
+			)
+			.run(1_800_000_001);
 		const runId = Number(run.lastInsertRowid);
-		insertModelStageRows(db, runId, "final", [
+		const finalRows = [
 			{
 				id: "example/math-model",
 				provider: "example",
@@ -50,7 +48,9 @@ try {
 					value_score: 65,
 				},
 			},
-		]);
+		];
+		insertModels(db, runId, finalRows);
+		insertModelEvaluations(db, runId, finalRows);
 		db.prepare(`
 			INSERT INTO riemann_bench_raw_rows (
 				run_id, row_index, fetched_at_epoch_seconds, url, provider,
@@ -184,7 +184,7 @@ try {
 	assert.equal(
 		payload.models[0]?.evaluations?.riemann_bench,
 		0.42,
-		"Riemann-bench should survive the main model_stage_rows DB payload path",
+		"Riemann-bench should survive the normalized final-model DB payload path",
 	);
 	assert.equal(
 		payload.metadata.artificial_analysis.available_evaluation_keys.includes(

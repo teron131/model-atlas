@@ -18,10 +18,7 @@ import type {
 	ScoringConfig,
 } from "../types";
 import { buildModelCandidate } from "./model-candidate";
-import {
-	hasRequiredQualityScores,
-	selectPublicModels,
-} from "./public-list";
+import { hasRequiredQualityScores, selectPublicModels } from "./public-list";
 
 const MIN_PUBLIC_COMPONENT_SCORE = 10;
 const PUBLIC_COMPONENT_SCORE_KEYS = [

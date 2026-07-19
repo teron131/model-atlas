@@ -95,19 +95,28 @@ assert.deepEqual(readVendingBench2RawCache(vendingBench2Rows), {
 });
 
 const sourceRows = benchmarkRowsFromDb({
-	agentArenaRows,
 	artificialAnalysisRows: [],
+	agentArenaRows,
 	agentsLastExamRows: [],
 	blueprintBenchRows: [],
 	browseCompRows: [],
+	chartographyRows: [],
+	chessPuzzleRows: [],
 	cursorBenchRows: [],
 	deepSWERows: [],
+	ebrBenchRows: [],
+	enterpriseBenchCoreCraftRows: [],
+	epochCapabilitiesIndexRows: [],
+	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
+	handbookMdRows: [],
+	proofBenchRows: [],
 	riemannBenchRows: [],
+	valsTerminalBenchRows: [],
 	toolathlonRows: [],
 	valsIndexRows: [],
-	valsTerminalBenchRows: [],
 	vendingBench2Rows,
+	weirdMlRows: [],
 });
 assert.equal(sourceRows.agent_arena?.[0]?.value, 0.14);
 assert.equal(sourceRows.vending_bench_2?.[0]?.value, 10_936.76);

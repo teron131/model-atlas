@@ -1,4 +1,4 @@
-/** Verifies AA evaluation resource task metrics survive the model_stage_rows database path. */
+/** Verifies evaluations and task resources round-trip through normalized final-model tables. */
 
 import assert from "node:assert/strict";
 
@@ -7,7 +7,11 @@ import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import { insertModelStageRows } from "../src/model-atlas/database/writers";
+import {
+	insertModelEvaluations,
+	insertModels,
+	insertModelTaskMetrics,
+} from "../src/model-atlas/database/writers";
 
 const databasePath = ".cache/test-database-aa-resource-task-metrics.sqlite";
 
@@ -17,26 +21,17 @@ try {
 	const db = await openDatabase(databasePath);
 	try {
 		const run = db
-			.prepare(`
-				INSERT INTO pipeline_runs (
-					started_at_epoch_seconds, completed_at_epoch_seconds,
-					matched_row_count, enriched_row_count, final_model_count
-				) VALUES (?, ?, ?, ?, ?)
-			`)
-			.run(1_800_000_000, 1_800_000_001, 1, 1, 2);
+			.prepare(
+				"INSERT INTO pipeline_runs (completed_at_epoch_seconds) VALUES (?)",
+			)
+			.run(1_800_000_001);
 		const runId = Number(run.lastInsertRowid);
-		insertModelStageRows(db, runId, "matched", [
-			{
-				id: "example/aa-resource-model",
-				artificial_analysis_id: "example/aa-resource-model-xhigh",
-				reasoning_effort: "xhigh",
-			},
-		]);
-		insertModelStageRows(db, runId, "final", [
+		const finalRows = [
 			{
 				id: "example/aa-resource-model",
 				provider: "example",
 				name: "AA Resource Model",
+				reasoning_effort: "xhigh",
 				logo: "https://example.com/logo.svg",
 				modalities: { input: ["text"] },
 				evaluations: { hle: 0.9, gdpval_normalized: 0.8 },
@@ -90,12 +85,13 @@ try {
 					value_score: null,
 				},
 			},
-		]);
+		];
+		insertModels(db, runId, finalRows);
+		insertModelEvaluations(db, runId, finalRows);
+		insertModelTaskMetrics(db, runId, finalRows);
 		assert.equal(
 			db
-				.prepare(
-					"SELECT reasoning_effort FROM model_stage_rows WHERE run_id = ? AND stage = 'matched'",
-				)
+				.prepare("SELECT reasoning_effort FROM models WHERE run_id = ?")
 				.get(runId)?.reasoning_effort,
 			"xhigh",
 		);

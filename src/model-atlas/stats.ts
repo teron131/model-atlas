@@ -4,7 +4,7 @@ import { STAGE_CONFIG } from "./constants";
 import {
 	type BenchmarkRowsByKey,
 	benchmarkRowsFromSourceData,
-	enrichModelRowsWithSupplementalBenchmarks,
+	enrichModelRowsWithBenchmarks,
 } from "./stats/benchmarks";
 import { buildModelCatalogRows } from "./stats/catalog";
 import { buildMatchedModelRows } from "./stats/matching";
@@ -76,7 +76,7 @@ async function buildLlmStatsPayload(
 	const matchedRows = buildMatchedModelRows(sourceData, STAGE_CONFIG.matcher);
 	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
 	const aggregatedRows = aggregateExpandedModelRows(catalogRows);
-	const benchmarkEnrichedRows = enrichModelRowsWithSupplementalBenchmarks(
+	const benchmarkEnrichedRows = enrichModelRowsWithBenchmarks(
 		aggregatedRows,
 		sourceData,
 	);

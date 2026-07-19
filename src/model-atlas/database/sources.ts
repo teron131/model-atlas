@@ -12,18 +12,27 @@ import {
 	readArtificialAnalysisRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
+	readChartographyRawCache,
+	readChessPuzzlesRawCache,
 	readCursorBenchRawCache,
 	readDeepSWERawCache,
+	readEbrBenchRawCache,
+	readEnterpriseBenchCoreCraftRawCache,
+	readEpochCapabilitiesIndexRawCache,
+	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
+	readHandbookMdRawCache,
 	readMercorApexAgentsRawCache,
 	readModelsDevRawCache,
 	readOpenRouterRawCache,
+	readProofBenchRawCache,
 	readRawSourceCacheStatus,
 	readRiemannBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
 	readVendingBench2RawCache,
+	readWeirdMlRawCache,
 	refreshedCacheStatus,
 } from "./cache";
 import {
@@ -38,14 +47,23 @@ import {
 	artificialAnalysisEvaluationResourceSnapshot,
 	blueprintBenchSnapshot,
 	browseCompSnapshot,
+	chartographySnapshot,
+	chessPuzzlesSnapshot,
 	cursorBenchSnapshot,
+	ebrBenchSnapshot,
+	enterpriseBenchCoreCraftSnapshot,
+	epochCapabilitiesIndexSnapshot,
+	frontierMathTier4Snapshot,
 	gdpPdfSnapshot,
+	handbookMdSnapshot,
 	mercorApexAgentsSnapshot,
+	proofBenchSnapshot,
 	riemannBenchSnapshot,
 	toolathlonSnapshot,
 	valsIndexSnapshot,
 	valsTerminalBenchSnapshot,
 	vendingBench2Snapshot,
+	weirdMlSnapshot,
 } from "./source-snapshots/sparse-benchmarks";
 import {
 	agentsLastExamSnapshot,
@@ -70,47 +88,67 @@ const PARTIAL_OPENROUTER_TIMEOUT_MS = 10_000;
 const PARTIAL_OPENROUTER_MAX_RETRIES = 1;
 
 export type SourceCaches = {
-	agentArena: ReturnType<typeof readAgentArenaRawCache>;
 	artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
 	artificialAnalysisEvaluationResources: ReturnType<
 		typeof readArtificialAnalysisEvaluationResourceRawCache
 	>;
 	modelsDev: ReturnType<typeof readModelsDevRawCache>;
+	openRouter: ReturnType<typeof readOpenRouterRawCache>;
+	agentArena: ReturnType<typeof readAgentArenaRawCache>;
 	agentsLastExam: ReturnType<typeof readAgentsLastExamRawCache>;
 	blueprintBench: ReturnType<typeof readBlueprintBenchRawCache>;
 	browseComp: ReturnType<typeof readBrowseCompRawCache>;
+	chartography: ReturnType<typeof readChartographyRawCache>;
+	chessPuzzles: ReturnType<typeof readChessPuzzlesRawCache>;
 	cursorBench: ReturnType<typeof readCursorBenchRawCache>;
 	deepSWE: ReturnType<typeof readDeepSWERawCache>;
+	ebrBench: ReturnType<typeof readEbrBenchRawCache>;
+	enterpriseBenchCoreCraft: ReturnType<
+		typeof readEnterpriseBenchCoreCraftRawCache
+	>;
+	epochCapabilitiesIndex: ReturnType<typeof readEpochCapabilitiesIndexRawCache>;
+	frontierMathTier4: ReturnType<typeof readFrontierMathTier4RawCache>;
 	gdpPdf: ReturnType<typeof readGdpPdfRawCache>;
+	handbookMd: ReturnType<typeof readHandbookMdRawCache>;
 	mercorApexAgents: ReturnType<typeof readMercorApexAgentsRawCache>;
+	proofBench: ReturnType<typeof readProofBenchRawCache>;
 	riemannBench: ReturnType<typeof readRiemannBenchRawCache>;
+	valsTerminalBench: ReturnType<typeof readValsTerminalBenchRawCache>;
 	toolathlon: ReturnType<typeof readToolathlonRawCache>;
 	valsIndex: ReturnType<typeof readValsIndexRawCache>;
-	valsTerminalBench: ReturnType<typeof readValsTerminalBenchRawCache>;
 	vendingBench2: ReturnType<typeof readVendingBench2RawCache>;
-	openRouter: ReturnType<typeof readOpenRouterRawCache>;
+	weirdMl: ReturnType<typeof readWeirdMlRawCache>;
 };
 
 function readSqliteSourceCaches(db: DatabaseSync): SourceCaches {
 	return {
-		agentArena: readAgentArenaRawCache(db),
 		artificialAnalysis: readArtificialAnalysisRawCache(db),
 		artificialAnalysisEvaluationResources:
 			readArtificialAnalysisEvaluationResourceRawCache(db),
 		modelsDev: readModelsDevRawCache(db),
+		openRouter: readOpenRouterRawCache(db),
+		agentArena: readAgentArenaRawCache(db),
 		agentsLastExam: readAgentsLastExamRawCache(db),
 		blueprintBench: readBlueprintBenchRawCache(db),
 		browseComp: readBrowseCompRawCache(db),
+		chartography: readChartographyRawCache(db),
+		chessPuzzles: readChessPuzzlesRawCache(db),
 		cursorBench: readCursorBenchRawCache(db),
 		deepSWE: readDeepSWERawCache(db),
+		ebrBench: readEbrBenchRawCache(db),
+		enterpriseBenchCoreCraft: readEnterpriseBenchCoreCraftRawCache(db),
+		epochCapabilitiesIndex: readEpochCapabilitiesIndexRawCache(db),
+		frontierMathTier4: readFrontierMathTier4RawCache(db),
 		gdpPdf: readGdpPdfRawCache(db),
+		handbookMd: readHandbookMdRawCache(db),
 		mercorApexAgents: readMercorApexAgentsRawCache(db),
+		proofBench: readProofBenchRawCache(db),
 		riemannBench: readRiemannBenchRawCache(db),
+		valsTerminalBench: readValsTerminalBenchRawCache(db),
 		toolathlon: readToolathlonRawCache(db),
 		valsIndex: readValsIndexRawCache(db),
-		valsTerminalBench: readValsTerminalBenchRawCache(db),
 		vendingBench2: readVendingBench2RawCache(db),
-		openRouter: readOpenRouterRawCache(db),
+		weirdMl: readWeirdMlRawCache(db),
 	};
 }
 
@@ -159,21 +197,30 @@ function fetchedAtFromSourceStatuses(
 	sourceStatuses: SourceSnapshotStatus[],
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
-		agentArena: null,
 		artificialAnalysis: null,
 		artificialAnalysisEvaluationResources: null,
+		agentArena: null,
 		agentsLastExam: null,
 		blueprintBench: null,
 		browseComp: null,
+		chartography: null,
+		chessPuzzles: null,
 		cursorBench: null,
 		deepSWE: null,
+		ebrBench: null,
+		enterpriseBenchCoreCraft: null,
+		epochCapabilitiesIndex: null,
+		frontierMathTier4: null,
 		gdpPdf: null,
+		handbookMd: null,
 		mercorApexAgents: null,
+		proofBench: null,
 		riemannBench: null,
+		valsTerminalBench: null,
 		toolathlon: null,
 		valsIndex: null,
-		valsTerminalBench: null,
 		vendingBench2: null,
+		weirdMl: null,
 	};
 	for (const sourceStatus of sourceStatuses) {
 		if (sourceStatus.fetchedAtKey != null) {
@@ -211,30 +258,32 @@ export async function refreshSourceSnapshots(
 ): Promise<SourceSnapshotCacheResult> {
 	const previousMissingSince = missingSinceBySource(previousSourceRowStates);
 	const [
-		agentArena,
 		artificialAnalysis,
 		artificialAnalysisEvaluationResources,
 		modelsDev,
+		agentArena,
 		agentsLastExam,
 		blueprintBench,
 		browseComp,
+		chartography,
+		chessPuzzles,
 		cursorBench,
 		deepSWE,
+		ebrBench,
+		enterpriseBenchCoreCraft,
+		epochCapabilitiesIndex,
+		frontierMathTier4,
 		gdpPdf,
+		handbookMd,
 		mercorApexAgents,
+		proofBench,
 		riemannBench,
+		valsTerminalBench,
 		toolathlon,
 		valsIndex,
-		valsTerminalBench,
 		vendingBench2,
+		weirdMl,
 	] = await Promise.all([
-		agentArenaSnapshot(
-			caches.agentArena,
-			sourceCache.agent_arena,
-			options,
-			previousMissingSince.agent_arena,
-			nowEpochSeconds,
-		),
 		artificialAnalysisSnapshot(
 			caches.artificialAnalysis,
 			sourceCache.artificial_analysis,
@@ -255,6 +304,13 @@ export async function refreshSourceSnapshots(
 			sourceCache.models_dev,
 			options,
 			previousMissingSince.models_dev,
+			nowEpochSeconds,
+		),
+		agentArenaSnapshot(
+			caches.agentArena,
+			sourceCache.agent_arena,
+			options,
+			previousMissingSince.agent_arena,
 			nowEpochSeconds,
 		),
 		agentsLastExamSnapshot(
@@ -278,6 +334,20 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.browsecomp,
 			nowEpochSeconds,
 		),
+		chartographySnapshot(
+			caches.chartography,
+			sourceCache.chartography,
+			options,
+			previousMissingSince.chartography,
+			nowEpochSeconds,
+		),
+		chessPuzzlesSnapshot(
+			caches.chessPuzzles,
+			sourceCache.chess_puzzles,
+			options,
+			previousMissingSince.chess_puzzles,
+			nowEpochSeconds,
+		),
 		cursorBenchSnapshot(
 			caches.cursorBench,
 			sourceCache.cursorbench,
@@ -292,11 +362,46 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.deep_swe,
 			nowEpochSeconds,
 		),
+		ebrBenchSnapshot(
+			caches.ebrBench,
+			sourceCache.ebr_bench,
+			options,
+			previousMissingSince.ebr_bench,
+			nowEpochSeconds,
+		),
+		enterpriseBenchCoreCraftSnapshot(
+			caches.enterpriseBenchCoreCraft,
+			sourceCache.enterprisebench_corecraft,
+			options,
+			previousMissingSince.enterprisebench_corecraft,
+			nowEpochSeconds,
+		),
+		epochCapabilitiesIndexSnapshot(
+			caches.epochCapabilitiesIndex,
+			sourceCache.epoch_capabilities_index,
+			options,
+			previousMissingSince.epoch_capabilities_index,
+			nowEpochSeconds,
+		),
+		frontierMathTier4Snapshot(
+			caches.frontierMathTier4,
+			sourceCache.frontiermath_tier_4,
+			options,
+			previousMissingSince.frontiermath_tier_4,
+			nowEpochSeconds,
+		),
 		gdpPdfSnapshot(
 			caches.gdpPdf,
 			sourceCache.gdp_pdf,
 			options,
 			previousMissingSince.gdp_pdf,
+			nowEpochSeconds,
+		),
+		handbookMdSnapshot(
+			caches.handbookMd,
+			sourceCache.handbook_md,
+			options,
+			previousMissingSince.handbook_md,
 			nowEpochSeconds,
 		),
 		mercorApexAgentsSnapshot(
@@ -306,11 +411,25 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.mercor_apex_agents,
 			nowEpochSeconds,
 		),
+		proofBenchSnapshot(
+			caches.proofBench,
+			sourceCache.proofbench,
+			options,
+			previousMissingSince.proofbench,
+			nowEpochSeconds,
+		),
 		riemannBenchSnapshot(
 			caches.riemannBench,
 			sourceCache.riemann_bench,
 			options,
 			previousMissingSince.riemann_bench,
+			nowEpochSeconds,
+		),
+		valsTerminalBenchSnapshot(
+			caches.valsTerminalBench,
+			sourceCache.vals_terminal_bench,
+			options,
+			previousMissingSince.vals_terminal_bench,
 			nowEpochSeconds,
 		),
 		toolathlonSnapshot(
@@ -327,18 +446,18 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.vals_index,
 			nowEpochSeconds,
 		),
-		valsTerminalBenchSnapshot(
-			caches.valsTerminalBench,
-			sourceCache.vals_terminal_bench,
-			options,
-			previousMissingSince.vals_terminal_bench,
-			nowEpochSeconds,
-		),
 		vendingBench2Snapshot(
 			caches.vendingBench2,
 			sourceCache.vending_bench_2,
 			options,
 			previousMissingSince.vending_bench_2,
+			nowEpochSeconds,
+		),
+		weirdMlSnapshot(
+			caches.weirdMl,
+			sourceCache.weirdml,
+			options,
+			previousMissingSince.weirdml,
 			nowEpochSeconds,
 		),
 	]);
@@ -347,27 +466,35 @@ export async function refreshSourceSnapshots(
 		artificialAnalysis.artificialAnalysisSelectedRows,
 	);
 	const sourceStatuses: SourceSnapshotStatus[] = [
-		agentArena.sourceStatus,
 		artificialAnalysis.sourceStatus,
 		artificialAnalysisEvaluationResources.sourceStatus,
 		modelsDev.sourceStatus,
+		agentArena.sourceStatus,
 		agentsLastExam.sourceStatus,
 		blueprintBench.sourceStatus,
 		browseComp.sourceStatus,
+		chartography.sourceStatus,
+		chessPuzzles.sourceStatus,
 		cursorBench.sourceStatus,
 		deepSWE.sourceStatus,
+		ebrBench.sourceStatus,
+		enterpriseBenchCoreCraft.sourceStatus,
+		epochCapabilitiesIndex.sourceStatus,
+		frontierMathTier4.sourceStatus,
 		gdpPdf.sourceStatus,
+		handbookMd.sourceStatus,
 		mercorApexAgents.sourceStatus,
+		proofBench.sourceStatus,
 		riemannBench.sourceStatus,
+		valsTerminalBench.sourceStatus,
 		toolathlon.sourceStatus,
 		valsIndex.sourceStatus,
-		valsTerminalBench.sourceStatus,
 		vendingBench2.sourceStatus,
+		weirdMl.sourceStatus,
 	];
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	return {
 		snapshots: {
-			agentArenaModelScoreRows: agentArena.agentArenaModelScoreRows,
 			artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
 			artificialAnalysisSelectedRows:
 				artificialAnalysis.artificialAnalysisSelectedRows,
@@ -377,25 +504,35 @@ export async function refreshSourceSnapshots(
 			modelsDevModels,
 			modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
 			modelsDevStatusCode: modelsDev.modelsDevStatusCode,
+			agentArenaModelScoreRows: agentArena.agentArenaModelScoreRows,
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			blueprintBenchModelScoreRows: blueprintBench.blueprintBenchModelScoreRows,
 			browseCompModelScoreRows: browseComp.browseCompModelScoreRows,
+			chartographyRows: chartography.rows,
+			chessPuzzleRows: chessPuzzles.rows,
 			cursorBenchModelScoreRows: cursorBench.cursorBenchModelScoreRows,
 			deepSWERawRows: deepSWE.deepSWERawRows,
 			deepSWESourceVersion: deepSWE.deepSWESourceVersion,
+			ebrBenchRows: ebrBench.rows,
+			enterpriseBenchCoreCraftRows: enterpriseBenchCoreCraft.rows,
+			epochCapabilitiesIndexRows: epochCapabilitiesIndex.rows,
+			frontierMathTier4Rows: frontierMathTier4.rows,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
+			handbookMdRows: handbookMd.rows,
 			mercorApexAgentsRows: mercorApexAgents.mercorApexAgentsRows,
+			proofBenchRows: proofBench.proofBenchRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
 			riemannBenchSourceUrl: riemannBench.riemannBenchSourceUrl,
-			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
-			valsIndexRows: valsIndex.valsIndexRows,
-			valsIndexModelScoreRows: valsIndex.valsIndexModelScoreRows,
 			valsTerminalBenchRows: valsTerminalBench.valsTerminalBenchRows,
 			valsTerminalBenchModelScoreRows:
 				valsTerminalBench.valsTerminalBenchModelScoreRows,
+			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
+			valsIndexRows: valsIndex.valsIndexRows,
+			valsIndexModelScoreRows: valsIndex.valsIndexModelScoreRows,
 			vendingBench2ModelScoreRows: vendingBench2.vendingBench2ModelScoreRows,
 			vendingBench2DataUrl: vendingBench2.vendingBench2DataUrl,
+			weirdMlRows: weirdMl.weirdMlRows,
 			sourceRowStates: sourceStatuses.flatMap(
 				(sourceStatus) => sourceStatus.sourceRowStates,
 			),
