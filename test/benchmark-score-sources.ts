@@ -32,10 +32,9 @@ import {
 } from "../src/model-atlas/scrapers/benchmark-score";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/csv-parser";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/epoch/capabilities-index";
-import { processEpochBenchmarkCsv } from "../src/model-atlas/scrapers/epoch/common";
 import { epochFrontierMathTier4Rows } from "../src/model-atlas/scrapers/epoch/frontiermath-tier-4";
 import { processWeirdMlCsv } from "../src/model-atlas/scrapers/epoch/weirdml";
-import { processChartographyPageHtml } from "../src/model-atlas/scrapers/surge/chartography";
+import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/common";
 import { processProofBenchPageHtml } from "../src/model-atlas/scrapers/vals/proofbench";
 
 assert.deepEqual(
@@ -50,7 +49,7 @@ const eci = processEpochCapabilitiesIndexCsv(
 assert.equal(eci[0]?.score, 161.77);
 assert.equal(eci[0]?.confidence_low, 159.26);
 
-const epochRuns = processEpochBenchmarkCsv(
+const epochRuns = parseCsvRecords(
 	"id_runs,task,model,Best score (across scorers),started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,stderr,best_score,original_task_name,Scores\n" +
 		"new,FrontierMath-Tier-4-v2-Private,gpt,0.56,2026-07-01T00:00:00Z,Success,2.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.561,0.02,0.56,frontiermath,[]\n" +
 		"old,FrontierMath-Tier-4-2025-07-01-Private,gpt,0.31,2025-07-01T00:00:00Z,Success,1.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.3125,0.02,0.31,frontiermath,[]\n",
@@ -101,11 +100,15 @@ assert.equal(
 	false,
 );
 
-const surge = processChartographyPageHtml(`
+const surge = processSurgeBenchmarkPageHtml(
+	`
 	<div>Model Rankings</div>
 	<div role="listitem" data-score="45"><img alt="OpenAI Logo"><div class="head-rank-table-brand">OpenAI</div><div class="head-rank-table-name">GPT 5.6 Sol (Max reasoning)</div></div>
 	<section></section>
-`);
+`,
+	"chartography",
+	"https://surgehq.ai/benchmarks/chartography",
+);
 assert.equal(surge[0]?.reasoning_effort, "max");
 assert.equal(surge[0]?.score, 0.45);
 

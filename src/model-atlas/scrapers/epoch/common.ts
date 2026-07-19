@@ -68,10 +68,6 @@ export function epochRunScoreRow(
 	};
 }
 
-export function processEpochBenchmarkCsv(csv: string): EpochBenchmarkCsvRow[] {
-	return parseCsvRecords(csv);
-}
-
 async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 	try {
 		const response = await fetchWithTimeout(
@@ -83,7 +79,7 @@ async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 			throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
 		return {
 			fetched_at_epoch_seconds: nowEpochSeconds(),
-			data: processEpochBenchmarkCsv(await response.text()),
+			data: parseCsvRecords(await response.text()),
 		};
 	} catch {
 		return { fetched_at_epoch_seconds: null, data: [] };

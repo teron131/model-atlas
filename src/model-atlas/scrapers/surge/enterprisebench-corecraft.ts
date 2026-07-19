@@ -6,27 +6,11 @@
  * Paper source: https://arxiv.org/abs/2602.16179
  */
 
-import type {
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "../benchmark-score";
-import {
-	getSurgeLeaderboardStats,
-	processSurgeBenchmarkPageHtml,
-} from "./common";
+import type { BenchmarkScorePayload } from "../benchmark-score";
+import { getSurgeLeaderboardStats } from "./common";
 
 export const ENTERPRISEBENCH_CORECRAFT_URL =
 	"https://surgehq.ai/benchmarks/enterprisebench-corecraft";
-
-export function processEnterpriseBenchCoreCraftPageHtml(
-	pageHtml: string,
-): BenchmarkScoreRow[] {
-	return processSurgeBenchmarkPageHtml(
-		pageHtml,
-		"enterprisebench_corecraft",
-		ENTERPRISEBENCH_CORECRAFT_URL,
-	);
-}
 
 export function getEnterpriseBenchCoreCraftStats(): Promise<BenchmarkScorePayload> {
 	return getSurgeLeaderboardStats(
