@@ -21,6 +21,8 @@ Views:
 - `benchmarks`: selected benchmark values by model.
 - `all`: fuller Model Atlas payload with every scored reasoning-effort variant. Use `reasoning_effort` to distinguish variants; `null` means the source did not report a separate effort label, not `none`.
 
+The `score`, `core`, and `benchmarks` views represent each base model with its highest-Intelligence scored variant.
+
 Pair API calls with `jq` to keep the response focused:
 
 ```bash

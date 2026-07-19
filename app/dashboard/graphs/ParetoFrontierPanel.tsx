@@ -190,8 +190,7 @@ export function ParetoFrontierPanel({
 			}
 			note={
 				<>
-					Step line: strongest observed INTELLIGENCE versus VALUE tradeoff
-					envelope.
+					Step line: displayed INTELLIGENCE versus VALUE tradeoff envelope.
 				</>
 			}
 		>
