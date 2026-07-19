@@ -4,8 +4,8 @@ import { STAGE_CONFIG } from "../constants";
 import { buildMatchDiagnostics } from "../matcher";
 import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
-import { enrichModelRowsWithSupplementalBenchmarks } from "../stats/benchmarks";
-import { buildModelCatalogRows, filterTextLlmRows } from "../stats/catalog";
+import { enrichModelRowsWithBenchmarks } from "../stats/benchmarks";
+import { buildModelCatalogRows } from "../stats/catalog";
 import { modelRowsFromMatchDiagnostics } from "../stats/matching";
 import {
 	aggregateExpandedModelRows,
@@ -29,31 +29,38 @@ import {
 	insertArtificialAnalysisRawModels,
 	insertBlueprintBenchRawRows,
 	insertBrowseCompRawRows,
+	insertChartographyRawRows,
+	insertChessPuzzlesRawRows,
 	insertCursorBenchRawRows,
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
+	insertEbrBenchRawRows,
+	insertEnterpriseBenchCoreCraftRawRows,
+	insertEpochCapabilitiesIndexRawRows,
+	insertFrontierMathTier4RawRows,
 	insertGdpPdfRawRows,
+	insertHandbookMdRawRows,
 	insertMercorApexAgentsRawRows,
-	insertModelStageRows,
+	insertModelEvaluations,
+	insertModels,
 	insertModelsDevRawModels,
+	insertModelTaskMetrics,
 	insertOpenRouterRawRows,
+	insertProofBenchRawRows,
 	insertRiemannBenchRawRows,
 	insertSourceHealth,
-	insertSourceRowStates,
+	insertSourceQuarantines,
 	insertToolathlonRawRows,
 	insertValsIndexRawRows,
 	insertValsTerminalBenchRawRows,
 	insertVendingBench2RawRows,
+	insertWeirdMlRawRows,
 } from "./writers";
 import type { DatabaseWriter } from "./writers/shared";
 
 export type DatabaseRunRows = {
-	startedAt: number;
 	snapshots: SourceSnapshots;
 	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
-	matchedTextLlmRows: readonly unknown[];
-	catalogRows: readonly unknown[];
-	enrichedRows: readonly unknown[];
 	finalModelRows: readonly unknown[];
 	debugTraceRows: readonly DebugTraceRow[];
 	sourceHealth: DatabaseBuildResult["source_health"];
@@ -76,11 +83,6 @@ type SnapshotWriter = {
 
 const SNAPSHOT_WRITERS = [
 	{
-		table: SNAPSHOT_TABLES.agent_arena,
-		write: (db, runId, rows) =>
-			insertAgentArenaRawRows(db, runId, rows.snapshots),
-	},
-	{
 		table: SNAPSHOT_TABLES.artificial_analysis,
 		write: (db, runId, rows) =>
 			insertArtificialAnalysisRawModels(db, runId, rows.snapshots),
@@ -100,6 +102,16 @@ const SNAPSHOT_WRITERS = [
 			insertModelsDevRawModels(db, runId, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.openrouter,
+		write: (db, runId, rows) =>
+			insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload),
+	},
+	{
+		table: SNAPSHOT_TABLES.agent_arena,
+		write: (db, runId, rows) =>
+			insertAgentArenaRawRows(db, runId, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.agents_last_exam,
 		write: (db, runId, rows) =>
 			insertAgentsLastExamRawRows(db, runId, rows.snapshots),
@@ -115,6 +127,16 @@ const SNAPSHOT_WRITERS = [
 			insertBrowseCompRawRows(db, runId, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.chartography,
+		write: (db, runId, rows) =>
+			insertChartographyRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.chess_puzzles,
+		write: (db, runId, rows) =>
+			insertChessPuzzlesRawRows(db, runId, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.cursorbench,
 		write: (db, runId, rows) =>
 			insertCursorBenchRawRows(db, runId, rows.snapshots),
@@ -124,8 +146,33 @@ const SNAPSHOT_WRITERS = [
 		write: (db, runId, rows) => insertDeepSWERawRows(db, runId, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.ebr_bench,
+		write: (db, runId, rows) =>
+			insertEbrBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.enterprisebench_corecraft,
+		write: (db, runId, rows) =>
+			insertEnterpriseBenchCoreCraftRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.epoch_capabilities_index,
+		write: (db, runId, rows) =>
+			insertEpochCapabilitiesIndexRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.frontiermath_tier_4,
+		write: (db, runId, rows) =>
+			insertFrontierMathTier4RawRows(db, runId, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.gdp_pdf,
 		write: (db, runId, rows) => insertGdpPdfRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.handbook_md,
+		write: (db, runId, rows) =>
+			insertHandbookMdRawRows(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.mercor_apex_agents,
@@ -133,9 +180,19 @@ const SNAPSHOT_WRITERS = [
 			insertMercorApexAgentsRawRows(db, runId, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.proofbench,
+		write: (db, runId, rows) =>
+			insertProofBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.riemann_bench,
 		write: (db, runId, rows) =>
 			insertRiemannBenchRawRows(db, runId, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.vals_terminal_bench,
+		write: (db, runId, rows) =>
+			insertValsTerminalBenchRawRows(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.toolathlon,
@@ -148,24 +205,18 @@ const SNAPSHOT_WRITERS = [
 			insertValsIndexRawRows(db, runId, rows.snapshots),
 	},
 	{
-		table: SNAPSHOT_TABLES.vals_terminal_bench,
-		write: (db, runId, rows) =>
-			insertValsTerminalBenchRawRows(db, runId, rows.snapshots),
-	},
-	{
 		table: SNAPSHOT_TABLES.vending_bench_2,
 		write: (db, runId, rows) =>
 			insertVendingBench2RawRows(db, runId, rows.snapshots),
 	},
 	{
-		table: SNAPSHOT_TABLES.openrouter,
-		write: (db, runId, rows) =>
-			insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload),
+		table: SNAPSHOT_TABLES.weirdml,
+		write: (db, runId, rows) => insertWeirdMlRawRows(db, runId, rows.snapshots),
 	},
 	{
-		table: SNAPSHOT_TABLES.source_row_states,
+		table: SNAPSHOT_TABLES.source_quarantines,
 		write: (db, runId, rows) =>
-			insertSourceRowStates(db, runId, rows.snapshots),
+			insertSourceQuarantines(db, runId, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.source_health,
@@ -173,13 +224,18 @@ const SNAPSHOT_WRITERS = [
 			insertSourceHealth(db, runId, rows.sourceHealth),
 	},
 	{
-		table: SNAPSHOT_TABLES.model_stage_rows,
-		write: (db, runId, rows) => {
-			insertModelStageRows(db, runId, "matched", rows.matchedTextLlmRows);
-			insertModelStageRows(db, runId, "catalog", rows.catalogRows);
-			insertModelStageRows(db, runId, "enriched", rows.enrichedRows);
-			insertModelStageRows(db, runId, "final", rows.finalModelRows);
-		},
+		table: SNAPSHOT_TABLES.models,
+		write: (db, runId, rows) => insertModels(db, runId, rows.finalModelRows),
+	},
+	{
+		table: SNAPSHOT_TABLES.model_evaluations,
+		write: (db, runId, rows) =>
+			insertModelEvaluations(db, runId, rows.finalModelRows),
+	},
+	{
+		table: SNAPSHOT_TABLES.model_task_metrics,
+		write: (db, runId, rows) =>
+			insertModelTaskMetrics(db, runId, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_match_debug,
@@ -220,10 +276,9 @@ export async function deriveDatabaseRun(
 		sourceData,
 		matchDiagnostics,
 	);
-	const matchedTextLlmRows = filterTextLlmRows(matchedRows);
 	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
 	const aggregatedRows = aggregateExpandedModelRows(catalogRows);
-	const benchmarkEnrichedRows = enrichModelRowsWithSupplementalBenchmarks(
+	const benchmarkEnrichedRows = enrichModelRowsWithBenchmarks(
 		aggregatedRows,
 		sourceData,
 	);
@@ -257,12 +312,8 @@ export async function deriveDatabaseRun(
 	};
 	return {
 		rows: {
-			startedAt,
 			snapshots,
 			openRouterRawPayload: openRouter.rawPayload,
-			matchedTextLlmRows,
-			catalogRows,
-			enrichedRows: enrichedRows.rows,
 			finalModelRows,
 			debugTraceRows,
 			sourceHealth: buildSourceHealth({

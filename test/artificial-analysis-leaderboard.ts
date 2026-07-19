@@ -243,11 +243,11 @@ const scoringRows = [
 			agentic_index: 60,
 		},
 		evaluations: {
+			apex_agents: 0.3,
 			gdpval_normalized: 0.6,
 			scicode: 0.6,
 			tau_banking: 0.6,
 			terminalbench_v21: 0.6,
-			apex_agents: 0.3,
 		},
 	},
 	{
@@ -255,11 +255,11 @@ const scoringRows = [
 			agentic_index: 80,
 		},
 		evaluations: {
+			apex_agents: 0.5,
 			gdpval_normalized: 0.8,
 			scicode: 0.8,
 			tau_banking: 0.8,
 			terminalbench_v21: 0.8,
-			apex_agents: 0.5,
 		},
 	},
 	{
@@ -278,18 +278,18 @@ const scoringConfig = {
 	intelligenceBenchmarkKeys: [],
 	intelligenceBenchmarkDisplayKeys: [],
 	agenticBenchmarkKeys: [
+		"apex_agents",
 		"gdpval_normalized",
 		"scicode",
 		"tau_banking",
 		"terminalbench_v21",
-		"apex_agents",
 	],
 	agenticBenchmarkDisplayKeys: [
+		"apex_agents",
 		"gdpval_normalized",
 		"scicode",
 		"tau_banking",
 		"terminalbench_v21",
-		"apex_agents",
 	],
 	defaultSpeedOutputTokenAnchors: [],
 	speedOutputTokenRangeMin: 0,

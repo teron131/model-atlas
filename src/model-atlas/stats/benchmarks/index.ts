@@ -6,7 +6,7 @@ export {
 	type BenchmarkEnrichmentLookups,
 	enrichBenchmarkAggregate,
 	enrichBenchmarkObservation,
-	enrichModelRowsWithSupplementalBenchmarks,
+	enrichModelRowsWithBenchmarks,
 } from "./enrichment";
 export {
 	AGENTIC_INDEX_KEYS,

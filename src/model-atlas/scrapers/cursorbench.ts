@@ -229,10 +229,7 @@ function parseCursorBenchCells(
 	}
 	const hasSeparateScoreCaveat = lines[index + 2] === "*";
 	const scoreIndex = index + (hasSeparateScoreCaveat ? 3 : 2);
-	if (
-		lines[scoreIndex + 1] === "%" &&
-		lines[scoreIndex + 2] === "$"
-	) {
+	if (lines[scoreIndex + 1] === "%" && lines[scoreIndex + 2] === "$") {
 		const row = parseCursorBenchFields(
 			rank,
 			model,
@@ -242,9 +239,7 @@ function parseCursorBenchCells(
 			lines[scoreIndex + 5],
 			hasSeparateScoreCaveat,
 		);
-		return row == null
-			? null
-			: { row, consumedCells: scoreIndex - index + 6 };
+		return row == null ? null : { row, consumedCells: scoreIndex - index + 6 };
 	}
 	const row = parseCursorBenchFields(
 		rank,

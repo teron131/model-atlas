@@ -18,7 +18,6 @@ import {
 	schemaTableColumns,
 	schemaTableShapes,
 } from "../src/model-atlas/database/schema";
-import { DATABASE_PIPELINE_REVISION } from "../src/model-atlas/database/types";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
 const DEEP_SWE_V1_1_URL =
@@ -35,6 +34,11 @@ const DEEP_SWE_INSERT_SQL = `
 `;
 
 const schemaSql = await loadSchemaSql();
+assert.equal(
+	/\bAUTOINCREMENT\b/i.test(schemaSql),
+	false,
+	"The snapshot schema should not create SQLite sequence bookkeeping",
+);
 const schemaColumns = schemaTableColumns(schemaSql);
 assert.equal(
 	schemaColumns
@@ -43,22 +47,50 @@ assert.equal(
 	"TEXT NOT NULL",
 	"schema parsing should preserve complete column definitions",
 );
-assert.equal(
-	schemaColumns
-		.get("pipeline_runs")
-		?.find(([column]) => column === "pipeline_revision")?.[1],
-	`INTEGER NOT NULL DEFAULT ${DATABASE_PIPELINE_REVISION}`,
-	"The persisted schema default should match the code-owned pipeline revision",
+const processedModelShape = schemaTableShapes(schemaSql).get("models");
+assert(
+	(processedModelShape?.size ?? 0) <= 100,
+	"D1 tables must stay within Cloudflare's 100-column SQLite limit",
 );
-const processedModelShape =
-	schemaTableShapes(schemaSql).get("model_stage_rows");
+assert.equal(
+	processedModelShape?.has("agent_arena"),
+	false,
+	"Benchmark values should live in normalized evaluation rows",
+);
+assert.equal(
+	processedModelShape?.has("task_metrics_json"),
+	false,
+	"Task metrics should live in normalized scalar rows rather than JSON",
+);
+assert.deepEqual(
+	Array.from(
+		schemaTableShapes(schemaSql).get("model_evaluations")?.keys() ?? [],
+	),
+	["run_id", "model_row_index", "benchmark_key", "value"],
+	"Evaluation storage should remain a narrow keyed table",
+);
+assert.deepEqual(
+	Array.from(
+		schemaTableShapes(schemaSql).get("model_task_metrics")?.keys() ?? [],
+	),
+	[
+		"run_id",
+		"model_row_index",
+		"source_key",
+		"cost",
+		"seconds",
+		"tokens",
+		"input_tokens",
+		"output_tokens",
+	],
+	"Task metric storage should remain scalar and relational",
+);
 assert.deepEqual(
 	[
 		processedModelShape?.get("run_id")?.primaryKey,
-		processedModelShape?.get("stage")?.primaryKey,
 		processedModelShape?.get("row_index")?.primaryKey,
 	],
-	[1, 2, 3],
+	[1, 2],
 	"schema drift checks should preserve table-level primary key order",
 );
 
@@ -116,9 +148,9 @@ try {
 			);
 		firstDb
 			.prepare(
-				"INSERT INTO model_stage_rows (run_id, stage, row_index, model_id) VALUES (?, ?, ?, ?)",
+				"INSERT INTO models (run_id, row_index, model_id) VALUES (?, ?, ?)",
 			)
-			.run(1, "final", 0, "anthropic/claude-fable-5");
+			.run(1, 0, "anthropic/claude-fable-5");
 		firstDb
 			.prepare(`
 				INSERT INTO browsecomp_raw_rows (
@@ -151,9 +183,7 @@ try {
 				`INSERT INTO ${SCHEMA_MANIFEST_TABLE} (object_type, object_name) VALUES (?, ?)`,
 			)
 			.run("table", "legacy_snapshot_rows");
-		firstDb
-			.prepare("ALTER TABLE model_stage_rows DROP COLUMN cursorbench")
-			.run();
+		firstDb.prepare("ALTER TABLE models DROP COLUMN reasoning_effort").run();
 		firstDb
 			.prepare("ALTER TABLE browsecomp_raw_rows DROP COLUMN provider_name")
 			.run();
@@ -202,17 +232,10 @@ try {
 		);
 		assert(
 			reopenedDb
-				.prepare("PRAGMA table_info(model_stage_rows)")
-				.all()
-				.some((column) => column.name === "cursorbench"),
-			"Opening the database should add missing model_stage_rows columns",
-		);
-		assert(
-			reopenedDb
-				.prepare("PRAGMA table_info(model_stage_rows)")
+				.prepare("PRAGMA table_info(models)")
 				.all()
 				.some((column) => column.name === "reasoning_effort"),
-			"Model stage rows should persist effort observations",
+			"Opening the database should add missing models columns",
 		);
 		assert(
 			reopenedDb
@@ -224,9 +247,7 @@ try {
 		assert.equal(
 			Number(
 				reopenedDb
-					.prepare(
-						"SELECT COUNT(*) AS count FROM model_stage_rows WHERE run_id = 1 AND stage = 'final'",
-					)
+					.prepare("SELECT COUNT(*) AS count FROM models WHERE run_id = 1")
 					.get()?.count ?? 0,
 			),
 			1,
@@ -234,10 +255,8 @@ try {
 		);
 		assert.equal(
 			reopenedDb
-				.prepare(
-					"SELECT cursorbench FROM model_stage_rows WHERE run_id = 1 AND stage = 'final'",
-				)
-				.get()?.cursorbench,
+				.prepare("SELECT reasoning_effort FROM models WHERE run_id = 1")
+				.get()?.reasoning_effort,
 			null,
 			"New nullable columns should be added without inventing evidence",
 		);
@@ -283,8 +302,8 @@ try {
 			() =>
 				schemaReconciliationPlan(
 					schemaSql.replace(
-						"PRIMARY KEY (run_id, stage, row_index)",
-						"PRIMARY KEY (run_id, row_index)",
+						"PRIMARY KEY (run_id, row_index)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
+						"PRIMARY KEY (run_id, row_index, model_id)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
 					),
 					reconciledCatalog,
 					reconciledManifest,
@@ -304,18 +323,6 @@ try {
 				),
 			/new required column new_required_field needs a DEFAULT/,
 			"Automatic reconciliation should refuse required columns without a migration value",
-		);
-		assert.deepEqual(
-			schemaReconciliationPlan(
-				schemaSql.replace(
-					`INTEGER NOT NULL DEFAULT ${DATABASE_PIPELINE_REVISION}`,
-					`INTEGER NOT NULL DEFAULT ${DATABASE_PIPELINE_REVISION + 1}`,
-				),
-				reconciledCatalog,
-				reconciledManifest,
-			).changedTables,
-			["pipeline_runs"],
-			"Schema reconciliation should detect changed defaults, not only changed column shapes",
 		);
 		const deepSWEStatement = reopenedDb.prepare(DEEP_SWE_INSERT_SQL);
 		for (const [

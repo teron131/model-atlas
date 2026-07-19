@@ -78,34 +78,45 @@ const modelsDevModels = [
 ];
 const deepSWEEffortRows = [deepSWERow("max", 0.8), deepSWERow(null, 0.4)];
 const sourceRows: LlmStatsSourceRows = {
-	agentArenaRows: [],
 	artificialAnalysisRows: [{ model_id: "google/example-model" }],
 	artificialAnalysisEvaluationResourceRows: [],
 	modelsDevModels,
+	agentArenaRows: [],
 	agentsLastExamRows: [],
 	blueprintBenchRows: [],
 	browseCompRows: [],
+	chartographyRows: [],
+	chessPuzzleRows: [],
 	cursorBenchRows: [],
 	deepSWEEffortRows,
+	ebrBenchRows: [],
+	enterpriseBenchCoreCraftRows: [],
+	epochCapabilitiesIndexRows: [],
+	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
+	handbookMdRows: [],
 	mercorApexAgentsRows: [],
+	proofBenchRows: [],
 	riemannBenchRows: [],
+	valsTerminalBenchRows: [],
 	toolathlonRows: [],
 	valsIndexRows: [],
-	valsTerminalBenchRows: [],
 	vendingBench2Rows: [],
+	weirdMlRows: [],
 };
 
 const liveSourceData = buildSourceData(sourceRows);
 const cachedSourceData = cachedSourceDataFromSnapshots({
-	agentArenaModelScoreRows: [],
 	artificialAnalysisSelectedRows: sourceRows.artificialAnalysisRows,
 	artificialAnalysisEvaluationResourceRows:
 		sourceRows.artificialAnalysisEvaluationResourceRows,
 	modelsDevModels,
+	agentArenaModelScoreRows: [],
 	agentsLastExamModelScores: [],
 	blueprintBenchModelScoreRows: [],
 	browseCompModelScoreRows: [],
+	chartographyRows: [],
+	chessPuzzleRows: [],
 	cursorBenchModelScoreRows: [],
 	deepSWERawRows: deepSWEEffortRows.map(
 		(row): DeepSWERawLeaderboardRow => ({
@@ -113,13 +124,20 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 			source_version: "v1.1",
 		}),
 	),
+	ebrBenchRows: [],
+	enterpriseBenchCoreCraftRows: [],
+	epochCapabilitiesIndexRows: [],
+	frontierMathTier4Rows: [],
 	gdpPdfModelScoreRows: [],
+	handbookMdRows: [],
 	mercorApexAgentsRows: [],
+	proofBenchRows: [],
 	riemannBenchModelScoreRows: [],
+	valsTerminalBenchModelScoreRows: [],
 	toolathlonModelScoreRows: [],
 	valsIndexModelScoreRows: [],
-	valsTerminalBenchModelScoreRows: [],
 	vendingBench2ModelScoreRows: [],
+	weirdMlRows: [],
 } as unknown as SourceSnapshots);
 
 assert.deepEqual(summary(cachedSourceData), summary(liveSourceData));

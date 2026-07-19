@@ -70,19 +70,8 @@ async function publishDatabaseFile(
 	await rename(persistedPath, outputPath);
 }
 
-function insertPipelineRun(db: DatabaseSync, rows: DatabaseRunRows): number {
-	const result = db
-		.prepare(`
-			INSERT INTO pipeline_runs (
-				started_at_epoch_seconds, matched_row_count, enriched_row_count, final_model_count
-			) VALUES (?, ?, ?, ?)
-		`)
-		.run(
-			rows.startedAt,
-			rows.matchedTextLlmRows.length,
-			rows.enrichedRows.length,
-			rows.finalModelRows.length,
-		);
+function insertPipelineRun(db: DatabaseSync): number {
+	const result = db.prepare("INSERT INTO pipeline_runs DEFAULT VALUES").run();
 	return Number(result.lastInsertRowid);
 }
 
@@ -90,7 +79,8 @@ function writeSnapshot(db: DatabaseSync, rows: DatabaseRunRows): number {
 	for (const table of SNAPSHOT_WRITER_TABLES) {
 		db.prepare(`DELETE FROM ${table}`).run();
 	}
-	const runId = insertPipelineRun(db, rows);
+	db.prepare("DELETE FROM pipeline_runs").run();
+	const runId = insertPipelineRun(db);
 	writeDatabaseRunRows(db, runId, rows);
 	db.prepare(
 		"UPDATE pipeline_runs SET completed_at_epoch_seconds = ? WHERE id = ?",

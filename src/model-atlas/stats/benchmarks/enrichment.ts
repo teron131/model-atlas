@@ -11,6 +11,11 @@ import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	findArtificialAnalysisEvaluationResourceRow,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
+import {
+	BENCHMARK_SCORE_KEYS,
+	type BenchmarkScoreByModelName,
+	findBenchmarkScoreRow,
+} from "../../scrapers/benchmark-score";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findBrowseCompScore } from "../../scrapers/browsecomp";
 import { findGdpPdfScore } from "../../scrapers/surge/gdp-pdf";
@@ -34,41 +39,73 @@ import {
 } from "./terminal-bench";
 
 export type BenchmarkEnrichmentLookups = {
+	artificialAnalysisEvaluationResources: Pick<
+		LlmStatsSourceData["artificialAnalysisEvaluationResources"],
+		"observationByModelName" | "defaultEffortByModelName"
+	>;
 	agentArena: Pick<LlmStatsSourceData["agentArena"], "scoreByModelName">;
 	agentsLastExam: Pick<
 		LlmStatsSourceData["agentsLastExam"],
 		"scoreByModelName"
-	>;
-	artificialAnalysisEvaluationResources: Pick<
-		LlmStatsSourceData["artificialAnalysisEvaluationResources"],
-		"observationByModelName" | "defaultEffortByModelName"
 	>;
 	blueprintBench: Pick<
 		LlmStatsSourceData["blueprintBench"],
 		"scoreByModelName"
 	>;
 	browseComp: Pick<LlmStatsSourceData["browseComp"], "scoreByModelName">;
+	chartography: Pick<LlmStatsSourceData["chartography"], "scoreByModelName">;
+	chessPuzzles: Pick<LlmStatsSourceData["chessPuzzles"], "scoreByModelName">;
 	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "scoreByModelName">;
 	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "scoreByModelName">;
+	ebrBench: Pick<LlmStatsSourceData["ebrBench"], "scoreByModelName">;
+	enterpriseBenchCoreCraft: Pick<
+		LlmStatsSourceData["enterpriseBenchCoreCraft"],
+		"scoreByModelName"
+	>;
+	epochCapabilitiesIndex: Pick<
+		LlmStatsSourceData["epochCapabilitiesIndex"],
+		"scoreByModelName"
+	>;
+	frontierMathTier4: Pick<
+		LlmStatsSourceData["frontierMathTier4"],
+		"scoreByModelName"
+	>;
 	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "scoreByModelName">;
+	handbookMd: Pick<LlmStatsSourceData["handbookMd"], "scoreByModelName">;
 	mercorApexAgents: Pick<
 		LlmStatsSourceData["mercorApexAgents"],
 		"scoreByModelName"
 	>;
+	proofBench: Pick<LlmStatsSourceData["proofBench"], "scoreByModelName">;
 	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "scoreByModelName">;
-	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "scoreByModelName">;
-	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "scoreByModelName">;
 	valsTerminalBench: Pick<
 		LlmStatsSourceData["valsTerminalBench"],
 		"scoreByModelName"
 	>;
+	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "scoreByModelName">;
+	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "scoreByModelName">;
 	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "scoreByModelName">;
+	weirdMl: Pick<LlmStatsSourceData["weirdMl"], "scoreByModelName">;
 };
 
 export type BenchmarkEnrichment = {
 	evaluations: Record<string, unknown>;
 	scoringSources: NonNullable<LlmStatsScoringSources>;
 };
+
+/** Source-owned benchmark rows override duplicate catalog values on the selected default effort. */
+function mergeAggregateBenchmarkFields(
+	baseFields: Record<string, unknown>,
+	aggregateFields: Record<string, unknown>,
+): Record<string, unknown> {
+	const fields = { ...aggregateFields, ...baseFields };
+	for (const key of BENCHMARK_SCORE_KEYS) {
+		if (key in aggregateFields) {
+			fields[key] = aggregateFields[key];
+		}
+	}
+	return fields;
+}
 
 type ArtificialAnalysisResourceLookup = {
 	modelNameCandidates: unknown[];
@@ -100,6 +137,25 @@ function findSourceRow<T>(
 		}
 	}
 	return null;
+}
+
+function addBenchmarkScore(
+	evaluations: Record<string, unknown>,
+	scoringSources: NonNullable<LlmStatsScoringSources>,
+	modelNameCandidates: unknown[],
+	targetReasoningEffort: unknown,
+	benchmarkKey: string,
+	rowsByModel: BenchmarkScoreByModelName,
+): void {
+	const row = findBenchmarkScoreRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		rowsByModel,
+	);
+	if (row != null) {
+		evaluations[benchmarkKey] = row.score;
+		scoringSources[benchmarkKey] = row;
+	}
 }
 
 function findAggregateBenchmarkSourceRow<T>(
@@ -261,14 +317,6 @@ export function enrichBenchmarkAggregate(
 		evaluations.agent_arena = agentArenaRow.score;
 		scoringSources.agent_arena = agentArenaRow;
 	}
-	const mercorRow = findEffortBenchmarkSourceRow(
-		modelNameCandidates,
-		targetReasoningEffort,
-		lookups.mercorApexAgents.scoreByModelName,
-	);
-	if (mercorRow != null) {
-		scoringSources.apex_agents_mercor = mercorRow;
-	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
 		lookups.agentsLastExam.scoreByModelName,
@@ -278,21 +326,6 @@ export function enrichBenchmarkAggregate(
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
 		scoringSources.agents_last_exam = agentsLastExamScore;
 	}
-
-	const terminalBench = findTerminalBenchAggregate(
-		modelNameCandidates,
-		{
-			artificialAnalysisRowsByBenchmark:
-				lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
-			harnessRowsByModel: lookups.valsTerminalBench.scoreByModelName,
-		},
-		baseEvaluations.terminalbench_v21,
-	);
-	if (terminalBench != null) {
-		evaluations.terminalbench_v21 = terminalBench.score;
-		scoringSources.terminalbench_v21 = terminalBench;
-	}
-
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,
 		lookups.blueprintBench.scoreByModelName,
@@ -308,7 +341,22 @@ export function enrichBenchmarkAggregate(
 	if (browseCompScore != null) {
 		evaluations.browsecomp = browseCompScore;
 	}
-
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"chartography",
+		lookups.chartography.scoreByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"chess_puzzles",
+		lookups.chessPuzzles.scoreByModelName,
+	);
 	const cursorBenchRow = findSourceRow(
 		modelNameCandidates,
 		lookups.cursorBench.scoreByModelName,
@@ -326,7 +374,38 @@ export function enrichBenchmarkAggregate(
 		evaluations.deep_swe = deepSWERow.pass_at_1;
 		scoringSources.deep_swe = deepSWERow;
 	}
-
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"ebr_bench",
+		lookups.ebrBench.scoreByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"enterprisebench_corecraft",
+		lookups.enterpriseBenchCoreCraft.scoreByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"epoch_capabilities_index",
+		lookups.epochCapabilitiesIndex.scoreByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"frontiermath_tier_4",
+		lookups.frontierMathTier4.scoreByModelName,
+	);
 	const gdpPdfScore = findGdpPdfScore(
 		modelNameCandidates,
 		lookups.gdpPdf.scoreByModelName,
@@ -334,7 +413,30 @@ export function enrichBenchmarkAggregate(
 	if (gdpPdfScore != null) {
 		evaluations.gdp_pdf = gdpPdfScore;
 	}
-
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"handbook_md",
+		lookups.handbookMd.scoreByModelName,
+	);
+	const mercorRow = findEffortBenchmarkSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.mercorApexAgents.scoreByModelName,
+	);
+	if (mercorRow != null) {
+		scoringSources.apex_agents_mercor = mercorRow;
+	}
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"proofbench",
+		lookups.proofBench.scoreByModelName,
+	);
 	const riemannBenchScore = findRiemannBenchScore(
 		modelNameCandidates,
 		lookups.riemannBench.scoreByModelName,
@@ -342,7 +444,19 @@ export function enrichBenchmarkAggregate(
 	if (riemannBenchScore != null) {
 		evaluations.riemann_bench = riemannBenchScore;
 	}
-
+	const terminalBench = findTerminalBenchAggregate(
+		modelNameCandidates,
+		{
+			artificialAnalysisRowsByBenchmark:
+				lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
+			harnessRowsByModel: lookups.valsTerminalBench.scoreByModelName,
+		},
+		baseEvaluations.terminalbench_v21,
+	);
+	if (terminalBench != null) {
+		evaluations.terminalbench_v21 = terminalBench.score;
+		scoringSources.terminalbench_v21 = terminalBench;
+	}
 	const toolathlonScore = findToolathlonScore(
 		modelNameCandidates,
 		lookups.toolathlon.scoreByModelName,
@@ -358,7 +472,6 @@ export function enrichBenchmarkAggregate(
 	if (valsIndexScore != null) {
 		evaluations.vals_index = valsIndexScore;
 	}
-
 	const vendingBench2Row = findAggregateBenchmarkSourceRow(
 		modelNameCandidates,
 		lookups.vendingBench2.scoreByModelName,
@@ -367,6 +480,14 @@ export function enrichBenchmarkAggregate(
 		evaluations.vending_bench_2 = vendingBench2Row.final_balance_usd;
 		scoringSources.vending_bench_2 = vendingBench2Row;
 	}
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"weirdml",
+		lookups.weirdMl.scoreByModelName,
+	);
 
 	return {
 		evaluations,
@@ -375,7 +496,7 @@ export function enrichBenchmarkAggregate(
 }
 
 /** Fill missing benchmark evidence without replacing observation-level values or resources. */
-export function enrichModelRowsWithSupplementalBenchmarks(
+export function enrichModelRowsWithBenchmarks(
 	rows: Record<string, unknown>[],
 	lookups: BenchmarkEnrichmentLookups,
 ): Record<string, unknown>[] {
@@ -419,14 +540,14 @@ export function enrichModelRowsWithSupplementalBenchmarks(
 			baseEvaluations,
 			row.reasoning_effort,
 		);
-		const evaluations = {
-			...benchmarkEnrichment.evaluations,
-			...baseEvaluations,
-		};
-		const scoringSources = {
-			...benchmarkEnrichment.scoringSources,
-			...asRecord(row.scoring_sources),
-		};
+		const evaluations = mergeAggregateBenchmarkFields(
+			baseEvaluations,
+			benchmarkEnrichment.evaluations,
+		);
+		const scoringSources = mergeAggregateBenchmarkFields(
+			asRecord(row.scoring_sources),
+			benchmarkEnrichment.scoringSources,
+		);
 		return {
 			...row,
 			...(Object.keys(evaluations).length === 0 ? {} : { evaluations }),

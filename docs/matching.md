@@ -112,7 +112,7 @@ Once a match survives, the final matched row prefers the OpenRouter provider/mod
 - selected benchmark values from AA evaluation-resource pages and non-AA benchmark sources when their model-name candidates match the selected identity
 - `scoring_sources` with the raw AA evaluation-resource and non-AA source rows used to derive task metrics
 
-The explicit aggregation stage merges route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. Matched reasoning-effort observations remain separate rows with their own `reasoning_effort` and exact AA resource rows. The aggregate selects the source-default row when effort is unlabelled, or the highest reported effort when labels are present, and keeps that observation's score and resource fields together. Only after selection does benchmark enrichment attach default-effort AA resources and effort-unspecified supplemental sources such as DeepSWE or Vals. Benchmark-update health applies the same model/effort aggregation before comparing source leaders with the public Intelligence ranking. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, plain `Latest`, and Gemini `Preview` labels.
+The explicit aggregation stage merges route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. Matched reasoning-effort observations remain separate rows with their own `reasoning_effort` and exact AA resource rows. The aggregate selects the source-default row when effort is unlabelled, or the highest reported effort when labels are present, and keeps that observation's score and resource fields together. Only after selection does benchmark enrichment attach default-effort AA resources and effort-unspecified benchmark sources such as DeepSWE or Vals. Benchmark-update health applies the same model/effort aggregation before comparing source leaders with the public Intelligence ranking. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, plain `Latest`, and Gemini `Preview` labels.
 
 ## Database Traceability
 
@@ -120,12 +120,12 @@ The SQLite snapshot preserves the raw source paths used by the matcher:
 
 - `artificial_analysis_raw_models` stores scraped AA rows, including separate reasoning-effort observations.
 - `models_dev_raw_models` stores flattened `models.dev` provider/model rows.
-- `deep_swe_raw_rows`, `artificial_analysis_evaluations_raw_rows`, `vals_terminal_bench_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `toolathlon_raw_rows`, `cursorbench_raw_rows`, `vals_index_raw_rows`, and `riemann_bench_raw_rows` store supplemental benchmark/resource rows before they are summarized or matched.
+- `artificial_analysis_evaluations_raw_rows`, `agents_last_exam_raw_rows`, `browsecomp_raw_rows`, `chartography_raw_rows`, `chess_puzzles_raw_rows`, `cursorbench_raw_rows`, `deep_swe_raw_rows`, `ebr_bench_raw_rows`, `enterprisebench_corecraft_raw_rows`, `epoch_capabilities_index_raw_rows`, `frontiermath_tier_4_raw_rows`, `handbook_md_raw_rows`, `proofbench_raw_rows`, `riemann_bench_raw_rows`, `vals_terminal_bench_raw_rows`, `toolathlon_raw_rows`, `vals_index_raw_rows`, and `weirdml_raw_rows` store benchmark and resource evidence before it is summarized or matched.
 - `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
-- `model_stage_rows` stores the effort-preserving matched and catalog stages, including `reasoning_effort`, followed by derived enriched and final aggregate stages.
+- `models` stores only the final public model rows, including `reasoning_effort`; matcher lineage stays in the raw evidence and debug tables instead of duplicating intermediate model stages.
 - `model_match_debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
 
-`model_match_debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, selected/rejected flags, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
+`model_match_debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, the selected flag, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
 
 ## Debugging Bad Matches
 

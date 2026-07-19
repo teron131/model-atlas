@@ -1,10 +1,49 @@
 /** SQLite writers for benchmark-owned source rows that feed matcher and scoring refreshes. */
 
+import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
 
-/** Insert Agent Arena's source identity and headline causal effect. */
+function insertBenchmarkScoreRows(
+	db: DatabaseWriter,
+	runId: number,
+	table: string,
+	rows: readonly BenchmarkScoreRow[],
+	fetchedAt: number | null,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO ${table} (
+			run_id, row_index, fetched_at_epoch_seconds, benchmark_key, source, url,
+			model_id, model, base_model, reasoning_effort, provider, rank, score,
+			score_eligible, standard_error, confidence_low, confidence_high,
+			observed_at, metadata_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of rows.entries()) {
+		statement.run(
+			runId,
+			index,
+			fetchedAt,
+			row.benchmark_key,
+			row.source,
+			row.source_url,
+			row.model_id,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.provider,
+			row.rank,
+			row.score,
+			sqliteBooleanValue(row.score_eligible),
+			row.standard_error,
+			row.confidence_low,
+			row.confidence_high,
+			row.observed_at,
+			JSON.stringify(row.metadata),
+		);
+	}
+} /** Insert Agent Arena's source identity and headline causal effect. */
 export function insertAgentArenaRawRows(
 	db: DatabaseWriter,
 	runId: number,
@@ -24,35 +63,6 @@ export function insertAgentArenaRawRows(
 			SOURCE_URLS.agent_arena,
 			row.rank,
 			row.contender_name,
-			row.model,
-			row.base_model,
-			row.reasoning_effort,
-			row.organization,
-			row.score,
-		);
-	}
-}
-
-/** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
-export function insertMercorApexAgentsRawRows(
-	db: DatabaseWriter,
-	runId: number,
-	snapshots: SourceSnapshots,
-): void {
-	const statement = db.prepare(`
-		INSERT INTO mercor_apex_agents_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model_id, source_model,
-			model, base_model, reasoning_effort, organization, score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-	for (const [index, row] of snapshots.mercorApexAgentsRows.entries()) {
-		statement.run(
-			runId,
-			index,
-			snapshots.fetchedAt.mercorApexAgents,
-			SOURCE_URLS.mercor_apex_agents,
-			row.model_id,
-			row.source_model,
 			row.model,
 			row.base_model,
 			row.reasoning_effort,
@@ -227,6 +237,36 @@ export function insertBrowseCompRawRows(
 	}
 }
 
+/** Insert Chartography evidence through its source table. */
+export function insertChartographyRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"chartography_raw_rows",
+		snapshots.chartographyRows,
+		snapshots.fetchedAt.chartography,
+	);
+}
+
+/** Insert Chess Puzzles evidence through its source table. */
+export function insertChessPuzzlesRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"chess_puzzles_raw_rows",
+		snapshots.chessPuzzleRows,
+		snapshots.fetchedAt.chessPuzzles,
+	);
+}
+
 export function insertCursorBenchRawRows(
 	db: DatabaseWriter,
 	runId: number,
@@ -292,6 +332,66 @@ export function insertDeepSWERawRows(
 	}
 }
 
+/** Insert EBR-Bench evidence through its source table. */
+export function insertEbrBenchRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"ebr_bench_raw_rows",
+		snapshots.ebrBenchRows,
+		snapshots.fetchedAt.ebrBench,
+	);
+}
+
+/** Insert EnterpriseBench CoreCraft evidence through its source table. */
+export function insertEnterpriseBenchCoreCraftRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"enterprisebench_corecraft_raw_rows",
+		snapshots.enterpriseBenchCoreCraftRows,
+		snapshots.fetchedAt.enterpriseBenchCoreCraft,
+	);
+}
+
+/** Insert Epoch Capabilities Index evidence through its source table. */
+export function insertEpochCapabilitiesIndexRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"epoch_capabilities_index_raw_rows",
+		snapshots.epochCapabilitiesIndexRows,
+		snapshots.fetchedAt.epochCapabilitiesIndex,
+	);
+}
+
+/** Insert FrontierMath Tier 4 evidence through its source table. */
+export function insertFrontierMathTier4RawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"frontiermath_tier_4_raw_rows",
+		snapshots.frontierMathTier4Rows,
+		snapshots.fetchedAt.frontierMathTier4,
+	);
+}
+
 export function insertGdpPdfRawRows(
 	db: DatabaseWriter,
 	runId: number,
@@ -315,6 +415,65 @@ export function insertGdpPdfRawRows(
 			row.last_updated ?? null,
 		);
 	}
+}
+
+/** Insert HANDBOOK.md evidence through its source table. */
+export function insertHandbookMdRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"handbook_md_raw_rows",
+		snapshots.handbookMdRows,
+		snapshots.fetchedAt.handbookMd,
+	);
+}
+
+/** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
+export function insertMercorApexAgentsRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO mercor_apex_agents_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, model_id, source_model,
+			model, base_model, reasoning_effort, organization, score
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.mercorApexAgentsRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.mercorApexAgents,
+			SOURCE_URLS.mercor_apex_agents,
+			row.model_id,
+			row.source_model,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.organization,
+			row.score,
+		);
+	}
+}
+
+/** Insert Vals ProofBench evidence through its independent source table. */
+export function insertProofBenchRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"proofbench_raw_rows",
+		snapshots.proofBenchRows,
+		snapshots.fetchedAt.proofBench,
+	);
 }
 
 export function insertRiemannBenchRawRows(
@@ -343,6 +502,39 @@ export function insertRiemannBenchRawRows(
 			row.model,
 			row.score,
 			row.last_updated,
+		);
+	}
+}
+
+export function insertValsTerminalBenchRawRows(
+	db: DatabaseWriter,
+	runId: number,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO vals_terminal_bench_raw_rows (
+			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
+			row_kind, source_model_id, model_id, model, provider, harness, score,
+			cost_per_task_usd, seconds_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.valsTerminalBenchRows.entries()) {
+		statement.run(
+			runId,
+			index,
+			snapshots.fetchedAt.valsTerminalBench,
+			SOURCE_URLS.vals_terminal_bench,
+			row.task,
+			row.task_label,
+			row.task === "overall" ? "overall" : "component",
+			row.source_model_id,
+			row.model_id,
+			row.model,
+			row.provider,
+			row.harness,
+			row.score,
+			row.cost_per_task_usd,
+			row.seconds_per_task,
 		);
 	}
 }
@@ -437,35 +629,17 @@ export function insertVendingBench2RawRows(
 	}
 }
 
-export function insertValsTerminalBenchRawRows(
+/** Insert WeirdML evidence through its independent source table. */
+export function insertWeirdMlRawRows(
 	db: DatabaseWriter,
 	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
-	const statement = db.prepare(`
-		INSERT INTO vals_terminal_bench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
-			row_kind, source_model_id, model_id, model, provider, harness, score,
-			cost_per_task_usd, seconds_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-	for (const [index, row] of snapshots.valsTerminalBenchRows.entries()) {
-		statement.run(
-			runId,
-			index,
-			snapshots.fetchedAt.valsTerminalBench,
-			SOURCE_URLS.vals_terminal_bench,
-			row.task,
-			row.task_label,
-			row.task === "overall" ? "overall" : "component",
-			row.source_model_id,
-			row.model_id,
-			row.model,
-			row.provider,
-			row.harness,
-			row.score,
-			row.cost_per_task_usd,
-			row.seconds_per_task,
-		);
-	}
+	insertBenchmarkScoreRows(
+		db,
+		runId,
+		"weirdml_raw_rows",
+		snapshots.weirdMlRows,
+		snapshots.fetchedAt.weirdMl,
+	);
 }

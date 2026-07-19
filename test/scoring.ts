@@ -238,19 +238,19 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ITBench","6.8%"]',
+		'["ITBench","5.8%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Agent Arena","6.8%"]',
+		'["Agent Arena","5.8%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Vending-Bench 2","6.8%"]',
+		'["Vending-Bench 2","5.8%"]',
 	),
 	true,
 );
@@ -1056,21 +1056,21 @@ assertClose(
 
 const frontierPercentileConfig = {
 	...normalizedContextConfig,
-	intelligenceBenchmarkKeys: ["gdpval_normalized", "hle", "agents_last_exam"],
+	intelligenceBenchmarkKeys: ["agents_last_exam", "gdpval_normalized", "hle"],
 	benchmarkPortfolio: STAGE_CONFIG.scoring.benchmarkPortfolio,
 };
 const frontierPercentileModels = [
 	{
 		id: "observed-frontier-a",
-		evaluations: { gdpval_normalized: 0, hle: 0, agents_last_exam: 0.2 },
+		evaluations: { agents_last_exam: 0.2, gdpval_normalized: 0, hle: 0 },
 	},
 	{
 		id: "observed-frontier-b",
-		evaluations: { gdpval_normalized: 50, hle: 50, agents_last_exam: 0.5 },
+		evaluations: { agents_last_exam: 0.5, gdpval_normalized: 50, hle: 50 },
 	},
 	{
 		id: "observed-frontier-c",
-		evaluations: { gdpval_normalized: 100, hle: 100, agents_last_exam: 0.8 },
+		evaluations: { agents_last_exam: 0.8, gdpval_normalized: 100, hle: 100 },
 	},
 	{
 		id: "missing-frontier",

@@ -15,6 +15,10 @@ import type {
 	ArtificialAnalysisEvaluationResourceRow,
 } from "../scrapers/artificial-analysis/benchmark-resources";
 import type {
+	BenchmarkScoreByModelName,
+	BenchmarkScoreRow,
+} from "../scrapers/benchmark-score";
+import type {
 	BlueprintBenchModelScoreRow,
 	BlueprintBenchScoreByModelName,
 } from "../scrapers/blueprint-bench";
@@ -158,8 +162,19 @@ export type LlmStatsTaskMetricValues = {
 export type LlmStatsTaskMetrics =
 	| (Record<string, LlmStatsTaskMetricValues | null | undefined> & {
 			artificial_analysis?: LlmStatsTaskMetricValues | null;
-			deep_swe?: LlmStatsTaskMetricValues | null;
 			agents_last_exam?: LlmStatsTaskMetricValues | null;
+			apex_agents?: LlmStatsTaskMetricValues | null;
+			automation_bench?: LlmStatsTaskMetricValues | null;
+			briefcase?: LlmStatsTaskMetricValues | null;
+			critpt?: LlmStatsTaskMetricValues | null;
+			cursorbench?: LlmStatsTaskMetricValues | null;
+			deep_swe?: LlmStatsTaskMetricValues | null;
+			gdpval_normalized?: LlmStatsTaskMetricValues | null;
+			harvey_lab?: LlmStatsTaskMetricValues | null;
+			hle?: LlmStatsTaskMetricValues | null;
+			itbench_sre?: LlmStatsTaskMetricValues | null;
+			tau_banking?: LlmStatsTaskMetricValues | null;
+			terminalbench_v21?: LlmStatsTaskMetricValues | null;
 	  })
 	| null;
 
@@ -171,17 +186,25 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	blueprint_bench_2?: NumberOrNull;
 	briefcase?: NumberOrNull;
 	browsecomp?: NumberOrNull;
+	chartography?: NumberOrNull;
+	chess_puzzles?: NumberOrNull;
 	critpt?: NumberOrNull;
 	cursorbench?: NumberOrNull;
 	deep_swe?: NumberOrNull;
+	ebr_bench?: NumberOrNull;
+	enterprisebench_corecraft?: NumberOrNull;
+	epoch_capabilities_index?: NumberOrNull;
+	frontiermath_tier_4?: NumberOrNull;
 	gdp_pdf?: NumberOrNull;
 	gdpval_normalized?: NumberOrNull;
 	gpqa?: NumberOrNull;
+	handbook_md?: NumberOrNull;
 	harvey_lab?: NumberOrNull;
 	hle?: NumberOrNull;
 	itbench_sre?: NumberOrNull;
 	lcr?: NumberOrNull;
 	mmmu_pro?: NumberOrNull;
+	proofbench?: NumberOrNull;
 	riemann_bench?: NumberOrNull;
 	scicode?: NumberOrNull;
 	tau_banking?: NumberOrNull;
@@ -189,30 +212,32 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	toolathlon?: NumberOrNull;
 	vals_index?: NumberOrNull;
 	vending_bench_2?: NumberOrNull;
+	weirdml?: NumberOrNull;
 };
 
 export type LlmStatsScoringSourceRow =
 	| JsonObject
-	| AgentsLastExamModelScoreRow
 	| ArtificialAnalysisEvaluationResourceRow
-	| TerminalBenchAggregateRow
+	| AgentArenaModelScoreRow
+	| AgentsLastExamModelScoreRow
+	| BenchmarkScoreRow
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow
-	| AgentArenaModelScoreRow
 	| MercorApexAgentsRow
+	| TerminalBenchAggregateRow
 	| VendingBench2ModelScoreRow;
 
 export type LlmStatsScoringSources =
 	| (Record<string, LlmStatsScoringSourceRow | null | undefined> & {
-			deep_swe?: DeepSWEModelScoreRow | null;
+			agent_arena?: AgentArenaModelScoreRow | null;
 			agents_last_exam?: AgentsLastExamModelScoreRow | null;
-			terminalbench_v21?: TerminalBenchAggregateRow | null;
+			apex_agents_mercor?: MercorApexAgentsRow | null;
 			automation_bench?: ArtificialAnalysisEvaluationResourceRow | null;
+			cursorbench?: CursorBenchModelScoreRow | null;
+			deep_swe?: DeepSWEModelScoreRow | null;
 			harvey_lab?: ArtificialAnalysisEvaluationResourceRow | null;
 			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
-			cursorbench?: CursorBenchModelScoreRow | null;
-			agent_arena?: AgentArenaModelScoreRow | null;
-			apex_agents_mercor?: MercorApexAgentsRow | null;
+			terminalbench_v21?: TerminalBenchAggregateRow | null;
 			vending_bench_2?: VendingBench2ModelScoreRow | null;
 	  })
 	| null;
@@ -509,10 +534,6 @@ export type LlmStatsScoreSourceRows<Row, Lookup> = {
 };
 
 export type LlmStatsSourceData = {
-	agentArena: LlmStatsScoreSourceRows<
-		AgentArenaModelScoreRow,
-		AgentArenaScoreByModelName
-	>;
 	artificialAnalysis: {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
@@ -526,6 +547,10 @@ export type LlmStatsSourceData = {
 		rows: ModelsDevModel[];
 		byId: Map<string, ModelsDevModel>;
 	};
+	agentArena: LlmStatsScoreSourceRows<
+		AgentArenaModelScoreRow,
+		AgentArenaScoreByModelName
+	>;
 	agentsLastExam: LlmStatsScoreSourceRows<
 		AgentsLastExamModelScoreRow,
 		AgentsLastExamScoreByModelName
@@ -538,6 +563,14 @@ export type LlmStatsSourceData = {
 		BrowseCompModelScoreRow,
 		BrowseCompScoreByModelName
 	>;
+	chartography: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
+	chessPuzzles: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
 	cursorBench: LlmStatsScoreSourceRows<
 		CursorBenchModelScoreRow,
 		CursorBenchScoreByModelName
@@ -547,14 +580,42 @@ export type LlmStatsSourceData = {
 		defaultEffortRows: DeepSWEModelScoreRow[];
 		scoreByModelName: DeepSWEScoreByModelName;
 	};
+	ebrBench: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
+	enterpriseBenchCoreCraft: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
+	epochCapabilitiesIndex: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
+	frontierMathTier4: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
 	gdpPdf: LlmStatsScoreSourceRows<GdpPdfModelScoreRow, GdpPdfScoreByModelName>;
+	handbookMd: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
 	mercorApexAgents: LlmStatsScoreSourceRows<
 		MercorApexAgentsRow,
 		MercorApexAgentsScoreByModelName
 	>;
+	proofBench: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
+	>;
 	riemannBench: LlmStatsScoreSourceRows<
 		RiemannBenchModelScoreRow,
 		RiemannBenchScoreByModelName
+	>;
+	valsTerminalBench: LlmStatsScoreSourceRows<
+		TerminalBenchModelHarnessRow,
+		TerminalBenchRowsByModelName
 	>;
 	toolathlon: LlmStatsScoreSourceRows<
 		ToolathlonModelScoreRow,
@@ -564,13 +625,13 @@ export type LlmStatsSourceData = {
 		ValsIndexModelScoreRow,
 		ValsIndexScoreByModelName
 	>;
-	valsTerminalBench: LlmStatsScoreSourceRows<
-		TerminalBenchModelHarnessRow,
-		TerminalBenchRowsByModelName
-	>;
 	vendingBench2: LlmStatsScoreSourceRows<
 		VendingBench2ModelScoreRow,
 		VendingBench2ScoreByModelName
+	>;
+	weirdMl: LlmStatsScoreSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkScoreByModelName
 	>;
 };
 
@@ -578,7 +639,7 @@ export type LlmStatsEnrichmentResult = {
 	rows: Record<string, unknown>[];
 	openRouterSpeedById: Map<string, JsonObject>;
 	openRouterPricingById: Map<string, JsonObject>;
+	openRouterRawPayload?: OpenRouterRawScrapedPayload | null;
 	speedOutputTokenAnchors: number[];
 	deepSWEDefaultEffortRows?: readonly DeepSWEModelScoreRow[];
-	openRouterRawPayload?: OpenRouterRawScrapedPayload | null;
 };

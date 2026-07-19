@@ -8,6 +8,10 @@ import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
+import type {
+	BenchmarkScorePayload,
+	BenchmarkScoreRow,
+} from "../../scrapers/benchmark-score";
 import {
 	type BlueprintBenchModelScoreRow,
 	getBlueprintBenchStats,
@@ -20,14 +24,22 @@ import {
 	type CursorBenchModelScoreRow,
 	getCursorBenchStats,
 } from "../../scrapers/cursorbench";
+import { getEpochCapabilitiesIndexStats } from "../../scrapers/epoch/capabilities-index";
+import { getEpochChessPuzzleStats } from "../../scrapers/epoch/chess-puzzles";
+import { getEpochEbrBenchStats } from "../../scrapers/epoch/ebr-bench";
+import { getEpochFrontierMathTier4Stats } from "../../scrapers/epoch/frontiermath-tier-4";
+import { getWeirdMlStats } from "../../scrapers/epoch/weirdml";
 import {
 	getMercorApexAgentsStats,
 	type MercorApexAgentsRow,
 } from "../../scrapers/mercor-apex-agents";
+import { getChartographyStats } from "../../scrapers/surge/chartography";
+import { getEnterpriseBenchCoreCraftStats } from "../../scrapers/surge/enterprisebench-corecraft";
 import {
 	type GdpPdfModelScoreRow,
 	getGdpPdfStats,
 } from "../../scrapers/surge/gdp-pdf";
+import { getHandbookMdStats } from "../../scrapers/surge/handbook-md";
 import {
 	getRiemannBenchStats,
 	type RiemannBenchModelScoreRow,
@@ -41,6 +53,7 @@ import {
 	type ValsIndexModelScoreRow,
 	type ValsIndexTaskScoreRow,
 } from "../../scrapers/vals/index-benchmark";
+import { getProofBenchStats } from "../../scrapers/vals/proofbench";
 import {
 	getTerminalBenchStats,
 	type TerminalBenchModelHarnessRow,
@@ -55,20 +68,31 @@ import type {
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
+	readChartographyRawCache,
+	readChessPuzzlesRawCache,
 	readCursorBenchRawCache,
+	readEbrBenchRawCache,
+	readEnterpriseBenchCoreCraftRawCache,
+	readEpochCapabilitiesIndexRawCache,
+	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
+	readHandbookMdRawCache,
 	readMercorApexAgentsRawCache,
+	readProofBenchRawCache,
 	readRiemannBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readValsTerminalBenchRawCache,
 	readVendingBench2RawCache,
+	readWeirdMlRawCache,
 } from "../cache";
 import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
+	RawSourceName,
 	SourceSnapshotStatus,
+	SourceSnapshots,
 } from "../types";
 import {
 	modelScoreSnapshot,
@@ -140,6 +164,73 @@ export type VendingBench2Snapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
+type BenchmarkScoreSnapshot = {
+	rows: BenchmarkScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+async function benchmarkScoreSnapshot(
+	cached: { rows: BenchmarkScoreRow[]; fetchedAt: number | null } | null,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+	source: RawSourceName,
+	fetchedAtKey: keyof SourceSnapshots["fetchedAt"],
+	fetchRows: () => Promise<BenchmarkScorePayload>,
+): Promise<BenchmarkScoreSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source,
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows,
+		rowKey: benchmarkScoreRowKey,
+		rowLabel: benchmarkScoreRowLabel,
+	});
+	return {
+		rows: snapshot.rows,
+		sourceStatus: {
+			source,
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey,
+		},
+	};
+} /** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
+export async function artificialAnalysisEvaluationResourceSnapshot(
+	cached: ReturnType<typeof readArtificialAnalysisEvaluationResourceRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<ArtificialAnalysisEvaluationResourceSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "artificial_analysis_evaluation_resources",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getArtificialAnalysisEvaluationResourceStats,
+		rowKey: artificialAnalysisEvaluationResourceSourceKey,
+		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
+	});
+	return {
+		artificialAnalysisEvaluationResourceRows: snapshot.rows,
+		sourceStatus: {
+			source: "artificial_analysis_evaluation_resources",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "artificialAnalysisEvaluationResources",
+		},
+	};
+}
+
 /** Loads Agent Arena rows keyed by contender identity so renamed display labels remain auditable. */
 export async function agentArenaSnapshot(
 	cached: ReturnType<typeof readAgentArenaRawCache>,
@@ -167,75 +258,6 @@ export async function agentArenaSnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "agentArena",
-		},
-	};
-}
-
-/** Loads Mercor APEX rows keyed by its stable contender ID and effort. */
-export async function mercorApexAgentsSnapshot(
-	cached: ReturnType<typeof readMercorApexAgentsRawCache>,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<MercorApexAgentsSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "mercor_apex_agents",
-		cached,
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getMercorApexAgentsStats,
-		rowKey: (row) => sourceKey(row.model_id, row.reasoning_effort),
-		rowLabel: (row) => row.source_model,
-	});
-	return {
-		mercorApexAgentsRows: snapshot.rows,
-		sourceStatus: {
-			source: "mercor_apex_agents",
-			fetchedAt: snapshot.fetchedAt,
-			sourceInputCount: snapshot.rows.length,
-			sourceRowStates: snapshot.sourceRowStates,
-			fetchedAtKey: "mercorApexAgents",
-		},
-	};
-}
-
-/** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
-export function artificialAnalysisEvaluationResourceSourceKey(
-	row: ArtificialAnalysisEvaluationResourceRow,
-): string {
-	return sourceKey(row.benchmark_key, row.model_id, row.reasoning_effort);
-}
-
-/** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
-export async function artificialAnalysisEvaluationResourceSnapshot(
-	cached: ReturnType<typeof readArtificialAnalysisEvaluationResourceRawCache>,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<ArtificialAnalysisEvaluationResourceSnapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "artificial_analysis_evaluation_resources",
-		cached,
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getArtificialAnalysisEvaluationResourceStats,
-		rowKey: artificialAnalysisEvaluationResourceSourceKey,
-		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
-	});
-	return {
-		artificialAnalysisEvaluationResourceRows: snapshot.rows,
-		sourceStatus: {
-			source: "artificial_analysis_evaluation_resources",
-			fetchedAt: snapshot.fetchedAt,
-			sourceInputCount: snapshot.rows.length,
-			sourceRowStates: snapshot.sourceRowStates,
-			fetchedAtKey: "artificialAnalysisEvaluationResources",
 		},
 	};
 }
@@ -302,6 +324,46 @@ export async function browseCompSnapshot(
 	};
 }
 
+/** Loads Chartography through its own cache and missing-row lifecycle. */
+export function chartographySnapshot(
+	cached: ReturnType<typeof readChartographyRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"chartography",
+		"chartography",
+		getChartographyStats,
+	);
+}
+
+/** Loads Chess Puzzles through its own cache and missing-row lifecycle. */
+export function chessPuzzlesSnapshot(
+	cached: ReturnType<typeof readChessPuzzlesRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"chess_puzzles",
+		"chessPuzzles",
+		getEpochChessPuzzleStats,
+	);
+}
+
 /** Loads CursorBench rows keyed by model, base model, and reasoning effort. */
 export async function cursorBenchSnapshot(
 	cached: ReturnType<typeof readCursorBenchRawCache>,
@@ -333,6 +395,86 @@ export async function cursorBenchSnapshot(
 	};
 }
 
+/** Loads EBR-Bench through its own cache and missing-row lifecycle. */
+export function ebrBenchSnapshot(
+	cached: ReturnType<typeof readEbrBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"ebr_bench",
+		"ebrBench",
+		getEpochEbrBenchStats,
+	);
+}
+
+/** Loads EnterpriseBench CoreCraft through its own cache and missing-row lifecycle. */
+export function enterpriseBenchCoreCraftSnapshot(
+	cached: ReturnType<typeof readEnterpriseBenchCoreCraftRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"enterprisebench_corecraft",
+		"enterpriseBenchCoreCraft",
+		getEnterpriseBenchCoreCraftStats,
+	);
+}
+
+/** Loads Epoch Capabilities Index through its own cache and missing-row lifecycle. */
+export function epochCapabilitiesIndexSnapshot(
+	cached: ReturnType<typeof readEpochCapabilitiesIndexRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"epoch_capabilities_index",
+		"epochCapabilitiesIndex",
+		getEpochCapabilitiesIndexStats,
+	);
+}
+
+/** Loads FrontierMath Tier 4 through its own cache and missing-row lifecycle. */
+export function frontierMathTier4Snapshot(
+	cached: ReturnType<typeof readFrontierMathTier4RawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"frontiermath_tier_4",
+		"frontierMathTier4",
+		getEpochFrontierMathTier4Stats,
+	);
+}
+
 /** Loads GDP PDF rows keyed by provider and model for cache row continuity. */
 export async function gdpPdfSnapshot(
 	cached: ReturnType<typeof readGdpPdfRawCache>,
@@ -361,6 +503,81 @@ export async function gdpPdfSnapshot(
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "gdpPdf",
 		},
+	};
+}
+
+/** Loads HANDBOOK.md through its own cache and missing-row lifecycle. */
+export function handbookMdSnapshot(
+	cached: ReturnType<typeof readHandbookMdRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"handbook_md",
+		"handbookMd",
+		getHandbookMdStats,
+	);
+}
+
+/** Loads Mercor APEX rows keyed by its stable contender ID and effort. */
+export async function mercorApexAgentsSnapshot(
+	cached: ReturnType<typeof readMercorApexAgentsRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<MercorApexAgentsSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "mercor_apex_agents",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getMercorApexAgentsStats,
+		rowKey: (row) => sourceKey(row.model_id, row.reasoning_effort),
+		rowLabel: (row) => row.source_model,
+	});
+	return {
+		mercorApexAgentsRows: snapshot.rows,
+		sourceStatus: {
+			source: "mercor_apex_agents",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "mercorApexAgents",
+		},
+	};
+}
+
+/** Loads Vals ProofBench rows through an independent source lifecycle. */
+export async function proofBenchSnapshot(
+	cached: ReturnType<typeof readProofBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<ProofBenchSnapshot> {
+	const snapshot = await benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"proofbench",
+		"proofBench",
+		getProofBenchStats,
+	);
+	return {
+		proofBenchRows: snapshot.rows,
+		sourceStatus: snapshot.sourceStatus,
 	};
 }
 
@@ -399,6 +616,63 @@ export async function riemannBenchSnapshot(
 	};
 }
 
+/** Loads Terminal-Bench rows while using overall model-harness rows for matching. */
+export async function valsTerminalBenchSnapshot(
+	cached: ReturnType<typeof readValsTerminalBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<TerminalBenchSnapshot> {
+	const fetched =
+		status.cache_hit && cached != null && options.replaceSourceRows !== true
+			? null
+			: await getTerminalBenchStats();
+	const fetchedRows = fetched?.task_rows ?? [];
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched?.fetched_at_epoch_seconds ?? null,
+		fetchedRows.length,
+	);
+	const rows = snapshotRows(
+		cached?.rows,
+		fetchedRows,
+		fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		(row) => sourceKey(row.task, row.source_model_id, row.harness ?? "default"),
+	);
+	const modelScores = rows.filter(
+		(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
+	);
+	const states = snapshotRowsWithStates({
+		source: "vals_terminal_bench",
+		cachedRows: cached?.modelScores,
+		fetchedRows: fetched?.model_scores ?? [],
+		fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		rowKey: (row) => sourceKey(row.source_model_id, row.harness ?? "default"),
+		rowLabel: (row) =>
+			row.harness == null ? row.model : `${row.model} ${row.harness}`,
+		previousMissingSince,
+		nowEpochSeconds,
+	}).states;
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched?.fetched_at_epoch_seconds ?? null,
+	);
+	return {
+		valsTerminalBenchRows: rows,
+		valsTerminalBenchModelScoreRows: modelScores,
+		sourceStatus: {
+			source: "vals_terminal_bench",
+			fetchedAt,
+			sourceInputCount: modelScores.length,
+			sourceRowStates: states,
+			fetchedAtKey: "valsTerminalBench",
+		},
+	};
+}
+
 /** Loads Toolathlon rows keyed by provider and model for cache row continuity. */
 export async function toolathlonSnapshot(
 	cached: ReturnType<typeof readToolathlonRawCache>,
@@ -426,38 +700,6 @@ export async function toolathlonSnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "toolathlon",
-		},
-	};
-}
-
-/** Loads Vending-Bench 2 model curves and records the versioned official data-module URL. */
-export async function vendingBench2Snapshot(
-	cached: ReturnType<typeof readVendingBench2RawCache>,
-	status: RawSourceCacheStatus,
-	options: DatabaseBuildOptions,
-	previousMissingSince: ReadonlyMap<string, number>,
-	nowEpochSeconds: number,
-): Promise<VendingBench2Snapshot> {
-	const snapshot = await modelScoreSnapshot({
-		source: "vending_bench_2",
-		cached,
-		status,
-		options,
-		previousMissingSince,
-		nowEpochSeconds,
-		fetchRows: getVendingBench2Stats,
-		rowKey: (row) => sourceKey(row.model, row.reasoning_effort),
-		rowLabel: (row) => row.model,
-	});
-	return {
-		vendingBench2ModelScoreRows: snapshot.rows,
-		vendingBench2DataUrl: snapshot.sourceUrl ?? null,
-		sourceStatus: {
-			source: "vending_bench_2",
-			fetchedAt: snapshot.fetchedAt,
-			sourceInputCount: snapshot.rows.length,
-			sourceRowStates: snapshot.sourceRowStates,
-			fetchedAtKey: "vendingBench2",
 		},
 	};
 }
@@ -518,59 +760,92 @@ export async function valsIndexSnapshot(
 	};
 }
 
-/** Loads Terminal-Bench rows while using overall model-harness rows for matching. */
-export async function valsTerminalBenchSnapshot(
-	cached: ReturnType<typeof readValsTerminalBenchRawCache>,
+/** Loads Vending-Bench 2 model curves and records the versioned official data-module URL. */
+export async function vendingBench2Snapshot(
+	cached: ReturnType<typeof readVendingBench2RawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
-): Promise<TerminalBenchSnapshot> {
-	const fetched =
-		status.cache_hit && cached != null && options.replaceSourceRows !== true
-			? null
-			: await getTerminalBenchStats();
-	const fetchedRows = fetched?.task_rows ?? [];
-	const hasUsableFetchedRows = shouldUseFetchedRows(
-		fetched?.fetched_at_epoch_seconds ?? null,
-		fetchedRows.length,
-	);
-	const rows = snapshotRows(
-		cached?.rows,
-		fetchedRows,
-		fetched?.fetched_at_epoch_seconds ?? null,
+): Promise<VendingBench2Snapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "vending_bench_2",
+		cached,
+		status,
 		options,
-		(row) => sourceKey(row.task, row.source_model_id, row.harness ?? "default"),
-	);
-	const modelScores = rows.filter(
-		(row): row is TerminalBenchModelHarnessRow => row.task === "overall",
-	);
-	const states = snapshotRowsWithStates({
-		source: "vals_terminal_bench",
-		cachedRows: cached?.modelScores,
-		fetchedRows: fetched?.model_scores ?? [],
-		fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
-		options,
-		rowKey: (row) => sourceKey(row.source_model_id, row.harness ?? "default"),
-		rowLabel: (row) =>
-			row.harness == null ? row.model : `${row.model} ${row.harness}`,
 		previousMissingSince,
 		nowEpochSeconds,
-	}).states;
-	const fetchedAt = snapshotFetchedAt(
-		hasUsableFetchedRows,
-		cached?.fetchedAt,
-		fetched?.fetched_at_epoch_seconds ?? null,
-	);
+		fetchRows: getVendingBench2Stats,
+		rowKey: (row) => sourceKey(row.model, row.reasoning_effort),
+		rowLabel: (row) => row.model,
+	});
 	return {
-		valsTerminalBenchRows: rows,
-		valsTerminalBenchModelScoreRows: modelScores,
+		vendingBench2ModelScoreRows: snapshot.rows,
+		vendingBench2DataUrl: snapshot.sourceUrl ?? null,
 		sourceStatus: {
-			source: "vals_terminal_bench",
-			fetchedAt,
-			sourceInputCount: modelScores.length,
-			sourceRowStates: states,
-			fetchedAtKey: "valsTerminalBench",
+			source: "vending_bench_2",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "vendingBench2",
 		},
 	};
+}
+
+/** Loads WeirdML rows through an independent source lifecycle. */
+export async function weirdMlSnapshot(
+	cached: ReturnType<typeof readWeirdMlRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<WeirdMlSnapshot> {
+	const snapshot = await benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"weirdml",
+		"weirdMl",
+		getWeirdMlStats,
+	);
+	return {
+		weirdMlRows: snapshot.rows,
+		sourceStatus: snapshot.sourceStatus,
+	};
+}
+
+export type ProofBenchSnapshot = {
+	proofBenchRows: BenchmarkScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type WeirdMlSnapshot = {
+	weirdMlRows: BenchmarkScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
+	const rawRunId = row.metadata.run_id;
+	const runId =
+		typeof rawRunId === "string" || typeof rawRunId === "number"
+			? rawRunId
+			: null;
+	return sourceKey(
+		row.benchmark_key,
+		runId ?? row.model_id ?? row.model,
+		row.reasoning_effort,
+	);
+}
+
+function benchmarkScoreRowLabel(row: BenchmarkScoreRow): string {
+	return `${row.benchmark_key}: ${row.model}`;
+}
+
+/** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
+export function artificialAnalysisEvaluationResourceSourceKey(
+	row: ArtificialAnalysisEvaluationResourceRow,
+): string {
+	return sourceKey(row.benchmark_key, row.model_id, row.reasoning_effort);
 }

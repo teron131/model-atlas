@@ -96,7 +96,6 @@ function unmatchedDebugTraceRow(
 	artificialAnalysisRowById: Map<string, number>,
 ): DebugTraceRow {
 	return {
-		trace_kind: "matcher_candidate",
 		artificial_analysis_id: model.artificial_analysis_id,
 		artificial_analysis_slug: model.artificial_analysis_slug,
 		artificial_analysis_name: model.artificial_analysis_name,
@@ -109,7 +108,6 @@ function unmatchedDebugTraceRow(
 		candidate_name: null,
 		candidate_score: null,
 		selected: false,
-		rejected: true,
 		rejection_reason: "unmatched_or_voided",
 		selected_model_id: null,
 		models_dev_row_index: null,
@@ -151,7 +149,6 @@ export function buildDebugTraceRows(
 					? (publicOpenRouterModelId(candidate.model_id) ?? candidate.model_id)
 					: null;
 			rows.push({
-				trace_kind: "matcher_candidate",
 				artificial_analysis_id: model.artificial_analysis_id,
 				artificial_analysis_slug: model.artificial_analysis_slug,
 				artificial_analysis_name: model.artificial_analysis_name,
@@ -165,7 +162,6 @@ export function buildDebugTraceRows(
 				candidate_name: candidate.model_name,
 				candidate_score: candidate.score,
 				selected: isSelected,
-				rejected: !isSelected,
 				rejection_reason: debugRejectionReason(
 					isSelected,
 					variantRejected,

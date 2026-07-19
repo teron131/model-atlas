@@ -28,7 +28,7 @@ import {
 	type ValsIndexModelScoreRow,
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
 import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
-import { enrichModelRowsWithSupplementalBenchmarks } from "../src/model-atlas/stats/benchmarks";
+import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/stats/benchmarks";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/stats/matching";
 import { aggregateCollapsedModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
@@ -427,7 +427,7 @@ const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
 const matchedFlashRow = matchedRows.find(
 	(row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
-const aggregatedFlashModel = enrichModelRowsWithSupplementalBenchmarks(
+const aggregatedFlashModel = enrichModelRowsWithBenchmarks(
 	aggregateCollapsedModelRows(matchedRows),
 	sourceData,
 ).find((row) => row.id === "google/example-2.5-flash");
@@ -451,7 +451,7 @@ assert.equal(
 assert.equal(
 	asEvaluations(matchedFlashRow).toolathlon,
 	undefined,
-	"supplemental benchmarks should not enter effort observations",
+	"aggregate benchmarks should not enter effort observations",
 );
 assert.equal(
 	asEvaluations(aggregatedFlashModel).toolathlon,
@@ -664,10 +664,6 @@ function modelStatsSourceData(
 	}
 
 	return {
-		agentArena: {
-			rows: [],
-			scoreByModelName: new Map(),
-		},
 		artificialAnalysis: {
 			rows: artificialAnalysisRows,
 			bySlug: artificialAnalysisBySlug,
@@ -681,10 +677,6 @@ function modelStatsSourceData(
 				artificialAnalysisResourceRows,
 			),
 		},
-		mercorApexAgents: {
-			rows: [],
-			scoreByModelName: new Map(),
-		},
 		modelsDev: {
 			rows: modelsDevModels,
 			byId: new Map(
@@ -693,6 +685,10 @@ function modelStatsSourceData(
 					modelsDevModel,
 				]),
 			),
+		},
+		agentArena: {
+			rows: [],
+			scoreByModelName: new Map(),
 		},
 		agentsLastExam: {
 			rows: [],
@@ -706,6 +702,8 @@ function modelStatsSourceData(
 			rows: [],
 			scoreByModelName: new Map(),
 		},
+		chartography: { rows: [], scoreByModelName: new Map() },
+		chessPuzzles: { rows: [], scoreByModelName: new Map() },
 		cursorBench: {
 			rows: cursorBenchModelScoreRows,
 			scoreByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
@@ -715,13 +713,27 @@ function modelStatsSourceData(
 			defaultEffortRows: [],
 			scoreByModelName: new Map(),
 		},
+		ebrBench: { rows: [], scoreByModelName: new Map() },
+		enterpriseBenchCoreCraft: { rows: [], scoreByModelName: new Map() },
+		epochCapabilitiesIndex: { rows: [], scoreByModelName: new Map() },
+		frontierMathTier4: { rows: [], scoreByModelName: new Map() },
 		gdpPdf: {
 			rows: gdpPdfModelScoreRows,
 			scoreByModelName: buildGdpPdfMap(gdpPdfModelScoreRows),
 		},
+		handbookMd: { rows: [], scoreByModelName: new Map() },
+		mercorApexAgents: {
+			rows: [],
+			scoreByModelName: new Map(),
+		},
+		proofBench: { rows: [], scoreByModelName: new Map() },
 		riemannBench: {
 			rows: riemannBenchModelScoreRows,
 			scoreByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
+		},
+		valsTerminalBench: {
+			rows: [],
+			scoreByModelName: buildTerminalBenchMap([]),
 		},
 		toolathlon: {
 			rows: toolathlonModelScoreRows,
@@ -731,14 +743,11 @@ function modelStatsSourceData(
 			rows: valsIndexModelScoreRows,
 			scoreByModelName: buildValsIndexMap(valsIndexModelScoreRows),
 		},
-		valsTerminalBench: {
-			rows: [],
-			scoreByModelName: buildTerminalBenchMap([]),
-		},
 		vendingBench2: {
 			rows: [],
 			scoreByModelName: new Map(),
 		},
+		weirdMl: { rows: [], scoreByModelName: new Map() },
 	};
 }
 
