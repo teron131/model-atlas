@@ -36,12 +36,6 @@ export type RiemannBenchModelScorePayload = {
 	data: RiemannBenchModelScoreRow[];
 };
 
-export function processRiemannBenchPageHtml(
-	pageHtml: string,
-): RiemannBenchModelScoreRow[] {
-	return surgeLeaderboardScoreRows(pageHtml);
-}
-
 function modelKeyCandidates(model: string): string[] {
 	const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
 	const slashParts = withoutParenthetical
@@ -98,7 +92,7 @@ export async function getRiemannBenchStats(
 		return {
 			fetched_at_epoch_seconds: nowEpochSeconds(),
 			source_url: sourceUrl,
-			data: processRiemannBenchPageHtml(await response.text()),
+			data: surgeLeaderboardScoreRows(await response.text()),
 		};
 	} catch {
 		return {

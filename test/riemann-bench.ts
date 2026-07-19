@@ -6,9 +6,9 @@ import {
 	buildRiemannBenchMap,
 	findRiemannBenchScore,
 	getRiemannBenchStats,
-	processRiemannBenchPageHtml,
 	RIEMANN_BENCH_LEADERBOARD_URL,
 } from "../src/model-atlas/scrapers/surge/riemann-bench";
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);
@@ -18,7 +18,7 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 	}
 }
 
-const rows = processRiemannBenchPageHtml(`
+const rows = surgeLeaderboardScoreRows(`
 	<h2 class="renamed-ranking-title">Model Rankings</h2>
 	<div class="txt fs-12">Last updated 05/27/2026</div>
 	<div role="listitem" class="lead-rank-corecraft-item w-dyn-item">
@@ -63,7 +63,7 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const rowsWithoutRankingHeading = processRiemannBenchPageHtml(`
+const rowsWithoutRankingHeading = surgeLeaderboardScoreRows(`
 	<div class="txt fs-12">Last updated 05/27/2026</div>
 	<div class="renamed-ranking-row" data-kind="score-row" role = 'listitem'>
 		<img alt="Google logo" />

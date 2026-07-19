@@ -31,10 +31,6 @@ export type GdpPdfModelScorePayload = {
 	data: GdpPdfModelScoreRow[];
 };
 
-export function processGdpPdfPageHtml(pageHtml: string): GdpPdfModelScoreRow[] {
-	return surgeLeaderboardScoreRows(pageHtml);
-}
-
 function modelKeyCandidates(model: string): string[] {
 	const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
 	const slashParts = withoutParenthetical
@@ -90,7 +86,7 @@ export async function getGdpPdfStats(
 		}
 		return {
 			fetched_at_epoch_seconds: nowEpochSeconds(),
-			data: processGdpPdfPageHtml(await response.text()),
+			data: surgeLeaderboardScoreRows(await response.text()),
 		};
 	} catch {
 		return {

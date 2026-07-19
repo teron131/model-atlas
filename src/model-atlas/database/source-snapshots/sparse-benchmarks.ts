@@ -188,7 +188,7 @@ async function benchmarkScoreSnapshot(
 		nowEpochSeconds,
 		fetchRows,
 		rowKey: benchmarkScoreRowKey,
-		rowLabel: benchmarkScoreRowLabel,
+		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
 	});
 	return {
 		rows: snapshot.rows,
@@ -837,10 +837,6 @@ function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
 		runId ?? row.model_id ?? row.model,
 		row.reasoning_effort,
 	);
-}
-
-function benchmarkScoreRowLabel(row: BenchmarkScoreRow): string {
-	return `${row.benchmark_key}: ${row.model}`;
 }
 
 /** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
