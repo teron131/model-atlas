@@ -12,6 +12,9 @@ import {
 	toggleProviderFilter,
 } from "../app/dashboard/shared/modelDisplay";
 import {
+	benchmarkDisplayValue,
+	benchmarkMetricColumns,
+	benchmarkMetricValue,
 	dedupeDisplayModels,
 	type SortState,
 	sortedRows,
@@ -51,6 +54,48 @@ assert.deepEqual(
 		["provider/fourth", 4],
 	],
 	"equal intelligence scores should share competition ranks",
+);
+
+const aleBenchColumn = benchmarkMetricColumns.find(
+	(column) => column.key === "aleBench",
+);
+assert.ok(aleBenchColumn, "ALE-B should remain a dashboard benchmark column");
+const aleBenchRows = dedupeDisplayModels([
+	benchmarkModel("provider/low", "Low", 1_000),
+	benchmarkModel("provider/mid", "Mid", 1_500),
+	benchmarkModel("provider/high", "High", 2_000),
+]);
+assert.deepEqual(
+	aleBenchRows.map((row) => benchmarkDisplayValue(row, aleBenchColumn)),
+	[0, 50, 100],
+	"ALE-B should display its min-max normalized score",
+);
+assert.deepEqual(
+	aleBenchRows.map((row) => benchmarkMetricValue(row.model, aleBenchColumn)),
+	[1_000, 1_500, 2_000],
+	"ALE-B display normalization should preserve raw evaluation values",
+);
+
+const agentArenaColumn = benchmarkMetricColumns.find(
+	(column) => column.key === "agentArena",
+);
+assert.ok(agentArenaColumn, "Arena should remain a dashboard benchmark column");
+const agentArenaRows = dedupeDisplayModels([
+	agentArenaModel("provider/low", "Low", -0.1),
+	agentArenaModel("provider/mid", "Mid", 0),
+	agentArenaModel("provider/high", "High", 0.1),
+]);
+assert.deepEqual(
+	agentArenaRows.map((row) => benchmarkDisplayValue(row, agentArenaColumn)),
+	[0, 50, 100],
+	"Arena should display its min-max normalized score",
+);
+assert.deepEqual(
+	agentArenaRows.map((row) =>
+		benchmarkMetricValue(row.model, agentArenaColumn),
+	),
+	[-0.1, 0, 0.1],
+	"Arena display normalization should preserve raw reward values",
 );
 
 assert.deepEqual(
@@ -321,6 +366,28 @@ function modalityModel(
 		modalities: {
 			input,
 		},
+	};
+}
+
+function benchmarkModel(
+	id: string,
+	name: string,
+	aleBenchScore: number,
+): LlmStatsModel {
+	return {
+		...minimalLlmStatsModel({ id, name }),
+		evaluations: { ale_bench: aleBenchScore },
+	};
+}
+
+function agentArenaModel(
+	id: string,
+	name: string,
+	agentArenaReward: number,
+): LlmStatsModel {
+	return {
+		...minimalLlmStatsModel({ id, name }),
+		evaluations: { agent_arena: agentArenaReward },
 	};
 }
 

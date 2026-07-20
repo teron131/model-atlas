@@ -373,6 +373,7 @@ function tableRow(
 		intelligenceRank,
 		originalIndex,
 		aliasPriority: 0,
+		benchmarkDisplayScores: {},
 	};
 }
 

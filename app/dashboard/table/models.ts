@@ -1,6 +1,7 @@
 /** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
 import { BENCHMARK_PORTFOLIO } from "../../../src/model-atlas/config/benchmark-portfolio";
+import { clampScore, minMaxScale } from "../../../src/model-atlas/math-utils";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/stats/resource-metrics";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
@@ -371,7 +372,7 @@ const inputModalityScores = [
 	["video", 1],
 ] as const;
 
-type BenchmarkMetricFormat = "percent" | "number" | "currency";
+type BenchmarkMetricFormat = "percent" | "score" | "number" | "currency";
 
 function defineBenchmarkMetricColumn<
 	const TKey extends string,
@@ -400,9 +401,9 @@ const benchmarkMetricColumnDefinitions = [
 		"AA Index",
 		"number",
 	),
-	defineBenchmarkMetricColumn("agentArena", "agent_arena", "Arena", "number"),
+	defineBenchmarkMetricColumn("agentArena", "agent_arena", "Arena", "score"),
 	defineBenchmarkMetricColumn("agentsLastExam", "agents_last_exam", "ALE"),
-	defineBenchmarkMetricColumn("aleBench", "ale_bench", "ALE-B", "number"),
+	defineBenchmarkMetricColumn("aleBench", "ale_bench", "ALE-B", "score"),
 	defineBenchmarkMetricColumn("apexAgents", "apex_agents", "APEX"),
 	defineBenchmarkMetricColumn("automationBench", "automation_bench", "Auto"),
 	defineBenchmarkMetricColumn("blueprintBench", "blueprint_bench_2", "BB2"),
@@ -462,6 +463,9 @@ export const benchmarkMetricColumns = [
 		right.benchmark,
 		BENCHMARK_PORTFOLIO,
 	),
+);
+const scoreBenchmarkMetricColumns = benchmarkMetricColumns.filter(
+	(column) => column.format === "score",
 );
 
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
@@ -526,6 +530,9 @@ export type TableRow = {
 	intelligenceRank: number;
 	originalIndex: number;
 	aliasPriority: number;
+	benchmarkDisplayScores: Partial<
+		Record<BenchmarkMetricColumn["key"], number | null>
+	>;
 };
 
 type UnrankedTableRow = Omit<TableRow, "intelligenceRank">;
@@ -616,6 +623,12 @@ export function sortedRows(
 
 /** Collapse duplicate model routes before assigning display ranks. */
 export function dedupeDisplayModels(models: LlmStatsModel[]) {
+	const benchmarkDisplayScoreValues = Object.fromEntries(
+		scoreBenchmarkMetricColumns.map((column) => [
+			column.key,
+			models.map((model) => benchmarkMetricValue(model, column)),
+		]),
+	) as Partial<Record<BenchmarkMetricColumn["key"], Array<number | null>>>;
 	const rowsByIdentity = new Map<string, UnrankedTableRow>();
 	for (const [originalIndex, model] of models.entries()) {
 		const key = displayKey(model);
@@ -623,6 +636,19 @@ export function dedupeDisplayModels(models: LlmStatsModel[]) {
 			model,
 			originalIndex,
 			aliasPriority: displayAliasPriority(model),
+			benchmarkDisplayScores: Object.fromEntries(
+				scoreBenchmarkMetricColumns.map((column) => {
+					const value = benchmarkMetricValue(model, column);
+					const normalized = minMaxScale(
+						benchmarkDisplayScoreValues[column.key] ?? [],
+						value,
+					);
+					return [
+						column.key,
+						normalized == null ? null : clampScore(normalized),
+					];
+				}),
+			),
 		};
 		const existing = rowsByIdentity.get(key);
 		if (!existing || candidate.aliasPriority < existing.aliasPriority) {
@@ -646,6 +672,16 @@ export function benchmarkMetricValue(
 	column: BenchmarkMetricColumn,
 ) {
 	return modelBenchmarkMetricValue(model, column.benchmark);
+}
+
+/** Return a benchmark's normalized display score when its source scale is not directly comparable. */
+export function benchmarkDisplayValue(
+	row: TableRow,
+	column: BenchmarkMetricColumn,
+) {
+	return column.format === "score"
+		? row.benchmarkDisplayScores[column.key]
+		: benchmarkMetricValue(row.model, column);
 }
 
 export function contextWindowValue(model: LlmStatsModel) {
