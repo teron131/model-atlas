@@ -66,7 +66,7 @@ export function benchmarkPercentValue(value: number | null | undefined) {
 
 export function formatBenchmarkMetric(
 	value: number | null | undefined,
-	format: "percent" | "number" | "currency" = "percent",
+	format: "percent" | "score" | "number" | "currency" = "percent",
 ) {
 	if (typeof value !== "number" || !Number.isFinite(value)) {
 		return "-";

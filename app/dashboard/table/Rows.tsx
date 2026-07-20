@@ -23,6 +23,7 @@ import {
 	providerDisplayColor,
 } from "../shared/providerTheme";
 import {
+	benchmarkDisplayValue,
 	contextWindowValue,
 	type DashboardMetricColumn,
 	dashboardMetricValue,
@@ -132,7 +133,11 @@ export function ModelRow({
 				className="data-cell"
 			/>
 			{metricColumns.map((column) => (
-				<DashboardMetricCell key={column.key} model={model} column={column} />
+				<DashboardMetricCell
+					key={column.key}
+					rowData={rowData}
+					column={column}
+				/>
 			))}
 		</tr>
 	);
@@ -180,18 +185,22 @@ function ModelScoreCells({ rowData }: { rowData: TableRow }) {
 }
 
 function DashboardMetricCell({
-	model,
+	rowData,
 	column,
 }: {
-	model: LlmStatsModel;
+	rowData: TableRow;
 	column: DashboardMetricColumn;
 }) {
+	const model = rowData.model;
 	if (column.group === "profile" && column.field === "modalities") {
 		return <ModalityInputCell inputs={model.modalities?.input} />;
 	}
-	const value = dashboardMetricValue(model, column);
+	const value =
+		"benchmark" in column
+			? benchmarkDisplayValue(rowData, column)
+			: dashboardMetricValue(model, column);
 	if ("benchmark" in column) {
-		if (column.format !== "percent") {
+		if (column.format === "number" || column.format === "currency") {
 			return (
 				<TableCell
 					text={formatDashboardMetric(value, column)}
