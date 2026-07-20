@@ -17,182 +17,180 @@ import type {
 	LlmStatsEvaluations,
 	LlmStatsIntelligence,
 	LlmStatsModalities,
-	LlmStatsNullableComponentScores,
-	LlmStatsNullableScores,
 	LlmStatsPayload,
 	LlmStatsScoredCandidate,
 	LlmStatsSourceHealth,
-	LlmStatsSpeed,
 	LlmStatsTaskMetrics,
 	LlmStatsTaskMetricValues,
 } from "../stats/types";
+import { SNAPSHOT_TABLES, type SnapshotTableName } from "./types";
 
 type DbRow = Record<string, unknown>;
-
-export type PayloadRows = {
-	fetchedAt: number | null;
-	modelRows: DbRow[];
-	modelEvaluationRows: DbRow[];
-	modelTaskMetricRows: DbRow[];
-	sourceHealthRows: DbRow[];
-	artificialAnalysisRows: DbRow[];
-	agentArenaRows: DbRow[];
-	agentsLastExamRows: DbRow[];
-	blueprintBenchRows: DbRow[];
-	browseCompRows: DbRow[];
-	chartographyRows: DbRow[];
-	chessPuzzleRows: DbRow[];
-	cursorBenchRows: DbRow[];
-	deepSWERows: DbRow[];
-	ebrBenchRows: DbRow[];
-	enterpriseBenchCoreCraftRows: DbRow[];
-	epochCapabilitiesIndexRows: DbRow[];
-	frontierMathTier4Rows: DbRow[];
-	gdpPdfRows: DbRow[];
-	handbookMdRows: DbRow[];
-	proofBenchRows: DbRow[];
-	riemannBenchRows: DbRow[];
-	valsTerminalBenchRows: DbRow[];
-	toolathlonRows: DbRow[];
-	valsIndexRows: DbRow[];
-	vendingBench2Rows: DbRow[];
-	weirdMlRows: DbRow[];
-};
-
-type PayloadRowKey = Exclude<keyof PayloadRows, "fetchedAt">;
-
-export type PayloadRowGroup = {
-	key: PayloadRowKey;
-	sql: string;
-	sourceTable?: string;
-	optional?: boolean;
-};
-
-export type PayloadRowReader = (rowGroup: PayloadRowGroup) => Promise<DbRow[]>;
 
 export const SNAPSHOT_METADATA_SQL =
 	"SELECT updated_at_epoch_seconds FROM snapshot_metadata LIMIT 1";
 
-export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
-	{
-		key: "modelRows",
-		sql: "SELECT * FROM models ORDER BY row_index",
-	},
-	{
-		key: "modelEvaluationRows",
-		sql: "SELECT * FROM model_evaluations ORDER BY model_row_index, benchmark_key",
-	},
-	{
-		key: "modelTaskMetricRows",
-		sql: "SELECT * FROM model_task_metrics ORDER BY model_row_index, source_key",
-	},
-	{
-		key: "sourceHealthRows",
-		sql: "SELECT * FROM source_health ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "artificialAnalysisRows",
-		sql: "SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
-	},
-	{
-		key: "agentArenaRows",
-		sql: "SELECT * FROM agent_arena_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "agentsLastExamRows",
-		sql: "SELECT * FROM agents_last_exam_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "blueprintBenchRows",
-		sql: "SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "browseCompRows",
-		sql: "SELECT * FROM browsecomp_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "chartographyRows",
-		sql: "SELECT * FROM chartography_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "chessPuzzleRows",
-		sql: "SELECT * FROM chess_puzzles_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "cursorBenchRows",
-		sql: "SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "deepSWERows",
-		sql: "SELECT * FROM deep_swe_raw_rows ORDER BY pass_at_1 DESC, row_index",
-	},
-	{
-		key: "ebrBenchRows",
-		sql: "SELECT * FROM ebr_bench_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "enterpriseBenchCoreCraftRows",
-		sql: "SELECT * FROM enterprisebench_corecraft_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "epochCapabilitiesIndexRows",
-		sql: "SELECT * FROM epoch_capabilities_index_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "frontierMathTier4Rows",
-		sql: "SELECT * FROM frontiermath_tier_4_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "gdpPdfRows",
-		sql: "SELECT * FROM gdp_pdf_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "handbookMdRows",
-		sql: "SELECT * FROM handbook_md_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "proofBenchRows",
-		sql: "SELECT * FROM proofbench_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "riemannBenchRows",
-		sql: "SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "valsTerminalBenchRows",
-		sql: "SELECT * FROM vals_terminal_bench_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "toolathlonRows",
-		sql: "SELECT * FROM toolathlon_raw_rows ORDER BY row_index",
-	},
-	{
-		key: "valsIndexRows",
-		sql: "SELECT * FROM vals_index_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "vendingBench2Rows",
-		sql: "SELECT * FROM vending_bench_2_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-	{
-		key: "weirdMlRows",
-		sql: "SELECT * FROM weirdml_raw_rows ORDER BY row_index",
-		optional: true,
-	},
-];
+/** Build one row-group entry so table identity and read SQL cannot drift. */
+function payloadRowGroup<Key extends string>(
+	key: Key,
+	table: SnapshotTableName,
+	orderBy: string,
+	optional = false,
+) {
+	return {
+		key,
+		table,
+		sql: `SELECT * FROM ${table} ORDER BY ${orderBy}`,
+		optional,
+	};
+}
+
+export const PAYLOAD_ROW_GROUPS = [
+	payloadRowGroup("modelRows", SNAPSHOT_TABLES.models, "row_index"),
+	payloadRowGroup(
+		"modelEvaluationRows",
+		SNAPSHOT_TABLES.model_evaluations,
+		"model_row_index, benchmark_key",
+	),
+	payloadRowGroup(
+		"modelTaskMetricRows",
+		SNAPSHOT_TABLES.model_task_metrics,
+		"model_row_index, source_key",
+	),
+	payloadRowGroup(
+		"sourceHealthRows",
+		SNAPSHOT_TABLES.source_health,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"artificialAnalysisRows",
+		SNAPSHOT_TABLES.artificial_analysis,
+		"row_index",
+	),
+	payloadRowGroup(
+		"agentArenaRows",
+		SNAPSHOT_TABLES.agent_arena,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"agentsLastExamRows",
+		SNAPSHOT_TABLES.agents_last_exam,
+		"row_index",
+	),
+	payloadRowGroup(
+		"blueprintBenchRows",
+		SNAPSHOT_TABLES.blueprint_bench_2,
+		"row_index",
+	),
+	payloadRowGroup(
+		"browseCompRows",
+		SNAPSHOT_TABLES.browsecomp,
+		"row_index",
+	),
+	payloadRowGroup(
+		"chartographyRows",
+		SNAPSHOT_TABLES.chartography,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"chessPuzzleRows",
+		SNAPSHOT_TABLES.chess_puzzles,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"cursorBenchRows",
+		SNAPSHOT_TABLES.cursorbench,
+		"row_index",
+	),
+	payloadRowGroup(
+		"deepSWERows",
+		SNAPSHOT_TABLES.deep_swe,
+		"pass_at_1 DESC, row_index",
+	),
+	payloadRowGroup(
+		"ebrBenchRows",
+		SNAPSHOT_TABLES.ebr_bench,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"enterpriseBenchCoreCraftRows",
+		SNAPSHOT_TABLES.enterprisebench_corecraft,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"epochCapabilitiesIndexRows",
+		SNAPSHOT_TABLES.epoch_capabilities_index,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"frontierMathTier4Rows",
+		SNAPSHOT_TABLES.frontiermath_tier_4,
+		"row_index",
+		true,
+	),
+	payloadRowGroup("gdpPdfRows", SNAPSHOT_TABLES.gdp_pdf, "row_index"),
+	payloadRowGroup(
+		"handbookMdRows",
+		SNAPSHOT_TABLES.handbook_md,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"proofBenchRows",
+		SNAPSHOT_TABLES.proofbench,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"riemannBenchRows",
+		SNAPSHOT_TABLES.riemann_bench,
+		"row_index",
+	),
+	payloadRowGroup(
+		"valsTerminalBenchRows",
+		SNAPSHOT_TABLES.vals_terminal_bench,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"toolathlonRows",
+		SNAPSHOT_TABLES.toolathlon,
+		"row_index",
+	),
+	payloadRowGroup(
+		"valsIndexRows",
+		SNAPSHOT_TABLES.vals_index,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"vendingBench2Rows",
+		SNAPSHOT_TABLES.vending_bench_2,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"weirdMlRows",
+		SNAPSHOT_TABLES.weirdml,
+		"row_index",
+		true,
+	),
+] as const;
+
+export type PayloadRowGroup = (typeof PAYLOAD_ROW_GROUPS)[number];
+type PayloadRowKey = PayloadRowGroup["key"];
+export type PayloadRows = { fetchedAt: number | null } & Record<
+	PayloadRowKey,
+	DbRow[]
+>;
+export type PayloadRowReader = (rowGroup: PayloadRowGroup) => Promise<DbRow[]>;
 
 const INPUT_MODALITY_COLUMNS = [
 	["input_modality_text", "text"],
@@ -256,16 +254,6 @@ function buildContextWindow(row: DbRow): LlmStatsContextWindow {
 	return hasFields(contextWindow) ? contextWindow : null;
 }
 
-function buildSpeed(row: DbRow): LlmStatsSpeed {
-	return {
-		throughput_tokens_per_second_median:
-			asFiniteNumber(row.throughput_tokens_per_second_median) ?? null,
-		latency_seconds_median: asFiniteNumber(row.latency_seconds_median) ?? null,
-		e2e_latency_seconds_median:
-			asFiniteNumber(row.e2e_latency_seconds_median) ?? null,
-	};
-}
-
 function buildCost(row: DbRow): LlmStatsCost {
 	const cost: Record<string, unknown> = {};
 	assignNumber(cost, "input", row.cost_input);
@@ -290,24 +278,6 @@ function buildCost(row: DbRow): LlmStatsCost {
 	return hasFields(cost) ? (cost as NonNullable<LlmStatsCost>) : null;
 }
 
-function buildComponentScores(row: DbRow): LlmStatsNullableComponentScores {
-	return {
-		intelligence_score:
-			asFiniteNumber(row.component_intelligence_score) ?? null,
-		agentic_score: asFiniteNumber(row.component_agentic_score) ?? null,
-		speed_score: asFiniteNumber(row.component_speed_score) ?? null,
-	};
-}
-
-function buildScores(row: DbRow): LlmStatsNullableScores {
-	return {
-		intelligence_score: asFiniteNumber(row.intelligence_score) ?? null,
-		agentic_score: asFiniteNumber(row.agentic_score) ?? null,
-		speed_score: asFiniteNumber(row.speed_score) ?? null,
-		value_score: asFiniteNumber(row.value_score) ?? null,
-	};
-}
-
 /** One selected model row and its normalized child records become the public model contract. */
 function modelFromRow(
 	row: DbRow,
@@ -330,7 +300,14 @@ function modelFromRow(
 		open_weights: booleanValue(row.open_weights),
 		cost: buildCost(row),
 		context_window: buildContextWindow(row),
-		speed: buildSpeed(row),
+		speed: {
+			throughput_tokens_per_second_median:
+				asFiniteNumber(row.throughput_tokens_per_second_median) ?? null,
+			latency_seconds_median:
+				asFiniteNumber(row.latency_seconds_median) ?? null,
+			e2e_latency_seconds_median:
+				asFiniteNumber(row.e2e_latency_seconds_median) ?? null,
+		},
 		intelligence: numericObject<LlmStatsIntelligence>(
 			row,
 			ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
@@ -338,8 +315,18 @@ function modelFromRow(
 		intelligence_index_cost: null,
 		task_metrics: taskMetrics,
 		evaluations,
-		component_scores: buildComponentScores(row),
-		scores: buildScores(row),
+		component_scores: {
+			intelligence_score:
+				asFiniteNumber(row.component_intelligence_score) ?? null,
+			agentic_score: asFiniteNumber(row.component_agentic_score) ?? null,
+			speed_score: asFiniteNumber(row.component_speed_score) ?? null,
+		},
+		scores: {
+			intelligence_score: asFiniteNumber(row.intelligence_score) ?? null,
+			agentic_score: asFiniteNumber(row.agentic_score) ?? null,
+			speed_score: asFiniteNumber(row.speed_score) ?? null,
+			value_score: asFiniteNumber(row.value_score) ?? null,
+		},
 	};
 }
 
@@ -353,36 +340,13 @@ export function buildPayloadRows(
 	fetchedAt: number | null,
 	rowGroups: ReadonlyArray<readonly [PayloadRowKey, DbRow[]]>,
 ): PayloadRows {
-	const rows = new Map(rowGroups);
+	const rowsByKey = new Map(rowGroups);
+	const rows = Object.fromEntries(
+		PAYLOAD_ROW_GROUPS.map(({ key }) => [key, rowsByKey.get(key) ?? []]),
+	) as Record<PayloadRowKey, DbRow[]>;
 	return {
 		fetchedAt,
-		modelRows: rows.get("modelRows") ?? [],
-		modelEvaluationRows: rows.get("modelEvaluationRows") ?? [],
-		modelTaskMetricRows: rows.get("modelTaskMetricRows") ?? [],
-		sourceHealthRows: rows.get("sourceHealthRows") ?? [],
-		artificialAnalysisRows: rows.get("artificialAnalysisRows") ?? [],
-		agentArenaRows: rows.get("agentArenaRows") ?? [],
-		agentsLastExamRows: rows.get("agentsLastExamRows") ?? [],
-		blueprintBenchRows: rows.get("blueprintBenchRows") ?? [],
-		browseCompRows: rows.get("browseCompRows") ?? [],
-		chartographyRows: rows.get("chartographyRows") ?? [],
-		chessPuzzleRows: rows.get("chessPuzzleRows") ?? [],
-		cursorBenchRows: rows.get("cursorBenchRows") ?? [],
-		deepSWERows: rows.get("deepSWERows") ?? [],
-		ebrBenchRows: rows.get("ebrBenchRows") ?? [],
-		enterpriseBenchCoreCraftRows:
-			rows.get("enterpriseBenchCoreCraftRows") ?? [],
-		epochCapabilitiesIndexRows: rows.get("epochCapabilitiesIndexRows") ?? [],
-		frontierMathTier4Rows: rows.get("frontierMathTier4Rows") ?? [],
-		gdpPdfRows: rows.get("gdpPdfRows") ?? [],
-		handbookMdRows: rows.get("handbookMdRows") ?? [],
-		proofBenchRows: rows.get("proofBenchRows") ?? [],
-		riemannBenchRows: rows.get("riemannBenchRows") ?? [],
-		valsTerminalBenchRows: rows.get("valsTerminalBenchRows") ?? [],
-		toolathlonRows: rows.get("toolathlonRows") ?? [],
-		valsIndexRows: rows.get("valsIndexRows") ?? [],
-		vendingBench2Rows: rows.get("vendingBench2Rows") ?? [],
-		weirdMlRows: rows.get("weirdMlRows") ?? [],
+		...rows,
 	};
 }
 

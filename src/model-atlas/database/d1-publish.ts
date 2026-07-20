@@ -44,7 +44,11 @@ import {
 	queryD1BatchRows,
 	readD1Payload,
 } from "./d1";
-import { buildPayloadFromRows, type PayloadRows } from "./payload";
+import {
+	buildPayloadFromRows,
+	buildPayloadRows,
+	PAYLOAD_ROW_GROUPS,
+} from "./payload";
 import {
 	deriveDatabaseSnapshot,
 	writeDatabaseSnapshotRows,
@@ -172,10 +176,13 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	) {
 		const statements = sourceHealthStatements(collector);
 		await queryD1Batch(statements.map((sql) => ({ sql })));
-		const payload = withSourceHealth(
-			current.previousPayload,
-			derived.rows.sourceHealth,
-		);
+		const payload = {
+			...current.previousPayload,
+			metadata: {
+				...current.previousPayload.metadata,
+				source_health: derived.rows.sourceHealth,
+			},
+		};
 		return {
 			result: publishResult(
 				config.databaseId,
@@ -344,63 +351,19 @@ function sourceHealthStatements(
 	];
 }
 
-function withSourceHealth(
-	payload: LlmStatsPayload,
-	sourceHealth: NonNullable<LlmStatsPayload["metadata"]["source_health"]>,
-): LlmStatsPayload {
-	return {
-		...payload,
-		metadata: {
-			...payload.metadata,
-			source_health: sourceHealth,
-		},
-	};
-}
-
 function payloadFromCollector(
 	fetchedAt: number,
 	collector: SnapshotRowCollector,
 ): LlmStatsPayload {
-	const rows: PayloadRows = {
-		fetchedAt,
-		modelRows: collector.records(SNAPSHOT_TABLES.models),
-		modelEvaluationRows: collector.records(SNAPSHOT_TABLES.model_evaluations),
-		modelTaskMetricRows: collector.records(SNAPSHOT_TABLES.model_task_metrics),
-		sourceHealthRows: collector.records(SNAPSHOT_TABLES.source_health),
-		artificialAnalysisRows: collector.records(
-			SNAPSHOT_TABLES.artificial_analysis,
+	return buildPayloadFromRows(
+		buildPayloadRows(
+			fetchedAt,
+			PAYLOAD_ROW_GROUPS.map(({ key, table }) => [
+				key,
+				collector.records(table),
+			]),
 		),
-		agentArenaRows: collector.records(SNAPSHOT_TABLES.agent_arena),
-		agentsLastExamRows: collector.records(SNAPSHOT_TABLES.agents_last_exam),
-		blueprintBenchRows: collector.records(SNAPSHOT_TABLES.blueprint_bench_2),
-		browseCompRows: collector.records(SNAPSHOT_TABLES.browsecomp),
-		chartographyRows: collector.records(SNAPSHOT_TABLES.chartography),
-		chessPuzzleRows: collector.records(SNAPSHOT_TABLES.chess_puzzles),
-		cursorBenchRows: collector.records(SNAPSHOT_TABLES.cursorbench),
-		deepSWERows: collector.records(SNAPSHOT_TABLES.deep_swe),
-		ebrBenchRows: collector.records(SNAPSHOT_TABLES.ebr_bench),
-		enterpriseBenchCoreCraftRows: collector.records(
-			SNAPSHOT_TABLES.enterprisebench_corecraft,
-		),
-		epochCapabilitiesIndexRows: collector.records(
-			SNAPSHOT_TABLES.epoch_capabilities_index,
-		),
-		frontierMathTier4Rows: collector.records(
-			SNAPSHOT_TABLES.frontiermath_tier_4,
-		),
-		gdpPdfRows: collector.records(SNAPSHOT_TABLES.gdp_pdf),
-		handbookMdRows: collector.records(SNAPSHOT_TABLES.handbook_md),
-		proofBenchRows: collector.records(SNAPSHOT_TABLES.proofbench),
-		riemannBenchRows: collector.records(SNAPSHOT_TABLES.riemann_bench),
-		valsTerminalBenchRows: collector.records(
-			SNAPSHOT_TABLES.vals_terminal_bench,
-		),
-		toolathlonRows: collector.records(SNAPSHOT_TABLES.toolathlon),
-		valsIndexRows: collector.records(SNAPSHOT_TABLES.vals_index),
-		vendingBench2Rows: collector.records(SNAPSHOT_TABLES.vending_bench_2),
-		weirdMlRows: collector.records(SNAPSHOT_TABLES.weirdml),
-	};
-	return buildPayloadFromRows(rows);
+	);
 }
 
 function publicationStatements(
