@@ -1,7 +1,6 @@
 /** Shared graph view contracts. */
 
 import type { Dispatch, SetStateAction } from "react";
-import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/scrapers/deep-swe";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 
 export type ProviderOption = {
@@ -61,12 +60,3 @@ export type Margin = {
 export type ModelLimit = 30 | 60 | "all";
 export type CostFilter = "all" | number;
 export type ProviderFilters = string[];
-export type DeepSWEEffortMode = "best" | "all";
-
-export type DeepSWEChartRow = {
-	model: LlmStatsModel;
-	row: DeepSWELeaderboardRow;
-	displayName: string;
-	effortLabel: string;
-	modelKey: string;
-};

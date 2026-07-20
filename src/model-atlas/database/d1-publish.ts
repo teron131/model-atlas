@@ -45,21 +45,21 @@ import {
 	readD1Payload,
 } from "./d1";
 import {
+	type OpenRouterRawCache,
+	refreshOpenRouterRawPayload,
+} from "./openrouter-cache";
+import {
 	buildPayloadFromRows,
 	buildPayloadRows,
 	PAYLOAD_ROW_GROUPS,
 } from "./payload";
-import {
-	deriveDatabaseSnapshot,
-	writeDatabaseSnapshotRows,
-} from "./pipeline";
+import { deriveDatabaseSnapshot, writeDatabaseSnapshotRows } from "./pipeline";
 import { sourceRowStatesFromRows } from "./policy";
 import type { SchemaReconciliationPlan } from "./schema";
 import {
-	refreshOpenRouterRawPayload,
 	refreshSourceSnapshots,
-	type SourceCaches,
-} from "./sources";
+	type SourceSnapshotCaches,
+} from "./source-snapshots";
 import {
 	RAW_SOURCE_NAMES,
 	RAW_SOURCE_TABLES,
@@ -99,7 +99,8 @@ export type D1PublishResult = {
 
 type D1RefreshState = {
 	rawRows: Record<RawSourceName, CacheDbRow[]>;
-	caches: SourceCaches;
+	sourceCaches: SourceSnapshotCaches;
+	openRouterCache: OpenRouterRawCache;
 	statuses: Record<RawSourceName, RawSourceCacheStatus>;
 	previousSourceRowStates: ReturnType<typeof sourceRowStatesFromRows>;
 	previousPayload: LlmStatsPayload | null;
@@ -123,7 +124,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	const replaceSourceRows = process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1";
 	const current = await readD1RefreshState(startedAt);
 	const refreshed = await refreshSourceSnapshots(
-		current.caches,
+		current.sourceCaches,
 		current.statuses,
 		current.previousSourceRowStates,
 		startedAt,
@@ -138,7 +139,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 		refreshed.sourceCache,
 		(modelIds) =>
 			refreshOpenRouterRawPayload(
-				current.caches.openRouter,
+				current.openRouterCache,
 				current.statuses.openrouter,
 				modelIds,
 				STAGE_CONFIG.openrouter.speedConcurrency,
@@ -253,7 +254,8 @@ async function readD1RefreshState(now: number): Promise<D1RefreshState> {
 	const previousHealth = previousPayload?.metadata.source_health?.sources;
 	return {
 		rawRows,
-		caches: sourceCachesFromRows(rawRows),
+		sourceCaches: sourceSnapshotCachesFromRows(rawRows),
+		openRouterCache: readOpenRouterRawCache(rawRows.openrouter),
 		statuses: Object.fromEntries(
 			RAW_SOURCE_NAMES.map((source) => [
 				source,
@@ -287,9 +289,9 @@ async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
 	) as Record<RawSourceName, CacheDbRow[]>;
 }
 
-function sourceCachesFromRows(
+function sourceSnapshotCachesFromRows(
 	rows: Record<RawSourceName, CacheDbRow[]>,
-): SourceCaches {
+): SourceSnapshotCaches {
 	return {
 		artificialAnalysis: artificialAnalysisRawCacheFromRows(
 			rows.artificial_analysis,
@@ -299,7 +301,6 @@ function sourceCachesFromRows(
 				rows.artificial_analysis_evaluation_resources,
 			),
 		modelsDev: modelsDevRawCacheFromRows(rows.models_dev),
-		openRouter: readOpenRouterRawCache(rows.openrouter),
 		agentArena: readAgentArenaRawCache(rows.agent_arena),
 		agentsLastExam: readAgentsLastExamRawCache(rows.agents_last_exam),
 		blueprintBench: readBlueprintBenchRawCache(rows.blueprint_bench_2),
@@ -338,9 +339,7 @@ function collectDatabaseSnapshot(
 }
 
 /** Replaces only refresh metadata when source and derived content are unchanged. */
-function sourceHealthStatements(
-	collector: SnapshotRowCollector,
-): string[] {
+function sourceHealthStatements(collector: SnapshotRowCollector): string[] {
 	const collected = collector.tables.get(SNAPSHOT_TABLES.source_health);
 	if (collected == null) {
 		return [];
@@ -376,9 +375,7 @@ function publicationStatements(
 	);
 	const tablesToInsert = [...changedRawTables, ...DERIVED_TABLES];
 	return [
-		...tablesToInsert.map(
-			(table) => `DELETE FROM ${quoteIdentifier(table)};`,
-		),
+		...tablesToInsert.map((table) => `DELETE FROM ${quoteIdentifier(table)};`),
 		"DELETE FROM snapshot_metadata;",
 		...tablesToInsert.flatMap((table) =>
 			insertStatements(table, collector.tables.get(table)),

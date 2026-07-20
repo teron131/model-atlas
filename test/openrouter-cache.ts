@@ -7,13 +7,13 @@ import {
 	readOpenRouterRawCache,
 } from "../src/model-atlas/database/cache/openrouter";
 import {
+	openRouterModelIdsToRefresh,
+	refreshOpenRouterRawPayload,
+} from "../src/model-atlas/database/openrouter-cache";
+import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import {
-	openRouterModelIdsToRefresh,
-	refreshOpenRouterRawPayload,
-} from "../src/model-atlas/database/sources";
 import { insertOpenRouterRawRows } from "../src/model-atlas/database/writers/openrouter";
 
 const databasePath = ".cache/test-openrouter-cache.sqlite";

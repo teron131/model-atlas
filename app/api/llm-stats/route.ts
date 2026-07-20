@@ -1,9 +1,9 @@
 /** Public LLM stats API for Model Atlas. */
 
+import { readDisplaySnapshotPayload } from "../../../src/model-atlas/database/runtime-snapshot";
+import { publicJsonPayload } from "../../../src/model-atlas/stats/public-json";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { publicCacheHeaders } from "../cache-headers";
-import { publicJsonPayload } from "./public-json";
-import { readDisplaySnapshotPayload } from "./snapshot-store";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

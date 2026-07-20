@@ -13,7 +13,6 @@ export type {
 	OpenRouterRawScrapedModel,
 	OpenRouterRawScrapedPayload,
 	OpenRouterScrapedModel,
-	OpenRouterScrapedPayload,
 	OpenRouterStatsPoint,
 	OpenRouterStatsResponse,
 } from "./stats";
@@ -26,13 +25,8 @@ export {
 	selectOpenRouterRawModelStats,
 	summarizeOpenRouterPerformanceEstimates,
 } from "./stats";
-export type {
-	OpenRouterScraperOptions,
-	OpenRouterSingleModelOptions,
-} from "./workflow";
+export type { OpenRouterScraperOptions } from "./workflow";
 export {
-	getOpenRouterModelStats,
 	getOpenRouterRawScrapedStats,
-	getOpenRouterScrapedStats,
 	OPENROUTER_MODELS_URL,
 } from "./workflow";

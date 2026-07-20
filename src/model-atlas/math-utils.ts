@@ -137,10 +137,6 @@ export function meanOfFiniteWithMinimum(
 		: null;
 }
 
-export function sortedFiniteScores(values: Array<number | null>): number[] {
-	return finiteScoreValues(values).sort((left, right) => left - right);
-}
-
 export function weightedMeanOfFinite(
 	parts: WeightedScorePart[],
 ): number | null {
@@ -172,30 +168,6 @@ export function weightedFinitePartCount(parts: WeightedScorePart[]): number {
 			Number.isFinite(part.weight) &&
 			part.weight > 0,
 	).length;
-}
-
-export function weightedCoverageRatio(
-	parts: WeightedScorePart[],
-): number | null {
-	const totalWeight = parts.reduce(
-		(total, part) =>
-			Number.isFinite(part.weight) && part.weight > 0
-				? total + part.weight
-				: total,
-		0,
-	);
-	if (totalWeight <= 0) {
-		return null;
-	}
-	const coveredWeight = parts.reduce((total, part) => {
-		if (!Number.isFinite(part.weight) || part.weight <= 0) {
-			return total;
-		}
-		return part.value == null || !Number.isFinite(part.value)
-			? total
-			: total + part.weight;
-	}, 0);
-	return coveredWeight / totalWeight;
 }
 
 /** Convert unequal positive weights into the equivalent count of equally weighted observations. */
@@ -364,27 +336,6 @@ export function weightedMedianOfFinite(
 	return weightedQuantile(parts, 0.5);
 }
 
-/** Require every configured part so fixed-weight scores do not reweight themselves around missing data. */
-export function fixedWeightedScore(parts: WeightedScorePart[]): number | null {
-	if (parts.some((part) => part.value == null)) {
-		return null;
-	}
-	const totalWeight = parts.reduce((sum, part) => sum + part.weight, 0);
-	if (totalWeight <= 0) {
-		return null;
-	}
-	return (
-		parts.reduce((sum, part) => sum + (part.value ?? 0) * part.weight, 0) /
-		totalWeight
-	);
-}
-
-/** Round finite-only means for public metadata where null means no numeric evidence was available. */
-export function meanOrNull(values: unknown[]): NumberOrNull {
-	const mean = meanOfFinite(finiteNumbers(values));
-	return mean == null ? null : Number(mean.toFixed(4));
-}
-
 /** Percentile ranks are local to the current comparison set, so adding or pruning models can change them. */
 export function percentileRank(
 	values: unknown[],
@@ -403,21 +354,6 @@ export function percentileRank(
 	).length;
 	const rawPercentile = (lessOrEqualCount / finiteValues.length) * 100;
 	return Number(rawPercentile.toFixed(4));
-}
-
-export function percentileScoreAt(
-	values: Array<number | null>,
-	index: number,
-): NumberOrNull {
-	const value = values[index] ?? null;
-	return value == null ? null : percentileRank(values, value);
-}
-
-export function percentileScoreForValue(
-	values: ReadonlyArray<number | null>,
-	value: number | null,
-): NumberOrNull {
-	return value == null ? null : percentileRank([...values], value);
 }
 
 /** Clamp public score-scale values to 0-100 after normalization or interpolation. */
@@ -458,22 +394,6 @@ export function medianOfFinite(
 		finiteScoreValues(values).sort((left, right) => left - right),
 		0.5,
 	);
-}
-
-export function fillMissingWithMedian(
-	values: Array<number | null>,
-): Array<number | null> {
-	const knownValues = sortedFiniteScores(values);
-	const medianValue = quantileFromSorted(knownValues, 0.5);
-	if (medianValue == null) {
-		return values;
-	}
-	return values.map((value) => value ?? medianValue);
-}
-
-export function inversePositiveFinite(value: unknown): number | null {
-	const number = positiveFiniteNumber(value);
-	return number == null ? null : 1 / number;
 }
 
 export function log10OnePlusPositive(value: unknown): number | null {

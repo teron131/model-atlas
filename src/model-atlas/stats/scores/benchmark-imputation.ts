@@ -52,11 +52,6 @@ export type BenchmarkImputationDiagnostic = {
 	crossEffortRawPenalty: number | null;
 };
 
-export type BenchmarkImputationDiagnosticsByKey = ReadonlyMap<
-	string,
-	BenchmarkImputationDiagnostic
->;
-
 export type QualityScoringContext = {
 	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
 };

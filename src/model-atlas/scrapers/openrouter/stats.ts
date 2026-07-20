@@ -94,11 +94,6 @@ export type OpenRouterScrapedModel = {
 	pricing: OpenRouterPricingSummary;
 };
 
-export type OpenRouterScrapedPayload = {
-	fetched_at_epoch_seconds: number;
-	models: OpenRouterScrapedModel[];
-};
-
 export type OpenRouterRawScrapedModel = {
 	id: string;
 	selected_permaslug: string | null;
@@ -419,14 +414,6 @@ function hasMeaningfulRawPricing(
 	pricing: OpenRouterEffectivePricingResponse | null,
 ): boolean {
 	return hasMeaningfulPricing(summarizePricing(pricing));
-}
-
-export function emptyScrapedModel(modelId: string): OpenRouterScrapedModel {
-	return {
-		id: modelId,
-		performance: summarizePerformance({}),
-		pricing: summarizePricing(null),
-	};
 }
 
 export function emptyRawScrapedModel(

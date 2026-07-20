@@ -1,10 +1,7 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
-import { strongestModelVariants } from "../../../src/model-atlas/stats/selection/public-list";
-import type {
-	LlmStatsModel,
-	LlmStatsPayload,
-} from "../../../src/model-atlas/stats/types";
+import { strongestModelVariants } from "./selection/public-list";
+import type { LlmStatsModel, LlmStatsPayload } from "./types";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";

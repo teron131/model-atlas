@@ -2,17 +2,12 @@
 
 import type { PointerEvent } from "react";
 import { minMaxScale } from "../../../src/model-atlas/math-utils";
-import type { DeepSWELeaderboardRow } from "../../../src/model-atlas/scrapers/deep-swe";
 import { canonicalModelKey } from "../../../src/model-atlas/shared";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
-import {
-	modelBaseDisplayName,
-	modelDisplayName,
-	modelVariantKey,
-} from "../shared/modelDisplay";
+import { modelDisplayName, modelVariantKey } from "../shared/modelDisplay";
 import {
 	providerAssetLogo,
 	providerFilterKey,
@@ -28,13 +23,10 @@ import {
 	fmtSeconds,
 	fmtTooltipMoney,
 	fmtTooltipNumber,
-	fmtTooltipPercent,
 	percent,
 } from "./format";
 import type {
 	CostFilter,
-	DeepSWEChartRow,
-	DeepSWEEffortMode,
 	HoverRow,
 	HoverState,
 	InteractionConfig,
@@ -182,94 +174,6 @@ export function frontierBenchmarkScoreByModel(
 		}
 	}
 	return scoreByModel;
-}
-
-function deepSweMinutes(row: DeepSWEChartRow): number | null {
-	const seconds = finiteValue(row.row.mean_duration_seconds);
-	return seconds == null ? null : seconds / 60;
-}
-
-export const deepSweMetricConfig = {
-	cost: {
-		label: "Avg cost per task",
-		shortLabel: "Cost",
-		get: (row: DeepSWEChartRow) => row.row.mean_cost_usd,
-		efficiencyLabel: "Best accuracy per dollar",
-		efficiencyScore: (row: DeepSWEChartRow) =>
-			Number(percent(row.row.pass_at_1)) / row.row.mean_cost_usd,
-		formatEfficiency: (value: number) => value.toFixed(1),
-		format: fmtMoney,
-		ticks: [0.5, 1, 2, 5, 10, 20],
-	},
-	time: {
-		label: "Avg time per task",
-		shortLabel: "Time",
-		get: deepSweMinutes,
-		efficiencyLabel: "Best accuracy per minute",
-		efficiencyScore: (row: DeepSWEChartRow) => {
-			const minutes = deepSweMinutes(row);
-			return minutes == null
-				? null
-				: Number(percent(row.row.pass_at_1)) / minutes;
-		},
-		formatEfficiency: (value: number) => value.toFixed(1),
-		format: (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)}m`,
-		ticks: [10, 20, 30, 45, 60],
-	},
-	tokens: {
-		label: "Avg output tokens",
-		shortLabel: "Output tokens",
-		get: (row: DeepSWEChartRow) => row.row.mean_output_tokens,
-		efficiencyLabel: "Best accuracy per 1M output tokens",
-		efficiencyScore: (row: DeepSWEChartRow) =>
-			Number(percent(row.row.pass_at_1)) /
-			(row.row.mean_output_tokens / 1_000_000),
-		formatEfficiency: (value: number) => value.toFixed(2),
-		format: fmtCompact,
-		ticks: [20_000, 50_000, 100_000, 200_000],
-	},
-};
-
-export function deepSweRows(
-	models: LlmStatsModel[],
-	rows: DeepSWELeaderboardRow[],
-	mode: DeepSWEEffortMode,
-): DeepSWEChartRow[] {
-	const modelsByKey = new Map(
-		models.map((model) => [
-			providerFilterKey(graphModelName(modelBaseDisplayName(model))),
-			model,
-		]),
-	);
-	const chartRows = rows
-		.flatMap((row): DeepSWEChartRow[] => {
-			const key = providerFilterKey(row.model);
-			const model = modelsByKey.get(key);
-			return model != null &&
-				finite(row.pass_at_1) &&
-				finite(row.mean_cost_usd) &&
-				row.mean_cost_usd > 0 &&
-				finite(row.mean_duration_seconds) &&
-				finite(row.mean_output_tokens)
-				? [
-						{
-							model,
-							row,
-							displayName: modelName(model),
-							effortLabel: row.reasoning_effort ?? "default",
-							modelKey: key,
-						},
-					]
-				: [];
-		})
-		.sort((left, right) => right.row.pass_at_1 - left.row.pass_at_1);
-	if (mode === "all") {
-		return chartRows;
-	}
-	return [...groupBy(chartRows, (row) => row.modelKey).values()]
-		.map((modelRows) => modelRows[0])
-		.filter((row): row is DeepSWEChartRow => row != null)
-		.sort((left, right) => right.row.pass_at_1 - left.row.pass_at_1);
 }
 
 export function groupBy<T, TKey>(
@@ -450,27 +354,6 @@ export function focusHover(
 	};
 }
 
-export function stepPath(
-	points: LlmStatsModel[],
-	x: (value: number) => number,
-	y: (value: number) => number,
-) {
-	if (points.length === 0) {
-		return "";
-	}
-	const [first, ...rest] = points;
-	if (first == null) {
-		return "";
-	}
-	let path = `M${x(Number(first.cost?.blended_price))},${y(first.scores.intelligence_score)}`;
-	for (const point of rest) {
-		const nextX = x(Number(point.cost?.blended_price));
-		const nextY = y(point.scores.intelligence_score);
-		path += ` H${nextX} V${nextY}`;
-	}
-	return path;
-}
-
 export function correlationLabel(
 	points: Point[],
 	transformX: (value: number) => number,
@@ -532,12 +415,6 @@ export function positiveDomain(values: number[]): [number, number] {
 	return [Math.max(10 ** (logLow - logPad), 0.001), 10 ** (logHigh + logPad)];
 }
 
-export function deepSweCi(row: DeepSWELeaderboardRow) {
-	return row.ci_lo != null && row.ci_hi != null
-		? `${fmtTooltipPercent(row.ci_lo)}-${fmtTooltipPercent(row.ci_hi)}`
-		: "--";
-}
-
 export function modelName(model: LlmStatsModel) {
 	return graphModelName(modelDisplayName(model));
 }
@@ -554,13 +431,6 @@ function prefixBareFableModelName(match: string, offset: number, name: string) {
 		offset,
 	);
 	return previousToken === "Claude " ? match : `Claude ${match}`;
-}
-
-export function deepSweLabel(row: DeepSWEChartRow, includeEffort: boolean) {
-	const base = row.displayName.replace(" Preview", "");
-	return includeEffort && row.effortLabel !== "default"
-		? `${base} (${row.effortLabel})`
-		: base;
 }
 
 export function shortLabel(model: LlmStatsModel) {

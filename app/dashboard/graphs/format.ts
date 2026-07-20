@@ -23,11 +23,6 @@ export function percent(value: unknown) {
 	return value <= 1 ? value * 100 : value;
 }
 
-export function fmtPercent(value: unknown, digits = 0) {
-	const normalized = percent(value);
-	return normalized == null ? "--" : `${normalized.toFixed(digits)}%`;
-}
-
 export function fmtPercentScore(value: unknown) {
 	if (!finite(value)) {
 		return "--";
@@ -41,10 +36,6 @@ export function fmtPercentScore(value: unknown) {
 	return Math.abs(roundedToTenth - roundedToWhole) < 0.001
 		? `${roundedToWhole}%`
 		: `${roundedToTenth.toFixed(1)}%`;
-}
-
-export function fmtScore(value: number | null | undefined) {
-	return finite(value) ? value.toFixed(0) : "--";
 }
 
 export function fmtTooltipScore(value: number | null | undefined) {
@@ -96,23 +87,11 @@ export function fmtTooltipNumber(value: number | null | undefined) {
 		: tooltipDecimalFormatter.format(value);
 }
 
-export function fmtTooltipPercent(value: unknown) {
-	const normalized = percent(value);
-	return normalized == null ? "--" : `${normalized.toFixed(1)}%`;
-}
-
 export function fmtSeconds(value: number) {
 	if (Number.isInteger(value)) {
 		return `${value.toFixed(0)}s`;
 	}
 	return `${value.toFixed(value >= 10 ? 0 : 1)}s`;
-}
-
-export function fmtMinutes(seconds: number | null | undefined) {
-	if (!finite(seconds)) {
-		return "--";
-	}
-	return `${(seconds / 60).toFixed(seconds > 600 ? 0 : 1)}m`;
 }
 
 export function fmtDurationShort(seconds: number) {

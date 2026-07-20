@@ -17,7 +17,6 @@ import {
 import {
 	buildOpenRouterSeriesTokenWeights,
 	emptyRawScrapedModel,
-	emptyScrapedModel,
 	type OpenRouterCandidateStats,
 	type OpenRouterEffectivePricingResponse,
 	type OpenRouterEndpointStatsResponse,
@@ -25,11 +24,8 @@ import {
 	type OpenRouterModelStats,
 	type OpenRouterRawScrapedModel,
 	type OpenRouterRawScrapedPayload,
-	type OpenRouterScrapedModel,
-	type OpenRouterScrapedPayload,
 	type OpenRouterStatsResponse,
 	parseOpenRouterWeeklyTokens,
-	processOpenRouterModelStats,
 	resolvePermaslugCandidates,
 	sanitizeModelId,
 	selectOpenRouterRawModelStats,
@@ -63,11 +59,6 @@ export type OpenRouterScraperOptions = {
 	maxRetries?: number;
 	retryBaseDelayMs?: number;
 };
-
-export type OpenRouterSingleModelOptions = Omit<
-	OpenRouterScraperOptions,
-	"modelIds"
->;
 
 type OpenRouterRequestOptions = {
 	timeoutMs: number;
@@ -329,55 +320,4 @@ export async function getOpenRouterRawScrapedStats(
 		directory,
 		models,
 	};
-}
-
-/**
- * Scrape OpenRouter performance stats for a finalized set of model IDs.
- *
- * This intentionally avoids full-catalog scraping and only fetches stats for `options.modelIds`.
- */
-export async function getOpenRouterScrapedStats(
-	options: OpenRouterScraperOptions,
-): Promise<OpenRouterScrapedPayload> {
-	const rawPayload = await getOpenRouterRawScrapedStats(options);
-	const models = rawPayload.models.map((model) =>
-		processOpenRouterModelStats(model.id, model.performance, model.pricing),
-	);
-
-	return {
-		fetched_at_epoch_seconds: rawPayload.fetched_at_epoch_seconds,
-		models,
-	};
-}
-
-/**
- * Fetch OpenRouter performance stats for exactly one OpenRouter model ID.
- *
- * Example input:
- * - `openai/gpt-5.3-codex`
- * - `google/gemini-3.1-pro-preview`
- * - `meta-llama/llama-4-maverick:free` (free suffix is normalized)
- */
-export async function getOpenRouterModelStats(
-	modelId: string,
-	options: OpenRouterSingleModelOptions = {},
-): Promise<OpenRouterScrapedModel> {
-	const scraperOptions: OpenRouterScraperOptions = {
-		modelIds: [modelId],
-		...(options.timeoutMs != null ? { timeoutMs: options.timeoutMs } : {}),
-		...(options.concurrency != null
-			? { concurrency: options.concurrency }
-			: {}),
-		...(options.maxRetries != null ? { maxRetries: options.maxRetries } : {}),
-		...(options.retryBaseDelayMs != null
-			? { retryBaseDelayMs: options.retryBaseDelayMs }
-			: {}),
-	};
-	const payload = await getOpenRouterScrapedStats(scraperOptions);
-
-	const firstModel = payload.models[0];
-	if (!firstModel) {
-		return emptyScrapedModel(modelId);
-	}
-	return firstModel;
 }

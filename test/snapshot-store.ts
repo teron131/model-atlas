@@ -1,17 +1,16 @@
 /** Verifies D1-only runtime reads, refresh guards, and batched database access. */
 
 import assert from "node:assert/strict";
-
-import {
-	readDisplaySnapshotPayload,
-	refreshStoredSnapshot,
-	snapshotRuntime,
-} from "../app/api/llm-stats/snapshot-store";
 import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
 import {
 	PAYLOAD_ROW_GROUPS,
 	SNAPSHOT_METADATA_SQL,
 } from "../src/model-atlas/database/payload";
+import {
+	readDisplaySnapshotPayload,
+	refreshStoredSnapshot,
+	snapshotRuntime,
+} from "../src/model-atlas/database/runtime-snapshot";
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
 const originalVercel = process.env.VERCEL;
