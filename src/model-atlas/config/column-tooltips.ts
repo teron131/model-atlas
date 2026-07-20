@@ -146,6 +146,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	ebr_bench: "EBR-Bench",
 	enterprisebench_corecraft: "EnterpriseBench CoreCraft",
 	epoch_capabilities_index: "Epoch Capabilities Index",
+	frontier_code: "FrontierCode",
 	frontiermath_tier_4: "FrontierMath Tier 4",
 	gdp_pdf: "GDP.pdf",
 	gdpval_normalized: "GDPval-AA v2",

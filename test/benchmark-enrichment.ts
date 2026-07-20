@@ -8,6 +8,7 @@ import {
 	type BenchmarkScoreRow,
 	buildBenchmarkScoreMap,
 } from "../src/model-atlas/scrapers/benchmark-score";
+import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
 import { buildBenchmarkModelMap } from "../src/model-atlas/shared";
@@ -75,6 +76,38 @@ const aleBenchRow: AleBenchModelScoreRow = {
 	tokens_per_task: 3_000,
 	input_tokens_per_task: 1_000,
 	output_tokens_per_task: 2_000,
+};
+const frontierCodeRow: FrontierCodeModelEffortRow = {
+	revision: "v1_1",
+	model: "Example Model (high)",
+	base_model: "Example Model",
+	source_effort: "high",
+	reasoning_effort: "high",
+	harness: "codex",
+	score_eligible: true,
+	official_rank: 1,
+	official_best_effort: true,
+	main: {
+		pass_rate: 0.58,
+		score: 0.535,
+		cost_per_task_usd: 0.75,
+		tokens_per_task: 4_500,
+		tool_calls_per_task: 18,
+		steps_per_task: 12,
+		output_token_equivalent_per_task: 2_000,
+	},
+	extended: {
+		pass_rate: 0.4,
+		score: 0.35,
+		cost_per_task_usd: 0.6,
+		tokens_per_task: 3_500,
+		tool_calls_per_task: 14,
+		steps_per_task: 10,
+		output_token_equivalent_per_task: 1_500,
+	},
+	score: 0.535,
+	cost_per_task_usd: 0.75,
+	tokens_per_task: 4_500,
 };
 const mercorApexRow: MercorApexAgentsRow = {
 	model_id: "test/example-model",
@@ -255,6 +288,9 @@ const lookups = {
 	ebrBench: { scoreByModelName: new Map() },
 	enterpriseBenchCoreCraft: { scoreByModelName: new Map() },
 	epochCapabilitiesIndex: { scoreByModelName: new Map() },
+	frontierCode: {
+		scoreByModelName: buildBenchmarkModelMap([frontierCodeRow]),
+	},
 	frontierMathTier4: { scoreByModelName: new Map() },
 	gdpPdf: {
 		scoreByModelName: emptyLookup(),
@@ -294,6 +330,7 @@ assert.deepEqual(observationEnrichment.evaluations, {
 	ale_bench: 700,
 	automation_bench: 0.68,
 	briefcase: 0.5,
+	frontier_code: 0.535,
 	harvey_lab: 0.142,
 	itbench_sre: 0.56,
 	terminalbench_v21: 0.82,
@@ -319,6 +356,7 @@ assert.deepEqual(enrichment.evaluations, {
 	briefcase: 0.5,
 	cursorbench: 0.52,
 	deep_swe: 0.72,
+	frontier_code: 0.535,
 	harvey_lab: 0.142,
 	itbench_sre: 0.56,
 	terminalbench_v21: 0.82,
@@ -332,6 +370,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	briefcase: briefcaseResourceRow,
 	cursorbench: cursorBenchRow,
 	deep_swe: deepSWERow,
+	frontier_code: frontierCodeRow,
 	harvey_lab: harveyLabResourceRow,
 	hle: artificialAnalysisHleResourceRow,
 	itbench_sre: itbenchResourceRow,
@@ -389,6 +428,10 @@ assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 	cursorbench: {
 		cost: 0.42,
 		tokens: 12345,
+	},
+	frontier_code: {
+		cost: 0.75,
+		tokens: 4_500,
 	},
 	deep_swe: {
 		cost: 4.2,

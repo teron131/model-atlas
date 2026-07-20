@@ -402,6 +402,30 @@ CREATE TABLE IF NOT EXISTS epoch_capabilities_index_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
+CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	revision TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	source_effort TEXT NOT NULL,
+	reasoning_effort TEXT,
+	harness TEXT NOT NULL,
+	score_eligible INTEGER NOT NULL,
+	official_rank INTEGER NOT NULL,
+	official_best_effort INTEGER NOT NULL,
+	main_score REAL NOT NULL,
+	main_pass_rate REAL NOT NULL,
+	main_cost_per_task_usd REAL,
+	main_tokens_per_task REAL,
+	extended_score REAL NOT NULL,
+	extended_pass_rate REAL NOT NULL,
+	main_json TEXT NOT NULL,
+	extended_json TEXT NOT NULL,
+	PRIMARY KEY (row_index)
+);
+
 CREATE TABLE IF NOT EXISTS frontiermath_tier_4_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

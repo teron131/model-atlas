@@ -41,6 +41,10 @@ import type {
 	DeepSWEScoreByModelName,
 } from "../scrapers/deep-swe";
 import type {
+	FrontierCodeModelEffortRow,
+	FrontierCodeScoreByModelName,
+} from "../scrapers/frontier-code";
+import type {
 	MercorApexAgentsRow,
 	MercorApexAgentsScoreByModelName,
 } from "../scrapers/mercor-apex-agents";
@@ -175,6 +179,7 @@ export type LlmStatsTaskMetrics =
 			critpt?: LlmStatsTaskMetricValues | null;
 			cursorbench?: LlmStatsTaskMetricValues | null;
 			deep_swe?: LlmStatsTaskMetricValues | null;
+			frontier_code?: LlmStatsTaskMetricValues | null;
 			gdpval_normalized?: LlmStatsTaskMetricValues | null;
 			harvey_lab?: LlmStatsTaskMetricValues | null;
 			hle?: LlmStatsTaskMetricValues | null;
@@ -201,6 +206,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	ebr_bench?: NumberOrNull;
 	enterprisebench_corecraft?: NumberOrNull;
 	epoch_capabilities_index?: NumberOrNull;
+	frontier_code?: NumberOrNull;
 	frontiermath_tier_4?: NumberOrNull;
 	gdp_pdf?: NumberOrNull;
 	gdpval_normalized?: NumberOrNull;
@@ -231,6 +237,7 @@ export type LlmStatsScoringSourceRow =
 	| BenchmarkScoreRow
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow
+	| FrontierCodeModelEffortRow
 	| MercorApexAgentsRow
 	| TerminalBenchAggregateRow
 	| VendingBench2ModelScoreRow;
@@ -243,6 +250,7 @@ export type LlmStatsScoringSources =
 			automation_bench?: ArtificialAnalysisEvaluationResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 			deep_swe?: DeepSWEModelScoreRow | null;
+			frontier_code?: FrontierCodeModelEffortRow | null;
 			harvey_lab?: ArtificialAnalysisEvaluationResourceRow | null;
 			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
 			terminalbench_v21?: TerminalBenchAggregateRow | null;
@@ -605,6 +613,10 @@ export type LlmStatsSourceData = {
 	epochCapabilitiesIndex: LlmStatsScoreSourceRows<
 		BenchmarkScoreRow,
 		BenchmarkScoreByModelName
+	>;
+	frontierCode: LlmStatsScoreSourceRows<
+		FrontierCodeModelEffortRow,
+		FrontierCodeScoreByModelName
 	>;
 	frontierMathTier4: LlmStatsScoreSourceRows<
 		BenchmarkScoreRow,

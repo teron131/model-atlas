@@ -273,6 +273,17 @@ function benchmarkDraftsFromSourceData(
 				value: row.pass_at_1,
 			}),
 		),
+		...sparseBenchmarkRowDrafts(
+			"frontier_code",
+			sourceData.frontierCode.rows.filter((row) => row.score_eligible),
+			(row) => ({
+				id: row.base_model,
+				identity: row.base_model,
+				label: row.model,
+				reasoningEffort: row.reasoning_effort,
+				value: row.score,
+			}),
+		),
 		...sparseBenchmarkRowDrafts("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
 			label: row.model,
 			provider: row.provider,

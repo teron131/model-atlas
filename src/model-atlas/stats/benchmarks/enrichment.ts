@@ -66,6 +66,7 @@ export type BenchmarkEnrichmentLookups = {
 		LlmStatsSourceData["epochCapabilitiesIndex"],
 		"scoreByModelName"
 	>;
+	frontierCode: Pick<LlmStatsSourceData["frontierCode"], "scoreByModelName">;
 	frontierMathTier4: Pick<
 		LlmStatsSourceData["frontierMathTier4"],
 		"scoreByModelName"
@@ -191,6 +192,25 @@ function findEffortBenchmarkSourceRow<T extends BenchmarkModelRow>(
 	return row?.reasoning_effort === effort ? row : null;
 }
 
+/** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
+function addFrontierCodeScore(
+	enrichment: BenchmarkEnrichment,
+	modelNameCandidates: unknown[],
+	targetReasoningEffort: unknown,
+	lookup: BenchmarkEnrichmentLookups["frontierCode"],
+): void {
+	const row = findEffortBenchmarkSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookup.scoreByModelName,
+	);
+	if (row?.score_eligible !== true) {
+		return;
+	}
+	enrichment.evaluations.frontier_code = row.score;
+	enrichment.scoringSources.frontier_code = row;
+}
+
 function addArtificialAnalysisResourceEvaluation(
 	evaluations: Record<string, unknown>,
 	scoringSources: NonNullable<LlmStatsScoringSources>,
@@ -304,6 +324,12 @@ export function enrichBenchmarkObservation(
 		enrichment.evaluations.ale_bench = aleBenchRow.score;
 		enrichment.scoringSources.ale_bench = aleBenchRow;
 	}
+	addFrontierCodeScore(
+		enrichment,
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.frontierCode,
+	);
 	return enrichment;
 }
 
@@ -416,6 +442,12 @@ export function enrichBenchmarkAggregate(
 		targetReasoningEffort,
 		"epoch_capabilities_index",
 		lookups.epochCapabilitiesIndex.scoreByModelName,
+	);
+	addFrontierCodeScore(
+		{ evaluations, scoringSources },
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.frontierCode,
 	);
 	addBenchmarkScore(
 		evaluations,

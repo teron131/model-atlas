@@ -50,6 +50,7 @@ export const MODEL_ATLAS_EVALUATION_KEYS = [
 	"ebr_bench",
 	"enterprisebench_corecraft",
 	"epoch_capabilities_index",
+	"frontier_code",
 	"frontiermath_tier_4",
 	"gdp_pdf",
 	"gdpval_normalized",

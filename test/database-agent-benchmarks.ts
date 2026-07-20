@@ -108,6 +108,7 @@ const sourceRows = benchmarkRowsFromDb({
 	ebrBenchRows: [],
 	enterpriseBenchCoreCraftRows: [],
 	epochCapabilitiesIndexRows: [],
+	frontierCodeRows: [],
 	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
 	handbookMdRows: [],

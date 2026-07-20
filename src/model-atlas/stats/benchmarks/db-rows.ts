@@ -38,6 +38,7 @@ export type BenchmarkDbRows = {
 	ebrBenchRows: readonly DbBenchmarkRow[];
 	enterpriseBenchCoreCraftRows: readonly DbBenchmarkRow[];
 	epochCapabilitiesIndexRows: readonly DbBenchmarkRow[];
+	frontierCodeRows: readonly DbBenchmarkRow[];
 	frontierMathTier4Rows: readonly DbBenchmarkRow[];
 	gdpPdfRows: readonly DbBenchmarkRow[];
 	handbookMdRows: readonly DbBenchmarkRow[];
@@ -195,6 +196,20 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 		...benchmarkScoreDrafts(rows.ebrBenchRows),
 		...benchmarkScoreDrafts(rows.enterpriseBenchCoreCraftRows),
 		...benchmarkScoreDrafts(rows.epochCapabilitiesIndexRows),
+		...rows.frontierCodeRows.flatMap((row) =>
+			row.score_eligible === 1
+				? [
+						{
+							key: "frontier_code",
+							id: stringValue(row.base_model),
+							identity: stringValue(row.base_model),
+							label: stringValue(row.model),
+							reasoningEffort: row.reasoning_effort,
+							value: row.main_score,
+						},
+					]
+				: [],
+		),
 		...benchmarkScoreDrafts(rows.frontierMathTier4Rows),
 		...dbSourceDrafts({
 			key: "gdp_pdf",

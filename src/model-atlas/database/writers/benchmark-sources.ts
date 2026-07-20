@@ -3,6 +3,7 @@
 import { aleBenchModelEffort } from "../../scrapers/ale-bench";
 import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
+import type { FrontierCodeSubsetMetrics } from "../../scrapers/frontier-code";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
 
@@ -12,6 +13,23 @@ type AleBenchSourceSnapshot = Pick<
 > & {
 	fetchedAt: Pick<SourceSnapshots["fetchedAt"], "aleBench">;
 };
+
+type FrontierCodeSourceSnapshot = Pick<SourceSnapshots, "frontierCodeRows"> & {
+	fetchedAt: Pick<SourceSnapshots["fetchedAt"], "frontierCode">;
+};
+
+/** Restore Cognition's source field names inside the persisted subset evidence JSON. */
+function frontierCodeSourceSubset(metrics: FrontierCodeSubsetMetrics) {
+	return {
+		correct: metrics.pass_rate,
+		new_score: metrics.score,
+		cost: metrics.cost_per_task_usd,
+		tokens: metrics.tokens_per_task,
+		tool_calls: metrics.tool_calls_per_task,
+		steps: metrics.steps_per_task,
+		ote: metrics.output_token_equivalent_per_task,
+	};
+}
 
 function insertBenchmarkScoreRows(
 	db: DatabaseWriter,
@@ -401,6 +419,46 @@ export function insertEpochCapabilitiesIndexRawRows(
 		snapshots.epochCapabilitiesIndexRows,
 		snapshots.fetchedAt.epochCapabilitiesIndex,
 	);
+}
+
+/** Insert all FrontierCode effort and subset evidence while retaining the Main scoring projection. */
+export function insertFrontierCodeRawRows(
+	db: DatabaseWriter,
+	snapshots: FrontierCodeSourceSnapshot,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO frontier_code_raw_rows (
+			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
+			source_effort, reasoning_effort, harness, score_eligible,
+			official_rank, official_best_effort, main_score, main_pass_rate,
+			main_cost_per_task_usd, main_tokens_per_task, extended_score,
+			extended_pass_rate, main_json, extended_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.frontierCodeRows.entries()) {
+		statement.run(
+			index,
+			snapshots.fetchedAt.frontierCode,
+			SOURCE_URLS.frontier_code,
+			row.revision,
+			row.model,
+			row.base_model,
+			row.source_effort,
+			row.reasoning_effort,
+			row.harness,
+			sqliteBooleanValue(row.score_eligible),
+			row.official_rank,
+			sqliteBooleanValue(row.official_best_effort),
+			row.main.score,
+			row.main.pass_rate,
+			row.main.cost_per_task_usd,
+			row.main.tokens_per_task,
+			row.extended.score,
+			row.extended.pass_rate,
+			JSON.stringify(frontierCodeSourceSubset(row.main)),
+			JSON.stringify(frontierCodeSourceSubset(row.extended)),
+		);
+	}
 }
 
 /** Insert FrontierMath Tier 4 evidence through its source table. */

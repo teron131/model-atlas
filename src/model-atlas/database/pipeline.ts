@@ -29,6 +29,7 @@ import {
 	insertEbrBenchRawRows,
 	insertEnterpriseBenchCoreCraftRawRows,
 	insertEpochCapabilitiesIndexRawRows,
+	insertFrontierCodeRawRows,
 	insertFrontierMathTier4RawRows,
 	insertGdpPdfRawRows,
 	insertHandbookMdRawRows,
@@ -140,6 +141,10 @@ const SNAPSHOT_WRITERS = [
 		table: SNAPSHOT_TABLES.epoch_capabilities_index,
 		write: (db, rows) =>
 			insertEpochCapabilitiesIndexRawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.frontier_code,
+		write: (db, rows) => insertFrontierCodeRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.frontiermath_tier_4,

@@ -23,6 +23,7 @@ import {
 	readEbrBenchRawCache,
 	readEnterpriseBenchCoreCraftRawCache,
 	readEpochCapabilitiesIndexRawCache,
+	readFrontierCodeRawCache,
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,
@@ -318,6 +319,7 @@ function sourceSnapshotCachesFromRows(
 		epochCapabilitiesIndex: readEpochCapabilitiesIndexRawCache(
 			rows.epoch_capabilities_index,
 		),
+		frontierCode: readFrontierCodeRawCache(rows.frontier_code),
 		frontierMathTier4: readFrontierMathTier4RawCache(rows.frontiermath_tier_4),
 		gdpPdf: readGdpPdfRawCache(rows.gdp_pdf),
 		handbookMd: readHandbookMdRawCache(rows.handbook_md),

@@ -17,6 +17,7 @@ export {
 	insertEbrBenchRawRows,
 	insertEnterpriseBenchCoreCraftRawRows,
 	insertEpochCapabilitiesIndexRawRows,
+	insertFrontierCodeRawRows,
 	insertFrontierMathTier4RawRows,
 	insertGdpPdfRawRows,
 	insertHandbookMdRawRows,
