@@ -1,9 +1,8 @@
-/** Shared SQLite row decoding and latest-run mechanics for source cache readers. */
+/** Shared SQLite row decoding for source cache readers. */
 
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
-import { quoteIdentifier } from "../schema";
 
 export type CacheDbRow = JsonObject;
 
@@ -17,27 +16,6 @@ export function queryCacheRows(
 		.prepare(sql)
 		.all(...params)
 		.map((row) => asRecord(row));
-}
-
-export function latestTableRunId(
-	db: DatabaseSync,
-	table: string,
-): number | null {
-	const row = asRecord(
-		db
-			.prepare(`SELECT MAX(run_id) AS run_id FROM ${quoteIdentifier(table)}`)
-			.get(),
-	);
-	return asFiniteNumber(row.run_id);
-}
-
-export function queryLatestCacheRows(
-	db: DatabaseSync,
-	table: string,
-	sql: string,
-): CacheDbRow[] {
-	const runId = latestTableRunId(db, table);
-	return runId == null ? [] : queryCacheRows(db, sql, [runId]);
 }
 
 /** Source cache freshness follows the persisted fetch timestamp carried by the source row set. */

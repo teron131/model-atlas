@@ -181,21 +181,14 @@ export function snapshotRowsWithStates<T>(
 	return { rows, states };
 }
 
-/** The latest persisted run is the only source-row state that participates in the next preservation pass. */
-export function latestSourceRowStates(db: DatabaseSync): SourceRowState[] {
-	const row = asRecord(
-		db.prepare("SELECT MAX(run_id) AS run_id FROM source_quarantines").get(),
-	);
-	const runId = typeof row.run_id === "number" ? row.run_id : null;
-	if (runId == null) {
-		return [];
-	}
+/** Persisted source-row state participates in the next preservation pass. */
+export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
 	return sourceRowStatesFromRows(
 		db
 			.prepare(
-				"SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines WHERE run_id = ?",
+				"SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines",
 			)
-			.all(runId),
+			.all(),
 	);
 }
 

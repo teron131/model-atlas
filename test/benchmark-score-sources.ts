@@ -140,39 +140,39 @@ const coreCraft = surge.map((row) => ({
 	...row,
 	benchmark_key: "enterprisebench_corecraft" as const,
 }));
-insertChartographyRawRows(collector, 7, {
+insertChartographyRawRows(collector, {
 	chartographyRows: surge,
 	fetchedAt: { chartography: 1_784_000_004 },
 } as unknown as SourceSnapshots);
-insertChessPuzzlesRawRows(collector, 7, {
+insertChessPuzzlesRawRows(collector, {
 	chessPuzzleRows: chess,
 	fetchedAt: { chessPuzzles: 1_784_000_002 },
 } as unknown as SourceSnapshots);
-insertEbrBenchRawRows(collector, 7, {
+insertEbrBenchRawRows(collector, {
 	ebrBenchRows: ebr,
 	fetchedAt: { ebrBench: 1_784_000_003 },
 } as unknown as SourceSnapshots);
-insertEnterpriseBenchCoreCraftRawRows(collector, 7, {
+insertEnterpriseBenchCoreCraftRawRows(collector, {
 	enterpriseBenchCoreCraftRows: coreCraft,
 	fetchedAt: { enterpriseBenchCoreCraft: 1_784_000_006 },
 } as unknown as SourceSnapshots);
-insertEpochCapabilitiesIndexRawRows(collector, 7, {
+insertEpochCapabilitiesIndexRawRows(collector, {
 	epochCapabilitiesIndexRows: eci,
 	fetchedAt: { epochCapabilitiesIndex: 1_784_000_000 },
 } as unknown as SourceSnapshots);
-insertFrontierMathTier4RawRows(collector, 7, {
+insertFrontierMathTier4RawRows(collector, {
 	frontierMathTier4Rows: frontierMath,
 	fetchedAt: { frontierMathTier4: 1_784_000_001 },
 } as unknown as SourceSnapshots);
-insertHandbookMdRawRows(collector, 7, {
+insertHandbookMdRawRows(collector, {
 	handbookMdRows: handbook,
 	fetchedAt: { handbookMd: 1_784_000_005 },
 } as unknown as SourceSnapshots);
-insertProofBenchRawRows(collector, 7, {
+insertProofBenchRawRows(collector, {
 	proofBenchRows: proof,
 	fetchedAt: { proofBench: 1_784_000_007 },
 } as unknown as SourceSnapshots);
-insertWeirdMlRawRows(collector, 7, {
+insertWeirdMlRawRows(collector, {
 	weirdMlRows: weirdMl,
 	fetchedAt: { weirdMl: 1_784_000_008 },
 } as unknown as SourceSnapshots);

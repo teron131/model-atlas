@@ -10,7 +10,6 @@ console.log(
 	JSON.stringify(
 		{
 			path: result.path,
-			run_id: result.run_id,
 			final_model_count: result.final_model_count,
 			source_cache: result.source_cache,
 			tables: result.source_rows,

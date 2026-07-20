@@ -12,20 +12,16 @@ import {
 } from "../types";
 import { artificialAnalysisCacheHasHiddenRows } from "./artificial-analysis";
 import { openRouterCacheHasScopedCandidates } from "./openrouter";
-import { type CacheDbRow, firstEpochSecond, latestTableRunId } from "./rows";
+import { type CacheDbRow, firstEpochSecond } from "./rows";
 
 /** Fallback DeepSWE rows remain usable evidence but cannot make the preferred source cache current. */
 function hasPreferredDeepSWECacheVersion(db: DatabaseSync): boolean {
-	const runId = latestTableRunId(db, RAW_SOURCE_TABLES.deep_swe);
-	if (runId == null) {
-		return false;
-	}
 	return (
 		db
 			.prepare(
-				"SELECT 1 FROM deep_swe_raw_rows WHERE run_id = ? AND source_version = ? LIMIT 1",
+				"SELECT 1 FROM deep_swe_raw_rows WHERE source_version = ? LIMIT 1",
 			)
-			.get(runId, DEEP_SWE_PREFERRED_SOURCE_VERSION) != null
+			.get(DEEP_SWE_PREFERRED_SOURCE_VERSION) != null
 	);
 }
 
@@ -53,13 +49,12 @@ export function readRawSourceCacheStatus(
 	nowEpochSeconds: number,
 ): RawSourceCacheStatus {
 	const table = RAW_SOURCE_TABLES[source];
-	const runId = latestTableRunId(db, table);
 	const row = asRecord(
 		db
 			.prepare(
-				`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table} WHERE run_id = ?`,
+				`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table}`,
 			)
-			.get(runId ?? -1),
+			.get(),
 	);
 	const rowCount = asFiniteNumber(row.row_count) ?? 0;
 	const lastFetch = asFiniteNumber(row.last_fetch_epoch_seconds);

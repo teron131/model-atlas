@@ -5,23 +5,21 @@ import type { DatabaseWriter } from "./shared";
 
 export function insertDebugTraceRows(
 	db: DatabaseWriter,
-	runId: number,
 	rows: readonly DebugTraceRow[],
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO model_match_debug (
-			run_id, row_index, artificial_analysis_id,
+			row_index, artificial_analysis_id,
 			artificial_analysis_slug, artificial_analysis_name,
 			artificial_analysis_raw_row_index, candidate_rank,
 			candidate_model_id, candidate_provider_id, candidate_provider_name,
 			candidate_name, candidate_score, selected, rejection_reason,
 			selected_model_id, models_dev_row_index, openrouter_model_id,
 			openrouter_model_stats_row_index
-		) VALUES (${Array.from({ length: 18 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 17 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		statement.run(
-			runId,
 			index,
 			row.artificial_analysis_id,
 			row.artificial_analysis_slug,

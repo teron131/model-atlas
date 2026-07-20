@@ -37,7 +37,7 @@ import {
 	booleanFromSql,
 	type CacheDbRow,
 	firstEpochSecond,
-	queryLatestCacheRows,
+	queryCacheRows,
 	stringValue,
 } from "./rows";
 
@@ -68,8 +68,7 @@ function readBenchmarkScoreRawCache(
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		table,
-		`SELECT * FROM ${table} WHERE run_id = ? ORDER BY row_index`,
+		`SELECT * FROM ${table} ORDER BY row_index`,
 	);
 	if (cacheRows.length === 0) return null;
 	const rows = cacheRows.flatMap((row) => {
@@ -134,12 +133,8 @@ function numberArray(value: unknown): number[] | null {
 	}
 }
 
-function sourceRows(
-	cache: CacheSource,
-	table: string,
-	sql: string,
-): CacheDbRow[] {
-	return Array.isArray(cache) ? cache : queryLatestCacheRows(cache, table, sql);
+function sourceRows(cache: CacheSource, sql: string): CacheDbRow[] {
+	return Array.isArray(cache) ? cache : queryCacheRows(cache, sql);
 }
 
 export function readAgentArenaRawCache(cache: CacheSource): {
@@ -148,8 +143,7 @@ export function readAgentArenaRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"agent_arena_raw_rows",
-		"SELECT * FROM agent_arena_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM agent_arena_raw_rows ORDER BY row_index",
 	);
 	if (
 		cacheRows.length === 0 ||
@@ -195,8 +189,7 @@ export function readAgentsLastExamRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"agents_last_exam_raw_rows",
-		"SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? AND row_kind = 'harness_score' ORDER BY row_index",
+		"SELECT * FROM agents_last_exam_raw_rows WHERE row_kind = 'harness_score' ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -259,8 +252,7 @@ export function readBlueprintBenchRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"blueprint_bench_2_raw_rows",
-		"SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -299,8 +291,7 @@ export function readBrowseCompRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"browsecomp_raw_rows",
-		"SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM browsecomp_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -364,8 +355,7 @@ export function readCursorBenchRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"cursorbench_raw_rows",
-		"SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -423,8 +413,7 @@ export function readDeepSWERawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"deep_swe_raw_rows",
-		"SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM deep_swe_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -486,8 +475,7 @@ export function readGdpPdfRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"gdp_pdf_raw_rows",
-		"SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM gdp_pdf_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -534,8 +522,7 @@ export function readMercorApexAgentsRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"mercor_apex_agents_raw_rows",
-		"SELECT * FROM mercor_apex_agents_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM mercor_apex_agents_raw_rows ORDER BY row_index",
 	);
 	if (
 		cacheRows.length === 0 ||
@@ -593,8 +580,7 @@ export function readRiemannBenchRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"riemann_bench_raw_rows",
-		"SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -638,8 +624,7 @@ export function readValsTerminalBenchRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"vals_terminal_bench_raw_rows",
-		"SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM vals_terminal_bench_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -699,8 +684,7 @@ export function readToolathlonRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"toolathlon_raw_rows",
-		"SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM toolathlon_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -747,8 +731,7 @@ export function readValsIndexRawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"vals_index_raw_rows",
-		"SELECT * FROM vals_index_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM vals_index_raw_rows ORDER BY row_index",
 	);
 	if (cacheRows.length === 0) {
 		return null;
@@ -800,8 +783,7 @@ export function readVendingBench2RawCache(cache: CacheSource): {
 } | null {
 	const cacheRows = sourceRows(
 		cache,
-		"vending_bench_2_raw_rows",
-		"SELECT * FROM vending_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
+		"SELECT * FROM vending_bench_2_raw_rows ORDER BY row_index",
 	);
 	if (
 		cacheRows.length === 0 ||

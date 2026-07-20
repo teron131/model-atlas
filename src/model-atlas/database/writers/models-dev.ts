@@ -10,12 +10,11 @@ import {
 
 export function insertModelsDevRawModels(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO models_dev_raw_models (
-			run_id, row_index, fetched_at_epoch_seconds, status_code, url,
+			row_index, fetched_at_epoch_seconds, status_code, url,
 			provider_id, provider_name, provider_api, model_id, name, family,
 			release_date, last_updated, open_weights, reasoning, tool_call,
 			cost_input, cost_output, cost_cache_read, cost_cache_write,
@@ -23,7 +22,7 @@ export function insertModelsDevRawModels(
 			input_modality_image, input_modality_audio, input_modality_video,
 			input_modality_pdf, output_modality_text, output_modality_image,
 			output_modality_audio, output_modality_video
-		) VALUES (${Array.from({ length: 32 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 31 }, () => "?").join(", ")})
 	`);
 	let rowIndex = 0;
 	for (const [providerId, provider] of Object.entries(
@@ -35,7 +34,6 @@ export function insertModelsDevRawModels(
 			const inputModalities = model.modalities?.input ?? [];
 			const outputModalities = model.modalities?.output ?? [];
 			statement.run(
-				runId,
 				rowIndex,
 				snapshots.modelsDevFetchedAt,
 				snapshots.modelsDevStatusCode,

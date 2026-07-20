@@ -20,12 +20,9 @@ await removeDatabaseFiles(databasePath);
 try {
 	const db = await openDatabase(databasePath);
 	try {
-		const run = db
-			.prepare(
-				"INSERT INTO pipeline_runs (completed_at_epoch_seconds) VALUES (?)",
-			)
-			.run(1_800_000_001);
-		const runId = Number(run.lastInsertRowid);
+		db.prepare(
+			"INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)",
+		).run(1_800_000_001);
 		const finalRows = [
 			{
 				id: "example/aa-resource-model",
@@ -86,13 +83,12 @@ try {
 				},
 			},
 		];
-		insertModels(db, runId, finalRows);
-		insertModelEvaluations(db, runId, finalRows);
-		insertModelTaskMetrics(db, runId, finalRows);
+		insertModels(db, finalRows);
+		insertModelEvaluations(db, finalRows);
+		insertModelTaskMetrics(db, finalRows);
 		assert.equal(
-			db
-				.prepare("SELECT reasoning_effort FROM models WHERE run_id = ?")
-				.get(runId)?.reasoning_effort,
+			db.prepare("SELECT reasoning_effort FROM models").get()
+				?.reasoning_effort,
 			"xhigh",
 		);
 	} finally {

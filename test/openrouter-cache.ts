@@ -23,7 +23,7 @@ await removeDatabaseFiles(databasePath);
 try {
 	const db = await openDatabase(databasePath);
 	try {
-		insertOpenRouterRawRows(db, 1, {
+		insertOpenRouterRawRows(db, {
 			fetched_at_epoch_seconds: 1_800_000_000,
 			directory: [
 				{
@@ -177,17 +177,17 @@ try {
 			"Fresh cache reuse should drop model keys no longer requested",
 		);
 
-		insertOpenRouterRawRows(db, 2, cached);
-		const contentRows = (runId: number) =>
+		const contentRows = () =>
 			db
-				.prepare(
-					"SELECT * FROM openrouter_raw_rows WHERE run_id = ? ORDER BY row_index",
-				)
-				.all(runId)
-				.map(({ run_id, row_index, fetched_at_epoch_seconds, ...row }) => row);
+				.prepare("SELECT * FROM openrouter_raw_rows ORDER BY row_index")
+				.all()
+				.map(({ row_index, fetched_at_epoch_seconds, ...row }) => row);
+		const beforeRewrite = contentRows();
+		db.prepare("DELETE FROM openrouter_raw_rows").run();
+		insertOpenRouterRawRows(db, cached);
 		assert.deepEqual(
-			contentRows(2),
-			contentRows(1),
+			contentRows(),
+			beforeRewrite,
 			"OpenRouter cache read/write round trips should be content-idempotent",
 		);
 	} finally {

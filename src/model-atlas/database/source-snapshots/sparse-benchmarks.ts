@@ -828,13 +828,13 @@ export type WeirdMlSnapshot = {
 
 function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
 	const rawRunId = row.metadata.run_id;
-	const runId =
+	const sourceRunId =
 		typeof rawRunId === "string" || typeof rawRunId === "number"
 			? rawRunId
 			: null;
 	return sourceKey(
 		row.benchmark_key,
-		runId ?? row.model_id ?? row.model,
+		sourceRunId ?? row.model_id ?? row.model,
 		row.reasoning_effort,
 	);
 }

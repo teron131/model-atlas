@@ -59,9 +59,9 @@ const snapshots = {
 } as unknown as SourceSnapshots;
 const collector = new SnapshotRowCollector();
 
-insertAgentArenaRawRows(collector, 7, snapshots);
-insertMercorApexAgentsRawRows(collector, 7, snapshots);
-insertVendingBench2RawRows(collector, 7, snapshots);
+insertAgentArenaRawRows(collector, snapshots);
+insertMercorApexAgentsRawRows(collector, snapshots);
+insertVendingBench2RawRows(collector, snapshots);
 
 const agentArenaRows = collector.records("agent_arena_raw_rows");
 const mercorApexRows = collector.records("mercor_apex_agents_raw_rows");

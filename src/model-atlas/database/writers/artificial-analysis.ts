@@ -164,7 +164,6 @@ function artificialAnalysisCostAndLogoValues(
 
 export function insertArtificialAnalysisRawModels(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const selectedRowsByKey = artificialAnalysisSelectedRowsByKey(
@@ -172,7 +171,7 @@ export function insertArtificialAnalysisRawModels(
 	);
 	const statement = db.prepare(`
 		INSERT INTO artificial_analysis_raw_models (
-			run_id, row_index, fetched_at_epoch_seconds, url, model_id, name,
+			row_index, fetched_at_epoch_seconds, url, model_id, name,
 			short_name, creator_name, model_url, release_date, deprecated,
 			reasoning_model, reasoning_effort, open_weights, commercial_allowed,
 			input_modality_text, input_modality_image, input_modality_video, input_modality_speech,
@@ -188,7 +187,7 @@ export function insertArtificialAnalysisRawModels(
 			reasoning_cost, output_cost, total_cost, input_tokens, reasoning_tokens,
 			answer_tokens, output_tokens, total_tokens, cost_per_task,
 			seconds_per_task, output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 56 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 55 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
 		const selectedRow =
@@ -200,7 +199,6 @@ export function insertArtificialAnalysisRawModels(
 			...asRecord(row.model_creators),
 		};
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.artificialAnalysis,
 			SOURCE_URLS.artificial_analysis,
@@ -214,24 +212,22 @@ export function insertArtificialAnalysisRawModels(
 
 export function insertArtificialAnalysisEvaluationResourceRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO artificial_analysis_evaluations_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, benchmark_key, model_id,
+			row_index, fetched_at_epoch_seconds, url, benchmark_key, model_id,
 			model, provider, provider_id, reasoning_effort, score, task_run_count,
 			cost_per_task_usd, seconds_per_task, tokens_per_task,
 			input_tokens_per_task, output_tokens_per_task, answer_tokens_per_task,
 			reasoning_tokens_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [
 		index,
 		row,
 	] of snapshots.artificialAnalysisEvaluationResourceRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.artificialAnalysisEvaluationResources,
 			row.source_url,
