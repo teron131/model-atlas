@@ -4,7 +4,6 @@ import type { DatabaseSync } from "node:sqlite";
 import type { AgentArenaModelScoreRow } from "../../scrapers/agent-arena";
 import type { AgentsLastExamHarnessRow } from "../../scrapers/agents-last-exam";
 import type {
-	BenchmarkScoreKey,
 	BenchmarkScoreMetadata,
 	BenchmarkScoreRow,
 	BenchmarkScoreSource,
@@ -60,7 +59,7 @@ function benchmarkScoreMetadata(value: unknown): BenchmarkScoreMetadata | null {
 function readBenchmarkScoreRawCache(
 	cache: CacheSource,
 	table: string,
-	benchmarkKey: BenchmarkScoreKey,
+	benchmarkKey: string,
 	expectedSource: BenchmarkScoreSource,
 ): {
 	rows: BenchmarkScoreRow[];
@@ -109,7 +108,7 @@ function readBenchmarkScoreRawCache(
 				confidence_high: asFiniteNumber(row.confidence_high),
 				observed_at: stringValue(row.observed_at),
 				metadata,
-			} as BenchmarkScoreRow,
+			},
 		];
 	});
 	return rows.length === 0

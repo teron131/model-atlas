@@ -13,7 +13,7 @@ import {
 	fetchEpochBenchmarkRows,
 } from "./common";
 
-export function epochEbrBenchRows(rows: EpochBenchmarkCsvRow[]) {
+function epochEbrBenchRows(rows: EpochBenchmarkCsvRow[]) {
 	return rows.flatMap((row) => {
 		if (row.task !== "EBR-bench") return [];
 		const scoreRow = epochRunScoreRow(row, "ebr_bench");

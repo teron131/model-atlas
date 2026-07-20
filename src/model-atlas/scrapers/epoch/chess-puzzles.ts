@@ -13,7 +13,7 @@ import {
 	fetchEpochBenchmarkRows,
 } from "./common";
 
-export function epochChessPuzzleRows(rows: EpochBenchmarkCsvRow[]) {
+function epochChessPuzzleRows(rows: EpochBenchmarkCsvRow[]) {
 	return rows.flatMap((row) => {
 		if (row.task !== "Chess Puzzles") return [];
 		const scoreRow = epochRunScoreRow(row, "chess_puzzles");

@@ -9,7 +9,7 @@
 import type { BenchmarkScorePayload } from "../benchmark-score";
 import { getSurgeLeaderboardStats } from "./common";
 
-export const CHARTOGRAPHY_URL = "https://surgehq.ai/benchmarks/chartography";
+const CHARTOGRAPHY_URL = "https://surgehq.ai/benchmarks/chartography";
 
 export function getChartographyStats(): Promise<BenchmarkScorePayload> {
 	return getSurgeLeaderboardStats("chartography", CHARTOGRAPHY_URL);

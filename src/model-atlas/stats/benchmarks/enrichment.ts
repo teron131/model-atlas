@@ -12,7 +12,6 @@ import {
 	findArtificialAnalysisEvaluationResourceRow,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
-	BENCHMARK_SCORE_KEYS,
 	type BenchmarkScoreByModelName,
 	findBenchmarkScoreRow,
 } from "../../scrapers/benchmark-score";
@@ -93,14 +92,15 @@ export type BenchmarkEnrichment = {
 	scoringSources: NonNullable<LlmStatsScoringSources>;
 };
 
-/** Source-owned benchmark rows override duplicate catalog values on the selected default effort. */
+/** Direct benchmark source rows override duplicate catalog fields without a benchmark-specific registry. */
 function mergeAggregateBenchmarkFields(
 	baseFields: Record<string, unknown>,
 	aggregateFields: Record<string, unknown>,
+	benchmarkSources: NonNullable<LlmStatsScoringSources>,
 ): Record<string, unknown> {
 	const fields = { ...aggregateFields, ...baseFields };
-	for (const key of BENCHMARK_SCORE_KEYS) {
-		if (key in aggregateFields) {
+	for (const [key, sourceRow] of Object.entries(benchmarkSources)) {
+		if (asRecord(sourceRow).benchmark_key === key && key in aggregateFields) {
 			fields[key] = aggregateFields[key];
 		}
 	}
@@ -543,9 +543,11 @@ export function enrichModelRowsWithBenchmarks(
 		const evaluations = mergeAggregateBenchmarkFields(
 			baseEvaluations,
 			benchmarkEnrichment.evaluations,
+			benchmarkEnrichment.scoringSources,
 		);
 		const scoringSources = mergeAggregateBenchmarkFields(
 			asRecord(row.scoring_sources),
+			benchmarkEnrichment.scoringSources,
 			benchmarkEnrichment.scoringSources,
 		);
 		return {
