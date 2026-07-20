@@ -13,9 +13,7 @@ import {
 	useTransition,
 } from "react";
 
-import { COLUMN_TOOLTIPS } from "../../src/model-atlas/constants";
 import type {
-	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
@@ -23,255 +21,37 @@ import { LeaderboardCapture } from "./capture/leaderboard-capture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";
 import type { CostFilter, ModelLimit, ProviderFilters } from "./graphs/types";
+import { useLivePayload } from "./live-payload";
 import {
 	ColumnTooltip,
 	type HeaderTooltipHandler,
 	type TooltipState,
 	tooltipPositionFromElement,
 } from "./shared/ColumnTooltip";
-import { benchmarkTooltips, liveStatsPath } from "./shared/constants";
 import { MoonIcon, SunIcon } from "./shared/DashboardIcons";
 import {
 	DEFAULT_DISPLAY_ITEMS,
 	useDisplayLimit,
 } from "./shared/display-controls";
-import { cacheBustedPath } from "./shared/format";
 import { ModelControlToolbar } from "./shared/model-control-toolbar";
 import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
-	benchmarkMetricColumns,
 	dashboardMetricColumns,
 	dedupeDisplayModels,
 	type SortKey,
 	type SortState,
 	sortedRows,
 	sorters,
-	type TaskMetricColumn,
-	taskMetricColumns,
 } from "./table/models";
+import { tableColumnTooltip } from "./table/tooltips";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
-const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
-const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 const DASHBOARD_THEME_STORAGE_KEY = "model-atlas:dashboard-theme";
 const REASONING_VARIANT_DISPLAY_STORAGE_KEY =
 	"model-atlas:expand-reasoning-variants";
-// Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
-const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
-const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
-const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
 const TOOLTIP_FADE_OUT_MS = 1_000;
 const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
-const AUTOMATIC_LIVE_REFRESH_ENABLED =
-	process.env.NODE_ENV === "production" ||
-	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
-
-const benchmarkTableColumnTooltips = Object.fromEntries(
-	benchmarkMetricColumns.flatMap((column) => {
-		const tooltip = benchmarkTooltips[column.benchmark];
-		return tooltip == null ? [] : [[column.key, tooltip]];
-	}),
-) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
-
-type TaskMetricTooltipText = {
-	title: string;
-	body: string;
-	row: string;
-};
-
-const defaultTaskMetricTooltipText: Record<string, TaskMetricTooltipText> = {
-	cost: {
-		title: "cost per task",
-		body: "Reported task cost",
-		row: "cost per task",
-	},
-	seconds: {
-		title: "seconds per task",
-		body: "Reported task runtime",
-		row: "runtime per task",
-	},
-	tokens: {
-		title: "tokens per task",
-		body: "Reported token use",
-		row: "tokens per task",
-	},
-	input_tokens: {
-		title: "input tokens per task",
-		body: "Reported input token use",
-		row: "input tokens per task",
-	},
-	output_tokens: {
-		title: "output tokens per task",
-		body: "Reported output token use",
-		row: "output tokens per task",
-	},
-};
-
-const terminalBenchMetricTooltipText: Record<string, TaskMetricTooltipText> = {
-	cost: {
-		title: "cost per task",
-		body: "Median available task cost",
-		row: "median cost per task",
-	},
-	seconds: {
-		title: "seconds per task",
-		body: "Median available task runtime",
-		row: "median runtime per task",
-	},
-	tokens: {
-		title: "tokens per task",
-		body: "Artificial Analysis reported token use",
-		row: "AA tokens per task",
-	},
-	input_tokens: {
-		title: "input tokens per task",
-		body: "Artificial Analysis reported input token use",
-		row: "AA input tokens per task",
-	},
-	output_tokens: {
-		title: "output tokens per task",
-		body: "Artificial Analysis reported output token use",
-		row: "AA output tokens per task",
-	},
-};
-
-const taskMetricTableColumnTooltips = Object.fromEntries(
-	taskMetricColumns.flatMap((column) => taskMetricTooltipEntry(column)),
-) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
-
-const staticTableColumnTooltips = {
-	rank: {
-		title: "Rank ↓",
-		body: "Competition rank by Model Atlas Intelligence score.",
-	},
-	model: {
-		title: "Model",
-		body: "Model display name and provider route id.",
-		rows: [["Sort", "alphabetical by model name"]],
-	},
-	release: {
-		title: "Release date",
-		body: "Known model release date from the selected model metadata.",
-		rows: [["Sort", "newer releases sort first"]],
-	},
-	openWeights: {
-		title: "Open weights",
-		body: "Whether the model is available with open weights in the selected metadata.",
-		rows: [["Sort", "open-weight models sort first"]],
-	},
-	modalities: {
-		title: "Input modalities",
-		body: "Input types the model route advertises for text, image, audio, and video.",
-		rows: [["Sort", "more input capabilities sort first"]],
-	},
-	inputCost: {
-		title: "Input cost ↓",
-		body: "Published input price per 1M tokens for the selected route.",
-	},
-	outputCost: {
-		title: "Output cost ↓",
-		body: "Published output price per 1M tokens for the selected route.",
-	},
-	cacheReadCost: {
-		title: "Cache read cost ↓",
-		body: "Published cache-read price per 1M tokens when available.",
-	},
-	throughput: {
-		title: "Output throughput",
-		body: "Median output tokens per second from provider speed data.",
-	},
-	latency: {
-		title: "Latency ↓",
-		body: "Median time to first token from provider speed data.",
-	},
-	e2eLatency: {
-		title: "End-to-end latency ↓",
-		body: "Median total response time from provider speed data.",
-	},
-} as const satisfies Partial<Record<SortKey, LlmStatsColumnTooltip>>;
-
-const tableColumnFallbackTooltips: Partial<
-	Record<SortKey, LlmStatsColumnTooltip>
-> = {
-	...staticTableColumnTooltips,
-	...benchmarkTableColumnTooltips,
-	...taskMetricTableColumnTooltips,
-};
-
-function taskMetricTooltipEntry(
-	column: TaskMetricColumn,
-): Array<[SortKey, LlmStatsColumnTooltip]> {
-	const configuredTooltip = COLUMN_TOOLTIPS[column.key];
-	if (configuredTooltip != null) {
-		return [[column.key, configuredTooltip]];
-	}
-	const benchmarkTooltip = benchmarkTooltips[column.source];
-	if (benchmarkTooltip == null) {
-		return [];
-	}
-	const metricTooltip = taskMetricTooltipFor(column);
-	return [
-		[
-			column.key,
-			{
-				title: `${benchmarkTooltip.title} ${metricTooltip.title}${
-					column.direction === "ascending" ? " ↓" : ""
-				}`,
-				body: `${metricTooltip.body} for ${benchmarkTooltip.title}.`,
-				rows: [
-					["Source", taskMetricTooltipSource(column, benchmarkTooltip)],
-					["Metric", metricTooltip.row],
-				],
-			},
-		],
-	];
-}
-
-function taskMetricTooltipSource(
-	column: TaskMetricColumn,
-	tooltip: LlmStatsColumnTooltip,
-) {
-	if (column.source === "terminalbench_v21") {
-		return isTokenTaskMetric(column.metric)
-			? "Artificial Analysis"
-			: "Artificial Analysis & Vals";
-	}
-	return (
-		tooltip.rows?.find(([label]) => label === "Source")?.[1] ?? tooltip.title
-	);
-}
-
-function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
-	const metricTooltip =
-		column.source === "terminalbench_v21"
-			? terminalBenchMetricTooltipText[column.metric]
-			: defaultTaskMetricTooltipText[column.metric];
-	if (metricTooltip == null) {
-		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
-	}
-	return metricTooltip;
-}
-
-function isTokenTaskMetric(metric: TaskMetricColumn["metric"]) {
-	return (
-		metric === "tokens" ||
-		metric === "input_tokens" ||
-		metric === "output_tokens"
-	);
-}
-
-function tooltipForColumn(
-	key: SortKey,
-	columnTooltips: LlmStatsColumnTooltips,
-) {
-	return tableColumnFallbackTooltips[key] ?? columnTooltips[key];
-}
-
-type RefreshPayloadOptions = {
-	bypassHttpCache?: boolean;
-	retryWhenGuarded?: boolean;
-};
 
 type DashboardTooltipState = Omit<TooltipState, "key"> & {
 	key: SortKey;
@@ -305,7 +85,8 @@ export function Dashboard({
 	const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
 	const deferredFilterQuery = useDeferredValue(filterQuery);
 	const [, startSortTransition] = useTransition();
-	const { payload, errorMessage } = useLivePayload(initialPayload);
+	const { payload, errorMessage, fullPayloadLoaded } =
+		useLivePayload(initialPayload);
 
 	const displayPayload = useMemo(() => {
 		if (payload == null) {
@@ -361,7 +142,9 @@ export function Dashboard({
 	const columnTooltips =
 		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
 	const activeTooltipContent =
-		tooltip == null ? undefined : tooltipForColumn(tooltip.key, columnTooltips);
+		tooltip == null
+			? undefined
+			: tableColumnTooltip(tooltip.key, columnTooltips);
 	const isInitialLoading = payload == null && errorMessage == null;
 	const rowCountLabel =
 		deferredFilterQuery.length > 0
@@ -414,7 +197,7 @@ export function Dashboard({
 
 	const showTooltip = useCallback<HeaderTooltipHandler>(
 		(event, key) => {
-			if (!tooltipForColumn(key, columnTooltips)) {
+			if (!tableColumnTooltip(key, columnTooltips)) {
 				return;
 			}
 			clearTooltipFadeTimeout();
@@ -484,7 +267,7 @@ export function Dashboard({
 			<DashboardGraphs
 				payload={displayPayload}
 				referenceModels={payload?.models ?? []}
-				fullPayloadLoaded={payload != null && hasFullPayload(payload)}
+				fullPayloadLoaded={fullPayloadLoaded}
 				benchmarksLoading={isInitialLoading}
 				selectedProviders={selectedProviders}
 				providerChoices={providerChoices}
@@ -625,183 +408,6 @@ function useReasoningVariantDisplay() {
 	}, [expandReasoningVariants]);
 
 	return [expandReasoningVariants, setExpandReasoningVariants] as const;
-}
-
-function useLivePayload(initialPayload: LlmStatsPayload | null) {
-	const [payload, setPayload] = useState<LlmStatsPayload | null>(
-		initialPayload,
-	);
-	const [errorMessage, setErrorMessage] = useState<string | null>(null);
-	const refreshInFlightRef = useRef<Promise<void> | null>(null);
-	const refreshRetryTimeoutRef = useRef<number | null>(null);
-
-	const refreshPayload = useCallback((options?: RefreshPayloadOptions) => {
-		if (refreshInFlightRef.current != null) {
-			return refreshInFlightRef.current;
-		}
-		const remainingGuardMs = refreshGuardRemainingMs();
-		if (remainingGuardMs > 0) {
-			if (options?.retryWhenGuarded && refreshRetryTimeoutRef.current == null) {
-				refreshRetryTimeoutRef.current = window.setTimeout(() => {
-					refreshRetryTimeoutRef.current = null;
-					void refreshPayload();
-				}, remainingGuardMs + GUARDED_REFRESH_RETRY_SLACK_MS);
-			}
-			return Promise.resolve();
-		}
-		if (refreshRetryTimeoutRef.current != null) {
-			window.clearTimeout(refreshRetryTimeoutRef.current);
-			refreshRetryTimeoutRef.current = null;
-		}
-		recordRefreshAttempt();
-		setErrorMessage(null);
-		refreshInFlightRef.current = fetch(
-			options?.bypassHttpCache ? cacheBustedPath(liveStatsPath) : liveStatsPath,
-			options?.bypassHttpCache ? { cache: "no-store" } : undefined,
-		)
-			.then((response) => {
-				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}`);
-				}
-				return response.json() as Promise<LlmStatsPayload>;
-			})
-			.then((nextPayload) => {
-				setPayload(nextPayload);
-				scheduleCachedPayloadWrite(nextPayload);
-			})
-			.catch((error) => {
-				console.error("Unable to refresh stats", error);
-				setErrorMessage("Unable to refresh stats");
-			})
-			.finally(() => {
-				refreshInFlightRef.current = null;
-			});
-		return refreshInFlightRef.current;
-	}, []);
-
-	useLayoutEffect(() => {
-		const cachedPayload = readCachedPayload();
-		if (initialPayload == null) {
-			if (cachedPayload != null) {
-				setPayload(cachedPayload);
-			}
-			void refreshPayload({ retryWhenGuarded: true });
-			return;
-		}
-		if (!hasFullPayload(initialPayload)) {
-			if (cachedPayload != null && hasFullPayload(cachedPayload)) {
-				setPayload(cachedPayload);
-			}
-			void refreshPayload({ retryWhenGuarded: true });
-		}
-	}, [initialPayload, refreshPayload]);
-
-	useEffect(() => {
-		return () => {
-			if (refreshRetryTimeoutRef.current != null) {
-				window.clearTimeout(refreshRetryTimeoutRef.current);
-			}
-		};
-	}, []);
-
-	useEffect(() => {
-		if (payload == null || !AUTOMATIC_LIVE_REFRESH_ENABLED) {
-			return;
-		}
-		const interval = window.setInterval(() => {
-			void refreshPayload({ bypassHttpCache: true });
-		}, SCHEDULED_REFRESH_INTERVAL_MS);
-		return () => {
-			window.clearInterval(interval);
-		};
-	}, [payload, refreshPayload]);
-
-	return { payload, errorMessage };
-}
-
-function isLlmStatsPayload(payload: unknown): payload is LlmStatsPayload {
-	if (payload == null || typeof payload !== "object") {
-		return false;
-	}
-	return Array.isArray((payload as Partial<LlmStatsPayload>).models);
-}
-
-function hasFullPayload(payload: LlmStatsPayload): boolean {
-	return payload.metadata.scoring.selected_benchmark_keys.length > 0;
-}
-
-function readCachedPayload(): LlmStatsPayload | null {
-	if (typeof window === "undefined") {
-		return null;
-	}
-	try {
-		const cachedPayload = window.localStorage.getItem(
-			LLM_STATS_PAYLOAD_CACHE_KEY,
-		);
-		if (cachedPayload == null) {
-			return null;
-		}
-		const parsedPayload: unknown = JSON.parse(cachedPayload);
-		return isLlmStatsPayload(parsedPayload) ? parsedPayload : null;
-	} catch {
-		return null;
-	}
-}
-
-function refreshGuardRemainingMs(): number {
-	if (typeof window === "undefined") {
-		return 0;
-	}
-	try {
-		const refreshedAt = Number.parseInt(
-			window.sessionStorage.getItem(PAYLOAD_REFRESH_ATTEMPT_KEY) ?? "",
-			10,
-		);
-		if (!Number.isFinite(refreshedAt)) {
-			return 0;
-		}
-		return Math.max(0, AUTOMATIC_REFRESH_GUARD_MS - (Date.now() - refreshedAt));
-	} catch {
-		return 0;
-	}
-}
-
-function recordRefreshAttempt(): void {
-	if (typeof window === "undefined") {
-		return;
-	}
-	try {
-		window.sessionStorage.setItem(
-			PAYLOAD_REFRESH_ATTEMPT_KEY,
-			String(Date.now()),
-		);
-	} catch {}
-}
-
-function scheduleCachedPayloadWrite(payload: LlmStatsPayload): void {
-	const idleCallback = window.requestIdleCallback?.(
-		() => {
-			writeCachedPayload(payload);
-		},
-		{ timeout: 2500 },
-	);
-	if (idleCallback != null) {
-		return;
-	}
-	window.setTimeout(() => {
-		writeCachedPayload(payload);
-	}, 0);
-}
-
-function writeCachedPayload(payload: LlmStatsPayload): void {
-	try {
-		window.localStorage.setItem(
-			LLM_STATS_PAYLOAD_CACHE_KEY,
-			JSON.stringify(payload),
-		);
-	} catch {
-		// The live response still renders even when browser storage is unavailable.
-	}
 }
 
 function DashboardHeader({

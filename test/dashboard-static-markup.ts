@@ -14,8 +14,11 @@ import {
 import { formatBenchmarkMetric } from "../app/dashboard/shared/format";
 import {
 	benchmarkMetricColumns,
+	dashboardMetricColumns,
+	type SortKey,
 	type TableRow,
 } from "../app/dashboard/table/models";
+import { tableColumnTooltip } from "../app/dashboard/table/tooltips";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
@@ -153,6 +156,17 @@ const displayedBenchmarkKeys = new Set([
 	...INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	...AGENTIC_BENCHMARK_DISPLAY_KEYS,
 ]);
+const tableColumnKeys: SortKey[] = [
+	"rank",
+	"model",
+	"intelligence",
+	"agentic",
+	"speed",
+	"value",
+	"blend",
+	"context",
+	...dashboardMetricColumns.map((column) => column.key),
+];
 
 assert.equal(
 	html.includes("Loading stats"),
@@ -215,6 +229,13 @@ assert.deepEqual(
 	[...displayedBenchmarkKeys].filter((key) => benchmarkTooltips[key] == null),
 	[],
 	"every displayed benchmark should have tooltip content",
+);
+assert.deepEqual(
+	tableColumnKeys.filter(
+		(key) => tableColumnTooltip(key, COLUMN_TOOLTIPS) == null,
+	),
+	[],
+	"every dashboard table column should resolve tooltip content",
 );
 assert.deepEqual(
 	[...displayedBenchmarkKeys].filter(
