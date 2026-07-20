@@ -29,6 +29,7 @@ import {
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
 import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
 import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/stats/benchmarks";
+import { deriveModelStats } from "../src/model-atlas/stats/derivation";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/stats/matching";
 import { aggregateCollapsedModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
 import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
@@ -386,6 +387,25 @@ const matchDiagnostics = buildMatchDiagnostics({
 	scrapedRows: sourceData.artificialAnalysis.rows,
 	modelsDevModels: sourceData.modelsDev.rows,
 });
+const sharedDerivation = await deriveModelStats(sourceData, {
+	loadOpenRouter: async (modelIds) => {
+		assert.deepEqual(modelIds, [
+			"google/example-2.5-flash",
+			"google/example-2.5-flash-lite",
+			"~google/example-pro-latest",
+		]);
+		return {
+			rawPayload: null,
+			cacheStatus: "cached",
+		};
+	},
+});
+assert.deepEqual(
+	sharedDerivation.matchDiagnostics,
+	matchDiagnostics,
+	"live and persisted derivation should consume the same finalized matcher decisions",
+);
+assert.equal(sharedDerivation.openRouterLoad.cacheStatus, "cached");
 const unmatchedProDiagnostics = matchDiagnostics.models.find(
 	(model) => model.artificial_analysis_slug === "example-3-pro",
 );
@@ -518,6 +538,9 @@ function model(
 		model: {
 			id: modelId,
 			name: modelName,
+			modalities: {
+				output: ["text"],
+			},
 		},
 	} as ModelsDevModel;
 }

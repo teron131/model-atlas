@@ -1,19 +1,11 @@
 /** Stats API coordinates live source refresh, enrichment, scoring, and failure-safe payload shape. */
 
-import { STAGE_CONFIG } from "./constants";
 import {
 	type BenchmarkRowsByKey,
 	benchmarkRowsFromSourceData,
-	enrichModelRowsWithBenchmarks,
 } from "./stats/benchmarks";
-import { buildModelCatalogRows } from "./stats/catalog";
-import { buildMatchedModelRows } from "./stats/matching";
+import { deriveModelStats } from "./stats/derivation";
 import { buildCurrentLlmStatsMetadata } from "./stats/metadata";
-import {
-	aggregateExpandedModelRows,
-	enrichModelRowsWithOpenRouter,
-} from "./stats/openrouter-enrichment";
-import { buildFinalModels } from "./stats/selection";
 import { fetchSourceData } from "./stats/source-data";
 import type {
 	LlmStatsModel,
@@ -73,27 +65,9 @@ async function buildLlmStatsPayload(
 	modelId: string | null = null,
 ): Promise<LlmStatsPayload> {
 	const sourceData = await fetchSourceData();
-	const matchedRows = buildMatchedModelRows(sourceData, STAGE_CONFIG.matcher);
-	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
-	const aggregatedRows = aggregateExpandedModelRows(catalogRows);
-	const benchmarkEnrichedRows = enrichModelRowsWithBenchmarks(
-		aggregatedRows,
-		sourceData,
-	);
-	const enrichedRows = await enrichModelRowsWithOpenRouter(
-		benchmarkEnrichedRows,
-		STAGE_CONFIG.openrouter,
-		STAGE_CONFIG.scoring,
-	);
-	const models = await buildFinalModels(
-		{
-			...enrichedRows,
-			deepSWEDefaultEffortRows: sourceData.deepSWE.defaultEffortRows,
-		},
+	const { enrichedRows, models } = await deriveModelStats(sourceData, {
 		modelId,
-		STAGE_CONFIG.final,
-		STAGE_CONFIG.scoring,
-	);
+	});
 	const fetchedAt = nowEpochSeconds();
 	return withLlmStatsMetadata(
 		{

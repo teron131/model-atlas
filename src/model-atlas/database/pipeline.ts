@@ -1,17 +1,8 @@
 /** Storage-independent pipeline derives model rows and writes normalized table rows through a minimal writer interface. */
 
 import { STAGE_CONFIG } from "../constants";
-import { buildMatchDiagnostics } from "../matcher";
-import { publicOpenRouterModelId } from "../openrouter-routes";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
-import { enrichModelRowsWithBenchmarks } from "../stats/benchmarks";
-import { buildModelCatalogRows } from "../stats/catalog";
-import { modelRowsFromMatchDiagnostics } from "../stats/matching";
-import {
-	aggregateExpandedModelRows,
-	enrichModelRowsWithOpenRouter,
-} from "../stats/openrouter-enrichment";
-import { buildFinalModels } from "../stats/selection";
+import { deriveModelStats } from "../stats/derivation";
 import { buildDebugTraceRows } from "./debug-trace";
 import { buildSourceHealth } from "./health";
 import { cachedSourceDataFromSnapshots } from "./source-snapshots/source-data";
@@ -247,17 +238,6 @@ export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_WRITERS.map(
 	({ table }) => table,
 );
 
-function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
-	return Array.from(
-		new Set(
-			rows
-				.map((row) => row.openrouter_id ?? row.id)
-				.filter((id): id is string => typeof id === "string" && id.length > 0)
-				.map((id) => publicOpenRouterModelId(id) ?? id),
-		),
-	);
-}
-
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
 	startedAt: number,
@@ -266,53 +246,25 @@ export async function deriveDatabaseSnapshot(
 	loadOpenRouter: OpenRouterLoader,
 ): Promise<DerivedDatabaseSnapshot> {
 	const sourceData = cachedSourceDataFromSnapshots(snapshots);
-	const matchDiagnostics = buildMatchDiagnostics({
-		matcherConfig: STAGE_CONFIG.matcher,
-		scrapedRows: sourceData.artificialAnalysis.rows,
-		modelsDevModels: sourceData.modelsDev.rows,
-	});
-	const matchedRows = modelRowsFromMatchDiagnostics(
-		sourceData,
+	const {
 		matchDiagnostics,
-	);
-	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
-	const aggregatedRows = aggregateExpandedModelRows(catalogRows);
-	const benchmarkEnrichedRows = enrichModelRowsWithBenchmarks(
-		aggregatedRows,
-		sourceData,
-	);
-	const openRouter = await loadOpenRouter(
-		openRouterModelIds(benchmarkEnrichedRows),
-	);
-	const enrichedRows = await enrichModelRowsWithOpenRouter(
-		benchmarkEnrichedRows,
-		STAGE_CONFIG.openrouter,
-		STAGE_CONFIG.scoring,
-		openRouter.rawPayload,
-	);
+		models: finalModelRows,
+		openRouterLoad,
+	} = await deriveModelStats(sourceData, { loadOpenRouter });
 	const debugTraceRows = buildDebugTraceRows(
 		snapshots,
-		openRouter.rawPayload,
+		openRouterLoad.rawPayload,
 		matchDiagnostics,
 		STAGE_CONFIG.matcher,
 	);
-	const finalModelRows = await buildFinalModels(
-		{
-			...enrichedRows,
-			deepSWEDefaultEffortRows: sourceData.deepSWE.defaultEffortRows,
-		},
-		null,
-		STAGE_CONFIG.final,
-		STAGE_CONFIG.scoring,
-	);
 	const finalSourceCache = {
 		...sourceCache,
-		openrouter: openRouter.cacheStatus,
+		openrouter: openRouterLoad.cacheStatus,
 	};
 	return {
 		rows: {
 			snapshots,
-			openRouterRawPayload: openRouter.rawPayload,
+			openRouterRawPayload: openRouterLoad.rawPayload,
 			finalModelRows,
 			debugTraceRows,
 			sourceHealth: buildSourceHealth({
