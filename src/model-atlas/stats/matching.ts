@@ -1,10 +1,6 @@
 /** Stats matching turns scraper-first diagnostics into merged source rows for selection. */
 
-import {
-	buildMatchDiagnostics,
-	type MatchDiagnosticsPayload,
-	type MatcherConfig,
-} from "../matcher";
+import type { MatchDiagnosticsPayload } from "../matcher";
 import {
 	asFiniteNumber,
 	asRecord,
@@ -136,17 +132,4 @@ export function modelRowsFromMatchDiagnostics(
 			);
 		})
 		.filter((row): row is Record<string, unknown> => row != null);
-}
-
-/** Match diagnostics provide the finalized matcher decision consumed by merged source rows. */
-export function buildMatchedModelRows(
-	sourceData: LlmStatsSourceData,
-	matcherConfig: MatcherConfig,
-): Record<string, unknown>[] {
-	const matchDiagnostics = buildMatchDiagnostics({
-		matcherConfig,
-		scrapedRows: sourceData.artificialAnalysis.rows,
-		modelsDevModels: sourceData.modelsDev.rows,
-	});
-	return modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
 }
