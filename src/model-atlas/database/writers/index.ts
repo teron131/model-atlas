@@ -7,6 +7,7 @@ export {
 export {
 	insertAgentArenaRawRows,
 	insertAgentsLastExamRawRows,
+	insertAleBenchRawRows,
 	insertBlueprintBenchRawRows,
 	insertBrowseCompRawRows,
 	insertChartographyRawRows,

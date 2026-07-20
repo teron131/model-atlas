@@ -5,6 +5,7 @@ import type {
 	AgentsLastExamHarnessRow,
 	AgentsLastExamModelScoreRow,
 } from "../scrapers/agents-last-exam";
+import type { AleBenchConfigurationRow } from "../scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
 import type { BenchmarkScoreRow } from "../scrapers/benchmark-score";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
@@ -45,6 +46,7 @@ export const RAW_SOURCE_NAMES = [
 	"openrouter",
 	"agent_arena",
 	"agents_last_exam",
+	"ale_bench",
 	"blueprint_bench_2",
 	"browsecomp",
 	"chartography",
@@ -78,6 +80,7 @@ export const RAW_SOURCE_TABLES = {
 	openrouter: "openrouter_raw_rows",
 	agent_arena: "agent_arena_raw_rows",
 	agents_last_exam: "agents_last_exam_raw_rows",
+	ale_bench: "ale_bench_raw_rows",
 	blueprint_bench_2: "blueprint_bench_2_raw_rows",
 	browsecomp: "browsecomp_raw_rows",
 	chartography: "chartography_raw_rows",
@@ -123,6 +126,7 @@ export const SOURCE_URLS = {
 	openrouter_stats: "https://openrouter.ai/api/frontend/v1/stats/*",
 	agent_arena: "https://arena.ai/leaderboard/agent",
 	agents_last_exam: "https://agents-last-exam.org/leaderboard",
+	ale_bench: "https://sakanaai.github.io/ALE-Bench-Leaderboard",
 	blueprint_bench_2: "https://andonlabs.com/evals/blueprint-bench-2",
 	browsecomp:
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
@@ -207,6 +211,7 @@ export type SourceSnapshots = {
 	agentArenaModelScoreRows: AgentArenaModelScoreRow[];
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
+	aleBenchConfigurationRows: AleBenchConfigurationRow[];
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	chartographyRows: BenchmarkScoreRow[];
@@ -238,6 +243,7 @@ export type SourceSnapshots = {
 		artificialAnalysisEvaluationResources: number | null;
 		agentArena: number | null;
 		agentsLastExam: number | null;
+		aleBench: number | null;
 		blueprintBench: number | null;
 		browseComp: number | null;
 		chartography: number | null;

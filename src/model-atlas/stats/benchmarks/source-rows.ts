@@ -211,6 +211,17 @@ function benchmarkDraftsFromSourceData(
 				value: agentsLastExamBenchmarkScore(row),
 			}),
 		),
+		...sparseBenchmarkRowDrafts(
+			"ale_bench",
+			sourceData.aleBench.sourceDefaultRows,
+			(row) => ({
+				id: row.base_model,
+				identity: row.base_model,
+				label: row.base_model,
+				reasoningEffort: row.reasoning_effort,
+				value: row.score,
+			}),
+		),
 		...artificialAnalysisEvaluationResourceDrafts(
 			"automation_bench",
 			sourceData.artificialAnalysisEvaluationResources.rows,

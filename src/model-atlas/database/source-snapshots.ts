@@ -7,6 +7,7 @@ import type { ScoringConfig } from "../stats/types";
 import {
 	readAgentArenaRawCache,
 	readAgentsLastExamRawCache,
+	readAleBenchRawCache,
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readArtificialAnalysisRawCache,
 	readBlueprintBenchRawCache,
@@ -37,6 +38,7 @@ import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analys
 import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
 	agentArenaSnapshot,
+	aleBenchSnapshot,
 	artificialAnalysisEvaluationResourceSnapshot,
 	blueprintBenchSnapshot,
 	browseCompSnapshot,
@@ -84,6 +86,7 @@ export type SourceSnapshotCaches = {
 	>;
 	modelsDev: ReturnType<typeof readModelsDevRawCache>;
 	agentArena: ReturnType<typeof readAgentArenaRawCache>;
+	aleBench: ReturnType<typeof readAleBenchRawCache>;
 	agentsLastExam: ReturnType<typeof readAgentsLastExamRawCache>;
 	blueprintBench: ReturnType<typeof readBlueprintBenchRawCache>;
 	browseComp: ReturnType<typeof readBrowseCompRawCache>;
@@ -116,6 +119,7 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
 			readArtificialAnalysisEvaluationResourceRawCache(db),
 		modelsDev: readModelsDevRawCache(db),
 		agentArena: readAgentArenaRawCache(db),
+		aleBench: readAleBenchRawCache(db),
 		agentsLastExam: readAgentsLastExamRawCache(db),
 		blueprintBench: readBlueprintBenchRawCache(db),
 		browseComp: readBrowseCompRawCache(db),
@@ -188,6 +192,7 @@ function fetchedAtFromSourceStatuses(
 		artificialAnalysis: null,
 		artificialAnalysisEvaluationResources: null,
 		agentArena: null,
+		aleBench: null,
 		agentsLastExam: null,
 		blueprintBench: null,
 		browseComp: null,
@@ -250,6 +255,7 @@ export async function refreshSourceSnapshots(
 		artificialAnalysisEvaluationResources,
 		modelsDev,
 		agentArena,
+		aleBench,
 		agentsLastExam,
 		blueprintBench,
 		browseComp,
@@ -299,6 +305,13 @@ export async function refreshSourceSnapshots(
 			sourceCache.agent_arena,
 			options,
 			previousMissingSince.agent_arena,
+			nowEpochSeconds,
+		),
+		aleBenchSnapshot(
+			caches.aleBench,
+			sourceCache.ale_bench,
+			options,
+			previousMissingSince.ale_bench,
 			nowEpochSeconds,
 		),
 		agentsLastExamSnapshot(
@@ -458,6 +471,7 @@ export async function refreshSourceSnapshots(
 		artificialAnalysisEvaluationResources.sourceStatus,
 		modelsDev.sourceStatus,
 		agentArena.sourceStatus,
+		aleBench.sourceStatus,
 		agentsLastExam.sourceStatus,
 		blueprintBench.sourceStatus,
 		browseComp.sourceStatus,
@@ -493,6 +507,7 @@ export async function refreshSourceSnapshots(
 			modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
 			modelsDevStatusCode: modelsDev.modelsDevStatusCode,
 			agentArenaModelScoreRows: agentArena.agentArenaModelScoreRows,
+			aleBenchConfigurationRows: aleBench.aleBenchConfigurationRows,
 			agentsLastExamRows: agentsLastExam.agentsLastExamRows,
 			agentsLastExamModelScores: agentsLastExam.agentsLastExamModelScores,
 			blueprintBenchModelScoreRows: blueprintBench.blueprintBenchModelScoreRows,

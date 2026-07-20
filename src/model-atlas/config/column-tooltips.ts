@@ -132,6 +132,7 @@ const BENCHMARK_LABEL_BY_KEY = {
 	aa_intelligence_index: "Artificial Analysis Intelligence Index",
 	agent_arena: "Agent Arena",
 	agents_last_exam: "Agents' Last Exam",
+	ale_bench: "ALE-Bench",
 	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
 	blueprint_bench_2: "Blueprint-Bench 2",

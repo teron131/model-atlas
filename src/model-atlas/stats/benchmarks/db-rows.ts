@@ -28,6 +28,7 @@ export type BenchmarkDbRows = {
 	artificialAnalysisRows: readonly DbBenchmarkRow[];
 	agentArenaRows: readonly DbBenchmarkRow[];
 	agentsLastExamRows: readonly DbBenchmarkRow[];
+	aleBenchRows: readonly DbBenchmarkRow[];
 	blueprintBenchRows: readonly DbBenchmarkRow[];
 	browseCompRows: readonly DbBenchmarkRow[];
 	chartographyRows: readonly DbBenchmarkRow[];
@@ -140,6 +141,20 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			value: agentsLastExamDbScore,
 			rowKind: "model_score",
 		}),
+		...rows.aleBenchRows.flatMap((row) =>
+			asFiniteNumber(row.num_self_refine) === 1
+				? [
+						{
+							key: "ale_bench",
+							id: stringValue(row.base_model),
+							identity: stringValue(row.base_model),
+							label: stringValue(row.base_model),
+							reasoningEffort: row.reasoning_effort,
+							value: row.performance_mean,
+						},
+					]
+				: [],
+		),
 		...dbSourceDrafts({
 			key: "blueprint_bench_2",
 			rows: rows.blueprintBenchRows,

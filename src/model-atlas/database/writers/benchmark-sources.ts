@@ -1,9 +1,17 @@
 /** SQLite writers for benchmark-owned source rows that feed matcher and scoring refreshes. */
 
+import { aleBenchModelEffort } from "../../scrapers/ale-bench";
 import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
+
+type AleBenchSourceSnapshot = Pick<
+	SourceSnapshots,
+	"aleBenchConfigurationRows"
+> & {
+	fetchedAt: Pick<SourceSnapshots["fetchedAt"], "aleBench">;
+};
 
 function insertBenchmarkScoreRows(
 	db: DatabaseWriter,
@@ -176,6 +184,49 @@ export function insertAgentsLastExamRawRows(
 			"model_score",
 		);
 		rowIndex += 1;
+	}
+}
+
+/** Insert every ALE refinement checkpoint with scalar scoring resources and complete raw evidence. */
+export function insertAleBenchRawRows(
+	db: DatabaseWriter,
+	snapshots: AleBenchSourceSnapshot,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO ale_bench_raw_rows (
+			row_index, fetched_at_epoch_seconds, url, model, base_model,
+			reasoning_effort, detail_path, num_self_refine, performance_mean,
+			performance_median, cost_per_task_usd, tokens_per_task,
+			input_tokens_per_task, output_tokens_per_task, rank_json,
+			performance_json, input_tokens_json, output_tokens_json,
+			total_tokens_json, cost_json, results_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.aleBenchConfigurationRows.entries()) {
+		const effort = aleBenchModelEffort(row.model);
+		statement.run(
+			index,
+			snapshots.fetchedAt.aleBench,
+			SOURCE_URLS.ale_bench,
+			row.model,
+			effort.baseModel,
+			effort.reasoningEffort,
+			row.detail_path,
+			row.num_self_refine,
+			row.performance.all.mean,
+			row.performance.all.median,
+			row.cost.all.mean,
+			row.total_tokens.all.mean,
+			row.input_tokens.all.mean,
+			row.output_tokens.all.mean,
+			JSON.stringify(row.rank),
+			JSON.stringify(row.performance),
+			JSON.stringify(row.input_tokens),
+			JSON.stringify(row.output_tokens),
+			JSON.stringify(row.total_tokens),
+			JSON.stringify(row.cost),
+			JSON.stringify(row.results),
+		);
 	}
 }
 

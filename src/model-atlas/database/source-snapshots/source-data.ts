@@ -16,6 +16,7 @@ export function cachedSourceDataFromSnapshots(
 		modelsDevModels: snapshots.modelsDevModels,
 		agentArenaRows: snapshots.agentArenaModelScoreRows,
 		agentsLastExamRows: snapshots.agentsLastExamModelScores,
+		aleBenchConfigurationRows: snapshots.aleBenchConfigurationRows,
 		blueprintBenchRows: snapshots.blueprintBenchModelScoreRows,
 		browseCompRows: snapshots.browseCompModelScoreRows,
 		chartographyRows: snapshots.chartographyRows,

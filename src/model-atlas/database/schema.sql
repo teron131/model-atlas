@@ -208,6 +208,31 @@ CREATE TABLE IF NOT EXISTS agents_last_exam_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
+CREATE TABLE IF NOT EXISTS ale_bench_raw_rows (
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	detail_path TEXT NOT NULL,
+	num_self_refine INTEGER NOT NULL,
+	performance_mean REAL NOT NULL,
+	performance_median REAL NOT NULL,
+	cost_per_task_usd REAL NOT NULL,
+	tokens_per_task REAL NOT NULL,
+	input_tokens_per_task REAL NOT NULL,
+	output_tokens_per_task REAL NOT NULL,
+	rank_json TEXT NOT NULL,
+	performance_json TEXT NOT NULL,
+	input_tokens_json TEXT NOT NULL,
+	output_tokens_json TEXT NOT NULL,
+	total_tokens_json TEXT NOT NULL,
+	cost_json TEXT NOT NULL,
+	results_json TEXT NOT NULL,
+	PRIMARY KEY (row_index)
+);
+
 CREATE TABLE IF NOT EXISTS blueprint_bench_2_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

@@ -220,6 +220,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			mean_score: 0.83,
 		},
 	],
+	aleBenchRows: [],
 	blueprintBenchRows: [],
 	browseCompRows: [
 		{

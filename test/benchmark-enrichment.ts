@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
+import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import {
 	type BenchmarkScoreRow,
@@ -9,6 +10,7 @@ import {
 } from "../src/model-atlas/scrapers/benchmark-score";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
+import { buildBenchmarkModelMap } from "../src/model-atlas/shared";
 import {
 	type BenchmarkEnrichmentLookups,
 	enrichBenchmarkAggregate,
@@ -49,6 +51,30 @@ const agentArenaRow: AgentArenaModelScoreRow = {
 	reasoning_effort: null,
 	organization: "Test",
 	score: 0.14,
+};
+const aleStatistics = (mean: number) => ({
+	all: { mean, median: mean - 1, min: mean - 2, max: mean + 2, stdev: 1 },
+	short: { mean, median: mean - 1, min: mean - 2, max: mean + 2, stdev: 1 },
+	long: { mean, median: mean - 1, min: mean - 2, max: mean + 2, stdev: 1 },
+});
+const aleBenchRow: AleBenchModelScoreRow = {
+	model: "Example Model-high",
+	base_model: "Example Model",
+	reasoning_effort: "high",
+	detail_path: "data/example-model-high.json",
+	num_self_refine: 1,
+	rank: aleStatistics(5),
+	performance: aleStatistics(700),
+	input_tokens: aleStatistics(1_000),
+	output_tokens: aleStatistics(2_000),
+	total_tokens: aleStatistics(3_000),
+	cost: aleStatistics(0.3),
+	results: [],
+	score: 700,
+	cost_per_task_usd: 0.3,
+	tokens_per_task: 3_000,
+	input_tokens_per_task: 1_000,
+	output_tokens_per_task: 2_000,
 };
 const mercorApexRow: MercorApexAgentsRow = {
 	model_id: "test/example-model",
@@ -211,6 +237,7 @@ const lookups = {
 	agentsLastExam: {
 		scoreByModelName: emptyLookup(),
 	},
+	aleBench: { scoreByModelName: buildBenchmarkModelMap([aleBenchRow]) },
 	blueprintBench: {
 		scoreByModelName: emptyLookup(),
 	},
@@ -264,6 +291,7 @@ const observationEnrichment = enrichBenchmarkObservation(
 	},
 );
 assert.deepEqual(observationEnrichment.evaluations, {
+	ale_bench: 700,
 	automation_bench: 0.68,
 	briefcase: 0.5,
 	harvey_lab: 0.142,
@@ -286,6 +314,7 @@ const enrichment = enrichBenchmarkAggregate(["Example Model"], lookups, {
 
 assert.deepEqual(enrichment.evaluations, {
 	agent_arena: 0.14,
+	ale_bench: 700,
 	automation_bench: 0.68,
 	briefcase: 0.5,
 	cursorbench: 0.52,
@@ -297,6 +326,7 @@ assert.deepEqual(enrichment.evaluations, {
 });
 assert.deepEqual(enrichment.scoringSources, {
 	agent_arena: agentArenaRow,
+	ale_bench: aleBenchRow,
 	apex_agents_mercor: mercorApexRow,
 	automation_bench: automationBenchResourceRow,
 	briefcase: briefcaseResourceRow,
@@ -336,6 +366,12 @@ assert.deepEqual(effortQualifiedAggregate.scoringSources, {
 	vending_bench_2: vendingBench2Row,
 });
 assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
+	ale_bench: {
+		cost: 0.3,
+		tokens: 3_000,
+		input_tokens: 1_000,
+		output_tokens: 2_000,
+	},
 	automation_bench: {
 		cost: 0.12,
 		seconds: 15,

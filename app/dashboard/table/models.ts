@@ -402,6 +402,7 @@ const benchmarkMetricColumnDefinitions = [
 	),
 	defineBenchmarkMetricColumn("agentArena", "agent_arena", "Arena", "number"),
 	defineBenchmarkMetricColumn("agentsLastExam", "agents_last_exam", "ALE"),
+	defineBenchmarkMetricColumn("aleBench", "ale_bench", "ALE-B", "number"),
 	defineBenchmarkMetricColumn("apexAgents", "apex_agents", "APEX"),
 	defineBenchmarkMetricColumn("automationBench", "automation_bench", "Auto"),
 	defineBenchmarkMetricColumn("blueprintBench", "blueprint_bench_2", "BB2"),

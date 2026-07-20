@@ -11,6 +11,11 @@ import type {
 	AgentsLastExamScoreByModelName,
 } from "../scrapers/agents-last-exam";
 import type {
+	AleBenchConfigurationRow,
+	AleBenchModelScoreRow,
+	AleBenchScoreByModelName,
+} from "../scrapers/ale-bench";
+import type {
 	ArtificialAnalysisEvaluationResourceByBenchmark,
 	ArtificialAnalysisEvaluationResourceRow,
 } from "../scrapers/artificial-analysis/benchmark-resources";
@@ -163,6 +168,7 @@ export type LlmStatsTaskMetrics =
 	| (Record<string, LlmStatsTaskMetricValues | null | undefined> & {
 			artificial_analysis?: LlmStatsTaskMetricValues | null;
 			agents_last_exam?: LlmStatsTaskMetricValues | null;
+			ale_bench?: LlmStatsTaskMetricValues | null;
 			apex_agents?: LlmStatsTaskMetricValues | null;
 			automation_bench?: LlmStatsTaskMetricValues | null;
 			briefcase?: LlmStatsTaskMetricValues | null;
@@ -181,6 +187,7 @@ export type LlmStatsTaskMetrics =
 export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	agent_arena?: NumberOrNull;
 	agents_last_exam?: NumberOrNull;
+	ale_bench?: NumberOrNull;
 	apex_agents?: NumberOrNull;
 	automation_bench?: NumberOrNull;
 	blueprint_bench_2?: NumberOrNull;
@@ -220,6 +227,7 @@ export type LlmStatsScoringSourceRow =
 	| ArtificialAnalysisEvaluationResourceRow
 	| AgentArenaModelScoreRow
 	| AgentsLastExamModelScoreRow
+	| AleBenchModelScoreRow
 	| BenchmarkScoreRow
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow
@@ -556,6 +564,11 @@ export type LlmStatsSourceData = {
 		AgentsLastExamModelScoreRow,
 		AgentsLastExamScoreByModelName
 	>;
+	aleBench: {
+		configurationRows: AleBenchConfigurationRow[];
+		sourceDefaultRows: AleBenchModelScoreRow[];
+		scoreByModelName: AleBenchScoreByModelName;
+	};
 	blueprintBench: LlmStatsScoreSourceRows<
 		BlueprintBenchModelScoreRow,
 		BlueprintBenchScoreByModelName

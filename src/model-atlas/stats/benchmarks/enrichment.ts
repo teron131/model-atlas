@@ -47,6 +47,7 @@ export type BenchmarkEnrichmentLookups = {
 		LlmStatsSourceData["agentsLastExam"],
 		"scoreByModelName"
 	>;
+	aleBench: Pick<LlmStatsSourceData["aleBench"], "scoreByModelName">;
 	blueprintBench: Pick<
 		LlmStatsSourceData["blueprintBench"],
 		"scoreByModelName"
@@ -294,6 +295,15 @@ export function enrichBenchmarkObservation(
 	if (mercorRow != null) {
 		enrichment.scoringSources.apex_agents_mercor = mercorRow;
 	}
+	const aleBenchRow = findEffortBenchmarkSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.aleBench.scoreByModelName,
+	);
+	if (aleBenchRow != null) {
+		enrichment.evaluations.ale_bench = aleBenchRow.score;
+		enrichment.scoringSources.ale_bench = aleBenchRow;
+	}
 	return enrichment;
 }
 
@@ -325,6 +335,15 @@ export function enrichBenchmarkAggregate(
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
 		scoringSources.agents_last_exam = agentsLastExamScore;
+	}
+	const aleBenchRow = findEffortBenchmarkSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.aleBench.scoreByModelName,
+	);
+	if (aleBenchRow != null) {
+		evaluations.ale_bench = aleBenchRow.score;
+		scoringSources.ale_bench = aleBenchRow;
 	}
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,

@@ -29,6 +29,7 @@ export const benchmarkLabels: Record<string, string> = {
 	aa_intelligence_index: "AA Intelligence Index",
 	agent_arena: "Agent Arena",
 	agents_last_exam: "Agents' Last Exam",
+	ale_bench: "ALE-Bench",
 	apex_agents: "APEX Agents",
 	automation_bench: "AutomationBench",
 	blueprint_bench_2: "Blueprint-Bench 2",
@@ -112,6 +113,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Agents' Last Exam"],
 			["Role", "agentic real-world work"],
+		],
+	},
+	ale_bench: {
+		title: "ALE-Bench",
+		body: "Heuristic-programming benchmark over executable optimization tasks. Model Atlas scores Sakana AI's source-default ×1 mean performance and preserves refinement checkpoints as raw evidence.",
+		rows: [
+			["Source", "Sakana AI; Epoch validation"],
+			["Role", "algorithm design and code execution"],
 		],
 	},
 	apex_agents: {
