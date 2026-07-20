@@ -5,6 +5,10 @@ import {
 	getAgentArenaStats,
 } from "../../scrapers/agent-arena";
 import {
+	type AleBenchConfigurationRow,
+	getAleBenchStats,
+} from "../../scrapers/ale-bench";
+import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
@@ -65,6 +69,7 @@ import {
 } from "../../scrapers/vending-bench-2";
 import type {
 	readAgentArenaRawCache,
+	readAleBenchRawCache,
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
@@ -107,6 +112,11 @@ export type BlueprintBenchSnapshot = {
 
 export type AgentArenaSnapshot = {
 	agentArenaModelScoreRows: AgentArenaModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type AleBenchSnapshot = {
+	aleBenchConfigurationRows: AleBenchConfigurationRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -258,6 +268,43 @@ export async function agentArenaSnapshot(
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
 			fetchedAtKey: "agentArena",
+		},
+	};
+}
+
+/** Loads all ALE refinement checkpoints while scoring remains restricted to the source-default row. */
+export async function aleBenchSnapshot(
+	cached: ReturnType<typeof readAleBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<AleBenchSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "ale_bench",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: async () => {
+			const payload = await getAleBenchStats();
+			return {
+				fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+				data: payload.data,
+			};
+		},
+		rowKey: (row) => sourceKey(row.model, row.num_self_refine),
+		rowLabel: (row) => `${row.model} x${row.num_self_refine}`,
+	});
+	return {
+		aleBenchConfigurationRows: snapshot.rows,
+		sourceStatus: {
+			source: "ale_bench",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "aleBench",
 		},
 	};
 }

@@ -16,6 +16,7 @@ import { SNAPSHOT_TABLES } from "./types";
 import {
 	insertAgentArenaRawRows,
 	insertAgentsLastExamRawRows,
+	insertAleBenchRawRows,
 	insertArtificialAnalysisEvaluationResourceRawRows,
 	insertArtificialAnalysisRawModels,
 	insertBlueprintBenchRawRows,
@@ -75,61 +76,52 @@ type SnapshotWriter = {
 const SNAPSHOT_WRITERS = [
 	{
 		table: SNAPSHOT_TABLES.artificial_analysis,
-		write: (db, rows) =>
-			insertArtificialAnalysisRawModels(db, rows.snapshots),
+		write: (db, rows) => insertArtificialAnalysisRawModels(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.artificial_analysis_evaluation_resources,
 		write: (db, rows) =>
-			insertArtificialAnalysisEvaluationResourceRawRows(
-				db,
-				rows.snapshots,
-			),
+			insertArtificialAnalysisEvaluationResourceRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.models_dev,
-		write: (db, rows) =>
-			insertModelsDevRawModels(db, rows.snapshots),
+		write: (db, rows) => insertModelsDevRawModels(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.openrouter,
-		write: (db, rows) =>
-			insertOpenRouterRawRows(db, rows.openRouterRawPayload),
+		write: (db, rows) => insertOpenRouterRawRows(db, rows.openRouterRawPayload),
 	},
 	{
 		table: SNAPSHOT_TABLES.agent_arena,
-		write: (db, rows) =>
-			insertAgentArenaRawRows(db, rows.snapshots),
+		write: (db, rows) => insertAgentArenaRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.agents_last_exam,
-		write: (db, rows) =>
-			insertAgentsLastExamRawRows(db, rows.snapshots),
+		write: (db, rows) => insertAgentsLastExamRawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.ale_bench,
+		write: (db, rows) => insertAleBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.blueprint_bench_2,
-		write: (db, rows) =>
-			insertBlueprintBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertBlueprintBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.browsecomp,
-		write: (db, rows) =>
-			insertBrowseCompRawRows(db, rows.snapshots),
+		write: (db, rows) => insertBrowseCompRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.chartography,
-		write: (db, rows) =>
-			insertChartographyRawRows(db, rows.snapshots),
+		write: (db, rows) => insertChartographyRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.chess_puzzles,
-		write: (db, rows) =>
-			insertChessPuzzlesRawRows(db, rows.snapshots),
+		write: (db, rows) => insertChessPuzzlesRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.cursorbench,
-		write: (db, rows) =>
-			insertCursorBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertCursorBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.deep_swe,
@@ -137,8 +129,7 @@ const SNAPSHOT_WRITERS = [
 	},
 	{
 		table: SNAPSHOT_TABLES.ebr_bench,
-		write: (db, rows) =>
-			insertEbrBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertEbrBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.enterprisebench_corecraft,
@@ -152,8 +143,7 @@ const SNAPSHOT_WRITERS = [
 	},
 	{
 		table: SNAPSHOT_TABLES.frontiermath_tier_4,
-		write: (db, rows) =>
-			insertFrontierMathTier4RawRows(db, rows.snapshots),
+		write: (db, rows) => insertFrontierMathTier4RawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.gdp_pdf,
@@ -161,43 +151,35 @@ const SNAPSHOT_WRITERS = [
 	},
 	{
 		table: SNAPSHOT_TABLES.handbook_md,
-		write: (db, rows) =>
-			insertHandbookMdRawRows(db, rows.snapshots),
+		write: (db, rows) => insertHandbookMdRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.mercor_apex_agents,
-		write: (db, rows) =>
-			insertMercorApexAgentsRawRows(db, rows.snapshots),
+		write: (db, rows) => insertMercorApexAgentsRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.proofbench,
-		write: (db, rows) =>
-			insertProofBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertProofBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.riemann_bench,
-		write: (db, rows) =>
-			insertRiemannBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertRiemannBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.vals_terminal_bench,
-		write: (db, rows) =>
-			insertValsTerminalBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertValsTerminalBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.toolathlon,
-		write: (db, rows) =>
-			insertToolathlonRawRows(db, rows.snapshots),
+		write: (db, rows) => insertToolathlonRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.vals_index,
-		write: (db, rows) =>
-			insertValsIndexRawRows(db, rows.snapshots),
+		write: (db, rows) => insertValsIndexRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.vending_bench_2,
-		write: (db, rows) =>
-			insertVendingBench2RawRows(db, rows.snapshots),
+		write: (db, rows) => insertVendingBench2RawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.weirdml,
@@ -205,13 +187,11 @@ const SNAPSHOT_WRITERS = [
 	},
 	{
 		table: SNAPSHOT_TABLES.source_quarantines,
-		write: (db, rows) =>
-			insertSourceQuarantines(db, rows.snapshots),
+		write: (db, rows) => insertSourceQuarantines(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.source_health,
-		write: (db, rows) =>
-			insertSourceHealth(db, rows.sourceHealth),
+		write: (db, rows) => insertSourceHealth(db, rows.sourceHealth),
 	},
 	{
 		table: SNAPSHOT_TABLES.models,
@@ -219,18 +199,15 @@ const SNAPSHOT_WRITERS = [
 	},
 	{
 		table: SNAPSHOT_TABLES.model_evaluations,
-		write: (db, rows) =>
-			insertModelEvaluations(db, rows.finalModelRows),
+		write: (db, rows) => insertModelEvaluations(db, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_task_metrics,
-		write: (db, rows) =>
-			insertModelTaskMetrics(db, rows.finalModelRows),
+		write: (db, rows) => insertModelTaskMetrics(db, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_match_debug,
-		write: (db, rows) =>
-			insertDebugTraceRows(db, rows.debugTraceRows),
+		write: (db, rows) => insertDebugTraceRows(db, rows.debugTraceRows),
 	},
 ] satisfies readonly SnapshotWriter[];
 

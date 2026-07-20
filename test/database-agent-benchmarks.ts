@@ -98,6 +98,7 @@ const sourceRows = benchmarkRowsFromDb({
 	artificialAnalysisRows: [],
 	agentArenaRows,
 	agentsLastExamRows: [],
+	aleBenchRows: [],
 	blueprintBenchRows: [],
 	browseCompRows: [],
 	chartographyRows: [],

@@ -9,6 +9,7 @@ export {
 export {
 	readAgentArenaRawCache,
 	readAgentsLastExamRawCache,
+	readAleBenchRawCache,
 	readBlueprintBenchRawCache,
 	readBrowseCompRawCache,
 	readChartographyRawCache,

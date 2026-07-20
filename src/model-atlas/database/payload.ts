@@ -79,16 +79,13 @@ export const PAYLOAD_ROW_GROUPS = [
 		SNAPSHOT_TABLES.agents_last_exam,
 		"row_index",
 	),
+	payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", true),
 	payloadRowGroup(
 		"blueprintBenchRows",
 		SNAPSHOT_TABLES.blueprint_bench_2,
 		"row_index",
 	),
-	payloadRowGroup(
-		"browseCompRows",
-		SNAPSHOT_TABLES.browsecomp,
-		"row_index",
-	),
+	payloadRowGroup("browseCompRows", SNAPSHOT_TABLES.browsecomp, "row_index"),
 	payloadRowGroup(
 		"chartographyRows",
 		SNAPSHOT_TABLES.chartography,
@@ -101,22 +98,13 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 		true,
 	),
-	payloadRowGroup(
-		"cursorBenchRows",
-		SNAPSHOT_TABLES.cursorbench,
-		"row_index",
-	),
+	payloadRowGroup("cursorBenchRows", SNAPSHOT_TABLES.cursorbench, "row_index"),
 	payloadRowGroup(
 		"deepSWERows",
 		SNAPSHOT_TABLES.deep_swe,
 		"pass_at_1 DESC, row_index",
 	),
-	payloadRowGroup(
-		"ebrBenchRows",
-		SNAPSHOT_TABLES.ebr_bench,
-		"row_index",
-		true,
-	),
+	payloadRowGroup("ebrBenchRows", SNAPSHOT_TABLES.ebr_bench, "row_index", true),
 	payloadRowGroup(
 		"enterpriseBenchCoreCraftRows",
 		SNAPSHOT_TABLES.enterprisebench_corecraft,
@@ -159,11 +147,7 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 		true,
 	),
-	payloadRowGroup(
-		"toolathlonRows",
-		SNAPSHOT_TABLES.toolathlon,
-		"row_index",
-	),
+	payloadRowGroup("toolathlonRows", SNAPSHOT_TABLES.toolathlon, "row_index"),
 	payloadRowGroup(
 		"valsIndexRows",
 		SNAPSHOT_TABLES.vals_index,
@@ -176,12 +160,7 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 		true,
 	),
-	payloadRowGroup(
-		"weirdMlRows",
-		SNAPSHOT_TABLES.weirdml,
-		"row_index",
-		true,
-	),
+	payloadRowGroup("weirdMlRows", SNAPSHOT_TABLES.weirdml, "row_index", true),
 ] as const;
 
 export type PayloadRowGroup = (typeof PAYLOAD_ROW_GROUPS)[number];

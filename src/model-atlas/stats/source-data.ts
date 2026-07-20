@@ -6,6 +6,10 @@ import {
 	getAgentsLastExamStats,
 } from "../scrapers/agents-last-exam";
 import {
+	getAleBenchStats,
+	summarizeAleBenchSourceDefaultRows,
+} from "../scrapers/ale-bench";
+import {
 	buildArtificialAnalysisDefaultEffortResourceMap,
 	buildArtificialAnalysisObservationResourceMap,
 	getArtificialAnalysisEvaluationResourceStats,
@@ -82,6 +86,7 @@ export type LlmStatsSourceRows = {
 	modelsDevModels: LlmStatsSourceData["modelsDev"]["rows"];
 	agentArenaRows: LlmStatsSourceData["agentArena"]["rows"];
 	agentsLastExamRows: LlmStatsSourceData["agentsLastExam"]["rows"];
+	aleBenchConfigurationRows: LlmStatsSourceData["aleBench"]["configurationRows"];
 	blueprintBenchRows: LlmStatsSourceData["blueprintBench"]["rows"];
 	browseCompRows: LlmStatsSourceData["browseComp"]["rows"];
 	chartographyRows: LlmStatsSourceData["chartography"]["rows"];
@@ -111,6 +116,9 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 	);
 	const deepSWEDefaultEffortRows = summarizeDeepSWEDefaultEffortRows(
 		rows.deepSWEEffortRows,
+	);
+	const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
+		rows.aleBenchConfigurationRows,
 	);
 	return {
 		artificialAnalysis: {
@@ -142,6 +150,11 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 		agentsLastExam: {
 			rows: rows.agentsLastExamRows,
 			scoreByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
+		},
+		aleBench: {
+			configurationRows: rows.aleBenchConfigurationRows,
+			sourceDefaultRows: aleBenchSourceDefaultRows,
+			scoreByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
 		},
 		blueprintBench: {
 			rows: rows.blueprintBenchRows,
@@ -236,6 +249,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		modelsDevStats,
 		agentArenaStats,
 		agentsLastExamStats,
+		aleBenchStats,
 		blueprintBenchStats,
 		browseCompStats,
 		chartographyStats,
@@ -262,6 +276,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getModelsDevSourceStats(),
 		getAgentArenaStats(),
 		getAgentsLastExamStats(),
+		getAleBenchStats(),
 		getBlueprintBenchStats(),
 		getBrowseCompStats(),
 		getChartographyStats(),
@@ -288,6 +303,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		artificialAnalysisEvaluationResourceStats.data;
 	const agentArenaRows = agentArenaStats.data;
 	const agentsLastExamRows = agentsLastExamStats.data;
+	const aleBenchConfigurationRows = aleBenchStats.data;
 	const blueprintBenchRows = blueprintBenchStats.data;
 	const browseCompRows = browseCompStats.data;
 	const chartographyRows = chartographyStats.data;
@@ -318,6 +334,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		modelsDevModels,
 		agentArenaRows,
 		agentsLastExamRows,
+		aleBenchConfigurationRows,
 		blueprintBenchRows,
 		browseCompRows,
 		chartographyRows,

@@ -3,6 +3,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { AgentArenaModelScoreRow } from "../../scrapers/agent-arena";
 import type { AgentsLastExamHarnessRow } from "../../scrapers/agents-last-exam";
+import {
+	type AleBenchConfigurationRow,
+	processAleBenchConfigurationRow,
+} from "../../scrapers/ale-bench";
 import type {
 	BenchmarkScoreMetadata,
 	BenchmarkScoreRow,
@@ -132,6 +136,15 @@ function numberArray(value: unknown): number[] | null {
 	}
 }
 
+function jsonValue(value: unknown): unknown | null {
+	if (typeof value !== "string") return null;
+	try {
+		return JSON.parse(value) as unknown;
+	} catch {
+		return null;
+	}
+}
+
 function sourceRows(cache: CacheSource, sql: string): CacheDbRow[] {
 	return Array.isArray(cache) ? cache : queryCacheRows(cache, sql);
 }
@@ -243,6 +256,43 @@ export function readAgentsLastExamRawCache(cache: CacheSource): {
 		}),
 		fetchedAt: firstEpochSecond(cacheRows),
 	};
+}
+
+/** Reconstruct every ALE refinement configuration without accepting a partial raw cache. */
+export function readAleBenchRawCache(cache: CacheSource): {
+	rows: AleBenchConfigurationRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = sourceRows(
+		cache,
+		"SELECT * FROM ale_bench_raw_rows ORDER BY row_index",
+	);
+	if (
+		cacheRows.length === 0 ||
+		cacheRows.some((row) => stringValue(row.url) !== SOURCE_URLS.ale_bench)
+	) {
+		return null;
+	}
+	const rows = cacheRows.flatMap((row) => {
+		const model = stringValue(row.model);
+		const detailPath = stringValue(row.detail_path);
+		const numSelfRefine = asFiniteNumber(row.num_self_refine);
+		if (model == null || detailPath == null || numSelfRefine == null) return [];
+		const parsed = processAleBenchConfigurationRow(model, detailPath, {
+			num_self_refine: numSelfRefine,
+			rank: jsonValue(row.rank_json),
+			performance: jsonValue(row.performance_json),
+			input_tokens: jsonValue(row.input_tokens_json),
+			output_tokens: jsonValue(row.output_tokens_json),
+			total_tokens: jsonValue(row.total_tokens_json),
+			cost: jsonValue(row.cost_json),
+			results: jsonValue(row.results_json),
+		});
+		return parsed == null ? [] : [parsed];
+	});
+	return rows.length !== cacheRows.length
+		? null
+		: { rows, fetchedAt: firstEpochSecond(cacheRows) };
 }
 
 export function readBlueprintBenchRawCache(cache: CacheSource): {

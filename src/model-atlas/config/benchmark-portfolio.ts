@@ -50,6 +50,12 @@ export const BENCHMARK_PORTFOLIO = {
 		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
 		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
 	},
+	ale_bench: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.4, agentic: 0.6 },
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+	},
 	apex_agents: {
 		group: "frontier",
 		benchmarkImportance: 1,

@@ -11,7 +11,7 @@ type ModelIdentity = {
 	name?: unknown;
 };
 
-type SourceCrosswalkDiagnostic = {
+export type SourceCrosswalkDiagnostic = {
 	overlapModelCount: number;
 	medianOffset: number | null;
 	validationModelCount: number;

@@ -717,6 +717,11 @@ function modelStatsSourceData(
 			rows: [],
 			scoreByModelName: new Map(),
 		},
+		aleBench: {
+			configurationRows: [],
+			sourceDefaultRows: [],
+			scoreByModelName: new Map(),
+		},
 		blueprintBench: {
 			rows: blueprintBenchModelScoreRows,
 			scoreByModelName: buildBlueprintBenchMap(blueprintBenchModelScoreRows),
