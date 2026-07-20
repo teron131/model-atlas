@@ -5,6 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../constants";
 import { nowEpochSeconds } from "../utils";
+import { loadOpenRouterRawPayload } from "./openrouter-cache";
 import {
 	type DatabaseSnapshotRows,
 	deriveDatabaseSnapshot,
@@ -12,7 +13,7 @@ import {
 	writeDatabaseSnapshotRows,
 } from "./pipeline";
 import { openDatabase, removeDatabaseFiles } from "./schema";
-import { loadOpenRouterRawPayload, loadSourceSnapshots } from "./sources";
+import { loadSourceSnapshots } from "./source-snapshots";
 import {
 	type DatabaseBuildOptions,
 	type DatabaseBuildResult,

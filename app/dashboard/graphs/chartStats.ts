@@ -2,9 +2,8 @@
 
 import { quantile } from "d3-array";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import type { BoxWhiskerDistribution } from "./BoxWhiskerSummary";
-import { finite, finiteValue } from "./format";
+import { finite } from "./format";
 
 export function valueDistribution(values: number[]): BoxWhiskerDistribution {
 	const sortedValues = values
@@ -18,37 +17,6 @@ export function valueDistribution(values: number[]): BoxWhiskerDistribution {
 		median: quantile(sortedValues, 0.5) ?? 0,
 		q3: quantile(sortedValues, 0.75) ?? 0,
 		max: sortedValues[sortedValues.length - 1] ?? 0,
-	};
-}
-
-export function intelligenceDistribution(
-	models: LlmStatsModel[],
-): BoxWhiskerDistribution {
-	return valueDistribution(
-		models
-			.map((model) => finiteValue(model.scores?.intelligence_score))
-			.filter(finite),
-	);
-}
-
-export function inverseLogBubbleRadius(values: number[], maxRadius = 16) {
-	const minRadius = 5;
-	const logs = values
-		.filter((value) => finite(value) && value > 0)
-		.map((value) => Math.log(value));
-	const minLog = Math.min(...logs);
-	const maxLog = Math.max(...logs);
-	const span = maxLog - minLog;
-
-	return (value: number) => {
-		if (!finite(value) || value <= 0) {
-			return minRadius;
-		}
-		if (!finite(span) || span === 0) {
-			return areaScaledRadius(minRadius, maxRadius, 0.5);
-		}
-		const normalized = clamp((Math.log(value) - minLog) / span, 0, 1);
-		return areaScaledRadius(minRadius, maxRadius, 1 - normalized);
 	};
 }
 

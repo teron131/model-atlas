@@ -1,7 +1,7 @@
 /** Render the dashboard page with compact server-provided stats payloads. */
 
-import { scoreJsonPayload } from "./api/llm-stats/public-json";
-import { readDisplaySnapshotPayload } from "./api/llm-stats/snapshot-store";
+import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
+import { scoreJsonPayload } from "../src/model-atlas/stats/public-json";
 import { Dashboard } from "./dashboard";
 import { compactDashboardPayload } from "./dashboard/payload";
 

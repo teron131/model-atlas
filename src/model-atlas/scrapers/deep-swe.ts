@@ -300,14 +300,3 @@ export function deepSWESourceVersionForRows(
 	}
 	return null;
 }
-
-export async function getDeepSWEStats(
-	options: DeepSWEScraperOptions = {},
-): Promise<DeepSWELeaderboardPayload> {
-	const payload = await getDeepSWELeaderboardStats(options);
-	return {
-		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-		source_version: payload.source_version,
-		data: summarizeDeepSWEDefaultEffortRows(payload.data),
-	};
-}

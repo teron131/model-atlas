@@ -8,7 +8,6 @@ import {
 	coverageConfidence,
 	meanOfFinite,
 	quantileFromSorted,
-	weightedCoverageRatio,
 	weightedMeanOfFinite,
 } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../shared";
@@ -31,44 +30,6 @@ type BenchmarkScoreInput = {
 
 function isObservedBenchmark(model: JsonObject, key: string): boolean {
 	return benchmarkMetricValue(model, key) != null;
-}
-
-/** Measure the observed share of one dimension's configured benchmark weight. */
-export function observedBenchmarkCoverage(
-	model: unknown,
-	keys: readonly string[],
-	dimension: BenchmarkDimension,
-	scoringConfig: ScoringConfig,
-): number | null {
-	const modelRecord = asRecord(model);
-	return weightedCoverageRatio(
-		keys.flatMap((key) => {
-			const weight = benchmarkDimensionWeight(
-				key,
-				dimension,
-				scoringConfig.benchmarkPortfolio,
-			);
-			const isObserved = isObservedBenchmark(modelRecord, key);
-			return weight > 0 ? [{ value: isObserved ? 1 : null, weight }] : [];
-		}),
-	);
-}
-
-/** Measure observed coverage across the selected portfolio without dimension loadings. */
-export function observedBenchmarkPortfolioCoverage(
-	model: unknown,
-	keys: readonly string[],
-	scoringConfig: ScoringConfig,
-): number | null {
-	const modelRecord = asRecord(model);
-	return weightedCoverageRatio(
-		keys.flatMap((key) => {
-			const weight =
-				scoringConfig.benchmarkPortfolio[key]?.benchmarkImportance ?? 0;
-			const isObserved = isObservedBenchmark(modelRecord, key);
-			return weight > 0 ? [{ value: isObserved ? 1 : null, weight }] : [];
-		}),
-	);
 }
 
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */

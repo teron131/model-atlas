@@ -1,13 +1,9 @@
 /** Runtime snapshot loading reads and refreshes Cloudflare D1 without a SQLite fallback. */
 
-import {
-	d1Configured,
-	missingD1Environment,
-	readD1Payload,
-} from "../../../src/model-atlas/database/d1";
-import { publishD1Snapshot } from "../../../src/model-atlas/database/d1-publish";
-import { buildCurrentLlmStatsMetadata } from "../../../src/model-atlas/stats/metadata";
-import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
+import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
+import type { LlmStatsPayload } from "../stats/types";
+import { d1Configured, missingD1Environment, readD1Payload } from "./d1";
+import { publishD1Snapshot } from "./d1-publish";
 
 type SnapshotReadState = {
 	readInFlight: Promise<LlmStatsPayload | null> | null;

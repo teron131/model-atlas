@@ -1,6 +1,6 @@
 /** Snapshot refresh API for Model Atlas. */
 
-import { refreshStoredSnapshot } from "../snapshot-store";
+import { refreshStoredSnapshot } from "../../../../src/model-atlas/database/runtime-snapshot";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;

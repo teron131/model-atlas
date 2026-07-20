@@ -2,7 +2,6 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { getOpenRouterRawScrapedStats } from "../scrapers/openrouter";
 import { selectModelsDevRowsForArtificialAnalysis } from "../stats/source-policy";
 import type { ScoringConfig } from "../stats/types";
 import {
@@ -24,7 +23,6 @@ import {
 	readHandbookMdRawCache,
 	readMercorApexAgentsRawCache,
 	readModelsDevRawCache,
-	readOpenRouterRawCache,
 	readProofBenchRawCache,
 	readRawSourceCacheStatus,
 	readRiemannBenchRawCache,
@@ -33,13 +31,8 @@ import {
 	readValsTerminalBenchRawCache,
 	readVendingBench2RawCache,
 	readWeirdMlRawCache,
-	refreshedCacheStatus,
 } from "./cache";
-import {
-	persistedSourceRowStates,
-	mergeCachedSourceRows,
-	missingSinceBySource,
-} from "./policy";
+import { missingSinceBySource, persistedSourceRowStates } from "./policy";
 import { artificialAnalysisSnapshot } from "./source-snapshots/artificial-analysis";
 import { modelsDevSnapshot } from "./source-snapshots/models-dev";
 import {
@@ -84,16 +77,12 @@ type SourceSnapshotCacheResult = {
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
-const PARTIAL_OPENROUTER_TIMEOUT_MS = 10_000;
-const PARTIAL_OPENROUTER_MAX_RETRIES = 1;
-
-export type SourceCaches = {
+export type SourceSnapshotCaches = {
 	artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
 	artificialAnalysisEvaluationResources: ReturnType<
 		typeof readArtificialAnalysisEvaluationResourceRawCache
 	>;
 	modelsDev: ReturnType<typeof readModelsDevRawCache>;
-	openRouter: ReturnType<typeof readOpenRouterRawCache>;
 	agentArena: ReturnType<typeof readAgentArenaRawCache>;
 	agentsLastExam: ReturnType<typeof readAgentsLastExamRawCache>;
 	blueprintBench: ReturnType<typeof readBlueprintBenchRawCache>;
@@ -120,13 +109,12 @@ export type SourceCaches = {
 	weirdMl: ReturnType<typeof readWeirdMlRawCache>;
 };
 
-function readSqliteSourceCaches(db: DatabaseSync): SourceCaches {
+function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
 	return {
 		artificialAnalysis: readArtificialAnalysisRawCache(db),
 		artificialAnalysisEvaluationResources:
 			readArtificialAnalysisEvaluationResourceRawCache(db),
 		modelsDev: readModelsDevRawCache(db),
-		openRouter: readOpenRouterRawCache(db),
 		agentArena: readAgentArenaRawCache(db),
 		agentsLastExam: readAgentsLastExamRawCache(db),
 		blueprintBench: readBlueprintBenchRawCache(db),
@@ -249,7 +237,7 @@ export async function loadSourceSnapshots(
 
 /** Refreshes normalized source snapshots from storage-independent cached source values. */
 export async function refreshSourceSnapshots(
-	caches: SourceCaches,
+	caches: SourceSnapshotCaches,
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
 	previousSourceRowStates: readonly SourceRowState[],
 	nowEpochSeconds: number,
@@ -540,143 +528,4 @@ export async function refreshSourceSnapshots(
 		},
 		sourceCache,
 	};
-}
-
-/** Load OpenRouter raw stats from SQLite when fresh and complete for the current matched model ids. */
-export async function loadOpenRouterRawPayload(
-	db: DatabaseSync,
-	modelIds: string[],
-	speedConcurrency: number,
-	nowEpochSeconds: number,
-	options: DatabaseBuildOptions = {},
-): Promise<{
-	rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
-	cacheStatus: RawSourceCacheStatus;
-}> {
-	return refreshOpenRouterRawPayload(
-		readOpenRouterRawCache(db),
-		readRawSourceCacheStatus(db, "openrouter", nowEpochSeconds),
-		modelIds,
-		speedConcurrency,
-		options,
-	);
-}
-
-/** Fresh OpenRouter caches fetch only uncovered model IDs; stale or explicitly replaced caches refresh the full requested set. */
-export function openRouterModelIdsToRefresh(
-	cached: SourceCaches["openRouter"],
-	status: RawSourceCacheStatus,
-	modelIds: readonly string[],
-	replaceSourceRows: boolean,
-): string[] {
-	const requestedModelIds = [...new Set(modelIds)];
-	if (cached == null || !status.cache_hit || replaceSourceRows) {
-		return requestedModelIds;
-	}
-	const cachedModelIds = new Set(cached.models.map((model) => model.id));
-	return requestedModelIds.filter((modelId) => !cachedModelIds.has(modelId));
-}
-
-/** Keeps cached OpenRouter evidence only for current requested keys, while an empty request preserves all cached data. */
-function reconcileOpenRouterCacheModels(
-	cached: SourceCaches["openRouter"],
-	requestedModelIds: readonly string[],
-): SourceCaches["openRouter"] {
-	if (cached == null || requestedModelIds.length === 0) {
-		return cached;
-	}
-	const requestedModelIdSet = new Set(requestedModelIds);
-	return {
-		...cached,
-		models: cached.models.filter((model) => requestedModelIdSet.has(model.id)),
-	};
-}
-
-/** Refreshes OpenRouter data from a storage-independent cache value. */
-export async function refreshOpenRouterRawPayload(
-	cached: SourceCaches["openRouter"],
-	status: RawSourceCacheStatus,
-	modelIds: string[],
-	speedConcurrency: number,
-	options: DatabaseBuildOptions = {},
-): Promise<{
-	rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
-	cacheStatus: RawSourceCacheStatus;
-}> {
-	const replaceSourceRows = options.replaceSourceRows === true;
-	const requestedModelIds = [...new Set(modelIds)];
-	const scopedCache = reconcileOpenRouterCacheModels(cached, requestedModelIds);
-	const modelIdsToRefresh = openRouterModelIdsToRefresh(
-		scopedCache,
-		status,
-		requestedModelIds,
-		replaceSourceRows,
-	);
-	if (
-		scopedCache != null &&
-		modelIdsToRefresh.length === 0 &&
-		!replaceSourceRows
-	) {
-		return {
-			rawPayload: scopedCache,
-			cacheStatus: {
-				...status,
-				source_input_count:
-					scopedCache.directory.length + scopedCache.models.length,
-			},
-		};
-	}
-	try {
-		const useCachedDirectory =
-			status.cache_hit && scopedCache != null && !replaceSourceRows;
-		const fetchedPayload =
-			modelIdsToRefresh.length === 0
-				? null
-				: await getOpenRouterRawScrapedStats({
-						modelIds: modelIdsToRefresh,
-						concurrency: speedConcurrency,
-						...(useCachedDirectory
-							? {
-									modelDirectory: scopedCache.directory,
-									timeoutMs: PARTIAL_OPENROUTER_TIMEOUT_MS,
-									maxRetries: PARTIAL_OPENROUTER_MAX_RETRIES,
-								}
-							: {}),
-					});
-		const rawPayload =
-			fetchedPayload == null
-				? scopedCache
-				: scopedCache == null || replaceSourceRows
-					? fetchedPayload
-					: {
-							fetched_at_epoch_seconds: fetchedPayload.fetched_at_epoch_seconds,
-							directory: mergeCachedSourceRows(
-								scopedCache.directory,
-								fetchedPayload.directory,
-								(row) => row.permaslug ?? row.slug ?? null,
-							),
-							models: mergeCachedSourceRows(
-								scopedCache.models,
-								fetchedPayload.models,
-								(row) => row.id,
-							),
-						};
-		return {
-			rawPayload,
-			cacheStatus: refreshedCacheStatus(
-				rawPayload?.fetched_at_epoch_seconds ?? null,
-				(rawPayload?.directory.length ?? 0) + (rawPayload?.models.length ?? 0),
-			),
-		};
-	} catch {
-		return {
-			rawPayload: scopedCache,
-			cacheStatus: {
-				...status,
-				source_input_count:
-					(scopedCache?.directory.length ?? 0) +
-					(scopedCache?.models.length ?? 0),
-			},
-		};
-	}
 }

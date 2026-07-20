@@ -134,11 +134,6 @@ export const formatContext = (value: number | null | undefined) => {
 	return `${Math.round(value / 1000)}K`;
 };
 
-export const formatWeight = (value: number | null | undefined) =>
-	typeof value === "number" && Number.isFinite(value)
-		? `${(value * 100).toFixed(0)}%`
-		: "-";
-
 export const safeSlug = (value: unknown) =>
 	String(value ?? "")
 		.trim()

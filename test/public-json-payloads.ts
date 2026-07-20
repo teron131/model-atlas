@@ -1,7 +1,8 @@
 /** Verify the public model boundary, JSON projections, and dashboard bootstrap projection. */
 
 import assert from "node:assert/strict";
-
+import { compactDashboardPayload } from "../app/dashboard/payload";
+import { STAGE_CONFIG } from "../src/model-atlas/constants";
 import {
 	benchmarksJsonPayload,
 	coreJsonPayload,
@@ -9,9 +10,7 @@ import {
 	fullJsonPayload,
 	publicJsonPayload,
 	scoreJsonPayload,
-} from "../app/api/llm-stats/public-json";
-import { compactDashboardPayload } from "../app/dashboard/payload";
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
+} from "../src/model-atlas/stats/public-json";
 import { selectPublicModels } from "../src/model-atlas/stats/selection/public-list";
 import type { LlmStatsScoredCandidate } from "../src/model-atlas/stats/types";
 import {
