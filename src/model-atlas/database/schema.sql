@@ -9,13 +9,11 @@ CREATE TABLE IF NOT EXISTS model_atlas_schema_manifest (
 	PRIMARY KEY (object_type, object_name)
 );
 
-CREATE TABLE IF NOT EXISTS pipeline_runs (
-	id INTEGER PRIMARY KEY,
-	completed_at_epoch_seconds INTEGER
+CREATE TABLE IF NOT EXISTS snapshot_metadata (
+	updated_at_epoch_seconds INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -71,11 +69,10 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	seconds_per_task REAL,
 	output_tokens_per_task REAL,
 	logo_url TEXT,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_evaluations_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -94,11 +91,10 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_evaluations_raw_rows (
 	output_tokens_per_task REAL NOT NULL,
 	answer_tokens_per_task REAL,
 	reasoning_tokens_per_task REAL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS models_dev_raw_models (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	status_code INTEGER,
@@ -130,11 +126,10 @@ CREATE TABLE IF NOT EXISTS models_dev_raw_models (
 	output_modality_image INTEGER,
 	output_modality_audio INTEGER,
 	output_modality_video INTEGER,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -154,11 +149,10 @@ CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	e2e_latency_seconds_median REAL,
 	weighted_input_price_per_1m REAL,
 	weighted_output_price_per_1m REAL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -169,11 +163,10 @@ CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
 	reasoning_effort TEXT,
 	organization TEXT NOT NULL,
 	score REAL NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS agents_last_exam_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -212,21 +205,19 @@ CREATE TABLE IF NOT EXISTS agents_last_exam_raw_rows (
 	mean_cost_usd_per_task REAL,
 	frequency INTEGER,
 	row_kind TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS blueprint_bench_2_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
 	model TEXT NOT NULL,
 	score REAL NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS browsecomp_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -238,11 +229,10 @@ CREATE TABLE IF NOT EXISTS browsecomp_raw_rows (
 	analysis_method TEXT,
 	verified INTEGER,
 	self_reported INTEGER,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS chartography_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -261,11 +251,10 @@ CREATE TABLE IF NOT EXISTS chartography_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS chess_puzzles_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -284,11 +273,10 @@ CREATE TABLE IF NOT EXISTS chess_puzzles_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -301,11 +289,10 @@ CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
 	cost_per_task_usd REAL NOT NULL,
 	tokens_per_task INTEGER NOT NULL,
 	steps_per_task INTEGER NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -321,11 +308,10 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	mean_cost_usd REAL NOT NULL,
 	mean_duration_seconds REAL,
 	mean_output_tokens REAL NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS ebr_bench_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -344,11 +330,10 @@ CREATE TABLE IF NOT EXISTS ebr_bench_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS enterprisebench_corecraft_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -367,11 +352,10 @@ CREATE TABLE IF NOT EXISTS enterprisebench_corecraft_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS epoch_capabilities_index_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -390,11 +374,10 @@ CREATE TABLE IF NOT EXISTS epoch_capabilities_index_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS frontiermath_tier_4_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -413,11 +396,10 @@ CREATE TABLE IF NOT EXISTS frontiermath_tier_4_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS gdp_pdf_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -425,11 +407,10 @@ CREATE TABLE IF NOT EXISTS gdp_pdf_raw_rows (
 	model TEXT NOT NULL,
 	score REAL NOT NULL,
 	last_updated TEXT,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS handbook_md_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -448,11 +429,10 @@ CREATE TABLE IF NOT EXISTS handbook_md_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -463,11 +443,10 @@ CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
 	reasoning_effort TEXT,
 	organization TEXT NOT NULL,
 	score REAL NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS proofbench_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -486,11 +465,10 @@ CREATE TABLE IF NOT EXISTS proofbench_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -498,11 +476,10 @@ CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	model TEXT NOT NULL,
 	score REAL NOT NULL,
 	last_updated TEXT,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -517,11 +494,10 @@ CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
 	score REAL NOT NULL,
 	cost_per_task_usd REAL,
 	seconds_per_task REAL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -535,11 +511,10 @@ CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
 	verified INTEGER,
 	self_reported INTEGER,
 	announcement_date TEXT,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS vals_index_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -550,11 +525,10 @@ CREATE TABLE IF NOT EXISTS vals_index_raw_rows (
 	model TEXT NOT NULL,
 	provider TEXT,
 	score REAL NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS vending_bench_2_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -566,11 +540,10 @@ CREATE TABLE IF NOT EXISTS vending_bench_2_raw_rows (
 	run_count INTEGER NOT NULL,
 	final_balance_usd REAL NOT NULL,
 	daily_balance_usd_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS weirdml_raw_rows (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	benchmark_key TEXT NOT NULL,
@@ -589,19 +562,17 @@ CREATE TABLE IF NOT EXISTS weirdml_raw_rows (
 	confidence_high REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS source_quarantines (
-	run_id INTEGER NOT NULL,
 	source TEXT NOT NULL,
 	row_key TEXT NOT NULL,
 	missing_from_source_since_epoch_seconds INTEGER,
-	PRIMARY KEY (run_id, source, row_key)
+	PRIMARY KEY (source, row_key)
 );
 
 CREATE TABLE IF NOT EXISTS source_health (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	source TEXT NOT NULL,
 	status TEXT NOT NULL,
@@ -609,11 +580,10 @@ CREATE TABLE IF NOT EXISTS source_health (
 	source_input_count INTEGER NOT NULL,
 	active_row_count INTEGER NOT NULL,
 	quarantined_row_count INTEGER NOT NULL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS models (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	model_id TEXT,
 	provider_id TEXT,
@@ -656,19 +626,17 @@ CREATE TABLE IF NOT EXISTS models (
 	agentic_score REAL,
 	speed_score REAL,
 	value_score REAL,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE TABLE IF NOT EXISTS model_evaluations (
-	run_id INTEGER NOT NULL,
 	model_row_index INTEGER NOT NULL,
 	benchmark_key TEXT NOT NULL,
 	value REAL NOT NULL,
-	PRIMARY KEY (run_id, model_row_index, benchmark_key)
+	PRIMARY KEY (model_row_index, benchmark_key)
 );
 
 CREATE TABLE IF NOT EXISTS model_task_metrics (
-	run_id INTEGER NOT NULL,
 	model_row_index INTEGER NOT NULL,
 	source_key TEXT NOT NULL,
 	cost REAL,
@@ -676,11 +644,10 @@ CREATE TABLE IF NOT EXISTS model_task_metrics (
 	tokens REAL,
 	input_tokens REAL,
 	output_tokens REAL,
-	PRIMARY KEY (run_id, model_row_index, source_key)
+	PRIMARY KEY (model_row_index, source_key)
 );
 
 CREATE TABLE IF NOT EXISTS model_match_debug (
-	run_id INTEGER NOT NULL,
 	row_index INTEGER NOT NULL,
 	artificial_analysis_id TEXT,
 	artificial_analysis_slug TEXT,
@@ -698,7 +665,7 @@ CREATE TABLE IF NOT EXISTS model_match_debug (
 	models_dev_row_index INTEGER,
 	openrouter_model_id TEXT,
 	openrouter_model_stats_row_index INTEGER,
-	PRIMARY KEY (run_id, row_index)
+	PRIMARY KEY (row_index)
 );
 
 CREATE INDEX IF NOT EXISTS idx_artificial_analysis_raw_models_model_id

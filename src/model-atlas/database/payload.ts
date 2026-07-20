@@ -30,10 +30,7 @@ import type {
 type DbRow = Record<string, unknown>;
 
 export type PayloadRows = {
-	run: {
-		id: number;
-		fetchedAt: number | null;
-	};
+	fetchedAt: number | null;
 	modelRows: DbRow[];
 	modelEvaluationRows: DbRow[];
 	modelTaskMetricRows: DbRow[];
@@ -62,7 +59,7 @@ export type PayloadRows = {
 	weirdMlRows: DbRow[];
 };
 
-type PayloadRowKey = Exclude<keyof PayloadRows, "run">;
+type PayloadRowKey = Exclude<keyof PayloadRows, "fetchedAt">;
 
 export type PayloadRowGroup = {
 	key: PayloadRowKey;
@@ -71,153 +68,128 @@ export type PayloadRowGroup = {
 	optional?: boolean;
 };
 
-export type PayloadRowReader = (
-	rowGroup: PayloadRowGroup,
-	runId: number,
-) => Promise<DbRow[]>;
+export type PayloadRowReader = (rowGroup: PayloadRowGroup) => Promise<DbRow[]>;
 
-export const COMPLETED_RUN_SQL =
-	"SELECT id, completed_at_epoch_seconds AS fetched_at_epoch_seconds FROM pipeline_runs WHERE completed_at_epoch_seconds IS NOT NULL ORDER BY id DESC LIMIT 1";
+export const SNAPSHOT_METADATA_SQL =
+	"SELECT updated_at_epoch_seconds FROM snapshot_metadata LIMIT 1";
 
 export const PAYLOAD_ROW_GROUPS: readonly PayloadRowGroup[] = [
 	{
 		key: "modelRows",
-		sql: "SELECT * FROM models WHERE run_id = ? ORDER BY row_index",
+		sql: "SELECT * FROM models ORDER BY row_index",
 	},
 	{
 		key: "modelEvaluationRows",
-		sql: "SELECT * FROM model_evaluations WHERE run_id = ? ORDER BY model_row_index, benchmark_key",
+		sql: "SELECT * FROM model_evaluations ORDER BY model_row_index, benchmark_key",
 	},
 	{
 		key: "modelTaskMetricRows",
-		sql: "SELECT * FROM model_task_metrics WHERE run_id = ? ORDER BY model_row_index, source_key",
+		sql: "SELECT * FROM model_task_metrics ORDER BY model_row_index, source_key",
 	},
 	{
 		key: "sourceHealthRows",
-		sql: "SELECT * FROM source_health WHERE run_id = ? ORDER BY row_index",
+		sql: "SELECT * FROM source_health ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "artificialAnalysisRows",
-		sql: "SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "artificial_analysis_raw_models",
+		sql: "SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
 	},
 	{
 		key: "agentArenaRows",
-		sql: "SELECT * FROM agent_arena_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "agent_arena_raw_rows",
+		sql: "SELECT * FROM agent_arena_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "agentsLastExamRows",
-		sql: "SELECT * FROM agents_last_exam_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "agents_last_exam_raw_rows",
+		sql: "SELECT * FROM agents_last_exam_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "blueprintBenchRows",
-		sql: "SELECT * FROM blueprint_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "blueprint_bench_2_raw_rows",
+		sql: "SELECT * FROM blueprint_bench_2_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "browseCompRows",
-		sql: "SELECT * FROM browsecomp_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "browsecomp_raw_rows",
+		sql: "SELECT * FROM browsecomp_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "chartographyRows",
-		sql: "SELECT * FROM chartography_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "chartography_raw_rows",
+		sql: "SELECT * FROM chartography_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "chessPuzzleRows",
-		sql: "SELECT * FROM chess_puzzles_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "chess_puzzles_raw_rows",
+		sql: "SELECT * FROM chess_puzzles_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "cursorBenchRows",
-		sql: "SELECT * FROM cursorbench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "cursorbench_raw_rows",
+		sql: "SELECT * FROM cursorbench_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "deepSWERows",
-		sql: "SELECT * FROM deep_swe_raw_rows WHERE run_id = ? ORDER BY pass_at_1 DESC, row_index",
-		sourceTable: "deep_swe_raw_rows",
+		sql: "SELECT * FROM deep_swe_raw_rows ORDER BY pass_at_1 DESC, row_index",
 	},
 	{
 		key: "ebrBenchRows",
-		sql: "SELECT * FROM ebr_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "ebr_bench_raw_rows",
+		sql: "SELECT * FROM ebr_bench_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "enterpriseBenchCoreCraftRows",
-		sql: "SELECT * FROM enterprisebench_corecraft_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "enterprisebench_corecraft_raw_rows",
+		sql: "SELECT * FROM enterprisebench_corecraft_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "epochCapabilitiesIndexRows",
-		sql: "SELECT * FROM epoch_capabilities_index_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "epoch_capabilities_index_raw_rows",
+		sql: "SELECT * FROM epoch_capabilities_index_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "frontierMathTier4Rows",
-		sql: "SELECT * FROM frontiermath_tier_4_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "frontiermath_tier_4_raw_rows",
+		sql: "SELECT * FROM frontiermath_tier_4_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "gdpPdfRows",
-		sql: "SELECT * FROM gdp_pdf_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "gdp_pdf_raw_rows",
+		sql: "SELECT * FROM gdp_pdf_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "handbookMdRows",
-		sql: "SELECT * FROM handbook_md_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "handbook_md_raw_rows",
+		sql: "SELECT * FROM handbook_md_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "proofBenchRows",
-		sql: "SELECT * FROM proofbench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "proofbench_raw_rows",
+		sql: "SELECT * FROM proofbench_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "riemannBenchRows",
-		sql: "SELECT * FROM riemann_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "riemann_bench_raw_rows",
+		sql: "SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "valsTerminalBenchRows",
-		sql: "SELECT * FROM vals_terminal_bench_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "vals_terminal_bench_raw_rows",
+		sql: "SELECT * FROM vals_terminal_bench_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "toolathlonRows",
-		sql: "SELECT * FROM toolathlon_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "toolathlon_raw_rows",
+		sql: "SELECT * FROM toolathlon_raw_rows ORDER BY row_index",
 	},
 	{
 		key: "valsIndexRows",
-		sql: "SELECT * FROM vals_index_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "vals_index_raw_rows",
+		sql: "SELECT * FROM vals_index_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "vendingBench2Rows",
-		sql: "SELECT * FROM vending_bench_2_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "vending_bench_2_raw_rows",
+		sql: "SELECT * FROM vending_bench_2_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 	{
 		key: "weirdMlRows",
-		sql: "SELECT * FROM weirdml_raw_rows WHERE run_id = ? ORDER BY row_index",
-		sourceTable: "weirdml_raw_rows",
+		sql: "SELECT * FROM weirdml_raw_rows ORDER BY row_index",
 		optional: true,
 	},
 ];
@@ -371,27 +343,19 @@ function modelFromRow(
 	};
 }
 
-/** Run metadata is accepted only after the database marks the snapshot completed. */
-export function payloadRunFromRow(row: unknown): PayloadRows["run"] | null {
-	const record = asRecord(row);
-	const id = asFiniteNumber(record.id);
-	if (id == null) {
-		return null;
-	}
-	return {
-		id,
-		fetchedAt: asFiniteNumber(record.fetched_at_epoch_seconds),
-	};
+/** Reads the singleton snapshot publication timestamp. */
+export function payloadFetchedAtFromRow(row: unknown): number | null {
+	return asFiniteNumber(asRecord(row).updated_at_epoch_seconds);
 }
 
 /** Keeps every storage adapter aligned on the row groups required by the public payload. */
 export function buildPayloadRows(
-	run: PayloadRows["run"],
+	fetchedAt: number | null,
 	rowGroups: ReadonlyArray<readonly [PayloadRowKey, DbRow[]]>,
 ): PayloadRows {
 	const rows = new Map(rowGroups);
 	return {
-		run,
+		fetchedAt,
 		modelRows: rows.get("modelRows") ?? [],
 		modelEvaluationRows: rows.get("modelEvaluationRows") ?? [],
 		modelTaskMetricRows: rows.get("modelTaskMetricRows") ?? [],
@@ -468,13 +432,13 @@ function taskMetricsByModelRow(
 
 /** Payload row groups share one reader contract across local SQLite and Cloudflare D1. */
 export async function readPayloadRows(
-	run: PayloadRows["run"],
+	fetchedAt: number | null,
 	readRows: PayloadRowReader,
 ): Promise<PayloadRows> {
 	const rowGroups = await Promise.all(
 		PAYLOAD_ROW_GROUPS.map(async (rowGroup) => {
 			try {
-				return [rowGroup.key, await readRows(rowGroup, run.id)] as [
+				return [rowGroup.key, await readRows(rowGroup)] as [
 					PayloadRowKey,
 					DbRow[],
 				];
@@ -486,7 +450,7 @@ export async function readPayloadRows(
 			}
 		}),
 	);
-	return buildPayloadRows(run, rowGroups);
+	return buildPayloadRows(fetchedAt, rowGroups);
 }
 
 function sourceHealthFromRows(
@@ -556,11 +520,11 @@ export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 	});
 	const sourceHealth = sourceHealthFromRows(
 		rows.sourceHealthRows,
-		rows.run.fetchedAt,
+		rows.fetchedAt,
 	);
 	const sourceRowsByKey = benchmarkRowsFromDb(rows);
 	return {
-		fetched_at_epoch_seconds: rows.run.fetchedAt,
+		fetched_at_epoch_seconds: rows.fetchedAt,
 		metadata: buildCurrentLlmStatsMetadata({
 			models,
 			healthModels: models,

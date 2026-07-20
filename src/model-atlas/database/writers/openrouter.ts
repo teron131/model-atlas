@@ -28,7 +28,6 @@ type OpenRouterRawRowKind =
 	| "model_stats";
 
 type OpenRouterRawRow = {
-	runId: number;
 	rowIndex: number;
 	fetchedAtEpochSeconds: number | null;
 	url: string;
@@ -55,7 +54,6 @@ function insertOpenRouterRawRow(
 	row: OpenRouterRawRow,
 ): void {
 	statement.run(
-		row.runId,
 		row.rowIndex,
 		row.fetchedAtEpochSeconds,
 		row.url,
@@ -98,13 +96,11 @@ function openRouterStatPointRows(
 
 function insertOpenRouterDirectoryRows(
 	statement: DatabaseStatement,
-	runId: number,
 	rawPayload: OpenRouterRawScrapedPayload,
 	rowIndex: number,
 ): number {
 	for (const model of rawPayload.directory) {
 		insertOpenRouterRawRow(statement, {
-			runId,
 			rowIndex,
 			fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
 			url: SOURCE_URLS.openrouter_models,
@@ -119,7 +115,6 @@ function insertOpenRouterDirectoryRows(
 
 function insertOpenRouterPermaslugCandidateRows(
 	statement: DatabaseStatement,
-	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
 	rowIndex: number,
@@ -129,7 +124,6 @@ function insertOpenRouterPermaslugCandidateRows(
 		permaslug,
 	] of model.candidate_permaslugs.entries()) {
 		insertOpenRouterRawRow(statement, {
-			runId,
 			rowIndex,
 			fetchedAtEpochSeconds,
 			url: SOURCE_URLS.openrouter_stats,
@@ -146,7 +140,6 @@ function insertOpenRouterPermaslugCandidateRows(
 
 function insertOpenRouterStatPointRows(
 	statement: DatabaseStatement,
-	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
 	rowIndex: number,
@@ -157,7 +150,6 @@ function insertOpenRouterStatPointRows(
 			model.performance.series_token_weights,
 		)) {
 			insertOpenRouterRawRow(statement, {
-				runId,
 				rowIndex,
 				fetchedAtEpochSeconds,
 				url: SOURCE_URLS.openrouter_stats,
@@ -179,7 +171,6 @@ function insertOpenRouterStatPointRows(
 
 function insertOpenRouterPerformanceEstimateRows(
 	statement: DatabaseStatement,
-	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
 	rowIndex: number,
@@ -191,7 +182,6 @@ function insertOpenRouterPerformanceEstimateRows(
 			continue;
 		}
 		insertOpenRouterRawRow(statement, {
-			runId,
 			rowIndex,
 			fetchedAtEpochSeconds,
 			url: SOURCE_URLS.openrouter_stats,
@@ -210,7 +200,6 @@ function insertOpenRouterPerformanceEstimateRows(
 
 function insertOpenRouterModelStatsRow(
 	statement: DatabaseStatement,
-	runId: number,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
 	rowIndex: number,
@@ -221,7 +210,6 @@ function insertOpenRouterModelStatsRow(
 		model.pricing,
 	);
 	insertOpenRouterRawRow(statement, {
-		runId,
 		rowIndex,
 		fetchedAtEpochSeconds,
 		url: SOURCE_URLS.openrouter_stats,
@@ -242,7 +230,6 @@ function insertOpenRouterModelStatsRow(
 /** Insert OpenRouter raw directory rows, candidate rows, stat points, and model summaries in one source table. */
 export function insertOpenRouterRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	rawPayload: OpenRouterRawScrapedPayload | null | undefined,
 ): void {
 	if (rawPayload == null) {
@@ -250,40 +237,36 @@ export function insertOpenRouterRawRows(
 	}
 	const statement = db.prepare(`
 		INSERT INTO openrouter_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, row_kind, model_id,
+			row_index, fetched_at_epoch_seconds, url, row_kind, model_id,
 			slug, permaslug, candidate_index, selected_permaslug, metric, x, series,
 			value, series_token_weight,
 			throughput_tokens_per_second_median, latency_seconds_median,
 			e2e_latency_seconds_median, weighted_input_price_per_1m,
 			weighted_output_price_per_1m
-		) VALUES (${Array.from({ length: 20 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 19 }, () => "?").join(", ")})
 	`);
-	let rowIndex = insertOpenRouterDirectoryRows(statement, runId, rawPayload, 0);
+	let rowIndex = insertOpenRouterDirectoryRows(statement, rawPayload, 0);
 	for (const model of rawPayload.models) {
 		rowIndex = insertOpenRouterPermaslugCandidateRows(
 			statement,
-			runId,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,
 		);
 		rowIndex = insertOpenRouterStatPointRows(
 			statement,
-			runId,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,
 		);
 		rowIndex = insertOpenRouterPerformanceEstimateRows(
 			statement,
-			runId,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,
 		);
 		rowIndex = insertOpenRouterModelStatsRow(
 			statement,
-			runId,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,

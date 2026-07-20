@@ -36,7 +36,7 @@ import {
 	refreshedCacheStatus,
 } from "./cache";
 import {
-	latestSourceRowStates,
+	persistedSourceRowStates,
 	mergeCachedSourceRows,
 	missingSinceBySource,
 } from "./policy";
@@ -240,7 +240,7 @@ export async function loadSourceSnapshots(
 	return refreshSourceSnapshots(
 		readSqliteSourceCaches(db),
 		readSourceCacheStatuses(db, nowEpochSeconds),
-		latestSourceRowStates(db),
+		persistedSourceRowStates(db),
 		nowEpochSeconds,
 		scoringConfig,
 		options,

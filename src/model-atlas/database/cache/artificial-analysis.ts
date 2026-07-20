@@ -14,10 +14,8 @@ import {
 	assignIfString,
 	type CacheDbRow,
 	firstEpochSecond,
-	latestTableRunId,
 	nonEmptyRecord,
 	queryCacheRows,
-	queryLatestCacheRows,
 	stringValue,
 } from "./rows";
 
@@ -45,12 +43,10 @@ export function artificialAnalysisCacheHasHiddenRows(
 		`
 			SELECT row_index
 			FROM artificial_analysis_raw_models
-			WHERE run_id = ?
-				AND deprecated = 1
+			WHERE deprecated = 1
 				AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
 			LIMIT 1
-		`,
-		[latestTableRunId(db, "artificial_analysis_raw_models") ?? -1],
+		`
 	);
 	return cacheRows.length > 0;
 }
@@ -195,10 +191,9 @@ export function artificialAnalysisRawCacheFromRows(cacheRows: CacheDbRow[]): {
 
 export function readArtificialAnalysisRawCache(db: DatabaseSync) {
 	return artificialAnalysisRawCacheFromRows(
-		queryLatestCacheRows(
+		queryCacheRows(
 			db,
-			"artificial_analysis_raw_models",
-			"SELECT * FROM artificial_analysis_raw_models WHERE run_id = ? ORDER BY row_index",
+			"SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
 		),
 	);
 }
@@ -273,10 +268,9 @@ export function readArtificialAnalysisEvaluationResourceRawCache(
 	db: DatabaseSync,
 ) {
 	return artificialAnalysisEvaluationResourceRawCacheFromRows(
-		queryLatestCacheRows(
+		queryCacheRows(
 			db,
-			"artificial_analysis_evaluations_raw_rows",
-			"SELECT * FROM artificial_analysis_evaluations_raw_rows WHERE run_id = ? ORDER BY row_index",
+			"SELECT * FROM artificial_analysis_evaluations_raw_rows ORDER BY row_index",
 		),
 	);
 }

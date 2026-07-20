@@ -91,12 +91,11 @@ function modelScoreValues(model: JsonObject): SqlValue[] {
 
 export function insertModels(
 	db: DatabaseWriter,
-	runId: number,
 	rows: readonly unknown[],
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO models (
-			run_id, row_index, model_id, provider_id, name,
+			row_index, model_id, provider_id, name,
 			reasoning_effort, logo,
 			reasoning, release_date,
 			open_weights, context, context_input, context_output, input_modality_text,
@@ -112,12 +111,11 @@ export function insertModels(
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score
-		) VALUES (${Array.from({ length: 43 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 42 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);
 		statement.run(
-			runId,
 			index,
 			...modelIdentityValues(model),
 			...modelContextValues(model),
@@ -131,20 +129,19 @@ export function insertModels(
 /** Persists one scalar row per selected benchmark in deterministic portfolio order. */
 export function insertModelEvaluations(
 	db: DatabaseWriter,
-	runId: number,
 	rows: readonly unknown[],
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO model_evaluations (
-			run_id, model_row_index, benchmark_key, value
-		) VALUES (?, ?, ?, ?)
+			model_row_index, benchmark_key, value
+		) VALUES (?, ?, ?)
 	`);
 	for (const [modelRowIndex, row] of rows.entries()) {
 		const evaluations = asRecord(asRecord(row).evaluations);
 		for (const benchmarkKey of MODEL_ATLAS_EVALUATION_KEYS) {
 			const value = asFiniteNumber(evaluations[benchmarkKey]);
 			if (value != null) {
-				statement.run(runId, modelRowIndex, benchmarkKey, value);
+				statement.run(modelRowIndex, benchmarkKey, value);
 			}
 		}
 	}
@@ -153,14 +150,13 @@ export function insertModelEvaluations(
 /** Persists one scalar resource row per task-metric source in deterministic key order. */
 export function insertModelTaskMetrics(
 	db: DatabaseWriter,
-	runId: number,
 	rows: readonly unknown[],
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO model_task_metrics (
-			run_id, model_row_index, source_key, cost, seconds, tokens,
+			model_row_index, source_key, cost, seconds, tokens,
 			input_tokens, output_tokens
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [modelRowIndex, row] of rows.entries()) {
 		const taskMetrics = asRecord(asRecord(row).task_metrics);
@@ -175,7 +171,6 @@ export function insertModelTaskMetrics(
 			}
 			const metrics = asRecord(sourceMetrics);
 			statement.run(
-				runId,
 				modelRowIndex,
 				sourceKey,
 				asFiniteNumber(metrics.cost),

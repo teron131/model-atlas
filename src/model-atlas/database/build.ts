@@ -6,10 +6,10 @@ import type { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../constants";
 import { nowEpochSeconds } from "../utils";
 import {
-	type DatabaseRunRows,
-	deriveDatabaseRun,
+	type DatabaseSnapshotRows,
+	deriveDatabaseSnapshot,
 	SNAPSHOT_WRITER_TABLES,
-	writeDatabaseRunRows,
+	writeDatabaseSnapshotRows,
 } from "./pipeline";
 import { openDatabase, removeDatabaseFiles } from "./schema";
 import { loadOpenRouterRawPayload, loadSourceSnapshots } from "./sources";
@@ -70,22 +70,15 @@ async function publishDatabaseFile(
 	await rename(persistedPath, outputPath);
 }
 
-function insertPipelineRun(db: DatabaseSync): number {
-	const result = db.prepare("INSERT INTO pipeline_runs DEFAULT VALUES").run();
-	return Number(result.lastInsertRowid);
-}
-
-function writeSnapshot(db: DatabaseSync, rows: DatabaseRunRows): number {
+function writeSnapshot(db: DatabaseSync, rows: DatabaseSnapshotRows): void {
 	for (const table of SNAPSHOT_WRITER_TABLES) {
 		db.prepare(`DELETE FROM ${table}`).run();
 	}
-	db.prepare("DELETE FROM pipeline_runs").run();
-	const runId = insertPipelineRun(db);
-	writeDatabaseRunRows(db, runId, rows);
+	db.prepare("DELETE FROM snapshot_metadata").run();
+	writeDatabaseSnapshotRows(db, rows);
 	db.prepare(
-		"UPDATE pipeline_runs SET completed_at_epoch_seconds = ? WHERE id = ?",
-	).run(nowEpochSeconds(), runId);
-	return runId;
+		"INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)",
+	).run(nowEpochSeconds());
 }
 
 /** Builds a local SQLite artifact for offline inspection and scripts; runtime publication uses D1 directly. */
@@ -103,7 +96,7 @@ export async function buildDatabase(
 			STAGE_CONFIG.scoring,
 			options,
 		);
-		const derived = await deriveDatabaseRun(
+		const derived = await deriveDatabaseSnapshot(
 			startedAt,
 			snapshots,
 			sourceCache,
@@ -118,12 +111,9 @@ export async function buildDatabase(
 		);
 
 		const activeDb = db;
-		const runId = runInTransaction(activeDb, () =>
-			writeSnapshot(activeDb, derived.rows),
-		);
+		runInTransaction(activeDb, () => writeSnapshot(activeDb, derived.rows));
 		const result = {
 			path: outputPath,
-			run_id: runId,
 			source_rows: countTableRows(activeDb),
 			source_cache: derived.sourceCache,
 			source_health: derived.rows.sourceHealth,

@@ -6,20 +6,18 @@ import type { DatabaseWriter } from "./shared";
 
 export function insertSourceQuarantines(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO source_quarantines (
-			run_id, source, row_key, missing_from_source_since_epoch_seconds
-		) VALUES (?, ?, ?, ?)
+			source, row_key, missing_from_source_since_epoch_seconds
+		) VALUES (?, ?, ?)
 	`);
 	for (const row of snapshots.sourceRowStates) {
 		if (row.status !== "quarantined_missing_from_source") {
 			continue;
 		}
 		statement.run(
-			runId,
 			row.source,
 			row.row_key,
 			row.missing_from_source_since_epoch_seconds,
@@ -29,18 +27,16 @@ export function insertSourceQuarantines(
 
 export function insertSourceHealth(
 	db: DatabaseWriter,
-	runId: number,
 	sourceHealth: LlmStatsSourceHealth,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO source_health (
-			run_id, row_index, source, status, last_fetch_epoch_seconds,
+			row_index, source, status, last_fetch_epoch_seconds,
 			source_input_count, active_row_count, quarantined_row_count
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of Object.values(sourceHealth.sources).entries()) {
 		statement.run(
-			runId,
 			index,
 			row.source,
 			row.status,

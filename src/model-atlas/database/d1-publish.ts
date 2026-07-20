@@ -1,4 +1,4 @@
-/** Direct D1 refresh preserves source evidence, skips unchanged writes, and publishes derived runs atomically. */
+/** Direct D1 refresh preserves source evidence, skips unchanged writes, and publishes the derived snapshot atomically. */
 
 import { createHash } from "node:crypto";
 
@@ -45,7 +45,10 @@ import {
 	readD1Payload,
 } from "./d1";
 import { buildPayloadFromRows, type PayloadRows } from "./payload";
-import { deriveDatabaseRun, writeDatabaseRunRows } from "./pipeline";
+import {
+	deriveDatabaseSnapshot,
+	writeDatabaseSnapshotRows,
+} from "./pipeline";
 import { sourceRowStatesFromRows } from "./policy";
 import type { SchemaReconciliationPlan } from "./schema";
 import {
@@ -78,7 +81,6 @@ const MAX_INSERT_STATEMENT_CHARS = 20_000;
 export type D1PublishResult = {
 	storage: "cloudflare_d1";
 	database_id: string;
-	run_id: number;
 	model_count: number;
 	fetched_at_epoch_seconds: number | null;
 	published: boolean;
@@ -92,7 +94,6 @@ export type D1PublishResult = {
 };
 
 type D1RefreshState = {
-	previousRunId: number;
 	rawRows: Record<RawSourceName, CacheDbRow[]>;
 	caches: SourceCaches;
 	statuses: Record<RawSourceName, RawSourceCacheStatus>;
@@ -127,7 +128,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 			replaceSourceRows,
 		},
 	);
-	const derived = await deriveDatabaseRun(
+	const derived = await deriveDatabaseSnapshot(
 		startedAt,
 		refreshed.snapshots,
 		refreshed.sourceCache,
@@ -142,9 +143,8 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 				},
 			),
 	);
-	const runId = current.previousRunId + 1;
-	let collector = collectDatabaseRun(runId, derived.rows);
-	const previewPayload = payloadFromCollector(runId, startedAt, collector);
+	let collector = collectDatabaseSnapshot(derived.rows);
+	const previewPayload = payloadFromCollector(startedAt, collector);
 	const preservedPayload = replaceSourceRows
 		? previewPayload
 		: preserveHighSignalSnapshotModels(
@@ -155,14 +155,14 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 			);
 	if (preservedPayload !== previewPayload) {
 		derived.rows.finalModelRows = preservedPayload.models;
-		collector = collectDatabaseRun(runId, derived.rows);
+		collector = collectDatabaseSnapshot(derived.rows);
 	}
 	const changedSources = RAW_SOURCE_NAMES.filter(
 		(source) =>
 			tableContentHash(collector.records(RAW_SOURCE_TABLES[source])) !==
 			tableContentHash(current.rawRows[source]),
 	);
-	const nextPayload = payloadFromCollector(runId, startedAt, collector);
+	const nextPayload = payloadFromCollector(startedAt, collector);
 	if (
 		schema.statements.length === 0 &&
 		changedSources.length === 0 &&
@@ -170,7 +170,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 		publicContentHash(nextPayload) ===
 			publicContentHash(current.previousPayload)
 	) {
-		const statements = sourceHealthStatements(current.previousRunId, collector);
+		const statements = sourceHealthStatements(collector);
 		await queryD1Batch(statements.map((sql) => ({ sql })));
 		const payload = withSourceHealth(
 			current.previousPayload,
@@ -180,7 +180,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 			result: publishResult(
 				config.databaseId,
 				payload,
-				current.previousRunId,
 				false,
 				[],
 				statements.length,
@@ -191,18 +190,16 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	}
 	const completedAt = nowEpochSeconds();
 	const statements = publicationStatements(
-		runId,
 		completedAt,
 		collector,
 		changedSources,
 	);
 	await queryD1Batch(statements.map((sql) => ({ sql })));
-	const payload = payloadFromCollector(runId, completedAt, collector);
+	const payload = payloadFromCollector(completedAt, collector);
 	return {
 		result: publishResult(
 			config.databaseId,
 			payload,
-			runId,
 			true,
 			changedSources,
 			statements.length,
@@ -215,7 +212,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 function publishResult(
 	databaseId: string,
 	payload: LlmStatsPayload,
-	runId: number,
 	published: boolean,
 	changedSources: RawSourceName[],
 	statementCount: number,
@@ -224,7 +220,6 @@ function publishResult(
 	return {
 		storage: "cloudflare_d1",
 		database_id: databaseId,
-		run_id: runId,
 		model_count: payload.models.length,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
 		published,
@@ -240,22 +235,16 @@ function publishResult(
 
 async function readD1RefreshState(now: number): Promise<D1RefreshState> {
 	const rawRows = await readD1RawRows();
-	const [previousRows, previousPayload] = await Promise.all([
+	const [previousSourceRows, previousPayload] = await Promise.all([
 		queryD1BatchRows([
 			{
-				sql: "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines WHERE run_id = (SELECT MAX(run_id) FROM source_quarantines) ORDER BY source, row_key",
+				sql: "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
 			},
-			{
-				sql: "SELECT id AS max_id FROM pipeline_runs ORDER BY id DESC LIMIT 1",
-			},
-		]),
+		]).then(([rows]) => rows ?? []),
 		readD1Payload(),
 	]);
-	const previousSourceRows = previousRows[0] ?? [];
-	const previousRunId = Number(previousRows[1]?.[0]?.max_id ?? 0);
 	const previousHealth = previousPayload?.metadata.source_health?.sources;
 	return {
-		previousRunId,
 		rawRows,
 		caches: sourceCachesFromRows(rawRows),
 		statuses: Object.fromEntries(
@@ -279,7 +268,7 @@ async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
 		RAW_SOURCE_NAMES.map((source) => {
 			const table = RAW_SOURCE_TABLES[source];
 			return {
-				sql: `SELECT * FROM ${quoteIdentifier(table)} WHERE run_id = (SELECT MAX(run_id) FROM ${quoteIdentifier(table)}) ORDER BY row_index`,
+				sql: `SELECT * FROM ${quoteIdentifier(table)} ORDER BY row_index`,
 			};
 		}),
 	);
@@ -333,36 +322,25 @@ function sourceCachesFromRows(
 	};
 }
 
-function collectDatabaseRun(
-	runId: number,
-	rows: Parameters<typeof writeDatabaseRunRows>[2],
+function collectDatabaseSnapshot(
+	rows: Parameters<typeof writeDatabaseSnapshotRows>[1],
 ): SnapshotRowCollector {
 	const collector = new SnapshotRowCollector();
-	writeDatabaseRunRows(collector, runId, rows);
+	writeDatabaseSnapshotRows(collector, rows);
 	return collector;
 }
 
 /** Replaces only refresh metadata when source and derived content are unchanged. */
 function sourceHealthStatements(
-	runId: number,
 	collector: SnapshotRowCollector,
 ): string[] {
 	const collected = collector.tables.get(SNAPSHOT_TABLES.source_health);
 	if (collected == null) {
 		return [];
 	}
-	const runIdIndex = collected.columns.indexOf("run_id");
-	if (runIdIndex < 0) {
-		throw new Error("Collected source health rows do not include run_id");
-	}
 	return [
-		`DELETE FROM ${quoteIdentifier(SNAPSHOT_TABLES.source_health)} WHERE run_id = ${runId};`,
-		...insertStatements(SNAPSHOT_TABLES.source_health, {
-			columns: collected.columns,
-			rows: collected.rows.map((row) =>
-				row.map((value, index) => (index === runIdIndex ? runId : value)),
-			),
-		}),
+		`DELETE FROM ${quoteIdentifier(SNAPSHOT_TABLES.source_health)};`,
+		...insertStatements(SNAPSHOT_TABLES.source_health, collected),
 	];
 }
 
@@ -380,12 +358,11 @@ function withSourceHealth(
 }
 
 function payloadFromCollector(
-	runId: number,
 	fetchedAt: number,
 	collector: SnapshotRowCollector,
 ): LlmStatsPayload {
 	const rows: PayloadRows = {
-		run: { id: runId, fetchedAt },
+		fetchedAt,
 		modelRows: collector.records(SNAPSHOT_TABLES.models),
 		modelEvaluationRows: collector.records(SNAPSHOT_TABLES.model_evaluations),
 		modelTaskMetricRows: collector.records(SNAPSHOT_TABLES.model_task_metrics),
@@ -427,7 +404,6 @@ function payloadFromCollector(
 }
 
 function publicationStatements(
-	runId: number,
 	completedAt: number,
 	collector: SnapshotRowCollector,
 	changedSources: RawSourceName[],
@@ -438,24 +414,13 @@ function publicationStatements(
 	const tablesToInsert = [...changedRawTables, ...DERIVED_TABLES];
 	return [
 		...tablesToInsert.map(
-			(table) =>
-				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id = ${runId};`,
+			(table) => `DELETE FROM ${quoteIdentifier(table)};`,
 		),
-		`DELETE FROM pipeline_runs WHERE id = ${runId};`,
-		`INSERT INTO pipeline_runs (id, completed_at_epoch_seconds) VALUES (${runId}, NULL);`,
+		"DELETE FROM snapshot_metadata;",
 		...tablesToInsert.flatMap((table) =>
 			insertStatements(table, collector.tables.get(table)),
 		),
-		`UPDATE pipeline_runs SET completed_at_epoch_seconds = ${completedAt} WHERE id = ${runId};`,
-		...changedRawTables.map(
-			(table) =>
-				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${runId};`,
-		),
-		...DERIVED_TABLES.map(
-			(table) =>
-				`DELETE FROM ${quoteIdentifier(table)} WHERE run_id != ${runId};`,
-		),
-		`DELETE FROM pipeline_runs WHERE id != ${runId};`,
+		`INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (${completedAt});`,
 	];
 }
 
@@ -493,7 +458,7 @@ function insertStatements(
 
 function tableContentHash(rows: readonly Record<string, unknown>[]): string {
 	return stableHash(
-		rows.map(({ run_id, row_index, fetched_at_epoch_seconds, ...row }) => row),
+		rows.map(({ row_index, fetched_at_epoch_seconds, ...row }) => row),
 	);
 }
 

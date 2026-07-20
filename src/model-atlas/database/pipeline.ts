@@ -58,7 +58,7 @@ import {
 } from "./writers";
 import type { DatabaseWriter } from "./writers/shared";
 
-export type DatabaseRunRows = {
+export type DatabaseSnapshotRows = {
 	snapshots: SourceSnapshots;
 	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
 	finalModelRows: readonly unknown[];
@@ -71,176 +71,175 @@ type OpenRouterLoader = (modelIds: string[]) => Promise<{
 	cacheStatus: DatabaseBuildResult["source_cache"]["openrouter"];
 }>;
 
-export type DerivedDatabaseRun = {
-	rows: DatabaseRunRows;
+export type DerivedDatabaseSnapshot = {
+	rows: DatabaseSnapshotRows;
 	sourceCache: DatabaseBuildResult["source_cache"];
 };
 
 type SnapshotWriter = {
 	table: SnapshotTableName;
-	write: (db: DatabaseWriter, runId: number, rows: DatabaseRunRows) => void;
+	write: (db: DatabaseWriter, rows: DatabaseSnapshotRows) => void;
 };
 
 const SNAPSHOT_WRITERS = [
 	{
 		table: SNAPSHOT_TABLES.artificial_analysis,
-		write: (db, runId, rows) =>
-			insertArtificialAnalysisRawModels(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertArtificialAnalysisRawModels(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.artificial_analysis_evaluation_resources,
-		write: (db, runId, rows) =>
+		write: (db, rows) =>
 			insertArtificialAnalysisEvaluationResourceRawRows(
 				db,
-				runId,
 				rows.snapshots,
 			),
 	},
 	{
 		table: SNAPSHOT_TABLES.models_dev,
-		write: (db, runId, rows) =>
-			insertModelsDevRawModels(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertModelsDevRawModels(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.openrouter,
-		write: (db, runId, rows) =>
-			insertOpenRouterRawRows(db, runId, rows.openRouterRawPayload),
+		write: (db, rows) =>
+			insertOpenRouterRawRows(db, rows.openRouterRawPayload),
 	},
 	{
 		table: SNAPSHOT_TABLES.agent_arena,
-		write: (db, runId, rows) =>
-			insertAgentArenaRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertAgentArenaRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.agents_last_exam,
-		write: (db, runId, rows) =>
-			insertAgentsLastExamRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertAgentsLastExamRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.blueprint_bench_2,
-		write: (db, runId, rows) =>
-			insertBlueprintBenchRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertBlueprintBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.browsecomp,
-		write: (db, runId, rows) =>
-			insertBrowseCompRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertBrowseCompRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.chartography,
-		write: (db, runId, rows) =>
-			insertChartographyRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertChartographyRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.chess_puzzles,
-		write: (db, runId, rows) =>
-			insertChessPuzzlesRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertChessPuzzlesRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.cursorbench,
-		write: (db, runId, rows) =>
-			insertCursorBenchRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertCursorBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.deep_swe,
-		write: (db, runId, rows) => insertDeepSWERawRows(db, runId, rows.snapshots),
+		write: (db, rows) => insertDeepSWERawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.ebr_bench,
-		write: (db, runId, rows) =>
-			insertEbrBenchRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertEbrBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.enterprisebench_corecraft,
-		write: (db, runId, rows) =>
-			insertEnterpriseBenchCoreCraftRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertEnterpriseBenchCoreCraftRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.epoch_capabilities_index,
-		write: (db, runId, rows) =>
-			insertEpochCapabilitiesIndexRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertEpochCapabilitiesIndexRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.frontiermath_tier_4,
-		write: (db, runId, rows) =>
-			insertFrontierMathTier4RawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertFrontierMathTier4RawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.gdp_pdf,
-		write: (db, runId, rows) => insertGdpPdfRawRows(db, runId, rows.snapshots),
+		write: (db, rows) => insertGdpPdfRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.handbook_md,
-		write: (db, runId, rows) =>
-			insertHandbookMdRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertHandbookMdRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.mercor_apex_agents,
-		write: (db, runId, rows) =>
-			insertMercorApexAgentsRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertMercorApexAgentsRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.proofbench,
-		write: (db, runId, rows) =>
-			insertProofBenchRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertProofBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.riemann_bench,
-		write: (db, runId, rows) =>
-			insertRiemannBenchRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertRiemannBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.vals_terminal_bench,
-		write: (db, runId, rows) =>
-			insertValsTerminalBenchRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertValsTerminalBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.toolathlon,
-		write: (db, runId, rows) =>
-			insertToolathlonRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertToolathlonRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.vals_index,
-		write: (db, runId, rows) =>
-			insertValsIndexRawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertValsIndexRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.vending_bench_2,
-		write: (db, runId, rows) =>
-			insertVendingBench2RawRows(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertVendingBench2RawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.weirdml,
-		write: (db, runId, rows) => insertWeirdMlRawRows(db, runId, rows.snapshots),
+		write: (db, rows) => insertWeirdMlRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.source_quarantines,
-		write: (db, runId, rows) =>
-			insertSourceQuarantines(db, runId, rows.snapshots),
+		write: (db, rows) =>
+			insertSourceQuarantines(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.source_health,
-		write: (db, runId, rows) =>
-			insertSourceHealth(db, runId, rows.sourceHealth),
+		write: (db, rows) =>
+			insertSourceHealth(db, rows.sourceHealth),
 	},
 	{
 		table: SNAPSHOT_TABLES.models,
-		write: (db, runId, rows) => insertModels(db, runId, rows.finalModelRows),
+		write: (db, rows) => insertModels(db, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_evaluations,
-		write: (db, runId, rows) =>
-			insertModelEvaluations(db, runId, rows.finalModelRows),
+		write: (db, rows) =>
+			insertModelEvaluations(db, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_task_metrics,
-		write: (db, runId, rows) =>
-			insertModelTaskMetrics(db, runId, rows.finalModelRows),
+		write: (db, rows) =>
+			insertModelTaskMetrics(db, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_match_debug,
-		write: (db, runId, rows) =>
-			insertDebugTraceRows(db, runId, rows.debugTraceRows),
+		write: (db, rows) =>
+			insertDebugTraceRows(db, rows.debugTraceRows),
 	},
 ] satisfies readonly SnapshotWriter[];
 
@@ -260,12 +259,12 @@ function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
 }
 
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
-export async function deriveDatabaseRun(
+export async function deriveDatabaseSnapshot(
 	startedAt: number,
 	snapshots: SourceSnapshots,
 	sourceCache: DatabaseBuildResult["source_cache"],
 	loadOpenRouter: OpenRouterLoader,
-): Promise<DerivedDatabaseRun> {
+): Promise<DerivedDatabaseSnapshot> {
 	const sourceData = cachedSourceDataFromSnapshots(snapshots);
 	const matchDiagnostics = buildMatchDiagnostics({
 		matcherConfig: STAGE_CONFIG.matcher,
@@ -326,13 +325,12 @@ export async function deriveDatabaseRun(
 	};
 }
 
-/** Writes one derived run through either SQLite statements or a direct-publication collector. */
-export function writeDatabaseRunRows(
+/** Writes one derived snapshot through either SQLite statements or a direct-publication collector. */
+export function writeDatabaseSnapshotRows(
 	db: DatabaseWriter,
-	runId: number,
-	rows: DatabaseRunRows,
+	rows: DatabaseSnapshotRows,
 ): void {
 	for (const { write } of SNAPSHOT_WRITERS) {
-		write(db, runId, rows);
+		write(db, rows);
 	}
 }

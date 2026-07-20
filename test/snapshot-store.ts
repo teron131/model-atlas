@@ -9,8 +9,8 @@ import {
 } from "../app/api/llm-stats/snapshot-store";
 import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
 import {
-	COMPLETED_RUN_SQL,
 	PAYLOAD_ROW_GROUPS,
+	SNAPSHOT_METADATA_SQL,
 } from "../src/model-atlas/database/payload";
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
@@ -137,7 +137,7 @@ try {
 				errors: [{ message: "no such table: agent_arena_raw_rows" }],
 			});
 		}
-		if (body.sql === COMPLETED_RUN_SQL) {
+		if (body.sql === SNAPSHOT_METADATA_SQL) {
 			return Response.json({
 				success: true,
 				result: [
@@ -145,8 +145,7 @@ try {
 						success: true,
 						results: [
 							{
-								id: 7,
-								fetched_at_epoch_seconds: 1_800_000_000,
+								updated_at_epoch_seconds: 1_800_000_000,
 							},
 						],
 					},

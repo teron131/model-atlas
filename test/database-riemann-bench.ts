@@ -22,12 +22,9 @@ const customSourceUrl = "https://example.test/custom-riemann-bench";
 try {
 	const db = await openDatabase(databasePath);
 	try {
-		const run = db
-			.prepare(
-				"INSERT INTO pipeline_runs (completed_at_epoch_seconds) VALUES (?)",
-			)
-			.run(1_800_000_001);
-		const runId = Number(run.lastInsertRowid);
+		db.prepare(
+			"INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)",
+		).run(1_800_000_001);
 		const finalRows = [
 			{
 				id: "example/math-model",
@@ -49,15 +46,14 @@ try {
 				},
 			},
 		];
-		insertModels(db, runId, finalRows);
-		insertModelEvaluations(db, runId, finalRows);
+		insertModels(db, finalRows);
+		insertModelEvaluations(db, finalRows);
 		db.prepare(`
 			INSERT INTO riemann_bench_raw_rows (
-				run_id, row_index, fetched_at_epoch_seconds, url, provider,
+				row_index, fetched_at_epoch_seconds, url, provider,
 				model, score, last_updated
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?)
 		`).run(
-			runId,
 			0,
 			1_800_000_000,
 			customSourceUrl,
@@ -86,8 +82,8 @@ try {
 		);
 		assert.equal(cachedSnapshot.riemannBenchSourceUrl, customSourceUrl);
 
-		const copiedRunId = runId + 1;
-		insertRiemannBenchRawRows(db, copiedRunId, {
+		db.prepare("DELETE FROM riemann_bench_raw_rows").run();
+		insertRiemannBenchRawRows(db, {
 			riemannBenchModelScoreRows: cachedSnapshot.riemannBenchModelScoreRows,
 			riemannBenchSourceUrl: cachedSnapshot.riemannBenchSourceUrl,
 			fetchedAt: {
@@ -96,10 +92,8 @@ try {
 		});
 		assert.equal(
 			db
-				.prepare(
-					"SELECT url FROM riemann_bench_raw_rows WHERE run_id = ? AND row_index = 0",
-				)
-				.get(copiedRunId)?.url,
+				.prepare("SELECT url FROM riemann_bench_raw_rows WHERE row_index = 0")
+				.get()?.url,
 			customSourceUrl,
 			"the writer should persist snapshot provenance instead of recreating a default URL",
 		);
@@ -107,11 +101,10 @@ try {
 
 		db.prepare(`
 			INSERT INTO riemann_bench_raw_rows (
-				run_id, row_index, fetched_at_epoch_seconds, url, provider,
+				row_index, fetched_at_epoch_seconds, url, provider,
 				model, score, last_updated
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?)
 		`).run(
-			copiedRunId,
 			1,
 			1_800_000_000,
 			"https://example.test/different-riemann-bench",
@@ -127,13 +120,12 @@ try {
 		);
 		db.prepare(`
 			INSERT INTO deep_swe_raw_rows (
-				run_id, row_index, fetched_at_epoch_seconds, url, source_version,
+				row_index, fetched_at_epoch_seconds, url, source_version,
 				model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
 				n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
 				mean_output_tokens
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`).run(
-			runId,
 			0,
 			1_800_000_000,
 			"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json",
@@ -152,13 +144,12 @@ try {
 		);
 		db.prepare(`
 			INSERT INTO deep_swe_raw_rows (
-				run_id, row_index, fetched_at_epoch_seconds, url, source_version,
+				row_index, fetched_at_epoch_seconds, url, source_version,
 				model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
 				n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
 				mean_output_tokens
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`).run(
-			runId,
 			1,
 			1_800_000_000,
 			"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",

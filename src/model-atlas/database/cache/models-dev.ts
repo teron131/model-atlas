@@ -14,7 +14,7 @@ import {
 	type CacheDbRow,
 	firstEpochSecond,
 	modalityList,
-	queryLatestCacheRows,
+	queryCacheRows,
 	stringValue,
 } from "./rows";
 
@@ -122,10 +122,9 @@ export function modelsDevRawCacheFromRows(cacheRows: CacheDbRow[]): {
 
 export function readModelsDevRawCache(db: DatabaseSync) {
 	return modelsDevRawCacheFromRows(
-		queryLatestCacheRows(
+		queryCacheRows(
 			db,
-			"models_dev_raw_models",
-			"SELECT * FROM models_dev_raw_models WHERE run_id = ? ORDER BY row_index",
+			"SELECT * FROM models_dev_raw_models ORDER BY row_index",
 		),
 	);
 }

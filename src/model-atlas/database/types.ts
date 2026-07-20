@@ -150,7 +150,6 @@ export const SOURCE_URLS = {
 
 export type DatabaseBuildResult = {
 	path: string;
-	run_id: number;
 	source_rows: Record<string, number>;
 	source_cache: Record<RawSourceName, RawSourceCacheStatus>;
 	source_health: LlmStatsSourceHealth;

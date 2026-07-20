@@ -1,4 +1,4 @@
-/** Exercises keyed schema reconciliation, payload fallback, and latest-run raw cache reads. */
+/** Exercises keyed schema reconciliation, payload fallback, and current raw cache reads. */
 
 import assert from "node:assert/strict";
 import {
@@ -26,11 +26,11 @@ const DEEP_SWE_V1_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json";
 const DEEP_SWE_INSERT_SQL = `
 	INSERT INTO deep_swe_raw_rows (
-		run_id, row_index, fetched_at_epoch_seconds, url, source_version,
+		row_index, fetched_at_epoch_seconds, url, source_version,
 		model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
 		n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
 		mean_output_tokens
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const schemaSql = await loadSchemaSql();
@@ -66,7 +66,7 @@ assert.deepEqual(
 	Array.from(
 		schemaTableShapes(schemaSql).get("model_evaluations")?.keys() ?? [],
 	),
-	["run_id", "model_row_index", "benchmark_key", "value"],
+	["model_row_index", "benchmark_key", "value"],
 	"Evaluation storage should remain a narrow keyed table",
 );
 assert.deepEqual(
@@ -74,7 +74,6 @@ assert.deepEqual(
 		schemaTableShapes(schemaSql).get("model_task_metrics")?.keys() ?? [],
 	),
 	[
-		"run_id",
 		"model_row_index",
 		"source_key",
 		"cost",
@@ -85,12 +84,9 @@ assert.deepEqual(
 	],
 	"Task metric storage should remain scalar and relational",
 );
-assert.deepEqual(
-	[
-		processedModelShape?.get("run_id")?.primaryKey,
-		processedModelShape?.get("row_index")?.primaryKey,
-	],
-	[1, 2],
+assert.equal(
+	processedModelShape?.get("row_index")?.primaryKey,
+	1,
 	"schema drift checks should preserve table-level primary key order",
 );
 
@@ -113,7 +109,7 @@ assert.equal(
 );
 
 const payloadRows = await readPayloadRows(
-	{ id: 1, fetchedAt: 1_800_000_000 },
+	1_800_000_000,
 	async (rowGroup) => {
 		if (rowGroup.optional === true) {
 			throw new Error("optional table is absent");
@@ -135,11 +131,10 @@ try {
 		firstDb
 			.prepare(`
 				INSERT INTO artificial_analysis_raw_models (
-					run_id, row_index, fetched_at_epoch_seconds, url, model_id, name
-				) VALUES (?, ?, ?, ?, ?, ?)
+					row_index, fetched_at_epoch_seconds, url, model_id, name
+				) VALUES (?, ?, ?, ?, ?)
 			`)
 			.run(
-				1,
 				0,
 				1_800_000_000,
 				"https://artificialanalysis.ai/leaderboards/models",
@@ -147,19 +142,16 @@ try {
 				"Claude Fable 5",
 			);
 		firstDb
-			.prepare(
-				"INSERT INTO models (run_id, row_index, model_id) VALUES (?, ?, ?)",
-			)
-			.run(1, 0, "anthropic/claude-fable-5");
+			.prepare("INSERT INTO models (row_index, model_id) VALUES (?, ?)")
+			.run(0, "anthropic/claude-fable-5");
 		firstDb
 			.prepare(`
 				INSERT INTO browsecomp_raw_rows (
-					run_id, row_index, fetched_at_epoch_seconds, url, model,
+					row_index, fetched_at_epoch_seconds, url, model,
 					provider, provider_name, score
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				) VALUES (?, ?, ?, ?, ?, ?, ?)
 			`)
 			.run(
-				1,
 				0,
 				1_800_000_000,
 				"https://example.com/browsecomp",
@@ -190,7 +182,6 @@ try {
 		firstDb
 			.prepare(DEEP_SWE_INSERT_SQL)
 			.run(
-				1,
 				0,
 				1_800_000_000,
 				DEEP_SWE_V1_1_URL,
@@ -247,16 +238,15 @@ try {
 		assert.equal(
 			Number(
 				reopenedDb
-					.prepare("SELECT COUNT(*) AS count FROM models WHERE run_id = 1")
+					.prepare("SELECT COUNT(*) AS count FROM models")
 					.get()?.count ?? 0,
 			),
 			1,
 			"Changed derived tables should preserve rows when their primary keys still match",
 		);
 		assert.equal(
-			reopenedDb
-				.prepare("SELECT reasoning_effort FROM models WHERE run_id = 1")
-				.get()?.reasoning_effort,
+			reopenedDb.prepare("SELECT reasoning_effort FROM models").get()
+				?.reasoning_effort,
 			null,
 			"New nullable columns should be added without inventing evidence",
 		);
@@ -302,8 +292,8 @@ try {
 			() =>
 				schemaReconciliationPlan(
 					schemaSql.replace(
-						"PRIMARY KEY (run_id, row_index)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
-						"PRIMARY KEY (run_id, row_index, model_id)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
+						"PRIMARY KEY (row_index)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
+						"PRIMARY KEY (row_index, model_id)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
 					),
 					reconciledCatalog,
 					reconciledManifest,
@@ -315,8 +305,8 @@ try {
 			() =>
 				schemaReconciliationPlan(
 					schemaSql.replace(
-						"\tlogo_url TEXT,\n\tPRIMARY KEY (run_id, row_index)",
-						"\tlogo_url TEXT,\n\tnew_required_field TEXT NOT NULL,\n\tPRIMARY KEY (run_id, row_index)",
+						"\tlogo_url TEXT,\n\tPRIMARY KEY (row_index)",
+						"\tlogo_url TEXT,\n\tnew_required_field TEXT NOT NULL,\n\tPRIMARY KEY (row_index)",
 					),
 					reconciledCatalog,
 					reconciledManifest,
@@ -326,16 +316,15 @@ try {
 		);
 		const deepSWEStatement = reopenedDb.prepare(DEEP_SWE_INSERT_SQL);
 		for (const [
-			runId,
 			fetchedAt,
 			model,
 			score,
 			cost,
 			seconds,
 			outputTokens,
-		] of [[2, 1_800_000_010, "Latest DeepSWE Model", 0.8, 3, 5, 7]] as const) {
+		] of [[1_800_000_010, "Current DeepSWE Model", 0.8, 3, 5, 7]] as const) {
+			reopenedDb.prepare("DELETE FROM deep_swe_raw_rows").run();
 			deepSWEStatement.run(
-				runId,
 				0,
 				fetchedAt,
 				DEEP_SWE_V1_1_URL,
@@ -355,7 +344,7 @@ try {
 		}
 		const deepSWECache = readDeepSWERawCache(reopenedDb);
 		assert.equal(deepSWECache?.sourceVersion, "v1.1");
-		assert.equal(deepSWECache?.rows[0]?.model, "Latest DeepSWE Model");
+		assert.equal(deepSWECache?.rows[0]?.model, "Current DeepSWE Model");
 		assert.equal(deepSWECache?.rows[0]?.source_version, "v1.1");
 		const deepSWEStatus = readRawSourceCacheStatus(
 			reopenedDb,
@@ -365,15 +354,15 @@ try {
 		assert.equal(
 			deepSWEStatus.source_input_count,
 			1,
-			"source cache status should count only the latest table run",
+			"source cache status should count the current source rows",
 		);
 		assert.equal(
 			deepSWEStatus.last_fetch_epoch_seconds,
 			1_800_000_010,
-			"source cache status should use the latest table run timestamp",
+			"source cache status should use the current source timestamp",
 		);
+		reopenedDb.prepare("DELETE FROM deep_swe_raw_rows").run();
 		deepSWEStatement.run(
-			3,
 			0,
 			1_800_000_020,
 			DEEP_SWE_V1_URL,
@@ -393,7 +382,7 @@ try {
 		assert.equal(
 			readRawSourceCacheStatus(reopenedDb, "deep_swe", 1_800_000_030).cache_hit,
 			false,
-			"A fallback-only DeepSWE run should not suppress a v1.1 retry",
+			"A fallback-only DeepSWE snapshot should not suppress a v1.1 retry",
 		);
 	} finally {
 		reopenedDb.close();

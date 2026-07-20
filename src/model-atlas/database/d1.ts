@@ -4,10 +4,10 @@ import type { LlmStatsPayload } from "../stats/types";
 import {
 	buildPayloadFromRows,
 	buildPayloadRows,
-	COMPLETED_RUN_SQL,
 	PAYLOAD_ROW_GROUPS,
-	payloadRunFromRow,
+	payloadFetchedAtFromRow,
 	readPayloadRows,
+	SNAPSHOT_METADATA_SQL,
 } from "./payload";
 import {
 	catalogTableMatchesSchema,
@@ -192,30 +192,22 @@ export async function ensureD1Schema(): Promise<SchemaReconciliationPlan> {
 	return plan;
 }
 
-/** D1 reads only expose the latest completed run so partial imports never become public payloads. */
+/** D1 reads the one snapshot atomically replaced by publication. */
 export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 	if (!d1Configured()) {
 		return null;
 	}
-	const run = payloadRunFromRow((await queryD1Rows(COMPLETED_RUN_SQL))[0]);
-	if (run == null) {
+	const metadataRow = (await queryD1Rows(SNAPSHOT_METADATA_SQL))[0];
+	if (metadataRow == null) {
 		return null;
 	}
-	const queries = PAYLOAD_ROW_GROUPS.map((rowGroup) =>
-		rowGroup.sourceTable == null
-			? { sql: rowGroup.sql, params: [run.id] }
-			: {
-					sql: rowGroup.sql.replace(
-						"run_id = ?",
-						`run_id = (SELECT MAX(run_id) FROM ${quoteIdentifier(rowGroup.sourceTable)})`,
-					),
-				},
-	);
+	const fetchedAt = payloadFetchedAtFromRow(metadataRow);
+	const queries = PAYLOAD_ROW_GROUPS.map((rowGroup) => ({ sql: rowGroup.sql }));
 	try {
 		const rowGroups = await queryD1BatchRows(queries);
 		return buildPayloadFromRows(
 			buildPayloadRows(
-				run,
+				fetchedAt,
 				PAYLOAD_ROW_GROUPS.map(
 					(rowGroup, index) => [rowGroup.key, rowGroups[index] ?? []] as const,
 				),
@@ -225,10 +217,10 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 		if (!(error instanceof Error) || !/no such table:/i.test(error.message)) {
 			throw error;
 		}
-		const rows = await readPayloadRows(run, async (rowGroup) => {
+		const rows = await readPayloadRows(fetchedAt, async (rowGroup) => {
 			const index = PAYLOAD_ROW_GROUPS.indexOf(rowGroup);
 			const query = queries[index];
-			return query == null ? [] : queryD1Rows(query.sql, query.params ?? []);
+			return query == null ? [] : queryD1Rows(query.sql);
 		});
 		return buildPayloadFromRows(rows);
 	}

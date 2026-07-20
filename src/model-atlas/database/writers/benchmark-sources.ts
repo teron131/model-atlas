@@ -7,22 +7,20 @@ import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
 
 function insertBenchmarkScoreRows(
 	db: DatabaseWriter,
-	runId: number,
 	table: string,
 	rows: readonly BenchmarkScoreRow[],
 	fetchedAt: number | null,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO ${table} (
-			run_id, row_index, fetched_at_epoch_seconds, benchmark_key, source, url,
+			row_index, fetched_at_epoch_seconds, benchmark_key, source, url,
 			model_id, model, base_model, reasoning_effort, provider, rank, score,
 			score_eligible, standard_error, confidence_low, confidence_high,
 			observed_at, metadata_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of rows.entries()) {
 		statement.run(
-			runId,
 			index,
 			fetchedAt,
 			row.benchmark_key,
@@ -46,18 +44,16 @@ function insertBenchmarkScoreRows(
 } /** Insert Agent Arena's source identity and headline causal effect. */
 export function insertAgentArenaRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO agent_arena_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, rank, contender_name,
+			row_index, fetched_at_epoch_seconds, url, rank, contender_name,
 			model, base_model, reasoning_effort, organization, score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.agentArenaModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.agentArena,
 			SOURCE_URLS.agent_arena,
@@ -75,12 +71,11 @@ export function insertAgentArenaRawRows(
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 export function insertAgentsLastExamRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO agents_last_exam_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, split, harness, model,
+			row_index, fetched_at_epoch_seconds, url, split, harness, model,
 			harness_variant, runs, tasks, split_tasks, passes, accuracy, score,
 			total_duration_seconds, total_input_tokens, total_output_tokens,
 			total_cost_usd, cost_source,
@@ -93,12 +88,11 @@ export function insertAgentsLastExamRawRows(
 			median_output_tokens_per_task, mean_output_tokens_per_task,
 			median_cost_usd_per_task, mean_cost_usd_per_task,
 			frequency, row_kind
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	let rowIndex = 0;
 	for (const row of snapshots.agentsLastExamRows) {
 		statement.run(
-			runId,
 			rowIndex,
 			snapshots.fetchedAt.agentsLastExam,
 			SOURCE_URLS.agents_last_exam,
@@ -142,7 +136,6 @@ export function insertAgentsLastExamRawRows(
 	}
 	for (const row of snapshots.agentsLastExamModelScores) {
 		statement.run(
-			runId,
 			rowIndex,
 			snapshots.fetchedAt.agentsLastExam,
 			SOURCE_URLS.agents_last_exam,
@@ -188,17 +181,15 @@ export function insertAgentsLastExamRawRows(
 
 export function insertBlueprintBenchRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO blueprint_bench_2_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model, score
-		) VALUES (?, ?, ?, ?, ?, ?)
+			row_index, fetched_at_epoch_seconds, url, model, score
+		) VALUES (?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.blueprintBenchModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.blueprintBench,
 			SOURCE_URLS.blueprint_bench_2,
@@ -210,18 +201,16 @@ export function insertBlueprintBenchRawRows(
 
 export function insertBrowseCompRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO browsecomp_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model, provider,
+			row_index, fetched_at_epoch_seconds, url, model, provider,
 			provider_name, score, source_url, analysis_method, verified, self_reported
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.browseCompModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.browseComp,
 			SOURCE_URLS.browsecomp,
@@ -240,12 +229,10 @@ export function insertBrowseCompRawRows(
 /** Insert Chartography evidence through its source table. */
 export function insertChartographyRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"chartography_raw_rows",
 		snapshots.chartographyRows,
 		snapshots.fetchedAt.chartography,
@@ -255,12 +242,10 @@ export function insertChartographyRawRows(
 /** Insert Chess Puzzles evidence through its source table. */
 export function insertChessPuzzlesRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"chess_puzzles_raw_rows",
 		snapshots.chessPuzzleRows,
 		snapshots.fetchedAt.chessPuzzles,
@@ -269,19 +254,17 @@ export function insertChessPuzzlesRawRows(
 
 export function insertCursorBenchRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO cursorbench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, rank, model,
+			row_index, fetched_at_epoch_seconds, url, rank, model,
 			base_model, reasoning_effort, score_eligible, score, cost_per_task_usd,
 			tokens_per_task, steps_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.cursorBenchModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.cursorBench,
 			SOURCE_URLS.cursorbench,
@@ -300,19 +283,17 @@ export function insertCursorBenchRawRows(
 
 export function insertDeepSWERawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO deep_swe_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, source_version, model,
+			row_index, fetched_at_epoch_seconds, url, source_version, model,
 			reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
 			n_tasks_attempted, mean_cost_usd, mean_duration_seconds, mean_output_tokens
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.deepSWERawRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.deepSWE,
 			deepSWEUrlForSourceVersion(row.source_version),
@@ -335,12 +316,10 @@ export function insertDeepSWERawRows(
 /** Insert EBR-Bench evidence through its source table. */
 export function insertEbrBenchRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"ebr_bench_raw_rows",
 		snapshots.ebrBenchRows,
 		snapshots.fetchedAt.ebrBench,
@@ -350,12 +329,10 @@ export function insertEbrBenchRawRows(
 /** Insert EnterpriseBench CoreCraft evidence through its source table. */
 export function insertEnterpriseBenchCoreCraftRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"enterprisebench_corecraft_raw_rows",
 		snapshots.enterpriseBenchCoreCraftRows,
 		snapshots.fetchedAt.enterpriseBenchCoreCraft,
@@ -365,12 +342,10 @@ export function insertEnterpriseBenchCoreCraftRawRows(
 /** Insert Epoch Capabilities Index evidence through its source table. */
 export function insertEpochCapabilitiesIndexRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"epoch_capabilities_index_raw_rows",
 		snapshots.epochCapabilitiesIndexRows,
 		snapshots.fetchedAt.epochCapabilitiesIndex,
@@ -380,12 +355,10 @@ export function insertEpochCapabilitiesIndexRawRows(
 /** Insert FrontierMath Tier 4 evidence through its source table. */
 export function insertFrontierMathTier4RawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"frontiermath_tier_4_raw_rows",
 		snapshots.frontierMathTier4Rows,
 		snapshots.fetchedAt.frontierMathTier4,
@@ -394,18 +367,16 @@ export function insertFrontierMathTier4RawRows(
 
 export function insertGdpPdfRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO gdp_pdf_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, provider, model,
+			row_index, fetched_at_epoch_seconds, url, provider, model,
 			score, last_updated
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.gdpPdfModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.gdpPdf,
 			SOURCE_URLS.gdp_pdf,
@@ -420,12 +391,10 @@ export function insertGdpPdfRawRows(
 /** Insert HANDBOOK.md evidence through its source table. */
 export function insertHandbookMdRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"handbook_md_raw_rows",
 		snapshots.handbookMdRows,
 		snapshots.fetchedAt.handbookMd,
@@ -435,18 +404,16 @@ export function insertHandbookMdRawRows(
 /** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
 export function insertMercorApexAgentsRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO mercor_apex_agents_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, model_id, source_model,
+			row_index, fetched_at_epoch_seconds, url, model_id, source_model,
 			model, base_model, reasoning_effort, organization, score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.mercorApexAgentsRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.mercorApexAgents,
 			SOURCE_URLS.mercor_apex_agents,
@@ -464,12 +431,10 @@ export function insertMercorApexAgentsRawRows(
 /** Insert Vals ProofBench evidence through its independent source table. */
 export function insertProofBenchRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"proofbench_raw_rows",
 		snapshots.proofBenchRows,
 		snapshots.fetchedAt.proofBench,
@@ -478,7 +443,6 @@ export function insertProofBenchRawRows(
 
 export function insertRiemannBenchRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: Pick<
 		SourceSnapshots,
 		"riemannBenchModelScoreRows" | "riemannBenchSourceUrl"
@@ -488,13 +452,12 @@ export function insertRiemannBenchRawRows(
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO riemann_bench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, provider,
+			row_index, fetched_at_epoch_seconds, url, provider,
 			model, score, last_updated
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.riemannBenchModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.riemannBench,
 			snapshots.riemannBenchSourceUrl,
@@ -508,19 +471,17 @@ export function insertRiemannBenchRawRows(
 
 export function insertValsTerminalBenchRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO vals_terminal_bench_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
+			row_index, fetched_at_epoch_seconds, url, task, task_label,
 			row_kind, source_model_id, model_id, model, provider, harness, score,
 			cost_per_task_usd, seconds_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.valsTerminalBenchRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.valsTerminalBench,
 			SOURCE_URLS.vals_terminal_bench,
@@ -541,19 +502,17 @@ export function insertValsTerminalBenchRawRows(
 
 export function insertToolathlonRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO toolathlon_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, rank, model, provider,
+			row_index, fetched_at_epoch_seconds, url, rank, model, provider,
 			provider_name, score, source_url, analysis_method, verified,
 			self_reported, announcement_date
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.toolathlonModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.toolathlon,
 			SOURCE_URLS.toolathlon,
@@ -573,18 +532,16 @@ export function insertToolathlonRawRows(
 
 export function insertValsIndexRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO vals_index_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, task, task_label,
+			row_index, fetched_at_epoch_seconds, url, task, task_label,
 			row_kind, model_id, model, provider, score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.valsIndexRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.valsIndex,
 			SOURCE_URLS.vals_index,
@@ -602,18 +559,16 @@ export function insertValsIndexRawRows(
 /** Insert Vending-Bench 2 outcomes while retaining the official average daily balance curves. */
 export function insertVendingBench2RawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO vending_bench_2_raw_rows (
-			run_id, row_index, fetched_at_epoch_seconds, url, data_url, rank, model,
+			row_index, fetched_at_epoch_seconds, url, data_url, rank, model,
 			base_model, reasoning_effort, run_count, final_balance_usd, daily_balance_usd_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	for (const [index, row] of snapshots.vendingBench2ModelScoreRows.entries()) {
 		statement.run(
-			runId,
 			index,
 			snapshots.fetchedAt.vendingBench2,
 			SOURCE_URLS.vending_bench_2,
@@ -632,12 +587,10 @@ export function insertVendingBench2RawRows(
 /** Insert WeirdML evidence through its independent source table. */
 export function insertWeirdMlRawRows(
 	db: DatabaseWriter,
-	runId: number,
 	snapshots: SourceSnapshots,
 ): void {
 	insertBenchmarkScoreRows(
 		db,
-		runId,
 		"weirdml_raw_rows",
 		snapshots.weirdMlRows,
 		snapshots.fetchedAt.weirdMl,

@@ -16,7 +16,7 @@ import { asFiniteNumber } from "../../shared";
 import {
 	type CacheDbRow,
 	firstEpochSecond,
-	queryLatestCacheRows,
+	queryCacheRows,
 	stringValue,
 } from "./rows";
 
@@ -25,10 +25,9 @@ type CacheSource = DatabaseSync | CacheDbRow[];
 function openRouterCacheRows(cache: CacheSource): CacheDbRow[] {
 	return Array.isArray(cache)
 		? cache
-		: queryLatestCacheRows(
+		: queryCacheRows(
 				cache,
-				"openrouter_raw_rows",
-				"SELECT * FROM openrouter_raw_rows WHERE run_id = ? ORDER BY row_index",
+				"SELECT * FROM openrouter_raw_rows ORDER BY row_index",
 			);
 }
 
