@@ -162,6 +162,21 @@ const deepSWETaskMetricColumns = defineTaskMetricColumns("deep_swe", [
 	},
 ] as const);
 
+const frontierCodeTaskMetricColumns = defineTaskMetricColumns("frontier_code", [
+	{
+		key: "frontierCodeCost",
+		metric: "cost",
+		direction: "ascending",
+		label: "FC$",
+	},
+	{
+		key: "frontierCodeTokens",
+		metric: "tokens",
+		direction: "ascending",
+		label: "FC Tok",
+	},
+] as const);
+
 const gdpvalTaskMetricColumns = defineTaskMetricColumns("gdpval_normalized", [
 	{
 		key: "gdpvalCost",
@@ -277,6 +292,7 @@ export const taskMetricColumns = [
 	...critptTaskMetricColumns,
 	...cursorBenchTaskMetricColumns,
 	...deepSWETaskMetricColumns,
+	...frontierCodeTaskMetricColumns,
 	...gdpvalTaskMetricColumns,
 	...harveyLabTaskMetricColumns,
 	...hleTaskMetricColumns,
@@ -426,6 +442,7 @@ const benchmarkMetricColumnDefinitions = [
 		"ECI",
 		"number",
 	),
+	defineBenchmarkMetricColumn("frontierCode", "frontier_code", "FCode"),
 	defineBenchmarkMetricColumn(
 		"frontierMathTier4",
 		"frontiermath_tier_4",
@@ -507,6 +524,7 @@ const taskMetricColumnsByBenchmark: Partial<
 	critpt: critptTaskMetricColumns,
 	cursorBench: cursorBenchTaskMetricColumns,
 	deepSWE: deepSWETaskMetricColumns,
+	frontierCode: frontierCodeTaskMetricColumns,
 	gdpval: gdpvalTaskMetricColumns,
 	harveyLab: harveyLabTaskMetricColumns,
 	hle: hleTaskMetricColumns,

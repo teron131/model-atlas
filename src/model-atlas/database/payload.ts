@@ -118,6 +118,12 @@ export const PAYLOAD_ROW_GROUPS = [
 		true,
 	),
 	payloadRowGroup(
+		"frontierCodeRows",
+		SNAPSHOT_TABLES.frontier_code,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
 		"frontierMathTier4Rows",
 		SNAPSHOT_TABLES.frontiermath_tier_4,
 		"row_index",

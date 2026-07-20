@@ -18,6 +18,7 @@ import {
 	dedupeDisplayModels,
 	type SortState,
 	sortedRows,
+	taskMetricColumns,
 } from "../app/dashboard/table/models";
 import { canonicalReasoningEffort } from "../src/model-atlas/shared";
 import type { LlmStatsModel } from "../src/model-atlas/stats/types";
@@ -96,6 +97,22 @@ assert.deepEqual(
 	),
 	[-0.1, 0, 0.1],
 	"Arena display normalization should preserve raw reward values",
+);
+
+const frontierCodeColumn = benchmarkMetricColumns.find(
+	(column) => column.key === "frontierCode",
+);
+assert.equal(
+	frontierCodeColumn?.format,
+	"percent",
+	"FrontierCode should display its normalized source score as a percentage",
+);
+assert.deepEqual(
+	taskMetricColumns
+		.filter((column) => column.source === "frontier_code")
+		.map((column) => column.key),
+	["frontierCodeCost", "frontierCodeTokens"],
+	"FrontierCode should expose source cost and token columns",
 );
 
 assert.deepEqual(

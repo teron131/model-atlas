@@ -43,6 +43,7 @@ export const benchmarkLabels: Record<string, string> = {
 	ebr_bench: "EBR-Bench",
 	enterprisebench_corecraft: "EnterpriseBench CoreCraft",
 	epoch_capabilities_index: "Epoch Capabilities Index",
+	frontier_code: "FrontierCode",
 	frontiermath_tier_4: "FrontierMath Tier 4",
 	gdp_pdf: "GDP.pdf",
 	gdpval_normalized: "GDPval-AA v2",
@@ -225,6 +226,14 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Epoch AI"],
 			["Role", "general capability context"],
+		],
+	},
+	frontier_code: {
+		title: "FrontierCode",
+		body: "Cognition's repository-scale benchmark of code quality and mergeability. Model Atlas uses the FrontierCode 1.1 Main score and preserves every effort, harness, and Extended result as source evidence.",
+		rows: [
+			["Source", "Cognition"],
+			["Role", "repository-scale coding agents"],
 		],
 	},
 	frontiermath_tier_4: {

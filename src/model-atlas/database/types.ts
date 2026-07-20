@@ -15,6 +15,7 @@ import type {
 	DeepSWERawLeaderboardRow,
 	DeepSWESourceVersion,
 } from "../scrapers/deep-swe";
+import type { FrontierCodeModelEffortRow } from "../scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../scrapers/mercor-apex-agents";
 import type {
 	ModelsDevFlatModel,
@@ -56,6 +57,7 @@ export const RAW_SOURCE_NAMES = [
 	"ebr_bench",
 	"enterprisebench_corecraft",
 	"epoch_capabilities_index",
+	"frontier_code",
 	"frontiermath_tier_4",
 	"gdp_pdf",
 	"handbook_md",
@@ -90,6 +92,7 @@ export const RAW_SOURCE_TABLES = {
 	ebr_bench: "ebr_bench_raw_rows",
 	enterprisebench_corecraft: "enterprisebench_corecraft_raw_rows",
 	epoch_capabilities_index: "epoch_capabilities_index_raw_rows",
+	frontier_code: "frontier_code_raw_rows",
 	frontiermath_tier_4: "frontiermath_tier_4_raw_rows",
 	gdp_pdf: "gdp_pdf_raw_rows",
 	handbook_md: "handbook_md_raw_rows",
@@ -138,6 +141,7 @@ export const SOURCE_URLS = {
 	enterprisebench_corecraft:
 		"https://surgehq.ai/benchmarks/enterprisebench-corecraft",
 	epoch_capabilities_index: "https://epoch.ai/data/eci_scores.csv",
+	frontier_code: "https://cognition.com/frontiercode",
 	frontiermath_tier_4: "https://epoch.ai/data/benchmarks.csv",
 	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
 	handbook_md: "https://surgehq.ai/benchmarks/handbook",
@@ -222,6 +226,7 @@ export type SourceSnapshots = {
 	ebrBenchRows: BenchmarkScoreRow[];
 	enterpriseBenchCoreCraftRows: BenchmarkScoreRow[];
 	epochCapabilitiesIndexRows: BenchmarkScoreRow[];
+	frontierCodeRows: FrontierCodeModelEffortRow[];
 	frontierMathTier4Rows: BenchmarkScoreRow[];
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	handbookMdRows: BenchmarkScoreRow[];
@@ -253,6 +258,7 @@ export type SourceSnapshots = {
 		ebrBench: number | null;
 		enterpriseBenchCoreCraft: number | null;
 		epochCapabilitiesIndex: number | null;
+		frontierCode: number | null;
 		frontierMathTier4: number | null;
 		gdpPdf: number | null;
 		handbookMd: number | null;

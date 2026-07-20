@@ -34,6 +34,10 @@ import { getEpochEbrBenchStats } from "../../scrapers/epoch/ebr-bench";
 import { getEpochFrontierMathTier4Stats } from "../../scrapers/epoch/frontiermath-tier-4";
 import { getWeirdMlStats } from "../../scrapers/epoch/weirdml";
 import {
+	type FrontierCodeModelEffortRow,
+	getFrontierCodeStats,
+} from "../../scrapers/frontier-code";
+import {
 	getMercorApexAgentsStats,
 	type MercorApexAgentsRow,
 } from "../../scrapers/mercor-apex-agents";
@@ -79,6 +83,7 @@ import type {
 	readEbrBenchRawCache,
 	readEnterpriseBenchCoreCraftRawCache,
 	readEpochCapabilitiesIndexRawCache,
+	readFrontierCodeRawCache,
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,
@@ -132,6 +137,11 @@ export type BrowseCompSnapshot = {
 
 export type CursorBenchSnapshot = {
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
+export type FrontierCodeSnapshot = {
+	frontierCodeRows: FrontierCodeModelEffortRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -500,6 +510,37 @@ export function epochCapabilitiesIndexSnapshot(
 		"epochCapabilitiesIndex",
 		getEpochCapabilitiesIndexStats,
 	);
+}
+
+/** Loads every FrontierCode effort while keeping source effort labels in the persisted row identity. */
+export async function frontierCodeSnapshot(
+	cached: ReturnType<typeof readFrontierCodeRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<FrontierCodeSnapshot> {
+	const snapshot = await modelScoreSnapshot({
+		source: "frontier_code",
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		fetchRows: getFrontierCodeStats,
+		rowKey: (row) => sourceKey(row.base_model, row.source_effort),
+		rowLabel: (row) => `${row.model}: ${row.harness}`,
+	});
+	return {
+		frontierCodeRows: snapshot.rows,
+		sourceStatus: {
+			source: "frontier_code",
+			fetchedAt: snapshot.fetchedAt,
+			sourceInputCount: snapshot.rows.length,
+			sourceRowStates: snapshot.sourceRowStates,
+			fetchedAtKey: "frontierCode",
+		},
+	};
 }
 
 /** Loads FrontierMath Tier 4 through its own cache and missing-row lifecycle. */

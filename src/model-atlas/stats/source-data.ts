@@ -35,6 +35,7 @@ import { getEpochChessPuzzleStats } from "../scrapers/epoch/chess-puzzles";
 import { getEpochEbrBenchStats } from "../scrapers/epoch/ebr-bench";
 import { getEpochFrontierMathTier4Stats } from "../scrapers/epoch/frontiermath-tier-4";
 import { getWeirdMlStats } from "../scrapers/epoch/weirdml";
+import { getFrontierCodeStats } from "../scrapers/frontier-code";
 import {
 	getMercorApexAgentsStats,
 	type MercorApexAgentsRow,
@@ -96,6 +97,7 @@ export type LlmStatsSourceRows = {
 	ebrBenchRows: LlmStatsSourceData["ebrBench"]["rows"];
 	enterpriseBenchCoreCraftRows: LlmStatsSourceData["enterpriseBenchCoreCraft"]["rows"];
 	epochCapabilitiesIndexRows: LlmStatsSourceData["epochCapabilitiesIndex"]["rows"];
+	frontierCodeRows: LlmStatsSourceData["frontierCode"]["rows"];
 	frontierMathTier4Rows: LlmStatsSourceData["frontierMathTier4"]["rows"];
 	gdpPdfRows: LlmStatsSourceData["gdpPdf"]["rows"];
 	handbookMdRows: LlmStatsSourceData["handbookMd"]["rows"];
@@ -195,6 +197,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.epochCapabilitiesIndexRows,
 			scoreByModelName: buildBenchmarkScoreMap(rows.epochCapabilitiesIndexRows),
 		},
+		frontierCode: {
+			rows: rows.frontierCodeRows,
+			scoreByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
+		},
 		frontierMathTier4: {
 			rows: rows.frontierMathTier4Rows,
 			scoreByModelName: buildBenchmarkScoreMap(rows.frontierMathTier4Rows),
@@ -259,6 +265,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		ebrBenchStats,
 		enterpriseBenchCoreCraftStats,
 		epochCapabilitiesIndexStats,
+		frontierCodeStats,
 		frontierMathTier4Stats,
 		gdpPdfStats,
 		handbookMdStats,
@@ -286,6 +293,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getEpochEbrBenchStats(),
 		getEnterpriseBenchCoreCraftStats(),
 		getEpochCapabilitiesIndexStats(),
+		getFrontierCodeStats(),
 		getEpochFrontierMathTier4Stats(),
 		getGdpPdfStats(),
 		getHandbookMdStats(),
@@ -313,6 +321,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const ebrBenchRows = ebrBenchStats.data;
 	const enterpriseBenchCoreCraftRows = enterpriseBenchCoreCraftStats.data;
 	const epochCapabilitiesIndexRows = epochCapabilitiesIndexStats.data;
+	const frontierCodeRows = frontierCodeStats.data;
 	const frontierMathTier4Rows = frontierMathTier4Stats.data;
 	const gdpPdfRows = gdpPdfStats.data;
 	const handbookMdRows = handbookMdStats.data;
@@ -344,6 +353,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		ebrBenchRows,
 		enterpriseBenchCoreCraftRows,
 		epochCapabilitiesIndexRows,
+		frontierCodeRows,
 		frontierMathTier4Rows,
 		gdpPdfRows,
 		handbookMdRows,

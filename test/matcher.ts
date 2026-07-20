@@ -744,6 +744,7 @@ function modelStatsSourceData(
 		ebrBench: { rows: [], scoreByModelName: new Map() },
 		enterpriseBenchCoreCraft: { rows: [], scoreByModelName: new Map() },
 		epochCapabilitiesIndex: { rows: [], scoreByModelName: new Map() },
+		frontierCode: { rows: [], scoreByModelName: new Map() },
 		frontierMathTier4: { rows: [], scoreByModelName: new Map() },
 		gdpPdf: {
 			rows: gdpPdfModelScoreRows,

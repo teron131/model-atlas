@@ -21,6 +21,11 @@ import {
 	type DeepSWESourceVersion,
 	deepSWESourceVersionForRows,
 } from "../../scrapers/deep-swe";
+import {
+	FRONTIER_CODE_SOURCE_REVISION,
+	type FrontierCodeModelEffortRow,
+	processFrontierCodeSubsetMetrics,
+} from "../../scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../../scrapers/mercor-apex-agents";
 import type { GdpPdfModelScoreRow } from "../../scrapers/surge/gdp-pdf";
 import type { RiemannBenchModelScoreRow } from "../../scrapers/surge/riemann-bench";
@@ -506,6 +511,74 @@ export function readEpochCapabilitiesIndexRawCache(cache: CacheSource) {
 		"epoch_capabilities_index",
 		"epoch",
 	);
+}
+
+/** Reconstruct every FrontierCode effort only when the persisted revision and both subsets are complete. */
+export function readFrontierCodeRawCache(cache: CacheSource): {
+	rows: FrontierCodeModelEffortRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = sourceRows(
+		cache,
+		"SELECT * FROM frontier_code_raw_rows ORDER BY row_index",
+	);
+	if (
+		cacheRows.length === 0 ||
+		cacheRows.some(
+			(row) =>
+				stringValue(row.url) !== SOURCE_URLS.frontier_code ||
+				stringValue(row.revision) !== FRONTIER_CODE_SOURCE_REVISION,
+		)
+	) {
+		return null;
+	}
+	const rows = cacheRows.flatMap<FrontierCodeModelEffortRow>((row) => {
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const sourceEffort = stringValue(row.source_effort);
+		const harness = stringValue(row.harness);
+		const scoreEligible = booleanFromSql(row.score_eligible);
+		const officialRank = asFiniteNumber(row.official_rank);
+		const officialBestEffort = booleanFromSql(row.official_best_effort);
+		const main = processFrontierCodeSubsetMetrics(jsonValue(row.main_json));
+		const extended = processFrontierCodeSubsetMetrics(
+			jsonValue(row.extended_json),
+		);
+		if (
+			model == null ||
+			baseModel == null ||
+			sourceEffort == null ||
+			harness == null ||
+			scoreEligible == null ||
+			officialRank == null ||
+			officialBestEffort == null ||
+			main == null ||
+			extended == null
+		) {
+			return [];
+		}
+		return [
+			{
+				revision: FRONTIER_CODE_SOURCE_REVISION,
+				model,
+				base_model: baseModel,
+				source_effort: sourceEffort,
+				reasoning_effort: stringValue(row.reasoning_effort),
+				harness,
+				score_eligible: scoreEligible,
+				official_rank: officialRank,
+				official_best_effort: officialBestEffort,
+				main,
+				extended,
+				score: main.score,
+				cost_per_task_usd: main.cost_per_task_usd,
+				tokens_per_task: main.tokens_per_task,
+			},
+		];
+	});
+	return rows.length !== cacheRows.length
+		? null
+		: { rows, fetchedAt: firstEpochSecond(cacheRows) };
 }
 
 /** Reconstructs FrontierMath Tier 4 rows from its source cache. */

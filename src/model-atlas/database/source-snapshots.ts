@@ -19,6 +19,7 @@ import {
 	readEbrBenchRawCache,
 	readEnterpriseBenchCoreCraftRawCache,
 	readEpochCapabilitiesIndexRawCache,
+	readFrontierCodeRawCache,
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,
@@ -48,6 +49,7 @@ import {
 	ebrBenchSnapshot,
 	enterpriseBenchCoreCraftSnapshot,
 	epochCapabilitiesIndexSnapshot,
+	frontierCodeSnapshot,
 	frontierMathTier4Snapshot,
 	gdpPdfSnapshot,
 	handbookMdSnapshot,
@@ -99,6 +101,7 @@ export type SourceSnapshotCaches = {
 		typeof readEnterpriseBenchCoreCraftRawCache
 	>;
 	epochCapabilitiesIndex: ReturnType<typeof readEpochCapabilitiesIndexRawCache>;
+	frontierCode: ReturnType<typeof readFrontierCodeRawCache>;
 	frontierMathTier4: ReturnType<typeof readFrontierMathTier4RawCache>;
 	gdpPdf: ReturnType<typeof readGdpPdfRawCache>;
 	handbookMd: ReturnType<typeof readHandbookMdRawCache>;
@@ -130,6 +133,7 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
 		ebrBench: readEbrBenchRawCache(db),
 		enterpriseBenchCoreCraft: readEnterpriseBenchCoreCraftRawCache(db),
 		epochCapabilitiesIndex: readEpochCapabilitiesIndexRawCache(db),
+		frontierCode: readFrontierCodeRawCache(db),
 		frontierMathTier4: readFrontierMathTier4RawCache(db),
 		gdpPdf: readGdpPdfRawCache(db),
 		handbookMd: readHandbookMdRawCache(db),
@@ -203,6 +207,7 @@ function fetchedAtFromSourceStatuses(
 		ebrBench: null,
 		enterpriseBenchCoreCraft: null,
 		epochCapabilitiesIndex: null,
+		frontierCode: null,
 		frontierMathTier4: null,
 		gdpPdf: null,
 		handbookMd: null,
@@ -266,6 +271,7 @@ export async function refreshSourceSnapshots(
 		ebrBench,
 		enterpriseBenchCoreCraft,
 		epochCapabilitiesIndex,
+		frontierCode,
 		frontierMathTier4,
 		gdpPdf,
 		handbookMd,
@@ -384,6 +390,13 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.epoch_capabilities_index,
 			nowEpochSeconds,
 		),
+		frontierCodeSnapshot(
+			caches.frontierCode,
+			sourceCache.frontier_code,
+			options,
+			previousMissingSince.frontier_code,
+			nowEpochSeconds,
+		),
 		frontierMathTier4Snapshot(
 			caches.frontierMathTier4,
 			sourceCache.frontiermath_tier_4,
@@ -482,6 +495,7 @@ export async function refreshSourceSnapshots(
 		ebrBench.sourceStatus,
 		enterpriseBenchCoreCraft.sourceStatus,
 		epochCapabilitiesIndex.sourceStatus,
+		frontierCode.sourceStatus,
 		frontierMathTier4.sourceStatus,
 		gdpPdf.sourceStatus,
 		handbookMd.sourceStatus,
@@ -520,6 +534,7 @@ export async function refreshSourceSnapshots(
 			ebrBenchRows: ebrBench.rows,
 			enterpriseBenchCoreCraftRows: enterpriseBenchCoreCraft.rows,
 			epochCapabilitiesIndexRows: epochCapabilitiesIndex.rows,
+			frontierCodeRows: frontierCode.frontierCodeRows,
 			frontierMathTier4Rows: frontierMathTier4.rows,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			handbookMdRows: handbookMd.rows,

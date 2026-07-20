@@ -286,25 +286,31 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ITBench","5.6%"]',
+		'["ITBench","5.3%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Agent Arena","5.6%"]',
+		'["Agent Arena","5.3%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Vending-Bench 2","5.6%"]',
+		'["Vending-Bench 2","5.3%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ALE-Bench","3.4%"]',
+		'["ALE-Bench","3.2%"]',
+	),
+	true,
+);
+assertEqual(
+	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
+		'["FrontierCode","5.3%"]',
 	),
 	true,
 );

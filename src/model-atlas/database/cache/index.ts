@@ -19,6 +19,7 @@ export {
 	readEbrBenchRawCache,
 	readEnterpriseBenchCoreCraftRawCache,
 	readEpochCapabilitiesIndexRawCache,
+	readFrontierCodeRawCache,
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,

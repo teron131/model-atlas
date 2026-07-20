@@ -28,6 +28,7 @@ export function cachedSourceDataFromSnapshots(
 		ebrBenchRows: snapshots.ebrBenchRows,
 		enterpriseBenchCoreCraftRows: snapshots.enterpriseBenchCoreCraftRows,
 		epochCapabilitiesIndexRows: snapshots.epochCapabilitiesIndexRows,
+		frontierCodeRows: snapshots.frontierCodeRows,
 		frontierMathTier4Rows: snapshots.frontierMathTier4Rows,
 		gdpPdfRows: snapshots.gdpPdfModelScoreRows,
 		handbookMdRows: snapshots.handbookMdRows,

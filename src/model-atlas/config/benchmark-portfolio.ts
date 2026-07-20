@@ -127,6 +127,12 @@ export const BENCHMARK_PORTFOLIO = {
 		benchmarkImportance: 0.5,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
+	frontier_code: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+	},
 	frontiermath_tier_4: {
 		group: "frontier",
 		benchmarkImportance: 1,
