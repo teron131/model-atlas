@@ -15,7 +15,7 @@ import type {
 } from "../benchmark-score";
 import { parseCsvRecords } from "../csv-parser";
 
-export const WEIRDML_CSV_URL = "https://htihle.github.io/data/weirdml_data.csv";
+const WEIRDML_CSV_URL = "https://htihle.github.io/data/weirdml_data.csv";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const TASK_COLUMNS = [
 	"shapes_easy_acc",
@@ -48,7 +48,7 @@ export function processWeirdMlCsv(csv: string): BenchmarkScoreRow[] {
 		);
 		return [
 			{
-				benchmark_key: "weirdml" as const,
+				benchmark_key: "weirdml",
 				source: "weirdml" as const,
 				source_url: WEIRDML_CSV_URL,
 				model_id: row.model_slug || row.internal_model_name || null,

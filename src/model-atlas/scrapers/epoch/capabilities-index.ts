@@ -13,7 +13,7 @@ import type {
 } from "../benchmark-score";
 import { parseCsvRecords } from "../csv-parser";
 
-export const EPOCH_CAPABILITIES_INDEX_CSV_URL =
+const EPOCH_CAPABILITIES_INDEX_CSV_URL =
 	"https://epoch.ai/data/eci_scores.csv";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -27,7 +27,7 @@ export function processEpochCapabilitiesIndexCsv(
 		const parsed = benchmarkModelEffort(model);
 		return [
 			{
-				benchmark_key: "epoch_capabilities_index" as const,
+				benchmark_key: "epoch_capabilities_index",
 				source: "epoch" as const,
 				source_url: EPOCH_CAPABILITIES_INDEX_CSV_URL,
 				model_id: row.Model || null,

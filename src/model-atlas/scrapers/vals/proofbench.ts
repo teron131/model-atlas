@@ -19,7 +19,7 @@ import type {
 } from "../benchmark-score";
 import { htmlAttribute, stringValue } from "../parsing";
 
-export const PROOFBENCH_URL = "https://www.vals.ai/benchmarks/proof_bench";
+const PROOFBENCH_URL = "https://www.vals.ai/benchmarks/proof_bench";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 function reviveAstroValue(value: unknown): unknown {
@@ -79,7 +79,7 @@ export function processProofBenchPageHtml(
 			);
 			return [
 				{
-					benchmark_key: "proofbench" as const,
+					benchmark_key: "proofbench",
 					source: "vals" as const,
 					source_url: PROOFBENCH_URL,
 					model_id: modelId,

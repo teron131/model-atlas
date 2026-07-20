@@ -9,7 +9,7 @@
 import type { BenchmarkScorePayload } from "../benchmark-score";
 import { getSurgeLeaderboardStats } from "./common";
 
-export const HANDBOOK_MD_URL = "https://surgehq.ai/benchmarks/handbook";
+const HANDBOOK_MD_URL = "https://surgehq.ai/benchmarks/handbook";
 
 export function getHandbookMdStats(): Promise<BenchmarkScorePayload> {
 	return getSurgeLeaderboardStats("handbook_md", HANDBOOK_MD_URL);

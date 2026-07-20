@@ -126,19 +126,19 @@ assert.equal(buildBenchmarkScoreMap(proof).has("aristotle"), false);
 const collector = new SnapshotRowCollector();
 const chess = frontierMath.map((row) => ({
 	...row,
-	benchmark_key: "chess_puzzles" as const,
+	benchmark_key: "chess_puzzles",
 }));
 const ebr = frontierMath.map((row) => ({
 	...row,
-	benchmark_key: "ebr_bench" as const,
+	benchmark_key: "ebr_bench",
 }));
 const handbook = surge.map((row) => ({
 	...row,
-	benchmark_key: "handbook_md" as const,
+	benchmark_key: "handbook_md",
 }));
 const coreCraft = surge.map((row) => ({
 	...row,
-	benchmark_key: "enterprisebench_corecraft" as const,
+	benchmark_key: "enterprisebench_corecraft",
 }));
 insertChartographyRawRows(collector, {
 	chartographyRows: surge,

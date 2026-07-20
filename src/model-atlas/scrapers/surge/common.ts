@@ -3,7 +3,6 @@
 import { benchmarkModelEffort } from "../../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
 import type {
-	BenchmarkScoreKey,
 	BenchmarkScorePayload,
 	BenchmarkScoreRow,
 } from "../benchmark-score";
@@ -154,7 +153,7 @@ export function surgeLeaderboardScoreRows(
 
 export function processSurgeBenchmarkPageHtml(
 	pageHtml: string,
-	benchmarkKey: BenchmarkScoreKey,
+	benchmarkKey: string,
 	sourceUrl: string,
 ): BenchmarkScoreRow[] {
 	return surgeLeaderboardScoreRows(pageHtml).map((row, index) => {
@@ -181,7 +180,7 @@ export function processSurgeBenchmarkPageHtml(
 }
 
 export async function getSurgeLeaderboardStats(
-	benchmarkKey: BenchmarkScoreKey,
+	benchmarkKey: string,
 	sourceUrl: string,
 ): Promise<BenchmarkScorePayload> {
 	try {

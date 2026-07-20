@@ -7,19 +7,6 @@ import {
 	reasoningEffortRank,
 } from "../shared";
 
-export const BENCHMARK_SCORE_KEYS = [
-	"chartography",
-	"chess_puzzles",
-	"ebr_bench",
-	"enterprisebench_corecraft",
-	"epoch_capabilities_index",
-	"frontiermath_tier_4",
-	"handbook_md",
-	"proofbench",
-	"weirdml",
-] as const;
-
-export type BenchmarkScoreKey = (typeof BENCHMARK_SCORE_KEYS)[number];
 export type BenchmarkScoreSource = "epoch" | "surge" | "vals" | "weirdml";
 export type BenchmarkScoreMetadata = Record<
 	string,
@@ -27,7 +14,7 @@ export type BenchmarkScoreMetadata = Record<
 >;
 
 export type BenchmarkScoreRow = {
-	benchmark_key: BenchmarkScoreKey;
+	benchmark_key: string;
 	source: BenchmarkScoreSource;
 	source_url: string;
 	model_id: string | null;

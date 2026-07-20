@@ -9,7 +9,7 @@
 import type { BenchmarkScorePayload } from "../benchmark-score";
 import { getSurgeLeaderboardStats } from "./common";
 
-export const ENTERPRISEBENCH_CORECRAFT_URL =
+const ENTERPRISEBENCH_CORECRAFT_URL =
 	"https://surgehq.ai/benchmarks/enterprisebench-corecraft";
 
 export function getEnterpriseBenchCoreCraftStats(): Promise<BenchmarkScorePayload> {
