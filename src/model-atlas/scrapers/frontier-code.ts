@@ -13,7 +13,7 @@ import {
 } from "../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../utils";
 
-export const FRONTIER_CODE_DATA_URL =
+const FRONTIER_CODE_DATA_URL =
 	"https://cognition.com/data/frontiercode-leaderboard/data.json";
 export const FRONTIER_CODE_SOURCE_REVISION = "v1_1";
 
@@ -21,8 +21,6 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const EXPECTED_SUBSET_TASK_COUNTS = { main: 100, extended: 150 } as const;
 const NON_GENERAL_MODEL_SYSTEMS = new Set(["Composer 2.5", "SWE-1.7"]);
 const SUBSETS = ["main", "extended"] as const;
-
-export type FrontierCodeSubset = (typeof SUBSETS)[number];
 
 export type FrontierCodeSubsetMetrics = {
 	pass_rate: number;
@@ -51,17 +49,17 @@ export type FrontierCodeModelEffortRow = {
 	tokens_per_task: number | null;
 };
 
-export type FrontierCodeScoreByModelName = Map<
+export type FrontierCodeRowsByModelName = Map<
 	string,
 	FrontierCodeModelEffortRow
 >;
 
-export type FrontierCodePayload = {
+type FrontierCodePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: FrontierCodeModelEffortRow[];
 };
 
-export type FrontierCodeScraperOptions = {
+type FrontierCodeScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -104,10 +102,6 @@ function frontierCodeReasoningEffort(sourceEffort: string): string | null {
 	return reasoningEffortRank(effort) >= 0 ? effort : null;
 }
 
-function configuredModelName(baseModel: string, effort: string | null): string {
-	return effort == null ? baseModel : `${baseModel} (${effort})`;
-}
-
 type ParsedEffortRow = Omit<
 	FrontierCodeModelEffortRow,
 	"official_rank" | "official_best_effort"
@@ -128,7 +122,8 @@ function processEffortRow(
 	const reasoningEffort = frontierCodeReasoningEffort(sourceEffort);
 	return {
 		revision: FRONTIER_CODE_SOURCE_REVISION,
-		model: configuredModelName(baseModel, reasoningEffort),
+		model:
+			reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
 		base_model: baseModel,
 		source_effort: sourceEffort,
 		reasoning_effort: reasoningEffort,

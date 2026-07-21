@@ -1,4 +1,4 @@
-/** Epoch common benchmark-run parsing preserves private task versions and run-level metadata. */
+/** Shared Epoch benchmark-run parsing preserves private task versions and run-level metadata. */
 
 import { benchmarkModelEffort } from "../../shared";
 import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../../utils";

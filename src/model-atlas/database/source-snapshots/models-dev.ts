@@ -15,7 +15,7 @@ import type {
 } from "../types";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 
-export type ModelsDevSnapshot = Pick<
+type ModelsDevSnapshot = Pick<
 	SourceSnapshots,
 	"modelsDevPayload" | "modelsDevFetchedAt" | "modelsDevStatusCode"
 > & { sourceStatus: SourceSnapshotStatus };
@@ -41,7 +41,7 @@ function mergeModelsDevPayload(
 }
 
 /** Freshness counts concrete Models.dev model rows rather than provider wrapper objects. */
-export function modelsDevSourceInputCount(
+function modelsDevSourceInputCount(
 	payload: ModelsDevSnapshot["modelsDevPayload"],
 ): number {
 	return Object.values(payload).reduce(

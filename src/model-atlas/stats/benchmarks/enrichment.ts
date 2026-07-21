@@ -12,7 +12,7 @@ import {
 	findArtificialAnalysisEvaluationResourceRow,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
-	type BenchmarkScoreByModelName,
+	type BenchmarkRowsByModelName,
 	findBenchmarkScoreRow,
 } from "../../scrapers/benchmark-score";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
@@ -42,60 +42,54 @@ export type BenchmarkEnrichmentLookups = {
 		LlmStatsSourceData["artificialAnalysisEvaluationResources"],
 		"observationByModelName" | "defaultEffortByModelName"
 	>;
-	agentArena: Pick<LlmStatsSourceData["agentArena"], "scoreByModelName">;
-	agentsLastExam: Pick<
-		LlmStatsSourceData["agentsLastExam"],
-		"scoreByModelName"
-	>;
-	aleBench: Pick<LlmStatsSourceData["aleBench"], "scoreByModelName">;
-	blueprintBench: Pick<
-		LlmStatsSourceData["blueprintBench"],
-		"scoreByModelName"
-	>;
-	browseComp: Pick<LlmStatsSourceData["browseComp"], "scoreByModelName">;
-	chartography: Pick<LlmStatsSourceData["chartography"], "scoreByModelName">;
-	chessPuzzles: Pick<LlmStatsSourceData["chessPuzzles"], "scoreByModelName">;
-	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "scoreByModelName">;
-	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "scoreByModelName">;
-	ebrBench: Pick<LlmStatsSourceData["ebrBench"], "scoreByModelName">;
+	agentArena: Pick<LlmStatsSourceData["agentArena"], "rowsByModelName">;
+	agentsLastExam: Pick<LlmStatsSourceData["agentsLastExam"], "rowsByModelName">;
+	aleBench: Pick<LlmStatsSourceData["aleBench"], "rowsByModelName">;
+	blueprintBench: Pick<LlmStatsSourceData["blueprintBench"], "rowsByModelName">;
+	browseComp: Pick<LlmStatsSourceData["browseComp"], "rowsByModelName">;
+	chartography: Pick<LlmStatsSourceData["chartography"], "rowsByModelName">;
+	chessPuzzles: Pick<LlmStatsSourceData["chessPuzzles"], "rowsByModelName">;
+	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "rowsByModelName">;
+	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "rowsByModelName">;
+	ebrBench: Pick<LlmStatsSourceData["ebrBench"], "rowsByModelName">;
 	enterpriseBenchCoreCraft: Pick<
 		LlmStatsSourceData["enterpriseBenchCoreCraft"],
-		"scoreByModelName"
+		"rowsByModelName"
 	>;
 	epochCapabilitiesIndex: Pick<
 		LlmStatsSourceData["epochCapabilitiesIndex"],
-		"scoreByModelName"
+		"rowsByModelName"
 	>;
-	frontierCode: Pick<LlmStatsSourceData["frontierCode"], "scoreByModelName">;
+	frontierCode: Pick<LlmStatsSourceData["frontierCode"], "rowsByModelName">;
 	frontierMathTier4: Pick<
 		LlmStatsSourceData["frontierMathTier4"],
-		"scoreByModelName"
+		"rowsByModelName"
 	>;
-	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "scoreByModelName">;
-	handbookMd: Pick<LlmStatsSourceData["handbookMd"], "scoreByModelName">;
+	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "rowsByModelName">;
+	handbookMd: Pick<LlmStatsSourceData["handbookMd"], "rowsByModelName">;
 	mercorApexAgents: Pick<
 		LlmStatsSourceData["mercorApexAgents"],
-		"scoreByModelName"
+		"rowsByModelName"
 	>;
-	proofBench: Pick<LlmStatsSourceData["proofBench"], "scoreByModelName">;
-	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "scoreByModelName">;
+	proofBench: Pick<LlmStatsSourceData["proofBench"], "rowsByModelName">;
+	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "rowsByModelName">;
 	valsTerminalBench: Pick<
 		LlmStatsSourceData["valsTerminalBench"],
-		"scoreByModelName"
+		"rowsByModelName"
 	>;
-	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "scoreByModelName">;
-	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "scoreByModelName">;
-	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "scoreByModelName">;
-	weirdMl: Pick<LlmStatsSourceData["weirdMl"], "scoreByModelName">;
+	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "rowsByModelName">;
+	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "rowsByModelName">;
+	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "rowsByModelName">;
+	weirdMl: Pick<LlmStatsSourceData["weirdMl"], "rowsByModelName">;
 };
 
-export type BenchmarkEnrichment = {
+type BenchmarkEnrichment = {
 	evaluations: Record<string, unknown>;
 	scoringSources: NonNullable<LlmStatsScoringSources>;
 };
 
 /** Direct benchmark source rows override duplicate catalog fields without a benchmark-specific registry. */
-function mergeAggregateBenchmarkFields(
+function mergeAggregateFields(
 	baseFields: Record<string, unknown>,
 	aggregateFields: Record<string, unknown>,
 	benchmarkSources: NonNullable<LlmStatsScoringSources>,
@@ -116,14 +110,14 @@ type ArtificialAnalysisResourceLookup = {
 
 function findSourceRow<T>(
 	candidateNames: unknown[],
-	scoreByModelName: ReadonlyMap<string, T>,
+	rowsByModelName: ReadonlyMap<string, T>,
 ): T | null {
 	const identityKeys = new Set<string>();
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = scoreByModelName.get(normalizeModelToken(candidateName));
+		const row = rowsByModelName.get(normalizeModelToken(candidateName));
 		if (row != null) {
 			return row;
 		}
@@ -132,7 +126,7 @@ function findSourceRow<T>(
 			identityKeys.add(identityKey);
 		}
 	}
-	for (const [sourceName, row] of scoreByModelName) {
+	for (const [sourceName, row] of rowsByModelName) {
 		const identityKey = modelNameIdentityKey(sourceName);
 		if (identityKey.length > 0 && identityKeys.has(identityKey)) {
 			return row;
@@ -147,7 +141,7 @@ function addBenchmarkScore(
 	modelNameCandidates: unknown[],
 	targetReasoningEffort: unknown,
 	benchmarkKey: string,
-	rowsByModel: BenchmarkScoreByModelName,
+	rowsByModel: BenchmarkRowsByModelName,
 ): void {
 	const row = findBenchmarkScoreRow(
 		modelNameCandidates,
@@ -160,26 +154,26 @@ function addBenchmarkScore(
 	}
 }
 
-function findAggregateBenchmarkSourceRow<T>(
+function findAggregateSourceRow<T>(
 	candidateNames: unknown[],
-	scoreByModelName: ReadonlyMap<string, T>,
+	rowsByModelName: ReadonlyMap<string, T>,
 ): T | null {
 	const baseModelCandidates = candidateNames.map((candidateName) =>
 		typeof candidateName === "string"
 			? benchmarkModelEffort(candidateName).baseModel
 			: candidateName,
 	);
-	return findSourceRow(baseModelCandidates, scoreByModelName);
+	return findSourceRow(baseModelCandidates, rowsByModelName);
 }
 
-function findEffortBenchmarkSourceRow<T extends BenchmarkModelRow>(
+function findEffortSourceRow<T extends BenchmarkModelRow>(
 	candidateNames: unknown[],
 	targetReasoningEffort: unknown,
-	scoreByModelName: ReadonlyMap<string, T>,
+	rowsByModelName: ReadonlyMap<string, T>,
 ): T | null {
 	const effort = canonicalReasoningEffort(targetReasoningEffort);
 	if (effort == null) {
-		return findSourceRow(candidateNames, scoreByModelName);
+		return findSourceRow(candidateNames, rowsByModelName);
 	}
 	const effortCandidates = candidateNames.flatMap((candidateName) => {
 		if (typeof candidateName !== "string") {
@@ -188,7 +182,7 @@ function findEffortBenchmarkSourceRow<T extends BenchmarkModelRow>(
 		const baseModel = benchmarkModelEffort(candidateName).baseModel;
 		return [`${baseModel} (${effort})`];
 	});
-	const row = findSourceRow(effortCandidates, scoreByModelName);
+	const row = findSourceRow(effortCandidates, rowsByModelName);
 	return row?.reasoning_effort === effort ? row : null;
 }
 
@@ -199,10 +193,10 @@ function addFrontierCodeScore(
 	targetReasoningEffort: unknown,
 	lookup: BenchmarkEnrichmentLookups["frontierCode"],
 ): void {
-	const row = findEffortBenchmarkSourceRow(
+	const row = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
-		lookup.scoreByModelName,
+		lookup.rowsByModelName,
 	);
 	if (row?.score_eligible !== true) {
 		return;
@@ -237,7 +231,7 @@ function enrichArtificialAnalysisResources(
 ): BenchmarkEnrichment {
 	const evaluations: Record<string, unknown> = {};
 	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
-	const artificialAnalysisResourceLookup = {
+	const lookup = {
 		modelNameCandidates,
 		rowsByBenchmark,
 	};
@@ -254,7 +248,7 @@ function enrichArtificialAnalysisResources(
 	addArtificialAnalysisResourceEvaluation(
 		evaluations,
 		scoringSources,
-		artificialAnalysisResourceLookup,
+		lookup,
 		"briefcase",
 		(row) => normalizeElo(row.score, 500, 2000),
 	);
@@ -274,21 +268,21 @@ function enrichArtificialAnalysisResources(
 	addArtificialAnalysisResourceEvaluation(
 		evaluations,
 		scoringSources,
-		artificialAnalysisResourceLookup,
+		lookup,
 		"automation_bench",
 		(row) => row.score,
 	);
 	addArtificialAnalysisResourceEvaluation(
 		evaluations,
 		scoringSources,
-		artificialAnalysisResourceLookup,
+		lookup,
 		"harvey_lab",
 		(row) => row.score,
 	);
 	addArtificialAnalysisResourceEvaluation(
 		evaluations,
 		scoringSources,
-		artificialAnalysisResourceLookup,
+		lookup,
 		"itbench_sre",
 		(row) => row.score,
 	);
@@ -307,18 +301,18 @@ export function enrichBenchmarkObservation(
 		lookups.artificialAnalysisEvaluationResources.observationByModelName,
 		baseEvaluations,
 	);
-	const mercorRow = findEffortBenchmarkSourceRow(
+	const mercorRow = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
-		lookups.mercorApexAgents.scoreByModelName,
+		lookups.mercorApexAgents.rowsByModelName,
 	);
 	if (mercorRow != null) {
 		enrichment.scoringSources.apex_agents_mercor = mercorRow;
 	}
-	const aleBenchRow = findEffortBenchmarkSourceRow(
+	const aleBenchRow = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
-		lookups.aleBench.scoreByModelName,
+		lookups.aleBench.rowsByModelName,
 	);
 	if (aleBenchRow != null) {
 		enrichment.evaluations.ale_bench = aleBenchRow.score;
@@ -345,9 +339,9 @@ export function enrichBenchmarkAggregate(
 		lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
 		baseEvaluations,
 	);
-	const agentArenaRow = findAggregateBenchmarkSourceRow(
+	const agentArenaRow = findAggregateSourceRow(
 		modelNameCandidates,
-		lookups.agentArena.scoreByModelName,
+		lookups.agentArena.rowsByModelName,
 	);
 	if (agentArenaRow != null) {
 		evaluations.agent_arena = agentArenaRow.score;
@@ -355,17 +349,17 @@ export function enrichBenchmarkAggregate(
 	}
 	const agentsLastExamScore = findAgentsLastExamModelScore(
 		modelNameCandidates,
-		lookups.agentsLastExam.scoreByModelName,
+		lookups.agentsLastExam.rowsByModelName,
 	);
 	if (agentsLastExamScore != null) {
 		evaluations.agents_last_exam =
 			agentsLastExamBenchmarkScore(agentsLastExamScore);
 		scoringSources.agents_last_exam = agentsLastExamScore;
 	}
-	const aleBenchRow = findEffortBenchmarkSourceRow(
+	const aleBenchRow = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
-		lookups.aleBench.scoreByModelName,
+		lookups.aleBench.rowsByModelName,
 	);
 	if (aleBenchRow != null) {
 		evaluations.ale_bench = aleBenchRow.score;
@@ -373,7 +367,7 @@ export function enrichBenchmarkAggregate(
 	}
 	const blueprintBenchScore = findBlueprintBenchScore(
 		modelNameCandidates,
-		lookups.blueprintBench.scoreByModelName,
+		lookups.blueprintBench.rowsByModelName,
 	);
 	if (blueprintBenchScore != null) {
 		evaluations.blueprint_bench_2 = blueprintBenchScore;
@@ -381,7 +375,7 @@ export function enrichBenchmarkAggregate(
 
 	const browseCompScore = findBrowseCompScore(
 		modelNameCandidates,
-		lookups.browseComp.scoreByModelName,
+		lookups.browseComp.rowsByModelName,
 	);
 	if (browseCompScore != null) {
 		evaluations.browsecomp = browseCompScore;
@@ -392,7 +386,7 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"chartography",
-		lookups.chartography.scoreByModelName,
+		lookups.chartography.rowsByModelName,
 	);
 	addBenchmarkScore(
 		evaluations,
@@ -400,24 +394,24 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"chess_puzzles",
-		lookups.chessPuzzles.scoreByModelName,
+		lookups.chessPuzzles.rowsByModelName,
 	);
 	const cursorBenchRow = findSourceRow(
 		modelNameCandidates,
-		lookups.cursorBench.scoreByModelName,
+		lookups.cursorBench.rowsByModelName,
 	);
 	if (cursorBenchRow != null) {
 		evaluations.cursorbench = cursorBenchRow.score;
 		scoringSources.cursorbench = cursorBenchRow;
 	}
 
-	const deepSWERow = findSourceRow(
+	const deepSweRow = findSourceRow(
 		modelNameCandidates,
-		lookups.deepSWE.scoreByModelName,
+		lookups.deepSWE.rowsByModelName,
 	);
-	if (deepSWERow != null) {
-		evaluations.deep_swe = deepSWERow.pass_at_1;
-		scoringSources.deep_swe = deepSWERow;
+	if (deepSweRow != null) {
+		evaluations.deep_swe = deepSweRow.pass_at_1;
+		scoringSources.deep_swe = deepSweRow;
 	}
 	addBenchmarkScore(
 		evaluations,
@@ -425,7 +419,7 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"ebr_bench",
-		lookups.ebrBench.scoreByModelName,
+		lookups.ebrBench.rowsByModelName,
 	);
 	addBenchmarkScore(
 		evaluations,
@@ -433,7 +427,7 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"enterprisebench_corecraft",
-		lookups.enterpriseBenchCoreCraft.scoreByModelName,
+		lookups.enterpriseBenchCoreCraft.rowsByModelName,
 	);
 	addBenchmarkScore(
 		evaluations,
@@ -441,7 +435,7 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"epoch_capabilities_index",
-		lookups.epochCapabilitiesIndex.scoreByModelName,
+		lookups.epochCapabilitiesIndex.rowsByModelName,
 	);
 	addFrontierCodeScore(
 		{ evaluations, scoringSources },
@@ -455,11 +449,11 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"frontiermath_tier_4",
-		lookups.frontierMathTier4.scoreByModelName,
+		lookups.frontierMathTier4.rowsByModelName,
 	);
 	const gdpPdfScore = findGdpPdfScore(
 		modelNameCandidates,
-		lookups.gdpPdf.scoreByModelName,
+		lookups.gdpPdf.rowsByModelName,
 	);
 	if (gdpPdfScore != null) {
 		evaluations.gdp_pdf = gdpPdfScore;
@@ -470,12 +464,12 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"handbook_md",
-		lookups.handbookMd.scoreByModelName,
+		lookups.handbookMd.rowsByModelName,
 	);
-	const mercorRow = findEffortBenchmarkSourceRow(
+	const mercorRow = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
-		lookups.mercorApexAgents.scoreByModelName,
+		lookups.mercorApexAgents.rowsByModelName,
 	);
 	if (mercorRow != null) {
 		scoringSources.apex_agents_mercor = mercorRow;
@@ -486,11 +480,11 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"proofbench",
-		lookups.proofBench.scoreByModelName,
+		lookups.proofBench.rowsByModelName,
 	);
 	const riemannBenchScore = findRiemannBenchScore(
 		modelNameCandidates,
-		lookups.riemannBench.scoreByModelName,
+		lookups.riemannBench.rowsByModelName,
 	);
 	if (riemannBenchScore != null) {
 		evaluations.riemann_bench = riemannBenchScore;
@@ -500,7 +494,7 @@ export function enrichBenchmarkAggregate(
 		{
 			artificialAnalysisRowsByBenchmark:
 				lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
-			harnessRowsByModel: lookups.valsTerminalBench.scoreByModelName,
+			harnessRowsByModel: lookups.valsTerminalBench.rowsByModelName,
 		},
 		baseEvaluations.terminalbench_v21,
 	);
@@ -510,7 +504,7 @@ export function enrichBenchmarkAggregate(
 	}
 	const toolathlonScore = findToolathlonScore(
 		modelNameCandidates,
-		lookups.toolathlon.scoreByModelName,
+		lookups.toolathlon.rowsByModelName,
 	);
 	if (toolathlonScore != null) {
 		evaluations.toolathlon = toolathlonScore;
@@ -518,14 +512,14 @@ export function enrichBenchmarkAggregate(
 
 	const valsIndexScore = findValsIndexScore(
 		modelNameCandidates,
-		lookups.valsIndex.scoreByModelName,
+		lookups.valsIndex.rowsByModelName,
 	);
 	if (valsIndexScore != null) {
 		evaluations.vals_index = valsIndexScore;
 	}
-	const vendingBench2Row = findAggregateBenchmarkSourceRow(
+	const vendingBench2Row = findAggregateSourceRow(
 		modelNameCandidates,
-		lookups.vendingBench2.scoreByModelName,
+		lookups.vendingBench2.rowsByModelName,
 	);
 	if (vendingBench2Row != null) {
 		evaluations.vending_bench_2 = vendingBench2Row.final_balance_usd;
@@ -537,7 +531,7 @@ export function enrichBenchmarkAggregate(
 		modelNameCandidates,
 		targetReasoningEffort,
 		"weirdml",
-		lookups.weirdMl.scoreByModelName,
+		lookups.weirdMl.rowsByModelName,
 	);
 
 	return {
@@ -591,12 +585,12 @@ export function enrichModelRowsWithBenchmarks(
 			baseEvaluations,
 			row.reasoning_effort,
 		);
-		const evaluations = mergeAggregateBenchmarkFields(
+		const evaluations = mergeAggregateFields(
 			baseEvaluations,
 			benchmarkEnrichment.evaluations,
 			benchmarkEnrichment.scoringSources,
 		);
-		const scoringSources = mergeAggregateBenchmarkFields(
+		const scoringSources = mergeAggregateFields(
 			asRecord(row.scoring_sources),
 			benchmarkEnrichment.scoringSources,
 			benchmarkEnrichment.scoringSources,

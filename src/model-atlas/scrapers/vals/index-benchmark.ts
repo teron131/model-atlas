@@ -17,12 +17,12 @@ const DEFAULT_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const OVERALL_TASK_KEY = "overall";
 
-export type ValsIndexScraperOptions = {
+type ValsIndexScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
 
-export type ValsIndexMetadata = {
+type ValsIndexMetadata = {
 	benchmark: string | null;
 	slug: string | null;
 	version: string | null;
@@ -45,15 +45,15 @@ export type ValsIndexModelScoreRow = ValsIndexTaskScoreRow & {
 	task: "overall";
 };
 
-export type ValsIndexScoreByModelName = Map<string, ValsIndexModelScoreRow>;
+export type ValsIndexRowsByModelName = Map<string, ValsIndexModelScoreRow>;
 
-export type ValsIndexParsedPage = {
+type ValsIndexParsedPage = {
 	metadata: ValsIndexMetadata | null;
 	task_rows: ValsIndexTaskScoreRow[];
 	model_scores: ValsIndexModelScoreRow[];
 };
 
-export type ValsIndexModelScorePayload = ValsIndexParsedPage & {
+type ValsIndexModelScorePayload = ValsIndexParsedPage & {
 	fetched_at_epoch_seconds: number | null;
 };
 
@@ -211,25 +211,25 @@ function modelKeyCandidates(row: ValsIndexModelScoreRow): string[] {
 
 export function buildValsIndexMap(
 	rows: ValsIndexModelScoreRow[],
-): ValsIndexScoreByModelName {
-	const scoreByModelName: ValsIndexScoreByModelName = new Map();
+): ValsIndexRowsByModelName {
+	const rowsByModelName: ValsIndexRowsByModelName = new Map();
 	for (const row of rows) {
 		for (const key of modelKeyCandidates(row)) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findValsIndexScore(
 	candidateNames: unknown[],
-	valsIndexScoreByModelName: ValsIndexScoreByModelName,
+	valsIndexRowsByModelName: ValsIndexRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = valsIndexScoreByModelName.get(
+		const row = valsIndexRowsByModelName.get(
 			normalizeModelToken(candidateName),
 		);
 		if (row) {

@@ -1,4 +1,4 @@
-/** Data model helpers for the Frontier Benchmarks dashboard panel. */
+/** Frontier Benchmarks chart data and axis helpers. */
 
 import { median } from "d3-array";
 import { benchmarkResourcePolicy } from "../../../src/model-atlas/config/benchmark-portfolio";
@@ -9,13 +9,13 @@ import type {
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../shared/constants";
-import { modelVariantKey } from "../shared/modelDisplay";
-import type { AxisScale } from "./axisScale";
+import { modelVariantKey } from "../shared/model-display";
+import type { AxisScale } from "./axis-scale";
 import {
 	linearAxisScale,
 	scoreAxisScale,
 	steppedLinearAxisScale,
-} from "./axisScale";
+} from "./axis-scale";
 import {
 	finiteValue,
 	fmtCompact,
@@ -51,7 +51,7 @@ export type FrontierBenchmarkRow = {
 	totalTokens: number | null;
 };
 
-export type FrontierBenchmarkAxisConfig = {
+type FrontierBenchmarkAxisConfig = {
 	label: string;
 	shortLabel: string;
 	get: (row: FrontierBenchmarkRow) => number | null;
@@ -63,19 +63,19 @@ export type FrontierBenchmarkAxisConfig = {
 	xHigherIsBetter?: boolean;
 };
 
-export type FrontierBenchmarkOption = {
+type FrontierBenchmarkOption = {
 	key: string;
 	label: string;
 	count: number;
 };
 
-export type FrontierBenchmarkAxisOption = {
+type FrontierBenchmarkAxisOption = {
 	key: FrontierBenchmarkAxisKey;
 	label: string;
 	disabled?: boolean;
 };
 
-export type FrontierBenchmarkSummaryRows = {
+type FrontierBenchmarkSummaryRows = {
 	leader: FrontierBenchmarkRow;
 	highScoreAxisRow: FrontierBenchmarkRow;
 	medianScoreAxisRow: FrontierBenchmarkRow;
@@ -160,7 +160,7 @@ export function frontierBenchmarkRows(
 				const resourcePolicy =
 					benchmarkResourcePolicy(benchmarkKey, portfolio) ??
 					benchmarkResourcePolicy(benchmarkKey);
-				const task = frontierResourceTaskMetrics(
+				const task = resourceTaskMetrics(
 					resourcePolicy,
 					benchmarkKey,
 					taskMetrics,
@@ -285,24 +285,24 @@ export function frontierBenchmarkCorrelationByBenchmark(
 	meanRows: FrontierBenchmarkRow[],
 ): Map<string, string> {
 	const correlations = new Map<string, string>([
-		["all", frontierBenchmarkCorrelation(meanRows)],
+		["all", benchmarkCorrelation(meanRows)],
 	]);
 	for (const [benchmarkKey, rows] of groupBy(
 		benchmarkRows,
 		(row) => row.benchmarkKey,
 	)) {
-		correlations.set(benchmarkKey, frontierBenchmarkCorrelation(rows));
+		correlations.set(benchmarkKey, benchmarkCorrelation(rows));
 	}
 	return correlations;
 }
 
 export function frontierBenchmarkAxisOptions(
 	rows: FrontierBenchmarkRow[],
-	isAllBenchmark: boolean,
+	isAggregateView: boolean,
 ): FrontierBenchmarkAxisOption[] {
 	return Object.entries(frontierBenchmarkAxisConfig).map(([key, config]) => {
 		const axisKey = key as FrontierBenchmarkAxisKey;
-		const axisConfig = frontierBenchmarkAxisConfigFor(axisKey, isAllBenchmark);
+		const axisConfig = frontierBenchmarkAxisConfigFor(axisKey, isAggregateView);
 		return {
 			key: axisKey,
 			label: config.shortLabel,
@@ -333,10 +333,10 @@ function firstAvailableAxis(
 
 export function frontierBenchmarkAxisConfigFor(
 	axisKey: FrontierBenchmarkAxisKey,
-	isAllBenchmark: boolean,
+	isAggregateView: boolean,
 ): FrontierBenchmarkAxisConfig {
 	const axisConfig = frontierBenchmarkAxisConfig[axisKey];
-	if (!isAllBenchmark || isEfficiencyScoreAxis(axisKey)) {
+	if (!isAggregateView || isEfficiencyScoreAxis(axisKey)) {
 		return axisConfig;
 	}
 	return {
@@ -353,33 +353,33 @@ export function frontierBenchmarkAxisConfigFor(
 
 export function frontierAxisDescription(
 	axisKey: FrontierBenchmarkAxisKey,
-	isAllBenchmark: boolean,
+	isAggregateView: boolean,
 	row?: FrontierBenchmarkRow,
 ): string {
 	if (axisKey === "speedValue") {
 		return "Efficiency combines public Speed and Value scores with equal weight.";
 	}
 	if (axisKey === "cost") {
-		return isAllBenchmark
+		return isAggregateView
 			? "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy."
 			: `Task Cost is the observed ${resourceUnitPhrase(row)} dollars for the selected benchmark.`;
 	}
 	if (axisKey === "time") {
-		return isAllBenchmark
+		return isAggregateView
 			? "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy."
 			: `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark.`;
 	}
-	return isAllBenchmark
+	return isAggregateView
 		? "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy."
 		: `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUsePhrase(row)} for the selected benchmark.`;
 }
 
 export function frontierAxisMetricLabel(
 	axisConfig: FrontierBenchmarkAxisConfig,
-	isAllBenchmark: boolean,
+	isAggregateView: boolean,
 	rows: FrontierBenchmarkRow[],
 ): string {
-	if (isAllBenchmark) {
+	if (isAggregateView) {
 		return axisConfig.label;
 	}
 	const row = rows.find((candidate) =>
@@ -434,9 +434,9 @@ export function axisSummaryDetail(
 
 export function frontierScoreAxisScale(
 	values: number[],
-	isAllBenchmark: boolean,
+	isAggregateView: boolean,
 ): AxisScale {
-	if (isAllBenchmark) {
+	if (isAggregateView) {
 		return scoreAxisScale(values, FRONTIER_SCORE_AXIS_OPTIONS);
 	}
 	return steppedLinearAxisScale(values, BENCHMARK_SCORE_AXIS_OPTIONS);
@@ -478,11 +478,11 @@ export function frontierBenchmarkHoverRows(
 	return rows;
 }
 
-export function speedScore(row: FrontierBenchmarkRow): number {
+function speedScore(row: FrontierBenchmarkRow): number {
 	return finiteValue(row.model.scores?.speed_score) ?? 0;
 }
 
-export function valueScore(row: FrontierBenchmarkRow): number {
+function valueScore(row: FrontierBenchmarkRow): number {
 	return finiteValue(row.model.scores?.value_score) ?? 0;
 }
 
@@ -490,9 +490,7 @@ export function speedValueBlendScore(row: FrontierBenchmarkRow): number {
 	return (valueScore(row) + speedScore(row)) / 2;
 }
 
-export function isEfficiencyScoreAxis(
-	axisKey: FrontierBenchmarkAxisKey,
-): boolean {
+function isEfficiencyScoreAxis(axisKey: FrontierBenchmarkAxisKey): boolean {
 	return axisKey === "speedValue";
 }
 
@@ -511,7 +509,7 @@ function meanFiniteMetric(values: Array<number | null>): number | null {
 	return finiteValues.length === 0 ? null : meanNumber(finiteValues);
 }
 
-function frontierResourceTaskMetrics(
+function resourceTaskMetrics(
 	resourcePolicy: BenchmarkResourcePolicy | null,
 	benchmarkKey: string,
 	taskMetrics: NonNullable<LlmStatsModel["task_metrics"]>,
@@ -570,7 +568,7 @@ function bestAxisRowAtOrAboveScore(
 	);
 }
 
-function frontierBenchmarkCorrelation(rows: FrontierBenchmarkRow[]): string {
+function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): string {
 	return formatCorrelation(
 		correlationValue(
 			rows.flatMap((row) => {

@@ -9,7 +9,7 @@ export type OpenRouterFrontendModel = {
 	permaslug?: string | null;
 };
 
-export type OpenRouterStatsPoint = {
+type OpenRouterStatsPoint = {
 	x?: string;
 	y?: Record<string, number | null>;
 };
@@ -53,24 +53,21 @@ export type OpenRouterEffectivePricingResponse = {
 	};
 };
 
-export type OpenRouterPerformanceSummary = {
+type OpenRouterPerformanceSummary = {
 	throughput_tokens_per_second_median: number | null;
 	latency_seconds_median: number | null;
 	e2e_latency_seconds_median: number | null;
 };
 
-export type OpenRouterPerformanceMetric =
-	| "throughput"
-	| "latency"
-	| "latency_e2e";
+type OpenRouterPerformanceMetric = "throughput" | "latency" | "latency_e2e";
 
-export type OpenRouterPerformanceEstimateKind =
+type OpenRouterPerformanceEstimateKind =
 	| "openrouter_aggregate"
 	| "series_median"
 	| "token_weighted_mean"
 	| "final";
 
-export type OpenRouterPerformanceEstimate = {
+type OpenRouterPerformanceEstimate = {
 	metric: OpenRouterPerformanceMetric;
 	estimate_kind: OpenRouterPerformanceEstimateKind;
 	value: number | null;
@@ -83,12 +80,12 @@ type PerformanceEstimateSource = {
 	scaleToSeconds: boolean;
 };
 
-export type OpenRouterPricingSummary = {
+type OpenRouterPricingSummary = {
 	weighted_input_price_per_1m: number | null;
 	weighted_output_price_per_1m: number | null;
 };
 
-export type OpenRouterScrapedModel = {
+type OpenRouterScrapedModel = {
 	id: string;
 	performance: OpenRouterPerformanceSummary;
 	pricing: OpenRouterPricingSummary;
@@ -406,10 +403,6 @@ function summarizePricing(
 	};
 }
 
-function hasMeaningfulRawPerformance(stats: OpenRouterModelStats): boolean {
-	return hasMeaningfulPerformance(summarizePerformance(stats));
-}
-
 function hasMeaningfulRawPricing(
 	pricing: OpenRouterEffectivePricingResponse | null,
 ): boolean {
@@ -546,7 +539,7 @@ export function selectOpenRouterRawModelStats(
 ): OpenRouterRawScrapedModel {
 	const performanceCandidate =
 		bestCandidateByUsage(candidates, (candidate) =>
-			hasMeaningfulRawPerformance(candidate.performance),
+			hasMeaningfulPerformance(summarizePerformance(candidate.performance)),
 		) ??
 		bestCandidateByUsage(candidates, (candidate) =>
 			hasMeaningfulRawPricing(candidate.pricing),

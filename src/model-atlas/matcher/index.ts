@@ -9,11 +9,6 @@ export {
 	rankMatchCandidates,
 } from "./scoring";
 export type {
-	MatchCandidate,
-	MatchCandidateInput,
-	MatchDiagnosticsOptions,
 	MatchDiagnosticsPayload,
 	MatcherConfig,
-	MatchMappedModel,
-	MatchResult,
 } from "./types";

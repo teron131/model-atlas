@@ -7,17 +7,17 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../shared/modelDisplay";
-import { providerPaletteColor } from "../shared/providerTheme";
-import { linearAxisScale } from "./axisScale";
+import { modelVariantKey } from "../shared/model-display";
+import { providerChartColor } from "../shared/provider-theme";
+import { linearAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart } from "./ChartComponents";
-import { extremeLabelRows, valueDistribution } from "./chartStats";
+import { extremeLabelRows, valueDistribution } from "./chart-stats";
 import { finiteValue, fmtTooltipScore } from "./format";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
-import { interactionXAxisTicks } from "./interactionTicks";
-import { calloutLabelPlacements } from "./labelPlacement";
+import { interactionXAxisTicks } from "./interaction-ticks";
+import { calloutLabelPlacements } from "./label-placement";
 import {
 	correlationLabel,
 	correlationValue,
@@ -71,12 +71,12 @@ const INTERACTION_LABEL_METRICS = {
 export function InteractionMatrix({
 	models,
 	benchmarkPortfolio,
-	fullPayloadLoaded,
+	hasFullPayload,
 	setHover,
 }: {
 	models: LlmStatsModel[];
 	benchmarkPortfolio: BenchmarkPortfolio;
-	fullPayloadLoaded: boolean;
+	hasFullPayload: boolean;
 	setHover: HoverSetter;
 }) {
 	const [selectedKey, setSelectedKey] = useState(
@@ -142,7 +142,7 @@ export function InteractionMatrix({
 					models={models}
 					config={selectedConfig}
 					context={interactionContext}
-					fullPayloadLoaded={fullPayloadLoaded}
+					hasFullPayload={hasFullPayload}
 					setHover={setHover}
 				/>
 			</div>
@@ -199,13 +199,13 @@ function InteractionPlot({
 	models,
 	config,
 	context,
-	fullPayloadLoaded,
+	hasFullPayload,
 	setHover,
 }: {
 	models: LlmStatsModel[];
 	config: InteractionConfig;
 	context: InteractionContext;
-	fullPayloadLoaded: boolean;
+	hasFullPayload: boolean;
 	setHover: HoverSetter;
 }) {
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
@@ -221,7 +221,7 @@ function InteractionPlot({
 	);
 
 	if (chartPoints.length === 0) {
-		if (!fullPayloadLoaded) {
+		if (!hasFullPayload) {
 			return null;
 		}
 		return (
@@ -401,7 +401,7 @@ function InteractionPlot({
 								cx={cx}
 								cy={cy}
 								r={stableSvgNumber(INTERACTION_POINT_RADIUS)}
-								fill={providerPaletteColor(point.model.provider)}
+								fill={providerChartColor(point.model.provider)}
 								stroke="var(--chart-point-stroke)"
 								strokeWidth={1}
 								opacity={1}

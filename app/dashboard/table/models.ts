@@ -5,7 +5,7 @@ import { clampScore, minMaxScale } from "../../../src/model-atlas/math-utils";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/stats/resource-metrics";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
-import { modelDisplayName, modelMatchesQuery } from "../shared/modelDisplay";
+import { modelDisplayName, modelMatchesQuery } from "../shared/model-display";
 
 export type SortDirection = "ascending" | "descending";
 
@@ -141,7 +141,7 @@ const cursorBenchTaskMetricColumns = defineTaskMetricColumns("cursorbench", [
 	},
 ] as const);
 
-const deepSWETaskMetricColumns = defineTaskMetricColumns("deep_swe", [
+const deepSweTaskMetricColumns = defineTaskMetricColumns("deep_swe", [
 	{
 		key: "deepSWECost",
 		metric: "cost",
@@ -291,7 +291,7 @@ export const taskMetricColumns = [
 	...automationBenchTaskMetricColumns,
 	...critptTaskMetricColumns,
 	...cursorBenchTaskMetricColumns,
-	...deepSWETaskMetricColumns,
+	...deepSweTaskMetricColumns,
 	...frontierCodeTaskMetricColumns,
 	...gdpvalTaskMetricColumns,
 	...harveyLabTaskMetricColumns,
@@ -410,7 +410,7 @@ function defineBenchmarkMetricColumn<
 	};
 }
 
-const benchmarkMetricColumnDefinitions = [
+const unsortedBenchmarkMetricColumns = [
 	defineBenchmarkMetricColumn(
 		"aaIntelligenceIndex",
 		"aa_intelligence_index",
@@ -472,24 +472,23 @@ const benchmarkMetricColumnDefinitions = [
 	defineBenchmarkMetricColumn("weirdMl", "weirdml", "WeirdML"),
 ] as const;
 
-export const benchmarkMetricColumns = [
-	...benchmarkMetricColumnDefinitions,
-].sort((left, right) =>
-	compareBenchmarkDisplayKeys(
-		left.benchmark,
-		right.benchmark,
-		BENCHMARK_PORTFOLIO,
-	),
+export const benchmarkMetricColumns = [...unsortedBenchmarkMetricColumns].sort(
+	(left, right) =>
+		compareBenchmarkDisplayKeys(
+			left.benchmark,
+			right.benchmark,
+			BENCHMARK_PORTFOLIO,
+		),
 );
 const scoreBenchmarkMetricColumns = benchmarkMetricColumns.filter(
 	(column) => column.format === "score",
 );
 
 export type TaskMetricColumn = (typeof taskMetricColumns)[number];
-export type ProfileMetricColumn = (typeof profileMetricColumns)[number];
-export type CostMetricColumn = (typeof costMetricColumns)[number];
-export type SpeedMetricColumn = (typeof speedMetricColumns)[number];
-export type BenchmarkMetricColumn = (typeof benchmarkMetricColumns)[number];
+type ProfileMetricColumn = (typeof profileMetricColumns)[number];
+type CostMetricColumn = (typeof costMetricColumns)[number];
+type SpeedMetricColumn = (typeof speedMetricColumns)[number];
+type BenchmarkMetricColumn = (typeof benchmarkMetricColumns)[number];
 export type DashboardMetricColumn =
 	| ProfileMetricColumn
 	| CostMetricColumn
@@ -523,7 +522,7 @@ const taskMetricColumnsByBenchmark: Partial<
 	automationBench: automationBenchTaskMetricColumns,
 	critpt: critptTaskMetricColumns,
 	cursorBench: cursorBenchTaskMetricColumns,
-	deepSWE: deepSWETaskMetricColumns,
+	deepSWE: deepSweTaskMetricColumns,
 	frontierCode: frontierCodeTaskMetricColumns,
 	gdpval: gdpvalTaskMetricColumns,
 	harveyLab: harveyLabTaskMetricColumns,
@@ -624,19 +623,25 @@ export function sortedRows(
 ) {
 	const sorter = sorters[sortState.key] ?? sorters.rank;
 	const direction = sortState.direction === "descending" ? -1 : 1;
-	return filteredRows(rows, filterQuery).sort((left, right) => {
-		const leftValue = sorter.get(left);
-		const rightValue = sorter.get(right);
-		const missingCompared = compareMissingValues(sorter, leftValue, rightValue);
-		if (missingCompared !== 0) {
-			return missingCompared;
-		}
-		const compared = compareSortValues(sorter, leftValue, rightValue);
-		if (compared !== 0) {
-			return compared * direction;
-		}
-		return left.originalIndex - right.originalIndex;
-	});
+	return rows
+		.filter(({ model }) => modelMatchesQuery(model, filterQuery))
+		.sort((left, right) => {
+			const leftValue = sorter.get(left);
+			const rightValue = sorter.get(right);
+			const missingCompared = compareMissingValues(
+				sorter,
+				leftValue,
+				rightValue,
+			);
+			if (missingCompared !== 0) {
+				return missingCompared;
+			}
+			const compared = compareSortValues(sorter, leftValue, rightValue);
+			if (compared !== 0) {
+				return compared * direction;
+			}
+			return left.originalIndex - right.originalIndex;
+		});
 }
 
 /** Collapse duplicate model routes before assigning display ranks. */
@@ -678,13 +683,6 @@ export function dedupeDisplayModels(models: LlmStatsModel[]) {
 	);
 }
 
-export function taskMetricValue(
-	model: LlmStatsModel,
-	column: TaskMetricColumn,
-) {
-	return model.task_metrics?.[column.source]?.[column.metric];
-}
-
 export function benchmarkMetricValue(
 	model: LlmStatsModel,
 	column: BenchmarkMetricColumn,
@@ -714,7 +712,7 @@ export function dashboardMetricValue(
 	column: DashboardMetricColumn,
 ) {
 	if ("source" in column) {
-		return taskMetricValue(model, column);
+		return model.task_metrics?.[column.source]?.[column.metric];
 	}
 	if ("benchmark" in column) {
 		return benchmarkMetricValue(model, column);
@@ -756,10 +754,6 @@ function inputModalityRank(model: LlmStatsModel) {
 		(total, [modality, score]) => total + (input.has(modality) ? score : 0),
 		0,
 	);
-}
-
-function filteredRows(rows: TableRow[], filterQuery: string) {
-	return rows.filter(({ model }) => modelMatchesQuery(model, filterQuery));
 }
 
 function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
@@ -820,15 +814,15 @@ function compareMissingValues(sorter: Sorter, left: unknown, right: unknown) {
 }
 
 function compareMissingNumbers(left: unknown, right: unknown) {
-	const leftMissing = typeof left !== "number" || !Number.isFinite(left);
-	const rightMissing = typeof right !== "number" || !Number.isFinite(right);
-	if (leftMissing && rightMissing) {
+	const isLeftMissing = typeof left !== "number" || !Number.isFinite(left);
+	const isRightMissing = typeof right !== "number" || !Number.isFinite(right);
+	if (isLeftMissing && isRightMissing) {
 		return 0;
 	}
-	if (leftMissing) {
+	if (isLeftMissing) {
 		return 1;
 	}
-	if (rightMissing) {
+	if (isRightMissing) {
 		return -1;
 	}
 	return 0;

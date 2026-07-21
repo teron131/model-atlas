@@ -46,15 +46,12 @@ export function artificialAnalysisCacheHasHiddenRows(
 			WHERE deprecated = 1
 				AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
 			LIMIT 1
-		`
+		`,
 	);
 	return cacheRows.length > 0;
 }
 
-function artificialAnalysisNestedNumbers(
-	row: CacheDbRow,
-	keys: readonly string[],
-): JsonObject {
+function nestedNumbers(row: CacheDbRow, keys: readonly string[]): JsonObject {
 	const record: JsonObject = {};
 	for (const key of keys) {
 		assignIfNumber(record, key, row[key]);
@@ -62,7 +59,7 @@ function artificialAnalysisNestedNumbers(
 	return record;
 }
 
-function artificialAnalysisRawRow(row: CacheDbRow): JsonObject {
+function rawRowFromCache(row: CacheDbRow): JsonObject {
 	const tokenCounts: JsonObject = {};
 	assignIfNumber(tokenCounts, "inputTokens", row.input_tokens);
 	assignIfNumber(tokenCounts, "reasoningTokens", row.reasoning_tokens);
@@ -124,7 +121,7 @@ function artificialAnalysisRawRow(row: CacheDbRow): JsonObject {
 	return rawRow;
 }
 
-function artificialAnalysisSelectedRow(row: CacheDbRow): JsonObject {
+function selectedRowFromCache(row: CacheDbRow): JsonObject {
 	const selectedRow: JsonObject = {};
 	assignIfString(selectedRow, "model_id", row.model_id);
 	assignIfString(selectedRow, "name", row.name);
@@ -146,15 +143,12 @@ function artificialAnalysisSelectedRow(row: CacheDbRow): JsonObject {
 		"median_end_to_end_response_time",
 		row.median_end_to_end_response_time_seconds,
 	);
-	const intelligence = artificialAnalysisNestedNumbers(
+	const intelligence = nestedNumbers(
 		row,
 		ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 	);
-	const evaluations = artificialAnalysisNestedNumbers(
-		row,
-		ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
-	);
-	const intelligenceIndexCost = artificialAnalysisNestedNumbers(
+	const evaluations = nestedNumbers(row, ARTIFICIAL_ANALYSIS_EVALUATION_KEYS);
+	const intelligenceIndexCost = nestedNumbers(
 		row,
 		ARTIFICIAL_ANALYSIS_COST_KEYS,
 	);
@@ -179,11 +173,9 @@ export function artificialAnalysisRawCacheFromRows(cacheRows: CacheDbRow[]): {
 		return null;
 	}
 	return {
-		artificialAnalysisRawRows: cacheRows.map((row) =>
-			artificialAnalysisRawRow(row),
-		),
+		artificialAnalysisRawRows: cacheRows.map((row) => rawRowFromCache(row)),
 		artificialAnalysisSelectedRows: cacheRows.map((row) =>
-			artificialAnalysisSelectedRow(row),
+			selectedRowFromCache(row),
 		),
 		fetchedAt: firstEpochSecond(cacheRows),
 	};

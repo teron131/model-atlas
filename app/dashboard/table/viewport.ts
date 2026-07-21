@@ -1,4 +1,4 @@
-/** Viewport measurement and horizontal scroll sync for the leaderboard table. */
+/** Viewport measurement and horizontal scroll synchronization for the leaderboard table. */
 
 import {
 	type RefObject,
@@ -38,7 +38,7 @@ type UseTableViewportResult = {
 
 const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
 const PINNED_COLUMNS_ENABLE_BUFFER_PX = 24;
-const MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
+const UNPIN_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
 
 /** Manage mirrored table/header horizontal scrolling and column measurements. */
@@ -54,12 +54,12 @@ export function useTableViewport({
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const [pinnedColumnsEnabled, setPinnedColumnsEnabled] = useState(false);
 	const [scrollSnapshot, setScrollSnapshot] = useState<TableViewportSnapshot>(
-		() => emptyHorizontalScrollSnapshot(),
+		() => emptyScrollSnapshot(),
 	);
 	const syncScrollSnapshot = useCallback(() => {
 		const snapshot = horizontalScrollSnapshot(tableScrollRef.current);
 		setScrollSnapshot((current) =>
-			areHorizontalScrollSnapshotsEqual(current, snapshot) ? current : snapshot,
+			areScrollSnapshotsEqual(current, snapshot) ? current : snapshot,
 		);
 	}, []);
 	const syncTableLayoutMeasurements = useCallback(() => {
@@ -77,7 +77,7 @@ export function useTableViewport({
 			leadingColumnsWidth(widths),
 		);
 		setPinnedColumnsEnabled((current) =>
-			nextPinnedColumnsEnabled(
+			shouldPinColumns(
 				tableScrollRef.current,
 				widestLeadingColumnsWidthRef.current,
 				current,
@@ -110,7 +110,11 @@ export function useTableViewport({
 				return;
 			}
 			event.preventDefault();
-			tableScroll.scrollLeft = getNextScrollLeft(tableScroll, event.deltaX);
+			tableScroll.scrollLeft = clampNumber(
+				tableScroll.scrollLeft + event.deltaX,
+				0,
+				maxScrollLeft,
+			);
 			markMirroredScrollTarget("header");
 			syncHorizontalScroll(tableScroll, headerScrollRef.current);
 			syncScrollSnapshot();
@@ -272,7 +276,7 @@ function leadingColumnsWidth(columnWidths: number[]): number {
 	return (columnWidths[0] ?? 0) + (columnWidths[1] ?? 0);
 }
 
-function nextPinnedColumnsEnabled(
+function shouldPinColumns(
 	scrollElement: HTMLElement | null,
 	leadingColumnsWidth: number,
 	isCurrentlyPinned: boolean,
@@ -280,7 +284,7 @@ function nextPinnedColumnsEnabled(
 	if (scrollElement == null || leadingColumnsWidth <= 0) {
 		return false;
 	}
-	if (window.matchMedia(MOBILE_UNPINNED_COLUMNS_MEDIA_QUERY).matches) {
+	if (window.matchMedia(UNPIN_COLUMNS_MEDIA_QUERY).matches) {
 		return false;
 	}
 	const threshold = leadingColumnsWidth * PINNED_COLUMNS_WIDTH_MULTIPLIER;
@@ -317,7 +321,7 @@ function horizontalScrollSnapshot(
 	element: HTMLElement | null,
 ): TableViewportSnapshot {
 	if (element == null) {
-		return emptyHorizontalScrollSnapshot();
+		return emptyScrollSnapshot();
 	}
 	const { scrollLeft, maxScrollLeft } = horizontalScrollState(element);
 	return {
@@ -328,7 +332,7 @@ function horizontalScrollSnapshot(
 	};
 }
 
-function emptyHorizontalScrollSnapshot(): TableViewportSnapshot {
+function emptyScrollSnapshot(): TableViewportSnapshot {
 	return {
 		scrollLeft: 0,
 		maxScrollLeft: 0,
@@ -338,7 +342,7 @@ function emptyHorizontalScrollSnapshot(): TableViewportSnapshot {
 }
 
 /** Compare scroll snapshots while tolerating subpixel browser differences. */
-function areHorizontalScrollSnapshotsEqual(
+function areScrollSnapshotsEqual(
 	left: TableViewportSnapshot,
 	right: TableViewportSnapshot,
 ): boolean {
@@ -348,11 +352,6 @@ function areHorizontalScrollSnapshotsEqual(
 		Math.abs(left.clientWidth - right.clientWidth) < 0.5 &&
 		Math.abs(left.scrollWidth - right.scrollWidth) < 0.5
 	);
-}
-
-function getNextScrollLeft(element: HTMLElement, deltaX: number): number {
-	const { scrollLeft, maxScrollLeft } = horizontalScrollState(element);
-	return clampNumber(scrollLeft + deltaX, 0, maxScrollLeft);
 }
 
 function syncHorizontalScroll(

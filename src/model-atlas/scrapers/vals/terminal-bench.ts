@@ -19,12 +19,12 @@ const DEFAULT_LEADERBOARD_URL =
 const DEFAULT_TIMEOUT_MS = 30_000;
 const OVERALL_TASK_KEY = "overall";
 
-export type TerminalBenchScraperOptions = {
+type TerminalBenchScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
 
-export type TerminalBenchMetadata = {
+type TerminalBenchMetadata = {
 	benchmark: string | null;
 	slug: string | null;
 	version: string | null;
@@ -56,13 +56,13 @@ export type TerminalBenchRowsByModelName = Map<
 	TerminalBenchModelHarnessRow[]
 >;
 
-export type TerminalBenchParsedPage = {
+type TerminalBenchParsedPage = {
 	metadata: TerminalBenchMetadata | null;
 	task_rows: TerminalBenchTaskRow[];
 	model_scores: TerminalBenchModelHarnessRow[];
 };
 
-export type TerminalBenchPayload = TerminalBenchParsedPage & {
+type TerminalBenchPayload = TerminalBenchParsedPage & {
 	fetched_at_epoch_seconds: number | null;
 };
 

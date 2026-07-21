@@ -17,7 +17,7 @@ import {
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
 
-function artificialAnalysisSelectedRowsByKey(
+function selectedRowsByKey(
 	rows: readonly JsonObject[],
 ): Map<string, JsonObject> {
 	const rowsByKey = new Map<string, JsonObject>();
@@ -42,7 +42,7 @@ function absoluteArtificialAnalysisUrl(value: string | null): string | null {
 		: `${ARTIFICIAL_ANALYSIS_ORIGIN}/${value}`;
 }
 
-function artificialAnalysisIdentityValues(
+function identityValues(
 	row: JsonObject,
 	selectedRow: JsonObject,
 	creator: JsonObject,
@@ -75,7 +75,7 @@ function artificialAnalysisIdentityValues(
 	];
 }
 
-function artificialAnalysisModalityValues(row: JsonObject): SqlValue[] {
+function modalityValues(row: JsonObject): SqlValue[] {
 	return [
 		sqliteBooleanValue(row.input_modality_text ?? row.inputModalityText),
 		sqliteBooleanValue(row.input_modality_image ?? row.inputModalityImage),
@@ -88,10 +88,7 @@ function artificialAnalysisModalityValues(row: JsonObject): SqlValue[] {
 	];
 }
 
-function artificialAnalysisBenchmarkValues(
-	row: JsonObject,
-	selectedRow: JsonObject,
-): SqlValue[] {
+function benchmarkValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
 	const intelligence = asRecord(selectedRow.intelligence);
 	const evaluations = asRecord(selectedRow.evaluations);
 	return [
@@ -125,7 +122,7 @@ function artificialAnalysisBenchmarkValues(
 	];
 }
 
-function artificialAnalysisCostAndLogoValues(
+function costAndLogoValues(
 	row: JsonObject,
 	selectedRow: JsonObject,
 	creator: JsonObject,
@@ -166,7 +163,7 @@ export function insertArtificialAnalysisRawModels(
 	db: DatabaseWriter,
 	snapshots: SourceSnapshots,
 ): void {
-	const selectedRowsByKey = artificialAnalysisSelectedRowsByKey(
+	const selectedRows = selectedRowsByKey(
 		snapshots.artificialAnalysisSelectedRows,
 	);
 	const statement = db.prepare(`
@@ -191,7 +188,7 @@ export function insertArtificialAnalysisRawModels(
 	`);
 	for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
 		const selectedRow =
-			selectedRowsByKey.get(artificialAnalysisModelId(row) ?? "") ??
+			selectedRows.get(artificialAnalysisModelId(row) ?? "") ??
 			snapshots.artificialAnalysisSelectedRows[index] ??
 			{};
 		const creator = {
@@ -202,10 +199,10 @@ export function insertArtificialAnalysisRawModels(
 			index,
 			snapshots.fetchedAt.artificialAnalysis,
 			SOURCE_URLS.artificial_analysis,
-			...artificialAnalysisIdentityValues(row, selectedRow, creator),
-			...artificialAnalysisModalityValues(row),
-			...artificialAnalysisBenchmarkValues(row, selectedRow),
-			...artificialAnalysisCostAndLogoValues(row, selectedRow, creator),
+			...identityValues(row, selectedRow, creator),
+			...modalityValues(row),
+			...benchmarkValues(row, selectedRow),
+			...costAndLogoValues(row, selectedRow, creator),
 		);
 	}
 }

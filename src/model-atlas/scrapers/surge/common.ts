@@ -1,4 +1,4 @@
-/** Surge common benchmark adapters share leaderboard parsing and fetching while retaining benchmark-specific ownership. */
+/** Shared Surge leaderboard parsing and fetching for benchmark-specific adapters. */
 
 import { benchmarkModelEffort } from "../../shared";
 import { fetchWithTimeout, nowEpochSeconds } from "../../utils";

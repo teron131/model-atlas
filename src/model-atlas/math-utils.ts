@@ -11,14 +11,14 @@ type FiniteWeightedValue = {
 	weight: number;
 };
 
-export function finiteNumbers(values: unknown[]): number[] {
+function finiteNumbers(values: unknown[]): number[] {
 	return values
 		.filter((value) => value != null)
 		.map((value) => Number(value))
 		.filter((value) => Number.isFinite(value));
 }
 
-export function isPositiveFinite(value: unknown): value is number {
+function isPositiveFinite(value: unknown): value is number {
 	return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
@@ -405,7 +405,7 @@ export function log10OnePlusPositive(value: unknown): number | null {
 	return scaledValue > 0 ? scaledValue : null;
 }
 
-export function probabilityLogit(value: number): number {
+function probabilityLogit(value: number): number {
 	const clamped = clamp(value, 0.001, 0.999);
 	return Math.log(clamped / (1 - clamped));
 }

@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
-import { modelCount, toggleProviderFilter } from "../shared/modelDisplay";
+import { modelCount, toggleProviderFilter } from "../shared/model-display";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { finite, fmtCompact, fmtMoney } from "./format";
@@ -18,7 +18,7 @@ import {
 	modelLimitOptions,
 } from "./models";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
-import { PriceEfficiencyComparisonPanel } from "./PriceEfficiencyComparisonPanel";
+import { PriceEfficiencyPanel } from "./PriceEfficiencyPanel";
 import type {
 	CostFilter,
 	HoverState,
@@ -29,7 +29,7 @@ import type {
 export function DashboardGraphs({
 	payload,
 	referenceModels,
-	fullPayloadLoaded,
+	hasFullPayload,
 	benchmarksLoading,
 	afterLead,
 	selectedProviders,
@@ -44,7 +44,7 @@ export function DashboardGraphs({
 }: {
 	payload: LlmStatsPayload | null;
 	referenceModels: LlmStatsPayload["models"];
-	fullPayloadLoaded: boolean;
+	hasFullPayload: boolean;
 	benchmarksLoading: boolean;
 	afterLead?: React.ReactNode;
 	selectedProviders: string[];
@@ -258,7 +258,7 @@ export function DashboardGraphs({
 				<>
 					<section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
 						<ParetoFrontierPanel models={models} setHover={setHover} />
-						<PriceEfficiencyComparisonPanel
+						<PriceEfficiencyPanel
 							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
 							displayExpanded={expandReasoningVariants}
 							maxCost={maxCost}
@@ -278,7 +278,7 @@ export function DashboardGraphs({
 						<InteractionMatrix
 							models={models}
 							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
-							fullPayloadLoaded={fullPayloadLoaded}
+							hasFullPayload={hasFullPayload}
 							setHover={setHover}
 						/>
 					</section>

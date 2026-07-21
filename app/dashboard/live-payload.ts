@@ -19,8 +19,8 @@ const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
-const GUARDED_REFRESH_RETRY_SLACK_MS = 25;
-const AUTOMATIC_LIVE_REFRESH_ENABLED =
+const REFRESH_RETRY_SLACK_MS = 25;
+const AUTOMATIC_REFRESH_ENABLED =
 	process.env.NODE_ENV === "production" ||
 	process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
 
@@ -48,7 +48,7 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 				refreshRetryTimeoutRef.current = window.setTimeout(() => {
 					refreshRetryTimeoutRef.current = null;
 					void refreshPayload();
-				}, remainingGuardMs + GUARDED_REFRESH_RETRY_SLACK_MS);
+				}, remainingGuardMs + REFRESH_RETRY_SLACK_MS);
 			}
 			return Promise.resolve();
 		}
@@ -70,7 +70,7 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			})
 			.then((nextPayload) => {
 				setPayload(nextPayload);
-				scheduleCachedPayloadWrite(nextPayload);
+				scheduleCacheWrite(nextPayload);
 			})
 			.catch((error) => {
 				console.error("Unable to refresh stats", error);
@@ -91,8 +91,8 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 			void refreshPayload({ retryWhenGuarded: true });
 			return;
 		}
-		if (!hasFullPayload(initialPayload)) {
-			if (cachedPayload != null && hasFullPayload(cachedPayload)) {
+		if (!isFullPayload(initialPayload)) {
+			if (cachedPayload != null && isFullPayload(cachedPayload)) {
 				setPayload(cachedPayload);
 			}
 			void refreshPayload({ retryWhenGuarded: true });
@@ -108,7 +108,7 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 	}, []);
 
 	useEffect(() => {
-		if (payload == null || !AUTOMATIC_LIVE_REFRESH_ENABLED) {
+		if (payload == null || !AUTOMATIC_REFRESH_ENABLED) {
 			return;
 		}
 		const interval = window.setInterval(() => {
@@ -122,7 +122,7 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 	return {
 		payload,
 		errorMessage,
-		fullPayloadLoaded: payload != null && hasFullPayload(payload),
+		hasFullPayload: payload != null && isFullPayload(payload),
 	};
 }
 
@@ -133,7 +133,7 @@ function isLlmStatsPayload(payload: unknown): payload is LlmStatsPayload {
 	return Array.isArray((payload as Partial<LlmStatsPayload>).models);
 }
 
-function hasFullPayload(payload: LlmStatsPayload): boolean {
+function isFullPayload(payload: LlmStatsPayload): boolean {
 	return payload.metadata.scoring.selected_benchmark_keys.length > 0;
 }
 
@@ -185,7 +185,7 @@ function recordRefreshAttempt(): void {
 	} catch {}
 }
 
-function scheduleCachedPayloadWrite(payload: LlmStatsPayload): void {
+function scheduleCacheWrite(payload: LlmStatsPayload): void {
 	const idleCallback = window.requestIdleCallback?.(
 		() => {
 			writeCachedPayload(payload);

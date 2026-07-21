@@ -1,4 +1,4 @@
-/** Chart summary statistics and bubble radius helpers for dashboard graphs. */
+/** Shared dashboard chart statistics and bubble-radius calculations. */
 
 import { quantile } from "d3-array";
 import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";

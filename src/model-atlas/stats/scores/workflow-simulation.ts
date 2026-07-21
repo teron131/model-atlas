@@ -111,7 +111,7 @@ function profileQualityMultiplier(
 	]);
 	return qualityScore == null
 		? null
-		: smoothstep(qualityScore / profile.quality_full_credit_at);
+		: smoothstep(qualityScore / profile.full_credit_quality_score);
 }
 
 function weightedProfileMean(
@@ -147,7 +147,7 @@ export function simulatedBlendSeconds(
 		return null;
 	}
 	const inputTokenSeconds =
-		asFiniteNumber(scoringConfig.simulationInputTokenSeconds) ??
+		asFiniteNumber(scoringConfig.secondsPerInputToken) ??
 		DEFAULT_INPUT_TOKEN_SECONDS;
 	return weightedProfileMean(
 		Object.values(scoringConfig.simulationProfiles),

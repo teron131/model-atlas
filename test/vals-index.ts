@@ -115,18 +115,18 @@ assertDeepEqual(parsed.task_rows.length, 3);
 assertDeepEqual(parsed.task_rows[0]?.task, "finance_agent");
 assertDeepEqual(parsed.task_rows[0]?.score, 0.825);
 
-const scoreByModelName = buildValsIndexMap(parsed.model_scores);
+const rowsByModelName = buildValsIndexMap(parsed.model_scores);
 
 assertDeepEqual(
-	findValsIndexScore(["missing", "Claude Fable 5"], scoreByModelName),
+	findValsIndexScore(["missing", "Claude Fable 5"], rowsByModelName),
 	0.75145,
 );
 assertDeepEqual(
-	findValsIndexScore(["openai/gpt-5.5"], scoreByModelName),
+	findValsIndexScore(["openai/gpt-5.5"], rowsByModelName),
 	0.67951,
 );
 assertDeepEqual(
-	findValsIndexScore(["bad/missing-accuracy"], scoreByModelName),
+	findValsIndexScore(["bad/missing-accuracy"], rowsByModelName),
 	null,
 );
 

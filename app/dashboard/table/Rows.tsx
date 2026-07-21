@@ -17,11 +17,8 @@ import {
 	formatDashboardMetric,
 	formatScore,
 } from "../shared/format";
-import { modelDisplayName } from "../shared/modelDisplay";
-import {
-	providerAssetLogo,
-	providerDisplayColor,
-} from "../shared/providerTheme";
+import { modelDisplayName } from "../shared/model-display";
+import { providerBrandColor, providerLogo } from "../shared/provider-theme";
 import {
 	benchmarkDisplayValue,
 	contextWindowValue,
@@ -234,7 +231,7 @@ function BenchmarkMetricCell({
 	provider: string | null | undefined;
 }) {
 	const normalizedValue = benchmarkPercentValue(value);
-	const displayColor = providerDisplayColor(provider);
+	const displayColor = providerBrandColor(provider);
 	const style = {
 		"--score": String(Math.max(0, Math.min(100, normalizedValue ?? 0))),
 		"--score-color": displayColor,
@@ -253,7 +250,9 @@ function BenchmarkMetricCell({
 }
 
 function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
-	const availableSet = inputModalitySet(inputs);
+	const availableSet = new Set(
+		(inputs ?? []).map((input) => input.toLowerCase()),
+	);
 	const availableModalities = inputModalities.filter((modality) =>
 		availableSet.has(modality.key),
 	);
@@ -280,10 +279,6 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 			</span>
 		</td>
 	);
-}
-
-function inputModalitySet(inputs: string[] | undefined) {
-	return new Set((inputs ?? []).map((input) => input.toLowerCase()));
 }
 
 function visibleModelName(name: string | null | undefined) {
@@ -345,9 +340,9 @@ function ProviderLogo({ model }: { model: LlmStatsModel }) {
 }
 
 function logoSource(model: LlmStatsModel) {
-	const providerLogo = providerAssetLogo(model.provider);
-	if (providerLogo.length > 0) {
-		return providerLogo;
+	const logo = providerLogo(model.provider);
+	if (logo.length > 0) {
+		return logo;
 	}
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;
@@ -367,7 +362,7 @@ function scoreCell(
 ) {
 	const score =
 		typeof value === "number" && Number.isFinite(value) ? value : null;
-	const displayColor = providerDisplayColor(provider);
+	const displayColor = providerBrandColor(provider);
 	const style = {
 		"--score": String(Math.max(0, Math.min(100, score ?? 0))),
 		"--score-color": displayColor,

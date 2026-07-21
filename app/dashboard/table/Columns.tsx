@@ -10,7 +10,7 @@ import {
 } from "../shared/DashboardIcons";
 import type { SortKey } from "./models";
 
-export type SortableColumnDefinition = {
+type SortableColumnDefinition = {
 	key: SortKey;
 	label: ReactNode;
 	className?: string;

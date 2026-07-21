@@ -32,7 +32,7 @@ export type MatchCandidate = MatchCandidateInput & {
 export type MatchResult = MatchCandidate | null;
 
 /** Mapping entry for one Artificial Analysis model and its ranked match candidates. */
-export type MatchMappedModel = {
+type MatchMappedModel = {
 	artificial_analysis_id: string | null;
 	artificial_analysis_slug: string;
 	artificial_analysis_name: string | null;

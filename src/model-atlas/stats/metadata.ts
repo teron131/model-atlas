@@ -4,7 +4,7 @@ import { benchmarkResourcePolicy } from "../config/benchmark-portfolio";
 import {
 	type ActiveResourceComponents,
 	columnTooltipsForActiveComponents,
-} from "../config/column-tooltips";
+} from "../config/tooltips";
 import { STAGE_CONFIG } from "../constants";
 import type { MatcherConfig } from "../matcher";
 import { positiveFiniteNumber } from "../math-utils";
@@ -137,7 +137,7 @@ function activeResourceComponents(
 }
 
 /** Older stored payloads may lack the combined benchmark-key field, so split fields remain the read fallback. */
-function availableBenchmarkKeysFrom(
+function resolveAvailableBenchmarkKeys(
 	artificialAnalysis: LlmStatsMetadata["artificial_analysis"],
 ): string[] {
 	return artificialAnalysis.available_benchmark_keys.length > 0
@@ -168,7 +168,7 @@ export function buildCurrentLlmStatsMetadata({
 		availabilitySource === "artificial_analysis"
 			? outputArtificialAnalysis
 			: modelArtificialAnalysis;
-	const availableBenchmarkKeys = availableBenchmarkKeysFrom(
+	const availableBenchmarkKeys = resolveAvailableBenchmarkKeys(
 		availabilityArtificialAnalysis,
 	);
 	const selectedBenchmarkKeys = sortedUniqueKeys([
@@ -210,7 +210,7 @@ export function buildCurrentLlmStatsMetadata({
 			benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
 			price_profiles: { ...scoringConfig.priceProfiles },
 			simulation_profiles: { ...scoringConfig.simulationProfiles },
-			simulation_input_token_seconds: scoringConfig.simulationInputTokenSeconds,
+			seconds_per_input_token: scoringConfig.secondsPerInputToken,
 			column_tooltips: {
 				...scoringConfig.columnTooltips,
 				...columnTooltipsForActiveComponents(resourceComponents),

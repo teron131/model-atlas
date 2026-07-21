@@ -17,7 +17,7 @@ import type {
 	LlmStatsColumnTooltips,
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
-import { LeaderboardCapture } from "./capture/leaderboard-capture";
+import { LeaderboardCapture } from "./capture/leaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";
 import type { CostFilter, ModelLimit, ProviderFilters } from "./graphs/types";
@@ -33,8 +33,8 @@ import {
 	DEFAULT_DISPLAY_ITEMS,
 	useDisplayLimit,
 } from "./shared/display-controls";
-import { ModelControlToolbar } from "./shared/model-control-toolbar";
-import { modelCount, modelsForVariantDisplay } from "./shared/modelDisplay";
+import { modelCount, modelsForVariantDisplay } from "./shared/model-display";
+import { ModelToolbar } from "./shared/model-toolbar";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dashboardMetricColumns,
@@ -48,8 +48,7 @@ import { tableColumnTooltip } from "./table/tooltips";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
 const DASHBOARD_THEME_STORAGE_KEY = "model-atlas:dashboard-theme";
-const REASONING_VARIANT_DISPLAY_STORAGE_KEY =
-	"model-atlas:expand-reasoning-variants";
+const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 const TOOLTIP_FADE_OUT_MS = 1_000;
 const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
 
@@ -85,7 +84,7 @@ export function Dashboard({
 	const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
 	const deferredFilterQuery = useDeferredValue(filterQuery);
 	const [, startSortTransition] = useTransition();
-	const { payload, errorMessage, fullPayloadLoaded } =
+	const { payload, errorMessage, hasFullPayload } =
 		useLivePayload(initialPayload);
 
 	const displayPayload = useMemo(() => {
@@ -267,7 +266,7 @@ export function Dashboard({
 			<DashboardGraphs
 				payload={displayPayload}
 				referenceModels={payload?.models ?? []}
-				fullPayloadLoaded={fullPayloadLoaded}
+				hasFullPayload={hasFullPayload}
 				benchmarksLoading={isInitialLoading}
 				selectedProviders={selectedProviders}
 				providerChoices={providerChoices}
@@ -280,7 +279,7 @@ export function Dashboard({
 				onModelLimitChange={setModelLimit}
 				afterLead={
 					<section className="dashboard-deck" aria-label="Model leaderboard">
-						<ModelControlToolbar
+						<ModelToolbar
 							filterQuery={filterQuery}
 							rowCountLabel={rowCountLabel}
 							provider={{
@@ -393,15 +392,14 @@ function useReasoningVariantDisplay() {
 			hydratedModeRef.current = true;
 			try {
 				setExpandReasoningVariants(
-					window.localStorage.getItem(REASONING_VARIANT_DISPLAY_STORAGE_KEY) ===
-						"true",
+					window.localStorage.getItem(REASONING_VARIANT_STORAGE_KEY) === "true",
 				);
 			} catch {}
 			return;
 		}
 		try {
 			window.localStorage.setItem(
-				REASONING_VARIANT_DISPLAY_STORAGE_KEY,
+				REASONING_VARIANT_STORAGE_KEY,
 				String(expandReasoningVariants),
 			);
 		} catch {}

@@ -55,8 +55,8 @@ assert.equal(rows[2]?.model, "GLM-5.2 (max)");
 assert.equal(rows[2]?.reasoning_effort, "max");
 assert.equal(rows[3]?.base_model, "Claude Fable 5");
 
-const scoreByModelName = buildBenchmarkModelMap(rows);
-assert.equal(scoreByModelName.get("gpt-5-6-sol")?.score, 0.399);
-assert.equal(scoreByModelName.get("glm-5-2")?.score, 0.356);
-assert.equal(scoreByModelName.get("claude-fable-5")?.score, 0.433);
-assert.equal(scoreByModelName.has("gpt-5-6-sol-pro"), true);
+const rowsByModelName = buildBenchmarkModelMap(rows);
+assert.equal(rowsByModelName.get("gpt-5-6-sol")?.score, 0.399);
+assert.equal(rowsByModelName.get("glm-5-2")?.score, 0.356);
+assert.equal(rowsByModelName.get("claude-fable-5")?.score, 0.433);
+assert.equal(rowsByModelName.has("gpt-5-6-sol-pro"), true);

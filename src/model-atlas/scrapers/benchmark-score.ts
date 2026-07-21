@@ -37,7 +37,7 @@ export type BenchmarkScorePayload = {
 	data: BenchmarkScoreRow[];
 };
 
-export type BenchmarkScoreByModelName = Map<string, BenchmarkScoreRow>;
+export type BenchmarkRowsByModelName = Map<string, BenchmarkScoreRow>;
 
 function isNewer(row: BenchmarkScoreRow, current: BenchmarkScoreRow): boolean {
 	return (row.observed_at ?? "") > (current.observed_at ?? "");
@@ -64,7 +64,7 @@ function modelKeys(row: BenchmarkScoreRow): string[] {
 /** Index one benchmark's eligible rows with exact variants and a source-default base row. */
 export function buildBenchmarkScoreMap(
 	rows: readonly BenchmarkScoreRow[],
-): BenchmarkScoreByModelName {
+): BenchmarkRowsByModelName {
 	const rowsByModel = new Map<string, BenchmarkScoreRow>();
 	const defaultByBase = new Map<string, BenchmarkScoreRow>();
 	for (const row of rows) {

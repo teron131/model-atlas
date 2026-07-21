@@ -1,12 +1,12 @@
-"use client";
-
 /** Direct graph screenshot action. */
+
+"use client";
 
 import type { RefObject } from "react";
 import { ScreenshotIcon } from "../shared/DashboardIcons";
 import styles from "./capture.module.css";
-import { captureFileToken } from "./export-png";
-import { usePngCapture } from "./use-png-capture";
+import { captureFileToken } from "./png";
+import { usePngCapture } from "./use-png";
 
 /** Download a referenced graph panel while keeping the action itself out of the image. */
 export function CaptureButton({

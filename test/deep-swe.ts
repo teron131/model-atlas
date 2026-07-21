@@ -55,17 +55,14 @@ assertDeepEqual(
 	],
 );
 
-const scoreByModelName = buildDeepSWEMap([
+const rowsByModelName = buildDeepSWEMap([
 	...rows,
 	row("gemini-3-flash-preview", 0.05),
 ]);
 
-assertDeepEqual(scoreByModelName.get("gpt-5-5")?.pass_at_1, 0.62);
-assertDeepEqual(
-	scoreByModelName.get("gemini-3-flash-preview")?.pass_at_1,
-	0.05,
-);
-assertDeepEqual(scoreByModelName.get("gemini-3-flash"), undefined);
+assertDeepEqual(rowsByModelName.get("gpt-5-5")?.pass_at_1, 0.62);
+assertDeepEqual(rowsByModelName.get("gemini-3-flash-preview")?.pass_at_1, 0.05);
+assertDeepEqual(rowsByModelName.get("gemini-3-flash"), undefined);
 
 const collisionMap = buildDeepSWEMap([
 	{

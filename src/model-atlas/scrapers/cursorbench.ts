@@ -38,7 +38,7 @@ const REASONING_EFFORTS = [
 	"Non Reasoning",
 ] as const;
 
-export type CursorBenchScraperOptions = {
+type CursorBenchScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -55,9 +55,9 @@ export type CursorBenchModelScoreRow = {
 	steps_per_task: number;
 };
 
-export type CursorBenchScoreByModelName = Map<string, CursorBenchModelScoreRow>;
+export type CursorBenchRowsByModelName = Map<string, CursorBenchModelScoreRow>;
 
-export type CursorBenchModelScorePayload = {
+type CursorBenchModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: CursorBenchModelScoreRow[];
 };
@@ -69,7 +69,7 @@ type ParsedCursorBenchCellRow = {
 
 /** Stores the source-default or highest-effort row under each model alias. */
 function addDefaultEffortRowAlias(
-	scoreByModelName: CursorBenchScoreByModelName,
+	rowsByModelName: CursorBenchRowsByModelName,
 	alias: string,
 	row: CursorBenchModelScoreRow,
 ): void {
@@ -77,13 +77,13 @@ function addDefaultEffortRowAlias(
 	if (key.length === 0) {
 		return;
 	}
-	const existing = scoreByModelName.get(key);
+	const existing = rowsByModelName.get(key);
 	if (
 		existing == null ||
 		reasoningEffortRank(row.reasoning_effort) >
 			reasoningEffortRank(existing.reasoning_effort)
 	) {
-		scoreByModelName.set(key, row);
+		rowsByModelName.set(key, row);
 	}
 }
 
@@ -285,28 +285,28 @@ export function processCursorBenchPageHtml(
 /** Build the scoring lookup from eligible rows while leaving caveated rows available as raw evidence. */
 export function buildCursorBenchMap(
 	rows: CursorBenchModelScoreRow[],
-): CursorBenchScoreByModelName {
-	const scoreByModelName: CursorBenchScoreByModelName = new Map();
+): CursorBenchRowsByModelName {
+	const rowsByModelName: CursorBenchRowsByModelName = new Map();
 	for (const row of rows) {
 		if (!row.score_eligible) {
 			continue;
 		}
 		for (const alias of cursorBenchModelAliases(row)) {
-			addDefaultEffortRowAlias(scoreByModelName, alias, row);
+			addDefaultEffortRowAlias(rowsByModelName, alias, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findCursorBenchScore(
 	candidateNames: unknown[],
-	cursorBenchScoreByModelName: CursorBenchScoreByModelName,
+	cursorBenchRowsByModelName: CursorBenchRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = cursorBenchScoreByModelName.get(
+		const row = cursorBenchRowsByModelName.get(
 			normalizeModelToken(candidateName),
 		);
 		if (row) {

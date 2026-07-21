@@ -1,7 +1,8 @@
 /** Provider logo resolution maps source and provider hints to Artificial Analysis assets before stats caching. */
-const ARTIFICIAL_ANALYSIS_LOGO_URL = "https://artificialanalysis.ai/img/logos";
+const ARTIFICIAL_ANALYSIS_LOGO_BASE_URL =
+	"https://artificialanalysis.ai/img/logos";
 
-const ARTIFICIAL_ANALYSIS_LOGO_ASSET_BY_PROVIDER: Record<string, string> = {
+const ARTIFICIAL_ANALYSIS_ASSET_BY_PROVIDER: Record<string, string> = {
 	ai2: "ai2_small.svg",
 	ai21: "ai21_small.svg",
 	alibaba: "alibaba_small.svg",
@@ -68,9 +69,7 @@ function normalizeProvider(provider: string | null | undefined): string | null {
 	return normalizedProvider.length > 0 ? normalizedProvider : null;
 }
 
-function toAbsoluteArtificialAnalysisLogoUrl(
-	logoUrl: string | null | undefined,
-): string | null {
+function absoluteLogoUrl(logoUrl: string | null | undefined): string | null {
 	const logoValue = nonEmptyString(logoUrl);
 	if (!logoValue) {
 		return null;
@@ -84,24 +83,7 @@ function toAbsoluteArtificialAnalysisLogoUrl(
 	if (logoValue.includes("/")) {
 		return `https://artificialanalysis.ai/${logoValue}`;
 	}
-	return `${ARTIFICIAL_ANALYSIS_LOGO_URL}/${logoValue}`;
-}
-
-function buildArtificialAnalysisLogoUrl(
-	asset: string | null | undefined,
-): string | null {
-	const assetValue = nonEmptyString(asset);
-	if (!assetValue) {
-		return null;
-	}
-	return `${ARTIFICIAL_ANALYSIS_LOGO_URL}/${assetValue}`;
-}
-
-function artificialAnalysisLogoAsset(provider: string | null): string | null {
-	if (!provider) {
-		return null;
-	}
-	return ARTIFICIAL_ANALYSIS_LOGO_ASSET_BY_PROVIDER[provider] ?? null;
+	return `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${logoValue}`;
 }
 
 export function resolveStatsLogo(options: {
@@ -109,9 +91,14 @@ export function resolveStatsLogo(options: {
 	explicitLogo?: string | null;
 }): string {
 	const provider = normalizeProvider(options.provider);
+	const providerAsset = provider
+		? ARTIFICIAL_ANALYSIS_ASSET_BY_PROVIDER[provider]
+		: null;
 	return (
-		toAbsoluteArtificialAnalysisLogoUrl(options.explicitLogo) ??
-		buildArtificialAnalysisLogoUrl(artificialAnalysisLogoAsset(provider)) ??
+		absoluteLogoUrl(options.explicitLogo) ??
+		(providerAsset
+			? `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${providerAsset}`
+			: null) ??
 		""
 	);
 }

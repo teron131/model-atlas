@@ -5,7 +5,7 @@ import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { deriveModelStats } from "../stats/derivation";
 import { buildDebugTraceRows } from "./debug-trace";
 import { buildSourceHealth } from "./health";
-import { cachedSourceDataFromSnapshots } from "./source-snapshots/source-data";
+import { cachedSourceDataFromSnapshots } from "./source-snapshots/data";
 import type {
 	DatabaseBuildResult,
 	DebugTraceRow,
@@ -64,7 +64,7 @@ type OpenRouterLoader = (modelIds: string[]) => Promise<{
 	cacheStatus: DatabaseBuildResult["source_cache"]["openrouter"];
 }>;
 
-export type DerivedDatabaseSnapshot = {
+type DerivedDatabaseSnapshot = {
 	rows: DatabaseSnapshotRows;
 	sourceCache: DatabaseBuildResult["source_cache"];
 };
@@ -222,7 +222,7 @@ export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_WRITERS.map(
 
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
-	startedAt: number,
+	startedAtEpochSeconds: number,
 	snapshots: SourceSnapshots,
 	sourceCache: DatabaseBuildResult["source_cache"],
 	loadOpenRouter: OpenRouterLoader,
@@ -250,7 +250,7 @@ export async function deriveDatabaseSnapshot(
 			finalModelRows,
 			debugTraceRows,
 			sourceHealth: buildSourceHealth({
-				generatedAtEpochSeconds: startedAt,
+				generatedAtEpochSeconds: startedAtEpochSeconds,
 				sourceCache: finalSourceCache,
 				sourceRowStates: snapshots.sourceRowStates,
 			}),

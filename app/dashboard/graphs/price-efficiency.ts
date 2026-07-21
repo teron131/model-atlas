@@ -1,4 +1,4 @@
-/** Chart-only reconstruction of price and cost-efficiency score signals. */
+/** Price-efficiency chart data reconstruction and summaries. */
 
 import {
 	coverageConfidence,
@@ -15,7 +15,7 @@ import type {
 	LlmStatsModel,
 	LlmStatsTaskMetricValues,
 } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../shared/modelDisplay";
+import { modelVariantKey } from "../shared/model-display";
 import {
 	finiteValue,
 	fmtMoney,
@@ -24,7 +24,7 @@ import {
 } from "./format";
 import type { HoverRow } from "./types";
 
-export type PriceEfficiencyComparisonRow = {
+export type PriceEfficiencyRow = {
 	model: LlmStatsModel;
 	priceScore: number;
 	costEfficiencyScore: number;
@@ -42,25 +42,22 @@ type PriceEfficiencyDraft = {
 };
 
 /** Rebuild the scored absolute-price and benchmark-only task-cost signals for chart comparison. */
-export function priceEfficiencyComparisonRows(
+export function priceEfficiencyRows(
 	visibleModels: LlmStatsModel[],
 	referenceModels: LlmStatsModel[],
 	portfolio: BenchmarkPortfolio,
 	expandReasoningVariants: boolean,
-): PriceEfficiencyComparisonRow[] {
-	const pricedModels = referenceModels.filter(isPriceEligibleModel);
+): PriceEfficiencyRow[] {
+	const eligibleModels = referenceModels.filter(isPriceEligibleModel);
 	const priceScores = modelBalancedMinMaxScores(
-		pricedModels,
-		pricedModels.map((model) =>
+		eligibleModels,
+		eligibleModels.map((model) =>
 			log10OnePlusPositive(finiteValue(model.cost?.blended_price)),
 		),
 		"lower",
 	);
-	const costEfficiencyScores = benchmarkCostEfficiencyByModel(
-		pricedModels,
-		portfolio,
-	);
-	const drafts = pricedModels.flatMap(
+	const costEfficiencyScores = costEfficiencyByModel(eligibleModels, portfolio);
+	const drafts = eligibleModels.flatMap(
 		(model, index): PriceEfficiencyDraft[] => {
 			const blendedPrice = finiteValue(model.cost?.blended_price);
 			const logCost = log10OnePlusPositive(blendedPrice);
@@ -90,27 +87,24 @@ export function priceEfficiencyComparisonRows(
 			];
 		},
 	);
-	const strongestReferenceByIdentity = new Map<string, LlmStatsModel>();
+	const strongestByKey = new Map<string, LlmStatsModel>();
 	for (const model of referenceModels) {
-		const key = comparisonIdentity(model, expandReasoningVariants);
-		const existing = strongestReferenceByIdentity.get(key);
+		const key = comparisonKey(model, expandReasoningVariants);
+		const existing = strongestByKey.get(key);
 		if (
 			existing == null ||
 			model.scores.intelligence_score > existing.scores.intelligence_score
 		) {
-			strongestReferenceByIdentity.set(key, model);
+			strongestByKey.set(key, model);
 		}
 	}
-	const draftByReference = new Map(drafts.map((draft) => [draft.model, draft]));
+	const draftByModel = new Map(drafts.map((draft) => [draft.model, draft]));
 	return visibleModels
-		.flatMap((model): PriceEfficiencyComparisonRow[] => {
-			const strongestReference = strongestReferenceByIdentity.get(
-				comparisonIdentity(model, expandReasoningVariants),
+		.flatMap((model): PriceEfficiencyRow[] => {
+			const reference = strongestByKey.get(
+				comparisonKey(model, expandReasoningVariants),
 			);
-			const draft =
-				strongestReference == null
-					? null
-					: draftByReference.get(strongestReference);
+			const draft = reference == null ? null : draftByModel.get(reference);
 			if (draft == null) {
 				return [];
 			}
@@ -130,7 +124,7 @@ export function priceEfficiencyComparisonRows(
 		);
 }
 
-function comparisonIdentity(
+function comparisonKey(
 	model: LlmStatsModel,
 	expandReasoningVariants: boolean,
 ): string {
@@ -148,9 +142,7 @@ function isPriceEligibleModel(model: LlmStatsModel): boolean {
 	return log10OnePlusPositive(blendedPrice) != null && qualityScore != null;
 }
 
-export function priceEfficiencyHoverRows(
-	row: PriceEfficiencyComparisonRow,
-): HoverRow[] {
+export function priceEfficiencyHoverRows(row: PriceEfficiencyRow): HoverRow[] {
 	return [
 		["Price score", fmtTooltipScore(row.priceScore)],
 		["Cost efficiency score", fmtTooltipScore(row.costEfficiencyScore)],
@@ -160,21 +152,17 @@ export function priceEfficiencyHoverRows(
 	];
 }
 
-export function priceEfficiencySummaryDetail(
-	row: PriceEfficiencyComparisonRow,
-): string {
+export function priceEfficiencySummaryDetail(row: PriceEfficiencyRow): string {
 	return `${row.costEfficiencyScore.toFixed(1)} efficiency / ${row.priceScore.toFixed(
 		1,
 	)} price / ${fmtMoney(row.blendedPrice)}`;
 }
 
-export function priceEfficiencyDeltaDetail(
-	row: PriceEfficiencyComparisonRow,
-): string {
+export function priceEfficiencyDeltaDetail(row: PriceEfficiencyRow): string {
 	return `${signedScore(row.deltaScore)} vs price score`;
 }
 
-function benchmarkCostEfficiencyByModel(
+function costEfficiencyByModel(
 	models: LlmStatsModel[],
 	portfolio: BenchmarkPortfolio,
 ): Array<number | null> {

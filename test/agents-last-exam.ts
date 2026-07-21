@@ -214,7 +214,7 @@ if (gptScore == null) {
 	throw new Error("Expected a gpt-5-5 score row");
 }
 
-const scoreByModelName = buildAgentsLastExamMap([
+const rowsByModelName = buildAgentsLastExamMap([
 	...modelScores,
 	{
 		...gptScore,
@@ -227,7 +227,7 @@ const scoreByModelName = buildAgentsLastExamMap([
 
 const matchedScore = findAgentsLastExamModelScore(
 	["missing", "gpt-5-5"],
-	scoreByModelName,
+	rowsByModelName,
 );
 
 assertDeepEqual(matchedScore?.frequency, 7);

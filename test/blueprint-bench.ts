@@ -43,14 +43,14 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildBlueprintBenchMap(rows);
+const rowsByModelName = buildBlueprintBenchMap(rows);
 
 assertDeepEqual(
-	findBlueprintBenchScore(["missing", "GPT-5.5"], scoreByModelName),
+	findBlueprintBenchScore(["missing", "GPT-5.5"], rowsByModelName),
 	0.362,
 );
 
 assertDeepEqual(
-	findBlueprintBenchScore(["Gemini 3 Flash"], scoreByModelName),
+	findBlueprintBenchScore(["Gemini 3 Flash"], rowsByModelName),
 	0,
 );

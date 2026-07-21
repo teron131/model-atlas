@@ -41,7 +41,6 @@
 		"@types/react-dom": "^19.2.3",
 		"playwright": "^1.60.0",
 		"tsx": "^4.21.0",
-		"typescript": "^5.9.3",
-		"wrangler": "^4.103.0"
+		"typescript": "^5.9.3"
 	}
 }

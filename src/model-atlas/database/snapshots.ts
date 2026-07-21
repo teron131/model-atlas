@@ -1,4 +1,4 @@
-/** Source snapshot orchestration shares one cache-aware workflow across local SQLite and production D1. */
+/** Source snapshots share one cache-aware workflow across local SQLite and production D1. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -189,7 +189,7 @@ function updateSourceCacheStatuses(
 	}
 }
 
-function fetchedAtFromSourceStatuses(
+function fetchedAtFromStatuses(
 	sourceStatuses: SourceSnapshotStatus[],
 ): SourceSnapshots["fetchedAt"] {
 	const fetchedAt: SourceSnapshots["fetchedAt"] = {
@@ -554,7 +554,7 @@ export async function refreshSourceSnapshots(
 			sourceRowStates: sourceStatuses.flatMap(
 				(sourceStatus) => sourceStatus.sourceRowStates,
 			),
-			fetchedAt: fetchedAtFromSourceStatuses(sourceStatuses),
+			fetchedAt: fetchedAtFromStatuses(sourceStatuses),
 		},
 		sourceCache,
 	};

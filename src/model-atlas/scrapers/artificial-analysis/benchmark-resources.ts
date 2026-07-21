@@ -74,7 +74,7 @@ const BRIEFCASE_SECONDS_PER_TASK_POLICY = {
 	},
 } as const satisfies SecondsPerTaskPolicy;
 
-export type ArtificialAnalysisEvaluationResourcePage = {
+type ArtificialAnalysisEvaluationResourcePage = {
 	benchmark_key: string;
 	score_key?: string;
 	score_path?: JsonPath;
@@ -86,7 +86,7 @@ export type ArtificialAnalysisEvaluationResourcePage = {
 	task_run_count: number;
 };
 
-export type ArtificialAnalysisEvaluationResourceOptions = {
+type ArtificialAnalysisEvaluationResourceOptions = {
 	pages?: readonly ArtificialAnalysisEvaluationResourcePage[];
 	timeoutMs?: number;
 	concurrency?: number;
@@ -112,7 +112,7 @@ export type ArtificialAnalysisEvaluationResourceRow = {
 	reasoning_tokens_per_task: number | null;
 };
 
-export type ArtificialAnalysisEvaluationResourcePayload = {
+type ArtificialAnalysisEvaluationResourcePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: ArtificialAnalysisEvaluationResourceRow[];
 };
@@ -308,7 +308,7 @@ function secondsPerTask(
 		: msPerTask / 1000;
 }
 
-function extractArtificialAnalysisEvaluationRowsFromPageHtml(
+function extractRowsFromPageHtml(
 	pageHtml: string,
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): Record<string, unknown>[] {
@@ -350,7 +350,7 @@ function extractArtificialAnalysisEvaluationRowsFromPageHtml(
 	return [...resourceRowsById.values()];
 }
 
-function artificialAnalysisEvaluationResourceRow(
+function resourceRow(
 	sourceRow: unknown,
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): ArtificialAnalysisEvaluationResourceRow | null {
@@ -365,7 +365,7 @@ function artificialAnalysisEvaluationResourceRow(
 	const model = cleanArtificialAnalysisModelName(sourceModelName) ?? modelSlug;
 	const reasoningEffort =
 		parseArtificialAnalysisReasoningEffort(sourceModelName) ??
-		reasoningEffortFromModelSlug(modelSlug);
+		reasoningEffortFromSlug(modelSlug);
 	const cost = costRecord(row, page);
 	const tokenCounts = tokenCountsRecord(row, page);
 	const score = scoreValue(row, page);
@@ -434,7 +434,7 @@ function artificialAnalysisEvaluationResourceRow(
 	};
 }
 
-function reasoningEffortFromModelSlug(modelSlug: string | null): string | null {
+function reasoningEffortFromSlug(modelSlug: string | null): string | null {
 	if (modelSlug == null) {
 		return null;
 	}
@@ -454,7 +454,7 @@ export function processArtificialAnalysisEvaluationResourceRows(
 	page: ArtificialAnalysisEvaluationResourcePage,
 ): ArtificialAnalysisEvaluationResourceRow[] {
 	return rows
-		.map((row) => artificialAnalysisEvaluationResourceRow(row, page))
+		.map((row) => resourceRow(row, page))
 		.filter(
 			(row): row is ArtificialAnalysisEvaluationResourceRow => row != null,
 		)
@@ -463,16 +463,6 @@ export function processArtificialAnalysisEvaluationResourceRows(
 				`${right.benchmark_key}/${right.model_id}`,
 			),
 		);
-}
-
-function processArtificialAnalysisEvaluationResourcePageHtml(
-	pageHtml: string,
-	page: ArtificialAnalysisEvaluationResourcePage,
-): ArtificialAnalysisEvaluationResourceRow[] {
-	return processArtificialAnalysisEvaluationResourceRows(
-		extractArtificialAnalysisEvaluationRowsFromPageHtml(pageHtml, page),
-		page,
-	);
 }
 
 function modelKeyCandidates(
@@ -489,13 +479,13 @@ function reasoningModelKeyCandidates(
 	row: ArtificialAnalysisEvaluationResourceRow,
 ): string[] {
 	return modelKeyCandidates(row)
-		.map(withoutReasoningEffortSuffix)
+		.map(withoutEffortSuffix)
 		.filter(
 			(key, index, keys) => key.length > 0 && keys.indexOf(key) === index,
 		);
 }
 
-function withoutReasoningEffortSuffix(key: string): string {
+function withoutEffortSuffix(key: string): string {
 	let base = key;
 	for (const suffix of REASONING_EFFORT_SUFFIXES) {
 		if (base.endsWith(`-${suffix}`)) {
@@ -549,20 +539,15 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 			([benchmarkKey, rowsByModel]) => [benchmarkKey, new Map(rowsByModel)],
 		),
 	);
-	const defaultRowsByBenchmarkAndModelKey = new Map<
+	const defaultRowsByBenchmark = new Map<
 		string,
 		Map<string, ArtificialAnalysisEvaluationResourceRow>
 	>();
 	for (const row of rows) {
-		let defaultRowsByModelKey = defaultRowsByBenchmarkAndModelKey.get(
-			row.benchmark_key,
-		);
+		let defaultRowsByModelKey = defaultRowsByBenchmark.get(row.benchmark_key);
 		if (defaultRowsByModelKey == null) {
 			defaultRowsByModelKey = new Map();
-			defaultRowsByBenchmarkAndModelKey.set(
-				row.benchmark_key,
-				defaultRowsByModelKey,
-			);
+			defaultRowsByBenchmark.set(row.benchmark_key, defaultRowsByModelKey);
 		}
 		for (const key of reasoningModelKeyCandidates(row)) {
 			defaultRowsByModelKey.set(
@@ -576,9 +561,7 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 		if (rowsByModelKey == null) {
 			continue;
 		}
-		const defaultRowsByModelKey = defaultRowsByBenchmarkAndModelKey.get(
-			row.benchmark_key,
-		);
+		const defaultRowsByModelKey = defaultRowsByBenchmark.get(row.benchmark_key);
 		const defaultModelRow = reasoningModelKeyCandidates(row).reduce<
 			ArtificialAnalysisEvaluationResourceRow | undefined
 		>(
@@ -596,10 +579,7 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 			rowsByModelKey.set(key, defaultModelRow);
 		}
 	}
-	for (const [
-		benchmarkKey,
-		defaultRowsByModelKey,
-	] of defaultRowsByBenchmarkAndModelKey) {
+	for (const [benchmarkKey, defaultRowsByModelKey] of defaultRowsByBenchmark) {
 		const rowsByModelKey = rowsByBenchmark.get(benchmarkKey);
 		if (rowsByModelKey == null) {
 			continue;
@@ -642,8 +622,8 @@ async function getEvaluationResourceRows(
 			`Artificial Analysis evaluation resource scrape failed for ${page.benchmark_key}: ${response.status}`,
 		);
 	}
-	return processArtificialAnalysisEvaluationResourcePageHtml(
-		await response.text(),
+	return processArtificialAnalysisEvaluationResourceRows(
+		extractRowsFromPageHtml(await response.text(), page),
 		page,
 	);
 }

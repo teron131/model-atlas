@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 
-import { providerAssets } from "../app/dashboard/shared/providerAssets.generated";
+import { providerAssets } from "../app/dashboard/shared/provider-assets.generated";
 import {
-	providerAssetLogo,
-	providerDisplayColor,
-} from "../app/dashboard/shared/providerTheme";
+	providerBrandColor,
+	providerLogo,
+} from "../app/dashboard/shared/provider-theme";
 
-const openaiLogo = providerAssetLogo("openai");
+const openaiLogo = providerLogo("openai");
 const openaiSvg = svgText(openaiLogo);
-const metaLogo = providerAssetLogo("meta");
+const metaLogo = providerLogo("meta");
 
 assert.equal(
 	openaiLogo.startsWith("data:image/svg+xml;base64,"),
@@ -16,9 +16,9 @@ assert.equal(
 	"provider logos should be generated as source-managed SVG data URLs",
 );
 assert.equal(
-	providerDisplayColor("openai"),
+	providerBrandColor("openai"),
 	"var(--provider-openai-color)",
-	"fixed provider colors should remain stable over generated colors",
+	"provider color overrides should remain stable over generated colors",
 );
 assert.match(
 	openaiSvg,

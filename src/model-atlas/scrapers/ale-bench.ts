@@ -20,18 +20,18 @@ import {
 	processAleBenchEpochCsv,
 } from "./epoch/ale-bench";
 
-export const ALE_BENCH_SAKANA_RESULTS_URL =
+const ALE_BENCH_SAKANA_RESULTS_URL =
 	"https://sakanaai.github.io/ALE-Bench-Leaderboard/data/results_summary.json";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-const SOURCE_DEFAULT_SELF_REFINE_COUNT = 1;
-const MINIMUM_CROSSWALK_MODELS = 3;
-const MAXIMUM_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.01;
+const DEFAULT_SELF_REFINE_COUNT = 1;
+const MIN_CROSSWALK_MODELS = 3;
+const MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.01;
 const SPLITS = ["all", "short", "long"] as const;
 const SLUG_EFFORT_SUFFIX_PATTERN =
 	/^(.*)-(ultra|xhigh|extra-high|max|high|medium|low|minimal|none|adaptive)$/;
 
-export type AleBenchSummaryStatistics = {
+type AleBenchSummaryStatistics = {
 	mean: number;
 	median: number;
 	min: number;
@@ -39,12 +39,12 @@ export type AleBenchSummaryStatistics = {
 	stdev: number;
 };
 
-export type AleBenchSplitStatistics = Record<
+type AleBenchSplitStatistics = Record<
 	(typeof SPLITS)[number],
 	AleBenchSummaryStatistics
 >;
 
-export type AleBenchTaskResult = {
+type AleBenchTaskResult = {
 	problem_id: string;
 	code_language: string;
 	overall_judge_result: string;
@@ -83,22 +83,22 @@ export type AleBenchModelScoreRow = AleBenchConfigurationRow & {
 	output_tokens_per_task: number;
 };
 
-export type AleBenchScoreByModelName = Map<string, AleBenchModelScoreRow>;
+export type AleBenchRowsByModelName = Map<string, AleBenchModelScoreRow>;
 
-export type AleBenchCrosswalkStatus = SourceCrosswalkDiagnostic & {
+type AleBenchCrosswalkStatus = SourceCrosswalkDiagnostic & {
 	epochRowCount: number;
 	sakanaSourceDefaultRowCount: number;
 	missingFromEpoch: string[];
 };
 
-export type AleBenchPayload = {
+type AleBenchPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: AleBenchConfigurationRow[];
 	epoch_rows: AleBenchEpochRow[];
 	crosswalk: AleBenchCrosswalkStatus | null;
 };
 
-export type AleBenchScraperOptions = {
+type AleBenchScraperOptions = {
 	sakanaUrl?: string;
 	epochUrl?: string;
 	timeoutMs?: number;
@@ -275,7 +275,7 @@ export function summarizeAleBenchSourceDefaultRows(
 	rows: readonly AleBenchConfigurationRow[],
 ): AleBenchModelScoreRow[] {
 	return rows
-		.filter((row) => row.num_self_refine === SOURCE_DEFAULT_SELF_REFINE_COUNT)
+		.filter((row) => row.num_self_refine === DEFAULT_SELF_REFINE_COUNT)
 		.map((row) => {
 			const effort = aleBenchModelEffort(row.model);
 			return {
@@ -307,8 +307,8 @@ export function buildAleBenchCrosswalkStatus(
 	const crosswalk = buildAdditiveSourceCrosswalk(items, {
 		primaryValue: (item) => item.epochPerformance,
 		fallbackValue: (item) => item.sakanaPerformance,
-		minimumEffectiveModels: MINIMUM_CROSSWALK_MODELS,
-		maximumMedianAbsoluteError: MAXIMUM_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
+		minimumEffectiveModels: MIN_CROSSWALK_MODELS,
+		maximumMedianAbsoluteError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
 	});
 	return {
 		...crosswalk.diagnostic,

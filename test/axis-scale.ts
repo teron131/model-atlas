@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { steppedLinearAxisScale } from "../app/dashboard/graphs/axisScale";
+import { steppedLinearAxisScale } from "../app/dashboard/graphs/axis-scale";
 
 const benchmarkScoreAxisOptions = {
 	formatTick: (tick: number) => `${tick}%`,

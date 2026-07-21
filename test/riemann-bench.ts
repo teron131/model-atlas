@@ -1,14 +1,13 @@
 /** Verifies Riemann Bench parsing, matching, and source URL provenance. */
 
 import assert from "node:assert/strict";
-
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
 import {
 	buildRiemannBenchMap,
 	findRiemannBenchScore,
 	getRiemannBenchStats,
 	RIEMANN_BENCH_LEADERBOARD_URL,
 } from "../src/model-atlas/scrapers/surge/riemann-bench";
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);
@@ -84,15 +83,15 @@ assertDeepEqual(rowsWithoutRankingHeading, [
 	},
 ]);
 
-const scoreByModelName = buildRiemannBenchMap(rows);
+const rowsByModelName = buildRiemannBenchMap(rows);
 
 assertDeepEqual(
-	findRiemannBenchScore(["missing", "GPT 5.5"], scoreByModelName),
+	findRiemannBenchScore(["missing", "GPT 5.5"], rowsByModelName),
 	0.416,
 );
 
 assertDeepEqual(
-	findRiemannBenchScore(["Claude Fable 5"], scoreByModelName),
+	findRiemannBenchScore(["Claude Fable 5"], rowsByModelName),
 	0.55,
 );
 

@@ -44,7 +44,7 @@ type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
 
 type VariantAggregation = "expand" | "collapse";
 
-function normalizeOpenRouterSpeed(performance: unknown): JsonObject {
+function normalizeSpeed(performance: unknown): JsonObject {
 	const parsed = asRecord(performance);
 	return {
 		throughput_tokens_per_second_median: asFiniteNumber(
@@ -57,7 +57,7 @@ function normalizeOpenRouterSpeed(performance: unknown): JsonObject {
 	};
 }
 
-function normalizeOpenRouterPricing(pricing: unknown): JsonObject {
+function normalizePricing(pricing: unknown): JsonObject {
 	const parsed = asRecord(pricing);
 	return {
 		weighted_input: asFiniteNumber(parsed.weighted_input_price_per_1m),
@@ -92,7 +92,7 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 	const providerId = row.provider_id;
 	const artificialAnalysisIdentityBoost =
 		typeof row.artificial_analysis_id === "string" ? 4_000_000 : 0;
-	const openrouterBoost = providerId === PRIMARY_PROVIDER_ID ? 1_000_000 : 0;
+	const openRouterBoost = providerId === PRIMARY_PROVIDER_ID ? 1_000_000 : 0;
 	const benchmarkBoost = hasBenchmarkSignal(row) ? 2_000_000 : 0;
 	const intelligenceCostBoost = hasIntelligenceCost(row) ? 1_000 : 0;
 	const componentScoreBoost = hasComponentScoreSignal(row) ? 10 : 0;
@@ -111,7 +111,7 @@ function rowPriority(row: JsonObject, normalizedId: string): number {
 		reasoningEffortBoost +
 		artificialAnalysisIdentityBoost +
 		benchmarkBoost +
-		openrouterBoost +
+		openRouterBoost +
 		intelligenceCostBoost +
 		componentScoreBoost
 	);
@@ -186,9 +186,7 @@ function mergeObjectField(
 	}
 }
 
-function primaryOpenRouterIdForGroup(
-	group: readonly JsonObject[],
-): string | null {
+function primaryRouteIdForGroup(group: readonly JsonObject[]): string | null {
 	for (const candidate of group) {
 		if (candidate.provider_id !== PRIMARY_PROVIDER_ID) {
 			continue;
@@ -211,7 +209,7 @@ function mergeDuplicateRows(
 		mergeObjectField(merged, field, group);
 	}
 	const openRouterId =
-		primaryOpenRouterIdForGroup(group) ??
+		primaryRouteIdForGroup(group) ??
 		publicOpenRouterModelId(rowOpenRouterModelId(merged));
 	if (openRouterId != null) {
 		merged.id = openRouterId;
@@ -272,7 +270,7 @@ function hasPricingData(pricing: JsonObject): boolean {
 	);
 }
 
-function setMapValuePreferPopulated(
+function indexPreferredRouteData(
 	map: Map<string, JsonObject>,
 	key: string,
 	value: JsonObject,
@@ -284,36 +282,36 @@ function setMapValuePreferPopulated(
 	}
 }
 
-function getMapValueByExactOrNormalizedId(
+function findRouteData(
 	map: Map<string, JsonObject>,
 	modelId: string,
 ): JsonObject | null {
 	return map.get(modelId) ?? map.get(normalizeProviderModelId(modelId)) ?? null;
 }
 
-function setMapValueForExactAndNormalizedId(
+function indexRouteData(
 	map: Map<string, JsonObject>,
 	modelId: string,
 	value: JsonObject,
 	hasData: (value: JsonObject) => boolean,
 ): void {
-	setMapValuePreferPopulated(map, modelId, value, hasData);
+	indexPreferredRouteData(map, modelId, value, hasData);
 	const normalizedId = normalizeProviderModelId(modelId);
 	if (normalizedId !== modelId) {
-		setMapValuePreferPopulated(map, normalizedId, value, hasData);
+		indexPreferredRouteData(map, normalizedId, value, hasData);
 	}
 }
 
-function setMapValueForOpenRouterRoute(
+function indexOpenRouterRouteData(
 	map: Map<string, JsonObject>,
 	modelId: string,
 	value: JsonObject,
 	hasData: (value: JsonObject) => boolean,
 ): void {
-	setMapValueForExactAndNormalizedId(map, modelId, value, hasData);
+	indexRouteData(map, modelId, value, hasData);
 	const publicId = publicOpenRouterModelId(modelId);
 	if (publicId != null && publicId !== modelId) {
-		setMapValueForExactAndNormalizedId(map, publicId, value, hasData);
+		indexRouteData(map, publicId, value, hasData);
 	}
 }
 
@@ -340,7 +338,7 @@ function rowOpenRouterModelId(row: Record<string, unknown>): string | null {
 	);
 }
 
-function aliasOpenRouterDataToPublicRows(
+function indexPublicRouteData(
 	rows: Record<string, unknown>[],
 	speedById: Map<string, JsonObject>,
 	pricingById: Map<string, JsonObject>,
@@ -351,23 +349,13 @@ function aliasOpenRouterDataToPublicRows(
 		if (publicId == null || openRouterId == null || publicId === openRouterId) {
 			continue;
 		}
-		const speed = getMapValueByExactOrNormalizedId(speedById, openRouterId);
+		const speed = findRouteData(speedById, openRouterId);
 		if (speed != null) {
-			setMapValueForExactAndNormalizedId(
-				speedById,
-				publicId,
-				speed,
-				hasSpeedData,
-			);
+			indexRouteData(speedById, publicId, speed, hasSpeedData);
 		}
-		const pricing = getMapValueByExactOrNormalizedId(pricingById, openRouterId);
+		const pricing = findRouteData(pricingById, openRouterId);
 		if (pricing != null) {
-			setMapValueForExactAndNormalizedId(
-				pricingById,
-				publicId,
-				pricing,
-				hasPricingData,
-			);
+			indexRouteData(pricingById, publicId, pricing, hasPricingData);
 		}
 	}
 }
@@ -525,17 +513,12 @@ async function buildOpenRouterDataById(
 		const speedById = new Map<string, JsonObject>();
 		const pricingById = new Map<string, JsonObject>();
 		for (const model of models) {
-			const speed = normalizeOpenRouterSpeed(model.performance);
-			const pricing = normalizeOpenRouterPricing(model.pricing);
-			setMapValueForOpenRouterRoute(speedById, model.id, speed, hasSpeedData);
-			setMapValueForOpenRouterRoute(
-				pricingById,
-				model.id,
-				pricing,
-				hasPricingData,
-			);
+			const speed = normalizeSpeed(model.performance);
+			const pricing = normalizePricing(model.pricing);
+			indexOpenRouterRouteData(speedById, model.id, speed, hasSpeedData);
+			indexOpenRouterRouteData(pricingById, model.id, pricing, hasPricingData);
 		}
-		aliasOpenRouterDataToPublicRows(rows, speedById, pricingById);
+		indexPublicRouteData(rows, speedById, pricingById);
 		return { speedById, pricingById, rawPayload };
 	} catch {
 		return {
@@ -549,7 +532,7 @@ async function buildOpenRouterDataById(
 /** Enrich matched rows with route-level OpenRouter speed and pricing without making the source snapshot depend on live route stats. */
 export async function enrichModelRowsWithOpenRouter(
 	rows: Record<string, unknown>[],
-	openrouterConfig: OpenRouterConfig,
+	openRouterConfig: OpenRouterConfig,
 	scoringConfig: ScoringConfig,
 	cachedOpenRouterRawPayload?: OpenRouterRawScrapedPayload | null,
 ): Promise<LlmStatsEnrichmentResult> {
@@ -560,7 +543,7 @@ export async function enrichModelRowsWithOpenRouter(
 		rawPayload: openRouterRawPayload,
 	} = await buildOpenRouterDataById(
 		costBackfilledRows,
-		openrouterConfig.speedConcurrency,
+		openRouterConfig.speedConcurrency,
 		cachedOpenRouterRawPayload,
 	);
 	const speedOutputTokenAnchors = deriveSpeedOutputTokenAnchors(

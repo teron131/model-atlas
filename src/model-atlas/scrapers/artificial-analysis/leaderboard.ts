@@ -23,7 +23,7 @@ const SPARSE_COLUMN_NULL_RATIO = 0.5;
 const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
 const MIN_INTELLIGENCE_COST_TOTAL_TOKENS = 1_000_000;
 
-export type ArtificialAnalysisLeaderboardOptions = {
+type ArtificialAnalysisLeaderboardOptions = {
 	url?: string;
 	timeoutMs?: number;
 	flatten?: boolean;
@@ -31,18 +31,18 @@ export type ArtificialAnalysisLeaderboardOptions = {
 	selectedColumns?: string[];
 };
 
-export type ArtificialAnalysisLeaderboardProcessOptions = {
+type ArtificialAnalysisLeaderboardProcessOptions = {
 	flatten?: boolean;
 	dropMostlyNullColumns?: boolean;
 	selectedColumns?: string[];
 };
 
-export type ArtificialAnalysisLeaderboardRawPayload = {
+type ArtificialAnalysisLeaderboardRawPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: JsonObject[];
 };
 
-export type ArtificialAnalysisLeaderboardPayload =
+type ArtificialAnalysisLeaderboardPayload =
 	ArtificialAnalysisLeaderboardRawPayload;
 
 /** Leaderboard projection columns keep source-data callers off the larger raw page row shape. */
@@ -537,15 +537,6 @@ function getSelectedColumnValue(
 					creator.logo_url ??
 					creator.logo_small ??
 					creator.logo,
-			);
-		case "attachment":
-			return (
-				Boolean(row.input_modality_image) ||
-				Boolean(row.input_modality_video) ||
-				Boolean(row.input_modality_speech) ||
-				Boolean(row.inputModalityImage) ||
-				Boolean(row.inputModalityVideo) ||
-				Boolean(row.inputModalitySpeech)
 			);
 		case "reasoning":
 		case "reasoning_model":

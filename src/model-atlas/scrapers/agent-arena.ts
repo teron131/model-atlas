@@ -28,14 +28,14 @@ export type AgentArenaModelScoreRow = {
 	score: number;
 };
 
-export type AgentArenaScoreByModelName = Map<string, AgentArenaModelScoreRow>;
+export type AgentArenaRowsByModelName = Map<string, AgentArenaModelScoreRow>;
 
-export type AgentArenaPayload = {
+type AgentArenaPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: AgentArenaModelScoreRow[];
 };
 
-export type AgentArenaScraperOptions = {
+type AgentArenaScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };

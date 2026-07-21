@@ -17,14 +17,14 @@ export type LlmStatsJsonView =
 	| "full"
 	| "dashboard";
 
-export type PublicJsonPayload =
+type PublicJsonPayload =
 	| ScoreJsonPayload
 	| CoreJsonPayload
 	| BenchmarksJsonPayload
 	| FullJsonPayload
 	| LlmStatsPayload;
 
-export type CoreJsonPayload = {
+type CoreJsonPayload = {
 	schema: typeof CORE_SCHEMA;
 	fetched_at_epoch_seconds: number | null;
 	score_scale: typeof SCORE_SCALE;
@@ -37,12 +37,9 @@ export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
 	models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<
-	LlmStatsModel,
-	"attachment" | "reasoning" | "logo"
->;
+type PublicFullJsonModel = Omit<LlmStatsModel, "reasoning" | "logo">;
 
-export type ScoreJsonPayload = {
+type ScoreJsonPayload = {
 	schema: typeof SCORE_SCHEMA;
 	fetched_at_epoch_seconds: number | null;
 	score_scale: typeof SCORE_SCALE;
@@ -50,7 +47,7 @@ export type ScoreJsonPayload = {
 	scores: ScoreJsonModel[];
 };
 
-export type ScoreJsonModel = {
+type ScoreJsonModel = {
 	rank: number;
 	id: string | null;
 	name: string | null;
@@ -63,7 +60,7 @@ export type ScoreJsonModel = {
 	};
 };
 
-export type BenchmarksJsonPayload = {
+type BenchmarksJsonPayload = {
 	schema: typeof BENCHMARKS_SCHEMA;
 	fetched_at_epoch_seconds: number | null;
 	benchmark_scale: typeof BENCHMARK_SCALE;
@@ -71,7 +68,7 @@ export type BenchmarksJsonPayload = {
 	benchmarks: BenchmarksJsonModel[];
 };
 
-export type BenchmarksJsonModel = {
+type BenchmarksJsonModel = {
 	rank: number;
 	id: string | null;
 	name: string | null;
@@ -79,7 +76,7 @@ export type BenchmarksJsonModel = {
 	benchmarks: Record<string, number | null>;
 };
 
-export type CoreJsonModel = {
+type CoreJsonModel = {
 	rank: number;
 	id: string | null;
 	name: string | null;
@@ -201,7 +198,9 @@ export function benchmarksJsonPayload(
 export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
 	return {
 		...payload,
-		models: payload.models.map(fullJsonModel),
+		models: payload.models.map(
+			({ logo: _logo, reasoning: _reasoning, ...model }) => model,
+		),
 	};
 }
 
@@ -222,16 +221,6 @@ function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 		previousRank = rank;
 	}
 	return rankedModels;
-}
-
-function fullJsonModel(model: LlmStatsModel): PublicFullJsonModel {
-	const {
-		attachment: _attachment,
-		logo: _logo,
-		reasoning: _reasoning,
-		...modelPayload
-	} = model;
-	return modelPayload;
 }
 
 function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {

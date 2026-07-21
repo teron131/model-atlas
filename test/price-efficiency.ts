@@ -2,10 +2,10 @@
 
 import assert from "node:assert/strict";
 import {
-	priceEfficiencyComparisonRows,
 	priceEfficiencyHoverRows,
+	priceEfficiencyRows,
 	priceEfficiencySummaryDetail,
-} from "../app/dashboard/graphs/priceEfficiencyComparisonModel";
+} from "../app/dashboard/graphs/price-efficiency";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
@@ -75,7 +75,7 @@ const referenceModels = [
 		valueScore: 100,
 	}),
 ];
-const rows = priceEfficiencyComparisonRows(
+const rows = priceEfficiencyRows(
 	referenceModels,
 	referenceModels,
 	portfolio,
@@ -83,18 +83,14 @@ const rows = priceEfficiencyComparisonRows(
 );
 
 assert.deepEqual(
-	priceEfficiencyComparisonRows(
-		[middleStrong],
-		referenceModels,
-		portfolio,
-		true,
-	)[0]?.priceScore,
+	priceEfficiencyRows([middleStrong], referenceModels, portfolio, true)[0]
+		?.priceScore,
 	rows.find((row) => row.model === middleStrong)?.priceScore,
 	"filters should not redefine chart calibration",
 );
 const effortReference = { ...middleStrong, reasoning_effort: "max" };
 assert.equal(
-	priceEfficiencyComparisonRows(
+	priceEfficiencyRows(
 		[{ ...effortReference, reasoning_effort: null }],
 		[effortReference],
 		portfolio,
@@ -128,7 +124,7 @@ const availableWeakerVariant = {
 	reasoning_effort: "high",
 };
 assert.equal(
-	priceEfficiencyComparisonRows(
+	priceEfficiencyRows(
 		[{ ...unavailableStrongestVariant, reasoning_effort: null }],
 		[unavailableStrongestVariant, availableWeakerVariant, cheapWeak],
 		portfolio,

@@ -12,7 +12,7 @@ import { surgeLeaderboardScoreRows } from "./common";
 const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/gdp-pdf";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type GdpPdfScraperOptions = {
+type GdpPdfScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -24,9 +24,9 @@ export type GdpPdfModelScoreRow = {
 	last_updated?: string | null;
 };
 
-export type GdpPdfScoreByModelName = Map<string, GdpPdfModelScoreRow>;
+export type GdpPdfRowsByModelName = Map<string, GdpPdfModelScoreRow>;
 
-export type GdpPdfModelScorePayload = {
+type GdpPdfModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: GdpPdfModelScoreRow[];
 };
@@ -46,26 +46,26 @@ function modelKeyCandidates(model: string): string[] {
 
 export function buildGdpPdfMap(
 	rows: GdpPdfModelScoreRow[],
-): GdpPdfScoreByModelName {
-	const scoreByModelName: GdpPdfScoreByModelName = new Map();
+): GdpPdfRowsByModelName {
+	const rowsByModelName: GdpPdfRowsByModelName = new Map();
 	for (const row of rows) {
 		for (const key of modelKeyCandidates(row.model)) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findGdpPdfScore(
 	candidateNames: unknown[],
-	gdpPdfScoreByModelName: GdpPdfScoreByModelName,
+	gdpPdfRowsByModelName: GdpPdfRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
 		for (const key of modelKeyCandidates(candidateName)) {
-			const row = gdpPdfScoreByModelName.get(key);
+			const row = gdpPdfRowsByModelName.get(key);
 			if (row) {
 				return row.score;
 			}

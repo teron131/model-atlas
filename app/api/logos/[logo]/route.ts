@@ -1,6 +1,6 @@
 /** Route for GET /api/logos/[logo], returning one logo as a single-entry dictionary. */
 
-import { providerAssets } from "../../../dashboard/shared/providerAssets.generated";
+import { providerAssets } from "../../../dashboard/shared/provider-assets.generated";
 import { publicCacheHeaders } from "../../cache-headers";
 
 export const revalidate = 86400;

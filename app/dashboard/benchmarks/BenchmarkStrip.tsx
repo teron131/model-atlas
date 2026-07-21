@@ -49,7 +49,7 @@ export function BenchmarkStrip({
 	const activeTooltipContent =
 		tooltip == null
 			? undefined
-			: benchmarkTooltipWithCoverage(
+			: tooltipWithCoverage(
 					benchmarkTooltips[tooltip.key],
 					benchmarkCoverage(models, tooltip.key),
 				);
@@ -240,7 +240,7 @@ function coverageAriaLabel(coverage: BenchmarkCoverage): string {
 		: `${benchmarkCoverageLabel(coverage)} coverage in current model view`;
 }
 
-function benchmarkTooltipWithCoverage(
+function tooltipWithCoverage(
 	tooltip: (typeof benchmarkTooltips)[string] | undefined,
 	coverage: BenchmarkCoverage,
 ) {

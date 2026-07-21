@@ -13,7 +13,7 @@ import {
 	writeDatabaseSnapshotRows,
 } from "./pipeline";
 import { openDatabase, removeDatabaseFiles } from "./schema";
-import { loadSourceSnapshots } from "./source-snapshots";
+import { loadSourceSnapshots } from "./snapshots";
 import {
 	type DatabaseBuildOptions,
 	type DatabaseBuildResult,
@@ -87,18 +87,18 @@ export async function buildDatabase(
 	outputPath = DEFAULT_DATABASE_PATH,
 	options: DatabaseBuildOptions = {},
 ): Promise<DatabaseBuildResult> {
-	const startedAt = nowEpochSeconds();
+	const startedAtEpochSeconds = nowEpochSeconds();
 	let db: DatabaseSync | null = await openDatabase(outputPath);
 
 	try {
 		const { snapshots, sourceCache } = await loadSourceSnapshots(
 			db,
-			startedAt,
+			startedAtEpochSeconds,
 			STAGE_CONFIG.scoring,
 			options,
 		);
 		const derived = await deriveDatabaseSnapshot(
-			startedAt,
+			startedAtEpochSeconds,
 			snapshots,
 			sourceCache,
 			(modelIds) =>
@@ -106,7 +106,7 @@ export async function buildDatabase(
 					db as DatabaseSync,
 					modelIds,
 					STAGE_CONFIG.openrouter.speedConcurrency,
-					startedAt,
+					startedAtEpochSeconds,
 					options,
 				),
 		);

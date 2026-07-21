@@ -11,7 +11,7 @@ type SnapshotReadState = {
 	cacheExpiresAt: number;
 };
 
-export type SnapshotRuntime = {
+type SnapshotRuntime = {
 	remoteSnapshotUrl?: string;
 	requiresD1: boolean;
 	hasD1SnapshotStore: boolean;
@@ -32,28 +32,20 @@ export function snapshotRuntime(): SnapshotRuntime {
 	};
 }
 
-/** Runtime reads use D1; local development may explicitly point to a remote JSON snapshot. */
-async function readBestSnapshotCache(
-	runtime: SnapshotRuntime,
-): Promise<LlmStatsPayload | null> {
-	assertD1Configured(runtime);
-	return readD1Snapshot();
-}
-
 /** Collapse concurrent reads and keep a short in-memory result for repeated server renders. */
 export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | null> {
 	const state = getSnapshotReadState();
 	if (state.cachedPayload != null && Date.now() < state.cacheExpiresAt) {
 		return state.cachedPayload;
 	}
-	state.readInFlight ??= readDisplaySnapshotPayloadUncached().finally(() => {
+	state.readInFlight ??= readDisplayPayloadUncached().finally(() => {
 		state.readInFlight = null;
 	});
 	return state.readInFlight;
 }
 
 /** Display reads never trigger writes; refresh is owned by the authenticated refresh route. */
-async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | null> {
+async function readDisplayPayloadUncached(): Promise<LlmStatsPayload | null> {
 	const runtime = snapshotRuntime();
 	if (!runtime.requiresD1 && runtime.remoteSnapshotUrl) {
 		const payload = await fetchRemoteSnapshot(runtime.remoteSnapshotUrl).catch(
@@ -62,7 +54,8 @@ async function readDisplaySnapshotPayloadUncached(): Promise<LlmStatsPayload | n
 		cacheDisplayPayload(payload);
 		return payload;
 	}
-	const payload = await readBestSnapshotCache(runtime);
+	assertD1Configured(runtime);
+	const payload = await readD1Snapshot();
 	cacheDisplayPayload(payload);
 	return payload;
 }
@@ -82,13 +75,13 @@ export async function refreshStoredSnapshot(
 ): Promise<LlmStatsPayload> {
 	assertD1Configured(runtime);
 	const { payload } = await publishD1Snapshot();
-	return withCurrentSnapshotMetadata(payload);
+	return withCurrentMetadata(payload);
 }
 
 /** D1 stores completed run payloads; readers overlay current metadata so old snapshots follow today’s scoring portfolio. */
-export async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
+async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
 	const payload = await readD1Payload();
-	return payload == null ? null : withCurrentSnapshotMetadata(payload);
+	return payload == null ? null : withCurrentMetadata(payload);
 }
 
 /** Prevent runtime reads from silently substituting a build-time or local snapshot for D1. */
@@ -118,13 +111,11 @@ async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
 			`Unable to fetch Model Atlas snapshot: HTTP ${response.status}`,
 		);
 	}
-	return withCurrentSnapshotMetadata(await response.json());
+	return withCurrentMetadata(await response.json());
 }
 
 /** Keep cached payload rows, but rebuild metadata from current code-owned benchmark and scoring policy. */
-function withCurrentSnapshotMetadata(
-	payload: LlmStatsPayload,
-): LlmStatsPayload {
+function withCurrentMetadata(payload: LlmStatsPayload): LlmStatsPayload {
 	return {
 		...payload,
 		metadata: buildCurrentLlmStatsMetadata({

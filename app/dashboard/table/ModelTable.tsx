@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
-import { modelVariantKey } from "../shared/modelDisplay";
+import { modelVariantKey } from "../shared/model-display";
 import { staticSortableColumns } from "./Columns";
 import type {
 	DashboardMetricColumn,
@@ -25,7 +25,7 @@ import {
 	clampNumber,
 	type TableViewportSnapshot,
 	useTableViewport,
-} from "./tableViewport";
+} from "./viewport";
 
 const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
 
@@ -40,10 +40,10 @@ type ModelTableProps = {
 	metricColumns: DashboardMetricColumn[];
 };
 
-const TABLE_SCROLL_THUMB_MIN_PERCENT = 8;
-const TABLE_SCROLL_THUMB_MIN_WIDTH_PX = 58;
+const SCROLL_THUMB_MIN_PERCENT = 8;
+const SCROLL_THUMB_MIN_WIDTH_PX = 58;
 const TABLE_SCROLL_KEY_STEP_PX = 80;
-const TABLE_SCROLL_PAGE_STEP_RATIO = 0.85;
+const SCROLL_PAGE_STEP_RATIO = 0.85;
 const staticColumnKeys = staticSortableColumns.map((column) => column.key);
 
 export function ModelTable({
@@ -74,11 +74,11 @@ export function ModelTable({
 		columnCount: columnKeys.length,
 		onTooltipEnd,
 	});
-	const stickyHeaderReady = columnWidths.length === columnKeys.length;
+	const isStickyHeaderReady = columnWidths.length === columnKeys.length;
 	const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
 	const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
 	const stickyHeaderTableStyle =
-		stickyHeaderReady && stickyHeaderWidth > 0
+		isStickyHeaderReady && stickyHeaderWidth > 0
 			? ({
 					width: stickyHeaderWidthStyle,
 					minWidth: stickyHeaderWidthStyle,
@@ -96,7 +96,7 @@ export function ModelTable({
 		<div
 			className="table-shell"
 			data-pinned-columns={pinnedColumnsEnabled}
-			data-sticky-head-ready={stickyHeaderReady}
+			data-sticky-head-ready={isStickyHeaderReady}
 			style={tableShellStyle}
 		>
 			<div
@@ -177,7 +177,7 @@ function TableScrollRail({
 	const canScroll = snapshot.maxScrollLeft > 1;
 	const thumbWidthPercent = canScroll
 		? Math.max(
-				TABLE_SCROLL_THUMB_MIN_PERCENT,
+				SCROLL_THUMB_MIN_PERCENT,
 				(snapshot.clientWidth / snapshot.scrollWidth) * 100,
 			)
 		: 100;
@@ -189,7 +189,7 @@ function TableScrollRail({
 		: 0;
 	const railStyle = {
 		"--table-scrollbar-thumb-left": `${thumbLeftPercent}%`,
-		"--table-scrollbar-thumb-min-width": `${TABLE_SCROLL_THUMB_MIN_WIDTH_PX}px`,
+		"--table-scrollbar-thumb-min-width": `${SCROLL_THUMB_MIN_WIDTH_PX}px`,
 		"--table-scrollbar-thumb-width": `${thumbWidthPercent}%`,
 	} as CSSProperties;
 	const scrollToPointer = useCallback(
@@ -251,7 +251,7 @@ function TableScrollRail({
 			if (!canScroll) {
 				return;
 			}
-			const pageStep = snapshot.clientWidth * TABLE_SCROLL_PAGE_STEP_RATIO;
+			const pageStep = snapshot.clientWidth * SCROLL_PAGE_STEP_RATIO;
 			if (event.key === "ArrowLeft") {
 				event.preventDefault();
 				onScrollTo(snapshot.scrollLeft - TABLE_SCROLL_KEY_STEP_PX);

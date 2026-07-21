@@ -40,7 +40,7 @@ export type BenchmarkImputationConfidenceByModel = ReadonlyMap<
 	ReadonlyMap<string, number>
 >;
 
-export type BenchmarkImputationDiagnostic = {
+type BenchmarkImputationDiagnostic = {
 	validationSampleCount: number;
 	effectiveModelCount: number;
 	normalizedMedianAbsoluteError: number | null;
@@ -68,10 +68,7 @@ type MutableBenchmarkImputationMaps = {
 };
 
 type BenchmarkImputationPreparation = MutableBenchmarkImputationMaps & {
-	benchmarkImputationDiagnosticsByKey: Map<
-		string,
-		BenchmarkImputationDiagnostic
-	>;
+	imputationDiagnosticsByKey: Map<string, BenchmarkImputationDiagnostic>;
 };
 
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
@@ -101,18 +98,15 @@ type DimensionBenchmarkContext = {
 	benchmarkWeights: ReadonlyMap<string, number>;
 };
 
-function mercorApexScore(model: JsonObject): number | null {
-	return asFiniteNumber(
-		asRecord(asRecord(model.scoring_sources)[MERCOR_APEX_SOURCE_KEY]).score,
-	);
-}
-
 function buildMercorApexImputation(
 	models: JsonObject[],
 ): MutableBenchmarkImputationMaps {
 	const crosswalk = buildAdditiveSourceCrosswalk(models, {
 		primaryValue: (model) => benchmarkMetricValue(model, APEX_AGENTS_KEY),
-		fallbackValue: mercorApexScore,
+		fallbackValue: (model) =>
+			asFiniteNumber(
+				asRecord(asRecord(model.scoring_sources)[MERCOR_APEX_SOURCE_KEY]).score,
+			),
 		minimumEffectiveModels: MIN_APEX_CROSSWALK_MODELS,
 		maximumMedianAbsoluteError: MAX_APEX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
 		normalizeProjection: clamp01,
@@ -281,7 +275,7 @@ function imputationConfidence(
 }
 
 /** Build one dimension-specific predictor from observed context and target values only. */
-function buildDimensionBenchmarkPredictor(
+function buildDimensionPredictor(
 	models: JsonObject[],
 	targetBenchmarkKey: string,
 	dimension: BenchmarkDimension,
@@ -375,7 +369,7 @@ function observedValuesByBenchmark(
 }
 
 /** Learn one directed sibling-effort context mapping for a target benchmark and dimension. */
-function buildCrossEffortDimensionPredictor(
+function buildCrossEffortPredictor(
 	calibrationModels: JsonObject[],
 	calibrationRows: EffortRowsByModel,
 	contextRows: EffortRowsByModel,
@@ -488,7 +482,7 @@ function crossEffortTransitions(
 	});
 }
 
-function buildWeightedBenchmarkPredictors(
+function buildWeightedPredictors(
 	models: JsonObject[],
 	targetBenchmarkKey: string,
 	scoringConfig: ScoringConfig,
@@ -503,7 +497,7 @@ function buildWeightedBenchmarkPredictors(
 	const direct = IMPUTATION_DIMENSIONS.map((dimension) => ({
 		predict:
 			portfolioEntry.dimensionLoadings[dimension] > 0
-				? buildDimensionBenchmarkPredictor(
+				? buildDimensionPredictor(
 						models,
 						targetBenchmarkKey,
 						dimension,
@@ -529,7 +523,7 @@ function buildWeightedBenchmarkPredictors(
 		IMPUTATION_DIMENSIONS.map((dimension) => ({
 			predict:
 				portfolioEntry.dimensionLoadings[dimension] > 0
-					? buildCrossEffortDimensionPredictor(
+					? buildCrossEffortPredictor(
 							models,
 							calibrationRows,
 							contextRows,
@@ -578,7 +572,7 @@ function predictedBenchmarkValue(
 }
 
 /** Validate one benchmark's imputer while withholding every variant of the observed model. */
-function benchmarkImputationDiagnostic(
+function imputationDiagnostic(
 	models: JsonObject[],
 	benchmarkKeys: readonly string[],
 	targetBenchmarkKey: string,
@@ -611,7 +605,7 @@ function benchmarkImputationDiagnostic(
 				benchmarkKeys,
 			);
 			calibration = {
-				predictors: buildWeightedBenchmarkPredictors(
+				predictors: buildWeightedPredictors(
 					trainingModels,
 					targetBenchmarkKey,
 					scoringConfig,
@@ -726,7 +720,7 @@ function preferCrossEffortDiagnostic(
 	);
 }
 
-function prepareBenchmarkImputation(
+function prepareImputation(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): BenchmarkImputationPreparation {
@@ -748,14 +742,14 @@ function prepareBenchmarkImputation(
 		if (portfolioEntry == null) {
 			continue;
 		}
-		const directOnlyDiagnostic = benchmarkImputationDiagnostic(
+		const directOnlyDiagnostic = imputationDiagnostic(
 			models,
 			benchmarkKeys,
 			key,
 			scoringConfig,
 			false,
 		);
-		const withCrossEffortDiagnostic = benchmarkImputationDiagnostic(
+		const withCrossEffortDiagnostic = imputationDiagnostic(
 			models,
 			benchmarkKeys,
 			key,
@@ -773,7 +767,7 @@ function prepareBenchmarkImputation(
 		if (!selectedDiagnostic.imputationAllowed) {
 			continue;
 		}
-		const selectedPredictors = buildWeightedBenchmarkPredictors(
+		const selectedPredictors = buildWeightedPredictors(
 			models,
 			key,
 			scoringConfig,
@@ -813,7 +807,7 @@ function prepareBenchmarkImputation(
 	return {
 		benchmarkImputationByModel: imputationByModel,
 		benchmarkImputationConfidenceByModel: imputationConfidenceByModel,
-		benchmarkImputationDiagnosticsByKey: diagnosticsByKey,
+		imputationDiagnosticsByKey: diagnosticsByKey,
 	};
 }
 
@@ -822,8 +816,7 @@ export function buildBenchmarkImputationByModel(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
-	return prepareBenchmarkImputation(models, scoringConfig)
-		.benchmarkImputationByModel;
+	return prepareImputation(models, scoringConfig).benchmarkImputationByModel;
 }
 
 /** Report leave-one-model-out reliability evidence for every selected benchmark imputer. */
@@ -831,8 +824,7 @@ export function buildBenchmarkImputationDiagnosticsByKey(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): Map<string, BenchmarkImputationDiagnostic> {
-	return prepareBenchmarkImputation(models, scoringConfig)
-		.benchmarkImputationDiagnosticsByKey;
+	return prepareImputation(models, scoringConfig).imputationDiagnosticsByKey;
 }
 
 /** Precompute raw comparison distributions used to normalize quality fields before averaging. */
@@ -860,7 +852,7 @@ export function prepareBenchmarkScoring(
 	scoringConfig: ScoringConfig,
 ): PreparedBenchmarkScoring {
 	const { benchmarkImputationByModel, benchmarkImputationConfidenceByModel } =
-		prepareBenchmarkImputation(models, scoringConfig);
+		prepareImputation(models, scoringConfig);
 	const qualityContext = buildQualityScoringContext(models, scoringConfig);
 	return {
 		benchmarkImputationByModel,

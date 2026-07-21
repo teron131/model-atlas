@@ -11,8 +11,8 @@ import {
 import { mergeCachedSourceRows } from "./policy";
 import type { DatabaseBuildOptions, RawSourceCacheStatus } from "./types";
 
-const PARTIAL_OPENROUTER_TIMEOUT_MS = 10_000;
-const PARTIAL_OPENROUTER_MAX_RETRIES = 1;
+const PARTIAL_FETCH_TIMEOUT_MS = 10_000;
+const PARTIAL_FETCH_MAX_RETRIES = 1;
 
 export type OpenRouterRawCache = ReturnType<typeof readOpenRouterRawCache>;
 
@@ -52,7 +52,7 @@ export function openRouterModelIdsToRefresh(
 }
 
 /** Keeps cached OpenRouter evidence only for current requested keys, while an empty request preserves all cached data. */
-function reconcileOpenRouterCacheModels(
+function scopeCachedModels(
 	cached: OpenRouterRawCache,
 	requestedModelIds: readonly string[],
 ): OpenRouterRawCache {
@@ -79,7 +79,7 @@ export async function refreshOpenRouterRawPayload(
 }> {
 	const replaceSourceRows = options.replaceSourceRows === true;
 	const requestedModelIds = [...new Set(modelIds)];
-	const scopedCache = reconcileOpenRouterCacheModels(cached, requestedModelIds);
+	const scopedCache = scopeCachedModels(cached, requestedModelIds);
 	const modelIdsToRefresh = openRouterModelIdsToRefresh(
 		scopedCache,
 		status,
@@ -112,8 +112,8 @@ export async function refreshOpenRouterRawPayload(
 						...(useCachedDirectory
 							? {
 									modelDirectory: scopedCache.directory,
-									timeoutMs: PARTIAL_OPENROUTER_TIMEOUT_MS,
-									maxRetries: PARTIAL_OPENROUTER_MAX_RETRIES,
+									timeoutMs: PARTIAL_FETCH_TIMEOUT_MS,
+									maxRetries: PARTIAL_FETCH_MAX_RETRIES,
 								}
 							: {}),
 					});

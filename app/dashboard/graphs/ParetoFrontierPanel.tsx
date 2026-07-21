@@ -5,15 +5,15 @@ import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../shared/modelDisplay";
-import { providerPaletteColor } from "../shared/providerTheme";
-import { scoreAxisScale } from "./axisScale";
+import { modelVariantKey } from "../shared/model-display";
+import { providerChartColor } from "../shared/provider-theme";
+import { scoreAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { BubbleScaleLegend, EmptyChart } from "./ChartComponents";
-import { linearBubbleRadius, valueDistribution } from "./chartStats";
+import { linearBubbleRadius, valueDistribution } from "./chart-stats";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import styles from "./graphs.module.css";
-import { calloutLabelPlacements } from "./labelPlacement";
+import { calloutLabelPlacements } from "./label-placement";
 import { shortLabel } from "./models";
 import { Panel } from "./Panel";
 import {
@@ -117,8 +117,8 @@ export function ParetoFrontierPanel({
 			const toY = yPoint(toModel.scores.intelligence_score);
 			return {
 				gradientId: `pareto-frontier-gradient-${index + 1}`,
-				fromColor: providerPaletteColor(fromModel.provider),
-				toColor: providerPaletteColor(toModel.provider),
+				fromColor: providerChartColor(fromModel.provider),
+				toColor: providerChartColor(toModel.provider),
 				fromX,
 				fromY,
 				toX,
@@ -189,9 +189,7 @@ export function ParetoFrontierPanel({
 				/>
 			}
 			note={
-				<>
-					Step line: displayed INTELLIGENCE versus VALUE tradeoff envelope.
-				</>
+				<>Step line: displayed INTELLIGENCE versus VALUE tradeoff envelope.</>
 			}
 		>
 			<div className={styles.chartToolbar}>
@@ -306,7 +304,7 @@ export function ParetoFrontierPanel({
 									cx={cx}
 									cy={cy}
 									r={stableSvgNumber(bubbleRadius(bubbleValue(model)))}
-									fill={providerPaletteColor(model.provider)}
+									fill={providerChartColor(model.provider)}
 									stroke={
 										isFrontier
 											? "var(--chart-point-stroke-strong)"

@@ -1,4 +1,4 @@
-/** Collision-aware label placement for dense chart callouts. */
+/** Collision-aware placement rules for dense chart labels. */
 
 import { clamp } from "../../../src/model-atlas/math-utils";
 
@@ -35,7 +35,7 @@ export type PointLabelPlacement = {
 	};
 };
 
-export type PointLabelAnchor = {
+type PointLabelAnchor = {
 	key: string;
 	label: string;
 	cx: number;

@@ -17,7 +17,7 @@ const DEFAULT_DETAILS_URL =
 	"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type ToolathlonScraperOptions = {
+type ToolathlonScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -35,9 +35,9 @@ export type ToolathlonModelScoreRow = {
 	announcement_date?: string | null;
 };
 
-export type ToolathlonScoreByModelName = Map<string, ToolathlonModelScoreRow>;
+export type ToolathlonRowsByModelName = Map<string, ToolathlonModelScoreRow>;
 
-export type ToolathlonModelScorePayload = {
+type ToolathlonModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: ToolathlonModelScoreRow[];
 };
@@ -65,26 +65,26 @@ export function processToolathlonDetailsJson(
 
 export function buildToolathlonMap(
 	rows: ToolathlonModelScoreRow[],
-): ToolathlonScoreByModelName {
-	const scoreByModelName: ToolathlonScoreByModelName = new Map();
+): ToolathlonRowsByModelName {
+	const rowsByModelName: ToolathlonRowsByModelName = new Map();
 	for (const row of rows) {
 		const key = normalizeModelToken(row.model);
 		if (key.length > 0) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findToolathlonScore(
 	candidateNames: unknown[],
-	toolathlonScoreByModelName: ToolathlonScoreByModelName,
+	toolathlonRowsByModelName: ToolathlonRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = toolathlonScoreByModelName.get(
+		const row = toolathlonRowsByModelName.get(
 			normalizeModelToken(candidateName),
 		);
 		if (row) {

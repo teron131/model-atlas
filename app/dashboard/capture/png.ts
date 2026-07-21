@@ -2,7 +2,7 @@
 
 const PNG_PIXEL_RATIO = 1;
 const CAPTURE_STAGE_OFFSET = "-10000px";
-const SVG_CAPTURE_STYLE_PROPERTIES = [
+const SVG_STYLE_PROPERTIES = [
 	"color",
 	"display",
 	"fill",
@@ -121,7 +121,7 @@ function materializeSvgStyles(element: HTMLElement): () => void {
 	);
 	for (const node of styledElements) {
 		const computedStyle = window.getComputedStyle(node);
-		for (const property of SVG_CAPTURE_STYLE_PROPERTIES) {
+		for (const property of SVG_STYLE_PROPERTIES) {
 			node.style.setProperty(
 				property,
 				computedStyle.getPropertyValue(property),

@@ -1,6 +1,6 @@
-"use client";
-
 /** React state and lifecycle for rendering a referenced dashboard surface as a PNG. */
+
+"use client";
 
 import {
 	type RefObject,
@@ -9,9 +9,9 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { downloadElementPng } from "./export-png";
+import { downloadElementPng } from "./png";
 
-export type CaptureState = "idle" | "rendering" | "saved" | "error";
+type CaptureState = "idle" | "rendering" | "saved" | "error";
 
 /** Capture a referenced element while exposing compact progress and completion state. */
 export function usePngCapture(

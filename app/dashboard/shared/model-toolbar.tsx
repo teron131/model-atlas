@@ -5,8 +5,8 @@
 import { Boxes } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { DisplayControls, type DisplayControlsProps } from "./display-controls";
-import styles from "./model-control-toolbar.module.css";
-import { toggleProviderFilter } from "./modelDisplay";
+import { toggleProviderFilter } from "./model-display";
+import styles from "./model-toolbar.module.css";
 
 type ProviderControlOption = {
 	slug: string;
@@ -25,7 +25,7 @@ type ProviderControl = {
 };
 
 /** Render the shared model-control layout without owning its filtering state. */
-export function ModelControlToolbar({
+export function ModelToolbar({
 	filterQuery,
 	rowCountLabel,
 	provider,

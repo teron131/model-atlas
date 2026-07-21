@@ -2,14 +2,13 @@
 
 import { readDisplaySnapshotPayload } from "../../../src/model-atlas/database/runtime-snapshot";
 import { publicJsonPayload } from "../../../src/model-atlas/stats/public-json";
-import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import { publicCacheHeaders } from "../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-const PUBLIC_SNAPSHOT_CACHE_HEADERS = publicCacheHeaders({
+const SNAPSHOT_CACHE_HEADERS = publicCacheHeaders({
 	browserMaxAgeSeconds: 60,
 	cdnMaxAgeSeconds: 300,
 	staleWhileRevalidateSeconds: 3600,
@@ -22,9 +21,17 @@ export async function GET(request: Request) {
 	try {
 		const deployedSnapshot = await readDisplaySnapshotPayload();
 		if (deployedSnapshot != null) {
-			return jsonPayloadResponse(deployedSnapshot, view);
+			return Response.json(publicJsonPayload(deployedSnapshot, view), {
+				headers: SNAPSHOT_CACHE_HEADERS,
+			});
 		}
-		return unavailableSnapshotResponse();
+		return new Response("Stats snapshot unavailable", {
+			status: 503,
+			headers: {
+				"Cache-Control": "no-store",
+				"Content-Type": "text/plain; charset=utf-8",
+			},
+		});
 	} catch {
 		return new Response("Unable to read stats", {
 			status: 500,
@@ -34,20 +41,4 @@ export async function GET(request: Request) {
 			},
 		});
 	}
-}
-
-function unavailableSnapshotResponse(): Response {
-	return new Response("Stats snapshot unavailable", {
-		status: 503,
-		headers: {
-			"Cache-Control": "no-store",
-			"Content-Type": "text/plain; charset=utf-8",
-		},
-	});
-}
-
-function jsonPayloadResponse(payload: LlmStatsPayload, view: string | null) {
-	return Response.json(publicJsonPayload(payload, view), {
-		headers: PUBLIC_SNAPSHOT_CACHE_HEADERS,
-	});
 }

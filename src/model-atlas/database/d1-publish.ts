@@ -58,10 +58,7 @@ import {
 import { deriveDatabaseSnapshot, writeDatabaseSnapshotRows } from "./pipeline";
 import { sourceRowStatesFromRows } from "./policy";
 import type { SchemaReconciliationPlan } from "./schema";
-import {
-	refreshSourceSnapshots,
-	type SourceSnapshotCaches,
-} from "./source-snapshots";
+import { refreshSourceSnapshots, type SourceSnapshotCaches } from "./snapshots";
 import {
 	RAW_SOURCE_NAMES,
 	RAW_SOURCE_TABLES,
@@ -84,7 +81,7 @@ const DERIVED_TABLES = [
 const INSERT_ROWS_PER_STATEMENT = 100;
 const MAX_INSERT_STATEMENT_CHARS = 20_000;
 
-export type D1PublishResult = {
+type D1PublishResult = {
 	storage: "cloudflare_d1";
 	database_id: string;
 	model_count: number;
@@ -108,7 +105,7 @@ type D1RefreshState = {
 	previousPayload: LlmStatsPayload | null;
 };
 
-export type D1Publication = {
+type D1Publication = {
 	result: D1PublishResult;
 	payload: LlmStatsPayload;
 };
@@ -122,21 +119,21 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 		);
 	}
 	const schema = await ensureD1Schema();
-	const startedAt = nowEpochSeconds();
+	const startedAtEpochSeconds = nowEpochSeconds();
 	const replaceSourceRows = process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1";
-	const current = await readD1RefreshState(startedAt);
+	const current = await readD1RefreshState(startedAtEpochSeconds);
 	const refreshed = await refreshSourceSnapshots(
 		current.sourceCaches,
 		current.statuses,
 		current.previousSourceRowStates,
-		startedAt,
+		startedAtEpochSeconds,
 		STAGE_CONFIG.scoring,
 		{
 			replaceSourceRows,
 		},
 	);
 	const derived = await deriveDatabaseSnapshot(
-		startedAt,
+		startedAtEpochSeconds,
 		refreshed.snapshots,
 		refreshed.sourceCache,
 		(modelIds) =>
@@ -151,7 +148,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 			),
 	);
 	let collector = collectDatabaseSnapshot(derived.rows);
-	const previewPayload = payloadFromCollector(startedAt, collector);
+	const previewPayload = payloadFromCollector(startedAtEpochSeconds, collector);
 	const preservedPayload = replaceSourceRows
 		? previewPayload
 		: preserveHighSignalSnapshotModels(
@@ -169,7 +166,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 			tableContentHash(collector.records(RAW_SOURCE_TABLES[source])) !==
 			tableContentHash(current.rawRows[source]),
 	);
-	const nextPayload = payloadFromCollector(startedAt, collector);
+	const nextPayload = payloadFromCollector(startedAtEpochSeconds, collector);
 	if (
 		schema.statements.length === 0 &&
 		changedSources.length === 0 &&
@@ -198,14 +195,14 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 			payload,
 		};
 	}
-	const completedAt = nowEpochSeconds();
+	const completedAtEpochSeconds = nowEpochSeconds();
 	const statements = publicationStatements(
-		completedAt,
+		completedAtEpochSeconds,
 		collector,
 		changedSources,
 	);
 	await queryD1Batch(statements.map((sql) => ({ sql })));
-	const payload = payloadFromCollector(completedAt, collector);
+	const payload = payloadFromCollector(completedAtEpochSeconds, collector);
 	return {
 		result: publishResult(
 			config.databaseId,
@@ -243,7 +240,9 @@ function publishResult(
 	};
 }
 
-async function readD1RefreshState(now: number): Promise<D1RefreshState> {
+async function readD1RefreshState(
+	nowEpochSeconds: number,
+): Promise<D1RefreshState> {
 	const rawRows = await readD1RawRows();
 	const [previousSourceRows, previousPayload] = await Promise.all([
 		queryD1BatchRows([
@@ -256,7 +255,7 @@ async function readD1RefreshState(now: number): Promise<D1RefreshState> {
 	const previousHealth = previousPayload?.metadata.source_health?.sources;
 	return {
 		rawRows,
-		sourceCaches: sourceSnapshotCachesFromRows(rawRows),
+		sourceCaches: sourceCachesFromRows(rawRows),
 		openRouterCache: readOpenRouterRawCache(rawRows.openrouter),
 		statuses: Object.fromEntries(
 			RAW_SOURCE_NAMES.map((source) => [
@@ -264,7 +263,7 @@ async function readD1RefreshState(now: number): Promise<D1RefreshState> {
 				rawSourceCacheStatusFromRows(
 					source,
 					rawRows[source],
-					now,
+					nowEpochSeconds,
 					previousHealth?.[source],
 				),
 			]),
@@ -291,7 +290,7 @@ async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
 	) as Record<RawSourceName, CacheDbRow[]>;
 }
 
-function sourceSnapshotCachesFromRows(
+function sourceCachesFromRows(
 	rows: Record<RawSourceName, CacheDbRow[]>,
 ): SourceSnapshotCaches {
 	return {
@@ -355,12 +354,12 @@ function sourceHealthStatements(collector: SnapshotRowCollector): string[] {
 }
 
 function payloadFromCollector(
-	fetchedAt: number,
+	fetchedAtEpochSeconds: number,
 	collector: SnapshotRowCollector,
 ): LlmStatsPayload {
 	return buildPayloadFromRows(
 		buildPayloadRows(
-			fetchedAt,
+			fetchedAtEpochSeconds,
 			PAYLOAD_ROW_GROUPS.map(({ key, table }) => [
 				key,
 				collector.records(table),
@@ -370,7 +369,7 @@ function payloadFromCollector(
 }
 
 function publicationStatements(
-	completedAt: number,
+	completedAtEpochSeconds: number,
 	collector: SnapshotRowCollector,
 	changedSources: RawSourceName[],
 ): string[] {
@@ -384,7 +383,7 @@ function publicationStatements(
 		...tablesToInsert.flatMap((table) =>
 			insertStatements(table, collector.tables.get(table)),
 		),
-		`INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (${completedAt});`,
+		`INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (${completedAtEpochSeconds});`,
 	];
 }
 

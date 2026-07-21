@@ -265,57 +265,57 @@ const lookups = {
 		defaultEffortByModelName: resourceRowsByBenchmark,
 	},
 	agentArena: {
-		scoreByModelName: new Map([["example-model", agentArenaRow]]),
+		rowsByModelName: new Map([["example-model", agentArenaRow]]),
 	},
 	agentsLastExam: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
-	aleBench: { scoreByModelName: buildBenchmarkModelMap([aleBenchRow]) },
+	aleBench: { rowsByModelName: buildBenchmarkModelMap([aleBenchRow]) },
 	blueprintBench: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
 	browseComp: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
-	chartography: { scoreByModelName: new Map() },
-	chessPuzzles: { scoreByModelName: new Map() },
+	chartography: { rowsByModelName: new Map() },
+	chessPuzzles: { rowsByModelName: new Map() },
 	cursorBench: {
-		scoreByModelName: new Map([["example-model", cursorBenchRow]]),
+		rowsByModelName: new Map([["example-model", cursorBenchRow]]),
 	},
 	deepSWE: {
-		scoreByModelName: new Map([["example-model-preview", deepSWERow]]),
+		rowsByModelName: new Map([["example-model-preview", deepSWERow]]),
 	},
-	ebrBench: { scoreByModelName: new Map() },
-	enterpriseBenchCoreCraft: { scoreByModelName: new Map() },
-	epochCapabilitiesIndex: { scoreByModelName: new Map() },
+	ebrBench: { rowsByModelName: new Map() },
+	enterpriseBenchCoreCraft: { rowsByModelName: new Map() },
+	epochCapabilitiesIndex: { rowsByModelName: new Map() },
 	frontierCode: {
-		scoreByModelName: buildBenchmarkModelMap([frontierCodeRow]),
+		rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
 	},
-	frontierMathTier4: { scoreByModelName: new Map() },
+	frontierMathTier4: { rowsByModelName: new Map() },
 	gdpPdf: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
-	handbookMd: { scoreByModelName: new Map() },
+	handbookMd: { rowsByModelName: new Map() },
 	mercorApexAgents: {
-		scoreByModelName: new Map([["example-model", mercorApexRow]]),
+		rowsByModelName: new Map([["example-model", mercorApexRow]]),
 	},
-	proofBench: { scoreByModelName: new Map() },
+	proofBench: { rowsByModelName: new Map() },
 	riemannBench: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
 	valsTerminalBench: {
-		scoreByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
+		rowsByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
 	},
 	toolathlon: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
 	valsIndex: {
-		scoreByModelName: emptyLookup(),
+		rowsByModelName: emptyLookup(),
 	},
 	vendingBench2: {
-		scoreByModelName: new Map([["example-model", vendingBench2Row]]),
+		rowsByModelName: new Map([["example-model", vendingBench2Row]]),
 	},
-	weirdMl: { scoreByModelName: new Map() },
+	weirdMl: { rowsByModelName: new Map() },
 } satisfies BenchmarkEnrichmentLookups;
 
 const observationEnrichment = enrichBenchmarkObservation(
@@ -595,7 +595,7 @@ const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
 	{
 		...lookups,
 		chartography: {
-			scoreByModelName: buildBenchmarkScoreMap(chartographyRows),
+			rowsByModelName: buildBenchmarkScoreMap(chartographyRows),
 		},
 	},
 );

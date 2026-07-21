@@ -28,10 +28,6 @@ type BenchmarkScoreInput = {
 	weight: number;
 };
 
-function isObservedBenchmark(model: JsonObject, key: string): boolean {
-	return benchmarkMetricValue(model, key) != null;
-}
-
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
 export function observedBenchmarkCount(
 	model: unknown,
@@ -39,7 +35,8 @@ export function observedBenchmarkCount(
 ): number {
 	const modelRecord = asRecord(model);
 	return keys.reduce(
-		(count, key) => count + (isObservedBenchmark(modelRecord, key) ? 1 : 0),
+		(count, key) =>
+			count + (benchmarkMetricValue(modelRecord, key) != null ? 1 : 0),
 		0,
 	);
 }

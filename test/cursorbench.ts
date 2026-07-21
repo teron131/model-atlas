@@ -166,29 +166,29 @@ assertDeepEqual(compactRows, [
 	},
 ]);
 
-const scoreByModelName = buildCursorBenchMap(rows);
+const rowsByModelName = buildCursorBenchMap(rows);
 
 assertDeepEqual(
-	findCursorBenchScore(["missing", "GPT 5.5 Medium"], scoreByModelName),
+	findCursorBenchScore(["missing", "GPT 5.5 Medium"], rowsByModelName),
 	0.592,
 );
 
 assertDeepEqual(
-	findCursorBenchScore(["Claude Opus 4.8"], scoreByModelName),
+	findCursorBenchScore(["Claude Opus 4.8"], rowsByModelName),
 	0.55,
 );
 
-assertDeepEqual(findCursorBenchScore(["Kimi K2.6"], scoreByModelName), 0.476);
+assertDeepEqual(findCursorBenchScore(["Kimi K2.6"], rowsByModelName), 0.476);
 
-assertDeepEqual(findCursorBenchScore(["Composer 2.5"], scoreByModelName), null);
+assertDeepEqual(findCursorBenchScore(["Composer 2.5"], rowsByModelName), null);
 
-assertDeepEqual(findCursorBenchScore(["Grok 4.5"], scoreByModelName), null);
+assertDeepEqual(findCursorBenchScore(["Grok 4.5"], rowsByModelName), null);
 
 const sourceDefaultRow = rows.find((row) => row.model === "Gemini 3.5 Flash");
 if (sourceDefaultRow == null) {
 	throw new Error("Expected the source-default Gemini fixture row");
 }
-const sourceDefaultScoreByModelName = buildCursorBenchMap([
+const sourceDefaultRowsByModelName = buildCursorBenchMap([
 	sourceDefaultRow,
 	{
 		...sourceDefaultRow,
@@ -198,6 +198,6 @@ const sourceDefaultScoreByModelName = buildCursorBenchMap([
 	},
 ]);
 assertDeepEqual(
-	findCursorBenchScore(["Gemini 3.5 Flash"], sourceDefaultScoreByModelName),
+	findCursorBenchScore(["Gemini 3.5 Flash"], sourceDefaultRowsByModelName),
 	0.498,
 );

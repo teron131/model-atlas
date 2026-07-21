@@ -6,11 +6,11 @@ import { type PointerEvent as ReactPointerEvent, useState } from "react";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import styles from "./graphs.module.css";
-import type { PointLabelPlacement } from "./labelPlacement";
+import type { PointLabelPlacement } from "./label-placement";
 import { focusHover, modelName, pointHover, shortLabel } from "./models";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 
-export type CursorProjection = {
+type CursorProjection = {
 	x: number;
 	y: number;
 	xValue: number;
@@ -19,7 +19,7 @@ export type CursorProjection = {
 
 type ProjectionPoint = CursorProjection;
 
-export type PlotBounds = {
+type PlotBounds = {
 	left: number;
 	right: number;
 	top: number;
@@ -62,7 +62,7 @@ export function plotBoundsFor(
 }
 
 /** Snap a pointer event to the nearest projected chart point within range. */
-function cursorProjectionFromPointer({
+function projectCursor({
 	event,
 	bounds: plot,
 	points,
@@ -110,7 +110,7 @@ export function useCursorProjection() {
 		cursorHandlers: ({ bounds, points, snapDistance }: ProjectionTarget) => ({
 			onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => {
 				setCursorProjection(
-					cursorProjectionFromPointer({
+					projectCursor({
 						event,
 						bounds,
 						points,
@@ -259,7 +259,7 @@ export function XAxisTicks({
 	labelMinGap?: number;
 }) {
 	let lastLabelX = Number.NEGATIVE_INFINITY;
-	const labelVisible = ticks.map((tick, index) => {
+	const labelVisibility = ticks.map((tick, index) => {
 		if (index % labelEvery !== 0) {
 			return false;
 		}
@@ -279,7 +279,7 @@ export function XAxisTicks({
 				y1={y}
 				y2={y + tickLength}
 			/>
-			{labelVisible[index] ? (
+			{labelVisibility[index] ? (
 				<text
 					className={styles.axisLabel}
 					x={xPoint(tick)}

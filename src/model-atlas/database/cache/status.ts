@@ -84,7 +84,7 @@ export function refreshedCacheStatus(
 	};
 }
 
-function sourceRowsHaveCurrentShape(
+function rowsHaveCurrentShape(
 	source: RawSourceName,
 	rows: readonly CacheDbRow[],
 ): boolean {
@@ -131,7 +131,7 @@ export function rawSourceCacheStatusFromRows(
 			lastFetch != null &&
 			nowEpochSeconds - lastFetch >= 0 &&
 			nowEpochSeconds - lastFetch <= RAW_SOURCE_CACHE_SECONDS &&
-			sourceRowsHaveCurrentShape(source, rows),
+			rowsHaveCurrentShape(source, rows),
 		refreshed: false,
 	};
 }

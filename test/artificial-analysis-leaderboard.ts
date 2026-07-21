@@ -313,7 +313,7 @@ const scoringConfig = {
 		},
 	},
 	simulationProfiles: SIMULATION_PROFILES,
-	simulationInputTokenSeconds: 0.0001,
+	secondsPerInputToken: 0.0001,
 	benchmarkPortfolio: {
 		scicode: {
 			group: "baseline",

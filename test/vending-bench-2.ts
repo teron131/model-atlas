@@ -43,12 +43,12 @@ assert.deepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildBenchmarkModelMap(rows);
+const rowsByModelName = buildBenchmarkModelMap(rows);
 assert.equal(
-	scoreByModelName.get("claude-opus-4-7")?.final_balance_usd,
+	rowsByModelName.get("claude-opus-4-7")?.final_balance_usd,
 	10936.76,
 );
-assert.equal(scoreByModelName.get("gpt-5-mini")?.final_balance_usd, -31.18);
+assert.equal(rowsByModelName.get("gpt-5-mini")?.final_balance_usd, -31.18);
 
 const effortRows = processVendingBench2DataModule(`
 	const runs={vb2:{
