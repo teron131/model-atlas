@@ -33,9 +33,9 @@ import {
 import { parseCsvRecords } from "../src/model-atlas/scrapers/csv-parser";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/epoch/capabilities-index";
 import { epochFrontierMathTier4Rows } from "../src/model-atlas/scrapers/epoch/frontiermath-tier-4";
-import { processWeirdMlCsv } from "../src/model-atlas/scrapers/epoch/weirdml";
 import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/common";
 import { processProofBenchPageHtml } from "../src/model-atlas/scrapers/vals/proofbench";
+import { processWeirdMlCsv } from "../src/model-atlas/scrapers/weirdml";
 
 assert.deepEqual(
 	parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'),
@@ -60,8 +60,8 @@ assert.equal(frontierMath[0]?.score, 0.561);
 assert.equal(frontierMath[0]?.metadata.task_version, "2.0.0");
 
 const weirdMl = processWeirdMlCsv(
-	"internal_model_name,display_name,model_slug,avg_acc,avg_acc_standard_error,cost_per_run_usd,mean_total_output_tokens,code_len_p10,code_len_p50,code_len_p90,exec_time_median_s,release_date,API source,shapes_easy_acc\n" +
-		"claude,Claude Fable 5 (max),claude-fable-5,0.91,0.01,1.2,1000,10,20,30,4.5,2026-06-09,Anthropic,0.95\n",
+	"internal_model_name,display_name,model_slug,shapes_easy_acc,shapes_hard_acc,digits_unsup_acc,chess_winners_acc,kolmo_shuffle_acc,classify_sentences_acc,classify_shuffled_acc,insert_patches_acc,blunders_easy_acc,blunders_hard_acc,digits_generalize_acc,shapes_variable_acc,xor_easy_acc,xor_hard_acc,splash_easy_acc,splash_hard_acc,number_patterns_acc,avg_acc,avg_acc_standard_error,cost_per_run_usd,mean_total_output_tokens,code_len_p10,code_len_p50,code_len_p90,exec_time_median_s,release_date,API source\n" +
+		"claude,Claude Fable 5 (max),claude-fable-5,0.95,0.94,0.93,0.92,0.91,0.90,0.89,0.88,0.87,0.86,0.85,0.84,0.83,0.82,0.81,0.80,0.79,0.91,0.01,1.2,1000,10,20,30,4.5,2026-06-09,Anthropic\n",
 );
 assert.equal(weirdMl[0]?.reasoning_effort, "max");
 assert.equal(weirdMl[0]?.metadata.shapes_easy_acc, 0.95);

@@ -34,7 +34,6 @@ import { getEpochCapabilitiesIndexStats } from "../scrapers/epoch/capabilities-i
 import { getEpochChessPuzzleStats } from "../scrapers/epoch/chess-puzzles";
 import { getEpochEbrBenchStats } from "../scrapers/epoch/ebr-bench";
 import { getEpochFrontierMathTier4Stats } from "../scrapers/epoch/frontiermath-tier-4";
-import { getWeirdMlStats } from "../scrapers/epoch/weirdml";
 import { getFrontierCodeStats } from "../scrapers/frontier-code";
 import {
 	getMercorApexAgentsStats,
@@ -60,6 +59,7 @@ import {
 	getTerminalBenchStats,
 } from "../scrapers/vals/terminal-bench";
 import { getVendingBench2Stats } from "../scrapers/vending-bench-2";
+import { getWeirdMlStats } from "../scrapers/weirdml";
 import { buildBenchmarkModelMap, modelSlugFromModelId } from "../shared";
 import {
 	pickPreferredModelsDevRows,

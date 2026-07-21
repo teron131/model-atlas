@@ -32,7 +32,6 @@ import { getEpochCapabilitiesIndexStats } from "../../scrapers/epoch/capabilitie
 import { getEpochChessPuzzleStats } from "../../scrapers/epoch/chess-puzzles";
 import { getEpochEbrBenchStats } from "../../scrapers/epoch/ebr-bench";
 import { getEpochFrontierMathTier4Stats } from "../../scrapers/epoch/frontiermath-tier-4";
-import { getWeirdMlStats } from "../../scrapers/epoch/weirdml";
 import {
 	type FrontierCodeModelEffortRow,
 	getFrontierCodeStats,
@@ -71,6 +70,7 @@ import {
 	getVendingBench2Stats,
 	type VendingBench2ModelScoreRow,
 } from "../../scrapers/vending-bench-2";
+import { getWeirdMlStats } from "../../scrapers/weirdml";
 import type {
 	readAgentArenaRawCache,
 	readAleBenchRawCache,
