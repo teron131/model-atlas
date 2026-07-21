@@ -252,6 +252,24 @@ const terminalBenchRow = {
 	cost_per_task_usd: 0.36,
 	seconds_per_task: 50,
 };
+const legalResearchRow = {
+	benchmark_key: "legal_research",
+	source: "vals",
+	source_url: "https://www.vals.ai/benchmarks/legal_research",
+	model_id: "test/example-model",
+	model: "Example Model",
+	base_model: "Example Model",
+	reasoning_effort: null,
+	provider: "Test",
+	rank: 1,
+	score: 0.61,
+	score_eligible: true,
+	standard_error: null,
+	confidence_low: null,
+	confidence_high: null,
+	observed_at: null,
+	metadata: {},
+} satisfies BenchmarkScoreRow;
 
 const resourceRowsByBenchmark = new Map([
 	["briefcase", new Map([["example-model", briefcaseResourceRow]])],
@@ -281,17 +299,21 @@ const lookups = {
 	browseComp: {
 		rowsByModelName: emptyLookup(),
 	},
+	codeMigration: { rowsByModelName: emptyLookup() },
 	chartography: { rowsByModelName: new Map() },
 	chessPuzzles: { rowsByModelName: new Map() },
 	cursorBench: {
 		rowsByModelName: new Map([["example-model", cursorBenchRow]]),
 	},
+	cyberBench: { rowsByModelName: emptyLookup() },
 	deepSWE: {
 		rowsByModelName: new Map([["example-model-preview", deepSWERow]]),
 	},
 	ebrBench: { rowsByModelName: new Map() },
+	emb: { rowsByModelName: emptyLookup() },
 	enterpriseBenchCoreCraft: { rowsByModelName: new Map() },
 	epochCapabilitiesIndex: { rowsByModelName: new Map() },
+	financeAgentV2: { rowsByModelName: emptyLookup() },
 	frontierCode: {
 		rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
 	},
@@ -303,10 +325,16 @@ const lookups = {
 	harveyLab: {
 		rowsByModelName: new Map([["example-model", harveyLabRow]]),
 	},
+	legalResearch: {
+		rowsByModelName: buildBenchmarkScoreMap([legalResearchRow]),
+	},
+	medCode: { rowsByModelName: emptyLookup() },
 	mercorApexAgents: {
 		rowsByModelName: new Map([["example-model", mercorApexRow]]),
 	},
 	proofBench: { rowsByModelName: new Map() },
+	programBench: { rowsByModelName: emptyLookup() },
+	publicBenefitsBench: { rowsByModelName: emptyLookup() },
 	riemannBench: {
 		rowsByModelName: emptyLookup(),
 	},
@@ -322,6 +350,7 @@ const lookups = {
 	vendingBench2: {
 		rowsByModelName: new Map([["example-model", vendingBench2Row]]),
 	},
+	vibeCode: { rowsByModelName: emptyLookup() },
 	weirdMl: { rowsByModelName: new Map() },
 } satisfies BenchmarkEnrichmentLookups;
 
@@ -365,6 +394,7 @@ assert.deepEqual(enrichment.evaluations, {
 	frontier_code: 0.535,
 	harvey_lab: 0.1125,
 	itbench_sre: 0.56,
+	legal_research: 0.61,
 	terminalbench_v21: 0.82,
 	vending_bench_2: 9_000,
 });
@@ -380,6 +410,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	harvey_lab: harveyLabRow,
 	hle: artificialAnalysisHleResourceRow,
 	itbench_sre: itbenchResourceRow,
+	legal_research: legalResearchRow,
 	terminalbench_v21: {
 		model_id: "test/example-model",
 		model: "Example Model",
@@ -404,10 +435,12 @@ const effortQualifiedAggregate = enrichBenchmarkAggregate(
 );
 assert.deepEqual(effortQualifiedAggregate.evaluations, {
 	agent_arena: 0.14,
+	legal_research: 0.61,
 	vending_bench_2: 9_000,
 });
 assert.deepEqual(effortQualifiedAggregate.scoringSources, {
 	agent_arena: agentArenaRow,
+	legal_research: legalResearchRow,
 	vending_bench_2: vendingBench2Row,
 });
 assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {

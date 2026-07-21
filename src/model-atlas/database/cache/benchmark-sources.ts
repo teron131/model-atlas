@@ -45,7 +45,7 @@ import type {
 } from "../../scrapers/vals/terminal-bench";
 import type { VendingBench2ModelScoreRow } from "../../scrapers/vending-bench-2";
 import { asFiniteNumber } from "../../shared";
-import { SOURCE_URLS } from "../types";
+import { RAW_SOURCE_TABLES, SOURCE_URLS } from "../types";
 import {
 	booleanFromSql,
 	type CacheDbRow,
@@ -75,6 +75,7 @@ function readBenchmarkScoreRawCache(
 	table: string,
 	benchmarkKey: string,
 	expectedSource: BenchmarkScoreSource,
+	expectedUrl?: string,
 ): {
 	rows: BenchmarkScoreRow[];
 	fetchedAt: number | null;
@@ -97,6 +98,7 @@ function readBenchmarkScoreRawCache(
 			rowBenchmarkKey !== benchmarkKey ||
 			source !== expectedSource ||
 			sourceUrl == null ||
+			(expectedUrl != null && sourceUrl !== expectedUrl) ||
 			model == null ||
 			baseModel == null ||
 			score == null ||
@@ -408,6 +410,17 @@ export function readChessPuzzlesRawCache(cache: CacheSource) {
 	);
 }
 
+/** Reconstructs cached Code Migration rows from its independent source table. */
+export function readCodeMigrationRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.code_migration,
+		"code_migration",
+		"vals",
+		SOURCE_URLS.code_migration,
+	);
+}
+
 export function readCursorBenchRawCache(cache: CacheSource): {
 	rows: CursorBenchModelScoreRow[];
 	fetchedAt: number | null;
@@ -465,6 +478,17 @@ export function readCursorBenchRawCache(cache: CacheSource): {
 	};
 }
 
+/** Reconstructs cached CyberBench rows from its independent source table. */
+export function readCyberBenchRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.cyberbench,
+		"cyberbench",
+		"vals",
+		SOURCE_URLS.cyberbench,
+	);
+}
+
 export function readDeepSWERawCache(cache: CacheSource): {
 	rows: DeepSWERawLeaderboardRow[];
 	fetchedAt: number | null;
@@ -498,6 +522,17 @@ export function readEbrBenchRawCache(cache: CacheSource) {
 	);
 }
 
+/** Reconstructs cached EMB rows from its independent source table. */
+export function readEmbRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.emb,
+		"emb",
+		"vals",
+		SOURCE_URLS.emb,
+	);
+}
+
 /** Reconstructs EnterpriseBench CoreCraft rows from its source cache. */
 export function readEnterpriseBenchCoreCraftRawCache(cache: CacheSource) {
 	return readBenchmarkScoreRawCache(
@@ -515,6 +550,17 @@ export function readEpochCapabilitiesIndexRawCache(cache: CacheSource) {
 		"epoch_capabilities_index_raw_rows",
 		"epoch_capabilities_index",
 		"epoch",
+	);
+}
+
+/** Reconstructs cached Finance Agent V2 rows from its independent source table. */
+export function readFinanceAgentV2RawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.finance_agent_v2,
+		"finance_agent_v2",
+		"vals",
+		SOURCE_URLS.finance_agent_v2,
 	);
 }
 
@@ -724,6 +770,28 @@ export function readHarveyLabRawCache(cache: CacheSource): {
 	};
 }
 
+/** Reconstructs cached Legal Research rows from its independent source table. */
+export function readLegalResearchRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.legal_research,
+		"legal_research",
+		"vals",
+		SOURCE_URLS.legal_research,
+	);
+}
+
+/** Reconstructs cached MedCode rows from its independent source table. */
+export function readMedCodeRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.medcode,
+		"medcode",
+		"vals",
+		SOURCE_URLS.medcode,
+	);
+}
+
 export function readMercorApexAgentsRawCache(cache: CacheSource): {
 	rows: MercorApexAgentsRow[];
 	fetchedAt: number | null;
@@ -771,6 +839,17 @@ export function readMercorApexAgentsRawCache(cache: CacheSource): {
 		: { rows, fetchedAt: firstEpochSecond(cacheRows) };
 }
 
+/** Reconstructs cached ProgramBench rows from its independent source table. */
+export function readProgramBenchRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.programbench,
+		"programbench",
+		"vals",
+		SOURCE_URLS.programbench,
+	);
+}
+
 /** Reconstructs Vals ProofBench rows from their independent source cache. */
 export function readProofBenchRawCache(cache: CacheSource) {
 	return readBenchmarkScoreRawCache(
@@ -778,6 +857,17 @@ export function readProofBenchRawCache(cache: CacheSource) {
 		"proofbench_raw_rows",
 		"proofbench",
 		"vals",
+	);
+}
+
+/** Reconstructs cached Public Benefits Bench rows from its independent source table. */
+export function readPublicBenefitsBenchRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.public_benefits_bench,
+		"public_benefits_bench",
+		"vals",
+		SOURCE_URLS.public_benefits_bench,
 	);
 }
 
@@ -1036,6 +1126,17 @@ export function readVendingBench2RawCache(cache: CacheSource): {
 		fetchedAt: firstEpochSecond(cacheRows),
 		sourceUrl: stringValue(cacheRows[0]?.data_url) ?? undefined,
 	};
+}
+
+/** Reconstructs cached Vibe Code rows from its independent source table. */
+export function readVibeCodeRawCache(cache: CacheSource) {
+	return readBenchmarkScoreRawCache(
+		cache,
+		RAW_SOURCE_TABLES.vibe_code,
+		"vibe_code",
+		"vals",
+		SOURCE_URLS.vibe_code,
+	);
 }
 
 /** Reconstructs WeirdML rows from their independent source cache. */

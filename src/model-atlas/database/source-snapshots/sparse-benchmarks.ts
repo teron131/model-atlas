@@ -55,6 +55,10 @@ import {
 	getToolathlonStats,
 	type ToolathlonModelScoreRow,
 } from "../../scrapers/toolathlon";
+import { getCodeMigrationStats } from "../../scrapers/vals/code-migration";
+import { getCyberBenchStats } from "../../scrapers/vals/cyberbench";
+import { getEmbStats } from "../../scrapers/vals/emb";
+import { getFinanceAgentV2Stats } from "../../scrapers/vals/finance-agent-v2";
 import {
 	getHarveyLabStats,
 	type HarveyLabModelScoreRow,
@@ -65,12 +69,17 @@ import {
 	type ValsIndexModelScoreRow,
 	type ValsIndexTaskScoreRow,
 } from "../../scrapers/vals/index-benchmark";
+import { getLegalResearchStats } from "../../scrapers/vals/legal-research";
+import { getMedCodeStats } from "../../scrapers/vals/medcode";
+import { getProgramBenchStats } from "../../scrapers/vals/programbench";
 import { getProofBenchStats } from "../../scrapers/vals/proofbench";
+import { getPublicBenefitsBenchStats } from "../../scrapers/vals/public-benefits-bench";
 import {
 	getTerminalBenchStats,
 	type TerminalBenchModelHarnessRow,
 	type TerminalBenchTaskRow,
 } from "../../scrapers/vals/terminal-bench";
+import { getVibeCodeStats } from "../../scrapers/vals/vibe-code";
 import {
 	getVendingBench2Stats,
 	type VendingBench2ModelScoreRow,
@@ -84,22 +93,31 @@ import type {
 	readBrowseCompRawCache,
 	readChartographyRawCache,
 	readChessPuzzlesRawCache,
+	readCodeMigrationRawCache,
 	readCursorBenchRawCache,
+	readCyberBenchRawCache,
 	readEbrBenchRawCache,
+	readEmbRawCache,
 	readEnterpriseBenchCoreCraftRawCache,
 	readEpochCapabilitiesIndexRawCache,
+	readFinanceAgentV2RawCache,
 	readFrontierCodeRawCache,
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,
 	readHarveyLabRawCache,
+	readLegalResearchRawCache,
+	readMedCodeRawCache,
 	readMercorApexAgentsRawCache,
+	readProgramBenchRawCache,
 	readProofBenchRawCache,
+	readPublicBenefitsBenchRawCache,
 	readRiemannBenchRawCache,
 	readTerminalBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
 	readVendingBench2RawCache,
+	readVibeCodeRawCache,
 	readWeirdMlRawCache,
 } from "../cache";
 import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../policy";
@@ -111,6 +129,7 @@ import type {
 	SourceSnapshots,
 } from "../types";
 import {
+	benchmarkScoreRowKey,
 	modelScoreSnapshot,
 	shouldUseFetchedRows,
 	snapshotFetchedAt,
@@ -232,7 +251,9 @@ async function benchmarkScoreSnapshot(
 			fetchedAtKey,
 		},
 	};
-} /** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
+}
+
+/** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
 export async function artificialAnalysisEvaluationResourceSnapshot(
 	cached: ReturnType<typeof readArtificialAnalysisEvaluationResourceRawCache>,
 	status: RawSourceCacheStatus,
@@ -433,6 +454,26 @@ export function chessPuzzlesSnapshot(
 	);
 }
 
+/** Loads Code Migration through its own cache and missing-row lifecycle. */
+export function codeMigrationSnapshot(
+	cached: ReturnType<typeof readCodeMigrationRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"code_migration",
+		"codeMigration",
+		getCodeMigrationStats,
+	);
+}
+
 /** Loads CursorBench rows keyed by model, base model, and reasoning effort. */
 export async function cursorBenchSnapshot(
 	cached: ReturnType<typeof readCursorBenchRawCache>,
@@ -464,6 +505,26 @@ export async function cursorBenchSnapshot(
 	};
 }
 
+/** Loads CyberBench through its own cache and missing-row lifecycle. */
+export function cyberBenchSnapshot(
+	cached: ReturnType<typeof readCyberBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"cyberbench",
+		"cyberBench",
+		getCyberBenchStats,
+	);
+}
+
 /** Loads EBR-Bench through its own cache and missing-row lifecycle. */
 export function ebrBenchSnapshot(
 	cached: ReturnType<typeof readEbrBenchRawCache>,
@@ -481,6 +542,26 @@ export function ebrBenchSnapshot(
 		"ebr_bench",
 		"ebrBench",
 		getEpochEbrBenchStats,
+	);
+}
+
+/** Loads EMB through its own cache and missing-row lifecycle. */
+export function embSnapshot(
+	cached: ReturnType<typeof readEmbRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"emb",
+		"emb",
+		getEmbStats,
 	);
 }
 
@@ -521,6 +602,26 @@ export function epochCapabilitiesIndexSnapshot(
 		"epoch_capabilities_index",
 		"epochCapabilitiesIndex",
 		getEpochCapabilitiesIndexStats,
+	);
+}
+
+/** Loads Finance Agent V2 through its own cache and missing-row lifecycle. */
+export function financeAgentV2Snapshot(
+	cached: ReturnType<typeof readFinanceAgentV2RawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"finance_agent_v2",
+		"financeAgentV2",
+		getFinanceAgentV2Stats,
 	);
 }
 
@@ -683,6 +784,46 @@ export async function harveyLabSnapshot(
 	};
 }
 
+/** Loads Legal Research through its own cache and missing-row lifecycle. */
+export function legalResearchSnapshot(
+	cached: ReturnType<typeof readLegalResearchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"legal_research",
+		"legalResearch",
+		getLegalResearchStats,
+	);
+}
+
+/** Loads MedCode through its own cache and missing-row lifecycle. */
+export function medCodeSnapshot(
+	cached: ReturnType<typeof readMedCodeRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"medcode",
+		"medCode",
+		getMedCodeStats,
+	);
+}
+
 /** Loads Mercor APEX rows keyed by its stable contender ID and effort. */
 export async function mercorApexAgentsSnapshot(
 	cached: ReturnType<typeof readMercorApexAgentsRawCache>,
@@ -714,6 +855,26 @@ export async function mercorApexAgentsSnapshot(
 	};
 }
 
+/** Loads ProgramBench through its own cache and missing-row lifecycle. */
+export function programBenchSnapshot(
+	cached: ReturnType<typeof readProgramBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"programbench",
+		"programBench",
+		getProgramBenchStats,
+	);
+}
+
 /** Loads Vals ProofBench rows through an independent source lifecycle. */
 export async function proofBenchSnapshot(
 	cached: ReturnType<typeof readProofBenchRawCache>,
@@ -736,6 +897,26 @@ export async function proofBenchSnapshot(
 		proofBenchRows: snapshot.rows,
 		sourceStatus: snapshot.sourceStatus,
 	};
+}
+
+/** Loads Public Benefits Bench through its own cache and missing-row lifecycle. */
+export function publicBenefitsBenchSnapshot(
+	cached: ReturnType<typeof readPublicBenefitsBenchRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"public_benefits_bench",
+		"publicBenefitsBench",
+		getPublicBenefitsBenchStats,
+	);
 }
 
 /** Loads Riemann Bench rows keyed by provider and model for cache row continuity. */
@@ -949,6 +1130,26 @@ export async function vendingBench2Snapshot(
 	};
 }
 
+/** Loads Vibe Code through its own cache and missing-row lifecycle. */
+export function vibeCodeSnapshot(
+	cached: ReturnType<typeof readVibeCodeRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<BenchmarkScoreSnapshot> {
+	return benchmarkScoreSnapshot(
+		cached,
+		status,
+		options,
+		previousMissingSince,
+		nowEpochSeconds,
+		"vibe_code",
+		"vibeCode",
+		getVibeCodeStats,
+	);
+}
+
 /** Loads WeirdML rows through an independent source lifecycle. */
 export async function weirdMlSnapshot(
 	cached: ReturnType<typeof readWeirdMlRawCache>,
@@ -982,19 +1183,6 @@ type WeirdMlSnapshot = {
 	weirdMlRows: BenchmarkScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
-
-function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
-	const rawRunId = row.metadata.run_id;
-	const sourceRunId =
-		typeof rawRunId === "string" || typeof rawRunId === "number"
-			? rawRunId
-			: null;
-	return sourceKey(
-		row.benchmark_key,
-		sourceRunId ?? row.model_id ?? row.model,
-		row.reasoning_effort,
-	);
-}
 
 /** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
 export function artificialAnalysisEvaluationResourceSourceKey(

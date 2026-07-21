@@ -4,7 +4,7 @@ import { aleBenchModelEffort } from "../../scrapers/ale-bench";
 import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import type { FrontierCodeSubsetMetrics } from "../../scrapers/frontier-code";
-import { SOURCE_URLS, type SourceSnapshots } from "../types";
+import { RAW_SOURCE_TABLES, SOURCE_URLS, type SourceSnapshots } from "../types";
 import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
 
 type AleBenchSourceSnapshot = Pick<
@@ -67,7 +67,9 @@ function insertBenchmarkScoreRows(
 			JSON.stringify(row.metadata),
 		);
 	}
-} /** Insert Agent Arena's source identity and headline causal effect. */
+}
+
+/** Insert Agent Arena's source identity and headline causal effect. */
 export function insertAgentArenaRawRows(
 	db: DatabaseWriter,
 	snapshots: SourceSnapshots,
@@ -321,6 +323,18 @@ export function insertChessPuzzlesRawRows(
 	);
 }
 
+export function insertCodeMigrationRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.code_migration,
+		snapshots.codeMigrationRows,
+		snapshots.fetchedAt.codeMigration,
+	);
+}
+
 export function insertCursorBenchRawRows(
 	db: DatabaseWriter,
 	snapshots: SourceSnapshots,
@@ -348,6 +362,18 @@ export function insertCursorBenchRawRows(
 			row.steps_per_task,
 		);
 	}
+}
+
+export function insertCyberBenchRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.cyberbench,
+		snapshots.cyberBenchRows,
+		snapshots.fetchedAt.cyberBench,
+	);
 }
 
 export function insertDeepSWERawRows(
@@ -395,6 +421,18 @@ export function insertEbrBenchRawRows(
 	);
 }
 
+export function insertEmbRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.emb,
+		snapshots.embRows,
+		snapshots.fetchedAt.emb,
+	);
+}
+
 /** Insert EnterpriseBench CoreCraft evidence through its source table. */
 export function insertEnterpriseBenchCoreCraftRawRows(
 	db: DatabaseWriter,
@@ -418,6 +456,18 @@ export function insertEpochCapabilitiesIndexRawRows(
 		"epoch_capabilities_index_raw_rows",
 		snapshots.epochCapabilitiesIndexRows,
 		snapshots.fetchedAt.epochCapabilitiesIndex,
+	);
+}
+
+export function insertFinanceAgentV2RawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.finance_agent_v2,
+		snapshots.financeAgentV2Rows,
+		snapshots.fetchedAt.financeAgentV2,
 	);
 }
 
@@ -554,6 +604,30 @@ export function insertHarveyLabRawRows(
 	}
 }
 
+export function insertLegalResearchRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.legal_research,
+		snapshots.legalResearchRows,
+		snapshots.fetchedAt.legalResearch,
+	);
+}
+
+export function insertMedCodeRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.medcode,
+		snapshots.medCodeRows,
+		snapshots.fetchedAt.medCode,
+	);
+}
+
 /** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
 export function insertMercorApexAgentsRawRows(
 	db: DatabaseWriter,
@@ -581,6 +655,18 @@ export function insertMercorApexAgentsRawRows(
 	}
 }
 
+export function insertProgramBenchRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.programbench,
+		snapshots.programBenchRows,
+		snapshots.fetchedAt.programBench,
+	);
+}
+
 /** Insert Vals ProofBench evidence through its independent source table. */
 export function insertProofBenchRawRows(
 	db: DatabaseWriter,
@@ -591,6 +677,18 @@ export function insertProofBenchRawRows(
 		"proofbench_raw_rows",
 		snapshots.proofBenchRows,
 		snapshots.fetchedAt.proofBench,
+	);
+}
+
+export function insertPublicBenefitsBenchRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.public_benefits_bench,
+		snapshots.publicBenefitsBenchRows,
+		snapshots.fetchedAt.publicBenefitsBench,
 	);
 }
 
@@ -735,6 +833,18 @@ export function insertVendingBench2RawRows(
 			JSON.stringify(row.daily_balance_usd),
 		);
 	}
+}
+
+export function insertVibeCodeRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	insertBenchmarkScoreRows(
+		db,
+		RAW_SOURCE_TABLES.vibe_code,
+		snapshots.vibeCodeRows,
+		snapshots.fetchedAt.vibeCode,
+	);
 }
 
 /** Insert WeirdML evidence through its independent source table. */

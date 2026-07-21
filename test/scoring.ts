@@ -1,5 +1,7 @@
 /** Exercises component scoring, benchmark imputation, anchors, and scoring configuration invariants. */
 
+import assert from "node:assert/strict";
+
 import {
 	STAGE_CONFIG,
 	validateBenchmarkPortfolio,
@@ -241,6 +243,70 @@ assertEqual(
 );
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+assert.deepEqual(
+	Object.fromEntries(
+		(
+			[
+				"code_migration",
+				"cyberbench",
+				"emb",
+				"finance_agent_v2",
+				"legal_research",
+				"medcode",
+				"programbench",
+				"public_benefits_bench",
+				"vibe_code",
+			] as const
+		).map((key) => [key, STAGE_CONFIG.scoring.benchmarkPortfolio[key]]),
+	),
+	{
+		code_migration: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+		},
+		cyberbench: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0, agentic: 1 },
+		},
+		emb: {
+			group: "frontier",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+		},
+		finance_agent_v2: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+		},
+		legal_research: {
+			group: "frontier",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+		},
+		medcode: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 1, agentic: 0 },
+		},
+		programbench: {
+			group: "frontier",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+		},
+		public_benefits_bench: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+		},
+		vibe_code: {
+			group: "baseline",
+			benchmarkImportance: 1,
+			dimensionLoadings: { intelligence: 0, agentic: 1 },
+		},
+	},
+);
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys),
 	JSON.stringify([
@@ -286,37 +352,37 @@ assertEqual(
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ITBench","5.3%"]',
+		'["ITBench","3.9%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Agent Arena","5.3%"]',
+		'["Agent Arena","3.9%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Vending-Bench 2","5.3%"]',
+		'["Vending-Bench 2","3.9%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ALE-Bench","3.2%"]',
+		'["ALE-Bench","2.4%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["FrontierCode","5.3%"]',
+		'["FrontierCode","3.9%"]',
 	),
 	true,
 );
 assertEqual(
 	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
-		'["ALE-Bench","2.7%"]',
+		'["ALE-Bench","2.4%"]',
 	),
 	true,
 );

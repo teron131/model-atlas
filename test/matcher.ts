@@ -730,20 +730,24 @@ function modelStatsSourceData(
 			rows: [],
 			rowsByModelName: new Map(),
 		},
+		codeMigration: { rows: [], rowsByModelName: new Map() },
 		chartography: { rows: [], rowsByModelName: new Map() },
 		chessPuzzles: { rows: [], rowsByModelName: new Map() },
 		cursorBench: {
 			rows: cursorBenchModelScoreRows,
 			rowsByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
 		},
+		cyberBench: { rows: [], rowsByModelName: new Map() },
 		deepSWE: {
 			effortRows: [],
 			defaultEffortRows: [],
 			rowsByModelName: new Map(),
 		},
 		ebrBench: { rows: [], rowsByModelName: new Map() },
+		emb: { rows: [], rowsByModelName: new Map() },
 		enterpriseBenchCoreCraft: { rows: [], rowsByModelName: new Map() },
 		epochCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
+		financeAgentV2: { rows: [], rowsByModelName: new Map() },
 		frontierCode: { rows: [], rowsByModelName: new Map() },
 		frontierMathTier4: { rows: [], rowsByModelName: new Map() },
 		gdpPdf: {
@@ -752,11 +756,15 @@ function modelStatsSourceData(
 		},
 		handbookMd: { rows: [], rowsByModelName: new Map() },
 		harveyLab: { rows: [], rowsByModelName: new Map() },
+		legalResearch: { rows: [], rowsByModelName: new Map() },
+		medCode: { rows: [], rowsByModelName: new Map() },
 		mercorApexAgents: {
 			rows: [],
 			rowsByModelName: new Map(),
 		},
 		proofBench: { rows: [], rowsByModelName: new Map() },
+		programBench: { rows: [], rowsByModelName: new Map() },
+		publicBenefitsBench: { rows: [], rowsByModelName: new Map() },
 		riemannBench: {
 			rows: riemannBenchModelScoreRows,
 			rowsByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
@@ -777,6 +785,7 @@ function modelStatsSourceData(
 			rows: [],
 			rowsByModelName: new Map(),
 		},
+		vibeCode: { rows: [], rowsByModelName: new Map() },
 		weirdMl: { rows: [], rowsByModelName: new Map() },
 	};
 }

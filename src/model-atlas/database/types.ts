@@ -56,23 +56,32 @@ export const RAW_SOURCE_NAMES = [
 	"browsecomp",
 	"chartography",
 	"chess_puzzles",
+	"code_migration",
 	"cursorbench",
+	"cyberbench",
 	"deep_swe",
 	"ebr_bench",
+	"emb",
 	"enterprisebench_corecraft",
 	"epoch_capabilities_index",
+	"finance_agent_v2",
 	"frontier_code",
 	"frontiermath_tier_4",
 	"gdp_pdf",
 	"handbook_md",
-	"mercor_apex_agents",
-	"proofbench",
-	"riemann_bench",
 	"vals_harvey_lab",
+	"legal_research",
+	"medcode",
+	"mercor_apex_agents",
+	"programbench",
+	"proofbench",
+	"public_benefits_bench",
+	"riemann_bench",
 	"vals_terminal_bench",
 	"toolathlon",
 	"vals_index",
 	"vending_bench_2",
+	"vibe_code",
 	"weirdml",
 ] as const;
 
@@ -92,23 +101,32 @@ export const RAW_SOURCE_TABLES = {
 	browsecomp: "browsecomp_raw_rows",
 	chartography: "chartography_raw_rows",
 	chess_puzzles: "chess_puzzles_raw_rows",
+	code_migration: "code_migration_raw_rows",
 	cursorbench: "cursorbench_raw_rows",
+	cyberbench: "cyberbench_raw_rows",
 	deep_swe: "deep_swe_raw_rows",
 	ebr_bench: "ebr_bench_raw_rows",
+	emb: "emb_raw_rows",
 	enterprisebench_corecraft: "enterprisebench_corecraft_raw_rows",
 	epoch_capabilities_index: "epoch_capabilities_index_raw_rows",
+	finance_agent_v2: "finance_agent_v2_raw_rows",
 	frontier_code: "frontier_code_raw_rows",
 	frontiermath_tier_4: "frontiermath_tier_4_raw_rows",
 	gdp_pdf: "gdp_pdf_raw_rows",
 	handbook_md: "handbook_md_raw_rows",
-	mercor_apex_agents: "mercor_apex_agents_raw_rows",
-	proofbench: "proofbench_raw_rows",
-	riemann_bench: "riemann_bench_raw_rows",
 	vals_harvey_lab: "vals_harvey_lab_raw_rows",
+	legal_research: "legal_research_raw_rows",
+	medcode: "medcode_raw_rows",
+	mercor_apex_agents: "mercor_apex_agents_raw_rows",
+	programbench: "programbench_raw_rows",
+	proofbench: "proofbench_raw_rows",
+	public_benefits_bench: "public_benefits_bench_raw_rows",
+	riemann_bench: "riemann_bench_raw_rows",
 	vals_terminal_bench: "vals_terminal_bench_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
 	vals_index: "vals_index_raw_rows",
 	vending_bench_2: "vending_bench_2_raw_rows",
+	vibe_code: "vibe_code_raw_rows",
 	weirdml: "weirdml_raw_rows",
 } as const satisfies Record<RawSourceName, string>;
 
@@ -141,25 +159,34 @@ export const SOURCE_URLS = {
 		"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 	chartography: "https://surgehq.ai/benchmarks/chartography",
 	chess_puzzles: "https://epoch.ai/data/benchmarks.csv",
+	code_migration: "https://www.vals.ai/benchmarks/code-migration",
 	cursorbench: "https://cursor.com/cursorbench",
+	cyberbench: "https://www.vals.ai/benchmarks/cyber",
 	deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
 	ebr_bench: "https://epoch.ai/data/benchmarks.csv",
+	emb: "https://www.vals.ai/benchmarks/emb",
 	enterprisebench_corecraft:
 		"https://surgehq.ai/benchmarks/enterprisebench-corecraft",
 	epoch_capabilities_index: "https://epoch.ai/data/eci_scores.csv",
+	finance_agent_v2: "https://www.vals.ai/benchmarks/fabv2",
 	frontier_code: "https://cognition.com/frontiercode",
 	frontiermath_tier_4: "https://epoch.ai/data/benchmarks.csv",
 	gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
 	handbook_md: "https://surgehq.ai/benchmarks/handbook",
-	mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
-	proofbench: "https://www.vals.ai/benchmarks/proof_bench",
-	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
 	vals_harvey_lab: "https://www.vals.ai/benchmarks/hlab",
+	legal_research: "https://www.vals.ai/benchmarks/legal_research",
+	medcode: "https://www.vals.ai/benchmarks/medcode",
+	mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
+	programbench: "https://www.vals.ai/benchmarks/programbench",
+	proofbench: "https://www.vals.ai/benchmarks/proof_bench",
+	public_benefits_bench: "https://www.vals.ai/benchmarks/public-benefits-bench",
+	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
 	vals_terminal_bench: "https://www.vals.ai/benchmarks/terminal-bench-2-1",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 	vals_index: "https://www.vals.ai/benchmarks/vals_index",
 	vending_bench_2: "https://andonlabs.com/evals/vending-bench-2",
+	vibe_code: "https://www.vals.ai/benchmarks/vibe-code",
 	weirdml: "https://htihle.github.io/data/weirdml_data.csv",
 } as const;
 
@@ -227,20 +254,28 @@ export type SourceSnapshots = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	chartographyRows: BenchmarkScoreRow[];
 	chessPuzzleRows: BenchmarkScoreRow[];
+	codeMigrationRows: BenchmarkScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
+	cyberBenchRows: BenchmarkScoreRow[];
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	ebrBenchRows: BenchmarkScoreRow[];
+	embRows: BenchmarkScoreRow[];
 	enterpriseBenchCoreCraftRows: BenchmarkScoreRow[];
 	epochCapabilitiesIndexRows: BenchmarkScoreRow[];
+	financeAgentV2Rows: BenchmarkScoreRow[];
 	frontierCodeRows: FrontierCodeModelEffortRow[];
 	frontierMathTier4Rows: BenchmarkScoreRow[];
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	handbookMdRows: BenchmarkScoreRow[];
 	harveyLabRows: HarveyLabTaskRow[];
 	harveyLabModelScoreRows: HarveyLabModelScoreRow[];
+	legalResearchRows: BenchmarkScoreRow[];
+	medCodeRows: BenchmarkScoreRow[];
 	mercorApexAgentsRows: MercorApexAgentsRow[];
+	programBenchRows: BenchmarkScoreRow[];
 	proofBenchRows: BenchmarkScoreRow[];
+	publicBenefitsBenchRows: BenchmarkScoreRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
 	riemannBenchSourceUrl: string;
 	terminalBenchRows: TerminalBenchTaskRow[];
@@ -250,6 +285,7 @@ export type SourceSnapshots = {
 	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
 	vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
 	vendingBench2DataUrl: string | null;
+	vibeCodeRows: BenchmarkScoreRow[];
 	weirdMlRows: BenchmarkScoreRow[];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: {
@@ -262,23 +298,32 @@ export type SourceSnapshots = {
 		browseComp: number | null;
 		chartography: number | null;
 		chessPuzzles: number | null;
+		codeMigration: number | null;
 		cursorBench: number | null;
+		cyberBench: number | null;
 		deepSWE: number | null;
 		ebrBench: number | null;
+		emb: number | null;
 		enterpriseBenchCoreCraft: number | null;
 		epochCapabilitiesIndex: number | null;
+		financeAgentV2: number | null;
 		frontierCode: number | null;
 		frontierMathTier4: number | null;
 		gdpPdf: number | null;
 		handbookMd: number | null;
 		harveyLab: number | null;
+		legalResearch: number | null;
+		medCode: number | null;
 		mercorApexAgents: number | null;
+		programBench: number | null;
 		proofBench: number | null;
+		publicBenefitsBench: number | null;
 		riemannBench: number | null;
 		terminalBench: number | null;
 		toolathlon: number | null;
 		valsIndex: number | null;
 		vendingBench2: number | null;
+		vibeCode: number | null;
 		weirdMl: number | null;
 	};
 };
