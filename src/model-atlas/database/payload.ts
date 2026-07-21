@@ -137,6 +137,12 @@ export const PAYLOAD_ROW_GROUPS = [
 		true,
 	),
 	payloadRowGroup(
+		"harveyLabRows",
+		SNAPSHOT_TABLES.vals_harvey_lab,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
 		"proofBenchRows",
 		SNAPSHOT_TABLES.proofbench,
 		"row_index",
@@ -148,7 +154,7 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 	),
 	payloadRowGroup(
-		"valsTerminalBenchRows",
+		"terminalBenchRows",
 		SNAPSHOT_TABLES.vals_terminal_bench,
 		"row_index",
 		true,

@@ -510,6 +510,50 @@ export function insertHandbookMdRawRows(
 	);
 }
 
+/** Insert Harvey LAB task-resolution and criterion evidence. */
+export function insertHarveyLabRawRows(
+	db: DatabaseWriter,
+	snapshots: SourceSnapshots,
+): void {
+	const statement = db.prepare(`
+		INSERT INTO vals_harvey_lab_raw_rows (
+			row_index, fetched_at_epoch_seconds, url, task, task_label, metric,
+			row_kind, model_id, model, base_model, reasoning_effort, provider,
+			rank, score, criterion_pass, standard_error, cost_per_task_usd,
+			seconds_per_task, temperature, top_p, max_output_tokens, verbosity,
+			compute_effort, harness
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+	for (const [index, row] of snapshots.harveyLabRows.entries()) {
+		statement.run(
+			index,
+			snapshots.fetchedAt.harveyLab,
+			SOURCE_URLS.vals_harvey_lab,
+			row.task,
+			row.task_label,
+			row.metric,
+			row.task === "overall" ? "overall" : "component",
+			row.model_id,
+			row.model,
+			row.base_model,
+			row.reasoning_effort,
+			row.provider,
+			row.rank,
+			row.score,
+			row.criterion_pass,
+			row.standard_error,
+			row.cost_per_task_usd,
+			row.seconds_per_task,
+			row.temperature,
+			row.top_p,
+			row.max_output_tokens,
+			row.verbosity,
+			row.compute_effort,
+			row.harness,
+		);
+	}
+}
+
 /** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
 export function insertMercorApexAgentsRawRows(
 	db: DatabaseWriter,
@@ -578,7 +622,7 @@ export function insertRiemannBenchRawRows(
 	}
 }
 
-export function insertValsTerminalBenchRawRows(
+export function insertTerminalBenchRawRows(
 	db: DatabaseWriter,
 	snapshots: SourceSnapshots,
 ): void {
@@ -589,10 +633,10 @@ export function insertValsTerminalBenchRawRows(
 			cost_per_task_usd, seconds_per_task
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-	for (const [index, row] of snapshots.valsTerminalBenchRows.entries()) {
+	for (const [index, row] of snapshots.terminalBenchRows.entries()) {
 		statement.run(
 			index,
-			snapshots.fetchedAt.valsTerminalBench,
+			snapshots.fetchedAt.terminalBench,
 			SOURCE_URLS.vals_terminal_bench,
 			row.task,
 			row.task_label,

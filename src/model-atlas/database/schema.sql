@@ -528,6 +528,34 @@ CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
+CREATE TABLE IF NOT EXISTS vals_harvey_lab_raw_rows (
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	task TEXT NOT NULL,
+	task_label TEXT NOT NULL,
+	metric TEXT NOT NULL,
+	row_kind TEXT NOT NULL,
+	model_id TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	provider TEXT,
+	rank INTEGER,
+	score REAL NOT NULL,
+	criterion_pass REAL,
+	standard_error REAL,
+	cost_per_task_usd REAL,
+	seconds_per_task REAL,
+	temperature REAL,
+	top_p REAL,
+	max_output_tokens REAL,
+	verbosity TEXT,
+	compute_effort TEXT,
+	harness TEXT,
+	PRIMARY KEY (row_index)
+);
+
 CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

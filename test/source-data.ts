@@ -4,11 +4,13 @@ import assert from "node:assert/strict";
 
 import { cachedSourceDataFromSnapshots } from "../src/model-atlas/database/source-snapshots/data";
 import type { SourceSnapshots } from "../src/model-atlas/database/types";
+import type { BenchmarkScoreRow } from "../src/model-atlas/scrapers/benchmark-score";
 import type {
 	DeepSWELeaderboardRow,
 	DeepSWERawLeaderboardRow,
 } from "../src/model-atlas/scrapers/deep-swe";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
+import { benchmarkRowsFromSourceData } from "../src/model-atlas/stats/benchmarks";
 import {
 	buildSourceData,
 	type LlmStatsSourceRows,
@@ -46,6 +48,33 @@ function deepSWERow(
 	};
 }
 
+function benchmarkScoreRow(
+	source: BenchmarkScoreRow["source"],
+	benchmarkKey: string,
+	modelId: string | null,
+	model: string,
+	score: number,
+): BenchmarkScoreRow {
+	return {
+		benchmark_key: benchmarkKey,
+		source,
+		source_url: `https://example.com/${benchmarkKey}`,
+		model_id: modelId,
+		model,
+		base_model: model,
+		reasoning_effort: null,
+		provider: null,
+		rank: 1,
+		score,
+		score_eligible: true,
+		standard_error: null,
+		confidence_low: null,
+		confidence_high: null,
+		observed_at: null,
+		metadata: {},
+	};
+}
+
 function summary(sourceData: LlmStatsSourceData) {
 	const defaultDeepSWE = sourceData.deepSWE.defaultEffortRows[0];
 	const indexedDeepSWE = sourceData.deepSWE.rowsByModelName.get("deep-model");
@@ -77,6 +106,27 @@ const modelsDevModels = [
 	modelsDevModel("vercel", "vercel/model"),
 ];
 const deepSWEEffortRows = [deepSWERow("max", 0.8), deepSWERow(null, 0.4)];
+const epochRow = benchmarkScoreRow(
+	"epoch",
+	"chess_puzzles",
+	"epoch/example-model",
+	"Epoch Example Model",
+	0.71,
+);
+const surgeRow = benchmarkScoreRow(
+	"surge",
+	"chartography",
+	null,
+	"Surge Example Model",
+	0.64,
+);
+const valsRow = benchmarkScoreRow(
+	"vals",
+	"proofbench",
+	"vals/example-model",
+	"Vals Example Model",
+	0.58,
+);
 const sourceRows: LlmStatsSourceRows = {
 	artificialAnalysisRows: [{ model_id: "google/example-model" }],
 	artificialAnalysisEvaluationResourceRows: [],
@@ -86,8 +136,8 @@ const sourceRows: LlmStatsSourceRows = {
 	aleBenchConfigurationRows: [],
 	blueprintBenchRows: [],
 	browseCompRows: [],
-	chartographyRows: [],
-	chessPuzzleRows: [],
+	chartographyRows: [surgeRow],
+	chessPuzzleRows: [epochRow],
 	cursorBenchRows: [],
 	deepSWEEffortRows,
 	ebrBenchRows: [],
@@ -97,10 +147,11 @@ const sourceRows: LlmStatsSourceRows = {
 	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
 	handbookMdRows: [],
+	harveyLabRows: [],
 	mercorApexAgentsRows: [],
-	proofBenchRows: [],
+	proofBenchRows: [valsRow],
 	riemannBenchRows: [],
-	valsTerminalBenchRows: [],
+	terminalBenchRows: [],
 	toolathlonRows: [],
 	valsIndexRows: [],
 	vendingBench2Rows: [],
@@ -118,8 +169,8 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	aleBenchConfigurationRows: [],
 	blueprintBenchModelScoreRows: [],
 	browseCompModelScoreRows: [],
-	chartographyRows: [],
-	chessPuzzleRows: [],
+	chartographyRows: [surgeRow],
+	chessPuzzleRows: [epochRow],
 	cursorBenchModelScoreRows: [],
 	deepSWERawRows: deepSWEEffortRows.map(
 		(row): DeepSWERawLeaderboardRow => ({
@@ -134,10 +185,11 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	frontierMathTier4Rows: [],
 	gdpPdfModelScoreRows: [],
 	handbookMdRows: [],
+	harveyLabModelScoreRows: [],
 	mercorApexAgentsRows: [],
-	proofBenchRows: [],
+	proofBenchRows: [valsRow],
 	riemannBenchModelScoreRows: [],
-	valsTerminalBenchModelScoreRows: [],
+	terminalBenchModelScoreRows: [],
 	toolathlonModelScoreRows: [],
 	valsIndexModelScoreRows: [],
 	vendingBench2ModelScoreRows: [],
@@ -145,6 +197,31 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 } as unknown as SourceSnapshots);
 
 assert.deepEqual(summary(cachedSourceData), summary(liveSourceData));
+const liveBenchmarkRows = benchmarkRowsFromSourceData(liveSourceData);
+assert.deepEqual(liveBenchmarkRows.chess_puzzles, [
+	{
+		id: "epoch/example-model",
+		label: "Epoch Example Model",
+		provider: null,
+		value: 0.71,
+	},
+]);
+assert.deepEqual(liveBenchmarkRows.chartography, [
+	{
+		id: null,
+		label: "Surge Example Model",
+		provider: null,
+		value: 0.64,
+	},
+]);
+assert.deepEqual(liveBenchmarkRows.proofbench, [
+	{
+		id: "vals/example-model",
+		label: "Vals Example Model",
+		provider: null,
+		value: 0.58,
+	},
+]);
 assert.deepEqual(summary(liveSourceData), {
 	artificialAnalysisModelId: "google/example-model",
 	modelsDevRows: [

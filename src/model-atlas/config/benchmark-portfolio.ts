@@ -158,7 +158,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
+		resourcePolicy: BENCHMARK_PER_TASK_POLICY,
 	},
 	hle: {
 		group: "frontier",

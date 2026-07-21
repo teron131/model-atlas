@@ -26,6 +26,10 @@ import type { GdpPdfModelScoreRow } from "../scrapers/surge/gdp-pdf";
 import type { RiemannBenchModelScoreRow } from "../scrapers/surge/riemann-bench";
 import type { ToolathlonModelScoreRow } from "../scrapers/toolathlon";
 import type {
+	HarveyLabModelScoreRow,
+	HarveyLabTaskRow,
+} from "../scrapers/vals/harvey-lab";
+import type {
 	ValsIndexModelScoreRow,
 	ValsIndexTaskScoreRow,
 } from "../scrapers/vals/index-benchmark";
@@ -64,6 +68,7 @@ export const RAW_SOURCE_NAMES = [
 	"mercor_apex_agents",
 	"proofbench",
 	"riemann_bench",
+	"vals_harvey_lab",
 	"vals_terminal_bench",
 	"toolathlon",
 	"vals_index",
@@ -99,6 +104,7 @@ export const RAW_SOURCE_TABLES = {
 	mercor_apex_agents: "mercor_apex_agents_raw_rows",
 	proofbench: "proofbench_raw_rows",
 	riemann_bench: "riemann_bench_raw_rows",
+	vals_harvey_lab: "vals_harvey_lab_raw_rows",
 	vals_terminal_bench: "vals_terminal_bench_raw_rows",
 	toolathlon: "toolathlon_raw_rows",
 	vals_index: "vals_index_raw_rows",
@@ -148,6 +154,7 @@ export const SOURCE_URLS = {
 	mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
 	proofbench: "https://www.vals.ai/benchmarks/proof_bench",
 	riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
+	vals_harvey_lab: "https://www.vals.ai/benchmarks/hlab",
 	vals_terminal_bench: "https://www.vals.ai/benchmarks/terminal-bench-2-1",
 	toolathlon:
 		"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
@@ -230,12 +237,14 @@ export type SourceSnapshots = {
 	frontierMathTier4Rows: BenchmarkScoreRow[];
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	handbookMdRows: BenchmarkScoreRow[];
+	harveyLabRows: HarveyLabTaskRow[];
+	harveyLabModelScoreRows: HarveyLabModelScoreRow[];
 	mercorApexAgentsRows: MercorApexAgentsRow[];
 	proofBenchRows: BenchmarkScoreRow[];
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
 	riemannBenchSourceUrl: string;
-	valsTerminalBenchRows: TerminalBenchTaskRow[];
-	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
+	terminalBenchRows: TerminalBenchTaskRow[];
+	terminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	valsIndexRows: ValsIndexTaskScoreRow[];
 	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
@@ -262,10 +271,11 @@ export type SourceSnapshots = {
 		frontierMathTier4: number | null;
 		gdpPdf: number | null;
 		handbookMd: number | null;
+		harveyLab: number | null;
 		mercorApexAgents: number | null;
 		proofBench: number | null;
 		riemannBench: number | null;
-		valsTerminalBench: number | null;
+		terminalBench: number | null;
 		toolathlon: number | null;
 		valsIndex: number | null;
 		vendingBench2: number | null;

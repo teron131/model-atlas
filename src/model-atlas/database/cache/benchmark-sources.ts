@@ -31,6 +31,11 @@ import type { GdpPdfModelScoreRow } from "../../scrapers/surge/gdp-pdf";
 import type { RiemannBenchModelScoreRow } from "../../scrapers/surge/riemann-bench";
 import type { ToolathlonModelScoreRow } from "../../scrapers/toolathlon";
 import type {
+	HarveyLabMetric,
+	HarveyLabModelScoreRow,
+	HarveyLabTaskRow,
+} from "../../scrapers/vals/harvey-lab";
+import type {
 	ValsIndexModelScoreRow,
 	ValsIndexTaskScoreRow,
 } from "../../scrapers/vals/index-benchmark";
@@ -638,6 +643,87 @@ export function readHandbookMdRawCache(cache: CacheSource) {
 	);
 }
 
+function harveyLabMetric(value: unknown): HarveyLabMetric | null {
+	return value === "criterion_pass" || value === "task_resolution"
+		? value
+		: null;
+}
+
+/** Reconstruct Harvey LAB rows without losing scoring configuration or resource fields. */
+export function readHarveyLabRawCache(cache: CacheSource): {
+	rows: HarveyLabTaskRow[];
+	modelScores: HarveyLabModelScoreRow[];
+	fetchedAt: number | null;
+} | null {
+	const cacheRows = sourceRows(
+		cache,
+		"SELECT * FROM vals_harvey_lab_raw_rows ORDER BY row_index",
+	);
+	if (
+		cacheRows.length === 0 ||
+		cacheRows.some(
+			(row) => stringValue(row.url) !== SOURCE_URLS.vals_harvey_lab,
+		)
+	) {
+		return null;
+	}
+	const rows = cacheRows.flatMap((row) => {
+		const task = stringValue(row.task);
+		const taskLabel = stringValue(row.task_label);
+		const metric = harveyLabMetric(row.metric);
+		const modelId = stringValue(row.model_id);
+		const model = stringValue(row.model);
+		const baseModel = stringValue(row.base_model);
+		const score = asFiniteNumber(row.score);
+		if (
+			task == null ||
+			taskLabel == null ||
+			metric == null ||
+			modelId == null ||
+			model == null ||
+			baseModel == null ||
+			score == null
+		) {
+			return [];
+		}
+		return [
+			{
+				task,
+				task_label: taskLabel,
+				metric,
+				model_id: modelId,
+				model,
+				base_model: baseModel,
+				reasoning_effort: stringValue(row.reasoning_effort),
+				provider: stringValue(row.provider),
+				rank: asFiniteNumber(row.rank),
+				score,
+				criterion_pass: asFiniteNumber(row.criterion_pass),
+				standard_error: asFiniteNumber(row.standard_error),
+				cost_per_task_usd: asFiniteNumber(row.cost_per_task_usd),
+				seconds_per_task: asFiniteNumber(row.seconds_per_task),
+				temperature: asFiniteNumber(row.temperature),
+				top_p: asFiniteNumber(row.top_p),
+				max_output_tokens: asFiniteNumber(row.max_output_tokens),
+				verbosity: stringValue(row.verbosity),
+				compute_effort: stringValue(row.compute_effort),
+				harness: stringValue(row.harness),
+			},
+		];
+	});
+	if (rows.length === 0) {
+		return null;
+	}
+	return {
+		rows,
+		modelScores: rows.filter(
+			(row): row is HarveyLabModelScoreRow =>
+				row.task === "overall" && row.metric === "task_resolution",
+		),
+		fetchedAt: firstEpochSecond(cacheRows),
+	};
+}
+
 export function readMercorApexAgentsRawCache(cache: CacheSource): {
 	rows: MercorApexAgentsRow[];
 	fetchedAt: number | null;
@@ -739,7 +825,7 @@ export function readRiemannBenchRawCache(cache: CacheSource): {
 	};
 }
 
-export function readValsTerminalBenchRawCache(cache: CacheSource): {
+export function readTerminalBenchRawCache(cache: CacheSource): {
 	rows: TerminalBenchTaskRow[];
 	modelScores: TerminalBenchModelHarnessRow[];
 	fetchedAt: number | null;

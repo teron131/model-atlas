@@ -23,14 +23,15 @@ import {
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,
+	readHarveyLabRawCache,
 	readMercorApexAgentsRawCache,
 	readModelsDevRawCache,
 	readProofBenchRawCache,
 	readRawSourceCacheStatus,
 	readRiemannBenchRawCache,
+	readTerminalBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
-	readValsTerminalBenchRawCache,
 	readVendingBench2RawCache,
 	readWeirdMlRawCache,
 } from "./cache";
@@ -53,12 +54,13 @@ import {
 	frontierMathTier4Snapshot,
 	gdpPdfSnapshot,
 	handbookMdSnapshot,
+	harveyLabSnapshot,
 	mercorApexAgentsSnapshot,
 	proofBenchSnapshot,
 	riemannBenchSnapshot,
+	terminalBenchSnapshot,
 	toolathlonSnapshot,
 	valsIndexSnapshot,
-	valsTerminalBenchSnapshot,
 	vendingBench2Snapshot,
 	weirdMlSnapshot,
 } from "./source-snapshots/sparse-benchmarks";
@@ -105,10 +107,11 @@ export type SourceSnapshotCaches = {
 	frontierMathTier4: ReturnType<typeof readFrontierMathTier4RawCache>;
 	gdpPdf: ReturnType<typeof readGdpPdfRawCache>;
 	handbookMd: ReturnType<typeof readHandbookMdRawCache>;
+	harveyLab: ReturnType<typeof readHarveyLabRawCache>;
 	mercorApexAgents: ReturnType<typeof readMercorApexAgentsRawCache>;
 	proofBench: ReturnType<typeof readProofBenchRawCache>;
 	riemannBench: ReturnType<typeof readRiemannBenchRawCache>;
-	valsTerminalBench: ReturnType<typeof readValsTerminalBenchRawCache>;
+	terminalBench: ReturnType<typeof readTerminalBenchRawCache>;
 	toolathlon: ReturnType<typeof readToolathlonRawCache>;
 	valsIndex: ReturnType<typeof readValsIndexRawCache>;
 	vendingBench2: ReturnType<typeof readVendingBench2RawCache>;
@@ -137,10 +140,11 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
 		frontierMathTier4: readFrontierMathTier4RawCache(db),
 		gdpPdf: readGdpPdfRawCache(db),
 		handbookMd: readHandbookMdRawCache(db),
+		harveyLab: readHarveyLabRawCache(db),
 		mercorApexAgents: readMercorApexAgentsRawCache(db),
 		proofBench: readProofBenchRawCache(db),
 		riemannBench: readRiemannBenchRawCache(db),
-		valsTerminalBench: readValsTerminalBenchRawCache(db),
+		terminalBench: readTerminalBenchRawCache(db),
 		toolathlon: readToolathlonRawCache(db),
 		valsIndex: readValsIndexRawCache(db),
 		vendingBench2: readVendingBench2RawCache(db),
@@ -211,10 +215,11 @@ function fetchedAtFromStatuses(
 		frontierMathTier4: null,
 		gdpPdf: null,
 		handbookMd: null,
+		harveyLab: null,
 		mercorApexAgents: null,
 		proofBench: null,
 		riemannBench: null,
-		valsTerminalBench: null,
+		terminalBench: null,
 		toolathlon: null,
 		valsIndex: null,
 		vendingBench2: null,
@@ -275,10 +280,11 @@ export async function refreshSourceSnapshots(
 		frontierMathTier4,
 		gdpPdf,
 		handbookMd,
+		harveyLab,
 		mercorApexAgents,
 		proofBench,
 		riemannBench,
-		valsTerminalBench,
+		terminalBench,
 		toolathlon,
 		valsIndex,
 		vendingBench2,
@@ -418,6 +424,13 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.handbook_md,
 			nowEpochSeconds,
 		),
+		harveyLabSnapshot(
+			caches.harveyLab,
+			sourceCache.vals_harvey_lab,
+			options,
+			previousMissingSince.vals_harvey_lab,
+			nowEpochSeconds,
+		),
 		mercorApexAgentsSnapshot(
 			caches.mercorApexAgents,
 			sourceCache.mercor_apex_agents,
@@ -439,8 +452,8 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.riemann_bench,
 			nowEpochSeconds,
 		),
-		valsTerminalBenchSnapshot(
-			caches.valsTerminalBench,
+		terminalBenchSnapshot(
+			caches.terminalBench,
 			sourceCache.vals_terminal_bench,
 			options,
 			previousMissingSince.vals_terminal_bench,
@@ -499,10 +512,11 @@ export async function refreshSourceSnapshots(
 		frontierMathTier4.sourceStatus,
 		gdpPdf.sourceStatus,
 		handbookMd.sourceStatus,
+		harveyLab.sourceStatus,
 		mercorApexAgents.sourceStatus,
 		proofBench.sourceStatus,
 		riemannBench.sourceStatus,
-		valsTerminalBench.sourceStatus,
+		terminalBench.sourceStatus,
 		toolathlon.sourceStatus,
 		valsIndex.sourceStatus,
 		vendingBench2.sourceStatus,
@@ -538,13 +552,14 @@ export async function refreshSourceSnapshots(
 			frontierMathTier4Rows: frontierMathTier4.rows,
 			gdpPdfModelScoreRows: gdpPdf.gdpPdfModelScoreRows,
 			handbookMdRows: handbookMd.rows,
+			harveyLabRows: harveyLab.harveyLabRows,
+			harveyLabModelScoreRows: harveyLab.harveyLabModelScoreRows,
 			mercorApexAgentsRows: mercorApexAgents.mercorApexAgentsRows,
 			proofBenchRows: proofBench.proofBenchRows,
 			riemannBenchModelScoreRows: riemannBench.riemannBenchModelScoreRows,
 			riemannBenchSourceUrl: riemannBench.riemannBenchSourceUrl,
-			valsTerminalBenchRows: valsTerminalBench.valsTerminalBenchRows,
-			valsTerminalBenchModelScoreRows:
-				valsTerminalBench.valsTerminalBenchModelScoreRows,
+			terminalBenchRows: terminalBench.terminalBenchRows,
+			terminalBenchModelScoreRows: terminalBench.terminalBenchModelScoreRows,
 			toolathlonModelScoreRows: toolathlon.toolathlonModelScoreRows,
 			valsIndexRows: valsIndex.valsIndexRows,
 			valsIndexModelScoreRows: valsIndex.valsIndexModelScoreRows,
