@@ -80,6 +80,14 @@ Sparse benchmark coverage is penalized with the same smooth confidence curve use
 
 Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active quality-adjusted benchmark task-time input. Value gives equal weight to log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.
 
+## Combining Sources
+
+Rows from different sources are never assumed equivalent merely because their benchmark and model labels overlap. Before combining them, Model Atlas checks the task set and version, metric definition, scoring protocol, harness and run configuration, units, aggregation rule, model identity, and reasoning effort.
+
+A source crosswalk is most reliable when the sources represent the same underlying measurement under methodologically compatible protocols. The overlap should validate any identity, scale, or unit transformation, and the benchmark-specific policy should define which source wins when both report the same observation. Canonical observed values are generally not averaged with duplicate mirrors, and validated mappings can admit source-only rows when they identify them without conflict.
+
+Methodologically different measurements are not made comparable by a crosswalk or median. They remain distinct evidence unless the benchmark has an explicit multi-harness aggregation policy, in which case that score rule and any separate resource-aggregation rule are documented in its source note.
+
 ## Source Notes
 
 Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio.
