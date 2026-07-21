@@ -49,6 +49,10 @@ import {
 	getRiemannBenchStats,
 } from "../scrapers/surge/riemann-bench";
 import { buildToolathlonMap, getToolathlonStats } from "../scrapers/toolathlon";
+import { getCodeMigrationStats } from "../scrapers/vals/code-migration";
+import { getCyberBenchStats } from "../scrapers/vals/cyberbench";
+import { getEmbStats } from "../scrapers/vals/emb";
+import { getFinanceAgentV2Stats } from "../scrapers/vals/finance-agent-v2";
 import {
 	buildHarveyLabMap,
 	getHarveyLabStats,
@@ -57,11 +61,16 @@ import {
 	buildValsIndexMap,
 	getValsIndexStats,
 } from "../scrapers/vals/index-benchmark";
+import { getLegalResearchStats } from "../scrapers/vals/legal-research";
+import { getMedCodeStats } from "../scrapers/vals/medcode";
+import { getProgramBenchStats } from "../scrapers/vals/programbench";
 import { getProofBenchStats } from "../scrapers/vals/proofbench";
+import { getPublicBenefitsBenchStats } from "../scrapers/vals/public-benefits-bench";
 import {
 	buildTerminalBenchMap,
 	getTerminalBenchStats,
 } from "../scrapers/vals/terminal-bench";
+import { getVibeCodeStats } from "../scrapers/vals/vibe-code";
 import { getVendingBench2Stats } from "../scrapers/vending-bench-2";
 import { getWeirdMlStats } from "../scrapers/weirdml";
 import { buildBenchmarkModelMap, modelSlugFromModelId } from "../shared";
@@ -96,23 +105,32 @@ export type LlmStatsSourceRows = {
 	browseCompRows: LlmStatsSourceData["browseComp"]["rows"];
 	chartographyRows: LlmStatsSourceData["chartography"]["rows"];
 	chessPuzzleRows: LlmStatsSourceData["chessPuzzles"]["rows"];
+	codeMigrationRows: LlmStatsSourceData["codeMigration"]["rows"];
 	cursorBenchRows: LlmStatsSourceData["cursorBench"]["rows"];
+	cyberBenchRows: LlmStatsSourceData["cyberBench"]["rows"];
 	deepSWEEffortRows: LlmStatsSourceData["deepSWE"]["effortRows"];
 	ebrBenchRows: LlmStatsSourceData["ebrBench"]["rows"];
+	embRows: LlmStatsSourceData["emb"]["rows"];
 	enterpriseBenchCoreCraftRows: LlmStatsSourceData["enterpriseBenchCoreCraft"]["rows"];
 	epochCapabilitiesIndexRows: LlmStatsSourceData["epochCapabilitiesIndex"]["rows"];
+	financeAgentV2Rows: LlmStatsSourceData["financeAgentV2"]["rows"];
 	frontierCodeRows: LlmStatsSourceData["frontierCode"]["rows"];
 	frontierMathTier4Rows: LlmStatsSourceData["frontierMathTier4"]["rows"];
 	gdpPdfRows: LlmStatsSourceData["gdpPdf"]["rows"];
 	handbookMdRows: LlmStatsSourceData["handbookMd"]["rows"];
 	harveyLabRows: LlmStatsSourceData["harveyLab"]["rows"];
+	legalResearchRows: LlmStatsSourceData["legalResearch"]["rows"];
+	medCodeRows: LlmStatsSourceData["medCode"]["rows"];
 	mercorApexAgentsRows: MercorApexAgentsRow[];
+	programBenchRows: LlmStatsSourceData["programBench"]["rows"];
 	proofBenchRows: LlmStatsSourceData["proofBench"]["rows"];
+	publicBenefitsBenchRows: LlmStatsSourceData["publicBenefitsBench"]["rows"];
 	riemannBenchRows: LlmStatsSourceData["riemannBench"]["rows"];
 	terminalBenchRows: LlmStatsSourceData["terminalBench"]["rows"];
 	toolathlonRows: LlmStatsSourceData["toolathlon"]["rows"];
 	valsIndexRows: LlmStatsSourceData["valsIndex"]["rows"];
 	vendingBench2Rows: LlmStatsSourceData["vendingBench2"]["rows"];
+	vibeCodeRows: LlmStatsSourceData["vibeCode"]["rows"];
 	weirdMlRows: LlmStatsSourceData["weirdMl"]["rows"];
 };
 
@@ -179,9 +197,17 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.chessPuzzleRows,
 			rowsByModelName: buildBenchmarkScoreMap(rows.chessPuzzleRows),
 		},
+		codeMigration: {
+			rows: rows.codeMigrationRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.codeMigrationRows),
+		},
 		cursorBench: {
 			rows: rows.cursorBenchRows,
 			rowsByModelName: buildCursorBenchMap(rows.cursorBenchRows),
+		},
+		cyberBench: {
+			rows: rows.cyberBenchRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.cyberBenchRows),
 		},
 		deepSWE: {
 			effortRows: rows.deepSWEEffortRows,
@@ -192,6 +218,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.ebrBenchRows,
 			rowsByModelName: buildBenchmarkScoreMap(rows.ebrBenchRows),
 		},
+		emb: {
+			rows: rows.embRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.embRows),
+		},
 		enterpriseBenchCoreCraft: {
 			rows: rows.enterpriseBenchCoreCraftRows,
 			rowsByModelName: buildBenchmarkScoreMap(
@@ -201,6 +231,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 		epochCapabilitiesIndex: {
 			rows: rows.epochCapabilitiesIndexRows,
 			rowsByModelName: buildBenchmarkScoreMap(rows.epochCapabilitiesIndexRows),
+		},
+		financeAgentV2: {
+			rows: rows.financeAgentV2Rows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.financeAgentV2Rows),
 		},
 		frontierCode: {
 			rows: rows.frontierCodeRows,
@@ -222,13 +256,29 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.harveyLabRows,
 			rowsByModelName: buildHarveyLabMap(rows.harveyLabRows),
 		},
+		legalResearch: {
+			rows: rows.legalResearchRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.legalResearchRows),
+		},
+		medCode: {
+			rows: rows.medCodeRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.medCodeRows),
+		},
 		mercorApexAgents: {
 			rows: rows.mercorApexAgentsRows,
 			rowsByModelName: buildBenchmarkModelMap(rows.mercorApexAgentsRows),
 		},
+		programBench: {
+			rows: rows.programBenchRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.programBenchRows),
+		},
 		proofBench: {
 			rows: rows.proofBenchRows,
 			rowsByModelName: buildBenchmarkScoreMap(rows.proofBenchRows),
+		},
+		publicBenefitsBench: {
+			rows: rows.publicBenefitsBenchRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.publicBenefitsBenchRows),
 		},
 		riemannBench: {
 			rows: rows.riemannBenchRows,
@@ -250,6 +300,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.vendingBench2Rows,
 			rowsByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
 		},
+		vibeCode: {
+			rows: rows.vibeCodeRows,
+			rowsByModelName: buildBenchmarkScoreMap(rows.vibeCodeRows),
+		},
 		weirdMl: {
 			rows: rows.weirdMlRows,
 			rowsByModelName: buildBenchmarkScoreMap(rows.weirdMlRows),
@@ -269,23 +323,32 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		browseCompStats,
 		chartographyStats,
 		chessPuzzleStats,
+		codeMigrationStats,
 		cursorBenchStats,
+		cyberBenchStats,
 		deepSweStats,
 		ebrBenchStats,
+		embStats,
 		enterpriseBenchCoreCraftStats,
 		epochCapabilitiesIndexStats,
+		financeAgentV2Stats,
 		frontierCodeStats,
 		frontierMathTier4Stats,
 		gdpPdfStats,
 		handbookMdStats,
 		harveyLabStats,
+		legalResearchStats,
+		medCodeStats,
 		mercorApexAgentsStats,
+		programBenchStats,
 		proofBenchStats,
+		publicBenefitsBenchStats,
 		riemannBenchStats,
 		terminalBenchStats,
 		toolathlonStats,
 		valsIndexStats,
 		vendingBench2Stats,
+		vibeCodeStats,
 		weirdMlStats,
 	] = await Promise.all([
 		getArtificialAnalysisLeaderboardStats(),
@@ -298,23 +361,32 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getBrowseCompStats(),
 		getChartographyStats(),
 		getEpochChessPuzzleStats(),
+		getCodeMigrationStats(),
 		getCursorBenchStats(),
+		getCyberBenchStats(),
 		getDeepSWELeaderboardStats(),
 		getEpochEbrBenchStats(),
+		getEmbStats(),
 		getEnterpriseBenchCoreCraftStats(),
 		getEpochCapabilitiesIndexStats(),
+		getFinanceAgentV2Stats(),
 		getFrontierCodeStats(),
 		getEpochFrontierMathTier4Stats(),
 		getGdpPdfStats(),
 		getHandbookMdStats(),
 		getHarveyLabStats(),
+		getLegalResearchStats(),
+		getMedCodeStats(),
 		getMercorApexAgentsStats(),
+		getProgramBenchStats(),
 		getProofBenchStats(),
+		getPublicBenefitsBenchStats(),
 		getRiemannBenchStats(),
 		getTerminalBenchStats(),
 		getToolathlonStats(),
 		getValsIndexStats(),
 		getVendingBench2Stats(),
+		getVibeCodeStats(),
 		getWeirdMlStats(),
 	]);
 	const artificialAnalysisRows = artificialAnalysisStats.data;
@@ -360,23 +432,32 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		browseCompRows,
 		chartographyRows,
 		chessPuzzleRows,
+		codeMigrationRows: codeMigrationStats.data,
 		cursorBenchRows,
+		cyberBenchRows: cyberBenchStats.data,
 		deepSWEEffortRows: deepSweEffortRows,
 		ebrBenchRows,
+		embRows: embStats.data,
 		enterpriseBenchCoreCraftRows,
 		epochCapabilitiesIndexRows,
+		financeAgentV2Rows: financeAgentV2Stats.data,
 		frontierCodeRows,
 		frontierMathTier4Rows,
 		gdpPdfRows,
 		handbookMdRows,
 		harveyLabRows,
+		legalResearchRows: legalResearchStats.data,
+		medCodeRows: medCodeStats.data,
 		mercorApexAgentsRows,
+		programBenchRows: programBenchStats.data,
 		proofBenchRows,
+		publicBenefitsBenchRows: publicBenefitsBenchStats.data,
 		riemannBenchRows,
 		terminalBenchRows,
 		toolathlonRows,
 		valsIndexRows,
 		vendingBench2Rows,
+		vibeCodeRows: vibeCodeStats.data,
 		weirdMlRows,
 	});
 }

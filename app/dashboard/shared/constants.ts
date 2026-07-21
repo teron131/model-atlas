@@ -37,12 +37,16 @@ export const benchmarkLabels: Record<string, string> = {
 	browsecomp: "BrowseComp",
 	chartography: "Chartography",
 	chess_puzzles: "Chess Puzzles",
+	code_migration: "Code Migration",
 	critpt: "CritPt",
 	cursorbench: "CursorBench",
+	cyberbench: "CyberBench",
 	deep_swe: "DeepSWE",
 	ebr_bench: "EBR-Bench",
+	emb: "EMB",
 	enterprisebench_corecraft: "EnterpriseBench CoreCraft",
 	epoch_capabilities_index: "Epoch Capabilities Index",
+	finance_agent_v2: "Finance Agent V2",
 	frontier_code: "FrontierCode",
 	frontiermath_tier_4: "FrontierMath Tier 4",
 	gdp_pdf: "GDP.pdf",
@@ -52,8 +56,12 @@ export const benchmarkLabels: Record<string, string> = {
 	hle: "HLE",
 	itbench_sre: "ITBench",
 	lcr: "LCR",
+	legal_research: "Legal Research",
+	medcode: "MedCode",
 	omniscience_accuracy: "Omniscience",
+	programbench: "ProgramBench",
 	proofbench: "ProofBench",
+	public_benefits_bench: "Public Benefits Bench",
 	riemann_bench: "Riemann-bench",
 	scicode: "SciCode",
 	tau_banking: "tau3 Banking",
@@ -61,6 +69,7 @@ export const benchmarkLabels: Record<string, string> = {
 	toolathlon: "Toolathlon",
 	vals_index: "Vals Index",
 	vending_bench_2: "Vending-Bench 2",
+	vibe_code: "Vibe Code",
 	weirdml: "WeirdML",
 };
 
@@ -180,6 +189,15 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "planning and game reasoning"],
 		],
 	},
+	code_migration: {
+		title: "Code Migration",
+		body: "Vals benchmark for migrating an existing codebase while preserving required behavior.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "overall accuracy"],
+			["Role", "repository migration workflow"],
+		],
+	},
 	critpt: {
 		title: "CritPt",
 		body: "Research-level physics reasoning with numeric, symbolic, and code answers.",
@@ -194,6 +212,15 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Cursor"],
 			["Role", "coding-agent workflow"],
+		],
+	},
+	cyberbench: {
+		title: "CyberBench",
+		body: "Vals benchmark for carrying out practical cybersecurity workflows in a tool-using environment.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "patch-track accuracy"],
+			["Role", "cybersecurity agent work"],
 		],
 	},
 	deep_swe: {
@@ -212,6 +239,15 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "learning from experience"],
 		],
 	},
+	emb: {
+		title: "EMB",
+		body: "Vals benchmark for completing realistic expert work through a multi-step agent workflow.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "overall accuracy"],
+			["Role", "expert agent workflow"],
+		],
+	},
 	enterprisebench_corecraft: {
 		title: "EnterpriseBench CoreCraft",
 		body: "Enterprise-agent benchmark inside a simulated computer-hardware startup, requiring active discovery, tool use, and policy-aware task completion.",
@@ -226,6 +262,15 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Epoch AI"],
 			["Role", "general capability context"],
+		],
+	},
+	finance_agent_v2: {
+		title: "Finance Agent V2",
+		body: "Vals benchmark for finance research and analysis completed through an agent workflow.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "strict all-pass rate"],
+			["Role", "finance agent work"],
 		],
 	},
 	frontier_code: {
@@ -300,6 +345,24 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "long context reasoning"],
 		],
 	},
+	legal_research: {
+		title: "Legal Research",
+		body: "Vals benchmark for researching legal questions and producing grounded work through a tool-using workflow.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "overall accuracy"],
+			["Role", "legal research agent work"],
+		],
+	},
+	medcode: {
+		title: "MedCode",
+		body: "Vals benchmark for medical coding knowledge and reasoning.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "overall accuracy"],
+			["Role", "medical coding reasoning"],
+		],
+	},
 	omniscience_accuracy: {
 		title: "Omniscience",
 		body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",
@@ -308,12 +371,31 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 			["Role", "knowledge accuracy"],
 		],
 	},
+	programbench: {
+		title: "ProgramBench",
+		body: "Vals benchmark for solving programming tasks through an executable coding workflow.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "raw behavioral-test pass rate"],
+			["Role", "programming agent work"],
+		],
+	},
 	proofbench: {
 		title: "ProofBench",
 		body: "Graduate and advanced-undergraduate mathematics problems where agents must produce Lean 4 proofs accepted by a formal checker.",
 		rows: [
 			["Source", "Vals AI"],
+			["Metric", "overall compiler-verified accuracy"],
 			["Role", "formal theorem proving"],
+		],
+	},
+	public_benefits_bench: {
+		title: "Public Benefits Bench",
+		body: "Vals benchmark for resolving public-benefits cases through professional research and workflow execution.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "overall accuracy"],
+			["Role", "public-benefits agent work"],
 		],
 	},
 	riemann_bench: {
@@ -370,6 +452,15 @@ export const benchmarkTooltips: Record<string, LlmStatsColumnTooltip> = {
 		rows: [
 			["Source", "Andon Labs"],
 			["Role", "long-horizon business operation"],
+		],
+	},
+	vibe_code: {
+		title: "Vibe Code",
+		body: "Vals benchmark for end-to-end software creation in a coding-agent environment.",
+		rows: [
+			["Source", "Vals AI"],
+			["Metric", "overall accuracy"],
+			["Role", "coding agent work"],
 		],
 	},
 	weirdml: {

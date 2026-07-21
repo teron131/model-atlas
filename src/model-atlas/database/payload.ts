@@ -98,16 +98,35 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 		true,
 	),
+	payloadRowGroup(
+		"codeMigrationRows",
+		SNAPSHOT_TABLES.code_migration,
+		"row_index",
+		true,
+	),
 	payloadRowGroup("cursorBenchRows", SNAPSHOT_TABLES.cursorbench, "row_index"),
+	payloadRowGroup(
+		"cyberBenchRows",
+		SNAPSHOT_TABLES.cyberbench,
+		"row_index",
+		true,
+	),
 	payloadRowGroup(
 		"deepSWERows",
 		SNAPSHOT_TABLES.deep_swe,
 		"pass_at_1 DESC, row_index",
 	),
 	payloadRowGroup("ebrBenchRows", SNAPSHOT_TABLES.ebr_bench, "row_index", true),
+	payloadRowGroup("embRows", SNAPSHOT_TABLES.emb, "row_index", true),
 	payloadRowGroup(
 		"enterpriseBenchCoreCraftRows",
 		SNAPSHOT_TABLES.enterprisebench_corecraft,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"financeAgentV2Rows",
+		SNAPSHOT_TABLES.finance_agent_v2,
 		"row_index",
 		true,
 	),
@@ -143,8 +162,27 @@ export const PAYLOAD_ROW_GROUPS = [
 		true,
 	),
 	payloadRowGroup(
+		"legalResearchRows",
+		SNAPSHOT_TABLES.legal_research,
+		"row_index",
+		true,
+	),
+	payloadRowGroup("medCodeRows", SNAPSHOT_TABLES.medcode, "row_index", true),
+	payloadRowGroup(
 		"proofBenchRows",
 		SNAPSHOT_TABLES.proofbench,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"programBenchRows",
+		SNAPSHOT_TABLES.programbench,
+		"row_index",
+		true,
+	),
+	payloadRowGroup(
+		"publicBenefitsBenchRows",
+		SNAPSHOT_TABLES.public_benefits_bench,
 		"row_index",
 		true,
 	),
@@ -172,6 +210,7 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 		true,
 	),
+	payloadRowGroup("vibeCodeRows", SNAPSHOT_TABLES.vibe_code, "row_index", true),
 	payloadRowGroup("weirdMlRows", SNAPSHOT_TABLES.weirdml, "row_index", true),
 ] as const;
 

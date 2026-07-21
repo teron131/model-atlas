@@ -49,9 +49,12 @@ export type BenchmarkEnrichmentLookups = {
 	browseComp: Pick<LlmStatsSourceData["browseComp"], "rowsByModelName">;
 	chartography: Pick<LlmStatsSourceData["chartography"], "rowsByModelName">;
 	chessPuzzles: Pick<LlmStatsSourceData["chessPuzzles"], "rowsByModelName">;
+	codeMigration: Pick<LlmStatsSourceData["codeMigration"], "rowsByModelName">;
 	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "rowsByModelName">;
+	cyberBench: Pick<LlmStatsSourceData["cyberBench"], "rowsByModelName">;
 	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "rowsByModelName">;
 	ebrBench: Pick<LlmStatsSourceData["ebrBench"], "rowsByModelName">;
+	emb: Pick<LlmStatsSourceData["emb"], "rowsByModelName">;
 	enterpriseBenchCoreCraft: Pick<
 		LlmStatsSourceData["enterpriseBenchCoreCraft"],
 		"rowsByModelName"
@@ -60,6 +63,7 @@ export type BenchmarkEnrichmentLookups = {
 		LlmStatsSourceData["epochCapabilitiesIndex"],
 		"rowsByModelName"
 	>;
+	financeAgentV2: Pick<LlmStatsSourceData["financeAgentV2"], "rowsByModelName">;
 	frontierCode: Pick<LlmStatsSourceData["frontierCode"], "rowsByModelName">;
 	frontierMathTier4: Pick<
 		LlmStatsSourceData["frontierMathTier4"],
@@ -68,16 +72,24 @@ export type BenchmarkEnrichmentLookups = {
 	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "rowsByModelName">;
 	handbookMd: Pick<LlmStatsSourceData["handbookMd"], "rowsByModelName">;
 	harveyLab: Pick<LlmStatsSourceData["harveyLab"], "rowsByModelName">;
+	legalResearch: Pick<LlmStatsSourceData["legalResearch"], "rowsByModelName">;
+	medCode: Pick<LlmStatsSourceData["medCode"], "rowsByModelName">;
 	mercorApexAgents: Pick<
 		LlmStatsSourceData["mercorApexAgents"],
 		"rowsByModelName"
 	>;
+	programBench: Pick<LlmStatsSourceData["programBench"], "rowsByModelName">;
 	proofBench: Pick<LlmStatsSourceData["proofBench"], "rowsByModelName">;
+	publicBenefitsBench: Pick<
+		LlmStatsSourceData["publicBenefitsBench"],
+		"rowsByModelName"
+	>;
 	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "rowsByModelName">;
 	terminalBench: Pick<LlmStatsSourceData["terminalBench"], "rowsByModelName">;
 	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "rowsByModelName">;
 	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "rowsByModelName">;
 	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "rowsByModelName">;
+	vibeCode: Pick<LlmStatsSourceData["vibeCode"], "rowsByModelName">;
 	weirdMl: Pick<LlmStatsSourceData["weirdMl"], "rowsByModelName">;
 };
 
@@ -387,6 +399,14 @@ export function enrichBenchmarkAggregate(
 		"chess_puzzles",
 		lookups.chessPuzzles.rowsByModelName,
 	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"code_migration",
+		lookups.codeMigration.rowsByModelName,
+	);
 	const cursorBenchRow = findSourceRow(
 		modelNameCandidates,
 		lookups.cursorBench.rowsByModelName,
@@ -395,6 +415,14 @@ export function enrichBenchmarkAggregate(
 		evaluations.cursorbench = cursorBenchRow.score;
 		scoringSources.cursorbench = cursorBenchRow;
 	}
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"cyberbench",
+		lookups.cyberBench.rowsByModelName,
+	);
 
 	const deepSweRow = findSourceRow(
 		modelNameCandidates,
@@ -417,6 +445,14 @@ export function enrichBenchmarkAggregate(
 		scoringSources,
 		modelNameCandidates,
 		targetReasoningEffort,
+		"emb",
+		lookups.emb.rowsByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
 		"enterprisebench_corecraft",
 		lookups.enterpriseBenchCoreCraft.rowsByModelName,
 	);
@@ -427,6 +463,14 @@ export function enrichBenchmarkAggregate(
 		targetReasoningEffort,
 		"epoch_capabilities_index",
 		lookups.epochCapabilitiesIndex.rowsByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"finance_agent_v2",
+		lookups.financeAgentV2.rowsByModelName,
 	);
 	addFrontierCodeScore(
 		{ evaluations, scoringSources },
@@ -466,6 +510,22 @@ export function enrichBenchmarkAggregate(
 		evaluations.harvey_lab = harveyLabRow.score;
 		scoringSources.harvey_lab = harveyLabRow;
 	}
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"legal_research",
+		lookups.legalResearch.rowsByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"medcode",
+		lookups.medCode.rowsByModelName,
+	);
 	const mercorRow = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
@@ -479,8 +539,24 @@ export function enrichBenchmarkAggregate(
 		scoringSources,
 		modelNameCandidates,
 		targetReasoningEffort,
+		"programbench",
+		lookups.programBench.rowsByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
 		"proofbench",
 		lookups.proofBench.rowsByModelName,
+	);
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"public_benefits_bench",
+		lookups.publicBenefitsBench.rowsByModelName,
 	);
 	const riemannBenchScore = findRiemannBenchScore(
 		modelNameCandidates,
@@ -525,6 +601,14 @@ export function enrichBenchmarkAggregate(
 		evaluations.vending_bench_2 = vendingBench2Row.final_balance_usd;
 		scoringSources.vending_bench_2 = vendingBench2Row;
 	}
+	addBenchmarkScore(
+		evaluations,
+		scoringSources,
+		modelNameCandidates,
+		targetReasoningEffort,
+		"vibe_code",
+		lookups.vibeCode.rowsByModelName,
+	);
 	addBenchmarkScore(
 		evaluations,
 		scoringSources,

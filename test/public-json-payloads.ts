@@ -164,6 +164,26 @@ assert.deepEqual(
 	"the all view should expose every reasoning-effort variant",
 );
 
+const valsBenchmarkPayload = benchmarksJsonPayload(
+	minimalLlmStatsPayload({
+		fetchedAt: 124,
+		models: [
+			{
+				...minimalLlmStatsModel({
+					id: "provider/vals-model",
+					name: "Vals Model",
+				}),
+				evaluations: { legal_research: 0.62 },
+			},
+		],
+	}),
+);
+assert.equal(
+	valsBenchmarkPayload.benchmarks[0]?.benchmarks.legal_research,
+	0.62,
+	"the public benchmarks view should expose admitted Vals evaluation fields",
+);
+
 const fullPayload = minimalLlmStatsPayload({
 	fetchedAt: 123,
 	models: [

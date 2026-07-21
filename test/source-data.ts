@@ -127,6 +127,13 @@ const valsRow = benchmarkScoreRow(
 	"Vals Example Model",
 	0.58,
 );
+const valsLegalResearchRow = benchmarkScoreRow(
+	"vals",
+	"legal_research",
+	"vals/example-model",
+	"Vals Example Model",
+	0.62,
+);
 const sourceRows: LlmStatsSourceRows = {
 	artificialAnalysisRows: [{ model_id: "google/example-model" }],
 	artificialAnalysisEvaluationResourceRows: [],
@@ -136,25 +143,34 @@ const sourceRows: LlmStatsSourceRows = {
 	aleBenchConfigurationRows: [],
 	blueprintBenchRows: [],
 	browseCompRows: [],
+	codeMigrationRows: [],
 	chartographyRows: [surgeRow],
 	chessPuzzleRows: [epochRow],
 	cursorBenchRows: [],
+	cyberBenchRows: [],
 	deepSWEEffortRows,
 	ebrBenchRows: [],
+	embRows: [],
 	enterpriseBenchCoreCraftRows: [],
 	epochCapabilitiesIndexRows: [],
+	financeAgentV2Rows: [],
 	frontierCodeRows: [],
 	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
 	handbookMdRows: [],
 	harveyLabRows: [],
+	legalResearchRows: [valsLegalResearchRow],
+	medCodeRows: [],
 	mercorApexAgentsRows: [],
 	proofBenchRows: [valsRow],
+	programBenchRows: [],
+	publicBenefitsBenchRows: [],
 	riemannBenchRows: [],
 	terminalBenchRows: [],
 	toolathlonRows: [],
 	valsIndexRows: [],
 	vendingBench2Rows: [],
+	vibeCodeRows: [],
 	weirdMlRows: [],
 };
 
@@ -192,6 +208,15 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	terminalBenchModelScoreRows: [],
 	toolathlonModelScoreRows: [],
 	valsIndexModelScoreRows: [],
+	codeMigrationRows: [],
+	cyberBenchRows: [],
+	embRows: [],
+	financeAgentV2Rows: [],
+	legalResearchRows: [valsLegalResearchRow],
+	medCodeRows: [],
+	programBenchRows: [],
+	publicBenefitsBenchRows: [],
+	vibeCodeRows: [],
 	vendingBench2ModelScoreRows: [],
 	weirdMlRows: [],
 } as unknown as SourceSnapshots);
@@ -220,6 +245,14 @@ assert.deepEqual(liveBenchmarkRows.proofbench, [
 		label: "Vals Example Model",
 		provider: null,
 		value: 0.58,
+	},
+]);
+assert.deepEqual(liveBenchmarkRows.legal_research, [
+	{
+		id: "vals/example-model",
+		label: "Vals Example Model",
+		provider: null,
+		value: 0.62,
 	},
 ]);
 assert.deepEqual(summary(liveSourceData), {

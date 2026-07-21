@@ -427,10 +427,13 @@ const unsortedBenchmarkMetricColumns = [
 	defineBenchmarkMetricColumn("browseComp", "browsecomp", "Browse"),
 	defineBenchmarkMetricColumn("chartography", "chartography", "Chart"),
 	defineBenchmarkMetricColumn("chessPuzzles", "chess_puzzles", "Chess"),
+	defineBenchmarkMetricColumn("codeMigration", "code_migration", "Migration"),
 	defineBenchmarkMetricColumn("critpt", "critpt", "CritPt"),
 	defineBenchmarkMetricColumn("cursorBench", "cursorbench", "Cursor"),
+	defineBenchmarkMetricColumn("cyberBench", "cyberbench", "Cyber"),
 	defineBenchmarkMetricColumn("deepSWE", "deep_swe", "DSWE"),
 	defineBenchmarkMetricColumn("ebrBench", "ebr_bench", "EBR"),
+	defineBenchmarkMetricColumn("emb", "emb", "EMB"),
 	defineBenchmarkMetricColumn(
 		"enterpriseBenchCoreCraft",
 		"enterprisebench_corecraft",
@@ -442,6 +445,7 @@ const unsortedBenchmarkMetricColumns = [
 		"ECI",
 		"number",
 	),
+	defineBenchmarkMetricColumn("financeAgentV2", "finance_agent_v2", "Finance"),
 	defineBenchmarkMetricColumn("frontierCode", "frontier_code", "FCode"),
 	defineBenchmarkMetricColumn(
 		"frontierMathTier4",
@@ -455,8 +459,16 @@ const unsortedBenchmarkMetricColumns = [
 	defineBenchmarkMetricColumn("hle", "hle", "HLE"),
 	defineBenchmarkMetricColumn("itBench", "itbench_sre", "ITBench"),
 	defineBenchmarkMetricColumn("lcr", "lcr", "LCR"),
+	defineBenchmarkMetricColumn("legalResearch", "legal_research", "Legal"),
+	defineBenchmarkMetricColumn("medCode", "medcode", "MedCode"),
 	defineBenchmarkMetricColumn("omniscience", "omniscience_accuracy", "Omni"),
+	defineBenchmarkMetricColumn("programBench", "programbench", "Program"),
 	defineBenchmarkMetricColumn("proofBench", "proofbench", "Proof"),
+	defineBenchmarkMetricColumn(
+		"publicBenefitsBench",
+		"public_benefits_bench",
+		"Benefits",
+	),
 	defineBenchmarkMetricColumn("riemannBench", "riemann_bench", "Riemann"),
 	defineBenchmarkMetricColumn("scicode", "scicode", "SciCode"),
 	defineBenchmarkMetricColumn("tauBanking", "tau_banking", "tau3"),
@@ -469,6 +481,7 @@ const unsortedBenchmarkMetricColumns = [
 		"Vending",
 		"currency",
 	),
+	defineBenchmarkMetricColumn("vibeCode", "vibe_code", "Vibe"),
 	defineBenchmarkMetricColumn("weirdMl", "weirdml", "WeirdML"),
 ] as const;
 

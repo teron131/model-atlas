@@ -1,6 +1,7 @@
 /** Generic source snapshot lifecycle for one-score benchmark row sources. */
 
-import { snapshotRowsWithStates } from "../policy";
+import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
+import { snapshotRowsWithStates, sourceKey } from "../policy";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -38,6 +39,26 @@ type ModelScoreSnapshotResult<Row> = {
 	fetchedAt: number | null;
 	sourceUrl: string | null;
 };
+
+/** Builds stable identity across benchmark task, track, harness, run, model, and effort variants. */
+export function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
+	const metadataIdentity = (key: string): string | number | null => {
+		const value = row.metadata[key];
+		return typeof value === "string" || typeof value === "number"
+			? value
+			: null;
+	};
+	return sourceKey(
+		row.benchmark_key,
+		metadataIdentity("task"),
+		metadataIdentity("track"),
+		metadataIdentity("harness"),
+		metadataIdentity("source_model_id") ?? metadataIdentity("source_model"),
+		metadataIdentity("run_id"),
+		row.model_id ?? row.model,
+		row.reasoning_effort,
+	);
+}
 
 /** Decides whether fetched rows should replace cached source rows. */
 export function shouldUseFetchedRows(

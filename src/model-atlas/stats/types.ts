@@ -204,12 +204,16 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	browsecomp?: NumberOrNull;
 	chartography?: NumberOrNull;
 	chess_puzzles?: NumberOrNull;
+	code_migration?: NumberOrNull;
 	critpt?: NumberOrNull;
 	cursorbench?: NumberOrNull;
+	cyberbench?: NumberOrNull;
 	deep_swe?: NumberOrNull;
 	ebr_bench?: NumberOrNull;
+	emb?: NumberOrNull;
 	enterprisebench_corecraft?: NumberOrNull;
 	epoch_capabilities_index?: NumberOrNull;
+	finance_agent_v2?: NumberOrNull;
 	frontier_code?: NumberOrNull;
 	frontiermath_tier_4?: NumberOrNull;
 	gdp_pdf?: NumberOrNull;
@@ -220,8 +224,12 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	hle?: NumberOrNull;
 	itbench_sre?: NumberOrNull;
 	lcr?: NumberOrNull;
+	legal_research?: NumberOrNull;
+	medcode?: NumberOrNull;
 	mmmu_pro?: NumberOrNull;
+	programbench?: NumberOrNull;
 	proofbench?: NumberOrNull;
+	public_benefits_bench?: NumberOrNull;
 	riemann_bench?: NumberOrNull;
 	scicode?: NumberOrNull;
 	tau_banking?: NumberOrNull;
@@ -229,6 +237,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	toolathlon?: NumberOrNull;
 	vals_index?: NumberOrNull;
 	vending_bench_2?: NumberOrNull;
+	vibe_code?: NumberOrNull;
 	weirdml?: NumberOrNull;
 };
 
@@ -597,9 +606,17 @@ export type LlmStatsSourceData = {
 		BenchmarkScoreRow,
 		BenchmarkRowsByModelName
 	>;
+	codeMigration: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
+	>;
 	cursorBench: LlmStatsIndexedSourceRows<
 		CursorBenchModelScoreRow,
 		CursorBenchRowsByModelName
+	>;
+	cyberBench: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
 	>;
 	deepSWE: {
 		effortRows: DeepSWELeaderboardRow[];
@@ -610,11 +627,16 @@ export type LlmStatsSourceData = {
 		BenchmarkScoreRow,
 		BenchmarkRowsByModelName
 	>;
+	emb: LlmStatsIndexedSourceRows<BenchmarkScoreRow, BenchmarkRowsByModelName>;
 	enterpriseBenchCoreCraft: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
 		BenchmarkRowsByModelName
 	>;
 	epochCapabilitiesIndex: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
+	>;
+	financeAgentV2: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
 		BenchmarkRowsByModelName
 	>;
@@ -635,11 +657,27 @@ export type LlmStatsSourceData = {
 		HarveyLabModelScoreRow,
 		HarveyLabRowsByModelName
 	>;
+	legalResearch: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
+	>;
+	medCode: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
+	>;
 	mercorApexAgents: LlmStatsIndexedSourceRows<
 		MercorApexAgentsRow,
 		MercorApexAgentsRowsByModelName
 	>;
+	programBench: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
+	>;
 	proofBench: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
+	>;
+	publicBenefitsBench: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
 		BenchmarkRowsByModelName
 	>;
@@ -658,6 +696,10 @@ export type LlmStatsSourceData = {
 	valsIndex: LlmStatsIndexedSourceRows<
 		ValsIndexModelScoreRow,
 		ValsIndexRowsByModelName
+	>;
+	vibeCode: LlmStatsIndexedSourceRows<
+		BenchmarkScoreRow,
+		BenchmarkRowsByModelName
 	>;
 	vendingBench2: LlmStatsIndexedSourceRows<
 		VendingBench2ModelScoreRow,

@@ -49,7 +49,7 @@ type ArtificialAnalysisModelDraftSource<Row> = {
 	value: (row: Row, key: string) => unknown;
 };
 
-type ValsBenchmarkDraftRow = {
+type ModelScoreDraftRow = {
 	model_id: string;
 	model: string;
 	provider: string | null;
@@ -68,9 +68,9 @@ function sparseBenchmarkRowDrafts<T>(
 	}));
 }
 
-function valsModelScoreRowDrafts(
+function modelScoreRowDrafts(
 	key: string,
-	rows: readonly ValsBenchmarkDraftRow[],
+	rows: readonly ModelScoreDraftRow[],
 ): BenchmarkRowDraft[] {
 	return sparseBenchmarkRowDrafts(key, rows, (row) => ({
 		id: row.model_id,
@@ -136,20 +136,6 @@ function surgeBenchmarkRowDrafts(
 				value: row.score,
 			}),
 		),
-	];
-}
-
-function valsBenchmarkRowDrafts(
-	sourceData: LlmStatsSourceData,
-): BenchmarkRowDraft[] {
-	return [
-		...benchmarkScoreRowDrafts(sourceData.proofBench.rows),
-		...valsModelScoreRowDrafts("harvey_lab", sourceData.harveyLab.rows),
-		...valsModelScoreRowDrafts(
-			"terminalbench_v21",
-			sourceData.terminalBench.rows,
-		),
-		...valsModelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),
 	];
 }
 
@@ -351,6 +337,7 @@ function benchmarkDraftsFromSourceData(
 				value: row.score,
 			}),
 		),
+		...benchmarkScoreRowDrafts(sourceData.codeMigration.rows),
 		...sparseBenchmarkRowDrafts(
 			"cursorbench",
 			sourceData.cursorBench.rows,
@@ -364,6 +351,7 @@ function benchmarkDraftsFromSourceData(
 				};
 			},
 		),
+		...benchmarkScoreRowDrafts(sourceData.cyberBench.rows),
 		...sparseBenchmarkRowDrafts(
 			"deep_swe",
 			sourceData.deepSWE.defaultEffortRows,
@@ -376,6 +364,8 @@ function benchmarkDraftsFromSourceData(
 			}),
 		),
 		...epochBenchmarkRowDrafts(sourceData),
+		...benchmarkScoreRowDrafts(sourceData.emb.rows),
+		...benchmarkScoreRowDrafts(sourceData.financeAgentV2.rows),
 		...sparseBenchmarkRowDrafts(
 			"frontier_code",
 			sourceData.frontierCode.rows.filter((row) => row.score_eligible),
@@ -388,6 +378,13 @@ function benchmarkDraftsFromSourceData(
 			}),
 		),
 		...surgeBenchmarkRowDrafts(sourceData),
+		...modelScoreRowDrafts("harvey_lab", sourceData.harveyLab.rows),
+		...benchmarkScoreRowDrafts(sourceData.legalResearch.rows),
+		...benchmarkScoreRowDrafts(sourceData.medCode.rows),
+		...benchmarkScoreRowDrafts(sourceData.programBench.rows),
+		...benchmarkScoreRowDrafts(sourceData.proofBench.rows),
+		...benchmarkScoreRowDrafts(sourceData.publicBenefitsBench.rows),
+		...modelScoreRowDrafts("terminalbench_v21", sourceData.terminalBench.rows),
 		...sparseBenchmarkRowDrafts(
 			"toolathlon",
 			sourceData.toolathlon.rows,
@@ -397,7 +394,7 @@ function benchmarkDraftsFromSourceData(
 				value: row.score,
 			}),
 		),
-		...valsBenchmarkRowDrafts(sourceData),
+		...modelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),
 		...sparseBenchmarkRowDrafts(
 			"vending_bench_2",
 			sourceData.vendingBench2.rows,
@@ -408,6 +405,7 @@ function benchmarkDraftsFromSourceData(
 				value: row.final_balance_usd,
 			}),
 		),
+		...benchmarkScoreRowDrafts(sourceData.vibeCode.rows),
 	];
 }
 

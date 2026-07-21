@@ -33,22 +33,31 @@ type BenchmarkDbRows = {
 	browseCompRows: readonly DbBenchmarkRow[];
 	chartographyRows: readonly DbBenchmarkRow[];
 	chessPuzzleRows: readonly DbBenchmarkRow[];
+	codeMigrationRows: readonly DbBenchmarkRow[];
 	cursorBenchRows: readonly DbBenchmarkRow[];
+	cyberBenchRows: readonly DbBenchmarkRow[];
 	deepSWERows: readonly DbBenchmarkRow[];
 	ebrBenchRows: readonly DbBenchmarkRow[];
+	embRows: readonly DbBenchmarkRow[];
 	enterpriseBenchCoreCraftRows: readonly DbBenchmarkRow[];
 	epochCapabilitiesIndexRows: readonly DbBenchmarkRow[];
+	financeAgentV2Rows: readonly DbBenchmarkRow[];
 	frontierCodeRows: readonly DbBenchmarkRow[];
 	frontierMathTier4Rows: readonly DbBenchmarkRow[];
 	gdpPdfRows: readonly DbBenchmarkRow[];
 	handbookMdRows: readonly DbBenchmarkRow[];
 	harveyLabRows: readonly DbBenchmarkRow[];
+	legalResearchRows: readonly DbBenchmarkRow[];
+	medCodeRows: readonly DbBenchmarkRow[];
+	programBenchRows: readonly DbBenchmarkRow[];
 	proofBenchRows: readonly DbBenchmarkRow[];
+	publicBenefitsBenchRows: readonly DbBenchmarkRow[];
 	riemannBenchRows: readonly DbBenchmarkRow[];
 	terminalBenchRows: readonly DbBenchmarkRow[];
 	toolathlonRows: readonly DbBenchmarkRow[];
 	valsIndexRows: readonly DbBenchmarkRow[];
 	vendingBench2Rows: readonly DbBenchmarkRow[];
+	vibeCodeRows: readonly DbBenchmarkRow[];
 	weirdMlRows: readonly DbBenchmarkRow[];
 };
 
@@ -170,6 +179,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 		}),
 		...benchmarkScoreDrafts(rows.chartographyRows),
 		...benchmarkScoreDrafts(rows.chessPuzzleRows),
+		...benchmarkScoreDrafts(rows.codeMigrationRows),
 		...rows.cursorBenchRows.flatMap((row) => {
 			const baseModel = stringValue(row.base_model);
 			if (baseModel == null) {
@@ -186,6 +196,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 				},
 			];
 		}),
+		...benchmarkScoreDrafts(rows.cyberBenchRows),
 		...deepSweRows.map((row) => ({
 			key: "deep_swe",
 			id: row.model,
@@ -195,8 +206,10 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			value: row.pass_at_1,
 		})),
 		...benchmarkScoreDrafts(rows.ebrBenchRows),
+		...benchmarkScoreDrafts(rows.embRows),
 		...benchmarkScoreDrafts(rows.enterpriseBenchCoreCraftRows),
 		...benchmarkScoreDrafts(rows.epochCapabilitiesIndexRows),
+		...benchmarkScoreDrafts(rows.financeAgentV2Rows),
 		...rows.frontierCodeRows.flatMap((row) =>
 			row.score_eligible === 1
 				? [
@@ -226,7 +239,11 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			providerColumn: "provider",
 			rowKind: "overall",
 		}),
+		...benchmarkScoreDrafts(rows.legalResearchRows),
+		...benchmarkScoreDrafts(rows.medCodeRows),
+		...benchmarkScoreDrafts(rows.programBenchRows),
 		...benchmarkScoreDrafts(rows.proofBenchRows),
+		...benchmarkScoreDrafts(rows.publicBenefitsBenchRows),
 		...dbSourceDrafts({
 			key: "riemann_bench",
 			rows: rows.riemannBenchRows,
@@ -260,6 +277,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			reasoningEffort: row.reasoning_effort,
 			value: row.final_balance_usd,
 		})),
+		...benchmarkScoreDrafts(rows.vibeCodeRows),
 		...benchmarkScoreDrafts(rows.weirdMlRows),
 	];
 }

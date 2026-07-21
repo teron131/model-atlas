@@ -231,6 +231,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 	],
 	chartographyRows: [],
 	chessPuzzleRows: [],
+	codeMigrationRows: [],
 	cursorBenchRows: [
 		{
 			model: "Fable 5 Extra High",
@@ -245,6 +246,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.69,
 		},
 	],
+	cyberBenchRows: [],
 	deepSWERows: [
 		{
 			source_version: "v1.1",
@@ -268,8 +270,10 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 		},
 	],
 	ebrBenchRows: [],
+	embRows: [],
 	enterpriseBenchCoreCraftRows: [],
 	epochCapabilitiesIndexRows: [],
+	financeAgentV2Rows: [],
 	frontierCodeRows: [],
 	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
@@ -283,7 +287,11 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.108333,
 		},
 	],
+	legalResearchRows: [],
+	medCodeRows: [],
+	programBenchRows: [],
 	proofBenchRows: [],
+	publicBenefitsBenchRows: [],
 	riemannBenchRows: [],
 	terminalBenchRows: [
 		{
@@ -305,6 +313,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 		},
 	],
 	vendingBench2Rows: [],
+	vibeCodeRows: [],
 	weirdMlRows: [],
 });
 

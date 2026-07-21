@@ -94,6 +94,11 @@ export const BENCHMARK_PORTFOLIO = {
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
+	code_migration: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+	},
 	critpt: {
 		group: "frontier",
 		benchmarkImportance: 1,
@@ -106,6 +111,11 @@ export const BENCHMARK_PORTFOLIO = {
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 		resourcePolicy: BENCHMARK_PER_TASK_POLICY,
 	},
+	cyberbench: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
 	deep_swe: {
 		group: "frontier",
 		benchmarkImportance: 1,
@@ -117,6 +127,11 @@ export const BENCHMARK_PORTFOLIO = {
 		benchmarkImportance: 0.5,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
+	emb: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+	},
 	enterprisebench_corecraft: {
 		group: "baseline",
 		benchmarkImportance: 0.5,
@@ -126,6 +141,11 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		benchmarkImportance: 0.5,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
+	finance_agent_v2: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
 	},
 	frontier_code: {
 		group: "frontier",
@@ -177,15 +197,35 @@ export const BENCHMARK_PORTFOLIO = {
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
+	legal_research: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+	},
+	medcode: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
 	omniscience_accuracy: {
 		group: "baseline",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
 	},
+	programbench: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+	},
 	proofbench: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.7, agentic: 0.3 },
+	},
+	public_benefits_bench: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
 	},
 	riemann_bench: {
 		group: "frontier",
@@ -220,6 +260,11 @@ export const BENCHMARK_PORTFOLIO = {
 		dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
 	},
 	vending_bench_2: {
+		group: "baseline",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 0, agentic: 1 },
+	},
+	vibe_code: {
 		group: "baseline",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },

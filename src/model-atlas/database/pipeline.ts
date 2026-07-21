@@ -23,24 +23,32 @@ import {
 	insertBrowseCompRawRows,
 	insertChartographyRawRows,
 	insertChessPuzzlesRawRows,
+	insertCodeMigrationRawRows,
 	insertCursorBenchRawRows,
+	insertCyberBenchRawRows,
 	insertDebugTraceRows,
 	insertDeepSWERawRows,
 	insertEbrBenchRawRows,
+	insertEmbRawRows,
 	insertEnterpriseBenchCoreCraftRawRows,
 	insertEpochCapabilitiesIndexRawRows,
+	insertFinanceAgentV2RawRows,
 	insertFrontierCodeRawRows,
 	insertFrontierMathTier4RawRows,
 	insertGdpPdfRawRows,
 	insertHandbookMdRawRows,
 	insertHarveyLabRawRows,
+	insertLegalResearchRawRows,
+	insertMedCodeRawRows,
 	insertMercorApexAgentsRawRows,
 	insertModelEvaluations,
 	insertModels,
 	insertModelsDevRawModels,
 	insertModelTaskMetrics,
 	insertOpenRouterRawRows,
+	insertProgramBenchRawRows,
 	insertProofBenchRawRows,
+	insertPublicBenefitsBenchRawRows,
 	insertRiemannBenchRawRows,
 	insertSourceHealth,
 	insertSourceQuarantines,
@@ -48,6 +56,7 @@ import {
 	insertToolathlonRawRows,
 	insertValsIndexRawRows,
 	insertVendingBench2RawRows,
+	insertVibeCodeRawRows,
 	insertWeirdMlRawRows,
 } from "./writers";
 import type { DatabaseWriter } from "./writers/shared";
@@ -122,8 +131,16 @@ const SNAPSHOT_WRITERS = [
 		write: (db, rows) => insertChessPuzzlesRawRows(db, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.code_migration,
+		write: (db, rows) => insertCodeMigrationRawRows(db, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.cursorbench,
 		write: (db, rows) => insertCursorBenchRawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.cyberbench,
+		write: (db, rows) => insertCyberBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.deep_swe,
@@ -134,6 +151,10 @@ const SNAPSHOT_WRITERS = [
 		write: (db, rows) => insertEbrBenchRawRows(db, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.emb,
+		write: (db, rows) => insertEmbRawRows(db, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.enterprisebench_corecraft,
 		write: (db, rows) =>
 			insertEnterpriseBenchCoreCraftRawRows(db, rows.snapshots),
@@ -142,6 +163,10 @@ const SNAPSHOT_WRITERS = [
 		table: SNAPSHOT_TABLES.epoch_capabilities_index,
 		write: (db, rows) =>
 			insertEpochCapabilitiesIndexRawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.finance_agent_v2,
+		write: (db, rows) => insertFinanceAgentV2RawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.frontier_code,
@@ -164,12 +189,28 @@ const SNAPSHOT_WRITERS = [
 		write: (db, rows) => insertHarveyLabRawRows(db, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.legal_research,
+		write: (db, rows) => insertLegalResearchRawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.medcode,
+		write: (db, rows) => insertMedCodeRawRows(db, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.mercor_apex_agents,
 		write: (db, rows) => insertMercorApexAgentsRawRows(db, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.programbench,
+		write: (db, rows) => insertProgramBenchRawRows(db, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.proofbench,
 		write: (db, rows) => insertProofBenchRawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.public_benefits_bench,
+		write: (db, rows) => insertPublicBenefitsBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.riemann_bench,
@@ -190,6 +231,10 @@ const SNAPSHOT_WRITERS = [
 	{
 		table: SNAPSHOT_TABLES.vending_bench_2,
 		write: (db, rows) => insertVendingBench2RawRows(db, rows.snapshots),
+	},
+	{
+		table: SNAPSHOT_TABLES.vibe_code,
+		write: (db, rows) => insertVibeCodeRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.weirdml,
