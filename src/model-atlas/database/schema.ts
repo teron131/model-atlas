@@ -10,7 +10,7 @@ const SCHEMA_SQL_PATH = resolve(
 );
 export const SCHEMA_MANIFEST_TABLE = "model_atlas_schema_manifest";
 
-export type SchemaColumnShape = {
+type SchemaColumnShape = {
 	type: string;
 	notNull: boolean;
 	primaryKey: number;

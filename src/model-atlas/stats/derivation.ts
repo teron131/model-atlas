@@ -36,7 +36,7 @@ type ModelDerivationLoaderOptions<LoadResult extends OpenRouterLoadResult> =
 
 type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
 	matchDiagnostics: MatchDiagnosticsPayload;
-	enrichedRows: LlmStatsEnrichmentResult;
+	enrichment: LlmStatsEnrichmentResult;
 	models: LlmStatsModel[];
 	openRouterLoad: LoadResult;
 };
@@ -64,9 +64,7 @@ export function deriveModelStats(
 	sourceData: LlmStatsSourceData,
 	options?: ModelDerivationOptions,
 ): Promise<ModelDerivationResult<null>>;
-export async function deriveModelStats<
-	LoadResult extends OpenRouterLoadResult,
->(
+export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
 	sourceData: LlmStatsSourceData,
 	options:
 		| ModelDerivationOptions
@@ -91,7 +89,7 @@ export async function deriveModelStats<
 		"loadOpenRouter" in options
 			? await options.loadOpenRouter(openRouterModelIds(benchmarkEnrichedRows))
 			: null;
-	const enrichedRows = await enrichModelRowsWithOpenRouter(
+	const enrichment = await enrichModelRowsWithOpenRouter(
 		benchmarkEnrichedRows,
 		STAGE_CONFIG.openrouter,
 		STAGE_CONFIG.scoring,
@@ -99,7 +97,7 @@ export async function deriveModelStats<
 	);
 	const models = await buildFinalModels(
 		{
-			...enrichedRows,
+			...enrichment,
 			deepSWEDefaultEffortRows: sourceData.deepSWE.defaultEffortRows,
 		},
 		options.modelId ?? null,
@@ -108,7 +106,7 @@ export async function deriveModelStats<
 	);
 	return {
 		matchDiagnostics,
-		enrichedRows,
+		enrichment,
 		models,
 		openRouterLoad,
 	};

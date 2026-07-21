@@ -2,7 +2,7 @@
 
 import { canonicalModelKey } from "../../shared";
 
-export type CalibrationObservation<T> = {
+type CalibrationObservation<T> = {
 	modelKey: string;
 	item: T;
 	value: number;

@@ -13,7 +13,7 @@ const DEFAULT_DETAILS_URL =
 	"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type BrowseCompScraperOptions = {
+type BrowseCompScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -29,9 +29,9 @@ export type BrowseCompModelScoreRow = {
 	self_reported?: boolean | null;
 };
 
-export type BrowseCompScoreByModelName = Map<string, BrowseCompModelScoreRow>;
+export type BrowseCompRowsByModelName = Map<string, BrowseCompModelScoreRow>;
 
-export type BrowseCompModelScorePayload = {
+type BrowseCompModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: BrowseCompModelScoreRow[];
 };
@@ -47,26 +47,26 @@ export function processBrowseCompDetailsJson(
 
 export function buildBrowseCompMap(
 	rows: BrowseCompModelScoreRow[],
-): BrowseCompScoreByModelName {
-	const scoreByModelName: BrowseCompScoreByModelName = new Map();
+): BrowseCompRowsByModelName {
+	const rowsByModelName: BrowseCompRowsByModelName = new Map();
 	for (const row of rows) {
 		const key = normalizeModelToken(row.model);
 		if (key.length > 0) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findBrowseCompScore(
 	candidateNames: unknown[],
-	browseCompScoreByModelName: BrowseCompScoreByModelName,
+	browseCompRowsByModelName: BrowseCompRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = browseCompScoreByModelName.get(
+		const row = browseCompRowsByModelName.get(
 			normalizeModelToken(candidateName),
 		);
 		if (row) {

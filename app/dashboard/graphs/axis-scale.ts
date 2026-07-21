@@ -1,4 +1,4 @@
-/** Axis scale and tick helpers shared by dashboard charts. */
+/** Shared dashboard chart axis scales and tick selection. */
 
 import { niceLinearStep, roundTick } from "../../../src/model-atlas/math-utils";
 
@@ -96,7 +96,7 @@ export function steppedLinearAxisScale(
 	};
 }
 
-export function paddedLinearDomain(
+function paddedLinearDomain(
 	values: number[],
 	options: LinearDomainOptions = {},
 ): [number, number] {
@@ -117,7 +117,7 @@ export function paddedLinearDomain(
 	return clampDomain([low - padding, high + padding], options);
 }
 
-export function linearAxisTicks(
+function linearAxisTicks(
 	[low, high]: [number, number],
 	{
 		formatTick = (value) => String(value),

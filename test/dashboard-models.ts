@@ -10,7 +10,7 @@ import {
 	modelMatchesQuery,
 	modelsForVariantDisplay,
 	toggleProviderFilter,
-} from "../app/dashboard/shared/modelDisplay";
+} from "../app/dashboard/shared/model-display";
 import {
 	benchmarkDisplayValue,
 	benchmarkMetricColumns,

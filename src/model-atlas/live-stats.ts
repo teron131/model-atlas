@@ -1,4 +1,4 @@
-/** Stats API coordinates live source refresh, enrichment, scoring, and failure-safe payload shape. */
+/** Live stats coordinates source refresh, enrichment, scoring, and failure-safe payload assembly. */
 
 import {
 	type BenchmarkRowsByKey,
@@ -37,7 +37,7 @@ export type {
 } from "./stats/types";
 
 /** Metadata is refreshed around cached or rebuilt payload rows so public scoring copy tracks current config. */
-function withLlmStatsMetadata(
+function withCurrentMetadata(
 	payload: Omit<LlmStatsPayload, "metadata"> &
 		Partial<Pick<LlmStatsPayload, "metadata">>,
 	modelsForMetadata: Array<
@@ -61,21 +61,21 @@ function withLlmStatsMetadata(
 	};
 }
 
-async function buildLlmStatsPayload(
+async function buildLivePayload(
 	modelId: string | null = null,
 ): Promise<LlmStatsPayload> {
 	const sourceData = await fetchSourceData();
-	const { enrichedRows, models } = await deriveModelStats(sourceData, {
+	const { enrichment, models } = await deriveModelStats(sourceData, {
 		modelId,
 	});
 	const fetchedAt = nowEpochSeconds();
-	return withLlmStatsMetadata(
+	return withCurrentMetadata(
 		{
 			fetched_at_epoch_seconds: fetchedAt,
 			deep_swe: { rows: sourceData.deepSWE.effortRows },
 			models,
 		},
-		enrichedRows.rows,
+		enrichment.rows,
 		models,
 		benchmarkRowsFromSourceData(sourceData),
 	);
@@ -86,9 +86,9 @@ export async function getLiveLlmStats(
 ): Promise<LlmStatsPayload> {
 	try {
 		const modelId = options.id ?? null;
-		return await buildLlmStatsPayload(modelId);
+		return await buildLivePayload(modelId);
 	} catch {
-		return withLlmStatsMetadata({
+		return withCurrentMetadata({
 			fetched_at_epoch_seconds: null,
 			models: [],
 		});

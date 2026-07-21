@@ -77,9 +77,9 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildToolathlonMap(rows);
+const rowsByModelName = buildToolathlonMap(rows);
 
 assertDeepEqual(
-	findToolathlonScore(["missing", "Claude Opus 4.8"], scoreByModelName),
+	findToolathlonScore(["missing", "Claude Opus 4.8"], rowsByModelName),
 	0.599,
 );

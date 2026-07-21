@@ -7,7 +7,7 @@ import {
 	reasoningEffortRank,
 } from "./shared";
 
-export const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
+const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
 
 const REASONING_EFFORT_ROUTES = [
 	["-reasoning-ultra", "ultra"],
@@ -42,7 +42,7 @@ const CATALOG_ALIAS_STRIP_SUFFIXES = [...CATALOG_ALIAS_SUFFIXES].sort(
 const DATED_PREVIEW_ROUTE_PATTERN = /^(.+)-preview-\d{2}-(?:\d{2}|\d{4})$/;
 
 /** Removes dated and preview suffixes from OpenRouter model names. */
-function stripOpenRouterVersionSuffix(modelName: string): string {
+function stripVersionSuffix(modelName: string): string {
 	return modelName
 		.replace(/-(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i, "")
 		.replace(/-\d{8}$/i, "")
@@ -51,7 +51,7 @@ function stripOpenRouterVersionSuffix(modelName: string): string {
 		.replace(/-\d{2}-\d{4}$/i, "");
 }
 
-function isOpenRouterVersionSuffix(value: string): boolean {
+function isVersionSuffix(value: string): boolean {
 	return (
 		/^(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i.test(value) ||
 		/^\d{8}$/i.test(value) ||
@@ -61,21 +61,21 @@ function isOpenRouterVersionSuffix(value: string): boolean {
 	);
 }
 
-function openRouterRouteParts(route: string): [string, string] | null {
+function routeParts(route: string): [string, string] | null {
 	const [provider, modelName = ""] = route.toLowerCase().split("/", 2);
 	return provider && modelName ? [provider, modelName] : null;
 }
 
-function normalizedEffortSelectionRoute(route: string): string {
+function normalizedEffortRoute(route: string): string {
 	return claudeRouteIdentityKey(route) ?? normalizeProviderModelId(route);
 }
 
-function isSameOpenRouterModelVersion(
+function isSameModelVersion(
 	targetModelName: string,
 	candidateModelName: string,
 ): boolean {
-	const targetBase = stripOpenRouterVersionSuffix(targetModelName);
-	const candidateBase = stripOpenRouterVersionSuffix(candidateModelName);
+	const targetBase = stripVersionSuffix(targetModelName);
+	const candidateBase = stripVersionSuffix(candidateModelName);
 	if (candidateBase !== targetBase) {
 		const targetClaudeIdentity = claudeRouteIdentityKey(targetBase);
 		return (
@@ -88,8 +88,7 @@ function isSameOpenRouterModelVersion(
 	}
 	const suffix = candidateModelName.slice(targetBase.length + 1);
 	return (
-		candidateModelName.startsWith(`${targetBase}-`) &&
-		isOpenRouterVersionSuffix(suffix)
+		candidateModelName.startsWith(`${targetBase}-`) && isVersionSuffix(suffix)
 	);
 }
 
@@ -97,13 +96,13 @@ export function isSameOpenRouterModelRoute(
 	targetRoute: string,
 	candidateRoute: string,
 ): boolean {
-	const targetParts = openRouterRouteParts(targetRoute);
-	const candidateParts = openRouterRouteParts(candidateRoute);
+	const targetParts = routeParts(targetRoute);
+	const candidateParts = routeParts(candidateRoute);
 	return (
 		targetParts != null &&
 		candidateParts != null &&
 		targetParts[0] === candidateParts[0] &&
-		isSameOpenRouterModelVersion(targetParts[1], candidateParts[1])
+		isSameModelVersion(targetParts[1], candidateParts[1])
 	);
 }
 
@@ -128,10 +127,10 @@ export function reasoningEffortSelectionPriority(
 	if (artificialAnalysisSlug == null || canonicalSlug == null) {
 		return 0;
 	}
-	const normalizedArtificialAnalysisSlug = normalizedEffortSelectionRoute(
+	const normalizedArtificialAnalysisSlug = normalizedEffortRoute(
 		artificialAnalysisSlug,
 	);
-	const normalizedCanonicalSlug = normalizedEffortSelectionRoute(canonicalSlug);
+	const normalizedCanonicalSlug = normalizedEffortRoute(canonicalSlug);
 	const exactRoute =
 		normalizedArtificialAnalysisSlug === normalizedCanonicalSlug;
 	const routeIndex = exactRoute

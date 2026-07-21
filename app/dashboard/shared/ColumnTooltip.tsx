@@ -55,7 +55,7 @@ export function ColumnTooltip({
 	const hasRows = (content.rows?.length ?? 0) > 0;
 	const hasSections = (content.sections?.length ?? 0) > 0;
 	const hasWorkflowSimulationSection =
-		content.sections?.some(sectionHasWorkflowSimulation) ?? false;
+		content.sections?.some(hasWorkflowSimulation) ?? false;
 	const availableWidth =
 		typeof window === "undefined"
 			? tooltipMaxWidth
@@ -314,7 +314,7 @@ function tooltipRows(
 	return items.filter(isTooltipRow);
 }
 
-function sectionHasWorkflowSimulation({
+function hasWorkflowSimulation({
 	kind,
 	rows,
 }: {

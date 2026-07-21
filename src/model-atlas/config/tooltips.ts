@@ -67,7 +67,7 @@ const simulationProfileRow = (
 		weightPercent(SIMULATION_PROFILE_WEIGHTS, profile),
 	] as const;
 
-const WORKFLOW_SIMULATION_TOOLTIP_ROWS = [
+const WORKFLOW_SIMULATION_ROWS = [
 	simulationProfileRow("Micro", "1 call, input 500-3k, output 1-50", "micro"),
 	simulationProfileRow(
 		"Refine/translate",
@@ -123,7 +123,7 @@ const benchmarkContributionPercent = (
 		: "-";
 };
 
-const SPEED_NON_BENCHMARK_COMPONENT_COUNT = 2;
+const SPEED_BASE_COMPONENT_COUNT = 2;
 const VALUE_PRICE_COMPONENT_COUNT = 3;
 
 const FULL_OVERALL_TEXT = "Full Overall";
@@ -278,20 +278,19 @@ const benchmarkRowsByGroup = (
 		),
 });
 
-const INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
+const INTELLIGENCE_BENCHMARK_ROWS = benchmarkRowsByGroup(
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	"intelligence",
 );
 
-const AGENTIC_BENCHMARK_TOOLTIP_ROWS = benchmarkRowsByGroup(
+const AGENTIC_BENCHMARK_ROWS = benchmarkRowsByGroup(
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	"agentic",
 );
 
 const speedInputRows = (components: ActiveResourceComponents) => {
 	const resourceKeys = resourceBenchmarkKeys(components);
-	const componentCount =
-		resourceKeys.length + SPEED_NON_BENCHMARK_COMPONENT_COUNT;
+	const componentCount = resourceKeys.length + SPEED_BASE_COMPONENT_COUNT;
 	const componentWeight = perComponentWeight(1, componentCount);
 	const rawStatWeight = percent(1 / componentCount / 3, 1);
 	return [
@@ -317,7 +316,7 @@ const speedInputRows = (components: ActiveResourceComponents) => {
 			title: "Workflow runtime simulation ↓",
 			kind: "workflow_simulation",
 			weight: componentWeight,
-			rows: WORKFLOW_SIMULATION_TOOLTIP_ROWS,
+			rows: WORKFLOW_SIMULATION_ROWS,
 		},
 	] as const;
 };
@@ -359,7 +358,7 @@ export function columnTooltipsForActiveComponents(
 				{
 					title: "Score blend",
 					hideTitle: true,
-					rows: qualityBenchmarkRows(INTELLIGENCE_BENCHMARK_TOOLTIP_ROWS),
+					rows: qualityBenchmarkRows(INTELLIGENCE_BENCHMARK_ROWS),
 				},
 			],
 		},
@@ -374,7 +373,7 @@ export function columnTooltipsForActiveComponents(
 				{
 					title: "Score blend",
 					hideTitle: true,
-					rows: qualityBenchmarkRows(AGENTIC_BENCHMARK_TOOLTIP_ROWS),
+					rows: qualityBenchmarkRows(AGENTIC_BENCHMARK_ROWS),
 				},
 			],
 		},

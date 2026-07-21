@@ -12,9 +12,9 @@ const TIER_FIRST_PATTERN = new RegExp(
 	`(?:^|[-/])claude-(${CLAUDE_TIER_PATTERN})-(\\d{1,2})(?:-(\\d{1,2}))?(?:-|$)`,
 );
 
-export type ClaudeTier = (typeof CLAUDE_TIERS)[number];
+type ClaudeTier = (typeof CLAUDE_TIERS)[number];
 
-export type ClaudeIdentity = {
+type ClaudeIdentity = {
 	tier: ClaudeTier;
 	version: string;
 };

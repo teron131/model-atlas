@@ -154,24 +154,6 @@ type TaskResourceAmount = (
 	scoringConfig: ScoringConfig,
 ) => number | null;
 
-const taskCostAmount: TaskResourceAmount = (model, key, scoringConfig) =>
-	positiveFiniteNumber(resourceTaskMetric(model, key, scoringConfig)?.cost);
-
-const taskSecondsAmount: TaskResourceAmount = (model, key, scoringConfig) =>
-	effectiveTaskSeconds(model, resourceTaskMetric(model, key, scoringConfig));
-
-function throughputSpeedSignal(model: LlmStatsModelCandidate): number | null {
-	return positiveFiniteNumber(model.speed?.throughput_tokens_per_second_median);
-}
-
-function latencySecondsSignal(model: LlmStatsModelCandidate): number | null {
-	return positiveFiniteNumber(model.speed?.latency_seconds_median);
-}
-
-function e2eSecondsSignal(model: LlmStatsModelCandidate): number | null {
-	return positiveFiniteNumber(model.speed?.e2e_latency_seconds_median);
-}
-
 function activeResourceKeys(
 	models: LlmStatsModelCandidate[],
 	scoringConfig: ScoringConfig,
@@ -472,9 +454,15 @@ export function attachFinalScores(
 		qualityAdjustedBlendedPriceScores[index] ?? null,
 		workflowPriceEfficiencyScores[index] ?? null,
 	]);
-	const throughputSpeedSignals = models.map(throughputSpeedSignal);
-	const latencySecondsSignals = models.map(latencySecondsSignal);
-	const e2eSecondsSignals = models.map(e2eSecondsSignal);
+	const throughputSpeedSignals = models.map((model) =>
+		positiveFiniteNumber(model.speed?.throughput_tokens_per_second_median),
+	);
+	const latencySecondsSignals = models.map((model) =>
+		positiveFiniteNumber(model.speed?.latency_seconds_median),
+	);
+	const e2eSecondsSignals = models.map((model) =>
+		positiveFiniteNumber(model.speed?.e2e_latency_seconds_median),
+	);
 	const throughputSpeedScores = logInputMinMaxScores(
 		throughputSpeedSignals,
 		"higher",
@@ -509,12 +497,14 @@ export function attachFinalScores(
 	const taskTimeComponentEvidence = resourceEfficiencyEvidence(
 		models,
 		scoringConfig,
-		taskSecondsAmount,
+		(model, key, config) =>
+			effectiveTaskSeconds(model, resourceTaskMetric(model, key, config)),
 	);
 	const taskCostComponentEvidence = resourceEfficiencyEvidence(
 		models,
 		scoringConfig,
-		taskCostAmount,
+		(model, key, config) =>
+			positiveFiniteNumber(resourceTaskMetric(model, key, config)?.cost),
 	);
 	const workflowSpeedComponents = logInputMinMaxScores(
 		workflowRuntimeSeconds,

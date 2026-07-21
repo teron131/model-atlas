@@ -13,7 +13,7 @@ const DEFAULT_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_SCORE_SPLIT = "full/overall";
 
-export type AgentsLastExamScraperOptions = {
+type AgentsLastExamScraperOptions = {
 	url?: string;
 	apiUrl?: string;
 	timeoutMs?: number;
@@ -63,25 +63,23 @@ export type AgentsLastExamModelScoreRow = {
 	frequency: number;
 };
 
-export type AgentsLastExamScoreByModelName = Map<
+export type AgentsLastExamRowsByModelName = Map<
 	string,
 	AgentsLastExamModelScoreRow
 >;
 
-export type AgentsLastExamHarnessPayload = {
+type AgentsLastExamHarnessPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: AgentsLastExamHarnessRow[];
 };
 
-export type AgentsLastExamModelScorePayload = {
+type AgentsLastExamModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: AgentsLastExamModelScoreRow[];
 };
 
 /** API rows are narrowed to the stable source shape before summary and harness joins run. */
-function asAgentsLastExamHarnessRow(
-	value: unknown,
-): AgentsLastExamHarnessRow | null {
+function asHarnessRow(value: unknown): AgentsLastExamHarnessRow | null {
 	const row = asRecord(value);
 	const split = typeof row.split === "string" ? row.split : null;
 	const harness = typeof row.harness === "string" ? row.harness : null;
@@ -141,7 +139,7 @@ export function processAgentsLastExamLeaderboardRows(
 	rows: unknown[],
 ): AgentsLastExamHarnessRow[] {
 	return rows
-		.map((row) => asAgentsLastExamHarnessRow(row))
+		.map((row) => asHarnessRow(row))
 		.filter((row): row is AgentsLastExamHarnessRow => row != null);
 }
 
@@ -249,14 +247,14 @@ export function summarizeAgentsLastExamModelScores(
 
 export function buildAgentsLastExamMap(
 	rows: AgentsLastExamModelScoreRow[],
-): AgentsLastExamScoreByModelName {
-	const scoreByModelName: AgentsLastExamScoreByModelName = new Map();
+): AgentsLastExamRowsByModelName {
+	const rowsByModelName: AgentsLastExamRowsByModelName = new Map();
 	for (const row of rows) {
 		const key = normalizeModelToken(row.model);
 		if (key.length === 0) {
 			continue;
 		}
-		const existing = scoreByModelName.get(key);
+		const existing = rowsByModelName.get(key);
 		if (
 			!existing ||
 			row.frequency > existing.frequency ||
@@ -264,15 +262,15 @@ export function buildAgentsLastExamMap(
 				agentsLastExamBenchmarkScore(row) >
 					agentsLastExamBenchmarkScore(existing))
 		) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findAgentsLastExamModelScore(
 	candidateNames: unknown[],
-	scoreByModelName: AgentsLastExamScoreByModelName,
+	rowsByModelName: AgentsLastExamRowsByModelName,
 ): AgentsLastExamModelScoreRow | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
@@ -280,8 +278,8 @@ export function findAgentsLastExamModelScore(
 		}
 		const normalizedCandidate = normalizeModelToken(candidateName);
 		const row =
-			scoreByModelName.get(normalizedCandidate) ??
-			scoreByModelName.get(normalizedCandidate.replace(/\//g, "-"));
+			rowsByModelName.get(normalizedCandidate) ??
+			rowsByModelName.get(normalizedCandidate.replace(/\//g, "-"));
 		if (row) {
 			return row;
 		}

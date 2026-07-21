@@ -8,7 +8,7 @@ import type {
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";
 
-const compactDashboardTooltipKeys = [
+const compactTooltipKeys = [
 	"intelligence",
 	"agentic",
 	"speed",
@@ -20,7 +20,7 @@ const compactDashboardTooltipKeys = [
 export function compactDashboardPayload(
 	payload: LlmStatsPayload,
 ): LlmStatsPayload {
-	const frontierBenchmarkPortfolio = compactDashboardBenchmarkPortfolio(
+	const frontierBenchmarkPortfolio = compactBenchmarkPortfolio(
 		payload.metadata.scoring.benchmark_portfolio,
 	);
 	return {
@@ -50,9 +50,9 @@ export function compactDashboardPayload(
 				benchmark_portfolio: frontierBenchmarkPortfolio,
 				price_profiles: {},
 				simulation_profiles: {},
-				simulation_input_token_seconds:
-					payload.metadata.scoring.simulation_input_token_seconds,
-				column_tooltips: compactDashboardColumnTooltips(
+				seconds_per_input_token:
+					payload.metadata.scoring.seconds_per_input_token,
+				column_tooltips: compactColumnTooltips(
 					payload.metadata.scoring.column_tooltips,
 				),
 				snapshot_preservation_version:
@@ -60,12 +60,12 @@ export function compactDashboardPayload(
 			},
 		},
 		models: payload.models.map((model) =>
-			compactDashboardModel(model, frontierBenchmarkPortfolio),
+			compactModel(model, frontierBenchmarkPortfolio),
 		),
 	};
 }
 
-function compactDashboardBenchmarkPortfolio(
+function compactBenchmarkPortfolio(
 	benchmarkPortfolio: BenchmarkPortfolio,
 ): BenchmarkPortfolio {
 	return Object.fromEntries(
@@ -75,18 +75,18 @@ function compactDashboardBenchmarkPortfolio(
 	);
 }
 
-function compactDashboardColumnTooltips(
+function compactColumnTooltips(
 	columnTooltips: LlmStatsColumnTooltips,
 ): LlmStatsColumnTooltips {
 	return Object.fromEntries(
-		compactDashboardTooltipKeys.flatMap((key) => {
+		compactTooltipKeys.flatMap((key) => {
 			const tooltip = columnTooltips[key] ?? COLUMN_TOOLTIPS[key];
 			return tooltip == null ? [] : [[key, tooltip]];
 		}),
 	);
 }
 
-function compactDashboardModel(
+function compactModel(
 	model: LlmStatsModel,
 	benchmarkPortfolio: BenchmarkPortfolio,
 ): LlmStatsModel {
@@ -99,17 +99,14 @@ function compactDashboardModel(
 		release_date: model.release_date,
 		modalities: copyModalities(model.modalities),
 		open_weights: model.open_weights,
-		cost: compactDashboardCost(model.cost),
+		cost: compactCost(model.cost),
 		context_window:
 			model.context_window == null ? null : { ...model.context_window },
 		speed: { ...model.speed },
-		intelligence: compactDashboardIntelligence(model.intelligence),
+		intelligence: compactIntelligence(model.intelligence),
 		intelligence_index_cost: null,
-		task_metrics: compactDashboardTaskMetrics(model.task_metrics),
-		evaluations: compactDashboardEvaluations(
-			model.evaluations,
-			benchmarkPortfolio,
-		),
+		task_metrics: compactTaskMetrics(model.task_metrics),
+		evaluations: compactEvaluations(model.evaluations, benchmarkPortfolio),
 		component_scores: { ...model.component_scores },
 		scores: { ...model.scores },
 	} as LlmStatsModel;
@@ -127,9 +124,7 @@ function copyModalities(
 	};
 }
 
-function compactDashboardCost(
-	cost: LlmStatsModel["cost"],
-): LlmStatsModel["cost"] {
+function compactCost(cost: LlmStatsModel["cost"]): LlmStatsModel["cost"] {
 	if (cost == null) {
 		return null;
 	}
@@ -144,7 +139,7 @@ function compactDashboardCost(
 	};
 }
 
-function compactDashboardIntelligence(
+function compactIntelligence(
 	intelligence: LlmStatsModel["intelligence"],
 ): LlmStatsModel["intelligence"] {
 	if (intelligence == null) {
@@ -160,7 +155,7 @@ function compactDashboardIntelligence(
 	};
 }
 
-function compactDashboardTaskMetrics(
+function compactTaskMetrics(
 	taskMetrics: LlmStatsModel["task_metrics"],
 ): LlmStatsModel["task_metrics"] {
 	if (taskMetrics == null) {
@@ -175,7 +170,7 @@ function compactDashboardTaskMetrics(
 	return Object.keys(compactTaskMetrics).length > 0 ? compactTaskMetrics : null;
 }
 
-function compactDashboardEvaluations(
+function compactEvaluations(
 	evaluations: LlmStatsModel["evaluations"],
 	frontierBenchmarkPortfolio: BenchmarkPortfolio,
 ): LlmStatsModel["evaluations"] {

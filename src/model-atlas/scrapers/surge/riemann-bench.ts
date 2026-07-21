@@ -13,7 +13,7 @@ export const RIEMANN_BENCH_LEADERBOARD_URL =
 	"https://surgehq.ai/leaderboards/riemann-bench";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type RiemannBenchScraperOptions = {
+type RiemannBenchScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -25,12 +25,12 @@ export type RiemannBenchModelScoreRow = {
 	last_updated: string | null;
 };
 
-export type RiemannBenchScoreByModelName = Map<
+export type RiemannBenchRowsByModelName = Map<
 	string,
 	RiemannBenchModelScoreRow
 >;
 
-export type RiemannBenchModelScorePayload = {
+type RiemannBenchModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	source_url: string;
 	data: RiemannBenchModelScoreRow[];
@@ -51,26 +51,26 @@ function modelKeyCandidates(model: string): string[] {
 
 export function buildRiemannBenchMap(
 	rows: RiemannBenchModelScoreRow[],
-): RiemannBenchScoreByModelName {
-	const scoreByModelName: RiemannBenchScoreByModelName = new Map();
+): RiemannBenchRowsByModelName {
+	const rowsByModelName: RiemannBenchRowsByModelName = new Map();
 	for (const row of rows) {
 		for (const key of modelKeyCandidates(row.model)) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findRiemannBenchScore(
 	candidateNames: unknown[],
-	riemannBenchScoreByModelName: RiemannBenchScoreByModelName,
+	riemannBenchRowsByModelName: RiemannBenchRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
 		for (const key of modelKeyCandidates(candidateName)) {
-			const row = riemannBenchScoreByModelName.get(key);
+			const row = riemannBenchRowsByModelName.get(key);
 			if (row) {
 				return row.score;
 			}

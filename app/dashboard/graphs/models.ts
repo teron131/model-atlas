@@ -7,13 +7,13 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
-import { modelDisplayName, modelVariantKey } from "../shared/modelDisplay";
+import { modelDisplayName, modelVariantKey } from "../shared/model-display";
 import {
-	providerAssetLogo,
+	providerChartColor,
+	providerDisplayName,
 	providerFilterKey,
-	providerName,
-	providerPaletteColor,
-} from "../shared/providerTheme";
+	providerLogo,
+} from "../shared/provider-theme";
 import {
 	finite,
 	finiteValue,
@@ -41,7 +41,7 @@ export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
 const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 
-export type ModelControlFilters = {
+type ModelControlFilters = {
 	providers: ProviderFilters;
 	maxCost: CostFilter;
 };
@@ -202,9 +202,9 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 		const intelligenceScore = finiteValue(model.scores?.intelligence_score);
 		const option = optionsBySlug.get(slug) ?? {
 			slug,
-			label: providerName(model),
+			label: providerDisplayName(model),
 			count: 0,
-			color: providerPaletteColor(model.provider),
+			color: providerChartColor(model.provider),
 			logo: providerLogoSource(model),
 			modelKeys: new Set(),
 			bestScoreByModel: new Map(),
@@ -274,7 +274,7 @@ export function limitByIntelligenceScore<T>(
 			modelKey,
 			Math.max(
 				bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
-				modelIntelligenceScore(model),
+				finiteValue(model.scores?.intelligence_score) ?? -Infinity,
 			),
 		);
 	}
@@ -306,10 +306,6 @@ function modelMatchesControls(
 	return blendedPrice != null && blendedPrice <= maxCost;
 }
 
-function modelIntelligenceScore(model: LlmStatsModel) {
-	return finiteValue(model.scores?.intelligence_score) ?? -Infinity;
-}
-
 function meanTopProviderScore(scores: number[]) {
 	const topScores = [...scores]
 		.sort((left, right) => right - left)
@@ -329,8 +325,8 @@ export function pointHover(
 		left: event.clientX,
 		top: event.clientY,
 		model: displayName,
-		provider: providerName(model),
-		color: providerPaletteColor(model.provider),
+		provider: providerDisplayName(model),
+		color: providerChartColor(model.provider),
 		logo: providerLogoSource(model),
 		rows,
 	};
@@ -347,8 +343,8 @@ export function focusHover(
 		left: rect.left + rect.width / 2,
 		top: rect.top + rect.height / 2,
 		model: displayName,
-		provider: providerName(model),
-		color: providerPaletteColor(model.provider),
+		provider: providerDisplayName(model),
+		color: providerChartColor(model.provider),
 		logo: providerLogoSource(model),
 		rows,
 	};
@@ -438,9 +434,9 @@ export function shortLabel(model: LlmStatsModel) {
 }
 
 function providerLogoSource(model: LlmStatsModel) {
-	const providerLogo = providerAssetLogo(model.provider);
-	if (providerLogo.length > 0) {
-		return providerLogo;
+	const logo = providerLogo(model.provider);
+	if (logo.length > 0) {
+		return logo;
 	}
 	if (typeof model.logo === "string" && model.logo.length > 0) {
 		return model.logo;

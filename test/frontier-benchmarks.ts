@@ -12,7 +12,7 @@ import {
 	frontierBenchmarkSummaryRows,
 	selectedFrontierBenchmarkAxisKey,
 	speedValueBlendScore,
-} from "../app/dashboard/graphs/frontierBenchmarksModel";
+} from "../app/dashboard/graphs/frontier-benchmarks";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,

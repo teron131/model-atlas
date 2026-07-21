@@ -25,7 +25,6 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"name",
 	"provider",
 	"logo",
-	"attachment",
 	"reasoning",
 	"reasoning_effort",
 	"release_date",
@@ -64,15 +63,7 @@ export function strongestModelVariants(
 	return [...strongestByModel.values()];
 }
 
-function isFreeRouteModel(model: LlmStatsModel): boolean {
-	return (
-		isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name)
-	);
-}
-
-function sortModelsByIntelligenceScore(
-	models: LlmStatsModel[],
-): LlmStatsModel[] {
+function sortByIntelligenceScore(models: LlmStatsModel[]): LlmStatsModel[] {
 	return [...models].sort((left, right) => {
 		const leftIntelligence = left.scores.intelligence_score;
 		const rightIntelligence = right.scores.intelligence_score;
@@ -118,7 +109,6 @@ function toPublicModel(
 		name: model.name,
 		provider: model.provider,
 		logo: model.logo,
-		attachment: model.attachment,
 		reasoning: model.reasoning,
 		reasoning_effort: model.reasoning_effort,
 		release_date: model.release_date,
@@ -279,9 +269,7 @@ function pruneSparseFields(
 }
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
-function collapseOpenRouterFreeRoutesByVariant(
-	models: LlmStatsModel[],
-): LlmStatsModel[] {
+function collapseFreeRoutesByVariant(models: LlmStatsModel[]): LlmStatsModel[] {
 	const modelByPublicId = new Map<
 		string,
 		{ model: LlmStatsModel; isFreeRoute: boolean }
@@ -300,7 +288,8 @@ function collapseOpenRouterFreeRoutesByVariant(
 			passthrough.push(normalizedModel);
 			continue;
 		}
-		const candidateIsFreeRoute = isFreeRouteModel(model);
+		const candidateIsFreeRoute =
+			isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name);
 		const variantId = `${publicId}\u0000${model.reasoning_effort ?? ""}`;
 		const existing = modelByPublicId.get(variantId);
 		if (!existing || (existing.isFreeRoute && !candidateIsFreeRoute)) {
@@ -311,7 +300,7 @@ function collapseOpenRouterFreeRoutesByVariant(
 		}
 	}
 
-	return sortModelsByIntelligenceScore([
+	return sortByIntelligenceScore([
 		...passthrough,
 		...[...modelByPublicId.values()].map(({ model }) => model),
 	]);
@@ -327,13 +316,13 @@ export function selectPublicModels(
 		const publicModel = publicModelFromCandidate(model);
 		return publicModel == null ? [] : [publicModel];
 	});
-	const sortedModels = sortModelsByIntelligenceScore(signalModels);
+	const sortedModels = sortByIntelligenceScore(signalModels);
 	const prunedModels = pruneSparseFields(
 		sortedModels,
 		finalConfig,
 		scoringConfig,
 	);
-	const normalizedModels = collapseOpenRouterFreeRoutesByVariant(prunedModels);
+	const normalizedModels = collapseFreeRoutesByVariant(prunedModels);
 	const normalizedId = publicOpenRouterModelId(id ?? null);
 	return normalizedId == null
 		? normalizedModels

@@ -35,14 +35,14 @@ export type MercorApexAgentsRow = {
 	score: number;
 };
 
-export type MercorApexAgentsPayload = {
+type MercorApexAgentsPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: MercorApexAgentsRow[];
 };
 
-export type MercorApexAgentsScoreByModelName = Map<string, MercorApexAgentsRow>;
+export type MercorApexAgentsRowsByModelName = Map<string, MercorApexAgentsRow>;
 
-export type MercorApexAgentsOptions = {
+type MercorApexAgentsOptions = {
 	url?: string;
 	timeoutMs?: number;
 };

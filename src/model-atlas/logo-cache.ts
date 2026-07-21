@@ -155,7 +155,7 @@ function uniqueLogoSources<TModel extends { logo: string }>(
 }
 
 /** Cache one remote logo source and return the cached data URL when possible. */
-export async function cacheStatsLogo(
+async function cacheStatsLogo(
 	source: string,
 	cacheKey?: string | null,
 ): Promise<string> {

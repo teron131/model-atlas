@@ -49,7 +49,7 @@ type OpenRouterRawRow = {
 	weightedOutput?: number | null;
 };
 
-function insertOpenRouterRawRow(
+function insertRawRow(
 	statement: DatabaseStatement,
 	row: OpenRouterRawRow,
 ): void {
@@ -76,7 +76,7 @@ function insertOpenRouterRawRow(
 	);
 }
 
-function openRouterStatPointRows(
+function statPointRows(
 	response: OpenRouterStatsResponse | null | undefined,
 	seriesTokenWeights: Record<string, number | null> | null | undefined,
 ): OpenRouterPointRow[] {
@@ -94,13 +94,13 @@ function openRouterStatPointRows(
 	return rows;
 }
 
-function insertOpenRouterDirectoryRows(
+function insertDirectoryRows(
 	statement: DatabaseStatement,
 	rawPayload: OpenRouterRawScrapedPayload,
 	rowIndex: number,
 ): number {
 	for (const model of rawPayload.directory) {
-		insertOpenRouterRawRow(statement, {
+		insertRawRow(statement, {
 			rowIndex,
 			fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
 			url: SOURCE_URLS.openrouter_models,
@@ -113,7 +113,7 @@ function insertOpenRouterDirectoryRows(
 	return rowIndex;
 }
 
-function insertOpenRouterPermaslugCandidateRows(
+function insertPermaslugCandidateRows(
 	statement: DatabaseStatement,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -123,7 +123,7 @@ function insertOpenRouterPermaslugCandidateRows(
 		candidateIndex,
 		permaslug,
 	] of model.candidate_permaslugs.entries()) {
-		insertOpenRouterRawRow(statement, {
+		insertRawRow(statement, {
 			rowIndex,
 			fetchedAtEpochSeconds,
 			url: SOURCE_URLS.openrouter_stats,
@@ -138,18 +138,18 @@ function insertOpenRouterPermaslugCandidateRows(
 	return rowIndex;
 }
 
-function insertOpenRouterStatPointRows(
+function insertStatPointRows(
 	statement: DatabaseStatement,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
 	rowIndex: number,
 ): number {
 	for (const metric of ["throughput", "latency", "latency_e2e"] as const) {
-		for (const point of openRouterStatPointRows(
+		for (const point of statPointRows(
 			model.performance[metric],
 			model.performance.series_token_weights,
 		)) {
-			insertOpenRouterRawRow(statement, {
+			insertRawRow(statement, {
 				rowIndex,
 				fetchedAtEpochSeconds,
 				url: SOURCE_URLS.openrouter_stats,
@@ -169,7 +169,7 @@ function insertOpenRouterStatPointRows(
 	return rowIndex;
 }
 
-function insertOpenRouterPerformanceEstimateRows(
+function insertPerformanceEstimateRows(
 	statement: DatabaseStatement,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -181,7 +181,7 @@ function insertOpenRouterPerformanceEstimateRows(
 		if (estimate.value == null) {
 			continue;
 		}
-		insertOpenRouterRawRow(statement, {
+		insertRawRow(statement, {
 			rowIndex,
 			fetchedAtEpochSeconds,
 			url: SOURCE_URLS.openrouter_stats,
@@ -198,7 +198,7 @@ function insertOpenRouterPerformanceEstimateRows(
 	return rowIndex;
 }
 
-function insertOpenRouterModelStatsRow(
+function insertModelStatsRow(
 	statement: DatabaseStatement,
 	model: OpenRouterRawScrapedModel,
 	fetchedAtEpochSeconds: number,
@@ -209,7 +209,7 @@ function insertOpenRouterModelStatsRow(
 		model.performance,
 		model.pricing,
 	);
-	insertOpenRouterRawRow(statement, {
+	insertRawRow(statement, {
 		rowIndex,
 		fetchedAtEpochSeconds,
 		url: SOURCE_URLS.openrouter_stats,
@@ -245,27 +245,27 @@ export function insertOpenRouterRawRows(
 			weighted_output_price_per_1m
 		) VALUES (${Array.from({ length: 19 }, () => "?").join(", ")})
 	`);
-	let rowIndex = insertOpenRouterDirectoryRows(statement, rawPayload, 0);
+	let rowIndex = insertDirectoryRows(statement, rawPayload, 0);
 	for (const model of rawPayload.models) {
-		rowIndex = insertOpenRouterPermaslugCandidateRows(
+		rowIndex = insertPermaslugCandidateRows(
 			statement,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,
 		);
-		rowIndex = insertOpenRouterStatPointRows(
+		rowIndex = insertStatPointRows(
 			statement,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,
 		);
-		rowIndex = insertOpenRouterPerformanceEstimateRows(
+		rowIndex = insertPerformanceEstimateRows(
 			statement,
 			model,
 			rawPayload.fetched_at_epoch_seconds,
 			rowIndex,
 		);
-		rowIndex = insertOpenRouterModelStatsRow(
+		rowIndex = insertModelStatsRow(
 			statement,
 			model,
 			rawPayload.fetched_at_epoch_seconds,

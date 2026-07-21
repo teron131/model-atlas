@@ -20,14 +20,14 @@ import {
 	schemaReconciliationPlan,
 } from "./schema";
 
-export type D1Value = string | number | null;
-export type D1Rows = Record<string, unknown>[];
-export type D1Query = {
+type D1Value = string | number | null;
+type D1Rows = Record<string, unknown>[];
+type D1Query = {
 	sql: string;
 	params?: D1Value[];
 };
 
-export type D1Config = {
+type D1Config = {
 	accountId: string;
 	databaseId: string;
 	apiToken: string;
@@ -87,10 +87,6 @@ export function missingD1Environment(): string[] {
 	return missing;
 }
 
-function d1Endpoint(config: D1Config, path: "query"): string {
-	return `${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/${path}`;
-}
-
 function d1Error(response: D1ApiResponse): Error {
 	const messages = response.errors
 		?.map((error) => error.message)
@@ -120,14 +116,17 @@ async function sendD1Query(body: D1QueryBody): Promise<D1QueryResult[]> {
 			`Cloudflare D1 is not configured. Missing ${missingD1Environment().join(", ")}.`,
 		);
 	}
-	const response = await fetch(d1Endpoint(config, "query"), {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${config.apiToken}`,
-			"Content-Type": "application/json",
+	const response = await fetch(
+		`${config.apiBaseUrl}/accounts/${config.accountId}/d1/database/${config.databaseId}/query`,
+		{
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${config.apiToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(body),
 		},
-		body: JSON.stringify(body),
-	});
+	);
 	const payload = (await response.json()) as D1ApiResponse;
 	if (!response.ok || payload.success === false) {
 		throw d1Error(payload);
@@ -137,14 +136,6 @@ async function sendD1Query(body: D1QueryBody): Promise<D1QueryResult[]> {
 		throw d1Error(payload);
 	}
 	return results;
-}
-
-/** Sends a parameterized SQL query to Cloudflare D1. */
-export async function queryD1(
-	sql: string,
-	params: D1Value[] = [],
-): Promise<D1QueryResult> {
-	return (await sendD1Query({ sql, params }))[0] ?? {};
 }
 
 /** Executes one atomic D1 batch so publication cannot expose a partial run. */
@@ -166,11 +157,11 @@ export async function queryD1BatchRows(
 	return (await queryD1Batch(queries)).map((result) => resultRows(result));
 }
 
-export async function queryD1Rows(
+async function queryD1Rows(
 	sql: string,
 	params: D1Value[] = [],
 ): Promise<D1Rows> {
-	return resultRows(await queryD1(sql, params));
+	return resultRows((await sendD1Query({ sql, params }))[0]);
 }
 
 /** Reconciles D1 schema objects atomically while preserving rows in tables whose primary keys still match. */

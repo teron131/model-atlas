@@ -79,9 +79,9 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const scoreByModelName = buildBrowseCompMap(rows);
+const rowsByModelName = buildBrowseCompMap(rows);
 
 assertDeepEqual(
-	findBrowseCompScore(["missing", "GPT 5.5 Pro"], scoreByModelName),
+	findBrowseCompScore(["missing", "GPT 5.5 Pro"], rowsByModelName),
 	0.901,
 );

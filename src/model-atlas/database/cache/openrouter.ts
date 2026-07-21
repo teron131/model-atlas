@@ -95,9 +95,7 @@ function openRouterStatsResponse(
 	};
 }
 
-function openRouterSeriesTokenWeights(
-	statRows: CacheDbRow[],
-): Record<string, number> {
+function seriesTokenWeights(statRows: CacheDbRow[]): Record<string, number> {
 	const weights: Record<string, number> = {};
 	for (const row of statRows) {
 		const series = stringValue(row.series);
@@ -123,7 +121,7 @@ function openRouterPricing(
 	};
 }
 
-function openRouterAggregateEstimate(
+function aggregateEstimate(
 	estimateRows: CacheDbRow[],
 	metric: string,
 	fallbackValue: unknown,
@@ -160,17 +158,17 @@ function openRouterModelRows(
 		stringValue(candidateRows[0]?.selected_permaslug);
 	const performance: OpenRouterModelStats = {
 		summary: {
-			throughput_tokens_per_second_median: openRouterAggregateEstimate(
+			throughput_tokens_per_second_median: aggregateEstimate(
 				estimateRows,
 				"throughput",
 				statsRow?.throughput_tokens_per_second_median,
 			),
-			latency_seconds_median: openRouterAggregateEstimate(
+			latency_seconds_median: aggregateEstimate(
 				estimateRows,
 				"latency",
 				statsRow?.latency_seconds_median,
 			),
-			e2e_latency_seconds_median: openRouterAggregateEstimate(
+			e2e_latency_seconds_median: aggregateEstimate(
 				estimateRows,
 				"latency_e2e",
 				statsRow?.e2e_latency_seconds_median,
@@ -185,7 +183,7 @@ function openRouterModelRows(
 		latency_e2e: openRouterStatsResponse(
 			statRows.filter((row) => row.metric === "latency_e2e"),
 		),
-		series_token_weights: openRouterSeriesTokenWeights(statRows),
+		series_token_weights: seriesTokenWeights(statRows),
 	};
 	return {
 		id: modelId,

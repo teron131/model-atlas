@@ -68,14 +68,14 @@ export type ModelsDevFlatModel = {
 	model: ModelsDevModelRecord;
 };
 
-export type ModelsDevSourcePayload = {
+type ModelsDevSourcePayload = {
 	fetched_at_epoch_seconds: number | null;
 	status_code: number | null;
 	payload: ModelsDevPayload;
 	live_vercel_models: VercelGatewayModelRecord[];
 };
 
-export type VercelGatewayModelRecord = {
+type VercelGatewayModelRecord = {
 	display_name: string;
 	model_id: string;
 	release_date: string | null;

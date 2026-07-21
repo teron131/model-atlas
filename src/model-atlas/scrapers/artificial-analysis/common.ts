@@ -1,4 +1,4 @@
-/** Shared Artificial Analysis page parsing, display-name, and reasoning-effort rules. */
+/** Shared Artificial Analysis model-label cleanup and reasoning-effort parsing. */
 
 const DISPLAY_SUFFIX_PATTERN =
 	/\s*\((?:[^)]*(?:fallback|not currently available|unavailable|adaptive reasoning|max effort)[^)]*)\)\s*/gi;

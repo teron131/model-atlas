@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { valueDistribution } from "../app/dashboard/graphs/chartStats";
+import { valueDistribution } from "../app/dashboard/graphs/chart-stats";
 import { fmtCompact, fmtPercentScore } from "../app/dashboard/graphs/format";
 
 const contextDistribution = valueDistribution([

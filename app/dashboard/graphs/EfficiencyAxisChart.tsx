@@ -7,9 +7,9 @@ import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
-import { providerPaletteColor } from "../shared/providerTheme";
+import { providerChartColor } from "../shared/provider-theme";
 import styles from "./graphs.module.css";
-import { calloutLabelPlacements } from "./labelPlacement";
+import { calloutLabelPlacements } from "./label-placement";
 import {
 	AxisTitles,
 	CornerDirectionArrow,
@@ -28,14 +28,14 @@ import {
 } from "./PlotPrimitives";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 
-export type EfficiencyAxisMetric<Row> = {
+type EfficiencyAxisMetric<Row> = {
 	label: string;
 	get: (row: Row) => number;
 	format: (value: number) => string;
 	xHigherIsBetter?: boolean;
 };
 
-export type EfficiencyEffortLine<Row> = {
+type EfficiencyEffortLine<Row> = {
 	key: string;
 	rows: Row[];
 	color: string;
@@ -232,7 +232,7 @@ export function EfficiencyAxisChart<Row>({
 								cx={cx}
 								cy={cy}
 								r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
-								fill={providerPaletteColor(model.provider)}
+								fill={providerChartColor(model.provider)}
 								stroke="var(--chart-point-stroke)"
 								strokeWidth={1}
 								opacity={1}

@@ -80,7 +80,7 @@ export function FilterButton({
 	onClick: () => void;
 }) {
 	const [failedLogo, setFailedLogo] = useState<string | null>(null);
-	const showLogo = logo && failedLogo !== logo;
+	const hasUsableLogo = logo != null && logo !== "" && failedLogo !== logo;
 
 	return (
 		<button
@@ -91,7 +91,7 @@ export function FilterButton({
 			onClick={onClick}
 		>
 			<span className={styles.filterIcon} aria-hidden="true">
-				{showLogo ? (
+				{hasUsableLogo ? (
 					// biome-ignore lint/performance/noImgElement: 16px internal provider icons are not LCP content, and next/image fails this static SSR path.
 					<img
 						className={styles.filterLogo}

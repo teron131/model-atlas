@@ -22,18 +22,18 @@ export type VendingBench2ModelScoreRow = {
 	daily_balance_usd: number[];
 };
 
-export type VendingBench2ScoreByModelName = Map<
+export type VendingBench2RowsByModelName = Map<
 	string,
 	VendingBench2ModelScoreRow
 >;
 
-export type VendingBench2Payload = {
+type VendingBench2Payload = {
 	fetched_at_epoch_seconds: number | null;
 	source_url?: string;
 	data: VendingBench2ModelScoreRow[];
 };
 
-export type VendingBench2ScraperOptions = {
+type VendingBench2ScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };

@@ -110,75 +110,75 @@ import {
 	snapshotFetchedAt,
 } from "./model-score";
 
-export type BlueprintBenchSnapshot = {
+type BlueprintBenchSnapshot = {
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type AgentArenaSnapshot = {
+type AgentArenaSnapshot = {
 	agentArenaModelScoreRows: AgentArenaModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type AleBenchSnapshot = {
+type AleBenchSnapshot = {
 	aleBenchConfigurationRows: AleBenchConfigurationRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type ArtificialAnalysisEvaluationResourceSnapshot = {
+type ArtificialAnalysisEvaluationResourceSnapshot = {
 	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type BrowseCompSnapshot = {
+type BrowseCompSnapshot = {
 	browseCompModelScoreRows: BrowseCompModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type CursorBenchSnapshot = {
+type CursorBenchSnapshot = {
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type FrontierCodeSnapshot = {
+type FrontierCodeSnapshot = {
 	frontierCodeRows: FrontierCodeModelEffortRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type GdpPdfSnapshot = {
+type GdpPdfSnapshot = {
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type MercorApexAgentsSnapshot = {
+type MercorApexAgentsSnapshot = {
 	mercorApexAgentsRows: MercorApexAgentsRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type RiemannBenchSnapshot = {
+type RiemannBenchSnapshot = {
 	riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
 	riemannBenchSourceUrl: string;
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type ToolathlonSnapshot = {
+type ToolathlonSnapshot = {
 	toolathlonModelScoreRows: ToolathlonModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type ValsIndexSnapshot = {
+type ValsIndexSnapshot = {
 	valsIndexRows: ValsIndexTaskScoreRow[];
 	valsIndexModelScoreRows: ValsIndexModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type TerminalBenchSnapshot = {
+type TerminalBenchSnapshot = {
 	valsTerminalBenchRows: TerminalBenchTaskRow[];
 	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type VendingBench2Snapshot = {
+type VendingBench2Snapshot = {
 	vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
 	vendingBench2DataUrl: string | null;
 	sourceStatus: SourceSnapshotStatus;
@@ -904,12 +904,12 @@ export async function weirdMlSnapshot(
 	};
 }
 
-export type ProofBenchSnapshot = {
+type ProofBenchSnapshot = {
 	proofBenchRows: BenchmarkScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type WeirdMlSnapshot = {
+type WeirdMlSnapshot = {
 	weirdMlRows: BenchmarkScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };

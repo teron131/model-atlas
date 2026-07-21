@@ -5,11 +5,11 @@ import type {
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../../src/model-atlas/stats/types";
-import { captureFileToken } from "../capture/export-png";
-import { modelVariantKey } from "../shared/modelDisplay";
+import { captureFileToken } from "../capture/png";
+import { modelVariantKey } from "../shared/model-display";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { BubbleScaleLegend, SummaryCard } from "./ChartComponents";
-import { linearBubbleRadius, valueDistribution } from "./chartStats";
+import { linearBubbleRadius, valueDistribution } from "./chart-stats";
 import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import { finite, fmtPercentScore } from "./format";
 import {
@@ -33,7 +33,7 @@ import {
 	positiveMetric,
 	selectedFrontierBenchmarkAxisKey,
 	speedValueBlendScore,
-} from "./frontierBenchmarksModel";
+} from "./frontier-benchmarks";
 import { GraphToggle } from "./GraphToggle";
 import styles from "./graphs.module.css";
 import { modelName, shortLabel } from "./models";
@@ -89,10 +89,10 @@ export function FrontierBenchmarksPanel({
 					),
 		[benchmarkRows, meanRows, selectedBenchmarkKey],
 	);
-	const isAllBenchmark = selectedBenchmarkKey === "all";
+	const isAggregateView = selectedBenchmarkKey === "all";
 	const axisOptions = useMemo(
-		() => frontierBenchmarkAxisOptions(selectedRows, isAllBenchmark),
-		[isAllBenchmark, selectedRows],
+		() => frontierBenchmarkAxisOptions(selectedRows, isAggregateView),
+		[isAggregateView, selectedRows],
 	);
 	const selectedAxisKey = selectedFrontierBenchmarkAxisKey(
 		axisKey,
@@ -110,7 +110,7 @@ export function FrontierBenchmarksPanel({
 	].join("-");
 	const axisConfig = frontierBenchmarkAxisConfigFor(
 		selectedAxisKey,
-		isAllBenchmark,
+		isAggregateView,
 	);
 	const chartRows = useMemo(
 		() => selectedRows.filter((row) => positiveMetric(axisConfig.get(row))),
@@ -118,7 +118,7 @@ export function FrontierBenchmarksPanel({
 	);
 	const xMetricLabel = frontierAxisMetricLabel(
 		axisConfig,
-		isAllBenchmark,
+		isAggregateView,
 		selectedRows,
 	);
 	const chartMetric = useMemo(
@@ -138,7 +138,7 @@ export function FrontierBenchmarksPanel({
 	const axisValues = chartRows.map(axisConfig.get).filter(finite);
 	const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
 	const scoreValues = chartRows.map((row) => row.score).filter(finite);
-	const scoreAxis = frontierScoreAxisScale(scoreValues, isAllBenchmark);
+	const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView);
 	const bubbleValue = speedValueBlendScore;
 	const bubbleRadius = linearBubbleRadius(chartRows.map(bubbleValue), 4, 13);
 	const summaryRows = frontierBenchmarkSummaryRows(chartRows, axisConfig);
@@ -153,19 +153,19 @@ export function FrontierBenchmarksPanel({
 	const plotRows = [...chartRows].sort(
 		(left, right) => left.score - right.score,
 	);
-	const yAxisLabel = isAllBenchmark
+	const yAxisLabel = isAggregateView
 		? "MEAN NORMALIZED benchmark score"
 		: "Benchmark score";
-	const summaryLabel = isAllBenchmark
+	const summaryLabel = isAggregateView
 		? "MEAN NORMALIZED benchmark score"
 		: "Benchmark score";
 	const axisDescription = frontierAxisDescription(
 		selectedAxisKey,
-		isAllBenchmark,
+		isAggregateView,
 		chartRows[0],
 	);
 	const xMetricProseLabel = xMetricLabel.replace(/efficiency/gi, "EFFICIENCY");
-	const panelCopy = isAllBenchmark
+	const panelCopy = isAggregateView
 		? `Each point is one model: MEAN NORMALIZED frontier benchmark score against ${xMetricProseLabel}. ${axisDescription}`
 		: `${leader.benchmarkLabel} score plotted against ${xMetricProseLabel}. ${axisDescription}`;
 	const leaderDetail = axisSummaryDetail(leader, axisConfig);

@@ -9,10 +9,10 @@ import {
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "./benchmark-portfolio";
-import { COLUMN_TOOLTIPS } from "./column-tooltips";
+import { COLUMN_TOOLTIPS } from "./tooltips";
 import {
 	PRICE_PROFILES,
-	SIMULATION_INPUT_TOKEN_SECONDS,
+	SECONDS_PER_INPUT_TOKEN,
 	SIMULATION_PROFILES,
 } from "./usage-profiles";
 
@@ -65,7 +65,7 @@ export const STAGE_CONFIG = {
 		speedAnchorQuantiles: [0.25, 0.5, 0.75],
 		priceProfiles: PRICE_PROFILES,
 		simulationProfiles: SIMULATION_PROFILES,
-		simulationInputTokenSeconds: SIMULATION_INPUT_TOKEN_SECONDS,
+		secondsPerInputToken: SECONDS_PER_INPUT_TOKEN,
 		benchmarkPortfolio: BENCHMARK_PORTFOLIO,
 		columnTooltips: COLUMN_TOOLTIPS,
 	},

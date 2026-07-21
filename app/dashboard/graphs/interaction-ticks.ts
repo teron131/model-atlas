@@ -1,4 +1,4 @@
-/** Tick selection for graph axes with linear and logarithmic interaction scales. */
+/** Interaction-chart tick selection for linear and logarithmic axes. */
 
 import {
 	interpolateLinear,
@@ -43,7 +43,7 @@ function logStepTicks(
 	return uniqueFormattedTicks(ticks, format);
 }
 
-export function linearAxisTicks(
+function linearAxisTicks(
 	[low, high]: [number, number],
 	format: (value: number) => string,
 ) {

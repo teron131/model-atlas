@@ -14,7 +14,7 @@ import type {
 	LlmStatsScoredCandidate,
 	ScoringConfig,
 } from "../types";
-import { buildModelCandidate } from "./model-candidate";
+import { buildModelCandidate } from "./candidate";
 import { hasRequiredQualityScores, selectPublicModels } from "./public-list";
 
 const MIN_PUBLIC_COMPONENT_SCORE = 10;
@@ -104,16 +104,16 @@ export function hasRequiredPublicScore(
 
 function buildCandidates(
 	rows: Record<string, unknown>[],
-	enrichedRows: LlmStatsEnrichmentResult,
+	enrichment: LlmStatsEnrichmentResult,
 	scoringConfig: ScoringConfig,
 	scoringPreparation: ReturnType<typeof prepareBenchmarkScoring>,
 ): LlmStatsModelCandidate[] {
 	return rows.map((row) =>
 		buildModelCandidate(
 			row,
-			enrichedRows.openRouterSpeedById,
-			enrichedRows.openRouterPricingById,
-			enrichedRows.speedOutputTokenAnchors,
+			enrichment.openRouterSpeedById,
+			enrichment.openRouterPricingById,
+			enrichment.speedOutputTokenAnchors,
 			scoringConfig,
 			scoringPreparation.benchmarkImputationByModel,
 			scoringPreparation.benchmarkImputationConfidenceByModel,
@@ -123,18 +123,18 @@ function buildCandidates(
 }
 
 export async function buildFinalModels(
-	enrichedRows: LlmStatsEnrichmentResult,
+	enrichment: LlmStatsEnrichmentResult,
 	id: string | null | undefined,
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
 ): Promise<LlmStatsModel[]> {
 	const scoringPreparation = prepareBenchmarkScoring(
-		enrichedRows.rows,
+		enrichment.rows,
 		scoringConfig,
 	);
 	const candidateModels = buildCandidates(
-		enrichedRows.rows,
-		enrichedRows,
+		enrichment.rows,
+		enrichment,
 		scoringConfig,
 		scoringPreparation,
 	);

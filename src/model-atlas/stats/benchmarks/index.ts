@@ -2,7 +2,6 @@
 
 export { benchmarkRowsFromDb } from "./db-rows";
 export {
-	type BenchmarkEnrichment,
 	type BenchmarkEnrichmentLookups,
 	enrichBenchmarkAggregate,
 	enrichBenchmarkObservation,

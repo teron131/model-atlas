@@ -91,19 +91,6 @@ function catalogAliasPriority(row: Record<string, unknown>): number {
 	return 0;
 }
 
-/** Keep model-building stages scoped to text-output LLM rows and exclude obvious image models. */
-export function filterTextLlmRows(
-	rows: Record<string, unknown>[],
-): Record<string, unknown>[] {
-	return rows.filter(isTextLlmCatalogRow);
-}
-
-function normalizedCatalogIds(row: Record<string, unknown>): string[] {
-	return [row.id, row.openrouter_id]
-		.filter((id): id is string => typeof id === "string" && id.length > 0)
-		.map(normalizeProviderModelId);
-}
-
 function modelsDevCatalogRow(
 	modelsDevModel: ModelsDevFlatModel,
 ): Record<string, unknown> | null {
@@ -146,7 +133,9 @@ export function buildModelCatalogRows(
 	const existingNormalizedIds = new Set<string>();
 	const existingConcreteFamilyKeys = new Set<string>();
 	const rememberCatalogRow = (row: Record<string, unknown>) => {
-		for (const normalizedId of normalizedCatalogIds(row)) {
+		for (const normalizedId of [row.id, row.openrouter_id]
+			.filter((id): id is string => typeof id === "string" && id.length > 0)
+			.map(normalizeProviderModelId)) {
 			existingNormalizedIds.add(normalizedId);
 		}
 		const familyKey = catalogFamilyKey(row);
@@ -157,7 +146,7 @@ export function buildModelCatalogRows(
 	for (const row of matchedRows) {
 		rememberCatalogRow(row);
 	}
-	const catalogRows = filterTextLlmRows(matchedRows);
+	const catalogRows = matchedRows.filter(isTextLlmCatalogRow);
 	const modelsDevCatalogRows = sourceData.modelsDev.rows
 		.map((modelsDevModel) => modelsDevCatalogRow(modelsDevModel))
 		.filter((row): row is Record<string, unknown> => row != null)

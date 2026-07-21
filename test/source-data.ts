@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import { cachedSourceDataFromSnapshots } from "../src/model-atlas/database/source-snapshots/source-data";
+import { cachedSourceDataFromSnapshots } from "../src/model-atlas/database/source-snapshots/data";
 import type { SourceSnapshots } from "../src/model-atlas/database/types";
 import type {
 	DeepSWELeaderboardRow,
@@ -48,7 +48,7 @@ function deepSWERow(
 
 function summary(sourceData: LlmStatsSourceData) {
 	const defaultDeepSWE = sourceData.deepSWE.defaultEffortRows[0];
-	const indexedDeepSWE = sourceData.deepSWE.scoreByModelName.get("deep-model");
+	const indexedDeepSWE = sourceData.deepSWE.rowsByModelName.get("deep-model");
 	return {
 		artificialAnalysisModelId:
 			sourceData.artificialAnalysis.bySlug.get("example-model")?.model_id,

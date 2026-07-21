@@ -171,11 +171,11 @@ export const PAYLOAD_ROW_GROUPS = [
 
 export type PayloadRowGroup = (typeof PAYLOAD_ROW_GROUPS)[number];
 type PayloadRowKey = PayloadRowGroup["key"];
-export type PayloadRows = { fetchedAt: number | null } & Record<
+type PayloadRows = { fetchedAt: number | null } & Record<
 	PayloadRowKey,
 	DbRow[]
 >;
-export type PayloadRowReader = (rowGroup: PayloadRowGroup) => Promise<DbRow[]>;
+type PayloadRowReader = (rowGroup: PayloadRowGroup) => Promise<DbRow[]>;
 
 const INPUT_MODALITY_COLUMNS = [
 	["input_modality_text", "text"],
@@ -277,7 +277,6 @@ function modelFromRow(
 		name: stringValue(row.name),
 		provider,
 		logo: stringValue(row.logo) ?? "",
-		attachment: booleanValue(row.attachment),
 		reasoning: booleanValue(row.reasoning),
 		reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
 		release_date: stringValue(row.release_date),

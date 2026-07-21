@@ -4,8 +4,8 @@ import { asFiniteNumber, asRecord, type JsonObject } from "./utils";
 export { asFiniteNumber, asRecord, type JsonObject };
 
 export const PRIMARY_PROVIDER_ID = "openrouter" as const;
-export const SECONDARY_PROVIDER_ID = "vercel" as const;
-export const TERTIARY_PROVIDER_IDS = ["openai", "google", "anthropic"] as const;
+const SECONDARY_PROVIDER_ID = "vercel" as const;
+const TERTIARY_PROVIDER_IDS = ["openai", "google", "anthropic"] as const;
 export const FALLBACK_PROVIDER_IDS: ReadonlySet<string> = new Set([
 	SECONDARY_PROVIDER_ID,
 	...TERTIARY_PROVIDER_IDS,
@@ -37,7 +37,7 @@ const BENCHMARK_EFFORT_LABELS = new Set([
 	"adaptive",
 ]);
 
-export type BenchmarkModelEffort = {
+type BenchmarkModelEffort = {
 	baseModel: string;
 	reasoningEffort: string | null;
 };

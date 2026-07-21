@@ -24,7 +24,7 @@ type DbSourceSpec = {
 	rowKind?: string;
 };
 
-export type BenchmarkDbRows = {
+type BenchmarkDbRows = {
 	artificialAnalysisRows: readonly DbBenchmarkRow[];
 	agentArenaRows: readonly DbBenchmarkRow[];
 	agentsLastExamRows: readonly DbBenchmarkRow[];
@@ -112,7 +112,7 @@ function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
 }
 
 function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
-	const deepSWERows = preferredDeepSWELeaderboardRows(
+	const deepSweRows = preferredDeepSWELeaderboardRows(
 		rows.deepSWERows.flatMap((row) => {
 			const parsed = asDeepSWERawLeaderboardRow(row);
 			return parsed == null ? [] : [parsed];
@@ -185,7 +185,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 				},
 			];
 		}),
-		...deepSWERows.map((row) => ({
+		...deepSweRows.map((row) => ({
 			key: "deep_swe",
 			id: row.model,
 			identity: row.model,

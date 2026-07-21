@@ -1578,7 +1578,6 @@ function modelCandidate(options: {
 		name: options.id,
 		provider: "test",
 		logo: "",
-		attachment: null,
 		reasoning: null,
 		reasoning_effort: null,
 		release_date: null,

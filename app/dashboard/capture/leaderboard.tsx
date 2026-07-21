@@ -1,6 +1,6 @@
-"use client";
-
 /** Direct PNG capture for the leaderboard's currently visible four-score rows. */
+
+"use client";
 
 import { useRef } from "react";
 import { ScreenshotIcon } from "../shared/DashboardIcons";
@@ -8,7 +8,7 @@ import { scoreMetricColumns, scoreSortableColumns } from "../table/Columns";
 import type { SortState, TableRow } from "../table/models";
 import { ScoreModelRow } from "../table/Rows";
 import styles from "./capture.module.css";
-import { usePngCapture } from "./use-png-capture";
+import { usePngCapture } from "./use-png";
 
 /** Render the visible leaderboard row selection as the compact four-score PNG. */
 export function LeaderboardCapture({

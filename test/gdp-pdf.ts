@@ -1,8 +1,8 @@
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
 import {
 	buildGdpPdfMap,
 	findGdpPdfScore,
 } from "../src/model-atlas/scrapers/surge/gdp-pdf";
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);
@@ -87,10 +87,7 @@ assertDeepEqual(rowsWithoutRankingHeading, [
 	},
 ]);
 
-const scoreByModelName = buildGdpPdfMap(rows);
+const rowsByModelName = buildGdpPdfMap(rows);
 
-assertDeepEqual(
-	findGdpPdfScore(["missing", "GPT-5.5"], scoreByModelName),
-	0.25,
-);
-assertDeepEqual(findGdpPdfScore(["Mythos 5"], scoreByModelName), 0.3);
+assertDeepEqual(findGdpPdfScore(["missing", "GPT-5.5"], rowsByModelName), 0.25);
+assertDeepEqual(findGdpPdfScore(["Mythos 5"], rowsByModelName), 0.3);

@@ -116,7 +116,7 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
 		rows.modelsDevModels,
 	);
-	const deepSWEDefaultEffortRows = summarizeDeepSWEDefaultEffortRows(
+	const deepSweDefaultEffortRows = summarizeDeepSWEDefaultEffortRows(
 		rows.deepSWEEffortRows,
 	);
 	const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
@@ -147,103 +147,103 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 		},
 		agentArena: {
 			rows: rows.agentArenaRows,
-			scoreByModelName: buildBenchmarkModelMap(rows.agentArenaRows),
+			rowsByModelName: buildBenchmarkModelMap(rows.agentArenaRows),
 		},
 		agentsLastExam: {
 			rows: rows.agentsLastExamRows,
-			scoreByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
+			rowsByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
 		},
 		aleBench: {
 			configurationRows: rows.aleBenchConfigurationRows,
 			sourceDefaultRows: aleBenchSourceDefaultRows,
-			scoreByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
+			rowsByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
 		},
 		blueprintBench: {
 			rows: rows.blueprintBenchRows,
-			scoreByModelName: buildBlueprintBenchMap(rows.blueprintBenchRows),
+			rowsByModelName: buildBlueprintBenchMap(rows.blueprintBenchRows),
 		},
 		browseComp: {
 			rows: rows.browseCompRows,
-			scoreByModelName: buildBrowseCompMap(rows.browseCompRows),
+			rowsByModelName: buildBrowseCompMap(rows.browseCompRows),
 		},
 		chartography: {
 			rows: rows.chartographyRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.chartographyRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.chartographyRows),
 		},
 		chessPuzzles: {
 			rows: rows.chessPuzzleRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.chessPuzzleRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.chessPuzzleRows),
 		},
 		cursorBench: {
 			rows: rows.cursorBenchRows,
-			scoreByModelName: buildCursorBenchMap(rows.cursorBenchRows),
+			rowsByModelName: buildCursorBenchMap(rows.cursorBenchRows),
 		},
 		deepSWE: {
 			effortRows: rows.deepSWEEffortRows,
-			defaultEffortRows: deepSWEDefaultEffortRows,
-			scoreByModelName: buildDeepSWEMap(deepSWEDefaultEffortRows),
+			defaultEffortRows: deepSweDefaultEffortRows,
+			rowsByModelName: buildDeepSWEMap(deepSweDefaultEffortRows),
 		},
 		ebrBench: {
 			rows: rows.ebrBenchRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.ebrBenchRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.ebrBenchRows),
 		},
 		enterpriseBenchCoreCraft: {
 			rows: rows.enterpriseBenchCoreCraftRows,
-			scoreByModelName: buildBenchmarkScoreMap(
+			rowsByModelName: buildBenchmarkScoreMap(
 				rows.enterpriseBenchCoreCraftRows,
 			),
 		},
 		epochCapabilitiesIndex: {
 			rows: rows.epochCapabilitiesIndexRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.epochCapabilitiesIndexRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.epochCapabilitiesIndexRows),
 		},
 		frontierCode: {
 			rows: rows.frontierCodeRows,
-			scoreByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
+			rowsByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
 		},
 		frontierMathTier4: {
 			rows: rows.frontierMathTier4Rows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.frontierMathTier4Rows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.frontierMathTier4Rows),
 		},
 		gdpPdf: {
 			rows: rows.gdpPdfRows,
-			scoreByModelName: buildGdpPdfMap(rows.gdpPdfRows),
+			rowsByModelName: buildGdpPdfMap(rows.gdpPdfRows),
 		},
 		handbookMd: {
 			rows: rows.handbookMdRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.handbookMdRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.handbookMdRows),
 		},
 		mercorApexAgents: {
 			rows: rows.mercorApexAgentsRows,
-			scoreByModelName: buildBenchmarkModelMap(rows.mercorApexAgentsRows),
+			rowsByModelName: buildBenchmarkModelMap(rows.mercorApexAgentsRows),
 		},
 		proofBench: {
 			rows: rows.proofBenchRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.proofBenchRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.proofBenchRows),
 		},
 		riemannBench: {
 			rows: rows.riemannBenchRows,
-			scoreByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
+			rowsByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
 		},
 		valsTerminalBench: {
 			rows: rows.valsTerminalBenchRows,
-			scoreByModelName: buildTerminalBenchMap(rows.valsTerminalBenchRows),
+			rowsByModelName: buildTerminalBenchMap(rows.valsTerminalBenchRows),
 		},
 		toolathlon: {
 			rows: rows.toolathlonRows,
-			scoreByModelName: buildToolathlonMap(rows.toolathlonRows),
+			rowsByModelName: buildToolathlonMap(rows.toolathlonRows),
 		},
 		valsIndex: {
 			rows: rows.valsIndexRows,
-			scoreByModelName: buildValsIndexMap(rows.valsIndexRows),
+			rowsByModelName: buildValsIndexMap(rows.valsIndexRows),
 		},
 		vendingBench2: {
 			rows: rows.vendingBench2Rows,
-			scoreByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
+			rowsByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
 		},
 		weirdMl: {
 			rows: rows.weirdMlRows,
-			scoreByModelName: buildBenchmarkScoreMap(rows.weirdMlRows),
+			rowsByModelName: buildBenchmarkScoreMap(rows.weirdMlRows),
 		},
 	};
 }
@@ -261,7 +261,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		chartographyStats,
 		chessPuzzleStats,
 		cursorBenchStats,
-		deepSWEStats,
+		deepSweStats,
 		ebrBenchStats,
 		enterpriseBenchCoreCraftStats,
 		epochCapabilitiesIndexStats,
@@ -317,7 +317,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const chartographyRows = chartographyStats.data;
 	const chessPuzzleRows = chessPuzzleStats.data;
 	const cursorBenchRows = cursorBenchStats.data;
-	const deepSWEEffortRows = deepSWEStats.data;
+	const deepSweEffortRows = deepSweStats.data;
 	const ebrBenchRows = ebrBenchStats.data;
 	const enterpriseBenchCoreCraftRows = enterpriseBenchCoreCraftStats.data;
 	const epochCapabilitiesIndexRows = epochCapabilitiesIndexStats.data;
@@ -349,7 +349,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		chartographyRows,
 		chessPuzzleRows,
 		cursorBenchRows,
-		deepSWEEffortRows,
+		deepSWEEffortRows: deepSweEffortRows,
 		ebrBenchRows,
 		enterpriseBenchCoreCraftRows,
 		epochCapabilitiesIndexRows,

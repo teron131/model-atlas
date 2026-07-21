@@ -1,4 +1,4 @@
-/** Dashboard model display rules own model identity, variant expansion, labels, and UI identity. */
+/** Dashboard model identity, variant, label, and filtering rules. */
 
 import { canonicalModelKey } from "../../../src/model-atlas/shared";
 import { strongestModelVariants } from "../../../src/model-atlas/stats/selection/public-list";
@@ -34,12 +34,8 @@ export function modelsForVariantDisplay(
 	}));
 }
 
-export function modelBaseDisplayName(model: LlmStatsModel): string {
-	return model.name ?? model.id ?? "Unknown model";
-}
-
 export function modelDisplayName(model: LlmStatsModel): string {
-	const baseName = modelBaseDisplayName(model);
+	const baseName = model.name ?? model.id ?? "Unknown model";
 	return model.reasoning_effort == null
 		? baseName
 		: `${baseName} (${model.reasoning_effort})`;

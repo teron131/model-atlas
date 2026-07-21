@@ -5,7 +5,7 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
 const NEXT_FLIGHT_CHUNK_REGEX =
 	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 
-export type ZeroEvalModelScoreFields = {
+type ZeroEvalModelScoreFields = {
 	model: string;
 	provider: string;
 	provider_name?: string | null;
@@ -21,7 +21,7 @@ export function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-export function booleanValue(value: unknown): boolean | null {
+function booleanValue(value: unknown): boolean | null {
 	return typeof value === "boolean" ? value : null;
 }
 
@@ -86,7 +86,7 @@ export function parseFlightJsonObject(value: string): JsonObject | null {
 }
 
 /** Accepts source scores that are already on the 0-1 benchmark scale. */
-export function unitScore(value: unknown): number | null {
+function unitScore(value: unknown): number | null {
 	const score = asFiniteNumber(value);
 	if (score == null || score < 0 || score > 1) {
 		return null;
@@ -108,7 +108,7 @@ export function percentToUnitScore(
 	return Number((score / 100).toFixed(6));
 }
 
-export function decodeHtmlEntities(value: string): string {
+function decodeHtmlEntities(value: string): string {
 	return value
 		.replace(/&nbsp;/g, " ")
 		.replace(/&#xA0;/gi, " ")

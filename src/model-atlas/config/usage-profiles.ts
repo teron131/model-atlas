@@ -55,7 +55,7 @@ export const SIMULATION_PROFILES = {
 			lower: 0,
 			upper: 0,
 		},
-		quality_full_credit_at: 30,
+		full_credit_quality_score: 30,
 		quality_blend: {
 			intelligence: 0.3,
 			agentic: 0.7,
@@ -77,7 +77,7 @@ export const SIMULATION_PROFILES = {
 			lower: 0,
 			upper: 0,
 		},
-		quality_full_credit_at: 35,
+		full_credit_quality_score: 35,
 		quality_blend: {
 			intelligence: 0.35,
 			agentic: 0.65,
@@ -99,7 +99,7 @@ export const SIMULATION_PROFILES = {
 			lower: 0,
 			upper: 0,
 		},
-		quality_full_credit_at: 45,
+		full_credit_quality_score: 45,
 		quality_blend: {
 			intelligence: 0.4,
 			agentic: 0.6,
@@ -121,7 +121,7 @@ export const SIMULATION_PROFILES = {
 			lower: 0.5,
 			upper: 0.9,
 		},
-		quality_full_credit_at: 60,
+		full_credit_quality_score: 60,
 		quality_blend: {
 			intelligence: 0.55,
 			agentic: 0.45,
@@ -143,7 +143,7 @@ export const SIMULATION_PROFILES = {
 			lower: 0,
 			upper: 0,
 		},
-		quality_full_credit_at: 75,
+		full_credit_quality_score: 75,
 		quality_blend: {
 			intelligence: 0.65,
 			agentic: 0.35,
@@ -165,7 +165,7 @@ export const SIMULATION_PROFILES = {
 			lower: 0.5,
 			upper: 0.9,
 		},
-		quality_full_credit_at: 90,
+		full_credit_quality_score: 90,
 		quality_blend: {
 			intelligence: 0.25,
 			agentic: 0.75,
@@ -173,7 +173,7 @@ export const SIMULATION_PROFILES = {
 	},
 } as const satisfies Record<string, SimulationProfile>;
 
-export const SIMULATION_INPUT_TOKEN_SECONDS = 0.0001;
+export const SECONDS_PER_INPUT_TOKEN = 0.0001;
 
 export const SIMULATION_PROFILE_WEIGHTS = Object.fromEntries(
 	Object.entries(SIMULATION_PROFILES).map(([profile, config]) => [

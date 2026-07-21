@@ -1,14 +1,14 @@
-/** Provider display names, colors, and local logo lookup for the dashboard. */
+/** Dashboard provider labels, brand assets, and chart colors. */
 
 import { safeSlug } from "./format";
-import { providerAssets } from "./providerAssets.generated";
+import { providerAssets } from "./provider-assets.generated";
 
 type ProviderLike = { provider?: string | null };
 
 type ProviderColorMap = Record<string, string>;
 type ProviderAssetKey = keyof typeof providerAssets;
 
-export const fixedProviderColors: ProviderColorMap = {
+const providerColorOverrides: ProviderColorMap = {
 	alibaba: "#ff7018",
 	anthropic: "#d07860",
 	amazon: "#ff9800",
@@ -74,7 +74,7 @@ const fallbackProviderColors = [
 	"#d7d46a",
 ];
 
-export function providerName(source: ProviderLike | string | null) {
+export function providerDisplayName(source: ProviderLike | string | null) {
 	const provider = typeof source === "string" ? source : source?.provider;
 	const key = providerFilterKey(provider);
 	return providerLabels[key] ?? provider ?? "Unknown";
@@ -89,14 +89,14 @@ export function providerFilterKey(provider: string | null | undefined) {
 	return providerFilterAliases[key] ?? key;
 }
 
-export function providerColorKey(provider: string | null | undefined) {
+function providerAssetKey(provider: string | null | undefined) {
 	return safeSlug(provider);
 }
 
-export function providerPaletteColor(provider: string | null | undefined) {
+export function providerChartColor(provider: string | null | undefined) {
 	const key = providerFilterKey(provider);
-	if (fixedProviderColors[key]) {
-		return fixedProviderColors[key];
+	if (providerColorOverrides[key]) {
+		return providerColorOverrides[key];
 	}
 	const assetColor = providerAsset(provider)?.color;
 	if (assetColor != null) {
@@ -111,19 +111,19 @@ export function providerPaletteColor(provider: string | null | undefined) {
 	);
 }
 
-export function providerDisplayColor(provider: string | null | undefined) {
+export function providerBrandColor(provider: string | null | undefined) {
 	return (
-		fixedProviderColors[providerColorKey(provider)] ??
+		providerColorOverrides[providerAssetKey(provider)] ??
 		providerAsset(provider)?.color
 	);
 }
 
-export function providerAssetLogo(provider: string | null | undefined) {
+export function providerLogo(provider: string | null | undefined) {
 	return providerAsset(provider)?.logo ?? "";
 }
 
 function providerAsset(provider: string | null | undefined) {
-	const key = providerColorKey(provider);
+	const key = providerAssetKey(provider);
 	if (!key) {
 		return undefined;
 	}

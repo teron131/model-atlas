@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { extremeLabelRows } from "../app/dashboard/graphs/chartStats";
+import { extremeLabelRows } from "../app/dashboard/graphs/chart-stats";
 
 type Row = {
 	id: string;

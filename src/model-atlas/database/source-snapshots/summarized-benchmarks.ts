@@ -22,13 +22,13 @@ import type {
 } from "../types";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 
-export type AgentsLastExamSnapshot = {
+type AgentsLastExamSnapshot = {
 	agentsLastExamRows: AgentsLastExamHarnessRow[];
 	agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-export type DeepSWESnapshot = {
+type DeepSWESnapshot = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
 	deepSWESourceVersion: DeepSWESourceVersion | null;
 	sourceStatus: SourceSnapshotStatus;
@@ -118,13 +118,13 @@ export async function deepSWESnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<DeepSWESnapshot> {
-	const cachedHasEffortMetadata = cached?.rows.some(
+	const hasCachedEffortMetadata = cached?.rows.some(
 		(row) => row.reasoning_effort != null || row.config != null,
 	);
 	if (
 		status.cache_hit &&
 		cached != null &&
-		cachedHasEffortMetadata &&
+		hasCachedEffortMetadata &&
 		options.replaceSourceRows !== true
 	) {
 		const cachedSnapshot = snapshotRowsWithStates({

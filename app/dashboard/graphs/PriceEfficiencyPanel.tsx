@@ -15,24 +15,24 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
-import { CaptureButton } from "../capture/capture-button";
-import { captureFileToken } from "../capture/export-png";
+import { CaptureButton } from "../capture/button";
+import { captureFileToken } from "../capture/png";
 import { useDisplayLimit } from "../shared/display-controls";
-import { ModelControlToolbar } from "../shared/model-control-toolbar";
 import {
 	modelCount,
 	modelMatchesQuery,
 	modelsForVariantDisplay,
 	modelVariantKey,
-} from "../shared/modelDisplay";
+} from "../shared/model-display";
+import { ModelToolbar } from "../shared/model-toolbar";
 import {
-	providerAssetLogo,
-	providerName,
-	providerPaletteColor,
-} from "../shared/providerTheme";
+	providerChartColor,
+	providerDisplayName,
+	providerLogo,
+} from "../shared/provider-theme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { EmptyChart, SummaryCard } from "./ChartComponents";
-import { bestByScore, valueDistribution } from "./chartStats";
+import { bestByScore, valueDistribution } from "./chart-stats";
 import styles from "./graphs.module.css";
 import {
 	filterByModelControls,
@@ -44,18 +44,18 @@ import {
 import { Panel } from "./Panel";
 import { stableSvgScale } from "./PlotPrimitives";
 import {
-	type PriceEfficiencyComparisonRow,
-	priceEfficiencyComparisonRows,
+	type PriceEfficiencyRow,
 	priceEfficiencyDeltaDetail,
 	priceEfficiencyHoverRows,
+	priceEfficiencyRows,
 	priceEfficiencySummaryDetail,
-} from "./priceEfficiencyComparisonModel";
+} from "./price-efficiency";
 import type { CostFilter, HoverSetter } from "./types";
 
 const SCORE_DOMAIN: [number, number] = [0, 100];
 const SLOPE_LABEL_MIN_GAP = 24;
-const PRICE_EFFICIENCY_CHART_WIDTH = 1100;
-const COMPACT_PRICE_EFFICIENCY_CHART_WIDTH = 660;
+const CHART_WIDTH = 1100;
+const COMPACT_CHART_WIDTH = 660;
 const COMPACT_CHART_MEDIA_QUERY = "(max-width: 520px)";
 const PANEL_TITLE = "Price vs Cost Efficiency";
 const COMPACT_EFFORT_LABELS: Record<string, string> = {
@@ -67,7 +67,7 @@ const COMPACT_EFFORT_LABELS: Record<string, string> = {
 };
 
 type SlopeGraphRow = {
-	row: PriceEfficiencyComparisonRow;
+	row: PriceEfficiencyRow;
 	key: string;
 	label: string;
 	color: string;
@@ -85,7 +85,7 @@ type SlopeHoverEvent =
 	| ReactMouseEvent<SVGElement>
 	| ReactPointerEvent<SVGElement>;
 
-export function PriceEfficiencyComparisonPanel({
+export function PriceEfficiencyPanel({
 	benchmarkPortfolio,
 	displayExpanded,
 	maxCost,
@@ -107,9 +107,7 @@ export function PriceEfficiencyComparisonPanel({
 	const [filterQuery, setFilterQuery] = useState("");
 	const panelRef = useRef<HTMLElement>(null);
 	const compactChartLayout = useCompactChartLayout();
-	const chartWidth = compactChartLayout
-		? COMPACT_PRICE_EFFICIENCY_CHART_WIDTH
-		: PRICE_EFFICIENCY_CHART_WIDTH;
+	const chartWidth = compactChartLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
 	const displayModels = useMemo(
 		() =>
 			modelsForVariantDisplay(referenceModels, displayExpanded)
@@ -135,7 +133,7 @@ export function PriceEfficiencyComparisonPanel({
 			(model) => model,
 			{ providers: selectedProviders, maxCost },
 		);
-		return priceEfficiencyComparisonRows(
+		return priceEfficiencyRows(
 			filteredModels,
 			referenceModels,
 			benchmarkPortfolio,
@@ -172,7 +170,7 @@ export function PriceEfficiencyComparisonPanel({
 			: [`filter-${captureFileToken(filterQuery)}`]),
 	].join("-");
 	const controls = (
-		<ModelControlToolbar
+		<ModelToolbar
 			filterQuery={filterQuery}
 			rowCountLabel={
 				filterQuery.trim().length === 0
@@ -294,12 +292,10 @@ function PriceEfficiencySlopeGraph({
 	setHover,
 }: {
 	compactLayout: boolean;
-	rows: PriceEfficiencyComparisonRow[];
+	rows: PriceEfficiencyRow[];
 	setHover: HoverSetter;
 }) {
-	const width = compactLayout
-		? COMPACT_PRICE_EFFICIENCY_CHART_WIDTH
-		: PRICE_EFFICIENCY_CHART_WIDTH;
+	const width = compactLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
 	const margin = compactLayout
 		? { top: 34, right: 220, bottom: 30, left: 200 }
 		: { top: 34, right: 380, bottom: 30, left: 330 };
@@ -331,7 +327,7 @@ function PriceEfficiencySlopeGraph({
 	const graphRows: SlopeGraphRow[] = rows.map((row, index) => {
 		const key = priceEfficiencyRowKey(row, index);
 		const logo =
-			providerAssetLogo(row.model.provider) ||
+			providerLogo(row.model.provider) ||
 			(typeof row.model.logo === "string" ? row.model.logo : "");
 		const hasLogo = logo.length > 0;
 		const leftY = yPoint(row.priceScore);
@@ -342,7 +338,7 @@ function PriceEfficiencySlopeGraph({
 			label: compactLayout
 				? compactSlopeLabel(row.model)
 				: shortLabel(row.model),
-			color: providerPaletteColor(row.model.provider),
+			color: providerChartColor(row.model.provider),
 			logo,
 			leftY,
 			rightY,
@@ -366,7 +362,7 @@ function PriceEfficiencySlopeGraph({
 			left: event.clientX,
 			top: event.clientY,
 			model: modelName(graphRow.row.model),
-			provider: providerName(graphRow.row.model),
+			provider: providerDisplayName(graphRow.row.model),
 			color: graphRow.color,
 			logo: graphRow.logo,
 			rows: priceEfficiencyHoverRows(graphRow.row),
@@ -648,10 +644,7 @@ function compactSlopeLabel(model: LlmStatsModel): string {
 	return `${compactBase}${effortSuffix}`;
 }
 
-function priceEfficiencyRowKey(
-	row: PriceEfficiencyComparisonRow,
-	index: number,
-) {
+function priceEfficiencyRowKey(row: PriceEfficiencyRow, index: number) {
 	return modelVariantKey(row.model) || `${row.model.provider}-${index}`;
 }
 
@@ -711,11 +704,11 @@ function LabelLeader({
 }
 
 function distributedLabelPositions(
-	rows: PriceEfficiencyComparisonRow[],
-	yForRow: (row: PriceEfficiencyComparisonRow) => number,
+	rows: PriceEfficiencyRow[],
+	yForRow: (row: PriceEfficiencyRow) => number,
 	minY: number,
 	maxY: number,
-): Map<PriceEfficiencyComparisonRow, number> {
+): Map<PriceEfficiencyRow, number> {
 	const sorted = [...rows].sort(
 		(left, right) => yForRow(left) - yForRow(right),
 	);

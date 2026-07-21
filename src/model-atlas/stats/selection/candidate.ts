@@ -1,4 +1,4 @@
-/** Model candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
+/** Candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
 
 import { resolveStatsLogo } from "../../logo";
 import {
@@ -301,10 +301,10 @@ function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 			scoringSources[key] = source;
 		}
 	}
-	const deepSWE = buildDeepSWEScoringSource(model);
-	const agentsLastExam = buildAgentsLastExamScoringSource(model);
-	if (deepSWE != null) {
-		scoringSources.deep_swe = deepSWE;
+	const deepSwe = buildDeepSWESource(model);
+	const agentsLastExam = buildAgentsLastExamSource(model);
+	if (deepSwe != null) {
+		scoringSources.deep_swe = deepSwe;
 	}
 	if (agentsLastExam != null) {
 		scoringSources.agents_last_exam = agentsLastExam;
@@ -312,7 +312,7 @@ function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
 	return hasFields(scoringSources) ? scoringSources : null;
 }
 
-function buildDeepSWEScoringSource(model: JsonObject) {
+function buildDeepSWESource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).deep_swe);
 	const passAt1 = asFiniteNumber(source.pass_at_1);
 	const tasksAttempted = asFiniteNumber(source.n_tasks_attempted);
@@ -346,7 +346,7 @@ function buildDeepSWEScoringSource(model: JsonObject) {
 	};
 }
 
-function buildAgentsLastExamScoringSource(model: JsonObject) {
+function buildAgentsLastExamSource(model: JsonObject) {
 	const source = asRecord(asRecord(model.scoring_sources).agents_last_exam);
 	const medianScore = asFiniteNumber(source.median_score);
 	const meanScore = asFiniteNumber(source.mean_score);
@@ -466,7 +466,6 @@ export function buildModelCandidate(
 			provider,
 			explicitLogo: typeof model.logo === "string" ? model.logo : null,
 		}),
-		attachment: typeof model.attachment === "boolean" ? model.attachment : null,
 		reasoning: typeof model.reasoning === "boolean" ? model.reasoning : null,
 		reasoning_effort: canonicalReasoningEffort(model.reasoning_effort),
 		release_date:

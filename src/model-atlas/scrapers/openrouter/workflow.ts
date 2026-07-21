@@ -34,16 +34,15 @@ import {
 
 export const OPENROUTER_MODELS_URL =
 	"https://openrouter.ai/api/frontend/v1/catalog/models";
-const OPENROUTER_BASE_URL = "https://openrouter.ai";
-const OPENROUTER_ENDPOINT_URL =
-	"https://openrouter.ai/api/frontend/v1/stats/endpoint";
-const OPENROUTER_THROUGHPUT_URL =
+const BASE_URL = "https://openrouter.ai";
+const ENDPOINT_URL = "https://openrouter.ai/api/frontend/v1/stats/endpoint";
+const THROUGHPUT_URL =
 	"https://openrouter.ai/api/frontend/v1/stats/throughput-comparison";
-const OPENROUTER_LATENCY_URL =
+const LATENCY_URL =
 	"https://openrouter.ai/api/frontend/v1/stats/latency-comparison";
-const OPENROUTER_E2E_LATENCY_URL =
+const E2E_LATENCY_URL =
 	"https://openrouter.ai/api/frontend/v1/stats/latency-e2e-comparison";
-const OPENROUTER_EFFECTIVE_PRICING_URL =
+const EFFECTIVE_PRICING_URL =
 	"https://openrouter.ai/api/frontend/v1/stats/effective-pricing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -51,7 +50,7 @@ const DEFAULT_CONCURRENCY = 8;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_BASE_DELAY_MS = 300;
 
-export type OpenRouterScraperOptions = {
+type OpenRouterScraperOptions = {
 	modelIds: string[];
 	modelDirectory?: readonly OpenRouterFrontendModel[];
 	timeoutMs?: number;
@@ -131,15 +130,6 @@ async function fetchJsonWithRetry<T>(
 	);
 }
 
-async function fetchTextWithRetry(
-	url: string,
-	requestOptions: OpenRouterRequestOptions,
-): Promise<string> {
-	return fetchOpenRouterWithRetry(url, requestOptions, (response) =>
-		response.text(),
-	);
-}
-
 function buildPermaslugLookup(
 	models: OpenRouterFrontendModel[],
 ): Map<string, string> {
@@ -158,7 +148,7 @@ function buildPermaslugLookup(
 	return permaslugBySlug;
 }
 
-async function fetchPerformanceForPermaslug(
+async function fetchPerformance(
 	permaslug: string,
 	requestOptions: OpenRouterRequestOptions,
 ): Promise<{
@@ -177,23 +167,23 @@ async function fetchPerformanceForPermaslug(
 	const [endpointStats, throughput, latency, latencyE2e, effectivePricing] =
 		await Promise.all([
 			fetchJsonWithRetry<OpenRouterEndpointStatsResponse>(
-				`${OPENROUTER_ENDPOINT_URL}?${endpointQuery.toString()}`,
+				`${ENDPOINT_URL}?${endpointQuery.toString()}`,
 				requestOptions,
 			),
 			fetchJsonWithRetry<OpenRouterStatsResponse>(
-				`${OPENROUTER_THROUGHPUT_URL}?${query.toString()}`,
+				`${THROUGHPUT_URL}?${query.toString()}`,
 				requestOptions,
 			),
 			fetchJsonWithRetry<OpenRouterStatsResponse>(
-				`${OPENROUTER_LATENCY_URL}?${query.toString()}`,
+				`${LATENCY_URL}?${query.toString()}`,
 				requestOptions,
 			),
 			fetchJsonWithRetry<OpenRouterStatsResponse>(
-				`${OPENROUTER_E2E_LATENCY_URL}?${query.toString()}`,
+				`${E2E_LATENCY_URL}?${query.toString()}`,
 				requestOptions,
 			),
 			fetchJsonWithRetry<OpenRouterEffectivePricingResponse>(
-				`${OPENROUTER_EFFECTIVE_PRICING_URL}?${pricingQuery.toString()}`,
+				`${EFFECTIVE_PRICING_URL}?${pricingQuery.toString()}`,
 				requestOptions,
 			),
 		]);
@@ -213,25 +203,25 @@ async function fetchPerformanceForPermaslug(
 	};
 }
 
-function performancePageUrl(permaslug: string): string {
-	const path = permaslug.split("/").map(encodeURIComponent).join("/");
-	return `${OPENROUTER_BASE_URL}/${path}/performance`;
-}
-
-async function fetchWeeklyTokensForPermaslug(
+async function fetchWeeklyTokens(
 	permaslug: string,
 	requestOptions: OpenRouterRequestOptions,
 ): Promise<number | null> {
 	try {
+		const path = permaslug.split("/").map(encodeURIComponent).join("/");
 		return parseOpenRouterWeeklyTokens(
-			await fetchTextWithRetry(performancePageUrl(permaslug), requestOptions),
+			await fetchOpenRouterWithRetry(
+				`${BASE_URL}/${path}/performance`,
+				requestOptions,
+				(response) => response.text(),
+			),
 		);
 	} catch {
 		return null;
 	}
 }
 
-async function fetchBestAvailableRawModelStats(
+async function fetchBestModelStats(
 	modelId: string,
 	availableSlugs: string[],
 	permaslugBySlug: Map<string, string>,
@@ -251,8 +241,8 @@ async function fetchBestAvailableRawModelStats(
 	for (const permaslug of permaslugCandidates) {
 		try {
 			const [stats, weeklyTokens] = await Promise.all([
-				fetchPerformanceForPermaslug(permaslug, requestOptions),
-				fetchWeeklyTokensForPermaslug(permaslug, requestOptions),
+				fetchPerformance(permaslug, requestOptions),
+				fetchWeeklyTokens(permaslug, requestOptions),
 			]);
 			resolvedCandidates.push({
 				permaslug,
@@ -307,7 +297,7 @@ export async function getOpenRouterRawScrapedStats(
 		uniqueModelIds,
 		concurrency,
 		async (modelId) =>
-			fetchBestAvailableRawModelStats(
+			fetchBestModelStats(
 				modelId,
 				availableSlugs,
 				permaslugBySlug,

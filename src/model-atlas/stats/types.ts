@@ -4,67 +4,67 @@ import type { MatcherConfig } from "../matcher";
 import type { NumberOrNull } from "../math-utils";
 import type {
 	AgentArenaModelScoreRow,
-	AgentArenaScoreByModelName,
+	AgentArenaRowsByModelName,
 } from "../scrapers/agent-arena";
 import type {
 	AgentsLastExamModelScoreRow,
-	AgentsLastExamScoreByModelName,
+	AgentsLastExamRowsByModelName,
 } from "../scrapers/agents-last-exam";
 import type {
 	AleBenchConfigurationRow,
 	AleBenchModelScoreRow,
-	AleBenchScoreByModelName,
+	AleBenchRowsByModelName,
 } from "../scrapers/ale-bench";
 import type {
 	ArtificialAnalysisEvaluationResourceByBenchmark,
 	ArtificialAnalysisEvaluationResourceRow,
 } from "../scrapers/artificial-analysis/benchmark-resources";
 import type {
-	BenchmarkScoreByModelName,
+	BenchmarkRowsByModelName,
 	BenchmarkScoreRow,
 } from "../scrapers/benchmark-score";
 import type {
 	BlueprintBenchModelScoreRow,
-	BlueprintBenchScoreByModelName,
+	BlueprintBenchRowsByModelName,
 } from "../scrapers/blueprint-bench";
 import type {
 	BrowseCompModelScoreRow,
-	BrowseCompScoreByModelName,
+	BrowseCompRowsByModelName,
 } from "../scrapers/browsecomp";
 import type {
 	CursorBenchModelScoreRow,
-	CursorBenchScoreByModelName,
+	CursorBenchRowsByModelName,
 } from "../scrapers/cursorbench";
 import type {
 	DeepSWELeaderboardRow,
 	DeepSWEModelScoreRow,
-	DeepSWEScoreByModelName,
+	DeepSWERowsByModelName,
 } from "../scrapers/deep-swe";
 import type {
 	FrontierCodeModelEffortRow,
-	FrontierCodeScoreByModelName,
+	FrontierCodeRowsByModelName,
 } from "../scrapers/frontier-code";
 import type {
 	MercorApexAgentsRow,
-	MercorApexAgentsScoreByModelName,
+	MercorApexAgentsRowsByModelName,
 } from "../scrapers/mercor-apex-agents";
 import type { ModelsDevFlatModel } from "../scrapers/models-dev";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type {
 	GdpPdfModelScoreRow,
-	GdpPdfScoreByModelName,
+	GdpPdfRowsByModelName,
 } from "../scrapers/surge/gdp-pdf";
 import type {
 	RiemannBenchModelScoreRow,
-	RiemannBenchScoreByModelName,
+	RiemannBenchRowsByModelName,
 } from "../scrapers/surge/riemann-bench";
 import type {
 	ToolathlonModelScoreRow,
-	ToolathlonScoreByModelName,
+	ToolathlonRowsByModelName,
 } from "../scrapers/toolathlon";
 import type {
 	ValsIndexModelScoreRow,
-	ValsIndexScoreByModelName,
+	ValsIndexRowsByModelName,
 } from "../scrapers/vals/index-benchmark";
 import type {
 	TerminalBenchModelHarnessRow,
@@ -72,12 +72,12 @@ import type {
 } from "../scrapers/vals/terminal-bench";
 import type {
 	VendingBench2ModelScoreRow,
-	VendingBench2ScoreByModelName,
+	VendingBench2RowsByModelName,
 } from "../scrapers/vending-bench-2";
 import type { JsonObject } from "../utils";
 import type { TerminalBenchAggregateRow } from "./benchmarks/terminal-bench";
 
-export type ModelsDevModel = ModelsDevFlatModel;
+type ModelsDevModel = ModelsDevFlatModel;
 
 export type ArtificialAnalysisModel = {
 	model_id?: unknown;
@@ -228,7 +228,7 @@ export type LlmStatsEvaluations = LlmStatsBenchmarkValues & {
 	weirdml?: NumberOrNull;
 };
 
-export type LlmStatsScoringSourceRow =
+type LlmStatsScoringSourceRow =
 	| JsonObject
 	| ArtificialAnalysisEvaluationResourceRow
 	| AgentArenaModelScoreRow
@@ -289,7 +289,6 @@ type LlmStatsModelFields = {
 	name: string | null;
 	provider: string | null;
 	logo: string;
-	attachment: boolean | null;
 	reasoning: boolean | null;
 	reasoning_effort: string | null;
 	release_date: string | null;
@@ -323,9 +322,9 @@ export type LlmStatsModel = LlmStatsModelFields & {
 
 export type BenchmarkGroup = "baseline" | "frontier";
 
-export type BenchmarkResourceSource = "artificial_analysis" | "benchmark";
-export type BenchmarkResourceUnit = "per_task" | "total";
-export type BenchmarkResourceTokenMeasure = "tokens" | "output_tokens";
+type BenchmarkResourceSource = "artificial_analysis" | "benchmark";
+type BenchmarkResourceUnit = "per_task" | "total";
+type BenchmarkResourceTokenMeasure = "tokens" | "output_tokens";
 
 export type BenchmarkResourcePolicy = {
 	source: BenchmarkResourceSource;
@@ -333,7 +332,7 @@ export type BenchmarkResourcePolicy = {
 	tokenMeasure: BenchmarkResourceTokenMeasure;
 };
 
-export type BenchmarkDimensionLoadings = {
+type BenchmarkDimensionLoadings = {
 	intelligence: number;
 	agentic: number;
 };
@@ -372,7 +371,7 @@ export type LlmStatsSourceHealth = {
 	sources: Record<string, LlmStatsSourceHealthEntry>;
 };
 
-export type LlmStatsBenchmarkUpdateStatus =
+type LlmStatsBenchmarkUpdateStatus =
 	| "current"
 	| "watch"
 	| "stale_possible"
@@ -398,15 +397,15 @@ export type LlmStatsBenchmarkUpdateHealth = Record<
 	LlmStatsBenchmarkUpdateEntry
 >;
 
-export type PriceProfile = {
+type PriceProfile = {
 	weight: number;
 	input: number;
 	output: number;
 };
 
-export type PriceProfiles = Record<string, PriceProfile>;
+type PriceProfiles = Record<string, PriceProfile>;
 
-export type SimulationTokenRange = {
+type SimulationTokenRange = {
 	lower: number;
 	upper: number;
 };
@@ -418,14 +417,14 @@ export type SimulationProfile = {
 	output_tokens_per_call: SimulationTokenRange;
 	cacheable_input_share: number;
 	cache_hit_rate_after_first_call: SimulationTokenRange;
-	quality_full_credit_at: number;
+	full_credit_quality_score: number;
 	quality_blend: {
 		intelligence: number;
 		agentic: number;
 	};
 };
 
-export type SimulationProfiles = Record<string, SimulationProfile>;
+type SimulationProfiles = Record<string, SimulationProfile>;
 
 export type LlmStatsColumnTooltipRow = readonly [string, string];
 
@@ -445,7 +444,7 @@ export type LlmStatsColumnTooltipSectionItem =
 	| LlmStatsColumnTooltipRow
 	| LlmStatsColumnTooltipNestedSection;
 
-export type LlmStatsColumnTooltipSection = {
+type LlmStatsColumnTooltipSection = {
 	title: string;
 	hideTitle?: boolean;
 	kind?: LlmStatsColumnTooltipSectionKind;
@@ -481,7 +480,7 @@ export type LlmStatsMetadata = {
 		benchmark_portfolio: BenchmarkPortfolio;
 		price_profiles: PriceProfiles;
 		simulation_profiles: SimulationProfiles;
-		simulation_input_token_seconds: number;
+		seconds_per_input_token: number;
 		column_tooltips: LlmStatsColumnTooltips;
 		snapshot_preservation_version: number;
 	};
@@ -532,7 +531,7 @@ export type ScoringConfig = {
 	speedAnchorQuantiles: readonly number[];
 	priceProfiles: PriceProfiles;
 	simulationProfiles: SimulationProfiles;
-	simulationInputTokenSeconds: number;
+	secondsPerInputToken: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
 	columnTooltips: LlmStatsColumnTooltips;
 };
@@ -545,9 +544,9 @@ export type ModelAtlasStageConfig = {
 	scoring: ScoringConfig;
 };
 
-export type LlmStatsScoreSourceRows<Row, Lookup> = {
+type LlmStatsIndexedSourceRows<Row, Lookup> = {
 	rows: Row[];
-	scoreByModelName: Lookup;
+	rowsByModelName: Lookup;
 };
 
 export type LlmStatsSourceData = {
@@ -564,100 +563,100 @@ export type LlmStatsSourceData = {
 		rows: ModelsDevModel[];
 		byId: Map<string, ModelsDevModel>;
 	};
-	agentArena: LlmStatsScoreSourceRows<
+	agentArena: LlmStatsIndexedSourceRows<
 		AgentArenaModelScoreRow,
-		AgentArenaScoreByModelName
+		AgentArenaRowsByModelName
 	>;
-	agentsLastExam: LlmStatsScoreSourceRows<
+	agentsLastExam: LlmStatsIndexedSourceRows<
 		AgentsLastExamModelScoreRow,
-		AgentsLastExamScoreByModelName
+		AgentsLastExamRowsByModelName
 	>;
 	aleBench: {
 		configurationRows: AleBenchConfigurationRow[];
 		sourceDefaultRows: AleBenchModelScoreRow[];
-		scoreByModelName: AleBenchScoreByModelName;
+		rowsByModelName: AleBenchRowsByModelName;
 	};
-	blueprintBench: LlmStatsScoreSourceRows<
+	blueprintBench: LlmStatsIndexedSourceRows<
 		BlueprintBenchModelScoreRow,
-		BlueprintBenchScoreByModelName
+		BlueprintBenchRowsByModelName
 	>;
-	browseComp: LlmStatsScoreSourceRows<
+	browseComp: LlmStatsIndexedSourceRows<
 		BrowseCompModelScoreRow,
-		BrowseCompScoreByModelName
+		BrowseCompRowsByModelName
 	>;
-	chartography: LlmStatsScoreSourceRows<
+	chartography: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	chessPuzzles: LlmStatsScoreSourceRows<
+	chessPuzzles: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	cursorBench: LlmStatsScoreSourceRows<
+	cursorBench: LlmStatsIndexedSourceRows<
 		CursorBenchModelScoreRow,
-		CursorBenchScoreByModelName
+		CursorBenchRowsByModelName
 	>;
 	deepSWE: {
 		effortRows: DeepSWELeaderboardRow[];
 		defaultEffortRows: DeepSWEModelScoreRow[];
-		scoreByModelName: DeepSWEScoreByModelName;
+		rowsByModelName: DeepSWERowsByModelName;
 	};
-	ebrBench: LlmStatsScoreSourceRows<
+	ebrBench: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	enterpriseBenchCoreCraft: LlmStatsScoreSourceRows<
+	enterpriseBenchCoreCraft: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	epochCapabilitiesIndex: LlmStatsScoreSourceRows<
+	epochCapabilitiesIndex: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	frontierCode: LlmStatsScoreSourceRows<
+	frontierCode: LlmStatsIndexedSourceRows<
 		FrontierCodeModelEffortRow,
-		FrontierCodeScoreByModelName
+		FrontierCodeRowsByModelName
 	>;
-	frontierMathTier4: LlmStatsScoreSourceRows<
+	frontierMathTier4: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	gdpPdf: LlmStatsScoreSourceRows<GdpPdfModelScoreRow, GdpPdfScoreByModelName>;
-	handbookMd: LlmStatsScoreSourceRows<
+	gdpPdf: LlmStatsIndexedSourceRows<GdpPdfModelScoreRow, GdpPdfRowsByModelName>;
+	handbookMd: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	mercorApexAgents: LlmStatsScoreSourceRows<
+	mercorApexAgents: LlmStatsIndexedSourceRows<
 		MercorApexAgentsRow,
-		MercorApexAgentsScoreByModelName
+		MercorApexAgentsRowsByModelName
 	>;
-	proofBench: LlmStatsScoreSourceRows<
+	proofBench: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
-	riemannBench: LlmStatsScoreSourceRows<
+	riemannBench: LlmStatsIndexedSourceRows<
 		RiemannBenchModelScoreRow,
-		RiemannBenchScoreByModelName
+		RiemannBenchRowsByModelName
 	>;
-	valsTerminalBench: LlmStatsScoreSourceRows<
+	valsTerminalBench: LlmStatsIndexedSourceRows<
 		TerminalBenchModelHarnessRow,
 		TerminalBenchRowsByModelName
 	>;
-	toolathlon: LlmStatsScoreSourceRows<
+	toolathlon: LlmStatsIndexedSourceRows<
 		ToolathlonModelScoreRow,
-		ToolathlonScoreByModelName
+		ToolathlonRowsByModelName
 	>;
-	valsIndex: LlmStatsScoreSourceRows<
+	valsIndex: LlmStatsIndexedSourceRows<
 		ValsIndexModelScoreRow,
-		ValsIndexScoreByModelName
+		ValsIndexRowsByModelName
 	>;
-	vendingBench2: LlmStatsScoreSourceRows<
+	vendingBench2: LlmStatsIndexedSourceRows<
 		VendingBench2ModelScoreRow,
-		VendingBench2ScoreByModelName
+		VendingBench2RowsByModelName
 	>;
-	weirdMl: LlmStatsScoreSourceRows<
+	weirdMl: LlmStatsIndexedSourceRows<
 		BenchmarkScoreRow,
-		BenchmarkScoreByModelName
+		BenchmarkRowsByModelName
 	>;
 };
 

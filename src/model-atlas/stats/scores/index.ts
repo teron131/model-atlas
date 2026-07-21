@@ -2,7 +2,6 @@
 export type {
 	BenchmarkImputationByModel,
 	BenchmarkImputationConfidenceByModel,
-	BenchmarkImputationDiagnostic,
 	QualityScoringContext,
 } from "./benchmark-imputation";
 export {

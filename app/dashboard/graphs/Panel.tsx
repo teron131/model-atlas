@@ -7,7 +7,7 @@ import {
 	useRef,
 } from "react";
 
-import { CaptureButton } from "../capture/capture-button";
+import { CaptureButton } from "../capture/button";
 import styles from "./graphs.module.css";
 
 export function Panel({

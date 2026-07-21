@@ -5,7 +5,7 @@
 import { type CSSProperties, useState } from "react";
 import styles from "./display-controls.module.css";
 
-export const MINIMUM_DISPLAY_ITEMS = 3;
+const MINIMUM_DISPLAY_ITEMS = 3;
 export const DEFAULT_DISPLAY_ITEMS = 30;
 
 const variantOptions = [
@@ -14,7 +14,7 @@ const variantOptions = [
 ];
 
 /** Keep a requested display count inside the available data-backed range. */
-export function clampDisplayLimit(limit: number, maximum: number): number {
+function clampDisplayLimit(limit: number, maximum: number): number {
 	if (maximum <= 0) {
 		return 0;
 	}

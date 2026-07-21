@@ -51,22 +51,22 @@ export function buildTaskMetrics(
 ): LlmStatsTaskMetrics {
 	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
 	for (const [key, source] of Object.entries(scoringSources ?? {})) {
-		const sourceTaskMetrics = buildGenericSourceTaskMetrics(source);
+		const sourceTaskMetrics = buildSourceMetrics(source);
 		if (sourceTaskMetrics != null) {
 			taskMetrics[key] = sourceTaskMetrics;
 		}
 	}
-	const artificialAnalysis = buildArtificialAnalysisTaskMetrics(
+	const artificialAnalysis = buildArtificialAnalysisMetrics(
 		intelligenceIndexCost,
 	);
 	if (artificialAnalysis != null) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
 	}
-	const deepSWE = buildDeepSWETaskMetrics(scoringSources);
-	if (deepSWE != null) {
-		taskMetrics.deep_swe = deepSWE;
+	const deepSwe = buildDeepSWEMetrics(scoringSources);
+	if (deepSwe != null) {
+		taskMetrics.deep_swe = deepSwe;
 	}
-	const agentsLastExam = buildAgentsLastExamTaskMetrics(scoringSources);
+	const agentsLastExam = buildAgentsLastExamMetrics(scoringSources);
 	if (agentsLastExam != null) {
 		taskMetrics.agents_last_exam = agentsLastExam;
 	}
@@ -97,9 +97,7 @@ function setNonNegativeMetric(
 }
 
 /** Extract common per-task telemetry field shapes from any benchmark source row. */
-function buildGenericSourceTaskMetrics(
-	source: unknown,
-): TaskMetricValues | null {
+function buildSourceMetrics(source: unknown): TaskMetricValues | null {
 	const row = asRecord(source);
 	const taskMetrics: TaskMetricValues = {};
 	for (const [key, fields] of Object.entries(GENERIC_TASK_METRIC_FIELDS)) {
@@ -112,7 +110,7 @@ function buildGenericSourceTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-function buildArtificialAnalysisTaskMetrics(
+function buildArtificialAnalysisMetrics(
 	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
 ): TaskMetricValues | null {
 	if (intelligenceIndexCost == null) {
@@ -137,23 +135,23 @@ function buildArtificialAnalysisTaskMetrics(
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-function buildDeepSWETaskMetrics(
+function buildDeepSWEMetrics(
 	scoringSources: LlmStatsScoringSources,
 ): TaskMetricValues | null {
-	const deepSWE = scoringSources?.deep_swe;
-	if (deepSWE == null) {
+	const deepSwe = scoringSources?.deep_swe;
+	if (deepSwe == null) {
 		return null;
 	}
 	const taskMetrics: TaskMetricValues = {
-		cost: deepSWE.mean_cost_usd,
-		output_tokens: deepSWE.mean_output_tokens,
+		cost: deepSwe.mean_cost_usd,
+		output_tokens: deepSwe.mean_output_tokens,
 	};
-	setNonNegativeMetric(taskMetrics, "seconds", deepSWE.mean_duration_seconds);
+	setNonNegativeMetric(taskMetrics, "seconds", deepSwe.mean_duration_seconds);
 	return taskMetrics;
 }
 
 /** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */
-function buildAgentsLastExamTaskMetrics(
+function buildAgentsLastExamMetrics(
 	scoringSources: LlmStatsScoringSources,
 ): TaskMetricValues | null {
 	const agentsLastExam = scoringSources?.agents_last_exam;

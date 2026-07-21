@@ -9,25 +9,25 @@ import type {
 
 const DIMENSION_LOADING_SUM_TOLERANCE = 1e-9;
 
-const ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY = {
+const ARTIFICIAL_ANALYSIS_PER_TASK_POLICY = {
 	source: "artificial_analysis",
 	unit: "per_task",
 	tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
-const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY = {
+const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY = {
 	source: "artificial_analysis",
 	unit: "per_task",
 	tokenMeasure: "output_tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
-const BENCHMARK_PER_TASK_RESOURCE_POLICY = {
+const BENCHMARK_PER_TASK_POLICY = {
 	source: "benchmark",
 	unit: "per_task",
 	tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
-const BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY = {
+const BENCHMARK_OUTPUT_PER_TASK_POLICY = {
 	source: "benchmark",
 	unit: "per_task",
 	tokenMeasure: "output_tokens",
@@ -48,25 +48,25 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: BENCHMARK_PER_TASK_POLICY,
 	},
 	ale_bench: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.4, agentic: 0.6 },
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: BENCHMARK_PER_TASK_POLICY,
 	},
 	apex_agents: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	automation_bench: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_PER_TASK_POLICY,
 	},
 	blueprint_bench_2: {
 		group: "frontier",
@@ -77,7 +77,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	browsecomp: {
 		group: "baseline",
@@ -98,19 +98,19 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	cursorbench: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: BENCHMARK_PER_TASK_POLICY,
 	},
 	deep_swe: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: BENCHMARK_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: BENCHMARK_OUTPUT_PER_TASK_POLICY,
 	},
 	ebr_bench: {
 		group: "baseline",
@@ -131,7 +131,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: BENCHMARK_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: BENCHMARK_PER_TASK_POLICY,
 	},
 	frontiermath_tier_4: {
 		group: "frontier",
@@ -147,7 +147,7 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	handbook_md: {
 		group: "frontier",
@@ -158,19 +158,19 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	hle: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 1, agentic: 0 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	itbench_sre: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	lcr: {
 		group: "baseline",
@@ -201,13 +201,13 @@ export const BENCHMARK_PORTFOLIO = {
 		group: "baseline",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	terminalbench_v21: {
 		group: "frontier",
 		benchmarkImportance: 1,
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
-		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE_POLICY,
+		resourcePolicy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 	},
 	toolathlon: {
 		group: "baseline",
@@ -288,7 +288,7 @@ export const benchmarkResourcePolicy = (
 	> = BENCHMARK_PORTFOLIO,
 ) => portfolio[key]?.resourcePolicy ?? null;
 
-export const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
+const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
 	BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 
 /** Return a benchmark's effective dimension weight as importance multiplied by loading. */
@@ -303,7 +303,7 @@ export const benchmarkDimensionWeight = (
 		: entry.benchmarkImportance * entry.dimensionLoadings[dimension];
 };
 
-export const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
+const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
 	BENCHMARK_KEYS.filter((key) => benchmarkDimensionWeight(key, dimension) > 0);
 
 export const BASELINE_BENCHMARKS = benchmarkKeysInGroup("baseline");

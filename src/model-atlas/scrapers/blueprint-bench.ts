@@ -14,7 +14,7 @@ const LEADERBOARD_START = "Leaderboard";
 const LEADERBOARD_END = "The eval";
 const LEADERBOARD_ROW_RANK_PATTERN = /^\d+$/;
 
-export type BlueprintBenchScraperOptions = {
+type BlueprintBenchScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -24,12 +24,12 @@ export type BlueprintBenchModelScoreRow = {
 	score: number;
 };
 
-export type BlueprintBenchScoreByModelName = Map<
+export type BlueprintBenchRowsByModelName = Map<
 	string,
 	BlueprintBenchModelScoreRow
 >;
 
-export type BlueprintBenchModelScorePayload = {
+type BlueprintBenchModelScorePayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: BlueprintBenchModelScoreRow[];
 };
@@ -89,26 +89,26 @@ export function processBlueprintBenchPageHtml(
 
 export function buildBlueprintBenchMap(
 	rows: BlueprintBenchModelScoreRow[],
-): BlueprintBenchScoreByModelName {
-	const scoreByModelName: BlueprintBenchScoreByModelName = new Map();
+): BlueprintBenchRowsByModelName {
+	const rowsByModelName: BlueprintBenchRowsByModelName = new Map();
 	for (const row of rows) {
 		const key = normalizeModelToken(row.model);
 		if (key.length > 0) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 export function findBlueprintBenchScore(
 	candidateNames: unknown[],
-	blueprintBenchScoreByModelName: BlueprintBenchScoreByModelName,
+	blueprintBenchRowsByModelName: BlueprintBenchRowsByModelName,
 ): number | null {
 	for (const candidateName of candidateNames) {
 		if (typeof candidateName !== "string" || candidateName.length === 0) {
 			continue;
 		}
-		const row = blueprintBenchScoreByModelName.get(
+		const row = blueprintBenchRowsByModelName.get(
 			normalizeModelToken(candidateName),
 		);
 		if (row) {

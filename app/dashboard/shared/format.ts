@@ -10,7 +10,7 @@ export const formatCost = (value: number | null | undefined) =>
 		? `$${value.toFixed(value < 1 ? 3 : 2)}`
 		: "-";
 
-export const formatCompactNumber = (value: number | null | undefined) => {
+const formatCompactNumber = (value: number | null | undefined) => {
 	if (typeof value !== "number" || !Number.isFinite(value)) {
 		return "-";
 	}
@@ -26,12 +26,12 @@ export const formatCompactNumber = (value: number | null | undefined) => {
 	return value.toFixed(value < 100 ? 1 : 0);
 };
 
-export const formatSeconds = (value: number | null | undefined) =>
+const formatSeconds = (value: number | null | undefined) =>
 	typeof value === "number" && Number.isFinite(value)
 		? `${value.toFixed(value < 10 ? 1 : 0)}s`
 		: "-";
 
-export const formatDuration = (value: number | null | undefined) => {
+const formatDuration = (value: number | null | undefined) => {
 	if (typeof value !== "number" || !Number.isFinite(value)) {
 		return "-";
 	}
@@ -41,7 +41,7 @@ export const formatDuration = (value: number | null | undefined) => {
 	return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 };
 
-export function formatTaskMetric(
+function formatTaskMetric(
 	value: number | null | undefined,
 	column: TaskMetricColumn,
 ) {

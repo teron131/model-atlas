@@ -13,7 +13,7 @@ import {
 	taskMetricColumns,
 } from "./models";
 
-const benchmarkTableColumnTooltips = Object.fromEntries(
+const benchmarkColumnTooltips = Object.fromEntries(
 	benchmarkMetricColumns.flatMap((column) => {
 		const tooltip = benchmarkTooltips[column.benchmark];
 		return tooltip == null ? [] : [[column.key, tooltip]];
@@ -26,7 +26,7 @@ type TaskMetricTooltipText = {
 	row: string;
 };
 
-const defaultTaskMetricTooltipText: Record<string, TaskMetricTooltipText> = {
+const defaultTaskMetricText: Record<string, TaskMetricTooltipText> = {
 	cost: {
 		title: "cost per task",
 		body: "Reported task cost",
@@ -54,7 +54,7 @@ const defaultTaskMetricTooltipText: Record<string, TaskMetricTooltipText> = {
 	},
 };
 
-const terminalBenchMetricTooltipText: Record<string, TaskMetricTooltipText> = {
+const terminalBenchMetricText: Record<string, TaskMetricTooltipText> = {
 	cost: {
 		title: "cost per task",
 		body: "Median available task cost",
@@ -82,7 +82,7 @@ const terminalBenchMetricTooltipText: Record<string, TaskMetricTooltipText> = {
 	},
 };
 
-const taskMetricTableColumnTooltips = Object.fromEntries(
+const taskMetricColumnTooltips = Object.fromEntries(
 	taskMetricColumns.flatMap((column) => taskMetricTooltipEntry(column)),
 ) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
 
@@ -137,13 +137,12 @@ const staticTableColumnTooltips = {
 	},
 } as const satisfies Partial<Record<SortKey, LlmStatsColumnTooltip>>;
 
-const tableColumnFallbackTooltips: Partial<
-	Record<SortKey, LlmStatsColumnTooltip>
-> = {
-	...staticTableColumnTooltips,
-	...benchmarkTableColumnTooltips,
-	...taskMetricTableColumnTooltips,
-};
+const fallbackColumnTooltips: Partial<Record<SortKey, LlmStatsColumnTooltip>> =
+	{
+		...staticTableColumnTooltips,
+		...benchmarkColumnTooltips,
+		...taskMetricColumnTooltips,
+	};
 
 function taskMetricTooltipEntry(
 	column: TaskMetricColumn,
@@ -191,8 +190,8 @@ function taskMetricTooltipSource(
 function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
 	const metricTooltip =
 		column.source === "terminalbench_v21"
-			? terminalBenchMetricTooltipText[column.metric]
-			: defaultTaskMetricTooltipText[column.metric];
+			? terminalBenchMetricText[column.metric]
+			: defaultTaskMetricText[column.metric];
 	if (metricTooltip == null) {
 		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
 	}
@@ -212,5 +211,5 @@ export function tableColumnTooltip(
 	key: SortKey,
 	columnTooltips: LlmStatsColumnTooltips,
 ) {
-	return tableColumnFallbackTooltips[key] ?? columnTooltips[key];
+	return fallbackColumnTooltips[key] ?? columnTooltips[key];
 }

@@ -26,13 +26,13 @@ import type {
 } from "../types";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 
-export type ArtificialAnalysisSnapshot = {
+type ArtificialAnalysisSnapshot = {
 	artificialAnalysisRawRows: SourceSnapshots["artificialAnalysisRawRows"];
 	artificialAnalysisSelectedRows: SourceSnapshots["artificialAnalysisSelectedRows"];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-const ARTIFICIAL_ANALYSIS_RESOURCE_SIGNAL_KEYS = [
+const RESOURCE_SIGNAL_KEYS = [
 	"cost_per_task",
 	"seconds_per_task",
 	"output_tokens_per_task",
@@ -44,10 +44,8 @@ function camelMetricKey(key: string): string {
 	);
 }
 
-function artificialAnalysisSignalKeys(
-	scoringConfig: ScoringConfig,
-): Set<string> {
-	const keys = new Set<string>(ARTIFICIAL_ANALYSIS_RESOURCE_SIGNAL_KEYS);
+function signalKeys(scoringConfig: ScoringConfig): Set<string> {
+	const keys = new Set<string>(RESOURCE_SIGNAL_KEYS);
 	for (const key of [
 		...INTELLIGENCE_INDEX_KEYS,
 		...AGENTIC_INDEX_KEYS,
@@ -60,15 +58,12 @@ function artificialAnalysisSignalKeys(
 	return keys;
 }
 
-function artificialAnalysisSignalCount(
-	row: JsonObject,
-	scoringConfig: ScoringConfig,
-): number {
+function signalCount(row: JsonObject, scoringConfig: ScoringConfig): number {
 	const intelligence = asRecord(row.intelligence);
 	const evaluations = asRecord(row.evaluations);
 	const cost = asRecord(row.intelligence_index_cost);
-	const signalKeys = artificialAnalysisSignalKeys(scoringConfig);
-	return [...signalKeys].filter(
+	const keys = signalKeys(scoringConfig);
+	return [...keys].filter(
 		(key) =>
 			asFiniteNumber(row[key]) != null ||
 			asFiniteNumber(intelligence[key]) != null ||
@@ -77,7 +72,7 @@ function artificialAnalysisSignalCount(
 	).length;
 }
 
-function isArtificialAnalysisRowUnavailable(row: JsonObject): boolean {
+function isRowUnavailable(row: JsonObject): boolean {
 	const name = typeof row.name === "string" ? row.name.toLowerCase() : "";
 	return (
 		row.deprecated === true ||
@@ -86,7 +81,7 @@ function isArtificialAnalysisRowUnavailable(row: JsonObject): boolean {
 	);
 }
 
-function projectArtificialAnalysisRows(
+function projectLeaderboardRows(
 	rows: SourceSnapshots["artificialAnalysisRawRows"],
 ): SourceSnapshots["artificialAnalysisSelectedRows"] {
 	return processArtificialAnalysisLeaderboardRows(rows, {
@@ -101,9 +96,9 @@ export function mergeArtificialAnalysisRow(
 	scoringConfig: ScoringConfig,
 ): JsonObject {
 	if (
-		isArtificialAnalysisRowUnavailable(fetchedRow) &&
-		artificialAnalysisSignalCount(cachedRow, scoringConfig) >
-			artificialAnalysisSignalCount(fetchedRow, scoringConfig)
+		isRowUnavailable(fetchedRow) &&
+		signalCount(cachedRow, scoringConfig) >
+			signalCount(fetchedRow, scoringConfig)
 	) {
 		return cachedRow;
 	}
@@ -137,7 +132,7 @@ export async function artificialAnalysisSnapshot(
 		});
 		return {
 			artificialAnalysisRawRows: cachedRowSnapshot.rows,
-			artificialAnalysisSelectedRows: projectArtificialAnalysisRows(
+			artificialAnalysisSelectedRows: projectLeaderboardRows(
 				cachedRowSnapshot.rows,
 			),
 			sourceStatus: {
@@ -151,7 +146,7 @@ export async function artificialAnalysisSnapshot(
 	}
 	const fetchedLeaderboardPayload =
 		await getArtificialAnalysisLeaderboardRawStats();
-	const hasUsableFetchedLeaderboardRows = shouldUseFetchedRows(
+	const hasUsableFetchedRows = shouldUseFetchedRows(
 		fetchedLeaderboardPayload.fetched_at_epoch_seconds,
 		fetchedLeaderboardPayload.data.length,
 	);
@@ -169,15 +164,13 @@ export async function artificialAnalysisSnapshot(
 		nowEpochSeconds,
 	});
 	const fetchedAt = snapshotFetchedAt(
-		hasUsableFetchedLeaderboardRows,
+		hasUsableFetchedRows,
 		cached?.fetchedAt,
 		fetchedLeaderboardPayload.fetched_at_epoch_seconds,
 	);
 	return {
 		artificialAnalysisRawRows: rowSnapshot.rows,
-		artificialAnalysisSelectedRows: projectArtificialAnalysisRows(
-			rowSnapshot.rows,
-		),
+		artificialAnalysisSelectedRows: projectLeaderboardRows(rowSnapshot.rows),
 		sourceStatus: {
 			source: "artificial_analysis",
 			fetchedAt,

@@ -37,6 +37,6 @@ assert.equal(rows[0]?.reasoning_effort, "high");
 assert.equal(rows[0]?.organization, "Anthropic");
 assert.equal(rows[1]?.score, -0.153);
 
-const scoreByModelName = buildBenchmarkModelMap(rows);
-assert.equal(scoreByModelName.get("grok-4-3")?.score, -0.153);
-assert.equal(scoreByModelName.get("claude-fable-5")?.score, 0.1394);
+const rowsByModelName = buildBenchmarkModelMap(rows);
+assert.equal(rowsByModelName.get("grok-4-3")?.score, -0.153);
+assert.equal(rowsByModelName.get("claude-fable-5")?.score, 0.1394);

@@ -30,7 +30,7 @@ const DEFAULT_LEADERBOARD_URLS = [
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 2;
 
-export type DeepSWEScraperOptions = {
+type DeepSWEScraperOptions = {
 	url?: string;
 	urls?: readonly string[];
 	timeoutMs?: number;
@@ -61,22 +61,20 @@ export type DeepSWERawLeaderboardRow = DeepSWELeaderboardRow & {
 
 export type DeepSWEModelScoreRow = DeepSWELeaderboardRow;
 
-export type DeepSWEScoreByModelName = Map<string, DeepSWEModelScoreRow>;
+export type DeepSWERowsByModelName = Map<string, DeepSWEModelScoreRow>;
 
-export type DeepSWELeaderboardPayload = {
+type DeepSWELeaderboardPayload = {
 	fetched_at_epoch_seconds: number | null;
 	source_version: DeepSWESourceVersion | null;
 	data: DeepSWELeaderboardRow[];
 };
 
-export type DeepSWERawLeaderboardPayload = {
+type DeepSWERawLeaderboardPayload = {
 	fetched_at_epoch_seconds: number | null;
 	data: DeepSWERawLeaderboardRow[];
 };
 
-export function asDeepSWELeaderboardRow(
-	value: unknown,
-): DeepSWELeaderboardRow | null {
+function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
 	const row = asRecord(value);
 	if (!row || typeof row.model !== "string" || row.model.length === 0) {
 		return null;
@@ -152,7 +150,7 @@ export function summarizeDeepSWEDefaultEffortRows(
 }
 
 /** Strip raw-source provenance from DeepSWE rows before public/scoring use. */
-export function stripDeepSWESourceVersion(
+function stripDeepSWESourceVersion(
 	row: DeepSWERawLeaderboardRow,
 ): DeepSWELeaderboardRow {
 	return {
@@ -174,17 +172,17 @@ export function preferredDeepSWELeaderboardRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWELeaderboardRow[] {
 	const v11Rows = rows.filter((row) => row.source_version === "v1.1");
-	const v11RowKeys = new Set(v11Rows.map(deepSWEPreferenceKey));
+	const v11RowKeys = new Set(v11Rows.map(deepSwePreferenceKey));
 	const v1OnlyRows = rows.filter(
 		(row) =>
 			row.source_version !== "v1.1" &&
-			!v11RowKeys.has(deepSWEPreferenceKey(row)),
+			!v11RowKeys.has(deepSwePreferenceKey(row)),
 	);
 	const preferredRows = v11Rows.length > 0 ? [...v11Rows, ...v1OnlyRows] : rows;
 	return preferredRows.map(stripDeepSWESourceVersion);
 }
 
-function deepSWEPreferenceKey(row: DeepSWERawLeaderboardRow): string {
+function deepSwePreferenceKey(row: DeepSWERawLeaderboardRow): string {
 	return [
 		normalizeModelToken(row.model),
 		row.reasoning_effort ?? "",
@@ -207,7 +205,7 @@ async function getDeepSWERawRowsForUrl(
 				.map((row) => asDeepSWELeaderboardRow(row))
 				.filter((row): row is DeepSWELeaderboardRow => row != null)
 		: [];
-	const sourceVersion = deepSWESourceVersionForUrl(url);
+	const sourceVersion = sourceVersionForUrl(url);
 	return rows.map((row) => ({
 		...row,
 		source_version: sourceVersion,
@@ -217,21 +215,21 @@ async function getDeepSWERawRowsForUrl(
 /** Indexes normalized source labels while retaining the default highest-effort row on collisions. */
 export function buildDeepSWEMap(
 	rows: DeepSWEModelScoreRow[],
-): DeepSWEScoreByModelName {
-	const scoreByModelName: DeepSWEScoreByModelName = new Map();
+): DeepSWERowsByModelName {
+	const rowsByModelName: DeepSWERowsByModelName = new Map();
 	for (const row of rows) {
 		const key = normalizeModelToken(row.model);
-		const existing = scoreByModelName.get(key);
+		const existing = rowsByModelName.get(key);
 		if (
 			key.length > 0 &&
 			(existing == null ||
 				reasoningEffortRank(row.reasoning_effort) >
 					reasoningEffortRank(existing.reasoning_effort))
 		) {
-			scoreByModelName.set(key, row);
+			rowsByModelName.set(key, row);
 		}
 	}
-	return scoreByModelName;
+	return rowsByModelName;
 }
 
 /** DeepSWE fetches configured artifact versions through a bounded worker pool so custom URL lists cannot burst. */
@@ -279,7 +277,7 @@ export function deepSWEUrlForSourceVersion(
 }
 
 /** Infers the DeepSWE source version from a leaderboard URL. */
-function deepSWESourceVersionForUrl(url: string): DeepSWESourceVersion | null {
+function sourceVersionForUrl(url: string): DeepSWESourceVersion | null {
 	if (url.includes("/artifacts/v1.1/")) {
 		return "v1.1";
 	}
