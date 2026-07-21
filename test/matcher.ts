@@ -751,6 +751,7 @@ function modelStatsSourceData(
 			rowsByModelName: buildGdpPdfMap(gdpPdfModelScoreRows),
 		},
 		handbookMd: { rows: [], rowsByModelName: new Map() },
+		harveyLab: { rows: [], rowsByModelName: new Map() },
 		mercorApexAgents: {
 			rows: [],
 			rowsByModelName: new Map(),
@@ -760,7 +761,7 @@ function modelStatsSourceData(
 			rows: riemannBenchModelScoreRows,
 			rowsByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
 		},
-		valsTerminalBench: {
+		terminalBench: {
 			rows: [],
 			rowsByModelName: buildTerminalBenchMap([]),
 		},

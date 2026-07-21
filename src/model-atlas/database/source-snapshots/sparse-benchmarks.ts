@@ -56,6 +56,11 @@ import {
 	type ToolathlonModelScoreRow,
 } from "../../scrapers/toolathlon";
 import {
+	getHarveyLabStats,
+	type HarveyLabModelScoreRow,
+	type HarveyLabTaskRow,
+} from "../../scrapers/vals/harvey-lab";
+import {
 	getValsIndexStats,
 	type ValsIndexModelScoreRow,
 	type ValsIndexTaskScoreRow,
@@ -87,12 +92,13 @@ import type {
 	readFrontierMathTier4RawCache,
 	readGdpPdfRawCache,
 	readHandbookMdRawCache,
+	readHarveyLabRawCache,
 	readMercorApexAgentsRawCache,
 	readProofBenchRawCache,
 	readRiemannBenchRawCache,
+	readTerminalBenchRawCache,
 	readToolathlonRawCache,
 	readValsIndexRawCache,
-	readValsTerminalBenchRawCache,
 	readVendingBench2RawCache,
 	readWeirdMlRawCache,
 } from "../cache";
@@ -150,6 +156,12 @@ type GdpPdfSnapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
+type HarveyLabSnapshot = {
+	harveyLabRows: HarveyLabTaskRow[];
+	harveyLabModelScoreRows: HarveyLabModelScoreRow[];
+	sourceStatus: SourceSnapshotStatus;
+};
+
 type MercorApexAgentsSnapshot = {
 	mercorApexAgentsRows: MercorApexAgentsRow[];
 	sourceStatus: SourceSnapshotStatus;
@@ -173,8 +185,8 @@ type ValsIndexSnapshot = {
 };
 
 type TerminalBenchSnapshot = {
-	valsTerminalBenchRows: TerminalBenchTaskRow[];
-	valsTerminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
+	terminalBenchRows: TerminalBenchTaskRow[];
+	terminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -614,6 +626,63 @@ export function handbookMdSnapshot(
 	);
 }
 
+/** Loads Harvey LAB rows while using strict overall task resolution for scoring. */
+export async function harveyLabSnapshot(
+	cached: ReturnType<typeof readHarveyLabRawCache>,
+	status: RawSourceCacheStatus,
+	options: DatabaseBuildOptions,
+	previousMissingSince: ReadonlyMap<string, number>,
+	nowEpochSeconds: number,
+): Promise<HarveyLabSnapshot> {
+	const fetched =
+		status.cache_hit && cached != null && options.replaceSourceRows !== true
+			? null
+			: await getHarveyLabStats();
+	const fetchedRows = fetched?.task_rows ?? [];
+	const hasUsableFetchedRows = shouldUseFetchedRows(
+		fetched?.fetched_at_epoch_seconds ?? null,
+		fetchedRows.length,
+	);
+	const rows = snapshotRows(
+		cached?.rows,
+		fetchedRows,
+		fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		(row) => sourceKey(row.task, row.model_id, row.reasoning_effort),
+	);
+	const modelScores = rows.filter(
+		(row): row is HarveyLabModelScoreRow =>
+			row.task === "overall" && row.metric === "task_resolution",
+	);
+	const states = snapshotRowsWithStates({
+		source: "vals_harvey_lab",
+		cachedRows: cached?.modelScores,
+		fetchedRows: fetched?.model_scores ?? [],
+		fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
+		options,
+		rowKey: (row) => sourceKey(row.model_id, row.reasoning_effort),
+		rowLabel: (row) => row.model,
+		previousMissingSince,
+		nowEpochSeconds,
+	}).states;
+	const fetchedAt = snapshotFetchedAt(
+		hasUsableFetchedRows,
+		cached?.fetchedAt,
+		fetched?.fetched_at_epoch_seconds ?? null,
+	);
+	return {
+		harveyLabRows: rows,
+		harveyLabModelScoreRows: modelScores,
+		sourceStatus: {
+			source: "vals_harvey_lab",
+			fetchedAt,
+			sourceInputCount: modelScores.length,
+			sourceRowStates: states,
+			fetchedAtKey: "harveyLab",
+		},
+	};
+}
+
 /** Loads Mercor APEX rows keyed by its stable contender ID and effort. */
 export async function mercorApexAgentsSnapshot(
 	cached: ReturnType<typeof readMercorApexAgentsRawCache>,
@@ -705,8 +774,8 @@ export async function riemannBenchSnapshot(
 }
 
 /** Loads Terminal-Bench rows while using overall model-harness rows for matching. */
-export async function valsTerminalBenchSnapshot(
-	cached: ReturnType<typeof readValsTerminalBenchRawCache>,
+export async function terminalBenchSnapshot(
+	cached: ReturnType<typeof readTerminalBenchRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
@@ -749,14 +818,14 @@ export async function valsTerminalBenchSnapshot(
 		fetched?.fetched_at_epoch_seconds ?? null,
 	);
 	return {
-		valsTerminalBenchRows: rows,
-		valsTerminalBenchModelScoreRows: modelScores,
+		terminalBenchRows: rows,
+		terminalBenchModelScoreRows: modelScores,
 		sourceStatus: {
 			source: "vals_terminal_bench",
 			fetchedAt,
 			sourceInputCount: modelScores.length,
 			sourceRowStates: states,
-			fetchedAtKey: "valsTerminalBench",
+			fetchedAtKey: "terminalBench",
 		},
 	};
 }

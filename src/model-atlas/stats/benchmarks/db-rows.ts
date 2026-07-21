@@ -8,7 +8,7 @@ import {
 } from "../../scrapers/deep-swe";
 import { asFiniteNumber } from "../../shared";
 import {
-	artificialAnalysisBenchmarkRowDrafts,
+	artificialAnalysisModelRowDrafts,
 	type BenchmarkRowDraft,
 	type BenchmarkRowsByKey,
 	finalizeBenchmarkRows,
@@ -42,9 +42,10 @@ type BenchmarkDbRows = {
 	frontierMathTier4Rows: readonly DbBenchmarkRow[];
 	gdpPdfRows: readonly DbBenchmarkRow[];
 	handbookMdRows: readonly DbBenchmarkRow[];
+	harveyLabRows: readonly DbBenchmarkRow[];
 	proofBenchRows: readonly DbBenchmarkRow[];
 	riemannBenchRows: readonly DbBenchmarkRow[];
-	valsTerminalBenchRows: readonly DbBenchmarkRow[];
+	terminalBenchRows: readonly DbBenchmarkRow[];
 	toolathlonRows: readonly DbBenchmarkRow[];
 	valsIndexRows: readonly DbBenchmarkRow[];
 	vendingBench2Rows: readonly DbBenchmarkRow[];
@@ -119,7 +120,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 		}),
 	);
 	return [
-		...artificialAnalysisBenchmarkRowDrafts({
+		...artificialAnalysisModelRowDrafts({
 			rows: rows.artificialAnalysisRows,
 			modelId: (row) => stringValue(row.model_id),
 			label: (row, modelId) =>
@@ -218,6 +219,13 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			providerColumn: "provider",
 		}),
 		...benchmarkScoreDrafts(rows.handbookMdRows),
+		...dbSourceDrafts({
+			key: "harvey_lab",
+			rows: rows.harveyLabRows,
+			value: (row) => row.score,
+			providerColumn: "provider",
+			rowKind: "overall",
+		}),
 		...benchmarkScoreDrafts(rows.proofBenchRows),
 		...dbSourceDrafts({
 			key: "riemann_bench",
@@ -227,7 +235,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 		}),
 		...dbSourceDrafts({
 			key: "terminalbench_v21",
-			rows: rows.valsTerminalBenchRows,
+			rows: rows.terminalBenchRows,
 			value: (row) => row.score,
 			providerColumn: "provider",
 			rowKind: "overall",

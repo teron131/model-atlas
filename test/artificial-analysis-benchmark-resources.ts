@@ -60,13 +60,6 @@ const automationBenchPage = {
 	url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
 	task_run_count: 2,
 };
-const harveyLabPage = {
-	benchmark_key: "harvey_lab",
-	score_path: ["harvey_lab_breakdown", "all_pass"],
-	url: "https://artificialanalysis.ai/evaluations/harvey-lab-aa",
-	task_run_count: 2,
-};
-
 const hleRows = processArtificialAnalysisEvaluationResourceRows(
 	[
 		{
@@ -370,54 +363,6 @@ assertDeepEqual(
 		output_tokens_per_task: 5,
 		answer_tokens_per_task: 3,
 		reasoning_tokens_per_task: 2,
-	},
-);
-
-assertDeepEqual(
-	processArtificialAnalysisEvaluationResourceRows(
-		[
-			{
-				short_name: "Claude Fable 5 (max)",
-				slug: "claude-fable-5",
-				model_creators: {
-					name: "Anthropic",
-					slug: "anthropic",
-				},
-				harvey_lab_breakdown: {
-					all_pass: 0.142,
-					criteria_pass: 0.9048,
-					num_tasks: 120,
-				},
-				evalCost: {
-					total: 8,
-				},
-				evalTimePerTask: 240,
-				tokenCounts: {
-					inputTokens: 200,
-					answerTokens: 50,
-					reasoningTokens: 30,
-				},
-			},
-		],
-		harveyLabPage,
-	)[0],
-	{
-		benchmark_key: "harvey_lab",
-		source_url: "https://artificialanalysis.ai/evaluations/harvey-lab-aa",
-		model_id: "anthropic/claude-fable-5",
-		model: "Claude Fable 5 (max)",
-		provider: "Anthropic",
-		provider_id: "anthropic",
-		reasoning_effort: "max",
-		score: 0.142,
-		task_run_count: 2,
-		cost_per_task_usd: 4,
-		seconds_per_task: 240,
-		tokens_per_task: 140,
-		input_tokens_per_task: 100,
-		output_tokens_per_task: 40,
-		answer_tokens_per_task: 25,
-		reasoning_tokens_per_task: 15,
 	},
 );
 

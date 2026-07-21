@@ -10,6 +10,7 @@ import {
 } from "../src/model-atlas/scrapers/benchmark-score";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
+import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
 import { buildBenchmarkModelMap } from "../src/model-atlas/shared";
 import {
@@ -199,24 +200,28 @@ const automationBenchResourceRow = {
 	answer_tokens_per_task: 60,
 	reasoning_tokens_per_task: 40,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
-const harveyLabResourceRow = {
-	benchmark_key: "harvey_lab",
-	source_url: "https://artificialanalysis.ai/evaluations/harvey-lab-aa",
+const harveyLabRow = {
+	task: "overall",
+	task_label: "Overall",
+	metric: "task_resolution",
 	model_id: "test/example-model",
-	model: "Example Model",
-	provider: "Test",
-	provider_id: "test",
+	model: "example-model",
+	base_model: "example-model",
 	reasoning_effort: null,
-	score: 0.142,
-	task_run_count: 120,
-	cost_per_task_usd: 4.2,
-	seconds_per_task: 240,
-	tokens_per_task: 900,
-	input_tokens_per_task: 700,
-	output_tokens_per_task: 200,
-	answer_tokens_per_task: 120,
-	reasoning_tokens_per_task: 80,
-} satisfies ArtificialAnalysisEvaluationResourceRow;
+	provider: "Test",
+	rank: 1,
+	score: 0.1125,
+	criterion_pass: 0.9048,
+	standard_error: 0.024,
+	cost_per_task_usd: 19.225253,
+	seconds_per_task: 1613.04,
+	temperature: 1,
+	top_p: null,
+	max_output_tokens: 128_000,
+	verbosity: null,
+	compute_effort: null,
+	harness: null,
+} satisfies HarveyLabModelScoreRow;
 const itbenchResourceRow = {
 	benchmark_key: "itbench_sre",
 	source_url: "https://artificialanalysis.ai/evaluations/itbench-aa",
@@ -235,7 +240,7 @@ const itbenchResourceRow = {
 	answer_tokens_per_task: 80,
 	reasoning_tokens_per_task: 120,
 } satisfies ArtificialAnalysisEvaluationResourceRow;
-const valsTerminalBenchRow = {
+const terminalBenchRow = {
 	task: "overall" as const,
 	task_label: "Overall",
 	source_model_id: "test/example-model",
@@ -255,7 +260,6 @@ const resourceRowsByBenchmark = new Map([
 		new Map([["example-model", automationBenchResourceRow]]),
 	],
 	["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
-	["harvey_lab", new Map([["example-model", harveyLabResourceRow]])],
 	["itbench_sre", new Map([["example-model", itbenchResourceRow]])],
 	["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
 ]);
@@ -296,6 +300,9 @@ const lookups = {
 		rowsByModelName: emptyLookup(),
 	},
 	handbookMd: { rowsByModelName: new Map() },
+	harveyLab: {
+		rowsByModelName: new Map([["example-model", harveyLabRow]]),
+	},
 	mercorApexAgents: {
 		rowsByModelName: new Map([["example-model", mercorApexRow]]),
 	},
@@ -303,8 +310,8 @@ const lookups = {
 	riemannBench: {
 		rowsByModelName: emptyLookup(),
 	},
-	valsTerminalBench: {
-		rowsByModelName: new Map([["example-model", [valsTerminalBenchRow]]]),
+	terminalBench: {
+		rowsByModelName: new Map([["example-model", [terminalBenchRow]]]),
 	},
 	toolathlon: {
 		rowsByModelName: emptyLookup(),
@@ -331,7 +338,6 @@ assert.deepEqual(observationEnrichment.evaluations, {
 	automation_bench: 0.68,
 	briefcase: 0.5,
 	frontier_code: 0.535,
-	harvey_lab: 0.142,
 	itbench_sre: 0.56,
 	terminalbench_v21: 0.82,
 });
@@ -357,7 +363,7 @@ assert.deepEqual(enrichment.evaluations, {
 	cursorbench: 0.52,
 	deep_swe: 0.72,
 	frontier_code: 0.535,
-	harvey_lab: 0.142,
+	harvey_lab: 0.1125,
 	itbench_sre: 0.56,
 	terminalbench_v21: 0.82,
 	vending_bench_2: 9_000,
@@ -371,7 +377,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	cursorbench: cursorBenchRow,
 	deep_swe: deepSWERow,
 	frontier_code: frontierCodeRow,
-	harvey_lab: harveyLabResourceRow,
+	harvey_lab: harveyLabRow,
 	hle: artificialAnalysisHleResourceRow,
 	itbench_sre: itbenchResourceRow,
 	terminalbench_v21: {
@@ -439,11 +445,8 @@ assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
 		output_tokens: 12000,
 	},
 	harvey_lab: {
-		cost: 4.2,
-		seconds: 240,
-		tokens: 900,
-		input_tokens: 700,
-		output_tokens: 200,
+		cost: 19.225253,
+		seconds: 1613.04,
 	},
 	hle: {
 		cost: 0.02,

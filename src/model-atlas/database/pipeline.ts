@@ -33,6 +33,7 @@ import {
 	insertFrontierMathTier4RawRows,
 	insertGdpPdfRawRows,
 	insertHandbookMdRawRows,
+	insertHarveyLabRawRows,
 	insertMercorApexAgentsRawRows,
 	insertModelEvaluations,
 	insertModels,
@@ -43,9 +44,9 @@ import {
 	insertRiemannBenchRawRows,
 	insertSourceHealth,
 	insertSourceQuarantines,
+	insertTerminalBenchRawRows,
 	insertToolathlonRawRows,
 	insertValsIndexRawRows,
-	insertValsTerminalBenchRawRows,
 	insertVendingBench2RawRows,
 	insertWeirdMlRawRows,
 } from "./writers";
@@ -159,6 +160,10 @@ const SNAPSHOT_WRITERS = [
 		write: (db, rows) => insertHandbookMdRawRows(db, rows.snapshots),
 	},
 	{
+		table: SNAPSHOT_TABLES.vals_harvey_lab,
+		write: (db, rows) => insertHarveyLabRawRows(db, rows.snapshots),
+	},
+	{
 		table: SNAPSHOT_TABLES.mercor_apex_agents,
 		write: (db, rows) => insertMercorApexAgentsRawRows(db, rows.snapshots),
 	},
@@ -172,7 +177,7 @@ const SNAPSHOT_WRITERS = [
 	},
 	{
 		table: SNAPSHOT_TABLES.vals_terminal_bench,
-		write: (db, rows) => insertValsTerminalBenchRawRows(db, rows.snapshots),
+		write: (db, rows) => insertTerminalBenchRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.toolathlon,

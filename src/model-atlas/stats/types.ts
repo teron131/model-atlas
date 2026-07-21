@@ -63,6 +63,10 @@ import type {
 	ToolathlonRowsByModelName,
 } from "../scrapers/toolathlon";
 import type {
+	HarveyLabModelScoreRow,
+	HarveyLabRowsByModelName,
+} from "../scrapers/vals/harvey-lab";
+import type {
 	ValsIndexModelScoreRow,
 	ValsIndexRowsByModelName,
 } from "../scrapers/vals/index-benchmark";
@@ -240,6 +244,7 @@ type LlmStatsScoringSourceRow =
 	| FrontierCodeModelEffortRow
 	| MercorApexAgentsRow
 	| TerminalBenchAggregateRow
+	| HarveyLabModelScoreRow
 	| VendingBench2ModelScoreRow;
 
 export type LlmStatsScoringSources =
@@ -251,7 +256,7 @@ export type LlmStatsScoringSources =
 			cursorbench?: CursorBenchModelScoreRow | null;
 			deep_swe?: DeepSWEModelScoreRow | null;
 			frontier_code?: FrontierCodeModelEffortRow | null;
-			harvey_lab?: ArtificialAnalysisEvaluationResourceRow | null;
+			harvey_lab?: HarveyLabModelScoreRow | null;
 			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
 			terminalbench_v21?: TerminalBenchAggregateRow | null;
 			vending_bench_2?: VendingBench2ModelScoreRow | null;
@@ -626,6 +631,10 @@ export type LlmStatsSourceData = {
 		BenchmarkScoreRow,
 		BenchmarkRowsByModelName
 	>;
+	harveyLab: LlmStatsIndexedSourceRows<
+		HarveyLabModelScoreRow,
+		HarveyLabRowsByModelName
+	>;
 	mercorApexAgents: LlmStatsIndexedSourceRows<
 		MercorApexAgentsRow,
 		MercorApexAgentsRowsByModelName
@@ -638,7 +647,7 @@ export type LlmStatsSourceData = {
 		RiemannBenchModelScoreRow,
 		RiemannBenchRowsByModelName
 	>;
-	valsTerminalBench: LlmStatsIndexedSourceRows<
+	terminalBench: LlmStatsIndexedSourceRows<
 		TerminalBenchModelHarnessRow,
 		TerminalBenchRowsByModelName
 	>;

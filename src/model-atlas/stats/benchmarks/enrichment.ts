@@ -67,16 +67,14 @@ export type BenchmarkEnrichmentLookups = {
 	>;
 	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "rowsByModelName">;
 	handbookMd: Pick<LlmStatsSourceData["handbookMd"], "rowsByModelName">;
+	harveyLab: Pick<LlmStatsSourceData["harveyLab"], "rowsByModelName">;
 	mercorApexAgents: Pick<
 		LlmStatsSourceData["mercorApexAgents"],
 		"rowsByModelName"
 	>;
 	proofBench: Pick<LlmStatsSourceData["proofBench"], "rowsByModelName">;
 	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "rowsByModelName">;
-	valsTerminalBench: Pick<
-		LlmStatsSourceData["valsTerminalBench"],
-		"rowsByModelName"
-	>;
+	terminalBench: Pick<LlmStatsSourceData["terminalBench"], "rowsByModelName">;
 	toolathlon: Pick<LlmStatsSourceData["toolathlon"], "rowsByModelName">;
 	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "rowsByModelName">;
 	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "rowsByModelName">;
@@ -276,13 +274,6 @@ function enrichArtificialAnalysisResources(
 		evaluations,
 		scoringSources,
 		lookup,
-		"harvey_lab",
-		(row) => row.score,
-	);
-	addArtificialAnalysisResourceEvaluation(
-		evaluations,
-		scoringSources,
-		lookup,
 		"itbench_sre",
 		(row) => row.score,
 	);
@@ -466,6 +457,15 @@ export function enrichBenchmarkAggregate(
 		"handbook_md",
 		lookups.handbookMd.rowsByModelName,
 	);
+	const harveyLabRow = findEffortSourceRow(
+		modelNameCandidates,
+		targetReasoningEffort,
+		lookups.harveyLab.rowsByModelName,
+	);
+	if (harveyLabRow != null) {
+		evaluations.harvey_lab = harveyLabRow.score;
+		scoringSources.harvey_lab = harveyLabRow;
+	}
 	const mercorRow = findEffortSourceRow(
 		modelNameCandidates,
 		targetReasoningEffort,
@@ -494,7 +494,7 @@ export function enrichBenchmarkAggregate(
 		{
 			artificialAnalysisRowsByBenchmark:
 				lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
-			harnessRowsByModel: lookups.valsTerminalBench.rowsByModelName,
+			harnessRowsByModel: lookups.terminalBench.rowsByModelName,
 		},
 		baseEvaluations.terminalbench_v21,
 	);

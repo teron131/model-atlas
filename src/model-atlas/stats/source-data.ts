@@ -50,6 +50,10 @@ import {
 } from "../scrapers/surge/riemann-bench";
 import { buildToolathlonMap, getToolathlonStats } from "../scrapers/toolathlon";
 import {
+	buildHarveyLabMap,
+	getHarveyLabStats,
+} from "../scrapers/vals/harvey-lab";
+import {
 	buildValsIndexMap,
 	getValsIndexStats,
 } from "../scrapers/vals/index-benchmark";
@@ -101,10 +105,11 @@ export type LlmStatsSourceRows = {
 	frontierMathTier4Rows: LlmStatsSourceData["frontierMathTier4"]["rows"];
 	gdpPdfRows: LlmStatsSourceData["gdpPdf"]["rows"];
 	handbookMdRows: LlmStatsSourceData["handbookMd"]["rows"];
+	harveyLabRows: LlmStatsSourceData["harveyLab"]["rows"];
 	mercorApexAgentsRows: MercorApexAgentsRow[];
 	proofBenchRows: LlmStatsSourceData["proofBench"]["rows"];
 	riemannBenchRows: LlmStatsSourceData["riemannBench"]["rows"];
-	valsTerminalBenchRows: LlmStatsSourceData["valsTerminalBench"]["rows"];
+	terminalBenchRows: LlmStatsSourceData["terminalBench"]["rows"];
 	toolathlonRows: LlmStatsSourceData["toolathlon"]["rows"];
 	valsIndexRows: LlmStatsSourceData["valsIndex"]["rows"];
 	vendingBench2Rows: LlmStatsSourceData["vendingBench2"]["rows"];
@@ -213,6 +218,10 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.handbookMdRows,
 			rowsByModelName: buildBenchmarkScoreMap(rows.handbookMdRows),
 		},
+		harveyLab: {
+			rows: rows.harveyLabRows,
+			rowsByModelName: buildHarveyLabMap(rows.harveyLabRows),
+		},
 		mercorApexAgents: {
 			rows: rows.mercorApexAgentsRows,
 			rowsByModelName: buildBenchmarkModelMap(rows.mercorApexAgentsRows),
@@ -225,9 +234,9 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.riemannBenchRows,
 			rowsByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
 		},
-		valsTerminalBench: {
-			rows: rows.valsTerminalBenchRows,
-			rowsByModelName: buildTerminalBenchMap(rows.valsTerminalBenchRows),
+		terminalBench: {
+			rows: rows.terminalBenchRows,
+			rowsByModelName: buildTerminalBenchMap(rows.terminalBenchRows),
 		},
 		toolathlon: {
 			rows: rows.toolathlonRows,
@@ -269,10 +278,11 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		frontierMathTier4Stats,
 		gdpPdfStats,
 		handbookMdStats,
+		harveyLabStats,
 		mercorApexAgentsStats,
 		proofBenchStats,
 		riemannBenchStats,
-		valsTerminalBenchStats,
+		terminalBenchStats,
 		toolathlonStats,
 		valsIndexStats,
 		vendingBench2Stats,
@@ -297,6 +307,7 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		getEpochFrontierMathTier4Stats(),
 		getGdpPdfStats(),
 		getHandbookMdStats(),
+		getHarveyLabStats(),
 		getMercorApexAgentsStats(),
 		getProofBenchStats(),
 		getRiemannBenchStats(),
@@ -325,10 +336,11 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 	const frontierMathTier4Rows = frontierMathTier4Stats.data;
 	const gdpPdfRows = gdpPdfStats.data;
 	const handbookMdRows = handbookMdStats.data;
+	const harveyLabRows = harveyLabStats.model_scores;
 	const mercorApexAgentsRows = mercorApexAgentsStats.data;
 	const proofBenchRows = proofBenchStats.data;
 	const riemannBenchRows = riemannBenchStats.data;
-	const valsTerminalBenchRows = valsTerminalBenchStats.model_scores;
+	const terminalBenchRows = terminalBenchStats.model_scores;
 	const toolathlonRows = toolathlonStats.data;
 	const valsIndexRows = valsIndexStats.model_scores;
 	const vendingBench2Rows = vendingBench2Stats.data;
@@ -357,10 +369,11 @@ export async function fetchSourceData(): Promise<LlmStatsSourceData> {
 		frontierMathTier4Rows,
 		gdpPdfRows,
 		handbookMdRows,
+		harveyLabRows,
 		mercorApexAgentsRows,
 		proofBenchRows,
 		riemannBenchRows,
-		valsTerminalBenchRows,
+		terminalBenchRows,
 		toolathlonRows,
 		valsIndexRows,
 		vendingBench2Rows,

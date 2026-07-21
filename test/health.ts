@@ -274,9 +274,18 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
 	handbookMdRows: [],
+	harveyLabRows: [
+		{
+			row_kind: "overall",
+			model_id: "kimi/kimi-k3",
+			model: "kimi-k3",
+			provider: "Moonshot AI",
+			score: 0.108333,
+		},
+	],
 	proofBenchRows: [],
 	riemannBenchRows: [],
-	valsTerminalBenchRows: [
+	terminalBenchRows: [
 		{
 			row_kind: "overall",
 			model_id: "openai/gpt-5",
@@ -298,6 +307,15 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 	vendingBench2Rows: [],
 	weirdMlRows: [],
 });
+
+assert.deepEqual(dbBenchmarkRows.harvey_lab, [
+	{
+		id: "kimi/kimi-k3",
+		label: "kimi-k3",
+		provider: "Moonshot AI",
+		value: 0.108333,
+	},
+]);
 
 assert.deepEqual(dbBenchmarkRows.gpqa, [
 	{

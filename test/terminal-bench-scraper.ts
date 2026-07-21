@@ -1,4 +1,4 @@
-/** Exercises Terminal-Bench Astro parsing and model-name score matching. */
+/** Verifies Terminal-Bench Astro parsing and model-name score matching. */
 
 import {
 	buildTerminalBenchMap,
