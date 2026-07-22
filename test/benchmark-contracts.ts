@@ -80,10 +80,7 @@ const definitions = {
 				clamp: true,
 			},
 			aggregation: { kind: "mean" },
-			sourceCrosswalk: {
-				kind: "validated_merge",
-				processor: "mergeCostObservations",
-			},
+			sourceCrosswalk: { kind: "validated_merge" },
 		},
 		persistence: {
 			location: { kind: "intelligence", field: "cost_index" },
@@ -288,15 +285,12 @@ assert.equal(transformBenchmarkSourceValue("briefcase", 1_500), 0.5);
 assert.equal(transformBenchmarkSourceValue("briefcase", 3_000), 1);
 assert.deepEqual(BENCHMARK_CATALOG.terminalbench_v21.processing.aggregation, {
 	kind: "custom",
-	processor: "terminalBenchAggregateRow",
 });
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.processing.sourceCrosswalk, {
 	kind: "custom",
-	processor: "validateAleBenchEpochScale",
 });
 assert.deepEqual(BENCHMARK_CATALOG.weirdml.processing.sourceCrosswalk, {
 	kind: "validated_merge",
-	processor: "mergeWeirdMlSources",
 });
 assert.deepEqual(BENCHMARK_CATALOG.apex_agents.scoring.imputation, {
 	kind: "additive_crosswalk",
