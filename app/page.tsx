@@ -3,7 +3,7 @@
 import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
 import { scoreJsonPayload } from "../src/model-atlas/stats/payload/public-json";
 import { Dashboard } from "./dashboard";
-import { compactDashboardPayload } from "./dashboard/payload";
+import { compactDashboardPayload } from "./dashboard/compact-payload";
 
 export const revalidate = 300;
 export const runtime = "nodejs";

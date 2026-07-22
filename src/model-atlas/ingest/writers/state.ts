@@ -1,7 +1,7 @@
 /** SQLite writer for source quarantines and per-source health summaries. */
 
 import type { LlmStatsSourceHealth, SourceSnapshots } from "../types";
-import type { DatabaseWriter } from "./shared";
+import type { DatabaseWriter } from "./database";
 
 export function insertSourceQuarantines(
 	db: DatabaseWriter,

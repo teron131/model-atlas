@@ -1,16 +1,16 @@
 /** Shared Epoch benchmark-run parsing preserves private task versions and run-level metadata. */
 
+import type {
+	BenchmarkObservationMetadata,
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../../benchmarks/observation";
 import { benchmarkModelEffort } from "../../identity/normalization";
 import {
 	asFiniteNumber,
 	fetchWithTimeout,
 	nowEpochSeconds,
 } from "../../runtime";
-import type {
-	BenchmarkObservationMetadata,
-	BenchmarkObservationPayload,
-	BenchmarkObservationRow,
-} from "../benchmark-observation";
 import { parseCsvRecords } from "../parsing";
 
 const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/benchmarks.csv";

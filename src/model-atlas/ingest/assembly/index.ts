@@ -1,9 +1,9 @@
 /** Public source loading and normalization boundary for live stats and cached snapshots. */
 
+export { fetchSourceData } from "./load";
 export type {
 	ArtificialAnalysisModel,
 	LlmStatsSourceData,
 	LlmStatsSourceRows,
-} from "./data";
-export { buildSourceData } from "./data";
-export { fetchSourceData } from "./load";
+} from "./source-data";
+export { buildSourceData } from "./source-data";

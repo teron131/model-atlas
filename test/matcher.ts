@@ -1,7 +1,10 @@
 /** Verifies model identity matching, provider preference, and benchmark attachment. */
 
 import assert from "node:assert/strict";
-
+import {
+	type BenchmarkObservationRow,
+	buildBenchmarkObservationLookup,
+} from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildMatchDiagnostics } from "../src/model-atlas/identity";
 import { modelNameIdentityKey } from "../src/model-atlas/identity/matching/name-tokens";
@@ -23,10 +26,6 @@ import {
 	buildArtificialAnalysisDefaultEffortResourceMap,
 	buildArtificialAnalysisObservationResourceMap,
 } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
-import {
-	type BenchmarkObservationRow,
-	buildBenchmarkObservationLookup,
-} from "../src/model-atlas/scrapers/benchmark-observation";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
 import { buildGdpPdfMap } from "../src/model-atlas/scrapers/surge/gdp-pdf";

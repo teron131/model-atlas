@@ -1,6 +1,11 @@
 /** Source-data contracts and lookup assembly normalize raw provider rows for matching and scoring. */
 
 import {
+	type BenchmarkObservationLookup,
+	type BenchmarkObservationRow,
+	buildBenchmarkObservationLookup,
+} from "../../benchmarks/observation";
+import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
@@ -29,11 +34,6 @@ import {
 	buildArtificialAnalysisDefaultEffortResourceMap,
 	buildArtificialAnalysisObservationResourceMap,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
-import {
-	type BenchmarkObservationLookup,
-	type BenchmarkObservationRow,
-	buildBenchmarkObservationLookup,
-} from "../../scrapers/benchmark-observation";
 import {
 	type BlueprintBenchModelScoreRow,
 	type BlueprintBenchRowsByModelName,
@@ -104,13 +104,13 @@ export type ArtificialAnalysisModel = {
 	intelligence_index_cost?: unknown;
 };
 
-type LlmStatsIndexedSourceRows<Row, Lookup> = {
+type IndexedSourceRows<Row, Lookup> = {
 	rows: Row[];
 	rowsByModelName: Lookup;
 };
 
 type BenchmarkObservationData = {
-	[Binding in BenchmarkObservationBinding as Binding["sourceDataKey"]]: LlmStatsIndexedSourceRows<
+	[Binding in BenchmarkObservationBinding as Binding["sourceDataKey"]]: IndexedSourceRows<
 		BenchmarkObservationRow,
 		BenchmarkObservationLookup
 	>;
@@ -130,11 +130,11 @@ export type LlmStatsSourceData = BenchmarkObservationData & {
 		rows: ModelsDevFlatModel[];
 		byId: Map<string, ModelsDevFlatModel>;
 	};
-	agentArena: LlmStatsIndexedSourceRows<
+	agentArena: IndexedSourceRows<
 		AgentArenaModelScoreRow,
 		AgentArenaRowsByModelName
 	>;
-	agentsLastExam: LlmStatsIndexedSourceRows<
+	agentsLastExam: IndexedSourceRows<
 		AgentsLastExamModelScoreRow,
 		AgentsLastExamRowsByModelName
 	>;
@@ -143,11 +143,11 @@ export type LlmStatsSourceData = BenchmarkObservationData & {
 		sourceDefaultRows: AleBenchModelScoreRow[];
 		rowsByModelName: AleBenchRowsByModelName;
 	};
-	blueprintBench: LlmStatsIndexedSourceRows<
+	blueprintBench: IndexedSourceRows<
 		BlueprintBenchModelScoreRow,
 		BlueprintBenchRowsByModelName
 	>;
-	cursorBench: LlmStatsIndexedSourceRows<
+	cursorBench: IndexedSourceRows<
 		CursorBenchModelScoreRow,
 		CursorBenchRowsByModelName
 	>;
@@ -156,32 +156,32 @@ export type LlmStatsSourceData = BenchmarkObservationData & {
 		defaultEffortRows: DeepSWEModelScoreRow[];
 		rowsByModelName: DeepSWERowsByModelName;
 	};
-	frontierCode: LlmStatsIndexedSourceRows<
+	frontierCode: IndexedSourceRows<
 		FrontierCodeModelEffortRow,
 		FrontierCodeRowsByModelName
 	>;
-	gdpPdf: LlmStatsIndexedSourceRows<GdpPdfModelScoreRow, GdpPdfRowsByModelName>;
-	harveyLab: LlmStatsIndexedSourceRows<
+	gdpPdf: IndexedSourceRows<GdpPdfModelScoreRow, GdpPdfRowsByModelName>;
+	harveyLab: IndexedSourceRows<
 		HarveyLabModelScoreRow,
 		HarveyLabRowsByModelName
 	>;
-	mercorApexAgents: LlmStatsIndexedSourceRows<
+	mercorApexAgents: IndexedSourceRows<
 		MercorApexAgentsRow,
 		MercorApexAgentsRowsByModelName
 	>;
-	riemannBench: LlmStatsIndexedSourceRows<
+	riemannBench: IndexedSourceRows<
 		RiemannBenchModelScoreRow,
 		RiemannBenchRowsByModelName
 	>;
-	terminalBench: LlmStatsIndexedSourceRows<
+	terminalBench: IndexedSourceRows<
 		TerminalBenchModelHarnessRow,
 		TerminalBenchRowsByModelName
 	>;
-	valsIndex: LlmStatsIndexedSourceRows<
+	valsIndex: IndexedSourceRows<
 		ValsIndexModelScoreRow,
 		ValsIndexRowsByModelName
 	>;
-	vendingBench2: LlmStatsIndexedSourceRows<
+	vendingBench2: IndexedSourceRows<
 		VendingBench2ModelScoreRow,
 		VendingBench2RowsByModelName
 	>;

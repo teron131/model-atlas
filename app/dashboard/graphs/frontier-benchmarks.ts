@@ -22,7 +22,7 @@ import {
 	fmtDurationShort,
 	fmtMoney,
 	fmtPercentScore,
-	percent,
+	toPercent,
 } from "./format";
 import { correlationValue, formatCorrelation, groupBy } from "./models";
 import type { HoverRow } from "./types";
@@ -156,7 +156,7 @@ export function frontierBenchmarkRows(
 			const evaluations = model.evaluations ?? {};
 			const taskMetrics = model.task_metrics ?? {};
 			return frontierKeys.flatMap((benchmarkKey) => {
-				const score = percent(evaluations[benchmarkKey]);
+				const score = toPercent(evaluations[benchmarkKey]);
 				const resourcePolicy =
 					portfolio[benchmarkKey]?.resourcePolicy ??
 					BENCHMARK_RESOURCES[

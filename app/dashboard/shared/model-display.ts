@@ -11,7 +11,7 @@ export function modelCount(models: LlmStatsModel[]): number {
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
 export function modelsForVariantDisplay(
 	models: LlmStatsModel[],
-	expandReasoningVariants: boolean,
+	showVariants: boolean,
 ): LlmStatsModel[] {
 	const variantsByIdentity = new Map<string, LlmStatsModel>();
 	for (const model of models) {
@@ -25,7 +25,7 @@ export function modelsForVariantDisplay(
 		}
 	}
 	const modelVariants = [...variantsByIdentity.values()];
-	if (expandReasoningVariants) {
+	if (showVariants) {
 		return modelVariants;
 	}
 	return strongestModelVariants(modelVariants).map((model) => ({

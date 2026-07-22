@@ -1,15 +1,15 @@
 /** Verifies live and cached rows share source selection, lookups, and default-effort assembly. */
 
 import assert from "node:assert/strict";
+import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
 import type { LlmStatsSourceData } from "../src/model-atlas/ingest/assembly";
 import {
 	buildSourceData,
 	type LlmStatsSourceRows,
 } from "../src/model-atlas/ingest/assembly";
-import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/data";
+import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/source-data";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromSourceData } from "../src/model-atlas/pipeline/benchmark-rows";
-import type { BenchmarkObservationRow } from "../src/model-atlas/scrapers/benchmark-observation";
 import type {
 	DeepSWELeaderboardRow,
 	DeepSWERawLeaderboardRow,

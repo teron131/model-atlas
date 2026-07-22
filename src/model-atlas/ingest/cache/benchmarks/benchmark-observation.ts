@@ -1,12 +1,12 @@
 /** Cache reconstruction for catalog-declared benchmark-observation sources. */
 
-import type { BENCHMARK_OBSERVATION_BINDINGS } from "../../../benchmarks/registry";
-import { asFiniteNumber } from "../../../runtime";
 import type {
 	BenchmarkMetricUnit,
 	BenchmarkObservationMetadata,
 	BenchmarkObservationRow,
-} from "../../../scrapers/benchmark-observation";
+} from "../../../benchmarks/observation";
+import type { BENCHMARK_OBSERVATION_BINDINGS } from "../../../benchmarks/registry";
+import { asFiniteNumber } from "../../../runtime";
 import {
 	booleanFromSql,
 	type CacheRowSource,

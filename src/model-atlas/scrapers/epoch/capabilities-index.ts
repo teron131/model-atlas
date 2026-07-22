@@ -5,16 +5,16 @@
  * CSV source: https://epoch.ai/data/eci_scores.csv
  */
 
+import type {
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../../benchmarks/observation";
 import { benchmarkModelEffort } from "../../identity/normalization";
 import {
 	asFiniteNumber,
 	fetchWithTimeout,
 	nowEpochSeconds,
 } from "../../runtime";
-import type {
-	BenchmarkObservationPayload,
-	BenchmarkObservationRow,
-} from "../benchmark-observation";
 import { parseCsvRecords } from "../parsing";
 
 const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";

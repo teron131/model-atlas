@@ -154,8 +154,8 @@ function dailyAveragedValues(
 	}
 	return response.data
 		.map((point) => {
-			const y = asRecord(point.y);
-			const values = Object.values(y)
+			const seriesValues = asRecord(point.y);
+			const values = Object.values(seriesValues)
 				.map((value) => asFiniteNumber(value))
 				.filter((value): value is number => value != null);
 			const dailyAverage = average(values);
@@ -184,8 +184,8 @@ function tokenWeightedMeanValue(
 	let weightedSum = 0;
 	let totalWeight = 0;
 	for (const point of response.data) {
-		const y = asRecord(point.y);
-		for (const [series, value] of Object.entries(y)) {
+		const seriesValues = asRecord(point.y);
+		for (const [series, value] of Object.entries(seriesValues)) {
 			const numericValue = asFiniteNumber(value);
 			const weight = asFiniteNumber(seriesTokenWeights[series]);
 			if (numericValue == null || weight == null || weight <= 0) {

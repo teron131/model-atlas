@@ -8,16 +8,15 @@
  * Score fields: avg_acc (creator), Accuracy (Epoch)
  */
 
+import type {
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../benchmarks/observation";
 import {
 	benchmarkModelEffort,
 	normalizeModelToken,
 } from "../identity/normalization";
 import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../runtime";
-
-import type {
-	BenchmarkObservationPayload,
-	BenchmarkObservationRow,
-} from "./benchmark-observation";
 import {
 	processEpochWeirdMlCsv,
 	WEIRDML_EPOCH_CSV_URL,

@@ -1,12 +1,12 @@
 /** SQLite writers for benchmark-owned source rows that feed matcher and scoring refreshes. */
 
+import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	BENCHMARK_OBSERVATION_RAW_TABLE,
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
 import { aleBenchModelEffort } from "../../scrapers/ale-bench";
-import type { BenchmarkObservationRow } from "../../scrapers/benchmark-observation";
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import type { FrontierCodeSubsetMetrics } from "../../scrapers/frontier-code";
 import {
@@ -15,7 +15,7 @@ import {
 	SOURCE_URLS,
 	type SourceSnapshots,
 } from "../types";
-import { type DatabaseWriter, sqliteBooleanValue } from "./shared";
+import { type DatabaseWriter, sqliteBooleanValue } from "./database";
 
 type AleBenchSourceSnapshot = Pick<
 	SourceSnapshots,

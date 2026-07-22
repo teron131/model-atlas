@@ -57,12 +57,12 @@ import type {
 	RawSourceCacheStatus,
 	SourceSnapshotStatus,
 } from "../../types";
+import { snapshotRowsWithStates, sourceKey } from "../policy";
 import {
-	modelScoreSnapshot,
 	shouldUseFetchedRows,
 	snapshotFetchedAt,
-} from "../model-score";
-import { snapshotRowsWithStates, sourceKey } from "../policy";
+	snapshotSourceRows,
+} from "../row-snapshot";
 
 type AgentArenaSnapshot = {
 	agentArenaModelScoreRows: AgentArenaModelScoreRow[];
@@ -120,7 +120,7 @@ export async function agentArenaSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<AgentArenaSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "agent_arena",
 		cached,
 		status,
@@ -227,7 +227,7 @@ export async function aleBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<AleBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "ale_bench",
 		cached,
 		status,
@@ -264,7 +264,7 @@ export async function blueprintBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<BlueprintBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "blueprint_bench_2",
 		cached,
 		status,
@@ -295,7 +295,7 @@ export async function cursorBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<CursorBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "cursorbench",
 		cached,
 		status,
@@ -416,7 +416,7 @@ export async function frontierCodeSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<FrontierCodeSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "frontier_code",
 		cached,
 		status,
@@ -447,7 +447,7 @@ export async function mercorApexAgentsSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<MercorApexAgentsSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "mercor_apex_agents",
 		cached,
 		status,
@@ -478,7 +478,7 @@ export async function vendingBench2Snapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<VendingBench2Snapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "vending_bench_2",
 		cached,
 		status,

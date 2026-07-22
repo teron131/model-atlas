@@ -1,8 +1,10 @@
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
+/** Verifies Surge GDP.pdf row parsing, lookup, and model matching. */
+
 import {
 	buildGdpPdfMap,
 	findGdpPdfScore,
 } from "../src/model-atlas/scrapers/surge/gdp-pdf";
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/leaderboard";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

@@ -25,8 +25,8 @@ import type {
 	RawSourceCacheStatus,
 	SourceSnapshotStatus,
 } from "../../types";
-import { shouldUseFetchedRows, snapshotFetchedAt } from "../model-score";
 import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../policy";
+import { shouldUseFetchedRows, snapshotFetchedAt } from "../row-snapshot";
 
 type HarveyLabSnapshot = {
 	harveyLabRows: HarveyLabTaskRow[];

@@ -9,7 +9,7 @@ import {
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import type { DebugTraceRow, SourceSnapshots } from "./types";
-import type { DatabaseWriter } from "./writers/shared";
+import type { DatabaseWriter } from "./writers/database";
 
 /** Artificial Analysis raw indexes let debug traces point back to the scraped model row. */
 function artificialAnalysisRowIndexById(

@@ -1,5 +1,6 @@
 /** Ingest contracts for raw caches, source snapshots, and the handoff into storage writers and payload readers. */
 
+import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	BENCHMARK_OBSERVATION_KEYS,
@@ -15,7 +16,6 @@ import type {
 } from "../scrapers/agents-last-exam";
 import type { AleBenchConfigurationRow } from "../scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
-import type { BenchmarkObservationRow } from "../scrapers/benchmark-observation";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type {

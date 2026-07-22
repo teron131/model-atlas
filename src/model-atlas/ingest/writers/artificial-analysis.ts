@@ -1,11 +1,11 @@
 /** SQLite writer for Artificial Analysis raw rows, selected benchmark fields, and source metadata. */
 
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { artificialAnalysisModelId } from "../../scrapers/artificial-analysis/leaderboard";
 import {
 	cleanArtificialAnalysisModelName,
 	parseArtificialAnalysisReasoningEffort,
-} from "../../scrapers/artificial-analysis/common";
-import { artificialAnalysisModelId } from "../../scrapers/artificial-analysis/leaderboard";
+} from "../../scrapers/artificial-analysis/model-labels";
 import { SOURCE_URLS, type SourceSnapshots } from "../types";
 import {
 	type DatabaseWriter,
@@ -13,7 +13,7 @@ import {
 	firstString,
 	type SqlValue,
 	sqliteBooleanValue,
-} from "./shared";
+} from "./database";
 
 const ARTIFICIAL_ANALYSIS_ORIGIN = "https://artificialanalysis.ai";
 

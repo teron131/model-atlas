@@ -1,5 +1,6 @@
 /** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
+import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import {
 	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
 	BENCHMARK_OBSERVATION_BINDINGS,
@@ -14,7 +15,6 @@ import type { LlmStatsSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
-import type { BenchmarkObservationRow } from "../../scrapers/benchmark-observation";
 import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
 import { aggregateCollapsedModelRows } from "../model-catalog";
 

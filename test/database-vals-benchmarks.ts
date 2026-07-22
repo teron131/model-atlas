@@ -1,7 +1,7 @@
 /** Verifies independent Vals benchmark cache round-trips and task-aware row identity. */
 
 import assert from "node:assert/strict";
-
+import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
 import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	BENCHMARK_OBSERVATION_RAW_TABLE,
@@ -13,7 +13,7 @@ import {
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
-import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
+import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import {
 	RAW_SOURCE_TABLES,
 	type SourceSnapshots,
@@ -22,7 +22,6 @@ import {
 	insertBenchmarkRawRows,
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
-import type { BenchmarkObservationRow } from "../src/model-atlas/scrapers/benchmark-observation";
 
 const SOURCE_CASES = BENCHMARK_OBSERVATION_BINDINGS.filter(
 	(binding) => binding.loader.kind === "vals",

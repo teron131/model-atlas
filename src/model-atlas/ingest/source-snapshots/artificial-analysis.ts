@@ -27,16 +27,16 @@ import type {
 	SourceSnapshots,
 } from "../types";
 import {
-	modelScoreSnapshot,
-	shouldUseFetchedRows,
-	snapshotFetchedAt,
-} from "./model-score";
-import {
 	mergeSourceEvidence,
 	rowStringValue,
 	snapshotRowsWithStates,
 	sourceKey,
 } from "./policy";
+import {
+	shouldUseFetchedRows,
+	snapshotFetchedAt,
+	snapshotSourceRows,
+} from "./row-snapshot";
 
 type ArtificialAnalysisSnapshot = {
 	artificialAnalysisRawRows: SourceSnapshots["artificialAnalysisRawRows"];
@@ -206,7 +206,7 @@ export async function artificialAnalysisEvaluationResourceSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisEvaluationResourceSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "artificial_analysis_evaluation_resources",
 		cached,
 		status,

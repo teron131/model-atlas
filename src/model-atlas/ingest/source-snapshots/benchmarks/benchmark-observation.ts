@@ -1,10 +1,10 @@
 /** Catalog-driven benchmark snapshots own generic observation feeds declared by the benchmark registry. */
 
-import { BENCHMARK_OBSERVATION_BINDINGS } from "../../../benchmarks/registry";
 import type {
 	BenchmarkObservationPayload,
 	BenchmarkObservationRow,
-} from "../../../scrapers/benchmark-observation";
+} from "../../../benchmarks/observation";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../../../benchmarks/registry";
 import { benchmarkObservationSourceFetcher } from "../../assembly/load";
 import type { readBenchmarkObservationRawCache } from "../../cache";
 import type {
@@ -14,7 +14,10 @@ import type {
 	SourceSnapshotStatus,
 	SourceSnapshots,
 } from "../../types";
-import { benchmarkObservationRowKey, modelScoreSnapshot } from "../model-score";
+import {
+	benchmarkObservationRowKey,
+	snapshotSourceRows,
+} from "../row-snapshot";
 
 type BenchmarkObservationSnapshot = {
 	rows: BenchmarkObservationRow[];
@@ -31,7 +34,7 @@ async function benchmarkObservationSnapshot(
 	fetchedAtKey: keyof SourceSnapshots["fetchedAt"],
 	fetchRows: () => Promise<BenchmarkObservationPayload>,
 ): Promise<BenchmarkObservationSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source,
 		cached,
 		status,
