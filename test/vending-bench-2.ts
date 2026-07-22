@@ -1,8 +1,8 @@
 /** Vending-Bench 2 scraper fixtures protect full curves, signed balances, ranking, and matching. */
 
 import assert from "node:assert/strict";
+import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import { processVendingBench2DataModule } from "../src/model-atlas/scrapers/vending-bench-2";
-import { buildBenchmarkModelMap } from "../src/model-atlas/shared";
 
 const rows = processVendingBench2DataModule(`
 	const metadata={time_grid:[1,2,3]};

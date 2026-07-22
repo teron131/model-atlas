@@ -13,10 +13,8 @@ import {
 	useTransition,
 } from "react";
 
-import type {
-	LlmStatsColumnTooltips,
-	LlmStatsPayload,
-} from "../../src/model-atlas/stats/types";
+import type { LlmStatsColumnTooltips } from "../../src/model-atlas/config/tooltips";
+import type { LlmStatsPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/leaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";

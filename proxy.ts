@@ -2,7 +2,7 @@
 
 import { type NextRequest, NextResponse } from "next/server";
 
-import type { LlmStatsJsonView } from "./src/model-atlas/stats/public-json";
+import type { LlmStatsJsonView } from "./src/model-atlas/stats/payload/public-json";
 
 type RoutedJsonView = Exclude<LlmStatsJsonView, "full">;
 

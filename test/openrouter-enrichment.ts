@@ -1,16 +1,16 @@
 /** Verifies OpenRouter alias collapse, default-effort selection, and route telemetry lookup. */
 
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
 	isSameOpenRouterModelRoute,
 	publicOpenRouterModelId,
 	publicOpenRouterModelName,
-} from "../src/model-atlas/openrouter-routes";
+} from "../src/model-atlas/identity/openrouter";
 import {
 	aggregateCollapsedModelRows,
 	aggregateExpandedModelRows,
-	enrichModelRowsWithOpenRouter,
-} from "../src/model-atlas/stats/openrouter-enrichment";
+} from "../src/model-atlas/pipeline/model-catalog";
+import { enrichModelRowsWithOpenRouter } from "../src/model-atlas/pipeline/openrouter-enrichment";
 
 function assertEqual(actual: unknown, expected: unknown): void {
 	if (actual !== expected) {

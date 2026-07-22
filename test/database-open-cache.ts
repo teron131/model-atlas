@@ -1,23 +1,25 @@
 /** Exercises keyed schema reconciliation, payload fallback, and current raw cache reads. */
 
 import assert from "node:assert/strict";
-import {
-	rawSourceCacheStatusFromRows,
-	readDeepSWERawCache,
-	readRawSourceCacheStatus,
-} from "../src/model-atlas/database/cache";
-import { readPayloadRows } from "../src/model-atlas/database/payload";
+import { readPayloadRows } from "../src/model-atlas/database/payload-rows";
 import {
 	loadSchemaSql,
 	openDatabase,
 	removeDatabaseFiles,
+} from "../src/model-atlas/database/schema";
+import {
 	SCHEMA_MANIFEST_TABLE,
 	type SchemaCatalogRow,
 	type SchemaManifestRow,
 	schemaReconciliationPlan,
 	schemaTableColumns,
 	schemaTableShapes,
-} from "../src/model-atlas/database/schema";
+} from "../src/model-atlas/database/schema-reconciliation";
+import {
+	rawSourceCacheStatusFromRows,
+	readDeepSWERawCache,
+	readRawSourceCacheStatus,
+} from "../src/model-atlas/ingest/cache";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
 const DEEP_SWE_V1_1_URL =
@@ -40,6 +42,19 @@ assert.equal(
 	"The snapshot schema should not create SQLite sequence bookkeeping",
 );
 const schemaColumns = schemaTableColumns(schemaSql);
+assert.deepEqual(
+	Array.from(
+		schemaTableShapes(`
+			CREATE TABLE compact_schema (
+				row_index INTEGER NOT NULL, source TEXT NOT NULL,
+				metadata_json TEXT DEFAULT json_object('key', 'value'),
+				PRIMARY KEY (row_index)
+			);
+		`).get("compact_schema")?.keys() ?? [],
+	),
+	["row_index", "source", "metadata_json"],
+	"schema parsing should handle SQLite catalogs with several definitions per line",
+);
 assert.equal(
 	schemaColumns
 		.get("artificial_analysis_raw_models")
@@ -108,15 +123,12 @@ assert.equal(
 	"An explicit missing refresh timestamp should not fall back to an old raw-row timestamp",
 );
 
-const payloadRows = await readPayloadRows(
-	1_800_000_000,
-	async (rowGroup) => {
-		if (rowGroup.optional === true) {
-			throw new Error("optional table is absent");
-		}
-		return [];
-	},
-);
+const payloadRows = await readPayloadRows(1_800_000_000, async (rowGroup) => {
+	if (rowGroup.optional === true) {
+		throw new Error("optional table is absent");
+	}
+	return [];
+});
 assert.deepEqual(
 	payloadRows.valsIndexRows,
 	[],
@@ -147,18 +159,31 @@ try {
 		firstDb
 			.prepare(`
 				INSERT INTO browsecomp_raw_rows (
-					row_index, fetched_at_epoch_seconds, url, model,
-					provider, provider_name, score
-				) VALUES (?, ?, ?, ?, ?, ?, ?)
+					row_index, fetched_at_epoch_seconds, benchmark_key, source, url,
+					model_id, model, base_model, reasoning_effort, provider, rank,
+					score, score_eligible, standard_error, confidence_low,
+					confidence_high, observed_at, metadata_json
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`)
 			.run(
 				0,
 				1_800_000_000,
-				"https://example.com/browsecomp",
+				"browsecomp",
+				"zeroeval",
+				"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
+				null,
 				"Claude Fable 5",
+				"Claude Fable 5",
+				null,
 				"Anthropic",
-				"Anthropic",
+				null,
 				0.5,
+				1,
+				null,
+				null,
+				null,
+				null,
+				JSON.stringify({ provider_name: "Anthropic" }),
 			);
 		firstDb
 			.prepare(
@@ -177,7 +202,7 @@ try {
 			.run("table", "legacy_snapshot_rows");
 		firstDb.prepare("ALTER TABLE models DROP COLUMN reasoning_effort").run();
 		firstDb
-			.prepare("ALTER TABLE browsecomp_raw_rows DROP COLUMN provider_name")
+			.prepare("ALTER TABLE browsecomp_raw_rows DROP COLUMN observed_at")
 			.run();
 		firstDb
 			.prepare(DEEP_SWE_INSERT_SQL)
@@ -232,14 +257,13 @@ try {
 			reopenedDb
 				.prepare("PRAGMA table_info(browsecomp_raw_rows)")
 				.all()
-				.some((column) => column.name === "provider_name"),
+				.some((column) => column.name === "observed_at"),
 			"Opening the database should recreate raw source columns",
 		);
 		assert.equal(
 			Number(
-				reopenedDb
-					.prepare("SELECT COUNT(*) AS count FROM models")
-					.get()?.count ?? 0,
+				reopenedDb.prepare("SELECT COUNT(*) AS count FROM models").get()
+					?.count ?? 0,
 			),
 			1,
 			"Changed derived tables should preserve rows when their primary keys still match",
@@ -260,8 +284,8 @@ try {
 			"Changed raw tables should preserve rows when their primary keys still match",
 		);
 		assert.equal(
-			reopenedDb.prepare("SELECT provider_name FROM browsecomp_raw_rows").get()
-				?.provider_name,
+			reopenedDb.prepare("SELECT observed_at FROM browsecomp_raw_rows").get()
+				?.observed_at,
 			null,
 			"Reintroduced nullable source columns should start empty",
 		);
@@ -315,14 +339,9 @@ try {
 			"Automatic reconciliation should refuse required columns without a migration value",
 		);
 		const deepSWEStatement = reopenedDb.prepare(DEEP_SWE_INSERT_SQL);
-		for (const [
-			fetchedAt,
-			model,
-			score,
-			cost,
-			seconds,
-			outputTokens,
-		] of [[1_800_000_010, "Current DeepSWE Model", 0.8, 3, 5, 7]] as const) {
+		for (const [fetchedAt, model, score, cost, seconds, outputTokens] of [
+			[1_800_000_010, "Current DeepSWE Model", 0.8, 3, 5, 7],
+		] as const) {
 			reopenedDb.prepare("DELETE FROM deep_swe_raw_rows").run();
 			deepSWEStatement.run(
 				0,

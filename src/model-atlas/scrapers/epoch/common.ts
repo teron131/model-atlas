@@ -1,12 +1,17 @@
 /** Shared Epoch benchmark-run parsing preserves private task versions and run-level metadata. */
 
-import { benchmarkModelEffort } from "../../shared";
-import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import { benchmarkModelEffort } from "../../identity/normalization";
+import {
+	asFiniteNumber,
+	fetchWithTimeout,
+	nowEpochSeconds,
+} from "../../runtime";
 import type {
 	BenchmarkScoreMetadata,
+	BenchmarkScorePayload,
 	BenchmarkScoreRow,
 } from "../benchmark-score";
-import { parseCsvRecords } from "../csv-parser";
+import { parseCsvRecords } from "../parsing";
 
 const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/benchmarks.csv";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -31,7 +36,7 @@ function cleanMetadata(row: EpochBenchmarkCsvRow): BenchmarkScoreMetadata {
 }
 
 /** Normalize one successful Epoch run while retaining its exact task/version identity. */
-export function epochRunScoreRow(
+function epochRunScoreRow(
 	row: EpochBenchmarkCsvRow,
 	benchmarkKey: BenchmarkScoreRow["benchmark_key"],
 ): BenchmarkScoreRow | null {
@@ -87,11 +92,36 @@ async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 }
 
 /** Shares only an in-flight CSV request while each Epoch benchmark keeps an independent lifecycle. */
-export function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
+function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 	if (pendingBenchmarkRows == null) {
 		pendingBenchmarkRows = requestEpochBenchmarkRows().finally(() => {
 			pendingBenchmarkRows = null;
 		});
 	}
 	return pendingBenchmarkRows;
+}
+
+/** Filter shared Epoch run rows through one catalog-declared benchmark task. */
+export function epochBenchmarkScoreRows(
+	rows: EpochBenchmarkCsvRow[],
+	benchmarkKey: BenchmarkScoreRow["benchmark_key"],
+	task: string,
+): BenchmarkScoreRow[] {
+	return rows.flatMap((row) => {
+		if (row.task !== task) return [];
+		const scoreRow = epochRunScoreRow(row, benchmarkKey);
+		return scoreRow == null ? [] : [scoreRow];
+	});
+}
+
+/** Load one Epoch run benchmark using the task policy declared in the catalog. */
+export async function getEpochBenchmarkStats(
+	benchmarkKey: BenchmarkScoreRow["benchmark_key"],
+	task: string,
+): Promise<BenchmarkScorePayload> {
+	const payload = await fetchEpochBenchmarkRows();
+	return {
+		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+		data: epochBenchmarkScoreRows(payload.data, benchmarkKey, task),
+	};
 }

@@ -1,6 +1,33 @@
-/** Usage profile configuration for Model Atlas. */
+/** Usage profile configuration and contracts for Model Atlas. */
 
-import type { SimulationProfile } from "../stats/types";
+type SimulationTokenRange = {
+	lower: number;
+	upper: number;
+};
+
+export type SimulationProfile = {
+	weight: number;
+	calls: number;
+	input_tokens_per_call: SimulationTokenRange;
+	output_tokens_per_call: SimulationTokenRange;
+	cacheable_input_share: number;
+	cache_hit_rate_after_first_call: SimulationTokenRange;
+	full_credit_quality_score: number;
+	quality_blend: {
+		intelligence: number;
+		agentic: number;
+	};
+};
+
+type PriceProfile = {
+	weight: number;
+	input: number;
+	output: number;
+};
+
+export type PriceProfiles = Record<string, PriceProfile>;
+
+export type SimulationProfiles = Record<string, SimulationProfile>;
 
 export const PRICE_PROFILES = {
 	task: {

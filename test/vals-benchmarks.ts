@@ -2,18 +2,15 @@
 
 import assert from "node:assert/strict";
 
-import { processCodeMigrationPageHtml } from "../src/model-atlas/scrapers/vals/code-migration";
-import { processCyberBenchPageHtml } from "../src/model-atlas/scrapers/vals/cyberbench";
-import { processEmbPageHtml } from "../src/model-atlas/scrapers/vals/emb";
-import { processFinanceAgentV2PageHtml } from "../src/model-atlas/scrapers/vals/finance-agent-v2";
 import {
-	getLegalResearchStats,
-	processLegalResearchPageHtml,
-} from "../src/model-atlas/scrapers/vals/legal-research";
-import { processMedCodePageHtml } from "../src/model-atlas/scrapers/vals/medcode";
-import { processProgramBenchPageHtml } from "../src/model-atlas/scrapers/vals/programbench";
-import { processPublicBenefitsBenchPageHtml } from "../src/model-atlas/scrapers/vals/public-benefits-bench";
-import { processVibeCodePageHtml } from "../src/model-atlas/scrapers/vals/vibe-code";
+	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	type BenchmarkScoreSourceKey,
+} from "../src/model-atlas/benchmarks/registry";
+import {
+	getValsSourceStats,
+	processValsBenchmarkPageHtml,
+	type ValsBenchmarkDefinition,
+} from "../src/model-atlas/scrapers/vals/common";
 
 function astro(value: unknown): unknown[] {
 	return [0, value];
@@ -84,25 +81,40 @@ const pageHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" pr
 	},
 ).replace(/"/g, "&quot;")}"></astro-island>`;
 
-const processors: ReadonlyArray<
-	[
-		string,
-		string,
-		(pageHtml: string) => ReturnType<typeof processLegalResearchPageHtml>,
-	]
-> = [
-	["code_migration", "overall", processCodeMigrationPageHtml],
-	["cyberbench", "patch", processCyberBenchPageHtml],
-	["emb", "overall", processEmbPageHtml],
-	["finance_agent_v2", "all_pass", processFinanceAgentV2PageHtml],
-	["legal_research", "overall", processLegalResearchPageHtml],
-	["medcode", "overall", processMedCodePageHtml],
-	["programbench", "partial", processProgramBenchPageHtml],
-	["public_benefits_bench", "overall", processPublicBenefitsBenchPageHtml],
-	["vibe_code", "overall", processVibeCodePageHtml],
-];
+const valsBenchmarkKeys = [
+	"code_migration",
+	"cyberbench",
+	"emb",
+	"finance_agent_v2",
+	"legal_research",
+	"medcode",
+	"programbench",
+	"public_benefits_bench",
+	"vibe_code",
+] as const satisfies readonly BenchmarkScoreSourceKey[];
 
-for (const [benchmarkKey, canonicalTask, processPage] of processors) {
+function valsDefinition(benchmarkKey: BenchmarkScoreSourceKey) {
+	const binding = BENCHMARK_SCORE_SOURCE_BINDINGS.find(
+		(candidate) => candidate.benchmark === benchmarkKey,
+	);
+	assert.ok(binding);
+	assert.equal(binding.loader.kind, "vals");
+	if (binding.loader.kind !== "vals") throw new Error("Expected VALS loader");
+	return {
+		benchmarkKey,
+		canonicalTask: binding.loader.canonicalTask,
+		includeReasoningEffortInModel:
+			"includeReasoningEffortInModel" in binding.loader
+				? binding.loader.includeReasoningEffortInModel
+				: undefined,
+		sourceUrl: binding.loader.sourceUrl,
+	} satisfies ValsBenchmarkDefinition;
+}
+
+for (const benchmarkKey of valsBenchmarkKeys) {
+	const definition = valsDefinition(benchmarkKey);
+	const processPage = (html: string) =>
+		processValsBenchmarkPageHtml(html, definition);
 	const rows = processPage(pageHtml);
 	assert.equal(rows.length, 6);
 	assert.equal(
@@ -117,7 +129,7 @@ for (const [benchmarkKey, canonicalTask, processPage] of processors) {
 					.map((row) => row.metadata.task),
 			),
 		],
-		[canonicalTask],
+		[definition.canonicalTask],
 	);
 	assert.equal(
 		rows.find((row) => row.metadata.task === "secondary")?.score_eligible,
@@ -126,7 +138,8 @@ for (const [benchmarkKey, canonicalTask, processPage] of processors) {
 	assert.deepEqual(processPage("<main>Malformed</main>"), []);
 }
 
-const legalRows = processLegalResearchPageHtml(pageHtml);
+const legalDefinition = valsDefinition("legal_research");
+const legalRows = processValsBenchmarkPageHtml(pageHtml, legalDefinition);
 const overall = legalRows.find(
 	(row) =>
 		row.model_id === "openai/gpt-test" && row.metadata.task === "overall",
@@ -153,7 +166,7 @@ assert.equal(overall.metadata.reasoning, '{"budget_tokens":8000}');
 assert.equal(overall.metadata.task_results, '{"sample":{"passed":true}}');
 assert.equal(overall.metadata.usage, '{"output_tokens":123}');
 
-void getLegalResearchStats({
+void getValsSourceStats(legalDefinition, {
 	url: "http://127.0.0.1:1",
 	timeoutMs: 10,
 }).then((payload) => {

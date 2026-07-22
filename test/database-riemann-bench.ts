@@ -6,14 +6,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
-import { readRiemannBenchRawCache } from "../src/model-atlas/database/cache";
 import { openDatabase } from "../src/model-atlas/database/schema";
-import { riemannBenchSnapshot } from "../src/model-atlas/database/source-snapshots/sparse-benchmarks";
+import { readRiemannBenchRawCache } from "../src/model-atlas/ingest/cache";
+import { riemannBenchSnapshot } from "../src/model-atlas/ingest/source-snapshots/benchmarks/surge";
 import {
+	SNAPSHOT_TABLES,
+	type SourceSnapshots,
+} from "../src/model-atlas/ingest/types";
+import {
+	insertBenchmarkRawRows,
 	insertModelEvaluations,
 	insertModels,
-	insertRiemannBenchRawRows,
-} from "../src/model-atlas/database/writers";
+} from "../src/model-atlas/ingest/writers";
 
 const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");
@@ -83,13 +87,17 @@ try {
 		assert.equal(cachedSnapshot.riemannBenchSourceUrl, customSourceUrl);
 
 		db.prepare("DELETE FROM riemann_bench_raw_rows").run();
-		insertRiemannBenchRawRows(db, {
-			riemannBenchModelScoreRows: cachedSnapshot.riemannBenchModelScoreRows,
-			riemannBenchSourceUrl: cachedSnapshot.riemannBenchSourceUrl,
-			fetchedAt: {
-				riemannBench: cachedSnapshot.sourceStatus.fetchedAt,
-			},
-		});
+		insertBenchmarkRawRows(
+			db,
+			{
+				riemannBenchModelScoreRows: cachedSnapshot.riemannBenchModelScoreRows,
+				riemannBenchSourceUrl: cachedSnapshot.riemannBenchSourceUrl,
+				fetchedAt: {
+					riemannBench: cachedSnapshot.sourceStatus.fetchedAt,
+				},
+			} as unknown as SourceSnapshots,
+			SNAPSHOT_TABLES.riemann_bench,
+		);
 		assert.equal(
 			db
 				.prepare("SELECT url FROM riemann_bench_raw_rows WHERE row_index = 0")

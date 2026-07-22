@@ -2,16 +2,19 @@
 
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { buildSourceHealth } from "../src/model-atlas/database/health";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import { buildSourceHealth } from "../src/model-atlas/ingest/source-snapshots/policy";
 import {
 	RAW_SOURCE_NAMES,
 	type RawSourceCacheStatus,
 	type RawSourceName,
-} from "../src/model-atlas/database/types";
-import { benchmarkRowsFromDb } from "../src/model-atlas/stats/benchmarks";
-import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/health";
-import { minimalLlmStatsModel } from "./llm-stats-fixtures";
+} from "../src/model-atlas/ingest/types";
+import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
+import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/payload/health";
+import {
+	benchmarkScoreRowGroups,
+	minimalLlmStatsModel,
+} from "./llm-stats-fixtures";
 
 const sparseHealth = buildBenchmarkUpdateHealth(
 	[
@@ -222,16 +225,20 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 	],
 	aleBenchRows: [],
 	blueprintBenchRows: [],
-	browseCompRows: [
-		{
-			model: "Browse Row",
-			provider: "example",
-			score: 0.72,
-		},
-	],
-	chartographyRows: [],
-	chessPuzzleRows: [],
-	codeMigrationRows: [],
+	...benchmarkScoreRowGroups<Record<string, unknown>>({
+		browseCompRows: [
+			{
+				benchmark_key: "browsecomp",
+				model_id: null,
+				model: "Browse Row",
+				base_model: "Browse Row",
+				reasoning_effort: null,
+				provider: "example",
+				score: 0.72,
+				score_eligible: 1,
+			},
+		],
+	}),
 	cursorBenchRows: [
 		{
 			model: "Fable 5 Extra High",
@@ -246,7 +253,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.69,
 		},
 	],
-	cyberBenchRows: [],
 	deepSWERows: [
 		{
 			source_version: "v1.1",
@@ -269,15 +275,8 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			mean_output_tokens: 60_000,
 		},
 	],
-	ebrBenchRows: [],
-	embRows: [],
-	enterpriseBenchCoreCraftRows: [],
-	epochCapabilitiesIndexRows: [],
-	financeAgentV2Rows: [],
 	frontierCodeRows: [],
-	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
-	handbookMdRows: [],
 	harveyLabRows: [
 		{
 			row_kind: "overall",
@@ -287,11 +286,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.108333,
 		},
 	],
-	legalResearchRows: [],
-	medCodeRows: [],
-	programBenchRows: [],
-	proofBenchRows: [],
-	publicBenefitsBenchRows: [],
 	riemannBenchRows: [],
 	terminalBenchRows: [
 		{
@@ -302,7 +296,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 			score: 0.73,
 		},
 	],
-	toolathlonRows: [],
 	valsIndexRows: [
 		{
 			row_kind: "overall",
@@ -313,8 +306,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 		},
 	],
 	vendingBench2Rows: [],
-	vibeCodeRows: [],
-	weirdMlRows: [],
 });
 
 assert.deepEqual(dbBenchmarkRows.harvey_lab, [

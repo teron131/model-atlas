@@ -4,18 +4,22 @@
  * Page source: https://www.vals.ai/benchmarks/hlab
  */
 
-import { positiveFiniteNumber } from "../../math-utils";
 import {
-	asFiniteNumber,
-	asRecord,
 	buildBenchmarkModelMap,
 	canonicalReasoningEffort,
 	normalizeModelToken,
-} from "../../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+} from "../../identity/normalization";
+import { positiveFiniteNumber } from "../../numeric";
+import {
+	asFiniteNumber,
+	asRecord,
+	fetchWithTimeout,
+	nowEpochSeconds,
+} from "../../runtime";
+
 import { htmlAttribute, stringValue } from "../parsing";
 
-export const HARVEY_LAB_URL = "https://www.vals.ai/benchmarks/hlab";
+const HARVEY_LAB_URL = "https://www.vals.ai/benchmarks/hlab";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const OVERALL_TASK_KEY = "overall";
 const CRITERION_PASS_TASK_KEY = "criteria_pass_rate";
@@ -158,10 +162,6 @@ function taskMetric(task: string): HarveyLabMetric {
 		: "task_resolution";
 }
 
-function sourceReasoningEffort(row: Record<string, unknown>): string | null {
-	return canonicalReasoningEffort(row.reasoning_effort ?? row.compute_effort);
-}
-
 function harveyLabTaskRow(
 	task: string,
 	taskLabel: string,
@@ -174,7 +174,9 @@ function harveyLabTaskRow(
 		return null;
 	}
 	const baseModel = modelSlug(modelId);
-	const reasoningEffort = sourceReasoningEffort(row);
+	const reasoningEffort = canonicalReasoningEffort(
+		row.reasoning_effort ?? row.compute_effort,
+	);
 	return {
 		task,
 		task_label: taskLabel,

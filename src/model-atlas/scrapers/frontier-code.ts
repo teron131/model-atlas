@@ -6,12 +6,15 @@
  */
 
 import {
-	asFiniteNumber,
-	asRecord,
 	canonicalReasoningEffort,
 	reasoningEffortRank,
-} from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+} from "../identity/normalization";
+import {
+	asFiniteNumber,
+	asRecord,
+	fetchWithTimeout,
+	nowEpochSeconds,
+} from "../runtime";
 
 const FRONTIER_CODE_DATA_URL =
 	"https://cognition.com/data/frontiercode-leaderboard/data.json";

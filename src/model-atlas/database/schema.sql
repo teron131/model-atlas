@@ -242,75 +242,6 @@ CREATE TABLE IF NOT EXISTS blueprint_bench_2_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS browsecomp_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	model TEXT NOT NULL,
-	provider TEXT NOT NULL,
-	provider_name TEXT,
-	score REAL NOT NULL,
-	source_url TEXT,
-	analysis_method TEXT,
-	verified INTEGER,
-	self_reported INTEGER,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS chartography_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS chess_puzzles_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS code_migration_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -324,16 +255,6 @@ CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
 	cost_per_task_usd REAL NOT NULL,
 	tokens_per_task INTEGER NOT NULL,
 	steps_per_task INTEGER NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS cyberbench_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
 	PRIMARY KEY (row_index)
 );
 
@@ -353,92 +274,6 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	mean_cost_usd REAL NOT NULL,
 	mean_duration_seconds REAL,
 	mean_output_tokens REAL NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS ebr_bench_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS emb_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS enterprisebench_corecraft_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS epoch_capabilities_index_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS finance_agent_v2_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
 	PRIMARY KEY (row_index)
 );
 
@@ -466,28 +301,6 @@ CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS frontiermath_tier_4_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS gdp_pdf_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -496,48 +309,6 @@ CREATE TABLE IF NOT EXISTS gdp_pdf_raw_rows (
 	model TEXT NOT NULL,
 	score REAL NOT NULL,
 	last_updated TEXT,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS handbook_md_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS legal_research_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS medcode_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
 	PRIMARY KEY (row_index)
 );
 
@@ -552,48 +323,6 @@ CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
 	reasoning_effort TEXT,
 	organization TEXT NOT NULL,
 	score REAL NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS programbench_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS proofbench_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS public_benefits_bench_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
 	PRIMARY KEY (row_index)
 );
 
@@ -654,23 +383,6 @@ CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS toolathlon_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	rank INTEGER,
-	model TEXT NOT NULL,
-	provider TEXT NOT NULL,
-	provider_name TEXT,
-	score REAL NOT NULL,
-	source_url TEXT,
-	analysis_method TEXT,
-	verified INTEGER,
-	self_reported INTEGER,
-	announcement_date TEXT,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS vals_index_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -697,38 +409,6 @@ CREATE TABLE IF NOT EXISTS vending_bench_2_raw_rows (
 	run_count INTEGER NOT NULL,
 	final_balance_usd REAL NOT NULL,
 	daily_balance_usd_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS vibe_code_raw_rows (
-	row_index INTEGER NOT NULL, fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL, source TEXT NOT NULL, url TEXT NOT NULL,
-	model_id TEXT, model TEXT NOT NULL, base_model TEXT NOT NULL,
-	reasoning_effort TEXT, provider TEXT, rank INTEGER, score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL, standard_error REAL, confidence_low REAL,
-	confidence_high REAL, observed_at TEXT, metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS weirdml_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
 	PRIMARY KEY (row_index)
 );
 

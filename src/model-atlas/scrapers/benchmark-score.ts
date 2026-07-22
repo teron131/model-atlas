@@ -5,9 +5,14 @@ import {
 	canonicalReasoningEffort,
 	normalizeModelToken,
 	reasoningEffortRank,
-} from "../shared";
+} from "../identity/normalization";
 
-export type BenchmarkScoreSource = "epoch" | "surge" | "vals" | "weirdml";
+export type BenchmarkScoreSource =
+	| "epoch"
+	| "surge"
+	| "vals"
+	| "weirdml"
+	| "zeroeval";
 export type BenchmarkScoreMetadata = Record<
 	string,
 	string | number | boolean | null | string[] | number[]

@@ -2,8 +2,8 @@
 
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/snapshot-preservation";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import {
 	minimalLlmStatsModel,
 	minimalLlmStatsPayload,

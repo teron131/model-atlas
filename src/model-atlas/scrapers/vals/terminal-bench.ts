@@ -4,14 +4,14 @@
  * This benchmark-specific page is scraped separately because it contributes Terminal-Bench task stats and harness context outside the Artificial Analysis main model table.
  */
 
-import { positiveFiniteNumber } from "../../math-utils";
-import { normalizeModelToken } from "../../shared";
+import { normalizeModelToken } from "../../identity/normalization";
+import { positiveFiniteNumber } from "../../numeric";
 import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
 	nowEpochSeconds,
-} from "../../utils";
+} from "../../runtime";
 import { htmlAttribute, stringValue } from "../parsing";
 
 const DEFAULT_LEADERBOARD_URL =

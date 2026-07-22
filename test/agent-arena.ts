@@ -1,8 +1,8 @@
 /** Agent Arena scraper fixtures protect ranked causal effects, model identity, and matching. */
 
 import assert from "node:assert/strict";
+import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import { processAgentArenaPageHtml } from "../src/model-atlas/scrapers/agent-arena";
-import { buildBenchmarkModelMap } from "../src/model-atlas/shared";
 
 const payload = {
 	arena: { slug: "agent", title: "Agent" },

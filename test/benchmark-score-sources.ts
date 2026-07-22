@@ -2,39 +2,24 @@
 
 import assert from "node:assert/strict";
 
+import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../src/model-atlas/benchmarks/registry";
+import { readBenchmarkScoreRawCache } from "../src/model-atlas/ingest/cache";
+import { benchmarkScoreRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
+import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
-	readChartographyRawCache,
-	readChessPuzzlesRawCache,
-	readEbrBenchRawCache,
-	readEnterpriseBenchCoreCraftRawCache,
-	readEpochCapabilitiesIndexRawCache,
-	readFrontierMathTier4RawCache,
-	readHandbookMdRawCache,
-	readProofBenchRawCache,
-	readWeirdMlRawCache,
-} from "../src/model-atlas/database/cache";
-import type { SourceSnapshots } from "../src/model-atlas/database/types";
-import {
-	insertChartographyRawRows,
-	insertChessPuzzlesRawRows,
-	insertEbrBenchRawRows,
-	insertEnterpriseBenchCoreCraftRawRows,
-	insertEpochCapabilitiesIndexRawRows,
-	insertFrontierMathTier4RawRows,
-	insertHandbookMdRawRows,
-	insertProofBenchRawRows,
-	insertWeirdMlRawRows,
+	insertBenchmarkRawRows,
 	SnapshotRowCollector,
-} from "../src/model-atlas/database/writers";
+} from "../src/model-atlas/ingest/writers";
 import {
 	buildBenchmarkScoreMap,
 	findBenchmarkScoreRow,
 } from "../src/model-atlas/scrapers/benchmark-score";
-import { parseCsvRecords } from "../src/model-atlas/scrapers/csv-parser";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/epoch/capabilities-index";
-import { epochFrontierMathTier4Rows } from "../src/model-atlas/scrapers/epoch/frontiermath-tier-4";
+import { epochBenchmarkScoreRows } from "../src/model-atlas/scrapers/epoch/common";
+import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
 import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/common";
-import { processProofBenchPageHtml } from "../src/model-atlas/scrapers/vals/proofbench";
+import { processValsBenchmarkPageHtml } from "../src/model-atlas/scrapers/vals/common";
 import { processWeirdMlCsv } from "../src/model-atlas/scrapers/weirdml";
 
 assert.deepEqual(
@@ -54,7 +39,11 @@ const epochRuns = parseCsvRecords(
 		"new,FrontierMath-Tier-4-v2-Private,gpt,0.56,2026-07-01T00:00:00Z,Success,2.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.561,0.02,0.56,frontiermath,[]\n" +
 		"old,FrontierMath-Tier-4-2025-07-01-Private,gpt,0.31,2025-07-01T00:00:00Z,Success,1.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.3125,0.02,0.31,frontiermath,[]\n",
 );
-const frontierMath = epochFrontierMathTier4Rows(epochRuns);
+const frontierMath = epochBenchmarkScoreRows(
+	epochRuns,
+	"frontiermath_tier_4",
+	"FrontierMath-Tier-4-v2-Private",
+);
 assert.equal(frontierMath.length, 1);
 assert.equal(frontierMath[0]?.score, 0.561);
 assert.equal(frontierMath[0]?.metadata.task_version, "2.0.0");
@@ -68,6 +57,14 @@ assert.equal(weirdMl[0]?.metadata.shapes_easy_acc, 0.95);
 
 function astro(value: unknown): unknown[] {
 	return [0, value];
+}
+
+function benchmarkScoreBinding(sourceDataKey: string) {
+	const binding = BENCHMARK_SCORE_SOURCE_BINDINGS.find(
+		(candidate) => candidate.sourceDataKey === sourceDataKey,
+	);
+	assert.ok(binding);
+	return binding;
 }
 
 const proofHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" props="${JSON.stringify(
@@ -93,7 +90,21 @@ const proofHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" p
 		}),
 	},
 ).replace(/"/g, "&quot;")}"></astro-island>`;
-const proof = processProofBenchPageHtml(proofHtml);
+const proofBinding = benchmarkScoreBinding("proofBench");
+assert.equal(proofBinding.loader.kind, "vals");
+if (proofBinding.loader.kind !== "vals")
+	throw new Error("Expected VALS loader");
+const proof = processValsBenchmarkPageHtml(proofHtml, {
+	benchmarkKey: proofBinding.benchmark,
+	canonicalTask: proofBinding.loader.canonicalTask,
+	includeReasoningEffortInModel:
+		"includeReasoningEffortInModel" in proofBinding.loader
+			? proofBinding.loader.includeReasoningEffortInModel
+			: undefined,
+	isScoreEligible: (_task, modelId) =>
+		modelId.toLowerCase() !== "aristotle/aristotle",
+	sourceUrl: proofBinding.loader.sourceUrl,
+});
 assert.equal(proof.length, 2);
 assert.equal(
 	proof.find((row) => row.model_id === "aristotle/aristotle")?.score_eligible,
@@ -123,6 +134,28 @@ assert.equal(
 );
 assert.equal(buildBenchmarkScoreMap(proof).has("aristotle"), false);
 
+const sharedModelRows = [
+	{
+		...frontierMath[0]!,
+		model_id: null,
+		model: "Shared Model",
+		base_model: "Shared Model",
+		provider: "provider-a",
+	},
+	{
+		...frontierMath[0]!,
+		model_id: null,
+		model: "Shared Model",
+		base_model: "Shared Model",
+		provider: "provider-b",
+	},
+];
+assert.equal(
+	mergeCachedSourceRows([], sharedModelRows, benchmarkScoreRowKey).length,
+	2,
+	"Benchmark refreshes should preserve same-named models from distinct providers",
+);
+
 const collector = new SnapshotRowCollector();
 const chess = frontierMath.map((row) => ({
 	...row,
@@ -135,86 +168,68 @@ const ebr = frontierMath.map((row) => ({
 const handbook = surge.map((row) => ({
 	...row,
 	benchmark_key: "handbook_md",
+	source_url: "https://surgehq.ai/benchmarks/handbook",
 }));
 const coreCraft = surge.map((row) => ({
 	...row,
 	benchmark_key: "enterprisebench_corecraft",
+	source_url: "https://surgehq.ai/benchmarks/enterprisebench-corecraft",
 }));
-insertChartographyRawRows(collector, {
+const snapshots = {
 	chartographyRows: surge,
-	fetchedAt: { chartography: 1_784_000_004 },
-} as unknown as SourceSnapshots);
-insertChessPuzzlesRawRows(collector, {
 	chessPuzzleRows: chess,
-	fetchedAt: { chessPuzzles: 1_784_000_002 },
-} as unknown as SourceSnapshots);
-insertEbrBenchRawRows(collector, {
 	ebrBenchRows: ebr,
-	fetchedAt: { ebrBench: 1_784_000_003 },
-} as unknown as SourceSnapshots);
-insertEnterpriseBenchCoreCraftRawRows(collector, {
 	enterpriseBenchCoreCraftRows: coreCraft,
-	fetchedAt: { enterpriseBenchCoreCraft: 1_784_000_006 },
-} as unknown as SourceSnapshots);
-insertEpochCapabilitiesIndexRawRows(collector, {
 	epochCapabilitiesIndexRows: eci,
-	fetchedAt: { epochCapabilitiesIndex: 1_784_000_000 },
-} as unknown as SourceSnapshots);
-insertFrontierMathTier4RawRows(collector, {
 	frontierMathTier4Rows: frontierMath,
-	fetchedAt: { frontierMathTier4: 1_784_000_001 },
-} as unknown as SourceSnapshots);
-insertHandbookMdRawRows(collector, {
 	handbookMdRows: handbook,
-	fetchedAt: { handbookMd: 1_784_000_005 },
-} as unknown as SourceSnapshots);
-insertProofBenchRawRows(collector, {
 	proofBenchRows: proof,
-	fetchedAt: { proofBench: 1_784_000_007 },
-} as unknown as SourceSnapshots);
-insertWeirdMlRawRows(collector, {
 	weirdMlRows: weirdMl,
-	fetchedAt: { weirdMl: 1_784_000_008 },
-} as unknown as SourceSnapshots);
-assert.deepEqual(
-	readChartographyRawCache(collector.records("chartography_raw_rows")),
-	{ rows: surge, fetchedAt: 1_784_000_004 },
-);
-assert.deepEqual(
-	readChessPuzzlesRawCache(collector.records("chess_puzzles_raw_rows")),
-	{ rows: chess, fetchedAt: 1_784_000_002 },
-);
-assert.deepEqual(
-	readEbrBenchRawCache(collector.records("ebr_bench_raw_rows")),
-	{ rows: ebr, fetchedAt: 1_784_000_003 },
-);
-assert.deepEqual(
-	readEnterpriseBenchCoreCraftRawCache(
-		collector.records("enterprisebench_corecraft_raw_rows"),
-	),
-	{ rows: coreCraft, fetchedAt: 1_784_000_006 },
-);
-assert.deepEqual(
-	readEpochCapabilitiesIndexRawCache(
-		collector.records("epoch_capabilities_index_raw_rows"),
-	),
-	{ rows: eci, fetchedAt: 1_784_000_000 },
-);
-assert.deepEqual(
-	readFrontierMathTier4RawCache(
-		collector.records("frontiermath_tier_4_raw_rows"),
-	),
-	{ rows: frontierMath, fetchedAt: 1_784_000_001 },
-);
-assert.deepEqual(
-	readHandbookMdRawCache(collector.records("handbook_md_raw_rows")),
-	{ rows: handbook, fetchedAt: 1_784_000_005 },
-);
-assert.deepEqual(
-	readProofBenchRawCache(collector.records("proofbench_raw_rows")),
-	{ rows: proof, fetchedAt: 1_784_000_007 },
-);
-assert.deepEqual(readWeirdMlRawCache(collector.records("weirdml_raw_rows")), {
-	rows: weirdMl,
-	fetchedAt: 1_784_000_008,
-});
+	fetchedAt: {
+		chartography: 1_784_000_004,
+		chessPuzzles: 1_784_000_002,
+		ebrBench: 1_784_000_003,
+		enterpriseBenchCoreCraft: 1_784_000_006,
+		epochCapabilitiesIndex: 1_784_000_000,
+		frontierMathTier4: 1_784_000_001,
+		handbookMd: 1_784_000_005,
+		proofBench: 1_784_000_007,
+		weirdMl: 1_784_000_008,
+	},
+} as unknown as SourceSnapshots;
+const expectedBySourceDataKey = {
+	chartography: { rows: surge, fetchedAt: 1_784_000_004 },
+	chessPuzzles: { rows: chess, fetchedAt: 1_784_000_002 },
+	ebrBench: { rows: ebr, fetchedAt: 1_784_000_003 },
+	enterpriseBenchCoreCraft: { rows: coreCraft, fetchedAt: 1_784_000_006 },
+	epochCapabilitiesIndex: { rows: eci, fetchedAt: 1_784_000_000 },
+	frontierMathTier4: { rows: frontierMath, fetchedAt: 1_784_000_001 },
+	handbookMd: { rows: handbook, fetchedAt: 1_784_000_005 },
+	proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
+	weirdMl: { rows: weirdMl, fetchedAt: 1_784_000_008 },
+};
+for (const [sourceDataKey, expected] of Object.entries(
+	expectedBySourceDataKey,
+)) {
+	const binding = benchmarkScoreBinding(sourceDataKey);
+	insertBenchmarkRawRows(collector, snapshots, binding.rawTable);
+	assert.deepEqual(
+		readBenchmarkScoreRawCache(collector.records(binding.rawTable), binding),
+		expected,
+	);
+	const expectedUrl =
+		"sourceUrl" in binding.loader ? binding.loader.sourceUrl : null;
+	if (expectedUrl != null) {
+		assert.equal(
+			readBenchmarkScoreRawCache(
+				collector.records(binding.rawTable).map((row) => ({
+					...row,
+					url: `${expectedUrl}?stale=1`,
+				})),
+				binding,
+			),
+			null,
+			`${binding.benchmark} should invalidate rows from an obsolete source URL`,
+		);
+	}
+}

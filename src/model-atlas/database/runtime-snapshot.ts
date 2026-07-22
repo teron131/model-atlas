@@ -1,6 +1,6 @@
 /** Runtime snapshot loading reads and refreshes Cloudflare D1 without a SQLite fallback. */
 
-import { buildCurrentLlmStatsMetadata } from "../stats/metadata";
+import { buildCurrentLlmStatsMetadata } from "../stats/payload/metadata";
 import type { LlmStatsPayload } from "../stats/types";
 import { d1Configured, missingD1Environment, readD1Payload } from "./d1";
 import { publishD1Snapshot } from "./d1-publish";
@@ -55,7 +55,9 @@ async function readDisplayPayloadUncached(): Promise<LlmStatsPayload | null> {
 		return payload;
 	}
 	assertD1Configured(runtime);
-	const payload = await readD1Snapshot();
+	const storedPayload = await readD1Payload();
+	const payload =
+		storedPayload == null ? null : withCurrentMetadata(storedPayload);
 	cacheDisplayPayload(payload);
 	return payload;
 }
@@ -76,12 +78,6 @@ export async function refreshStoredSnapshot(
 	assertD1Configured(runtime);
 	const { payload } = await publishD1Snapshot();
 	return withCurrentMetadata(payload);
-}
-
-/** D1 stores completed run payloads; readers overlay current metadata so old snapshots follow today’s scoring portfolio. */
-async function readD1Snapshot(): Promise<LlmStatsPayload | null> {
-	const payload = await readD1Payload();
-	return payload == null ? null : withCurrentMetadata(payload);
 }
 
 /** Prevent runtime reads from silently substituting a build-time or local snapshot for D1. */

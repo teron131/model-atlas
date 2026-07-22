@@ -1,6 +1,6 @@
 /** Verifies Terminal-Bench aggregate score/resource policy across source rows. */
 
-import { terminalBenchAggregateRow } from "../src/model-atlas/stats/benchmarks/terminal-bench";
+import { terminalBenchAggregateRow } from "../src/model-atlas/pipeline/benchmark-rows/terminal-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

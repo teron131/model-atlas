@@ -2,37 +2,40 @@
 
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { buildDebugTraceRows } from "../src/model-atlas/database/debug-trace";
-import type { SourceSnapshots } from "../src/model-atlas/database/types";
-import { buildMatchDiagnostics } from "../src/model-atlas/matcher";
-import { modelNameIdentityKey } from "../src/model-atlas/matcher/name-tokens";
-import { runMatcher } from "../src/model-atlas/matcher/pipeline";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import { buildMatchDiagnostics } from "../src/model-atlas/identity";
+import { modelNameIdentityKey } from "../src/model-atlas/identity/matching/name-tokens";
+import { runMatcher } from "../src/model-atlas/identity/matching/pipeline";
 import type {
 	MatcherSourceModel,
 	ModelsDevModel,
 	PreferredProviderPools,
-} from "../src/model-atlas/matcher/types";
+} from "../src/model-atlas/identity/matching/types";
+import type { LlmStatsSourceData } from "../src/model-atlas/ingest/assembly";
+import { buildDebugTraceRows } from "../src/model-atlas/ingest/debug-trace";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
+import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/pipeline/benchmark-rows";
+import { deriveModelStats } from "../src/model-atlas/pipeline/derivation";
+import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/pipeline/matched-rows";
+import { aggregateCollapsedModelRows } from "../src/model-atlas/pipeline/model-catalog";
 import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	buildArtificialAnalysisDefaultEffortResourceMap,
 	buildArtificialAnalysisObservationResourceMap,
 } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
+import {
+	type BenchmarkScoreRow,
+	buildBenchmarkScoreMap,
+} from "../src/model-atlas/scrapers/benchmark-score";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
 import { buildGdpPdfMap } from "../src/model-atlas/scrapers/surge/gdp-pdf";
 import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/surge/riemann-bench";
-import { buildToolathlonMap } from "../src/model-atlas/scrapers/toolathlon";
 import {
 	buildValsIndexMap,
 	type ValsIndexModelScoreRow,
 } from "../src/model-atlas/scrapers/vals/index-benchmark";
 import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
-import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/stats/benchmarks";
-import { deriveModelStats } from "../src/model-atlas/stats/derivation";
-import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/stats/matching";
-import { aggregateCollapsedModelRows } from "../src/model-atlas/stats/openrouter-enrichment";
-import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),
@@ -563,18 +566,25 @@ function sourceModel(
 function modelStatsSourceData(
 	artificialAnalysisRows: Record<string, unknown>[],
 ): LlmStatsSourceData {
-	const toolathlonModelScoreRows = [
+	const toolathlonScoreRows: BenchmarkScoreRow[] = [
 		{
+			benchmark_key: "toolathlon",
+			source: "zeroeval",
+			source_url:
+				"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
+			model_id: null,
 			rank: 1,
 			model: "Example 2.5 Flash",
+			base_model: "Example 2.5 Flash",
+			reasoning_effort: null,
 			provider: "google",
-			provider_name: "Google",
 			score: 0.42,
-			source_url: null,
-			analysis_method: null,
-			verified: false,
-			self_reported: true,
-			announcement_date: null,
+			score_eligible: true,
+			standard_error: null,
+			confidence_low: null,
+			confidence_high: null,
+			observed_at: null,
+			metadata: {},
 		},
 	];
 	const cursorBenchModelScoreRows = [
@@ -774,8 +784,8 @@ function modelStatsSourceData(
 			rowsByModelName: buildTerminalBenchMap([]),
 		},
 		toolathlon: {
-			rows: toolathlonModelScoreRows,
-			rowsByModelName: buildToolathlonMap(toolathlonModelScoreRows),
+			rows: toolathlonScoreRows,
+			rowsByModelName: buildBenchmarkScoreMap(toolathlonScoreRows),
 		},
 		valsIndex: {
 			rows: valsIndexModelScoreRows,

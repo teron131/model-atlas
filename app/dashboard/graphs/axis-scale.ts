@@ -1,7 +1,5 @@
 /** Shared dashboard chart axis scales and tick selection. */
 
-import { niceLinearStep, roundTick } from "../../../src/model-atlas/math-utils";
-
 export type AxisScale = {
 	domain: [number, number];
 	ticks: number[];
@@ -9,6 +7,36 @@ export type AxisScale = {
 
 const SCORE_AXIS_STEPS = [20, 10, 5] as const;
 const SCORE_AXIS_DOMAIN: [number, number] = [0, 100];
+
+export function niceLinearStep(rawStep: number) {
+	const exponent = Math.floor(Math.log10(rawStep));
+	const base = 10 ** exponent;
+	const mantissa = rawStep / base;
+	const niceMantissa =
+		mantissa <= 1
+			? 1
+			: mantissa <= 2
+				? 2
+				: mantissa <= 2.5
+					? 2.5
+					: mantissa <= 5
+						? 5
+						: 10;
+	return niceMantissa * base;
+}
+
+export function roundTick(value: number) {
+	if (Math.abs(value) >= 100) {
+		return Number(value.toFixed(0));
+	}
+	if (Math.abs(value) >= 10) {
+		return Number(value.toFixed(1));
+	}
+	if (Math.abs(value) >= 1) {
+		return Number(value.toFixed(2));
+	}
+	return Number(value.toPrecision(3));
+}
 
 type LinearDomainOptions = {
 	fallbackDomain?: [number, number];

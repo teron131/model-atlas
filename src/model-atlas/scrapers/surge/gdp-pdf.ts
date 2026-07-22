@@ -5,8 +5,8 @@
  * Dataset source: https://huggingface.co/datasets/surgeai/GDP.pdf
  */
 
-import { normalizeModelToken } from "../../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import { normalizeModelToken } from "../../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { surgeLeaderboardScoreRows } from "./common";
 
 const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/gdp-pdf";

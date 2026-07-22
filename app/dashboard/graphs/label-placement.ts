@@ -1,6 +1,6 @@
 /** Collision-aware placement rules for dense chart labels. */
 
-import { clamp } from "../../../src/model-atlas/math-utils";
+import { clamp } from "../../../src/model-atlas/numeric";
 
 const LABEL_DIRECTIONS = [
 	0, -30, 30, -60, 60, -90, 90, 180, -150, 150, -120, 120, -45, 45, -135, 135,

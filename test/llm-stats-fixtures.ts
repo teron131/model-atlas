@@ -1,8 +1,26 @@
-import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/snapshot-preservation";
+/** Shared factories keep tests aligned with catalog-derived LLM stats contracts. */
+
+import {
+	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	type BenchmarkScoreSourceRowsKey,
+} from "../src/model-atlas/benchmarks/registry";
+import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type {
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../src/model-atlas/stats/types";
+
+/** Build every generic benchmark row group, defaulting unspecified sources to empty. */
+export function benchmarkScoreRowGroups<Row>(
+	overrides: Partial<Record<BenchmarkScoreSourceRowsKey, Row[]>> = {},
+): Record<BenchmarkScoreSourceRowsKey, Row[]> {
+	return Object.fromEntries(
+		BENCHMARK_SCORE_SOURCE_BINDINGS.map(({ sourceRowsKey }) => [
+			sourceRowsKey,
+			overrides[sourceRowsKey] ?? [],
+		]),
+	) as Record<BenchmarkScoreSourceRowsKey, Row[]>;
+}
 
 export function minimalLlmStatsPayload({
 	fetchedAt,

@@ -1,25 +1,27 @@
 /** Local SQLite payload reads adapt stored rows to the storage-independent payload assembler. */
 
 import { DatabaseSync } from "node:sqlite";
-
-import { asRecord } from "../shared";
+import { DEFAULT_DATABASE_PATH } from "../ingest/types";
+import { asRecord } from "../runtime";
 import type { LlmStatsPayload } from "../stats/types";
 import {
 	buildPayloadFromRows,
 	buildPayloadRows,
 	PAYLOAD_ROW_GROUPS,
-	payloadFetchedAtFromRow,
 	type PayloadRowGroup,
+	payloadFetchedAtFromRow,
 	SNAPSHOT_METADATA_SQL,
-} from "./payload";
-import { DEFAULT_DATABASE_PATH } from "./types";
+} from "./payload-rows";
 
 function readPayloadRowGroup(
 	db: DatabaseSync,
 	rowGroup: PayloadRowGroup,
 ): Record<string, unknown>[] {
 	try {
-		return db.prepare(rowGroup.sql).all().map((row) => asRecord(row));
+		return db
+			.prepare(rowGroup.sql)
+			.all()
+			.map((row) => asRecord(row));
 	} catch (error) {
 		if (rowGroup.optional === true) {
 			return [];

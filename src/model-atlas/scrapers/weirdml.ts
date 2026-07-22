@@ -9,21 +9,21 @@
  */
 
 import {
-	asFiniteNumber,
 	benchmarkModelEffort,
 	normalizeModelToken,
-} from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+} from "../identity/normalization";
+import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../runtime";
+
 import type {
 	BenchmarkScorePayload,
 	BenchmarkScoreRow,
 } from "./benchmark-score";
-import { parseCsvRecords } from "./csv-parser";
 import {
 	processEpochWeirdMlCsv,
 	WEIRDML_EPOCH_CSV_URL,
 	type WeirdMlEpochRow,
 } from "./epoch/weirdml";
+import { parseCsvRecords } from "./parsing";
 
 export const WEIRDML_CREATOR_CSV_URL =
 	"https://htihle.github.io/data/weirdml_data.csv";
@@ -135,10 +135,6 @@ function primaryIdentityAliases(row: BenchmarkScoreRow): string[] {
 		row.model,
 		configurationKey(row),
 	]);
-}
-
-function epochIdentityAliases(row: WeirdMlEpochRow): string[] {
-	return identityAliases([...row.aliases, configurationKey(row)]);
 }
 
 function withinTolerance(
@@ -285,7 +281,7 @@ function buildWeirdMlCrosswalk(
 ): WeirdMlMergePlan {
 	const primaryAliases = primaryRows.map(primaryIdentityAliases);
 	const identityCandidates = epochRows.map((row) => {
-		const aliases = epochIdentityAliases(row);
+		const aliases = identityAliases([...row.aliases, configurationKey(row)]);
 		return primaryAliases.flatMap((primary, primaryIndex) =>
 			aliases.some((alias) => primary.includes(alias)) ? [primaryIndex] : [],
 		);

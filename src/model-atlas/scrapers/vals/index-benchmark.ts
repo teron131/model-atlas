@@ -4,13 +4,13 @@
  * Page source: https://www.vals.ai/benchmarks/vals_index
  */
 
-import { normalizeModelToken } from "../../shared";
+import { normalizeModelToken } from "../../identity/normalization";
 import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
 	nowEpochSeconds,
-} from "../../utils";
+} from "../../runtime";
 import { htmlAttribute, stringValue } from "../parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";

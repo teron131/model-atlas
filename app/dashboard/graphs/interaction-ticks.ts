@@ -3,9 +3,8 @@
 import {
 	interpolateLinear,
 	logDistance,
-	niceLinearStep,
-	roundTick,
-} from "../../../src/model-atlas/math-utils";
+} from "../../../src/model-atlas/numeric";
+import { niceLinearStep, roundTick } from "./axis-scale";
 import type { InteractionConfig } from "./types";
 
 const TARGET_TICK_COUNT = 5;

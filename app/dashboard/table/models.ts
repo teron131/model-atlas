@@ -1,8 +1,16 @@
 /** Dashboard row shaping and sort semantics for LLM stats payloads. */
 
-import { BENCHMARK_PORTFOLIO } from "../../../src/model-atlas/config/benchmark-portfolio";
-import { clampScore, minMaxScale } from "../../../src/model-atlas/math-utils";
-import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/stats/resource-metrics";
+import {
+	BENCHMARK_COLUMNS,
+	BENCHMARK_DISPLAY_ORDER,
+	BENCHMARK_TASK_METRIC_COLUMNS,
+	type BenchmarkKey,
+} from "../../../src/model-atlas/benchmarks/catalog";
+import {
+	clampScore,
+	minMaxScale,
+} from "../../../src/model-atlas/pipeline/scores/normalization";
+import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { modelDisplayName, modelMatchesQuery } from "../shared/model-display";
@@ -63,241 +71,26 @@ const artificialAnalysisTaskMetricColumns = defineTaskMetricColumns(
 	] as const,
 );
 
-const agentsLastExamTaskMetricColumns = defineTaskMetricColumns(
-	"agents_last_exam",
-	[
-		{
-			key: "agentsLastExamCost",
-			metric: "cost",
-			direction: "ascending",
-			label: "ALE$",
-		},
-		{
-			key: "agentsLastExamSeconds",
-			metric: "seconds",
-			direction: "ascending",
-			label: "ALE Sec",
-		},
-		{
-			key: "agentsLastExamInputTokens",
-			metric: "input_tokens",
-			direction: "ascending",
-			label: "ALE In",
-		},
-		{
-			key: "agentsLastExamOutputTokens",
-			metric: "output_tokens",
-			direction: "ascending",
-			label: "ALE Out",
-		},
-	] as const,
-);
+type CatalogTaskMetricColumn =
+	(typeof BENCHMARK_TASK_METRIC_COLUMNS)[keyof typeof BENCHMARK_TASK_METRIC_COLUMNS][number] & {
+		group: "tasks";
+		source: BenchmarkKey;
+		type: "number";
+	};
 
-const automationBenchTaskMetricColumns = defineTaskMetricColumns(
-	"automation_bench",
-	[
-		{
-			key: "automationBenchCost",
-			metric: "cost",
-			direction: "ascending",
-			label: "Auto$",
-		},
-	] as const,
-);
-
-const critptTaskMetricColumns = defineTaskMetricColumns("critpt", [
-	{
-		key: "critptCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "Crit$",
-	},
-	{
-		key: "critptSeconds",
-		metric: "seconds",
-		direction: "ascending",
-		label: "Crit Sec",
-	},
-	{
-		key: "critptTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "Crit Tok",
-	},
-] as const);
-
-const cursorBenchTaskMetricColumns = defineTaskMetricColumns("cursorbench", [
-	{
-		key: "cursorBenchCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "Cursor$",
-	},
-	{
-		key: "cursorBenchTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "Cursor Tok",
-	},
-] as const);
-
-const deepSweTaskMetricColumns = defineTaskMetricColumns("deep_swe", [
-	{
-		key: "deepSWECost",
-		metric: "cost",
-		direction: "ascending",
-		label: "DSWE$",
-	},
-	{
-		key: "deepSWESeconds",
-		metric: "seconds",
-		direction: "ascending",
-		label: "DSWE Sec",
-	},
-	{
-		key: "deepSWETokens",
-		metric: "output_tokens",
-		direction: "descending",
-		label: "DSWE Tok",
-	},
-] as const);
-
-const frontierCodeTaskMetricColumns = defineTaskMetricColumns("frontier_code", [
-	{
-		key: "frontierCodeCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "FC$",
-	},
-	{
-		key: "frontierCodeTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "FC Tok",
-	},
-] as const);
-
-const gdpvalTaskMetricColumns = defineTaskMetricColumns("gdpval_normalized", [
-	{
-		key: "gdpvalCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "GDP$",
-	},
-	{
-		key: "gdpvalSeconds",
-		metric: "seconds",
-		direction: "ascending",
-		label: "GDP Sec",
-	},
-	{
-		key: "gdpvalTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "GDP Tok",
-	},
-] as const);
-
-const harveyLabTaskMetricColumns = defineTaskMetricColumns("harvey_lab", [
-	{
-		key: "harveyLabCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "HLAB$",
-	},
-	{
-		key: "harveyLabSeconds",
-		metric: "seconds",
-		direction: "ascending",
-		label: "HLAB Sec",
-	},
-	{
-		key: "harveyLabTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "HLAB Tok",
-	},
-] as const);
-
-const hleTaskMetricColumns = defineTaskMetricColumns("hle", [
-	{
-		key: "hleCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "HLE$",
-	},
-	{
-		key: "hleSeconds",
-		metric: "seconds",
-		direction: "ascending",
-		label: "HLE Sec",
-	},
-	{
-		key: "hleTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "HLE Tok",
-	},
-] as const);
-
-const tauBankingTaskMetricColumns = defineTaskMetricColumns("tau_banking", [
-	{
-		key: "tauBankingCost",
-		metric: "cost",
-		direction: "ascending",
-		label: "tau3$",
-	},
-	{
-		key: "tauBankingSeconds",
-		metric: "seconds",
-		direction: "ascending",
-		label: "tau3 Sec",
-	},
-	{
-		key: "tauBankingTokens",
-		metric: "tokens",
-		direction: "ascending",
-		label: "tau3 Tok",
-	},
-] as const);
-
-const terminalBenchTaskMetricColumns = defineTaskMetricColumns(
-	"terminalbench_v21",
-	[
-		{
-			key: "terminalBenchCost",
-			metric: "cost",
-			direction: "ascending",
-			label: "TB$",
-		},
-		{
-			key: "terminalBenchSeconds",
-			metric: "seconds",
-			direction: "ascending",
-			label: "TB Sec",
-		},
-		{
-			key: "terminalBenchTokens",
-			metric: "tokens",
-			direction: "ascending",
-			label: "TB Tok",
-		},
-	] as const,
-);
+const benchmarkTaskMetricColumns =
+	BENCHMARK_DISPLAY_ORDER.flatMap<CatalogTaskMetricColumn>((benchmark) => [
+		...defineTaskMetricColumns(
+			benchmark,
+			BENCHMARK_TASK_METRIC_COLUMNS[
+				benchmark as keyof typeof BENCHMARK_TASK_METRIC_COLUMNS
+			] ?? [],
+		),
+	]);
 
 export const taskMetricColumns = [
 	...artificialAnalysisTaskMetricColumns,
-	...agentsLastExamTaskMetricColumns,
-	...automationBenchTaskMetricColumns,
-	...critptTaskMetricColumns,
-	...cursorBenchTaskMetricColumns,
-	...deepSweTaskMetricColumns,
-	...frontierCodeTaskMetricColumns,
-	...gdpvalTaskMetricColumns,
-	...harveyLabTaskMetricColumns,
-	...hleTaskMetricColumns,
-	...tauBankingTaskMetricColumns,
-	...terminalBenchTaskMetricColumns,
+	...benchmarkTaskMetricColumns,
 ] as const;
 
 const profileMetricColumns = [
@@ -388,110 +181,23 @@ const inputModalityScores = [
 	["video", 1],
 ] as const;
 
-type BenchmarkMetricFormat = "percent" | "score" | "number" | "currency";
-
-function defineBenchmarkMetricColumn<
-	const TKey extends string,
-	const TBenchmark extends string,
->(
-	key: TKey,
-	benchmark: TBenchmark,
-	label: string,
-	format: BenchmarkMetricFormat = "percent",
-) {
-	return {
-		key,
-		group: "benchmarks" as const,
-		benchmark,
-		direction: "descending" as const,
-		type: "number" as const,
-		label,
-		format,
-	};
-}
-
-const unsortedBenchmarkMetricColumns = [
-	defineBenchmarkMetricColumn(
-		"aaIntelligenceIndex",
-		"aa_intelligence_index",
-		"AA Index",
-		"number",
-	),
-	defineBenchmarkMetricColumn("agentArena", "agent_arena", "Arena", "score"),
-	defineBenchmarkMetricColumn("agentsLastExam", "agents_last_exam", "ALE"),
-	defineBenchmarkMetricColumn("aleBench", "ale_bench", "ALE-B", "score"),
-	defineBenchmarkMetricColumn("apexAgents", "apex_agents", "APEX"),
-	defineBenchmarkMetricColumn("automationBench", "automation_bench", "Auto"),
-	defineBenchmarkMetricColumn("blueprintBench", "blueprint_bench_2", "BB2"),
-	defineBenchmarkMetricColumn("briefcase", "briefcase", "Briefcase"),
-	defineBenchmarkMetricColumn("browseComp", "browsecomp", "Browse"),
-	defineBenchmarkMetricColumn("chartography", "chartography", "Chart"),
-	defineBenchmarkMetricColumn("chessPuzzles", "chess_puzzles", "Chess"),
-	defineBenchmarkMetricColumn("codeMigration", "code_migration", "Migration"),
-	defineBenchmarkMetricColumn("critpt", "critpt", "CritPt"),
-	defineBenchmarkMetricColumn("cursorBench", "cursorbench", "Cursor"),
-	defineBenchmarkMetricColumn("cyberBench", "cyberbench", "Cyber"),
-	defineBenchmarkMetricColumn("deepSWE", "deep_swe", "DSWE"),
-	defineBenchmarkMetricColumn("ebrBench", "ebr_bench", "EBR"),
-	defineBenchmarkMetricColumn("emb", "emb", "EMB"),
-	defineBenchmarkMetricColumn(
-		"enterpriseBenchCoreCraft",
-		"enterprisebench_corecraft",
-		"CoreCraft",
-	),
-	defineBenchmarkMetricColumn(
-		"epochCapabilitiesIndex",
-		"epoch_capabilities_index",
-		"ECI",
-		"number",
-	),
-	defineBenchmarkMetricColumn("financeAgentV2", "finance_agent_v2", "Finance"),
-	defineBenchmarkMetricColumn("frontierCode", "frontier_code", "FCode"),
-	defineBenchmarkMetricColumn(
-		"frontierMathTier4",
-		"frontiermath_tier_4",
-		"FM T4",
-	),
-	defineBenchmarkMetricColumn("gdpPdf", "gdp_pdf", "GDP.pdf"),
-	defineBenchmarkMetricColumn("gdpval", "gdpval_normalized", "GDPval"),
-	defineBenchmarkMetricColumn("handbookMd", "handbook_md", "Handbook"),
-	defineBenchmarkMetricColumn("harveyLab", "harvey_lab", "HLAB"),
-	defineBenchmarkMetricColumn("hle", "hle", "HLE"),
-	defineBenchmarkMetricColumn("itBench", "itbench_sre", "ITBench"),
-	defineBenchmarkMetricColumn("lcr", "lcr", "LCR"),
-	defineBenchmarkMetricColumn("legalResearch", "legal_research", "Legal"),
-	defineBenchmarkMetricColumn("medCode", "medcode", "MedCode"),
-	defineBenchmarkMetricColumn("omniscience", "omniscience_accuracy", "Omni"),
-	defineBenchmarkMetricColumn("programBench", "programbench", "Program"),
-	defineBenchmarkMetricColumn("proofBench", "proofbench", "Proof"),
-	defineBenchmarkMetricColumn(
-		"publicBenefitsBench",
-		"public_benefits_bench",
-		"Benefits",
-	),
-	defineBenchmarkMetricColumn("riemannBench", "riemann_bench", "Riemann"),
-	defineBenchmarkMetricColumn("scicode", "scicode", "SciCode"),
-	defineBenchmarkMetricColumn("tauBanking", "tau_banking", "tau3"),
-	defineBenchmarkMetricColumn("terminalBench", "terminalbench_v21", "TBench"),
-	defineBenchmarkMetricColumn("toolathlon", "toolathlon", "Toolathlon"),
-	defineBenchmarkMetricColumn("valsIndex", "vals_index", "Vals"),
-	defineBenchmarkMetricColumn(
-		"vendingBench2",
-		"vending_bench_2",
-		"Vending",
-		"currency",
-	),
-	defineBenchmarkMetricColumn("vibeCode", "vibe_code", "Vibe"),
-	defineBenchmarkMetricColumn("weirdMl", "weirdml", "WeirdML"),
-] as const;
+const unsortedBenchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map(
+	(benchmark) => {
+		const column = BENCHMARK_COLUMNS[benchmark];
+		return {
+			key: column.key,
+			group: "benchmarks" as const,
+			benchmark,
+			direction: column.defaultSort,
+			type: "number" as const,
+			label: column.label,
+			format: column.format,
+		};
+	},
+);
 
 export const benchmarkMetricColumns = [...unsortedBenchmarkMetricColumns].sort(
-	(left, right) =>
-		compareBenchmarkDisplayKeys(
-			left.benchmark,
-			right.benchmark,
-			BENCHMARK_PORTFOLIO,
-		),
+	(left, right) => compareBenchmarkDisplayKeys(left.benchmark, right.benchmark),
 );
 const scoreBenchmarkMetricColumns = benchmarkMetricColumns.filter(
 	(column) => column.format === "score",
@@ -528,21 +234,12 @@ export type SortState = {
 	direction: SortDirection;
 };
 
-const taskMetricColumnsByBenchmark: Partial<
-	Record<BenchmarkMetricColumn["key"], readonly TaskMetricColumn[]>
-> = {
-	agentsLastExam: agentsLastExamTaskMetricColumns,
-	automationBench: automationBenchTaskMetricColumns,
-	critpt: critptTaskMetricColumns,
-	cursorBench: cursorBenchTaskMetricColumns,
-	deepSWE: deepSweTaskMetricColumns,
-	frontierCode: frontierCodeTaskMetricColumns,
-	gdpval: gdpvalTaskMetricColumns,
-	harveyLab: harveyLabTaskMetricColumns,
-	hle: hleTaskMetricColumns,
-	tauBanking: tauBankingTaskMetricColumns,
-	terminalBench: terminalBenchTaskMetricColumns,
-};
+const taskMetricColumnsByBenchmark = new Map<string, TaskMetricColumn[]>();
+for (const column of benchmarkTaskMetricColumns) {
+	const columns = taskMetricColumnsByBenchmark.get(column.source) ?? [];
+	columns.push(column);
+	taskMetricColumnsByBenchmark.set(column.source, columns);
+}
 
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
 	...profileMetricColumns,
@@ -551,7 +248,7 @@ export const dashboardMetricColumns: DashboardMetricColumn[] = [
 	...artificialAnalysisTaskMetricColumns,
 	...benchmarkMetricColumns.flatMap((column) => [
 		column,
-		...(taskMetricColumnsByBenchmark[column.key] ?? []),
+		...(taskMetricColumnsByBenchmark.get(column.benchmark) ?? []),
 	]),
 ];
 
@@ -746,10 +443,7 @@ function profileMetricValue(model: LlmStatsModel, column: ProfileMetricColumn) {
 	if (column.field === "modalities") {
 		return inputModalityRank(model);
 	}
-	return booleanSortValue(model[column.field]);
-}
-
-function booleanSortValue(value: boolean | null | undefined) {
+	const value = model[column.field];
 	if (value == null) {
 		return null;
 	}

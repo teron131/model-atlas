@@ -1,10 +1,10 @@
 /** Resolve dashboard table header tooltips from table policy and payload metadata. */
 
-import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/constants";
+import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import type {
 	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
-} from "../../../src/model-atlas/stats/types";
+} from "../../../src/model-atlas/config/tooltips";
 import { benchmarkTooltips } from "../shared/constants";
 import {
 	benchmarkMetricColumns,
@@ -178,7 +178,9 @@ function taskMetricTooltipSource(
 	tooltip: LlmStatsColumnTooltip,
 ) {
 	if (column.source === "terminalbench_v21") {
-		return isTokenTaskMetric(column.metric)
+		return column.metric === "tokens" ||
+			column.metric === "input_tokens" ||
+			column.metric === "output_tokens"
 			? "Artificial Analysis"
 			: "Artificial Analysis & Vals";
 	}
@@ -196,14 +198,6 @@ function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
 		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
 	}
 	return metricTooltip;
-}
-
-function isTokenTaskMetric(metric: TaskMetricColumn["metric"]) {
-	return (
-		metric === "tokens" ||
-		metric === "input_tokens" ||
-		metric === "output_tokens"
-	);
 }
 
 /** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */

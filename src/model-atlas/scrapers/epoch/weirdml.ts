@@ -8,11 +8,11 @@
  */
 
 import {
-	asFiniteNumber,
 	benchmarkModelEffort,
 	canonicalReasoningEffort,
-} from "../../shared";
-import { parseCsvRecords } from "../csv-parser";
+} from "../../identity/normalization";
+import { asFiniteNumber } from "../../runtime";
+import { parseCsvRecords } from "../parsing";
 
 export const WEIRDML_EPOCH_CSV_URL =
 	"https://epoch.ai/data/external_benchmarks/weirdml.csv";

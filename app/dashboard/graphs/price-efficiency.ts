@@ -1,15 +1,15 @@
 /** Price-efficiency chart data reconstruction and summaries. */
 
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import {
-	coverageConfidence,
 	log10OnePlusPositive,
 	meanOfFinite,
-} from "../../../src/model-atlas/math-utils";
-import { canonicalModelKey } from "../../../src/model-atlas/shared";
+} from "../../../src/model-atlas/numeric";
+import { coverageConfidence } from "../../../src/model-atlas/pipeline/scores/normalization";
 import {
 	benchmarkResourceEfficiencyScores,
 	modelBalancedMinMaxScores,
-} from "../../../src/model-atlas/stats/scores/final-scoring";
+} from "../../../src/model-atlas/pipeline/scores/resource-efficiency";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,

@@ -1,9 +1,9 @@
 /** Build the compact initial payload used by the dashboard route. */
 
-import { COLUMN_TOOLTIPS } from "../../src/model-atlas/constants";
+import { COLUMN_TOOLTIPS } from "../../src/model-atlas/config";
+import type { LlmStatsColumnTooltips } from "../../src/model-atlas/config/tooltips";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsColumnTooltips,
 	LlmStatsModel,
 	LlmStatsPayload,
 } from "../../src/model-atlas/stats/types";

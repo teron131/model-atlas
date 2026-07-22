@@ -4,8 +4,8 @@
  * Page source: https://andonlabs.com/evals/blueprint-bench-2
  */
 
-import { normalizeModelToken } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+import { normalizeModelToken } from "../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
 import { htmlTextLines } from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/blueprint-bench-2";

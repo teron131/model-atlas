@@ -8,17 +8,17 @@ import {
 	payloadFetchedAtFromRow,
 	readPayloadRows,
 	SNAPSHOT_METADATA_SQL,
-} from "./payload";
+} from "./payload-rows";
+import { loadSchemaSql } from "./schema";
 import {
 	catalogTableMatchesSchema,
-	loadSchemaSql,
 	quoteIdentifier,
 	SCHEMA_MANIFEST_TABLE,
 	type SchemaCatalogRow,
 	type SchemaManifestRow,
 	type SchemaReconciliationPlan,
 	schemaReconciliationPlan,
-} from "./schema";
+} from "./schema-reconciliation";
 
 type D1Value = string | number | null;
 type D1Rows = Record<string, unknown>[];

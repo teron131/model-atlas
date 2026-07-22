@@ -4,8 +4,14 @@
  * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the leaderboard omits.
  */
 
-import { asRecord, type JsonObject } from "../../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import { ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS } from "../../benchmarks/registry";
+import {
+	asRecord,
+	fetchWithTimeout,
+	type JsonObject,
+	nowEpochSeconds,
+} from "../../runtime";
+
 import {
 	extractNextFlightCorpus,
 	findObjectEnd,
@@ -74,25 +80,6 @@ function absoluteLogoUrl(value: unknown): string | null {
 	return `https://artificialanalysis.ai${normalized}`;
 }
 
-const BENCHMARK_KEY_BY_SOURCE_KEY = {
-	apexAgents: "apex_agents",
-	apex_agents: "apex_agents",
-	critpt: "critpt",
-	gdpvalNormalized: "gdpval_normalized",
-	gdpval_normalized: "gdpval_normalized",
-	gpqa: "gpqa",
-	hle: "hle",
-	itbenchSre: "itbench_sre",
-	itbench_sre: "itbench_sre",
-	lcr: "lcr",
-	mmmuPro: "mmmu_pro",
-	mmmu_pro: "mmmu_pro",
-	scicode: "scicode",
-	tauBanking: "tau_banking",
-	tau_banking: "tau_banking",
-	terminalbenchV21: "terminalbench_v21",
-	terminalbench_v21: "terminalbench_v21",
-} as const satisfies Readonly<Record<string, string>>;
 const NO_COLUMN_VALUE = Symbol("no_column_value");
 function firstNumber(row: JsonObject, keys: string[]): number | null {
 	for (const key of keys) {
@@ -141,12 +128,8 @@ function pickEvaluations(row: JsonObject): JsonObject {
 
 function benchmarkKeyBySourceKey(key: string): string | null {
 	return (
-		BENCHMARK_KEY_BY_SOURCE_KEY[
-			key as keyof typeof BENCHMARK_KEY_BY_SOURCE_KEY
-		] ??
-		BENCHMARK_KEY_BY_SOURCE_KEY[
-			normalizeMetricKey(key) as keyof typeof BENCHMARK_KEY_BY_SOURCE_KEY
-		] ??
+		ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS[key] ??
+		ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS[normalizeMetricKey(key)] ??
 		null
 	);
 }

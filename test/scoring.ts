@@ -1,27 +1,16 @@
 /** Exercises component scoring, benchmark imputation, anchors, and scoring configuration invariants. */
 
 import assert from "node:assert/strict";
-
-import {
-	STAGE_CONFIG,
-	validateBenchmarkPortfolio,
-} from "../src/model-atlas/constants";
+import { validateBenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
 	effectiveSampleSize,
-	logInputMinMaxScores,
-	logitPercentageScore,
-	meanOfFiniteWithMinimum,
 	medianOfFinite,
-	minMaxScores,
-	percentileRank,
 	quantileFromSorted,
 	weightedPercentileRank,
 	weightedQuantile,
 	weightedQuantileRank,
-	winsorizedMinMaxScores,
-} from "../src/model-atlas/math-utils";
-import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/metadata";
-import { benchmarkMetricValue } from "../src/model-atlas/stats/resource-metrics";
+} from "../src/model-atlas/numeric";
 import {
 	attachFinalScores,
 	blendedPriceValue,
@@ -30,12 +19,20 @@ import {
 	buildComponentScores,
 	buildQualityScoringContext,
 	simulatedBlendSeconds,
-} from "../src/model-atlas/stats/scores";
+} from "../src/model-atlas/pipeline/scores";
 import {
 	normalizedMetricValue,
 	prepareBenchmarkScoring,
-} from "../src/model-atlas/stats/scores/benchmark-imputation";
-import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/stats/scores/final-scoring";
+} from "../src/model-atlas/pipeline/scores/benchmark-imputation";
+import {
+	logInputMinMaxScores,
+	logitPercentageScore,
+	minMaxScores,
+	winsorizedMinMaxScores,
+} from "../src/model-atlas/pipeline/scores/normalization";
+import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
+import { benchmarkMetricValue } from "../src/model-atlas/pipeline/scores/resource-metrics";
+import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModelCandidate,
@@ -171,8 +168,6 @@ assertClose(winsorizedScores[0], 100);
 assertClose(winsorizedScores[3], 0);
 assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
-assertEqual(meanOfFiniteWithMinimum([100, null, null], 2), null);
-assertEqual(meanOfFiniteWithMinimum([100, 50, null], 2), 75);
 assertEqual(
 	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.some(
 		([label]) => label === "Blend",
@@ -331,6 +326,34 @@ assertEqual(
 		"aa_intelligence_index",
 	),
 	73.5,
+);
+assertEqual(
+	benchmarkMetricValue(
+		{ evaluations: { aa_intelligence_index: 71.25 } },
+		"aa_intelligence_index",
+	),
+	71.25,
+);
+assertEqual(
+	benchmarkMetricValue(
+		{ evaluations: { custom_benchmark: 0.625 } },
+		"custom_benchmark",
+	),
+	0.625,
+);
+assertEqual(
+	benchmarkMetricValue(
+		{ intelligence: { custom_benchmark: 0.75 } },
+		"custom_benchmark",
+	),
+	0.75,
+);
+assertEqual(
+	benchmarkMetricValue(
+		{ intelligence: { omniscience_accuracy: 0.82 } },
+		"omniscience_accuracy",
+	),
+	0.82,
 );
 assertEqual(
 	STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.group,
@@ -598,20 +621,12 @@ assertClose(latencySpeedModels[1]?.scores.speed_score, 25);
 
 const gapExampleValues = [1, 2, 3, 50, 60, 70, 95, 99];
 const minMaxGapScores = minMaxScores(gapExampleValues, "higher");
-const percentileGapScores = gapExampleValues.map((value) =>
-	percentileRank(gapExampleValues, value),
-);
 assertClose(minMaxGapScores[3], 50);
 assertClose(minMaxGapScores[4], 60.2040816327);
 assertClose(
 	((minMaxGapScores[3] ?? 0) - (minMaxGapScores[2] ?? 0)) /
 		((minMaxGapScores[4] ?? 0) - (minMaxGapScores[3] ?? 0)),
 	4.7,
-);
-assertClose(
-	((percentileGapScores[3] ?? 0) - (percentileGapScores[2] ?? 0)) /
-		((percentileGapScores[4] ?? 0) - (percentileGapScores[3] ?? 0)),
-	1,
 );
 assertClose(logInputMinMaxScores([1, 10, 100], "higher")[1], 50);
 assertClose(logInputMinMaxScores([1, 10, 100], "lower")[1], 50);

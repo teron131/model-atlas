@@ -73,6 +73,8 @@ A useful benchmark report should answer:
 - Is it redundant with a better benchmark?
 - Is there enough public evidence to understand the result?
 
+Watchlist-only benchmarks belong in review documentation rather than empty source adapters. Before implementation, require a stable structured leaderboard with source model and configuration identities, task-level outcomes or distributions with uncertainty and run counts, documented aggregation and comparable harness conditions, and current frontier coverage with non-saturated rank separation. Time Horizon Index remains non-scoring until that evidence exists.
+
 ## Effort Sensitivity
 
 Benchmarks with multiple reasoning-effort or budget settings should be inspected for effort sensitivity.

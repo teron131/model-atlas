@@ -4,13 +4,13 @@
  * Page source: https://www.mercor.com/apex/apex-agents-leaderboard/
  */
 
-import { benchmarkModelEffort } from "../shared";
+import { benchmarkModelEffort } from "../identity/normalization";
 import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
 	nowEpochSeconds,
-} from "../utils";
+} from "../runtime";
 import {
 	extractNextFlightCorpus,
 	findObjectEnd,

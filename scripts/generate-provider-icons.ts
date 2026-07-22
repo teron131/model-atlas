@@ -7,8 +7,8 @@ import { readDatabasePayload } from "../src/model-atlas/database";
 import {
 	resizeLogoToPng,
 	statsLogoCacheDir,
-} from "../src/model-atlas/logo-cache";
-import { providerIconColor } from "../src/model-atlas/logo-color";
+} from "../src/model-atlas/logos/cache";
+import { providerIconColor } from "../src/model-atlas/logos/color";
 
 type ProviderAsset = {
 	logo: string;
@@ -125,14 +125,17 @@ function svgDataUrl(imageBuffer: Buffer) {
 function providerAssetsModule(assets: ProviderAssetMap) {
 	const entries = Object.entries(assets)
 		.sort(([left], [right]) => left.localeCompare(right))
-		.map(([provider, asset]) =>
-			[
-				`\t${propertyKey(provider)}: {`,
+		.map(([provider, asset]) => {
+			const key = /^[A-Za-z_$][\w$]*$/.test(provider)
+				? provider
+				: JSON.stringify(provider);
+			return [
+				`\t${key}: {`,
 				`\t\tcolor: ${JSON.stringify(asset.color)},`,
 				`\t\tlogo: ${JSON.stringify(asset.logo)},`,
 				"\t},",
-			].join("\n"),
-		)
+			].join("\n");
+		})
 		.join("\n");
 	return [
 		"// Generated provider assets from scripts/generate-provider-icons.ts. Do not edit directly.",
@@ -147,10 +150,6 @@ function providerAssetsModule(assets: ProviderAssetMap) {
 		"} as const satisfies Record<string, ProviderAsset>;",
 		"",
 	].join("\n");
-}
-
-function propertyKey(value: string) {
-	return /^[A-Za-z_$][\w$]*$/.test(value) ? value : JSON.stringify(value);
 }
 
 function providerSlug(provider: string | null | undefined) {
