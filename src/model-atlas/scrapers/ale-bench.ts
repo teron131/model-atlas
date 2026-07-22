@@ -5,15 +5,19 @@
  * JSON source: https://sakanaai.github.io/ALE-Bench-Leaderboard/data/results_summary.json
  */
 
+import type { SourceCrosswalkDiagnostic } from "../benchmarks/source-crosswalk";
+import { buildAdditiveSourceCrosswalk } from "../benchmarks/source-crosswalk";
+import {
+	benchmarkModelEffort,
+	canonicalReasoningEffort,
+} from "../identity/normalization";
 import {
 	asFiniteNumber,
 	asRecord,
-	benchmarkModelEffort,
-	canonicalReasoningEffort,
-} from "../shared";
-import type { SourceCrosswalkDiagnostic } from "../stats/scores/source-crosswalk";
-import { buildAdditiveSourceCrosswalk } from "../stats/scores/source-crosswalk";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+	fetchWithTimeout,
+	nowEpochSeconds,
+} from "../runtime";
+
 import {
 	ALE_BENCH_EPOCH_RESULTS_URL,
 	type AleBenchEpochRow,

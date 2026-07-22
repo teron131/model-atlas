@@ -13,7 +13,7 @@ import {
 	fetchWithTimeout,
 	mapWithConcurrency,
 	nowEpochSeconds,
-} from "../../utils";
+} from "../../runtime";
 import {
 	buildOpenRouterSeriesTokenWeights,
 	emptyRawScrapedModel,

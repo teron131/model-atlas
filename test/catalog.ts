@@ -2,19 +2,17 @@
 
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
-import { canonicalModelKey } from "../src/model-atlas/shared";
-import { buildModelCatalogRows } from "../src/model-atlas/stats/catalog";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import type { ScoringConfig } from "../src/model-atlas/config/stage";
+import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
+import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog";
 import {
 	hasRequiredBasicSpecs,
 	hasRequiredBenchmarkEvidence,
 	hasRequiredPublicScore,
-} from "../src/model-atlas/stats/selection/builder";
-import type {
-	BenchmarkPortfolio,
-	ScoringConfig,
-} from "../src/model-atlas/stats/types";
+} from "../src/model-atlas/pipeline/selection/builder";
+import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
+import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 
 const sourceData = {

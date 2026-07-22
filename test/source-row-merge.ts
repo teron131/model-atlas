@@ -2,14 +2,16 @@
 
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import {
+	artificialAnalysisEvaluationResourceSourceKey,
+	mergeArtificialAnalysisRow,
+} from "../src/model-atlas/ingest/source-snapshots/artificial-analysis";
 import {
 	mergeCachedSourceRows,
 	snapshotRows,
 	snapshotRowsWithStates,
-} from "../src/model-atlas/database/policy";
-import { mergeArtificialAnalysisRow } from "../src/model-atlas/database/source-snapshots/artificial-analysis";
-import { artificialAnalysisEvaluationResourceSourceKey } from "../src/model-atlas/database/source-snapshots/sparse-benchmarks";
+} from "../src/model-atlas/ingest/source-snapshots/policy";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import { artificialAnalysisModelId } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
 

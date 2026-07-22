@@ -3,20 +3,24 @@
 import assert from "node:assert/strict";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
-import { readAleBenchRawCache } from "../src/model-atlas/database/cache";
 import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import type { SourceSnapshots } from "../src/model-atlas/database/types";
+import { readAleBenchRawCache } from "../src/model-atlas/ingest/cache";
 import {
-	insertAleBenchRawRows,
+	SNAPSHOT_TABLES,
+	type SourceSnapshots,
+} from "../src/model-atlas/ingest/types";
+import {
+	insertBenchmarkRawRows,
 	insertModelEvaluations,
 	insertModels,
 	insertModelTaskMetrics,
-} from "../src/model-atlas/database/writers";
+} from "../src/model-atlas/ingest/writers";
+import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { processAleBenchSakanaPayload } from "../src/model-atlas/scrapers/ale-bench";
-import { benchmarkRowsFromDb } from "../src/model-atlas/stats/benchmarks";
+import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
 
 function statistics(mean: number) {
 	return {
@@ -77,7 +81,11 @@ try {
 		db.prepare(
 			"INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)",
 		).run(1_800_000_001);
-		insertAleBenchRawRows(db, snapshots);
+		insertBenchmarkRawRows(
+			db,
+			snapshots as unknown as SourceSnapshots,
+			SNAPSHOT_TABLES.ale_bench,
+		);
 		const rawRows = db
 			.prepare("SELECT * FROM ale_bench_raw_rows ORDER BY row_index")
 			.all();
@@ -99,35 +107,16 @@ try {
 			agentsLastExamRows: [],
 			aleBenchRows: rawRows,
 			blueprintBenchRows: [],
-			browseCompRows: [],
-			chartographyRows: [],
-			chessPuzzleRows: [],
-			codeMigrationRows: [],
+			...benchmarkScoreRowGroups(),
 			cursorBenchRows: [],
-			cyberBenchRows: [],
 			deepSWERows: [],
-			ebrBenchRows: [],
-			embRows: [],
-			enterpriseBenchCoreCraftRows: [],
-			epochCapabilitiesIndexRows: [],
-			financeAgentV2Rows: [],
 			frontierCodeRows: [],
-			frontierMathTier4Rows: [],
 			gdpPdfRows: [],
-			handbookMdRows: [],
 			harveyLabRows: [],
-			legalResearchRows: [],
-			medCodeRows: [],
-			programBenchRows: [],
-			proofBenchRows: [],
-			publicBenefitsBenchRows: [],
 			riemannBenchRows: [],
 			terminalBenchRows: [],
-			toolathlonRows: [],
 			valsIndexRows: [],
 			vendingBench2Rows: [],
-			vibeCodeRows: [],
-			weirdMlRows: [],
 		});
 		assert.deepEqual(benchmarkRows.ale_bench, [
 			{

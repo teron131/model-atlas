@@ -1,10 +1,10 @@
 /** Mercor APEX crosswalk fixtures protect overlap calibration, validation, and AA-first fallback. */
 
 import assert from "node:assert/strict";
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
-import { asFiniteNumber, asRecord } from "../src/model-atlas/shared";
-import { buildBenchmarkImputationByModel } from "../src/model-atlas/stats/scores";
-import { buildAdditiveSourceCrosswalk } from "../src/model-atlas/stats/scores/source-crosswalk";
+import { buildAdditiveSourceCrosswalk } from "../src/model-atlas/benchmarks/source-crosswalk";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import { buildBenchmarkImputationByModel } from "../src/model-atlas/pipeline/scores";
+import { asFiniteNumber, asRecord } from "../src/model-atlas/runtime";
 
 function model(
 	name: string,

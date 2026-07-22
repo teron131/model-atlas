@@ -3,20 +3,24 @@
 import assert from "node:assert/strict";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
-import { readFrontierCodeRawCache } from "../src/model-atlas/database/cache";
 import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import type { SourceSnapshots } from "../src/model-atlas/database/types";
+import { readFrontierCodeRawCache } from "../src/model-atlas/ingest/cache";
 import {
-	insertFrontierCodeRawRows,
+	SNAPSHOT_TABLES,
+	type SourceSnapshots,
+} from "../src/model-atlas/ingest/types";
+import {
+	insertBenchmarkRawRows,
 	insertModelEvaluations,
 	insertModels,
 	insertModelTaskMetrics,
-} from "../src/model-atlas/database/writers";
+} from "../src/model-atlas/ingest/writers";
+import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { processFrontierCodePayload } from "../src/model-atlas/scrapers/frontier-code";
-import { benchmarkRowsFromDb } from "../src/model-atlas/stats/benchmarks";
+import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
 
 function metrics(score: number, cost: number, tokens: number) {
 	return {
@@ -77,7 +81,11 @@ try {
 		db.prepare(
 			"INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)",
 		).run(1_800_000_001);
-		insertFrontierCodeRawRows(db, snapshots);
+		insertBenchmarkRawRows(
+			db,
+			snapshots as unknown as SourceSnapshots,
+			SNAPSHOT_TABLES.frontier_code,
+		);
 		const rawRows = db
 			.prepare("SELECT * FROM frontier_code_raw_rows ORDER BY row_index")
 			.all();
@@ -101,35 +109,16 @@ try {
 			agentsLastExamRows: [],
 			aleBenchRows: [],
 			blueprintBenchRows: [],
-			browseCompRows: [],
-			chartographyRows: [],
-			chessPuzzleRows: [],
-			codeMigrationRows: [],
+			...benchmarkScoreRowGroups(),
 			cursorBenchRows: [],
-			cyberBenchRows: [],
 			deepSWERows: [],
-			ebrBenchRows: [],
-			embRows: [],
-			enterpriseBenchCoreCraftRows: [],
-			epochCapabilitiesIndexRows: [],
-			financeAgentV2Rows: [],
 			frontierCodeRows: rawRows,
-			frontierMathTier4Rows: [],
 			gdpPdfRows: [],
-			handbookMdRows: [],
 			harveyLabRows: [],
-			legalResearchRows: [],
-			medCodeRows: [],
-			programBenchRows: [],
-			proofBenchRows: [],
-			publicBenefitsBenchRows: [],
 			riemannBenchRows: [],
 			terminalBenchRows: [],
-			toolathlonRows: [],
 			valsIndexRows: [],
 			vendingBench2Rows: [],
-			vibeCodeRows: [],
-			weirdMlRows: [],
 		});
 		assert.deepEqual(benchmarkRows.frontier_code, [
 			{

@@ -4,14 +4,18 @@
  * The Artificial Analysis leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
  */
 
-import { normalizeModelToken, reasoningEffortRank } from "../../shared";
+import { ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../benchmarks/registry";
+import {
+	normalizeModelToken,
+	reasoningEffortRank,
+} from "../../identity/normalization";
 import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
 	mapWithConcurrency,
 	nowEpochSeconds,
-} from "../../utils";
+} from "../../runtime";
 import {
 	extractNextFlightCorpus,
 	findObjectEnd,
@@ -122,61 +126,26 @@ export type ArtificialAnalysisEvaluationResourceByBenchmark = ReadonlyMap<
 	ReadonlyMap<string, ArtificialAnalysisEvaluationResourceRow>
 >;
 
-export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES = [
-	{
-		benchmark_key: "apex_agents",
-		url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
-		task_run_count: 452,
-	},
-	{
-		benchmark_key: "automation_bench",
-		score_path: ["automation_bench_breakdown", "summary", "completion"],
-		url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
-		task_run_count: 657,
-	},
-	{
-		benchmark_key: "briefcase",
-		score_path: ["briefcase", "elo"],
-		cost_path: ["briefcaseCost"],
-		token_counts_path: ["canonicalEvalTokenCounts", "briefcase"],
-		seconds_policy: BRIEFCASE_SECONDS_PER_TASK_POLICY,
-		row_detection_key: "briefcase",
-		url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
-		task_run_count: 91,
-	},
-	{
-		benchmark_key: "critpt",
-		url: "https://artificialanalysis.ai/evaluations/critpt",
-		task_run_count: 70,
-	},
-	{
-		benchmark_key: "gdpval_normalized",
-		url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
-		task_run_count: 220,
-	},
-	{
-		benchmark_key: "hle",
-		url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
-		task_run_count: 2_158,
-	},
-	{
-		benchmark_key: "itbench_sre",
-		score_key: "it_bench_sre",
-		url: "https://artificialanalysis.ai/evaluations/itbench-aa",
-		task_run_count: 59 * 3,
-	},
-	{
-		benchmark_key: "tau_banking",
-		url: "https://artificialanalysis.ai/evaluations/tau3-banking",
-		task_run_count: 97,
-	},
-	{
-		benchmark_key: "terminalbench_v21",
-		score_key: "terminalbench_v2_1",
-		url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-		task_run_count: 89 * 3,
-	},
-] as const satisfies readonly ArtificialAnalysisEvaluationResourcePage[];
+export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES =
+	BENCHMARK_RESOURCE_PAGES.map(
+		(page): ArtificialAnalysisEvaluationResourcePage => ({
+			benchmark_key: page.benchmarkKey,
+			...(page.scoreKey == null ? {} : { score_key: page.scoreKey }),
+			...(page.scorePath == null ? {} : { score_path: page.scorePath }),
+			...(page.costPath == null ? {} : { cost_path: page.costPath }),
+			...(page.tokenCountsPath == null
+				? {}
+				: { token_counts_path: page.tokenCountsPath }),
+			...(page.secondsProcessor === "briefcase"
+				? { seconds_policy: BRIEFCASE_SECONDS_PER_TASK_POLICY }
+				: {}),
+			...(page.rowDetectionKey == null
+				? {}
+				: { row_detection_key: page.rowDetectionKey }),
+			url: page.url,
+			task_run_count: page.taskRunCount,
+		}),
+	);
 
 function providerSlug(provider: string | null): string | null {
 	return provider == null

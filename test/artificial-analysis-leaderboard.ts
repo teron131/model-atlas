@@ -1,16 +1,16 @@
 /** Exercises Artificial Analysis leaderboard projection and scoring inputs. */
 
-import { SIMULATION_PROFILES } from "../src/model-atlas/constants";
+import { SIMULATION_PROFILES } from "../src/model-atlas/config";
+import {
+	buildBenchmarkImputationByModel,
+	buildComponentScores,
+	buildQualityScoringContext,
+} from "../src/model-atlas/pipeline/scores";
 import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/common";
 import {
 	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
 	processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
-import {
-	buildBenchmarkImputationByModel,
-	buildComponentScores,
-	buildQualityScoringContext,
-} from "../src/model-atlas/stats/scores";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = stableJson(actual);

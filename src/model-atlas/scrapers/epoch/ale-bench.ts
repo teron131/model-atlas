@@ -5,8 +5,8 @@
  * CSV source: https://epoch.ai/data/external_benchmarks/ale_bench.csv
  */
 
-import { asFiniteNumber } from "../../shared";
-import { parseCsvRecords } from "../csv-parser";
+import { asFiniteNumber } from "../../runtime";
+import { parseCsvRecords } from "../parsing";
 
 export const ALE_BENCH_EPOCH_RESULTS_URL =
 	"https://epoch.ai/data/external_benchmarks/ale_bench.csv";

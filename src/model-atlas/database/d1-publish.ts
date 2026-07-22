@@ -2,52 +2,40 @@
 
 import { createHash } from "node:crypto";
 
-import { STAGE_CONFIG } from "../constants";
-import { preserveHighSignalSnapshotModels } from "../stats/snapshot-preservation";
-import type { LlmStatsPayload } from "../stats/types";
-import { nowEpochSeconds } from "../utils";
+import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../benchmarks/registry";
+import { STAGE_CONFIG } from "../config";
 import {
 	artificialAnalysisEvaluationResourceRawCacheFromRows,
 	artificialAnalysisRawCacheFromRows,
 	modelsDevRawCacheFromRows,
 	rawSourceCacheStatusFromRows,
-	readAgentArenaRawCache,
-	readAgentsLastExamRawCache,
-	readAleBenchRawCache,
-	readBlueprintBenchRawCache,
-	readBrowseCompRawCache,
-	readChartographyRawCache,
-	readChessPuzzlesRawCache,
-	readCodeMigrationRawCache,
-	readCursorBenchRawCache,
-	readCyberBenchRawCache,
-	readDeepSWERawCache,
-	readEbrBenchRawCache,
-	readEmbRawCache,
-	readEnterpriseBenchCoreCraftRawCache,
-	readEpochCapabilitiesIndexRawCache,
-	readFinanceAgentV2RawCache,
-	readFrontierCodeRawCache,
-	readFrontierMathTier4RawCache,
-	readGdpPdfRawCache,
-	readHandbookMdRawCache,
-	readHarveyLabRawCache,
-	readLegalResearchRawCache,
-	readMedCodeRawCache,
-	readMercorApexAgentsRawCache,
+	readBenchmarkScoreRawCache,
 	readOpenRouterRawCache,
-	readProgramBenchRawCache,
-	readProofBenchRawCache,
-	readPublicBenefitsBenchRawCache,
-	readRiemannBenchRawCache,
-	readTerminalBenchRawCache,
-	readToolathlonRawCache,
-	readValsIndexRawCache,
-	readVendingBench2RawCache,
-	readVibeCodeRawCache,
-	readWeirdMlRawCache,
-} from "./cache";
-import type { CacheDbRow } from "./cache/rows";
+} from "../ingest/cache";
+import type { CacheDbRow } from "../ingest/cache/rows";
+import { benchmarkSnapshotCachesFromRows } from "../ingest/source-snapshots/benchmark-runtimes";
+import {
+	refreshSourceSnapshots,
+	type SourceSnapshotCaches,
+} from "../ingest/source-snapshots/load";
+import {
+	type OpenRouterRawCache,
+	refreshOpenRouterRawPayload,
+} from "../ingest/source-snapshots/openrouter";
+import { sourceRowStatesFromRows } from "../ingest/source-snapshots/policy";
+import {
+	RAW_SOURCE_NAMES,
+	RAW_SOURCE_TABLES,
+	type RawSourceCacheStatus,
+	type RawSourceName,
+	SNAPSHOT_TABLES,
+} from "../ingest/types";
+import { SnapshotRowCollector } from "../ingest/writers";
+import type { CollectedTableRows } from "../ingest/writers/collector";
+import type { SqlValue } from "../ingest/writers/shared";
+import { nowEpochSeconds } from "../runtime";
+import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
+import type { LlmStatsPayload } from "../stats/types";
 import {
 	d1Config,
 	ensureD1Schema,
@@ -57,28 +45,18 @@ import {
 	readD1Payload,
 } from "./d1";
 import {
-	type OpenRouterRawCache,
-	refreshOpenRouterRawPayload,
-} from "./openrouter-cache";
-import {
 	buildPayloadFromRows,
 	buildPayloadRows,
 	PAYLOAD_ROW_GROUPS,
-} from "./payload";
-import { deriveDatabaseSnapshot, writeDatabaseSnapshotRows } from "./pipeline";
-import { sourceRowStatesFromRows } from "./policy";
-import type { SchemaReconciliationPlan } from "./schema";
-import { refreshSourceSnapshots, type SourceSnapshotCaches } from "./snapshots";
+} from "./payload-rows";
 import {
-	RAW_SOURCE_NAMES,
-	RAW_SOURCE_TABLES,
-	type RawSourceCacheStatus,
-	type RawSourceName,
-	SNAPSHOT_TABLES,
-} from "./types";
-import { SnapshotRowCollector } from "./writers";
-import type { CollectedTableRows } from "./writers/collector";
-import type { SqlValue } from "./writers/shared";
+	quoteIdentifier,
+	type SchemaReconciliationPlan,
+} from "./schema-reconciliation";
+import {
+	deriveDatabaseSnapshot,
+	writeDatabaseSnapshotRows,
+} from "./snapshot-workflow";
 
 const DERIVED_TABLES = [
 	SNAPSHOT_TABLES.source_quarantines,
@@ -303,7 +281,14 @@ async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
 function sourceCachesFromRows(
 	rows: Record<RawSourceName, CacheDbRow[]>,
 ): SourceSnapshotCaches {
+	const benchmarkScores = Object.fromEntries(
+		BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) => [
+			binding.sourceDataKey,
+			readBenchmarkScoreRawCache(rows[binding.rawSource], binding),
+		]),
+	);
 	return {
+		...benchmarkSnapshotCachesFromRows(rows),
 		artificialAnalysis: artificialAnalysisRawCacheFromRows(
 			rows.artificial_analysis,
 		),
@@ -312,46 +297,7 @@ function sourceCachesFromRows(
 				rows.artificial_analysis_evaluation_resources,
 			),
 		modelsDev: modelsDevRawCacheFromRows(rows.models_dev),
-		agentArena: readAgentArenaRawCache(rows.agent_arena),
-		aleBench: readAleBenchRawCache(rows.ale_bench),
-		agentsLastExam: readAgentsLastExamRawCache(rows.agents_last_exam),
-		blueprintBench: readBlueprintBenchRawCache(rows.blueprint_bench_2),
-		browseComp: readBrowseCompRawCache(rows.browsecomp),
-		chartography: readChartographyRawCache(rows.chartography),
-		chessPuzzles: readChessPuzzlesRawCache(rows.chess_puzzles),
-		codeMigration: readCodeMigrationRawCache(rows.code_migration),
-		cursorBench: readCursorBenchRawCache(rows.cursorbench),
-		cyberBench: readCyberBenchRawCache(rows.cyberbench),
-		deepSWE: readDeepSWERawCache(rows.deep_swe),
-		ebrBench: readEbrBenchRawCache(rows.ebr_bench),
-		emb: readEmbRawCache(rows.emb),
-		enterpriseBenchCoreCraft: readEnterpriseBenchCoreCraftRawCache(
-			rows.enterprisebench_corecraft,
-		),
-		epochCapabilitiesIndex: readEpochCapabilitiesIndexRawCache(
-			rows.epoch_capabilities_index,
-		),
-		financeAgentV2: readFinanceAgentV2RawCache(rows.finance_agent_v2),
-		frontierCode: readFrontierCodeRawCache(rows.frontier_code),
-		frontierMathTier4: readFrontierMathTier4RawCache(rows.frontiermath_tier_4),
-		gdpPdf: readGdpPdfRawCache(rows.gdp_pdf),
-		handbookMd: readHandbookMdRawCache(rows.handbook_md),
-		harveyLab: readHarveyLabRawCache(rows.vals_harvey_lab),
-		legalResearch: readLegalResearchRawCache(rows.legal_research),
-		medCode: readMedCodeRawCache(rows.medcode),
-		mercorApexAgents: readMercorApexAgentsRawCache(rows.mercor_apex_agents),
-		programBench: readProgramBenchRawCache(rows.programbench),
-		proofBench: readProofBenchRawCache(rows.proofbench),
-		publicBenefitsBench: readPublicBenefitsBenchRawCache(
-			rows.public_benefits_bench,
-		),
-		riemannBench: readRiemannBenchRawCache(rows.riemann_bench),
-		terminalBench: readTerminalBenchRawCache(rows.vals_terminal_bench),
-		toolathlon: readToolathlonRawCache(rows.toolathlon),
-		valsIndex: readValsIndexRawCache(rows.vals_index),
-		vendingBench2: readVendingBench2RawCache(rows.vending_bench_2),
-		vibeCode: readVibeCodeRawCache(rows.vibe_code),
-		weirdMl: readWeirdMlRawCache(rows.weirdml),
+		benchmarkScores,
 	};
 }
 
@@ -483,11 +429,4 @@ function sqlLiteral(value: SqlValue): string {
 		return Number.isFinite(value) ? String(value) : "NULL";
 	}
 	return `'${value.replaceAll("'", "''")}'`;
-}
-
-function quoteIdentifier(value: string): string {
-	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
-		throw new Error(`Unsafe SQL identifier: ${value}`);
-	}
-	return `"${value}"`;
 }

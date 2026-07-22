@@ -5,7 +5,7 @@ import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
 import {
 	PAYLOAD_ROW_GROUPS,
 	SNAPSHOT_METADATA_SQL,
-} from "../src/model-atlas/database/payload";
+} from "../src/model-atlas/database/payload-rows";
 import {
 	readDisplaySnapshotPayload,
 	refreshStoredSnapshot,

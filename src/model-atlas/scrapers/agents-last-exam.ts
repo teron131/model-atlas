@@ -4,9 +4,15 @@
  * Page source: https://agents-last-exam.org/leaderboard
  * JSON source: https://agents-last-exam.org/api/demo/leaderboard
  */
-import { meanOfFinite, medianOfFinite } from "../math-utils";
-import { asFiniteNumber, asRecord, normalizeModelToken } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+
+import { normalizeModelToken } from "../identity/normalization";
+import { meanOfFinite, medianOfFinite } from "../numeric";
+import {
+	asFiniteNumber,
+	asRecord,
+	fetchWithTimeout,
+	nowEpochSeconds,
+} from "../runtime";
 
 const DEFAULT_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";
 const DEFAULT_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";

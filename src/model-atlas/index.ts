@@ -1,19 +1,22 @@
 /** Public Model Atlas package exports for stats consumers. */
+
 export {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BASELINE_BENCHMARKS,
 	BENCHMARK_PORTFOLIO,
 	FRONTIER_BENCHMARKS,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	PRICE_PROFILES,
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
-	STAGE_CONFIG,
-} from "./constants";
+} from "./benchmarks/registry";
+export { PRICE_PROFILES, STAGE_CONFIG } from "./config";
+export type { ModelAtlasStageConfig } from "./config/stage";
 export type {
-	LlmStatsBenchmarkValues,
 	LlmStatsColumnTooltip,
 	LlmStatsColumnTooltips,
+} from "./config/tooltips";
+export type {
+	LlmStatsBenchmarkValues,
 	LlmStatsComponentScores,
 	LlmStatsContextWindow,
 	LlmStatsCost,
@@ -29,6 +32,5 @@ export type {
 	LlmStatsPayload,
 	LlmStatsScores,
 	LlmStatsSpeed,
-	ModelAtlasStageConfig,
-} from "./live-stats";
-export { getLiveLlmStats } from "./live-stats";
+} from "./stats/live";
+export { getLiveLlmStats } from "./stats/live";

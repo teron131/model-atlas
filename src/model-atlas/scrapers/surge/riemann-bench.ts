@@ -5,8 +5,8 @@
  * Paper source: https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/69c2d73f5d377a9428089ff7_048c62b8b526b0f06e87457bcca0e6fa_RiemannBench.pdf
  */
 
-import { normalizeModelToken } from "../../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import { normalizeModelToken } from "../../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { surgeLeaderboardScoreRows } from "./common";
 
 export const RIEMANN_BENCH_LEADERBOARD_URL =

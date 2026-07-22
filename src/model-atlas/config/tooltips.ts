@@ -1,19 +1,15 @@
 /** Column tooltip copy stays aligned with active scoring weights and benchmark resource policy. */
 
-import type {
-	LlmStatsColumnTooltip,
-	LlmStatsColumnTooltipRow,
-	LlmStatsColumnTooltips,
-} from "../stats/types";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
+	BENCHMARK_CATALOG,
 	BENCHMARK_KEYS,
 	type BenchmarkKey,
 	benchmarkDimensionWeight,
 	benchmarkPortfolioEntry,
 	benchmarkResourcePolicy,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-} from "./benchmark-portfolio";
+} from "../benchmarks/registry";
 import {
 	PRICE_PROFILE_ENTRIES,
 	PRICE_PROFILE_TOTAL_WEIGHT,
@@ -22,6 +18,41 @@ import {
 	SIMULATION_PROFILE_WEIGHTS,
 	type SIMULATION_PROFILES,
 } from "./usage-profiles";
+
+export type LlmStatsColumnTooltipRow = readonly [string, string];
+
+export type LlmStatsColumnTooltipSectionKind =
+	| "price_profile"
+	| "price_share"
+	| "workflow_simulation";
+
+export type LlmStatsColumnTooltipNestedSection = {
+	title: string;
+	kind?: LlmStatsColumnTooltipSectionKind;
+	weight?: string;
+	rows: readonly LlmStatsColumnTooltipRow[];
+};
+
+export type LlmStatsColumnTooltipSectionItem =
+	| LlmStatsColumnTooltipRow
+	| LlmStatsColumnTooltipNestedSection;
+
+type LlmStatsColumnTooltipSection = {
+	title: string;
+	hideTitle?: boolean;
+	kind?: LlmStatsColumnTooltipSectionKind;
+	weight?: string;
+	rows: readonly LlmStatsColumnTooltipSectionItem[];
+};
+
+export type LlmStatsColumnTooltip = {
+	title: string;
+	body: string;
+	rows?: readonly LlmStatsColumnTooltipRow[];
+	sections?: readonly LlmStatsColumnTooltipSection[];
+};
+
+export type LlmStatsColumnTooltips = Record<string, LlmStatsColumnTooltip>;
 
 function percent(value: number, fractionDigits = 0): string {
 	return `${(value * 100).toFixed(fractionDigits)}%`;
@@ -128,54 +159,6 @@ const VALUE_PRICE_COMPONENT_COUNT = 3;
 
 const FULL_OVERALL_TEXT = "Full Overall";
 
-const BENCHMARK_LABEL_BY_KEY = {
-	aa_intelligence_index: "Artificial Analysis Intelligence Index",
-	agent_arena: "Agent Arena",
-	agents_last_exam: "Agents' Last Exam",
-	ale_bench: "ALE-Bench",
-	apex_agents: "APEX Agents",
-	automation_bench: "AutomationBench",
-	blueprint_bench_2: "Blueprint-Bench 2",
-	briefcase: "Briefcase",
-	browsecomp: "BrowseComp",
-	chartography: "Chartography",
-	chess_puzzles: "Chess Puzzles",
-	code_migration: "Code Migration",
-	critpt: "CritPt",
-	cursorbench: "CursorBench",
-	cyberbench: "CyberBench",
-	deep_swe: "DeepSWE",
-	ebr_bench: "EBR-Bench",
-	emb: "EMB",
-	enterprisebench_corecraft: "EnterpriseBench CoreCraft",
-	epoch_capabilities_index: "Epoch Capabilities Index",
-	finance_agent_v2: "Finance Agent V2",
-	frontier_code: "FrontierCode",
-	frontiermath_tier_4: "FrontierMath Tier 4",
-	gdp_pdf: "GDP.pdf",
-	gdpval_normalized: "GDPval-AA v2",
-	handbook_md: "HANDBOOK.md",
-	harvey_lab: "Harvey LAB",
-	hle: "HLE",
-	itbench_sre: "ITBench",
-	lcr: "LCR",
-	legal_research: "Legal Research",
-	medcode: "MedCode",
-	omniscience_accuracy: "Omniscience accuracy",
-	programbench: "ProgramBench",
-	proofbench: "ProofBench",
-	public_benefits_bench: "Public Benefits Bench",
-	riemann_bench: "Riemann-bench",
-	scicode: "SciCode",
-	tau_banking: "tau3 Banking",
-	terminalbench_v21: "Terminal-Bench 2.1",
-	toolathlon: "Toolathlon",
-	vals_index: "Vals Index",
-	vending_bench_2: "Vending-Bench 2",
-	vibe_code: "Vibe Code",
-	weirdml: "WeirdML",
-} as const satisfies Record<BenchmarkKey, string>;
-
 type CoreColumnTooltipKey =
 	| "intelligence"
 	| "agentic"
@@ -214,7 +197,9 @@ function perComponentWeight(totalWeight: number, count: number): string {
 }
 
 function benchmarkLabel(key: string): string {
-	return BENCHMARK_LABEL_BY_KEY[key as BenchmarkKey] ?? key;
+	return (
+		BENCHMARK_CATALOG[key as BenchmarkKey]?.presentation.scoringLabel ?? key
+	);
 }
 
 function resourceBenchmarkKeys(
@@ -272,7 +257,7 @@ const benchmarkRowsByGroup = (
 		.map(
 			(key) =>
 				[
-					BENCHMARK_LABEL_BY_KEY[key],
+					BENCHMARK_CATALOG[key].presentation.scoringLabel,
 					benchmarkContributionPercent(keys, key, dimension),
 				] as const,
 		),
@@ -281,7 +266,7 @@ const benchmarkRowsByGroup = (
 		.map(
 			(key) =>
 				[
-					BENCHMARK_LABEL_BY_KEY[key],
+					BENCHMARK_CATALOG[key].presentation.scoringLabel,
 					benchmarkContributionPercent(keys, key, dimension),
 				] as const,
 		),

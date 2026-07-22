@@ -2,6 +2,7 @@
 
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import {
 	buildDeepSWEMap,
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
@@ -12,7 +13,6 @@ import {
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultEffortRows,
 } from "../src/model-atlas/scrapers/deep-swe";
-import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

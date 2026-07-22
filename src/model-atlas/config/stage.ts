@@ -1,6 +1,6 @@
 /** Pipeline stage switches that control how source rows are matched, enriched, pruned, and scored. */
 
-import type { ModelAtlasStageConfig } from "../stats/types";
+import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
@@ -8,13 +8,61 @@ import {
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	SELECTED_AGENTIC_BENCHMARKS,
 	SELECTED_INTELLIGENCE_BENCHMARKS,
-} from "./benchmark-portfolio";
-import { COLUMN_TOOLTIPS } from "./tooltips";
+} from "../benchmarks/registry";
+import type { MatcherConfig } from "../identity";
+import { COLUMN_TOOLTIPS, type LlmStatsColumnTooltips } from "./tooltips";
 import {
 	PRICE_PROFILES,
+	type PriceProfiles,
 	SECONDS_PER_INPUT_TOKEN,
 	SIMULATION_PROFILES,
+	type SimulationProfiles,
 } from "./usage-profiles";
+
+export type OpenRouterConfig = {
+	speedConcurrency: number;
+};
+
+export type BenchmarkAdmissionConfig = {
+	indexBenchmarkKeys: readonly string[];
+	minimumObservedBenchmarks: number;
+	minimumObservedBenchmarksPerDimension: number;
+};
+
+export type FinalStageConfig = {
+	nullFieldPruneThreshold: number;
+	nullFieldPruneRecentLookbackDays: number;
+	benchmarkAdmission: BenchmarkAdmissionConfig;
+};
+
+export type SnapshotPreservationConfig = {
+	minPreviousIntelligenceScore: number;
+	minIntelligenceScoreDrop: number;
+};
+
+export type ScoringConfig = {
+	intelligenceBenchmarkKeys: readonly string[];
+	intelligenceBenchmarkDisplayKeys: readonly string[];
+	agenticBenchmarkKeys: readonly string[];
+	agenticBenchmarkDisplayKeys: readonly string[];
+	defaultSpeedOutputTokenAnchors: readonly number[];
+	speedOutputTokenRangeMin: number;
+	speedOutputTokenRangeMax: number;
+	speedAnchorQuantiles: readonly number[];
+	priceProfiles: PriceProfiles;
+	simulationProfiles: SimulationProfiles;
+	secondsPerInputToken: number;
+	benchmarkPortfolio: BenchmarkPortfolio;
+	columnTooltips: LlmStatsColumnTooltips;
+};
+
+export type ModelAtlasStageConfig = {
+	matcher: MatcherConfig;
+	openrouter: OpenRouterConfig;
+	final: FinalStageConfig;
+	snapshotPreservation: SnapshotPreservationConfig;
+	scoring: ScoringConfig;
+};
 
 /** Centralized stage config for matching, enrichment, pruning, and scoring. */
 export const STAGE_CONFIG = {

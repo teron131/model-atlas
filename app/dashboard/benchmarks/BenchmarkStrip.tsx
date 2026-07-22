@@ -10,7 +10,7 @@ import {
 	useState,
 } from "react";
 
-import { benchmarkMetricValue } from "../../../src/model-atlas/stats/resource-metrics";
+import { benchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
 import {
 	ColumnTooltip,
@@ -77,9 +77,7 @@ export function BenchmarkStrip({
 				{benchmarkGroups.map(({ field, fallbackField, label }) => {
 					const keys = [
 						...(scoring?.[field] ?? scoring?.[fallbackField] ?? []),
-					].sort((left, right) =>
-						compareBenchmarkDisplayKeys(left, right, benchmarkPortfolio),
-					);
+					].sort(compareBenchmarkDisplayKeys);
 					return (
 						<BenchmarkGroup
 							key={field}

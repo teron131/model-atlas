@@ -1,7 +1,7 @@
 /** Shared Surge leaderboard parsing and fetching for benchmark-specific adapters. */
 
-import { benchmarkModelEffort } from "../../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../../utils";
+import { benchmarkModelEffort } from "../../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import type {
 	BenchmarkScorePayload,
 	BenchmarkScoreRow,

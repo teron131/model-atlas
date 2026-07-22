@@ -11,7 +11,7 @@ import {
 	insertModelEvaluations,
 	insertModels,
 	insertModelTaskMetrics,
-} from "../src/model-atlas/database/writers";
+} from "../src/model-atlas/ingest/writers";
 
 const databasePath = ".cache/test-database-aa-resource-task-metrics.sqlite";
 
@@ -87,8 +87,7 @@ try {
 		insertModelEvaluations(db, finalRows);
 		insertModelTaskMetrics(db, finalRows);
 		assert.equal(
-			db.prepare("SELECT reasoning_effort FROM models").get()
-				?.reasoning_effort,
+			db.prepare("SELECT reasoning_effort FROM models").get()?.reasoning_effort,
 			"xhigh",
 		);
 	} finally {

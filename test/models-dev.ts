@@ -1,10 +1,10 @@
 /** Verifies models.dev parsing, source retention, and public catalog eligibility. */
 
-import { processModelsDevPayload } from "../src/model-atlas/scrapers/models-dev";
 import {
 	pickPreferredModelsDevRows,
 	selectModelsDevRowsForArtificialAnalysis,
-} from "../src/model-atlas/stats/source-policy";
+} from "../src/model-atlas/ingest/assembly/policy";
+import { processModelsDevPayload } from "../src/model-atlas/scrapers/models-dev";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

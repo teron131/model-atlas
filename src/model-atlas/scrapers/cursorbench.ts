@@ -4,8 +4,11 @@
  * Page source: https://cursor.com/cursorbench
  */
 
-import { normalizeModelToken, reasoningEffortRank } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+import {
+	normalizeModelToken,
+	reasoningEffortRank,
+} from "../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
 import { htmlTextLines } from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://cursor.com/cursorbench";

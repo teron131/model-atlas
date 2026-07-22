@@ -5,9 +5,12 @@
  * Overlay page source: https://vercel.com/ai-gateway/models
  */
 
-import { claudeIdentityKey, parseClaudeIdentity } from "../claude-identity";
-import { normalizeModelToken, normalizeProviderModelId } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+import { claudeIdentityKey, parseClaudeIdentity } from "../identity/claude";
+import {
+	normalizeModelToken,
+	normalizeProviderModelId,
+} from "../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
 const VERCEL_AI_GATEWAY_MODELS_URL = "https://vercel.com/ai-gateway/models";

@@ -1,7 +1,7 @@
 /** Vending-Bench 2 scraper preserves long-horizon balance curves and final business outcomes. */
 
-import { benchmarkModelEffort } from "../shared";
-import { fetchWithTimeout, nowEpochSeconds } from "../utils";
+import { benchmarkModelEffort } from "../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
 import { findObjectEnd } from "./parsing";
 
 const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/vending-bench-2";

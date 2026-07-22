@@ -1,8 +1,8 @@
 /** Graph data shaping, filter options, and hover helpers. */
 
 import type { PointerEvent } from "react";
-import { minMaxScale } from "../../../src/model-atlas/math-utils";
-import { canonicalModelKey } from "../../../src/model-atlas/shared";
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
@@ -412,11 +412,7 @@ export function positiveDomain(values: number[]): [number, number] {
 }
 
 export function modelName(model: LlmStatsModel) {
-	return graphModelName(modelDisplayName(model));
-}
-
-function graphModelName(name: string) {
-	return name
+	return modelDisplayName(model)
 		.replace(/\bGPT\s+(?=\d)/g, "GPT-")
 		.replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
 }

@@ -4,13 +4,13 @@
  * Page source: https://www.vals.ai/benchmarks
  */
 
-import { canonicalReasoningEffort } from "../../shared";
+import { canonicalReasoningEffort } from "../../identity/normalization";
 import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
 	nowEpochSeconds,
-} from "../../utils";
+} from "../../runtime";
 import type {
 	BenchmarkScorePayload,
 	BenchmarkScoreRow,
@@ -19,7 +19,7 @@ import { htmlAttribute, stringValue } from "../parsing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type ValsScraperOptions = {
+type ValsScraperOptions = {
 	url?: string;
 	timeoutMs?: number;
 };
@@ -45,11 +45,6 @@ export type ValsBenchmarkDefinition = {
 	includeReasoningEffortInModel?: boolean;
 	isScoreEligible?: (task: string, modelId: string) => boolean;
 	sourceUrl: string;
-};
-
-type ValsBenchmarkScraper = {
-	getStats: (options?: ValsScraperOptions) => Promise<BenchmarkScorePayload>;
-	processPageHtml: (pageHtml: string) => BenchmarkScoreRow[];
 };
 
 function reviveAstroValue(value: unknown): unknown {
@@ -96,9 +91,7 @@ function metadataFromValue(value: unknown): ValsBenchmarkMetadata {
 }
 
 /** Decode one VALS BenchmarkView island without letting malformed hydration abort a refresh. */
-export function parseValsBenchmarkView(
-	pageHtml: string,
-): ValsBenchmarkView | null {
+function parseValsBenchmarkView(pageHtml: string): ValsBenchmarkView | null {
 	try {
 		const island = pageHtml.match(
 			/<astro-island\b(?=[^>]*component-url="\/_astro\/BenchmarkView[^"]*")[^>]*>/,
@@ -145,10 +138,6 @@ function jsonString(value: unknown): string | null {
 	} catch {
 		return null;
 	}
-}
-
-function stringOrJson(value: unknown): string | null {
-	return stringValue(value) ?? jsonString(value);
 }
 
 function modelSlug(modelId: string): string {
@@ -204,7 +193,7 @@ function scoreRow(
 			temperature: nonNegativeNumber(value.temperature),
 			top_p: nonNegativeNumber(value.top_p),
 			max_output_tokens: nonNegativeNumber(value.max_output_tokens),
-			reasoning: stringOrJson(value.reasoning),
+			reasoning: stringValue(value.reasoning) ?? jsonString(value.reasoning),
 			verbosity: stringValue(value.verbosity),
 			compute_effort: stringValue(value.compute_effort),
 			harness: stringValue(value.harness),
@@ -255,15 +244,4 @@ export async function getValsSourceStats(
 	} catch {
 		return { fetched_at_epoch_seconds: null, data: [] };
 	}
-}
-
-/** Bind source-specific public names to the shared VALS parser and fetch boundary. */
-export function createValsBenchmarkScraper(
-	definition: ValsBenchmarkDefinition,
-): ValsBenchmarkScraper {
-	return {
-		getStats: (options = {}) => getValsSourceStats(definition, options),
-		processPageHtml: (pageHtml) =>
-			processValsBenchmarkPageHtml(pageHtml, definition),
-	};
 }

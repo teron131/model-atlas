@@ -1,6 +1,6 @@
 /** Verifies OpenRouter parsing, route candidates, provenance, and statistics. */
 
-import { SOURCE_URLS } from "../src/model-atlas/database/types";
+import { SOURCE_URLS } from "../src/model-atlas/ingest/types";
 import {
 	buildOpenRouterSeriesTokenWeights,
 	buildOpenRouterSlugCandidates,

@@ -1,21 +1,21 @@
 /** Verifies live and cached rows share source selection, lookups, and default-effort assembly. */
 
 import assert from "node:assert/strict";
-
-import { cachedSourceDataFromSnapshots } from "../src/model-atlas/database/source-snapshots/data";
-import type { SourceSnapshots } from "../src/model-atlas/database/types";
+import type { LlmStatsSourceData } from "../src/model-atlas/ingest/assembly";
+import {
+	buildSourceData,
+	type LlmStatsSourceRows,
+} from "../src/model-atlas/ingest/assembly";
+import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/data";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
+import { benchmarkRowsFromSourceData } from "../src/model-atlas/pipeline/benchmark-rows";
 import type { BenchmarkScoreRow } from "../src/model-atlas/scrapers/benchmark-score";
 import type {
 	DeepSWELeaderboardRow,
 	DeepSWERawLeaderboardRow,
 } from "../src/model-atlas/scrapers/deep-swe";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
-import { benchmarkRowsFromSourceData } from "../src/model-atlas/stats/benchmarks";
-import {
-	buildSourceData,
-	type LlmStatsSourceRows,
-} from "../src/model-atlas/stats/source-data";
-import type { LlmStatsSourceData } from "../src/model-atlas/stats/types";
+import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
 
 function modelsDevModel(
 	providerId: string,
@@ -142,36 +142,22 @@ const sourceRows: LlmStatsSourceRows = {
 	agentsLastExamRows: [],
 	aleBenchConfigurationRows: [],
 	blueprintBenchRows: [],
-	browseCompRows: [],
-	codeMigrationRows: [],
-	chartographyRows: [surgeRow],
-	chessPuzzleRows: [epochRow],
+	...benchmarkScoreRowGroups<BenchmarkScoreRow>({
+		chartographyRows: [surgeRow],
+		chessPuzzleRows: [epochRow],
+		legalResearchRows: [valsLegalResearchRow],
+		proofBenchRows: [valsRow],
+	}),
 	cursorBenchRows: [],
-	cyberBenchRows: [],
 	deepSWEEffortRows,
-	ebrBenchRows: [],
-	embRows: [],
-	enterpriseBenchCoreCraftRows: [],
-	epochCapabilitiesIndexRows: [],
-	financeAgentV2Rows: [],
 	frontierCodeRows: [],
-	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
-	handbookMdRows: [],
 	harveyLabRows: [],
-	legalResearchRows: [valsLegalResearchRow],
-	medCodeRows: [],
 	mercorApexAgentsRows: [],
-	proofBenchRows: [valsRow],
-	programBenchRows: [],
-	publicBenefitsBenchRows: [],
 	riemannBenchRows: [],
 	terminalBenchRows: [],
-	toolathlonRows: [],
 	valsIndexRows: [],
 	vendingBench2Rows: [],
-	vibeCodeRows: [],
-	weirdMlRows: [],
 };
 
 const liveSourceData = buildSourceData(sourceRows);
@@ -184,9 +170,12 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	agentsLastExamModelScores: [],
 	aleBenchConfigurationRows: [],
 	blueprintBenchModelScoreRows: [],
-	browseCompModelScoreRows: [],
-	chartographyRows: [surgeRow],
-	chessPuzzleRows: [epochRow],
+	...benchmarkScoreRowGroups<BenchmarkScoreRow>({
+		chartographyRows: [surgeRow],
+		chessPuzzleRows: [epochRow],
+		legalResearchRows: [valsLegalResearchRow],
+		proofBenchRows: [valsRow],
+	}),
 	cursorBenchModelScoreRows: [],
 	deepSWERawRows: deepSWEEffortRows.map(
 		(row): DeepSWERawLeaderboardRow => ({
@@ -194,31 +183,14 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 			source_version: "v1.1",
 		}),
 	),
-	ebrBenchRows: [],
-	enterpriseBenchCoreCraftRows: [],
-	epochCapabilitiesIndexRows: [],
 	frontierCodeRows: [],
-	frontierMathTier4Rows: [],
 	gdpPdfModelScoreRows: [],
-	handbookMdRows: [],
 	harveyLabModelScoreRows: [],
 	mercorApexAgentsRows: [],
-	proofBenchRows: [valsRow],
 	riemannBenchModelScoreRows: [],
 	terminalBenchModelScoreRows: [],
-	toolathlonModelScoreRows: [],
 	valsIndexModelScoreRows: [],
-	codeMigrationRows: [],
-	cyberBenchRows: [],
-	embRows: [],
-	financeAgentV2Rows: [],
-	legalResearchRows: [valsLegalResearchRow],
-	medCodeRows: [],
-	programBenchRows: [],
-	publicBenefitsBenchRows: [],
-	vibeCodeRows: [],
 	vendingBench2ModelScoreRows: [],
-	weirdMlRows: [],
 } as unknown as SourceSnapshots);
 
 assert.deepEqual(summary(cachedSourceData), summary(liveSourceData));

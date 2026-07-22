@@ -1,3 +1,5 @@
+/** Verifies dashboard model ranking, filtering, labels, and metric display. */
+
 import assert from "node:assert/strict";
 import {
 	filterByModelControls,
@@ -20,7 +22,7 @@ import {
 	sortedRows,
 	taskMetricColumns,
 } from "../app/dashboard/table/models";
-import { canonicalReasoningEffort } from "../src/model-atlas/shared";
+import { canonicalReasoningEffort } from "../src/model-atlas/identity/normalization";
 import type { LlmStatsModel } from "../src/model-atlas/stats/types";
 import { minimalLlmStatsModel } from "./llm-stats-fixtures";
 

@@ -5,18 +5,20 @@ import {
 	readAgentArenaRawCache,
 	readMercorApexAgentsRawCache,
 	readVendingBench2RawCache,
-} from "../src/model-atlas/database/cache";
-import type { SourceSnapshots } from "../src/model-atlas/database/types";
+} from "../src/model-atlas/ingest/cache";
 import {
-	insertAgentArenaRawRows,
-	insertMercorApexAgentsRawRows,
-	insertVendingBench2RawRows,
+	SNAPSHOT_TABLES,
+	type SourceSnapshots,
+} from "../src/model-atlas/ingest/types";
+import {
+	insertBenchmarkRawRows,
 	SnapshotRowCollector,
-} from "../src/model-atlas/database/writers";
+} from "../src/model-atlas/ingest/writers";
+import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
-import { benchmarkRowsFromDb } from "../src/model-atlas/stats/benchmarks";
+import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
 
 const agentArenaRow: AgentArenaModelScoreRow = {
 	rank: 1,
@@ -59,9 +61,13 @@ const snapshots = {
 } as unknown as SourceSnapshots;
 const collector = new SnapshotRowCollector();
 
-insertAgentArenaRawRows(collector, snapshots);
-insertMercorApexAgentsRawRows(collector, snapshots);
-insertVendingBench2RawRows(collector, snapshots);
+insertBenchmarkRawRows(collector, snapshots, SNAPSHOT_TABLES.agent_arena);
+insertBenchmarkRawRows(
+	collector,
+	snapshots,
+	SNAPSHOT_TABLES.mercor_apex_agents,
+);
+insertBenchmarkRawRows(collector, snapshots, SNAPSHOT_TABLES.vending_bench_2);
 
 const agentArenaRows = collector.records("agent_arena_raw_rows");
 const mercorApexRows = collector.records("mercor_apex_agents_raw_rows");
@@ -100,35 +106,16 @@ const sourceRows = benchmarkRowsFromDb({
 	agentsLastExamRows: [],
 	aleBenchRows: [],
 	blueprintBenchRows: [],
-	browseCompRows: [],
-	chartographyRows: [],
-	chessPuzzleRows: [],
-	codeMigrationRows: [],
+	...benchmarkScoreRowGroups(),
 	cursorBenchRows: [],
-	cyberBenchRows: [],
 	deepSWERows: [],
-	ebrBenchRows: [],
-	embRows: [],
-	enterpriseBenchCoreCraftRows: [],
-	epochCapabilitiesIndexRows: [],
-	financeAgentV2Rows: [],
 	frontierCodeRows: [],
-	frontierMathTier4Rows: [],
 	gdpPdfRows: [],
-	handbookMdRows: [],
 	harveyLabRows: [],
-	legalResearchRows: [],
-	medCodeRows: [],
-	programBenchRows: [],
-	proofBenchRows: [],
-	publicBenefitsBenchRows: [],
 	riemannBenchRows: [],
 	terminalBenchRows: [],
-	toolathlonRows: [],
 	valsIndexRows: [],
 	vendingBench2Rows,
-	vibeCodeRows: [],
-	weirdMlRows: [],
 });
 assert.equal(sourceRows.agent_arena?.[0]?.value, 0.14);
 assert.equal(sourceRows.vending_bench_2?.[0]?.value, 10_936.76);

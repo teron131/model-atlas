@@ -1,6 +1,14 @@
 /** Verify shared benchmark enrichment maps source rows into evaluations and scoring sources. */
 
 import assert from "node:assert/strict";
+import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
+import {
+	type BenchmarkEnrichmentLookups,
+	enrichBenchmarkAggregate,
+	enrichBenchmarkObservation,
+	enrichModelRowsWithBenchmarks,
+} from "../src/model-atlas/pipeline/benchmark-rows";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
@@ -12,14 +20,6 @@ import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/fro
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
-import { buildBenchmarkModelMap } from "../src/model-atlas/shared";
-import {
-	type BenchmarkEnrichmentLookups,
-	enrichBenchmarkAggregate,
-	enrichBenchmarkObservation,
-	enrichModelRowsWithBenchmarks,
-} from "../src/model-atlas/stats/benchmarks";
-import { buildTaskMetrics } from "../src/model-atlas/stats/selection/task-metrics";
 
 const deepSWERow = {
 	model: "Example Model Preview",
@@ -270,6 +270,13 @@ const legalResearchRow = {
 	observed_at: null,
 	metadata: {},
 } satisfies BenchmarkScoreRow;
+const chartographyRow = {
+	...legalResearchRow,
+	benchmark_key: "chartography",
+	source: "surge",
+	source_url: "https://www.surgehq.ai/leaderboard/chartography",
+	score: 0.47,
+} satisfies BenchmarkScoreRow;
 
 const resourceRowsByBenchmark = new Map([
 	["briefcase", new Map([["example-model", briefcaseResourceRow]])],
@@ -300,7 +307,9 @@ const lookups = {
 		rowsByModelName: emptyLookup(),
 	},
 	codeMigration: { rowsByModelName: emptyLookup() },
-	chartography: { rowsByModelName: new Map() },
+	chartography: {
+		rowsByModelName: buildBenchmarkScoreMap([chartographyRow]),
+	},
 	chessPuzzles: { rowsByModelName: new Map() },
 	cursorBench: {
 		rowsByModelName: new Map([["example-model", cursorBenchRow]]),
@@ -389,6 +398,7 @@ assert.deepEqual(enrichment.evaluations, {
 	ale_bench: 700,
 	automation_bench: 0.68,
 	briefcase: 0.5,
+	chartography: 0.47,
 	cursorbench: 0.52,
 	deep_swe: 0.72,
 	frontier_code: 0.535,
@@ -404,6 +414,7 @@ assert.deepEqual(enrichment.scoringSources, {
 	apex_agents_mercor: mercorApexRow,
 	automation_bench: automationBenchResourceRow,
 	briefcase: briefcaseResourceRow,
+	chartography: chartographyRow,
 	cursorbench: cursorBenchRow,
 	deep_swe: deepSWERow,
 	frontier_code: frontierCodeRow,
@@ -435,11 +446,13 @@ const effortQualifiedAggregate = enrichBenchmarkAggregate(
 );
 assert.deepEqual(effortQualifiedAggregate.evaluations, {
 	agent_arena: 0.14,
+	chartography: 0.47,
 	legal_research: 0.61,
 	vending_bench_2: 9_000,
 });
 assert.deepEqual(effortQualifiedAggregate.scoringSources, {
 	agent_arena: agentArenaRow,
+	chartography: chartographyRow,
 	legal_research: legalResearchRow,
 	vending_bench_2: vendingBench2Row,
 });

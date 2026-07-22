@@ -1,20 +1,19 @@
 /** Verifies OpenRouter cache fidelity, route coverage, and targeted refresh policy. */
 
 import assert from "node:assert/strict";
-
-import {
-	openRouterCacheHasScopedCandidates,
-	readOpenRouterRawCache,
-} from "../src/model-atlas/database/cache/openrouter";
-import {
-	openRouterModelIdsToRefresh,
-	refreshOpenRouterRawPayload,
-} from "../src/model-atlas/database/openrouter-cache";
 import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import { insertOpenRouterRawRows } from "../src/model-atlas/database/writers/openrouter";
+import {
+	openRouterCacheHasScopedCandidates,
+	readOpenRouterRawCache,
+} from "../src/model-atlas/ingest/cache/openrouter";
+import {
+	openRouterModelIdsToRefresh,
+	refreshOpenRouterRawPayload,
+} from "../src/model-atlas/ingest/source-snapshots/openrouter";
+import { insertOpenRouterRawRows } from "../src/model-atlas/ingest/writers/openrouter";
 
 const databasePath = ".cache/test-openrouter-cache.sqlite";
 

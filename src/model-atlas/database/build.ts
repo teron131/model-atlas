@@ -3,22 +3,22 @@
 import { rename } from "node:fs/promises";
 import type { DatabaseSync } from "node:sqlite";
 
-import { STAGE_CONFIG } from "../constants";
-import { nowEpochSeconds } from "../utils";
-import { loadOpenRouterRawPayload } from "./openrouter-cache";
+import { STAGE_CONFIG } from "../config";
+import { loadSourceSnapshots } from "../ingest/source-snapshots/load";
+import { loadOpenRouterRawPayload } from "../ingest/source-snapshots/openrouter";
+import {
+	type DatabaseBuildOptions,
+	type DatabaseBuildResult,
+	DEFAULT_DATABASE_PATH,
+} from "../ingest/types";
+import { nowEpochSeconds } from "../runtime";
+import { openDatabase, removeDatabaseFiles } from "./schema";
 import {
 	type DatabaseSnapshotRows,
 	deriveDatabaseSnapshot,
 	SNAPSHOT_WRITER_TABLES,
 	writeDatabaseSnapshotRows,
-} from "./pipeline";
-import { openDatabase, removeDatabaseFiles } from "./schema";
-import { loadSourceSnapshots } from "./snapshots";
-import {
-	type DatabaseBuildOptions,
-	type DatabaseBuildResult,
-	DEFAULT_DATABASE_PATH,
-} from "./types";
+} from "./snapshot-workflow";
 
 function countTableRows(db: DatabaseSync): Record<string, number> {
 	const rows = db

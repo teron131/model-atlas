@@ -1,8 +1,8 @@
 /** Frontier Benchmarks chart data and axis helpers. */
 
 import { median } from "d3-array";
-import { benchmarkResourcePolicy } from "../../../src/model-atlas/config/benchmark-portfolio";
-import { minMaxScale } from "../../../src/model-atlas/math-utils";
+import { BENCHMARK_RESOURCES } from "../../../src/model-atlas/benchmarks/catalog";
+import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type {
 	BenchmarkPortfolio,
 	BenchmarkResourcePolicy,
@@ -158,13 +158,12 @@ export function frontierBenchmarkRows(
 			return frontierKeys.flatMap((benchmarkKey) => {
 				const score = percent(evaluations[benchmarkKey]);
 				const resourcePolicy =
-					benchmarkResourcePolicy(benchmarkKey, portfolio) ??
-					benchmarkResourcePolicy(benchmarkKey);
-				const task = resourceTaskMetrics(
-					resourcePolicy,
-					benchmarkKey,
-					taskMetrics,
-				);
+					portfolio[benchmarkKey]?.resourcePolicy ??
+					BENCHMARK_RESOURCES[
+						benchmarkKey as keyof typeof BENCHMARK_RESOURCES
+					] ??
+					null;
+				const task = resourcePolicy == null ? null : taskMetrics[benchmarkKey];
 				const cost = finiteValue(task?.cost);
 				const seconds = finiteValue(task?.seconds);
 				const inputTokens = finiteValue(task?.input_tokens);
@@ -369,9 +368,14 @@ export function frontierAxisDescription(
 			? "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy."
 			: `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark.`;
 	}
-	return isAggregateView
-		? "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy."
-		: `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUsePhrase(row)} for the selected benchmark.`;
+	if (isAggregateView) {
+		return "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy.";
+	}
+	const tokenUse =
+		row?.resourcePolicy?.tokenMeasure === "output_tokens"
+			? "output-token use"
+			: "token use";
+	return `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUse} for the selected benchmark.`;
 }
 
 export function frontierAxisMetricLabel(
@@ -509,17 +513,6 @@ function meanFiniteMetric(values: Array<number | null>): number | null {
 	return finiteValues.length === 0 ? null : meanNumber(finiteValues);
 }
 
-function resourceTaskMetrics(
-	resourcePolicy: BenchmarkResourcePolicy | null,
-	benchmarkKey: string,
-	taskMetrics: NonNullable<LlmStatsModel["task_metrics"]>,
-) {
-	if (resourcePolicy == null) {
-		return null;
-	}
-	return taskMetrics[benchmarkKey];
-}
-
 function frontierResourceTokens(
 	resourcePolicy: BenchmarkResourcePolicy | null,
 	inputTokens: number | null,
@@ -609,12 +602,6 @@ function resourceMetricLabel(
 
 function resourceUnitPhrase(row?: FrontierBenchmarkRow): string {
 	return row?.resourcePolicy?.unit === "total" ? "total" : "per-task";
-}
-
-function tokenUsePhrase(row?: FrontierBenchmarkRow): string {
-	return row?.resourcePolicy?.tokenMeasure === "output_tokens"
-		? "output-token use"
-		: "token use";
 }
 
 function resourceMetricName(

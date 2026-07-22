@@ -2,7 +2,8 @@
 
 import assert from "node:assert/strict";
 import { compactDashboardPayload } from "../app/dashboard/payload";
-import { STAGE_CONFIG } from "../src/model-atlas/constants";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import { selectPublicModels } from "../src/model-atlas/pipeline/selection/public-list";
 import {
 	benchmarksJsonPayload,
 	coreJsonPayload,
@@ -10,8 +11,7 @@ import {
 	fullJsonPayload,
 	publicJsonPayload,
 	scoreJsonPayload,
-} from "../src/model-atlas/stats/public-json";
-import { selectPublicModels } from "../src/model-atlas/stats/selection/public-list";
+} from "../src/model-atlas/stats/payload/public-json";
 import type { LlmStatsScoredCandidate } from "../src/model-atlas/stats/types";
 import {
 	minimalLlmStatsModel,

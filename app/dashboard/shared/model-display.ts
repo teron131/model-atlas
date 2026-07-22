@@ -1,7 +1,7 @@
 /** Dashboard model identity, variant, label, and filtering rules. */
 
-import { canonicalModelKey } from "../../../src/model-atlas/shared";
-import { strongestModelVariants } from "../../../src/model-atlas/stats/selection/public-list";
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { strongestModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 
 export function modelCount(models: LlmStatsModel[]): number {

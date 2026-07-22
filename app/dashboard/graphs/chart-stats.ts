@@ -1,9 +1,21 @@
 /** Shared dashboard chart statistics and bubble-radius calculations. */
 
 import { quantile } from "d3-array";
-import { areaScaledRadius, clamp } from "../../../src/model-atlas/math-utils";
+import { clamp } from "../../../src/model-atlas/numeric";
 import type { BoxWhiskerDistribution } from "./BoxWhiskerSummary";
 import { finite } from "./format";
+
+/** Scale chart markers by visible area so normalized values read proportionally. */
+function areaScaledRadius(
+	minRadius: number,
+	maxRadius: number,
+	score: number,
+): number {
+	const clampedScore = clamp(score, 0, 1);
+	return Math.sqrt(
+		minRadius ** 2 + clampedScore * (maxRadius ** 2 - minRadius ** 2),
+	);
+}
 
 export function valueDistribution(values: number[]): BoxWhiskerDistribution {
 	const sortedValues = values

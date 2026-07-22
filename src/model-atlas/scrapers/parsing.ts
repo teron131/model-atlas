@@ -1,28 +1,61 @@
-/** Shared parser rules for benchmark pages that expose loose HTML, embedded JSON, and text-only rows. */
+/** Scraper parsing normalizes CSV, Flight, HTML, and scalar source values at the adapter boundary. */
 
-import { asFiniteNumber, asRecord, type JsonObject } from "../shared";
+import { asRecord, type JsonObject } from "../runtime";
 
 const NEXT_FLIGHT_CHUNK_REGEX =
 	/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 
-type ZeroEvalModelScoreFields = {
-	model: string;
-	provider: string;
-	provider_name?: string | null;
-	score: number;
-	source_url?: string | null;
-	analysis_method?: string | null;
-	verified?: boolean | null;
-	self_reported?: boolean | null;
-};
-
-/** Accepts only non-empty string fields from scraped payloads. */
-export function stringValue(value: unknown): string | null {
-	return typeof value === "string" && value.length > 0 ? value : null;
+/** Parse RFC 4180-style CSV text into rows without coercing source values. */
+function parseCsvRows(csv: string): string[][] {
+	const rows: string[][] = [];
+	let row: string[] = [];
+	let field = "";
+	let quoted = false;
+	for (let index = 0; index < csv.length; index += 1) {
+		const character = csv[index] ?? "";
+		if (quoted) {
+			if (character === '"' && csv[index + 1] === '"') {
+				field += '"';
+				index += 1;
+			} else if (character === '"') {
+				quoted = false;
+			} else {
+				field += character;
+			}
+			continue;
+		}
+		if (character === '"' && field.length === 0) {
+			quoted = true;
+		} else if (character === ",") {
+			row.push(field);
+			field = "";
+		} else if (character === "\n") {
+			row.push(field.endsWith("\r") ? field.slice(0, -1) : field);
+			rows.push(row);
+			row = [];
+			field = "";
+		} else {
+			field += character;
+		}
+	}
+	if (field.length > 0 || row.length > 0) {
+		row.push(field.endsWith("\r") ? field.slice(0, -1) : field);
+		rows.push(row);
+	}
+	return rows;
 }
 
-function booleanValue(value: unknown): boolean | null {
-	return typeof value === "boolean" ? value : null;
+/** Map CSV body rows to their source header names. */
+export function parseCsvRecords(csv: string): Record<string, string>[] {
+	const [headers, ...rows] = parseCsvRows(csv);
+	if (headers == null) return [];
+	return rows
+		.filter((row) => row.some((value) => value.length > 0))
+		.map((row) =>
+			Object.fromEntries(
+				headers.map((header, index) => [header, row[index] ?? ""]),
+			),
+		);
 }
 
 function decodeFlightChunk(raw: string): string {
@@ -85,29 +118,6 @@ export function parseFlightJsonObject(value: string): JsonObject | null {
 	}
 }
 
-/** Accepts source scores that are already on the 0-1 benchmark scale. */
-function unitScore(value: unknown): number | null {
-	const score = asFiniteNumber(value);
-	if (score == null || score < 0 || score > 1) {
-		return null;
-	}
-	return Number(score.toFixed(6));
-}
-
-/** Source-page percentages enter benchmark scoring on the shared 0-1 scale. */
-export function percentToUnitScore(
-	value: string | null | undefined,
-): number | null {
-	if (value == null) {
-		return null;
-	}
-	const score = Number(value);
-	if (!Number.isFinite(score) || score < 0 || score > 100) {
-		return null;
-	}
-	return Number((score / 100).toFixed(6));
-}
-
 function decodeHtmlEntities(value: string): string {
 	return value
 		.replace(/&nbsp;/g, " ")
@@ -159,41 +169,21 @@ export function providerFromLogoAlt(value: string | null): string | null {
 	return provider.length > 0 ? provider : null;
 }
 
-export function zeroEvalModelScoreFields(
-	value: unknown,
-): ZeroEvalModelScoreFields | null {
-	const row = asRecord(value);
-	const model = stringValue(row?.model_name);
-	const provider = stringValue(row?.organization_id);
-	const score = unitScore(row?.normalized_score) ?? unitScore(row?.score);
-	if (model == null || provider == null || score == null) {
-		return null;
-	}
-	return {
-		model,
-		provider,
-		provider_name: stringValue(row?.organization_name),
-		score,
-		source_url: stringValue(row?.self_reported_source),
-		analysis_method: stringValue(row?.analysis_method),
-		verified: booleanValue(row?.verified),
-		self_reported: booleanValue(row?.self_reported),
-	};
+/** Accepts only non-empty string fields from scraped payloads. */
+export function stringValue(value: unknown): string | null {
+	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Collects normalized ZeroEval model rows from a payload. */
-export function zeroEvalModelRows<T>(
-	payload: unknown,
-	modelScoreRow: (value: unknown) => T | null,
-): T[] {
-	const root = asRecord(payload);
-	const modelRows = Array.isArray(root?.models) ? root.models : [];
-	const rows: T[] = [];
-	for (const modelRow of modelRows) {
-		const row = modelScoreRow(modelRow);
-		if (row != null) {
-			rows.push(row);
-		}
+/** Source-page percentages enter benchmark scoring on the shared 0-1 scale. */
+export function percentToUnitScore(
+	value: string | null | undefined,
+): number | null {
+	if (value == null) {
+		return null;
 	}
-	return rows;
+	const score = Number(value);
+	if (!Number.isFinite(score) || score < 0 || score > 100) {
+		return null;
+	}
+	return Number((score / 100).toFixed(6));
 }

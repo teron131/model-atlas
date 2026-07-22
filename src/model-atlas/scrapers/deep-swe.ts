@@ -6,17 +6,17 @@
  */
 
 import {
-	asFiniteNumber,
-	asRecord,
 	canonicalReasoningEffort,
 	normalizeModelToken,
 	reasoningEffortRank,
-} from "../shared";
+} from "../identity/normalization";
 import {
+	asFiniteNumber,
+	asRecord,
 	fetchWithTimeout,
 	mapWithConcurrency,
 	nowEpochSeconds,
-} from "../utils";
+} from "../runtime";
 
 export const DEEP_SWE_V1_1_LEADERBOARD_URL =
 	"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";

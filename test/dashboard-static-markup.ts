@@ -23,8 +23,8 @@ import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-} from "../src/model-atlas/config/benchmark-portfolio";
-import { COLUMN_TOOLTIPS } from "../src/model-atlas/constants";
+} from "../src/model-atlas/benchmarks/registry";
+import { COLUMN_TOOLTIPS } from "../src/model-atlas/config";
 import {
 	minimalLlmStatsModel,
 	minimalLlmStatsPayload,
