@@ -1,5 +1,6 @@
 /** Cloudflare D1 adapter keeps deployed reads and schema checks aligned with the SQLite snapshot contract. */
 
+import { BENCHMARK_OBSERVATION_RAW_TABLE } from "../benchmarks/registry";
 import type { LlmStatsPayload } from "../stats/types";
 import {
 	buildPayloadFromRows,
@@ -193,26 +194,52 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 		return null;
 	}
 	const fetchedAt = payloadFetchedAtFromRow(metadataRow);
-	const queries = PAYLOAD_ROW_GROUPS.map((rowGroup) => ({ sql: rowGroup.sql }));
+	const directRowGroups = PAYLOAD_ROW_GROUPS.filter(
+		(rowGroup) => rowGroup.sourceKey == null,
+	);
+	const sharedObservationRowGroups = PAYLOAD_ROW_GROUPS.filter(
+		(rowGroup) => rowGroup.sourceKey != null,
+	);
+	const queries = [
+		...directRowGroups.map((rowGroup) => ({ sql: rowGroup.sql })),
+		...(sharedObservationRowGroups.length === 0
+			? []
+			: [
+					{
+						sql: `SELECT * FROM ${BENCHMARK_OBSERVATION_RAW_TABLE} ORDER BY source_key, row_index`,
+					},
+				]),
+	];
 	try {
-		const rowGroups = await queryD1BatchRows(queries);
+		const queryRows = await queryD1BatchRows(queries);
+		const rowsByKey = new Map(
+			directRowGroups.map(
+				(rowGroup, index) => [rowGroup.key, queryRows[index] ?? []] as const,
+			),
+		);
+		const sharedRows = queryRows[directRowGroups.length] ?? [];
+		for (const rowGroup of sharedObservationRowGroups) {
+			rowsByKey.set(
+				rowGroup.key,
+				sharedRows.filter((row) => row.source_key === rowGroup.sourceKey),
+			);
+		}
 		return buildPayloadFromRows(
 			buildPayloadRows(
 				fetchedAt,
-				PAYLOAD_ROW_GROUPS.map(
-					(rowGroup, index) => [rowGroup.key, rowGroups[index] ?? []] as const,
-				),
+				PAYLOAD_ROW_GROUPS.map((rowGroup) => [
+					rowGroup.key,
+					rowsByKey.get(rowGroup.key) ?? [],
+				]),
 			),
 		);
 	} catch (error) {
 		if (!(error instanceof Error) || !/no such table:/i.test(error.message)) {
 			throw error;
 		}
-		const rows = await readPayloadRows(fetchedAt, async (rowGroup) => {
-			const index = PAYLOAD_ROW_GROUPS.indexOf(rowGroup);
-			const query = queries[index];
-			return query == null ? [] : queryD1Rows(query.sql);
-		});
+		const rows = await readPayloadRows(fetchedAt, (rowGroup) =>
+			queryD1Rows(rowGroup.sql),
+		);
 		return buildPayloadFromRows(rows);
 	}
 }

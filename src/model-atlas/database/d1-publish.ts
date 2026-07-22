@@ -2,14 +2,17 @@
 
 import { createHash } from "node:crypto";
 
-import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../benchmarks/registry";
+import {
+	BENCHMARK_OBSERVATION_BINDINGS,
+	BENCHMARK_OBSERVATION_RAW_TABLE,
+} from "../benchmarks/registry";
 import { STAGE_CONFIG } from "../config";
 import {
 	artificialAnalysisEvaluationResourceRawCacheFromRows,
 	artificialAnalysisRawCacheFromRows,
 	modelsDevRawCacheFromRows,
 	rawSourceCacheStatusFromRows,
-	readBenchmarkScoreRawCache,
+	readBenchmarkObservationRawCache,
 	readOpenRouterRawCache,
 } from "../ingest/cache";
 import type { CacheDbRow } from "../ingest/cache/rows";
@@ -24,6 +27,7 @@ import {
 } from "../ingest/source-snapshots/openrouter";
 import { sourceRowStatesFromRows } from "../ingest/source-snapshots/policy";
 import {
+	isBenchmarkObservationRawSource,
 	RAW_SOURCE_NAMES,
 	RAW_SOURCE_TABLES,
 	type RawSourceCacheStatus,
@@ -151,7 +155,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 	}
 	const changedSources = RAW_SOURCE_NAMES.filter(
 		(source) =>
-			tableContentHash(collector.records(RAW_SOURCE_TABLES[source])) !==
+			tableContentHash(collectorRowsForSource(collector, source)) !==
 			tableContentHash(current.rawRows[source]),
 	);
 	const nextPayload = payloadFromCollector(startedAtEpochSeconds, collector);
@@ -262,18 +266,29 @@ async function readD1RefreshState(
 }
 
 async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
-	const rowGroups = await queryD1BatchRows(
-		RAW_SOURCE_NAMES.map((source) => {
-			const table = RAW_SOURCE_TABLES[source];
-			return {
-				sql: `SELECT * FROM ${quoteIdentifier(table)} ORDER BY row_index`,
-			};
-		}),
+	const directSources = RAW_SOURCE_NAMES.filter(
+		(source) => !isBenchmarkObservationRawSource(source),
 	);
+	const rowGroups = await queryD1BatchRows([
+		...directSources.map((source) => ({
+			sql: `SELECT * FROM ${quoteIdentifier(RAW_SOURCE_TABLES[source])} ORDER BY row_index`,
+		})),
+		{
+			sql: `SELECT * FROM ${quoteIdentifier(BENCHMARK_OBSERVATION_RAW_TABLE)} ORDER BY source_key, row_index`,
+		},
+	]);
+	const directRows = new Map(
+		directSources.map(
+			(source, index) => [source, rowGroups[index] ?? []] as const,
+		),
+	);
+	const sharedRows = rowGroups[directSources.length] ?? [];
 	return Object.fromEntries(
-		RAW_SOURCE_NAMES.map((source, index) => [
+		RAW_SOURCE_NAMES.map((source) => [
 			source,
-			(rowGroups[index] ?? []) as CacheDbRow[],
+			(isBenchmarkObservationRawSource(source)
+				? sharedRows.filter((row) => row.source_key === source)
+				: (directRows.get(source) ?? [])) as CacheDbRow[],
 		]),
 	) as Record<RawSourceName, CacheDbRow[]>;
 }
@@ -281,10 +296,10 @@ async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {
 function sourceCachesFromRows(
 	rows: Record<RawSourceName, CacheDbRow[]>,
 ): SourceSnapshotCaches {
-	const benchmarkScores = Object.fromEntries(
-		BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) => [
+	const benchmarkObservations = Object.fromEntries(
+		BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
 			binding.sourceDataKey,
-			readBenchmarkScoreRawCache(rows[binding.rawSource], binding),
+			readBenchmarkObservationRawCache(rows[binding.rawSourceKey], binding),
 		]),
 	);
 	return {
@@ -297,7 +312,7 @@ function sourceCachesFromRows(
 				rows.artificial_analysis_evaluation_resources,
 			),
 		modelsDev: modelsDevRawCacheFromRows(rows.models_dev),
-		benchmarkScores,
+		benchmarkObservations,
 	};
 }
 
@@ -328,9 +343,11 @@ function payloadFromCollector(
 	return buildPayloadFromRows(
 		buildPayloadRows(
 			fetchedAtEpochSeconds,
-			PAYLOAD_ROW_GROUPS.map(({ key, table }) => [
+			PAYLOAD_ROW_GROUPS.map(({ key, table, sourceKey }) => [
 				key,
-				collector.records(table),
+				collector
+					.records(table)
+					.filter((row) => sourceKey == null || row.source_key === sourceKey),
 			]),
 		),
 	);
@@ -341,18 +358,75 @@ function publicationStatements(
 	collector: SnapshotRowCollector,
 	changedSources: RawSourceName[],
 ): string[] {
-	const changedRawTables = changedSources.map(
-		(source) => RAW_SOURCE_TABLES[source],
+	const directChangedSources = changedSources.filter(
+		(source) => !isBenchmarkObservationRawSource(source),
 	);
-	const tablesToInsert = [...changedRawTables, ...DERIVED_TABLES];
+	const observationChangedSources = changedSources.filter(
+		isBenchmarkObservationRawSource,
+	);
 	return [
-		...tablesToInsert.map((table) => `DELETE FROM ${quoteIdentifier(table)};`),
+		...directChangedSources.map(
+			(source) => `DELETE FROM ${quoteIdentifier(RAW_SOURCE_TABLES[source])};`,
+		),
+		...observationChangedSources.map(
+			(source) =>
+				`DELETE FROM ${quoteIdentifier(BENCHMARK_OBSERVATION_RAW_TABLE)} WHERE ${quoteIdentifier("source_key")} = ${sqlLiteral(source)};`,
+		),
+		...DERIVED_TABLES.map((table) => `DELETE FROM ${quoteIdentifier(table)};`),
 		"DELETE FROM snapshot_metadata;",
-		...tablesToInsert.flatMap((table) =>
+		...directChangedSources.flatMap((source) =>
+			insertStatements(
+				RAW_SOURCE_TABLES[source],
+				collector.tables.get(RAW_SOURCE_TABLES[source]),
+			),
+		),
+		...observationChangedSources.flatMap((source) =>
+			insertStatements(
+				BENCHMARK_OBSERVATION_RAW_TABLE,
+				collectedRowsForSource(collector, source),
+			),
+		),
+		...DERIVED_TABLES.flatMap((table) =>
 			insertStatements(table, collector.tables.get(table)),
 		),
 		`INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (${completedAtEpochSeconds});`,
 	];
+}
+
+/** Select one logical source partition from the shared observation table. */
+function collectedRowsForSource(
+	collector: SnapshotRowCollector,
+	source: RawSourceName,
+): CollectedTableRows | undefined {
+	const table = RAW_SOURCE_TABLES[source];
+	const collected = collector.tables.get(table);
+	if (collected == null || !isBenchmarkObservationRawSource(source)) {
+		return collected;
+	}
+	const sourceKeyIndex = collected.columns.indexOf("source_key");
+	if (sourceKeyIndex < 0) {
+		throw new Error(`${table} is missing its source_key partition column`);
+	}
+	return {
+		columns: collected.columns,
+		rows: collected.rows.filter((row) => row[sourceKeyIndex] === source),
+	};
+}
+
+/** Return collected source rows with shared score-table partitions isolated. */
+function collectorRowsForSource(
+	collector: SnapshotRowCollector,
+	source: RawSourceName,
+): Record<string, SqlValue>[] {
+	const collected = collectedRowsForSource(collector, source);
+	if (collected == null) {
+		return [];
+	}
+	return collected.rows.map((values) =>
+		Object.fromEntries(
+			collected.columns.map((column, index) => [column, values[index] ?? null]),
+		),
+	);
 }
 
 function insertStatements(

@@ -12,9 +12,9 @@ import {
 	nowEpochSeconds,
 } from "../../runtime";
 import type {
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "../benchmark-score";
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../benchmark-observation";
 import { parseCsvRecords } from "../parsing";
 
 const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
@@ -22,7 +22,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 export function processEpochCapabilitiesIndexCsv(
 	csv: string,
-): BenchmarkScoreRow[] {
+): BenchmarkObservationRow[] {
 	return parseCsvRecords(csv).flatMap((row, index) => {
 		const score = asFiniteNumber(row.eci);
 		const model = row["Display name"] || row.Model || "";
@@ -31,15 +31,19 @@ export function processEpochCapabilitiesIndexCsv(
 		return [
 			{
 				benchmark_key: "epoch_capabilities_index",
-				source: "epoch" as const,
 				source_url: EPOCH_CAPABILITIES_INDEX_CSV_URL,
 				model_id: row.Model || null,
 				model,
 				base_model: parsed.baseModel,
 				reasoning_effort: parsed.reasoningEffort,
-				provider: row.Organization || null,
+				model_creator_id: null,
+				model_creator: row.Organization || null,
+				inference_provider: null,
 				rank: index + 1,
-				score,
+				reported_value: score,
+				reported_unit: "index",
+				canonical_value: score,
+				canonical_unit: "index",
 				score_eligible: true,
 				standard_error: null,
 				confidence_low: asFiniteNumber(row.eci_ci_low),
@@ -56,7 +60,7 @@ export function processEpochCapabilitiesIndexCsv(
 	});
 }
 
-export async function getEpochCapabilitiesIndexStats(): Promise<BenchmarkScorePayload> {
+export async function getEpochCapabilitiesIndexStats(): Promise<BenchmarkObservationPayload> {
 	try {
 		const response = await fetchWithTimeout(
 			EPOCH_CAPABILITIES_INDEX_CSV_URL,

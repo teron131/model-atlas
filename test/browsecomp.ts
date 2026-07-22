@@ -1,9 +1,9 @@
 /** Verifies BrowseComp rows normalized through the shared ZeroEval adapter. */
 
 import {
-	buildBenchmarkScoreMap,
-	findBenchmarkScoreRow,
-} from "../src/model-atlas/scrapers/benchmark-score";
+	buildBenchmarkObservationLookup,
+	findBenchmarkObservation,
+} from "../src/model-atlas/scrapers/benchmark-observation";
 import { processZeroEvalDetailsJson } from "../src/model-atlas/scrapers/zeroeval";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -21,7 +21,7 @@ const rows = processZeroEvalDetailsJson(
 				model_name: "GPT-5.5 Pro",
 				organization_id: "openai",
 				organization_name: "OpenAI",
-				score: 0.901,
+				score: 0.9,
 				normalized_score: 0.901,
 				self_reported_source: "https://openai.com/index/introducing-gpt-5-5/",
 				analysis_method: "GPT-5.5 Pro - BrowseComp.",
@@ -58,23 +58,26 @@ const rows = processZeroEvalDetailsJson(
 assertDeepEqual(rows, [
 	{
 		benchmark_key: "browsecomp",
-		source: "zeroeval",
 		source_url:
 			"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 		model_id: null,
 		model: "GPT-5.5 Pro",
 		base_model: "GPT-5.5 Pro",
 		reasoning_effort: null,
-		provider: "openai",
+		model_creator_id: "openai",
+		model_creator: "OpenAI",
+		inference_provider: null,
 		rank: null,
-		score: 0.901,
+		reported_value: 0.9,
+		reported_unit: "proportion",
+		canonical_value: 0.901,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
 		confidence_high: null,
 		observed_at: null,
 		metadata: {
-			provider_name: "OpenAI",
 			reported_source_url: "https://openai.com/index/introducing-gpt-5-5/",
 			analysis_method: "GPT-5.5 Pro - BrowseComp.",
 			verified: false,
@@ -83,23 +86,26 @@ assertDeepEqual(rows, [
 	},
 	{
 		benchmark_key: "browsecomp",
-		source: "zeroeval",
 		source_url:
 			"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 		model_id: null,
 		model: "Claude Opus 4.6",
 		base_model: "Claude Opus 4.6",
 		reasoning_effort: null,
-		provider: "anthropic",
+		model_creator_id: "anthropic",
+		model_creator: "Anthropic",
+		inference_provider: null,
 		rank: null,
-		score: 0.84,
+		reported_value: 0.84,
+		reported_unit: "proportion",
+		canonical_value: 0.84,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
 		confidence_high: null,
 		observed_at: null,
 		metadata: {
-			provider_name: "Anthropic",
 			reported_source_url: "https://www.anthropic.com/news/claude-opus-4-6",
 			analysis_method: "Official BrowseComp score.",
 			verified: false,
@@ -108,23 +114,26 @@ assertDeepEqual(rows, [
 	},
 	{
 		benchmark_key: "browsecomp",
-		source: "zeroeval",
 		source_url:
 			"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 		model_id: null,
 		model: "MiniMax M3",
 		base_model: "MiniMax M3",
 		reasoning_effort: null,
-		provider: "minimax",
+		model_creator_id: "minimax",
+		model_creator: "MiniMax",
+		inference_provider: null,
 		rank: null,
-		score: 0.835,
+		reported_value: 0.835,
+		reported_unit: "proportion",
+		canonical_value: 0.835,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
 		confidence_high: null,
 		observed_at: null,
 		metadata: {
-			provider_name: "MiniMax",
 			reported_source_url: null,
 			analysis_method: null,
 			verified: null,
@@ -133,10 +142,10 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const rowsByModelName = buildBenchmarkScoreMap(rows);
+const observationLookup = buildBenchmarkObservationLookup(rows);
 
 assertDeepEqual(
-	findBenchmarkScoreRow(["missing", "GPT 5.5 Pro"], null, rowsByModelName)
-		?.score,
+	findBenchmarkObservation(["missing", "GPT 5.5 Pro"], null, observationLookup)
+		?.canonical_value,
 	0.901,
 );

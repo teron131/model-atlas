@@ -2,9 +2,12 @@
 
 import assert from "node:assert/strict";
 
-import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../src/model-atlas/benchmarks/registry";
-import { readBenchmarkScoreRawCache } from "../src/model-atlas/ingest/cache";
-import { benchmarkScoreRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
+import {
+	BENCHMARK_OBSERVATION_BINDINGS,
+	BENCHMARK_OBSERVATION_RAW_TABLE,
+} from "../src/model-atlas/benchmarks/registry";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
+import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
 import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
@@ -12,11 +15,11 @@ import {
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
 import {
-	buildBenchmarkScoreMap,
-	findBenchmarkScoreRow,
-} from "../src/model-atlas/scrapers/benchmark-score";
+	buildBenchmarkObservationLookup,
+	findBenchmarkObservation,
+} from "../src/model-atlas/scrapers/benchmark-observation";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/epoch/capabilities-index";
-import { epochBenchmarkScoreRows } from "../src/model-atlas/scrapers/epoch/common";
+import { epochBenchmarkObservationRows } from "../src/model-atlas/scrapers/epoch/common";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
 import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/common";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/scrapers/vals/common";
@@ -31,7 +34,7 @@ const eci = processEpochCapabilitiesIndexCsv(
 	"Model,Display name,eci,eci_ci_low,eci_ci_high,date,Organization,Country (of organization),Model accessibility,Accessibility group,model_versions\n" +
 		"gpt-5.6-sol,GPT-5.6 Sol,161.77,159.26,166.01,2026-07-09,OpenAI,US,API,Hosted,v1\n",
 );
-assert.equal(eci[0]?.score, 161.77);
+assert.equal(eci[0]?.canonical_value, 161.77);
 assert.equal(eci[0]?.confidence_low, 159.26);
 
 const epochRuns = parseCsvRecords(
@@ -39,13 +42,13 @@ const epochRuns = parseCsvRecords(
 		"new,FrontierMath-Tier-4-v2-Private,gpt,0.56,2026-07-01T00:00:00Z,Success,2.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.561,0.02,0.56,frontiermath,[]\n" +
 		"old,FrontierMath-Tier-4-2025-07-01-Private,gpt,0.31,2025-07-01T00:00:00Z,Success,1.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.3125,0.02,0.31,frontiermath,[]\n",
 );
-const frontierMath = epochBenchmarkScoreRows(
+const frontierMath = epochBenchmarkObservationRows(
 	epochRuns,
 	"frontiermath_tier_4",
 	"FrontierMath-Tier-4-v2-Private",
 );
 assert.equal(frontierMath.length, 1);
-assert.equal(frontierMath[0]?.score, 0.561);
+assert.equal(frontierMath[0]?.canonical_value, 0.561);
 assert.equal(frontierMath[0]?.metadata.task_version, "2.0.0");
 
 const weirdMl = processWeirdMlCsv(
@@ -59,8 +62,8 @@ function astro(value: unknown): unknown[] {
 	return [0, value];
 }
 
-function benchmarkScoreBinding(sourceDataKey: string) {
-	const binding = BENCHMARK_SCORE_SOURCE_BINDINGS.find(
+function benchmarkObservationBinding(sourceDataKey: string) {
+	const binding = BENCHMARK_OBSERVATION_BINDINGS.find(
 		(candidate) => candidate.sourceDataKey === sourceDataKey,
 	);
 	assert.ok(binding);
@@ -90,7 +93,7 @@ const proofHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" p
 		}),
 	},
 ).replace(/"/g, "&quot;")}"></astro-island>`;
-const proofBinding = benchmarkScoreBinding("proofBench");
+const proofBinding = benchmarkObservationBinding("proofBench");
 assert.equal(proofBinding.loader.kind, "vals");
 if (proofBinding.loader.kind !== "vals")
 	throw new Error("Expected VALS loader");
@@ -121,37 +124,44 @@ const surge = processSurgeBenchmarkPageHtml(
 	"https://surgehq.ai/benchmarks/chartography",
 );
 assert.equal(surge[0]?.reasoning_effort, "max");
-assert.equal(surge[0]?.score, 0.45);
+assert.equal(surge[0]?.canonical_value, 0.45);
+assert.equal(surge[0]?.reported_value, 45);
 
-const frontierMathMap = buildBenchmarkScoreMap(frontierMath);
+const frontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
 assert.equal(
-	findBenchmarkScoreRow(["GPT-5.6 Sol"], "max", frontierMathMap)?.score,
+	findBenchmarkObservation(["GPT-5.6 Sol"], "max", frontierMathLookup)
+		?.canonical_value,
 	0.561,
 );
 assert.equal(
-	findBenchmarkScoreRow(["GPT-5.6 Sol"], "high", frontierMathMap),
+	findBenchmarkObservation(["GPT-5.6 Sol"], "high", frontierMathLookup),
 	null,
 );
-assert.equal(buildBenchmarkScoreMap(proof).has("aristotle"), false);
+assert.equal(buildBenchmarkObservationLookup(proof).has("aristotle"), false);
+
+const frontierMathRow = frontierMath[0];
+assert.ok(frontierMathRow);
 
 const sharedModelRows = [
 	{
-		...frontierMath[0]!,
+		...frontierMathRow,
 		model_id: null,
 		model: "Shared Model",
 		base_model: "Shared Model",
-		provider: "provider-a",
+		model_creator_id: "provider-a",
+		model_creator: "provider-a",
 	},
 	{
-		...frontierMath[0]!,
+		...frontierMathRow,
 		model_id: null,
 		model: "Shared Model",
 		base_model: "Shared Model",
-		provider: "provider-b",
+		model_creator_id: "provider-b",
+		model_creator: "provider-b",
 	},
 ];
 assert.equal(
-	mergeCachedSourceRows([], sharedModelRows, benchmarkScoreRowKey).length,
+	mergeCachedSourceRows([], sharedModelRows, benchmarkObservationRowKey).length,
 	2,
 	"Benchmark refreshes should preserve same-named models from distinct providers",
 );
@@ -176,6 +186,12 @@ const coreCraft = surge.map((row) => ({
 	source_url: "https://surgehq.ai/benchmarks/enterprisebench-corecraft",
 }));
 const snapshots = {
+	...Object.fromEntries(
+		BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
+			binding.sourceRowsKey,
+			[],
+		]),
+	),
 	chartographyRows: surge,
 	chessPuzzleRows: chess,
 	ebrBenchRows: ebr,
@@ -186,6 +202,12 @@ const snapshots = {
 	proofBenchRows: proof,
 	weirdMlRows: weirdMl,
 	fetchedAt: {
+		...Object.fromEntries(
+			BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
+				binding.sourceDataKey,
+				null,
+			]),
+		),
 		chartography: 1_784_000_004,
 		chessPuzzles: 1_784_000_002,
 		ebrBench: 1_784_000_003,
@@ -208,24 +230,30 @@ const expectedBySourceDataKey = {
 	proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
 	weirdMl: { rows: weirdMl, fetchedAt: 1_784_000_008 },
 };
+insertBenchmarkRawRows(collector, snapshots, BENCHMARK_OBSERVATION_RAW_TABLE);
 for (const [sourceDataKey, expected] of Object.entries(
 	expectedBySourceDataKey,
 )) {
-	const binding = benchmarkScoreBinding(sourceDataKey);
-	insertBenchmarkRawRows(collector, snapshots, binding.rawTable);
+	const binding = benchmarkObservationBinding(sourceDataKey);
 	assert.deepEqual(
-		readBenchmarkScoreRawCache(collector.records(binding.rawTable), binding),
+		readBenchmarkObservationRawCache(
+			collector.records(BENCHMARK_OBSERVATION_RAW_TABLE),
+			binding,
+		),
 		expected,
 	);
 	const expectedUrl =
 		"sourceUrl" in binding.loader ? binding.loader.sourceUrl : null;
 	if (expectedUrl != null) {
 		assert.equal(
-			readBenchmarkScoreRawCache(
-				collector.records(binding.rawTable).map((row) => ({
-					...row,
-					url: `${expectedUrl}?stale=1`,
-				})),
+			readBenchmarkObservationRawCache(
+				collector
+					.records(BENCHMARK_OBSERVATION_RAW_TABLE)
+					.map((row) =>
+						row.source_key === binding.rawSourceKey
+							? { ...row, url: `${expectedUrl}?stale=1` }
+							: row,
+					),
 				binding,
 			),
 			null,

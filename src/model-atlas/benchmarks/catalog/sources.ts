@@ -1,15 +1,15 @@
 /** Benchmark source policy owns loaders, adapters, processing, and persistence declarations. */
 
 import type {
+	BenchmarkObservationLoader,
 	BenchmarkPersistenceFacet,
 	BenchmarkProcessingFacet,
-	BenchmarkScoreLoader,
 	BenchmarkSourceFacet,
 	BenchmarkSourceGroup,
 } from "../factory";
 import type { BenchmarkKey } from "./portfolio";
 
-export const BENCHMARK_SCORE_SOURCES = {
+export const BENCHMARK_OBSERVATION_SOURCES = {
 	browsecomp: {
 		group: "sparse",
 		id: "zeroeval",
@@ -220,7 +220,7 @@ export const BENCHMARK_SCORE_SOURCES = {
 		{
 			group: BenchmarkSourceGroup;
 			id: string;
-			loader: BenchmarkScoreLoader;
+			loader: BenchmarkObservationLoader;
 			sourceDataKey: string;
 			sourceRowsKey: string;
 		}
@@ -352,7 +352,7 @@ export const BENCHMARK_SOURCE_OVERRIDES = {
 				roles: ["observation"],
 				adapters: [
 					{
-						kind: "benchmark_score",
+						kind: "benchmark_observation",
 						sourceDataKey: "weirdMl",
 						sourceRowsKey: "weirdMlRows",
 					},

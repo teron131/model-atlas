@@ -3,9 +3,9 @@
 import { benchmarkModelEffort } from "../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import type {
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "../benchmark-score";
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../benchmark-observation";
 import {
 	htmlAttribute,
 	percentToUnitScore,
@@ -23,6 +23,10 @@ type SurgeLeaderboardScoreRow = {
 	model: string;
 	score: number;
 	last_updated: string | null;
+};
+
+type SurgeLeaderboardObservation = SurgeLeaderboardScoreRow & {
+	reportedValue: number;
 };
 
 function escapeRegExp(value: string): string {
@@ -128,16 +132,22 @@ function surgeScorePercent(rowHtml: string): string | null {
 function surgeLeaderboardScoreRow(
 	rowHtml: string,
 	lastUpdated: string | null,
-): SurgeLeaderboardScoreRow | null {
+): SurgeLeaderboardObservation | null {
 	const model = surgeModelName(rowHtml);
-	const score = percentToUnitScore(surgeScorePercent(rowHtml));
-	if (model == null || score == null) {
+	const reportedValue = Number(surgeScorePercent(rowHtml));
+	const canonicalValue = percentToUnitScore(surgeScorePercent(rowHtml));
+	if (
+		model == null ||
+		!Number.isFinite(reportedValue) ||
+		canonicalValue == null
+	) {
 		return null;
 	}
 	return {
 		provider: surgeProvider(rowHtml),
 		model,
-		score,
+		reportedValue,
+		score: canonicalValue,
 		last_updated: lastUpdated,
 	};
 }
@@ -148,41 +158,50 @@ export function surgeLeaderboardScoreRows(
 	const lastUpdated = surgeLastUpdated(pageHtml);
 	return surgeLeaderboardRows(pageHtml)
 		.map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
-		.filter((row): row is SurgeLeaderboardScoreRow => row != null);
+		.filter((row): row is SurgeLeaderboardObservation => row != null)
+		.map(({ reportedValue: _, ...row }) => row);
 }
 
 export function processSurgeBenchmarkPageHtml(
 	pageHtml: string,
 	benchmarkKey: string,
 	sourceUrl: string,
-): BenchmarkScoreRow[] {
-	return surgeLeaderboardScoreRows(pageHtml).map((row, index) => {
-		const parsed = benchmarkModelEffort(row.model);
-		return {
-			benchmark_key: benchmarkKey,
-			source: "surge",
-			source_url: sourceUrl,
-			model_id: null,
-			model: row.model,
-			base_model: parsed.baseModel,
-			reasoning_effort: parsed.reasoningEffort,
-			provider: row.provider,
-			rank: index + 1,
-			score: row.score,
-			score_eligible: true,
-			standard_error: null,
-			confidence_low: null,
-			confidence_high: null,
-			observed_at: row.last_updated ?? null,
-			metadata: {},
-		};
-	});
+): BenchmarkObservationRow[] {
+	const lastUpdated = surgeLastUpdated(pageHtml);
+	return surgeLeaderboardRows(pageHtml)
+		.map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
+		.filter((row): row is SurgeLeaderboardObservation => row != null)
+		.map((row, index) => {
+			const parsed = benchmarkModelEffort(row.model);
+			return {
+				benchmark_key: benchmarkKey,
+				source_url: sourceUrl,
+				model_id: null,
+				model: row.model,
+				base_model: parsed.baseModel,
+				reasoning_effort: parsed.reasoningEffort,
+				model_creator_id: null,
+				model_creator: row.provider,
+				inference_provider: null,
+				rank: index + 1,
+				reported_value: row.reportedValue,
+				reported_unit: "percent",
+				canonical_value: row.score,
+				canonical_unit: "proportion",
+				score_eligible: true,
+				standard_error: null,
+				confidence_low: null,
+				confidence_high: null,
+				observed_at: row.last_updated ?? null,
+				metadata: {},
+			};
+		});
 }
 
 export async function getSurgeLeaderboardStats(
 	benchmarkKey: string,
 	sourceUrl: string,
-): Promise<BenchmarkScorePayload> {
+): Promise<BenchmarkObservationPayload> {
 	try {
 		const response = await fetchWithTimeout(sourceUrl, {}, DEFAULT_TIMEOUT_MS);
 		if (!response.ok)

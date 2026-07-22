@@ -2,13 +2,13 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../../benchmarks/registry";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import type { ScoringConfig } from "../../config/stage";
 import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
 import {
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readArtificialAnalysisRawCache,
-	readBenchmarkScoreRawCache,
+	readBenchmarkObservationRawCache,
 	readModelsDevRawCache,
 	readRawSourceCacheStatus,
 } from "../cache";
@@ -31,7 +31,7 @@ import {
 	readBenchmarkSnapshotCaches,
 	refreshBenchmarkSnapshots,
 } from "./benchmark-runtimes";
-import { benchmarkScoreSnapshots } from "./benchmarks/benchmark-score";
+import { benchmarkObservationSnapshots } from "./benchmarks/benchmark-observation";
 import { modelsDevSnapshot } from "./models-dev";
 import { missingSinceBySource, persistedSourceRowStates } from "./policy";
 
@@ -46,16 +46,19 @@ export type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
 		typeof readArtificialAnalysisEvaluationResourceRawCache
 	>;
 	modelsDev: ReturnType<typeof readModelsDevRawCache>;
-	benchmarkScores: Readonly<
-		Record<string, ReturnType<typeof readBenchmarkScoreRawCache> | undefined>
+	benchmarkObservations: Readonly<
+		Record<
+			string,
+			ReturnType<typeof readBenchmarkObservationRawCache> | undefined
+		>
 	>;
 };
 
 function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
-	const benchmarkScores = Object.fromEntries(
-		BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) => [
+	const benchmarkObservations = Object.fromEntries(
+		BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
 			binding.sourceDataKey,
-			readBenchmarkScoreRawCache(db, binding),
+			readBenchmarkObservationRawCache(db, binding),
 		]),
 	);
 	return {
@@ -64,7 +67,7 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
 		artificialAnalysisEvaluationResources:
 			readArtificialAnalysisEvaluationResourceRawCache(db),
 		modelsDev: readModelsDevRawCache(db),
-		benchmarkScores,
+		benchmarkObservations,
 	};
 }
 
@@ -153,7 +156,7 @@ export async function refreshSourceSnapshots(
 		artificialAnalysisEvaluationResources,
 		modelsDev,
 		benchmarks,
-		benchmarkScores,
+		benchmarkObservations,
 	] = await Promise.all([
 		artificialAnalysisSnapshot(
 			caches.artificialAnalysis,
@@ -184,8 +187,8 @@ export async function refreshSourceSnapshots(
 			previousMissingSince,
 			nowEpochSeconds,
 		),
-		benchmarkScoreSnapshots(
-			caches.benchmarkScores,
+		benchmarkObservationSnapshots(
+			caches.benchmarkObservations,
 			sourceCache,
 			options,
 			previousMissingSince,
@@ -196,21 +199,21 @@ export async function refreshSourceSnapshots(
 		modelsDev.modelsDevPayload,
 		artificialAnalysis.artificialAnalysisSelectedRows,
 	);
-	type BenchmarkScoreRowsKey =
-		(typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number]["sourceRowsKey"];
-	const benchmarkScoreRows = Object.fromEntries(
-		benchmarkScores.map(({ binding, snapshot }) => [
+	type BenchmarkObservationRowsKey =
+		(typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
+	const benchmarkObservationRows = Object.fromEntries(
+		benchmarkObservations.map(({ binding, snapshot }) => [
 			binding.sourceRowsKey,
 			snapshot.rows,
 		]),
-	) as Pick<SourceSnapshots, BenchmarkScoreRowsKey>;
+	) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
 	const benchmarkRows = benchmarkSnapshotRows(benchmarks);
 	const sourceStatuses: SourceSnapshotStatus[] = [
 		artificialAnalysis.sourceStatus,
 		artificialAnalysisEvaluationResources.sourceStatus,
 		modelsDev.sourceStatus,
 		...Object.values(benchmarks).map((snapshot) => snapshot.sourceStatus),
-		...benchmarkScores.map(({ snapshot }) => snapshot.sourceStatus),
+		...benchmarkObservations.map(({ snapshot }) => snapshot.sourceStatus),
 	];
 	updateSourceCacheStatuses(sourceCache, sourceStatuses);
 	const snapshots = {
@@ -224,7 +227,7 @@ export async function refreshSourceSnapshots(
 		modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
 		modelsDevStatusCode: modelsDev.modelsDevStatusCode,
 		...benchmarkRows,
-		...benchmarkScoreRows,
+		...benchmarkObservationRows,
 		sourceRowStates: sourceStatuses.flatMap(
 			(sourceStatus) => sourceStatus.sourceRowStates,
 		),

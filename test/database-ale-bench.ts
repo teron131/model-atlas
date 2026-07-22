@@ -20,7 +20,7 @@ import {
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { processAleBenchSakanaPayload } from "../src/model-atlas/scrapers/ale-bench";
-import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 
 function statistics(mean: number) {
 	return {
@@ -107,7 +107,7 @@ try {
 			agentsLastExamRows: [],
 			aleBenchRows: rawRows,
 			blueprintBenchRows: [],
-			...benchmarkScoreRowGroups(),
+			...benchmarkObservationRowGroups(),
 			cursorBenchRows: [],
 			deepSWERows: [],
 			frontierCodeRows: [],

@@ -9,13 +9,13 @@ import {
 import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/data";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromSourceData } from "../src/model-atlas/pipeline/benchmark-rows";
-import type { BenchmarkScoreRow } from "../src/model-atlas/scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../src/model-atlas/scrapers/benchmark-observation";
 import type {
 	DeepSWELeaderboardRow,
 	DeepSWERawLeaderboardRow,
 } from "../src/model-atlas/scrapers/deep-swe";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
-import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 
 function modelsDevModel(
 	providerId: string,
@@ -48,24 +48,27 @@ function deepSWERow(
 	};
 }
 
-function benchmarkScoreRow(
-	source: BenchmarkScoreRow["source"],
+function benchmarkObservationRow(
 	benchmarkKey: string,
 	modelId: string | null,
 	model: string,
 	score: number,
-): BenchmarkScoreRow {
+): BenchmarkObservationRow {
 	return {
 		benchmark_key: benchmarkKey,
-		source,
 		source_url: `https://example.com/${benchmarkKey}`,
 		model_id: modelId,
 		model,
 		base_model: model,
 		reasoning_effort: null,
-		provider: null,
+		model_creator_id: null,
+		model_creator: null,
+		inference_provider: null,
 		rank: 1,
-		score,
+		reported_value: score,
+		reported_unit: "proportion",
+		canonical_value: score,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
@@ -106,29 +109,25 @@ const modelsDevModels = [
 	modelsDevModel("vercel", "vercel/model"),
 ];
 const deepSWEEffortRows = [deepSWERow("max", 0.8), deepSWERow(null, 0.4)];
-const epochRow = benchmarkScoreRow(
-	"epoch",
+const epochRow = benchmarkObservationRow(
 	"chess_puzzles",
 	"epoch/example-model",
 	"Epoch Example Model",
 	0.71,
 );
-const surgeRow = benchmarkScoreRow(
-	"surge",
+const surgeRow = benchmarkObservationRow(
 	"chartography",
 	null,
 	"Surge Example Model",
 	0.64,
 );
-const valsRow = benchmarkScoreRow(
-	"vals",
+const valsRow = benchmarkObservationRow(
 	"proofbench",
 	"vals/example-model",
 	"Vals Example Model",
 	0.58,
 );
-const valsLegalResearchRow = benchmarkScoreRow(
-	"vals",
+const valsLegalResearchRow = benchmarkObservationRow(
 	"legal_research",
 	"vals/example-model",
 	"Vals Example Model",
@@ -142,7 +141,7 @@ const sourceRows: LlmStatsSourceRows = {
 	agentsLastExamRows: [],
 	aleBenchConfigurationRows: [],
 	blueprintBenchRows: [],
-	...benchmarkScoreRowGroups<BenchmarkScoreRow>({
+	...benchmarkObservationRowGroups<BenchmarkObservationRow>({
 		chartographyRows: [surgeRow],
 		chessPuzzleRows: [epochRow],
 		legalResearchRows: [valsLegalResearchRow],
@@ -170,7 +169,7 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
 	agentsLastExamModelScores: [],
 	aleBenchConfigurationRows: [],
 	blueprintBenchModelScoreRows: [],
-	...benchmarkScoreRowGroups<BenchmarkScoreRow>({
+	...benchmarkObservationRowGroups<BenchmarkObservationRow>({
 		chartographyRows: [surgeRow],
 		chessPuzzleRows: [epochRow],
 		legalResearchRows: [valsLegalResearchRow],

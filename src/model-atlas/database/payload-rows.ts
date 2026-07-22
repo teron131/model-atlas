@@ -2,7 +2,7 @@
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys";
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
 import { canonicalReasoningEffort } from "../identity/normalization";
@@ -39,12 +39,18 @@ function payloadRowGroup<Key extends string>(
 	table: SnapshotTableName,
 	orderBy: string,
 	optional = false,
+	sourceKey: string | null = null,
 ) {
+	const sourcePredicate =
+		sourceKey == null
+			? ""
+			: ` WHERE source_key = '${sourceKey.replaceAll("'", "''")}'`;
 	return {
 		key,
 		table,
-		sql: `SELECT * FROM ${table} ORDER BY ${orderBy}`,
+		sql: `SELECT * FROM ${table}${sourcePredicate} ORDER BY ${orderBy}`,
 		optional,
+		sourceKey,
 	};
 }
 
@@ -165,8 +171,14 @@ export const PAYLOAD_ROW_GROUPS = [
 		"row_index",
 	),
 	...Object.values(BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS),
-	...BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) =>
-		payloadRowGroup(binding.sourceRowsKey, binding.rawTable, "row_index", true),
+	...BENCHMARK_OBSERVATION_BINDINGS.map((binding) =>
+		payloadRowGroup(
+			binding.sourceRowsKey,
+			binding.rawTable,
+			"row_index",
+			true,
+			binding.rawSourceKey,
+		),
 	),
 ] as const;
 

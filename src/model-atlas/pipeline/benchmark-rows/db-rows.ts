@@ -1,8 +1,8 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
-	type BenchmarkScoreSourceRowsKey,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	type BenchmarkObservationRowsKey,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
 import { asFiniteNumber } from "../../runtime";
@@ -29,11 +29,11 @@ type DbSourceSpec = {
 	rowKind?: string;
 };
 
-type BenchmarkScoreDbRows = {
-	[Key in BenchmarkScoreSourceRowsKey]: readonly DbBenchmarkRow[];
+type BenchmarkObservationDbRows = {
+	[Key in BenchmarkObservationRowsKey]: readonly DbBenchmarkRow[];
 };
 
-type BenchmarkDbRows = BenchmarkScoreDbRows & {
+type BenchmarkDbRows = BenchmarkObservationDbRows & {
 	artificialAnalysisRows: readonly DbBenchmarkRow[];
 	agentArenaRows: readonly DbBenchmarkRow[];
 	agentsLastExamRows: readonly DbBenchmarkRow[];
@@ -54,7 +54,7 @@ function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function benchmarkScoreDrafts(
+function benchmarkObservationDrafts(
 	rows: readonly DbBenchmarkRow[],
 ): BenchmarkRowDraft[] {
 	return rows.flatMap((row) => {
@@ -67,25 +67,28 @@ function benchmarkScoreDrafts(
 				id: stringValue(row.model_id),
 				identity: stringValue(row.base_model),
 				label: stringValue(row.model),
-				provider: stringValue(row.provider),
+				provider:
+					stringValue(row.model_creator) ??
+					stringValue(row.model_creator_id) ??
+					stringValue(row.inference_provider),
 				reasoningEffort: row.reasoning_effort,
-				value: row.score,
+				value: row.canonical_value,
 			},
 		];
 	});
 }
 
-function normalizedBenchmarkScoreDbDrafts(
+function benchmarkObservationDbDrafts(
 	rows: BenchmarkDbRows,
 ): BenchmarkRowDraft[] {
-	return BENCHMARK_SCORE_SOURCE_BINDINGS.flatMap(({ sourceRowsKey }) => {
+	return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceRowsKey }) => {
 		const sourceRows = rows[sourceRowsKey];
 		if (!Array.isArray(sourceRows)) {
 			throw new Error(
-				`Persisted benchmark score rows are missing: ${sourceRowsKey}`,
+				`Persisted benchmark observation rows are missing: ${sourceRowsKey}`,
 			);
 		}
-		return benchmarkScoreDrafts(sourceRows);
+		return benchmarkObservationDrafts(sourceRows);
 	});
 }
 
@@ -229,7 +232,7 @@ const SPARSE_BENCHMARK_DB_ROW_ADAPTERS = {
 
 function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 	return [
-		...normalizedBenchmarkScoreDbDrafts(rows),
+		...benchmarkObservationDbDrafts(rows),
 		...artificialAnalysisModelRowDrafts({
 			rows: rows.artificialAnalysisRows,
 			modelId: (row) => stringValue(row.model_id),

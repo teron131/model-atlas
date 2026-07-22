@@ -1,11 +1,12 @@
 /** SQLite writers for benchmark-owned source rows that feed matcher and scoring refreshes. */
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	BENCHMARK_OBSERVATION_RAW_TABLE,
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
 import { aleBenchModelEffort } from "../../scrapers/ale-bench";
-import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../../scrapers/benchmark-observation";
 import { deepSWEUrlForSourceVersion } from "../../scrapers/deep-swe";
 import type { FrontierCodeSubsetMetrics } from "../../scrapers/frontier-code";
 import {
@@ -40,46 +41,53 @@ function frontierCodeSourceSubset(metrics: FrontierCodeSubsetMetrics) {
 	};
 }
 
-type BenchmarkScoreSourceBinding =
-	(typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number];
-
-/** Insert a catalog-declared benchmark-score snapshot through its shared row contract. */
-function insertBenchmarkScoreRawRows(
+/** Insert a catalog-declared benchmark-observation snapshot through its shared row contract. */
+function insertBenchmarkObservationRows(
 	db: DatabaseWriter,
 	snapshots: SourceSnapshots,
-	binding: BenchmarkScoreSourceBinding,
 ): void {
-	const rows = snapshots[binding.sourceRowsKey] as readonly BenchmarkScoreRow[];
-	const fetchedAt = snapshots.fetchedAt[binding.sourceDataKey];
 	const statement = db.prepare(`
-		INSERT INTO ${binding.rawTable} (
-			row_index, fetched_at_epoch_seconds, benchmark_key, source, url,
-			model_id, model, base_model, reasoning_effort, provider, rank, score,
+		INSERT INTO ${BENCHMARK_OBSERVATION_RAW_TABLE} (
+			source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
+			model_id, model, base_model, reasoning_effort, model_creator_id,
+			model_creator, inference_provider, rank,
+			reported_value, reported_unit, canonical_value, canonical_unit,
 			score_eligible, standard_error, confidence_low, confidence_high,
 			observed_at, metadata_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-	for (const [index, row] of rows.entries()) {
-		statement.run(
-			index,
-			fetchedAt,
-			row.benchmark_key,
-			row.source,
-			row.source_url,
-			row.model_id,
-			row.model,
-			row.base_model,
-			row.reasoning_effort,
-			row.provider,
-			row.rank,
-			row.score,
-			sqliteBooleanValue(row.score_eligible),
-			row.standard_error,
-			row.confidence_low,
-			row.confidence_high,
-			row.observed_at,
-			JSON.stringify(row.metadata),
-		);
+	for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
+		const rows = snapshots[
+			binding.sourceRowsKey
+		] as readonly BenchmarkObservationRow[];
+		const fetchedAt = snapshots.fetchedAt[binding.sourceDataKey];
+		for (const [index, row] of rows.entries()) {
+			statement.run(
+				binding.rawSourceKey,
+				index,
+				fetchedAt,
+				row.benchmark_key,
+				row.source_url,
+				row.model_id,
+				row.model,
+				row.base_model,
+				row.reasoning_effort,
+				row.model_creator_id,
+				row.model_creator,
+				row.inference_provider,
+				row.rank,
+				row.reported_value,
+				row.reported_unit,
+				row.canonical_value,
+				row.canonical_unit,
+				sqliteBooleanValue(row.score_eligible),
+				row.standard_error,
+				row.confidence_low,
+				row.confidence_high,
+				row.observed_at,
+				JSON.stringify(row.metadata),
+			);
+		}
 	}
 }
 
@@ -678,11 +686,10 @@ const BENCHMARK_SOURCE_RAW_WRITERS = {
 /** Compose shared-contract and special-schema benchmark writers behind one pipeline surface. */
 export const BENCHMARK_RAW_WRITERS = [
 	...Object.values(BENCHMARK_SOURCE_RAW_WRITERS),
-	...BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) => ({
-		table: binding.rawTable,
-		write: (db: DatabaseWriter, snapshots: SourceSnapshots) =>
-			insertBenchmarkScoreRawRows(db, snapshots, binding),
-	})),
+	{
+		table: BENCHMARK_OBSERVATION_RAW_TABLE,
+		write: insertBenchmarkObservationRows,
+	},
 ] satisfies readonly BenchmarkRawWriter[];
 
 /** Write one benchmark raw table through its registered shared or special serializer. */

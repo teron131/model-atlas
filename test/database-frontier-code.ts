@@ -20,7 +20,7 @@ import {
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { processFrontierCodePayload } from "../src/model-atlas/scrapers/frontier-code";
-import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 
 function metrics(score: number, cost: number, tokens: number) {
 	return {
@@ -109,7 +109,7 @@ try {
 			agentsLastExamRows: [],
 			aleBenchRows: [],
 			blueprintBenchRows: [],
-			...benchmarkScoreRowGroups(),
+			...benchmarkObservationRowGroups(),
 			cursorBenchRows: [],
 			deepSWERows: [],
 			frontierCodeRows: rawRows,

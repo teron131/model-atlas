@@ -1,9 +1,10 @@
 /** Ingest contracts for raw caches, source snapshots, and the handoff into storage writers and payload readers. */
 
 import {
+	BENCHMARK_OBSERVATION_BINDINGS,
+	BENCHMARK_OBSERVATION_KEYS,
 	BENCHMARK_RUNTIME_KEYS,
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
-	BENCHMARK_SCORE_SOURCE_KEYS,
+	type BenchmarkObservationKey,
 	type BenchmarkRuntimeKey,
 } from "../benchmarks/registry";
 import type { JsonObject } from "../runtime";
@@ -14,7 +15,7 @@ import type {
 } from "../scrapers/agents-last-exam";
 import type { AleBenchConfigurationRow } from "../scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
-import type { BenchmarkScoreRow } from "../scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../scrapers/benchmark-observation";
 import type { BlueprintBenchModelScoreRow } from "../scrapers/blueprint-bench";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type {
@@ -80,10 +81,17 @@ const CORE_RAW_SOURCE_NAMES = [
 export const RAW_SOURCE_NAMES = [
 	...CORE_RAW_SOURCE_NAMES,
 	...BENCHMARK_RUNTIME_KEYS,
-	...BENCHMARK_SCORE_SOURCE_KEYS,
+	...BENCHMARK_OBSERVATION_KEYS,
 ] as const;
 
 export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
+
+/** Catalog benchmark-observation sources share one physical table while retaining independent cache partitions. */
+export function isBenchmarkObservationRawSource(
+	source: RawSourceName,
+): source is BenchmarkObservationKey {
+	return (BENCHMARK_OBSERVATION_KEYS as readonly string[]).includes(source);
+}
 
 /** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
 const CORE_RAW_SOURCE_TABLES = {
@@ -98,17 +106,17 @@ const BENCHMARK_RUNTIME_RAW_SOURCE_TABLES = Object.fromEntries(
 	BENCHMARK_RUNTIME_KEYS.map((key) => [key, `${key}_raw_rows`]),
 ) as Record<BenchmarkRuntimeKey, `${BenchmarkRuntimeKey}_raw_rows`>;
 
-const BENCHMARK_SCORE_RAW_SOURCE_TABLES = Object.fromEntries(
-	BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) => [
-		binding.rawSource,
+const BENCHMARK_OBSERVATION_RAW_SOURCE_TABLES = Object.fromEntries(
+	BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
+		binding.rawSourceKey,
 		binding.rawTable,
 	]),
-) as Record<(typeof BENCHMARK_SCORE_SOURCE_KEYS)[number], string>;
+) as Record<(typeof BENCHMARK_OBSERVATION_KEYS)[number], string>;
 
 export const RAW_SOURCE_TABLES = {
 	...CORE_RAW_SOURCE_TABLES,
 	...BENCHMARK_RUNTIME_RAW_SOURCE_TABLES,
-	...BENCHMARK_SCORE_RAW_SOURCE_TABLES,
+	...BENCHMARK_OBSERVATION_RAW_SOURCE_TABLES,
 } as const satisfies Record<RawSourceName, string>;
 
 /** Tables owned by the local snapshot pipeline and rewritten as a completed run. */
@@ -196,17 +204,17 @@ export type SourceRowState = {
 	missing_from_source_since_epoch_seconds: number | null;
 };
 
-type BenchmarkScoreSnapshotRows = {
-	[Binding in (typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number] as Binding["sourceRowsKey"]]: BenchmarkScoreRow[];
+type BenchmarkObservationSnapshotRows = {
+	[Binding in (typeof BENCHMARK_OBSERVATION_BINDINGS)[number] as Binding["sourceRowsKey"]]: BenchmarkObservationRow[];
 };
 
-type BenchmarkScoreFetchedAt = {
-	[Binding in (typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number] as Binding["sourceDataKey"]]:
+type BenchmarkObservationFetchedAt = {
+	[Binding in (typeof BENCHMARK_OBSERVATION_BINDINGS)[number] as Binding["sourceDataKey"]]:
 		| number
 		| null;
 };
 
-export type SourceSnapshots = BenchmarkScoreSnapshotRows & {
+export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
 	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
@@ -236,7 +244,7 @@ export type SourceSnapshots = BenchmarkScoreSnapshotRows & {
 	vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
 	vendingBench2DataUrl: string | null;
 	sourceRowStates: SourceRowState[];
-	fetchedAt: BenchmarkScoreFetchedAt & {
+	fetchedAt: BenchmarkObservationFetchedAt & {
 		artificialAnalysis: number | null;
 		artificialAnalysisEvaluationResources: number | null;
 		agentArena: number | null;

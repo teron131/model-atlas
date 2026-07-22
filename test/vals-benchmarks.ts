@@ -3,8 +3,8 @@
 import assert from "node:assert/strict";
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
-	type BenchmarkScoreSourceKey,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	type BenchmarkObservationKey,
 } from "../src/model-atlas/benchmarks/registry";
 import {
 	getValsSourceStats,
@@ -91,10 +91,10 @@ const valsBenchmarkKeys = [
 	"programbench",
 	"public_benefits_bench",
 	"vibe_code",
-] as const satisfies readonly BenchmarkScoreSourceKey[];
+] as const satisfies readonly BenchmarkObservationKey[];
 
-function valsDefinition(benchmarkKey: BenchmarkScoreSourceKey) {
-	const binding = BENCHMARK_SCORE_SOURCE_BINDINGS.find(
+function valsDefinition(benchmarkKey: BenchmarkObservationKey) {
+	const binding = BENCHMARK_OBSERVATION_BINDINGS.find(
 		(candidate) => candidate.benchmark === benchmarkKey,
 	);
 	assert.ok(binding);
@@ -149,7 +149,8 @@ assert.equal(overall.model, "gpt-test (high)");
 assert.equal(overall.base_model, "gpt-test");
 assert.equal(overall.reasoning_effort, "high");
 assert.equal(overall.rank, 1);
-assert.equal(overall.score, 0.75);
+assert.equal(overall.canonical_value, 0.75);
+assert.equal(overall.reported_value, 75);
 assert.equal(overall.standard_error, 4.25);
 assert.equal(overall.metadata.task_label, "Overall");
 assert.equal(overall.metadata.benchmark_version, "2");

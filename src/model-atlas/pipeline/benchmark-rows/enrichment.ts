@@ -1,9 +1,9 @@
 /** Benchmark enrichment is the single bridge from source lookup maps to evaluation and scoring-source fields. */
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	type BenchmarkObservationDataKey,
 	type BenchmarkRuntimeKeyFor,
-	type BenchmarkScoreSourceDataKey,
 	transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
 import { modelNameIdentityKey } from "../../identity";
@@ -28,9 +28,9 @@ import {
 	findArtificialAnalysisEvaluationResourceRow,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
-	type BenchmarkRowsByModelName,
-	findBenchmarkScoreRow,
-} from "../../scrapers/benchmark-score";
+	type BenchmarkObservationLookup,
+	findBenchmarkObservation,
+} from "../../scrapers/benchmark-observation";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findGdpPdfScore } from "../../scrapers/surge/gdp-pdf";
 import { findRiemannBenchScore } from "../../scrapers/surge/riemann-bench";
@@ -41,36 +41,43 @@ import {
 	terminalBenchAggregateRow,
 } from "./terminal-bench";
 
-type BenchmarkScoreEnrichmentLookups = {
-	[Key in BenchmarkScoreSourceDataKey]: Pick<
+type BenchmarkObservationEnrichmentLookups = {
+	[Key in BenchmarkObservationDataKey]: Pick<
 		LlmStatsSourceData[Key],
 		"rowsByModelName"
 	>;
 };
 
-export type BenchmarkEnrichmentLookups = BenchmarkScoreEnrichmentLookups & {
-	artificialAnalysisEvaluationResources: Pick<
-		LlmStatsSourceData["artificialAnalysisEvaluationResources"],
-		"observationByModelName" | "defaultEffortByModelName"
-	>;
-	agentArena: Pick<LlmStatsSourceData["agentArena"], "rowsByModelName">;
-	agentsLastExam: Pick<LlmStatsSourceData["agentsLastExam"], "rowsByModelName">;
-	aleBench: Pick<LlmStatsSourceData["aleBench"], "rowsByModelName">;
-	blueprintBench: Pick<LlmStatsSourceData["blueprintBench"], "rowsByModelName">;
-	cursorBench: Pick<LlmStatsSourceData["cursorBench"], "rowsByModelName">;
-	deepSWE: Pick<LlmStatsSourceData["deepSWE"], "rowsByModelName">;
-	frontierCode: Pick<LlmStatsSourceData["frontierCode"], "rowsByModelName">;
-	gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "rowsByModelName">;
-	harveyLab: Pick<LlmStatsSourceData["harveyLab"], "rowsByModelName">;
-	mercorApexAgents: Pick<
-		LlmStatsSourceData["mercorApexAgents"],
-		"rowsByModelName"
-	>;
-	riemannBench: Pick<LlmStatsSourceData["riemannBench"], "rowsByModelName">;
-	terminalBench: Pick<LlmStatsSourceData["terminalBench"], "rowsByModelName">;
-	valsIndex: Pick<LlmStatsSourceData["valsIndex"], "rowsByModelName">;
-	vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "rowsByModelName">;
-};
+export type BenchmarkEnrichmentLookups =
+	BenchmarkObservationEnrichmentLookups & {
+		artificialAnalysisEvaluationResources: Pick<
+			LlmStatsSourceData["artificialAnalysisEvaluationResources"],
+			"observationByModelName" | "defaultEffortByModelName"
+		>;
+		agentArena: Pick<LlmStatsSourceData["agentArena"], "rowsByModelName">;
+		agentsLastExam: Pick<
+			LlmStatsSourceData["agentsLastExam"],
+			"rowsByModelName"
+		>;
+		aleBench: Pick<LlmStatsSourceData["aleBench"], "rowsByModelName">;
+		blueprintBench: Pick<
+			LlmStatsSourceData["blueprintBench"],
+			"rowsByModelName"
+		>;
+		cursorBench: Pick<LlmStatsSourceData["cursorBench"], "rowsByModelName">;
+		deepSWE: Pick<LlmStatsSourceData["deepSWE"], "rowsByModelName">;
+		frontierCode: Pick<LlmStatsSourceData["frontierCode"], "rowsByModelName">;
+		gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "rowsByModelName">;
+		harveyLab: Pick<LlmStatsSourceData["harveyLab"], "rowsByModelName">;
+		mercorApexAgents: Pick<
+			LlmStatsSourceData["mercorApexAgents"],
+			"rowsByModelName"
+		>;
+		riemannBench: Pick<LlmStatsSourceData["riemannBench"], "rowsByModelName">;
+		terminalBench: Pick<LlmStatsSourceData["terminalBench"], "rowsByModelName">;
+		valsIndex: Pick<LlmStatsSourceData["valsIndex"], "rowsByModelName">;
+		vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "rowsByModelName">;
+	};
 
 type BenchmarkEnrichment = {
 	evaluations: Record<string, unknown>;
@@ -93,16 +100,16 @@ type SparseBenchmarkEnrichmentAdapter = {
 	observation?: SparseBenchmarkEnrichmentOperation;
 };
 
-function benchmarkScoreRows(
+function benchmarkObservationLookup(
 	lookups: BenchmarkEnrichmentLookups,
 	sourceDataKey: string,
-): BenchmarkRowsByModelName {
+): BenchmarkObservationLookup {
 	const lookup = lookups[sourceDataKey as keyof BenchmarkEnrichmentLookups] as
-		| { rowsByModelName?: BenchmarkRowsByModelName }
+		| { rowsByModelName?: BenchmarkObservationLookup }
 		| undefined;
 	if (lookup?.rowsByModelName == null) {
 		throw new Error(
-			`Benchmark score source-data lookup is missing: ${sourceDataKey}`,
+			`Benchmark observation source-data lookup is missing: ${sourceDataKey}`,
 		);
 	}
 	return lookup.rowsByModelName;
@@ -464,16 +471,16 @@ export function enrichBenchmarkAggregate(
 		lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
 		baseEvaluations,
 	);
-	for (const { benchmark, sourceDataKey } of BENCHMARK_SCORE_SOURCE_BINDINGS) {
-		const row = findBenchmarkScoreRow(
+	for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
+		const row = findBenchmarkObservation(
 			modelNameCandidates,
 			targetReasoningEffort,
-			benchmarkScoreRows(lookups, sourceDataKey),
+			benchmarkObservationLookup(lookups, sourceDataKey),
 		);
 		if (row != null) {
 			evaluations[benchmark] = transformBenchmarkSourceValue(
 				benchmark,
-				row.score,
+				row.canonical_value,
 			);
 			(scoringSources as Record<string, unknown>)[benchmark] = row;
 		}

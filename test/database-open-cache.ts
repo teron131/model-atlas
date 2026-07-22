@@ -50,7 +50,9 @@ assert.deepEqual(
 				metadata_json TEXT DEFAULT json_object('key', 'value'),
 				PRIMARY KEY (row_index)
 			);
-		`).get("compact_schema")?.keys() ?? [],
+		`)
+			.get("compact_schema")
+			?.keys() ?? [],
 	),
 	["row_index", "source", "metadata_json"],
 	"schema parsing should handle SQLite catalogs with several definitions per line",
@@ -158,32 +160,39 @@ try {
 			.run(0, "anthropic/claude-fable-5");
 		firstDb
 			.prepare(`
-				INSERT INTO browsecomp_raw_rows (
-					row_index, fetched_at_epoch_seconds, benchmark_key, source, url,
-					model_id, model, base_model, reasoning_effort, provider, rank,
-					score, score_eligible, standard_error, confidence_low,
+				INSERT INTO benchmark_observation_raw_rows (
+					source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
+					model_id, model, base_model, reasoning_effort, model_creator_id,
+					model_creator, inference_provider, rank,
+					reported_value, reported_unit, canonical_value, canonical_unit,
+					score_eligible, standard_error, confidence_low,
 					confidence_high, observed_at, metadata_json
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`)
 			.run(
+				"browsecomp",
 				0,
 				1_800_000_000,
 				"browsecomp",
-				"zeroeval",
 				"https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
 				null,
 				"Claude Fable 5",
 				"Claude Fable 5",
 				null,
+				"anthropic",
 				"Anthropic",
 				null,
+				null,
 				0.5,
+				"proportion",
+				0.5,
+				"proportion",
 				1,
 				null,
 				null,
 				null,
 				null,
-				JSON.stringify({ provider_name: "Anthropic" }),
+				JSON.stringify({}),
 			);
 		firstDb
 			.prepare(
@@ -202,7 +211,9 @@ try {
 			.run("table", "legacy_snapshot_rows");
 		firstDb.prepare("ALTER TABLE models DROP COLUMN reasoning_effort").run();
 		firstDb
-			.prepare("ALTER TABLE browsecomp_raw_rows DROP COLUMN observed_at")
+			.prepare(
+				"ALTER TABLE benchmark_observation_raw_rows DROP COLUMN observed_at",
+			)
 			.run();
 		firstDb
 			.prepare(DEEP_SWE_INSERT_SQL)
@@ -255,7 +266,7 @@ try {
 		);
 		assert(
 			reopenedDb
-				.prepare("PRAGMA table_info(browsecomp_raw_rows)")
+				.prepare("PRAGMA table_info(benchmark_observation_raw_rows)")
 				.all()
 				.some((column) => column.name === "observed_at"),
 			"Opening the database should recreate raw source columns",
@@ -277,15 +288,20 @@ try {
 		assert.equal(
 			Number(
 				reopenedDb
-					.prepare("SELECT COUNT(*) AS count FROM browsecomp_raw_rows")
+					.prepare(
+						"SELECT COUNT(*) AS count FROM benchmark_observation_raw_rows WHERE source_key = 'browsecomp'",
+					)
 					.get()?.count ?? 0,
 			),
 			1,
 			"Changed raw tables should preserve rows when their primary keys still match",
 		);
 		assert.equal(
-			reopenedDb.prepare("SELECT observed_at FROM browsecomp_raw_rows").get()
-				?.observed_at,
+			reopenedDb
+				.prepare(
+					"SELECT observed_at FROM benchmark_observation_raw_rows WHERE source_key = 'browsecomp'",
+				)
+				.get()?.observed_at,
 			null,
 			"Reintroduced nullable source columns should start empty",
 		);

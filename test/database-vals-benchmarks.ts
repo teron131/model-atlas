@@ -3,16 +3,17 @@
 import assert from "node:assert/strict";
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
-	type BenchmarkScoreSourceBinding,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	BENCHMARK_OBSERVATION_RAW_TABLE,
+	type BenchmarkObservationBinding,
 } from "../src/model-atlas/benchmarks/registry";
 import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload-rows";
 import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
-import { readBenchmarkScoreRawCache } from "../src/model-atlas/ingest/cache";
-import { benchmarkScoreRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
+import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
 import {
 	RAW_SOURCE_TABLES,
 	type SourceSnapshots,
@@ -21,33 +22,37 @@ import {
 	insertBenchmarkRawRows,
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
-import type { BenchmarkScoreRow } from "../src/model-atlas/scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../src/model-atlas/scrapers/benchmark-observation";
 
-const SOURCE_CASES = BENCHMARK_SCORE_SOURCE_BINDINGS.filter(
+const SOURCE_CASES = BENCHMARK_OBSERVATION_BINDINGS.filter(
 	(binding) => binding.loader.kind === "vals",
-).map((binding) => ({ source: binding.rawSource, binding }));
+).map((binding) => ({ source: binding.rawSourceKey, binding }));
 type SourceName = (typeof SOURCE_CASES)[number]["source"];
 const SOURCE_NAMES = SOURCE_CASES.map(({ source }) => source);
 
 function benchmarkRow(
-	binding: BenchmarkScoreSourceBinding,
+	binding: BenchmarkObservationBinding,
 	task: string,
 	scoreEligible = true,
-): BenchmarkScoreRow {
+): BenchmarkObservationRow {
 	if (binding.loader.kind !== "vals") {
 		throw new Error(`Expected a Vals binding for ${binding.benchmark}`);
 	}
 	return {
 		benchmark_key: binding.benchmark,
-		source: "vals",
 		source_url: binding.loader.sourceUrl,
 		model_id: "example/model",
 		model: "Example Model",
 		base_model: "Example Model",
 		reasoning_effort: "high",
-		provider: "Example",
+		model_creator_id: null,
+		model_creator: "Example",
+		inference_provider: null,
 		rank: 1,
-		score: 0.75,
+		reported_value: 75,
+		reported_unit: "percent",
+		canonical_value: 0.75,
+		canonical_unit: "proportion",
 		score_eligible: scoreEligible,
 		standard_error: null,
 		confidence_low: null,
@@ -62,7 +67,7 @@ const rows = Object.fromEntries(
 		source,
 		[benchmarkRow(binding, "overall")],
 	]),
-) as Record<SourceName, BenchmarkScoreRow[]>;
+) as Record<SourceName, BenchmarkObservationRow[]>;
 const legalResearch = SOURCE_CASES.find(
 	({ source }) => source === "legal_research",
 );
@@ -70,36 +75,45 @@ assert.ok(legalResearch);
 rows.legal_research.push(
 	benchmarkRow(legalResearch.binding, "diagnostic", false),
 );
+const legalResearchOverall = rows.legal_research[0];
+const legalResearchDiagnostic = rows.legal_research[1];
+assert.ok(legalResearchOverall);
+assert.ok(legalResearchDiagnostic);
 const fetchedAtBySource = Object.fromEntries(
 	SOURCE_NAMES.map((source, index) => [source, 1_800_000_000 + index]),
 ) as Record<SourceName, number>;
 const snapshots = {
 	...Object.fromEntries(
-		SOURCE_CASES.map(({ source, binding }) => [
+		BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
 			binding.sourceRowsKey,
-			rows[source],
+			SOURCE_NAMES.includes(binding.rawSourceKey as SourceName)
+				? rows[binding.rawSourceKey as SourceName]
+				: [],
 		]),
 	),
 	fetchedAt: Object.fromEntries(
-		SOURCE_CASES.map(({ source, binding }) => [
+		BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
 			binding.sourceDataKey,
-			fetchedAtBySource[source],
+			SOURCE_NAMES.includes(binding.rawSourceKey as SourceName)
+				? fetchedAtBySource[binding.rawSourceKey as SourceName]
+				: null,
 		]),
 	),
 } as SourceSnapshots;
 const collector = new SnapshotRowCollector();
 
 assert.deepEqual(
-	PAYLOAD_ROW_GROUPS.filter(({ table }) =>
-		SOURCE_NAMES.some((source) => RAW_SOURCE_TABLES[source] === table),
+	PAYLOAD_ROW_GROUPS.filter(
+		({ sourceKey }) =>
+			sourceKey != null && SOURCE_NAMES.includes(sourceKey as SourceName),
 	).map(({ key }) => key),
 	SOURCE_CASES.map(({ binding }) => binding.sourceRowsKey),
 );
 
+insertBenchmarkRawRows(collector, snapshots, BENCHMARK_OBSERVATION_RAW_TABLE);
 for (const { source, binding } of SOURCE_CASES) {
-	insertBenchmarkRawRows(collector, snapshots, binding.rawTable);
 	assert.deepEqual(
-		readBenchmarkScoreRawCache(
+		readBenchmarkObservationRawCache(
 			collector.records(RAW_SOURCE_TABLES[source]),
 			binding,
 		),
@@ -111,14 +125,14 @@ for (const { source, binding } of SOURCE_CASES) {
 }
 
 assert.notEqual(
-	benchmarkScoreRowKey(rows.legal_research[0]!),
-	benchmarkScoreRowKey(rows.legal_research[1]!),
+	benchmarkObservationRowKey(legalResearchOverall),
+	benchmarkObservationRowKey(legalResearchDiagnostic),
 	"task rows for the same model and effort must retain distinct cache identities",
 );
 assert.equal(
-	readBenchmarkScoreRawCache(
+	readBenchmarkObservationRawCache(
 		collector.records(RAW_SOURCE_TABLES.legal_research),
-		SOURCE_CASES.find(({ source }) => source === "legal_research")!.binding,
+		legalResearch.binding,
 	)?.rows[1]?.score_eligible,
 	false,
 	"ineligible diagnostic rows must remain persisted",
@@ -138,9 +152,8 @@ try {
 				}[]
 			).map(({ name }) => name),
 		);
-		for (const source of SOURCE_NAMES) {
-			assert.equal(tableNames.has(RAW_SOURCE_TABLES[source]), true);
-		}
+		assert.equal(tableNames.has(BENCHMARK_OBSERVATION_RAW_TABLE), true);
+		assert.equal(tableNames.has("legal_research_raw_rows"), false);
 	} finally {
 		db.close();
 	}

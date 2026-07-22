@@ -1,12 +1,12 @@
-/** Catalog-driven benchmark snapshots own generic score feeds declared by the benchmark registry. */
+/** Catalog-driven benchmark snapshots own generic observation feeds declared by the benchmark registry. */
 
-import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../../../benchmarks/registry";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../../../benchmarks/registry";
 import type {
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "../../../scrapers/benchmark-score";
-import { benchmarkScoreSourceFetcher } from "../../assembly/load";
-import type { readBenchmarkScoreRawCache } from "../../cache";
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../../../scrapers/benchmark-observation";
+import { benchmarkObservationSourceFetcher } from "../../assembly/load";
+import type { readBenchmarkObservationRawCache } from "../../cache";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -14,23 +14,23 @@ import type {
 	SourceSnapshotStatus,
 	SourceSnapshots,
 } from "../../types";
-import { benchmarkScoreRowKey, modelScoreSnapshot } from "../model-score";
+import { benchmarkObservationRowKey, modelScoreSnapshot } from "../model-score";
 
-type BenchmarkScoreSnapshot = {
-	rows: BenchmarkScoreRow[];
+type BenchmarkObservationSnapshot = {
+	rows: BenchmarkObservationRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
-async function benchmarkScoreSnapshot(
-	cached: { rows: BenchmarkScoreRow[]; fetchedAt: number | null } | null,
+async function benchmarkObservationSnapshot(
+	cached: { rows: BenchmarkObservationRow[]; fetchedAt: number | null } | null,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 	source: RawSourceName,
 	fetchedAtKey: keyof SourceSnapshots["fetchedAt"],
-	fetchRows: () => Promise<BenchmarkScorePayload>,
-): Promise<BenchmarkScoreSnapshot> {
+	fetchRows: () => Promise<BenchmarkObservationPayload>,
+): Promise<BenchmarkObservationSnapshot> {
 	const snapshot = await modelScoreSnapshot({
 		source,
 		cached,
@@ -39,7 +39,7 @@ async function benchmarkScoreSnapshot(
 		previousMissingSince,
 		nowEpochSeconds,
 		fetchRows,
-		rowKey: benchmarkScoreRowKey,
+		rowKey: benchmarkObservationRowKey,
 		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
 	});
 	return {
@@ -54,10 +54,13 @@ async function benchmarkScoreSnapshot(
 	};
 }
 
-/** Refresh every generic benchmark-score source declared by the benchmark catalog. */
-export async function benchmarkScoreSnapshots(
+/** Refresh every generic benchmark-observation source declared by the benchmark catalog. */
+export async function benchmarkObservationSnapshots(
 	caches: Readonly<
-		Record<string, ReturnType<typeof readBenchmarkScoreRawCache> | undefined>
+		Record<
+			string,
+			ReturnType<typeof readBenchmarkObservationRawCache> | undefined
+		>
 	>,
 	statuses: Record<RawSourceName, RawSourceCacheStatus>,
 	options: DatabaseBuildOptions,
@@ -65,12 +68,12 @@ export async function benchmarkScoreSnapshots(
 	nowEpochSeconds: number,
 ) {
 	return Promise.all(
-		BENCHMARK_SCORE_SOURCE_BINDINGS.map(async (binding) => {
-			const source = binding.rawSource;
-			const fetchRows = benchmarkScoreSourceFetcher(binding);
+		BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => {
+			const source = binding.rawSourceKey;
+			const fetchRows = benchmarkObservationSourceFetcher(binding);
 			return {
 				binding,
-				snapshot: await benchmarkScoreSnapshot(
+				snapshot: await benchmarkObservationSnapshot(
 					caches[binding.sourceDataKey] ?? null,
 					statuses[source],
 					options,

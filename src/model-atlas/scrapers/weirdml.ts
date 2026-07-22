@@ -15,9 +15,9 @@ import {
 import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../runtime";
 
 import type {
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "./benchmark-score";
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "./benchmark-observation";
 import {
 	processEpochWeirdMlCsv,
 	WEIRDML_EPOCH_CSV_URL,
@@ -92,7 +92,7 @@ type WeirdMlMergePlan = {
 	addedEpochIndices: number[];
 };
 
-type WeirdMlPayload = BenchmarkScorePayload & {
+type WeirdMlPayload = BenchmarkObservationPayload & {
 	crosswalk: WeirdMlCrosswalkStatus | null;
 };
 
@@ -128,7 +128,7 @@ function identityAliases(values: readonly unknown[]) {
 	];
 }
 
-function primaryIdentityAliases(row: BenchmarkScoreRow): string[] {
+function primaryIdentityAliases(row: BenchmarkObservationRow): string[] {
 	return identityAliases([
 		row.metadata.internal_model_name,
 		row.model_id,
@@ -147,12 +147,12 @@ function withinTolerance(
 
 /** Find possible mirror aliases broadly enough that source rounding cannot make them look Epoch-only. */
 function candidateEvidenceMatches(
-	primary: BenchmarkScoreRow,
+	primary: BenchmarkObservationRow,
 	epoch: WeirdMlEpochRow,
 ): boolean {
 	return (
 		withinTolerance(
-			primary.score,
+			primary.canonical_value,
 			epoch.accuracy,
 			CANDIDATE_ACCURACY_TOLERANCE,
 		) &&
@@ -171,11 +171,15 @@ function candidateEvidenceMatches(
 
 /** Check every shared WeirdML observation field after Epoch's documented unit conversion. */
 function sharedEvidenceMatches(
-	primary: BenchmarkScoreRow,
+	primary: BenchmarkObservationRow,
 	epoch: WeirdMlEpochRow,
 ): boolean {
 	if (
-		!withinTolerance(primary.score, epoch.accuracy, ACCURACY_TOLERANCE) ||
+		!withinTolerance(
+			primary.canonical_value,
+			epoch.accuracy,
+			ACCURACY_TOLERANCE,
+		) ||
 		!withinTolerance(
 			asFiniteNumber(primary.metadata.cost_per_run_usd),
 			epoch.cost_per_run_usd,
@@ -209,7 +213,7 @@ function sharedEvidenceMatches(
 
 /** Resolve one-to-one candidates, treating aliases of an already claimed primary row as ambiguous duplicates. */
 function resolveCandidateMatches(
-	primaryRows: readonly BenchmarkScoreRow[],
+	primaryRows: readonly BenchmarkObservationRow[],
 	epochRows: readonly WeirdMlEpochRow[],
 	candidates: readonly (readonly number[])[],
 	method: WeirdMlCrosswalkMethod,
@@ -227,7 +231,7 @@ function resolveCandidateMatches(
 				if (
 					primaryCandidates.length === 1 &&
 					!sharedEvidenceMatches(
-						primaryRows[claimedIndex] as BenchmarkScoreRow,
+						primaryRows[claimedIndex] as BenchmarkObservationRow,
 						epochRows[epochIndex] as WeirdMlEpochRow,
 					)
 				) {
@@ -262,7 +266,7 @@ function resolveCandidateMatches(
 		}
 		if (
 			!sharedEvidenceMatches(
-				primaryRows[primaryIndex] as BenchmarkScoreRow,
+				primaryRows[primaryIndex] as BenchmarkObservationRow,
 				epochRows[epochIndex] as WeirdMlEpochRow,
 			)
 		) {
@@ -276,7 +280,7 @@ function resolveCandidateMatches(
 
 /** Build the creator/Epoch crosswalk without assuming same-looking model rows are equivalent. */
 function buildWeirdMlCrosswalk(
-	primaryRows: readonly BenchmarkScoreRow[],
+	primaryRows: readonly BenchmarkObservationRow[],
 	epochRows: readonly WeirdMlEpochRow[],
 ): WeirdMlMergePlan {
 	const primaryAliases = primaryRows.map(primaryIdentityAliases);
@@ -376,7 +380,7 @@ function buildWeirdMlCrosswalk(
 }
 
 /** Parse WeirdML's current 17-task creator schema and preserve task-level evidence. */
-export function processWeirdMlCsv(csv: string): BenchmarkScoreRow[] {
+export function processWeirdMlCsv(csv: string): BenchmarkObservationRow[] {
 	const records = parseCsvRecords(csv);
 	const firstRecord = records[0];
 	if (
@@ -396,16 +400,20 @@ export function processWeirdMlCsv(csv: string): BenchmarkScoreRow[] {
 		return [
 			{
 				benchmark_key: "weirdml",
-				source: "weirdml" as const,
 				source_url: WEIRDML_CREATOR_CSV_URL,
 				model_id:
 					row.model_slug?.trim() || row.internal_model_name?.trim() || null,
 				model,
 				base_model: parsed.baseModel,
 				reasoning_effort: parsed.reasoningEffort,
-				provider: row["API source"]?.trim() || null,
+				model_creator_id: null,
+				model_creator: null,
+				inference_provider: row["API source"]?.trim() || null,
 				rank: index + 1,
-				score,
+				reported_value: score,
+				reported_unit: "proportion",
+				canonical_value: score,
+				canonical_unit: "proportion",
 				score_eligible: true,
 				standard_error: asFiniteNumber(row.avg_acc_standard_error),
 				confidence_low: null,
@@ -429,18 +437,22 @@ export function processWeirdMlCsv(csv: string): BenchmarkScoreRow[] {
 	});
 }
 
-function epochBenchmarkRow(row: WeirdMlEpochRow): BenchmarkScoreRow {
+function epochBenchmarkRow(row: WeirdMlEpochRow): BenchmarkObservationRow {
 	return {
 		benchmark_key: "weirdml",
-		source: "weirdml",
 		source_url: WEIRDML_EPOCH_CSV_URL,
 		model_id: row.model_version,
 		model: row.name,
 		base_model: row.base_model,
 		reasoning_effort: row.reasoning_effort,
-		provider: row.provider,
+		model_creator_id: null,
+		model_creator: row.provider,
+		inference_provider: null,
 		rank: null,
-		score: row.accuracy,
+		reported_value: row.accuracy,
+		reported_unit: "proportion",
+		canonical_value: row.accuracy,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: row.standard_error,
 		confidence_low: null,
@@ -457,9 +469,9 @@ function epochBenchmarkRow(row: WeirdMlEpochRow): BenchmarkScoreRow {
 
 /** Merge only a validated crosswalk, keeping creator observations authoritative on every overlap. */
 export function mergeWeirdMlRows(
-	primaryRows: readonly BenchmarkScoreRow[],
+	primaryRows: readonly BenchmarkObservationRow[],
 	epochRows: readonly WeirdMlEpochRow[],
-): { data: BenchmarkScoreRow[]; crosswalk: WeirdMlCrosswalkStatus } {
+): { data: BenchmarkObservationRow[]; crosswalk: WeirdMlCrosswalkStatus } {
 	const plan = buildWeirdMlCrosswalk(primaryRows, epochRows);
 	if (!plan.status.accepted) {
 		return { data: [...primaryRows], crosswalk: plan.status };
@@ -488,7 +500,8 @@ export function mergeWeirdMlRows(
 	]
 		.sort(
 			(left, right) =>
-				right.score - left.score || left.model.localeCompare(right.model),
+				right.canonical_value - left.canonical_value ||
+				left.model.localeCompare(right.model),
 		)
 		.map((row, index) => ({ ...row, rank: index + 1 }));
 	return { data: merged, crosswalk: plan.status };

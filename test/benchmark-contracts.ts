@@ -11,8 +11,9 @@ import {
 	BENCHMARK_CATALOG,
 	BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_KEYS,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	BENCHMARK_OBSERVATION_RAW_TABLE,
 	BENCHMARK_RUNTIME_KEYS,
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
 	transformBenchmarkSourceValue,
 } from "../src/model-atlas/benchmarks/registry";
 import {
@@ -323,7 +324,7 @@ assert.equal(
 	"briefcase",
 );
 assert.deepEqual(
-	BENCHMARK_SCORE_SOURCE_BINDINGS.find(
+	BENCHMARK_OBSERVATION_BINDINGS.find(
 		(binding) => binding.benchmark === "chartography",
 	),
 	{
@@ -332,8 +333,8 @@ assert.deepEqual(
 			kind: "surge",
 			sourceUrl: "https://surgehq.ai/benchmarks/chartography",
 		},
-		rawSource: "chartography",
-		rawTable: "chartography_raw_rows",
+		rawSourceKey: "chartography",
+		rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
 		source: "surge",
 		sourceDataKey: "chartography",
 		sourceRowsKey: "chartographyRows",
@@ -366,7 +367,7 @@ for (const runtimeKey of BENCHMARK_RUNTIME_KEYS) {
 	assert.equal(RAW_SOURCE_TABLES[runtimeKey], `${runtimeKey}_raw_rows`);
 }
 assert.equal(
-	BENCHMARK_SCORE_SOURCE_BINDINGS.find(
+	BENCHMARK_OBSERVATION_BINDINGS.find(
 		({ benchmark }) => benchmark === "frontiermath_tier_4",
 	)?.loader.kind,
 	"epoch_runs",
@@ -380,9 +381,10 @@ assert.equal(
 	benchmarkRawWriterTables.length,
 	"benchmark raw tables should have one writer each",
 );
-for (const binding of BENCHMARK_SCORE_SOURCE_BINDINGS) {
-	assert.ok(
-		benchmarkRawWriterTables.includes(binding.rawTable),
-		`generic benchmark source should register ${binding.rawTable}`,
-	);
-}
+assert.equal(
+	benchmarkRawWriterTables.filter(
+		(table) => table === BENCHMARK_OBSERVATION_RAW_TABLE,
+	).length,
+	1,
+	"generic benchmark sources should share one raw-table writer",
+);
