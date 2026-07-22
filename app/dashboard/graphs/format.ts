@@ -16,7 +16,7 @@ const tooltipDecimalFormatter = new Intl.NumberFormat("en-US", {
 	maximumFractionDigits: 1,
 });
 
-export function percent(value: unknown) {
+export function toPercent(value: unknown) {
 	if (!finite(value)) {
 		return null;
 	}

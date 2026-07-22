@@ -5,7 +5,7 @@ import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { compactDashboardPayload } from "../app/dashboard/payload";
+import { compactDashboardPayload } from "../app/dashboard/compact-payload";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import {
 	benchmarkLabels,

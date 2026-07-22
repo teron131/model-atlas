@@ -10,18 +10,17 @@
  * - https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details
  */
 
+import type {
+	BenchmarkObservationMetadata,
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../benchmarks/observation";
 import {
 	asFiniteNumber,
 	asRecord,
 	fetchWithTimeout,
 	nowEpochSeconds,
 } from "../runtime";
-
-import type {
-	BenchmarkObservationMetadata,
-	BenchmarkObservationPayload,
-	BenchmarkObservationRow,
-} from "./benchmark-observation";
 import { stringValue } from "./parsing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;

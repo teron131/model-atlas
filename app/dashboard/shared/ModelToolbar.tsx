@@ -4,7 +4,7 @@
 
 import { Boxes } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { DisplayControls, type DisplayControlsProps } from "./display-controls";
+import { DisplayControls, type DisplayControlsProps } from "./DisplayControls";
 import { toggleProviderFilter } from "./model-display";
 import styles from "./model-toolbar.module.css";
 

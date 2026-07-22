@@ -1,6 +1,10 @@
 /** Benchmark enrichment is the single bridge from source lookup maps to evaluation and scoring-source fields. */
 
 import {
+	type BenchmarkObservationLookup,
+	findBenchmarkObservation,
+} from "../../benchmarks/observation";
+import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type BenchmarkObservationDataKey,
 	type BenchmarkRuntimeKeyFor,
@@ -27,10 +31,6 @@ import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	findArtificialAnalysisEvaluationResourceRow,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
-import {
-	type BenchmarkObservationLookup,
-	findBenchmarkObservation,
-} from "../../scrapers/benchmark-observation";
 import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
 import { findGdpPdfScore } from "../../scrapers/surge/gdp-pdf";
 import { findRiemannBenchScore } from "../../scrapers/surge/riemann-bench";

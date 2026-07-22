@@ -15,7 +15,7 @@ import {
 
 import type { LlmStatsColumnTooltips } from "../../src/model-atlas/config/tooltips";
 import type { LlmStatsPayload } from "../../src/model-atlas/stats/types";
-import { LeaderboardCapture } from "./capture/leaderboard";
+import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";
 import type { CostFilter, ModelLimit, ProviderFilters } from "./graphs/types";
@@ -30,9 +30,9 @@ import { MoonIcon, SunIcon } from "./shared/DashboardIcons";
 import {
 	DEFAULT_DISPLAY_ITEMS,
 	useDisplayLimit,
-} from "./shared/display-controls";
+} from "./shared/DisplayControls";
+import { ModelToolbar } from "./shared/ModelToolbar";
 import { modelCount, modelsForVariantDisplay } from "./shared/model-display";
-import { ModelToolbar } from "./shared/model-toolbar";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import {
 	dashboardMetricColumns,
@@ -64,7 +64,7 @@ export function Dashboard({
 	const dashboardRef = useRef<HTMLElement>(null);
 	const tooltipFadeTimeoutRef = useRef<number | null>(null);
 	const [theme, setTheme] = useDashboardTheme();
-	const [expandReasoningVariants, setExpandReasoningVariants] =
+	const [showReasoningVariants, setShowReasoningVariants] =
 		useReasoningVariantDisplay();
 	const [sortState, setSortState] = useState<SortState>({
 		key: "intelligence",
@@ -79,7 +79,7 @@ export function Dashboard({
 	const [modelLimit, setModelLimit] = useState<ModelLimit>(
 		DEFAULT_DISPLAY_ITEMS,
 	);
-	const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
+	const [showLeaderboardVariants, setShowLeaderboardVariants] = useState(false);
 	const deferredFilterQuery = useDeferredValue(filterQuery);
 	const [, startSortTransition] = useTransition();
 	const { payload, errorMessage, hasFullPayload } =
@@ -91,15 +91,15 @@ export function Dashboard({
 		}
 		return {
 			...payload,
-			models: modelsForVariantDisplay(payload.models, expandReasoningVariants),
+			models: modelsForVariantDisplay(payload.models, showReasoningVariants),
 		};
-	}, [payload, expandReasoningVariants]);
+	}, [payload, showReasoningVariants]);
 	const tableRows = useMemo(
 		() =>
 			dedupeDisplayModels(
-				modelsForVariantDisplay(payload?.models ?? [], leaderboardExpanded),
+				modelsForVariantDisplay(payload?.models ?? [], showLeaderboardVariants),
 			),
-		[leaderboardExpanded, payload],
+		[payload, showLeaderboardVariants],
 	);
 	const providerChoices = useMemo(
 		() => providerOptions(tableRows.map((row) => row.model)),
@@ -119,7 +119,7 @@ export function Dashboard({
 	const [effectiveLeaderboardLimit, setLeaderboardLimit] = useDisplayLimit(
 		maximumLeaderboardLimit,
 	);
-	const leaderboardRowKind = leaderboardExpanded ? "variants" : "models";
+	const leaderboardRowKind = showLeaderboardVariants ? "variants" : "models";
 	const matchingTableRows = useMemo(
 		() =>
 			sortedRows(filteredTableRows, deferredFilterQuery, {
@@ -270,8 +270,8 @@ export function Dashboard({
 				providerChoices={providerChoices}
 				maxCost={maxCostFilter}
 				modelLimit={modelLimit}
-				expandReasoningVariants={expandReasoningVariants}
-				onExpandReasoningVariantsChange={setExpandReasoningVariants}
+				showReasoningVariants={showReasoningVariants}
+				onShowReasoningVariantsChange={setShowReasoningVariants}
 				onSelectedProvidersChange={setSelectedProviders}
 				onMaxCostChange={setMaxCostFilter}
 				onModelLimitChange={setModelLimit}
@@ -296,8 +296,8 @@ export function Dashboard({
 								value: effectiveLeaderboardLimit,
 								onValueChange: setLeaderboardLimit,
 								variantControl: {
-									expanded: leaderboardExpanded,
-									onExpandedChange: setLeaderboardExpanded,
+									showVariants: showLeaderboardVariants,
+									onShowVariantsChange: setShowLeaderboardVariants,
 								},
 							}}
 							screenshotControl={
@@ -383,13 +383,13 @@ function writeDashboardTheme(theme: DashboardTheme): void {
 
 function useReasoningVariantDisplay() {
 	const hydratedModeRef = useRef(false);
-	const [expandReasoningVariants, setExpandReasoningVariants] = useState(false);
+	const [showReasoningVariants, setShowReasoningVariants] = useState(false);
 
 	useLayoutEffect(() => {
 		if (!hydratedModeRef.current) {
 			hydratedModeRef.current = true;
 			try {
-				setExpandReasoningVariants(
+				setShowReasoningVariants(
 					window.localStorage.getItem(REASONING_VARIANT_STORAGE_KEY) === "true",
 				);
 			} catch {}
@@ -398,12 +398,12 @@ function useReasoningVariantDisplay() {
 		try {
 			window.localStorage.setItem(
 				REASONING_VARIANT_STORAGE_KEY,
-				String(expandReasoningVariants),
+				String(showReasoningVariants),
 			);
 		} catch {}
-	}, [expandReasoningVariants]);
+	}, [showReasoningVariants]);
 
-	return [expandReasoningVariants, setExpandReasoningVariants] as const;
+	return [showReasoningVariants, setShowReasoningVariants] as const;
 }
 
 function DashboardHeader({

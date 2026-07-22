@@ -1,5 +1,6 @@
 /** Shared model and scoring contracts used by derivation and the public stats surface. */
 
+import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type {
 	BenchmarkKey,
 	BenchmarkResourceKey,
@@ -10,7 +11,6 @@ import type { AgentArenaModelScoreRow } from "../scrapers/agent-arena";
 import type { AgentsLastExamModelScoreRow } from "../scrapers/agents-last-exam";
 import type { AleBenchModelScoreRow } from "../scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
-import type { BenchmarkObservationRow } from "../scrapers/benchmark-observation";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type { DeepSWEModelScoreRow } from "../scrapers/deep-swe";
 import type { FrontierCodeModelEffortRow } from "../scrapers/frontier-code";

@@ -9,8 +9,8 @@ const MINIMUM_DISPLAY_ITEMS = 3;
 export const DEFAULT_DISPLAY_ITEMS = 30;
 
 const variantOptions = [
-	{ expanded: false, label: "Collapsed" },
-	{ expanded: true, label: "Expanded" },
+	{ showVariants: false, label: "Collapsed" },
+	{ showVariants: true, label: "Expanded" },
 ];
 
 /** Keep a requested display count inside the available data-backed range. */
@@ -38,8 +38,8 @@ export type DisplayControlsProps = {
 	value: number;
 	onValueChange: (value: number) => void;
 	variantControl?: {
-		expanded: boolean;
-		onExpandedChange: (expanded: boolean) => void;
+		showVariants: boolean;
+		onShowVariantsChange: (show: boolean) => void;
 	};
 };
 
@@ -89,9 +89,13 @@ export function DisplayControls({
 							<button
 								className={styles.variantOption}
 								type="button"
-								aria-pressed={variantControl.expanded === option.expanded}
+								aria-pressed={
+									variantControl.showVariants === option.showVariants
+								}
 								key={option.label}
-								onClick={() => variantControl.onExpandedChange(option.expanded)}
+								onClick={() =>
+									variantControl.onShowVariantsChange(option.showVariants)
+								}
 							>
 								{option.label}
 							</button>

@@ -6,7 +6,7 @@ import {
 	type DatabaseWriter,
 	modalityFlagValue,
 	sqliteBooleanValue,
-} from "./shared";
+} from "./database";
 
 export function insertModelsDevRawModels(
 	db: DatabaseWriter,

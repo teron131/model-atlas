@@ -7,7 +7,7 @@
 
 import { normalizeModelToken } from "../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
-import { surgeLeaderboardScoreRows } from "./common";
+import { surgeLeaderboardScoreRows } from "./leaderboard";
 
 export const RIEMANN_BENCH_LEADERBOARD_URL =
 	"https://surgehq.ai/leaderboards/riemann-bench";

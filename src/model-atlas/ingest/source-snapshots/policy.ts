@@ -300,7 +300,7 @@ export function buildModelsDevSourceStates(
 }
 
 /** Classifies one raw source as fresh, cached, empty, or stale. */
-function sourceStatus(
+function healthStatusFromCache(
 	status: RawSourceCacheStatus,
 ): LlmStatsSourceHealthStatus {
 	if (status.source_input_count <= 0) {
@@ -316,7 +316,7 @@ function sourceStatus(
 }
 
 /** Counts active and quarantined rows for one raw source. */
-function stateCounts(
+function rowStateCounts(
 	source: RawSourceName,
 	sourceRowStates: readonly SourceRowState[],
 ) {
@@ -351,8 +351,8 @@ export function buildSourceHealth({
 			RAW_SOURCE_NAMES.map(
 				(source): [RawSourceName, LlmStatsSourceHealthEntry] => {
 					const status = sourceCache[source];
-					const counts = stateCounts(source, sourceRowStates);
-					const healthStatus = sourceStatus(status);
+					const counts = rowStateCounts(source, sourceRowStates);
+					const healthStatus = healthStatusFromCache(status);
 					return [
 						source,
 						{

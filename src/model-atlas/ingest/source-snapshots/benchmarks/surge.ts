@@ -14,8 +14,8 @@ import type {
 	RawSourceCacheStatus,
 	SourceSnapshotStatus,
 } from "../../types";
-import { modelScoreSnapshot } from "../model-score";
 import { sourceKey } from "../policy";
+import { snapshotSourceRows } from "../row-snapshot";
 
 type GdpPdfSnapshot = {
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
@@ -36,7 +36,7 @@ export async function gdpPdfSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<GdpPdfSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "gdp_pdf",
 		cached,
 		status,
@@ -67,7 +67,7 @@ export async function riemannBenchSnapshot(
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
 ): Promise<RiemannBenchSnapshot> {
-	const snapshot = await modelScoreSnapshot({
+	const snapshot = await snapshotSourceRows({
 		source: "riemann_bench",
 		cached,
 		status,

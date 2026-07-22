@@ -1,6 +1,6 @@
 /** Direct publication collects existing writer output into table-shaped rows without creating a SQLite database. */
 
-import type { DatabaseStatement, DatabaseWriter, SqlValue } from "./shared";
+import type { DatabaseStatement, DatabaseWriter, SqlValue } from "./database";
 
 export type CollectedTableRows = {
 	columns: string[];

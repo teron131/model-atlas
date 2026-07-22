@@ -11,7 +11,7 @@ import {
 	summarizeOpenRouterPerformanceEstimates,
 } from "../../scrapers/openrouter";
 import { SOURCE_URLS } from "../types";
-import type { DatabaseStatement, DatabaseWriter } from "./shared";
+import type { DatabaseStatement, DatabaseWriter } from "./database";
 
 type OpenRouterPointRow = {
 	x: string | null;

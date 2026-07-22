@@ -10,7 +10,7 @@ import {
 	getValsSourceStats,
 	processValsBenchmarkPageHtml,
 	type ValsBenchmarkDefinition,
-} from "../src/model-atlas/scrapers/vals/common";
+} from "../src/model-atlas/scrapers/vals/benchmark-view";
 
 function astro(value: unknown): unknown[] {
 	return [0, value];

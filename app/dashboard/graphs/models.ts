@@ -23,7 +23,7 @@ import {
 	fmtSeconds,
 	fmtTooltipMoney,
 	fmtTooltipNumber,
-	percent,
+	toPercent,
 } from "./format";
 import type {
 	CostFilter,
@@ -148,7 +148,7 @@ export function frontierBenchmarkScoreByModel(
 	const scoresByBenchmark = new Map<string, number[]>();
 	for (const key of frontierKeys) {
 		const scores = models
-			.map((model) => percent(model.evaluations?.[key]))
+			.map((model) => toPercent(model.evaluations?.[key]))
 			.filter(finite);
 		if (scores.length > 0) {
 			scoresByBenchmark.set(key, scores);
@@ -158,7 +158,7 @@ export function frontierBenchmarkScoreByModel(
 	const scoreByModel = new Map<string, number>();
 	for (const model of models) {
 		const normalizedScores = frontierKeys.flatMap((key) => {
-			const score = percent(model.evaluations?.[key]);
+			const score = toPercent(model.evaluations?.[key]);
 			const benchmarkScores = scoresByBenchmark.get(key);
 			if (score == null || benchmarkScores == null) {
 				return [];

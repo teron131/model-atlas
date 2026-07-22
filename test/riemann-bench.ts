@@ -1,7 +1,7 @@
 /** Verifies Riemann Bench parsing, matching, and source URL provenance. */
 
 import assert from "node:assert/strict";
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/common";
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/leaderboard";
 import {
 	buildRiemannBenchMap,
 	findRiemannBenchScore,

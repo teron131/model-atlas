@@ -6,11 +6,11 @@ import {
 	buildComponentScores,
 	buildQualityScoringContext,
 } from "../src/model-atlas/pipeline/scores";
-import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/common";
 import {
 	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
 	processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
+import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/model-labels";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = stableJson(actual);

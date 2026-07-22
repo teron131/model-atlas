@@ -1,11 +1,11 @@
 /** Shared Surge leaderboard parsing and fetching for benchmark-specific adapters. */
 
-import { benchmarkModelEffort } from "../../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import type {
 	BenchmarkObservationPayload,
 	BenchmarkObservationRow,
-} from "../benchmark-observation";
+} from "../../benchmarks/observation";
+import { benchmarkModelEffort } from "../../identity/normalization";
+import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import {
 	htmlAttribute,
 	percentToUnitScore,

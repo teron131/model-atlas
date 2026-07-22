@@ -12,8 +12,8 @@ import type {
 	SourceSnapshotStatus,
 	SourceSnapshots,
 } from "../types";
-import { shouldUseFetchedRows, snapshotFetchedAt } from "./model-score";
 import { buildModelsDevSourceStates, mergeSourceEvidence } from "./policy";
+import { shouldUseFetchedRows, snapshotFetchedAt } from "./row-snapshot";
 
 type ModelsDevSnapshot = Pick<
 	SourceSnapshots,

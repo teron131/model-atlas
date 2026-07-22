@@ -1,28 +1,27 @@
 /** Exercises benchmark CSV, Astro, HTML, matching, eligibility, and domain-owned persistence. */
 
 import assert from "node:assert/strict";
-
+import {
+	buildBenchmarkObservationLookup,
+	findBenchmarkObservation,
+} from "../src/model-atlas/benchmarks/observation";
 import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../src/model-atlas/benchmarks/registry";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
-import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/model-score";
 import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
+import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
-import {
-	buildBenchmarkObservationLookup,
-	findBenchmarkObservation,
-} from "../src/model-atlas/scrapers/benchmark-observation";
+import { epochBenchmarkObservationRows } from "../src/model-atlas/scrapers/epoch/benchmark-runs";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/epoch/capabilities-index";
-import { epochBenchmarkObservationRows } from "../src/model-atlas/scrapers/epoch/common";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
-import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/common";
-import { processValsBenchmarkPageHtml } from "../src/model-atlas/scrapers/vals/common";
+import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/leaderboard";
+import { processValsBenchmarkPageHtml } from "../src/model-atlas/scrapers/vals/benchmark-view";
 import { processWeirdMlCsv } from "../src/model-atlas/scrapers/weirdml";
 
 assert.deepEqual(

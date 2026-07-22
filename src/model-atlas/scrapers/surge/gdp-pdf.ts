@@ -7,7 +7,7 @@
 
 import { normalizeModelToken } from "../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
-import { surgeLeaderboardScoreRows } from "./common";
+import { surgeLeaderboardScoreRows } from "./leaderboard";
 
 const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/gdp-pdf";
 const DEFAULT_TIMEOUT_MS = 30_000;

@@ -15,16 +15,16 @@ import type {
 	BenchmarkPortfolio,
 	LlmStatsModel,
 } from "../../../src/model-atlas/stats/types";
-import { CaptureButton } from "../capture/button";
+import { CaptureButton } from "../capture/CaptureButton";
 import { captureFileToken } from "../capture/png";
-import { useDisplayLimit } from "../shared/display-controls";
+import { useDisplayLimit } from "../shared/DisplayControls";
+import { ModelToolbar } from "../shared/ModelToolbar";
 import {
 	modelCount,
 	modelMatchesQuery,
 	modelsForVariantDisplay,
 	modelVariantKey,
 } from "../shared/model-display";
-import { ModelToolbar } from "../shared/model-toolbar";
 import {
 	providerChartColor,
 	providerDisplayName,
@@ -87,18 +87,18 @@ type SlopeHoverEvent =
 
 export function PriceEfficiencyPanel({
 	benchmarkPortfolio,
-	displayExpanded,
+	showVariants,
 	maxCost,
-	onDisplayExpandedChange,
+	onShowVariantsChange,
 	selectedProviders,
 	onSelectedProvidersChange,
 	referenceModels,
 	setHover,
 }: {
 	benchmarkPortfolio: BenchmarkPortfolio;
-	displayExpanded: boolean;
+	showVariants: boolean;
 	maxCost: CostFilter;
-	onDisplayExpandedChange: (expanded: boolean) => void;
+	onShowVariantsChange: (show: boolean) => void;
 	selectedProviders: string[];
 	onSelectedProvidersChange: (providers: string[]) => void;
 	referenceModels: LlmStatsModel[];
@@ -110,7 +110,7 @@ export function PriceEfficiencyPanel({
 	const chartWidth = compactChartLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
 	const displayModels = useMemo(
 		() =>
-			modelsForVariantDisplay(referenceModels, displayExpanded)
+			modelsForVariantDisplay(referenceModels, showVariants)
 				.filter(
 					(model) =>
 						model.name != null &&
@@ -120,7 +120,7 @@ export function PriceEfficiencyPanel({
 					(left, right) =>
 						right.scores.intelligence_score - left.scores.intelligence_score,
 				),
-		[displayExpanded, referenceModels],
+		[referenceModels, showVariants],
 	);
 	const providerChoices = useMemo(
 		() => providerOptions(displayModels),
@@ -137,7 +137,7 @@ export function PriceEfficiencyPanel({
 			filteredModels,
 			referenceModels,
 			benchmarkPortfolio,
-			displayExpanded,
+			showVariants,
 		).sort(
 			(left, right) =>
 				right.model.scores.intelligence_score -
@@ -146,7 +146,7 @@ export function PriceEfficiencyPanel({
 	}, [
 		benchmarkPortfolio,
 		displayModels,
-		displayExpanded,
+		showVariants,
 		maxCost,
 		referenceModels,
 		selectedProviders,
@@ -159,7 +159,7 @@ export function PriceEfficiencyPanel({
 		[availableRows, filterQuery],
 	);
 	const rows = matchingRows.slice(0, effectiveLimit);
-	const itemKind = displayExpanded ? "variants" : "models";
+	const itemKind = showVariants ? "variants" : "models";
 	const captureFileName = [
 		`model-atlas-price-vs-cost-efficiency-top-${effectiveLimit}-${itemKind}`,
 		...(selectedProviders.length === 0
@@ -193,8 +193,8 @@ export function PriceEfficiencyPanel({
 				value: effectiveLimit,
 				onValueChange: setDisplayLimit,
 				variantControl: {
-					expanded: displayExpanded,
-					onExpandedChange: onDisplayExpandedChange,
+					showVariants,
+					onShowVariantsChange,
 				},
 			}}
 			screenshotControl={

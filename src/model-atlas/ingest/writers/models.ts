@@ -8,7 +8,7 @@ import {
 	modalityFlagValue,
 	type SqlValue,
 	sqliteBooleanValue,
-} from "./shared";
+} from "./database";
 
 function modelIdentityValues(model: JsonObject): SqlValue[] {
 	const modelId = firstString(model, ["id"]);

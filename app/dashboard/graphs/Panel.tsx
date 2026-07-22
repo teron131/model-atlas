@@ -7,7 +7,7 @@ import {
 	useRef,
 } from "react";
 
-import { CaptureButton } from "../capture/button";
+import { CaptureButton } from "../capture/CaptureButton";
 import styles from "./graphs.module.css";
 
 export function Panel({
@@ -37,8 +37,8 @@ export function Panel({
 	captureEnabled?: boolean;
 	panelRef?: RefObject<HTMLElement | null>;
 }) {
-	const internalPanelRef = useRef<HTMLElement>(null);
-	const resolvedPanelRef = panelRef ?? internalPanelRef;
+	const fallbackPanelRef = useRef<HTMLElement>(null);
+	const resolvedPanelRef = panelRef ?? fallbackPanelRef;
 	const artifactWidth = captureWidth + 48;
 	const captureStyle = {
 		"--capture-artifact-width": `${artifactWidth}px`,

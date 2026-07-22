@@ -1,3 +1,5 @@
+/** Verifies root proxy routing and JSON content negotiation. */
+
 import assert from "node:assert/strict";
 
 import {

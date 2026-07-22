@@ -1,6 +1,6 @@
-/** Generic source snapshot lifecycle for one-score benchmark row sources. */
+/** Generic source-row snapshot lifecycle for cache-aware fetched payloads. */
 
-import type { BenchmarkObservationRow } from "../../scrapers/benchmark-observation";
+import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -15,25 +15,25 @@ type RawRowsCache<Row> = {
 	sourceUrl?: string;
 };
 
-type ModelScoreRowsPayload<Row> = {
+type SourceRowsPayload<Row> = {
 	fetched_at_epoch_seconds: number | null;
 	source_url?: string;
 	data: Row[];
 };
 
-type ModelScoreSnapshotConfig<Row> = {
+type SourceRowSnapshotConfig<Row> = {
 	source: RawSourceName;
 	cached: RawRowsCache<Row> | null | undefined;
 	status: RawSourceCacheStatus;
 	options: DatabaseBuildOptions;
 	previousMissingSince: ReadonlyMap<string, number>;
 	nowEpochSeconds: number;
-	fetchRows: () => Promise<ModelScoreRowsPayload<Row>>;
+	fetchRows: () => Promise<SourceRowsPayload<Row>>;
 	rowKey: (row: Row) => string | null;
 	rowLabel: (row: Row) => string | null;
 };
 
-type ModelScoreSnapshotResult<Row> = {
+type SourceRowSnapshotResult<Row> = {
 	rows: Row[];
 	sourceRowStates: SourceRowState[];
 	fetchedAt: number | null;
@@ -93,10 +93,10 @@ function snapshotSourceUrl(
 		: cachedSourceUrl;
 }
 
-/** Loads one-score source rows from cache or fetches them while preserving missing-row state. */
-export async function modelScoreSnapshot<Row>(
-	config: ModelScoreSnapshotConfig<Row>,
-): Promise<ModelScoreSnapshotResult<Row>> {
+/** Loads one row source from cache or fetches it while preserving missing-row state. */
+export async function snapshotSourceRows<Row>(
+	config: SourceRowSnapshotConfig<Row>,
+): Promise<SourceRowSnapshotResult<Row>> {
 	if (
 		config.status.cache_hit &&
 		config.cached != null &&

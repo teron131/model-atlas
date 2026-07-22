@@ -24,7 +24,7 @@ import {
 import {
 	cleanArtificialAnalysisModelName,
 	parseArtificialAnalysisReasoningEffort,
-} from "./common";
+} from "./model-labels";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 3;

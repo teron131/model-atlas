@@ -161,13 +161,13 @@ function compactTaskMetrics(
 	if (taskMetrics == null) {
 		return null;
 	}
-	const compactTaskMetrics = Object.fromEntries(
+	const metrics = Object.fromEntries(
 		Object.entries(taskMetrics).map(([key, value]) => [
 			key,
 			value == null ? null : { ...value },
 		]),
 	);
-	return Object.keys(compactTaskMetrics).length > 0 ? compactTaskMetrics : null;
+	return Object.keys(metrics).length > 0 ? metrics : null;
 }
 
 function compactEvaluations(

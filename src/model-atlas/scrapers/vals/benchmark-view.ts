@@ -4,6 +4,10 @@
  * Page source: https://www.vals.ai/benchmarks
  */
 
+import type {
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../../benchmarks/observation";
 import { canonicalReasoningEffort } from "../../identity/normalization";
 import {
 	asFiniteNumber,
@@ -11,10 +15,6 @@ import {
 	fetchWithTimeout,
 	nowEpochSeconds,
 } from "../../runtime";
-import type {
-	BenchmarkObservationPayload,
-	BenchmarkObservationRow,
-} from "../benchmark-observation";
 import { htmlAttribute, stringValue } from "../parsing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;

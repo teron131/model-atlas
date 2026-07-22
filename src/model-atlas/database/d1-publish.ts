@@ -36,7 +36,7 @@ import {
 } from "../ingest/types";
 import { SnapshotRowCollector } from "../ingest/writers";
 import type { CollectedTableRows } from "../ingest/writers/collector";
-import type { SqlValue } from "../ingest/writers/shared";
+import type { SqlValue } from "../ingest/writers/database";
 import { nowEpochSeconds } from "../runtime";
 import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
 import type { LlmStatsPayload } from "../stats/types";

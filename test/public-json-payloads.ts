@@ -1,7 +1,7 @@
 /** Verify the public model boundary, JSON projections, and dashboard bootstrap projection. */
 
 import assert from "node:assert/strict";
-import { compactDashboardPayload } from "../app/dashboard/payload";
+import { compactDashboardPayload } from "../app/dashboard/compact-payload";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { selectPublicModels } from "../src/model-atlas/pipeline/selection/public-list";
 import {

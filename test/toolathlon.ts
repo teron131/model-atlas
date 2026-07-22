@@ -3,7 +3,7 @@
 import {
 	buildBenchmarkObservationLookup,
 	findBenchmarkObservation,
-} from "../src/model-atlas/scrapers/benchmark-observation";
+} from "../src/model-atlas/benchmarks/observation";
 import { processZeroEvalDetailsJson } from "../src/model-atlas/scrapers/zeroeval";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {

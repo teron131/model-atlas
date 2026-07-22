@@ -46,7 +46,7 @@ export function priceEfficiencyRows(
 	visibleModels: LlmStatsModel[],
 	referenceModels: LlmStatsModel[],
 	portfolio: BenchmarkPortfolio,
-	expandReasoningVariants: boolean,
+	showVariants: boolean,
 ): PriceEfficiencyRow[] {
 	const eligibleModels = referenceModels.filter(isPriceEligibleModel);
 	const priceScores = modelBalancedMinMaxScores(
@@ -89,7 +89,7 @@ export function priceEfficiencyRows(
 	);
 	const strongestByKey = new Map<string, LlmStatsModel>();
 	for (const model of referenceModels) {
-		const key = comparisonKey(model, expandReasoningVariants);
+		const key = comparisonKey(model, showVariants);
 		const existing = strongestByKey.get(key);
 		if (
 			existing == null ||
@@ -101,9 +101,7 @@ export function priceEfficiencyRows(
 	const draftByModel = new Map(drafts.map((draft) => [draft.model, draft]));
 	return visibleModels
 		.flatMap((model): PriceEfficiencyRow[] => {
-			const reference = strongestByKey.get(
-				comparisonKey(model, expandReasoningVariants),
-			);
+			const reference = strongestByKey.get(comparisonKey(model, showVariants));
 			const draft = reference == null ? null : draftByModel.get(reference);
 			if (draft == null) {
 				return [];
@@ -124,13 +122,8 @@ export function priceEfficiencyRows(
 		);
 }
 
-function comparisonKey(
-	model: LlmStatsModel,
-	expandReasoningVariants: boolean,
-): string {
-	return expandReasoningVariants
-		? modelVariantKey(model)
-		: canonicalModelKey(model);
+function comparisonKey(model: LlmStatsModel, showVariants: boolean): string {
+	return showVariants ? modelVariantKey(model) : canonicalModelKey(model);
 }
 
 function isPriceEligibleModel(model: LlmStatsModel): boolean {

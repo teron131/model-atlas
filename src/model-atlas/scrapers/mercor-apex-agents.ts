@@ -118,12 +118,12 @@ function parseResultRow(value: unknown): MercorApexAgentsRow | null {
 	const sourceModelName = stringValue(sourceModel.modelName);
 	const organization =
 		stringValue(provider.name) ?? stringValue(provider.providerId);
-	const result = loopPassScore(row.passScores);
+	const loopScore = loopPassScore(row.passScores);
 	if (
 		modelId == null ||
 		sourceModelName == null ||
 		organization == null ||
-		result == null
+		loopScore == null
 	) {
 		return null;
 	}
@@ -135,7 +135,7 @@ function parseResultRow(value: unknown): MercorApexAgentsRow | null {
 		base_model: identity.baseModel,
 		reasoning_effort: identity.reasoningEffort,
 		organization,
-		score: result,
+		score: loopScore,
 	};
 }
 

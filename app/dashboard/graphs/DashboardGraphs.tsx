@@ -36,8 +36,8 @@ export function DashboardGraphs({
 	providerChoices,
 	maxCost,
 	modelLimit,
-	expandReasoningVariants,
-	onExpandReasoningVariantsChange,
+	showReasoningVariants,
+	onShowReasoningVariantsChange,
 	onSelectedProvidersChange,
 	onMaxCostChange,
 	onModelLimitChange,
@@ -51,8 +51,8 @@ export function DashboardGraphs({
 	providerChoices: ProviderOption[];
 	maxCost: CostFilter;
 	modelLimit: ModelLimit;
-	expandReasoningVariants: boolean;
-	onExpandReasoningVariantsChange: (enabled: boolean) => void;
+	showReasoningVariants: boolean;
+	onShowReasoningVariantsChange: (show: boolean) => void;
 	onSelectedProvidersChange: (providers: string[]) => void;
 	onMaxCostChange: (maxCost: CostFilter) => void;
 	onModelLimitChange: (modelLimit: ModelLimit) => void;
@@ -89,7 +89,7 @@ export function DashboardGraphs({
 
 	const filteredModelCount = modelCount(filteredModels);
 	const visibleModelCount = modelCount(models);
-	const visibleModelLabel = expandReasoningVariants
+	const visibleModelLabel = showReasoningVariants
 		? `${
 				modelLimit === "all" || filteredModelCount <= modelLimit
 					? fmtCompact(visibleModelCount)
@@ -162,16 +162,16 @@ export function DashboardGraphs({
 							<button
 								type="button"
 								className={styles.variantOption}
-								aria-pressed={!expandReasoningVariants}
-								onClick={() => onExpandReasoningVariantsChange(false)}
+								aria-pressed={!showReasoningVariants}
+								onClick={() => onShowReasoningVariantsChange(false)}
 							>
 								Collapsed
 							</button>
 							<button
 								type="button"
 								className={styles.variantOption}
-								aria-pressed={expandReasoningVariants}
-								onClick={() => onExpandReasoningVariantsChange(true)}
+								aria-pressed={showReasoningVariants}
+								onClick={() => onShowReasoningVariantsChange(true)}
 							>
 								Expanded
 							</button>
@@ -260,9 +260,9 @@ export function DashboardGraphs({
 						<ParetoFrontierPanel models={models} setHover={setHover} />
 						<PriceEfficiencyPanel
 							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
-							displayExpanded={expandReasoningVariants}
+							showVariants={showReasoningVariants}
 							maxCost={maxCost}
-							onDisplayExpandedChange={onExpandReasoningVariantsChange}
+							onShowVariantsChange={onShowReasoningVariantsChange}
 							selectedProviders={selectedProviders}
 							onSelectedProvidersChange={onSelectedProvidersChange}
 							referenceModels={referenceModels}
