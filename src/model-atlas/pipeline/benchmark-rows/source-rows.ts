@@ -2,7 +2,7 @@
 
 import {
 	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 	transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
@@ -14,7 +14,7 @@ import type { LlmStatsSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
-import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../../scrapers/benchmark-observation";
 import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
 import { aggregateCollapsedModelRows } from "../model-catalog";
 
@@ -85,8 +85,8 @@ function modelScoreRowDrafts(
 	}));
 }
 
-function benchmarkScoreRowDrafts(
-	rows: readonly BenchmarkScoreRow[],
+function benchmarkObservationDrafts(
+	rows: readonly BenchmarkObservationRow[],
 ): BenchmarkRowDraft[] {
 	return rows.flatMap((row) =>
 		row.score_eligible
@@ -96,9 +96,12 @@ function benchmarkScoreRowDrafts(
 						id: row.model_id,
 						identity: row.base_model,
 						label: row.model,
-						provider: row.provider,
+						provider:
+							row.model_creator ??
+							row.model_creator_id ??
+							row.inference_provider,
 						reasoningEffort: row.reasoning_effort,
-						value: row.score,
+						value: row.canonical_value,
 					},
 				]
 			: [],
@@ -126,19 +129,19 @@ function surgeBenchmarkRowDrafts(
 	];
 }
 
-function normalizedBenchmarkScoreDrafts(
+function benchmarkObservationSourceDrafts(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
-	return BENCHMARK_SCORE_SOURCE_BINDINGS.flatMap(({ sourceDataKey }) => {
+	return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceDataKey }) => {
 		const source = sourceData[sourceDataKey as keyof LlmStatsSourceData] as
-			| { rows?: readonly BenchmarkScoreRow[] }
+			| { rows?: readonly BenchmarkObservationRow[] }
 			| undefined;
 		if (source?.rows == null) {
 			throw new Error(
-				`Benchmark score source-data rows are missing: ${sourceDataKey}`,
+				`Benchmark observation source-data rows are missing: ${sourceDataKey}`,
 			);
 		}
-		return benchmarkScoreRowDrafts(source.rows);
+		return benchmarkObservationDrafts(source.rows);
 	});
 }
 
@@ -386,7 +389,7 @@ function benchmarkDraftsFromSourceData(
 	sourceData: LlmStatsSourceData,
 ): BenchmarkRowDraft[] {
 	return [
-		...normalizedBenchmarkScoreDrafts(sourceData),
+		...benchmarkObservationSourceDrafts(sourceData),
 		...artificialAnalysisBenchmarkRowDrafts(sourceData),
 		...Object.values(SPARSE_BENCHMARK_ROW_DRAFT_ADAPTERS).flatMap((adapter) =>
 			adapter(sourceData),

@@ -6,7 +6,7 @@ export {
 	readArtificialAnalysisEvaluationResourceRawCache,
 	readArtificialAnalysisRawCache,
 } from "./artificial-analysis";
-export { readBenchmarkScoreRawCache } from "./benchmarks/benchmark-score";
+export { readBenchmarkObservationRawCache } from "./benchmarks/benchmark-observation";
 export {
 	readAgentArenaRawCache,
 	readAgentsLastExamRawCache,

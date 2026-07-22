@@ -13,9 +13,9 @@ import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-
 import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import {
-	type BenchmarkScoreRow,
-	buildBenchmarkScoreMap,
-} from "../src/model-atlas/scrapers/benchmark-score";
+	type BenchmarkObservationRow,
+	buildBenchmarkObservationLookup,
+} from "../src/model-atlas/scrapers/benchmark-observation";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/vals/harvey-lab";
@@ -254,29 +254,33 @@ const terminalBenchRow = {
 };
 const legalResearchRow = {
 	benchmark_key: "legal_research",
-	source: "vals",
 	source_url: "https://www.vals.ai/benchmarks/legal_research",
 	model_id: "test/example-model",
 	model: "Example Model",
 	base_model: "Example Model",
 	reasoning_effort: null,
-	provider: "Test",
+	model_creator_id: null,
+	model_creator: "Test",
+	inference_provider: null,
 	rank: 1,
-	score: 0.61,
+	reported_value: 61,
+	reported_unit: "percent",
+	canonical_value: 0.61,
+	canonical_unit: "proportion",
 	score_eligible: true,
 	standard_error: null,
 	confidence_low: null,
 	confidence_high: null,
 	observed_at: null,
 	metadata: {},
-} satisfies BenchmarkScoreRow;
+} satisfies BenchmarkObservationRow;
 const chartographyRow = {
 	...legalResearchRow,
 	benchmark_key: "chartography",
-	source: "surge",
 	source_url: "https://www.surgehq.ai/leaderboard/chartography",
-	score: 0.47,
-} satisfies BenchmarkScoreRow;
+	reported_value: 47,
+	canonical_value: 0.47,
+} satisfies BenchmarkObservationRow;
 
 const resourceRowsByBenchmark = new Map([
 	["briefcase", new Map([["example-model", briefcaseResourceRow]])],
@@ -308,7 +312,7 @@ const lookups = {
 	},
 	codeMigration: { rowsByModelName: emptyLookup() },
 	chartography: {
-		rowsByModelName: buildBenchmarkScoreMap([chartographyRow]),
+		rowsByModelName: buildBenchmarkObservationLookup([chartographyRow]),
 	},
 	chessPuzzles: { rowsByModelName: new Map() },
 	cursorBench: {
@@ -335,7 +339,7 @@ const lookups = {
 		rowsByModelName: new Map([["example-model", harveyLabRow]]),
 	},
 	legalResearch: {
-		rowsByModelName: buildBenchmarkScoreMap([legalResearchRow]),
+		rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
 	},
 	medCode: { rowsByModelName: emptyLookup() },
 	mercorApexAgents: {
@@ -596,15 +600,19 @@ assert.equal(
 const chartographyRows = [
 	{
 		benchmark_key: "chartography",
-		source: "surge",
 		source_url: "https://surgehq.ai/benchmarks/chartography",
 		model_id: null,
 		model: "Example Model",
 		base_model: "Example Model",
 		reasoning_effort: null,
-		provider: "Test",
+		model_creator_id: null,
+		model_creator: "Test",
+		inference_provider: null,
 		rank: 2,
-		score: 0.295,
+		reported_value: 29.5,
+		reported_unit: "percent",
+		canonical_value: 0.295,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
@@ -614,15 +622,19 @@ const chartographyRows = [
 	},
 	{
 		benchmark_key: "chartography",
-		source: "surge",
 		source_url: "https://surgehq.ai/benchmarks/chartography",
 		model_id: null,
 		model: "Example Model (max)",
 		base_model: "Example Model",
 		reasoning_effort: "max",
-		provider: "Test",
+		model_creator_id: null,
+		model_creator: "Test",
+		inference_provider: null,
 		rank: 1,
-		score: 0.348,
+		reported_value: 34.8,
+		reported_unit: "percent",
+		canonical_value: 0.348,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
@@ -630,7 +642,7 @@ const chartographyRows = [
 		observed_at: null,
 		metadata: {},
 	},
-] satisfies BenchmarkScoreRow[];
+] satisfies BenchmarkObservationRow[];
 const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
 	[
 		{
@@ -644,7 +656,7 @@ const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
 	{
 		...lookups,
 		chartography: {
-			rowsByModelName: buildBenchmarkScoreMap(chartographyRows),
+			rowsByModelName: buildBenchmarkObservationLookup(chartographyRows),
 		},
 	},
 );

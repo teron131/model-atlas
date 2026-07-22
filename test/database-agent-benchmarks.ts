@@ -18,7 +18,7 @@ import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows"
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
-import { benchmarkScoreRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 
 const agentArenaRow: AgentArenaModelScoreRow = {
 	rank: 1,
@@ -106,7 +106,7 @@ const sourceRows = benchmarkRowsFromDb({
 	agentsLastExamRows: [],
 	aleBenchRows: [],
 	blueprintBenchRows: [],
-	...benchmarkScoreRowGroups(),
+	...benchmarkObservationRowGroups(),
 	cursorBenchRows: [],
 	deepSWERows: [],
 	frontierCodeRows: [],

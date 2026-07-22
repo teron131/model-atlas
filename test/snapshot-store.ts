@@ -106,8 +106,8 @@ try {
 	const payloadBatch = requestBodies[2] as { batch: unknown[] };
 	assert.equal(
 		payloadBatch.batch.length,
-		PAYLOAD_ROW_GROUPS.length,
-		"D1 payload row groups should share one REST batch",
+		new Set(PAYLOAD_ROW_GROUPS.map(({ table }) => table)).size,
+		"D1 payload reads should query each physical table once in one REST batch",
 	);
 	await queryD1Batch([
 		{ sql: "DELETE FROM example" },

@@ -18,10 +18,10 @@ import {
 } from "../runtime";
 
 import type {
-	BenchmarkScoreMetadata,
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "./benchmark-score";
+	BenchmarkObservationMetadata,
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "./benchmark-observation";
 import { stringValue } from "./parsing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -37,11 +37,12 @@ type ZeroEvalFetchOptions = ZeroEvalBenchmarkOptions & {
 	timeoutMs?: number;
 };
 
-type ZeroEvalModelScoreFields = {
+type ZeroEvalObservationFields = {
 	model: string;
 	provider: string;
 	providerName: string | null;
-	score: number;
+	reportedValue: number;
+	canonicalValue: number;
 	reportedSourceUrl: string | null;
 	analysisMethod: string | null;
 	verified: boolean | null;
@@ -61,21 +62,29 @@ function unitScore(value: unknown): number | null {
 	return Number(score.toFixed(6));
 }
 
-function zeroEvalModelScoreFields(
+function zeroEvalObservationFields(
 	value: unknown,
-): ZeroEvalModelScoreFields | null {
+): ZeroEvalObservationFields | null {
 	const row = asRecord(value);
 	const model = stringValue(row?.model_name);
 	const provider = stringValue(row?.organization_id);
-	const score = unitScore(row?.normalized_score) ?? unitScore(row?.score);
-	if (model == null || provider == null || score == null) {
+	const reportedValue =
+		unitScore(row?.score) ?? unitScore(row?.normalized_score);
+	const canonicalValue = unitScore(row?.normalized_score) ?? reportedValue;
+	if (
+		model == null ||
+		provider == null ||
+		reportedValue == null ||
+		canonicalValue == null
+	) {
 		return null;
 	}
 	return {
 		model,
 		provider,
 		providerName: stringValue(row?.organization_name),
-		score,
+		reportedValue,
+		canonicalValue,
 		reportedSourceUrl: stringValue(row?.self_reported_source),
 		analysisMethod: stringValue(row?.analysis_method),
 		verified: booleanValue(row?.verified),
@@ -87,12 +96,12 @@ function zeroEvalModelScoreFields(
 export function processZeroEvalDetailsJson(
 	payload: unknown,
 	options: ZeroEvalBenchmarkOptions,
-): BenchmarkScoreRow[] {
+): BenchmarkObservationRow[] {
 	const root = asRecord(payload);
 	const modelRows = Array.isArray(root?.models) ? root.models : [];
 	return modelRows.flatMap((value) => {
 		const sourceRow = asRecord(value);
-		const fields = zeroEvalModelScoreFields(value);
+		const fields = zeroEvalObservationFields(value);
 		if (sourceRow == null || fields == null) {
 			return [];
 		}
@@ -100,8 +109,7 @@ export function processZeroEvalDetailsJson(
 			options.observedAtField == null
 				? null
 				: stringValue(sourceRow[options.observedAtField]);
-		const metadata: BenchmarkScoreMetadata = {
-			provider_name: fields.providerName,
+		const metadata: BenchmarkObservationMetadata = {
 			reported_source_url: fields.reportedSourceUrl,
 			analysis_method: fields.analysisMethod,
 			verified: fields.verified,
@@ -113,18 +121,22 @@ export function processZeroEvalDetailsJson(
 		return [
 			{
 				benchmark_key: options.benchmarkKey,
-				source: "zeroeval",
 				source_url: options.sourceUrl,
 				model_id: null,
 				model: fields.model,
 				base_model: fields.model,
 				reasoning_effort: null,
-				provider: fields.provider,
+				model_creator_id: fields.provider,
+				model_creator: fields.providerName ?? fields.provider,
+				inference_provider: null,
 				rank:
 					options.rankField == null
 						? null
 						: asFiniteNumber(sourceRow[options.rankField]),
-				score: fields.score,
+				reported_value: fields.reportedValue,
+				reported_unit: "proportion",
+				canonical_value: fields.canonicalValue,
+				canonical_unit: "proportion",
 				score_eligible: true,
 				standard_error: null,
 				confidence_low: null,
@@ -139,7 +151,7 @@ export function processZeroEvalDetailsJson(
 /** Fetch one catalog-configured ZeroEval benchmark without exposing provider details to callers. */
 export async function getZeroEvalStats(
 	options: ZeroEvalFetchOptions,
-): Promise<BenchmarkScorePayload> {
+): Promise<BenchmarkObservationPayload> {
 	try {
 		const response = await fetchWithTimeout(
 			options.sourceUrl,

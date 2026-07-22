@@ -7,10 +7,10 @@ import {
 	nowEpochSeconds,
 } from "../../runtime";
 import type {
-	BenchmarkScoreMetadata,
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "../benchmark-score";
+	BenchmarkObservationMetadata,
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../benchmark-observation";
 import { parseCsvRecords } from "../parsing";
 
 const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/benchmarks.csv";
@@ -23,12 +23,13 @@ type EpochBenchmarkRowsPayload = {
 	data: EpochBenchmarkCsvRow[];
 };
 
-function cleanMetadata(row: EpochBenchmarkCsvRow): BenchmarkScoreMetadata {
+function cleanMetadata(
+	row: EpochBenchmarkCsvRow,
+): BenchmarkObservationMetadata {
 	return {
 		run_id: row.id_runs || null,
 		task: row.task || null,
 		task_version: row["task version"] || null,
-		status: row.Status || null,
 		scores: row.Scores || null,
 		best_score: asFiniteNumber(row.best_score),
 		original_task_name: row.original_task_name || null,
@@ -38,8 +39,8 @@ function cleanMetadata(row: EpochBenchmarkCsvRow): BenchmarkScoreMetadata {
 /** Normalize one successful Epoch run while retaining its exact task/version identity. */
 function epochRunScoreRow(
 	row: EpochBenchmarkCsvRow,
-	benchmarkKey: BenchmarkScoreRow["benchmark_key"],
-): BenchmarkScoreRow | null {
+	benchmarkKey: BenchmarkObservationRow["benchmark_key"],
+): BenchmarkObservationRow | null {
 	if (row.Status !== "Success") return null;
 	const score =
 		asFiniteNumber(row.mean_score) ??
@@ -55,15 +56,19 @@ function epochRunScoreRow(
 	const parsed = benchmarkModelEffort(model);
 	return {
 		benchmark_key: benchmarkKey,
-		source: "epoch",
 		source_url: EPOCH_BENCHMARKS_CSV_URL,
 		model_id: row.id_model_version || row.model || null,
 		model,
 		base_model: parsed.baseModel,
 		reasoning_effort: parsed.reasoningEffort,
-		provider: row.Organization || null,
+		model_creator_id: null,
+		model_creator: row.Organization || null,
+		inference_provider: null,
 		rank: null,
-		score,
+		reported_value: score,
+		reported_unit: "proportion",
+		canonical_value: score,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: asFiniteNumber(row.stderr),
 		confidence_low: null,
@@ -102,11 +107,11 @@ function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 }
 
 /** Filter shared Epoch run rows through one catalog-declared benchmark task. */
-export function epochBenchmarkScoreRows(
+export function epochBenchmarkObservationRows(
 	rows: EpochBenchmarkCsvRow[],
-	benchmarkKey: BenchmarkScoreRow["benchmark_key"],
+	benchmarkKey: BenchmarkObservationRow["benchmark_key"],
 	task: string,
-): BenchmarkScoreRow[] {
+): BenchmarkObservationRow[] {
 	return rows.flatMap((row) => {
 		if (row.task !== task) return [];
 		const scoreRow = epochRunScoreRow(row, benchmarkKey);
@@ -116,12 +121,12 @@ export function epochBenchmarkScoreRows(
 
 /** Load one Epoch run benchmark using the task policy declared in the catalog. */
 export async function getEpochBenchmarkStats(
-	benchmarkKey: BenchmarkScoreRow["benchmark_key"],
+	benchmarkKey: BenchmarkObservationRow["benchmark_key"],
 	task: string,
-): Promise<BenchmarkScorePayload> {
+): Promise<BenchmarkObservationPayload> {
 	const payload = await fetchEpochBenchmarkRows();
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-		data: epochBenchmarkScoreRows(payload.data, benchmarkKey, task),
+		data: epochBenchmarkObservationRows(payload.data, benchmarkKey, task),
 	};
 }

@@ -230,7 +230,7 @@ assert.equal(
 	"https://epoch.ai/data/external_benchmarks/weirdml.csv",
 );
 assert.equal(
-	merged.data.find((row) => row.model === "Epsilon (high)")?.score,
+	merged.data.find((row) => row.model === "Epsilon (high)")?.canonical_value,
 	0.6,
 );
 assert.equal(

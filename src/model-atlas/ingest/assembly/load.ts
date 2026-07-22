@@ -1,7 +1,7 @@
 /** Source loading owns provider dispatch and produces the complete raw-row contract for stats assembly. */
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	BENCHMARK_OBSERVATION_BINDINGS,
 	type BenchmarkRuntimeKey,
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
@@ -35,14 +35,14 @@ import {
 } from "./data";
 import { selectModelsDevRowsForArtificialAnalysis } from "./policy";
 
-const BENCHMARK_SCORE_SOURCE_FETCHERS = {
+const BENCHMARK_OBSERVATION_SOURCE_FETCHERS = {
 	epochCapabilitiesIndex: getEpochCapabilitiesIndexStats,
 	weirdMl: getWeirdMlStats,
 } as const;
 
-/** Resolve the executable loader paired with one catalog-declared benchmark-score source. */
-export function benchmarkScoreSourceFetcher(
-	binding: (typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number],
+/** Resolve the executable loader paired with one catalog-declared benchmark-observation source. */
+export function benchmarkObservationSourceFetcher(
+	binding: (typeof BENCHMARK_OBSERVATION_BINDINGS)[number],
 ) {
 	const loader = binding.loader;
 	if (loader.kind === "surge") {
@@ -79,12 +79,12 @@ export function benchmarkScoreSourceFetcher(
 			});
 	}
 	const fetcher =
-		BENCHMARK_SCORE_SOURCE_FETCHERS[
-			binding.sourceDataKey as keyof typeof BENCHMARK_SCORE_SOURCE_FETCHERS
+		BENCHMARK_OBSERVATION_SOURCE_FETCHERS[
+			binding.sourceDataKey as keyof typeof BENCHMARK_OBSERVATION_SOURCE_FETCHERS
 		];
 	if (fetcher != null) return fetcher;
 	throw new Error(
-		`Missing benchmark-score fetcher for ${binding.sourceDataKey}`,
+		`Missing benchmark-observation fetcher for ${binding.sourceDataKey}`,
 	);
 }
 
@@ -193,30 +193,30 @@ async function fetchSourceRows(): Promise<LlmStatsSourceRows> {
 		artificialAnalysisEvaluationResourceStats,
 		modelsDevStats,
 		benchmarkRows,
-		benchmarkScoreStats,
+		benchmarkObservationStats,
 	] = await Promise.all([
 		getArtificialAnalysisLeaderboardStats(),
 		getArtificialAnalysisEvaluationResourceStats(),
 		getModelsDevSourceStats(),
 		fetchBenchmarkSourceRows(),
 		Promise.all(
-			BENCHMARK_SCORE_SOURCE_BINDINGS.map(async (binding) => ({
+			BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => ({
 				binding,
-				payload: await benchmarkScoreSourceFetcher(binding)(),
+				payload: await benchmarkObservationSourceFetcher(binding)(),
 			})),
 		),
 	]);
 	const artificialAnalysisRows = artificialAnalysisStats.data;
 	const artificialAnalysisEvaluationResourceRows =
 		artificialAnalysisEvaluationResourceStats.data;
-	type BenchmarkScoreRowsKey =
-		(typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number]["sourceRowsKey"];
-	const benchmarkScoreRows = Object.fromEntries(
-		benchmarkScoreStats.map(({ binding, payload }) => [
+	type BenchmarkObservationRowsKey =
+		(typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
+	const benchmarkObservationRows = Object.fromEntries(
+		benchmarkObservationStats.map(({ binding, payload }) => [
 			binding.sourceRowsKey,
 			payload.data,
 		]),
-	) as Pick<LlmStatsSourceRows, BenchmarkScoreRowsKey>;
+	) as Pick<LlmStatsSourceRows, BenchmarkObservationRowsKey>;
 	const modelsDevModels = selectModelsDevRowsForArtificialAnalysis(
 		modelsDevStats.payload,
 		artificialAnalysisRows,
@@ -226,7 +226,7 @@ async function fetchSourceRows(): Promise<LlmStatsSourceRows> {
 		artificialAnalysisEvaluationResourceRows,
 		modelsDevModels,
 		...benchmarkRows,
-		...benchmarkScoreRows,
+		...benchmarkObservationRows,
 	};
 }
 

@@ -1,8 +1,8 @@
 /** Source-data contracts and lookup assembly normalize raw provider rows for matching and scoring. */
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
-	type BenchmarkScoreSourceBinding,
+	BENCHMARK_OBSERVATION_BINDINGS,
+	type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
 import {
 	buildBenchmarkModelMap,
@@ -30,10 +30,10 @@ import {
 	buildArtificialAnalysisObservationResourceMap,
 } from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
-	type BenchmarkRowsByModelName,
-	type BenchmarkScoreRow,
-	buildBenchmarkScoreMap,
-} from "../../scrapers/benchmark-score";
+	type BenchmarkObservationLookup,
+	type BenchmarkObservationRow,
+	buildBenchmarkObservationLookup,
+} from "../../scrapers/benchmark-observation";
 import {
 	type BlueprintBenchModelScoreRow,
 	type BlueprintBenchRowsByModelName,
@@ -109,14 +109,14 @@ type LlmStatsIndexedSourceRows<Row, Lookup> = {
 	rowsByModelName: Lookup;
 };
 
-type BenchmarkScoreSourceData = {
-	[Binding in BenchmarkScoreSourceBinding as Binding["sourceDataKey"]]: LlmStatsIndexedSourceRows<
-		BenchmarkScoreRow,
-		BenchmarkRowsByModelName
+type BenchmarkObservationData = {
+	[Binding in BenchmarkObservationBinding as Binding["sourceDataKey"]]: LlmStatsIndexedSourceRows<
+		BenchmarkObservationRow,
+		BenchmarkObservationLookup
 	>;
 };
 
-export type LlmStatsSourceData = BenchmarkScoreSourceData & {
+export type LlmStatsSourceData = BenchmarkObservationData & {
 	artificialAnalysis: {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
@@ -187,11 +187,11 @@ export type LlmStatsSourceData = BenchmarkScoreSourceData & {
 	>;
 };
 
-type BenchmarkScoreSourceRows = {
-	[Binding in BenchmarkScoreSourceBinding as Binding["sourceRowsKey"]]: LlmStatsSourceData[Binding["sourceDataKey"]]["rows"];
+type BenchmarkObservationRows = {
+	[Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: LlmStatsSourceData[Binding["sourceDataKey"]]["rows"];
 };
 
-export type LlmStatsSourceRows = BenchmarkScoreSourceRows & {
+export type LlmStatsSourceRows = BenchmarkObservationRows & {
 	artificialAnalysisRows: LlmStatsSourceData["artificialAnalysis"]["rows"];
 	artificialAnalysisEvaluationResourceRows: LlmStatsSourceData["artificialAnalysisEvaluationResources"]["rows"];
 	modelsDevModels: LlmStatsSourceData["modelsDev"]["rows"];
@@ -225,24 +225,24 @@ function buildArtificialAnalysisBySlug(
 	return bySlug;
 }
 
-function buildBenchmarkScoreSources(
+function buildBenchmarkObservationData(
 	rows: LlmStatsSourceRows,
 ): Partial<LlmStatsSourceData> {
 	return Object.fromEntries(
-		BENCHMARK_SCORE_SOURCE_BINDINGS.map(({ sourceDataKey, sourceRowsKey }) => {
+		BENCHMARK_OBSERVATION_BINDINGS.map(({ sourceDataKey, sourceRowsKey }) => {
 			const sourceRows = rows[sourceRowsKey as keyof LlmStatsSourceRows] as
-				| readonly BenchmarkScoreRow[]
+				| readonly BenchmarkObservationRow[]
 				| undefined;
 			if (!Array.isArray(sourceRows)) {
 				throw new Error(
-					`Benchmark score source rows are missing: ${sourceRowsKey}`,
+					`Benchmark observation source rows are missing: ${sourceRowsKey}`,
 				);
 			}
 			return [
 				sourceDataKey,
 				{
 					rows: sourceRows,
-					rowsByModelName: buildBenchmarkScoreMap(sourceRows),
+					rowsByModelName: buildBenchmarkObservationLookup(sourceRows),
 				},
 			];
 		}),
@@ -260,7 +260,7 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 	const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
 		rows.aleBenchConfigurationRows,
 	);
-	const benchmarkScoreSources = buildBenchmarkScoreSources(rows);
+	const benchmarkObservationData = buildBenchmarkObservationData(rows);
 	return {
 		artificialAnalysis: {
 			rows: rows.artificialAnalysisRows,
@@ -284,7 +284,7 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 				]),
 			),
 		},
-		...benchmarkScoreSources,
+		...benchmarkObservationData,
 		agentArena: {
 			rows: rows.agentArenaRows,
 			rowsByModelName: buildBenchmarkModelMap(rows.agentArenaRows),

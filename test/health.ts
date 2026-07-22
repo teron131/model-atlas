@@ -12,7 +12,7 @@ import {
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/payload/health";
 import {
-	benchmarkScoreRowGroups,
+	benchmarkObservationRowGroups,
 	minimalLlmStatsModel,
 } from "./llm-stats-fixtures";
 
@@ -225,7 +225,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 	],
 	aleBenchRows: [],
 	blueprintBenchRows: [],
-	...benchmarkScoreRowGroups<Record<string, unknown>>({
+	...benchmarkObservationRowGroups<Record<string, unknown>>({
 		browseCompRows: [
 			{
 				benchmark_key: "browsecomp",
@@ -233,8 +233,9 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 				model: "Browse Row",
 				base_model: "Browse Row",
 				reasoning_effort: null,
-				provider: "example",
-				score: 0.72,
+				model_creator_id: null,
+				model_creator: "example",
+				canonical_value: 0.72,
 				score_eligible: 1,
 			},
 		],

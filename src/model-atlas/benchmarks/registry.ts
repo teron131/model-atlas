@@ -7,10 +7,10 @@ import {
 	BENCHMARK_DISPLAY_ORDER,
 	BENCHMARK_IMPUTATION_OVERRIDES,
 	BENCHMARK_LABELS,
+	BENCHMARK_OBSERVATION_SOURCES,
 	BENCHMARK_PERSISTENCE_OVERRIDES,
 	BENCHMARK_PROCESSING_OVERRIDES,
 	BENCHMARK_RESOURCES,
-	BENCHMARK_SCORE_SOURCES,
 	BENCHMARK_SCORING_LABELS,
 	BENCHMARK_SCORING_WEIGHTS,
 	BENCHMARK_SOURCE_OVERRIDES,
@@ -65,19 +65,20 @@ function benchmarkProcessing(
 	};
 }
 
-export type BenchmarkScoreSourceKey = keyof typeof BENCHMARK_SCORE_SOURCES;
+export type BenchmarkObservationKey =
+	keyof typeof BENCHMARK_OBSERVATION_SOURCES;
 
-type GenericBenchmarkSourceFacet<Key extends BenchmarkScoreSourceKey> = {
+type GenericBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
 	inputs: readonly [
 		{
-			group: (typeof BENCHMARK_SCORE_SOURCES)[Key]["group"];
-			id: (typeof BENCHMARK_SCORE_SOURCES)[Key]["id"];
+			group: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["group"];
+			id: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["id"];
 			roles: readonly ["observation"];
 			adapters: readonly [
 				{
-					kind: "benchmark_score";
-					sourceDataKey: (typeof BENCHMARK_SCORE_SOURCES)[Key]["sourceDataKey"];
-					sourceRowsKey: (typeof BENCHMARK_SCORE_SOURCES)[Key]["sourceRowsKey"];
+					kind: "benchmark_observation";
+					sourceDataKey: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["sourceDataKey"];
+					sourceRowsKey: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["sourceRowsKey"];
 				},
 			];
 		},
@@ -87,7 +88,7 @@ type GenericBenchmarkSourceFacet<Key extends BenchmarkScoreSourceKey> = {
 type DeclaredBenchmarkSources = {
 	[Key in BenchmarkKey]: Key extends keyof typeof BENCHMARK_SOURCE_OVERRIDES
 		? (typeof BENCHMARK_SOURCE_OVERRIDES)[Key]
-		: Key extends BenchmarkScoreSourceKey
+		: Key extends BenchmarkObservationKey
 			? GenericBenchmarkSourceFacet<Key>
 			: never;
 };
@@ -124,7 +125,7 @@ type BenchmarkSources = {
 	>;
 };
 
-/** Compose source facets from literal overrides and the shared benchmark-score declaration. */
+/** Compose source facets from literal overrides and the shared benchmark-observation declaration. */
 function benchmarkSources(): BenchmarkSources {
 	return Object.fromEntries(
 		Object.keys(BENCHMARK_SCORING_WEIGHTS).map((key) => {
@@ -135,7 +136,7 @@ function benchmarkSources(): BenchmarkSources {
 			if (override != null) return [benchmarkKey, override];
 
 			const source =
-				BENCHMARK_SCORE_SOURCES[benchmarkKey as BenchmarkScoreSourceKey];
+				BENCHMARK_OBSERVATION_SOURCES[benchmarkKey as BenchmarkObservationKey];
 			if (source == null) {
 				throw new Error(
 					`Missing benchmark source declaration: ${benchmarkKey}`,
@@ -151,7 +152,7 @@ function benchmarkSources(): BenchmarkSources {
 							roles: ["observation"],
 							adapters: [
 								{
-									kind: "benchmark_score",
+									kind: "benchmark_observation",
 									sourceDataKey: source.sourceDataKey,
 									sourceRowsKey: source.sourceRowsKey,
 								},
@@ -305,29 +306,31 @@ export type PublicBenchmarkRuntimeKeyFor<Group extends BenchmarkSourceGroup> =
 
 export const BENCHMARK_DISPLAY_KEYS =
 	benchmarkFactory.orderedKeys as BenchmarkKey[];
-export const BENCHMARK_SCORE_SOURCE_KEYS = Object.keys(
-	BENCHMARK_SCORE_SOURCES,
-) as BenchmarkScoreSourceKey[];
-export const BENCHMARK_SCORE_SOURCE_BINDINGS = BENCHMARK_SCORE_SOURCE_KEYS.map(
+export const BENCHMARK_OBSERVATION_KEYS = Object.keys(
+	BENCHMARK_OBSERVATION_SOURCES,
+) as BenchmarkObservationKey[];
+export const BENCHMARK_OBSERVATION_RAW_TABLE =
+	"benchmark_observation_raw_rows" as const;
+export const BENCHMARK_OBSERVATION_BINDINGS = BENCHMARK_OBSERVATION_KEYS.map(
 	(key) => {
-		const source = BENCHMARK_SCORE_SOURCES[key];
+		const source = BENCHMARK_OBSERVATION_SOURCES[key];
 		return {
 			benchmark: key,
 			loader: source.loader,
-			rawSource: key,
-			rawTable: `${key}_raw_rows` as const,
+			rawSourceKey: key,
+			rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
 			source: source.id,
 			sourceDataKey: source.sourceDataKey,
 			sourceRowsKey: source.sourceRowsKey,
 		};
 	},
 );
-export type BenchmarkScoreSourceBinding =
-	(typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number];
-export type BenchmarkScoreSourceDataKey =
-	BenchmarkScoreSourceBinding["sourceDataKey"];
-export type BenchmarkScoreSourceRowsKey =
-	BenchmarkScoreSourceBinding["sourceRowsKey"];
+export type BenchmarkObservationBinding =
+	(typeof BENCHMARK_OBSERVATION_BINDINGS)[number];
+export type BenchmarkObservationDataKey =
+	BenchmarkObservationBinding["sourceDataKey"];
+export type BenchmarkObservationRowsKey =
+	BenchmarkObservationBinding["sourceRowsKey"];
 export type BenchmarkResourceKey = keyof typeof BENCHMARK_RESOURCES;
 
 function benchmarkSourceAdapters(key: BenchmarkKey): BenchmarkSourceAdapter[] {

@@ -14,7 +14,7 @@ type BenchmarkSourceRole =
 export type BenchmarkJsonPath = readonly [string, ...string[]];
 export type BenchmarkSourceAdapter =
 	| {
-			kind: "benchmark_score";
+			kind: "benchmark_observation";
 			sourceDataKey: string;
 			sourceRowsKey: string;
 	  }
@@ -34,7 +34,7 @@ export type BenchmarkSourceAdapter =
 			rowDetectionKey?: string;
 	  };
 
-export type BenchmarkScoreLoader =
+export type BenchmarkObservationLoader =
 	| {
 			kind: "vals";
 			sourceUrl: string;
@@ -437,7 +437,7 @@ function validateSourceAdapters(
 		}
 		adapterKinds.add(adapter.kind);
 		if (
-			adapter.kind === "benchmark_score" &&
+			adapter.kind === "benchmark_observation" &&
 			(adapter.sourceDataKey.trim().length === 0 ||
 				adapter.sourceRowsKey.trim().length === 0)
 		) {

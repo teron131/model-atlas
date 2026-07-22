@@ -4,6 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../scrapers/deep-swe";
 import {
+	isBenchmarkObservationRawSource,
 	RAW_SOURCE_CACHE_SECONDS,
 	RAW_SOURCE_TABLES,
 	type RawSourceCacheStatus,
@@ -48,12 +49,15 @@ export function readRawSourceCacheStatus(
 	nowEpochSeconds: number,
 ): RawSourceCacheStatus {
 	const table = RAW_SOURCE_TABLES[source];
+	const sharedObservationSource = isBenchmarkObservationRawSource(source);
+	const sourcePredicate = sharedObservationSource
+		? " WHERE source_key = ?"
+		: "";
+	const statement = db.prepare(
+		`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table}${sourcePredicate}`,
+	);
 	const row = asRecord(
-		db
-			.prepare(
-				`SELECT COUNT(*) AS row_count, MAX(fetched_at_epoch_seconds) AS last_fetch_epoch_seconds FROM ${table}`,
-			)
-			.get(),
+		sharedObservationSource ? statement.get(source) : statement.get(),
 	);
 	const rowCount = asFiniteNumber(row.row_count) ?? 0;
 	const lastFetch = asFiniteNumber(row.last_fetch_epoch_seconds);

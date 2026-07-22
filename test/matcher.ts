@@ -24,9 +24,9 @@ import {
 	buildArtificialAnalysisObservationResourceMap,
 } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import {
-	type BenchmarkScoreRow,
-	buildBenchmarkScoreMap,
-} from "../src/model-atlas/scrapers/benchmark-score";
+	type BenchmarkObservationRow,
+	buildBenchmarkObservationLookup,
+} from "../src/model-atlas/scrapers/benchmark-observation";
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
 import { buildGdpPdfMap } from "../src/model-atlas/scrapers/surge/gdp-pdf";
@@ -566,10 +566,9 @@ function sourceModel(
 function modelStatsSourceData(
 	artificialAnalysisRows: Record<string, unknown>[],
 ): LlmStatsSourceData {
-	const toolathlonScoreRows: BenchmarkScoreRow[] = [
+	const toolathlonObservations: BenchmarkObservationRow[] = [
 		{
 			benchmark_key: "toolathlon",
-			source: "zeroeval",
 			source_url:
 				"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 			model_id: null,
@@ -577,8 +576,13 @@ function modelStatsSourceData(
 			model: "Example 2.5 Flash",
 			base_model: "Example 2.5 Flash",
 			reasoning_effort: null,
-			provider: "google",
-			score: 0.42,
+			model_creator_id: "google",
+			model_creator: "google",
+			inference_provider: null,
+			reported_value: 0.42,
+			reported_unit: "proportion",
+			canonical_value: 0.42,
+			canonical_unit: "proportion",
 			score_eligible: true,
 			standard_error: null,
 			confidence_low: null,
@@ -784,8 +788,8 @@ function modelStatsSourceData(
 			rowsByModelName: buildTerminalBenchMap([]),
 		},
 		toolathlon: {
-			rows: toolathlonScoreRows,
-			rowsByModelName: buildBenchmarkScoreMap(toolathlonScoreRows),
+			rows: toolathlonObservations,
+			rowsByModelName: buildBenchmarkObservationLookup(toolathlonObservations),
 		},
 		valsIndex: {
 			rows: valsIndexModelScoreRows,

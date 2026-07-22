@@ -10,7 +10,7 @@ import type { AgentArenaModelScoreRow } from "../scrapers/agent-arena";
 import type { AgentsLastExamModelScoreRow } from "../scrapers/agents-last-exam";
 import type { AleBenchModelScoreRow } from "../scrapers/ale-bench";
 import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
-import type { BenchmarkScoreRow } from "../scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../scrapers/benchmark-observation";
 import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
 import type { DeepSWEModelScoreRow } from "../scrapers/deep-swe";
 import type { FrontierCodeModelEffortRow } from "../scrapers/frontier-code";
@@ -114,7 +114,7 @@ type LlmStatsScoringSourceRow =
 	| AgentArenaModelScoreRow
 	| AgentsLastExamModelScoreRow
 	| AleBenchModelScoreRow
-	| BenchmarkScoreRow
+	| BenchmarkObservationRow
 	| CursorBenchModelScoreRow
 	| DeepSWEModelScoreRow
 	| FrontierCodeModelEffortRow

@@ -1,6 +1,6 @@
 /** Generic source snapshot lifecycle for one-score benchmark row sources. */
 
-import type { BenchmarkScoreRow } from "../../scrapers/benchmark-score";
+import type { BenchmarkObservationRow } from "../../scrapers/benchmark-observation";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
@@ -41,7 +41,9 @@ type ModelScoreSnapshotResult<Row> = {
 };
 
 /** Builds stable identity across benchmark task, track, harness, run, model, and effort variants. */
-export function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
+export function benchmarkObservationRowKey(
+	row: BenchmarkObservationRow,
+): string {
 	const metadataIdentity = (key: string): string | number | null => {
 		const value = row.metadata[key];
 		return typeof value === "string" || typeof value === "number"
@@ -56,7 +58,7 @@ export function benchmarkScoreRowKey(row: BenchmarkScoreRow): string {
 		metadataIdentity("source_model_id") ?? metadataIdentity("source_model"),
 		metadataIdentity("run_id"),
 		row.model_id ?? row.model,
-		row.provider,
+		row.model_creator_id ?? row.model_creator ?? row.inference_provider,
 		row.reasoning_effort,
 	);
 }

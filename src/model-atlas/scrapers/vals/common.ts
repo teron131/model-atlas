@@ -12,9 +12,9 @@ import {
 	nowEpochSeconds,
 } from "../../runtime";
 import type {
-	BenchmarkScorePayload,
-	BenchmarkScoreRow,
-} from "../benchmark-score";
+	BenchmarkObservationPayload,
+	BenchmarkObservationRow,
+} from "../benchmark-observation";
 import { htmlAttribute, stringValue } from "../parsing";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -150,16 +150,17 @@ function scoreRow(
 	task: string,
 	modelId: string,
 	value: Record<string, unknown>,
-): BenchmarkScoreRow | null {
-	const score = percentScore(value.accuracy);
-	if (score == null || modelId.length === 0) return null;
+): BenchmarkObservationRow | null {
+	const reportedValue = asFiniteNumber(value.accuracy);
+	const canonicalValue = percentScore(value.accuracy);
+	if (reportedValue == null || canonicalValue == null || modelId.length === 0)
+		return null;
 	const baseModel = modelSlug(modelId);
 	const reasoningEffort = canonicalReasoningEffort(
 		value.reasoning_effort ?? value.compute_effort,
 	);
 	return {
 		benchmark_key: definition.benchmarkKey,
-		source: "vals",
 		source_url: definition.sourceUrl,
 		model_id: modelId,
 		model:
@@ -169,9 +170,14 @@ function scoreRow(
 				: `${baseModel} (${reasoningEffort})`,
 		base_model: baseModel,
 		reasoning_effort: reasoningEffort,
-		provider: stringValue(value.provider),
+		model_creator_id: null,
+		model_creator: stringValue(value.provider),
+		inference_provider: null,
 		rank: null,
-		score,
+		reported_value: reportedValue,
+		reported_unit: "percent",
+		canonical_value: canonicalValue,
+		canonical_unit: "proportion",
 		score_eligible:
 			task === definition.canonicalTask &&
 			(definition.isScoreEligible?.(task, modelId) ?? true),
@@ -183,7 +189,6 @@ function scoreRow(
 			task,
 			task_label: view.metadata.task_labels[task] ?? task,
 			benchmark_version: view.metadata.version,
-			benchmark_updated: view.metadata.updated,
 			dataset_type: view.metadata.dataset_type,
 			industry: view.metadata.industry,
 			runner: view.metadata.runner,
@@ -207,7 +212,7 @@ function scoreRow(
 export function processValsBenchmarkPageHtml(
 	pageHtml: string,
 	definition: ValsBenchmarkDefinition,
-): BenchmarkScoreRow[] {
+): BenchmarkObservationRow[] {
 	const view = parseValsBenchmarkView(pageHtml);
 	if (view == null) return [];
 	return Object.entries(view.tasks).flatMap(([task, models]) =>
@@ -218,7 +223,7 @@ export function processValsBenchmarkPageHtml(
 			})
 			.sort(
 				(left, right) =>
-					right.score - left.score ||
+					right.canonical_value - left.canonical_value ||
 					(left.model_id ?? "").localeCompare(right.model_id ?? ""),
 			)
 			.map((row, index) => ({ ...row, rank: index + 1 })),
@@ -229,7 +234,7 @@ export function processValsBenchmarkPageHtml(
 export async function getValsSourceStats(
 	definition: ValsBenchmarkDefinition,
 	options: ValsScraperOptions = {},
-): Promise<BenchmarkScorePayload> {
+): Promise<BenchmarkObservationPayload> {
 	try {
 		const response = await fetchWithTimeout(
 			options.url ?? definition.sourceUrl,

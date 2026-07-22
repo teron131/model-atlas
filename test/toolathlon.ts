@@ -1,9 +1,9 @@
 /** Verifies Toolathlon rows normalized through the shared ZeroEval adapter. */
 
 import {
-	buildBenchmarkScoreMap,
-	findBenchmarkScoreRow,
-} from "../src/model-atlas/scrapers/benchmark-score";
+	buildBenchmarkObservationLookup,
+	findBenchmarkObservation,
+} from "../src/model-atlas/scrapers/benchmark-observation";
 import { processZeroEvalDetailsJson } from "../src/model-atlas/scrapers/zeroeval";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -62,23 +62,26 @@ const rows = processZeroEvalDetailsJson(
 assertDeepEqual(rows, [
 	{
 		benchmark_key: "toolathlon",
-		source: "zeroeval",
 		source_url:
 			"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 		model_id: null,
 		model: "Claude Opus 4.8",
 		base_model: "Claude Opus 4.8",
 		reasoning_effort: null,
-		provider: "anthropic",
+		model_creator_id: "anthropic",
+		model_creator: "Anthropic",
+		inference_provider: null,
 		rank: 1,
-		score: 0.599,
+		reported_value: 0.599,
+		reported_unit: "proportion",
+		canonical_value: 0.599,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
 		confidence_high: null,
 		observed_at: "2026-05-28",
 		metadata: {
-			provider_name: "Anthropic",
 			reported_source_url: "https://www.anthropic.com/news/claude-opus-4-8",
 			analysis_method:
 				"Pass@1 averaged over 3 trials across all 108 tasks. Internal harness with adaptive thinking at max effort. Pass@3: 67.6%.",
@@ -89,23 +92,26 @@ assertDeepEqual(rows, [
 	},
 	{
 		benchmark_key: "toolathlon",
-		source: "zeroeval",
 		source_url:
 			"https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
 		model_id: null,
 		model: "Gemini 3.5 Flash",
 		base_model: "Gemini 3.5 Flash",
 		reasoning_effort: null,
-		provider: "google",
+		model_creator_id: "google",
+		model_creator: "Google",
+		inference_provider: null,
 		rank: 2,
-		score: 0.565,
+		reported_value: 0.565,
+		reported_unit: "proportion",
+		canonical_value: 0.565,
+		canonical_unit: "proportion",
 		score_eligible: true,
 		standard_error: null,
 		confidence_low: null,
 		confidence_high: null,
 		observed_at: null,
 		metadata: {
-			provider_name: "Google",
 			reported_source_url:
 				"https://deepmind.google/models/evals-methodology/gemini-3-5-flash/",
 			analysis_method: null,
@@ -116,10 +122,13 @@ assertDeepEqual(rows, [
 	},
 ]);
 
-const rowsByModelName = buildBenchmarkScoreMap(rows);
+const observationLookup = buildBenchmarkObservationLookup(rows);
 
 assertDeepEqual(
-	findBenchmarkScoreRow(["missing", "Claude Opus 4.8"], null, rowsByModelName)
-		?.score,
+	findBenchmarkObservation(
+		["missing", "Claude Opus 4.8"],
+		null,
+		observationLookup,
+	)?.canonical_value,
 	0.599,
 );

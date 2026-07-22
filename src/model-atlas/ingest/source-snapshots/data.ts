@@ -1,7 +1,7 @@
 /** Persisted snapshot rows are adapted into the shared normalized source-data contract. */
 
 import {
-	BENCHMARK_SCORE_SOURCE_BINDINGS,
+	BENCHMARK_OBSERVATION_BINDINGS,
 	type BenchmarkRuntimeKey,
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
@@ -110,20 +110,20 @@ function benchmarkSourceRowsFromSnapshots(
 export function cachedSourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
 ): LlmStatsSourceData {
-	type BenchmarkScoreRowsKey =
-		(typeof BENCHMARK_SCORE_SOURCE_BINDINGS)[number]["sourceRowsKey"];
-	const benchmarkScoreRows = Object.fromEntries(
-		BENCHMARK_SCORE_SOURCE_BINDINGS.map((binding) => [
+	type BenchmarkObservationRowsKey =
+		(typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
+	const benchmarkObservationRows = Object.fromEntries(
+		BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
 			binding.sourceRowsKey,
 			snapshots[binding.sourceRowsKey],
 		]),
-	) as Pick<SourceSnapshots, BenchmarkScoreRowsKey>;
+	) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
 	return buildSourceData({
 		artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
 		artificialAnalysisEvaluationResourceRows:
 			snapshots.artificialAnalysisEvaluationResourceRows,
 		modelsDevModels: snapshots.modelsDevModels,
 		...benchmarkSourceRowsFromSnapshots(snapshots),
-		...benchmarkScoreRows,
+		...benchmarkObservationRows,
 	});
 }

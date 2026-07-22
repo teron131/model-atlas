@@ -94,6 +94,33 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_evaluations_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
+CREATE TABLE IF NOT EXISTS benchmark_observation_raw_rows (
+	source_key TEXT NOT NULL,
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	benchmark_key TEXT NOT NULL,
+	url TEXT NOT NULL,
+	model_id TEXT,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	model_creator_id TEXT,
+	model_creator TEXT,
+	inference_provider TEXT,
+	rank INTEGER,
+	reported_value REAL NOT NULL,
+	reported_unit TEXT NOT NULL CHECK (reported_unit IN ('index', 'percent', 'proportion')),
+	canonical_value REAL NOT NULL,
+	canonical_unit TEXT NOT NULL CHECK (canonical_unit IN ('index', 'percent', 'proportion')),
+	score_eligible INTEGER NOT NULL,
+	standard_error REAL,
+	confidence_low REAL,
+	confidence_high REAL,
+	observed_at TEXT,
+	metadata_json TEXT NOT NULL,
+	PRIMARY KEY (source_key, row_index)
+);
+
 CREATE TABLE IF NOT EXISTS models_dev_raw_models (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

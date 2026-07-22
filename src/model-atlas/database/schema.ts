@@ -4,7 +4,6 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { BENCHMARK_SCORE_SOURCE_BINDINGS } from "../benchmarks/registry";
 import {
 	catalogTableMatchesSchema,
 	quoteIdentifier,
@@ -20,35 +19,6 @@ const SCHEMA_SQL_PATH = resolve(
 	"src/model-atlas/database/schema.sql",
 );
 
-const BENCHMARK_SCORE_TABLE_BODY = `
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	benchmark_key TEXT NOT NULL,
-	source TEXT NOT NULL,
-	url TEXT NOT NULL,
-	model_id TEXT,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	provider TEXT,
-	rank INTEGER,
-	score REAL NOT NULL,
-	score_eligible INTEGER NOT NULL,
-	standard_error REAL,
-	confidence_low REAL,
-	confidence_high REAL,
-	observed_at TEXT,
-	metadata_json TEXT NOT NULL,
-	PRIMARY KEY (row_index)
-`;
-
-function benchmarkScoreSchemaSql(): string {
-	return BENCHMARK_SCORE_SOURCE_BINDINGS.map(
-		(binding) =>
-			`CREATE TABLE IF NOT EXISTS ${quoteIdentifier(binding.rawTable)} (${BENCHMARK_SCORE_TABLE_BODY});`,
-	).join("\n\n");
-}
-
 /** Schema loading prefers the source tree but falls back to the module URL for packaged CLIs. */
 export async function loadSchemaSql(): Promise<string> {
 	let schemaSql: string;
@@ -63,7 +33,7 @@ export async function loadSchemaSql(): Promise<string> {
 			"utf-8",
 		);
 	}
-	return `${schemaSql.trim()}\n\n${benchmarkScoreSchemaSql()}\n`;
+	return `${schemaSql.trim()}\n`;
 }
 
 /** Remove a SQLite database file and its sidecar files. */
