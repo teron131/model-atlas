@@ -86,18 +86,17 @@ export type BenchmarkSourceTransform =
 			input: readonly [minimum: number, maximum: number];
 			output: readonly [minimum: number, maximum: number];
 			clamp: boolean;
-	  }
-	| { kind: "custom"; processor: string };
+	  };
 
 export type BenchmarkAggregationPolicy =
 	| { kind: "direct" }
 	| { kind: "highest_effort" }
 	| { kind: "mean" }
-	| { kind: "custom"; processor: string };
+	| { kind: "custom" };
 
 type BenchmarkSourceCrosswalkPolicy =
-	| { kind: "validated_merge"; processor: string }
-	| { kind: "custom"; processor: string };
+	| { kind: "validated_merge" }
+	| { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
 	transform: BenchmarkSourceTransform;
@@ -107,8 +106,7 @@ export type BenchmarkProcessingFacet = {
 
 export type BenchmarkNormalizationPolicy =
 	| { kind: "min_max"; output: readonly [minimum: number, maximum: number] }
-	| { kind: "identity" }
-	| { kind: "custom"; processor: string };
+	| { kind: "identity" };
 
 export type BenchmarkImputationPolicy =
 	| { kind: "none" }
@@ -120,8 +118,7 @@ export type BenchmarkImputationPolicy =
 			maximumMedianAbsoluteError: number;
 			clamp?: readonly [minimum: number, maximum: number];
 			fallback: "contextual" | "none";
-	  }
-	| { kind: "custom"; processor: string };
+	  };
 
 export type BenchmarkScoringFacet = {
 	group: BenchmarkGroup;
@@ -261,18 +258,13 @@ export function defineBenchmarks<
 	};
 }
 
-/** Apply a built-in source transform while custom processors stay at their adapter boundary. */
+/** Apply the catalog-declared source transform. */
 export function applyBenchmarkTransform(
 	value: number,
 	transform: BenchmarkSourceTransform,
 ): number {
 	if (transform.kind === "identity") {
 		return value;
-	}
-	if (transform.kind === "custom") {
-		throw new Error(
-			`Custom benchmark transform requires processor ${transform.processor}`,
-		);
 	}
 	const [inputMinimum, inputMaximum] = transform.input;
 	const [outputMinimum, outputMaximum] = transform.output;
@@ -506,29 +498,8 @@ function validateProcessing(
 	source: BenchmarkSourceFacet,
 ): void {
 	validateLinearTransform(key, processing.transform);
-	if (
-		processing.transform.kind === "custom" &&
-		processing.transform.processor.trim().length === 0
-	) {
-		throw new Error(
-			`Custom benchmark transform requires a processor for ${key}`,
-		);
-	}
-	if (
-		processing.aggregation.kind === "custom" &&
-		processing.aggregation.processor.trim().length === 0
-	) {
-		throw new Error(
-			`Custom benchmark aggregation requires a processor for ${key}`,
-		);
-	}
 	if (processing.sourceCrosswalk == null) {
 		return;
-	}
-	if (processing.sourceCrosswalk.processor.trim().length === 0) {
-		throw new Error(
-			`Benchmark source crosswalk requires a processor for ${key}`,
-		);
 	}
 	if (source.inputs.length < 2) {
 		throw new Error(
@@ -545,14 +516,6 @@ function validateScoring(
 	validateBenchmarkWeight(key, scoring);
 	validateNormalization(key, scoring.normalization);
 	const { imputation } = scoring;
-	if (
-		imputation.kind === "custom" &&
-		imputation.processor.trim().length === 0
-	) {
-		throw new Error(
-			`Custom benchmark imputation requires a processor for ${key}`,
-		);
-	}
 	if (imputation.kind !== "additive_crosswalk") {
 		return;
 	}
@@ -590,14 +553,6 @@ function validateNormalization(
 	key: string,
 	normalization: BenchmarkNormalizationPolicy,
 ): void {
-	if (
-		normalization.kind === "custom" &&
-		normalization.processor.trim().length === 0
-	) {
-		throw new Error(
-			`Custom benchmark normalization requires a processor for ${key}`,
-		);
-	}
 	if (
 		normalization.kind === "min_max" &&
 		(!Number.isFinite(normalization.output[0]) ||

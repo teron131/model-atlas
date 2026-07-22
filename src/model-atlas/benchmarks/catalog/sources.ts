@@ -611,16 +611,10 @@ export const BENCHMARK_SOURCE_OVERRIDES = {
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkSourceFacet>>;
 export const BENCHMARK_PROCESSING_OVERRIDES = {
 	agents_last_exam: {
-		aggregation: {
-			kind: "custom",
-			processor: "agentsLastExamBenchmarkScore",
-		},
+		aggregation: { kind: "custom" },
 	},
 	ale_bench: {
-		sourceCrosswalk: {
-			kind: "custom",
-			processor: "validateAleBenchEpochScale",
-		},
+		sourceCrosswalk: { kind: "custom" },
 	},
 	briefcase: {
 		transform: {
@@ -631,16 +625,10 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
 		},
 	},
 	terminalbench_v21: {
-		aggregation: {
-			kind: "custom",
-			processor: "terminalBenchAggregateRow",
-		},
+		aggregation: { kind: "custom" },
 	},
 	weirdml: {
-		sourceCrosswalk: {
-			kind: "validated_merge",
-			processor: "mergeWeirdMlSources",
-		},
+		sourceCrosswalk: { kind: "validated_merge" },
 	},
 } as const satisfies Partial<
 	Record<BenchmarkKey, Partial<BenchmarkProcessingFacet>>
