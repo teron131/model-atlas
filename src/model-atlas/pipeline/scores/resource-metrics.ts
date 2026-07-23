@@ -4,12 +4,12 @@ import { benchmarkValueLocation } from "../../benchmarks/registry";
 import { positiveFiniteNumber } from "../../numeric";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
-	LlmStatsModelCandidate,
-	LlmStatsTaskMetricValues,
+	ModelAtlasModelCandidate,
+	ModelAtlasTaskMetricValues,
 } from "../model-types";
 
 export type BenchmarkMetricModel = {
-	evaluations?: unknown;
+	benchmarks?: unknown;
 	intelligence?: unknown;
 };
 
@@ -26,18 +26,18 @@ export function benchmarkMetricValue(
 	if (location?.kind === "intelligence") {
 		return (
 			asFiniteNumber(asRecord(model.intelligence)[location.field]) ??
-			asFiniteNumber(asRecord(model.evaluations)[key]) ??
+			asFiniteNumber(asRecord(model.benchmarks)[key]) ??
 			null
 		);
 	}
 	if (location == null) {
 		return (
 			asFiniteNumber(asRecord(model.intelligence)[key]) ??
-			asFiniteNumber(asRecord(model.evaluations)[key]) ??
+			asFiniteNumber(asRecord(model.benchmarks)[key]) ??
 			null
 		);
 	}
-	return asFiniteNumber(asRecord(model.evaluations)[key]) ?? null;
+	return asFiniteNumber(asRecord(model.benchmarks)[key]) ?? null;
 }
 
 /** Use served throughput as the runtime proxy when a benchmark reports output tokens but not wall time. */
@@ -62,8 +62,8 @@ export function effectiveTaskSeconds(
 }
 
 export function taskMetricFromModel(
-	model: LlmStatsModelCandidate,
+	model: ModelAtlasModelCandidate,
 	key: string,
-): LlmStatsTaskMetricValues | null {
+): ModelAtlasTaskMetricValues | null {
 	return model.task_metrics?.[key] ?? null;
 }

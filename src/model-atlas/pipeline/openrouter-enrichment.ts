@@ -17,7 +17,7 @@ import {
 
 import { deriveSpeedOutputTokenAnchors } from "./scores";
 
-export type LlmStatsEnrichmentResult = {
+export type ModelAtlasEnrichmentResult = {
 	rows: Record<string, unknown>[];
 	openRouterSpeedById: Map<string, JsonObject>;
 	openRouterPricingById: Map<string, JsonObject>;
@@ -265,7 +265,7 @@ export async function enrichModelRowsWithOpenRouter(
 	openRouterConfig: OpenRouterConfig,
 	scoringConfig: ScoringConfig,
 	cachedOpenRouterRawPayload?: OpenRouterRawScrapedPayload | null,
-): Promise<LlmStatsEnrichmentResult> {
+): Promise<ModelAtlasEnrichmentResult> {
 	const costBackfilledRows = backfillFreeModelCosts(rows);
 	const {
 		speedById: openRouterSpeedById,

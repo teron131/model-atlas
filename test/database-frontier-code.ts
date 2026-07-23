@@ -12,12 +12,12 @@ import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
-	insertModelEvaluations,
+	insertModelBenchmarks,
 	insertModels,
 	insertModelTaskMetrics,
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 function metrics(score: number, cost: number, tokens: number) {
 	return {
@@ -134,7 +134,7 @@ try {
 				reasoning_effort: "xhigh",
 				logo: "https://example.com/logo.svg",
 				modalities: { input: ["text"] },
-				evaluations: { frontier_code: 0.535 },
+				benchmarks: { frontier_code: 0.535 },
 				task_metrics: {
 					frontier_code: { cost: 0.75, tokens: 4_500 },
 				},
@@ -152,7 +152,7 @@ try {
 			},
 		];
 		insertModels(db, finalRows);
-		insertModelEvaluations(db, finalRows);
+		insertModelBenchmarks(db, finalRows);
 		insertModelTaskMetrics(db, finalRows);
 	} finally {
 		db.close();
@@ -160,7 +160,7 @@ try {
 
 	const payload = readDatabasePayload(databasePath);
 	const model = payload.models[0];
-	assert.equal(model?.evaluations?.frontier_code, 0.535);
+	assert.equal(model?.benchmarks?.frontier_code, 0.535);
 	assert.deepEqual(model?.task_metrics?.frontier_code, {
 		cost: 0.75,
 		tokens: 4_500,

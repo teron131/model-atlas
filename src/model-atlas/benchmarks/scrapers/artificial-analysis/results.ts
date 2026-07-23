@@ -1,7 +1,7 @@
 /**
- * Artificial Analysis evaluation-page resource scraping for benchmark-level per-task telemetry.
+ * Artificial Analysis benchmark-page resource scraping for benchmark-level per-task telemetry.
  *
- * The Artificial Analysis leaderboard is the score table. Individual evaluation pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
+ * The Artificial Analysis leaderboard is the score table. Individual benchmark pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
  */
 
 import {
@@ -24,7 +24,7 @@ import {
 	findObjectEnd,
 	parseFlightJsonObject,
 } from "../../../scrapers/parsing";
-import { ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../registry";
+import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../registry";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 3;
@@ -78,7 +78,7 @@ const BRIEFCASE_SECONDS_PER_TASK_POLICY = {
 	},
 } as const satisfies SecondsPerTaskPolicy;
 
-type ArtificialAnalysisEvaluationResourcePage = {
+type ArtificialAnalysisBenchmarkResourcePage = {
 	benchmark_key: string;
 	score_key?: string;
 	score_path?: JsonPath;
@@ -90,14 +90,14 @@ type ArtificialAnalysisEvaluationResourcePage = {
 	task_run_count: number;
 };
 
-type ArtificialAnalysisEvaluationResourceOptions = {
-	pages?: readonly ArtificialAnalysisEvaluationResourcePage[];
+type ArtificialAnalysisBenchmarkResourceOptions = {
+	pages?: readonly ArtificialAnalysisBenchmarkResourcePage[];
 	timeoutMs?: number;
 	concurrency?: number;
 	requestJitterMs?: number;
 };
 
-export type ArtificialAnalysisEvaluationResourceRow = {
+export type ArtificialAnalysisBenchmarkResourceRow = {
 	benchmark_key: string;
 	source_url: string;
 	model_id: string;
@@ -116,19 +116,19 @@ export type ArtificialAnalysisEvaluationResourceRow = {
 	reasoning_tokens_per_task: number | null;
 };
 
-type ArtificialAnalysisEvaluationResourcePayload = {
+type ArtificialAnalysisBenchmarkResourcePayload = {
 	fetched_at_epoch_seconds: number | null;
-	data: ArtificialAnalysisEvaluationResourceRow[];
+	data: ArtificialAnalysisBenchmarkResourceRow[];
 };
 
-export type ArtificialAnalysisEvaluationResourceByBenchmark = ReadonlyMap<
+export type ArtificialAnalysisBenchmarkResourceLookup = ReadonlyMap<
 	string,
-	ReadonlyMap<string, ArtificialAnalysisEvaluationResourceRow>
+	ReadonlyMap<string, ArtificialAnalysisBenchmarkResourceRow>
 >;
 
-export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES =
+export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES =
 	BENCHMARK_RESOURCE_PAGES.map(
-		(page): ArtificialAnalysisEvaluationResourcePage => ({
+		(page): ArtificialAnalysisBenchmarkResourcePage => ({
 			benchmark_key: page.benchmarkKey,
 			...(page.scoreKey == null ? {} : { score_key: page.scoreKey }),
 			...(page.scorePath == null ? {} : { score_path: page.scorePath }),
@@ -187,7 +187,7 @@ function tokenCount(
 
 function scoreValue(
 	row: Record<string, unknown>,
-	page: ArtificialAnalysisEvaluationResourcePage,
+	page: ArtificialAnalysisBenchmarkResourcePage,
 ): number | null {
 	return asFiniteNumber(
 		page.score_path == null
@@ -198,7 +198,7 @@ function scoreValue(
 
 function costRecord(
 	row: Record<string, unknown>,
-	page: ArtificialAnalysisEvaluationResourcePage,
+	page: ArtificialAnalysisBenchmarkResourcePage,
 ): Record<string, unknown> {
 	return asRecord(
 		page.cost_path == null ? row.evalCost : nestedValue(row, page.cost_path),
@@ -207,7 +207,7 @@ function costRecord(
 
 function tokenCountsRecord(
 	row: Record<string, unknown>,
-	page: ArtificialAnalysisEvaluationResourcePage,
+	page: ArtificialAnalysisBenchmarkResourcePage,
 ): Record<string, unknown> {
 	return asRecord(
 		page.token_counts_path == null
@@ -251,7 +251,7 @@ function fallbackSecondsPerTask(
 function secondsPerTask(
 	row: Record<string, unknown>,
 	outputTokensPerTask: number | null,
-	page: ArtificialAnalysisEvaluationResourcePage,
+	page: ArtificialAnalysisBenchmarkResourcePage,
 ): number | null {
 	const policy = page.seconds_policy ?? DEFAULT_SECONDS_PER_TASK_POLICY;
 	if (policy.kind === "value") {
@@ -273,7 +273,7 @@ function secondsPerTask(
 
 function extractRowsFromPageHtml(
 	pageHtml: string,
-	page: ArtificialAnalysisEvaluationResourcePage,
+	page: ArtificialAnalysisBenchmarkResourcePage,
 ): Record<string, unknown>[] {
 	const flightCorpus = extractNextFlightCorpus(pageHtml);
 	const resourceRowsById = new Map<string, Record<string, unknown>>();
@@ -315,8 +315,8 @@ function extractRowsFromPageHtml(
 
 function resourceRow(
 	sourceRow: unknown,
-	page: ArtificialAnalysisEvaluationResourcePage,
-): ArtificialAnalysisEvaluationResourceRow | null {
+	page: ArtificialAnalysisBenchmarkResourcePage,
+): ArtificialAnalysisBenchmarkResourceRow | null {
 	const row = asRecord(sourceRow);
 	const modelSlug = stringValue(row.slug);
 	const providerRecord = asRecord(row.model_creators);
@@ -412,15 +412,13 @@ function reasoningEffortFromSlug(modelSlug: string | null): string | null {
 	return null;
 }
 
-export function processArtificialAnalysisEvaluationResourceRows(
+export function processArtificialAnalysisBenchmarkResourceRows(
 	rows: unknown[],
-	page: ArtificialAnalysisEvaluationResourcePage,
-): ArtificialAnalysisEvaluationResourceRow[] {
+	page: ArtificialAnalysisBenchmarkResourcePage,
+): ArtificialAnalysisBenchmarkResourceRow[] {
 	return rows
 		.map((row) => resourceRow(row, page))
-		.filter(
-			(row): row is ArtificialAnalysisEvaluationResourceRow => row != null,
-		)
+		.filter((row): row is ArtificialAnalysisBenchmarkResourceRow => row != null)
 		.sort((left, right) =>
 			`${left.benchmark_key}/${left.model_id}`.localeCompare(
 				`${right.benchmark_key}/${right.model_id}`,
@@ -429,7 +427,7 @@ export function processArtificialAnalysisEvaluationResourceRows(
 }
 
 function modelKeyCandidates(
-	row: ArtificialAnalysisEvaluationResourceRow,
+	row: ArtificialAnalysisBenchmarkResourceRow,
 ): string[] {
 	return [row.model_id, row.model]
 		.map(normalizeModelToken)
@@ -439,7 +437,7 @@ function modelKeyCandidates(
 }
 
 function reasoningModelKeyCandidates(
-	row: ArtificialAnalysisEvaluationResourceRow,
+	row: ArtificialAnalysisBenchmarkResourceRow,
 ): string[] {
 	return modelKeyCandidates(row)
 		.map(withoutEffortSuffix)
@@ -460,9 +458,9 @@ function withoutEffortSuffix(key: string): string {
 }
 
 function higherEffortResourceRow(
-	left: ArtificialAnalysisEvaluationResourceRow | undefined,
-	right: ArtificialAnalysisEvaluationResourceRow,
-): ArtificialAnalysisEvaluationResourceRow {
+	left: ArtificialAnalysisBenchmarkResourceRow | undefined,
+	right: ArtificialAnalysisBenchmarkResourceRow,
+): ArtificialAnalysisBenchmarkResourceRow {
 	if (left == null) {
 		return right;
 	}
@@ -473,12 +471,12 @@ function higherEffortResourceRow(
 }
 
 /** Builds exact benchmark-resource lookups without collapsing effort observations. */
-export function buildArtificialAnalysisObservationResourceMap(
-	rows: ArtificialAnalysisEvaluationResourceRow[],
-): ArtificialAnalysisEvaluationResourceByBenchmark {
+export function buildArtificialAnalysisResourceLookup(
+	rows: ArtificialAnalysisBenchmarkResourceRow[],
+): ArtificialAnalysisBenchmarkResourceLookup {
 	const rowsByBenchmark = new Map<
 		string,
-		Map<string, ArtificialAnalysisEvaluationResourceRow>
+		Map<string, ArtificialAnalysisBenchmarkResourceRow>
 	>();
 	for (const row of rows) {
 		let rowsByModelKey = rowsByBenchmark.get(row.benchmark_key);
@@ -494,17 +492,17 @@ export function buildArtificialAnalysisObservationResourceMap(
 }
 
 /** Builds aggregate lookups whose aliases resolve to the default highest-effort observation. */
-export function buildArtificialAnalysisDefaultEffortResourceMap(
-	rows: ArtificialAnalysisEvaluationResourceRow[],
-): ArtificialAnalysisEvaluationResourceByBenchmark {
+export function buildArtificialAnalysisDefaultEffortResourceLookup(
+	rows: ArtificialAnalysisBenchmarkResourceRow[],
+): ArtificialAnalysisBenchmarkResourceLookup {
 	const rowsByBenchmark = new Map(
-		[...buildArtificialAnalysisObservationResourceMap(rows)].map(
+		[...buildArtificialAnalysisResourceLookup(rows)].map(
 			([benchmarkKey, rowsByModel]) => [benchmarkKey, new Map(rowsByModel)],
 		),
 	);
 	const defaultRowsByBenchmark = new Map<
 		string,
-		Map<string, ArtificialAnalysisEvaluationResourceRow>
+		Map<string, ArtificialAnalysisBenchmarkResourceRow>
 	>();
 	for (const row of rows) {
 		let defaultRowsByModelKey = defaultRowsByBenchmark.get(row.benchmark_key);
@@ -526,7 +524,7 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 		}
 		const defaultRowsByModelKey = defaultRowsByBenchmark.get(row.benchmark_key);
 		const defaultModelRow = reasoningModelKeyCandidates(row).reduce<
-			ArtificialAnalysisEvaluationResourceRow | undefined
+			ArtificialAnalysisBenchmarkResourceRow | undefined
 		>(
 			(defaultRow, key) =>
 				higherEffortResourceRow(
@@ -554,12 +552,12 @@ export function buildArtificialAnalysisDefaultEffortResourceMap(
 	return rowsByBenchmark;
 }
 
-export function findArtificialAnalysisEvaluationResourceRow(
+export function findArtificialAnalysisBenchmarkResourceRow(
 	benchmarkKey: string,
 	candidateNames: unknown[],
-	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark,
-): ArtificialAnalysisEvaluationResourceRow | null {
-	const rowsByModelKey = rowsByBenchmark.get(benchmarkKey);
+	resourceLookup: ArtificialAnalysisBenchmarkResourceLookup,
+): ArtificialAnalysisBenchmarkResourceRow | null {
+	const rowsByModelKey = resourceLookup.get(benchmarkKey);
 	if (rowsByModelKey == null) {
 		return null;
 	}
@@ -575,17 +573,17 @@ export function findArtificialAnalysisEvaluationResourceRow(
 	return null;
 }
 
-async function getEvaluationResourceRows(
-	page: ArtificialAnalysisEvaluationResourcePage,
+async function getBenchmarkResourceRows(
+	page: ArtificialAnalysisBenchmarkResourcePage,
 	timeoutMs: number,
-): Promise<ArtificialAnalysisEvaluationResourceRow[]> {
+): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
 	const response = await fetchWithTimeout(page.url, {}, timeoutMs);
 	if (!response.ok) {
 		throw new Error(
-			`Artificial Analysis evaluation resource scrape failed for ${page.benchmark_key}: ${response.status}`,
+			`Artificial Analysis benchmark resource scrape failed for ${page.benchmark_key}: ${response.status}`,
 		);
 	}
-	return processArtificialAnalysisEvaluationResourceRows(
+	return processArtificialAnalysisBenchmarkResourceRows(
 		extractRowsFromPageHtml(await response.text(), page),
 		page,
 	);
@@ -602,10 +600,10 @@ async function waitForRequestJitter(maxDelayMs: number): Promise<void> {
 	});
 }
 
-export async function getArtificialAnalysisEvaluationResourceStats(
-	options: ArtificialAnalysisEvaluationResourceOptions = {},
-): Promise<ArtificialAnalysisEvaluationResourcePayload> {
-	const pages = options.pages ?? ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES;
+export async function getArtificialAnalysisBenchmarkResourceStats(
+	options: ArtificialAnalysisBenchmarkResourceOptions = {},
+): Promise<ArtificialAnalysisBenchmarkResourcePayload> {
+	const pages = options.pages ?? ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES;
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
 	const requestJitterMs = options.requestJitterMs ?? DEFAULT_REQUEST_JITTER_MS;
@@ -615,7 +613,7 @@ export async function getArtificialAnalysisEvaluationResourceStats(
 		async (page) => {
 			try {
 				await waitForRequestJitter(requestJitterMs);
-				return await getEvaluationResourceRows(page, timeoutMs);
+				return await getBenchmarkResourceRows(page, timeoutMs);
 			} catch {
 				return [];
 			}

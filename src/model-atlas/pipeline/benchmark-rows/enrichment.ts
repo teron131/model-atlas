@@ -1,4 +1,4 @@
-/** Benchmark enrichment is the single bridge from source lookup maps to evaluation and scoring-source fields. */
+/** Benchmark enrichment is the single bridge from source lookup maps to benchmark and scoring-source fields. */
 
 import {
 	type BenchmarkObservationLookup,
@@ -15,9 +15,9 @@ import {
 	findAgentsLastExamModelScore,
 } from "../../benchmarks/scrapers/agents-last-exam";
 import {
-	type ArtificialAnalysisEvaluationResourceByBenchmark,
-	type ArtificialAnalysisEvaluationResourceRow,
-	findArtificialAnalysisEvaluationResourceRow,
+	type ArtificialAnalysisBenchmarkResourceLookup,
+	type ArtificialAnalysisBenchmarkResourceRow,
+	findArtificialAnalysisBenchmarkResourceRow,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { findBlueprintBenchScore } from "../../benchmarks/scrapers/blueprint-bench";
 import { findGdpPdfScore } from "../../benchmarks/scrapers/surge/gdp-pdf";
@@ -33,9 +33,9 @@ import {
 	normalizeModelToken,
 	reasoningEffortRank,
 } from "../../identity/normalization";
-import type { LlmStatsSourceData } from "../../ingest/assembly";
+import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
-import type { LlmStatsScoringSources } from "../model-types";
+import type { ModelAtlasScoringSources } from "../model-types";
 import {
 	findTerminalBenchAggregate,
 	terminalBenchAggregateRow,
@@ -43,45 +43,45 @@ import {
 
 type BenchmarkObservationEnrichmentLookups = {
 	[Key in BenchmarkObservationDataKey]: Pick<
-		LlmStatsSourceData[Key],
+		ModelAtlasSourceData[Key],
 		"rowsByModelName"
 	>;
 };
 
 export type BenchmarkEnrichmentLookups =
 	BenchmarkObservationEnrichmentLookups & {
-		artificialAnalysisEvaluationResources: Pick<
-			LlmStatsSourceData["artificialAnalysisEvaluationResources"],
-			"observationByModelName" | "defaultEffortByModelName"
+		artificialAnalysisBenchmarkResources: Pick<
+			ModelAtlasSourceData["artificialAnalysisBenchmarkResources"],
+			"observationLookup" | "defaultEffortLookup"
 		>;
-		agentArena: Pick<LlmStatsSourceData["agentArena"], "rowsByModelName">;
+		agentArena: Pick<ModelAtlasSourceData["agentArena"], "rowsByModelName">;
 		agentsLastExam: Pick<
-			LlmStatsSourceData["agentsLastExam"],
+			ModelAtlasSourceData["agentsLastExam"],
 			"rowsByModelName"
 		>;
-		aleBench: Pick<LlmStatsSourceData["aleBench"], "rowsByModelName">;
+		aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
 		blueprintBench: Pick<
-			LlmStatsSourceData["blueprintBench"],
+			ModelAtlasSourceData["blueprintBench"],
 			"rowsByModelName"
 		>;
-		cursorBench: Pick<LlmStatsSourceData["cursorBench"], "rowsByModelName">;
-		deepSWE: Pick<LlmStatsSourceData["deepSWE"], "rowsByModelName">;
-		frontierCode: Pick<LlmStatsSourceData["frontierCode"], "rowsByModelName">;
-		gdpPdf: Pick<LlmStatsSourceData["gdpPdf"], "rowsByModelName">;
-		harveyLab: Pick<LlmStatsSourceData["harveyLab"], "rowsByModelName">;
+		cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
+		deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
+		frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
+		gdpPdf: Pick<ModelAtlasSourceData["gdpPdf"], "rowsByModelName">;
+		harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
 		mercorApexAgents: Pick<
-			LlmStatsSourceData["mercorApexAgents"],
+			ModelAtlasSourceData["mercorApexAgents"],
 			"rowsByModelName"
 		>;
-		riemannBench: Pick<LlmStatsSourceData["riemannBench"], "rowsByModelName">;
-		terminalBench: Pick<LlmStatsSourceData["terminalBench"], "rowsByModelName">;
-		valsIndex: Pick<LlmStatsSourceData["valsIndex"], "rowsByModelName">;
-		vendingBench2: Pick<LlmStatsSourceData["vendingBench2"], "rowsByModelName">;
+		riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
+		terminalBench: Pick<ModelAtlasSourceData["terminalBench"], "rowsByModelName">;
+		valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
+		vendingBench2: Pick<ModelAtlasSourceData["vendingBench2"], "rowsByModelName">;
 	};
 
 type BenchmarkEnrichment = {
-	evaluations: Record<string, unknown>;
-	scoringSources: NonNullable<LlmStatsScoringSources>;
+	benchmarks: Record<string, unknown>;
+	scoringSources: NonNullable<ModelAtlasScoringSources>;
 };
 
 type SparseBenchmarkEnrichmentContext = {
@@ -119,7 +119,7 @@ function benchmarkObservationLookup(
 function mergeAggregateFields(
 	baseFields: Record<string, unknown>,
 	aggregateFields: Record<string, unknown>,
-	benchmarkSources: NonNullable<LlmStatsScoringSources>,
+	benchmarkSources: NonNullable<ModelAtlasScoringSources>,
 ): Record<string, unknown> {
 	const fields = { ...aggregateFields, ...baseFields };
 	for (const [key, sourceRow] of Object.entries(benchmarkSources)) {
@@ -130,9 +130,9 @@ function mergeAggregateFields(
 	return fields;
 }
 
-type ArtificialAnalysisResourceLookup = {
+type ArtificialAnalysisResourceQuery = {
 	modelNameCandidates: unknown[];
-	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark;
+	resourceLookup: ArtificialAnalysisBenchmarkResourceLookup;
 };
 
 function findSourceRow<T>(
@@ -209,85 +209,85 @@ function addFrontierCodeScore(
 	if (row?.score_eligible !== true) {
 		return;
 	}
-	enrichment.evaluations.frontier_code = row.score;
+	enrichment.benchmarks.frontier_code = row.score;
 	enrichment.scoringSources.frontier_code = row;
 }
 
-function addArtificialAnalysisResourceEvaluation(
-	evaluations: Record<string, unknown>,
-	scoringSources: NonNullable<LlmStatsScoringSources>,
-	lookup: ArtificialAnalysisResourceLookup,
+function addArtificialAnalysisResourceBenchmark(
+	benchmarks: Record<string, unknown>,
+	scoringSources: NonNullable<ModelAtlasScoringSources>,
+	query: ArtificialAnalysisResourceQuery,
 	key: string,
-	score: (row: ArtificialAnalysisEvaluationResourceRow) => unknown,
+	score: (row: ArtificialAnalysisBenchmarkResourceRow) => unknown,
 ): void {
-	const row = findArtificialAnalysisEvaluationResourceRow(
+	const row = findArtificialAnalysisBenchmarkResourceRow(
 		key,
-		lookup.modelNameCandidates,
-		lookup.rowsByBenchmark,
+		query.modelNameCandidates,
+		query.resourceLookup,
 	);
 	if (row == null) {
 		return;
 	}
-	evaluations[key] = score(row);
+	benchmarks[key] = score(row);
 	scoringSources[key] = row;
 }
 
 function enrichArtificialAnalysisResources(
 	modelNameCandidates: unknown[],
-	rowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark,
-	baseEvaluations: Record<string, unknown> = {},
+	resourceLookup: ArtificialAnalysisBenchmarkResourceLookup,
+	baseBenchmarks: Record<string, unknown> = {},
 ): BenchmarkEnrichment {
-	const evaluations: Record<string, unknown> = {};
-	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
-	const lookup = {
+	const benchmarks: Record<string, unknown> = {};
+	const scoringSources: NonNullable<ModelAtlasScoringSources> = {};
+	const query = {
 		modelNameCandidates,
-		rowsByBenchmark,
+		resourceLookup,
 	};
-	for (const key of Object.keys(baseEvaluations)) {
-		const resourceRow = findArtificialAnalysisEvaluationResourceRow(
+	for (const key of Object.keys(baseBenchmarks)) {
+		const resourceRow = findArtificialAnalysisBenchmarkResourceRow(
 			key,
 			modelNameCandidates,
-			rowsByBenchmark,
+			resourceLookup,
 		);
 		if (resourceRow != null) {
 			scoringSources[key] = resourceRow;
 		}
 	}
-	addArtificialAnalysisResourceEvaluation(
-		evaluations,
+	addArtificialAnalysisResourceBenchmark(
+		benchmarks,
 		scoringSources,
-		lookup,
+		query,
 		"briefcase",
 		(row) => transformBenchmarkSourceValue("briefcase", row.score),
 	);
-	const terminalBenchResourceRow = findArtificialAnalysisEvaluationResourceRow(
+	const terminalBenchResourceRow = findArtificialAnalysisBenchmarkResourceRow(
 		"terminalbench_v21",
 		modelNameCandidates,
-		rowsByBenchmark,
+		resourceLookup,
 	);
 	const terminalBench = terminalBenchAggregateRow({
-		artificialAnalysisScore: baseEvaluations.terminalbench_v21,
+		artificialAnalysisScore: baseBenchmarks.terminalbench_v21,
 		resourceRow: terminalBenchResourceRow,
 	});
 	if (terminalBench != null) {
-		evaluations.terminalbench_v21 = terminalBench.score;
+		benchmarks.terminalbench_v21 = terminalBench.score;
 		scoringSources.terminalbench_v21 = terminalBench;
 	}
-	addArtificialAnalysisResourceEvaluation(
-		evaluations,
+	addArtificialAnalysisResourceBenchmark(
+		benchmarks,
 		scoringSources,
-		lookup,
+		query,
 		"automation_bench",
 		(row) => row.score,
 	);
-	addArtificialAnalysisResourceEvaluation(
-		evaluations,
+	addArtificialAnalysisResourceBenchmark(
+		benchmarks,
 		scoringSources,
-		lookup,
+		query,
 		"itbench_sre",
 		(row) => row.score,
 	);
-	return { evaluations, scoringSources };
+	return { benchmarks, scoringSources };
 }
 
 const enrichAleBench: SparseBenchmarkEnrichmentOperation = ({
@@ -302,7 +302,7 @@ const enrichAleBench: SparseBenchmarkEnrichmentOperation = ({
 		lookups.aleBench.rowsByModelName,
 	);
 	if (row != null) {
-		enrichment.evaluations.ale_bench = row.score;
+		enrichment.benchmarks.ale_bench = row.score;
 		enrichment.scoringSources.ale_bench = row;
 	}
 };
@@ -345,7 +345,7 @@ const SPARSE_BENCHMARK_ENRICHMENT_ADAPTERS = {
 				lookups.agentArena.rowsByModelName,
 			);
 			if (row != null) {
-				enrichment.evaluations.agent_arena = row.score;
+				enrichment.benchmarks.agent_arena = row.score;
 				enrichment.scoringSources.agent_arena = row;
 			}
 		},
@@ -357,7 +357,7 @@ const SPARSE_BENCHMARK_ENRICHMENT_ADAPTERS = {
 				lookups.agentsLastExam.rowsByModelName,
 			);
 			if (row != null) {
-				enrichment.evaluations.agents_last_exam =
+				enrichment.benchmarks.agents_last_exam =
 					agentsLastExamBenchmarkScore(row);
 				enrichment.scoringSources.agents_last_exam = row;
 			}
@@ -374,7 +374,7 @@ const SPARSE_BENCHMARK_ENRICHMENT_ADAPTERS = {
 				lookups.blueprintBench.rowsByModelName,
 			);
 			if (score != null) {
-				enrichment.evaluations.blueprint_bench_2 = score;
+				enrichment.benchmarks.blueprint_bench_2 = score;
 			}
 		},
 	},
@@ -385,7 +385,7 @@ const SPARSE_BENCHMARK_ENRICHMENT_ADAPTERS = {
 				lookups.cursorBench.rowsByModelName,
 			);
 			if (row != null) {
-				enrichment.evaluations.cursorbench = row.score;
+				enrichment.benchmarks.cursorbench = row.score;
 				enrichment.scoringSources.cursorbench = row;
 			}
 		},
@@ -397,7 +397,7 @@ const SPARSE_BENCHMARK_ENRICHMENT_ADAPTERS = {
 				lookups.deepSWE.rowsByModelName,
 			);
 			if (row != null) {
-				enrichment.evaluations.deep_swe = row.pass_at_1;
+				enrichment.benchmarks.deep_swe = row.pass_at_1;
 				enrichment.scoringSources.deep_swe = row;
 			}
 		},
@@ -417,7 +417,7 @@ const SPARSE_BENCHMARK_ENRICHMENT_ADAPTERS = {
 				lookups.vendingBench2.rowsByModelName,
 			);
 			if (row != null) {
-				enrichment.evaluations.vending_bench_2 = row.final_balance_usd;
+				enrichment.benchmarks.vending_bench_2 = row.final_balance_usd;
 				enrichment.scoringSources.vending_bench_2 = row;
 			}
 		},
@@ -442,13 +442,13 @@ function runSparseBenchmarkEnrichment(
 export function enrichBenchmarkObservation(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
-	baseEvaluations: Record<string, unknown> = {},
+	baseBenchmarks: Record<string, unknown> = {},
 	targetReasoningEffort: unknown = null,
 ): BenchmarkEnrichment {
 	const enrichment = enrichArtificialAnalysisResources(
 		modelNameCandidates,
-		lookups.artificialAnalysisEvaluationResources.observationByModelName,
-		baseEvaluations,
+		lookups.artificialAnalysisBenchmarkResources.observationLookup,
+		baseBenchmarks,
 	);
 	runSparseBenchmarkEnrichment("observation", {
 		enrichment,
@@ -463,13 +463,13 @@ export function enrichBenchmarkObservation(
 export function enrichBenchmarkAggregate(
 	modelNameCandidates: unknown[],
 	lookups: BenchmarkEnrichmentLookups,
-	baseEvaluations: Record<string, unknown> = {},
+	baseBenchmarks: Record<string, unknown> = {},
 	targetReasoningEffort: unknown = null,
 ): BenchmarkEnrichment {
-	const { evaluations, scoringSources } = enrichArtificialAnalysisResources(
+	const { benchmarks, scoringSources } = enrichArtificialAnalysisResources(
 		modelNameCandidates,
-		lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
-		baseEvaluations,
+		lookups.artificialAnalysisBenchmarkResources.defaultEffortLookup,
+		baseBenchmarks,
 	);
 	for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
 		const row = findBenchmarkObservation(
@@ -478,7 +478,7 @@ export function enrichBenchmarkAggregate(
 			benchmarkObservationLookup(lookups, sourceDataKey),
 		);
 		if (row != null) {
-			evaluations[benchmark] = transformBenchmarkSourceValue(
+			benchmarks[benchmark] = transformBenchmarkSourceValue(
 				benchmark,
 				row.canonical_value,
 			);
@@ -486,7 +486,7 @@ export function enrichBenchmarkAggregate(
 		}
 	}
 	runSparseBenchmarkEnrichment("aggregate", {
-		enrichment: { evaluations, scoringSources },
+		enrichment: { benchmarks, scoringSources },
 		lookups,
 		modelNameCandidates,
 		targetReasoningEffort,
@@ -496,7 +496,7 @@ export function enrichBenchmarkAggregate(
 		lookups.gdpPdf.rowsByModelName,
 	);
 	if (gdpPdfScore != null) {
-		evaluations.gdp_pdf = gdpPdfScore;
+		benchmarks.gdp_pdf = gdpPdfScore;
 	}
 	const harveyLabRow = findEffortSourceRow(
 		modelNameCandidates,
@@ -504,7 +504,7 @@ export function enrichBenchmarkAggregate(
 		lookups.harveyLab.rowsByModelName,
 	);
 	if (harveyLabRow != null) {
-		evaluations.harvey_lab = harveyLabRow.score;
+		benchmarks.harvey_lab = harveyLabRow.score;
 		scoringSources.harvey_lab = harveyLabRow;
 	}
 	const riemannBenchScore = findRiemannBenchScore(
@@ -512,19 +512,19 @@ export function enrichBenchmarkAggregate(
 		lookups.riemannBench.rowsByModelName,
 	);
 	if (riemannBenchScore != null) {
-		evaluations.riemann_bench = riemannBenchScore;
+		benchmarks.riemann_bench = riemannBenchScore;
 	}
 	const terminalBench = findTerminalBenchAggregate(
 		modelNameCandidates,
 		{
-			artificialAnalysisRowsByBenchmark:
-				lookups.artificialAnalysisEvaluationResources.defaultEffortByModelName,
+			artificialAnalysisResourceLookup:
+				lookups.artificialAnalysisBenchmarkResources.defaultEffortLookup,
 			harnessRowsByModel: lookups.terminalBench.rowsByModelName,
 		},
-		baseEvaluations.terminalbench_v21,
+		baseBenchmarks.terminalbench_v21,
 	);
 	if (terminalBench != null) {
-		evaluations.terminalbench_v21 = terminalBench.score;
+		benchmarks.terminalbench_v21 = terminalBench.score;
 		scoringSources.terminalbench_v21 = terminalBench;
 	}
 	const valsIndexScore = findValsIndexScore(
@@ -532,11 +532,11 @@ export function enrichBenchmarkAggregate(
 		lookups.valsIndex.rowsByModelName,
 	);
 	if (valsIndexScore != null) {
-		evaluations.vals_index = valsIndexScore;
+		benchmarks.vals_index = valsIndexScore;
 	}
 
 	return {
-		evaluations,
+		benchmarks,
 		scoringSources,
 	};
 }
@@ -568,7 +568,7 @@ export function enrichModelRowsWithBenchmarks(
 		if (defaultRowByModel.get(canonicalModelKey(row)) !== row) {
 			return row;
 		}
-		const baseEvaluations = asRecord(row.evaluations);
+		const baseBenchmarks = asRecord(row.benchmarks);
 		const hasVariantObservation =
 			typeof row.artificial_analysis_id === "string";
 		const benchmarkEnrichment = enrichBenchmarkAggregate(
@@ -583,12 +583,12 @@ export function enrichModelRowsWithBenchmarks(
 					]
 				: [row.name],
 			lookups,
-			baseEvaluations,
+			baseBenchmarks,
 			row.reasoning_effort,
 		);
-		const evaluations = mergeAggregateFields(
-			baseEvaluations,
-			benchmarkEnrichment.evaluations,
+		const benchmarks = mergeAggregateFields(
+			baseBenchmarks,
+			benchmarkEnrichment.benchmarks,
 			benchmarkEnrichment.scoringSources,
 		);
 		const scoringSources = mergeAggregateFields(
@@ -598,7 +598,7 @@ export function enrichModelRowsWithBenchmarks(
 		);
 		return {
 			...row,
-			...(Object.keys(evaluations).length === 0 ? {} : { evaluations }),
+			...(Object.keys(benchmarks).length === 0 ? {} : { benchmarks }),
 			...(Object.keys(scoringSources).length === 0
 				? {}
 				: { scoring_sources: scoringSources }),

@@ -5,7 +5,7 @@ import { canonicalModelKey } from "../../../src/model-atlas/identity/normalizati
 import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModel,
+	ModelAtlasModel,
 } from "../../../src/model-atlas/stats/types";
 import { modelDisplayName, modelVariantKey } from "../shared/model-display";
 import {
@@ -119,7 +119,7 @@ export const interactionConfigs: InteractionConfig[] = [
 		tooltipFormat: fmtTooltipMoney,
 		xLabel: "AA task cost",
 		insight:
-			"Connects benchmark quality to the cost of producing that quality during the evaluation workload.",
+			"Connects benchmark quality to the cost of producing that quality during the benchmark workload.",
 	},
 	{
 		key: "frontierScore",
@@ -139,7 +139,7 @@ export const interactionConfigs: InteractionConfig[] = [
 ];
 
 export function frontierBenchmarkScoreByModel(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	portfolio: BenchmarkPortfolio,
 ) {
 	const frontierKeys = Object.entries(portfolio)
@@ -148,7 +148,7 @@ export function frontierBenchmarkScoreByModel(
 	const scoresByBenchmark = new Map<string, number[]>();
 	for (const key of frontierKeys) {
 		const scores = models
-			.map((model) => toPercent(model.evaluations?.[key]))
+			.map((model) => toPercent(model.benchmarks?.[key]))
 			.filter(finite);
 		if (scores.length > 0) {
 			scoresByBenchmark.set(key, scores);
@@ -158,7 +158,7 @@ export function frontierBenchmarkScoreByModel(
 	const scoreByModel = new Map<string, number>();
 	for (const model of models) {
 		const normalizedScores = frontierKeys.flatMap((key) => {
-			const score = toPercent(model.evaluations?.[key]);
+			const score = toPercent(model.benchmarks?.[key]);
 			const benchmarkScores = scoresByBenchmark.get(key);
 			if (score == null || benchmarkScores == null) {
 				return [];
@@ -190,7 +190,7 @@ export function groupBy<T, TKey>(
 	return groups;
 }
 
-export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
+export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
 	type ProviderOptionDraft = ProviderOption & {
 		modelKeys: Set<string>;
 		bestScoreByModel: Map<string, number>;
@@ -252,7 +252,7 @@ export function providerOptions(models: LlmStatsModel[]): ProviderOption[] {
 
 export function filterByModelControls<T>(
 	items: T[],
-	getModel: (item: T) => LlmStatsModel,
+	getModel: (item: T) => ModelAtlasModel,
 	filters: ModelControlFilters,
 ) {
 	const providerKeys =
@@ -264,7 +264,7 @@ export function filterByModelControls<T>(
 
 export function limitByIntelligenceScore<T>(
 	items: T[],
-	getModel: (item: T) => LlmStatsModel,
+	getModel: (item: T) => ModelAtlasModel,
 	limit: ModelLimit,
 ) {
 	if (limit === "all") {
@@ -294,7 +294,7 @@ export function limitByIntelligenceScore<T>(
 }
 
 function modelMatchesControls(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	maxCost: CostFilter,
 	providerKeys: ReadonlySet<string> | null,
 ) {
@@ -322,7 +322,7 @@ function meanTopProviderScore(scores: number[]) {
 
 export function pointHover(
 	event: PointerEvent<Element>,
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	rows: HoverRow[],
 	displayName = modelName(model),
 ): HoverState {
@@ -339,7 +339,7 @@ export function pointHover(
 
 export function focusHover(
 	target: Element,
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	rows: HoverRow[],
 	displayName = modelName(model),
 ): HoverState {
@@ -416,7 +416,7 @@ export function positiveDomain(values: number[]): [number, number] {
 	return [Math.max(10 ** (logLow - logPad), 0.001), 10 ** (logHigh + logPad)];
 }
 
-export function modelName(model: LlmStatsModel) {
+export function modelName(model: ModelAtlasModel) {
 	return modelDisplayName(model)
 		.replace(/\bGPT\s+(?=\d)/g, "GPT-")
 		.replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
@@ -430,11 +430,11 @@ function prefixBareFableModelName(match: string, offset: number, name: string) {
 	return previousToken === "Claude " ? match : `Claude ${match}`;
 }
 
-export function shortLabel(model: LlmStatsModel) {
+export function shortLabel(model: ModelAtlasModel) {
 	return modelName(model).replace(" Preview", "");
 }
 
-function providerLogoSource(model: LlmStatsModel) {
+function providerLogoSource(model: ModelAtlasModel) {
 	const logo = providerLogo(model.provider);
 	if (logo.length > 0) {
 		return logo;

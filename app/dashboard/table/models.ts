@@ -11,7 +11,7 @@ import {
 	minMaxScale,
 } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
 
@@ -253,7 +253,7 @@ export const dashboardMetricColumns: DashboardMetricColumn[] = [
 ];
 
 export type TableRow = {
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	intelligenceRank: number;
 	originalIndex: number;
 	aliasPriority: number;
@@ -355,7 +355,7 @@ export function sortedRows(
 }
 
 /** Collapse duplicate model routes before assigning display ranks. */
-export function dedupeDisplayModels(models: LlmStatsModel[]) {
+export function dedupeDisplayModels(models: ModelAtlasModel[]) {
 	const benchmarkDisplayScoreValues = Object.fromEntries(
 		scoreBenchmarkMetricColumns.map((column) => [
 			column.key,
@@ -394,7 +394,7 @@ export function dedupeDisplayModels(models: LlmStatsModel[]) {
 }
 
 export function benchmarkMetricValue(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	column: BenchmarkMetricColumn,
 ) {
 	return modelBenchmarkMetricValue(model, column.benchmark);
@@ -410,15 +410,15 @@ export function benchmarkDisplayValue(
 		: benchmarkMetricValue(row.model, column);
 }
 
-export function contextWindowValue(model: LlmStatsModel) {
+export function contextWindowValue(model: ModelAtlasModel) {
 	const contextWindow = model.context_window as
-		| ({ total?: number | null } & NonNullable<LlmStatsModel["context_window"]>)
+		| ({ total?: number | null } & NonNullable<ModelAtlasModel["context_window"]>)
 		| null;
 	return contextWindow?.context ?? contextWindow?.total;
 }
 
 export function dashboardMetricValue(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	column: DashboardMetricColumn,
 ) {
 	if ("source" in column) {
@@ -436,7 +436,7 @@ export function dashboardMetricValue(
 	return profileMetricValue(model, column);
 }
 
-function profileMetricValue(model: LlmStatsModel, column: ProfileMetricColumn) {
+function profileMetricValue(model: ModelAtlasModel, column: ProfileMetricColumn) {
 	if (column.field === "release") {
 		return model.release_date;
 	}
@@ -450,7 +450,7 @@ function profileMetricValue(model: LlmStatsModel, column: ProfileMetricColumn) {
 	return value ? 1 : 0;
 }
 
-function inputModalityRank(model: LlmStatsModel) {
+function inputModalityRank(model: ModelAtlasModel) {
 	const input = new Set(
 		(model.modalities?.input ?? []).map((value) => value.toLowerCase()),
 	);
@@ -544,7 +544,7 @@ function compareSortValues(sorter: Sorter, left: unknown, right: unknown) {
 	return Number(left) - Number(right);
 }
 
-function displayKey(model: LlmStatsModel) {
+function displayKey(model: ModelAtlasModel) {
 	const id = typeof model.id === "string" ? model.id : "";
 	const slashIndex = id.indexOf("/");
 	if (slashIndex <= 0) {
@@ -571,7 +571,7 @@ function canonicalProviderId(provider: string, slug: string) {
 		: normalizedProvider;
 }
 
-function displayAliasPriority(model: LlmStatsModel) {
+function displayAliasPriority(model: ModelAtlasModel) {
 	const id = typeof model.id === "string" ? model.id.toLowerCase() : "";
 	if (id.includes("latest")) {
 		return 3;

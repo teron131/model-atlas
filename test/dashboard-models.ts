@@ -23,8 +23,8 @@ import {
 	taskMetricColumns,
 } from "../app/dashboard/table/models";
 import { canonicalReasoningEffort } from "../src/model-atlas/identity/normalization";
-import type { LlmStatsModel } from "../src/model-atlas/stats/types";
-import { minimalLlmStatsModel } from "./llm-stats-fixtures";
+import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const intelligenceRows = dedupeDisplayModels([
 	rankedModel("provider/third", "Third", 30),
@@ -76,7 +76,7 @@ assert.deepEqual(
 assert.deepEqual(
 	aleBenchRows.map((row) => benchmarkMetricValue(row.model, aleBenchColumn)),
 	[1_000, 1_500, 2_000],
-	"ALE-B display normalization should preserve raw evaluation values",
+	"ALE-B display normalization should preserve raw benchmark values",
 );
 
 const agentArenaColumn = benchmarkMetricColumns.find(
@@ -365,8 +365,8 @@ function rankedModel(
 	id: string,
 	name: string,
 	intelligenceScore: number,
-): LlmStatsModel {
-	const model = minimalLlmStatsModel({ id, name });
+): ModelAtlasModel {
+	const model = minimalModelAtlasModel({ id, name });
 	return {
 		...model,
 		scores: {
@@ -380,9 +380,9 @@ function modalityModel(
 	id: string,
 	name: string,
 	input: string[],
-): LlmStatsModel {
+): ModelAtlasModel {
 	return {
-		...minimalLlmStatsModel({ id, name }),
+		...minimalModelAtlasModel({ id, name }),
 		modalities: {
 			input,
 		},
@@ -393,10 +393,10 @@ function benchmarkModel(
 	id: string,
 	name: string,
 	aleBenchScore: number,
-): LlmStatsModel {
+): ModelAtlasModel {
 	return {
-		...minimalLlmStatsModel({ id, name }),
-		evaluations: { ale_bench: aleBenchScore },
+		...minimalModelAtlasModel({ id, name }),
+		benchmarks: { ale_bench: aleBenchScore },
 	};
 }
 
@@ -404,10 +404,10 @@ function agentArenaModel(
 	id: string,
 	name: string,
 	agentArenaReward: number,
-): LlmStatsModel {
+): ModelAtlasModel {
 	return {
-		...minimalLlmStatsModel({ id, name }),
-		evaluations: { agent_arena: agentArenaReward },
+		...minimalModelAtlasModel({ id, name }),
+		benchmarks: { agent_arena: agentArenaReward },
 	};
 }
 

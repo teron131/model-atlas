@@ -4,11 +4,11 @@ import type { FocusEvent, MouseEvent } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import type {
-	LlmStatsColumnTooltip,
-	LlmStatsColumnTooltipNestedSection,
-	LlmStatsColumnTooltipRow,
-	LlmStatsColumnTooltipSectionItem,
-	LlmStatsColumnTooltipSectionKind,
+	ModelAtlasColumnTooltip,
+	ModelAtlasColumnTooltipNestedSection,
+	ModelAtlasColumnTooltipRow,
+	ModelAtlasColumnTooltipSectionItem,
+	ModelAtlasColumnTooltipSectionKind,
 } from "../../../src/model-atlas/config/tooltips";
 import type { SortKey } from "../table/models";
 import {
@@ -43,7 +43,7 @@ export function ColumnTooltip({
 	onMouseLeave,
 	top,
 }: {
-	content: LlmStatsColumnTooltip;
+	content: ModelAtlasColumnTooltip;
 	phase?: TooltipState["phase"];
 	left: number;
 	onMouseEnter?: () => void;
@@ -145,7 +145,7 @@ export function tooltipPositionFromElement(element: HTMLElement) {
 function TooltipSectionRows({
 	items,
 }: {
-	items: readonly LlmStatsColumnTooltipSectionItem[];
+	items: readonly ModelAtlasColumnTooltipSectionItem[];
 }) {
 	return items.map((item) =>
 		isTooltipRow(item) ? (
@@ -163,7 +163,7 @@ function TooltipSectionRows({
 function TooltipNestedSection({
 	section,
 }: {
-	section: LlmStatsColumnTooltipNestedSection;
+	section: ModelAtlasColumnTooltipNestedSection;
 }) {
 	const className = `column-tooltip-nested-section${section.kind == null ? " weighted-breakdown" : ""}`;
 	return (
@@ -180,8 +180,8 @@ function TooltipSectionBody({
 	kind,
 	rows,
 }: {
-	kind?: LlmStatsColumnTooltipSectionKind;
-	rows: readonly LlmStatsColumnTooltipSectionItem[];
+	kind?: ModelAtlasColumnTooltipSectionKind;
+	rows: readonly ModelAtlasColumnTooltipSectionItem[];
 }) {
 	switch (kind) {
 		case "workflow_simulation":
@@ -198,7 +198,7 @@ function TooltipSectionBody({
 function PriceProfileRows({
 	rows,
 }: {
-	rows: readonly LlmStatsColumnTooltipRow[];
+	rows: readonly ModelAtlasColumnTooltipRow[];
 }) {
 	return (
 		<div className="column-tooltip-price-profile-table">
@@ -225,7 +225,7 @@ function PriceProfileRows({
 function PriceShareRows({
 	rows,
 }: {
-	rows: readonly LlmStatsColumnTooltipRow[];
+	rows: readonly ModelAtlasColumnTooltipRow[];
 }) {
 	return (
 		<div className="column-tooltip-price-share-table">
@@ -252,7 +252,7 @@ function PriceShareRows({
 function WorkflowSimulationRows({
 	rows,
 }: {
-	rows: readonly LlmStatsColumnTooltipRow[];
+	rows: readonly ModelAtlasColumnTooltipRow[];
 }) {
 	return (
 		<div className="column-tooltip-workflow-table">
@@ -303,14 +303,14 @@ function TooltipSectionTitle({
 }
 
 function isTooltipRow(
-	item: LlmStatsColumnTooltipSectionItem,
-): item is LlmStatsColumnTooltipRow {
+	item: ModelAtlasColumnTooltipSectionItem,
+): item is ModelAtlasColumnTooltipRow {
 	return Array.isArray(item);
 }
 
 function tooltipRows(
-	items: readonly LlmStatsColumnTooltipSectionItem[],
-): LlmStatsColumnTooltipRow[] {
+	items: readonly ModelAtlasColumnTooltipSectionItem[],
+): ModelAtlasColumnTooltipRow[] {
 	return items.filter(isTooltipRow);
 }
 
@@ -318,8 +318,8 @@ function hasWorkflowSimulation({
 	kind,
 	rows,
 }: {
-	kind?: LlmStatsColumnTooltipSectionKind;
-	rows: readonly LlmStatsColumnTooltipSectionItem[];
+	kind?: ModelAtlasColumnTooltipSectionKind;
+	rows: readonly ModelAtlasColumnTooltipSectionItem[];
 }) {
 	return (
 		kind === "workflow_simulation" ||

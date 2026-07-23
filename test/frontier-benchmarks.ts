@@ -15,9 +15,9 @@ import {
 } from "../app/dashboard/graphs/frontier-benchmarks";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModel,
+	ModelAtlasModel,
 } from "../src/model-atlas/stats/types";
-import { minimalLlmStatsModel } from "./llm-stats-fixtures";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const portfolio = {
 	deep_swe: {
@@ -168,8 +168,8 @@ const totalPortfolio = {
 	},
 } satisfies BenchmarkPortfolio;
 const totalModel = {
-	...minimalLlmStatsModel({ id: "provider/total", name: "Total" }),
-	evaluations: {
+	...minimalModelAtlasModel({ id: "provider/total", name: "Total" }),
+	benchmarks: {
 		agents_last_exam: 0.7,
 	},
 	task_metrics: {
@@ -186,7 +186,7 @@ const totalModel = {
 		speed_score: 60,
 		value_score: 40,
 	},
-} satisfies LlmStatsModel;
+} satisfies ModelAtlasModel;
 const totalRow = frontierBenchmarkRows([totalModel], totalPortfolio)[0];
 assert.ok(totalRow);
 assert.deepEqual(
@@ -242,10 +242,10 @@ function frontierModel({
 	valueScore: number;
 	speedScore: number;
 	intelligenceScore: number;
-}): LlmStatsModel {
+}): ModelAtlasModel {
 	return {
-		...minimalLlmStatsModel({ id, name }),
-		evaluations: {
+		...minimalModelAtlasModel({ id, name }),
+		benchmarks: {
 			deep_swe: score,
 			gpqa: 0.9,
 		},

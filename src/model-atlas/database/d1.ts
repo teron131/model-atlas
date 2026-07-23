@@ -1,6 +1,6 @@
 /** Cloudflare D1 adapter keeps deployed reads and schema checks aligned with the SQLite snapshot contract. */
 
-import type { LlmStatsPayload } from "../stats/types";
+import type { ModelAtlasPayload } from "../stats/types";
 import { loadSchemaSql } from "./schema";
 import {
 	catalogTableMatchesSchema,
@@ -178,7 +178,7 @@ export async function ensureD1Schema(): Promise<SchemaReconciliationPlan> {
 }
 
 /** D1 reads the one snapshot atomically replaced by publication. */
-export async function readD1Payload(): Promise<LlmStatsPayload | null> {
+export async function readD1Payload(): Promise<ModelAtlasPayload | null> {
 	if (!d1Configured()) {
 		return null;
 	}
@@ -187,7 +187,7 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 		return null;
 	}
 	try {
-		return JSON.parse(row.payload_json) as LlmStatsPayload;
+		return JSON.parse(row.payload_json) as ModelAtlasPayload;
 	} catch (error) {
 		throw new Error("Cloudflare D1 contains an invalid materialized payload", {
 			cause: error,

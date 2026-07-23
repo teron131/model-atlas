@@ -4,7 +4,7 @@ import { median, pairs } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { scoreAxisScale } from "./axis-scale";
@@ -43,7 +43,7 @@ export function ParetoFrontierPanel({
 	models,
 	setHover,
 }: {
-	models: LlmStatsModel[];
+	models: ModelAtlasModel[];
 	setHover: HoverSetter;
 }) {
 	const { cursorProjection, cursorHandlers, setCursorProjection } =
@@ -78,7 +78,7 @@ export function ParetoFrontierPanel({
 	const margin = { top: 26, right: 34, bottom: 68, left: 62 };
 	const values = candidates.map((model) => Number(model.scores.value_score));
 	const scores = candidates.map((model) => model.scores.intelligence_score);
-	const frontierDescending: LlmStatsModel[] = [];
+	const frontierDescending: ModelAtlasModel[] = [];
 	let bestFromRight = -Infinity;
 	for (const model of [...candidates].sort(
 		(left, right) =>
@@ -133,7 +133,7 @@ export function ParetoFrontierPanel({
 	const yTicks = intelligenceAxis.ticks;
 	const xTicks = valueAxis.ticks;
 	const plottedCandidates = candidates;
-	const bubbleValue = (model: LlmStatsModel) =>
+	const bubbleValue = (model: ModelAtlasModel) =>
 		Number(model.scores.intelligence_score) *
 		Number(model.scores.agentic_score ?? 0);
 	const bubbleRadius = linearBubbleRadius(

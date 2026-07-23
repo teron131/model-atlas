@@ -3,7 +3,7 @@
 export { fetchSourceData } from "./load";
 export type {
 	ArtificialAnalysisModel,
-	LlmStatsSourceData,
-	LlmStatsSourceRows,
+	ModelAtlasSourceData,
+	ModelAtlasSourceRows,
 } from "./source-data";
 export { buildSourceData } from "./source-data";

@@ -1,6 +1,6 @@
 /** SQLite writer for source quarantines and per-source health summaries. */
 
-import type { LlmStatsSourceHealth, SourceSnapshots } from "../types";
+import type { ModelAtlasSourceHealth, SourceSnapshots } from "../types";
 import type { DatabaseWriter } from "./database";
 
 export function insertSourceQuarantines(
@@ -26,7 +26,7 @@ export function insertSourceQuarantines(
 
 export function insertSourceHealth(
 	db: DatabaseWriter,
-	sourceHealth: LlmStatsSourceHealth,
+	sourceHealth: ModelAtlasSourceHealth,
 ): void {
 	const statement = db.prepare(`
 		INSERT INTO source_health (

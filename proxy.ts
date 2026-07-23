@@ -2,9 +2,9 @@
 
 import { type NextRequest, NextResponse } from "next/server";
 
-import type { LlmStatsJsonView } from "./src/model-atlas/stats/payload/public-json";
+import type { ModelAtlasJsonView } from "./src/model-atlas/stats/payload/public-json";
 
-type RoutedJsonView = Exclude<LlmStatsJsonView, "full">;
+type RoutedJsonView = Exclude<ModelAtlasJsonView, "full">;
 
 const jsonViewByPath = new Map<string, RoutedJsonView>([
 	["/", "score"],
@@ -29,7 +29,7 @@ export function proxy(request: NextRequest) {
 	}
 
 	const url = request.nextUrl.clone();
-	setLlmStatsApiUrl(url, view);
+	setModelAtlasApiUrl(url, view);
 	const headers = new Headers(request.headers);
 	headers.set("x-model-atlas-view", view);
 	return NextResponse.rewrite(url, {
@@ -43,7 +43,7 @@ export function jsonViewForPath(pathname: string): RoutedJsonView | null {
 	return jsonViewByPath.get(pathname) ?? null;
 }
 
-export function setLlmStatsApiUrl(
+export function setModelAtlasApiUrl(
 	url: Pick<URL, "pathname" | "search" | "searchParams">,
 	view: RoutedJsonView,
 ): void {

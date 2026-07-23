@@ -4,7 +4,7 @@
  * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the leaderboard omits.
  */
 
-import { ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS } from "../../benchmarks/registry";
+import { ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS } from "../../benchmarks/registry";
 import {
 	asRecord,
 	fetchWithTimeout,
@@ -62,7 +62,7 @@ export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
 	"median_end_to_end_response_time",
 	"intelligence",
 	"intelligence_index_cost",
-	"evaluations",
+	"benchmarks",
 ] as const;
 
 function absoluteLogoUrl(value: unknown): string | null {
@@ -112,24 +112,24 @@ function normalizeMetricKey(key: string): string {
 	return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
-function pickEvaluations(row: JsonObject): JsonObject {
-	const evaluations: JsonObject = {};
+function pickBenchmarks(row: JsonObject): JsonObject {
+	const benchmarks: JsonObject = {};
 	for (const [key, value] of Object.entries(row)) {
 		const benchmarkKey = benchmarkKeyBySourceKey(key);
 		if (benchmarkKey == null) {
 			continue;
 		}
 		if (typeof value === "number" || typeof value === "boolean") {
-			evaluations[benchmarkKey] = value;
+			benchmarks[benchmarkKey] = value;
 		}
 	}
-	return evaluations;
+	return benchmarks;
 }
 
 function benchmarkKeyBySourceKey(key: string): string | null {
 	return (
-		ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS[key] ??
-		ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS[normalizeMetricKey(key)] ??
+		ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS[key] ??
+		ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS[normalizeMetricKey(key)] ??
 		null
 	);
 }
@@ -578,8 +578,8 @@ function getSelectedColumnValue(
 					.median_end_to_end_response_time ??
 				null
 			);
-		case "evaluations":
-			return pickEvaluations(row);
+		case "benchmarks":
+			return pickBenchmarks(row);
 		case "intelligence":
 			return pickIntelligence(row);
 		case "intelligence_index_cost":

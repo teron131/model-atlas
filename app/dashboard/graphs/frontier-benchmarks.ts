@@ -1,12 +1,12 @@
 /** Frontier Benchmarks chart data and axis helpers. */
 
 import { median } from "d3-array";
-import { BENCHMARK_RESOURCES } from "../../../src/model-atlas/benchmarks/catalog";
+import { BENCHMARK_RESOURCE_POLICIES } from "../../../src/model-atlas/benchmarks/catalog";
 import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type {
 	BenchmarkPortfolio,
 	BenchmarkResourcePolicy,
-	LlmStatsModel,
+	ModelAtlasModel,
 } from "../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../shared/constants";
 import { modelVariantKey } from "../shared/model-display";
@@ -42,7 +42,7 @@ export type FrontierBenchmarkRow = {
 	benchmarkLabel: string;
 	resourcePolicy: BenchmarkResourcePolicy | null;
 	benchmarkCount: number;
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	score: number;
 	cost: number | null;
 	seconds: number | null;
@@ -145,7 +145,7 @@ const BENCHMARK_SCORE_AXIS_OPTIONS = {
 };
 
 export function frontierBenchmarkRows(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	portfolio: BenchmarkPortfolio,
 ): FrontierBenchmarkRow[] {
 	const frontierKeys = Object.entries(portfolio)
@@ -153,14 +153,14 @@ export function frontierBenchmarkRows(
 		.map(([key]) => key);
 	return models
 		.flatMap((model): FrontierBenchmarkRow[] => {
-			const evaluations = model.evaluations ?? {};
+			const benchmarks = model.benchmarks ?? {};
 			const taskMetrics = model.task_metrics ?? {};
 			return frontierKeys.flatMap((benchmarkKey) => {
-				const score = toPercent(evaluations[benchmarkKey]);
+				const score = toPercent(benchmarks[benchmarkKey]);
 				const resourcePolicy =
 					portfolio[benchmarkKey]?.resourcePolicy ??
-					BENCHMARK_RESOURCES[
-						benchmarkKey as keyof typeof BENCHMARK_RESOURCES
+					BENCHMARK_RESOURCE_POLICIES[
+						benchmarkKey as keyof typeof BENCHMARK_RESOURCE_POLICIES
 					] ??
 					null;
 				const task = resourcePolicy == null ? null : taskMetrics[benchmarkKey];

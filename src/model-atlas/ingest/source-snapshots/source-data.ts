@@ -6,18 +6,18 @@ import {
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
 import { preferredDeepSWELeaderboardRows } from "../../benchmarks/scrapers/deep-swe";
-import type { LlmStatsSourceData } from "../assembly";
-import { buildSourceData, type LlmStatsSourceRows } from "../assembly";
+import type { ModelAtlasSourceData } from "../assembly";
+import { buildSourceData, type ModelAtlasSourceRows } from "../assembly";
 import type { SourceSnapshots } from "../types";
 
-type SourceRowProjection<Key extends keyof LlmStatsSourceRows> = {
+type SourceRowProjection<Key extends keyof ModelAtlasSourceRows> = {
 	sourceRowsKey: Key;
-	rows: (snapshots: SourceSnapshots) => LlmStatsSourceRows[Key];
+	rows: (snapshots: SourceSnapshots) => ModelAtlasSourceRows[Key];
 };
 
-function sourceRowProjection<const Key extends keyof LlmStatsSourceRows>(
+function sourceRowProjection<const Key extends keyof ModelAtlasSourceRows>(
 	sourceRowsKey: Key,
-	rows: (snapshots: SourceSnapshots) => LlmStatsSourceRows[Key],
+	rows: (snapshots: SourceSnapshots) => ModelAtlasSourceRows[Key],
 ): SourceRowProjection<Key> {
 	return { sourceRowsKey, rows };
 }
@@ -97,19 +97,19 @@ type BenchmarkSourceRowsKey =
 
 function benchmarkSourceRowsFromSnapshots(
 	snapshots: SourceSnapshots,
-): Pick<LlmStatsSourceRows, BenchmarkSourceRowsKey> {
+): Pick<ModelAtlasSourceRows, BenchmarkSourceRowsKey> {
 	return Object.fromEntries(
 		Object.values(BENCHMARK_SOURCE_ROW_PROJECTIONS).map((projection) => [
 			projection.sourceRowsKey,
 			projection.rows(snapshots),
 		]),
-	) as Pick<LlmStatsSourceRows, BenchmarkSourceRowsKey>;
+	) as Pick<ModelAtlasSourceRows, BenchmarkSourceRowsKey>;
 }
 
 /** Restored source rows rebuild lookup maps without refetching external benchmark pages. */
 export function cachedSourceDataFromSnapshots(
 	snapshots: SourceSnapshots,
-): LlmStatsSourceData {
+): ModelAtlasSourceData {
 	type BenchmarkObservationRowsKey =
 		(typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
 	const benchmarkObservationRows = Object.fromEntries(
@@ -120,8 +120,8 @@ export function cachedSourceDataFromSnapshots(
 	) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
 	return buildSourceData({
 		artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
-		artificialAnalysisEvaluationResourceRows:
-			snapshots.artificialAnalysisEvaluationResourceRows,
+		artificialAnalysisBenchmarkResourceRows:
+			snapshots.artificialAnalysisBenchmarkResourceRows,
 		modelsDevModels: snapshots.modelsDevModels,
 		...benchmarkSourceRowsFromSnapshots(snapshots),
 		...benchmarkObservationRows,

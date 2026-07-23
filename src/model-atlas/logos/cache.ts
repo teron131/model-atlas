@@ -22,7 +22,7 @@ function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
 }
 
 function logoCachePath(source: string, cacheKey?: string | null): string {
-	const logoCacheDir = statsLogoCacheDir();
+	const logoCacheDir = modelLogoCacheDir();
 	const safeCacheKey = safeLogoCacheStem(cacheKey);
 	if (safeCacheKey) {
 		return resolve(logoCacheDir, `${safeCacheKey}.png`);
@@ -31,14 +31,14 @@ function logoCachePath(source: string, cacheKey?: string | null): string {
 	return resolve(logoCacheDir, `${sourceHash}.png`);
 }
 
-export function statsLogoCacheDir(): string {
+export function modelLogoCacheDir(): string {
 	if (process.env.MODEL_ATLAS_LOGO_CACHE_DIR) {
 		return resolve(process.env.MODEL_ATLAS_LOGO_CACHE_DIR);
 	}
 	if (process.env.VERCEL === "1") {
-		return resolve(tmpdir(), "model-atlas/stats-logos");
+		return resolve(tmpdir(), "model-atlas/model-logos");
 	}
-	return resolve(".cache/stats-logos");
+	return resolve(".cache/model-logos");
 }
 
 function pngDataUrl(imageBuffer: Buffer): string {
@@ -75,7 +75,7 @@ async function saveCachedLogoBuffer(
 	cachePath: string,
 	imageBuffer: Buffer,
 ): Promise<void> {
-	await mkdir(statsLogoCacheDir(), { recursive: true });
+	await mkdir(modelLogoCacheDir(), { recursive: true });
 	await writeFile(cachePath, imageBuffer);
 }
 
@@ -155,7 +155,7 @@ function uniqueLogoSources<TModel extends { logo: string }>(
 }
 
 /** Cache one remote logo source and return the cached data URL when possible. */
-async function cacheStatsLogo(
+async function cacheModelLogo(
 	source: string,
 	cacheKey?: string | null,
 ): Promise<string> {
@@ -179,7 +179,7 @@ async function cacheStatsLogo(
 }
 
 /** Cache remote logos for a model list while preserving the original model rows. */
-export async function cacheStatsLogos<
+export async function cacheModelLogos<
 	TModel extends {
 		logo: string;
 	},
@@ -192,7 +192,7 @@ export async function cacheStatsLogos<
 
 	await Promise.all(
 		uniqueSources.map(async ({ source, cacheKey }) => {
-			cachedLogoBySource.set(source, await cacheStatsLogo(source, cacheKey));
+			cachedLogoBySource.set(source, await cacheModelLogo(source, cacheKey));
 		}),
 	);
 

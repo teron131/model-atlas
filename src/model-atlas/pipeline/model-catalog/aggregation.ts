@@ -18,7 +18,7 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 const CATALOG_MERGED_OBJECT_FIELDS = ["cost", "limit", "modalities"] as const;
 const ALIAS_MERGED_OBJECT_FIELDS = [
 	...CATALOG_MERGED_OBJECT_FIELDS,
-	"evaluations",
+	"benchmarks",
 	"intelligence",
 	"intelligence_index_cost",
 	"scoring_sources",
@@ -44,8 +44,8 @@ function hasComponentScoreSignal(row: JsonObject): boolean {
 
 function hasBenchmarkSignal(row: JsonObject): boolean {
 	const intelligence = asRecord(row.intelligence);
-	const evaluations = asRecord(row.evaluations);
-	return [...Object.values(intelligence), ...Object.values(evaluations)].some(
+	const benchmarks = asRecord(row.benchmarks);
+	return [...Object.values(intelligence), ...Object.values(benchmarks)].some(
 		(value) => asFiniteNumber(value) != null,
 	);
 }

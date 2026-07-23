@@ -6,16 +6,16 @@ import type {
 	DeepSWELeaderboardRow,
 	DeepSWERawLeaderboardRow,
 } from "../src/model-atlas/benchmarks/scrapers/deep-swe";
-import type { LlmStatsSourceData } from "../src/model-atlas/ingest/assembly";
+import type { ModelAtlasSourceData } from "../src/model-atlas/ingest/assembly";
 import {
 	buildSourceData,
-	type LlmStatsSourceRows,
+	type ModelAtlasSourceRows,
 } from "../src/model-atlas/ingest/assembly";
 import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/source-data";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromSourceData } from "../src/model-atlas/pipeline/benchmark-rows";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
-import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 function modelsDevModel(
 	providerId: string,
@@ -78,7 +78,7 @@ function benchmarkObservationRow(
 	};
 }
 
-function summary(sourceData: LlmStatsSourceData) {
+function summary(sourceData: ModelAtlasSourceData) {
 	const defaultDeepSWE = sourceData.deepSWE.defaultEffortRows[0];
 	const indexedDeepSWE = sourceData.deepSWE.rowsByModelName.get("deep-model");
 	return {
@@ -133,9 +133,9 @@ const valsLegalResearchRow = benchmarkObservationRow(
 	"Vals Example Model",
 	0.62,
 );
-const sourceRows: LlmStatsSourceRows = {
+const sourceRows: ModelAtlasSourceRows = {
 	artificialAnalysisRows: [{ model_id: "google/example-model" }],
-	artificialAnalysisEvaluationResourceRows: [],
+	artificialAnalysisBenchmarkResourceRows: [],
 	modelsDevModels,
 	agentArenaRows: [],
 	agentsLastExamRows: [],
@@ -162,8 +162,8 @@ const sourceRows: LlmStatsSourceRows = {
 const liveSourceData = buildSourceData(sourceRows);
 const cachedSourceData = cachedSourceDataFromSnapshots({
 	artificialAnalysisSelectedRows: sourceRows.artificialAnalysisRows,
-	artificialAnalysisEvaluationResourceRows:
-		sourceRows.artificialAnalysisEvaluationResourceRows,
+	artificialAnalysisBenchmarkResourceRows:
+		sourceRows.artificialAnalysisBenchmarkResourceRows,
 	modelsDevModels,
 	agentArenaModelScoreRows: [],
 	agentsLastExamModelScores: [],

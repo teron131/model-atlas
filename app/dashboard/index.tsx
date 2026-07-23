@@ -13,8 +13,8 @@ import {
 	useTransition,
 } from "react";
 
-import type { LlmStatsColumnTooltips } from "../../src/model-atlas/config/tooltips";
-import type { LlmStatsPayload } from "../../src/model-atlas/stats/types";
+import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
+import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
@@ -44,7 +44,7 @@ import {
 } from "./table/models";
 import { tableColumnTooltip } from "./table/tooltips";
 
-const emptyColumnTooltips: LlmStatsColumnTooltips = {};
+const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 const TOOLTIP_FADE_OUT_MS = 1_000;
 const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
@@ -56,7 +56,7 @@ type DashboardTooltipState = Omit<TooltipState, "key"> & {
 export function Dashboard({
 	initialPayload,
 }: {
-	initialPayload: LlmStatsPayload | null;
+	initialPayload: ModelAtlasPayload | null;
 }) {
 	const dashboardRef = useRef<HTMLElement>(null);
 	const [showReasoningVariants, setShowReasoningVariants] =
@@ -173,7 +173,7 @@ function DashboardLeaderboard({
 	selectedProviders,
 	onSelectedProvidersChange,
 }: {
-	payload: LlmStatsPayload | null;
+	payload: ModelAtlasPayload | null;
 	errorMessage: string | null;
 	isLoading: boolean;
 	maxCost: CostFilter;

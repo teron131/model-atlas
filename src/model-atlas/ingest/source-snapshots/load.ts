@@ -12,7 +12,7 @@ import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import type { ScoringConfig } from "../../config/stage";
 import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
 import {
-	readArtificialAnalysisEvaluationResourceRawCache,
+	readArtificialAnalysisBenchmarkResourceRawCache,
 	readArtificialAnalysisRawCache,
 	readBenchmarkObservationRawCache,
 	readModelsDevRawCache,
@@ -27,7 +27,7 @@ import type {
 	SourceSnapshots,
 } from "../types";
 import {
-	artificialAnalysisEvaluationResourceSnapshot,
+	artificialAnalysisBenchmarkResourceSnapshot,
 	artificialAnalysisSnapshot,
 } from "./artificial-analysis";
 import { modelsDevSnapshot } from "./models-dev";
@@ -40,8 +40,8 @@ type SourceSnapshotCacheResult = {
 
 export type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
 	artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
-	artificialAnalysisEvaluationResources: ReturnType<
-		typeof readArtificialAnalysisEvaluationResourceRawCache
+	artificialAnalysisBenchmarkResources: ReturnType<
+		typeof readArtificialAnalysisBenchmarkResourceRawCache
 	>;
 	modelsDev: ReturnType<typeof readModelsDevRawCache>;
 	benchmarkObservations: Readonly<
@@ -62,8 +62,8 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
 	return {
 		...readBenchmarkSnapshotCaches(db),
 		artificialAnalysis: readArtificialAnalysisRawCache(db),
-		artificialAnalysisEvaluationResources:
-			readArtificialAnalysisEvaluationResourceRawCache(db),
+		artificialAnalysisBenchmarkResources:
+			readArtificialAnalysisBenchmarkResourceRawCache(db),
 		modelsDev: readModelsDevRawCache(db),
 		benchmarkObservations,
 	};
@@ -151,7 +151,7 @@ export async function refreshSourceSnapshots(
 	const previousMissingSince = missingSinceBySource(previousSourceRowStates);
 	const [
 		artificialAnalysis,
-		artificialAnalysisEvaluationResources,
+		artificialAnalysisBenchmarkResources,
 		modelsDev,
 		benchmarks,
 		benchmarkObservations,
@@ -164,11 +164,11 @@ export async function refreshSourceSnapshots(
 			previousMissingSince.artificial_analysis,
 			nowEpochSeconds,
 		),
-		artificialAnalysisEvaluationResourceSnapshot(
-			caches.artificialAnalysisEvaluationResources,
-			sourceCache.artificial_analysis_evaluation_resources,
+		artificialAnalysisBenchmarkResourceSnapshot(
+			caches.artificialAnalysisBenchmarkResources,
+			sourceCache.artificial_analysis_benchmark_resources,
 			options,
-			previousMissingSince.artificial_analysis_evaluation_resources,
+			previousMissingSince.artificial_analysis_benchmark_resources,
 			nowEpochSeconds,
 		),
 		modelsDevSnapshot(
@@ -208,7 +208,7 @@ export async function refreshSourceSnapshots(
 	const benchmarkRows = benchmarkSnapshotRows(benchmarks);
 	const sourceStatuses: SourceSnapshotStatus[] = [
 		artificialAnalysis.sourceStatus,
-		artificialAnalysisEvaluationResources.sourceStatus,
+		artificialAnalysisBenchmarkResources.sourceStatus,
 		modelsDev.sourceStatus,
 		...Object.values(benchmarks).map((snapshot) => snapshot.sourceStatus),
 		...benchmarkObservations.map(({ snapshot }) => snapshot.sourceStatus),
@@ -218,8 +218,8 @@ export async function refreshSourceSnapshots(
 		artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
 		artificialAnalysisSelectedRows:
 			artificialAnalysis.artificialAnalysisSelectedRows,
-		artificialAnalysisEvaluationResourceRows:
-			artificialAnalysisEvaluationResources.artificialAnalysisEvaluationResourceRows,
+		artificialAnalysisBenchmarkResourceRows:
+			artificialAnalysisBenchmarkResources.artificialAnalysisBenchmarkResourceRows,
 		modelsDevPayload: modelsDev.modelsDevPayload,
 		modelsDevModels,
 		modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,

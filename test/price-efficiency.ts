@@ -8,9 +8,9 @@ import {
 } from "../app/dashboard/graphs/price-efficiency";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModel,
+	ModelAtlasModel,
 } from "../src/model-atlas/stats/types";
-import { minimalLlmStatsModel } from "./llm-stats-fixtures";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const portfolio = {
 	deep_swe: {
@@ -185,16 +185,16 @@ function priceModel({
 	intelligenceScore: number;
 	agenticScore: number;
 	valueScore: number | null;
-}): LlmStatsModel {
+}): ModelAtlasModel {
 	return {
-		...minimalLlmStatsModel({ id, name }),
+		...minimalModelAtlasModel({ id, name }),
 		cost:
 			price == null
 				? null
 				: {
 						blended_price: price,
 					},
-		evaluations: {
+		benchmarks: {
 			deep_swe: 0.5,
 		},
 		task_metrics: {

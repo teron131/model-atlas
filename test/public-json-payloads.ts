@@ -11,14 +11,14 @@ import {
 	publicJsonPayload,
 	scoreJsonPayload,
 } from "../src/model-atlas/stats/payload/public-json";
-import type { LlmStatsScoredCandidate } from "../src/model-atlas/stats/types";
+import type { ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
 import {
-	minimalLlmStatsModel,
-	minimalLlmStatsPayload,
-} from "./llm-stats-fixtures";
+	minimalModelAtlasModel,
+	minimalModelAtlasPayload,
+} from "./model-atlas-fixtures";
 
 const internalCandidate = {
-	...minimalLlmStatsModel({
+	...minimalModelAtlasModel({
 		id: "provider/internal-candidate",
 		name: "Internal Candidate",
 	}),
@@ -37,7 +37,7 @@ const internalCandidate = {
 		speed_score: 60,
 		value_score: 50,
 	},
-} satisfies LlmStatsScoredCandidate & { internal_probe: string };
+} satisfies ModelAtlasScoredCandidate & { internal_probe: string };
 const [projectedPublicModel] = selectPublicModels(
 	[internalCandidate],
 	null,
@@ -47,7 +47,7 @@ const [projectedPublicModel] = selectPublicModels(
 assert.deepEqual(
 	Object.keys(projectedPublicModel ?? {}).sort(),
 	Object.keys(
-		minimalLlmStatsModel({
+		minimalModelAtlasModel({
 			id: "provider/internal-candidate",
 			name: "Internal Candidate",
 		}),
@@ -60,7 +60,7 @@ assert.equal(
 	"public selection should not expose scoring provenance",
 );
 
-const sparseResourceCandidate: LlmStatsScoredCandidate = {
+const sparseResourceCandidate: ModelAtlasScoredCandidate = {
 	...internalCandidate,
 	id: "provider/sparse-resource-candidate",
 	name: "Sparse Resource Candidate",
@@ -91,7 +91,7 @@ assert.deepEqual(
 	"public selection should preserve models without optional resource scores",
 );
 
-const lowScoreCandidate: LlmStatsScoredCandidate = {
+const lowScoreCandidate: ModelAtlasScoredCandidate = {
 	...internalCandidate,
 	id: "provider/low-score",
 	name: "Low Score",
@@ -135,7 +135,7 @@ assert.deepEqual(
 	["max", "high"],
 	"the dashboard payload should retain separately scored reasoning-effort variants",
 );
-const reasoningVariantPayload = minimalLlmStatsPayload({
+const reasoningVariantPayload = minimalModelAtlasPayload({
 	fetchedAt: 123,
 	models: reasoningEffortModels,
 });
@@ -164,15 +164,15 @@ assert.deepEqual(
 );
 
 const valsBenchmarkPayload = benchmarksJsonPayload(
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 124,
 		models: [
 			{
-				...minimalLlmStatsModel({
+				...minimalModelAtlasModel({
 					id: "provider/vals-model",
 					name: "Vals Model",
 				}),
-				evaluations: { legal_research: 0.62 },
+				benchmarks: { legal_research: 0.62 },
 			},
 		],
 	}),
@@ -180,14 +180,14 @@ const valsBenchmarkPayload = benchmarksJsonPayload(
 assert.equal(
 	valsBenchmarkPayload.benchmarks[0]?.benchmarks.legal_research,
 	0.62,
-	"the public benchmarks view should expose admitted Vals evaluation fields",
+	"the public benchmarks view should expose admitted Vals benchmark fields",
 );
 
-const fullPayload = minimalLlmStatsPayload({
+const fullPayload = minimalModelAtlasPayload({
 	fetchedAt: 123,
 	models: [
 		{
-			...minimalLlmStatsModel({
+			...minimalModelAtlasModel({
 				id: "provider/model",
 				name: "Model",
 			}),
@@ -219,7 +219,7 @@ const fullPayload = minimalLlmStatsPayload({
 					output_tokens: 5,
 				},
 			},
-			evaluations: {
+			benchmarks: {
 				gpqa: 0.9,
 				deep_swe: 0.6,
 			},
@@ -312,7 +312,7 @@ assert.equal(coreModel?.rank, 1);
 assert.equal(coreModel?.id, "provider/model");
 assert.equal(coreModel?.input_cost_per_million_tokens, 1);
 assert.equal(coreModel?.blended_price, 1.8);
-assert.equal("evaluations" in (coreModel ?? {}), false);
+assert.equal("benchmarks" in (coreModel ?? {}), false);
 assert.equal("task_metrics" in (coreModel ?? {}), false);
 assert.equal("logo" in (coreModel ?? {}), false);
 assert.equal("attachment" in (coreModel ?? {}), false);
@@ -341,7 +341,7 @@ assert.deepEqual(benchmarksModel, {
 	},
 });
 
-const tiedPayload = minimalLlmStatsPayload({
+const tiedPayload = minimalModelAtlasPayload({
 	fetchedAt: 123,
 	models: [
 		rankedModel("provider/first", "First", 100),
@@ -367,7 +367,7 @@ assert.deepEqual(
 );
 
 function rankedModel(id: string, name: string, intelligenceScore: number) {
-	const model = minimalLlmStatsModel({ id, name });
+	const model = minimalModelAtlasModel({ id, name });
 	return {
 		...model,
 		scores: {

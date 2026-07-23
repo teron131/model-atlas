@@ -10,9 +10,9 @@ import {
 } from "../../identity/openrouter";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
-	LlmStatsModel,
-	LlmStatsNullableComponentScores,
-	LlmStatsScoredCandidate,
+	ModelAtlasModel,
+	ModelAtlasNullableComponentScores,
+	ModelAtlasScoredCandidate,
 } from "../model-types";
 
 const STABLE_TOP_LEVEL_KEYS = new Set<string>([
@@ -31,7 +31,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"intelligence",
 	"intelligence_index_cost",
 	"task_metrics",
-	"evaluations",
+	"benchmarks",
 	"component_scores",
 	"scores",
 ]);
@@ -42,9 +42,9 @@ const REQUIRED_QUALITY_SCORE_KEYS = [
 
 /** Select the highest-intelligence variant as the representative row for each model. */
 export function strongestModelVariants(
-	models: readonly LlmStatsModel[],
-): LlmStatsModel[] {
-	const strongestByModel = new Map<string, LlmStatsModel>();
+	models: readonly ModelAtlasModel[],
+): ModelAtlasModel[] {
+	const strongestByModel = new Map<string, ModelAtlasModel>();
 	for (const model of models) {
 		const key = canonicalModelKey(model);
 		const existing = strongestByModel.get(key);
@@ -58,7 +58,7 @@ export function strongestModelVariants(
 	return [...strongestByModel.values()];
 }
 
-function sortByIntelligenceScore(models: LlmStatsModel[]): LlmStatsModel[] {
+function sortByIntelligenceScore(models: ModelAtlasModel[]): ModelAtlasModel[] {
 	return [...models].sort((left, right) => {
 		const leftIntelligence = left.scores.intelligence_score;
 		const rightIntelligence = right.scores.intelligence_score;
@@ -73,9 +73,9 @@ function sortByIntelligenceScore(models: LlmStatsModel[]): LlmStatsModel[] {
 
 /** Public rows need finite core quality scores; evidence sufficiency is enforced separately. */
 export function hasRequiredQualityScores(
-	model: LlmStatsScoredCandidate,
-): model is LlmStatsScoredCandidate & LlmStatsModel {
-	const componentScores: LlmStatsNullableComponentScores | null =
+	model: ModelAtlasScoredCandidate,
+): model is ModelAtlasScoredCandidate & ModelAtlasModel {
+	const componentScores: ModelAtlasNullableComponentScores | null =
 		model.component_scores;
 	if (componentScores == null) {
 		return false;
@@ -97,8 +97,8 @@ export function hasRequiredQualityScores(
 
 /** Project scored candidates onto the public contract before pruning can preserve internal fields. */
 function toPublicModel(
-	model: LlmStatsScoredCandidate & LlmStatsModel,
-): LlmStatsModel {
+	model: ModelAtlasScoredCandidate & ModelAtlasModel,
+): ModelAtlasModel {
 	return {
 		id: model.id,
 		name: model.name,
@@ -115,7 +115,7 @@ function toPublicModel(
 		intelligence: model.intelligence,
 		intelligence_index_cost: model.intelligence_index_cost,
 		task_metrics: model.task_metrics,
-		evaluations: model.evaluations,
+		benchmarks: model.benchmarks,
 		component_scores: {
 			intelligence_score: model.component_scores.intelligence_score,
 			agentic_score: model.component_scores.agentic_score,
@@ -132,8 +132,8 @@ function toPublicModel(
 
 /** Validate and project one scored candidate onto the exact public model contract. */
 export function publicModelFromCandidate(
-	model: LlmStatsScoredCandidate,
-): LlmStatsModel | null {
+	model: ModelAtlasScoredCandidate,
+): ModelAtlasModel | null {
 	return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
 }
 
@@ -157,9 +157,9 @@ function isWithinRecentLookback(
 }
 
 function selectPruneSampleModels(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	finalConfig: FinalStageConfig,
-): LlmStatsModel[] {
+): ModelAtlasModel[] {
 	const recentModels = models.filter((model) =>
 		isWithinRecentLookback(
 			model.release_date,
@@ -171,10 +171,10 @@ function selectPruneSampleModels(
 
 /** Null-heavy optional fields are pruned from recent public rows while stable contract fields remain fixed. */
 function pruneSparseFields(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
-): LlmStatsModel[] {
+): ModelAtlasModel[] {
 	if (models.length === 0) {
 		return models;
 	}
@@ -218,7 +218,7 @@ function pruneSparseFields(
 
 	const nestedKeysToPruneByParent = new Map<string, Set<string>>();
 	for (const [parentKey, nestedKeys] of nestedKeysByParent) {
-		if (parentKey !== "evaluations") {
+		if (parentKey !== "benchmarks") {
 			continue;
 		}
 		const keysToPrune = new Set<string>();
@@ -259,22 +259,22 @@ function pruneSparseFields(
 			}
 			nextModel[parentKey] = nextParentValue;
 		}
-		return nextModel as LlmStatsModel;
+		return nextModel as ModelAtlasModel;
 	});
 }
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
-function collapseFreeRoutesByVariant(models: LlmStatsModel[]): LlmStatsModel[] {
+function collapseFreeRoutesByVariant(models: ModelAtlasModel[]): ModelAtlasModel[] {
 	const modelByPublicId = new Map<
 		string,
-		{ model: LlmStatsModel; isFreeRoute: boolean }
+		{ model: ModelAtlasModel; isFreeRoute: boolean }
 	>();
-	const passthrough: LlmStatsModel[] = [];
+	const passthrough: ModelAtlasModel[] = [];
 
 	for (const model of models) {
 		const publicId = publicOpenRouterModelId(model.id);
 		const publicName = publicOpenRouterModelName(model.name, publicId);
-		const normalizedModel: LlmStatsModel = {
+		const normalizedModel: ModelAtlasModel = {
 			...model,
 			id: publicId,
 			name: publicName,
@@ -302,11 +302,11 @@ function collapseFreeRoutesByVariant(models: LlmStatsModel[]): LlmStatsModel[] {
 }
 
 export function selectPublicModels(
-	scoredCandidates: LlmStatsScoredCandidate[],
+	scoredCandidates: ModelAtlasScoredCandidate[],
 	id: string | null | undefined,
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
-): LlmStatsModel[] {
+): ModelAtlasModel[] {
 	const signalModels = scoredCandidates.flatMap((model) => {
 		const publicModel = publicModelFromCandidate(model);
 		return publicModel == null ? [] : [publicModel];

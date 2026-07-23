@@ -18,9 +18,9 @@ import {
 } from "../../pipeline/scores/resource-metrics";
 import { asRecord } from "../../runtime";
 import type {
-	LlmStatsBenchmarkUpdateHealth,
-	LlmStatsMetadata,
-	LlmStatsSourceHealth,
+	ModelAtlasBenchmarkUpdateHealth,
+	ModelAtlasMetadata,
+	ModelAtlasSourceHealth,
 } from "../types";
 import { buildBenchmarkUpdateHealth } from "./health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
@@ -29,14 +29,14 @@ type BenchmarkHealthModels = Parameters<typeof buildBenchmarkUpdateHealth>[0];
 
 type MetadataAvailabilitySource = "models" | "artificial_analysis";
 
-type CurrentLlmStatsMetadataOptions = {
+type CurrentModelAtlasMetadataOptions = {
 	models: readonly BenchmarkMetricModel[];
 	resourceModels?: readonly ResourceMetricModel[];
 	healthModels?: BenchmarkHealthModels;
 	scoringConfig?: ScoringConfig;
-	artificialAnalysis?: LlmStatsMetadata["artificial_analysis"];
-	sourceHealth?: LlmStatsSourceHealth;
-	benchmarkUpdateHealth?: LlmStatsBenchmarkUpdateHealth;
+	artificialAnalysis?: ModelAtlasMetadata["artificial_analysis"];
+	sourceHealth?: ModelAtlasSourceHealth;
+	benchmarkUpdateHealth?: ModelAtlasBenchmarkUpdateHealth;
 	sourceRowsByKey?: BenchmarkRowsByKey;
 	matcherConfig?: MatcherConfig;
 	availabilitySource?: MetadataAvailabilitySource;
@@ -48,7 +48,7 @@ function sortedUniqueKeys(values: Iterable<string>): string[] {
 
 function keysFromModelField(
 	models: readonly BenchmarkMetricModel[],
-	field: "evaluations" | "intelligence",
+	field: "benchmarks" | "intelligence",
 ): string[] {
 	return sortedUniqueKeys(
 		models.flatMap((model) => Object.keys(asRecord(model[field]))),
@@ -57,15 +57,14 @@ function keysFromModelField(
 
 function buildArtificialAnalysisMetadata(
 	models: readonly BenchmarkMetricModel[],
-): LlmStatsMetadata["artificial_analysis"] {
-	const availableEvaluationKeys = keysFromModelField(models, "evaluations");
+): ModelAtlasMetadata["artificial_analysis"] {
+	const availableBenchmarkKeys = keysFromModelField(models, "benchmarks");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
 	return {
 		available_benchmark_keys: sortedUniqueKeys([
-			...availableEvaluationKeys,
+			...availableBenchmarkKeys,
 			...availableIntelligenceKeys,
 		]),
-		available_evaluation_keys: availableEvaluationKeys,
 		available_intelligence_keys: availableIntelligenceKeys,
 	};
 }
@@ -104,7 +103,7 @@ function activeResourceBenchmarkKeys(
 ): string[] {
 	const benchmarkKeys = sortedUniqueKeys(
 		models.flatMap((model) => [
-			...Object.keys(asRecord(model.evaluations)),
+			...Object.keys(asRecord(model.benchmarks)),
 			...Object.keys(asRecord(model.intelligence)),
 		]),
 	);
@@ -136,20 +135,14 @@ function activeResourceComponents(
 	};
 }
 
-/** Older stored payloads may lack the combined benchmark-key field, so split fields remain the read fallback. */
 function resolveAvailableBenchmarkKeys(
-	artificialAnalysis: LlmStatsMetadata["artificial_analysis"],
+	artificialAnalysis: ModelAtlasMetadata["artificial_analysis"],
 ): string[] {
-	return artificialAnalysis.available_benchmark_keys.length > 0
-		? artificialAnalysis.available_benchmark_keys
-		: sortedUniqueKeys([
-				...artificialAnalysis.available_evaluation_keys,
-				...artificialAnalysis.available_intelligence_keys,
-			]);
+	return artificialAnalysis.available_benchmark_keys;
 }
 
 /** Preserve caller-owned source metadata while refreshing scoring fields from the active stage configuration. */
-export function buildCurrentLlmStatsMetadata({
+export function buildCurrentModelAtlasMetadata({
 	models,
 	resourceModels = models,
 	healthModels = models as BenchmarkHealthModels,
@@ -160,7 +153,7 @@ export function buildCurrentLlmStatsMetadata({
 	sourceRowsByKey,
 	matcherConfig = STAGE_CONFIG.matcher,
 	availabilitySource = "models",
-}: CurrentLlmStatsMetadataOptions): LlmStatsMetadata {
+}: CurrentModelAtlasMetadataOptions): ModelAtlasMetadata {
 	const modelArtificialAnalysis = buildArtificialAnalysisMetadata(models);
 	const outputArtificialAnalysis =
 		artificialAnalysis ?? modelArtificialAnalysis;

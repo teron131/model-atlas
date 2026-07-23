@@ -5,7 +5,7 @@ import {
 	BENCHMARK_LABELS,
 	BENCHMARK_TOOLTIPS,
 } from "../../../src/model-atlas/benchmarks/catalog";
-import type { LlmStatsColumnTooltip } from "../../../src/model-atlas/config/tooltips";
+import type { ModelAtlasColumnTooltip } from "../../../src/model-atlas/config/tooltips";
 
 export const liveStatsPath = "/api/llm-stats?view=dashboard";
 
@@ -55,5 +55,5 @@ export function compareBenchmarkDisplayKeys(
 }
 
 export const benchmarkTooltips: Readonly<
-	Record<string, LlmStatsColumnTooltip>
+	Record<string, ModelAtlasColumnTooltip>
 > = BENCHMARK_TOOLTIPS;

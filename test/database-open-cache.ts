@@ -72,7 +72,7 @@ assert(
 assert.equal(
 	processedModelShape?.has("agent_arena"),
 	false,
-	"Benchmark values should live in normalized evaluation rows",
+	"Benchmark values should live in normalized benchmark rows",
 );
 assert.equal(
 	processedModelShape?.has("task_metrics_json"),
@@ -81,10 +81,10 @@ assert.equal(
 );
 assert.deepEqual(
 	Array.from(
-		schemaTableShapes(schemaSql).get("model_evaluations")?.keys() ?? [],
+		schemaTableShapes(schemaSql).get("model_benchmarks")?.keys() ?? [],
 	),
 	["model_row_index", "benchmark_key", "value"],
-	"Evaluation storage should remain a narrow keyed table",
+	"Benchmark storage should remain a narrow keyed table",
 );
 assert.deepEqual(
 	Array.from(
@@ -332,8 +332,8 @@ try {
 			() =>
 				schemaReconciliationPlan(
 					schemaSql.replace(
-						"PRIMARY KEY (row_index)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
-						"PRIMARY KEY (row_index, model_id)\n);\n\nCREATE TABLE IF NOT EXISTS model_evaluations",
+						"PRIMARY KEY (row_index)\n);\n\nCREATE TABLE IF NOT EXISTS model_benchmarks",
+						"PRIMARY KEY (row_index, model_id)\n);\n\nCREATE TABLE IF NOT EXISTS model_benchmarks",
 					),
 					reconciledCatalog,
 					reconciledManifest,

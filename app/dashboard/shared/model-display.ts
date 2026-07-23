@@ -2,20 +2,20 @@
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { strongestModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 
-const searchTextByModel = new WeakMap<LlmStatsModel, string>();
+const searchTextByModel = new WeakMap<ModelAtlasModel, string>();
 
-export function modelCount(models: LlmStatsModel[]): number {
+export function modelCount(models: ModelAtlasModel[]): number {
 	return new Set(models.map(canonicalModelKey)).size;
 }
 
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
 export function modelsForVariantDisplay(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	showVariants: boolean,
-): LlmStatsModel[] {
-	const variantsByIdentity = new Map<string, LlmStatsModel>();
+): ModelAtlasModel[] {
+	const variantsByIdentity = new Map<string, ModelAtlasModel>();
 	for (const model of models) {
 		const key = modelVariantKey(model);
 		const existing = variantsByIdentity.get(key);
@@ -36,7 +36,7 @@ export function modelsForVariantDisplay(
 	}));
 }
 
-export function modelDisplayName(model: LlmStatsModel): string {
+export function modelDisplayName(model: ModelAtlasModel): string {
 	const baseName = model.name ?? model.id ?? "Unknown model";
 	return model.reasoning_effort == null
 		? baseName
@@ -46,7 +46,7 @@ export function modelDisplayName(model: LlmStatsModel): string {
 /** Filter model-backed rows while normalizing the query and model text only once per stable input. */
 export function filterByModelQuery<T>(
 	items: readonly T[],
-	getModel: (item: T) => LlmStatsModel,
+	getModel: (item: T) => ModelAtlasModel,
 	filterQuery: string,
 ): T[] {
 	const terms = filterQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -76,6 +76,6 @@ export function toggleProviderFilter(
 		: [...selectedProviders, provider];
 }
 
-export function modelVariantKey(model: LlmStatsModel): string {
+export function modelVariantKey(model: ModelAtlasModel): string {
 	return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
 }

@@ -1,9 +1,9 @@
 /** Payload smoke testing for Model Atlas. */
 
-import { getLiveLlmStats } from "../src/model-atlas/index";
+import { getLiveModelAtlasPayload } from "../src/model-atlas/index";
 
 const started = Date.now();
-const payload = await getLiveLlmStats();
+const payload = await getLiveModelAtlasPayload();
 
 console.log(
 	JSON.stringify(

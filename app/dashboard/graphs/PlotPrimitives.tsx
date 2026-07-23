@@ -4,7 +4,7 @@
 
 import { type PointerEvent as ReactPointerEvent, useState } from "react";
 import { clamp } from "../../../src/model-atlas/numeric";
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import styles from "./graphs.module.css";
 import type { PointLabelPlacement } from "./label-placement";
 import { focusHover, modelName, pointHover, shortLabel } from "./models";
@@ -463,7 +463,7 @@ export function PointHitTarget({
 }: {
 	cx: number;
 	cy: number;
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	rows: HoverRow[];
 	setHover: HoverSetter;
 	hoverTitle?: string;
@@ -535,7 +535,7 @@ export function ModelPointLabel({
 	height,
 	placement,
 }: {
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	cx: number;
 	cy: number;
 	width: number;

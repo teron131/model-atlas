@@ -6,9 +6,9 @@ import {
 	buildBenchmarkObservationLookup,
 } from "../src/model-atlas/benchmarks/observation";
 import {
-	type ArtificialAnalysisEvaluationResourceRow,
-	buildArtificialAnalysisDefaultEffortResourceMap,
-	buildArtificialAnalysisObservationResourceMap,
+	type ArtificialAnalysisBenchmarkResourceRow,
+	buildArtificialAnalysisDefaultEffortResourceLookup,
+	buildArtificialAnalysisResourceLookup,
 } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { buildBlueprintBenchMap } from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/benchmarks/scrapers/cursorbench";
@@ -28,7 +28,7 @@ import type {
 	ModelsDevModel,
 	PreferredProviderPools,
 } from "../src/model-atlas/identity/matching/types";
-import type { LlmStatsSourceData } from "../src/model-atlas/ingest/assembly";
+import type { ModelAtlasSourceData } from "../src/model-atlas/ingest/assembly";
 import { buildDebugTraceRows } from "../src/model-atlas/ingest/debug-trace";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/pipeline/benchmark-rows";
@@ -471,37 +471,37 @@ assert.equal(
 	"image and latest routes should not stand in for a base source row",
 );
 assert.equal(
-	asEvaluations(matchedFlashRow).toolathlon,
+	asBenchmarks(matchedFlashRow).toolathlon,
 	undefined,
 	"aggregate benchmarks should not enter effort observations",
 );
 assert.equal(
-	asEvaluations(aggregatedFlashModel).toolathlon,
+	asBenchmarks(aggregatedFlashModel).toolathlon,
 	0.42,
 	"Toolathlon scores should attach through the aggregate benchmark layer",
 );
 assert.equal(
-	asEvaluations(aggregatedFlashModel).cursorbench,
+	asBenchmarks(aggregatedFlashModel).cursorbench,
 	0.58,
 	"CursorBench scores should attach through the benchmark lookup path",
 );
 assert.equal(
-	asEvaluations(aggregatedFlashModel).blueprint_bench_2,
+	asBenchmarks(aggregatedFlashModel).blueprint_bench_2,
 	0.36,
 	"Blueprint-Bench 2 scores should attach through display-name matching",
 );
 assert.equal(
-	asEvaluations(aggregatedFlashModel).gdp_pdf,
+	asBenchmarks(aggregatedFlashModel).gdp_pdf,
 	0.25,
 	"GDP.pdf scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asEvaluations(aggregatedFlashModel).riemann_bench,
+	asBenchmarks(aggregatedFlashModel).riemann_bench,
 	0.31,
 	"Riemann-bench scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asEvaluations(aggregatedFlashModel).vals_index,
+	asBenchmarks(aggregatedFlashModel).vals_index,
 	0.64,
 	"Vals Index scores should attach through normalized model-id matching",
 );
@@ -516,7 +516,7 @@ assert.equal(
 	0.1,
 	"matched effort rows should retain their exact resource observation",
 );
-assert.equal(asEvaluations(aggregatedFlashModel).hle, 0.4);
+assert.equal(asBenchmarks(aggregatedFlashModel).hle, 0.4);
 assert.equal(aggregatedFlashModel?.reasoning_effort, undefined);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
@@ -557,14 +557,14 @@ function sourceModel(
 		model_id: modelId,
 		reasoning_effort: reasoningEffort,
 		intelligence: { intelligence_index: intelligenceIndex },
-		evaluations: { hle },
+		benchmarks: { hle },
 		intelligence_index_cost: {},
 	};
 }
 
 function modelStatsSourceData(
 	artificialAnalysisRows: Record<string, unknown>[],
-): LlmStatsSourceData {
+): ModelAtlasSourceData {
 	const toolathlonObservations: BenchmarkObservationRow[] = [
 		{
 			benchmark_key: "toolathlon",
@@ -635,7 +635,7 @@ function modelStatsSourceData(
 			score: 0.64,
 		},
 	];
-	const artificialAnalysisResourceRows: ArtificialAnalysisEvaluationResourceRow[] =
+	const artificialAnalysisResourceRows: ArtificialAnalysisBenchmarkResourceRow[] =
 		[
 			{
 				benchmark_key: "hle",
@@ -704,12 +704,12 @@ function modelStatsSourceData(
 			rows: artificialAnalysisRows,
 			bySlug: artificialAnalysisBySlug,
 		},
-		artificialAnalysisEvaluationResources: {
+		artificialAnalysisBenchmarkResources: {
 			rows: artificialAnalysisResourceRows,
-			observationByModelName: buildArtificialAnalysisObservationResourceMap(
+			observationLookup: buildArtificialAnalysisResourceLookup(
 				artificialAnalysisResourceRows,
 			),
-			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
+			defaultEffortLookup: buildArtificialAnalysisDefaultEffortResourceLookup(
 				artificialAnalysisResourceRows,
 			),
 		},
@@ -803,21 +803,21 @@ function modelStatsSourceData(
 	};
 }
 
-function asEvaluations(
+function asBenchmarks(
 	row: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
-	return row?.evaluations && typeof row.evaluations === "object"
-		? (row.evaluations as Record<string, unknown>)
+	return row?.benchmarks && typeof row.benchmarks === "object"
+		? (row.benchmarks as Record<string, unknown>)
 		: {};
 }
 
 function asScoringSources(
 	row: Record<string, unknown> | undefined,
-): Record<string, ArtificialAnalysisEvaluationResourceRow> {
+): Record<string, ArtificialAnalysisBenchmarkResourceRow> {
 	return row?.scoring_sources && typeof row.scoring_sources === "object"
 		? (row.scoring_sources as Record<
 				string,
-				ArtificialAnalysisEvaluationResourceRow
+				ArtificialAnalysisBenchmarkResourceRow
 			>)
 		: {};
 }

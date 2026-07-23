@@ -35,7 +35,7 @@ const BENCHMARK_OUTPUT_PER_TASK_POLICY = {
 export const BENCHMARK_TOOLTIPS = {
 	aa_intelligence_index: {
 		title: "AA Intelligence Index",
-		body: "Artificial Analysis aggregate of current reasoning and knowledge evaluations. Model Atlas gives the overlapping index half importance.",
+		body: "Artificial Analysis aggregate of current reasoning and knowledge benchmarks. Model Atlas gives the overlapping index half importance.",
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "broad intelligence index"],
@@ -43,7 +43,7 @@ export const BENCHMARK_TOOLTIPS = {
 	},
 	agent_arena: {
 		title: "Agent Arena",
-		body: "Causal evaluation of orchestrator models across real Agent Mode work. Model Atlas uses the leaderboard's signed average-score estimate.",
+		body: "Causal benchmark of orchestrator models across real Agent Mode work. Model Atlas uses the leaderboard's signed average-score estimate.",
 		rows: [
 			["Source", "Arena"],
 			["Role", "real-world agent performance"],
@@ -75,7 +75,7 @@ export const BENCHMARK_TOOLTIPS = {
 	},
 	automation_bench: {
 		title: "AutomationBench",
-		body: "Artificial Analysis implementation of the Zapier workflow-automation benchmark. Model Atlas uses the AA evaluation-page score and task resources.",
+		body: "Artificial Analysis implementation of the Zapier workflow-automation benchmark. Model Atlas uses the AA benchmark-page score and task resources.",
 		rows: [
 			["Source", "Artificial Analysis"],
 			["Role", "agentic SaaS workflow"],
@@ -995,7 +995,7 @@ export const BENCHMARK_COLUMNS = {
 		defaultSort: "descending",
 	},
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
-export const BENCHMARK_RESOURCES = {
+export const BENCHMARK_RESOURCE_POLICIES = {
 	agents_last_exam: BENCHMARK_PER_TASK_POLICY,
 	ale_bench: BENCHMARK_PER_TASK_POLICY,
 	apex_agents: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
@@ -1013,17 +1013,17 @@ export const BENCHMARK_RESOURCES = {
 	terminalbench_v21: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;
 
-export const ARTIFICIAL_ANALYSIS_AUXILIARY_EVALUATION_ALIASES = {
+export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
 	gpqa: ["gpqa"],
 	mmmu_pro: ["mmmuPro", "mmmu_pro"],
 } as const;
 
-export const ARTIFICIAL_ANALYSIS_AUXILIARY_KEYS_AFTER = {
+export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
 	gdpval_normalized: ["gpqa"],
 	lcr: ["mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
-export const MODEL_ATLAS_AUXILIARY_KEYS_AFTER = {
+export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
 	gdpval_normalized: ["gpqa"],
 	medcode: ["mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;

@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import { benchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import {
 	ColumnTooltip,
 	type TooltipState,
@@ -34,8 +34,8 @@ export function BenchmarkStrip({
 	models,
 	isLoading,
 }: {
-	payload: LlmStatsPayload | null;
-	models: LlmStatsPayload["models"];
+	payload: ModelAtlasPayload | null;
+	models: ModelAtlasPayload["models"];
 	isLoading: boolean;
 }) {
 	const scoring = payload?.metadata?.scoring;
@@ -114,7 +114,7 @@ function BenchmarkGroup({
 }: {
 	label: string;
 	keys: string[];
-	models: LlmStatsPayload["models"];
+	models: ModelAtlasPayload["models"];
 	frontierBenchmarkKeys: ReadonlySet<string>;
 	isLoading: boolean;
 	onTooltip: (
@@ -154,7 +154,7 @@ function BenchmarkList({
 	onTooltipEnd,
 }: {
 	keys: string[];
-	models: LlmStatsPayload["models"];
+	models: ModelAtlasPayload["models"];
 	frontierBenchmarkKeys: ReadonlySet<string>;
 	onTooltip: (
 		event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>,
@@ -215,7 +215,7 @@ type BenchmarkCoverage = {
 
 /** Count only observed benchmark values across the models in the current global view. */
 function benchmarkCoverage(
-	models: LlmStatsPayload["models"],
+	models: ModelAtlasPayload["models"],
 	key: string,
 ): BenchmarkCoverage {
 	return {

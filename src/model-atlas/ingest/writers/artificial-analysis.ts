@@ -91,7 +91,7 @@ function modalityValues(row: JsonObject): SqlValue[] {
 
 function benchmarkValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
 	const intelligence = asRecord(selectedRow.intelligence);
-	const evaluations = asRecord(selectedRow.evaluations);
+	const benchmarks = asRecord(selectedRow.benchmarks);
 	return [
 		firstNumber(row, ["median_output_speed", "medianOutputTokensPerSecond"]),
 		firstNumber(row, [
@@ -108,18 +108,18 @@ function benchmarkValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
 		asFiniteNumber(intelligence.coding_index),
 		asFiniteNumber(intelligence.omniscience_index),
 		asFiniteNumber(intelligence.omniscience_accuracy),
-		asFiniteNumber(evaluations.apex_agents),
-		asFiniteNumber(evaluations.critpt),
-		asFiniteNumber(evaluations.gdpval_normalized),
-		asFiniteNumber(evaluations.gpqa),
-		asFiniteNumber(evaluations.harvey_lab),
-		asFiniteNumber(evaluations.hle),
-		asFiniteNumber(evaluations.itbench_sre),
-		asFiniteNumber(evaluations.lcr),
-		asFiniteNumber(evaluations.mmmu_pro),
-		asFiniteNumber(evaluations.scicode),
-		asFiniteNumber(evaluations.tau_banking),
-		asFiniteNumber(evaluations.terminalbench_v21),
+		asFiniteNumber(benchmarks.apex_agents),
+		asFiniteNumber(benchmarks.critpt),
+		asFiniteNumber(benchmarks.gdpval_normalized),
+		asFiniteNumber(benchmarks.gpqa),
+		asFiniteNumber(benchmarks.harvey_lab),
+		asFiniteNumber(benchmarks.hle),
+		asFiniteNumber(benchmarks.itbench_sre),
+		asFiniteNumber(benchmarks.lcr),
+		asFiniteNumber(benchmarks.mmmu_pro),
+		asFiniteNumber(benchmarks.scicode),
+		asFiniteNumber(benchmarks.tau_banking),
+		asFiniteNumber(benchmarks.terminalbench_v21),
 	];
 }
 
@@ -208,12 +208,12 @@ export function insertArtificialAnalysisRawModels(
 	}
 }
 
-export function insertArtificialAnalysisEvaluationResourceRawRows(
+export function insertArtificialAnalysisBenchmarkResourceRawRows(
 	db: DatabaseWriter,
 	snapshots: SourceSnapshots,
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO artificial_analysis_evaluations_raw_rows (
+		INSERT INTO artificial_analysis_benchmarks_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, benchmark_key, model_id,
 			model, provider, provider_id, reasoning_effort, score, task_run_count,
 			cost_per_task_usd, seconds_per_task, tokens_per_task,
@@ -224,10 +224,10 @@ export function insertArtificialAnalysisEvaluationResourceRawRows(
 	for (const [
 		index,
 		row,
-	] of snapshots.artificialAnalysisEvaluationResourceRows.entries()) {
+	] of snapshots.artificialAnalysisBenchmarkResourceRows.entries()) {
 		statement.run(
 			index,
-			snapshots.fetchedAt.artificialAnalysisEvaluationResources,
+			snapshots.fetchedAt.artificialAnalysisBenchmarkResources,
 			row.source_url,
 			row.benchmark_key,
 			row.model_id,

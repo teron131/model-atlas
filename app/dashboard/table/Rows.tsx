@@ -2,7 +2,7 @@
 
 import { type CSSProperties, memo, useState } from "react";
 
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
 	AudioInputIcon,
 	ImageInputIcon,
@@ -315,7 +315,7 @@ function isReleaseDateToken(token: string | undefined) {
 	return token != null && RELEASE_DATE_TOKEN_PATTERN.test(token);
 }
 
-function ProviderLogo({ model }: { model: LlmStatsModel }) {
+function ProviderLogo({ model }: { model: ModelAtlasModel }) {
 	const [hidden, setHidden] = useState(false);
 	const logoSrc = logoSource(model);
 
@@ -340,7 +340,7 @@ function ProviderLogo({ model }: { model: LlmStatsModel }) {
 	);
 }
 
-function logoSource(model: LlmStatsModel) {
+function logoSource(model: ModelAtlasModel) {
 	const logo = providerLogo(model.provider);
 	if (logo.length > 0) {
 		return logo;

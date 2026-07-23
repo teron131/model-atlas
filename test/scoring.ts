@@ -32,10 +32,10 @@ import {
 } from "../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import { benchmarkMetricValue } from "../src/model-atlas/pipeline/scores/resource-metrics";
-import { buildCurrentLlmStatsMetadata } from "../src/model-atlas/stats/payload/metadata";
+import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModelCandidate,
+	ModelAtlasModelCandidate,
 } from "../src/model-atlas/stats/types";
 
 function assertEqual(actual: unknown, expected: unknown): void {
@@ -261,14 +261,14 @@ assertEqual(
 );
 assertEqual(
 	benchmarkMetricValue(
-		{ evaluations: { aa_intelligence_index: 71.25 } },
+		{ benchmarks: { aa_intelligence_index: 71.25 } },
 		"aa_intelligence_index",
 	),
 	71.25,
 );
 assertEqual(
 	benchmarkMetricValue(
-		{ evaluations: { custom_benchmark: 0.625 } },
+		{ benchmarks: { custom_benchmark: 0.625 } },
 		"custom_benchmark",
 	),
 	0.625,
@@ -328,15 +328,15 @@ assertThrowsWithMessage(
 	"Invalid benchmark group for test: invalid",
 );
 
-const aaOnlyResourceMetadata = buildCurrentLlmStatsMetadata({
+const aaOnlyResourceMetadata = buildCurrentModelAtlasMetadata({
 	models: [
 		{
-			evaluations: { hle: 90 },
+			benchmarks: { hle: 90 },
 		},
 	],
 	resourceModels: [
 		{
-			evaluations: { hle: 90 },
+			benchmarks: { hle: 90 },
 			task_metrics: {
 				artificial_analysis: { cost: 0.1, seconds: 10 },
 			},
@@ -356,15 +356,15 @@ assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark runtime"), false);
 assertEqual(aaOnlyValueTooltip.includes("25.0% each"), false);
 assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark cost"), false);
 
-const mixedResourceMetadata = buildCurrentLlmStatsMetadata({
+const mixedResourceMetadata = buildCurrentModelAtlasMetadata({
 	models: [
 		{
-			evaluations: { hle: 90, deep_swe: 80 },
+			benchmarks: { hle: 90, deep_swe: 80 },
 		},
 	],
 	resourceModels: [
 		{
-			evaluations: { hle: 90, deep_swe: 80 },
+			benchmarks: { hle: 90, deep_swe: 80 },
 			task_metrics: {
 				artificial_analysis: { cost: 0.1, seconds: 10 },
 				deep_swe: { cost: 0.2, seconds: 20 },
@@ -387,15 +387,15 @@ assertEqual(
 	false,
 );
 
-const tokenProxyResourceMetadata = buildCurrentLlmStatsMetadata({
+const tokenProxyResourceMetadata = buildCurrentModelAtlasMetadata({
 	models: [
 		{
-			evaluations: { deep_swe: 80 },
+			benchmarks: { deep_swe: 80 },
 		},
 	],
 	resourceModels: [
 		{
-			evaluations: { deep_swe: 80 },
+			benchmarks: { deep_swe: 80 },
 			speed: { throughput_tokens_per_second_median: 50 },
 			task_metrics: {
 				deep_swe: { cost: 0.2, output_tokens: 1_000 },
@@ -424,7 +424,7 @@ const broadAAResourceOnlyModels = attachFinalScores(
 				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
-			evaluations: { gdpval_normalized: 90, hle: 90 },
+			benchmarks: { gdpval_normalized: 90, hle: 90 },
 		},
 		{
 			...modelCandidate({
@@ -436,7 +436,7 @@ const broadAAResourceOnlyModels = attachFinalScores(
 				latencySeconds: 2,
 				disableBaseCost: true,
 			}),
-			evaluations: { gdpval_normalized: 10, hle: 10 },
+			benchmarks: { gdpval_normalized: 10, hle: 10 },
 		},
 	],
 	STAGE_CONFIG.scoring,
@@ -548,15 +548,15 @@ const fractionalBenchmarkConfig = {
 const fractionalBenchmarkModels = [
 	{
 		id: "fractional-min",
-		evaluations: { omniscience_accuracy: 0, hle: 0 },
+		benchmarks: { omniscience_accuracy: 0, hle: 0 },
 	},
 	{
 		id: "fractional-max",
-		evaluations: { omniscience_accuracy: 100, hle: 100 },
+		benchmarks: { omniscience_accuracy: 100, hle: 100 },
 	},
 	{
 		id: "fractional-target",
-		evaluations: { omniscience_accuracy: 0, hle: 100 },
+		benchmarks: { omniscience_accuracy: 0, hle: 100 },
 	},
 ];
 const fractionalBenchmarkComponentScores = buildComponentScores(
@@ -633,7 +633,7 @@ const groupFlippedScores = buildComponentScores(
 assertClose(groupFlippedScores?.intelligence_score, 75);
 
 const fractionalCoverageComponentScores = buildComponentScores(
-	{ id: "fractional-sparse", evaluations: { hle: 100 } },
+	{ id: "fractional-sparse", benchmarks: { hle: 100 } },
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
@@ -678,17 +678,17 @@ const sparseCoverageConfig = {
 const sparseCoverageModels = [
 	{
 		id: "sparse-min",
-		evaluations: Object.fromEntries(sparseBenchmarkKeys.map((key) => [key, 0])),
+		benchmarks: Object.fromEntries(sparseBenchmarkKeys.map((key) => [key, 0])),
 	},
 	{
 		id: "sparse-max",
-		evaluations: Object.fromEntries(
+		benchmarks: Object.fromEntries(
 			sparseBenchmarkKeys.map((key) => [key, 100]),
 		),
 	},
 	{
 		id: "sparse-target",
-		evaluations: { quality_0: 100 },
+		benchmarks: { quality_0: 100 },
 	},
 ];
 const sparseCoverageComponentScores = buildComponentScores(
@@ -859,7 +859,7 @@ const scaleNormalizedResourceModels = attachFinalScores(
 				id: "test/cheap-scale-winner",
 				disableBaseCost: true,
 			}),
-			evaluations: { cheap_frontier: 1, expensive_frontier: 0.5 },
+			benchmarks: { cheap_frontier: 1, expensive_frontier: 0.5 },
 			task_metrics: {
 				cheap_frontier: { cost: 1 },
 				expensive_frontier: { cost: 2000 },
@@ -870,7 +870,7 @@ const scaleNormalizedResourceModels = attachFinalScores(
 				id: "test/expensive-scale-winner",
 				disableBaseCost: true,
 			}),
-			evaluations: { cheap_frontier: 0.5, expensive_frontier: 1 },
+			benchmarks: { cheap_frontier: 0.5, expensive_frontier: 1 },
 			task_metrics: {
 				cheap_frontier: { cost: 2 },
 				expensive_frontier: { cost: 1000 },
@@ -891,7 +891,7 @@ const sparseResourceCoverageModels = attachFinalScores(
 				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
-			evaluations: {
+			benchmarks: {
 				gdpval_normalized: 50,
 				hle: 50,
 				deep_swe: 50,
@@ -909,7 +909,7 @@ const sparseResourceCoverageModels = attachFinalScores(
 				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
-			evaluations: {
+			benchmarks: {
 				gdpval_normalized: 100,
 			},
 			task_metrics: {
@@ -1078,19 +1078,19 @@ const frontierPercentileConfig = {
 const frontierPercentileModels = [
 	{
 		id: "observed-frontier-a",
-		evaluations: { agents_last_exam: 0.2, gdpval_normalized: 0, hle: 0 },
+		benchmarks: { agents_last_exam: 0.2, gdpval_normalized: 0, hle: 0 },
 	},
 	{
 		id: "observed-frontier-b",
-		evaluations: { agents_last_exam: 0.5, gdpval_normalized: 50, hle: 50 },
+		benchmarks: { agents_last_exam: 0.5, gdpval_normalized: 50, hle: 50 },
 	},
 	{
 		id: "observed-frontier-c",
-		evaluations: { agents_last_exam: 0.8, gdpval_normalized: 100, hle: 100 },
+		benchmarks: { agents_last_exam: 0.8, gdpval_normalized: 100, hle: 100 },
 	},
 	{
 		id: "missing-frontier",
-		evaluations: { gdpval_normalized: 100, hle: 100 },
+		benchmarks: { gdpval_normalized: 100, hle: 100 },
 	},
 ];
 const frontierPercentileImputations = buildBenchmarkImputationByModel(
@@ -1115,7 +1115,7 @@ assertEqual(sparseFrontierDiagnostic?.imputationAllowed, false);
 
 const unreliableReferenceModels = [0, 1, 2, 3, 4].map((value) => ({
 	id: `unreliable-observed-${value}`,
-	evaluations: {
+	benchmarks: {
 		target: value % 2 === 0 ? 0 : 100,
 		c1: value,
 		c2: value,
@@ -1124,7 +1124,7 @@ const unreliableReferenceModels = [0, 1, 2, 3, 4].map((value) => ({
 }));
 const unreliableMissingModel = {
 	id: "unreliable-missing",
-	evaluations: { c1: 4, c2: 4, c3: 4 },
+	benchmarks: { c1: 4, c2: 4, c3: 4 },
 };
 const unreliableConfig = {
 	...STAGE_CONFIG.scoring,
@@ -1209,7 +1209,7 @@ const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(
 	.get(sharedTargetModel)
 	?.get("shared_target");
 assertClose(reorderedSharedTargetImputation, 10);
-assertEqual("shared_target" in sharedTargetModel.evaluations, false);
+assertEqual("shared_target" in sharedTargetModel.benchmarks, false);
 
 const missingGroupPenaltyPortfolio = {
 	...sharedTargetConfig.benchmarkPortfolio,
@@ -1269,7 +1269,7 @@ assertEqual(
 
 const nonRecursiveReferenceModels = [0, 1, 2, 3, 4, 5].map((value) => ({
 	id: `non-recursive-observed-${value}`,
-	evaluations: {
+	benchmarks: {
 		target: value * 10,
 		bridge: value * 10,
 		bridge2: value * 10,
@@ -1282,7 +1282,7 @@ const nonRecursiveReferenceModels = [0, 1, 2, 3, 4, 5].map((value) => ({
 }));
 const nonRecursiveMissingModel = {
 	id: "non-recursive-missing",
-	evaluations: { i1: 5, i2: 5, a1: 5, a2: 5, a3: 5 },
+	benchmarks: { i1: 5, i2: 5, a1: 5, a2: 5, a3: 5 },
 };
 const nonRecursiveImputations = buildBenchmarkImputationByModel(
 	[...nonRecursiveReferenceModels, nonRecursiveMissingModel],
@@ -1406,7 +1406,7 @@ assertEqual(
 
 const sparseBenchmarkContextModels = crossEffortModels.map((model, index) =>
 	index === crossEffortModels.length - 1
-		? { ...model, evaluations: { c1: 0 } }
+		? { ...model, benchmarks: { c1: 0 } }
 		: model,
 );
 assertEqual(
@@ -1423,9 +1423,9 @@ const sparseSiblingContextModels = crossEffortModels.map((model, index) =>
 	index === crossEffortModels.length - 2
 		? {
 				...model,
-				evaluations: {
-					target: model.evaluations.target,
-					c1: model.evaluations.c1,
+				benchmarks: {
+					target: model.benchmarks.target,
+					c1: model.benchmarks.c1,
 				},
 			}
 		: model,
@@ -1440,11 +1440,11 @@ assertClose(
 const imputationCoverageModels = [
 	{
 		id: "imputation-coverage-min",
-		evaluations: { target: 0, c1: 0, c2: 0, c3: 0 },
+		benchmarks: { target: 0, c1: 0, c2: 0, c3: 0 },
 	},
 	{
 		id: "imputation-coverage-max",
-		evaluations: { target: 100, c1: 100, c2: 100, c3: 100 },
+		benchmarks: { target: 100, c1: 100, c2: 100, c3: 100 },
 	},
 ];
 const imputationCoverageContext = buildQualityScoringContext(
@@ -1453,7 +1453,7 @@ const imputationCoverageContext = buildQualityScoringContext(
 );
 const imputationCoverageTarget = {
 	id: "imputation-coverage-target",
-	evaluations: { c1: 100 },
+	benchmarks: { c1: 100 },
 };
 const imputedHighValues = new Map([
 	["target", 100],
@@ -1509,7 +1509,7 @@ function modelCandidate(options: {
 	gdpvalCost?: number | null;
 	gdpvalSeconds?: number | null;
 	disableBaseCost?: boolean;
-}): LlmStatsModelCandidate {
+}): ModelAtlasModelCandidate {
 	const gdpvalTask =
 		options.gdpvalCost == null && options.gdpvalSeconds == null
 			? null
@@ -1517,7 +1517,7 @@ function modelCandidate(options: {
 					cost: options.gdpvalCost ?? null,
 					seconds: options.gdpvalSeconds ?? null,
 				};
-	const evaluations = {
+	const benchmarks = {
 		...(options.gdpvalScore == null
 			? {}
 			: { gdpval_normalized: options.gdpvalScore }),
@@ -1561,7 +1561,7 @@ function modelCandidate(options: {
 			},
 			...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
 		},
-		evaluations: Object.keys(evaluations).length === 0 ? null : evaluations,
+		benchmarks: Object.keys(benchmarks).length === 0 ? null : benchmarks,
 		component_scores: {
 			intelligence_score: options.intelligenceScore ?? null,
 			agentic_score: options.agenticScore ?? null,
@@ -1575,7 +1575,7 @@ function resourceModel(
 	modelKey: string,
 	resourceScale: number,
 	reasoningEffort: string | null = null,
-): LlmStatsModelCandidate {
+): ModelAtlasModelCandidate {
 	return {
 		...modelCandidate({
 			id: `test/resource-model-${modelKey}`,
@@ -1607,7 +1607,7 @@ function imputationModel(
 			narrow,
 			...(target == null ? {} : { target }),
 		},
-		evaluations: null,
+		benchmarks: null,
 	};
 }
 
@@ -1619,7 +1619,7 @@ function dualContextImputationModel(
 ) {
 	return {
 		id,
-		evaluations: {
+		benchmarks: {
 			i1: intelligenceContext,
 			i2: intelligenceContext,
 			i3: intelligenceContext,
@@ -1639,7 +1639,7 @@ function crossEffortImputationModels(modelCount: number) {
 				id: `test/cross-effort-${index}`,
 				name,
 				reasoning_effort: "max",
-				evaluations: {
+				benchmarks: {
 					target: index * 20,
 					c1: index * 20,
 					c2: index * 20,
@@ -1650,7 +1650,7 @@ function crossEffortImputationModels(modelCount: number) {
 				id: `test/cross-effort-${index}`,
 				name,
 				reasoning_effort: "low",
-				evaluations: {
+				benchmarks: {
 					...(index === modelCount - 1 ? {} : { target: index * 10 }),
 					c1: 0,
 					c2: 0,
@@ -1669,7 +1669,7 @@ function reverseCrossEffortImputationModels(modelCount: number) {
 				id: `test/reverse-cross-effort-${index}`,
 				name,
 				reasoning_effort: "max",
-				evaluations: {
+				benchmarks: {
 					...(index === modelCount - 1 ? {} : { target: index * 20 }),
 					c1: 0,
 					c2: 0,
@@ -1680,7 +1680,7 @@ function reverseCrossEffortImputationModels(modelCount: number) {
 				id: `test/reverse-cross-effort-${index}`,
 				name,
 				reasoning_effort: "low",
-				evaluations: {
+				benchmarks: {
 					target: index * 10,
 					c1: index * 10,
 					c2: index * 10,

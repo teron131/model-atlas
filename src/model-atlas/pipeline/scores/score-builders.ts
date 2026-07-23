@@ -10,8 +10,8 @@ import {
 } from "../../numeric";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
-	LlmStatsNullableComponentScores,
-	LlmStatsSpeed,
+	ModelAtlasNullableComponentScores,
+	ModelAtlasSpeed,
 } from "../model-types";
 import {
 	normalizedMetricValue,
@@ -200,13 +200,13 @@ export function deriveSpeedOutputTokenAnchors(
 
 export function buildComponentScores(
 	model: JsonObject,
-	speed: LlmStatsSpeed,
+	speed: ModelAtlasSpeed,
 	speedOutputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
 	qualityContext: QualityScoringContext,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
 	imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
-): LlmStatsNullableComponentScores | null {
+): ModelAtlasNullableComponentScores | null {
 	const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
 		scoringConfig.intelligenceBenchmarkKeys,

@@ -26,7 +26,7 @@ assert.match(
 	"dev watch ignore should exclude the repo cache directory",
 );
 assert.match(
-	join(process.cwd(), ".cache", "stats-logos", "openai.png"),
+	join(process.cwd(), ".cache", "model-logos", "openai.png"),
 	ignored,
 	"dev watch ignore should exclude nested cache writes",
 );

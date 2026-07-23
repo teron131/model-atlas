@@ -6,7 +6,7 @@ import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import type { CSSProperties } from "react";
 
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { providerChartColor } from "../shared/provider-theme";
 import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./label-placement";
@@ -78,7 +78,7 @@ export function EfficiencyAxisChart<Row>({
 	bubbleValue: (row: Row) => number;
 	bubbleRadius: (value: number) => number;
 	getScore: (row: Row) => number;
-	getModel: (row: Row) => LlmStatsModel;
+	getModel: (row: Row) => ModelAtlasModel;
 	getKey: (row: Row) => string;
 	getHoverRows: (row: Row) => HoverRow[];
 	getHoverTitle?: (row: Row) => string;

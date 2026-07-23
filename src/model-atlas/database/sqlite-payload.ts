@@ -2,7 +2,7 @@
 
 import { DatabaseSync } from "node:sqlite";
 import { asRecord } from "../runtime";
-import type { LlmStatsPayload } from "../stats/types";
+import type { ModelAtlasPayload } from "../stats/types";
 import {
 	buildPayloadFromRows,
 	buildPayloadRows,
@@ -33,7 +33,7 @@ function readPayloadRowGroup(
 /** Local SQLite payload reads the one atomically published snapshot. */
 export function readDatabasePayload(
 	databasePath = DEFAULT_DATABASE_PATH,
-): LlmStatsPayload {
+): ModelAtlasPayload {
 	const db = new DatabaseSync(databasePath);
 	try {
 		const fetchedAt = payloadFetchedAtFromRow(

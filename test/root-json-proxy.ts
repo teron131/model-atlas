@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import {
 	jsonViewForPath,
-	setLlmStatsApiUrl,
+	setModelAtlasApiUrl,
 	wantsJsonResponse,
 } from "../proxy";
 
@@ -28,6 +28,6 @@ assert.equal(apiPathForView("all"), "/api/llm-stats?view=all");
 
 function apiPathForView(view: "score" | "core" | "benchmarks" | "all"): string {
 	const url = new URL("https://example.com/");
-	setLlmStatsApiUrl(url, view);
+	setModelAtlasApiUrl(url, view);
 	return `${url.pathname}${url.search}`;
 }

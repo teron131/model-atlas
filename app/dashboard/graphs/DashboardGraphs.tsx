@@ -3,7 +3,7 @@
 /** Interactive chart view for LLM stats payloads. */
 
 import { useMemo, useState } from "react";
-import type { LlmStatsPayload } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
 import { modelCount, toggleProviderFilter } from "../shared/model-display";
 import { FilterButton, HoverCard } from "./ChartComponents";
@@ -42,8 +42,8 @@ export function DashboardGraphs({
 	onMaxCostChange,
 	onModelLimitChange,
 }: {
-	payload: LlmStatsPayload | null;
-	referenceModels: LlmStatsPayload["models"];
+	payload: ModelAtlasPayload | null;
+	referenceModels: ModelAtlasPayload["models"];
 	hasFullPayload: boolean;
 	benchmarksLoading: boolean;
 	afterLead?: React.ReactNode;

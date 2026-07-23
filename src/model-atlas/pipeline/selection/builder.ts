@@ -5,14 +5,14 @@ import type {
 	FinalStageConfig,
 	ScoringConfig,
 } from "../../config/stage";
-import { cacheStatsLogos } from "../../logos/cache";
+import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber } from "../../runtime";
 import type {
-	LlmStatsModel,
-	LlmStatsModelCandidate,
-	LlmStatsScoredCandidate,
+	ModelAtlasModel,
+	ModelAtlasModelCandidate,
+	ModelAtlasScoredCandidate,
 } from "../model-types";
-import type { LlmStatsEnrichmentResult } from "../openrouter-enrichment";
+import type { ModelAtlasEnrichmentResult } from "../openrouter-enrichment";
 import { attachFinalScores } from "../scores";
 import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
 import { observedBenchmarkCount } from "../scores/score-builders";
@@ -28,7 +28,7 @@ const PUBLIC_COMPONENT_SCORE_KEYS = [
 ] as const;
 
 type BasicSpecCandidate = Pick<
-	LlmStatsModelCandidate,
+	ModelAtlasModelCandidate,
 	| "id"
 	| "name"
 	| "release_date"
@@ -38,8 +38,8 @@ type BasicSpecCandidate = Pick<
 	| "speed"
 >;
 type BenchmarkEvidenceCandidate = Pick<
-	LlmStatsScoredCandidate,
-	"intelligence" | "evaluations"
+	ModelAtlasScoredCandidate,
+	"intelligence" | "benchmarks"
 >;
 
 /** Requires a usable non-benchmark profile before a source row becomes a leaderboard model. */
@@ -96,7 +96,7 @@ export function hasRequiredBenchmarkEvidence(
 
 /** Admit a final row when at least one primary score reaches the public relevance floor. */
 export function hasRequiredPublicScore(
-	model: Pick<LlmStatsScoredCandidate, "scores">,
+	model: Pick<ModelAtlasScoredCandidate, "scores">,
 ): boolean {
 	return PUBLIC_COMPONENT_SCORE_KEYS.some((key) => {
 		const score = asFiniteNumber(model.scores?.[key]);
@@ -106,10 +106,10 @@ export function hasRequiredPublicScore(
 
 function buildCandidates(
 	rows: Record<string, unknown>[],
-	enrichment: LlmStatsEnrichmentResult,
+	enrichment: ModelAtlasEnrichmentResult,
 	scoringConfig: ScoringConfig,
 	scoringPreparation: ReturnType<typeof prepareBenchmarkScoring>,
-): LlmStatsModelCandidate[] {
+): ModelAtlasModelCandidate[] {
 	return rows.map((row) =>
 		buildModelCandidate(
 			row,
@@ -125,11 +125,11 @@ function buildCandidates(
 }
 
 export async function buildFinalModels(
-	enrichment: LlmStatsEnrichmentResult,
+	enrichment: ModelAtlasEnrichmentResult,
 	id: string | null | undefined,
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
-): Promise<LlmStatsModel[]> {
+): Promise<ModelAtlasModel[]> {
 	const scoringPreparation = prepareBenchmarkScoring(
 		enrichment.rows,
 		scoringConfig,
@@ -166,7 +166,7 @@ export async function buildFinalModels(
 		)
 		.filter(hasRequiredQualityScores)
 		.filter(hasRequiredPublicScore);
-	return cacheStatsLogos(
+	return cacheModelLogos(
 		admittedPublicModels,
 		(model) => model.provider ?? model.id,
 	);

@@ -8,7 +8,7 @@ import {
 import { getAgentArenaStats } from "../../benchmarks/scrapers/agent-arena";
 import { getAgentsLastExamStats } from "../../benchmarks/scrapers/agents-last-exam";
 import { getAleBenchStats } from "../../benchmarks/scrapers/ale-bench";
-import { getArtificialAnalysisEvaluationResourceStats } from "../../benchmarks/scrapers/artificial-analysis/results";
+import { getArtificialAnalysisBenchmarkResourceStats } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { getBlueprintBenchStats } from "../../benchmarks/scrapers/blueprint-bench";
 import { getCursorBenchStats } from "../../benchmarks/scrapers/cursorbench";
 import { getDeepSWELeaderboardStats } from "../../benchmarks/scrapers/deep-swe";
@@ -31,8 +31,8 @@ import { getModelsDevSourceStats } from "../../scrapers/models-dev";
 import { selectModelsDevRowsForArtificialAnalysis } from "./policy";
 import {
 	buildSourceData,
-	type LlmStatsSourceData,
-	type LlmStatsSourceRows,
+	type ModelAtlasSourceData,
+	type ModelAtlasSourceRows,
 } from "./source-data";
 
 const BENCHMARK_OBSERVATION_SOURCE_FETCHERS = {
@@ -88,14 +88,14 @@ export function benchmarkObservationSourceFetcher(
 	);
 }
 
-type BenchmarkSourceLoader<Key extends keyof LlmStatsSourceRows> = {
+type BenchmarkSourceLoader<Key extends keyof ModelAtlasSourceRows> = {
 	sourceRowsKey: Key;
-	load: () => Promise<LlmStatsSourceRows[Key]>;
+	load: () => Promise<ModelAtlasSourceRows[Key]>;
 };
 
-function benchmarkSourceLoader<const Key extends keyof LlmStatsSourceRows>(
+function benchmarkSourceLoader<const Key extends keyof ModelAtlasSourceRows>(
 	sourceRowsKey: Key,
-	load: () => Promise<LlmStatsSourceRows[Key]>,
+	load: () => Promise<ModelAtlasSourceRows[Key]>,
 ): BenchmarkSourceLoader<Key> {
 	return { sourceRowsKey, load };
 }
@@ -173,7 +173,7 @@ const BENCHMARK_SOURCE_LOADERS = {
 
 type BenchmarkSourceRowsKey =
 	(typeof BENCHMARK_SOURCE_LOADERS)[BenchmarkRuntimeKey]["sourceRowsKey"];
-type BenchmarkSourceRows = Pick<LlmStatsSourceRows, BenchmarkSourceRowsKey>;
+type BenchmarkSourceRows = Pick<ModelAtlasSourceRows, BenchmarkSourceRowsKey>;
 
 /** Fetch custom benchmark rows while preserving each source-specific output contract. */
 async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
@@ -187,16 +187,16 @@ async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
 }
 
 /** Fetch every external source into the raw-row contract consumed by stats assembly. */
-async function fetchSourceRows(): Promise<LlmStatsSourceRows> {
+async function fetchSourceRows(): Promise<ModelAtlasSourceRows> {
 	const [
 		artificialAnalysisStats,
-		artificialAnalysisEvaluationResourceStats,
+		artificialAnalysisBenchmarkResourceStats,
 		modelsDevStats,
 		benchmarkRows,
 		benchmarkObservationStats,
 	] = await Promise.all([
 		getArtificialAnalysisLeaderboardStats(),
-		getArtificialAnalysisEvaluationResourceStats(),
+		getArtificialAnalysisBenchmarkResourceStats(),
 		getModelsDevSourceStats(),
 		fetchBenchmarkSourceRows(),
 		Promise.all(
@@ -207,8 +207,8 @@ async function fetchSourceRows(): Promise<LlmStatsSourceRows> {
 		),
 	]);
 	const artificialAnalysisRows = artificialAnalysisStats.data;
-	const artificialAnalysisEvaluationResourceRows =
-		artificialAnalysisEvaluationResourceStats.data;
+	const artificialAnalysisBenchmarkResourceRows =
+		artificialAnalysisBenchmarkResourceStats.data;
 	type BenchmarkObservationRowsKey =
 		(typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
 	const benchmarkObservationRows = Object.fromEntries(
@@ -216,14 +216,14 @@ async function fetchSourceRows(): Promise<LlmStatsSourceRows> {
 			binding.sourceRowsKey,
 			payload.data,
 		]),
-	) as Pick<LlmStatsSourceRows, BenchmarkObservationRowsKey>;
+	) as Pick<ModelAtlasSourceRows, BenchmarkObservationRowsKey>;
 	const modelsDevModels = selectModelsDevRowsForArtificialAnalysis(
 		modelsDevStats.payload,
 		artificialAnalysisRows,
 	);
 	return {
 		artificialAnalysisRows,
-		artificialAnalysisEvaluationResourceRows,
+		artificialAnalysisBenchmarkResourceRows,
 		modelsDevModels,
 		...benchmarkRows,
 		...benchmarkObservationRows,
@@ -231,6 +231,6 @@ async function fetchSourceRows(): Promise<LlmStatsSourceRows> {
 }
 
 /** Fetch and normalize every configured stats source through the same assembly boundary. */
-export async function fetchSourceData(): Promise<LlmStatsSourceData> {
+export async function fetchSourceData(): Promise<ModelAtlasSourceData> {
 	return buildSourceData(await fetchSourceRows());
 }

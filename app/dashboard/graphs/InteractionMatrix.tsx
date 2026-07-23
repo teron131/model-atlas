@@ -5,7 +5,7 @@ import { scaleLinear, scaleLog } from "d3-scale";
 import { type CSSProperties, useMemo, useState } from "react";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModel,
+	ModelAtlasModel,
 } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
@@ -74,7 +74,7 @@ export function InteractionMatrix({
 	hasFullPayload,
 	setHover,
 }: {
-	models: LlmStatsModel[];
+	models: ModelAtlasModel[];
 	benchmarkPortfolio: BenchmarkPortfolio;
 	hasFullPayload: boolean;
 	setHover: HoverSetter;
@@ -151,7 +151,7 @@ export function InteractionMatrix({
 }
 
 function interactionXDistribution(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	config: InteractionConfig,
 	context: InteractionContext,
 ) {
@@ -175,7 +175,7 @@ function interactionXDistribution(
 }
 
 function interactionTabCorrelation(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	config: InteractionConfig,
 	context: InteractionContext,
 ) {
@@ -202,7 +202,7 @@ function InteractionPlot({
 	hasFullPayload,
 	setHover,
 }: {
-	models: LlmStatsModel[];
+	models: ModelAtlasModel[];
 	config: InteractionConfig;
 	context: InteractionContext;
 	hasFullPayload: boolean;

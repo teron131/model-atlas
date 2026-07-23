@@ -5,12 +5,12 @@ import assert from "node:assert/strict";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import {
-	minimalLlmStatsModel,
-	minimalLlmStatsPayload,
-} from "./llm-stats-fixtures";
+	minimalModelAtlasModel,
+	minimalModelAtlasPayload,
+} from "./model-atlas-fixtures";
 
 const preservedFable = {
-	...minimalLlmStatsModel({
+	...minimalModelAtlasModel({
 		id: "anthropic/claude-fable-5",
 		name: "Claude Fable 5",
 	}),
@@ -23,7 +23,7 @@ const preservedFable = {
 		intelligence_index: 59.8,
 		agentic_index: 80.5,
 	},
-	evaluations: {
+	benchmarks: {
 		gpqa: 0.92,
 		hle: 0.53,
 		lcr: 0.7,
@@ -38,7 +38,7 @@ const preservedFable = {
 };
 
 const degradedFable = {
-	...minimalLlmStatsModel({
+	...minimalModelAtlasModel({
 		id: "claude-fable-5",
 		name: "Claude Fable 5",
 	}),
@@ -55,12 +55,12 @@ const degradedFable = {
 };
 
 const preserved = preserveHighSignalSnapshotModels(
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 2,
 		models: [
 			degradedFable,
 			{
-				...minimalLlmStatsModel({ id: "openai/gpt-5-5", name: "GPT-5.5" }),
+				...minimalModelAtlasModel({ id: "openai/gpt-5-5", name: "GPT-5.5" }),
 				scores: {
 					intelligence_score: 93,
 					agentic_score: 87,
@@ -70,7 +70,7 @@ const preserved = preserveHighSignalSnapshotModels(
 			},
 		],
 	}),
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 1,
 		models: [preservedFable],
 	}),
@@ -85,7 +85,7 @@ assert.equal(
 	"previous high-signal top models should survive cold snapshot degradation",
 );
 
-const incompatiblePreviousPayload = minimalLlmStatsPayload({
+const incompatiblePreviousPayload = minimalModelAtlasPayload({
 	fetchedAt: 1,
 	models: [preservedFable],
 });
@@ -95,7 +95,7 @@ delete (
 	>
 ).snapshot_preservation_version;
 const incompatiblePreserved = preserveHighSignalSnapshotModels(
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 2,
 		models: [degradedFable],
 	}),
@@ -111,7 +111,7 @@ assert.equal(
 );
 
 const normalUpdate = preserveHighSignalSnapshotModels(
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 2,
 		models: [
 			{
@@ -123,7 +123,7 @@ const normalUpdate = preserveHighSignalSnapshotModels(
 			},
 		],
 	}),
-	minimalLlmStatsPayload({ fetchedAt: 1, models: [preservedFable] }),
+	minimalModelAtlasPayload({ fetchedAt: 1, models: [preservedFable] }),
 	STAGE_CONFIG.snapshotPreservation,
 	STAGE_CONFIG.scoring,
 );
@@ -135,11 +135,11 @@ assert.equal(
 );
 
 const effortSpecificPreservation = preserveHighSignalSnapshotModels(
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 2,
 		models: [{ ...degradedFable, reasoning_effort: "low" }],
 	}),
-	minimalLlmStatsPayload({
+	minimalModelAtlasPayload({
 		fetchedAt: 1,
 		models: [{ ...preservedFable, reasoning_effort: "max" }],
 	}),

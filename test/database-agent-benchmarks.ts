@@ -16,7 +16,7 @@ import {
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 const agentArenaRow: AgentArenaModelScoreRow = {
 	rank: 1,

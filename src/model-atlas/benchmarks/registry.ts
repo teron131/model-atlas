@@ -1,8 +1,8 @@
 /** Composes Model Atlas benchmark declarations into configured runtime and presentation views. */
 
 import {
-	ARTIFICIAL_ANALYSIS_AUXILIARY_EVALUATION_ALIASES,
-	ARTIFICIAL_ANALYSIS_AUXILIARY_KEYS_AFTER,
+	ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES,
+	ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
 	BENCHMARK_COLUMNS,
 	BENCHMARK_DISPLAY_ORDER,
 	BENCHMARK_IMPUTATION_OVERRIDES,
@@ -10,14 +10,14 @@ import {
 	BENCHMARK_OBSERVATION_SOURCES,
 	BENCHMARK_PERSISTENCE_OVERRIDES,
 	BENCHMARK_PROCESSING_OVERRIDES,
-	BENCHMARK_RESOURCES,
+	BENCHMARK_RESOURCE_POLICIES,
 	BENCHMARK_SCORING_LABELS,
 	BENCHMARK_SCORING_WEIGHTS,
 	BENCHMARK_SOURCE_OVERRIDES,
 	BENCHMARK_TASK_METRIC_COLUMNS,
 	BENCHMARK_TOOLTIPS,
 	type BenchmarkKey,
-	MODEL_ATLAS_AUXILIARY_KEYS_AFTER,
+	MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
 } from "./catalog";
 import {
 	applyBenchmarkTransform,
@@ -49,7 +49,7 @@ const DIRECT_AGGREGATION = {
 	kind: "direct",
 } as const satisfies BenchmarkAggregationPolicy;
 const DEFAULT_BENCHMARK_PERSISTENCE = {
-	location: { kind: "evaluation" },
+	location: { kind: "benchmark" },
 	exposure: "public",
 } as const satisfies BenchmarkPersistenceFacet;
 
@@ -250,10 +250,12 @@ function composeBenchmarkCatalog(): BenchmarkCatalog {
 							key as keyof typeof BENCHMARK_TASK_METRIC_COLUMNS
 						] ?? [],
 				},
-				...(key in BENCHMARK_RESOURCES
+				...(key in BENCHMARK_RESOURCE_POLICIES
 					? {
 							resources:
-								BENCHMARK_RESOURCES[key as keyof typeof BENCHMARK_RESOURCES],
+								BENCHMARK_RESOURCE_POLICIES[
+									key as keyof typeof BENCHMARK_RESOURCE_POLICIES
+								],
 						}
 					: {}),
 			},
@@ -331,7 +333,7 @@ export type BenchmarkObservationDataKey =
 	BenchmarkObservationBinding["sourceDataKey"];
 export type BenchmarkObservationRowsKey =
 	BenchmarkObservationBinding["sourceRowsKey"];
-export type BenchmarkResourceKey = keyof typeof BENCHMARK_RESOURCES;
+export type BenchmarkResourceKey = keyof typeof BENCHMARK_RESOURCE_POLICIES;
 
 function benchmarkSourceAdapters(key: BenchmarkKey): BenchmarkSourceAdapter[] {
 	return BENCHMARK_CATALOG[key].source.inputs.flatMap(
@@ -339,7 +341,7 @@ function benchmarkSourceAdapters(key: BenchmarkKey): BenchmarkSourceAdapter[] {
 	);
 }
 
-export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES =
+export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES =
 	BENCHMARK_KEYS.flatMap((key) =>
 		benchmarkSourceAdapters(key).flatMap((adapter) =>
 			adapter.kind === "artificial_analysis_resource_page"
@@ -347,7 +349,7 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES =
 				: [],
 		),
 	);
-export const ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS = Object.fromEntries([
+export const ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS = Object.fromEntries([
 	...BENCHMARK_KEYS.flatMap((key) =>
 		benchmarkSourceAdapters(key).flatMap((adapter) =>
 			adapter.kind === "artificial_analysis_leaderboard"
@@ -355,11 +357,11 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS = Object.fromEntries([
 				: [],
 		),
 	),
-	...Object.entries(ARTIFICIAL_ANALYSIS_AUXILIARY_EVALUATION_ALIASES).flatMap(
+	...Object.entries(ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES).flatMap(
 		([key, aliases]) => aliases.map((alias) => [alias, key] as const),
 	),
 ]) as Readonly<Record<string, string>>;
-export const ARTIFICIAL_ANALYSIS_EVALUATION_KEYS = BENCHMARK_KEYS.flatMap(
+export const ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap(
 	(key) => {
 		const hasLeaderboardAdapter = benchmarkSourceAdapters(key).some(
 			(adapter) => adapter.kind === "artificial_analysis_leaderboard",
@@ -367,19 +369,19 @@ export const ARTIFICIAL_ANALYSIS_EVALUATION_KEYS = BENCHMARK_KEYS.flatMap(
 		return [
 			...(hasLeaderboardAdapter ? [key] : []),
 			...((
-				ARTIFICIAL_ANALYSIS_AUXILIARY_KEYS_AFTER as Partial<
+				ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER as Partial<
 					Record<BenchmarkKey, readonly string[]>
 				>
 			)[key] ?? []),
 		];
 	},
 );
-export const MODEL_ATLAS_EVALUATION_KEYS = BENCHMARK_KEYS.flatMap((key) => [
-	...(BENCHMARK_CATALOG[key].persistence.location.kind === "evaluation"
+export const MODEL_ATLAS_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap((key) => [
+	...(BENCHMARK_CATALOG[key].persistence.location.kind === "benchmark"
 		? [key]
 		: []),
 	...((
-		MODEL_ATLAS_AUXILIARY_KEYS_AFTER as Partial<
+		MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER as Partial<
 			Record<BenchmarkKey, readonly string[]>
 		>
 	)[key] ?? []),

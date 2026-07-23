@@ -1,10 +1,10 @@
 /** Verify cached source preservation merges equivalent live rows without duplicating model identities. */
 
 import assert from "node:assert/strict";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
-	artificialAnalysisEvaluationResourceSourceKey,
+	artificialAnalysisBenchmarkResourceSourceKey,
 	mergeArtificialAnalysisRow,
 } from "../src/model-atlas/ingest/source-snapshots/artificial-analysis";
 import {
@@ -196,7 +196,7 @@ assert.equal(
 const effortResourceRow = (
 	reasoningEffort: string,
 	secondsPerTask: number,
-): ArtificialAnalysisEvaluationResourceRow => ({
+): ArtificialAnalysisBenchmarkResourceRow => ({
 	benchmark_key: "terminalbench_v21",
 	source_url: "https://example.com/terminalbench",
 	model_id: "openai/gpt-test",
@@ -222,7 +222,7 @@ const refreshedEffortResources = [effortResourceRow("high", 90)];
 const preservedEffortResources = mergeCachedSourceRows(
 	cachedEffortResources,
 	refreshedEffortResources,
-	artificialAnalysisEvaluationResourceSourceKey,
+	artificialAnalysisBenchmarkResourceSourceKey,
 );
 assert.deepEqual(
 	preservedEffortResources.map((row) => [

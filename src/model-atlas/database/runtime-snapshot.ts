@@ -1,13 +1,13 @@
 /** Runtime snapshot loading reads and refreshes Cloudflare D1 without a SQLite fallback. */
 
-import { buildCurrentLlmStatsMetadata } from "../stats/payload/metadata";
-import type { LlmStatsPayload } from "../stats/types";
+import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
+import type { ModelAtlasPayload } from "../stats/types";
 import { d1Configured, missingD1Environment, readD1Payload } from "./d1";
 import { publishD1Snapshot } from "./d1-publish";
 
 type SnapshotReadState = {
-	readInFlight: Promise<LlmStatsPayload | null> | null;
-	cachedPayload: LlmStatsPayload | null;
+	readInFlight: Promise<ModelAtlasPayload | null> | null;
+	cachedPayload: ModelAtlasPayload | null;
 	cacheExpiresAt: number;
 };
 
@@ -33,7 +33,7 @@ export function snapshotRuntime(): SnapshotRuntime {
 }
 
 /** Collapse concurrent reads and keep a short in-memory result for repeated server renders. */
-export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | null> {
+export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload | null> {
 	const state = getSnapshotReadState();
 	if (state.cachedPayload != null && Date.now() < state.cacheExpiresAt) {
 		return state.cachedPayload;
@@ -45,7 +45,7 @@ export async function readDisplaySnapshotPayload(): Promise<LlmStatsPayload | nu
 }
 
 /** Display reads never trigger writes; refresh is owned by the authenticated refresh route. */
-async function readDisplayPayloadUncached(): Promise<LlmStatsPayload | null> {
+async function readDisplayPayloadUncached(): Promise<ModelAtlasPayload | null> {
 	const runtime = snapshotRuntime();
 	if (!runtime.requiresD1 && runtime.remoteSnapshotUrl) {
 		const payload = await fetchRemoteSnapshot(runtime.remoteSnapshotUrl).catch(
@@ -62,7 +62,7 @@ async function readDisplayPayloadUncached(): Promise<LlmStatsPayload | null> {
 	return payload;
 }
 
-function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
+function cacheDisplayPayload(payload: ModelAtlasPayload | null): void {
 	if (payload == null) {
 		return;
 	}
@@ -74,7 +74,7 @@ function cacheDisplayPayload(payload: LlmStatsPayload | null): void {
 /** Refreshes the runtime D1 snapshot directly. */
 export async function refreshStoredSnapshot(
 	runtime = snapshotRuntime(),
-): Promise<LlmStatsPayload> {
+): Promise<ModelAtlasPayload> {
 	assertD1Configured(runtime);
 	const { payload } = await publishD1Snapshot();
 	return withCurrentMetadata(payload);
@@ -98,7 +98,7 @@ function getSnapshotReadState(): SnapshotReadState {
 	return snapshotReadState.__modelAtlasSnapshotReadState;
 }
 
-async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
+async function fetchRemoteSnapshot(url: string): Promise<ModelAtlasPayload> {
 	const response = await fetch(url, {
 		cache: "no-store",
 	});
@@ -111,10 +111,10 @@ async function fetchRemoteSnapshot(url: string): Promise<LlmStatsPayload> {
 }
 
 /** Keep cached payload rows, but rebuild metadata from current code-owned benchmark and scoring policy. */
-function withCurrentMetadata(payload: LlmStatsPayload): LlmStatsPayload {
+function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
 	return {
 		...payload,
-		metadata: buildCurrentLlmStatsMetadata({
+		metadata: buildCurrentModelAtlasMetadata({
 			models: payload.models,
 			healthModels: payload.models,
 			artificialAnalysis: payload.metadata?.artificial_analysis,

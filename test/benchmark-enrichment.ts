@@ -1,4 +1,4 @@
-/** Verify shared benchmark enrichment maps source rows into evaluations and scoring sources. */
+/** Verify shared benchmark enrichment maps source rows into benchmarks and scoring sources. */
 
 import assert from "node:assert/strict";
 import {
@@ -7,7 +7,7 @@ import {
 } from "../src/model-atlas/benchmarks/observation";
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/agent-arena";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/ale-bench";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vals/harvey-lab";
@@ -128,7 +128,7 @@ const vendingBench2Row: VendingBench2ModelScoreRow = {
 	final_balance_usd: 9_000,
 	daily_balance_usd: [500, 9_000],
 };
-const terminalBenchResourceRow: ArtificialAnalysisEvaluationResourceRow = {
+const terminalBenchResourceRow: ArtificialAnalysisBenchmarkResourceRow = {
 	benchmark_key: "terminalbench_v21",
 	source_url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	model_id: "test/example-model",
@@ -163,7 +163,7 @@ const artificialAnalysisHleResourceRow = {
 	output_tokens_per_task: 100,
 	answer_tokens_per_task: 40,
 	reasoning_tokens_per_task: 60,
-} satisfies ArtificialAnalysisEvaluationResourceRow;
+} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const briefcaseResourceRow = {
 	benchmark_key: "briefcase",
 	source_url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
@@ -181,7 +181,7 @@ const briefcaseResourceRow = {
 	output_tokens_per_task: 200,
 	answer_tokens_per_task: 80,
 	reasoning_tokens_per_task: 120,
-} satisfies ArtificialAnalysisEvaluationResourceRow;
+} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const automationBenchResourceRow = {
 	benchmark_key: "automation_bench",
 	source_url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
@@ -199,7 +199,7 @@ const automationBenchResourceRow = {
 	output_tokens_per_task: 100,
 	answer_tokens_per_task: 60,
 	reasoning_tokens_per_task: 40,
-} satisfies ArtificialAnalysisEvaluationResourceRow;
+} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const harveyLabRow = {
 	task: "overall",
 	task_label: "Overall",
@@ -239,7 +239,7 @@ const itbenchResourceRow = {
 	output_tokens_per_task: 200,
 	answer_tokens_per_task: 80,
 	reasoning_tokens_per_task: 120,
-} satisfies ArtificialAnalysisEvaluationResourceRow;
+} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const terminalBenchRow = {
 	task: "overall" as const,
 	task_label: "Overall",
@@ -282,7 +282,7 @@ const chartographyRow = {
 	canonical_value: 0.47,
 } satisfies BenchmarkObservationRow;
 
-const resourceRowsByBenchmark = new Map([
+const resourceLookup = new Map([
 	["briefcase", new Map([["example-model", briefcaseResourceRow]])],
 	[
 		"automation_bench",
@@ -293,9 +293,9 @@ const resourceRowsByBenchmark = new Map([
 	["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
 ]);
 const lookups = {
-	artificialAnalysisEvaluationResources: {
-		observationByModelName: resourceRowsByBenchmark,
-		defaultEffortByModelName: resourceRowsByBenchmark,
+	artificialAnalysisBenchmarkResources: {
+		observationLookup: resourceLookup,
+		defaultEffortLookup: resourceLookup,
 	},
 	agentArena: {
 		rowsByModelName: new Map([["example-model", agentArenaRow]]),
@@ -375,7 +375,7 @@ const observationEnrichment = enrichBenchmarkObservation(
 		terminalbench_v21: 0.82,
 	},
 );
-assert.deepEqual(observationEnrichment.evaluations, {
+assert.deepEqual(observationEnrichment.benchmarks, {
 	ale_bench: 700,
 	automation_bench: 0.68,
 	briefcase: 0.5,
@@ -384,11 +384,11 @@ assert.deepEqual(observationEnrichment.evaluations, {
 	terminalbench_v21: 0.82,
 });
 assert.equal(
-	(observationEnrichment.evaluations as Record<string, unknown>).deep_swe,
+	(observationEnrichment.benchmarks as Record<string, unknown>).deep_swe,
 	undefined,
 );
 assert.equal(
-	(observationEnrichment.evaluations as Record<string, unknown>).cursorbench,
+	(observationEnrichment.benchmarks as Record<string, unknown>).cursorbench,
 	undefined,
 );
 
@@ -397,7 +397,7 @@ const enrichment = enrichBenchmarkAggregate(["Example Model"], lookups, {
 	terminalbench_v21: 0.82,
 });
 
-assert.deepEqual(enrichment.evaluations, {
+assert.deepEqual(enrichment.benchmarks, {
 	agent_arena: 0.14,
 	ale_bench: 700,
 	automation_bench: 0.68,
@@ -448,7 +448,7 @@ const effortQualifiedAggregate = enrichBenchmarkAggregate(
 	{},
 	"max",
 );
-assert.deepEqual(effortQualifiedAggregate.evaluations, {
+assert.deepEqual(effortQualifiedAggregate.benchmarks, {
 	agent_arena: 0.14,
 	chartography: 0.47,
 	legal_research: 0.61,
@@ -529,7 +529,7 @@ const variantAutomationBenchResourceRow = {
 	score: 0.61,
 	cost_per_task_usd: 0.04,
 	seconds_per_task: 6,
-} satisfies ArtificialAnalysisEvaluationResourceRow;
+} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
 	enrichModelRowsWithBenchmarks(
 		[
@@ -538,7 +538,7 @@ const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
 				name: "Example Model",
 				artificial_analysis_id: "test/example-model-medium",
 				reasoning_effort: "medium",
-				evaluations: {
+				benchmarks: {
 					automation_bench: variantAutomationBenchResourceRow.score,
 				},
 				scoring_sources: {
@@ -550,13 +550,13 @@ const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
 				name: "Example Model",
 				artificial_analysis_id: "test/example-model",
 				reasoning_effort: "max",
-				evaluations: {},
+				benchmarks: {},
 			},
 			{
 				id: "test/example-model-fast",
 				name: "Example Model (Fast)",
 				reasoning_effort: null,
-				evaluations: {},
+				benchmarks: {},
 			},
 		],
 		lookups,
@@ -566,7 +566,7 @@ assert.ok(
 	"benchmark enrichment must preserve the input observation",
 );
 assert.equal(
-	(supplementedObservation.evaluations as Record<string, unknown>)
+	(supplementedObservation.benchmarks as Record<string, unknown>)
 		.automation_bench,
 	variantAutomationBenchResourceRow.score,
 	"aggregate benchmarks must not overwrite an effort observation's benchmark value",
@@ -574,25 +574,25 @@ assert.equal(
 assert.equal(
 	(
 		(supplementedObservation.scoring_sources as Record<string, unknown>)
-			.automation_bench as ArtificialAnalysisEvaluationResourceRow
+			.automation_bench as ArtificialAnalysisBenchmarkResourceRow
 	).cost_per_task_usd,
 	variantAutomationBenchResourceRow.cost_per_task_usd,
 	"aggregate benchmarks must not overwrite effort-specific resources",
 );
 assert.equal(
-	(supplementedObservation.evaluations as Record<string, unknown>).cursorbench,
+	(supplementedObservation.benchmarks as Record<string, unknown>).cursorbench,
 	undefined,
 	"model-level benchmarks should not be copied onto lower effort variants",
 );
 assert.ok(supplementedDefault, "expected the default-effort observation");
 assert.equal(
-	(supplementedDefault.evaluations as Record<string, unknown>).cursorbench,
+	(supplementedDefault.benchmarks as Record<string, unknown>).cursorbench,
 	cursorBenchRow.score,
 	"model-level benchmarks should belong to the highest default effort",
 );
 assert.ok(supplementedFastRoute, "expected the catalog-only fast route");
 assert.equal(
-	(supplementedFastRoute.evaluations as Record<string, unknown>).cursorbench,
+	(supplementedFastRoute.benchmarks as Record<string, unknown>).cursorbench,
 	undefined,
 	"catalog-only routes should not outrank matched effort observations",
 );
@@ -650,7 +650,7 @@ const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
 			name: "Example Model",
 			artificial_analysis_id: "test/example-model",
 			reasoning_effort: null,
-			evaluations: { chartography: 0.295 },
+			benchmarks: { chartography: 0.295 },
 		},
 	],
 	{
@@ -661,7 +661,7 @@ const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
 	},
 );
 assert.equal(
-	(defaultOnlyModel?.evaluations as Record<string, unknown>).chartography,
+	(defaultOnlyModel?.benchmarks as Record<string, unknown>).chartography,
 	0.348,
 	"a source max effort should become the sole Atlas row's default",
 );
