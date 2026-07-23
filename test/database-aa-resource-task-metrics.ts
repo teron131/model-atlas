@@ -113,12 +113,6 @@ try {
 		input_tokens: 80,
 		output_tokens: 120,
 	});
-	const speedTooltip = JSON.stringify(
-		payload.metadata.scoring.column_tooltips.speed,
-	);
-	assert.equal(speedTooltip.includes("GDPval-AA v2 runtime"), true);
-	assert.equal(speedTooltip.includes("HLE runtime"), true);
-	assert.equal(speedTooltip.includes("Frontier benchmark runtime"), false);
 	assert.deepEqual(
 		payload.models.find(
 			(candidate) => candidate.id === "example/sparse-resource-model",

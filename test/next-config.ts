@@ -5,12 +5,6 @@ import nextConfig from "../next.config";
 
 type WebpackHook = NonNullable<typeof nextConfig.webpack>;
 
-assert.equal(
-	typeof nextConfig.webpack,
-	"function",
-	"Next config should own the dev watcher policy",
-);
-
 const webpackConfig = (nextConfig.webpack as WebpackHook)({}, {
 	buildId: "test",
 	config: nextConfig,

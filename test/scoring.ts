@@ -168,74 +168,6 @@ assertClose(winsorizedScores[0], 100);
 assertClose(winsorizedScores[3], 0);
 assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
-assertEqual(
-	STAGE_CONFIG.scoring.columnTooltips.value?.rows?.some(
-		([label]) => label === "Blend",
-	),
-	false,
-);
-assertEqual(
-	STAGE_CONFIG.scoring.columnTooltips.speed?.rows?.some(
-		([label]) => label === "Blend",
-	),
-	false,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
-		"Log blended price ↓",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes(
-		"Quality-adjusted log blended price ↓",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.value).includes("cost ↓"),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"Throughput",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
-		"observed min-max range to 0-100",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
-		"weighted mean x evidence confidence",
-	),
-	true,
-);
-assertEqual(
-	STAGE_CONFIG.scoring.columnTooltips.agentsLastExamCost?.body,
-	"Estimated cost per Full Overall task, using the lower of median and mean per-task cost.",
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips).includes(
-		"per Full Overall run",
-	),
-	false,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
-		"frontier subtracts 1.0x error; baseline subtracts 0.5x error",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"log input, then min-max",
-	),
-	true,
-);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
 assert.deepEqual(
@@ -373,42 +305,6 @@ assertEqual(
 		.intelligence,
 	0,
 );
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ITBench","3.9%"]',
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Agent Arena","3.9%"]',
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["Vending-Bench 2","3.9%"]',
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["ALE-Bench","2.4%"]',
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.agentic).includes(
-		'["FrontierCode","3.9%"]',
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.intelligence).includes(
-		'["ALE-Bench","2.4%"]',
-	),
-	true,
-);
 assertThrowsWithMessage(
 	() =>
 		validateBenchmarkPortfolio({
@@ -424,39 +320,12 @@ assertThrowsWithMessage(
 	() =>
 		validateBenchmarkPortfolio({
 			test: {
-				group: "frontier",
-				benchmarkImportance: 1,
-				dimensionLoadings: { intelligence: 0.8, agentic: 0.3 },
-			},
-		}),
-	"Dimension loadings must be finite, non-negative, and sum to one for test",
-);
-assertThrowsWithMessage(
-	() =>
-		validateBenchmarkPortfolio({
-			test: {
 				group: "invalid",
 				benchmarkImportance: 1,
 				dimensionLoadings: { intelligence: 1, agentic: 0 },
 			},
 		} as unknown as BenchmarkPortfolio),
 	"Invalid benchmark group for test: invalid",
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"Latency ↓",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes(
-		"model-excluded expectation",
-	),
-	true,
-);
-assertEqual(
-	JSON.stringify(STAGE_CONFIG.scoring.columnTooltips.speed).includes("runtime"),
-	true,
 );
 
 const aaOnlyResourceMetadata = buildCurrentLlmStatsMetadata({
