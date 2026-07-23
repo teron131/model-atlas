@@ -1,5 +1,6 @@
 /** Final component scoring for public Model Atlas model rows. */
 
+import type { BenchmarkResourceQualityCoordinate } from "../../benchmarks/factory";
 import type { ScoringConfig } from "../../config/stage";
 import {
 	log10OnePlusPositive,
@@ -56,49 +57,6 @@ function meanSignal(
 	return weightedMeanOfFinite(signals);
 }
 
-function hasPositiveResourceMetric(
-	model: ModelAtlasModelCandidate,
-	key: string,
-	scoringConfig: ScoringConfig,
-): boolean {
-	const task = resourceTaskMetric(model, key, scoringConfig);
-	return (
-		positiveFiniteNumber(task?.cost) != null ||
-		effectiveTaskSeconds(model, task) != null
-	);
-}
-
-/** A benchmark contributes resource scoring when any scored row carries matching task telemetry. */
-function hasBenchmarkResourceMetric(
-	models: ModelAtlasModelCandidate[],
-	key: string,
-	scoringConfig: ScoringConfig,
-): boolean {
-	return models.some(
-		(model) =>
-			benchmarkMetricValue(model, key) != null &&
-			hasPositiveResourceMetric(model, key, scoringConfig),
-	);
-}
-
-function activeResourceBenchmarkKeys(
-	models: ModelAtlasModelCandidate[],
-	scoringConfig: ScoringConfig,
-): string[] {
-	const benchmarkKeys = new Set<string>();
-	for (const model of models) {
-		for (const key of Object.keys(model.benchmarks ?? {})) {
-			benchmarkKeys.add(key);
-		}
-		for (const key of Object.keys(model.intelligence ?? {})) {
-			benchmarkKeys.add(key);
-		}
-	}
-	return [...benchmarkKeys]
-		.filter((key) => hasBenchmarkResourceMetric(models, key, scoringConfig))
-		.sort((left, right) => left.localeCompare(right));
-}
-
 function resourceTaskMetricKey(
 	key: string,
 	scoringConfig: ScoringConfig,
@@ -148,19 +106,27 @@ type TaskResourceAmount = (
 	scoringConfig: ScoringConfig,
 ) => number | null;
 
-function activeResourceKeys(
+function activeResourceBenchmarks(
 	models: ModelAtlasModelCandidate[],
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
-): string[] {
-	return activeResourceBenchmarkKeys(models, scoringConfig).filter((key) =>
-		models.some((model) => {
-			return (
-				benchmarkMetricValue(model, key) != null &&
-				resourceAmountFor(model, key, scoringConfig) != null
-			);
-		}),
-	);
+): Array<{
+	key: string;
+	qualityCoordinate: BenchmarkResourceQualityCoordinate;
+}> {
+	return Object.entries(scoringConfig.benchmarkPortfolio)
+		.flatMap(([key, entry]) => {
+			const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
+			return qualityCoordinate != null &&
+				models.some(
+					(model) =>
+						benchmarkMetricValue(model, key) != null &&
+						resourceAmountFor(model, key, scoringConfig) != null,
+				)
+				? [{ key, qualityCoordinate }]
+				: [];
+		})
+		.sort((left, right) => left.key.localeCompare(right.key));
 }
 
 function resourceEfficiencyEvidence(
@@ -168,13 +134,13 @@ function resourceEfficiencyEvidence(
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
 ): ResourceEfficiencyEvidence {
-	const benchmarkKeys = activeResourceKeys(
+	const benchmarks = activeResourceBenchmarks(
 		models,
 		scoringConfig,
 		resourceAmountFor,
 	);
 	const signalsByModel = models.map(() => [] as number[]);
-	for (const key of benchmarkKeys) {
+	for (const { key, qualityCoordinate } of benchmarks) {
 		const scores = benchmarkResourceEfficiencyScores(
 			models,
 			models.map((model) => benchmarkMetricValue(model, key)),
@@ -182,6 +148,7 @@ function resourceEfficiencyEvidence(
 				const resourceAmount = resourceAmountFor(model, key, scoringConfig);
 				return resourceAmount == null ? null : Math.log(resourceAmount);
 			}),
+			qualityCoordinate,
 		);
 		for (const [modelIndex, score] of scores.entries()) {
 			if (score != null) {
@@ -190,7 +157,7 @@ function resourceEfficiencyEvidence(
 		}
 	}
 	return {
-		benchmarkKeys,
+		benchmarkKeys: benchmarks.map(({ key }) => key),
 		signalsByModel,
 	};
 }

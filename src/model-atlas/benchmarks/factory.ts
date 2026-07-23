@@ -70,6 +70,7 @@ export type BenchmarkGroup = "baseline" | "frontier";
 type BenchmarkMetricFormat = "percent" | "score" | "number" | "currency";
 export type BenchmarkSortDirection = "ascending" | "descending";
 export type BenchmarkDimension = "intelligence" | "agentic";
+export type BenchmarkResourceQualityCoordinate = "linear" | "logit";
 
 type BenchmarkDimensionLoadings = Readonly<Record<BenchmarkDimension, number>>;
 
@@ -77,6 +78,7 @@ export type BenchmarkResourcePolicy = {
 	source: "artificial_analysis" | "benchmark";
 	unit: "per_task" | "total";
 	tokenMeasure: "tokens" | "output_tokens";
+	qualityCoordinate: BenchmarkResourceQualityCoordinate;
 };
 
 export type BenchmarkSourceTransform =
@@ -237,6 +239,7 @@ export function defineBenchmarks<
 			},
 		]),
 	) as BenchmarkPortfolio;
+	validateBenchmarkPortfolio(portfolio);
 	return {
 		definitions,
 		scoredKeys: scoredEntries.map(([key]) => key),
@@ -285,6 +288,17 @@ export function validateBenchmarkPortfolio(
 	for (const [key, entry] of Object.entries(portfolio)) {
 		if (entry.group !== "baseline" && entry.group !== "frontier") {
 			throw new Error(`Invalid benchmark group for ${key}: ${entry.group}`);
+		}
+		const resourcePolicy = entry.resourcePolicy;
+		const qualityCoordinate = resourcePolicy?.qualityCoordinate;
+		if (
+			resourcePolicy != null &&
+			qualityCoordinate !== "linear" &&
+			qualityCoordinate !== "logit"
+		) {
+			throw new Error(
+				`Invalid resource quality coordinate for ${key}: ${qualityCoordinate}`,
+			);
 		}
 		validateBenchmarkWeight(key, entry);
 	}

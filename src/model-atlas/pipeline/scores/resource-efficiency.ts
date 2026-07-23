@@ -1,6 +1,7 @@
 /** Quality-local and model-balanced resource-efficiency scoring. */
 
 import { calibrationObservations } from "../../benchmarks/calibration-population";
+import type { BenchmarkResourceQualityCoordinate } from "../../benchmarks/factory";
 import {
 	effectiveSampleSize,
 	gaussianWeight,
@@ -10,13 +11,13 @@ import {
 	weightedQuantile,
 } from "../../numeric";
 import {
-	logitBenchmarkScore,
+	logitUnitScore,
 	weightedRobustDeviation,
 	winsorizedMinMaxScores,
 } from "./normalization";
 
 const RESOURCE_QUALITY_SIGMA = 0.5;
-const MIN_BENCHMARK_DEVIATION = 0.35;
+const MIN_QUALITY_DEVIATION = 0.35;
 const RESOURCE_TAIL_SHARE = 0.025;
 const FULL_RESOURCE_SUPPORT = 3;
 
@@ -73,13 +74,13 @@ export function qualityLocalResourceScores<
 	const benchmarkQualityMedian = weightedQuantile(qualityObservations, 0.5);
 	const benchmarkQualityDeviation = weightedRobustDeviation(
 		qualityObservations,
-		MIN_BENCHMARK_DEVIATION,
+		MIN_QUALITY_DEVIATION,
 	);
 	if (benchmarkQualityMedian == null || benchmarkQualityDeviation == null) {
 		return models.map(() => null);
 	}
 	const points = qualityObservations.flatMap(
-		({ modelKey, item: model, value: logitQuality, weight }) => {
+		({ modelKey, item: model, value: quality, weight }) => {
 			const modelIndex = modelIndexByModel.get(model);
 			const resourceSignal =
 				modelIndex == null ? null : (resourceSignals[modelIndex] ?? null);
@@ -91,7 +92,7 @@ export function qualityLocalResourceScores<
 							modelKey,
 							calibrationWeight: weight,
 							qualityDeviation:
-								(logitQuality - benchmarkQualityMedian) /
+								(quality - benchmarkQualityMedian) /
 								benchmarkQualityDeviation,
 							resourceSignal,
 						},
@@ -199,11 +200,14 @@ export function benchmarkResourceEfficiencyScores<
 	models: readonly T[],
 	benchmarkScores: readonly (number | null)[],
 	resourceSignals: readonly (number | null)[],
+	qualityCoordinate: BenchmarkResourceQualityCoordinate,
 ): Array<number | null> {
 	return qualityLocalResourceScores(
 		models,
 		benchmarkScores.map((score) =>
-			score == null ? null : logitBenchmarkScore(score),
+			score == null || qualityCoordinate === "linear"
+				? score
+				: logitUnitScore(score),
 		),
 		resourceSignals,
 	);

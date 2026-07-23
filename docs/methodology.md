@@ -285,20 +285,32 @@ Task resources can come from direct per-benchmark telemetry or from the AA per-t
 
 ### Quality Neighborhood
 
-For each active benchmark resource source, the benchmark score first becomes a local quality coordinate. The score $p_{m,b}$ is model $m$'s benchmark score for benchmark $b$ on the 0-1 scale. Percent-style source scores use $p_{m,b}=x_{m,b}/100$; already-normalized source scores use $p_{m,b}=x_{m,b}$. Before taking the logit, values are clamped to $[0.001,0.999]$ so exact endpoints remain finite.
+For each active benchmark resource source, benchmark metadata declares how its score becomes a local quality coordinate. Let $x_{m,b}$ be model $m$'s stored benchmark score for benchmark $b$:
 
 $$
-Z_{m,b}=\frac{\operatorname{logit}(p_{m,b})-\operatorname{weightedMedian}_j(\operatorname{logit}(p_{j,b}),a_{j,b})}{\operatorname{deviation}_b}
+q_{m,b}=T_b(x_{m,b}),\qquad
+T_b(x)=
+\begin{cases}
+x & \text{linear}\\
+\operatorname{logit}(x) & \text{logit}
+\end{cases}
 $$
 
-The logit transform puts benchmark percentages on an odds-like scale before measuring "similar quality." A one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction. Using logit keeps resource comparisons local to models that are genuinely close in benchmark difficulty, especially on hard or high-scoring benchmarks.
+`linear` means that no nonlinear benchmark-specific transform is applied: the stored score and its gaps pass directly into the shared neighborhood standardization. It is appropriate for partial-credit, performance, Elo-derived, rubric, composite, human-baselined, and average-precision metrics that do not have a direct remaining-error interpretation.
+
+`logit` is reserved for pass rates, accuracies, completion rates, and other probability-like metrics whose endpoints give remaining error a meaningful interpretation. Logit-configured values must be finite and lie in $[0,1]$; exact endpoints are clamped to $[0.001,0.999]$ only when calculating finite log odds.
+
+For logit-configured benchmarks, a one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction.
 
 ![The logit transform expands an equal one-percentage-point score change near the benchmark ceiling.](assets/methodology/logit-quality.svg)
 
-The denominator is a robust benchmark-local spread on the same logit scale:
+Either coordinate is then median-centered and divided by a robust benchmark-local spread:
 
 $$
-\operatorname{deviation}_b=\max\left(\frac{Q^{a}_{75}(\{\operatorname{logit}(p_{j,b})\})-Q^{a}_{25}(\{\operatorname{logit}(p_{j,b})\})}{1.349},0.35\right)
+\begin{aligned}
+\operatorname{deviation}_b&=\max\left(\frac{Q^{a}_{75}(\{q_{j,b}\})-Q^{a}_{25}(\{q_{j,b}\})}{1.349},0.35\right)\\
+Z_{m,b}&=\frac{q_{m,b}-\operatorname{weightedMedian}_j(q_{j,b},a_{j,b})}{\operatorname{deviation}_b}
+\end{aligned}
 $$
 
 The $1.349$ factor converts interquartile range into a standard-deviation-like spread for a roughly normal distribution, and the $0.35$ floor prevents a nearly tied benchmark from making small quality differences dominate the neighborhood comparison.
@@ -414,6 +426,6 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 | Frontier / baseline error penalty | $1.0e_b$ / $0.5e_b$ | Makes missing frontier evidence more conservative without changing observed benchmark weight. |
 | Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
-| Minimum logit-scale deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences. |
+| Minimum quality-coordinate deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences after their declared transform. |
 | Full peer support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
 | Input-token friction | 0.0001 seconds/token | Represents prefill cost when comparable model-specific prefill throughput is unavailable. |

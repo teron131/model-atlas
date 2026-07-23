@@ -178,6 +178,7 @@ try {
 			source: "benchmark",
 			unit: "per_task",
 			tokenMeasure: "tokens",
+			qualityCoordinate: "linear",
 		},
 	});
 	assert.equal(

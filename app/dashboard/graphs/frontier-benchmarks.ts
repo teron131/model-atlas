@@ -1,7 +1,6 @@
 /** Frontier Benchmarks chart data and axis helpers. */
 
 import { median } from "d3-array";
-import { BENCHMARK_RESOURCE_POLICIES } from "../../../src/model-atlas/benchmarks/catalog";
 import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type {
 	BenchmarkPortfolio,
@@ -158,11 +157,7 @@ export function frontierBenchmarkRows(
 			return frontierKeys.flatMap((benchmarkKey) => {
 				const score = toPercent(benchmarks[benchmarkKey]);
 				const resourcePolicy =
-					portfolio[benchmarkKey]?.resourcePolicy ??
-					BENCHMARK_RESOURCE_POLICIES[
-						benchmarkKey as keyof typeof BENCHMARK_RESOURCE_POLICIES
-					] ??
-					null;
+					portfolio[benchmarkKey]?.resourcePolicy ?? null;
 				const task = resourcePolicy == null ? null : taskMetrics[benchmarkKey];
 				const cost = finiteValue(task?.cost);
 				const seconds = finiteValue(task?.seconds);

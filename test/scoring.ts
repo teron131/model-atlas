@@ -27,10 +27,14 @@ import {
 import {
 	logInputMinMaxScores,
 	logitPercentageScore,
+	logitUnitScore,
 	minMaxScores,
 	winsorizedMinMaxScores,
 } from "../src/model-atlas/pipeline/scores/normalization";
-import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
+import {
+	benchmarkResourceEfficiencyScores,
+	qualityLocalResourceScores,
+} from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import { benchmarkMetricValue } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type {
@@ -158,6 +162,36 @@ assertClose(
 assertClose(effectiveSampleSize([1, 1, 1]), 3);
 assertClose(effectiveSampleSize([0.5, 0.5]), 2);
 assertEqual(logitPercentageScore(1.01) > logitPercentageScore(1), true);
+assertEqual(
+	logitUnitScore(0.96) - logitUnitScore(0.95) >
+		logitUnitScore(0.51) - logitUnitScore(0.5),
+	true,
+);
+assertThrowsWithMessage(
+	() => logitUnitScore(90),
+	"Logit quality coordinates require a finite 0-1 score, received 90",
+);
+const linearCoordinateModels = [
+	{ id: "test/linear-coordinate-a" },
+	{ id: "test/linear-coordinate-b" },
+	{ id: "test/linear-coordinate-c" },
+	{ id: "test/linear-coordinate-d" },
+];
+const linearCoordinates = [172.975, 400, 1_600, 2_176.875];
+const linearResourceSignals = [1, 2, 3, 4];
+assert.deepEqual(
+	benchmarkResourceEfficiencyScores(
+		linearCoordinateModels,
+		linearCoordinates,
+		linearResourceSignals,
+		"linear",
+	),
+	qualityLocalResourceScores(
+		linearCoordinateModels,
+		linearCoordinates,
+		linearResourceSignals,
+	),
+);
 const winsorizedScores = winsorizedMinMaxScores(
 	[1, 2, 3, 10],
 	[1, 2, 3, 10].map((value) => ({ value, weight: 1 })),
@@ -170,6 +204,32 @@ assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+const resourceQualityCoordinates = Object.fromEntries(
+	Object.entries(
+		STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio,
+	).flatMap(([key, policy]) =>
+		policy?.resourcePolicy == null
+			? []
+			: [[key, policy.resourcePolicy.qualityCoordinate]],
+	),
+);
+assert.deepEqual(resourceQualityCoordinates, {
+	agents_last_exam: "linear",
+	ale_bench: "linear",
+	apex_agents: "logit",
+	automation_bench: "logit",
+	briefcase: "linear",
+	critpt: "logit",
+	cursorbench: "linear",
+	deep_swe: "logit",
+	frontier_code: "linear",
+	gdpval_normalized: "linear",
+	harvey_lab: "logit",
+	hle: "logit",
+	itbench_sre: "linear",
+	tau_banking: "logit",
+	terminalbench_v21: "logit",
+});
 assert.deepEqual(
 	Object.fromEntries(
 		(
@@ -327,16 +387,33 @@ assertThrowsWithMessage(
 		} as unknown as BenchmarkPortfolio),
 	"Invalid benchmark group for test: invalid",
 );
+assertThrowsWithMessage(
+	() =>
+		validateBenchmarkPortfolio({
+			test: {
+				group: "frontier",
+				benchmarkImportance: 1,
+				dimensionLoadings: { intelligence: 1, agentic: 0 },
+				resourcePolicy: {
+					source: "benchmark",
+					unit: "per_task",
+					tokenMeasure: "tokens",
+					qualityCoordinate: "invalid",
+				},
+			},
+		} as unknown as BenchmarkPortfolio),
+	"Invalid resource quality coordinate for test: invalid",
+);
 
 const aaOnlyResourceMetadata = buildCurrentModelAtlasMetadata({
 	models: [
 		{
-			benchmarks: { hle: 90 },
+			benchmarks: { hle: 0.9 },
 		},
 	],
 	resourceModels: [
 		{
-			benchmarks: { hle: 90 },
+			benchmarks: { hle: 0.9 },
 			task_metrics: {
 				artificial_analysis: { cost: 0.1, seconds: 10 },
 			},
@@ -359,12 +436,12 @@ assertEqual(aaOnlyValueTooltip.includes("Frontier benchmark cost"), false);
 const mixedResourceMetadata = buildCurrentModelAtlasMetadata({
 	models: [
 		{
-			benchmarks: { hle: 90, deep_swe: 80 },
+			benchmarks: { hle: 0.9, deep_swe: 0.8 },
 		},
 	],
 	resourceModels: [
 		{
-			benchmarks: { hle: 90, deep_swe: 80 },
+			benchmarks: { hle: 0.9, deep_swe: 0.8 },
 			task_metrics: {
 				artificial_analysis: { cost: 0.1, seconds: 10 },
 				deep_swe: { cost: 0.2, seconds: 20 },
@@ -390,12 +467,12 @@ assertEqual(
 const tokenProxyResourceMetadata = buildCurrentModelAtlasMetadata({
 	models: [
 		{
-			benchmarks: { deep_swe: 80 },
+			benchmarks: { deep_swe: 0.8 },
 		},
 	],
 	resourceModels: [
 		{
-			benchmarks: { deep_swe: 80 },
+			benchmarks: { deep_swe: 0.8 },
 			speed: { throughput_tokens_per_second_median: 50 },
 			task_metrics: {
 				deep_swe: { cost: 0.2, output_tokens: 1_000 },
@@ -417,26 +494,26 @@ const broadAAResourceOnlyModels = attachFinalScores(
 		{
 			...modelCandidate({
 				id: "test/broad-aa-a",
-				gdpvalScore: 90,
+				gdpvalScore: 0.9,
 				artificialAnalysisCost: 0.1,
 				artificialAnalysisSeconds: 1,
 				throughputTokensPerSecond: 100,
 				latencySeconds: 1,
 				disableBaseCost: true,
 			}),
-			benchmarks: { gdpval_normalized: 90, hle: 90 },
+			benchmarks: { gdpval_normalized: 0.9, hle: 0.9 },
 		},
 		{
 			...modelCandidate({
 				id: "test/broad-aa-b",
-				gdpvalScore: 10,
+				gdpvalScore: 0.1,
 				artificialAnalysisCost: 10,
 				artificialAnalysisSeconds: 100,
 				throughputTokensPerSecond: 50,
 				latencySeconds: 2,
 				disableBaseCost: true,
 			}),
-			benchmarks: { gdpval_normalized: 10, hle: 10 },
+			benchmarks: { gdpval_normalized: 0.1, hle: 0.1 },
 		},
 	],
 	STAGE_CONFIG.scoring,
@@ -448,7 +525,7 @@ const tokenProxySpeedModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/token-proxy-fast",
-			deepSWEScore: 90,
+			deepSWEScore: 0.9,
 			deepSWECost: 1,
 			deepSWEOutputTokens: 1_000,
 			throughputTokensPerSecond: 100,
@@ -457,7 +534,7 @@ const tokenProxySpeedModels = attachFinalScores(
 		}),
 		modelCandidate({
 			id: "test/token-proxy-slow",
-			deepSWEScore: 80,
+			deepSWEScore: 0.8,
 			deepSWECost: 1,
 			deepSWEOutputTokens: 1_000,
 			throughputTokensPerSecond: 10,
@@ -708,7 +785,7 @@ const directResourceScoredModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/frontier-efficient",
-			deepSWEScore: 90,
+			deepSWEScore: 0.9,
 			deepSWECost: 0.1,
 			deepSWESeconds: 90,
 			throughputTokensPerSecond: 100,
@@ -716,7 +793,7 @@ const directResourceScoredModels = attachFinalScores(
 		}),
 		modelCandidate({
 			id: "test/frontier-middle",
-			deepSWEScore: 50,
+			deepSWEScore: 0.5,
 			deepSWECost: 0.5,
 			deepSWESeconds: 50,
 			throughputTokensPerSecond: 100,
@@ -724,7 +801,7 @@ const directResourceScoredModels = attachFinalScores(
 		}),
 		modelCandidate({
 			id: "test/frontier-fast",
-			deepSWEScore: 10,
+			deepSWEScore: 0.1,
 			deepSWECost: 0.9,
 			deepSWESeconds: 10,
 			throughputTokensPerSecond: 100,
@@ -744,25 +821,25 @@ const isolatedQualityResourceModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/ordinary-quality-a",
-			deepSWEScore: 10,
+			deepSWEScore: 0.1,
 			deepSWECost: 1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/ordinary-quality-b",
-			deepSWEScore: 20,
+			deepSWEScore: 0.2,
 			deepSWECost: 1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/ordinary-quality-c",
-			deepSWEScore: 30,
+			deepSWEScore: 0.3,
 			deepSWECost: 1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/isolated-expensive-frontier",
-			deepSWEScore: 99,
+			deepSWEScore: 0.99,
 			deepSWECost: 1_000,
 			disableBaseCost: true,
 		}),
@@ -781,8 +858,9 @@ const flatResidualScores = benchmarkResourceEfficiencyScores(
 		{ id: "test/flat-resource-c" },
 		{ id: "test/flat-resource-d" },
 	],
-	[50, 50, 50, 50],
+	[0.5, 0.5, 0.5, 0.5],
 	[1, 1, 1, 1],
+	"logit",
 );
 for (const score of flatResidualScores) {
 	assertClose(score, 50);
@@ -794,8 +872,9 @@ const orderedHybridResourceScores = benchmarkResourceEfficiencyScores(
 		{ id: "test/ordered-resource-c" },
 		{ id: "test/ordered-resource-d" },
 	],
-	[50, 50, 50, 50],
+	[0.5, 0.5, 0.5, 0.5],
 	[1, 2, 3, 4],
+	"logit",
 );
 assertClose(orderedHybridResourceScores[0], 100);
 assertClose(orderedHybridResourceScores[3], 12.5);
@@ -804,19 +883,19 @@ const valueScoredModels = attachFinalScores(
 	[
 		modelCandidate({
 			id: "test/cost-efficiency-cheap",
-			deepSWEScore: 50,
+			deepSWEScore: 0.5,
 			deepSWECost: 0.1,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/cost-efficiency-middle",
-			deepSWEScore: 50,
+			deepSWEScore: 0.5,
 			deepSWECost: 0.5,
 			disableBaseCost: true,
 		}),
 		modelCandidate({
 			id: "test/cost-efficiency-expensive",
-			deepSWEScore: 50,
+			deepSWEScore: 0.5,
 			deepSWECost: 0.9,
 			disableBaseCost: true,
 		}),
@@ -838,6 +917,7 @@ const scaleNormalizedResourceConfig = {
 				source: "benchmark",
 				unit: "per_task",
 				tokenMeasure: "tokens",
+				qualityCoordinate: "logit",
 			},
 		},
 		expensive_frontier: {
@@ -848,6 +928,7 @@ const scaleNormalizedResourceConfig = {
 				source: "benchmark",
 				unit: "per_task",
 				tokenMeasure: "tokens",
+				qualityCoordinate: "logit",
 			},
 		},
 	},
@@ -892,9 +973,9 @@ const sparseResourceCoverageModels = attachFinalScores(
 				disableBaseCost: true,
 			}),
 			benchmarks: {
-				gdpval_normalized: 50,
-				hle: 50,
-				deep_swe: 50,
+				gdpval_normalized: 0.5,
+				hle: 0.5,
+				deep_swe: 0.5,
 			},
 			task_metrics: {
 				gdpval_normalized: { seconds: 10, cost: 1 },
@@ -910,7 +991,7 @@ const sparseResourceCoverageModels = attachFinalScores(
 				disableBaseCost: true,
 			}),
 			benchmarks: {
-				gdpval_normalized: 100,
+				gdpval_normalized: 1,
 			},
 			task_metrics: {
 				gdpval_normalized: { seconds: 1, cost: 0.01 },
@@ -1581,7 +1662,7 @@ function resourceModel(
 			id: `test/resource-model-${modelKey}`,
 			intelligenceScore: 50,
 			agenticScore: 50,
-			deepSWEScore: 50,
+			deepSWEScore: 0.5,
 			deepSWECost: resourceScale,
 			deepSWESeconds: resourceScale * 10,
 			throughputTokensPerSecond: 100,

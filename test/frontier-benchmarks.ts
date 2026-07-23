@@ -28,6 +28,7 @@ const portfolio = {
 			source: "benchmark",
 			unit: "per_task",
 			tokenMeasure: "tokens",
+			qualityCoordinate: "logit",
 		},
 	},
 	gpqa: {
@@ -76,6 +77,20 @@ assert.deepEqual(
 	],
 	"frontier rows should normalize percentages and attach resource metrics",
 );
+const scoreOnlyPortfolio = {
+	deep_swe: {
+		group: "frontier",
+		benchmarkImportance: 1,
+		dimensionLoadings: { intelligence: 1, agentic: 0 },
+	},
+} satisfies BenchmarkPortfolio;
+const scoreOnlyRow = frontierBenchmarkRows([efficient], scoreOnlyPortfolio)[0];
+assert.ok(scoreOnlyRow);
+assert.equal(
+	scoreOnlyRow.cost,
+	null,
+	"resource telemetry should require the policy supplied by the active portfolio",
+);
 
 const costAxis = frontierBenchmarkAxisConfigFor("cost", false);
 const summaryRows = frontierBenchmarkSummaryRows(rows, costAxis);
@@ -111,7 +126,6 @@ assert.equal(
 	30,
 	"bubble size should use a 50/50 blend of Value and Speed",
 );
-
 const axisOptions = frontierBenchmarkAxisOptions(rows, false);
 assert.deepEqual(
 	axisOptions.map((option) => [option.key, option.label]),
@@ -164,6 +178,7 @@ const totalPortfolio = {
 			source: "benchmark",
 			unit: "total",
 			tokenMeasure: "tokens",
+			qualityCoordinate: "linear",
 		},
 	},
 } satisfies BenchmarkPortfolio;
