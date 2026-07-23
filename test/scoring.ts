@@ -34,6 +34,7 @@ import {
 } from "../src/model-atlas/pipeline/scores/normalization";
 import {
 	benchmarkResourceEfficiencyScores,
+	modelBalancedMinMaxScores,
 	qualityLocalResourceScores,
 } from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import { benchmarkMetricValue } from "../src/model-atlas/pipeline/scores/resource-metrics";
@@ -654,6 +655,64 @@ const absoluteGapValueModels = attachFinalScores(
 	STAGE_CONFIG.scoring,
 );
 assertClose(absoluteGapValueModels[1]?.scores.value_score, 54.6345);
+
+const aggregateQualityPrices = [30, 10, 20, 15, 5, 12, 8, 100];
+const aggregateQualityModels = gapExampleValues.map((quality, index) => ({
+	...modelCandidate({
+		id: `test/aggregate-quality-${quality}`,
+		intelligenceScore: quality,
+		agenticScore: quality,
+		disableBaseCost: true,
+	}),
+	cost: { blended_price: aggregateQualityPrices[index] ?? null },
+}));
+const aggregateQualityPriceSignals = aggregateQualityModels.map((model) =>
+	Math.log10(1 + (model.cost.blended_price ?? 0)),
+);
+const aggregateQualityRawPriceScores = modelBalancedMinMaxScores(
+	aggregateQualityModels,
+	aggregateQualityPriceSignals,
+	"lower",
+);
+const aggregateQualityLinearScores = qualityLocalResourceScores(
+	aggregateQualityModels,
+	aggregateQualityModels.map(
+		(model) => model.component_scores?.intelligence_score ?? null,
+	),
+	aggregateQualityPriceSignals,
+);
+const aggregateQualityLogitScores = qualityLocalResourceScores(
+	aggregateQualityModels,
+	aggregateQualityModels.map((model) => {
+		const score = model.component_scores?.intelligence_score;
+		return score == null ? null : logitPercentageScore(score);
+	}),
+	aggregateQualityPriceSignals,
+);
+const aggregateQualityScoredModels = attachFinalScores(
+	aggregateQualityModels,
+	STAGE_CONFIG.scoring,
+);
+const aggregateQualityTestIndex = 3;
+const aggregateQualityValueScore =
+	aggregateQualityScoredModels[aggregateQualityTestIndex]?.scores.value_score;
+const aggregateQualityRawPriceScore =
+	aggregateQualityRawPriceScores[aggregateQualityTestIndex] ?? 0;
+assertClose(
+	aggregateQualityValueScore,
+	(aggregateQualityRawPriceScore +
+		(aggregateQualityLinearScores[aggregateQualityTestIndex] ?? 0)) /
+		2,
+);
+assertEqual(
+	Math.abs(
+		(aggregateQualityValueScore ?? 0) -
+			(aggregateQualityRawPriceScore +
+				(aggregateQualityLogitScores[aggregateQualityTestIndex] ?? 0)) /
+				2,
+	) > 0.01,
+	true,
+);
 
 const fractionalBenchmarkConfig = {
 	...STAGE_CONFIG.scoring,
