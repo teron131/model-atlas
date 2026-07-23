@@ -2,33 +2,27 @@
 
 .page {
 	--dashboard-frame-width: 1440px;
+	--document-article-width: 800px;
+	--document-navigation-width: 190px;
+	--document-column-gap: clamp(20px, 3vw, 40px);
+	--document-frame-width: var(--document-article-width);
 	position: relative;
 	z-index: 1;
 	padding-bottom: 112px;
-	background: var(--paper);
+}
+
+.pageWithNavigation {
+	--document-frame-width: calc(
+		var(--document-article-width) +
+		var(--document-column-gap) +
+		var(--document-navigation-width)
+	);
 }
 
 .page :global(.dashboard-header) {
+	width: min(100%, var(--document-frame-width));
+	margin-inline: auto;
 	align-items: center;
-	padding-bottom: 64px;
-}
-
-.page :global(.brand-lockup) {
-	gap: 10px;
-}
-
-.page :global(.brand-mark) {
-	width: 30px;
-	height: 30px;
-}
-
-.page :global(.brand-title) {
-	font-size: 18px;
-	font-weight: 650;
-	line-height: 1;
-	letter-spacing: -0.015em;
-	text-shadow: none;
-	text-transform: none;
 }
 
 .mobileToolbar {
@@ -215,7 +209,7 @@
 	grid-template-areas:
 		"documents"
 		"article";
-	grid-template-columns: minmax(0, 800px);
+	grid-template-columns: minmax(0, var(--document-article-width));
 	row-gap: 12px;
 	justify-content: center;
 	align-items: start;
@@ -225,8 +219,10 @@
 	grid-template-areas:
 		"documents documents"
 		"article navigation";
-	grid-template-columns: minmax(0, 800px) 190px;
-	column-gap: clamp(20px, 3vw, 40px);
+	grid-template-columns:
+		minmax(0, var(--document-article-width))
+		var(--document-navigation-width);
+	column-gap: var(--document-column-gap);
 }
 
 .documentNav {
@@ -362,7 +358,7 @@
 .article > h1 {
 	max-width: 16ch;
 	margin: 0;
-	font-size: 30px;
+	font-size: 26px;
 	font-weight: 600;
 	letter-spacing: -0.035em;
 	line-height: 1.2;

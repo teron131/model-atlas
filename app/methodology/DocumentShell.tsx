@@ -26,6 +26,7 @@ export function DocumentShell({
 		boolean | null
 	>(null);
 	const navigationOpen = navigationPreference ?? isDesktop;
+	const navigationDocked = navigationOpen && isDesktop;
 	const toggleNavigation = useCallback(() => {
 		setNavigationPreference((preference) => !(preference ?? isDesktop));
 	}, [isDesktop]);
@@ -54,7 +55,11 @@ export function DocumentShell({
 	};
 
 	return (
-		<main className={styles.page}>
+		<main
+			className={`${styles.page} ${
+				navigationDocked ? styles.pageWithNavigation : ""
+			}`}
+		>
 			<ModelAtlasHeader
 				page="methodology"
 				documentNavigationOpen={navigationOpen}
@@ -67,7 +72,7 @@ export function DocumentShell({
 			/>
 			<div
 				className={`${styles.documentLayout} ${
-					navigationOpen && isDesktop ? styles.documentLayoutWithNavigation : ""
+					navigationDocked ? styles.documentLayoutWithNavigation : ""
 				}`}
 			>
 				{children}

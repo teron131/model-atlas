@@ -207,15 +207,15 @@ main {
 .brand-lockup {
 	display: flex;
 	align-items: center;
-	gap: 16px;
+	gap: 12px;
 	color: inherit;
 	text-decoration: none;
 }
 
 .brand-mark {
 	display: block;
-	width: 70px;
-	height: 70px;
+	width: 44px;
+	height: 44px;
 	flex: 0 0 auto;
 	background: var(--ink);
 	mask: url("/icons/icon.png") center / contain no-repeat;
@@ -225,9 +225,9 @@ main {
 .brand-lockup h1,
 .brand-title {
 	margin: 0;
-	font-size: clamp(44px, 5vw, 56px);
+	font-size: 32px;
 	font-weight: 700;
-	line-height: 0.88;
+	line-height: 0.95;
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
 	text-shadow: var(--title-shadow);
@@ -1544,16 +1544,16 @@ td.modality-cell {
 
 	.brand-lockup h1,
 	.brand-title {
-		font-size: clamp(30px, 8vw, 34px);
+		font-size: 30px;
 	}
 
 	.brand-lockup {
-		gap: 12px;
+		gap: 10px;
 	}
 
 	.brand-mark {
-		width: 58px;
-		height: 58px;
+		width: 42px;
+		height: 42px;
 	}
 
 	.theme-toggle {
@@ -1652,11 +1652,11 @@ td.modality-cell {
 
 	.brand-lockup h1,
 	.brand-title {
-		font-size: 29px;
+		font-size: 27px;
 	}
 
 	.brand-mark {
-		width: 52px;
-		height: 52px;
+		width: 38px;
+		height: 38px;
 	}
 }

@@ -24,7 +24,6 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
 	return (
 		<DocumentShell activeDocument={document} outline={outline}>
 			<nav className={styles.documentNav} aria-label="Documentation">
-				<p className={styles.railLabel}>Documents</p>
 				<ul>
 					{DOCUMENTS.map((item) => (
 						<li key={item.slug}>
