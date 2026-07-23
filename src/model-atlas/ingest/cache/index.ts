@@ -16,9 +16,9 @@ export { readTerminalBenchRawCache } from "../../benchmarks/persistence/terminal
 export { readValsIndexRawCache } from "../../benchmarks/persistence/vals-index";
 export { readVendingBench2RawCache } from "../../benchmarks/persistence/vending-bench-2";
 export {
-	artificialAnalysisEvaluationResourceRawCacheFromRows,
+	artificialAnalysisBenchmarkResourceRawCacheFromRows,
 	artificialAnalysisRawCacheFromRows,
-	readArtificialAnalysisEvaluationResourceRawCache,
+	readArtificialAnalysisBenchmarkResourceRawCache,
 	readArtificialAnalysisRawCache,
 } from "./artificial-analysis";
 export { modelsDevRawCacheFromRows, readModelsDevRawCache } from "./models-dev";

@@ -6,9 +6,9 @@ import type { ModelsDevPayload } from "../../scrapers/models-dev";
 import { RAW_SOURCE_NAMES, type RawSourceName } from "../source-registry";
 import type {
 	DatabaseBuildOptions,
-	LlmStatsSourceHealth,
-	LlmStatsSourceHealthEntry,
-	LlmStatsSourceHealthStatus,
+	ModelAtlasSourceHealth,
+	ModelAtlasSourceHealthEntry,
+	ModelAtlasSourceHealthStatus,
 	RawSourceCacheStatus,
 	SourceRowState,
 	SourceRowStatus,
@@ -301,7 +301,7 @@ export function buildModelsDevSourceStates(
 /** Classifies one raw source as fresh, cached, empty, or stale. */
 function healthStatusFromCache(
 	status: RawSourceCacheStatus,
-): LlmStatsSourceHealthStatus {
+): ModelAtlasSourceHealthStatus {
 	if (status.source_input_count <= 0) {
 		return "empty";
 	}
@@ -343,12 +343,12 @@ export function buildSourceHealth({
 	generatedAtEpochSeconds: number | null;
 	sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
 	sourceRowStates: readonly SourceRowState[];
-}): LlmStatsSourceHealth {
+}): ModelAtlasSourceHealth {
 	return {
 		generated_at_epoch_seconds: generatedAtEpochSeconds,
 		sources: Object.fromEntries(
 			RAW_SOURCE_NAMES.map(
-				(source): [RawSourceName, LlmStatsSourceHealthEntry] => {
+				(source): [RawSourceName, ModelAtlasSourceHealthEntry] => {
 					const status = sourceCache[source];
 					const counts = rowStateCounts(source, sourceRowStates);
 					const healthStatus = healthStatusFromCache(status);

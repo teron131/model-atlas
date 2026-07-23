@@ -5,7 +5,7 @@ import {
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../../identity/normalization";
-import type { LlmStatsSourceData } from "../../ingest/assembly";
+import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
 import type { ModelsDevFlatModel } from "../../scrapers/models-dev";
 
@@ -127,7 +127,7 @@ function modelsDevCatalogRow(
 
 /** Add preferred recent models.dev catalog rows without an Artificial Analysis match. */
 export function buildModelCatalogRows(
-	sourceData: Pick<LlmStatsSourceData, "modelsDev">,
+	sourceData: Pick<ModelAtlasSourceData, "modelsDev">,
 	matchedRows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
 	const existingNormalizedIds = new Set<string>();

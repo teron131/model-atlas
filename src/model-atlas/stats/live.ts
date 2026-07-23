@@ -7,41 +7,45 @@ import {
 } from "../pipeline/benchmark-rows";
 import { deriveModelStats } from "../pipeline/derivation";
 import { nowEpochSeconds } from "../runtime";
-import { buildCurrentLlmStatsMetadata } from "./payload/metadata";
-import type { LlmStatsModel, LlmStatsOptions, LlmStatsPayload } from "./types";
+import { buildCurrentModelAtlasMetadata } from "./payload/metadata";
+import type {
+	ModelAtlasModel,
+	ModelAtlasOptions,
+	ModelAtlasPayload,
+} from "./types";
 
 export type {
-	LlmStatsBenchmarkValues,
-	LlmStatsComponentScores,
-	LlmStatsContextWindow,
-	LlmStatsCost,
-	LlmStatsCostBreakdown,
-	LlmStatsCostTier,
-	LlmStatsEvaluations,
-	LlmStatsIntelligence,
-	LlmStatsIntelligenceIndexCost,
-	LlmStatsMetadata,
-	LlmStatsModalities,
-	LlmStatsModel,
-	LlmStatsOptions,
-	LlmStatsPayload,
-	LlmStatsScores,
-	LlmStatsSpeed,
+	ModelAtlasBenchmarks,
+	ModelAtlasBenchmarkValues,
+	ModelAtlasComponentScores,
+	ModelAtlasContextWindow,
+	ModelAtlasCost,
+	ModelAtlasCostBreakdown,
+	ModelAtlasCostTier,
+	ModelAtlasIntelligence,
+	ModelAtlasIntelligenceIndexCost,
+	ModelAtlasMetadata,
+	ModelAtlasModalities,
+	ModelAtlasModel,
+	ModelAtlasOptions,
+	ModelAtlasPayload,
+	ModelAtlasScores,
+	ModelAtlasSpeed,
 } from "./types";
 
 /** Metadata is refreshed around cached or rebuilt payload rows so public scoring copy tracks current config. */
 function withCurrentMetadata(
-	payload: Omit<LlmStatsPayload, "metadata"> &
-		Partial<Pick<LlmStatsPayload, "metadata">>,
+	payload: Omit<ModelAtlasPayload, "metadata"> &
+		Partial<Pick<ModelAtlasPayload, "metadata">>,
 	modelsForMetadata: Array<
-		Record<string, unknown> | LlmStatsModel
+		Record<string, unknown> | ModelAtlasModel
 	> = payload.models,
 	resourceModels: Array<
-		Record<string, unknown> | LlmStatsModel
+		Record<string, unknown> | ModelAtlasModel
 	> = payload.models,
 	sourceRowsByKey?: BenchmarkRowsByKey,
-): LlmStatsPayload {
-	const metadata = buildCurrentLlmStatsMetadata({
+): ModelAtlasPayload {
+	const metadata = buildCurrentModelAtlasMetadata({
 		models: modelsForMetadata,
 		resourceModels,
 		healthModels: payload.models,
@@ -56,7 +60,7 @@ function withCurrentMetadata(
 
 async function buildLivePayload(
 	modelId: string | null = null,
-): Promise<LlmStatsPayload> {
+): Promise<ModelAtlasPayload> {
 	const sourceData = await fetchSourceData();
 	const { enrichment, models } = await deriveModelStats(sourceData, {
 		modelId,
@@ -74,9 +78,9 @@ async function buildLivePayload(
 	);
 }
 
-export async function getLiveLlmStats(
-	options: LlmStatsOptions = {},
-): Promise<LlmStatsPayload> {
+export async function getLiveModelAtlasPayload(
+	options: ModelAtlasOptions = {},
+): Promise<ModelAtlasPayload> {
 	try {
 		const modelId = options.id ?? null;
 		return await buildLivePayload(modelId);

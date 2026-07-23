@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import {
 	resizeLogoToPng,
-	statsLogoCacheDir,
+	modelLogoCacheDir,
 } from "../src/model-atlas/logos/cache";
 import { providerIconColor } from "../src/model-atlas/logos/color";
 
@@ -102,7 +102,7 @@ async function readLogoBuffer(provider: string, source: string) {
 		return decodeDataUrl(source);
 	}
 	try {
-		return await readFile(resolve(statsLogoCacheDir(), `${provider}.png`));
+		return await readFile(resolve(modelLogoCacheDir(), `${provider}.png`));
 	} catch {
 		return null;
 	}

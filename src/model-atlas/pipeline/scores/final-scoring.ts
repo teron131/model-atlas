@@ -9,9 +9,9 @@ import {
 	weightedMeanOfFinite,
 } from "../../numeric";
 import type {
-	LlmStatsModelCandidate,
-	LlmStatsScoredCandidate,
-	LlmStatsTaskMetricValues,
+	ModelAtlasModelCandidate,
+	ModelAtlasScoredCandidate,
+	ModelAtlasTaskMetricValues,
 } from "../model-types";
 import {
 	coverageConfidence,
@@ -57,7 +57,7 @@ function meanSignal(
 }
 
 function hasPositiveResourceMetric(
-	model: LlmStatsModelCandidate,
+	model: ModelAtlasModelCandidate,
 	key: string,
 	scoringConfig: ScoringConfig,
 ): boolean {
@@ -70,7 +70,7 @@ function hasPositiveResourceMetric(
 
 /** A benchmark contributes resource scoring when any scored row carries matching task telemetry. */
 function hasBenchmarkResourceMetric(
-	models: LlmStatsModelCandidate[],
+	models: ModelAtlasModelCandidate[],
 	key: string,
 	scoringConfig: ScoringConfig,
 ): boolean {
@@ -82,12 +82,12 @@ function hasBenchmarkResourceMetric(
 }
 
 function activeResourceBenchmarkKeys(
-	models: LlmStatsModelCandidate[],
+	models: ModelAtlasModelCandidate[],
 	scoringConfig: ScoringConfig,
 ): string[] {
 	const benchmarkKeys = new Set<string>();
 	for (const model of models) {
-		for (const key of Object.keys(model.evaluations ?? {})) {
+		for (const key of Object.keys(model.benchmarks ?? {})) {
 			benchmarkKeys.add(key);
 		}
 		for (const key of Object.keys(model.intelligence ?? {})) {
@@ -110,8 +110,8 @@ function resourceTaskMetricKey(
 }
 
 function hasUsableResourceTask(
-	model: LlmStatsModelCandidate,
-	task: LlmStatsTaskMetricValues | null,
+	model: ModelAtlasModelCandidate,
+	task: ModelAtlasTaskMetricValues | null,
 ): boolean {
 	return (
 		positiveFiniteNumber(task?.cost) != null ||
@@ -120,10 +120,10 @@ function hasUsableResourceTask(
 }
 
 function resourceTaskMetric(
-	model: LlmStatsModelCandidate,
+	model: ModelAtlasModelCandidate,
 	key: string,
 	scoringConfig: ScoringConfig,
-): LlmStatsTaskMetricValues | null {
+): ModelAtlasTaskMetricValues | null {
 	const directTask = taskMetricFromModel(model, key);
 	if (hasUsableResourceTask(model, directTask)) {
 		return directTask;
@@ -133,7 +133,7 @@ function resourceTaskMetric(
 }
 
 function blendCost(
-	model: LlmStatsModelCandidate,
+	model: ModelAtlasModelCandidate,
 	scoringConfig: ScoringConfig,
 ): number | null {
 	return (
@@ -143,13 +143,13 @@ function blendCost(
 }
 
 type TaskResourceAmount = (
-	model: LlmStatsModelCandidate,
+	model: ModelAtlasModelCandidate,
 	key: string,
 	scoringConfig: ScoringConfig,
 ) => number | null;
 
 function activeResourceKeys(
-	models: LlmStatsModelCandidate[],
+	models: ModelAtlasModelCandidate[],
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
 ): string[] {
@@ -164,7 +164,7 @@ function activeResourceKeys(
 }
 
 function resourceEfficiencyEvidence(
-	models: LlmStatsModelCandidate[],
+	models: ModelAtlasModelCandidate[],
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
 ): ResourceEfficiencyEvidence {
@@ -215,9 +215,9 @@ function equalWeightedScore(
 }
 
 export function attachFinalScores(
-	models: LlmStatsModelCandidate[],
+	models: ModelAtlasModelCandidate[],
 	scoringConfig: ScoringConfig,
-): LlmStatsScoredCandidate[] {
+): ModelAtlasScoredCandidate[] {
 	const intelligenceScores = models.map(
 		(model) => model.component_scores?.intelligence_score ?? null,
 	);

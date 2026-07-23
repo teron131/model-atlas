@@ -25,9 +25,9 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/config";
 import {
-	minimalLlmStatsModel,
-	minimalLlmStatsPayload,
-} from "./llm-stats-fixtures";
+	minimalModelAtlasModel,
+	minimalModelAtlasPayload,
+} from "./model-atlas-fixtures";
 
 registerHooks({
 	load(url, context, nextLoad) {
@@ -49,15 +49,15 @@ const { BenchmarkStrip } = await import(
 );
 const { ModelTable } = await import("../app/dashboard/table/ModelTable");
 
-const payload = minimalLlmStatsPayload({
+const payload = minimalModelAtlasPayload({
 	fetchedAt: 900,
 	models: [
 		{
-			...minimalLlmStatsModel({
+			...minimalModelAtlasModel({
 				id: "openai/gpt-5.5",
 				name: "GPT-5.5",
 			}),
-			evaluations: { deep_swe: 0.6 },
+			benchmarks: { deep_swe: 0.6 },
 			scores: {
 				intelligence_score: 90,
 				agentic_score: 80,
@@ -79,18 +79,18 @@ const loadingHtml = renderToStaticMarkup(
 
 const coverageModels = [
 	{
-		...minimalLlmStatsModel({
+		...minimalModelAtlasModel({
 			id: "openai/gpt-5.5",
 			name: "GPT-5.5",
 		}),
-		evaluations: { deep_swe: 0.6 },
+		benchmarks: { deep_swe: 0.6 },
 	},
-	minimalLlmStatsModel({
+	minimalModelAtlasModel({
 		id: "anthropic/claude-opus-4.6",
 		name: "Claude Opus 4.6",
 	}),
 ];
-const coveragePayload = minimalLlmStatsPayload({
+const coveragePayload = minimalModelAtlasPayload({
 	fetchedAt: 902,
 	models: coverageModels,
 });
@@ -109,7 +109,7 @@ const benchmarkCoverageHtml = renderToStaticMarkup(
 		isLoading: false,
 	}),
 );
-const benchmarkOrderPayload = minimalLlmStatsPayload({
+const benchmarkOrderPayload = minimalModelAtlasPayload({
 	fetchedAt: 903,
 	models: coverageModels,
 });
@@ -336,7 +336,7 @@ function tableRow(
 	originalIndex: number,
 ): TableRow {
 	return {
-		model: minimalLlmStatsModel({ id, name }),
+		model: minimalModelAtlasModel({ id, name }),
 		intelligenceRank,
 		originalIndex,
 		aliasPriority: 0,

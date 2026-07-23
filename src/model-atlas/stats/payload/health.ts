@@ -16,21 +16,21 @@ import type {
 	BenchmarkSourceRow,
 } from "../../pipeline/benchmark-rows";
 import type {
-	LlmStatsBenchmarkUpdateEntry,
-	LlmStatsBenchmarkUpdateHealth,
-	LlmStatsEvaluations,
-	LlmStatsIntelligence,
-	LlmStatsModel,
-	LlmStatsNullableScores,
+	ModelAtlasBenchmarks,
+	ModelAtlasBenchmarkUpdateEntry,
+	ModelAtlasBenchmarkUpdateHealth,
+	ModelAtlasIntelligence,
+	ModelAtlasModel,
+	ModelAtlasNullableScores,
 } from "../types";
 
 const BENCHMARK_TOP_LIMIT = 5;
 const REFERENCE_TOP_LIMIT = 10;
 type BenchmarkHealthModel = Pick<
-	LlmStatsModel,
-	"id" | "name" | "evaluations" | "intelligence"
+	ModelAtlasModel,
+	"id" | "name" | "benchmarks" | "intelligence"
 > & {
-	scores?: LlmStatsNullableScores | null;
+	scores?: ModelAtlasNullableScores | null;
 };
 
 type RankedModel = {
@@ -45,7 +45,7 @@ function finiteNumber(value: NumberOrNull | undefined): number | null {
 }
 
 function modelIdentity(
-	model: Pick<LlmStatsModel, "id" | "name">,
+	model: Pick<ModelAtlasModel, "id" | "name">,
 ): string | null {
 	return model.id ?? model.name ?? null;
 }
@@ -54,9 +54,9 @@ function benchmarkValue(
 	model: BenchmarkHealthModel,
 	key: string,
 ): number | null {
-	const evaluations = model.evaluations as LlmStatsEvaluations | null;
-	const intelligence = model.intelligence as LlmStatsIntelligence | null;
-	return finiteNumber(evaluations?.[key] ?? intelligence?.[key]);
+	const benchmarks = model.benchmarks as ModelAtlasBenchmarks | null;
+	const intelligence = model.intelligence as ModelAtlasIntelligence | null;
+	return finiteNumber(benchmarks?.[key] ?? intelligence?.[key]);
 }
 
 function referenceRankByModel(
@@ -199,7 +199,7 @@ function updateStatus({
 	checkedTopCount: number;
 	overlapCount: number;
 	unrepresentedTopCount?: number;
-}): LlmStatsBenchmarkUpdateEntry["status"] {
+}): ModelAtlasBenchmarkUpdateEntry["status"] {
 	if (checkedTopCount === 0) {
 		return "missing";
 	}
@@ -224,7 +224,7 @@ export function buildBenchmarkUpdateHealth(
 	scoringConfig: ScoringConfig,
 	sourceRowsByKey: BenchmarkRowsByKey = {},
 	matcherConfig?: MatcherConfig,
-): LlmStatsBenchmarkUpdateHealth {
+): ModelAtlasBenchmarkUpdateHealth {
 	const referenceRanks = referenceRankByModel(models);
 	const selectedBenchmarkKeys = [
 		...new Set([
@@ -252,7 +252,7 @@ export function buildBenchmarkUpdateHealth(
 			const unrepresentedTopSourceRows = topSourceRows.filter(
 				(row) => matchedSourceId(row, models, matcherConfig) == null,
 			);
-			const entry: LlmStatsBenchmarkUpdateEntry = {
+			const entry: ModelAtlasBenchmarkUpdateEntry = {
 				status: updateStatus({
 					checkedTopCount: topModels.length,
 					overlapCount: overlapModels.length,

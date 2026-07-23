@@ -16,7 +16,7 @@ function model(
 		id: `test/${name.toLowerCase().replace(/\s+/g, "-")}`,
 		name,
 		reasoning_effort: reasoningEffort,
-		evaluations:
+		benchmarks:
 			artificialAnalysis == null ? {} : { apex_agents: artificialAnalysis },
 		scoring_sources: {
 			apex_agents_mercor: { score: mercor },
@@ -27,7 +27,7 @@ function model(
 type TestModel = ReturnType<typeof model>;
 
 function artificialAnalysisValue(candidate: TestModel): number | null {
-	return asFiniteNumber(asRecord(candidate.evaluations).apex_agents);
+	return asFiniteNumber(asRecord(candidate.benchmarks).apex_agents);
 }
 
 function mercorValue(candidate: TestModel): number | null {

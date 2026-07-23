@@ -13,13 +13,13 @@ import {
 	normalizeModelToken,
 } from "../../identity/normalization";
 import { asFiniteNumber, asRecord } from "../../runtime";
-import type { LlmStatsModel, LlmStatsPayload } from "../types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
 export const SNAPSHOT_PRESERVATION_VERSION = 2;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 
-function modelKeys(model: LlmStatsModel): string[] {
+function modelKeys(model: ModelAtlasModel): string[] {
 	const keys = new Set<string>();
 	const effort =
 		canonicalReasoningEffort(model.reasoning_effort) ?? DEFAULT_EFFORT_KEY;
@@ -43,9 +43,9 @@ function modelKeys(model: LlmStatsModel): string[] {
 }
 
 function previousModelByKey(
-	previousPayload: LlmStatsPayload,
-): Map<string, LlmStatsModel> {
-	const models = new Map<string, LlmStatsModel>();
+	previousPayload: ModelAtlasPayload,
+): Map<string, ModelAtlasModel> {
+	const models = new Map<string, ModelAtlasModel>();
 	for (const model of previousPayload.models) {
 		for (const key of modelKeys(model)) {
 			const existing = models.get(key);
@@ -61,12 +61,12 @@ function previousModelByKey(
 }
 
 function scoreSignalCount(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	scoringConfig: ScoringConfig,
 ): number {
 	const speed = model.speed;
 	const intelligence = asRecord(model.intelligence);
-	const evaluations = asRecord(model.evaluations);
+	const benchmarks = asRecord(model.benchmarks);
 	const benchmarkKeys = [
 		...INTELLIGENCE_INDEX_KEYS,
 		...AGENTIC_INDEX_KEYS,
@@ -74,7 +74,7 @@ function scoreSignalCount(
 		...scoringConfig.agenticBenchmarkKeys,
 	];
 	return [
-		...benchmarkKeys.flatMap((key) => [intelligence[key], evaluations[key]]),
+		...benchmarkKeys.flatMap((key) => [intelligence[key], benchmarks[key]]),
 		model.scores.speed_score,
 		speed.throughput_tokens_per_second_median,
 		speed.latency_seconds_median,
@@ -83,8 +83,8 @@ function scoreSignalCount(
 }
 
 function shouldPreservePreviousModel(
-	current: LlmStatsModel,
-	previous: LlmStatsModel,
+	current: ModelAtlasModel,
+	previous: ModelAtlasModel,
 	policy: SnapshotPreservationConfig,
 	scoringConfig: ScoringConfig,
 ): boolean {
@@ -99,7 +99,7 @@ function shouldPreservePreviousModel(
 	);
 }
 
-function sortByIntelligence(models: LlmStatsModel[]): LlmStatsModel[] {
+function sortByIntelligence(models: ModelAtlasModel[]): ModelAtlasModel[] {
 	return [...models].sort((left, right) => {
 		const scoreDelta =
 			right.scores.intelligence_score - left.scores.intelligence_score;
@@ -112,11 +112,11 @@ function sortByIntelligence(models: LlmStatsModel[]): LlmStatsModel[] {
 
 /** Carry forward only stronger prior rows when a refresh loses evidence, keeping vanished-source protection narrow. */
 export function preserveHighSignalSnapshotModels(
-	payload: LlmStatsPayload,
-	previousPayload: LlmStatsPayload | null,
+	payload: ModelAtlasPayload,
+	previousPayload: ModelAtlasPayload | null,
 	policy: SnapshotPreservationConfig,
 	scoringConfig: ScoringConfig,
-): LlmStatsPayload {
+): ModelAtlasPayload {
 	if (previousPayload == null || previousPayload.models.length === 0) {
 		return payload;
 	}
@@ -131,7 +131,7 @@ export function preserveHighSignalSnapshotModels(
 	const models = payload.models.map((model) => {
 		const previous = modelKeys(model)
 			.map((key) => previousByKey.get(key))
-			.find((candidate): candidate is LlmStatsModel => candidate != null);
+			.find((candidate): candidate is ModelAtlasModel => candidate != null);
 		if (
 			previous == null ||
 			!shouldPreservePreviousModel(model, previous, policy, scoringConfig)

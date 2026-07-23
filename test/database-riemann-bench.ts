@@ -12,7 +12,7 @@ import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
-	insertModelEvaluations,
+	insertModelBenchmarks,
 	insertModels,
 } from "../src/model-atlas/ingest/writers";
 
@@ -33,7 +33,7 @@ try {
 				name: "Math Model",
 				logo: "https://example.com/logo.svg",
 				modalities: { input: ["text"] },
-				evaluations: { riemann_bench: 0.42 },
+				benchmarks: { riemann_bench: 0.42 },
 				component_scores: {
 					intelligence_score: 70,
 					agentic_score: 10,
@@ -48,7 +48,7 @@ try {
 			},
 		];
 		insertModels(db, finalRows);
-		insertModelEvaluations(db, finalRows);
+		insertModelBenchmarks(db, finalRows);
 		db.prepare(`
 			INSERT INTO riemann_bench_raw_rows (
 				row_index, fetched_at_epoch_seconds, url, provider,
@@ -178,16 +178,16 @@ try {
 	const payload = readDatabasePayload(databasePath);
 	assert.equal(payload.models.length, 1);
 	assert.equal(
-		payload.models[0]?.evaluations?.riemann_bench,
+		payload.models[0]?.benchmarks?.riemann_bench,
 		0.42,
 		"Riemann-bench should survive the normalized final-model DB payload path",
 	);
 	assert.equal(
-		payload.metadata.artificial_analysis.available_evaluation_keys.includes(
+		payload.metadata.artificial_analysis.available_benchmark_keys.includes(
 			"riemann_bench",
 		),
 		true,
-		"Riemann-bench should be listed as a DB-backed available evaluation key",
+		"Riemann-bench should be listed as a DB-backed available benchmark key",
 	);
 	assert.ok(payload.deep_swe);
 	assert.deepEqual(

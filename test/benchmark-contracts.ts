@@ -6,8 +6,8 @@ import {
 	defineBenchmarks,
 } from "../src/model-atlas/benchmarks/factory";
 import {
-	ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS,
-	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES,
+	ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS,
+	ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
 	BENCHMARK_CATALOG,
 	BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_KEYS,
@@ -38,7 +38,7 @@ const definitions = {
 			aggregation: { kind: "direct" },
 		},
 		persistence: {
-			location: { kind: "evaluation" },
+			location: { kind: "benchmark" },
 			exposure: "public",
 		},
 		presentation: {
@@ -306,7 +306,7 @@ assert.deepEqual(BENCHMARK_CATALOG.aa_intelligence_index.persistence, {
 	exposure: "public",
 });
 assert.deepEqual(BENCHMARK_CATALOG.agent_arena.persistence, {
-	location: { kind: "evaluation" },
+	location: { kind: "benchmark" },
 	exposure: "public",
 });
 assert.deepEqual(BENCHMARK_CATALOG.omniscience_accuracy.persistence, {
@@ -314,11 +314,11 @@ assert.deepEqual(BENCHMARK_CATALOG.omniscience_accuracy.persistence, {
 	exposure: "public",
 });
 assert.equal(
-	ARTIFICIAL_ANALYSIS_EVALUATION_KEY_BY_ALIAS.terminalbenchV21,
+	ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS.terminalbenchV21,
 	"terminalbench_v21",
 );
 assert.equal(
-	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES.find(
+	ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
 		(page) => page.benchmarkKey === "briefcase",
 	)?.secondsProcessor,
 	"briefcase",

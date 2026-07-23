@@ -8,7 +8,7 @@ import {
 } from "../benchmarks/registry";
 import { STAGE_CONFIG } from "../config";
 import {
-	artificialAnalysisEvaluationResourceRawCacheFromRows,
+	artificialAnalysisBenchmarkResourceRawCacheFromRows,
 	artificialAnalysisRawCacheFromRows,
 	modelsDevRawCacheFromRows,
 	rawSourceCacheStatusFromRows,
@@ -38,7 +38,7 @@ import type { CollectedTableRows } from "../ingest/writers/collector";
 import type { SqlValue } from "../ingest/writers/database";
 import { nowEpochSeconds } from "../runtime";
 import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
-import type { LlmStatsPayload } from "../stats/types";
+import type { ModelAtlasPayload } from "../stats/types";
 import {
 	d1Config,
 	ensureD1Schema,
@@ -65,7 +65,7 @@ const DERIVED_TABLES = [
 	SNAPSHOT_TABLES.source_quarantines,
 	SNAPSHOT_TABLES.source_health,
 	SNAPSHOT_TABLES.models,
-	SNAPSHOT_TABLES.model_evaluations,
+	SNAPSHOT_TABLES.model_benchmarks,
 	SNAPSHOT_TABLES.model_task_metrics,
 	SNAPSHOT_TABLES.model_match_debug,
 ] as const;
@@ -94,12 +94,12 @@ type D1RefreshState = {
 	openRouterCache: OpenRouterRawCache;
 	statuses: Record<RawSourceName, RawSourceCacheStatus>;
 	previousSourceRowStates: ReturnType<typeof sourceRowStatesFromRows>;
-	previousPayload: LlmStatsPayload | null;
+	previousPayload: ModelAtlasPayload | null;
 };
 
 type D1Publication = {
 	result: D1PublishResult;
-	payload: LlmStatsPayload;
+	payload: ModelAtlasPayload;
 };
 
 /** Refreshes D1 directly and returns both publication diagnostics and the assembled payload. */
@@ -217,7 +217,7 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 
 function publishResult(
 	databaseId: string,
-	payload: LlmStatsPayload,
+	payload: ModelAtlasPayload,
 	published: boolean,
 	changedSources: RawSourceName[],
 	statementCount: number,
@@ -314,9 +314,9 @@ function sourceCachesFromRows(
 		artificialAnalysis: artificialAnalysisRawCacheFromRows(
 			rows.artificial_analysis,
 		),
-		artificialAnalysisEvaluationResources:
-			artificialAnalysisEvaluationResourceRawCacheFromRows(
-				rows.artificial_analysis_evaluation_resources,
+		artificialAnalysisBenchmarkResources:
+			artificialAnalysisBenchmarkResourceRawCacheFromRows(
+				rows.artificial_analysis_benchmark_resources,
 			),
 		modelsDev: modelsDevRawCacheFromRows(rows.models_dev),
 		benchmarkObservations,
@@ -346,7 +346,7 @@ function sourceHealthStatements(collector: SnapshotRowCollector): string[] {
 function payloadFromCollector(
 	fetchedAtEpochSeconds: number,
 	collector: SnapshotRowCollector,
-): LlmStatsPayload {
+): ModelAtlasPayload {
 	return buildPayloadFromRows(
 		buildPayloadRows(
 			fetchedAtEpochSeconds,
@@ -361,7 +361,7 @@ function payloadFromCollector(
 }
 
 /** Store the completed public snapshot in the same atomic batch as its source rows. */
-function materializedPayloadQuery(payload: LlmStatsPayload) {
+function materializedPayloadQuery(payload: ModelAtlasPayload) {
 	const payloadJson = JSON.stringify(payload);
 	const payloadBytes = Buffer.byteLength(payloadJson);
 	if (payloadBytes > MAX_MATERIALIZED_PAYLOAD_BYTES) {
@@ -489,7 +489,7 @@ function tableContentHash(rows: readonly Record<string, unknown>[]): string {
 	);
 }
 
-function publicContentHash(payload: LlmStatsPayload): string {
+function publicContentHash(payload: ModelAtlasPayload): string {
 	return stableHash({
 		models: payload.models,
 		deep_swe: payload.deep_swe,

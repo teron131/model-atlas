@@ -6,20 +6,20 @@ import {
 	normalizeProviderId,
 	normalizeProviderModelId,
 } from "../../identity/normalization";
-import { resolveStatsLogo } from "../../logos/resolve";
+import { resolveModelLogo } from "../../logos/resolve";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
-	LlmStatsContextWindow,
-	LlmStatsCost,
-	LlmStatsCostBreakdown,
-	LlmStatsCostTier,
-	LlmStatsIntelligenceIndexCost,
-	LlmStatsModalities,
-	LlmStatsModelCandidate,
-	LlmStatsScoringSources,
-	LlmStatsSpeed,
-	LlmStatsTaskMetrics,
-	LlmStatsTaskMetricValues,
+	ModelAtlasContextWindow,
+	ModelAtlasCost,
+	ModelAtlasCostBreakdown,
+	ModelAtlasCostTier,
+	ModelAtlasIntelligenceIndexCost,
+	ModelAtlasModalities,
+	ModelAtlasModelCandidate,
+	ModelAtlasScoringSources,
+	ModelAtlasSpeed,
+	ModelAtlasTaskMetrics,
+	ModelAtlasTaskMetricValues,
 } from "../model-types";
 import {
 	type BenchmarkImputationByModel,
@@ -29,7 +29,7 @@ import {
 	type QualityScoringContext,
 } from "../scores";
 
-type TaskMetricValues = LlmStatsTaskMetricValues;
+type TaskMetricValues = ModelAtlasTaskMetricValues;
 type TaskMetricKey = keyof TaskMetricValues;
 
 const EMPTY_OPENROUTER_PRICING = {
@@ -107,7 +107,7 @@ function providerFromModel(model: JsonObject): string | null {
 }
 
 /** Projects input and output modalities when source data provides them. */
-function buildModalities(model: JsonObject): LlmStatsModalities | null {
+function buildModalities(model: JsonObject): ModelAtlasModalities | null {
 	const modalities = asRecord(model.modalities);
 	const input = Array.isArray(modalities.input)
 		? modalities.input.filter(
@@ -119,7 +119,7 @@ function buildModalities(model: JsonObject): LlmStatsModalities | null {
 				(value): value is string => typeof value === "string",
 			)
 		: undefined;
-	const normalized: LlmStatsModalities = {};
+	const normalized: ModelAtlasModalities = {};
 	if (input && input.length > 0) {
 		normalized.input = input;
 	}
@@ -129,7 +129,7 @@ function buildModalities(model: JsonObject): LlmStatsModalities | null {
 	return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
-function buildContextWindow(model: JsonObject): LlmStatsContextWindow {
+function buildContextWindow(model: JsonObject): ModelAtlasContextWindow {
 	const limit = asRecord(model.limit);
 	const context = asFiniteNumber(limit.context);
 	const input = asFiniteNumber(limit.input);
@@ -148,7 +148,7 @@ function buildSpeed(
 	model: JsonObject,
 	modelId: string | null,
 	openRouterSpeedById: Map<string, JsonObject>,
-): LlmStatsSpeed {
+): ModelAtlasSpeed {
 	const openRouterSpeed = lookupOpenRouterData(
 		openRouterSpeedById,
 		modelId,
@@ -207,9 +207,9 @@ function lookupOpenRouterData(
 	return exact ?? normalized ?? null;
 }
 
-function buildCostBreakdown(value: unknown): LlmStatsCostBreakdown | null {
+function buildCostBreakdown(value: unknown): ModelAtlasCostBreakdown | null {
 	const source = asRecord(value);
-	const cost: LlmStatsCostBreakdown = {};
+	const cost: ModelAtlasCostBreakdown = {};
 	const input = asFiniteNumber(source.input);
 	const output = asFiniteNumber(source.output);
 	const cacheRead = asFiniteNumber(source.cache_read);
@@ -230,9 +230,9 @@ function buildCostBreakdown(value: unknown): LlmStatsCostBreakdown | null {
 }
 
 /** Projects one tiered pricing record for public output. */
-function buildCostTier(value: unknown): LlmStatsCostTier | null {
+function buildCostTier(value: unknown): ModelAtlasCostTier | null {
 	const source = asRecord(value);
-	const costTier: LlmStatsCostTier = {
+	const costTier: ModelAtlasCostTier = {
 		...(buildCostBreakdown(source) ?? {}),
 	};
 	const tier = asRecord(source.tier);
@@ -251,9 +251,9 @@ function buildCost(
 	model: JsonObject,
 	openRouterPricing: JsonObject,
 	scoringConfig: ScoringConfig,
-): LlmStatsCost {
+): ModelAtlasCost {
 	const baseCost = asRecord(model.cost);
-	const cost: Exclude<LlmStatsCost, null> = {
+	const cost: Exclude<ModelAtlasCost, null> = {
 		...(buildCostBreakdown(baseCost) ?? {}),
 	};
 	const contextOver200k = buildCostBreakdown(baseCost.context_over_200k);
@@ -263,7 +263,7 @@ function buildCost(
 	if (Array.isArray(baseCost.tiers)) {
 		const tiers = baseCost.tiers
 			.map((tier) => buildCostTier(tier))
-			.filter((tier): tier is LlmStatsCostTier => tier != null);
+			.filter((tier): tier is ModelAtlasCostTier => tier != null);
 		if (tiers.length > 0) {
 			cost.tiers = tiers;
 		}
@@ -285,7 +285,7 @@ function buildCost(
 
 function buildIntelligenceIndexCost(
 	model: JsonObject,
-): LlmStatsIntelligenceIndexCost {
+): ModelAtlasIntelligenceIndexCost {
 	const fromRow = asRecord(model.intelligence_index_cost);
 	const fromIntelligence = asRecord(model.intelligence);
 	const totalCost =
@@ -294,7 +294,7 @@ function buildIntelligenceIndexCost(
 	const totalTokens =
 		asFiniteNumber(fromRow.total_tokens) ??
 		asFiniteNumber(fromIntelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY]);
-	const cost: Exclude<LlmStatsIntelligenceIndexCost, null> = {};
+	const cost: Exclude<ModelAtlasIntelligenceIndexCost, null> = {};
 	for (const key of [
 		"input_cost",
 		"reasoning_cost",
@@ -324,8 +324,8 @@ function buildIntelligenceIndexCost(
 	return hasFields(cost) ? cost : null;
 }
 
-function buildScoringSources(model: JsonObject): LlmStatsScoringSources {
-	const scoringSources: NonNullable<LlmStatsScoringSources> = {};
+function buildScoringSources(model: JsonObject): ModelAtlasScoringSources {
+	const scoringSources: NonNullable<ModelAtlasScoringSources> = {};
 	for (const [key, value] of Object.entries(asRecord(model.scoring_sources))) {
 		const source = asRecord(value);
 		if (hasFields(source)) {
@@ -468,10 +468,10 @@ function buildAgentsLastExamSource(model: JsonObject) {
 
 /** Normalize benchmark resource telemetry into the candidate's public per-task shape. */
 export function buildTaskMetrics(
-	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
-	scoringSources: LlmStatsScoringSources,
-): LlmStatsTaskMetrics {
-	const taskMetrics: NonNullable<LlmStatsTaskMetrics> = {};
+	intelligenceIndexCost: ModelAtlasIntelligenceIndexCost,
+	scoringSources: ModelAtlasScoringSources,
+): ModelAtlasTaskMetrics {
+	const taskMetrics: NonNullable<ModelAtlasTaskMetrics> = {};
 	for (const [key, source] of Object.entries(scoringSources ?? {})) {
 		const sourceTaskMetrics = buildSourceMetrics(source);
 		if (sourceTaskMetrics != null) {
@@ -533,7 +533,7 @@ function buildSourceMetrics(source: unknown): TaskMetricValues | null {
 }
 
 function buildArtificialAnalysisMetrics(
-	intelligenceIndexCost: LlmStatsIntelligenceIndexCost,
+	intelligenceIndexCost: ModelAtlasIntelligenceIndexCost,
 ): TaskMetricValues | null {
 	if (intelligenceIndexCost == null) {
 		return null;
@@ -558,7 +558,7 @@ function buildArtificialAnalysisMetrics(
 }
 
 function buildDeepSWEMetrics(
-	scoringSources: LlmStatsScoringSources,
+	scoringSources: ModelAtlasScoringSources,
 ): TaskMetricValues | null {
 	const deepSwe = scoringSources?.deep_swe;
 	if (deepSwe == null) {
@@ -574,7 +574,7 @@ function buildDeepSWEMetrics(
 
 /** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */
 function buildAgentsLastExamMetrics(
-	scoringSources: LlmStatsScoringSources,
+	scoringSources: ModelAtlasScoringSources,
 ): TaskMetricValues | null {
 	const agentsLastExam = scoringSources?.agents_last_exam;
 	if (agentsLastExam == null) {
@@ -615,7 +615,7 @@ export function buildModelCandidate(
 	benchmarkImputationByModel: BenchmarkImputationByModel,
 	benchmarkImputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
 	qualityContext: QualityScoringContext,
-): LlmStatsModelCandidate {
+): ModelAtlasModelCandidate {
 	const model = asRecord(row);
 	const provider = providerFromModel(model);
 	const modelId = typeof model.id === "string" ? model.id : null;
@@ -633,7 +633,7 @@ export function buildModelCandidate(
 		id: modelId,
 		name: typeof model.name === "string" ? model.name : null,
 		provider,
-		logo: resolveStatsLogo({
+		logo: resolveModelLogo({
 			provider,
 			explicitLogo: typeof model.logo === "string" ? model.logo : null,
 		}),
@@ -650,7 +650,7 @@ export function buildModelCandidate(
 		intelligence: buildNumericMap(intelligence),
 		intelligence_index_cost: intelligenceIndexCost,
 		task_metrics: buildTaskMetrics(intelligenceIndexCost, scoringSources),
-		evaluations: buildNumericMap(model.evaluations),
+		benchmarks: buildNumericMap(model.benchmarks),
 		scoring_sources: scoringSources,
 		component_scores: buildComponentScores(
 			model,

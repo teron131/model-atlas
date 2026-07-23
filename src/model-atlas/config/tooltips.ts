@@ -19,40 +19,40 @@ import {
 	type SIMULATION_PROFILES,
 } from "./usage-profiles";
 
-export type LlmStatsColumnTooltipRow = readonly [string, string];
+export type ModelAtlasColumnTooltipRow = readonly [string, string];
 
-export type LlmStatsColumnTooltipSectionKind =
+export type ModelAtlasColumnTooltipSectionKind =
 	| "price_profile"
 	| "price_share"
 	| "workflow_simulation";
 
-export type LlmStatsColumnTooltipNestedSection = {
+export type ModelAtlasColumnTooltipNestedSection = {
 	title: string;
-	kind?: LlmStatsColumnTooltipSectionKind;
+	kind?: ModelAtlasColumnTooltipSectionKind;
 	weight?: string;
-	rows: readonly LlmStatsColumnTooltipRow[];
+	rows: readonly ModelAtlasColumnTooltipRow[];
 };
 
-export type LlmStatsColumnTooltipSectionItem =
-	| LlmStatsColumnTooltipRow
-	| LlmStatsColumnTooltipNestedSection;
+export type ModelAtlasColumnTooltipSectionItem =
+	| ModelAtlasColumnTooltipRow
+	| ModelAtlasColumnTooltipNestedSection;
 
-type LlmStatsColumnTooltipSection = {
+type ModelAtlasColumnTooltipSection = {
 	title: string;
 	hideTitle?: boolean;
-	kind?: LlmStatsColumnTooltipSectionKind;
+	kind?: ModelAtlasColumnTooltipSectionKind;
 	weight?: string;
-	rows: readonly LlmStatsColumnTooltipSectionItem[];
+	rows: readonly ModelAtlasColumnTooltipSectionItem[];
 };
 
-export type LlmStatsColumnTooltip = {
+export type ModelAtlasColumnTooltip = {
 	title: string;
 	body: string;
-	rows?: readonly LlmStatsColumnTooltipRow[];
-	sections?: readonly LlmStatsColumnTooltipSection[];
+	rows?: readonly ModelAtlasColumnTooltipRow[];
+	sections?: readonly ModelAtlasColumnTooltipSection[];
 };
 
-export type LlmStatsColumnTooltips = Record<string, LlmStatsColumnTooltip>;
+export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
 function percent(value: number, fractionDigits = 0): string {
 	return `${(value * 100).toFixed(fractionDigits)}%`;
@@ -175,8 +175,8 @@ type CoreColumnTooltipKey =
 	| "deepSWECost"
 	| "deepSWESeconds"
 	| "deepSWETokens";
-type CoreColumnTooltips = LlmStatsColumnTooltips &
-	Record<CoreColumnTooltipKey, LlmStatsColumnTooltip>;
+type CoreColumnTooltips = ModelAtlasColumnTooltips &
+	Record<CoreColumnTooltipKey, ModelAtlasColumnTooltip>;
 
 export type ActiveResourceComponents = {
 	artificialAnalysisBenchmarkKeys: readonly string[];
@@ -217,7 +217,7 @@ function benchmarkResourceRows(
 	labelPrefix: string,
 	labelSuffix: string,
 	weight: string,
-): readonly LlmStatsColumnTooltipRow[] {
+): readonly ModelAtlasColumnTooltipRow[] {
 	return keys.map((key) => [
 		`${labelPrefix}${benchmarkLabel(key)} ${labelSuffix}`,
 		weight,
@@ -226,8 +226,8 @@ function benchmarkResourceRows(
 
 const qualityBenchmarkRows = (
 	benchmarkRows: Readonly<{
-		baseline: readonly LlmStatsColumnTooltipRow[];
-		frontier: readonly LlmStatsColumnTooltipRow[];
+		baseline: readonly ModelAtlasColumnTooltipRow[];
+		frontier: readonly ModelAtlasColumnTooltipRow[];
 	}>,
 ) =>
 	[

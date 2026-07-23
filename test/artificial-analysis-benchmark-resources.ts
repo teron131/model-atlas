@@ -1,14 +1,14 @@
-/** Verifies AA evaluation-page resource parsing for benchmark telemetry. */
+/** Verifies AA benchmark-page resource parsing for benchmark telemetry. */
 
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import {
-	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES,
-	buildArtificialAnalysisDefaultEffortResourceMap,
-	buildArtificialAnalysisObservationResourceMap,
-	findArtificialAnalysisEvaluationResourceRow,
-	getArtificialAnalysisEvaluationResourceStats,
-	processArtificialAnalysisEvaluationResourceRows,
+	ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
+	buildArtificialAnalysisDefaultEffortResourceLookup,
+	buildArtificialAnalysisResourceLookup,
+	findArtificialAnalysisBenchmarkResourceRow,
+	getArtificialAnalysisBenchmarkResourceStats,
+	processArtificialAnalysisBenchmarkResourceRows,
 } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -30,12 +30,11 @@ const terminalBenchPage = {
 	url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
 	task_run_count: 2,
 };
-const configuredItbenchPage =
-	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES.find(
-		(page) => page.benchmark_key === "itbench_sre",
-	);
+const configuredItbenchPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
+	(page) => page.benchmark_key === "itbench_sre",
+);
 if (configuredItbenchPage == null) {
-	throw new Error("ITBench evaluation resource page is missing");
+	throw new Error("ITBench benchmark resource page is missing");
 }
 assertDeepEqual(configuredItbenchPage, {
 	benchmark_key: "itbench_sre",
@@ -44,11 +43,11 @@ assertDeepEqual(configuredItbenchPage, {
 	task_run_count: 177,
 });
 const configuredBriefcasePage =
-	ARTIFICIAL_ANALYSIS_EVALUATION_RESOURCE_PAGES.find(
+	ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
 		(page) => page.benchmark_key === "briefcase",
 	);
 if (configuredBriefcasePage == null) {
-	throw new Error("Briefcase AA evaluation resource page is missing");
+	throw new Error("Briefcase AA benchmark resource page is missing");
 }
 const briefcasePage = {
 	...configuredBriefcasePage,
@@ -60,7 +59,7 @@ const automationBenchPage = {
 	url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
 	task_run_count: 2,
 };
-const hleRows = processArtificialAnalysisEvaluationResourceRows(
+const hleRows = processArtificialAnalysisBenchmarkResourceRows(
 	[
 		{
 			name: "Claude Fable 5 (Adaptive Reasoning, Max Effort)",
@@ -123,27 +122,26 @@ assertDeepEqual(hleRows, [
 	},
 ]);
 
-const hleRowsByBenchmark =
-	buildArtificialAnalysisDefaultEffortResourceMap(hleRows);
+const hleLookup = buildArtificialAnalysisDefaultEffortResourceLookup(hleRows);
 assertDeepEqual(
-	findArtificialAnalysisEvaluationResourceRow(
+	findArtificialAnalysisBenchmarkResourceRow(
 		"hle",
 		["Claude Fable 5 max"],
-		hleRowsByBenchmark,
+		hleLookup,
 	)?.cost_per_task_usd,
 	2,
 );
 assertDeepEqual(
-	findArtificialAnalysisEvaluationResourceRow(
+	findArtificialAnalysisBenchmarkResourceRow(
 		"critpt",
 		["Claude Fable 5 max"],
-		hleRowsByBenchmark,
+		hleLookup,
 	),
 	null,
 );
 
 assertDeepEqual(
-	processArtificialAnalysisEvaluationResourceRows(
+	processArtificialAnalysisBenchmarkResourceRows(
 		[
 			{
 				short_name: "GPT-5.5 (xhigh)",
@@ -186,7 +184,7 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
-	processArtificialAnalysisEvaluationResourceRows(
+	processArtificialAnalysisBenchmarkResourceRows(
 		[
 			{
 				short_name: "GPT-5.6 Sol (max)",
@@ -229,7 +227,7 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
-	processArtificialAnalysisEvaluationResourceRows(
+	processArtificialAnalysisBenchmarkResourceRows(
 		[
 			{
 				short_name: "Claude Fable 5 (max)",
@@ -263,7 +261,7 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
-	processArtificialAnalysisEvaluationResourceRows(
+	processArtificialAnalysisBenchmarkResourceRows(
 		[
 			{
 				short_name: "Claude Fable 5 (max)",
@@ -319,7 +317,7 @@ assertDeepEqual(
 );
 
 assertDeepEqual(
-	processArtificialAnalysisEvaluationResourceRows(
+	processArtificialAnalysisBenchmarkResourceRows(
 		[
 			{
 				short_name: "Grok 4.5",
@@ -366,7 +364,7 @@ assertDeepEqual(
 	},
 );
 
-const effortRows = processArtificialAnalysisEvaluationResourceRows(
+const effortRows = processArtificialAnalysisBenchmarkResourceRows(
 	[
 		{
 			short_name: "GPT-5.2",
@@ -439,31 +437,31 @@ const effortRows = processArtificialAnalysisEvaluationResourceRows(
 	],
 	hlePage,
 );
-const effortRowsByBenchmark =
-	buildArtificialAnalysisDefaultEffortResourceMap(effortRows);
-const effortObservationsByBenchmark =
-	buildArtificialAnalysisObservationResourceMap(effortRows);
+const effortLookup =
+	buildArtificialAnalysisDefaultEffortResourceLookup(effortRows);
+const effortObservationLookup =
+	buildArtificialAnalysisResourceLookup(effortRows);
 assertDeepEqual(
-	findArtificialAnalysisEvaluationResourceRow(
+	findArtificialAnalysisBenchmarkResourceRow(
 		"hle",
 		["openai/gpt-5-2-non-reasoning"],
-		effortObservationsByBenchmark,
+		effortObservationLookup,
 	)?.reasoning_effort,
 	"none",
 );
 assertDeepEqual(
-	findArtificialAnalysisEvaluationResourceRow(
+	findArtificialAnalysisBenchmarkResourceRow(
 		"hle",
 		["openai/gpt-5-2-low"],
-		effortObservationsByBenchmark,
+		effortObservationLookup,
 	)?.reasoning_effort,
 	"low",
 );
 assertDeepEqual(
-	findArtificialAnalysisEvaluationResourceRow(
+	findArtificialAnalysisBenchmarkResourceRow(
 		"hle",
 		["openai/gpt-5-2-max"],
-		effortObservationsByBenchmark,
+		effortObservationLookup,
 	)?.reasoning_effort,
 	"max",
 );
@@ -476,10 +474,10 @@ for (const candidateName of [
 	"openai/gpt-5-2",
 	"openai/gpt-5-2-max",
 ]) {
-	const defaultRow = findArtificialAnalysisEvaluationResourceRow(
+	const defaultRow = findArtificialAnalysisBenchmarkResourceRow(
 		"hle",
 		[candidateName],
-		effortRowsByBenchmark,
+		effortLookup,
 	);
 	assertDeepEqual(defaultRow?.reasoning_effort, "max");
 	assertDeepEqual(defaultRow?.score, 0.35);
@@ -505,7 +503,7 @@ await new Promise<void>((resolve) => {
 });
 try {
 	const address = server.address() as AddressInfo;
-	await getArtificialAnalysisEvaluationResourceStats({
+	await getArtificialAnalysisBenchmarkResourceStats({
 		concurrency: 2,
 		requestJitterMs: 0,
 		timeoutMs: 1_000,

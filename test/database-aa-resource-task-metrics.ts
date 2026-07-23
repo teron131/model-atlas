@@ -1,4 +1,4 @@
-/** Verifies evaluations and task resources round-trip through normalized final-model tables. */
+/** Verifies benchmarks and task resources round-trip through normalized final-model tables. */
 
 import assert from "node:assert/strict";
 
@@ -8,7 +8,7 @@ import {
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
 import {
-	insertModelEvaluations,
+	insertModelBenchmarks,
 	insertModels,
 	insertModelTaskMetrics,
 } from "../src/model-atlas/ingest/writers";
@@ -31,7 +31,7 @@ try {
 				reasoning_effort: "xhigh",
 				logo: "https://example.com/logo.svg",
 				modalities: { input: ["text"] },
-				evaluations: { hle: 0.9, gdpval_normalized: 0.8 },
+				benchmarks: { hle: 0.9, gdpval_normalized: 0.8 },
 				task_metrics: {
 					artificial_analysis: {
 						cost: 9,
@@ -84,7 +84,7 @@ try {
 			},
 		];
 		insertModels(db, finalRows);
-		insertModelEvaluations(db, finalRows);
+		insertModelBenchmarks(db, finalRows);
 		insertModelTaskMetrics(db, finalRows);
 		assert.equal(
 			db.prepare("SELECT reasoning_effort FROM models").get()?.reasoning_effort,

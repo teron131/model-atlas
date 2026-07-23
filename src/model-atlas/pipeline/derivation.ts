@@ -6,7 +6,7 @@ import {
 	type MatchDiagnosticsPayload,
 } from "../identity";
 import { publicOpenRouterModelId } from "../identity/openrouter";
-import type { LlmStatsSourceData } from "../ingest/assembly";
+import type { ModelAtlasSourceData } from "../ingest/assembly";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { enrichModelRowsWithBenchmarks } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
@@ -14,10 +14,10 @@ import {
 	aggregateExpandedModelRows,
 	buildModelCatalogRows,
 } from "./model-catalog";
-import type { LlmStatsModel } from "./model-types";
+import type { ModelAtlasModel } from "./model-types";
 import {
 	enrichModelRowsWithOpenRouter,
-	type LlmStatsEnrichmentResult,
+	type ModelAtlasEnrichmentResult,
 } from "./openrouter-enrichment";
 import { buildFinalModels } from "./selection/builder";
 
@@ -36,8 +36,8 @@ type ModelDerivationLoaderOptions<LoadResult extends OpenRouterLoadResult> =
 
 type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
 	matchDiagnostics: MatchDiagnosticsPayload;
-	enrichment: LlmStatsEnrichmentResult;
-	models: LlmStatsModel[];
+	enrichment: ModelAtlasEnrichmentResult;
+	models: ModelAtlasModel[];
 	openRouterLoad: LoadResult;
 };
 
@@ -57,15 +57,15 @@ function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
  * Supplying a loader preserves its full result type for storage-specific cache metadata.
  */
 export function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 	options: ModelDerivationLoaderOptions<LoadResult>,
 ): Promise<ModelDerivationResult<LoadResult>>;
 export function deriveModelStats(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 	options?: ModelDerivationOptions,
 ): Promise<ModelDerivationResult<null>>;
 export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 	options:
 		| ModelDerivationOptions
 		| ModelDerivationLoaderOptions<LoadResult> = {},

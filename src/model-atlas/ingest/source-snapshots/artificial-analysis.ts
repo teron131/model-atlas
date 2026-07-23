@@ -5,8 +5,8 @@ import {
 	INTELLIGENCE_INDEX_KEYS,
 } from "../../benchmarks/field-keys";
 import {
-	type ArtificialAnalysisEvaluationResourceRow,
-	getArtificialAnalysisEvaluationResourceStats,
+	type ArtificialAnalysisBenchmarkResourceRow,
+	getArtificialAnalysisBenchmarkResourceStats,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import type { ScoringConfig } from "../../config/stage";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
@@ -17,7 +17,7 @@ import {
 	processArtificialAnalysisLeaderboardRows,
 } from "../../scrapers/artificial-analysis/leaderboard";
 import type {
-	readArtificialAnalysisEvaluationResourceRawCache,
+	readArtificialAnalysisBenchmarkResourceRawCache,
 	readArtificialAnalysisRawCache,
 } from "../cache";
 import type {
@@ -44,8 +44,8 @@ type ArtificialAnalysisSnapshot = {
 	sourceStatus: SourceSnapshotStatus;
 };
 
-type ArtificialAnalysisEvaluationResourceSnapshot = {
-	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
+type ArtificialAnalysisBenchmarkResourceSnapshot = {
+	artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];
 	sourceStatus: SourceSnapshotStatus;
 };
 
@@ -77,14 +77,14 @@ function signalKeys(scoringConfig: ScoringConfig): Set<string> {
 
 function signalCount(row: JsonObject, scoringConfig: ScoringConfig): number {
 	const intelligence = asRecord(row.intelligence);
-	const evaluations = asRecord(row.evaluations);
+	const benchmarks = asRecord(row.benchmarks);
 	const cost = asRecord(row.intelligence_index_cost);
 	const keys = signalKeys(scoringConfig);
 	return [...keys].filter(
 		(key) =>
 			asFiniteNumber(row[key]) != null ||
 			asFiniteNumber(intelligence[key]) != null ||
-			asFiniteNumber(evaluations[key]) != null ||
+			asFiniteNumber(benchmarks[key]) != null ||
 			asFiniteNumber(cost[key]) != null,
 	).length;
 }
@@ -198,40 +198,40 @@ export async function artificialAnalysisSnapshot(
 	};
 }
 
-/** Loads Artificial Analysis evaluation resources keyed by benchmark, source model, and effort. */
-export async function artificialAnalysisEvaluationResourceSnapshot(
-	cached: ReturnType<typeof readArtificialAnalysisEvaluationResourceRawCache>,
+/** Loads Artificial Analysis benchmark resources keyed by benchmark, source model, and effort. */
+export async function artificialAnalysisBenchmarkResourceSnapshot(
+	cached: ReturnType<typeof readArtificialAnalysisBenchmarkResourceRawCache>,
 	status: RawSourceCacheStatus,
 	options: DatabaseBuildOptions,
 	previousMissingSince: ReadonlyMap<string, number>,
 	nowEpochSeconds: number,
-): Promise<ArtificialAnalysisEvaluationResourceSnapshot> {
+): Promise<ArtificialAnalysisBenchmarkResourceSnapshot> {
 	const snapshot = await snapshotSourceRows({
-		source: "artificial_analysis_evaluation_resources",
+		source: "artificial_analysis_benchmark_resources",
 		cached,
 		status,
 		options,
 		previousMissingSince,
 		nowEpochSeconds,
-		fetchRows: getArtificialAnalysisEvaluationResourceStats,
-		rowKey: artificialAnalysisEvaluationResourceSourceKey,
+		fetchRows: getArtificialAnalysisBenchmarkResourceStats,
+		rowKey: artificialAnalysisBenchmarkResourceSourceKey,
 		rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
 	});
 	return {
-		artificialAnalysisEvaluationResourceRows: snapshot.rows,
+		artificialAnalysisBenchmarkResourceRows: snapshot.rows,
 		sourceStatus: {
-			source: "artificial_analysis_evaluation_resources",
+			source: "artificial_analysis_benchmark_resources",
 			fetchedAt: snapshot.fetchedAt,
 			sourceInputCount: snapshot.rows.length,
 			sourceRowStates: snapshot.sourceRowStates,
-			fetchedAtKey: "artificialAnalysisEvaluationResources",
+			fetchedAtKey: "artificialAnalysisBenchmarkResources",
 		},
 	};
 }
 
 /** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
-export function artificialAnalysisEvaluationResourceSourceKey(
-	row: ArtificialAnalysisEvaluationResourceRow,
+export function artificialAnalysisBenchmarkResourceSourceKey(
+	row: ArtificialAnalysisBenchmarkResourceRow,
 ): string {
 	return sourceKey(row.benchmark_key, row.model_id, row.reasoning_effort);
 }

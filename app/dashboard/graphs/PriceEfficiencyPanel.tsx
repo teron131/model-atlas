@@ -14,7 +14,7 @@ import {
 } from "react";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModel,
+	ModelAtlasModel,
 } from "../../../src/model-atlas/stats/types";
 import { CaptureButton } from "../capture/CaptureButton";
 import { captureFileToken } from "../capture/png";
@@ -102,7 +102,7 @@ export function PriceEfficiencyPanel({
 	onShowVariantsChange: (show: boolean) => void;
 	selectedProviders: string[];
 	onSelectedProvidersChange: (providers: string[]) => void;
-	referenceModels: LlmStatsModel[];
+	referenceModels: ModelAtlasModel[];
 	setHover: HoverSetter;
 }) {
 	const [filterQuery, setFilterQuery] = useState("");
@@ -630,7 +630,7 @@ function useCompactChartLayout(): boolean {
 }
 
 /** Keep effort identity visible while fitting model labels beside both mobile rails. */
-function compactSlopeLabel(model: LlmStatsModel): string {
+function compactSlopeLabel(model: ModelAtlasModel): string {
 	const label = shortLabel(model);
 	const effort = model.reasoning_effort;
 	const effortSuffix =

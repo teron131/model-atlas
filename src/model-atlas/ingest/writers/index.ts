@@ -5,12 +5,12 @@ export {
 	insertBenchmarkRawRows,
 } from "../../benchmarks/persistence/runtime";
 export {
-	insertArtificialAnalysisEvaluationResourceRawRows,
+	insertArtificialAnalysisBenchmarkResourceRawRows,
 	insertArtificialAnalysisRawModels,
 } from "./artificial-analysis";
 export { SnapshotRowCollector } from "./collector";
 export {
-	insertModelEvaluations,
+	insertModelBenchmarks,
 	insertModels,
 	insertModelTaskMetrics,
 } from "./models";

@@ -2,8 +2,8 @@
 
 import type { DatabaseSync } from "node:sqlite";
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
-import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "../../benchmarks/registry";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
+import { ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS } from "../../benchmarks/registry";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { asFiniteNumber, type JsonObject } from "../../runtime";
 import {
 	assignIfBoolean,
@@ -100,7 +100,7 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
 	for (const key of ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS) {
 		assignIfNumber(rawRow, key, row[key]);
 	}
-	for (const key of ARTIFICIAL_ANALYSIS_EVALUATION_KEYS) {
+	for (const key of ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS) {
 		assignIfNumber(rawRow, key, row[key]);
 	}
 	for (const key of ARTIFICIAL_ANALYSIS_COST_KEYS) {
@@ -144,7 +144,7 @@ function selectedRowFromCache(row: CacheDbRow): JsonObject {
 		row,
 		ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 	);
-	const evaluations = nestedNumbers(row, ARTIFICIAL_ANALYSIS_EVALUATION_KEYS);
+	const benchmarks = nestedNumbers(row, ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS);
 	const intelligenceIndexCost = nestedNumbers(
 		row,
 		ARTIFICIAL_ANALYSIS_COST_KEYS,
@@ -152,8 +152,8 @@ function selectedRowFromCache(row: CacheDbRow): JsonObject {
 	if (nonEmptyRecord(intelligence) != null) {
 		selectedRow.intelligence = intelligence;
 	}
-	if (nonEmptyRecord(evaluations) != null) {
-		selectedRow.evaluations = evaluations;
+	if (nonEmptyRecord(benchmarks) != null) {
+		selectedRow.benchmarks = benchmarks;
 	}
 	if (nonEmptyRecord(intelligenceIndexCost) != null) {
 		selectedRow.intelligence_index_cost = intelligenceIndexCost;
@@ -187,10 +187,10 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync) {
 	);
 }
 
-export function artificialAnalysisEvaluationResourceRawCacheFromRows(
+export function artificialAnalysisBenchmarkResourceRawCacheFromRows(
 	cacheRows: CacheDbRow[],
 ): {
-	rows: ArtificialAnalysisEvaluationResourceRow[];
+	rows: ArtificialAnalysisBenchmarkResourceRow[];
 	fetchedAt: number | null;
 } | null {
 	if (cacheRows.length === 0) {
@@ -253,13 +253,13 @@ export function artificialAnalysisEvaluationResourceRawCacheFromRows(
 	};
 }
 
-export function readArtificialAnalysisEvaluationResourceRawCache(
+export function readArtificialAnalysisBenchmarkResourceRawCache(
 	db: DatabaseSync,
 ) {
-	return artificialAnalysisEvaluationResourceRawCacheFromRows(
+	return artificialAnalysisBenchmarkResourceRawCacheFromRows(
 		queryCacheRows(
 			db,
-			"SELECT * FROM artificial_analysis_evaluations_raw_rows ORDER BY row_index",
+			"SELECT * FROM artificial_analysis_benchmarks_raw_rows ORDER BY row_index",
 		),
 	);
 }

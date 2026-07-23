@@ -25,10 +25,10 @@ import {
 	summarizeAleBenchSourceDefaultRows,
 } from "../../benchmarks/scrapers/ale-bench";
 import {
-	type ArtificialAnalysisEvaluationResourceByBenchmark,
-	type ArtificialAnalysisEvaluationResourceRow,
-	buildArtificialAnalysisDefaultEffortResourceMap,
-	buildArtificialAnalysisObservationResourceMap,
+	type ArtificialAnalysisBenchmarkResourceLookup,
+	type ArtificialAnalysisBenchmarkResourceRow,
+	buildArtificialAnalysisDefaultEffortResourceLookup,
+	buildArtificialAnalysisResourceLookup,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import {
 	type BlueprintBenchModelScoreRow,
@@ -99,7 +99,7 @@ export type ArtificialAnalysisModel = {
 	median_speed?: unknown;
 	median_time?: unknown;
 	median_end_to_end_response_time?: unknown;
-	evaluations?: unknown;
+	benchmarks?: unknown;
 	intelligence?: unknown;
 	intelligence_index_cost?: unknown;
 };
@@ -116,15 +116,15 @@ type BenchmarkObservationData = {
 	>;
 };
 
-export type LlmStatsSourceData = BenchmarkObservationData & {
+export type ModelAtlasSourceData = BenchmarkObservationData & {
 	artificialAnalysis: {
 		rows: unknown[];
 		bySlug: Map<string, ArtificialAnalysisModel>;
 	};
-	artificialAnalysisEvaluationResources: {
-		rows: ArtificialAnalysisEvaluationResourceRow[];
-		observationByModelName: ArtificialAnalysisEvaluationResourceByBenchmark;
-		defaultEffortByModelName: ArtificialAnalysisEvaluationResourceByBenchmark;
+	artificialAnalysisBenchmarkResources: {
+		rows: ArtificialAnalysisBenchmarkResourceRow[];
+		observationLookup: ArtificialAnalysisBenchmarkResourceLookup;
+		defaultEffortLookup: ArtificialAnalysisBenchmarkResourceLookup;
 	};
 	modelsDev: {
 		rows: ModelsDevFlatModel[];
@@ -188,27 +188,31 @@ export type LlmStatsSourceData = BenchmarkObservationData & {
 };
 
 type BenchmarkObservationRows = {
-	[Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: LlmStatsSourceData[Binding["sourceDataKey"]]["rows"];
+	[Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: ModelAtlasSourceData[
+		Binding["sourceDataKey"]
+	]["rows"];
 };
 
-export type LlmStatsSourceRows = BenchmarkObservationRows & {
-	artificialAnalysisRows: LlmStatsSourceData["artificialAnalysis"]["rows"];
-	artificialAnalysisEvaluationResourceRows: LlmStatsSourceData["artificialAnalysisEvaluationResources"]["rows"];
-	modelsDevModels: LlmStatsSourceData["modelsDev"]["rows"];
-	agentArenaRows: LlmStatsSourceData["agentArena"]["rows"];
-	agentsLastExamRows: LlmStatsSourceData["agentsLastExam"]["rows"];
-	aleBenchConfigurationRows: LlmStatsSourceData["aleBench"]["configurationRows"];
-	blueprintBenchRows: LlmStatsSourceData["blueprintBench"]["rows"];
-	cursorBenchRows: LlmStatsSourceData["cursorBench"]["rows"];
-	deepSWEEffortRows: LlmStatsSourceData["deepSWE"]["effortRows"];
-	frontierCodeRows: LlmStatsSourceData["frontierCode"]["rows"];
-	gdpPdfRows: LlmStatsSourceData["gdpPdf"]["rows"];
-	harveyLabRows: LlmStatsSourceData["harveyLab"]["rows"];
+export type ModelAtlasSourceRows = BenchmarkObservationRows & {
+	artificialAnalysisRows: ModelAtlasSourceData["artificialAnalysis"]["rows"];
+	artificialAnalysisBenchmarkResourceRows: ModelAtlasSourceData[
+		"artificialAnalysisBenchmarkResources"
+	]["rows"];
+	modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
+	agentArenaRows: ModelAtlasSourceData["agentArena"]["rows"];
+	agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
+	aleBenchConfigurationRows: ModelAtlasSourceData["aleBench"]["configurationRows"];
+	blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
+	cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
+	deepSWEEffortRows: ModelAtlasSourceData["deepSWE"]["effortRows"];
+	frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
+	gdpPdfRows: ModelAtlasSourceData["gdpPdf"]["rows"];
+	harveyLabRows: ModelAtlasSourceData["harveyLab"]["rows"];
 	mercorApexAgentsRows: MercorApexAgentsRow[];
-	riemannBenchRows: LlmStatsSourceData["riemannBench"]["rows"];
-	terminalBenchRows: LlmStatsSourceData["terminalBench"]["rows"];
-	valsIndexRows: LlmStatsSourceData["valsIndex"]["rows"];
-	vendingBench2Rows: LlmStatsSourceData["vendingBench2"]["rows"];
+	riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
+	terminalBenchRows: ModelAtlasSourceData["terminalBench"]["rows"];
+	valsIndexRows: ModelAtlasSourceData["valsIndex"]["rows"];
+	vendingBench2Rows: ModelAtlasSourceData["vendingBench2"]["rows"];
 };
 
 function buildArtificialAnalysisBySlug(
@@ -226,11 +230,11 @@ function buildArtificialAnalysisBySlug(
 }
 
 function buildBenchmarkObservationData(
-	rows: LlmStatsSourceRows,
-): Partial<LlmStatsSourceData> {
+	rows: ModelAtlasSourceRows,
+): Partial<ModelAtlasSourceData> {
 	return Object.fromEntries(
 		BENCHMARK_OBSERVATION_BINDINGS.map(({ sourceDataKey, sourceRowsKey }) => {
-			const sourceRows = rows[sourceRowsKey as keyof LlmStatsSourceRows] as
+			const sourceRows = rows[sourceRowsKey as keyof ModelAtlasSourceRows] as
 				| readonly BenchmarkObservationRow[]
 				| undefined;
 			if (!Array.isArray(sourceRows)) {
@@ -246,11 +250,11 @@ function buildBenchmarkObservationData(
 				},
 			];
 		}),
-	) as Partial<LlmStatsSourceData>;
+	) as Partial<ModelAtlasSourceData>;
 }
 
 /** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
-export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
+export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
 		rows.modelsDevModels,
 	);
@@ -266,13 +270,13 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.artificialAnalysisRows,
 			bySlug: buildArtificialAnalysisBySlug(rows.artificialAnalysisRows),
 		},
-		artificialAnalysisEvaluationResources: {
-			rows: rows.artificialAnalysisEvaluationResourceRows,
-			observationByModelName: buildArtificialAnalysisObservationResourceMap(
-				rows.artificialAnalysisEvaluationResourceRows,
+		artificialAnalysisBenchmarkResources: {
+			rows: rows.artificialAnalysisBenchmarkResourceRows,
+			observationLookup: buildArtificialAnalysisResourceLookup(
+				rows.artificialAnalysisBenchmarkResourceRows,
 			),
-			defaultEffortByModelName: buildArtificialAnalysisDefaultEffortResourceMap(
-				rows.artificialAnalysisEvaluationResourceRows,
+			defaultEffortLookup: buildArtificialAnalysisDefaultEffortResourceLookup(
+				rows.artificialAnalysisBenchmarkResourceRows,
 			),
 		},
 		modelsDev: {
@@ -343,5 +347,5 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 			rows: rows.vendingBench2Rows,
 			rowsByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
 		},
-	} as unknown as LlmStatsSourceData;
+	} as unknown as ModelAtlasSourceData;
 }

@@ -5,9 +5,9 @@
  */
 
 import {
-	type ArtificialAnalysisEvaluationResourceByBenchmark,
-	type ArtificialAnalysisEvaluationResourceRow,
-	findArtificialAnalysisEvaluationResourceRow,
+	type ArtificialAnalysisBenchmarkResourceLookup,
+	type ArtificialAnalysisBenchmarkResourceRow,
+	findArtificialAnalysisBenchmarkResourceRow,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import {
 	findTerminalBenchRows,
@@ -48,12 +48,12 @@ export type TerminalBenchAggregateRow = {
 
 type AggregateInput = {
 	artificialAnalysisScore?: unknown;
-	resourceRow?: ArtificialAnalysisEvaluationResourceRow | null;
+	resourceRow?: ArtificialAnalysisBenchmarkResourceRow | null;
 	harnessRows?: readonly TerminalBenchModelHarnessRow[] | null;
 };
 
 type SourceLookups = {
-	artificialAnalysisRowsByBenchmark: ArtificialAnalysisEvaluationResourceByBenchmark;
+	artificialAnalysisResourceLookup: ArtificialAnalysisBenchmarkResourceLookup;
 	harnessRowsByModel: TerminalBenchRowsByModelName;
 };
 
@@ -75,7 +75,7 @@ function nonNegativeNumber(value: unknown): number | null {
 
 function resourceObservation(
 	score: unknown,
-	row: ArtificialAnalysisEvaluationResourceRow | null | undefined,
+	row: ArtificialAnalysisBenchmarkResourceRow | null | undefined,
 ): Observation | null {
 	const parsedScore = finiteUnitScore(score) ?? finiteUnitScore(row?.score);
 	if (parsedScore == null && row == null) {
@@ -188,10 +188,10 @@ export function findTerminalBenchAggregate(
 	lookups: SourceLookups,
 	artificialAnalysisScore?: unknown,
 ): TerminalBenchAggregateRow | null {
-	const resourceRow = findArtificialAnalysisEvaluationResourceRow(
+	const resourceRow = findArtificialAnalysisBenchmarkResourceRow(
 		"terminalbench_v21",
 		candidateNames,
-		lookups.artificialAnalysisRowsByBenchmark,
+		lookups.artificialAnalysisResourceLookup,
 	);
 	const harnessRows = findTerminalBenchRows(
 		candidateNames,

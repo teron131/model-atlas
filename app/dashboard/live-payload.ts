@@ -10,11 +10,11 @@ import {
 	useState,
 } from "react";
 
-import type { LlmStatsPayload } from "../../src/model-atlas/stats/types";
+import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { liveStatsPath } from "./shared/constants";
 import { cacheBustedPath } from "./shared/format";
 
-const LLM_STATS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
+const MODEL_ATLAS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 // Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
 const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
@@ -30,8 +30,8 @@ type RefreshPayloadOptions = {
 };
 
 /** Keeps the dashboard payload current while cached data covers compact or unavailable initial responses. */
-export function useLivePayload(initialPayload: LlmStatsPayload | null) {
-	const [payload, setPayload] = useState<LlmStatsPayload | null>(
+export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
+	const [payload, setPayload] = useState<ModelAtlasPayload | null>(
 		initialPayload,
 	);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}`);
 				}
-				return response.json() as Promise<LlmStatsPayload>;
+				return response.json() as Promise<ModelAtlasPayload>;
 			})
 			.then((nextPayload) => {
 				setPayload(nextPayload);
@@ -126,30 +126,30 @@ export function useLivePayload(initialPayload: LlmStatsPayload | null) {
 	};
 }
 
-function isLlmStatsPayload(payload: unknown): payload is LlmStatsPayload {
+function isModelAtlasPayload(payload: unknown): payload is ModelAtlasPayload {
 	if (payload == null || typeof payload !== "object") {
 		return false;
 	}
-	return Array.isArray((payload as Partial<LlmStatsPayload>).models);
+	return Array.isArray((payload as Partial<ModelAtlasPayload>).models);
 }
 
-function isFullPayload(payload: LlmStatsPayload): boolean {
+function isFullPayload(payload: ModelAtlasPayload): boolean {
 	return payload.metadata.scoring.selected_benchmark_keys.length > 0;
 }
 
-function readCachedPayload(): LlmStatsPayload | null {
+function readCachedPayload(): ModelAtlasPayload | null {
 	if (typeof window === "undefined") {
 		return null;
 	}
 	try {
 		const cachedPayload = window.localStorage.getItem(
-			LLM_STATS_PAYLOAD_CACHE_KEY,
+			MODEL_ATLAS_PAYLOAD_CACHE_KEY,
 		);
 		if (cachedPayload == null) {
 			return null;
 		}
 		const parsedPayload: unknown = JSON.parse(cachedPayload);
-		return isLlmStatsPayload(parsedPayload) ? parsedPayload : null;
+		return isModelAtlasPayload(parsedPayload) ? parsedPayload : null;
 	} catch {
 		return null;
 	}
@@ -185,7 +185,7 @@ function recordRefreshAttempt(): void {
 	} catch {}
 }
 
-function scheduleCacheWrite(payload: LlmStatsPayload): void {
+function scheduleCacheWrite(payload: ModelAtlasPayload): void {
 	const idleCallback = window.requestIdleCallback?.(
 		() => {
 			writeCachedPayload(payload);
@@ -200,10 +200,10 @@ function scheduleCacheWrite(payload: LlmStatsPayload): void {
 	}, 0);
 }
 
-function writeCachedPayload(payload: LlmStatsPayload): void {
+function writeCachedPayload(payload: ModelAtlasPayload): void {
 	try {
 		window.localStorage.setItem(
-			LLM_STATS_PAYLOAD_CACHE_KEY,
+			MODEL_ATLAS_PAYLOAD_CACHE_KEY,
 			JSON.stringify(payload),
 		);
 	} catch {

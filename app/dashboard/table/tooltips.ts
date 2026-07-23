@@ -2,8 +2,8 @@
 
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import type {
-	LlmStatsColumnTooltip,
-	LlmStatsColumnTooltips,
+	ModelAtlasColumnTooltip,
+	ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
 import { benchmarkTooltips } from "../shared/constants";
 import {
@@ -18,7 +18,7 @@ const benchmarkColumnTooltips = Object.fromEntries(
 		const tooltip = benchmarkTooltips[column.benchmark];
 		return tooltip == null ? [] : [[column.key, tooltip]];
 	}),
-) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+) as Partial<Record<SortKey, ModelAtlasColumnTooltip>>;
 
 type TaskMetricTooltipText = {
 	title: string;
@@ -84,7 +84,7 @@ const terminalBenchMetricText: Record<string, TaskMetricTooltipText> = {
 
 const taskMetricColumnTooltips = Object.fromEntries(
 	taskMetricColumns.flatMap((column) => taskMetricTooltipEntry(column)),
-) as Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+) as Partial<Record<SortKey, ModelAtlasColumnTooltip>>;
 
 const staticTableColumnTooltips = {
 	rank: {
@@ -135,9 +135,9 @@ const staticTableColumnTooltips = {
 		title: "End-to-end latency ↓",
 		body: "Median total response time from provider speed data.",
 	},
-} as const satisfies Partial<Record<SortKey, LlmStatsColumnTooltip>>;
+} as const satisfies Partial<Record<SortKey, ModelAtlasColumnTooltip>>;
 
-const fallbackColumnTooltips: Partial<Record<SortKey, LlmStatsColumnTooltip>> =
+const fallbackColumnTooltips: Partial<Record<SortKey, ModelAtlasColumnTooltip>> =
 	{
 		...staticTableColumnTooltips,
 		...benchmarkColumnTooltips,
@@ -146,7 +146,7 @@ const fallbackColumnTooltips: Partial<Record<SortKey, LlmStatsColumnTooltip>> =
 
 function taskMetricTooltipEntry(
 	column: TaskMetricColumn,
-): Array<[SortKey, LlmStatsColumnTooltip]> {
+): Array<[SortKey, ModelAtlasColumnTooltip]> {
 	const configuredTooltip = COLUMN_TOOLTIPS[column.key];
 	if (configuredTooltip != null) {
 		return [[column.key, configuredTooltip]];
@@ -175,7 +175,7 @@ function taskMetricTooltipEntry(
 
 function taskMetricTooltipSource(
 	column: TaskMetricColumn,
-	tooltip: LlmStatsColumnTooltip,
+	tooltip: ModelAtlasColumnTooltip,
 ) {
 	if (column.source === "terminalbench_v21") {
 		return column.metric === "tokens" ||
@@ -203,7 +203,7 @@ function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
 /** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */
 export function tableColumnTooltip(
 	key: SortKey,
-	columnTooltips: LlmStatsColumnTooltips,
+	columnTooltips: ModelAtlasColumnTooltips,
 ) {
 	return fallbackColumnTooltips[key] ?? columnTooltips[key];
 }

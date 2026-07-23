@@ -2,19 +2,19 @@
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import {
-	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+	ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 	transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
 import { agentsLastExamBenchmarkScore } from "../../benchmarks/scrapers/agents-last-exam";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { cursorBenchCanonicalModelName } from "../../benchmarks/scrapers/cursorbench";
 import {
 	canonicalReasoningEffort,
 	normalizeModelToken,
 } from "../../identity/normalization";
-import type { LlmStatsSourceData } from "../../ingest/assembly";
+import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { aggregateCollapsedModelRows } from "../model-catalog";
 
@@ -109,7 +109,7 @@ function benchmarkObservationDrafts(
 }
 
 function surgeBenchmarkRowDrafts(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 ): BenchmarkRowDraft[] {
 	return [
 		...benchmarkRowDrafts("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
@@ -130,10 +130,10 @@ function surgeBenchmarkRowDrafts(
 }
 
 function benchmarkObservationSourceDrafts(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 ): BenchmarkRowDraft[] {
 	return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceDataKey }) => {
-		const source = sourceData[sourceDataKey as keyof LlmStatsSourceData] as
+		const source = sourceData[sourceDataKey as keyof ModelAtlasSourceData] as
 			| { rows?: readonly BenchmarkObservationRow[] }
 			| undefined;
 		if (source?.rows == null) {
@@ -145,10 +145,10 @@ function benchmarkObservationSourceDrafts(
 	});
 }
 
-function artificialAnalysisEvaluationResourceDrafts(
+function artificialAnalysisBenchmarkResourceDrafts(
 	key: string,
-	rows: readonly ArtificialAnalysisEvaluationResourceRow[],
-	value: (row: ArtificialAnalysisEvaluationResourceRow) => unknown,
+	rows: readonly ArtificialAnalysisBenchmarkResourceRow[],
+	value: (row: ArtificialAnalysisBenchmarkResourceRow) => unknown,
 ): BenchmarkRowDraft[] {
 	return benchmarkRowDrafts(
 		key,
@@ -202,7 +202,7 @@ function aggregateBenchmarkSourceRows(
 				artificial_analysis_id: identity,
 				artificial_analysis_slug: identity.split("/").at(-1),
 				reasoning_effort: row.reasoningEffort,
-				evaluations: { [key]: row.value },
+				benchmarks: { [key]: row.value },
 				benchmark_source_row: {
 					id: row.id,
 					label: row.label,
@@ -244,7 +244,7 @@ export function artificialAnalysisModelRowDrafts<Row>({
 		if (rowLabel == null) {
 			return [];
 		}
-		return ARTIFICIAL_ANALYSIS_EVALUATION_KEYS.map((key) => ({
+		return ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS.map((key) => ({
 			key,
 			id: rowModelId,
 			identity: rowModelId,
@@ -257,7 +257,7 @@ export function artificialAnalysisModelRowDrafts<Row>({
 }
 
 function artificialAnalysisBenchmarkRowDrafts(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 ): BenchmarkRowDraft[] {
 	return [
 		...artificialAnalysisModelRowDrafts({
@@ -275,23 +275,23 @@ function artificialAnalysisBenchmarkRowDrafts(
 					: modelId;
 			},
 			reasoningEffort: (row) => asRecord(row).reasoning_effort,
-			value: (row, key) => asRecord(asRecord(row).evaluations)[key],
+			value: (row, key) => asRecord(asRecord(row).benchmarks)[key],
 		}),
-		...artificialAnalysisEvaluationResourceDrafts(
+		...artificialAnalysisBenchmarkResourceDrafts(
 			"automation_bench",
-			sourceData.artificialAnalysisEvaluationResources.rows,
+			sourceData.artificialAnalysisBenchmarkResources.rows,
 			(row) => row.score,
 		),
-		...artificialAnalysisEvaluationResourceDrafts(
+		...artificialAnalysisBenchmarkResourceDrafts(
 			"briefcase",
-			sourceData.artificialAnalysisEvaluationResources.rows,
+			sourceData.artificialAnalysisBenchmarkResources.rows,
 			(row) => transformBenchmarkSourceValue("briefcase", row.score),
 		),
 	];
 }
 
 type SparseBenchmarkRowDraftAdapter = (
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 ) => BenchmarkRowDraft[];
 
 /** Sparse benchmark adapters retain source-specific row rules behind one exhaustive registry. */
@@ -386,7 +386,7 @@ const SPARSE_BENCHMARK_ROW_DRAFT_ADAPTERS = {
 >;
 
 function benchmarkDraftsFromSourceData(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 ): BenchmarkRowDraft[] {
 	return [
 		...benchmarkObservationSourceDrafts(sourceData),
@@ -403,7 +403,7 @@ function benchmarkDraftsFromSourceData(
 
 /** Live source data enters benchmark-update health through the same draft contract as database restorations. */
 export function benchmarkRowsFromSourceData(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 ): BenchmarkRowsByKey {
 	return finalizeBenchmarkRows(benchmarkDraftsFromSourceData(sourceData));
 }

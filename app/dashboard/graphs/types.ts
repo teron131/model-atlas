@@ -1,7 +1,7 @@
 /** Shared graph view contracts. */
 
 import type { Dispatch, SetStateAction } from "react";
-import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 
 export type ProviderOption = {
 	slug: string;
@@ -26,7 +26,7 @@ export type HoverState = {
 export type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
 
 export type Point = {
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	x: number;
 	y: number;
 };
@@ -42,7 +42,7 @@ export type InteractionConfig = {
 	lowerIsBetter: boolean;
 	logScale: boolean;
 	ticks: number[];
-	get: (model: LlmStatsModel, context: InteractionContext) => number | null;
+	get: (model: ModelAtlasModel, context: InteractionContext) => number | null;
 	format: (value: number) => string;
 	tooltipFormat: (value: number) => string;
 	xLabel: string;

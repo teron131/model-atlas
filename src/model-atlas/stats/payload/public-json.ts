@@ -1,7 +1,7 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
 import { strongestModelVariants } from "../../pipeline/selection/public-list";
-import type { LlmStatsModel, LlmStatsPayload } from "../types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
@@ -9,7 +9,7 @@ const BENCHMARKS_SCHEMA = "model_atlas.benchmarks";
 const SCORE_SCALE = "percentage";
 const BENCHMARK_SCALE = "decimal";
 
-export type LlmStatsJsonView =
+export type ModelAtlasJsonView =
 	| "score"
 	| "core"
 	| "benchmarks"
@@ -22,7 +22,7 @@ type PublicJsonPayload =
 	| CoreJsonPayload
 	| BenchmarksJsonPayload
 	| FullJsonPayload
-	| LlmStatsPayload;
+	| ModelAtlasPayload;
 
 type CoreJsonPayload = {
 	schema: typeof CORE_SCHEMA;
@@ -33,11 +33,11 @@ type CoreJsonPayload = {
 	models: CoreJsonModel[];
 };
 
-export type FullJsonPayload = Omit<LlmStatsPayload, "models"> & {
+export type FullJsonPayload = Omit<ModelAtlasPayload, "models"> & {
 	models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<LlmStatsModel, "reasoning" | "logo">;
+type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo">;
 
 type ScoreJsonPayload = {
 	schema: typeof SCORE_SCHEMA;
@@ -123,13 +123,13 @@ const CORE_MODEL_COLUMNS = [
 ] as const;
 
 type RankedModel = {
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	rank: number;
 };
 
 /** Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly. */
 export function publicJsonPayload(
-	payload: LlmStatsPayload,
+	payload: ModelAtlasPayload,
 	view: string | null,
 ): PublicJsonPayload {
 	switch (view) {
@@ -148,7 +148,7 @@ export function publicJsonPayload(
 }
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
-export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
+export function coreJsonPayload(payload: ModelAtlasPayload): CoreJsonPayload {
 	const rankedModels = rankModelsByIntelligence(
 		strongestModelVariants(payload.models),
 	);
@@ -163,7 +163,7 @@ export function coreJsonPayload(payload: LlmStatsPayload): CoreJsonPayload {
 }
 
 /** The score view is the default public ranking surface and exposes only Atlas 0-100 score fields. */
-export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
+export function scoreJsonPayload(payload: ModelAtlasPayload): ScoreJsonPayload {
 	const rankedModels = rankModelsByIntelligence(
 		strongestModelVariants(payload.models),
 	);
@@ -178,7 +178,7 @@ export function scoreJsonPayload(payload: LlmStatsPayload): ScoreJsonPayload {
 
 /** Benchmark rows stay in their native decimal scale so downstream users can distinguish raw task scores from Atlas scores. */
 export function benchmarksJsonPayload(
-	payload: LlmStatsPayload,
+	payload: ModelAtlasPayload,
 ): BenchmarksJsonPayload {
 	const rankedModels = rankModelsByIntelligence(
 		strongestModelVariants(payload.models),
@@ -195,7 +195,7 @@ export function benchmarksJsonPayload(
 }
 
 /** Preserve every scored variant for power users while removing fields that only make sense in the rendered dashboard. */
-export function fullJsonPayload(payload: LlmStatsPayload): FullJsonPayload {
+export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
 	return {
 		...payload,
 		models: payload.models.map(
@@ -209,7 +209,7 @@ function methodologyText(): string {
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
-function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
+function rankModelsByIntelligence(models: ModelAtlasModel[]): RankedModel[] {
 	const rankedModels: RankedModel[] = [];
 	let previousScore: number | null = null;
 	let previousRank = 0;
@@ -223,7 +223,7 @@ function rankModelsByIntelligence(models: LlmStatsModel[]): RankedModel[] {
 	return rankedModels;
 }
 
-function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
+function scoreJsonModel(model: ModelAtlasModel, rank: number): ScoreJsonModel {
 	return {
 		rank,
 		id: model.id,
@@ -239,7 +239,7 @@ function scoreJsonModel(model: LlmStatsModel, rank: number): ScoreJsonModel {
 }
 
 function benchmarksJsonModel(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	rank: number,
 ): BenchmarksJsonModel {
 	return {
@@ -248,7 +248,7 @@ function benchmarksJsonModel(
 		name: model.name,
 		provider: model.provider,
 		benchmarks: Object.fromEntries(
-			Object.entries(model.evaluations ?? {}).map(([key, value]) => [
+			Object.entries(model.benchmarks ?? {}).map(([key, value]) => [
 				key,
 				value ?? null,
 			]),
@@ -256,7 +256,7 @@ function benchmarksJsonModel(
 	};
 }
 
-function coreJsonModel(model: LlmStatsModel, rank: number): CoreJsonModel {
+function coreJsonModel(model: ModelAtlasModel, rank: number): CoreJsonModel {
 	return {
 		rank,
 		id: model.id,

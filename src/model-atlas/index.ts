@@ -12,25 +12,25 @@ export {
 export { PRICE_PROFILES, STAGE_CONFIG } from "./config";
 export type { ModelAtlasStageConfig } from "./config/stage";
 export type {
-	LlmStatsColumnTooltip,
-	LlmStatsColumnTooltips,
+	ModelAtlasColumnTooltip,
+	ModelAtlasColumnTooltips,
 } from "./config/tooltips";
 export type {
-	LlmStatsBenchmarkValues,
-	LlmStatsComponentScores,
-	LlmStatsContextWindow,
-	LlmStatsCost,
-	LlmStatsCostBreakdown,
-	LlmStatsCostTier,
-	LlmStatsEvaluations,
-	LlmStatsIntelligence,
-	LlmStatsIntelligenceIndexCost,
-	LlmStatsMetadata,
-	LlmStatsModalities,
-	LlmStatsModel,
-	LlmStatsOptions,
-	LlmStatsPayload,
-	LlmStatsScores,
-	LlmStatsSpeed,
+	ModelAtlasBenchmarks,
+	ModelAtlasBenchmarkValues,
+	ModelAtlasComponentScores,
+	ModelAtlasContextWindow,
+	ModelAtlasCost,
+	ModelAtlasCostBreakdown,
+	ModelAtlasCostTier,
+	ModelAtlasIntelligence,
+	ModelAtlasIntelligenceIndexCost,
+	ModelAtlasMetadata,
+	ModelAtlasModalities,
+	ModelAtlasModel,
+	ModelAtlasOptions,
+	ModelAtlasPayload,
+	ModelAtlasScores,
+	ModelAtlasSpeed,
 } from "./stats/live";
-export { getLiveLlmStats } from "./stats/live";
+export { getLiveModelAtlasPayload } from "./stats/live";

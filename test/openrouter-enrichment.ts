@@ -54,7 +54,7 @@ const effortObservations = [
 		artificial_analysis_id: "openai/gpt-5-6-sol",
 		artificial_analysis_slug: "gpt-5-6-sol",
 		reasoning_effort: "max",
-		evaluations: { scicode: 0.56, terminalbench_v21: 0.88 },
+		benchmarks: { scicode: 0.56, terminalbench_v21: 0.88 },
 		intelligence: { coding_index: 77, intelligence_index: 59 },
 		intelligence_index_cost: { total_cost: 12 },
 	},
@@ -64,7 +64,7 @@ const effortObservations = [
 		artificial_analysis_id: "openai/gpt-5-6-sol-xhigh",
 		artificial_analysis_slug: "gpt-5-6-sol-xhigh",
 		reasoning_effort: "xhigh",
-		evaluations: { scicode: 0.55, terminalbench_v21: 0.9 },
+		benchmarks: { scicode: 0.55, terminalbench_v21: 0.9 },
 		intelligence: { coding_index: 78, intelligence_index: 58 },
 		intelligence_index_cost: { total_cost: 10 },
 	},
@@ -82,12 +82,12 @@ const [canonicalNoneVariant] = aggregateExpandedModelRows([
 		artificial_analysis_id: "openai/gpt-5-6-sol-non-reasoning",
 		artificial_analysis_slug: "gpt-5-6-sol-non-reasoning",
 		reasoning_effort: "non-reasoning",
-		evaluations: { scicode: 0.4 },
+		benchmarks: { scicode: 0.4 },
 	},
 ]);
 assertEqual(canonicalNoneVariant?.reasoning_effort, "none");
 const defaultEffortRow = defaultEffortRows[0] as Record<string, unknown>;
-const defaultEffortEvaluations = defaultEffortRow.evaluations as Record<
+const defaultEffortBenchmarks = defaultEffortRow.benchmarks as Record<
 	string,
 	unknown
 >;
@@ -100,8 +100,8 @@ const defaultEffortIntelligenceCost =
 assertEqual(defaultEffortRows.length, 1);
 assertEqual(defaultEffortRow.artificial_analysis_id, "openai/gpt-5-6-sol");
 assertEqual(defaultEffortRow.reasoning_effort, undefined);
-assertEqual(defaultEffortEvaluations.scicode, 0.56);
-assertEqual(defaultEffortEvaluations.terminalbench_v21, 0.88);
+assertEqual(defaultEffortBenchmarks.scicode, 0.56);
+assertEqual(defaultEffortBenchmarks.terminalbench_v21, 0.88);
 assertEqual(defaultEffortIntelligence.coding_index, 77);
 assertEqual(defaultEffortIntelligence.intelligence_index, 59);
 assertEqual(defaultEffortIntelligenceCost.total_cost, 12);

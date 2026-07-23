@@ -13,7 +13,7 @@ export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
 
 const CORE_RAW_SOURCE_NAMES = [
 	"artificial_analysis",
-	"artificial_analysis_evaluation_resources",
+	"artificial_analysis_benchmark_resources",
 	"models_dev",
 	"openrouter",
 ] as const;
@@ -36,8 +36,8 @@ export function isBenchmarkObservationRawSource(
 /** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
 const CORE_RAW_SOURCE_TABLES = {
 	artificial_analysis: "artificial_analysis_raw_models",
-	artificial_analysis_evaluation_resources:
-		"artificial_analysis_evaluations_raw_rows",
+	artificial_analysis_benchmark_resources:
+		"artificial_analysis_benchmarks_raw_rows",
 	models_dev: "models_dev_raw_models",
 	openrouter: "openrouter_raw_rows",
 } as const satisfies Record<(typeof CORE_RAW_SOURCE_NAMES)[number], string>;
@@ -65,7 +65,7 @@ export const SNAPSHOT_TABLES = {
 	source_quarantines: "source_quarantines",
 	source_health: "source_health",
 	models: "models",
-	model_evaluations: "model_evaluations",
+	model_benchmarks: "model_benchmarks",
 	model_task_metrics: "model_task_metrics",
 	model_match_debug: "model_match_debug",
 } as const;
@@ -75,7 +75,7 @@ export type SnapshotTableName =
 
 export const SOURCE_URLS = {
 	artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
-	artificial_analysis_evaluation_resources:
+	artificial_analysis_benchmark_resources:
 		"https://artificialanalysis.ai/evaluations",
 	models_dev: "https://models.dev/api.json",
 	openrouter_models: OPENROUTER_MODELS_URL,

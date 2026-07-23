@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS artificial_analysis_evaluations_raw_rows (
+CREATE TABLE IF NOT EXISTS artificial_analysis_benchmarks_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -509,7 +509,7 @@ CREATE TABLE IF NOT EXISTS models (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS model_evaluations (
+CREATE TABLE IF NOT EXISTS model_benchmarks (
 	model_row_index INTEGER NOT NULL,
 	benchmark_key TEXT NOT NULL,
 	value REAL NOT NULL,

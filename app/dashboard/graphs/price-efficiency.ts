@@ -12,8 +12,8 @@ import {
 } from "../../../src/model-atlas/pipeline/scores/resource-efficiency";
 import type {
 	BenchmarkPortfolio,
-	LlmStatsModel,
-	LlmStatsTaskMetricValues,
+	ModelAtlasModel,
+	ModelAtlasTaskMetricValues,
 } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../shared/model-display";
 import {
@@ -25,7 +25,7 @@ import {
 import type { HoverRow } from "./types";
 
 export type PriceEfficiencyRow = {
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	priceScore: number;
 	costEfficiencyScore: number;
 	qualityScore: number;
@@ -34,7 +34,7 @@ export type PriceEfficiencyRow = {
 };
 
 type PriceEfficiencyDraft = {
-	model: LlmStatsModel;
+	model: ModelAtlasModel;
 	qualityScore: number;
 	blendedPrice: number;
 	priceScore: number;
@@ -43,8 +43,8 @@ type PriceEfficiencyDraft = {
 
 /** Rebuild the scored absolute-price and benchmark-only task-cost signals for chart comparison. */
 export function priceEfficiencyRows(
-	visibleModels: LlmStatsModel[],
-	referenceModels: LlmStatsModel[],
+	visibleModels: ModelAtlasModel[],
+	referenceModels: ModelAtlasModel[],
 	portfolio: BenchmarkPortfolio,
 	showVariants: boolean,
 ): PriceEfficiencyRow[] {
@@ -87,7 +87,7 @@ export function priceEfficiencyRows(
 			];
 		},
 	);
-	const strongestByKey = new Map<string, LlmStatsModel>();
+	const strongestByKey = new Map<string, ModelAtlasModel>();
 	for (const model of referenceModels) {
 		const key = comparisonKey(model, showVariants);
 		const existing = strongestByKey.get(key);
@@ -122,11 +122,11 @@ export function priceEfficiencyRows(
 		);
 }
 
-function comparisonKey(model: LlmStatsModel, showVariants: boolean): string {
+function comparisonKey(model: ModelAtlasModel, showVariants: boolean): string {
 	return showVariants ? modelVariantKey(model) : canonicalModelKey(model);
 }
 
-function isPriceEligibleModel(model: LlmStatsModel): boolean {
+function isPriceEligibleModel(model: ModelAtlasModel): boolean {
 	const blendedPrice = finiteValue(model.cost?.blended_price);
 	const qualityScore = meanOfFinite([
 		finiteValue(model.scores?.intelligence_score),
@@ -156,7 +156,7 @@ export function priceEfficiencyDeltaDetail(row: PriceEfficiencyRow): string {
 }
 
 function costEfficiencyByModel(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	portfolio: BenchmarkPortfolio,
 ): Array<number | null> {
 	const benchmarkKeys = activeBenchmarkCostKeys(models, portfolio);
@@ -185,12 +185,12 @@ function costEfficiencyByModel(
 }
 
 function activeBenchmarkCostKeys(
-	models: LlmStatsModel[],
+	models: ModelAtlasModel[],
 	portfolio: BenchmarkPortfolio,
 ): string[] {
 	const benchmarkKeys = new Set<string>();
 	for (const model of models) {
-		for (const benchmarkKey of Object.keys(model.evaluations ?? {})) {
+		for (const benchmarkKey of Object.keys(model.benchmarks ?? {})) {
 			benchmarkKeys.add(benchmarkKey);
 		}
 		for (const benchmarkKey of Object.keys(model.intelligence ?? {})) {
@@ -209,17 +209,17 @@ function activeBenchmarkCostKeys(
 }
 
 function benchmarkScore(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	benchmarkKey: string,
 ): number | null {
 	return (
 		finiteValue(model.intelligence?.[benchmarkKey]) ??
-		finiteValue(model.evaluations?.[benchmarkKey])
+		finiteValue(model.benchmarks?.[benchmarkKey])
 	);
 }
 
 function taskCost(
-	model: LlmStatsModel,
+	model: ModelAtlasModel,
 	portfolio: BenchmarkPortfolio,
 	benchmarkKey: string,
 ): number | null {
@@ -234,7 +234,7 @@ function taskCost(
 }
 
 function positiveTaskCost(
-	taskMetrics: LlmStatsTaskMetricValues | null | undefined,
+	taskMetrics: ModelAtlasTaskMetricValues | null | undefined,
 ) {
 	const cost = finiteValue(taskMetrics?.cost);
 	return cost != null && cost > 0 ? cost : null;

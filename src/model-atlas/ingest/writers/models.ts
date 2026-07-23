@@ -1,6 +1,6 @@
-/** Relational writers persist final models, benchmark evaluations, and task metrics without nested storage. */
+/** Relational writers persist final models, benchmark benchmarks, and task metrics without nested storage. */
 
-import { MODEL_ATLAS_EVALUATION_KEYS } from "../../benchmarks/registry";
+import { MODEL_ATLAS_BENCHMARK_KEYS } from "../../benchmarks/registry";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import {
 	type DatabaseWriter,
@@ -127,19 +127,19 @@ export function insertModels(
 }
 
 /** Persists one scalar row per selected benchmark in deterministic portfolio order. */
-export function insertModelEvaluations(
+export function insertModelBenchmarks(
 	db: DatabaseWriter,
 	rows: readonly unknown[],
 ): void {
 	const statement = db.prepare(`
-		INSERT INTO model_evaluations (
+		INSERT INTO model_benchmarks (
 			model_row_index, benchmark_key, value
 		) VALUES (?, ?, ?)
 	`);
 	for (const [modelRowIndex, row] of rows.entries()) {
-		const evaluations = asRecord(asRecord(row).evaluations);
-		for (const benchmarkKey of MODEL_ATLAS_EVALUATION_KEYS) {
-			const value = asFiniteNumber(evaluations[benchmarkKey]);
+		const benchmarks = asRecord(asRecord(row).benchmarks);
+		for (const benchmarkKey of MODEL_ATLAS_BENCHMARK_KEYS) {
+			const value = asFiniteNumber(benchmarks[benchmarkKey]);
 			if (value != null) {
 				statement.run(modelRowIndex, benchmarkKey, value);
 			}

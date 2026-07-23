@@ -8,7 +8,7 @@ import type {
 	AgentsLastExamModelScoreRow,
 } from "../benchmarks/scrapers/agents-last-exam";
 import type { AleBenchConfigurationRow } from "../benchmarks/scrapers/ale-bench";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
 import type { BlueprintBenchModelScoreRow } from "../benchmarks/scrapers/blueprint-bench";
 import type { CursorBenchModelScoreRow } from "../benchmarks/scrapers/cursorbench";
 import type {
@@ -39,15 +39,15 @@ import type {
 } from "../scrapers/models-dev";
 import type { RawSourceName } from "./source-registry";
 
-export type LlmStatsSourceHealthStatus =
+export type ModelAtlasSourceHealthStatus =
 	| "cache_hit"
 	| "fresh"
 	| "using_cached_rows"
 	| "empty";
 
-export type LlmStatsSourceHealthEntry = {
+export type ModelAtlasSourceHealthEntry = {
 	source: string;
-	status: LlmStatsSourceHealthStatus;
+	status: ModelAtlasSourceHealthStatus;
 	last_fetch_epoch_seconds: number | null;
 	source_input_count: number;
 	cache_hit: boolean;
@@ -57,16 +57,16 @@ export type LlmStatsSourceHealthEntry = {
 	quarantined_row_count: number;
 };
 
-export type LlmStatsSourceHealth = {
+export type ModelAtlasSourceHealth = {
 	generated_at_epoch_seconds: number | null;
-	sources: Record<string, LlmStatsSourceHealthEntry>;
+	sources: Record<string, ModelAtlasSourceHealthEntry>;
 };
 
 export type DatabaseBuildResult = {
 	path: string;
 	source_rows: Record<string, number>;
 	source_cache: Record<RawSourceName, RawSourceCacheStatus>;
-	source_health: LlmStatsSourceHealth;
+	source_health: ModelAtlasSourceHealth;
 	final_model_count: number;
 };
 
@@ -123,7 +123,7 @@ type BenchmarkObservationFetchedAt = {
 export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
 	artificialAnalysisRawRows: JsonObject[];
 	artificialAnalysisSelectedRows: JsonObject[];
-	artificialAnalysisEvaluationResourceRows: ArtificialAnalysisEvaluationResourceRow[];
+	artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];
 	modelsDevPayload: ModelsDevPayload;
 	modelsDevModels: ModelsDevFlatModel[];
 	modelsDevFetchedAt: number | null;
@@ -152,7 +152,7 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
 	sourceRowStates: SourceRowState[];
 	fetchedAt: BenchmarkObservationFetchedAt & {
 		artificialAnalysis: number | null;
-		artificialAnalysisEvaluationResources: number | null;
+		artificialAnalysisBenchmarkResources: number | null;
 		agentArena: number | null;
 		agentsLastExam: number | null;
 		aleBench: number | null;

@@ -8,7 +8,7 @@ import {
 } from "../identity/normalization";
 import type {
 	ArtificialAnalysisModel,
-	LlmStatsSourceData,
+	ModelAtlasSourceData,
 } from "../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../runtime";
 import {
@@ -16,7 +16,7 @@ import {
 	enrichBenchmarkObservation,
 } from "./benchmark-rows";
 
-type MatchedRowLookups = Pick<LlmStatsSourceData, "modelsDev"> &
+type MatchedRowLookups = Pick<ModelAtlasSourceData, "modelsDev"> &
 	BenchmarkEnrichmentLookups;
 
 function buildMatchedRow(
@@ -31,7 +31,7 @@ function buildMatchedRow(
 	const artificialAnalysisSlug = modelSlugFromModelId(
 		artificialAnalysisModelId,
 	);
-	const evaluations = { ...asRecord(artificialAnalysisModel.evaluations) };
+	const benchmarks = { ...asRecord(artificialAnalysisModel.benchmarks) };
 	const intelligence = asRecord(artificialAnalysisModel.intelligence);
 	const intelligenceIndexCost = asRecord(
 		artificialAnalysisModel.intelligence_index_cost,
@@ -54,10 +54,10 @@ function buildMatchedRow(
 	const benchmarkEnrichment = enrichBenchmarkObservation(
 		observationNameCandidates,
 		lookups,
-		evaluations,
+		benchmarks,
 		artificialAnalysisModel.reasoning_effort,
 	);
-	Object.assign(evaluations, benchmarkEnrichment.evaluations);
+	Object.assign(benchmarks, benchmarkEnrichment.benchmarks);
 	const canonicalId = canonicalProviderModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,
 		matchedModelsDev?.provider_id,
@@ -104,14 +104,14 @@ function buildMatchedRow(
 		...(Object.keys(benchmarkEnrichment.scoringSources).length === 0
 			? {}
 			: { scoring_sources: benchmarkEnrichment.scoringSources }),
-		evaluations,
+		benchmarks,
 		intelligence,
 		intelligence_index_cost: intelligenceIndexCost,
 	};
 }
 
 export function modelRowsFromMatchDiagnostics(
-	sourceData: LlmStatsSourceData,
+	sourceData: ModelAtlasSourceData,
 	matchDiagnostics: MatchDiagnosticsPayload,
 ): Record<string, unknown>[] {
 	return matchDiagnostics.models

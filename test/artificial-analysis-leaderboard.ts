@@ -75,7 +75,7 @@ const rows = processArtificialAnalysisLeaderboardRows(
 	},
 );
 
-assertDeepEqual(rows[0]?.evaluations, {
+assertDeepEqual(rows[0]?.benchmarks, {
 	apex_agents: 0.47,
 	critpt: 0.31,
 	itbench_sre: 0.31,
@@ -84,7 +84,7 @@ assertDeepEqual(rows[0]?.evaluations, {
 	tau_banking: 0.52,
 	terminalbench_v21: 0.53,
 });
-assertDeepEqual(rows[1]?.evaluations, {
+assertDeepEqual(rows[1]?.benchmarks, {
 	scicode: 0.36,
 	terminalbench_v21: 0.47,
 });
@@ -179,7 +179,7 @@ assertDeepEqual(
 				"model_id",
 				"intelligence",
 				"intelligence_index_cost",
-				"evaluations",
+				"benchmarks",
 			],
 		},
 	),
@@ -207,7 +207,7 @@ assertDeepEqual(
 				seconds_per_task: 120,
 				output_tokens_per_task: 42000,
 			},
-			evaluations: {
+			benchmarks: {
 				tau_banking: 0.58,
 				terminalbench_v21: 0.72,
 			},
@@ -230,7 +230,7 @@ const scoringRows = [
 		intelligence: {
 			agentic_index: 40,
 		},
-		evaluations: {
+		benchmarks: {
 			gdpval_normalized: 0.4,
 			scicode: 0.4,
 			tau_banking: 0.4,
@@ -242,7 +242,7 @@ const scoringRows = [
 		intelligence: {
 			agentic_index: 60,
 		},
-		evaluations: {
+		benchmarks: {
 			apex_agents: 0.3,
 			gdpval_normalized: 0.6,
 			scicode: 0.6,
@@ -254,7 +254,7 @@ const scoringRows = [
 		intelligence: {
 			agentic_index: 80,
 		},
-		evaluations: {
+		benchmarks: {
 			apex_agents: 0.5,
 			gdpval_normalized: 0.8,
 			scicode: 0.8,
@@ -266,7 +266,7 @@ const scoringRows = [
 		intelligence: {
 			agentic_index: 70,
 		},
-		evaluations: {
+		benchmarks: {
 			gdpval_normalized: 0.7,
 			scicode: 0.7,
 			tau_banking: 0.7,

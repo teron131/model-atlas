@@ -129,7 +129,7 @@ export type BenchmarkScoringFacet = {
 };
 
 type BenchmarkValueLocation =
-	| { kind: "evaluation" }
+	| { kind: "benchmark" }
 	| { kind: "intelligence"; field: string };
 
 export type BenchmarkPersistenceFacet = {

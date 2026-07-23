@@ -13,8 +13,8 @@ import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows"
 import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/payload/health";
 import {
 	benchmarkObservationRowGroups,
-	minimalLlmStatsModel,
-} from "./llm-stats-fixtures";
+	minimalModelAtlasModel,
+} from "./model-atlas-fixtures";
 
 const sparseHealth = buildBenchmarkUpdateHealth(
 	[
@@ -423,14 +423,14 @@ function model(
 	intelligenceScore = agenticScore,
 ) {
 	return {
-		...minimalLlmStatsModel({ id, name }),
+		...minimalModelAtlasModel({ id, name }),
 		scores: {
 			intelligence_score: intelligenceScore,
 			agentic_score: agenticScore,
 			speed_score: null,
 			value_score: null,
 		},
-		evaluations:
+		benchmarks:
 			benchmarkScore == null
 				? null
 				: {

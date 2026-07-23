@@ -1,4 +1,4 @@
-/** Shared factories keep tests aligned with catalog-derived LLM stats contracts. */
+/** Shared factories keep tests aligned with Model Atlas payload contracts. */
 
 import {
 	BENCHMARK_OBSERVATION_BINDINGS,
@@ -6,8 +6,8 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type {
-	LlmStatsModel,
-	LlmStatsPayload,
+	ModelAtlasModel,
+	ModelAtlasPayload,
 } from "../src/model-atlas/stats/types";
 
 /** Build every generic benchmark row group, defaulting unspecified sources to empty. */
@@ -22,19 +22,18 @@ export function benchmarkObservationRowGroups<Row>(
 	) as Record<BenchmarkObservationRowsKey, Row[]>;
 }
 
-export function minimalLlmStatsPayload({
+export function minimalModelAtlasPayload({
 	fetchedAt,
 	models = [],
 }: {
 	fetchedAt: number;
-	models?: LlmStatsModel[];
-}): LlmStatsPayload {
+	models?: ModelAtlasModel[];
+}): ModelAtlasPayload {
 	return {
 		fetched_at_epoch_seconds: fetchedAt,
 		metadata: {
 			artificial_analysis: {
 				available_benchmark_keys: [],
-				available_evaluation_keys: [],
 				available_intelligence_keys: [],
 			},
 			scoring: {
@@ -57,13 +56,13 @@ export function minimalLlmStatsPayload({
 	};
 }
 
-export function minimalLlmStatsModel({
+export function minimalModelAtlasModel({
 	id,
 	name,
 }: {
 	id: string;
 	name: string;
-}): LlmStatsModel {
+}): ModelAtlasModel {
 	return {
 		id,
 		name,
@@ -84,7 +83,7 @@ export function minimalLlmStatsModel({
 		intelligence: null,
 		intelligence_index_cost: null,
 		task_metrics: null,
-		evaluations: null,
+		benchmarks: null,
 		component_scores: {
 			intelligence_score: 0,
 			agentic_score: 0,

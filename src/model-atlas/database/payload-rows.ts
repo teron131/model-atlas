@@ -2,7 +2,7 @@
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys";
 import {
-	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+	ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
@@ -18,18 +18,18 @@ import {
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
 import { publicModelFromCandidate } from "../pipeline/selection/public-list";
 import { asFiniteNumber, asRecord } from "../runtime";
-import { buildCurrentLlmStatsMetadata } from "../stats/payload/metadata";
+import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
-	LlmStatsContextWindow,
-	LlmStatsCost,
-	LlmStatsEvaluations,
-	LlmStatsIntelligence,
-	LlmStatsModalities,
-	LlmStatsPayload,
-	LlmStatsScoredCandidate,
-	LlmStatsSourceHealth,
-	LlmStatsTaskMetrics,
-	LlmStatsTaskMetricValues,
+	ModelAtlasBenchmarks,
+	ModelAtlasContextWindow,
+	ModelAtlasCost,
+	ModelAtlasIntelligence,
+	ModelAtlasModalities,
+	ModelAtlasPayload,
+	ModelAtlasScoredCandidate,
+	ModelAtlasSourceHealth,
+	ModelAtlasTaskMetrics,
+	ModelAtlasTaskMetricValues,
 } from "../stats/types";
 
 type DbRow = Record<string, unknown>;
@@ -223,8 +223,8 @@ const BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS = {
 export const PAYLOAD_ROW_GROUPS = [
 	payloadRowGroup("modelRows", SNAPSHOT_TABLES.models, "row_index"),
 	payloadRowGroup(
-		"modelEvaluationRows",
-		SNAPSHOT_TABLES.model_evaluations,
+		"modelBenchmarkRows",
+		SNAPSHOT_TABLES.model_benchmarks,
 		"model_row_index, benchmark_key",
 	),
 	payloadRowGroup(
@@ -248,7 +248,7 @@ export const PAYLOAD_ROW_GROUPS = [
 				"name",
 				"short_name",
 				"reasoning_effort",
-				...ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+				...ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
 			],
 		},
 	),
@@ -317,22 +317,22 @@ function numericObject<T extends object>(
 	return hasFields(record) ? (record as T) : null;
 }
 
-function buildModalities(row: DbRow): LlmStatsModalities | null {
+function buildModalities(row: DbRow): ModelAtlasModalities | null {
 	const input = INPUT_MODALITY_COLUMNS.flatMap(([column, modality]) =>
 		booleanValue(row[column]) === true ? [modality] : [],
 	);
 	return input.length > 0 ? { input } : null;
 }
 
-function buildContextWindow(row: DbRow): LlmStatsContextWindow {
-	const contextWindow: NonNullable<LlmStatsContextWindow> = {};
+function buildContextWindow(row: DbRow): ModelAtlasContextWindow {
+	const contextWindow: NonNullable<ModelAtlasContextWindow> = {};
 	assignNumber(contextWindow, "context", row.context);
 	assignNumber(contextWindow, "input", row.context_input);
 	assignNumber(contextWindow, "output", row.context_output);
 	return hasFields(contextWindow) ? contextWindow : null;
 }
 
-function buildCost(row: DbRow): LlmStatsCost {
+function buildCost(row: DbRow): ModelAtlasCost {
 	const cost: Record<string, unknown> = {};
 	assignNumber(cost, "input", row.cost_input);
 	assignNumber(cost, "output", row.cost_output);
@@ -353,15 +353,15 @@ function buildCost(row: DbRow): LlmStatsCost {
 	if (hasFields(contextOver200k)) {
 		cost.context_over_200k = contextOver200k;
 	}
-	return hasFields(cost) ? (cost as NonNullable<LlmStatsCost>) : null;
+	return hasFields(cost) ? (cost as NonNullable<ModelAtlasCost>) : null;
 }
 
 /** One selected model row and its normalized child records become the public model contract. */
 function modelFromRow(
 	row: DbRow,
-	evaluations: LlmStatsEvaluations | null,
-	taskMetrics: LlmStatsTaskMetrics,
-): LlmStatsScoredCandidate {
+	benchmarks: ModelAtlasBenchmarks | null,
+	taskMetrics: ModelAtlasTaskMetrics,
+): ModelAtlasScoredCandidate {
 	const modelId = stringValue(row.model_id);
 	const provider =
 		stringValue(row.provider_id) ?? modelId?.split("/")[0] ?? null;
@@ -385,13 +385,13 @@ function modelFromRow(
 			e2e_latency_seconds_median:
 				asFiniteNumber(row.e2e_latency_seconds_median) ?? null,
 		},
-		intelligence: numericObject<LlmStatsIntelligence>(
+		intelligence: numericObject<ModelAtlasIntelligence>(
 			row,
 			ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 		),
 		intelligence_index_cost: null,
 		task_metrics: taskMetrics,
-		evaluations,
+		benchmarks,
 		component_scores: {
 			intelligence_score:
 				asFiniteNumber(row.component_intelligence_score) ?? null,
@@ -427,10 +427,10 @@ export function buildPayloadRows(
 	};
 }
 
-function evaluationsByModelRow(
+function benchmarksByModelRow(
 	rows: readonly DbRow[],
-): Map<number, LlmStatsEvaluations> {
-	const evaluationsByModel = new Map<number, LlmStatsEvaluations>();
+): Map<number, ModelAtlasBenchmarks> {
+	const benchmarksByModel = new Map<number, ModelAtlasBenchmarks>();
 	for (const row of rows) {
 		const modelRowIndex = asFiniteNumber(row.model_row_index);
 		const benchmarkKey = stringValue(row.benchmark_key);
@@ -438,19 +438,19 @@ function evaluationsByModelRow(
 		if (modelRowIndex == null || benchmarkKey == null || value == null) {
 			continue;
 		}
-		const evaluations = evaluationsByModel.get(modelRowIndex) ?? {};
-		evaluations[benchmarkKey] = value;
-		evaluationsByModel.set(modelRowIndex, evaluations);
+		const benchmarks = benchmarksByModel.get(modelRowIndex) ?? {};
+		benchmarks[benchmarkKey] = value;
+		benchmarksByModel.set(modelRowIndex, benchmarks);
 	}
-	return evaluationsByModel;
+	return benchmarksByModel;
 }
 
 function taskMetricsByModelRow(
 	rows: readonly DbRow[],
-): Map<number, NonNullable<LlmStatsTaskMetrics>> {
+): Map<number, NonNullable<ModelAtlasTaskMetrics>> {
 	const taskMetricsByModel = new Map<
 		number,
-		NonNullable<LlmStatsTaskMetrics>
+		NonNullable<ModelAtlasTaskMetrics>
 	>();
 	for (const row of rows) {
 		const modelRowIndex = asFiniteNumber(row.model_row_index);
@@ -458,7 +458,7 @@ function taskMetricsByModelRow(
 		if (modelRowIndex == null || sourceKey == null) {
 			continue;
 		}
-		const metrics: LlmStatsTaskMetricValues = {};
+		const metrics: ModelAtlasTaskMetricValues = {};
 		assignNumber(metrics, "cost", row.cost);
 		assignNumber(metrics, "seconds", row.seconds);
 		assignNumber(metrics, "tokens", row.tokens);
@@ -497,7 +497,7 @@ export async function readPayloadRows(
 function sourceHealthFromRows(
 	rows: DbRow[],
 	generatedAt: number | null,
-): LlmStatsSourceHealth | undefined {
+): ModelAtlasSourceHealth | undefined {
 	if (rows.length === 0) {
 		return undefined;
 	}
@@ -541,8 +541,8 @@ function sourceHealthFromRows(
 }
 
 /** Assembles the public Model Atlas payload from database row groups. */
-export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
-	const evaluationsByModel = evaluationsByModelRow(rows.modelEvaluationRows);
+export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
+	const benchmarksByModel = benchmarksByModelRow(rows.modelBenchmarkRows);
 	const taskMetricsByModel = taskMetricsByModelRow(rows.modelTaskMetricRows);
 	const models = rows.modelRows.flatMap((row) => {
 		const modelRowIndex = asFiniteNumber(row.row_index);
@@ -551,7 +551,7 @@ export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 				row,
 				modelRowIndex == null
 					? null
-					: (evaluationsByModel.get(modelRowIndex) ?? null),
+					: (benchmarksByModel.get(modelRowIndex) ?? null),
 				modelRowIndex == null
 					? null
 					: (taskMetricsByModel.get(modelRowIndex) ?? null),
@@ -566,7 +566,7 @@ export function buildPayloadFromRows(rows: PayloadRows): LlmStatsPayload {
 	const sourceRowsByKey = benchmarkRowsFromDb(rows);
 	return {
 		fetched_at_epoch_seconds: rows.fetchedAt,
-		metadata: buildCurrentLlmStatsMetadata({
+		metadata: buildCurrentModelAtlasMetadata({
 			models,
 			healthModels: models,
 			sourceHealth,

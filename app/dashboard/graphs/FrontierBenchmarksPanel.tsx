@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type {
-	LlmStatsModel,
-	LlmStatsPayload,
+	ModelAtlasModel,
+	ModelAtlasPayload,
 } from "../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../capture/png";
 import { modelVariantKey } from "../shared/model-display";
@@ -47,8 +47,8 @@ export function FrontierBenchmarksPanel({
 	models,
 	setHover,
 }: {
-	payload: LlmStatsPayload;
-	models: LlmStatsModel[];
+	payload: ModelAtlasPayload;
+	models: ModelAtlasModel[];
 	setHover: HoverSetter;
 }) {
 	const [axisKey, setAxisKey] =

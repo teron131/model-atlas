@@ -12,12 +12,12 @@ import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
-	insertModelEvaluations,
+	insertModelBenchmarks,
 	insertModels,
 	insertModelTaskMetrics,
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
+import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 function statistics(mean: number) {
 	return {
@@ -132,7 +132,7 @@ try {
 				reasoning_effort: "high",
 				logo: "https://example.com/logo.svg",
 				modalities: { input: ["text"] },
-				evaluations: { ale_bench: 700 },
+				benchmarks: { ale_bench: 700 },
 				task_metrics: {
 					ale_bench: {
 						cost: 0.3,
@@ -155,7 +155,7 @@ try {
 			},
 		];
 		insertModels(db, finalRows);
-		insertModelEvaluations(db, finalRows);
+		insertModelBenchmarks(db, finalRows);
 		insertModelTaskMetrics(db, finalRows);
 	} finally {
 		db.close();
@@ -163,7 +163,7 @@ try {
 
 	const payload = readDatabasePayload(databasePath);
 	const model = payload.models[0];
-	assert.equal(model?.evaluations?.ale_bench, 700);
+	assert.equal(model?.benchmarks?.ale_bench, 700);
 	assert.deepEqual(model?.task_metrics?.ale_bench, {
 		cost: 0.3,
 		tokens: 3_000,

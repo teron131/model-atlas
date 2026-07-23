@@ -2,13 +2,13 @@
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { DeepSWELeaderboardRow } from "../benchmarks/scrapers/deep-swe";
-import type { LlmStatsColumnTooltips } from "../config/tooltips";
+import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type {
 	PriceProfiles,
 	SimulationProfiles,
 } from "../config/usage-profiles";
-import type { LlmStatsSourceHealth } from "../ingest/types";
-import type { LlmStatsModel as PipelineLlmStatsModel } from "../pipeline/model-types";
+import type { ModelAtlasSourceHealth } from "../ingest/types";
+import type { ModelAtlasModel as PipelineModel } from "../pipeline/model-types";
 
 export type {
 	BenchmarkGroup,
@@ -17,41 +17,41 @@ export type {
 	BenchmarkResourcePolicy,
 } from "../benchmarks/factory";
 export type {
-	LlmStatsSourceHealth,
-	LlmStatsSourceHealthEntry,
-	LlmStatsSourceHealthStatus,
+	ModelAtlasSourceHealth,
+	ModelAtlasSourceHealthEntry,
+	ModelAtlasSourceHealthStatus,
 } from "../ingest/types";
 export type {
-	LlmStatsBenchmarkValues,
-	LlmStatsComponentScores,
-	LlmStatsContextWindow,
-	LlmStatsCost,
-	LlmStatsCostBreakdown,
-	LlmStatsCostTier,
-	LlmStatsEvaluations,
-	LlmStatsIntelligence,
-	LlmStatsIntelligenceIndexCost,
-	LlmStatsModalities,
-	LlmStatsModel,
-	LlmStatsModelCandidate,
-	LlmStatsNullableComponentScores,
-	LlmStatsNullableScores,
-	LlmStatsScoredCandidate,
-	LlmStatsScores,
-	LlmStatsScoringSources,
-	LlmStatsSpeed,
-	LlmStatsTaskMetrics,
-	LlmStatsTaskMetricValues,
+	ModelAtlasBenchmarks,
+	ModelAtlasBenchmarkValues,
+	ModelAtlasComponentScores,
+	ModelAtlasContextWindow,
+	ModelAtlasCost,
+	ModelAtlasCostBreakdown,
+	ModelAtlasCostTier,
+	ModelAtlasIntelligence,
+	ModelAtlasIntelligenceIndexCost,
+	ModelAtlasModalities,
+	ModelAtlasModel,
+	ModelAtlasModelCandidate,
+	ModelAtlasNullableComponentScores,
+	ModelAtlasNullableScores,
+	ModelAtlasScoredCandidate,
+	ModelAtlasScores,
+	ModelAtlasScoringSources,
+	ModelAtlasSpeed,
+	ModelAtlasTaskMetrics,
+	ModelAtlasTaskMetricValues,
 } from "../pipeline/model-types";
 
-type LlmStatsBenchmarkUpdateStatus =
+type ModelAtlasBenchmarkUpdateStatus =
 	| "current"
 	| "watch"
 	| "stale_possible"
 	| "missing";
 
-export type LlmStatsBenchmarkUpdateEntry = {
-	status: LlmStatsBenchmarkUpdateStatus;
+export type ModelAtlasBenchmarkUpdateEntry = {
+	status: ModelAtlasBenchmarkUpdateStatus;
 	observed_count: number;
 	checked_top_count: number;
 	reference_top_count: number;
@@ -65,19 +65,18 @@ export type LlmStatsBenchmarkUpdateEntry = {
 	reference_metric: "intelligence_score";
 };
 
-export type LlmStatsBenchmarkUpdateHealth = Record<
+export type ModelAtlasBenchmarkUpdateHealth = Record<
 	string,
-	LlmStatsBenchmarkUpdateEntry
+	ModelAtlasBenchmarkUpdateEntry
 >;
 
-export type LlmStatsMetadata = {
+export type ModelAtlasMetadata = {
 	artificial_analysis: {
 		available_benchmark_keys: string[];
-		available_evaluation_keys: string[];
 		available_intelligence_keys: string[];
 	};
-	source_health?: LlmStatsSourceHealth;
-	benchmark_update_health?: LlmStatsBenchmarkUpdateHealth;
+	source_health?: ModelAtlasSourceHealth;
+	benchmark_update_health?: ModelAtlasBenchmarkUpdateHealth;
 	scoring: {
 		intelligence_benchmark_keys: string[];
 		intelligence_benchmark_display_keys: string[];
@@ -90,20 +89,20 @@ export type LlmStatsMetadata = {
 		price_profiles: PriceProfiles;
 		simulation_profiles: SimulationProfiles;
 		seconds_per_input_token: number;
-		column_tooltips: LlmStatsColumnTooltips;
+		column_tooltips: ModelAtlasColumnTooltips;
 		snapshot_preservation_version: number;
 	};
 };
 
-export type LlmStatsPayload = {
+export type ModelAtlasPayload = {
 	fetched_at_epoch_seconds: number | null;
-	metadata: LlmStatsMetadata;
+	metadata: ModelAtlasMetadata;
 	deep_swe?: {
 		rows: DeepSWELeaderboardRow[];
 	};
-	models: PipelineLlmStatsModel[];
+	models: PipelineModel[];
 };
 
-export type LlmStatsOptions = {
+export type ModelAtlasOptions = {
 	id?: string | null;
 };

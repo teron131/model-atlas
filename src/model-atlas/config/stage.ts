@@ -10,7 +10,7 @@ import {
 	SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "../benchmarks/registry";
 import type { MatcherConfig } from "../identity";
-import { COLUMN_TOOLTIPS, type LlmStatsColumnTooltips } from "./tooltips";
+import { COLUMN_TOOLTIPS, type ModelAtlasColumnTooltips } from "./tooltips";
 import {
 	PRICE_PROFILES,
 	type PriceProfiles,
@@ -53,7 +53,7 @@ export type ScoringConfig = {
 	simulationProfiles: SimulationProfiles;
 	secondsPerInputToken: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
-	columnTooltips: LlmStatsColumnTooltips;
+	columnTooltips: ModelAtlasColumnTooltips;
 };
 
 export type ModelAtlasStageConfig = {

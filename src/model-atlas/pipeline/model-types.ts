@@ -8,7 +8,7 @@ import type {
 import type { AgentArenaModelScoreRow } from "../benchmarks/scrapers/agent-arena";
 import type { AgentsLastExamModelScoreRow } from "../benchmarks/scrapers/agents-last-exam";
 import type { AleBenchModelScoreRow } from "../benchmarks/scrapers/ale-bench";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
 import type { CursorBenchModelScoreRow } from "../benchmarks/scrapers/cursorbench";
 import type { DeepSWEModelScoreRow } from "../benchmarks/scrapers/deep-swe";
 import type { FrontierCodeModelEffortRow } from "../benchmarks/scrapers/frontier-code";
@@ -19,52 +19,52 @@ import type { NumberOrNull } from "../numeric";
 import type { JsonObject } from "../runtime";
 import type { TerminalBenchAggregateRow } from "./benchmark-rows/terminal-bench";
 
-export type LlmStatsModalities = {
+export type ModelAtlasModalities = {
 	input?: string[];
 	output?: string[];
 };
 
-export type LlmStatsCostBreakdown = {
+export type ModelAtlasCostBreakdown = {
 	input?: NumberOrNull;
 	output?: NumberOrNull;
 	cache_read?: NumberOrNull;
 	cache_write?: NumberOrNull;
 };
 
-export type LlmStatsCostTier = LlmStatsCostBreakdown & {
+export type ModelAtlasCostTier = ModelAtlasCostBreakdown & {
 	tier?: {
 		type?: string;
 		size?: NumberOrNull;
 	};
 };
 
-export type LlmStatsCost =
-	| (LlmStatsCostBreakdown & {
+export type ModelAtlasCost =
+	| (ModelAtlasCostBreakdown & {
 			weighted_input?: NumberOrNull;
 			weighted_output?: NumberOrNull;
 			blended_price?: NumberOrNull;
-			context_over_200k?: LlmStatsCostBreakdown;
-			tiers?: LlmStatsCostTier[];
+			context_over_200k?: ModelAtlasCostBreakdown;
+			tiers?: ModelAtlasCostTier[];
 	  })
 	| null;
 
-export type LlmStatsContextWindow = {
+export type ModelAtlasContextWindow = {
 	context?: NumberOrNull;
 	input?: NumberOrNull;
 	output?: NumberOrNull;
 } | null;
 
-export type LlmStatsSpeed = {
+export type ModelAtlasSpeed = {
 	throughput_tokens_per_second_median: NumberOrNull;
 	latency_seconds_median: NumberOrNull;
 	e2e_latency_seconds_median: NumberOrNull;
 };
 
-export type LlmStatsBenchmarkValues = {
+export type ModelAtlasBenchmarkValues = {
 	[key: string]: NumberOrNull | undefined;
 };
 
-export type LlmStatsIntelligence = LlmStatsBenchmarkValues & {
+export type ModelAtlasIntelligence = ModelAtlasBenchmarkValues & {
 	intelligence_index?: NumberOrNull;
 	agentic_index?: NumberOrNull;
 	coding_index?: NumberOrNull;
@@ -72,7 +72,7 @@ export type LlmStatsIntelligence = LlmStatsBenchmarkValues & {
 	omniscience_accuracy?: NumberOrNull;
 };
 
-export type LlmStatsIntelligenceIndexCost = {
+export type ModelAtlasIntelligenceIndexCost = {
 	input_cost?: NumberOrNull;
 	reasoning_cost?: NumberOrNull;
 	output_cost?: NumberOrNull;
@@ -87,7 +87,7 @@ export type LlmStatsIntelligenceIndexCost = {
 	output_tokens_per_task?: NumberOrNull;
 } | null;
 
-export type LlmStatsTaskMetricValues = {
+export type ModelAtlasTaskMetricValues = {
 	cost?: NumberOrNull;
 	seconds?: NumberOrNull;
 	tokens?: NumberOrNull;
@@ -95,22 +95,22 @@ export type LlmStatsTaskMetricValues = {
 	output_tokens?: NumberOrNull;
 };
 
-export type LlmStatsTaskMetrics =
-	| (Record<string, LlmStatsTaskMetricValues | null | undefined> &
-			Partial<Record<BenchmarkResourceKey, LlmStatsTaskMetricValues | null>> & {
-				artificial_analysis?: LlmStatsTaskMetricValues | null;
+export type ModelAtlasTaskMetrics =
+	| (Record<string, ModelAtlasTaskMetricValues | null | undefined> &
+			Partial<Record<BenchmarkResourceKey, ModelAtlasTaskMetricValues | null>> & {
+				artificial_analysis?: ModelAtlasTaskMetricValues | null;
 			})
 	| null;
 
-export type LlmStatsEvaluations = LlmStatsBenchmarkValues &
+export type ModelAtlasBenchmarks = ModelAtlasBenchmarkValues &
 	Partial<Record<BenchmarkKey, NumberOrNull>> & {
 		gpqa?: NumberOrNull;
 		mmmu_pro?: NumberOrNull;
 	};
 
-type LlmStatsScoringSourceRow =
+type ModelAtlasScoringSourceRow =
 	| JsonObject
-	| ArtificialAnalysisEvaluationResourceRow
+	| ArtificialAnalysisBenchmarkResourceRow
 	| AgentArenaModelScoreRow
 	| AgentsLastExamModelScoreRow
 	| AleBenchModelScoreRow
@@ -123,49 +123,49 @@ type LlmStatsScoringSourceRow =
 	| HarveyLabModelScoreRow
 	| VendingBench2ModelScoreRow;
 
-export type LlmStatsScoringSources =
-	| (Record<string, LlmStatsScoringSourceRow | null | undefined> & {
+export type ModelAtlasScoringSources =
+	| (Record<string, ModelAtlasScoringSourceRow | null | undefined> & {
 			agent_arena?: AgentArenaModelScoreRow | null;
 			agents_last_exam?: AgentsLastExamModelScoreRow | null;
 			apex_agents_mercor?: MercorApexAgentsRow | null;
-			automation_bench?: ArtificialAnalysisEvaluationResourceRow | null;
+			automation_bench?: ArtificialAnalysisBenchmarkResourceRow | null;
 			cursorbench?: CursorBenchModelScoreRow | null;
 			deep_swe?: DeepSWEModelScoreRow | null;
 			frontier_code?: FrontierCodeModelEffortRow | null;
 			harvey_lab?: HarveyLabModelScoreRow | null;
-			itbench_sre?: ArtificialAnalysisEvaluationResourceRow | null;
+			itbench_sre?: ArtificialAnalysisBenchmarkResourceRow | null;
 			terminalbench_v21?: TerminalBenchAggregateRow | null;
 			vending_bench_2?: VendingBench2ModelScoreRow | null;
 	  })
 	| null;
 
-export type LlmStatsNullableComponentScores = {
+export type ModelAtlasNullableComponentScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
 };
 
-export type LlmStatsComponentScores = {
+export type ModelAtlasComponentScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
 };
 
-export type LlmStatsNullableScores = {
+export type ModelAtlasNullableScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
 	value_score: NumberOrNull;
 };
 
-export type LlmStatsScores = {
+export type ModelAtlasScores = {
 	intelligence_score: number;
 	agentic_score: number;
 	speed_score: NumberOrNull;
 	value_score: NumberOrNull;
 };
 
-type LlmStatsModelFields = {
+type ModelAtlasModelFields = {
 	id: string | null;
 	name: string | null;
 	provider: string | null;
@@ -173,30 +173,30 @@ type LlmStatsModelFields = {
 	reasoning: boolean | null;
 	reasoning_effort: string | null;
 	release_date: string | null;
-	modalities: LlmStatsModalities | null;
+	modalities: ModelAtlasModalities | null;
 	open_weights: boolean | null;
-	cost: LlmStatsCost;
-	context_window: LlmStatsContextWindow;
-	speed: LlmStatsSpeed;
-	intelligence: LlmStatsIntelligence | null;
-	intelligence_index_cost: LlmStatsIntelligenceIndexCost;
-	task_metrics: LlmStatsTaskMetrics;
-	evaluations: LlmStatsEvaluations | null;
+	cost: ModelAtlasCost;
+	context_window: ModelAtlasContextWindow;
+	speed: ModelAtlasSpeed;
+	intelligence: ModelAtlasIntelligence | null;
+	intelligence_index_cost: ModelAtlasIntelligenceIndexCost;
+	task_metrics: ModelAtlasTaskMetrics;
+	benchmarks: ModelAtlasBenchmarks | null;
 };
 
-export type LlmStatsModelCandidate = LlmStatsModelFields & {
-	scoring_sources?: LlmStatsScoringSources;
-	component_scores: LlmStatsNullableComponentScores | null;
+export type ModelAtlasModelCandidate = ModelAtlasModelFields & {
+	scoring_sources?: ModelAtlasScoringSources;
+	component_scores: ModelAtlasNullableComponentScores | null;
 	scores: null;
 };
 
-export type LlmStatsScoredCandidate = LlmStatsModelFields & {
-	scoring_sources?: LlmStatsScoringSources;
-	component_scores: LlmStatsNullableComponentScores | null;
-	scores: LlmStatsNullableScores;
+export type ModelAtlasScoredCandidate = ModelAtlasModelFields & {
+	scoring_sources?: ModelAtlasScoringSources;
+	component_scores: ModelAtlasNullableComponentScores | null;
+	scores: ModelAtlasNullableScores;
 };
 
-export type LlmStatsModel = LlmStatsModelFields & {
-	component_scores: LlmStatsComponentScores;
-	scores: LlmStatsScores;
+export type ModelAtlasModel = ModelAtlasModelFields & {
+	component_scores: ModelAtlasComponentScores;
+	scores: ModelAtlasScores;
 };

@@ -1,4 +1,4 @@
-/** Provider-logo resolution maps source and provider hints to Artificial Analysis assets before stats caching. */
+/** Resolves provider logos to Artificial Analysis assets before model-logo caching. */
 const ARTIFICIAL_ANALYSIS_LOGO_BASE_URL =
 	"https://artificialanalysis.ai/img/logos";
 
@@ -86,7 +86,7 @@ function absoluteLogoUrl(logoUrl: string | null | undefined): string | null {
 	return `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${logoValue}`;
 }
 
-export function resolveStatsLogo(options: {
+export function resolveModelLogo(options: {
 	provider?: string | null;
 	explicitLogo?: string | null;
 }): string {

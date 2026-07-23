@@ -13,7 +13,7 @@ import {
 } from "../src/model-atlas/pipeline/selection/builder";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
-import { minimalLlmStatsModel } from "./llm-stats-fixtures";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const sourceData = {
 	modelsDev: {
@@ -148,8 +148,8 @@ const benchmarkAdmissionConfig = {
 	minimumObservedBenchmarksPerDimension: 1,
 } as const;
 const minimumEvidenceModel = {
-	...minimalLlmStatsModel({ id: "provider/model", name: "Model" }),
-	evaluations: {
+	...minimalModelAtlasModel({ id: "provider/model", name: "Model" }),
+	benchmarks: {
 		intelligence_observed: 0.5,
 		agentic_observed: 0.5,
 	},
@@ -167,7 +167,7 @@ assert.equal(
 	hasRequiredBenchmarkEvidence(
 		{
 			...minimumEvidenceModel,
-			evaluations: { intelligence_observed: 0.5 },
+			benchmarks: { intelligence_observed: 0.5 },
 		},
 		evidenceScoringConfig,
 		{ ...benchmarkAdmissionConfig, minimumObservedBenchmarks: 1 },
@@ -187,7 +187,7 @@ assert.equal(
 	hasRequiredBenchmarkEvidence(
 		{
 			...minimumEvidenceModel,
-			evaluations: { agentic_observed: 0.5 },
+			benchmarks: { agentic_observed: 0.5 },
 		},
 		evidenceScoringConfig,
 		{ ...benchmarkAdmissionConfig, minimumObservedBenchmarks: 1 },
@@ -199,7 +199,7 @@ assert.equal(
 	hasRequiredBenchmarkEvidence(
 		{
 			...minimumEvidenceModel,
-			evaluations: {
+			benchmarks: {
 				intelligence_missing: 0.5,
 				agentic_observed: 0.5,
 			},

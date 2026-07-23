@@ -18,9 +18,9 @@ import type {
 } from "../ingest/types";
 import {
 	BENCHMARK_RAW_WRITERS,
-	insertArtificialAnalysisEvaluationResourceRawRows,
+	insertArtificialAnalysisBenchmarkResourceRawRows,
 	insertArtificialAnalysisRawModels,
-	insertModelEvaluations,
+	insertModelBenchmarks,
 	insertModels,
 	insertModelsDevRawModels,
 	insertModelTaskMetrics,
@@ -61,9 +61,9 @@ const SNAPSHOT_WRITERS = [
 		write: (db, rows) => insertArtificialAnalysisRawModels(db, rows.snapshots),
 	},
 	{
-		table: SNAPSHOT_TABLES.artificial_analysis_evaluation_resources,
+		table: SNAPSHOT_TABLES.artificial_analysis_benchmark_resources,
 		write: (db, rows) =>
-			insertArtificialAnalysisEvaluationResourceRawRows(db, rows.snapshots),
+			insertArtificialAnalysisBenchmarkResourceRawRows(db, rows.snapshots),
 	},
 	{
 		table: SNAPSHOT_TABLES.models_dev,
@@ -91,8 +91,8 @@ const SNAPSHOT_WRITERS = [
 		write: (db, rows) => insertModels(db, rows.finalModelRows),
 	},
 	{
-		table: SNAPSHOT_TABLES.model_evaluations,
-		write: (db, rows) => insertModelEvaluations(db, rows.finalModelRows),
+		table: SNAPSHOT_TABLES.model_benchmarks,
+		write: (db, rows) => insertModelBenchmarks(db, rows.finalModelRows),
 	},
 	{
 		table: SNAPSHOT_TABLES.model_task_metrics,
