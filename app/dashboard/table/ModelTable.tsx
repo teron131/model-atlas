@@ -18,6 +18,7 @@ import type {
 	SortDirection,
 	SortKey,
 	SortState,
+	TableColumnKey,
 	TableRow,
 } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow } from "./Rows";
@@ -57,7 +58,11 @@ export function ModelTable({
 	metricColumns,
 }: ModelTableProps) {
 	const columnKeys = useMemo(
-		() => [...staticColumnKeys, ...metricColumns.map((column) => column.key)],
+		() => [
+			...staticColumnKeys,
+			...metricColumns.map((column) => column.key),
+			"confidence",
+		] satisfies TableColumnKey[],
 		[metricColumns],
 	);
 	const {
@@ -319,7 +324,7 @@ function ColumnGroup({
 	columnKeys,
 }: {
 	widths: number[];
-	columnKeys: SortKey[];
+	columnKeys: readonly TableColumnKey[];
 }) {
 	if (widths.length === 0) {
 		return null;
@@ -367,6 +372,22 @@ function TableHeaderRow({
 					onTooltipEnd={onTooltipEnd}
 				/>
 			))}
+			<th
+				className="confidence-cell"
+				data-column-key="confidence"
+				scope="col"
+			>
+				<button
+					className="header-button"
+					type="button"
+					onMouseEnter={(event) => onTooltip(event, "confidence")}
+					onFocus={(event) => onTooltip(event, "confidence")}
+					onMouseLeave={onTooltipEnd}
+					onBlur={onTooltipEnd}
+				>
+					Confidence
+				</button>
+			</th>
 		</tr>
 	);
 }
@@ -398,7 +419,7 @@ function SortableHeader({
 			data-sort-state={sortDirection}
 		>
 			<button
-				className="sort-button"
+				className="header-button sort-button"
 				type="button"
 				onClick={() => onSort(keyName)}
 				onMouseEnter={(event) => onTooltip(event, keyName)}

@@ -11,6 +11,7 @@ import {
 } from "../shared/DashboardIcons";
 import {
 	benchmarkPercentValue,
+	formatConfidence,
 	formatContext,
 	formatCost,
 	formatDashboardMetric,
@@ -23,7 +24,7 @@ import {
 	contextWindowValue,
 	type DashboardMetricColumn,
 	dashboardMetricValue,
-	type SortKey,
+	type TableColumnKey,
 	type TableRow,
 } from "./models";
 
@@ -66,7 +67,11 @@ export function EmptyStateRow({
 	);
 }
 
-export function LoadingRows({ columnKeys }: { columnKeys: SortKey[] }) {
+export function LoadingRows({
+	columnKeys,
+}: {
+	columnKeys: readonly TableColumnKey[];
+}) {
 	return (
 		<>
 			{LOADING_ROW_KEYS.map((key, index) => (
@@ -81,7 +86,7 @@ function LoadingRow({
 	columnKeys,
 }: {
 	index: number;
-	columnKeys: SortKey[];
+	columnKeys: readonly TableColumnKey[];
 }) {
 	return (
 		<tr
@@ -135,6 +140,7 @@ export const ModelRow = memo(function ModelRow({
 					column={column}
 				/>
 			))}
+			<ConfidenceCell confidence={model.confidence} />
 		</tr>
 	);
 });
@@ -275,6 +281,33 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 						</span>
 					);
 				})}
+			</span>
+		</td>
+	);
+}
+
+function ConfidenceCell({
+	confidence,
+}: {
+	confidence: ModelAtlasModel["confidence"];
+}) {
+	const intelligence = formatConfidence(confidence.intelligence);
+	const agentic = formatConfidence(confidence.agentic);
+	const missing = intelligence === "-" && agentic === "-";
+	return (
+		<td
+			aria-label={`Intelligence confidence ${intelligence}; Agentic confidence ${agentic}`}
+			className={`data-cell confidence-cell${missing ? " missing" : ""}`}
+		>
+			<span aria-hidden="true" className="confidence-values">
+				<span>
+					<span className="confidence-dimension">I</span>
+					{intelligence}
+				</span>
+				<span>
+					<span className="confidence-dimension">A</span>
+					{agentic}
+				</span>
 			</span>
 		</td>
 	);

@@ -3,7 +3,7 @@
 import { SIMULATION_PROFILES } from "../src/model-atlas/config";
 import {
 	buildBenchmarkImputationByModel,
-	buildComponentScores,
+	buildComponentScoreResult,
 	buildQualityScoringContext,
 } from "../src/model-atlas/pipeline/scores";
 import {
@@ -360,14 +360,14 @@ const emptySpeed = {
 	latency_seconds_median: null,
 	e2e_latency_seconds_median: null,
 };
-const componentScoresWithMissingApex = buildComponentScores(
+const componentScoresWithMissingApex = buildComponentScoreResult(
 	scoringRows[3] ?? {},
 	emptySpeed,
 	[],
 	scoringConfig,
 	qualityScoringContext,
 	benchmarkImputationByModel.get(scoringRows[3] ?? {}),
-);
+).componentScores;
 assertDeepEqual(componentScoresWithMissingApex, {
 	agentic_score: 74.99999999999997,
 	intelligence_score: null,

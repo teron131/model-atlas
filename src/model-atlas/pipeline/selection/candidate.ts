@@ -25,7 +25,7 @@ import {
 	type BenchmarkImputationByModel,
 	type BenchmarkImputationConfidenceByModel,
 	blendedPriceValue,
-	buildComponentScores,
+	buildComponentScoreResult,
 	type QualityScoringContext,
 } from "../scores";
 
@@ -629,6 +629,15 @@ export function buildModelCandidate(
 	const intelligence = { ...asRecord(model.intelligence) };
 	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
 	delete intelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY];
+	const { componentScores, confidence } = buildComponentScoreResult(
+		model,
+		speed,
+		speedOutputTokenAnchors,
+		scoringConfig,
+		qualityContext,
+		benchmarkImputationByModel.get(model),
+		benchmarkImputationConfidenceByModel.get(model),
+	);
 	return {
 		id: modelId,
 		name: typeof model.name === "string" ? model.name : null,
@@ -651,16 +660,9 @@ export function buildModelCandidate(
 		intelligence_index_cost: intelligenceIndexCost,
 		task_metrics: buildTaskMetrics(intelligenceIndexCost, scoringSources),
 		benchmarks: buildNumericMap(model.benchmarks),
+		confidence,
 		scoring_sources: scoringSources,
-		component_scores: buildComponentScores(
-			model,
-			speed,
-			speedOutputTokenAnchors,
-			scoringConfig,
-			qualityContext,
-			benchmarkImputationByModel.get(model),
-			benchmarkImputationConfidenceByModel.get(model),
-		),
+		component_scores: componentScores,
 		scores: null,
 	};
 }

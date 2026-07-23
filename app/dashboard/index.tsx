@@ -41,6 +41,7 @@ import {
 	type SortState,
 	sortedRows,
 	sorters,
+	type TableColumnKey,
 } from "./table/models";
 import { tableColumnTooltip } from "./table/tooltips";
 
@@ -50,7 +51,7 @@ const TOOLTIP_FADE_OUT_MS = 1_000;
 const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
 
 type DashboardTooltipState = Omit<TooltipState, "key"> & {
-	key: SortKey;
+	key: TableColumnKey;
 };
 
 export function Dashboard({

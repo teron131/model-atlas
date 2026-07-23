@@ -10,6 +10,7 @@ import {
 } from "../../numeric";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
+	ModelAtlasConfidence,
 	ModelAtlasNullableComponentScores,
 	ModelAtlasSpeed,
 } from "../model-types";
@@ -24,6 +25,16 @@ type BenchmarkScoreInput = {
 	value: number | null;
 	evidenceConfidence: number;
 	weight: number;
+};
+
+type QualityScoreResult = {
+	score: number | null;
+	confidence: number | null;
+};
+
+type ComponentScoreResult = {
+	componentScores: ModelAtlasNullableComponentScores | null;
+	confidence: ModelAtlasConfidence;
 };
 
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
@@ -84,23 +95,27 @@ function selectedBenchmarkScoreInputs(
 function qualityScore(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
 	evidenceThresholds: Confidence[BenchmarkDimension],
-): number | null {
+): QualityScoreResult {
 	const qualityMean = weightedMeanOfFinite(
 		benchmarkScoreInputs.map(({ value, weight }) => ({ value, weight })),
 	);
+	if (qualityMean == null) {
+		return { score: null, confidence: null };
+	}
 	const evidenceMass = benchmarkScoreInputs.reduce(
 		(total, { evidenceConfidence, weight }) =>
 			total + evidenceConfidence * weight,
 		0,
 	);
-	return qualityMean == null
-		? null
-		: qualityMean *
-				evidenceMassConfidence(
-					evidenceMass,
-					evidenceThresholds.floor,
-					evidenceThresholds.full,
-				);
+	const confidence = evidenceMassConfidence(
+		evidenceMass,
+		evidenceThresholds.floor,
+		evidenceThresholds.full,
+	);
+	return {
+		score: qualityMean * confidence,
+		confidence,
+	};
 }
 
 /** Estimate a blended price from effective input/output prices, falling back to published models.dev prices. */
@@ -203,7 +218,7 @@ export function deriveSpeedOutputTokenAnchors(
 	});
 }
 
-export function buildComponentScores(
+export function buildComponentScoreResult(
 	model: JsonObject,
 	speed: ModelAtlasSpeed,
 	speedOutputTokenAnchors: number[],
@@ -211,7 +226,7 @@ export function buildComponentScores(
 	qualityContext: QualityScoringContext,
 	imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
 	imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
-): ModelAtlasNullableComponentScores | null {
+): ComponentScoreResult {
 	const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
 		model,
 		scoringConfig.intelligenceBenchmarkKeys,
@@ -230,11 +245,11 @@ export function buildComponentScores(
 		imputedValuesByKey,
 		imputedConfidenceByKey,
 	);
-	const intelligenceScore = qualityScore(
+	const intelligence = qualityScore(
 		intelligenceBenchmarkInputs,
 		scoringConfig.confidence.intelligence,
 	);
-	const agenticScore = qualityScore(
+	const agentic = qualityScore(
 		agenticBenchmarkInputs,
 		scoringConfig.confidence.agentic,
 	);
@@ -264,12 +279,20 @@ export function buildComponentScores(
 			? representativeTargetTokens / e2eLatencySeconds
 			: null;
 	const speedScore = meanOfFinite([imaginedSpeedScore, observedE2eSpeedScore]);
-	if (intelligenceScore == null && agenticScore == null && speedScore == null) {
-		return null;
-	}
 	return {
-		intelligence_score: intelligenceScore,
-		agentic_score: agenticScore,
-		speed_score: speedScore,
+		componentScores:
+			intelligence.score == null &&
+			agentic.score == null &&
+			speedScore == null
+				? null
+				: {
+						intelligence_score: intelligence.score,
+						agentic_score: agentic.score,
+						speed_score: speedScore,
+					},
+		confidence: {
+			intelligence: intelligence.confidence,
+			agentic: agentic.confidence,
+		},
 	};
 }

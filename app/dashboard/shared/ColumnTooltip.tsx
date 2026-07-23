@@ -10,7 +10,7 @@ import type {
 	ModelAtlasColumnTooltipSectionItem,
 	ModelAtlasColumnTooltipSectionKind,
 } from "../../../src/model-atlas/config/tooltips";
-import type { SortKey } from "../table/models";
+import type { TableColumnKey } from "../table/models";
 import {
 	tooltipHorizontalPadding,
 	tooltipMaxWidth,
@@ -32,7 +32,7 @@ export type TooltipState = {
 
 export type HeaderTooltipHandler = (
 	event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
-	key: SortKey,
+	key: TableColumnKey,
 ) => void;
 
 export function ColumnTooltip({

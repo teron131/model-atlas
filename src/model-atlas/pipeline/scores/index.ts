@@ -12,7 +12,7 @@ export {
 export { attachFinalScores } from "./final-scoring";
 export {
 	blendedPriceValue,
-	buildComponentScores,
+	buildComponentScoreResult,
 	deriveSpeedOutputTokenAnchors,
 } from "./score-builders";
 export { simulatedBlendSeconds } from "./workflow-simulation";

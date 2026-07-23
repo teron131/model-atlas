@@ -151,6 +151,11 @@ export type ModelAtlasComponentScores = {
 	speed_score: NumberOrNull;
 };
 
+export type ModelAtlasConfidence = {
+	intelligence: NumberOrNull;
+	agentic: NumberOrNull;
+};
+
 export type ModelAtlasNullableScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
@@ -182,6 +187,7 @@ type ModelAtlasModelFields = {
 	intelligence_index_cost: ModelAtlasIntelligenceIndexCost;
 	task_metrics: ModelAtlasTaskMetrics;
 	benchmarks: ModelAtlasBenchmarks | null;
+	confidence: ModelAtlasConfidence;
 };
 
 export type ModelAtlasModelCandidate = ModelAtlasModelFields & {

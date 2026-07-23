@@ -53,6 +53,10 @@ try {
 						output_tokens: 120,
 					},
 				},
+				confidence: {
+					intelligence: 0.83,
+					agentic: 0.47,
+				},
 				component_scores: {
 					intelligence_score: 90,
 					agentic_score: 80,
@@ -112,6 +116,10 @@ try {
 		tokens: 200,
 		input_tokens: 80,
 		output_tokens: 120,
+	});
+	assert.deepEqual(model?.confidence, {
+		intelligence: 0.83,
+		agentic: 0.47,
 	});
 	assert.deepEqual(
 		payload.models.find(

@@ -26,6 +26,7 @@ export type {
 	ModelAtlasBenchmarks,
 	ModelAtlasBenchmarkValues,
 	ModelAtlasComponentScores,
+	ModelAtlasConfidence,
 	ModelAtlasContextWindow,
 	ModelAtlasCost,
 	ModelAtlasCostBreakdown,

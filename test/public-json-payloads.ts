@@ -324,6 +324,7 @@ assert.equal("reasoning" in (coreModel ?? {}), false);
 assert.equal("logo" in (fullJsonModel ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
+assert.equal("confidence" in (fullJsonModel ?? {}), false);
 assert.equal(fullJsonModel?.reasoning_effort, null);
 assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
 	"intelligence_score",

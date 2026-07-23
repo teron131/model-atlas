@@ -229,6 +229,8 @@ export type SortKey =
 	| TaskMetricColumn["key"]
 	| BenchmarkMetricColumn["key"];
 
+export type TableColumnKey = SortKey | "confidence";
+
 export type SortState = {
 	key: SortKey;
 	direction: SortDirection;

@@ -14,7 +14,7 @@ import { formatBenchmarkMetric } from "../app/dashboard/shared/format";
 import {
 	benchmarkMetricColumns,
 	dashboardMetricColumns,
-	type SortKey,
+	type TableColumnKey,
 	type TableRow,
 } from "../app/dashboard/table/models";
 import { tableColumnTooltip } from "../app/dashboard/table/tooltips";
@@ -58,6 +58,10 @@ const payload = minimalModelAtlasPayload({
 				name: "GPT-5.5",
 			}),
 			benchmarks: { deep_swe: 0.6 },
+			confidence: {
+				intelligence: 0.83,
+				agentic: 0.47,
+			},
 			scores: {
 				intelligence_score: 90,
 				agentic_score: 80,
@@ -136,7 +140,7 @@ const displayedBenchmarkKeys = new Set([
 	...INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	...AGENTIC_BENCHMARK_DISPLAY_KEYS,
 ]);
-const tableColumnKeys: SortKey[] = [
+const tableColumnKeys: TableColumnKey[] = [
 	"rank",
 	"model",
 	"intelligence",
@@ -146,6 +150,7 @@ const tableColumnKeys: SortKey[] = [
 	"blend",
 	"context",
 	...dashboardMetricColumns.map((column) => column.key),
+	"confidence",
 ];
 
 assert.equal(
@@ -157,6 +162,18 @@ assert.equal(
 	html.includes("openai/gpt-5.5"),
 	true,
 	"server-readable dashboard markup should include model row ids",
+);
+assert.equal(
+	html.includes("Confidence") &&
+		html.includes("Intelligence confidence 83%") &&
+		html.includes("Agentic confidence 47%"),
+	true,
+	"the final dashboard column should expose separate confidence percentages",
+);
+assert.equal(
+	matchCount(html, 'data-column-key="confidence"'),
+	2,
+	"the sticky and source table headers should end with the confidence column",
 );
 assert.equal(
 	html.includes("Reasoning variant display") &&
@@ -224,6 +241,26 @@ assert.deepEqual(
 	),
 	[],
 	"every dashboard table column should resolve tooltip content",
+);
+const confidenceTooltip = tableColumnTooltip("confidence", COLUMN_TOOLTIPS);
+assert.ok(confidenceTooltip);
+const confidenceTooltipHtml = renderToStaticMarkup(
+	React.createElement(ColumnTooltip, {
+		content: confidenceTooltip,
+		left: 0,
+		top: 0,
+	}),
+);
+assert.equal(
+	[
+		"Confidence",
+		"Intelligence confidence",
+		"Agentic confidence",
+		"zero through 10%",
+		"full from 60%",
+	].every((text) => confidenceTooltipHtml.includes(text)),
+	true,
+	"confidence tooltip should explain both dimensions and the evidence scale",
 );
 assert.deepEqual(
 	[...displayedBenchmarkKeys].filter(

@@ -506,6 +506,8 @@ CREATE TABLE IF NOT EXISTS models (
 	agentic_score REAL,
 	speed_score REAL,
 	value_score REAL,
+	intelligence_confidence REAL,
+	agentic_confidence REAL,
 	PRIMARY KEY (row_index)
 );
 

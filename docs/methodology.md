@@ -108,6 +108,8 @@ A_m&=D_{m,\text{Agentic}}.
 \end{aligned}
 $$
 
+Intelligence and Agentic confidence are reported separately as the percentage values of $C_D(E_{m,D})$. Each value expresses how much evidence supports its dimension’s estimated benchmark mean; the two dimensions are not combined into one confidence value.
+
 ## Missing Benchmark Evidence
 
 The imputation pipeline has two paths. A benchmark-specific source crosswalk runs first when configured; otherwise, or when that crosswalk fails validation, the contextual quantile imputer is used.
