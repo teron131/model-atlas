@@ -1,6 +1,5 @@
 /** Leaderboard row components and model display rules. */
 
-import Image from "next/image";
 import { type CSSProperties, memo, useState } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
@@ -325,13 +324,15 @@ function ProviderLogo({ model }: { model: LlmStatsModel }) {
 	}
 
 	return (
-		<Image
+		// biome-ignore lint/performance/noImgElement: Tiny provider marks are already optimized assets, are not LCP content, and do not justify the next/image client runtime.
+		<img
 			className="provider-logo"
 			src={logoSrc}
 			alt=""
 			width={32}
 			height={32}
-			unoptimized
+			loading="lazy"
+			decoding="async"
 			onError={() => {
 				setHidden(true);
 			}}

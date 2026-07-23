@@ -3,7 +3,6 @@
 /** Shared hover, filter, and summary UI for Model Atlas charts. */
 
 import { Boxes } from "lucide-react";
-import Image from "next/image";
 import { type CSSProperties, useState } from "react";
 
 import { fmtCompact } from "./format";
@@ -26,13 +25,14 @@ export function HoverCard({ hover }: { hover: HoverState }) {
 			<div className={styles.hoverCardHead}>
 				<span className={styles.hoverCardLogo}>
 					{hover.logo ? (
-						<Image
+						// biome-ignore lint/performance/noImgElement: This transient 26px provider mark is not LCP content and does not justify the next/image client runtime.
+						<img
 							src={hover.logo}
 							alt=""
 							width={26}
 							height={26}
 							loading="lazy"
-							unoptimized
+							decoding="async"
 							onError={(event) => {
 								event.currentTarget.hidden = true;
 							}}

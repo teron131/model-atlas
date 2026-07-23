@@ -5,7 +5,6 @@ import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { compactDashboardPayload } from "../app/dashboard/compact-payload";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import {
 	benchmarkLabels,
@@ -53,48 +52,29 @@ const { ModelTable } = await import("../app/dashboard/table/ModelTable");
 const payload = minimalLlmStatsPayload({
 	fetchedAt: 900,
 	models: [
-		minimalLlmStatsModel({
-			id: "openai/gpt-5.5",
-			name: "GPT-5.5",
-		}),
+		{
+			...minimalLlmStatsModel({
+				id: "openai/gpt-5.5",
+				name: "GPT-5.5",
+			}),
+			evaluations: { deep_swe: 0.6 },
+			scores: {
+				intelligence_score: 90,
+				agentic_score: 80,
+				speed_score: 70,
+				value_score: 60,
+			},
+		},
 	],
 });
-const compactInteractionPayload = compactDashboardPayload(
-	minimalLlmStatsPayload({
-		fetchedAt: 901,
-		models: [
-			{
-				...minimalLlmStatsModel({
-					id: "openai/gpt-5.5",
-					name: "GPT-5.5",
-				}),
-				task_metrics: {
-					artificial_analysis: {
-						cost: 0.42,
-					},
-				},
-				evaluations: {
-					deep_swe: 0.6,
-				},
-				scores: {
-					intelligence_score: 90,
-					agentic_score: 80,
-					speed_score: 70,
-					value_score: 65,
-				},
-			},
-		],
-	}),
-);
-
+payload.metadata.scoring.benchmark_portfolio = {
+	deep_swe: BENCHMARK_PORTFOLIO.deep_swe,
+};
 const html = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: payload }),
 );
 const loadingHtml = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: null }),
-);
-const compactInteractionHtml = renderToStaticMarkup(
-	React.createElement(Dashboard, { initialPayload: compactInteractionPayload }),
 );
 
 const coverageModels = [
@@ -189,6 +169,14 @@ assert.equal(
 	html.includes("data-capture-theme"),
 	true,
 	"graph exports should have a stable theme boundary independent of CSS-module class names",
+);
+assert.equal(
+	html.includes("Pareto frontier") &&
+		html.includes("Price vs Cost Efficiency") &&
+		html.includes("Frontier Benchmarks") &&
+		html.includes("Intelligence interaction matrix"),
+	true,
+	"server markup should include every graph panel in the initial page response",
 );
 assert.equal(
 	matchCount(html, 'data-column-key="model"'),
@@ -294,27 +282,6 @@ assert.equal(
 	"$10,936.8",
 	"currency benchmarks should retain their unit in the table",
 );
-assert.equal(
-	compactInteractionHtml.includes("AA cost"),
-	true,
-	"compact dashboard payload should expose the AA task-cost interaction field immediately",
-);
-assert.equal(
-	compactInteractionHtml.includes("Frontier"),
-	true,
-	"compact dashboard payload should expose the frontier benchmark interaction field immediately",
-);
-assert.equal(
-	compactInteractionHtml.includes("CORR"),
-	true,
-	"compact dashboard payload should render field correlation labels immediately",
-);
-assert.equal(
-	compactInteractionHtml.includes("Loading full metric payload"),
-	false,
-	"compact dashboard payload should not show a loading card for interaction metrics it already carries",
-);
-
 const visibleRankRows: TableRow[] = [
 	tableRow("provider/seven", "Seven", 7, 0),
 	tableRow("provider/eight", "Eight", 8, 1),

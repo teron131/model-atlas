@@ -6,6 +6,7 @@ import {
 	type FocusEvent as ReactFocusEvent,
 	type MouseEvent as ReactMouseEvent,
 	type PointerEvent as ReactPointerEvent,
+	useDeferredValue,
 	useEffect,
 	useMemo,
 	useRef,
@@ -20,8 +21,8 @@ import { captureFileToken } from "../capture/png";
 import { useDisplayLimit } from "../shared/DisplayControls";
 import { ModelToolbar } from "../shared/ModelToolbar";
 import {
+	filterByModelQuery,
 	modelCount,
-	modelMatchesQuery,
 	modelsForVariantDisplay,
 	modelVariantKey,
 } from "../shared/model-display";
@@ -105,6 +106,7 @@ export function PriceEfficiencyPanel({
 	setHover: HoverSetter;
 }) {
 	const [filterQuery, setFilterQuery] = useState("");
+	const deferredFilterQuery = useDeferredValue(filterQuery);
 	const panelRef = useRef<HTMLElement>(null);
 	const compactChartLayout = useCompactChartLayout();
 	const chartWidth = compactChartLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
@@ -155,8 +157,12 @@ export function PriceEfficiencyPanel({
 	const [effectiveLimit, setDisplayLimit] = useDisplayLimit(maximumLimit);
 	const matchingRows = useMemo(
 		() =>
-			availableRows.filter((row) => modelMatchesQuery(row.model, filterQuery)),
-		[availableRows, filterQuery],
+			filterByModelQuery(
+				availableRows,
+				(row) => row.model,
+				deferredFilterQuery,
+			),
+		[availableRows, deferredFilterQuery],
 	);
 	const rows = matchingRows.slice(0, effectiveLimit);
 	const itemKind = showVariants ? "variants" : "models";
@@ -165,15 +171,15 @@ export function PriceEfficiencyPanel({
 		...(selectedProviders.length === 0
 			? []
 			: [`providers-${selectedProviders.map(captureFileToken).join("-")}`]),
-		...(filterQuery.trim().length === 0
+		...(deferredFilterQuery.trim().length === 0
 			? []
-			: [`filter-${captureFileToken(filterQuery)}`]),
+			: [`filter-${captureFileToken(deferredFilterQuery)}`]),
 	].join("-");
 	const controls = (
 		<ModelToolbar
 			filterQuery={filterQuery}
 			rowCountLabel={
-				filterQuery.trim().length === 0
+				deferredFilterQuery.trim().length === 0
 					? null
 					: `${matchingRows.length} matches`
 			}

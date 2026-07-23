@@ -4,6 +4,8 @@ import { canonicalModelKey } from "../../../src/model-atlas/identity/normalizati
 import { strongestModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 
+const searchTextByModel = new WeakMap<LlmStatsModel, string>();
+
 export function modelCount(models: LlmStatsModel[]): number {
 	return new Set(models.map(canonicalModelKey)).size;
 }
@@ -41,19 +43,27 @@ export function modelDisplayName(model: LlmStatsModel): string {
 		: `${baseName} (${model.reasoning_effort})`;
 }
 
-/** Match the model identity fields exposed by dashboard search controls. */
-export function modelMatchesQuery(
-	model: LlmStatsModel,
+/** Filter model-backed rows while normalizing the query and model text only once per stable input. */
+export function filterByModelQuery<T>(
+	items: readonly T[],
+	getModel: (item: T) => LlmStatsModel,
 	filterQuery: string,
-): boolean {
-	const query = filterQuery.trim().toLowerCase();
-	if (!query) {
-		return true;
+): T[] {
+	const terms = filterQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+	if (terms.length === 0) {
+		return [...items];
 	}
-	const searchable = [modelDisplayName(model), model.id, model.provider]
-		.join(" ")
-		.toLowerCase();
-	return query.split(/\s+/).every((term) => searchable.includes(term));
+	return items.filter((item) => {
+		const model = getModel(item);
+		let searchable = searchTextByModel.get(model);
+		if (searchable == null) {
+			searchable = [modelDisplayName(model), model.id, model.provider]
+				.join(" ")
+				.toLowerCase();
+			searchTextByModel.set(model, searchable);
+		}
+		return terms.every((term) => searchable.includes(term));
+	});
 }
 
 /** Toggle one provider while an empty selection continues to represent All. */

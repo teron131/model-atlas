@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS snapshot_metadata (
 	updated_at_epoch_seconds INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS snapshot_payloads (
+	snapshot_key TEXT NOT NULL,
+	payload_json TEXT NOT NULL,
+	PRIMARY KEY (snapshot_key)
+);
+
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

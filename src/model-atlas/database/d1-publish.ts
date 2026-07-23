@@ -71,6 +71,7 @@ const DERIVED_TABLES = [
 ] as const;
 const INSERT_ROWS_PER_STATEMENT = 100;
 const MAX_INSERT_STATEMENT_CHARS = 20_000;
+const MAX_MATERIALIZED_PAYLOAD_BYTES = 1_900_000;
 
 type D1PublishResult = {
 	storage: "cloudflare_d1";
@@ -165,8 +166,6 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 		publicContentHash(nextPayload) ===
 			publicContentHash(current.previousPayload)
 	) {
-		const statements = sourceHealthStatements(collector);
-		await queryD1Batch(statements.map((sql) => ({ sql })));
 		const payload = {
 			...current.previousPayload,
 			metadata: {
@@ -174,33 +173,42 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
 				source_health: derived.rows.sourceHealth,
 			},
 		};
+		const queries = [
+			...sourceHealthStatements(collector).map((sql) => ({ sql })),
+			materializedPayloadQuery(payload),
+		];
+		await queryD1Batch(queries);
 		return {
 			result: publishResult(
 				config.databaseId,
 				payload,
 				false,
 				[],
-				statements.length,
+				queries.length,
 				schema,
 			),
 			payload,
 		};
 	}
 	const completedAtEpochSeconds = nowEpochSeconds();
+	const payload = payloadFromCollector(completedAtEpochSeconds, collector);
 	const statements = publicationStatements(
 		completedAtEpochSeconds,
 		collector,
 		changedSources,
 	);
-	await queryD1Batch(statements.map((sql) => ({ sql })));
-	const payload = payloadFromCollector(completedAtEpochSeconds, collector);
+	const queries = [
+		...statements.map((sql) => ({ sql })),
+		materializedPayloadQuery(payload),
+	];
+	await queryD1Batch(queries);
 	return {
 		result: publishResult(
 			config.databaseId,
 			payload,
 			true,
 			changedSources,
-			statements.length,
+			queries.length,
 			schema,
 		),
 		payload,
@@ -350,6 +358,21 @@ function payloadFromCollector(
 			]),
 		),
 	);
+}
+
+/** Store the completed public snapshot in the same atomic batch as its source rows. */
+function materializedPayloadQuery(payload: LlmStatsPayload) {
+	const payloadJson = JSON.stringify(payload);
+	const payloadBytes = Buffer.byteLength(payloadJson);
+	if (payloadBytes > MAX_MATERIALIZED_PAYLOAD_BYTES) {
+		throw new Error(
+			`Materialized D1 payload is ${payloadBytes} bytes; the ${MAX_MATERIALIZED_PAYLOAD_BYTES}-byte safety limit requires a storage redesign`,
+		);
+	}
+	return {
+		sql: "INSERT OR REPLACE INTO snapshot_payloads (snapshot_key, payload_json) VALUES ('public', ?)",
+		params: [payloadJson],
+	};
 }
 
 function publicationStatements(

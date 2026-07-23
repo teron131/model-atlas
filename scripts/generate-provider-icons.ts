@@ -1,6 +1,6 @@
 /** Provider icon generation for Model Atlas. */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { readDatabasePayload } from "../src/model-atlas/database";
@@ -18,6 +18,8 @@ type ProviderAsset = {
 type ProviderAssetMap = Record<string, ProviderAsset>;
 
 const GENERATED_PATH = "app/dashboard/shared/provider-assets.generated.ts";
+const GENERATED_ICON_PATH = "app/dashboard/shared/provider-icons.generated.ts";
+const PUBLIC_ICON_DIR = "public/provider-icons";
 const LOGO_SIZE = 64;
 
 const force = process.argv.includes("--force");
@@ -42,7 +44,17 @@ for (const [provider, source] of [...logoSources].sort()) {
 	};
 }
 
-await writeFile(resolve(GENERATED_PATH), providerAssetsModule(nextAssets));
+await mkdir(resolve(PUBLIC_ICON_DIR), { recursive: true });
+await Promise.all([
+	writeFile(resolve(GENERATED_PATH), providerAssetsModule(nextAssets)),
+	writeFile(resolve(GENERATED_ICON_PATH), providerIconsModule(nextAssets)),
+	...Object.entries(nextAssets).map(([provider, asset]) =>
+		writeFile(
+			resolve(PUBLIC_ICON_DIR, `${provider}.svg`),
+			generatedIconBytes(asset.logo),
+		),
+	),
+]);
 
 console.log(
 	JSON.stringify(
@@ -112,6 +124,15 @@ function decodeDataUrl(source: string) {
 	return Buffer.from(decodeURIComponent(source.slice(commaIndex + 1)), "utf8");
 }
 
+/** Reject malformed generated assets instead of emitting empty public icon files. */
+function generatedIconBytes(source: string) {
+	const bytes = decodeDataUrl(source);
+	if (bytes == null) {
+		throw new Error("Generated provider icon is not a valid data URL");
+	}
+	return bytes;
+}
+
 function svgDataUrl(imageBuffer: Buffer) {
 	const imageHref = `data:image/png;base64,${imageBuffer.toString("base64")}`;
 	const svg = [
@@ -148,6 +169,36 @@ function providerAssetsModule(assets: ProviderAssetMap) {
 		"export const providerAssets = {",
 		entries,
 		"} as const satisfies Record<string, ProviderAsset>;",
+		"",
+	].join("\n");
+}
+
+function providerIconsModule(assets: ProviderAssetMap) {
+	const entries = Object.entries(assets)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([provider, asset]) => {
+			const key = /^[A-Za-z_$][\w$]*$/.test(provider)
+				? provider
+				: JSON.stringify(provider);
+			return [
+				`\t${key}: {`,
+				`\t\tcolor: ${JSON.stringify(asset.color)},`,
+				`\t\tlogo: ${JSON.stringify(`/provider-icons/${provider}.svg`)},`,
+				"\t},",
+			].join("\n");
+		})
+		.join("\n");
+	return [
+		"// Generated provider icon metadata from scripts/generate-provider-icons.ts. Do not edit directly.",
+		"",
+		"type ProviderIcon = {",
+		"\tcolor: string;",
+		"\tlogo: string;",
+		"};",
+		"",
+		"export const providerIcons = {",
+		entries,
+		"} as const satisfies Record<string, ProviderIcon>;",
 		"",
 	].join("\n");
 }

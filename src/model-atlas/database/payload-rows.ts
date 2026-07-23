@@ -2,6 +2,7 @@
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys";
 import {
+	ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
@@ -36,13 +37,22 @@ type DbRow = Record<string, unknown>;
 export const SNAPSHOT_METADATA_SQL =
 	"SELECT updated_at_epoch_seconds FROM snapshot_metadata LIMIT 1";
 
+type PayloadRowGroupOptions = {
+	columns?: readonly string[];
+	optional?: boolean;
+	sourceKey?: string | null;
+};
+
 /** Build one row-group entry so table identity and read SQL cannot drift. */
 function payloadRowGroup<Key extends string>(
 	key: Key,
 	table: SnapshotTableName,
 	orderBy: string,
-	optional = false,
-	sourceKey: string | null = null,
+	{
+		columns = ["*"],
+		optional = false,
+		sourceKey = null,
+	}: PayloadRowGroupOptions = {},
 ) {
 	const sourcePredicate =
 		sourceKey == null
@@ -51,11 +61,26 @@ function payloadRowGroup<Key extends string>(
 	return {
 		key,
 		table,
-		sql: `SELECT * FROM ${table}${sourcePredicate} ORDER BY ${orderBy}`,
+		sql: `SELECT ${columns.join(", ")} FROM ${table}${sourcePredicate} ORDER BY ${orderBy}`,
 		optional,
 		sourceKey,
 	};
 }
+
+const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
+	"source_key",
+	"row_index",
+	"benchmark_key",
+	"model_id",
+	"model",
+	"base_model",
+	"reasoning_effort",
+	"model_creator_id",
+	"model_creator",
+	"inference_provider",
+	"canonical_value",
+	"score_eligible",
+] as const;
 
 /** Sparse benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
 const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
@@ -63,28 +88,49 @@ const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 		"agentArenaRows",
 		SNAPSHOT_TABLES.agent_arena,
 		"row_index",
-		true,
+		{
+			columns: [
+				"contender_name",
+				"model",
+				"base_model",
+				"reasoning_effort",
+				"organization",
+				"score",
+			],
+			optional: true,
+		},
 	),
 	agents_last_exam: payloadRowGroup(
 		"agentsLastExamRows",
 		SNAPSHOT_TABLES.agents_last_exam,
 		"row_index",
+		{ columns: ["model", "row_kind", "median_score", "mean_score"] },
 	),
 	ale_bench: payloadRowGroup(
 		"aleBenchRows",
 		SNAPSHOT_TABLES.ale_bench,
 		"row_index",
-		true,
+		{
+			columns: [
+				"base_model",
+				"reasoning_effort",
+				"num_self_refine",
+				"performance_mean",
+			],
+			optional: true,
+		},
 	),
 	blueprint_bench_2: payloadRowGroup(
 		"blueprintBenchRows",
 		SNAPSHOT_TABLES.blueprint_bench_2,
 		"row_index",
+		{ columns: ["model", "score"] },
 	),
 	cursorbench: payloadRowGroup(
 		"cursorBenchRows",
 		SNAPSHOT_TABLES.cursorbench,
 		"row_index",
+		{ columns: ["base_model", "reasoning_effort", "score"] },
 	),
 	deep_swe: payloadRowGroup(
 		"deepSWERows",
@@ -95,13 +141,25 @@ const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 		"frontierCodeRows",
 		SNAPSHOT_TABLES.frontier_code,
 		"row_index",
-		true,
+		{
+			columns: [
+				"model",
+				"base_model",
+				"reasoning_effort",
+				"score_eligible",
+				"main_score",
+			],
+			optional: true,
+		},
 	),
 	vending_bench_2: payloadRowGroup(
 		"vendingBench2Rows",
 		SNAPSHOT_TABLES.vending_bench_2,
 		"row_index",
-		true,
+		{
+			columns: ["model", "base_model", "reasoning_effort", "final_balance_usd"],
+			optional: true,
+		},
 	),
 } as const satisfies Record<
 	PublicBenchmarkRuntimeKeyFor<"sparse">,
@@ -109,11 +167,14 @@ const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 >;
 
 const SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-	gdp_pdf: payloadRowGroup("gdpPdfRows", SNAPSHOT_TABLES.gdp_pdf, "row_index"),
+	gdp_pdf: payloadRowGroup("gdpPdfRows", SNAPSHOT_TABLES.gdp_pdf, "row_index", {
+		columns: ["model", "provider", "score"],
+	}),
 	riemann_bench: payloadRowGroup(
 		"riemannBenchRows",
 		SNAPSHOT_TABLES.riemann_bench,
 		"row_index",
+		{ columns: ["model", "provider", "score"] },
 	),
 } as const satisfies Record<
 	PublicBenchmarkRuntimeKeyFor<"surge">,
@@ -125,19 +186,28 @@ const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 		"harveyLabRows",
 		SNAPSHOT_TABLES.vals_harvey_lab,
 		"row_index",
-		true,
+		{
+			columns: ["model_id", "model", "provider", "row_kind", "score"],
+			optional: true,
+		},
 	),
 	vals_terminal_bench: payloadRowGroup(
 		"terminalBenchRows",
 		SNAPSHOT_TABLES.vals_terminal_bench,
 		"row_index",
-		true,
+		{
+			columns: ["model_id", "model", "provider", "row_kind", "score"],
+			optional: true,
+		},
 	),
 	vals_index: payloadRowGroup(
 		"valsIndexRows",
 		SNAPSHOT_TABLES.vals_index,
 		"row_index",
-		true,
+		{
+			columns: ["model_id", "model", "provider", "row_kind", "score"],
+			optional: true,
+		},
 	),
 } as const satisfies Record<
 	PublicBenchmarkRuntimeKeyFor<"vals">,
@@ -166,22 +236,29 @@ export const PAYLOAD_ROW_GROUPS = [
 		"sourceHealthRows",
 		SNAPSHOT_TABLES.source_health,
 		"row_index",
-		true,
+		{ optional: true },
 	),
 	payloadRowGroup(
 		"artificialAnalysisRows",
 		SNAPSHOT_TABLES.artificial_analysis,
 		"row_index",
+		{
+			columns: [
+				"model_id",
+				"name",
+				"short_name",
+				"reasoning_effort",
+				...ARTIFICIAL_ANALYSIS_EVALUATION_KEYS,
+			],
+		},
 	),
 	...Object.values(BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS),
 	...BENCHMARK_OBSERVATION_BINDINGS.map((binding) =>
-		payloadRowGroup(
-			binding.sourceRowsKey,
-			binding.rawTable,
-			"row_index",
-			true,
-			binding.rawSourceKey,
-		),
+		payloadRowGroup(binding.sourceRowsKey, binding.rawTable, "row_index", {
+			columns: BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS,
+			optional: true,
+			sourceKey: binding.rawSourceKey,
+		}),
 	),
 ] as const;
 

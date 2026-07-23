@@ -1,15 +1,6 @@
 /** Cloudflare D1 adapter keeps deployed reads and schema checks aligned with the SQLite snapshot contract. */
 
-import { BENCHMARK_OBSERVATION_RAW_TABLE } from "../benchmarks/registry";
 import type { LlmStatsPayload } from "../stats/types";
-import {
-	buildPayloadFromRows,
-	buildPayloadRows,
-	PAYLOAD_ROW_GROUPS,
-	payloadFetchedAtFromRow,
-	readPayloadRows,
-	SNAPSHOT_METADATA_SQL,
-} from "./payload-rows";
 import { loadSchemaSql } from "./schema";
 import {
 	catalogTableMatchesSchema,
@@ -52,6 +43,8 @@ type D1ApiResponse = {
 type D1QueryBody = D1Query | { batch: D1Query[] };
 
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
+const MATERIALIZED_PAYLOAD_SQL =
+	"SELECT payload_json FROM snapshot_payloads WHERE snapshot_key = 'public' LIMIT 1";
 
 /** D1 configuration is complete only when every required deployment secret is present. */
 export function d1Config(): D1Config | null {
@@ -189,57 +182,15 @@ export async function readD1Payload(): Promise<LlmStatsPayload | null> {
 	if (!d1Configured()) {
 		return null;
 	}
-	const metadataRow = (await queryD1Rows(SNAPSHOT_METADATA_SQL))[0];
-	if (metadataRow == null) {
+	const row = (await queryD1Rows(MATERIALIZED_PAYLOAD_SQL))[0];
+	if (typeof row?.payload_json !== "string") {
 		return null;
 	}
-	const fetchedAt = payloadFetchedAtFromRow(metadataRow);
-	const directRowGroups = PAYLOAD_ROW_GROUPS.filter(
-		(rowGroup) => rowGroup.sourceKey == null,
-	);
-	const sharedObservationRowGroups = PAYLOAD_ROW_GROUPS.filter(
-		(rowGroup) => rowGroup.sourceKey != null,
-	);
-	const queries = [
-		...directRowGroups.map((rowGroup) => ({ sql: rowGroup.sql })),
-		...(sharedObservationRowGroups.length === 0
-			? []
-			: [
-					{
-						sql: `SELECT * FROM ${BENCHMARK_OBSERVATION_RAW_TABLE} ORDER BY source_key, row_index`,
-					},
-				]),
-	];
 	try {
-		const queryRows = await queryD1BatchRows(queries);
-		const rowsByKey = new Map(
-			directRowGroups.map(
-				(rowGroup, index) => [rowGroup.key, queryRows[index] ?? []] as const,
-			),
-		);
-		const sharedRows = queryRows[directRowGroups.length] ?? [];
-		for (const rowGroup of sharedObservationRowGroups) {
-			rowsByKey.set(
-				rowGroup.key,
-				sharedRows.filter((row) => row.source_key === rowGroup.sourceKey),
-			);
-		}
-		return buildPayloadFromRows(
-			buildPayloadRows(
-				fetchedAt,
-				PAYLOAD_ROW_GROUPS.map((rowGroup) => [
-					rowGroup.key,
-					rowsByKey.get(rowGroup.key) ?? [],
-				]),
-			),
-		);
+		return JSON.parse(row.payload_json) as LlmStatsPayload;
 	} catch (error) {
-		if (!(error instanceof Error) || !/no such table:/i.test(error.message)) {
-			throw error;
-		}
-		const rows = await readPayloadRows(fetchedAt, (rowGroup) =>
-			queryD1Rows(rowGroup.sql),
-		);
-		return buildPayloadFromRows(rows);
+		throw new Error("Cloudflare D1 contains an invalid materialized payload", {
+			cause: error,
+		});
 	}
 }
