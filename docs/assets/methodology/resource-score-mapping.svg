@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 600" role="img" aria-labelledby="title desc">
+  <title id="title">Residual score and support shrinkage</title>
+  <desc id="desc">A resource residual maps to magnitude and percentile scores whose mean is then shrunk toward neutral fifty according to comparison support.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; --tertiary: #c4b5fd; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 14px; }
+    .label { font-size: 16px; }
+    .annotation { font-size: 14px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .magnitude { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-dasharray: 8 5; }
+    .percentile { fill: none; stroke: var(--secondary); stroke-width: 2.5; stroke-dasharray: 3 5; }
+    .hybrid { fill: none; stroke: var(--tertiary); stroke-width: 4; }
+    .support-full { fill: none; stroke: var(--primary); stroke-width: 3; }
+    .support-half { fill: none; stroke: var(--tertiary); stroke-width: 3; }
+    .support-none { fill: none; stroke: var(--secondary); stroke-width: 3; }
+  </style>
+  <rect width="720" height="600" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Residual score and support shrinkage</text>
+
+  <line x1="90" y1="147.5" x2="670" y2="147.5" class="grid" />
+  <line x1="380" y1="65" x2="380" y2="230" class="grid" />
+  <line x1="90" y1="230" x2="670" y2="230" class="axis" />
+  <line x1="90" y1="65" x2="90" y2="230" class="axis" />
+  <path d="M90 65 L180 65 L630 230 L670 230" class="magnitude" />
+  <path d="M90 74 C180 84 245 98 310 122 C390 151 455 180 530 207 C580 222 625 228 670 230" class="percentile" />
+  <path d="M90 69 L180 75 C245 91 310 112 380 143 C455 174 525 203 590 221 L630 229 L670 230" class="hybrid" />
+  <line x1="180" y1="65" x2="180" y2="230" class="grid" />
+  <line x1="630" y1="65" x2="630" y2="230" class="grid" />
+  <text x="180" y="251" text-anchor="middle" class="muted">L</text>
+  <text x="380" y="251" text-anchor="middle" class="muted">0</text>
+  <text x="630" y="251" text-anchor="middle" class="muted">U</text>
+  <text x="74" y="234" text-anchor="end" class="muted">0</text>
+  <text x="74" y="152" text-anchor="end" class="muted">50</text>
+  <text x="74" y="70" text-anchor="end" class="muted">100</text>
+  <text x="380" y="277" text-anchor="middle" class="label">Resource residual ε</text>
+  <text transform="translate(25 147.5) rotate(-90)" text-anchor="middle" class="label">Mapped score</text>
+  <line x1="458" y1="48" x2="488" y2="48" class="magnitude" />
+  <text x="496" y="53" class="muted">magnitude M</text>
+  <line x1="458" y1="68" x2="488" y2="68" class="percentile" />
+  <text x="496" y="73" class="muted">percentile P</text>
+  <line x1="458" y1="88" x2="488" y2="88" class="hybrid" />
+  <text x="496" y="93" class="muted">mean H</text>
+
+  <line x1="90" y1="420" x2="670" y2="420" class="grid" />
+  <line x1="380" y1="320" x2="380" y2="520" class="grid" />
+  <line x1="90" y1="520" x2="670" y2="520" class="axis" />
+  <line x1="90" y1="320" x2="90" y2="520" class="axis" />
+  <line x1="90" y1="520" x2="670" y2="320" class="support-full" />
+  <line x1="90" y1="470" x2="670" y2="370" class="support-half" />
+  <line x1="90" y1="420" x2="670" y2="420" class="support-none" />
+  <text x="620" y="324" class="annotation">h = 1</text>
+  <text x="620" y="374" class="annotation">h = 0.5</text>
+  <text x="620" y="424" class="annotation">h = 0</text>
+  <text x="90" y="544" text-anchor="middle" class="muted">0</text>
+  <text x="380" y="544" text-anchor="middle" class="muted">50</text>
+  <text x="670" y="544" text-anchor="middle" class="muted">100</text>
+  <text x="74" y="524" text-anchor="end" class="muted">0</text>
+  <text x="74" y="424" text-anchor="end" class="muted">50</text>
+  <text x="74" y="324" text-anchor="end" class="muted">100</text>
+  <text x="380" y="574" text-anchor="middle" class="label">Hybrid score H</text>
+  <text transform="translate(25 420) rotate(-90)" text-anchor="middle" class="label">Final score R</text>
+  <text x="116" y="344" class="annotation">R = 50 + h(H − 50)</text>
+</svg>

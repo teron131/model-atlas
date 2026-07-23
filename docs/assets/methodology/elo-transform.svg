@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Elo source transform</title>
+  <desc id="desc">A clamped linear transform maps Elo 500 to zero and Elo 2500 to one.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 15px; }
+    .label { font-size: 17px; }
+    .annotation { font-size: 16px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .series { fill: none; stroke: var(--primary); stroke-width: 4; stroke-linejoin: round; }
+    .point { fill: var(--primary); }
+  </style>
+  <rect width="720" height="420" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Elo source transform</text>
+  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
+  <line x1="187" y1="48" x2="187" y2="340" class="grid" />
+  <line x1="573" y1="48" x2="573" y2="340" class="grid" />
+  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
+  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
+  <path d="M90 340 L187 340 L573 48 L670 48" class="series" />
+  <circle cx="187" cy="340" r="6" class="point" />
+  <circle cx="573" cy="48" r="6" class="point" />
+  <text x="330" y="247" class="annotation">(Elo − 500) / 2000</text>
+  <text x="90" y="367" text-anchor="middle" class="muted">0</text>
+  <text x="187" y="367" text-anchor="middle" class="muted">500</text>
+  <text x="380" y="367" text-anchor="middle" class="muted">1500</text>
+  <text x="573" y="367" text-anchor="middle" class="muted">2500</text>
+  <text x="670" y="367" text-anchor="middle" class="muted">3000</text>
+  <text x="74" y="345" text-anchor="end" class="muted">0</text>
+  <text x="74" y="199" text-anchor="end" class="muted">0.5</text>
+  <text x="74" y="53" text-anchor="end" class="muted">1</text>
+  <text x="380" y="403" text-anchor="middle" class="label">Raw Elo</text>
+  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Normalized value</text>
+</svg>

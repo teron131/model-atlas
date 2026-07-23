@@ -2,6 +2,8 @@
 
 Modern LLM leaderboards are noisy. Many benchmarks keep circulating long after they stop separating strong models. Others look impressive on paper but mainly measure scaffolds, public memorization, policy behavior, or benchmark-specific tricks. The goal of this standard is to keep only benchmarks that still say something meaningful about current frontier models.
 
+The current selected portfolio and source-specific policies are documented in [benchmarks.md](benchmarks.md).
+
 A benchmark should help answer one of two questions:
 
 1. Is this model more intelligent?
@@ -57,7 +59,7 @@ Every benchmark should be judged from evidence, not marketing.
 
 Inspect the official site, paper, repository, dataset card, leaderboard, methodology, sample tasks, scoring rules, verifier details, and current frontier model results. Check whether results are official, independent, self-reported, vendor-provided, same-harness, or mixed-harness.
 
-Use real samples whenever possible. At least two sample tasks should be inspected before trusting the benchmark. The point is to understand what the benchmark actually asks the model to do, not what the abstract claims it measures.
+Use real samples whenever possible. Inspect at least two tasks when samples are accessible; the point is to understand what the benchmark actually asks the model to do, not what its abstract claims. When private tasks prevent inspection, treat that opacity as a source of uncertainty and require stronger evidence from the methodology, grading protocol, result distribution, and independent validation.
 
 A useful benchmark report should answer:
 
@@ -73,7 +75,7 @@ A useful benchmark report should answer:
 - Is it redundant with a better benchmark?
 - Is there enough public evidence to understand the result?
 
-Watchlist-only benchmarks belong in review documentation rather than empty source adapters. Before implementation, require a stable structured leaderboard with source model and configuration identities, task-level outcomes or distributions with uncertainty and run counts, documented aggregation and comparable harness conditions, and current frontier coverage with non-saturated rank separation. Time Horizon Index remains non-scoring until that evidence exists.
+Watchlist-only benchmarks belong in review documentation rather than empty source adapters. Before implementation, require a stable structured leaderboard with source model and configuration identities, task-level outcomes or distributions with uncertainty and run counts, documented aggregation and comparable harness conditions, and current frontier coverage with non-saturated rank separation.
 
 ## Effort Sensitivity
 
@@ -81,7 +83,7 @@ Benchmarks with multiple reasoning-effort or budget settings should be inspected
 
 For the same base model, higher reasoning effort should usually improve performance or plateau. A material regression at higher effort is a warning sign. It can mean the benchmark is measuring overthinking, verbosity penalties, timeout pressure, brittle output formatting, over-engineered patches, or harness mismatch rather than clean model capability.
 
-This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report effort sensitivity. Source aggregation treats an unlabelled configuration as the source default; when every configuration is labelled, it selects the highest reported effort as one runnable observation. Compact public views later represent each base model with its highest-Intelligence scored variant. The full payload preserves scored effort variants, while raw evidence and diagnostics preserve source observations.
+This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report whether higher effort improves, plateaus, or regresses. Source aggregation and public-view behavior are documented in [benchmarks.md](benchmarks.md) and [methodology.md](methodology.md).
 
 ## Harness Interpretation
 
@@ -103,13 +105,10 @@ A mixed-harness board is not useless. It is just not a single-row model leaderbo
 
 Each benchmark receives exactly one classification:
 
-`frontier`
-A current high-pressure stress test that meaningfully separates top models.
-
-`baseline`
-A vetted high-standard benchmark that still adds useful capability signal.
-
-`rejected`
-A benchmark that should not affect the ranking.
+| Classification | Meaning |
+| --- | --- |
+| `frontier` | A current high-pressure stress test that meaningfully separates top models |
+| `baseline` | A vetted high-standard benchmark that still adds useful capability signal |
+| `rejected` | A benchmark that should not affect the ranking |
 
 The final report should explain why each accepted benchmark earns ranking space and why each rejected benchmark is excluded.

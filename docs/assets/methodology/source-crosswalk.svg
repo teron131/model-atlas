@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Validated source crosswalk</title>
+  <desc id="desc">Overlapping values from source B plotted against canonical source A, with an identity guide and a fitted additive offset.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 15px; }
+    .label { font-size: 17px; }
+    .annotation { font-size: 15px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .identity { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 7 7; }
+    .fit { stroke: var(--primary); stroke-width: 3; }
+    .offset { stroke: var(--secondary); stroke-width: 2; }
+    .point { fill: var(--primary); }
+  </style>
+  <rect width="720" height="420" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Validated source crosswalk</text>
+  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
+  <line x1="380" y1="48" x2="380" y2="340" class="grid" />
+  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
+  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
+  <line x1="90" y1="340" x2="670" y2="48" class="identity" />
+  <line x1="136" y1="340" x2="670" y2="71" class="fit" />
+  <circle cx="212" cy="305" r="6" class="point" />
+  <circle cx="270" cy="270" r="6" class="point" />
+  <circle cx="339" cy="241" r="6" class="point" />
+  <circle cx="409" cy="194" r="6" class="point" />
+  <circle cx="484" cy="165" r="6" class="point" />
+  <circle cx="548" cy="121" r="6" class="point" />
+  <circle cx="618" cy="95" r="6" class="point" />
+  <line x1="496" y1="136" x2="496" y2="159" class="offset" />
+  <path d="M490 142 L496 136 L502 142 M490 153 L496 159 L502 153" fill="none" class="offset" />
+  <text x="510" y="153" class="annotation">δ</text>
+  <text x="546" y="71" class="muted">identity</text>
+  <text x="420" y="104" class="annotation">fitted offset</text>
+  <text x="90" y="367" text-anchor="middle" class="muted">0</text>
+  <text x="380" y="367" text-anchor="middle" class="muted">0.5</text>
+  <text x="670" y="367" text-anchor="middle" class="muted">1</text>
+  <text x="74" y="345" text-anchor="end" class="muted">0</text>
+  <text x="74" y="199" text-anchor="end" class="muted">0.5</text>
+  <text x="74" y="53" text-anchor="end" class="muted">1</text>
+  <text x="380" y="403" text-anchor="middle" class="label">Source B</text>
+  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Canonical source A</text>
+</svg>
