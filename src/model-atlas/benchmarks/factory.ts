@@ -312,6 +312,24 @@ function validateDefinitions(definitions: BenchmarkDefinitions): void {
 	const taskMetricColumnKeys = new Set<string>();
 	const runtimeKeys = new Set<string>();
 	for (const [key, definition] of Object.entries(definitions)) {
+		const hasResourceSource = definition.source.inputs.some((input) =>
+			input.roles.includes("resource"),
+		);
+		if (hasResourceSource && definition.resources == null) {
+			throw new Error(
+				`Benchmark resource source requires a resource policy for ${key}`,
+			);
+		}
+		if (!hasResourceSource && definition.resources != null) {
+			throw new Error(
+				`Benchmark resource policy requires a resource source for ${key}`,
+			);
+		}
+		if (definition.resources != null && definition.scoring == null) {
+			throw new Error(
+				`Benchmark resource policy requires scoring policy for ${key}`,
+			);
+		}
 		for (const input of definition.source.inputs) {
 			if (input.runtime == null) {
 				continue;

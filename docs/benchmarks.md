@@ -29,6 +29,28 @@ The effective weight in dimension $D$ is $w_{b,D}=\operatorname{benchmarkImporta
 
 The tables below show the current portfolio, why each benchmark is included, and whether its task resources can contribute to Speed or Value.
 
+### Resource Quality Coordinates
+
+Every benchmark whose task time or cost can enter Speed or Value declares how its quality value is positioned inside resource-comparison neighborhoods. `Logit` is limited to probability-like success, pass, accuracy, or completion rates. `Linear` preserves spacing for native scales and composites that do not have remaining-error probability semantics.
+
+| Benchmark | Coordinate | Decision |
+| --- | --- | --- |
+| Agents' Last Exam | Linear | Partial-credit performance is a graded task score, not a binary completion probability. |
+| ALE-Bench | Linear | Native Performance can exceed 100 and must retain its full spacing. |
+| APEX Agents | Logit | Loop Pass@1 is a bounded task-completion rate. |
+| AutomationBench | Logit | The headline score is a bounded workflow-success rate. |
+| Briefcase | Linear | The 0-1 value is a linear normalization of Elo, not probability. |
+| CritPt | Logit | The score is a bounded correctness rate with meaningful remaining error. |
+| CursorBench | Linear | The published grading score is a composite rather than a completion probability. |
+| DeepSWE | Logit | Pass@1 is a bounded task-completion rate. |
+| FrontierCode | Linear | The versioned `new_score` is a grading composite. |
+| GDPval-AA v2 | Linear | The normalized professional-work score is a grading composite. |
+| Harvey LAB | Logit | Strict task resolution is a bounded all-criteria completion rate. |
+| HLE | Logit | Accuracy is a bounded correctness rate. |
+| ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
+| tau3 Banking | Logit | The score is a bounded workflow-success rate. |
+| Terminal-Bench 2.1 | Logit | The score is a bounded terminal-task completion rate. |
+
 ### Frontier Benchmarks
 
 | Benchmark | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
