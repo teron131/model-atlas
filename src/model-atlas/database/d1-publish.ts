@@ -1,7 +1,7 @@
 /** Direct D1 refresh preserves source evidence, skips unchanged writes, and publishes the derived snapshot atomically. */
 
 import { createHash } from "node:crypto";
-
+import { benchmarkSnapshotCachesFromRows } from "../benchmarks/persistence/runtime";
 import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	BENCHMARK_OBSERVATION_RAW_TABLE,
@@ -16,7 +16,13 @@ import {
 	readOpenRouterRawCache,
 } from "../ingest/cache";
 import type { CacheDbRow } from "../ingest/cache/rows";
-import { benchmarkSnapshotCachesFromRows } from "../ingest/source-snapshots/benchmark-runtimes";
+import {
+	isBenchmarkObservationRawSource,
+	RAW_SOURCE_NAMES,
+	RAW_SOURCE_TABLES,
+	type RawSourceName,
+	SNAPSHOT_TABLES,
+} from "../ingest/source-registry";
 import {
 	refreshSourceSnapshots,
 	type SourceSnapshotCaches,
@@ -26,14 +32,7 @@ import {
 	refreshOpenRouterRawPayload,
 } from "../ingest/source-snapshots/openrouter";
 import { sourceRowStatesFromRows } from "../ingest/source-snapshots/policy";
-import {
-	isBenchmarkObservationRawSource,
-	RAW_SOURCE_NAMES,
-	RAW_SOURCE_TABLES,
-	type RawSourceCacheStatus,
-	type RawSourceName,
-	SNAPSHOT_TABLES,
-} from "../ingest/types";
+import type { RawSourceCacheStatus } from "../ingest/types";
 import { SnapshotRowCollector } from "../ingest/writers";
 import type { CollectedTableRows } from "../ingest/writers/collector";
 import type { SqlValue } from "../ingest/writers/database";

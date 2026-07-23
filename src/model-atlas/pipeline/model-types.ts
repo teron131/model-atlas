@@ -5,18 +5,18 @@ import type {
 	BenchmarkKey,
 	BenchmarkResourceKey,
 } from "../benchmarks/registry";
+import type { AgentArenaModelScoreRow } from "../benchmarks/scrapers/agent-arena";
+import type { AgentsLastExamModelScoreRow } from "../benchmarks/scrapers/agents-last-exam";
+import type { AleBenchModelScoreRow } from "../benchmarks/scrapers/ale-bench";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
+import type { CursorBenchModelScoreRow } from "../benchmarks/scrapers/cursorbench";
+import type { DeepSWEModelScoreRow } from "../benchmarks/scrapers/deep-swe";
+import type { FrontierCodeModelEffortRow } from "../benchmarks/scrapers/frontier-code";
+import type { MercorApexAgentsRow } from "../benchmarks/scrapers/mercor-apex-agents";
+import type { HarveyLabModelScoreRow } from "../benchmarks/scrapers/vals/harvey-lab";
+import type { VendingBench2ModelScoreRow } from "../benchmarks/scrapers/vending-bench-2";
 import type { NumberOrNull } from "../numeric";
 import type { JsonObject } from "../runtime";
-import type { AgentArenaModelScoreRow } from "../scrapers/agent-arena";
-import type { AgentsLastExamModelScoreRow } from "../scrapers/agents-last-exam";
-import type { AleBenchModelScoreRow } from "../scrapers/ale-bench";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../scrapers/artificial-analysis/benchmark-resources";
-import type { CursorBenchModelScoreRow } from "../scrapers/cursorbench";
-import type { DeepSWEModelScoreRow } from "../scrapers/deep-swe";
-import type { FrontierCodeModelEffortRow } from "../scrapers/frontier-code";
-import type { MercorApexAgentsRow } from "../scrapers/mercor-apex-agents";
-import type { HarveyLabModelScoreRow } from "../scrapers/vals/harvey-lab";
-import type { VendingBench2ModelScoreRow } from "../scrapers/vending-bench-2";
 import type { TerminalBenchAggregateRow } from "./benchmark-rows/terminal-bench";
 
 export type LlmStatsModalities = {

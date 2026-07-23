@@ -6,7 +6,8 @@ import {
 	cleanArtificialAnalysisModelName,
 	parseArtificialAnalysisReasoningEffort,
 } from "../../scrapers/artificial-analysis/model-labels";
-import { SOURCE_URLS, type SourceSnapshots } from "../types";
+import { SOURCE_URLS } from "../source-registry";
+import type { SourceSnapshots } from "../types";
 import {
 	type DatabaseWriter,
 	firstNumber,

@@ -3,7 +3,7 @@
 import {
 	buildHarveyLabMap,
 	processHarveyLabPageHtml,
-} from "../src/model-atlas/scrapers/vals/harvey-lab";
+} from "../src/model-atlas/benchmarks/scrapers/vals/harvey-lab";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

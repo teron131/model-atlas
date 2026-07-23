@@ -1,7 +1,7 @@
 /** Verify cached source preservation merges equivalent live rows without duplicating model identities. */
 
 import assert from "node:assert/strict";
-
+import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
 	artificialAnalysisEvaluationResourceSourceKey,
@@ -12,7 +12,6 @@ import {
 	snapshotRows,
 	snapshotRowsWithStates,
 } from "../src/model-atlas/ingest/source-snapshots/policy";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
 import { artificialAnalysisModelId } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
 
 type ArtificialAnalysisFixtureRow = {

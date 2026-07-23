@@ -1,17 +1,15 @@
 /** Verifies FrontierCode raw effort evidence, eligible Main scoring, and normalized resource persistence. */
 
 import assert from "node:assert/strict";
-
+import { processFrontierCodePayload } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import {
 	openDatabase,
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
 import { readFrontierCodeRawCache } from "../src/model-atlas/ingest/cache";
-import {
-	SNAPSHOT_TABLES,
-	type SourceSnapshots,
-} from "../src/model-atlas/ingest/types";
+import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
 	insertModelEvaluations,
@@ -19,7 +17,6 @@ import {
 	insertModelTaskMetrics,
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import { processFrontierCodePayload } from "../src/model-atlas/scrapers/frontier-code";
 import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 
 function metrics(score: number, cost: number, tokens: number) {

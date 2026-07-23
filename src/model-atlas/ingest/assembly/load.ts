@@ -5,29 +5,29 @@ import {
 	type BenchmarkRuntimeKey,
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
-import { getAgentArenaStats } from "../../scrapers/agent-arena";
-import { getAgentsLastExamStats } from "../../scrapers/agents-last-exam";
-import { getAleBenchStats } from "../../scrapers/ale-bench";
-import { getArtificialAnalysisEvaluationResourceStats } from "../../scrapers/artificial-analysis/benchmark-resources";
+import { getAgentArenaStats } from "../../benchmarks/scrapers/agent-arena";
+import { getAgentsLastExamStats } from "../../benchmarks/scrapers/agents-last-exam";
+import { getAleBenchStats } from "../../benchmarks/scrapers/ale-bench";
+import { getArtificialAnalysisEvaluationResourceStats } from "../../benchmarks/scrapers/artificial-analysis/results";
+import { getBlueprintBenchStats } from "../../benchmarks/scrapers/blueprint-bench";
+import { getCursorBenchStats } from "../../benchmarks/scrapers/cursorbench";
+import { getDeepSWELeaderboardStats } from "../../benchmarks/scrapers/deep-swe";
+import { getEpochCapabilitiesIndexStats } from "../../benchmarks/scrapers/epoch/capabilities-index";
+import { getEpochBenchmarkStats } from "../../benchmarks/scrapers/epoch/results";
+import { getFrontierCodeStats } from "../../benchmarks/scrapers/frontier-code";
+import { getMercorApexAgentsStats } from "../../benchmarks/scrapers/mercor-apex-agents";
+import { getGdpPdfStats } from "../../benchmarks/scrapers/surge/gdp-pdf";
+import { getSurgeLeaderboardStats } from "../../benchmarks/scrapers/surge/results";
+import { getRiemannBenchStats } from "../../benchmarks/scrapers/surge/riemann-bench";
+import { getHarveyLabStats } from "../../benchmarks/scrapers/vals/harvey-lab";
+import { getValsIndexStats } from "../../benchmarks/scrapers/vals/index-benchmark";
+import { getValsSourceStats } from "../../benchmarks/scrapers/vals/results";
+import { getTerminalBenchStats } from "../../benchmarks/scrapers/vals/terminal-bench";
+import { getVendingBench2Stats } from "../../benchmarks/scrapers/vending-bench-2";
+import { getWeirdMlStats } from "../../benchmarks/scrapers/weirdml";
+import { getZeroEvalStats } from "../../benchmarks/scrapers/zeroeval";
 import { getArtificialAnalysisLeaderboardStats } from "../../scrapers/artificial-analysis/leaderboard";
-import { getBlueprintBenchStats } from "../../scrapers/blueprint-bench";
-import { getCursorBenchStats } from "../../scrapers/cursorbench";
-import { getDeepSWELeaderboardStats } from "../../scrapers/deep-swe";
-import { getEpochBenchmarkStats } from "../../scrapers/epoch/benchmark-runs";
-import { getEpochCapabilitiesIndexStats } from "../../scrapers/epoch/capabilities-index";
-import { getFrontierCodeStats } from "../../scrapers/frontier-code";
-import { getMercorApexAgentsStats } from "../../scrapers/mercor-apex-agents";
 import { getModelsDevSourceStats } from "../../scrapers/models-dev";
-import { getGdpPdfStats } from "../../scrapers/surge/gdp-pdf";
-import { getSurgeLeaderboardStats } from "../../scrapers/surge/leaderboard";
-import { getRiemannBenchStats } from "../../scrapers/surge/riemann-bench";
-import { getValsSourceStats } from "../../scrapers/vals/benchmark-view";
-import { getHarveyLabStats } from "../../scrapers/vals/harvey-lab";
-import { getValsIndexStats } from "../../scrapers/vals/index-benchmark";
-import { getTerminalBenchStats } from "../../scrapers/vals/terminal-bench";
-import { getVendingBench2Stats } from "../../scrapers/vending-bench-2";
-import { getWeirdMlStats } from "../../scrapers/weirdml";
-import { getZeroEvalStats } from "../../scrapers/zeroeval";
 import { selectModelsDevRowsForArtificialAnalysis } from "./policy";
 import {
 	buildSourceData,

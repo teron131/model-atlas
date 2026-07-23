@@ -9,6 +9,11 @@ import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../src/model-atlas/benchmarks/registry";
+import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/benchmarks/scrapers/epoch/capabilities-index";
+import { epochBenchmarkObservationRows } from "../src/model-atlas/benchmarks/scrapers/epoch/results";
+import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/surge/results";
+import { processValsBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/vals/results";
+import { processWeirdMlCsv } from "../src/model-atlas/benchmarks/scrapers/weirdml";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
 import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
 import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
@@ -17,12 +22,7 @@ import {
 	insertBenchmarkRawRows,
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
-import { epochBenchmarkObservationRows } from "../src/model-atlas/scrapers/epoch/benchmark-runs";
-import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/epoch/capabilities-index";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
-import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/scrapers/surge/leaderboard";
-import { processValsBenchmarkPageHtml } from "../src/model-atlas/scrapers/vals/benchmark-view";
-import { processWeirdMlCsv } from "../src/model-atlas/scrapers/weirdml";
 
 assert.deepEqual(
 	parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'),

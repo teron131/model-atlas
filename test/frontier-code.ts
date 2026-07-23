@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import { processFrontierCodePayload } from "../src/model-atlas/scrapers/frontier-code";
+import { processFrontierCodePayload } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
 
 function metrics(score: number, passRate = score + 0.05) {
 	return {

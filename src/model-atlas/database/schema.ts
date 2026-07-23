@@ -19,6 +19,8 @@ const SCHEMA_SQL_PATH = resolve(
 	"src/model-atlas/database/schema.sql",
 );
 
+export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
+
 /** Schema loading prefers the source tree but falls back to the module URL for packaged CLIs. */
 export async function loadSchemaSql(): Promise<string> {
 	let schemaSql: string;

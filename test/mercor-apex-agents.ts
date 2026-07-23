@@ -1,8 +1,8 @@
 /** Mercor APEX fixtures protect Loop Pass@1 parsing and conservative contender identity. */
 
 import assert from "node:assert/strict";
+import { processMercorApexAgentsPageHtml } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
-import { processMercorApexAgentsPageHtml } from "../src/model-atlas/scrapers/mercor-apex-agents";
 
 function result(
 	modelId: string,

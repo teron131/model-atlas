@@ -1,6 +1,7 @@
 /** Public model and payload contracts for the Model Atlas stats surface. */
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
+import type { DeepSWELeaderboardRow } from "../benchmarks/scrapers/deep-swe";
 import type { LlmStatsColumnTooltips } from "../config/tooltips";
 import type {
 	PriceProfiles,
@@ -8,7 +9,6 @@ import type {
 } from "../config/usage-profiles";
 import type { LlmStatsSourceHealth } from "../ingest/types";
 import type { LlmStatsModel as PipelineLlmStatsModel } from "../pipeline/model-types";
-import type { DeepSWELeaderboardRow } from "../scrapers/deep-swe";
 
 export type {
 	BenchmarkGroup,

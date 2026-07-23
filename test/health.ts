@@ -3,12 +3,12 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
-import { buildSourceHealth } from "../src/model-atlas/ingest/source-snapshots/policy";
 import {
 	RAW_SOURCE_NAMES,
-	type RawSourceCacheStatus,
 	type RawSourceName,
-} from "../src/model-atlas/ingest/types";
+} from "../src/model-atlas/ingest/source-registry";
+import { buildSourceHealth } from "../src/model-atlas/ingest/source-snapshots/policy";
+import type { RawSourceCacheStatus } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/payload/health";
 import {

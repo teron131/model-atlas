@@ -1,15 +1,15 @@
 /** Raw source cache freshness and persisted-shape status policy. */
 
 import type { DatabaseSync } from "node:sqlite";
+import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../benchmarks/scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../../runtime";
-import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../scrapers/deep-swe";
 import {
 	isBenchmarkObservationRawSource,
 	RAW_SOURCE_CACHE_SECONDS,
 	RAW_SOURCE_TABLES,
-	type RawSourceCacheStatus,
 	type RawSourceName,
-} from "../types";
+} from "../source-registry";
+import type { RawSourceCacheStatus } from "../types";
 import { artificialAnalysisCacheHasHiddenRows } from "./artificial-analysis";
 import { openRouterCacheHasScopedCandidates } from "./openrouter";
 import { type CacheDbRow, firstEpochSecond } from "./rows";

@@ -4,7 +4,7 @@ import {
 	buildBenchmarkObservationLookup,
 	findBenchmarkObservation,
 } from "../src/model-atlas/benchmarks/observation";
-import { processZeroEvalDetailsJson } from "../src/model-atlas/scrapers/zeroeval";
+import { processZeroEvalDetailsJson } from "../src/model-atlas/benchmarks/scrapers/zeroeval";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

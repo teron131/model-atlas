@@ -2,7 +2,6 @@
 
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import {
 	buildDeepSWEMap,
 	DEEP_SWE_V1_1_LEADERBOARD_URL,
@@ -12,7 +11,8 @@ import {
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
 	summarizeDeepSWEDefaultEffortRows,
-} from "../src/model-atlas/scrapers/deep-swe";
+} from "../src/model-atlas/benchmarks/scrapers/deep-swe";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

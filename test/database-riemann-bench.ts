@@ -4,15 +4,12 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
+import { riemannBenchPersistence } from "../src/model-atlas/benchmarks/persistence/riemann-bench";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase } from "../src/model-atlas/database/schema";
 import { readRiemannBenchRawCache } from "../src/model-atlas/ingest/cache";
-import { riemannBenchSnapshot } from "../src/model-atlas/ingest/source-snapshots/benchmarks/surge";
-import {
-	SNAPSHOT_TABLES,
-	type SourceSnapshots,
-} from "../src/model-atlas/ingest/types";
+import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
 	insertModelEvaluations,
@@ -72,7 +69,7 @@ try {
 			customSourceUrl,
 			"cache reconstruction should accept a consistent custom source URL",
 		);
-		const cachedSnapshot = await riemannBenchSnapshot(
+		const cachedSnapshot = await riemannBenchPersistence.snapshot(
 			cachedRows,
 			{
 				last_fetch_epoch_seconds: 1_800_000_000,
@@ -84,14 +81,14 @@ try {
 			new Map(),
 			1_800_000_100,
 		);
-		assert.equal(cachedSnapshot.riemannBenchSourceUrl, customSourceUrl);
+		assert.equal(cachedSnapshot.riemannBenchPersistenceUrl, customSourceUrl);
 
 		db.prepare("DELETE FROM riemann_bench_raw_rows").run();
 		insertBenchmarkRawRows(
 			db,
 			{
 				riemannBenchModelScoreRows: cachedSnapshot.riemannBenchModelScoreRows,
-				riemannBenchSourceUrl: cachedSnapshot.riemannBenchSourceUrl,
+				riemannBenchPersistenceUrl: cachedSnapshot.riemannBenchPersistenceUrl,
 				fetchedAt: {
 					riemannBench: cachedSnapshot.sourceStatus.fetchedAt,
 				},

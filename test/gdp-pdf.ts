@@ -3,8 +3,8 @@
 import {
 	buildGdpPdfMap,
 	findGdpPdfScore,
-} from "../src/model-atlas/scrapers/surge/gdp-pdf";
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/leaderboard";
+} from "../src/model-atlas/benchmarks/scrapers/surge/gdp-pdf";
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/benchmarks/scrapers/surge/results";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

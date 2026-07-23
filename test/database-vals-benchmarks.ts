@@ -13,11 +13,9 @@ import {
 	removeDatabaseFiles,
 } from "../src/model-atlas/database/schema";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
+import { RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
 import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
-import {
-	RAW_SOURCE_TABLES,
-	type SourceSnapshots,
-} from "../src/model-atlas/ingest/types";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
 	SnapshotRowCollector,

@@ -3,16 +3,15 @@
 import type { DatabaseSync } from "node:sqlite";
 import { asRecord } from "../../runtime";
 import type { ModelsDevPayload } from "../../scrapers/models-dev";
-import {
-	type DatabaseBuildOptions,
-	type LlmStatsSourceHealth,
-	type LlmStatsSourceHealthEntry,
-	type LlmStatsSourceHealthStatus,
-	RAW_SOURCE_NAMES,
-	type RawSourceCacheStatus,
-	type RawSourceName,
-	type SourceRowState,
-	type SourceRowStatus,
+import { RAW_SOURCE_NAMES, type RawSourceName } from "../source-registry";
+import type {
+	DatabaseBuildOptions,
+	LlmStatsSourceHealth,
+	LlmStatsSourceHealthEntry,
+	LlmStatsSourceHealthStatus,
+	RawSourceCacheStatus,
+	SourceRowState,
+	SourceRowStatus,
 } from "../types";
 
 /** Stable source-row keys are persisted, so every caller must use the same empty-part normalization. */

@@ -5,15 +5,18 @@ import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
-import { canonicalReasoningEffort } from "../identity/normalization";
-import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/types";
-import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
-import { publicModelFromCandidate } from "../pipeline/selection/public-list";
-import { asFiniteNumber, asRecord } from "../runtime";
 import {
 	asDeepSWERawLeaderboardRow,
 	preferredDeepSWELeaderboardRows,
-} from "../scrapers/deep-swe";
+} from "../benchmarks/scrapers/deep-swe";
+import { canonicalReasoningEffort } from "../identity/normalization";
+import {
+	SNAPSHOT_TABLES,
+	type SnapshotTableName,
+} from "../ingest/source-registry";
+import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
+import { publicModelFromCandidate } from "../pipeline/selection/public-list";
+import { asFiniteNumber, asRecord } from "../runtime";
 import { buildCurrentLlmStatsMetadata } from "../stats/payload/metadata";
 import type {
 	LlmStatsContextWindow,

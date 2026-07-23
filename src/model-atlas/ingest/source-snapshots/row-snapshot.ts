@@ -1,10 +1,10 @@
 /** Generic source-row snapshot lifecycle for cache-aware fetched payloads. */
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
+import type { RawSourceName } from "../source-registry";
 import type {
 	DatabaseBuildOptions,
 	RawSourceCacheStatus,
-	RawSourceName,
 	SourceRowState,
 } from "../types";
 import { snapshotRowsWithStates, sourceKey } from "./policy";

@@ -5,6 +5,20 @@ import {
 	type BenchmarkObservationRow,
 	buildBenchmarkObservationLookup,
 } from "../src/model-atlas/benchmarks/observation";
+import {
+	type ArtificialAnalysisEvaluationResourceRow,
+	buildArtificialAnalysisDefaultEffortResourceMap,
+	buildArtificialAnalysisObservationResourceMap,
+} from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
+import { buildBlueprintBenchMap } from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
+import { buildCursorBenchMap } from "../src/model-atlas/benchmarks/scrapers/cursorbench";
+import { buildGdpPdfMap } from "../src/model-atlas/benchmarks/scrapers/surge/gdp-pdf";
+import { buildRiemannBenchMap } from "../src/model-atlas/benchmarks/scrapers/surge/riemann-bench";
+import {
+	buildValsIndexMap,
+	type ValsIndexModelScoreRow,
+} from "../src/model-atlas/benchmarks/scrapers/vals/index-benchmark";
+import { buildTerminalBenchMap } from "../src/model-atlas/benchmarks/scrapers/vals/terminal-bench";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildMatchDiagnostics } from "../src/model-atlas/identity";
 import { modelNameIdentityKey } from "../src/model-atlas/identity/matching/name-tokens";
@@ -21,20 +35,6 @@ import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/pipeline/bench
 import { deriveModelStats } from "../src/model-atlas/pipeline/derivation";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/pipeline/matched-rows";
 import { aggregateCollapsedModelRows } from "../src/model-atlas/pipeline/model-catalog";
-import {
-	type ArtificialAnalysisEvaluationResourceRow,
-	buildArtificialAnalysisDefaultEffortResourceMap,
-	buildArtificialAnalysisObservationResourceMap,
-} from "../src/model-atlas/scrapers/artificial-analysis/benchmark-resources";
-import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/blueprint-bench";
-import { buildCursorBenchMap } from "../src/model-atlas/scrapers/cursorbench";
-import { buildGdpPdfMap } from "../src/model-atlas/scrapers/surge/gdp-pdf";
-import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/surge/riemann-bench";
-import {
-	buildValsIndexMap,
-	type ValsIndexModelScoreRow,
-} from "../src/model-atlas/scrapers/vals/index-benchmark";
-import { buildTerminalBenchMap } from "../src/model-atlas/scrapers/vals/terminal-bench";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),
