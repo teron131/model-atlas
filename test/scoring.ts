@@ -27,7 +27,6 @@ import {
 import {
 	evidenceMassConfidence,
 	logInputMinMaxScores,
-	logitPercentageScore,
 	logitUnitScore,
 	minMaxScores,
 	winsorizedMinMaxScores,
@@ -170,7 +169,6 @@ assertClose(
 );
 assertClose(effectiveSampleSize([1, 1, 1]), 3);
 assertClose(effectiveSampleSize([0.5, 0.5]), 2);
-assertEqual(logitPercentageScore(1.01) > logitPercentageScore(1), true);
 assertEqual(
 	logitUnitScore(0.96) - logitUnitScore(0.95) >
 		logitUnitScore(0.51) - logitUnitScore(0.5),
@@ -685,7 +683,7 @@ const aggregateQualityLogitScores = qualityLocalResourceScores(
 	aggregateQualityModels,
 	aggregateQualityModels.map((model) => {
 		const score = model.component_scores?.intelligence_score;
-		return score == null ? null : logitPercentageScore(score);
+		return score == null ? null : logitUnitScore(score / 100);
 	}),
 	aggregateQualityPriceSignals,
 );

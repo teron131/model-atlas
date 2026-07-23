@@ -32,11 +32,6 @@ export function logitUnitScore(value: number): number {
 	return probabilityLogit(value);
 }
 
-/** Transform a public 0-100 score into its log-odds coordinate. */
-export function logitPercentageScore(value: number): number {
-	return probabilityLogit(value / 100);
-}
-
 export function weightedRobustDeviation(
 	values: readonly WeightedScorePart[],
 	minimumDeviation: number,

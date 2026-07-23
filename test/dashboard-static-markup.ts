@@ -254,6 +254,7 @@ const confidenceTooltipHtml = renderToStaticMarkup(
 assert.equal(
 	[
 		"Confidence",
+		"validation-weighted evidence",
 		"Intelligence confidence",
 		"Agentic confidence",
 		"zero through 10%",

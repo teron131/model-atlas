@@ -207,6 +207,43 @@ assert.throws(
 		}),
 	/Benchmark intelligence field cannot be empty for invalid/,
 );
+assert.throws(
+	() =>
+		defineBenchmarks({
+			invalid: {
+				...definitions.cost,
+				source: {
+					...definitions.cost.source,
+					inputs: [
+						{
+							...definitions.cost.source.inputs[0],
+							roles: ["observation", "resource"],
+						},
+						definitions.cost.source.inputs[1],
+					],
+				},
+			},
+		}),
+	/Benchmark resource source requires a resource policy for invalid/,
+);
+assert.throws(
+	() =>
+		defineBenchmarks({
+			invalid: {
+				...definitions.quality,
+				source: {
+					...definitions.quality.source,
+					inputs: [
+						{
+							...definitions.quality.source.inputs[0],
+							roles: ["observation"],
+						},
+					],
+				},
+			},
+		}),
+	/Benchmark resource policy requires a resource source for invalid/,
+);
 
 assert.deepEqual(
 	BENCHMARK_CATALOG.terminalbench_v21.source.inputs.map(

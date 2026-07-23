@@ -108,7 +108,7 @@ A_m&=D_{m,\text{Agentic}}.
 \end{aligned}
 $$
 
-Intelligence and Agentic confidence are reported separately as the percentage values of $C_D(E_{m,D})$. Each value expresses how much evidence supports its dimension’s estimated benchmark mean; the two dimensions are not combined into one confidence value.
+Intelligence and Agentic confidence are reported separately as the percentage values of $C_D(E_{m,D})$. Each value expresses how much evidence supports its dimension’s estimated benchmark mean; the two dimensions are not combined into one confidence value. Because the dimensions have different total effective weights, the same displayed percentage can represent different absolute evidence mass. The percentages explain the existing public scores and do not introduce an alternate estimate or ranking.
 
 ## Missing Benchmark Evidence
 
@@ -145,7 +145,7 @@ $$
 \eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{0.02},0,1\right)
 $$
 
-$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary benchmark-coverage confidence curve. Observed AA values are never replaced, Mercor rows do not change the observed APEX normalization anchors, and Mercor-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, APEX Agents falls through to contextual quantile imputation.
+$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary dimension evidence-mass confidence curve. Observed AA values are never replaced, Mercor rows do not change the observed APEX normalization anchors, and Mercor-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, APEX Agents falls through to contextual quantile imputation.
 
 ### Contextual Quantile Imputation
 
@@ -305,6 +305,8 @@ $$
 `linear` means that no nonlinear benchmark-specific transform is applied: the stored score and its gaps pass directly into the shared neighborhood standardization. It is appropriate for partial-credit, performance, Elo-derived, rubric, composite, human-baselined, and average-precision metrics that do not have a direct remaining-error interpretation.
 
 `logit` is reserved for pass rates, accuracies, completion rates, and other probability-like metrics whose endpoints give remaining error a meaningful interpretation. Logit-configured values must be finite and lie in $[0,1]$; exact endpoints are clamped to $[0.001,0.999]$ only when calculating finite log odds.
+
+The benchmark-specific decisions are listed in [Benchmarks](benchmarks.md#resource-quality-coordinates). Aggregate price and workflow comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
 
 For logit-configured benchmarks, a one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction.
 

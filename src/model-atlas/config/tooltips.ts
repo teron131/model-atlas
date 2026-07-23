@@ -59,7 +59,7 @@ const CONFIDENCE_SCALE =
 
 export const CONFIDENCE_TOOLTIP = {
 	title: "Confidence",
-	body: "How much evidence supports each dimension's estimated benchmark mean.",
+	body: "How much validation-weighted evidence supports each dimension's estimated benchmark mean.",
 	rows: [
 		["I", "Intelligence confidence"],
 		["A", "Agentic confidence"],

@@ -273,6 +273,8 @@ assert.match(
 );
 assert.match(methodology, /zero confidence through 10%/);
 assert.match(methodology, /full confidence from 60%/);
+assert.match(methodology, /Logit coordinates are reserved for probability-like/);
+assert.match(methodology, /linear coordinates preserve native or composite/);
 assert.deepEqual(scoreModel, {
 	rank: 1,
 	id: "provider/model",
