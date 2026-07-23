@@ -126,6 +126,12 @@ html {
 	scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+}
+
 body {
 	margin: 0;
 	overflow-x: hidden;
@@ -202,6 +208,8 @@ main {
 	display: flex;
 	align-items: center;
 	gap: 16px;
+	color: inherit;
+	text-decoration: none;
 }
 
 .brand-mark {
@@ -214,13 +222,61 @@ main {
 	-webkit-mask: url("/icons/icon.png") center / contain no-repeat;
 }
 
-h1 {
+.brand-lockup h1,
+.brand-title {
 	margin: 0;
 	font-size: clamp(44px, 5vw, 56px);
+	font-weight: 700;
 	line-height: 0.88;
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
 	text-shadow: var(--title-shadow);
+}
+
+.header-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.header-route {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	min-height: var(--dashboard-icon-button-size);
+	margin-top: 2px;
+	padding: 0 8px;
+	color: color-mix(in srgb, var(--theme-toggle-icon) 74%, var(--muted));
+	font-family: "SF Mono", Menlo, Consolas, monospace;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-decoration: none;
+	text-transform: uppercase;
+	transition:
+		color 0.18s ease,
+		transform 0.18s ease;
+}
+
+.header-route:hover,
+.header-route:focus-visible {
+	color: var(--theme-toggle-icon);
+	outline: 0;
+}
+
+.header-route:focus-visible {
+	box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.header-route:active {
+	transform: translateY(1px);
+}
+
+.header-route svg {
+	width: 16px;
+	height: 16px;
+	stroke: currentColor;
+	stroke-width: var(--dashboard-icon-button-stroke);
 }
 
 .visually-hidden {
@@ -278,6 +334,18 @@ h1 {
 	stroke-width: var(--dashboard-icon-button-stroke);
 	stroke-linecap: round;
 	stroke-linejoin: round;
+}
+
+.theme-icon-dark {
+	display: none;
+}
+
+html[data-model-atlas-theme="light"] .theme-icon-light {
+	display: none;
+}
+
+html[data-model-atlas-theme="light"] .theme-icon-dark {
+	display: block;
 }
 
 .benchmarks {
@@ -1474,7 +1542,8 @@ td.modality-cell {
 		--table-row-padding-y: 8px;
 	}
 
-	h1 {
+	.brand-lockup h1,
+	.brand-title {
 		font-size: clamp(30px, 8vw, 34px);
 	}
 
@@ -1489,6 +1558,16 @@ td.modality-cell {
 
 	.theme-toggle {
 		margin-top: 0;
+	}
+
+	.header-route {
+		margin-top: 0;
+		padding-right: 4px;
+		padding-left: 4px;
+	}
+
+	.header-route span {
+		display: none;
 	}
 
 	.benchmarks {
@@ -1571,7 +1650,8 @@ td.modality-cell {
 		padding-left: 10px;
 	}
 
-	h1 {
+	.brand-lockup h1,
+	.brand-title {
 		font-size: 29px;
 	}
 

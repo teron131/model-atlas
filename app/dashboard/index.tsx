@@ -15,6 +15,7 @@ import {
 
 import type { LlmStatsColumnTooltips } from "../../src/model-atlas/config/tooltips";
 import type { LlmStatsPayload } from "../../src/model-atlas/stats/types";
+import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";
@@ -26,7 +27,6 @@ import {
 	type TooltipState,
 	tooltipPositionFromElement,
 } from "./shared/ColumnTooltip";
-import { MoonIcon, SunIcon } from "./shared/DashboardIcons";
 import {
 	DEFAULT_DISPLAY_ITEMS,
 	useDisplayLimit,
@@ -45,7 +45,6 @@ import {
 import { tableColumnTooltip } from "./table/tooltips";
 
 const emptyColumnTooltips: LlmStatsColumnTooltips = {};
-const DASHBOARD_THEME_STORAGE_KEY = "model-atlas:dashboard-theme";
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 const TOOLTIP_FADE_OUT_MS = 1_000;
 const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
@@ -54,8 +53,6 @@ type DashboardTooltipState = Omit<TooltipState, "key"> & {
 	key: SortKey;
 };
 
-type DashboardTheme = "dark" | "light";
-
 export function Dashboard({
 	initialPayload,
 }: {
@@ -63,7 +60,6 @@ export function Dashboard({
 }) {
 	const dashboardRef = useRef<HTMLElement>(null);
 	const tooltipFadeTimeoutRef = useRef<number | null>(null);
-	const [theme, setTheme] = useDashboardTheme();
 	const [showReasoningVariants, setShowReasoningVariants] =
 		useReasoningVariantDisplay();
 	const [sortState, setSortState] = useState<SortState>({
@@ -256,11 +252,10 @@ export function Dashboard({
 	return (
 		<main
 			className="dashboard-main"
-			data-theme={theme}
 			ref={dashboardRef}
 			aria-busy={isInitialLoading}
 		>
-			<DashboardHeader theme={theme} onThemeChange={setTheme} />
+			<ModelAtlasHeader page="dashboard" />
 			<DashboardGraphs
 				payload={displayPayload}
 				referenceModels={payload?.models ?? []}
@@ -336,51 +331,6 @@ export function Dashboard({
 	);
 }
 
-function useDashboardTheme() {
-	const hydratedThemeRef = useRef(false);
-	const [theme, setTheme] = useState<DashboardTheme>("dark");
-
-	useLayoutEffect(() => {
-		let nextTheme = theme;
-		if (!hydratedThemeRef.current) {
-			nextTheme = readDashboardTheme() ?? "dark";
-			hydratedThemeRef.current = true;
-			if (nextTheme !== theme) {
-				setTheme(nextTheme);
-			}
-		}
-		document.documentElement.dataset.modelAtlasTheme = nextTheme;
-		writeDashboardTheme(nextTheme);
-	}, [theme]);
-
-	useEffect(() => {
-		return () => {
-			delete document.documentElement.dataset.modelAtlasTheme;
-		};
-	}, []);
-
-	return [theme, setTheme] as const;
-}
-
-function readDashboardTheme(): DashboardTheme | null {
-	try {
-		const storedTheme = window.localStorage.getItem(
-			DASHBOARD_THEME_STORAGE_KEY,
-		);
-		return storedTheme === "light" || storedTheme === "dark"
-			? storedTheme
-			: null;
-	} catch {
-		return null;
-	}
-}
-
-function writeDashboardTheme(theme: DashboardTheme): void {
-	try {
-		window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, theme);
-	} catch {}
-}
-
 function useReasoningVariantDisplay() {
 	const hydratedModeRef = useRef(false);
 	const [showReasoningVariants, setShowReasoningVariants] = useState(false);
@@ -404,32 +354,6 @@ function useReasoningVariantDisplay() {
 	}, [showReasoningVariants]);
 
 	return [showReasoningVariants, setShowReasoningVariants] as const;
-}
-
-function DashboardHeader({
-	theme,
-	onThemeChange,
-}: {
-	theme: DashboardTheme;
-	onThemeChange: (theme: DashboardTheme) => void;
-}) {
-	return (
-		<header className="dashboard-header">
-			<div className="brand-lockup">
-				<span className="brand-mark" aria-hidden="true" />
-				<h1>Model Atlas</h1>
-			</div>
-			<button
-				className="theme-toggle"
-				type="button"
-				aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}
-				title={theme === "dark" ? "Light" : "Dark"}
-				onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
-			>
-				{theme === "dark" ? <SunIcon /> : <MoonIcon />}
-			</button>
-		</header>
-	);
 }
 
 function defaultColumnFrameWidth(root: HTMLElement | null) {

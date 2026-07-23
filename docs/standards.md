@@ -1,8 +1,8 @@
-# Benchmark Standards
+# Standards
 
 Modern LLM leaderboards are noisy. Many benchmarks keep circulating long after they stop separating strong models. Others look impressive on paper but mainly measure scaffolds, public memorization, policy behavior, or benchmark-specific tricks. The goal of this standard is to keep only benchmarks that still say something meaningful about current frontier models.
 
-The current selected portfolio and source-specific policies are documented in [benchmarks.md](benchmarks.md).
+The current selected portfolio and source-specific policies are documented in [Benchmarks](benchmarks.md).
 
 A benchmark should help answer one of two questions:
 
@@ -75,7 +75,7 @@ A useful benchmark report should answer:
 - Is it redundant with a better benchmark?
 - Is there enough public evidence to understand the result?
 
-Watchlist-only benchmarks belong in review documentation rather than empty source adapters. Before implementation, require a stable structured leaderboard with source model and configuration identities, task-level outcomes or distributions with uncertainty and run counts, documented aggregation and comparable harness conditions, and current frontier coverage with non-saturated rank separation.
+Watchlist-only benchmarks remain under review until they provide a stable structured leaderboard with source model and configuration identities, task-level outcomes or distributions with uncertainty and run counts, documented aggregation and comparable harness conditions, and current frontier coverage with non-saturated rank separation.
 
 ## Effort Sensitivity
 
@@ -83,7 +83,7 @@ Benchmarks with multiple reasoning-effort or budget settings should be inspected
 
 For the same base model, higher reasoning effort should usually improve performance or plateau. A material regression at higher effort is a warning sign. It can mean the benchmark is measuring overthinking, verbosity penalties, timeout pressure, brittle output formatting, over-engineered patches, or harness mismatch rather than clean model capability.
 
-This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report whether higher effort improves, plateaus, or regresses. Source aggregation and public-view behavior are documented in [benchmarks.md](benchmarks.md) and [methodology.md](methodology.md).
+This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report whether higher effort improves, plateaus, or regresses. Source aggregation and public-view behavior are documented in [Benchmarks](benchmarks.md) and [Methodology](methodology.md).
 
 ## Harness Interpretation
 
