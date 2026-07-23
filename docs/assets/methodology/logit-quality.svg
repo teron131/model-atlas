@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" role="img" aria-labelledby="title desc">
+  <title id="title">Logit quality coordinate</title>
+  <desc id="desc">The logit transform expands equal percentage-point differences near the ceiling, making the change from ninety-five to ninety-six percent about 5.8 times the transformed distance from fifty to fifty-one percent.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 14px; }
+    .label { font-size: 16px; }
+    .annotation { font-size: 14px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .curve { fill: none; stroke: var(--primary); stroke-width: 4; stroke-linejoin: round; }
+    .midpoint { fill: var(--primary); }
+    .ceiling { fill: var(--secondary); }
+    .midbar { stroke: var(--primary); stroke-width: 7; }
+    .ceilingbar { stroke: var(--secondary); stroke-width: 7; }
+  </style>
+  <rect width="720" height="520" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Logit quality coordinate</text>
+  <line x1="90" y1="179" x2="670" y2="179" class="grid" />
+  <line x1="380" y1="48" x2="380" y2="310" class="grid" />
+  <line x1="90" y1="310" x2="670" y2="310" class="axis" />
+  <line x1="90" y1="48" x2="90" y2="310" class="axis" />
+  <path d="M95.8 299.4 L101.6 281 L119 256.1 L148 236.6 L206 215.3 L264 201.2 L322 189.6 L380 179 L438 168.4 L496 156.8 L554 142.7 L612 121.4 L641 101.9 L658.4 77 L664.2 58.6" class="curve" />
+  <circle cx="380" cy="179" r="6" class="midpoint" />
+  <circle cx="385.8" cy="178" r="5" class="midpoint" />
+  <circle cx="641" cy="101.9" r="6" class="ceiling" />
+  <circle cx="646.8" cy="95.7" r="5" class="ceiling" />
+  <text x="395" y="169" class="muted">50% → 51%</text>
+  <text x="508" y="91" class="muted">95% → 96%</text>
+  <text x="90" y="335" text-anchor="middle" class="muted">0</text>
+  <text x="380" y="335" text-anchor="middle" class="muted">0.5</text>
+  <text x="670" y="335" text-anchor="middle" class="muted">1</text>
+  <text x="74" y="314" text-anchor="end" class="muted">−5</text>
+  <text x="74" y="184" text-anchor="end" class="muted">0</text>
+  <text x="74" y="53" text-anchor="end" class="muted">5</text>
+  <text x="380" y="362" text-anchor="middle" class="label">Benchmark score q</text>
+  <text transform="translate(25 179) rotate(-90)" text-anchor="middle" class="label">logit(q)</text>
+
+  <text x="90" y="405" class="annotation">Equal +1 percentage point</text>
+  <text x="90" y="440" class="muted">50% → 51%</text>
+  <line x1="220" y1="435" x2="260" y2="435" class="midbar" />
+  <text x="273" y="440" class="muted">Δlogit = 0.040</text>
+  <text x="90" y="480" class="muted">95% → 96%</text>
+  <line x1="220" y1="475" x2="454" y2="475" class="ceilingbar" />
+  <text x="467" y="480" class="muted">Δlogit = 0.234</text>
+  <text x="616" y="480" class="annotation">5.8×</text>
+</svg>

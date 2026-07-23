@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Paired quantile imputation</title>
+  <desc id="desc">A same-dimension context percentile maps through paired calibration observations to a target benchmark prediction, which is reduced by a held-out error penalty.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 15px; }
+    .label { font-size: 17px; }
+    .annotation { font-size: 15px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .mapping { fill: none; stroke: var(--primary); stroke-width: 3; }
+    .guide { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 5; }
+    .penalty { fill: none; stroke: var(--secondary); stroke-width: 2.5; }
+    .pair { fill: var(--primary); opacity: 0.65; }
+    .prediction { fill: var(--primary); }
+    .imputed { fill: var(--secondary); }
+  </style>
+  <rect width="720" height="420" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Paired quantile imputation</text>
+  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
+  <line x1="380" y1="48" x2="380" y2="340" class="grid" />
+  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
+  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
+  <path d="M90 330 C160 314 208 276 270 250 C338 221 392 183 455 158 C525 130 590 94 670 58" class="mapping" />
+  <circle cx="125" cy="314" r="5" class="pair" />
+  <circle cx="181" cy="291" r="5" class="pair" />
+  <circle cx="238" cy="263" r="5" class="pair" />
+  <circle cx="301" cy="239" r="5" class="pair" />
+  <circle cx="358" cy="207" r="5" class="pair" />
+  <circle cx="419" cy="174" r="5" class="pair" />
+  <circle cx="481" cy="148" r="5" class="pair" />
+  <circle cx="540" cy="119" r="5" class="pair" />
+  <circle cx="601" cy="91" r="5" class="pair" />
+  <circle cx="648" cy="68" r="5" class="pair" />
+  <line x1="508" y1="340" x2="508" y2="137" class="guide" />
+  <line x1="90" y1="137" x2="508" y2="137" class="guide" />
+  <circle cx="508" cy="137" r="7" class="prediction" />
+  <line x1="508" y1="144" x2="508" y2="171" class="penalty" />
+  <path d="M501 162 L508 171 L515 162" class="penalty" />
+  <circle cx="508" cy="171" r="7" class="imputed" />
+  <text x="523" y="133" class="annotation">prediction</text>
+  <text x="523" y="162" class="annotation">− κ<tspan baseline-shift="sub" font-size="11">g</tspan>e<tspan baseline-shift="sub" font-size="11">b</tspan></text>
+  <text x="523" y="180" class="annotation">imputed value</text>
+  <text x="135" y="296" class="muted">paired calibration</text>
+  <text x="90" y="367" text-anchor="middle" class="muted">0</text>
+  <text x="380" y="367" text-anchor="middle" class="muted">50</text>
+  <text x="670" y="367" text-anchor="middle" class="muted">100</text>
+  <text x="74" y="345" text-anchor="end" class="muted">0</text>
+  <text x="74" y="199" text-anchor="end" class="muted">50</text>
+  <text x="74" y="53" text-anchor="end" class="muted">100</text>
+  <text x="380" y="403" text-anchor="middle" class="label">Same-dimension context percentile</text>
+  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Target benchmark score</text>
+</svg>

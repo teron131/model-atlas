@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Quality-local resource residual</title>
+  <desc id="desc">A focal model's logged resource use is compared with expected resource use among nearby-quality models.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 15px; }
+    .label { font-size: 17px; }
+    .annotation { font-size: 15px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .expected { fill: none; stroke: var(--primary); stroke-width: 3; }
+    .residual { fill: none; stroke: var(--secondary); stroke-width: 2.5; stroke-dasharray: 6 5; }
+    .neighbor { fill: var(--primary); }
+    .focal { fill: var(--secondary); }
+  </style>
+  <rect width="720" height="420" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Quality-local resource residual</text>
+  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
+  <line x1="380" y1="48" x2="380" y2="340" class="grid" />
+  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
+  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
+  <path d="M90 304 C202 287 298 244 380 199 C471 149 562 113 670 74" class="expected" />
+  <circle cx="175" cy="297" r="5" class="neighbor" opacity="0.18" />
+  <circle cx="240" cy="259" r="6" class="neighbor" opacity="0.34" />
+  <circle cx="300" cy="240" r="7" class="neighbor" opacity="0.56" />
+  <circle cx="353" cy="218" r="8" class="neighbor" opacity="0.78" />
+  <circle cx="404" cy="187" r="8" class="neighbor" opacity="0.92" />
+  <circle cx="454" cy="171" r="8" class="neighbor" opacity="0.94" />
+  <circle cx="503" cy="139" r="7" class="neighbor" opacity="0.72" />
+  <circle cx="576" cy="119" r="6" class="neighbor" opacity="0.38" />
+  <circle cx="639" cy="91" r="5" class="neighbor" opacity="0.2" />
+  <line x1="468" y1="156" x2="468" y2="246" class="residual" />
+  <path d="M461 236 L468 246 L475 236" class="residual" />
+  <circle cx="468" cy="246" r="8" class="focal" />
+  <text x="485" y="204" class="annotation">negative residual</text>
+  <text x="508" y="127" class="muted">expected</text>
+  <text x="486" y="254" class="muted">focal model</text>
+  <text x="380" y="403" text-anchor="middle" class="label">Benchmark quality coordinate</text>
+  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Log resource use</text>
+</svg>

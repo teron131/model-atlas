@@ -28,11 +28,12 @@ For review, audit, or report requests:
 Read current files before naming benchmarks, sources, groups, weights, or rank semantics:
 
 1. Read `docs/standards.md` for admission, retention, and rejection criteria.
-2. Read `docs/methodology.md` for scoring philosophy, benchmark decisions, source notes, effort handling, imputation, and resource scoring.
-3. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, benchmark importance, and Intelligence/Agentic loadings from `src/model-atlas/config/benchmark-portfolio.ts`. Use `public/model-atlas-snapshot.json` metadata only when that file exists and represents the newer contract.
-4. For a registered benchmark, derive raw source names, table names, and URLs from `src/model-atlas/database/types.ts`. For a new candidate, use its official primary sources and do not expect a local registry entry.
-5. When rank agreement matters, inspect `app/dashboard/table/models.ts`, `src/model-atlas/stats/selection/public-list.ts`, and `app/api/llm-stats/public-json.ts` before reconstructing the displayed rank. Follow the app's current default rank and variant-collapse semantics; do not substitute another aggregate.
-6. For selected benchmark values, inspect both `model.evaluations` and `model.intelligence` because selected AA-derived fields can live in either object.
+2. Read `docs/benchmarks.md` for the documented portfolio decisions, source precedence, metric selection, and benchmark-specific resource policy.
+3. Read `docs/methodology.md` for scoring mathematics, effort handling, imputation, and resource scoring.
+4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, benchmark importance, and Intelligence/Agentic loadings from `src/model-atlas/config/benchmark-portfolio.ts`. Use `public/model-atlas-snapshot.json` metadata only when that file exists and represents the newer contract.
+5. For a registered benchmark, derive raw source names, table names, and URLs from `src/model-atlas/database/types.ts`. For a new candidate, use its official primary sources and do not expect a local registry entry.
+6. When rank agreement matters, inspect `app/dashboard/table/models.ts`, `src/model-atlas/stats/selection/public-list.ts`, and `app/api/llm-stats/public-json.ts` before reconstructing the displayed rank. Follow the app's current default rank and variant-collapse semantics; do not substitute another aggregate.
+7. For selected benchmark values, inspect both `model.evaluations` and `model.intelligence` because selected AA-derived fields can live in either object.
 
 Never rely on a benchmark list, source URL, prior verdict, database run number, or model rank remembered from an earlier audit.
 

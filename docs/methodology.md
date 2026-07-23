@@ -1,181 +1,70 @@
-# Model Atlas Methodology
+# Methodology
 
-## Purpose
+## Scope
 
-Model Atlas is an opinionated ranking for comparing current general-purpose LLMs on broad capability, agentic workflow performance, speed, and value. It starts from Artificial Analysis because AA provides broad, current benchmark aggregation, but it does not mirror AA exactly. It retains the AA and related provider evidence that helps separate current models for practical model selection.
+This document specifies how observed benchmark, price, and runtime inputs become four independent 0-100 scores: Intelligence, Agentic, Speed, and Value. The selected benchmark portfolio and source-specific policies live in [benchmarks.md](benchmarks.md), while benchmark admission criteria live in [standards.md](standards.md).
 
-The ranking is not an average of everything available upstream. Many benchmarks are low-signal for this purpose: some are saturated, some are stale, some are noisy, and some reward capabilities that do not matter much for the model-selection decisions this ranking is meant to support. A benchmark only belongs here if it still creates a useful relative ordering among current models.
+Intelligence and Agentic measure capability. Speed and Value measure practical delivery constraints without feeding cost or latency back into capability. Reasoning-effort variants remain separate scored configurations, while model-balanced calibration prevents a model with many variants from dominating empirical reference distributions.
 
-The main ranking choices are explicit: selected intelligence benchmarks, selected agentic benchmarks, task/chat/agentic price profiles, workflow simulation profiles, and resource normalization.
+## Pipeline Overview
 
-The scoring pipeline preserves reasoning-effort observations and selects one source-default observation for benchmark enrichment. An unlabelled row is the source default; when every row is labelled, source aggregation selects the highest reported effort. It keeps that runnable observation whole rather than combining field-wise maxima from different efforts. Raw and matched effort rows remain separate source evidence, and scored variants remain separate until compact public views represent each base model with its highest-Intelligence variant. The `all` API view preserves every scored effort variant.
-
-## Benchmark Selection
-
-Benchmark admission follows the standards in `docs/standards.md`. Accepted benchmarks are classified as `frontier` or `baseline`; rejected benchmarks do not affect the ranking.
-
-The ranking has two quality dimensions.
-
-- Intelligence
-  - Captures broad capability: factual accuracy, hard reasoning, professional knowledge, and structured problem solving outside harness/tool execution.
-  - Evidence comes from benchmarks with a non-zero Intelligence loading in the benchmark portfolio.
-- Agentic
-  - Captures workflow usefulness: coding or task execution with specific tools, instruction following, self-verification, reliability under constraints, harness/tool execution, and work-like task completion.
-  - Evidence comes from benchmarks with a non-zero Agentic loading in the benchmark portfolio.
-
-There is no standalone coding score in the current ranking. Coding difficulty does not automatically become Agentic. Static coding or scientific programming benchmarks count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation; coding benchmarks count as Agentic when they require tool use, repo/file manipulation, terminal execution, or harnessed workflow completion. AA SciCode is treated as structured code-generation/problem-solving evidence under intelligence. DeepSWE, Terminal-Bench 2.1, and AA tau3 Banking remain agentic. Agents' Last Exam is selected in both intelligence and agentic because it combines professional knowledge with harnessed real-world workflow execution.
-
-Selected benchmarks have one missing-data group: `baseline` or `frontier`. Group does not change the weight of an observed benchmark; it only controls how missing benchmark evidence is handled. Source is metadata. A benchmark can come from Artificial Analysis and still be frontier if it is hard, current, distinctive, and useful for separating frontier models.
-
-Each accepted benchmark has three separate settings. `benchmarkImportance` controls how much the benchmark matters relative to other benchmarks, Intelligence and Agentic loadings sum to 100% and allocate that importance between the two quality dimensions, and `group` controls missing-data handling only. The effective weight for dimension $D$ is $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$. A first-party or partly opaque agent workflow benchmark can be kept `baseline` with a `0%` Intelligence / `100%` Agentic loading split when the evidence is useful but too narrow or source-specific to act as a frontier model-quality claim.
-
-When the benchmark portfolio changes, this table should change with it. Additions, removals, or group, importance, or loading changes should explain the capability being measured, why the benchmark earns or loses ranking space, and whether its task resources can feed Speed or Value.
-
-| Benchmark | Missing-data Group | Importance | Intelligence Loading | Agentic Loading | Description and Decision Note |
-| --- | --- | ---: | ---: | ---: | --- |
-| Agent&nbsp;Arena | frontier | 1 | 0% | 100% | Randomized real-world Agent Mode sessions estimate the orchestrator model's causal effect across confirmed success, praise versus complaint, steerability, bash recovery, and tool hallucination. The large current sample and direct workflow signal earn frontier status, while the score remains relative to Arena's time-weighted model and task distribution. |
-| Agents'&nbsp;Last&nbsp;Exam | frontier | 1 | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
-| ALE-Bench | frontier | 1 | 40% | 60% | Heuristic-programming tasks require algorithm design, executable code, and evaluation-harness interaction. Model Atlas scores Sakana AI's source-default ×1 mean performance, while preserving higher self-refinement checkpoints and all distribution statistics as raw evidence. |
-| APEX&nbsp;Agents | frontier | 1 | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
-| AutomationBench | frontier | 1 | 0% | 100% | Artificial Analysis implementation of Zapier workflow-automation tasks over simulated SaaS app environments. It is frontier because it tests business-process execution with tool-like constraints, and its AA per-task resources can feed Speed and Value. |
-| Blueprint-Bench&nbsp;2 | frontier | 1 | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
-| Briefcase | frontier | 1 | 25% | 75% | Artificial Analysis long-horizon professional knowledge-work benchmark over multi-file deliverables. It is mostly agentic because models must manage file outputs and extended work, with some intelligence credit for professional reasoning and synthesis. The raw Elo score is normalized with the same AA GDPval-style `clamp((Elo - 500) / 2000)` transform before it enters Model Atlas quality scoring. |
-| Chartography | frontier | 1 | 100% | 0% | Professional chart interpretation over difficult visual and quantitative questions. It is a current Intelligence-only stress test with meaningful frontier spread. |
-| CritPt | frontier | 1 | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
-| CursorBench | frontier | 1 | 0% | 100% | Cursor's public coding-agent benchmark over ambiguous, multi-file tasks from real editor sessions. It is frontier because it separates current coding agents on practical workflow tasks; Composer rows are excluded because their model data is not independently available. |
-| DeepSWE | frontier | 1 | 0% | 100% | Repo-level coding-agent benchmark. It tests long-horizon repository reasoning and code execution, using the source-default or highest reported reasoning effort. |
-| EMB | frontier | 1 | 25% | 75% | Expert work completed through a multi-step environment combines professional reasoning with predominantly Agentic workflow execution. Current Vals results make it a frontier separator. |
-| FrontierCode | frontier | 1 | 0% | 100% | Cognition's repository-scale coding-agent benchmark measures code quality and mergeability across Main and Extended task subsets. Model Atlas scores the FrontierCode 1.1 Main `new_score`, while preserving all effort, harness, subset, and resource observations. |
-| FrontierMath Tier 4 | frontier | 1 | 100% | 0% | Epoch's hardest private FrontierMath tier is a current specialist mathematical-reasoning stress test. Model Atlas accepts only the exact `FrontierMath-Tier-4-v2-Private` task and never mixes the older private or public task versions. |
-| GDP.pdf | frontier | 1 | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
-| GDPval-AA&nbsp;v2 | frontier | 1 | 60% | 40% | Real professional deliverables across economically important occupations. Mostly professional reasoning and synthesis, with substantial agentic credit for AA v4.1's longer tool/file/web trajectories and human-baselined work completion. |
-| HANDBOOK.md | frontier | 1 | 0% | 100% | Long-context enterprise work over 65 tasks in five domains, with four trials per model and deterministic grading. The benchmark primarily measures sustained instruction-following and workflow execution. |
-| Harvey LAB | frontier | 1 | 0% | 100% | Harvey-protocol Legal Agent Benchmark results published by Vals over private legal-agent tasks. It is frontier because the strict task-resolution score remains low, current, and strongly separated among frontier models; the signal is pure Agentic because models work in a sandbox over matter files and produce legal work product. |
-| HLE | frontier | 1 | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
-| ITBench | frontier | 1 | 0% | 100% | Artificial Analysis implementation of same-harness Kubernetes incident root-cause investigations over 59 tasks with three repeats. It is a current frontier Agentic stress test with strong score spread across realistic tool-mediated SRE work. |
-| Legal Research | frontier | 1 | 20% | 80% | Professional legal research requires substantive reasoning inside a tool-mediated research workflow. Current Vals results retain enough headroom and separation to serve as a frontier benchmark. |
-| ProgramBench | frontier | 1 | 20% | 80% | Programming tasks combine problem formulation with executable workflow completion. Current Vals results retain frontier pressure, with most weight assigned to Agentic execution. |
-| ProofBench | frontier | 1 | 70% | 30% | Private compiler-verified theorem proving over 100 problems. Mathematical reasoning is primary, while the multi-turn proof-development harness contributes a smaller Agentic loading; Aristotle's specialized proving system is retained as raw evidence but excluded from general-model scoring. |
-| Riemann-bench | frontier | 1 | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
-| Terminal-Bench&nbsp;2.1 | frontier | 1 | 0% | 100% | AA and Vals both report terminal-agent task execution and environment handling. Model Atlas aggregates their matched overall rows by model and harness, using the best score and median cost/time resources. It is frontier because terminal task execution is a current agentic stress test with meaningful separation among strong systems. |
-| Artificial Analysis Intelligence Index | baseline | 0.5 | 100% | 0% | Artificial Analysis's aggregate index provides broad current Intelligence coverage. Its aggregation overlaps several individually selected benchmarks, so it contributes at half importance. |
-| BrowseComp | baseline | 1 | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
-| Chess Puzzles | baseline | 1 | 100% | 0% | Exact-move chess puzzle solving supplies a distinct planning and tactical-reasoning signal. It remains baseline because it is a narrow specialist capability rather than a broad frontier claim. |
-| Code Migration | baseline | 1 | 20% | 80% | Repository migration requires code understanding and predominantly Agentic multi-file execution. It provides useful practical coverage but remains baseline rather than a frontier missing-data claim. |
-| CyberBench | baseline | 1 | 0% | 100% | Practical cybersecurity tasks are scored as pure Agentic workflow evidence. The focused domain and Vals-specific harness keep the benchmark in baseline. |
-| EBR-Bench | baseline | 0.5 | 0% | 100% | Repeated play of the unfamiliar Earthborne Rangers campaign tests whether an agent can learn from experience through exploration and persistent notes. The narrow game environment, small current leaderboard, and simple benchmark harness make it useful Agentic evidence at half importance rather than a broad frontier workflow claim. |
-| EnterpriseBench CoreCraft | baseline | 0.5 | 0% | 100% | Enterprise workflows inside one simulated company provide practical Agentic breadth. The single-company environment, first-party judge rubrics, and overlap with other agent benchmarks keep it stabilizing half-weight evidence. |
-| Epoch Capabilities Index | baseline | 0.5 | 100% | 0% | Epoch's multi-benchmark capabilities index adds broad stabilizing Intelligence evidence alongside AA and Vals. Its aggregate nature earns half importance, while source confidence intervals remain preserved for audit. |
-| Finance Agent V2 | baseline | 1 | 20% | 80% | Finance research and analysis combine domain reasoning with predominantly Agentic workflow execution. The domain-specific Vals harness makes it stabilizing baseline evidence. |
-| LCR | baseline | 1 | 100% | 0% | Long-context document reasoning over large document sets. It remains useful breadth coverage, but current top-model spread is narrower than harder specialist and professional-work tests. |
-| MedCode | baseline | 1 | 100% | 0% | Medical coding supplies specialist professional-knowledge and reasoning evidence without enough external workflow execution to receive an Agentic loading. |
-| Omniscience&nbsp;Accuracy | baseline | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to distinguish the frontier leaders. |
-| Public Benefits Bench | baseline | 1 | 20% | 80% | Public-benefits case work combines policy reasoning with predominantly Agentic research and workflow execution. It remains a focused baseline signal. |
-| SciCode | baseline | 1 | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
-| tau3&nbsp;Banking&nbsp;(AA) | baseline | 1 | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
-| Toolathlon | baseline | 1 | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Its planning and domain reasoning occur inside the harnessed workflow, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
-| Vals Index | baseline | 0.5 | 60% | 40% | Vals aggregate over finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, but its formula also includes public coding benchmarks. Its overlap with individually selected benchmark families keeps it at half importance. |
-| Vending-Bench&nbsp;2 | baseline | 1 | 0% | 100% | Year-long simulated business operation tests sustained tool use, inventory, pricing, negotiation, and coherence over thousands of messages. Its long horizon is distinctive, but the small run count and stochastic trading-like outcome make it stabilizing baseline evidence rather than a frontier missing-data claim. |
-| Vibe Code | baseline | 1 | 0% | 100% | End-to-end software creation in a coding-agent environment is pure Agentic evidence. Its product-building focus provides useful baseline coverage without a frontier missing-data claim. |
-| WeirdML | baseline | 1 | 60% | 40% | ML-programming tasks test model selection and implementation across 17 datasets. Problem formulation is the larger Intelligence component, while executable code generation contributes Agentic evidence. |
-
-The baseline and frontier labels describe how missing benchmark evidence is handled. They do not increase or decrease the contribution of observed scores; benchmark importance owns that decision. Diagnostics and exclusions are not scoring groups.
-
-### Quality Mix
-
-Intelligence and Agentic use the same scoring rule: each selected benchmark is weighted by its benchmark importance multiplied by its loading for that dimension. Intelligence and Agentic loadings split the benchmark's importance across the two dimensions. The Artificial Analysis Intelligence Index, Vals Index, and Epoch Capabilities Index each contribute at half importance; the AA Agentic Index remains source context only.
-
-Sparse benchmark coverage is penalized with the same smooth confidence curve used by benchmark resource scoring. Observed values receive full evidence credit, and validated imputations receive partial credit based on the held-out error of the predictor actually used. Missing values receive none. Evidence coverage below 10% earns no confidence, evidence coverage at 60% or above earns full confidence, and coverage between those bounds ramps smoothly. Public admission remains stricter and counts observed values only.
-
-Speed and Value are secondary. They matter because downstream applications have latency and budget constraints, but they should not overtake model quality. Speed gives equal weight to provider speed stats, workflow simulation, and each active quality-adjusted benchmark task-time input. Value gives equal weight to log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.
-
-## Combining Sources
-
-Rows from different sources are never assumed equivalent merely because their benchmark and model labels overlap. Before combining them, Model Atlas checks the task set and version, metric definition, scoring protocol, harness and run configuration, units, aggregation rule, model identity, and reasoning effort.
-
-A source crosswalk is most reliable when the sources represent the same underlying measurement under methodologically compatible protocols. The overlap should validate any identity, scale, or unit transformation, and the benchmark-specific policy should define which source wins when both report the same observation. Canonical observed values are generally not averaged with duplicate mirrors, and validated mappings can admit source-only rows when they identify them without conflict.
-
-Methodologically different measurements are not made comparable by a crosswalk or median. They remain distinct evidence unless the benchmark has an explicit multi-harness aggregation policy, in which case that score rule and any separate resource-aggregation rule are documented in its source note.
-
-## Source Notes
-
-Artificial Analysis is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio.
-
-APEX Agents uses Artificial Analysis when available. A missing AA value can use Mercor's Loop Pass@1 score for the same model and assigned reasoning effort after the current AA-Mercor overlap passes the source crosswalk validation described below; an unlabelled AA row uses the source-default highest effort under the ordinary matching rule.
-
-Briefcase comes from the dedicated Artificial Analysis evaluation page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA evaluation-resource benchmarks.
-
-OpenRouter supplies current route pricing and speed measurements used for blend price, workflow-simulated seconds, and workflow-simulated price efficiency. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
-
-Terminal-Bench 2.1 combines the AA leaderboard score, the dedicated AA Terminal-Bench evaluation page, and the Vals Terminal-Bench 2.1 page when they match the same model. The benchmark score is the best available AA or Vals overall score, matching the way people usually compare a model's best harness result. This intentionally gives a small reward to models with more harness coverage: if multiple independent harnesses can make the same model work, the ranking credits the strongest observed execution path instead of forcing a noisy cross-harness average. Cost and time are still the medians of available per-task resource values so one harness does not dominate resource estimates. AA cost and token totals are divided by the benchmark's 89 tasks and 3 repeats per task; AA time uses the page's reported per-task runtime. Vals supplies score, cost, time, and harness labels but no token counts, so token fields remain AA-only when present.
-
-DeepSWE supplies pass@1, mean task cost, mean task duration, and mean output tokens. The backend preserves preferred-version effort/config observations in `deep_swe.rows` and separately derives one source-default row per model for benchmark matching. The default DeepSWE observation uses the source-default or highest reported effort as one whole observation; compact public views independently select the model variant with the highest Intelligence score. Task duration can feed Speed's benchmark task-time component, task cost can feed Value, and token totals remain source context.
-
-Agents' Last Exam uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime, token counts, and cost. Each harness row divides those totals by its evaluated task count, and the displayed ALE resource columns use the lower of the resulting median and mean per-task values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
-
-ALE-Bench uses Sakana AI's complete leaderboard as the observed source and Epoch AI's overlapping rounded table as a refresh-time scale validator. The scoring row is `num_self_refine = 1`, meaning the source-default selected candidate before feedback-driven refinement loops, and its all-task mean Performance enters ordinary observed min-max normalization. Higher refinement checkpoints, all/short/long mean, median, min, max, and standard deviation fields, and per-task results remain raw evidence. Mean per-task cost and input/output/total tokens are persisted; cost can feed Value, while submitted-program execution time and memory remain source context because they do not measure model workflow latency.
-
-Agent Arena uses the published Net Improvement point estimate directly as the raw benchmark value. The value is a signed causal treatment effect against the current randomized model mixture, not a probability or Bradley-Terry logit, so Model Atlas applies its ordinary observed per-benchmark min-max normalization without a sigmoid transform.
-
-Vending-Bench 2 uses the official average final money balance as its raw benchmark value. Model Atlas preserves the number of runs and the complete published 365-day average balance curve for audit, then applies ordinary observed per-benchmark min-max normalization to the final balance. Costs and other chart-only derived comparisons do not enter Speed or Value, and the score should be interpreted as a stochastic long-horizon business simulation rather than an absolute success rate.
-
-Toolathlon uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
-
-CursorBench preserves score, average cost per task, tokens per task, steps per task, reasoning effort, and source score eligibility where shown. When multiple public effort rows map to variants of the same model, the scoring lookup uses the source-default row when effort is unlabelled, or the highest reported effort when it is labelled, while preserving all raw effort rows. Source-caveated scores remain in the raw rows but are excluded from scoring; this currently applies to Grok 4.5 because Cursor discloses that an earlier Cursor codebase snapshot was included in training and the score impact is unknown. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
-
-FrontierCode uses Cognition's versioned 1.1 structured artifact. The Main subset's `new_score` is the quality field; Main per-task cost can feed Value, and Main token averages can supply Speed's throughput-based task-time fallback. Main pass rate, Extended metrics, tool calls, steps, and output-token-equivalent estimates remain source evidence. Every reported effort and harness is persisted. Explicit effort rows match only the corresponding model variant, and a base model with only labelled observations follows the ordinary highest-reported-effort source-default rule rather than Cognition's display-only best-score selection. Cognition's proprietary SWE-1.7 and Cursor's Composer 2.5 remain auditable raw rows but are excluded from general-model scoring because they are not independently available model systems.
-
-AutomationBench comes from the dedicated Artificial Analysis evaluation page, not Zapier's hosted leaderboard. Model Atlas uses the AA headline score directly and keeps the page's reasoning-effort label, per-task cost, runtime, and token telemetry for resource scoring.
-
-Harvey LAB comes from the Vals leaderboard, which follows Harvey's generation environment and two-judge grading protocol. Model Atlas scores Vals' strict task-resolution result, where a task passes only when every criterion passes; criterion pass rate and practice-area rows remain source evidence only. Vals' per-task cost and runtime can feed Value and Speed, while Artificial Analysis' independently reimplemented Stirrup results do not enter Harvey LAB scoring or resources.
-
-ITBench uses Artificial Analysis' implementation and average precision at full recall score over 59 Kubernetes incident root-cause tasks with three repeats. The main AA leaderboard supplies all available scores, while the dedicated evaluation page adds model, effort, cost, runtime, and input/output token telemetry where complete. Model Atlas divides aggregate cost and token totals by 177 task runs, preserves AA's per-task runtime, and feeds the resulting output-per-task resources into Speed and Value.
-
-Blueprint-Bench 2 uses the normalized connectivity similarity score and preserves only model display names and scores; Andon's internal source identifiers are not used for matching.
-
-Riemann-bench uses the normalized public percent score and preserves provider, model label, and leaderboard last-updated date from the page.
-
-GDP.pdf uses the reported percentage score as a normalized benchmark score and preserves model display name, provider label, and page update date.
-
-Vals Index uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks such as SWE-bench Verified and Terminal-Bench 2.1. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
-
-Legal Research, EMB, MedCode, Code Migration, Vibe Code, and Public Benefits Bench use each leaderboard's `overall` score. Finance Agent V2 uses strict `all_pass`, ProgramBench uses the raw `partial` behavioral-test pass rate, and CyberBench uses the `patch` track. Only rows for the selected task enter quality scoring; alternate task metrics, cost, latency, harness settings, and inference settings remain raw source evidence. These Vals cost and latency fields do not feed Speed or Value, and none of these benchmarks is registered as Time Horizon evidence.
-
-Epoch Capabilities Index uses Epoch's published ECI value directly and preserves its lower and upper confidence bounds, model-version identifiers, access category, organization, and observation date. FrontierMath Tier 4, Chess Puzzles, and EBR-Bench use successful runs from Epoch's bulk benchmark CSV, preserving run IDs, task versions, standard errors, and observation timestamps. FrontierMath is filtered to the exact v2-private task so older ZIP-era scores cannot enter the current leaderboard.
-
-WeirdML uses the benchmark creator's current CSV as its primary source and `avg_acc` as its score, preserving all 17 task accuracies, aggregate standard error, cost, output-token count, code-length quantiles, execution time, release date, API source, and effort-labelled model variant. Epoch's WeirdML dataset is a mirror of the same benchmark, so Model Atlas explicitly crosswalks overlapping accuracy, cost, median code length, standard error, and release date fields, including Epoch's different standard-error unit. Creator rows win every overlap; a uniquely identified Epoch-only model-effort row is added only when it does not conflict with the creator data, and an unvalidated mirror is not merged.
-
-ProofBench comes directly from the current Vals benchmark page. Model Atlas uses overall compiler-verified proof accuracy, preserves Vals version, standard error, latency, per-test cost, harness, and inference settings, and excludes `aristotle/aristotle` from general-model scoring because it is a specialized proving system rather than a comparable general-purpose model. The overlapping Vals and Epoch rows crosswalk to the same scores, while the current Vals view covers additional models; the Epoch artifact is therefore used to validate provenance rather than merged as independent evidence.
-
-Chartography, HANDBOOK.md, and EnterpriseBench CoreCraft use the public Surge leaderboard percentages and preserve displayed provider, model configuration, rank, and update date when present. Their page-local cost or judge details do not feed Speed or Value.
-
-## Scoring Shape
-
-The scoring map is:
+The calculation proceeds in one direction:
 
 $$
-\text{raw source fields}\rightarrow\text{normalized quality fields}\rightarrow(I_m,A_m)\rightarrow\text{Speed, Value}
+\text{observed inputs}
+\rightarrow
+\text{normalized benchmark evidence}
+\rightarrow
+(I_m,A_m)
+\rightarrow
+\text{quality-adjusted resources}
+\rightarrow
+(\text{Speed}_m,\text{Value}_m)
 $$
 
-Quality is normalized before averaging. Displayed Speed is the public runtime score: it combines provider/runtime evidence, workflow simulation, and quality-adjusted benchmark task-time components. Displayed Value combines absolute log blended price with quality-adjusted price, workflow, and benchmark task-cost components.
+| Score | Main inputs | Main adjustment | What the score answers |
+| --- | --- | --- | --- |
+| Intelligence | Selected benchmark results | Importance, dimension loading, and evidence coverage | How strong is the model on knowledge and reasoning? |
+| Agentic | Selected benchmark results | Importance, dimension loading, and evidence coverage | How strong is the model in tool-mediated workflows? |
+| Speed | Provider speed, simulated workflow runtime, benchmark task time | Log scaling, quality-local comparison, and component coverage | How quickly does the model deliver comparable work? |
+| Value | Blended price, workflow price efficiency, benchmark task cost | Log scaling, quality-local comparison, and component coverage | How much useful capability does the model deliver for its cost? |
 
-AA's `coding_index` can be kept as source context when available, but it is not used to compute any score. There is no standalone coding score.
+## Shared Notation
 
-## Scoring Details
+| Symbol | Meaning |
+| --- | --- |
+| $m$ | Model or scored model-effort configuration |
+| $v$ | Reasoning-effort variant of a model |
+| $b$ | Benchmark |
+| $D$ | Quality dimension: Intelligence or Agentic |
+| $s$ | Workflow scenario |
+| $a$ | Model-balanced calibration weight |
 
-Each selected quality benchmark is min-max normalized before aggregation. Raw provider speed and workflow runtime inputs are logged before min-max normalization. Resource efficiency subtracts the model-balanced expected signal at comparable quality, then averages a model-balanced percentile score with a min-max score using 2.5% one-sided winsorization of the favorable residual tail. Price and benchmark resource inputs are logged once; the completed workflow-efficiency output is not logged again. Model-balanced empirical distributions also support benchmark imputation.
+Benchmark aggregation uses the 0-100 scale. Source crosswalks may operate on a benchmark's native or 0-1 scale, and their formulas state that scale explicitly. Resource comparisons use logged positive cost or time.
 
-### Calibration Population
+The shared smooth confidence function clamps its input before interpolation:
 
-Reasoning-effort variants remain separate scored configurations, but they do not multiply a model's influence on empirical reference distributions. Model identity uses the normalized public model name, with route ID as a fallback when no name is available. For any distribution, let $n_m$ be the number of included variants of model $m$. Variant $v$ receives calibration weight
+$$
+\operatorname{smoothstep}(t)=u^2(3-2u),
+\qquad
+u=\operatorname{clamp}(t,0,1).
+$$
+
+Weighted quantiles, ranks, medians, and percentiles use model-balanced observations unless a formula states otherwise.
+
+## Intelligence and Agentic
+
+### Model-Balanced Calibration
+
+Reasoning-effort variants remain separate scored configurations, but they do not multiply a model's influence on empirical reference distributions. Model identity uses the normalized public model name, with route ID as a fallback when no name is available. For any distribution, $n_m$ counts the included variants of model $m$. Variant $v$ receives calibration weight
 
 $$
 a_{m,v}=\frac{1}{n_m}
 $$
 
-so every represented model contributes one total unit of mass. The included-variant count is recomputed for each distribution because a variant can have one metric and lack another. Model weights apply to percentile and quantile mappings, imputation validation errors, quality-local expectations, residual percentiles, and winsorized min-max anchors. Scoring diagnostics report both contributing row count and effective model count.
+so every represented model contributes one total unit of mass. The included-variant count is recomputed for each distribution because a variant can have one metric and lack another. These weights prevent reasoning-effort variants from manufacturing calibration support while preserving every scored configuration. They apply to percentile and quantile mappings, imputation validation errors, quality-local expectations, residual percentiles, and winsorized min-max anchors.
 
-### Quality Normalization
+### Benchmark Normalization and Weighting
 
 Each quality input is first converted into a normalized 0-100 benchmark score. For model $m$ and benchmark field $b$, raw source value $x_{m,b}$ is scaled by the observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$ for that field:
 
@@ -185,40 +74,55 @@ $$
 
 The observed minimum maps to $0$, the observed maximum maps to $100$, and every selected benchmark is normalized before it enters a dimension average. Imputed values use these frozen observed anchors and are clamped to the same score range, so imputation cannot redefine a benchmark's scale. This linear transformation preserves all within-benchmark gap ratios; unlike percentile rank, it does not turn uneven performance gaps into evenly spaced positions.
 
-Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Let $i_b$ be benchmark $b$'s importance and $\lambda_{b,D}$ its loading for dimension $D$, so $w_{b,D}=i_b\lambda_{b,D}$. The normalized dimension mean is weighted by those effective weights:
+Within each dimension, the selected benchmark set $\mathcal{B}_D$ contains the benchmarks admitted to that dimension. Benchmark importance $i_b$ and dimension loading $\lambda_{b,D}$ produce the effective weight $w_{b,D}=i_b\lambda_{b,D}$. Importance controls the benchmark's total influence, while loading directs that influence into Intelligence or Agentic without counting a mixed benchmark twice. The normalized dimension mean is weighted by those effective weights:
 
 $$
 \bar{B}_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}}
 $$
 
-The evidence coverage ratio uses the same effective weights. Let $q_{m,b}=1$ for an observed value, $q_{m,b}=\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1)$ for a validated imputation, and $q_{m,b}=0$ for a missing value. Here $\tilde e_{m,b}$ is the one-dimensional normalized held-out median absolute error for a direct prediction or the cross-only error when that row actually uses both benchmark and sibling-effort evidence. Missing a small contribution therefore reduces confidence less than missing a large contribution:
+### Evidence Coverage
+
+The evidence coverage ratio uses the same effective weights as the dimension mean. Its evidence factor $\eta_{m,b}$ is $1$ for an observed value, $\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1)$ for a validated imputation, and $0$ for a missing value. The error $\tilde e_{m,b}$ is the normalized held-out median absolute error of the predictor used for that row. A cross-effort prediction uses its cross-only error. Missing a small benchmark contribution therefore reduces confidence less than missing a large contribution:
 
 $$
-c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D}w_{b,D}q_{m,b}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
+c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D}w_{b,D}\eta_{m,b}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
 $$
 
-The coverage confidence $C(c)$ is $0$ at or below $10\%$ evidence coverage, $1$ at or above $60\%$ evidence coverage, and a smoothstep interpolation between those bounds.
-
-Public admission first requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must have at least eight observed selected benchmarks, including at least one Intelligence benchmark, at least one Agentic benchmark, and at least one of the three aggregate indexes: Artificial Analysis Intelligence Index, Epoch Capabilities Index, or Vals Index. This fixed evidence floor remains stable when the selected portfolio grows; broader coverage continues to affect score confidence instead of raising the admission threshold. A benchmark without a reported effort belongs to the model's default highest-effort variant; explicitly labelled observations belong to their matching variants. Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in at least one of Intelligence, Agentic, Speed, or Value. These admission gates only remove public rows after reference scoring; they do not themselves recalibrate the reference population.
+Coverage confidence is zero through 10% evidence, one from 60% evidence, and a smooth transition between them:
 
 $$
-D_m=\bar{B}_{m,D}C(c_{m,D})
+C(c)=
+\operatorname{smoothstep}\left(\frac{c-0.1}{0.5}\right).
+$$
+
+![Evidence coverage confidence held at zero through 10 percent, smoothly increased, and capped at one from 60 percent.](assets/methodology/coverage-confidence.svg)
+
+The weighted mean $\bar B_{m,D}$ measures performance on available evidence, while $C(c_{m,D})$ measures how much validated evidence supports that mean. Their product prevents a strong result on sparse evidence from looking as certain as the same result with broad coverage:
+
+$$
+D_{m,D}=\bar{B}_{m,D}C(c_{m,D})
 $$
 
 $$
 \begin{aligned}
 I_m&=D_{m,\text{Intelligence}}\\
-A_m&=D_{m,\text{Agentic}}
+A_m&=D_{m,\text{Agentic}}.
 \end{aligned}
 $$
 
-### Benchmark Imputation
+## Missing Benchmark Evidence
+
+The imputation pipeline has two paths. A benchmark-specific source crosswalk runs first when configured; otherwise, or when that crosswalk fails validation, the contextual quantile imputer is used.
+
+### Shared Guarantees
 
 Same-dimension evidence used for benchmark imputation is also averaged with benchmark importance multiplied by the configured dimension loading. For a benchmark selected in both dimensions, Model Atlas produces an Intelligence-context prediction and an Agentic-context prediction, then combines the available predictions using that benchmark's dimension loadings. Available loadings are renormalized when only one context can make a prediction. The minimum evidence threshold still counts distinct observed benchmarks so one heavily weighted benchmark cannot satisfy the imputation requirement by itself.
 
 Missing benchmark values are imputed only for scoring. Every model-benchmark pair receives at most one imputed value, and only observed benchmark values can provide evidence for another benchmark, so imputation is non-recursive. Imputed values are not treated or displayed as observed source values.
 
-APEX Agents first tests a source-specific Mercor-to-AA crosswalk. Let $S$ contain rows where Mercor Loop Pass@1 and AA match the same model and assigned reasoning effort, let $M_i$ and $A_i$ be their normalized scores, and let $w_i$ give every base-model family one total unit of weight across its variants. The fitted source offset is:
+### APEX Agents Source Crosswalk
+
+APEX Agents first tests a source-specific Mercor-to-AA crosswalk. The overlap set $S$ contains rows where Mercor Loop Pass@1 and AA match the same model and assigned reasoning effort; $M_i$ and $A_i$ are their normalized Mercor and AA scores, respectively; and $w_i$ divides one unit of weight across each base-model family's variants. The fitted source offset is:
 
 $$
 \delta=\operatorname{weightedMedian}_{i\in S}(M_i-A_i;w_i)
@@ -230,13 +134,20 @@ $$
 e=\operatorname{weightedMedian}_{i\in S}\left(\left|M_i-\delta_{-f(i)}-A_i\right|;w_i\right)
 $$
 
+The additive offset preserves performance gaps within each source, while the weighted median limits the influence of outliers. Holding out an entire model family prevents sibling variants or reasoning efforts from validating one another.
+
+![Validated source crosswalk plotted against the canonical source, with an identity guide and fitted additive offset.](assets/methodology/source-crosswalk.svg)
+
 The crosswalk requires at least three effective overlap families, at least three effective families with valid held-out predictions, and $e\le 0.02$. When it passes, a model-effort row that has Mercor but no AA result receives:
 
 $$
-\hat A_m=\operatorname{clamp}(M_m-\delta,0,1),\qquad q_m=\operatorname{clamp}\left(1-\frac{e}{0.02},0,1\right)
+\hat A_m=\operatorname{clamp}(M_m-\delta,0,1),\qquad
+\eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{0.02},0,1\right)
 $$
 
-$q_m$ is the imputed row's evidence credit before the ordinary benchmark-coverage confidence curve. Observed AA values are never replaced, Mercor rows do not change the observed APEX normalization anchors, and Mercor-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, APEX Agents falls through to the ordinary benchmark imputer.
+$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary benchmark-coverage confidence curve. Observed AA values are never replaced, Mercor rows do not change the observed APEX normalization anchors, and Mercor-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, APEX Agents falls through to contextual quantile imputation.
+
+### Contextual Quantile Imputation
 
 The context benchmark $k$ can be any other selected benchmark in dimension $D$. Frontier and baseline use the same prediction evidence, weighted by benchmark importance multiplied by the configured loading for the dimension:
 
@@ -245,22 +156,44 @@ C_{m,b}=\frac{\sum_{k\in D,k\neq b,z_{m,k}\text{ available}}w_{k,D}z_{m,k}}{\sum
 $$
 
 $$
-\hat{x}_{m,b}=\operatorname{weightedQuantile}\left(\{(x_{j,b},a_j):x_{j,b}\text{ and }C_{j,b}\text{ observed}\},\operatorname{weightedQuantileRank}(C_{m,b})/100\right)
+\pi_{m,b}=
+\frac{
+\operatorname{weightedQuantileRank}
+\left(\{(C_{j,b},a_j):x_{j,b}\text{ and }C_{j,b}\text{ observed}\},C_{m,b}\right)
+}{100}
 $$
 
-The target and context distributions use the same paired calibration rows, and the quantile rank uses the same weighted mid-mass positions as the weighted quantile. Each benchmark imputer is validated by withholding every variant of the observed model from calibration evidence and predicting that value. Let $e_b$ be the model-weighted median raw absolute leave-one-model-out error. Imputation is refused unless at least four effective models produce valid held-out predictions and the separately measured normalized median absolute error is at most 25 points.
+$$
+\hat{x}_{m,b}=
+\operatorname{weightedQuantile}
+\left(\{(x_{j,b},a_j):x_{j,b}\text{ and }C_{j,b}\text{ observed}\},\pi_{m,b}\right)
+$$
 
-When a model has multiple reasoning efforts, the imputer also tests a two-dimensional candidate. The original predictor still requires at least three other observed benchmarks at the target effort. A cross-effort predictor requires a sibling effort with at least three observed selected benchmarks and at least four effective reference models that pair the same target and source efforts. Every sibling benchmark is normalized on its own benchmark scale before aggregation; the resulting context percentile is mapped into the target benchmark distribution exactly as in the one-dimensional predictor. No raw score difference is transferred between benchmarks. Each ordered effort transition is calibrated separately, so either a higher or lower sibling may provide evidence when that direction has enough support.
+The target and context distributions use the same paired calibration rows. Mapping a weighted context rank into the target quantile preserves the target benchmark's distribution without assuming that the two signals share units or a linear relationship. Each benchmark imputer is validated by withholding every variant of the observed model from calibration evidence and predicting that value. The model-weighted median raw absolute leave-one-model-out error is $e_b$. Imputation is refused unless at least four effective models produce valid held-out predictions and the separately measured normalized median absolute error is at most 25 points.
 
-The two-dimensional candidate gives one equal slot to the original direct prediction and one to the available cross-effort predictions. It is used for a benchmark only when leave-one-model-out validation reduces normalized median absolute error by at least 2% relative to an allowed one-dimensional predictor, or when it brings a refused one-dimensional predictor within the 25-point error limit. At least four independent held-out models must actually use the cross-effort path, and their cross-only normalized median absolute error must not exceed 25 points. For an individual missing value, both the target-effort benchmark context and the sibling-effort context must still pass their evidence thresholds. If the sibling context is sparse, that value falls back to the separately validated one-dimensional predictor and penalty; if the one-dimensional predictor is also unreliable, the value remains missing. Other observations from the held-out model may provide query context, but every variant of that model remains excluded from the mapping fitted for its validation prediction. Imputed values never become context for another imputation.
+### Cross-Effort Extension
+
+When a model has multiple reasoning efforts, the imputer also tests a two-dimensional candidate. The direct predictor still requires at least three other observed benchmarks at the target effort. A cross-effort predictor requires a sibling effort with at least three observed selected benchmarks and at least four effective reference models that pair the same target and source efforts.
+
+Every sibling benchmark is normalized on its own scale before aggregation. The resulting context percentile is mapped into the target benchmark distribution exactly as in the direct predictor; no raw score difference is transferred between benchmarks. Each ordered effort transition is calibrated separately, so either a higher or lower sibling may provide evidence when that direction has enough support.
+
+The two-dimensional candidate gives one equal slot to the direct prediction and one to the available cross-effort predictions. It is used only when leave-one-model-out validation reduces normalized median absolute error by at least 2%, or when it brings a refused direct predictor within the 25-point error limit.
+
+At least four independent held-out models must actually use the cross-effort path, and their cross-only normalized median absolute error must not exceed 25 points. Both the target-effort and sibling-effort contexts must pass their evidence thresholds for the individual missing value. Sparse sibling evidence falls back to the separately validated direct predictor; if that predictor is also unreliable, the value remains missing. Every variant of the held-out model is excluded from the mapping fitted for its validation prediction.
+
+### Conservative Value and Evidence Credit
 
 $$
 x_{m,b}^{\text{imputed}}=\max\left(0,\hat{x}_{m,b}-\kappa_g e_b\right)
 $$
 
+![A same-dimension context percentile mapped into the paired target distribution, then reduced by the validated held-out error penalty.](assets/methodology/quantile-imputation.svg)
+
 The missing-data multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline}}=0.5$. Group changes only this penalty; it does not change context selection, validation evidence, or observed benchmark weight. A value that actually uses the two-dimensional predictor subtracts the cross-only raw held-out median error; a one-dimensional fallback subtracts the one-dimensional error. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
 
 Validation-weighted evidence coverage remains in addition to the benchmark-local error subtraction. The subtraction makes every imputed value conservative, while evidence credit reflects the held-out reliability of the predictor actually used for that row. A sparse sibling-effort context falls back to the separately validated one-dimensional value, penalty, and confidence. Imputations remain ineligible for public admission regardless of that credit.
+
+## Price and Workflow Assumptions
 
 ### Price Profiles
 
@@ -275,7 +208,7 @@ $$
 \end{aligned}
 $$
 
-The profile weights are simple usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy; the blended price leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
+Input-side and output-side price use provider effective weighted prices when both are available; otherwise they use the published input and output prices. The profile weights are usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy. The blend leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
 
 ### Workflow Simulation
 
@@ -283,14 +216,14 @@ The profile weights are simple usage priors, not measured traffic shares. Task i
 
 The workflow simulation is a fixed stress mix rather than a workload trace. It includes small calls, long-context calls, repeated chat, and agentic loops so latency, throughput, cache pricing, and output-heavy work all have a chance to matter.
 
-| Scenario | Weight | Calls | Input tokens/call | Output tokens/call |
-| --- | ---: | ---: | ---: | ---: |
-| Micro | 15% | 1 | `500..3000` | `1..50` |
-| Refine/translate | 15% | 1 | `500..20000` | `500..20000` |
-| Extract/structure | 15% | 1 | `3000..20000` | `100..1200` |
-| Chat/reasoning | 20% | 4 | `1000..12000` | `300..2000` |
-| Long synthesis | 15% | 1 | `20000..80000` | `1500..6000` |
-| Agentic loop | 20% | 8 | `8000..60000` | `500..4000` |
+| Scenario | Weight | Calls | Input tokens/call | Output tokens/call | Intelligence / Agentic | Full-credit quality |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Micro | 15% | 1 | `500..3000` | `1..50` | 30% / 70% | 30 |
+| Refine/translate | 15% | 1 | `500..20000` | `500..20000` | 35% / 65% | 35 |
+| Extract/structure | 15% | 1 | `3000..20000` | `100..1200` | 40% / 60% | 45 |
+| Chat/reasoning | 20% | 4 | `1000..12000` | `300..2000` | 55% / 45% | 60 |
+| Long synthesis | 15% | 1 | `20000..80000` | `1500..6000` | 65% / 35% | 75 |
+| Agentic loop | 20% | 8 | `8000..60000` | `500..4000` | 25% / 75% | 90 |
 
 #### Log-Uniform Token Ranges
 
@@ -316,12 +249,17 @@ Workflow runtime combines model latency $\ell_m$, model output throughput $\tau_
 Workflow Price uses the same scenario mix, but each scenario contributes useful work per log dollar. This is one of the provider price components that feeds the public Value score.
 
 $$
-U_{m,s}=\frac{\operatorname{smoothstep}\left(q_{m,s}/q_{\text{full},s}\right)}{\log_{10}(1+\text{scenario cost}_{m,s})}
+\begin{aligned}
+U_{m,s}&=\frac{\operatorname{smoothstep}\left(Q_{m,s}/Q_{\text{full},s}\right)}{\log_{10}(1+\text{scenario cost}_{m,s})}\\
+U_m&=\sum_s w_sU_{m,s}
+\end{aligned}
 $$
 
-The scenario quality blend $q_{m,s}$ combines Intelligence and Agentic scores for model $m$ under scenario $s$, and $q_{\text{full},s}$ is that scenario's full-credit threshold. The smoothstep quality multiplier gives little credit below the scenario threshold and then saturates, because being far above "good enough" should not let quality swamp price in a value signal. Repeated chat and agentic scenarios model cache-read pricing after the first call: chat treats 50% of input as cacheable and agentic treats 70% of input as cacheable, with a midpoint 70% hit rate from the configured `50..90%` range. One-shot scenarios do not receive cache benefit.
+The scenario quality blend $Q_{m,s}$ combines Intelligence and Agentic using the table's scenario-specific proportions, and $Q_{\text{full},s}$ is the full-credit threshold. The smoothstep multiplier gives little credit below the threshold and then saturates, because being far above "good enough" should not allow quality to swamp price.
 
-### Speed Score
+Repeated chat and agentic scenarios model cache-read pricing after the first call. Chat treats 50% of input as cacheable and agentic treats 70% as cacheable, with a 70% expected hit rate from the configured `50..90%` range. One-shot scenarios receive no cache benefit.
+
+## Provider and Workflow Speed Inputs
 
 Displayed Speed is a public score that gives equal weight to provider speed stats, the workflow runtime simulation, and each active benchmark task-time input:
 
@@ -336,9 +274,9 @@ S^{\text{workflow}}_m&=\operatorname{MinMax}_{\text{lower}}(\log T_{\text{workfl
 \end{aligned}
 $$
 
-Higher throughput ranks higher, while lower latency, lower end-to-end latency, and lower workflow seconds rank higher. The provider stats component requires at least two provider speed stats.
+Higher throughput ranks higher, while lower latency, end-to-end latency, and workflow seconds rank higher. Logging makes proportional gaps comparable and prevents extreme raw values from defining most of the normalized range. The three provider statistics together occupy one score slot, and at least two must be present so one measurement cannot stand in for overall serving performance.
 
-### Task Resource Efficiency
+## Quality-Adjusted Resource Efficiency
 
 Speed's benchmark task-time component and Value's benchmark task-cost component share the same neighborhood method. The only difference is the resource amount:
 
@@ -351,18 +289,22 @@ $$
 
 Task resources can come from direct per-benchmark telemetry or from the AA per-task resource metric when the benchmark portfolio marks the benchmark as AA-backed. If a benchmark reports output tokens but not wall time, effective task seconds fall back to output tokens divided by served throughput.
 
-For each active benchmark resource source, the benchmark score first becomes a local quality coordinate. The score $q_{m,b}$ is model $m$'s benchmark score for benchmark $b$ on the 0-1 scale. Percent-style source scores use $q_{m,b}=x_{m,b}/100$; already-normalized source scores use $q_{m,b}=x_{m,b}$.
+### Quality Neighborhood
+
+For each active benchmark resource source, the benchmark score first becomes a local quality coordinate. The score $p_{m,b}$ is model $m$'s benchmark score for benchmark $b$ on the 0-1 scale. Percent-style source scores use $p_{m,b}=x_{m,b}/100$; already-normalized source scores use $p_{m,b}=x_{m,b}$. Before taking the logit, values are clamped to $[0.001,0.999]$ so exact endpoints remain finite.
 
 $$
-Z_{m,b}=\frac{\operatorname{logit}(q_{m,b})-\operatorname{weightedMedian}_j(\operatorname{logit}(q_{j,b}),a_{j,b})}{\operatorname{deviation}_b}
+Z_{m,b}=\frac{\operatorname{logit}(p_{m,b})-\operatorname{weightedMedian}_j(\operatorname{logit}(p_{j,b}),a_{j,b})}{\operatorname{deviation}_b}
 $$
 
 The logit transform puts benchmark percentages on an odds-like scale before measuring "similar quality." A one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction. Using logit keeps resource comparisons local to models that are genuinely close in benchmark difficulty, especially on hard or high-scoring benchmarks.
 
+![The logit transform expands an equal one-percentage-point score change near the benchmark ceiling.](assets/methodology/logit-quality.svg)
+
 The denominator is a robust benchmark-local spread on the same logit scale:
 
 $$
-\operatorname{deviation}_b=\max\left(\frac{Q^{a}_{75}(\{\operatorname{logit}(q_{j,b})\})-Q^{a}_{25}(\{\operatorname{logit}(q_{j,b})\})}{1.349},0.35\right)
+\operatorname{deviation}_b=\max\left(\frac{Q^{a}_{75}(\{\operatorname{logit}(p_{j,b})\})-Q^{a}_{25}(\{\operatorname{logit}(p_{j,b})\})}{1.349},0.35\right)
 $$
 
 The $1.349$ factor converts interquartile range into a standard-deviation-like spread for a roughly normal distribution, and the $0.35$ floor prevents a nearly tied benchmark from making small quality differences dominate the neighborhood comparison.
@@ -373,7 +315,9 @@ $$
 w_{m,j,b}=\mathbf{1}[\operatorname{model}(m)\ne\operatorname{model}(j)]a_{j,b}\exp\left(-\frac{1}{2}\left(\frac{Z_{m,b}-Z_{j,b}}{0.5}\right)^2\right)
 $$
 
-Here $a_{j,b}$ divides one model's unit mass across its variants that have both quality and resource evidence for benchmark $b$.
+The calibration weight $a_{j,b}$ divides one model's unit mass across its variants that have both quality and resource evidence for benchmark $b$.
+
+### Expected Resource and Residual
 
 Cost and runtime are logged before calculating the expected resource signal and its residual:
 
@@ -382,7 +326,19 @@ $$
 \epsilon^{r}_{m,b}=\log A^{r}_{m,b}-\mu^{r}_{m,b}
 $$
 
-A negative residual means the model uses less resource than expected for its quality. Comparison weights are first combined by model so multiple variants cannot manufacture peer support. Let $W_{m,k,b}$ be the total neighborhood weight for comparison model $k$. The supported peer mass is
+A negative residual means the model uses less resource than expected for its quality.
+
+![A focal model's logged resource use compared with the expected resource use among nearby-quality models.](assets/methodology/resource-residual.svg)
+
+### Peer Support
+
+Comparison weights are first combined by model so multiple variants cannot manufacture peer support:
+
+$$
+W_{m,k,b}=\sum_{j:\operatorname{model}(j)=k}w_{m,j,b}.
+$$
+
+The supported peer mass is
 
 $$
 s_{m,b}=\min\left(\sum_k W_{m,k,b},\frac{(\sum_k W_{m,k,b})^2}{\sum_k W_{m,k,b}^2}\right)
@@ -390,13 +346,15 @@ $$
 
 and its support confidence is $h_{m,b}=\operatorname{smoothstep}((s_{m,b}-1)/2)$. The first term prevents many distant, near-zero neighbors from appearing well supported; the second is the effective independent-model count. Support of one or less gives no comparative confidence, while support of three gives full confidence. An observed resource with no supported comparison remains neutral at $50$ rather than becoming missing or receiving self-credit.
 
-For each resource signal, let $L$ be the model-balanced 2.5th percentile of supported residuals and let $U$ be the largest supported residual. Only the favorable low-residual tail is winsorized. The magnitude-preserving score is
+### Residual Score Mapping
+
+The model-balanced 2.5th percentile $L$ and largest value $U$ bound the supported residuals for each resource signal. Only the favorable low-residual tail is winsorized. The magnitude-preserving score is
 
 $$
 M^{r}_{m,b}=100\cdot\frac{U-\operatorname{clamp}(\epsilon^{r}_{m,b},L,U)}{U-L}.
 $$
 
-Let $P^{r}_{m,b}$ be the model-balanced percentile of $-\epsilon^{r}_{m,b}$ among supported residuals, so lower resource use receives the higher percentile. The mapped resource score averages magnitude and distribution position:
+The model-balanced percentile $P^{r}_{m,b}$ ranks $-\epsilon^{r}_{m,b}$ among supported residuals, so lower resource use receives the higher percentile. The mapped resource score averages magnitude and distribution position:
 
 $$
 H^{r}_{m,b}=\frac{M^{r}_{m,b}+P^{r}_{m,b}}{2},
@@ -404,31 +362,11 @@ H^{r}_{m,b}=\frac{M^{r}_{m,b}+P^{r}_{m,b}}{2},
 R^{r}_{m,b}=50+h_{m,b}(H^{r}_{m,b}-50).
 $$
 
+![Resource residuals mapped through magnitude and percentile scores, then shrunk toward neutral 50 according to comparison support.](assets/methodology/resource-score-mapping.svg)
+
 The equal mean retains half of the residual's logged magnitude information and half of its model-balanced distribution position. One-sided winsorization prevents one exceptionally cheap or fast model from setting the entire magnitude scale. Unsupported quality extremes shrink to neutral instead of being expanded by either mapping. If the supported residuals have no meaningful spread, every observed residual receives the neutral score of $50$.
 
-Each model's task-resource signal is the mean of its available benchmark resource scores, multiplied by a coverage confidence. Coverage is the share of active benchmark resource sources that the model actually has:
-
-$$
-\bar{R}^{r}_m=\operatorname{mean}\left(R^{r}_{m,b}:R^{r}_{m,b}\text{ available}\right)
-$$
-
-$$
-\operatorname{coverage}_{m,r}=\frac{\text{available benchmark resource scores for model }m\text{ and resource }r}{\text{active benchmark resource sources for resource }r}
-$$
-
-$$
-\gamma^{r}_m=
-\begin{cases}
-1,& \operatorname{coverage}_{m,r}\ge0.6\\
-\operatorname{smoothstep}\left(\frac{\operatorname{coverage}_{m,r}-0.1}{0.5}\right),& \operatorname{coverage}_{m,r}<0.6
-\end{cases}
-$$
-
-$$
-E^{r}_m=\bar{R}^{r}_m\gamma^{r}_m
-$$
-
-$\operatorname{smoothstep}$ is clamped to the 0-1 range. Models get full confidence once they cover at least 60% of active task-resource sources, and near-zero confidence below roughly 10% coverage. That ramp avoids rewarding a model for one lucky resource row while also not requiring complete coverage from sparse benchmark sources.
+## Final Speed and Value
 
 Provider speed and workflow runtime use $\log x$ as their input to ordinary min-max normalization. Value's absolute price component uses $\log_{10}(1+\text{blended price})$ with model-balanced 2.5% favorable-tail winsorized min-max. Its quality-adjusted log blended price component subtracts the locally expected log blended price at the model's aggregate quality, then uses the residual percentile/min-max mean above. Its workflow component applies the same residual hybrid to the locally expected negative workflow-efficiency signal; the completed workflow output is not logged again.
 
@@ -436,15 +374,15 @@ $$
 S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-y_{\min}}{y_{\max}-y_{\min}},0,1\right)
 $$
 
-Here $g(x)$ is the completed input signal and $y_{\min}$ and $y_{\max}$ are its minimum and maximum finite values. For raw provider and workflow inputs, $g(x)=\log x$. The formula above applies when higher values are better, such as throughput. Lower-is-better inputs reverse the scale:
+The completed input signal is $g(x)$, bounded by its finite minimum $y_{\min}$ and maximum $y_{\max}$. For raw provider and workflow inputs, $g(x)=\log x$. The formula above applies when higher values are better, such as throughput. Lower-is-better inputs reverse the scale:
 
 $$
 S_{\downarrow}(x)=100\operatorname{clamp}\left(\frac{y_{\max}-g(x)}{y_{\max}-y_{\min}},0,1\right)
 $$
 
-The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. Absolute-price inputs instead use one-sided winsorized anchors. Quality-conditioned residual inputs average their one-sided winsorized min-max score with their model-balanced percentile score.
+The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. The two forms therefore share the same anchors; direction changes the ordering, not the scale. Absolute-price inputs instead use one-sided winsorized anchors. Quality-conditioned residual inputs average their one-sided winsorized min-max score with their model-balanced percentile score.
 
-The public Speed score uses each benchmark task-time input as its own equally weighted component. The public Value score uses each price and benchmark-cost input as its own equally weighted component:
+The public Speed score uses each benchmark task-time input as its own equally weighted component. The public Value score uses each price and benchmark-cost input as its own equally weighted component. Giving each component one slot makes the result depend on distinct signals rather than the number of raw rows supplied by a source:
 
 $$
 \begin{aligned}
@@ -454,6 +392,34 @@ $$
 \end{aligned}
 $$
 
-$C^{\text{speed}}_m$ is the coverage-confidence ramp applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same ramp over absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active benchmark task-cost components.
+$C^{\text{speed}}_m$ is the shared coverage-confidence function $C(k/K)$ applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same function over absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active benchmark task-cost components. Here, $k$ is the number of available components and $K$ is the number of active components.
 
 $P^{\text{blend}}_m$ is the winsorized min-max score for absolute log blended price. $P^{\text{quality}}_m$ and $P^{\text{workflow}}_m$ are the percentile/min-max means for the quality-conditioned log-price and workflow-efficiency residuals.
+
+Keeping absolute and quality-conditioned price separate answers two different questions: what the model costs and whether that cost is efficient for the quality delivered.
+
+## Publication Gates
+
+Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must have at least eight observed selected benchmarks, including at least one Intelligence benchmark, one Agentic benchmark, and one aggregate index: Artificial Analysis Intelligence Index, Epoch Capabilities Index, or Vals Index.
+
+Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in Intelligence, Agentic, Speed, or Value. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
+
+An unlabelled benchmark observation belongs to the source-default variant. When every observation is labelled, source aggregation selects the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Compact public views represent each base model with its highest-Intelligence scored variant; the `all` API view preserves every scored effort variant.
+
+## Parameter Rationale
+
+The fixed values below are robustness rules and usage priors rather than fitted claims about universal model behavior.
+
+| Parameter | Value | Why it exists |
+| --- | ---: | --- |
+| Evidence confidence floor / full point | 10% / 60% | Suppresses scores built from isolated evidence while allowing incomplete but broad coverage to receive full confidence. |
+| Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
+| Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
+| Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |
+| Cross-effort improvement | 2% | Requires a measurable validation gain before adding sibling-effort complexity. |
+| Frontier / baseline error penalty | $1.0e_b$ / $0.5e_b$ | Makes missing frontier evidence more conservative without changing observed benchmark weight. |
+| Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
+| Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
+| Minimum logit-scale deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences. |
+| Full peer support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
+| Input-token friction | 0.0001 seconds/token | Represents prefill cost when comparable model-specific prefill throughput is unavailable. |

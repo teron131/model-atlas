@@ -15,7 +15,7 @@ Do not treat benchmark ingestion as a straight coding task. Work in stages and p
 
 Find the current files by role before broad edits:
 
-- Benchmark standards, methodology, and matching docs: inclusion rules, scoring intent, and model identity policy.
+- Benchmark standards, portfolio/source policy, methodology, and matching docs: inclusion rules, selected benchmark decisions, scoring intent, and model identity policy.
 - Benchmark config: selected benchmark keys, baseline/frontier groupings, dimension portions, and score weights.
 - Scraper modules: existing leaderboard/API/PDF scrapers and their focused tests.
 - Source-data and cache/database loading: where raw source rows become lookup maps or persisted snapshots.
