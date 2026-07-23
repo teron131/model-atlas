@@ -341,6 +341,10 @@ const scoringConfig = {
 			dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
 		},
 	},
+	confidence: {
+		intelligence: { floor: 0, full: 1 },
+		agentic: { floor: 0, full: 1 },
+	},
 	columnTooltips: {},
 } as const;
 const benchmarkImputationByModel = buildBenchmarkImputationByModel(

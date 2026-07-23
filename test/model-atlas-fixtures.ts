@@ -4,6 +4,7 @@ import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type BenchmarkObservationRowsKey,
 } from "../src/model-atlas/benchmarks/registry";
+import { CONFIDENCE } from "../src/model-atlas/config/stage";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type {
 	ModelAtlasModel,
@@ -45,6 +46,7 @@ export function minimalModelAtlasPayload({
 				missing_agentic_benchmark_keys: [],
 				selected_benchmark_keys: [],
 				benchmark_portfolio: {},
+				confidence: CONFIDENCE,
 				price_profiles: {},
 				simulation_profiles: {},
 				seconds_per_input_token: 0,

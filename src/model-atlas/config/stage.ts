@@ -1,9 +1,13 @@
 /** Pipeline stage switches that control how source rows are matched, enriched, pruned, and scored. */
 
-import type { BenchmarkPortfolio } from "../benchmarks/factory";
+import type {
+	BenchmarkDimension,
+	BenchmarkPortfolio,
+} from "../benchmarks/factory";
 import {
 	AGENTIC_BENCHMARK_DISPLAY_KEYS,
 	BENCHMARK_PORTFOLIO,
+	benchmarkDimensionWeight,
 	INDEX_BENCHMARK_KEYS,
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 	SELECTED_AGENTIC_BENCHMARKS,
@@ -29,6 +33,44 @@ export type BenchmarkAdmissionConfig = {
 	minimumObservedBenchmarksPerDimension: number;
 };
 
+export type Confidence = Record<
+	BenchmarkDimension,
+	{
+		floor: number;
+		full: number;
+	}
+>;
+
+const CONFIDENCE_FLOOR_SHARE = 0.1;
+const CONFIDENCE_FULL_SHARE = 0.6;
+
+/** Derive the confidence ramp from the selected portfolio's effective dimension weight. */
+function confidenceForDimension(
+	keys: readonly string[],
+	dimension: BenchmarkDimension,
+) {
+	const totalWeight = keys.reduce(
+		(total, key) =>
+			total + benchmarkDimensionWeight(key, dimension, BENCHMARK_PORTFOLIO),
+		0,
+	);
+	return {
+		floor: Number((totalWeight * CONFIDENCE_FLOOR_SHARE).toFixed(10)),
+		full: Number((totalWeight * CONFIDENCE_FULL_SHARE).toFixed(10)),
+	};
+}
+
+export const CONFIDENCE = {
+	intelligence: confidenceForDimension(
+		SELECTED_INTELLIGENCE_BENCHMARKS,
+		"intelligence",
+	),
+	agentic: confidenceForDimension(
+		SELECTED_AGENTIC_BENCHMARKS,
+		"agentic",
+	),
+} satisfies Confidence;
+
 export type FinalStageConfig = {
 	nullFieldPruneThreshold: number;
 	nullFieldPruneRecentLookbackDays: number;
@@ -53,6 +95,7 @@ export type ScoringConfig = {
 	simulationProfiles: SimulationProfiles;
 	secondsPerInputToken: number;
 	benchmarkPortfolio: BenchmarkPortfolio;
+	confidence: Confidence;
 	columnTooltips: ModelAtlasColumnTooltips;
 };
 
@@ -115,6 +158,7 @@ export const STAGE_CONFIG = {
 		simulationProfiles: SIMULATION_PROFILES,
 		secondsPerInputToken: SECONDS_PER_INPUT_TOKEN,
 		benchmarkPortfolio: BENCHMARK_PORTFOLIO,
+		confidence: CONFIDENCE,
 		columnTooltips: COLUMN_TOOLTIPS,
 	},
 } satisfies ModelAtlasStageConfig;

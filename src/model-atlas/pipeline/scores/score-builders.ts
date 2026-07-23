@@ -2,7 +2,7 @@
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
-import type { ScoringConfig } from "../../config/stage";
+import type { Confidence, ScoringConfig } from "../../config/stage";
 import {
 	meanOfFinite,
 	quantileFromSorted,
@@ -17,7 +17,7 @@ import {
 	normalizedMetricValue,
 	type QualityScoringContext,
 } from "./benchmark-imputation";
-import { coverageConfidence } from "./normalization";
+import { evidenceMassConfidence } from "./normalization";
 import { benchmarkMetricValue } from "./resource-metrics";
 
 type BenchmarkScoreInput = {
@@ -83,19 +83,24 @@ function selectedBenchmarkScoreInputs(
 /** Score selected benchmarks while scaling confidence by observed and validated-imputed evidence. */
 function qualityScore(
 	benchmarkScoreInputs: BenchmarkScoreInput[],
+	evidenceThresholds: Confidence[BenchmarkDimension],
 ): number | null {
 	const qualityMean = weightedMeanOfFinite(
 		benchmarkScoreInputs.map(({ value, weight }) => ({ value, weight })),
 	);
-	const evidenceCoverage = weightedMeanOfFinite(
-		benchmarkScoreInputs.map(({ evidenceConfidence, weight }) => ({
-			value: evidenceConfidence,
-			weight,
-		})),
+	const evidenceMass = benchmarkScoreInputs.reduce(
+		(total, { evidenceConfidence, weight }) =>
+			total + evidenceConfidence * weight,
+		0,
 	);
-	return qualityMean == null || evidenceCoverage == null
+	return qualityMean == null
 		? null
-		: qualityMean * coverageConfidence(evidenceCoverage, 1);
+		: qualityMean *
+				evidenceMassConfidence(
+					evidenceMass,
+					evidenceThresholds.floor,
+					evidenceThresholds.full,
+				);
 }
 
 /** Estimate a blended price from effective input/output prices, falling back to published models.dev prices. */
@@ -225,8 +230,14 @@ export function buildComponentScores(
 		imputedValuesByKey,
 		imputedConfidenceByKey,
 	);
-	const intelligenceScore = qualityScore(intelligenceBenchmarkInputs);
-	const agenticScore = qualityScore(agenticBenchmarkInputs);
+	const intelligenceScore = qualityScore(
+		intelligenceBenchmarkInputs,
+		scoringConfig.confidence.intelligence,
+	);
+	const agenticScore = qualityScore(
+		agenticBenchmarkInputs,
+		scoringConfig.confidence.agentic,
+	);
 	const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
 	const throughputTokensPerSecond = asFiniteNumber(
 		speed.throughput_tokens_per_second_median,

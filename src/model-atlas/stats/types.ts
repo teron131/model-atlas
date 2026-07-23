@@ -2,6 +2,7 @@
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { DeepSWELeaderboardRow } from "../benchmarks/scrapers/deep-swe";
+import type { Confidence } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type {
 	PriceProfiles,
@@ -86,6 +87,7 @@ export type ModelAtlasMetadata = {
 		missing_agentic_benchmark_keys: string[];
 		selected_benchmark_keys: string[];
 		benchmark_portfolio: BenchmarkPortfolio;
+		confidence: Confidence;
 		price_profiles: PriceProfiles;
 		simulation_profiles: SimulationProfiles;
 		seconds_per_input_token: number;

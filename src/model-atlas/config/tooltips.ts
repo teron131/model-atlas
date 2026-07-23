@@ -237,7 +237,7 @@ const qualityBenchmarkRows = (
 			"Imputed-value penalty",
 			"frontier subtracts 1.0x error; baseline subtracts 0.5x error",
 		],
-		["Coverage confidence", "10%-60% validation-weighted evidence ramp"],
+		["Confidence", "zero through 10% weighted evidence; full from 60%"],
 		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,

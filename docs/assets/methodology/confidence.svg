@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="title desc">
+  <title id="title">Confidence</title>
+  <desc id="desc">Confidence is zero through ten percent weighted evidence, rises smoothly, and is full from sixty percent.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 14px; }
+    .label { font-size: 17px; }
+    .annotation { font-size: 15px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .curve { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .threshold { stroke: var(--secondary); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  </style>
+  <rect width="720" height="360" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Confidence</text>
+  <line x1="90" y1="280" x2="670" y2="280" class="axis" />
+  <line x1="90" y1="60" x2="90" y2="280" class="axis" />
+  <line x1="90" y1="170" x2="670" y2="170" class="grid" />
+  <line x1="380" y1="60" x2="380" y2="280" class="grid" />
+  <line x1="670" y1="60" x2="670" y2="280" class="grid" />
+  <line x1="148" y1="60" x2="148" y2="280" class="threshold" />
+  <line x1="438" y1="60" x2="438" y2="280" class="threshold" />
+  <polyline class="curve" points="90,280 119,280 148,280 177,274 206,257 235,232 264,203 293,170 322,137 351,108 380,83 409,66 438,60 467,60 496,60 525,60 554,60 583,60 612,60 641,60 670,60" />
+  <text x="148" y="50" text-anchor="middle" class="annotation">10% floor</text>
+  <text x="438" y="50" text-anchor="middle" class="annotation">60% full</text>
+  <text x="90" y="307" text-anchor="middle" class="muted">0%</text>
+  <text x="380" y="307" text-anchor="middle" class="muted">50%</text>
+  <text x="670" y="307" text-anchor="middle" class="muted">100%</text>
+  <text x="74" y="285" text-anchor="end" class="muted">0</text>
+  <text x="74" y="175" text-anchor="end" class="muted">50</text>
+  <text x="74" y="65" text-anchor="end" class="muted">100</text>
+  <text x="380" y="342" text-anchor="middle" class="label">Weighted evidence</text>
+  <text transform="translate(25 170) rotate(-90)" text-anchor="middle" class="label">Confidence</text>
+</svg>

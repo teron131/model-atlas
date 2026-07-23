@@ -23,8 +23,8 @@ assert.equal(
 assert.equal(documentLink("standards.md"), "/methodology/standards");
 assert.equal(documentLink("https://example.com"), "https://example.com");
 assert.equal(
-	documentImageSource("assets/methodology/coverage-confidence.svg"),
-	"/methodology-assets/coverage-confidence.svg",
+	documentImageSource("assets/methodology/confidence.svg"),
+	"/methodology-assets/confidence.svg",
 );
 assert.equal(
 	documentImageSource("assets/methodology/unknown.svg"),

@@ -33,7 +33,7 @@ export type TableOfContentsItem = {
 };
 
 export const METHODOLOGY_ASSETS = {
-	"coverage-confidence.svg": { width: 720, height: 420 },
+	"confidence.svg": { width: 720, height: 360 },
 	"elo-transform.svg": { width: 720, height: 420 },
 	"logit-quality.svg": { width: 720, height: 520 },
 	"quantile-imputation.svg": { width: 720, height: 420 },
