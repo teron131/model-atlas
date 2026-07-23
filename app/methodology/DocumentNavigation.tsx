@@ -71,6 +71,7 @@ export function DocumentNavigation({
 						<li key={item.slug}>
 							<Link
 								href={documentHref(item.slug)}
+								prefetch={false}
 								aria-current={item.slug === activeDocument ? "page" : undefined}
 								onClick={onClose}
 							>

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScreenshotIcon } from "../shared/DashboardIcons";
 import { scoreMetricColumns, scoreSortableColumns } from "../table/Columns";
 import type { SortState, TableRow } from "../table/models";
@@ -21,18 +21,37 @@ export function LeaderboardCapture({
 	sortState: SortState;
 }) {
 	const captureRef = useRef<HTMLDivElement>(null);
+	const captureStartedRef = useRef(false);
+	const [captureStageMounted, setCaptureStageMounted] = useState(false);
 	const { capture, state } = usePngCapture(
 		captureRef,
 		`model-atlas-leaderboard-top-${rows.length}-${rowKind}`,
 	);
 	const label =
-		state === "rendering"
-			? "Rendering leaderboard PNG"
-			: state === "saved"
-				? "Leaderboard PNG saved"
-				: state === "error"
-					? "Leaderboard PNG failed"
-					: "Screenshot";
+		captureStageMounted && state === "idle"
+			? "Preparing leaderboard PNG"
+			: state === "rendering"
+				? "Rendering leaderboard PNG"
+				: state === "saved"
+					? "Leaderboard PNG saved"
+					: state === "error"
+						? "Leaderboard PNG failed"
+						: "Screenshot";
+
+	useEffect(() => {
+		if (
+			!captureStageMounted ||
+			captureStartedRef.current ||
+			captureRef.current == null
+		) {
+			return;
+		}
+		captureStartedRef.current = true;
+		void capture().finally(() => {
+			captureStartedRef.current = false;
+			setCaptureStageMounted(false);
+		});
+	}, [capture, captureStageMounted]);
 
 	return (
 		<div className={styles.leaderboardCapture} data-capture-exclude>
@@ -40,56 +59,60 @@ export function LeaderboardCapture({
 				className={styles.leaderboardButton}
 				type="button"
 				aria-label={label}
-				aria-busy={state === "rendering"}
+				aria-busy={captureStageMounted || state === "rendering"}
 				data-state={state}
-				disabled={state === "rendering" || rows.length === 0}
+				disabled={
+					captureStageMounted || state === "rendering" || rows.length === 0
+				}
 				title={label}
-				onClick={() => void capture()}
+				onClick={() => setCaptureStageMounted(true)}
 			>
 				<ScreenshotIcon />
 			</button>
-			<div className={styles.stage} aria-hidden="true" inert>
-				<div className={styles.leaderboard} ref={captureRef}>
-					<table>
-						<colgroup>
-							<col className={styles.rankColumn} />
-							<col className={styles.modelColumn} />
-							{scoreMetricColumns.map((column) => (
-								<col className={styles.scoreColumn} key={column.key} />
-							))}
-						</colgroup>
-						<thead>
-							<tr>
-								{scoreSortableColumns.map((column) => (
-									<th
-										className={column.className}
-										data-sort-state={
-											column.key === sortState.key
-												? sortState.direction
-												: undefined
-										}
-										key={column.key}
-										scope="col"
-									>
-										<span className={styles.captureHeader}>
-											{column.label}
-											<span className="sort-indicator" aria-hidden="true" />
-										</span>
-									</th>
+			{captureStageMounted ? (
+				<div className={styles.stage} aria-hidden="true" inert>
+					<div className={styles.leaderboard} ref={captureRef}>
+						<table>
+							<colgroup>
+								<col className={styles.rankColumn} />
+								<col className={styles.modelColumn} />
+								{scoreMetricColumns.map((column) => (
+									<col className={styles.scoreColumn} key={column.key} />
 								))}
-							</tr>
-						</thead>
-						<tbody>
-							{rows.map((row) => (
-								<ScoreModelRow
-									key={`${row.originalIndex}-${row.model.reasoning_effort ?? ""}`}
-									rowData={row}
-								/>
-							))}
-						</tbody>
-					</table>
+							</colgroup>
+							<thead>
+								<tr>
+									{scoreSortableColumns.map((column) => (
+										<th
+											className={column.className}
+											data-sort-state={
+												column.key === sortState.key
+													? sortState.direction
+													: undefined
+											}
+											key={column.key}
+											scope="col"
+										>
+											<span className={styles.captureHeader}>
+												{column.label}
+												<span className="sort-indicator" aria-hidden="true" />
+											</span>
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{rows.map((row) => (
+									<ScoreModelRow
+										key={`${row.originalIndex}-${row.model.reasoning_effort ?? ""}`}
+										rowData={row}
+									/>
+								))}
+							</tbody>
+						</table>
+					</div>
 				</div>
-			</div>
+			) : null}
 		</div>
 	);
 }

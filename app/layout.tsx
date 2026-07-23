@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 
 import { MODEL_ATLAS_THEME_BOOTSTRAP_SCRIPT } from "./shared/theme-storage";
 
-import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,8 +14,7 @@ export const metadata: Metadata = {
 	icons: {
 		icon: [
 			{ url: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-			{ url: "/icons/icon.svg", type: "image/svg+xml" },
-			{ url: "/icons/icon.png", type: "image/png" },
+			{ url: "/icons/icon-128.png", sizes: "128x128", type: "image/png" },
 		],
 		shortcut: "/favicon.ico",
 	},

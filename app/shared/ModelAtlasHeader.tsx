@@ -41,7 +41,12 @@ export function ModelAtlasHeader({
 
 	return (
 		<header className="dashboard-header">
-			<Link className="brand-lockup" href="/" aria-label="Model Atlas home">
+			<Link
+				className="brand-lockup"
+				href="/"
+				prefetch={false}
+				aria-label="Model Atlas home"
+			>
 				<span className="brand-mark" aria-hidden="true" />
 				{page === "dashboard" ? (
 					<h1>Model Atlas</h1>
@@ -66,7 +71,7 @@ export function ModelAtlasHeader({
 						<ListTree aria-hidden="true" />
 					</button>
 				)}
-				<Link className="header-route" href={route.href}>
+				<Link className="header-route" href={route.href} prefetch={false}>
 					<route.Icon aria-hidden="true" />
 					<span>{route.label}</span>
 				</Link>
