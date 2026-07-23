@@ -14,11 +14,7 @@ import type {
 	ModelAtlasScoredCandidate,
 	ModelAtlasTaskMetricValues,
 } from "../model-types";
-import {
-	coverageConfidence,
-	logInputMinMaxScores,
-	logitPercentageScore,
-} from "./normalization";
+import { coverageConfidence, logInputMinMaxScores } from "./normalization";
 import {
 	benchmarkResourceEfficiencyScores,
 	modelBalancedMinMaxScores,
@@ -191,7 +187,7 @@ export function attachFinalScores(
 	const agenticScores = models.map(
 		(model) => model.component_scores?.agentic_score ?? null,
 	);
-	const qualityScores = models.map((_, index) =>
+	const qualityCoordinates = models.map((_, index) =>
 		meanOfFinite([
 			intelligenceScores[index] ?? null,
 			agenticScores[index] ?? null,
@@ -207,9 +203,6 @@ export function attachFinalScores(
 		models,
 		logBlendedPriceSignals,
 		"lower",
-	);
-	const qualityCoordinates = qualityScores.map((score) =>
-		score == null ? null : logitPercentageScore(score),
 	);
 	const qualityAdjustedBlendedPriceScores = qualityLocalResourceScores(
 		models,
