@@ -54,6 +54,19 @@ export type ModelAtlasColumnTooltip = {
 
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
+const CONFIDENCE_SCALE =
+	"zero through 10% weighted evidence; full from 60%";
+
+export const CONFIDENCE_TOOLTIP = {
+	title: "Confidence",
+	body: "How much evidence supports each dimension's estimated benchmark mean.",
+	rows: [
+		["I", "Intelligence confidence"],
+		["A", "Agentic confidence"],
+		["Scale", CONFIDENCE_SCALE],
+	],
+} as const satisfies ModelAtlasColumnTooltip;
+
 function percent(value: number, fractionDigits = 0): string {
 	return `${(value * 100).toFixed(fractionDigits)}%`;
 }
@@ -237,7 +250,7 @@ const qualityBenchmarkRows = (
 			"Imputed-value penalty",
 			"frontier subtracts 1.0x error; baseline subtracts 0.5x error",
 		],
-		["Confidence", "zero through 10% weighted evidence; full from 60%"],
+		["Confidence", CONFIDENCE_SCALE],
 		{
 			title: "Frontier benchmarks",
 			rows: benchmarkRows.frontier,

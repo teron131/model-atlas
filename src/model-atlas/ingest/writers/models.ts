@@ -78,6 +78,7 @@ function modelIntelligenceValues(model: JsonObject): SqlValue[] {
 function modelScoreValues(model: JsonObject): SqlValue[] {
 	const componentScores = asRecord(model.component_scores);
 	const scores = asRecord(model.scores);
+	const confidence = asRecord(model.confidence);
 	return [
 		asFiniteNumber(componentScores.intelligence_score),
 		asFiniteNumber(componentScores.agentic_score),
@@ -86,6 +87,8 @@ function modelScoreValues(model: JsonObject): SqlValue[] {
 		asFiniteNumber(scores.agentic_score),
 		asFiniteNumber(scores.speed_score),
 		asFiniteNumber(scores.value_score),
+		asFiniteNumber(confidence.intelligence),
+		asFiniteNumber(confidence.agentic),
 	];
 }
 
@@ -110,8 +113,9 @@ export function insertModels(
 			component_intelligence_score, component_agentic_score, component_speed_score,
 			intelligence_score, agentic_score,
 			speed_score,
-			value_score
-		) VALUES (${Array.from({ length: 42 }, () => "?").join(", ")})
+			value_score,
+			intelligence_confidence, agentic_confidence
+		) VALUES (${Array.from({ length: 44 }, () => "?").join(", ")})
 	`);
 	for (const [index, row] of rows.entries()) {
 		const model = asRecord(row);

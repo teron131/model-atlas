@@ -1,14 +1,16 @@
 /** Resolve dashboard table header tooltips from table policy and payload metadata. */
 
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
-import type {
-	ModelAtlasColumnTooltip,
-	ModelAtlasColumnTooltips,
+import {
+	CONFIDENCE_TOOLTIP,
+	type ModelAtlasColumnTooltip,
+	type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
 import { benchmarkTooltips } from "../shared/constants";
 import {
 	benchmarkMetricColumns,
 	type SortKey,
+	type TableColumnKey,
 	type TaskMetricColumn,
 	taskMetricColumns,
 } from "./models";
@@ -135,14 +137,16 @@ const staticTableColumnTooltips = {
 		title: "End-to-end latency ↓",
 		body: "Median total response time from provider speed data.",
 	},
-} as const satisfies Partial<Record<SortKey, ModelAtlasColumnTooltip>>;
+	confidence: CONFIDENCE_TOOLTIP,
+} as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;
 
-const fallbackColumnTooltips: Partial<Record<SortKey, ModelAtlasColumnTooltip>> =
-	{
-		...staticTableColumnTooltips,
-		...benchmarkColumnTooltips,
-		...taskMetricColumnTooltips,
-	};
+const fallbackColumnTooltips: Partial<
+	Record<TableColumnKey, ModelAtlasColumnTooltip>
+> = {
+	...staticTableColumnTooltips,
+	...benchmarkColumnTooltips,
+	...taskMetricColumnTooltips,
+};
 
 function taskMetricTooltipEntry(
 	column: TaskMetricColumn,
@@ -202,7 +206,7 @@ function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
 
 /** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */
 export function tableColumnTooltip(
-	key: SortKey,
+	key: TableColumnKey,
 	columnTooltips: ModelAtlasColumnTooltips,
 ) {
 	return fallbackColumnTooltips[key] ?? columnTooltips[key];

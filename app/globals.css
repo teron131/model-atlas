@@ -824,7 +824,7 @@ td:last-child {
 	min-width: 80px;
 }
 
-.sort-button {
+.header-button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: flex-end;
@@ -846,14 +846,14 @@ td:last-child {
 		box-shadow 0.18s ease;
 }
 
-.sort-button:hover,
-.sort-button:focus {
+.header-button:hover,
+.header-button:focus {
 	background: var(--control-fill-hover);
 	color: var(--ink);
 	outline: 0;
 }
 
-.sort-button:focus-visible {
+.header-button:focus-visible {
 	box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
@@ -891,10 +891,10 @@ th[data-sort-state="descending"] .sort-indicator::after {
 	color: var(--accent);
 }
 
-.sort-button:hover .sort-indicator::before,
-.sort-button:hover .sort-indicator::after,
-.sort-button:focus .sort-indicator::before,
-.sort-button:focus .sort-indicator::after {
+.header-button:hover .sort-indicator::before,
+.header-button:hover .sort-indicator::after,
+.header-button:focus .sort-indicator::before,
+.header-button:focus .sort-indicator::after {
 	color: currentColor;
 }
 
@@ -1462,6 +1462,28 @@ tbody tr:nth-child(-n + 3) .rank {
 	font-weight: 700;
 }
 
+.confidence-cell {
+	min-width: 132px;
+	text-align: right;
+}
+
+.confidence-values {
+	display: inline-flex;
+	gap: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+.confidence-values > span {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.confidence-dimension {
+	color: var(--muted);
+	font-size: 0.78em;
+	font-weight: 600;
+}
+
 .modality-cell {
 	min-width: 112px;
 	text-align: right;
@@ -1641,6 +1663,14 @@ td.modality-cell {
 
 	.data-cell {
 		min-width: 62px;
+	}
+
+	.confidence-cell {
+		min-width: 114px;
+	}
+
+	.confidence-values {
+		gap: 8px;
 	}
 }
 

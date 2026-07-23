@@ -16,7 +16,7 @@ import {
 	blendedPriceValue,
 	buildBenchmarkImputationByModel,
 	buildBenchmarkImputationDiagnosticsByKey,
-	buildComponentScores,
+	buildComponentScoreResult,
 	buildQualityScoringContext,
 	simulatedBlendSeconds,
 } from "../src/model-atlas/pipeline/scores";
@@ -690,7 +690,7 @@ const fractionalBenchmarkModels = [
 		benchmarks: { omniscience_accuracy: 0, hle: 100 },
 	},
 ];
-const fractionalBenchmarkComponentScores = buildComponentScores(
+const fractionalBenchmarkComponentScores = buildComponentScoreResult(
 	fractionalBenchmarkModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
@@ -703,7 +703,7 @@ const fractionalBenchmarkComponentScores = buildComponentScores(
 		fractionalBenchmarkModels,
 		fractionalBenchmarkConfig,
 	),
-);
+).componentScores;
 assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
 
 const importanceWeightedConfig = {
@@ -725,7 +725,7 @@ const importanceWeightedContext = buildQualityScoringContext(
 	fractionalBenchmarkModels,
 	importanceWeightedConfig,
 );
-const importanceWeightedScores = buildComponentScores(
+const importanceWeightedScores = buildComponentScoreResult(
 	fractionalBenchmarkModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
@@ -735,10 +735,10 @@ const importanceWeightedScores = buildComponentScores(
 	[],
 	importanceWeightedConfig,
 	importanceWeightedContext,
-);
+).componentScores;
 assertClose(importanceWeightedScores?.intelligence_score, 75);
 
-const groupFlippedScores = buildComponentScores(
+const groupFlippedScores = buildComponentScoreResult(
 	fractionalBenchmarkModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
@@ -760,10 +760,10 @@ const groupFlippedScores = buildComponentScores(
 		},
 	},
 	importanceWeightedContext,
-);
+).componentScores;
 assertClose(groupFlippedScores?.intelligence_score, 75);
 
-const fractionalEvidenceComponentScores = buildComponentScores(
+const fractionalEvidenceComponentScores = buildComponentScoreResult(
 	{ id: "fractional-sparse", benchmarks: { hle: 100 } },
 	{
 		throughput_tokens_per_second_median: null,
@@ -776,7 +776,7 @@ const fractionalEvidenceComponentScores = buildComponentScores(
 		fractionalBenchmarkModels,
 		fractionalBenchmarkConfig,
 	),
-);
+).componentScores;
 assertClose(fractionalEvidenceComponentScores?.intelligence_score, 10.4);
 
 const sparseBenchmarkKeys = Array.from(
@@ -826,7 +826,7 @@ const sparseEvidenceModels = [
 		benchmarks: { quality_0: 100 },
 	},
 ];
-const sparseEvidenceComponentScores = buildComponentScores(
+const sparseEvidenceResult = buildComponentScoreResult(
 	sparseEvidenceModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
@@ -837,7 +837,9 @@ const sparseEvidenceComponentScores = buildComponentScores(
 	sparseEvidenceConfig,
 	buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
+const sparseEvidenceComponentScores = sparseEvidenceResult.componentScores;
 assertClose(sparseEvidenceComponentScores?.intelligence_score, 50);
+assertClose(sparseEvidenceResult.confidence.intelligence, 0.5);
 
 const directResourceScoredModels = attachFinalScores(
 	[
@@ -1606,7 +1608,7 @@ const imputationEvidenceConfig = {
 		agentic: { floor: 0, full: 1 },
 	},
 } as const;
-const untrustedImputationScores = buildComponentScores(
+const untrustedImputationScores = buildComponentScoreResult(
 	imputationEvidenceTarget,
 	{
 		throughput_tokens_per_second_median: null,
@@ -1617,8 +1619,8 @@ const untrustedImputationScores = buildComponentScores(
 	imputationEvidenceConfig,
 	imputationEvidenceContext,
 	imputedHighValues,
-);
-const validatedImputationScores = buildComponentScores(
+).componentScores;
+const validatedImputationScores = buildComponentScoreResult(
 	imputationEvidenceTarget,
 	{
 		throughput_tokens_per_second_median: null,
@@ -1634,7 +1636,7 @@ const validatedImputationScores = buildComponentScores(
 		["c2", 0.5],
 		["c3", 0.5],
 	]),
-);
+).componentScores;
 assertClose(untrustedImputationScores?.intelligence_score, 35.2);
 assertClose(validatedImputationScores?.intelligence_score, 100);
 
@@ -1708,6 +1710,10 @@ function modelCandidate(options: {
 			...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
 		},
 		benchmarks: Object.keys(benchmarks).length === 0 ? null : benchmarks,
+		confidence: {
+			intelligence: 1,
+			agentic: 1,
+		},
 		component_scores: {
 			intelligence_score: options.intelligenceScore ?? null,
 			agentic_score: options.agenticScore ?? null,

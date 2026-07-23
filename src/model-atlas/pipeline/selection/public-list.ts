@@ -32,6 +32,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"intelligence_index_cost",
 	"task_metrics",
 	"benchmarks",
+	"confidence",
 	"component_scores",
 	"scores",
 ]);
@@ -116,6 +117,7 @@ function toPublicModel(
 		intelligence_index_cost: model.intelligence_index_cost,
 		task_metrics: model.task_metrics,
 		benchmarks: model.benchmarks,
+		confidence: { ...model.confidence },
 		component_scores: {
 			intelligence_score: model.component_scores.intelligence_score,
 			agentic_score: model.component_scores.agentic_score,

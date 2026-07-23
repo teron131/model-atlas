@@ -4,7 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { MODEL_ATLAS_THEME_BOOTSTRAP_SCRIPT } from "./shared/theme-storage";
+import { ThemeBootstrap } from "./shared/ThemeBootstrap";
 
 import "./globals.css";
 
@@ -29,7 +29,7 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				{/* The saved theme must be applied before body paint on every route. */}
-				<script>{MODEL_ATLAS_THEME_BOOTSTRAP_SCRIPT}</script>
+				<ThemeBootstrap />
 			</head>
 			<body>
 				{children}

@@ -5,6 +5,11 @@ import type { DashboardMetricColumn, TaskMetricColumn } from "../table/models";
 export const formatScore = (value: number | null | undefined) =>
 	typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
 
+export const formatConfidence = (value: number | null | undefined) =>
+	typeof value === "number" && Number.isFinite(value)
+		? `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`
+		: "-";
+
 export const formatCost = (value: number | null | undefined) =>
 	typeof value === "number" && Number.isFinite(value)
 		? `$${value.toFixed(value < 1 ? 3 : 2)}`

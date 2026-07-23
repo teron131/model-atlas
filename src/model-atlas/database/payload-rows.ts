@@ -392,6 +392,10 @@ function modelFromRow(
 		intelligence_index_cost: null,
 		task_metrics: taskMetrics,
 		benchmarks,
+		confidence: {
+			intelligence: asFiniteNumber(row.intelligence_confidence) ?? null,
+			agentic: asFiniteNumber(row.agentic_confidence) ?? null,
+		},
 		component_scores: {
 			intelligence_score:
 				asFiniteNumber(row.component_intelligence_score) ?? null,

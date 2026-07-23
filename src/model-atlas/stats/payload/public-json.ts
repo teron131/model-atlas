@@ -37,7 +37,10 @@ export type FullJsonPayload = Omit<ModelAtlasPayload, "models"> & {
 	models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo">;
+type PublicFullJsonModel = Omit<
+	ModelAtlasModel,
+	"reasoning" | "logo" | "confidence"
+>;
 
 type ScoreJsonPayload = {
 	schema: typeof SCORE_SCHEMA;
@@ -199,7 +202,12 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
 	return {
 		...payload,
 		models: payload.models.map(
-			({ logo: _logo, reasoning: _reasoning, ...model }) => model,
+			({
+				confidence: _confidence,
+				logo: _logo,
+				reasoning: _reasoning,
+				...model
+			}) => model,
 		),
 	};
 }
