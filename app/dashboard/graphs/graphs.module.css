@@ -49,7 +49,7 @@
 	font-family: "Helvetica Neue", Arial, sans-serif;
 }
 
-:global(.dashboard-main[data-theme="light"]) .atlas {
+:global(html[data-model-atlas-theme="light"]) .atlas {
 	--paper: #ffffff;
 	--surface: #ffffff;
 	--ink: var(--light-ink);

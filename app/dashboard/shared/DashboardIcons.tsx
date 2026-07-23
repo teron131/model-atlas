@@ -7,20 +7,10 @@ import {
 	CircleDollarSign,
 	FileText,
 	Image as ImageSymbol,
-	Moon,
-	Sun,
 	Video,
 	Zap,
 } from "lucide-react";
 import { RiRobot3Line } from "react-icons/ri";
-
-export function MoonIcon() {
-	return <Moon aria-hidden="true" />;
-}
-
-export function SunIcon() {
-	return <Sun aria-hidden="true" />;
-}
 
 export function BrainIcon() {
 	return <BrainCircuit aria-hidden="true" />;

@@ -1,4 +1,4 @@
-# Model Atlas Benchmarks
+# Benchmarks
 
 ## Purpose
 
@@ -27,7 +27,7 @@ There is no standalone coding score. Coding difficulty does not automatically ma
 
 The effective weight in dimension $D$ is $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$. Group does not change the contribution of an observed value, and source identity does not determine group. A benchmark can be sourced from Artificial Analysis and still be frontier when it is current, difficult, distinctive, and useful for separating leading models.
 
-The runtime portfolio is defined in `src/model-atlas/benchmarks/catalog/portfolio.ts`; the tables below document the policy behind that configuration. Any addition, removal, or setting change should update both surfaces and explain what the benchmark measures, why it earns or loses ranking space, and whether its task resources can feed Speed or Value.
+The tables below show the current portfolio, why each benchmark is included, and whether its task resources can contribute to Speed or Value.
 
 ### Frontier Benchmarks
 

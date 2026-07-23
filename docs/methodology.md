@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document specifies how observed benchmark, price, and runtime inputs become four independent 0-100 scores: Intelligence, Agentic, Speed, and Value. The selected benchmark portfolio and source-specific policies live in [benchmarks.md](benchmarks.md), while benchmark admission criteria live in [standards.md](standards.md).
+This document specifies how observed benchmark, price, and runtime inputs become four independent 0-100 scores: Intelligence, Agentic, Speed, and Value. The selected benchmark portfolio and source-specific policies live in [Benchmarks](benchmarks.md), while benchmark admission criteria live in [Standards](standards.md).
 
 Intelligence and Agentic measure capability. Speed and Value measure practical delivery constraints without feeding cost or latency back into capability. Reasoning-effort variants remain separate scored configurations, while model-balanced calibration prevents a model with many variants from dominating empirical reference distributions.
 
@@ -10,17 +10,11 @@ Intelligence and Agentic measure capability. Speed and Value measure practical d
 
 The calculation proceeds in one direction:
 
-$$
-\text{observed inputs}
-\rightarrow
-\text{normalized benchmark evidence}
-\rightarrow
-(I_m,A_m)
-\rightarrow
-\text{quality-adjusted resources}
-\rightarrow
-(\text{Speed}_m,\text{Value}_m)
-$$
+1. **Observed inputs**
+2. **Normalized benchmark evidence**
+3. **Quality scores** $(I_m,A_m)$
+4. **Quality-adjusted resources**
+5. **Public outputs** $(\text{Speed}_m,\text{Value}_m)$
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |

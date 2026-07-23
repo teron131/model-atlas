@@ -1,25 +1,22 @@
-# Model Matching
+# Matching
 
-The stats pipeline has to join model rows from sources that do not use the same identifiers. Artificial Analysis gives source slugs and scraped model ids. `models.dev` gives provider/model ids and model metadata. OpenRouter provides the preferred public route ids plus price and speed keyed by provider/model ids. The matcher exists to turn AA rows into stable provider/model ids without hand-maintaining a mapping table for every model.
+Model Atlas combines benchmark results, model metadata, pricing, and serving performance from sources that do not share one identifier system. Matching turns those source-specific names into stable public model identities while keeping genuinely different versions and configurations separate.
 
 ## Source Shape
 
-The source stage fetches AA scraper rows, AA evaluation-resource rows, `models.dev` rows, and non-AA benchmark sources. AA rows are keyed by the model slug derived from `model_id`, usually the part after the provider slash. `models.dev` rows are first reduced to preferred providers: OpenRouter is primary, Vercel is secondary, and OpenAI/Google/Anthropic are trusted fallbacks. When multiple rows share a model id, the preferred provider wins. The recent-model cutoff keeps the catalog small, but AA-backed exact ids and normalized AA names are retained even when the catalog row is older than the cutoff. This lets stable OpenRouter rows such as older Gemini routes or provider-renamed Mistral routes remain matchable when AA still reports benchmark rows for them.
+Artificial Analysis supplies benchmark-oriented model slugs, `models.dev` supplies provider/model identities and metadata, and OpenRouter supplies the preferred public routes used for price and speed data. Vercel and direct OpenAI, Google, or Anthropic identities provide trusted fallbacks when they give a cleaner exact match.
 
-AA evaluation-resource pages are still Artificial Analysis sources, but they are not identity authorities. Non-AA benchmark sources are also not identity authorities. Both kinds of resource rows are joined later by display-name/id candidates after the AA-to-`models.dev` match has chosen a stable provider/model id.
+Benchmark pages are evidence sources, not identity authorities. Their rows join a model only after the matcher has selected a stable catalog identity. This prevents a source-local display name from silently creating a new model or overriding a better provider identity.
 
-The matcher input is intentionally small. The source name is retained for diagnostics but does not affect candidate scoring:
+Candidate scoring uses only identity-bearing fields:
 
-- source slug from AA
-- candidate model id from `models.dev`
-- candidate provider id/name from `models.dev`
-- candidate display name from `models.dev`
-
-The output keeps the best candidate plus a ranked candidate list for diagnostics.
+- the source model slug
+- candidate model and provider ids
+- candidate provider and display names
 
 ## Normalization
 
-Before scoring, names are normalized into comparable tokens. The code lowercases, replaces separators like dots, spaces, colons, and underscores with hyphens, removes unusual characters, collapses repeated hyphens, and trims separators.
+Before scoring, names are normalized into comparable tokens. Normalization lowercases names, replaces separators like dots, spaces, colons, and underscores with hyphens, removes unusual characters, collapses repeated hyphens, and trims separators.
 
 Then model names are split into tokens. For example, mixed alphanumeric pieces are split so version and size information can be compared. Some route/style tags are ignored because they are usually not part of model identity: `free`, `extended`, `exacto`, `instruct`, `vl`, `thinking`, `reasoning`, `online`, and `nitro`.
 
@@ -81,7 +78,7 @@ $$
 \text{threshold}=\text{min score}+0.35\cdot(\text{max score}-\text{min score})
 $$
 
-Any best match below that threshold is voided. In the diagnostics payload this is reported as `void_mode: "maxmin_range"`. The point is to remove weak matches after seeing the score range for the batch.
+Any best match below that threshold is discarded. The cutoff removes weak matches relative to the score range of the current source batch.
 
 ## Claude Identity Policy
 
@@ -91,51 +88,16 @@ The tier is never treated as noise: `haiku`, `sonnet`, `opus`, and `fable` are m
 
 ## Variant Conflict Check
 
-After scoring candidates, the matcher applies another guardrail using configured variant tokens from `src/model-atlas/config/stage-config.ts`: `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`. Artificial Analysis reasoning-effort suffixes are collapsed before this check, so an effort row such as `model-max` still matches the base model identity.
+After scoring candidates, the matcher applies another guardrail for variant labels such as `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`. Artificial Analysis reasoning-effort suffixes are collapsed before this check, so an effort row such as `model-max` still matches the base model identity.
 
 If the AA slug has one of those labels and the candidate model id does not, or the candidate model id has one and the AA slug does not, that candidate is rejected. Multi-token labels are matched as labels, so `flash-lite` does not count as plain `flash`. The match stage walks the ranked candidate list and keeps the first candidate that survives this guardrail. This is deliberately blunt. Matching a `flash` row to a `flash-lite` model, an `omni` row to a non-omni model, or a base model row to an `image` or `latest` route is worse than dropping the row.
 
 Benchmark-update health uses the same candidate ranking and variant-selection boundary with stricter full-token coverage enabled. That keeps an official source row explicitly unrepresented when only a weak family-prefix match exists.
 
-## Final Matched Row
+## Selected Identity
 
-Once a match survives, the final matched row prefers the OpenRouter provider/model id for public identity, uses `models.dev` for catalog metadata, and preserves AA benchmark fields. OpenRouter catalog aliases such as `-fast`, `-xhigh`, `-high`, and dated suffixes normalize to the same public id because they are route labels for the same model, not separate scored models:
+The selected match prefers an OpenRouter provider/model id for public identity and uses `models.dev` for catalog metadata. Benchmark values are attached only when their source row resolves to that identity.
 
-- public `id`, preferably the OpenRouter route id
-- provider id
-- OpenRouter id
-- AA id and AA slug for traceability
-- display name from `models.dev` when available
-- family, modalities, context, cost, attachment/reasoning/open-weights fields from `models.dev`
-- evaluations, intelligence fields, and intelligence-index cost fields from AA
-- selected benchmark values from AA evaluation-resource pages and non-AA benchmark sources when their model-name candidates match the selected identity
-- `scoring_sources` with the raw AA evaluation-resource and non-AA source rows used to derive task metrics
+Serving aliases such as fast, high-effort, free, latest, preview, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity, while explicit reasoning-effort observations remain separate scored configurations.
 
-The explicit aggregation stage merges route aliases that point at the same underlying scored model, such as reasoning-effort routes, fast routes, dated aliases, and free routes. Matched reasoning-effort observations remain separate rows with their own `reasoning_effort` and exact AA resource rows. The aggregate selects the source-default row when effort is unlabelled, or the highest reported effort when labels are present, and keeps that observation's score and resource fields together. Only after selection does benchmark enrichment attach default-effort AA resources and effort-unspecified benchmark sources such as DeepSWE or Vals. Benchmark-update health applies the same model/effort aggregation before comparing source leaders with the public Intelligence ranking. Compact public views later collapse scored variants by highest Intelligence score, while the `all` view preserves them. The public id is the canonical OpenRouter id with catalog alias suffixes removed, while public display names strip route noise such as `(free)`, `(latest)`, plain `Latest`, and Gemini `Preview` labels.
-
-## Database Traceability
-
-The SQLite snapshot preserves the raw source paths used by the matcher:
-
-- `artificial_analysis_raw_models` stores scraped AA rows, including separate reasoning-effort observations.
-- `models_dev_raw_models` stores flattened `models.dev` provider/model rows.
-- `artificial_analysis_evaluations_raw_rows`, `agent_arena_raw_rows`, `agents_last_exam_raw_rows`, `blueprint_bench_2_raw_rows`, `browsecomp_raw_rows`, `chartography_raw_rows`, `chess_puzzles_raw_rows`, `cursorbench_raw_rows`, `deep_swe_raw_rows`, `ebr_bench_raw_rows`, `enterprisebench_corecraft_raw_rows`, `epoch_capabilities_index_raw_rows`, `frontiermath_tier_4_raw_rows`, `gdp_pdf_raw_rows`, `handbook_md_raw_rows`, `mercor_apex_agents_raw_rows`, `proofbench_raw_rows`, `riemann_bench_raw_rows`, `vals_terminal_bench_raw_rows`, `toolathlon_raw_rows`, `vals_index_raw_rows`, `vending_bench_2_raw_rows`, and `weirdml_raw_rows` store benchmark and resource evidence before it is summarized or matched.
-- `openrouter_raw_rows` stores OpenRouter directory rows, candidate permaslugs, metric points, and model stats.
-- `models` stores only the final public model rows, including `reasoning_effort`; matcher lineage stays in the raw evidence and debug tables instead of duplicating intermediate model stages.
-- `model_match_debug` stores one matcher-candidate trace row per AA candidate, plus placeholder rows for unmatched or voided AA rows.
-
-`model_match_debug` is meant to make a final-row decision traceable back to raw inputs. For each candidate it records the AA id/slug/name, raw AA row index, candidate rank, candidate provider/model/name/score, the selected flag, rejection reason, selected model id, matching `models.dev` raw row index, OpenRouter model id, and OpenRouter stats row index when available.
-
-## Debugging Bad Matches
-
-Start with the matcher diagnostics or the `model_match_debug` table rather than the final payload. Check:
-
-- the AA slug and source name
-- the best candidate id and score
-- the next few candidates
-- whether the row was voided
-- whether the matcher rejected it for a variant token mismatch
-- whether OpenRouter won when a direct fallback provider exact match would have been cleaner
-- the raw row indexes linked from `model_match_debug` when the final payload is not enough
-
-Most bad matches come from one of four cases: source slug changed upstream, candidate id changed upstream, two sibling variants are too similar, or a route tag looked like identity even though it was just a serving route.
+When an unlabelled source observation exists, it represents the source-default configuration. If every observation has an effort label, Model Atlas selects the highest reported effort as one complete observation rather than combining the best fields from different configurations. Compact views show the highest-Intelligence scored variant for each base model; the full view preserves every scored effort variant.
