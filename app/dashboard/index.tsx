@@ -59,15 +59,8 @@ export function Dashboard({
 	initialPayload: LlmStatsPayload | null;
 }) {
 	const dashboardRef = useRef<HTMLElement>(null);
-	const tooltipFadeTimeoutRef = useRef<number | null>(null);
 	const [showReasoningVariants, setShowReasoningVariants] =
 		useReasoningVariantDisplay();
-	const [sortState, setSortState] = useState<SortState>({
-		key: "intelligence",
-		direction: "descending",
-	});
-	const [filterQuery, setFilterQuery] = useState("");
-	const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
 	const [selectedProviders, setSelectedProviders] = useState<ProviderFilters>(
 		[],
 	);
@@ -75,9 +68,6 @@ export function Dashboard({
 	const [modelLimit, setModelLimit] = useState<ModelLimit>(
 		DEFAULT_DISPLAY_ITEMS,
 	);
-	const [showLeaderboardVariants, setShowLeaderboardVariants] = useState(false);
-	const deferredFilterQuery = useDeferredValue(filterQuery);
-	const [, startSortTransition] = useTransition();
 	const { payload, errorMessage, hasFullPayload } =
 		useLivePayload(initialPayload);
 
@@ -90,122 +80,11 @@ export function Dashboard({
 			models: modelsForVariantDisplay(payload.models, showReasoningVariants),
 		};
 	}, [payload, showReasoningVariants]);
-	const tableRows = useMemo(
-		() =>
-			dedupeDisplayModels(
-				modelsForVariantDisplay(payload?.models ?? [], showLeaderboardVariants),
-			),
-		[payload, showLeaderboardVariants],
-	);
 	const providerChoices = useMemo(
-		() => providerOptions(tableRows.map((row) => row.model)),
-		[tableRows],
+		() => providerOptions(displayPayload?.models ?? []),
+		[displayPayload],
 	);
-	const providerModelCount = useMemo(
-		() => modelCount(tableRows.map((row) => row.model)),
-		[tableRows],
-	);
-	const filteredTableRows = useMemo(() => {
-		return filterByModelControls(tableRows, (row) => row.model, {
-			providers: selectedProviders,
-			maxCost: maxCostFilter,
-		});
-	}, [tableRows, selectedProviders, maxCostFilter]);
-	const maximumLeaderboardLimit = filteredTableRows.length;
-	const [effectiveLeaderboardLimit, setLeaderboardLimit] = useDisplayLimit(
-		maximumLeaderboardLimit,
-	);
-	const leaderboardRowKind = showLeaderboardVariants ? "variants" : "models";
-	const matchingTableRows = useMemo(
-		() =>
-			sortedRows(filteredTableRows, deferredFilterQuery, {
-				key: "intelligence",
-				direction: "descending",
-			}),
-		[deferredFilterQuery, filteredTableRows],
-	);
-	const limitedTableRows = useMemo(
-		() => matchingTableRows.slice(0, effectiveLeaderboardLimit),
-		[effectiveLeaderboardLimit, matchingTableRows],
-	);
-	const visibleRows = useMemo(
-		() => sortedRows(limitedTableRows, "", sortState),
-		[limitedTableRows, sortState],
-	);
-	const columnTooltips =
-		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
-	const activeTooltipContent =
-		tooltip == null
-			? undefined
-			: tableColumnTooltip(tooltip.key, columnTooltips);
 	const isInitialLoading = payload == null && errorMessage == null;
-	const rowCountLabel =
-		deferredFilterQuery.length > 0
-			? `${matchingTableRows.length} matches`
-			: null;
-	const emptyMessage =
-		errorMessage ?? (payload == null ? "Loading stats" : "No models");
-
-	const handleSort = useCallback((key: SortKey) => {
-		const defaultDirection = sorters[key].direction;
-		startSortTransition(() => {
-			setSortState((current) => ({
-				key,
-				direction:
-					current.key === key && current.direction === defaultDirection
-						? reverseDirection(defaultDirection)
-						: defaultDirection,
-			}));
-		});
-	}, []);
-
-	const clearTooltipFadeTimeout = useCallback(() => {
-		if (tooltipFadeTimeoutRef.current != null) {
-			window.clearTimeout(tooltipFadeTimeoutRef.current);
-			tooltipFadeTimeoutRef.current = null;
-		}
-	}, []);
-
-	const cancelTooltipFade = useCallback(() => {
-		clearTooltipFadeTimeout();
-		setTooltip((current) =>
-			current == null || current.phase === "visible"
-				? current
-				: { ...current, phase: "visible" },
-		);
-	}, [clearTooltipFadeTimeout]);
-
-	const clearTooltip = useCallback(() => {
-		setTooltip((current) =>
-			current == null || current.phase === "leaving"
-				? current
-				: { ...current, phase: "leaving" },
-		);
-		clearTooltipFadeTimeout();
-		tooltipFadeTimeoutRef.current = window.setTimeout(() => {
-			setTooltip((current) => (current?.phase === "leaving" ? null : current));
-			tooltipFadeTimeoutRef.current = null;
-		}, TOOLTIP_FADE_OUT_MS);
-	}, [clearTooltipFadeTimeout]);
-
-	const showTooltip = useCallback<HeaderTooltipHandler>(
-		(event, key) => {
-			if (!tableColumnTooltip(key, columnTooltips)) {
-				return;
-			}
-			clearTooltipFadeTimeout();
-			setTooltip({
-				key,
-				phase: "visible",
-				...tooltipPositionFromElement(event.currentTarget),
-			});
-		},
-		[columnTooltips, clearTooltipFadeTimeout],
-	);
-
-	useEffect(() => {
-		return clearTooltipFadeTimeout;
-	}, [clearTooltipFadeTimeout]);
 
 	useEffect(() => {
 		const syncFrameWidth = () => {
@@ -271,51 +150,203 @@ export function Dashboard({
 				onMaxCostChange={setMaxCostFilter}
 				onModelLimitChange={setModelLimit}
 				afterLead={
-					<section className="dashboard-deck" aria-label="Model leaderboard">
-						<ModelToolbar
-							filterQuery={filterQuery}
-							rowCountLabel={rowCountLabel}
-							provider={{
-								id: "leaderboard-provider-menu",
-								label: "Filter leaderboard providers",
-								options: providerChoices,
-								totalCount: providerModelCount,
-								selectedProviders,
-								onSelectedProvidersChange: setSelectedProviders,
-							}}
-							display={{
-								id: "leaderboard-model-limit",
-								label: "Leaderboard display",
-								itemKind: leaderboardRowKind,
-								maximum: maximumLeaderboardLimit,
-								value: effectiveLeaderboardLimit,
-								onValueChange: setLeaderboardLimit,
-								variantControl: {
-									showVariants: showLeaderboardVariants,
-									onShowVariantsChange: setShowLeaderboardVariants,
-								},
-							}}
-							screenshotControl={
-								<LeaderboardCapture
-									rows={visibleRows}
-									rowKind={leaderboardRowKind}
-									sortState={sortState}
-								/>
-							}
-							onFilterQueryChange={setFilterQuery}
-						/>
-						<ModelTable
-							sortState={sortState}
-							visibleRows={visibleRows}
-							emptyMessage={emptyMessage}
-							isLoading={isInitialLoading}
-							metricColumns={dashboardMetricColumns}
-							onSort={handleSort}
-							onTooltip={showTooltip}
-							onTooltipEnd={clearTooltip}
-						/>
-					</section>
+					<DashboardLeaderboard
+						payload={payload}
+						errorMessage={errorMessage}
+						isLoading={isInitialLoading}
+						maxCost={maxCostFilter}
+						selectedProviders={selectedProviders}
+						onSelectedProvidersChange={setSelectedProviders}
+					/>
 				}
+			/>
+		</main>
+	);
+}
+
+/** Isolate leaderboard interactions so slider and sort updates do not re-render dashboard graphs. */
+function DashboardLeaderboard({
+	payload,
+	errorMessage,
+	isLoading,
+	maxCost,
+	selectedProviders,
+	onSelectedProvidersChange,
+}: {
+	payload: LlmStatsPayload | null;
+	errorMessage: string | null;
+	isLoading: boolean;
+	maxCost: CostFilter;
+	selectedProviders: ProviderFilters;
+	onSelectedProvidersChange: (providers: ProviderFilters) => void;
+}) {
+	const tooltipFadeTimeoutRef = useRef<number | null>(null);
+	const [sortState, setSortState] = useState<SortState>({
+		key: "intelligence",
+		direction: "descending",
+	});
+	const [filterQuery, setFilterQuery] = useState("");
+	const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
+	const [showVariants, setShowVariants] = useState(false);
+	const deferredFilterQuery = useDeferredValue(filterQuery);
+	const [, startSortTransition] = useTransition();
+	const tableRows = useMemo(
+		() =>
+			dedupeDisplayModels(
+				modelsForVariantDisplay(payload?.models ?? [], showVariants),
+			),
+		[payload, showVariants],
+	);
+	const providerChoices = useMemo(
+		() => providerOptions(tableRows.map((row) => row.model)),
+		[tableRows],
+	);
+	const providerModelCount = useMemo(
+		() => modelCount(tableRows.map((row) => row.model)),
+		[tableRows],
+	);
+	const filteredRows = useMemo(
+		() =>
+			filterByModelControls(tableRows, (row) => row.model, {
+				providers: selectedProviders,
+				maxCost,
+			}),
+		[tableRows, selectedProviders, maxCost],
+	);
+	const maximumLimit = filteredRows.length;
+	const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
+	const matchingRows = useMemo(
+		() =>
+			sortedRows(filteredRows, deferredFilterQuery, {
+				key: "intelligence",
+				direction: "descending",
+			}),
+		[deferredFilterQuery, filteredRows],
+	);
+	const limitedRows = useMemo(
+		() => matchingRows.slice(0, effectiveLimit),
+		[effectiveLimit, matchingRows],
+	);
+	const visibleRows = useMemo(
+		() => sortedRows(limitedRows, "", sortState),
+		[limitedRows, sortState],
+	);
+	const columnTooltips =
+		payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
+	const activeTooltipContent =
+		tooltip == null
+			? undefined
+			: tableColumnTooltip(tooltip.key, columnTooltips);
+	const rowKind = showVariants ? "variants" : "models";
+	const rowCountLabel =
+		deferredFilterQuery.length > 0 ? `${matchingRows.length} matches` : null;
+	const emptyMessage =
+		errorMessage ?? (payload == null ? "Loading stats" : "No models");
+
+	const handleSort = useCallback((key: SortKey) => {
+		const defaultDirection = sorters[key].direction;
+		startSortTransition(() => {
+			setSortState((current) => ({
+				key,
+				direction:
+					current.key === key && current.direction === defaultDirection
+						? reverseDirection(defaultDirection)
+						: defaultDirection,
+			}));
+		});
+	}, []);
+
+	const clearTooltipFadeTimeout = useCallback(() => {
+		if (tooltipFadeTimeoutRef.current != null) {
+			window.clearTimeout(tooltipFadeTimeoutRef.current);
+			tooltipFadeTimeoutRef.current = null;
+		}
+	}, []);
+
+	const cancelTooltipFade = useCallback(() => {
+		clearTooltipFadeTimeout();
+		setTooltip((current) =>
+			current == null || current.phase === "visible"
+				? current
+				: { ...current, phase: "visible" },
+		);
+	}, [clearTooltipFadeTimeout]);
+
+	const clearTooltip = useCallback(() => {
+		setTooltip((current) =>
+			current == null || current.phase === "leaving"
+				? current
+				: { ...current, phase: "leaving" },
+		);
+		clearTooltipFadeTimeout();
+		tooltipFadeTimeoutRef.current = window.setTimeout(() => {
+			setTooltip((current) => (current?.phase === "leaving" ? null : current));
+			tooltipFadeTimeoutRef.current = null;
+		}, TOOLTIP_FADE_OUT_MS);
+	}, [clearTooltipFadeTimeout]);
+
+	const showTooltip = useCallback<HeaderTooltipHandler>(
+		(event, key) => {
+			if (!tableColumnTooltip(key, columnTooltips)) {
+				return;
+			}
+			clearTooltipFadeTimeout();
+			setTooltip({
+				key,
+				phase: "visible",
+				...tooltipPositionFromElement(event.currentTarget),
+			});
+		},
+		[columnTooltips, clearTooltipFadeTimeout],
+	);
+
+	useEffect(() => {
+		return clearTooltipFadeTimeout;
+	}, [clearTooltipFadeTimeout]);
+
+	return (
+		<section className="dashboard-deck" aria-label="Model leaderboard">
+			<ModelToolbar
+				filterQuery={filterQuery}
+				rowCountLabel={rowCountLabel}
+				provider={{
+					id: "leaderboard-provider-menu",
+					label: "Filter leaderboard providers",
+					options: providerChoices,
+					totalCount: providerModelCount,
+					selectedProviders,
+					onSelectedProvidersChange,
+				}}
+				display={{
+					id: "leaderboard-model-limit",
+					label: "Leaderboard display",
+					itemKind: rowKind,
+					maximum: maximumLimit,
+					value: effectiveLimit,
+					onValueChange: setLimit,
+					variantControl: {
+						showVariants,
+						onShowVariantsChange: setShowVariants,
+					},
+				}}
+				screenshotControl={
+					<LeaderboardCapture
+						rows={visibleRows}
+						rowKind={rowKind}
+						sortState={sortState}
+					/>
+				}
+				onFilterQueryChange={setFilterQuery}
+			/>
+			<ModelTable
+				sortState={sortState}
+				visibleRows={visibleRows}
+				emptyMessage={emptyMessage}
+				isLoading={isLoading}
+				metricColumns={dashboardMetricColumns}
+				onSort={handleSort}
+				onTooltip={showTooltip}
+				onTooltipEnd={clearTooltip}
 			/>
 			{tooltip != null && activeTooltipContent != null && (
 				<ColumnTooltip
@@ -327,7 +358,7 @@ export function Dashboard({
 					top={tooltip.top}
 				/>
 			)}
-		</main>
+		</section>
 	);
 }
 

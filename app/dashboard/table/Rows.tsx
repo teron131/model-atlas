@@ -1,7 +1,7 @@
 /** Leaderboard row components and model display rules. */
 
 import Image from "next/image";
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, memo, useState } from "react";
 
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import {
@@ -110,7 +110,7 @@ function LoadingRow({
 	);
 }
 
-export function ModelRow({
+export const ModelRow = memo(function ModelRow({
 	rowData,
 	metricColumns,
 }: {
@@ -138,7 +138,7 @@ export function ModelRow({
 			))}
 		</tr>
 	);
-}
+});
 
 /** Render the leaderboard identity and four score columns used by PNG exports. */
 export function ScoreModelRow({ rowData }: { rowData: TableRow }) {

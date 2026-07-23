@@ -2,7 +2,12 @@
 
 /** Shared Top-N and variant controls for model data surfaces. */
 
-import { type CSSProperties, useState } from "react";
+import {
+	type CSSProperties,
+	type SyntheticEvent,
+	useEffect,
+	useState,
+} from "react";
 import styles from "./display-controls.module.css";
 
 const MINIMUM_DISPLAY_ITEMS = 3;
@@ -53,18 +58,32 @@ export function DisplayControls({
 	onValueChange,
 	variantControl,
 }: DisplayControlsProps) {
+	const [draftValue, setDraftValue] = useState(value);
+	const displayValue = clampDisplayLimit(draftValue, maximum);
 	const minimum = Math.min(MINIMUM_DISPLAY_ITEMS, maximum);
 	const progress =
-		maximum <= minimum ? 0 : ((value - minimum) / (maximum - minimum)) * 100;
+		maximum <= minimum
+			? 0
+			: ((displayValue - minimum) / (maximum - minimum)) * 100;
 	const sliderStyle = {
 		"--display-slider-progress": `${progress}%`,
 	} as CSSProperties;
+	const commitDisplayValue = (event: SyntheticEvent<HTMLInputElement>) => {
+		const nextValue = event.currentTarget.valueAsNumber;
+		if (nextValue !== value) {
+			onValueChange(nextValue);
+		}
+	};
+
+	useEffect(() => {
+		setDraftValue(value);
+	}, [value]);
 
 	return (
 		<fieldset className={styles.controls} data-capture-exclude>
 			<legend className={styles.visuallyHidden}>{label}</legend>
 			<label className={styles.limit} htmlFor={id}>
-				<strong>Top {value}</strong>
+				<strong>Top {displayValue}</strong>
 				<small>{`of ${maximum} ${itemKind}`}</small>
 			</label>
 			<div className={styles.range}>
@@ -75,10 +94,14 @@ export function DisplayControls({
 					min={minimum}
 					max={maximum}
 					step={1}
-					value={value}
+					value={displayValue}
 					disabled={maximum === 0}
 					style={sliderStyle}
-					onChange={(event) => onValueChange(event.currentTarget.valueAsNumber)}
+					onBlur={commitDisplayValue}
+					onChange={(event) => setDraftValue(event.currentTarget.valueAsNumber)}
+					onKeyUp={commitDisplayValue}
+					onPointerCancel={commitDisplayValue}
+					onPointerUp={commitDisplayValue}
 				/>
 			</div>
 			{variantControl == null ? null : (

@@ -26,6 +26,7 @@ export function MobileDocumentToolbar({
 			<Link
 				className={styles.navigationIconButton}
 				href="/"
+				prefetch={false}
 				aria-label="Back to leaderboard"
 			>
 				<ArrowLeft aria-hidden="true" />

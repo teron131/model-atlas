@@ -4,6 +4,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import Link from "next/link";
 
+import "katex/dist/katex.min.css";
+
 import { DocumentShell } from "./DocumentShell";
 import {
 	DOCUMENTS,
@@ -29,6 +31,7 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
 						<li key={item.slug}>
 							<Link
 								href={documentHref(item.slug)}
+								prefetch={false}
 								aria-current={item.slug === document ? "page" : undefined}
 							>
 								<span>{item.title}</span>

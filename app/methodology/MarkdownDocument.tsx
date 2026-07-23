@@ -62,7 +62,7 @@ const markdownComponents: Components = {
 	a: ({ href = "", children, ...props }) => {
 		const resolvedHref = documentLink(href);
 		return resolvedHref.startsWith("/") ? (
-			<Link href={resolvedHref} {...props}>
+			<Link href={resolvedHref} prefetch={false} {...props}>
 				{children}
 			</Link>
 		) : (
