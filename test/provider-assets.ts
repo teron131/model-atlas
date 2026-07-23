@@ -1,19 +1,27 @@
+/** Verify generated provider assets and browser-facing icon metadata. */
+
 import assert from "node:assert/strict";
 
 import { providerAssets } from "../app/dashboard/shared/provider-assets.generated";
+import { providerIcons } from "../app/dashboard/shared/provider-icons.generated";
 import {
 	providerBrandColor,
 	providerLogo,
 } from "../app/dashboard/shared/provider-theme";
 
 const openaiLogo = providerLogo("openai");
-const openaiSvg = svgText(openaiLogo);
+const openaiSvg = svgText(providerAssets.openai.logo);
 const metaLogo = providerLogo("meta");
 
+assert.deepEqual(
+	Object.keys(providerIcons),
+	Object.keys(providerAssets),
+	"browser-facing icon metadata should cover every generated provider asset",
+);
 assert.equal(
 	openaiLogo,
-	providerAssets.openai?.logo,
-	"provider lookup should return the generated OpenAI logo",
+	providerIcons.openai.logo,
+	"provider lookup should keep generated OpenAI bytes in a static browser asset",
 );
 assert.equal(
 	providerBrandColor("openai"),
@@ -32,8 +40,17 @@ assert.match(
 );
 assert.equal(
 	metaLogo,
-	providerAssets.meta?.logo,
-	"provider lookup should return the generated Meta logo",
+	providerIcons.meta.logo,
+	"provider lookup should return one cacheable static URL per generated provider",
+);
+assert.equal(
+	Object.values(providerIcons).every(
+		(icon) =>
+			icon.logo.startsWith("/provider-icons/") &&
+			/^#[0-9a-f]{6}$/i.test(icon.color),
+	),
+	true,
+	"all browser-facing provider metadata should expose static paths and hex colors",
 );
 assert.equal(
 	Object.values(providerAssets).every((asset) =>

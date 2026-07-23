@@ -3,10 +3,6 @@
 import assert from "node:assert/strict";
 import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
 import {
-	PAYLOAD_ROW_GROUPS,
-	SNAPSHOT_METADATA_SQL,
-} from "../src/model-atlas/database/payload-rows";
-import {
 	readDisplaySnapshotPayload,
 	refreshStoredSnapshot,
 	snapshotRuntime,
@@ -64,7 +60,8 @@ try {
 	let completedRunVisible = false;
 	globalThis.fetch = async (_input, init) => {
 		const body = JSON.parse(String(init?.body)) as {
-			batch?: unknown[];
+			sql?: string;
+			batch?: { sql?: string }[];
 		};
 		requestBodies.push(body);
 		return Response.json({
@@ -77,14 +74,20 @@ try {
 								results: completedRunVisible
 									? [
 											{
-												id: 7,
-												fetched_at_epoch_seconds: 1_800_000_000,
+												payload_json: JSON.stringify({
+													fetched_at_epoch_seconds: 1_800_000_000,
+													models: [],
+													metadata: {},
+												}),
 											},
 										]
 									: [],
 							},
 						]
-					: body.batch.map(() => ({ success: true, results: [] })),
+					: body.batch.map(() => ({
+							success: true,
+							results: [],
+						})),
 		});
 	};
 	assert.equal(
@@ -103,18 +106,20 @@ try {
 		[],
 		"D1 payload reads should assemble an empty completed snapshot",
 	);
-	const payloadBatch = requestBodies[2] as { batch: unknown[] };
-	assert.equal(
-		payloadBatch.batch.length,
-		new Set(PAYLOAD_ROW_GROUPS.map(({ table }) => table)).size,
-		"D1 payload reads should query each physical table once in one REST batch",
+	assert.deepEqual(
+		requestBodies[1],
+		{
+			sql: "SELECT payload_json FROM snapshot_payloads WHERE snapshot_key = 'public' LIMIT 1",
+			params: [],
+		},
+		"D1 payload reads should fetch the completed materialized snapshot in one statement",
 	);
 	await queryD1Batch([
 		{ sql: "DELETE FROM example" },
 		{ sql: "INSERT example" },
 	]);
 	assert.deepEqual(
-		requestBodies[3],
+		requestBodies[2],
 		{
 			batch: [
 				{ sql: "DELETE FROM example", params: [] },
@@ -122,53 +127,6 @@ try {
 			],
 		},
 		"D1 publications should use one transactional REST batch",
-	);
-	requestBodies.length = 0;
-	globalThis.fetch = async (_input, init) => {
-		const body = JSON.parse(String(init?.body)) as {
-			batch?: unknown[];
-			sql?: string;
-		};
-		requestBodies.push(body);
-		if (body.batch != null) {
-			return Response.json({
-				success: false,
-				errors: [{ message: "no such table: agent_arena_raw_rows" }],
-			});
-		}
-		if (body.sql === SNAPSHOT_METADATA_SQL) {
-			return Response.json({
-				success: true,
-				result: [
-					{
-						success: true,
-						results: [
-							{
-								updated_at_epoch_seconds: 1_800_000_000,
-							},
-						],
-					},
-				],
-			});
-		}
-		if (
-			body.sql?.includes("agent_arena_raw_rows") === true ||
-			body.sql?.includes("vending_bench_2_raw_rows") === true
-		) {
-			return Response.json({
-				success: false,
-				errors: [{ message: "no such optional benchmark table" }],
-			});
-		}
-		return Response.json({
-			success: true,
-			result: [{ success: true, results: [] }],
-		});
-	};
-	assert.deepEqual(
-		(await readD1Payload())?.models,
-		[],
-		"D1 payload reads should survive optional benchmark tables until schema publication",
 	);
 } finally {
 	globalThis.fetch = originalFetch;

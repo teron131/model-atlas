@@ -13,7 +13,7 @@ import {
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { LlmStatsModel } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
-import { modelDisplayName, modelMatchesQuery } from "../shared/model-display";
+import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
 
 export type SortDirection = "ascending" | "descending";
 
@@ -333,9 +333,8 @@ export function sortedRows(
 ) {
 	const sorter = sorters[sortState.key] ?? sorters.rank;
 	const direction = sortState.direction === "descending" ? -1 : 1;
-	return rows
-		.filter(({ model }) => modelMatchesQuery(model, filterQuery))
-		.sort((left, right) => {
+	return filterByModelQuery(rows, (row) => row.model, filterQuery).sort(
+		(left, right) => {
 			const leftValue = sorter.get(left);
 			const rightValue = sorter.get(right);
 			const missingCompared = compareMissingValues(
@@ -351,7 +350,8 @@ export function sortedRows(
 				return compared * direction;
 			}
 			return left.originalIndex - right.originalIndex;
-		});
+		},
+	);
 }
 
 /** Collapse duplicate model routes before assigning display ranks. */

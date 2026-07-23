@@ -1,12 +1,12 @@
 /** Dashboard provider labels, brand assets, and chart colors. */
 
 import { safeSlug } from "./format";
-import { providerAssets } from "./provider-assets.generated";
+import { providerIcons } from "./provider-icons.generated";
 
 type ProviderLike = { provider?: string | null };
 
 type ProviderColorMap = Record<string, string>;
-type ProviderAssetKey = keyof typeof providerAssets;
+type ProviderIconKey = keyof typeof providerIcons;
 
 const providerColorOverrides: ProviderColorMap = {
 	alibaba: "#ff7018",
@@ -93,14 +93,19 @@ function providerAssetKey(provider: string | null | undefined) {
 	return safeSlug(provider);
 }
 
+function providerIcon(provider: string | null | undefined) {
+	const key = providerAssetKey(provider);
+	return key ? providerIcons[key as ProviderIconKey] : undefined;
+}
+
 export function providerChartColor(provider: string | null | undefined) {
 	const key = providerFilterKey(provider);
 	if (providerColorOverrides[key]) {
 		return providerColorOverrides[key];
 	}
-	const assetColor = providerAsset(provider)?.color;
-	if (assetColor != null) {
-		return assetColor;
+	const iconColor = providerIcon(provider)?.color;
+	if (iconColor != null) {
+		return iconColor;
 	}
 	let hash = 0;
 	for (const char of key) {
@@ -114,18 +119,10 @@ export function providerChartColor(provider: string | null | undefined) {
 export function providerBrandColor(provider: string | null | undefined) {
 	return (
 		providerColorOverrides[providerAssetKey(provider)] ??
-		providerAsset(provider)?.color
+		providerIcon(provider)?.color
 	);
 }
 
 export function providerLogo(provider: string | null | undefined) {
-	return providerAsset(provider)?.logo ?? "";
-}
-
-function providerAsset(provider: string | null | undefined) {
-	const key = providerAssetKey(provider);
-	if (!key) {
-		return undefined;
-	}
-	return providerAssets[key as ProviderAssetKey];
+	return providerIcon(provider)?.logo ?? "";
 }

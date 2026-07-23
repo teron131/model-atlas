@@ -8,8 +8,8 @@ import {
 } from "../app/dashboard/graphs/models";
 import { cacheBustedPath } from "../app/dashboard/shared/format";
 import {
+	filterByModelQuery,
 	modelDisplayName,
-	modelMatchesQuery,
 	modelsForVariantDisplay,
 	toggleProviderFilter,
 } from "../app/dashboard/shared/model-display";
@@ -332,13 +332,14 @@ const searchableVariant = {
 	reasoning_effort: "max",
 };
 assert.equal(
-	modelMatchesQuery(searchableVariant, "reasoner max"),
-	true,
+	filterByModelQuery([searchableVariant], (model) => model, "reasoner max")
+		.length,
+	1,
 	"model search should include the visible reasoning variant label",
 );
 assert.equal(
-	modelMatchesQuery(searchableVariant, "unrelated"),
-	false,
+	filterByModelQuery([searchableVariant], (model) => model, "unrelated").length,
+	0,
 	"model search should reject unrelated identity text",
 );
 assert.deepEqual(

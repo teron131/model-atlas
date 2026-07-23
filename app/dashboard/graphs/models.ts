@@ -255,7 +255,11 @@ export function filterByModelControls<T>(
 	getModel: (item: T) => LlmStatsModel,
 	filters: ModelControlFilters,
 ) {
-	return items.filter((item) => modelMatchesControls(getModel(item), filters));
+	const providerKeys =
+		filters.providers.length === 0 ? null : new Set(filters.providers);
+	return items.filter((item) =>
+		modelMatchesControls(getModel(item), filters.maxCost, providerKeys),
+	);
 }
 
 export function limitByIntelligenceScore<T>(
@@ -291,11 +295,12 @@ export function limitByIntelligenceScore<T>(
 
 function modelMatchesControls(
 	model: LlmStatsModel,
-	{ maxCost, providers }: ModelControlFilters,
+	maxCost: CostFilter,
+	providerKeys: ReadonlySet<string> | null,
 ) {
 	if (
-		providers.length > 0 &&
-		!providers.includes(providerFilterKey(model.provider))
+		providerKeys != null &&
+		!providerKeys.has(providerFilterKey(model.provider))
 	) {
 		return false;
 	}

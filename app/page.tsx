@@ -1,9 +1,8 @@
-/** Render the dashboard page with compact server-provided stats payloads. */
+/** Render the dashboard page with its complete server-provided stats payload. */
 
 import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
 import { scoreJsonPayload } from "../src/model-atlas/stats/payload/public-json";
 import { Dashboard } from "./dashboard";
-import { compactDashboardPayload } from "./dashboard/compact-payload";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -13,8 +12,6 @@ export default async function Home() {
 	const initialPayload = await readDisplaySnapshotPayload();
 	const scorePayload =
 		initialPayload == null ? null : scoreJsonPayload(initialPayload);
-	const dashboardPayload =
-		initialPayload == null ? null : compactDashboardPayload(initialPayload);
 	return (
 		<>
 			<link
@@ -40,7 +37,7 @@ export default async function Home() {
 					{scriptJson(scorePayload)}
 				</script>
 			)}
-			<Dashboard initialPayload={dashboardPayload} />
+			<Dashboard initialPayload={initialPayload} />
 		</>
 	);
 }

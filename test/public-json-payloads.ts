@@ -1,7 +1,6 @@
-/** Verify the public model boundary, JSON projections, and dashboard bootstrap projection. */
+/** Verify the public model boundary and JSON projections. */
 
 import assert from "node:assert/strict";
-import { compactDashboardPayload } from "../app/dashboard/compact-payload";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { selectPublicModels } from "../src/model-atlas/pipeline/selection/public-list";
 import {
@@ -257,8 +256,6 @@ fullPayload.metadata.scoring.benchmark_portfolio = {
 		dimensionLoadings: { intelligence: 0, agentic: 1 },
 	},
 };
-const compactPayload = compactDashboardPayload(fullPayload);
-const model = compactPayload.models[0];
 const scorePayload = scoreJsonPayload(fullPayload);
 const scoreModel = scorePayload.scores[0];
 const corePayload = coreJsonPayload(fullPayload);
@@ -283,47 +280,6 @@ assert.deepEqual(scoreModel, {
 		speed: 0,
 		value: null,
 	},
-});
-
-assert.equal(compactPayload.deep_swe, undefined);
-assert.deepEqual(
-	compactPayload.metadata.artificial_analysis.available_benchmark_keys,
-	[],
-);
-assert.deepEqual(compactPayload.metadata.scoring.selected_benchmark_keys, []);
-assert.deepEqual(compactPayload.metadata.scoring.benchmark_portfolio, {
-	deep_swe: {
-		group: "frontier",
-		benchmarkImportance: 1,
-		dimensionLoadings: { intelligence: 0, agentic: 1 },
-	},
-});
-assert.deepEqual(model?.evaluations, {
-	deep_swe: 0.6,
-});
-assert.deepEqual(model?.task_metrics, {
-	artificial_analysis: {
-		cost: 1.25,
-		seconds: 2,
-		output_tokens: 3,
-	},
-	deep_swe: {
-		cost: 3,
-		seconds: 4,
-		output_tokens: 5,
-	},
-});
-assert.equal(model?.intelligence_index_cost, null);
-assert.deepEqual(model?.intelligence, {
-	intelligence_index: 80,
-	agentic_index: 70,
-});
-assert.deepEqual(model?.cost, {
-	input: 1,
-	output: 2,
-	cache_read: 0.5,
-	cache_write: 1.5,
-	blended_price: 1.8,
 });
 
 assert.equal(corePayload.schema, "model_atlas.core");
@@ -361,10 +317,7 @@ assert.equal("task_metrics" in (coreModel ?? {}), false);
 assert.equal("logo" in (coreModel ?? {}), false);
 assert.equal("attachment" in (coreModel ?? {}), false);
 assert.equal("reasoning" in (coreModel ?? {}), false);
-assert.equal(model?.logo, "");
 assert.equal("logo" in (fullJsonModel ?? {}), false);
-assert.equal("attachment" in (model ?? {}), false);
-assert.equal("reasoning" in (model ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
 assert.equal(fullJsonModel?.reasoning_effort, null);
