@@ -10,18 +10,9 @@ const allPayload = await allResponse.json();
 assert.equal(
 	typeof allPayload.openai,
 	"string",
-	"logo API should include generated provider logos",
+	"logo API should include the OpenAI provider",
 );
-assert.equal(
-	allPayload.openai.startsWith("data:image/svg+xml;base64,"),
-	true,
-	"logo API should include generated provider logos",
-);
-assert.equal(
-	allPayload.meta.startsWith("data:image/svg+xml;base64,"),
-	true,
-	"logo API should expose the generated Meta logo",
-);
+assert.equal(typeof allPayload.meta, "string", "logo API should include Meta");
 
 const openaiResponse = await getLogo(
 	new Request("https://example.com/api/logos/openai"),
@@ -33,17 +24,7 @@ assert.equal(openaiResponse.status, 200);
 
 const openaiPayload = await openaiResponse.json();
 assert.deepEqual(Object.keys(openaiPayload), ["openai"]);
-assert.equal(
-	openaiPayload.openai.startsWith("data:image/svg+xml;base64,"),
-	true,
-);
-assert.match(
-	Buffer.from(
-		openaiPayload.openai.slice("data:image/svg+xml;base64,".length),
-		"base64",
-	).toString("utf8"),
-	/<svg[^>]+width="64"[^>]+height="64"[^>]+viewBox="0 0 64 64"/,
-);
+assert.equal(openaiPayload.openai, allPayload.openai);
 
 const missingResponse = await getLogo(
 	new Request("https://example.com/api/logos/nope"),

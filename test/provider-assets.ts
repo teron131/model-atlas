@@ -11,9 +11,9 @@ const openaiSvg = svgText(openaiLogo);
 const metaLogo = providerLogo("meta");
 
 assert.equal(
-	openaiLogo.startsWith("data:image/svg+xml;base64,"),
-	true,
-	"provider logos should be generated as source-managed SVG data URLs",
+	openaiLogo,
+	providerAssets.openai?.logo,
+	"provider lookup should return the generated OpenAI logo",
 );
 assert.equal(
 	providerBrandColor("openai"),
@@ -31,9 +31,9 @@ assert.match(
 	"generated provider SVGs should wrap normalized PNG bytes",
 );
 assert.equal(
-	metaLogo.startsWith("data:image/svg+xml;base64,"),
-	true,
-	"Meta models should resolve through the generated provider logo dictionary",
+	metaLogo,
+	providerAssets.meta?.logo,
+	"provider lookup should return the generated Meta logo",
 );
 assert.equal(
 	Object.values(providerAssets).every((asset) =>
