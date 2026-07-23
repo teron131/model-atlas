@@ -4,7 +4,7 @@ import {
 	buildTerminalBenchMap,
 	findTerminalBenchRows,
 	processTerminalBenchPageHtml,
-} from "../src/model-atlas/scrapers/vals/terminal-bench";
+} from "../src/model-atlas/benchmarks/scrapers/vals/terminal-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

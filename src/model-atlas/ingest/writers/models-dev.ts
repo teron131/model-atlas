@@ -1,7 +1,8 @@
 /** SQLite writer for models.dev catalog rows, preserving provider, pricing, limit, and modality fields. */
 
 import type { ModelsDevPayload } from "../../scrapers/models-dev";
-import { SOURCE_URLS, type SourceSnapshots } from "../types";
+import { SOURCE_URLS } from "../source-registry";
+import type { SourceSnapshots } from "../types";
 import {
 	type DatabaseWriter,
 	modalityFlagValue,

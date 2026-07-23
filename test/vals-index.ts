@@ -4,7 +4,7 @@ import {
 	buildValsIndexMap,
 	findValsIndexScore,
 	processValsIndexPageHtml,
-} from "../src/model-atlas/scrapers/vals/index-benchmark";
+} from "../src/model-atlas/benchmarks/scrapers/vals/index-benchmark";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

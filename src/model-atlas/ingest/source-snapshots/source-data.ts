@@ -5,7 +5,7 @@ import {
 	type BenchmarkRuntimeKey,
 	type BenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
-import { preferredDeepSWELeaderboardRows } from "../../scrapers/deep-swe";
+import { preferredDeepSWELeaderboardRows } from "../../benchmarks/scrapers/deep-swe";
 import type { LlmStatsSourceData } from "../assembly";
 import { buildSourceData, type LlmStatsSourceRows } from "../assembly";
 import type { SourceSnapshots } from "../types";

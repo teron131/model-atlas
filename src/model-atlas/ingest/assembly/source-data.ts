@@ -9,86 +9,86 @@ import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
-import {
-	buildBenchmarkModelMap,
-	modelSlugFromModelId,
-} from "../../identity/normalization";
 import type {
 	AgentArenaModelScoreRow,
 	AgentArenaRowsByModelName,
-} from "../../scrapers/agent-arena";
+} from "../../benchmarks/scrapers/agent-arena";
 import {
 	type AgentsLastExamModelScoreRow,
 	type AgentsLastExamRowsByModelName,
 	buildAgentsLastExamMap,
-} from "../../scrapers/agents-last-exam";
+} from "../../benchmarks/scrapers/agents-last-exam";
 import {
 	type AleBenchConfigurationRow,
 	type AleBenchModelScoreRow,
 	type AleBenchRowsByModelName,
 	summarizeAleBenchSourceDefaultRows,
-} from "../../scrapers/ale-bench";
+} from "../../benchmarks/scrapers/ale-bench";
 import {
 	type ArtificialAnalysisEvaluationResourceByBenchmark,
 	type ArtificialAnalysisEvaluationResourceRow,
 	buildArtificialAnalysisDefaultEffortResourceMap,
 	buildArtificialAnalysisObservationResourceMap,
-} from "../../scrapers/artificial-analysis/benchmark-resources";
+} from "../../benchmarks/scrapers/artificial-analysis/results";
 import {
 	type BlueprintBenchModelScoreRow,
 	type BlueprintBenchRowsByModelName,
 	buildBlueprintBenchMap,
-} from "../../scrapers/blueprint-bench";
+} from "../../benchmarks/scrapers/blueprint-bench";
 import {
 	buildCursorBenchMap,
 	type CursorBenchModelScoreRow,
 	type CursorBenchRowsByModelName,
-} from "../../scrapers/cursorbench";
+} from "../../benchmarks/scrapers/cursorbench";
 import {
 	buildDeepSWEMap,
 	type DeepSWELeaderboardRow,
 	type DeepSWEModelScoreRow,
 	type DeepSWERowsByModelName,
 	summarizeDeepSWEDefaultEffortRows,
-} from "../../scrapers/deep-swe";
+} from "../../benchmarks/scrapers/deep-swe";
 import type {
 	FrontierCodeModelEffortRow,
 	FrontierCodeRowsByModelName,
-} from "../../scrapers/frontier-code";
+} from "../../benchmarks/scrapers/frontier-code";
 import type {
 	MercorApexAgentsRow,
 	MercorApexAgentsRowsByModelName,
-} from "../../scrapers/mercor-apex-agents";
-import type { ModelsDevFlatModel } from "../../scrapers/models-dev";
+} from "../../benchmarks/scrapers/mercor-apex-agents";
 import {
 	buildGdpPdfMap,
 	type GdpPdfModelScoreRow,
 	type GdpPdfRowsByModelName,
-} from "../../scrapers/surge/gdp-pdf";
+} from "../../benchmarks/scrapers/surge/gdp-pdf";
 import {
 	buildRiemannBenchMap,
 	type RiemannBenchModelScoreRow,
 	type RiemannBenchRowsByModelName,
-} from "../../scrapers/surge/riemann-bench";
+} from "../../benchmarks/scrapers/surge/riemann-bench";
 import {
 	buildHarveyLabMap,
 	type HarveyLabModelScoreRow,
 	type HarveyLabRowsByModelName,
-} from "../../scrapers/vals/harvey-lab";
+} from "../../benchmarks/scrapers/vals/harvey-lab";
 import {
 	buildValsIndexMap,
 	type ValsIndexModelScoreRow,
 	type ValsIndexRowsByModelName,
-} from "../../scrapers/vals/index-benchmark";
+} from "../../benchmarks/scrapers/vals/index-benchmark";
 import {
 	buildTerminalBenchMap,
 	type TerminalBenchModelHarnessRow,
 	type TerminalBenchRowsByModelName,
-} from "../../scrapers/vals/terminal-bench";
+} from "../../benchmarks/scrapers/vals/terminal-bench";
 import type {
 	VendingBench2ModelScoreRow,
 	VendingBench2RowsByModelName,
-} from "../../scrapers/vending-bench-2";
+} from "../../benchmarks/scrapers/vending-bench-2";
+import {
+	buildBenchmarkModelMap,
+	modelSlugFromModelId,
+} from "../../identity/normalization";
+import type { ModelsDevFlatModel } from "../../scrapers/models-dev";
 import { pickPreferredModelsDevRows } from "./policy";
 
 export type ArtificialAnalysisModel = {
@@ -257,7 +257,7 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 	const deepSweDefaultEffortRows = summarizeDeepSWEDefaultEffortRows(
 		rows.deepSWEEffortRows,
 	);
-	const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
+	const aleBenchPersistenceDefaultRows = summarizeAleBenchSourceDefaultRows(
 		rows.aleBenchConfigurationRows,
 	);
 	const benchmarkObservationData = buildBenchmarkObservationData(rows);
@@ -295,8 +295,8 @@ export function buildSourceData(rows: LlmStatsSourceRows): LlmStatsSourceData {
 		},
 		aleBench: {
 			configurationRows: rows.aleBenchConfigurationRows,
-			sourceDefaultRows: aleBenchSourceDefaultRows,
-			rowsByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
+			sourceDefaultRows: aleBenchPersistenceDefaultRows,
+			rowsByModelName: buildBenchmarkModelMap(aleBenchPersistenceDefaultRows),
 		},
 		blueprintBench: {
 			rows: rows.blueprintBenchRows,

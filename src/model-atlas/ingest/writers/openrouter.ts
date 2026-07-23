@@ -10,7 +10,7 @@ import {
 	processOpenRouterModelStats,
 	summarizeOpenRouterPerformanceEstimates,
 } from "../../scrapers/openrouter";
-import { SOURCE_URLS } from "../types";
+import { SOURCE_URLS } from "../source-registry";
 import type { DatabaseStatement, DatabaseWriter } from "./database";
 
 type OpenRouterPointRow = {

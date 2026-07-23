@@ -19,7 +19,7 @@ import {
 import {
 	RAW_SOURCE_NAMES,
 	RAW_SOURCE_TABLES,
-} from "../src/model-atlas/ingest/types";
+} from "../src/model-atlas/ingest/source-registry";
 import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/ingest/writers";
 
 const definitions = {

@@ -1,7 +1,13 @@
 /** Source snapshots share one cache-aware workflow across local SQLite and production D1. */
 
 import type { DatabaseSync } from "node:sqlite";
-
+import { benchmarkObservationSnapshots } from "../../benchmarks/persistence/observation";
+import {
+	type BenchmarkSnapshotCaches,
+	benchmarkSnapshotRows,
+	readBenchmarkSnapshotCaches,
+	refreshBenchmarkSnapshots,
+} from "../../benchmarks/persistence/runtime";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import type { ScoringConfig } from "../../config/stage";
 import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
@@ -12,26 +18,18 @@ import {
 	readModelsDevRawCache,
 	readRawSourceCacheStatus,
 } from "../cache";
-import {
-	type DatabaseBuildOptions,
-	RAW_SOURCE_NAMES,
-	type RawSourceCacheStatus,
-	type RawSourceName,
-	type SourceRowState,
-	type SourceSnapshotStatus,
-	type SourceSnapshots,
+import { RAW_SOURCE_NAMES, type RawSourceName } from "../source-registry";
+import type {
+	DatabaseBuildOptions,
+	RawSourceCacheStatus,
+	SourceRowState,
+	SourceSnapshotStatus,
+	SourceSnapshots,
 } from "../types";
 import {
 	artificialAnalysisEvaluationResourceSnapshot,
 	artificialAnalysisSnapshot,
 } from "./artificial-analysis";
-import {
-	type BenchmarkSnapshotCaches,
-	benchmarkSnapshotRows,
-	readBenchmarkSnapshotCaches,
-	refreshBenchmarkSnapshots,
-} from "./benchmark-runtimes";
-import { benchmarkObservationSnapshots } from "./benchmarks/benchmark-observation";
 import { modelsDevSnapshot } from "./models-dev";
 import { missingSinceBySource, persistedSourceRowStates } from "./policy";
 

@@ -1,13 +1,13 @@
 /** Verifies Riemann Bench parsing, matching, and source URL provenance. */
 
 import assert from "node:assert/strict";
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/surge/leaderboard";
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/benchmarks/scrapers/surge/results";
 import {
 	buildRiemannBenchMap,
 	findRiemannBenchScore,
 	getRiemannBenchStats,
 	RIEMANN_BENCH_LEADERBOARD_URL,
-} from "../src/model-atlas/scrapers/surge/riemann-bench";
+} from "../src/model-atlas/benchmarks/scrapers/surge/riemann-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

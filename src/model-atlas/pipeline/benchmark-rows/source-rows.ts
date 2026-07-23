@@ -7,15 +7,15 @@ import {
 	type PublicBenchmarkRuntimeKeyFor,
 	transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
+import { agentsLastExamBenchmarkScore } from "../../benchmarks/scrapers/agents-last-exam";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
+import { cursorBenchCanonicalModelName } from "../../benchmarks/scrapers/cursorbench";
 import {
 	canonicalReasoningEffort,
 	normalizeModelToken,
 } from "../../identity/normalization";
 import type { LlmStatsSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
-import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
-import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
 import { aggregateCollapsedModelRows } from "../model-catalog";
 
 export type BenchmarkSourceRow = {

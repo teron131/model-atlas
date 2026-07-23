@@ -4,18 +4,18 @@
  * The Artificial Analysis leaderboard is the broad score table; benchmark-specific pages such as Terminal-Bench add per-task cost, time, and token resources that the leaderboard does not carry.
  */
 
-import { finiteScoreValues, medianOfFinite } from "../../numeric";
-import { asFiniteNumber } from "../../runtime";
 import {
 	type ArtificialAnalysisEvaluationResourceByBenchmark,
 	type ArtificialAnalysisEvaluationResourceRow,
 	findArtificialAnalysisEvaluationResourceRow,
-} from "../../scrapers/artificial-analysis/benchmark-resources";
+} from "../../benchmarks/scrapers/artificial-analysis/results";
 import {
 	findTerminalBenchRows,
 	type TerminalBenchModelHarnessRow,
 	type TerminalBenchRowsByModelName,
-} from "../../scrapers/vals/terminal-bench";
+} from "../../benchmarks/scrapers/vals/terminal-bench";
+import { finiteScoreValues, medianOfFinite } from "../../numeric";
+import { asFiniteNumber } from "../../runtime";
 
 type Observation = {
 	source: "artificial_analysis" | "vals";

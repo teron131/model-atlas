@@ -3,8 +3,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
 import { ARTIFICIAL_ANALYSIS_EVALUATION_KEYS } from "../../benchmarks/registry";
+import type { ArtificialAnalysisEvaluationResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { asFiniteNumber, type JsonObject } from "../../runtime";
-import type { ArtificialAnalysisEvaluationResourceRow } from "../../scrapers/artificial-analysis/benchmark-resources";
 import {
 	assignIfBoolean,
 	assignIfNumber,

@@ -10,6 +10,19 @@ import {
 	type BenchmarkRuntimeKeyFor,
 	transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
+import {
+	agentsLastExamBenchmarkScore,
+	findAgentsLastExamModelScore,
+} from "../../benchmarks/scrapers/agents-last-exam";
+import {
+	type ArtificialAnalysisEvaluationResourceByBenchmark,
+	type ArtificialAnalysisEvaluationResourceRow,
+	findArtificialAnalysisEvaluationResourceRow,
+} from "../../benchmarks/scrapers/artificial-analysis/results";
+import { findBlueprintBenchScore } from "../../benchmarks/scrapers/blueprint-bench";
+import { findGdpPdfScore } from "../../benchmarks/scrapers/surge/gdp-pdf";
+import { findRiemannBenchScore } from "../../benchmarks/scrapers/surge/riemann-bench";
+import { findValsIndexScore } from "../../benchmarks/scrapers/vals/index-benchmark";
 import { modelNameIdentityKey } from "../../identity";
 import {
 	type BenchmarkModelRow,
@@ -22,19 +35,6 @@ import {
 } from "../../identity/normalization";
 import type { LlmStatsSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
-import {
-	agentsLastExamBenchmarkScore,
-	findAgentsLastExamModelScore,
-} from "../../scrapers/agents-last-exam";
-import {
-	type ArtificialAnalysisEvaluationResourceByBenchmark,
-	type ArtificialAnalysisEvaluationResourceRow,
-	findArtificialAnalysisEvaluationResourceRow,
-} from "../../scrapers/artificial-analysis/benchmark-resources";
-import { findBlueprintBenchScore } from "../../scrapers/blueprint-bench";
-import { findGdpPdfScore } from "../../scrapers/surge/gdp-pdf";
-import { findRiemannBenchScore } from "../../scrapers/surge/riemann-bench";
-import { findValsIndexScore } from "../../scrapers/vals/index-benchmark";
 import type { LlmStatsScoringSources } from "../model-types";
 import {
 	findTerminalBenchAggregate,

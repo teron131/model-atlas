@@ -5,11 +5,11 @@ import assert from "node:assert/strict";
 import {
 	processEpochWeirdMlCsv,
 	type WeirdMlEpochRow,
-} from "../src/model-atlas/scrapers/epoch/weirdml";
+} from "../src/model-atlas/benchmarks/scrapers/epoch/weirdml";
 import {
 	mergeWeirdMlRows,
 	processWeirdMlCsv,
-} from "../src/model-atlas/scrapers/weirdml";
+} from "../src/model-atlas/benchmarks/scrapers/weirdml";
 
 const taskColumns = [
 	"shapes_easy_acc",

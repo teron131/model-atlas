@@ -5,15 +5,17 @@ import {
 	buildDebugTraceRows,
 	insertDebugTraceRows,
 } from "../ingest/debug-trace";
+import {
+	SNAPSHOT_TABLES,
+	type SnapshotTableName,
+} from "../ingest/source-registry";
 import { buildSourceHealth } from "../ingest/source-snapshots/policy";
 import { cachedSourceDataFromSnapshots } from "../ingest/source-snapshots/source-data";
 import type {
 	DatabaseBuildResult,
 	DebugTraceRow,
-	SnapshotTableName,
 	SourceSnapshots,
 } from "../ingest/types";
-import { SNAPSHOT_TABLES } from "../ingest/types";
 import {
 	BENCHMARK_RAW_WRITERS,
 	insertArtificialAnalysisEvaluationResourceRawRows,

@@ -4,12 +4,12 @@ import {
 	AGENTIC_INDEX_KEYS,
 	INTELLIGENCE_INDEX_KEYS,
 } from "../../benchmarks/field-keys";
-import type { ScoringConfig } from "../../config/stage";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import {
 	type ArtificialAnalysisEvaluationResourceRow,
 	getArtificialAnalysisEvaluationResourceStats,
-} from "../../scrapers/artificial-analysis/benchmark-resources";
+} from "../../benchmarks/scrapers/artificial-analysis/results";
+import type { ScoringConfig } from "../../config/stage";
+import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import {
 	ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
 	artificialAnalysisModelId,

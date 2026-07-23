@@ -1,11 +1,11 @@
-import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import {
 	agentsLastExamBenchmarkScore,
 	buildAgentsLastExamMap,
 	findAgentsLastExamModelScore,
 	processAgentsLastExamLeaderboardRows,
 	summarizeAgentsLastExamModelScores,
-} from "../src/model-atlas/scrapers/agents-last-exam";
+} from "../src/model-atlas/benchmarks/scrapers/agents-last-exam";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

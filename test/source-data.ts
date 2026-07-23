@@ -2,6 +2,10 @@
 
 import assert from "node:assert/strict";
 import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
+import type {
+	DeepSWELeaderboardRow,
+	DeepSWERawLeaderboardRow,
+} from "../src/model-atlas/benchmarks/scrapers/deep-swe";
 import type { LlmStatsSourceData } from "../src/model-atlas/ingest/assembly";
 import {
 	buildSourceData,
@@ -10,10 +14,6 @@ import {
 import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/source-data";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromSourceData } from "../src/model-atlas/pipeline/benchmark-rows";
-import type {
-	DeepSWELeaderboardRow,
-	DeepSWERawLeaderboardRow,
-} from "../src/model-atlas/scrapers/deep-swe";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
 import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 

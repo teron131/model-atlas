@@ -4,7 +4,7 @@ import {
 	buildCursorBenchMap,
 	findCursorBenchScore,
 	processCursorBenchPageHtml,
-} from "../src/model-atlas/scrapers/cursorbench";
+} from "../src/model-atlas/benchmarks/scrapers/cursorbench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

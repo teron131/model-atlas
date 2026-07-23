@@ -6,13 +6,16 @@ import type { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../config";
 import { loadSourceSnapshots } from "../ingest/source-snapshots/load";
 import { loadOpenRouterRawPayload } from "../ingest/source-snapshots/openrouter";
-import {
-	type DatabaseBuildOptions,
-	type DatabaseBuildResult,
-	DEFAULT_DATABASE_PATH,
+import type {
+	DatabaseBuildOptions,
+	DatabaseBuildResult,
 } from "../ingest/types";
 import { nowEpochSeconds } from "../runtime";
-import { openDatabase, removeDatabaseFiles } from "./schema";
+import {
+	DEFAULT_DATABASE_PATH,
+	openDatabase,
+	removeDatabaseFiles,
+} from "./schema";
 import {
 	type DatabaseSnapshotRows,
 	deriveDatabaseSnapshot,

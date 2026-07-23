@@ -2,7 +2,7 @@ import {
 	buildBlueprintBenchMap,
 	findBlueprintBenchScore,
 	processBlueprintBenchPageHtml,
-} from "../src/model-atlas/scrapers/blueprint-bench";
+} from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
 	const actualJson = JSON.stringify(actual);

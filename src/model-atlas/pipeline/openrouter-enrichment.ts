@@ -1,5 +1,6 @@
 /** OpenRouter enrichment owns route stats and free-route cost continuity. */
 
+import type { DeepSWEModelScoreRow } from "../benchmarks/scrapers/deep-swe";
 import type { OpenRouterConfig, ScoringConfig } from "../config/stage";
 import { normalizeProviderModelId } from "../identity/normalization";
 import {
@@ -8,7 +9,6 @@ import {
 	publicOpenRouterModelId,
 } from "../identity/openrouter";
 import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
-import type { DeepSWEModelScoreRow } from "../scrapers/deep-swe";
 import {
 	getOpenRouterRawScrapedStats,
 	type OpenRouterRawScrapedPayload,

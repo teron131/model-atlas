@@ -1,7 +1,6 @@
 /** Local SQLite payload reads adapt stored rows to the storage-independent payload assembler. */
 
 import { DatabaseSync } from "node:sqlite";
-import { DEFAULT_DATABASE_PATH } from "../ingest/types";
 import { asRecord } from "../runtime";
 import type { LlmStatsPayload } from "../stats/types";
 import {
@@ -12,6 +11,7 @@ import {
 	payloadFetchedAtFromRow,
 	SNAPSHOT_METADATA_SQL,
 } from "./payload-rows";
+import { DEFAULT_DATABASE_PATH } from "./schema";
 
 function readPayloadRowGroup(
 	db: DatabaseSync,

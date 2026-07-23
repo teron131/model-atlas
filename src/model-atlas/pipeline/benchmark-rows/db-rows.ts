@@ -5,13 +5,13 @@ import {
 	type BenchmarkObservationRowsKey,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
-import { asFiniteNumber } from "../../runtime";
-import { agentsLastExamBenchmarkScore } from "../../scrapers/agents-last-exam";
-import { cursorBenchCanonicalModelName } from "../../scrapers/cursorbench";
+import { agentsLastExamBenchmarkScore } from "../../benchmarks/scrapers/agents-last-exam";
+import { cursorBenchCanonicalModelName } from "../../benchmarks/scrapers/cursorbench";
 import {
 	asDeepSWERawLeaderboardRow,
 	preferredDeepSWELeaderboardRows,
-} from "../../scrapers/deep-swe";
+} from "../../benchmarks/scrapers/deep-swe";
+import { asFiniteNumber } from "../../runtime";
 import {
 	artificialAnalysisModelRowDrafts,
 	type BenchmarkRowDraft,

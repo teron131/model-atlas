@@ -1,23 +1,21 @@
 /** Agent benchmark persistence fixtures protect raw storage, cache restoration, and health-row reconstruction. */
 
 import assert from "node:assert/strict";
+import type { AgentArenaModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/agent-arena";
+import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
+import type { VendingBench2ModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
 import {
 	readAgentArenaRawCache,
 	readMercorApexAgentsRawCache,
 	readVendingBench2RawCache,
 } from "../src/model-atlas/ingest/cache";
-import {
-	SNAPSHOT_TABLES,
-	type SourceSnapshots,
-} from "../src/model-atlas/ingest/types";
+import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
+import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
 	insertBenchmarkRawRows,
 	SnapshotRowCollector,
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/agent-arena";
-import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/mercor-apex-agents";
-import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/vending-bench-2";
 import { benchmarkObservationRowGroups } from "./llm-stats-fixtures";
 
 const agentArenaRow: AgentArenaModelScoreRow = {
