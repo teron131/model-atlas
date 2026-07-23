@@ -22,8 +22,14 @@ function probabilityLogit(value: number): number {
 	return Math.log(clamped / (1 - clamped));
 }
 
-export function logitBenchmarkScore(value: number): number {
-	return probabilityLogit(value > 1 ? value / 100 : value);
+/** Transform a declared 0-1 probability-like score into its finite log-odds coordinate. */
+export function logitUnitScore(value: number): number {
+	if (!Number.isFinite(value) || value < 0 || value > 1) {
+		throw new RangeError(
+			`Logit quality coordinates require a finite 0-1 score, received ${value}`,
+		);
+	}
+	return probabilityLogit(value);
 }
 
 /** Transform a public 0-100 score into its log-odds coordinate. */

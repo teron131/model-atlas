@@ -1,6 +1,6 @@
 /** Metadata assembly keeps live, stored, and restored payloads aligned with the current scoring contract. */
 
-import { benchmarkResourcePolicy } from "../../benchmarks/registry";
+import type { BenchmarkResourcePolicy } from "../../benchmarks/factory";
 import { STAGE_CONFIG } from "../../config";
 import type { ScoringConfig } from "../../config/stage";
 import {
@@ -72,14 +72,10 @@ function buildArtificialAnalysisMetadata(
 function hasPositiveTaskMetric(
 	model: ResourceMetricModel,
 	key: string,
-	scoringConfig: ScoringConfig,
+	resourcePolicy: BenchmarkResourcePolicy,
 ): boolean {
-	const resourcePolicy = benchmarkResourcePolicy(
-		key,
-		scoringConfig.benchmarkPortfolio,
-	);
 	const taskMetricKey =
-		resourcePolicy?.source === "artificial_analysis"
+		resourcePolicy.source === "artificial_analysis"
 			? "artificial_analysis"
 			: key;
 	const taskMetrics = asRecord(model.task_metrics);
@@ -96,41 +92,32 @@ function hasPositiveTaskMetric(
 	);
 }
 
-/** Resource components activate only when this payload has both benchmark values and comparable cost or runtime telemetry. */
-function activeResourceBenchmarkKeys(
-	models: readonly ResourceMetricModel[],
-	scoringConfig: ScoringConfig,
-): string[] {
-	const benchmarkKeys = sortedUniqueKeys(
-		models.flatMap((model) => [
-			...Object.keys(asRecord(model.benchmarks)),
-			...Object.keys(asRecord(model.intelligence)),
-		]),
-	);
-	return benchmarkKeys.filter((key) =>
-		models.some(
-			(model) =>
-				benchmarkMetricValue(model, key) != null &&
-				hasPositiveTaskMetric(model, key, scoringConfig),
-		),
-	);
-}
-
+/** Resource components activate only for declared policies with both benchmark values and comparable telemetry. */
 function activeResourceComponents(
 	models: readonly ResourceMetricModel[],
 	scoringConfig: ScoringConfig,
 ): ActiveResourceComponents {
-	const activeKeys = activeResourceBenchmarkKeys(models, scoringConfig);
+	const activeBenchmarks = Object.entries(scoringConfig.benchmarkPortfolio)
+		.flatMap(([key, entry]) => {
+			const resourcePolicy = entry.resourcePolicy;
+			return resourcePolicy != null &&
+				models.some(
+					(model) =>
+						benchmarkMetricValue(model, key) != null &&
+						hasPositiveTaskMetric(model, key, resourcePolicy),
+				)
+				? [{ key, resourcePolicy }]
+				: [];
+		})
+		.sort((left, right) => left.key.localeCompare(right.key));
 	return {
-		artificialAnalysisBenchmarkKeys: activeKeys.filter(
-			(key) =>
-				benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
-					?.source === "artificial_analysis",
+		artificialAnalysisBenchmarkKeys: activeBenchmarks.flatMap(
+			({ key, resourcePolicy }) =>
+				resourcePolicy.source === "artificial_analysis" ? [key] : [],
 		),
-		directBenchmarkKeys: activeKeys.filter(
-			(key) =>
-				benchmarkResourcePolicy(key, scoringConfig.benchmarkPortfolio)
-					?.source !== "artificial_analysis",
+		directBenchmarkKeys: activeBenchmarks.flatMap(
+			({ key, resourcePolicy }) =>
+				resourcePolicy.source === "benchmark" ? [key] : [],
 		),
 	};
 }

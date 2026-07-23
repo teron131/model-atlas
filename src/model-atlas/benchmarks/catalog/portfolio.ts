@@ -1,11 +1,40 @@
-/** Benchmark portfolio policy owns scoring weights and explicit imputation overrides. */
+/** Benchmark portfolio policy owns scoring weights, imputation, and resource-scoring policy. */
 
 import type {
 	BenchmarkImputationPolicy,
 	BenchmarkPortfolioEntry,
+	BenchmarkResourcePolicy,
 } from "../factory";
 
 type BenchmarkScoringWeight = Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
+type BenchmarkResourceMeasurement = Omit<
+	BenchmarkResourcePolicy,
+	"qualityCoordinate"
+>;
+
+const ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE = {
+	source: "artificial_analysis",
+	unit: "per_task",
+	tokenMeasure: "tokens",
+} as const satisfies BenchmarkResourceMeasurement;
+
+const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE = {
+	source: "artificial_analysis",
+	unit: "per_task",
+	tokenMeasure: "output_tokens",
+} as const satisfies BenchmarkResourceMeasurement;
+
+const BENCHMARK_PER_TASK_RESOURCE = {
+	source: "benchmark",
+	unit: "per_task",
+	tokenMeasure: "tokens",
+} as const satisfies BenchmarkResourceMeasurement;
+
+const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
+	source: "benchmark",
+	unit: "per_task",
+	tokenMeasure: "output_tokens",
+} as const satisfies BenchmarkResourceMeasurement;
 
 export const BENCHMARK_SCORING_WEIGHTS = {
 	aa_intelligence_index: {
@@ -236,6 +265,69 @@ export const BENCHMARK_SCORING_WEIGHTS = {
 } as const satisfies Readonly<Record<string, BenchmarkScoringWeight>>;
 
 export type BenchmarkKey = keyof typeof BENCHMARK_SCORING_WEIGHTS & string;
+
+export const BENCHMARK_RESOURCE_POLICIES = {
+	agents_last_exam: {
+		...BENCHMARK_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	ale_bench: {
+		...BENCHMARK_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	apex_agents: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	automation_bench: {
+		...ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	briefcase: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	critpt: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	cursorbench: {
+		...BENCHMARK_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	deep_swe: {
+		...BENCHMARK_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	frontier_code: {
+		...BENCHMARK_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	gdpval_normalized: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	harvey_lab: {
+		...BENCHMARK_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	hle: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	itbench_sre: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "linear",
+	},
+	tau_banking: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+	terminalbench_v21: {
+		...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+		qualityCoordinate: "logit",
+	},
+} as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;
 
 export const BENCHMARK_IMPUTATION_OVERRIDES = {
 	apex_agents: {

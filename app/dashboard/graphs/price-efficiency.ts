@@ -159,16 +159,29 @@ function costEfficiencyByModel(
 	models: ModelAtlasModel[],
 	portfolio: BenchmarkPortfolio,
 ): Array<number | null> {
-	const benchmarkKeys = activeBenchmarkCostKeys(models, portfolio);
+	const benchmarks = Object.entries(portfolio)
+		.flatMap(([key, entry]) => {
+			const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
+			return qualityCoordinate != null &&
+				models.some(
+					(model) =>
+						benchmarkScore(model, key) != null &&
+						taskCost(model, portfolio, key) != null,
+				)
+				? [{ key, qualityCoordinate }]
+				: [];
+		})
+		.sort((left, right) => left.key.localeCompare(right.key));
 	const scoresByModel = models.map(() => [] as number[]);
-	for (const benchmarkKey of benchmarkKeys) {
+	for (const { key, qualityCoordinate } of benchmarks) {
 		const scores = benchmarkResourceEfficiencyScores(
 			models,
-			models.map((model) => benchmarkScore(model, benchmarkKey)),
+			models.map((model) => benchmarkScore(model, key)),
 			models.map((model) => {
-				const cost = taskCost(model, portfolio, benchmarkKey);
+				const cost = taskCost(model, portfolio, key);
 				return cost == null ? null : Math.log(cost);
 			}),
+			qualityCoordinate,
 		);
 		for (const [modelIndex, score] of scores.entries()) {
 			if (score != null) {
@@ -180,32 +193,8 @@ function costEfficiencyByModel(
 		const meanScore = meanOfFinite(scores);
 		return meanScore == null
 			? null
-			: meanScore * coverageConfidence(scores.length, benchmarkKeys.length);
+			: meanScore * coverageConfidence(scores.length, benchmarks.length);
 	});
-}
-
-function activeBenchmarkCostKeys(
-	models: ModelAtlasModel[],
-	portfolio: BenchmarkPortfolio,
-): string[] {
-	const benchmarkKeys = new Set<string>();
-	for (const model of models) {
-		for (const benchmarkKey of Object.keys(model.benchmarks ?? {})) {
-			benchmarkKeys.add(benchmarkKey);
-		}
-		for (const benchmarkKey of Object.keys(model.intelligence ?? {})) {
-			benchmarkKeys.add(benchmarkKey);
-		}
-	}
-	return [...benchmarkKeys]
-		.filter((benchmarkKey) =>
-			models.some(
-				(model) =>
-					benchmarkScore(model, benchmarkKey) != null &&
-					taskCost(model, portfolio, benchmarkKey) != null,
-			),
-		)
-		.sort((left, right) => left.localeCompare(right));
 }
 
 function benchmarkScore(

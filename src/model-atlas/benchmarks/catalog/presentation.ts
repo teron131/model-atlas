@@ -1,36 +1,11 @@
-/** Benchmark presentation policy owns labels, tooltips, columns, ordering, and resource metadata. */
+/** Benchmark presentation policy owns labels, tooltips, columns, and ordering. */
 
 import type {
 	BenchmarkColumnFacet,
 	BenchmarkPresentationDetail,
-	BenchmarkResourcePolicy,
 	BenchmarkTaskMetricColumnFacet,
 } from "../factory";
 import type { BenchmarkKey } from "./portfolio";
-
-const ARTIFICIAL_ANALYSIS_PER_TASK_POLICY = {
-	source: "artificial_analysis",
-	unit: "per_task",
-	tokenMeasure: "tokens",
-} as const satisfies BenchmarkResourcePolicy;
-
-const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY = {
-	source: "artificial_analysis",
-	unit: "per_task",
-	tokenMeasure: "output_tokens",
-} as const satisfies BenchmarkResourcePolicy;
-
-const BENCHMARK_PER_TASK_POLICY = {
-	source: "benchmark",
-	unit: "per_task",
-	tokenMeasure: "tokens",
-} as const satisfies BenchmarkResourcePolicy;
-
-const BENCHMARK_OUTPUT_PER_TASK_POLICY = {
-	source: "benchmark",
-	unit: "per_task",
-	tokenMeasure: "output_tokens",
-} as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_TOOLTIPS = {
 	aa_intelligence_index: {
@@ -995,23 +970,6 @@ export const BENCHMARK_COLUMNS = {
 		defaultSort: "descending",
 	},
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
-export const BENCHMARK_RESOURCE_POLICIES = {
-	agents_last_exam: BENCHMARK_PER_TASK_POLICY,
-	ale_bench: BENCHMARK_PER_TASK_POLICY,
-	apex_agents: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	automation_bench: ARTIFICIAL_ANALYSIS_PER_TASK_POLICY,
-	briefcase: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	critpt: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	cursorbench: BENCHMARK_PER_TASK_POLICY,
-	deep_swe: BENCHMARK_OUTPUT_PER_TASK_POLICY,
-	frontier_code: BENCHMARK_PER_TASK_POLICY,
-	gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	harvey_lab: BENCHMARK_PER_TASK_POLICY,
-	hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	itbench_sre: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	tau_banking: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-	terminalbench_v21: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_POLICY,
-} as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;
 
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
 	gpqa: ["gpqa"],

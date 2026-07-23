@@ -64,6 +64,7 @@ const definitions = {
 			source: "artificial_analysis",
 			unit: "per_task",
 			tokenMeasure: "output_tokens",
+			qualityCoordinate: "linear",
 		},
 	},
 	cost: {
@@ -115,6 +116,7 @@ assert.deepEqual(factory.portfolio, {
 			source: "artificial_analysis",
 			unit: "per_task",
 			tokenMeasure: "output_tokens",
+			qualityCoordinate: "linear",
 		},
 	},
 });

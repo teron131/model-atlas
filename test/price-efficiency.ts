@@ -21,6 +21,7 @@ const portfolio = {
 			source: "benchmark",
 			unit: "per_task",
 			tokenMeasure: "output_tokens",
+			qualityCoordinate: "logit",
 		},
 	},
 } satisfies BenchmarkPortfolio;
