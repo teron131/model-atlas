@@ -25,6 +25,7 @@ import {
 	prepareBenchmarkScoring,
 } from "../src/model-atlas/pipeline/scores/benchmark-imputation";
 import {
+	evidenceMassConfidence,
 	logInputMinMaxScores,
 	logitPercentageScore,
 	logitUnitScore,
@@ -82,6 +83,13 @@ assertClose(
 assertClose(
 	normalizedMetricValue(rawAgentBenchmarkValues, "vending_bench_2", 9_000),
 	82.3416,
+);
+assertClose(evidenceMassConfidence(1, 1, 3), 0);
+assertClose(evidenceMassConfidence(2, 1, 3), 0.5);
+assertClose(evidenceMassConfidence(3, 1, 3), 1);
+assertThrowsWithMessage(
+	() => evidenceMassConfidence(1, 3, 1),
+	"Evidence confidence requires finite mass and 0 <= floor < full, received 1, 3, 1",
 );
 
 assertEqual(
@@ -204,6 +212,44 @@ assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+function selectedDimensionWeight(
+	keys: readonly string[],
+	dimension: "intelligence" | "agentic",
+): number {
+	const selectedKeys = new Set(keys);
+	return Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio).reduce(
+		(total, [key, entry]) =>
+			selectedKeys.has(key)
+				? total +
+					entry.benchmarkImportance * entry.dimensionLoadings[dimension]
+				: total,
+		0,
+	);
+}
+const intelligenceWeight = selectedDimensionWeight(
+	STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
+	"intelligence",
+);
+const agenticWeight = selectedDimensionWeight(
+	STAGE_CONFIG.scoring.agenticBenchmarkKeys,
+	"agentic",
+);
+assertClose(
+	STAGE_CONFIG.scoring.confidence.intelligence.floor,
+	intelligenceWeight * 0.1,
+);
+assertClose(
+	STAGE_CONFIG.scoring.confidence.intelligence.full,
+	intelligenceWeight * 0.6,
+);
+assertClose(
+	STAGE_CONFIG.scoring.confidence.agentic.floor,
+	agenticWeight * 0.1,
+);
+assertClose(
+	STAGE_CONFIG.scoring.confidence.agentic.full,
+	agenticWeight * 0.6,
+);
 const resourceQualityCoordinates = Object.fromEntries(
 	Object.entries(
 		STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio,
@@ -428,6 +474,10 @@ const aaOnlyTimeTooltip = JSON.stringify(
 const aaOnlyValueTooltip = JSON.stringify(
 	aaOnlyResourceMetadata.scoring.column_tooltips.value,
 );
+assert.deepEqual(
+	aaOnlyResourceMetadata.scoring.confidence,
+	STAGE_CONFIG.scoring.confidence,
+);
 assertEqual(aaOnlyTimeTooltip.includes("33.3% each"), false);
 assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark runtime"), false);
 assertEqual(aaOnlyValueTooltip.includes("25.0% each"), false);
@@ -609,6 +659,10 @@ const fractionalBenchmarkConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: ["omniscience_accuracy", "hle"],
 	agenticBenchmarkKeys: [],
+	confidence: {
+		intelligence: { floor: 0, full: 1 },
+		agentic: { floor: 0, full: 1 },
+	},
 	benchmarkPortfolio: {
 		omniscience_accuracy: {
 			group: "baseline",
@@ -709,7 +763,7 @@ const groupFlippedScores = buildComponentScores(
 );
 assertClose(groupFlippedScores?.intelligence_score, 75);
 
-const fractionalCoverageComponentScores = buildComponentScores(
+const fractionalEvidenceComponentScores = buildComponentScores(
 	{ id: "fractional-sparse", benchmarks: { hle: 100 } },
 	{
 		throughput_tokens_per_second_median: null,
@@ -723,13 +777,13 @@ const fractionalCoverageComponentScores = buildComponentScores(
 		fractionalBenchmarkConfig,
 	),
 );
-assertClose(fractionalCoverageComponentScores?.intelligence_score, 10.4);
+assertClose(fractionalEvidenceComponentScores?.intelligence_score, 10.4);
 
 const sparseBenchmarkKeys = Array.from(
 	{ length: 12 },
 	(_, index) => `quality_${index}`,
 );
-const sparseCoverageBenchmarkPortfolio = Object.fromEntries(
+const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
 	sparseBenchmarkKeys.map((key) => [
 		key,
 		{
@@ -746,13 +800,17 @@ const sparseCoverageBenchmarkPortfolio = Object.fromEntries(
 		dimensionLoadings: { intelligence: 1; agentic: 0 };
 	}
 >;
-const sparseCoverageConfig = {
+const sparseEvidenceConfig = {
 	...STAGE_CONFIG.scoring,
 	intelligenceBenchmarkKeys: sparseBenchmarkKeys,
 	agenticBenchmarkKeys: [],
-	benchmarkPortfolio: sparseCoverageBenchmarkPortfolio,
+	confidence: {
+		intelligence: { floor: 0, full: 2 },
+		agentic: { floor: 0, full: 1 },
+	},
+	benchmarkPortfolio: sparseEvidenceBenchmarkPortfolio,
 } as const;
-const sparseCoverageModels = [
+const sparseEvidenceModels = [
 	{
 		id: "sparse-min",
 		benchmarks: Object.fromEntries(sparseBenchmarkKeys.map((key) => [key, 0])),
@@ -768,18 +826,18 @@ const sparseCoverageModels = [
 		benchmarks: { quality_0: 100 },
 	},
 ];
-const sparseCoverageComponentScores = buildComponentScores(
-	sparseCoverageModels[2] ?? {},
+const sparseEvidenceComponentScores = buildComponentScores(
+	sparseEvidenceModels[2] ?? {},
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
 		e2e_latency_seconds_median: null,
 	},
 	[],
-	sparseCoverageConfig,
-	buildQualityScoringContext(sparseCoverageModels, sparseCoverageConfig),
+	sparseEvidenceConfig,
+	buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
-assertClose(sparseCoverageComponentScores?.intelligence_score, 0);
+assertClose(sparseEvidenceComponentScores?.intelligence_score, 50);
 
 const directResourceScoredModels = attachFinalScores(
 	[
@@ -1518,22 +1576,22 @@ assertClose(
 	0,
 );
 
-const imputationCoverageModels = [
+const imputationEvidenceModels = [
 	{
-		id: "imputation-coverage-min",
+		id: "imputation-evidence-min",
 		benchmarks: { target: 0, c1: 0, c2: 0, c3: 0 },
 	},
 	{
-		id: "imputation-coverage-max",
+		id: "imputation-evidence-max",
 		benchmarks: { target: 100, c1: 100, c2: 100, c3: 100 },
 	},
 ];
-const imputationCoverageContext = buildQualityScoringContext(
-	imputationCoverageModels,
+const imputationEvidenceContext = buildQualityScoringContext(
+	imputationEvidenceModels,
 	crossEffortConfig,
 );
-const imputationCoverageTarget = {
-	id: "imputation-coverage-target",
+const imputationEvidenceTarget = {
+	id: "imputation-evidence-target",
 	benchmarks: { c1: 100 },
 };
 const imputedHighValues = new Map([
@@ -1541,28 +1599,35 @@ const imputedHighValues = new Map([
 	["c2", 100],
 	["c3", 100],
 ]);
+const imputationEvidenceConfig = {
+	...crossEffortConfig,
+	confidence: {
+		intelligence: { floor: 0, full: 2.5 },
+		agentic: { floor: 0, full: 1 },
+	},
+} as const;
 const untrustedImputationScores = buildComponentScores(
-	imputationCoverageTarget,
+	imputationEvidenceTarget,
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
 		e2e_latency_seconds_median: null,
 	},
 	[],
-	crossEffortConfig,
-	imputationCoverageContext,
+	imputationEvidenceConfig,
+	imputationEvidenceContext,
 	imputedHighValues,
 );
 const validatedImputationScores = buildComponentScores(
-	imputationCoverageTarget,
+	imputationEvidenceTarget,
 	{
 		throughput_tokens_per_second_median: null,
 		latency_seconds_median: null,
 		e2e_latency_seconds_median: null,
 	},
 	[],
-	crossEffortConfig,
-	imputationCoverageContext,
+	imputationEvidenceConfig,
+	imputationEvidenceContext,
 	imputedHighValues,
 	new Map([
 		["target", 0.5],
@@ -1570,7 +1635,7 @@ const validatedImputationScores = buildComponentScores(
 		["c3", 0.5],
 	]),
 );
-assertClose(untrustedImputationScores?.intelligence_score, 21.6);
+assertClose(untrustedImputationScores?.intelligence_score, 35.2);
 assertClose(validatedImputationScores?.intelligence_score, 100);
 
 function modelCandidate(options: {

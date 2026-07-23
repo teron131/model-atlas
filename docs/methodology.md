@@ -18,8 +18,8 @@ The calculation proceeds in one direction:
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
-| Intelligence | Selected benchmark results | Importance, dimension loading, and evidence coverage | How strong is the model on knowledge and reasoning? |
-| Agentic | Selected benchmark results | Importance, dimension loading, and evidence coverage | How strong is the model in tool-mediated workflows? |
+| Intelligence | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model on knowledge and reasoning? |
+| Agentic | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model in tool-mediated workflows? |
 | Speed | Provider speed, simulated workflow runtime, benchmark task time | Log scaling, quality-local comparison, and component coverage | How quickly does the model deliver comparable work? |
 | Value | Blended price, workflow price efficiency, benchmark task cost | Log scaling, quality-local comparison, and component coverage | How much useful capability does the model deliver for its cost? |
 
@@ -74,27 +74,31 @@ $$
 \bar{B}_{m,D}=\frac{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}z_{m,b}}{\sum_{b\in\mathcal{B}_D,z_{m,b}\text{ available or imputed}}w_{b,D}}
 $$
 
-### Evidence Coverage
+### Evidence Mass
 
-The evidence coverage ratio uses the same effective weights as the dimension mean. Its evidence factor $\eta_{m,b}$ is $1$ for an observed value, $\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1)$ for a validated imputation, and $0$ for a missing value. The error $\tilde e_{m,b}$ is the normalized held-out median absolute error of the predictor used for that row. A cross-effort prediction uses its cross-only error. Missing a small benchmark contribution therefore reduces confidence less than missing a large contribution:
-
-$$
-c_{m,D}=\frac{\sum_{b\in\mathcal{B}_D}w_{b,D}\eta_{m,b}}{\sum_{b\in\mathcal{B}_D}w_{b,D}}
-$$
-
-Coverage confidence is zero through 10% evidence, one from 60% evidence, and a smooth transition between them:
+Evidence mass uses the same effective weights as the dimension mean. Its evidence factor $\eta_{m,b}$ is $1$ for an observed value, $\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1)$ for a validated imputation, and $0$ for a missing value. The error $\tilde e_{m,b}$ is the normalized held-out median absolute error of the predictor used for that row. A cross-effort prediction uses its cross-only error. Missing a small benchmark contribution therefore reduces confidence less than missing a large contribution:
 
 $$
-C(c)=
-\operatorname{smoothstep}\left(\frac{c-0.1}{0.5}\right).
+E_{m,D}=\sum_{b\in\mathcal{B}_D}w_{b,D}\eta_{m,b}
 $$
 
-![Evidence coverage confidence held at zero through 10 percent, smoothly increased, and capped at one from 60 percent.](assets/methodology/coverage-confidence.svg)
-
-The weighted mean $\bar B_{m,D}$ measures performance on available evidence, while $C(c_{m,D})$ measures how much validated evidence supports that mean. Their product prevents a strong result on sparse evidence from looking as certain as the same result with broad coverage:
+Confidence is a dimension-specific curve over absolute evidence mass:
 
 $$
-D_{m,D}=\bar{B}_{m,D}C(c_{m,D})
+T_D=\sum_{b\in\mathcal{B}_D}w_{b,D},
+\qquad
+C_D(E)=
+\operatorname{smoothstep}\left(\frac{E-0.1T_D}{0.5T_D}\right).
+$$
+
+The floor and full-confidence point are calculated from each selected dimension portfolio: confidence is zero through 10% of its total effective weight and full from 60%. The thresholds therefore update when the selected portfolio changes rather than remaining separate calibration literals.
+
+![Confidence is zero through 10 percent weighted evidence, rises smoothly, and is full from 60 percent.](assets/methodology/confidence.svg)
+
+The weighted mean $\bar B_{m,D}$ measures performance on available evidence, while $C_D(E_{m,D})$ measures how much validated evidence supports that mean. Their product prevents a strong result on sparse evidence from looking as certain as the same result with broad evidence:
+
+$$
+D_{m,D}=\bar{B}_{m,D}C_D(E_{m,D})
 $$
 
 $$
@@ -185,7 +189,7 @@ $$
 
 The missing-data multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline}}=0.5$. Group changes only this penalty; it does not change context selection, validation evidence, or observed benchmark weight. A value that actually uses the two-dimensional predictor subtracts the cross-only raw held-out median error; a one-dimensional fallback subtracts the one-dimensional error. The same-dimension context score $C_{m,b}$ uses normalized quality evidence, not raw benchmark values.
 
-Validation-weighted evidence coverage remains in addition to the benchmark-local error subtraction. The subtraction makes every imputed value conservative, while evidence credit reflects the held-out reliability of the predictor actually used for that row. A sparse sibling-effort context falls back to the separately validated one-dimensional value, penalty, and confidence. Imputations remain ineligible for public admission regardless of that credit.
+Validation-weighted evidence mass remains in addition to the benchmark-local error subtraction. The subtraction makes every imputed value conservative, while evidence credit reflects the held-out reliability of the predictor actually used for that row. A sparse sibling-effort context falls back to the separately validated one-dimensional value, penalty, and confidence. Imputations remain ineligible for public admission regardless of that credit.
 
 ## Price and Workflow Assumptions
 
@@ -418,7 +422,7 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Evidence confidence floor / full point | 10% / 60% | Suppresses scores built from isolated evidence while allowing incomplete but broad coverage to receive full confidence. |
+| Evidence confidence floor / full point | 10% / 60% of effective dimension weight | Suppresses scores built from isolated evidence while deriving absolute unit thresholds from the selected portfolio. |
 | Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |

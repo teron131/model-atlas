@@ -63,6 +63,29 @@ export function coverageConfidence(availableCount: number, totalCount: number) {
 	);
 }
 
+/** Convert evidence mass into confidence using the configured floor and full point. */
+export function evidenceMassConfidence(
+	evidenceMass: number,
+	floor: number,
+	full: number,
+): number {
+	if (
+		!Number.isFinite(evidenceMass) ||
+		!Number.isFinite(floor) ||
+		!Number.isFinite(full) ||
+		floor < 0 ||
+		full <= floor
+	) {
+		throw new RangeError(
+			`Evidence confidence requires finite mass and 0 <= floor < full, received ${evidenceMass}, ${floor}, ${full}`,
+		);
+	}
+	if (evidenceMass >= full) {
+		return 1;
+	}
+	return smoothstep((evidenceMass - floor) / (full - floor));
+}
+
 /** Normalize onto the 0-100 score scale, giving full credit when the comparison set has no spread. */
 export function minMaxScale(
 	values: ReadonlyArray<number | null>,

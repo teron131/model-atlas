@@ -188,6 +188,12 @@ export function buildCurrentModelAtlasMetadata({
 			),
 			selected_benchmark_keys: selectedBenchmarkKeys,
 			benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
+			confidence: {
+				intelligence: {
+					...scoringConfig.confidence.intelligence,
+				},
+				agentic: { ...scoringConfig.confidence.agentic },
+			},
 			price_profiles: { ...scoringConfig.priceProfiles },
 			simulation_profiles: { ...scoringConfig.simulationProfiles },
 			seconds_per_input_token: scoringConfig.secondsPerInputToken,
