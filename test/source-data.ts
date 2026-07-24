@@ -1,4 +1,4 @@
-/** Verifies live and cached rows share source selection, lookups, and default-effort assembly. */
+/** Verifies live and cached rows share source selection, lookups, and source-default assembly. */
 
 import assert from "node:assert/strict";
 import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
@@ -79,7 +79,7 @@ function benchmarkObservationRow(
 }
 
 function summary(sourceData: ModelAtlasSourceData) {
-	const defaultDeepSWE = sourceData.deepSWE.defaultEffortRows[0];
+	const defaultDeepSWE = sourceData.deepSWE.sourceDefaultRows[0];
 	const indexedDeepSWE = sourceData.deepSWE.rowsByModelName.get("deep-model");
 	return {
 		artificialAnalysisModelId:

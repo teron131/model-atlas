@@ -1,4 +1,4 @@
-/** Model-row aggregation merges route aliases, evidence fields, and reasoning variants. */
+/** Model catalog variant construction merges route aliases into effort-preserving or collapsed rows. */
 
 import { claudeIdentityKey, parseClaudeIdentity } from "../../identity/claude";
 import {
@@ -26,7 +26,7 @@ const ALIAS_MERGED_OBJECT_FIELDS = [
 ] as const;
 type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
 
-type VariantAggregation = "expand" | "collapse";
+type VariantShape = "preserve" | "collapse";
 
 function hasIntelligenceCost(row: JsonObject): boolean {
 	const intelligenceIndexCost = asRecord(row.intelligence_index_cost);
@@ -198,21 +198,21 @@ function mergeDuplicateRows(
 	return merged;
 }
 
-function mergeCollapsedVariantRows(
+function mergeCollapsedModelRows(
 	winner: JsonObject,
 	group: readonly JsonObject[],
 ): JsonObject {
-	const aggregate = mergeDuplicateRows(
+	const collapsedRow = mergeDuplicateRows(
 		winner,
 		group,
 		CATALOG_MERGED_OBJECT_FIELDS,
 	);
-	delete aggregate.reasoning_effort;
-	return aggregate;
+	delete collapsedRow.reasoning_effort;
+	return collapsedRow;
 }
 
 /** Preserve one Artificial Analysis observation per explicit effort while sharing route-owned catalog fields. */
-function mergeReasoningVariants(
+function mergeRowsByReasoningEffort(
 	group: readonly JsonObject[],
 	normalizedId: string,
 ): JsonObject[] {
@@ -235,9 +235,9 @@ function mergeReasoningVariants(
 	});
 }
 
-function aggregateRows(
+function buildModelRows(
 	rows: Record<string, unknown>[],
-	variantAggregation: VariantAggregation,
+	variantShape: VariantShape,
 ): Record<string, unknown>[] {
 	const groupedByNormalizedId = new Map<string, JsonObject[]>();
 	const passthrough: Record<string, unknown>[] = [];
@@ -269,9 +269,9 @@ function aggregateRows(
 		)[0] as JsonObject;
 		if (normalizedId.startsWith("artificial_analysis:")) {
 			dedupedRows.push(
-				...(variantAggregation === "expand"
-					? mergeReasoningVariants(group, normalizedId)
-					: [mergeCollapsedVariantRows(winner, group)]),
+				...(variantShape === "preserve"
+					? mergeRowsByReasoningEffort(group, normalizedId)
+					: [mergeCollapsedModelRows(winner, group)]),
 			);
 			continue;
 		}
@@ -284,15 +284,15 @@ function aggregateRows(
 }
 
 /** Collapse route aliases while preserving Artificial Analysis reasoning variants as distinct model rows. */
-export function aggregateExpandedModelRows(
+export function buildModelVariants(
 	rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
-	return aggregateRows(rows, "expand");
+	return buildModelRows(rows, "preserve");
 }
 
 /** Collapse route aliases and reasoning variants into one representative row per model. */
-export function aggregateCollapsedModelRows(
+export function collapseModelVariants(
 	rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
-	return aggregateRows(rows, "collapse");
+	return buildModelRows(rows, "collapse");
 }

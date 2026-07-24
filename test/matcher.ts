@@ -7,8 +7,8 @@ import {
 } from "../src/model-atlas/benchmarks/observation";
 import {
 	type ArtificialAnalysisBenchmarkResourceRow,
-	buildArtificialAnalysisDefaultEffortResourceLookup,
 	buildArtificialAnalysisResourceLookup,
+	buildArtificialAnalysisSourceDefaultResourceLookup,
 } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { buildBlueprintBenchMap } from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/benchmarks/scrapers/cursorbench";
@@ -31,10 +31,10 @@ import type {
 import type { ModelAtlasSourceData } from "../src/model-atlas/ingest/assembly";
 import { buildDebugTraceRows } from "../src/model-atlas/ingest/debug-trace";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { enrichModelRowsWithBenchmarks } from "../src/model-atlas/pipeline/benchmark-rows";
+import { assignBenchmarksToVariants } from "../src/model-atlas/pipeline/benchmark-rows";
 import { deriveModelStats } from "../src/model-atlas/pipeline/derivation";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/pipeline/matched-rows";
-import { aggregateCollapsedModelRows } from "../src/model-atlas/pipeline/model-catalog";
+import { collapseModelVariants } from "../src/model-atlas/pipeline/model-catalog";
 
 const sourceRows: MatcherSourceModel[] = [
 	source("example-medium-3-5", "Example Medium 3.5"),
@@ -449,8 +449,8 @@ const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
 const matchedFlashRow = matchedRows.find(
 	(row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
-const aggregatedFlashModel = enrichModelRowsWithBenchmarks(
-	aggregateCollapsedModelRows(matchedRows),
+const assignedFlashVariant = assignBenchmarksToVariants(
+	collapseModelVariants(matchedRows),
 	sourceData,
 ).find((row) => row.id === "google/example-2.5-flash");
 const noneEffortObservation = matchedRows.find(
@@ -473,35 +473,35 @@ assert.equal(
 assert.equal(
 	asBenchmarks(matchedFlashRow).toolathlon,
 	undefined,
-	"aggregate benchmarks should not enter effort observations",
+	"default-variant benchmarks should not enter effort observations",
 );
 assert.equal(
-	asBenchmarks(aggregatedFlashModel).toolathlon,
+	asBenchmarks(assignedFlashVariant).toolathlon,
 	0.42,
-	"Toolathlon scores should attach through the aggregate benchmark layer",
+	"Toolathlon scores should attach to the default variant",
 );
 assert.equal(
-	asBenchmarks(aggregatedFlashModel).cursorbench,
+	asBenchmarks(assignedFlashVariant).cursorbench,
 	0.58,
 	"CursorBench scores should attach through the benchmark lookup path",
 );
 assert.equal(
-	asBenchmarks(aggregatedFlashModel).blueprint_bench_2,
+	asBenchmarks(assignedFlashVariant).blueprint_bench_2,
 	0.36,
 	"Blueprint-Bench 2 scores should attach through display-name matching",
 );
 assert.equal(
-	asBenchmarks(aggregatedFlashModel).gdp_pdf,
+	asBenchmarks(assignedFlashVariant).gdp_pdf,
 	0.25,
 	"GDP.pdf scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asBenchmarks(aggregatedFlashModel).riemann_bench,
+	asBenchmarks(assignedFlashVariant).riemann_bench,
 	0.31,
 	"Riemann-bench scores should attach through normalized display-name matching",
 );
 assert.equal(
-	asBenchmarks(aggregatedFlashModel).vals_index,
+	asBenchmarks(assignedFlashVariant).vals_index,
 	0.64,
 	"Vals Index scores should attach through normalized model-id matching",
 );
@@ -516,8 +516,8 @@ assert.equal(
 	0.1,
 	"matched effort rows should retain their exact resource observation",
 );
-assert.equal(asBenchmarks(aggregatedFlashModel).hle, 0.4);
-assert.equal(aggregatedFlashModel?.reasoning_effort, undefined);
+assert.equal(asBenchmarks(assignedFlashVariant).hle, 0.4);
+assert.equal(assignedFlashVariant?.reasoning_effort, undefined);
 
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
 	return {
@@ -709,7 +709,7 @@ function modelStatsSourceData(
 			observationLookup: buildArtificialAnalysisResourceLookup(
 				artificialAnalysisResourceRows,
 			),
-			defaultEffortLookup: buildArtificialAnalysisDefaultEffortResourceLookup(
+			sourceDefaultLookup: buildArtificialAnalysisSourceDefaultResourceLookup(
 				artificialAnalysisResourceRows,
 			),
 		},
@@ -753,7 +753,7 @@ function modelStatsSourceData(
 		cyberBench: { rows: [], rowsByModelName: new Map() },
 		deepSWE: {
 			effortRows: [],
-			defaultEffortRows: [],
+			sourceDefaultRows: [],
 			rowsByModelName: new Map(),
 		},
 		ebrBench: { rows: [], rowsByModelName: new Map() },

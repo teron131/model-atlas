@@ -426,7 +426,7 @@ Public admission requires a complete basic profile: release date, text output, i
 
 Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in Intelligence, Agentic, Speed, or Value. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
 
-An unlabelled benchmark observation belongs to the source-default variant. When every observation is labelled, source aggregation selects the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Compact public views represent each base model with its highest-Intelligence scored variant; the `all` API view preserves every scored effort variant.
+An unlabelled benchmark observation belongs to the source-default variant. When every observation is labelled, source-default selection chooses the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Compact public views represent each base model with its highest-Intelligence scored variant; the `all` API view preserves every scored effort variant.
 
 ## Parameter Rationale
 

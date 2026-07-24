@@ -1,4 +1,4 @@
-/** Verifies CursorBench parsing, canonical names, and default-effort selection. */
+/** Verifies CursorBench parsing, canonical names, and source-default selection. */
 
 import {
 	buildCursorBenchMap,

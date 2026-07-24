@@ -12,7 +12,7 @@ import type {
 	ModelAtlasModelCandidate,
 	ModelAtlasScoredCandidate,
 } from "../model-types";
-import type { ModelAtlasEnrichmentResult } from "../openrouter-enrichment";
+import type { OpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores } from "../scores";
 import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
 import { observedBenchmarkCount } from "../scores/score-builders";
@@ -105,17 +105,16 @@ export function meetsPublicRelevanceThreshold(
 }
 
 function buildCandidates(
-	rows: Record<string, unknown>[],
-	enrichment: ModelAtlasEnrichmentResult,
+	openRouterData: OpenRouterModelData,
 	scoringConfig: ScoringConfig,
 	scoringPreparation: ReturnType<typeof prepareBenchmarkScoring>,
 ): ModelAtlasModelCandidate[] {
-	return rows.map((row) =>
+	return openRouterData.modelRows.map((row) =>
 		buildModelCandidate(
 			row,
-			enrichment.openRouterSpeedById,
-			enrichment.openRouterPricingById,
-			enrichment.speedOutputTokenAnchors,
+			openRouterData.speedByModelId,
+			openRouterData.pricingByModelId,
+			openRouterData.outputTokenAnchors,
 			scoringConfig,
 			scoringPreparation.benchmarkImputationByModel,
 			scoringPreparation.benchmarkImputationConfidenceByModel,
@@ -125,18 +124,17 @@ function buildCandidates(
 }
 
 export async function buildFinalModels(
-	enrichment: ModelAtlasEnrichmentResult,
+	openRouterData: OpenRouterModelData,
 	id: string | null | undefined,
 	finalConfig: FinalStageConfig,
 	scoringConfig: ScoringConfig,
 ): Promise<ModelAtlasModel[]> {
 	const scoringPreparation = prepareBenchmarkScoring(
-		enrichment.rows,
+		openRouterData.modelRows,
 		scoringConfig,
 	);
 	const candidateModels = buildCandidates(
-		enrichment.rows,
-		enrichment,
+		openRouterData,
 		scoringConfig,
 		scoringPreparation,
 	);

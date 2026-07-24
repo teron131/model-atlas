@@ -12,12 +12,12 @@ import type {
 } from "../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../runtime";
 import {
-	type BenchmarkEnrichmentLookups,
-	enrichBenchmarkObservation,
+	type BenchmarkAssignmentLookups,
+	buildObservationBenchmarks,
 } from "./benchmark-rows";
 
 type MatchedRowLookups = Pick<ModelAtlasSourceData, "modelsDev"> &
-	BenchmarkEnrichmentLookups;
+	BenchmarkAssignmentLookups;
 
 function buildMatchedRow(
 	artificialAnalysisModel: ArtificialAnalysisModel,
@@ -51,13 +51,13 @@ function buildMatchedRow(
 		artificialAnalysisSlug,
 		artificialAnalysisModel.name,
 	];
-	const benchmarkEnrichment = enrichBenchmarkObservation(
+	const observationBenchmarks = buildObservationBenchmarks(
 		observationNameCandidates,
 		lookups,
 		benchmarks,
 		artificialAnalysisModel.reasoning_effort,
 	);
-	Object.assign(benchmarks, benchmarkEnrichment.benchmarks);
+	Object.assign(benchmarks, observationBenchmarks.benchmarks);
 	const canonicalId = canonicalProviderModelId(
 		matchedModelsDev?.model?.id ?? matchedModelId,
 		matchedModelsDev?.provider_id,
@@ -101,9 +101,9 @@ function buildMatchedRow(
 			: {
 					median_end_to_end_response_time_seconds: medianEndToEndResponseTime,
 				}),
-		...(Object.keys(benchmarkEnrichment.scoringSources).length === 0
+		...(Object.keys(observationBenchmarks.scoringSources).length === 0
 			? {}
-			: { scoring_sources: benchmarkEnrichment.scoringSources }),
+			: { scoring_sources: observationBenchmarks.scoringSources }),
 		benchmarks,
 		intelligence,
 		intelligence_index_cost: intelligenceIndexCost,

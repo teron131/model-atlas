@@ -34,7 +34,7 @@ For each AA source slug, candidates are collected from the preferred `models.dev
 
 The first guardrail is first-token matching. If the AA slug starts with one family token and the candidate id/name starts with another, the candidate is rejected early. This prevents obvious cross-family matches.
 
-The matcher scores OpenRouter candidates and trusted fallback-provider candidates against the same source slug. When OpenRouter supplies candidates, both pools are combined and ranked by the matching heuristic, so an exact trusted-provider row can beat a weaker OpenRouter alias. OpenRouter remains the preferred public identity when its candidate wins because route identity, pricing, and speed enrichment are keyed through OpenRouter ids.
+The matcher scores OpenRouter candidates and trusted fallback-provider candidates against the same source slug. When OpenRouter supplies candidates, both pools are combined and ranked by the matching heuristic, so an exact trusted-provider row can beat a weaker OpenRouter alias. OpenRouter remains the preferred public identity when its candidate wins because route identity, pricing, and speed data are keyed through OpenRouter ids.
 
 ## Candidate Score
 
@@ -84,7 +84,7 @@ Any best match below that threshold is discarded. The cutoff removes weak matche
 
 Claude tier and version are structural identity fields even though Anthropic changed their order over time. Historical names such as `Claude 3 Opus` and `claude-3-opus` normalize with the current-style `Claude Opus 3` form, while the known compact `claude-35-sonnet` form maps to Claude Sonnet 3.5. Current OpenRouter routes such as `claude-opus-4.6` also recognize reordered dated permaslugs such as `claude-4.6-opus-20260205`.
 
-The tier is never treated as noise: `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. If the correct tier is unavailable, the source row remains unmatched instead of borrowing another Claude tier. Dates and route labels remain outside model identity, while reasoning or configuration labels such as `thinking` stay separate observations. A missing source `reasoning_effort` remains null; the aggregate groups Claude configuration observations by tier/version and treats the canonical unlabelled observation as the source default rather than inferring an effort or choosing among null observations by score.
+The tier is never treated as noise: `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. If the correct tier is unavailable, the source row remains unmatched instead of borrowing another Claude tier. Dates and route labels remain outside model identity, while reasoning or configuration labels such as `thinking` stay separate observations. A missing source `reasoning_effort` remains null; variant construction groups Claude configuration observations by tier/version and treats the canonical unlabelled observation as the source default rather than inferring an effort or choosing among null observations by score.
 
 ## Variant Conflict Check
 

@@ -1,6 +1,5 @@
-/** OpenRouter enrichment owns route stats and free-route cost continuity. */
+/** OpenRouter model data prepares route telemetry, scoring anchors, and free-route cost continuity. */
 
-import type { DeepSWEModelScoreRow } from "../benchmarks/scrapers/deep-swe";
 import type { OpenRouterConfig, ScoringConfig } from "../config/stage";
 import { normalizeProviderModelId } from "../identity/normalization";
 import {
@@ -17,13 +16,11 @@ import {
 
 import { deriveSpeedOutputTokenAnchors } from "./scores";
 
-export type ModelAtlasEnrichmentResult = {
-	rows: Record<string, unknown>[];
-	openRouterSpeedById: Map<string, JsonObject>;
-	openRouterPricingById: Map<string, JsonObject>;
-	openRouterRawPayload?: OpenRouterRawScrapedPayload | null;
-	speedOutputTokenAnchors: number[];
-	deepSWEDefaultEffortRows?: readonly DeepSWEModelScoreRow[];
+export type OpenRouterModelData = {
+	modelRows: Record<string, unknown>[];
+	speedByModelId: Map<string, JsonObject>;
+	pricingByModelId: Map<string, JsonObject>;
+	outputTokenAnchors: number[];
 };
 
 function normalizeSpeed(performance: unknown): JsonObject {
@@ -205,7 +202,6 @@ async function buildOpenRouterDataById(
 ): Promise<{
 	speedById: Map<string, JsonObject>;
 	pricingById: Map<string, JsonObject>;
-	rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
 }> {
 	const modelIds = [
 		...new Set(
@@ -218,7 +214,6 @@ async function buildOpenRouterDataById(
 		return {
 			speedById: new Map(),
 			pricingById: new Map(),
-			rawPayload: null,
 		};
 	}
 
@@ -234,7 +229,6 @@ async function buildOpenRouterDataById(
 			return {
 				speedById: new Map(),
 				pricingById: new Map(),
-				rawPayload: null,
 			};
 		}
 		const models = rawPayload.models.map((model) =>
@@ -249,42 +243,37 @@ async function buildOpenRouterDataById(
 			indexOpenRouterRouteData(pricingById, model.id, pricing, hasPricingData);
 		}
 		indexPublicRouteData(rows, speedById, pricingById);
-		return { speedById, pricingById, rawPayload };
+		return { speedById, pricingById };
 	} catch {
 		return {
 			speedById: new Map(),
 			pricingById: new Map(),
-			rawPayload: null,
 		};
 	}
 }
 
-/** Enrich matched rows with route-level OpenRouter speed and pricing without making the source snapshot depend on live route stats. */
-export async function enrichModelRowsWithOpenRouter(
+/** Prepares route-level OpenRouter speed and pricing without making source snapshots depend on live route stats. */
+export async function prepareOpenRouterModelData(
 	rows: Record<string, unknown>[],
 	openRouterConfig: OpenRouterConfig,
 	scoringConfig: ScoringConfig,
-	cachedOpenRouterRawPayload?: OpenRouterRawScrapedPayload | null,
-): Promise<ModelAtlasEnrichmentResult> {
+	cachedRawPayload?: OpenRouterRawScrapedPayload | null,
+): Promise<OpenRouterModelData> {
 	const costBackfilledRows = backfillFreeModelCosts(rows);
-	const {
-		speedById: openRouterSpeedById,
-		pricingById: openRouterPricingById,
-		rawPayload: openRouterRawPayload,
-	} = await buildOpenRouterDataById(
-		costBackfilledRows,
-		openRouterConfig.speedConcurrency,
-		cachedOpenRouterRawPayload,
-	);
-	const speedOutputTokenAnchors = deriveSpeedOutputTokenAnchors(
-		openRouterSpeedById,
+	const { speedById: speedByModelId, pricingById: pricingByModelId } =
+		await buildOpenRouterDataById(
+			costBackfilledRows,
+			openRouterConfig.speedConcurrency,
+			cachedRawPayload,
+		);
+	const outputTokenAnchors = deriveSpeedOutputTokenAnchors(
+		speedByModelId,
 		scoringConfig,
 	);
 	return {
-		rows: costBackfilledRows,
-		openRouterSpeedById,
-		openRouterPricingById,
-		speedOutputTokenAnchors,
-		openRouterRawPayload,
+		modelRows: costBackfilledRows,
+		speedByModelId,
+		pricingByModelId,
+		outputTokenAnchors,
 	};
 }

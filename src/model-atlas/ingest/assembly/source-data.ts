@@ -27,8 +27,8 @@ import {
 import {
 	type ArtificialAnalysisBenchmarkResourceLookup,
 	type ArtificialAnalysisBenchmarkResourceRow,
-	buildArtificialAnalysisDefaultEffortResourceLookup,
 	buildArtificialAnalysisResourceLookup,
+	buildArtificialAnalysisSourceDefaultResourceLookup,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import {
 	type BlueprintBenchModelScoreRow,
@@ -45,7 +45,7 @@ import {
 	type DeepSWELeaderboardRow,
 	type DeepSWEModelScoreRow,
 	type DeepSWERowsByModelName,
-	summarizeDeepSWEDefaultEffortRows,
+	summarizeDeepSWESourceDefaultRows,
 } from "../../benchmarks/scrapers/deep-swe";
 import type {
 	FrontierCodeModelEffortRow,
@@ -124,7 +124,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
 	artificialAnalysisBenchmarkResources: {
 		rows: ArtificialAnalysisBenchmarkResourceRow[];
 		observationLookup: ArtificialAnalysisBenchmarkResourceLookup;
-		defaultEffortLookup: ArtificialAnalysisBenchmarkResourceLookup;
+		sourceDefaultLookup: ArtificialAnalysisBenchmarkResourceLookup;
 	};
 	modelsDev: {
 		rows: ModelsDevFlatModel[];
@@ -153,7 +153,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
 	>;
 	deepSWE: {
 		effortRows: DeepSWELeaderboardRow[];
-		defaultEffortRows: DeepSWEModelScoreRow[];
+		sourceDefaultRows: DeepSWEModelScoreRow[];
 		rowsByModelName: DeepSWERowsByModelName;
 	};
 	frontierCode: IndexedSourceRows<
@@ -188,16 +188,12 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
 };
 
 type BenchmarkObservationRows = {
-	[Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: ModelAtlasSourceData[
-		Binding["sourceDataKey"]
-	]["rows"];
+	[Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: ModelAtlasSourceData[Binding["sourceDataKey"]]["rows"];
 };
 
 export type ModelAtlasSourceRows = BenchmarkObservationRows & {
 	artificialAnalysisRows: ModelAtlasSourceData["artificialAnalysis"]["rows"];
-	artificialAnalysisBenchmarkResourceRows: ModelAtlasSourceData[
-		"artificialAnalysisBenchmarkResources"
-	]["rows"];
+	artificialAnalysisBenchmarkResourceRows: ModelAtlasSourceData["artificialAnalysisBenchmarkResources"]["rows"];
 	modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
 	agentArenaRows: ModelAtlasSourceData["agentArena"]["rows"];
 	agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
@@ -254,11 +250,13 @@ function buildBenchmarkObservationData(
 }
 
 /** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
-export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceData {
+export function buildSourceData(
+	rows: ModelAtlasSourceRows,
+): ModelAtlasSourceData {
 	const preferredModelsDevModels = pickPreferredModelsDevRows(
 		rows.modelsDevModels,
 	);
-	const deepSweDefaultEffortRows = summarizeDeepSWEDefaultEffortRows(
+	const deepSweSourceDefaultRows = summarizeDeepSWESourceDefaultRows(
 		rows.deepSWEEffortRows,
 	);
 	const aleBenchPersistenceDefaultRows = summarizeAleBenchSourceDefaultRows(
@@ -275,7 +273,7 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
 			observationLookup: buildArtificialAnalysisResourceLookup(
 				rows.artificialAnalysisBenchmarkResourceRows,
 			),
-			defaultEffortLookup: buildArtificialAnalysisDefaultEffortResourceLookup(
+			sourceDefaultLookup: buildArtificialAnalysisSourceDefaultResourceLookup(
 				rows.artificialAnalysisBenchmarkResourceRows,
 			),
 		},
@@ -312,8 +310,8 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
 		},
 		deepSWE: {
 			effortRows: rows.deepSWEEffortRows,
-			defaultEffortRows: deepSweDefaultEffortRows,
-			rowsByModelName: buildDeepSWEMap(deepSweDefaultEffortRows),
+			sourceDefaultRows: deepSweSourceDefaultRows,
+			rowsByModelName: buildDeepSWEMap(deepSweSourceDefaultRows),
 		},
 		frontierCode: {
 			rows: rows.frontierCodeRows,

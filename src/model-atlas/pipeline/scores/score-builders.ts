@@ -156,10 +156,10 @@ export function blendedPriceValue(
 }
 
 export function deriveSpeedOutputTokenAnchors(
-	openRouterSpeedById: Map<string, JsonObject>,
+	speedByModelId: Map<string, JsonObject>,
 	scoringConfig: ScoringConfig,
 ): number[] {
-	const impliedTokenUsages = Array.from(openRouterSpeedById.values())
+	const impliedTokenUsages = Array.from(speedByModelId.values())
 		.map((speed) => {
 			const throughputTokensPerSecond = asFiniteNumber(
 				speed.throughput_tokens_per_second_median,
@@ -281,9 +281,7 @@ export function buildComponentScoreResult(
 	const speedScore = meanOfFinite([imaginedSpeedScore, observedE2eSpeedScore]);
 	return {
 		componentScores:
-			intelligence.score == null &&
-			agentic.score == null &&
-			speedScore == null
+			intelligence.score == null && agentic.score == null && speedScore == null
 				? null
 				: {
 						intelligence_score: intelligence.score,
