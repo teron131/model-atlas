@@ -120,7 +120,7 @@ Methodologically different measurements are not made comparable by a crosswalk o
 
 ### Reasoning-Effort Rows
 
-An unlabelled configuration is the source default. When every configuration is labelled, source aggregation selects the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Explicitly labelled observations remain attached to their matching scored variants, and raw source evidence preserves every effort row.
+An unlabelled configuration is the source default. When every configuration is labelled, source-default selection chooses the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Explicitly labelled observations remain attached to their matching scored variants, and raw source evidence preserves every effort row.
 
 ## Watchlist
 

@@ -1,4 +1,4 @@
-/** Verifies DeepSWE parsing, source preference, default-effort scoring, and task metrics. */
+/** Verifies DeepSWE parsing, source preference, source-default selection, and task metrics. */
 
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -10,7 +10,7 @@ import {
 	getDeepSWELeaderboardStats,
 	getDeepSWERawLeaderboardSourceRows,
 	preferredDeepSWELeaderboardRows,
-	summarizeDeepSWEDefaultEffortRows,
+	summarizeDeepSWESourceDefaultRows,
 } from "../src/model-atlas/benchmarks/scrapers/deep-swe";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 
@@ -38,7 +38,7 @@ function row(model: string, passAt1: number): DeepSWELeaderboardRow {
 	};
 }
 
-const rows = summarizeDeepSWEDefaultEffortRows([
+const rows = summarizeDeepSWESourceDefaultRows([
 	{ ...row("gpt-5-5", 0.7), reasoning_effort: "xhigh" },
 	{ ...row("gpt-5-5", 0.62), reasoning_effort: "max" },
 	row("claude-opus-4-8", 0.58),
@@ -77,7 +77,7 @@ const collisionMap = buildDeepSWEMap([
 assertDeepEqual(collisionMap.get("example-model")?.pass_at_1, 0.6);
 
 assertDeepEqual(
-	summarizeDeepSWEDefaultEffortRows([
+	summarizeDeepSWESourceDefaultRows([
 		row("source-default", 0.4),
 		{ ...row("source-default", 0.8), reasoning_effort: "max" },
 	])[0]?.pass_at_1,

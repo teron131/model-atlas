@@ -213,7 +213,7 @@ assert.equal(
 assert.equal(
 	catalogRows.find((row) => row.id === "provider/other")?.openrouter_id,
 	"provider/other",
-	"catalog rows should carry the canonical qualified route into aggregation",
+	"catalog rows should carry the canonical qualified route into variant construction",
 );
 
 function catalogModel(

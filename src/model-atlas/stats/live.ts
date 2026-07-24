@@ -1,4 +1,4 @@
-/** Live stats coordinates source refresh, enrichment, scoring, and failure-safe payload assembly. */
+/** Live stats coordinates source refresh, route data, scoring, and failure-safe payload assembly. */
 
 import { fetchSourceData } from "../ingest/assembly";
 import {
@@ -63,7 +63,7 @@ async function buildLivePayload(
 	modelId: string | null = null,
 ): Promise<ModelAtlasPayload> {
 	const sourceData = await fetchSourceData();
-	const { enrichment, models } = await deriveModelStats(sourceData, {
+	const { modelRows, models } = await deriveModelStats(sourceData, {
 		modelId,
 	});
 	const fetchedAt = nowEpochSeconds();
@@ -72,7 +72,7 @@ async function buildLivePayload(
 			fetched_at_epoch_seconds: fetchedAt,
 			models,
 		},
-		enrichment.rows,
+		modelRows,
 		models,
 		benchmarkRowsFromSourceData(sourceData),
 	);

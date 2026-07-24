@@ -83,7 +83,7 @@ Benchmarks with multiple reasoning-effort or budget settings should be inspected
 
 For the same base model, higher reasoning effort should usually improve performance or plateau. A material regression at higher effort is a warning sign. It can mean the benchmark is measuring overthinking, verbosity penalties, timeout pressure, brittle output formatting, over-engineered patches, or harness mismatch rather than clean model capability.
 
-This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report whether higher effort improves, plateaus, or regresses. Source aggregation and public-view behavior are documented in [Benchmarks](benchmarks.md) and [Methodology](methodology.md).
+This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report whether higher effort improves, plateaus, or regresses. Source-default selection and public-view behavior are documented in [Benchmarks](benchmarks.md) and [Methodology](methodology.md).
 
 ## Harness Interpretation
 

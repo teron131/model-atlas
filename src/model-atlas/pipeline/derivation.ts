@@ -1,4 +1,4 @@
-/** Shared model derivation keeps live and persisted stats on one matching, enrichment, and scoring workflow. */
+/** Shared model derivation keeps live and persisted stats on one matching, variant, route-data, and scoring workflow. */
 
 import { STAGE_CONFIG } from "../config";
 import {
@@ -8,17 +8,11 @@ import {
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { ModelAtlasSourceData } from "../ingest/assembly";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
-import { enrichModelRowsWithBenchmarks } from "./benchmark-rows";
+import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
-import {
-	aggregateExpandedModelRows,
-	buildModelCatalogRows,
-} from "./model-catalog";
+import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
 import type { ModelAtlasModel } from "./model-types";
-import {
-	enrichModelRowsWithOpenRouter,
-	type ModelAtlasEnrichmentResult,
-} from "./openrouter-enrichment";
+import { prepareOpenRouterModelData } from "./openrouter-data";
 import { buildFinalModels } from "./selection/builder";
 
 type OpenRouterLoadResult = {
@@ -36,7 +30,7 @@ type ModelDerivationLoaderOptions<LoadResult extends OpenRouterLoadResult> =
 
 type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
 	matchDiagnostics: MatchDiagnosticsPayload;
-	enrichment: ModelAtlasEnrichmentResult;
+	modelRows: Record<string, unknown>[];
 	models: ModelAtlasModel[];
 	openRouterLoad: LoadResult;
 };
@@ -80,33 +74,30 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
 		matchDiagnostics,
 	);
 	const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
-	const aggregatedRows = aggregateExpandedModelRows(catalogRows);
-	const benchmarkEnrichedRows = enrichModelRowsWithBenchmarks(
-		aggregatedRows,
+	const variantRows = buildModelVariants(catalogRows);
+	const assignedVariantRows = assignBenchmarksToVariants(
+		variantRows,
 		sourceData,
 	);
 	const openRouterLoad =
 		"loadOpenRouter" in options
-			? await options.loadOpenRouter(openRouterModelIds(benchmarkEnrichedRows))
+			? await options.loadOpenRouter(openRouterModelIds(assignedVariantRows))
 			: null;
-	const enrichment = await enrichModelRowsWithOpenRouter(
-		benchmarkEnrichedRows,
+	const openRouterData = await prepareOpenRouterModelData(
+		assignedVariantRows,
 		STAGE_CONFIG.openrouter,
 		STAGE_CONFIG.scoring,
 		openRouterLoad?.rawPayload,
 	);
 	const models = await buildFinalModels(
-		{
-			...enrichment,
-			deepSWEDefaultEffortRows: sourceData.deepSWE.defaultEffortRows,
-		},
+		openRouterData,
 		options.modelId ?? null,
 		STAGE_CONFIG.final,
 		STAGE_CONFIG.scoring,
 	);
 	return {
 		matchDiagnostics,
-		enrichment,
+		modelRows: openRouterData.modelRows,
 		models,
 		openRouterLoad,
 	};

@@ -491,8 +491,8 @@ export function buildArtificialAnalysisResourceLookup(
 	return rowsByBenchmark;
 }
 
-/** Builds aggregate lookups whose aliases resolve to the default highest-effort observation. */
-export function buildArtificialAnalysisDefaultEffortResourceLookup(
+/** Builds resource lookups whose base-model aliases resolve to the source-default observation. */
+export function buildArtificialAnalysisSourceDefaultResourceLookup(
 	rows: ArtificialAnalysisBenchmarkResourceRow[],
 ): ArtificialAnalysisBenchmarkResourceLookup {
 	const rowsByBenchmark = new Map(

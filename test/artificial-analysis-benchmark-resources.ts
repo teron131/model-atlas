@@ -4,8 +4,8 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import {
 	ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
-	buildArtificialAnalysisDefaultEffortResourceLookup,
 	buildArtificialAnalysisResourceLookup,
+	buildArtificialAnalysisSourceDefaultResourceLookup,
 	findArtificialAnalysisBenchmarkResourceRow,
 	getArtificialAnalysisBenchmarkResourceStats,
 	processArtificialAnalysisBenchmarkResourceRows,
@@ -122,7 +122,7 @@ assertDeepEqual(hleRows, [
 	},
 ]);
 
-const hleLookup = buildArtificialAnalysisDefaultEffortResourceLookup(hleRows);
+const hleLookup = buildArtificialAnalysisSourceDefaultResourceLookup(hleRows);
 assertDeepEqual(
 	findArtificialAnalysisBenchmarkResourceRow(
 		"hle",
@@ -438,7 +438,7 @@ const effortRows = processArtificialAnalysisBenchmarkResourceRows(
 	hlePage,
 );
 const effortLookup =
-	buildArtificialAnalysisDefaultEffortResourceLookup(effortRows);
+	buildArtificialAnalysisSourceDefaultResourceLookup(effortRows);
 const effortObservationLookup =
 	buildArtificialAnalysisResourceLookup(effortRows);
 assertDeepEqual(

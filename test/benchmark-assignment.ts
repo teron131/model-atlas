@@ -1,4 +1,4 @@
-/** Verify shared benchmark enrichment maps source rows into benchmarks and scoring sources. */
+/** Verifies benchmark assignment maps source rows onto the correct model variants. */
 
 import assert from "node:assert/strict";
 import {
@@ -14,10 +14,10 @@ import type { HarveyLabModelScoreRow } from "../src/model-atlas/benchmarks/scrap
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import {
-	type BenchmarkEnrichmentLookups,
-	enrichBenchmarkAggregate,
-	enrichBenchmarkObservation,
-	enrichModelRowsWithBenchmarks,
+	assignBenchmarksToVariants,
+	type BenchmarkAssignmentLookups,
+	buildDefaultVariantBenchmarks,
+	buildObservationBenchmarks,
 } from "../src/model-atlas/pipeline/benchmark-rows";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 
@@ -295,7 +295,7 @@ const resourceLookup = new Map([
 const lookups = {
 	artificialAnalysisBenchmarkResources: {
 		observationLookup: resourceLookup,
-		defaultEffortLookup: resourceLookup,
+		sourceDefaultLookup: resourceLookup,
 	},
 	agentArena: {
 		rowsByModelName: new Map([["example-model", agentArenaRow]]),
@@ -365,9 +365,9 @@ const lookups = {
 	},
 	vibeCode: { rowsByModelName: emptyLookup() },
 	weirdMl: { rowsByModelName: new Map() },
-} satisfies BenchmarkEnrichmentLookups;
+} satisfies BenchmarkAssignmentLookups;
 
-const observationEnrichment = enrichBenchmarkObservation(
+const observationAssignment = buildObservationBenchmarks(
 	["Example Model"],
 	lookups,
 	{
@@ -375,7 +375,7 @@ const observationEnrichment = enrichBenchmarkObservation(
 		terminalbench_v21: 0.82,
 	},
 );
-assert.deepEqual(observationEnrichment.benchmarks, {
+assert.deepEqual(observationAssignment.benchmarks, {
 	ale_bench: 700,
 	automation_bench: 0.68,
 	briefcase: 0.5,
@@ -384,20 +384,24 @@ assert.deepEqual(observationEnrichment.benchmarks, {
 	terminalbench_v21: 0.82,
 });
 assert.equal(
-	(observationEnrichment.benchmarks as Record<string, unknown>).deep_swe,
+	(observationAssignment.benchmarks as Record<string, unknown>).deep_swe,
 	undefined,
 );
 assert.equal(
-	(observationEnrichment.benchmarks as Record<string, unknown>).cursorbench,
+	(observationAssignment.benchmarks as Record<string, unknown>).cursorbench,
 	undefined,
 );
 
-const enrichment = enrichBenchmarkAggregate(["Example Model"], lookups, {
-	hle: 0.4,
-	terminalbench_v21: 0.82,
-});
+const defaultVariantAssignment = buildDefaultVariantBenchmarks(
+	["Example Model"],
+	lookups,
+	{
+		hle: 0.4,
+		terminalbench_v21: 0.82,
+	},
+);
 
-assert.deepEqual(enrichment.benchmarks, {
+assert.deepEqual(defaultVariantAssignment.benchmarks, {
 	agent_arena: 0.14,
 	ale_bench: 700,
 	automation_bench: 0.68,
@@ -412,7 +416,7 @@ assert.deepEqual(enrichment.benchmarks, {
 	terminalbench_v21: 0.82,
 	vending_bench_2: 9_000,
 });
-assert.deepEqual(enrichment.scoringSources, {
+assert.deepEqual(defaultVariantAssignment.scoringSources, {
 	agent_arena: agentArenaRow,
 	ale_bench: aleBenchRow,
 	apex_agents_mercor: mercorApexRow,
@@ -442,84 +446,87 @@ assert.deepEqual(enrichment.scoringSources, {
 	},
 	vending_bench_2: vendingBench2Row,
 });
-const effortQualifiedAggregate = enrichBenchmarkAggregate(
+const effortQualifiedDefault = buildDefaultVariantBenchmarks(
 	["Example Model - Max"],
 	lookups,
 	{},
 	"max",
 );
-assert.deepEqual(effortQualifiedAggregate.benchmarks, {
+assert.deepEqual(effortQualifiedDefault.benchmarks, {
 	agent_arena: 0.14,
 	chartography: 0.47,
 	legal_research: 0.61,
 	vending_bench_2: 9_000,
 });
-assert.deepEqual(effortQualifiedAggregate.scoringSources, {
+assert.deepEqual(effortQualifiedDefault.scoringSources, {
 	agent_arena: agentArenaRow,
 	chartography: chartographyRow,
 	legal_research: legalResearchRow,
 	vending_bench_2: vendingBench2Row,
 });
-assert.deepEqual(buildTaskMetrics(null, enrichment.scoringSources), {
-	ale_bench: {
-		cost: 0.3,
-		tokens: 3_000,
-		input_tokens: 1_000,
-		output_tokens: 2_000,
+assert.deepEqual(
+	buildTaskMetrics(null, defaultVariantAssignment.scoringSources),
+	{
+		ale_bench: {
+			cost: 0.3,
+			tokens: 3_000,
+			input_tokens: 1_000,
+			output_tokens: 2_000,
+		},
+		automation_bench: {
+			cost: 0.12,
+			seconds: 15,
+			tokens: 700,
+			input_tokens: 600,
+			output_tokens: 100,
+		},
+		briefcase: {
+			cost: 2.5,
+			seconds: 120,
+			tokens: 1000,
+			input_tokens: 800,
+			output_tokens: 200,
+		},
+		cursorbench: {
+			cost: 0.42,
+			tokens: 12345,
+		},
+		frontier_code: {
+			cost: 0.75,
+			tokens: 4_500,
+		},
+		deep_swe: {
+			cost: 4.2,
+			seconds: 300,
+			output_tokens: 12000,
+		},
+		harvey_lab: {
+			cost: 19.225253,
+			seconds: 1613.04,
+		},
+		hle: {
+			cost: 0.02,
+			seconds: 3,
+			tokens: 123,
+			input_tokens: 23,
+			output_tokens: 100,
+		},
+		itbench_sre: {
+			cost: 1.2,
+			seconds: 180,
+			tokens: 1500,
+			input_tokens: 1300,
+			output_tokens: 200,
+		},
+		terminalbench_v21: {
+			cost: 0.33999999999999997,
+			seconds: 45,
+			tokens: 555,
+			input_tokens: 111,
+			output_tokens: 444,
+		},
 	},
-	automation_bench: {
-		cost: 0.12,
-		seconds: 15,
-		tokens: 700,
-		input_tokens: 600,
-		output_tokens: 100,
-	},
-	briefcase: {
-		cost: 2.5,
-		seconds: 120,
-		tokens: 1000,
-		input_tokens: 800,
-		output_tokens: 200,
-	},
-	cursorbench: {
-		cost: 0.42,
-		tokens: 12345,
-	},
-	frontier_code: {
-		cost: 0.75,
-		tokens: 4_500,
-	},
-	deep_swe: {
-		cost: 4.2,
-		seconds: 300,
-		output_tokens: 12000,
-	},
-	harvey_lab: {
-		cost: 19.225253,
-		seconds: 1613.04,
-	},
-	hle: {
-		cost: 0.02,
-		seconds: 3,
-		tokens: 123,
-		input_tokens: 23,
-		output_tokens: 100,
-	},
-	itbench_sre: {
-		cost: 1.2,
-		seconds: 180,
-		tokens: 1500,
-		input_tokens: 1300,
-		output_tokens: 200,
-	},
-	terminalbench_v21: {
-		cost: 0.33999999999999997,
-		seconds: 45,
-		tokens: 555,
-		input_tokens: 111,
-		output_tokens: 444,
-	},
-});
+);
 
 const variantAutomationBenchResourceRow = {
 	...automationBenchResourceRow,
@@ -530,8 +537,8 @@ const variantAutomationBenchResourceRow = {
 	cost_per_task_usd: 0.04,
 	seconds_per_task: 6,
 } satisfies ArtificialAnalysisBenchmarkResourceRow;
-const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
-	enrichModelRowsWithBenchmarks(
+const [assignedObservation, assignedDefaultVariant, unassignedFastRoute] =
+	assignBenchmarksToVariants(
 		[
 			{
 				id: "test/example-model",
@@ -562,37 +569,36 @@ const [supplementedObservation, supplementedDefault, supplementedFastRoute] =
 		lookups,
 	);
 assert.ok(
-	supplementedObservation,
-	"benchmark enrichment must preserve the input observation",
+	assignedObservation,
+	"benchmark assignment must preserve the input observation",
 );
 assert.equal(
-	(supplementedObservation.benchmarks as Record<string, unknown>)
-		.automation_bench,
+	(assignedObservation.benchmarks as Record<string, unknown>).automation_bench,
 	variantAutomationBenchResourceRow.score,
-	"aggregate benchmarks must not overwrite an effort observation's benchmark value",
+	"default-variant benchmarks must not overwrite an effort observation's benchmark value",
 );
 assert.equal(
 	(
-		(supplementedObservation.scoring_sources as Record<string, unknown>)
+		(assignedObservation.scoring_sources as Record<string, unknown>)
 			.automation_bench as ArtificialAnalysisBenchmarkResourceRow
 	).cost_per_task_usd,
 	variantAutomationBenchResourceRow.cost_per_task_usd,
-	"aggregate benchmarks must not overwrite effort-specific resources",
+	"default-variant benchmarks must not overwrite effort-specific resources",
 );
 assert.equal(
-	(supplementedObservation.benchmarks as Record<string, unknown>).cursorbench,
+	(assignedObservation.benchmarks as Record<string, unknown>).cursorbench,
 	undefined,
 	"model-level benchmarks should not be copied onto lower effort variants",
 );
-assert.ok(supplementedDefault, "expected the default-effort observation");
+assert.ok(assignedDefaultVariant, "expected the default variant");
 assert.equal(
-	(supplementedDefault.benchmarks as Record<string, unknown>).cursorbench,
+	(assignedDefaultVariant.benchmarks as Record<string, unknown>).cursorbench,
 	cursorBenchRow.score,
-	"model-level benchmarks should belong to the highest default effort",
+	"model-level benchmarks should belong to the selected default variant",
 );
-assert.ok(supplementedFastRoute, "expected the catalog-only fast route");
+assert.ok(unassignedFastRoute, "expected the catalog-only fast route");
 assert.equal(
-	(supplementedFastRoute.benchmarks as Record<string, unknown>).cursorbench,
+	(unassignedFastRoute.benchmarks as Record<string, unknown>).cursorbench,
 	undefined,
 	"catalog-only routes should not outrank matched effort observations",
 );
@@ -643,7 +649,7 @@ const chartographyRows = [
 		metadata: {},
 	},
 ] satisfies BenchmarkObservationRow[];
-const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
+const [soleVariant] = assignBenchmarksToVariants(
 	[
 		{
 			id: "test/example-model",
@@ -661,7 +667,7 @@ const [defaultOnlyModel] = enrichModelRowsWithBenchmarks(
 	},
 );
 assert.equal(
-	(defaultOnlyModel?.benchmarks as Record<string, unknown>).chartography,
+	(soleVariant?.benchmarks as Record<string, unknown>).chartography,
 	0.348,
 	"a source max effort should become the sole Atlas row's default",
 );

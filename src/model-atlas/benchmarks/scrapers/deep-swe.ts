@@ -129,8 +129,8 @@ export function asDeepSWERawLeaderboardRow(
 	};
 }
 
-/** Selects each model's default highest-effort observation while raw effort rows remain preserved. */
-export function summarizeDeepSWEDefaultEffortRows(
+/** Selects each model's source-default observation while preserving every raw effort row. */
+export function summarizeDeepSWESourceDefaultRows(
 	rows: DeepSWELeaderboardRow[],
 ): DeepSWEModelScoreRow[] {
 	const defaultByModel = new Map<string, DeepSWEModelScoreRow>();

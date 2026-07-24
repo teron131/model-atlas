@@ -1,4 +1,4 @@
-/** Pipeline stage switches that control how source rows are matched, enriched, pruned, and scored. */
+/** Pipeline stage switches for matching, route data, public selection, and scoring. */
 
 import type {
 	BenchmarkDimension,
@@ -65,10 +65,7 @@ export const CONFIDENCE = {
 		SELECTED_INTELLIGENCE_BENCHMARKS,
 		"intelligence",
 	),
-	agentic: confidenceForDimension(
-		SELECTED_AGENTIC_BENCHMARKS,
-		"agentic",
-	),
+	agentic: confidenceForDimension(SELECTED_AGENTIC_BENCHMARKS, "agentic"),
 } satisfies Confidence;
 
 export type FinalStageConfig = {
@@ -107,7 +104,7 @@ export type ModelAtlasStageConfig = {
 	scoring: ScoringConfig;
 };
 
-/** Centralized stage config for matching, enrichment, pruning, and scoring. */
+/** Centralized stage config for matching, route data, pruning, and scoring. */
 export const STAGE_CONFIG = {
 	matcher: {
 		variantTokens: [

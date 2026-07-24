@@ -147,10 +147,10 @@ function buildContextWindow(model: JsonObject): ModelAtlasContextWindow {
 function buildSpeed(
 	model: JsonObject,
 	modelId: string | null,
-	openRouterSpeedById: Map<string, JsonObject>,
+	speedByModelId: Map<string, JsonObject>,
 ): ModelAtlasSpeed {
 	const openRouterSpeed = lookupOpenRouterData(
-		openRouterSpeedById,
+		speedByModelId,
 		modelId,
 		hasSpeedData,
 	);
@@ -608,9 +608,9 @@ function buildAgentsLastExamMetrics(
 
 export function buildModelCandidate(
 	row: unknown,
-	openRouterSpeedById: Map<string, JsonObject>,
-	openRouterPricingById: Map<string, JsonObject>,
-	speedOutputTokenAnchors: number[],
+	speedByModelId: Map<string, JsonObject>,
+	pricingByModelId: Map<string, JsonObject>,
+	outputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
 	benchmarkImputationByModel: BenchmarkImputationByModel,
 	benchmarkImputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
@@ -619,9 +619,9 @@ export function buildModelCandidate(
 	const model = asRecord(row);
 	const provider = providerFromModel(model);
 	const modelId = typeof model.id === "string" ? model.id : null;
-	const speed = buildSpeed(model, modelId, openRouterSpeedById);
+	const speed = buildSpeed(model, modelId, speedByModelId);
 	const pricing =
-		lookupOpenRouterData(openRouterPricingById, modelId, hasPricingData) ??
+		lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ??
 		EMPTY_OPENROUTER_PRICING;
 	const cost = buildCost(model, pricing, scoringConfig);
 	const intelligenceIndexCost = buildIntelligenceIndexCost(model);
@@ -632,7 +632,7 @@ export function buildModelCandidate(
 	const { componentScores, confidence } = buildComponentScoreResult(
 		model,
 		speed,
-		speedOutputTokenAnchors,
+		outputTokenAnchors,
 		scoringConfig,
 		qualityContext,
 		benchmarkImputationByModel.get(model),

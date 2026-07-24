@@ -16,7 +16,7 @@ import {
 } from "../../identity/normalization";
 import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
-import { aggregateCollapsedModelRows } from "../model-catalog";
+import { collapseModelVariants } from "../model-catalog";
 
 export type BenchmarkSourceRow = {
 	id: string | null;
@@ -194,7 +194,7 @@ function aggregateBenchmarkSourceRows(
 	key: string,
 	rows: AggregatableBenchmarkSourceRow[],
 ): BenchmarkSourceRow[] {
-	return aggregateCollapsedModelRows(
+	return collapseModelVariants(
 		rows.map((row) => {
 			const identity = normalizeModelToken(row.identity);
 			return {
@@ -348,7 +348,7 @@ const SPARSE_BENCHMARK_ROW_DRAFT_ADAPTERS = {
 	deep_swe: (sourceData) =>
 		benchmarkRowDrafts(
 			"deep_swe",
-			sourceData.deepSWE.defaultEffortRows,
+			sourceData.deepSWE.sourceDefaultRows,
 			(row) => ({
 				id: row.model,
 				identity: row.model,
