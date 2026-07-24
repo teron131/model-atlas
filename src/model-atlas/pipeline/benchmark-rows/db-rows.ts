@@ -127,12 +127,10 @@ function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
 	return source.rows.flatMap((row) => dbSourceRowDraft(source, row) ?? []);
 }
 
-type SparseBenchmarkDbRowAdapter = (
-	rows: BenchmarkDbRows,
-) => BenchmarkRowDraft[];
+type SparseBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
 
 /** Persisted sparse row adapters mirror the live sparse registry without sharing row schemas. */
-const SPARSE_BENCHMARK_DB_ROW_ADAPTERS = {
+const SPARSE_BENCHMARK_ADAPTERS = {
 	agent_arena: (rows) =>
 		rows.agentArenaRows.map((row) => ({
 			key: "agent_arena",
@@ -227,7 +225,7 @@ const SPARSE_BENCHMARK_DB_ROW_ADAPTERS = {
 		})),
 } satisfies Record<
 	PublicBenchmarkRuntimeKeyFor<"sparse">,
-	SparseBenchmarkDbRowAdapter
+	SparseBenchmarkAdapter
 >;
 
 function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
@@ -241,7 +239,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
 			reasoningEffort: (row) => row.reasoning_effort,
 			value: (row, key) => row[key],
 		}),
-		...Object.values(SPARSE_BENCHMARK_DB_ROW_ADAPTERS).flatMap((adapter) =>
+		...Object.values(SPARSE_BENCHMARK_ADAPTERS).flatMap((adapter) =>
 			adapter(rows),
 		),
 		...dbSourceDrafts({

@@ -219,8 +219,7 @@ function selectedDimensionWeight(
 	return Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio).reduce(
 		(total, [key, entry]) =>
 			selectedKeys.has(key)
-				? total +
-					entry.benchmarkImportance * entry.dimensionLoadings[dimension]
+				? total + entry.benchmarkImportance * entry.dimensionLoadings[dimension]
 				: total,
 		0,
 	);
@@ -241,14 +240,8 @@ assertClose(
 	STAGE_CONFIG.scoring.confidence.intelligence.full,
 	intelligenceWeight * 0.6,
 );
-assertClose(
-	STAGE_CONFIG.scoring.confidence.agentic.floor,
-	agenticWeight * 0.1,
-);
-assertClose(
-	STAGE_CONFIG.scoring.confidence.agentic.full,
-	agenticWeight * 0.6,
-);
+assertClose(STAGE_CONFIG.scoring.confidence.agentic.floor, agenticWeight * 0.1);
+assertClose(STAGE_CONFIG.scoring.confidence.agentic.full, agenticWeight * 0.6);
 const resourceQualityCoordinates = Object.fromEntries(
 	Object.entries(
 		STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio,
@@ -1392,7 +1385,7 @@ const sharedTargetImputation = buildBenchmarkImputationByModel(
 assertClose(sharedTargetImputation, 10);
 assertClose(
 	prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig)
-		.benchmarkImputationConfidenceByModel.get(sharedTargetModel)
+		.imputationConfidenceByModel.get(sharedTargetModel)
 		?.get("shared_target"),
 	0.5,
 );
@@ -1539,7 +1532,7 @@ const crossEffortConfidence = prepareBenchmarkScoring(
 	crossEffortModels,
 	crossEffortConfig,
 )
-	.benchmarkImputationConfidenceByModel.get(crossEffortTarget)
+	.imputationConfidenceByModel.get(crossEffortTarget)
 	?.get("target");
 if (!(crossEffortConfidence != null && crossEffortConfidence > 0)) {
 	throw new Error("Expected validated cross-effort evidence credit");
@@ -1582,7 +1575,7 @@ assertClose(
 );
 assertEqual(
 	prepareBenchmarkScoring(unlinkedEffortModels, crossEffortConfig)
-		.benchmarkImputationConfidenceByModel.get(unlinkedEffortModels.at(-1) ?? {})
+		.imputationConfidenceByModel.get(unlinkedEffortModels.at(-1) ?? {})
 		?.has("target") ?? false,
 	true,
 );

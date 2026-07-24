@@ -41,69 +41,60 @@ import {
 	terminalBenchAggregateRow,
 } from "./terminal-bench";
 
-type BenchmarkObservationAssignmentLookups = {
+type BenchmarkObservationLookups = {
 	[Key in BenchmarkObservationDataKey]: Pick<
 		ModelAtlasSourceData[Key],
 		"rowsByModelName"
 	>;
 };
 
-export type BenchmarkAssignmentLookups =
-	BenchmarkObservationAssignmentLookups & {
-		artificialAnalysisBenchmarkResources: Pick<
-			ModelAtlasSourceData["artificialAnalysisBenchmarkResources"],
-			"observationLookup" | "sourceDefaultLookup"
-		>;
-		agentArena: Pick<ModelAtlasSourceData["agentArena"], "rowsByModelName">;
-		agentsLastExam: Pick<
-			ModelAtlasSourceData["agentsLastExam"],
-			"rowsByModelName"
-		>;
-		aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
-		blueprintBench: Pick<
-			ModelAtlasSourceData["blueprintBench"],
-			"rowsByModelName"
-		>;
-		cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
-		deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
-		frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
-		gdpPdf: Pick<ModelAtlasSourceData["gdpPdf"], "rowsByModelName">;
-		harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
-		mercorApexAgents: Pick<
-			ModelAtlasSourceData["mercorApexAgents"],
-			"rowsByModelName"
-		>;
-		riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
-		terminalBench: Pick<
-			ModelAtlasSourceData["terminalBench"],
-			"rowsByModelName"
-		>;
-		valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
-		vendingBench2: Pick<
-			ModelAtlasSourceData["vendingBench2"],
-			"rowsByModelName"
-		>;
-	};
+export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
+	artificialAnalysisBenchmarkResources: Pick<
+		ModelAtlasSourceData["artificialAnalysisBenchmarkResources"],
+		"observationLookup" | "sourceDefaultLookup"
+	>;
+	agentArena: Pick<ModelAtlasSourceData["agentArena"], "rowsByModelName">;
+	agentsLastExam: Pick<
+		ModelAtlasSourceData["agentsLastExam"],
+		"rowsByModelName"
+	>;
+	aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
+	blueprintBench: Pick<
+		ModelAtlasSourceData["blueprintBench"],
+		"rowsByModelName"
+	>;
+	cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
+	deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
+	frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
+	gdpPdf: Pick<ModelAtlasSourceData["gdpPdf"], "rowsByModelName">;
+	harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
+	mercorApexAgents: Pick<
+		ModelAtlasSourceData["mercorApexAgents"],
+		"rowsByModelName"
+	>;
+	riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
+	terminalBench: Pick<ModelAtlasSourceData["terminalBench"], "rowsByModelName">;
+	valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
+	vendingBench2: Pick<ModelAtlasSourceData["vendingBench2"], "rowsByModelName">;
+};
 
 type AssignedBenchmarks = {
 	benchmarks: Record<string, unknown>;
 	scoringSources: NonNullable<ModelAtlasScoringSources>;
 };
 
-type SparseBenchmarkAssignmentContext = {
+type SparseBenchmarkContext = {
 	assignedBenchmarks: AssignedBenchmarks;
 	lookups: BenchmarkAssignmentLookups;
 	modelNameCandidates: unknown[];
 	targetReasoningEffort: unknown;
 };
 
-type SparseBenchmarkAssignmentOperation = (
-	context: SparseBenchmarkAssignmentContext,
-) => void;
+type SparseBenchmarkOperation = (context: SparseBenchmarkContext) => void;
 
-type SparseBenchmarkAssignmentAdapter = {
-	defaultVariant: SparseBenchmarkAssignmentOperation;
-	observation?: SparseBenchmarkAssignmentOperation;
+type SparseBenchmarkAdapter = {
+	defaultVariant: SparseBenchmarkOperation;
+	observation?: SparseBenchmarkOperation;
 };
 
 function benchmarkObservationLookup(
@@ -204,7 +195,7 @@ function findEffortSourceRow<T extends BenchmarkModelRow>(
 }
 
 /** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
-const addFrontierCode: SparseBenchmarkAssignmentOperation = ({
+const addFrontierCode: SparseBenchmarkOperation = ({
 	assignedBenchmarks,
 	lookups,
 	modelNameCandidates,
@@ -299,7 +290,7 @@ function buildArtificialAnalysisBenchmarks(
 	return { benchmarks, scoringSources };
 }
 
-const addAleBench: SparseBenchmarkAssignmentOperation = ({
+const addAleBench: SparseBenchmarkOperation = ({
 	assignedBenchmarks,
 	lookups,
 	modelNameCandidates,
@@ -316,7 +307,7 @@ const addAleBench: SparseBenchmarkAssignmentOperation = ({
 	}
 };
 
-const addMercorApexAgents: SparseBenchmarkAssignmentOperation = ({
+const addMercorApexAgents: SparseBenchmarkOperation = ({
 	assignedBenchmarks,
 	lookups,
 	modelNameCandidates,
@@ -333,7 +324,7 @@ const addMercorApexAgents: SparseBenchmarkAssignmentOperation = ({
 };
 
 /** Sparse assignment adapters keep benchmark-specific matching behind one exhaustive runtime registry. */
-const SPARSE_BENCHMARK_ASSIGNMENT_ADAPTERS = {
+const SPARSE_BENCHMARK_ADAPTERS = {
 	agent_arena: {
 		defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
 			const row = findBaseModelSourceRow(
@@ -418,18 +409,15 @@ const SPARSE_BENCHMARK_ASSIGNMENT_ADAPTERS = {
 			}
 		},
 	},
-} satisfies Record<
-	BenchmarkRuntimeKeyFor<"sparse">,
-	SparseBenchmarkAssignmentAdapter
->;
+} satisfies Record<BenchmarkRuntimeKeyFor<"sparse">, SparseBenchmarkAdapter>;
 
 function assignSparseBenchmarks(
-	kind: keyof SparseBenchmarkAssignmentAdapter,
-	context: SparseBenchmarkAssignmentContext,
+	kind: keyof SparseBenchmarkAdapter,
+	context: SparseBenchmarkContext,
 ): void {
 	for (const adapter of Object.values(
-		SPARSE_BENCHMARK_ASSIGNMENT_ADAPTERS,
-	) as SparseBenchmarkAssignmentAdapter[]) {
+		SPARSE_BENCHMARK_ADAPTERS,
+	) as SparseBenchmarkAdapter[]) {
 		adapter[kind]?.(context);
 	}
 }

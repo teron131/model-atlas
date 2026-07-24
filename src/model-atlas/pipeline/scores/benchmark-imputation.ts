@@ -55,18 +55,18 @@ export type QualityScoringContext = {
 	benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
 };
 
-type PreparedBenchmarkScoring = {
-	benchmarkImputationByModel: BenchmarkImputationByModel;
-	benchmarkImputationConfidenceByModel: BenchmarkImputationConfidenceByModel;
+type PreparedScoring = {
+	imputationByModel: BenchmarkImputationByModel;
+	imputationConfidenceByModel: BenchmarkImputationConfidenceByModel;
 	qualityContext: QualityScoringContext;
 };
 
-type MutableBenchmarkImputationMaps = {
-	benchmarkImputationByModel: Map<JsonObject, Map<string, number>>;
-	benchmarkImputationConfidenceByModel: Map<JsonObject, Map<string, number>>;
+type MutableImputationMaps = {
+	imputationByModel: Map<JsonObject, Map<string, number>>;
+	imputationConfidenceByModel: Map<JsonObject, Map<string, number>>;
 };
 
-type BenchmarkImputationPreparation = MutableBenchmarkImputationMaps & {
+type ImputationPreparation = MutableImputationMaps & {
 	imputationDiagnosticsByKey: Map<string, BenchmarkImputationDiagnostic>;
 };
 
@@ -103,7 +103,7 @@ type DimensionBenchmarkContext = {
 
 function buildMercorApexImputation(
 	models: JsonObject[],
-): MutableBenchmarkImputationMaps {
+): MutableImputationMaps {
 	const projectionClamp = apexImputationPolicy.clamp;
 	const crosswalk = buildAdditiveSourceCrosswalk(models, {
 		primaryValue: (model) => benchmarkMetricValue(model, APEX_AGENTS_KEY),
@@ -124,26 +124,23 @@ function buildMercorApexImputation(
 						clamp(value, projectionClamp[0], projectionClamp[1]),
 				}),
 	});
-	const benchmarkImputationByModel = new Map<JsonObject, Map<string, number>>();
-	const benchmarkImputationConfidenceByModel = new Map<
+	const imputationByModel = new Map<JsonObject, Map<string, number>>();
+	const imputationConfidenceByModel = new Map<
 		JsonObject,
 		Map<string, number>
 	>();
 	if (crosswalk.confidence != null) {
 		for (const [model, projection] of crosswalk.projectionByItem) {
-			benchmarkImputationByModel.set(
-				model,
-				new Map([[APEX_AGENTS_KEY, projection]]),
-			);
-			benchmarkImputationConfidenceByModel.set(
+			imputationByModel.set(model, new Map([[APEX_AGENTS_KEY, projection]]));
+			imputationConfidenceByModel.set(
 				model,
 				new Map([[APEX_AGENTS_KEY, crosswalk.confidence]]),
 			);
 		}
 	}
 	return {
-		benchmarkImputationByModel,
-		benchmarkImputationConfidenceByModel,
+		imputationByModel,
+		imputationConfidenceByModel,
 	};
 }
 
@@ -736,18 +733,19 @@ function preferCrossEffortDiagnostic(
 function prepareImputation(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
-): BenchmarkImputationPreparation {
+): ImputationPreparation {
 	const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
-	const mercorApexImputation: MutableBenchmarkImputationMaps =
-		benchmarkKeys.includes(APEX_AGENTS_KEY)
-			? buildMercorApexImputation(models)
-			: {
-					benchmarkImputationByModel: new Map(),
-					benchmarkImputationConfidenceByModel: new Map(),
-				};
-	const imputationByModel = mercorApexImputation.benchmarkImputationByModel;
+	const mercorApexImputation: MutableImputationMaps = benchmarkKeys.includes(
+		APEX_AGENTS_KEY,
+	)
+		? buildMercorApexImputation(models)
+		: {
+				imputationByModel: new Map(),
+				imputationConfidenceByModel: new Map(),
+			};
+	const imputationByModel = mercorApexImputation.imputationByModel;
 	const imputationConfidenceByModel =
-		mercorApexImputation.benchmarkImputationConfidenceByModel;
+		mercorApexImputation.imputationConfidenceByModel;
 	const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
 	const valuesByKey = observedValuesByBenchmark(models, benchmarkKeys);
 	for (const key of benchmarkKeys) {
@@ -829,8 +827,8 @@ function prepareImputation(
 		}
 	}
 	return {
-		benchmarkImputationByModel: imputationByModel,
-		benchmarkImputationConfidenceByModel: imputationConfidenceByModel,
+		imputationByModel,
+		imputationConfidenceByModel,
 		imputationDiagnosticsByKey: diagnosticsByKey,
 	};
 }
@@ -840,7 +838,7 @@ export function buildBenchmarkImputationByModel(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
-	return prepareImputation(models, scoringConfig).benchmarkImputationByModel;
+	return prepareImputation(models, scoringConfig).imputationByModel;
 }
 
 /** Report leave-one-model-out reliability evidence for every selected benchmark imputer. */
@@ -874,13 +872,15 @@ export function buildQualityScoringContext(
 export function prepareBenchmarkScoring(
 	models: JsonObject[],
 	scoringConfig: ScoringConfig,
-): PreparedBenchmarkScoring {
-	const { benchmarkImputationByModel, benchmarkImputationConfidenceByModel } =
-		prepareImputation(models, scoringConfig);
+): PreparedScoring {
+	const { imputationByModel, imputationConfidenceByModel } = prepareImputation(
+		models,
+		scoringConfig,
+	);
 	const qualityContext = buildQualityScoringContext(models, scoringConfig);
 	return {
-		benchmarkImputationByModel,
-		benchmarkImputationConfidenceByModel,
+		imputationByModel,
+		imputationConfidenceByModel,
 		qualityContext,
 	};
 }

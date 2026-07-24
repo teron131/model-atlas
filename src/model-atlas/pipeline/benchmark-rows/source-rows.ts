@@ -290,12 +290,12 @@ function artificialAnalysisBenchmarkRowDrafts(
 	];
 }
 
-type SparseBenchmarkRowDraftAdapter = (
+type SparseBenchmarkAdapter = (
 	sourceData: ModelAtlasSourceData,
 ) => BenchmarkRowDraft[];
 
 /** Sparse benchmark adapters retain source-specific row rules behind one exhaustive registry. */
-const SPARSE_BENCHMARK_ROW_DRAFT_ADAPTERS = {
+const SPARSE_BENCHMARK_ADAPTERS = {
 	agent_arena: (sourceData) =>
 		benchmarkRowDrafts("agent_arena", sourceData.agentArena.rows, (row) => ({
 			id: row.contender_name,
@@ -382,7 +382,7 @@ const SPARSE_BENCHMARK_ROW_DRAFT_ADAPTERS = {
 		),
 } satisfies Record<
 	PublicBenchmarkRuntimeKeyFor<"sparse">,
-	SparseBenchmarkRowDraftAdapter
+	SparseBenchmarkAdapter
 >;
 
 function benchmarkDraftsFromSourceData(
@@ -391,7 +391,7 @@ function benchmarkDraftsFromSourceData(
 	return [
 		...benchmarkObservationSourceDrafts(sourceData),
 		...artificialAnalysisBenchmarkRowDrafts(sourceData),
-		...Object.values(SPARSE_BENCHMARK_ROW_DRAFT_ADAPTERS).flatMap((adapter) =>
+		...Object.values(SPARSE_BENCHMARK_ADAPTERS).flatMap((adapter) =>
 			adapter(sourceData),
 		),
 		...surgeBenchmarkRowDrafts(sourceData),

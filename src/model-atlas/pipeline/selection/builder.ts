@@ -86,16 +86,14 @@ export function hasRequiredBenchmarkEvidence(
 	);
 	return (
 		observedCount >= admissionConfig.minimumObservedBenchmarks &&
-		observedIntelligenceCount >=
-			admissionConfig.minimumObservedBenchmarksPerDimension &&
-		observedAgenticCount >=
-			admissionConfig.minimumObservedBenchmarksPerDimension &&
+		observedIntelligenceCount >= admissionConfig.minimumObservedPerDimension &&
+		observedAgenticCount >= admissionConfig.minimumObservedPerDimension &&
 		observedIndexCount >= 1
 	);
 }
 
 /** Admit a final row when at least one primary score reaches the public relevance floor. */
-export function meetsPublicRelevanceThreshold(
+export function hasRequiredPublicRelevance(
 	model: Pick<ModelAtlasScoredCandidate, "scores">,
 ): boolean {
 	return PUBLIC_COMPONENT_SCORE_KEYS.some((key) => {
@@ -116,8 +114,8 @@ function buildCandidates(
 			openRouterData.pricingByModelId,
 			openRouterData.outputTokenAnchors,
 			scoringConfig,
-			scoringPreparation.benchmarkImputationByModel,
-			scoringPreparation.benchmarkImputationConfidenceByModel,
+			scoringPreparation.imputationByModel,
+			scoringPreparation.imputationConfidenceByModel,
 			scoringPreparation.qualityContext,
 		),
 	);
@@ -163,7 +161,7 @@ export async function buildFinalModels(
 			),
 		)
 		.filter(hasRequiredQualityScores)
-		.filter(meetsPublicRelevanceThreshold);
+		.filter(hasRequiredPublicRelevance);
 	return cacheModelLogos(
 		admittedPublicModels,
 		(model) => model.provider ?? model.id,

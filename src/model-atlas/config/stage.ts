@@ -30,7 +30,7 @@ export type OpenRouterConfig = {
 export type BenchmarkAdmissionConfig = {
 	indexBenchmarkKeys: readonly string[];
 	minimumObservedBenchmarks: number;
-	minimumObservedBenchmarksPerDimension: number;
+	minimumObservedPerDimension: number;
 };
 
 export type Confidence = Record<
@@ -135,7 +135,7 @@ export const STAGE_CONFIG = {
 		benchmarkAdmission: {
 			indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
 			minimumObservedBenchmarks: 8,
-			minimumObservedBenchmarksPerDimension: 1,
+			minimumObservedPerDimension: 1,
 		},
 	},
 	snapshotPreservation: {

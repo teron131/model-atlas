@@ -347,7 +347,7 @@ const scoringConfig = {
 	},
 	columnTooltips: {},
 } as const;
-const benchmarkImputationByModel = buildBenchmarkImputationByModel(
+const imputationByModel = buildBenchmarkImputationByModel(
 	scoringRows,
 	scoringConfig,
 );
@@ -366,7 +366,7 @@ const componentScoresWithMissingApex = buildComponentScoreResult(
 	[],
 	scoringConfig,
 	qualityScoringContext,
-	benchmarkImputationByModel.get(scoringRows[3] ?? {}),
+	imputationByModel.get(scoringRows[3] ?? {}),
 ).componentScores;
 assertDeepEqual(componentScoresWithMissingApex, {
 	agentic_score: 74.99999999999997,
