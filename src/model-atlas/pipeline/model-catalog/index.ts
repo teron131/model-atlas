@@ -1,7 +1,7 @@
-/** Model catalog exports expose aggregation and coverage through one intentional surface. */
+/** Model catalog exports expose aggregation and inclusion through one intentional surface. */
 
 export {
 	aggregateCollapsedModelRows,
 	aggregateExpandedModelRows,
 } from "./aggregation";
-export { buildModelCatalogRows } from "./coverage";
+export { buildModelCatalogRows } from "./inclusion";

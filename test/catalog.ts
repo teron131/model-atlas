@@ -9,7 +9,7 @@ import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog
 import {
 	hasRequiredBasicSpecs,
 	hasRequiredBenchmarkEvidence,
-	hasRequiredPublicScore,
+	meetsPublicRelevanceThreshold,
 } from "../src/model-atlas/pipeline/selection/builder";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
@@ -90,7 +90,7 @@ assert.equal(
 );
 
 assert.equal(
-	hasRequiredPublicScore({
+	meetsPublicRelevanceThreshold({
 		scores: {
 			intelligence_score: 9,
 			agentic_score: 9,
@@ -99,10 +99,10 @@ assert.equal(
 		},
 	}),
 	true,
-	"one qualifying primary score should satisfy the public score floor",
+	"one qualifying primary score should satisfy the public relevance threshold",
 );
 assert.equal(
-	hasRequiredPublicScore({
+	meetsPublicRelevanceThreshold({
 		scores: {
 			intelligence_score: 9,
 			agentic_score: 9,
