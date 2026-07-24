@@ -25,7 +25,6 @@ export type {
 	ModelAtlasCostBreakdown,
 	ModelAtlasCostTier,
 	ModelAtlasIntelligence,
-	ModelAtlasIntelligenceIndexCost,
 	ModelAtlasMetadata,
 	ModelAtlasModalities,
 	ModelAtlasModel,

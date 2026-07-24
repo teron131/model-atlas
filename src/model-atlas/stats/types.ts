@@ -3,7 +3,6 @@
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { Confidence } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
-import type { PriceProfiles, SimulationProfiles } from "../config/usage-profiles";
 import type { ModelAtlasSourceHealth } from "../ingest/types";
 import type { ModelAtlasModel as PipelineModel } from "../pipeline/model-types";
 
@@ -28,7 +27,6 @@ export type {
 	ModelAtlasCostBreakdown,
 	ModelAtlasCostTier,
 	ModelAtlasIntelligence,
-	ModelAtlasIntelligenceIndexCost,
 	ModelAtlasModalities,
 	ModelAtlasModel,
 	ModelAtlasModelCandidate,
@@ -69,9 +67,8 @@ export type ModelAtlasBenchmarkUpdateHealth = Record<
 >;
 
 export type ModelAtlasMetadata = {
-	artificial_analysis: {
-		available_benchmark_keys: string[];
-		available_intelligence_keys: string[];
+	available_metrics: {
+		benchmark_keys: string[];
 	};
 	source_health?: ModelAtlasSourceHealth;
 	benchmark_update_health?: ModelAtlasBenchmarkUpdateHealth;
@@ -85,9 +82,6 @@ export type ModelAtlasMetadata = {
 		selected_benchmark_keys: string[];
 		benchmark_portfolio: BenchmarkPortfolio;
 		confidence: Confidence;
-		price_profiles: PriceProfiles;
-		simulation_profiles: SimulationProfiles;
-		seconds_per_input_token: number;
 		column_tooltips: ModelAtlasColumnTooltips;
 		snapshot_preservation_version: number;
 	};

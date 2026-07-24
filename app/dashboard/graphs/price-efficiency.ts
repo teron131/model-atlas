@@ -10,10 +10,10 @@ import {
 	benchmarkResourceEfficiencyScores,
 	modelBalancedMinMaxScores,
 } from "../../../src/model-atlas/pipeline/scores/resource-efficiency";
+import { benchmarkTaskMetrics } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type {
 	BenchmarkPortfolio,
 	ModelAtlasModel,
-	ModelAtlasTaskMetricValues,
 } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../shared/model-display";
 import {
@@ -212,20 +212,10 @@ function taskCost(
 	portfolio: BenchmarkPortfolio,
 	benchmarkKey: string,
 ): number | null {
-	const directCost = positiveTaskCost(model.task_metrics?.[benchmarkKey]);
-	if (directCost != null) {
-		return directCost;
-	}
 	const resourcePolicy = portfolio[benchmarkKey]?.resourcePolicy;
-	return resourcePolicy?.source === "artificial_analysis"
-		? positiveTaskCost(model.task_metrics?.artificial_analysis)
-		: null;
-}
-
-function positiveTaskCost(
-	taskMetrics: ModelAtlasTaskMetricValues | null | undefined,
-) {
-	const cost = finiteValue(taskMetrics?.cost);
+	const cost = finiteValue(
+		benchmarkTaskMetrics(model, benchmarkKey, resourcePolicy)?.cost,
+	);
 	return cost != null && cost > 0 ? cost : null;
 }
 

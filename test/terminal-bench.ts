@@ -48,12 +48,6 @@ assertDeepEqual(
 		],
 	}),
 	{
-		model_id: "anthropic/claude-fable-5",
-		model: "Claude Fable 5",
-		provider: "Anthropic",
-		harness: null,
-		sources: ["artificial_analysis", "vals"],
-		source_count: 2,
 		score: 0.84,
 		cost_per_task_usd: 1.2000000000000002,
 		seconds_per_task: 460,

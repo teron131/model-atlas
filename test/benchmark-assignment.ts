@@ -431,12 +431,6 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
 	itbench_sre: itbenchResourceRow,
 	legal_research: legalResearchRow,
 	terminalbench_v21: {
-		model_id: "test/example-model",
-		model: "Example Model",
-		provider: "Test",
-		harness: null,
-		sources: ["artificial_analysis", "vals"],
-		source_count: 2,
 		score: 0.82,
 		cost_per_task_usd: 0.33999999999999997,
 		seconds_per_task: 45,

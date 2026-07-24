@@ -1,12 +1,10 @@
 /** Shared resource-metric rules for benchmark cost, speed, and availability scoring. */
 
+import type { BenchmarkResourcePolicy } from "../../benchmarks/factory";
 import { benchmarkValueLocation } from "../../benchmarks/registry";
 import { positiveFiniteNumber } from "../../numeric";
 import { asFiniteNumber, asRecord } from "../../runtime";
-import type {
-	ModelAtlasModelCandidate,
-	ModelAtlasTaskMetricValues,
-} from "../model-types";
+import type { ModelAtlasTaskMetricValues } from "../model-types";
 
 export type BenchmarkMetricModel = {
 	benchmarks?: unknown;
@@ -61,9 +59,35 @@ export function effectiveTaskSeconds(
 		: null;
 }
 
-export function taskMetricFromModel(
-	model: ModelAtlasModelCandidate,
+function taskMetricValues(value: unknown): ModelAtlasTaskMetricValues | null {
+	const record = asRecord(value);
+	const cost = asFiniteNumber(record.cost);
+	const seconds = asFiniteNumber(record.seconds);
+	const tokens = asFiniteNumber(record.tokens);
+	const inputTokens = asFiniteNumber(record.input_tokens);
+	const outputTokens = asFiniteNumber(record.output_tokens);
+	const metrics = {
+		...(cost == null ? {} : { cost }),
+		...(seconds == null ? {} : { seconds }),
+		...(tokens == null ? {} : { tokens }),
+		...(inputTokens == null ? {} : { input_tokens: inputTokens }),
+		...(outputTokens == null ? {} : { output_tokens: outputTokens }),
+	};
+	return Object.keys(metrics).length === 0 ? null : metrics;
+}
+
+/** Resolve direct benchmark telemetry over its declared shared-source fallback. */
+export function benchmarkTaskMetrics(
+	model: ResourceMetricModel,
 	key: string,
+	resourcePolicy?: BenchmarkResourcePolicy,
 ): ModelAtlasTaskMetricValues | null {
-	return model.task_metrics?.[key] ?? null;
+	const taskMetrics = asRecord(model.task_metrics);
+	const fallback =
+		resourcePolicy?.source === "artificial_analysis"
+			? taskMetricValues(taskMetrics.artificial_analysis)
+			: null;
+	const direct = taskMetricValues(taskMetrics[key]);
+	const metrics = { ...fallback, ...direct };
+	return Object.keys(metrics).length === 0 ? null : metrics;
 }

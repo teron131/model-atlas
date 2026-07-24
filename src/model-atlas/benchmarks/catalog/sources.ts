@@ -637,10 +637,8 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
 export const BENCHMARK_PERSISTENCE_OVERRIDES = {
 	aa_intelligence_index: {
 		location: { kind: "intelligence", field: "intelligence_index" },
-		exposure: "public",
 	},
 	omniscience_accuracy: {
 		location: { kind: "intelligence", field: "omniscience_accuracy" },
-		exposure: "public",
 	},
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkPersistenceFacet>>;

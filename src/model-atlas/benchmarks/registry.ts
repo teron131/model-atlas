@@ -50,7 +50,6 @@ const DIRECT_AGGREGATION = {
 } as const satisfies BenchmarkAggregationPolicy;
 const DEFAULT_BENCHMARK_PERSISTENCE = {
 	location: { kind: "benchmark" },
-	exposure: "public",
 } as const satisfies BenchmarkPersistenceFacet;
 
 function benchmarkProcessing(

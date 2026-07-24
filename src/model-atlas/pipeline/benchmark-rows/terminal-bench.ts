@@ -18,11 +18,6 @@ import { finiteScoreValues, medianOfFinite } from "../../numeric";
 import { asFiniteNumber } from "../../runtime";
 
 type Observation = {
-	source: "artificial_analysis" | "vals";
-	model_id: string;
-	model: string;
-	provider: string | null;
-	harness: string | null;
 	score: number | null;
 	cost_per_task_usd: number | null;
 	seconds_per_task: number | null;
@@ -32,12 +27,6 @@ type Observation = {
 };
 
 export type TerminalBenchAggregateRow = {
-	model_id: string;
-	model: string;
-	provider: string | null;
-	harness: string | null;
-	sources: string[];
-	source_count: number;
 	score: number;
 	cost_per_task_usd: number | null;
 	seconds_per_task: number | null;
@@ -56,8 +45,6 @@ type SourceLookups = {
 	artificialAnalysisResourceLookup: ArtificialAnalysisBenchmarkResourceLookup;
 	harnessRowsByModel: TerminalBenchRowsByModelName;
 };
-
-const ARTIFICIAL_ANALYSIS_HARNESS = "Terminus 2";
 
 function stringIdentity(value: unknown): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
@@ -87,11 +74,6 @@ function resourceObservation(
 		return null;
 	}
 	return {
-		source: "artificial_analysis",
-		model_id: modelId,
-		model,
-		provider: row?.provider ?? null,
-		harness: ARTIFICIAL_ANALYSIS_HARNESS,
 		score: parsedScore,
 		cost_per_task_usd: nonNegativeNumber(row?.cost_per_task_usd),
 		seconds_per_task: nonNegativeNumber(row?.seconds_per_task),
@@ -108,11 +90,6 @@ function harnessObservation(
 		return null;
 	}
 	return {
-		source: "vals",
-		model_id: row.model_id,
-		model: row.model,
-		provider: row.provider,
-		harness: row.harness,
 		score: row.score,
 		cost_per_task_usd: row.cost_per_task_usd,
 		seconds_per_task: row.seconds_per_task,
@@ -120,24 +97,6 @@ function harnessObservation(
 		input_tokens_per_task: null,
 		output_tokens_per_task: null,
 	};
-}
-
-function firstString(values: readonly (string | null)[]): string | null {
-	return values.find((value) => value != null && value.length > 0) ?? null;
-}
-
-function uniqueStrings(values: readonly (string | null)[]): string[] {
-	return values.filter(
-		(value, index, items): value is string =>
-			value != null && value.length > 0 && items.indexOf(value) === index,
-	);
-}
-
-function sharedHarness(observations: readonly Observation[]): string | null {
-	const firstHarness = observations[0]?.harness ?? null;
-	return observations.every((row) => row.harness === firstHarness)
-		? firstHarness
-		: null;
 }
 
 /** Rewards harness coverage lightly by scoring the best observed execution path. */
@@ -158,12 +117,6 @@ export function terminalBenchAggregateRow(
 		return null;
 	}
 	return {
-		model_id: firstString(observations.map((row) => row.model_id)) ?? "",
-		model: firstString(observations.map((row) => row.model)) ?? "",
-		provider: firstString(observations.map((row) => row.provider)),
-		harness: sharedHarness(observations),
-		sources: uniqueStrings(observations.map((row) => row.source)),
-		source_count: observations.length,
 		score: Number(score.toFixed(6)),
 		cost_per_task_usd: medianOfFinite(
 			observations.map((row) => row.cost_per_task_usd),

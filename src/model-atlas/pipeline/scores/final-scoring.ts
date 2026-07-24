@@ -12,7 +12,6 @@ import {
 import type {
 	ModelAtlasModelCandidate,
 	ModelAtlasScoredCandidate,
-	ModelAtlasTaskMetricValues,
 } from "../model-types";
 import { coverageConfidence, logInputMinMaxScores } from "./normalization";
 import {
@@ -22,8 +21,8 @@ import {
 } from "./resource-efficiency";
 import {
 	benchmarkMetricValue,
+	benchmarkTaskMetrics,
 	effectiveTaskSeconds,
-	taskMetricFromModel,
 } from "./resource-metrics";
 import { blendedPriceValue } from "./score-builders";
 import {
@@ -51,39 +50,6 @@ function meanSignal(
 		return null;
 	}
 	return weightedMeanOfFinite(signals);
-}
-
-function resourceTaskMetricKey(
-	key: string,
-	scoringConfig: ScoringConfig,
-): string {
-	const resourcePolicy = scoringConfig.benchmarkPortfolio[key]?.resourcePolicy;
-	return resourcePolicy?.source === "artificial_analysis"
-		? "artificial_analysis"
-		: key;
-}
-
-function hasUsableResourceTask(
-	model: ModelAtlasModelCandidate,
-	task: ModelAtlasTaskMetricValues | null,
-): boolean {
-	return (
-		positiveFiniteNumber(task?.cost) != null ||
-		effectiveTaskSeconds(model, task) != null
-	);
-}
-
-function resourceTaskMetric(
-	model: ModelAtlasModelCandidate,
-	key: string,
-	scoringConfig: ScoringConfig,
-): ModelAtlasTaskMetricValues | null {
-	const directTask = taskMetricFromModel(model, key);
-	if (hasUsableResourceTask(model, directTask)) {
-		return directTask;
-	}
-	const taskMetricKey = resourceTaskMetricKey(key, scoringConfig);
-	return taskMetricFromModel(model, taskMetricKey);
 }
 
 function blendCost(
@@ -265,13 +231,26 @@ export function attachFinalScores(
 		models,
 		scoringConfig,
 		(model, key, config) =>
-			effectiveTaskSeconds(model, resourceTaskMetric(model, key, config)),
+			effectiveTaskSeconds(
+				model,
+				benchmarkTaskMetrics(
+					model,
+					key,
+					config.benchmarkPortfolio[key]?.resourcePolicy,
+				),
+			),
 	);
 	const taskCostComponentEvidence = resourceEfficiencyEvidence(
 		models,
 		scoringConfig,
 		(model, key, config) =>
-			positiveFiniteNumber(resourceTaskMetric(model, key, config)?.cost),
+			positiveFiniteNumber(
+				benchmarkTaskMetrics(
+					model,
+					key,
+					config.benchmarkPortfolio[key]?.resourcePolicy,
+				)?.cost,
+			),
 	);
 	const workflowSpeedComponents = logInputMinMaxScores(
 		workflowRuntimeSeconds,

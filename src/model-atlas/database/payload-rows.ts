@@ -385,7 +385,6 @@ function modelFromRow(
 			row,
 			ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
 		),
-		intelligence_index_cost: null,
 		task_metrics: taskMetrics,
 		benchmarks,
 		confidence: {
@@ -520,15 +519,11 @@ function sourceHealthFromRows(
 					[
 						source,
 						{
-							source,
 							status,
 							last_fetch_epoch_seconds: asFiniteNumber(
 								row.last_fetch_epoch_seconds,
 							),
 							source_input_count: asFiniteNumber(row.source_input_count) ?? 0,
-							cache_hit: status === "cache_hit",
-							refreshed: status === "fresh",
-							using_cached_rows: status === "using_cached_rows",
 							active_row_count: asFiniteNumber(row.active_row_count) ?? 0,
 							quarantined_row_count:
 								asFiniteNumber(row.quarantined_row_count) ?? 0,

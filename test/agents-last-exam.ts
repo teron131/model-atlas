@@ -235,13 +235,20 @@ assertDeepEqual(agentsLastExamBenchmarkScore(matchedScore ?? gptScore), 0.37);
 
 assertDeepEqual(
 	buildTaskMetrics(null, {
-		agents_last_exam: gptScore,
+		agents_last_exam: {
+			...gptScore,
+			mean_duration_seconds_per_task:
+				gptScore.median_duration_seconds_per_task + 1,
+			mean_input_tokens_per_task: gptScore.median_input_tokens_per_task + 1,
+			mean_output_tokens_per_task: gptScore.median_output_tokens_per_task + 1,
+			mean_cost_usd_per_task: 3,
+		},
 	})?.agents_last_exam,
 	{
+		cost: 2,
 		seconds: (291_752 / 145 + 98_570 / 53) / 2,
 		input_tokens: (577_686_408 / 145 + 116_041_374 / 53) / 2,
 		output_tokens: (3_856_937 / 145 + 1_132_752 / 53) / 2,
-		cost: 2,
 	},
 );
 

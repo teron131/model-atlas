@@ -36,7 +36,10 @@ import {
 	modelBalancedMinMaxScores,
 	qualityLocalResourceScores,
 } from "../src/model-atlas/pipeline/scores/resource-efficiency";
-import { benchmarkMetricValue } from "../src/model-atlas/pipeline/scores/resource-metrics";
+import {
+	benchmarkMetricValue,
+	benchmarkTaskMetrics,
+} from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type {
 	BenchmarkPortfolio,
@@ -529,6 +532,20 @@ assertEqual(
 		tokenProxyResourceMetadata.scoring.column_tooltips.speed,
 	).includes("DeepSWE runtime"),
 	true,
+);
+assert.deepEqual(
+	benchmarkTaskMetrics(
+		{
+			task_metrics: {
+				artificial_analysis: { cost: 0.1, seconds: 10 },
+				hle: { seconds: 5 },
+			},
+		},
+		"hle",
+		STAGE_CONFIG.scoring.benchmarkPortfolio.hle?.resourcePolicy,
+	),
+	{ cost: 0.1, seconds: 5 },
+	"Direct benchmark telemetry should override individual shared-source fields without discarding the fallback",
 );
 
 const broadAAResourceOnlyModels = attachFinalScores(
@@ -1746,7 +1763,6 @@ function modelCandidate(options: {
 			e2e_latency_seconds_median: null,
 		},
 		intelligence: null,
-		intelligence_index_cost: null,
 		task_metrics: {
 			artificial_analysis: {
 				cost: options.artificialAnalysisCost,

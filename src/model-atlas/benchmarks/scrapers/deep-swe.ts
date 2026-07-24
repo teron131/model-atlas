@@ -263,7 +263,7 @@ export async function getDeepSWELeaderboardStats(
 	const preferredRows = preferredDeepSWELeaderboardRows(payload.data);
 	return {
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-		source_version: deepSWEPersistenceVersionForRows(payload.data),
+		source_version: deepSWESourceVersionForRows(payload.data),
 		data: preferredRows,
 	};
 }
@@ -287,7 +287,7 @@ function sourceVersionForUrl(url: string): DeepSWESourceVersion | null {
 	return null;
 }
 
-export function deepSWEPersistenceVersionForRows(
+export function deepSWESourceVersionForRows(
 	rows: DeepSWERawLeaderboardRow[],
 ): DeepSWESourceVersion | null {
 	if (rows.some((row) => row.source_version === "v1.1")) {

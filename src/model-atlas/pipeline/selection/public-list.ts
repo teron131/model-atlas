@@ -29,7 +29,6 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 	"context_window",
 	"speed",
 	"intelligence",
-	"intelligence_index_cost",
 	"task_metrics",
 	"benchmarks",
 	"confidence",
@@ -114,7 +113,6 @@ function toPublicModel(
 		context_window: model.context_window,
 		speed: model.speed,
 		intelligence: model.intelligence,
-		intelligence_index_cost: model.intelligence_index_cost,
 		task_metrics: model.task_metrics,
 		benchmarks: model.benchmarks,
 		confidence: { ...model.confidence },
@@ -266,7 +264,9 @@ function pruneSparseFields(
 }
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
-function collapseFreeRoutesByVariant(models: ModelAtlasModel[]): ModelAtlasModel[] {
+function collapseFreeRoutesByVariant(
+	models: ModelAtlasModel[],
+): ModelAtlasModel[] {
 	const modelByPublicId = new Map<
 		string,
 		{ model: ModelAtlasModel; isFreeRoute: boolean }

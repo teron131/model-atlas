@@ -404,13 +404,9 @@ const sourceHealth = buildSourceHealth({
 });
 
 assert.deepEqual(sourceHealth.sources.gdp_pdf, {
-	source: "gdp_pdf",
 	status: "using_cached_rows",
 	last_fetch_epoch_seconds: 1_799_000_000,
 	source_input_count: 12,
-	cache_hit: false,
-	refreshed: false,
-	using_cached_rows: true,
 	active_row_count: 1,
 	quarantined_row_count: 1,
 });

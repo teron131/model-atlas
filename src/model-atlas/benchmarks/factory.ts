@@ -136,7 +136,6 @@ type BenchmarkValueLocation =
 
 export type BenchmarkPersistenceFacet = {
 	location: BenchmarkValueLocation;
-	exposure: "public" | "internal";
 };
 
 export type BenchmarkColumnFacet = {
@@ -146,17 +145,23 @@ export type BenchmarkColumnFacet = {
 	defaultSort: BenchmarkSortDirection;
 };
 
+export type BenchmarkPresentationDetail = readonly [
+	label: string,
+	value: string,
+];
+
 export type BenchmarkTaskMetricColumnFacet = {
 	key: string;
 	metric: string;
 	direction: BenchmarkSortDirection;
 	label: string;
+	format?: "duration";
+	tooltip?: {
+		title: string;
+		body: string;
+		details?: readonly BenchmarkPresentationDetail[];
+	};
 };
-
-export type BenchmarkPresentationDetail = readonly [
-	label: string,
-	value: string,
-];
 
 type BenchmarkPresentationFacet = {
 	title: string;
@@ -391,6 +396,22 @@ function validateDefinitions(definitions: BenchmarkDefinitions): void {
 				);
 			}
 			taskMetricColumnKeys.add(column.key);
+			if (
+				column.tooltip != null &&
+				(column.tooltip.title.trim().length === 0 ||
+					column.tooltip.body.trim().length === 0)
+			) {
+				throw new Error(
+					`Benchmark task column tooltip cannot be empty for ${key}: ${column.key}`,
+				);
+			}
+			for (const [label, value] of column.tooltip?.details ?? []) {
+				if (label.trim().length === 0 || value.trim().length === 0) {
+					throw new Error(
+						`Benchmark task column tooltip details cannot be empty for ${key}: ${column.key}`,
+					);
+				}
+			}
 		}
 	}
 }

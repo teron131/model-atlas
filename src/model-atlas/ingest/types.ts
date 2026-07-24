@@ -11,10 +11,7 @@ import type { AleBenchConfigurationRow } from "../benchmarks/scrapers/ale-bench"
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
 import type { BlueprintBenchModelScoreRow } from "../benchmarks/scrapers/blueprint-bench";
 import type { CursorBenchModelScoreRow } from "../benchmarks/scrapers/cursorbench";
-import type {
-	DeepSWERawLeaderboardRow,
-	DeepSWESourceVersion,
-} from "../benchmarks/scrapers/deep-swe";
+import type { DeepSWERawLeaderboardRow } from "../benchmarks/scrapers/deep-swe";
 import type { FrontierCodeModelEffortRow } from "../benchmarks/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../benchmarks/scrapers/mercor-apex-agents";
 import type { GdpPdfModelScoreRow } from "../benchmarks/scrapers/surge/gdp-pdf";
@@ -46,13 +43,9 @@ export type ModelAtlasSourceHealthStatus =
 	| "empty";
 
 export type ModelAtlasSourceHealthEntry = {
-	source: string;
 	status: ModelAtlasSourceHealthStatus;
 	last_fetch_epoch_seconds: number | null;
 	source_input_count: number;
-	cache_hit: boolean;
-	refreshed: boolean;
-	using_cached_rows: boolean;
 	active_row_count: number;
 	quarantined_row_count: number;
 };
@@ -135,7 +128,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
 	blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
 	cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEPersistenceVersion: DeepSWESourceVersion | null;
 	frontierCodeRows: FrontierCodeModelEffortRow[];
 	gdpPdfModelScoreRows: GdpPdfModelScoreRow[];
 	harveyLabRows: HarveyLabTaskRow[];

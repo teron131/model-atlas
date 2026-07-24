@@ -74,7 +74,6 @@ const MAX_INSERT_STATEMENT_CHARS = 20_000;
 const MAX_MATERIALIZED_PAYLOAD_BYTES = 1_900_000;
 
 type D1PublishResult = {
-	storage: "cloudflare_d1";
 	database_id: string;
 	model_count: number;
 	fetched_at_epoch_seconds: number | null;
@@ -96,6 +95,11 @@ type D1RefreshState = {
 	previousSourceRowStates: ReturnType<typeof sourceRowStatesFromRows>;
 	previousPayload: ModelAtlasPayload | null;
 };
+
+type PersistedSourceCacheStatus = Pick<
+	RawSourceCacheStatus,
+	"last_fetch_epoch_seconds" | "source_input_count"
+>;
 
 type D1Publication = {
 	result: D1PublishResult;
@@ -224,7 +228,6 @@ function publishResult(
 	schema: SchemaReconciliationPlan,
 ): D1PublishResult {
 	return {
-		storage: "cloudflare_d1",
 		database_id: databaseId,
 		model_count: payload.models.length,
 		fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -243,15 +246,21 @@ async function readD1RefreshState(
 	nowEpochSeconds: number,
 ): Promise<D1RefreshState> {
 	const rawRows = await readD1RawRows();
-	const [previousSourceRows, previousPayload] = await Promise.all([
-		queryD1BatchRows([
-			{
-				sql: "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
-			},
-		]).then(([rows]) => rows ?? []),
-		readD1Payload(),
-	]);
-	const previousHealth = previousPayload?.metadata.source_health?.sources;
+	const [[previousSourceRows, previousSourceCacheRows], previousPayload] =
+		await Promise.all([
+			queryD1BatchRows([
+				{
+					sql: "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
+				},
+				{
+					sql: "SELECT source, last_fetch_epoch_seconds, source_input_count FROM source_health ORDER BY source",
+				},
+			]),
+			readD1Payload(),
+		]);
+	const previousSourceCache = sourceCacheStatusesFromRows(
+		previousSourceCacheRows ?? [],
+	);
 	return {
 		rawRows,
 		sourceCaches: sourceCachesFromRows(rawRows),
@@ -263,13 +272,35 @@ async function readD1RefreshState(
 					source,
 					rawRows[source],
 					nowEpochSeconds,
-					previousHealth?.[source],
+					previousSourceCache.get(source),
 				),
 			]),
 		) as Record<RawSourceName, RawSourceCacheStatus>,
-		previousSourceRowStates: sourceRowStatesFromRows(previousSourceRows),
+		previousSourceRowStates: sourceRowStatesFromRows(previousSourceRows ?? []),
 		previousPayload,
 	};
+}
+
+function sourceCacheStatusesFromRows(
+	rows: readonly Record<string, unknown>[],
+): Map<string, PersistedSourceCacheStatus> {
+	const statuses = new Map<string, PersistedSourceCacheStatus>();
+	for (const row of rows) {
+		if (
+			typeof row.source !== "string" ||
+			typeof row.source_input_count !== "number"
+		) {
+			continue;
+		}
+		statuses.set(row.source, {
+			last_fetch_epoch_seconds:
+				typeof row.last_fetch_epoch_seconds === "number"
+					? row.last_fetch_epoch_seconds
+					: null,
+			source_input_count: row.source_input_count,
+		});
+	}
+	return statuses;
 }
 
 async function readD1RawRows(): Promise<Record<RawSourceName, CacheDbRow[]>> {

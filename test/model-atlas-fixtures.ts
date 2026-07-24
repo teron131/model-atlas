@@ -33,9 +33,8 @@ export function minimalModelAtlasPayload({
 	return {
 		fetched_at_epoch_seconds: fetchedAt,
 		metadata: {
-			artificial_analysis: {
-				available_benchmark_keys: [],
-				available_intelligence_keys: [],
+			available_metrics: {
+				benchmark_keys: [],
 			},
 			scoring: {
 				intelligence_benchmark_keys: [],
@@ -47,9 +46,6 @@ export function minimalModelAtlasPayload({
 				selected_benchmark_keys: [],
 				benchmark_portfolio: {},
 				confidence: CONFIDENCE,
-				price_profiles: {},
-				simulation_profiles: {},
-				seconds_per_input_token: 0,
 				column_tooltips: {},
 				snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
 			},
@@ -83,7 +79,6 @@ export function minimalModelAtlasModel({
 			e2e_latency_seconds_median: null,
 		},
 		intelligence: null,
-		intelligence_index_cost: null,
 		task_metrics: null,
 		benchmarks: null,
 		confidence: {
