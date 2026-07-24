@@ -24,6 +24,7 @@ import {
 	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 } from "../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/config";
+import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 import {
 	minimalModelAtlasModel,
 	minimalModelAtlasPayload,
@@ -79,6 +80,19 @@ const html = renderToStaticMarkup(
 );
 const loadingHtml = renderToStaticMarkup(
 	React.createElement(Dashboard, { initialPayload: null }),
+);
+const { confidence: _staleConfidence, ...staleConfidenceModel } =
+	minimalModelAtlasModel({
+		id: "openai/stale-snapshot-model",
+		name: "Stale Snapshot Model",
+	});
+const staleConfidenceHtml = renderToStaticMarkup(
+	React.createElement(Dashboard, {
+		initialPayload: minimalModelAtlasPayload({
+			fetchedAt: 901,
+			models: [staleConfidenceModel as ModelAtlasModel],
+		}),
+	}),
 );
 
 const coverageModels = [
@@ -169,6 +183,16 @@ assert.equal(
 		html.includes("Agentic confidence 47%"),
 	true,
 	"the final dashboard column should expose separate confidence percentages",
+);
+assert.equal(
+	staleConfidenceHtml.includes(
+		'aria-label="Intelligence confidence -; Agentic confidence -"',
+	) &&
+		staleConfidenceHtml.includes(
+			'class="data-cell confidence-cell missing"',
+		),
+	true,
+	"stale dashboard rows without confidence should use the neutral missing representation",
 );
 assert.equal(
 	matchCount(html, 'data-column-key="confidence"'),

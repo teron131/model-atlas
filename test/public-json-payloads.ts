@@ -226,23 +226,6 @@ const fullPayload = minimalModelAtlasPayload({
 		},
 	],
 });
-fullPayload.deep_swe = {
-	rows: [
-		{
-			model: "Model",
-			reasoning_effort: null,
-			config: null,
-			pass_at_1: 0.6,
-			ci_lo: null,
-			ci_hi: null,
-			ci_half: null,
-			n_tasks_attempted: 113,
-			mean_cost_usd: 3,
-			mean_duration_seconds: 4,
-			mean_output_tokens: 5,
-		},
-	],
-};
 fullPayload.metadata.scoring.selected_benchmark_keys = ["gpqa", "deep_swe"];
 fullPayload.metadata.scoring.benchmark_portfolio = {
 	gpqa: {
@@ -262,9 +245,15 @@ const corePayload = coreJsonPayload(fullPayload);
 const coreModel = corePayload.models[0];
 const benchmarksPayload = benchmarksJsonPayload(fullPayload);
 const benchmarksModel = benchmarksPayload.benchmarks[0];
-const fullJsonModel = fullJsonPayload(fullPayload).models[0];
+const fullJson = fullJsonPayload(fullPayload);
+const fullJsonModel = fullJson.models[0];
 const methodology = scorePayload.methodology;
 
+assert.equal(
+	"deep_swe" in fullJson,
+	false,
+	"the full public view should not expose raw DeepSWE source rows",
+);
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
 assert.match(
@@ -328,6 +317,12 @@ assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
 assert.equal("confidence" in (fullJsonModel ?? {}), false);
 assert.equal(fullJsonModel?.reasoning_effort, null);
+assert.equal(fullJsonModel?.benchmarks?.deep_swe, 0.6);
+assert.deepEqual(fullJsonModel?.task_metrics?.deep_swe, {
+	cost: 3,
+	seconds: 4,
+	output_tokens: 5,
+});
 assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
 	"intelligence_score",
 	"agentic_score",
