@@ -123,54 +123,6 @@ try {
 			null,
 			"cache reconstruction should reject a run with mixed source URLs",
 		);
-		db.prepare(`
-			INSERT INTO deep_swe_raw_rows (
-				row_index, fetched_at_epoch_seconds, url, source_version,
-				model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
-				n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
-				mean_output_tokens
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`).run(
-			0,
-			1_800_000_000,
-			"https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json",
-			"v1",
-			"Previous DeepSWE Model",
-			null,
-			null,
-			0.4,
-			null,
-			null,
-			null,
-			113,
-			2,
-			4,
-			6,
-		);
-		db.prepare(`
-			INSERT INTO deep_swe_raw_rows (
-				row_index, fetched_at_epoch_seconds, url, source_version,
-				model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
-				n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
-				mean_output_tokens
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`).run(
-			1,
-			1_800_000_000,
-			"https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
-			"v1.1",
-			"Current DeepSWE Model",
-			"xhigh",
-			null,
-			0.7,
-			null,
-			null,
-			null,
-			113,
-			2,
-			4,
-			6,
-		);
 	} finally {
 		db.close();
 	}
@@ -189,11 +141,10 @@ try {
 		true,
 		"Riemann-bench should be listed as a DB-backed available benchmark key",
 	);
-	assert.ok(payload.deep_swe);
-	assert.deepEqual(
-		payload.deep_swe.rows.map((row) => row.model),
-		["Current DeepSWE Model", "Previous DeepSWE Model"],
-		"Database payloads should preserve v1-only DeepSWE rows while preferring v1.1 duplicates",
+	assert.equal(
+		"deep_swe" in payload,
+		false,
+		"Database payloads should not expose raw DeepSWE source rows",
 	);
 } finally {
 	await rm(tempDir, { force: true, recursive: true });

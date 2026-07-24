@@ -1,13 +1,9 @@
 /** Public model and payload contracts for the Model Atlas stats surface. */
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
-import type { DeepSWELeaderboardRow } from "../benchmarks/scrapers/deep-swe";
 import type { Confidence } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
-import type {
-	PriceProfiles,
-	SimulationProfiles,
-} from "../config/usage-profiles";
+import type { PriceProfiles, SimulationProfiles } from "../config/usage-profiles";
 import type { ModelAtlasSourceHealth } from "../ingest/types";
 import type { ModelAtlasModel as PipelineModel } from "../pipeline/model-types";
 
@@ -100,9 +96,6 @@ export type ModelAtlasMetadata = {
 export type ModelAtlasPayload = {
 	fetched_at_epoch_seconds: number | null;
 	metadata: ModelAtlasMetadata;
-	deep_swe?: {
-		rows: DeepSWELeaderboardRow[];
-	};
 	models: PipelineModel[];
 };
 

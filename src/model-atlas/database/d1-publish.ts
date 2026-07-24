@@ -492,7 +492,6 @@ function tableContentHash(rows: readonly Record<string, unknown>[]): string {
 function publicContentHash(payload: ModelAtlasPayload): string {
 	return stableHash({
 		models: payload.models,
-		deep_swe: payload.deep_swe,
 		scoring: payload.metadata.scoring,
 	});
 }

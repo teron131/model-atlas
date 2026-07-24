@@ -6,10 +6,6 @@ import {
 	BENCHMARK_OBSERVATION_BINDINGS,
 	type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
-import {
-	asDeepSWERawLeaderboardRow,
-	preferredDeepSWELeaderboardRows,
-} from "../benchmarks/scrapers/deep-swe";
 import { canonicalReasoningEffort } from "../identity/normalization";
 import {
 	SNAPSHOT_TABLES,
@@ -576,14 +572,6 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
 			sourceHealth,
 			sourceRowsByKey,
 		}),
-		deep_swe: {
-			rows: preferredDeepSWELeaderboardRows(
-				rows.deepSWERows.flatMap((row) => {
-					const parsedRow = asDeepSWERawLeaderboardRow(row);
-					return parsedRow == null ? [] : [parsedRow];
-				}),
-			),
-		},
 		models,
 	};
 }

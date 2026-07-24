@@ -289,10 +289,10 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 function ConfidenceCell({
 	confidence,
 }: {
-	confidence: ModelAtlasModel["confidence"];
+	confidence?: ModelAtlasModel["confidence"];
 }) {
-	const intelligence = formatConfidence(confidence.intelligence);
-	const agentic = formatConfidence(confidence.agentic);
+	const intelligence = formatConfidence(confidence?.intelligence);
+	const agentic = formatConfidence(confidence?.agentic);
 	const missing = intelligence === "-" && agentic === "-";
 	return (
 		<td

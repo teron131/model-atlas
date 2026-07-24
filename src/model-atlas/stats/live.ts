@@ -70,7 +70,6 @@ async function buildLivePayload(
 	return withCurrentMetadata(
 		{
 			fetched_at_epoch_seconds: fetchedAt,
-			deep_swe: { rows: sourceData.deepSWE.effortRows },
 			models,
 		},
 		enrichment.rows,
