@@ -612,8 +612,8 @@ export function buildModelCandidate(
 	pricingByModelId: Map<string, JsonObject>,
 	outputTokenAnchors: number[],
 	scoringConfig: ScoringConfig,
-	benchmarkImputationByModel: BenchmarkImputationByModel,
-	benchmarkImputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
+	imputationByModel: BenchmarkImputationByModel,
+	imputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
 	qualityContext: QualityScoringContext,
 ): ModelAtlasModelCandidate {
 	const model = asRecord(row);
@@ -635,8 +635,8 @@ export function buildModelCandidate(
 		outputTokenAnchors,
 		scoringConfig,
 		qualityContext,
-		benchmarkImputationByModel.get(model),
-		benchmarkImputationConfidenceByModel.get(model),
+		imputationByModel.get(model),
+		imputationConfidenceByModel.get(model),
 	);
 	return {
 		id: modelId,

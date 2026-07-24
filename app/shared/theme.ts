@@ -9,7 +9,7 @@ import { MODEL_ATLAS_THEME_STORAGE_KEY } from "./theme-storage";
 type ModelAtlasTheme = "dark" | "light";
 
 /** Keep an open page synchronized when another tab changes the saved theme. */
-export function useModelAtlasThemeSynchronization() {
+export function useThemeSynchronization() {
 	useEffect(() => {
 		const syncTheme = (event: StorageEvent) => {
 			if (

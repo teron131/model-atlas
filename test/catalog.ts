@@ -9,7 +9,7 @@ import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog
 import {
 	hasRequiredBasicSpecs,
 	hasRequiredBenchmarkEvidence,
-	meetsPublicRelevanceThreshold,
+	hasRequiredPublicRelevance,
 } from "../src/model-atlas/pipeline/selection/builder";
 import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
@@ -90,7 +90,7 @@ assert.equal(
 );
 
 assert.equal(
-	meetsPublicRelevanceThreshold({
+	hasRequiredPublicRelevance({
 		scores: {
 			intelligence_score: 9,
 			agentic_score: 9,
@@ -102,7 +102,7 @@ assert.equal(
 	"one qualifying primary score should satisfy the public relevance threshold",
 );
 assert.equal(
-	meetsPublicRelevanceThreshold({
+	hasRequiredPublicRelevance({
 		scores: {
 			intelligence_score: 9,
 			agentic_score: 9,
@@ -145,7 +145,7 @@ const evidenceScoringConfig = {
 const benchmarkAdmissionConfig = {
 	indexBenchmarkKeys: ["intelligence_observed"],
 	minimumObservedBenchmarks: 2,
-	minimumObservedBenchmarksPerDimension: 1,
+	minimumObservedPerDimension: 1,
 } as const;
 const minimumEvidenceModel = {
 	...minimalModelAtlasModel({ id: "provider/model", name: "Model" }),

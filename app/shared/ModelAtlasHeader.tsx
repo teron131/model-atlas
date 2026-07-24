@@ -11,10 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import {
-	toggleModelAtlasTheme,
-	useModelAtlasThemeSynchronization,
-} from "./theme";
+import { toggleModelAtlasTheme, useThemeSynchronization } from "./theme";
 
 export function ModelAtlasHeader({
 	page,
@@ -25,7 +22,7 @@ export function ModelAtlasHeader({
 	documentNavigationOpen?: boolean;
 	onToggleDocumentNavigation?: () => void;
 }) {
-	useModelAtlasThemeSynchronization();
+	useThemeSynchronization();
 	const route =
 		page === "dashboard"
 			? {
