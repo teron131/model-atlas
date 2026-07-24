@@ -1,4 +1,7 @@
-/** Model catalog coverage adds preferred recent text models absent from matched benchmark rows. */
+/**
+ * Benchmark-matched rows provide the evidence-backed catalog foundation.
+ * Eligible models.dev rows extend that foundation so recent models can enter the catalog before benchmark coverage catches up.
+ */
 
 import {
 	canonicalProviderModelId,
@@ -60,7 +63,7 @@ function hasObviousImageModelLabel(row: Record<string, unknown>): boolean {
 	);
 }
 
-function isTextLlmCatalogRow(row: Record<string, unknown>): boolean {
+function isTextModelCatalogRow(row: Record<string, unknown>): boolean {
 	return rowHasExplicitTextOutput(row) && !hasObviousImageModelLabel(row);
 }
 
@@ -78,7 +81,7 @@ function isFastAliasRow(row: Record<string, unknown>): boolean {
 	return normalizedId != null && /-fast$/.test(normalizedId);
 }
 
-function catalogAliasPriority(row: Record<string, unknown>): number {
+function aliasInclusionRank(row: Record<string, unknown>): number {
 	if (isLatestAliasRow(row)) {
 		return 3;
 	}
@@ -125,49 +128,49 @@ function modelsDevCatalogRow(
 	};
 }
 
-/** Add preferred recent models.dev catalog rows without an Artificial Analysis match. */
+/** Build a text-model catalog from benchmark-matched rows and nonduplicate models.dev candidates. */
 export function buildModelCatalogRows(
 	sourceData: Pick<ModelAtlasSourceData, "modelsDev">,
 	matchedRows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
-	const existingNormalizedIds = new Set<string>();
-	const existingConcreteFamilyKeys = new Set<string>();
-	const rememberCatalogRow = (row: Record<string, unknown>) => {
+	const representedModelIds = new Set<string>();
+	const representedConcreteFamilies = new Set<string>();
+	const trackRepresentedRow = (row: Record<string, unknown>) => {
 		for (const normalizedId of [row.id, row.openrouter_id]
 			.filter((id): id is string => typeof id === "string" && id.length > 0)
 			.map(normalizeProviderModelId)) {
-			existingNormalizedIds.add(normalizedId);
+			representedModelIds.add(normalizedId);
 		}
 		const familyKey = catalogFamilyKey(row);
 		if (familyKey != null && !isLatestAliasRow(row)) {
-			existingConcreteFamilyKeys.add(familyKey);
+			representedConcreteFamilies.add(familyKey);
 		}
 	};
 	for (const row of matchedRows) {
-		rememberCatalogRow(row);
+		trackRepresentedRow(row);
 	}
-	const catalogRows = matchedRows.filter(isTextLlmCatalogRow);
-	const modelsDevCatalogRows = sourceData.modelsDev.rows
+	const catalogRows = matchedRows.filter(isTextModelCatalogRow);
+	const modelsDevCandidateRows = sourceData.modelsDev.rows
 		.map((modelsDevModel) => modelsDevCatalogRow(modelsDevModel))
 		.filter((row): row is Record<string, unknown> => row != null)
 		.sort(
-			(left, right) => catalogAliasPriority(left) - catalogAliasPriority(right),
+			(left, right) => aliasInclusionRank(left) - aliasInclusionRank(right),
 		);
-	for (const row of modelsDevCatalogRows) {
+	for (const row of modelsDevCandidateRows) {
 		const normalizedId = normalizedRowId(row);
 		const latestFamilyKey = isLatestAliasRow(row)
 			? catalogFamilyKey(row)
 			: null;
 		if (
 			normalizedId == null ||
-			!isTextLlmCatalogRow(row) ||
-			existingNormalizedIds.has(normalizedId) ||
+			!isTextModelCatalogRow(row) ||
+			representedModelIds.has(normalizedId) ||
 			(latestFamilyKey != null &&
-				existingConcreteFamilyKeys.has(latestFamilyKey))
+				representedConcreteFamilies.has(latestFamilyKey))
 		) {
 			continue;
 		}
-		rememberCatalogRow(row);
+		trackRepresentedRow(row);
 		catalogRows.push(row);
 	}
 	return catalogRows;

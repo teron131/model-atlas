@@ -95,7 +95,7 @@ export function hasRequiredBenchmarkEvidence(
 }
 
 /** Admit a final row when at least one primary score reaches the public relevance floor. */
-export function hasRequiredPublicScore(
+export function meetsPublicRelevanceThreshold(
 	model: Pick<ModelAtlasScoredCandidate, "scores">,
 ): boolean {
 	return PUBLIC_COMPONENT_SCORE_KEYS.some((key) => {
@@ -165,7 +165,7 @@ export async function buildFinalModels(
 			),
 		)
 		.filter(hasRequiredQualityScores)
-		.filter(hasRequiredPublicScore);
+		.filter(meetsPublicRelevanceThreshold);
 	return cacheModelLogos(
 		admittedPublicModels,
 		(model) => model.provider ?? model.id,
