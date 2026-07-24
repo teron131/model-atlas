@@ -204,9 +204,6 @@ const fullPayload = minimalModelAtlasPayload({
 				agentic_index: 70,
 				gpqa: 0.9,
 			},
-			intelligence_index_cost: {
-				total_cost: 12,
-			},
 			task_metrics: {
 				artificial_analysis: {
 					cost: 1.25,
@@ -256,13 +253,13 @@ assert.equal(
 );
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
-assert.match(
-	methodology,
-	/validation-weighted evidence mass/,
-);
+assert.match(methodology, /validation-weighted evidence mass/);
 assert.match(methodology, /zero confidence through 10%/);
 assert.match(methodology, /full confidence from 60%/);
-assert.match(methodology, /Logit coordinates are reserved for probability-like/);
+assert.match(
+	methodology,
+	/Logit coordinates are reserved for probability-like/,
+);
 assert.match(methodology, /linear coordinates preserve native or composite/);
 assert.deepEqual(scoreModel, {
 	rank: 1,

@@ -351,17 +351,12 @@ export function buildSourceHealth({
 				(source): [RawSourceName, ModelAtlasSourceHealthEntry] => {
 					const status = sourceCache[source];
 					const counts = rowStateCounts(source, sourceRowStates);
-					const healthStatus = healthStatusFromCache(status);
 					return [
 						source,
 						{
-							source,
-							status: healthStatus,
+							status: healthStatusFromCache(status),
 							last_fetch_epoch_seconds: status.last_fetch_epoch_seconds,
 							source_input_count: status.source_input_count,
-							cache_hit: status.cache_hit,
-							refreshed: status.refreshed,
-							using_cached_rows: healthStatus === "using_cached_rows",
 							active_row_count: counts.active,
 							quarantined_row_count: counts.quarantined,
 						},

@@ -135,9 +135,7 @@ try {
 		"Riemann-bench should survive the normalized final-model DB payload path",
 	);
 	assert.equal(
-		payload.metadata.artificial_analysis.available_benchmark_keys.includes(
-			"riemann_bench",
-		),
+		payload.metadata.available_metrics.benchmark_keys.includes("riemann_bench"),
 		true,
 		"Riemann-bench should be listed as a DB-backed available benchmark key",
 	);

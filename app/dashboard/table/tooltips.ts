@@ -56,34 +56,6 @@ const defaultTaskMetricText: Record<string, TaskMetricTooltipText> = {
 	},
 };
 
-const terminalBenchMetricText: Record<string, TaskMetricTooltipText> = {
-	cost: {
-		title: "cost per task",
-		body: "Median available task cost",
-		row: "median cost per task",
-	},
-	seconds: {
-		title: "seconds per task",
-		body: "Median available task runtime",
-		row: "median runtime per task",
-	},
-	tokens: {
-		title: "tokens per task",
-		body: "Artificial Analysis reported token use",
-		row: "AA tokens per task",
-	},
-	input_tokens: {
-		title: "input tokens per task",
-		body: "Artificial Analysis reported input token use",
-		row: "AA input tokens per task",
-	},
-	output_tokens: {
-		title: "output tokens per task",
-		body: "Artificial Analysis reported output token use",
-		row: "AA output tokens per task",
-	},
-};
-
 const taskMetricColumnTooltips = Object.fromEntries(
 	taskMetricColumns.flatMap((column) => taskMetricTooltipEntry(column)),
 ) as Partial<Record<SortKey, ModelAtlasColumnTooltip>>;
@@ -155,11 +127,26 @@ function taskMetricTooltipEntry(
 	if (configuredTooltip != null) {
 		return [[column.key, configuredTooltip]];
 	}
+	if (column.tooltip != null) {
+		return [
+			[
+				column.key,
+				{
+					title: column.tooltip.title,
+					body: column.tooltip.body,
+					rows: column.tooltip.details,
+				},
+			],
+		];
+	}
 	const benchmarkTooltip = benchmarkTooltips[column.source];
 	if (benchmarkTooltip == null) {
 		return [];
 	}
-	const metricTooltip = taskMetricTooltipFor(column);
+	const metricTooltip = defaultTaskMetricText[column.metric];
+	if (metricTooltip == null) {
+		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
+	}
 	return [
 		[
 			column.key,
@@ -169,39 +156,16 @@ function taskMetricTooltipEntry(
 				}`,
 				body: `${metricTooltip.body} for ${benchmarkTooltip.title}.`,
 				rows: [
-					["Source", taskMetricTooltipSource(column, benchmarkTooltip)],
+					[
+						"Source",
+						benchmarkTooltip.rows?.find(([label]) => label === "Source")?.[1] ??
+							benchmarkTooltip.title,
+					],
 					["Metric", metricTooltip.row],
 				],
 			},
 		],
 	];
-}
-
-function taskMetricTooltipSource(
-	column: TaskMetricColumn,
-	tooltip: ModelAtlasColumnTooltip,
-) {
-	if (column.source === "terminalbench_v21") {
-		return column.metric === "tokens" ||
-			column.metric === "input_tokens" ||
-			column.metric === "output_tokens"
-			? "Artificial Analysis"
-			: "Artificial Analysis & Vals";
-	}
-	return (
-		tooltip.rows?.find(([label]) => label === "Source")?.[1] ?? tooltip.title
-	);
-}
-
-function taskMetricTooltipFor(column: TaskMetricColumn): TaskMetricTooltipText {
-	const metricTooltip =
-		column.source === "terminalbench_v21"
-			? terminalBenchMetricText[column.metric]
-			: defaultTaskMetricText[column.metric];
-	if (metricTooltip == null) {
-		throw new Error(`Unsupported task metric tooltip: ${column.metric}`);
-	}
-	return metricTooltip;
 }
 
 /** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */

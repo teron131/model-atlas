@@ -90,7 +90,6 @@ function summary(sourceData: ModelAtlasSourceData) {
 		]),
 		modelsDevLookupProvider:
 			sourceData.modelsDev.byId.get("shared/model")?.provider_id,
-		deepSWEEffortCount: sourceData.deepSWE.effortRows.length,
 		deepSWEDefault: {
 			reasoningEffort: defaultDeepSWE?.reasoning_effort,
 			passAt1: defaultDeepSWE?.pass_at_1,
@@ -233,7 +232,6 @@ assert.deepEqual(summary(liveSourceData), {
 		["vercel/model", "vercel"],
 	],
 	modelsDevLookupProvider: "openrouter",
-	deepSWEEffortCount: 2,
 	deepSWEDefault: { reasoningEffort: null, passAt1: 0.4 },
 	deepSWEIndexedDefault: { reasoningEffort: null, passAt1: 0.4 },
 });

@@ -40,7 +40,6 @@ export type FrontierBenchmarkRow = {
 	benchmarkKey: string;
 	benchmarkLabel: string;
 	resourcePolicy: BenchmarkResourcePolicy | null;
-	benchmarkCount: number;
 	model: ModelAtlasModel;
 	score: number;
 	cost: number | null;
@@ -156,8 +155,7 @@ export function frontierBenchmarkRows(
 			const taskMetrics = model.task_metrics ?? {};
 			return frontierKeys.flatMap((benchmarkKey) => {
 				const score = toPercent(benchmarks[benchmarkKey]);
-				const resourcePolicy =
-					portfolio[benchmarkKey]?.resourcePolicy ?? null;
+				const resourcePolicy = portfolio[benchmarkKey]?.resourcePolicy ?? null;
 				const task = resourcePolicy == null ? null : taskMetrics[benchmarkKey];
 				const cost = finiteValue(task?.cost);
 				const seconds = finiteValue(task?.seconds);
@@ -176,7 +174,6 @@ export function frontierBenchmarkRows(
 						benchmarkKey,
 						benchmarkLabel: benchmarkLabels[benchmarkKey] ?? benchmarkKey,
 						resourcePolicy,
-						benchmarkCount: 1,
 						model,
 						score,
 						cost: positiveMetric(cost) ? cost : null,
@@ -204,7 +201,6 @@ export function meanFrontierBenchmarkRows(
 				benchmarkKey: "all",
 				benchmarkLabel: "Normalized frontier score",
 				resourcePolicy: null,
-				benchmarkCount: modelRows.length,
 				model: first.model,
 				score: meanNumber(modelRows.map((row) => row.score)),
 				cost: meanFiniteMetric(modelRows.map((row) => row.cost)),

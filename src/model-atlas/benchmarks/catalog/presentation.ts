@@ -26,9 +26,10 @@ export const BENCHMARK_TOOLTIPS = {
 	},
 	agents_last_exam: {
 		title: "Agents' Last Exam",
-		body: "Real-world software and professional-workflow benchmark. Model Atlas uses the partial-credit score.",
+		body: "Real-world software and professional-workflow benchmark. The displayed value is the higher of median and mean partial-credit score.",
 		rows: [
 			["Source", "Agents' Last Exam"],
+			["Split", "Full Overall"],
 			["Role", "agentic real-world work"],
 		],
 	},
@@ -498,24 +499,61 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
 			metric: "cost",
 			direction: "ascending",
 			label: "ALE$",
+			tooltip: {
+				title: "Agents' Last Exam cost ↓",
+				body: "Estimated cost per Full Overall task, using the lower of median and mean per-task cost.",
+				details: [
+					["Source", "Agents' Last Exam"],
+					["Split", "Full Overall"],
+					["Metric", "cost per task"],
+				],
+			},
 		},
 		{
 			key: "agentsLastExamSeconds",
 			metric: "seconds",
 			direction: "ascending",
 			label: "ALE Sec",
+			format: "duration",
+			tooltip: {
+				title: "Agents' Last Exam runtime ↓",
+				body: "Runtime per Full Overall task, using the lower of median and mean per-task duration.",
+				details: [
+					["Source", "Agents' Last Exam"],
+					["Split", "Full Overall"],
+					["Metric", "runtime per task"],
+				],
+			},
 		},
 		{
 			key: "agentsLastExamInputTokens",
 			metric: "input_tokens",
 			direction: "ascending",
 			label: "ALE In",
+			tooltip: {
+				title: "Agents' Last Exam input tokens ↓",
+				body: "Input tokens per Full Overall task, using the lower of median and mean per-task token usage.",
+				details: [
+					["Source", "Agents' Last Exam"],
+					["Split", "Full Overall"],
+					["Metric", "input tokens per task"],
+				],
+			},
 		},
 		{
 			key: "agentsLastExamOutputTokens",
 			metric: "output_tokens",
 			direction: "ascending",
 			label: "ALE Out",
+			tooltip: {
+				title: "Agents' Last Exam output tokens ↓",
+				body: "Output tokens per Full Overall task, using the lower of median and mean per-task token usage.",
+				details: [
+					["Source", "Agents' Last Exam"],
+					["Split", "Full Overall"],
+					["Metric", "output tokens per task"],
+				],
+			},
 		},
 	],
 	automation_bench: [
@@ -566,18 +604,42 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
 			metric: "cost",
 			direction: "ascending",
 			label: "DSWE$",
+			tooltip: {
+				title: "DeepSWE cost per task ↓",
+				body: "Mean cost for one DeepSWE task.",
+				details: [
+					["Source", "DeepSWE leaderboard"],
+					["Metric", "mean cost per task"],
+				],
+			},
 		},
 		{
 			key: "deepSWESeconds",
 			metric: "seconds",
 			direction: "ascending",
 			label: "DSWE Sec",
+			tooltip: {
+				title: "DeepSWE seconds per task ↓",
+				body: "Mean runtime for one DeepSWE task.",
+				details: [
+					["Source", "DeepSWE leaderboard"],
+					["Metric", "mean runtime per task"],
+				],
+			},
 		},
 		{
 			key: "deepSWETokens",
 			metric: "output_tokens",
 			direction: "descending",
 			label: "DSWE Tok",
+			tooltip: {
+				title: "DeepSWE output tokens per task",
+				body: "Mean output tokens for one DeepSWE task.",
+				details: [
+					["Source", "DeepSWE leaderboard"],
+					["Metric", "mean output tokens per task"],
+				],
+			},
 		},
 	],
 	frontier_code: [
@@ -680,18 +742,42 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
 			metric: "cost",
 			direction: "ascending",
 			label: "TB$",
+			tooltip: {
+				title: "Terminal-Bench 2.1 cost per task ↓",
+				body: "Median available task cost for Terminal-Bench 2.1.",
+				details: [
+					["Source", "Artificial Analysis & Vals"],
+					["Metric", "median cost per task"],
+				],
+			},
 		},
 		{
 			key: "terminalBenchSeconds",
 			metric: "seconds",
 			direction: "ascending",
 			label: "TB Sec",
+			tooltip: {
+				title: "Terminal-Bench 2.1 seconds per task ↓",
+				body: "Median available task runtime for Terminal-Bench 2.1.",
+				details: [
+					["Source", "Artificial Analysis & Vals"],
+					["Metric", "median runtime per task"],
+				],
+			},
 		},
 		{
 			key: "terminalBenchTokens",
 			metric: "tokens",
 			direction: "ascending",
 			label: "TB Tok",
+			tooltip: {
+				title: "Terminal-Bench 2.1 tokens per task ↓",
+				body: "Artificial Analysis reported token use for Terminal-Bench 2.1.",
+				details: [
+					["Source", "Artificial Analysis"],
+					["Metric", "AA tokens per task"],
+				],
+			},
 		},
 	],
 } as const satisfies Partial<

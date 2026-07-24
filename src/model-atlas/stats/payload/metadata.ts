@@ -1,6 +1,5 @@
 /** Metadata assembly keeps live, stored, and restored payloads aligned with the current scoring contract. */
 
-import type { BenchmarkResourcePolicy } from "../../benchmarks/factory";
 import { STAGE_CONFIG } from "../../config";
 import type { ScoringConfig } from "../../config/stage";
 import {
@@ -13,6 +12,7 @@ import type { BenchmarkRowsByKey } from "../../pipeline/benchmark-rows";
 import {
 	type BenchmarkMetricModel,
 	benchmarkMetricValue,
+	benchmarkTaskMetrics,
 	effectiveTaskSeconds,
 	type ResourceMetricModel,
 } from "../../pipeline/scores/resource-metrics";
@@ -27,14 +27,14 @@ import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 
 type BenchmarkHealthModels = Parameters<typeof buildBenchmarkUpdateHealth>[0];
 
-type MetadataAvailabilitySource = "models" | "artificial_analysis";
+type MetadataAvailabilitySource = "models" | "metadata";
 
 type CurrentModelAtlasMetadataOptions = {
 	models: readonly BenchmarkMetricModel[];
 	resourceModels?: readonly ResourceMetricModel[];
 	healthModels?: BenchmarkHealthModels;
 	scoringConfig?: ScoringConfig;
-	artificialAnalysis?: ModelAtlasMetadata["artificial_analysis"];
+	availableMetrics?: ModelAtlasMetadata["available_metrics"];
 	sourceHealth?: ModelAtlasSourceHealth;
 	benchmarkUpdateHealth?: ModelAtlasBenchmarkUpdateHealth;
 	sourceRowsByKey?: BenchmarkRowsByKey;
@@ -55,39 +55,29 @@ function keysFromModelField(
 	);
 }
 
-function buildArtificialAnalysisMetadata(
+function buildAvailableMetrics(
 	models: readonly BenchmarkMetricModel[],
-): ModelAtlasMetadata["artificial_analysis"] {
+): ModelAtlasMetadata["available_metrics"] {
 	const availableBenchmarkKeys = keysFromModelField(models, "benchmarks");
 	const availableIntelligenceKeys = keysFromModelField(models, "intelligence");
 	return {
-		available_benchmark_keys: sortedUniqueKeys([
+		benchmark_keys: sortedUniqueKeys([
 			...availableBenchmarkKeys,
 			...availableIntelligenceKeys,
 		]),
-		available_intelligence_keys: availableIntelligenceKeys,
 	};
 }
 
 function hasPositiveTaskMetric(
 	model: ResourceMetricModel,
 	key: string,
-	resourcePolicy: BenchmarkResourcePolicy,
+	resourcePolicy: NonNullable<
+		ScoringConfig["benchmarkPortfolio"][string]["resourcePolicy"]
+	>,
 ): boolean {
-	const taskMetricKey =
-		resourcePolicy.source === "artificial_analysis"
-			? "artificial_analysis"
-			: key;
-	const taskMetrics = asRecord(model.task_metrics);
-	const task =
-		taskMetricKey === key
-			? asRecord(taskMetrics[taskMetricKey])
-			: {
-					...asRecord(taskMetrics[taskMetricKey]),
-					...asRecord(taskMetrics[key]),
-				};
+	const task = benchmarkTaskMetrics(model, key, resourcePolicy);
 	return (
-		positiveFiniteNumber(task.cost) != null ||
+		positiveFiniteNumber(task?.cost) != null ||
 		effectiveTaskSeconds(model, task) != null
 	);
 }
@@ -115,17 +105,10 @@ function activeResourceComponents(
 			({ key, resourcePolicy }) =>
 				resourcePolicy.source === "artificial_analysis" ? [key] : [],
 		),
-		directBenchmarkKeys: activeBenchmarks.flatMap(
-			({ key, resourcePolicy }) =>
-				resourcePolicy.source === "benchmark" ? [key] : [],
+		directBenchmarkKeys: activeBenchmarks.flatMap(({ key, resourcePolicy }) =>
+			resourcePolicy.source === "benchmark" ? [key] : [],
 		),
 	};
-}
-
-function resolveAvailableBenchmarkKeys(
-	artificialAnalysis: ModelAtlasMetadata["artificial_analysis"],
-): string[] {
-	return artificialAnalysis.available_benchmark_keys;
 }
 
 /** Preserve caller-owned source metadata while refreshing scoring fields from the active stage configuration. */
@@ -134,23 +117,20 @@ export function buildCurrentModelAtlasMetadata({
 	resourceModels = models,
 	healthModels = models as BenchmarkHealthModels,
 	scoringConfig = STAGE_CONFIG.scoring,
-	artificialAnalysis,
+	availableMetrics,
 	sourceHealth,
 	benchmarkUpdateHealth,
 	sourceRowsByKey,
 	matcherConfig = STAGE_CONFIG.matcher,
 	availabilitySource = "models",
 }: CurrentModelAtlasMetadataOptions): ModelAtlasMetadata {
-	const modelArtificialAnalysis = buildArtificialAnalysisMetadata(models);
-	const outputArtificialAnalysis =
-		artificialAnalysis ?? modelArtificialAnalysis;
-	const availabilityArtificialAnalysis =
-		availabilitySource === "artificial_analysis"
-			? outputArtificialAnalysis
-			: modelArtificialAnalysis;
-	const availableBenchmarkKeys = resolveAvailableBenchmarkKeys(
-		availabilityArtificialAnalysis,
-	);
+	const modelAvailableMetrics = buildAvailableMetrics(models);
+	const outputAvailableMetrics = availableMetrics ?? modelAvailableMetrics;
+	const availabilityMetrics =
+		availabilitySource === "metadata"
+			? outputAvailableMetrics
+			: modelAvailableMetrics;
+	const availableBenchmarkKeys = availabilityMetrics.benchmark_keys;
 	const selectedBenchmarkKeys = sortedUniqueKeys([
 		...scoringConfig.intelligenceBenchmarkKeys,
 		...scoringConfig.agenticBenchmarkKeys,
@@ -160,7 +140,7 @@ export function buildCurrentModelAtlasMetadata({
 		scoringConfig,
 	);
 	return {
-		artificial_analysis: outputArtificialAnalysis,
+		available_metrics: outputAvailableMetrics,
 		...(sourceHealth == null ? {} : { source_health: sourceHealth }),
 		benchmark_update_health:
 			benchmarkUpdateHealth ??
@@ -194,9 +174,6 @@ export function buildCurrentModelAtlasMetadata({
 				},
 				agentic: { ...scoringConfig.confidence.agentic },
 			},
-			price_profiles: { ...scoringConfig.priceProfiles },
-			simulation_profiles: { ...scoringConfig.simulationProfiles },
-			seconds_per_input_token: scoringConfig.secondsPerInputToken,
 			column_tooltips: {
 				...scoringConfig.columnTooltips,
 				...columnTooltipsForActiveComponents(resourceComponents),

@@ -13,7 +13,6 @@ import type {
 	ModelAtlasCost,
 	ModelAtlasCostBreakdown,
 	ModelAtlasCostTier,
-	ModelAtlasIntelligenceIndexCost,
 	ModelAtlasModalities,
 	ModelAtlasModelCandidate,
 	ModelAtlasScoringSources,
@@ -36,39 +35,52 @@ const EMPTY_OPENROUTER_PRICING = {
 	weighted_input: null,
 	weighted_output: null,
 } as const;
-const MIN_INTELLIGENCE_COST_TOTAL_TOKENS = 1_000_000;
 const INTELLIGENCE_COST_TOTAL_COST_KEY = "intelligence_index_cost_total_cost";
 const INTELLIGENCE_COST_TOTAL_TOKENS_KEY =
 	"intelligence_index_cost_total_tokens";
-const GENERIC_TASK_METRIC_FIELDS = {
-	cost: [
-		"cost_per_task_usd",
-		"cost_per_task",
-		"mean_cost_usd",
-		"median_cost_usd",
-	],
-	seconds: [
-		"seconds_per_task",
-		"duration_seconds_per_task",
-		"mean_duration_seconds_per_task",
-		"median_duration_seconds_per_task",
-		"mean_duration_seconds",
-		"median_duration_seconds",
-	],
-	tokens: ["tokens_per_task", "mean_tokens_per_task", "median_tokens_per_task"],
-	input_tokens: [
-		"input_tokens_per_task",
-		"mean_input_tokens_per_task",
-		"median_input_tokens_per_task",
-	],
-	output_tokens: [
-		"output_tokens_per_task",
-		"mean_output_tokens_per_task",
-		"median_output_tokens_per_task",
-		"mean_output_tokens",
-		"median_output_tokens",
-	],
-} as const satisfies Record<TaskMetricKey, readonly string[]>;
+const TASK_METRIC_FIELDS = {
+	cost: {
+		direct: ["cost_per_task_usd", "cost_per_task"],
+		summaries: [
+			"median_cost_usd_per_task",
+			"mean_cost_usd_per_task",
+			"median_cost_usd",
+			"mean_cost_usd",
+		],
+	},
+	seconds: {
+		direct: ["seconds_per_task", "duration_seconds_per_task"],
+		summaries: [
+			"median_duration_seconds_per_task",
+			"mean_duration_seconds_per_task",
+			"median_duration_seconds",
+			"mean_duration_seconds",
+		],
+	},
+	tokens: {
+		direct: ["tokens_per_task"],
+		summaries: ["median_tokens_per_task", "mean_tokens_per_task"],
+	},
+	input_tokens: {
+		direct: ["input_tokens_per_task"],
+		summaries: ["median_input_tokens_per_task", "mean_input_tokens_per_task"],
+	},
+	output_tokens: {
+		direct: ["output_tokens_per_task"],
+		summaries: [
+			"median_output_tokens_per_task",
+			"mean_output_tokens_per_task",
+			"median_output_tokens",
+			"mean_output_tokens",
+		],
+	},
+} as const satisfies Record<
+	TaskMetricKey,
+	{
+		direct: readonly string[];
+		summaries: readonly string[];
+	}
+>;
 
 function hasFields(record: object): boolean {
 	return Object.keys(record).length > 0;
@@ -283,47 +295,6 @@ function buildCost(
 	return hasFields(cost) ? cost : null;
 }
 
-function buildIntelligenceIndexCost(
-	model: JsonObject,
-): ModelAtlasIntelligenceIndexCost {
-	const fromRow = asRecord(model.intelligence_index_cost);
-	const fromIntelligence = asRecord(model.intelligence);
-	const totalCost =
-		asFiniteNumber(fromRow.total_cost) ??
-		asFiniteNumber(fromIntelligence[INTELLIGENCE_COST_TOTAL_COST_KEY]);
-	const totalTokens =
-		asFiniteNumber(fromRow.total_tokens) ??
-		asFiniteNumber(fromIntelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY]);
-	const cost: Exclude<ModelAtlasIntelligenceIndexCost, null> = {};
-	for (const key of [
-		"input_cost",
-		"reasoning_cost",
-		"output_cost",
-		"input_tokens",
-		"reasoning_tokens",
-		"answer_tokens",
-		"output_tokens",
-		"cost_per_task",
-		"seconds_per_task",
-		"output_tokens_per_task",
-	] as const) {
-		const value = asFiniteNumber(fromRow[key]);
-		if (value != null) {
-			cost[key] = value;
-		}
-	}
-	if (totalCost != null) {
-		cost.total_cost = totalCost;
-	}
-	if (
-		totalTokens != null &&
-		totalTokens >= MIN_INTELLIGENCE_COST_TOTAL_TOKENS
-	) {
-		cost.total_tokens = totalTokens;
-	}
-	return hasFields(cost) ? cost : null;
-}
-
 function buildScoringSources(model: JsonObject): ModelAtlasScoringSources {
 	const scoringSources: NonNullable<ModelAtlasScoringSources> = {};
 	for (const [key, value] of Object.entries(asRecord(model.scoring_sources))) {
@@ -332,143 +303,12 @@ function buildScoringSources(model: JsonObject): ModelAtlasScoringSources {
 			scoringSources[key] = source;
 		}
 	}
-	const deepSwe = buildDeepSWESource(model);
-	const agentsLastExam = buildAgentsLastExamSource(model);
-	if (deepSwe != null) {
-		scoringSources.deep_swe = deepSwe;
-	}
-	if (agentsLastExam != null) {
-		scoringSources.agents_last_exam = agentsLastExam;
-	}
 	return hasFields(scoringSources) ? scoringSources : null;
-}
-
-function buildDeepSWESource(model: JsonObject) {
-	const source = asRecord(asRecord(model.scoring_sources).deep_swe);
-	const passAt1 = asFiniteNumber(source.pass_at_1);
-	const tasksAttempted = asFiniteNumber(source.n_tasks_attempted);
-	const meanCostUsd = asFiniteNumber(source.mean_cost_usd);
-	const meanDurationSeconds = asFiniteNumber(source.mean_duration_seconds);
-	const meanOutputTokens = asFiniteNumber(source.mean_output_tokens);
-	if (
-		typeof source.model !== "string" ||
-		passAt1 == null ||
-		tasksAttempted == null ||
-		meanCostUsd == null ||
-		meanOutputTokens == null
-	) {
-		return null;
-	}
-	return {
-		model: source.model,
-		reasoning_effort:
-			typeof source.reasoning_effort === "string"
-				? source.reasoning_effort
-				: null,
-		config: typeof source.config === "string" ? source.config : null,
-		pass_at_1: passAt1,
-		ci_lo: asFiniteNumber(source.ci_lo),
-		ci_hi: asFiniteNumber(source.ci_hi),
-		ci_half: asFiniteNumber(source.ci_half),
-		n_tasks_attempted: tasksAttempted,
-		mean_cost_usd: meanCostUsd,
-		mean_duration_seconds: meanDurationSeconds ?? null,
-		mean_output_tokens: meanOutputTokens,
-	};
-}
-
-function buildAgentsLastExamSource(model: JsonObject) {
-	const source = asRecord(asRecord(model.scoring_sources).agents_last_exam);
-	const medianScore = asFiniteNumber(source.median_score);
-	const meanScore = asFiniteNumber(source.mean_score);
-	const medianAccuracy = asFiniteNumber(source.median_accuracy);
-	const meanAccuracy = asFiniteNumber(source.mean_accuracy);
-	const medianTotalDurationSeconds = asFiniteNumber(
-		source.median_total_duration_seconds,
-	);
-	const meanTotalDurationSeconds = asFiniteNumber(
-		source.mean_total_duration_seconds,
-	);
-	const medianTotalInputTokens = asFiniteNumber(
-		source.median_total_input_tokens,
-	);
-	const meanTotalInputTokens = asFiniteNumber(source.mean_total_input_tokens);
-	const medianTotalOutputTokens = asFiniteNumber(
-		source.median_total_output_tokens,
-	);
-	const meanTotalOutputTokens = asFiniteNumber(source.mean_total_output_tokens);
-	const medianDurationSecondsPerTask = asFiniteNumber(
-		source.median_duration_seconds_per_task,
-	);
-	const meanDurationSecondsPerTask = asFiniteNumber(
-		source.mean_duration_seconds_per_task,
-	);
-	const medianInputTokensPerTask = asFiniteNumber(
-		source.median_input_tokens_per_task,
-	);
-	const meanInputTokensPerTask = asFiniteNumber(
-		source.mean_input_tokens_per_task,
-	);
-	const medianOutputTokensPerTask = asFiniteNumber(
-		source.median_output_tokens_per_task,
-	);
-	const meanOutputTokensPerTask = asFiniteNumber(
-		source.mean_output_tokens_per_task,
-	);
-	const medianCostUsdPerTask = asFiniteNumber(source.median_cost_usd_per_task);
-	const meanCostUsdPerTask = asFiniteNumber(source.mean_cost_usd_per_task);
-	const frequency = asFiniteNumber(source.frequency);
-	if (
-		typeof source.model !== "string" ||
-		typeof source.split !== "string" ||
-		medianScore == null ||
-		meanScore == null ||
-		medianAccuracy == null ||
-		meanAccuracy == null ||
-		medianTotalDurationSeconds == null ||
-		meanTotalDurationSeconds == null ||
-		medianTotalInputTokens == null ||
-		meanTotalInputTokens == null ||
-		medianTotalOutputTokens == null ||
-		meanTotalOutputTokens == null ||
-		medianDurationSecondsPerTask == null ||
-		meanDurationSecondsPerTask == null ||
-		medianInputTokensPerTask == null ||
-		meanInputTokensPerTask == null ||
-		medianOutputTokensPerTask == null ||
-		meanOutputTokensPerTask == null ||
-		frequency == null
-	) {
-		return null;
-	}
-	return {
-		model: source.model,
-		split: source.split,
-		median_score: medianScore,
-		mean_score: meanScore,
-		median_accuracy: medianAccuracy,
-		mean_accuracy: meanAccuracy,
-		median_total_duration_seconds: medianTotalDurationSeconds,
-		mean_total_duration_seconds: meanTotalDurationSeconds,
-		median_total_input_tokens: medianTotalInputTokens,
-		mean_total_input_tokens: meanTotalInputTokens,
-		median_total_output_tokens: medianTotalOutputTokens,
-		mean_total_output_tokens: meanTotalOutputTokens,
-		median_duration_seconds_per_task: medianDurationSecondsPerTask,
-		mean_duration_seconds_per_task: meanDurationSecondsPerTask,
-		median_input_tokens_per_task: medianInputTokensPerTask,
-		mean_input_tokens_per_task: meanInputTokensPerTask,
-		median_output_tokens_per_task: medianOutputTokensPerTask,
-		mean_output_tokens_per_task: meanOutputTokensPerTask,
-		median_cost_usd_per_task: medianCostUsdPerTask,
-		mean_cost_usd_per_task: meanCostUsdPerTask,
-		frequency,
-	};
 }
 
 /** Normalize benchmark resource telemetry into the candidate's public per-task shape. */
 export function buildTaskMetrics(
-	intelligenceIndexCost: ModelAtlasIntelligenceIndexCost,
+	artificialAnalysisSource: unknown,
 	scoringSources: ModelAtlasScoringSources,
 ): ModelAtlasTaskMetrics {
 	const taskMetrics: NonNullable<ModelAtlasTaskMetrics> = {};
@@ -478,19 +318,9 @@ export function buildTaskMetrics(
 			taskMetrics[key] = sourceTaskMetrics;
 		}
 	}
-	const artificialAnalysis = buildArtificialAnalysisMetrics(
-		intelligenceIndexCost,
-	);
+	const artificialAnalysis = buildSourceMetrics(artificialAnalysisSource);
 	if (artificialAnalysis != null) {
 		taskMetrics.artificial_analysis = artificialAnalysis;
-	}
-	const deepSwe = buildDeepSWEMetrics(scoringSources);
-	if (deepSwe != null) {
-		taskMetrics.deep_swe = deepSwe;
-	}
-	const agentsLastExam = buildAgentsLastExamMetrics(scoringSources);
-	if (agentsLastExam != null) {
-		taskMetrics.agents_last_exam = agentsLastExam;
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
 }
@@ -508,102 +338,33 @@ function firstFiniteNumber(
 	return null;
 }
 
-function setNonNegativeMetric(
-	taskMetrics: TaskMetricValues,
-	key: TaskMetricKey,
-	value: number | null,
-): void {
-	if (value != null && value >= 0) {
-		taskMetrics[key] = value;
+function minimumFiniteNumber(
+	record: Record<string, unknown>,
+	keys: readonly string[],
+): number | null {
+	let minimum: number | null = null;
+	for (const key of keys) {
+		const value = asFiniteNumber(record[key]);
+		if (value != null && (minimum == null || value < minimum)) {
+			minimum = value;
+		}
 	}
+	return minimum;
 }
 
 /** Extract common per-task telemetry field shapes from any benchmark source row. */
 function buildSourceMetrics(source: unknown): TaskMetricValues | null {
 	const row = asRecord(source);
 	const taskMetrics: TaskMetricValues = {};
-	for (const [key, fields] of Object.entries(GENERIC_TASK_METRIC_FIELDS)) {
-		setNonNegativeMetric(
-			taskMetrics,
-			key as TaskMetricKey,
-			firstFiniteNumber(row, fields),
-		);
+	for (const [key, fields] of Object.entries(TASK_METRIC_FIELDS)) {
+		const value =
+			firstFiniteNumber(row, fields.direct) ??
+			minimumFiniteNumber(row, fields.summaries);
+		if (value != null && value >= 0) {
+			taskMetrics[key as TaskMetricKey] = value;
+		}
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
-}
-
-function buildArtificialAnalysisMetrics(
-	intelligenceIndexCost: ModelAtlasIntelligenceIndexCost,
-): TaskMetricValues | null {
-	if (intelligenceIndexCost == null) {
-		return null;
-	}
-	const costPerTask = asFiniteNumber(intelligenceIndexCost.cost_per_task);
-	const outputTokensPerTask = asFiniteNumber(
-		intelligenceIndexCost.output_tokens_per_task,
-	);
-	const secondsPerTask = asFiniteNumber(intelligenceIndexCost.seconds_per_task);
-	const taskMetrics: TaskMetricValues = {};
-
-	if (costPerTask != null && costPerTask >= 0) {
-		taskMetrics.cost = costPerTask;
-	}
-	if (outputTokensPerTask != null && outputTokensPerTask >= 0) {
-		taskMetrics.output_tokens = outputTokensPerTask;
-	}
-	if (secondsPerTask != null && secondsPerTask >= 0) {
-		taskMetrics.seconds = secondsPerTask;
-	}
-	return hasFields(taskMetrics) ? taskMetrics : null;
-}
-
-function buildDeepSWEMetrics(
-	scoringSources: ModelAtlasScoringSources,
-): TaskMetricValues | null {
-	const deepSwe = scoringSources?.deep_swe;
-	if (deepSwe == null) {
-		return null;
-	}
-	const taskMetrics: TaskMetricValues = {
-		cost: deepSwe.mean_cost_usd,
-		output_tokens: deepSwe.mean_output_tokens,
-	};
-	setNonNegativeMetric(taskMetrics, "seconds", deepSwe.mean_duration_seconds);
-	return taskMetrics;
-}
-
-/** Expose Agents' Last Exam resource telemetry using the lower of median and mean. */
-function buildAgentsLastExamMetrics(
-	scoringSources: ModelAtlasScoringSources,
-): TaskMetricValues | null {
-	const agentsLastExam = scoringSources?.agents_last_exam;
-	if (agentsLastExam == null) {
-		return null;
-	}
-	const inputTokens = Math.min(
-		agentsLastExam.median_input_tokens_per_task,
-		agentsLastExam.mean_input_tokens_per_task,
-	);
-	const outputTokens = Math.min(
-		agentsLastExam.median_output_tokens_per_task,
-		agentsLastExam.mean_output_tokens_per_task,
-	);
-	const taskMetrics: TaskMetricValues = {
-		seconds: Math.min(
-			agentsLastExam.median_duration_seconds_per_task,
-			agentsLastExam.mean_duration_seconds_per_task,
-		),
-		input_tokens: inputTokens,
-		output_tokens: outputTokens,
-	};
-	const costPerTask = Math.min(
-		agentsLastExam.median_cost_usd_per_task ?? Number.POSITIVE_INFINITY,
-		agentsLastExam.mean_cost_usd_per_task ?? Number.POSITIVE_INFINITY,
-	);
-	if (Number.isFinite(costPerTask)) {
-		taskMetrics.cost = costPerTask;
-	}
-	return taskMetrics;
 }
 
 export function buildModelCandidate(
@@ -624,7 +385,6 @@ export function buildModelCandidate(
 		lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ??
 		EMPTY_OPENROUTER_PRICING;
 	const cost = buildCost(model, pricing, scoringConfig);
-	const intelligenceIndexCost = buildIntelligenceIndexCost(model);
 	const scoringSources = buildScoringSources(model);
 	const intelligence = { ...asRecord(model.intelligence) };
 	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
@@ -657,8 +417,10 @@ export function buildModelCandidate(
 		context_window: buildContextWindow(model),
 		speed,
 		intelligence: buildNumericMap(intelligence),
-		intelligence_index_cost: intelligenceIndexCost,
-		task_metrics: buildTaskMetrics(intelligenceIndexCost, scoringSources),
+		task_metrics: buildTaskMetrics(
+			model.intelligence_index_cost,
+			scoringSources,
+		),
 		benchmarks: buildNumericMap(model.benchmarks),
 		confidence,
 		scoring_sources: scoringSources,

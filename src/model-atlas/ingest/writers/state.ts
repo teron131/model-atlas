@@ -34,10 +34,12 @@ export function insertSourceHealth(
 			source_input_count, active_row_count, quarantined_row_count
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`);
-	for (const [index, row] of Object.values(sourceHealth.sources).entries()) {
+	for (const [index, [source, row]] of Object.entries(
+		sourceHealth.sources,
+	).entries()) {
 		statement.run(
 			index,
-			row.source,
+			source,
 			row.status,
 			row.last_fetch_epoch_seconds,
 			row.source_input_count,

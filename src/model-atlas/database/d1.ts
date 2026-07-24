@@ -28,9 +28,6 @@ type D1Config = {
 
 type D1QueryResult = {
 	success?: boolean;
-	meta?: {
-		last_row_id?: number;
-	};
 	results?: D1Rows | { columns?: string[]; rows?: unknown[][] };
 };
 

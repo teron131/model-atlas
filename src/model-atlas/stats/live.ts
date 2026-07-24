@@ -24,7 +24,6 @@ export type {
 	ModelAtlasCostBreakdown,
 	ModelAtlasCostTier,
 	ModelAtlasIntelligence,
-	ModelAtlasIntelligenceIndexCost,
 	ModelAtlasMetadata,
 	ModelAtlasModalities,
 	ModelAtlasModel,
@@ -50,7 +49,7 @@ function withCurrentMetadata(
 		models: modelsForMetadata,
 		resourceModels,
 		healthModels: payload.models,
-		artificialAnalysis: payload.metadata?.artificial_analysis,
+		availableMetrics: payload.metadata?.available_metrics,
 		sourceRowsByKey,
 	});
 	return {

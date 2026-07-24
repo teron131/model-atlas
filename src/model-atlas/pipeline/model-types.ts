@@ -72,21 +72,6 @@ export type ModelAtlasIntelligence = ModelAtlasBenchmarkValues & {
 	omniscience_accuracy?: NumberOrNull;
 };
 
-export type ModelAtlasIntelligenceIndexCost = {
-	input_cost?: NumberOrNull;
-	reasoning_cost?: NumberOrNull;
-	output_cost?: NumberOrNull;
-	total_cost?: NumberOrNull;
-	input_tokens?: NumberOrNull;
-	reasoning_tokens?: NumberOrNull;
-	answer_tokens?: NumberOrNull;
-	output_tokens?: NumberOrNull;
-	total_tokens?: NumberOrNull;
-	cost_per_task?: NumberOrNull;
-	seconds_per_task?: NumberOrNull;
-	output_tokens_per_task?: NumberOrNull;
-} | null;
-
 export type ModelAtlasTaskMetricValues = {
 	cost?: NumberOrNull;
 	seconds?: NumberOrNull;
@@ -97,7 +82,9 @@ export type ModelAtlasTaskMetricValues = {
 
 export type ModelAtlasTaskMetrics =
 	| (Record<string, ModelAtlasTaskMetricValues | null | undefined> &
-			Partial<Record<BenchmarkResourceKey, ModelAtlasTaskMetricValues | null>> & {
+			Partial<
+				Record<BenchmarkResourceKey, ModelAtlasTaskMetricValues | null>
+			> & {
 				artificial_analysis?: ModelAtlasTaskMetricValues | null;
 			})
 	| null;
@@ -184,7 +171,6 @@ type ModelAtlasModelFields = {
 	context_window: ModelAtlasContextWindow;
 	speed: ModelAtlasSpeed;
 	intelligence: ModelAtlasIntelligence | null;
-	intelligence_index_cost: ModelAtlasIntelligenceIndexCost;
 	task_metrics: ModelAtlasTaskMetrics;
 	benchmarks: ModelAtlasBenchmarks | null;
 	confidence: ModelAtlasConfidence;

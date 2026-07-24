@@ -139,7 +139,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
 		AgentsLastExamRowsByModelName
 	>;
 	aleBench: {
-		configurationRows: AleBenchConfigurationRow[];
 		sourceDefaultRows: AleBenchModelScoreRow[];
 		rowsByModelName: AleBenchRowsByModelName;
 	};
@@ -152,7 +151,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
 		CursorBenchRowsByModelName
 	>;
 	deepSWE: {
-		effortRows: DeepSWELeaderboardRow[];
 		sourceDefaultRows: DeepSWEModelScoreRow[];
 		rowsByModelName: DeepSWERowsByModelName;
 	};
@@ -197,10 +195,10 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
 	modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
 	agentArenaRows: ModelAtlasSourceData["agentArena"]["rows"];
 	agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
-	aleBenchConfigurationRows: ModelAtlasSourceData["aleBench"]["configurationRows"];
+	aleBenchConfigurationRows: AleBenchConfigurationRow[];
 	blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
 	cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
-	deepSWEEffortRows: ModelAtlasSourceData["deepSWE"]["effortRows"];
+	deepSWEEffortRows: DeepSWELeaderboardRow[];
 	frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
 	gdpPdfRows: ModelAtlasSourceData["gdpPdf"]["rows"];
 	harveyLabRows: ModelAtlasSourceData["harveyLab"]["rows"];
@@ -296,7 +294,6 @@ export function buildSourceData(
 			rowsByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
 		},
 		aleBench: {
-			configurationRows: rows.aleBenchConfigurationRows,
 			sourceDefaultRows: aleBenchPersistenceDefaultRows,
 			rowsByModelName: buildBenchmarkModelMap(aleBenchPersistenceDefaultRows),
 		},
@@ -309,7 +306,6 @@ export function buildSourceData(
 			rowsByModelName: buildCursorBenchMap(rows.cursorBenchRows),
 		},
 		deepSWE: {
-			effortRows: rows.deepSWEEffortRows,
 			sourceDefaultRows: deepSweSourceDefaultRows,
 			rowsByModelName: buildDeepSWEMap(deepSweSourceDefaultRows),
 		},

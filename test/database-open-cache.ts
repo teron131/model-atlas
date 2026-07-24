@@ -378,7 +378,6 @@ try {
 			);
 		}
 		const deepSWECache = readDeepSWERawCache(reopenedDb);
-		assert.equal(deepSWECache?.sourceVersion, "v1.1");
 		assert.equal(deepSWECache?.rows[0]?.model, "Current DeepSWE Model");
 		assert.equal(deepSWECache?.rows[0]?.source_version, "v1.1");
 		const deepSWEStatus = readRawSourceCacheStatus(

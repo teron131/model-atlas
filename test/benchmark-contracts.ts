@@ -39,7 +39,6 @@ const definitions = {
 		},
 		persistence: {
 			location: { kind: "benchmark" },
-			exposure: "public",
 		},
 		presentation: {
 			title: "Quality Benchmark",
@@ -86,7 +85,6 @@ const definitions = {
 		},
 		persistence: {
 			location: { kind: "intelligence", field: "cost_index" },
-			exposure: "internal",
 		},
 		presentation: {
 			title: "Cost Benchmark",
@@ -201,7 +199,6 @@ assert.throws(
 				...definitions.quality,
 				persistence: {
 					location: { kind: "intelligence", field: "" },
-					exposure: "public",
 				},
 			},
 		}),
@@ -342,15 +339,12 @@ assert.deepEqual(BENCHMARK_CATALOG.apex_agents.scoring.imputation, {
 });
 assert.deepEqual(BENCHMARK_CATALOG.aa_intelligence_index.persistence, {
 	location: { kind: "intelligence", field: "intelligence_index" },
-	exposure: "public",
 });
 assert.deepEqual(BENCHMARK_CATALOG.agent_arena.persistence, {
 	location: { kind: "benchmark" },
-	exposure: "public",
 });
 assert.deepEqual(BENCHMARK_CATALOG.omniscience_accuracy.persistence, {
 	location: { kind: "intelligence", field: "omniscience_accuracy" },
-	exposure: "public",
 });
 assert.equal(
 	ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS.terminalbenchV21,

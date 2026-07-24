@@ -54,8 +54,7 @@ export type ModelAtlasColumnTooltip = {
 
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
-const CONFIDENCE_SCALE =
-	"zero through 10% weighted evidence; full from 60%";
+const CONFIDENCE_SCALE = "zero through 10% weighted evidence; full from 60%";
 
 export const CONFIDENCE_TOOLTIP = {
 	title: "Confidence",
@@ -170,8 +169,6 @@ const benchmarkContributionPercent = (
 const SPEED_BASE_COMPONENT_COUNT = 2;
 const VALUE_PRICE_COMPONENT_COUNT = 3;
 
-const FULL_OVERALL_TEXT = "Full Overall";
-
 type CoreColumnTooltipKey =
 	| "intelligence"
 	| "agentic"
@@ -181,13 +178,7 @@ type CoreColumnTooltipKey =
 	| "context"
 	| "artificialAnalysisCost"
 	| "artificialAnalysisSeconds"
-	| "artificialAnalysisTokens"
-	| "agentsLastExam"
-	| "agentsLastExamCost"
-	| "deepSWE"
-	| "deepSWECost"
-	| "deepSWESeconds"
-	| "deepSWETokens";
+	| "artificialAnalysisTokens";
 type CoreColumnTooltips = ModelAtlasColumnTooltips &
 	Record<CoreColumnTooltipKey, ModelAtlasColumnTooltip>;
 
@@ -487,79 +478,6 @@ export function columnTooltipsForActiveComponents(
 				["Source", "Artificial Analysis"],
 				["Metric", "reported output tokens per Intelligence task"],
 				["Method", "direct AA per-task field"],
-			],
-		},
-		agentsLastExam: {
-			title: "Agents' Last Exam",
-			body: "Real-world software and professional-workflow benchmark. The displayed value is the higher of median and mean partial-credit score.",
-			rows: [
-				["Source", "Agents' Last Exam"],
-				["Split", FULL_OVERALL_TEXT],
-			],
-		},
-		agentsLastExamCost: {
-			title: "Agents' Last Exam cost ↓",
-			body: "Estimated cost per Full Overall task, using the lower of median and mean per-task cost.",
-			rows: [
-				["Source", "Agents' Last Exam"],
-				["Split", FULL_OVERALL_TEXT],
-				["Metric", "cost per task"],
-			],
-		},
-		agentsLastExamSeconds: {
-			title: "Agents' Last Exam runtime ↓",
-			body: "Runtime per Full Overall task, using the lower of median and mean per-task duration.",
-			rows: [
-				["Source", "Agents' Last Exam"],
-				["Split", FULL_OVERALL_TEXT],
-				["Metric", "runtime per task"],
-			],
-		},
-		agentsLastExamInputTokens: {
-			title: "Agents' Last Exam input tokens ↓",
-			body: "Input tokens per Full Overall task, using the lower of median and mean per-task token usage.",
-			rows: [
-				["Source", "Agents' Last Exam"],
-				["Split", FULL_OVERALL_TEXT],
-				["Metric", "input tokens per task"],
-			],
-		},
-		agentsLastExamOutputTokens: {
-			title: "Agents' Last Exam output tokens ↓",
-			body: "Output tokens per Full Overall task, using the lower of median and mean per-task token usage.",
-			rows: [
-				["Source", "Agents' Last Exam"],
-				["Split", FULL_OVERALL_TEXT],
-				["Metric", "output tokens per task"],
-			],
-		},
-		deepSWE: {
-			title: "DeepSWE",
-			body: "Coding-agent benchmark. This score uses the source-default or highest reported reasoning effort.",
-			rows: [["Source", "DeepSWE leaderboard"]],
-		},
-		deepSWECost: {
-			title: "DeepSWE cost per task ↓",
-			body: "Mean cost for one DeepSWE task.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Metric", "mean cost per task"],
-			],
-		},
-		deepSWESeconds: {
-			title: "DeepSWE seconds per task ↓",
-			body: "Mean runtime for one DeepSWE task.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Metric", "mean runtime per task"],
-			],
-		},
-		deepSWETokens: {
-			title: "DeepSWE output tokens per task",
-			body: "Mean output tokens for one DeepSWE task.",
-			rows: [
-				["Source", "DeepSWE leaderboard"],
-				["Metric", "mean output tokens per task"],
 			],
 		},
 	};

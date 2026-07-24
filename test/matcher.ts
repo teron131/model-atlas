@@ -731,7 +731,6 @@ function modelStatsSourceData(
 			rowsByModelName: new Map(),
 		},
 		aleBench: {
-			configurationRows: [],
 			sourceDefaultRows: [],
 			rowsByModelName: new Map(),
 		},
@@ -752,7 +751,6 @@ function modelStatsSourceData(
 		},
 		cyberBench: { rows: [], rowsByModelName: new Map() },
 		deepSWE: {
-			effortRows: [],
 			sourceDefaultRows: [],
 			rowsByModelName: new Map(),
 		},

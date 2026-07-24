@@ -116,7 +116,7 @@ assertDeepEqual(
 			mean_output_tokens: 11300,
 		},
 	})?.deep_swe,
-	{ cost: 226, output_tokens: 11300, seconds: 1130 },
+	{ cost: 226, seconds: 1130, output_tokens: 11300 },
 );
 
 assertDeepEqual(

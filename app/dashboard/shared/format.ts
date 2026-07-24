@@ -54,7 +54,7 @@ function formatTaskMetric(
 		return formatCost(value);
 	}
 	if (column.metric === "seconds") {
-		if (column.source === "agents_last_exam") {
+		if (column.format === "duration") {
 			return formatDuration(value);
 		}
 		return formatSeconds(value);

@@ -117,10 +117,10 @@ function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
 		metadata: buildCurrentModelAtlasMetadata({
 			models: payload.models,
 			healthModels: payload.models,
-			artificialAnalysis: payload.metadata?.artificial_analysis,
+			availableMetrics: payload.metadata?.available_metrics,
 			sourceHealth: payload.metadata?.source_health,
 			benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,
-			availabilitySource: "artificial_analysis",
+			availabilitySource: "metadata",
 		}),
 	};
 }

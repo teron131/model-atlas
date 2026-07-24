@@ -24,17 +24,13 @@ import type { DatabaseWriter } from "../../ingest/writers/database";
 import {
 	asDeepSWERawLeaderboardRow,
 	type DeepSWERawLeaderboardRow,
-	type DeepSWESourceVersion,
-	deepSWEPersistenceVersionForRows,
 	deepSWEUrlForSourceVersion,
 	getDeepSWERawLeaderboardSourceRows,
-	preferredDeepSWELeaderboardRows,
 } from "../scrapers/deep-swe";
 
 export function readDeepSWERawCache(cache: CacheRowSource): {
 	rows: DeepSWERawLeaderboardRow[];
 	fetchedAt: number | null;
-	sourceVersion: DeepSWESourceVersion | null;
 } | null {
 	const cacheRows = sourceCacheRows(
 		cache,
@@ -50,17 +46,15 @@ export function readDeepSWERawCache(cache: CacheRowSource): {
 	return {
 		rows: deepSweRows,
 		fetchedAt: firstEpochSecond(cacheRows),
-		sourceVersion: deepSWEPersistenceVersionForRows(deepSweRows),
 	};
 }
 
 type DeepSWESnapshot = {
 	deepSWERawRows: DeepSWERawLeaderboardRow[];
-	deepSWEPersistenceVersion: DeepSWESourceVersion | null;
 	sourceStatus: SourceSnapshotStatus;
 };
 
-/** Preserves DeepSWE raw leaderboard rows and records the preferred source version. */
+/** Preserve DeepSWE raw leaderboard rows across cache hits and source refreshes. */
 async function deepSWESnapshot(
 	cached: ReturnType<typeof readDeepSWERawCache>,
 	status: RawSourceCacheStatus,
@@ -96,7 +90,6 @@ async function deepSWESnapshot(
 		});
 		return {
 			deepSWERawRows: cachedSnapshot.rows,
-			deepSWEPersistenceVersion: cached.sourceVersion,
 			sourceStatus: {
 				source: "deep_swe",
 				fetchedAt: cached.fetchedAt,
@@ -128,7 +121,6 @@ async function deepSWESnapshot(
 		previousMissingSince,
 		nowEpochSeconds,
 	});
-	const preferredRows = preferredDeepSWELeaderboardRows(snapshot.rows);
 	const fetchedAt = snapshotFetchedAt(
 		hasUsableFetchedRows,
 		cached?.fetchedAt,
@@ -136,10 +128,6 @@ async function deepSWESnapshot(
 	);
 	return {
 		deepSWERawRows: snapshot.rows,
-		deepSWEPersistenceVersion:
-			preferredRows.length > 0
-				? deepSWEPersistenceVersionForRows(snapshot.rows)
-				: (cached?.sourceVersion ?? null),
 		sourceStatus: {
 			source: "deep_swe",
 			fetchedAt,

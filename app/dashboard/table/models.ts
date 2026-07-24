@@ -6,6 +6,7 @@ import {
 	BENCHMARK_TASK_METRIC_COLUMNS,
 	type BenchmarkKey,
 } from "../../../src/model-atlas/benchmarks/catalog";
+import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import {
 	clampScore,
 	minMaxScale,
@@ -17,16 +18,9 @@ import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
 
 export type SortDirection = "ascending" | "descending";
 
-type TaskMetricColumnInput = {
-	key: string;
-	metric: string;
-	direction: SortDirection;
-	label: string;
-};
-
 type TaskMetricColumns<
 	TSource extends string,
-	TColumns extends readonly TaskMetricColumnInput[],
+	TColumns extends readonly BenchmarkTaskMetricColumnFacet[],
 > = {
 	readonly [Index in keyof TColumns]: TColumns[Index] & {
 		readonly group: "tasks";
@@ -37,7 +31,7 @@ type TaskMetricColumns<
 
 function defineTaskMetricColumns<
 	const TSource extends string,
-	const TColumns extends readonly TaskMetricColumnInput[],
+	const TColumns extends readonly BenchmarkTaskMetricColumnFacet[],
 >(source: TSource, columns: TColumns): TaskMetricColumns<TSource, TColumns> {
 	return columns.map((column) => ({
 		...column,
@@ -203,7 +197,8 @@ const scoreBenchmarkMetricColumns = benchmarkMetricColumns.filter(
 	(column) => column.format === "score",
 );
 
-export type TaskMetricColumn = (typeof taskMetricColumns)[number];
+export type TaskMetricColumn = (typeof taskMetricColumns)[number] &
+	BenchmarkTaskMetricColumnFacet;
 type ProfileMetricColumn = (typeof profileMetricColumns)[number];
 type CostMetricColumn = (typeof costMetricColumns)[number];
 type SpeedMetricColumn = (typeof speedMetricColumns)[number];
@@ -414,7 +409,9 @@ export function benchmarkDisplayValue(
 
 export function contextWindowValue(model: ModelAtlasModel) {
 	const contextWindow = model.context_window as
-		| ({ total?: number | null } & NonNullable<ModelAtlasModel["context_window"]>)
+		| ({ total?: number | null } & NonNullable<
+				ModelAtlasModel["context_window"]
+		  >)
 		| null;
 	return contextWindow?.context ?? contextWindow?.total;
 }
@@ -438,7 +435,10 @@ export function dashboardMetricValue(
 	return profileMetricValue(model, column);
 }
 
-function profileMetricValue(model: ModelAtlasModel, column: ProfileMetricColumn) {
+function profileMetricValue(
+	model: ModelAtlasModel,
+	column: ProfileMetricColumn,
+) {
 	if (column.field === "release") {
 		return model.release_date;
 	}
