@@ -13,85 +13,81 @@ const DEFAULT_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/gdp-pdf";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 type GdpPdfScraperOptions = {
-	url?: string;
-	timeoutMs?: number;
+  url?: string;
+  timeoutMs?: number;
 };
 
 export type GdpPdfModelScoreRow = {
-	provider: string | null;
-	model: string;
-	score: number;
-	last_updated?: string | null;
+  provider: string | null;
+  model: string;
+  score: number;
+  last_updated?: string | null;
 };
 
 export type GdpPdfRowsByModelName = Map<string, GdpPdfModelScoreRow>;
 
 type GdpPdfModelScorePayload = {
-	fetched_at_epoch_seconds: number | null;
-	data: GdpPdfModelScoreRow[];
+  fetched_at_epoch_seconds: number | null;
+  data: GdpPdfModelScoreRow[];
 };
 
 function modelKeyCandidates(model: string): string[] {
-	const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
-	const slashParts = withoutParenthetical
-		.split("/")
-		.map((part) => part.trim())
-		.filter((part) => part.length > 0);
-	return [model, withoutParenthetical, ...slashParts]
-		.map(normalizeModelToken)
-		.filter(
-			(key, index, keys) => key.length > 0 && keys.indexOf(key) === index,
-		);
+  const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
+  const slashParts = withoutParenthetical
+    .split("/")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  return [model, withoutParenthetical, ...slashParts]
+    .map(normalizeModelToken)
+    .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
 }
 
-export function buildGdpPdfMap(
-	rows: GdpPdfModelScoreRow[],
-): GdpPdfRowsByModelName {
-	const rowsByModelName: GdpPdfRowsByModelName = new Map();
-	for (const row of rows) {
-		for (const key of modelKeyCandidates(row.model)) {
-			rowsByModelName.set(key, row);
-		}
-	}
-	return rowsByModelName;
+export function buildGdpPdfMap(rows: GdpPdfModelScoreRow[]): GdpPdfRowsByModelName {
+  const rowsByModelName: GdpPdfRowsByModelName = new Map();
+  for (const row of rows) {
+    for (const key of modelKeyCandidates(row.model)) {
+      rowsByModelName.set(key, row);
+    }
+  }
+  return rowsByModelName;
 }
 
 export function findGdpPdfScore(
-	candidateNames: unknown[],
-	gdpPdfRowsByModelName: GdpPdfRowsByModelName,
+  candidateNames: unknown[],
+  gdpPdfRowsByModelName: GdpPdfRowsByModelName,
 ): number | null {
-	for (const candidateName of candidateNames) {
-		if (typeof candidateName !== "string" || candidateName.length === 0) {
-			continue;
-		}
-		for (const key of modelKeyCandidates(candidateName)) {
-			const row = gdpPdfRowsByModelName.get(key);
-			if (row) {
-				return row.score;
-			}
-		}
-	}
-	return null;
+  for (const candidateName of candidateNames) {
+    if (typeof candidateName !== "string" || candidateName.length === 0) {
+      continue;
+    }
+    for (const key of modelKeyCandidates(candidateName)) {
+      const row = gdpPdfRowsByModelName.get(key);
+      if (row) {
+        return row.score;
+      }
+    }
+  }
+  return null;
 }
 
 export async function getGdpPdfStats(
-	options: GdpPdfScraperOptions = {},
+  options: GdpPdfScraperOptions = {},
 ): Promise<GdpPdfModelScorePayload> {
-	try {
-		const url = options.url ?? DEFAULT_LEADERBOARD_URL;
-		const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-		const response = await fetchWithTimeout(url, {}, timeoutMs);
-		if (!response.ok) {
-			throw new Error(`GDP.pdf scrape failed: ${response.status}`);
-		}
-		return {
-			fetched_at_epoch_seconds: nowEpochSeconds(),
-			data: surgeLeaderboardScoreRows(await response.text()),
-		};
-	} catch {
-		return {
-			fetched_at_epoch_seconds: null,
-			data: [],
-		};
-	}
+  try {
+    const url = options.url ?? DEFAULT_LEADERBOARD_URL;
+    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const response = await fetchWithTimeout(url, {}, timeoutMs);
+    if (!response.ok) {
+      throw new Error(`GDP.pdf scrape failed: ${response.status}`);
+    }
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: surgeLeaderboardScoreRows(await response.text()),
+    };
+  } catch {
+    return {
+      fetched_at_epoch_seconds: null,
+      data: [],
+    };
+  }
 }

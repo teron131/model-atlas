@@ -2,11 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import {
-	jsonViewForPath,
-	setModelAtlasApiUrl,
-	wantsJsonResponse,
-} from "../proxy";
+import { jsonViewForPath, setModelAtlasApiUrl, wantsJsonResponse } from "../proxy";
 
 assert.equal(wantsJsonResponse("text/html,application/xhtml+xml"), false);
 assert.equal(wantsJsonResponse("application/json"), true);
@@ -27,7 +23,7 @@ assert.equal(apiPathForView("benchmarks"), "/api/llm-stats?view=benchmarks");
 assert.equal(apiPathForView("all"), "/api/llm-stats?view=all");
 
 function apiPathForView(view: "score" | "core" | "benchmarks" | "all"): string {
-	const url = new URL("https://example.com/");
-	setModelAtlasApiUrl(url, view);
-	return `${url.pathname}${url.search}`;
+  const url = new URL("https://example.com/");
+  setModelAtlasApiUrl(url, view);
+  return `${url.pathname}${url.search}`;
 }

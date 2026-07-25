@@ -1,17 +1,17 @@
 /** Verifies CursorBench parsing, canonical names, and source-default selection. */
 
 import {
-	buildCursorBenchMap,
-	findCursorBenchScore,
-	processCursorBenchPageHtml,
+  buildCursorBenchMap,
+  findCursorBenchScore,
+  processCursorBenchPageHtml,
 } from "../src/model-atlas/benchmarks/scrapers/cursorbench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
-	const actualJson = JSON.stringify(actual);
-	const expectedJson = JSON.stringify(expected);
-	if (actualJson !== expectedJson) {
-		throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
-	}
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  if (actualJson !== expectedJson) {
+    throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
+  }
 }
 
 const rows = processCursorBenchPageHtml(`
@@ -44,94 +44,94 @@ const rows = processCursorBenchPageHtml(`
 `);
 
 assertDeepEqual(rows, [
-	{
-		rank: 1,
-		model: "Fable 5 Max",
-		base_model: "Fable 5",
-		reasoning_effort: "Max",
-		score_eligible: true,
-		score: 0.729,
-		cost_per_task_usd: 18.02,
-		tokens_per_task: 63842,
-		steps_per_task: 76,
-	},
-	{
-		rank: 3,
-		model: "GPT-5.5 Medium",
-		base_model: "GPT-5.5",
-		reasoning_effort: "Medium",
-		score_eligible: true,
-		score: 0.592,
-		cost_per_task_usd: 2.22,
-		tokens_per_task: 9065,
-		steps_per_task: 35,
-	},
-	{
-		rank: 4,
-		model: "Gemini 3.5 Flash",
-		base_model: "Gemini 3.5 Flash",
-		reasoning_effort: null,
-		score_eligible: true,
-		score: 0.498,
-		cost_per_task_usd: 1.94,
-		tokens_per_task: 35105,
-		steps_per_task: 79,
-	},
-	{
-		rank: 5,
-		model: "Opus 4.8 High",
-		base_model: "Opus 4.8",
-		reasoning_effort: "High",
-		score_eligible: true,
-		score: 0.584,
-		cost_per_task_usd: 4.41,
-		tokens_per_task: 36788,
-		steps_per_task: 45,
-	},
-	{
-		rank: 6,
-		model: "Kimi 2.6",
-		base_model: "Kimi 2.6",
-		reasoning_effort: null,
-		score_eligible: true,
-		score: 0.476,
-		cost_per_task_usd: 1.27,
-		tokens_per_task: 24783,
-		steps_per_task: 56,
-	},
-	{
-		rank: 7,
-		model: "Claude Opus 4.8 Ultra",
-		base_model: "Claude Opus 4.8",
-		reasoning_effort: "Ultra",
-		score_eligible: true,
-		score: 0.55,
-		cost_per_task_usd: 4.8,
-		tokens_per_task: 37000,
-		steps_per_task: 46,
-	},
-	{
-		rank: 8,
-		model: "Claude Fable 5 Non Reasoning",
-		base_model: "Claude Fable 5",
-		reasoning_effort: "Non Reasoning",
-		score_eligible: true,
-		score: 0.45,
-		cost_per_task_usd: 1.8,
-		tokens_per_task: 17000,
-		steps_per_task: 40,
-	},
-	{
-		rank: 9,
-		model: "Grok 4.5 High",
-		base_model: "Grok 4.5",
-		reasoning_effort: "High",
-		score_eligible: false,
-		score: 0.667,
-		cost_per_task_usd: 1.51,
-		tokens_per_task: 19521,
-		steps_per_task: 33,
-	},
+  {
+    rank: 1,
+    model: "Fable 5 Max",
+    base_model: "Fable 5",
+    reasoning_effort: "Max",
+    score_eligible: true,
+    score: 0.729,
+    cost_per_task_usd: 18.02,
+    tokens_per_task: 63842,
+    steps_per_task: 76,
+  },
+  {
+    rank: 3,
+    model: "GPT-5.5 Medium",
+    base_model: "GPT-5.5",
+    reasoning_effort: "Medium",
+    score_eligible: true,
+    score: 0.592,
+    cost_per_task_usd: 2.22,
+    tokens_per_task: 9065,
+    steps_per_task: 35,
+  },
+  {
+    rank: 4,
+    model: "Gemini 3.5 Flash",
+    base_model: "Gemini 3.5 Flash",
+    reasoning_effort: null,
+    score_eligible: true,
+    score: 0.498,
+    cost_per_task_usd: 1.94,
+    tokens_per_task: 35105,
+    steps_per_task: 79,
+  },
+  {
+    rank: 5,
+    model: "Opus 4.8 High",
+    base_model: "Opus 4.8",
+    reasoning_effort: "High",
+    score_eligible: true,
+    score: 0.584,
+    cost_per_task_usd: 4.41,
+    tokens_per_task: 36788,
+    steps_per_task: 45,
+  },
+  {
+    rank: 6,
+    model: "Kimi 2.6",
+    base_model: "Kimi 2.6",
+    reasoning_effort: null,
+    score_eligible: true,
+    score: 0.476,
+    cost_per_task_usd: 1.27,
+    tokens_per_task: 24783,
+    steps_per_task: 56,
+  },
+  {
+    rank: 7,
+    model: "Claude Opus 4.8 Ultra",
+    base_model: "Claude Opus 4.8",
+    reasoning_effort: "Ultra",
+    score_eligible: true,
+    score: 0.55,
+    cost_per_task_usd: 4.8,
+    tokens_per_task: 37000,
+    steps_per_task: 46,
+  },
+  {
+    rank: 8,
+    model: "Claude Fable 5 Non Reasoning",
+    base_model: "Claude Fable 5",
+    reasoning_effort: "Non Reasoning",
+    score_eligible: true,
+    score: 0.45,
+    cost_per_task_usd: 1.8,
+    tokens_per_task: 17000,
+    steps_per_task: 40,
+  },
+  {
+    rank: 9,
+    model: "Grok 4.5 High",
+    base_model: "Grok 4.5",
+    reasoning_effort: "High",
+    score_eligible: false,
+    score: 0.667,
+    cost_per_task_usd: 1.51,
+    tokens_per_task: 19521,
+    steps_per_task: 33,
+  },
 ]);
 
 const compactRows = processCursorBenchPageHtml(`
@@ -142,41 +142,35 @@ const compactRows = processCursorBenchPageHtml(`
 `);
 
 assertDeepEqual(compactRows, [
-	{
-		rank: 1,
-		model: "GPT-5.5 Medium",
-		base_model: "GPT-5.5",
-		reasoning_effort: "Medium",
-		score_eligible: true,
-		score: 0.592,
-		cost_per_task_usd: 2.22,
-		tokens_per_task: 9065,
-		steps_per_task: 35,
-	},
-	{
-		rank: 2,
-		model: "Grok 4.5 Medium",
-		base_model: "Grok 4.5",
-		reasoning_effort: "Medium",
-		score_eligible: false,
-		score: 0.654,
-		cost_per_task_usd: 1.54,
-		tokens_per_task: 18914,
-		steps_per_task: 34,
-	},
+  {
+    rank: 1,
+    model: "GPT-5.5 Medium",
+    base_model: "GPT-5.5",
+    reasoning_effort: "Medium",
+    score_eligible: true,
+    score: 0.592,
+    cost_per_task_usd: 2.22,
+    tokens_per_task: 9065,
+    steps_per_task: 35,
+  },
+  {
+    rank: 2,
+    model: "Grok 4.5 Medium",
+    base_model: "Grok 4.5",
+    reasoning_effort: "Medium",
+    score_eligible: false,
+    score: 0.654,
+    cost_per_task_usd: 1.54,
+    tokens_per_task: 18914,
+    steps_per_task: 34,
+  },
 ]);
 
 const rowsByModelName = buildCursorBenchMap(rows);
 
-assertDeepEqual(
-	findCursorBenchScore(["missing", "GPT 5.5 Medium"], rowsByModelName),
-	0.592,
-);
+assertDeepEqual(findCursorBenchScore(["missing", "GPT 5.5 Medium"], rowsByModelName), 0.592);
 
-assertDeepEqual(
-	findCursorBenchScore(["Claude Opus 4.8"], rowsByModelName),
-	0.55,
-);
+assertDeepEqual(findCursorBenchScore(["Claude Opus 4.8"], rowsByModelName), 0.55);
 
 assertDeepEqual(findCursorBenchScore(["Kimi K2.6"], rowsByModelName), 0.476);
 
@@ -186,18 +180,15 @@ assertDeepEqual(findCursorBenchScore(["Grok 4.5"], rowsByModelName), null);
 
 const sourceDefaultRow = rows.find((row) => row.model === "Gemini 3.5 Flash");
 if (sourceDefaultRow == null) {
-	throw new Error("Expected the source-default Gemini fixture row");
+  throw new Error("Expected the source-default Gemini fixture row");
 }
 const sourceDefaultRowsByModelName = buildCursorBenchMap([
-	sourceDefaultRow,
-	{
-		...sourceDefaultRow,
-		model: "Gemini 3.5 Flash High",
-		reasoning_effort: "High",
-		score: 0.9,
-	},
+  sourceDefaultRow,
+  {
+    ...sourceDefaultRow,
+    model: "Gemini 3.5 Flash High",
+    reasoning_effort: "High",
+    score: 0.9,
+  },
 ]);
-assertDeepEqual(
-	findCursorBenchScore(["Gemini 3.5 Flash"], sourceDefaultRowsByModelName),
-	0.498,
-);
+assertDeepEqual(findCursorBenchScore(["Gemini 3.5 Flash"], sourceDefaultRowsByModelName), 0.498);

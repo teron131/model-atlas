@@ -3,309 +3,275 @@
 /** Interactive chart view for LLM stats payloads. */
 
 import { useMemo, useState } from "react";
+
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
 import { modelCount, toggleProviderFilter } from "../shared/model-display";
 import { FilterButton, HoverCard } from "./ChartComponents";
-import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import styles from "./graphs.module.css";
+import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { InteractionMatrix } from "./InteractionMatrix";
 import {
-	costFilterOptions,
-	filterByModelControls,
-	limitByIntelligenceScore,
-	modelLimitOptions,
+  costFilterOptions,
+  filterByModelControls,
+  limitByIntelligenceScore,
+  modelLimitOptions,
 } from "./models";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import { PriceEfficiencyPanel } from "./PriceEfficiencyPanel";
-import type {
-	CostFilter,
-	HoverState,
-	ModelLimit,
-	ProviderOption,
-} from "./types";
+import type { CostFilter, HoverState, ModelLimit, ProviderOption } from "./types";
+
+import styles from "./graphs.module.css";
 
 export function DashboardGraphs({
-	payload,
-	referenceModels,
-	hasFullPayload,
-	benchmarksLoading,
-	afterLead,
-	selectedProviders,
-	providerChoices,
-	maxCost,
-	modelLimit,
-	showReasoningVariants,
-	onShowReasoningVariantsChange,
-	onSelectedProvidersChange,
-	onMaxCostChange,
-	onModelLimitChange,
+  payload,
+  referenceModels,
+  hasFullPayload,
+  benchmarksLoading,
+  afterLead,
+  selectedProviders,
+  providerChoices,
+  maxCost,
+  modelLimit,
+  showReasoningVariants,
+  onShowReasoningVariantsChange,
+  onSelectedProvidersChange,
+  onMaxCostChange,
+  onModelLimitChange,
 }: {
-	payload: ModelAtlasPayload | null;
-	referenceModels: ModelAtlasPayload["models"];
-	hasFullPayload: boolean;
-	benchmarksLoading: boolean;
-	afterLead?: React.ReactNode;
-	selectedProviders: string[];
-	providerChoices: ProviderOption[];
-	maxCost: CostFilter;
-	modelLimit: ModelLimit;
-	showReasoningVariants: boolean;
-	onShowReasoningVariantsChange: (show: boolean) => void;
-	onSelectedProvidersChange: (providers: string[]) => void;
-	onMaxCostChange: (maxCost: CostFilter) => void;
-	onModelLimitChange: (modelLimit: ModelLimit) => void;
+  payload: ModelAtlasPayload | null;
+  referenceModels: ModelAtlasPayload["models"];
+  hasFullPayload: boolean;
+  benchmarksLoading: boolean;
+  afterLead?: React.ReactNode;
+  selectedProviders: string[];
+  providerChoices: ProviderOption[];
+  maxCost: CostFilter;
+  modelLimit: ModelLimit;
+  showReasoningVariants: boolean;
+  onShowReasoningVariantsChange: (show: boolean) => void;
+  onSelectedProvidersChange: (providers: string[]) => void;
+  onMaxCostChange: (maxCost: CostFilter) => void;
+  onModelLimitChange: (modelLimit: ModelLimit) => void;
 }) {
-	const [hover, setHover] = useState<HoverState | null>(null);
-	const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [hover, setHover] = useState<HoverState | null>(null);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
-	const allModels = useMemo(() => {
-		return (payload?.models ?? [])
-			.filter(
-				(model) =>
-					model.name != null && finite(model.scores?.intelligence_score),
-			)
-			.sort(
-				(left, right) =>
-					right.scores.intelligence_score - left.scores.intelligence_score,
-			);
-	}, [payload]);
+  const allModels = useMemo(() => {
+    return (payload?.models ?? [])
+      .filter((model) => model.name != null && finite(model.scores?.intelligence_score))
+      .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
+  }, [payload]);
 
-	const filteredModels = useMemo(() => {
-		return filterByModelControls(allModels, (model) => model, {
-			providers: selectedProviders,
-			maxCost,
-		});
-	}, [allModels, selectedProviders, maxCost]);
+  const filteredModels = useMemo(() => {
+    return filterByModelControls(allModels, (model) => model, {
+      providers: selectedProviders,
+      maxCost,
+    });
+  }, [allModels, selectedProviders, maxCost]);
 
-	const models = useMemo(() => {
-		return limitByIntelligenceScore(
-			filteredModels,
-			(model) => model,
-			modelLimit,
-		);
-	}, [filteredModels, modelLimit]);
+  const models = useMemo(() => {
+    return limitByIntelligenceScore(filteredModels, (model) => model, modelLimit);
+  }, [filteredModels, modelLimit]);
 
-	const filteredModelCount = modelCount(filteredModels);
-	const visibleModelCount = modelCount(models);
-	const visibleModelLabel = showReasoningVariants
-		? `${
-				modelLimit === "all" || filteredModelCount <= modelLimit
-					? fmtCompact(visibleModelCount)
-					: `Top ${modelLimit} of ${fmtCompact(filteredModelCount)}`
-			} models / ${fmtCompact(models.length)} variants`
-		: modelLimit === "all" || filteredModelCount <= modelLimit
-			? `${fmtCompact(visibleModelCount)} models`
-			: `Top ${modelLimit} of ${fmtCompact(filteredModelCount)} models`;
-	const selectedProviderChoices = providerChoices.filter((option) =>
-		selectedProviders.includes(option.slug),
-	);
-	const providerLabel =
-		selectedProviderChoices.length === 0
-			? "All providers"
-			: selectedProviderChoices.map((option) => option.label).join(" + ");
-	const compactProviderLabel =
-		selectedProviderChoices.length <= 1
-			? providerLabel
-			: `${selectedProviderChoices.length} providers`;
-	const costLabel = maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`;
-	const compactCostLabel =
-		maxCost === "all" ? "Any" : `<= ${fmtMoney(maxCost)}`;
-	const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
-	const filterSummary = `${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
+  const filteredModelCount = modelCount(filteredModels);
+  const visibleModelCount = modelCount(models);
+  const visibleModelLabel = showReasoningVariants
+    ? `${
+        modelLimit === "all" || filteredModelCount <= modelLimit
+          ? fmtCompact(visibleModelCount)
+          : `Top ${modelLimit} of ${fmtCompact(filteredModelCount)}`
+      } models / ${fmtCompact(models.length)} variants`
+    : modelLimit === "all" || filteredModelCount <= modelLimit
+      ? `${fmtCompact(visibleModelCount)} models`
+      : `Top ${modelLimit} of ${fmtCompact(filteredModelCount)} models`;
+  const selectedProviderChoices = providerChoices.filter((option) =>
+    selectedProviders.includes(option.slug),
+  );
+  const providerLabel =
+    selectedProviderChoices.length === 0
+      ? "All providers"
+      : selectedProviderChoices.map((option) => option.label).join(" + ");
+  const compactProviderLabel =
+    selectedProviderChoices.length <= 1
+      ? providerLabel
+      : `${selectedProviderChoices.length} providers`;
+  const costLabel = maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`;
+  const compactCostLabel = maxCost === "all" ? "Any" : `<= ${fmtMoney(maxCost)}`;
+  const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
+  const filterSummary = `${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
 
-	if (!payload || allModels.length === 0) {
-		return (
-			<section
-				className={`${styles.atlas} ${styles.dashboardGraphs}`}
-				aria-label="Model graphs"
-				data-capture-theme
-			>
-				<BenchmarkStrip
-					payload={payload}
-					models={[]}
-					isLoading={benchmarksLoading}
-				/>
-				<div className={styles.error}>
-					Unable to load the Model Atlas snapshot.
-				</div>
-				{afterLead}
-			</section>
-		);
-	}
+  if (!payload || allModels.length === 0) {
+    return (
+      <section
+        className={`${styles.atlas} ${styles.dashboardGraphs}`}
+        aria-label="Model graphs"
+        data-capture-theme
+      >
+        <BenchmarkStrip payload={payload} models={[]} isLoading={benchmarksLoading} />
+        <div className={styles.error}>Unable to load the Model Atlas snapshot.</div>
+        {afterLead}
+      </section>
+    );
+  }
 
-	return (
-		<section
-			className={`${styles.atlas} ${styles.dashboardGraphs}`}
-			aria-label="Model graphs"
-			data-capture-theme
-		>
-			<section className={styles.controls} aria-label="Global view">
-				<div className={styles.controlsBar}>
-					<button
-						type="button"
-						className={styles.filtersToggle}
-						aria-expanded={filtersExpanded}
-						onClick={() => setFiltersExpanded((current) => !current)}
-					>
-						<span>Global view</span>
-						<b>{filterSummary}</b>
-						<i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
-					</button>
-					<fieldset className={styles.variantSwitch}>
-						<legend className={styles.visuallyHidden}>
-							Reasoning variant display
-						</legend>
-						<span className={styles.variantSwitchLabel}>Variants</span>
-						<div className={styles.variantOptions}>
-							<button
-								type="button"
-								className={styles.variantOption}
-								aria-pressed={!showReasoningVariants}
-								onClick={() => onShowReasoningVariantsChange(false)}
-							>
-								Collapsed
-							</button>
-							<button
-								type="button"
-								className={styles.variantOption}
-								aria-pressed={showReasoningVariants}
-								onClick={() => onShowReasoningVariantsChange(true)}
-							>
-								Expanded
-							</button>
-						</div>
-					</fieldset>
-				</div>
-				<div className={styles.filterPanel} hidden={!filtersExpanded}>
-					<div className={styles.controlRow}>
-						<FilterSection label="Provider filter" value={providerLabel}>
-							<div className={styles.filterRow}>
-								<FilterButton
-									active={selectedProviders.length === 0}
-									color="var(--ink)"
-									label="All"
-									count={modelCount(allModels)}
-									onClick={() => onSelectedProvidersChange([])}
-								/>
-								{providerChoices.map((option) => (
-									<FilterButton
-										key={option.slug}
-										active={selectedProviders.includes(option.slug)}
-										color={option.color}
-										logo={option.logo}
-										label={option.label}
-										count={option.count}
-										onClick={() =>
-											onSelectedProvidersChange(
-												toggleProviderFilter(selectedProviders, option.slug),
-											)
-										}
-									/>
-								))}
-							</div>
-						</FilterSection>
-						<FilterSection label="Max blended cost" value={costLabel}>
-							<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-								{costFilterOptions.map((option) => (
-									<button
-										key={String(option)}
-										type="button"
-										className={styles.costFilterButton}
-										aria-pressed={maxCost === option}
-										onClick={() => onMaxCostChange(option)}
-									>
-										<span>
-											{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}
-										</span>
-									</button>
-								))}
-							</div>
-						</FilterSection>
-						<FilterSection label="Model count" value={visibleModelLabel}>
-							<div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-								{modelLimitOptions.map((option) => (
-									<button
-										key={String(option)}
-										type="button"
-										className={styles.costFilterButton}
-										aria-pressed={modelLimit === option}
-										onClick={() => onModelLimitChange(option)}
-									>
-										<span>{option === "all" ? "All" : `Top ${option}`}</span>
-									</button>
-								))}
-							</div>
-						</FilterSection>
-					</div>
-					<div className={styles.benchmarkRow}>
-						<BenchmarkStrip
-							payload={payload}
-							models={models}
-							isLoading={benchmarksLoading}
-						/>
-					</div>
-				</div>
-			</section>
-			{afterLead}
+  return (
+    <section
+      className={`${styles.atlas} ${styles.dashboardGraphs}`}
+      aria-label="Model graphs"
+      data-capture-theme
+    >
+      <section className={styles.controls} aria-label="Global view">
+        <div className={styles.controlsBar}>
+          <button
+            type="button"
+            className={styles.filtersToggle}
+            aria-expanded={filtersExpanded}
+            onClick={() => setFiltersExpanded((current) => !current)}
+          >
+            <span>Global view</span>
+            <b>{filterSummary}</b>
+            <i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
+          </button>
+          <fieldset className={styles.variantSwitch}>
+            <legend className={styles.visuallyHidden}>Reasoning variant display</legend>
+            <span className={styles.variantSwitchLabel}>Variants</span>
+            <div className={styles.variantOptions}>
+              <button
+                type="button"
+                className={styles.variantOption}
+                aria-pressed={!showReasoningVariants}
+                onClick={() => onShowReasoningVariantsChange(false)}
+              >
+                Collapsed
+              </button>
+              <button
+                type="button"
+                className={styles.variantOption}
+                aria-pressed={showReasoningVariants}
+                onClick={() => onShowReasoningVariantsChange(true)}
+              >
+                Expanded
+              </button>
+            </div>
+          </fieldset>
+        </div>
+        <div className={styles.filterPanel} hidden={!filtersExpanded}>
+          <div className={styles.controlRow}>
+            <FilterSection label="Provider filter" value={providerLabel}>
+              <div className={styles.filterRow}>
+                <FilterButton
+                  active={selectedProviders.length === 0}
+                  color="var(--ink)"
+                  label="All"
+                  count={modelCount(allModels)}
+                  onClick={() => onSelectedProvidersChange([])}
+                />
+                {providerChoices.map((option) => (
+                  <FilterButton
+                    key={option.slug}
+                    active={selectedProviders.includes(option.slug)}
+                    color={option.color}
+                    logo={option.logo}
+                    label={option.label}
+                    count={option.count}
+                    onClick={() =>
+                      onSelectedProvidersChange(
+                        toggleProviderFilter(selectedProviders, option.slug),
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </FilterSection>
+            <FilterSection label="Max blended cost" value={costLabel}>
+              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+                {costFilterOptions.map((option) => (
+                  <button
+                    key={String(option)}
+                    type="button"
+                    className={styles.costFilterButton}
+                    aria-pressed={maxCost === option}
+                    onClick={() => onMaxCostChange(option)}
+                  >
+                    <span>{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}</span>
+                  </button>
+                ))}
+              </div>
+            </FilterSection>
+            <FilterSection label="Model count" value={visibleModelLabel}>
+              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+                {modelLimitOptions.map((option) => (
+                  <button
+                    key={String(option)}
+                    type="button"
+                    className={styles.costFilterButton}
+                    aria-pressed={modelLimit === option}
+                    onClick={() => onModelLimitChange(option)}
+                  >
+                    <span>{option === "all" ? "All" : `Top ${option}`}</span>
+                  </button>
+                ))}
+              </div>
+            </FilterSection>
+          </div>
+          <div className={styles.benchmarkRow}>
+            <BenchmarkStrip payload={payload} models={models} isLoading={benchmarksLoading} />
+          </div>
+        </div>
+      </section>
+      {afterLead}
 
-			{models.length === 0 ? (
-				<div className={styles.error}>
-					No models match the current provider and cost filters.
-				</div>
-			) : (
-				<>
-					<section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
-						<ParetoFrontierPanel models={models} setHover={setHover} />
-						<PriceEfficiencyPanel
-							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
-							showVariants={showReasoningVariants}
-							maxCost={maxCost}
-							onShowVariantsChange={onShowReasoningVariantsChange}
-							selectedProviders={selectedProviders}
-							onSelectedProvidersChange={onSelectedProvidersChange}
-							referenceModels={referenceModels}
-							setHover={setHover}
-						/>
-					</section>
-					<section className={styles.sectionGrid}>
-						<FrontierBenchmarksPanel
-							payload={payload}
-							models={models}
-							setHover={setHover}
-						/>
-						<InteractionMatrix
-							models={models}
-							benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
-							hasFullPayload={hasFullPayload}
-							setHover={setHover}
-						/>
-					</section>
-				</>
-			)}
+      {models.length === 0 ? (
+        <div className={styles.error}>No models match the current provider and cost filters.</div>
+      ) : (
+        <>
+          <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
+            <ParetoFrontierPanel models={models} setHover={setHover} />
+            <PriceEfficiencyPanel
+              benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
+              showVariants={showReasoningVariants}
+              maxCost={maxCost}
+              onShowVariantsChange={onShowReasoningVariantsChange}
+              selectedProviders={selectedProviders}
+              onSelectedProvidersChange={onSelectedProvidersChange}
+              referenceModels={referenceModels}
+              setHover={setHover}
+            />
+          </section>
+          <section className={styles.sectionGrid}>
+            <FrontierBenchmarksPanel payload={payload} models={models} setHover={setHover} />
+            <InteractionMatrix
+              models={models}
+              benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
+              hasFullPayload={hasFullPayload}
+              setHover={setHover}
+            />
+          </section>
+        </>
+      )}
 
-			{hover ? <HoverCard hover={hover} /> : null}
-		</section>
-	);
+      {hover ? <HoverCard hover={hover} /> : null}
+    </section>
+  );
 }
 
 function FilterSection({
-	label,
-	value,
-	children,
+  label,
+  value,
+  children,
 }: {
-	label: string;
-	value: string;
-	children: React.ReactNode;
+  label: string;
+  value: string;
+  children: React.ReactNode;
 }) {
-	return (
-		<div className={styles.controlGroup}>
-			<div className={styles.controlLabel}>
-				<span>{label}</span>
-				<b>{value}</b>
-			</div>
-			{children}
-		</div>
-	);
+  return (
+    <div className={styles.controlGroup}>
+      <div className={styles.controlLabel}>
+        <span>{label}</span>
+        <b>{value}</b>
+      </div>
+      {children}
+    </div>
+  );
 }

@@ -1,17 +1,17 @@
 /** Verifies Surge GDP.pdf row parsing, lookup, and model matching. */
 
 import {
-	buildGdpPdfMap,
-	findGdpPdfScore,
+  buildGdpPdfMap,
+  findGdpPdfScore,
 } from "../src/model-atlas/benchmarks/scrapers/surge/gdp-pdf";
 import { surgeLeaderboardScoreRows } from "../src/model-atlas/benchmarks/scrapers/surge/results";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
-	const actualJson = JSON.stringify(actual);
-	const expectedJson = JSON.stringify(expected);
-	if (actualJson !== expectedJson) {
-		throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
-	}
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  if (actualJson !== expectedJson) {
+    throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
+  }
 }
 
 const rows = surgeLeaderboardScoreRows(`
@@ -48,24 +48,24 @@ const rows = surgeLeaderboardScoreRows(`
 `);
 
 assertDeepEqual(rows, [
-	{
-		provider: "Anthropic",
-		model: "Claude Fable 5 / Mythos 5",
-		score: 0.3,
-		last_updated: "06/06/2026",
-	},
-	{
-		provider: "OpenAI",
-		model: "GPT-5.5 (xHigh reasoning)",
-		score: 0.25,
-		last_updated: "06/06/2026",
-	},
-	{
-		provider: "Google",
-		model: "Gemini 3 Pro",
-		score: 0.22,
-		last_updated: "06/06/2026",
-	},
+  {
+    provider: "Anthropic",
+    model: "Claude Fable 5 / Mythos 5",
+    score: 0.3,
+    last_updated: "06/06/2026",
+  },
+  {
+    provider: "OpenAI",
+    model: "GPT-5.5 (xHigh reasoning)",
+    score: 0.25,
+    last_updated: "06/06/2026",
+  },
+  {
+    provider: "Google",
+    model: "Gemini 3 Pro",
+    score: 0.22,
+    last_updated: "06/06/2026",
+  },
 ]);
 
 const rowsWithoutRankingHeading = surgeLeaderboardScoreRows(`
@@ -81,12 +81,12 @@ const rowsWithoutRankingHeading = surgeLeaderboardScoreRows(`
 `);
 
 assertDeepEqual(rowsWithoutRankingHeading, [
-	{
-		provider: "Google",
-		model: "Gemini 3 Pro",
-		score: 0.22,
-		last_updated: "06/06/2026",
-	},
+  {
+    provider: "Google",
+    model: "Gemini 3 Pro",
+    score: 0.22,
+    last_updated: "06/06/2026",
+  },
 ]);
 
 const rowsByModelName = buildGdpPdfMap(rows);

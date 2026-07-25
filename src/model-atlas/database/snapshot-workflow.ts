@@ -1,158 +1,141 @@
 /** Storage-independent snapshot workflow derives model rows and writes normalized table rows through a minimal writer interface. */
 
 import { STAGE_CONFIG } from "../config";
-import {
-	buildDebugTraceRows,
-	insertDebugTraceRows,
-} from "../ingest/debug-trace";
-import {
-	SNAPSHOT_TABLES,
-	type SnapshotTableName,
-} from "../ingest/source-registry";
+import { buildDebugTraceRows, insertDebugTraceRows } from "../ingest/debug-trace";
+import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/source-registry";
 import { buildSourceHealth } from "../ingest/source-snapshots/policy";
 import { cachedSourceDataFromSnapshots } from "../ingest/source-snapshots/source-data";
-import type {
-	DatabaseBuildResult,
-	DebugTraceRow,
-	SourceSnapshots,
-} from "../ingest/types";
+import type { DatabaseBuildResult, DebugTraceRow, SourceSnapshots } from "../ingest/types";
 import {
-	BENCHMARK_RAW_WRITERS,
-	insertArtificialAnalysisBenchmarkResourceRawRows,
-	insertArtificialAnalysisRawModels,
-	insertModelBenchmarks,
-	insertModels,
-	insertModelsDevRawModels,
-	insertModelTaskMetrics,
-	insertOpenRouterRawRows,
-	insertSourceHealth,
-	insertSourceQuarantines,
+  BENCHMARK_RAW_WRITERS,
+  insertArtificialAnalysisBenchmarkResourceRawRows,
+  insertArtificialAnalysisRawModels,
+  insertModelBenchmarks,
+  insertModels,
+  insertModelsDevRawModels,
+  insertModelTaskMetrics,
+  insertOpenRouterRawRows,
+  insertSourceHealth,
+  insertSourceQuarantines,
 } from "../ingest/writers";
 import type { DatabaseWriter } from "../ingest/writers/database";
 import { deriveModelStats } from "../pipeline/derivation";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 
 export type DatabaseSnapshotRows = {
-	snapshots: SourceSnapshots;
-	openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
-	finalModelRows: readonly unknown[];
-	debugTraceRows: readonly DebugTraceRow[];
-	sourceHealth: DatabaseBuildResult["source_health"];
+  snapshots: SourceSnapshots;
+  openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
+  finalModelRows: readonly unknown[];
+  debugTraceRows: readonly DebugTraceRow[];
+  sourceHealth: DatabaseBuildResult["source_health"];
 };
 
 type OpenRouterLoader = (modelIds: string[]) => Promise<{
-	rawPayload: OpenRouterRawScrapedPayload | null;
-	cacheStatus: DatabaseBuildResult["source_cache"]["openrouter"];
+  rawPayload: OpenRouterRawScrapedPayload | null;
+  cacheStatus: DatabaseBuildResult["source_cache"]["openrouter"];
 }>;
 
 type DerivedDatabaseSnapshot = {
-	rows: DatabaseSnapshotRows;
-	sourceCache: DatabaseBuildResult["source_cache"];
+  rows: DatabaseSnapshotRows;
+  sourceCache: DatabaseBuildResult["source_cache"];
 };
 
 type SnapshotWriter = {
-	table: SnapshotTableName;
-	write: (db: DatabaseWriter, rows: DatabaseSnapshotRows) => void;
+  table: SnapshotTableName;
+  write: (db: DatabaseWriter, rows: DatabaseSnapshotRows) => void;
 };
 
 const SNAPSHOT_WRITERS = [
-	{
-		table: SNAPSHOT_TABLES.artificial_analysis,
-		write: (db, rows) => insertArtificialAnalysisRawModels(db, rows.snapshots),
-	},
-	{
-		table: SNAPSHOT_TABLES.artificial_analysis_benchmark_resources,
-		write: (db, rows) =>
-			insertArtificialAnalysisBenchmarkResourceRawRows(db, rows.snapshots),
-	},
-	{
-		table: SNAPSHOT_TABLES.models_dev,
-		write: (db, rows) => insertModelsDevRawModels(db, rows.snapshots),
-	},
-	{
-		table: SNAPSHOT_TABLES.openrouter,
-		write: (db, rows) => insertOpenRouterRawRows(db, rows.openRouterRawPayload),
-	},
-	...BENCHMARK_RAW_WRITERS.map(({ table, write }) => ({
-		table,
-		write: (db: DatabaseWriter, rows: DatabaseSnapshotRows) =>
-			write(db, rows.snapshots),
-	})),
-	{
-		table: SNAPSHOT_TABLES.source_quarantines,
-		write: (db, rows) => insertSourceQuarantines(db, rows.snapshots),
-	},
-	{
-		table: SNAPSHOT_TABLES.source_health,
-		write: (db, rows) => insertSourceHealth(db, rows.sourceHealth),
-	},
-	{
-		table: SNAPSHOT_TABLES.models,
-		write: (db, rows) => insertModels(db, rows.finalModelRows),
-	},
-	{
-		table: SNAPSHOT_TABLES.model_benchmarks,
-		write: (db, rows) => insertModelBenchmarks(db, rows.finalModelRows),
-	},
-	{
-		table: SNAPSHOT_TABLES.model_task_metrics,
-		write: (db, rows) => insertModelTaskMetrics(db, rows.finalModelRows),
-	},
-	{
-		table: SNAPSHOT_TABLES.model_match_debug,
-		write: (db, rows) => insertDebugTraceRows(db, rows.debugTraceRows),
-	},
+  {
+    table: SNAPSHOT_TABLES.artificial_analysis,
+    write: (db, rows) => insertArtificialAnalysisRawModels(db, rows.snapshots),
+  },
+  {
+    table: SNAPSHOT_TABLES.artificial_analysis_benchmark_resources,
+    write: (db, rows) => insertArtificialAnalysisBenchmarkResourceRawRows(db, rows.snapshots),
+  },
+  {
+    table: SNAPSHOT_TABLES.models_dev,
+    write: (db, rows) => insertModelsDevRawModels(db, rows.snapshots),
+  },
+  {
+    table: SNAPSHOT_TABLES.openrouter,
+    write: (db, rows) => insertOpenRouterRawRows(db, rows.openRouterRawPayload),
+  },
+  ...BENCHMARK_RAW_WRITERS.map(({ table, write }) => ({
+    table,
+    write: (db: DatabaseWriter, rows: DatabaseSnapshotRows) => write(db, rows.snapshots),
+  })),
+  {
+    table: SNAPSHOT_TABLES.source_quarantines,
+    write: (db, rows) => insertSourceQuarantines(db, rows.snapshots),
+  },
+  {
+    table: SNAPSHOT_TABLES.source_health,
+    write: (db, rows) => insertSourceHealth(db, rows.sourceHealth),
+  },
+  {
+    table: SNAPSHOT_TABLES.models,
+    write: (db, rows) => insertModels(db, rows.finalModelRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_benchmarks,
+    write: (db, rows) => insertModelBenchmarks(db, rows.finalModelRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_task_metrics,
+    write: (db, rows) => insertModelTaskMetrics(db, rows.finalModelRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_match_debug,
+    write: (db, rows) => insertDebugTraceRows(db, rows.debugTraceRows),
+  },
 ] satisfies readonly SnapshotWriter[];
 
-export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_WRITERS.map(
-	({ table }) => table,
-);
+export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_WRITERS.map(({ table }) => table);
 
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
-	startedAtEpochSeconds: number,
-	snapshots: SourceSnapshots,
-	sourceCache: DatabaseBuildResult["source_cache"],
-	loadOpenRouter: OpenRouterLoader,
+  startedAtEpochSeconds: number,
+  snapshots: SourceSnapshots,
+  sourceCache: DatabaseBuildResult["source_cache"],
+  loadOpenRouter: OpenRouterLoader,
 ): Promise<DerivedDatabaseSnapshot> {
-	const sourceData = cachedSourceDataFromSnapshots(snapshots);
-	const {
-		matchDiagnostics,
-		models: finalModelRows,
-		openRouterLoad,
-	} = await deriveModelStats(sourceData, { loadOpenRouter });
-	const debugTraceRows = buildDebugTraceRows(
-		snapshots,
-		openRouterLoad.rawPayload,
-		matchDiagnostics,
-		STAGE_CONFIG.matcher,
-	);
-	const finalSourceCache = {
-		...sourceCache,
-		openrouter: openRouterLoad.cacheStatus,
-	};
-	return {
-		rows: {
-			snapshots,
-			openRouterRawPayload: openRouterLoad.rawPayload,
-			finalModelRows,
-			debugTraceRows,
-			sourceHealth: buildSourceHealth({
-				generatedAtEpochSeconds: startedAtEpochSeconds,
-				sourceCache: finalSourceCache,
-				sourceRowStates: snapshots.sourceRowStates,
-			}),
-		},
-		sourceCache: finalSourceCache,
-	};
+  const sourceData = cachedSourceDataFromSnapshots(snapshots);
+  const {
+    matchDiagnostics,
+    models: finalModelRows,
+    openRouterLoad,
+  } = await deriveModelStats(sourceData, { loadOpenRouter });
+  const debugTraceRows = buildDebugTraceRows(
+    snapshots,
+    openRouterLoad.rawPayload,
+    matchDiagnostics,
+    STAGE_CONFIG.matcher,
+  );
+  const finalSourceCache = {
+    ...sourceCache,
+    openrouter: openRouterLoad.cacheStatus,
+  };
+  return {
+    rows: {
+      snapshots,
+      openRouterRawPayload: openRouterLoad.rawPayload,
+      finalModelRows,
+      debugTraceRows,
+      sourceHealth: buildSourceHealth({
+        generatedAtEpochSeconds: startedAtEpochSeconds,
+        sourceCache: finalSourceCache,
+        sourceRowStates: snapshots.sourceRowStates,
+      }),
+    },
+    sourceCache: finalSourceCache,
+  };
 }
 
 /** Writes one derived snapshot through either SQLite statements or a direct-publication collector. */
-export function writeDatabaseSnapshotRows(
-	db: DatabaseWriter,
-	rows: DatabaseSnapshotRows,
-): void {
-	for (const { write } of SNAPSHOT_WRITERS) {
-		write(db, rows);
-	}
+export function writeDatabaseSnapshotRows(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
+  for (const { write } of SNAPSHOT_WRITERS) {
+    write(db, rows);
+  }
 }
