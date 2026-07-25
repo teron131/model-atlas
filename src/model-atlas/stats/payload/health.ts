@@ -19,9 +19,9 @@ import type {
 	ModelAtlasBenchmarks,
 	ModelAtlasBenchmarkUpdateEntry,
 	ModelAtlasBenchmarkUpdateHealth,
+	ModelAtlasCandidateScores,
 	ModelAtlasIntelligence,
 	ModelAtlasModel,
-	ModelAtlasNullableScores,
 } from "../types";
 
 const BENCHMARK_TOP_LIMIT = 5;
@@ -30,7 +30,7 @@ type BenchmarkHealthModel = Pick<
 	ModelAtlasModel,
 	"id" | "name" | "benchmarks" | "intelligence"
 > & {
-	scores?: ModelAtlasNullableScores | null;
+	scores?: ModelAtlasCandidateScores | null;
 };
 
 type RankedModel = {

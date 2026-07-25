@@ -10,8 +10,8 @@ import {
 } from "../../identity/openrouter";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
+	ModelAtlasCandidateComponentScores,
 	ModelAtlasModel,
-	ModelAtlasNullableComponentScores,
 	ModelAtlasScoredCandidate,
 } from "../model-types";
 
@@ -75,7 +75,7 @@ function sortByIntelligenceScore(models: ModelAtlasModel[]): ModelAtlasModel[] {
 export function hasRequiredQualityScores(
 	model: ModelAtlasScoredCandidate,
 ): model is ModelAtlasScoredCandidate & ModelAtlasModel {
-	const componentScores: ModelAtlasNullableComponentScores | null =
+	const componentScores: ModelAtlasCandidateComponentScores | null =
 		model.component_scores;
 	if (componentScores == null) {
 		return false;

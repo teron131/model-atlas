@@ -43,7 +43,7 @@ import {
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type {
 	BenchmarkPortfolio,
-	ModelAtlasModelCandidate,
+	ModelAtlasCandidate,
 } from "../src/model-atlas/stats/types";
 
 function assertEqual(actual: unknown, expected: unknown): void {
@@ -1724,7 +1724,7 @@ function modelCandidate(options: {
 	gdpvalCost?: number | null;
 	gdpvalSeconds?: number | null;
 	disableBaseCost?: boolean;
-}): ModelAtlasModelCandidate {
+}): ModelAtlasCandidate {
 	const gdpvalTask =
 		options.gdpvalCost == null && options.gdpvalSeconds == null
 			? null
@@ -1793,7 +1793,7 @@ function resourceModel(
 	modelKey: string,
 	resourceScale: number,
 	reasoningEffort: string | null = null,
-): ModelAtlasModelCandidate {
+): ModelAtlasCandidate {
 	return {
 		...modelCandidate({
 			id: `test/resource-model-${modelKey}`,

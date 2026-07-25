@@ -12,7 +12,7 @@ import {
 	weightedMeanOfFinite,
 } from "../../numeric";
 import { asFiniteNumber } from "../../runtime";
-import type { ModelAtlasModelCandidate, ModelAtlasSpeed } from "../model-types";
+import type { ModelAtlasCandidate, ModelAtlasSpeed } from "../model-types";
 
 const DEFAULT_INPUT_TOKEN_SECONDS = 0.0001;
 
@@ -57,7 +57,7 @@ function profileSeconds(
 }
 
 function profileCost(
-	model: ModelAtlasModelCandidate,
+	model: ModelAtlasCandidate,
 	profile: SimulationProfile,
 	useCache: boolean,
 ): number | null {
@@ -95,7 +95,7 @@ function profileCost(
 }
 
 function profileQualityMultiplier(
-	model: ModelAtlasModelCandidate,
+	model: ModelAtlasCandidate,
 	profile: SimulationProfile,
 ): number | null {
 	const intelligenceScore = asFiniteNumber(
@@ -159,7 +159,7 @@ export function simulatedBlendSeconds(
 }
 
 export function workflowPriceEfficiencySignal(
-	model: ModelAtlasModelCandidate,
+	model: ModelAtlasCandidate,
 	scoringConfig: ScoringConfig,
 ): number | null {
 	return weightedProfileMean(
