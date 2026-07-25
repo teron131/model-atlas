@@ -8,8 +8,8 @@ import type {
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber } from "../../runtime";
 import type {
+	ModelAtlasCandidate,
 	ModelAtlasModel,
-	ModelAtlasModelCandidate,
 	ModelAtlasScoredCandidate,
 } from "../model-types";
 import type { OpenRouterModelData } from "../openrouter-data";
@@ -28,7 +28,7 @@ const PUBLIC_COMPONENT_SCORE_KEYS = [
 ] as const;
 
 type BasicSpecCandidate = Pick<
-	ModelAtlasModelCandidate,
+	ModelAtlasCandidate,
 	| "id"
 	| "name"
 	| "release_date"
@@ -106,7 +106,7 @@ function buildCandidates(
 	openRouterData: OpenRouterModelData,
 	scoringConfig: ScoringConfig,
 	scoringPreparation: ReturnType<typeof prepareBenchmarkScoring>,
-): ModelAtlasModelCandidate[] {
+): ModelAtlasCandidate[] {
 	return openRouterData.modelRows.map((row) =>
 		buildModelCandidate(
 			row,

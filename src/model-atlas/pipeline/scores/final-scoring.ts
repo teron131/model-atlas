@@ -10,7 +10,7 @@ import {
 	weightedMeanOfFinite,
 } from "../../numeric";
 import type {
-	ModelAtlasModelCandidate,
+	ModelAtlasCandidate,
 	ModelAtlasScoredCandidate,
 } from "../model-types";
 import { coverageConfidence, logInputMinMaxScores } from "./normalization";
@@ -53,7 +53,7 @@ function meanSignal(
 }
 
 function blendCost(
-	model: ModelAtlasModelCandidate,
+	model: ModelAtlasCandidate,
 	scoringConfig: ScoringConfig,
 ): number | null {
 	return (
@@ -63,13 +63,13 @@ function blendCost(
 }
 
 type TaskResourceAmount = (
-	model: ModelAtlasModelCandidate,
+	model: ModelAtlasCandidate,
 	key: string,
 	scoringConfig: ScoringConfig,
 ) => number | null;
 
 function activeResourceBenchmarks(
-	models: ModelAtlasModelCandidate[],
+	models: ModelAtlasCandidate[],
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
 ): Array<{
@@ -92,7 +92,7 @@ function activeResourceBenchmarks(
 }
 
 function resourceEfficiencyEvidence(
-	models: ModelAtlasModelCandidate[],
+	models: ModelAtlasCandidate[],
 	scoringConfig: ScoringConfig,
 	resourceAmountFor: TaskResourceAmount,
 ): ResourceEfficiencyEvidence {
@@ -144,7 +144,7 @@ function equalWeightedScore(
 }
 
 export function attachFinalScores(
-	models: ModelAtlasModelCandidate[],
+	models: ModelAtlasCandidate[],
 	scoringConfig: ScoringConfig,
 ): ModelAtlasScoredCandidate[] {
 	const intelligenceScores = models.map(

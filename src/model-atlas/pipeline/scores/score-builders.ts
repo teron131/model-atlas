@@ -10,8 +10,8 @@ import {
 } from "../../numeric";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
+	ModelAtlasCandidateComponentScores,
 	ModelAtlasConfidence,
-	ModelAtlasNullableComponentScores,
 	ModelAtlasSpeed,
 } from "../model-types";
 import {
@@ -33,7 +33,7 @@ type QualityScoreResult = {
 };
 
 type ComponentScoreResult = {
-	componentScores: ModelAtlasNullableComponentScores | null;
+	componentScores: ModelAtlasCandidateComponentScores | null;
 	confidence: ModelAtlasConfidence;
 };
 

@@ -95,7 +95,7 @@ export type ModelAtlasBenchmarks = ModelAtlasBenchmarkValues &
 		mmmu_pro?: NumberOrNull;
 	};
 
-type ModelAtlasScoringSourceRow =
+type ScoringSourceRow =
 	| JsonObject
 	| ArtificialAnalysisBenchmarkResourceRow
 	| AgentArenaModelScoreRow
@@ -111,7 +111,7 @@ type ModelAtlasScoringSourceRow =
 	| VendingBench2ModelScoreRow;
 
 export type ModelAtlasScoringSources =
-	| (Record<string, ModelAtlasScoringSourceRow | null | undefined> & {
+	| (Record<string, ScoringSourceRow | null | undefined> & {
 			agent_arena?: AgentArenaModelScoreRow | null;
 			agents_last_exam?: AgentsLastExamModelScoreRow | null;
 			apex_agents_mercor?: MercorApexAgentsRow | null;
@@ -126,7 +126,7 @@ export type ModelAtlasScoringSources =
 	  })
 	| null;
 
-export type ModelAtlasNullableComponentScores = {
+export type ModelAtlasCandidateComponentScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
@@ -143,7 +143,7 @@ export type ModelAtlasConfidence = {
 	agentic: NumberOrNull;
 };
 
-export type ModelAtlasNullableScores = {
+export type ModelAtlasCandidateScores = {
 	intelligence_score: NumberOrNull;
 	agentic_score: NumberOrNull;
 	speed_score: NumberOrNull;
@@ -157,7 +157,7 @@ export type ModelAtlasScores = {
 	value_score: NumberOrNull;
 };
 
-type ModelAtlasModelFields = {
+type ModelFields = {
 	id: string | null;
 	name: string | null;
 	provider: string | null;
@@ -176,19 +176,19 @@ type ModelAtlasModelFields = {
 	confidence: ModelAtlasConfidence;
 };
 
-export type ModelAtlasModelCandidate = ModelAtlasModelFields & {
+export type ModelAtlasCandidate = ModelFields & {
 	scoring_sources?: ModelAtlasScoringSources;
-	component_scores: ModelAtlasNullableComponentScores | null;
+	component_scores: ModelAtlasCandidateComponentScores | null;
 	scores: null;
 };
 
-export type ModelAtlasScoredCandidate = ModelAtlasModelFields & {
+export type ModelAtlasScoredCandidate = ModelFields & {
 	scoring_sources?: ModelAtlasScoringSources;
-	component_scores: ModelAtlasNullableComponentScores | null;
-	scores: ModelAtlasNullableScores;
+	component_scores: ModelAtlasCandidateComponentScores | null;
+	scores: ModelAtlasCandidateScores;
 };
 
-export type ModelAtlasModel = ModelAtlasModelFields & {
+export type ModelAtlasModel = ModelFields & {
 	component_scores: ModelAtlasComponentScores;
 	scores: ModelAtlasScores;
 };

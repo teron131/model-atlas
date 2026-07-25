@@ -9,12 +9,12 @@ import {
 import { resolveModelLogo } from "../../logos/resolve";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
+	ModelAtlasCandidate,
 	ModelAtlasContextWindow,
 	ModelAtlasCost,
 	ModelAtlasCostBreakdown,
 	ModelAtlasCostTier,
 	ModelAtlasModalities,
-	ModelAtlasModelCandidate,
 	ModelAtlasScoringSources,
 	ModelAtlasSpeed,
 	ModelAtlasTaskMetrics,
@@ -28,16 +28,10 @@ import {
 	type QualityScoringContext,
 } from "../scores";
 
-type TaskMetricValues = ModelAtlasTaskMetricValues;
-type TaskMetricKey = keyof TaskMetricValues;
-
 const EMPTY_OPENROUTER_PRICING = {
 	weighted_input: null,
 	weighted_output: null,
 } as const;
-const INTELLIGENCE_COST_TOTAL_COST_KEY = "intelligence_index_cost_total_cost";
-const INTELLIGENCE_COST_TOTAL_TOKENS_KEY =
-	"intelligence_index_cost_total_tokens";
 const TASK_METRIC_FIELDS = {
 	cost: {
 		direct: ["cost_per_task_usd", "cost_per_task"],
@@ -75,7 +69,7 @@ const TASK_METRIC_FIELDS = {
 		],
 	},
 } as const satisfies Record<
-	TaskMetricKey,
+	keyof ModelAtlasTaskMetricValues,
 	{
 		direct: readonly string[];
 		summaries: readonly string[];
@@ -353,15 +347,17 @@ function minimumFiniteNumber(
 }
 
 /** Extract common per-task telemetry field shapes from any benchmark source row. */
-function buildSourceMetrics(source: unknown): TaskMetricValues | null {
+function buildSourceMetrics(
+	source: unknown,
+): ModelAtlasTaskMetricValues | null {
 	const row = asRecord(source);
-	const taskMetrics: TaskMetricValues = {};
+	const taskMetrics: ModelAtlasTaskMetricValues = {};
 	for (const [key, fields] of Object.entries(TASK_METRIC_FIELDS)) {
 		const value =
 			firstFiniteNumber(row, fields.direct) ??
 			minimumFiniteNumber(row, fields.summaries);
 		if (value != null && value >= 0) {
-			taskMetrics[key as TaskMetricKey] = value;
+			taskMetrics[key as keyof ModelAtlasTaskMetricValues] = value;
 		}
 	}
 	return hasFields(taskMetrics) ? taskMetrics : null;
@@ -376,7 +372,7 @@ export function buildModelCandidate(
 	imputationByModel: BenchmarkImputationByModel,
 	imputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
 	qualityContext: QualityScoringContext,
-): ModelAtlasModelCandidate {
+): ModelAtlasCandidate {
 	const model = asRecord(row);
 	const provider = providerFromModel(model);
 	const modelId = typeof model.id === "string" ? model.id : null;
@@ -386,9 +382,6 @@ export function buildModelCandidate(
 		EMPTY_OPENROUTER_PRICING;
 	const cost = buildCost(model, pricing, scoringConfig);
 	const scoringSources = buildScoringSources(model);
-	const intelligence = { ...asRecord(model.intelligence) };
-	delete intelligence[INTELLIGENCE_COST_TOTAL_COST_KEY];
-	delete intelligence[INTELLIGENCE_COST_TOTAL_TOKENS_KEY];
 	const { componentScores, confidence } = buildComponentScoreResult(
 		model,
 		speed,
@@ -416,7 +409,7 @@ export function buildModelCandidate(
 		cost,
 		context_window: buildContextWindow(model),
 		speed,
-		intelligence: buildNumericMap(intelligence),
+		intelligence: buildNumericMap(model.intelligence),
 		task_metrics: buildTaskMetrics(
 			model.intelligence_index_cost,
 			scoringSources,
