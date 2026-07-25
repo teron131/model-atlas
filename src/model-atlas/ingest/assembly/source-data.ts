@@ -47,6 +47,11 @@ import {
   type DeepSWERowsByModelName,
   summarizeDeepSWESourceDefaultRows,
 } from "../../benchmarks/scrapers/deep-swe";
+import {
+  buildFrontierBenchMap,
+  type FrontierBenchModelAgentRow,
+  type FrontierBenchRowsByModelName,
+} from "../../benchmarks/scrapers/frontier-bench";
 import type {
   FrontierCodeModelEffortRow,
   FrontierCodeRowsByModelName,
@@ -70,11 +75,6 @@ import {
   type ValsIndexModelScoreRow,
   type ValsIndexRowsByModelName,
 } from "../../benchmarks/scrapers/vals/index-benchmark";
-import {
-  buildTerminalBenchMap,
-  type TerminalBenchModelHarnessRow,
-  type TerminalBenchRowsByModelName,
-} from "../../benchmarks/scrapers/vals/terminal-bench";
 import type {
   VendingBench2ModelScoreRow,
   VendingBench2RowsByModelName,
@@ -134,11 +134,11 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     sourceDefaultRows: DeepSWEModelScoreRow[];
     rowsByModelName: DeepSWERowsByModelName;
   };
+  frontierBench: IndexedSourceRows<FrontierBenchModelAgentRow, FrontierBenchRowsByModelName>;
   frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
   harveyLab: IndexedSourceRows<HarveyLabModelScoreRow, HarveyLabRowsByModelName>;
   mercorApexAgents: IndexedSourceRows<MercorApexAgentsRow, MercorApexAgentsRowsByModelName>;
   riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
-  terminalBench: IndexedSourceRows<TerminalBenchModelHarnessRow, TerminalBenchRowsByModelName>;
   valsIndex: IndexedSourceRows<ValsIndexModelScoreRow, ValsIndexRowsByModelName>;
   vendingBench2: IndexedSourceRows<VendingBench2ModelScoreRow, VendingBench2RowsByModelName>;
 };
@@ -157,11 +157,11 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
   cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
   deepSWEEffortRows: DeepSWELeaderboardRow[];
+  frontierBenchRows: ModelAtlasSourceData["frontierBench"]["rows"];
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
   harveyLabRows: ModelAtlasSourceData["harveyLab"]["rows"];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
-  terminalBenchRows: ModelAtlasSourceData["terminalBench"]["rows"];
   valsIndexRows: ModelAtlasSourceData["valsIndex"]["rows"];
   vendingBench2Rows: ModelAtlasSourceData["vendingBench2"]["rows"];
 };
@@ -251,6 +251,10 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       sourceDefaultRows: deepSweSourceDefaultRows,
       rowsByModelName: buildDeepSWEMap(deepSweSourceDefaultRows),
     },
+    frontierBench: {
+      rows: rows.frontierBenchRows,
+      rowsByModelName: buildFrontierBenchMap(rows.frontierBenchRows),
+    },
     frontierCode: {
       rows: rows.frontierCodeRows,
       rowsByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
@@ -266,10 +270,6 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
     riemannBench: {
       rows: rows.riemannBenchRows,
       rowsByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
-    },
-    terminalBench: {
-      rows: rows.terminalBenchRows,
-      rowsByModelName: buildTerminalBenchMap(rows.terminalBenchRows),
     },
     valsIndex: {
       rows: rows.valsIndexRows,

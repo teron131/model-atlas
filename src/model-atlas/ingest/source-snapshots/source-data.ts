@@ -34,10 +34,6 @@ const VALS_SOURCE_ROW_PROJECTIONS = {
     "harveyLabRows",
     (snapshots) => snapshots.harveyLabModelScoreRows,
   ),
-  vals_terminal_bench: sourceRowProjection(
-    "terminalBenchRows",
-    (snapshots) => snapshots.terminalBenchModelScoreRows,
-  ),
   vals_index: sourceRowProjection(
     "valsIndexRows",
     (snapshots) => snapshots.valsIndexModelScoreRows,
@@ -67,6 +63,10 @@ const SPARSE_SOURCE_ROW_PROJECTIONS = {
   ),
   deep_swe: sourceRowProjection("deepSWEEffortRows", (snapshots) =>
     preferredDeepSWELeaderboardRows(snapshots.deepSWERawRows),
+  ),
+  frontier_bench: sourceRowProjection(
+    "frontierBenchRows",
+    (snapshots) => snapshots.frontierBenchRows,
   ),
   frontier_code: sourceRowProjection("frontierCodeRows", (snapshots) => snapshots.frontierCodeRows),
   mercor_apex_agents: sourceRowProjection(

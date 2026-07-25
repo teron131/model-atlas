@@ -12,6 +12,7 @@ import type { ArtificialAnalysisBenchmarkResourceRow } from "../benchmarks/scrap
 import type { BlueprintBenchModelScoreRow } from "../benchmarks/scrapers/blueprint-bench";
 import type { CursorBenchModelScoreRow } from "../benchmarks/scrapers/cursorbench";
 import type { DeepSWERawLeaderboardRow } from "../benchmarks/scrapers/deep-swe";
+import type { FrontierBenchModelAgentRow } from "../benchmarks/scrapers/frontier-bench";
 import type { FrontierCodeModelEffortRow } from "../benchmarks/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../benchmarks/scrapers/mercor-apex-agents";
 import type { RiemannBenchModelScoreRow } from "../benchmarks/scrapers/surge/riemann-bench";
@@ -23,10 +24,6 @@ import type {
   ValsIndexModelScoreRow,
   ValsIndexTaskScoreRow,
 } from "../benchmarks/scrapers/vals/index-benchmark";
-import type {
-  TerminalBenchModelHarnessRow,
-  TerminalBenchTaskRow,
-} from "../benchmarks/scrapers/vals/terminal-bench";
 import type { VendingBench2ModelScoreRow } from "../benchmarks/scrapers/vending-bench-2";
 import type { JsonObject } from "../runtime";
 import type { ModelsDevFlatModel, ModelsDevPayload } from "../scrapers/models-dev";
@@ -120,14 +117,13 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
   cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
   deepSWERawRows: DeepSWERawLeaderboardRow[];
+  frontierBenchRows: FrontierBenchModelAgentRow[];
   frontierCodeRows: FrontierCodeModelEffortRow[];
   harveyLabRows: HarveyLabTaskRow[];
   harveyLabModelScoreRows: HarveyLabModelScoreRow[];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
   riemannBenchPersistenceUrl: string;
-  terminalBenchRows: TerminalBenchTaskRow[];
-  terminalBenchModelScoreRows: TerminalBenchModelHarnessRow[];
   valsIndexRows: ValsIndexTaskScoreRow[];
   valsIndexModelScoreRows: ValsIndexModelScoreRow[];
   vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
@@ -142,11 +138,11 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
     blueprintBench: number | null;
     cursorBench: number | null;
     deepSWE: number | null;
+    frontierBench: number | null;
     frontierCode: number | null;
     harveyLab: number | null;
     mercorApexAgents: number | null;
     riemannBench: number | null;
-    terminalBench: number | null;
     valsIndex: number | null;
     vendingBench2: number | null;
   };

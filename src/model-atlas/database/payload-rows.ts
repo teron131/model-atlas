@@ -95,6 +95,22 @@ const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     columns: ["base_model", "reasoning_effort", "score"],
   }),
   deep_swe: payloadRowGroup("deepSWERows", SNAPSHOT_TABLES.deep_swe, "pass_at_1 DESC, row_index"),
+  frontier_bench: payloadRowGroup(
+    "frontierBenchRows",
+    SNAPSHOT_TABLES.frontier_bench,
+    "row_index",
+    {
+      columns: [
+        "model",
+        "base_model",
+        "reasoning_effort",
+        "harness",
+        "score",
+        "score_standard_error",
+      ],
+      optional: true,
+    },
+  ),
   frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
     columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],
     optional: true,
@@ -127,15 +143,6 @@ const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     columns: ["model_id", "model", "provider", "row_kind", "score"],
     optional: true,
   }),
-  vals_terminal_bench: payloadRowGroup(
-    "terminalBenchRows",
-    SNAPSHOT_TABLES.vals_terminal_bench,
-    "row_index",
-    {
-      columns: ["model_id", "model", "provider", "row_kind", "score"],
-      optional: true,
-    },
-  ),
   vals_index: payloadRowGroup("valsIndexRows", SNAPSHOT_TABLES.vals_index, "row_index", {
     columns: ["model_id", "model", "provider", "row_kind", "score"],
     optional: true,

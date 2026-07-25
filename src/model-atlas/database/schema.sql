@@ -61,7 +61,6 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	mmmu_pro REAL,
 	scicode REAL,
 	tau_banking REAL,
-	terminalbench_v21 REAL,
 	input_cost REAL,
 	reasoning_cost REAL,
 	output_cost REAL,
@@ -310,6 +309,20 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
+CREATE TABLE IF NOT EXISTS frontier_bench_raw_rows (
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	revision TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	harness TEXT NOT NULL,
+	score REAL NOT NULL,
+	score_standard_error REAL NOT NULL,
+	PRIMARY KEY (row_index)
+);
+
 CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -384,24 +397,6 @@ CREATE TABLE IF NOT EXISTS vals_harvey_lab_raw_rows (
 	verbosity TEXT,
 	compute_effort TEXT,
 	harness TEXT,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS vals_terminal_bench_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	task TEXT NOT NULL,
-	task_label TEXT NOT NULL,
-	row_kind TEXT NOT NULL,
-	source_model_id TEXT,
-	model_id TEXT NOT NULL,
-	model TEXT NOT NULL,
-	provider TEXT,
-	harness TEXT,
-	score REAL NOT NULL,
-	cost_per_task_usd REAL,
-	seconds_per_task REAL,
 	PRIMARY KEY (row_index)
 );
 

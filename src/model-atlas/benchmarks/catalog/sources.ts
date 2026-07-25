@@ -406,6 +406,16 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
       },
     ],
   },
+  frontier_bench: {
+    inputs: [
+      {
+        group: "sparse",
+        id: "frontier_bench",
+        roles: ["observation"],
+        runtime: { key: "frontier_bench", publicRows: true },
+      },
+    ],
+  },
   frontier_code: {
     inputs: [
       {
@@ -555,33 +565,6 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
       },
     ],
   },
-  terminalbench_v21: {
-    inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation", "resource"],
-        adapters: [
-          {
-            kind: "artificial_analysis_leaderboard",
-            aliases: ["terminalbenchV21", "terminalbench_v21"],
-          },
-          {
-            kind: "artificial_analysis_resource_page",
-            scoreKey: "terminalbench_v2_1",
-            url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-            taskRunCount: 267,
-          },
-        ],
-      },
-      {
-        group: "vals",
-        id: "vals",
-        roles: ["observation", "resource"],
-        runtime: { key: "vals_terminal_bench", publicRows: true },
-      },
-    ],
-  },
   vals_index: {
     inputs: [
       {
@@ -618,7 +601,7 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       clamp: true,
     },
   },
-  terminalbench_v21: {
+  frontier_bench: {
     aggregation: { kind: "custom" },
   },
   weirdml: {
