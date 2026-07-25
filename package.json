@@ -1,51 +1,57 @@
 {
-	"name": "model-atlas",
-	"private": true,
-	"type": "module",
-	"engines": {
-		"node": ">=24.0.0"
-	},
-	"packageManager": "pnpm@10.28.1",
-	"exports": {
-		".": "./src/model-atlas/index.ts"
-	},
-	"scripts": {
-		"build": "next build",
-		"dev": "next dev --webpack",
-		"start": "next start",
-		"test": "tsx scripts/test.ts",
-		"typecheck": "tsc -p tsconfig.json --noEmit",
-		"database": "tsx scripts/database.ts",
-		"smoke": "tsx scripts/smoke-model-atlas.ts",
-		"d1:publish": "tsx scripts/publish-d1.ts",
-		"env:sync": "tsx scripts/sync-vercel-env.ts",
-		"icons:providers": "tsx scripts/generate-provider-icons.ts"
-	},
-	"dependencies": {
-		"@vercel/speed-insights": "^2.0.0",
-		"d3-array": "^3.2.4",
-		"d3-scale": "^4.0.2",
-		"html-to-image": "^1.11.13",
-		"katex": "^0.16.47",
-		"lucide-react": "^1.17.0",
-		"next": "^16.2.7",
-		"react": "^19.2.7",
-		"react-dom": "^19.2.7",
-		"react-icons": "^5.6.0",
-		"react-markdown": "^10.1.0",
-		"rehype-katex": "^7.0.1",
-		"remark-gfm": "^4.0.1",
-		"remark-math": "^6.0.0",
-		"sharp": "^0.34.5"
-	},
-	"devDependencies": {
-		"@types/d3-array": "^3.2.2",
-		"@types/d3-scale": "^4.0.9",
-		"@types/node": "^25.0.0",
-		"@types/react": "^19.2.16",
-		"@types/react-dom": "^19.2.3",
-		"playwright": "^1.60.0",
-		"tsx": "^4.21.0",
-		"typescript": "^5.9.3"
-	}
+  "name": "model-atlas",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "exports": {
+    ".": "./src/model-atlas/index.ts"
+  },
+  "scripts": {
+    "build": "next build",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "dev": "next dev --webpack",
+    "start": "next start",
+    "test": "tsx scripts/test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "database": "tsx scripts/database.ts",
+    "smoke": "tsx scripts/smoke-model-atlas.ts",
+    "d1:publish": "tsx scripts/publish-d1.ts",
+    "env:sync": "tsx scripts/sync-vercel-env.ts",
+    "icons:providers": "tsx scripts/generate-provider-icons.ts"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
+    "d3-array": "^3.2.4",
+    "d3-scale": "^4.0.2",
+    "html-to-image": "^1.11.13",
+    "katex": "^0.16.47",
+    "lucide-react": "^1.17.0",
+    "next": "^16.2.7",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-icons": "^5.6.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/d3-array": "^3.2.2",
+    "@types/d3-scale": "^4.0.9",
+    "@types/node": "^25.0.0",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "oxfmt": "0.60.0",
+    "oxlint": "1.75.0",
+    "playwright": "^1.60.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
 }

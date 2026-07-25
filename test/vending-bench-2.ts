@@ -1,6 +1,7 @@
 /** Vending-Bench 2 scraper fixtures protect full curves, signed balances, ranking, and matching. */
 
 import assert from "node:assert/strict";
+
 import { processVendingBench2DataModule } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 
@@ -14,40 +15,37 @@ const rows = processVendingBench2DataModule(`
 `);
 
 assert.deepEqual(rows, [
-	{
-		rank: 1,
-		model: "Claude Opus 4.7",
-		base_model: "Claude Opus 4.7",
-		reasoning_effort: null,
-		run_count: 6,
-		final_balance_usd: 10936.76,
-		daily_balance_usd: [500, 700, 10936.76],
-	},
-	{
-		rank: 2,
-		model: 'Escaped "Model"',
-		base_model: 'Escaped "Model"',
-		reasoning_effort: null,
-		run_count: 5,
-		final_balance_usd: 600,
-		daily_balance_usd: [500, 550, 600],
-	},
-	{
-		rank: 3,
-		model: "GPT-5 mini",
-		base_model: "GPT-5 mini",
-		reasoning_effort: null,
-		run_count: 5,
-		final_balance_usd: -31.18,
-		daily_balance_usd: [500, 100, -31.18],
-	},
+  {
+    rank: 1,
+    model: "Claude Opus 4.7",
+    base_model: "Claude Opus 4.7",
+    reasoning_effort: null,
+    run_count: 6,
+    final_balance_usd: 10936.76,
+    daily_balance_usd: [500, 700, 10936.76],
+  },
+  {
+    rank: 2,
+    model: 'Escaped "Model"',
+    base_model: 'Escaped "Model"',
+    reasoning_effort: null,
+    run_count: 5,
+    final_balance_usd: 600,
+    daily_balance_usd: [500, 550, 600],
+  },
+  {
+    rank: 3,
+    model: "GPT-5 mini",
+    base_model: "GPT-5 mini",
+    reasoning_effort: null,
+    run_count: 5,
+    final_balance_usd: -31.18,
+    daily_balance_usd: [500, 100, -31.18],
+  },
 ]);
 
 const rowsByModelName = buildBenchmarkModelMap(rows);
-assert.equal(
-	rowsByModelName.get("claude-opus-4-7")?.final_balance_usd,
-	10936.76,
-);
+assert.equal(rowsByModelName.get("claude-opus-4-7")?.final_balance_usd, 10936.76);
 assert.equal(rowsByModelName.get("gpt-5-mini")?.final_balance_usd, -31.18);
 
 const effortRows = processVendingBench2DataModule(`
@@ -56,7 +54,4 @@ const effortRows = processVendingBench2DataModule(`
 		"Example - Max":{num_epochs:5,time_series:[500,900],final_value:900}
 	}};
 `);
-assert.equal(
-	buildBenchmarkModelMap(effortRows).get("example")?.final_balance_usd,
-	900,
-);
+assert.equal(buildBenchmarkModelMap(effortRows).get("example")?.final_balance_usd, 900);

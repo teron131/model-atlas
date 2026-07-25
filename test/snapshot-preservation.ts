@@ -4,151 +4,148 @@ import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { preserveHighSignalSnapshotModels } from "../src/model-atlas/stats/payload/snapshot-preservation";
-import {
-	minimalModelAtlasModel,
-	minimalModelAtlasPayload,
-} from "./model-atlas-fixtures";
+import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 const preservedFable = {
-	...minimalModelAtlasModel({
-		id: "anthropic/claude-fable-5",
-		name: "Claude Fable 5",
-	}),
-	speed: {
-		throughput_tokens_per_second_median: 47.25,
-		latency_seconds_median: 5.4,
-		e2e_latency_seconds_median: 16.22,
-	},
-	intelligence: {
-		intelligence_index: 59.8,
-		agentic_index: 80.5,
-	},
-	benchmarks: {
-		gpqa: 0.92,
-		hle: 0.53,
-		lcr: 0.7,
-		terminalbench_v21: 0.84,
-	},
-	scores: {
-		intelligence_score: 97.4,
-		agentic_score: 91.6,
-		speed_score: 57.9,
-		value_score: 61,
-	},
+  ...minimalModelAtlasModel({
+    id: "anthropic/claude-fable-5",
+    name: "Claude Fable 5",
+  }),
+  speed: {
+    throughput_tokens_per_second_median: 47.25,
+    latency_seconds_median: 5.4,
+    e2e_latency_seconds_median: 16.22,
+  },
+  intelligence: {
+    intelligence_index: 59.8,
+    agentic_index: 80.5,
+  },
+  benchmarks: {
+    gpqa: 0.92,
+    hle: 0.53,
+    lcr: 0.7,
+    terminalbench_v21: 0.84,
+  },
+  scores: {
+    intelligence_score: 97.4,
+    agentic_score: 91.6,
+    speed_score: 57.9,
+    value_score: 61,
+  },
 };
 
 const degradedFable = {
-	...minimalModelAtlasModel({
-		id: "claude-fable-5",
-		name: "Claude Fable 5",
-	}),
-	intelligence: {
-		intelligence_index: 59.8,
-		agentic_index: 80.5,
-	},
-	scores: {
-		intelligence_score: 78.5,
-		agentic_score: 81.6,
-		speed_score: null,
-		value_score: 50,
-	},
+  ...minimalModelAtlasModel({
+    id: "claude-fable-5",
+    name: "Claude Fable 5",
+  }),
+  intelligence: {
+    intelligence_index: 59.8,
+    agentic_index: 80.5,
+  },
+  scores: {
+    intelligence_score: 78.5,
+    agentic_score: 81.6,
+    speed_score: null,
+    value_score: 50,
+  },
 };
 
 const preserved = preserveHighSignalSnapshotModels(
-	minimalModelAtlasPayload({
-		fetchedAt: 2,
-		models: [
-			degradedFable,
-			{
-				...minimalModelAtlasModel({ id: "openai/gpt-5-5", name: "GPT-5.5" }),
-				scores: {
-					intelligence_score: 93,
-					agentic_score: 87,
-					speed_score: 58,
-					value_score: 63,
-				},
-			},
-		],
-	}),
-	minimalModelAtlasPayload({
-		fetchedAt: 1,
-		models: [preservedFable],
-	}),
-	STAGE_CONFIG.snapshotPreservation,
-	STAGE_CONFIG.scoring,
+  minimalModelAtlasPayload({
+    fetchedAt: 2,
+    models: [
+      degradedFable,
+      {
+        ...minimalModelAtlasModel({ id: "openai/gpt-5-5", name: "GPT-5.5" }),
+        scores: {
+          intelligence_score: 93,
+          agentic_score: 87,
+          speed_score: 58,
+          value_score: 63,
+        },
+      },
+    ],
+  }),
+  minimalModelAtlasPayload({
+    fetchedAt: 1,
+    models: [preservedFable],
+  }),
+  STAGE_CONFIG.snapshotPreservation,
+  STAGE_CONFIG.scoring,
 );
 
 assert.equal(preserved.models[0]?.id, "anthropic/claude-fable-5");
 assert.equal(
-	preserved.models[0]?.scores.intelligence_score,
-	97.4,
-	"previous high-signal top models should survive cold snapshot degradation",
+  preserved.models[0]?.scores.intelligence_score,
+  97.4,
+  "previous high-signal top models should survive cold snapshot degradation",
 );
 
 const incompatiblePreviousPayload = minimalModelAtlasPayload({
-	fetchedAt: 1,
-	models: [preservedFable],
+  fetchedAt: 1,
+  models: [preservedFable],
 });
 delete (
-	incompatiblePreviousPayload.metadata.scoring as Partial<
-		typeof incompatiblePreviousPayload.metadata.scoring
-	>
+  incompatiblePreviousPayload.metadata.scoring as Partial<
+    typeof incompatiblePreviousPayload.metadata.scoring
+  >
 ).snapshot_preservation_version;
 const incompatiblePreserved = preserveHighSignalSnapshotModels(
-	minimalModelAtlasPayload({
-		fetchedAt: 2,
-		models: [degradedFable],
-	}),
-	incompatiblePreviousPayload,
-	STAGE_CONFIG.snapshotPreservation,
-	STAGE_CONFIG.scoring,
+  minimalModelAtlasPayload({
+    fetchedAt: 2,
+    models: [degradedFable],
+  }),
+  incompatiblePreviousPayload,
+  STAGE_CONFIG.snapshotPreservation,
+  STAGE_CONFIG.scoring,
 );
 
 assert.equal(
-	incompatiblePreserved.models[0]?.id,
-	"claude-fable-5",
-	"previous snapshots without the current preservation version should not replace current rows",
+  incompatiblePreserved.models[0]?.id,
+  "claude-fable-5",
+  "previous snapshots without the current preservation version should not replace current rows",
 );
 
 const normalUpdate = preserveHighSignalSnapshotModels(
-	minimalModelAtlasPayload({
-		fetchedAt: 2,
-		models: [
-			{
-				...preservedFable,
-				scores: {
-					...preservedFable.scores,
-					intelligence_score: 95,
-				},
-			},
-		],
-	}),
-	minimalModelAtlasPayload({ fetchedAt: 1, models: [preservedFable] }),
-	STAGE_CONFIG.snapshotPreservation,
-	STAGE_CONFIG.scoring,
+  minimalModelAtlasPayload({
+    fetchedAt: 2,
+    models: [
+      {
+        ...preservedFable,
+        scores: {
+          ...preservedFable.scores,
+          intelligence_score: 95,
+        },
+      },
+    ],
+  }),
+  minimalModelAtlasPayload({ fetchedAt: 1, models: [preservedFable] }),
+  STAGE_CONFIG.snapshotPreservation,
+  STAGE_CONFIG.scoring,
 );
 
 assert.equal(
-	normalUpdate.models[0]?.scores.intelligence_score,
-	95,
-	"normal small score changes should not be frozen to the previous snapshot",
+  normalUpdate.models[0]?.scores.intelligence_score,
+  95,
+  "normal small score changes should not be frozen to the previous snapshot",
 );
 
 const effortSpecificPreservation = preserveHighSignalSnapshotModels(
-	minimalModelAtlasPayload({
-		fetchedAt: 2,
-		models: [{ ...degradedFable, reasoning_effort: "low" }],
-	}),
-	minimalModelAtlasPayload({
-		fetchedAt: 1,
-		models: [{ ...preservedFable, reasoning_effort: "max" }],
-	}),
-	STAGE_CONFIG.snapshotPreservation,
-	STAGE_CONFIG.scoring,
+  minimalModelAtlasPayload({
+    fetchedAt: 2,
+    models: [{ ...degradedFable, reasoning_effort: "low" }],
+  }),
+  minimalModelAtlasPayload({
+    fetchedAt: 1,
+    models: [{ ...preservedFable, reasoning_effort: "max" }],
+  }),
+  STAGE_CONFIG.snapshotPreservation,
+  STAGE_CONFIG.scoring,
 );
 
 assert.equal(
-	effortSpecificPreservation.models[0]?.scores.intelligence_score,
-	78.5,
-	"snapshot preservation must not replace a lower-effort row with a previous max-effort row",
+  effortSpecificPreservation.models[0]?.scores.intelligence_score,
+  78.5,
+  "snapshot preservation must not replace a lower-effort row with a previous max-effort row",
 );

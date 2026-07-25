@@ -6,7 +6,7 @@ import { loadEnvFile } from "node:process";
 import { publishD1Snapshot } from "../src/model-atlas/database/d1-publish";
 
 if (existsSync(".env")) {
-	loadEnvFile(".env");
+  loadEnvFile(".env");
 }
 
 const { result } = await publishD1Snapshot();

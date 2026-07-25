@@ -7,61 +7,61 @@ import type { ModelAtlasJsonView } from "./src/model-atlas/stats/payload/public-
 type RoutedJsonView = Exclude<ModelAtlasJsonView, "full">;
 
 const jsonViewByPath = new Map<string, RoutedJsonView>([
-	["/", "score"],
-	["/score", "score"],
-	["/scores", "score"],
-	["/core", "core"],
-	["/benchmarks", "benchmarks"],
-	["/all", "all"],
+  ["/", "score"],
+  ["/score", "score"],
+  ["/scores", "score"],
+  ["/core", "core"],
+  ["/benchmarks", "benchmarks"],
+  ["/all", "all"],
 ]);
 
 export function proxy(request: NextRequest) {
-	const view = jsonViewByPath.get(request.nextUrl.pathname);
-	if (view == null) {
-		return NextResponse.next();
-	}
+  const view = jsonViewByPath.get(request.nextUrl.pathname);
+  if (view == null) {
+    return NextResponse.next();
+  }
 
-	const accept = request.headers.get("accept") ?? "";
-	if (!wantsJsonResponse(accept)) {
-		return request.nextUrl.pathname === "/"
-			? NextResponse.next()
-			: NextResponse.redirect(new URL("/", request.url));
-	}
+  const accept = request.headers.get("accept") ?? "";
+  if (!wantsJsonResponse(accept)) {
+    return request.nextUrl.pathname === "/"
+      ? NextResponse.next()
+      : NextResponse.redirect(new URL("/", request.url));
+  }
 
-	const url = request.nextUrl.clone();
-	setModelAtlasApiUrl(url, view);
-	const headers = new Headers(request.headers);
-	headers.set("x-model-atlas-view", view);
-	return NextResponse.rewrite(url, {
-		request: {
-			headers,
-		},
-	});
+  const url = request.nextUrl.clone();
+  setModelAtlasApiUrl(url, view);
+  const headers = new Headers(request.headers);
+  headers.set("x-model-atlas-view", view);
+  return NextResponse.rewrite(url, {
+    request: {
+      headers,
+    },
+  });
 }
 
 export function jsonViewForPath(pathname: string): RoutedJsonView | null {
-	return jsonViewByPath.get(pathname) ?? null;
+  return jsonViewByPath.get(pathname) ?? null;
 }
 
 export function setModelAtlasApiUrl(
-	url: Pick<URL, "pathname" | "search" | "searchParams">,
-	view: RoutedJsonView,
+  url: Pick<URL, "pathname" | "search" | "searchParams">,
+  view: RoutedJsonView,
 ): void {
-	url.pathname = "/api/llm-stats";
-	url.search = "";
-	if (view !== "score") {
-		url.searchParams.set("view", view);
-	}
+  url.pathname = "/api/llm-stats";
+  url.search = "";
+  if (view !== "score") {
+    url.searchParams.set("view", view);
+  }
 }
 
 export function wantsJsonResponse(accept: string): boolean {
-	const normalizedAccept = accept.toLowerCase();
-	if (normalizedAccept.includes("text/html")) {
-		return false;
-	}
-	return (
-		normalizedAccept.length === 0 ||
-		normalizedAccept.includes("application/json") ||
-		normalizedAccept.includes("*/*")
-	);
+  const normalizedAccept = accept.toLowerCase();
+  if (normalizedAccept.includes("text/html")) {
+    return false;
+  }
+  return (
+    normalizedAccept.length === 0 ||
+    normalizedAccept.includes("application/json") ||
+    normalizedAccept.includes("*/*")
+  );
 }

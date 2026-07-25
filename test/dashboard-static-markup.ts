@@ -5,409 +5,385 @@ import { registerHooks } from "node:module";
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
-import {
-	benchmarkLabels,
-	benchmarkTooltips,
-} from "../app/dashboard/shared/constants";
+import { benchmarkLabels, benchmarkTooltips } from "../app/dashboard/shared/constants";
 import { formatBenchmarkMetric } from "../app/dashboard/shared/format";
 import {
-	benchmarkMetricColumns,
-	dashboardMetricColumns,
-	type TableColumnKey,
-	type TableRow,
+  benchmarkMetricColumns,
+  dashboardMetricColumns,
+  type TableColumnKey,
+  type TableRow,
 } from "../app/dashboard/table/models";
 import { tableColumnTooltip } from "../app/dashboard/table/tooltips";
 import {
-	AGENTIC_BENCHMARK_DISPLAY_KEYS,
-	BENCHMARK_PORTFOLIO,
-	INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+  AGENTIC_BENCHMARK_DISPLAY_KEYS,
+  BENCHMARK_PORTFOLIO,
+  INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 } from "../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/config";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
-import {
-	minimalModelAtlasModel,
-	minimalModelAtlasPayload,
-} from "./model-atlas-fixtures";
+import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 registerHooks({
-	load(url, context, nextLoad) {
-		if (url.endsWith(".css")) {
-			return {
-				format: "module",
-				shortCircuit: true,
-				source:
-					"export default new Proxy({}, { get: (_, key) => String(key) });",
-			};
-		}
-		return nextLoad(url, context);
-	},
+  load(url, context, nextLoad) {
+    if (url.endsWith(".css")) {
+      return {
+        format: "module",
+        shortCircuit: true,
+        source: "export default new Proxy({}, { get: (_, key) => String(key) });",
+      };
+    }
+    return nextLoad(url, context);
+  },
 });
 
 const { Dashboard } = await import("../app/dashboard/index");
-const { BenchmarkStrip } = await import(
-	"../app/dashboard/benchmarks/BenchmarkStrip"
-);
+const { BenchmarkStrip } = await import("../app/dashboard/benchmarks/BenchmarkStrip");
 const { ModelTable } = await import("../app/dashboard/table/ModelTable");
 
 const payload = minimalModelAtlasPayload({
-	fetchedAt: 900,
-	models: [
-		{
-			...minimalModelAtlasModel({
-				id: "openai/gpt-5.5",
-				name: "GPT-5.5",
-			}),
-			benchmarks: { deep_swe: 0.6 },
-			confidence: {
-				intelligence: 0.83,
-				agentic: 0.47,
-			},
-			scores: {
-				intelligence_score: 90,
-				agentic_score: 80,
-				speed_score: 70,
-				value_score: 60,
-			},
-		},
-	],
+  fetchedAt: 900,
+  models: [
+    {
+      ...minimalModelAtlasModel({
+        id: "openai/gpt-5.5",
+        name: "GPT-5.5",
+      }),
+      benchmarks: { deep_swe: 0.6 },
+      confidence: {
+        intelligence: 0.83,
+        agentic: 0.47,
+      },
+      scores: {
+        intelligence_score: 90,
+        agentic_score: 80,
+        speed_score: 70,
+        value_score: 60,
+      },
+    },
+  ],
 });
 payload.metadata.scoring.benchmark_portfolio = {
-	deep_swe: BENCHMARK_PORTFOLIO.deep_swe,
+  deep_swe: BENCHMARK_PORTFOLIO.deep_swe,
 };
-const html = renderToStaticMarkup(
-	React.createElement(Dashboard, { initialPayload: payload }),
-);
-const loadingHtml = renderToStaticMarkup(
-	React.createElement(Dashboard, { initialPayload: null }),
-);
-const { confidence: _staleConfidence, ...staleConfidenceModel } =
-	minimalModelAtlasModel({
-		id: "openai/stale-snapshot-model",
-		name: "Stale Snapshot Model",
-	});
+const html = renderToStaticMarkup(React.createElement(Dashboard, { initialPayload: payload }));
+const loadingHtml = renderToStaticMarkup(React.createElement(Dashboard, { initialPayload: null }));
+const { confidence: _staleConfidence, ...staleConfidenceModel } = minimalModelAtlasModel({
+  id: "openai/stale-snapshot-model",
+  name: "Stale Snapshot Model",
+});
 const staleConfidenceHtml = renderToStaticMarkup(
-	React.createElement(Dashboard, {
-		initialPayload: minimalModelAtlasPayload({
-			fetchedAt: 901,
-			models: [staleConfidenceModel as ModelAtlasModel],
-		}),
-	}),
+  React.createElement(Dashboard, {
+    initialPayload: minimalModelAtlasPayload({
+      fetchedAt: 901,
+      models: [staleConfidenceModel as ModelAtlasModel],
+    }),
+  }),
 );
 
 const coverageModels = [
-	{
-		...minimalModelAtlasModel({
-			id: "openai/gpt-5.5",
-			name: "GPT-5.5",
-		}),
-		benchmarks: { deep_swe: 0.6 },
-	},
-	minimalModelAtlasModel({
-		id: "anthropic/claude-opus-4.6",
-		name: "Claude Opus 4.6",
-	}),
+  {
+    ...minimalModelAtlasModel({
+      id: "openai/gpt-5.5",
+      name: "GPT-5.5",
+    }),
+    benchmarks: { deep_swe: 0.6 },
+  },
+  minimalModelAtlasModel({
+    id: "anthropic/claude-opus-4.6",
+    name: "Claude Opus 4.6",
+  }),
 ];
 const coveragePayload = minimalModelAtlasPayload({
-	fetchedAt: 902,
-	models: coverageModels,
+  fetchedAt: 902,
+  models: coverageModels,
 });
 coveragePayload.metadata.scoring.agentic_benchmark_display_keys = ["deep_swe"];
 coveragePayload.metadata.scoring.benchmark_portfolio = {
-	deep_swe: {
-		group: "frontier",
-		benchmarkImportance: 1,
-		dimensionLoadings: { intelligence: 0, agentic: 1 },
-	},
+  deep_swe: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
 };
 const benchmarkCoverageHtml = renderToStaticMarkup(
-	React.createElement(BenchmarkStrip, {
-		payload: coveragePayload,
-		models: coverageModels,
-		isLoading: false,
-	}),
+  React.createElement(BenchmarkStrip, {
+    payload: coveragePayload,
+    models: coverageModels,
+    isLoading: false,
+  }),
 );
 const benchmarkOrderPayload = minimalModelAtlasPayload({
-	fetchedAt: 903,
-	models: coverageModels,
+  fetchedAt: 903,
+  models: coverageModels,
 });
 benchmarkOrderPayload.metadata.scoring.intelligence_benchmark_display_keys = [
-	"weirdml",
-	"riemann_bench",
-	"lcr",
-	"agents_last_exam",
+  "weirdml",
+  "riemann_bench",
+  "lcr",
+  "agents_last_exam",
 ];
 benchmarkOrderPayload.metadata.scoring.benchmark_portfolio = {
-	agents_last_exam: BENCHMARK_PORTFOLIO.agents_last_exam,
-	lcr: BENCHMARK_PORTFOLIO.lcr,
-	riemann_bench: BENCHMARK_PORTFOLIO.riemann_bench,
-	weirdml: BENCHMARK_PORTFOLIO.weirdml,
+  agents_last_exam: BENCHMARK_PORTFOLIO.agents_last_exam,
+  lcr: BENCHMARK_PORTFOLIO.lcr,
+  riemann_bench: BENCHMARK_PORTFOLIO.riemann_bench,
+  weirdml: BENCHMARK_PORTFOLIO.weirdml,
 };
 const benchmarkOrderHtml = renderToStaticMarkup(
-	React.createElement(BenchmarkStrip, {
-		payload: benchmarkOrderPayload,
-		models: coverageModels,
-		isLoading: false,
-	}),
+  React.createElement(BenchmarkStrip, {
+    payload: benchmarkOrderPayload,
+    models: coverageModels,
+    isLoading: false,
+  }),
 );
 const displayedBenchmarkKeys = new Set([
-	...INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-	...AGENTIC_BENCHMARK_DISPLAY_KEYS,
+  ...INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+  ...AGENTIC_BENCHMARK_DISPLAY_KEYS,
 ]);
 const tableColumnKeys: TableColumnKey[] = [
-	"rank",
-	"model",
-	"intelligence",
-	"agentic",
-	"speed",
-	"value",
-	"blend",
-	"context",
-	...dashboardMetricColumns.map((column) => column.key),
-	"confidence",
+  "rank",
+  "model",
+  "intelligence",
+  "agentic",
+  "speed",
+  "value",
+  "blend",
+  "context",
+  ...dashboardMetricColumns.map((column) => column.key),
+  "confidence",
 ];
 
 assert.equal(
-	html.includes("Loading stats"),
-	false,
-	"server-readable dashboard markup should not show the loading state when rows are available",
+  html.includes("Loading stats"),
+  false,
+  "server-readable dashboard markup should not show the loading state when rows are available",
 );
 assert.equal(
-	html.includes("openai/gpt-5.5"),
-	true,
-	"server-readable dashboard markup should include model row ids",
+  html.includes("openai/gpt-5.5"),
+  true,
+  "server-readable dashboard markup should include model row ids",
 );
 assert.equal(
-	html.includes("Confidence") &&
-		html.includes("Intelligence confidence 83%") &&
-		html.includes("Agentic confidence 47%"),
-	true,
-	"the final dashboard column should expose separate confidence percentages",
+  html.includes("Confidence") &&
+    html.includes("Intelligence confidence 83%") &&
+    html.includes("Agentic confidence 47%"),
+  true,
+  "the final dashboard column should expose separate confidence percentages",
 );
 assert.equal(
-	staleConfidenceHtml.includes(
-		'aria-label="Intelligence confidence -; Agentic confidence -"',
-	) &&
-		staleConfidenceHtml.includes(
-			'class="data-cell confidence-cell missing"',
-		),
-	true,
-	"stale dashboard rows without confidence should use the neutral missing representation",
+  staleConfidenceHtml.includes('aria-label="Intelligence confidence -; Agentic confidence -"') &&
+    staleConfidenceHtml.includes('class="data-cell confidence-cell missing"'),
+  true,
+  "stale dashboard rows without confidence should use the neutral missing representation",
 );
 assert.equal(
-	matchCount(html, 'data-column-key="confidence"'),
-	2,
-	"the sticky and source table headers should end with the confidence column",
+  matchCount(html, 'data-column-key="confidence"'),
+  2,
+  "the sticky and source table headers should end with the confidence column",
 );
 assert.equal(
-	html.includes("Reasoning variant display") &&
-		html.includes("Collapsed") &&
-		html.includes("Expanded"),
-	true,
-	"the always-visible variant switch should expose both display modes",
+  html.includes("Reasoning variant display") &&
+    html.includes("Collapsed") &&
+    html.includes("Expanded"),
+  true,
+  "the always-visible variant switch should expose both display modes",
 );
 assert.equal(
-	html.includes("data-capture-theme"),
-	true,
-	"graph exports should have a stable theme boundary independent of CSS-module class names",
+  html.includes("data-capture-theme"),
+  true,
+  "graph exports should have a stable theme boundary independent of CSS-module class names",
 );
 assert.equal(
-	html.includes("Pareto frontier") &&
-		html.includes("Price vs Cost Efficiency") &&
-		html.includes("Frontier Benchmarks") &&
-		html.includes("Intelligence interaction matrix"),
-	true,
-	"server markup should include every graph panel in the initial page response",
+  html.includes("Pareto frontier") &&
+    html.includes("Price vs Cost Efficiency") &&
+    html.includes("Frontier Benchmarks") &&
+    html.includes("Intelligence interaction matrix"),
+  true,
+  "server markup should include every graph panel in the initial page response",
 );
 assert.equal(
-	matchCount(html, 'data-column-key="model"'),
-	2,
-	"server-readable dashboard markup should include the sticky and source table headers",
+  matchCount(html, 'data-column-key="model"'),
+  2,
+  "server-readable dashboard markup should include the sticky and source table headers",
 );
 assert.equal(
-	loadingHtml.includes("Loading stats"),
-	false,
-	"initial loading markup should use structured placeholders instead of a single table message",
+  loadingHtml.includes("Loading stats"),
+  false,
+  "initial loading markup should use structured placeholders instead of a single table message",
 );
 assert.equal(
-	matchCount(loadingHtml, 'class="loading-row"'),
-	12,
-	"initial loading markup should preserve table density with skeleton rows",
+  matchCount(loadingHtml, 'class="loading-row"'),
+  12,
+  "initial loading markup should preserve table density with skeleton rows",
 );
 assert.equal(
-	loadingHtml.includes("benchmark-chip-loading"),
-	true,
-	"initial loading markup should include benchmark placeholder chips",
+  loadingHtml.includes("benchmark-chip-loading"),
+  true,
+  "initial loading markup should include benchmark placeholder chips",
 );
 assert.equal(
-	benchmarkCoverageHtml.includes('benchmark-chip-coverage">50%</span>'),
-	true,
-	"benchmark chips should show observed coverage for the current model view",
+  benchmarkCoverageHtml.includes('benchmark-chip-coverage">50%</span>'),
+  true,
+  "benchmark chips should show observed coverage for the current model view",
 );
 assert.equal(
-	benchmarkCoverageHtml.includes("50% coverage in current model view"),
-	true,
-	"benchmark coverage should be explained in the chip's accessible label",
+  benchmarkCoverageHtml.includes("50% coverage in current model view"),
+  true,
+  "benchmark coverage should be explained in the chip's accessible label",
 );
 assert.deepEqual(
-	[...displayedBenchmarkKeys].filter((key) => benchmarkLabels[key] == null),
-	[],
-	"every displayed benchmark should have a human-readable label",
+  [...displayedBenchmarkKeys].filter((key) => benchmarkLabels[key] == null),
+  [],
+  "every displayed benchmark should have a human-readable label",
 );
 assert.deepEqual(
-	[...displayedBenchmarkKeys].filter((key) => benchmarkTooltips[key] == null),
-	[],
-	"every displayed benchmark should have tooltip content",
+  [...displayedBenchmarkKeys].filter((key) => benchmarkTooltips[key] == null),
+  [],
+  "every displayed benchmark should have tooltip content",
 );
 assert.deepEqual(
-	tableColumnKeys.filter(
-		(key) => tableColumnTooltip(key, COLUMN_TOOLTIPS) == null,
-	),
-	[],
-	"every dashboard table column should resolve tooltip content",
+  tableColumnKeys.filter((key) => tableColumnTooltip(key, COLUMN_TOOLTIPS) == null),
+  [],
+  "every dashboard table column should resolve tooltip content",
 );
 const confidenceTooltip = tableColumnTooltip("confidence", COLUMN_TOOLTIPS);
 assert.ok(confidenceTooltip);
 const confidenceTooltipHtml = renderToStaticMarkup(
-	React.createElement(ColumnTooltip, {
-		content: confidenceTooltip,
-		left: 0,
-		top: 0,
-	}),
+  React.createElement(ColumnTooltip, {
+    content: confidenceTooltip,
+    left: 0,
+    top: 0,
+  }),
 );
 assert.equal(
-	[
-		"Confidence",
-		"validation-weighted evidence",
-		"Intelligence confidence",
-		"Agentic confidence",
-		"zero through 10%",
-		"full from 60%",
-	].every((text) => confidenceTooltipHtml.includes(text)),
-	true,
-	"confidence tooltip should explain both dimensions and the evidence scale",
+  [
+    "Confidence",
+    "validation-weighted evidence",
+    "Intelligence confidence",
+    "Agentic confidence",
+    "zero through 10%",
+    "full from 60%",
+  ].every((text) => confidenceTooltipHtml.includes(text)),
+  true,
+  "confidence tooltip should explain both dimensions and the evidence scale",
 );
 assert.deepEqual(
-	[...displayedBenchmarkKeys].filter(
-		(key) => !benchmarkMetricColumns.some((column) => column.benchmark === key),
-	),
-	[],
-	"every displayed benchmark should have a leaderboard table column",
+  [...displayedBenchmarkKeys].filter(
+    (key) => !benchmarkMetricColumns.some((column) => column.benchmark === key),
+  ),
+  [],
+  "every displayed benchmark should have a leaderboard table column",
 );
 assert.deepEqual(
-	benchmarkMetricColumns.map((column) =>
-		BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1,
-	),
-	benchmarkMetricColumns
-		.map((column) =>
-			BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1,
-		)
-		.sort(),
-	"table benchmark columns should place frontier benchmarks before baseline benchmarks",
+  benchmarkMetricColumns.map((column) =>
+    BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1,
+  ),
+  benchmarkMetricColumns
+    .map((column) => (BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1))
+    .sort(),
+  "table benchmark columns should place frontier benchmarks before baseline benchmarks",
 );
 for (const group of ["frontier", "baseline"] as const) {
-	const labels = benchmarkMetricColumns
-		.filter((column) => BENCHMARK_PORTFOLIO[column.benchmark].group === group)
-		.map((column) => benchmarkLabels[column.benchmark] ?? column.benchmark);
-	assert.deepEqual(
-		labels,
-		[...labels].sort((left, right) => left.localeCompare(right, "en")),
-		`${group} table benchmark columns should be alphabetical`,
-	);
+  const labels = benchmarkMetricColumns
+    .filter((column) => BENCHMARK_PORTFOLIO[column.benchmark].group === group)
+    .map((column) => benchmarkLabels[column.benchmark] ?? column.benchmark);
+  assert.deepEqual(
+    labels,
+    [...labels].sort((left, right) => left.localeCompare(right, "en")),
+    `${group} table benchmark columns should be alphabetical`,
+  );
 }
 assert.equal(
-	benchmarkOrderHtml.indexOf("Agents&#x27; Last Exam") <
-		benchmarkOrderHtml.indexOf("Riemann-bench") &&
-		benchmarkOrderHtml.indexOf("Riemann-bench") <
-			benchmarkOrderHtml.indexOf("LCR") &&
-		benchmarkOrderHtml.indexOf("LCR") < benchmarkOrderHtml.indexOf("WeirdML"),
-	true,
-	"benchmark chips should be alphabetical within frontier and baseline groups",
+  benchmarkOrderHtml.indexOf("Agents&#x27; Last Exam") <
+    benchmarkOrderHtml.indexOf("Riemann-bench") &&
+    benchmarkOrderHtml.indexOf("Riemann-bench") < benchmarkOrderHtml.indexOf("LCR") &&
+    benchmarkOrderHtml.indexOf("LCR") < benchmarkOrderHtml.indexOf("WeirdML"),
+  true,
+  "benchmark chips should be alphabetical within frontier and baseline groups",
 );
 assert.equal(
-	benchmarkOrderHtml.includes('class="benchmark-baseline-divider"'),
-	true,
-	"benchmark chips should mark the frontier-to-baseline boundary",
+  benchmarkOrderHtml.includes('class="benchmark-baseline-divider"'),
+  true,
+  "benchmark chips should mark the frontier-to-baseline boundary",
 );
 assert.equal(
-	formatBenchmarkMetric(161.77, "number"),
-	"161.8",
-	"raw benchmark indexes should not be labeled as percentages",
+  formatBenchmarkMetric(161.77, "number"),
+  "161.8",
+  "raw benchmark indexes should not be labeled as percentages",
 );
 assert.equal(
-	formatBenchmarkMetric(-0.153, "number"),
-	"-0.2",
-	"signed benchmark effects should not be labeled as percentages",
+  formatBenchmarkMetric(-0.153, "number"),
+  "-0.2",
+  "signed benchmark effects should not be labeled as percentages",
 );
 assert.equal(
-	formatBenchmarkMetric(10_936.76, "currency"),
-	"$10,936.8",
-	"currency benchmarks should retain their unit in the table",
+  formatBenchmarkMetric(10_936.76, "currency"),
+  "$10,936.8",
+  "currency benchmarks should retain their unit in the table",
 );
 const visibleRankRows: TableRow[] = [
-	tableRow("provider/seven", "Seven", 7, 0),
-	tableRow("provider/eight", "Eight", 8, 1),
-	tableRow("provider/ten", "Ten", 10, 2),
+  tableRow("provider/seven", "Seven", 7, 0),
+  tableRow("provider/eight", "Eight", 8, 1),
+  tableRow("provider/ten", "Ten", 10, 2),
 ];
 const rankHtml = renderToStaticMarkup(
-	React.createElement(ModelTable, {
-		sortState: { key: "rank", direction: "ascending" },
-		visibleRows: visibleRankRows,
-		emptyMessage: "No models",
-		isLoading: false,
-		metricColumns: [],
-		onSort: () => {},
-		onTooltip: () => {},
-		onTooltipEnd: () => {},
-	}),
+  React.createElement(ModelTable, {
+    sortState: { key: "rank", direction: "ascending" },
+    visibleRows: visibleRankRows,
+    emptyMessage: "No models",
+    isLoading: false,
+    metricColumns: [],
+    onSort: () => {},
+    onTooltip: () => {},
+    onTooltipEnd: () => {},
+  }),
 );
 
 assert.deepEqual(
-	rankCells(rankHtml),
-	["07", "08", "10"],
-	"rendered rank cells should preserve each model's intelligence rank",
+  rankCells(rankHtml),
+  ["07", "08", "10"],
+  "rendered rank cells should preserve each model's intelligence rank",
 );
 
 const speedTooltipHtml = renderToStaticMarkup(
-	React.createElement(ColumnTooltip, {
-		content: COLUMN_TOOLTIPS.speed,
-		left: 0,
-		top: 0,
-	}),
+  React.createElement(ColumnTooltip, {
+    content: COLUMN_TOOLTIPS.speed,
+    left: 0,
+    top: 0,
+  }),
 );
 
 assert.equal(
-	speedTooltipHtml.includes("column-tooltip-workflow-table"),
-	true,
-	"speed tooltip should render workflow simulation rows as a structured table",
+  speedTooltipHtml.includes("column-tooltip-workflow-table"),
+  true,
+  "speed tooltip should render workflow simulation rows as a structured table",
 );
 assert.equal(
-	speedTooltipHtml.includes("column-tooltip-workflow-scenario"),
-	true,
-	"speed tooltip should split workflow simulation labels into scenario/calls/input/output cells",
+  speedTooltipHtml.includes("column-tooltip-workflow-scenario"),
+  true,
+  "speed tooltip should split workflow simulation labels into scenario/calls/input/output cells",
 );
 
 function matchCount(text: string, value: string): number {
-	return text.split(value).length - 1;
+  return text.split(value).length - 1;
 }
 
 function tableRow(
-	id: string,
-	name: string,
-	intelligenceRank: number,
-	originalIndex: number,
+  id: string,
+  name: string,
+  intelligenceRank: number,
+  originalIndex: number,
 ): TableRow {
-	return {
-		model: minimalModelAtlasModel({ id, name }),
-		intelligenceRank,
-		originalIndex,
-		aliasPriority: 0,
-		benchmarkDisplayScores: {},
-	};
+  return {
+    model: minimalModelAtlasModel({ id, name }),
+    intelligenceRank,
+    originalIndex,
+    aliasPriority: 0,
+    benchmarkDisplayScores: {},
+  };
 }
 
 function rankCells(html: string) {
-	return [...html.matchAll(/class="rank">(\d+)<\/td>/g)].map(
-		(match) => match[1],
-	);
+  return [...html.matchAll(/class="rank">(\d+)<\/td>/g)].map((match) => match[1]);
 }

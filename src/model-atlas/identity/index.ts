@@ -3,12 +3,9 @@
 export { modelNameIdentityKey } from "./matching/name-tokens";
 export { buildMatchDiagnostics } from "./matching/pipeline";
 export {
-	artificialAnalysisMatchSlug,
-	firstVariantCompatibleCandidate,
-	hasVariantConflict,
-	rankMatchCandidates,
+  artificialAnalysisMatchSlug,
+  firstVariantCompatibleCandidate,
+  hasVariantConflict,
+  rankMatchCandidates,
 } from "./matching/scoring";
-export type {
-	MatchDiagnosticsPayload,
-	MatcherConfig,
-} from "./matching/types";
+export type { MatchDiagnosticsPayload, MatcherConfig } from "./matching/types";

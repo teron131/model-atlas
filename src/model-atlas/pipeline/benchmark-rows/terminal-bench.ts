@@ -5,154 +5,139 @@
  */
 
 import {
-	type ArtificialAnalysisBenchmarkResourceLookup,
-	type ArtificialAnalysisBenchmarkResourceRow,
-	findArtificialAnalysisBenchmarkResourceRow,
+  type ArtificialAnalysisBenchmarkResourceLookup,
+  type ArtificialAnalysisBenchmarkResourceRow,
+  findArtificialAnalysisBenchmarkResourceRow,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import {
-	findTerminalBenchRows,
-	type TerminalBenchModelHarnessRow,
-	type TerminalBenchRowsByModelName,
+  findTerminalBenchRows,
+  type TerminalBenchModelHarnessRow,
+  type TerminalBenchRowsByModelName,
 } from "../../benchmarks/scrapers/vals/terminal-bench";
 import { finiteScoreValues, medianOfFinite } from "../../numeric";
 import { asFiniteNumber } from "../../runtime";
 
 type Observation = {
-	score: number | null;
-	cost_per_task_usd: number | null;
-	seconds_per_task: number | null;
-	tokens_per_task: number | null;
-	input_tokens_per_task: number | null;
-	output_tokens_per_task: number | null;
+  score: number | null;
+  cost_per_task_usd: number | null;
+  seconds_per_task: number | null;
+  tokens_per_task: number | null;
+  input_tokens_per_task: number | null;
+  output_tokens_per_task: number | null;
 };
 
 export type TerminalBenchAggregateRow = {
-	score: number;
-	cost_per_task_usd: number | null;
-	seconds_per_task: number | null;
-	tokens_per_task: number | null;
-	input_tokens_per_task: number | null;
-	output_tokens_per_task: number | null;
+  score: number;
+  cost_per_task_usd: number | null;
+  seconds_per_task: number | null;
+  tokens_per_task: number | null;
+  input_tokens_per_task: number | null;
+  output_tokens_per_task: number | null;
 };
 
 type AggregateInput = {
-	artificialAnalysisScore?: unknown;
-	resourceRow?: ArtificialAnalysisBenchmarkResourceRow | null;
-	harnessRows?: readonly TerminalBenchModelHarnessRow[] | null;
+  artificialAnalysisScore?: unknown;
+  resourceRow?: ArtificialAnalysisBenchmarkResourceRow | null;
+  harnessRows?: readonly TerminalBenchModelHarnessRow[] | null;
 };
 
 type SourceLookups = {
-	artificialAnalysisResourceLookup: ArtificialAnalysisBenchmarkResourceLookup;
-	harnessRowsByModel: TerminalBenchRowsByModelName;
+  artificialAnalysisResourceLookup: ArtificialAnalysisBenchmarkResourceLookup;
+  harnessRowsByModel: TerminalBenchRowsByModelName;
 };
 
 function stringIdentity(value: unknown): string | null {
-	return typeof value === "string" && value.length > 0 ? value : null;
+  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 function finiteUnitScore(value: unknown): number | null {
-	const score = asFiniteNumber(value);
-	return score != null && score >= 0 && score <= 1 ? score : null;
+  const score = asFiniteNumber(value);
+  return score != null && score >= 0 && score <= 1 ? score : null;
 }
 
 function nonNegativeNumber(value: unknown): number | null {
-	const number = asFiniteNumber(value);
-	return number != null && number >= 0 ? number : null;
+  const number = asFiniteNumber(value);
+  return number != null && number >= 0 ? number : null;
 }
 
 function resourceObservation(
-	score: unknown,
-	row: ArtificialAnalysisBenchmarkResourceRow | null | undefined,
+  score: unknown,
+  row: ArtificialAnalysisBenchmarkResourceRow | null | undefined,
 ): Observation | null {
-	const parsedScore = finiteUnitScore(score) ?? finiteUnitScore(row?.score);
-	if (parsedScore == null && row == null) {
-		return null;
-	}
-	const modelId = stringIdentity(row?.model_id);
-	const model = stringIdentity(row?.model) ?? modelId;
-	if (modelId == null || model == null) {
-		return null;
-	}
-	return {
-		score: parsedScore,
-		cost_per_task_usd: nonNegativeNumber(row?.cost_per_task_usd),
-		seconds_per_task: nonNegativeNumber(row?.seconds_per_task),
-		tokens_per_task: nonNegativeNumber(row?.tokens_per_task),
-		input_tokens_per_task: nonNegativeNumber(row?.input_tokens_per_task),
-		output_tokens_per_task: nonNegativeNumber(row?.output_tokens_per_task),
-	};
+  const parsedScore = finiteUnitScore(score) ?? finiteUnitScore(row?.score);
+  if (parsedScore == null && row == null) {
+    return null;
+  }
+  const modelId = stringIdentity(row?.model_id);
+  const model = stringIdentity(row?.model) ?? modelId;
+  if (modelId == null || model == null) {
+    return null;
+  }
+  return {
+    score: parsedScore,
+    cost_per_task_usd: nonNegativeNumber(row?.cost_per_task_usd),
+    seconds_per_task: nonNegativeNumber(row?.seconds_per_task),
+    tokens_per_task: nonNegativeNumber(row?.tokens_per_task),
+    input_tokens_per_task: nonNegativeNumber(row?.input_tokens_per_task),
+    output_tokens_per_task: nonNegativeNumber(row?.output_tokens_per_task),
+  };
 }
 
 function harnessObservation(
-	row: TerminalBenchModelHarnessRow | null | undefined,
+  row: TerminalBenchModelHarnessRow | null | undefined,
 ): Observation | null {
-	if (row == null) {
-		return null;
-	}
-	return {
-		score: row.score,
-		cost_per_task_usd: row.cost_per_task_usd,
-		seconds_per_task: row.seconds_per_task,
-		tokens_per_task: null,
-		input_tokens_per_task: null,
-		output_tokens_per_task: null,
-	};
+  if (row == null) {
+    return null;
+  }
+  return {
+    score: row.score,
+    cost_per_task_usd: row.cost_per_task_usd,
+    seconds_per_task: row.seconds_per_task,
+    tokens_per_task: null,
+    input_tokens_per_task: null,
+    output_tokens_per_task: null,
+  };
 }
 
 /** Rewards harness coverage lightly by scoring the best observed execution path. */
 function aggregateScore(values: readonly (number | null)[]): number | null {
-	const scores = finiteScoreValues(values);
-	return scores.length === 0 ? null : Math.max(...scores);
+  const scores = finiteScoreValues(values);
+  return scores.length === 0 ? null : Math.max(...scores);
 }
 
-export function terminalBenchAggregateRow(
-	input: AggregateInput,
-): TerminalBenchAggregateRow | null {
-	const observations = [
-		resourceObservation(input.artificialAnalysisScore, input.resourceRow),
-		...(input.harnessRows ?? []).map(harnessObservation),
-	].filter((row): row is Observation => row != null);
-	const score = aggregateScore(observations.map((row) => row.score));
-	if (observations.length === 0 || score == null) {
-		return null;
-	}
-	return {
-		score: Number(score.toFixed(6)),
-		cost_per_task_usd: medianOfFinite(
-			observations.map((row) => row.cost_per_task_usd),
-		),
-		seconds_per_task: medianOfFinite(
-			observations.map((row) => row.seconds_per_task),
-		),
-		tokens_per_task: medianOfFinite(
-			observations.map((row) => row.tokens_per_task),
-		),
-		input_tokens_per_task: medianOfFinite(
-			observations.map((row) => row.input_tokens_per_task),
-		),
-		output_tokens_per_task: medianOfFinite(
-			observations.map((row) => row.output_tokens_per_task),
-		),
-	};
+export function terminalBenchAggregateRow(input: AggregateInput): TerminalBenchAggregateRow | null {
+  const observations = [
+    resourceObservation(input.artificialAnalysisScore, input.resourceRow),
+    ...(input.harnessRows ?? []).map(harnessObservation),
+  ].filter((row): row is Observation => row != null);
+  const score = aggregateScore(observations.map((row) => row.score));
+  if (observations.length === 0 || score == null) {
+    return null;
+  }
+  return {
+    score: Number(score.toFixed(6)),
+    cost_per_task_usd: medianOfFinite(observations.map((row) => row.cost_per_task_usd)),
+    seconds_per_task: medianOfFinite(observations.map((row) => row.seconds_per_task)),
+    tokens_per_task: medianOfFinite(observations.map((row) => row.tokens_per_task)),
+    input_tokens_per_task: medianOfFinite(observations.map((row) => row.input_tokens_per_task)),
+    output_tokens_per_task: medianOfFinite(observations.map((row) => row.output_tokens_per_task)),
+  };
 }
 
 export function findTerminalBenchAggregate(
-	candidateNames: unknown[],
-	lookups: SourceLookups,
-	artificialAnalysisScore?: unknown,
+  candidateNames: unknown[],
+  lookups: SourceLookups,
+  artificialAnalysisScore?: unknown,
 ): TerminalBenchAggregateRow | null {
-	const resourceRow = findArtificialAnalysisBenchmarkResourceRow(
-		"terminalbench_v21",
-		candidateNames,
-		lookups.artificialAnalysisResourceLookup,
-	);
-	const harnessRows = findTerminalBenchRows(
-		candidateNames,
-		lookups.harnessRowsByModel,
-	);
-	return terminalBenchAggregateRow({
-		artificialAnalysisScore,
-		resourceRow,
-		harnessRows,
-	});
+  const resourceRow = findArtificialAnalysisBenchmarkResourceRow(
+    "terminalbench_v21",
+    candidateNames,
+    lookups.artificialAnalysisResourceLookup,
+  );
+  const harnessRows = findTerminalBenchRows(candidateNames, lookups.harnessRowsByModel);
+  return terminalBenchAggregateRow({
+    artificialAnalysisScore,
+    resourceRow,
+    harnessRows,
+  });
 }

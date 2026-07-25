@@ -2,7 +2,4 @@
 
 export { STAGE_CONFIG } from "./stage";
 export { COLUMN_TOOLTIPS } from "./tooltips";
-export {
-	PRICE_PROFILES,
-	SIMULATION_PROFILES,
-} from "./usage-profiles";
+export { PRICE_PROFILES, SIMULATION_PROFILES } from "./usage-profiles";

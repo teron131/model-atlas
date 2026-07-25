@@ -9,340 +9,311 @@ import { modelVariantKey } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { scoreAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { BubbleScaleLegend, EmptyChart } from "./ChartComponents";
 import { linearBubbleRadius, valueDistribution } from "./chart-stats";
+import { BubbleScaleLegend, EmptyChart } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
-import styles from "./graphs.module.css";
 import { calloutLabelPlacements } from "./label-placement";
 import { shortLabel } from "./models";
 import { Panel } from "./Panel";
 import {
-	AxisTitles,
-	CornerDirectionArrow,
-	CursorCapture,
-	CursorProjectionLayer,
-	MedianCross,
-	ModelPointLabel,
-	PlotFrame,
-	PointHitTarget,
-	plotBoundsFor,
-	stableSvgNumber,
-	stableSvgScale,
-	useCursorProjection,
-	XAxisTicks,
-	YAxisTicks,
+  AxisTitles,
+  CornerDirectionArrow,
+  CursorCapture,
+  CursorProjectionLayer,
+  MedianCross,
+  ModelPointLabel,
+  plotBoundsFor,
+  PlotFrame,
+  PointHitTarget,
+  stableSvgNumber,
+  stableSvgScale,
+  useCursorProjection,
+  XAxisTicks,
+  YAxisTicks,
 } from "./PlotPrimitives";
 import type { HoverRow, HoverSetter } from "./types";
 
+import styles from "./graphs.module.css";
+
 const SCORE_AXIS_FORMAT_OPTIONS = {
-	formatTick: (tick: number) => tick.toFixed(0),
+  formatTick: (tick: number) => tick.toFixed(0),
 };
 const PARETO_CHART_WIDTH = 820;
 
 export function ParetoFrontierPanel({
-	models,
-	setHover,
+  models,
+  setHover,
 }: {
-	models: ModelAtlasModel[];
-	setHover: HoverSetter;
+  models: ModelAtlasModel[];
+  setHover: HoverSetter;
 }) {
-	const { cursorProjection, cursorHandlers, setCursorProjection } =
-		useCursorProjection();
-	const candidates = models
-		.filter(
-			(model) =>
-				finite(model.scores?.intelligence_score) &&
-				finite(model.scores?.value_score) &&
-				finite(model.cost?.blended_price) &&
-				Number(model.cost?.blended_price) > 0,
-		)
-		.sort(
-			(left, right) =>
-				Number(left.scores?.value_score) - Number(right.scores?.value_score),
-		);
+  const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
+  const candidates = models
+    .filter(
+      (model) =>
+        finite(model.scores?.intelligence_score) &&
+        finite(model.scores?.value_score) &&
+        finite(model.cost?.blended_price) &&
+        Number(model.cost?.blended_price) > 0,
+    )
+    .sort((left, right) => Number(left.scores?.value_score) - Number(right.scores?.value_score));
 
-	if (candidates.length === 0) {
-		return (
-			<Panel
-				captureWidth={PARETO_CHART_WIDTH}
-				title="Pareto frontier"
-				copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
-			>
-				<EmptyChart />
-			</Panel>
-		);
-	}
+  if (candidates.length === 0) {
+    return (
+      <Panel
+        captureWidth={PARETO_CHART_WIDTH}
+        title="Pareto frontier"
+        copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
+      >
+        <EmptyChart />
+      </Panel>
+    );
+  }
 
-	const width = PARETO_CHART_WIDTH;
-	const height = 500;
-	const margin = { top: 26, right: 34, bottom: 68, left: 62 };
-	const values = candidates.map((model) => Number(model.scores.value_score));
-	const scores = candidates.map((model) => model.scores.intelligence_score);
-	const frontierDescending: ModelAtlasModel[] = [];
-	let bestFromRight = -Infinity;
-	for (const model of [...candidates].sort(
-		(left, right) =>
-			Number(right.scores.value_score) - Number(left.scores.value_score),
-	)) {
-		const score = model.scores.intelligence_score;
-		if (score > bestFromRight) {
-			frontierDescending.push(model);
-			bestFromRight = score;
-		}
-	}
-	const frontier = frontierDescending.reverse();
-	const scoreDistribution = valueDistribution(scores);
-	const valueAxis = scoreAxisScale(values, SCORE_AXIS_FORMAT_OPTIONS);
-	const intelligenceAxis = scoreAxisScale(scores, SCORE_AXIS_FORMAT_OPTIONS);
-	const xDomain = valueAxis.domain;
-	const yDomain = intelligenceAxis.domain;
-	const x = scaleLinear()
-		.domain(xDomain)
-		.range([margin.left, width - margin.right])
-		.clamp(true);
-	const y = scaleLinear()
-		.domain(yDomain)
-		.range([height - margin.bottom, margin.top])
-		.clamp(true);
-	const xPoint = stableSvgScale(x);
-	const yPoint = stableSvgScale(y);
-	const medianValue = median(values) ?? xDomain[0];
-	const medianScore = median(scores) ?? 50;
-	const frontierIds = new Set(frontier.map(modelVariantKey));
-	const frontierSegments = pairs(frontier).map(
-		([fromModel, toModel], index) => {
-			const fromX = xPoint(Number(fromModel.scores.value_score));
-			const fromY = yPoint(fromModel.scores.intelligence_score);
-			const toX = xPoint(Number(toModel.scores.value_score));
-			const toY = yPoint(toModel.scores.intelligence_score);
-			return {
-				gradientId: `pareto-frontier-gradient-${index + 1}`,
-				fromColor: providerChartColor(fromModel.provider),
-				toColor: providerChartColor(toModel.provider),
-				fromX,
-				fromY,
-				toX,
-				toY,
-				path: `M${fromX},${fromY} H${toX} V${toY}`,
-			};
-		},
-	);
-	const plot = plotBoundsFor(width, height, margin);
-	const medianX = xPoint(medianValue);
-	const medianY = yPoint(medianScore);
-	const yTicks = intelligenceAxis.ticks;
-	const xTicks = valueAxis.ticks;
-	const plottedCandidates = candidates;
-	const bubbleValue = (model: ModelAtlasModel) =>
-		Number(model.scores.intelligence_score) *
-		Number(model.scores.agentic_score ?? 0);
-	const bubbleRadius = linearBubbleRadius(
-		plottedCandidates.map(bubbleValue),
-		3,
-		10,
-	);
-	const projectionPoints = plottedCandidates.map((model) => {
-		const xValue = Number(model.scores.value_score);
-		const yValue = model.scores.intelligence_score;
-		return {
-			x: xPoint(xValue),
-			y: yPoint(yValue),
-			xValue,
-			yValue,
-		};
-	});
-	const projectionHandlers = cursorHandlers({
-		bounds: plot,
-		points: projectionPoints,
-	});
-	const labelPlacements = calloutLabelPlacements({
-		bounds: plot,
-		obstacles: plottedCandidates.map((model) => ({
-			cx: xPoint(Number(model.scores.value_score)),
-			cy: yPoint(model.scores.intelligence_score),
-			radius: bubbleRadius(bubbleValue(model)),
-		})),
-		labels: frontier.map((model, index) => ({
-			key: modelVariantKey(model),
-			label: shortLabel(model),
-			cx: xPoint(Number(model.scores.value_score)),
-			cy: yPoint(model.scores.intelligence_score),
-			radius: bubbleRadius(bubbleValue(model)),
-			priority: frontier.length - index,
-		})),
-		fontSize: 11,
-		charWidth: 6.6,
-		lineHeight: 13,
-	});
+  const width = PARETO_CHART_WIDTH;
+  const height = 500;
+  const margin = { top: 26, right: 34, bottom: 68, left: 62 };
+  const values = candidates.map((model) => Number(model.scores.value_score));
+  const scores = candidates.map((model) => model.scores.intelligence_score);
+  const frontierDescending: ModelAtlasModel[] = [];
+  let bestFromRight = -Infinity;
+  for (const model of [...candidates].sort(
+    (left, right) => Number(right.scores.value_score) - Number(left.scores.value_score),
+  )) {
+    const score = model.scores.intelligence_score;
+    if (score > bestFromRight) {
+      frontierDescending.push(model);
+      bestFromRight = score;
+    }
+  }
+  const frontier = frontierDescending.reverse();
+  const scoreDistribution = valueDistribution(scores);
+  const valueAxis = scoreAxisScale(values, SCORE_AXIS_FORMAT_OPTIONS);
+  const intelligenceAxis = scoreAxisScale(scores, SCORE_AXIS_FORMAT_OPTIONS);
+  const xDomain = valueAxis.domain;
+  const yDomain = intelligenceAxis.domain;
+  const x = scaleLinear()
+    .domain(xDomain)
+    .range([margin.left, width - margin.right])
+    .clamp(true);
+  const y = scaleLinear()
+    .domain(yDomain)
+    .range([height - margin.bottom, margin.top])
+    .clamp(true);
+  const xPoint = stableSvgScale(x);
+  const yPoint = stableSvgScale(y);
+  const medianValue = median(values) ?? xDomain[0];
+  const medianScore = median(scores) ?? 50;
+  const frontierIds = new Set(frontier.map(modelVariantKey));
+  const frontierSegments = pairs(frontier).map(([fromModel, toModel], index) => {
+    const fromX = xPoint(Number(fromModel.scores.value_score));
+    const fromY = yPoint(fromModel.scores.intelligence_score);
+    const toX = xPoint(Number(toModel.scores.value_score));
+    const toY = yPoint(toModel.scores.intelligence_score);
+    return {
+      gradientId: `pareto-frontier-gradient-${index + 1}`,
+      fromColor: providerChartColor(fromModel.provider),
+      toColor: providerChartColor(toModel.provider),
+      fromX,
+      fromY,
+      toX,
+      toY,
+      path: `M${fromX},${fromY} H${toX} V${toY}`,
+    };
+  });
+  const plot = plotBoundsFor(width, height, margin);
+  const medianX = xPoint(medianValue);
+  const medianY = yPoint(medianScore);
+  const yTicks = intelligenceAxis.ticks;
+  const xTicks = valueAxis.ticks;
+  const plottedCandidates = candidates;
+  const bubbleValue = (model: ModelAtlasModel) =>
+    Number(model.scores.intelligence_score) * Number(model.scores.agentic_score ?? 0);
+  const bubbleRadius = linearBubbleRadius(plottedCandidates.map(bubbleValue), 3, 10);
+  const projectionPoints = plottedCandidates.map((model) => {
+    const xValue = Number(model.scores.value_score);
+    const yValue = model.scores.intelligence_score;
+    return {
+      x: xPoint(xValue),
+      y: yPoint(yValue),
+      xValue,
+      yValue,
+    };
+  });
+  const projectionHandlers = cursorHandlers({
+    bounds: plot,
+    points: projectionPoints,
+  });
+  const labelPlacements = calloutLabelPlacements({
+    bounds: plot,
+    obstacles: plottedCandidates.map((model) => ({
+      cx: xPoint(Number(model.scores.value_score)),
+      cy: yPoint(model.scores.intelligence_score),
+      radius: bubbleRadius(bubbleValue(model)),
+    })),
+    labels: frontier.map((model, index) => ({
+      key: modelVariantKey(model),
+      label: shortLabel(model),
+      cx: xPoint(Number(model.scores.value_score)),
+      cy: yPoint(model.scores.intelligence_score),
+      radius: bubbleRadius(bubbleValue(model)),
+      priority: frontier.length - index,
+    })),
+    fontSize: 11,
+    charWidth: 6.6,
+    lineHeight: 13,
+  });
 
-	return (
-		<Panel
-			captureWidth={PARETO_CHART_WIDTH}
-			title="Pareto frontier"
-			copy="INTELLIGENCE score plotted against VALUE score."
-			summary={
-				<BoxWhiskerSummary
-					label="Intelligence score"
-					distribution={scoreDistribution}
-					domainMax={100}
-					showDomainEndpoints
-				/>
-			}
-			note={
-				<>Step line: displayed INTELLIGENCE versus VALUE tradeoff envelope.</>
-			}
-		>
-			<div className={styles.chartToolbar}>
-				<div className={styles.chartToolbarCaption}>
-					<BubbleScaleLegend metric="Intel × Agent" />
-				</div>
-			</div>
-			<div
-				className={styles.chartWrap}
-				style={{ "--chart-max-width": `${width}px` } as CSSProperties}
-			>
-				<svg
-					viewBox={`0 0 ${width} ${height}`}
-					role="img"
-					aria-label="Intelligence by Value score scatter plot"
-					{...projectionHandlers}
-				>
-					<defs>
-						{frontierSegments.map((segment) => (
-							<linearGradient
-								id={segment.gradientId}
-								key={segment.gradientId}
-								gradientUnits="userSpaceOnUse"
-								x1={segment.fromX}
-								y1={segment.fromY}
-								x2={segment.toX}
-								y2={segment.toY}
-							>
-								<stop offset="0" stopColor={segment.fromColor} />
-								<stop offset="1" stopColor={segment.toColor} />
-							</linearGradient>
-						))}
-					</defs>
-					<PlotFrame width={width} height={height} margin={margin} />
-					<CursorCapture bounds={plot} />
-					<YAxisTicks
-						ticks={yTicks}
-						yPoint={yPoint}
-						x={plot.left}
-						format={(tick) => String(tick)}
-						keyPrefix="frontier"
-					/>
-					<XAxisTicks
-						ticks={xTicks}
-						xPoint={xPoint}
-						y={plot.bottom}
-						format={(tick) => tick.toFixed(0)}
-						keyPrefix="frontier"
-					/>
-					<AxisTitles
-						width={width}
-						height={height}
-						margin={margin}
-						x="Value score"
-						y="Intelligence score"
-						xTitleOffset={48}
-					/>
-					<MedianCross
-						x={medianX}
-						y={medianY}
-						bounds={plot}
-						xLabel={medianValue.toFixed(0)}
-						yLabel={medianScore.toFixed(0)}
-					/>
-					<CornerDirectionArrow
-						bounds={plot}
-						corner="upper-right"
-						label="Better"
-					/>
-					<CursorProjectionLayer
-						projection={cursorProjection}
-						bounds={plot}
-						xLabel={cursorProjection ? cursorProjection.xValue.toFixed(1) : ""}
-						yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
-					/>
-					{frontierSegments.map((segment) => (
-						<path
-							className={styles.frontier}
-							d={segment.path}
-							key={segment.gradientId}
-							stroke={`url(#${segment.gradientId})`}
-						/>
-					))}
-					{plottedCandidates.map((model) => {
-						const cx = xPoint(Number(model.scores.value_score));
-						const cy = yPoint(model.scores.intelligence_score);
-						const isFrontier = frontierIds.has(modelVariantKey(model));
-						const rows: HoverRow[] = [
-							[
-								"Intelligence score",
-								fmtTooltipScore(model.scores.intelligence_score),
-							],
-							["Agentic score", fmtTooltipScore(model.scores.agentic_score)],
-							["Speed score", fmtTooltipScore(model.scores.speed_score)],
-							["Value score", fmtTooltipScore(model.scores.value_score)],
-							[
-								"Blended price",
-								fmtTooltipMoney(Number(model.cost?.blended_price)),
-							],
-						];
-						return (
-							<g
-								className={
-									isFrontier
-										? styles.frontierPoint
-										: styles.paretoBackgroundPoint
-								}
-								key={modelVariantKey(model) || `${cx}-${cy}`}
-							>
-								<circle
-									className={styles.datavizPoint}
-									cx={cx}
-									cy={cy}
-									r={stableSvgNumber(bubbleRadius(bubbleValue(model)))}
-									fill={providerChartColor(model.provider)}
-									stroke={
-										isFrontier
-											? "var(--chart-point-stroke-strong)"
-											: "var(--chart-point-stroke)"
-									}
-									strokeWidth={isFrontier ? 1.4 : 1}
-									opacity={1}
-								/>
-								<PointHitTarget
-									cx={cx}
-									cy={cy}
-									model={model}
-									rows={rows}
-									setHover={setHover}
-									snapProjection={{
-										x: cx,
-										y: cy,
-										xValue: Number(model.scores.value_score),
-										yValue: model.scores.intelligence_score,
-									}}
-									setCursorProjection={setCursorProjection}
-								/>
-								{isFrontier ? (
-									<ModelPointLabel
-										model={model}
-										cx={cx}
-										cy={cy}
-										width={width}
-										margin={margin}
-										height={height}
-										placement={labelPlacements.get(modelVariantKey(model))}
-									/>
-								) : null}
-							</g>
-						);
-					})}
-				</svg>
-			</div>
-		</Panel>
-	);
+  return (
+    <Panel
+      captureWidth={PARETO_CHART_WIDTH}
+      title="Pareto frontier"
+      copy="INTELLIGENCE score plotted against VALUE score."
+      summary={
+        <BoxWhiskerSummary
+          label="Intelligence score"
+          distribution={scoreDistribution}
+          domainMax={100}
+          showDomainEndpoints
+        />
+      }
+      note={<>Step line: displayed INTELLIGENCE versus VALUE tradeoff envelope.</>}
+    >
+      <div className={styles.chartToolbar}>
+        <div className={styles.chartToolbarCaption}>
+          <BubbleScaleLegend metric="Intel × Agent" />
+        </div>
+      </div>
+      <div
+        className={styles.chartWrap}
+        style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      >
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label="Intelligence by Value score scatter plot"
+          {...projectionHandlers}
+        >
+          <defs>
+            {frontierSegments.map((segment) => (
+              <linearGradient
+                id={segment.gradientId}
+                key={segment.gradientId}
+                gradientUnits="userSpaceOnUse"
+                x1={segment.fromX}
+                y1={segment.fromY}
+                x2={segment.toX}
+                y2={segment.toY}
+              >
+                <stop offset="0" stopColor={segment.fromColor} />
+                <stop offset="1" stopColor={segment.toColor} />
+              </linearGradient>
+            ))}
+          </defs>
+          <PlotFrame width={width} height={height} margin={margin} />
+          <CursorCapture bounds={plot} />
+          <YAxisTicks
+            ticks={yTicks}
+            yPoint={yPoint}
+            x={plot.left}
+            format={(tick) => String(tick)}
+            keyPrefix="frontier"
+          />
+          <XAxisTicks
+            ticks={xTicks}
+            xPoint={xPoint}
+            y={plot.bottom}
+            format={(tick) => tick.toFixed(0)}
+            keyPrefix="frontier"
+          />
+          <AxisTitles
+            width={width}
+            height={height}
+            margin={margin}
+            x="Value score"
+            y="Intelligence score"
+            xTitleOffset={48}
+          />
+          <MedianCross
+            x={medianX}
+            y={medianY}
+            bounds={plot}
+            xLabel={medianValue.toFixed(0)}
+            yLabel={medianScore.toFixed(0)}
+          />
+          <CornerDirectionArrow bounds={plot} corner="upper-right" label="Better" />
+          <CursorProjectionLayer
+            projection={cursorProjection}
+            bounds={plot}
+            xLabel={cursorProjection ? cursorProjection.xValue.toFixed(1) : ""}
+            yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
+          />
+          {frontierSegments.map((segment) => (
+            <path
+              className={styles.frontier}
+              d={segment.path}
+              key={segment.gradientId}
+              stroke={`url(#${segment.gradientId})`}
+            />
+          ))}
+          {plottedCandidates.map((model) => {
+            const cx = xPoint(Number(model.scores.value_score));
+            const cy = yPoint(model.scores.intelligence_score);
+            const isFrontier = frontierIds.has(modelVariantKey(model));
+            const rows: HoverRow[] = [
+              ["Intelligence score", fmtTooltipScore(model.scores.intelligence_score)],
+              ["Agentic score", fmtTooltipScore(model.scores.agentic_score)],
+              ["Speed score", fmtTooltipScore(model.scores.speed_score)],
+              ["Value score", fmtTooltipScore(model.scores.value_score)],
+              ["Blended price", fmtTooltipMoney(Number(model.cost?.blended_price))],
+            ];
+            return (
+              <g
+                className={isFrontier ? styles.frontierPoint : styles.paretoBackgroundPoint}
+                key={modelVariantKey(model) || `${cx}-${cy}`}
+              >
+                <circle
+                  className={styles.datavizPoint}
+                  cx={cx}
+                  cy={cy}
+                  r={stableSvgNumber(bubbleRadius(bubbleValue(model)))}
+                  fill={providerChartColor(model.provider)}
+                  stroke={
+                    isFrontier ? "var(--chart-point-stroke-strong)" : "var(--chart-point-stroke)"
+                  }
+                  strokeWidth={isFrontier ? 1.4 : 1}
+                  opacity={1}
+                />
+                <PointHitTarget
+                  cx={cx}
+                  cy={cy}
+                  model={model}
+                  rows={rows}
+                  setHover={setHover}
+                  snapProjection={{
+                    x: cx,
+                    y: cy,
+                    xValue: Number(model.scores.value_score),
+                    yValue: model.scores.intelligence_score,
+                  }}
+                  setCursorProjection={setCursorProjection}
+                />
+                {isFrontier ? (
+                  <ModelPointLabel
+                    model={model}
+                    cx={cx}
+                    cy={cy}
+                    width={width}
+                    margin={margin}
+                    height={height}
+                    placement={labelPlacements.get(modelVariantKey(model))}
+                  />
+                ) : null}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </Panel>
+  );
 }

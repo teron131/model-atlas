@@ -1,60 +1,61 @@
 /** Shared graph view contracts. */
 
 import type { Dispatch, SetStateAction } from "react";
+
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 
 export type ProviderOption = {
-	slug: string;
-	label: string;
-	count: number;
-	color: string;
-	logo: string;
+  slug: string;
+  label: string;
+  count: number;
+  color: string;
+  logo: string;
 };
 
 export type HoverRow = readonly [string, string];
 
 export type HoverState = {
-	left: number;
-	top: number;
-	model: string;
-	provider: string;
-	color: string;
-	logo: string;
-	rows: HoverRow[];
+  left: number;
+  top: number;
+  model: string;
+  provider: string;
+  color: string;
+  logo: string;
+  rows: HoverRow[];
 };
 
 export type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
 
 export type Point = {
-	model: ModelAtlasModel;
-	x: number;
-	y: number;
+  model: ModelAtlasModel;
+  x: number;
+  y: number;
 };
 
 export type InteractionContext = {
-	frontierScoreByModel: ReadonlyMap<string, number>;
+  frontierScoreByModel: ReadonlyMap<string, number>;
 };
 
 export type InteractionConfig = {
-	key: string;
-	title: string;
-	fieldLabel: string;
-	lowerIsBetter: boolean;
-	logScale: boolean;
-	ticks: number[];
-	get: (model: ModelAtlasModel, context: InteractionContext) => number | null;
-	format: (value: number) => string;
-	tooltipFormat: (value: number) => string;
-	xLabel: string;
-	hoverLabel?: string;
-	insight?: string;
+  key: string;
+  title: string;
+  fieldLabel: string;
+  lowerIsBetter: boolean;
+  logScale: boolean;
+  ticks: number[];
+  get: (model: ModelAtlasModel, context: InteractionContext) => number | null;
+  format: (value: number) => string;
+  tooltipFormat: (value: number) => string;
+  xLabel: string;
+  hoverLabel?: string;
+  insight?: string;
 };
 
 export type Margin = {
-	top: number;
-	right: number;
-	bottom: number;
-	left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 };
 
 export type ModelLimit = 30 | 60 | "all";

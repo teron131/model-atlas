@@ -1,15 +1,15 @@
 import {
-	buildBlueprintBenchMap,
-	findBlueprintBenchScore,
-	processBlueprintBenchPageHtml,
+  buildBlueprintBenchMap,
+  findBlueprintBenchScore,
+  processBlueprintBenchPageHtml,
 } from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
-	const actualJson = JSON.stringify(actual);
-	const expectedJson = JSON.stringify(expected);
-	if (actualJson !== expectedJson) {
-		throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
-	}
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  if (actualJson !== expectedJson) {
+    throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
+  }
 }
 
 const rows = processBlueprintBenchPageHtml(`
@@ -29,28 +29,22 @@ const rows = processBlueprintBenchPageHtml(`
 `);
 
 assertDeepEqual(rows, [
-	{
-		model: "Claude Fable 5",
-		score: 0.386,
-	},
-	{
-		model: "GPT 5.5",
-		score: 0.362,
-	},
-	{
-		model: "Gemini 3 Flash",
-		score: 0,
-	},
+  {
+    model: "Claude Fable 5",
+    score: 0.386,
+  },
+  {
+    model: "GPT 5.5",
+    score: 0.362,
+  },
+  {
+    model: "Gemini 3 Flash",
+    score: 0,
+  },
 ]);
 
 const rowsByModelName = buildBlueprintBenchMap(rows);
 
-assertDeepEqual(
-	findBlueprintBenchScore(["missing", "GPT-5.5"], rowsByModelName),
-	0.362,
-);
+assertDeepEqual(findBlueprintBenchScore(["missing", "GPT-5.5"], rowsByModelName), 0.362);
 
-assertDeepEqual(
-	findBlueprintBenchScore(["Gemini 3 Flash"], rowsByModelName),
-	0,
-);
+assertDeepEqual(findBlueprintBenchScore(["Gemini 3 Flash"], rowsByModelName), 0);
