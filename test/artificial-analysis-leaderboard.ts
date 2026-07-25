@@ -338,7 +338,6 @@ const scoringConfig = {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
   },
-  columnTooltips: {},
 } as const;
 const imputationByModel = buildBenchmarkImputationByModel(scoringRows, scoringConfig);
 const qualityScoringContext = buildQualityScoringContext(scoringRows, scoringConfig);

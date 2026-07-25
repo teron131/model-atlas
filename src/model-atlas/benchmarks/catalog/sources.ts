@@ -9,7 +9,7 @@ import type {
 } from "../factory";
 import type { BenchmarkKey } from "./portfolio";
 
-export const BENCHMARK_OBSERVATION_SOURCES = {
+export const GENERIC_BENCHMARK_SOURCES = {
   browsecomp: {
     group: "sparse",
     id: "zeroeval",
@@ -114,6 +114,16 @@ export const BENCHMARK_OBSERVATION_SOURCES = {
     },
     sourceDataKey: "frontierMathTier4",
     sourceRowsKey: "frontierMathTier4Rows",
+  },
+  gdp_pdf: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/leaderboards/gdp-pdf",
+    },
+    sourceDataKey: "gdpPdf",
+    sourceRowsKey: "gdpPdfRows",
   },
   handbook_md: {
     group: "surge",
@@ -225,7 +235,7 @@ export const BENCHMARK_OBSERVATION_SOURCES = {
   >
 >;
 
-export const BENCHMARK_SOURCE_OVERRIDES = {
+export const SPECIALIZED_BENCHMARK_SOURCES = {
   aa_intelligence_index: {
     inputs: [
       {
@@ -403,16 +413,6 @@ export const BENCHMARK_SOURCE_OVERRIDES = {
         id: "cognition",
         roles: ["observation", "resource"],
         runtime: { key: "frontier_code", publicRows: true },
-      },
-    ],
-  },
-  gdp_pdf: {
-    inputs: [
-      {
-        group: "surge",
-        id: "surge",
-        roles: ["observation"],
-        runtime: { key: "gdp_pdf", publicRows: true },
       },
     ],
   },

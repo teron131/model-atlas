@@ -13,7 +13,6 @@ import {
 } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { buildBlueprintBenchMap } from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/benchmarks/scrapers/cursorbench";
-import { buildGdpPdfMap } from "../src/model-atlas/benchmarks/scrapers/surge/gdp-pdf";
 import { buildRiemannBenchMap } from "../src/model-atlas/benchmarks/scrapers/surge/riemann-bench";
 import {
   buildValsIndexMap,
@@ -553,12 +552,28 @@ function modelStatsSourceData(
       score: 0.36,
     },
   ];
-  const gdpPdfModelScoreRows = [
+  const gdpPdfRows: BenchmarkObservationRow[] = [
     {
-      provider: "Google",
+      benchmark_key: "gdp_pdf",
+      source_url: "https://surgehq.ai/leaderboards/gdp-pdf",
+      model_id: null,
       model: "Example 2.5 Flash (High reasoning)",
-      score: 0.25,
-      last_updated: "06/06/2026",
+      base_model: "Example 2.5 Flash",
+      reasoning_effort: "high",
+      model_creator_id: null,
+      model_creator: "Google",
+      inference_provider: null,
+      rank: 1,
+      reported_value: 25,
+      reported_unit: "percent",
+      canonical_value: 0.25,
+      canonical_unit: "proportion",
+      score_eligible: true,
+      standard_error: null,
+      confidence_low: null,
+      confidence_high: null,
+      observed_at: "06/06/2026",
+      metadata: {},
     },
   ];
   const riemannBenchModelScoreRows = [
@@ -690,8 +705,8 @@ function modelStatsSourceData(
     frontierCode: { rows: [], rowsByModelName: new Map() },
     frontierMathTier4: { rows: [], rowsByModelName: new Map() },
     gdpPdf: {
-      rows: gdpPdfModelScoreRows,
-      rowsByModelName: buildGdpPdfMap(gdpPdfModelScoreRows),
+      rows: gdpPdfRows,
+      rowsByModelName: buildBenchmarkObservationLookup(gdpPdfRows),
     },
     handbookMd: { rows: [], rowsByModelName: new Map() },
     harveyLab: { rows: [], rowsByModelName: new Map() },

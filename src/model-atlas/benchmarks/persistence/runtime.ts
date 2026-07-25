@@ -11,7 +11,11 @@ import type {
   SourceSnapshotStatus,
 } from "../../ingest/types";
 import type { DatabaseWriter } from "../../ingest/writers/database";
-import { BENCHMARK_OBSERVATION_RAW_TABLE, type BenchmarkRuntimeKeyFor } from "../registry";
+import {
+  BENCHMARK_OBSERVATION_RAW_TABLE,
+  type BenchmarkRuntimeKey,
+  type BenchmarkRuntimeKeyFor,
+} from "../registry";
 import { agentArenaPersistence } from "./agent-arena";
 import { agentsLastExamPersistence } from "./agents-last-exam";
 import { aleBenchPersistence } from "./ale-bench";
@@ -19,7 +23,6 @@ import { blueprintBenchPersistence } from "./blueprint-bench";
 import { cursorBenchPersistence } from "./cursorbench";
 import { deepSWEPersistence } from "./deep-swe";
 import { frontierCodePersistence } from "./frontier-code";
-import { gdpPdfPersistence } from "./gdp-pdf";
 import { harveyLabPersistence } from "./harvey-lab";
 import { mercorApexAgentsPersistence } from "./mercor-apex-agents";
 import { insertBenchmarkObservationRows } from "./observation";
@@ -73,7 +76,6 @@ const SPARSE_BENCHMARK_RUNTIMES = {
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"sparse">, object>;
 
 const SURGE_BENCHMARK_RUNTIMES = {
-  gdp_pdf: benchmarkRuntime(gdpPdfPersistence),
   riemann_bench: benchmarkRuntime(riemannBenchPersistence),
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"surge">, object>;
 
@@ -90,7 +92,6 @@ const BENCHMARK_RUNTIMES = {
 } as const;
 
 type BenchmarkRuntimes = typeof BENCHMARK_RUNTIMES;
-type BenchmarkRuntimeKey = keyof BenchmarkRuntimes;
 type BenchmarkRuntimeValue = BenchmarkRuntimes[BenchmarkRuntimeKey];
 
 export type BenchmarkSnapshotCaches = {

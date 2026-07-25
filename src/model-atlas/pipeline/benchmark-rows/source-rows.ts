@@ -100,11 +100,6 @@ function benchmarkObservationDrafts(rows: readonly BenchmarkObservationRow[]): B
 
 function surgeBenchmarkRowDrafts(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
   return [
-    ...benchmarkRowDrafts("gdp_pdf", sourceData.gdpPdf.rows, (row) => ({
-      label: row.model,
-      provider: row.provider,
-      value: row.score,
-    })),
     ...benchmarkRowDrafts("riemann_bench", sourceData.riemannBench.rows, (row) => ({
       label: row.model,
       provider: row.provider,

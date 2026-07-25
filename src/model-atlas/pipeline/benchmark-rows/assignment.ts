@@ -20,7 +20,6 @@ import {
   findArtificialAnalysisBenchmarkResourceRow,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { findBlueprintBenchScore } from "../../benchmarks/scrapers/blueprint-bench";
-import { findGdpPdfScore } from "../../benchmarks/scrapers/surge/gdp-pdf";
 import { findRiemannBenchScore } from "../../benchmarks/scrapers/surge/riemann-bench";
 import { findValsIndexScore } from "../../benchmarks/scrapers/vals/index-benchmark";
 import { modelNameIdentityKey } from "../../identity";
@@ -54,7 +53,6 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
   deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
-  gdpPdf: Pick<ModelAtlasSourceData["gdpPdf"], "rowsByModelName">;
   harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
   mercorApexAgents: Pick<ModelAtlasSourceData["mercorApexAgents"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
@@ -437,10 +435,6 @@ export function buildDefaultVariantBenchmarks(
     modelNameCandidates,
     targetReasoningEffort,
   });
-  const gdpPdfScore = findGdpPdfScore(modelNameCandidates, lookups.gdpPdf.rowsByModelName);
-  if (gdpPdfScore != null) {
-    benchmarks.gdp_pdf = gdpPdfScore;
-  }
   const harveyLabRow = findEffortSourceRow(
     modelNameCandidates,
     targetReasoningEffort,

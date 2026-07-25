@@ -334,17 +334,6 @@ CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS gdp_pdf_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	provider TEXT,
-	model TEXT NOT NULL,
-	score REAL NOT NULL,
-	last_updated TEXT,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

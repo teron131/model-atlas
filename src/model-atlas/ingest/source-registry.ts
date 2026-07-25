@@ -46,7 +46,7 @@ const BENCHMARK_RUNTIME_RAW_SOURCE_TABLES = Object.fromEntries(
 ) as Record<BenchmarkRuntimeKey, `${BenchmarkRuntimeKey}_raw_rows`>;
 
 const BENCHMARK_OBSERVATION_RAW_SOURCE_TABLES = Object.fromEntries(
-  BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.rawSourceKey, binding.rawTable]),
+  BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.benchmark, binding.rawTable]),
 ) as Record<(typeof BENCHMARK_OBSERVATION_KEYS)[number], string>;
 
 export const RAW_SOURCE_TABLES = {
@@ -81,7 +81,6 @@ export const SOURCE_URLS = {
   cursorbench: "https://cursor.com/cursorbench",
   deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
   frontier_code: "https://cognition.com/frontiercode",
-  gdp_pdf: "https://surgehq.ai/leaderboards/gdp-pdf",
   vals_harvey_lab: "https://www.vals.ai/benchmarks/hlab",
   mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
   riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",

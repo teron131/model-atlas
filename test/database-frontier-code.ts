@@ -2,14 +2,14 @@
 
 import assert from "node:assert/strict";
 
+import { readFrontierCodeRawCache } from "../src/model-atlas/benchmarks/persistence/frontier-code";
+import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import { processFrontierCodePayload } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readFrontierCodeRawCache } from "../src/model-atlas/ingest/cache";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
-  insertBenchmarkRawRows,
   insertModelBenchmarks,
   insertModels,
   insertModelTaskMetrics,
