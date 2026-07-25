@@ -105,7 +105,6 @@ function benchmarkValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
     asFiniteNumber(benchmarks.mmmu_pro),
     asFiniteNumber(benchmarks.scicode),
     asFiniteNumber(benchmarks.tau_banking),
-    asFiniteNumber(benchmarks.terminalbench_v21),
   ];
 }
 
@@ -160,11 +159,11 @@ export function insertArtificialAnalysisRawModels(
 			agentic_index, coding_index, omniscience_index, omniscience_accuracy,
 			apex_agents, critpt, gdpval_normalized, gpqa, harvey_lab, hle,
 			itbench_sre, lcr,
-			mmmu_pro, scicode, tau_banking, terminalbench_v21, input_cost,
+			mmmu_pro, scicode, tau_banking, input_cost,
 			reasoning_cost, output_cost, total_cost, input_tokens, reasoning_tokens,
 			answer_tokens, output_tokens, total_tokens, cost_per_task,
 			seconds_per_task, output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 55 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 54 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
     const selectedRow =

@@ -193,8 +193,8 @@ const effortResourceRow = (
   reasoningEffort: string,
   secondsPerTask: number,
 ): ArtificialAnalysisBenchmarkResourceRow => ({
-  benchmark_key: "terminalbench_v21",
-  source_url: "https://example.com/terminalbench",
+  benchmark_key: "hle",
+  source_url: "https://example.com/hle",
   model_id: "openai/gpt-test",
   model: `GPT Test (${reasoningEffort})`,
   provider: "OpenAI",

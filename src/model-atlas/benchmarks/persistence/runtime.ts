@@ -22,12 +22,12 @@ import { aleBenchPersistence } from "./ale-bench";
 import { blueprintBenchPersistence } from "./blueprint-bench";
 import { cursorBenchPersistence } from "./cursorbench";
 import { deepSWEPersistence } from "./deep-swe";
+import { frontierBenchPersistence } from "./frontier-bench";
 import { frontierCodePersistence } from "./frontier-code";
 import { harveyLabPersistence } from "./harvey-lab";
 import { mercorApexAgentsPersistence } from "./mercor-apex-agents";
 import { insertBenchmarkObservationRows } from "./observation";
 import { riemannBenchPersistence } from "./riemann-bench";
-import { terminalBenchPersistence } from "./terminal-bench";
 import { valsIndexPersistence } from "./vals-index";
 import { vendingBench2Persistence } from "./vending-bench-2";
 
@@ -70,6 +70,7 @@ const SPARSE_BENCHMARK_RUNTIMES = {
   blueprint_bench_2: benchmarkRuntime(blueprintBenchPersistence),
   cursorbench: benchmarkRuntime(cursorBenchPersistence),
   deep_swe: benchmarkRuntime(deepSWEPersistence),
+  frontier_bench: benchmarkRuntime(frontierBenchPersistence),
   frontier_code: benchmarkRuntime(frontierCodePersistence),
   mercor_apex_agents: benchmarkRuntime(mercorApexAgentsPersistence),
   vending_bench_2: benchmarkRuntime(vendingBench2Persistence),
@@ -81,7 +82,6 @@ const SURGE_BENCHMARK_RUNTIMES = {
 
 const VALS_BENCHMARK_RUNTIMES = {
   vals_harvey_lab: benchmarkRuntime(harveyLabPersistence),
-  vals_terminal_bench: benchmarkRuntime(terminalBenchPersistence),
   vals_index: benchmarkRuntime(valsIndexPersistence),
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"vals">, object>;
 

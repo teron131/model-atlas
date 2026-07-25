@@ -41,10 +41,10 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   blueprintBenchRows: readonly DbBenchmarkRow[];
   cursorBenchRows: readonly DbBenchmarkRow[];
   deepSWERows: readonly DbBenchmarkRow[];
+  frontierBenchRows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
   harveyLabRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
-  terminalBenchRows: readonly DbBenchmarkRow[];
   valsIndexRows: readonly DbBenchmarkRow[];
   vendingBench2Rows: readonly DbBenchmarkRow[];
 };
@@ -187,6 +187,15 @@ const SPARSE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.pass_at_1,
     })),
+  frontier_bench: (rows) =>
+    rows.frontierBenchRows.map((row) => ({
+      key: "frontier_bench",
+      id: stringValue(row.base_model),
+      identity: stringValue(row.base_model),
+      label: stringValue(row.model),
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   frontier_code: (rows) =>
     rows.frontierCodeRows.flatMap((row) =>
       row.score_eligible === 1
@@ -235,13 +244,6 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
       rows: rows.riemannBenchRows,
       value: (row) => row.score,
       providerColumn: "provider",
-    }),
-    ...dbSourceDrafts({
-      key: "terminalbench_v21",
-      rows: rows.terminalBenchRows,
-      value: (row) => row.score,
-      providerColumn: "provider",
-      rowKind: "overall",
     }),
     ...dbSourceDrafts({
       key: "vals_index",

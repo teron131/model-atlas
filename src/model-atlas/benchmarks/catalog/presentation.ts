@@ -181,6 +181,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "finance agent work"],
     ],
   },
+  frontier_bench: {
+    title: "Frontier-Bench",
+    body: "Containerized terminal and software-workflow benchmark over difficult multi-domain tasks. Model Atlas scores the strongest displayed agent for each exact model effort and retains every model-agent row with its standard error.",
+    rows: [
+      ["Source", "Frontier-Bench"],
+      ["Metric", "task accuracy"],
+      ["Role", "terminal and software agent work"],
+    ],
+  },
   frontier_code: {
     title: "FrontierCode",
     body: "Cognition's repository-scale benchmark of code quality and mergeability. Model Atlas uses the FrontierCode 1.1 Main score and preserves every effort, harness, and Extended result as source evidence.",
@@ -330,14 +339,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "banking agent work"],
     ],
   },
-  terminalbench_v21: {
-    title: "Terminal-Bench 2.1",
-    body: "Best matched AA or Vals terminal-agent score for command-line task execution.",
-    rows: [
-      ["Source", "Artificial Analysis & Vals"],
-      ["Role", "terminal agent work"],
-    ],
-  },
   toolathlon: {
     title: "Toolathlon",
     body: "Multi-tool workflow benchmark from ZeroEval. Model Atlas uses the LLM Stats score.",
@@ -412,6 +413,7 @@ export const BENCHMARK_LABELS = {
   enterprisebench_corecraft: "EnterpriseBench CoreCraft",
   epoch_capabilities_index: "Epoch Capabilities Index",
   finance_agent_v2: "Finance Agent V2",
+  frontier_bench: "Frontier-Bench",
   frontier_code: "FrontierCode",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
@@ -430,7 +432,6 @@ export const BENCHMARK_LABELS = {
   riemann_bench: "Riemann-bench",
   scicode: "SciCode",
   tau_banking: "tau3 Banking",
-  terminalbench_v21: "Terminal-Bench 2.1",
   toolathlon: "Toolathlon",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
@@ -457,6 +458,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "cursorbench",
   "deep_swe",
   "emb",
+  "frontier_bench",
   "frontier_code",
   "frontiermath_tier_4",
   "gdp_pdf",
@@ -469,7 +471,6 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "programbench",
   "proofbench",
   "riemann_bench",
-  "terminalbench_v21",
   "aa_intelligence_index",
   "browsecomp",
   "chess_puzzles",
@@ -736,50 +737,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "tau3 Tok",
     },
   ],
-  terminalbench_v21: [
-    {
-      key: "terminalBenchCost",
-      metric: "cost",
-      direction: "ascending",
-      label: "TB$",
-      tooltip: {
-        title: "Terminal-Bench 2.1 cost per task ↓",
-        body: "Median available task cost for Terminal-Bench 2.1.",
-        details: [
-          ["Source", "Artificial Analysis & Vals"],
-          ["Metric", "median cost per task"],
-        ],
-      },
-    },
-    {
-      key: "terminalBenchSeconds",
-      metric: "seconds",
-      direction: "ascending",
-      label: "TB Sec",
-      tooltip: {
-        title: "Terminal-Bench 2.1 seconds per task ↓",
-        body: "Median available task runtime for Terminal-Bench 2.1.",
-        details: [
-          ["Source", "Artificial Analysis & Vals"],
-          ["Metric", "median runtime per task"],
-        ],
-      },
-    },
-    {
-      key: "terminalBenchTokens",
-      metric: "tokens",
-      direction: "ascending",
-      label: "TB Tok",
-      tooltip: {
-        title: "Terminal-Bench 2.1 tokens per task ↓",
-        body: "Artificial Analysis reported token use for Terminal-Bench 2.1.",
-        details: [
-          ["Source", "Artificial Analysis"],
-          ["Metric", "AA tokens per task"],
-        ],
-      },
-    },
-  ],
 } as const satisfies Partial<Record<BenchmarkKey, readonly BenchmarkTaskMetricColumnFacet[]>>;
 
 export const BENCHMARK_COLUMNS = {
@@ -909,6 +866,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  frontier_bench: {
+    key: "frontierBench",
+    label: "FBench",
+    format: "percent",
+    defaultSort: "descending",
+  },
   frontier_code: {
     key: "frontierCode",
     label: "FCode",
@@ -1014,12 +977,6 @@ export const BENCHMARK_COLUMNS = {
   tau_banking: {
     key: "tauBanking",
     label: "tau3",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  terminalbench_v21: {
-    key: "terminalBench",
-    label: "TBench",
     format: "percent",
     defaultSort: "descending",
   },

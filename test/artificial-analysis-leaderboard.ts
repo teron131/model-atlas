@@ -48,7 +48,6 @@ const rows = processArtificialAnalysisLeaderboardRows(
       critpt: 0.31,
       scicode: 0.42,
       tauBanking: 0.52,
-      terminalbenchV21: 0.53,
       itbenchSre: 0.31,
       mmmuPro: 0.24,
     },
@@ -59,7 +58,6 @@ const rows = processArtificialAnalysisLeaderboardRows(
       modelCreatorSlug: "acme",
       intelligenceIndex: 65,
       scicode: 0.36,
-      terminalbenchV21: 0.47,
     },
     {
       slug: "gamma",
@@ -82,11 +80,9 @@ assertDeepEqual(rows[0]?.benchmarks, {
   mmmu_pro: 0.24,
   scicode: 0.42,
   tau_banking: 0.52,
-  terminalbench_v21: 0.53,
 });
 assertDeepEqual(rows[1]?.benchmarks, {
   scicode: 0.36,
-  terminalbench_v21: 0.47,
 });
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
@@ -156,7 +152,6 @@ assertDeepEqual(
         modelCreatorSlug: "anthropic",
         intelligence_index: 64.9,
         agentic_index: 80.5,
-        terminalbench_v21: 0.72,
         tauBanking: 0.58,
         input_cost: 10,
         output_cost: 50,
@@ -202,7 +197,6 @@ assertDeepEqual(
       },
       benchmarks: {
         tau_banking: 0.58,
-        terminalbench_v21: 0.72,
       },
     },
   ],
@@ -227,7 +221,7 @@ const scoringRows = [
       gdpval_normalized: 0.4,
       scicode: 0.4,
       tau_banking: 0.4,
-      terminalbench_v21: 0.4,
+      frontier_bench: 0.4,
       apex_agents: 0.1,
     },
   },
@@ -240,7 +234,7 @@ const scoringRows = [
       gdpval_normalized: 0.6,
       scicode: 0.6,
       tau_banking: 0.6,
-      terminalbench_v21: 0.6,
+      frontier_bench: 0.6,
     },
   },
   {
@@ -252,7 +246,7 @@ const scoringRows = [
       gdpval_normalized: 0.8,
       scicode: 0.8,
       tau_banking: 0.8,
-      terminalbench_v21: 0.8,
+      frontier_bench: 0.8,
     },
   },
   {
@@ -263,7 +257,7 @@ const scoringRows = [
       gdpval_normalized: 0.7,
       scicode: 0.7,
       tau_banking: 0.7,
-      terminalbench_v21: 0.7,
+      frontier_bench: 0.7,
     },
   },
 ];
@@ -275,14 +269,14 @@ const scoringConfig = {
     "gdpval_normalized",
     "scicode",
     "tau_banking",
-    "terminalbench_v21",
+    "frontier_bench",
   ],
   agenticBenchmarkDisplayKeys: [
     "apex_agents",
     "gdpval_normalized",
     "scicode",
     "tau_banking",
-    "terminalbench_v21",
+    "frontier_bench",
   ],
   defaultSpeedOutputTokenAnchors: [],
   speedOutputTokenRangeMin: 0,
@@ -318,10 +312,10 @@ const scoringConfig = {
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
     },
-    terminalbench_v21: {
-      group: "baseline",
+    frontier_bench: {
+      group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+      dimensionLoadings: { intelligence: 0, agentic: 1 },
     },
     gdpval_normalized: {
       group: "frontier",

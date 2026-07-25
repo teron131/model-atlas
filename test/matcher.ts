@@ -13,12 +13,12 @@ import {
 } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { buildBlueprintBenchMap } from "../src/model-atlas/benchmarks/scrapers/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/benchmarks/scrapers/cursorbench";
+import { buildFrontierBenchMap } from "../src/model-atlas/benchmarks/scrapers/frontier-bench";
 import { buildRiemannBenchMap } from "../src/model-atlas/benchmarks/scrapers/surge/riemann-bench";
 import {
   buildValsIndexMap,
   type ValsIndexModelScoreRow,
 } from "../src/model-atlas/benchmarks/scrapers/vals/index-benchmark";
-import { buildTerminalBenchMap } from "../src/model-atlas/benchmarks/scrapers/vals/terminal-bench";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildMatchDiagnostics } from "../src/model-atlas/identity";
 import { modelNameIdentityKey } from "../src/model-atlas/identity/matching/name-tokens";
@@ -702,6 +702,10 @@ function modelStatsSourceData(
     enterpriseBenchCoreCraft: { rows: [], rowsByModelName: new Map() },
     epochCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
     financeAgentV2: { rows: [], rowsByModelName: new Map() },
+    frontierBench: {
+      rows: [],
+      rowsByModelName: buildFrontierBenchMap([]),
+    },
     frontierCode: { rows: [], rowsByModelName: new Map() },
     frontierMathTier4: { rows: [], rowsByModelName: new Map() },
     gdpPdf: {
@@ -722,10 +726,6 @@ function modelStatsSourceData(
     riemannBench: {
       rows: riemannBenchModelScoreRows,
       rowsByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
-    },
-    terminalBench: {
-      rows: [],
-      rowsByModelName: buildTerminalBenchMap([]),
     },
     toolathlon: {
       rows: toolathlonObservations,

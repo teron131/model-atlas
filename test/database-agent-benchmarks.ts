@@ -100,7 +100,7 @@ const sourceRows = benchmarkRowsFromDb({
   gdpPdfRows: [],
   harveyLabRows: [],
   riemannBenchRows: [],
-  terminalBenchRows: [],
+  frontierBenchRows: [],
   valsIndexRows: [],
   vendingBench2Rows,
 });

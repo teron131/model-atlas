@@ -43,13 +43,13 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | CritPt | Logit | The score is a bounded correctness rate with meaningful remaining error. |
 | CursorBench | Linear | The published grading score is a composite rather than a completion probability. |
 | DeepSWE | Logit | Pass@1 is a bounded task-completion rate. |
+| Frontier-Bench | Logit | Task accuracy is a bounded completion rate with meaningful remaining error. |
 | FrontierCode | Linear | The versioned `new_score` is a grading composite. |
 | GDPval-AA v2 | Linear | The normalized professional-work score is a grading composite. |
 | Harvey LAB | Logit | Strict task resolution is a bounded all-criteria completion rate. |
 | HLE | Logit | Accuracy is a bounded correctness rate. |
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
 | tau3 Banking | Logit | The score is a bounded workflow-success rate. |
-| Terminal-Bench 2.1 | Logit | The score is a bounded terminal-task completion rate. |
 
 ### Frontier Benchmarks
 
@@ -67,6 +67,7 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | CursorBench | 1 | 0% | 100% | Ambiguous, multi-file tasks from real editor sessions separate current coding agents on practical workflow execution. |
 | DeepSWE | 1 | 0% | 100% | Repository-level coding tasks test long-horizon reasoning, editing, and code execution. |
 | EMB | 1 | 25% | 75% | Expert work completed through a multi-step environment combines professional reasoning with predominantly Agentic workflow execution. Current Vals results make it a frontier separator. |
+| Frontier-Bench | 1 | 0% | 100% | Difficult containerized tasks across software, infrastructure, data, and technical workflows measure terminal-agent execution with substantial headroom among current systems. |
 | FrontierCode | 1 | 0% | 100% | Repository-scale coding-agent tasks measure code quality and mergeability, providing a pure Agentic workflow signal. |
 | FrontierMath Tier 4 | 1 | 100% | 0% | Epoch's hardest private FrontierMath tier is a current specialist mathematical-reasoning stress test. |
 | GDP.pdf | 1 | 90% | 10% | Professional PDF understanding with dense page-grounded rubrics. It is mostly document intelligence, with a small execution-reliability component. |
@@ -79,7 +80,6 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | ProgramBench | 1 | 20% | 80% | Programming tasks combine problem formulation with executable workflow completion. Current Vals results retain frontier pressure, with most weight assigned to Agentic execution. |
 | ProofBench | 1 | 70% | 30% | Private compiler-verified theorem proving emphasizes mathematical reasoning, while the multi-turn proof-development harness contributes a smaller Agentic component. |
 | Riemann-bench | 1 | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
-| Terminal-Bench&nbsp;2.1 | 1 | 0% | 100% | Terminal-agent task execution and environment handling remain a current Agentic stress test with meaningful separation among strong systems. |
 
 ### Baseline Benchmarks
 
@@ -142,9 +142,9 @@ Watchlist-only benchmarks remain outside the scoring portfolio. Time Horizon Ind
 
 ![Briefcase Elo transformed linearly from 500 to 2500 and clamped to the normalized 0-1 range.](assets/methodology/elo-transform.svg)
 
-**Terminal-Bench 2.1** combines the AA leaderboard score, the dedicated AA benchmark page, and the Vals page when they match the same model. The benchmark score is the best available AA or Vals overall score. This gives a small reward to models with more harness coverage: success across independent harnesses is treated as evidence of a stronger observed execution path rather than averaged into a noisy cross-harness mean.
+**Frontier-Bench** uses the official v0.1 structured leaderboard. Raw storage retains every displayed model, reasoning-effort, and agent row together with task accuracy and its standard error. Scoring uses the strongest displayed agent for each exact model effort, breaking equal-score ties by lower standard error, while the highest available effort supplies the source-default base-model observation.
 
-Cost and time use the medians of available per-task resource values so one harness does not dominate resource estimates. AA cost and token totals are divided by 89 tasks and three repeats per task; AA time uses the reported per-task runtime. Vals supplies score, cost, time, and harness labels but no token counts, so token fields remain AA-only when present.
+Agent harness remains part of the raw observation rather than a quality dimension. The source does not publish comparable per-task cost, runtime, or token measurements, so Frontier-Bench contributes only to Agentic quality and does not feed Speed or Value.
 
 **DeepSWE** supplies pass@1, mean task cost, mean task duration, and mean output tokens. The backend derives one source-default row per model for benchmark matching. The default DeepSWE observation uses the source-default or highest reported effort as one whole observation; compact public views independently select the model variant with the highest Intelligence score. Task duration can feed Speed's benchmark task-time component, task cost can feed Value, and token totals remain source context.
 

@@ -40,7 +40,7 @@ export function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean 
 			SELECT row_index
 			FROM artificial_analysis_raw_models
 			WHERE deprecated = 1
-				AND (tau_banking IS NOT NULL OR terminalbench_v21 IS NOT NULL)
+				AND tau_banking IS NOT NULL
 			LIMIT 1
 		`,
   );

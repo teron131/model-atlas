@@ -237,7 +237,6 @@ assert.deepEqual(resourceQualityCoordinates, {
   hle: "logit",
   itbench_sre: "linear",
   tau_banking: "logit",
-  terminalbench_v21: "logit",
 });
 assert.deepEqual(
   Object.fromEntries(

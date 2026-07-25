@@ -9,6 +9,7 @@ import {
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/agent-arena";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/ale-bench";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
+import type { FrontierBenchModelAgentRow } from "../src/model-atlas/benchmarks/scrapers/frontier-bench";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vals/harvey-lab";
@@ -111,6 +112,15 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   cost_per_task_usd: 0.75,
   tokens_per_task: 4_500,
 };
+const frontierBenchRow: FrontierBenchModelAgentRow = {
+  revision: "v0_1",
+  model: "Example Model (high)",
+  base_model: "Example Model",
+  reasoning_effort: "high",
+  harness: "mini-SWE-agent",
+  score: 0.4353,
+  score_standard_error: 0.0165,
+};
 const mercorApexRow: MercorApexAgentsRow = {
   model_id: "test/example-model",
   source_model: "Example Model (High)",
@@ -128,24 +138,6 @@ const vendingBench2Row: VendingBench2ModelScoreRow = {
   run_count: 5,
   final_balance_usd: 9_000,
   daily_balance_usd: [500, 9_000],
-};
-const terminalBenchResourceRow: ArtificialAnalysisBenchmarkResourceRow = {
-  benchmark_key: "terminalbench_v21",
-  source_url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-  model_id: "test/example-model",
-  model: "Example Model",
-  provider: "Test",
-  provider_id: "test",
-  reasoning_effort: null,
-  score: 0.82,
-  task_run_count: 267,
-  cost_per_task_usd: 0.32,
-  seconds_per_task: 40,
-  tokens_per_task: 555,
-  input_tokens_per_task: 111,
-  output_tokens_per_task: 444,
-  answer_tokens_per_task: null,
-  reasoning_tokens_per_task: null,
 };
 const artificialAnalysisHleResourceRow = {
   benchmark_key: "hle",
@@ -241,18 +233,6 @@ const itbenchResourceRow = {
   answer_tokens_per_task: 80,
   reasoning_tokens_per_task: 120,
 } satisfies ArtificialAnalysisBenchmarkResourceRow;
-const terminalBenchRow = {
-  task: "overall" as const,
-  task_label: "Overall",
-  source_model_id: "test/example-model",
-  model_id: "test/example-model",
-  model: "Example Model",
-  provider: "Test",
-  harness: null,
-  score: 0.72,
-  cost_per_task_usd: 0.36,
-  seconds_per_task: 50,
-};
 const legalResearchRow = {
   benchmark_key: "legal_research",
   source_url: "https://www.vals.ai/benchmarks/legal_research",
@@ -288,7 +268,6 @@ const resourceLookup = new Map([
   ["automation_bench", new Map([["example-model", automationBenchResourceRow]])],
   ["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
   ["itbench_sre", new Map([["example-model", itbenchResourceRow]])],
-  ["terminalbench_v21", new Map([["example-model", terminalBenchResourceRow]])],
 ]);
 const lookups = {
   artificialAnalysisBenchmarkResources: {
@@ -325,6 +304,9 @@ const lookups = {
   enterpriseBenchCoreCraft: { rowsByModelName: new Map() },
   epochCapabilitiesIndex: { rowsByModelName: new Map() },
   financeAgentV2: { rowsByModelName: emptyLookup() },
+  frontierBench: {
+    rowsByModelName: buildBenchmarkModelMap([frontierBenchRow]),
+  },
   frontierCode: {
     rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
   },
@@ -349,9 +331,6 @@ const lookups = {
   riemannBench: {
     rowsByModelName: emptyLookup(),
   },
-  terminalBench: {
-    rowsByModelName: new Map([["example-model", [terminalBenchRow]]]),
-  },
   toolathlon: {
     rowsByModelName: emptyLookup(),
   },
@@ -367,22 +346,20 @@ const lookups = {
 
 const observationAssignment = buildObservationBenchmarks(["Example Model"], lookups, {
   hle: 0.4,
-  terminalbench_v21: 0.82,
 });
 assert.deepEqual(observationAssignment.benchmarks, {
   ale_bench: 700,
   automation_bench: 0.68,
   briefcase: 0.5,
+  frontier_bench: 0.4353,
   frontier_code: 0.535,
   itbench_sre: 0.56,
-  terminalbench_v21: 0.82,
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, undefined);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, undefined);
 
 const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"], lookups, {
   hle: 0.4,
-  terminalbench_v21: 0.82,
 });
 
 assert.deepEqual(defaultVariantAssignment.benchmarks, {
@@ -393,11 +370,11 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   chartography: 0.47,
   cursorbench: 0.52,
   deep_swe: 0.72,
+  frontier_bench: 0.4353,
   frontier_code: 0.535,
   harvey_lab: 0.1125,
   itbench_sre: 0.56,
   legal_research: 0.61,
-  terminalbench_v21: 0.82,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(defaultVariantAssignment.scoringSources, {
@@ -409,19 +386,12 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   chartography: chartographyRow,
   cursorbench: cursorBenchRow,
   deep_swe: deepSWERow,
+  frontier_bench: frontierBenchRow,
   frontier_code: frontierCodeRow,
   harvey_lab: harveyLabRow,
   hle: artificialAnalysisHleResourceRow,
   itbench_sre: itbenchResourceRow,
   legal_research: legalResearchRow,
-  terminalbench_v21: {
-    score: 0.82,
-    cost_per_task_usd: 0.33999999999999997,
-    seconds_per_task: 45,
-    tokens_per_task: 555,
-    input_tokens_per_task: 111,
-    output_tokens_per_task: 444,
-  },
   vending_bench_2: vendingBench2Row,
 });
 const effortQualifiedDefault = buildDefaultVariantBenchmarks(
@@ -493,13 +463,6 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 1500,
     input_tokens: 1300,
     output_tokens: 200,
-  },
-  terminalbench_v21: {
-    cost: 0.33999999999999997,
-    seconds: 45,
-    tokens: 555,
-    input_tokens: 111,
-    output_tokens: 444,
   },
 });
 

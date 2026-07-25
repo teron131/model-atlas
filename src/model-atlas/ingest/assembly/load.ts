@@ -12,13 +12,13 @@ import { getArtificialAnalysisBenchmarkResourceStats } from "../../benchmarks/sc
 import { getBlueprintBenchStats } from "../../benchmarks/scrapers/blueprint-bench";
 import { getCursorBenchStats } from "../../benchmarks/scrapers/cursorbench";
 import { getDeepSWELeaderboardStats } from "../../benchmarks/scrapers/deep-swe";
+import { getFrontierBenchStats } from "../../benchmarks/scrapers/frontier-bench";
 import { getFrontierCodeStats } from "../../benchmarks/scrapers/frontier-code";
 import { getMercorApexAgentsStats } from "../../benchmarks/scrapers/mercor-apex-agents";
 import { benchmarkObservationSourceFetcher } from "../../benchmarks/scrapers/observation-source";
 import { getRiemannBenchStats } from "../../benchmarks/scrapers/surge/riemann-bench";
 import { getHarveyLabStats } from "../../benchmarks/scrapers/vals/harvey-lab";
 import { getValsIndexStats } from "../../benchmarks/scrapers/vals/index-benchmark";
-import { getTerminalBenchStats } from "../../benchmarks/scrapers/vals/terminal-bench";
 import { getVendingBench2Stats } from "../../benchmarks/scrapers/vending-bench-2";
 import { getArtificialAnalysisLeaderboardStats } from "../../scrapers/artificial-analysis/leaderboard";
 import { getModelsDevSourceStats } from "../../scrapers/models-dev";
@@ -53,10 +53,6 @@ const VALS_SOURCE_LOADERS = {
     "harveyLabRows",
     async () => (await getHarveyLabStats()).model_scores,
   ),
-  vals_terminal_bench: benchmarkSourceLoader(
-    "terminalBenchRows",
-    async () => (await getTerminalBenchStats()).model_scores,
-  ),
   vals_index: benchmarkSourceLoader(
     "valsIndexRows",
     async () => (await getValsIndexStats()).model_scores,
@@ -87,6 +83,10 @@ const SPARSE_SOURCE_LOADERS = {
   deep_swe: benchmarkSourceLoader(
     "deepSWEEffortRows",
     async () => (await getDeepSWELeaderboardStats()).data,
+  ),
+  frontier_bench: benchmarkSourceLoader(
+    "frontierBenchRows",
+    async () => (await getFrontierBenchStats()).data,
   ),
   frontier_code: benchmarkSourceLoader(
     "frontierCodeRows",

@@ -5,7 +5,6 @@ import assert from "node:assert/strict";
 import { type BenchmarkDefinitions, defineBenchmarks } from "../src/model-atlas/benchmarks/factory";
 import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
-  ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS,
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   BENCHMARK_CATALOG,
   BENCHMARK_DISPLAY_KEYS,
@@ -237,21 +236,14 @@ assert.throws(
   /Benchmark resource policy requires a resource source for invalid/,
 );
 
-assert.deepEqual(
-  BENCHMARK_CATALOG.terminalbench_v21.source.inputs.map(({ group, id, roles }) => ({
-    group,
-    id,
-    roles,
-  })),
-  [
-    {
-      group: "artificial_analysis",
-      id: "artificial_analysis",
-      roles: ["observation", "resource"],
-    },
-    { group: "vals", id: "vals", roles: ["observation", "resource"] },
-  ],
-);
+assert.deepEqual(BENCHMARK_CATALOG.frontier_bench.source.inputs, [
+  {
+    group: "sparse",
+    id: "frontier_bench",
+    roles: ["observation"],
+    runtime: { key: "frontier_bench", publicRows: true },
+  },
+]);
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.source.inputs, [
   {
     group: "sparse",
@@ -311,7 +303,7 @@ assert.deepEqual(BENCHMARK_CATALOG.briefcase.processing, {
 assert.equal(transformBenchmarkSourceValue("briefcase", 500), 0);
 assert.equal(transformBenchmarkSourceValue("briefcase", 1_500), 0.5);
 assert.equal(transformBenchmarkSourceValue("briefcase", 3_000), 1);
-assert.deepEqual(BENCHMARK_CATALOG.terminalbench_v21.processing.aggregation, {
+assert.deepEqual(BENCHMARK_CATALOG.frontier_bench.processing.aggregation, {
   kind: "custom",
 });
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.processing.sourceCrosswalk, {
@@ -337,7 +329,6 @@ assert.deepEqual(BENCHMARK_CATALOG.agent_arena.persistence, {
 assert.deepEqual(BENCHMARK_CATALOG.omniscience_accuracy.persistence, {
   location: { kind: "intelligence", field: "omniscience_accuracy" },
 });
-assert.equal(ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS.terminalbenchV21, "terminalbench_v21");
 assert.equal(
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find((page) => page.benchmarkKey === "briefcase")
     ?.secondsProcessor,

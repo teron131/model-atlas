@@ -25,12 +25,6 @@ const hlePage = {
   url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
   task_run_count: 2,
 };
-const terminalBenchPage = {
-  benchmark_key: "terminalbench_v21",
-  score_key: "terminalbench_v2_1",
-  url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-  task_run_count: 2,
-};
 const configuredItbenchPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
   (page) => page.benchmark_key === "itbench_sre",
 );
@@ -131,49 +125,6 @@ assertDeepEqual(
 assertDeepEqual(
   findArtificialAnalysisBenchmarkResourceRow("critpt", ["Claude Fable 5 max"], hleLookup),
   null,
-);
-
-assertDeepEqual(
-  processArtificialAnalysisBenchmarkResourceRows(
-    [
-      {
-        short_name: "GPT-5.5 (xhigh)",
-        slug: "gpt-5-5",
-        model_creators: {
-          name: "OpenAI",
-          slug: "openai",
-        },
-        terminalbench_v2_1: 0.84,
-        evalCost: {
-          total: 2,
-        },
-        evalTimePerTask: 100,
-        tokenCounts: {
-          inputTokens: 8,
-          outputTokens: 12,
-        },
-      },
-    ],
-    terminalBenchPage,
-  )[0],
-  {
-    benchmark_key: "terminalbench_v21",
-    source_url: "https://artificialanalysis.ai/evaluations/terminalbench-v2-1",
-    model_id: "openai/gpt-5-5",
-    model: "GPT-5.5 (xhigh)",
-    provider: "OpenAI",
-    provider_id: "openai",
-    reasoning_effort: "xhigh",
-    score: 0.84,
-    task_run_count: 2,
-    cost_per_task_usd: 1,
-    seconds_per_task: 100,
-    tokens_per_task: 10,
-    input_tokens_per_task: 4,
-    output_tokens_per_task: 6,
-    answer_tokens_per_task: null,
-    reasoning_tokens_per_task: null,
-  },
 );
 
 assertDeepEqual(

@@ -35,7 +35,6 @@ import {
 import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
 import type { ModelAtlasScoringSources } from "../model-types";
-import { findTerminalBenchAggregate, terminalBenchAggregateRow } from "./terminal-bench";
 
 type BenchmarkObservationLookups = {
   [Key in BenchmarkObservationDataKey]: Pick<ModelAtlasSourceData[Key], "rowsByModelName">;
@@ -52,11 +51,11 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   blueprintBench: Pick<ModelAtlasSourceData["blueprintBench"], "rowsByModelName">;
   cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
   deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
+  frontierBench: Pick<ModelAtlasSourceData["frontierBench"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
   harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
   mercorApexAgents: Pick<ModelAtlasSourceData["mercorApexAgents"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
-  terminalBench: Pick<ModelAtlasSourceData["terminalBench"], "rowsByModelName">;
   valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
   vendingBench2: Pick<ModelAtlasSourceData["vendingBench2"], "rowsByModelName">;
 };
@@ -172,25 +171,6 @@ function findEffortSourceRow<T extends BenchmarkModelRow>(
   return row?.reasoning_effort === effort ? row : null;
 }
 
-/** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
-const addFrontierCode: SparseBenchmarkOperation = ({
-  assignedBenchmarks,
-  lookups,
-  modelNameCandidates,
-  targetReasoningEffort,
-}) => {
-  const row = findEffortSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.frontierCode.rowsByModelName,
-  );
-  if (row?.score_eligible !== true) {
-    return;
-  }
-  assignedBenchmarks.benchmarks.frontier_code = row.score;
-  assignedBenchmarks.scoringSources.frontier_code = row;
-};
-
 function addArtificialAnalysisResourceBenchmark(
   benchmarks: Record<string, unknown>,
   scoringSources: NonNullable<ModelAtlasScoringSources>,
@@ -234,19 +214,6 @@ function buildArtificialAnalysisBenchmarks(
   addArtificialAnalysisResourceBenchmark(benchmarks, scoringSources, query, "briefcase", (row) =>
     transformBenchmarkSourceValue("briefcase", row.score),
   );
-  const terminalBenchResourceRow = findArtificialAnalysisBenchmarkResourceRow(
-    "terminalbench_v21",
-    modelNameCandidates,
-    resourceLookup,
-  );
-  const terminalBench = terminalBenchAggregateRow({
-    artificialAnalysisScore: baseBenchmarks.terminalbench_v21,
-    resourceRow: terminalBenchResourceRow,
-  });
-  if (terminalBench != null) {
-    benchmarks.terminalbench_v21 = terminalBench.score;
-    scoringSources.terminalbench_v21 = terminalBench;
-  }
   addArtificialAnalysisResourceBenchmark(
     benchmarks,
     scoringSources,
@@ -278,6 +245,42 @@ const addAleBench: SparseBenchmarkOperation = ({
   if (row != null) {
     assignedBenchmarks.benchmarks.ale_bench = row.score;
     assignedBenchmarks.scoringSources.ale_bench = row;
+  }
+};
+
+/** Adds the strongest agent result for the exact model effort selected by the source projection. */
+const addFrontierBench: SparseBenchmarkOperation = ({
+  assignedBenchmarks,
+  lookups,
+  modelNameCandidates,
+  targetReasoningEffort,
+}) => {
+  const row = findEffortSourceRow(
+    modelNameCandidates,
+    targetReasoningEffort,
+    lookups.frontierBench.rowsByModelName,
+  );
+  if (row != null) {
+    assignedBenchmarks.benchmarks.frontier_bench = row.score;
+    assignedBenchmarks.scoringSources.frontier_bench = row;
+  }
+};
+
+/** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
+const addFrontierCode: SparseBenchmarkOperation = ({
+  assignedBenchmarks,
+  lookups,
+  modelNameCandidates,
+  targetReasoningEffort,
+}) => {
+  const row = findEffortSourceRow(
+    modelNameCandidates,
+    targetReasoningEffort,
+    lookups.frontierCode.rowsByModelName,
+  );
+  if (row?.score_eligible === true) {
+    assignedBenchmarks.benchmarks.frontier_code = row.score;
+    assignedBenchmarks.scoringSources.frontier_code = row;
   }
 };
 
@@ -352,6 +355,10 @@ const SPARSE_BENCHMARK_ADAPTERS = {
         assignedBenchmarks.scoringSources.deep_swe = row;
       }
     },
+  },
+  frontier_bench: {
+    defaultVariant: addFrontierBench,
+    observation: addFrontierBench,
   },
   frontier_code: {
     defaultVariant: addFrontierCode,
@@ -450,19 +457,6 @@ export function buildDefaultVariantBenchmarks(
   );
   if (riemannBenchScore != null) {
     benchmarks.riemann_bench = riemannBenchScore;
-  }
-  const terminalBench = findTerminalBenchAggregate(
-    modelNameCandidates,
-    {
-      artificialAnalysisResourceLookup:
-        lookups.artificialAnalysisBenchmarkResources.sourceDefaultLookup,
-      harnessRowsByModel: lookups.terminalBench.rowsByModelName,
-    },
-    baseBenchmarks.terminalbench_v21,
-  );
-  if (terminalBench != null) {
-    benchmarks.terminalbench_v21 = terminalBench.score;
-    scoringSources.terminalbench_v21 = terminalBench;
   }
   const valsIndexScore = findValsIndexScore(modelNameCandidates, lookups.valsIndex.rowsByModelName);
   if (valsIndexScore != null) {

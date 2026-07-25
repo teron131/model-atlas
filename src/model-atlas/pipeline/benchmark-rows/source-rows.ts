@@ -304,6 +304,14 @@ const SPARSE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.pass_at_1,
     })),
+  frontier_bench: (sourceData) =>
+    benchmarkRowDrafts("frontier_bench", sourceData.frontierBench.rows, (row) => ({
+      id: row.base_model,
+      identity: row.base_model,
+      label: row.model,
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   frontier_code: (sourceData) =>
     benchmarkRowDrafts(
       "frontier_code",
@@ -332,7 +340,6 @@ function benchmarkDraftsFromSourceData(sourceData: ModelAtlasSourceData): Benchm
     ...Object.values(SPARSE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
     ...surgeBenchmarkRowDrafts(sourceData),
     ...modelScoreRowDrafts("harvey_lab", sourceData.harveyLab.rows),
-    ...modelScoreRowDrafts("terminalbench_v21", sourceData.terminalBench.rows),
     ...modelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),
   ];
 }

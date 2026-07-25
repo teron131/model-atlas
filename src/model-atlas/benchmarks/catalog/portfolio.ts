@@ -139,6 +139,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
   },
+  frontier_bench: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
   frontier_code: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -229,11 +234,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  terminalbench_v21: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
-  },
   toolathlon: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -317,10 +317,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     qualityCoordinate: "linear",
   },
   tau_banking: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  terminalbench_v21: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },
