@@ -148,10 +148,7 @@ export function buildCurrentModelAtlasMetadata({
         },
         agentic: { ...scoringConfig.confidence.agentic },
       },
-      column_tooltips: {
-        ...scoringConfig.columnTooltips,
-        ...columnTooltipsForActiveComponents(resourceComponents),
-      },
+      column_tooltips: columnTooltipsForActiveComponents(resourceComponents),
       snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
     },
   };

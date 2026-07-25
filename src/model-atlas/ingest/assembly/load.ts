@@ -12,20 +12,14 @@ import { getArtificialAnalysisBenchmarkResourceStats } from "../../benchmarks/sc
 import { getBlueprintBenchStats } from "../../benchmarks/scrapers/blueprint-bench";
 import { getCursorBenchStats } from "../../benchmarks/scrapers/cursorbench";
 import { getDeepSWELeaderboardStats } from "../../benchmarks/scrapers/deep-swe";
-import { getEpochCapabilitiesIndexStats } from "../../benchmarks/scrapers/epoch/capabilities-index";
-import { getEpochBenchmarkStats } from "../../benchmarks/scrapers/epoch/results";
 import { getFrontierCodeStats } from "../../benchmarks/scrapers/frontier-code";
 import { getMercorApexAgentsStats } from "../../benchmarks/scrapers/mercor-apex-agents";
-import { getGdpPdfStats } from "../../benchmarks/scrapers/surge/gdp-pdf";
-import { getSurgeLeaderboardStats } from "../../benchmarks/scrapers/surge/results";
+import { benchmarkObservationSourceFetcher } from "../../benchmarks/scrapers/observation-source";
 import { getRiemannBenchStats } from "../../benchmarks/scrapers/surge/riemann-bench";
 import { getHarveyLabStats } from "../../benchmarks/scrapers/vals/harvey-lab";
 import { getValsIndexStats } from "../../benchmarks/scrapers/vals/index-benchmark";
-import { getValsSourceStats } from "../../benchmarks/scrapers/vals/results";
 import { getTerminalBenchStats } from "../../benchmarks/scrapers/vals/terminal-bench";
 import { getVendingBench2Stats } from "../../benchmarks/scrapers/vending-bench-2";
-import { getWeirdMlStats } from "../../benchmarks/scrapers/weirdml";
-import { getZeroEvalStats } from "../../benchmarks/scrapers/zeroeval";
 import { getArtificialAnalysisLeaderboardStats } from "../../scrapers/artificial-analysis/leaderboard";
 import { getModelsDevSourceStats } from "../../scrapers/models-dev";
 import { selectModelsDevRowsForArtificialAnalysis } from "./policy";
@@ -34,55 +28,6 @@ import {
   type ModelAtlasSourceData,
   type ModelAtlasSourceRows,
 } from "./source-data";
-
-const BENCHMARK_OBSERVATION_SOURCE_FETCHERS = {
-  epochCapabilitiesIndex: getEpochCapabilitiesIndexStats,
-  weirdMl: getWeirdMlStats,
-} as const;
-
-/** Resolve the executable loader paired with one catalog-declared benchmark-observation source. */
-export function benchmarkObservationSourceFetcher(
-  binding: (typeof BENCHMARK_OBSERVATION_BINDINGS)[number],
-) {
-  const loader = binding.loader;
-  if (loader.kind === "surge") {
-    return () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl);
-  }
-  if (loader.kind === "vals") {
-    return () =>
-      getValsSourceStats({
-        benchmarkKey: binding.benchmark,
-        canonicalTask: loader.canonicalTask,
-        includeReasoningEffortInModel:
-          "includeReasoningEffortInModel" in loader
-            ? loader.includeReasoningEffortInModel
-            : undefined,
-        isScoreEligible:
-          "eligibility" in loader && loader.eligibility === "exclude_aristotle"
-            ? (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle"
-            : undefined,
-        sourceUrl: loader.sourceUrl,
-      });
-  }
-  if (loader.kind === "epoch_runs") {
-    return () => getEpochBenchmarkStats(binding.benchmark, loader.task);
-  }
-  if (loader.kind === "zeroeval") {
-    return () =>
-      getZeroEvalStats({
-        benchmarkKey: binding.benchmark,
-        sourceUrl: loader.sourceUrl,
-        rankField: "rankField" in loader ? loader.rankField : undefined,
-        observedAtField: "observedAtField" in loader ? loader.observedAtField : undefined,
-      });
-  }
-  const fetcher =
-    BENCHMARK_OBSERVATION_SOURCE_FETCHERS[
-      binding.sourceDataKey as keyof typeof BENCHMARK_OBSERVATION_SOURCE_FETCHERS
-    ];
-  if (fetcher != null) return fetcher;
-  throw new Error(`Missing benchmark-observation fetcher for ${binding.sourceDataKey}`);
-}
 
 type BenchmarkSourceLoader<Key extends keyof ModelAtlasSourceRows> = {
   sourceRowsKey: Key;
@@ -97,7 +42,6 @@ function benchmarkSourceLoader<const Key extends keyof ModelAtlasSourceRows>(
 }
 
 const SURGE_SOURCE_LOADERS = {
-  gdp_pdf: benchmarkSourceLoader("gdpPdfRows", async () => (await getGdpPdfStats()).data),
   riemann_bench: benchmarkSourceLoader(
     "riemannBenchRows",
     async () => (await getRiemannBenchStats()).data,

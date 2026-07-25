@@ -1,10 +1,13 @@
-/** Verifies Surge GDP.pdf row parsing, lookup, and model matching. */
+/** Verifies GDP.pdf parsing and matching through the shared benchmark-observation contract. */
 
 import {
-  buildGdpPdfMap,
-  findGdpPdfScore,
-} from "../src/model-atlas/benchmarks/scrapers/surge/gdp-pdf";
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/benchmarks/scrapers/surge/results";
+  buildBenchmarkObservationLookup,
+  findBenchmarkObservation,
+} from "../src/model-atlas/benchmarks/observation";
+import {
+  processSurgeBenchmarkPageHtml,
+  surgeLeaderboardScoreRows,
+} from "../src/model-atlas/benchmarks/scrapers/surge/results";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);
@@ -14,7 +17,7 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
   }
 }
 
-const rows = surgeLeaderboardScoreRows(`
+const pageHtml = `
 	<h2 class="renamed-ranking-title">Model Rankings</h2>
 	<div class="txt fs-12">Last updated 06/06/2026</div>
 	<div role="listitem" class="lead-rank-corecraft-item w-dyn-item">
@@ -45,7 +48,8 @@ const rows = surgeLeaderboardScoreRows(`
 		<div data-score="105">105</div><div>%</div>
 	</div>
 	<section id="newsletter"></section>
-`);
+`;
+const rows = surgeLeaderboardScoreRows(pageHtml);
 
 assertDeepEqual(rows, [
   {
@@ -89,7 +93,18 @@ assertDeepEqual(rowsWithoutRankingHeading, [
   },
 ]);
 
-const rowsByModelName = buildGdpPdfMap(rows);
+const observationRows = processSurgeBenchmarkPageHtml(
+  pageHtml,
+  "gdp_pdf",
+  "https://surgehq.ai/leaderboards/gdp-pdf",
+);
+const rowsByModelName = buildBenchmarkObservationLookup(observationRows);
 
-assertDeepEqual(findGdpPdfScore(["missing", "GPT-5.5"], rowsByModelName), 0.25);
-assertDeepEqual(findGdpPdfScore(["Mythos 5"], rowsByModelName), 0.3);
+assertDeepEqual(
+  findBenchmarkObservation(["missing", "GPT-5.5"], "xhigh", rowsByModelName)?.canonical_value,
+  0.25,
+);
+assertDeepEqual(
+  findBenchmarkObservation(["Mythos 5"], null, rowsByModelName)?.canonical_value,
+  0.3,
+);

@@ -23,7 +23,6 @@ function sourceRowProjection<const Key extends keyof ModelAtlasSourceRows>(
 }
 
 const SURGE_SOURCE_ROW_PROJECTIONS = {
-  gdp_pdf: sourceRowProjection("gdpPdfRows", (snapshots) => snapshots.gdpPdfModelScoreRows),
   riemann_bench: sourceRowProjection(
     "riemannBenchRows",
     (snapshots) => snapshots.riemannBenchModelScoreRows,

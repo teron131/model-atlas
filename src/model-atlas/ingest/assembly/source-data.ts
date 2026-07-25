@@ -56,11 +56,6 @@ import type {
   MercorApexAgentsRowsByModelName,
 } from "../../benchmarks/scrapers/mercor-apex-agents";
 import {
-  buildGdpPdfMap,
-  type GdpPdfModelScoreRow,
-  type GdpPdfRowsByModelName,
-} from "../../benchmarks/scrapers/surge/gdp-pdf";
-import {
   buildRiemannBenchMap,
   type RiemannBenchModelScoreRow,
   type RiemannBenchRowsByModelName,
@@ -140,7 +135,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     rowsByModelName: DeepSWERowsByModelName;
   };
   frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
-  gdpPdf: IndexedSourceRows<GdpPdfModelScoreRow, GdpPdfRowsByModelName>;
   harveyLab: IndexedSourceRows<HarveyLabModelScoreRow, HarveyLabRowsByModelName>;
   mercorApexAgents: IndexedSourceRows<MercorApexAgentsRow, MercorApexAgentsRowsByModelName>;
   riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
@@ -164,7 +158,6 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
   deepSWEEffortRows: DeepSWELeaderboardRow[];
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
-  gdpPdfRows: ModelAtlasSourceData["gdpPdf"]["rows"];
   harveyLabRows: ModelAtlasSourceData["harveyLab"]["rows"];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
@@ -261,10 +254,6 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
     frontierCode: {
       rows: rows.frontierCodeRows,
       rowsByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
-    },
-    gdpPdf: {
-      rows: rows.gdpPdfRows,
-      rowsByModelName: buildGdpPdfMap(rows.gdpPdfRows),
     },
     harveyLab: {
       rows: rows.harveyLabRows,

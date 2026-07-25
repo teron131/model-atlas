@@ -163,7 +163,6 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
     }),
   ),
   frontierCodeRows: [],
-  gdpPdfModelScoreRows: [],
   harveyLabModelScoreRows: [],
   mercorApexAgentsRows: [],
   riemannBenchModelScoreRows: [],

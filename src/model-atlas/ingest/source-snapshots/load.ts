@@ -2,7 +2,10 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { benchmarkObservationSnapshots } from "../../benchmarks/persistence/observation";
+import {
+  benchmarkObservationSnapshots,
+  readBenchmarkObservationRawCache,
+} from "../../benchmarks/persistence/observation";
 import {
   type BenchmarkSnapshotCaches,
   benchmarkSnapshotRows,
@@ -15,7 +18,6 @@ import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
 import {
   readArtificialAnalysisBenchmarkResourceRawCache,
   readArtificialAnalysisRawCache,
-  readBenchmarkObservationRawCache,
   readModelsDevRawCache,
   readRawSourceCacheStatus,
 } from "../cache";

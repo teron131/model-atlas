@@ -1,6 +1,5 @@
 /** Generic benchmark-observation persistence owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
 
-import { benchmarkObservationSourceFetcher } from "../../ingest/assembly/load";
 import {
   booleanFromSql,
   type CacheRowSource,
@@ -27,9 +26,12 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../observation";
-import { BENCHMARK_OBSERVATION_BINDINGS, BENCHMARK_OBSERVATION_RAW_TABLE } from "../registry";
-
-type BenchmarkObservationBinding = (typeof BENCHMARK_OBSERVATION_BINDINGS)[number];
+import {
+  BENCHMARK_OBSERVATION_BINDINGS,
+  BENCHMARK_OBSERVATION_RAW_TABLE,
+  type BenchmarkObservationBinding,
+} from "../registry";
+import { benchmarkObservationSourceFetcher } from "../scrapers/observation-source";
 
 function benchmarkObservationMetadata(value: unknown): BenchmarkObservationMetadata | null {
   if (typeof value !== "string") return null;
@@ -50,7 +52,6 @@ function benchmarkMetricUnit(value: unknown): BenchmarkMetricUnit | null {
 function readBenchmarkObservationRows(
   cache: CacheRowSource,
   table: string,
-  sourceKey: string,
   benchmarkKey: string,
   expectedUrl?: string,
 ): {
@@ -58,9 +59,9 @@ function readBenchmarkObservationRows(
   fetchedAt: number | null;
 } | null {
   const cacheRows = Array.isArray(cache)
-    ? cache.filter((row) => stringValue(row.source_key) === sourceKey)
+    ? cache.filter((row) => stringValue(row.source_key) === benchmarkKey)
     : queryCacheRows(cache, `SELECT * FROM ${table} WHERE source_key = ? ORDER BY row_index`, [
-        sourceKey,
+        benchmarkKey,
       ]);
   if (cacheRows.length === 0) return null;
   const rows = cacheRows.flatMap((row) => {
@@ -122,13 +123,7 @@ export function readBenchmarkObservationRawCache(
   binding: BenchmarkObservationBinding,
 ) {
   const expectedUrl = "sourceUrl" in binding.loader ? binding.loader.sourceUrl : undefined;
-  return readBenchmarkObservationRows(
-    cache,
-    binding.rawTable,
-    binding.rawSourceKey,
-    binding.benchmark,
-    expectedUrl,
-  );
+  return readBenchmarkObservationRows(cache, binding.rawTable, binding.benchmark, expectedUrl);
 }
 
 type BenchmarkObservationSnapshot = {
@@ -179,7 +174,7 @@ export async function benchmarkObservationSnapshots(
 ) {
   return Promise.all(
     BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => {
-      const source = binding.rawSourceKey;
+      const source = binding.benchmark;
       const fetchRows = benchmarkObservationSourceFetcher(binding);
       return {
         binding,
@@ -218,7 +213,7 @@ export function insertBenchmarkObservationRows(
     const fetchedAt = snapshots.fetchedAt[binding.sourceDataKey];
     for (const [index, row] of rows.entries()) {
       statement.run(
-        binding.rawSourceKey,
+        binding.benchmark,
         index,
         fetchedAt,
         row.benchmark_key,

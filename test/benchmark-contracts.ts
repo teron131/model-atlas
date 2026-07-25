@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 
 import { type BenchmarkDefinitions, defineBenchmarks } from "../src/model-atlas/benchmarks/factory";
+import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS,
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
@@ -15,7 +16,6 @@ import {
   transformBenchmarkSourceValue,
 } from "../src/model-atlas/benchmarks/registry";
 import { RAW_SOURCE_NAMES, RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
-import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/ingest/writers";
 
 const definitions = {
   quality: {
@@ -351,7 +351,6 @@ assert.deepEqual(
       kind: "surge",
       sourceUrl: "https://surgehq.ai/benchmarks/chartography",
     },
-    rawSourceKey: "chartography",
     rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
     source: "surge",
     sourceDataKey: "chartography",

@@ -2,14 +2,14 @@
 
 import assert from "node:assert/strict";
 
+import { readAleBenchRawCache } from "../src/model-atlas/benchmarks/persistence/ale-bench";
+import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import { processAleBenchSakanaPayload } from "../src/model-atlas/benchmarks/scrapers/ale-bench";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readAleBenchRawCache } from "../src/model-atlas/ingest/cache";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
-  insertBenchmarkRawRows,
   insertModelBenchmarks,
   insertModels,
   insertModelTaskMetrics,

@@ -5,17 +5,16 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { riemannBenchPersistence } from "../src/model-atlas/benchmarks/persistence/riemann-bench";
+import {
+  readRiemannBenchRawCache,
+  riemannBenchPersistence,
+} from "../src/model-atlas/benchmarks/persistence/riemann-bench";
+import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase } from "../src/model-atlas/database/schema";
-import { readRiemannBenchRawCache } from "../src/model-atlas/ingest/cache";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import {
-  insertBenchmarkRawRows,
-  insertModelBenchmarks,
-  insertModels,
-} from "../src/model-atlas/ingest/writers";
+import { insertModelBenchmarks, insertModels } from "../src/model-atlas/ingest/writers";
 
 const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");

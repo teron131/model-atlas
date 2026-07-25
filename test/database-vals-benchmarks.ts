@@ -3,6 +3,8 @@
 import assert from "node:assert/strict";
 
 import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/benchmarks/persistence/observation";
+import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
@@ -10,15 +12,14 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload-rows";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
 import { RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
 import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { insertBenchmarkRawRows, SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
 
 const SOURCE_CASES = BENCHMARK_OBSERVATION_BINDINGS.filter(
   (binding) => binding.loader.kind === "vals",
-).map((binding) => ({ source: binding.rawSourceKey, binding }));
+).map((binding) => ({ source: binding.benchmark, binding }));
 type SourceName = (typeof SOURCE_CASES)[number]["source"];
 const SOURCE_NAMES = SOURCE_CASES.map(({ source }) => source);
 
@@ -71,16 +72,16 @@ const snapshots = {
   ...Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
       binding.sourceRowsKey,
-      SOURCE_NAMES.includes(binding.rawSourceKey as SourceName)
-        ? rows[binding.rawSourceKey as SourceName]
+      SOURCE_NAMES.includes(binding.benchmark as SourceName)
+        ? rows[binding.benchmark as SourceName]
         : [],
     ]),
   ),
   fetchedAt: Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
       binding.sourceDataKey,
-      SOURCE_NAMES.includes(binding.rawSourceKey as SourceName)
-        ? fetchedAtBySource[binding.rawSourceKey as SourceName]
+      SOURCE_NAMES.includes(binding.benchmark as SourceName)
+        ? fetchedAtBySource[binding.benchmark as SourceName]
         : null,
     ]),
   ),

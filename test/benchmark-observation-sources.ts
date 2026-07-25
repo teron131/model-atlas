@@ -6,6 +6,8 @@ import {
   buildBenchmarkObservationLookup,
   findBenchmarkObservation,
 } from "../src/model-atlas/benchmarks/observation";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/benchmarks/persistence/observation";
+import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
@@ -15,11 +17,10 @@ import { epochBenchmarkObservationRows } from "../src/model-atlas/benchmarks/scr
 import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/surge/results";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/vals/results";
 import { processWeirdMlCsv } from "../src/model-atlas/benchmarks/scrapers/weirdml";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/cache";
 import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
 import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { insertBenchmarkRawRows, SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
 
 assert.deepEqual(parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'), [
@@ -225,9 +226,7 @@ for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey))
         collector
           .records(BENCHMARK_OBSERVATION_RAW_TABLE)
           .map((row) =>
-            row.source_key === binding.rawSourceKey
-              ? { ...row, url: `${expectedUrl}?stale=1` }
-              : row,
+            row.source_key === binding.benchmark ? { ...row, url: `${expectedUrl}?stale=1` } : row,
           ),
         binding,
       ),

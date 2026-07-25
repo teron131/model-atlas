@@ -114,9 +114,6 @@ const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 >;
 
 const SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  gdp_pdf: payloadRowGroup("gdpPdfRows", SNAPSHOT_TABLES.gdp_pdf, "row_index", {
-    columns: ["model", "provider", "score"],
-  }),
   riemann_bench: payloadRowGroup("riemannBenchRows", SNAPSHOT_TABLES.riemann_bench, "row_index", {
     columns: ["model", "provider", "score"],
   }),
@@ -183,7 +180,7 @@ export const PAYLOAD_ROW_GROUPS = [
     payloadRowGroup(binding.sourceRowsKey, binding.rawTable, "row_index", {
       columns: BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS,
       optional: true,
-      sourceKey: binding.rawSourceKey,
+      sourceKey: binding.benchmark,
     }),
   ),
 ] as const;

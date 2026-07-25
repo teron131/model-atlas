@@ -1,5 +1,6 @@
 /** Storage-independent snapshot workflow derives model rows and writes normalized table rows through a minimal writer interface. */
 
+import { BENCHMARK_RAW_WRITERS } from "../benchmarks/persistence/runtime";
 import { STAGE_CONFIG } from "../config";
 import { buildDebugTraceRows, insertDebugTraceRows } from "../ingest/debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/source-registry";
@@ -7,7 +8,6 @@ import { buildSourceHealth } from "../ingest/source-snapshots/policy";
 import { cachedSourceDataFromSnapshots } from "../ingest/source-snapshots/source-data";
 import type { DatabaseBuildResult, DebugTraceRow, SourceSnapshots } from "../ingest/types";
 import {
-  BENCHMARK_RAW_WRITERS,
   insertArtificialAnalysisBenchmarkResourceRawRows,
   insertArtificialAnalysisRawModels,
   insertModelBenchmarks,

@@ -11,7 +11,6 @@ import {
   SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "../benchmarks/registry";
 import type { MatcherConfig } from "../identity";
-import { COLUMN_TOOLTIPS, type ModelAtlasColumnTooltips } from "./tooltips";
 import {
   PRICE_PROFILES,
   type PriceProfiles,
@@ -83,7 +82,6 @@ export type ScoringConfig = {
   secondsPerInputToken: number;
   benchmarkPortfolio: BenchmarkPortfolio;
   confidence: Confidence;
-  columnTooltips: ModelAtlasColumnTooltips;
 };
 
 export type ModelAtlasStageConfig = {
@@ -146,6 +144,5 @@ export const STAGE_CONFIG = {
     secondsPerInputToken: SECONDS_PER_INPUT_TOKEN,
     benchmarkPortfolio: BENCHMARK_PORTFOLIO,
     confidence: CONFIDENCE,
-    columnTooltips: COLUMN_TOOLTIPS,
   },
 } satisfies ModelAtlasStageConfig;

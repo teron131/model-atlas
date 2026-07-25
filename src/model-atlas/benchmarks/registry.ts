@@ -7,17 +7,17 @@ import {
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_IMPUTATION_OVERRIDES,
   BENCHMARK_LABELS,
-  BENCHMARK_OBSERVATION_SOURCES,
   BENCHMARK_PERSISTENCE_OVERRIDES,
   BENCHMARK_PROCESSING_OVERRIDES,
   BENCHMARK_RESOURCE_POLICIES,
   BENCHMARK_SCORING_LABELS,
   BENCHMARK_SCORING_WEIGHTS,
-  BENCHMARK_SOURCE_OVERRIDES,
   BENCHMARK_TASK_METRIC_COLUMNS,
   BENCHMARK_TOOLTIPS,
   type BenchmarkKey,
+  GENERIC_BENCHMARK_SOURCES,
   MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
+  SPECIALIZED_BENCHMARK_SOURCES,
 } from "./catalog";
 import {
   applyBenchmarkTransform,
@@ -62,19 +62,19 @@ function benchmarkProcessing(
   };
 }
 
-export type BenchmarkObservationKey = keyof typeof BENCHMARK_OBSERVATION_SOURCES;
+export type BenchmarkObservationKey = keyof typeof GENERIC_BENCHMARK_SOURCES;
 
 type GenericBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
   inputs: readonly [
     {
-      group: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["group"];
-      id: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["id"];
+      group: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["group"];
+      id: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["id"];
       roles: readonly ["observation"];
       adapters: readonly [
         {
           kind: "benchmark_observation";
-          sourceDataKey: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["sourceDataKey"];
-          sourceRowsKey: (typeof BENCHMARK_OBSERVATION_SOURCES)[Key]["sourceRowsKey"];
+          sourceDataKey: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["sourceDataKey"];
+          sourceRowsKey: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["sourceRowsKey"];
         },
       ];
     },
@@ -82,8 +82,8 @@ type GenericBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
 };
 
 type DeclaredBenchmarkSources = {
-  [Key in BenchmarkKey]: Key extends keyof typeof BENCHMARK_SOURCE_OVERRIDES
-    ? (typeof BENCHMARK_SOURCE_OVERRIDES)[Key]
+  [Key in BenchmarkKey]: Key extends keyof typeof SPECIALIZED_BENCHMARK_SOURCES
+    ? (typeof SPECIALIZED_BENCHMARK_SOURCES)[Key]
     : Key extends BenchmarkObservationKey
       ? GenericBenchmarkSourceFacet<Key>
       : never;
@@ -117,17 +117,17 @@ type BenchmarkSources = {
   [Key in BenchmarkKey]: ResolvedBenchmarkSourceFacet<DeclaredBenchmarkSources[Key]>;
 };
 
-/** Compose source facets from literal overrides and the shared benchmark-observation declaration. */
+/** Compose specialized source facets over shared generic benchmark-observation declarations. */
 function benchmarkSources(): BenchmarkSources {
   return Object.fromEntries(
     Object.keys(BENCHMARK_SCORING_WEIGHTS).map((key) => {
       const benchmarkKey = key as BenchmarkKey;
-      const override = BENCHMARK_SOURCE_OVERRIDES[
-        benchmarkKey as keyof typeof BENCHMARK_SOURCE_OVERRIDES
+      const specialized = SPECIALIZED_BENCHMARK_SOURCES[
+        benchmarkKey as keyof typeof SPECIALIZED_BENCHMARK_SOURCES
       ] as BenchmarkSourceFacet | undefined;
-      if (override != null) return [benchmarkKey, override];
+      if (specialized != null) return [benchmarkKey, specialized];
 
-      const source = BENCHMARK_OBSERVATION_SOURCES[benchmarkKey as BenchmarkObservationKey];
+      const source = GENERIC_BENCHMARK_SOURCES[benchmarkKey as BenchmarkObservationKey];
       if (source == null) {
         throw new Error(`Missing benchmark source declaration: ${benchmarkKey}`);
       }
@@ -283,15 +283,14 @@ export type PublicBenchmarkRuntimeKeyFor<Group extends BenchmarkSourceGroup> = E
 
 export const BENCHMARK_DISPLAY_KEYS = benchmarkFactory.orderedKeys as BenchmarkKey[];
 export const BENCHMARK_OBSERVATION_KEYS = Object.keys(
-  BENCHMARK_OBSERVATION_SOURCES,
+  GENERIC_BENCHMARK_SOURCES,
 ) as BenchmarkObservationKey[];
 export const BENCHMARK_OBSERVATION_RAW_TABLE = "benchmark_observation_raw_rows" as const;
 export const BENCHMARK_OBSERVATION_BINDINGS = BENCHMARK_OBSERVATION_KEYS.map((key) => {
-  const source = BENCHMARK_OBSERVATION_SOURCES[key];
+  const source = GENERIC_BENCHMARK_SOURCES[key];
   return {
     benchmark: key,
     loader: source.loader,
-    rawSourceKey: key,
     rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
     source: source.id,
     sourceDataKey: source.sourceDataKey,

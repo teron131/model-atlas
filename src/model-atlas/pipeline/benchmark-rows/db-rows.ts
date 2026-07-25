@@ -42,7 +42,6 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   cursorBenchRows: readonly DbBenchmarkRow[];
   deepSWERows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
-  gdpPdfRows: readonly DbBenchmarkRow[];
   harveyLabRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
   terminalBenchRows: readonly DbBenchmarkRow[];
@@ -224,12 +223,6 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
       value: (row, key) => row[key],
     }),
     ...Object.values(SPARSE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
-    ...dbSourceDrafts({
-      key: "gdp_pdf",
-      rows: rows.gdpPdfRows,
-      value: (row) => row.score,
-      providerColumn: "provider",
-    }),
     ...dbSourceDrafts({
       key: "harvey_lab",
       rows: rows.harveyLabRows,

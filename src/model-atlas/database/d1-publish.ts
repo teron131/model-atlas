@@ -2,6 +2,7 @@
 
 import { createHash } from "node:crypto";
 
+import { readBenchmarkObservationRawCache } from "../benchmarks/persistence/observation";
 import { benchmarkSnapshotCachesFromRows } from "../benchmarks/persistence/runtime";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
@@ -13,7 +14,6 @@ import {
   artificialAnalysisRawCacheFromRows,
   modelsDevRawCacheFromRows,
   rawSourceCacheStatusFromRows,
-  readBenchmarkObservationRawCache,
   readOpenRouterRawCache,
 } from "../ingest/cache";
 import type { CacheDbRow } from "../ingest/cache/rows";
@@ -289,7 +289,7 @@ function sourceCachesFromRows(rows: Record<RawSourceName, CacheDbRow[]>): Source
   const benchmarkObservations = Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
       binding.sourceDataKey,
-      readBenchmarkObservationRawCache(rows[binding.rawSourceKey], binding),
+      readBenchmarkObservationRawCache(rows[binding.benchmark], binding),
     ]),
   );
   return {
