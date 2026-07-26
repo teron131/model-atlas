@@ -4,7 +4,7 @@
   --ink: #eeeeea;
   --ink-rgb: 238 238 234;
   --muted: #a5a29b;
-  --faint: #6d6b65;
+  --faint: #7a7975;
   --line: rgba(238, 238, 234, 0.075);
   --line-strong: rgba(238, 238, 234, 0.16);
   --accent: #eeeeea;
@@ -55,7 +55,7 @@
   --ink: var(--light-ink);
   --ink-rgb: var(--light-ink-rgb);
   --muted: #4f5750;
-  --faint: #7c857d;
+  --faint: #6e776f;
   --line: rgba(20, 30, 20, 0.095);
   --line-strong: rgba(20, 30, 20, 0.18);
   --accent: var(--ink);
@@ -197,6 +197,15 @@
 .filtersToggle:hover,
 .filtersToggle[aria-expanded="true"] {
   color: var(--ink);
+}
+
+.filtersToggle:focus-visible,
+.filterButton:focus-visible,
+.costFilterButton:focus-visible,
+.metricToggle button:focus-visible,
+.pointButton:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  outline: 0;
 }
 
 .filtersToggle[aria-expanded="true"] i {
@@ -387,7 +396,7 @@
   min-height: 30px;
   padding: 4px 1px;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 2px solid transparent;
   border-radius: 0;
   background: transparent;
   color: var(--muted);
@@ -411,7 +420,7 @@
   min-width: 0;
   padding: 0 2px;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 2px solid transparent;
   border-radius: 0;
   background: transparent;
   color: var(--muted);
@@ -438,7 +447,7 @@
 
 .filterButton[aria-pressed="true"],
 .costFilterButton[aria-pressed="true"] {
-  border-bottom: 2px solid var(--chart-control-border-active);
+  border-bottom-color: var(--chart-control-border-active);
   background: transparent;
   color: var(--ink);
 }
@@ -1304,13 +1313,18 @@
   margin-right: 0;
 }
 
-.metricToggle button[aria-pressed="true"],
-.metricToggle button:hover {
+.metricToggle button[aria-pressed="true"] {
   border-bottom-color: var(--chart-control-border-active);
   background: transparent;
   color: var(--ink);
   position: relative;
   z-index: 1;
+}
+
+.metricToggle button:hover {
+  border-bottom-color: color-mix(in srgb, var(--ink) 40%, transparent);
+  background: transparent;
+  color: var(--ink);
 }
 
 .metricToggle button:disabled {
@@ -1452,7 +1466,7 @@
 }
 
 .metricToggleDetail {
-  opacity: 0.58;
+  color: var(--faint);
 }
 
 .metricToggleLabel {
@@ -1853,6 +1867,17 @@
     width: 100%;
     margin-left: 0;
     justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filtersToggle,
+  .variantOption,
+  .filterButton,
+  .costFilterButton,
+  .metricToggle button,
+  .pointButton {
+    transition: none;
   }
 }
 

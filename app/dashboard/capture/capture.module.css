@@ -49,6 +49,13 @@
   opacity: 0.58;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .graphButton,
+  .leaderboardButton {
+    transition: none;
+  }
+}
+
 .graphButton svg,
 .leaderboardButton svg {
   width: 16px;
