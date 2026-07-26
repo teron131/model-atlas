@@ -6,7 +6,7 @@
   --ink: #eeeeea;
   --ink-rgb: 238 238 234;
   --muted: #a2a09a;
-  --faint: #62615d;
+  --faint: #7a7975;
   --line: #d9d8d2;
   --frame-line: rgba(238, 238, 234, 0.2);
   --frame-line-soft: rgba(238, 238, 234, 0.085);
@@ -31,7 +31,7 @@
   --control-border: rgba(238, 238, 234, 0.105);
   --control-border-hover: rgba(238, 238, 234, 0.28);
   --control-border-active: var(--ink);
-  --focus-ring: rgba(238, 238, 234, 0.16);
+  --focus-ring: rgba(238, 238, 234, 0.45);
   --focus-ring-soft: rgba(238, 238, 234, 0.08);
   --sticky-head-background: rgba(15, 16, 18, 0.92);
   --row-line: rgba(238, 238, 234, 0.07);
@@ -70,7 +70,7 @@ html[data-model-atlas-theme="light"] {
   --ink: var(--light-ink);
   --ink-rgb: var(--light-ink-rgb);
   --muted: #4f5750;
-  --faint: #7c857d;
+  --faint: #6e776f;
   --line: #202a20;
   --frame-line: rgba(20, 30, 20, 0.18);
   --frame-line-soft: rgba(20, 30, 20, 0.1);
@@ -95,7 +95,7 @@ html[data-model-atlas-theme="light"] {
   --control-border: rgb(var(--ink-rgb) / 0.095);
   --control-border-hover: rgba(20, 30, 20, 0.22);
   --control-border-active: var(--ink);
-  --focus-ring: rgba(118, 160, 36, 0.24);
+  --focus-ring: rgb(var(--ink-rgb) / 0.55);
   --focus-ring-soft: rgba(118, 160, 36, 0.13);
   --sticky-head-background: rgba(255, 255, 255, 0.94);
   --row-line: rgba(20, 30, 20, 0.105);
@@ -125,6 +125,16 @@ html {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .header-route,
+  .theme-toggle,
+  .header-button,
+  .loading-block,
+  .loading-logo,
+  .benchmark-chip-loading {
+    animation: none;
+    transition: none;
   }
 }
 
@@ -202,6 +212,11 @@ main {
   gap: 12px;
   color: inherit;
   text-decoration: none;
+}
+
+.brand-lockup:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  outline: 0;
 }
 
 .brand-mark {
@@ -480,7 +495,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 
 .benchmark-list samp:hover,
 .benchmark-chip:hover,
-.benchmark-chip:focus {
+.benchmark-chip:focus-visible {
   border-color: var(--control-border-active);
   background: var(--control-fill-hover);
   color: var(--ink);
@@ -528,7 +543,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   overflow-y: hidden;
   overscroll-behavior-x: none;
   background: var(--sticky-head-background);
-  border-bottom: 1px solid var(--frame-line-soft);
+  border-bottom: 1px solid var(--frame-line);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -833,7 +848,7 @@ td:last-child {
 }
 
 .header-button:hover,
-.header-button:focus {
+.header-button:focus-visible {
   background: var(--control-fill-hover);
   color: var(--ink);
   outline: 0;
@@ -879,8 +894,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .header-button:hover .sort-indicator::before,
 .header-button:hover .sort-indicator::after,
-.header-button:focus .sort-indicator::before,
-.header-button:focus .sort-indicator::after {
+.header-button:focus-visible .sort-indicator::before,
+.header-button:focus-visible .sort-indicator::after {
   color: currentColor;
 }
 
@@ -1508,7 +1523,7 @@ td.modality-cell {
 
 .modality-icon.unavailable {
   color: var(--faint);
-  opacity: 0.42;
+  opacity: 0.36;
 }
 
 .missing {

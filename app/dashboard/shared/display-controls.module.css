@@ -38,7 +38,7 @@
 .limit small,
 .variants > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.03em;
 }
@@ -151,14 +151,14 @@
 }
 
 .variantOption {
-  min-height: 24px;
+  min-height: 30px;
   padding: 0 2px;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--faint);
   font-family: inherit;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.025em;
   line-height: 1;
@@ -225,5 +225,11 @@
     margin-left: 0;
     padding-left: 0;
     border-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .variantOption {
+    transition: none;
   }
 }
