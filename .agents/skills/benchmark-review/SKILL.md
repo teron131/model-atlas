@@ -92,10 +92,12 @@ Inspect source leaderboard leaders before judging only the subset that survives 
 Use these verdicts for already-selected benchmarks:
 
 - `keep`: source leaders are current and serious, matched leaders broadly agree with strong table models, or the benchmark supplies a clearly useful unique or niche capability signal.
-- `watch`: source appears active but rank agreement is mixed, provenance is soft, or sparse coverage lowers confidence while the signal remains plausible.
-- `review`: source leaders are stale or weak, matched leaders are mostly outside the table top 20, the winner is outside the top 25 without a credible niche explanation, rows are missing or quarantined, or provenance materially weakens the signal.
+- `watch`: source appears active but a material unresolved weakness remains, such as opaque harness effects, consistently weak or stale leaders without a capability-specific explanation, unauditable provenance, or sparse evidence combined with another adverse signal.
+- `review`: source leaders are stale or weak, matched leaders are mostly outside the table top 20 without a credible niche explanation, rows are missing or quarantined, or provenance is isolated, contradictory, configuration-opaque, or otherwise too weak to interpret.
 
 Do not escalate a benchmark because of thin final-model coverage alone. Escalate sparse coverage only when it combines with stale or weak leaders, source disappearance, missing or quarantined rows, poor provenance, or consistently weak matched ranks.
+
+Different disclosed agents or harnesses are not themselves a watch signal; interpret those rows as model-plus-agent evidence and escalate only when opaque or incompatible harness effects undermine the claim. A benchmark winner need not be the overall top-ranked model, especially for a specialized capability. Self-reported, vendor-reported, and unverified rows are provenance labels rather than automatic watch signals when they remain attributable, understandable, comparable across multiple current serious systems, and coherent with other evidence.
 
 Treat dates as context rather than strict equality checks. Separate benchmark merit from pipeline persistence or observability problems. Be more tolerant of rank disagreement for narrow agentic workflows and unique capabilities than for broad frontier Intelligence claims.
 

@@ -45,11 +45,11 @@ Common rejection reasons:
 - the benchmark is stale, public, memorized, or contamination-heavy
 - the format is mostly multiple-choice trivia, toy puzzles, keyword matching, or artificial patch tasks
 - grading is underspecified, subjective without calibration, or easy to exploit
-- results mostly measure the harness, scaffold, or custom agent framework rather than the model
+- results depend on an opaque or incomparable harness while being presented as a pure model ranking
 - the benchmark mainly tests safety or policy behavior instead of capability
 - the signal is redundant with a better benchmark
 - no results from current serious models are available
-- the only evidence comes from vendor claims or isolated release tables
+- the only evidence is an isolated, unauditable claim without enough methodology or comparable rows to interpret it
 
 Realistic tasks do not rescue a saturated benchmark, difficulty does not rescue a contaminated benchmark, and familiarity does not justify retaining a benchmark that no longer adds signal.
 
@@ -60,6 +60,14 @@ Every benchmark should be judged from evidence, not marketing.
 Inspect the official site, paper, repository, dataset card, leaderboard, methodology, sample tasks, scoring rules, verifier details, and current frontier model results. Check whether results are official, independent, self-reported, vendor-provided, same-harness, or mixed-harness.
 
 Use real samples whenever possible. Inspect at least two tasks when samples are accessible; the point is to understand what the benchmark actually asks the model to do, not what its abstract claims. When private tasks prevent inspection, treat that opacity as a source of uncertainty and require stronger evidence from the methodology, grading protocol, result distribution, and independent validation.
+
+## Caveats Are Not Failures
+
+Different disclosed agents or harnesses are not inherently wrong for an Agentic benchmark. They change the unit of interpretation from a pure model result to a model-plus-agent result. Judge whether the tasks, scoring, configurations, and harness identities are clear enough to support that claim. Escalate only when incompatible or opaque harness differences dominate the result while the leaderboard presents them as directly comparable model scores.
+
+A benchmark leader does not need to be the overall top-ranked Model Atlas model. Specialized capabilities, task fit, reasoning effort, and measurement noise can produce a legitimate ordering that differs from the broad Intelligence table. Treat disagreement as adverse evidence only when the leaderboard is generally led by stale or weak systems, strong current models consistently perform poorly, and no credible capability-specific explanation remains.
+
+Self-reported, vendor-reported, or unverified rows are provenance labels, not automatic defects. They can support ranking when each claim is attributable to a primary source, the evaluated task and configuration are understandable, multiple current serious systems have comparable rows, and the distribution is coherent with other evidence. Escalate when claims are isolated, contradictory, configuration-opaque, impossible to audit, or used to imply independent verification that did not occur.
 
 A useful benchmark report should answer:
 
@@ -89,7 +97,7 @@ This does not automatically reject the benchmark. It should trigger closer revie
 
 Same-harness results are the cleanest source for direct model comparison.
 
-Mixed-harness leaderboards are different. They should not be read as pure model rankings, because each row measures a model plus an agent framework. Still, they can be useful. If the same model performs well across multiple independent harnesses, that is evidence of cross-harness robustness, tool-use tolerance, and ecosystem adaptability.
+Mixed-harness leaderboards are different. They should not be read as pure model rankings, because each row measures a model plus an agent framework. This is an interpretation boundary, not a quality failure. If the same model performs well across multiple independent harnesses, that is evidence of cross-harness robustness, tool-use tolerance, and ecosystem adaptability.
 
 For mixed-harness boards, record:
 
@@ -99,7 +107,7 @@ For mixed-harness boards, record:
 - single-model vs multi-model setup
 - whether performance depends on one special scaffold
 
-A mixed-harness board is not useless. It is just not a single-row model leaderboard.
+A mixed-harness board can earn ranking space when the model-plus-agent meaning is explicit and the rows remain auditable. It is not a single-harness model leaderboard.
 
 ## Final Classification
 
