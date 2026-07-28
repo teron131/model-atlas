@@ -31,12 +31,19 @@ import type { RawSourceName } from "./source-registry";
 
 export type ModelAtlasSourceHealthStatus = "cache_hit" | "fresh" | "using_cached_rows" | "empty";
 
+export type ModelAtlasSourceQuarantine = {
+  row_key: string;
+  row_label: string | null;
+  missing_from_source_since_epoch_seconds: number | null;
+};
+
 export type ModelAtlasSourceHealthEntry = {
   status: ModelAtlasSourceHealthStatus;
   last_fetch_epoch_seconds: number | null;
   source_input_count: number;
   active_row_count: number;
   quarantined_row_count: number;
+  quarantined_rows: ModelAtlasSourceQuarantine[];
 };
 
 export type ModelAtlasSourceHealth = {

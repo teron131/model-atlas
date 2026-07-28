@@ -17,6 +17,7 @@ import {
   type BenchmarkRowDraft,
   type BenchmarkRowsByKey,
   finalizeBenchmarkRows,
+  riemannBenchmarkDraft,
 } from "./source-rows";
 
 type DbBenchmarkRow = Record<string, unknown>;
@@ -112,6 +113,22 @@ function dbSourceRowDraft(source: DbSourceSpec, row: DbBenchmarkRow): BenchmarkR
 
 function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
   return source.rows.flatMap((row) => dbSourceRowDraft(source, row) ?? []);
+}
+
+function riemannBenchmarkDrafts(rows: readonly DbBenchmarkRow[]): BenchmarkRowDraft[] {
+  return rows.flatMap((row) => {
+    const model = stringValue(row.model);
+    if (model == null) {
+      return [];
+    }
+    return [
+      riemannBenchmarkDraft({
+        model,
+        provider: stringValue(row.provider),
+        score: row.score,
+      }),
+    ];
+  });
 }
 
 type SparseBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
@@ -239,12 +256,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
       providerColumn: "provider",
       rowKind: "overall",
     }),
-    ...dbSourceDrafts({
-      key: "riemann_bench",
-      rows: rows.riemannBenchRows,
-      value: (row) => row.score,
-      providerColumn: "provider",
-    }),
+    ...riemannBenchmarkDrafts(rows.riemannBenchRows),
     ...dbSourceDrafts({
       key: "vals_index",
       rows: rows.valsIndexRows,

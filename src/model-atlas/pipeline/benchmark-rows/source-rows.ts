@@ -10,13 +10,18 @@ import {
 import { agentsLastExamBenchmarkScore } from "../../benchmarks/scrapers/agents-last-exam";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { cursorBenchCanonicalModelName } from "../../benchmarks/scrapers/cursorbench";
-import { canonicalReasoningEffort, normalizeModelToken } from "../../identity/normalization";
+import {
+  benchmarkModelEffort,
+  canonicalReasoningEffort,
+  normalizeModelToken,
+} from "../../identity/normalization";
 import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { collapseModelVariants } from "../model-catalog";
 
 export type BenchmarkSourceRow = {
   id: string | null;
+  identity: string;
   label: string;
   provider: string | null;
   value: number;
@@ -35,7 +40,6 @@ export type BenchmarkRowDraft = {
 };
 
 type AggregatableBenchmarkSourceRow = BenchmarkSourceRow & {
-  identity: string;
   reasoningEffort: unknown;
 };
 
@@ -98,14 +102,25 @@ function benchmarkObservationDrafts(rows: readonly BenchmarkObservationRow[]): B
   );
 }
 
+/** Riemann rows share one effort-aware health identity across live and restored source data. */
+export function riemannBenchmarkDraft(row: {
+  model: string;
+  provider: string | null;
+  score: unknown;
+}): BenchmarkRowDraft {
+  const parsed = benchmarkModelEffort(row.model);
+  return {
+    key: "riemann_bench",
+    identity: parsed.baseModel,
+    label: row.model,
+    provider: row.provider,
+    reasoningEffort: parsed.reasoningEffort,
+    value: row.score,
+  };
+}
+
 function surgeBenchmarkRowDrafts(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
-  return [
-    ...benchmarkRowDrafts("riemann_bench", sourceData.riemannBench.rows, (row) => ({
-      label: row.model,
-      provider: row.provider,
-      value: row.score,
-    })),
-  ];
+  return sourceData.riemannBench.rows.map(riemannBenchmarkDraft);
 }
 
 function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
@@ -177,6 +192,7 @@ function aggregateBenchmarkSourceRows(
         benchmarks: { [key]: row.value },
         benchmark_source_row: {
           id: row.id,
+          identity: row.identity,
           label: row.label,
           provider: row.provider,
           value: row.value,

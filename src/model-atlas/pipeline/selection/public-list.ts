@@ -37,9 +37,19 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 ]);
 const REQUIRED_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
+type IntelligenceScoredModel = {
+  id?: unknown;
+  name?: unknown;
+  scores: {
+    intelligence_score: number;
+  };
+};
+
 /** Select the highest-intelligence variant as the representative row for each model. */
-export function strongestModelVariants(models: readonly ModelAtlasModel[]): ModelAtlasModel[] {
-  const strongestByModel = new Map<string, ModelAtlasModel>();
+export function strongestModelVariants<Model extends IntelligenceScoredModel>(
+  models: readonly Model[],
+): Model[] {
+  const strongestByModel = new Map<string, Model>();
   for (const model of models) {
     const key = canonicalModelKey(model);
     const existing = strongestByModel.get(key);

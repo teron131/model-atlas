@@ -1,5 +1,6 @@
 /** Metadata assembly keeps live, stored, and restored payloads aligned with the current scoring contract. */
 
+import { benchmarkValueLocation } from "../../benchmarks/registry";
 import { STAGE_CONFIG } from "../../config";
 import type { ScoringConfig } from "../../config/stage";
 import {
@@ -63,6 +64,19 @@ function buildAvailableMetrics(
   };
 }
 
+function benchmarkAvailable(
+  key: string,
+  availableMetrics: ModelAtlasMetadata["available_metrics"],
+): boolean {
+  if (availableMetrics.benchmark_keys.includes(key)) {
+    return true;
+  }
+  const location = benchmarkValueLocation(key);
+  return (
+    location?.kind === "intelligence" && availableMetrics.benchmark_keys.includes(location.field)
+  );
+}
+
 function hasPositiveTaskMetric(
   model: ResourceMetricModel,
   key: string,
@@ -117,28 +131,37 @@ export function buildCurrentModelAtlasMetadata({
   const outputAvailableMetrics = availableMetrics ?? modelAvailableMetrics;
   const availabilityMetrics =
     availabilitySource === "metadata" ? outputAvailableMetrics : modelAvailableMetrics;
-  const availableBenchmarkKeys = availabilityMetrics.benchmark_keys;
   const selectedBenchmarkKeys = sortedUniqueKeys([
     ...scoringConfig.intelligenceBenchmarkKeys,
     ...scoringConfig.agenticBenchmarkKeys,
   ]);
   const resourceComponents = activeResourceComponents(resourceModels, scoringConfig);
+  const hasCompleteStoredBenchmarkHealth =
+    benchmarkUpdateHealth != null &&
+    selectedBenchmarkKeys.every((key) => benchmarkUpdateHealth[key] != null);
+  const computedBenchmarkUpdateHealth = hasCompleteStoredBenchmarkHealth
+    ? {}
+    : buildBenchmarkUpdateHealth(healthModels, scoringConfig, sourceRowsByKey, matcherConfig);
+  const currentBenchmarkUpdateHealth = Object.fromEntries(
+    selectedBenchmarkKeys.map((key) => [
+      key,
+      benchmarkUpdateHealth?.[key] ?? computedBenchmarkUpdateHealth[key]!,
+    ]),
+  );
   return {
     available_metrics: outputAvailableMetrics,
     ...(sourceHealth == null ? {} : { source_health: sourceHealth }),
-    benchmark_update_health:
-      benchmarkUpdateHealth ??
-      buildBenchmarkUpdateHealth(healthModels, scoringConfig, sourceRowsByKey, matcherConfig),
+    benchmark_update_health: currentBenchmarkUpdateHealth,
     scoring: {
       intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
       intelligence_benchmark_display_keys: [...scoringConfig.intelligenceBenchmarkDisplayKeys],
       missing_intelligence_benchmark_keys: scoringConfig.intelligenceBenchmarkKeys.filter(
-        (key) => !availableBenchmarkKeys.includes(key),
+        (key) => !benchmarkAvailable(key, availabilityMetrics),
       ),
       agentic_benchmark_keys: [...scoringConfig.agenticBenchmarkKeys],
       agentic_benchmark_display_keys: [...scoringConfig.agenticBenchmarkDisplayKeys],
       missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
-        (key) => !availableBenchmarkKeys.includes(key),
+        (key) => !benchmarkAvailable(key, availabilityMetrics),
       ),
       selected_benchmark_keys: selectedBenchmarkKeys,
       benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },

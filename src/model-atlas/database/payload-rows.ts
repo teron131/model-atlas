@@ -21,6 +21,7 @@ import type {
   ModelAtlasPayload,
   ModelAtlasScoredCandidate,
   ModelAtlasSourceHealth,
+  ModelAtlasSourceQuarantine,
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
 } from "../stats/types";
@@ -172,6 +173,9 @@ export const PAYLOAD_ROW_GROUPS = [
   ),
   payloadRowGroup("sourceHealthRows", SNAPSHOT_TABLES.source_health, "row_index", {
     optional: true,
+  }),
+  payloadRowGroup("sourceQuarantineRows", SNAPSHOT_TABLES.source_quarantines, "source, row_key", {
+    columns: ["source", "row_key", "row_label", "missing_from_source_since_epoch_seconds"],
   }),
   payloadRowGroup("artificialAnalysisRows", SNAPSHOT_TABLES.artificial_analysis, "row_index", {
     columns: [
@@ -400,10 +404,36 @@ export async function readPayloadRows(
 
 function sourceHealthFromRows(
   rows: DbRow[],
+  quarantineRows: DbRow[],
   generatedAt: number | null,
 ): ModelAtlasSourceHealth | undefined {
   if (rows.length === 0) {
     return undefined;
+  }
+  const quarantinesBySource = new Map<string, ModelAtlasSourceQuarantine[]>();
+  for (const row of quarantineRows) {
+    const source = stringValue(row.source);
+    const rowKey = stringValue(row.row_key);
+    if (source == null || rowKey == null) {
+      continue;
+    }
+    const quarantines = quarantinesBySource.get(source) ?? [];
+    quarantines.push({
+      row_key: rowKey,
+      row_label: stringValue(row.row_label),
+      missing_from_source_since_epoch_seconds: asFiniteNumber(
+        row.missing_from_source_since_epoch_seconds,
+      ),
+    });
+    quarantinesBySource.set(source, quarantines);
+  }
+  for (const quarantines of quarantinesBySource.values()) {
+    quarantines.sort(
+      (left, right) =>
+        (left.missing_from_source_since_epoch_seconds ?? Number.MAX_SAFE_INTEGER) -
+          (right.missing_from_source_since_epoch_seconds ?? Number.MAX_SAFE_INTEGER) ||
+        left.row_key.localeCompare(right.row_key),
+    );
   }
   return {
     generated_at_epoch_seconds: generatedAt,
@@ -429,6 +459,7 @@ function sourceHealthFromRows(
               source_input_count: asFiniteNumber(row.source_input_count) ?? 0,
               active_row_count: asFiniteNumber(row.active_row_count) ?? 0,
               quarantined_row_count: asFiniteNumber(row.quarantined_row_count) ?? 0,
+              quarantined_rows: quarantinesBySource.get(source) ?? [],
             },
           ],
         ];
@@ -452,7 +483,11 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
     );
     return model == null ? [] : [model];
   });
-  const sourceHealth = sourceHealthFromRows(rows.sourceHealthRows, rows.fetchedAt);
+  const sourceHealth = sourceHealthFromRows(
+    rows.sourceHealthRows,
+    rows.sourceQuarantineRows,
+    rows.fetchedAt,
+  );
   const sourceRowsByKey = benchmarkRowsFromDb(rows);
   return {
     fetched_at_epoch_seconds: rows.fetchedAt,

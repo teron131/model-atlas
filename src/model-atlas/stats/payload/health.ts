@@ -6,15 +6,19 @@ import {
   type MatcherConfig,
   rankMatchCandidates,
 } from "../../identity";
-import { normalizeModelToken, normalizeProviderModelId } from "../../identity/normalization";
+import {
+  canonicalModelKey,
+  normalizeModelToken,
+  normalizeProviderModelId,
+} from "../../identity/normalization";
 import type { NumberOrNull } from "../../numeric";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
+import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
+import { strongestModelVariants } from "../../pipeline/selection/public-list";
 import type {
-  ModelAtlasBenchmarks,
   ModelAtlasBenchmarkUpdateEntry,
   ModelAtlasBenchmarkUpdateHealth,
   ModelAtlasCandidateScores,
-  ModelAtlasIntelligence,
   ModelAtlasModel,
 } from "../types";
 
@@ -31,6 +35,24 @@ type RankedModel = {
   value: number;
 };
 
+type ReferenceRanks = {
+  byModelId: ReadonlyMap<string, number>;
+  count: number;
+};
+
+type IntelligenceScoredHealthModel = BenchmarkHealthModel & {
+  scores: {
+    intelligence_score: number;
+  };
+};
+
+type HealthMatchCandidate = {
+  model_id: string;
+  provider_id: string;
+  provider_name: string;
+  model_name: string | null;
+};
+
 function finiteNumber(value: NumberOrNull | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -39,27 +61,42 @@ function modelIdentity(model: Pick<ModelAtlasModel, "id" | "name">): string | nu
   return model.id ?? model.name ?? null;
 }
 
-function benchmarkValue(model: BenchmarkHealthModel, key: string): number | null {
-  const benchmarks = model.benchmarks as ModelAtlasBenchmarks | null;
-  const intelligence = model.intelligence as ModelAtlasIntelligence | null;
-  return finiteNumber(benchmarks?.[key] ?? intelligence?.[key]);
+function hasIntelligenceScore(model: BenchmarkHealthModel): model is IntelligenceScoredHealthModel {
+  return finiteNumber(model.scores?.intelligence_score) != null;
 }
 
-function referenceRankByModel(models: readonly BenchmarkHealthModel[]): Map<string, number> {
-  const ranked = models
+/** Health follows the dashboard's highest-Intelligence representative before selecting its top ten. */
+function referenceRankByModel(models: readonly BenchmarkHealthModel[]): ReferenceRanks {
+  const ranked = strongestModelVariants(models.filter(hasIntelligenceScore))
     .flatMap((model) => {
       const id = modelIdentity(model);
       const score = finiteNumber(model.scores?.intelligence_score);
-      return id == null || score == null ? [] : [{ id, score }];
+      return id == null || score == null
+        ? []
+        : [{ canonicalKey: canonicalModelKey(model), id, score }];
     })
-    .sort((left, right) => right.score - left.score)
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        left.canonicalKey.localeCompare(right.canonicalKey) ||
+        left.id.localeCompare(right.id),
+    )
     .slice(0, REFERENCE_TOP_LIMIT);
-  return new Map(ranked.map((model, index) => [model.id, index + 1]));
+  const rankByCanonicalKey = new Map(ranked.map((model, index) => [model.canonicalKey, index + 1]));
+  const byModelId = new Map<string, number>();
+  for (const model of models) {
+    const id = modelIdentity(model);
+    const rank = rankByCanonicalKey.get(canonicalModelKey(model));
+    if (id != null && rank != null) {
+      byModelId.set(id, rank);
+    }
+  }
+  return { byModelId, count: ranked.length };
 }
 
 function sourceSlug(row: BenchmarkSourceRow): string {
-  if (row.id != null) {
-    const slug = row.id.split("/").at(-1);
+  if (row.identity.length > 0) {
+    const slug = row.identity.split("/").at(-1);
     if (slug != null) {
       return normalizeModelToken(slug);
     }
@@ -67,53 +104,56 @@ function sourceSlug(row: BenchmarkSourceRow): string {
   return normalizeModelToken(row.label);
 }
 
+function healthMatchCandidates(models: readonly BenchmarkHealthModel[]): HealthMatchCandidate[] {
+  return models.flatMap((model) => {
+    const id = modelIdentity(model);
+    if (id == null) {
+      return [];
+    }
+    return [
+      {
+        model_id: id,
+        provider_id: id.split("/")[0] ?? "",
+        provider_name: "",
+        model_name: model.name,
+      },
+    ];
+  });
+}
+
 function matchedSourceId(
   row: BenchmarkSourceRow,
-  models: readonly BenchmarkHealthModel[],
+  modelCandidates: readonly HealthMatchCandidate[],
   matcherConfig: MatcherConfig | undefined,
 ): string | null {
   if (matcherConfig == null) {
     return null;
   }
   const rowSlug = sourceSlug(row);
-  const candidates = rankMatchCandidates(
-    rowSlug,
-    models.flatMap((model) => {
-      const id = modelIdentity(model);
-      const name = model.name ?? "";
-      if (id == null) {
-        return [];
-      }
-      return [
-        {
-          model_id: id,
-          provider_id: id.split("/")[0] ?? "",
-          provider_name: "",
-          model_name: name || null,
-        },
-      ];
-    }),
-    { requireSourceTokenCoverage: true },
+  const rankedCandidates = rankMatchCandidates(rowSlug, modelCandidates, {
+    requireSourceTokenCoverage: true,
+  });
+  return (
+    firstVariantCompatibleCandidate(rowSlug, rankedCandidates, matcherConfig)?.model_id ?? null
   );
-  return firstVariantCompatibleCandidate(rowSlug, candidates, matcherConfig)?.model_id ?? null;
 }
 
 function benchmarkRankedModels(
   models: readonly BenchmarkHealthModel[],
   key: string,
-  referenceRanks: ReadonlyMap<string, number>,
+  referenceRanks: ReferenceRanks,
 ): RankedModel[] {
-  return models
+  return strongestModelVariants(models.filter(hasIntelligenceScore))
     .flatMap((model) => {
       const id = modelIdentity(model);
-      const value = benchmarkValue(model, key);
+      const value = benchmarkMetricValue(model, key);
       return id == null || value == null
         ? []
         : [
             {
               id,
               label: model.name ?? id,
-              referenceRank: referenceRanks.get(id) ?? null,
+              referenceRank: referenceRanks.byModelId.get(id) ?? null,
               value,
             },
           ];
@@ -123,33 +163,30 @@ function benchmarkRankedModels(
 
 function sourceRankedModels(
   rows: readonly BenchmarkSourceRow[],
-  models: readonly BenchmarkHealthModel[],
-  referenceRanks: ReadonlyMap<string, number>,
+  candidates: readonly HealthMatchCandidate[],
+  referenceRanks: ReferenceRanks,
   matcherConfig: MatcherConfig | undefined,
 ): RankedModel[] {
-  return rows
-    .map((row) => {
-      const id = matchedSourceId(row, models, matcherConfig);
-      return {
-        id,
-        label: row.label,
-        referenceRank: id == null ? null : (referenceRanks.get(id) ?? null),
-        value: row.value,
-      };
-    })
-    .sort((left, right) => right.value - left.value)
-    .flatMap((row) =>
-      row.id == null
-        ? []
-        : [
-            {
-              id: row.id,
-              label: row.label,
-              referenceRank: row.referenceRank,
-              value: row.value,
-            },
-          ],
-    );
+  const rankedModels: RankedModel[] = [];
+  const seenModelIds = new Set<string>();
+  const rankedRows = [...rows].sort((left, right) => right.value - left.value);
+  for (const row of rankedRows) {
+    const id = matchedSourceId(row, candidates, matcherConfig);
+    if (id == null || seenModelIds.has(id)) {
+      continue;
+    }
+    seenModelIds.add(id);
+    rankedModels.push({
+      id,
+      label: row.label,
+      referenceRank: referenceRanks.byModelId.get(id) ?? null,
+      value: row.value,
+    });
+    if (rankedModels.length >= BENCHMARK_TOP_LIMIT) {
+      break;
+    }
+  }
+  return rankedModels;
 }
 
 function sourceTopRows(rows: readonly BenchmarkSourceRow[] | undefined): BenchmarkSourceRow[] {
@@ -200,6 +237,7 @@ export function buildBenchmarkUpdateHealth(
   matcherConfig?: MatcherConfig,
 ): ModelAtlasBenchmarkUpdateHealth {
   const referenceRanks = referenceRankByModel(models);
+  const candidates = healthMatchCandidates(models);
   const selectedBenchmarkKeys = [
     ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
   ].sort((left, right) => left.localeCompare(right));
@@ -210,11 +248,11 @@ export function buildBenchmarkUpdateHealth(
       const rankedModels =
         sourceRows == null
           ? benchmarkRankedModels(models, key, referenceRanks)
-          : sourceRankedModels(topSourceRows, models, referenceRanks, matcherConfig);
+          : sourceRankedModels(sourceRows, candidates, referenceRanks, matcherConfig);
       const topModels = rankedModels.slice(0, BENCHMARK_TOP_LIMIT);
       const overlapModels = topModels.filter((model) => model.referenceRank != null);
       const unrepresentedTopSourceRows = topSourceRows.filter(
-        (row) => matchedSourceId(row, models, matcherConfig) == null,
+        (row) => matchedSourceId(row, candidates, matcherConfig) == null,
       );
       const entry: ModelAtlasBenchmarkUpdateEntry = {
         status: updateStatus({
@@ -224,7 +262,7 @@ export function buildBenchmarkUpdateHealth(
         }),
         observed_count: sourceRows?.length ?? rankedModels.length,
         checked_top_count: topModels.length,
-        reference_top_count: referenceRanks.size,
+        reference_top_count: referenceRanks.count,
         overlap_count: overlapModels.length,
         overlap_model_ids: overlapModels.map((model) => model.id),
         top_model_ids:

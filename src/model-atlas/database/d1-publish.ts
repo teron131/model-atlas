@@ -213,7 +213,7 @@ async function readD1RefreshState(nowEpochSeconds: number): Promise<D1RefreshSta
   const [[previousSourceRows, previousSourceCacheRows], previousPayload] = await Promise.all([
     queryD1BatchRows([
       {
-        sql: "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
+        sql: "SELECT source, row_key, row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
       },
       {
         sql: "SELECT source, last_fetch_epoch_seconds, source_input_count FROM source_health ORDER BY source",

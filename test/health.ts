@@ -3,11 +3,13 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
+import { buildPayloadFromRows, buildPayloadRows } from "../src/model-atlas/database/payload-rows";
 import { RAW_SOURCE_NAMES, type RawSourceName } from "../src/model-atlas/ingest/source-registry";
 import { buildSourceHealth } from "../src/model-atlas/ingest/source-snapshots/policy";
 import type { RawSourceCacheStatus } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import { buildBenchmarkUpdateHealth } from "../src/model-atlas/stats/payload/health";
+import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import { benchmarkObservationRowGroups, minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const sparseHealth = buildBenchmarkUpdateHealth(
@@ -94,6 +96,83 @@ assert.equal(
   "Benchmark agreement should follow the public Intelligence ranking",
 );
 
+const compactReferenceHealth = buildBenchmarkUpdateHealth(
+  [
+    model("frontier/a", "Frontier A", 100, null, 100),
+    model("frontier/a", "Frontier A", 99, null, 99),
+    model("frontier/b", "Frontier B", 98, null, 98),
+    model("frontier/c", "Frontier C", 97, null, 97),
+    model("frontier/d", "Frontier D", 96, null, 96),
+    model("frontier/e", "Frontier E", 95, null, 95),
+    model("frontier/f", "Frontier F", 94, null, 94),
+    model("frontier/g", "Frontier G", 93, null, 93),
+    model("frontier/h", "Frontier H", 92, null, 92),
+    model("frontier/i", "Frontier I", 91, null, 91),
+    model("frontier/j", "Frontier J", 90, 0.9, 90),
+  ],
+  {
+    ...STAGE_CONFIG.scoring,
+    intelligenceBenchmarkKeys: ["sparse_benchmark"],
+    agenticBenchmarkKeys: [],
+  },
+);
+assert.equal(compactReferenceHealth.sparse_benchmark?.reference_top_count, 10);
+assert.equal(
+  compactReferenceHealth.sparse_benchmark?.top_model_reference_rank,
+  10,
+  "Reasoning variants should collapse before health selects the dashboard top ten",
+);
+assert.equal(compactReferenceHealth.sparse_benchmark?.status, "current");
+
+const aaIndexModel = {
+  ...minimalModelAtlasModel({
+    id: "frontier/aa-index",
+    name: "AA Index Model",
+  }),
+  intelligence: {
+    intelligence_index: 60,
+  },
+  scores: {
+    intelligence_score: 100,
+    agentic_score: 100,
+    speed_score: null,
+    value_score: null,
+  },
+};
+const aaIndexScoring = {
+  ...STAGE_CONFIG.scoring,
+  intelligenceBenchmarkKeys: ["aa_intelligence_index"],
+  agenticBenchmarkKeys: [],
+};
+const aaIndexHealth = buildBenchmarkUpdateHealth([aaIndexModel], aaIndexScoring);
+assert.equal(aaIndexHealth.aa_intelligence_index?.observed_count, 1);
+assert.equal(aaIndexHealth.aa_intelligence_index?.status, "current");
+
+const aaIndexMetadata = buildCurrentModelAtlasMetadata({
+  models: [aaIndexModel],
+  scoringConfig: aaIndexScoring,
+});
+assert.deepEqual(aaIndexMetadata.scoring.missing_intelligence_benchmark_keys, []);
+
+const synchronizedHealthMetadata = buildCurrentModelAtlasMetadata({
+  models: [model("frontier/a", "Frontier A", 100, 0.98)],
+  scoringConfig: {
+    ...STAGE_CONFIG.scoring,
+    intelligenceBenchmarkKeys: ["sparse_benchmark"],
+    agenticBenchmarkKeys: [],
+  },
+  benchmarkUpdateHealth: {
+    removed_benchmark: sparseHealth.sparse_benchmark!,
+  },
+});
+assert.deepEqual(Object.keys(synchronizedHealthMetadata.benchmark_update_health ?? {}), [
+  "sparse_benchmark",
+]);
+assert.equal(
+  synchronizedHealthMetadata.benchmark_update_health?.sparse_benchmark?.status,
+  "current",
+);
+
 const officialRowHealth = buildBenchmarkUpdateHealth(
   [
     model("openai/gpt-5.5", "GPT-5.5", 100, 0.74),
@@ -117,36 +196,42 @@ const officialRowHealth = buildBenchmarkUpdateHealth(
     sparse_benchmark: [
       {
         id: "openai/gpt-5-2-codex",
+        identity: "openai/gpt-5-2-codex",
         label: "GPT-5.2 Codex (xhigh)",
         provider: null,
         value: 0.76,
       },
       {
         id: null,
+        identity: "anthropic/claude-mythos-preview",
         label: "Claude Mythos Preview",
         provider: "anthropic",
         value: 0.755,
       },
       {
         id: "openai/gpt-5-5-pro",
+        identity: "openai/gpt-5-5-pro",
         label: "GPT-5.5 Pro",
         provider: null,
         value: 0.75,
       },
       {
         id: "openai/gpt-5-5",
+        identity: "openai/gpt-5-5",
         label: "GPT-5.5 (xhigh)",
         provider: null,
         value: 0.74,
       },
       {
         id: "anthropic/claude-fable-5",
+        identity: "anthropic/claude-fable-5",
         label: "Claude Fable 5",
         provider: null,
         value: 0.7,
       },
       {
         id: null,
+        identity: "google/gemini-3-1-pro",
         label: "Gemini 3.1 Pro",
         provider: "google",
         value: 0.73,
@@ -180,8 +265,8 @@ assert.deepEqual(
 );
 assert.deepEqual(
   officialRowHealth.sparse_benchmark?.checked_model_ids,
-  ["openai/gpt-5.5", "google/gemini-3.1-pro-preview"],
-  "Health should check represented official rows against Atlas ids",
+  ["openai/gpt-5.5", "google/gemini-3.1-pro-preview", "anthropic/claude-fable-5"],
+  "Health should continue past unrepresented source leaders until it checks five matched Atlas models",
 );
 assert.deepEqual(officialRowHealth.sparse_benchmark?.unrepresented_top_model_labels, [
   "GPT-5.2 Codex (xhigh)",
@@ -193,6 +278,46 @@ assert.equal(
   "current",
   "Known-unrepresented official leaders should not make a benchmark look stale when represented rows still overlap current best models",
 );
+
+const canonicalIdentityHealth = buildBenchmarkUpdateHealth(
+  [
+    model("anthropic/claude-fable-5", "Claude Fable 5", 100, null),
+    model("frontier/b", "Frontier B", 99, null),
+  ],
+  {
+    ...STAGE_CONFIG.scoring,
+    intelligenceBenchmarkKeys: ["sparse_benchmark"],
+    agenticBenchmarkKeys: [],
+  },
+  {
+    sparse_benchmark: [
+      {
+        id: "contenders/claude-fable-5-agent",
+        identity: "anthropic/claude-fable-5",
+        label: "Claude Fable 5 (High)",
+        provider: "Anthropic",
+        value: 0.9,
+      },
+      {
+        id: "contenders/claude-fable-5-agent-alt",
+        identity: "anthropic/claude-fable-5",
+        label: "Claude Fable 5 (Alternative Harness)",
+        provider: "Anthropic",
+        value: 0.85,
+      },
+    ],
+  },
+  STAGE_CONFIG.matcher,
+);
+assert.deepEqual(canonicalIdentityHealth.sparse_benchmark?.checked_model_ids, [
+  "anthropic/claude-fable-5",
+]);
+assert.deepEqual(canonicalIdentityHealth.sparse_benchmark?.top_model_ids, [
+  "contenders/claude-fable-5-agent",
+  "contenders/claude-fable-5-agent-alt",
+]);
+assert.equal(canonicalIdentityHealth.sparse_benchmark?.checked_top_count, 1);
+assert.equal(canonicalIdentityHealth.sparse_benchmark?.status, "current");
 
 const dbBenchmarkRows = benchmarkRowsFromDb({
   artificialAnalysisRows: [
@@ -292,7 +417,13 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
       score: 0.108333,
     },
   ],
-  riemannBenchRows: [],
+  riemannBenchRows: [
+    {
+      model: "GPT 5.6 Sol (Max reasoning)",
+      provider: "OpenAI",
+      score: 0.744,
+    },
+  ],
   valsIndexRows: [
     {
       row_kind: "overall",
@@ -308,6 +439,7 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
 assert.deepEqual(dbBenchmarkRows.harvey_lab, [
   {
     id: "kimi/kimi-k3",
+    identity: "kimi/kimi-k3",
     label: "kimi-k3",
     provider: "Moonshot AI",
     value: 0.108333,
@@ -317,6 +449,7 @@ assert.deepEqual(dbBenchmarkRows.harvey_lab, [
 assert.deepEqual(dbBenchmarkRows.gpqa, [
   {
     id: "openai/gpt-5",
+    identity: "openai/gpt-5",
     label: "GPT-5",
     provider: null,
     value: 0.94,
@@ -325,6 +458,7 @@ assert.deepEqual(dbBenchmarkRows.gpqa, [
 assert.deepEqual(dbBenchmarkRows.agents_last_exam, [
   {
     id: null,
+    identity: "benchmark/Agent Score Row",
     label: "Agent Score Row",
     provider: null,
     value: 0.83,
@@ -333,6 +467,7 @@ assert.deepEqual(dbBenchmarkRows.agents_last_exam, [
 assert.deepEqual(dbBenchmarkRows.browsecomp, [
   {
     id: null,
+    identity: "Browse Row",
     label: "Browse Row",
     provider: "example",
     value: 0.72,
@@ -341,6 +476,7 @@ assert.deepEqual(dbBenchmarkRows.browsecomp, [
 assert.deepEqual(dbBenchmarkRows.cursorbench, [
   {
     id: null,
+    identity: "Claude Fable 5",
     label: "Claude Fable 5",
     provider: null,
     value: 0.69,
@@ -349,6 +485,7 @@ assert.deepEqual(dbBenchmarkRows.cursorbench, [
 assert.deepEqual(dbBenchmarkRows.deep_swe, [
   {
     id: "gpt-5-6-sol",
+    identity: "gpt-5-6-sol",
     label: "gpt-5-6-sol",
     provider: null,
     value: 0.73,
@@ -357,6 +494,7 @@ assert.deepEqual(dbBenchmarkRows.deep_swe, [
 assert.deepEqual(dbBenchmarkRows.vals_index, [
   {
     id: "openai/gpt-5",
+    identity: "openai/gpt-5",
     label: "GPT-5",
     provider: "OpenAI",
     value: 0.67,
@@ -365,9 +503,19 @@ assert.deepEqual(dbBenchmarkRows.vals_index, [
 assert.deepEqual(dbBenchmarkRows.frontier_bench, [
   {
     id: "GPT-5",
+    identity: "GPT-5",
     label: "GPT-5 (max)",
     provider: null,
     value: 0.4353,
+  },
+]);
+assert.deepEqual(dbBenchmarkRows.riemann_bench, [
+  {
+    id: null,
+    identity: "GPT 5.6 Sol",
+    label: "GPT 5.6 Sol (Max reasoning)",
+    provider: "OpenAI",
+    value: 0.744,
   },
 ]);
 
@@ -405,7 +553,50 @@ assert.deepEqual(sourceHealth.sources.gdp_pdf, {
   source_input_count: 12,
   active_row_count: 1,
   quarantined_row_count: 1,
+  quarantined_rows: [
+    {
+      row_key: "surge|example-missing",
+      row_label: "Example Missing",
+      missing_from_source_since_epoch_seconds: 1_799_500_000,
+    },
+  ],
 });
+
+const restoredSourceHealth = buildPayloadFromRows(
+  buildPayloadRows(1_800_000_000, [
+    [
+      "sourceHealthRows",
+      [
+        {
+          source: "gdp_pdf",
+          status: "fresh",
+          last_fetch_epoch_seconds: 1_799_000_000,
+          source_input_count: 2,
+          active_row_count: 1,
+          quarantined_row_count: 1,
+        },
+      ],
+    ],
+    [
+      "sourceQuarantineRows",
+      [
+        {
+          source: "gdp_pdf",
+          row_key: "surge|example-missing",
+          row_label: "Example Missing",
+          missing_from_source_since_epoch_seconds: 1_799_500_000,
+        },
+      ],
+    ],
+  ]),
+).metadata.source_health;
+assert.deepEqual(restoredSourceHealth?.sources.gdp_pdf?.quarantined_rows, [
+  {
+    row_key: "surge|example-missing",
+    row_label: "Example Missing",
+    missing_from_source_since_epoch_seconds: 1_799_500_000,
+  },
+]);
 
 function model(
   id: string,
