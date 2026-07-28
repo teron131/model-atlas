@@ -16,6 +16,7 @@ export type {
   ModelAtlasSourceHealth,
   ModelAtlasSourceHealthEntry,
   ModelAtlasSourceHealthStatus,
+  ModelAtlasSourceQuarantine,
 } from "../ingest/types";
 export type {
   ModelAtlasBenchmarks,

@@ -432,6 +432,7 @@ CREATE TABLE IF NOT EXISTS vending_bench_2_raw_rows (
 CREATE TABLE IF NOT EXISTS source_quarantines (
 	source TEXT NOT NULL,
 	row_key TEXT NOT NULL,
+	row_label TEXT,
 	missing_from_source_since_epoch_seconds INTEGER,
 	PRIMARY KEY (source, row_key)
 );

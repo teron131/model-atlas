@@ -176,6 +176,7 @@ const liveBenchmarkRows = benchmarkRowsFromSourceData(liveSourceData);
 assert.deepEqual(liveBenchmarkRows.chess_puzzles, [
   {
     id: "epoch/example-model",
+    identity: "Epoch Example Model",
     label: "Epoch Example Model",
     provider: null,
     value: 0.71,
@@ -184,6 +185,7 @@ assert.deepEqual(liveBenchmarkRows.chess_puzzles, [
 assert.deepEqual(liveBenchmarkRows.chartography, [
   {
     id: null,
+    identity: "Surge Example Model",
     label: "Surge Example Model",
     provider: null,
     value: 0.64,
@@ -192,6 +194,7 @@ assert.deepEqual(liveBenchmarkRows.chartography, [
 assert.deepEqual(liveBenchmarkRows.proofbench, [
   {
     id: "vals/example-model",
+    identity: "Vals Example Model",
     label: "Vals Example Model",
     provider: null,
     value: 0.58,
@@ -200,6 +203,7 @@ assert.deepEqual(liveBenchmarkRows.proofbench, [
 assert.deepEqual(liveBenchmarkRows.legal_research, [
   {
     id: "vals/example-model",
+    identity: "Vals Example Model",
     label: "Vals Example Model",
     provider: null,
     value: 0.62,

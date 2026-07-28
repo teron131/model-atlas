@@ -6,14 +6,19 @@ import type { DatabaseWriter } from "./database";
 export function insertSourceQuarantines(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
 		INSERT INTO source_quarantines (
-			source, row_key, missing_from_source_since_epoch_seconds
-		) VALUES (?, ?, ?)
+			source, row_key, row_label, missing_from_source_since_epoch_seconds
+		) VALUES (?, ?, ?, ?)
 	`);
   for (const row of snapshots.sourceRowStates) {
     if (row.status !== "quarantined_missing_from_source") {
       continue;
     }
-    statement.run(row.source, row.row_key, row.missing_from_source_since_epoch_seconds);
+    statement.run(
+      row.source,
+      row.row_key,
+      row.row_label,
+      row.missing_from_source_since_epoch_seconds,
+    );
   }
 }
 

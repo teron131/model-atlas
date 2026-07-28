@@ -116,6 +116,7 @@ try {
     assert.deepEqual(benchmarkRows.frontier_code, [
       {
         id: "Claude Fable 5",
+        identity: "Claude Fable 5",
         label: "Claude Fable 5 (max)",
         provider: null,
         value: 0.516,

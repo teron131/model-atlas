@@ -110,6 +110,7 @@ try {
     assert.deepEqual(benchmarkRows.ale_bench, [
       {
         id: "example-model",
+        identity: "example-model",
         label: "example-model",
         provider: null,
         value: 700,

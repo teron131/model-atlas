@@ -181,7 +181,7 @@ export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
   return sourceRowStatesFromRows(
     db
       .prepare(
-        "SELECT source, row_key, NULL AS row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines",
+        "SELECT source, row_key, row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines",
       )
       .all(),
   );
@@ -295,21 +295,31 @@ function healthStatusFromCache(status: RawSourceCacheStatus): ModelAtlasSourceHe
   return "using_cached_rows";
 }
 
-/** Counts active and quarantined rows for one raw source. */
+/** Summarizes active rows while retaining actionable quarantine identities and age. */
 function rowStateCounts(source: RawSourceName, sourceRowStates: readonly SourceRowState[]) {
   let active = 0;
-  let quarantined = 0;
+  const quarantinedRows = [];
   for (const state of sourceRowStates) {
     if (state.source !== source) {
       continue;
     }
     if (state.status === "quarantined_missing_from_source") {
-      quarantined += 1;
+      quarantinedRows.push({
+        row_key: state.row_key,
+        row_label: state.row_label,
+        missing_from_source_since_epoch_seconds: state.missing_from_source_since_epoch_seconds,
+      });
     } else {
       active += 1;
     }
   }
-  return { active, quarantined };
+  quarantinedRows.sort(
+    (left, right) =>
+      (left.missing_from_source_since_epoch_seconds ?? Number.MAX_SAFE_INTEGER) -
+        (right.missing_from_source_since_epoch_seconds ?? Number.MAX_SAFE_INTEGER) ||
+      left.row_key.localeCompare(right.row_key),
+  );
+  return { active, quarantinedRows };
 }
 
 /** Completed snapshot health records source freshness and row-preservation status beside the run. */
@@ -335,7 +345,8 @@ export function buildSourceHealth({
             last_fetch_epoch_seconds: status.last_fetch_epoch_seconds,
             source_input_count: status.source_input_count,
             active_row_count: counts.active,
-            quarantined_row_count: counts.quarantined,
+            quarantined_row_count: counts.quarantinedRows.length,
+            quarantined_rows: counts.quarantinedRows,
           },
         ];
       }),
