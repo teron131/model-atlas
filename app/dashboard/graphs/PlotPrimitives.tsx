@@ -8,6 +8,7 @@ import { clamp } from "../../../src/model-atlas/numeric";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import type { PointLabelPlacement } from "./label-placement";
 import { focusHover, modelName, pointHover, shortLabel } from "./models";
+import { scoreQuadrilateralPoints } from "./score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 
 import styles from "./graphs.module.css";
@@ -47,6 +48,44 @@ export function stableSvgNumber(value: number): number {
 /** Wrap a D3 scale so generated SVG coordinates use stable precision. */
 export function stableSvgScale(scale: (value: number) => number) {
   return (value: number) => stableSvgNumber(scale(value));
+}
+
+/** Draw a fixed-compass score silhouette: Intelligence up, Agentic right, Speed left, Value down. */
+export function ModelScoreMark({
+  model,
+  cx,
+  cy,
+  radius,
+  fill,
+  stroke,
+  strokeWidth,
+  className,
+  opacity = 1,
+}: {
+  model: ModelAtlasModel;
+  cx: number;
+  cy: number;
+  radius: number;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  className?: string;
+  opacity?: number;
+}) {
+  return (
+    <polygon
+      className={className}
+      points={scoreQuadrilateralPoints(model, cx, cy, radius)
+        .map(({ x, y }) => `${stableSvgNumber(x)},${stableSvgNumber(y)}`)
+        .join(" ")}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinejoin="round"
+      vectorEffect="non-scaling-stroke"
+      opacity={opacity}
+    />
+  );
 }
 
 /** Calculate drawable chart bounds from an SVG size and margin. */

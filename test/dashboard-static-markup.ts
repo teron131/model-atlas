@@ -195,7 +195,7 @@ assert.equal(
   "graph exports should have a stable theme boundary independent of CSS-module class names",
 );
 assert.equal(
-  html.includes("Pareto frontier") &&
+  html.includes("Pareto Frontier") &&
     html.includes("Price vs Cost Efficiency") &&
     html.includes("Frontier Benchmarks") &&
     html.includes("Intelligence interaction matrix"),

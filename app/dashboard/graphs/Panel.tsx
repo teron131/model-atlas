@@ -7,10 +7,11 @@ import { CaptureButton } from "../capture/CaptureButton";
 import styles from "./graphs.module.css";
 
 export function Panel({
-  kicker,
+  sectionId,
+  sectionNumber,
+  sectionLabel,
   title,
   copy,
-  chips,
   summary,
   children,
   note,
@@ -20,10 +21,11 @@ export function Panel({
   captureEnabled = true,
   panelRef,
 }: {
-  kicker?: string;
+  sectionId: string;
+  sectionNumber: string;
+  sectionLabel: string;
   title: string;
   copy?: string;
-  chips?: string[];
   summary?: ReactNode;
   children: ReactNode;
   note?: ReactNode;
@@ -39,34 +41,26 @@ export function Panel({
   const captureStyle = {
     "--capture-artifact-width": `${artifactWidth}px`,
   } as CSSProperties;
-  const showChips = chips != null && chips.length > 0;
-  const panelClassName = [styles.panel, wide ? styles.wide : null, kicker ? null : styles.noKicker]
-    .filter(Boolean)
-    .join(" ");
+  const titleId = `${sectionId}-title`;
 
   return (
-    <article className={panelClassName} ref={resolvedPanelRef} style={captureStyle}>
+    <article
+      id={sectionId}
+      className={wide ? `${styles.panel} ${styles.wide}` : styles.panel}
+      ref={resolvedPanelRef}
+      style={captureStyle}
+      aria-labelledby={titleId}
+      data-section={sectionNumber}
+    >
       <div className={styles.panelHead}>
-        <div className={styles.panelMeta}>
-          {kicker ? <p className={styles.chartKicker}>{kicker}</p> : null}
-          {summary != null || showChips ? (
-            <div className={styles.panelSide}>
-              {showChips ? (
-                <div className={styles.chips}>
-                  {chips.map((chip) => (
-                    <span key={chip} className={styles.chip}>
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {summary}
-            </div>
-          ) : null}
-        </div>
+        <p className={styles.sectionMarker}>
+          <span>{sectionNumber}</span>
+          <b>{sectionLabel}</b>
+        </p>
+        {summary == null ? null : <div className={styles.panelSide}>{summary}</div>}
         <div className={styles.panelTitleBlock}>
           <div className={styles.panelTitleWrap}>
-            <h2>{title}</h2>
+            <h2 id={titleId}>{title}</h2>
             {captureEnabled ? (
               <CaptureButton
                 captureWidth={artifactWidth}

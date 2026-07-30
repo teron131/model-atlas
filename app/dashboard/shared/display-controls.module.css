@@ -10,7 +10,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   text-transform: uppercase;
 }
@@ -39,14 +39,14 @@
 .variants > span {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--type-label-weight);
   letter-spacing: 0.03em;
 }
 
 .limit strong {
   color: var(--ink);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--type-label-weight);
 }
 
 .limit small {
@@ -159,7 +159,7 @@
   color: var(--faint);
   font-family: inherit;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   line-height: 1;
   text-transform: uppercase;

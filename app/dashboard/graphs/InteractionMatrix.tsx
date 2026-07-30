@@ -32,15 +32,16 @@ import {
   CursorProjectionLayer,
   MedianCross,
   ModelPointLabel,
+  ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
   PointHitTarget,
-  stableSvgNumber,
   stableSvgScale,
   useCursorProjection,
   XAxisTicks,
   YAxisTicks,
 } from "./PlotPrimitives";
+import { scoreQuadrilateralRadius } from "./score-quadrilateral";
 import type { HoverRow, HoverSetter, InteractionConfig, InteractionContext, Point } from "./types";
 
 import styles from "./graphs.module.css";
@@ -53,7 +54,6 @@ const INTERACTION_CHART_MARGIN = {
   bottom: 72,
   left: 66,
 };
-const INTERACTION_POINT_RADIUS = 5;
 const INTERACTION_LABEL_METRICS = {
   fontSize: 11,
   charWidth: 6.5,
@@ -90,6 +90,9 @@ export function InteractionMatrix({
   return (
     <Panel
       captureWidth={INTERACTION_CHART_WIDTH}
+      sectionId="interaction-matrix"
+      sectionNumber="05"
+      sectionLabel="Interaction view · Pairwise relationships"
       title="Intelligence interaction matrix"
       copy="Switch between price, throughput, response time, context, AA task cost, and MEAN NORMALIZED frontier benchmark score."
       summary={
@@ -258,6 +261,7 @@ function InteractionPlot({
   const plottedPoints = chartPoints.slice(0, 130);
   const medianXValue = median(plottedPoints.map((point) => point.x)) ?? xDomain[0];
   const medianYValue = median(plottedPoints.map((point) => point.y)) ?? yDomain[0];
+  const markRadius = (model: ModelAtlasModel) => scoreQuadrilateralRadius(model, 4, 7);
   const projectionPoints = plottedPoints.map((point) => ({
     x: xPoint(point.x),
     y: yPoint(point.y),
@@ -270,7 +274,11 @@ function InteractionPlot({
   });
   const labeledPoints =
     config.key === "frontierScore"
-      ? topIntelligenceScoreRows(plottedPoints)
+      ? new Set(
+          [...plottedPoints]
+            .sort((left, right) => right.y - left.y || right.x - left.x)
+            .slice(0, 3),
+        )
       : extremeLabelRows(
           plottedPoints,
           (point) => modelVariantKey(point.model),
@@ -283,7 +291,7 @@ function InteractionPlot({
     obstacles: plottedPoints.map((point) => ({
       cx: xPoint(point.x),
       cy: yPoint(point.y),
-      radius: INTERACTION_POINT_RADIUS,
+      radius: markRadius(point.model),
     })),
     labels: plottedPoints
       .filter((point) => labeledPoints.has(point))
@@ -292,7 +300,7 @@ function InteractionPlot({
         label: shortLabel(point.model),
         cx: xPoint(point.x),
         cy: yPoint(point.y),
-        radius: INTERACTION_POINT_RADIUS,
+        radius: markRadius(point.model),
         priority: plottedPoints.length - index,
       })),
     ...INTERACTION_LABEL_METRICS,
@@ -365,11 +373,12 @@ function InteractionPlot({
           ];
           return (
             <g key={modelVariantKey(point.model) || `${point.x}-${point.y}`}>
-              <circle
+              <ModelScoreMark
                 className={styles.datavizPoint}
+                model={point.model}
                 cx={cx}
                 cy={cy}
-                r={stableSvgNumber(INTERACTION_POINT_RADIUS)}
+                radius={markRadius(point.model)}
                 fill={providerChartColor(point.model.provider)}
                 stroke="var(--chart-point-stroke)"
                 strokeWidth={1}
@@ -409,11 +418,5 @@ function InteractionPlot({
       </svg>
       {config.insight && <div className={styles.interactionRead}>{config.insight}</div>}
     </div>
-  );
-}
-
-function topIntelligenceScoreRows(points: readonly Point[]) {
-  return new Set(
-    [...points].sort((left, right) => right.y - left.y || right.x - left.x).slice(0, 3),
   );
 }
