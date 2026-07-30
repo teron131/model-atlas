@@ -4,6 +4,7 @@ import { scaleLinear } from "d3-scale";
 import {
   type CSSProperties,
   type FocusEvent as ReactFocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useDeferredValue,
@@ -193,6 +194,9 @@ export function PriceEfficiencyPanel({
         captureEnabled={false}
         captureWidth={chartWidth}
         panelRef={panelRef}
+        sectionId="price-efficiency"
+        sectionNumber="03"
+        sectionLabel="Cost view · Quality-adjusted efficiency"
         title={PANEL_TITLE}
         copy="Price score plotted against benchmark task-cost efficiency."
         wide
@@ -216,6 +220,9 @@ export function PriceEfficiencyPanel({
       captureEnabled={false}
       captureWidth={chartWidth}
       panelRef={panelRef}
+      sectionId="price-efficiency"
+      sectionNumber="03"
+      sectionLabel="Cost view · Quality-adjusted efficiency"
       title={PANEL_TITLE}
       copy="Each point is one visible model variant. Both axes keep the full public leaderboard as their reference population, so filters only change which points are shown. Price score uses log blended price with model-balanced 2.5% one-sided winsorization. Benchmark cost efficiency averages model-balanced percentile and winsorized min-max mappings of logged cost residuals from the model-excluded expectation at comparable benchmark quality; it excludes provider and workflow price signals."
       summary={
@@ -299,7 +306,7 @@ function PriceEfficiencySlopeGraph({
     height - margin.bottom,
   );
   const graphRows: SlopeGraphRow[] = rows.map((row, index) => {
-    const key = priceEfficiencyRowKey(row, index);
+    const key = modelVariantKey(row.model) || `${row.model.provider}-${index}`;
     const logo =
       providerLogo(row.model.provider) ||
       (typeof row.model.logo === "string" ? row.model.logo : "");
@@ -392,6 +399,10 @@ function PriceEfficiencySlopeGraph({
     <div
       className={`${styles.chartWrap} ${styles.slopeChartWrap}`}
       style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      role="group"
+      aria-label="Price score to benchmark cost efficiency chart. Scroll horizontally to inspect both rankings."
+      tabIndex={0}
+      onKeyDown={scrollSlopeChart}
     >
       <svg
         viewBox={`0 0 ${width} ${height}`}
@@ -438,7 +449,7 @@ function PriceEfficiencySlopeGraph({
                 className={styles.slopePoint}
                 cx={leftX}
                 cy={graphRow.leftY}
-                r={isHighlighted ? 5.6 : 4.5}
+                r={isHighlighted ? 5.6 : compactLayout ? 5.5 : 4.5}
                 fill={graphRow.color}
                 opacity={opacity}
               />
@@ -446,7 +457,7 @@ function PriceEfficiencySlopeGraph({
                 className={styles.slopePoint}
                 cx={rightX}
                 cy={graphRow.rightY}
-                r={isHighlighted ? 5.6 : 4.5}
+                r={isHighlighted ? 5.6 : compactLayout ? 5.5 : 4.5}
                 fill={graphRow.color}
                 opacity={opacity}
               />
@@ -552,6 +563,29 @@ function PriceEfficiencySlopeGraph({
   );
 }
 
+/** Keep both dense rankings reachable when the scroll surface has keyboard focus. */
+function scrollSlopeChart(event: ReactKeyboardEvent<HTMLDivElement>) {
+  const scroller = event.currentTarget;
+  const step = Math.round(scroller.clientWidth * 0.75);
+  switch (event.key) {
+    case "ArrowLeft":
+      scroller.scrollLeft -= step;
+      break;
+    case "ArrowRight":
+      scroller.scrollLeft += step;
+      break;
+    case "Home":
+      scroller.scrollLeft = 0;
+      break;
+    case "End":
+      scroller.scrollLeft = scroller.scrollWidth;
+      break;
+    default:
+      return;
+  }
+  event.preventDefault();
+}
+
 /** Follow the phone breakpoint without changing the server-rendered layout. */
 function useCompactChartLayout(): boolean {
   const [compact, setCompact] = useState(false);
@@ -584,10 +618,6 @@ function compactSlopeLabel(model: ModelAtlasModel): string {
       ? baseLabel
       : `${baseLabel.slice(0, Math.max(1, maximumBaseLength - 1))}…`;
   return `${compactBase}${effortSuffix}`;
-}
-
-function priceEfficiencyRowKey(row: PriceEfficiencyRow, index: number) {
-  return modelVariantKey(row.model) || `${row.model.provider}-${index}`;
 }
 
 function leftRowHoverTarget(currentTarget: SVGElement, relatedTarget: EventTarget | null) {

@@ -349,25 +349,26 @@
   grid-area: article;
   min-width: 0;
   color: var(--ink);
-  font-size: 16px;
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
   line-height: 1.6;
 }
 
 .article > h1 {
-  max-width: 16ch;
+  max-width: 18ch;
   margin: 0;
-  font-size: 26px;
-  font-weight: 600;
+  font-size: var(--type-document-title-size);
+  font-weight: var(--type-heading-weight);
   letter-spacing: -0.035em;
-  line-height: 1.2;
+  line-height: 1.08;
 }
 
 .article h2 {
   margin: 28px 0 8px;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: var(--type-heading-weight);
   letter-spacing: -0.025em;
-  line-height: 1.3;
+  line-height: 1.2;
   scroll-margin-top: 24px;
 }
 
@@ -381,8 +382,8 @@
 
 .article h3 {
   margin: 22px 0 8px;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: var(--type-heading-weight);
   letter-spacing: -0.02em;
   line-height: 1.4;
   scroll-margin-top: 24px;
@@ -390,8 +391,8 @@
 
 .article h4 {
   margin: 20px 0 6px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: var(--type-heading-weight);
   letter-spacing: -0.01em;
   line-height: 1.4;
   scroll-margin-top: 24px;
@@ -400,6 +401,13 @@
 .article p {
   margin: 0 0 16px;
   color: color-mix(in srgb, var(--ink) 86%, var(--muted));
+}
+
+.article > p,
+.article > ul,
+.article > ol,
+.article > blockquote {
+  max-width: 68ch;
 }
 
 .article strong {
@@ -487,7 +495,7 @@
 
 .article thead {
   color: var(--ink);
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -521,7 +529,7 @@
   border-radius: 4px;
   background: var(--control-fill-hover);
   color: var(--ink);
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.84em;
 }
 
@@ -682,7 +690,7 @@
   }
 
   .article {
-    font-size: 15px;
+    font-size: var(--type-body-size);
     line-height: 1.6;
   }
 

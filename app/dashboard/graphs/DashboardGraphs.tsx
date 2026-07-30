@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
 import { modelCount, toggleProviderFilter } from "../shared/model-display";
+import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
 import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
@@ -22,6 +23,14 @@ import { PriceEfficiencyPanel } from "./PriceEfficiencyPanel";
 import type { CostFilter, HoverState, ModelLimit, ProviderOption } from "./types";
 
 import styles from "./graphs.module.css";
+
+const RESEARCH_SECTIONS = [
+  ["01", "Models", "#leaderboard"],
+  ["02", "Pareto", "#pareto-frontier"],
+  ["03", "Price", "#price-efficiency"],
+  ["04", "Benchmarks", "#frontier-benchmarks"],
+  ["05", "Matrix", "#interaction-matrix"],
+] as const;
 
 export function DashboardGraphs({
   payload,
@@ -108,6 +117,7 @@ export function DashboardGraphs({
         aria-label="Model graphs"
         data-capture-theme
       >
+        <ModelSignature models={[]} />
         <BenchmarkStrip payload={payload} models={[]} isLoading={benchmarksLoading} />
         <div className={styles.error}>Unable to load the Model Atlas snapshot.</div>
         {afterLead}
@@ -121,6 +131,18 @@ export function DashboardGraphs({
       aria-label="Model graphs"
       data-capture-theme
     >
+      <ModelSignature models={filteredModels} />
+      <nav className={styles.researchIndex} aria-label="Dashboard sections">
+        <span className={styles.researchIndexLabel}>Model Atlas</span>
+        <div className={styles.researchIndexLinks}>
+          {RESEARCH_SECTIONS.map(([number, label, href]) => (
+            <a href={href} key={href}>
+              <span>{number}</span>
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
       <section className={styles.controls} aria-label="Global view">
         <div className={styles.controlsBar}>
           <button

@@ -15,16 +15,17 @@ import {
   CursorCapture,
   CursorProjectionLayer,
   MedianCross,
+  ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
   PointHitTarget,
-  stableSvgNumber,
   stableSvgScale,
   TextPointLabel,
   useCursorProjection,
   XAxisTicks,
   YAxisTicks,
 } from "./PlotPrimitives";
+import { scoreQuadrilateralRadius } from "./score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 
 import styles from "./graphs.module.css";
@@ -52,8 +53,6 @@ export function EfficiencyAxisChart<Row>({
   yAxisLabel,
   keyPrefix,
   ariaLabel,
-  bubbleValue,
-  bubbleRadius,
   getScore,
   getModel,
   getKey,
@@ -76,8 +75,6 @@ export function EfficiencyAxisChart<Row>({
   yAxisLabel: string;
   keyPrefix: string;
   ariaLabel: string;
-  bubbleValue: (row: Row) => number;
-  bubbleRadius: (value: number) => number;
   getScore: (row: Row) => number;
   getModel: (row: Row) => ModelAtlasModel;
   getKey: (row: Row) => string;
@@ -111,6 +108,7 @@ export function EfficiencyAxisChart<Row>({
   const plot = plotBoundsFor(width, height, margin);
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
   const medianScore = median(rows.map(getScore)) ?? yDomain[0];
+  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 4, 13);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
     const yValue = getScore(row);
@@ -130,7 +128,7 @@ export function EfficiencyAxisChart<Row>({
     obstacles: rows.map((row) => ({
       cx: xPoint(metric.get(row)),
       cy: yPoint(getScore(row)),
-      radius: bubbleRadius(bubbleValue(row)),
+      radius: markRadius(row),
     })),
     labels: rows
       .filter((row) => labelRows.has(row))
@@ -139,7 +137,7 @@ export function EfficiencyAxisChart<Row>({
         label: getLabel(row),
         cx: xPoint(metric.get(row)),
         cy: yPoint(getScore(row)),
-        radius: bubbleRadius(bubbleValue(row)),
+        radius: markRadius(row),
         priority: rows.length - index,
       })),
   });
@@ -221,11 +219,12 @@ export function EfficiencyAxisChart<Row>({
           const model = getModel(row);
           return (
             <g key={getKey(row)}>
-              <circle
+              <ModelScoreMark
                 className={styles.datavizPoint}
+                model={model}
                 cx={cx}
                 cy={cy}
-                r={stableSvgNumber(bubbleRadius(bubbleValue(row)))}
+                radius={markRadius(row)}
                 fill={providerChartColor(model.provider)}
                 stroke="var(--chart-point-stroke)"
                 strokeWidth={1}
@@ -262,7 +261,7 @@ export function EfficiencyAxisChart<Row>({
               width={width}
               margin={margin}
               height={height}
-              xOffset={bubbleRadius(bubbleValue(row)) + 8}
+              xOffset={markRadius(row) + 8}
               placement={labelPlacements.get(getKey(row))}
             />
           ) : null;

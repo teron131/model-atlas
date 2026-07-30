@@ -2,8 +2,8 @@
 
 .graphButton,
 .leaderboardButton {
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  font-weight: 900;
+  font-family: var(--font-mono);
+  font-weight: var(--type-label-weight);
   text-transform: uppercase;
   cursor: pointer;
   transition:
@@ -129,7 +129,7 @@
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 22px;
   font-variant-numeric: tabular-nums;
 }
@@ -246,7 +246,9 @@
 }
 
 .leaderboard :global(.score-meter) {
+  --score-marker-size: 11px;
+  --score-marker-inset: 5.5px;
   width: 76px;
-  height: 6px;
-  margin-top: 10px;
+  height: 13px;
+  margin-top: 7px;
 }

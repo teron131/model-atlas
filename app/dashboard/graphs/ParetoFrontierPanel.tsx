@@ -9,8 +9,8 @@ import { modelVariantKey } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { scoreAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { linearBubbleRadius, valueDistribution } from "./chart-stats";
-import { BubbleScaleLegend, EmptyChart } from "./ChartComponents";
+import { valueDistribution } from "./chart-stats";
+import { EmptyChart, ShapeScaleLegend } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import { calloutLabelPlacements } from "./label-placement";
 import { shortLabel } from "./models";
@@ -22,15 +22,16 @@ import {
   CursorProjectionLayer,
   MedianCross,
   ModelPointLabel,
+  ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
   PointHitTarget,
-  stableSvgNumber,
   stableSvgScale,
   useCursorProjection,
   XAxisTicks,
   YAxisTicks,
 } from "./PlotPrimitives";
+import { scoreQuadrilateralRadius } from "./score-quadrilateral";
 import type { HoverRow, HoverSetter } from "./types";
 
 import styles from "./graphs.module.css";
@@ -62,7 +63,10 @@ export function ParetoFrontierPanel({
     return (
       <Panel
         captureWidth={PARETO_CHART_WIDTH}
-        title="Pareto frontier"
+        sectionId="pareto-frontier"
+        sectionNumber="02"
+        sectionLabel="Tradeoff view · Intelligence × Value"
+        title="Pareto Frontier"
         copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
       >
         <EmptyChart />
@@ -127,9 +131,7 @@ export function ParetoFrontierPanel({
   const yTicks = intelligenceAxis.ticks;
   const xTicks = valueAxis.ticks;
   const plottedCandidates = candidates;
-  const bubbleValue = (model: ModelAtlasModel) =>
-    Number(model.scores.intelligence_score) * Number(model.scores.agentic_score ?? 0);
-  const bubbleRadius = linearBubbleRadius(plottedCandidates.map(bubbleValue), 3, 10);
+  const markRadius = (model: ModelAtlasModel) => scoreQuadrilateralRadius(model, 3, 10);
   const projectionPoints = plottedCandidates.map((model) => {
     const xValue = Number(model.scores.value_score);
     const yValue = model.scores.intelligence_score;
@@ -149,14 +151,14 @@ export function ParetoFrontierPanel({
     obstacles: plottedCandidates.map((model) => ({
       cx: xPoint(Number(model.scores.value_score)),
       cy: yPoint(model.scores.intelligence_score),
-      radius: bubbleRadius(bubbleValue(model)),
+      radius: markRadius(model),
     })),
     labels: frontier.map((model, index) => ({
       key: modelVariantKey(model),
       label: shortLabel(model),
       cx: xPoint(Number(model.scores.value_score)),
       cy: yPoint(model.scores.intelligence_score),
-      radius: bubbleRadius(bubbleValue(model)),
+      radius: markRadius(model),
       priority: frontier.length - index,
     })),
     fontSize: 11,
@@ -167,7 +169,10 @@ export function ParetoFrontierPanel({
   return (
     <Panel
       captureWidth={PARETO_CHART_WIDTH}
-      title="Pareto frontier"
+      sectionId="pareto-frontier"
+      sectionNumber="02"
+      sectionLabel="Tradeoff view · Intelligence × Value"
+      title="Pareto Frontier"
       copy="INTELLIGENCE score plotted against VALUE score."
       summary={
         <BoxWhiskerSummary
@@ -181,7 +186,7 @@ export function ParetoFrontierPanel({
     >
       <div className={styles.chartToolbar}>
         <div className={styles.chartToolbarCaption}>
-          <BubbleScaleLegend metric="Intel × Agent" />
+          <ShapeScaleLegend />
         </div>
       </div>
       <div
@@ -272,11 +277,12 @@ export function ParetoFrontierPanel({
                 className={isFrontier ? styles.frontierPoint : styles.paretoBackgroundPoint}
                 key={modelVariantKey(model) || `${cx}-${cy}`}
               >
-                <circle
+                <ModelScoreMark
                   className={styles.datavizPoint}
+                  model={model}
                   cx={cx}
                   cy={cy}
-                  r={stableSvgNumber(bubbleRadius(bubbleValue(model)))}
+                  radius={markRadius(model)}
                   fill={providerChartColor(model.provider)}
                   stroke={
                     isFrontier ? "var(--chart-point-stroke-strong)" : "var(--chart-point-stroke)"

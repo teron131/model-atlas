@@ -133,17 +133,18 @@ export function SummaryCard({
   );
 }
 
-export function BubbleScaleLegend({ metric }: { metric: string }) {
+export function ShapeScaleLegend() {
   return (
-    <span className={styles.bubbleScaleLegend}>
-      <svg className={styles.bubbleScaleGraphic} viewBox="0 0 38 22" aria-hidden="true">
-        <circle cx="27" cy="11" r="9" />
-        <circle cx="16" cy="14" r="6" />
-        <circle cx="7" cy="17" r="3" />
+    <span className={styles.shapeScaleLegend}>
+      <svg className={styles.shapeScaleGraphic} viewBox="0 0 46 26" aria-hidden="true">
+        <line x1="27" y1="2" x2="27" y2="24" />
+        <line x1="16" y1="13" x2="38" y2="13" />
+        <polygon points="27,3 38,13 27,24 18,13" />
+        <polygon points="7,8 13,15 7,21 2,15" />
       </svg>
-      <span className={styles.bubbleScaleCopy}>
-        <b>Bubble area</b>
-        <span>{metric}</span>
+      <span className={styles.shapeScaleCopy}>
+        <b>Shape area · four-score mean</b>
+        <span>I ↑ · A → · S ← · V ↓</span>
       </span>
     </span>
   );

@@ -10,7 +10,7 @@
   border: 0;
   border-bottom: 1px solid var(--control-border);
   background: transparent;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .row {
@@ -47,7 +47,7 @@
   display: flex;
   height: 100%;
   align-items: center;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   text-transform: uppercase;
 }
@@ -95,14 +95,14 @@
 .trigger span {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--type-label-weight);
   letter-spacing: 0.04em;
 }
 
 .trigger strong {
   overflow: hidden;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   text-overflow: ellipsis;
 }
@@ -143,7 +143,7 @@
   padding: 0 7px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--type-label-weight);
   letter-spacing: 0.02em;
   line-height: 1;
   cursor: pointer;
@@ -243,7 +243,7 @@
 .count {
   color: var(--muted);
   font-size: var(--mono-label);
-  font-weight: 700;
+  font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   text-transform: uppercase;
   white-space: nowrap;

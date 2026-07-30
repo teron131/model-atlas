@@ -6,8 +6,8 @@ import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atla
 import { captureFileToken } from "../capture/png";
 import { modelVariantKey } from "../shared/model-display";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { linearBubbleRadius, valueDistribution } from "./chart-stats";
-import { BubbleScaleLegend, SummaryCard } from "./ChartComponents";
+import { valueDistribution } from "./chart-stats";
+import { ShapeScaleLegend, SummaryCard } from "./ChartComponents";
 import { EfficiencyAxisChart } from "./EfficiencyAxisChart";
 import { finite, fmtPercentScore } from "./format";
 import {
@@ -30,7 +30,6 @@ import {
   normalizedFrontierBenchmarkRows,
   positiveMetric,
   selectedFrontierBenchmarkAxisKey,
-  speedValueBlendScore,
 } from "./frontier-benchmarks";
 import { GraphToggle } from "./GraphToggle";
 import { modelName, shortLabel } from "./models";
@@ -116,8 +115,6 @@ export function FrontierBenchmarksPanel({
   const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
   const scoreValues = chartRows.map((row) => row.score).filter(finite);
   const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView);
-  const bubbleValue = speedValueBlendScore;
-  const bubbleRadius = linearBubbleRadius(chartRows.map(bubbleValue), 4, 13);
   const summaryRows = frontierBenchmarkSummaryRows(chartRows, axisConfig);
   if (summaryRows == null) {
     return null;
@@ -138,6 +135,9 @@ export function FrontierBenchmarksPanel({
     <Panel
       captureWidth={FRONTIER_CHART_WIDTH}
       captureFileName={captureFileName}
+      sectionId="frontier-benchmarks"
+      sectionNumber="04"
+      sectionLabel="Benchmark view · Portfolio evidence"
       title="Frontier Benchmarks"
       copy={panelCopy}
       summary={
@@ -190,7 +190,7 @@ export function FrontierBenchmarksPanel({
         />
         <div className={styles.chartToolbarCaption}>
           <span className={styles.markerKey}>CORR = correlation to Intelligence score</span>
-          <BubbleScaleLegend metric="Efficiency" />
+          <ShapeScaleLegend />
         </div>
       </div>
       <EfficiencyAxisChart
@@ -203,8 +203,6 @@ export function FrontierBenchmarksPanel({
         yAxisLabel={yAxisLabel}
         keyPrefix={`frontier-benchmarks-${selectedBenchmarkKey}-${selectedAxisKey}`}
         ariaLabel={`${axisConfig.label} frontier scatter plot`}
-        bubbleValue={bubbleValue}
-        bubbleRadius={bubbleRadius}
         getScore={(row) => row.score}
         getModel={(row) => row.model}
         getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}

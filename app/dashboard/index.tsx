@@ -274,7 +274,19 @@ function DashboardLeaderboard({
   }, [clearTooltipFadeTimeout]);
 
   return (
-    <section className="dashboard-deck" aria-label="Model leaderboard">
+    <section
+      id="leaderboard"
+      className="dashboard-deck dashboard-research-section"
+      aria-labelledby="leaderboard-title"
+      data-section="01"
+    >
+      <header className="dashboard-section-head">
+        <p className="dashboard-section-marker">
+          <span>01</span>
+          <b>Working view · Sortable model catalogue</b>
+        </p>
+        <h2 id="leaderboard-title">Model leaderboard</h2>
+      </header>
       <ModelToolbar
         filterQuery={filterQuery}
         rowCountLabel={rowCountLabel}
