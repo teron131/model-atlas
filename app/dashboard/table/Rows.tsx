@@ -160,7 +160,7 @@ function ModelScoreCells({ rowData }: { rowData: TableRow }) {
   );
 }
 
-function DashboardMetricCell({
+const DashboardMetricCell = memo(function DashboardMetricCell({
   rowData,
   column,
 }: {
@@ -188,6 +188,27 @@ function DashboardMetricCell({
     );
   }
   return <TableCell text={formatDashboardMetric(value, column)} className="data-cell" />;
+}, metricCellPropsEqual);
+
+function metricCellPropsEqual(
+  left: { rowData: TableRow; column: DashboardMetricColumn },
+  right: { rowData: TableRow; column: DashboardMetricColumn },
+) {
+  if (
+    left.column !== right.column ||
+    left.rowData.model.provider !== right.rowData.model.provider
+  ) {
+    return false;
+  }
+  return (
+    metricCellValue(left.rowData, left.column) === metricCellValue(right.rowData, right.column)
+  );
+}
+
+function metricCellValue(rowData: TableRow, column: DashboardMetricColumn) {
+  return "benchmark" in column
+    ? benchmarkDisplayValue(rowData, column)
+    : dashboardMetricValue(rowData.model, column);
 }
 
 function BenchmarkMetricCell({
@@ -244,7 +265,11 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
   );
 }
 
-function ConfidenceCell({ confidence }: { confidence?: ModelAtlasModel["confidence"] }) {
+const ConfidenceCell = memo(function ConfidenceCell({
+  confidence,
+}: {
+  confidence?: ModelAtlasModel["confidence"];
+}) {
   const intelligence = formatConfidence(confidence?.intelligence);
   const agentic = formatConfidence(confidence?.agentic);
   const speed = formatConfidence(confidence?.speed);
@@ -275,7 +300,7 @@ function ConfidenceCell({ confidence }: { confidence?: ModelAtlasModel["confiden
       </span>
     </td>
   );
-}
+});
 
 function visibleModelName(name: string | null | undefined) {
   if (name == null || name.length === 0) {

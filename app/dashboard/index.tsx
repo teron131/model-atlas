@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
+import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
@@ -159,6 +160,7 @@ function DashboardLeaderboard({
   selectedProviders: ProviderFilters;
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
+  const collapsedLimitRef = useRef(DEFAULT_DISPLAY_ITEMS);
   const [sortState, setSortState] = useState<SortState>({
     key: "intelligence",
     direction: "descending",
@@ -167,10 +169,11 @@ function DashboardLeaderboard({
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
   const [showVariants, setShowVariants] = useState(false);
   const deferredFilterQuery = useDeferredValue(filterQuery);
+  const deferredShowVariants = useDeferredValue(showVariants);
   const [, startSortTransition] = useTransition();
   const tableRows = useMemo(
-    () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], showVariants)),
-    [payload, showVariants],
+    () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], deferredShowVariants)),
+    [deferredShowVariants, payload],
   );
   const filteredRows = useMemo(
     () =>
@@ -182,6 +185,7 @@ function DashboardLeaderboard({
   );
   const maximumLimit = filteredRows.length;
   const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
+  const deferredLimit = useDeferredValue(effectiveLimit);
   const matchingRows = useMemo(
     () =>
       sortedRows(filteredRows, deferredFilterQuery, {
@@ -191,9 +195,21 @@ function DashboardLeaderboard({
     [deferredFilterQuery, filteredRows],
   );
   const limitedRows = useMemo(
-    () => matchingRows.slice(0, effectiveLimit),
-    [effectiveLimit, matchingRows],
+    () => matchingRows.slice(0, deferredLimit),
+    [deferredLimit, matchingRows],
   );
+  const expandedVariantCount = useMemo(() => {
+    const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
+    const expandedRows = dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], true));
+    const filteredExpandedRows = filterByModelControls(expandedRows, (row) => row.model, {
+      providers: selectedProviders,
+      maxCost,
+    });
+    return sortedRows(filteredExpandedRows, deferredFilterQuery, {
+      key: "intelligence",
+      direction: "descending",
+    }).filter((row) => selectedModels.has(canonicalModelKey(row.model))).length;
+  }, [deferredFilterQuery, limitedRows, maxCost, payload, selectedProviders]);
   const visibleRows = useMemo(
     () => sortedRows(limitedRows, "", sortState),
     [limitedRows, sortState],
@@ -201,7 +217,7 @@ function DashboardLeaderboard({
   const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
   const activeTooltipContent =
     tooltip == null ? undefined : tableColumnTooltip(tooltip.key, columnTooltips);
-  const rowKind = showVariants ? "variants" : "models";
+  const rowKind = deferredShowVariants ? "variants" : "models";
   const rowCountLabel = deferredFilterQuery.length > 0 ? `${matchingRows.length} matches` : null;
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
@@ -217,6 +233,19 @@ function DashboardLeaderboard({
       }));
     });
   }, []);
+
+  const handleVariantDisplay = useCallback(
+    (expanded: boolean) => {
+      if (expanded) {
+        collapsedLimitRef.current = effectiveLimit;
+        setLimit(expandedVariantCount);
+      } else {
+        setLimit(collapsedLimitRef.current);
+      }
+      setShowVariants(expanded);
+    },
+    [effectiveLimit, expandedVariantCount, setLimit],
+  );
 
   const clearTooltipFadeTimeout = useCallback(() => {
     if (tooltipFadeTimeoutRef.current != null) {
@@ -272,7 +301,7 @@ function DashboardLeaderboard({
         <p className="dashboard-section-marker">
           <b>Working view · Sortable model catalogue</b>
         </p>
-        <h2 id="leaderboard-title">Model leaderboard</h2>
+        <h2 id="leaderboard-title">Model Leaderboard</h2>
       </header>
       <ModelToolbar
         filterQuery={filterQuery}
@@ -286,7 +315,7 @@ function DashboardLeaderboard({
           onValueChange: setLimit,
           variantControl: {
             showVariants,
-            onShowVariantsChange: setShowVariants,
+            onShowVariantsChange: handleVariantDisplay,
           },
         }}
         screenshotControl={
