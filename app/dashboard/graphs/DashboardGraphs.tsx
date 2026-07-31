@@ -2,7 +2,7 @@
 
 /** Interactive chart view for LLM stats payloads. */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
@@ -25,12 +25,15 @@ import type { CostFilter, HoverState, ModelLimit, ProviderOption } from "./types
 import styles from "./graphs.module.css";
 
 const RESEARCH_SECTIONS = [
-  ["01", "Models", "#leaderboard"],
-  ["02", "Pareto", "#pareto-frontier"],
-  ["03", "Price", "#price-efficiency"],
-  ["04", "Benchmarks", "#frontier-benchmarks"],
-  ["05", "Matrix", "#interaction-matrix"],
+  ["Models", "#leaderboard"],
+  ["Pareto", "#pareto-frontier"],
+  ["Price", "#price-efficiency"],
+  ["Benchmarks", "#frontier-benchmarks"],
+  ["Matrix", "#interaction-matrix"],
 ] as const;
+
+const RESEARCH_SECTION_IDS = RESEARCH_SECTIONS.map(([, href]) => href.slice(1));
+const RESEARCH_INDEX_HEIGHT_PX = 48;
 
 export function DashboardGraphs({
   payload,
@@ -65,6 +68,7 @@ export function DashboardGraphs({
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const currentSection = useCurrentResearchSection(payload != null);
 
   const allModels = useMemo(() => {
     return (payload?.models ?? [])
@@ -132,19 +136,20 @@ export function DashboardGraphs({
       data-capture-theme
     >
       <ModelSignature models={filteredModels} />
-      <nav className={styles.researchIndex} aria-label="Dashboard sections">
-        <span className={styles.researchIndexLabel}>Model Atlas</span>
-        <div className={styles.researchIndexLinks}>
-          {RESEARCH_SECTIONS.map(([number, label, href]) => (
-            <a href={href} key={href}>
-              <span>{number}</span>
-              {label}
-            </a>
-          ))}
-        </div>
-      </nav>
-      <section className={styles.controls} aria-label="Global view">
-        <div className={styles.controlsBar}>
+      {/* One sticky instrument rail: region index and the global view controls it applies to. */}
+      <section className={styles.instrumentRail} aria-label="Global view">
+        <div className={styles.instrumentBar}>
+          <nav className={styles.researchIndexLinks} aria-label="Dashboard sections">
+            {RESEARCH_SECTIONS.map(([label, href]) => (
+              <a
+                href={href}
+                key={href}
+                aria-current={href.slice(1) === currentSection ? "location" : undefined}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
           <button
             type="button"
             className={styles.filtersToggle}
@@ -155,28 +160,6 @@ export function DashboardGraphs({
             <b>{filterSummary}</b>
             <i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
           </button>
-          <fieldset className={styles.variantSwitch}>
-            <legend className={styles.visuallyHidden}>Reasoning variant display</legend>
-            <span className={styles.variantSwitchLabel}>Variants</span>
-            <div className={styles.variantOptions}>
-              <button
-                type="button"
-                className={styles.variantOption}
-                aria-pressed={!showReasoningVariants}
-                onClick={() => onShowReasoningVariantsChange(false)}
-              >
-                Collapsed
-              </button>
-              <button
-                type="button"
-                className={styles.variantOption}
-                aria-pressed={showReasoningVariants}
-                onClick={() => onShowReasoningVariantsChange(true)}
-              >
-                Expanded
-              </button>
-            </div>
-          </fieldset>
         </div>
         <div className={styles.filterPanel} hidden={!filtersExpanded}>
           <div className={styles.controlRow}>
@@ -219,6 +202,29 @@ export function DashboardGraphs({
                     <span>{option === "all" ? "Any" : `<= ${fmtMoney(option)}`}</span>
                   </button>
                 ))}
+              </div>
+            </FilterSection>
+            <FilterSection
+              label="Variants"
+              value={showReasoningVariants ? "Expanded" : "Collapsed"}
+            >
+              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+                <button
+                  type="button"
+                  className={styles.costFilterButton}
+                  aria-pressed={!showReasoningVariants}
+                  onClick={() => onShowReasoningVariantsChange(false)}
+                >
+                  <span>Collapsed</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.costFilterButton}
+                  aria-pressed={showReasoningVariants}
+                  onClick={() => onShowReasoningVariantsChange(true)}
+                >
+                  <span>Expanded</span>
+                </button>
               </div>
             </FilterSection>
             <FilterSection label="Model count" value={visibleModelLabel}>
@@ -276,6 +282,49 @@ export function DashboardGraphs({
       {hover ? <HoverCard hover={hover} /> : null}
     </section>
   );
+}
+
+/**
+ * Report which research region currently sits under the sticky index. Visibility is kept per
+ * section rather than read off the callback entries, because a tall panel can stay intersecting
+ * across many scroll events without emitting another entry for itself.
+ */
+function useCurrentResearchSection(hasPanels: boolean) {
+  const [currentSection, setCurrentSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sections = RESEARCH_SECTION_IDS.map((id) => document.getElementById(id)).filter(
+      (section) => section != null,
+    );
+    if (sections.length === 0) {
+      return;
+    }
+    const initialSection = window.location.hash.slice(1);
+    const alignmentFrame = window.requestAnimationFrame(() => {
+      if (RESEARCH_SECTION_IDS.some((id) => id === initialSection)) {
+        document.getElementById(initialSection)?.scrollIntoView({ block: "start" });
+      }
+    });
+    const intersecting = new Map<string, boolean>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          intersecting.set(entry.target.id, entry.isIntersecting);
+        }
+        setCurrentSection(RESEARCH_SECTION_IDS.find((id) => intersecting.get(id)) ?? null);
+      },
+      { rootMargin: `-${RESEARCH_INDEX_HEIGHT_PX}px 0px -55% 0px` },
+    );
+    for (const section of sections) {
+      observer.observe(section);
+    }
+    return () => {
+      window.cancelAnimationFrame(alignmentFrame);
+      observer.disconnect();
+    };
+  }, [hasPanels]);
+
+  return currentSection;
 }
 
 function FilterSection({

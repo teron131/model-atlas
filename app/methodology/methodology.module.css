@@ -27,28 +27,27 @@
   display: none;
 }
 
+/* Square borderless instrument button, matching the shared header controls in globals.css. */
 .navigationIconButton {
   display: inline-grid;
-  width: 38px;
-  height: 38px;
+  width: var(--dashboard-icon-button-size);
+  height: var(--dashboard-icon-button-size);
   flex: 0 0 auto;
   padding: 0;
   border: 0;
-  border-radius: 50%;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
   text-decoration: none;
   place-items: center;
   transition:
-    background 0.18s ease,
     color 0.18s ease,
     transform 0.18s ease;
 }
 
 .navigationIconButton:hover,
 .navigationIconButton:focus-visible {
-  background: var(--control-fill-hover);
+  background: transparent;
   color: var(--ink);
   outline: 0;
 }
@@ -93,7 +92,6 @@
   padding: 16px 18px calc(30px + env(safe-area-inset-bottom));
   border-left: 1px solid var(--frame-line);
   background: var(--paper);
-  box-shadow: -18px 0 48px rgb(0 0 0 / 0.16);
   animation: document-navigation-enter 0.2s ease-out;
 }
 
@@ -106,9 +104,12 @@
 
 .documentNavigationHeader > p {
   margin: 0;
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
 }
 
 .documentSwitcher ul {
@@ -118,26 +119,33 @@
 }
 
 .documentSwitcher li {
-  margin: 0 0 4px;
+  margin: 0;
+  border-top: 1px solid var(--frame-line-soft);
 }
 
+/* Square ruled rows: the current document is marked by a left ink rule, never a filled pill. */
 .documentSwitcher a {
   display: block;
-  padding: 7px 9px;
-  border-radius: 6px;
+  margin-left: -1px;
+  padding: 9px 0 10px 11px;
+  border-left: 1px solid transparent;
   color: var(--muted);
   text-decoration: none;
   transition:
-    background 0.18s ease,
+    border-color 0.18s ease,
     color 0.18s ease;
 }
 
 .documentSwitcher a:hover,
-.documentSwitcher a:focus-visible,
-.documentSwitcher a[aria-current="page"] {
-  background: var(--control-fill-hover);
+.documentSwitcher a:focus-visible {
+  border-left-color: var(--frame-line);
   color: var(--ink);
   outline: 0;
+}
+
+.documentSwitcher a[aria-current="page"] {
+  border-left-color: var(--ink);
+  color: var(--ink);
 }
 
 .documentSwitcher span {
@@ -160,11 +168,10 @@
   bottom: max(20px, env(safe-area-inset-bottom));
   z-index: 20;
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border: 1px solid var(--frame-line);
-  border-radius: 50%;
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   color: var(--ink);
   cursor: pointer;
@@ -232,13 +239,16 @@
   margin-top: 26px;
 }
 
+/* Rail headings are parameters, not content, so they carry measurement type. */
 .railLabel {
-  margin: 0 0 6px;
+  margin: 0 0 9px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .documentNav ul,
@@ -248,10 +258,15 @@
   list-style: none;
 }
 
+/* The document strip is the methodology sibling of the dashboard research index: one ruled bar of
+   measurement labels, divided by hairlines, with the current route carrying a full ink rule. */
 .documentNav ul {
   display: flex;
-  gap: clamp(18px, 2.4vw, 30px);
+  gap: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-top: 1px solid var(--frame-line);
+  border-bottom: 1px solid var(--frame-line);
   scrollbar-width: none;
 }
 
@@ -264,14 +279,20 @@
 }
 
 .documentNav a {
-  display: block;
+  display: flex;
   min-width: max-content;
-  padding: 4px 0 8px;
+  min-height: 46px;
+  align-items: center;
+  padding: 0 14px;
+  border-left: 1px solid var(--frame-line-soft);
   color: var(--muted);
   text-decoration: none;
-  transition:
-    color 0.18s ease,
-    transform 0.18s ease;
+  transition: color 0.18s ease;
+}
+
+.documentNav li:first-child a {
+  padding-left: 0;
+  border-left: 0;
 }
 
 .documentNav a:hover,
@@ -281,13 +302,8 @@
 }
 
 .documentNav a:focus-visible {
-  box-shadow:
-    0 2px 0 var(--ink),
-    0 0 0 2px var(--focus-ring);
-}
-
-.documentNav a:active {
-  transform: translateY(1px);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -3px;
 }
 
 .documentNav a[aria-current="page"] {
@@ -296,10 +312,12 @@
 }
 
 .documentNav span {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .documentNav small {
@@ -526,7 +544,6 @@
 
 .article code {
   padding: 0.15em 0.38em;
-  border-radius: 4px;
   background: var(--control-fill-hover);
   color: var(--ink);
   font-family: var(--font-mono);
@@ -537,7 +554,7 @@
   margin: 20px 0;
   padding: 20px 22px;
   overflow-x: auto;
-  border-radius: 8px;
+  border: 1px solid var(--frame-line-soft);
   background: var(--surface);
 }
 
@@ -562,7 +579,7 @@
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 10px;
+  border: 1px solid var(--frame-line-soft);
   background: #090a0b;
 }
 
@@ -656,10 +673,12 @@
     flex: 1;
     overflow: hidden;
     color: var(--ink);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-family: var(--font-mono);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-weight);
+    letter-spacing: var(--type-label-tracking);
     text-overflow: ellipsis;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 

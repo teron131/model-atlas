@@ -64,7 +64,6 @@ export function ParetoFrontierPanel({
       <Panel
         captureWidth={PARETO_CHART_WIDTH}
         sectionId="pareto-frontier"
-        sectionNumber="02"
         sectionLabel="Tradeoff view · Intelligence × Value"
         title="Pareto Frontier"
         copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
@@ -170,7 +169,6 @@ export function ParetoFrontierPanel({
     <Panel
       captureWidth={PARETO_CHART_WIDTH}
       sectionId="pareto-frontier"
-      sectionNumber="02"
       sectionLabel="Tradeoff view · Intelligence × Value"
       title="Pareto Frontier"
       copy="INTELLIGENCE score plotted against VALUE score."

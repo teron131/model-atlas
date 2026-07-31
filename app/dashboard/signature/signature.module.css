@@ -38,12 +38,18 @@
   pointer-events: none;
 }
 
+/* The material runs at full strength behind this bar, so it carries its own field like the model
+   rail does. Without it the unselected modes drop below readable contrast over bright material. */
 .modeBar {
+  position: relative;
+  z-index: 1;
   display: flex;
   min-height: 52px;
   padding-inline: var(--signature-gutter);
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(12px);
   align-items: stretch;
   justify-content: space-between;
   gap: 28px;
@@ -65,7 +71,7 @@
   display: grid;
   padding-inline: 2px;
   color: var(--muted);
-  font-size: var(--type-caption-size);
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   place-items: center start;
 }
@@ -80,8 +86,8 @@
   padding: 0 13px;
   border: 0;
   background: transparent;
-  color: var(--faint);
-  font-size: var(--type-caption-size);
+  color: var(--muted);
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   cursor: pointer;
 }
@@ -103,7 +109,7 @@
 }
 
 .modeButton[aria-pressed="true"]::after {
-  background: var(--signal);
+  background: var(--ink);
 }
 
 .modeButton:focus-visible,
@@ -134,7 +140,8 @@
 }
 
 .scoreLeaders {
-  width: min(500px, 100%);
+  width: fit-content;
+  max-width: 100%;
   margin-top: 46px;
   border-top: 1px solid var(--line-strong);
 }
@@ -149,14 +156,18 @@
 }
 
 .scoreLeaderList {
+  display: grid;
+  grid-template-columns: max-content max-content max-content;
+  column-gap: 8px;
   margin: 0;
 }
 
 .scoreLeader {
   display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   min-height: 34px;
   border-top: 1px solid var(--line);
-  grid-template-columns: 118px minmax(0, 1fr);
   align-items: center;
   font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
@@ -166,7 +177,7 @@
   color: var(--muted);
 }
 
-.scoreLeader dd {
+.scoreLeaderModel {
   display: flex;
   min-width: 0;
   margin: 0;
@@ -189,7 +200,7 @@
   object-fit: contain;
 }
 
-.scoreLeader dd strong {
+.scoreLeaderModel strong {
   overflow: hidden;
   min-width: 0;
   font-family: var(--font-sans);
@@ -202,22 +213,45 @@
 }
 
 .scoreLeaderValue {
-  margin-left: auto;
+  margin: 0 0 0 24px;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
+.scoreLeaderValueVisual {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.scoreLeaderMetricIcon {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  place-items: center;
+}
+
+.scoreLeaderMetricIcon svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.1;
+}
+
+/* Also sits over live material, so it carries a field rather than relying on the rule alone. */
 .motionButton {
   position: absolute;
   right: var(--signature-gutter);
   bottom: 104px;
   z-index: 2;
-  padding: 8px 0;
+  padding: 8px 10px;
   border: 0;
   border-bottom: 1px solid var(--line-strong);
-  background: transparent;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(10px);
   color: var(--muted);
-  font-size: var(--type-caption-size);
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   cursor: pointer;
 }
@@ -319,6 +353,12 @@
     display: flex;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    mask-image: linear-gradient(
+      to right,
+      var(--ink) 0,
+      var(--ink) calc(100% - 28px),
+      transparent 100%
+    );
     scrollbar-width: none;
   }
 
@@ -364,7 +404,7 @@
   .modeButton {
     min-height: 42px;
     padding-inline: 7px;
-    font-size: 9px;
+    font-size: var(--type-label-size);
   }
 
   .modeButton::after {
@@ -386,8 +426,8 @@
     margin-top: 34px;
   }
 
-  .scoreLeader {
-    grid-template-columns: 96px minmax(0, 1fr);
+  .scoreLeaderList {
+    column-gap: 8px;
   }
 
   .motionButton {
@@ -427,6 +467,40 @@
   .providerIcon img {
     width: 15px;
     height: 15px;
+  }
+}
+
+@media (max-width: 520px) {
+  .scoreLeaderList {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .scoreLeader {
+    grid-template-rows: auto auto;
+    min-height: 42px;
+  }
+
+  .scoreLeader dt {
+    grid-row: 1 / span 2;
+  }
+
+  .scoreLeaderModel {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 7px;
+  }
+
+  .scoreLeaderModel strong {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .scoreLeaderValue {
+    grid-column: 2;
+    grid-row: 2;
+    margin-left: 0;
+    color: var(--muted);
+    font-size: 9px;
   }
 }
 

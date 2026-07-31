@@ -7,12 +7,8 @@
   --faint: #969f93;
   --line: rgba(242, 243, 237, 0.085);
   --line-strong: rgba(242, 243, 237, 0.2);
-  --accent: #d8ff45;
-  --signal: #d8ff45;
-  --analysis-accent: #ff5a46;
   --chart-control-hover: rgba(255, 255, 255, 0.045);
   --chart-control-border: rgba(238, 238, 234, 0.105);
-  --chart-control-border-active: var(--ink);
   --chart-grid: rgba(238, 238, 234, 0.075);
   --chart-axis-tick: rgba(238, 238, 234, 0.32);
   --chart-median: rgba(238, 238, 234, 0.14);
@@ -55,15 +51,11 @@
   --ink: var(--light-ink);
   --ink-rgb: var(--light-ink-rgb);
   --muted: #5f665d;
-  --faint: #7f867d;
+  --faint: #656d63;
   --line: rgba(20, 30, 20, 0.095);
   --line-strong: rgba(20, 30, 20, 0.18);
-  --accent: #8bac14;
-  --signal: #b5db27;
-  --analysis-accent: #d94e39;
   --chart-control-hover: rgba(20, 30, 20, 0.052);
   --chart-control-border: rgb(var(--ink-rgb) / 0.095);
-  --chart-control-border-active: var(--ink);
   --chart-grid: rgba(20, 30, 20, 0.085);
   --chart-axis-tick: rgba(20, 30, 20, 0.3);
   --chart-median: rgba(20, 30, 20, 0.13);
@@ -128,41 +120,24 @@
   letter-spacing: -0.025em;
 }
 
-.researchIndex {
+/* Sticky so the global filters stay reachable from any region, not only from the top of the page. */
+.instrumentRail {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
-  min-height: 48px;
-  align-items: stretch;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
   background: color-mix(in srgb, var(--paper) 94%, transparent);
   backdrop-filter: blur(12px);
 }
 
-.researchIndexLabel {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  padding: 0 14px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-caption-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  text-transform: uppercase;
-}
-
-.researchIndexLabel::before {
-  width: 17px;
-  height: 17px;
-  margin-right: 9px;
-  background: var(--ink);
-  content: "";
-  mask: url("/icons/icon-128.png") center / contain no-repeat;
-  -webkit-mask: url("/icons/icon-128.png") center / contain no-repeat;
+.instrumentBar {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  min-height: 48px;
+  align-items: stretch;
 }
 
 .researchIndexLinks {
@@ -183,16 +158,16 @@
   min-height: 46px;
   flex: 0 0 auto;
   align-items: center;
-  gap: 8px;
   padding: 0 13px;
   border-left: 1px solid var(--line);
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: var(--type-caption-size);
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   letter-spacing: var(--type-label-tracking);
   text-decoration: none;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .researchIndexLinks a::after {
@@ -201,7 +176,7 @@
   bottom: -1px;
   left: 13px;
   height: 2px;
-  background: var(--signal);
+  background: var(--ink);
   content: "";
   opacity: 0;
   transform: scaleX(0.35);
@@ -212,12 +187,14 @@
 }
 
 .researchIndexLinks a:hover,
-.researchIndexLinks a:focus-visible {
+.researchIndexLinks a:focus-visible,
+.researchIndexLinks a[aria-current="location"] {
   color: var(--ink);
 }
 
 .researchIndexLinks a:hover::after,
-.researchIndexLinks a:focus-visible::after {
+.researchIndexLinks a:focus-visible::after,
+.researchIndexLinks a[aria-current="location"]::after {
   opacity: 1;
   transform: scaleX(1);
 }
@@ -227,43 +204,19 @@
   outline-offset: -3px;
 }
 
-.researchIndexLinks a span {
-  color: var(--faint);
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  margin: 18px 0 12px;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-}
-
-.dashboardGraphs .controls {
-  margin: 0;
-  border-top: 0;
-}
-
-.controlsBar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: stretch;
-}
-
 .filtersToggle {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  width: 100%;
+  gap: 12px;
+  min-width: 214px;
   min-height: 46px;
-  padding: 0 14px;
+  padding: 0 13px;
   border: 0;
+  border-left: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.045em;
   text-align: left;
@@ -304,17 +257,6 @@
   color: var(--ink);
 }
 
-.variantSwitch {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-  margin: 0;
-  padding: 0 12px 0 16px;
-  border: 0;
-  border-left: 1px solid var(--line);
-}
-
 .visuallyHidden {
   position: absolute;
   width: 1px;
@@ -325,66 +267,6 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
-}
-
-.variantSwitchLabel {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.variantOptions {
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: 14px;
-  padding: 0;
-  background: transparent;
-}
-
-.variantOption {
-  min-height: 30px;
-  padding: 0 3px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.025em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 0.16s ease,
-    color 0.16s ease,
-    transform 0.16s ease;
-}
-
-.variantOption:hover {
-  background: transparent;
-  color: var(--ink);
-}
-
-.variantOption:active {
-  transform: translateY(1px);
-}
-
-.variantOption:focus-visible {
-  position: relative;
-  z-index: 1;
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
-}
-
-.variantOption[aria-pressed="true"] {
-  border-bottom-color: var(--ink);
-  background: transparent;
-  color: var(--ink);
 }
 
 .filterPanel {
@@ -400,7 +282,7 @@
 .controlRow {
   display: grid;
   grid-template-columns:
-    minmax(0, 1.4fr) minmax(0, 1fr)
+    minmax(0, 1.3fr) minmax(0, 0.85fr) minmax(0, 0.85fr)
     minmax(0, 0.9fr);
   align-items: start;
 }
@@ -458,7 +340,7 @@
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.045em;
   text-align: left;
@@ -493,7 +375,7 @@
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   text-transform: uppercase;
@@ -517,7 +399,7 @@
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   line-height: 1;
@@ -537,9 +419,10 @@
   color: var(--ink);
 }
 
+/* Hover previews provider identity; selection is the instrument state and reads in full ink. */
 .filterButton[aria-pressed="true"],
 .costFilterButton[aria-pressed="true"] {
-  border-bottom-color: var(--chart-control-border-active);
+  border-bottom-color: var(--ink);
   background: transparent;
   color: var(--ink);
 }
@@ -601,7 +484,7 @@
   overflow: hidden;
   border-top: 1px solid var(--line-strong);
   background: transparent;
-  scroll-margin-top: 64px;
+  scroll-margin-top: 50px;
 }
 
 .wide {
@@ -626,16 +509,13 @@
   left: 0;
   width: 76px;
   height: 1px;
-  background: var(--signal);
+  background: var(--ink);
   content: "";
 }
 
 .sectionMarker {
-  display: flex;
   grid-column: 1 / -1;
   grid-row: 1;
-  align-items: center;
-  gap: 12px;
   margin: 0 0 4px;
   color: var(--muted);
   font-family: var(--font-mono);
@@ -644,10 +524,6 @@
   letter-spacing: var(--type-label-tracking);
   line-height: 1;
   text-transform: uppercase;
-}
-
-.sectionMarker span {
-  color: var(--faint);
 }
 
 .sectionMarker b {
@@ -774,7 +650,7 @@
   bottom: 3px;
   left: var(--whisker-median);
   width: 2px;
-  background: var(--signal);
+  background: var(--ink);
   transform: translateX(-1px);
 }
 
@@ -1131,6 +1007,34 @@
 }
 
 @media (max-width: 760px) {
+  .instrumentBar {
+    grid-template-columns: minmax(0, 1fr) 112px;
+  }
+
+  .instrumentRail {
+    clip-path: inset(0 -100vmax);
+    box-shadow: 0 0 0 100vmax var(--paper);
+  }
+
+  .researchIndexLinks {
+    mask-image: linear-gradient(
+      to right,
+      var(--ink) 0,
+      var(--ink) calc(100% - 24px),
+      transparent 100%
+    );
+  }
+
+  .filtersToggle {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .filtersToggle b {
+    display: none;
+  }
+
   .panelHead {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
@@ -1194,24 +1098,26 @@
 
 .metricToggle {
   display: flex;
-  gap: 14px;
+  gap: 2px;
   min-width: 0;
   min-inline-size: 0;
   margin: 0;
-  padding: 0;
-  border: 0;
+  padding: 3px;
+  border: 1px solid var(--chart-control-border);
+  background: var(--chart-range-fill);
 }
 
 .metricToggle button {
   min-height: 30px;
   margin: 0;
-  padding: 4px 2px;
+  padding: 5px 10px 4px;
   border: 0;
   border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   text-transform: uppercase;
@@ -1233,8 +1139,9 @@
 }
 
 .metricToggle button[aria-pressed="true"] {
-  border-bottom-color: var(--chart-control-border-active);
-  background: transparent;
+  border-bottom-color: var(--ink);
+  border-left-color: var(--ink);
+  background: var(--paper);
   color: var(--ink);
   position: relative;
   z-index: 1;
@@ -1242,8 +1149,14 @@
 
 .metricToggle button:hover {
   border-bottom-color: color-mix(in srgb, var(--ink) 40%, transparent);
-  background: transparent;
+  background: var(--chart-control-hover);
   color: var(--ink);
+}
+
+.metricToggle button[aria-pressed="true"]:hover {
+  border-bottom-color: var(--ink);
+  border-left-color: var(--ink);
+  background: var(--paper);
 }
 
 .metricToggle button:disabled {
@@ -1374,24 +1287,30 @@
   display: grid;
   min-width: 76px;
   gap: 4px;
-  justify-items: center;
-  padding-block: 7px;
+  justify-items: start;
+  padding: 8px 10px 7px;
+  text-align: left;
 }
 
 .metricToggleStacked button span,
 .metricToggleStacked button b {
   margin-left: 0;
-  color: currentColor;
-  font-size: inherit;
   line-height: 1;
 }
 
 .metricToggleDetail {
   color: var(--faint);
+  font-size: 9px;
 }
 
 .metricToggleLabel {
+  color: currentColor;
+  font-size: inherit;
   font-weight: var(--type-label-weight);
+}
+
+.metricToggleStacked button[aria-pressed="true"] .metricToggleDetail {
+  color: var(--muted);
 }
 
 .interactionPlotBody {
@@ -1488,7 +1407,7 @@
   height: 28px;
   place-items: center;
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--chart-hover-logo-backdrop);
 }
 
@@ -1540,7 +1459,7 @@
   margin: 18px;
   padding: 18px;
   border: 1px solid var(--line-strong);
-  background: rgba(255, 90, 70, 0.08);
+  background: var(--chart-control-hover);
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1555,10 +1474,6 @@
 
   .dashboardGraphs {
     padding-top: 0;
-  }
-
-  .dashboardGraphs .controls {
-    grid-template-columns: 1fr;
   }
 
   .controlRow {
@@ -1653,16 +1568,6 @@
 }
 
 @media (max-width: 520px) {
-  .controlsBar {
-    grid-template-columns: 1fr;
-  }
-  .variantSwitch {
-    justify-content: space-between;
-    padding: 9px 12px;
-    border-top: 1px solid var(--line);
-    border-left: 0;
-  }
-
   .panel h2 {
     font-size: 30px;
     line-height: 0.96;
@@ -1751,9 +1656,10 @@
 
   .metricToggle {
     width: 100%;
-    gap: 12px;
+    gap: 2px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    scroll-padding-inline: 3px;
     scrollbar-width: none;
   }
 
@@ -1784,7 +1690,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .filtersToggle,
-  .variantOption,
   .filterButton,
   .costFilterButton,
   .metricToggle button,

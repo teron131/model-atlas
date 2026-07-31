@@ -183,11 +183,9 @@ assert.equal(
   "the sticky and source table headers should end with the confidence column",
 );
 assert.equal(
-  html.includes("Reasoning variant display") &&
-    html.includes("Collapsed") &&
-    html.includes("Expanded"),
+  html.includes("Variants") && html.includes("Collapsed") && html.includes("Expanded"),
   true,
-  "the always-visible variant switch should expose both display modes",
+  "the global view panel should expose both reasoning variant display modes",
 );
 assert.equal(
   html.includes("data-capture-theme"),

@@ -6,7 +6,12 @@ import { useEffect } from "react";
 
 import { MODEL_ATLAS_THEME_STORAGE_KEY } from "./theme-storage";
 
-type ModelAtlasTheme = "dark" | "light";
+export type ModelAtlasTheme = "dark" | "light";
+
+/** Read the theme the pre-paint bootstrap installed, defaulting to the dark root palette. */
+export function currentModelAtlasTheme(): ModelAtlasTheme {
+  return document.documentElement.dataset.modelAtlasTheme === "light" ? "light" : "dark";
+}
 
 /** Keep an open page synchronized when another tab changes the saved theme. */
 export function useThemeSynchronization() {
@@ -16,7 +21,7 @@ export function useThemeSynchronization() {
         event.key === MODEL_ATLAS_THEME_STORAGE_KEY &&
         (event.newValue === "light" || event.newValue === "dark")
       ) {
-        applyTheme(event.newValue);
+        applyModelAtlasTheme(event.newValue);
       }
     };
     window.addEventListener("storage", syncTheme);
@@ -26,11 +31,14 @@ export function useThemeSynchronization() {
 
 /** Toggle the root theme immediately so React route transitions cannot flash dark. */
 export function toggleModelAtlasTheme(): void {
-  const current = document.documentElement.dataset.modelAtlasTheme === "light" ? "light" : "dark";
-  applyTheme(current === "dark" ? "light" : "dark");
+  applyModelAtlasTheme(currentModelAtlasTheme() === "dark" ? "light" : "dark");
 }
 
-function applyTheme(theme: ModelAtlasTheme): void {
+/**
+ * Write the theme and persist it. Exported so the signature can keep its material mode and the page
+ * field in step; the root attribute is the single source of truth every listener observes.
+ */
+export function applyModelAtlasTheme(theme: ModelAtlasTheme): void {
   document.documentElement.dataset.modelAtlasTheme = theme;
   try {
     window.localStorage.setItem(MODEL_ATLAS_THEME_STORAGE_KEY, theme);

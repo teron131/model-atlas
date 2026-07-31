@@ -136,7 +136,6 @@ export function FrontierBenchmarksPanel({
       captureWidth={FRONTIER_CHART_WIDTH}
       captureFileName={captureFileName}
       sectionId="frontier-benchmarks"
-      sectionNumber="04"
       sectionLabel="Benchmark view · Portfolio evidence"
       title="Frontier Benchmarks"
       copy={panelCopy}
