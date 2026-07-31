@@ -10,7 +10,7 @@ import type {
   ModelAtlasConfidence,
   ModelAtlasSpeed,
 } from "../model-types";
-import { normalizedMetricValue, type QualityScoringContext } from "./benchmark-imputation";
+import { normalizedMetricValue, type QualityScoringContext } from "./imputation";
 import { evidenceMassConfidence } from "./normalization";
 import { benchmarkMetricValue } from "./resource-metrics";
 
@@ -246,6 +246,8 @@ export function buildComponentScoreResult(
     confidence: {
       intelligence: intelligence.confidence,
       agentic: agentic.confidence,
+      speed: null,
+      value: null,
     },
   };
 }

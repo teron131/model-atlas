@@ -58,11 +58,14 @@ const CONFIDENCE_SCALE = "zero through 10% weighted evidence; full from 60%";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Confidence",
-  body: "How much validation-weighted evidence supports each dimension's estimated benchmark mean.",
+  body: "How much evidence supports each estimated score.",
   rows: [
     ["I", "Intelligence confidence"],
     ["A", "Agentic confidence"],
-    ["Scale", CONFIDENCE_SCALE],
+    ["S", "Speed confidence"],
+    ["V", "Value confidence"],
+    ["I/A scale", CONFIDENCE_SCALE],
+    ["S/V scale", "effective direct and validated evidence share"],
   ],
 } as const satisfies ModelAtlasColumnTooltip;
 
@@ -332,10 +335,12 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed score",
-      body: "Provider and workflow inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Each active input gets one equal slot.",
+      body: "Provider and workflow inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
       rows: [
         ["Provider and workflow", "log input, then min-max"],
         ["Benchmark runtimes", "quality-adjusted residual hybrid"],
+        ["Missing task runtime", "validated sibling-effort ratio or omitted"],
+        ["Coverage", "shared from the default variant"],
       ],
       sections: [
         {
@@ -347,11 +352,13 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value score",
-      body: "Blended price uses logged one-sided winsorized min-max normalization. Other price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality; the workflow output is not logged again. Each active input gets one equal slot.",
+      body: "Blended price uses logged one-sided winsorized min-max normalization. Other price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality; the workflow output is not logged again. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
       rows: [
         ["Blended price", "log input, then winsorized min-max"],
         ["Quality-adjusted price signals", "residual percentile/min-max mean"],
         ["Benchmark costs", "logged residual percentile/min-max mean"],
+        ["Missing task cost", "validated sibling-effort ratio or omitted"],
+        ["Coverage", "shared from the default variant"],
       ],
       sections: [
         {

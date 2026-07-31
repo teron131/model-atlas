@@ -210,6 +210,10 @@ const fullPayload = minimalModelAtlasPayload({
         gpqa: 0.9,
         deep_swe: 0.6,
       },
+      benchmark_dates: {
+        gpqa: "2026-07-30",
+        deep_swe: "2026-07-31",
+      },
     },
   ],
 });
@@ -259,6 +263,10 @@ assert.deepEqual(scoreModel, {
     speed: 0,
     value: null,
   },
+  confidence: {
+    speed: 1,
+    value: 1,
+  },
 });
 
 assert.equal(corePayload.schema, "model_atlas.core");
@@ -276,7 +284,9 @@ assert.deepEqual(corePayload.columns, [
   "intelligence_score",
   "agentic_score",
   "speed_score",
+  "speed_confidence",
   "value_score",
+  "value_confidence",
   "blended_price",
   "context_window_tokens",
   "input_cost_per_million_tokens",
@@ -299,7 +309,12 @@ assert.equal("reasoning" in (coreModel ?? {}), false);
 assert.equal("logo" in (fullJsonModel ?? {}), false);
 assert.equal("attachment" in (fullJsonModel ?? {}), false);
 assert.equal("reasoning" in (fullJsonModel ?? {}), false);
-assert.equal("confidence" in (fullJsonModel ?? {}), false);
+assert.deepEqual(fullJsonModel?.confidence, {
+  intelligence: 1,
+  agentic: 1,
+  speed: 1,
+  value: 1,
+});
 assert.equal(fullJsonModel?.reasoning_effort, null);
 assert.equal(fullJsonModel?.benchmarks?.deep_swe, 0.6);
 assert.deepEqual(fullJsonModel?.task_metrics?.deep_swe, {
@@ -324,6 +339,10 @@ assert.deepEqual(benchmarksModel, {
   benchmarks: {
     gpqa: 0.9,
     deep_swe: 0.6,
+  },
+  benchmark_dates: {
+    gpqa: "2026-07-30",
+    deep_swe: "2026-07-31",
   },
 });
 

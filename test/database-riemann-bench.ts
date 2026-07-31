@@ -34,6 +34,7 @@ try {
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text"] },
         benchmarks: { riemann_bench: 0.42 },
+        benchmark_dates: { riemann_bench: "2026-07-30" },
         component_scores: {
           intelligence_score: 70,
           agentic_score: 10,

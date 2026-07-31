@@ -1,5 +1,6 @@
 /** Local SQLite tooling builds and atomically publishes offline Model Atlas snapshots. */
 
+import { existsSync } from "node:fs";
 import { rename } from "node:fs/promises";
 import type { DatabaseSync } from "node:sqlite";
 
@@ -8,6 +9,7 @@ import { loadSourceSnapshots } from "../ingest/source-snapshots/load";
 import { loadOpenRouterRawPayload } from "../ingest/source-snapshots/openrouter";
 import type { DatabaseBuildOptions, DatabaseBuildResult } from "../ingest/types";
 import { nowEpochSeconds } from "../runtime";
+import type { ModelAtlasPayload } from "../stats/types";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
 import {
   type DatabaseSnapshotRows,
@@ -15,6 +17,7 @@ import {
   SNAPSHOT_WRITER_TABLES,
   writeDatabaseSnapshotRows,
 } from "./snapshot-workflow";
+import { readDatabasePayload } from "./sqlite-payload";
 
 function countTableRows(db: DatabaseSync): Record<string, number> {
   const rows = db
@@ -78,9 +81,11 @@ function writeSnapshot(db: DatabaseSync, rows: DatabaseSnapshotRows): void {
 /** Builds a local SQLite artifact for offline inspection and scripts; runtime publication uses D1 directly. */
 export async function buildDatabase(
   outputPath = DEFAULT_DATABASE_PATH,
-  options: DatabaseBuildOptions = {},
+  options: DatabaseBuildOptions & { previousPayload?: ModelAtlasPayload | null } = {},
 ): Promise<DatabaseBuildResult> {
   const startedAtEpochSeconds = nowEpochSeconds();
+  const previousPayload =
+    options.previousPayload ?? (existsSync(outputPath) ? readDatabasePayload(outputPath) : null);
   let db: DatabaseSync | null = await openDatabase(outputPath);
 
   try {
@@ -102,6 +107,9 @@ export async function buildDatabase(
           startedAtEpochSeconds,
           options,
         ),
+      {
+        previousPayload,
+      },
     );
 
     const activeDb = db;

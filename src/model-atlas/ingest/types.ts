@@ -75,7 +75,12 @@ export type DebugTraceRow = {
   candidate_name: string | null;
   candidate_score: number | null;
   selected: boolean;
-  rejection_reason: string;
+  rejection_reason:
+    | "selected"
+    | "variant_conflict"
+    | "lower_rank"
+    | "not_selected"
+    | "unmatched_or_voided";
   selected_model_id: string | null;
   models_dev_row_index: number | null;
   openrouter_model_id: string | null;

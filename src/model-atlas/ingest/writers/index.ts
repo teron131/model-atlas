@@ -5,7 +5,12 @@ export {
   insertArtificialAnalysisRawModels,
 } from "./artificial-analysis";
 export { SnapshotRowCollector } from "./collector";
-export { insertModelBenchmarks, insertModels, insertModelTaskMetrics } from "./models";
+export {
+  insertBenchmarkVersionLog,
+  insertModelBenchmarks,
+  insertModels,
+  insertModelTaskMetrics,
+} from "./models";
 export { insertModelsDevRawModels } from "./models-dev";
 export { insertOpenRouterRawRows } from "./openrouter";
 export { insertSourceHealth, insertSourceQuarantines } from "./state";

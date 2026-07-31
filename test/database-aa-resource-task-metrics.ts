@@ -29,11 +29,13 @@ try {
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text"] },
         benchmarks: { hle: 0.9, gdpval_normalized: 0.8 },
+        benchmark_dates: { hle: "2026-07-30", gdpval_normalized: "2026-07-30" },
         task_metrics: {
           artificial_analysis: {
             cost: 9,
             seconds: 90,
             output_tokens: 900,
+            observed_at: "2026-07-30",
           },
           hle: {
             cost: 0.1,
@@ -41,6 +43,7 @@ try {
             tokens: 100,
             input_tokens: 40,
             output_tokens: 60,
+            observed_at: "2026-07-30",
           },
           gdpval_normalized: {
             cost: 0.2,
@@ -48,11 +51,14 @@ try {
             tokens: 200,
             input_tokens: 80,
             output_tokens: 120,
+            observed_at: "2026-07-30",
           },
         },
         confidence: {
           intelligence: 0.83,
           agentic: 0.47,
+          speed: 0.72,
+          value: 0.61,
         },
         component_scores: {
           intelligence_score: 90,
@@ -100,21 +106,29 @@ try {
   const model = payload.models.find((candidate) => candidate.id === "example/aa-resource-model");
   assert.deepEqual(model?.task_metrics?.hle, {
     cost: 0.1,
+    observed_cost: 0.1,
     seconds: 10,
     tokens: 100,
     input_tokens: 40,
     output_tokens: 60,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 1,
   });
   assert.deepEqual(model?.task_metrics?.gdpval_normalized, {
     cost: 0.2,
+    observed_cost: 0.2,
     seconds: 20,
     tokens: 200,
     input_tokens: 80,
     output_tokens: 120,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 1,
   });
   assert.deepEqual(model?.confidence, {
     intelligence: 0.83,
     agentic: 0.47,
+    speed: 0.72,
+    value: 0.61,
   });
   assert.deepEqual(
     payload.models.find((candidate) => candidate.id === "example/sparse-resource-model")?.scores,

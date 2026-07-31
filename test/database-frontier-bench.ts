@@ -102,6 +102,7 @@ try {
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text"] },
         benchmarks: { frontier_bench: 0.4353 },
+        benchmark_dates: { frontier_bench: "2026-07-30" },
         component_scores: {
           intelligence_score: 70,
           agentic_score: 80,

@@ -12,7 +12,7 @@ export class SnapshotRowCollector implements DatabaseWriter {
   readonly tables = new Map<string, CollectedTableRows>();
 
   prepare(sql: string): DatabaseStatement {
-    const match = /INSERT\s+INTO\s+(\w+)\s*\(([^)]+)\)\s*VALUES/i.exec(sql);
+    const match = /INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+(\w+)\s*\(([^)]+)\)\s*VALUES/i.exec(sql);
     if (match?.[1] == null || match[2] == null) {
       throw new Error("Snapshot row collector only accepts INSERT statements");
     }

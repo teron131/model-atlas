@@ -31,7 +31,7 @@ export type FullJsonPayload = Omit<ModelAtlasPayload, "models"> & {
   models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo" | "confidence">;
+type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo">;
 
 type ScoreJsonPayload = {
   schema: typeof SCORE_SCHEMA;
@@ -52,6 +52,10 @@ type ScoreJsonModel = {
     speed: number | null;
     value: number | null;
   };
+  confidence: {
+    speed: number | null;
+    value: number | null;
+  };
 };
 
 type BenchmarksJsonPayload = {
@@ -68,6 +72,7 @@ type BenchmarksJsonModel = {
   name: string | null;
   provider: string | null;
   benchmarks: Record<string, number | null>;
+  benchmark_dates: Record<string, string | null>;
 };
 
 type CoreJsonModel = {
@@ -82,7 +87,9 @@ type CoreJsonModel = {
   intelligence_score: number;
   agentic_score: number;
   speed_score: number | null;
+  speed_confidence: number | null;
   value_score: number | null;
+  value_confidence: number | null;
   blended_price: number | null;
   context_window_tokens: number | null;
   input_cost_per_million_tokens: number | null;
@@ -105,7 +112,9 @@ const CORE_MODEL_COLUMNS = [
   "intelligence_score",
   "agentic_score",
   "speed_score",
+  "speed_confidence",
   "value_score",
+  "value_confidence",
   "blended_price",
   "context_window_tokens",
   "input_cost_per_million_tokens",
@@ -182,14 +191,12 @@ export function benchmarksJsonPayload(payload: ModelAtlasPayload): BenchmarksJso
 export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
   return {
     ...payload,
-    models: payload.models.map(
-      ({ confidence: _confidence, logo: _logo, reasoning: _reasoning, ...model }) => model,
-    ),
+    models: payload.models.map(({ logo: _logo, reasoning: _reasoning, ...model }) => model),
   };
 }
 
 function methodologyText(): string {
-  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE independently and ranks compact public views by INTELLIGENCE. Compact views represent each base model with its highest-INTELLIGENCE scored variant; the all view preserves every scored effort variant. INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply confidence from validation-weighted evidence mass. Each dimension derives its confidence thresholds from the selected portfolio: zero confidence through 10% of total effective weight and full confidence from 60%. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled observation is the source-default variant; when every observation is labelled, source-default selection chooses the highest reported effort. Explicitly labelled observations remain attached to their exact efforts. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. APEX Agents first uses a validated exact-model-and-effort Mercor Loop Pass@1 crosswalk when AA is missing. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then gives equal weight to provider speed, workflow runtime, and each active benchmark task-time input. Aggregate price and workflow neighborhoods use the linear mean of the public INTELLIGENCE and AGENTIC scores; benchmark time and cost neighborhoods use each benchmark's declared quality coordinate. Logit coordinates are reserved for probability-like completion rates, while linear coordinates preserve native or composite metric spacing. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE gives equal weight to winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input.";
+  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE independently and ranks compact public views by INTELLIGENCE. Compact views represent each base model with its highest-INTELLIGENCE scored variant; the all view preserves every scored effort variant. INTELLIGENCE and AGENTIC min-max normalize each selected benchmark against observed values, then average them using benchmark importance multiplied by dimension loading and apply confidence from validation-weighted evidence mass. Each dimension derives its confidence thresholds from the selected portfolio: zero confidence through 10% of total effective weight and full confidence from 60%. Empirical calibration gives each model one total unit of weight across reasoning-effort variants. An unlabelled observation is the source-default variant; when every observation is labelled, source-default selection chooses the highest reported effort. Explicitly labelled observations remain attached to their exact efforts. Missing values use one non-recursive, paired-distribution imputation; sibling-effort context is added only when both benchmark and effort evidence are sufficient, at least four held-out models actually use the cross-effort path, and leave-one-model-out error improves by at least 2% or makes a refused one-dimensional predictor reliable. Each effort direction is calibrated separately. A row without enough sibling-effort evidence falls back to the separately validated one-dimensional predictor, penalty, and confidence. Frontier subtracts 1.0x validated error and baseline subtracts 0.5x; cross-only held-out error determines the confidence of a two-dimensional imputation. APEX Agents first uses a validated exact-model-and-effort Mercor Loop Pass@1 crosswalk when AA is missing. Imputed values never satisfy public admission. SPEED logs provider and workflow inputs before min-max normalization, then averages provider speed, workflow runtime, and each active benchmark task-time input. Aggregate price and workflow neighborhoods use the linear mean of the public INTELLIGENCE and AGENTIC scores; benchmark time and cost neighborhoods use each benchmark's declared quality coordinate. Logit coordinates are reserved for probability-like completion rates, while linear coordinates preserve native or composite metric spacing. Quality-adjusted price, workflow, benchmark time, and benchmark cost subtract the model-excluded expected resource use at comparable quality, average model-balanced percentile and 2.5% one-sided winsorized min-max residual scores, and shrink weakly supported comparisons toward 50. VALUE averages winsorized log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and each active quality-adjusted benchmark task-cost input. Missing benchmark-source task costs and runtimes may use a sibling effort only after at least three directly paired tasks pass leave-one-task-out validation in both log-resource space and the normalized efficiency score. Imputed resources never become calibration anchors, and their influence is weighted by both resource-prediction and benchmark-prediction confidence. SPEED and VALUE apply one coverage multiplier per base-model family using only its existing source-default variant; an unlabelled variant is the default, otherwise the highest reported effort is the default. Every effort receives that same multiplier, and non-default efforts cannot change family coverage. SPEED and VALUE confidence separately report each effort's effective observed and validated evidence share.";
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
@@ -219,6 +226,10 @@ function scoreJsonModel(model: ModelAtlasModel, rank: number): ScoreJsonModel {
       speed: model.scores.speed_score,
       value: model.scores.value_score,
     },
+    confidence: {
+      speed: model.confidence.speed,
+      value: model.confidence.value,
+    },
   };
 }
 
@@ -230,6 +241,9 @@ function benchmarksJsonModel(model: ModelAtlasModel, rank: number): BenchmarksJs
     provider: model.provider,
     benchmarks: Object.fromEntries(
       Object.entries(model.benchmarks ?? {}).map(([key, value]) => [key, value ?? null]),
+    ),
+    benchmark_dates: Object.fromEntries(
+      Object.keys(model.benchmarks ?? {}).map((key) => [key, model.benchmark_dates?.[key] ?? null]),
     ),
   };
 }
@@ -247,7 +261,9 @@ function coreJsonModel(model: ModelAtlasModel, rank: number): CoreJsonModel {
     intelligence_score: model.scores.intelligence_score,
     agentic_score: model.scores.agentic_score,
     speed_score: model.scores.speed_score,
+    speed_confidence: model.confidence.speed,
     value_score: model.scores.value_score,
+    value_confidence: model.confidence.value,
     blended_price: model.cost?.blended_price ?? null,
     context_window_tokens: model.context_window?.context ?? null,
     input_cost_per_million_tokens: model.cost?.input ?? null,

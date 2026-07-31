@@ -132,8 +132,9 @@ try {
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text"] },
         benchmarks: { frontier_code: 0.535 },
+        benchmark_dates: { frontier_code: "2026-07-30" },
         task_metrics: {
-          frontier_code: { cost: 0.75, tokens: 4_500 },
+          frontier_code: { cost: 0.75, tokens: 4_500, observed_at: "2026-07-30" },
         },
         component_scores: {
           intelligence_score: 70,
@@ -160,7 +161,10 @@ try {
   assert.equal(model?.benchmarks?.frontier_code, 0.535);
   assert.deepEqual(model?.task_metrics?.frontier_code, {
     cost: 0.75,
+    observed_cost: 0.75,
     tokens: 4_500,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 1,
   });
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.frontier_code, {
     group: "frontier",

@@ -10,9 +10,13 @@ import type {
 } from "../model-types";
 import type { OpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores } from "../scores";
-import { prepareBenchmarkScoring } from "../scores/benchmark-imputation";
+import { prepareBenchmarkScoring, prepareEffortResourceImputation } from "../scores/imputation";
 import { observedBenchmarkCount } from "../scores/score-builders";
-import { buildModelCandidate } from "./candidate";
+import {
+  type BenchmarkVersioningOptions,
+  buildModelCandidate,
+  versionCandidateBenchmarkData,
+} from "./candidate";
 import { hasRequiredQualityScores, selectPublicModels } from "./public-list";
 
 const MIN_PUBLIC_COMPONENT_SCORE = 10;
@@ -84,19 +88,30 @@ function buildCandidates(
   openRouterData: OpenRouterModelData,
   scoringConfig: ScoringConfig,
   scoringPreparation: ReturnType<typeof prepareBenchmarkScoring>,
+  previousModels: readonly ModelAtlasModel[],
+  versioning: BenchmarkVersioningOptions,
 ): ModelAtlasCandidate[] {
-  return openRouterData.modelRows.map((row) =>
-    buildModelCandidate(
+  const previousByVariant = new Map(
+    previousModels.map((model) => [
+      `${model.id ?? ""}\u0000${model.reasoning_effort ?? ""}`,
+      model,
+    ]),
+  );
+  return openRouterData.modelRows.map((row) => {
+    const candidate = buildModelCandidate(
       row,
       openRouterData.speedByModelId,
       openRouterData.pricingByModelId,
       openRouterData.outputTokenAnchors,
       scoringConfig,
-      scoringPreparation.imputationByModel,
-      scoringPreparation.imputationConfidenceByModel,
-      scoringPreparation.qualityContext,
-    ),
-  );
+      scoringPreparation,
+    );
+    return versionCandidateBenchmarkData(
+      candidate,
+      previousByVariant.get(`${candidate.id ?? ""}\u0000${candidate.reasoning_effort ?? ""}`),
+      versioning,
+    );
+  });
 }
 
 export async function buildFinalModels(
@@ -104,10 +119,31 @@ export async function buildFinalModels(
   id: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
+  versioning: BenchmarkVersioningOptions = {
+    baselineDate: new Date().toISOString().slice(0, 10),
+    observedDate: new Date().toISOString().slice(0, 10),
+  },
+  previousModels: readonly ModelAtlasModel[] = [],
 ): Promise<ModelAtlasModel[]> {
   const scoringPreparation = prepareBenchmarkScoring(openRouterData.modelRows, scoringConfig);
-  const candidateModels = buildCandidates(openRouterData, scoringConfig, scoringPreparation);
-  const scoredCandidates = attachFinalScores(candidateModels, scoringConfig);
+  const candidateModels = buildCandidates(
+    openRouterData,
+    scoringConfig,
+    scoringPreparation,
+    previousModels,
+    versioning,
+  );
+  const resourceImputation = prepareEffortResourceImputation(
+    candidateModels,
+    scoringConfig,
+    scoringPreparation,
+  );
+  const scoredCandidates = attachFinalScores(
+    candidateModels,
+    scoringConfig,
+    scoringPreparation,
+    resourceImputation,
+  );
   const selectedReferenceModels = selectPublicModels(
     scoredCandidates,
     id,
@@ -120,6 +156,8 @@ export async function buildFinalModels(
       scores: null,
     })),
     scoringConfig,
+    scoringPreparation,
+    resourceImputation,
   );
   // Public admission is output-only and must not redefine the scoring reference population.
   const admittedPublicModels = rescoredReferenceModels

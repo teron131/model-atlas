@@ -4,12 +4,14 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { BENCHMARK_VERSION_BASELINE_DATE } from "../config";
 import {
   catalogTableMatchesSchema,
   quoteIdentifier,
   SCHEMA_MANIFEST_TABLE,
   type SchemaCatalogRow,
   type SchemaManifestRow,
+  type SchemaMigrationValues,
   schemaReconciliationPlan,
   schemaStatements,
 } from "./schema-reconciliation";
@@ -17,6 +19,14 @@ import {
 const SCHEMA_SQL_PATH = resolve(process.cwd(), "src/model-atlas/database/schema.sql");
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
+export const SCHEMA_MIGRATION_VALUES = {
+  model_benchmarks: {
+    observed_at: BENCHMARK_VERSION_BASELINE_DATE,
+  },
+  model_task_metrics: {
+    observed_at: BENCHMARK_VERSION_BASELINE_DATE,
+  },
+} as const satisfies SchemaMigrationValues;
 
 /** Schema loading prefers the source tree but falls back to the module URL for packaged CLIs. */
 export async function loadSchemaSql(): Promise<string> {
@@ -54,7 +64,12 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
       .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
       .all() as SchemaCatalogRow[];
     const manifestRows = readLocalSchemaManifest(db, schemaSql, catalogRows);
-    const plan = schemaReconciliationPlan(schemaSql, catalogRows, manifestRows);
+    const plan = schemaReconciliationPlan(
+      schemaSql,
+      catalogRows,
+      manifestRows,
+      SCHEMA_MIGRATION_VALUES,
+    );
     if (plan.statements.length > 0) {
       db.exec("BEGIN");
       try {

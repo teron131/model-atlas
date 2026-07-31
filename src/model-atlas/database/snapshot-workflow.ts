@@ -1,7 +1,7 @@
 /** Storage-independent snapshot workflow derives model rows and writes normalized table rows through a minimal writer interface. */
 
 import { BENCHMARK_RAW_WRITERS } from "../benchmarks/persistence/runtime";
-import { STAGE_CONFIG } from "../config";
+import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { buildDebugTraceRows, insertDebugTraceRows } from "../ingest/debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/source-registry";
 import { buildSourceHealth } from "../ingest/source-snapshots/policy";
@@ -10,6 +10,7 @@ import type { DatabaseBuildResult, DebugTraceRow, SourceSnapshots } from "../ing
 import {
   insertArtificialAnalysisBenchmarkResourceRawRows,
   insertArtificialAnalysisRawModels,
+  insertBenchmarkVersionLog,
   insertModelBenchmarks,
   insertModels,
   insertModelsDevRawModels,
@@ -20,14 +21,27 @@ import {
 } from "../ingest/writers";
 import type { DatabaseWriter } from "../ingest/writers/database";
 import { deriveModelStats } from "../pipeline/derivation";
+import { taskMetricVersionValue } from "../pipeline/selection/candidate";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
+
+export type BenchmarkVersionLogRow = {
+  model_id: string;
+  reasoning_effort: string;
+  benchmark_key: string;
+  metric_kind: "score" | "task";
+  version_date: string;
+  change_kind: "baseline" | "added" | "changed" | "removed";
+  value_json: string | null;
+};
 
 export type DatabaseSnapshotRows = {
   snapshots: SourceSnapshots;
   openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
-  finalModelRows: readonly unknown[];
+  finalModelRows: readonly ModelAtlasModel[];
   debugTraceRows: readonly DebugTraceRow[];
   sourceHealth: DatabaseBuildResult["source_health"];
+  benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
 };
 
 type OpenRouterLoader = (modelIds: string[]) => Promise<{
@@ -45,7 +59,7 @@ type SnapshotWriter = {
   write: (db: DatabaseWriter, rows: DatabaseSnapshotRows) => void;
 };
 
-const SNAPSHOT_WRITERS = [
+const SNAPSHOT_REPLACE_WRITERS = [
   {
     table: SNAPSHOT_TABLES.artificial_analysis,
     write: (db, rows) => insertArtificialAnalysisRawModels(db, rows.snapshots),
@@ -92,7 +106,134 @@ const SNAPSHOT_WRITERS = [
   },
 ] satisfies readonly SnapshotWriter[];
 
-export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_WRITERS.map(({ table }) => table);
+const SNAPSHOT_APPEND_WRITERS = [
+  {
+    table: SNAPSHOT_TABLES.benchmark_version_log,
+    write: (db, rows) => insertBenchmarkVersionLog(db, rows.benchmarkVersionLogRows),
+  },
+] satisfies readonly SnapshotWriter[];
+
+export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_REPLACE_WRITERS.map(({ table }) => table);
+
+type DatabaseSnapshotVersioning = {
+  previousPayload?: ModelAtlasPayload | null;
+  baselineDate?: string;
+};
+
+type BenchmarkObservation = Omit<BenchmarkVersionLogRow, "change_kind">;
+
+function benchmarkIdentity(observation: BenchmarkObservation): string {
+  return [
+    observation.model_id,
+    observation.reasoning_effort,
+    observation.benchmark_key,
+    observation.metric_kind,
+  ].join("\u0000");
+}
+
+function collectBenchmarkObservations(
+  models: readonly ModelAtlasModel[],
+  fallbackDate: string,
+): Map<string, BenchmarkObservation> {
+  const observations = new Map<string, BenchmarkObservation>();
+  const addObservation = (observation: BenchmarkObservation) => {
+    observations.set(benchmarkIdentity(observation), observation);
+  };
+  for (const model of models) {
+    if (model.id == null) {
+      continue;
+    }
+    const reasoningEffort = model.reasoning_effort ?? "";
+    for (const [benchmarkKey, value] of Object.entries(model.benchmarks ?? {})) {
+      if (typeof value !== "number") {
+        continue;
+      }
+      addObservation({
+        model_id: model.id,
+        reasoning_effort: reasoningEffort,
+        benchmark_key: benchmarkKey,
+        metric_kind: "score",
+        version_date: model.benchmark_dates?.[benchmarkKey] ?? fallbackDate,
+        value_json: JSON.stringify(value),
+      });
+    }
+    for (const [benchmarkKey, metrics] of Object.entries(model.task_metrics ?? {})) {
+      if (metrics == null) {
+        continue;
+      }
+      addObservation({
+        model_id: model.id,
+        reasoning_effort: reasoningEffort,
+        benchmark_key: benchmarkKey,
+        metric_kind: "task",
+        version_date: metrics.observed_at ?? fallbackDate,
+        value_json: taskMetricVersionValue(metrics),
+      });
+    }
+  }
+  return observations;
+}
+
+/** Build idempotent baseline, changed, and removal records from adjacent public snapshots. */
+export function buildBenchmarkVersionLogRows(
+  previousModels: readonly ModelAtlasModel[],
+  currentModels: readonly ModelAtlasModel[],
+  baselineDate: string,
+  observedDate: string,
+): BenchmarkVersionLogRow[] {
+  const revisions = new Map<string, BenchmarkVersionLogRow>();
+  const addRevision = (revision: BenchmarkVersionLogRow) => {
+    const key = [
+      revision.model_id,
+      revision.reasoning_effort,
+      revision.benchmark_key,
+      revision.metric_kind,
+      revision.version_date,
+    ].join("\u0000");
+    revisions.set(key, revision);
+  };
+  const previousObservations = collectBenchmarkObservations(previousModels, baselineDate);
+  const currentObservations = collectBenchmarkObservations(currentModels, observedDate);
+  for (const observation of previousObservations.values()) {
+    addRevision({
+      ...observation,
+      change_kind: "baseline",
+    });
+  }
+  for (const [identity, observation] of currentObservations) {
+    const previous = previousObservations.get(identity);
+    if (previous == null) {
+      addRevision({
+        ...observation,
+        change_kind: "added",
+      });
+    } else if (previous.value_json !== observation.value_json) {
+      addRevision({
+        ...observation,
+        change_kind: "changed",
+      });
+    }
+  }
+  for (const [identity, observation] of previousObservations) {
+    if (currentObservations.has(identity)) {
+      continue;
+    }
+    addRevision({
+      ...observation,
+      version_date: observedDate,
+      change_kind: "removed",
+      value_json: null,
+    });
+  }
+  return [...revisions.values()].sort(
+    (left, right) =>
+      left.model_id.localeCompare(right.model_id) ||
+      left.reasoning_effort.localeCompare(right.reasoning_effort) ||
+      left.benchmark_key.localeCompare(right.benchmark_key) ||
+      left.metric_kind.localeCompare(right.metric_kind) ||
+      left.version_date.localeCompare(right.version_date),
+  );
+}
 
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
@@ -100,13 +241,24 @@ export async function deriveDatabaseSnapshot(
   snapshots: SourceSnapshots,
   sourceCache: DatabaseBuildResult["source_cache"],
   loadOpenRouter: OpenRouterLoader,
+  versioning: DatabaseSnapshotVersioning = {},
 ): Promise<DerivedDatabaseSnapshot> {
+  const observedDate = new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10);
+  const baselineDate = versioning.baselineDate ?? BENCHMARK_VERSION_BASELINE_DATE;
+  const previousModels = versioning.previousPayload?.models ?? [];
   const sourceData = cachedSourceDataFromSnapshots(snapshots);
   const {
     matchDiagnostics,
     models: finalModelRows,
     openRouterLoad,
-  } = await deriveModelStats(sourceData, { loadOpenRouter });
+  } = await deriveModelStats(sourceData, {
+    loadOpenRouter,
+    benchmarkVersioning: {
+      baselineDate,
+      observedDate,
+      previousModels,
+    },
+  });
   const debugTraceRows = buildDebugTraceRows(
     snapshots,
     openRouterLoad.rawPayload,
@@ -128,6 +280,12 @@ export async function deriveDatabaseSnapshot(
         sourceCache: finalSourceCache,
         sourceRowStates: snapshots.sourceRowStates,
       }),
+      benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
+        previousModels,
+        finalModelRows,
+        baselineDate,
+        observedDate,
+      ),
     },
     sourceCache: finalSourceCache,
   };
@@ -135,7 +293,7 @@ export async function deriveDatabaseSnapshot(
 
 /** Writes one derived snapshot through either SQLite statements or a direct-publication collector. */
 export function writeDatabaseSnapshotRows(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
-  for (const { write } of SNAPSHOT_WRITERS) {
+  for (const { write } of [...SNAPSHOT_REPLACE_WRITERS, ...SNAPSHOT_APPEND_WRITERS]) {
     write(db, rows);
   }
 }

@@ -1,6 +1,6 @@
-/** Direct D1 refresh preserves source evidence, skips unchanged writes, and publishes the derived snapshot atomically. */
+/** Direct D1 refresh stages bounded writes and exposes the new public snapshot only after every table is ready. */
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { readBenchmarkObservationRawCache } from "../benchmarks/persistence/observation";
 import { benchmarkSnapshotCachesFromRows } from "../benchmarks/persistence/runtime";
@@ -8,7 +8,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../benchmarks/registry";
-import { STAGE_CONFIG } from "../config";
+import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import {
   artificialAnalysisBenchmarkResourceRawCacheFromRows,
   artificialAnalysisRawCacheFromRows,
@@ -47,7 +47,11 @@ import {
 } from "./d1";
 import { buildPayloadFromRows, buildPayloadRows, PAYLOAD_ROW_GROUPS } from "./payload-rows";
 import { quoteIdentifier, type SchemaReconciliationPlan } from "./schema-reconciliation";
-import { deriveDatabaseSnapshot, writeDatabaseSnapshotRows } from "./snapshot-workflow";
+import {
+  buildBenchmarkVersionLogRows,
+  deriveDatabaseSnapshot,
+  writeDatabaseSnapshotRows,
+} from "./snapshot-workflow";
 
 const DERIVED_TABLES = [
   SNAPSHOT_TABLES.source_quarantines,
@@ -60,6 +64,9 @@ const DERIVED_TABLES = [
 const INSERT_ROWS_PER_STATEMENT = 100;
 const MAX_INSERT_STATEMENT_CHARS = 20_000;
 const MAX_MATERIALIZED_PAYLOAD_BYTES = 1_900_000;
+const MAX_PUBLICATION_BATCH_STATEMENTS = 20;
+const MAX_PUBLICATION_BATCH_SQL_CHARS = 350_000;
+const PUBLICATION_LOCK_STALE_SECONDS = 30 * 60;
 
 type D1PublishResult = {
   database_id: string;
@@ -103,9 +110,23 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
     );
   }
   const schema = await ensureD1Schema();
+  const lockToken = await acquirePublicationLock();
+  try {
+    return await publishLockedD1Snapshot(config.databaseId, schema);
+  } finally {
+    await releasePublicationLock(lockToken);
+  }
+}
+
+/** Runs the refresh while one D1 owner controls table staging and the public payload flip. */
+async function publishLockedD1Snapshot(
+  databaseId: string,
+  schema: SchemaReconciliationPlan,
+): Promise<D1Publication> {
+  const previousPayload = await readD1Payload();
   const startedAtEpochSeconds = nowEpochSeconds();
   const replaceSourceRows = process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1";
-  const current = await readD1RefreshState(startedAtEpochSeconds);
+  const current = await readD1RefreshState(startedAtEpochSeconds, previousPayload);
   const refreshed = await refreshSourceSnapshots(
     current.sourceCaches,
     current.statuses,
@@ -130,6 +151,9 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
           replaceSourceRows,
         },
       ),
+    {
+      previousPayload: current.previousPayload,
+    },
   );
   let collector = collectDatabaseSnapshot(derived.rows);
   const previewPayload = payloadFromCollector(startedAtEpochSeconds, collector);
@@ -143,6 +167,12 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
       );
   if (preservedPayload !== previewPayload) {
     derived.rows.finalModelRows = preservedPayload.models;
+    derived.rows.benchmarkVersionLogRows = buildBenchmarkVersionLogRows(
+      current.previousPayload?.models ?? [],
+      preservedPayload.models,
+      BENCHMARK_VERSION_BASELINE_DATE,
+      new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10),
+    );
     collector = collectDatabaseSnapshot(derived.rows);
   }
   const changedSources = RAW_SOURCE_NAMES.filter(
@@ -170,19 +200,58 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
     ];
     await queryD1Batch(queries);
     return {
-      result: publishResult(config.databaseId, payload, false, [], queries.length, schema),
+      result: publishResult(databaseId, payload, false, [], queries.length, schema),
       payload,
     };
   }
   const completedAtEpochSeconds = nowEpochSeconds();
   const payload = payloadFromCollector(completedAtEpochSeconds, collector);
-  const statements = publicationStatements(completedAtEpochSeconds, collector, changedSources);
-  const queries = [...statements.map((sql) => ({ sql })), materializedPayloadQuery(payload)];
-  await queryD1Batch(queries);
+  const statementCount = await publishChangedSnapshot(
+    completedAtEpochSeconds,
+    collector,
+    changedSources,
+    payload,
+  );
   return {
-    result: publishResult(config.databaseId, payload, true, changedSources, queries.length, schema),
+    result: publishResult(databaseId, payload, true, changedSources, statementCount, schema),
     payload,
   };
+}
+
+/** Claims the singleton publication owner, replacing only locks left stale by an interrupted run. */
+async function acquirePublicationLock(): Promise<string> {
+  const token = randomUUID();
+  const acquiredAtEpochSeconds = nowEpochSeconds();
+  const [, rows] = await queryD1BatchRows([
+    {
+      sql: "INSERT INTO snapshot_publication_lock (lock_key, owner_token, acquired_at_epoch_seconds) VALUES ('public', ?, ?) ON CONFLICT(lock_key) DO UPDATE SET owner_token = excluded.owner_token, acquired_at_epoch_seconds = excluded.acquired_at_epoch_seconds WHERE snapshot_publication_lock.acquired_at_epoch_seconds <= ?",
+      params: [
+        token,
+        acquiredAtEpochSeconds,
+        acquiredAtEpochSeconds - PUBLICATION_LOCK_STALE_SECONDS,
+      ],
+    },
+    {
+      sql: "SELECT owner_token, acquired_at_epoch_seconds FROM snapshot_publication_lock WHERE lock_key = 'public'",
+    },
+  ]);
+  const lock = rows?.[0];
+  if (lock?.owner_token !== token) {
+    throw new Error(
+      `Cloudflare D1 publication is already running (lock acquired at ${String(lock?.acquired_at_epoch_seconds ?? "unknown")})`,
+    );
+  }
+  return token;
+}
+
+/** Releases only the lock owned by this invocation so a stale caller cannot unlock a newer run. */
+async function releasePublicationLock(token: string): Promise<void> {
+  await queryD1Batch([
+    {
+      sql: "DELETE FROM snapshot_publication_lock WHERE lock_key = 'public' AND owner_token = ?",
+      params: [token],
+    },
+  ]);
 }
 
 function publishResult(
@@ -208,18 +277,18 @@ function publishResult(
   };
 }
 
-async function readD1RefreshState(nowEpochSeconds: number): Promise<D1RefreshState> {
+async function readD1RefreshState(
+  nowEpochSeconds: number,
+  previousPayload: ModelAtlasPayload | null,
+): Promise<D1RefreshState> {
   const rawRows = await readD1RawRows();
-  const [[previousSourceRows, previousSourceCacheRows], previousPayload] = await Promise.all([
-    queryD1BatchRows([
-      {
-        sql: "SELECT source, row_key, row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
-      },
-      {
-        sql: "SELECT source, last_fetch_epoch_seconds, source_input_count FROM source_health ORDER BY source",
-      },
-    ]),
-    readD1Payload(),
+  const [previousSourceRows, previousSourceCacheRows] = await queryD1BatchRows([
+    {
+      sql: "SELECT source, row_key, row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
+    },
+    {
+      sql: "SELECT source, last_fetch_epoch_seconds, source_input_count FROM source_health ORDER BY source",
+    },
   ]);
   const previousSourceCache = sourceCacheStatusesFromRows(previousSourceCacheRows ?? []);
   return {
@@ -338,7 +407,7 @@ function payloadFromCollector(
   );
 }
 
-/** Store the completed public snapshot in the same atomic batch as its source rows. */
+/** Stores the completed public snapshot only after every source and derived table is ready. */
 function materializedPayloadQuery(payload: ModelAtlasPayload) {
   const payloadJson = JSON.stringify(payload);
   const payloadBytes = Buffer.byteLength(payloadJson);
@@ -353,34 +422,142 @@ function materializedPayloadQuery(payload: ModelAtlasPayload) {
   };
 }
 
-function publicationStatements(
+/** Stages each replacement in bounded requests, then flips the public payload in the final batch. */
+async function publishChangedSnapshot(
   completedAtEpochSeconds: number,
   collector: SnapshotRowCollector,
   changedSources: RawSourceName[],
-): string[] {
+  payload: ModelAtlasPayload,
+): Promise<number> {
   const directChangedSources = changedSources.filter(
     (source) => !isBenchmarkObservationRawSource(source),
   );
   const observationChangedSources = changedSources.filter(isBenchmarkObservationRawSource);
-  return [
-    ...directChangedSources.map(
-      (source) => `DELETE FROM ${quoteIdentifier(RAW_SOURCE_TABLES[source])};`,
-    ),
-    ...observationChangedSources.map(
-      (source) =>
-        `DELETE FROM ${quoteIdentifier(BENCHMARK_OBSERVATION_RAW_TABLE)} WHERE ${quoteIdentifier("source_key")} = ${sqlLiteral(source)};`,
-    ),
-    ...DERIVED_TABLES.map((table) => `DELETE FROM ${quoteIdentifier(table)};`),
-    "DELETE FROM snapshot_metadata;",
-    ...directChangedSources.flatMap((source) =>
-      insertStatements(RAW_SOURCE_TABLES[source], collector.tables.get(RAW_SOURCE_TABLES[source])),
-    ),
-    ...observationChangedSources.flatMap((source) =>
-      insertStatements(BENCHMARK_OBSERVATION_RAW_TABLE, collectedRowsForSource(collector, source)),
-    ),
-    ...DERIVED_TABLES.flatMap((table) => insertStatements(table, collector.tables.get(table))),
-    `INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (${completedAtEpochSeconds});`,
+  let statementCount = 0;
+  for (const source of directChangedSources) {
+    const table = RAW_SOURCE_TABLES[source];
+    statementCount += await replaceStagedRows(table, collector.tables.get(table), source);
+  }
+  for (const source of observationChangedSources) {
+    statementCount += await replaceStagedRows(
+      BENCHMARK_OBSERVATION_RAW_TABLE,
+      collectedRowsForSource(collector, source),
+      source,
+      `${quoteIdentifier("source_key")} = ${sqlLiteral(source)}`,
+    );
+  }
+  for (const table of DERIVED_TABLES) {
+    statementCount += await replaceStagedRows(table, collector.tables.get(table), table);
+  }
+  statementCount += await appendStagedRows(
+    SNAPSHOT_TABLES.benchmark_version_log,
+    collector.tables.get(SNAPSHOT_TABLES.benchmark_version_log),
+  );
+  const completionQueries = [
+    { sql: "DELETE FROM snapshot_metadata;" },
+    {
+      sql: `INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (${completedAtEpochSeconds});`,
+    },
+    materializedPayloadQuery(payload),
   ];
+  await queryD1Batch(completionQueries);
+  return statementCount + completionQueries.length;
+}
+
+/** Replaces a table or source partition only after its complete successor is staged. */
+async function replaceStagedRows(
+  table: string,
+  collected: CollectedTableRows | undefined,
+  stageKey: string,
+  whereSql?: string,
+): Promise<number> {
+  const stage = stageTableName(`${table}_${stageKey}`);
+  let statementCount = await resetStageTable(table, stage);
+  statementCount += await populateStageTable(stage, collected);
+  const commitQueries = [
+    {
+      sql:
+        whereSql == null
+          ? `DELETE FROM ${quoteIdentifier(table)};`
+          : `DELETE FROM ${quoteIdentifier(table)} WHERE ${whereSql};`,
+    },
+    {
+      sql: `INSERT INTO ${quoteIdentifier(table)} SELECT * FROM ${quoteIdentifier(stage)};`,
+    },
+    { sql: `DROP TABLE ${quoteIdentifier(stage)};` },
+  ];
+  await queryD1Batch(commitQueries);
+  return statementCount + commitQueries.length;
+}
+
+/** Appends idempotent audit rows from a complete stage without replacing older versions. */
+async function appendStagedRows(
+  table: string,
+  collected: CollectedTableRows | undefined,
+): Promise<number> {
+  const stage = stageTableName(table);
+  let statementCount = await resetStageTable(table, stage);
+  statementCount += await populateStageTable(stage, collected);
+  const commitQueries = [
+    {
+      sql: `INSERT OR IGNORE INTO ${quoteIdentifier(table)} SELECT * FROM ${quoteIdentifier(stage)};`,
+    },
+    { sql: `DROP TABLE ${quoteIdentifier(stage)};` },
+  ];
+  await queryD1Batch(commitQueries);
+  return statementCount + commitQueries.length;
+}
+
+async function resetStageTable(table: string, stage: string): Promise<number> {
+  const queries = [
+    { sql: `DROP TABLE IF EXISTS ${quoteIdentifier(stage)};` },
+    {
+      sql: `CREATE TABLE ${quoteIdentifier(stage)} AS SELECT * FROM ${quoteIdentifier(table)} WHERE 0;`,
+    },
+  ];
+  await queryD1Batch(queries);
+  return queries.length;
+}
+
+async function populateStageTable(
+  stage: string,
+  collected: CollectedTableRows | undefined,
+): Promise<number> {
+  const statements = insertStatements(stage, collected);
+  for (const batch of publicationStatementBatches(statements)) {
+    await queryD1Batch(batch.map((sql) => ({ sql })));
+  }
+  return statements.length;
+}
+
+/** Bounds both statement count and SQL text so every D1 REST batch stays comfortably below 30 seconds. */
+function publicationStatementBatches(statements: readonly string[]): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  let batchChars = 0;
+  for (const statement of statements) {
+    if (
+      batch.length > 0 &&
+      (batch.length >= MAX_PUBLICATION_BATCH_STATEMENTS ||
+        batchChars + statement.length > MAX_PUBLICATION_BATCH_SQL_CHARS)
+    ) {
+      batches.push(batch);
+      batch = [];
+      batchChars = 0;
+    }
+    batch.push(statement);
+    batchChars += statement.length;
+  }
+  if (batch.length > 0) {
+    batches.push(batch);
+  }
+  return batches;
+}
+
+function stageTableName(key: string): string {
+  const readableKey = key.replaceAll(/[^a-zA-Z0-9_]/g, "_").slice(0, 40);
+  const suffix = createHash("sha256").update(key).digest("hex").slice(0, 10);
+  return `model_atlas_stage_${readableKey}_${suffix}`;
 }
 
 /** Select one logical source partition from the shared observation table. */

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import { validateBenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
+import type { ScoringConfig } from "../src/model-atlas/config/stage";
 import {
   effectiveSampleSize,
   medianOfFinite,
@@ -19,12 +20,14 @@ import {
   buildBenchmarkImputationDiagnosticsByKey,
   buildComponentScoreResult,
   buildQualityScoringContext,
+  imputedTaskResource,
+  prepareEffortResourceImputation,
   simulatedBlendSeconds,
 } from "../src/model-atlas/pipeline/scores";
 import {
   normalizedMetricValue,
   prepareBenchmarkScoring,
-} from "../src/model-atlas/pipeline/scores/benchmark-imputation";
+} from "../src/model-atlas/pipeline/scores/imputation";
 import {
   evidenceMassConfidence,
   logInputMinMaxScores,
@@ -1028,6 +1031,175 @@ const sparseResourceCoverageModels = attachFinalScores(
 );
 assertClose(sparseResourceCoverageModels[0]?.scores.value_score, 44.8);
 assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 2.4296);
+assertClose(sparseResourceCoverageModels[0]?.confidence.value, 0.5);
+assertClose(sparseResourceCoverageModels[1]?.confidence.value, 1 / 6);
+
+const siblingCostKeys = Array.from({ length: 5 }, (_, index) => `sibling_task_${index + 1}`);
+const siblingCostConfig: ScoringConfig = {
+  ...STAGE_CONFIG.scoring,
+  intelligenceBenchmarkKeys: siblingCostKeys,
+  agenticBenchmarkKeys: [],
+  benchmarkPortfolio: Object.fromEntries(
+    siblingCostKeys.map((key) => [
+      key,
+      {
+        group: "frontier",
+        benchmarkImportance: 1,
+        dimensionLoadings: { intelligence: 1, agentic: 0 },
+        resourcePolicy: {
+          source: "benchmark",
+          unit: "per_task",
+          tokenMeasure: "tokens",
+          qualityCoordinate: "linear",
+        },
+      },
+    ]),
+  ),
+};
+function siblingCostModel(
+  id: string,
+  name: string,
+  reasoningEffort: string | null,
+  costs: readonly (number | null)[],
+  quality: number,
+): ModelAtlasCandidate {
+  return {
+    ...modelCandidate({ id, disableBaseCost: true }),
+    name,
+    reasoning_effort: reasoningEffort,
+    benchmarks: Object.fromEntries(siblingCostKeys.map((key) => [key, quality])),
+    task_metrics: Object.fromEntries(
+      siblingCostKeys.flatMap((key, index) => {
+        const cost = costs[index] ?? null;
+        return cost == null ? [] : [[key, { cost, seconds: cost * 10 }]];
+      }),
+    ),
+  };
+}
+const siblingCostModels = [
+  siblingCostModel("test/sibling", "Sibling", "max", [1, 2, 3, 4, 5], 0.6),
+  {
+    ...siblingCostModel("test/sibling", "Sibling", "xhigh", [2, 4, 6, 8, null], 0.6),
+    benchmarks: Object.fromEntries(siblingCostKeys.slice(0, 4).map((key) => [key, 0.6])),
+  },
+  siblingCostModel("test/peer-a", "Peer A", null, [1, 2, 3, 4, 5], 0.2),
+  siblingCostModel("test/peer-b", "Peer B", null, [2, 3, 4, 5, 6], 0.4),
+  siblingCostModel("test/peer-c", "Peer C", null, [3, 4, 5, 6, 7], 0.7),
+  siblingCostModel("test/peer-d", "Peer D", null, [4, 5, 6, 7, 8], 0.9),
+];
+const siblingBenchmarkPreparation = prepareBenchmarkScoring(siblingCostModels, siblingCostConfig);
+const siblingResourcePreparation = prepareEffortResourceImputation(
+  siblingCostModels,
+  siblingCostConfig,
+  siblingBenchmarkPreparation,
+);
+const siblingTarget = siblingCostModels[1];
+assertClose(
+  siblingTarget == null
+    ? null
+    : imputedTaskResource(
+        siblingResourcePreparation,
+        siblingTarget,
+        siblingCostKeys[4] ?? "",
+        "cost",
+      )?.amount,
+  10,
+);
+assertClose(
+  siblingTarget == null
+    ? null
+    : imputedTaskResource(
+        siblingResourcePreparation,
+        siblingTarget,
+        siblingCostKeys[4] ?? "",
+        "cost",
+      )?.confidence,
+  1,
+);
+assertClose(
+  siblingTarget == null
+    ? null
+    : imputedTaskResource(
+        siblingResourcePreparation,
+        siblingTarget,
+        siblingCostKeys[4] ?? "",
+        "time",
+      )?.amount,
+  100,
+);
+assertClose(
+  siblingTarget == null
+    ? null
+    : imputedTaskResource(
+        siblingResourcePreparation,
+        siblingTarget,
+        siblingCostKeys[4] ?? "",
+        "time",
+      )?.confidence,
+  1,
+);
+const directOnlySiblingScores = attachFinalScores(siblingCostModels, siblingCostConfig);
+const imputedSiblingScores = attachFinalScores(
+  siblingCostModels,
+  siblingCostConfig,
+  siblingBenchmarkPreparation,
+  siblingResourcePreparation,
+);
+assertClose(directOnlySiblingScores[1]?.confidence.value, 0.5);
+assertClose(imputedSiblingScores[1]?.confidence.value, 0.625);
+assertClose(directOnlySiblingScores[1]?.confidence.speed, 4 / 7);
+assertClose(imputedSiblingScores[1]?.confidence.speed, 5 / 7);
+for (const index of [0, 2, 3, 4, 5]) {
+  assertClose(
+    imputedSiblingScores[index]?.scores.value_score,
+    directOnlySiblingScores[index]?.scores.value_score ?? 0,
+  );
+  assertClose(
+    imputedSiblingScores[index]?.scores.speed_score,
+    directOnlySiblingScores[index]?.scores.speed_score ?? 0,
+  );
+}
+
+const defaultCoverageModels = [
+  siblingCostModel("test/pooled", "Pooled", "max", [1, 1, 1, 1, 1], 0.5),
+  siblingCostModel("test/pooled", "Pooled", "low", [1, null, null, null, null], 0.5),
+  siblingCostModel("test/coverage-peer-a", "Coverage Peer A", null, [1, 1, 1, 1, 1], 0.5),
+  siblingCostModel("test/coverage-peer-b", "Coverage Peer B", null, [1, 1, 1, 1, 1], 0.5),
+  siblingCostModel("test/coverage-peer-c", "Coverage Peer C", null, [1, 1, 1, 1, 1], 0.5),
+];
+const defaultCoverageScores = attachFinalScores(defaultCoverageModels, siblingCostConfig);
+assertClose(defaultCoverageScores[1]?.scores.speed_score, 50);
+assertClose(defaultCoverageScores[1]?.scores.value_score, 50);
+assertClose(defaultCoverageScores[1]?.confidence.speed, 1 / 7);
+assertClose(defaultCoverageScores[1]?.confidence.value, 1 / 8);
+const detachedCoverageScores = attachFinalScores(
+  defaultCoverageModels.map((model, index) =>
+    index === 1 ? { ...model, id: "test/detached", name: "Detached" } : model,
+  ),
+  siblingCostConfig,
+);
+assertEqual((detachedCoverageScores[1]?.scores.speed_score ?? 100) < 5, true);
+assertEqual((detachedCoverageScores[1]?.scores.value_score ?? 100) < 5, true);
+
+const sparseDefaultCoverageModels = [
+  siblingCostModel(
+    "test/default-sparse",
+    "Default Sparse",
+    "max",
+    [1, null, null, null, null],
+    0.5,
+  ),
+  siblingCostModel("test/default-sparse", "Default Sparse", "low", [null, 1, 1, 1, 1], 0.5),
+  ...defaultCoverageModels.slice(2),
+];
+const sparseDefaultCoverageScores = attachFinalScores(
+  sparseDefaultCoverageModels,
+  siblingCostConfig,
+);
+assertEqual((sparseDefaultCoverageScores[0]?.scores.speed_score ?? 100) < 5, true);
+assertEqual((sparseDefaultCoverageScores[1]?.scores.speed_score ?? 100) < 5, true);
+assertEqual((sparseDefaultCoverageScores[0]?.scores.value_score ?? 100) < 5, true);
+assertEqual((sparseDefaultCoverageScores[1]?.scores.value_score ?? 100) < 5, true);
 
 const resourceModelVariants = [resourceModel("b", 2, "low"), resourceModel("b", 4, "high")];
 const resourceComparisonModel = resourceModel("c", 3);
@@ -1636,9 +1808,12 @@ function modelCandidate(options: {
       ...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
     },
     benchmarks: Object.keys(benchmarks).length === 0 ? null : benchmarks,
+    benchmark_dates: null,
     confidence: {
       intelligence: 1,
       agentic: 1,
+      speed: null,
+      value: null,
     },
     component_scores: {
       intelligence_score: options.intelligenceScore ?? null,

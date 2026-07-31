@@ -3,12 +3,12 @@
 import {
   calibrationObservations,
   effectiveModelCount,
-} from "../../benchmarks/calibration-population";
-import type { BenchmarkDimension } from "../../benchmarks/factory";
-import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../benchmarks/registry";
-import { buildAdditiveSourceCrosswalk } from "../../benchmarks/source-crosswalk";
-import type { ScoringConfig } from "../../config/stage";
-import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
+} from "../../../benchmarks/calibration-population";
+import type { BenchmarkDimension } from "../../../benchmarks/factory";
+import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
+import { buildAdditiveSourceCrosswalk } from "../../../benchmarks/source-crosswalk";
+import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
+import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
   clamp,
   clamp01,
@@ -18,10 +18,10 @@ import {
   weightedMedianOfFinite,
   weightedQuantile,
   weightedQuantileRank,
-} from "../../numeric";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
-import { clampScore, minMaxScale } from "./normalization";
-import { benchmarkMetricValue } from "./resource-metrics";
+} from "../../../numeric";
+import { asFiniteNumber, asRecord, type JsonObject } from "../../../runtime";
+import { clampScore, minMaxScale } from "../normalization";
+import { benchmarkMetricValue } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -46,9 +46,22 @@ export type QualityScoringContext = {
   benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
 };
 
-type PreparedScoring = {
+type BenchmarkScoringModelIdentity = {
+  id?: unknown;
+  name?: unknown;
+  reasoning_effort?: unknown;
+};
+
+type BenchmarkScoringModel = BenchmarkScoringModelIdentity & {
+  benchmarks?: unknown;
+  intelligence?: unknown;
+};
+
+export type BenchmarkScoringPreparation = {
   imputationByModel: BenchmarkImputationByModel;
   imputationConfidenceByModel: BenchmarkImputationConfidenceByModel;
+  imputationByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
+  imputationConfidenceByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
   qualityContext: QualityScoringContext;
 };
 
@@ -67,7 +80,6 @@ const MIN_IMPUTATION_VALIDATION_MODELS = 4;
 const MIN_CROSS_EFFORT_REFERENCE_MODELS = 4;
 const MIN_CROSS_EFFORT_VALIDATION_MODELS = 4;
 const MIN_CROSS_EFFORT_ERROR_REDUCTION_RATIO = 0.02;
-const MAX_NORMALIZED_MEDIAN_ABSOLUTE_ERROR = 25;
 const FRONTIER_MISSING_ERROR_MULTIPLIER = 1;
 const BASELINE_MISSING_ERROR_MULTIPLIER = 0.5;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
@@ -81,6 +93,52 @@ const apexImputationPolicy = (() => {
   }
   return policy;
 })();
+
+function scoringVariantKey(model: BenchmarkScoringModelIdentity): string {
+  return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
+}
+
+/** Resolve prepared benchmark values after candidate and public-model projection replace row identity. */
+export function benchmarkImputationValues(
+  preparation: BenchmarkScoringPreparation,
+  model: BenchmarkScoringModelIdentity,
+): ReadonlyMap<string, number> | undefined {
+  return (
+    preparation.imputationByModel.get(model as JsonObject) ??
+    preparation.imputationByVariant.get(scoringVariantKey(model))
+  );
+}
+
+/** Resolve prepared benchmark confidence after candidate and public-model projection replace row identity. */
+export function benchmarkImputationConfidence(
+  preparation: BenchmarkScoringPreparation,
+  model: BenchmarkScoringModelIdentity,
+): ReadonlyMap<string, number> | undefined {
+  return (
+    preparation.imputationConfidenceByModel.get(model as JsonObject) ??
+    preparation.imputationConfidenceByVariant.get(scoringVariantKey(model))
+  );
+}
+
+/** Resolve direct or prepared benchmark quality together with its scoring evidence weight. */
+export function benchmarkQualityEvidence(
+  model: BenchmarkScoringModel,
+  key: string,
+  preparation?: BenchmarkScoringPreparation,
+): { confidence: number; value: number } | null {
+  const direct = benchmarkMetricValue(model, key);
+  if (direct != null) {
+    return { confidence: 1, value: direct };
+  }
+  if (preparation == null) {
+    return null;
+  }
+  const value = benchmarkImputationValues(preparation, model)?.get(key) ?? null;
+  const confidence = benchmarkImputationConfidence(preparation, model)?.get(key) ?? null;
+  return value == null || confidence == null || confidence <= 0
+    ? null
+    : { confidence: clamp01(confidence), value };
+}
 
 type EffortRowsByModel = ReadonlyMap<string, ReadonlyMap<string, readonly JsonObject[]>>;
 
@@ -240,7 +298,7 @@ function imputationConfidence(diagnostic: BenchmarkImputationDiagnostic): number
   if (!diagnostic.imputationAllowed || normalizedError == null) {
     return 0;
   }
-  return clamp01(1 - normalizedError / MAX_NORMALIZED_MEDIAN_ABSOLUTE_ERROR);
+  return clamp01(1 - normalizedError / MAX_NORMALIZED_IMPUTATION_ERROR);
 }
 
 /** Build one dimension-specific predictor from observed context and target values only. */
@@ -576,7 +634,7 @@ function imputationDiagnostic(
     !includeCrossEffort ||
     (crossEffortValidationModelCount >= MIN_CROSS_EFFORT_VALIDATION_MODELS &&
       crossEffortNormalizedMedianAbsoluteError != null &&
-      crossEffortNormalizedMedianAbsoluteError <= MAX_NORMALIZED_MEDIAN_ABSOLUTE_ERROR &&
+      crossEffortNormalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR &&
       crossEffortRawPenalty != null);
   return {
     validationSampleCount: validationErrors.length,
@@ -586,7 +644,7 @@ function imputationDiagnostic(
     imputationAllowed:
       validationModelCount >= MIN_IMPUTATION_VALIDATION_MODELS &&
       normalizedMedianAbsoluteError != null &&
-      normalizedMedianAbsoluteError <= MAX_NORMALIZED_MEDIAN_ABSOLUTE_ERROR &&
+      normalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR &&
       rawPenalty != null &&
       crossEffortValidationAllowed,
     includesCrossEffort: includeCrossEffort,
@@ -744,15 +802,30 @@ export function buildQualityScoringContext(
 export function prepareBenchmarkScoring(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
-): PreparedScoring {
+): BenchmarkScoringPreparation {
   const { imputationByModel, imputationConfidenceByModel } = prepareImputation(
     models,
     scoringConfig,
   );
   const qualityContext = buildQualityScoringContext(models, scoringConfig);
+  const imputationByVariant = new Map<string, ReadonlyMap<string, number>>();
+  const imputationConfidenceByVariant = new Map<string, ReadonlyMap<string, number>>();
+  for (const model of models) {
+    const key = scoringVariantKey(model);
+    const values = imputationByModel.get(model);
+    const confidence = imputationConfidenceByModel.get(model);
+    if (values != null) {
+      imputationByVariant.set(key, values);
+    }
+    if (confidence != null) {
+      imputationConfidenceByVariant.set(key, confidence);
+    }
+  }
   return {
     imputationByModel,
     imputationConfidenceByModel,
+    imputationByVariant,
+    imputationConfidenceByVariant,
     qualityContext,
   };
 }

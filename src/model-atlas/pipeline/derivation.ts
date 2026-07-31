@@ -11,6 +11,7 @@ import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
 import type { ModelAtlasModel } from "./model-types";
 import { prepareOpenRouterModelData } from "./openrouter-data";
 import { buildFinalModels } from "./selection/builder";
+import type { BenchmarkVersioningOptions } from "./selection/candidate";
 
 type OpenRouterLoadResult = {
   rawPayload: OpenRouterRawScrapedPayload | null;
@@ -18,6 +19,9 @@ type OpenRouterLoadResult = {
 
 type ModelDerivationOptions = {
   modelId?: string | null;
+  benchmarkVersioning?: BenchmarkVersioningOptions & {
+    previousModels?: readonly ModelAtlasModel[];
+  };
 };
 
 type ModelDerivationLoaderOptions<LoadResult extends OpenRouterLoadResult> =
@@ -83,6 +87,8 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     options.modelId ?? null,
     STAGE_CONFIG.final,
     STAGE_CONFIG.scoring,
+    options.benchmarkVersioning,
+    options.benchmarkVersioning?.previousModels,
   );
   return {
     matchDiagnostics,
