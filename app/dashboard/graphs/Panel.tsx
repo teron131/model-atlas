@@ -8,7 +8,6 @@ import styles from "./graphs.module.css";
 
 export function Panel({
   sectionId,
-  sectionNumber,
   sectionLabel,
   title,
   copy,
@@ -22,7 +21,6 @@ export function Panel({
   panelRef,
 }: {
   sectionId: string;
-  sectionNumber: string;
   sectionLabel: string;
   title: string;
   copy?: string;
@@ -50,11 +48,9 @@ export function Panel({
       ref={resolvedPanelRef}
       style={captureStyle}
       aria-labelledby={titleId}
-      data-section={sectionNumber}
     >
       <div className={styles.panelHead}>
         <p className={styles.sectionMarker}>
-          <span>{sectionNumber}</span>
           <b>{sectionLabel}</b>
         </p>
         {summary == null ? null : <div className={styles.panelSide}>{summary}</div>}

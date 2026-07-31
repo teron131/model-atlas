@@ -1,5 +1,6 @@
 .cache/
 .playwright-cli/
+.impeccable/
 public/llm-stats-snapshot.json
 public/model-atlas-snapshot.json
 

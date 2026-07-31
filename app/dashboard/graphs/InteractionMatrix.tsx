@@ -91,7 +91,6 @@ export function InteractionMatrix({
     <Panel
       captureWidth={INTERACTION_CHART_WIDTH}
       sectionId="interaction-matrix"
-      sectionNumber="05"
       sectionLabel="Interaction view · Pairwise relationships"
       title="Intelligence interaction matrix"
       copy="Switch between price, throughput, response time, context, AA task cost, and MEAN NORMALIZED frontier benchmark score."

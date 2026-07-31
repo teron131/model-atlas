@@ -28,7 +28,7 @@ import {
   type TooltipState,
 } from "./shared/ColumnTooltip";
 import { DEFAULT_DISPLAY_ITEMS, useDisplayLimit } from "./shared/DisplayControls";
-import { modelCount, modelsForVariantDisplay } from "./shared/model-display";
+import { modelsForVariantDisplay } from "./shared/model-display";
 import { ModelToolbar } from "./shared/ModelToolbar";
 import {
   dashboardMetricColumns,
@@ -137,7 +137,6 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
             isLoading={isInitialLoading}
             maxCost={maxCostFilter}
             selectedProviders={selectedProviders}
-            onSelectedProvidersChange={setSelectedProviders}
           />
         }
       />
@@ -152,14 +151,12 @@ function DashboardLeaderboard({
   isLoading,
   maxCost,
   selectedProviders,
-  onSelectedProvidersChange,
 }: {
   payload: ModelAtlasPayload | null;
   errorMessage: string | null;
   isLoading: boolean;
   maxCost: CostFilter;
   selectedProviders: ProviderFilters;
-  onSelectedProvidersChange: (providers: ProviderFilters) => void;
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
   const [sortState, setSortState] = useState<SortState>({
@@ -174,14 +171,6 @@ function DashboardLeaderboard({
   const tableRows = useMemo(
     () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], showVariants)),
     [payload, showVariants],
-  );
-  const providerChoices = useMemo(
-    () => providerOptions(tableRows.map((row) => row.model)),
-    [tableRows],
-  );
-  const providerModelCount = useMemo(
-    () => modelCount(tableRows.map((row) => row.model)),
-    [tableRows],
   );
   const filteredRows = useMemo(
     () =>
@@ -278,11 +267,9 @@ function DashboardLeaderboard({
       id="leaderboard"
       className="dashboard-deck dashboard-research-section"
       aria-labelledby="leaderboard-title"
-      data-section="01"
     >
       <header className="dashboard-section-head">
         <p className="dashboard-section-marker">
-          <span>01</span>
           <b>Working view · Sortable model catalogue</b>
         </p>
         <h2 id="leaderboard-title">Model leaderboard</h2>
@@ -290,14 +277,6 @@ function DashboardLeaderboard({
       <ModelToolbar
         filterQuery={filterQuery}
         rowCountLabel={rowCountLabel}
-        provider={{
-          id: "leaderboard-provider-menu",
-          label: "Filter leaderboard providers",
-          options: providerChoices,
-          totalCount: providerModelCount,
-          selectedProviders,
-          onSelectedProvidersChange,
-        }}
         display={{
           id: "leaderboard-model-limit",
           label: "Leaderboard display",

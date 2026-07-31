@@ -37,7 +37,8 @@ export function ModelToolbar({
 }: {
   filterQuery: string;
   rowCountLabel: string | null;
-  provider: ProviderControl;
+  /** Omitted where an owning surface already exposes provider filtering for the same state. */
+  provider?: ProviderControl;
   display: DisplayControlsProps;
   screenshotControl: ReactNode;
   onFilterQueryChange: (value: string) => void;
@@ -54,9 +55,11 @@ export function ModelToolbar({
           value={filterQuery}
           onChange={(event) => onFilterQueryChange(event.target.value)}
         />
-        <div className={styles.provider}>
-          <ProviderDropdown {...provider} />
-        </div>
+        {provider == null ? null : (
+          <div className={styles.provider}>
+            <ProviderDropdown {...provider} />
+          </div>
+        )}
         <div className={styles.display}>
           <DisplayControls {...display} />
         </div>

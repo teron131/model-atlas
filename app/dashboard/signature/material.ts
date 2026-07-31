@@ -525,10 +525,27 @@ function renderSignalType(frame: MaterialFrame): void {
     const { agentic, intelligence, speed, mean, value } = model.parameters;
     const y = signalTypeY(compact, modelIndex, models.length, height);
     const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
+    const density = context.canvas.width / Math.max(1, width);
     const layer = layers[modelIndex];
     if (layer == null) {
       return;
     }
+
+    context.save();
+    context.globalAlpha = Math.max(0, 0.32 - frame.pointer.energy * 0.5);
+    context.globalCompositeOperation = "screen";
+    context.drawImage(
+      layer.canvas,
+      0,
+      0,
+      layer.canvas.width,
+      layer.canvas.height,
+      0,
+      layer.top,
+      width,
+      layer.canvas.height / density,
+    );
+    context.restore();
 
     context.save();
     context.globalCompositeOperation = "screen";
@@ -550,16 +567,20 @@ function renderSignalType(frame: MaterialFrame): void {
     context.stroke();
     context.restore();
 
-    const density = context.canvas.width / Math.max(1, width);
     const stripHeight = 10 + Math.round((1 - value) * 4);
+    const distortionStrength = frame.pointer.energy > 0.01 ? 1 : 0.12;
     for (let stripY = y - fontSize * 0.62; stripY < y + fontSize * 0.45; stripY += stripHeight) {
       const frequency = 0.022 + mean * 100 * 0.00055;
       const decay =
         (noise(Math.round(stripY + signalTime * 2), modelIndex + 71) - 0.5) *
         width *
-        (0.014 + speed * 0.055 + agentic * 0.025);
+        (0.014 + speed * 0.055 + agentic * 0.025) *
+        distortionStrength;
       const shear =
-        Math.sin(stripY * frequency + signalTime * (0.7 + speed)) * width * (0.006 + speed * 0.022);
+        Math.sin(stripY * frequency + signalTime * (0.7 + speed)) *
+        width *
+        (0.006 + speed * 0.022) *
+        distortionStrength;
       const alpha = 0.42 + intelligence * 0.36 + 0.16 * Math.sin(stripY * 0.017 + signalTime);
       const sourceY = Math.max(0, Math.round((stripY - layer.top) * density));
       const sourceHeight = Math.min(

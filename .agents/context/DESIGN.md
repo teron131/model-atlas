@@ -8,7 +8,6 @@ colors:
   ink-dark: "#f2f3ed"
   muted-light: "#5f665d"
   muted-dark: "#bbc1b7"
-  signal: "#d8ff45"
 typography:
   display:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
@@ -38,6 +37,40 @@ typography:
     fontWeight: 650
     lineHeight: 1.2
     letterSpacing: "0.035em"
+  micro:
+    fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
+    fontSize: "9px"
+    fontWeight: 650
+    lineHeight: 1.2
+    letterSpacing: "0.035em"
+  note:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "14px"
+    fontWeight: 500
+    lineHeight: 1.55
+  data-compact:
+    fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
+    fontSize: "12px"
+    fontWeight: 650
+    lineHeight: 1.2
+  document-title:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "clamp(36px, 4vw, 46px)"
+    fontWeight: 600
+    lineHeight: 1.08
+    letterSpacing: "-0.035em"
+  document-heading:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "24px"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "-0.025em"
+  document-subheading:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "18px"
+    fontWeight: 600
+    lineHeight: 1.4
+    letterSpacing: "-0.02em"
 rounded:
   square: "0"
   icon: "3px"
@@ -78,7 +111,7 @@ Light mode uses a mineral paper field; dark mode uses a blue-charcoal field. Bot
 
 ### Primary
 
-- **Signal Lime** (#d8ff45): active material mode, selected instrument state, and sparse orientation marks.
+The system carries no decorative accent hue. Emphasis is ink against the page field, and the only chroma on an analytical surface is provider colour, which is data.
 
 ### Neutral
 
@@ -88,6 +121,8 @@ Light mode uses a mineral paper field; dark mode uses a blue-charcoal field. Bot
 - **Chalk Ink** (#f2f3ed): primary dark-mode text and structural marks.
 
 ### Named Rules
+
+**Single Chroma Rule.** Provider colour is the only hue the analytical surfaces carry. Selection, focus, orientation marks, and section rules are all ink, so a coloured mark on the page always means a model.
 
 **Provider Identity Rule.** Provider colours are data and stay attached to every model mark, label, icon, row, and signature fragment.
 
@@ -108,7 +143,11 @@ Light mode uses a mineral paper field; dark mode uses a blue-charcoal field. Bot
 - **Body** (500, 1rem, 1.58): factual explanation with a maximum measure near 68ch.
 - **Data** (600, 0.8125rem, tabular): scores, prices, ranks, and model metadata.
 - **Label** (650, 0.6875rem, 0.035em, uppercase): parameters, axes, and compact controls.
-- **Caption** (650, 0.625rem, 0.035em, uppercase): modes, navigation, and secondary annotations; never shrink below 9px at compact widths.
+- **Caption** (650, 0.625rem, 0.035em, uppercase): secondary annotations.
+- **Micro** (650, 9px, 0.035em, uppercase): the compact-width floor for captions and dense rail annotations. Nothing shrinks below it.
+- **Note** (500, 14px): panel copy and tooltip prose.
+- **Data compact** (650, 12px, tabular): model identifiers, chips, and secondary readouts.
+- **Document title / heading / subheading** (600, clamp(36px, 4vw, 46px) / 24px / 18px): the reading route only.
 
 ## Layout
 
@@ -129,7 +168,7 @@ The backend score contract remains the source of truth for Intelligence, Agentic
 ### Buttons
 
 - **Shape:** square, borderless or 1px ruled.
-- **Primary:** selected state uses the signal colour or a full ink inversion when contrast requires it.
+- **Primary:** selected state uses a full-ink 2px rule; hover may preview provider colour on provider controls.
 - **Hover / Focus:** strengthen foreground and show a visible 2px focus ring without changing layout.
 
 ### Chips
@@ -151,11 +190,11 @@ The backend score contract remains the source of truth for Intelligence, Agentic
 
 ### Navigation
 
-Route and material-mode navigation use measurement labels. Active mode receives a short signal-colour rule rather than a pill.
+Route and material-mode navigation use measurement labels. Active mode receives a short ink rule rather than a pill or a filled background.
 
 ### Model Signature
 
-Evidence Field, Phase Ledger, and Signal Type coexist as three coequal signature modes; none is the master renderer or a replacement for another. The same normalized parameter object drives all three. Phase Ledger blends provider pigments continuously where model fields overlap rather than assigning hard colour territories. Pointer input produces diffusion, waves, refraction, or shear; it never draws a cursor spotlight.
+Evidence Field, Phase Ledger, and Signal Type coexist as three coequal signature modes; none is the master renderer or a replacement for another. The same normalized parameter object drives all three. Each material is authored against one page field, so mode and theme move together: Evidence Field on mineral paper, Phase Ledger and Signal Type on blue charcoal. The root theme attribute stays authoritative, so the saved theme selects the opening mode and the header toggle switches both. Phase Ledger blends provider pigments continuously where model fields overlap rather than assigning hard colour territories. Pointer input produces diffusion, waves, refraction, or shear; it never draws a cursor spotlight.
 
 The five model roles always appear in this order: highest Intelligence, highest Agentic, another unused model from the Intelligence top three, highest-Intelligence open-weight model, and the cheapest model at or above the 80th Intelligence percentile. Reserve distinct role winners first. When a role is unavailable or overlaps an earlier winner, fill it with the highest unused Intelligence top-five model and label its exact rank. Role selection changes labels and model choice, not material behavior.
 
@@ -163,7 +202,7 @@ The five model roles always appear in this order: highest Intelligence, highest 
 
 Leaderboard score cells keep the number primary. A one-pixel provider-colour line and diamond sit directly beneath it and share its right edge. Chart hover cards use a medium-weight model name and a neutral logo frame without provider-colour glow or shadow.
 
-Box-and-whisker summaries behave as compact measuring instruments. The median is dominant; the label and population remain quiet; the range, quartile box, and signal-colour median stay hairline and explicit. Dense two-sided rankings retain their readable intrinsic width on compact screens and become horizontally scrollable with keyboard access rather than shrinking their labels.
+Box-and-whisker summaries behave as compact measuring instruments. The median is dominant; the label and population remain quiet; the range and quartile box stay hairline, and the ink median stays explicit. Dense two-sided rankings retain their readable intrinsic width on compact screens and become horizontally scrollable with keyboard access rather than shrinking their labels.
 
 ## Do's and Don'ts
 

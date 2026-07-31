@@ -12,6 +12,12 @@ import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useS
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
+  applyModelAtlasTheme,
+  currentModelAtlasTheme,
+  type ModelAtlasTheme,
+} from "../../shared/theme";
+import { BotIcon, BrainIcon, DollarIcon } from "../shared/DashboardIcons";
+import {
   type MaterialPalette,
   type MaterialPointer,
   renderMaterial,
@@ -24,6 +30,16 @@ import styles from "./signature.module.css";
 const MATERIAL_MODEL_LIMIT = 5;
 const MATERIAL_FRAME_INTERVAL_MS = 1_000 / 30;
 const MATERIAL_VISIBILITY_MARGIN_PX = 120;
+const DEFAULT_DARK_MODE: SignatureMode = "phase";
+
+/**
+ * Each material was authored against one page field: Evidence Field on mineral paper, Phase Ledger
+ * and Signal Type on blue charcoal. Mode and theme therefore move together, but the root attribute
+ * stays authoritative so the saved theme survives a reload and the header toggle keeps working.
+ */
+function themeForMode(mode: SignatureMode): ModelAtlasTheme {
+  return mode === "field" ? "light" : "dark";
+}
 
 export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,11 +57,35 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
   });
   const [mode, setMode] = useState<SignatureMode>("field");
   const [paused, setPaused] = useState(false);
+  const lastDarkModeRef = useRef<SignatureMode>(DEFAULT_DARK_MODE);
   const signatureModelRows = useMemo(() => signatureModels(models, MATERIAL_MODEL_LIMIT), [models]);
 
+  // Adopt the saved theme on mount, then follow any later theme change from the header toggle.
   useEffect(() => {
-    document.documentElement.dataset.modelAtlasTheme = mode === "field" ? "light" : "dark";
-  }, [mode]);
+    const root = document.documentElement;
+    const adoptTheme = () => {
+      const theme = currentModelAtlasTheme();
+      setMode((current) =>
+        themeForMode(current) === theme
+          ? current
+          : theme === "light"
+            ? "field"
+            : lastDarkModeRef.current,
+      );
+    };
+    adoptTheme();
+    const observer = new MutationObserver(adoptTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-model-atlas-theme"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const selectMode = (nextMode: SignatureMode) => {
+    if (nextMode !== "field") {
+      lastDarkModeRef.current = nextMode;
+    }
+    setMode(nextMode);
+    applyModelAtlasTheme(themeForMode(nextMode));
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -230,7 +270,7 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
               className={styles.modeButton}
               aria-pressed={mode === signatureMode}
               key={signatureMode}
-              onClick={() => setMode(signatureMode)}
+              onClick={() => selectMode(signatureMode)}
             >
               {signatureModeLabels[signatureMode]}
             </button>
@@ -251,12 +291,36 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
                 style={{ "--provider": model.color } as CSSProperties}
               >
                 <dt>{model.role}</dt>
-                <dd>
+                <dd className={styles.scoreLeaderModel}>
                   <span className={styles.scoreLeaderIcon} aria-hidden="true">
                     {model.logo ? <img src={model.logo} alt="" width={14} height={14} /> : null}
                   </span>
                   <strong>{model.name}</strong>
-                  <span className={styles.scoreLeaderValue}>{model.selectionMetric}</span>
+                </dd>
+                <dd className={styles.scoreLeaderValue}>
+                  <span className="visually-hidden">
+                    {accessibleSelectionMetric(model.selectionMetric)}
+                  </span>
+                  <span className={styles.scoreLeaderValueVisual} aria-hidden="true">
+                    {selectionMetricParts(model.selectionMetric).map((part, index) =>
+                      part.kind === "text" ? (
+                        <span key={`${part.value}-${index}`}>{part.value}</span>
+                      ) : (
+                        <span
+                          className={styles.scoreLeaderMetricIcon}
+                          key={`${part.kind}-${index}`}
+                        >
+                          {part.kind === "intelligence" ? (
+                            <BrainIcon />
+                          ) : part.kind === "agentic" ? (
+                            <BotIcon />
+                          ) : (
+                            <DollarIcon />
+                          )}
+                        </span>
+                      ),
+                    )}
+                  </span>
                 </dd>
               </div>
             ))}
@@ -294,6 +358,33 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
       </ol>
     </section>
   );
+}
+
+type SelectionMetricPart =
+  | { kind: "agentic" | "intelligence" | "value" }
+  | { kind: "text"; value: string };
+
+function selectionMetricParts(metric: string): SelectionMetricPart[] {
+  const metricKind = metric.startsWith("AGT ") ? "agentic" : "intelligence";
+  const withoutPrefix = metric.replace(/^(?:AGT|INT) /, "");
+  const priceStart = withoutPrefix.indexOf(" · $");
+  if (priceStart === -1) {
+    return [{ kind: metricKind }, { kind: "text", value: withoutPrefix }];
+  }
+  return [
+    { kind: metricKind },
+    { kind: "text", value: withoutPrefix.slice(0, priceStart) },
+    { kind: "text", value: "·" },
+    { kind: "value" },
+    { kind: "text", value: withoutPrefix.slice(priceStart + 4) },
+  ];
+}
+
+function accessibleSelectionMetric(metric: string): string {
+  return metric
+    .replace(/^INT /, "Intelligence ")
+    .replace(/^AGT /, "Agentic ")
+    .replace(" · $", " · Value $");
 }
 
 function readPalette(element: HTMLElement): MaterialPalette {
