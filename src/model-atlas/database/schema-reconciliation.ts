@@ -27,6 +27,10 @@ export type SchemaReconciliationPlan = {
   removedIndexes: string[];
 };
 
+export type SchemaMigrationValues = Readonly<
+  Record<string, Readonly<Record<string, string | number>>>
+>;
+
 type SchemaIndexDefinition = {
   table: string;
   sql: string;
@@ -65,6 +69,7 @@ export function schemaReconciliationPlan(
   schemaSql: string,
   catalogRows: readonly SchemaCatalogRow[],
   manifestRows: readonly SchemaManifestRow[],
+  migrationValues: SchemaMigrationValues = {},
 ): SchemaReconciliationPlan {
   const expectedTableBodies = schemaTableBodies(schemaSql);
   if (!expectedTableBodies.has(SCHEMA_MANIFEST_TABLE)) {
@@ -125,6 +130,7 @@ export function schemaReconciliationPlan(
         existingShape,
         expectedShape,
         expectedTableColumns.get(table) ?? [],
+        migrationValues[table] ?? {},
       ),
     );
     changedTables.push(table);
@@ -179,6 +185,7 @@ function rebuildTableStatements(
   existingShape: Map<string, SchemaColumnShape>,
   expectedShape: Map<string, SchemaColumnShape>,
   expectedColumns: readonly [string, string][],
+  migrationValues: Readonly<Record<string, string | number>>,
 ): string[] {
   const existingPrimaryKey = primaryKeyColumnNames(existingShape);
   const expectedPrimaryKey = primaryKeyColumnNames(expectedShape);
@@ -191,7 +198,8 @@ function rebuildTableStatements(
     if (
       existingShape.has(column) ||
       !/\bNOT\s+NULL\b/i.test(definition) ||
-      /\bDEFAULT\b/i.test(definition)
+      /\bDEFAULT\b/i.test(definition) ||
+      migrationValues[column] != null
     ) {
       continue;
     }
@@ -199,18 +207,22 @@ function rebuildTableStatements(
       `Cannot automatically reconcile ${table}: new required column ${column} needs a DEFAULT or an explicit migration`,
     );
   }
-  const commonColumns = expectedColumns
-    .map(([column]) => column)
-    .filter((column) => existingShape.has(column));
+  const copiedColumns = expectedColumns.flatMap(([column]) => {
+    if (existingShape.has(column)) {
+      return [[column, quoteIdentifier(column)] as const];
+    }
+    const migrationValue = migrationValues[column];
+    return migrationValue == null ? [] : [[column, sqlValueLiteral(migrationValue)] as const];
+  });
   const nextTable = `__model_atlas_next_${table}`;
   const previousTable = `__model_atlas_previous_${table}`;
-  const columnList = commonColumns.map(quoteIdentifier).join(", ");
-  const valueList = commonColumns.map(quoteIdentifier).join(", ");
+  const columnList = copiedColumns.map(([column]) => quoteIdentifier(column)).join(", ");
+  const valueList = copiedColumns.map(([, value]) => value).join(", ");
   return [
     `DROP TABLE IF EXISTS ${quoteIdentifier(nextTable)}`,
     `DROP TABLE IF EXISTS ${quoteIdentifier(previousTable)}`,
     createTableSql(nextTable, body),
-    ...(commonColumns.length === 0
+    ...(copiedColumns.length === 0
       ? []
       : [
           `INSERT INTO ${quoteIdentifier(nextTable)} (${columnList}) SELECT ${valueList} FROM ${quoteIdentifier(table)}`,
@@ -219,6 +231,16 @@ function rebuildTableStatements(
     `ALTER TABLE ${quoteIdentifier(nextTable)} RENAME TO ${quoteIdentifier(table)}`,
     `DROP TABLE ${quoteIdentifier(previousTable)}`,
   ];
+}
+
+function sqlValueLiteral(value: string | number): string {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new Error(`Cannot use non-finite schema migration value: ${value}`);
+    }
+    return String(value);
+  }
+  return sqlStringLiteral(value);
 }
 
 function catalogTableShapes(

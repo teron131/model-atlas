@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS snapshot_payloads (
 	PRIMARY KEY (snapshot_key)
 );
 
+CREATE TABLE IF NOT EXISTS snapshot_publication_lock (
+	lock_key TEXT NOT NULL CHECK (lock_key = 'public'),
+	owner_token TEXT NOT NULL,
+	acquired_at_epoch_seconds INTEGER NOT NULL,
+	PRIMARY KEY (lock_key)
+);
+
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -440,12 +447,13 @@ CREATE TABLE IF NOT EXISTS source_quarantines (
 CREATE TABLE IF NOT EXISTS source_health (
 	row_index INTEGER NOT NULL,
 	source TEXT NOT NULL,
-	status TEXT NOT NULL,
+	status TEXT NOT NULL CHECK (status IN ('cache_hit', 'fresh', 'using_cached_rows', 'empty')),
 	last_fetch_epoch_seconds INTEGER,
-	source_input_count INTEGER NOT NULL,
-	active_row_count INTEGER NOT NULL,
-	quarantined_row_count INTEGER NOT NULL,
-	PRIMARY KEY (row_index)
+	source_input_count INTEGER NOT NULL CHECK (source_input_count >= 0),
+	active_row_count INTEGER NOT NULL CHECK (active_row_count >= 0),
+	quarantined_row_count INTEGER NOT NULL CHECK (quarantined_row_count >= 0),
+	PRIMARY KEY (row_index),
+	UNIQUE (source)
 );
 
 CREATE TABLE IF NOT EXISTS models (
@@ -493,6 +501,8 @@ CREATE TABLE IF NOT EXISTS models (
 	value_score REAL,
 	intelligence_confidence REAL,
 	agentic_confidence REAL,
+	speed_confidence REAL,
+	value_confidence REAL,
 	PRIMARY KEY (row_index)
 );
 
@@ -500,6 +510,7 @@ CREATE TABLE IF NOT EXISTS model_benchmarks (
 	model_row_index INTEGER NOT NULL,
 	benchmark_key TEXT NOT NULL,
 	value REAL NOT NULL,
+	observed_at TEXT NOT NULL,
 	PRIMARY KEY (model_row_index, benchmark_key)
 );
 
@@ -507,11 +518,25 @@ CREATE TABLE IF NOT EXISTS model_task_metrics (
 	model_row_index INTEGER NOT NULL,
 	source_key TEXT NOT NULL,
 	cost REAL,
+	observed_cost REAL,
 	seconds REAL,
 	tokens REAL,
 	input_tokens REAL,
 	output_tokens REAL,
+	observed_at TEXT NOT NULL,
+	cost_price_ratio REAL,
 	PRIMARY KEY (model_row_index, source_key)
+);
+
+CREATE TABLE IF NOT EXISTS benchmark_version_log (
+	model_id TEXT NOT NULL,
+	reasoning_effort TEXT NOT NULL,
+	benchmark_key TEXT NOT NULL,
+	metric_kind TEXT NOT NULL CHECK (metric_kind IN ('score', 'task')),
+	version_date TEXT NOT NULL,
+	change_kind TEXT NOT NULL CHECK (change_kind IN ('baseline', 'added', 'changed', 'removed')),
+	value_json TEXT,
+	PRIMARY KEY (model_id, reasoning_effort, benchmark_key, metric_kind, version_date)
 );
 
 CREATE TABLE IF NOT EXISTS model_match_debug (
@@ -526,8 +551,8 @@ CREATE TABLE IF NOT EXISTS model_match_debug (
 	candidate_provider_name TEXT,
 	candidate_name TEXT,
 	candidate_score REAL,
-	selected INTEGER,
-	rejection_reason TEXT,
+	selected INTEGER NOT NULL CHECK (selected IN (0, 1)),
+	rejection_reason TEXT NOT NULL CHECK (rejection_reason IN ('selected', 'variant_conflict', 'lower_rank', 'not_selected', 'unmatched_or_voided')),
 	selected_model_id TEXT,
 	models_dev_row_index INTEGER,
 	openrouter_model_id TEXT,

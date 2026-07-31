@@ -1525,13 +1525,13 @@ tbody tr:nth-child(-n + 3) .rank {
 }
 
 .confidence-cell {
-  min-width: 132px;
+  min-width: 220px;
   text-align: right;
 }
 
 .confidence-values {
   display: inline-flex;
-  gap: 12px;
+  gap: 10px;
   font-variant-numeric: tabular-nums;
 }
 

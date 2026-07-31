@@ -280,6 +280,7 @@ function buildCost(row: DbRow): ModelAtlasCost {
 function modelFromRow(
   row: DbRow,
   benchmarks: ModelAtlasBenchmarks | null,
+  benchmarkDates: Record<string, string> | null,
   taskMetrics: ModelAtlasTaskMetrics,
 ): ModelAtlasScoredCandidate {
   const modelId = stringValue(row.model_id);
@@ -305,9 +306,12 @@ function modelFromRow(
     intelligence: numericObject<ModelAtlasIntelligence>(row, ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS),
     task_metrics: taskMetrics,
     benchmarks,
+    benchmark_dates: benchmarkDates,
     confidence: {
       intelligence: asFiniteNumber(row.intelligence_confidence) ?? null,
       agentic: asFiniteNumber(row.agentic_confidence) ?? null,
+      speed: asFiniteNumber(row.speed_confidence) ?? null,
+      value: asFiniteNumber(row.value_confidence) ?? null,
     },
     component_scores: {
       intelligence_score: asFiniteNumber(row.component_intelligence_score) ?? null,
@@ -359,6 +363,22 @@ function benchmarksByModelRow(rows: readonly DbRow[]): Map<number, ModelAtlasBen
   return benchmarksByModel;
 }
 
+function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<string, string>> {
+  const benchmarkDatesByModel = new Map<number, Record<string, string>>();
+  for (const row of rows) {
+    const modelRowIndex = asFiniteNumber(row.model_row_index);
+    const benchmarkKey = stringValue(row.benchmark_key);
+    const observedAt = stringValue(row.observed_at);
+    if (modelRowIndex == null || benchmarkKey == null || observedAt == null) {
+      continue;
+    }
+    const dates = benchmarkDatesByModel.get(modelRowIndex) ?? {};
+    dates[benchmarkKey] = observedAt;
+    benchmarkDatesByModel.set(modelRowIndex, dates);
+  }
+  return benchmarkDatesByModel;
+}
+
 function taskMetricsByModelRow(
   rows: readonly DbRow[],
 ): Map<number, NonNullable<ModelAtlasTaskMetrics>> {
@@ -371,10 +391,16 @@ function taskMetricsByModelRow(
     }
     const metrics: ModelAtlasTaskMetricValues = {};
     assignNumber(metrics, "cost", row.cost);
+    assignNumber(metrics, "observed_cost", row.observed_cost);
     assignNumber(metrics, "seconds", row.seconds);
     assignNumber(metrics, "tokens", row.tokens);
     assignNumber(metrics, "input_tokens", row.input_tokens);
     assignNumber(metrics, "output_tokens", row.output_tokens);
+    assignNumber(metrics, "cost_price_ratio", row.cost_price_ratio);
+    const observedAt = stringValue(row.observed_at);
+    if (observedAt != null) {
+      metrics.observed_at = observedAt;
+    }
     const taskMetrics = taskMetricsByModel.get(modelRowIndex) ?? {};
     taskMetrics[sourceKey] = metrics;
     taskMetricsByModel.set(modelRowIndex, taskMetrics);
@@ -471,6 +497,7 @@ function sourceHealthFromRows(
 /** Assembles the public Model Atlas payload from database row groups. */
 export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   const benchmarksByModel = benchmarksByModelRow(rows.modelBenchmarkRows);
+  const benchmarkDatesByModel = benchmarkDatesByModelRow(rows.modelBenchmarkRows);
   const taskMetricsByModel = taskMetricsByModelRow(rows.modelTaskMetricRows);
   const models = rows.modelRows.flatMap((row) => {
     const modelRowIndex = asFiniteNumber(row.row_index);
@@ -478,6 +505,7 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
       modelFromRow(
         row,
         modelRowIndex == null ? null : (benchmarksByModel.get(modelRowIndex) ?? null),
+        modelRowIndex == null ? null : (benchmarkDatesByModel.get(modelRowIndex) ?? null),
         modelRowIndex == null ? null : (taskMetricsByModel.get(modelRowIndex) ?? null),
       ),
     );

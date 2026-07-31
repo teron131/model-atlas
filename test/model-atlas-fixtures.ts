@@ -78,9 +78,12 @@ export function minimalModelAtlasModel({
     intelligence: null,
     task_metrics: null,
     benchmarks: null,
+    benchmark_dates: null,
     confidence: {
       intelligence: 1,
       agentic: 1,
+      speed: 1,
+      value: 1,
     },
     component_scores: {
       intelligence_score: 0,

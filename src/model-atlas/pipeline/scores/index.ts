@@ -2,13 +2,22 @@
 export type {
   BenchmarkImputationByModel,
   BenchmarkImputationConfidenceByModel,
+  BenchmarkScoringPreparation,
+  EffortResourceImputation,
+  ImputedTaskResource,
   QualityScoringContext,
-} from "./benchmark-imputation";
+  TaskResourceKind,
+} from "./imputation";
 export {
+  benchmarkImputationConfidence,
+  benchmarkImputationValues,
+  benchmarkQualityEvidence,
   buildBenchmarkImputationByModel,
   buildBenchmarkImputationDiagnosticsByKey,
   buildQualityScoringContext,
-} from "./benchmark-imputation";
+  imputedTaskResource,
+  prepareEffortResourceImputation,
+} from "./imputation";
 export { attachFinalScores } from "./final-scoring";
 export {
   blendedPriceValue,

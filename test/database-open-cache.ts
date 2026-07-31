@@ -78,14 +78,32 @@ assert.equal(
 );
 assert.deepEqual(
   Array.from(schemaTableShapes(schemaSql).get("model_benchmarks")?.keys() ?? []),
-  ["model_row_index", "benchmark_key", "value"],
+  ["model_row_index", "benchmark_key", "value", "observed_at"],
   "Benchmark storage should remain a narrow keyed table",
 );
 assert.deepEqual(
   Array.from(schemaTableShapes(schemaSql).get("model_task_metrics")?.keys() ?? []),
-  ["model_row_index", "source_key", "cost", "seconds", "tokens", "input_tokens", "output_tokens"],
+  [
+    "model_row_index",
+    "source_key",
+    "cost",
+    "observed_cost",
+    "seconds",
+    "tokens",
+    "input_tokens",
+    "output_tokens",
+    "observed_at",
+    "cost_price_ratio",
+  ],
   "Task metric storage should remain scalar and relational",
 );
+for (const table of ["model_benchmarks", "model_task_metrics"]) {
+  assert.equal(
+    schemaColumns.get(table)?.find(([column]) => column === "observed_at")?.[1],
+    "TEXT NOT NULL",
+    `${table}.observed_at should be required without making migration data a schema default`,
+  );
+}
 assert.equal(
   processedModelShape?.get("row_index")?.primaryKey,
   1,
@@ -144,6 +162,16 @@ try {
       .prepare("INSERT INTO models (row_index, model_id) VALUES (?, ?)")
       .run(0, "anthropic/claude-fable-5");
     firstDb
+      .prepare(
+        "INSERT INTO model_benchmarks (model_row_index, benchmark_key, value, observed_at) VALUES (?, ?, ?, ?)",
+      )
+      .run(0, "deep_swe", 0.7, "2026-07-30");
+    firstDb
+      .prepare(
+        "INSERT INTO model_task_metrics (model_row_index, source_key, cost, observed_at) VALUES (?, ?, ?, ?)",
+      )
+      .run(0, "deep_swe", 2, "2026-07-30");
+    firstDb
       .prepare(`
 				INSERT INTO benchmark_observation_raw_rows (
 					source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
@@ -185,6 +213,8 @@ try {
       .prepare(`INSERT INTO ${SCHEMA_MANIFEST_TABLE} (object_type, object_name) VALUES (?, ?)`)
       .run("table", "legacy_snapshot_rows");
     firstDb.prepare("ALTER TABLE models DROP COLUMN reasoning_effort").run();
+    firstDb.prepare("ALTER TABLE model_benchmarks DROP COLUMN observed_at").run();
+    firstDb.prepare("ALTER TABLE model_task_metrics DROP COLUMN observed_at").run();
     firstDb.prepare("ALTER TABLE benchmark_observation_raw_rows DROP COLUMN observed_at").run();
     firstDb
       .prepare(DEEP_SWE_INSERT_SQL)
@@ -249,6 +279,16 @@ try {
       reopenedDb.prepare("SELECT reasoning_effort FROM models").get()?.reasoning_effort,
       null,
       "New nullable columns should be added without inventing evidence",
+    );
+    assert.equal(
+      reopenedDb.prepare("SELECT observed_at FROM model_benchmarks").get()?.observed_at,
+      "2026-07-30",
+      "Benchmark dates should be backfilled only while migrating existing rows",
+    );
+    assert.equal(
+      reopenedDb.prepare("SELECT observed_at FROM model_task_metrics").get()?.observed_at,
+      "2026-07-30",
+      "Task dates should be backfilled only while migrating existing rows",
     );
     assert.equal(
       Number(

@@ -31,6 +31,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
   "intelligence",
   "task_metrics",
   "benchmarks",
+  "benchmark_dates",
   "confidence",
   "component_scores",
   "scores",
@@ -110,6 +111,7 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
     intelligence: model.intelligence,
     task_metrics: model.task_metrics,
     benchmarks: model.benchmarks,
+    benchmark_dates: model.benchmark_dates,
     confidence: { ...model.confidence },
     component_scores: {
       intelligence_score: model.component_scores.intelligence_score,

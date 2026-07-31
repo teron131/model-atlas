@@ -89,7 +89,16 @@ function modelScoreValues(model: JsonObject): SqlValue[] {
     asFiniteNumber(scores.value_score),
     asFiniteNumber(confidence.intelligence),
     asFiniteNumber(confidence.agentic),
+    asFiniteNumber(confidence.speed),
+    asFiniteNumber(confidence.value),
   ];
+}
+
+function requiredObservationDate(value: unknown, label: string): string {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+  throw new Error(`Missing observation date for ${label}`);
 }
 
 export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void {
@@ -111,8 +120,8 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score,
-			intelligence_confidence, agentic_confidence
-		) VALUES (${Array.from({ length: 44 }, () => "?").join(", ")})
+			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence
+		) VALUES (${Array.from({ length: 46 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -131,16 +140,23 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 export function insertModelBenchmarks(db: DatabaseWriter, rows: readonly unknown[]): void {
   const statement = db.prepare(`
 		INSERT INTO model_benchmarks (
-			model_row_index, benchmark_key, value
-		) VALUES (?, ?, ?)
+			model_row_index, benchmark_key, value, observed_at
+		) VALUES (?, ?, ?, ?)
 	`);
   for (const [modelRowIndex, row] of rows.entries()) {
-    const benchmarks = asRecord(asRecord(row).benchmarks);
+    const model = asRecord(row);
+    const benchmarks = asRecord(model.benchmarks);
+    const benchmarkDates = asRecord(model.benchmark_dates);
     for (const benchmarkKey of MODEL_ATLAS_BENCHMARK_KEYS) {
       const value = asFiniteNumber(benchmarks[benchmarkKey]);
-      if (value != null) {
-        statement.run(modelRowIndex, benchmarkKey, value);
+      if (value == null) {
+        continue;
       }
+      const observedAt = requiredObservationDate(
+        benchmarkDates[benchmarkKey],
+        `benchmark ${benchmarkKey}`,
+      );
+      statement.run(modelRowIndex, benchmarkKey, value, observedAt);
     }
   }
 }
@@ -149,9 +165,9 @@ export function insertModelBenchmarks(db: DatabaseWriter, rows: readonly unknown
 export function insertModelTaskMetrics(db: DatabaseWriter, rows: readonly unknown[]): void {
   const statement = db.prepare(`
 		INSERT INTO model_task_metrics (
-			model_row_index, source_key, cost, seconds, tokens,
-			input_tokens, output_tokens
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
+			model_row_index, source_key, cost, observed_cost, seconds, tokens,
+			input_tokens, output_tokens, observed_at, cost_price_ratio
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [modelRowIndex, row] of rows.entries()) {
     const taskMetrics = asRecord(asRecord(row).task_metrics);
@@ -165,15 +181,42 @@ export function insertModelTaskMetrics(db: DatabaseWriter, rows: readonly unknow
         continue;
       }
       const metrics = asRecord(sourceMetrics);
+      const observedAt = requiredObservationDate(metrics.observed_at, `task metric ${sourceKey}`);
       statement.run(
         modelRowIndex,
         sourceKey,
         asFiniteNumber(metrics.cost),
+        asFiniteNumber(metrics.observed_cost) ?? asFiniteNumber(metrics.cost),
         asFiniteNumber(metrics.seconds),
         asFiniteNumber(metrics.tokens),
         asFiniteNumber(metrics.input_tokens),
         asFiniteNumber(metrics.output_tokens),
+        observedAt,
+        asFiniteNumber(metrics.cost_price_ratio) ??
+          (asFiniteNumber(metrics.cost) == null ? null : 1),
       );
     }
+  }
+}
+
+/** Appends dated benchmark revisions; the composite key makes refresh retries idempotent. */
+export function insertBenchmarkVersionLog(db: DatabaseWriter, rows: readonly unknown[]): void {
+  const statement = db.prepare(`
+		INSERT OR IGNORE INTO benchmark_version_log (
+			model_id, reasoning_effort, benchmark_key, metric_kind,
+			version_date, change_kind, value_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
+	`);
+  for (const row of rows) {
+    const revision = asRecord(row);
+    statement.run(
+      firstString(revision, ["model_id"]),
+      typeof revision.reasoning_effort === "string" ? revision.reasoning_effort : "",
+      firstString(revision, ["benchmark_key"]),
+      firstString(revision, ["metric_kind"]),
+      firstString(revision, ["version_date"]),
+      firstString(revision, ["change_kind"]),
+      typeof revision.value_json === "string" ? revision.value_json : null,
+    );
   }
 }

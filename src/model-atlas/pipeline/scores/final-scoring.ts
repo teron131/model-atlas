@@ -1,7 +1,7 @@
 /** Final component scoring for public Model Atlas model rows. */
 
-import type { BenchmarkResourceQualityCoordinate } from "../../benchmarks/factory";
 import type { ScoringConfig } from "../../config/stage";
+import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";
 import {
   log10OnePlusPositive,
   meanOfFinite,
@@ -10,6 +10,13 @@ import {
   weightedMeanOfFinite,
 } from "../../numeric";
 import type { ModelAtlasCandidate, ModelAtlasScoredCandidate } from "../model-types";
+import {
+  benchmarkQualityEvidence,
+  type BenchmarkScoringPreparation,
+  type EffortResourceImputation,
+  imputedTaskResource,
+  type TaskResourceKind,
+} from "./imputation";
 import { coverageConfidence, logInputMinMaxScores } from "./normalization";
 import {
   benchmarkResourceEfficiencyScores,
@@ -31,9 +38,9 @@ type WeightedSignal = {
   weight: number;
 };
 
-type ResourceEfficiencyEvidence = {
+type WeightedResourceEfficiencyEvidence = {
   benchmarkKeys: readonly string[];
-  signalsByModel: number[][];
+  signalsByModel: WeightedSignal[][];
 };
 
 function meanSignal(signals: WeightedSignal[], minimumFiniteValues: number): number | null {
@@ -43,89 +50,136 @@ function meanSignal(signals: WeightedSignal[], minimumFiniteValues: number): num
   return weightedMeanOfFinite(signals);
 }
 
+function finiteSignalWeight(signals: WeightedSignal[]): number {
+  return signals.reduce(
+    (total, signal) =>
+      signal.value != null &&
+      Number.isFinite(signal.value) &&
+      Number.isFinite(signal.weight) &&
+      signal.weight > 0
+        ? total + signal.weight
+        : total,
+    0,
+  );
+}
+
 function blendCost(model: ModelAtlasCandidate, scoringConfig: ScoringConfig): number | null {
   return (
     positiveFiniteNumber(model.cost?.blended_price) ?? blendedPriceValue(model.cost, scoringConfig)
   );
 }
 
-type TaskResourceAmount = (
-  model: ModelAtlasCandidate,
-  key: string,
-  scoringConfig: ScoringConfig,
-) => number | null;
-
-function activeResourceBenchmarks(
+function taskResourceEfficiencyEvidence(
   models: ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
-  resourceAmountFor: TaskResourceAmount,
-): Array<{
-  key: string;
-  qualityCoordinate: BenchmarkResourceQualityCoordinate;
-}> {
-  return Object.entries(scoringConfig.benchmarkPortfolio)
-    .flatMap(([key, entry]) => {
-      const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
-      return qualityCoordinate != null &&
-        models.some(
-          (model) =>
-            benchmarkMetricValue(model, key) != null &&
-            resourceAmountFor(model, key, scoringConfig) != null,
-        )
-        ? [{ key, qualityCoordinate }]
-        : [];
-    })
-    .sort((left, right) => left.key.localeCompare(right.key));
-}
-
-function resourceEfficiencyEvidence(
-  models: ModelAtlasCandidate[],
-  scoringConfig: ScoringConfig,
-  resourceAmountFor: TaskResourceAmount,
-): ResourceEfficiencyEvidence {
-  const benchmarks = activeResourceBenchmarks(models, scoringConfig, resourceAmountFor);
-  const signalsByModel = models.map(() => [] as number[]);
-  for (const { key, qualityCoordinate } of benchmarks) {
+  kind: TaskResourceKind,
+  benchmarkPreparation?: BenchmarkScoringPreparation,
+  resourceImputation?: EffortResourceImputation,
+): WeightedResourceEfficiencyEvidence {
+  const signalsByModel = models.map(() => [] as WeightedSignal[]);
+  const benchmarkKeys: string[] = [];
+  for (const [key, entry] of Object.entries(scoringConfig.benchmarkPortfolio).sort(
+    ([left], [right]) => left.localeCompare(right),
+  )) {
+    const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
+    if (qualityCoordinate == null) {
+      continue;
+    }
+    const evidence = models.map((model) => {
+      const quality = benchmarkQualityEvidence(model, key, benchmarkPreparation);
+      if (quality == null) {
+        return null;
+      }
+      const taskMetrics = benchmarkTaskMetrics(model, key, entry.resourcePolicy);
+      const directAmount =
+        kind === "cost"
+          ? positiveFiniteNumber(taskMetrics?.cost)
+          : effectiveTaskSeconds(model, taskMetrics);
+      if (directAmount != null) {
+        return {
+          calibration: benchmarkMetricValue(model, key) != null,
+          quality: quality.value,
+          resource: Math.log(directAmount),
+          weight: quality.confidence,
+        };
+      }
+      const estimate =
+        resourceImputation == null
+          ? null
+          : imputedTaskResource(resourceImputation, model, key, kind);
+      return estimate == null
+        ? null
+        : {
+            calibration: false,
+            quality: quality.value,
+            resource: Math.log(estimate.amount),
+            weight: quality.confidence * estimate.confidence,
+          };
+    });
+    if (!evidence.some((item) => item != null)) {
+      continue;
+    }
+    benchmarkKeys.push(key);
     const scores = benchmarkResourceEfficiencyScores(
       models,
-      models.map((model) => benchmarkMetricValue(model, key)),
-      models.map((model) => {
-        const resourceAmount = resourceAmountFor(model, key, scoringConfig);
-        return resourceAmount == null ? null : Math.log(resourceAmount);
-      }),
+      evidence.map((item) => item?.quality ?? null),
+      evidence.map((item) => item?.resource ?? null),
       qualityCoordinate,
+      evidence.map((item) => item?.calibration === true),
     );
     for (const [modelIndex, score] of scores.entries()) {
-      if (score != null) {
-        signalsByModel[modelIndex]?.push(score);
-      }
+      signalsByModel[modelIndex]?.push({
+        value: score,
+        weight: score == null ? 0 : (evidence[modelIndex]?.weight ?? 0),
+      });
     }
   }
-  return {
-    benchmarkKeys: benchmarks.map(({ key }) => key),
-    signalsByModel,
-  };
+  return { benchmarkKeys, signalsByModel };
 }
 
-function equalWeightedScore(signals: Array<number | null>, totalCount: number): number | null {
-  const meanValue = meanOfFinite(signals);
-  return meanValue == null
-    ? null
-    : meanValue *
-        coverageConfidence(
-          weightedFinitePartCount(
-            signals.map((value) => ({
-              value,
-              weight: ACTIVE_COMPONENT_WEIGHT,
-            })),
-          ),
-          totalCount,
-        );
+function evidenceConfidence(
+  signals: WeightedSignal[],
+  totalCount: number,
+  score: number | null,
+): number | null {
+  return score == null ? null : Math.min(1, finiteSignalWeight(signals) / totalCount);
+}
+
+/** Use the source-default variant's coverage uniformly across every reasoning effort. */
+function defaultVariantCoverageMultipliers(
+  models: readonly ModelAtlasCandidate[],
+  signalsByModel: readonly WeightedSignal[][],
+  totalCount: number,
+): number[] {
+  const indexesByFamily = new Map<string, number[]>();
+  for (const [index, model] of models.entries()) {
+    const familyKey = canonicalModelKey(model);
+    indexesByFamily.set(familyKey, [...(indexesByFamily.get(familyKey) ?? []), index]);
+  }
+  const multipliers = models.map(() => 0);
+  for (const indexes of indexesByFamily.values()) {
+    const defaultIndex = indexes.reduce((selectedIndex, index) =>
+      reasoningEffortRank(models[index]?.reasoning_effort) >
+      reasoningEffortRank(models[selectedIndex]?.reasoning_effort)
+        ? index
+        : selectedIndex,
+    );
+    const multiplier = coverageConfidence(
+      finiteSignalWeight(signalsByModel[defaultIndex] ?? []),
+      totalCount,
+    );
+    for (const index of indexes) {
+      multipliers[index] = multiplier;
+    }
+  }
+  return multipliers;
 }
 
 export function attachFinalScores(
   models: ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
+  benchmarkPreparation?: BenchmarkScoringPreparation,
+  resourceImputation?: EffortResourceImputation,
 ): ModelAtlasScoredCandidate[] {
   const intelligenceScores = models.map(
     (model) => model.component_scores?.intelligence_score ?? null,
@@ -190,41 +244,69 @@ export function attachFinalScores(
       MIN_RAW_SPEED_COMPONENTS,
     ),
   );
-  const taskTimeComponentEvidence = resourceEfficiencyEvidence(
+  const taskTimeComponentEvidence = taskResourceEfficiencyEvidence(
     models,
     scoringConfig,
-    (model, key, config) =>
-      effectiveTaskSeconds(
-        model,
-        benchmarkTaskMetrics(model, key, config.benchmarkPortfolio[key]?.resourcePolicy),
-      ),
+    "time",
+    benchmarkPreparation,
+    resourceImputation,
   );
-  const taskCostComponentEvidence = resourceEfficiencyEvidence(
+  const taskCostComponentEvidence = taskResourceEfficiencyEvidence(
     models,
     scoringConfig,
-    (model, key, config) =>
-      positiveFiniteNumber(
-        benchmarkTaskMetrics(model, key, config.benchmarkPortfolio[key]?.resourcePolicy)?.cost,
-      ),
+    "cost",
+    benchmarkPreparation,
+    resourceImputation,
   );
   const workflowSpeedComponents = logInputMinMaxScores(workflowRuntimeSeconds, "lower");
-  const blendedSpeedScores = models.map((_, index) =>
-    equalWeightedScore(
-      [
-        providerSpeedComponents[index] ?? null,
-        workflowSpeedComponents[index] ?? null,
-        ...(taskTimeComponentEvidence.signalsByModel[index] ?? []),
-      ],
+  const speedSignalsByModel = models.map((_, index) => [
+    {
+      value: providerSpeedComponents[index] ?? null,
+      weight: ACTIVE_COMPONENT_WEIGHT,
+    },
+    {
+      value: workflowSpeedComponents[index] ?? null,
+      weight: ACTIVE_COMPONENT_WEIGHT,
+    },
+    ...(taskTimeComponentEvidence.signalsByModel[index] ?? []),
+  ]);
+  const speedEstimates = speedSignalsByModel.map((signals) => weightedMeanOfFinite(signals));
+  const speedCoverageMultipliers = defaultVariantCoverageMultipliers(
+    models,
+    speedSignalsByModel,
+    taskTimeComponentEvidence.benchmarkKeys.length + 2,
+  );
+  const blendedSpeedScores = speedEstimates.map((estimate, index) =>
+    estimate == null ? null : estimate * (speedCoverageMultipliers[index] ?? 0),
+  );
+  const speedConfidences = speedSignalsByModel.map((signals, index) =>
+    evidenceConfidence(
+      signals,
       taskTimeComponentEvidence.benchmarkKeys.length + 2,
+      blendedSpeedScores[index] ?? null,
     ),
   );
-  const valueScores = models.map((_, index) =>
-    equalWeightedScore(
-      [
-        ...(valueInputScoresByModel[index] ?? []),
-        ...(taskCostComponentEvidence.signalsByModel[index] ?? []),
-      ],
+  const valueSignalsByModel = models.map((_, index) => [
+    ...(valueInputScoresByModel[index] ?? []).map((value) => ({
+      value,
+      weight: ACTIVE_COMPONENT_WEIGHT,
+    })),
+    ...(taskCostComponentEvidence.signalsByModel[index] ?? []),
+  ]);
+  const valueEstimates = valueSignalsByModel.map((signals) => weightedMeanOfFinite(signals));
+  const valueCoverageMultipliers = defaultVariantCoverageMultipliers(
+    models,
+    valueSignalsByModel,
+    taskCostComponentEvidence.benchmarkKeys.length + 3,
+  );
+  const valueScores = valueEstimates.map((estimate, index) =>
+    estimate == null ? null : estimate * (valueCoverageMultipliers[index] ?? 0),
+  );
+  const valueConfidences = valueSignalsByModel.map((signals, index) =>
+    evidenceConfidence(
+      signals,
       taskCostComponentEvidence.benchmarkKeys.length + 3,
+      valueScores[index] ?? null,
     ),
   );
   return models.map((model, index) => {
@@ -239,6 +321,11 @@ export function attachFinalScores(
         agentic_score: agenticScore,
         speed_score: blendedSpeedScore,
         value_score: valueScore,
+      },
+      confidence: {
+        ...model.confidence,
+        speed: speedConfidences[index] ?? null,
+        value: valueConfidences[index] ?? null,
       },
     };
   });

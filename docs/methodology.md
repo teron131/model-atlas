@@ -20,8 +20,8 @@ The calculation proceeds in one direction:
 | --- | --- | --- | --- |
 | Intelligence | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model on knowledge and reasoning? |
 | Agentic | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model in tool-mediated workflows? |
-| Speed | Provider speed, simulated workflow runtime, benchmark task time | Log scaling, quality-local comparison, and component coverage | How quickly does the model deliver comparable work? |
-| Value | Blended price, workflow price efficiency, benchmark task cost | Log scaling, quality-local comparison, and component coverage | How much useful capability does the model deliver for its cost? |
+| Speed | Provider speed, simulated workflow runtime, benchmark task time | Log scaling, quality-local comparison, and confidence-weighted evidence | How quickly does the model deliver comparable work? |
+| Value | Blended price, workflow price efficiency, benchmark task cost | Log scaling, quality-local comparison, and confidence-weighted evidence | How much useful capability does the model deliver for its cost? |
 
 ## Shared Notation
 
@@ -287,7 +287,7 @@ A^{\text{cost}}_{m,b}&=\text{task cost}_{m,b}
 \end{aligned}
 $$
 
-Task resources can come from direct per-benchmark telemetry or from the AA per-task resource metric when the benchmark portfolio marks the benchmark as AA-backed. If a benchmark reports output tokens but not wall time, effective task seconds fall back to output tokens divided by served throughput.
+Task resources can come from direct per-benchmark telemetry or from the AA per-task resource metric when the benchmark portfolio marks the benchmark as AA-backed. If a benchmark reports output tokens but not wall time, effective task seconds fall back to output tokens divided by served throughput. Speed and Value may also use validated sibling-effort runtime and cost estimates, respectively, as described below.
 
 ### Quality Neighborhood
 
@@ -380,6 +380,36 @@ $$
 
 The equal mean retains half of the residual's logged magnitude information and half of its model-balanced distribution position. One-sided winsorization prevents one exceptionally cheap or fast model from setting the entire magnitude scale. Unsupported quality extremes shrink to neutral instead of being expanded by either mapping. If the supported residuals have no meaningful spread, every observed residual receives the neutral score of $50$.
 
+### Sibling-Effort Task-Resource Imputation
+
+When one explicit reasoning effort has a benchmark-source task cost or effective runtime that another explicit effort of the same model lacks, Value or Speed can estimate the missing resource from their directly paired tasks. Cost and runtime ratios are fitted and validated separately. Unlabelled source-default rows and Artificial Analysis shared-resource fallbacks are excluded. For resource kind $r$ and paired task $k$, the directed log-resource difference is
+
+$$
+d^r_k=\log A^{r,\text{target}}_k-\log A^{r,\text{source}}_k.
+$$
+
+At least three paired tasks are required. Each task is held out in turn, the remaining differences provide $\hat d^r_{-k}=\operatorname{median}_{j\ne k}(d^r_j)$, and the held-out target resource is predicted as
+
+$$
+\widehat A^{r,\text{target}}_k=A^{r,\text{source}}_k\exp(\hat d^r_{-k}).
+$$
+
+The predictor must pass two checks. Its typical multiplicative error is measured by median absolute log error, while its downstream error is measured after the actual and predicted resources pass through the quality-adjusted 0-100 resource scorer:
+
+$$
+e^r_{\log}=\operatorname{median}_k\left|\log\frac{\widehat A^r_k}{A^r_k}\right|,
+\qquad
+e^r_{\text{score}}=\operatorname{median}_k\left|\widehat R^r_k-R^r_k\right|.
+$$
+
+The ratio is refused if $e^r_{\log}\ge\log 2$, $e^r_{\text{score}}\ge25$, or fewer than three held-out score comparisons are usable. Otherwise its confidence is
+
+$$
+\eta^r=\min\left(1-\frac{e^r_{\log}}{\log2},1-\frac{e^r_{\text{score}}}{25}\right),
+$$
+
+with each term clamped to $[0,1]$. The final directed ratio is the median of all paired $d^r_k$. If more than one sibling can supply a missing task, the nearest effort is preferred, then the better-validated ratio. Benchmark quality may itself be an existing validated imputation; its confidence $\eta^{\text{quality}}$ multiplies the resource confidence. Predicted costs, runtimes, and benchmark quality can receive a score, but they never enter the quality neighborhood, expected-resource peers, residual range, percentile anchors, persistence tables, or public admission evidence.
+
 ## Final Speed and Value
 
 Provider speed and workflow runtime use $\log x$ as their input to ordinary min-max normalization. Value's absolute price component uses $\log_{10}(1+\text{blended price})$ with model-balanced 2.5% favorable-tail winsorized min-max. Its quality-adjusted log blended price component subtracts the locally expected log blended price at the model's aggregate quality, then uses the residual percentile/min-max mean above. Its workflow component applies the same residual hybrid to the locally expected negative workflow-efficiency signal; the completed workflow output is not logged again.
@@ -404,17 +434,23 @@ $$
 
 The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. The two forms therefore share the same anchors; direction changes the ordering, not the scale. Absolute-price inputs instead use one-sided winsorized anchors. Quality-conditioned residual inputs average their one-sided winsorized min-max score with their model-balanced percentile score.
 
-The public Speed score uses each benchmark task-time input as its own equally weighted component. The public Value score uses each price and benchmark-cost input as its own equally weighted component. Giving each component one slot makes the result depend on distinct signals rather than the number of raw rows supplied by a source:
+The public Speed and Value estimates give each direct provider, workflow, or benchmark-resource input one slot; validated imputed benchmark inputs receive fractional evidence weight. This makes each estimate depend on distinct signals rather than the number of raw rows supplied by a source while keeping uncertainty separate from the score:
 
 $$
 \begin{aligned}
 \text{TaskTime}_{m,b}&=R^{\text{time}}_{m,b}\\
-\text{Speed}_m&=C^{\text{speed}}_m\cdot\operatorname{mean}\left(S^{\text{stats}}_m,S^{\text{workflow}}_m,\{\text{TaskTime}_{m,b}\}\right)\\
-\text{Value}_m&=C^{\text{value}}_m\cdot\operatorname{mean}\left(P^{\text{blend}}_m,P^{\text{quality}}_m,P^{\text{workflow}}_m,\{R^{\text{cost}}_{m,b}\}\right)
+\text{Speed}_m&=C^{\text{speed}}_{f(m)}\frac{\sum_i\eta^{\text{speed}}_{m,i}S_{m,i}}{\sum_i\eta^{\text{speed}}_{m,i}}\\
+\text{SpeedConfidence}_m&=\frac{\sum_i\eta^{\text{speed}}_{m,i}}{K_{\text{speed}}}\\
+\text{Value}_m&=C^{\text{value}}_{f(m)}\frac{\sum_i\eta_{m,i}V_{m,i}}{\sum_i\eta_{m,i}}\\
+\text{ValueConfidence}_m&=\frac{\sum_i\eta_{m,i}}{K_{\text{value}}}
 \end{aligned}
 $$
 
-$C^{\text{speed}}_m$ is the shared coverage-confidence function $C(k/K)$ applied over the provider stats component, workflow component, and active benchmark task-time components. $C^{\text{value}}_m$ applies the same function over absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active benchmark task-cost components. Here, $k$ is the number of available components and $K$ is the number of active components.
+For Speed, $S_{m,i}$ ranges over provider speed, workflow runtime, and active benchmark task-time scores. For Value, $V_{m,i}$ ranges over absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active benchmark task-cost scores. Each $K$ is the global number of active slots for that score. The evidence weight is $1$ for a direct provider, workflow, price, or benchmark-resource input with direct benchmark quality; $\eta^{\text{quality}}$ when only benchmark quality is imputed; and $\eta^r\eta^{\text{quality}}$ when both task resource and quality are imputed.
+
+The coverage multiplier is calculated once per base-model family $f(m)$ from its existing source-default variant. An unlabelled variant is the source default; when every variant is labelled, the highest reported effort is the default. Only that default variant's effective evidence mass passes through the shared coverage-confidence curve: zero-to-low coverage is penalized, and at least 60% default coverage receives a multiplier of $1$. Every effort in the family receives the same multiplier, and non-default efforts cannot add to or subtract from family coverage.
+
+Speed and Value confidence remain each individual effort's literal effective evidence share. The shared default-based multiplier prevents one sparse effort from being penalized relative to its siblings while retaining the model's established default observation as the coverage authority.
 
 $P^{\text{blend}}_m$ is the winsorized min-max score for absolute log blended price. $P^{\text{quality}}_m$ and $P^{\text{workflow}}_m$ are the percentile/min-max means for the quality-conditioned log-price and workflow-efficiency residuals.
 
@@ -439,6 +475,9 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |
 | Cross-effort improvement | 2% | Requires a measurable validation gain before adding sibling-effort complexity. |
+| Sibling-resource paired tasks | 3 | Prevents one or two task-resource ratios from defining an effort conversion. |
+| Sibling-resource log-error ceiling | $\log 2$ | Refuses a cost or runtime ratio when its typical held-out multiplicative error reaches a factor of two. |
+| Sibling-resource score-error ceiling | 25 points | Refuses a ratio whose typical downstream Speed or Value component error is too large. |
 | Frontier / baseline error penalty | $1.0e_b$ / $0.5e_b$ | Makes missing frontier evidence more conservative without changing observed benchmark weight. |
 | Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |

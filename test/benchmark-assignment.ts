@@ -14,6 +14,7 @@ import type { FrontierCodeModelEffortRow } from "../src/model-atlas/benchmarks/s
 import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
+import { buildBenchmarkVersionLogRows } from "../src/model-atlas/database/snapshot-workflow";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import {
   assignBenchmarksToVariants,
@@ -21,7 +22,11 @@ import {
   buildDefaultVariantBenchmarks,
   buildObservationBenchmarks,
 } from "../src/model-atlas/pipeline/benchmark-rows";
-import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
+import type { ModelAtlasCandidate, ModelAtlasModel } from "../src/model-atlas/pipeline/model-types";
+import {
+  buildTaskMetrics,
+  versionCandidateBenchmarkData,
+} from "../src/model-atlas/pipeline/selection/candidate";
 
 const deepSWERow = {
   model: "Example Model Preview",
@@ -465,6 +470,178 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     output_tokens: 200,
   },
 });
+const versionedLuna = versionCandidateBenchmarkData(
+  {
+    id: "openai/gpt-5.6-luna",
+    reasoning_effort: "max",
+    task_metrics: {
+      deep_swe: {
+        cost: 4.2,
+        seconds: 300,
+        output_tokens: 12_000,
+      },
+      cursorbench: {
+        cost: 0.42,
+        tokens: 12_345,
+      },
+      harvey_lab: {
+        cost: 2,
+        seconds: 20,
+      },
+    },
+    benchmarks: {
+      deep_swe: 0.72,
+      cursorbench: 0.52,
+    },
+  } as ModelAtlasCandidate,
+  {
+    id: "openai/gpt-5.6-luna",
+    reasoning_effort: "max",
+    task_metrics: {
+      deep_swe: {
+        cost: 4.2,
+        seconds: 300,
+        output_tokens: 12_000,
+      },
+      cursorbench: {
+        cost: 2.1,
+        tokens: 12_345,
+      },
+      harvey_lab: {
+        cost: 2,
+        seconds: 19,
+      },
+    },
+    benchmarks: {
+      deep_swe: 0.72,
+      cursorbench: 0.5,
+      vending_bench_2: 4_094.712,
+    },
+    benchmark_dates: null,
+  } as ModelAtlasModel,
+  {
+    baselineDate: "2026-07-30",
+    observedDate: "2026-07-31",
+  },
+);
+assert.deepEqual(
+  versionedLuna.benchmark_dates,
+  {
+    deep_swe: "2026-07-30",
+    cursorbench: "2026-07-31",
+  },
+  "unchanged benchmark values should retain the seeded date while changed values advance",
+);
+assert.deepEqual(
+  versionedLuna.task_metrics?.deep_swe,
+  {
+    cost: 0.8400000000000001,
+    observed_cost: 4.2,
+    seconds: 300,
+    output_tokens: 12_000,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 0.2,
+  },
+  "unchanged pre-transition task costs should preserve the observed value and apply the price ratio",
+);
+assert.deepEqual(
+  versionedLuna.task_metrics?.cursorbench,
+  {
+    cost: 0.42,
+    observed_cost: 0.42,
+    tokens: 12_345,
+    observed_at: "2026-07-31",
+    cost_price_ratio: 1,
+  },
+  "changed task costs should be dated now and should not be adjusted a second time",
+);
+assert.deepEqual(
+  versionedLuna.task_metrics?.harvey_lab,
+  {
+    cost: 2,
+    observed_cost: 2,
+    seconds: 20,
+    observed_at: "2026-07-31",
+    cost_price_ratio: 1,
+  },
+  "a change anywhere in the same task row should disable price compression",
+);
+const lunaVersionLog = buildBenchmarkVersionLogRows(
+  [
+    {
+      id: "openai/gpt-5.6-luna",
+      reasoning_effort: "max",
+      task_metrics: {
+        deep_swe: {
+          cost: 4.2,
+          seconds: 300,
+          output_tokens: 12_000,
+        },
+        cursorbench: {
+          cost: 2.1,
+          tokens: 12_345,
+        },
+      },
+      benchmarks: {
+        deep_swe: 0.72,
+        vending_bench_2: 4_094.712,
+      },
+      benchmark_dates: null,
+    } as ModelAtlasModel,
+  ],
+  [versionedLuna as unknown as ModelAtlasModel],
+  "2026-07-30",
+  "2026-07-31",
+);
+assert.deepEqual(
+  lunaVersionLog
+    .filter(({ benchmark_key }) => benchmark_key === "vending_bench_2")
+    .map(({ version_date, change_kind, value_json }) => ({
+      version_date,
+      change_kind,
+      value_json,
+    })),
+  [
+    {
+      version_date: "2026-07-30",
+      change_kind: "baseline",
+      value_json: "4094.712",
+    },
+    {
+      version_date: "2026-07-31",
+      change_kind: "removed",
+      value_json: null,
+    },
+  ],
+  "the version log should preserve the baseline and append a dated removal",
+);
+assert.deepEqual(
+  lunaVersionLog
+    .filter(({ benchmark_key }) => benchmark_key === "cursorbench")
+    .map(({ metric_kind, version_date, change_kind }) => ({
+      metric_kind,
+      version_date,
+      change_kind,
+    })),
+  [
+    {
+      metric_kind: "score",
+      version_date: "2026-07-31",
+      change_kind: "added",
+    },
+    {
+      metric_kind: "task",
+      version_date: "2026-07-30",
+      change_kind: "baseline",
+    },
+    {
+      metric_kind: "task",
+      version_date: "2026-07-31",
+      change_kind: "changed",
+    },
+  ],
+  "new identities should be added while changed content on an existing identity is versioned",
+);
 
 const variantAutomationBenchResourceRow = {
   ...automationBenchResourceRow,

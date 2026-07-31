@@ -2,6 +2,7 @@
 
 import { calibrationObservations } from "../../benchmarks/calibration-population";
 import type { BenchmarkResourceQualityCoordinate } from "../../benchmarks/factory";
+import { canonicalModelKey } from "../../identity/normalization";
 import {
   effectiveSampleSize,
   gaussianWeight,
@@ -20,11 +21,18 @@ const FULL_RESOURCE_SUPPORT = 3;
 function observationsFromValues<T extends { id?: unknown; name?: unknown }>(
   models: readonly T[],
   values: readonly (number | null)[],
+  calibrationMask?: readonly boolean[],
 ) {
   const valueByModel = new Map(
     models.map((model, index) => [model, values[index] ?? null] as const),
   );
-  return calibrationObservations(models, (model) => valueByModel.get(model) ?? null);
+  const modelIndexByModel = new Map(models.map((model, index) => [model, index] as const));
+  return calibrationObservations(models, (model) => {
+    const index = modelIndexByModel.get(model);
+    return index == null || calibrationMask?.[index] === false
+      ? null
+      : (valueByModel.get(model) ?? null);
+  });
 }
 
 /** Apply model-balanced favorable-tail anchors to a completed signal. */
@@ -32,10 +40,11 @@ export function modelBalancedMinMaxScores<T extends { id?: unknown; name?: unkno
   models: readonly T[],
   scores: readonly (number | null)[],
   direction: "higher" | "lower",
+  calibrationMask?: readonly boolean[],
 ): Array<number | null> {
   return winsorizedMinMaxScores(
     scores,
-    observationsFromValues(models, scores),
+    observationsFromValues(models, scores, calibrationMask),
     direction,
     RESOURCE_TAIL_SHARE,
   );
@@ -46,13 +55,18 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   models: readonly T[],
   qualityCoordinates: readonly (number | null)[],
   resourceSignals: readonly (number | null)[],
+  calibrationMask?: readonly boolean[],
 ): Array<number | null> {
   const modelIndexByModel = new Map(models.map((model, index) => [model, index] as const));
   const qualityObservations = calibrationObservations(models, (model) => {
     const modelIndex = modelIndexByModel.get(model);
     const qualityCoordinate = modelIndex == null ? null : (qualityCoordinates[modelIndex] ?? null);
     const resourceSignal = modelIndex == null ? null : (resourceSignals[modelIndex] ?? null);
-    return qualityCoordinate == null || resourceSignal == null ? null : qualityCoordinate;
+    return qualityCoordinate == null ||
+      resourceSignal == null ||
+      calibrationMask?.[modelIndex ?? -1] === false
+      ? null
+      : qualityCoordinate;
   });
   const benchmarkQualityMedian = weightedQuantile(qualityObservations, 0.5);
   const benchmarkQualityDeviation = weightedRobustDeviation(
@@ -62,29 +76,34 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   if (benchmarkQualityMedian == null || benchmarkQualityDeviation == null) {
     return models.map(() => null);
   }
-  const points = qualityObservations.flatMap(
-    ({ modelKey, item: model, value: quality, weight }) => {
-      const modelIndex = modelIndexByModel.get(model);
-      const resourceSignal = modelIndex == null ? null : (resourceSignals[modelIndex] ?? null);
-      return modelIndex == null || resourceSignal == null
-        ? []
-        : [
-            {
-              modelIndex,
-              modelKey,
-              calibrationWeight: weight,
-              qualityDeviation: (quality - benchmarkQualityMedian) / benchmarkQualityDeviation,
-              resourceSignal,
-            },
-          ];
-    },
+  const calibrationWeightByModel = new Map(
+    qualityObservations.map(({ item, weight }) => [item, weight] as const),
   );
+  const points = models.flatMap((model, modelIndex) => {
+    const quality = qualityCoordinates[modelIndex] ?? null;
+    const resourceSignal = resourceSignals[modelIndex] ?? null;
+    return quality == null || resourceSignal == null
+      ? []
+      : [
+          {
+            modelIndex,
+            modelKey: canonicalModelKey(model),
+            qualityDeviation: (quality - benchmarkQualityMedian) / benchmarkQualityDeviation,
+            resourceSignal,
+          },
+        ];
+  });
+  const calibrationPoints = points.flatMap((point) => {
+    const model = models[point.modelIndex];
+    const calibrationWeight = model == null ? null : calibrationWeightByModel.get(model);
+    return calibrationWeight == null ? [] : [{ ...point, calibrationWeight }];
+  });
   const residuals = models.map(() => null as number | null);
   const supportConfidence = models.map(() => 0);
   for (const point of points) {
     residuals[point.modelIndex] = 0;
     const comparisonsByModel = new Map<string, { resourceTotal: number; weight: number }>();
-    for (const comparisonPoint of points) {
+    for (const comparisonPoint of calibrationPoints) {
       if (comparisonPoint.modelKey === point.modelKey) {
         continue;
       }
@@ -121,7 +140,10 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   const supportedResiduals = residuals.map((residual, index) =>
     (supportConfidence[index] ?? 0) > 0 ? residual : null,
   );
-  const finiteSupportedResiduals = supportedResiduals.filter(
+  const calibrationResiduals = supportedResiduals.map((residual, index) =>
+    calibrationMask?.[index] === false ? null : residual,
+  );
+  const finiteSupportedResiduals = calibrationResiduals.filter(
     (residual): residual is number => residual != null && Number.isFinite(residual),
   );
   const residualRange =
@@ -133,10 +155,16 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   if (!hasMeaningfulSpread) {
     return residuals.map((residual) => (residual == null ? null : 50));
   }
-  const minMaxScores = modelBalancedMinMaxScores(models, supportedResiduals, "lower");
+  const minMaxScores = modelBalancedMinMaxScores(
+    models,
+    supportedResiduals,
+    "lower",
+    calibrationMask,
+  );
   const inverseResidualObservations = observationsFromValues(
     models,
     supportedResiduals.map((residual) => (residual == null ? null : -residual)),
+    calibrationMask,
   );
   const percentileScores = supportedResiduals.map((residual) =>
     residual == null ? null : weightedPercentileRank(inverseResidualObservations, -residual),
@@ -160,6 +188,7 @@ export function benchmarkResourceEfficiencyScores<T extends { id?: unknown; name
   benchmarkScores: readonly (number | null)[],
   resourceSignals: readonly (number | null)[],
   qualityCoordinate: BenchmarkResourceQualityCoordinate,
+  calibrationMask?: readonly boolean[],
 ): Array<number | null> {
   return qualityLocalResourceScores(
     models,
@@ -167,5 +196,6 @@ export function benchmarkResourceEfficiencyScores<T extends { id?: unknown; name
       score == null || qualityCoordinate === "linear" ? score : logitUnitScore(score),
     ),
     resourceSignals,
+    calibrationMask,
   );
 }

@@ -247,10 +247,12 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
 function ConfidenceCell({ confidence }: { confidence?: ModelAtlasModel["confidence"] }) {
   const intelligence = formatConfidence(confidence?.intelligence);
   const agentic = formatConfidence(confidence?.agentic);
-  const missing = intelligence === "-" && agentic === "-";
+  const speed = formatConfidence(confidence?.speed);
+  const value = formatConfidence(confidence?.value);
+  const missing = intelligence === "-" && agentic === "-" && speed === "-" && value === "-";
   return (
     <td
-      aria-label={`Intelligence confidence ${intelligence}; Agentic confidence ${agentic}`}
+      aria-label={`Intelligence confidence ${intelligence}; Agentic confidence ${agentic}; Speed confidence ${speed}; Value confidence ${value}`}
       className={`data-cell confidence-cell${missing ? " missing" : ""}`}
     >
       <span aria-hidden="true" className="confidence-values">
@@ -261,6 +263,14 @@ function ConfidenceCell({ confidence }: { confidence?: ModelAtlasModel["confiden
         <span>
           <span className="confidence-dimension">A</span>
           {agentic}
+        </span>
+        <span>
+          <span className="confidence-dimension">S</span>
+          {speed}
+        </span>
+        <span>
+          <span className="confidence-dimension">V</span>
+          {value}
         </span>
       </span>
     </td>

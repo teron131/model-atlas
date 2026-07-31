@@ -54,6 +54,8 @@ const payload = minimalModelAtlasPayload({
       confidence: {
         intelligence: 0.83,
         agentic: 0.47,
+        speed: 0.72,
+        value: 0.61,
       },
       scores: {
         intelligence_score: 90,
@@ -167,13 +169,16 @@ assert.equal(
 assert.equal(
   html.includes("Confidence") &&
     html.includes("Intelligence confidence 83%") &&
-    html.includes("Agentic confidence 47%"),
+    html.includes("Agentic confidence 47%") &&
+    html.includes("Speed confidence 72%") &&
+    html.includes("Value confidence 61%"),
   true,
   "the final dashboard column should expose separate confidence percentages",
 );
 assert.equal(
-  staleConfidenceHtml.includes('aria-label="Intelligence confidence -; Agentic confidence -"') &&
-    staleConfidenceHtml.includes('class="data-cell confidence-cell missing"'),
+  staleConfidenceHtml.includes(
+    'aria-label="Intelligence confidence -; Agentic confidence -; Speed confidence -; Value confidence -"',
+  ) && staleConfidenceHtml.includes('class="data-cell confidence-cell missing"'),
   true,
   "stale dashboard rows without confidence should use the neutral missing representation",
 );
@@ -257,11 +262,14 @@ const confidenceTooltipHtml = renderToStaticMarkup(
 assert.equal(
   [
     "Confidence",
-    "validation-weighted evidence",
+    "How much evidence supports",
     "Intelligence confidence",
     "Agentic confidence",
+    "Speed confidence",
+    "Value confidence",
     "zero through 10%",
     "full from 60%",
+    "effective direct and validated evidence share",
   ].every((text) => confidenceTooltipHtml.includes(text)),
   true,
   "confidence tooltip should explain both dimensions and the evidence scale",

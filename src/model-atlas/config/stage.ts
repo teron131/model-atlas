@@ -39,6 +39,7 @@ export type Confidence = Record<
 
 const CONFIDENCE_FLOOR_SHARE = 0.1;
 const CONFIDENCE_FULL_SHARE = 0.6;
+export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
 
 /** Derive the confidence ramp from the selected portfolio's effective dimension weight. */
 function confidenceForDimension(keys: readonly string[], dimension: BenchmarkDimension) {
@@ -67,6 +68,40 @@ export type SnapshotPreservationConfig = {
   minPreviousIntelligenceScore: number;
   minIntelligenceScoreDrop: number;
 };
+
+export type TaskCostPriceTransition = {
+  modelId: string;
+  effectiveDate: string;
+  priceBefore: {
+    input: number;
+    output: number;
+  };
+  priceFrom: {
+    input: number;
+    output: number;
+  };
+};
+
+export const BENCHMARK_VERSION_BASELINE_DATE = "2026-07-30";
+
+/**
+ * Rebase task costs whose own observed-cost date predates a model price transition.
+ * Per-row change detection, rather than a benchmark allowlist, decides whether the ratio applies.
+ */
+export const TASK_COST_PRICE_TRANSITIONS = [
+  {
+    modelId: "openai/gpt-5.6-terra",
+    effectiveDate: "2026-07-30",
+    priceBefore: { input: 2.5, output: 15 },
+    priceFrom: { input: 2, output: 12 },
+  },
+  {
+    modelId: "openai/gpt-5.6-luna",
+    effectiveDate: "2026-07-30",
+    priceBefore: { input: 1, output: 6 },
+    priceFrom: { input: 0.2, output: 1.2 },
+  },
+] as const satisfies readonly TaskCostPriceTransition[];
 
 export type ScoringConfig = {
   intelligenceBenchmarkKeys: readonly string[];

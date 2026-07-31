@@ -126,12 +126,14 @@ try {
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text"] },
         benchmarks: { ale_bench: 700 },
+        benchmark_dates: { ale_bench: "2026-07-30" },
         task_metrics: {
           ale_bench: {
             cost: 0.3,
             tokens: 3_000,
             input_tokens: 1_000,
             output_tokens: 2_000,
+            observed_at: "2026-07-30",
           },
         },
         component_scores: {
@@ -159,9 +161,12 @@ try {
   assert.equal(model?.benchmarks?.ale_bench, 700);
   assert.deepEqual(model?.task_metrics?.ale_bench, {
     cost: 0.3,
+    observed_cost: 0.3,
     tokens: 3_000,
     input_tokens: 1_000,
     output_tokens: 2_000,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 1,
   });
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.ale_bench, {
     group: "frontier",

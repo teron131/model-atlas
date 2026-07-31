@@ -68,7 +68,7 @@ function debugRejectionReason(
   isSelected: boolean,
   hasVariantRejection: boolean,
   selectedModelId: string | null,
-): string {
+): DebugTraceRow["rejection_reason"] {
   if (isSelected) {
     return "selected";
   }

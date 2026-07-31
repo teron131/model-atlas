@@ -1,6 +1,10 @@
 /** Candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
 
-import type { ScoringConfig } from "../../config/stage";
+import {
+  type ScoringConfig,
+  TASK_COST_PRICE_TRANSITIONS,
+  type TaskCostPriceTransition,
+} from "../../config/stage";
 import {
   canonicalReasoningEffort,
   normalizeProviderId,
@@ -15,18 +19,21 @@ import type {
   ModelAtlasCostBreakdown,
   ModelAtlasCostTier,
   ModelAtlasModalities,
+  ModelAtlasModel,
   ModelAtlasScoringSources,
   ModelAtlasSpeed,
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
 } from "../model-types";
 import {
-  type BenchmarkImputationByModel,
-  type BenchmarkImputationConfidenceByModel,
+  benchmarkImputationConfidence,
+  benchmarkImputationValues,
+  type BenchmarkScoringPreparation,
   blendedPriceValue,
   buildComponentScoreResult,
-  type QualityScoringContext,
 } from "../scores";
+
+type TaskMetricNumericKey = "cost" | "seconds" | "tokens" | "input_tokens" | "output_tokens";
 
 const EMPTY_OPENROUTER_PRICING = {
   weighted_input: null,
@@ -69,12 +76,19 @@ const TASK_METRIC_FIELDS = {
     ],
   },
 } as const satisfies Record<
-  keyof ModelAtlasTaskMetricValues,
+  TaskMetricNumericKey,
   {
     direct: readonly string[];
     summaries: readonly string[];
   }
 >;
+const PRICE_RATIO_TOLERANCE = 1e-9;
+
+export type BenchmarkVersioningOptions = {
+  baselineDate: string;
+  observedDate: string;
+  priceTransitions?: readonly TaskCostPriceTransition[];
+};
 
 function hasFields(record: object): boolean {
   return Object.keys(record).length > 0;
@@ -292,6 +306,45 @@ function buildScoringSources(model: JsonObject): ModelAtlasScoringSources {
   return hasFields(scoringSources) ? scoringSources : null;
 }
 
+function uniformPriceRatio(transition: TaskCostPriceTransition): number {
+  const inputRatio = transition.priceFrom.input / transition.priceBefore.input;
+  const outputRatio = transition.priceFrom.output / transition.priceBefore.output;
+  if (
+    !Number.isFinite(inputRatio) ||
+    !Number.isFinite(outputRatio) ||
+    inputRatio <= 0 ||
+    Math.abs(inputRatio - outputRatio) > PRICE_RATIO_TOLERANCE
+  ) {
+    throw new Error(
+      `Task-cost repricing requires one positive input/output ratio for ${transition.modelId}`,
+    );
+  }
+  return inputRatio;
+}
+
+function taskCostMultiplier(
+  modelId: string | null,
+  observedAt: string | null,
+  options: BenchmarkVersioningOptions,
+): number {
+  if (modelId == null || observedAt == null) {
+    return 1;
+  }
+  const transitions = options.priceTransitions ?? TASK_COST_PRICE_TRANSITIONS;
+  let multiplier = 1;
+  for (const transition of transitions) {
+    if (
+      transition.modelId !== modelId ||
+      options.observedDate < transition.effectiveDate ||
+      observedAt > transition.effectiveDate
+    ) {
+      continue;
+    }
+    multiplier *= uniformPriceRatio(transition);
+  }
+  return multiplier;
+}
+
 /** Normalize benchmark resource telemetry into the candidate's public per-task shape. */
 export function buildTaskMetrics(
   artificialAnalysisSource: unknown,
@@ -309,6 +362,105 @@ export function buildTaskMetrics(
     taskMetrics.artificial_analysis = artificialAnalysis;
   }
   return hasFields(taskMetrics) ? taskMetrics : null;
+}
+
+function rawTaskMetricValue(
+  metrics: ModelAtlasTaskMetricValues | null | undefined,
+  key: TaskMetricNumericKey,
+): number | null {
+  if (metrics == null) {
+    return null;
+  }
+  if (key === "cost") {
+    return asFiniteNumber(metrics.observed_cost) ?? asFiniteNumber(metrics.cost);
+  }
+  return asFiniteNumber(metrics[key]);
+}
+
+/** Serialize the normalized source-reported task row used by both change detection and history. */
+export function taskMetricVersionValue(metrics: ModelAtlasTaskMetricValues): string {
+  return JSON.stringify({
+    cost: rawTaskMetricValue(metrics, "cost"),
+    seconds: rawTaskMetricValue(metrics, "seconds"),
+    tokens: rawTaskMetricValue(metrics, "tokens"),
+    input_tokens: rawTaskMetricValue(metrics, "input_tokens"),
+    output_tokens: rawTaskMetricValue(metrics, "output_tokens"),
+  });
+}
+
+function taskMetricContentMatches(
+  current: ModelAtlasTaskMetricValues,
+  previous: ModelAtlasTaskMetricValues | null | undefined,
+): boolean {
+  return previous != null && taskMetricVersionValue(current) === taskMetricVersionValue(previous);
+}
+
+/**
+ * Date benchmark observations against the previous published model and reprice only task rows
+ * whose complete normalized telemetry remains unchanged across a model-price transition.
+ */
+export function versionCandidateBenchmarkData(
+  candidate: ModelAtlasCandidate,
+  previous: ModelAtlasModel | null | undefined,
+  options: BenchmarkVersioningOptions,
+): ModelAtlasCandidate {
+  const previousBenchmarks = previous?.benchmarks ?? {};
+  const previousBenchmarkDates = previous?.benchmark_dates ?? {};
+  const benchmarkDates = Object.fromEntries(
+    Object.entries(candidate.benchmarks ?? {}).flatMap(([key, value]) => {
+      const currentValue = asFiniteNumber(value);
+      if (currentValue == null) {
+        return [];
+      }
+      const previousValue = asFiniteNumber(previousBenchmarks[key]);
+      return [
+        [
+          key,
+          previousValue === currentValue
+            ? (previousBenchmarkDates[key] ?? options.baselineDate)
+            : options.observedDate,
+        ],
+      ];
+    }),
+  );
+  const previousTaskMetrics = previous?.task_metrics ?? {};
+  const taskMetrics = Object.fromEntries(
+    Object.entries(candidate.task_metrics ?? {}).flatMap(([key, metrics]) => {
+      if (metrics == null) {
+        return [];
+      }
+      const previousMetrics = previousTaskMetrics[key];
+      const rowUnchanged = taskMetricContentMatches(metrics, previousMetrics);
+      const observedAt = rowUnchanged
+        ? (previousMetrics?.observed_at ?? options.baselineDate)
+        : options.observedDate;
+      const observedCost = rawTaskMetricValue(metrics, "cost");
+      const costPriceRatio = rowUnchanged
+        ? taskCostMultiplier(candidate.id, observedAt, options)
+        : 1;
+      return [
+        [
+          key,
+          {
+            ...metrics,
+            observed_at: observedAt,
+            ...(observedCost == null
+              ? {}
+              : {
+                  observed_cost: observedCost,
+                  cost: observedCost * costPriceRatio,
+                  cost_price_ratio: costPriceRatio,
+                }),
+          },
+        ],
+      ];
+    }),
+  );
+  return {
+    ...candidate,
+    task_metrics: hasFields(taskMetrics) ? taskMetrics : null,
+    benchmark_dates: hasFields(benchmarkDates) ? benchmarkDates : null,
+  };
 }
 
 function firstFiniteNumber(
@@ -346,7 +498,7 @@ function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null 
     const value =
       firstFiniteNumber(row, fields.direct) ?? minimumFiniteNumber(row, fields.summaries);
     if (value != null && value >= 0) {
-      taskMetrics[key as keyof ModelAtlasTaskMetricValues] = value;
+      taskMetrics[key as TaskMetricNumericKey] = value;
     }
   }
   return hasFields(taskMetrics) ? taskMetrics : null;
@@ -358,9 +510,7 @@ export function buildModelCandidate(
   pricingByModelId: Map<string, JsonObject>,
   outputTokenAnchors: number[],
   scoringConfig: ScoringConfig,
-  imputationByModel: BenchmarkImputationByModel,
-  imputationConfidenceByModel: BenchmarkImputationConfidenceByModel,
-  qualityContext: QualityScoringContext,
+  scoringPreparation: BenchmarkScoringPreparation,
 ): ModelAtlasCandidate {
   const model = asRecord(row);
   const provider = providerFromModel(model);
@@ -375,9 +525,9 @@ export function buildModelCandidate(
     speed,
     outputTokenAnchors,
     scoringConfig,
-    qualityContext,
-    imputationByModel.get(model),
-    imputationConfidenceByModel.get(model),
+    scoringPreparation.qualityContext,
+    benchmarkImputationValues(scoringPreparation, model),
+    benchmarkImputationConfidence(scoringPreparation, model),
   );
   return {
     id: modelId,
@@ -398,6 +548,7 @@ export function buildModelCandidate(
     intelligence: buildNumericMap(model.intelligence),
     task_metrics: buildTaskMetrics(model.intelligence_index_cost, scoringSources),
     benchmarks: buildNumericMap(model.benchmarks),
+    benchmark_dates: null,
     confidence,
     scoring_sources: scoringSources,
     component_scores: componentScores,

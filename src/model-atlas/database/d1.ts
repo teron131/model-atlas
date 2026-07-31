@@ -1,7 +1,7 @@
 /** Cloudflare D1 adapter keeps deployed reads and schema checks aligned with the SQLite snapshot contract. */
 
 import type { ModelAtlasPayload } from "../stats/types";
-import { loadSchemaSql } from "./schema";
+import { loadSchemaSql, SCHEMA_MIGRATION_VALUES } from "./schema";
 import {
   catalogTableMatchesSchema,
   quoteIdentifier,
@@ -160,7 +160,12 @@ export async function ensureD1Schema(): Promise<SchemaReconciliationPlan> {
       `SELECT object_type, object_name FROM ${quoteIdentifier(SCHEMA_MANIFEST_TABLE)}`,
     )) as SchemaManifestRow[];
   }
-  const plan = schemaReconciliationPlan(schemaSql, catalogRows, manifestRows);
+  const plan = schemaReconciliationPlan(
+    schemaSql,
+    catalogRows,
+    manifestRows,
+    SCHEMA_MIGRATION_VALUES,
+  );
   await queryD1Batch(plan.statements.map((sql) => ({ sql })));
   return plan;
 }

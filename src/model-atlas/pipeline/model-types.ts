@@ -71,10 +71,13 @@ export type ModelAtlasIntelligence = ModelAtlasBenchmarkValues & {
 
 export type ModelAtlasTaskMetricValues = {
   cost?: NumberOrNull;
+  observed_cost?: NumberOrNull;
   seconds?: NumberOrNull;
   tokens?: NumberOrNull;
   input_tokens?: NumberOrNull;
   output_tokens?: NumberOrNull;
+  observed_at?: string | null;
+  cost_price_ratio?: NumberOrNull;
 };
 
 export type ModelAtlasTaskMetrics =
@@ -136,6 +139,8 @@ export type ModelAtlasComponentScores = {
 export type ModelAtlasConfidence = {
   intelligence: NumberOrNull;
   agentic: NumberOrNull;
+  speed: NumberOrNull;
+  value: NumberOrNull;
 };
 
 export type ModelAtlasCandidateScores = {
@@ -168,6 +173,7 @@ type ModelFields = {
   intelligence: ModelAtlasIntelligence | null;
   task_metrics: ModelAtlasTaskMetrics;
   benchmarks: ModelAtlasBenchmarks | null;
+  benchmark_dates: Record<string, string> | null;
   confidence: ModelAtlasConfidence;
 };
 
