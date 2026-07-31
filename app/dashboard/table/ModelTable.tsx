@@ -3,6 +3,7 @@
 import {
   type CSSProperties,
   type KeyboardEvent,
+  memo,
   type PointerEvent,
   type ReactNode,
   useCallback,
@@ -10,6 +11,7 @@ import {
   useRef,
 } from "react";
 
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import { modelVariantKey } from "../shared/model-display";
 import { staticSortableColumns } from "./Columns";
@@ -43,7 +45,7 @@ const TABLE_SCROLL_KEY_STEP_PX = 80;
 const SCROLL_PAGE_STEP_RATIO = 0.85;
 const staticColumnKeys = staticSortableColumns.map((column) => column.key);
 
-export function ModelTable({
+export const ModelTable = memo(function ModelTable({
   sortState,
   visibleRows,
   emptyMessage,
@@ -77,6 +79,7 @@ export function ModelTable({
     onTooltipEnd,
   });
   const isStickyHeaderReady = columnWidths.length === columnKeys.length;
+  const rowKeys = useMemo(() => stableModelRowKeys(visibleRows), [visibleRows]);
   const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
   const stickyHeaderTableStyle =
@@ -136,9 +139,9 @@ export function ModelTable({
               <LoadingRows columnKeys={columnKeys} />
             ) : (
               <>
-                {visibleRows.map((rowData) => (
+                {visibleRows.map((rowData, index) => (
                   <ModelRow
-                    key={modelVariantKey(rowData.model) || `${rowData.originalIndex}`}
+                    key={rowKeys[index] ?? `${rowData.originalIndex}`}
                     rowData={rowData}
                     metricColumns={metricColumns}
                   />
@@ -154,6 +157,26 @@ export function ModelTable({
       <TableScrollRail snapshot={scrollSnapshot} onScrollTo={scrollTableTo} />
     </div>
   );
+});
+
+/** Keep each family's representative row mounted when expanded effort rows appear. */
+function stableModelRowKeys(rows: readonly TableRow[]): string[] {
+  const strongestIndexByModel = new Map<string, number>();
+  for (const [index, row] of rows.entries()) {
+    const modelKey = canonicalModelKey(row.model);
+    const strongestIndex = strongestIndexByModel.get(modelKey);
+    if (
+      strongestIndex == null ||
+      row.model.scores.intelligence_score >
+        (rows[strongestIndex]?.model.scores.intelligence_score ?? Number.NEGATIVE_INFINITY)
+    ) {
+      strongestIndexByModel.set(modelKey, index);
+    }
+  }
+  return rows.map((row, index) => {
+    const modelKey = canonicalModelKey(row.model);
+    return strongestIndexByModel.get(modelKey) === index ? modelKey : modelVariantKey(row.model);
+  });
 }
 
 function TableScrollRail({
