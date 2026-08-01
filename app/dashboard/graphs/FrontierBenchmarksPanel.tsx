@@ -122,13 +122,20 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const { leader, highScoreAxisRow, medianScoreAxisRow, labeledRows } = summaryRows;
   const scoreDistribution = valueDistribution(chartRows.map((row) => row.score));
   const plotRows = [...chartRows].sort((left, right) => left.score - right.score);
-  const yAxisLabel = isAggregateView ? "MEAN NORMALIZED benchmark score" : "Benchmark score";
-  const summaryLabel = isAggregateView ? "MEAN NORMALIZED benchmark score" : "Benchmark score";
+  const yAxisLabel = isAggregateView ? "Mean Normalized Benchmark Score" : "Benchmark Score";
   const axisDescription = frontierAxisDescription(selectedAxisKey, isAggregateView, chartRows[0]);
-  const xMetricProseLabel = xMetricLabel.replace(/efficiency/gi, "EFFICIENCY");
-  const panelCopy = isAggregateView
-    ? `Each point is one model: MEAN NORMALIZED frontier benchmark score against ${xMetricProseLabel}. ${axisDescription}`
-    : `${leader.benchmarkLabel} score plotted against ${xMetricProseLabel}. ${axisDescription}`;
+  const axisTerm = axisConfig.shortLabel.replace(/ ↓$/, "");
+  const scoreMetricLabel = isAggregateView
+    ? "Mean Normalized Frontier Benchmark Score"
+    : `${leader.benchmarkLabel} Score`;
+  const panelCopy = (
+    <>
+      {isAggregateView ? "Each point is one model: " : null}
+      <em>{scoreMetricLabel}</em> {isAggregateView ? "against" : "plotted against"}{" "}
+      <em>{xMetricLabel}</em>. <em>{axisTerm}</em>
+      {axisDescription.slice(axisTerm.length)}
+    </>
+  );
   const leaderDetail = axisSummaryDetail(leader, axisConfig);
 
   return (
@@ -141,7 +148,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
       copy={panelCopy}
       summary={
         <BoxWhiskerSummary
-          label={summaryLabel}
+          label={yAxisLabel}
           distribution={scoreDistribution}
           domainMax={100}
           formatValue={fmtPercentScore}

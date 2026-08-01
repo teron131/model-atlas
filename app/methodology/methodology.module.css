@@ -90,7 +90,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px 18px calc(30px + env(safe-area-inset-bottom));
-  border-left: 1px solid var(--frame-line);
+  border-left: 1px solid var(--line-strong);
   background: var(--paper);
   animation: document-navigation-enter 0.2s ease-out;
 }
@@ -120,7 +120,7 @@
 
 .documentSwitcher li {
   margin: 0;
-  border-top: 1px solid var(--frame-line-soft);
+  border-top: 1px solid var(--line);
 }
 
 /* Square ruled rows: the current document is marked by a left ink rule, never a filled pill. */
@@ -138,7 +138,7 @@
 
 .documentSwitcher a:hover,
 .documentSwitcher a:focus-visible {
-  border-left-color: var(--frame-line);
+  border-left-color: var(--line-strong);
   color: var(--ink);
   outline: 0;
 }
@@ -171,7 +171,7 @@
   width: 38px;
   height: 38px;
   padding: 0;
-  border: 1px solid var(--frame-line);
+  border: 1px solid var(--line-strong);
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   color: var(--ink);
   cursor: pointer;
@@ -265,8 +265,8 @@
   gap: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  border-top: 1px solid var(--frame-line);
-  border-bottom: 1px solid var(--frame-line);
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
   scrollbar-width: none;
 }
 
@@ -284,7 +284,7 @@
   min-height: 46px;
   align-items: center;
   padding: 0 14px;
-  border-left: 1px solid var(--frame-line-soft);
+  border-left: 1px solid var(--line);
   color: var(--muted);
   text-decoration: none;
   transition: color 0.18s ease;
@@ -326,7 +326,7 @@
 
 .outline ol {
   padding-left: 12px;
-  border-left: 1px solid var(--frame-line-soft);
+  border-left: 1px solid var(--line);
 }
 
 .outline li {
@@ -505,8 +505,8 @@
   margin: 18px 0 24px;
   overflow-x: auto;
   border-collapse: collapse;
-  border-top: 1px solid var(--frame-line);
-  border-bottom: 1px solid var(--frame-line);
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -523,7 +523,7 @@
 .article td {
   min-width: 116px;
   padding: 11px 14px 12px 0;
-  border-bottom: 1px solid var(--frame-line-soft);
+  border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
@@ -544,7 +544,7 @@
 
 .article code {
   padding: 0.15em 0.38em;
-  background: var(--control-fill-hover);
+  background: var(--hover);
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 0.84em;
@@ -554,8 +554,8 @@
   margin: 20px 0;
   padding: 20px 22px;
   overflow-x: auto;
-  border: 1px solid var(--frame-line-soft);
-  background: var(--surface);
+  border: 1px solid var(--line);
+  background: var(--paper);
 }
 
 .article pre code {
@@ -575,12 +575,13 @@
   margin: 24px 0;
 }
 
+/* Diagrams are authored on the dark field and inverted for the light theme below. */
 .figure img {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--frame-line-soft);
-  background: #090a0b;
+  border: 1px solid var(--line);
+  background: #0b1016;
 }
 
 .figure > span {
@@ -663,7 +664,7 @@
     align-items: center;
     gap: 10px;
     padding: env(safe-area-inset-top) 14px 0;
-    border-bottom: 1px solid var(--frame-line-soft);
+    border-bottom: 1px solid var(--line);
     background: color-mix(in srgb, var(--paper) 92%, transparent);
     backdrop-filter: blur(14px);
   }

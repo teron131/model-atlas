@@ -1,7 +1,8 @@
+/* Reconstruct the content edge while the signature itself breaks out to full bleed. */
 .signature {
   --signature-gutter: max(
-    clamp(24px, 4.2vw, 72px),
-    calc((100vw - var(--dashboard-frame-width, 1080px)) / 2 + clamp(24px, 4.2vw, 72px))
+    var(--page-gutter),
+    calc((100vw - var(--page-frame-width)) / 2 + var(--page-gutter))
   );
   position: relative;
   width: 100vw;

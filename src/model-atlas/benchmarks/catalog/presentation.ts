@@ -9,8 +9,8 @@ import type { BenchmarkKey } from "./portfolio";
 
 export const BENCHMARK_TOOLTIPS = {
   aa_intelligence_index: {
-    title: "AA Intelligence Index",
-    body: "Artificial Analysis aggregate of current reasoning and knowledge benchmarks. Model Atlas gives the overlapping index half importance.",
+    title: "Artificial Analysis Intelligence Index",
+    body: "Composite score across mathematics, science, coding, knowledge, and agentic evaluations.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "broad intelligence index"],
@@ -18,7 +18,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   agent_arena: {
     title: "Agent Arena",
-    body: "Causal benchmark of orchestrator models across real Agent Mode work. Model Atlas uses the leaderboard's signed average-score estimate.",
+    body: "Randomized real-world Agent Mode sessions measuring how the orchestrator model changes task success, user feedback, steerability, and tool reliability.",
     rows: [
       ["Source", "Arena"],
       ["Role", "real-world agent performance"],
@@ -26,7 +26,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   agents_last_exam: {
     title: "Agents' Last Exam",
-    body: "Real-world software and professional-workflow benchmark. The displayed value is the higher of median and mean partial-credit score.",
+    body: "Software and professional tasks graded for both complete solutions and meaningful partial progress.",
     rows: [
       ["Source", "Agents' Last Exam"],
       ["Split", "Full Overall"],
@@ -35,7 +35,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   ale_bench: {
     title: "ALE-Bench",
-    body: "Heuristic-programming benchmark over executable optimization tasks. Model Atlas scores Sakana AI's source-default ×1 mean performance and preserves refinement checkpoints as raw evidence.",
+    body: "Executable heuristic-optimization problems where models design algorithms and improve them through iterative feedback.",
     rows: [
       ["Source", "Sakana AI; Epoch validation"],
       ["Role", "algorithm design and code execution"],
@@ -43,7 +43,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   apex_agents: {
     title: "APEX Agents",
-    body: "Long-horizon professional-services agent tasks in consulting, banking, and law settings.",
+    body: "Long-horizon consulting, investment-banking, and legal tasks completed across files and workplace tools.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "agentic task completion"],
@@ -51,7 +51,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   automation_bench: {
     title: "AutomationBench",
-    body: "Artificial Analysis implementation of the Zapier workflow-automation benchmark. Model Atlas uses the AA benchmark-page score and task resources.",
+    body: "Multi-step workflows across simulated SaaS apps, scored by objectives completed without guardrail violations.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "agentic SaaS workflow"],
@@ -59,7 +59,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   blueprint_bench_2: {
     title: "Blueprint-Bench 2",
-    body: "Andon Labs spatial reasoning benchmark: models reconstruct apartment floor plans from interior photos.",
+    body: "Reconstruct apartment floor plans from interior photographs.",
     rows: [
       ["Source", "Andon Labs"],
       ["Role", "spatial reasoning"],
@@ -67,7 +67,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   briefcase: {
     title: "Briefcase",
-    body: "Artificial Analysis long-horizon knowledge-work benchmark over multi-file professional deliverables, scored with rubric and pairwise quality judgments. Model Atlas normalizes the Elo score onto the shared 0-1 benchmark scale.",
+    body: "Multi-file business projects requiring spreadsheets, presentations, and memos, graded for correctness, analysis, and presentation.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "agentic knowledge work"],
@@ -75,7 +75,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   browsecomp: {
     title: "BrowseComp",
-    body: "OpenAI's web-browsing benchmark for finding difficult-to-locate information.",
+    body: "Find obscure information on the web and return short, verifiable answers.",
     rows: [
       ["Source", "LLM Stats / ZeroEval"],
       ["Role", "web information retrieval"],
@@ -83,7 +83,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   chartography: {
     title: "Chartography",
-    body: "Professional chart-understanding benchmark over specialized graphics, testing visual perception, domain interpretation, and multi-step graphical reasoning.",
+    body: "Answer difficult questions about specialized charts using visual perception, domain knowledge, and multi-step reasoning.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "professional graphical reasoning"],
@@ -91,7 +91,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   chess_puzzles: {
     title: "Chess Puzzles",
-    body: "One hundred novel engine-generated chess positions where models must select the single best next move from a FEN board state.",
+    body: "Choose the best move from 100 novel engine-generated chess positions represented as FEN boards.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "planning and game reasoning"],
@@ -99,16 +99,16 @@ export const BENCHMARK_TOOLTIPS = {
   },
   code_migration: {
     title: "Code Migration",
-    body: "Vals benchmark for migrating an existing codebase while preserving required behavior.",
+    body: "Reimplement working programs in new languages, scored by hidden behavioral tests and anti-cheat checks.",
     rows: [
       ["Source", "Vals AI"],
-      ["Metric", "overall accuracy"],
+      ["Metric", "hidden-test pass rate"],
       ["Role", "repository migration workflow"],
     ],
   },
   critpt: {
     title: "CritPt",
-    body: "Research-level physics reasoning with numeric, symbolic, and code answers.",
+    body: "Solve research-level physics problems with numeric, symbolic, and code-based answers.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "physics reasoning"],
@@ -116,7 +116,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   cursorbench: {
     title: "CursorBench",
-    body: "Cursor's first-party coding-agent benchmark over ambiguous, multi-file tasks. Composer rows are excluded.",
+    body: "Implement ambiguous, multi-file changes in real repositories, scored for functional correctness and code quality.",
     rows: [
       ["Source", "Cursor"],
       ["Role", "coding-agent workflow"],
@@ -124,7 +124,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   cyberbench: {
     title: "CyberBench",
-    body: "Vals benchmark for carrying out practical cybersecurity workflows in a tool-using environment.",
+    body: "Reproduce and patch OSS-Fuzz vulnerabilities in real open-source repositories without breaking benign behavior.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "patch-track accuracy"],
@@ -133,7 +133,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   deep_swe: {
     title: "DeepSWE",
-    body: "Coding-agent benchmark. This score uses the source-default or highest reported reasoning effort.",
+    body: "Resolve original software-engineering tasks by inspecting, editing, and testing active open-source repositories.",
     rows: [
       ["Source", "DeepSWE leaderboard"],
       ["Role", "coding agent work"],
@@ -141,7 +141,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   ebr_bench: {
     title: "EBR-Bench",
-    body: "Long-horizon Earthborne Rangers benchmark that tests whether agents improve at an unfamiliar task through repeated play and persistent notes.",
+    body: "Learn an unfamiliar strategy game through repeated play while carrying persistent notes between runs.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "learning from experience"],
@@ -149,7 +149,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   emb: {
     title: "EMB",
-    body: "Vals benchmark for completing realistic expert work through a multi-step agent workflow.",
+    body: "Build working Excel financial models from prompts and source spreadsheets, including LBO, DCF, and M&A models.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -158,7 +158,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   enterprisebench_corecraft: {
     title: "EnterpriseBench CoreCraft",
-    body: "Enterprise-agent benchmark inside a simulated computer-hardware startup, requiring active discovery, tool use, and policy-aware task completion.",
+    body: "Complete customer, operations, and knowledge-work tasks inside a simulated computer-hardware startup using enterprise tools and company policy.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "enterprise tool use"],
@@ -166,7 +166,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   epoch_capabilities_index: {
     title: "Epoch Capabilities Index",
-    body: "Composite capability scale that combines results from many benchmarks so models can be compared across tasks and over time.",
+    body: "Combine results across diverse capability benchmarks into a scale for comparing models over time.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "general capability context"],
@@ -174,7 +174,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   finance_agent_v2: {
     title: "Finance Agent V2",
-    body: "Vals benchmark for finance research and analysis completed through an agent workflow.",
+    body: "Answer difficult financial-analysis questions from public-company filings using research, calculation, and retrieval tools.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "strict all-pass rate"],
@@ -183,7 +183,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontier_bench: {
     title: "Frontier-Bench",
-    body: "Containerized terminal and software-workflow benchmark over difficult multi-domain tasks. Model Atlas scores the strongest displayed agent for each exact model effort and retains every model-agent row with its standard error.",
+    body: "Complete difficult software, infrastructure, data, and technical workflows inside containerized terminal environments.",
     rows: [
       ["Source", "Frontier-Bench"],
       ["Metric", "task accuracy"],
@@ -192,7 +192,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontier_code: {
     title: "FrontierCode",
-    body: "Cognition's repository-scale benchmark of code quality and mergeability. Model Atlas uses the FrontierCode 1.1 Main score and preserves every effort, harness, and Extended result as source evidence.",
+    body: "Make repository-scale code changes that are tested for correctness, quality, and mergeability.",
     rows: [
       ["Source", "Cognition"],
       ["Role", "repository-scale coding agents"],
@@ -200,7 +200,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontiermath_tier_4: {
     title: "FrontierMath Tier 4",
-    body: "Exceptionally difficult original mathematics problems written and vetted by expert mathematicians, often requiring research-level work.",
+    body: "Solve original, expert-written Tier 4 mathematics problems designed to require research-level reasoning.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "research-level mathematics"],
@@ -208,15 +208,15 @@ export const BENCHMARK_TOOLTIPS = {
   },
   gdp_pdf: {
     title: "GDP.pdf",
-    body: "Surge AI document-understanding benchmark over real professional PDFs. Model Atlas uses the public leaderboard score.",
+    body: "Answer expert workflow questions grounded in real professional PDFs, including diagrams, tables, forms, and technical documents.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "document reasoning"],
     ],
   },
   gdpval_normalized: {
-    title: "GDPval-AA v2",
-    body: "AA v4.1 professional-work benchmark, re-baselined around human performance with longer agent trajectories.",
+    title: "GDPval v2",
+    body: "Produce documents, spreadsheets, slides, and diagrams for real tasks drawn from 44 occupations, judged through blind pairwise comparisons.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "real work completion"],
@@ -224,7 +224,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   handbook_md: {
     title: "HANDBOOK.md",
-    body: "Long-context enterprise benchmark where agents must follow company handbooks while using internal tools and external MCP servers.",
+    body: "Complete enterprise tasks while following long company handbooks and using internal tools and external MCP servers.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "policy-grounded agent work"],
@@ -232,15 +232,15 @@ export const BENCHMARK_TOOLTIPS = {
   },
   harvey_lab: {
     title: "Harvey LAB",
-    body: "Artificial Analysis implementation of Harvey's Legal Agent Benchmark, scored by strict all-pass legal deliverable completion across private legal-agent tasks.",
+    body: "Produce legal work such as memos, redlines, and disclosure schedules from case documents, with every required criterion graded.",
     rows: [
-      ["Source", "Artificial Analysis"],
+      ["Source", "Vals AI"],
       ["Role", "legal agent work"],
     ],
   },
   hle: {
     title: "HLE",
-    body: "Humanity's Last Exam: difficult academic reasoning and knowledge questions.",
+    body: "Answer expert-written questions across mathematics, science, humanities, and other academic disciplines.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "frontier reasoning"],
@@ -248,15 +248,15 @@ export const BENCHMARK_TOOLTIPS = {
   },
   itbench_sre: {
     title: "ITBench",
-    body: "Artificial Analysis implementation of the ITBench Kubernetes incident root-cause benchmark, using average precision at full recall over offline alerts, events, traces, metrics, and topology.",
+    body: "Diagnose Kubernetes incidents from offline alerts, events, traces, metrics, and topology, identifying every contributing root-cause entity.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "SRE agent investigation"],
     ],
   },
   lcr: {
-    title: "AA-LCR",
-    body: "Long-context reasoning over large document sets, checked with an equality grader.",
+    title: "LCR",
+    body: "Extract and synthesize evidence across document sets ranging from 10,000 to 100,000 tokens.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "long context reasoning"],
@@ -264,16 +264,16 @@ export const BENCHMARK_TOOLTIPS = {
   },
   legal_research: {
     title: "Legal Research",
-    body: "Vals benchmark for researching legal questions and producing grounded work through a tool-using workflow.",
+    body: "Research questions across U.S. law using case-law search, web search, and document retrieval, then produce a supported answer.",
     rows: [
       ["Source", "Vals AI"],
-      ["Metric", "overall accuracy"],
+      ["Metric", "strict all-pass accuracy"],
       ["Role", "legal research agent work"],
     ],
   },
   medcode: {
     title: "MedCode",
-    body: "Vals benchmark for medical coding knowledge and reasoning.",
+    body: "Assign medical billing codes from clinical documentation.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -282,7 +282,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   omniscience_accuracy: {
     title: "Omniscience",
-    body: "AA knowledge benchmark. This table uses the accuracy side as the factual-recall signal.",
+    body: "Answer cross-domain factual questions drawn from authoritative sources; the displayed score is the share answered correctly.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "knowledge accuracy"],
@@ -290,7 +290,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   programbench: {
     title: "ProgramBench",
-    body: "Vals benchmark for solving programming tasks through an executable coding workflow.",
+    body: "Write executable programs from natural-language requirements, scored by behavioral tests.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "raw behavioral-test pass rate"],
@@ -299,7 +299,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   proofbench: {
     title: "ProofBench",
-    body: "Graduate and advanced-undergraduate mathematics problems where agents must produce Lean 4 proofs accepted by a formal checker.",
+    body: "Write Lean 4 proofs for graduate and advanced-undergraduate mathematics problems, accepted only when they compile.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall compiler-verified accuracy"],
@@ -308,7 +308,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   public_benefits_bench: {
     title: "Public Benefits Bench",
-    body: "Vals benchmark for resolving public-benefits cases through professional research and workflow execution.",
+    body: "Answer realistic SNAP eligibility and policy questions using web research, follow-up questions, and expert-validated rubrics.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -317,7 +317,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   riemann_bench: {
     title: "Riemann-bench",
-    body: "Surge AI extreme mathematics benchmark over private frontier math problems. Model Atlas uses the public leaderboard score.",
+    body: "Solve private, research-level mathematics problems designed to remain difficult for frontier models.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "frontier math reasoning"],
@@ -325,7 +325,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   scicode: {
     title: "SciCode",
-    body: "Scientific Python problem solving with unit-tested subproblems.",
+    body: "Implement scientific Python solutions for expert-written problems, scored by unit-tested subproblems.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "structured code reasoning"],
@@ -333,7 +333,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   tau_banking: {
     title: "tau3 Banking",
-    body: "AA v4.1 banking-agent benchmark for realistic tool-mediated banking scenarios.",
+    body: "Resolve realistic banking-support scenarios by applying policy and coordinating multi-step tool calls with the customer.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "banking agent work"],
@@ -341,7 +341,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   toolathlon: {
     title: "Toolathlon",
-    body: "Multi-tool workflow benchmark from ZeroEval. Model Atlas uses the LLM Stats score.",
+    body: "Complete long-horizon real-world tasks that require selecting and coordinating many external tools.",
     rows: [
       ["Source", "LLM Stats / ZeroEval"],
       ["Role", "multi-tool agent work"],
@@ -349,15 +349,15 @@ export const BENCHMARK_TOOLTIPS = {
   },
   vals_index: {
     title: "Vals Index",
-    body: "Vals Index aggregates finance and coding tasks, including non-public Vals-built components. Model Atlas uses only the overall score as a normal baseline signal.",
+    body: "Composite score across professional finance, legal, and coding tasks.",
     rows: [
       ["Source", "Vals AI"],
-      ["Role", "professional finance and coding work"],
+      ["Role", "professional finance, legal, and coding work"],
     ],
   },
   vending_bench_2: {
     title: "Vending-Bench 2",
-    body: "Year-long simulated business benchmark where agents manage inventory, suppliers, pricing, and cash flow to maximize final balance.",
+    body: "Run a simulated vending-machine business for one year by managing inventory, suppliers, pricing, and cash flow.",
     rows: [
       ["Source", "Andon Labs"],
       ["Role", "long-horizon business operation"],
@@ -365,7 +365,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   vibe_code: {
     title: "Vibe Code",
-    body: "Vals benchmark for end-to-end software creation in a coding-agent environment.",
+    body: "Build complete web applications from natural-language specifications, scored through browser-based interaction tests.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -374,7 +374,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   weirdml: {
     title: "WeirdML",
-    body: "Novel machine-learning tasks where models design working PyTorch solutions and iteratively improve them from execution feedback.",
+    body: "Train PyTorch models on novel datasets and iteratively improve them using execution feedback.",
     rows: [
       ["Source", "WeirdML"],
       ["Role", "iterative ML engineering"],
@@ -392,7 +392,7 @@ export const BENCHMARK_TOOLTIPS = {
 >;
 
 export const BENCHMARK_LABELS = {
-  aa_intelligence_index: "AA Intelligence Index",
+  aa_intelligence_index: "Artificial Analysis Intelligence Index",
   agent_arena: "Agent Arena",
   agents_last_exam: "Agents' Last Exam",
   ale_bench: "ALE-Bench",
@@ -417,7 +417,7 @@ export const BENCHMARK_LABELS = {
   frontier_code: "FrontierCode",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
-  gdpval_normalized: "GDPval-AA v2",
+  gdpval_normalized: "GDPval v2",
   handbook_md: "HANDBOOK.md",
   harvey_lab: "Harvey LAB",
   hle: "HLE",
@@ -742,7 +742,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
 export const BENCHMARK_COLUMNS = {
   aa_intelligence_index: {
     key: "aaIntelligenceIndex",
-    label: "AA Index",
+    label: "Artificial Analysis Index",
     format: "number",
     defaultSort: "descending",
   },

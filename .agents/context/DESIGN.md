@@ -151,11 +151,13 @@ The system carries no decorative accent hue. Emphasis is ink against the page fi
 
 ## Layout
 
-The dashboard stays one column. A full-width signature leads, followed by a persistent research index connecting five numbered regions: model leaderboard, Pareto Frontier, price efficiency, frontier benchmarks, and interaction matrix. Global controls, the wide leaderboard, and one analytical panel per row continue below it. Content may become horizontally scrollable where its data density requires it, but the page itself must not overflow. Desktop composition uses generous lateral breathing room; below 760px, labels and controls reflow while the model evidence remains visible.
+The dashboard stays one column. A full-width signature leads, followed by a persistent research index connecting five numbered regions: model leaderboard, Pareto Frontier, price efficiency, frontier benchmarks, and interaction matrix. The index numbering is real and shared: each region head repeats the same two-digit ordinal as a compact register mark beside its descriptor. One module owns the sequence, so the rail and the heads cannot disagree about it. Global controls, the wide leaderboard, and one analytical panel per row continue below it. Content may become horizontally scrollable where its data density requires it, but the page itself must not overflow. Desktop composition uses generous lateral breathing room; below 760px, labels and controls reflow while the model evidence remains visible.
 
 ## Elevation & Depth
 
 The system is flat by default. Depth comes from real background changes, opacity, provider-colour layering, and 1px rules. Shadows are reserved for floating tooltips and cursor-following inspection states.
+
+Analytical regions stay on the continuous page field. Generous separation, one top rule, and a short ink registration mark establish each transition; region heads never add a filled band or enclosing frame. The sticky research index remains the only persistent navigation band below the signature.
 
 ## Shapes
 
@@ -200,7 +202,7 @@ The five model roles always appear in this order: highest Intelligence, highest 
 
 ### Analytical Marks
 
-Leaderboard score cells keep the number primary. A one-pixel provider-colour line and diamond sit directly beneath it and share its right edge. Chart hover cards use a medium-weight model name and a neutral logo frame without provider-colour glow or shadow.
+Leaderboard score cells keep the number primary. A one-pixel provider-colour line and diamond sit directly beneath it and share its right edge. The leaderboard is wide enough that adjacent columns read as one undifferentiated band, so hairline rules close the measurement groups the columns actually form: the four scores, then the price and context pair, then benchmark evidence. These rules close groups; they never box a single column. Chart hover cards use a medium-weight model name and a neutral logo frame without provider-colour glow or shadow.
 
 Box-and-whisker summaries behave as compact measuring instruments. The median is dominant; the label and population remain quiet; the range and quartile box stay hairline, and the ink median stays explicit. Dense two-sided rankings retain their readable intrinsic width on compact screens and become horizontally scrollable with keyboard access rather than shrinking their labels.
 

@@ -16,50 +16,34 @@
   --type-label-tracking: 0.035em;
   color-scheme: dark;
   --paper: #0b1016;
-  --surface: #0b1016;
-  --surface-strong: #121923;
+  --paper-rgb: 11 16 22;
   --ink: #f2f3ed;
   --ink-rgb: 242 243 237;
   --muted: #bbc1b7;
   --faint: #969f93;
-  --line: #f2f3ed;
-  --frame-line: rgba(242, 243, 237, 0.2);
-  --frame-line-soft: rgba(242, 243, 237, 0.085);
-  --soft: #29313a;
-  --rail: #171e26;
-  --hover: rgba(242, 243, 237, 0.04);
-  --provider-openai-color: #f2f3ed;
-  --page-scanline: rgba(255, 255, 255, 0.014);
-  --page-dot: rgba(255, 255, 255, 0.055);
-  --page-dot-opacity: 0.09;
-  --page-dot-blend-mode: screen;
-  --scrollbar-track: rgba(255, 255, 255, 0.035);
-  --scrollbar-thumb: #696864;
-  --table-scrollbar-track: rgba(238, 238, 234, 0.12);
-  --table-scrollbar-thumb: rgba(238, 238, 234, 0.62);
-  --title-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 34px rgba(0, 0, 0, 0.26);
-  --control-fill: rgba(238, 238, 234, 0.018);
-  --control-fill-soft: rgba(238, 238, 234, 0.014);
-  --control-fill-hover: rgba(238, 238, 234, 0.045);
-  --control-border: rgba(238, 238, 234, 0.105);
-  --control-border-hover: rgba(238, 238, 234, 0.28);
-  --control-border-active: var(--ink);
-  --focus-ring: rgba(238, 238, 234, 0.45);
-  --sticky-head-background: rgba(11, 16, 22, 0.94);
-  --row-line: rgba(238, 238, 234, 0.07);
-  --row-alt: rgba(255, 255, 255, 0.007);
-  --loading-sheen: rgba(238, 238, 234, 0.11);
-  --loading-fill: rgba(238, 238, 234, 0.065);
-  --tooltip-surface: rgba(13, 14, 15, 0.97);
-  --tooltip-section-fill: rgba(255, 255, 255, 0.018);
-  --tooltip-shadow: 0 18px 48px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --score-track: rgba(255, 255, 255, 0.12);
-  --table-edge-fade: rgba(11, 16, 22, 0);
-  --theme-toggle-fill: rgba(238, 238, 234, 0.035);
-  --theme-toggle-border: rgba(238, 238, 234, 0.22);
-  --theme-toggle-icon: #ffffff;
-  --theme-toggle-hover-fill: #eeeeea;
-  --theme-toggle-hover-icon: #090a0b;
+
+  /* Hairline dividers and stronger region frames share one rule vocabulary. */
+  --line: rgb(var(--ink-rgb) / 0.085);
+  --line-strong: rgb(var(--ink-rgb) / 0.2);
+
+  --hover: rgb(var(--ink-rgb) / 0.045);
+  --focus-ring: rgb(var(--ink-rgb) / 0.45);
+  --provider-openai-color: var(--ink);
+  --scrollbar-track: rgb(var(--ink-rgb) / 0.035);
+  --scrollbar-thumb: rgb(var(--ink-rgb) / 0.34);
+  --table-scrollbar-track: rgb(var(--ink-rgb) / 0.12);
+  --table-scrollbar-thumb: rgb(var(--ink-rgb) / 0.55);
+  --sticky-head-background: rgb(var(--paper-rgb) / 0.94);
+  --row-alt: rgb(var(--ink-rgb) / 0.007);
+  --loading-sheen: rgb(var(--ink-rgb) / 0.11);
+  --loading-fill: rgb(var(--ink-rgb) / 0.065);
+  --tooltip-surface: rgb(var(--paper-rgb) / 0.97);
+  --tooltip-section-fill: rgb(var(--ink-rgb) / 0.018);
+  --tooltip-shadow: 0 18px 48px rgb(0 0 0 / 0.46);
+  --score-track: rgb(var(--ink-rgb) / 0.12);
+  --table-edge-fade: rgb(var(--paper-rgb) / 0);
+  /* Shared horizontal inset for every dashboard region. */
+  --page-gutter: clamp(24px, 4.2vw, 72px);
   --dashboard-icon-button-size: 34px;
   --dashboard-icon-button-icon-size: 18px;
   --dashboard-icon-button-stroke: 2;
@@ -72,55 +56,27 @@
   --model-column-width: max-content;
 }
 
+/* Alpha-derived tokens inherit the light ink and paper channels unless overridden here. */
 html[data-model-atlas-theme="light"] {
   color-scheme: light;
-  --light-ink: #151713;
-  --light-ink-rgb: 21 23 19;
   --paper: #efeee9;
-  --surface: #efeee9;
-  --surface-strong: #e1e2dc;
-  --ink: var(--light-ink);
-  --ink-rgb: var(--light-ink-rgb);
+  --paper-rgb: 239 238 233;
+  --ink: #151713;
+  --ink-rgb: 21 23 19;
   --muted: #5f665d;
   --faint: #656d63;
-  --line: #202a20;
-  --frame-line: rgba(20, 30, 20, 0.18);
-  --frame-line-soft: rgba(20, 30, 20, 0.1);
-  --soft: #dfe3dc;
-  --rail: #e8ebe5;
-  --hover: rgba(20, 30, 20, 0.045);
-  --provider-openai-color: var(--ink);
-  --page-scanline: transparent;
-  --page-dot: rgba(20, 30, 20, 0.055);
-  --page-dot-opacity: 0.07;
-  --page-dot-blend-mode: multiply;
-  --scrollbar-track: rgba(20, 30, 20, 0.055);
-  --scrollbar-thumb: #949c91;
-  --table-scrollbar-track: rgba(20, 30, 20, 0.1);
-  --table-scrollbar-thumb: rgba(20, 30, 20, 0.46);
-  --title-shadow: 0 1px 0 rgba(255, 255, 255, 0.76), 0 14px 30px rgba(20, 30, 20, 0.12);
-  --control-fill: rgba(20, 30, 20, 0.026);
-  --control-fill-soft: rgba(20, 30, 20, 0.018);
-  --control-fill-hover: rgba(20, 30, 20, 0.055);
-  --control-border: rgb(var(--ink-rgb) / 0.095);
-  --control-border-hover: rgba(20, 30, 20, 0.22);
-  --control-border-active: var(--ink);
+  --line: rgb(var(--ink-rgb) / 0.095);
+  --line-strong: rgb(var(--ink-rgb) / 0.18);
   --focus-ring: rgb(var(--ink-rgb) / 0.55);
-  --sticky-head-background: rgba(239, 238, 233, 0.94);
-  --row-line: rgba(20, 30, 20, 0.105);
-  --row-alt: rgba(20, 30, 20, 0.018);
-  --loading-sheen: rgba(20, 30, 20, 0.105);
-  --loading-fill: rgba(20, 30, 20, 0.055);
-  --tooltip-surface: rgba(239, 238, 233, 0.98);
-  --tooltip-section-fill: rgba(20, 30, 20, 0.03);
-  --tooltip-shadow: 0 18px 48px rgba(20, 30, 20, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --score-track: rgba(20, 30, 20, 0.12);
-  --table-edge-fade: rgba(239, 238, 233, 0);
-  --theme-toggle-fill: rgb(var(--ink-rgb) / 0.035);
-  --theme-toggle-border: rgb(var(--ink-rgb) / 0.18);
-  --theme-toggle-icon: var(--ink);
-  --theme-toggle-hover-fill: var(--ink);
-  --theme-toggle-hover-icon: #ffffff;
+  --scrollbar-track: rgb(var(--ink-rgb) / 0.055);
+  --table-scrollbar-track: rgb(var(--ink-rgb) / 0.1);
+  --table-scrollbar-thumb: rgb(var(--ink-rgb) / 0.46);
+  --row-alt: rgb(var(--ink-rgb) / 0.018);
+  --loading-sheen: rgb(var(--ink-rgb) / 0.105);
+  --loading-fill: rgb(var(--ink-rgb) / 0.055);
+  --tooltip-surface: rgb(var(--paper-rgb) / 0.98);
+  --tooltip-section-fill: rgb(var(--ink-rgb) / 0.03);
+  --tooltip-shadow: 0 18px 48px rgb(var(--ink-rgb) / 0.16);
 }
 
 * {
@@ -177,19 +133,13 @@ body {
   border: 3px solid var(--paper);
 }
 
-body::before {
-  display: none;
-}
-
-body::after {
-  display: none;
-}
-
+/* The signature inherits this frame width to align its full-bleed content. */
 main {
-  width: min(var(--dashboard-frame-width, 1080px), 100%);
+  --page-frame-width: min(var(--dashboard-frame-width, 1080px), 1760px);
+  width: min(var(--page-frame-width), 100%);
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 0 clamp(24px, 4.2vw, 72px) 46px;
+  padding: 0 var(--page-gutter) 64px;
 }
 
 .dashboard-header {
@@ -199,7 +149,7 @@ main {
   justify-content: space-between;
   gap: 20px;
   width: 100%;
-  border-bottom: 1px solid var(--frame-line);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .brand-lockup {
@@ -232,7 +182,6 @@ main {
   font-weight: var(--type-display-weight);
   line-height: 1;
   letter-spacing: -0.025em;
-  text-shadow: none;
 }
 
 .header-actions {
@@ -248,7 +197,7 @@ main {
   min-height: var(--dashboard-icon-button-size);
   margin-top: 2px;
   padding: 0 8px;
-  color: color-mix(in srgb, var(--theme-toggle-icon) 74%, var(--muted));
+  color: color-mix(in srgb, var(--ink) 74%, var(--muted));
   font-family: var(--font-mono);
   font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
@@ -262,7 +211,7 @@ main {
 
 .header-route:hover,
 .header-route:focus-visible {
-  color: var(--theme-toggle-icon);
+  color: var(--ink);
   outline: 0;
 }
 
@@ -303,7 +252,7 @@ main {
   place-items: center;
   border: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--theme-toggle-icon) 74%, var(--muted));
+  color: color-mix(in srgb, var(--ink) 74%, var(--muted));
   font-family: var(--font-mono);
   cursor: pointer;
   transition:
@@ -315,7 +264,7 @@ main {
 .theme-toggle:hover,
 .theme-toggle:focus-visible {
   background: transparent;
-  color: var(--theme-toggle-icon);
+  color: var(--ink);
   opacity: 1;
   outline: 0;
 }
@@ -390,7 +339,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   min-width: 180px;
   max-width: 360px;
   padding: 11px 12px 13px;
-  border-right: 1px solid var(--frame-line-soft);
+  border-right: 1px solid var(--line);
   background: transparent;
 }
 
@@ -419,7 +368,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 .benchmark-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px 6px;
+  gap: 7px 16px;
   margin: 9px 0 0;
   padding: 0;
   list-style: none;
@@ -429,22 +378,26 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   flex-basis: 100%;
   height: 1px;
   margin-top: 2px;
-  border-top: 1px solid var(--frame-line-soft);
+  border-top: 1px solid var(--line);
 }
 
-.benchmark-list samp,
+/* Measurement controls use the same ruled active state as the chart controls. */
 .benchmark-chip {
-  display: block;
-  padding: 4px 6px;
-  border: 1px solid var(--control-border);
-  background: var(--control-fill);
-  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 0 4px;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
   font: inherit;
   font-size: var(--mono-chip);
   letter-spacing: 0;
   white-space: nowrap;
+  cursor: help;
   transition:
-    background-color 0.18s ease,
     border-color 0.18s ease,
     color 0.18s ease;
 }
@@ -455,17 +408,10 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 
 .benchmark-chip-loading {
   width: calc(54px + var(--loading-chip-index) * 7px);
-  height: 24px;
+  height: 22px;
   padding: 0;
+  border-bottom-color: transparent;
   animation-delay: calc(var(--loading-chip-index) * 90ms);
-}
-
-.benchmark-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 0;
-  cursor: help;
 }
 
 .benchmark-chip-label {
@@ -473,7 +419,6 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 }
 
 .benchmark-chip-coverage {
-  margin-left: 2px;
   color: var(--faint);
   font-variant-numeric: tabular-nums;
 }
@@ -488,26 +433,30 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   stroke-width: 1.8;
 }
 
-.benchmark-list samp:hover,
 .benchmark-chip:hover,
 .benchmark-chip:focus-visible {
-  border-color: var(--control-border-active);
-  background: var(--control-fill-hover);
+  border-bottom-color: var(--ink);
   color: var(--ink);
   outline: 0;
+}
+
+.benchmark-chip:hover .benchmark-chip-coverage,
+.benchmark-chip:focus-visible .benchmark-chip-coverage {
+  color: var(--muted);
 }
 
 .benchmark-chip:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+/* The leaderboard uses the same transition rule as the analytical panels. */
 .dashboard-deck {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  margin: 54px 0 76px;
+  margin: 42px 0 0;
   overflow: visible;
-  border-bottom: 1px solid var(--frame-line);
+  border-top: 1px solid var(--line-strong);
   background: transparent;
 }
 
@@ -518,22 +467,26 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 .dashboard-section-head {
   position: relative;
   display: grid;
-  gap: 17px;
-  padding: 0 0 26px;
-  border-bottom: 1px solid var(--frame-line);
+  gap: 14px;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .dashboard-section-head::after {
   position: absolute;
-  bottom: -1px;
+  top: -1px;
   left: 0;
-  width: 76px;
-  height: 1px;
+  width: 64px;
+  height: 2px;
   background: var(--ink);
   content: "";
 }
 
 .dashboard-section-marker {
+  display: grid;
+  grid-template-columns: 2.5ch minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
   margin: 0;
   color: var(--muted);
   font-family: var(--font-mono);
@@ -545,7 +498,9 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 }
 
 .dashboard-section-marker b {
+  color: var(--ink);
   font: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 .dashboard-section-head h2 {
@@ -584,7 +539,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   overflow-y: hidden;
   overscroll-behavior-x: none;
   background: var(--sticky-head-background);
-  border-bottom: 1px solid var(--frame-line);
+  border-bottom: 1px solid var(--line-strong);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -636,7 +591,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
     linear-gradient(var(--table-scrollbar-track), var(--table-scrollbar-track)) center / 100% 6px
       no-repeat,
     linear-gradient(90deg, transparent, rgb(var(--ink-rgb) / 0.14), transparent);
-  border: 1px solid var(--frame-line-soft);
+  border: 1px solid var(--line);
 }
 
 .table-scrollbar-track:focus-visible {
@@ -677,7 +632,7 @@ th,
 td {
   height: var(--table-row-content-height);
   padding: var(--table-row-padding-y) 8px;
-  border-bottom: 1px solid var(--row-line);
+  border-bottom: 1px solid var(--line);
   text-align: right;
   vertical-align: middle;
 }
@@ -700,7 +655,7 @@ tbody tr:nth-child(2n) {
 }
 
 tbody tr:nth-child(2n):hover {
-  background: var(--control-fill-hover);
+  background: var(--hover);
   --sticky-cell-background: color-mix(in srgb, var(--paper) 93%, var(--ink));
 }
 
@@ -781,12 +736,12 @@ tbody tr:nth-child(2n):hover {
 thead {
   position: relative;
   z-index: 2;
-  background: var(--surface);
+  background: var(--paper);
 }
 
 th {
   position: relative;
-  background: var(--surface);
+  background: var(--paper);
   border-bottom-color: transparent;
   color: var(--muted);
   font-size: var(--mono-label);
@@ -803,6 +758,15 @@ thead th {
 th:nth-child(2),
 td:nth-child(2) {
   text-align: left;
+}
+
+/* Close score and price/context groups without framing individual columns. The guard keeps the
+   rule off the edge of the narrower PNG export, which stops at the score block. */
+th:nth-child(6):not(:last-child),
+td:nth-child(6):not(:last-child),
+th:nth-child(8):not(:last-child),
+td:nth-child(8):not(:last-child) {
+  border-right: 1px solid var(--line);
 }
 
 .table-wrap thead {
@@ -823,7 +787,7 @@ td:nth-child(2) {
   position: sticky;
   top: 0;
   z-index: 6;
-  background: var(--surface);
+  background: var(--paper);
 }
 
 .table-shell[data-pinned-columns="true"] th:nth-child(1),
@@ -846,7 +810,7 @@ td:nth-child(2) {
 
 .table-shell[data-pinned-columns="true"] thead th:nth-child(1),
 .table-shell[data-pinned-columns="true"] thead th:nth-child(2) {
-  background: var(--surface);
+  background: var(--paper);
 }
 
 .table-shell[data-pinned-columns="true"] tbody td:nth-child(1):not(.empty),
@@ -856,7 +820,7 @@ td:nth-child(2) {
 
 .table-shell[data-pinned-columns="true"] th:nth-child(2),
 .table-shell[data-pinned-columns="true"] tbody td:nth-child(2):not(.empty) {
-  box-shadow: 1px 0 0 var(--frame-line-soft);
+  box-shadow: 1px 0 0 var(--line);
 }
 
 th:last-child,
@@ -888,7 +852,7 @@ td:last-child {
 
 .header-button:hover,
 .header-button:focus-visible {
-  background: var(--control-fill-hover);
+  background: var(--hover);
   color: var(--ink);
   outline: 0;
 }
@@ -1608,8 +1572,7 @@ td.modality-cell {
 
 @media (max-width: 720px) {
   :root {
-    --mono-label: 11px;
-    --mono-chip: 12px;
+    --page-gutter: 14px;
     --mono-data: 12px;
     --sans-note: 13px;
     --model-name: 14px;
@@ -1617,7 +1580,7 @@ td.modality-cell {
   }
 
   main {
-    padding: 0 14px 28px;
+    padding-bottom: 40px;
   }
 
   .table-shell {
@@ -1664,22 +1627,17 @@ td.modality-cell {
   }
 
   .benchmark-list {
-    gap: 4px;
-  }
-
-  .benchmark-list samp,
-  .benchmark-chip {
-    padding: 4px 5px;
+    gap: 6px 12px;
   }
 
   .dashboard-deck {
-    margin-top: 38px;
-    margin-bottom: 58px;
+    margin-top: 32px;
+    margin-bottom: 0;
   }
 
   .dashboard-section-head {
-    gap: 13px;
-    padding-bottom: 21px;
+    gap: 11px;
+    padding: 16px 0 14px;
   }
 
   .dashboard-section-head h2 {
@@ -1747,9 +1705,8 @@ td.modality-cell {
 }
 
 @media (max-width: 380px) {
-  main {
-    padding-right: 10px;
-    padding-left: 10px;
+  :root {
+    --page-gutter: 10px;
   }
 
   .brand-lockup h1,

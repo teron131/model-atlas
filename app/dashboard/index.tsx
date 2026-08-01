@@ -20,6 +20,7 @@ import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { filterByModelControls, providerOptions } from "./graphs/models";
+import { researchRegionOrdinal } from "./graphs/research-index";
 import type { CostFilter, ModelLimit, ProviderFilters } from "./graphs/types";
 import { useLivePayload } from "./live-payload";
 import {
@@ -307,7 +308,8 @@ function DashboardLeaderboard({
     >
       <header className="dashboard-section-head">
         <p className="dashboard-section-marker">
-          <b>Working view · Sortable model catalogue</b>
+          <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
+          <span>Working view · Sortable model catalogue</span>
         </p>
         <h2 id="leaderboard-title">Model Leaderboard</h2>
       </header>

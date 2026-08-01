@@ -20,20 +20,15 @@ import {
 } from "./models";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import { PriceEfficiencyPanel } from "./PriceEfficiencyPanel";
+import {
+  RESEARCH_REGION_IDS,
+  RESEARCH_REGIONS,
+  type ResearchRegionId,
+  researchRegionOrdinal,
+} from "./research-index";
 import type { CostFilter, HoverState, ModelLimit, ProviderOption } from "./types";
 
 import styles from "./graphs.module.css";
-
-const RESEARCH_SECTIONS = [
-  ["Models", "#leaderboard"],
-  ["Pareto", "#pareto-frontier"],
-  ["Price", "#price-efficiency"],
-  ["Benchmarks", "#frontier-benchmarks"],
-  ["Matrix", "#interaction-matrix"],
-] as const;
-
-const RESEARCH_SECTION_IDS = RESEARCH_SECTIONS.map(([, href]) => href.slice(1));
-const RESEARCH_INDEX_HEIGHT_PX = 48;
 
 export function DashboardGraphs({
   payload,
@@ -68,7 +63,6 @@ export function DashboardGraphs({
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const currentSection = useCurrentResearchSection(payload != null);
   const deferredPayload = useDeferredValue(payload);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
   const deferredMaxCost = useDeferredValue(maxCost);
@@ -91,6 +85,7 @@ export function DashboardGraphs({
   const models = useMemo(() => {
     return limitByIntelligenceScore(filteredModels, (model) => model, deferredModelLimit);
   }, [filteredModels, deferredModelLimit]);
+  const currentSection = useCurrentResearchSection(deferredPayload != null && allModels.length > 0);
 
   const filteredModelCount = modelCount(filteredModels);
   const visibleModelCount = modelCount(models);
@@ -121,11 +116,7 @@ export function DashboardGraphs({
 
   if (!payload || !deferredPayload || allModels.length === 0) {
     return (
-      <section
-        className={`${styles.atlas} ${styles.dashboardGraphs}`}
-        aria-label="Model graphs"
-        data-capture-theme
-      >
+      <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
         <ModelSignature models={[]} />
         <BenchmarkStrip payload={payload} models={[]} isLoading={benchmarksLoading} />
         <div className={styles.error}>Unable to load the Model Atlas snapshot.</div>
@@ -135,23 +126,19 @@ export function DashboardGraphs({
   }
 
   return (
-    <section
-      className={`${styles.atlas} ${styles.dashboardGraphs}`}
-      aria-label="Model graphs"
-      data-capture-theme
-    >
+    <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
       <ModelSignature models={filteredModels} />
-      {/* One sticky instrument rail: region index and the global view controls it applies to. */}
       <section className={styles.instrumentRail} aria-label="Global view">
         <div className={styles.instrumentBar}>
           <nav className={styles.researchIndexLinks} aria-label="Dashboard sections">
-            {RESEARCH_SECTIONS.map(([label, href]) => (
+            {RESEARCH_REGIONS.map((region) => (
               <a
-                href={href}
-                key={href}
-                aria-current={href.slice(1) === currentSection ? "location" : undefined}
+                href={`#${region.id}`}
+                key={region.id}
+                aria-current={region.id === currentSection ? "location" : undefined}
               >
-                {label}
+                <b aria-hidden="true">{researchRegionOrdinal(region.id)}</b>
+                {region.label}
               </a>
             ))}
           </nav>
@@ -297,43 +284,56 @@ export function DashboardGraphs({
   );
 }
 
-/**
- * Report which research region currently sits under the sticky index. Visibility is kept per
- * section rather than read off the callback entries, because a tall panel can stay intersecting
- * across many scroll events without emitting another entry for itself.
- */
+/** Report the last research region to enter the upper viewport band below the sticky index. */
 function useCurrentResearchSection(hasPanels: boolean) {
-  const [currentSection, setCurrentSection] = useState<string | null>(null);
+  const [currentSection, setCurrentSection] = useState<ResearchRegionId | null>(null);
 
   useEffect(() => {
-    const sections = RESEARCH_SECTION_IDS.map((id) => document.getElementById(id)).filter(
-      (section) => section != null,
-    );
+    if (!hasPanels) {
+      return;
+    }
+    const sections = RESEARCH_REGION_IDS.flatMap((id) => {
+      const element = document.getElementById(id);
+      return element == null ? [] : [{ element, id }];
+    });
     if (sections.length === 0) {
       return;
     }
+    let updateFrame: number | null = null;
+    const updateCurrentSection = () => {
+      updateFrame = null;
+      const activationLine = window.innerHeight * 0.45;
+      let activeSection: ResearchRegionId | null = null;
+      for (const section of sections) {
+        if (section.element.getBoundingClientRect().top > activationLine) {
+          break;
+        }
+        activeSection = section.id;
+      }
+      setCurrentSection(activeSection);
+    };
+    const scheduleUpdate = () => {
+      if (updateFrame == null) {
+        updateFrame = window.requestAnimationFrame(updateCurrentSection);
+      }
+    };
     const initialSection = window.location.hash.slice(1);
     const alignmentFrame = window.requestAnimationFrame(() => {
-      if (RESEARCH_SECTION_IDS.some((id) => id === initialSection)) {
+      if (RESEARCH_REGION_IDS.some((id) => id === initialSection)) {
         document.getElementById(initialSection)?.scrollIntoView({ block: "start" });
       }
+      scheduleUpdate();
     });
-    const intersecting = new Map<string, boolean>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          intersecting.set(entry.target.id, entry.isIntersecting);
-        }
-        setCurrentSection(RESEARCH_SECTION_IDS.find((id) => intersecting.get(id)) ?? null);
-      },
-      { rootMargin: `-${RESEARCH_INDEX_HEIGHT_PX}px 0px -55% 0px` },
-    );
-    for (const section of sections) {
-      observer.observe(section);
-    }
+    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    scheduleUpdate();
     return () => {
       window.cancelAnimationFrame(alignmentFrame);
-      observer.disconnect();
+      if (updateFrame != null) {
+        window.cancelAnimationFrame(updateFrame);
+      }
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate);
     };
   }, [hasPanels]);
 

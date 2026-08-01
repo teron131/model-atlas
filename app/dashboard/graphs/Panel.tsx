@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode, type RefObject, useRef } from "react";
 
 import { CaptureButton } from "../capture/CaptureButton";
+import { type ResearchRegionId, researchRegionOrdinal } from "./research-index";
 
 import styles from "./graphs.module.css";
 
@@ -20,10 +21,10 @@ export function Panel({
   captureEnabled = true,
   panelRef,
 }: {
-  sectionId: string;
+  sectionId: ResearchRegionId;
   sectionLabel: string;
   title: string;
-  copy?: string;
+  copy?: ReactNode;
   summary?: ReactNode;
   children: ReactNode;
   note?: ReactNode;
@@ -40,6 +41,7 @@ export function Panel({
     "--capture-artifact-width": `${artifactWidth}px`,
   } as CSSProperties;
   const titleId = `${sectionId}-title`;
+  const ordinal = researchRegionOrdinal(sectionId);
 
   return (
     <article
@@ -50,8 +52,10 @@ export function Panel({
       aria-labelledby={titleId}
     >
       <div className={styles.panelHead}>
+        {/* The rail already names the sequence for screen readers. */}
         <p className={styles.sectionMarker}>
-          <b>{sectionLabel}</b>
+          <b aria-hidden="true">{ordinal}</b>
+          <span>{sectionLabel}</span>
         </p>
         {summary == null ? null : <div className={styles.panelSide}>{summary}</div>}
         <div className={styles.panelTitleBlock}>
@@ -66,7 +70,7 @@ export function Panel({
               />
             ) : null}
           </div>
-          {copy ? <p className={styles.panelCopy}>{copy}</p> : null}
+          {copy == null ? null : <p className={styles.panelCopy}>{copy}</p>}
         </div>
       </div>
       {children}

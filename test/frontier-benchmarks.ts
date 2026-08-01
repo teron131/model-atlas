@@ -106,9 +106,9 @@ assert.equal(
 assert.deepEqual(
   frontierBenchmarkHoverRows(topRow, costAxis),
   [
-    ["Benchmark score", "90%"],
+    ["Benchmark Score", "90%"],
     ["DeepSWE cost per task", "$8.0"],
-    ["Speed and Value scores", "30.0"],
+    ["Speed and Value Scores", "30.0"],
   ],
   "hover rows should describe selected benchmark score, resource axis, and Efficiency score",
 );
@@ -137,29 +137,29 @@ assert.deepEqual(
 );
 assert.equal(
   frontierAxisDescription("cost", true),
-  "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy.",
+  "Task Cost is mean normalized across each frontier benchmark's own per-task or total resource policy.",
   "aggregate raw resource axes should explain that they are normalized amounts, not efficiency scores",
 );
 assert.equal(
   frontierAxisDescription("time", true),
-  "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy.",
-  "aggregate time axis should use MEAN NORMALIZED task wording",
+  "Task Time is mean normalized across each frontier benchmark's own per-task or total resource policy.",
+  "aggregate time axis should use title-case metric wording",
 );
 assert.equal(
   frontierAxisDescription("tokens", false, topRow),
-  "Task Tokens is the observed per-task token use for the selected benchmark.",
+  "Task Tokens are the observed per-task token use for the selected benchmark.",
   "benchmark token axis should use Task Tokens wording",
 );
 assert.equal(
   frontierAxisDescription("speedValue", true),
-  "Efficiency combines public Speed and Value scores with equal weight.",
+  "Efficiency combines public Speed and Value Scores with equal weight.",
   "combined score should describe speed and value separately from raw cost",
 );
 const allCostAxis = frontierBenchmarkAxisConfigFor("cost", true);
 assert.equal(
   frontierAxisMetricLabel(allCostAxis, true, rows),
-  "MEAN NORMALIZED cost ↓ (per task/total)",
-  "aggregate resource axes should use MEAN NORMALIZED task labels",
+  "Mean Normalized Cost ↓ (per task/total)",
+  "aggregate resource axes should use title-case metric labels",
 );
 assert.equal(
   frontierAxisMetricLabel(costAxis, false, rows),
@@ -205,9 +205,9 @@ assert.ok(totalRow);
 assert.deepEqual(
   frontierBenchmarkHoverRows(totalRow, costAxis),
   [
-    ["Benchmark score", "70%"],
+    ["Benchmark Score", "70%"],
     ["Agents' Last Exam total cost", "$99"],
-    ["Speed and Value scores", "50.0"],
+    ["Speed and Value Scores", "50.0"],
   ],
   "total-resource benchmarks should say total instead of per task",
 );
