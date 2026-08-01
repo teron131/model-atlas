@@ -12,7 +12,7 @@ import type {
   SourceSnapshots,
   SourceSnapshotStatus,
 } from "../types";
-import { buildModelsDevSourceStates, mergeSourceEvidence } from "./policy";
+import { buildModelsDevSourceStates } from "./policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "./row-snapshot";
 
 type ModelsDevSnapshot = Pick<
@@ -20,7 +20,8 @@ type ModelsDevSnapshot = Pick<
   "modelsDevPayload" | "modelsDevFetchedAt" | "modelsDevStatusCode"
 > & { sourceStatus: SourceSnapshotStatus };
 
-function mergeModelsDevPayload(
+/** Refreshes returned catalog records while retaining providers and models omitted by the latest fetch. */
+export function mergeModelsDevPayload(
   cachedPayload: ModelsDevPayload | undefined,
   fetchedPayload: ModelsDevPayload,
   options: DatabaseBuildOptions,
@@ -31,10 +32,20 @@ function mergeModelsDevPayload(
   const mergedPayload: ModelsDevPayload = structuredClone(cachedPayload);
   for (const [providerId, fetchedProvider] of Object.entries(fetchedPayload)) {
     const cachedProvider = mergedPayload[providerId];
-    const mergedProvider: ModelsDevProviderRecord = mergeSourceEvidence(
-      cachedProvider ?? fetchedProvider,
-      fetchedProvider,
-    );
+    const cachedModels = cachedProvider?.models ?? {};
+    const fetchedModels = fetchedProvider.models ?? {};
+    const mergedModels = { ...cachedModels };
+    for (const [modelId, fetchedModel] of Object.entries(fetchedModels)) {
+      mergedModels[modelId] = {
+        ...cachedModels[modelId],
+        ...fetchedModel,
+      };
+    }
+    const mergedProvider: ModelsDevProviderRecord = {
+      ...cachedProvider,
+      ...fetchedProvider,
+      models: mergedModels,
+    };
     mergedPayload[providerId] = mergedProvider;
   }
   return mergedPayload;
