@@ -3,6 +3,7 @@
 import { scaleLinear } from "d3-scale";
 import {
   type CSSProperties,
+  memo,
   type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -80,7 +81,7 @@ type SlopeGraphRow = {
 
 type SlopeHoverEvent = ReactMouseEvent<SVGElement> | ReactPointerEvent<SVGElement>;
 
-export function PriceEfficiencyPanel({
+export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   benchmarkPortfolio,
   showVariants,
   maxCost,
@@ -266,7 +267,7 @@ export function PriceEfficiencyPanel({
       </div>
     </Panel>
   );
-}
+});
 
 function PriceEfficiencySlopeGraph({
   compactLayout,

@@ -36,11 +36,11 @@ export async function downloadElementPng(
   fileName: string,
   captureWidth?: number,
 ): Promise<void> {
+  const rendererPromise = import("html-to-image");
   await document.fonts.ready;
   const stagedCapture = captureWidth == null ? null : stageGraphRender(element, captureWidth);
   const captureElement = stagedCapture?.element ?? element;
-  await waitForImages(captureElement);
-  const { toBlob } = await import("html-to-image");
+  const [{ toBlob }] = await Promise.all([rendererPromise, waitForImages(captureElement)]);
   const backgroundColor = captureBackgroundColor(captureElement);
   const restoreSvgStyles = materializeSvgStyles(captureElement);
   let blob: Blob | null;
@@ -107,17 +107,23 @@ function copyResolvedCustomProperties(source: HTMLElement, target: HTMLElement):
 
 /** Inline computed SVG presentation styles because the renderer deep-clones SVG children without decorating them. */
 function materializeSvgStyles(element: HTMLElement): () => void {
-  const styledElements = Array.from(element.querySelectorAll<SVGElement>("svg *"));
-  const originalStyles = styledElements.map((node) => node.getAttribute("style"));
-  for (const node of styledElements) {
+  const snapshots = Array.from(element.querySelectorAll<SVGElement>("svg *"), (node) => {
     const computedStyle = window.getComputedStyle(node);
-    for (const property of SVG_STYLE_PROPERTIES) {
-      node.style.setProperty(property, computedStyle.getPropertyValue(property));
+    return {
+      node,
+      originalStyle: node.getAttribute("style"),
+      resolvedStyles: SVG_STYLE_PROPERTIES.map((property) =>
+        computedStyle.getPropertyValue(property),
+      ),
+    };
+  });
+  for (const { node, resolvedStyles } of snapshots) {
+    for (const [propertyIndex, property] of SVG_STYLE_PROPERTIES.entries()) {
+      node.style.setProperty(property, resolvedStyles[propertyIndex] ?? "");
     }
   }
   return () => {
-    for (const [index, node] of styledElements.entries()) {
-      const originalStyle = originalStyles[index];
+    for (const { node, originalStyle } of snapshots) {
       if (originalStyle == null) {
         node.removeAttribute("style");
       } else {

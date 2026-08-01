@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type FocusEvent,
   Fragment,
+  memo,
   type MouseEvent,
   useCallback,
   useState,
@@ -29,7 +30,7 @@ const loadingCounts: Record<string, number> = {
   Agent: 5,
 };
 
-export function BenchmarkStrip({
+export const BenchmarkStrip = memo(function BenchmarkStrip({
   payload,
   models,
   isLoading,
@@ -94,7 +95,7 @@ export function BenchmarkStrip({
       )}
     </section>
   );
-}
+});
 
 function BenchmarkGroup({
   label,

@@ -2,7 +2,7 @@
 
 /** Interactive chart view for LLM stats payloads. */
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
@@ -69,35 +69,40 @@ export function DashboardGraphs({
   const [hover, setHover] = useState<HoverState | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const currentSection = useCurrentResearchSection(payload != null);
+  const deferredPayload = useDeferredValue(payload);
+  const deferredSelectedProviders = useDeferredValue(selectedProviders);
+  const deferredMaxCost = useDeferredValue(maxCost);
+  const deferredModelLimit = useDeferredValue(modelLimit);
+  const deferredShowReasoningVariants = useDeferredValue(showReasoningVariants);
 
   const allModels = useMemo(() => {
-    return (payload?.models ?? [])
+    return (deferredPayload?.models ?? [])
       .filter((model) => model.name != null && finite(model.scores?.intelligence_score))
       .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
-  }, [payload]);
+  }, [deferredPayload]);
 
   const filteredModels = useMemo(() => {
     return filterByModelControls(allModels, (model) => model, {
-      providers: selectedProviders,
-      maxCost,
+      providers: deferredSelectedProviders,
+      maxCost: deferredMaxCost,
     });
-  }, [allModels, selectedProviders, maxCost]);
+  }, [allModels, deferredSelectedProviders, deferredMaxCost]);
 
   const models = useMemo(() => {
-    return limitByIntelligenceScore(filteredModels, (model) => model, modelLimit);
-  }, [filteredModels, modelLimit]);
+    return limitByIntelligenceScore(filteredModels, (model) => model, deferredModelLimit);
+  }, [filteredModels, deferredModelLimit]);
 
   const filteredModelCount = modelCount(filteredModels);
   const visibleModelCount = modelCount(models);
-  const visibleModelLabel = showReasoningVariants
+  const visibleModelLabel = deferredShowReasoningVariants
     ? `${
-        modelLimit === "all" || filteredModelCount <= modelLimit
+        deferredModelLimit === "all" || filteredModelCount <= deferredModelLimit
           ? fmtCompact(visibleModelCount)
-          : `Top ${modelLimit} of ${fmtCompact(filteredModelCount)}`
+          : `Top ${deferredModelLimit} of ${fmtCompact(filteredModelCount)}`
       } models / ${fmtCompact(models.length)} variants`
-    : modelLimit === "all" || filteredModelCount <= modelLimit
+    : deferredModelLimit === "all" || filteredModelCount <= deferredModelLimit
       ? `${fmtCompact(visibleModelCount)} models`
-      : `Top ${modelLimit} of ${fmtCompact(filteredModelCount)} models`;
+      : `Top ${deferredModelLimit} of ${fmtCompact(filteredModelCount)} models`;
   const selectedProviderChoices = providerChoices.filter((option) =>
     selectedProviders.includes(option.slug),
   );
@@ -114,7 +119,7 @@ export function DashboardGraphs({
   const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
   const filterSummary = `${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
 
-  if (!payload || allModels.length === 0) {
+  if (!payload || !deferredPayload || allModels.length === 0) {
     return (
       <section
         className={`${styles.atlas} ${styles.dashboardGraphs}`}
@@ -244,7 +249,11 @@ export function DashboardGraphs({
             </FilterSection>
           </div>
           <div className={styles.benchmarkRow}>
-            <BenchmarkStrip payload={payload} models={models} isLoading={benchmarksLoading} />
+            <BenchmarkStrip
+              payload={deferredPayload}
+              models={models}
+              isLoading={benchmarksLoading}
+            />
           </div>
         </div>
       </section>
@@ -257,21 +266,25 @@ export function DashboardGraphs({
           <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
             <ParetoFrontierPanel models={models} setHover={setHover} />
             <PriceEfficiencyPanel
-              benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
-              showVariants={showReasoningVariants}
-              maxCost={maxCost}
+              benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
+              showVariants={deferredShowReasoningVariants}
+              maxCost={deferredMaxCost}
               onShowVariantsChange={onShowReasoningVariantsChange}
-              selectedProviders={selectedProviders}
+              selectedProviders={deferredSelectedProviders}
               onSelectedProvidersChange={onSelectedProvidersChange}
               referenceModels={referenceModels}
               setHover={setHover}
             />
           </section>
           <section className={styles.sectionGrid}>
-            <FrontierBenchmarksPanel payload={payload} models={models} setHover={setHover} />
+            <FrontierBenchmarksPanel
+              payload={deferredPayload}
+              models={models}
+              setHover={setHover}
+            />
             <InteractionMatrix
               models={models}
-              benchmarkPortfolio={payload.metadata.scoring.benchmark_portfolio}
+              benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
               hasFullPayload={hasFullPayload}
               setHover={setHover}
             />

@@ -2,7 +2,7 @@
 
 import { extent, median } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
-import { type CSSProperties, useMemo, useState } from "react";
+import { type CSSProperties, memo, useMemo, useState } from "react";
 
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../shared/model-display";
@@ -61,7 +61,7 @@ const INTERACTION_LABEL_METRICS = {
   padding: 3,
 };
 
-export function InteractionMatrix({
+export const InteractionMatrix = memo(function InteractionMatrix({
   models,
   benchmarkPortfolio,
   hasFullPayload,
@@ -129,7 +129,7 @@ export function InteractionMatrix({
       </div>
     </Panel>
   );
-}
+});
 
 function interactionXDistribution(
   models: ModelAtlasModel[],
