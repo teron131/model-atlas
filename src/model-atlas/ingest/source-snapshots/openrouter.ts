@@ -11,6 +11,28 @@ const PARTIAL_FETCH_TIMEOUT_MS = 10_000;
 const PARTIAL_FETCH_MAX_RETRIES = 1;
 
 export type OpenRouterRawCache = ReturnType<typeof readOpenRouterRawCache>;
+type OpenRouterRawModel = NonNullable<OpenRouterRawCache>["models"][number];
+
+/** Refreshes mutable route telemetry while retaining a usable cached field when its fetch failed. */
+export function mergeOpenRouterModel(
+  cachedModel: OpenRouterRawModel,
+  fetchedModel: OpenRouterRawModel,
+): OpenRouterRawModel {
+  return {
+    ...cachedModel,
+    ...fetchedModel,
+    candidate_permaslugs:
+      fetchedModel.candidate_permaslugs.length > 0
+        ? fetchedModel.candidate_permaslugs
+        : cachedModel.candidate_permaslugs,
+    selected_permaslug: fetchedModel.selected_permaslug ?? cachedModel.selected_permaslug,
+    performance:
+      Object.keys(fetchedModel.performance).length > 0
+        ? fetchedModel.performance
+        : cachedModel.performance,
+    pricing: fetchedModel.pricing ?? cachedModel.pricing,
+  };
+}
 
 /** Load OpenRouter raw stats from SQLite when fresh and complete for the current matched model ids. */
 export async function loadOpenRouterRawPayload(
@@ -118,11 +140,13 @@ export async function refreshOpenRouterRawPayload(
                 scopedCache.directory,
                 fetchedPayload.directory,
                 (row) => row.permaslug ?? row.slug ?? null,
+                (cachedRow, fetchedRow) => ({ ...cachedRow, ...fetchedRow }),
               ),
               models: mergeCachedSourceRows(
                 scopedCache.models,
                 fetchedPayload.models,
                 (row) => row.id,
+                mergeOpenRouterModel,
               ),
             };
     return {
