@@ -1,6 +1,6 @@
 /** Frontier Benchmarks panel for the dashboard graph surface. */
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../capture/png";
@@ -40,7 +40,7 @@ import styles from "./graphs.module.css";
 
 const FRONTIER_CHART_WIDTH = 760;
 
-export function FrontierBenchmarksPanel({
+export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   payload,
   models,
   setHover,
@@ -228,4 +228,4 @@ export function FrontierBenchmarksPanel({
       </div>
     </Panel>
   );
-}
+});

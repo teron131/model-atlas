@@ -64,7 +64,7 @@ const EVIDENCE_PARTICLE_COUNT = 9400;
 const GOLDEN_RATIO_CONJUGATE = 0.61803398875;
 const POINTER_RADIUS_RATIO = 0.14;
 const PROVIDER_BLEND_EXPONENT = 0.78;
-const evidenceBuffers = new WeakMap<CanvasRenderingContext2D, Float32Array>();
+const evidenceParticleBuffers = new WeakMap<CanvasRenderingContext2D, Float32Array[]>();
 const phaseBuffers = new WeakMap<CanvasRenderingContext2D, PhaseBuffer>();
 const typeLayers = new WeakMap<CanvasRenderingContext2D, TypeLayer[]>();
 
@@ -115,16 +115,16 @@ function renderEvidenceField(frame: MaterialFrame): void {
     const density = 0.94 * (0.48 + clamp01((mean - 0.5) / 0.25) * 0.5);
     const minimumWeight = 1.15 - density;
     const particleCount = Math.ceil(EVIDENCE_PARTICLE_COUNT / models.length);
-    const particleBuffer = evidenceParticleBuffer(context, particleCount);
+    const particleBuffer = evidenceParticleBuffer(context, particleCount, modelIndex);
+    const point: EvidencePoint = { opacity: 0, x: 0, y: 0 };
     context.fillStyle = palette.ink;
     for (let particleIndex = 0; particleIndex < particleCount; particleIndex += 1) {
-      const weight = 0.25 + noise(particleIndex + 131, modelIndex + 17) * 0.75;
       const bufferIndex = particleIndex * 4;
-      particleBuffer[bufferIndex + 3] = weight;
+      const weight = particleBuffer[bufferIndex + 3] ?? 0;
       if (weight < minimumWeight) {
         continue;
       }
-      const point = evidencePoint(frame, anchor, model, modelIndex, particleIndex, time);
+      evidencePoint(frame, anchor, model, modelIndex, particleIndex, time, point);
       particleBuffer[bufferIndex] = point.x;
       particleBuffer[bufferIndex + 1] = point.y;
       particleBuffer[bufferIndex + 2] = point.opacity;
@@ -165,7 +165,7 @@ function renderEvidenceField(frame: MaterialFrame): void {
         );
         const dispersion = pseudoGaussian(glyphIndex + 211, modelIndex + 41) * 5.2;
         const phase = noise(glyphIndex + 307, modelIndex + 67) * Math.PI * 2;
-        const point = evidenceBandPoint(frame, anchor, model, u, dispersion, phase, time);
+        evidenceBandPoint(frame, anchor, model, u, dispersion, phase, time, point);
         const opacity =
           evidenceOpacity(u) * (0.28 + noise(glyphIndex + 401, modelIndex + 73) * 0.72);
         context.globalAlpha = emphasized ? 0.82 * opacity : 0.27 * opacity;
@@ -189,17 +189,16 @@ function evidencePoint(
   modelIndex: number,
   particleIndex: number,
   time: number,
-): EvidencePoint {
+  target: EvidencePoint,
+): void {
   const { speed } = model.parameters;
   const u = fractional(
     noise(particleIndex + 11, modelIndex + 31) + time * 0.003 * (0.4 + speed) + modelIndex * 0.013,
   );
   const phase = noise(particleIndex + 79, modelIndex + 53) * Math.PI * 2;
   const gaussian = pseudoGaussian(particleIndex + 29, modelIndex) * 5.8;
-  return {
-    ...evidenceBandPoint(frame, anchor, model, u, gaussian, phase, time),
-    opacity: evidenceOpacity(u),
-  };
+  evidenceBandPoint(frame, anchor, model, u, gaussian, phase, time, target);
+  target.opacity = evidenceOpacity(u);
 }
 
 function evidenceBandPoint(
@@ -210,6 +209,7 @@ function evidenceBandPoint(
   dispersion: number,
   phase: number,
   time: number,
+  target?: Point,
 ): Point {
   const { agentic, context, intelligence, speed, value } = model.parameters;
   const compact = frame.width < 720;
@@ -236,7 +236,7 @@ function evidenceBandPoint(
       envelope *
       frame.height *
       0.007;
-  return disturb(frame, x, y, 0.044 + speed * 0.014);
+  return disturb(frame, x, y, 0.044 + speed * 0.014, target);
 }
 
 function evidenceOpacity(u: number): number {
@@ -246,14 +246,20 @@ function evidenceOpacity(u: number): number {
 function evidenceParticleBuffer(
   context: CanvasRenderingContext2D,
   particleCount: number,
+  modelIndex: number,
 ): Float32Array {
   const requiredLength = particleCount * 4;
-  const existing = evidenceBuffers.get(context);
+  const modelBuffers = evidenceParticleBuffers.get(context) ?? [];
+  const existing = modelBuffers[modelIndex];
   if (existing != null && existing.length >= requiredLength) {
     return existing;
   }
   const buffer = new Float32Array(requiredLength);
-  evidenceBuffers.set(context, buffer);
+  for (let particleIndex = 0; particleIndex < particleCount; particleIndex += 1) {
+    buffer[particleIndex * 4 + 3] = 0.25 + noise(particleIndex + 131, modelIndex + 17) * 0.75;
+  }
+  modelBuffers[modelIndex] = buffer;
+  evidenceParticleBuffers.set(context, modelBuffers);
   return buffer;
 }
 
@@ -841,17 +847,27 @@ function renderEmptyField(frame: MaterialFrame): void {
   context.restore();
 }
 
-function disturb(frame: MaterialFrame, x: number, y: number, response: number): Point {
+function disturb(
+  frame: MaterialFrame,
+  x: number,
+  y: number,
+  response: number,
+  target: Point = { x: 0, y: 0 },
+): Point {
   const { pointer, width, height } = frame;
   if (pointer.energy < 0.002) {
-    return { x, y };
+    target.x = x;
+    target.y = y;
+    return target;
   }
   const radius = Math.min(width, height) * POINTER_RADIUS_RATIO;
   const dx = x - pointer.x;
   const dy = y - pointer.y;
   const distanceSquared = dx * dx + dy * dy;
   if (distanceSquared > radius * radius * 4) {
-    return { x, y };
+    target.x = x;
+    target.y = y;
+    return target;
   }
   const distance = Math.sqrt(distanceSquared);
   const normalized = distance / Math.max(1, radius);
@@ -863,10 +879,9 @@ function disturb(frame: MaterialFrame, x: number, y: number, response: number): 
   const tangentX = -radialY;
   const tangentY = radialX;
   const scale = Math.min(width, height) * response;
-  return {
-    x: x + radialX * wave * influence * scale + tangentX * pointer.vx * influence * 0.82,
-    y: y + radialY * wave * influence * scale + tangentY * pointer.vy * influence * 0.82,
-  };
+  target.x = x + radialX * wave * influence * scale + tangentX * pointer.vx * influence * 0.82;
+  target.y = y + radialY * wave * influence * scale + tangentY * pointer.vy * influence * 0.82;
+  return target;
 }
 
 function modelPoint(index: number, count: number, width: number, height: number): Point {

@@ -29,7 +29,7 @@ import {
   type TooltipState,
 } from "./shared/ColumnTooltip";
 import { DEFAULT_DISPLAY_ITEMS, useDisplayLimit } from "./shared/DisplayControls";
-import { modelsForVariantDisplay } from "./shared/model-display";
+import { filterByModelQuery, modelsForVariantDisplay } from "./shared/model-display";
 import { ModelToolbar } from "./shared/ModelToolbar";
 import {
   dashboardMetricColumns,
@@ -170,6 +170,8 @@ function DashboardLeaderboard({
   const [showVariants, setShowVariants] = useState(false);
   const deferredFilterQuery = useDeferredValue(filterQuery);
   const deferredShowVariants = useDeferredValue(showVariants);
+  const deferredSelectedProviders = useDeferredValue(selectedProviders);
+  const deferredMaxCost = useDeferredValue(maxCost);
   const [, startSortTransition] = useTransition();
   const tableRows = useMemo(
     () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], deferredShowVariants)),
@@ -178,12 +180,24 @@ function DashboardLeaderboard({
   const filteredRows = useMemo(
     () =>
       filterByModelControls(tableRows, (row) => row.model, {
-        providers: selectedProviders,
-        maxCost,
+        providers: deferredSelectedProviders,
+        maxCost: deferredMaxCost,
       }),
-    [tableRows, selectedProviders, maxCost],
+    [tableRows, deferredSelectedProviders, deferredMaxCost],
   );
   const maximumLimit = filteredRows.length;
+  const expandedTableRows = useMemo(
+    () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], true)),
+    [payload],
+  );
+  const filteredExpandedRows = useMemo(
+    () =>
+      filterByModelControls(expandedTableRows, (row) => row.model, {
+        providers: deferredSelectedProviders,
+        maxCost: deferredMaxCost,
+      }),
+    [expandedTableRows, deferredSelectedProviders, deferredMaxCost],
+  );
   const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
   const deferredLimit = useDeferredValue(effectiveLimit);
   const matchingRows = useMemo(
@@ -200,16 +214,10 @@ function DashboardLeaderboard({
   );
   const expandedVariantCount = useMemo(() => {
     const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
-    const expandedRows = dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], true));
-    const filteredExpandedRows = filterByModelControls(expandedRows, (row) => row.model, {
-      providers: selectedProviders,
-      maxCost,
-    });
-    return sortedRows(filteredExpandedRows, deferredFilterQuery, {
-      key: "intelligence",
-      direction: "descending",
-    }).filter((row) => selectedModels.has(canonicalModelKey(row.model))).length;
-  }, [deferredFilterQuery, limitedRows, maxCost, payload, selectedProviders]);
+    return filterByModelQuery(filteredExpandedRows, (row) => row.model, deferredFilterQuery).filter(
+      (row) => selectedModels.has(canonicalModelKey(row.model)),
+    ).length;
+  }, [deferredFilterQuery, filteredExpandedRows, limitedRows]);
   const visibleRows = useMemo(
     () => sortedRows(limitedRows, "", sortState),
     [limitedRows, sortState],

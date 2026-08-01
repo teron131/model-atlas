@@ -8,7 +8,15 @@
  * FORM: Living Evidence Field, adapted from the selected reference; Evidence Field is the default while Phase Ledger and Signal Type remain equal alternatives.
  */
 
-import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  memo,
+  type PointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
@@ -41,9 +49,14 @@ function themeForMode(mode: SignatureMode): ModelAtlasTheme {
   return mode === "field" ? "light" : "dark";
 }
 
-export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
+export const ModelSignature = memo(function ModelSignature({
+  models,
+}: {
+  models: ModelAtlasModel[];
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLElement>(null);
+  const stageBoundsRef = useRef<DOMRect | null>(null);
   const pointerRef = useRef<MaterialPointer>({
     active: false,
     energy: 0,
@@ -116,6 +129,7 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
 
     const resize = () => {
       const bounds = stage.getBoundingClientRect();
+      stageBoundsRef.current = bounds;
       const density = Math.min(window.devicePixelRatio || 1, 2);
       width = Math.max(1, Math.round(bounds.width));
       height = Math.max(1, Math.round(bounds.height));
@@ -234,7 +248,10 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
     if (stage == null) {
       return;
     }
-    const bounds = stage.getBoundingClientRect();
+    const bounds = immediate
+      ? stage.getBoundingClientRect()
+      : (stageBoundsRef.current ?? stage.getBoundingClientRect());
+    stageBoundsRef.current = bounds;
     const pointer = pointerRef.current;
     const x = Math.max(0, Math.min(bounds.width, event.clientX - bounds.left));
     const y = Math.max(0, Math.min(bounds.height, event.clientY - bounds.top));
@@ -358,7 +375,7 @@ export function ModelSignature({ models }: { models: ModelAtlasModel[] }) {
       </ol>
     </section>
   );
-}
+});
 
 type SelectionMetricPart =
   | { kind: "agentic" | "intelligence" | "value" }

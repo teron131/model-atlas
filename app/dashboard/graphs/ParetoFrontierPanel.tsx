@@ -2,7 +2,7 @@
 
 import { median, pairs } from "d3-array";
 import { scaleLinear } from "d3-scale";
-import type { CSSProperties } from "react";
+import { type CSSProperties, memo } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../shared/model-display";
@@ -41,7 +41,7 @@ const SCORE_AXIS_FORMAT_OPTIONS = {
 };
 const PARETO_CHART_WIDTH = 820;
 
-export function ParetoFrontierPanel({
+export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   models,
   setHover,
 }: {
@@ -320,4 +320,4 @@ export function ParetoFrontierPanel({
       </div>
     </Panel>
   );
-}
+});
