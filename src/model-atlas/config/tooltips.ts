@@ -304,7 +304,7 @@ export function columnTooltipsForActiveComponents(
 ): CoreColumnTooltips {
   return {
     intelligence: {
-      title: "Intelligence score",
+      title: "Intelligence Score",
       body: "Atlas capability score from selected INTELLIGENCE benchmarks. Each benchmark's weight is its importance multiplied by its Intelligence loading; frontier or baseline group affects only missing-data handling.",
       rows: [
         ["Benchmark normalization", "observed min-max range to 0-100"],
@@ -319,7 +319,7 @@ export function columnTooltipsForActiveComponents(
       ],
     },
     agentic: {
-      title: "Agentic score",
+      title: "Agentic Score",
       body: "Atlas workflow and coding-task score from selected AGENTIC benchmarks. Each benchmark's weight is its importance multiplied by its Agentic loading; frontier or baseline group affects only missing-data handling.",
       rows: [
         ["Benchmark normalization", "observed min-max range to 0-100"],
@@ -334,7 +334,7 @@ export function columnTooltipsForActiveComponents(
       ],
     },
     speed: {
-      title: "Speed score",
+      title: "Speed Score",
       body: "Provider and workflow inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
       rows: [
         ["Provider and workflow", "log input, then min-max"],
@@ -351,7 +351,7 @@ export function columnTooltipsForActiveComponents(
       ],
     },
     value: {
-      title: "Value score",
+      title: "Value Score",
       body: "Blended price uses logged one-sided winsorized min-max normalization. Other price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality; the workflow output is not logged again. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
       rows: [
         ["Blended price", "log input, then winsorized min-max"],
@@ -416,30 +416,30 @@ export function columnTooltipsForActiveComponents(
       ],
     },
     artificialAnalysisCost: {
-      title: "AA cost per task ↓",
+      title: "Artificial Analysis Cost per Task ↓",
       body: "Artificial Analysis v4.1 reported cost for one Intelligence Index task.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported cost per Intelligence task"],
-        ["Method", "direct AA per-task field"],
+        ["Method", "direct Artificial Analysis per-task field"],
       ],
     },
     artificialAnalysisSeconds: {
-      title: "AA seconds per task ↓",
+      title: "Artificial Analysis Seconds per Task ↓",
       body: "Artificial Analysis v4.1 reported runtime for one Intelligence Index task.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported time per Intelligence task"],
-        ["Method", "direct AA per-task field"],
+        ["Method", "direct Artificial Analysis per-task field"],
       ],
     },
     artificialAnalysisTokens: {
-      title: "AA output tokens per task",
+      title: "Artificial Analysis Output Tokens per Task",
       body: "Artificial Analysis v4.1 reported output tokens for one Intelligence Index task.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported output tokens per Intelligence task"],
-        ["Method", "direct AA per-task field"],
+        ["Method", "direct Artificial Analysis per-task field"],
       ],
     },
   };

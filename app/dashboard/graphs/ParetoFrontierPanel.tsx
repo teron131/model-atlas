@@ -66,7 +66,11 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
         sectionId="pareto-frontier"
         sectionLabel="Tradeoff view · Intelligence × Value"
         title="Pareto Frontier"
-        copy="A tradeoff scatter for INTELLIGENCE score versus VALUE score."
+        copy={
+          <>
+            A tradeoff scatter for <em>Intelligence Score</em> versus <em>Value Score</em>.
+          </>
+        }
       >
         <EmptyChart />
       </Panel>
@@ -171,16 +175,24 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       sectionId="pareto-frontier"
       sectionLabel="Tradeoff view · Intelligence × Value"
       title="Pareto Frontier"
-      copy="INTELLIGENCE score plotted against VALUE score."
+      copy={
+        <>
+          <em>Intelligence Score</em> plotted against <em>Value Score</em>.
+        </>
+      }
       summary={
         <BoxWhiskerSummary
-          label="Intelligence score"
+          label="Intelligence Score"
           distribution={scoreDistribution}
           domainMax={100}
           showDomainEndpoints
         />
       }
-      note={<>Step line: displayed INTELLIGENCE versus VALUE tradeoff envelope.</>}
+      note={
+        <>
+          Step line: displayed <em>Intelligence</em> versus <em>Value</em> tradeoff envelope.
+        </>
+      }
     >
       <div className={styles.chartToolbar}>
         <div className={styles.chartToolbarCaption}>
@@ -194,7 +206,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
         <svg
           viewBox={`0 0 ${width} ${height}`}
           role="img"
-          aria-label="Intelligence by Value score scatter plot"
+          aria-label="Intelligence by Value Score scatter plot"
           {...projectionHandlers}
         >
           <defs>
@@ -233,8 +245,8 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
             width={width}
             height={height}
             margin={margin}
-            x="Value score"
-            y="Intelligence score"
+            x="Value Score"
+            y="Intelligence Score"
             xTitleOffset={48}
           />
           <MedianCross
@@ -264,10 +276,10 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
             const cy = yPoint(model.scores.intelligence_score);
             const isFrontier = frontierIds.has(modelVariantKey(model));
             const rows: HoverRow[] = [
-              ["Intelligence score", fmtTooltipScore(model.scores.intelligence_score)],
-              ["Agentic score", fmtTooltipScore(model.scores.agentic_score)],
-              ["Speed score", fmtTooltipScore(model.scores.speed_score)],
-              ["Value score", fmtTooltipScore(model.scores.value_score)],
+              ["Intelligence Score", fmtTooltipScore(model.scores.intelligence_score)],
+              ["Agentic Score", fmtTooltipScore(model.scores.agentic_score)],
+              ["Speed Score", fmtTooltipScore(model.scores.speed_score)],
+              ["Value Score", fmtTooltipScore(model.scores.value_score)],
               ["Blended price", fmtTooltipMoney(Number(model.cost?.blended_price))],
             ];
             return (

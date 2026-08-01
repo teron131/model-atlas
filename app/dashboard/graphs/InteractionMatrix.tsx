@@ -93,7 +93,13 @@ export const InteractionMatrix = memo(function InteractionMatrix({
       sectionId="interaction-matrix"
       sectionLabel="Interaction view · Pairwise relationships"
       title="Intelligence interaction matrix"
-      copy="Switch between price, throughput, response time, context, AA task cost, and MEAN NORMALIZED frontier benchmark score."
+      copy={
+        <>
+          Switch between price, throughput, response time, context,{" "}
+          <em>Artificial Analysis Task Cost</em>, and{" "}
+          <em>Mean Normalized Frontier Benchmark Score</em>.
+        </>
+      }
       summary={
         <BoxWhiskerSummary
           label={`${selectedConfig.fieldLabel} spread`}
@@ -341,7 +347,7 @@ function InteractionPlot({
           height={height}
           margin={margin}
           x={config.xLabel}
-          y="Intelligence score"
+          y="Intelligence Score"
           xTitleOffset={50}
         />
         <MedianCross
@@ -367,7 +373,7 @@ function InteractionPlot({
           const cx = xPoint(point.x);
           const cy = yPoint(point.y);
           const rows: HoverRow[] = [
-            ["Intelligence score", fmtTooltipScore(point.y)],
+            ["Intelligence Score", fmtTooltipScore(point.y)],
             [config.hoverLabel ?? config.xLabel, config.tooltipFormat(point.x)],
           ];
           return (

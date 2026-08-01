@@ -265,7 +265,6 @@ function evidenceParticleBuffer(
 
 function renderPhaseLedger(frame: MaterialFrame): void {
   drawPhaseSurface(frame);
-  drawPhaseCalibration(frame);
   drawMaterialAnnotations(frame);
 }
 
@@ -468,29 +467,6 @@ function phaseBuffer(
   };
   phaseBuffers.set(context, buffer);
   return buffer;
-}
-
-function drawPhaseCalibration(frame: MaterialFrame): void {
-  const { context, width, height, palette } = frame;
-  context.save();
-  context.strokeStyle = withAlpha(palette.ink, 0.07);
-  context.fillStyle = withAlpha(palette.ink, 0.26);
-  context.font = `9px ${MATERIAL_MONO_FONT}`;
-  context.setLineDash([2, 9]);
-  for (let x = width * 0.42; x < width; x += width * 0.075) {
-    context.beginPath();
-    context.moveTo(x, height * 0.1);
-    context.lineTo(x, height * 0.9);
-    context.stroke();
-    context.fillText(String(Math.round((x / width) * 100)).padStart(2, "0"), x + 3, height * 0.115);
-  }
-  for (let y = height * 0.14; y < height * 0.9; y += height * 0.095) {
-    context.beginPath();
-    context.moveTo(width * 0.4, y);
-    context.lineTo(width, y);
-    context.stroke();
-  }
-  context.restore();
 }
 
 function renderSignalType(frame: MaterialFrame): void {

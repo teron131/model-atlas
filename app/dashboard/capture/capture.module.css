@@ -28,7 +28,7 @@
 .graphButton:hover,
 .graphButton:focus-visible,
 .graphButton[data-state="saved"] {
-  background: var(--chart-control-hover);
+  background: var(--hover);
   color: var(--ink);
   outline: 0;
 }
@@ -85,7 +85,7 @@
 .leaderboardButton:hover,
 .leaderboardButton:focus-visible,
 .leaderboardButton[data-state="saved"] {
-  background: var(--control-fill-hover);
+  background: var(--hover);
   color: var(--ink);
   outline: 0;
 }
@@ -107,23 +107,7 @@
   color: var(--ink);
 }
 
-.leaderboard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    var(--page-scanline) 2px,
-    var(--page-scanline) 4px
-  );
-}
-
 .leaderboard table {
-  position: relative;
-  z-index: 1;
   width: 100%;
   min-width: 100%;
   table-layout: fixed;
@@ -150,14 +134,14 @@
 .leaderboard td {
   height: 88px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--row-line);
+  border-bottom: 1px solid var(--line);
   text-align: right;
   vertical-align: middle;
 }
 
 .leaderboard thead th {
   height: 72px;
-  background: var(--surface);
+  background: var(--paper);
   color: var(--muted);
   font-size: 18px;
   text-transform: uppercase;

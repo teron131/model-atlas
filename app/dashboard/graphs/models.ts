@@ -85,7 +85,7 @@ export const interactionConfigs: InteractionConfig[] = [
     tooltipFormat: (value) => `${fmtTooltipNumber(value)}s`,
     xLabel: "End-to-end response time",
     insight:
-      "Makes the practical waiting-time tradeoff visible instead of ranking INTELLIGENCE in isolation.",
+      "Makes the practical waiting-time tradeoff visible instead of ranking Intelligence in isolation.",
   },
   {
     key: "context",
@@ -104,15 +104,15 @@ export const interactionConfigs: InteractionConfig[] = [
   },
   {
     key: "artificialAnalysisCost",
-    title: "Intelligence vs AA task cost",
-    fieldLabel: "AA cost",
+    title: "Intelligence vs Artificial Analysis Task Cost",
+    fieldLabel: "Artificial Analysis Cost",
     lowerIsBetter: true,
     logScale: true,
     ticks: [0.02, 0.05, 0.1, 0.25, 0.5, 1],
     get: (model) => finiteValue(model.task_metrics?.artificial_analysis?.cost),
     format: fmtMoney,
     tooltipFormat: fmtTooltipMoney,
-    xLabel: "AA task cost",
+    xLabel: "Artificial Analysis Task Cost",
     insight:
       "Connects benchmark quality to the cost of producing that quality during the benchmark workload.",
   },
@@ -126,9 +126,9 @@ export const interactionConfigs: InteractionConfig[] = [
     get: (model, context) => context.frontierScoreByModel.get(modelVariantKey(model)) ?? null,
     format: (value) => `${value.toFixed(0)}%`,
     tooltipFormat: fmtPercentScore,
-    xLabel: "MEAN NORMALIZED frontier benchmark score",
+    xLabel: "Mean Normalized Frontier Benchmark Score",
     insight:
-      "Shows whether broad INTELLIGENCE agrees with each model's MEAN NORMALIZED frontier benchmark score.",
+      "Shows whether broad Intelligence agrees with each model's Mean Normalized Frontier Benchmark Score.",
   },
 ];
 

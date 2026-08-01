@@ -75,14 +75,14 @@ export const frontierBenchmarkAxisConfig: Record<
   FrontierBenchmarkAxisConfig
 > = {
   speedValue: {
-    label: "Speed and Value scores",
+    label: "Speed and Value Scores",
     shortLabel: "Efficiency",
     get: speedValueBlendScore,
     selectionScore: speedValueBlendScore,
     format: (value) => value.toFixed(0),
-    detailLabel: () => "Speed and Value scores",
-    normalizedLabel: "Speed and Value scores",
-    normalizedDetailLabel: "Speed and Value scores",
+    detailLabel: () => "Speed and Value Scores",
+    normalizedLabel: "Speed and Value Scores",
+    normalizedDetailLabel: "Speed and Value Scores",
     xHigherIsBetter: true,
   },
   cost: {
@@ -92,8 +92,8 @@ export const frontierBenchmarkAxisConfig: Record<
     selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
     format: fmtMoney,
     detailLabel: (row) => resourceMetricLabel(row, "cost"),
-    normalizedLabel: "MEAN NORMALIZED cost ↓ (per task/total)",
-    normalizedDetailLabel: "MEAN NORMALIZED cost ↓ (per task/total)",
+    normalizedLabel: "Mean Normalized Cost ↓ (per task/total)",
+    normalizedDetailLabel: "Mean Normalized Cost ↓ (per task/total)",
   },
   time: {
     label: "Task Time ↓",
@@ -102,8 +102,8 @@ export const frontierBenchmarkAxisConfig: Record<
     selectionScore: (row) => (row.seconds == null ? null : row.score / (row.seconds / 86_400)),
     format: fmtDurationShort,
     detailLabel: (row) => resourceMetricLabel(row, "time"),
-    normalizedLabel: "MEAN NORMALIZED time ↓ (per task/total)",
-    normalizedDetailLabel: "MEAN NORMALIZED time ↓ (per task/total)",
+    normalizedLabel: "Mean Normalized Time ↓ (per task/total)",
+    normalizedDetailLabel: "Mean Normalized Time ↓ (per task/total)",
   },
   tokens: {
     label: "Task Tokens ↓",
@@ -113,8 +113,8 @@ export const frontierBenchmarkAxisConfig: Record<
       row.totalTokens == null ? null : row.score / (row.totalTokens / 1_000_000),
     format: fmtCompact,
     detailLabel: (row) => resourceMetricLabel(row, "tokens"),
-    normalizedLabel: "MEAN NORMALIZED tokens ↓ (per task/total)",
-    normalizedDetailLabel: "MEAN NORMALIZED tokens ↓ (per task/total)",
+    normalizedLabel: "Mean Normalized Tokens ↓ (per task/total)",
+    normalizedDetailLabel: "Mean Normalized Tokens ↓ (per task/total)",
   },
 };
 
@@ -312,24 +312,24 @@ export function frontierAxisDescription(
   row?: FrontierBenchmarkRow,
 ): string {
   if (axisKey === "speedValue") {
-    return "Efficiency combines public Speed and Value scores with equal weight.";
+    return "Efficiency combines public Speed and Value Scores with equal weight.";
   }
   if (axisKey === "cost") {
     return isAggregateView
-      ? "Task Cost is MEAN NORMALIZED cost across each frontier benchmark's own per-task or total resource policy."
+      ? "Task Cost is mean normalized across each frontier benchmark's own per-task or total resource policy."
       : `Task Cost is the observed ${resourceUnitPhrase(row)} dollars for the selected benchmark.`;
   }
   if (axisKey === "time") {
     return isAggregateView
-      ? "Task Time is MEAN NORMALIZED runtime across each frontier benchmark's own per-task or total resource policy."
+      ? "Task Time is mean normalized across each frontier benchmark's own per-task or total resource policy."
       : `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark.`;
   }
   if (isAggregateView) {
-    return "Task Tokens is MEAN NORMALIZED token use across each frontier benchmark's own per-task or total resource policy.";
+    return "Task Tokens are mean normalized across each frontier benchmark's own per-task or total resource policy.";
   }
   const tokenUse =
     row?.resourcePolicy?.tokenMeasure === "output_tokens" ? "output-token use" : "token use";
-  return `Task Tokens is the observed ${resourceUnitPhrase(row)} ${tokenUse} for the selected benchmark.`;
+  return `Task Tokens are the observed ${resourceUnitPhrase(row)} ${tokenUse} for the selected benchmark.`;
 }
 
 export function frontierAxisMetricLabel(
@@ -408,13 +408,13 @@ export function frontierBenchmarkHoverRows(
   const rows: HoverRow[] = [];
   rows.push(
     [
-      row.benchmarkKey === "all" ? "MEAN NORMALIZED benchmark score" : "Benchmark score",
+      row.benchmarkKey === "all" ? "Mean Normalized Benchmark Score" : "Benchmark Score",
       fmtPercentScore(row.score),
     ],
     [axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
   );
   if (axisConfig.get !== speedValueBlendScore) {
-    rows.push(["Speed and Value scores", speedValueBlendScore(row).toFixed(1)]);
+    rows.push(["Speed and Value Scores", speedValueBlendScore(row).toFixed(1)]);
   }
   return rows;
 }
@@ -522,7 +522,7 @@ function resourceMetricLabel(
   metric: FrontierBenchmarkResourceMetric,
 ): string {
   if (row.benchmarkKey === "all") {
-    return `MEAN NORMALIZED ${resourceMetricName(metric)} (per task/total)`;
+    return `Mean Normalized ${resourceMetricName(metric)} (per task/total)`;
   }
   const policy = row.resourcePolicy;
   if (policy == null) {
