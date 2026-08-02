@@ -92,7 +92,7 @@ export const InteractionMatrix = memo(function InteractionMatrix({
       captureWidth={INTERACTION_CHART_WIDTH}
       sectionId="interaction-matrix"
       sectionLabel="Interaction view · Pairwise relationships"
-      title="Intelligence interaction matrix"
+      title="Intelligence Interaction Matrix"
       copy={
         <>
           Switch between price, throughput, response time, context,{" "}

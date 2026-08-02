@@ -139,7 +139,7 @@ The system carries no decorative accent hue. Emphasis is ink against the page fi
 ### Hierarchy
 
 - **Display** (620, clamp(58px, 6.4vw, 92px), 0.9): first-view signature title only.
-- **Headline** (600, clamp(32px, 3.35vw, 52px), 0.95): analytical section titles.
+- **Headline** (600, clamp(36px, 4.3vw, 64px), 0.95): analytical section titles.
 - **Body** (500, 1rem, 1.58): factual explanation with a maximum measure near 68ch.
 - **Data** (600, 0.8125rem, tabular): scores, prices, ranks, and model metadata.
 - **Label** (650, 0.6875rem, 0.035em, uppercase): parameters, axes, and compact controls.
@@ -170,7 +170,7 @@ The backend score contract remains the source of truth for Intelligence, Agentic
 ### Buttons
 
 - **Shape:** square, borderless or 1px ruled.
-- **Primary:** selected state uses a full-ink 2px rule; hover may preview provider colour on provider controls.
+- **Primary:** selected state uses a full-ink rule (3px on primary toolbar controls, 2px elsewhere); hover may preview provider colour on provider controls.
 - **Hover / Focus:** strengthen foreground and show a visible 2px focus ring without changing layout.
 
 ### Chips
@@ -202,7 +202,9 @@ The five model roles always appear in this order: highest Intelligence, highest 
 
 ### Analytical Marks
 
-Leaderboard score cells keep the number primary. A one-pixel provider-colour line and diamond sit directly beneath it and share its right edge. The leaderboard is wide enough that adjacent columns read as one undifferentiated band, so hairline rules close the measurement groups the columns actually form: the four scores, then the price and context pair, then benchmark evidence. These rules close groups; they never box a single column. Chart hover cards use a medium-weight model name and a neutral logo frame without provider-colour glow or shadow.
+Leaderboard score cells keep the number primary, set at a heavier 700 weight so the readout carries the row. A one-pixel provider-colour line and diamond sit directly beneath it and share its right edge. The leaderboard is wide enough that adjacent columns read as one undifferentiated band, so hairline rules close the measurement groups the columns actually form: the four scores, then the price and context pair, then benchmark evidence. These rules close groups; they never box a single column. Chart hover cards use a medium-weight model name and a neutral logo frame without provider-colour glow or shadow.
+
+Row hover carries a faint trace of the row's own provider colour blended into the ink hover wash (6% mix), extending the signature's material-as-identity idea into the leaderboard without introducing a second hue: the tint is always the model's own data colour, never a decorative accent.
 
 Box-and-whisker summaries behave as compact measuring instruments. The median is dominant; the label and population remain quiet; the range and quartile box stay hairline, and the ink median stays explicit. Dense two-sided rankings retain their readable intrinsic width on compact screens and become horizontally scrollable with keyboard access rather than shrinking their labels.
 

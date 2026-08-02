@@ -491,8 +491,8 @@
   position: absolute;
   top: -1px;
   left: 0;
-  width: 64px;
-  height: 2px;
+  width: 88px;
+  height: 3px;
   background: var(--ink);
   content: "";
 }

@@ -115,12 +115,12 @@
 .trigger:focus-visible {
   outline: 0;
   box-shadow:
-    inset 0 -2px var(--ink),
+    inset 0 -3px var(--ink),
     0 0 0 2px var(--focus-ring);
 }
 
 .trigger[aria-expanded="true"] {
-  box-shadow: inset 0 -2px var(--ink);
+  box-shadow: inset 0 -3px var(--ink);
 }
 
 .menu {
@@ -236,12 +236,12 @@
 /* The toolbar grid rules already frame the field, so focus adds an ink baseline and the ring. */
 .search:focus {
   background: transparent;
-  box-shadow: inset 0 -2px var(--ink);
+  box-shadow: inset 0 -3px var(--ink);
 }
 
 .search:focus-visible {
   box-shadow:
-    inset 0 -2px var(--ink),
+    inset 0 -3px var(--ink),
     0 0 0 2px var(--focus-ring);
 }
 

@@ -201,7 +201,7 @@ assert.equal(
   html.includes("Pareto Frontier") &&
     html.includes("Price vs Cost Efficiency") &&
     html.includes("Frontier Benchmarks") &&
-    html.includes("Intelligence interaction matrix"),
+    html.includes("Intelligence Interaction Matrix"),
   true,
   "server markup should include every graph panel in the initial page response",
 );
