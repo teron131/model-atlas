@@ -296,7 +296,7 @@ export const ModelSignature = memo(function ModelSignature({
       </div>
       <div className={styles.copy}>
         <h2 id="model-signature-title">
-          Different <span>ways to lead.</span>
+          Mapping <span>Frontiers</span>
         </h2>
         <div className={styles.scoreLeaders}>
           <p className={styles.scoreLeadersLabel}>Distinct model roles</p>

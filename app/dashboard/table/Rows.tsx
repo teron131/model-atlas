@@ -110,7 +110,7 @@ export const ModelRow = memo(function ModelRow({
 }) {
   const model = rowData.model;
   return (
-    <tr>
+    <tr style={rowProviderStyle(model.provider)}>
       <ModelScoreCells rowData={rowData} />
       <TableCell text={formatCost(model.cost?.blended_price)} className="data-cell" />
       <TableCell text={formatContext(contextWindowValue(model))} className="data-cell" />
@@ -125,10 +125,14 @@ export const ModelRow = memo(function ModelRow({
 /** Render the leaderboard identity and four score columns used by PNG exports. */
 export function ScoreModelRow({ rowData }: { rowData: TableRow }) {
   return (
-    <tr>
+    <tr style={rowProviderStyle(rowData.model.provider)}>
       <ModelScoreCells rowData={rowData} />
     </tr>
   );
+}
+
+function rowProviderStyle(provider: string | null | undefined) {
+  return { "--row-provider": providerBrandColor(provider) } as CSSProperties;
 }
 
 function ModelScoreCells({ rowData }: { rowData: TableRow }) {

@@ -2,7 +2,7 @@
   --font-sans: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
   --type-display-size: clamp(58px, 6.4vw, 92px);
-  --type-section-size: clamp(32px, 3.35vw, 52px);
+  --type-section-size: clamp(36px, 4.3vw, 64px);
   --type-document-title-size: clamp(36px, 4vw, 46px);
   --type-body-size: 16px;
   --type-note-size: 14px;
@@ -51,7 +51,7 @@
   --mono-chip: 12px;
   --mono-data: var(--type-data-size);
   --sans-note: var(--type-note-size);
-  --model-name: 16px;
+  --model-name: 17px;
   --model-id: 12px;
   --model-column-width: max-content;
 }
@@ -476,8 +476,8 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   position: absolute;
   top: -1px;
   left: 0;
-  width: 64px;
-  height: 2px;
+  width: 88px;
+  height: 3px;
   background: var(--ink);
   content: "";
 }
@@ -644,9 +644,11 @@ tbody tr {
   transition: background-color 0.18s ease;
 }
 
+/* A trace of the row's own provider colour rides the hover wash, carrying the signature's
+   material-as-identity idea into the leaderboard without breaking the single-chroma rule. */
 tbody tr:hover {
-  background: var(--hover);
-  --sticky-cell-background: color-mix(in srgb, var(--paper) 92%, var(--ink));
+  background: color-mix(in srgb, var(--row-provider, var(--ink)) 6%, var(--hover));
+  --sticky-cell-background: color-mix(in srgb, var(--paper) 92%, var(--row-provider, var(--ink)));
 }
 
 tbody tr:nth-child(2n) {
@@ -655,8 +657,8 @@ tbody tr:nth-child(2n) {
 }
 
 tbody tr:nth-child(2n):hover {
-  background: var(--hover);
-  --sticky-cell-background: color-mix(in srgb, var(--paper) 93%, var(--ink));
+  background: color-mix(in srgb, var(--row-provider, var(--ink)) 6%, var(--hover));
+  --sticky-cell-background: color-mix(in srgb, var(--paper) 93%, var(--row-provider, var(--ink)));
 }
 
 .loading-row {
@@ -1435,7 +1437,7 @@ tbody tr:nth-child(-n + 3) .rank {
 
 .score-value {
   display: block;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: 0;
 }
 

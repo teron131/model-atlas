@@ -138,6 +138,7 @@
 
 .copy h2 span {
   display: block;
+  margin-top: 0.06em;
 }
 
 .scoreLeaders {
