@@ -929,7 +929,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
   box-sizing: border-box;
   width: min(360px, calc(100vw - 36px));
   max-width: calc(100vw - 36px);
-  max-height: min(640px, calc(100dvh - 36px));
+  max-height: min(480px, calc(100dvh - 36px));
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 12px 13px 13px;
