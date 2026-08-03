@@ -594,7 +594,7 @@
 .boxWhiskerMedianReadout {
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 38px;
+  font-size: 24px;
   font-variant-numeric: tabular-nums;
   font-weight: var(--type-display-weight);
   letter-spacing: -0.035em;
@@ -736,7 +736,7 @@
   scrollbar-width: thin;
 }
 
-.slopeChartWrap:focus-visible {
+.chartWrap:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
@@ -1002,6 +1002,15 @@
 }
 
 @media (max-width: 760px) {
+  .sectionGrid {
+    gap: 48px;
+  }
+
+  .leadGrid {
+    margin-top: 32px;
+    margin-bottom: 48px;
+  }
+
   .instrumentBar {
     grid-template-columns: minmax(0, 1fr) 112px;
   }
@@ -1032,9 +1041,9 @@
 
   .panelHead {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
-    column-gap: clamp(12px, 3vw, 24px);
-    row-gap: 8px;
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    row-gap: 6px;
   }
 
   .panelTitleBlock {
@@ -1044,10 +1053,17 @@
   }
 
   .panelSide {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: end;
-    justify-items: end;
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+    justify-items: start;
+    width: 100%;
+  }
+
+  .filterButton,
+  .costFilterButton,
+  .metricToggle button {
+    min-height: 44px;
   }
 }
 
@@ -1539,6 +1555,12 @@
     padding: 12px 0 6px;
   }
 
+  .chartWrap:not(.slopeChartWrap) svg {
+    width: var(--chart-max-width);
+    max-width: none;
+    margin-inline: 0;
+  }
+
   .slopeChartWrap svg {
     width: 720px;
     max-width: none;
@@ -1571,15 +1593,7 @@
   }
 
   .chartWrap:not(.slopeChartWrap) svg {
-    width: 100%;
-    max-width: 100%;
-    margin-inline: auto;
-  }
-
-  .slopeChartWrap svg {
-    width: 720px;
-    max-width: none;
-    margin-inline: 0;
+    width: min(620px, var(--chart-max-width));
   }
 
   .chartSummary {
@@ -1608,12 +1622,12 @@
   }
 
   .slopeRailTitle {
-    font-size: 16px;
+    font-size: 13px;
   }
 
   .slopeLabel {
-    font-size: 18px;
-    stroke-width: 4px;
+    font-size: 13px;
+    stroke-width: 3px;
   }
 
   .slopeLine {

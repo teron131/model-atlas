@@ -1575,6 +1575,7 @@ td.modality-cell {
 @media (max-width: 720px) {
   :root {
     --page-gutter: 14px;
+    --dashboard-icon-button-size: 44px;
     --mono-data: 12px;
     --sans-note: 13px;
     --model-name: 14px;
@@ -1587,6 +1588,7 @@ td.modality-cell {
 
   .table-shell {
     --rank-column-width: 38px;
+    --table-visible-rows: 8;
     --table-row-content-height: 33px;
     --table-row-padding-y: 8px;
   }
@@ -1610,9 +1612,11 @@ td.modality-cell {
   }
 
   .header-route {
+    min-width: var(--dashboard-icon-button-size);
+    justify-content: center;
     margin-top: 0;
-    padding-right: 4px;
-    padding-left: 4px;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   .header-route span {

@@ -90,6 +90,14 @@
   outline: 0;
 }
 
+@media (max-width: 720px) {
+  .graphButton,
+  .leaderboardButton {
+    width: var(--dashboard-icon-button-size);
+    height: var(--dashboard-icon-button-size);
+  }
+}
+
 .stage {
   position: fixed;
   top: 0;

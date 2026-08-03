@@ -19,6 +19,9 @@ import {
   plotBoundsFor,
   PlotFrame,
   PointHitTarget,
+  SCATTER_CHART_HEIGHT,
+  SCATTER_CHART_MARGIN,
+  SCATTER_CHART_WIDTH,
   stableSvgScale,
   TextPointLabel,
   useCursorProjection,
@@ -27,6 +30,7 @@ import {
 } from "./PlotPrimitives";
 import { scoreQuadrilateralRadius } from "./score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "./types";
+import { useCompactChartLayout } from "./use-media-query";
 
 import styles from "./graphs.module.css";
 
@@ -62,9 +66,9 @@ export function EfficiencyAxisChart<Row>({
   getLabel,
   effortLines = [],
   setHover,
-  width = 760,
-  height = 490,
-  margin = { top: 28, right: 34, bottom: 70, left: 62 },
+  width = SCATTER_CHART_WIDTH,
+  height = SCATTER_CHART_HEIGHT,
+  margin = SCATTER_CHART_MARGIN,
 }: {
   rows: Row[];
   metric: EfficiencyAxisMetric<Row>;
@@ -88,6 +92,8 @@ export function EfficiencyAxisChart<Row>({
   height?: number;
   margin?: Margin;
 }) {
+  const compactLayout = useCompactChartLayout();
+  const chartMargin = compactLayout ? { ...margin, left: Math.max(margin.left, 84) } : margin;
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
   const metricValues = rows.map(metric.get);
   const xTicks =
@@ -97,15 +103,15 @@ export function EfficiencyAxisChart<Row>({
       : linearTicksForValues(metricValues, metric.format));
   const x = scaleLinear()
     .domain(xDomain)
-    .range([margin.left, width - margin.right])
+    .range([chartMargin.left, width - chartMargin.right])
     .clamp(true);
   const y = scaleLinear()
     .domain(yDomain)
-    .range([height - margin.bottom, margin.top])
+    .range([height - chartMargin.bottom, chartMargin.top])
     .clamp(true);
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
-  const plot = plotBoundsFor(width, height, margin);
+  const plot = plotBoundsFor(width, height, chartMargin);
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
   const medianScore = median(rows.map(getScore)) ?? yDomain[0];
   const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 4, 13);
@@ -146,6 +152,9 @@ export function EfficiencyAxisChart<Row>({
     <div
       className={styles.chartWrap}
       style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      role="group"
+      aria-label={`${ariaLabel} viewport`}
+      tabIndex={0}
     >
       <svg
         viewBox={`0 0 ${width} ${height}`}
@@ -173,9 +182,10 @@ export function EfficiencyAxisChart<Row>({
         <AxisTitles
           width={width}
           height={height}
-          margin={margin}
+          margin={chartMargin}
           x={metric.label}
           y={yAxisLabel}
+          compact={compactLayout}
           xTitleOffset={50}
         />
         <MedianCross
@@ -259,7 +269,7 @@ export function EfficiencyAxisChart<Row>({
               cx={cx}
               cy={cy}
               width={width}
-              margin={margin}
+              margin={chartMargin}
               height={height}
               xOffset={markRadius(row) + 8}
               placement={labelPlacements.get(getKey(row))}
