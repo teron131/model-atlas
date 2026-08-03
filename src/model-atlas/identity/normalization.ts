@@ -21,6 +21,7 @@ const REASONING_EFFORT_RANK = {
 } as const satisfies Readonly<Record<string, number>>;
 const MODEL_CONFIGURATION_LABEL_PATTERN = /\s+\((?:fast|free|online|reasoning|thinking)\)\s*$/i;
 const BENCHMARK_EFFORT_SUFFIX_PATTERN = /^(.*?)(?:\s+\(([^()]*)\)|\s+-\s+([^()]+))\s*$/i;
+const GPT_MODEL_TOKEN_PATTERN = /(?:^|-)gpt(?:-|$)/;
 const BENCHMARK_EFFORT_LABELS = new Set([
   "xhigh",
   "extra-high",
@@ -114,31 +115,53 @@ export function canonicalReasoningEffort(value: unknown): string | null {
   return normalized === "non-reasoning" ? "none" : normalized;
 }
 
-/** Strip only recognized effort suffixes so configuration names such as Thinking remain distinct models. */
+/** Strip effort suffixes; GPT product qualifiers beside an effort remain part of GPT identity. */
 export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
   const match = BENCHMARK_EFFORT_SUFFIX_PATTERN.exec(value);
   if (match == null) {
     return { baseModel: value, reasoningEffort: null };
   }
   const baseModel = match[1]?.trim();
-  const rawLabel = (match[2] ?? match[3] ?? "").toLowerCase().trim();
-  if (rawLabel === "default") {
-    return baseModel == null || baseModel.length === 0
-      ? { baseModel: value, reasoningEffort: null }
-      : { baseModel, reasoningEffort: null };
+  if (baseModel == null || baseModel.length === 0) {
+    return { baseModel: value, reasoningEffort: null };
   }
-  const labelTokens = rawLabel
-    .replace(/\b(?:effort|reasoning)\b/g, "")
-    .replace(/\badaptive\s+max\b/g, "adaptive/max")
-    .split(/[,/]+/)
-    .map((label) => canonicalReasoningEffort(label.trim()))
-    .filter((label): label is string => label != null && BENCHMARK_EFFORT_LABELS.has(label));
+  const rawLabel = (match[2] ?? match[3] ?? "").trim();
+  if (rawLabel.toLowerCase() === "default") {
+    return { baseModel, reasoningEffort: null };
+  }
+  const labels = rawLabel
+    .split(/[,/+]+/)
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0)
+    .map((label) => ({
+      label,
+      efforts: label
+        .toLowerCase()
+        .replace(/\b(?:effort|reasoning)\b/g, "")
+        .replace(/\badaptive\s+max\b/g, "adaptive/max")
+        .split("/")
+        .map((token) => canonicalReasoningEffort(token.trim()))
+        .filter((token): token is string => token != null && BENCHMARK_EFFORT_LABELS.has(token)),
+    }));
   const reasoningEffort =
-    labelTokens.sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0] ??
-    null;
-  return baseModel == null || baseModel.length === 0 || reasoningEffort == null
-    ? { baseModel: value, reasoningEffort: null }
-    : { baseModel, reasoningEffort };
+    labels
+      .flatMap(({ efforts }) => efforts)
+      .sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0] ?? null;
+  if (reasoningEffort == null) {
+    return { baseModel: value, reasoningEffort: null };
+  }
+  const configuration = GPT_MODEL_TOKEN_PATTERN.test(normalizeModelToken(baseModel))
+    ? labels
+        .filter(
+          ({ label, efforts }) => efforts.length === 0 && normalizeModelToken(label) !== "default",
+        )
+        .map(({ label }) => label)
+        .join(" ")
+    : "";
+  return {
+    baseModel: configuration.length === 0 ? baseModel : `${baseModel} ${configuration}`,
+    reasoningEffort,
+  };
 }
 
 /** Index effort-labelled benchmark rows while making the highest effort the base-model default. */

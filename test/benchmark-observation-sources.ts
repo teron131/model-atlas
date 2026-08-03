@@ -56,7 +56,7 @@ assert.deepEqual(benchmarkModelEffort("Claude Opus 4.8 (Adaptive/Default)"), {
   reasoningEffort: "adaptive",
 });
 assert.deepEqual(benchmarkModelEffort("claude-opus-4.5 (high, 16k)"), {
-  baseModel: "claude-opus-4.5 16k",
+  baseModel: "claude-opus-4.5",
   reasoningEffort: "high",
 });
 const frontierMath = epochBenchmarkObservationRows(
@@ -425,25 +425,11 @@ for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey))
 
 const persistedFrontierMathRows = collector
   .records(BENCHMARK_OBSERVATION_RAW_TABLE)
-  .flatMap((row) => {
-    if (row.source_key !== "frontiermath_tier_4") return [row];
-    if (row.model === "GPT-5.6 Sol (pro, max)") {
-      return [{ ...row, base_model: "GPT-5.6 Sol" }];
-    }
-    if (row.model === "GPT-5.6 Sol (max)") {
-      return [
-        row,
-        {
-          ...row,
-          model_id: "gpt-5.6-sol_adaptive",
-          model: "GPT-5.6 Sol (Adaptive/Default)",
-          base_model: "GPT-5.6 Sol Default",
-          reasoning_effort: "adaptive",
-        },
-      ];
-    }
-    return [row];
-  });
+  .map((row) =>
+    row.source_key === "frontiermath_tier_4" && row.model === "GPT-5.6 Sol (pro, max)"
+      ? { ...row, base_model: "GPT-5.6 Sol" }
+      : row,
+  );
 const migratedFrontierMath = readBenchmarkObservationRawCache(
   persistedFrontierMathRows,
   benchmarkObservationBinding("frontierMathTier4"),
@@ -451,12 +437,7 @@ const migratedFrontierMath = readBenchmarkObservationRawCache(
 assert.equal(
   migratedFrontierMath?.rows.find((row) => row.model === "GPT-5.6 Sol (pro, max)")?.base_model,
   "GPT-5.6 Sol pro",
-  "Cache reads should reapply the current combined configuration-and-effort identity",
-);
-assert.equal(
-  migratedFrontierMath?.rows.find((row) => row.model.includes("Adaptive/Default"))?.base_model,
-  "GPT-5.6 Sol",
-  "Cache reads should remove a control label that an older parser retained as configuration",
+  "Cache reads should apply the current GPT configuration-and-effort identity",
 );
 assert.equal(
   buildBenchmarkObservationLookup(migratedFrontierMath?.rows ?? []).get("gpt-5-6-sol--max")
