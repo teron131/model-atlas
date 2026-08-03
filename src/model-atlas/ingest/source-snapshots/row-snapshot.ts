@@ -1,9 +1,10 @@
 /** Generic source-row snapshot lifecycle for cache-aware fetched payloads. */
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
+import { benchmarkModelEffort } from "../../identity/normalization";
 import type { RawSourceName } from "../source-registry";
 import type { DatabaseBuildOptions, RawSourceCacheStatus, SourceRowState } from "../types";
-import { snapshotRowsWithStates, sourceKey } from "./policy";
+import { mergeSourceEvidence, snapshotRowsWithStates, sourceKey } from "./policy";
 
 type RawRowsCache<Row> = {
   rows: Row[];
@@ -27,6 +28,7 @@ type SourceRowSnapshotConfig<Row> = {
   fetchRows: () => Promise<SourceRowsPayload<Row>>;
   rowKey: (row: Row) => string | null;
   rowLabel: (row: Row) => string | null;
+  mergeRow?: (cachedRow: Row, fetchedRow: Row) => Row;
 };
 
 type SourceRowSnapshotResult<Row> = {
@@ -36,8 +38,10 @@ type SourceRowSnapshotResult<Row> = {
   sourceUrl: string | null;
 };
 
-/** Builds stable identity across benchmark task, track, harness, run, model, and effort variants. */
+/** Uses stable model identity rather than mutable source labels across benchmark row variants. */
 export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string {
+  const parsedModel = benchmarkModelEffort(row.model);
+  const baseModel = row.base_model === row.model ? parsedModel.baseModel : row.base_model;
   const metadataIdentity = (key: string): string | number | null => {
     const value = row.metadata[key];
     return typeof value === "string" || typeof value === "number" ? value : null;
@@ -47,12 +51,27 @@ export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string
     metadataIdentity("task"),
     metadataIdentity("track"),
     metadataIdentity("harness"),
-    metadataIdentity("source_model_id") ?? metadataIdentity("source_model"),
+    metadataIdentity("source_model_id") ??
+      metadataIdentity("source_model") ??
+      metadataIdentity("internal_model_name"),
     metadataIdentity("run_id"),
-    row.model_id ?? row.model,
+    row.model_id ?? baseModel,
     row.model_creator_id ?? row.model_creator ?? row.inference_provider,
-    row.reasoning_effort,
+    row.reasoning_effort ?? parsedModel.reasoningEffort,
   );
+}
+
+/** Retain cached evidence while adopting the current source's normalized display identity. */
+export function mergeBenchmarkObservationRow(
+  cachedRow: BenchmarkObservationRow,
+  fetchedRow: BenchmarkObservationRow,
+): BenchmarkObservationRow {
+  return {
+    ...mergeSourceEvidence(cachedRow, fetchedRow),
+    model: fetchedRow.model,
+    base_model: fetchedRow.base_model,
+    reasoning_effort: fetchedRow.reasoning_effort,
+  };
 }
 
 /** Decides whether fetched rows should replace cached source rows. */
@@ -100,6 +119,7 @@ export async function snapshotSourceRows<Row>(
       options: config.options,
       rowKey: config.rowKey,
       rowLabel: config.rowLabel,
+      mergeRow: config.mergeRow,
       previousMissingSince: config.previousMissingSince,
       nowEpochSeconds: config.nowEpochSeconds,
     });
@@ -124,6 +144,7 @@ export async function snapshotSourceRows<Row>(
     options: config.options,
     rowKey: config.rowKey,
     rowLabel: config.rowLabel,
+    mergeRow: config.mergeRow,
     previousMissingSince: config.previousMissingSince,
     nowEpochSeconds: config.nowEpochSeconds,
   });

@@ -18,7 +18,10 @@ import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scr
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/vals/results";
 import { processWeirdMlCsv } from "../src/model-atlas/benchmarks/scrapers/weirdml";
 import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
-import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
+import {
+  benchmarkObservationRowKey,
+  mergeBenchmarkObservationRow,
+} from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
@@ -54,6 +57,19 @@ const weirdMl = processWeirdMlCsv(
 );
 assert.equal(weirdMl[0]?.reasoning_effort, "max");
 assert.equal(weirdMl[0]?.metadata.shapes_easy_acc, 0.95);
+assert.notEqual(
+  benchmarkObservationRowKey({
+    ...weirdMl[0]!,
+    model_id: "example/shared-model",
+    metadata: { ...weirdMl[0]!.metadata, internal_model_name: "example:thinking" },
+  }),
+  benchmarkObservationRowKey({
+    ...weirdMl[0]!,
+    model_id: "example/shared-model",
+    metadata: { ...weirdMl[0]!.metadata, internal_model_name: "example:no-thinking" },
+  }),
+  "Source configurations sharing one model ID should retain distinct cache identities",
+);
 
 function astro(value: unknown): unknown[] {
   return [0, value];
@@ -109,15 +125,106 @@ assert.equal(proof.find((row) => row.model_id === "aristotle/aristotle")?.score_
 const surge = processSurgeBenchmarkPageHtml(
   `
 	<div>Model Rankings</div>
-	<div role="listitem" data-score="45"><img alt="OpenAI Logo"><div class="head-rank-table-brand">OpenAI</div><div class="head-rank-table-name">GPT 5.6 Sol (Max reasoning)</div></div>
+	<div role="listitem" data-score="45"><div data-leaderboard-rank>1</div><img alt="OpenAI Logo"><div class="head-rank-table-brand">GPT</div><div class="head-rank-table-name">5.6 Sol (Max reasoning)</div></div>
+	<div role="listitem" data-score="45"><div data-leaderboard-rank>1</div><img alt="Anthropic Logo"><div class="head-rank-table-brand">Claude</div><div class="head-rank-table-name">Fable 5 (Adaptive Max)</div></div>
+	<div role="listitem" data-score="44"><div data-leaderboard-rank>1</div><img alt="Google Logo"><div class="head-rank-table-brand">Gemini</div><div class="head-rank-table-name">3 Pro</div></div>
+	<div role="listitem" data-score="43"><div data-leaderboard-rank>1</div><img alt="Kimi Logo"><div class="head-rank-table-brand">Kimi</div><div class="head-rank-table-name">K3 (Max reasoning)</div></div>
 	<section></section>
 `,
   "chartography",
   "https://surgehq.ai/benchmarks/chartography",
 );
-assert.equal(surge[0]?.reasoning_effort, "max");
-assert.equal(surge[0]?.canonical_value, 0.45);
-assert.equal(surge[0]?.reported_value, 45);
+const [gptMax, claudeMax, gemini, kimiMax] = surge;
+assert.ok(gptMax);
+assert.ok(claudeMax);
+assert.ok(gemini);
+assert.ok(kimiMax);
+assert.equal(gptMax.reasoning_effort, "max");
+assert.equal(gptMax.canonical_value, 0.45);
+assert.equal(gptMax.reported_value, 45);
+assert.equal(gptMax.rank, 1);
+assert.equal(claudeMax.base_model, "Claude Fable 5");
+assert.equal(claudeMax.reasoning_effort, "max");
+assert.equal(claudeMax.canonical_value, 0.45);
+assert.equal(claudeMax.rank, 1);
+assert.equal(gemini.rank, 3);
+assert.equal(kimiMax.model, "Kimi K3 (Max reasoning)");
+assert.equal(kimiMax.base_model, "K3");
+assert.equal(kimiMax.reasoning_effort, "max");
+assert.equal(kimiMax.model_creator, "Kimi");
+assert.equal(
+  benchmarkObservationRowKey({ ...kimiMax, model: "K3 (Max reasoning)" }),
+  benchmarkObservationRowKey(kimiMax),
+  "Adding the source brand should not manufacture a new persisted row identity",
+);
+const surgeLookup = buildBenchmarkObservationLookup(surge);
+assert.equal(
+  surgeLookup.has("max--max"),
+  false,
+  "Effort-label slashes should not create cross-model lookup aliases",
+);
+
+const legacySurgeMaxRow = {
+  ...gptMax,
+  model: "GPT 5.6 Sol (Max reasoning)",
+};
+const currentSurgeMaxRow = {
+  ...surge[0]!,
+  model: "GPT 5.6 Sol (Adaptive/Max)",
+};
+assert.equal(
+  benchmarkObservationRowKey(legacySurgeMaxRow),
+  benchmarkObservationRowKey(currentSurgeMaxRow),
+  "Source display-label changes should preserve the model-effort cache identity",
+);
+
+const legacySurgeDefaultRow = {
+  ...surge[0]!,
+  model: "GPT 5.6 Sol",
+  reasoning_effort: null,
+};
+const currentSurgeDefaultRow = {
+  ...legacySurgeDefaultRow,
+  model: "GPT 5.6 Sol (default)",
+};
+assert.equal(
+  benchmarkObservationRowKey(legacySurgeDefaultRow),
+  benchmarkObservationRowKey(currentSurgeDefaultRow),
+  "Explicit default labels should not manufacture quarantined source rows",
+);
+assert.notEqual(
+  benchmarkObservationRowKey(currentSurgeDefaultRow),
+  benchmarkObservationRowKey(currentSurgeMaxRow),
+  "Default and explicit max-effort rows should retain distinct source identities",
+);
+
+const legacySurgeEffortRow = {
+  ...surge[0]!,
+  model: "Inkling (Max effort)",
+  base_model: "Inkling (Max effort)",
+  reasoning_effort: null,
+};
+const currentSurgeEffortRow = {
+  ...legacySurgeEffortRow,
+  model: "Inkling (Max reasoning)",
+  base_model: "Inkling",
+  reasoning_effort: "max",
+};
+assert.equal(
+  benchmarkObservationRowKey(legacySurgeEffortRow),
+  benchmarkObservationRowKey(currentSurgeEffortRow),
+  "Renamed effort labels should repair historical base-model identities",
+);
+assert.deepEqual(
+  mergeBenchmarkObservationRow(legacySurgeEffortRow, currentSurgeEffortRow),
+  {
+    ...legacySurgeEffortRow,
+    model: "Inkling (Max reasoning)",
+    base_model: "Inkling",
+    reasoning_effort: "max",
+  },
+  "Reconciled rows should adopt current normalized identity without rewriting cached evidence",
+);
 
 const frontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
 assert.equal(

@@ -1,5 +1,6 @@
 /** Riemann Bench persistence owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
 
+import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../../identity/normalization";
 import {
   type CacheRowSource,
   firstEpochSecond,
@@ -7,7 +8,7 @@ import {
   stringValue,
 } from "../../ingest/cache/rows";
 import { SNAPSHOT_TABLES } from "../../ingest/source-registry";
-import { sourceKey } from "../../ingest/source-snapshots/policy";
+import { mergeSourceEvidence, sourceKey } from "../../ingest/source-snapshots/policy";
 import { snapshotSourceRows } from "../../ingest/source-snapshots/row-snapshot";
 import type {
   DatabaseBuildOptions,
@@ -72,7 +73,7 @@ type RiemannBenchSnapshot = {
   sourceStatus: SourceSnapshotStatus;
 };
 
-/** Loads Riemann Bench rows keyed by provider and model for cache row continuity. */
+/** Loads Riemann Bench rows using normalized model configuration identity for cache continuity. */
 async function riemannBenchSnapshot(
   cached: ReturnType<typeof readRiemannBenchRawCache>,
   status: RawSourceCacheStatus,
@@ -88,8 +89,19 @@ async function riemannBenchSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getRiemannBenchStats,
-    rowKey: (row) => sourceKey(row.provider, row.model),
+    rowKey: (row) => {
+      const parsedModel = benchmarkModelEffort(row.model);
+      return sourceKey(
+        row.provider,
+        modelNameWithoutCreatorPrefix(parsedModel.baseModel, row.provider),
+        parsedModel.reasoningEffort,
+      );
+    },
     rowLabel: (row) => row.model,
+    mergeRow: (cachedRow, fetchedRow) => ({
+      ...mergeSourceEvidence(cachedRow, fetchedRow),
+      model: fetchedRow.model,
+    }),
   });
   if (snapshot.sourceUrl == null) {
     throw new Error("Riemann Bench snapshot is missing its source URL");
