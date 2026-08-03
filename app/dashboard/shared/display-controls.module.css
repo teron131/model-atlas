@@ -228,6 +228,13 @@
   }
 }
 
+@media (max-width: 720px) {
+  .slider,
+  .variantOption {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .variantOption {
     transition: none;

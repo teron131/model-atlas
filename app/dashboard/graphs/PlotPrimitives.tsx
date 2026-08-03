@@ -29,6 +29,15 @@ type PlotBounds = {
   bottom: number;
 };
 
+export const SCATTER_CHART_HEIGHT = 500;
+export const SCATTER_CHART_MARGIN: Margin = {
+  top: 28,
+  right: 34,
+  bottom: 70,
+  left: 62,
+};
+export const SCATTER_CHART_WIDTH = 820;
+
 type ProjectionConfig = {
   event: ReactPointerEvent<SVGSVGElement>;
   bounds: PlotBounds;

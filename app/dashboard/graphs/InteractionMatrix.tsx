@@ -36,6 +36,9 @@ import {
   plotBoundsFor,
   PlotFrame,
   PointHitTarget,
+  SCATTER_CHART_HEIGHT,
+  SCATTER_CHART_MARGIN,
+  SCATTER_CHART_WIDTH,
   stableSvgScale,
   useCursorProjection,
   XAxisTicks,
@@ -46,14 +49,6 @@ import type { HoverRow, HoverSetter, InteractionConfig, InteractionContext, Poin
 
 import styles from "./graphs.module.css";
 
-const INTERACTION_CHART_WIDTH = 760;
-const INTERACTION_CHART_HEIGHT = 460;
-const INTERACTION_CHART_MARGIN = {
-  top: 30,
-  right: 64,
-  bottom: 72,
-  left: 66,
-};
 const INTERACTION_LABEL_METRICS = {
   fontSize: 11,
   charWidth: 6.5,
@@ -89,7 +84,7 @@ export const InteractionMatrix = memo(function InteractionMatrix({
 
   return (
     <Panel
-      captureWidth={INTERACTION_CHART_WIDTH}
+      captureWidth={SCATTER_CHART_WIDTH}
       sectionId="interaction-matrix"
       sectionLabel="Interaction view · Pairwise relationships"
       title="Intelligence Interaction Matrix"
@@ -218,9 +213,9 @@ function InteractionPlot({
     );
   }
 
-  const width = INTERACTION_CHART_WIDTH;
-  const height = INTERACTION_CHART_HEIGHT;
-  const margin = INTERACTION_CHART_MARGIN;
+  const width = SCATTER_CHART_WIDTH;
+  const height = SCATTER_CHART_HEIGHT;
+  const margin = SCATTER_CHART_MARGIN;
   const [rawMin, rawMax] = extent(chartPoints, (point) => point.x);
   const xMin = rawMin ?? 1;
   const xMax = rawMax ?? xMin * 2;
@@ -315,6 +310,9 @@ function InteractionPlot({
     <div
       className={`${styles.chartWrap} ${styles.interactionPlot}`}
       style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      role="group"
+      aria-label={`${config.title} chart viewport`}
+      tabIndex={0}
     >
       <div className={styles.interactionPlotHead}>
         <div className={styles.interactionTitle}>{config.title}</div>

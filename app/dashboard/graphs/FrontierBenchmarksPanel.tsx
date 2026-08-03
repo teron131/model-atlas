@@ -34,11 +34,10 @@ import {
 import { GraphToggle } from "./GraphToggle";
 import { modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
+import { SCATTER_CHART_WIDTH } from "./PlotPrimitives";
 import type { HoverSetter } from "./types";
 
 import styles from "./graphs.module.css";
-
-const FRONTIER_CHART_WIDTH = 760;
 
 export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   payload,
@@ -140,7 +139,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
 
   return (
     <Panel
-      captureWidth={FRONTIER_CHART_WIDTH}
+      captureWidth={SCATTER_CHART_WIDTH}
       captureFileName={captureFileName}
       sectionId="frontier-benchmarks"
       sectionLabel="Benchmark view · Portfolio evidence"
@@ -217,8 +216,6 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         labelRows={labeledRows}
         getLabel={(row) => shortLabel(row.model)}
         setHover={setHover}
-        width={FRONTIER_CHART_WIDTH}
-        height={520}
       />
       <div className={styles.chartSummary}>
         <SummaryCard label="Leader" value={modelName(leader.model)} detail={leaderDetail} />

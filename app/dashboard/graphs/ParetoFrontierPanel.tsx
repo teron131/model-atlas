@@ -26,6 +26,9 @@ import {
   plotBoundsFor,
   PlotFrame,
   PointHitTarget,
+  SCATTER_CHART_HEIGHT,
+  SCATTER_CHART_MARGIN,
+  SCATTER_CHART_WIDTH,
   stableSvgScale,
   useCursorProjection,
   XAxisTicks,
@@ -39,8 +42,6 @@ import styles from "./graphs.module.css";
 const SCORE_AXIS_FORMAT_OPTIONS = {
   formatTick: (tick: number) => tick.toFixed(0),
 };
-const PARETO_CHART_WIDTH = 820;
-
 export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   models,
   setHover,
@@ -62,7 +63,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   if (candidates.length === 0) {
     return (
       <Panel
-        captureWidth={PARETO_CHART_WIDTH}
+        captureWidth={SCATTER_CHART_WIDTH}
         sectionId="pareto-frontier"
         sectionLabel="Tradeoff view · Intelligence × Value"
         title="Pareto Frontier"
@@ -77,9 +78,9 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
     );
   }
 
-  const width = PARETO_CHART_WIDTH;
-  const height = 500;
-  const margin = { top: 26, right: 34, bottom: 68, left: 62 };
+  const width = SCATTER_CHART_WIDTH;
+  const height = SCATTER_CHART_HEIGHT;
+  const margin = SCATTER_CHART_MARGIN;
   const values = candidates.map((model) => Number(model.scores.value_score));
   const scores = candidates.map((model) => model.scores.intelligence_score);
   const frontierDescending: ModelAtlasModel[] = [];
@@ -171,7 +172,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
 
   return (
     <Panel
-      captureWidth={PARETO_CHART_WIDTH}
+      captureWidth={SCATTER_CHART_WIDTH}
       sectionId="pareto-frontier"
       sectionLabel="Tradeoff view · Intelligence × Value"
       title="Pareto Frontier"
@@ -202,6 +203,9 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       <div
         className={styles.chartWrap}
         style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+        role="group"
+        aria-label="Intelligence by Value Score chart viewport"
+        tabIndex={0}
       >
         <svg
           viewBox={`0 0 ${width} ${height}`}

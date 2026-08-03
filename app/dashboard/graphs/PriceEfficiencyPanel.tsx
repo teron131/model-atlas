@@ -9,7 +9,6 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useDeferredValue,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -47,14 +46,14 @@ import {
   priceEfficiencySummaryDetail,
 } from "./price-efficiency";
 import type { CostFilter, HoverSetter } from "./types";
+import { useCompactChartLayout } from "./use-media-query";
 
 import styles from "./graphs.module.css";
 
 const SCORE_DOMAIN: [number, number] = [0, 100];
 const SLOPE_LABEL_MIN_GAP = 24;
 const CHART_WIDTH = 1100;
-const COMPACT_CHART_WIDTH = 660;
-const COMPACT_CHART_MEDIA_QUERY = "(max-width: 520px)";
+const COMPACT_CHART_WIDTH = 820;
 const PANEL_TITLE = "Price vs Cost Efficiency";
 const COMPACT_EFFORT_LABELS: Record<string, string> = {
   low: "LO",
@@ -280,7 +279,7 @@ function PriceEfficiencySlopeGraph({
 }) {
   const width = compactLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
   const margin = compactLayout
-    ? { top: 34, right: 220, bottom: 30, left: 200 }
+    ? { top: 34, right: 260, bottom: 30, left: 230 }
     : { top: 34, right: 380, bottom: 30, left: 330 };
   const minimumLabelY = margin.top + 18;
   const height = minimumLabelY + Math.max(0, rows.length - 1) * SLOPE_LABEL_MIN_GAP + margin.bottom;
@@ -484,9 +483,9 @@ function PriceEfficiencySlopeGraph({
             <g key={`label-${graphRow.key}`} opacity={labelOpacity} {...rowHoverHandlers(graphRow)}>
               <rect
                 className={styles.slopeHitRect}
-                x={leftX - (compactLayout ? 180 : 230)}
+                x={leftX - 230}
                 y={graphRow.leftLabelY - 13}
-                width={compactLayout ? 168 : 208}
+                width={compactLayout ? 218 : 208}
                 height={20}
               />
               <rect
@@ -585,21 +584,6 @@ function scrollSlopeChart(event: ReactKeyboardEvent<HTMLDivElement>) {
   event.preventDefault();
 }
 
-/** Follow the phone breakpoint without changing the server-rendered layout. */
-function useCompactChartLayout(): boolean {
-  const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia(COMPACT_CHART_MEDIA_QUERY);
-    const update = () => setCompact(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  return compact;
-}
-
 /** Keep effort identity visible while fitting model labels beside both mobile rails. */
 function compactSlopeLabel(model: ModelAtlasModel): string {
   const label = shortLabel(model);
@@ -611,7 +595,7 @@ function compactSlopeLabel(model: ModelAtlasModel): string {
     effortLabel.length > 0 && label.endsWith(effortLabel)
       ? label.slice(0, -effortLabel.length)
       : label;
-  const maximumBaseLength = 14 - effortSuffix.length;
+  const maximumBaseLength = 22 - effortSuffix.length;
   const compactBase =
     baseLabel.length <= maximumBaseLength
       ? baseLabel
