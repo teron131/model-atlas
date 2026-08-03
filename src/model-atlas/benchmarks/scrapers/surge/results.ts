@@ -25,8 +25,14 @@ type SurgeLeaderboardScoreRow = {
   last_updated: string | null;
 };
 
+type SurgeScoreKind = "percent" | "elo";
+
 type SurgeLeaderboardObservation = SurgeLeaderboardScoreRow & {
   reportedValue: number;
+  reportedUnit: "percent" | "index";
+  canonicalUnit: "proportion" | "index";
+  confidenceLow: number | null;
+  confidenceHigh: number | null;
 };
 
 function escapeRegExp(value: string): string {
@@ -93,7 +99,7 @@ function surgeProvider(rowHtml: string): string | null {
   return providerFromLogoAlt(htmlAttribute(rowHtml, "alt"));
 }
 
-function surgeScorePercent(rowHtml: string): string | null {
+function surgeScoreText(rowHtml: string): string | null {
   const attributeScore = htmlAttribute(rowHtml, "data-score");
   if (attributeScore != null && attributeScore.length > 0) {
     return attributeScore;
@@ -105,22 +111,33 @@ function surgeScorePercent(rowHtml: string): string | null {
   return score != null && score.length > 0 ? score : null;
 }
 
+function surgeConfidenceBound(rowHtml: string, bound: "lower" | "upper"): number | null {
+  const attribute = htmlAttribute(rowHtml, `data-leaderboard-ci-${bound}`);
+  if (attribute == null || attribute.length === 0) return null;
+  const value = Number(attribute);
+  return Number.isFinite(value) ? value : null;
+}
+
 function surgeLeaderboardScoreRow(
   rowHtml: string,
   lastUpdated: string | null,
+  scoreKind: SurgeScoreKind = "percent",
 ): SurgeLeaderboardObservation | null {
   const model = surgeModelName(rowHtml);
-  const scorePercent = surgeScorePercent(rowHtml);
-  const reportedValue = Number(scorePercent);
-  const canonicalValue = percentToUnitScore(scorePercent);
-  if (model == null || !Number.isFinite(reportedValue) || canonicalValue == null) {
-    return null;
-  }
+  const scoreText = surgeScoreText(rowHtml);
+  if (model == null || scoreText == null) return null;
+  const reportedValue = Number(scoreText);
+  const canonicalValue = scoreKind === "percent" ? percentToUnitScore(scoreText) : reportedValue;
+  if (!Number.isFinite(reportedValue) || canonicalValue == null) return null;
   return {
     provider: surgeProvider(rowHtml),
     model,
     reportedValue,
+    reportedUnit: scoreKind === "percent" ? "percent" : "index",
     score: canonicalValue,
+    canonicalUnit: scoreKind === "percent" ? "proportion" : "index",
+    confidenceLow: scoreKind === "elo" ? surgeConfidenceBound(rowHtml, "lower") : null,
+    confidenceHigh: scoreKind === "elo" ? surgeConfidenceBound(rowHtml, "upper") : null,
     last_updated: lastUpdated,
   };
 }
@@ -130,17 +147,23 @@ export function surgeLeaderboardScoreRows(pageHtml: string): SurgeLeaderboardSco
   return surgeLeaderboardRows(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
     .filter((row): row is SurgeLeaderboardObservation => row != null)
-    .map(({ reportedValue: _, ...row }) => row);
+    .map((row) => ({
+      provider: row.provider,
+      model: row.model,
+      score: row.score,
+      last_updated: row.last_updated,
+    }));
 }
 
 export function processSurgeBenchmarkPageHtml(
   pageHtml: string,
   benchmarkKey: string,
   sourceUrl: string,
+  scoreKind: SurgeScoreKind = "percent",
 ): BenchmarkObservationRow[] {
   const lastUpdated = surgeLastUpdated(pageHtml);
   const rows = surgeLeaderboardRows(pageHtml)
-    .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
+    .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated, scoreKind))
     .filter((row): row is SurgeLeaderboardObservation => row != null);
   let rank = 0;
   let previousScore: number | null = null;
@@ -162,14 +185,14 @@ export function processSurgeBenchmarkPageHtml(
       inference_provider: null,
       rank,
       reported_value: row.reportedValue,
-      reported_unit: "percent",
+      reported_unit: row.reportedUnit,
       canonical_value: row.score,
-      canonical_unit: "proportion",
+      canonical_unit: row.canonicalUnit,
       score_eligible: true,
       standard_error: null,
-      confidence_low: null,
-      confidence_high: null,
-      observed_at: row.last_updated ?? null,
+      confidence_low: row.confidenceLow,
+      confidence_high: row.confidenceHigh,
+      observed_at: row.last_updated,
       metadata: {},
     };
   });
@@ -178,13 +201,15 @@ export function processSurgeBenchmarkPageHtml(
 export async function getSurgeLeaderboardStats(
   benchmarkKey: string,
   sourceUrl: string,
+  scoreKind: SurgeScoreKind = "percent",
 ): Promise<BenchmarkObservationPayload> {
   try {
     const response = await fetchWithTimeout(sourceUrl, {}, DEFAULT_TIMEOUT_MS);
     if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
+    const pageHtml = await response.text();
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processSurgeBenchmarkPageHtml(await response.text(), benchmarkKey, sourceUrl),
+      data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
     };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };

@@ -296,6 +296,7 @@ const lookups = {
   chartography: {
     rowsByModelName: buildBenchmarkObservationLookup([chartographyRow]),
   },
+  complexConstraints: { rowsByModelName: emptyLookup() },
   chessPuzzles: { rowsByModelName: new Map() },
   cursorBench: {
     rowsByModelName: new Map([["example-model", cursorBenchRow]]),
@@ -323,6 +324,7 @@ const lookups = {
   harveyLab: {
     rowsByModelName: new Map([["example-model", harveyLabRow]]),
   },
+  hemingwayBench: { rowsByModelName: emptyLookup() },
   legalResearch: {
     rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
   },

@@ -33,7 +33,7 @@ export type BenchmarkObservationLoader =
       includeReasoningEffortInModel?: boolean;
       eligibility?: "exclude_aristotle";
     }
-  | { kind: "surge"; sourceUrl: string }
+  | { kind: "surge"; sourceUrl: string; scoreKind?: "elo" }
   | { kind: "epoch_runs"; task: string }
   | {
       kind: "zeroeval";

@@ -687,6 +687,7 @@ function modelStatsSourceData(
     },
     codeMigration: { rows: [], rowsByModelName: new Map() },
     chartography: { rows: [], rowsByModelName: new Map() },
+    complexConstraints: { rows: [], rowsByModelName: new Map() },
     chessPuzzles: { rows: [], rowsByModelName: new Map() },
     cursorBench: {
       rows: cursorBenchModelScoreRows,
@@ -714,6 +715,7 @@ function modelStatsSourceData(
     },
     handbookMd: { rows: [], rowsByModelName: new Map() },
     harveyLab: { rows: [], rowsByModelName: new Map() },
+    hemingwayBench: { rows: [], rowsByModelName: new Map() },
     legalResearch: { rows: [], rowsByModelName: new Map() },
     medCode: { rows: [], rowsByModelName: new Map() },
     mercorApexAgents: {

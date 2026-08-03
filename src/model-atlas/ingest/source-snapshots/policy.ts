@@ -74,9 +74,8 @@ export function mergeCachedSourceRows<T>(
       unkeyedCachedRows.push(row);
       continue;
     }
-    if (!keyedRows.has(key)) {
-      keyedRows.set(key, row);
-    }
+    const cachedRow = keyedRows.get(key);
+    keyedRows.set(key, cachedRow == null ? row : mergeRow(cachedRow, row));
   }
 
   for (const row of fetchedRows) {
@@ -102,7 +101,9 @@ export function snapshotRows<T>(
   mergeRow?: (cachedRow: T, fetchedRow: T) => T,
 ): T[] {
   if (fetchedAtEpochSeconds == null || fetchedRows.length === 0) {
-    return [...(cachedRows ?? fetchedRows)];
+    return cachedRows == null
+      ? [...fetchedRows]
+      : mergeCachedSourceRows(cachedRows, [], rowKey, mergeRow);
   }
   if (cachedRows == null || options.replaceSourceRows === true) {
     return [...fetchedRows];
