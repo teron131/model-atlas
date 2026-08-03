@@ -348,6 +348,35 @@ assert.deepEqual(
     sourceRowsKey: "chartographyRows",
   },
 );
+assert.deepEqual(
+  BENCHMARK_OBSERVATION_BINDINGS.find((binding) => binding.benchmark === "complex_constraints"),
+  {
+    benchmark: "complex_constraints",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks/complex-constraints",
+    },
+    rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
+    source: "surge",
+    sourceDataKey: "complexConstraints",
+    sourceRowsKey: "complexConstraintsRows",
+  },
+);
+assert.deepEqual(
+  BENCHMARK_OBSERVATION_BINDINGS.find((binding) => binding.benchmark === "hemingway_bench"),
+  {
+    benchmark: "hemingway_bench",
+    loader: {
+      kind: "surge",
+      scoreKind: "elo",
+      sourceUrl: "https://surgehq.ai/benchmarks/hemingway-bench",
+    },
+    rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
+    source: "surge",
+    sourceDataKey: "hemingwayBench",
+    sourceRowsKey: "hemingwayBenchRows",
+  },
+);
 assert.equal(BENCHMARK_DISPLAY_KEYS[0], "agent_arena");
 assert.equal(BENCHMARK_DISPLAY_KEYS.at(-1), "weirdml");
 assert.deepEqual(

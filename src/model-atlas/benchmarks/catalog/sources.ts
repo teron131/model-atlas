@@ -48,6 +48,16 @@ export const GENERIC_BENCHMARK_SOURCES = {
     sourceDataKey: "codeMigration",
     sourceRowsKey: "codeMigrationRows",
   },
+  complex_constraints: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks/complex-constraints",
+    },
+    sourceDataKey: "complexConstraints",
+    sourceRowsKey: "complexConstraintsRows",
+  },
   cyberbench: {
     group: "vals",
     id: "vals",
@@ -134,6 +144,17 @@ export const GENERIC_BENCHMARK_SOURCES = {
     },
     sourceDataKey: "handbookMd",
     sourceRowsKey: "handbookMdRows",
+  },
+  hemingway_bench: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      scoreKind: "elo",
+      sourceUrl: "https://surgehq.ai/benchmarks/hemingway-bench",
+    },
+    sourceDataKey: "hemingwayBench",
+    sourceRowsKey: "hemingwayBenchRows",
   },
   legal_research: {
     group: "vals",

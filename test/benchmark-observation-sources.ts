@@ -17,7 +17,11 @@ import { epochBenchmarkObservationRows } from "../src/model-atlas/benchmarks/scr
 import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/surge/results";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/vals/results";
 import { processWeirdMlCsv } from "../src/model-atlas/benchmarks/scrapers/weirdml";
-import { mergeCachedSourceRows } from "../src/model-atlas/ingest/source-snapshots/policy";
+import { benchmarkModelEffort } from "../src/model-atlas/identity/normalization";
+import {
+  mergeCachedSourceRows,
+  snapshotRows,
+} from "../src/model-atlas/ingest/source-snapshots/policy";
 import {
   benchmarkObservationRowKey,
   mergeBenchmarkObservationRow,
@@ -40,16 +44,34 @@ assert.equal(eci[0]?.confidence_low, 159.26);
 const epochRuns = parseCsvRecords(
   "id_runs,task,model,Best score (across scorers),started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,stderr,best_score,original_task_name,Scores\n" +
     "new,FrontierMath-Tier-4-v2-Private,gpt,0.56,2026-07-01T00:00:00Z,Success,2.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.561,0.02,0.56,frontiermath,[]\n" +
+    'pro,FrontierMath-Tier-4-v2-Private,gpt,0.52,2026-07-02T00:00:00Z,Success,2.0.0,gpt-5.6-sol_promax,GPT-5.6 Sol,"GPT-5.6 Sol (pro, max)",OpenAI,0.52,0.03,0.52,frontiermath,[]\n' +
     "old,FrontierMath-Tier-4-2025-07-01-Private,gpt,0.31,2025-07-01T00:00:00Z,Success,1.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.3125,0.02,0.31,frontiermath,[]\n",
 );
+assert.deepEqual(benchmarkModelEffort("GPT-5.6 Sol (pro, max)"), {
+  baseModel: "GPT-5.6 Sol pro",
+  reasoningEffort: "max",
+});
+assert.deepEqual(benchmarkModelEffort("Claude Opus 4.8 (Adaptive/Default)"), {
+  baseModel: "Claude Opus 4.8",
+  reasoningEffort: "adaptive",
+});
+assert.deepEqual(benchmarkModelEffort("claude-opus-4.5 (high, 16k)"), {
+  baseModel: "claude-opus-4.5 16k",
+  reasoningEffort: "high",
+});
 const frontierMath = epochBenchmarkObservationRows(
   epochRuns,
   "frontiermath_tier_4",
   "FrontierMath-Tier-4-v2-Private",
 );
-assert.equal(frontierMath.length, 1);
+assert.equal(frontierMath.length, 2);
 assert.equal(frontierMath[0]?.canonical_value, 0.561);
 assert.equal(frontierMath[0]?.metadata.task_version, "2.0.0");
+assert.equal(frontierMath[1]?.base_model, "GPT-5.6 Sol pro");
+const epochFrontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
+assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol")?.canonical_value, 0.561);
+assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol--max")?.canonical_value, 0.561);
+assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol-pro")?.canonical_value, 0.52);
 
 const weirdMl = processWeirdMlCsv(
   "internal_model_name,display_name,model_slug,shapes_easy_acc,shapes_hard_acc,digits_unsup_acc,chess_winners_acc,kolmo_shuffle_acc,classify_sentences_acc,classify_shuffled_acc,insert_patches_acc,blunders_easy_acc,blunders_hard_acc,digits_generalize_acc,shapes_variable_acc,xor_easy_acc,xor_hard_acc,splash_easy_acc,splash_hard_acc,number_patterns_acc,avg_acc,avg_acc_standard_error,cost_per_run_usd,mean_total_output_tokens,code_len_p10,code_len_p50,code_len_p90,exec_time_median_s,release_date,API source\n" +
@@ -164,6 +186,35 @@ assert.equal(
   "Effort-label slashes should not create cross-model lookup aliases",
 );
 
+const hemingway = processSurgeBenchmarkPageHtml(
+  `
+	<div>Model Rankings</div>
+	<div role="listitem" data-leaderboard-ci-lower="1096" data-leaderboard-ci-upper="1139"><div fs-list-field="rank">1</div><img alt="Anthropic Logo"><div class="head-rank-table-brand">Claude</div><div class="head-rank-table-name">Fable 5 (default)</div><div data-score="" fs-list-field="foundational-score">1118</div></div>
+	<div role="listitem" data-leaderboard-ci-lower="1080" data-leaderboard-ci-upper="1120"><div fs-list-field="rank">2</div><img alt="OpenAI Logo"><div class="head-rank-table-brand">GPT</div><div class="head-rank-table-name">5.6 Sol (Max reasoning)</div><div data-score="" fs-list-field="foundational-score">1100</div></div>
+	<div role="listitem" data-leaderboard-ci-lower="1079" data-leaderboard-ci-upper="1121"><div fs-list-field="rank">2</div><img alt="Google Logo"><div class="head-rank-table-brand">Gemini</div><div class="head-rank-table-name">3 Pro</div><div data-score="" fs-list-field="foundational-score">1100</div></div>
+	<div role="listitem"><div class="head-rank-table-name">Unscored placeholder</div></div>
+	<section><div role="listitem" data-score="9999"><div class="head-rank-table-name">Embedded leaderboard row</div></div></section>
+`,
+  "hemingway_bench",
+  "https://surgehq.ai/benchmarks/hemingway-bench",
+  "elo",
+);
+assert.equal(hemingway.length, 3);
+assert.deepEqual(
+  hemingway.map(({ rank, reported_value }) => ({ rank, reported_value })),
+  [
+    { rank: 1, reported_value: 1118 },
+    { rank: 2, reported_value: 1100 },
+    { rank: 2, reported_value: 1100 },
+  ],
+);
+assert.equal(hemingway[0]?.reported_unit, "index");
+assert.equal(hemingway[0]?.canonical_unit, "index");
+assert.equal(hemingway[0]?.confidence_low, 1096);
+assert.equal(hemingway[0]?.confidence_high, 1139);
+assert.equal(hemingway[0]?.base_model, "Claude Fable 5");
+assert.equal(hemingway[1]?.reasoning_effort, "max");
+
 const legacySurgeMaxRow = {
   ...gptMax,
   model: "GPT 5.6 Sol (Max reasoning)",
@@ -171,11 +222,29 @@ const legacySurgeMaxRow = {
 const currentSurgeMaxRow = {
   ...surge[0]!,
   model: "GPT 5.6 Sol (Adaptive/Max)",
+  canonical_value: 0.99,
 };
 assert.equal(
   benchmarkObservationRowKey(legacySurgeMaxRow),
   benchmarkObservationRowKey(currentSurgeMaxRow),
   "Source display-label changes should preserve the model-effort cache identity",
+);
+assert.deepEqual(
+  snapshotRows(
+    [legacySurgeMaxRow, currentSurgeMaxRow],
+    [],
+    null,
+    {},
+    benchmarkObservationRowKey,
+    mergeBenchmarkObservationRow,
+  ),
+  [
+    {
+      ...legacySurgeMaxRow,
+      model: "GPT 5.6 Sol (Adaptive/Max)",
+    },
+  ],
+  "Cache hits should reconcile newly equivalent identities without rewriting cached evidence",
 );
 
 const legacySurgeDefaultRow = {
@@ -280,17 +349,24 @@ const coreCraft = surge.map((row) => ({
   benchmark_key: "enterprisebench_corecraft",
   source_url: "https://surgehq.ai/benchmarks/enterprisebench-corecraft",
 }));
+const complexConstraints = surge.map((row) => ({
+  ...row,
+  benchmark_key: "complex_constraints",
+  source_url: "https://surgehq.ai/benchmarks/complex-constraints",
+}));
 const snapshots = {
   ...Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceRowsKey, []]),
   ),
   chartographyRows: surge,
   chessPuzzleRows: chess,
+  complexConstraintsRows: complexConstraints,
   ebrBenchRows: ebr,
   enterpriseBenchCoreCraftRows: coreCraft,
   epochCapabilitiesIndexRows: eci,
   frontierMathTier4Rows: frontierMath,
   handbookMdRows: handbook,
+  hemingwayBenchRows: hemingway,
   proofBenchRows: proof,
   weirdMlRows: weirdMl,
   fetchedAt: {
@@ -299,11 +375,13 @@ const snapshots = {
     ),
     chartography: 1_784_000_004,
     chessPuzzles: 1_784_000_002,
+    complexConstraints: 1_784_000_009,
     ebrBench: 1_784_000_003,
     enterpriseBenchCoreCraft: 1_784_000_006,
     epochCapabilitiesIndex: 1_784_000_000,
     frontierMathTier4: 1_784_000_001,
     handbookMd: 1_784_000_005,
+    hemingwayBench: 1_784_000_010,
     proofBench: 1_784_000_007,
     weirdMl: 1_784_000_008,
   },
@@ -311,11 +389,13 @@ const snapshots = {
 const expectedBySourceDataKey = {
   chartography: { rows: surge, fetchedAt: 1_784_000_004 },
   chessPuzzles: { rows: chess, fetchedAt: 1_784_000_002 },
+  complexConstraints: { rows: complexConstraints, fetchedAt: 1_784_000_009 },
   ebrBench: { rows: ebr, fetchedAt: 1_784_000_003 },
   enterpriseBenchCoreCraft: { rows: coreCraft, fetchedAt: 1_784_000_006 },
   epochCapabilitiesIndex: { rows: eci, fetchedAt: 1_784_000_000 },
   frontierMathTier4: { rows: frontierMath, fetchedAt: 1_784_000_001 },
   handbookMd: { rows: handbook, fetchedAt: 1_784_000_005 },
+  hemingwayBench: { rows: hemingway, fetchedAt: 1_784_000_010 },
   proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
   weirdMl: { rows: weirdMl, fetchedAt: 1_784_000_008 },
 };
@@ -342,3 +422,45 @@ for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey))
     );
   }
 }
+
+const persistedFrontierMathRows = collector
+  .records(BENCHMARK_OBSERVATION_RAW_TABLE)
+  .flatMap((row) => {
+    if (row.source_key !== "frontiermath_tier_4") return [row];
+    if (row.model === "GPT-5.6 Sol (pro, max)") {
+      return [{ ...row, base_model: "GPT-5.6 Sol" }];
+    }
+    if (row.model === "GPT-5.6 Sol (max)") {
+      return [
+        row,
+        {
+          ...row,
+          model_id: "gpt-5.6-sol_adaptive",
+          model: "GPT-5.6 Sol (Adaptive/Default)",
+          base_model: "GPT-5.6 Sol Default",
+          reasoning_effort: "adaptive",
+        },
+      ];
+    }
+    return [row];
+  });
+const migratedFrontierMath = readBenchmarkObservationRawCache(
+  persistedFrontierMathRows,
+  benchmarkObservationBinding("frontierMathTier4"),
+);
+assert.equal(
+  migratedFrontierMath?.rows.find((row) => row.model === "GPT-5.6 Sol (pro, max)")?.base_model,
+  "GPT-5.6 Sol pro",
+  "Cache reads should reapply the current combined configuration-and-effort identity",
+);
+assert.equal(
+  migratedFrontierMath?.rows.find((row) => row.model.includes("Adaptive/Default"))?.base_model,
+  "GPT-5.6 Sol",
+  "Cache reads should remove a control label that an older parser retained as configuration",
+);
+assert.equal(
+  buildBenchmarkObservationLookup(migratedFrontierMath?.rows ?? []).get("gpt-5-6-sol--max")
+    ?.canonical_value,
+  0.561,
+  "A cached Pro Max row should not replace the plain model's Max observation",
+);

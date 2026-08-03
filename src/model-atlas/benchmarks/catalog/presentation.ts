@@ -106,6 +106,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "repository migration workflow"],
     ],
   },
+  complex_constraints: {
+    title: "ComplexConstraints",
+    body: "Complete realistic professional writing, scheduling, and planning tasks while satisfying interdependent, conditional, implicit, and multistep requirements.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Metric", "all-criteria task pass rate"],
+      ["Role", "complex instruction following"],
+    ],
+  },
   critpt: {
     title: "CritPt",
     body: "Solve research-level physics problems with numeric, symbolic, and code-based answers.",
@@ -236,6 +245,15 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Role", "legal agent work"],
+    ],
+  },
+  hemingway_bench: {
+    title: "Hemingway-bench",
+    body: "Produce creative, business, and everyday writing preferred by expert writers for quality, originality, coherence, instruction following, and emotional intelligence.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Metric", "expert pairwise Elo"],
+      ["Role", "writing quality and judgment"],
     ],
   },
   hle: {
@@ -404,6 +422,7 @@ export const BENCHMARK_LABELS = {
   chartography: "Chartography",
   chess_puzzles: "Chess Puzzles",
   code_migration: "Code Migration",
+  complex_constraints: "ComplexConstraints",
   critpt: "CritPt",
   cursorbench: "CursorBench",
   cyberbench: "CyberBench",
@@ -420,6 +439,7 @@ export const BENCHMARK_LABELS = {
   gdpval_normalized: "GDPval v2",
   handbook_md: "HANDBOOK.md",
   harvey_lab: "Harvey LAB",
+  hemingway_bench: "Hemingway-bench",
   hle: "HLE",
   itbench_sre: "ITBench",
   lcr: "LCR",
@@ -454,6 +474,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "blueprint_bench_2",
   "briefcase",
   "chartography",
+  "complex_constraints",
   "critpt",
   "cursorbench",
   "deep_swe",
@@ -480,6 +501,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "enterprisebench_corecraft",
   "epoch_capabilities_index",
   "finance_agent_v2",
+  "hemingway_bench",
   "lcr",
   "medcode",
   "omniscience_accuracy",
@@ -812,6 +834,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  complex_constraints: {
+    key: "complexConstraints",
+    label: "Complex",
+    format: "percent",
+    defaultSort: "descending",
+  },
   critpt: {
     key: "critpt",
     label: "CritPt",
@@ -906,6 +934,12 @@ export const BENCHMARK_COLUMNS = {
     key: "harveyLab",
     label: "HLAB",
     format: "percent",
+    defaultSort: "descending",
+  },
+  hemingway_bench: {
+    key: "hemingwayBench",
+    label: "Hemingway",
+    format: "score",
     defaultSort: "descending",
   },
   hle: {

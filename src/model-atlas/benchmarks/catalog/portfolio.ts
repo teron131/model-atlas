@@ -94,6 +94,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
   },
+  complex_constraints: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
   critpt: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -173,6 +178,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
+  hemingway_bench: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   hle: {
     group: "frontier",

@@ -1,5 +1,6 @@
 /** Benchmark-observation source dispatch maps catalog loader contracts to executable scrapers. */
 
+import type { BenchmarkObservationLoader } from "../factory";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../registry";
 import { getEpochCapabilitiesIndexStats } from "./epoch/capabilities-index";
 import { getEpochBenchmarkStats } from "./epoch/results";
@@ -17,21 +18,18 @@ const BENCHMARK_OBSERVATION_SOURCE_FETCHERS = {
 export function benchmarkObservationSourceFetcher(
   binding: (typeof BENCHMARK_OBSERVATION_BINDINGS)[number],
 ) {
-  const loader = binding.loader;
+  const loader: BenchmarkObservationLoader = binding.loader;
   if (loader.kind === "surge") {
-    return () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl);
+    return () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind);
   }
   if (loader.kind === "vals") {
     return () =>
       getValsSourceStats({
         benchmarkKey: binding.benchmark,
         canonicalTask: loader.canonicalTask,
-        includeReasoningEffortInModel:
-          "includeReasoningEffortInModel" in loader
-            ? loader.includeReasoningEffortInModel
-            : undefined,
+        includeReasoningEffortInModel: loader.includeReasoningEffortInModel,
         isScoreEligible:
-          "eligibility" in loader && loader.eligibility === "exclude_aristotle"
+          loader.eligibility === "exclude_aristotle"
             ? (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle"
             : undefined,
         sourceUrl: loader.sourceUrl,
@@ -45,8 +43,8 @@ export function benchmarkObservationSourceFetcher(
       getZeroEvalStats({
         benchmarkKey: binding.benchmark,
         sourceUrl: loader.sourceUrl,
-        rankField: "rankField" in loader ? loader.rankField : undefined,
-        observedAtField: "observedAtField" in loader ? loader.observedAtField : undefined,
+        rankField: loader.rankField,
+        observedAtField: loader.observedAtField,
       });
   }
   const fetcher =
