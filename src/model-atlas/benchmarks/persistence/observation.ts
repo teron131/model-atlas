@@ -1,5 +1,6 @@
 /** Generic benchmark-observation persistence owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
 
+import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
 import {
   booleanFromSql,
   type CacheRowSource,
@@ -76,6 +77,7 @@ function readBenchmarkObservationRows(
     const canonicalUnit = benchmarkMetricUnit(row.canonical_unit);
     const scoreEligible = booleanFromSql(row.score_eligible);
     const metadata = benchmarkObservationMetadata(row.metadata_json);
+    const reasoningEffort = stringValue(row.reasoning_effort);
     if (
       rowBenchmarkKey !== benchmarkKey ||
       sourceUrl == null ||
@@ -90,14 +92,27 @@ function readBenchmarkObservationRows(
       metadata == null
     )
       return [];
+    const parsedModel = benchmarkModelEffort(model);
+    const storedBaseKey = normalizeModelToken(baseModel);
+    const parsedBaseKey = normalizeModelToken(parsedModel.baseModel);
+    const normalizedDisplay = model.toLowerCase();
+    const normalizedStoredBase = baseModel.toLowerCase();
+    const storedBaseIsDisplayStem =
+      normalizedDisplay.startsWith(`${normalizedStoredBase} (`) ||
+      normalizedDisplay.startsWith(`${normalizedStoredBase} - `);
+    // Reparse generic display-stem bases without replacing source-owned aliases such as Kimi's `K3`.
+    const storedBaseWasParserDerived = parsedBaseKey === storedBaseKey || storedBaseIsDisplayStem;
     return [
       {
         benchmark_key: benchmarkKey,
         source_url: sourceUrl,
         model_id: stringValue(row.model_id),
         model,
-        base_model: baseModel,
-        reasoning_effort: stringValue(row.reasoning_effort),
+        base_model:
+          parsedModel.reasoningEffort === reasoningEffort && storedBaseWasParserDerived
+            ? parsedModel.baseModel
+            : baseModel,
+        reasoning_effort: reasoningEffort,
         model_creator_id: stringValue(row.model_creator_id),
         model_creator: stringValue(row.model_creator),
         inference_provider: stringValue(row.inference_provider),
