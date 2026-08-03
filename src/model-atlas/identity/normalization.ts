@@ -91,6 +91,17 @@ export function normalizeModelToken(value: string): string {
     .replace(/^[-/]+|[-/]+$/g, "");
 }
 
+/** Remove a repeated creator prefix while retaining the complete source display model elsewhere. */
+export function modelNameWithoutCreatorPrefix(modelName: string, creator: unknown): string {
+  if (typeof creator !== "string") return modelName;
+  const prefix = creator.trim();
+  if (prefix.length === 0 || !modelName.toLowerCase().startsWith(`${prefix.toLowerCase()} `)) {
+    return modelName;
+  }
+  const unprefixed = modelName.slice(prefix.length).trim();
+  return unprefixed.length > 0 ? unprefixed : modelName;
+}
+
 /** Canonicalize source effort labels while preserving actual null for unknown or unreported values. */
 export function canonicalReasoningEffort(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -117,7 +128,8 @@ export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
       : { baseModel, reasoningEffort: null };
   }
   const labelTokens = rawLabel
-    .replace(/reasoning/g, "")
+    .replace(/\b(?:effort|reasoning)\b/g, "")
+    .replace(/\badaptive\s+max\b/g, "adaptive/max")
     .split(/[,/]+/)
     .map((label) => canonicalReasoningEffort(label.trim()))
     .filter((label): label is string => label != null && BENCHMARK_EFFORT_LABELS.has(label));

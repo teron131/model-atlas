@@ -20,6 +20,74 @@ const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");
 const customSourceUrl = "https://example.test/custom-riemann-bench";
 
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async () =>
+  new Response(`
+	<div class="txt fs-12">Last updated 07/02/2026</div>
+	<div role="listitem" class="lead-rank-corecraft-item w-dyn-item">
+		<img alt="Anthropic logo" />
+		<div class="txt fs-14 fw-med corecraft-model is-logo">Claude Fable 5 (Adaptive/Max)</div>
+		<div data-score="" fs-list-field="foundational-score">61</div><div>%</div>
+	</div>
+	<div role="listitem" class="renamed-ranking-row">
+		<img alt="Kimi logo" />
+		<div class="head-rank-table-brand">Kimi</div>
+		<div class="head-rank-table-name">K3</div>
+		<div data-score="" fs-list-field="foundational-score">38</div><div>%</div>
+	</div>
+`);
+try {
+  const reconciledSnapshot = await riemannBenchPersistence.snapshot(
+    {
+      rows: [
+        {
+          provider: "Anthropic",
+          model: "Claude Fable 5 (Max reasoning)",
+          score: 0.6,
+          last_updated: "07/01/2026",
+        },
+        {
+          provider: "Kimi",
+          model: "K3",
+          score: 0.37,
+          last_updated: "07/01/2026",
+        },
+      ],
+      fetchedAt: 1_800_000_000,
+      sourceUrl: "https://surgehq.ai/leaderboards/riemann-bench",
+    },
+    {
+      last_fetch_epoch_seconds: 1_800_000_000,
+      source_input_count: 2,
+      cache_hit: false,
+      refreshed: true,
+    },
+    {},
+    new Map(),
+    1_800_000_100,
+  );
+  assert.deepEqual(reconciledSnapshot.riemannBenchModelScoreRows, [
+    {
+      provider: "Anthropic",
+      model: "Claude Fable 5 (Adaptive/Max)",
+      score: 0.6,
+      last_updated: "07/01/2026",
+    },
+    {
+      provider: "Kimi",
+      model: "Kimi K3",
+      score: 0.37,
+      last_updated: "07/01/2026",
+    },
+  ]);
+  assert.deepEqual(
+    reconciledSnapshot.sourceStatus.sourceRowStates.map((state) => state.status),
+    ["active", "active"],
+  );
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
 try {
   const db = await openDatabase(databasePath);
   try {

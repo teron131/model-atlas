@@ -10,6 +10,7 @@ import {
 import type { RawSourceName } from "../../ingest/source-registry";
 import {
   benchmarkObservationRowKey,
+  mergeBenchmarkObservationRow,
   snapshotSourceRows,
 } from "../../ingest/source-snapshots/row-snapshot";
 import type {
@@ -151,6 +152,7 @@ async function benchmarkObservationSnapshot(
     fetchRows,
     rowKey: benchmarkObservationRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
+    mergeRow: mergeBenchmarkObservationRow,
   });
   return {
     rows: snapshot.rows,

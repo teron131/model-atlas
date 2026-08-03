@@ -36,8 +36,8 @@ const pageHtml = `
 		<div data-leaderboard-rank="">3</div>
 		<img data-alt="Wrong logo" alt='Google logo' />
 		<div class="head-rank-table-name-wrap">
-			<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Google</div></div>
-			<div class="head-rank-table-name"><div class="txt fs-14 fw-med">Gemini 3 Pro</div></div>
+			<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Gemini</div></div>
+			<div class="head-rank-table-name"><div class="txt fs-14 fw-med">3 Pro</div></div>
 		</div>
 		<div data-data-score="99" data-score='22' fs-list-field="foundational-score" class="txt fs-14">22</div><div>%</div>
 	</div>
@@ -77,8 +77,8 @@ const rowsWithoutRankingHeading = surgeLeaderboardScoreRows(`
 	<div class="renamed-ranking-row" data-kind="score-row" role = 'listitem'>
 		<img alt="Google logo" />
 		<div class="head-rank-table-name-wrap">
-			<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Google</div></div>
-			<div class="head-rank-table-name"><div class="txt fs-14 fw-med">Gemini 3 Pro</div></div>
+			<div class="head-rank-table-brand"><div class="txt fs-10 fw-med">Gemini</div></div>
+			<div class="head-rank-table-name"><div class="txt fs-14 fw-med">3 Pro</div></div>
 		</div>
 		<div data-score="22" fs-list-field="foundational-score" class="txt fs-14">22</div><div>%</div>
 	</div>

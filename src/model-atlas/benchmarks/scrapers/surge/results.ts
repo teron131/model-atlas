@@ -1,6 +1,9 @@
 /** Shared Surge leaderboard parsing and fetching for benchmark-specific adapters. */
 
-import { benchmarkModelEffort } from "../../../identity/normalization";
+import {
+  benchmarkModelEffort,
+  modelNameWithoutCreatorPrefix,
+} from "../../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../../runtime";
 import {
   htmlAttribute,
@@ -42,26 +45,12 @@ function classText(html: string, className: string): string | null {
   return text != null && text.length > 0 ? text : null;
 }
 
-function normalizedLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/** Combines brand and model text without duplicating provider names. */
-function combinedModelName(
-  brand: string | null,
-  name: string | null,
-  provider: string | null,
-): string | null {
+/** Combines brand and model text without duplicating a repeated brand. */
+function combinedModelName(brand: string | null, name: string | null): string | null {
   if (name == null || name.length === 0) {
     return null;
   }
   if (brand == null || brand.length === 0) {
-    return name;
-  }
-  if (provider != null && normalizedLabel(provider) === normalizedLabel(brand)) {
     return name;
   }
   return name.toLowerCase().startsWith(brand.toLowerCase()) ? name : `${brand} ${name}`;
@@ -97,7 +86,6 @@ function surgeModelName(rowHtml: string): string | null {
   return combinedModelName(
     classText(rowHtml, "head-rank-table-brand"),
     classText(rowHtml, "head-rank-table-name"),
-    surgeProvider(rowHtml),
   );
 }
 
@@ -122,8 +110,9 @@ function surgeLeaderboardScoreRow(
   lastUpdated: string | null,
 ): SurgeLeaderboardObservation | null {
   const model = surgeModelName(rowHtml);
-  const reportedValue = Number(surgeScorePercent(rowHtml));
-  const canonicalValue = percentToUnitScore(surgeScorePercent(rowHtml));
+  const scorePercent = surgeScorePercent(rowHtml);
+  const reportedValue = Number(scorePercent);
+  const canonicalValue = percentToUnitScore(scorePercent);
   if (model == null || !Number.isFinite(reportedValue) || canonicalValue == null) {
     return null;
   }
@@ -150,34 +139,40 @@ export function processSurgeBenchmarkPageHtml(
   sourceUrl: string,
 ): BenchmarkObservationRow[] {
   const lastUpdated = surgeLastUpdated(pageHtml);
-  return surgeLeaderboardRows(pageHtml)
+  const rows = surgeLeaderboardRows(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
-    .filter((row): row is SurgeLeaderboardObservation => row != null)
-    .map((row, index) => {
-      const parsed = benchmarkModelEffort(row.model);
-      return {
-        benchmark_key: benchmarkKey,
-        source_url: sourceUrl,
-        model_id: null,
-        model: row.model,
-        base_model: parsed.baseModel,
-        reasoning_effort: parsed.reasoningEffort,
-        model_creator_id: null,
-        model_creator: row.provider,
-        inference_provider: null,
-        rank: index + 1,
-        reported_value: row.reportedValue,
-        reported_unit: "percent",
-        canonical_value: row.score,
-        canonical_unit: "proportion",
-        score_eligible: true,
-        standard_error: null,
-        confidence_low: null,
-        confidence_high: null,
-        observed_at: row.last_updated ?? null,
-        metadata: {},
-      };
-    });
+    .filter((row): row is SurgeLeaderboardObservation => row != null);
+  let rank = 0;
+  let previousScore: number | null = null;
+  return rows.map((row, index) => {
+    if (previousScore == null || row.reportedValue !== previousScore) {
+      rank = index + 1;
+    }
+    previousScore = row.reportedValue;
+    const parsed = benchmarkModelEffort(row.model);
+    return {
+      benchmark_key: benchmarkKey,
+      source_url: sourceUrl,
+      model_id: null,
+      model: row.model,
+      base_model: modelNameWithoutCreatorPrefix(parsed.baseModel, row.provider),
+      reasoning_effort: parsed.reasoningEffort,
+      model_creator_id: null,
+      model_creator: row.provider,
+      inference_provider: null,
+      rank,
+      reported_value: row.reportedValue,
+      reported_unit: "percent",
+      canonical_value: row.score,
+      canonical_unit: "proportion",
+      score_eligible: true,
+      standard_error: null,
+      confidence_low: null,
+      confidence_high: null,
+      observed_at: row.last_updated ?? null,
+      metadata: {},
+    };
+  });
 }
 
 export async function getSurgeLeaderboardStats(

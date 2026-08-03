@@ -55,12 +55,32 @@ function defaultEffortRank(value: unknown): number {
   return effort == null ? -1 : reasoningEffortRank(effort);
 }
 
+/** Return the final provider or composite-model alias without splitting configuration labels. */
+function trailingModelAlias(value: string): string | null {
+  let parenthesisDepth = 0;
+  let slashIndex = -1;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === "(") {
+      parenthesisDepth += 1;
+    } else if (character === ")") {
+      parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    } else if (character === "/" && parenthesisDepth === 0) {
+      slashIndex = index;
+    }
+  }
+  if (slashIndex === -1) return null;
+  const alias = value.slice(slashIndex + 1).trim();
+  return alias.length > 0 ? alias : null;
+}
+
 function modelKeys(row: BenchmarkObservationRow): string[] {
   return [row.model_id, row.model, row.base_model]
     .flatMap((value) => {
       if (value == null) return [];
-      return [value, value.split("/").at(-1) ?? value];
+      return [value, trailingModelAlias(value)];
     })
+    .filter((value): value is string => value != null)
     .map(normalizeModelToken)
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
 }
@@ -113,7 +133,7 @@ export function findBenchmarkObservation(
     const parsed = benchmarkModelEffort(candidate);
     const effort =
       parsed.reasoningEffort == null ? targetEffort : normalizeModelToken(parsed.reasoningEffort);
-    for (const value of [candidate, parsed.baseModel, candidate.split("/").at(-1)]) {
+    for (const value of [candidate, parsed.baseModel, trailingModelAlias(candidate)]) {
       if (value == null) continue;
       const key = normalizeModelToken(value);
       const exactRow = effort == null ? null : rowsByModel.get(`${key}--${effort}`);

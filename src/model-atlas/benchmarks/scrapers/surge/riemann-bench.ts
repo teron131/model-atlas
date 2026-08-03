@@ -5,7 +5,10 @@
  * Paper source: https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/69c2d73f5d377a9428089ff7_048c62b8b526b0f06e87457bcca0e6fa_RiemannBench.pdf
  */
 
-import { normalizeModelToken } from "../../../identity/normalization";
+import {
+  modelNameWithoutCreatorPrefix,
+  normalizeModelToken,
+} from "../../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../../runtime";
 import { surgeLeaderboardScoreRows } from "./results";
 
@@ -32,13 +35,14 @@ type RiemannBenchModelScorePayload = {
   data: RiemannBenchModelScoreRow[];
 };
 
-function modelKeyCandidates(model: string): string[] {
+function modelKeyCandidates(model: string, provider: string | null = null): string[] {
   const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
+  const withoutCreator = modelNameWithoutCreatorPrefix(withoutParenthetical, provider);
   const slashParts = withoutParenthetical
     .split("/")
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
-  return [model, withoutParenthetical, ...slashParts]
+  return [model, withoutParenthetical, withoutCreator, ...slashParts]
     .map(normalizeModelToken)
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
 }
@@ -48,7 +52,7 @@ export function buildRiemannBenchMap(
 ): RiemannBenchRowsByModelName {
   const rowsByModelName: RiemannBenchRowsByModelName = new Map();
   for (const row of rows) {
-    for (const key of modelKeyCandidates(row.model)) {
+    for (const key of modelKeyCandidates(row.model, row.provider)) {
       rowsByModelName.set(key, row);
     }
   }

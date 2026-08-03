@@ -87,15 +87,31 @@ Prioritize source vitality and leader quality over final-table coverage. For eac
 
 Inspect source leaderboard leaders before judging only the subset that survives final-model selection. Treat a current top-tier excluded row as evidence that the source remains active, and state why it is excluded before interpreting matched-rank agreement.
 
+## Diagnose Signals Before Judging Them
+
+Do not report symptom counts without explaining their cause and consequence. For every adverse signal, answer three questions:
+
+1. What changed in the observed evidence?
+2. Why did it change, or what concrete evidence is still needed to determine why?
+3. Does the cause materially weaken source vitality, comparability, provenance, capability meaning, or score evidence?
+
+Counts and statuses are starting points, not verdicts. Reconcile cached `before` identities against current-source `after` identities before treating missing or quarantined rows as lost evaluations. Check normalized model identity, provider, reasoning effort, harness, task, track, run, score, and source configuration. Display-label changes, aliases, explicit `default` labels, renamed effort labels, and one row splitting into several disclosed effort variants are identity churn rather than benchmark drift when the underlying evaluation remains represented.
+
+When a symptom suggests a source-wide schema, naming, or presentation change, inspect every selected benchmark that shares the same source group, loader, parser, or persistence policy before limiting the diagnosis to one benchmark. Report the shared source-family cause once, then state the actual benchmark-specific effect. Do not assume every sibling is affected: verify current rows and preserve real distinctions such as default versus explicit reasoning-effort variants.
+
+Keep stock and flow separate. A quarantine count is the current stock of preserved missing keys; churn is the set of additions, disappearances, recoveries, and identity transitions between runs. Stable counts can hide turnover, while a large persistent count can consist entirely of harmless renamed aliases. Compare row keys when available and state when only net counts can be measured.
+
+Escalate only the material remainder after reconciliation. A pipeline identity defect, stale alias, or observability gap can merit a follow-up without changing the benchmark verdict. If the cause cannot be established from available read-only evidence, name the uncertainty and the decision it could affect instead of presenting the symptom as the conclusion.
+
 ## Apply Drift Judgment Carefully
 
 Use these verdicts for already-selected benchmarks:
 
 - `keep`: source leaders are current and serious, matched leaders broadly agree with strong table models, or the benchmark supplies a clearly useful unique or niche capability signal.
-- `watch`: source appears active but a material unresolved weakness remains, such as opaque harness effects, consistently weak or stale leaders without a capability-specific explanation, unauditable provenance, or sparse evidence combined with another adverse signal.
-- `review`: source leaders are stale or weak, matched leaders are mostly outside the table top 20 without a credible niche explanation, rows are missing or quarantined, or provenance is isolated, contradictory, configuration-opaque, or otherwise too weak to interpret.
+- `watch`: source appears active but a material unresolved weakness remains after causal reconciliation, such as opaque harness effects, consistently weak or stale leaders without a capability-specific explanation, unauditable provenance, or sparse evidence combined with another adverse signal.
+- `review`: source leaders are stale or weak, matched leaders are mostly outside the table top 20 without a credible niche explanation, evaluations are genuinely missing after identity reconciliation and materially weaken the signal, or provenance is isolated, contradictory, configuration-opaque, or otherwise too weak to interpret.
 
-Do not escalate a benchmark because of thin final-model coverage alone. Escalate sparse coverage only when it combines with stale or weak leaders, source disappearance, missing or quarantined rows, poor provenance, or consistently weak matched ranks.
+Do not escalate a benchmark because of thin final-model coverage alone. Escalate sparse coverage only when it combines with stale or weak leaders, source disappearance, genuinely missing evaluations after identity reconciliation, poor provenance, or consistently weak matched ranks.
 
 Different disclosed agents or harnesses are not themselves a watch signal; interpret those rows as model-plus-agent evidence and escalate only when opaque or incompatible harness effects undermine the claim. A benchmark winner need not be the overall top-ranked model, especially for a specialized capability. Self-reported, vendor-reported, and unverified rows are provenance labels rather than automatic watch signals when they remain attributable, understandable, comparable across multiple current serious systems, and coherent with other evidence.
 
@@ -112,5 +128,7 @@ Distinguish:
 - unavailable evidence
 
 Lead with the verdict and the strongest evidence. For portfolio audits, give keep/watch/review counts, a compact comparison table, attention notes only for watch/review items, and non-code next actions. For individual reviews, use the smallest structure that makes the judgment auditable.
+
+For every watch or review item, report the observed symptom, the best-supported cause, whether the cause affects benchmark merit or only ingestion/identity/observability, and why that effect is material enough for the verdict. Do not leave the user to infer significance from dates, counts, provenance labels, or health statuses.
 
 Recommend follow-ups such as manually inspecting a source, checking excluded leaders, persisting a missing raw source, reconsidering classification, or running a live scraper in a separately approved task. Do not propose code patches during a read-only review.
