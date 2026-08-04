@@ -1,5 +1,5 @@
 /**
- * Frontier-Bench scraper owns the v0.1 model-agent result contract and uncertainty parsing.
+ * Frontier-Bench v0.1 leaderboard results from FrontierBench.
  *
  * Page source: https://www.frontierbench.ai/
  * JSON source: https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read

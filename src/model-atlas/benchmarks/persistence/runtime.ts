@@ -62,8 +62,8 @@ function benchmarkRuntime<
   return runtime;
 }
 
-/** Sparse source runtimes share orchestration while retaining independent implementations. */
-const SPARSE_BENCHMARK_RUNTIMES = {
+/** Standalone source runtimes share orchestration while retaining independent implementations. */
+const STANDALONE_BENCHMARK_RUNTIMES = {
   agent_arena: benchmarkRuntime(agentArenaPersistence),
   agents_last_exam: benchmarkRuntime(agentsLastExamPersistence),
   ale_bench: benchmarkRuntime(aleBenchPersistence),
@@ -74,7 +74,7 @@ const SPARSE_BENCHMARK_RUNTIMES = {
   frontier_code: benchmarkRuntime(frontierCodePersistence),
   mercor_apex_agents: benchmarkRuntime(mercorApexAgentsPersistence),
   vending_bench_2: benchmarkRuntime(vendingBench2Persistence),
-} as const satisfies Record<BenchmarkRuntimeKeyFor<"sparse">, object>;
+} as const satisfies Record<BenchmarkRuntimeKeyFor<"standalone">, object>;
 
 const SURGE_BENCHMARK_RUNTIMES = {
   riemann_bench: benchmarkRuntime(riemannBenchPersistence),
@@ -88,7 +88,7 @@ const VALS_BENCHMARK_RUNTIMES = {
 const BENCHMARK_RUNTIMES = {
   ...SURGE_BENCHMARK_RUNTIMES,
   ...VALS_BENCHMARK_RUNTIMES,
-  ...SPARSE_BENCHMARK_RUNTIMES,
+  ...STANDALONE_BENCHMARK_RUNTIMES,
 } as const;
 
 type BenchmarkRuntimes = typeof BENCHMARK_RUNTIMES;

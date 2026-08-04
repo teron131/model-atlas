@@ -1,6 +1,11 @@
-/** Defines and validates generic benchmark contracts and derived views. */
+/** Defines and validates benchmark contracts and derived views. */
 
-export type BenchmarkSourceGroup = "artificial_analysis" | "epoch" | "surge" | "vals" | "sparse";
+export type BenchmarkSourceGroup =
+  | "artificial_analysis"
+  | "epoch"
+  | "surge"
+  | "vals"
+  | "standalone";
 type BenchmarkSourceRole = "observation" | "resource" | "imputation" | "validation";
 export type BenchmarkJsonPath = readonly [string, ...string[]];
 export type BenchmarkSourceAdapter =
@@ -26,6 +31,11 @@ export type BenchmarkSourceAdapter =
     };
 
 export type BenchmarkObservationLoader =
+  | { kind: "epoch_capabilities_index"; sourceUrl: string }
+  | { kind: "epoch_runs"; task: string }
+  | { kind: "mls_bench"; sourceUrl: string }
+  | { kind: "perception_bench"; sourceUrl: string }
+  | { kind: "surge"; sourceUrl: string; scoreKind?: "elo" }
   | {
       kind: "vals";
       sourceUrl: string;
@@ -33,15 +43,13 @@ export type BenchmarkObservationLoader =
       includeReasoningEffortInModel?: boolean;
       eligibility?: "exclude_aristotle";
     }
-  | { kind: "surge"; sourceUrl: string; scoreKind?: "elo" }
-  | { kind: "epoch_runs"; task: string }
+  | { kind: "weirdml" }
   | {
       kind: "zeroeval";
       sourceUrl: string;
       rankField?: string;
       observedAtField?: string;
-    }
-  | { kind: "custom" };
+    };
 export type BenchmarkSourceRuntime = {
   key: string;
   publicRows: boolean;

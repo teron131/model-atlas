@@ -1,5 +1,5 @@
 /**
- * ALE-Bench Epoch scraper owns Epoch AI's rounded source-default mirror parsing.
+ * ALE-Bench mirror results from Epoch AI.
  *
  * Page source: https://epoch.ai/benchmarks/ale-bench?tab=leaderboard&metric=Performance
  * CSV source: https://epoch.ai/data/external_benchmarks/ale_bench.csv

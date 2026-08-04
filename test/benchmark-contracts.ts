@@ -63,7 +63,7 @@ const definitions = {
   cost: {
     source: {
       inputs: [
-        { group: "sparse", id: "cost_creator", roles: ["observation"] },
+        { group: "standalone", id: "cost_creator", roles: ["observation"] },
         { group: "epoch", id: "cost_mirror", roles: ["validation"] },
       ],
     },
@@ -132,7 +132,7 @@ assert.throws(
       invalid: {
         ...definitions.quality,
         source: {
-          inputs: [{ group: "sparse", id: "validator", roles: ["validation"] }],
+          inputs: [{ group: "standalone", id: "validator", roles: ["validation"] }],
         },
       },
     }),
@@ -238,7 +238,7 @@ assert.throws(
 
 assert.deepEqual(BENCHMARK_CATALOG.frontier_bench.source.inputs, [
   {
-    group: "sparse",
+    group: "standalone",
     id: "frontier_bench",
     roles: ["observation"],
     runtime: { key: "frontier_bench", publicRows: true },
@@ -246,7 +246,7 @@ assert.deepEqual(BENCHMARK_CATALOG.frontier_bench.source.inputs, [
 ]);
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.source.inputs, [
   {
-    group: "sparse",
+    group: "standalone",
     id: "sakana",
     roles: ["observation", "resource"],
     runtime: { key: "ale_bench", publicRows: true },
@@ -268,7 +268,7 @@ assert.deepEqual(
       roles: ["observation", "resource"],
     },
     {
-      group: "sparse",
+      group: "standalone",
       id: "mercor",
       roles: ["imputation"],
       evidenceKey: "apex_agents_mercor",
@@ -283,7 +283,7 @@ assert.deepEqual(
     roles,
   })),
   [
-    { group: "sparse", id: "weirdml", roles: ["observation"] },
+    { group: "standalone", id: "weirdml", roles: ["observation"] },
     {
       group: "epoch",
       id: "epoch",
@@ -419,5 +419,5 @@ assert.equal(
 assert.equal(
   benchmarkRawWriterTables.filter((table) => table === BENCHMARK_OBSERVATION_RAW_TABLE).length,
   1,
-  "generic benchmark sources should share one raw-table writer",
+  "benchmark observation sources should share one raw-table writer",
 );

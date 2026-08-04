@@ -1,5 +1,5 @@
 /**
- * Epoch Capabilities Index scraper owns Epoch AI score and confidence-interval normalization.
+ * Epoch Capabilities Index leaderboard results from Epoch AI.
  *
  * Page source: https://epoch.ai/benchmarks/eci?tab=leaderboard
  * CSV source: https://epoch.ai/data/eci_scores.csv
@@ -10,10 +10,13 @@ import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../../../runt
 import { parseCsvRecords } from "../../../scrapers/parsing";
 import type { BenchmarkObservationPayload, BenchmarkObservationRow } from "../../observation";
 
-const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
+export const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export function processEpochCapabilitiesIndexCsv(csv: string): BenchmarkObservationRow[] {
+export function processEpochCapabilitiesIndexCsv(
+  csv: string,
+  sourceUrl = EPOCH_CAPABILITIES_INDEX_CSV_URL,
+): BenchmarkObservationRow[] {
   return parseCsvRecords(csv).flatMap((row, index) => {
     const score = asFiniteNumber(row.eci);
     const model = row["Display name"] || row.Model || "";
@@ -22,7 +25,7 @@ export function processEpochCapabilitiesIndexCsv(csv: string): BenchmarkObservat
     return [
       {
         benchmark_key: "epoch_capabilities_index",
-        source_url: EPOCH_CAPABILITIES_INDEX_CSV_URL,
+        source_url: sourceUrl,
         model_id: row.Model || null,
         model,
         base_model: parsed.baseModel,
@@ -51,17 +54,15 @@ export function processEpochCapabilitiesIndexCsv(csv: string): BenchmarkObservat
   });
 }
 
-export async function getEpochCapabilitiesIndexStats(): Promise<BenchmarkObservationPayload> {
+export async function getEpochCapabilitiesIndexStats(
+  sourceUrl = EPOCH_CAPABILITIES_INDEX_CSV_URL,
+): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(
-      EPOCH_CAPABILITIES_INDEX_CSV_URL,
-      {},
-      DEFAULT_TIMEOUT_MS,
-    );
+    const response = await fetchWithTimeout(sourceUrl, {}, DEFAULT_TIMEOUT_MS);
     if (!response.ok) throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processEpochCapabilitiesIndexCsv(await response.text()),
+      data: processEpochCapabilitiesIndexCsv(await response.text(), sourceUrl),
     };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };

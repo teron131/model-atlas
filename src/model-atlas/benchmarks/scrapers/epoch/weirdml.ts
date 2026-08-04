@@ -1,5 +1,5 @@
 /**
- * WeirdML Epoch adapter owns mirror parsing for crosswalk validation and eligible fallback rows.
+ * WeirdML mirror results from Epoch AI.
  *
  * Page source: https://epoch.ai/benchmarks/weirdml?tab=leaderboard&metric=Accuracy
  * CSV source: https://epoch.ai/data/external_benchmarks/weirdml.csv

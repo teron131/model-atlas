@@ -1,5 +1,5 @@
 /**
- * Blueprint-Bench 2 scraper owns text-page parsing for one normalized model-score map.
+ * Blueprint-Bench 2 leaderboard results from Andon Labs.
  *
  * Page source: https://andonlabs.com/evals/blueprint-bench-2
  */

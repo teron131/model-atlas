@@ -1,4 +1,4 @@
-/** Generic benchmark-observation persistence owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
+/** Benchmark-observation persistence owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
 
 import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
 import {
@@ -181,7 +181,7 @@ async function benchmarkObservationSnapshot(
   };
 }
 
-/** Refresh every generic benchmark-observation source declared by the benchmark catalog. */
+/** Refresh every direct benchmark-observation source declared by the benchmark catalog. */
 export async function benchmarkObservationSnapshots(
   caches: Readonly<Record<string, ReturnType<typeof readBenchmarkObservationRawCache> | undefined>>,
   statuses: Record<RawSourceName, RawSourceCacheStatus>,

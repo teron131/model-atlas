@@ -5,6 +5,7 @@ import {
   ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
+  BENCHMARK_EXTENDED_SOURCES,
   BENCHMARK_IMPUTATION_OVERRIDES,
   BENCHMARK_LABELS,
   BENCHMARK_PERSISTENCE_OVERRIDES,
@@ -12,12 +13,11 @@ import {
   BENCHMARK_RESOURCE_POLICIES,
   BENCHMARK_SCORING_LABELS,
   BENCHMARK_SCORING_WEIGHTS,
+  BENCHMARK_STANDARD_SOURCES,
   BENCHMARK_TASK_METRIC_COLUMNS,
   BENCHMARK_TOOLTIPS,
   type BenchmarkKey,
-  GENERIC_BENCHMARK_SOURCES,
   MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
-  SPECIALIZED_BENCHMARK_SOURCES,
 } from "./catalog";
 import {
   applyBenchmarkTransform,
@@ -62,19 +62,19 @@ function benchmarkProcessing(
   };
 }
 
-export type BenchmarkObservationKey = keyof typeof GENERIC_BENCHMARK_SOURCES;
+export type BenchmarkObservationKey = keyof typeof BENCHMARK_STANDARD_SOURCES;
 
-type GenericBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
+type StandardBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
   inputs: readonly [
     {
-      group: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["group"];
-      id: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["id"];
+      group: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["group"];
+      id: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["id"];
       roles: readonly ["observation"];
       adapters: readonly [
         {
           kind: "benchmark_observation";
-          sourceDataKey: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["sourceDataKey"];
-          sourceRowsKey: (typeof GENERIC_BENCHMARK_SOURCES)[Key]["sourceRowsKey"];
+          sourceDataKey: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["sourceDataKey"];
+          sourceRowsKey: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["sourceRowsKey"];
         },
       ];
     },
@@ -82,10 +82,10 @@ type GenericBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
 };
 
 type DeclaredBenchmarkSources = {
-  [Key in BenchmarkKey]: Key extends keyof typeof SPECIALIZED_BENCHMARK_SOURCES
-    ? (typeof SPECIALIZED_BENCHMARK_SOURCES)[Key]
+  [Key in BenchmarkKey]: Key extends keyof typeof BENCHMARK_EXTENDED_SOURCES
+    ? (typeof BENCHMARK_EXTENDED_SOURCES)[Key]
     : Key extends BenchmarkObservationKey
-      ? GenericBenchmarkSourceFacet<Key>
+      ? StandardBenchmarkSourceFacet<Key>
       : never;
 };
 
@@ -117,17 +117,17 @@ type BenchmarkSources = {
   [Key in BenchmarkKey]: ResolvedBenchmarkSourceFacet<DeclaredBenchmarkSources[Key]>;
 };
 
-/** Compose specialized source facets over shared generic benchmark-observation declarations. */
+/** Compose source facets from extended declarations and standard observation sources. */
 function benchmarkSources(): BenchmarkSources {
   return Object.fromEntries(
     Object.keys(BENCHMARK_SCORING_WEIGHTS).map((key) => {
       const benchmarkKey = key as BenchmarkKey;
-      const specialized = SPECIALIZED_BENCHMARK_SOURCES[
-        benchmarkKey as keyof typeof SPECIALIZED_BENCHMARK_SOURCES
+      const extended = BENCHMARK_EXTENDED_SOURCES[
+        benchmarkKey as keyof typeof BENCHMARK_EXTENDED_SOURCES
       ] as BenchmarkSourceFacet | undefined;
-      if (specialized != null) return [benchmarkKey, specialized];
+      if (extended != null) return [benchmarkKey, extended];
 
-      const source = GENERIC_BENCHMARK_SOURCES[benchmarkKey as BenchmarkObservationKey];
+      const source = BENCHMARK_STANDARD_SOURCES[benchmarkKey as BenchmarkObservationKey];
       if (source == null) {
         throw new Error(`Missing benchmark source declaration: ${benchmarkKey}`);
       }
@@ -283,11 +283,11 @@ export type PublicBenchmarkRuntimeKeyFor<Group extends BenchmarkSourceGroup> = E
 
 export const BENCHMARK_DISPLAY_KEYS = benchmarkFactory.orderedKeys as BenchmarkKey[];
 export const BENCHMARK_OBSERVATION_KEYS = Object.keys(
-  GENERIC_BENCHMARK_SOURCES,
+  BENCHMARK_STANDARD_SOURCES,
 ) as BenchmarkObservationKey[];
 export const BENCHMARK_OBSERVATION_RAW_TABLE = "benchmark_observation_raw_rows" as const;
 export const BENCHMARK_OBSERVATION_BINDINGS = BENCHMARK_OBSERVATION_KEYS.map((key) => {
-  const source = GENERIC_BENCHMARK_SOURCES[key];
+  const source = BENCHMARK_STANDARD_SOURCES[key];
   return {
     benchmark: key,
     loader: source.loader,

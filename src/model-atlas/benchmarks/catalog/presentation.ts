@@ -298,12 +298,30 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "medical coding reasoning"],
     ],
   },
+  mls_bench: {
+    title: "MLS-Bench Lite",
+    body: "Improve machine-learning methods across 30 controlled research tasks through iterative experimentation in a five-hour agent environment.",
+    rows: [
+      ["Source", "MLS-Bench"],
+      ["Metric", "baseline-normalized performance"],
+      ["Role", "agentic machine-learning research"],
+    ],
+  },
   omniscience_accuracy: {
     title: "Omniscience",
     body: "Answer cross-domain factual questions drawn from authoritative sources; the displayed score is the share answered correctly.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "knowledge accuracy"],
+    ],
+  },
+  perception_bench: {
+    title: "PerceptionBench",
+    body: "Answer 3,000 short visual questions isolating counting, localization, OCR, depth, relations, and five other atomic perception capabilities.",
+    rows: [
+      ["Source", "Moonshot AI"],
+      ["Metric", "overall accuracy"],
+      ["Role", "atomic visual perception"],
     ],
   },
   programbench: {
@@ -445,7 +463,9 @@ export const BENCHMARK_LABELS = {
   lcr: "LCR",
   legal_research: "Legal Research",
   medcode: "MedCode",
+  mls_bench: "MLS-Bench Lite",
   omniscience_accuracy: "Omniscience",
+  perception_bench: "PerceptionBench",
   programbench: "ProgramBench",
   proofbench: "ProofBench",
   public_benefits_bench: "Public Benefits Bench",
@@ -489,6 +509,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "hle",
   "itbench_sre",
   "legal_research",
+  "mls_bench",
   "programbench",
   "proofbench",
   "riemann_bench",
@@ -505,6 +526,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "lcr",
   "medcode",
   "omniscience_accuracy",
+  "perception_bench",
   "public_benefits_bench",
   "scicode",
   "tau_banking",
@@ -972,9 +994,21 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  mls_bench: {
+    key: "mlsBench",
+    label: "MLS",
+    format: "percent",
+    defaultSort: "descending",
+  },
   omniscience_accuracy: {
     key: "omniscience",
     label: "Omni",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  perception_bench: {
+    key: "perceptionBench",
+    label: "Perception",
     format: "percent",
     defaultSort: "descending",
   },

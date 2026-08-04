@@ -1,4 +1,8 @@
-/** Vending-Bench 2 scraper preserves long-horizon balance curves and final business outcomes. */
+/**
+ * Vending-Bench 2 leaderboard results from Andon Labs.
+ *
+ * Page source: https://andonlabs.com/evals/vending-bench-2
+ */
 
 import { benchmarkModelEffort } from "../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";

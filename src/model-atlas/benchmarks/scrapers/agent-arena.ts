@@ -1,4 +1,8 @@
-/** Agent Arena scraper extracts the ranked model identity and causal effect used by Model Atlas. */
+/**
+ * Agent Arena leaderboard results from Arena.
+ *
+ * Page source: https://arena.ai/leaderboard/agent
+ */
 
 import { benchmarkModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";

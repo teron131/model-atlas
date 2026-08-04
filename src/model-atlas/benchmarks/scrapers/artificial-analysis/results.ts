@@ -1,7 +1,7 @@
 /**
- * Artificial Analysis benchmark-page resource scraping for benchmark-level per-task telemetry.
+ * Benchmark resource results from Artificial Analysis evaluation pages.
  *
- * The Artificial Analysis leaderboard is the score table. Individual benchmark pages carry benchmark-specific cost, time, and token resources, so this scraper centralizes the hydrated-page parser while keeping page-specific task-count assumptions explicit.
+ * Page source: https://artificialanalysis.ai/evaluations
  */
 
 import { normalizeModelToken, reasoningEffortRank } from "../../../identity/normalization";

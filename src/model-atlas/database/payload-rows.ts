@@ -70,8 +70,8 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "score_eligible",
 ] as const;
 
-/** Sparse benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
-const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
+/** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
+const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
   agent_arena: payloadRowGroup("agentArenaRows", SNAPSHOT_TABLES.agent_arena, "row_index", {
     columns: ["contender_name", "model", "base_model", "reasoning_effort", "organization", "score"],
     optional: true,
@@ -126,7 +126,7 @@ const SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     },
   ),
 } as const satisfies Record<
-  PublicBenchmarkRuntimeKeyFor<"sparse">,
+  PublicBenchmarkRuntimeKeyFor<"standalone">,
   ReturnType<typeof payloadRowGroup>
 >;
 
@@ -156,7 +156,7 @@ const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 const BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS = {
   ...SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS,
   ...VALS_BENCHMARK_PAYLOAD_ROW_GROUPS,
-  ...SPARSE_BENCHMARK_PAYLOAD_ROW_GROUPS,
+  ...STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS,
 } as const;
 
 export const PAYLOAD_ROW_GROUPS = [

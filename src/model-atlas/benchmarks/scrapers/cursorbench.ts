@@ -1,5 +1,5 @@
 /**
- * CursorBench scraper owns page-text extraction and percent normalization for CursorBench scores.
+ * CursorBench leaderboard results from Cursor.
  *
  * Page source: https://cursor.com/cursorbench
  */
