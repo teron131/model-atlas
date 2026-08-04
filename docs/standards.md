@@ -1,122 +1,211 @@
-# Standards
+# Benchmark Standards
 
-Modern LLM leaderboards are noisy. Many benchmarks keep circulating long after they stop separating strong models. Others look impressive on paper but mainly measure scaffolds, public memorization, policy behavior, or benchmark-specific tricks. The goal of this standard is to keep only benchmarks that still say something meaningful about current frontier models.
+Model Atlas includes a benchmark only when it adds credible information about current models. Familiarity, difficulty, or a polished leaderboard is not enough: the benchmark must measure a meaningful capability, distinguish serious systems, and support an interpretation that survives scrutiny.
 
-The current selected portfolio and source-specific policies are documented in [Benchmarks](benchmarks.md).
+The current portfolio, source precedence, metric selection, and scoring roles are documented in [Benchmarks](benchmarks.md).
 
-A benchmark should help answer one of two questions:
+## Capability Fit
 
-1. Is this model more intelligent?
-2. Is this model more agentic?
+Every accepted benchmark must measure at least one of two capabilities:
 
-If it does not help answer either question, it does not belong in the ranking.
+1. **Intelligence:** knowledge, reasoning, interpretation, judgment, or problem solving.
+2. **Agentic ability:** completing work through tools, files, repositories, browsers, terminals, APIs, multi-step harnesses, or other external environments.
 
-Agentic signal should come from tasks that require coding workflow execution or specific tool use: terminals, browsers, files, repositories, APIs, multi-step harnesses, or other external environments. Coding difficulty alone does not make a benchmark agentic. Static coding, scientific programming, or software-design questions should count as Intelligence when they mainly test professional knowledge, reasoning, or problem formulation rather than tool execution.
+Difficulty alone does not make a benchmark Agentic. A hard coding or scientific-programming question measures Intelligence when success depends mainly on understanding the problem and producing an answer. It measures Agentic ability when success depends on editing files, running code, using tools, recovering from failures, or completing a workflow.
 
-Accepted benchmarks fall into exactly two classes: `frontier` and `baseline`. Everything else is `rejected`. There is no diagnostic bucket for the ranking. Interesting but non-decisive benchmarks should be discussed elsewhere, not allowed to quietly affect the score.
+A benchmark may contribute to both dimensions when its tasks genuinely require both substantive reasoning and external execution. The review should explain the division in terms of the work required, not the benchmark's marketing category.
 
-## Frontier Benchmarks
+If the benchmark does not add credible evidence about either capability, it does not belong in the ranking.
 
-A frontier benchmark is a stress test for the current best models.
+## Classification
 
-It should make frontier systems struggle. The best scores should not be near the ceiling, and the benchmark should expose meaningful gaps between top models. A good frontier benchmark does not need broad historical coverage. It may only have a few model results if those results are from the newest strongest systems and the gap between them is informative.
-
-A frontier benchmark should have fresh or protected tasks, credible grading, and enough difficulty that model differences still matter. It should test a serious capability, not a benchmark format. It should show that one model is ahead of another in a way that matches real qualitative differences, not random prompt noise.
-
-Frontier benchmarks provide the strongest separation among the leading models.
-
-## Baseline Benchmarks
-
-A baseline benchmark is not necessarily the hardest current stress test, but it remains a high-standard signal after filtering out bad benchmarks.
-
-Baseline benchmarks stabilize the ranking. They measure important capabilities that should not disappear just because a few new frontier tests are available: expert knowledge, professional reasoning, factual precision, long-context understanding, scientific coding, document analysis, and work-like output.
-
-A baseline benchmark should still have useful score spread, current model coverage, credible grading, and a clear capability meaning. It should not be heavily saturated, obviously contaminated, dominated by format artifacts, or redundant with a stronger benchmark.
-
-Baseline benchmarks provide stable capability coverage, while frontier benchmarks separate the current leaders.
-
-## Rejected Benchmarks
-
-A benchmark should be rejected when it no longer deserves ranking space.
-
-Common rejection reasons:
-
-- frontier models are saturated or tightly clustered near the ceiling
-- the benchmark is stale, public, memorized, or contamination-heavy
-- the format is mostly multiple-choice trivia, toy puzzles, keyword matching, or artificial patch tasks
-- grading is underspecified, subjective without calibration, or easy to exploit
-- results depend on an opaque or incomparable harness while being presented as a pure model ranking
-- the benchmark mainly tests safety or policy behavior instead of capability
-- the signal is redundant with a better benchmark
-- no results from current serious models are available
-- the only evidence is an isolated, unauditable claim without enough methodology or comparable rows to interpret it
-
-Realistic tasks do not rescue a saturated benchmark, difficulty does not rescue a contaminated benchmark, and familiarity does not justify retaining a benchmark that no longer adds signal.
-
-## What To Inspect
-
-Every benchmark should be judged from evidence, not marketing.
-
-Inspect the official site, paper, repository, dataset card, leaderboard, methodology, sample tasks, scoring rules, verifier details, and current frontier model results. Check whether results are official, independent, self-reported, vendor-provided, same-harness, or mixed-harness.
-
-Use real samples whenever possible. Inspect at least two tasks when samples are accessible; the point is to understand what the benchmark actually asks the model to do, not what its abstract claims. When private tasks prevent inspection, treat that opacity as a source of uncertainty and require stronger evidence from the methodology, grading protocol, result distribution, and independent validation.
-
-## Caveats Are Not Failures
-
-Different disclosed agents or harnesses are not inherently wrong for an Agentic benchmark. They change the unit of interpretation from a pure model result to a model-plus-agent result. Judge whether the tasks, scoring, configurations, and harness identities are clear enough to support that claim. Escalate only when incompatible or opaque harness differences dominate the result while the leaderboard presents them as directly comparable model scores.
-
-A benchmark leader does not need to be the overall top-ranked Model Atlas model. Specialized capabilities, task fit, reasoning effort, and measurement noise can produce a legitimate ordering that differs from the broad Intelligence table. Treat disagreement as adverse evidence only when the leaderboard is generally led by stale or weak systems, strong current models consistently perform poorly, and no credible capability-specific explanation remains.
-
-Self-reported, vendor-reported, or unverified rows are provenance labels, not automatic defects. They can support ranking when each claim is attributable to a primary source, the evaluated task and configuration are understandable, multiple current serious systems have comparable rows, and the distribution is coherent with other evidence. Escalate when claims are isolated, contradictory, configuration-opaque, impossible to audit, or used to imply independent verification that did not occur.
-
-A useful benchmark report should answer:
-
-- What capability is being tested?
-- Are the tasks serious, authentic, or cognitively meaningful?
-- Do current best models still struggle?
-- Are score gaps large enough to matter?
-- Is grading reliable enough to trust?
-- Is contamination controlled?
-- Is the benchmark measuring the model or the scaffold?
-- Do stronger reasoning-effort settings help, plateau, or regress?
-- Is the signal broad or important enough?
-- Is it redundant with a better benchmark?
-- Is there enough public evidence to understand the result?
-
-Watchlist-only benchmarks remain under review until they provide a stable structured leaderboard with source model and configuration identities, task-level outcomes or distributions with uncertainty and run counts, documented aggregation and comparable harness conditions, and current frontier coverage with non-saturated rank separation.
-
-## Effort Sensitivity
-
-Benchmarks with multiple reasoning-effort or budget settings should be inspected for effort sensitivity.
-
-For the same base model, higher reasoning effort should usually improve performance or plateau. A material regression at higher effort is a warning sign. It can mean the benchmark is measuring overthinking, verbosity penalties, timeout pressure, brittle output formatting, over-engineered patches, or harness mismatch rather than clean model capability.
-
-This does not automatically reject the benchmark. It should trigger closer review of samples, grading rules, timeouts, allowed output format, and effort configuration. Preserve effort-level observations and report whether higher effort improves, plateaus, or regresses. Source-default selection and public-view behavior are documented in [Benchmarks](benchmarks.md) and [Methodology](methodology.md).
-
-## Harness Interpretation
-
-Same-harness results are the cleanest source for direct model comparison.
-
-Mixed-harness leaderboards are different. They should not be read as pure model rankings, because each row measures a model plus an agent framework. This is an interpretation boundary, not a quality failure. If the same model performs well across multiple independent harnesses, that is evidence of cross-harness robustness, tool-use tolerance, and ecosystem adaptability.
-
-For mixed-harness boards, record:
-
-- best score by model
-- median score by model
-- number of independent harness families
-- single-model vs multi-model setup
-- whether performance depends on one special scaffold
-
-A mixed-harness board can earn ranking space when the model-plus-agent meaning is explicit and the rows remain auditable. It is not a single-harness model leaderboard.
-
-## Final Classification
-
-Each benchmark receives exactly one classification:
+Every benchmark receives exactly one scoring classification:
 
 | Classification | Meaning |
 | --- | --- |
-| `frontier` | A current high-pressure stress test that meaningfully separates top models |
-| `baseline` | A vetted high-standard benchmark that still adds useful capability signal |
-| `rejected` | A benchmark that should not affect the ranking |
+| `frontier` | A current high-pressure stress test that meaningfully separates leading models. |
+| `baseline` | A vetted benchmark that adds stable, important capability coverage. |
+| `rejected` | A benchmark that should not affect the ranking. |
 
-The final report should explain why each accepted benchmark earns ranking space and why each rejected benchmark is excluded.
+There is no diagnostic scoring class. A benchmark may remain under review when essential evidence is unavailable, but it must not affect the ranking until it earns either frontier or baseline status.
+
+Classification does not determine benchmark weight. Importance and dimension loading are separate portfolio decisions.
+
+## Frontier Standard
+
+A frontier benchmark should expose meaningful differences among the strongest current models. The best systems should still have room to improve, and the gaps near the top should be large or consistent enough to support a real comparison.
+
+Strong frontier evidence usually has the following properties:
+
+- difficult, serious tasks with fresh, protected, or contamination-resistant content
+- credible grading, verification, or human evaluation
+- current results from several leading models or model-plus-agent systems
+- visible headroom or meaningful separation near the top
+- a capability that matters outside the benchmark format
+- enough methodological detail to interpret what a score represents
+
+Broad historical coverage is not required. A private or specialist benchmark can qualify with relatively few rows when those rows cover current strong systems, the tasks are credible, and the performance gaps are informative. Sparse evidence still raises the burden of proof: an isolated score or an unauditable claim is not enough.
+
+Frontier status is not permanent. A benchmark should move to baseline or be rejected when saturation, contamination, stale coverage, or a stronger replacement removes its frontier pressure.
+
+## Baseline Standard
+
+A baseline benchmark need not be the hardest current stress test. It earns ranking space by providing reliable capability coverage that would otherwise be missing or unstable.
+
+Useful baseline evidence can cover expert knowledge, factual precision, professional reasoning, long-context understanding, scientific programming, document analysis, specialist domains, and work-like execution. The benchmark should still have current model coverage, credible grading, interpretable score spread, and a clear relationship to Intelligence or Agentic ability.
+
+A benchmark belongs in baseline when its signal remains valuable but one or more factors make a frontier claim too strong. Common reasons include narrower scope, modest top-model separation, greater contamination exposure, a creator-run harness, limited result volume, or deliberate use as a broad aggregate or stabilizer.
+
+Baseline does not mean low quality. It means the benchmark contributes breadth or stability rather than the strongest missing-data pressure on frontier models.
+
+## Rejection Standard
+
+A benchmark should be rejected when its evidence no longer deserves ranking space.
+
+Common reasons include:
+
+- frontier systems are saturated or tightly clustered near the ceiling
+- the tasks are stale, public, memorized, or highly exposed to contamination
+- the format mostly rewards trivia, keyword matching, artificial patches, or benchmark-specific tricks
+- grading is underspecified, uncalibrated, subjective without safeguards, or easy to exploit
+- results depend on opaque or incompatible harnesses while being presented as directly comparable model scores
+- the benchmark primarily measures safety or policy behavior rather than capability
+- the signal duplicates a stronger selected benchmark without adding meaningful coverage
+- serious current models are absent and the remaining rows cannot establish present-day relevance
+- the only evidence is an isolated, contradictory, or unauditable claim
+- the score lacks a stable capability interpretation
+
+Realistic tasks do not rescue a saturated benchmark. Difficulty does not rescue a contaminated benchmark. Familiarity does not justify retaining a signal that a better benchmark already measures.
+
+## Review Evidence
+
+Benchmark reviews should use primary evidence wherever possible:
+
+- the official leaderboard and result artifacts
+- the paper, technical report, or methodology page
+- the official repository and dataset card
+- sample tasks and complete task instructions
+- scoring rules, rubrics, judges, verifiers, and aggregation logic
+- current model results with configuration, effort, and harness details
+- uncertainty, run counts, or task-level distributions when published
+
+Inspect at least two real tasks when samples are accessible. The purpose is to determine what the model must actually do, which capabilities success requires, and what shortcuts the benchmark permits. An abstract or product page is not a substitute for task inspection.
+
+Private tasks are not automatically disqualifying, but opacity increases the evidence burden. A private benchmark needs stronger methodology, grading, result-distribution, provenance, and independent-validation evidence than an equally strong benchmark with inspectable tasks.
+
+## Review Questions
+
+A defensible review should answer these questions:
+
+### Capability
+
+- What work does the model perform?
+- Does success measure Intelligence, Agentic ability, or both?
+- Are the tasks authentic, serious, and cognitively meaningful?
+- Is the capability broad, important, or distinct enough to earn ranking space?
+
+### Difficulty and separation
+
+- Do current leading models still struggle?
+- How large is the overall spread and the spread among the strongest rows?
+- Are the differences stable across tasks, runs, or confidence intervals?
+- Does the leaderboard distinguish systems or mainly reproduce noise?
+
+### Measurement quality
+
+- What exactly is scored?
+- Is grading deterministic, verifier-backed, human-judged, model-judged, or mixed?
+- Are rubrics and aggregation rules specific enough to audit?
+- Can formatting, verbosity, policy behavior, or benchmark-specific tactics dominate the score?
+
+### Contamination and task integrity
+
+- Are tasks public, private, refreshed, generated, or protected?
+- What prevents memorization or training leakage from dominating performance?
+- Are train, development, and evaluation materials separated clearly?
+- Is there evidence of task reuse, answer exposure, or benchmark-aware tuning?
+
+### Comparability
+
+- Are results produced under the same harness and configuration?
+- If harnesses differ, is the unit of comparison clearly model-plus-agent rather than model alone?
+- Are model versions, reasoning efforts, budgets, tools, and inference settings disclosed?
+- Are repeated runs or uncertainty estimates available where outcomes are stochastic?
+
+### Provenance and vitality
+
+- Are rows official, independent, vendor-reported, self-reported, or mirrored?
+- Can every important result be traced to an attributable source?
+- Does the leaderboard cover current serious models?
+- Is the source maintained well enough to support ongoing review and ingestion?
+
+### Portfolio value
+
+- Does the benchmark add a capability that the selected portfolio lacks?
+- Is it redundant with a stronger or more auditable benchmark?
+- Would admitting it improve the ranking, or merely increase the number of inputs?
+
+## Harness Interpretation
+
+Same-harness results provide the cleanest direct comparison. Every row shares the same agent framework, tool contract, budget, and evaluation environment, so differences are easier to attribute to the model.
+
+Mixed-harness leaderboards measure something different. Each row represents a model plus an agent system, and the review must preserve that unit of interpretation. Harness variation is not inherently a defect: it can reveal whether a model works well across different scaffolds and whether the surrounding ecosystem can use it effectively.
+
+For mixed-harness evidence, record the best and median score by model, the number of independent harness families, whether runs use one model or several, and whether performance depends on a single specialized scaffold. Escalate only when opaque or incompatible harness differences dominate the result while the leaderboard presents the rows as pure model comparisons.
+
+## Provenance Interpretation
+
+Official, independent, vendor-reported, and self-reported results are provenance labels, not verdicts. Any of them can support ranking when the task, configuration, and source are attributable; several current serious systems have comparable rows; and the result distribution is coherent with other evidence.
+
+Provenance becomes a material weakness when a claim is isolated, contradictory, impossible to audit, configuration-opaque, or presented as independently verified when it is not. Mirrors should not be counted as independent evidence, and duplicate rows should not be averaged merely because they appear on different sites.
+
+A benchmark leader does not need to be the overall top-ranked Model Atlas model. Specialist capability, task fit, reasoning effort, and measurement noise can produce a legitimate ordering that differs from a broad ranking. Treat rank disagreement as adverse evidence only when stale or weak systems consistently lead, strong current systems consistently underperform, and no credible capability-specific explanation remains.
+
+## Reasoning-Effort Sensitivity
+
+When multiple reasoning efforts or budgets are available, compare them within the same base model. Higher effort should usually improve performance or reach a plateau. A material regression is a warning sign because it may reveal timeout pressure, verbosity penalties, brittle output rules, overthinking, over-engineered patches, or harness mismatch.
+
+A regression does not automatically reject the benchmark. Inspect the affected tasks, grading rules, timeouts, allowed output format, and effort configuration before deciding whether the behavior reflects the capability being measured. Preserve effort-level observations rather than collapsing them into one synthetic best result.
+
+## Merit and Adoption Readiness
+
+Benchmark quality and ingestion readiness are separate decisions. Difficult access, missing structured data, unstable identifiers, or an unimplemented scraper can block adoption without making the benchmark itself low quality. Conversely, an easy-to-scrape leaderboard does not deserve ranking space unless the benchmark meets the capability and evidence standards.
+
+A benchmark should not enter the portfolio until its scored metric, task version, units, aggregation, model identities, reasoning efforts, harness conditions, and source precedence are clear enough to maintain. When those operational requirements are missing, report them as adoption blockers rather than changing the merit judgment.
+
+## Watchlist Requirements
+
+A promising benchmark can remain outside the scoring portfolio while evidence develops. Watchlist status is not a fourth classification and contributes no score.
+
+Before adoption, a watchlist benchmark should provide:
+
+- a stable, structured leaderboard or reproducible result artifact
+- attributable model and configuration identities
+- documented task version, metric, units, and aggregation
+- comparable harness conditions or explicit model-plus-agent interpretation
+- current frontier coverage with non-saturated separation
+- task-level outcomes, uncertainty, or run counts when stochasticity matters
+
+## Reviewing Selected Benchmarks
+
+Selected benchmarks must continue to earn their place. A retention review should examine source vitality and leaderboard quality before looking only at the rows that satisfy Model Atlas public-admission rules.
+
+Use these portfolio-health verdicts:
+
+| Verdict | Meaning |
+| --- | --- |
+| `keep` | The benchmark still supports its classification and adds credible ranking evidence. |
+| `watch` | The source remains useful, but a material unresolved weakness needs follow-up. |
+| `review` | The benchmark's classification or continued inclusion needs reconsideration. |
+
+These verdicts describe portfolio health, not scoring classes. A benchmark under `watch` or `review` remains frontier or baseline until a separate portfolio decision changes it.
+
+Retention reviews should inspect source leaders, current top-model coverage, overall and top-end spread, missing or quarantined rows, provenance caveats, reasoning-effort behavior, source availability, and uniqueness of the capability signal. Thin final-table coverage alone is not enough to escalate a benchmark; combine it with evidence such as stale leaders, source disappearance, genuinely missing evaluations, weak provenance, or consistently poor rank agreement without a credible specialist explanation.
+
+Diagnose adverse signals before judging them. For each one, state what changed, the best-supported cause, and whether that cause weakens benchmark merit or only ingestion, identity matching, or observability. Display-label churn, aliases, and newly disclosed effort variants are not benchmark drift when the underlying evaluation remains represented.
+
+## Final Decision
+
+A benchmark review should lead with one of the three scoring classifications when the evidence supports a decision. Explain the capability measured, the strongest evidence for and against inclusion, the effect of harness and provenance, the benchmark's relationship to the current portfolio, and any adoption blockers.
+
+If essential evidence is unavailable, name the missing evidence and the decision it prevents. Do not invent a fourth scoring class or convert uncertainty into false precision.

@@ -4,17 +4,17 @@ export const DOCUMENTS = [
   {
     slug: "methodology",
     title: "Methodology",
-    description: "Scoring, calibration, missing evidence, and publication gates.",
+    description: "Scoring, calibration, missing evidence, and public admission.",
   },
   {
     slug: "benchmarks",
     title: "Benchmarks",
-    description: "Selected benchmark portfolio and source-specific policies.",
+    description: "Selected portfolio, scoring roles, weights, and capability decisions.",
   },
   {
     slug: "standards",
     title: "Standards",
-    description: "Admission criteria for trustworthy benchmark evidence.",
+    description: "Benchmark review, admission, retention, and rejection criteria.",
   },
   {
     slug: "matching",
@@ -34,6 +34,7 @@ export type TableOfContentsItem = {
 export const METHODOLOGY_ASSETS = {
   "confidence.svg": { width: 720, height: 360 },
   "elo-transform.svg": { width: 720, height: 420 },
+  "final-score-assembly.svg": { width: 720, height: 500 },
   "logit-quality.svg": { width: 720, height: 520 },
   "quantile-imputation.svg": { width: 720, height: 420 },
   "resource-residual.svg": { width: 720, height: 420 },
