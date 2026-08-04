@@ -1,12 +1,10 @@
-# Benchmarks
+# Benchmark Portfolio
 
-## Purpose
+This document records which benchmarks affect Model Atlas, what capability each one measures, how much it contributes to Intelligence and Agentic scores, and which source evidence enters the ranking. [Benchmark standards](standards.md) define admission and classification; [Methodology](methodology.md) defines the scoring mathematics.
 
-This document records which benchmarks affect Model Atlas, what each contributes, which source fields are scored, and how overlapping sources are reconciled. [Benchmark standards](standards.md) define admission and classification; [methodology](methodology.md) defines the scoring mathematics.
+## Scoring Roles
 
-## Benchmark Portfolio
-
-Benchmark admission follows [the standards](standards.md). Accepted benchmarks are classified as `frontier` or `baseline`; rejected benchmarks do not affect the ranking.
+Accepted benchmarks are classified as `frontier` or `baseline` under [the standards](standards.md). Rejected and watchlist benchmarks do not affect the ranking.
 
 The ranking has two quality dimensions:
 
@@ -25,7 +23,7 @@ There is no standalone coding score. Coding difficulty does not automatically ma
 | Importance | Controls the benchmark's total influence relative to other observed benchmarks |
 | Dimension loading | Allocates that importance between Intelligence and Agentic; the two loadings sum to 100% |
 
-The effective weight in dimension $D$ is $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$. Group does not change the contribution of an observed value, and source identity does not determine group. A benchmark can be sourced from Artificial Analysis and still be frontier when it is current, difficult, distinctive, and useful for separating leading models.
+For benchmark $b$ in dimension $D$, the effective weight $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$ combines importance with dimension loading. Group does not change the contribution of an observed value, and source identity does not determine group.
 
 The tables below show the current portfolio, why each benchmark is included, and whether its task resources can contribute to Speed or Value.
 
@@ -112,25 +110,25 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 
 Frontier benchmarks provide the strongest current separation; baseline benchmarks provide vetted breadth and stability. In scoring, the labels change only the conservative penalty applied to missing evidence. Benchmark importance owns the influence of observed scores, and diagnostics or exclusions are not scoring groups.
 
-## Combining Sources
-
-### Compatibility Gate
-
-Rows from different sources are never assumed equivalent merely because their benchmark and model labels overlap. Before combining them, Model Atlas checks the task set and version, metric definition, scoring protocol, harness and run configuration, units, aggregation rule, model identity, and reasoning effort.
-
-A source crosswalk is most reliable when the sources represent the same underlying measurement under methodologically compatible protocols. The overlap should validate any identity, scale, or unit transformation, and the benchmark-specific policy should define which source wins when both report the same observation. Canonical observed values are generally not averaged with duplicate mirrors, and validated mappings can admit source-only rows when they identify them without conflict.
-
-Methodologically different measurements are not made comparable by a crosswalk or median. They remain distinct evidence unless the benchmark has an explicit multi-harness aggregation policy, in which case that score rule and any separate resource-aggregation rule are documented in its source note.
-
-### Reasoning-Effort Rows
-
-An unlabelled configuration is the source default. When every configuration is labelled, source-default selection chooses the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Explicitly labelled observations remain attached to their matching scored variants, and raw source evidence preserves every effort row.
-
 ## Watchlist
 
-Watchlist-only benchmarks remain outside the scoring portfolio. Time Horizon Index is currently non-scoring because the available evidence does not yet provide the structured, comparable, uncertainty-aware leaderboard required by [the standards](standards.md).
+Watchlist benchmarks remain outside the scoring portfolio. Time Horizon Index is currently non-scoring because the available evidence does not yet provide the structured, comparable, uncertainty-aware leaderboard required by [the standards](standards.md).
 
-## Source Notes
+## Source Rules
+
+### Compatibility
+
+Rows are not equivalent merely because their benchmark and model labels overlap. Before combining sources, Model Atlas compares the task set and version, metric definition, scoring protocol, harness and run configuration, units, aggregation rule, model identity, and reasoning effort.
+
+A source crosswalk is valid only when both sources measure the same underlying task under compatible protocols. Their overlap must validate any identity, scale, or unit conversion, and the benchmark-specific policy must decide which source wins when both report the same observation. Canonical observations are not averaged with duplicate mirrors.
+
+Methodologically different measurements remain separate evidence. A crosswalk or median cannot make incompatible tasks, harnesses, or metrics comparable. The only exception is an explicit multi-harness policy that documents both score aggregation and resource aggregation.
+
+### Reasoning effort
+
+An unlabelled configuration is the source default. When every configuration is labelled, the highest reported effort becomes the default as one complete runnable observation. Model Atlas never constructs a synthetic default by combining the best fields from different efforts.
+
+Explicit effort observations stay attached to their matching scored variants, and raw source evidence retains every reported effort row.
 
 ### Shared Inputs
 
@@ -138,7 +136,7 @@ Watchlist-only benchmarks remain outside the scoring portfolio. Time Horizon Ind
 
 **OpenRouter** supplies current route pricing and speed measurements used for blended price, workflow-simulated seconds, and workflow-simulated price efficiency. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
-### Benchmark-Specific Policies
+## Benchmark-Specific Policies
 
 **Agent Arena** uses the published Net Improvement point estimate directly as the raw benchmark value. The value is a signed causal treatment effect against the current randomized model mixture, not a probability or Bradley-Terry logit, so Model Atlas applies its ordinary observed per-benchmark min-max normalization without a sigmoid transform.
 
@@ -146,7 +144,7 @@ Watchlist-only benchmarks remain outside the scoring portfolio. Time Horizon Ind
 
 **ALE-Bench** uses Sakana AI's complete leaderboard as the observed source and Epoch AI's overlapping rounded table as a refresh-time scale validator. The scoring row is `num_self_refine = 1`, meaning the source-default selected candidate before feedback-driven refinement loops, and its all-task mean Performance enters ordinary observed min-max normalization. The same native Performance value enters resource-quality neighborhoods linearly, so values above 100 remain distinct instead of being treated as percentages and collapsed at the logit ceiling. Higher refinement checkpoints, all/short/long mean, median, min, max, and standard deviation fields, and per-task results remain raw evidence. Mean per-task cost and input/output/total tokens are persisted; cost can feed Value, while submitted-program execution time and memory remain source context because they do not measure model workflow latency.
 
-**APEX Agents** uses Artificial Analysis when available. A missing AA value can use Mercor's Loop Pass@1 score for the same model and assigned reasoning effort after the current AA-Mercor overlap passes the [source crosswalk validation](methodology.md#apex-agents-source-crosswalk); an unlabelled AA row uses the source-default highest effort under the ordinary matching rule.
+**APEX Agents** uses Artificial Analysis when available. A missing AA value can use Mercor's Loop Pass@1 score for the same model and assigned reasoning effort after the current AA-Mercor overlap passes the [validated additive source crosswalk](methodology.md#validated-additive-source-crosswalk). This policy requires at least three effective overlap families, at least three effective families with valid held-out predictions, and a family-balanced held-out median absolute error of at most `0.02`; projections are clamped to `[0,1]`. An unlabelled AA row uses the source-default highest effort under the ordinary matching rule.
 
 **AutomationBench** comes from the dedicated Artificial Analysis benchmark page, not Zapier's hosted leaderboard. Model Atlas uses the AA headline score directly and keeps the page's reasoning-effort label, per-task cost, runtime, and token telemetry for resource scoring.
 
@@ -154,7 +152,6 @@ Watchlist-only benchmarks remain outside the scoring portfolio. Time Horizon Ind
 
 **Briefcase** comes from the dedicated Artificial Analysis benchmark page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its resource-quality neighborhood uses that normalized score linearly rather than assigning probability odds to the Elo-derived coordinate. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA benchmark-resource benchmarks.
 
-![Briefcase Elo transformed linearly from 500 to 2500 and clamped to the normalized 0-1 range.](assets/methodology/elo-transform.svg)
 
 **CursorBench** preserves score, average cost per task, tokens per task, steps per task, reasoning effort, and source score eligibility where shown. When multiple public effort rows map to variants of the same model, the scoring lookup uses the source-default row when effort is unlabelled, or the highest reported effort when it is labelled, while preserving all raw effort rows. Source-caveated scores remain in the raw rows but are excluded from scoring; this currently applies to Grok 4.5 because Cursor discloses that an earlier Cursor codebase snapshot was included in training and the score impact is unknown. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 

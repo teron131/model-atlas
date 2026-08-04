@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="title desc">
-  <title id="title">Confidence</title>
-  <desc id="desc">Confidence is zero through ten percent weighted evidence, rises smoothly, and is full from sixty percent.</desc>
+  <title id="title">Evidence confidence</title>
+  <desc id="desc">Confidence is zero through a ten percent evidence share, rises smoothly, and is full from sixty percent.</desc>
   <style>
     :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
     text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
@@ -13,7 +13,7 @@
     .threshold { stroke: var(--secondary); stroke-width: 1.5; stroke-dasharray: 5 5; }
   </style>
   <rect width="720" height="360" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Confidence</text>
+  <text x="360" y="31" text-anchor="middle" class="label">Evidence confidence</text>
   <line x1="90" y1="280" x2="670" y2="280" class="axis" />
   <line x1="90" y1="60" x2="90" y2="280" class="axis" />
   <line x1="90" y1="170" x2="670" y2="170" class="grid" />
@@ -30,6 +30,6 @@
   <text x="74" y="285" text-anchor="end" class="muted">0</text>
   <text x="74" y="175" text-anchor="end" class="muted">50</text>
   <text x="74" y="65" text-anchor="end" class="muted">100</text>
-  <text x="380" y="342" text-anchor="middle" class="label">Weighted evidence</text>
-  <text transform="translate(25 170) rotate(-90)" text-anchor="middle" class="label">Confidence</text>
+  <text x="380" y="342" text-anchor="middle" class="label">Evidence share E / Ω</text>
+  <text transform="translate(25 170) rotate(-90)" text-anchor="middle" class="label">Confidence c (%)</text>
 </svg>

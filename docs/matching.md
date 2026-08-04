@@ -1,103 +1,101 @@
-# Matching
+# Model Matching
 
-Model Atlas combines benchmark results, model metadata, pricing, and serving performance from sources that do not share one identifier system. Matching turns those source-specific names into stable public model identities while keeping genuinely different versions and configurations separate.
+Model Atlas joins benchmark results, catalog metadata, pricing, and serving performance from sources that use different identifiers. Matching resolves those source-specific names to one stable public model identity without merging genuinely different versions, tiers, or reasoning configurations.
 
-## Source Shape
+The matcher is deliberately conservative. Dropping an uncertain row is safer than attaching evidence to the wrong model.
 
-Artificial Analysis supplies benchmark-oriented model slugs, `models.dev` supplies provider/model identities and metadata, and OpenRouter supplies the preferred public routes used for price and speed data. Vercel and direct OpenAI, Google, or Anthropic identities provide trusted fallbacks when they give a cleaner exact match.
+## Identity Sources
 
-Benchmark pages are evidence sources, not identity authorities. Their rows join a model only after the matcher has selected a stable catalog identity. This prevents a source-local display name from silently creating a new model or overriding a better provider identity.
+Benchmark pages provide measurements, not canonical identities. Their rows join the public model table only after the matcher resolves them to a catalog model.
+
+The preferred identity comes from a public OpenRouter route because pricing and speed data use that route ID. `models.dev` supplies provider pools and catalog metadata. Direct OpenAI, Google, Anthropic, and Vercel identities act as trusted fallbacks when they provide a cleaner exact match.
 
 Candidate scoring uses only identity-bearing fields:
 
 - the source model slug
-- candidate model and provider ids
+- candidate provider and model IDs
 - candidate provider and display names
+
+Benchmark scores, prices, release dates, and other non-identity fields cannot influence the match.
 
 ## Normalization
 
-Before scoring, names are normalized into comparable tokens. Normalization lowercases names, replaces separators like dots, spaces, colons, and underscores with hyphens, removes unusual characters, collapses repeated hyphens, and trims separators.
+Each name is lowercased and converted to a comparable hyphenated form. Dots, spaces, colons, and underscores become separators; unusual characters are removed; repeated separators collapse; and leading or trailing separators are trimmed.
 
-Then model names are split into tokens. For example, mixed alphanumeric pieces are split so version and size information can be compared. Some route/style tags are ignored because they are usually not part of model identity: `free`, `extended`, `exacto`, `instruct`, `vl`, `thinking`, `reasoning`, `online`, and `nitro`.
+The normalized name is then split into tokens. Mixed alphanumeric pieces are separated so versions and parameter scales can be compared directly. Route and serving labels that usually do not define the underlying model are ignored: `free`, `extended`, `exacto`, `instruct`, `vl`, `thinking`, `reasoning`, `online`, and `nitro`.
 
-The matcher also treats scale tokens specially:
+Three token classes receive special treatment:
 
-- plain numeric tokens, such as `3` or `5`
-- billion-scale tokens, such as `70b`
-- active-parameter tokens, such as `a22b`
+- plain versions such as `3` or `5`
+- parameter scales such as `70b`
+- active-parameter scales such as `a22b`
 
-These matter because a wrong size match is usually worse than a small text-name mismatch.
+A wrong version or model size is usually more serious than a small spelling difference, so these tokens can reject a candidate rather than merely lower its score.
 
 ## Candidate Pool
 
-For each AA source slug, candidates are collected from the preferred `models.dev` provider pools.
+For each source slug, the matcher collects candidates from the preferred `models.dev` provider pools. OpenRouter routes and trusted direct-provider identities enter the same ranked pool, allowing an exact direct identity to beat a weak OpenRouter alias.
 
-The first guardrail is first-token matching. If the AA slug starts with one family token and the candidate id/name starts with another, the candidate is rejected early. This prevents obvious cross-family matches.
+The first token is an early family guardrail. A source and candidate that begin with different model-family tokens are not compared further.
 
-The matcher scores OpenRouter candidates and trusted fallback-provider candidates against the same source slug. When OpenRouter supplies candidates, both pools are combined and ranked by the matching heuristic, so an exact trusted-provider row can beat a weaker OpenRouter alias. OpenRouter remains the preferred public identity when its candidate wins because route identity, pricing, and speed data are keyed through OpenRouter ids.
+OpenRouter remains the preferred public identity only when its candidate actually wins. Route availability does not override a stronger identity match.
 
 ## Candidate Score
 
-The score is a weighted heuristic, not a machine-learning model. It rewards things that usually mean "same model" and penalizes things that usually mean "wrong sibling".
+The score is a ranking heuristic, not a probability. It rewards evidence that two names identify the same model and penalizes signs that they identify neighboring variants.
 
-Main rewards:
+The strongest rewards are:
 
-- matching token prefixes, with earlier tokens worth more
-- exact numeric/version match
-- small numeric closeness when exact version is missing
-- same variant suffix, such as a family suffix or model edition
-- exact token coverage when candidate tokens cover the AA slug cleanly
-- exact billion-scale match, such as the same `70b`
-- exact active-parameter match, such as the same `a22b`
-- character prefix similarity after normalization
+- matching token prefixes, weighted toward earlier tokens
+- exact numeric and version agreement
+- small numeric distance when an exact version is unavailable
+- matching family or edition suffixes
+- complete source-token coverage
+- exact parameter-scale and active-parameter-scale agreement
+- normalized character-prefix similarity
 
-Main penalties:
+The strongest penalties are:
 
-- missing source tokens from the candidate
-- mismatched billion-scale value
-- missing billion-scale value when the source has one
-- mismatched active-parameter value
-- large normalized length gap
+- source tokens missing from the candidate
+- conflicting parameter scales
+- a source scale that is absent from the candidate
+- conflicting active-parameter scales
+- a large difference in normalized name length
 
-Hard rejects:
+A candidate is rejected when it has no normalized character-prefix overlap, conflicts on a hard parameter scale, conflicts on a leading numeric identity, receives a non-positive score, or fails the first-token family guardrail. Version-prefix conflicts are also hard failures: a source version `3` does not match `3.5`, and `3.5` does not match `3`.
 
-- no normalized character prefix overlap
-- hard billion-scale mismatch when both sides expose a scale
-- numeric version-prefix conflicts, such as matching a source `3` row to a candidate `3.5` or matching a source `3.5` row to a candidate `3`
-- leading numeric identity mismatches when neither the candidate id nor candidate display name shares the source's leading version number
-- non-positive match score
-- first-token mismatch
+## Relative Cutoff
 
-The score is only meant to rank plausible candidates. It is not a probability.
-
-## Void Threshold
-
-After every AA row has a best candidate, the matcher applies a dynamic low-score cutoff. It takes the minimum and maximum best-match scores and places the cutoff at:
+After every source row has a best candidate, the matcher removes unusually weak winners relative to the current batch. With the minimum best-match score $s_{\min}$ and maximum best-match score $s_{\max}$, the cutoff is
 
 $$
-\text{threshold}=\text{min score}+0.35\cdot(\text{max score}-\text{min score})
+s_{\text{cutoff}}=s_{\min}+0.35(s_{\max}-s_{\min}).
 $$
 
-Any best match below that threshold is discarded. The cutoff removes weak matches relative to the score range of the current source batch.
+A best match below $s_{\text{cutoff}}$ is discarded. The cutoff is relative to the score range of the current source batch; it is not a universal confidence probability.
 
-## Claude Identity Policy
+## Variant Guardrail
 
-Claude tier and version are structural identity fields even though Anthropic changed their order over time. Historical names such as `Claude 3 Opus` and `claude-3-opus` normalize with the current-style `Claude Opus 3` form, while the known compact `claude-35-sonnet` form maps to Claude Sonnet 3.5. Current OpenRouter routes such as `claude-opus-4.6` also recognize reordered dated permaslugs such as `claude-4.6-opus-20260205`.
+After ranking, the matcher checks labels that distinguish important variants, including `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`.
 
-The tier is never treated as noise: `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. If the correct tier is unavailable, the source row remains unmatched instead of borrowing another Claude tier. Dates and route labels remain outside model identity, while reasoning or configuration labels such as `thinking` stay separate observations. A missing source `reasoning_effort` remains null; variant construction groups Claude configuration observations by tier/version and treats the canonical unlabelled observation as the source default rather than inferring an effort or choosing among null observations by score.
+If the source has one of these labels and the candidate does not, or the candidate has one and the source does not, the candidate is rejected. Multi-token labels remain distinct, so `flash-lite` does not count as plain `flash`.
 
-## Variant Conflict Check
+Reasoning-effort suffixes are removed before this check because effort identifies a scored configuration, not a different base model. The matcher walks the ranked candidates until one survives the guardrail. Matching a base model to an image route, a `flash` model to `flash-lite`, or an `omni` model to a non-omni sibling is worse than leaving the row unmatched.
 
-After scoring candidates, the matcher applies another guardrail for variant labels such as `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`. Artificial Analysis reasoning-effort suffixes are collapsed before this check, so an effort row such as `model-max` still matches the base model identity.
+Benchmark-update health uses the same ranking and variant boundary with stricter full-token coverage. A source row therefore remains explicitly unrepresented when only a weak family-prefix candidate exists.
 
-If the AA slug has one of those labels and the candidate model id does not, or the candidate model id has one and the AA slug does not, that candidate is rejected. Multi-token labels are matched as labels, so `flash-lite` does not count as plain `flash`. The match stage walks the ranked candidate list and keeps the first candidate that survives this guardrail. This is deliberately blunt. Matching a `flash` row to a `flash-lite` model, an `omni` row to a non-omni model, or a base model row to an `image` or `latest` route is worse than dropping the row.
+## Claude Identity
 
-Benchmark-update health uses the same candidate ranking and variant-selection boundary with stricter full-token coverage enabled. That keeps an official source row explicitly unrepresented when only a weak family-prefix match exists.
+Claude tier and version are structural identity fields even though Anthropic has changed their order over time. Historical forms such as `Claude 3 Opus` and `claude-3-opus` normalize with `Claude Opus 3`, while the compact `claude-35-sonnet` form resolves to Claude Sonnet 3.5. Current route names can also match reordered dated permaslugs when the tier and version agree.
+
+The tiers `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. When the correct tier is unavailable, the source row remains unmatched rather than borrowing another Claude tier.
+
+Dates and route labels do not define the base model. Reasoning and configuration labels remain separate observations. A missing source `reasoning_effort` stays null; the matcher does not infer an effort from a display name or choose among unlabelled observations by benchmark score.
 
 ## Selected Identity
 
-The selected match prefers an OpenRouter provider/model id for public identity and uses `models.dev` for catalog metadata. Benchmark values are attached only when their source row resolves to that identity.
+The selected match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. Benchmark values join only after their source row resolves to that identity.
 
-Serving aliases such as fast, high-effort, free, latest, preview, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity, while explicit reasoning-effort observations remain separate scored configurations.
+Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored configurations.
 
-When an unlabelled source observation exists, it represents the source-default configuration. If every observation has an effort label, Model Atlas selects the highest reported effort as one complete observation rather than combining the best fields from different configurations. Compact views show the highest-Intelligence scored variant for each base model; the full view preserves every scored effort variant.
+An unlabelled observation represents the source-default configuration. When every observation has an effort label, the highest reported effort becomes the default as one complete observation; fields from different efforts are never combined. Compact views show the highest-Intelligence scored variant for each base model, while the `all` view retains every scored effort variant.

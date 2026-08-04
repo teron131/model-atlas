@@ -17,8 +17,8 @@ const outline = tableOfContents(methodology);
 assert.equal(documentHref("methodology"), "/methodology");
 assert.equal(documentHref("benchmarks"), "/methodology/benchmarks");
 assert.equal(
-  documentLink("methodology.md#apex-agents-source-crosswalk"),
-  "/methodology#apex-agents-source-crosswalk",
+  documentLink("methodology.md#validated-additive-source-crosswalk"),
+  "/methodology#validated-additive-source-crosswalk",
 );
 assert.equal(documentLink("standards.md"), "/methodology/standards");
 assert.equal(documentLink("https://example.com"), "https://example.com");
