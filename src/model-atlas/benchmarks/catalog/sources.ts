@@ -9,9 +9,10 @@ import type {
 } from "../factory";
 import type { BenchmarkKey } from "./portfolio";
 
-export const GENERIC_BENCHMARK_SOURCES = {
+/** Standard sources use the shared benchmark-observation loader and persistence contract. */
+export const BENCHMARK_STANDARD_SOURCES = {
   browsecomp: {
-    group: "sparse",
+    group: "standalone",
     id: "zeroeval",
     loader: {
       kind: "zeroeval",
@@ -100,7 +101,10 @@ export const GENERIC_BENCHMARK_SOURCES = {
   epoch_capabilities_index: {
     group: "epoch",
     id: "epoch",
-    loader: { kind: "custom" },
+    loader: {
+      kind: "epoch_capabilities_index",
+      sourceUrl: "https://epoch.ai/data/eci_scores.csv",
+    },
     sourceDataKey: "epochCapabilitiesIndex",
     sourceRowsKey: "epochCapabilitiesIndexRows",
   },
@@ -178,6 +182,26 @@ export const GENERIC_BENCHMARK_SOURCES = {
     sourceDataKey: "medCode",
     sourceRowsKey: "medCodeRows",
   },
+  mls_bench: {
+    group: "standalone",
+    id: "mls_bench",
+    loader: {
+      kind: "mls_bench",
+      sourceUrl: "https://mls-bench.com/leaderboard",
+    },
+    sourceDataKey: "mlsBench",
+    sourceRowsKey: "mlsBenchRows",
+  },
+  perception_bench: {
+    group: "standalone",
+    id: "perception_bench",
+    loader: {
+      kind: "perception_bench",
+      sourceUrl: "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md",
+    },
+    sourceDataKey: "perceptionBench",
+    sourceRowsKey: "perceptionBenchRows",
+  },
   programbench: {
     group: "vals",
     id: "vals",
@@ -214,7 +238,7 @@ export const GENERIC_BENCHMARK_SOURCES = {
     sourceRowsKey: "publicBenefitsBenchRows",
   },
   toolathlon: {
-    group: "sparse",
+    group: "standalone",
     id: "zeroeval",
     loader: {
       kind: "zeroeval",
@@ -237,40 +261,42 @@ export const GENERIC_BENCHMARK_SOURCES = {
     sourceRowsKey: "vibeCodeRows",
   },
   weirdml: {
-    group: "sparse",
+    group: "standalone",
     id: "weirdml",
-    loader: { kind: "custom" },
+    loader: { kind: "weirdml" },
     sourceDataKey: "weirdMl",
     sourceRowsKey: "weirdMlRows",
   },
 } as const satisfies Readonly<
-  Record<
-    string,
-    {
-      group: BenchmarkSourceGroup;
-      id: string;
-      loader: BenchmarkObservationLoader;
-      sourceDataKey: string;
-      sourceRowsKey: string;
-    }
+  Partial<
+    Record<
+      BenchmarkKey,
+      {
+        group: BenchmarkSourceGroup;
+        id: string;
+        loader: BenchmarkObservationLoader;
+        sourceDataKey: string;
+        sourceRowsKey: string;
+      }
+    >
   >
 >;
 
-export const SPECIALIZED_BENCHMARK_SOURCES = {
+/** Extended sources declare complete source facets when the standard contract is insufficient. */
+export const BENCHMARK_EXTENDED_SOURCES = {
   aa_intelligence_index: {
     inputs: [
       {
         group: "artificial_analysis",
         id: "artificial_analysis",
         roles: ["observation"],
-        adapters: undefined,
       },
     ],
   },
   agent_arena: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "agent_arena",
         roles: ["observation"],
         runtime: { key: "agent_arena", publicRows: true },
@@ -280,7 +306,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   agents_last_exam: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "agents_last_exam",
         roles: ["observation", "resource"],
         runtime: { key: "agents_last_exam", publicRows: true },
@@ -290,7 +316,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   ale_bench: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "sakana",
         roles: ["observation", "resource"],
         runtime: { key: "ale_bench", publicRows: true },
@@ -317,7 +343,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
         ],
       },
       {
-        group: "sparse",
+        group: "standalone",
         id: "mercor",
         roles: ["imputation"],
         evidenceKey: "apex_agents_mercor",
@@ -345,7 +371,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   blueprint_bench_2: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "andon_labs",
         roles: ["observation"],
         runtime: { key: "blueprint_bench_2", publicRows: true },
@@ -373,23 +399,6 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
       },
     ],
   },
-  weirdml: {
-    inputs: [
-      {
-        group: "sparse",
-        id: "weirdml",
-        roles: ["observation"],
-        adapters: [
-          {
-            kind: "benchmark_observation",
-            sourceDataKey: "weirdMl",
-            sourceRowsKey: "weirdMlRows",
-          },
-        ],
-      },
-      { group: "epoch", id: "epoch", roles: ["observation", "validation"] },
-    ],
-  },
   critpt: {
     inputs: [
       {
@@ -410,7 +419,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   cursorbench: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "cursor",
         roles: ["observation", "resource"],
         runtime: { key: "cursorbench", publicRows: true },
@@ -420,7 +429,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   deep_swe: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "deep_swe",
         roles: ["observation", "resource"],
         runtime: { key: "deep_swe", publicRows: true },
@@ -430,7 +439,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   frontier_bench: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "frontier_bench",
         roles: ["observation"],
         runtime: { key: "frontier_bench", publicRows: true },
@@ -440,7 +449,7 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   frontier_code: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "cognition",
         roles: ["observation", "resource"],
         runtime: { key: "frontier_code", publicRows: true },
@@ -542,7 +551,6 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
         group: "artificial_analysis",
         id: "artificial_analysis",
         roles: ["observation"],
-        adapters: undefined,
       },
     ],
   },
@@ -599,11 +607,28 @@ export const SPECIALIZED_BENCHMARK_SOURCES = {
   vending_bench_2: {
     inputs: [
       {
-        group: "sparse",
+        group: "standalone",
         id: "andon_labs",
         roles: ["observation"],
         runtime: { key: "vending_bench_2", publicRows: true },
       },
+    ],
+  },
+  weirdml: {
+    inputs: [
+      {
+        group: BENCHMARK_STANDARD_SOURCES.weirdml.group,
+        id: BENCHMARK_STANDARD_SOURCES.weirdml.id,
+        roles: ["observation"],
+        adapters: [
+          {
+            kind: "benchmark_observation",
+            sourceDataKey: BENCHMARK_STANDARD_SOURCES.weirdml.sourceDataKey,
+            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.weirdml.sourceRowsKey,
+          },
+        ],
+      },
+      { group: "epoch", id: "epoch", roles: ["observation", "validation"] },
     ],
   },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkSourceFacet>>;

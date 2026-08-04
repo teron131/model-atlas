@@ -8,7 +8,7 @@ import { CONFIDENCE } from "../src/model-atlas/config/stage";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../src/model-atlas/stats/types";
 
-/** Build every generic benchmark row group, defaulting unspecified sources to empty. */
+/** Build every benchmark-observation row group, defaulting unspecified sources to empty. */
 export function benchmarkObservationRowGroups<Row>(
   overrides: Partial<Record<BenchmarkObservationRowsKey, Row[]>> = {},
 ): Record<BenchmarkObservationRowsKey, Row[]> {

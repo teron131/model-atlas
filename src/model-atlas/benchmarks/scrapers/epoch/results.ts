@@ -1,4 +1,8 @@
-/** Shared Epoch benchmark-run parsing preserves private task versions and run-level metadata. */
+/**
+ * Benchmark run results from Epoch AI's bulk benchmark dataset.
+ *
+ * CSV source: https://epoch.ai/data/benchmarks.csv
+ */
 
 import { benchmarkModelEffort } from "../../../identity/normalization";
 import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../../../runtime";

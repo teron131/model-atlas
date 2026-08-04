@@ -1,5 +1,5 @@
 /**
- * Vals Index scraper owns hydrated benchmark-page extraction and task-score aggregation.
+ * Vals Index leaderboard results from Vals AI.
  *
  * Page source: https://www.vals.ai/benchmarks/vals_index
  */

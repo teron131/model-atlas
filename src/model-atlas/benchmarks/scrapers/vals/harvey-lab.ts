@@ -1,5 +1,5 @@
 /**
- * Harvey LAB scraper owns Vals leaderboard extraction and strict task-resolution normalization.
+ * Harvey LAB leaderboard results from Vals AI.
  *
  * Page source: https://www.vals.ai/benchmarks/hlab
  */

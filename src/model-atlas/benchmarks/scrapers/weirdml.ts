@@ -1,5 +1,5 @@
 /**
- * WeirdML scraper owns creator-primary parsing and the explicit Epoch mirror crosswalk and merge.
+ * WeirdML leaderboard results from the benchmark creator and Epoch AI.
  *
  * Benchmark source: https://htihle.github.io/weirdml.html
  * Creator CSV source: https://htihle.github.io/data/weirdml_data.csv

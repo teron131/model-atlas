@@ -131,10 +131,10 @@ function riemannBenchmarkDrafts(rows: readonly DbBenchmarkRow[]): BenchmarkRowDr
   });
 }
 
-type SparseBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
+type StandaloneBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
 
-/** Persisted sparse row adapters mirror the live sparse registry without sharing row schemas. */
-const SPARSE_BENCHMARK_ADAPTERS = {
+/** Persisted standalone row adapters mirror the live standalone registry without sharing row schemas. */
+const STANDALONE_BENCHMARK_ADAPTERS = {
   agent_arena: (rows) =>
     rows.agentArenaRows.map((row) => ({
       key: "agent_arena",
@@ -236,7 +236,7 @@ const SPARSE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.final_balance_usd,
     })),
-} satisfies Record<PublicBenchmarkRuntimeKeyFor<"sparse">, SparseBenchmarkAdapter>;
+} satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
 
 function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
   return [
@@ -248,7 +248,7 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
       reasoningEffort: (row) => row.reasoning_effort,
       value: (row, key) => row[key],
     }),
-    ...Object.values(SPARSE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
+    ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
     ...dbSourceDrafts({
       key: "harvey_lab",
       rows: rows.harveyLabRows,

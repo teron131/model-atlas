@@ -329,9 +329,11 @@ const lookups = {
     rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
   },
   medCode: { rowsByModelName: emptyLookup() },
+  mlsBench: { rowsByModelName: emptyLookup() },
   mercorApexAgents: {
     rowsByModelName: new Map([["example-model", mercorApexRow]]),
   },
+  perceptionBench: { rowsByModelName: emptyLookup() },
   proofBench: { rowsByModelName: new Map() },
   programBench: { rowsByModelName: emptyLookup() },
   publicBenefitsBench: { rowsByModelName: emptyLookup() },

@@ -1,4 +1,14 @@
-/** Shared Surge leaderboard parsing and fetching for benchmark-specific adapters. */
+/**
+ * Benchmark leaderboard results from Surge AI.
+ *
+ * Page sources:
+ * - https://surgehq.ai/benchmarks/chartography
+ * - https://surgehq.ai/benchmarks/complex-constraints
+ * - https://surgehq.ai/benchmarks/enterprisebench-corecraft
+ * - https://surgehq.ai/benchmarks/handbook
+ * - https://surgehq.ai/benchmarks/hemingway-bench
+ * - https://surgehq.ai/leaderboards/gdp-pdf
+ */
 
 import {
   benchmarkModelEffort,

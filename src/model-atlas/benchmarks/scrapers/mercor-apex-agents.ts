@@ -1,5 +1,5 @@
 /**
- * Mercor APEX-Agents scraper owns embedded leaderboard normalization for Loop Pass@1 scores.
+ * APEX-Agents leaderboard results from Mercor.
  *
  * Page source: https://www.mercor.com/apex/apex-agents-leaderboard/
  */

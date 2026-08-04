@@ -83,9 +83,9 @@ export const SOURCE_URLS = {
   deep_swe: "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
   frontier_bench: "https://www.frontierbench.ai/",
   frontier_code: "https://cognition.com/frontiercode",
-  vals_harvey_lab: "https://www.vals.ai/benchmarks/hlab",
   mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
   riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
+  vals_harvey_lab: "https://www.vals.ai/benchmarks/hlab",
   vals_index: "https://www.vals.ai/benchmarks/vals_index",
   vending_bench_2: "https://andonlabs.com/evals/vending-bench-2",
 } as const;

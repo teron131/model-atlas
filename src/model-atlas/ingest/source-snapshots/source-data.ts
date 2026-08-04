@@ -40,7 +40,7 @@ const VALS_SOURCE_ROW_PROJECTIONS = {
   ),
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"vals">, object>;
 
-const SPARSE_SOURCE_ROW_PROJECTIONS = {
+const STANDALONE_SOURCE_ROW_PROJECTIONS = {
   agent_arena: sourceRowProjection(
     "agentArenaRows",
     (snapshots) => snapshots.agentArenaModelScoreRows,
@@ -77,12 +77,12 @@ const SPARSE_SOURCE_ROW_PROJECTIONS = {
     "vendingBench2Rows",
     (snapshots) => snapshots.vendingBench2ModelScoreRows,
   ),
-} as const satisfies Record<BenchmarkRuntimeKeyFor<"sparse">, object>;
+} as const satisfies Record<BenchmarkRuntimeKeyFor<"standalone">, object>;
 
 const BENCHMARK_SOURCE_ROW_PROJECTIONS = {
   ...SURGE_SOURCE_ROW_PROJECTIONS,
   ...VALS_SOURCE_ROW_PROJECTIONS,
-  ...SPARSE_SOURCE_ROW_PROJECTIONS,
+  ...STANDALONE_SOURCE_ROW_PROJECTIONS,
 } as const satisfies Record<BenchmarkRuntimeKey, object>;
 
 type BenchmarkSourceRowsKey =

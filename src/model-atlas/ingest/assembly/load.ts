@@ -59,7 +59,7 @@ const VALS_SOURCE_LOADERS = {
   ),
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"vals">, object>;
 
-const SPARSE_SOURCE_LOADERS = {
+const STANDALONE_SOURCE_LOADERS = {
   agent_arena: benchmarkSourceLoader(
     "agentArenaRows",
     async () => (await getAgentArenaStats()).data,
@@ -100,12 +100,12 @@ const SPARSE_SOURCE_LOADERS = {
     "vendingBench2Rows",
     async () => (await getVendingBench2Stats()).data,
   ),
-} as const satisfies Record<BenchmarkRuntimeKeyFor<"sparse">, object>;
+} as const satisfies Record<BenchmarkRuntimeKeyFor<"standalone">, object>;
 
 const BENCHMARK_SOURCE_LOADERS = {
   ...SURGE_SOURCE_LOADERS,
   ...VALS_SOURCE_LOADERS,
-  ...SPARSE_SOURCE_LOADERS,
+  ...STANDALONE_SOURCE_LOADERS,
 } as const satisfies Record<BenchmarkRuntimeKey, object>;
 
 type BenchmarkSourceRowsKey =

@@ -1,5 +1,5 @@
 /**
- * ALE-Bench scraper preserves Sakana AI refinement rows and validates the shared Epoch contract.
+ * ALE-Bench leaderboard results from Sakana AI.
  *
  * Page source: https://sakanaai.github.io/ALE-Bench-Leaderboard
  * JSON source: https://sakanaai.github.io/ALE-Bench-Leaderboard/data/results_summary.json

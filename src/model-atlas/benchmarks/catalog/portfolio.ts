@@ -209,7 +209,17 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
+  mls_bench: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.4, agentic: 0.6 },
+  },
   omniscience_accuracy: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
+  perception_bench: {
     group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },

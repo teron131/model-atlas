@@ -1,5 +1,5 @@
 /**
- * FrontierCode scraper preserves revision 1.1 effort rows, subset metrics, harnesses, and official-best provenance.
+ * FrontierCode revision 1.1 leaderboard results from Cognition.
  *
  * Page source: https://cognition.com/frontiercode
  * JSON source: https://cognition.com/data/frontiercode-leaderboard/data.json

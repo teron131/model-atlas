@@ -1,5 +1,5 @@
 /**
- * DeepSWE scraper owns versioned artifact fallback and resource-row normalization.
+ * DeepSWE leaderboard results from DataCurve's published artifacts.
  *
  * JSON source: https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json
  * Fallback: https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json

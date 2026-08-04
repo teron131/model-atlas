@@ -718,10 +718,12 @@ function modelStatsSourceData(
     hemingwayBench: { rows: [], rowsByModelName: new Map() },
     legalResearch: { rows: [], rowsByModelName: new Map() },
     medCode: { rows: [], rowsByModelName: new Map() },
+    mlsBench: { rows: [], rowsByModelName: new Map() },
     mercorApexAgents: {
       rows: [],
       rowsByModelName: new Map(),
     },
+    perceptionBench: { rows: [], rowsByModelName: new Map() },
     proofBench: { rows: [], rowsByModelName: new Map() },
     programBench: { rows: [], rowsByModelName: new Map() },
     publicBenefitsBench: { rows: [], rowsByModelName: new Map() },

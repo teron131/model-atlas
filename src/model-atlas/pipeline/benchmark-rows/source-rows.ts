@@ -271,10 +271,10 @@ function artificialAnalysisBenchmarkRowDrafts(
   ];
 }
 
-type SparseBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
+type StandaloneBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
 
-/** Sparse benchmark adapters retain source-specific row rules behind one exhaustive registry. */
-const SPARSE_BENCHMARK_ADAPTERS = {
+/** Standalone benchmark adapters retain source-specific row rules behind one exhaustive registry. */
+const STANDALONE_BENCHMARK_ADAPTERS = {
   agent_arena: (sourceData) =>
     benchmarkRowDrafts("agent_arena", sourceData.agentArena.rows, (row) => ({
       id: row.contender_name,
@@ -347,13 +347,13 @@ const SPARSE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.final_balance_usd,
     })),
-} satisfies Record<PublicBenchmarkRuntimeKeyFor<"sparse">, SparseBenchmarkAdapter>;
+} satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
 
 function benchmarkDraftsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
   return [
     ...benchmarkObservationSourceDrafts(sourceData),
     ...artificialAnalysisBenchmarkRowDrafts(sourceData),
-    ...Object.values(SPARSE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
+    ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
     ...surgeBenchmarkRowDrafts(sourceData),
     ...modelScoreRowDrafts("harvey_lab", sourceData.harveyLab.rows),
     ...modelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),

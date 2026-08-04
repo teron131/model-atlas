@@ -1,5 +1,5 @@
 /**
- * Agents' Last Exam scraper owns the API/browser fallback and harness-row summary policy.
+ * Agents' Last Exam leaderboard results from the official leaderboard and API.
  *
  * Page source: https://agents-last-exam.org/leaderboard
  * JSON source: https://agents-last-exam.org/api/demo/leaderboard

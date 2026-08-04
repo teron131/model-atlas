@@ -65,18 +65,18 @@ type AssignedBenchmarks = {
   scoringSources: NonNullable<ModelAtlasScoringSources>;
 };
 
-type SparseBenchmarkContext = {
+type StandaloneBenchmarkContext = {
   assignedBenchmarks: AssignedBenchmarks;
   lookups: BenchmarkAssignmentLookups;
   modelNameCandidates: unknown[];
   targetReasoningEffort: unknown;
 };
 
-type SparseBenchmarkOperation = (context: SparseBenchmarkContext) => void;
+type StandaloneBenchmarkOperation = (context: StandaloneBenchmarkContext) => void;
 
-type SparseBenchmarkAdapter = {
-  defaultVariant: SparseBenchmarkOperation;
-  observation?: SparseBenchmarkOperation;
+type StandaloneBenchmarkAdapter = {
+  defaultVariant: StandaloneBenchmarkOperation;
+  observation?: StandaloneBenchmarkOperation;
 };
 
 function benchmarkObservationLookup(
@@ -231,7 +231,7 @@ function buildArtificialAnalysisBenchmarks(
   return { benchmarks, scoringSources };
 }
 
-const addAleBench: SparseBenchmarkOperation = ({
+const addAleBench: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
   modelNameCandidates,
@@ -249,7 +249,7 @@ const addAleBench: SparseBenchmarkOperation = ({
 };
 
 /** Adds the strongest agent result for the exact model effort selected by the source projection. */
-const addFrontierBench: SparseBenchmarkOperation = ({
+const addFrontierBench: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
   modelNameCandidates,
@@ -267,7 +267,7 @@ const addFrontierBench: SparseBenchmarkOperation = ({
 };
 
 /** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
-const addFrontierCode: SparseBenchmarkOperation = ({
+const addFrontierCode: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
   modelNameCandidates,
@@ -284,7 +284,7 @@ const addFrontierCode: SparseBenchmarkOperation = ({
   }
 };
 
-const addMercorApexAgents: SparseBenchmarkOperation = ({
+const addMercorApexAgents: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
   modelNameCandidates,
@@ -300,8 +300,8 @@ const addMercorApexAgents: SparseBenchmarkOperation = ({
   }
 };
 
-/** Sparse assignment adapters keep benchmark-specific matching behind one exhaustive runtime registry. */
-const SPARSE_BENCHMARK_ADAPTERS = {
+/** Standalone assignment adapters keep benchmark-specific matching behind one exhaustive runtime registry. */
+const STANDALONE_BENCHMARK_ADAPTERS = {
   agent_arena: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
       const row = findBaseModelSourceRow(modelNameCandidates, lookups.agentArena.rowsByModelName);
@@ -380,13 +380,15 @@ const SPARSE_BENCHMARK_ADAPTERS = {
       }
     },
   },
-} satisfies Record<BenchmarkRuntimeKeyFor<"sparse">, SparseBenchmarkAdapter>;
+} satisfies Record<BenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
 
-function assignSparseBenchmarks(
-  kind: keyof SparseBenchmarkAdapter,
-  context: SparseBenchmarkContext,
+function assignStandaloneBenchmarks(
+  kind: keyof StandaloneBenchmarkAdapter,
+  context: StandaloneBenchmarkContext,
 ): void {
-  for (const adapter of Object.values(SPARSE_BENCHMARK_ADAPTERS) as SparseBenchmarkAdapter[]) {
+  for (const adapter of Object.values(
+    STANDALONE_BENCHMARK_ADAPTERS,
+  ) as StandaloneBenchmarkAdapter[]) {
     adapter[kind]?.(context);
   }
 }
@@ -403,7 +405,7 @@ export function buildObservationBenchmarks(
     lookups.artificialAnalysisBenchmarkResources.observationLookup,
     baseBenchmarks,
   );
-  assignSparseBenchmarks("observation", {
+  assignStandaloneBenchmarks("observation", {
     assignedBenchmarks,
     lookups,
     modelNameCandidates,
@@ -436,7 +438,7 @@ export function buildDefaultVariantBenchmarks(
       (scoringSources as Record<string, unknown>)[benchmark] = row;
     }
   }
-  assignSparseBenchmarks("defaultVariant", {
+  assignStandaloneBenchmarks("defaultVariant", {
     assignedBenchmarks,
     lookups,
     modelNameCandidates,

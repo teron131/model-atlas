@@ -1,5 +1,5 @@
 /**
- * ZeroEval leaderboard data is normalized for catalog-configured benchmarks.
+ * ZeroEval leaderboard results from ZeroEval's public API.
  *
  * Public pages:
  * - https://llm-stats.com/benchmarks/browsecomp
