@@ -17,9 +17,9 @@ import { shortLabel } from "./models";
 import { Panel } from "./Panel";
 import {
   AxisTitles,
-  CornerDirectionArrow,
   CursorCapture,
   CursorProjectionLayer,
+  DirectionArrow,
   MedianCross,
   ModelPointLabel,
   ModelScoreMark,
@@ -260,7 +260,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
             xLabel={medianValue.toFixed(0)}
             yLabel={medianScore.toFixed(0)}
           />
-          <CornerDirectionArrow bounds={plot} corner="upper-right" label="Better" />
+          <DirectionArrow bounds={plot} direction="upper-right" label="Better" />
           <CursorProjectionLayer
             projection={cursorProjection}
             bounds={plot}

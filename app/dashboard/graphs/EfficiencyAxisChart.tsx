@@ -11,9 +11,9 @@ import { providerChartColor } from "../shared/provider-theme";
 import { calloutLabelPlacements } from "./label-placement";
 import {
   AxisTitles,
-  CornerDirectionArrow,
   CursorCapture,
   CursorProjectionLayer,
+  DirectionArrow,
   MedianCross,
   ModelScoreMark,
   plotBoundsFor,
@@ -196,9 +196,9 @@ export function EfficiencyAxisChart<Row>({
           yLabel={`MED ${medianScore.toFixed(0)}%`}
           yLabelInside
         />
-        <CornerDirectionArrow
+        <DirectionArrow
           bounds={plot}
-          corner={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
+          direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
           label="Better"
         />
         <CursorProjectionLayer

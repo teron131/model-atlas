@@ -55,10 +55,7 @@ type ScoreAxisOptions = Omit<SteppedAxisOptions, "fallbackDomain" | "max" | "min
 
 export function linearAxisScale(values: number[], options: LinearAxisOptions = {}): AxisScale {
   const domain = paddedLinearDomain(values, options);
-  return {
-    domain,
-    ticks: linearAxisTicks(domain, options),
-  };
+  return linearAxisForDomain(domain, options);
 }
 
 export function scoreAxisScale(values: number[], options: ScoreAxisOptions = {}): AxisScale {
@@ -114,7 +111,7 @@ function paddedLinearDomain(values: number[], options: LinearDomainOptions = {})
   return clampDomain([low - padding, high + padding], options);
 }
 
-function linearAxisTicks(
+function linearAxisForDomain(
   [low, high]: [number, number],
   {
     formatTick = (value) => String(value),
@@ -123,27 +120,26 @@ function linearAxisTicks(
     targetTickCount = 5,
     ...domainOptions
   }: LinearAxisOptions = {},
-) {
+): AxisScale {
+  const domain: [number, number] = [low, high];
   if (!(high > low)) {
-    return [];
+    return { domain, ticks: [] };
   }
   const rawStep = (high - low) / Math.max(targetTickCount - 1, 1);
   const step = niceLinearStep(rawStep);
   if (!(step > 0)) {
-    return [];
+    return { domain, ticks: [] };
   }
-  let ticks = ticksForStep([low, high], step, formatTick);
+  let ticks = ticksForStep(domain, step, formatTick);
   if (ticks.length >= minimumTicksWithoutExpansion) {
-    return ticks;
+    return { domain, ticks };
   }
-  const expandedDomain = expandDomainForMinimumTicks(
-    [low, high],
-    step,
-    minimumTicks,
-    domainOptions,
-  );
+  const expandedDomain = expandDomainForMinimumTicks(domain, step, minimumTicks, domainOptions);
   ticks = ticksForStep(expandedDomain, step, formatTick);
-  return ticks.length > 0 ? ticks : [low, high];
+  return {
+    domain: expandedDomain,
+    ticks: ticks.length > 0 ? ticks : [low, high],
+  };
 }
 
 function steppedAxisTicks(

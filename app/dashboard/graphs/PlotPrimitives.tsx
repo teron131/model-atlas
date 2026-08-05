@@ -357,18 +357,19 @@ export function PlotFrame({
   );
 }
 
-export function CornerDirectionArrow({
-  bounds: plot,
-  corner,
+export function DirectionArrow({
+  bounds,
+  direction: directionName,
   label,
 }: {
   bounds: PlotBounds;
-  corner: "upper-left" | "upper-right";
+  direction: "upper-left" | "upper-right";
   label: string;
 }) {
-  const direction = corner === "upper-right" ? 1 : -1;
-  const tipX = corner === "upper-right" ? plot.right - 4 : plot.left + 4;
-  const tipY = plot.top + 4;
+  const direction = directionName === "upper-right" ? 1 : -1;
+  const edgeInset = 8;
+  const tipX = directionName === "upper-right" ? bounds.right - edgeInset : bounds.left + edgeInset;
+  const tipY = bounds.top + edgeInset;
   const unit = 1 / Math.SQRT2;
   const axis: [number, number] = [direction * unit, -unit];
   const normal: [number, number] = [unit, direction * unit];
@@ -398,9 +399,9 @@ export function CornerDirectionArrow({
       <polygon className={styles.cornerDirectionGlyph} points={points} />
       <text
         className={styles.cornerDirectionLabel}
-        x={corner === "upper-right" ? plot.right - 28 : plot.left + 28}
-        y={plot.top + 8}
-        textAnchor={corner === "upper-right" ? "end" : "start"}
+        x={tipX - direction * 28}
+        y={tipY + 4}
+        textAnchor={directionName === "upper-right" ? "end" : "start"}
       >
         {label}
       </text>
