@@ -27,9 +27,9 @@ import {
 import { Panel } from "./Panel";
 import {
   AxisTitles,
-  CornerDirectionArrow,
   CursorCapture,
   CursorProjectionLayer,
+  DirectionArrow,
   MedianCross,
   ModelPointLabel,
   ModelScoreMark,
@@ -362,9 +362,9 @@ function InteractionPlot({
           xLabel={cursorProjection ? config.tooltipFormat(cursorProjection.xValue) : ""}
           yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
         />
-        <CornerDirectionArrow
+        <DirectionArrow
           bounds={plot}
-          corner={bestCornerIsRight ? "upper-right" : "upper-left"}
+          direction={bestCornerIsRight ? "upper-right" : "upper-left"}
           label="Better"
         />
         {plottedPoints.map((point) => {

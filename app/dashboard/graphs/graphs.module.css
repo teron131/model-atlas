@@ -1556,9 +1556,9 @@
   }
 
   .chartWrap:not(.slopeChartWrap) svg {
-    width: var(--chart-max-width);
-    max-width: none;
-    margin-inline: 0;
+    width: min(100%, var(--chart-max-width));
+    max-width: 100%;
+    margin-inline: auto;
   }
 
   .slopeChartWrap svg {
