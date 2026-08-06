@@ -25,8 +25,10 @@ import {
   simulatedBlendSeconds,
 } from "../src/model-atlas/pipeline/scores";
 import {
+  benchmarkImputationValues,
   normalizedMetricValue,
   prepareBenchmarkScoring,
+  withoutBenchmarkImputationForModels,
 } from "../src/model-atlas/pipeline/scores/imputation";
 import {
   evidenceMassConfidence,
@@ -111,6 +113,12 @@ assertEqual(
     STAGE_CONFIG.scoring,
   ),
   4.975,
+);
+
+assert.equal(
+  blendedPriceValue({ input: 0, output: 0 }, STAGE_CONFIG.scoring),
+  0,
+  "published zero pricing is evidence rather than a missing price",
 );
 
 assertClose(
@@ -583,6 +591,29 @@ const absoluteGapValueModels = attachFinalScores(
 );
 assertClose(absoluteGapValueModels[1]?.scores.value_score, 54.6345);
 
+const zeroPriceValueModels = attachFinalScores(
+  [0, 1, 10].map((blendedPrice) =>
+    modelCandidate({
+      id: `test/zero-price-value-${blendedPrice}`,
+      intelligenceScore: 50,
+      agenticScore: 50,
+      blendedPrice,
+    }),
+  ),
+  STAGE_CONFIG.scoring,
+);
+assert.equal(
+  typeof zeroPriceValueModels[0]?.scores.value_score,
+  "number",
+  "published zero pricing should produce a Value score",
+);
+assert.equal(
+  (zeroPriceValueModels[0]?.scores.value_score ?? 0) >
+    (zeroPriceValueModels[1]?.scores.value_score ?? 0),
+  true,
+  "a free model should outrank an otherwise identical paid peer on Value",
+);
+
 const aggregateQualityPrices = [30, 10, 20, 15, 5, 12, 8, 100];
 const aggregateQualityModels = gapExampleValues.map((quality, index) => ({
   ...modelCandidate({
@@ -685,6 +716,21 @@ const fractionalBenchmarkComponentScores = buildComponentScoreResult(
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
 assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
+const priorityWeightedComponentScores = buildComponentScoreResult(
+  fractionalBenchmarkModels[2] ?? {},
+  {
+    throughput_tokens_per_second_median: null,
+    latency_seconds_median: null,
+    e2e_latency_seconds_median: null,
+  },
+  [],
+  fractionalBenchmarkConfig,
+  buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
+  new Map(),
+  new Map(),
+  new Map([["hle", 2]]),
+).componentScores;
+assertClose(priorityWeightedComponentScores?.intelligence_score, 100 / 3);
 
 const importanceWeightedConfig = {
   ...fractionalBenchmarkConfig,
@@ -1458,6 +1504,19 @@ assertClose(
     .imputationConfidenceByModel.get(sharedTargetModel)
     ?.get("shared_target"),
   0.5,
+);
+const directOnlySharedTargetPreparation = withoutBenchmarkImputationForModels(
+  prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig),
+  [sharedTargetModel],
+);
+assert.equal(
+  benchmarkImputationValues(directOnlySharedTargetPreparation, sharedTargetModel),
+  undefined,
+);
+assert.equal(
+  benchmarkImputationValues(directOnlySharedTargetPreparation, { ...sharedTargetModel }),
+  undefined,
+  "direct-only policy should also suppress variant-key fallback during rescoring",
 );
 const reorderedSharedTargetImputation = buildBenchmarkImputationByModel(sharedTargetModels, {
   ...sharedTargetConfig,

@@ -35,6 +35,7 @@ import { assignBenchmarksToVariants } from "../src/model-atlas/pipeline/benchmar
 import { deriveModelStats } from "../src/model-atlas/pipeline/derivation";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/pipeline/matched-rows";
 import { collapseModelVariants } from "../src/model-atlas/pipeline/model-catalog";
+import { buildVersionReplacementMatchSlugOverrides } from "../src/model-atlas/pipeline/selection/version-replacement";
 
 const sourceRows: MatcherSourceModel[] = [
   source("example-medium-3-5", "Example Medium 3.5"),
@@ -235,6 +236,42 @@ assert.equal(
 assert.equal(effortTraceRows[0]?.artificial_analysis_id, "example/example-3-max");
 assert.equal(effortTraceRows[0]?.artificial_analysis_name, "Example 3 Max Effort");
 
+const qwenMaxOutput = runMatcher(
+  [source("qwen3-8-max", "Qwen3.8 Max")],
+  {
+    primary: [
+      model("openrouter", "qwen/qwen3.8", "Qwen3.8"),
+      model("openrouter", "qwen/qwen3.8-max", "Qwen3.8 Max"),
+    ],
+    fallback: [],
+  },
+  5,
+  STAGE_CONFIG.matcher,
+);
+assert.equal(
+  qwenMaxOutput.models[0]?.best_match?.model_id,
+  "qwen/qwen3.8-max",
+  "Qwen Max is a semantic model tier, not a reasoning-effort suffix",
+);
+
+const shortExactIdentityOutput = runMatcher(
+  [source("inkling", "Inkling"), source("claude-fable-5", "Claude Fable 5")],
+  {
+    primary: [
+      model("openrouter", "thinkingmachines/inkling", "Inkling"),
+      model("openrouter", "anthropic/claude-fable-5", "Claude Fable 5"),
+    ],
+    fallback: [],
+  },
+  5,
+  STAGE_CONFIG.matcher,
+);
+assert.equal(
+  shortExactIdentityOutput.models[0]?.best_match?.model_id,
+  "thinkingmachines/inkling",
+  "the population-relative void threshold must not discard an exact short identity",
+);
+
 const allVariantConflictsOutput = runMatcher(
   [source("example-3-pro", "Example 3 Pro")],
   {
@@ -331,6 +368,185 @@ assert.equal(
   unversionedCurrentModelOutput.models[1]?.best_match?.model_id,
   "meta/muse-spark-1.1",
   "an unversioned source family should match its current versioned catalog row",
+);
+
+const versionedResourceRow: ArtificialAnalysisBenchmarkResourceRow = {
+  benchmark_key: "hle",
+  source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+  model_id: "example/example-v4-flash",
+  model: "Example V4 Flash 0731 (max)",
+  provider: "Example",
+  provider_id: "example",
+  reasoning_effort: "max",
+  score: 0.36,
+  task_run_count: 100,
+  cost_per_task_usd: 0.01,
+  seconds_per_task: 200,
+  tokens_per_task: 30_000,
+  input_tokens_per_task: 500,
+  output_tokens_per_task: 29_500,
+  answer_tokens_per_task: 500,
+  reasoning_tokens_per_task: 29_000,
+};
+const versionedAliasSourceData = modelStatsSourceData([
+  sourceModel("example/example-v4-flash", 50, "max"),
+  sourceModel("example/example-v4-flash-non-reasoning", 28),
+]);
+versionedAliasSourceData.artificialAnalysisBenchmarkResources = {
+  rows: [versionedResourceRow],
+  observationLookup: buildArtificialAnalysisResourceLookup([versionedResourceRow]),
+  sourceDefaultLookup: buildArtificialAnalysisSourceDefaultResourceLookup([versionedResourceRow]),
+};
+const versionedAliasModels = [
+  model("openrouter", "example/example-v4-flash", "Example V4 Flash"),
+  model("openrouter", "example/example-v4-flash-0731", "Example V4 Flash 0731"),
+];
+versionedAliasSourceData.modelsDev = {
+  rows: versionedAliasModels,
+  byId: new Map(
+    versionedAliasModels.map((modelsDevModel) => [modelsDevModel.model_id, modelsDevModel]),
+  ),
+};
+const singleAuthorityVersionDerivation = await deriveModelStats(versionedAliasSourceData, {
+  loadOpenRouter: async () => ({ rawPayload: null }),
+});
+assert.equal(
+  singleAuthorityVersionDerivation.matchDiagnostics.models[0]?.best_match?.model_id,
+  "example/example-v4-flash",
+  "one benchmark authority should not replace a source route by itself",
+);
+
+const valsVersionRow: ValsIndexModelScoreRow = {
+  task: "overall",
+  task_label: "Overall",
+  model_id: "example/example-v4-flash-0731",
+  model: "example-v4-flash-0731",
+  provider: "Example",
+  score: 0.64,
+};
+versionedAliasSourceData.valsIndex = {
+  rows: [valsVersionRow],
+  rowsByModelName: buildValsIndexMap([valsVersionRow]),
+};
+const versionedAliasDerivation = await deriveModelStats(versionedAliasSourceData, {
+  loadOpenRouter: async () => ({ rawPayload: null }),
+});
+const versionedAliasMatch = versionedAliasDerivation.matchDiagnostics.models[0];
+assert.equal(
+  versionedAliasMatch?.best_match?.model_id,
+  "example/example-v4-flash-0731",
+  "matching catalog and Vals versions should resolve an unversioned source alias",
+);
+assert.equal(
+  versionedAliasMatch?.artificial_analysis_id,
+  "example/example-v4-flash",
+  "version evidence must not rewrite the upstream source identity",
+);
+const versionedAliasRows = versionedAliasDerivation.modelRows.filter(
+  (row) => row.id === "example/example-v4-flash-0731",
+);
+assert.equal(
+  versionedAliasRows.some(
+    (row) => row.artificial_analysis_id === "example/example-v4-flash-non-reasoning",
+  ),
+  false,
+  "the replacement should discard the older effort observation",
+);
+assert.equal(versionedAliasRows.filter((row) => row.artificial_analysis_id != null).length, 1);
+assert.equal(
+  versionedAliasRows.every((row) => row.name === "Example V4 Flash"),
+  true,
+);
+assert.equal(
+  versionedAliasRows[0]?.version_replacement_source_id,
+  "example/example-v4-flash",
+  "the replacement row should retain its prior snapshot identity for freshness comparison",
+);
+
+const valsVersionSourceData = modelStatsSourceData([
+  sourceModel("example/example-v4-flash", 50, "max"),
+  sourceModel("example/example-v4-flash-non-reasoning", 28),
+]);
+valsVersionSourceData.modelsDev = versionedAliasSourceData.modelsDev;
+valsVersionSourceData.artificialAnalysisBenchmarkResources = {
+  rows: [],
+  observationLookup: new Map(),
+  sourceDefaultLookup: new Map(),
+};
+valsVersionSourceData.valsIndex = {
+  rows: [valsVersionRow],
+  rowsByModelName: buildValsIndexMap([valsVersionRow]),
+};
+const valsVersionDerivation = await deriveModelStats(valsVersionSourceData, {
+  loadOpenRouter: async () => ({ rawPayload: null }),
+});
+assert.equal(
+  valsVersionDerivation.matchDiagnostics.models[0]?.best_match?.model_id,
+  "example/example-v4-flash-0731",
+  "catalog and Vals agreement should replace an unversioned source alias without a dated AA label",
+);
+assert.equal(
+  valsVersionDerivation.modelRows.some(
+    (row) => row.artificial_analysis_id === "example/example-v4-flash-non-reasoning",
+  ),
+  false,
+  "a confirmed catalog version should discard sibling source observations",
+);
+const valsVersionSourceRow = valsVersionDerivation.modelRows.find(
+  (row) => row.artificial_analysis_id === "example/example-v4-flash",
+);
+assert.equal(
+  valsVersionSourceRow?.version_replacement_source_id,
+  "example/example-v4-flash",
+  "catalog and Vals agreement should activate replacement scoring policy",
+);
+
+const semanticVersionResourceRow = {
+  ...versionedResourceRow,
+  model_id: "example/example-5",
+  model: "Example 5.5 (max)",
+};
+const semanticVersionValsRow = {
+  ...valsVersionRow,
+  model_id: "example/example-5.5",
+  model: "example-5.5",
+};
+const semanticVersionSourceData = modelStatsSourceData([
+  sourceModel("example/example-5", 50, "max"),
+]);
+semanticVersionSourceData.artificialAnalysisBenchmarkResources = {
+  rows: [semanticVersionResourceRow],
+  observationLookup: buildArtificialAnalysisResourceLookup([semanticVersionResourceRow]),
+  sourceDefaultLookup: buildArtificialAnalysisSourceDefaultResourceLookup([
+    semanticVersionResourceRow,
+  ]),
+};
+semanticVersionSourceData.valsIndex = {
+  rows: [semanticVersionValsRow],
+  rowsByModelName: buildValsIndexMap([semanticVersionValsRow]),
+};
+const semanticVersionModels = [
+  model("openrouter", "example/example-5", "Example 5"),
+  model("openrouter", "example/example-5.5", "Example 5.5"),
+];
+semanticVersionSourceData.modelsDev = {
+  rows: semanticVersionModels,
+  byId: new Map(
+    semanticVersionModels.map((modelsDevModel) => [modelsDevModel.model_id, modelsDevModel]),
+  ),
+};
+assert.deepEqual(
+  [...buildVersionReplacementMatchSlugOverrides(semanticVersionSourceData)],
+  [],
+  "a semantic model version must not be interpreted as a dated alias suffix",
+);
+const semanticVersionDerivation = await deriveModelStats(semanticVersionSourceData, {
+  loadOpenRouter: async () => ({ rawPayload: null }),
+});
+assert.equal(
+  semanticVersionDerivation.matchDiagnostics.models[0]?.best_match?.model_id,
+  "example/example-5",
+  "a semantic successor must remain distinct even when AA and Vals both report it",
 );
 
 const sourceData = modelStatsSourceData([

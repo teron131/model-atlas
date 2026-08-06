@@ -103,6 +103,36 @@ assertEqual(collapsedVariantIntelligence.intelligence_index, 59);
 assertEqual(collapsedVariantIntelligenceCost.total_cost, 12);
 assertEqual(JSON.stringify(effortObservations), preservedEffortObservations);
 
+const versionedReplacementRows = buildModelVariants([
+  {
+    id: "deepseek/deepseek-v4-flash-0731",
+    name: "DeepSeek V4 Flash",
+    provider_id: "deepseek",
+    artificial_analysis_id: "deepseek/deepseek-v4-flash",
+    artificial_analysis_slug: "deepseek-v4-flash-0731",
+    reasoning_effort: null,
+    benchmarks: { hle: 0.3 },
+  },
+  {
+    id: "deepseek/deepseek-v4-flash-0731",
+    name: "DeepSeek V4 Flash 0731",
+    provider_id: "deepseek",
+    artificial_analysis_id: "deepseek/deepseek-v4-flash",
+    artificial_analysis_slug: "deepseek-v4-flash-0731",
+    reasoning_effort: "max",
+    benchmarks: { hle: 0.36 },
+  },
+  {
+    id: "deepseek/deepseek-v4-flash-0731",
+    name: "DeepSeek V4 Flash 0731",
+    openrouter_id: "deepseek/deepseek-v4-flash-0731",
+    provider_id: "openrouter",
+  },
+]);
+assertEqual(versionedReplacementRows.length, 2);
+assertEqual(versionedReplacementRows[0]?.name, "DeepSeek V4 Flash");
+assertEqual(versionedReplacementRows[1]?.name, "DeepSeek V4 Flash");
+
 const separatelyNamedMaxRow = collapseModelVariants([
   {
     id: "anthropic/claude-opus-4.6",
@@ -154,6 +184,8 @@ assertEqual(JSON.stringify(unlabeledEffortObservations), originalUnlabeledEffort
 assertEqual(publicOpenRouterModelId("anthropic/claude-opus-4.8-fast"), "anthropic/claude-opus-4.8");
 assertEqual(publicOpenRouterModelId("openai/gpt-5.5-ultra"), "openai/gpt-5.5");
 assertEqual(publicOpenRouterModelId("openai/gpt-5.5-max"), "openai/gpt-5.5");
+assertEqual(publicOpenRouterModelId("qwen/qwen3.8-max"), "qwen/qwen3.8-max");
+assertEqual(publicOpenRouterModelId("qwen/qwen3.8-reasoning-max"), "qwen/qwen3.8");
 assertEqual(publicOpenRouterModelId("openai/gpt-5.5-adaptive"), "openai/gpt-5.5");
 assertEqual(publicOpenRouterModelId("openai/gpt-5.5-xhigh"), "openai/gpt-5.5");
 assertEqual(publicOpenRouterModelId("openai/gpt-5.5-non-reasoning"), "openai/gpt-5.5");
@@ -174,6 +206,10 @@ assertEqual(
   "Mistral Medium 3.5",
 );
 assertEqual(
+  publicOpenRouterModelName("DeepSeek V4 Flash 0731", "deepseek/deepseek-v4-flash-0731"),
+  "DeepSeek V4 Flash",
+);
+assertEqual(
   isSameOpenRouterModelRoute("anthropic/claude-opus-4.6", "anthropic/claude-4.6-opus-20260205"),
   true,
 );
@@ -185,8 +221,8 @@ assertEqual(
 const qwenRouteData = await prepareOpenRouterModelData(
   [
     {
-      id: "qwen/qwen3.7",
-      openrouter_id: "qwen/qwen3.7",
+      id: "qwen/qwen3.7-max",
+      openrouter_id: "qwen/qwen3.7-max",
       provider_id: "qwen",
       intelligence: {
         intelligence_index: 90,
@@ -216,7 +252,7 @@ const qwenRouteData = await prepareOpenRouterModelData(
   },
 );
 assertEqual(
-  qwenRouteData.speedByModelId.get("qwen/qwen3.7")?.throughput_tokens_per_second_median,
+  qwenRouteData.speedByModelId.get("qwen/qwen3.7-max")?.throughput_tokens_per_second_median,
   47,
 );
 

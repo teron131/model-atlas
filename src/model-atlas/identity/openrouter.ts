@@ -6,8 +6,10 @@ import {
   normalizeProviderModelId,
   reasoningEffortRank,
 } from "./normalization";
+import { hasQwenMaxTier } from "./qwen";
 
 const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
+const MMDD_RELEASE_TOKEN_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 
 const REASONING_EFFORT_ROUTES = [
   ["-reasoning-ultra", "ultra"],
@@ -100,6 +102,9 @@ export function stripCatalogAliasSuffixes(value: string): string {
   let normalized = value.replace(/-\d{8}$/, "");
   for (const suffix of CATALOG_ALIAS_STRIP_SUFFIXES) {
     if (normalized.endsWith(suffix)) {
+      if (suffix === "-max" && hasQwenMaxTier(normalized)) {
+        return normalized;
+      }
       normalized = normalized.slice(0, -suffix.length);
       break;
     }
@@ -170,7 +175,7 @@ export function hasPublicFreeRouteLabel(modelName: string | null | undefined): b
   return /\s+\(free\)\s*$/i.test(modelName ?? "");
 }
 
-/** Removes transient preview/latest/free labels from public OpenRouter model names. */
+/** Removes transient preview/latest/free and route-owned release labels from public model names. */
 export function publicOpenRouterModelName(
   modelName: string | null,
   modelId: string | null = null,
@@ -189,6 +194,14 @@ export function publicOpenRouterModelName(
     if (version != null) {
       publicName = `${publicName} ${version}`;
     }
+  }
+  const routeReleaseToken = modelSlugFromModelId(modelId)?.split("-").at(-1);
+  if (
+    routeReleaseToken != null &&
+    MMDD_RELEASE_TOKEN_PATTERN.test(routeReleaseToken) &&
+    publicName.endsWith(` ${routeReleaseToken}`)
+  ) {
+    publicName = publicName.slice(0, -routeReleaseToken.length).trimEnd();
   }
   return publicName;
 }

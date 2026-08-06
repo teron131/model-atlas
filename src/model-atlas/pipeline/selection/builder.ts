@@ -2,7 +2,7 @@
 
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
   ModelAtlasCandidate,
   ModelAtlasModel,
@@ -10,7 +10,11 @@ import type {
 } from "../model-types";
 import type { OpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores } from "../scores";
-import { prepareBenchmarkScoring, prepareEffortResourceImputation } from "../scores/imputation";
+import {
+  prepareBenchmarkScoring,
+  prepareEffortResourceImputation,
+  withoutBenchmarkImputationForModels,
+} from "../scores/imputation";
 import { observedBenchmarkCount } from "../scores/score-builders";
 import {
   type BenchmarkVersioningOptions,
@@ -18,6 +22,12 @@ import {
   versionCandidateBenchmarkData,
 } from "./candidate";
 import { hasRequiredQualityScores, selectPublicModels } from "./public-list";
+import {
+  buildPreviousModelLookup,
+  isVersionReplacementRow,
+  prepareVersionReplacementBenchmarkRows,
+  versionReplacementBenchmarkWeights,
+} from "./version-replacement";
 
 const MIN_PUBLIC_COMPONENT_SCORE = 10;
 const PUBLIC_COMPONENT_SCORE_KEYS = [
@@ -32,6 +42,12 @@ type BasicSpecCandidate = Pick<
   "id" | "name" | "release_date" | "modalities" | "cost" | "context_window" | "speed"
 >;
 type BenchmarkEvidenceCandidate = Pick<ModelAtlasScoredCandidate, "intelligence" | "benchmarks">;
+
+function selectedBenchmarkKeys(scoringConfig: ScoringConfig): string[] {
+  return [
+    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
+  ];
+}
 
 /** Requires a usable non-benchmark profile before a source row becomes a leaderboard model. */
 export function hasRequiredBasicSpecs(model: BasicSpecCandidate): boolean {
@@ -56,9 +72,7 @@ export function hasRequiredBenchmarkEvidence(
   scoringConfig: ScoringConfig,
   admissionConfig: BenchmarkAdmissionConfig,
 ): boolean {
-  const selectedKeys = [
-    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
-  ];
+  const selectedKeys = selectedBenchmarkKeys(scoringConfig);
   const observedCount = observedBenchmarkCount(model, selectedKeys);
   const observedIntelligenceCount = observedBenchmarkCount(
     model,
@@ -91,12 +105,7 @@ function buildCandidates(
   previousModels: readonly ModelAtlasModel[],
   versioning: BenchmarkVersioningOptions,
 ): ModelAtlasCandidate[] {
-  const previousByVariant = new Map(
-    previousModels.map((model) => [
-      `${model.id ?? ""}\u0000${model.reasoning_effort ?? ""}`,
-      model,
-    ]),
-  );
+  const previousModelForRow = buildPreviousModelLookup(previousModels);
   return openRouterData.modelRows.map((row) => {
     const candidate = buildModelCandidate(
       row,
@@ -105,12 +114,9 @@ function buildCandidates(
       openRouterData.outputTokenAnchors,
       scoringConfig,
       scoringPreparation,
+      versionReplacementBenchmarkWeights(asRecord(row), scoringConfig),
     );
-    return versionCandidateBenchmarkData(
-      candidate,
-      previousByVariant.get(`${candidate.id ?? ""}\u0000${candidate.reasoning_effort ?? ""}`),
-      versioning,
-    );
+    return versionCandidateBenchmarkData(candidate, previousModelForRow(asRecord(row)), versioning);
   });
 }
 
@@ -125,9 +131,19 @@ export async function buildFinalModels(
   },
   previousModels: readonly ModelAtlasModel[] = [],
 ): Promise<ModelAtlasModel[]> {
-  const scoringPreparation = prepareBenchmarkScoring(openRouterData.modelRows, scoringConfig);
+  const modelRows = prepareVersionReplacementBenchmarkRows(
+    openRouterData.modelRows,
+    previousModels,
+    scoringConfig,
+  );
+  const preparedOpenRouterData = { ...openRouterData, modelRows };
+  const replacementRows = modelRows.filter((row) => isVersionReplacementRow(asRecord(row)));
+  const scoringPreparation = withoutBenchmarkImputationForModels(
+    prepareBenchmarkScoring(modelRows, scoringConfig),
+    replacementRows,
+  );
   const candidateModels = buildCandidates(
-    openRouterData,
+    preparedOpenRouterData,
     scoringConfig,
     scoringPreparation,
     previousModels,

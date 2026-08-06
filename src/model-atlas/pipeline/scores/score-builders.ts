@@ -47,14 +47,13 @@ function selectedBenchmarkScoreInputs(
   scoringConfig: ScoringConfig,
   imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
   imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
+  benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
 ): BenchmarkScoreInput[] {
   const inputs: BenchmarkScoreInput[] = [];
   for (const key of keys) {
-    const dimensionWeight = benchmarkDimensionWeight(
-      key,
-      dimension,
-      scoringConfig.benchmarkPortfolio,
-    );
+    const dimensionWeight =
+      benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio) *
+      (benchmarkWeightMultipliersByKey.get(key) ?? 1);
     if (!(dimensionWeight > 0)) {
       continue;
     }
@@ -109,7 +108,7 @@ export function blendedPriceValue(costLike: unknown, scoringConfig: ScoringConfi
   const outputCost = asFiniteNumber(cost.output);
   const weightedInputCost = asFiniteNumber(cost.weighted_input);
   const weightedOutputCost = asFiniteNumber(cost.weighted_output);
-  if (inputCost == null || outputCost == null || inputCost <= 0 || outputCost <= 0) {
+  if (inputCost == null || outputCost == null || inputCost < 0 || outputCost < 0) {
     return null;
   }
   const useWeightedCosts =
@@ -193,6 +192,7 @@ export function buildComponentScoreResult(
   qualityContext: QualityScoringContext,
   imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
   imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
+  benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
 ): ComponentScoreResult {
   const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
     model,
@@ -202,6 +202,7 @@ export function buildComponentScoreResult(
     scoringConfig,
     imputedValuesByKey,
     imputedConfidenceByKey,
+    benchmarkWeightMultipliersByKey,
   );
   const agenticBenchmarkInputs = selectedBenchmarkScoreInputs(
     model,
@@ -211,6 +212,7 @@ export function buildComponentScoreResult(
     scoringConfig,
     imputedValuesByKey,
     imputedConfidenceByKey,
+    benchmarkWeightMultipliersByKey,
   );
   const intelligence = qualityScore(
     intelligenceBenchmarkInputs,

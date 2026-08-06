@@ -12,6 +12,10 @@ import type { ModelAtlasModel } from "./model-types";
 import { prepareOpenRouterModelData } from "./openrouter-data";
 import { buildFinalModels } from "./selection/builder";
 import type { BenchmarkVersioningOptions } from "./selection/candidate";
+import {
+  buildVersionReplacementMatchSlugOverrides,
+  prepareVersionReplacementMatchedRows,
+} from "./selection/version-replacement";
 
 type OpenRouterLoadResult = {
   rawPayload: OpenRouterRawScrapedPayload | null;
@@ -63,12 +67,18 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   sourceData: ModelAtlasSourceData,
   options: ModelDerivationOptions | ModelDerivationLoaderOptions<LoadResult> = {},
 ): Promise<ModelDerivationResult<LoadResult | null>> {
+  const matchSlugOverridesBySourceId = buildVersionReplacementMatchSlugOverrides(sourceData);
   const matchDiagnostics = buildMatchDiagnostics({
     matcherConfig: STAGE_CONFIG.matcher,
     scrapedRows: sourceData.artificialAnalysis.rows,
     modelsDevModels: sourceData.modelsDev.rows,
+    matchSlugOverridesBySourceId,
   });
-  const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
+  const matchedRows = prepareVersionReplacementMatchedRows(
+    modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics),
+    matchDiagnostics,
+    matchSlugOverridesBySourceId,
+  );
   const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
   const variantRows = buildModelVariants(catalogRows);
   const assignedVariantRows = assignBenchmarksToVariants(variantRows, sourceData);

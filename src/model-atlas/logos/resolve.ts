@@ -40,6 +40,7 @@ const ARTIFICIAL_ANALYSIS_ASSET_BY_PROVIDER: Record<string, string> = {
   qwen: "alibaba_small.svg",
   stepfun: "stepfun_small.svg",
   tencent: "tencent_small.svg",
+  thinkingmachines: "thinking_machines.svg",
   upstage: "upstage_small.svg",
   "x-ai": "xai.svg",
   xai: "xai.svg",

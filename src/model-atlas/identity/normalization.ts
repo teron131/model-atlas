@@ -1,5 +1,7 @@
 /** Model identity normalization owns provider, model-token, and reasoning-effort rules used across ingestion and scoring. */
 
+import { isGptModelIdentity } from "./gpt";
+
 export const PRIMARY_PROVIDER_ID = "openrouter" as const;
 const SECONDARY_PROVIDER_ID = "vercel" as const;
 const TERTIARY_PROVIDER_IDS = ["openai", "google", "anthropic"] as const;
@@ -21,7 +23,6 @@ const REASONING_EFFORT_RANK = {
 } as const satisfies Readonly<Record<string, number>>;
 const MODEL_CONFIGURATION_LABEL_PATTERN = /\s+\((?:fast|free|online|reasoning|thinking)\)\s*$/i;
 const BENCHMARK_EFFORT_SUFFIX_PATTERN = /^(.*?)(?:\s+\(([^()]*)\)|\s+-\s+([^()]+))\s*$/i;
-const GPT_MODEL_TOKEN_PATTERN = /(?:^|-)gpt(?:-|$)/;
 const BENCHMARK_EFFORT_LABELS = new Set([
   "xhigh",
   "extra-high",
@@ -150,7 +151,7 @@ export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
   if (reasoningEffort == null) {
     return { baseModel: value, reasoningEffort: null };
   }
-  const configuration = GPT_MODEL_TOKEN_PATTERN.test(normalizeModelToken(baseModel))
+  const configuration = isGptModelIdentity(baseModel)
     ? labels
         .filter(
           ({ label, efforts }) => efforts.length === 0 && normalizeModelToken(label) !== "default",

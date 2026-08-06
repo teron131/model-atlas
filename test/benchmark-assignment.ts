@@ -14,6 +14,7 @@ import type { FrontierCodeModelEffortRow } from "../src/model-atlas/benchmarks/s
 import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildBenchmarkVersionLogRows } from "../src/model-atlas/database/snapshot-workflow";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import {
@@ -27,6 +28,7 @@ import {
   buildTaskMetrics,
   versionCandidateBenchmarkData,
 } from "../src/model-atlas/pipeline/selection/candidate";
+import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipeline/selection/version-replacement";
 
 const deepSWERow = {
   model: "Example Model Preview",
@@ -474,6 +476,164 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     output_tokens: 200,
   },
 });
+const replacementRows = prepareVersionReplacementBenchmarkRows(
+  [
+    {
+      id: "example/example-model-0806",
+      reasoning_effort: "max",
+      release_date: "2026-07-31",
+      version_replacement_source_id: "example/example-model",
+      intelligence: { intelligence_index: 49.9 },
+      benchmarks: {
+        blueprint_bench_2: 0.4,
+        browsecomp: 0.55,
+        chess_puzzles: 0.5,
+        critpt: 0.7,
+        epoch_capabilities_index: 0.45,
+        hle: 0.36,
+        lcr: 0.66,
+        riemann_bench: 0.7,
+        scicode: 0.5,
+        vals_index: 0.64,
+      },
+      scoring_sources: {
+        blueprint_bench_2: { model: "Example Model" },
+        browsecomp: { model: "Example Model 0806" },
+        chess_puzzles: {
+          model: "Example Model",
+          observed_at: "2026-08-01",
+        },
+        epoch_capabilities_index: { model: "Example Model" },
+        hle: {
+          model: "Example Model",
+          source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+        },
+        intelligence_index: {
+          model: "Example Model",
+          source_url: "https://artificialanalysis.ai/leaderboard/models",
+        },
+        vals_index: {
+          model_id: "example/example-model-0806",
+          source_url: "https://www.vals.ai/benchmarks/vals-index",
+        },
+      },
+    },
+  ],
+  [
+    {
+      id: "example/example-model",
+      reasoning_effort: "max",
+      intelligence: { intelligence_index: 49.9 },
+      benchmarks: {
+        blueprint_bench_2: 0.4,
+        browsecomp: 0.55,
+        chess_puzzles: 0.5,
+        critpt: 0.7,
+        epoch_capabilities_index: 0.45,
+        hle: 0.36,
+        lcr: 0.66,
+        riemann_bench: 0.6,
+        scicode: 0.5,
+        vals_index: 0.64,
+      },
+      benchmark_dates: { chess_puzzles: "2026-07-01" },
+    } as unknown as ModelAtlasModel,
+    {
+      id: "example/example-model-0806",
+      reasoning_effort: "max",
+      benchmarks: { blueprint_bench_2: 0.9 },
+    } as ModelAtlasModel,
+  ],
+  STAGE_CONFIG.scoring,
+);
+const replacementRow = replacementRows[0];
+assert.ok(replacementRow);
+const replacementBenchmarks = replacementRow.benchmarks as Record<string, unknown>;
+assert.equal(
+  replacementBenchmarks.blueprint_bench_2,
+  undefined,
+  "an unchanged ambiguously named benchmark should not transfer to a replacement version",
+);
+assert.equal(
+  replacementBenchmarks.epoch_capabilities_index,
+  undefined,
+  "ECI should not be a special freshness authority",
+);
+assert.equal(replacementBenchmarks.riemann_bench, 0.7, "a changed benchmark should remain");
+assert.equal(
+  replacementBenchmarks.browsecomp,
+  0.55,
+  "a source row that explicitly names the replacement version should remain",
+);
+assert.equal(
+  replacementBenchmarks.hle,
+  0.36,
+  "a confirmed stable AA alias should identify the current replacement version",
+);
+assert.equal(
+  replacementBenchmarks.lcr,
+  0.66,
+  "a native AA benchmark should inherit the confirmed row-level replacement identity",
+);
+assert.equal(
+  replacementBenchmarks.scicode,
+  0.5,
+  "another native AA benchmark should inherit the confirmed row-level replacement identity",
+);
+assert.equal(
+  replacementBenchmarks.chess_puzzles,
+  0.5,
+  "a source observation dated after the replacement release and prior evidence should remain",
+);
+assert.equal(
+  replacementBenchmarks.vals_index,
+  0.64,
+  "version-current Vals benchmark evidence should remain",
+);
+assert.equal(
+  (replacementRow.intelligence as Record<string, unknown>).intelligence_index,
+  49.9,
+  "the native AA index should inherit the confirmed row-level replacement identity",
+);
+assert.equal(
+  (replacementRow.scoring_sources as Record<string, unknown>).blueprint_bench_2,
+  undefined,
+  "stale task telemetry should be removed with its benchmark",
+);
+
+const establishedReplacementRows = prepareVersionReplacementBenchmarkRows(
+  replacementRows,
+  [replacementRow as unknown as ModelAtlasModel],
+  STAGE_CONFIG.scoring,
+);
+assert.strictEqual(
+  establishedReplacementRows[0],
+  replacementRows[0],
+  "later refreshes should keep already-clean replacement evidence stable",
+);
+
+const laterReplacementRows = prepareVersionReplacementBenchmarkRows(
+  [
+    {
+      ...replacementRow,
+      benchmarks: { ...replacementBenchmarks, blueprint_bench_2: 0.4 },
+      scoring_sources: {
+        ...(replacementRow.scoring_sources as Record<string, unknown>),
+        blueprint_bench_2: { model: "Example Model" },
+      },
+    },
+  ],
+  [replacementRow as unknown as ModelAtlasModel],
+  STAGE_CONFIG.scoring,
+);
+const laterReplacementRow = laterReplacementRows[0];
+assert.ok(laterReplacementRow);
+assert.equal(
+  (laterReplacementRow.benchmarks as Record<string, unknown>).blueprint_bench_2,
+  undefined,
+  "a later refresh should not reattach ambiguous evidence absent from the accepted replacement",
+);
+
 const versionedLuna = versionCandidateBenchmarkData(
   {
     id: "openai/gpt-5.6-luna",

@@ -352,6 +352,27 @@ assert.deepEqual(
   "rendered rank cells should preserve each model's intelligence rank",
 );
 
+const versionedModelHtml = renderToStaticMarkup(
+  React.createElement(ModelTable, {
+    sortState: { key: "rank", direction: "ascending" },
+    visibleRows: [tableRow("deepseek/deepseek-v4-flash-0731", "DeepSeek V4 Flash", 1, 0)],
+    emptyMessage: "No models",
+    isLoading: false,
+    metricColumns: [],
+    onSort: () => {},
+    onTooltip: () => {},
+    onTooltipEnd: () => {},
+  }),
+);
+assert.equal(
+  versionedModelHtml.includes('class="model" title="DeepSeek V4 Flash">DeepSeek V4 Flash</div>') &&
+    versionedModelHtml.includes(
+      'class="id" title="deepseek/deepseek-v4-flash-0731">deepseek-v4-flash-0731</div>',
+    ),
+  true,
+  "release identifiers should remain in model slugs without polluting product names",
+);
+
 const speedTooltipHtml = renderToStaticMarkup(
   React.createElement(ColumnTooltip, {
     content: COLUMN_TOOLTIPS.speed,

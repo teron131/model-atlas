@@ -120,6 +120,30 @@ export function benchmarkImputationConfidence(
   );
 }
 
+/** Remove generic benchmark estimates for rows whose direct evidence must stand on its own. */
+export function withoutBenchmarkImputationForModels(
+  preparation: BenchmarkScoringPreparation,
+  models: readonly BenchmarkScoringModelIdentity[],
+): BenchmarkScoringPreparation {
+  const modelSet = new Set(models as readonly JsonObject[]);
+  const variantKeys = new Set(models.map(scoringVariantKey));
+  return {
+    ...preparation,
+    imputationByModel: new Map(
+      [...preparation.imputationByModel].filter(([model]) => !modelSet.has(model)),
+    ),
+    imputationConfidenceByModel: new Map(
+      [...preparation.imputationConfidenceByModel].filter(([model]) => !modelSet.has(model)),
+    ),
+    imputationByVariant: new Map(
+      [...preparation.imputationByVariant].filter(([key]) => !variantKeys.has(key)),
+    ),
+    imputationConfidenceByVariant: new Map(
+      [...preparation.imputationConfidenceByVariant].filter(([key]) => !variantKeys.has(key)),
+    ),
+  };
+}
+
 /** Resolve direct or prepared benchmark quality together with its scoring evidence weight. */
 export function benchmarkQualityEvidence(
   model: BenchmarkScoringModel,

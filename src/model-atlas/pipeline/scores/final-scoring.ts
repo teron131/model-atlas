@@ -3,8 +3,9 @@
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";
 import {
-  log10OnePlusPositive,
+  log10OnePlusNonnegative,
   meanOfFinite,
+  nonnegativeFiniteNumber,
   positiveFiniteNumber,
   weightedFinitePartCount,
   weightedMeanOfFinite,
@@ -65,7 +66,8 @@ function finiteSignalWeight(signals: WeightedSignal[]): number {
 
 function blendCost(model: ModelAtlasCandidate, scoringConfig: ScoringConfig): number | null {
   return (
-    positiveFiniteNumber(model.cost?.blended_price) ?? blendedPriceValue(model.cost, scoringConfig)
+    nonnegativeFiniteNumber(model.cost?.blended_price) ??
+    blendedPriceValue(model.cost, scoringConfig)
   );
 }
 
@@ -189,7 +191,7 @@ export function attachFinalScores(
     meanOfFinite([intelligenceScores[index] ?? null, agenticScores[index] ?? null]),
   );
   const logBlendedPriceSignals = models.map((model) =>
-    log10OnePlusPositive(blendCost(model, scoringConfig)),
+    log10OnePlusNonnegative(blendCost(model, scoringConfig)),
   );
   const workflowPriceEfficiencySignals = models.map((model) =>
     workflowPriceEfficiencySignal(model, scoringConfig),

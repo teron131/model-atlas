@@ -128,3 +128,18 @@ assertDeepEqual(
   retainedClaudeModels.map((row) => row.model_id),
   ["anthropic/claude-sonnet-3.5"],
 );
+
+const correctedKimiRelease = processModelsDevPayload(
+  {
+    openrouter: {
+      models: {
+        "moonshotai/kimi-k2.5": {
+          name: "Kimi K2.5",
+          release_date: "2026-01",
+        },
+      },
+    },
+  },
+  "2025-06-01",
+);
+assertDeepEqual(correctedKimiRelease[0]?.model.release_date, "2026-01-27");

@@ -15,6 +15,7 @@ export {
   buildQualityScoringContext,
   normalizedMetricValue,
   prepareBenchmarkScoring,
+  withoutBenchmarkImputationForModels,
 } from "./benchmark";
 export type {
   EffortResourceImputation,

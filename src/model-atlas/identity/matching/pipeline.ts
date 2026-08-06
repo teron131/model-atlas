@@ -2,6 +2,7 @@
 
 import { asRecord } from "../../runtime";
 import { FALLBACK_PROVIDER_IDS, modelSlugFromModelId, PRIMARY_PROVIDER_ID } from "../normalization";
+import { modelNameIdentityKey } from "./name-tokens";
 import {
   artificialAnalysisMatchSlug,
   compareCandidates,
@@ -43,8 +44,16 @@ function collectCandidatesForSourceSlug(
   );
 }
 
-function applyMaxMinRangeVoid<T extends { best_match: MatchResult; candidates?: unknown[] }>(
-  models: T[],
+function isExactIdentityMatch(sourceSlug: string, candidate: MatchCandidate): boolean {
+  const sourceIdentity = modelNameIdentityKey(sourceSlug);
+  return [candidate.model_id, candidate.model_name].some(
+    (value) => value != null && modelNameIdentityKey(value) === sourceIdentity,
+  );
+}
+
+function applyMaxMinRangeVoid(
+  models: Array<{ best_match: MatchResult; candidates: MatchCandidate[] }>,
+  sourceSlugs: readonly string[],
 ): { threshold: number | null; voided: number } {
   const scores = models
     .map((model) => model.best_match?.score)
@@ -58,13 +67,15 @@ function applyMaxMinRangeVoid<T extends { best_match: MatchResult; candidates?: 
   const maxScore = scores.at(-1) as number;
   const threshold = minScore + (maxScore - minScore) * VOID_THRESHOLD_RANGE_RATIO;
   let voided = 0;
-  for (const model of models) {
-    const score = model.best_match?.score;
-    if (score != null && score < threshold) {
+  for (const [index, model] of models.entries()) {
+    const match = model.best_match;
+    if (
+      match != null &&
+      match.score < threshold &&
+      !isExactIdentityMatch(sourceSlugs[index] ?? "", match)
+    ) {
       model.best_match = null;
-      if ("candidates" in model && Array.isArray(model.candidates)) {
-        model.candidates = [];
-      }
+      model.candidates = [];
       voided += 1;
     }
   }
@@ -78,8 +89,11 @@ export function runMatcher(
   maxCandidates: number,
   matcherConfig: MatcherConfig,
 ): MatcherRunOutput {
-  const models = sourceModels.map((sourceModel) => {
-    const matchSlug = artificialAnalysisMatchSlug(sourceModel.sourceSlug);
+  const matchSlugs = sourceModels.map((sourceModel) =>
+    artificialAnalysisMatchSlug(sourceModel.matchSlugOverride ?? sourceModel.sourceSlug),
+  );
+  const models = sourceModels.map((sourceModel, index) => {
+    const matchSlug = matchSlugs[index] ?? "";
     const primaryCandidates = collectCandidatesForSourceSlug(matchSlug, providerPools.primary);
     const fallbackCandidates = collectCandidatesForSourceSlug(matchSlug, providerPools.fallback);
     const candidates = (
@@ -99,7 +113,7 @@ export function runMatcher(
 
   const preVoidMatchedCount = models.filter((model) => model.best_match != null).length;
   const preVoidUnmatchedCount = models.length - preVoidMatchedCount;
-  const voidStats = applyMaxMinRangeVoid(models);
+  const voidStats = applyMaxMinRangeVoid(models, matchSlugs);
   const matchedCount = models.filter((model) => model.best_match != null).length;
   const unmatchedCount = models.length - matchedCount;
 
@@ -138,6 +152,8 @@ export function buildMatchDiagnostics(options: MatchDiagnosticsOptions): MatchDi
     return {
       sourceId: modelId,
       sourceSlug,
+      matchSlugOverride:
+        modelId == null ? undefined : options.matchSlugOverridesBySourceId?.get(modelId),
       sourceName: typeof scrapedRowRecord.name === "string" ? scrapedRowRecord.name : null,
       sourceReleaseDate:
         typeof scrapedRowRecord.release_date === "string" ? scrapedRowRecord.release_date : null,

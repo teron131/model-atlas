@@ -250,6 +250,9 @@ assert.equal(scorePayload.score_scale, "percentage");
 assert.match(methodology, /validation-weighted evidence mass/);
 assert.match(methodology, /zero confidence through 10%/);
 assert.match(methodology, /full confidence from 60%/);
+assert.match(methodology, /Model-version replacement activates only when Artificial Analysis/);
+assert.match(methodology, /Semantic model versions remain distinct identities/);
+assert.match(methodology, /retained Artificial Analysis and Vals observations receive twice/);
 assert.match(methodology, /Logit coordinates are reserved for probability-like/);
 assert.match(methodology, /linear coordinates preserve native or composite/);
 assert.deepEqual(scoreModel, {

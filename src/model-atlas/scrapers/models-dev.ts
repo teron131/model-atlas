@@ -14,6 +14,11 @@ const VERCEL_AI_GATEWAY_MODELS_URL = "https://vercel.com/ai-gateway/models";
 const REQUEST_TIMEOUT_MS = 30_000;
 const VERCEL_PROVIDER_ID = "vercel";
 const VERCEL_PROVIDER_NAME = "Vercel AI Gateway";
+const OFFICIAL_RELEASE_DATE_BY_MODEL_ID = new Map([
+  // Moonshot's first-party release index dates Kimi K2.5 to 2026-01-27.
+  // https://www.moonshot.ai/news/kimi-k2-instruct-release
+  [normalizeProviderModelId("moonshotai/kimi-k2.5"), "2026-01-27"],
+]);
 const NON_GENERATIVE_MODEL_TOKENS = new Set([
   "embed",
   "embedding",
@@ -204,11 +209,16 @@ function flattenModels(payload: ModelsDevPayload): ModelsDevFlatModel[] {
     const providerName = provider.name ?? providerId;
     const models = provider.models ?? {};
     for (const [modelId, model] of Object.entries(models)) {
+      const resolvedModelId = model.id ?? modelId;
+      const officialReleaseDate = OFFICIAL_RELEASE_DATE_BY_MODEL_ID.get(
+        normalizeProviderModelId(resolvedModelId),
+      );
       rows.push({
         provider_id: providerId,
         provider_name: providerName,
-        model_id: model.id ?? modelId,
-        model,
+        model_id: resolvedModelId,
+        model:
+          officialReleaseDate == null ? model : { ...model, release_date: officialReleaseDate },
       });
     }
   }
