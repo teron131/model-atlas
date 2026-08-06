@@ -82,6 +82,7 @@ type SlopeHoverEvent = ReactMouseEvent<SVGElement> | ReactPointerEvent<SVGElemen
 
 export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   benchmarkPortfolio,
+  globalModelFilterQuery,
   showVariants,
   maxCost,
   onShowVariantsChange,
@@ -91,6 +92,7 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   setHover,
 }: {
   benchmarkPortfolio: BenchmarkPortfolio;
+  globalModelFilterQuery: string;
   showVariants: boolean;
   maxCost: CostFilter;
   onShowVariantsChange: (show: boolean) => void;
@@ -104,13 +106,12 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   const panelRef = useRef<HTMLElement>(null);
   const compactChartLayout = useCompactChartLayout();
   const chartWidth = compactChartLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
-  const displayModels = useMemo(
-    () =>
-      modelsForVariantDisplay(referenceModels, showVariants)
-        .filter((model) => model.name != null && Number.isFinite(model.scores?.intelligence_score))
-        .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score),
-    [referenceModels, showVariants],
-  );
+  const displayModels = useMemo(() => {
+    const models = modelsForVariantDisplay(referenceModels, showVariants)
+      .filter((model) => model.name != null && Number.isFinite(model.scores?.intelligence_score))
+      .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
+    return filterByModelQuery(models, (model) => model, globalModelFilterQuery);
+  }, [globalModelFilterQuery, referenceModels, showVariants]);
   const providerChoices = useMemo(() => providerOptions(displayModels), [displayModels]);
   const providerModelCount = modelCount(displayModels);
   const availableRows = useMemo(() => {

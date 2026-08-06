@@ -265,9 +265,7 @@
 
 .controlRow {
   display: grid;
-  grid-template-columns:
-    minmax(0, 1.3fr) minmax(0, 0.85fr) minmax(0, 0.85fr)
-    minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.95fr) minmax(0, 1.1fr);
   align-items: start;
 }
 
@@ -284,6 +282,16 @@
 }
 
 .controlRow .controlGroup:last-child {
+  border-right: 0;
+}
+
+.controlRow .controlGroup:has(+ .controlGroupWide) {
+  border-right: 0;
+}
+
+.controlGroupWide {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
   border-right: 0;
 }
 
@@ -306,6 +314,10 @@
   flex: 1 1 240px;
   padding: 4px 20px 4px 0;
   border-right: 1px solid var(--line);
+}
+
+.benchmarkRow :global(.benchmark-group + .benchmark-group) {
+  padding-left: 20px;
 }
 
 .benchmarkRow :global(.benchmark-group:last-child) {
@@ -340,6 +352,29 @@
   display: flex;
   flex-wrap: wrap;
   gap: 7px 12px;
+}
+
+.filterSearch {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 var(--mono-chip) / 1 var(--font-mono);
+  outline: 0;
+}
+
+.filterSearch:focus-visible {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.filterSearch::placeholder {
+  color: var(--faint);
+  opacity: 1;
 }
 
 .costFilterRow {
@@ -1526,6 +1561,10 @@
     padding-right: 0;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .benchmarkRow :global(.benchmark-group + .benchmark-group) {
+    padding-left: 0;
   }
 
   .benchmarkRow :global(.benchmark-group:last-child) {

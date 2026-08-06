@@ -6,7 +6,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
-import { modelCount, toggleProviderFilter } from "../shared/model-display";
+import { filterByModelQuery, modelCount, toggleProviderFilter } from "../shared/model-display";
 import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
@@ -40,11 +40,13 @@ export function DashboardGraphs({
   providerChoices,
   maxCost,
   modelLimit,
+  globalModelFilterQuery,
   showReasoningVariants,
   onShowReasoningVariantsChange,
   onSelectedProvidersChange,
   onMaxCostChange,
   onModelLimitChange,
+  onGlobalModelFilterQueryChange,
 }: {
   payload: ModelAtlasPayload | null;
   referenceModels: ModelAtlasPayload["models"];
@@ -55,11 +57,13 @@ export function DashboardGraphs({
   providerChoices: ProviderOption[];
   maxCost: CostFilter;
   modelLimit: ModelLimit;
+  globalModelFilterQuery: string;
   showReasoningVariants: boolean;
   onShowReasoningVariantsChange: (show: boolean) => void;
   onSelectedProvidersChange: (providers: string[]) => void;
   onMaxCostChange: (maxCost: CostFilter) => void;
   onModelLimitChange: (modelLimit: ModelLimit) => void;
+  onGlobalModelFilterQueryChange: (value: string) => void;
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -67,6 +71,7 @@ export function DashboardGraphs({
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
   const deferredMaxCost = useDeferredValue(maxCost);
   const deferredModelLimit = useDeferredValue(modelLimit);
+  const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
   const deferredShowReasoningVariants = useDeferredValue(showReasoningVariants);
 
   const allModels = useMemo(() => {
@@ -75,12 +80,16 @@ export function DashboardGraphs({
       .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
   }, [deferredPayload]);
 
+  const queryFilteredModels = useMemo(
+    () => filterByModelQuery(allModels, (model) => model, deferredGlobalModelFilterQuery),
+    [allModels, deferredGlobalModelFilterQuery],
+  );
   const filteredModels = useMemo(() => {
-    return filterByModelControls(allModels, (model) => model, {
+    return filterByModelControls(queryFilteredModels, (model) => model, {
       providers: deferredSelectedProviders,
       maxCost: deferredMaxCost,
     });
-  }, [allModels, deferredSelectedProviders, deferredMaxCost]);
+  }, [deferredMaxCost, deferredSelectedProviders, queryFilteredModels]);
 
   const models = useMemo(() => {
     return limitByIntelligenceScore(filteredModels, (model) => model, deferredModelLimit);
@@ -109,10 +118,15 @@ export function DashboardGraphs({
     selectedProviderChoices.length <= 1
       ? providerLabel
       : `${selectedProviderChoices.length} providers`;
+  const trimmedGlobalModelFilterQuery = globalModelFilterQuery.trim();
+  const modelFilterLabel =
+    trimmedGlobalModelFilterQuery.length === 0 ? "All models" : globalModelFilterQuery;
+  const compactModelFilterLabel =
+    trimmedGlobalModelFilterQuery.length === 0 ? "All models" : trimmedGlobalModelFilterQuery;
   const costLabel = maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`;
   const compactCostLabel = maxCost === "all" ? "Any" : `<= ${fmtMoney(maxCost)}`;
   const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
-  const filterSummary = `${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
+  const filterSummary = `${compactModelFilterLabel} / ${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
 
   if (!payload || !deferredPayload || allModels.length === 0) {
     return (
@@ -155,31 +169,17 @@ export function DashboardGraphs({
         </div>
         <div className={styles.filterPanel} hidden={!filtersExpanded}>
           <div className={styles.controlRow}>
-            <FilterSection label="Provider filter" value={providerLabel}>
-              <div className={styles.filterRow}>
-                <FilterButton
-                  active={selectedProviders.length === 0}
-                  color="var(--ink)"
-                  label="All"
-                  count={modelCount(allModels)}
-                  onClick={() => onSelectedProvidersChange([])}
-                />
-                {providerChoices.map((option) => (
-                  <FilterButton
-                    key={option.slug}
-                    active={selectedProviders.includes(option.slug)}
-                    color={option.color}
-                    logo={option.logo}
-                    label={option.label}
-                    count={option.count}
-                    onClick={() =>
-                      onSelectedProvidersChange(
-                        toggleProviderFilter(selectedProviders, option.slug),
-                      )
-                    }
-                  />
-                ))}
-              </div>
+            <FilterSection label="Model filter" value={modelFilterLabel}>
+              <input
+                className={styles.filterSearch}
+                type="search"
+                autoComplete="off"
+                spellCheck="false"
+                aria-label="Global model filter"
+                placeholder="Filter models"
+                value={globalModelFilterQuery}
+                onChange={(event) => onGlobalModelFilterQueryChange(event.target.value)}
+              />
             </FilterSection>
             <FilterSection label="Max blended cost" value={costLabel}>
               <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
@@ -234,6 +234,32 @@ export function DashboardGraphs({
                 ))}
               </div>
             </FilterSection>
+            <FilterSection wide label="Provider filter" value={providerLabel}>
+              <div className={styles.filterRow}>
+                <FilterButton
+                  active={selectedProviders.length === 0}
+                  color="var(--ink)"
+                  label="All"
+                  count={modelCount(queryFilteredModels)}
+                  onClick={() => onSelectedProvidersChange([])}
+                />
+                {providerChoices.map((option) => (
+                  <FilterButton
+                    key={option.slug}
+                    active={selectedProviders.includes(option.slug)}
+                    color={option.color}
+                    logo={option.logo}
+                    label={option.label}
+                    count={option.count}
+                    onClick={() =>
+                      onSelectedProvidersChange(
+                        toggleProviderFilter(selectedProviders, option.slug),
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </FilterSection>
           </div>
           <div className={styles.benchmarkRow}>
             <BenchmarkStrip
@@ -247,13 +273,14 @@ export function DashboardGraphs({
       {afterLead}
 
       {models.length === 0 ? (
-        <div className={styles.error}>No models match the current provider and cost filters.</div>
+        <div className={styles.error}>No models match the current global filters.</div>
       ) : (
         <>
           <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
             <ParetoFrontierPanel models={models} setHover={setHover} />
             <PriceEfficiencyPanel
               benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
+              globalModelFilterQuery={deferredGlobalModelFilterQuery}
               showVariants={deferredShowReasoningVariants}
               maxCost={deferredMaxCost}
               onShowVariantsChange={onShowReasoningVariantsChange}
@@ -344,13 +371,15 @@ function FilterSection({
   label,
   value,
   children,
+  wide = false,
 }: {
   label: string;
   value: string;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   return (
-    <div className={styles.controlGroup}>
+    <div className={`${styles.controlGroup} ${wide ? styles.controlGroupWide : ""}`}>
       <div className={styles.controlLabel}>
         <span>{label}</span>
         <b>{value}</b>

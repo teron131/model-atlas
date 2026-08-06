@@ -318,6 +318,16 @@ assert.equal(
   "model search should include the visible reasoning variant label",
 );
 assert.equal(
+  filterByModelQuery([searchableVariant], (model) => model, "reason* *max").length,
+  1,
+  "model search should treat '*' as a case-insensitive glob wildcard",
+);
+assert.equal(
+  filterByModelQuery([searchableVariant], (model) => model, "reason.*").length,
+  0,
+  "model search should keep regular-expression punctuation literal except for '*'",
+);
+assert.equal(
   filterByModelQuery([searchableVariant], (model) => model, "unrelated").length,
   0,
   "model search should reject unrelated identity text",
