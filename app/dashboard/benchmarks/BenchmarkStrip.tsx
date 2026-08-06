@@ -47,15 +47,18 @@ export const BenchmarkStrip = memo(function BenchmarkStrip({
       .map(([key]) => key),
   );
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [hoveredBenchmarkKey, setHoveredBenchmarkKey] = useState<string | null>(null);
   const activeTooltipContent =
     tooltip == null
       ? undefined
       : tooltipWithCoverage(benchmarkTooltips[tooltip.key], benchmarkCoverage(models, tooltip.key));
-  const clearTooltip = useCallback(() => {
+  const clearBenchmarkHover = useCallback(() => {
     setTooltip(null);
+    setHoveredBenchmarkKey(null);
   }, []);
-  const showTooltip = useCallback(
+  const showBenchmarkHover = useCallback(
     (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => {
+      setHoveredBenchmarkKey(key);
       if (!benchmarkTooltips[key]) {
         return;
       }
@@ -84,8 +87,9 @@ export const BenchmarkStrip = memo(function BenchmarkStrip({
               models={models}
               frontierBenchmarkKeys={frontierKeys}
               isLoading={isLoading}
-              onTooltip={showTooltip}
-              onTooltipEnd={clearTooltip}
+              hoveredBenchmarkKey={hoveredBenchmarkKey}
+              onHover={showBenchmarkHover}
+              onHoverEnd={clearBenchmarkHover}
             />
           );
         })}
@@ -103,16 +107,18 @@ function BenchmarkGroup({
   models,
   frontierBenchmarkKeys,
   isLoading,
-  onTooltip,
-  onTooltipEnd,
+  hoveredBenchmarkKey,
+  onHover,
+  onHoverEnd,
 }: {
   label: string;
   keys: string[];
   models: ModelAtlasPayload["models"];
   frontierBenchmarkKeys: ReadonlySet<string>;
   isLoading: boolean;
-  onTooltip: (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => void;
-  onTooltipEnd: () => void;
+  hoveredBenchmarkKey: string | null;
+  onHover: (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => void;
+  onHoverEnd: () => void;
 }) {
   return (
     <div className="benchmark-group">
@@ -126,8 +132,9 @@ function BenchmarkGroup({
           keys={keys}
           models={models}
           frontierBenchmarkKeys={frontierBenchmarkKeys}
-          onTooltip={onTooltip}
-          onTooltipEnd={onTooltipEnd}
+          hoveredBenchmarkKey={hoveredBenchmarkKey}
+          onHover={onHover}
+          onHoverEnd={onHoverEnd}
         />
       )}
     </div>
@@ -138,14 +145,16 @@ function BenchmarkList({
   keys,
   models,
   frontierBenchmarkKeys,
-  onTooltip,
-  onTooltipEnd,
+  hoveredBenchmarkKey,
+  onHover,
+  onHoverEnd,
 }: {
   keys: string[];
   models: ModelAtlasPayload["models"];
   frontierBenchmarkKeys: ReadonlySet<string>;
-  onTooltip: (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => void;
-  onTooltipEnd: () => void;
+  hoveredBenchmarkKey: string | null;
+  onHover: (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => void;
+  onHoverEnd: () => void;
 }) {
   return (
     <ul className="benchmark-list">
@@ -165,13 +174,14 @@ function BenchmarkList({
               <button
                 className="benchmark-chip"
                 type="button"
+                data-hovered={hoveredBenchmarkKey === key ? "true" : undefined}
                 aria-label={`${label}, ${coverageAriaLabel(coverage)}${
                   isFrontier ? ", frontier benchmark" : ""
                 }`}
-                onMouseEnter={(event) => onTooltip(event, key)}
-                onFocus={(event) => onTooltip(event, key)}
-                onMouseLeave={onTooltipEnd}
-                onBlur={onTooltipEnd}
+                onMouseEnter={(event) => onHover(event, key)}
+                onFocus={(event) => onHover(event, key)}
+                onMouseLeave={onHoverEnd}
+                onBlur={onHoverEnd}
               >
                 {isFrontier && (
                   <Star className="benchmark-frontier-star" aria-hidden="true" size={10} />

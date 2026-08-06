@@ -193,6 +193,11 @@ assert.equal(
   "the global view panel should expose both reasoning variant display modes",
 );
 assert.equal(
+  html.includes('aria-label="Global model filter"') && html.includes('placeholder="Filter models"'),
+  true,
+  "the global view panel should expose a model string filter",
+);
+assert.equal(
   html.includes("data-capture-theme"),
   true,
   "graph exports should have a stable theme boundary independent of CSS-module class names",

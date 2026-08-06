@@ -38,7 +38,7 @@ export function modelDisplayName(model: ModelAtlasModel): string {
   return model.reasoning_effort == null ? baseName : `${baseName} (${model.reasoning_effort})`;
 }
 
-/** Filter model-backed rows while normalizing the query and model text only once per stable input. */
+/** Filter model-backed rows with case-insensitive ANDed terms and `*` glob wildcards. */
 export function filterByModelQuery<T>(
   items: readonly T[],
   getModel: (item: T) => ModelAtlasModel,
@@ -48,6 +48,7 @@ export function filterByModelQuery<T>(
   if (terms.length === 0) {
     return [...items];
   }
+  const patterns = terms.map((term) => new RegExp(term.split("*").map(escapeRegExp).join(".*")));
   return items.filter((item) => {
     const model = getModel(item);
     let searchable = searchTextByModel.get(model);
@@ -55,7 +56,7 @@ export function filterByModelQuery<T>(
       searchable = [modelDisplayName(model), model.id, model.provider].join(" ").toLowerCase();
       searchTextByModel.set(model, searchable);
     }
-    return terms.every((term) => searchable.includes(term));
+    return patterns.every((pattern) => pattern.test(searchable));
   });
 }
 
@@ -68,4 +69,8 @@ export function toggleProviderFilter(selectedProviders: string[], provider: stri
 
 export function modelVariantKey(model: ModelAtlasModel): string {
   return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

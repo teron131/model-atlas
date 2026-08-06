@@ -434,14 +434,16 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 }
 
 .benchmark-chip:hover,
-.benchmark-chip:focus-visible {
+.benchmark-chip:focus-visible,
+.benchmark-chip[data-hovered="true"] {
   border-bottom-color: var(--ink);
   color: var(--ink);
   outline: 0;
 }
 
 .benchmark-chip:hover .benchmark-chip-coverage,
-.benchmark-chip:focus-visible .benchmark-chip-coverage {
+.benchmark-chip:focus-visible .benchmark-chip-coverage,
+.benchmark-chip[data-hovered="true"] .benchmark-chip-coverage {
   color: var(--muted);
 }
 

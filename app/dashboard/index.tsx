@@ -59,6 +59,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
   const [selectedProviders, setSelectedProviders] = useState<ProviderFilters>([]);
   const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
   const [modelLimit, setModelLimit] = useState<ModelLimit>(DEFAULT_DISPLAY_ITEMS);
+  const [globalModelFilterQuery, setGlobalModelFilterQuery] = useState("");
   const { payload, errorMessage, hasFullPayload } = useLivePayload(initialPayload);
 
   const displayPayload = useMemo(() => {
@@ -127,17 +128,20 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
         providerChoices={providerChoices}
         maxCost={maxCostFilter}
         modelLimit={modelLimit}
+        globalModelFilterQuery={globalModelFilterQuery}
         showReasoningVariants={showReasoningVariants}
         onShowReasoningVariantsChange={setShowReasoningVariants}
         onSelectedProvidersChange={setSelectedProviders}
         onMaxCostChange={setMaxCostFilter}
         onModelLimitChange={setModelLimit}
+        onGlobalModelFilterQueryChange={setGlobalModelFilterQuery}
         afterLead={
           <DashboardLeaderboard
             payload={payload}
             errorMessage={errorMessage}
             isLoading={isInitialLoading}
             maxCost={maxCostFilter}
+            globalModelFilterQuery={globalModelFilterQuery}
             selectedProviders={selectedProviders}
           />
         }
@@ -152,12 +156,14 @@ function DashboardLeaderboard({
   errorMessage,
   isLoading,
   maxCost,
+  globalModelFilterQuery,
   selectedProviders,
 }: {
   payload: ModelAtlasPayload | null;
   errorMessage: string | null;
   isLoading: boolean;
   maxCost: CostFilter;
+  globalModelFilterQuery: string;
   selectedProviders: ProviderFilters;
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
@@ -173,6 +179,7 @@ function DashboardLeaderboard({
   const deferredShowVariants = useDeferredValue(showVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
   const deferredMaxCost = useDeferredValue(maxCost);
+  const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
   const [, startSortTransition] = useTransition();
   const tableRows = useMemo(
     () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], deferredShowVariants)),
@@ -186,7 +193,11 @@ function DashboardLeaderboard({
       }),
     [tableRows, deferredSelectedProviders, deferredMaxCost],
   );
-  const maximumLimit = filteredRows.length;
+  const globallyFilteredRows = useMemo(
+    () => filterByModelQuery(filteredRows, (row) => row.model, deferredGlobalModelFilterQuery),
+    [deferredGlobalModelFilterQuery, filteredRows],
+  );
+  const maximumLimit = globallyFilteredRows.length;
   const expandedTableRows = useMemo(
     () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], true)),
     [payload],
@@ -199,15 +210,20 @@ function DashboardLeaderboard({
       }),
     [expandedTableRows, deferredSelectedProviders, deferredMaxCost],
   );
+  const globallyFilteredExpandedRows = useMemo(
+    () =>
+      filterByModelQuery(filteredExpandedRows, (row) => row.model, deferredGlobalModelFilterQuery),
+    [deferredGlobalModelFilterQuery, filteredExpandedRows],
+  );
   const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
   const deferredLimit = useDeferredValue(effectiveLimit);
   const matchingRows = useMemo(
     () =>
-      sortedRows(filteredRows, deferredFilterQuery, {
+      sortedRows(globallyFilteredRows, deferredFilterQuery, {
         key: "intelligence",
         direction: "descending",
       }),
-    [deferredFilterQuery, filteredRows],
+    [deferredFilterQuery, globallyFilteredRows],
   );
   const limitedRows = useMemo(
     () => matchingRows.slice(0, deferredLimit),
@@ -215,10 +231,12 @@ function DashboardLeaderboard({
   );
   const expandedVariantCount = useMemo(() => {
     const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
-    return filterByModelQuery(filteredExpandedRows, (row) => row.model, deferredFilterQuery).filter(
-      (row) => selectedModels.has(canonicalModelKey(row.model)),
-    ).length;
-  }, [deferredFilterQuery, filteredExpandedRows, limitedRows]);
+    return filterByModelQuery(
+      globallyFilteredExpandedRows,
+      (row) => row.model,
+      deferredFilterQuery,
+    ).filter((row) => selectedModels.has(canonicalModelKey(row.model))).length;
+  }, [deferredFilterQuery, globallyFilteredExpandedRows, limitedRows]);
   const visibleRows = useMemo(
     () => sortedRows(limitedRows, "", sortState),
     [limitedRows, sortState],
