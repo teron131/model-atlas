@@ -10,6 +10,7 @@ import {
 } from "../../identity/normalization";
 import {
   publicOpenRouterModelId,
+  publicOpenRouterModelName,
   reasoningEffortSelectionPriority,
   stripCatalogAliasSuffixes,
 } from "../../identity/openrouter";
@@ -164,6 +165,24 @@ function catalogRowRouteId(row: JsonObject): string | null {
   return typeof openRouterId === "string" && openRouterId.length > 0 ? openRouterId : null;
 }
 
+/** The exact public catalog route owns the canonical name; alias routes must not rename it. */
+function canonicalCatalogRouteName(
+  group: readonly JsonObject[],
+  publicRouteId: string,
+): string | null {
+  for (const candidate of group) {
+    if (
+      candidate.provider_id === PRIMARY_PROVIDER_ID &&
+      catalogRowRouteId(candidate) === publicRouteId &&
+      typeof candidate.name === "string" &&
+      candidate.name.length > 0
+    ) {
+      return publicOpenRouterModelName(candidate.name, publicRouteId);
+    }
+  }
+  return null;
+}
+
 function mergeDuplicateRows(
   winner: JsonObject,
   group: readonly JsonObject[],
@@ -178,6 +197,7 @@ function mergeDuplicateRows(
   if (openRouterId != null) {
     merged.id = openRouterId;
     merged.openrouter_id = openRouterId;
+    merged.name = canonicalCatalogRouteName(group, openRouterId) ?? merged.name;
   }
   return merged;
 }

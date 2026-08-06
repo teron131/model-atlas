@@ -16,6 +16,14 @@ export function positiveFiniteNumber(value: unknown): number | null {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+export function nonnegativeFiniteNumber(value: unknown): number | null {
+  if (value == null || value === "") {
+    return null;
+  }
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
 export function meanOfFinite(values: Array<number | null>): number | null {
   const finiteValues = finiteScoreValues(values);
   if (finiteValues.length === 0) {
@@ -265,6 +273,11 @@ export function log10OnePlusPositive(value: unknown): number | null {
   }
   const scaledValue = Math.log10(1 + number);
   return scaledValue > 0 ? scaledValue : null;
+}
+
+export function log10OnePlusNonnegative(value: unknown): number | null {
+  const number = nonnegativeFiniteNumber(value);
+  return number == null ? null : Math.log10(1 + number);
 }
 
 export function gaussianWeight(leftValue: number, rightValue: number, sigma: number): number {

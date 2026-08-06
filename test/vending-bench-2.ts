@@ -8,7 +8,7 @@ import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalizatio
 const rows = processVendingBench2DataModule(`
 	const metadata={time_grid:[1,2,3]};
 	const runs={vb2:{
-		"Claude Opus 4.7":{num_epochs:6,time_series:[500,700,10936.76],final_value:10936.76},
+		"Claude Opus 4.7":{num_epochs:6,num_final_values:6,time_series:[500,700,10936.76],final_value:10936.76,final_value_std:1181},
 		"GPT-5 mini":{num_epochs:5,time_series:[500,100,-31.18],final_value:-31.18},
 		"Escaped \\"Model\\"":{num_epochs:5,time_series:[500,550,600],final_value:600}
 	},arena:{}};

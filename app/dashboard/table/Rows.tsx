@@ -29,7 +29,6 @@ import {
 } from "./models";
 
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
-const RELEASE_DATE_TOKEN_PATTERN = /^\d{4}$/;
 const LOADING_ROW_KEYS = [
   "loading-row-01",
   "loading-row-02",
@@ -324,18 +323,11 @@ function visibleModelSlug(id: string | null | undefined) {
 function stripModelDisplayTokens(value: string, separator: " " | "-") {
   const tokens = value.split(separator).filter((token) => token.length > 0);
   const visibleTokens = tokens.filter((token) => !isHiddenDisplayToken(token));
-  while (visibleTokens.length > 1 && isReleaseDateToken(visibleTokens.at(-1))) {
-    visibleTokens.pop();
-  }
   return visibleTokens.join(separator) || value;
 }
 
 function isHiddenDisplayToken(token: string) {
   return HIDDEN_MODEL_DISPLAY_TOKENS.has(token.toLowerCase());
-}
-
-function isReleaseDateToken(token: string | undefined) {
-  return token != null && RELEASE_DATE_TOKEN_PATTERN.test(token);
 }
 
 function ProviderLogo({ model }: { model: ModelAtlasModel }) {

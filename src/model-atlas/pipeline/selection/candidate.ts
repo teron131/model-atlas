@@ -511,6 +511,7 @@ export function buildModelCandidate(
   outputTokenAnchors: number[],
   scoringConfig: ScoringConfig,
   scoringPreparation: BenchmarkScoringPreparation,
+  benchmarkWeightMultipliersByKey?: ReadonlyMap<string, number>,
 ): ModelAtlasCandidate {
   const model = asRecord(row);
   const provider = providerFromModel(model);
@@ -528,6 +529,7 @@ export function buildModelCandidate(
     scoringPreparation.qualityContext,
     benchmarkImputationValues(scoringPreparation, model),
     benchmarkImputationConfidence(scoringPreparation, model),
+    benchmarkWeightMultipliersByKey,
   );
   return {
     id: modelId,

@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 
 import { GET as getLogo } from "../app/api/logos/[logo]/route";
 import { GET as getLogos } from "../app/api/logos/route";
+import { resolveModelLogo } from "../src/model-atlas/logos/resolve";
+
+assert.equal(
+  resolveModelLogo({ provider: "thinkingmachines" }),
+  "https://artificialanalysis.ai/img/logos/thinking_machines.svg",
+  "Thinking Machines should use the provider asset published by Artificial Analysis",
+);
 
 const allResponse = await getLogos();
 assert.equal(allResponse.status, 200);

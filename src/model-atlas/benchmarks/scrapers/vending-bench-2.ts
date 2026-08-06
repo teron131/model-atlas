@@ -13,8 +13,10 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const ROUTE_NODE_PATTERN = /\/_app\/immutable\/nodes\/[^"'<>\s]+\.js/g;
 const CHUNK_IMPORT_PATTERN = /from"(\.\.\/chunks\/[^"']+\.js)"/g;
 const VB2_RUNS_MARKER = "vb2:";
-const VB2_ROW_PATTERN =
-  /"((?:\\.|[^"\\])+)":\{num_epochs:(\d+),time_series:\[([^\]]*)\],final_value:([-+\d.eE]+)\}/g;
+const VB2_ROW_PATTERN = /"((?:\\.|[^"\\])+)":\{([^{}]+)\}/g;
+const VB2_NUM_EPOCHS_PATTERN = /(?:^|,)num_epochs:(\d+)(?:,|$)/;
+const VB2_TIME_SERIES_PATTERN = /(?:^|,)time_series:\[([^\]]*)\](?:,|$)/;
+const VB2_FINAL_VALUE_PATTERN = /(?:^|,)final_value:([-+\d.eE]+)(?:,|$)/;
 
 export type VendingBench2ModelScoreRow = {
   rank: number;
@@ -70,9 +72,10 @@ export function processVendingBench2DataModule(dataModule: string): VendingBench
   const rows: Omit<VendingBench2ModelScoreRow, "rank">[] = [];
   for (const match of dataModule.slice(objectStart, objectEnd + 1).matchAll(VB2_ROW_PATTERN)) {
     const model = decodeQuotedString(match[1] ?? "");
-    const runCount = Number(match[2]);
-    const dailyBalanceUsd = parseNumberList(match[3] ?? "");
-    const finalBalanceUsd = Number(match[4]);
+    const fields = match[2] ?? "";
+    const runCount = Number(fields.match(VB2_NUM_EPOCHS_PATTERN)?.[1]);
+    const dailyBalanceUsd = parseNumberList(fields.match(VB2_TIME_SERIES_PATTERN)?.[1] ?? "");
+    const finalBalanceUsd = Number(fields.match(VB2_FINAL_VALUE_PATTERN)?.[1]);
     if (
       model == null ||
       !Number.isInteger(runCount) ||

@@ -19,6 +19,7 @@ export type ModelsDevModel = {
 export type MatcherSourceModel = {
   sourceId: string | null;
   sourceSlug: string;
+  matchSlugOverride?: string;
   sourceName: string | null;
   sourceReleaseDate: string | null;
 };
@@ -58,6 +59,7 @@ export type MatchDiagnosticsOptions = {
   maxCandidates?: number;
   modelsDevModels: ModelsDevModel[];
   scrapedRows: unknown[];
+  matchSlugOverridesBySourceId?: ReadonlyMap<string, string>;
 };
 
 export type MatchDiagnosticsPayload = {

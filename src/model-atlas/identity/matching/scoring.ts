@@ -6,6 +6,7 @@ import {
   normalizeModelToken,
   normalizeProviderModelId,
 } from "../normalization";
+import { hasQwenMaxTier } from "../qwen";
 import {
   commonPrefixLength,
   firstParsedNumber,
@@ -60,11 +61,13 @@ const COVERAGE_IGNORED_TOKENS = new Set([
   "minimal",
   "non",
 ]);
-
-/** Collapse Artificial Analysis effort-specific rows to the base slug used for identity matching. */
+/** Collapse Artificial Analysis effort-specific slugs while retaining Qwen's semantic Max tier. */
 export function artificialAnalysisMatchSlug(sourceSlug: string): string {
   for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
     if (sourceSlug.endsWith(suffix)) {
+      if (suffix === "-max" && hasQwenMaxTier(sourceSlug)) {
+        return sourceSlug;
+      }
       return sourceSlug.slice(0, -suffix.length);
     }
   }
