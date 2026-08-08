@@ -58,6 +58,34 @@ const model = processOpenRouterModelStats("openai/example", performanceStats, {
   },
 });
 
+const historicalPriceModel = processOpenRouterModelStats(
+  "openai/historical-price-example",
+  {},
+  {
+    data: {
+      weightedInputPrice: 100,
+      weightedOutputPrice: 200,
+      providerSummaries: [
+        { endpointId: "provider-a", totalTokens: 90 },
+        { endpointId: "provider-b", totalTokens: 10 },
+      ],
+      inputChartData: [
+        { x: "2026-01-01", y: { "provider-a": 1, "provider-b": 3 } },
+        { x: "2026-01-02", y: { "provider-a": 2, "provider-b": 4 } },
+      ],
+      outputChartData: [
+        { x: "2026-01-01", y: { "provider-a": 10, "provider-b": 30 } },
+        { x: "2026-01-02", y: { "provider-a": 20, "provider-b": 40 } },
+      ],
+    },
+  },
+);
+
+assertDeepEqual(historicalPriceModel.pricing, {
+  weighted_input_price_per_1m: 2.5,
+  weighted_output_price_per_1m: 25,
+});
+
 assertDeepEqual(summarizeOpenRouterPerformanceEstimates(performanceStats), [
   {
     metric: "throughput",

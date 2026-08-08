@@ -47,9 +47,12 @@ export type OpenRouterEffectivePricingResponse = {
     weightedInputPrice?: number | null;
     weightedOutputPrice?: number | null;
     providerSummaries?: Array<{
+      endpointId?: string | null;
       providerName?: string | null;
       totalTokens?: number | null;
     }>;
+    inputChartData?: OpenRouterStatsPoint[];
+    outputChartData?: OpenRouterStatsPoint[];
   };
 };
 
@@ -61,7 +64,7 @@ type OpenRouterPerformanceSummary = {
 
 type OpenRouterPerformanceMetric = "throughput" | "latency" | "latency_e2e";
 
-type OpenRouterPerformanceEstimateKind =
+type OpenRouterEstimateKind =
   | "openrouter_aggregate"
   | "series_median"
   | "token_weighted_mean"
@@ -69,7 +72,7 @@ type OpenRouterPerformanceEstimateKind =
 
 type OpenRouterPerformanceEstimate = {
   metric: OpenRouterPerformanceMetric;
-  estimate_kind: OpenRouterPerformanceEstimateKind;
+  estimate_kind: OpenRouterEstimateKind;
   value: number | null;
 };
 
@@ -78,6 +81,11 @@ type PerformanceEstimateSource = {
   summaryValue: number | null;
   series: OpenRouterStatsResponse | null;
   scaleToSeconds: boolean;
+};
+
+type SeriesEstimate = {
+  estimate_kind: OpenRouterEstimateKind;
+  value: number | null;
 };
 
 type OpenRouterPricingSummary = {
@@ -219,27 +227,38 @@ function performanceEstimatesForSource(
   source: PerformanceEstimateSource,
   seriesTokenWeights: Record<string, number | null> | null | undefined,
 ): OpenRouterPerformanceEstimate[] {
-  const estimates: OpenRouterPerformanceEstimate[] = [
+  return seriesEstimates(
+    source.summaryValue,
+    source.series,
+    seriesTokenWeights,
+    source.scaleToSeconds,
+  ).map((estimate) => ({ metric: source.metric, ...estimate }));
+}
+
+/** Combine an upstream aggregate with historical provider and token-weighted estimates. */
+function seriesEstimates(
+  summaryValue: number | null,
+  series: OpenRouterStatsResponse | null,
+  seriesTokenWeights: Record<string, number | null> | null | undefined,
+  scaleToSeconds: boolean,
+): SeriesEstimate[] {
+  const estimates: SeriesEstimate[] = [
     {
-      metric: source.metric,
       estimate_kind: "openrouter_aggregate",
-      value: source.summaryValue,
+      value: summaryValue,
     },
     {
-      metric: source.metric,
       estimate_kind: "series_median",
-      value: medianOfFinite(dailyAveragedValues(source.series, source.scaleToSeconds)),
+      value: medianOfFinite(dailyAveragedValues(series, scaleToSeconds)),
     },
     {
-      metric: source.metric,
       estimate_kind: "token_weighted_mean",
-      value: tokenWeightedMeanValue(source.series, seriesTokenWeights, source.scaleToSeconds),
+      value: tokenWeightedMeanValue(series, seriesTokenWeights, scaleToSeconds),
     },
   ];
   return [
     ...estimates,
     {
-      metric: source.metric,
       estimate_kind: "final",
       value: medianOfFinite(estimates.map((estimate) => estimate.value)),
     },
@@ -370,14 +389,46 @@ export function summarizeEndpointPerformance(
   };
 }
 
+/** Match pricing chart series with the token volume reported for each provider endpoint. */
+function pricingSeriesTokenWeights(
+  response: OpenRouterEffectivePricingResponse | null,
+): Record<string, number> {
+  const weights: Record<string, number> = {};
+  for (const provider of response?.data?.providerSummaries ?? []) {
+    const endpointId = provider.endpointId;
+    const totalTokens = asFiniteNumber(provider.totalTokens);
+    if (endpointId != null && totalTokens != null && totalTokens > 0) {
+      weights[endpointId] = totalTokens;
+    }
+  }
+  return weights;
+}
+
 /** Summarize OpenRouter effective pricing into per-million token prices. */
 function summarizePricing(
   response: OpenRouterEffectivePricingResponse | null,
 ): OpenRouterPricingSummary {
-  const pricing = asRecord(response?.data);
+  const pricing = response?.data;
+  const weights = pricingSeriesTokenWeights(response);
+  const finalPriceEstimate = (
+    summaryValue: number | null | undefined,
+    points: OpenRouterStatsPoint[] | undefined,
+  ) =>
+    seriesEstimates(
+      asFiniteNumber(summaryValue),
+      points == null ? null : { data: points },
+      weights,
+      false,
+    ).find((estimate) => estimate.estimate_kind === "final")?.value ?? null;
   return {
-    weighted_input_price_per_1m: asFiniteNumber(pricing.weightedInputPrice),
-    weighted_output_price_per_1m: asFiniteNumber(pricing.weightedOutputPrice),
+    weighted_input_price_per_1m: finalPriceEstimate(
+      pricing?.weightedInputPrice,
+      pricing?.inputChartData,
+    ),
+    weighted_output_price_per_1m: finalPriceEstimate(
+      pricing?.weightedOutputPrice,
+      pricing?.outputChartData,
+    ),
   };
 }
 

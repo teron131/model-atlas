@@ -260,7 +260,7 @@ $$
 \end{aligned}
 $$
 
-Input-side and output-side price use provider effective weighted prices when both are available; otherwise they use the published input and output prices. The profile weights are usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy. The blend leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
+Input-side and output-side price use provider effective weighted prices when both are available; otherwise they use the published input and output prices. Each effective side applies the same robust estimator as provider speed: the median of OpenRouter's aggregate, the median daily provider average, and the token-volume-weighted historical provider mean, using whichever views are available. The profile weights are usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy. The blend leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
 
 ### Workflow Mix
 
