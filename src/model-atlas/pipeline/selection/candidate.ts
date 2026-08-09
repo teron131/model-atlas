@@ -161,26 +161,16 @@ function buildContextWindow(model: JsonObject): ModelAtlasContextWindow {
 }
 
 function buildSpeed(
-  model: JsonObject,
   modelId: string | null,
   speedByModelId: Map<string, JsonObject>,
 ): ModelAtlasSpeed {
   const openRouterSpeed = lookupOpenRouterData(speedByModelId, modelId, hasSpeedData);
-  const throughput =
-    asFiniteNumber(openRouterSpeed?.throughput_tokens_per_second_median) ??
-    asFiniteNumber(model.median_output_tokens_per_second);
-  const latency =
-    asFiniteNumber(openRouterSpeed?.latency_seconds_median) ??
-    asFiniteNumber(model.median_time_to_first_token_seconds);
-  const e2eLatency =
-    asFiniteNumber(openRouterSpeed?.e2e_latency_seconds_median) ??
-    asFiniteNumber(model.median_end_to_end_response_time_seconds) ??
-    asFiniteNumber(model.median_time_to_first_answer_token) ??
-    latency;
   return {
-    throughput_tokens_per_second_median: throughput,
-    latency_seconds_median: latency,
-    e2e_latency_seconds_median: e2eLatency,
+    throughput_tokens_per_second_median: asFiniteNumber(
+      openRouterSpeed?.throughput_tokens_per_second_median,
+    ),
+    latency_seconds_median: asFiniteNumber(openRouterSpeed?.latency_seconds_median),
+    e2e_latency_seconds_median: asFiniteNumber(openRouterSpeed?.e2e_latency_seconds_median),
   };
 }
 
@@ -193,10 +183,9 @@ function hasSpeedData(speed: JsonObject): boolean {
 }
 
 function hasPricingData(pricing: JsonObject): boolean {
-  return (
-    (asFiniteNumber(pricing.weighted_input) ?? 0) > 0 ||
-    (asFiniteNumber(pricing.weighted_output) ?? 0) > 0
-  );
+  const input = asFiniteNumber(pricing.weighted_input);
+  const output = asFiniteNumber(pricing.weighted_output);
+  return (input != null && input >= 0) || (output != null && output >= 0);
 }
 
 /** Looks up OpenRouter data by exact and normalized model IDs. */
@@ -516,7 +505,7 @@ export function buildModelCandidate(
   const model = asRecord(row);
   const provider = providerFromModel(model);
   const modelId = typeof model.id === "string" ? model.id : null;
-  const speed = buildSpeed(model, modelId, speedByModelId);
+  const speed = buildSpeed(modelId, speedByModelId);
   const pricing =
     lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ?? EMPTY_OPENROUTER_PRICING;
   const cost = buildCost(model, pricing, scoringConfig);

@@ -101,26 +101,17 @@ function qualityScore(
   };
 }
 
-/** Estimate a blended price from effective input/output prices, falling back to published models.dev prices. */
+/** Estimate a blended price only when both token-weighted provider prices are available. */
 export function blendedPriceValue(costLike: unknown, scoringConfig: ScoringConfig): number | null {
   const cost = asRecord(costLike);
-  const inputCost = asFiniteNumber(cost.input);
-  const outputCost = asFiniteNumber(cost.output);
-  const weightedInputCost = asFiniteNumber(cost.weighted_input);
-  const weightedOutputCost = asFiniteNumber(cost.weighted_output);
-  if (inputCost == null || outputCost == null || inputCost < 0 || outputCost < 0) {
+  const inputPrice = asFiniteNumber(cost.weighted_input);
+  const outputPrice = asFiniteNumber(cost.weighted_output);
+  if (inputPrice == null || inputPrice < 0 || outputPrice == null || outputPrice < 0) {
     return null;
   }
-  const useWeightedCosts =
-    weightedInputCost != null &&
-    weightedInputCost > 0 &&
-    weightedOutputCost != null &&
-    weightedOutputCost > 0;
-  const effectiveInputCost = useWeightedCosts ? weightedInputCost : inputCost;
-  const effectiveOutputCost = useWeightedCosts ? weightedOutputCost : outputCost;
   return weightedMeanOfFinite(
     Object.values(scoringConfig.priceProfiles).map((profile) => ({
-      value: profile.input * effectiveInputCost + profile.output * effectiveOutputCost,
+      value: profile.input * inputPrice + profile.output * outputPrice,
       weight: profile.weight,
     })),
   );

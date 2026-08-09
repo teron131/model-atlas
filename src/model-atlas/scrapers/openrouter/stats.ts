@@ -1,8 +1,8 @@
 /** Pure OpenRouter stat normalization, same-version permaslug resolution, and best-candidate selection policy. */
 
 import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
-import { medianOfFinite } from "../../numeric";
-import { asRecord } from "../../runtime";
+import { meanOfFinite } from "../../numeric";
+import { asFiniteNumber, asRecord } from "../../runtime";
 
 export type OpenRouterFrontendModel = {
   slug?: string | null;
@@ -44,48 +44,23 @@ export type OpenRouterEndpointStatsResponse = {
 
 export type OpenRouterEffectivePricingResponse = {
   data?: {
+    // OpenRouter's opaque aggregates are retained in the source response but never become final prices.
     weightedInputPrice?: number | null;
     weightedOutputPrice?: number | null;
     providerSummaries?: Array<{
       endpointId?: string | null;
       providerName?: string | null;
+      effectiveInputPrice?: number | null;
+      effectiveOutputPrice?: number | null;
       totalTokens?: number | null;
     }>;
-    inputChartData?: OpenRouterStatsPoint[];
-    outputChartData?: OpenRouterStatsPoint[];
   };
 };
 
-type OpenRouterPerformanceSummary = {
+export type OpenRouterPerformanceSummary = {
   throughput_tokens_per_second_median: number | null;
   latency_seconds_median: number | null;
   e2e_latency_seconds_median: number | null;
-};
-
-type OpenRouterPerformanceMetric = "throughput" | "latency" | "latency_e2e";
-
-type OpenRouterEstimateKind =
-  | "openrouter_aggregate"
-  | "series_median"
-  | "token_weighted_mean"
-  | "final";
-
-type OpenRouterPerformanceEstimate = {
-  metric: OpenRouterPerformanceMetric;
-  estimate_kind: OpenRouterEstimateKind;
-  value: number | null;
-};
-
-type PerformanceEstimateSource = {
-  metric: OpenRouterPerformanceMetric;
-  summaryValue: number | null;
-  series: OpenRouterStatsResponse | null;
-  scaleToSeconds: boolean;
-};
-
-type SeriesEstimate = {
-  estimate_kind: OpenRouterEstimateKind;
-  value: number | null;
 };
 
 type OpenRouterPricingSummary = {
@@ -123,6 +98,7 @@ export type OpenRouterRawScrapedPayload = {
 const OPENROUTER_PROVIDER_ALIASES: Readonly<Record<string, string>> = {
   xai: "x-ai",
 };
+const MILLISECONDS_TO_SECONDS = 0.001;
 
 export function sanitizeModelId(modelId: string): string {
   const normalized = modelId
@@ -138,171 +114,109 @@ export function sanitizeModelId(modelId: string): string {
   return `${OPENROUTER_PROVIDER_ALIASES[provider] ?? provider}${normalized.slice(slashIndex)}`;
 }
 
-function asFiniteNumber(value: unknown): number | null {
-  if (value == null || value === "") {
-    return null;
-  }
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? numericValue : null;
-}
-
-function average(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function dailyAveragedValues(
-  response: OpenRouterStatsResponse | null,
-  scaleToSeconds: boolean,
-): number[] {
-  if (!response || !Array.isArray(response.data)) {
-    return [];
-  }
-  return response.data
-    .map((point) => {
-      const seriesValues = asRecord(point.y);
-      const values = Object.values(seriesValues)
-        .map((value) => asFiniteNumber(value))
-        .filter((value): value is number => value != null);
-      const dailyAverage = average(values);
-      if (dailyAverage == null) {
-        return null;
-      }
-      return scaleToSeconds ? dailyAverage / 1000 : dailyAverage;
-    })
-    .filter((value): value is number => value != null && Number.isFinite(value));
-}
-
+/** Weight standard endpoint history only when every routed series has matching token evidence. */
 function tokenWeightedMeanValue(
   response: OpenRouterStatsResponse | null,
   seriesTokenWeights: Record<string, number | null> | null | undefined,
-  scaleToSeconds: boolean,
+  valueScale: number,
 ): number | null {
   if (!response || !Array.isArray(response.data) || seriesTokenWeights == null) {
     return null;
   }
-  let weightedSum = 0;
-  let totalWeight = 0;
+  const valuesBySeries = new Map<string, number[]>();
   for (const point of response.data) {
-    const seriesValues = asRecord(point.y);
-    for (const [series, value] of Object.entries(seriesValues)) {
+    for (const [series, value] of Object.entries(asRecord(point.y))) {
       const numericValue = asFiniteNumber(value);
-      const weight = asFiniteNumber(seriesTokenWeights[series]);
-      if (numericValue == null || weight == null || weight <= 0) {
+      if (numericValue == null) {
         continue;
       }
-      weightedSum += (scaleToSeconds ? numericValue / 1000 : numericValue) * weight;
-      totalWeight += weight;
+      const values = valuesBySeries.get(series) ?? [];
+      values.push(numericValue * valueScale);
+      valuesBySeries.set(series, values);
     }
+  }
+  if (valuesBySeries.size === 0) {
+    return null;
+  }
+  const weightedSeries = Object.entries(seriesTokenWeights)
+    .map(([series, value]) => [series, asFiniteNumber(value)] as const)
+    .filter((entry): entry is readonly [string, number] => entry[1] != null && entry[1] > 0);
+  if (weightedSeries.length === 0) {
+    return null;
+  }
+  const weightedSeriesNames = new Set(weightedSeries.map(([series]) => series));
+  if (
+    [...valuesBySeries.keys()].some(
+      (series) => series.endsWith("::default") && !weightedSeriesNames.has(series),
+    )
+  ) {
+    return null;
+  }
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const [series, weight] of weightedSeries) {
+    const values = valuesBySeries.get(series);
+    if (values == null || values.length === 0) {
+      return null;
+    }
+    const seriesMean = meanOfFinite(values);
+    if (seriesMean == null) {
+      return null;
+    }
+    weightedSum += seriesMean * weight;
+    totalWeight += weight;
   }
   return totalWeight > 0 ? weightedSum / totalWeight : null;
 }
 
-function performanceEstimateSources(stats: OpenRouterModelStats): PerformanceEstimateSource[] {
-  return [
-    {
-      metric: "throughput",
-      summaryValue: stats.summary?.throughput_tokens_per_second_median ?? null,
-      series: stats.throughput ?? null,
-      scaleToSeconds: false,
-    },
-    {
-      metric: "latency",
-      summaryValue: stats.summary?.latency_seconds_median ?? null,
-      series: stats.latency ?? null,
-      scaleToSeconds: true,
-    },
-    {
-      metric: "latency_e2e",
-      summaryValue: stats.summary?.e2e_latency_seconds_median ?? null,
-      series: stats.latency_e2e ?? null,
-      scaleToSeconds: true,
-    },
-  ];
-}
-
-function performanceEstimatesForSource(
-  source: PerformanceEstimateSource,
-  seriesTokenWeights: Record<string, number | null> | null | undefined,
-): OpenRouterPerformanceEstimate[] {
-  return seriesEstimates(
-    source.summaryValue,
-    source.series,
-    seriesTokenWeights,
-    source.scaleToSeconds,
-  ).map((estimate) => ({ metric: source.metric, ...estimate }));
-}
-
-/** Combine an upstream aggregate with historical provider and token-weighted estimates. */
-function seriesEstimates(
-  summaryValue: number | null,
-  series: OpenRouterStatsResponse | null,
-  seriesTokenWeights: Record<string, number | null> | null | undefined,
-  scaleToSeconds: boolean,
-): SeriesEstimate[] {
-  const estimates: SeriesEstimate[] = [
-    {
-      estimate_kind: "openrouter_aggregate",
-      value: summaryValue,
-    },
-    {
-      estimate_kind: "series_median",
-      value: medianOfFinite(dailyAveragedValues(series, scaleToSeconds)),
-    },
-    {
-      estimate_kind: "token_weighted_mean",
-      value: tokenWeightedMeanValue(series, seriesTokenWeights, scaleToSeconds),
-    },
-  ];
-  return [
-    ...estimates,
-    {
-      estimate_kind: "final",
-      value: medianOfFinite(estimates.map((estimate) => estimate.value)),
-    },
-  ];
-}
-
-export function summarizeOpenRouterPerformanceEstimates(
-  stats: OpenRouterModelStats,
-): OpenRouterPerformanceEstimate[] {
-  const estimatesByMetric = performanceEstimateSources(stats).map((source) =>
-    performanceEstimatesForSource(source, stats.series_token_weights),
-  );
-  return [
-    ...estimatesByMetric.flatMap((estimates) => estimates.slice(0, -1)),
-    ...estimatesByMetric.flatMap((estimates) => estimates.slice(-1)),
-  ];
-}
-
-/** Summarize OpenRouter historical performance series into stable medians. */
+/** Prefer complete token-weighted history and otherwise use OpenRouter's provider aggregate. */
 function summarizePerformance(stats: OpenRouterModelStats): OpenRouterPerformanceSummary {
-  const estimates = summarizeOpenRouterPerformanceEstimates(stats);
-  const finalValue = (metric: OpenRouterPerformanceMetric) =>
-    estimates.find((estimate) => estimate.metric === metric && estimate.estimate_kind === "final")
-      ?.value ?? null;
+  const weightedThroughput = tokenWeightedMeanValue(
+    stats.throughput ?? null,
+    stats.series_token_weights,
+    1,
+  );
+  const weightedLatency = tokenWeightedMeanValue(
+    stats.latency ?? null,
+    stats.series_token_weights,
+    MILLISECONDS_TO_SECONDS,
+  );
+  const weightedE2eLatency = tokenWeightedMeanValue(
+    stats.latency_e2e ?? null,
+    stats.series_token_weights,
+    MILLISECONDS_TO_SECONDS,
+  );
   return {
-    throughput_tokens_per_second_median: finalValue("throughput"),
-    latency_seconds_median: finalValue("latency"),
-    e2e_latency_seconds_median: finalValue("latency_e2e"),
+    throughput_tokens_per_second_median:
+      weightedThroughput ?? stats.summary?.throughput_tokens_per_second_median ?? null,
+    latency_seconds_median: weightedLatency ?? stats.summary?.latency_seconds_median ?? null,
+    e2e_latency_seconds_median:
+      weightedE2eLatency ?? stats.summary?.e2e_latency_seconds_median ?? null,
   };
 }
 
-function endpointProviderName(
-  endpoint: NonNullable<OpenRouterEndpointStatsResponse["data"]>[number],
-): string | null {
-  return (
-    endpoint.provider_display_name ??
-    endpoint.provider_info?.displayName ??
-    endpoint.provider_name ??
-    null
-  );
-}
-
-function endpointSeriesKey(endpointId: string): string {
-  return `${endpointId}::default`;
+/** Match OpenRouter's cards: fastest endpoint P50 throughput and lowest endpoint P50 latency. */
+export function summarizeEndpointPerformance(
+  response: OpenRouterEndpointStatsResponse | null,
+): OpenRouterPerformanceSummary {
+  let highestThroughput: number | null = null;
+  let lowestLatencyMs: number | null = null;
+  for (const endpoint of response?.data ?? []) {
+    const throughput = asFiniteNumber(endpoint.stats?.p50_throughput);
+    const latencyMs = asFiniteNumber(endpoint.stats?.p50_latency);
+    if (throughput != null && (highestThroughput == null || throughput > highestThroughput)) {
+      highestThroughput = throughput;
+    }
+    if (latencyMs != null && (lowestLatencyMs == null || latencyMs < lowestLatencyMs)) {
+      lowestLatencyMs = latencyMs;
+    }
+  }
+  return {
+    throughput_tokens_per_second_median: highestThroughput,
+    latency_seconds_median:
+      lowestLatencyMs == null ? null : lowestLatencyMs * MILLISECONDS_TO_SECONDS,
+    e2e_latency_seconds_median: null,
+  };
 }
 
 export function buildOpenRouterSeriesTokenWeights(
@@ -329,7 +243,11 @@ export function buildOpenRouterSeriesTokenWeights(
   >();
   for (const endpoint of endpoints) {
     const id = endpoint.id;
-    const providerName = endpointProviderName(endpoint);
+    const providerName =
+      endpoint.provider_display_name ??
+      endpoint.provider_info?.displayName ??
+      endpoint.provider_name ??
+      null;
     if (id == null || providerName == null) {
       continue;
     }
@@ -346,94 +264,74 @@ export function buildOpenRouterSeriesTokenWeights(
     if (totalTokens == null) {
       continue;
     }
+    if (providerEndpoints.length === 1) {
+      weights[`${providerEndpoints[0]!.id}::default`] = totalTokens;
+      continue;
+    }
+    if (providerEndpoints.some((endpoint) => endpoint.requestCount == null)) {
+      continue;
+    }
     const requestCountSum = providerEndpoints.reduce(
       (sum, endpoint) => sum + (endpoint.requestCount ?? 0),
       0,
     );
-    if (requestCountSum > 0) {
-      for (const endpoint of providerEndpoints) {
-        if (endpoint.requestCount == null || endpoint.requestCount <= 0) {
-          continue;
-        }
-        weights[endpointSeriesKey(endpoint.id)] =
-          (totalTokens * endpoint.requestCount) / requestCountSum;
-      }
+    if (requestCountSum <= 0) {
       continue;
     }
-    const tokenShare = totalTokens / providerEndpoints.length;
     for (const endpoint of providerEndpoints) {
-      weights[endpointSeriesKey(endpoint.id)] = tokenShare;
+      if (endpoint.requestCount == null || endpoint.requestCount <= 0) {
+        continue;
+      }
+      weights[`${endpoint.id}::default`] = (totalTokens * endpoint.requestCount) / requestCountSum;
     }
   }
   return weights;
 }
 
-/** Summarize endpoint-level OpenRouter performance into one model summary. */
-export function summarizeEndpointPerformance(
-  response: OpenRouterEndpointStatsResponse | null,
-): OpenRouterPerformanceSummary {
-  const endpointStats = Array.isArray(response?.data)
-    ? response.data.map((endpoint) => endpoint.stats ?? null)
-    : [];
-  const throughputValues = endpointStats
-    .map((stats) => asFiniteNumber(stats?.p50_throughput))
-    .filter((value): value is number => value != null);
-  const latencyValues = endpointStats
-    .map((stats) => asFiniteNumber(stats?.p50_latency))
-    .filter((value): value is number => value != null);
-  return {
-    throughput_tokens_per_second_median:
-      throughputValues.length === 0 ? null : Math.max(...throughputValues),
-    latency_seconds_median: latencyValues.length === 0 ? null : Math.min(...latencyValues) / 1000,
-    e2e_latency_seconds_median: null,
-  };
-}
-
-/** Match pricing chart series with the token volume reported for each provider endpoint. */
-function pricingSeriesTokenWeights(
+/** Calculate one current effective price directly from the reported provider token mix. */
+function providerWeightedPrice(
   response: OpenRouterEffectivePricingResponse | null,
-): Record<string, number> {
-  const weights: Record<string, number> = {};
-  for (const provider of response?.data?.providerSummaries ?? []) {
-    const endpointId = provider.endpointId;
-    const totalTokens = asFiniteNumber(provider.totalTokens);
-    if (endpointId != null && totalTokens != null && totalTokens > 0) {
-      weights[endpointId] = totalTokens;
-    }
+  priceField: "effectiveInputPrice" | "effectiveOutputPrice",
+): number | null {
+  const providerSummaries = response?.data?.providerSummaries ?? [];
+  if (providerSummaries.length === 0) {
+    return null;
   }
-  return weights;
+  let weightedSum = 0;
+  let totalTokens = 0;
+  for (const provider of providerSummaries) {
+    const price = asFiniteNumber(provider[priceField]);
+    const tokens = asFiniteNumber(provider.totalTokens);
+    if (tokens == null || tokens < 0) {
+      return null;
+    }
+    if (tokens === 0) {
+      continue;
+    }
+    if (price == null || price < 0) {
+      return null;
+    }
+    weightedSum += price * tokens;
+    totalTokens += tokens;
+  }
+  return totalTokens > 0 ? weightedSum / totalTokens : null;
 }
 
 /** Summarize OpenRouter effective pricing into per-million token prices. */
 function summarizePricing(
   response: OpenRouterEffectivePricingResponse | null,
 ): OpenRouterPricingSummary {
-  const pricing = response?.data;
-  const weights = pricingSeriesTokenWeights(response);
-  const finalPriceEstimate = (
-    summaryValue: number | null | undefined,
-    points: OpenRouterStatsPoint[] | undefined,
-  ) =>
-    seriesEstimates(
-      asFiniteNumber(summaryValue),
-      points == null ? null : { data: points },
-      weights,
-      false,
-    ).find((estimate) => estimate.estimate_kind === "final")?.value ?? null;
   return {
-    weighted_input_price_per_1m: finalPriceEstimate(
-      pricing?.weightedInputPrice,
-      pricing?.inputChartData,
-    ),
-    weighted_output_price_per_1m: finalPriceEstimate(
-      pricing?.weightedOutputPrice,
-      pricing?.outputChartData,
-    ),
+    weighted_input_price_per_1m: providerWeightedPrice(response, "effectiveInputPrice"),
+    weighted_output_price_per_1m: providerWeightedPrice(response, "effectiveOutputPrice"),
   };
 }
 
-function hasMeaningfulRawPricing(pricing: OpenRouterEffectivePricingResponse | null): boolean {
-  return hasMeaningfulPricing(summarizePricing(pricing));
+function hasWeightedPricing(pricing: OpenRouterEffectivePricingResponse | null): boolean {
+  const summary = summarizePricing(pricing);
+  return (
+    summary.weighted_input_price_per_1m != null || summary.weighted_output_price_per_1m != null
+  );
 }
 
 export function emptyRawScrapedModel(
@@ -459,22 +357,6 @@ export function processOpenRouterModelStats(
     performance: summarizePerformance(stats),
     pricing: summarizePricing(pricing),
   };
-}
-
-function hasMeaningfulPerformance(performance: OpenRouterPerformanceSummary): boolean {
-  return (
-    performance.throughput_tokens_per_second_median != null ||
-    performance.latency_seconds_median != null ||
-    performance.e2e_latency_seconds_median != null
-  );
-}
-
-function hasMeaningfulPricing(pricing: OpenRouterPricingSummary): boolean {
-  const weightedInput = pricing.weighted_input_price_per_1m;
-  const weightedOutput = pricing.weighted_output_price_per_1m;
-  const hasInput = weightedInput != null && weightedInput > 0;
-  const hasOutput = weightedOutput != null && weightedOutput > 0;
-  return hasInput || hasOutput;
 }
 
 export function buildOpenRouterSlugCandidates(modelId: string, availableSlugs: string[]): string[] {
@@ -522,13 +404,6 @@ export function parseOpenRouterWeeklyTokens(html: string): number | null {
   return asFiniteNumber(valueMatch?.[1]);
 }
 
-function compareCandidateUsage(
-  left: OpenRouterCandidateStats,
-  right: OpenRouterCandidateStats,
-): number {
-  return (right.weekly_tokens ?? -1) - (left.weekly_tokens ?? -1);
-}
-
 function bestCandidateByUsage(
   candidates: OpenRouterCandidateStats[],
   predicate: (candidate: OpenRouterCandidateStats) => boolean,
@@ -538,7 +413,10 @@ function bestCandidateByUsage(
     if (!predicate(candidate)) {
       continue;
     }
-    if (bestCandidate == null || compareCandidateUsage(bestCandidate, candidate) > 0) {
+    if (
+      bestCandidate == null ||
+      (candidate.weekly_tokens ?? -1) > (bestCandidate.weekly_tokens ?? -1)
+    ) {
       bestCandidate = candidate;
     }
   }
@@ -551,15 +429,15 @@ export function selectOpenRouterRawModelStats(
 ): OpenRouterRawScrapedModel {
   const performanceCandidate =
     bestCandidateByUsage(candidates, (candidate) =>
-      hasMeaningfulPerformance(summarizePerformance(candidate.performance)),
+      Object.values(summarizePerformance(candidate.performance)).some((value) => value != null),
     ) ??
-    bestCandidateByUsage(candidates, (candidate) => hasMeaningfulRawPricing(candidate.pricing)) ??
+    bestCandidateByUsage(candidates, (candidate) => hasWeightedPricing(candidate.pricing)) ??
     candidates[0] ??
     null;
   const pricingCandidate = performanceCandidate
-    ? hasMeaningfulRawPricing(performanceCandidate.pricing)
+    ? hasWeightedPricing(performanceCandidate.pricing)
       ? performanceCandidate
-      : bestCandidateByUsage(candidates, (candidate) => hasMeaningfulRawPricing(candidate.pricing))
+      : bestCandidateByUsage(candidates, (candidate) => hasWeightedPricing(candidate.pricing))
     : null;
 
   return {

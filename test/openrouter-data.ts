@@ -240,11 +240,8 @@ const qwenRouteData = await prepareOpenRouterModelData(
         selected_permaslug: "qwen/qwen3.7-max-20260520",
         candidate_permaslugs: ["qwen/qwen3.7-max-20260520"],
         performance: {
-          summary: {
-            throughput_tokens_per_second_median: 47,
-            latency_seconds_median: 1.58,
-            e2e_latency_seconds_median: null,
-          },
+          throughput: { data: [{ x: "2026-08-09", y: { route: 47 } }] },
+          series_token_weights: { route: 1 },
         },
         pricing: null,
       },

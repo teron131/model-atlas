@@ -48,10 +48,9 @@ function hasSpeedData(speed: JsonObject): boolean {
 }
 
 function hasPricingData(pricing: JsonObject): boolean {
-  return (
-    (asFiniteNumber(pricing.weighted_input) ?? 0) > 0 ||
-    (asFiniteNumber(pricing.weighted_output) ?? 0) > 0
-  );
+  const input = asFiniteNumber(pricing.weighted_input);
+  const output = asFiniteNumber(pricing.weighted_output);
+  return (input != null && input >= 0) || (output != null && output >= 0);
 }
 
 function indexPreferredRouteData(

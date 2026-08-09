@@ -112,13 +112,13 @@ assertEqual(
     },
     STAGE_CONFIG.scoring,
   ),
-  4.975,
+  0,
 );
 
 assert.equal(
   blendedPriceValue({ input: 0, output: 0 }, STAGE_CONFIG.scoring),
-  0,
-  "published zero pricing is evidence rather than a missing price",
+  null,
+  "published list pricing should not replace missing provider-weighted pricing",
 );
 
 assertClose(
@@ -1845,6 +1845,8 @@ function modelCandidate(options: {
       : {
           input: 1,
           output: 1,
+          weighted_input: 1,
+          weighted_output: 1,
           blended_price: options.blendedPrice ?? null,
         },
     context_window: null,

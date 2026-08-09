@@ -14,6 +14,6 @@ export {
   processOpenRouterModelStats,
   sanitizeModelId,
   selectOpenRouterRawModelStats,
-  summarizeOpenRouterPerformanceEstimates,
+  summarizeEndpointPerformance,
 } from "./stats";
 export { getOpenRouterRawScrapedStats, OPENROUTER_MODELS_URL } from "./workflow";

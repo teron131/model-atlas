@@ -1,5 +1,7 @@
 /** Verifies OpenRouter parsing, route candidates, provenance, and statistics. */
 
+import assert from "node:assert/strict";
+
 import { SOURCE_URLS } from "../src/model-atlas/ingest/source-registry";
 import {
   buildOpenRouterSeriesTokenWeights,
@@ -7,29 +9,16 @@ import {
   parseOpenRouterWeeklyTokens,
   processOpenRouterModelStats,
   selectOpenRouterRawModelStats,
-  summarizeOpenRouterPerformanceEstimates,
+  summarizeEndpointPerformance,
 } from "../src/model-atlas/scrapers/openrouter";
 
-function assertDeepEqual(actual: unknown, expected: unknown): void {
-  const actualJson = JSON.stringify(actual);
-  const expectedJson = JSON.stringify(expected);
-  if (actualJson !== expectedJson) {
-    throw new Error(`Expected ${expectedJson}, got ${actualJson}`);
-  }
-}
-
-assertDeepEqual(
+assert.deepEqual(
   SOURCE_URLS.openrouter_models,
   "https://openrouter.ai/api/frontend/v1/catalog/models",
 );
-assertDeepEqual(SOURCE_URLS.openrouter_stats, "https://openrouter.ai/api/frontend/v1/stats/*");
+assert.deepEqual(SOURCE_URLS.openrouter_stats, "https://openrouter.ai/api/frontend/v1/stats/*");
 
 const performanceStats = {
-  summary: {
-    throughput_tokens_per_second_median: 42,
-    latency_seconds_median: 0.9,
-    e2e_latency_seconds_median: null,
-  },
   throughput: {
     data: [
       { x: "2026-01-01", y: { p50: 100, p90: 300 } },
@@ -38,12 +27,12 @@ const performanceStats = {
   },
   latency: {
     data: [
-      { x: "2026-01-01", y: { p50: 1000 } },
-      { x: "2026-01-02", y: { p50: 3000 } },
+      { x: "2026-01-01", y: { p50: 1000, p90: 1000 } },
+      { x: "2026-01-02", y: { p50: 3000, p90: 3000 } },
     ],
   },
   latency_e2e: {
-    data: [{ x: "2026-01-01", y: { p50: 1500 } }],
+    data: [{ x: "2026-01-01", y: { p50: 1500, p90: 1500 } }],
   },
   series_token_weights: {
     p50: 9,
@@ -51,69 +40,44 @@ const performanceStats = {
   },
 };
 
-const model = processOpenRouterModelStats("openai/example", performanceStats, {
+const aggregateOnlyPricingModel = processOpenRouterModelStats("openai/example", performanceStats, {
   data: {
     weightedInputPrice: 1.2,
     weightedOutputPrice: 3.4,
   },
 });
 
-const historicalPriceModel = processOpenRouterModelStats(
-  "openai/historical-price-example",
+const providerWeightedPriceModel = processOpenRouterModelStats(
+  "openai/provider-weighted-price-example",
   {},
   {
     data: {
       weightedInputPrice: 100,
       weightedOutputPrice: 200,
       providerSummaries: [
-        { endpointId: "provider-a", totalTokens: 90 },
-        { endpointId: "provider-b", totalTokens: 10 },
-      ],
-      inputChartData: [
-        { x: "2026-01-01", y: { "provider-a": 1, "provider-b": 3 } },
-        { x: "2026-01-02", y: { "provider-a": 2, "provider-b": 4 } },
-      ],
-      outputChartData: [
-        { x: "2026-01-01", y: { "provider-a": 10, "provider-b": 30 } },
-        { x: "2026-01-02", y: { "provider-a": 20, "provider-b": 40 } },
+        {
+          endpointId: "provider-a",
+          effectiveInputPrice: 1,
+          effectiveOutputPrice: 10,
+          totalTokens: 90,
+        },
+        {
+          endpointId: "provider-b",
+          effectiveInputPrice: 3,
+          effectiveOutputPrice: 30,
+          totalTokens: 10,
+        },
       ],
     },
   },
 );
 
-assertDeepEqual(historicalPriceModel.pricing, {
-  weighted_input_price_per_1m: 2.5,
-  weighted_output_price_per_1m: 25,
+assert.deepEqual(providerWeightedPriceModel.pricing, {
+  weighted_input_price_per_1m: 1.2,
+  weighted_output_price_per_1m: 12,
 });
 
-assertDeepEqual(summarizeOpenRouterPerformanceEstimates(performanceStats), [
-  {
-    metric: "throughput",
-    estimate_kind: "openrouter_aggregate",
-    value: 42,
-  },
-  { metric: "throughput", estimate_kind: "series_median", value: 400 },
-  { metric: "throughput", estimate_kind: "token_weighted_mean", value: 320 },
-  { metric: "latency", estimate_kind: "openrouter_aggregate", value: 0.9 },
-  { metric: "latency", estimate_kind: "series_median", value: 2 },
-  { metric: "latency", estimate_kind: "token_weighted_mean", value: 2 },
-  {
-    metric: "latency_e2e",
-    estimate_kind: "openrouter_aggregate",
-    value: null,
-  },
-  { metric: "latency_e2e", estimate_kind: "series_median", value: 1.5 },
-  {
-    metric: "latency_e2e",
-    estimate_kind: "token_weighted_mean",
-    value: 1.5,
-  },
-  { metric: "throughput", estimate_kind: "final", value: 320 },
-  { metric: "latency", estimate_kind: "final", value: 2 },
-  { metric: "latency_e2e", estimate_kind: "final", value: 1.5 },
-]);
-
-assertDeepEqual(
+assert.deepEqual(
   buildOpenRouterSeriesTokenWeights(
     {
       data: [
@@ -150,7 +114,22 @@ assertDeepEqual(
   },
 );
 
-assertDeepEqual(model, {
+assert.deepEqual(
+  summarizeEndpointPerformance({
+    data: [
+      { stats: { p50_throughput: 40, p50_latency: 5_360 } },
+      { stats: { p50_throughput: 53, p50_latency: 3_730 } },
+      { stats: { p50_throughput: null, p50_latency: null } },
+    ],
+  }),
+  {
+    throughput_tokens_per_second_median: 53,
+    latency_seconds_median: 3.73,
+    e2e_latency_seconds_median: null,
+  },
+);
+
+assert.deepEqual(aggregateOnlyPricingModel, {
   id: "openai/example",
   performance: {
     throughput_tokens_per_second_median: 320,
@@ -158,27 +137,9 @@ assertDeepEqual(model, {
     e2e_latency_seconds_median: 1.5,
   },
   pricing: {
-    weighted_input_price_per_1m: 1.2,
-    weighted_output_price_per_1m: 3.4,
+    weighted_input_price_per_1m: null,
+    weighted_output_price_per_1m: null,
   },
-});
-
-const summaryOnlyModel = processOpenRouterModelStats(
-  "openai/summary-only-example",
-  {
-    summary: {
-      throughput_tokens_per_second_median: 42,
-      latency_seconds_median: 0.9,
-      e2e_latency_seconds_median: null,
-    },
-  },
-  null,
-);
-
-assertDeepEqual(summaryOnlyModel.performance, {
-  throughput_tokens_per_second_median: 42,
-  latency_seconds_median: 0.9,
-  e2e_latency_seconds_median: null,
 });
 
 const sparseModel = processOpenRouterModelStats(
@@ -203,20 +164,42 @@ const sparseModel = processOpenRouterModelStats(
   null,
 );
 
-assertDeepEqual(sparseModel.performance, {
-  throughput_tokens_per_second_median: 150,
-  latency_seconds_median: 2,
-  e2e_latency_seconds_median: 1.5,
+assert.deepEqual(sparseModel.performance, {
+  throughput_tokens_per_second_median: null,
+  latency_seconds_median: null,
+  e2e_latency_seconds_median: null,
 });
 
-assertDeepEqual(
+const aggregateFallbackModel = processOpenRouterModelStats(
+  "anthropic/aggregate-fallback-example",
+  {
+    summary: {
+      throughput_tokens_per_second_median: 53,
+      latency_seconds_median: 3.73,
+      e2e_latency_seconds_median: null,
+    },
+    throughput: { data: [{ x: "2026-01-01", y: { providerA: 40 } }] },
+    latency: { data: [{ x: "2026-01-01", y: { providerA: 5_360 } }] },
+    latency_e2e: { data: [{ x: "2026-01-01", y: { providerA: 11_250 } }] },
+    series_token_weights: { providerB: 1 },
+  },
+  null,
+);
+
+assert.deepEqual(aggregateFallbackModel.performance, {
+  throughput_tokens_per_second_median: 53,
+  latency_seconds_median: 3.73,
+  e2e_latency_seconds_median: null,
+});
+
+assert.deepEqual(
   parseOpenRouterWeeklyTokens(
     String.raw`weeklyTokensPromise\":\"$@44\" somewhere 44:\"3550178782\"`,
   ),
   3_550_178_782,
 );
 
-assertDeepEqual(
+assert.deepEqual(
   buildOpenRouterSlugCandidates("provider/model-pro", [
     "provider/model-pro",
     "provider/model-pro-20260602",
@@ -228,7 +211,7 @@ assertDeepEqual(
   ["provider/model-pro", "provider/model-pro-20260602", "provider/model-pro-preview-06-2026"],
 );
 
-assertDeepEqual(buildOpenRouterSlugCandidates("xai/grok-4.1-fast", ["x-ai/grok-4.1-fast"]), [
+assert.deepEqual(buildOpenRouterSlugCandidates("xai/grok-4.1-fast", ["x-ai/grok-4.1-fast"]), [
   "x-ai/grok-4.1-fast",
 ]);
 
@@ -238,6 +221,7 @@ const selected = selectOpenRouterRawModelStats("provider/model", [
     weekly_tokens: 10_000,
     performance: {
       throughput: { data: [{ x: "2026-01-01", y: { p50: 25 } }] },
+      series_token_weights: { p50: 1 },
     },
     pricing: {
       data: {
@@ -251,6 +235,7 @@ const selected = selectOpenRouterRawModelStats("provider/model", [
     weekly_tokens: 1_000_000,
     performance: {
       throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
+      series_token_weights: { p50: 1 },
     },
     pricing: {
       data: {
@@ -261,17 +246,13 @@ const selected = selectOpenRouterRawModelStats("provider/model", [
   },
 ]);
 
-assertDeepEqual(selected, {
+assert.deepEqual(selected, {
   id: "provider/model",
   selected_permaslug: "provider/model-high-volume-free-price",
   candidate_permaslugs: ["provider/model-low-volume", "provider/model-high-volume-free-price"],
   performance: {
     throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
+    series_token_weights: { p50: 1 },
   },
-  pricing: {
-    data: {
-      weightedInputPrice: 1,
-      weightedOutputPrice: 2,
-    },
-  },
+  pricing: null,
 });

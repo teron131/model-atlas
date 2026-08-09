@@ -46,11 +46,8 @@ const mergedOpenRouter = mergeOpenRouterModel(
     selected_permaslug: "openai/gpt-5.6-luna",
     candidate_permaslugs: ["openai/gpt-5.6-luna"],
     performance: {
-      summary: {
-        throughput_tokens_per_second_median: 100,
-        latency_seconds_median: 1,
-        e2e_latency_seconds_median: 2,
-      },
+      throughput: { data: [{ x: "2026-08-09", y: { route: 100 } }] },
+      series_token_weights: { route: 1 },
     },
     pricing: { data: { weightedInputPrice: 0.4, weightedOutputPrice: 6 } },
   },
@@ -67,10 +64,7 @@ assert.deepEqual(mergedOpenRouter.pricing, {
   data: { weightedInputPrice: 0.08, weightedOutputPrice: 1.2 },
 });
 assert.deepEqual(mergedOpenRouter.performance, {
-  summary: {
-    throughput_tokens_per_second_median: 100,
-    latency_seconds_median: 1,
-    e2e_latency_seconds_median: 2,
-  },
+  throughput: { data: [{ x: "2026-08-09", y: { route: 100 } }] },
+  series_token_weights: { route: 1 },
 });
 assert.equal(mergedOpenRouter.selected_permaslug, "openai/gpt-5.6-luna");
