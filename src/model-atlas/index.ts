@@ -9,7 +9,7 @@ export {
   SELECTED_AGENTIC_BENCHMARKS,
   SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "./benchmarks/registry";
-export { PRICE_PROFILES, STAGE_CONFIG } from "./config";
+export { STAGE_CONFIG } from "./config";
 export type { ModelAtlasStageConfig } from "./config/stage";
 export type { ModelAtlasColumnTooltip, ModelAtlasColumnTooltips } from "./config/tooltips";
 export type {

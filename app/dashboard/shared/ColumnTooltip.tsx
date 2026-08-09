@@ -8,19 +8,9 @@ import type {
   ModelAtlasColumnTooltipNestedSection,
   ModelAtlasColumnTooltipRow,
   ModelAtlasColumnTooltipSectionItem,
-  ModelAtlasColumnTooltipSectionKind,
 } from "../../../src/model-atlas/config/tooltips";
 import type { TableColumnKey } from "../table/models";
-import {
-  tooltipHorizontalPadding,
-  tooltipMaxWidth,
-  tooltipOffsetTop,
-  tooltipWorkflowMaxWidth,
-} from "./constants";
-
-const workflowSimulationRowPattern = /^(.*?)\s+(\d+\s+calls?), input ([^,]+), output (.+)$/;
-const priceProfileRowPattern = /^(.*?) input\/output split (.+)$/;
-const priceShareRowPattern = /^(.*?) (.+?) x (.+)$/;
+import { tooltipHorizontalPadding, tooltipMaxWidth, tooltipOffsetTop } from "./constants";
 
 export type TooltipState = {
   key: string;
@@ -53,38 +43,29 @@ export function ColumnTooltip({
   const [position, setPosition] = useState({ left, top });
   const hasRows = (content.rows?.length ?? 0) > 0;
   const hasSections = (content.sections?.length ?? 0) > 0;
-  const hasWorkflowSimulationSection = content.sections?.some(hasWorkflowSimulation) ?? false;
   const availableWidth =
     typeof window === "undefined"
       ? tooltipMaxWidth
       : window.innerWidth - tooltipHorizontalPadding * 2;
-  const baseWidth = Math.min(tooltipMaxWidth, availableWidth);
-  const tooltipWidth = Math.min(
-    hasWorkflowSimulationSection ? tooltipWorkflowMaxWidth : tooltipMaxWidth,
-    availableWidth,
-  );
-  const centeredLeft =
-    hasWorkflowSimulationSection && tooltipWidth > baseWidth
-      ? left - (tooltipWidth - baseWidth) / 2
-      : left;
+  const tooltipWidth = Math.min(tooltipMaxWidth, availableWidth);
 
   useLayoutEffect(() => {
     const rect = tooltipRef.current?.getBoundingClientRect();
     if (rect == null) {
-      setPosition({ left: centeredLeft, top });
+      setPosition({ left, top });
       return;
     }
-    const nextPosition = clampTooltipPosition(centeredLeft, top, rect);
+    const nextPosition = clampTooltipPosition(left, top, rect);
     setPosition((current) =>
       current.left === nextPosition.left && current.top === nextPosition.top
         ? current
         : nextPosition,
     );
-  }, [centeredLeft, top]);
+  }, [left, top]);
 
   return (
     <div
-      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${hasWorkflowSimulationSection ? " workflow-tooltip" : ""}`}
+      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       ref={tooltipRef}
@@ -108,7 +89,7 @@ export function ColumnTooltip({
               {section.hideTitle !== true && (
                 <TooltipSectionTitle title={section.title} weight={section.weight} />
               )}
-              <TooltipSectionBody kind={section.kind} rows={section.rows} />
+              <TooltipSectionRows items={section.rows} />
             </div>
           ))}
         </div>
@@ -145,98 +126,12 @@ function TooltipSectionRows({ items }: { items: readonly ModelAtlasColumnTooltip
 }
 
 function TooltipNestedSection({ section }: { section: ModelAtlasColumnTooltipNestedSection }) {
-  const className = `column-tooltip-nested-section${section.kind == null ? " weighted-breakdown" : ""}`;
   return (
-    <div className={className}>
+    <div className="column-tooltip-nested-section">
       <TooltipSectionTitle title={section.title} weight={section.weight} />
       <div className="column-tooltip-nested-body">
-        <TooltipSectionBody kind={section.kind} rows={section.rows} />
+        <TooltipSectionRows items={section.rows} />
       </div>
-    </div>
-  );
-}
-
-function TooltipSectionBody({
-  kind,
-  rows,
-}: {
-  kind?: ModelAtlasColumnTooltipSectionKind;
-  rows: readonly ModelAtlasColumnTooltipSectionItem[];
-}) {
-  switch (kind) {
-    case "workflow_simulation":
-      return <WorkflowSimulationRows rows={tooltipRows(rows)} />;
-    case "price_profile":
-      return <PriceProfileRows rows={tooltipRows(rows)} />;
-    case "price_share":
-      return <PriceShareRows rows={tooltipRows(rows)} />;
-    default:
-      return <TooltipSectionRows items={rows} />;
-  }
-}
-
-function PriceProfileRows({ rows }: { rows: readonly ModelAtlasColumnTooltipRow[] }) {
-  return (
-    <div className="column-tooltip-price-profile-table">
-      <span className="column-tooltip-nested-head">Profile</span>
-      <span className="column-tooltip-nested-head">Split</span>
-      <span className="column-tooltip-nested-head">Weight</span>
-      <span className="column-tooltip-nested-rule" aria-hidden="true" />
-      {rows.map(([label, value]) => {
-        const cells = priceProfileCells(label);
-        return cells == null ? (
-          <TooltipRow key={`${label}:${value}`} label={label} value={value} />
-        ) : (
-          <PriceProfileRow key={`${label}:${value}`} cells={cells} weight={value} />
-        );
-      })}
-    </div>
-  );
-}
-
-function PriceShareRows({ rows }: { rows: readonly ModelAtlasColumnTooltipRow[] }) {
-  return (
-    <div className="column-tooltip-price-share-table">
-      <span className="column-tooltip-nested-head">Profile</span>
-      <span className="column-tooltip-nested-head">Weight x split</span>
-      <span className="column-tooltip-nested-head">Share</span>
-      <span className="column-tooltip-nested-rule" aria-hidden="true" />
-      {rows.map(([label, value]) => {
-        const cells = priceShareCells(label);
-        return cells == null ? (
-          <TooltipRow key={`${label}:${value}`} label={label} value={value} />
-        ) : (
-          <PriceShareRow key={`${label}:${value}`} cells={cells} share={value} />
-        );
-      })}
-    </div>
-  );
-}
-
-function WorkflowSimulationRows({ rows }: { rows: readonly ModelAtlasColumnTooltipRow[] }) {
-  return (
-    <div className="column-tooltip-workflow-table">
-      <div className="column-tooltip-workflow-header">
-        <span className="column-tooltip-workflow-head">Scenario</span>
-        <span className="column-tooltip-workflow-head">#</span>
-        <span className="column-tooltip-workflow-head">
-          <span className="column-tooltip-workflow-head-full">Input</span>
-          <span className="column-tooltip-workflow-head-short">In</span>
-        </span>
-        <span className="column-tooltip-workflow-head">
-          <span className="column-tooltip-workflow-head-full">Output</span>
-          <span className="column-tooltip-workflow-head-short">Out</span>
-        </span>
-        <span className="column-tooltip-workflow-head">Weight</span>
-      </div>
-      {rows.map(([label, value]) => {
-        const cells = workflowSimulationCells(label);
-        return cells == null ? (
-          <TooltipRow key={`${label}:${value}`} label={label} value={value} />
-        ) : (
-          <WorkflowSimulationRow key={`${label}:${value}`} cells={cells} weight={value} />
-        );
-      })}
     </div>
   );
 }
@@ -254,116 +149,6 @@ function isTooltipRow(
   item: ModelAtlasColumnTooltipSectionItem,
 ): item is ModelAtlasColumnTooltipRow {
   return Array.isArray(item);
-}
-
-function tooltipRows(
-  items: readonly ModelAtlasColumnTooltipSectionItem[],
-): ModelAtlasColumnTooltipRow[] {
-  return items.filter(isTooltipRow);
-}
-
-function hasWorkflowSimulation({
-  kind,
-  rows,
-}: {
-  kind?: ModelAtlasColumnTooltipSectionKind;
-  rows: readonly ModelAtlasColumnTooltipSectionItem[];
-}) {
-  return (
-    kind === "workflow_simulation" ||
-    rows.some((item) => !isTooltipRow(item) && item.kind === "workflow_simulation")
-  );
-}
-
-function priceProfileCells(label: string) {
-  const match = priceProfileRowPattern.exec(label);
-  if (match == null) {
-    return null;
-  }
-  const [, profile, split] = match;
-  if (profile == null || split == null) {
-    return null;
-  }
-  return { profile, split };
-}
-
-function priceShareCells(label: string) {
-  const match = priceShareRowPattern.exec(label);
-  if (match == null) {
-    return null;
-  }
-  const [, profile, profileWeight, sideSplit] = match;
-  if (profile == null || profileWeight == null || sideSplit == null) {
-    return null;
-  }
-  return { profile, formula: `${profileWeight} x ${sideSplit}` };
-}
-
-function workflowSimulationCells(label: string) {
-  const match = workflowSimulationRowPattern.exec(label);
-  if (match == null) {
-    return null;
-  }
-  const [, scenario, calls, input, output] = match;
-  if (scenario == null || calls == null || input == null || output == null) {
-    return null;
-  }
-  return {
-    scenario,
-    calls: calls.replace(/\s+calls?$/, ""),
-    input,
-    output,
-  };
-}
-
-function WorkflowSimulationRow({
-  cells,
-  weight,
-}: {
-  cells: NonNullable<ReturnType<typeof workflowSimulationCells>>;
-  weight: string;
-}) {
-  return (
-    <div className="column-tooltip-workflow-row">
-      <span className="column-tooltip-workflow-scenario">{cells.scenario}</span>
-      <span className="column-tooltip-workflow-calls">{cells.calls}</span>
-      <span className="column-tooltip-workflow-input">{cells.input}</span>
-      <span className="column-tooltip-workflow-output">{cells.output}</span>
-      <span className="column-tooltip-workflow-weight">{weight}</span>
-    </div>
-  );
-}
-
-function PriceProfileRow({
-  cells,
-  weight,
-}: {
-  cells: NonNullable<ReturnType<typeof priceProfileCells>>;
-  weight: string;
-}) {
-  return (
-    <>
-      <span>{cells.profile}</span>
-      <span>{cells.split}</span>
-      <span className="column-tooltip-nested-weight">{weight}</span>
-    </>
-  );
-}
-
-function PriceShareRow({
-  cells,
-  share,
-}: {
-  cells: NonNullable<ReturnType<typeof priceShareCells>>;
-  share: string;
-}) {
-  return (
-    <>
-      <span>{cells.profile}</span>
-      <span>{cells.formula}</span>
-      <span className="column-tooltip-nested-weight">{share}</span>
-    </>
-  );
 }
 
 function TooltipRow({ label, value }: { label: string; value: string }) {

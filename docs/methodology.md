@@ -20,8 +20,8 @@ The calculation proceeds in one direction:
 | --- | --- | --- | --- |
 | Intelligence | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model on knowledge and reasoning? |
 | Agentic | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model in tool-mediated workflows? |
-| Speed | Provider speed, simulated workflow runtime, benchmark task time | Log scaling, quality-local comparison, and confidence-weighted evidence | How quickly does the model deliver comparable work? |
-| Value | Blended price, workflow price efficiency, benchmark task cost | Log scaling, quality-local comparison, and confidence-weighted evidence | How much useful capability does the model deliver for its cost? |
+| Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and confidence-weighted evidence | How quickly does the model deliver comparable work? |
+| Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and confidence-weighted evidence | How much useful capability does the model deliver for its cost? |
 
 ## Shared Scales and Confidence
 
@@ -245,7 +245,7 @@ The group multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline
 
 Validation-weighted evidence mass remains in addition to the benchmark-local error subtraction. The subtraction makes every imputed value conservative, while evidence credit reflects the held-out reliability of the predictor actually used for that row. A sparse sibling-effort context falls back to the separately validated one-dimensional value, penalty, and confidence. Imputations remain ineligible for public admission regardless of that credit.
 
-## Price and Workflow Assumptions
+## Effective Pricing
 
 ### Blended Token Price
 
@@ -253,84 +253,27 @@ All price terms in this block are USD per 1M tokens.
 
 $$
 \begin{aligned}
-\text{task price}&=0.80\cdot\text{input-side price}+0.20\cdot\text{output-side price}\\
-\text{chat price}&=0.50\cdot\text{input-side price}+0.50\cdot\text{output-side price}\\
-\text{agentic price}&=0.30\cdot\text{input-side price}+0.70\cdot\text{output-side price}\\
-\text{blended price}&=0.25\cdot\text{task price}+0.40\cdot\text{chat price}+0.35\cdot\text{agentic price}
+\text{blended price}&=0.50\cdot\text{effective input price}+0.50\cdot\text{effective output price}
 \end{aligned}
 $$
 
-Input-side and output-side price use current provider effective prices weighted by each provider's reported token volume. Both sides must have complete provider price and token-volume evidence; otherwise the blended price remains missing. OpenRouter's opaque aggregate and historical pricing series do not affect the final price. Published input and output list prices remain separate catalog fields and continue to price the workflow scenarios below. The profile weights are usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy. The blend leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
+Effective input and output prices use current provider prices weighted by each provider's reported token volume. Both sides must have complete provider price and token-volume evidence; otherwise the blended price remains missing. OpenRouter's opaque aggregate and historical pricing series do not affect the final price. Cache pricing is not part of this blend. Published input, output, and cache prices remain raw route metadata.
 
-### Workflow Mix
+## Provider Speed
 
-#### Usage Scenarios
+The public Speed score gives one equal slot to output throughput, latency, end-to-end latency, and each active task-time input. The provider heading is only a presentation group; it does not collapse the three serving measurements into one component.
 
-The workflow simulation is a fixed stress mix rather than a workload trace. It includes small calls, long-context calls, repeated chat, and agentic loops so latency, throughput, cache pricing, and output-heavy work all have a chance to matter.
-
-| Scenario | Weight | Calls | Input tokens/call | Output tokens/call | Intelligence / Agentic | Full-credit quality |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Micro | 15% | 1 | `500..3000` | `1..50` | 30% / 70% | 30 |
-| Refine/translate | 15% | 1 | `500..20000` | `500..20000` | 35% / 65% | 35 |
-| Extract/structure | 15% | 1 | `3000..20000` | `100..1200` | 40% / 60% | 45 |
-| Chat/reasoning | 20% | 4 | `1000..12000` | `300..2000` | 55% / 45% | 60 |
-| Long synthesis | 15% | 1 | `20000..80000` | `1500..6000` | 65% / 35% | 75 |
-| Agentic loop | 20% | 8 | `8000..60000` | `500..4000` | 25% / 75% | 90 |
-
-#### Expected Token Counts
-
-Input and output token counts use the expected value of a log-uniform range. Log-uniform ranges keep broad token spans from being dominated by their largest endpoint, which is closer to how prompt sizes vary across real usage:
-
-$$
-\operatorname{ELogUniform}(L,U)=\frac{U-L}{\log U-\log L}
-$$
-
-#### Workflow Runtime
-
-The runtime $T_{m,s}$ for model configuration $m$ in scenario $s$ combines scenario call count $n_s$, model latency $\ell_m$, model output throughput $\tau_m$, and input-token friction $\lambda=0.0001$ seconds per token. The weighted scenario mean produces total workflow runtime $T_{\text{workflow},m}$:
+Provider throughput, latency, and end-to-end latency use every historical OpenRouter provider series with matching positive token-volume evidence; an unweighted or temporarily missing endpoint no longer invalidates the matched provider evidence. When no matched weighted history remains, throughput falls back to OpenRouter's highest endpoint P50 and latency falls back to its lowest endpoint P50, matching the aggregate cards on the model page. End-to-end latency remains missing only when no matched weighted series is available because OpenRouter does not publish an equivalent aggregate card.
 
 $$
 \begin{aligned}
-T_{m,s}&=n_s\cdot\left(\ell_m+\lambda \operatorname{ELogUniform}(x_{\text{input},s})+\operatorname{ELogUniform}(x_{\text{output},s})/\tau_m\right)\\
-T_{\text{workflow},m}&=\sum_s w_sT_{m,s}
+S^{\text{throughput}}_m&=\operatorname{MinMax}(\log \tau_m)\\
+S^{\text{latency}}_m&=\operatorname{MinMax}_{\text{lower}}(\log \ell_m)\\
+S^{\text{e2e}}_m&=\operatorname{MinMax}_{\text{lower}}(\log \text{end-to-end latency}_m)
 \end{aligned}
 $$
 
-Input-token friction is explicit because no reliable source provides comparable prefill throughput for every model.
-
-#### Quality-Adjusted Workflow Price
-
-Workflow Price uses the same scenario mix, but each scenario contributes useful work per log dollar. The quality blend $q^{\text{workflow}}_{m,s}$ combines Intelligence and Agentic using the scenario's proportions, while $q^{\text{full}}_s$ is the quality threshold for full credit. Their ratio passes through smoothstep before being divided by log scenario cost:
-
-$$
-\begin{aligned}
-U_{m,s}&=\frac{\operatorname{smoothstep}\left(q^{\text{workflow}}_{m,s}/q^{\text{full}}_s\right)}{\log_{10}(1+\text{scenario cost}_{m,s})}\\
-U_m&=\sum_s w_sU_{m,s}
-\end{aligned}
-$$
-
-The smoothstep multiplier gives little credit below the threshold and then saturates, because being far above "good enough" should not allow quality to swamp price. The weighted result $U_m$ becomes one provider-price component in the public Value score.
-
-Repeated chat and agentic scenarios model cache-read pricing after the first call. Chat treats 50% of input as cacheable and agentic treats 70% as cacheable, with a 70% expected hit rate from the configured `50..90%` range. One-shot scenarios receive no cache benefit.
-
-## Provider and Workflow Speed
-
-The public Speed score gives one slot to provider serving performance, one to simulated workflow runtime, and one to each active task-time input. The provider component $S^{\text{stats}}_m$ averages output throughput $\tau_m$, latency $\ell_m$, and end-to-end latency after direction-aware log normalization. The workflow component $S^{\text{workflow}}_m$ applies the lower-is-better transform to total workflow runtime:
-
-Provider throughput, latency, and end-to-end latency prefer the token-volume-weighted historical OpenRouter provider series. When provider coverage is incomplete, throughput falls back to OpenRouter's highest endpoint P50 and latency falls back to its lowest endpoint P50, matching the aggregate cards on the model page. End-to-end latency remains missing when it cannot be weighted because OpenRouter does not publish an equivalent aggregate card.
-
-$$
-\begin{aligned}
-S^{\text{stats}}_m&=\operatorname{mean}\left(
-\operatorname{MinMax}(\log \tau_m),
-\operatorname{MinMax}_{\text{lower}}(\log \ell_m),
-\operatorname{MinMax}_{\text{lower}}(\log \text{end-to-end latency}_m)
-\right)\\
-S^{\text{workflow}}_m&=\operatorname{MinMax}_{\text{lower}}(\log T_{\text{workflow},m})
-\end{aligned}
-$$
-
-Higher throughput ranks higher, while lower latency, end-to-end latency, and workflow seconds rank higher. Logging makes proportional gaps comparable and prevents extreme raw values from defining most of the normalized range. The three provider statistics together occupy one score slot, and at least two must be present so one measurement cannot stand in for overall serving performance.
+Higher throughput ranks higher, while lower latency and end-to-end latency rank higher. Logging makes proportional gaps comparable and prevents extreme raw values from defining most of the normalized range. Each available provider statistic contributes independently; a missing statistic reduces Speed confidence instead of redistributing its weight across the remaining inputs.
 
 ## Quality-Adjusted Task Resources
 
@@ -362,7 +305,7 @@ $$
 
 `logit` is reserved for pass rates, accuracies, completion rates, and other probability-like metrics whose endpoints give remaining error a meaningful interpretation. Logit-configured values must be finite and lie in $[0,1]$; exact endpoints are clamped to $[0.001,0.999]$ only when calculating finite log odds.
 
-The benchmark-specific decisions are listed in [Benchmarks](benchmarks.md#resource-quality-coordinates). Aggregate price and workflow comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
+The benchmark-specific decisions are listed in [Benchmarks](benchmarks.md#resource-quality-coordinates). Aggregate price comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
 
 For logit-configured benchmarks, a one-point gap near the ceiling is more meaningful than a one-point gap near the middle: moving from 95% to 96% reduces remaining error by 20%, while moving from 50% to 51% is a much smaller frontier-quality distinction.
 
@@ -468,9 +411,9 @@ with each term clamped to $[0,1]$. The final directed ratio is the median of all
 
 ## Final Speed and Value
 
-Provider speed and workflow runtime use $\log x$ as their input to ordinary min-max normalization. Value's absolute price component uses $\log_{10}(1+\text{blended price})$ with model-balanced 2.5% favorable-tail winsorized min-max. Its quality-adjusted log blended price component subtracts the locally expected log blended price at the model's aggregate quality, then uses the residual percentile/min-max mean above. Its workflow component applies the same residual hybrid to the locally expected negative workflow-efficiency signal; the completed workflow output is not logged again.
+Provider throughput, latency, and end-to-end latency use $\log x$ as their inputs to ordinary min-max normalization. Value's absolute price component uses $\log_{10}(1+\text{blended price})$ with model-balanced 2.5% favorable-tail winsorized min-max. Its quality-adjusted log blended price component subtracts the locally expected log blended price at the model's aggregate quality, then uses the residual percentile/min-max mean above.
 
-Aggregate price and workflow comparisons use the linear mean of the public Intelligence and Agentic scores:
+Aggregate price comparisons use the linear mean of the public Intelligence and Agentic scores:
 
 $$
 q_m^{\text{aggregate}}=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
@@ -478,7 +421,7 @@ $$
 
 This composite is not a success probability, so it is not transformed into log odds. The public scores already include their dimension-specific evidence confidence; aggregate neighborhoods do not reconstruct an undisclosed pre-confidence estimate or apply a second confidence weight to peers. Benchmark task-time and task-cost components remain separate: each uses its own observed benchmark quality and the benchmark-specific linear or logit coordinate declared in the portfolio.
 
-The higher-is-better score $S_{\uparrow}(x)$ maps the completed signal $g(x)$ between its finite minimum $y_{\min}$ and maximum $y_{\max}$. Raw provider and workflow inputs use $g(x)=\log x$:
+The higher-is-better score $S_{\uparrow}(x)$ maps the completed signal $g(x)$ between its finite minimum $y_{\min}$ and maximum $y_{\max}$. Raw provider inputs use $g(x)=\log x$:
 
 $$
 S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-y_{\min}}{y_{\max}-y_{\min}},0,1\right)
@@ -492,7 +435,7 @@ $$
 
 The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. The two forms therefore share the same anchors; direction changes the ordering, not the scale. Absolute-price inputs instead use one-sided winsorized anchors. Quality-conditioned residual inputs average their one-sided winsorized min-max score with their model-balanced percentile score.
 
-Each provider, workflow, or task-resource input receives one slot. A direct input has evidence weight $1$; a task resource with imputed benchmark quality has weight $\eta^{\text{quality}}$; and a task whose resource and quality are both imputed has weight $\eta^r\eta^{\text{quality}}$. This separates a component's estimated score from the confidence placed in that estimate.
+Each provider or task-resource input receives one slot. A direct input has evidence weight $1$; a task resource with imputed benchmark quality has weight $\eta^{\text{quality}}$; and a task whose resource and quality are both imputed has weight $\eta^r\eta^{\text{quality}}$. This separates a component's estimated score from the confidence placed in that estimate.
 
 The task-time component $s^{\text{task}}_{m,b}$ is the quality-adjusted runtime score already derived above:
 
@@ -523,7 +466,7 @@ $$
 
 ![Component scores and evidence weights form an effort-specific weighted mean and confidence, while source-default evidence independently supplies the family coverage multiplier applied to the public Speed or Value score.](assets/methodology/final-score-assembly.svg)
 
-Speed components cover provider serving performance, workflow runtime, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, quality-adjusted workflow price efficiency, and active task-cost scores. The shared family multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the family coverage authority. Individual effort confidence remains separate and reports that effort's own effective evidence share.
+Speed components cover provider throughput, latency, end-to-end latency, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, and active task-cost scores. The shared family multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the family coverage authority. Individual effort confidence remains separate and reports that effort's own effective evidence share.
 
 Keeping absolute and quality-conditioned price separate answers two different questions: what the model costs and whether that cost is efficient for the quality delivered.
 
@@ -554,4 +497,3 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
 | Minimum quality-coordinate deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences after their declared transform. |
 | Full comparison support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
-| Input-token friction | 0.0001 seconds/token | Represents prefill cost when comparable model-specific prefill throughput is unavailable. |

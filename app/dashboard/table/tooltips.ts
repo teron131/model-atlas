@@ -85,29 +85,40 @@ const staticTableColumnTooltips = {
     body: "Input types the model route advertises for text, image, audio, and video.",
     rows: [["Sort", "more input capabilities sort first"]],
   },
-  inputCost: {
-    title: "Input cost ↓",
-    body: "Published input price per 1M tokens for the selected route.",
+  effectiveInputPrice: {
+    title: "Effective input price ↓",
+    body: "Current provider-token-weighted effective input price per 1M tokens.",
   },
-  outputCost: {
-    title: "Output cost ↓",
-    body: "Published output price per 1M tokens for the selected route.",
-  },
-  cacheReadCost: {
-    title: "Cache read cost ↓",
-    body: "Published cache-read price per 1M tokens when available.",
+  effectiveOutputPrice: {
+    title: "Effective output price ↓",
+    body: "Current provider-token-weighted effective output price per 1M tokens.",
   },
   throughput: {
     title: "Output throughput",
-    body: "Median output tokens per second from provider speed data.",
+    body: "Current routed-provider output speed.",
+    rows: [
+      ["Source", "OpenRouter"],
+      ["Metric", "output tokens per second"],
+      ["Method", "weighted by estimated OpenRouter traffic share"],
+    ],
   },
   latency: {
     title: "Latency ↓",
-    body: "Median time to first token from provider speed data.",
+    body: "Current routed-provider response startup time.",
+    rows: [
+      ["Source", "OpenRouter"],
+      ["Metric", "time to first token"],
+      ["Method", "weighted by estimated OpenRouter traffic share"],
+    ],
   },
   e2eLatency: {
     title: "End-to-end latency ↓",
-    body: "Median total response time from provider speed data.",
+    body: "Current routed-provider total response time.",
+    rows: [
+      ["Source", "OpenRouter"],
+      ["Metric", "end-to-end response time"],
+      ["Method", "weighted by estimated OpenRouter traffic share"],
+    ],
   },
   confidence: CONFIDENCE_TOOLTIP,
 } as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;

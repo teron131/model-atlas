@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../shared/DashboardIcons";
-import type { SortKey } from "./models";
+import { type SortKey, speedMetricColumns } from "./models";
 
 type SortableColumnDefinition = {
   key: SortKey;
@@ -27,6 +27,7 @@ export const scoreMetricColumns: SortableColumnDefinition[] = [
   {
     key: "value",
     label: metricLabel(<DollarIcon />, "Value"),
+    className: "score-group-end",
   },
 ];
 
@@ -39,7 +40,8 @@ export const scoreSortableColumns: SortableColumnDefinition[] = [
 export const staticSortableColumns: SortableColumnDefinition[] = [
   ...scoreSortableColumns,
   { key: "blend", label: "Blend" },
-  { key: "context", label: "Context" },
+  ...speedMetricColumns.map(({ key, label }) => ({ key, label })),
+  { key: "context", label: "Context", className: "headline-group-end" },
 ];
 
 function metricLabel(icon: ReactNode, text: string) {

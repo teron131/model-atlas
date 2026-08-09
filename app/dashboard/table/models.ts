@@ -43,19 +43,19 @@ const artificialAnalysisTaskMetricColumns = defineTaskMetricColumns("artificial_
     key: "artificialAnalysisCost",
     metric: "cost",
     direction: "ascending",
-    label: "Artificial Analysis Cost",
+    label: "AA Cost",
   },
   {
     key: "artificialAnalysisSeconds",
     metric: "seconds",
     direction: "ascending",
-    label: "Artificial Analysis Time",
+    label: "AA Time",
   },
   {
     key: "artificialAnalysisTokens",
     metric: "output_tokens",
     direction: "descending",
-    label: "Artificial Analysis Output",
+    label: "AA Output",
   },
 ] as const);
 
@@ -109,32 +109,24 @@ const profileMetricColumns = [
 
 const costMetricColumns = [
   {
-    key: "inputCost",
+    key: "effectiveInputPrice",
     group: "costs",
-    field: "input",
+    field: "weighted_input",
     direction: "ascending",
     type: "number",
-    label: "In$",
+    label: "Eff In$",
   },
   {
-    key: "outputCost",
+    key: "effectiveOutputPrice",
     group: "costs",
-    field: "output",
+    field: "weighted_output",
     direction: "ascending",
     type: "number",
-    label: "Out$",
-  },
-  {
-    key: "cacheReadCost",
-    group: "costs",
-    field: "cache_read",
-    direction: "ascending",
-    type: "number",
-    label: "Cache$",
+    label: "Eff Out$",
   },
 ] as const;
 
-const speedMetricColumns = [
+export const speedMetricColumns = [
   {
     key: "throughput",
     group: "speed",
@@ -229,14 +221,14 @@ for (const column of benchmarkTaskMetricColumns) {
 }
 
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
-  ...profileMetricColumns,
+  ...profileMetricColumns.filter((column) => column.key === "modalities"),
   ...costMetricColumns,
-  ...speedMetricColumns,
   ...artificialAnalysisTaskMetricColumns,
   ...benchmarkMetricColumns.flatMap((column) => [
     column,
     ...(taskMetricColumnsByBenchmark.get(column.benchmark) ?? []),
   ]),
+  ...profileMetricColumns.filter((column) => column.key !== "modalities"),
 ];
 
 export type TableRow = {
@@ -256,7 +248,7 @@ type Sorter = {
 };
 
 const dashboardMetricSorters = Object.fromEntries(
-  dashboardMetricColumns.map((column) => [
+  [...speedMetricColumns, ...dashboardMetricColumns].map((column) => [
     column.key,
     {
       direction: column.direction,

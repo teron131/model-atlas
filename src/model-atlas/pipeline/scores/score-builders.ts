@@ -101,20 +101,15 @@ function qualityScore(
   };
 }
 
-/** Estimate a blended price only when both token-weighted provider prices are available. */
-export function blendedPriceValue(costLike: unknown, scoringConfig: ScoringConfig): number | null {
+/** Average effective input and output prices when both provider-weighted sides are available. */
+export function blendedPriceValue(costLike: unknown): number | null {
   const cost = asRecord(costLike);
   const inputPrice = asFiniteNumber(cost.weighted_input);
   const outputPrice = asFiniteNumber(cost.weighted_output);
   if (inputPrice == null || inputPrice < 0 || outputPrice == null || outputPrice < 0) {
     return null;
   }
-  return weightedMeanOfFinite(
-    Object.values(scoringConfig.priceProfiles).map((profile) => ({
-      value: profile.input * inputPrice + profile.output * outputPrice,
-      weight: profile.weight,
-    })),
-  );
+  return (inputPrice + outputPrice) / 2;
 }
 
 export function deriveSpeedOutputTokenAnchors(

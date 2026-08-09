@@ -151,6 +151,9 @@ const tableColumnKeys: TableColumnKey[] = [
   "speed",
   "value",
   "blend",
+  "throughput",
+  "latency",
+  "e2eLatency",
   "context",
   ...dashboardMetricColumns.map((column) => column.key),
   "confidence",
@@ -376,25 +379,6 @@ assert.equal(
     ),
   true,
   "release identifiers should remain in model slugs without polluting product names",
-);
-
-const speedTooltipHtml = renderToStaticMarkup(
-  React.createElement(ColumnTooltip, {
-    content: COLUMN_TOOLTIPS.speed,
-    left: 0,
-    top: 0,
-  }),
-);
-
-assert.equal(
-  speedTooltipHtml.includes("column-tooltip-workflow-table"),
-  true,
-  "speed tooltip should render workflow simulation rows as a structured table",
-);
-assert.equal(
-  speedTooltipHtml.includes("column-tooltip-workflow-scenario"),
-  true,
-  "speed tooltip should split workflow simulation labels into scenario/calls/input/output cells",
 );
 
 function matchCount(text: string, value: string): number {
