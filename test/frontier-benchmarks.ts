@@ -137,22 +137,22 @@ assert.deepEqual(
 );
 assert.equal(
   frontierAxisDescription("cost", true),
-  "Task Cost is mean normalized across each frontier benchmark's own per-task or total resource policy.",
+  "Cost is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run.",
   "aggregate raw resource axes should explain that they are normalized amounts, not efficiency scores",
 );
 assert.equal(
   frontierAxisDescription("time", true),
-  "Task Time is mean normalized across each frontier benchmark's own per-task or total resource policy.",
+  "Runtime is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run.",
   "aggregate time axis should use title-case metric wording",
 );
 assert.equal(
   frontierAxisDescription("tokens", false, topRow),
-  "Task Tokens are the observed per-task token use for the selected benchmark.",
+  "The axis shows observed token use per task; lower is better.",
   "benchmark token axis should use Task Tokens wording",
 );
 assert.equal(
   frontierAxisDescription("speedValue", true),
-  "Efficiency combines public Speed and Value Scores with equal weight.",
+  "Speed and Value Scores are averaged with equal weight; higher is better.",
   "combined score should describe speed and value separately from raw cost",
 );
 const allCostAxis = frontierBenchmarkAxisConfigFor("cost", true);
@@ -213,7 +213,7 @@ assert.deepEqual(
 );
 assert.equal(
   frontierAxisDescription("cost", false, totalRow),
-  "Task Cost is the observed total dollars for the selected benchmark.",
+  "Cost is the observed dollars for the full run; lower is better.",
   "total-resource benchmark descriptions should say total instead of per task",
 );
 assert.equal(

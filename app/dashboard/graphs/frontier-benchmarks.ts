@@ -312,24 +312,24 @@ export function frontierAxisDescription(
   row?: FrontierBenchmarkRow,
 ): string {
   if (axisKey === "speedValue") {
-    return "Efficiency combines public Speed and Value Scores with equal weight.";
+    return "Speed and Value Scores are averaged with equal weight; higher is better.";
   }
   if (axisKey === "cost") {
     return isAggregateView
-      ? "Task Cost is mean normalized across each frontier benchmark's own per-task or total resource policy."
-      : `Task Cost is the observed ${resourceUnitPhrase(row)} dollars for the selected benchmark.`;
+      ? "Cost is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run."
+      : `Cost is the observed dollars ${resourceUnitPhrase(row)}; lower is better.`;
   }
   if (axisKey === "time") {
     return isAggregateView
-      ? "Task Time is mean normalized across each frontier benchmark's own per-task or total resource policy."
-      : `Task Time is the observed ${resourceUnitPhrase(row)} runtime for the selected benchmark.`;
+      ? "Runtime is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run."
+      : `Runtime is the observed time ${resourceUnitPhrase(row)}; lower is better.`;
   }
   if (isAggregateView) {
-    return "Task Tokens are mean normalized across each frontier benchmark's own per-task or total resource policy.";
+    return "Token use is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run.";
   }
   const tokenUse =
     row?.resourcePolicy?.tokenMeasure === "output_tokens" ? "output-token use" : "token use";
-  return `Task Tokens are the observed ${resourceUnitPhrase(row)} ${tokenUse} for the selected benchmark.`;
+  return `The axis shows observed ${tokenUse} ${resourceUnitPhrase(row)}; lower is better.`;
 }
 
 export function frontierAxisMetricLabel(
@@ -536,7 +536,7 @@ function resourceMetricLabel(
 }
 
 function resourceUnitPhrase(row?: FrontierBenchmarkRow): string {
-  return row?.resourcePolicy?.unit === "total" ? "total" : "per-task";
+  return row?.resourcePolicy?.unit === "total" ? "for the full run" : "per task";
 }
 
 function resourceMetricName(

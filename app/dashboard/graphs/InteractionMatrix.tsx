@@ -90,9 +90,8 @@ export const InteractionMatrix = memo(function InteractionMatrix({
       title="Intelligence Interaction Matrix"
       copy={
         <>
-          Switch between price, throughput, response time, context,{" "}
-          <em>Artificial Analysis Task Cost</em>, and{" "}
-          <em>Mean Normalized Frontier Benchmark Score</em>.
+          Compare <em>Intelligence Score</em> with one price, speed, context, or benchmark measure
+          at a time. CORR reports the strength and direction of the relationship.
         </>
       }
       summary={

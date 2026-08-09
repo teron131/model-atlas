@@ -31,27 +31,27 @@ type TaskMetricTooltipText = {
 const defaultTaskMetricText: Record<string, TaskMetricTooltipText> = {
   cost: {
     title: "cost per task",
-    body: "Reported task cost",
+    body: "Reported cost to complete one task",
     row: "cost per task",
   },
   seconds: {
     title: "seconds per task",
-    body: "Reported task runtime",
+    body: "Reported runtime to complete one task",
     row: "runtime per task",
   },
   tokens: {
     title: "tokens per task",
-    body: "Reported token use",
+    body: "Reported total token use for one task",
     row: "tokens per task",
   },
   input_tokens: {
     title: "input tokens per task",
-    body: "Reported input token use",
+    body: "Reported input token use for one task",
     row: "input tokens per task",
   },
   output_tokens: {
     title: "output tokens per task",
-    body: "Reported output token use",
+    body: "Reported output token use for one task",
     row: "output tokens per task",
   },
 };
@@ -63,61 +63,69 @@ const taskMetricColumnTooltips = Object.fromEntries(
 const staticTableColumnTooltips = {
   rank: {
     title: "Rank ↓",
-    body: "Competition rank by Model Atlas Intelligence score.",
+    body: "Competition rank by Intelligence Score; tied models share the same rank.",
   },
   model: {
     title: "Model",
-    body: "Model display name and provider route id.",
+    body: "Model display name and canonical provider/model route ID.",
     rows: [["Sort", "alphabetical by model name"]],
   },
   release: {
     title: "Release date",
-    body: "Known model release date from the selected model metadata.",
+    body: "Known release date for the selected model variant.",
     rows: [["Sort", "newer releases sort first"]],
   },
   openWeights: {
     title: "Open weights",
-    body: "Whether the model is available with open weights in the selected metadata.",
+    body: "Whether downloadable model weights are available according to the selected metadata.",
     rows: [["Sort", "open-weight models sort first"]],
   },
   modalities: {
     title: "Input modalities",
-    body: "Input types the model route advertises for text, image, audio, and video.",
+    body: "Input types the selected route accepts: text, image, audio, and video.",
     rows: [["Sort", "more input capabilities sort first"]],
   },
   effectiveInputPrice: {
     title: "Effective input price ↓",
-    body: "Current provider-token-weighted effective input price per 1M tokens.",
+    body: "Estimated current input price per 1M tokens across routed providers.",
+    rows: [
+      ["Source", "OpenRouter"],
+      ["Provider weighting", "estimated token share"],
+    ],
   },
   effectiveOutputPrice: {
     title: "Effective output price ↓",
-    body: "Current provider-token-weighted effective output price per 1M tokens.",
+    body: "Estimated current output price per 1M tokens across routed providers.",
+    rows: [
+      ["Source", "OpenRouter"],
+      ["Provider weighting", "estimated token share"],
+    ],
   },
   throughput: {
     title: "Output throughput",
-    body: "Current routed-provider output speed.",
+    body: "Estimated current output speed across routed providers.",
     rows: [
       ["Source", "OpenRouter"],
       ["Metric", "output tokens per second"],
-      ["Method", "weighted by estimated OpenRouter traffic share"],
+      ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   latency: {
     title: "Latency ↓",
-    body: "Current routed-provider response startup time.",
+    body: "Estimated current time until the first output token across routed providers.",
     rows: [
       ["Source", "OpenRouter"],
       ["Metric", "time to first token"],
-      ["Method", "weighted by estimated OpenRouter traffic share"],
+      ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   e2eLatency: {
     title: "End-to-end latency ↓",
-    body: "Current routed-provider total response time.",
+    body: "Estimated current total response time across routed providers.",
     rows: [
       ["Source", "OpenRouter"],
       ["Metric", "end-to-end response time"],
-      ["Method", "weighted by estimated OpenRouter traffic share"],
+      ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   confidence: CONFIDENCE_TOOLTIP,

@@ -4,22 +4,23 @@ export const DOCUMENTS = [
   {
     slug: "methodology",
     title: "Methodology",
-    description: "Scoring, calibration, missing evidence, and public admission.",
+    description:
+      "How Model Atlas scores models, handles missing evidence, and admits public results.",
   },
   {
     slug: "benchmarks",
     title: "Benchmarks",
-    description: "Selected portfolio, scoring roles, weights, and capability decisions.",
+    description: "Selected benchmarks, capability roles, weights, and source policy.",
   },
   {
     slug: "standards",
     title: "Standards",
-    description: "Benchmark review, admission, retention, and rejection criteria.",
+    description: "How benchmarks are admitted, reviewed, retained, or rejected.",
   },
   {
     slug: "matching",
     title: "Matching",
-    description: "Model identity, source rows, and reasoning-effort matching.",
+    description: "How source rows map to model identities and reasoning-effort variants.",
   },
 ] as const;
 
