@@ -72,8 +72,7 @@ export function signatureModels(models: ModelAtlasModel[], limit = 5): Signature
       {
         label: "Another Top 3",
         candidates: intelligenceRanking.slice(0, 3),
-        metric: (model) =>
-          `INT #${intelligenceRanking.indexOf(model) + 1} · ${model.scores.intelligence_score.toFixed(1)}`,
+        metric: (model) => `INT ${model.scores.intelligence_score.toFixed(1)}`,
       },
       {
         label: "Best Open Weight",
