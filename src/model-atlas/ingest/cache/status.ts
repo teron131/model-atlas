@@ -12,7 +12,7 @@ import {
 } from "../source-registry";
 import type { RawSourceCacheStatus } from "../types";
 import { artificialAnalysisCacheHasHiddenRows } from "./artificial-analysis";
-import { openRouterCacheHasScopedCandidates } from "./openrouter";
+import { openRouterCacheHasCurrentShape } from "./openrouter";
 import { type CacheDbRow, firstEpochSecond } from "./rows";
 
 /** Fallback DeepSWE rows remain usable evidence but cannot make the preferred source cache current. */
@@ -33,7 +33,7 @@ function isSourceCacheShapeCurrent(db: DatabaseSync, source: RawSourceName): boo
     return hasPreferredDeepSWECacheVersion(db);
   }
   if (source === "openrouter") {
-    return openRouterCacheHasScopedCandidates(db);
+    return openRouterCacheHasCurrentShape(db);
   }
   return true;
 }
@@ -87,7 +87,7 @@ function rowsHaveCurrentShape(source: RawSourceName, rows: readonly CacheDbRow[]
     return rows.some((row) => row.source_version === DEEP_SWE_PREFERRED_SOURCE_VERSION);
   }
   if (source === "openrouter") {
-    return openRouterCacheHasScopedCandidates([...rows]);
+    return openRouterCacheHasCurrentShape([...rows]);
   }
   return true;
 }

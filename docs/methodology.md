@@ -260,7 +260,7 @@ $$
 \end{aligned}
 $$
 
-Input-side and output-side price use provider effective weighted prices when both are available; otherwise they use the published input and output prices. Each effective side applies the same robust estimator as provider speed: the median of OpenRouter's aggregate, the median daily provider average, and the token-volume-weighted historical provider mean, using whichever views are available. The profile weights are usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy. The blend leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
+Input-side and output-side price use current provider effective prices weighted by each provider's reported token volume. Both sides must have complete provider price and token-volume evidence; otherwise the blended price remains missing. OpenRouter's opaque aggregate and historical pricing series do not affect the final price. Published input and output list prices remain separate catalog fields and continue to price the workflow scenarios below. The profile weights are usage priors, not measured traffic shares. Task is input-heavy, chat is balanced, and agentic is output-heavy. The blend leans toward chat and agentic use because those are the cases where price differences most often affect model choice.
 
 ### Workflow Mix
 
@@ -316,6 +316,8 @@ Repeated chat and agentic scenarios model cache-read pricing after the first cal
 ## Provider and Workflow Speed
 
 The public Speed score gives one slot to provider serving performance, one to simulated workflow runtime, and one to each active task-time input. The provider component $S^{\text{stats}}_m$ averages output throughput $\tau_m$, latency $\ell_m$, and end-to-end latency after direction-aware log normalization. The workflow component $S^{\text{workflow}}_m$ applies the lower-is-better transform to total workflow runtime:
+
+Provider throughput, latency, and end-to-end latency prefer the token-volume-weighted historical OpenRouter provider series. When provider coverage is incomplete, throughput falls back to OpenRouter's highest endpoint P50 and latency falls back to its lowest endpoint P50, matching the aggregate cards on the model page. End-to-end latency remains missing when it cannot be weighted because OpenRouter does not publish an equivalent aggregate card.
 
 $$
 \begin{aligned}

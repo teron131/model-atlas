@@ -23,9 +23,25 @@ function openRouterCacheRows(cache: CacheRowSource): CacheDbRow[] {
   return sourceCacheRows(cache, "SELECT * FROM openrouter_raw_rows ORDER BY row_index");
 }
 
-/** Confirms persisted candidates still map to the requested model route through the catalog slug. */
-export function openRouterCacheHasScopedCandidates(cache: CacheRowSource): boolean {
+/** Confirms endpoint summaries are persisted and candidates remain scoped to catalog routes. */
+export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
   const cacheRows = openRouterCacheRows(cache);
+  const summaryModelIds = new Set(
+    cacheRows
+      .filter((row) => row.row_kind === "endpoint_summary")
+      .map((row) => stringValue(row.model_id))
+      .filter((modelId): modelId is string => modelId != null),
+  );
+  if (
+    cacheRows.some(
+      (row) =>
+        row.row_kind === "model_stats" &&
+        stringValue(row.selected_permaslug) != null &&
+        !summaryModelIds.has(stringValue(row.model_id) ?? ""),
+    )
+  ) {
+    return false;
+  }
   const slugByPermaslug = new Map<string, string>();
   for (const row of cacheRows) {
     if (row.row_kind !== "directory_model") {
@@ -86,30 +102,29 @@ function seriesTokenWeights(statRows: CacheDbRow[]): Record<string, number> {
   return weights;
 }
 
-function openRouterPricing(row: CacheDbRow | undefined): OpenRouterEffectivePricingResponse | null {
+/** Rehydrate already-weighted cached sides as one normalized unit for source-shape processing. */
+function cachedProviderWeightedPricing(
+  row: CacheDbRow | undefined,
+): OpenRouterEffectivePricingResponse | null {
   if (row == null) {
+    return null;
+  }
+  const weightedInput = asFiniteNumber(row.weighted_input_price_per_1m);
+  const weightedOutput = asFiniteNumber(row.weighted_output_price_per_1m);
+  if (weightedInput == null && weightedOutput == null) {
     return null;
   }
   return {
     data: {
-      weightedInputPrice: asFiniteNumber(row.weighted_input_price_per_1m),
-      weightedOutputPrice: asFiniteNumber(row.weighted_output_price_per_1m),
+      providerSummaries: [
+        {
+          effectiveInputPrice: weightedInput,
+          effectiveOutputPrice: weightedOutput,
+          totalTokens: 1,
+        },
+      ],
     },
   };
-}
-
-function aggregateEstimate(
-  estimateRows: CacheDbRow[],
-  metric: string,
-  fallbackValue: unknown,
-): number | null {
-  if (estimateRows.length === 0) {
-    return asFiniteNumber(fallbackValue);
-  }
-  return asFiniteNumber(
-    estimateRows.find((row) => row.metric === metric && row.series === "openrouter_aggregate")
-      ?.value,
-  );
 }
 
 function openRouterModelRows(
@@ -120,32 +135,27 @@ function openRouterModelRows(
     (row) => row.model_id === modelId,
   );
   const statRows = (rowsByKind.get("stat_point") ?? []).filter((row) => row.model_id === modelId);
-  const statsRow = (rowsByKind.get("model_stats") ?? []).find((row) => row.model_id === modelId);
-  const estimateRows = (rowsByKind.get("performance_estimate") ?? []).filter(
+  const summaryRow = (rowsByKind.get("endpoint_summary") ?? []).find(
     (row) => row.model_id === modelId,
   );
+  const statsRow = (rowsByKind.get("model_stats") ?? []).find((row) => row.model_id === modelId);
   const selectedPermaslug =
     stringValue(statsRow?.selected_permaslug) ??
+    stringValue(summaryRow?.selected_permaslug) ??
     stringValue(statRows[0]?.selected_permaslug) ??
     stringValue(candidateRows[0]?.selected_permaslug);
   const performance: OpenRouterModelStats = {
-    summary: {
-      throughput_tokens_per_second_median: aggregateEstimate(
-        estimateRows,
-        "throughput",
-        statsRow?.throughput_tokens_per_second_median,
-      ),
-      latency_seconds_median: aggregateEstimate(
-        estimateRows,
-        "latency",
-        statsRow?.latency_seconds_median,
-      ),
-      e2e_latency_seconds_median: aggregateEstimate(
-        estimateRows,
-        "latency_e2e",
-        statsRow?.e2e_latency_seconds_median,
-      ),
-    },
+    ...(summaryRow == null
+      ? {}
+      : {
+          summary: {
+            throughput_tokens_per_second_median: asFiniteNumber(
+              summaryRow.throughput_tokens_per_second_median,
+            ),
+            latency_seconds_median: asFiniteNumber(summaryRow.latency_seconds_median),
+            e2e_latency_seconds_median: asFiniteNumber(summaryRow.e2e_latency_seconds_median),
+          },
+        }),
     throughput: openRouterStatsResponse(statRows.filter((row) => row.metric === "throughput")),
     latency: openRouterStatsResponse(statRows.filter((row) => row.metric === "latency")),
     latency_e2e: openRouterStatsResponse(statRows.filter((row) => row.metric === "latency_e2e")),
@@ -163,7 +173,7 @@ function openRouterModelRows(
       .map((row) => stringValue(row.permaslug))
       .filter((permaslug): permaslug is string => permaslug != null),
     performance,
-    pricing: openRouterPricing(statsRow),
+    pricing: cachedProviderWeightedPricing(statsRow),
   };
 }
 
@@ -194,7 +204,7 @@ export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterRawScra
     }),
   );
   const modelIds = new Set<string>();
-  for (const rowKind of ["permaslug_candidate", "stat_point", "model_stats"]) {
+  for (const rowKind of ["endpoint_summary", "permaslug_candidate", "stat_point", "model_stats"]) {
     for (const row of rowsByKind.get(rowKind) ?? []) {
       const modelId = stringValue(row.model_id);
       if (modelId != null) {

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
 import {
-  openRouterCacheHasScopedCandidates,
+  openRouterCacheHasCurrentShape,
   readOpenRouterRawCache,
 } from "../src/model-atlas/ingest/cache/openrouter";
 import {
@@ -43,9 +43,9 @@ try {
           candidate_permaslugs: ["anthropic/claude-5-fable-20260609"],
           performance: {
             summary: {
-              throughput_tokens_per_second_median: 40,
-              latency_seconds_median: 5.4,
-              e2e_latency_seconds_median: 16.22,
+              throughput_tokens_per_second_median: 53,
+              latency_seconds_median: 3.73,
+              e2e_latency_seconds_median: null,
             },
             throughput: {
               data: [
@@ -71,8 +71,14 @@ try {
           },
           pricing: {
             data: {
-              weightedInputPrice: 10,
-              weightedOutputPrice: 50,
+              providerSummaries: [
+                {
+                  providerName: "Provider A",
+                  effectiveInputPrice: 10,
+                  effectiveOutputPrice: 50,
+                  totalTokens: 100,
+                },
+              ],
             },
           },
         },
@@ -93,43 +99,26 @@ try {
       ],
     });
 
-    const estimateRows = db
-      .prepare(
-        `SELECT metric, series, value
-				FROM openrouter_raw_rows
-				WHERE row_kind = 'performance_estimate'
-				ORDER BY row_index`,
-      )
-      .all();
-    assert.equal(
-      estimateRows.length,
-      10,
-      "OpenRouter raw rows should retain only meaningful estimate variants",
-    );
-    assert.ok(
-      estimateRows.every((row) => row.value != null),
-      "OpenRouter raw rows should not spend writes on null estimates",
-    );
-    assert.equal(estimateRows.at(-1)?.metric, "latency_e2e");
-    assert.equal(estimateRows.at(-1)?.series, "final");
-    assert.equal(estimateRows.at(-1)?.value, 16.22);
-
     const cached = readOpenRouterRawCache(db);
     assert.ok(cached != null);
-    assert.equal(
-      cached.models[0]?.performance.summary?.throughput_tokens_per_second_median,
-      40,
-      "Cache reconstruction should retain the upstream aggregate instead of its derived final estimate",
-    );
-    assert.equal(
-      cached?.models[0]?.performance.summary?.e2e_latency_seconds_median,
-      16.22,
-      "OpenRouter cache reads should preserve stored end-to-end latency",
-    );
     assert.equal(
       cached?.models[0]?.performance.series_token_weights?.p50,
       123,
       "OpenRouter cache reads should preserve token-share weights",
+    );
+    assert.deepEqual(
+      cached?.models[0]?.performance.summary,
+      {
+        throughput_tokens_per_second_median: 53,
+        latency_seconds_median: 3.73,
+        e2e_latency_seconds_median: null,
+      },
+      "OpenRouter cache reads should preserve endpoint aggregate fallback values",
+    );
+    assert.equal(
+      cached?.models[0]?.pricing?.data?.providerSummaries?.[0]?.effectiveInputPrice,
+      10,
+      "OpenRouter cache reads should preserve validated provider-weighted pricing",
     );
     assert.deepEqual(
       cached.models.map((model) => model.id),
@@ -137,7 +126,7 @@ try {
       "Models with no stats should persist as negative cache coverage",
     );
     assert.equal(
-      openRouterCacheHasScopedCandidates(db),
+      openRouterCacheHasCurrentShape(db),
       true,
       "Candidate scope should use the catalog slug behind an opaque permaslug",
     );

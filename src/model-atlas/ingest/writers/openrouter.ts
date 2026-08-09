@@ -6,10 +6,7 @@ import type {
   OpenRouterRawScrapedPayload,
   OpenRouterStatsResponse,
 } from "../../scrapers/openrouter";
-import {
-  processOpenRouterModelStats,
-  summarizeOpenRouterPerformanceEstimates,
-} from "../../scrapers/openrouter";
+import { processOpenRouterModelStats } from "../../scrapers/openrouter";
 import { SOURCE_URLS } from "../source-registry";
 import type { DatabaseStatement, DatabaseWriter } from "./database";
 
@@ -22,9 +19,9 @@ type OpenRouterPointRow = {
 
 type OpenRouterRawRowKind =
   | "directory_model"
+  | "endpoint_summary"
   | "permaslug_candidate"
   | "stat_point"
-  | "performance_estimate"
   | "model_stats";
 
 type OpenRouterRawRow = {
@@ -163,61 +160,6 @@ function insertStatPointRows(
   return rowIndex;
 }
 
-function insertPerformanceEstimateRows(
-  statement: DatabaseStatement,
-  model: OpenRouterRawScrapedModel,
-  fetchedAtEpochSeconds: number,
-  rowIndex: number,
-): number {
-  for (const estimate of summarizeOpenRouterPerformanceEstimates(model.performance)) {
-    if (estimate.value == null) {
-      continue;
-    }
-    insertRawRow(statement, {
-      rowIndex,
-      fetchedAtEpochSeconds,
-      url: SOURCE_URLS.openrouter_stats,
-      rowKind: "performance_estimate",
-      modelId: model.id,
-      permaslug: model.selected_permaslug,
-      selectedPermaslug: model.selected_permaslug,
-      metric: estimate.metric,
-      series: estimate.estimate_kind,
-      value: estimate.value,
-    });
-    rowIndex += 1;
-  }
-  return rowIndex;
-}
-
-function insertModelStatsRow(
-  statement: DatabaseStatement,
-  model: OpenRouterRawScrapedModel,
-  fetchedAtEpochSeconds: number,
-  rowIndex: number,
-): number {
-  const normalizedModelStats = processOpenRouterModelStats(
-    model.id,
-    model.performance,
-    model.pricing,
-  );
-  insertRawRow(statement, {
-    rowIndex,
-    fetchedAtEpochSeconds,
-    url: SOURCE_URLS.openrouter_stats,
-    rowKind: "model_stats",
-    modelId: model.id,
-    permaslug: model.selected_permaslug,
-    selectedPermaslug: model.selected_permaslug,
-    throughput: normalizedModelStats.performance.throughput_tokens_per_second_median,
-    latency: normalizedModelStats.performance.latency_seconds_median,
-    e2eLatency: normalizedModelStats.performance.e2e_latency_seconds_median,
-    weightedInput: normalizedModelStats.pricing.weighted_input_price_per_1m,
-    weightedOutput: normalizedModelStats.pricing.weighted_output_price_per_1m,
-  });
-  return rowIndex + 1;
-}
-
 /** Insert OpenRouter raw directory rows, candidate rows, stat points, and model summaries in one source table. */
 export function insertOpenRouterRawRows(
   db: DatabaseWriter,
@@ -244,13 +186,38 @@ export function insertOpenRouterRawRows(
       rawPayload.fetched_at_epoch_seconds,
       rowIndex,
     );
+    const endpointSummary = model.performance.summary;
+    if (endpointSummary != null) {
+      insertRawRow(statement, {
+        rowIndex,
+        fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
+        url: SOURCE_URLS.openrouter_stats,
+        rowKind: "endpoint_summary",
+        modelId: model.id,
+        permaslug: model.selected_permaslug,
+        selectedPermaslug: model.selected_permaslug,
+        throughput: endpointSummary.throughput_tokens_per_second_median,
+        latency: endpointSummary.latency_seconds_median,
+        e2eLatency: endpointSummary.e2e_latency_seconds_median,
+      });
+      rowIndex += 1;
+    }
     rowIndex = insertStatPointRows(statement, model, rawPayload.fetched_at_epoch_seconds, rowIndex);
-    rowIndex = insertPerformanceEstimateRows(
-      statement,
-      model,
-      rawPayload.fetched_at_epoch_seconds,
+    const normalizedStats = processOpenRouterModelStats(model.id, model.performance, model.pricing);
+    insertRawRow(statement, {
       rowIndex,
-    );
-    rowIndex = insertModelStatsRow(statement, model, rawPayload.fetched_at_epoch_seconds, rowIndex);
+      fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
+      url: SOURCE_URLS.openrouter_stats,
+      rowKind: "model_stats",
+      modelId: model.id,
+      permaslug: model.selected_permaslug,
+      selectedPermaslug: model.selected_permaslug,
+      throughput: normalizedStats.performance.throughput_tokens_per_second_median,
+      latency: normalizedStats.performance.latency_seconds_median,
+      e2eLatency: normalizedStats.performance.e2e_latency_seconds_median,
+      weightedInput: normalizedStats.pricing.weighted_input_price_per_1m,
+      weightedOutput: normalizedStats.pricing.weighted_output_price_per_1m,
+    });
+    rowIndex += 1;
   }
 }
