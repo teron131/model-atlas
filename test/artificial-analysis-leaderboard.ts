@@ -1,6 +1,5 @@
 /** Exercises Artificial Analysis leaderboard projection and scoring inputs. */
 
-import { SIMULATION_PROFILES } from "../src/model-atlas/config";
 import {
   buildBenchmarkImputationByModel,
   buildComponentScoreResult,
@@ -282,25 +281,6 @@ const scoringConfig = {
   speedOutputTokenRangeMin: 0,
   speedOutputTokenRangeMax: 0,
   speedAnchorQuantiles: [],
-  priceProfiles: {
-    task: {
-      weight: 0.25,
-      input: 0.8,
-      output: 0.2,
-    },
-    chat: {
-      weight: 0.4,
-      input: 0.5,
-      output: 0.5,
-    },
-    agentic: {
-      weight: 0.35,
-      input: 0.3,
-      output: 0.7,
-    },
-  },
-  simulationProfiles: SIMULATION_PROFILES,
-  secondsPerInputToken: 0.0001,
   benchmarkPortfolio: {
     scicode: {
       group: "baseline",

@@ -11,13 +11,6 @@ import {
   SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "../benchmarks/registry";
 import type { MatcherConfig } from "../identity";
-import {
-  PRICE_PROFILES,
-  type PriceProfiles,
-  SECONDS_PER_INPUT_TOKEN,
-  SIMULATION_PROFILES,
-  type SimulationProfiles,
-} from "./usage-profiles";
 
 export type OpenRouterConfig = {
   speedConcurrency: number;
@@ -112,9 +105,6 @@ export type ScoringConfig = {
   speedOutputTokenRangeMin: number;
   speedOutputTokenRangeMax: number;
   speedAnchorQuantiles: readonly number[];
-  priceProfiles: PriceProfiles;
-  simulationProfiles: SimulationProfiles;
-  secondsPerInputToken: number;
   benchmarkPortfolio: BenchmarkPortfolio;
   confidence: Confidence;
 };
@@ -174,9 +164,6 @@ export const STAGE_CONFIG = {
     speedOutputTokenRangeMin: 200,
     speedOutputTokenRangeMax: 8_000,
     speedAnchorQuantiles: [0.25, 0.5, 0.75],
-    priceProfiles: PRICE_PROFILES,
-    simulationProfiles: SIMULATION_PROFILES,
-    secondsPerInputToken: SECONDS_PER_INPUT_TOKEN,
     benchmarkPortfolio: BENCHMARK_PORTFOLIO,
     confidence: CONFIDENCE,
   },

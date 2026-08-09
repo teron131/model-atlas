@@ -7,7 +7,6 @@ import {
   meanOfFinite,
   nonnegativeFiniteNumber,
   positiveFiniteNumber,
-  weightedFinitePartCount,
   weightedMeanOfFinite,
 } from "../../numeric";
 import type { ModelAtlasCandidate, ModelAtlasScoredCandidate } from "../model-types";
@@ -30,9 +29,7 @@ import {
   effectiveTaskSeconds,
 } from "./resource-metrics";
 import { blendedPriceValue } from "./score-builders";
-import { simulatedBlendSeconds, workflowPriceEfficiencySignal } from "./workflow-simulation";
 
-const MIN_RAW_SPEED_COMPONENTS = 2;
 const ACTIVE_COMPONENT_WEIGHT = 1;
 type WeightedSignal = {
   value: number | null;
@@ -43,13 +40,6 @@ type WeightedResourceEfficiencyEvidence = {
   benchmarkKeys: readonly string[];
   signalsByModel: WeightedSignal[][];
 };
-
-function meanSignal(signals: WeightedSignal[], minimumFiniteValues: number): number | null {
-  if (weightedFinitePartCount(signals) < minimumFiniteValues) {
-    return null;
-  }
-  return weightedMeanOfFinite(signals);
-}
 
 function finiteSignalWeight(signals: WeightedSignal[]): number {
   return signals.reduce(
@@ -64,11 +54,8 @@ function finiteSignalWeight(signals: WeightedSignal[]): number {
   );
 }
 
-function blendCost(model: ModelAtlasCandidate, scoringConfig: ScoringConfig): number | null {
-  return (
-    nonnegativeFiniteNumber(model.cost?.blended_price) ??
-    blendedPriceValue(model.cost, scoringConfig)
-  );
+function blendedPrice(model: ModelAtlasCandidate): number | null {
+  return nonnegativeFiniteNumber(model.cost?.blended_price) ?? blendedPriceValue(model.cost);
 }
 
 function taskResourceEfficiencyEvidence(
@@ -191,10 +178,7 @@ export function attachFinalScores(
     meanOfFinite([intelligenceScores[index] ?? null, agenticScores[index] ?? null]),
   );
   const logBlendedPriceSignals = models.map((model) =>
-    log10OnePlusNonnegative(blendCost(model, scoringConfig)),
-  );
-  const workflowPriceEfficiencySignals = models.map((model) =>
-    workflowPriceEfficiencySignal(model, scoringConfig),
+    log10OnePlusNonnegative(blendedPrice(model)),
   );
   const logBlendedPriceScores = modelBalancedMinMaxScores(models, logBlendedPriceSignals, "lower");
   const qualityAdjustedBlendedPriceScores = qualityLocalResourceScores(
@@ -202,16 +186,7 @@ export function attachFinalScores(
     qualityCoordinates,
     logBlendedPriceSignals,
   );
-  const workflowPriceEfficiencyScores = qualityLocalResourceScores(
-    models,
-    qualityCoordinates,
-    workflowPriceEfficiencySignals.map((signal) => (signal == null ? null : -signal)),
-  );
-  const valueInputScoresByModel = models.map((_, index) => [
-    logBlendedPriceScores[index] ?? null,
-    qualityAdjustedBlendedPriceScores[index] ?? null,
-    workflowPriceEfficiencyScores[index] ?? null,
-  ]);
+  const priceComponentScores = [logBlendedPriceScores, qualityAdjustedBlendedPriceScores] as const;
   const throughputSpeedSignals = models.map((model) =>
     positiveFiniteNumber(model.speed?.throughput_tokens_per_second_median),
   );
@@ -224,28 +199,7 @@ export function attachFinalScores(
   const throughputSpeedScores = logInputMinMaxScores(throughputSpeedSignals, "higher");
   const latencySpeedScores = logInputMinMaxScores(latencySecondsSignals, "lower");
   const e2eSpeedScores = logInputMinMaxScores(e2eSecondsSignals, "lower");
-  const workflowRuntimeSeconds = models.map((model) =>
-    simulatedBlendSeconds(model.speed, scoringConfig),
-  );
-  const providerSpeedComponents = models.map((_, index) =>
-    meanSignal(
-      [
-        {
-          value: throughputSpeedScores[index] ?? null,
-          weight: ACTIVE_COMPONENT_WEIGHT,
-        },
-        {
-          value: latencySpeedScores[index] ?? null,
-          weight: ACTIVE_COMPONENT_WEIGHT,
-        },
-        {
-          value: e2eSpeedScores[index] ?? null,
-          weight: ACTIVE_COMPONENT_WEIGHT,
-        },
-      ],
-      MIN_RAW_SPEED_COMPONENTS,
-    ),
-  );
+  const providerSpeedScores = [throughputSpeedScores, latencySpeedScores, e2eSpeedScores] as const;
   const taskTimeComponentEvidence = taskResourceEfficiencyEvidence(
     models,
     scoringConfig,
@@ -260,37 +214,32 @@ export function attachFinalScores(
     benchmarkPreparation,
     resourceImputation,
   );
-  const workflowSpeedComponents = logInputMinMaxScores(workflowRuntimeSeconds, "lower");
   const speedSignalsByModel = models.map((_, index) => [
-    {
-      value: providerSpeedComponents[index] ?? null,
+    ...providerSpeedScores.map((scores) => ({
+      value: scores[index] ?? null,
       weight: ACTIVE_COMPONENT_WEIGHT,
-    },
-    {
-      value: workflowSpeedComponents[index] ?? null,
-      weight: ACTIVE_COMPONENT_WEIGHT,
-    },
+    })),
     ...(taskTimeComponentEvidence.signalsByModel[index] ?? []),
   ]);
   const speedEstimates = speedSignalsByModel.map((signals) => weightedMeanOfFinite(signals));
   const speedCoverageMultipliers = defaultVariantCoverageMultipliers(
     models,
     speedSignalsByModel,
-    taskTimeComponentEvidence.benchmarkKeys.length + 2,
+    taskTimeComponentEvidence.benchmarkKeys.length + providerSpeedScores.length,
   );
-  const blendedSpeedScores = speedEstimates.map((estimate, index) =>
+  const speedScores = speedEstimates.map((estimate, index) =>
     estimate == null ? null : estimate * (speedCoverageMultipliers[index] ?? 0),
   );
   const speedConfidences = speedSignalsByModel.map((signals, index) =>
     evidenceConfidence(
       signals,
-      taskTimeComponentEvidence.benchmarkKeys.length + 2,
-      blendedSpeedScores[index] ?? null,
+      taskTimeComponentEvidence.benchmarkKeys.length + providerSpeedScores.length,
+      speedScores[index] ?? null,
     ),
   );
   const valueSignalsByModel = models.map((_, index) => [
-    ...(valueInputScoresByModel[index] ?? []).map((value) => ({
-      value,
+    ...priceComponentScores.map((scores) => ({
+      value: scores[index] ?? null,
       weight: ACTIVE_COMPONENT_WEIGHT,
     })),
     ...(taskCostComponentEvidence.signalsByModel[index] ?? []),
@@ -299,7 +248,7 @@ export function attachFinalScores(
   const valueCoverageMultipliers = defaultVariantCoverageMultipliers(
     models,
     valueSignalsByModel,
-    taskCostComponentEvidence.benchmarkKeys.length + 3,
+    taskCostComponentEvidence.benchmarkKeys.length + priceComponentScores.length,
   );
   const valueScores = valueEstimates.map((estimate, index) =>
     estimate == null ? null : estimate * (valueCoverageMultipliers[index] ?? 0),
@@ -307,21 +256,21 @@ export function attachFinalScores(
   const valueConfidences = valueSignalsByModel.map((signals, index) =>
     evidenceConfidence(
       signals,
-      taskCostComponentEvidence.benchmarkKeys.length + 3,
+      taskCostComponentEvidence.benchmarkKeys.length + priceComponentScores.length,
       valueScores[index] ?? null,
     ),
   );
   return models.map((model, index) => {
     const intelligenceScore = intelligenceScores[index] ?? null;
     const agenticScore = agenticScores[index] ?? null;
-    const blendedSpeedScore = blendedSpeedScores[index] ?? null;
+    const speedScore = speedScores[index] ?? null;
     const valueScore = valueScores[index] ?? null;
     return {
       ...model,
       scores: {
         intelligence_score: intelligenceScore,
         agentic_score: agenticScore,
-        speed_score: blendedSpeedScore,
+        speed_score: speedScore,
         value_score: valueScore,
       },
       confidence: {

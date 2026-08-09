@@ -24,6 +24,7 @@ import {
   contextWindowValue,
   type DashboardMetricColumn,
   dashboardMetricValue,
+  speedMetricColumns,
   type TableColumnKey,
   type TableRow,
 } from "./models";
@@ -92,7 +93,10 @@ function LoadingRow({
         </div>
       </td>
       {columnKeys.slice(2).map((key) => (
-        <td className="data-cell" key={`loading-${key}`}>
+        <td
+          className={`data-cell${key === "value" ? " score-group-end" : ""}${key === "context" ? " headline-group-end" : ""}`}
+          key={`loading-${key}`}
+        >
           <span className="loading-block loading-metric" />
         </td>
       ))}
@@ -112,7 +116,13 @@ export const ModelRow = memo(function ModelRow({
     <tr style={rowProviderStyle(model.provider)}>
       <ModelScoreCells rowData={rowData} />
       <TableCell text={formatCost(model.cost?.blended_price)} className="data-cell" />
-      <TableCell text={formatContext(contextWindowValue(model))} className="data-cell" />
+      {speedMetricColumns.map((column) => (
+        <DashboardMetricCell key={column.key} rowData={rowData} column={column} />
+      ))}
+      <TableCell
+        text={formatContext(contextWindowValue(model))}
+        className="data-cell headline-group-end"
+      />
       {metricColumns.map((column) => (
         <DashboardMetricCell key={column.key} rowData={rowData} column={column} />
       ))}
@@ -158,7 +168,7 @@ function ModelScoreCells({ rowData }: { rowData: TableRow }) {
       {scoreCell(scores.intelligence_score, model.provider)}
       {scoreCell(scores.agentic_score, model.provider)}
       {scoreCell(scores.speed_score, model.provider)}
-      {scoreCell(scores.value_score, model.provider)}
+      {scoreCell(scores.value_score, model.provider, "score-group-end")}
     </>
   );
 }

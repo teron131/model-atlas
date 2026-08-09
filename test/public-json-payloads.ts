@@ -188,6 +188,7 @@ const fullPayload = minimalModelAtlasPayload({
         cache_write: 1.5,
         blended_price: 1.8,
         weighted_input: 0.4,
+        weighted_output: 3.2,
       },
       intelligence: {
         intelligence_index: 80,
@@ -292,9 +293,8 @@ assert.deepEqual(corePayload.columns, [
   "value_confidence",
   "blended_price",
   "context_window_tokens",
-  "input_cost_per_million_tokens",
-  "output_cost_per_million_tokens",
-  "cache_read_cost_per_million_tokens",
+  "effective_input_price_per_million_tokens",
+  "effective_output_price_per_million_tokens",
   "throughput_tokens_per_second_median",
   "latency_seconds_median",
   "e2e_latency_seconds_median",
@@ -302,7 +302,8 @@ assert.deepEqual(corePayload.columns, [
 assert.deepEqual(Object.keys(coreModel ?? {}), corePayload.columns);
 assert.equal(coreModel?.rank, 1);
 assert.equal(coreModel?.id, "provider/model");
-assert.equal(coreModel?.input_cost_per_million_tokens, 1);
+assert.equal(coreModel?.effective_input_price_per_million_tokens, 0.4);
+assert.equal(coreModel?.effective_output_price_per_million_tokens, 3.2);
 assert.equal(coreModel?.blended_price, 1.8);
 assert.equal("benchmarks" in (coreModel ?? {}), false);
 assert.equal("task_metrics" in (coreModel ?? {}), false);

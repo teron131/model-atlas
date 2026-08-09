@@ -114,7 +114,7 @@ export function sanitizeModelId(modelId: string): string {
   return `${OPENROUTER_PROVIDER_ALIASES[provider] ?? provider}${normalized.slice(slashIndex)}`;
 }
 
-/** Weight standard endpoint history only when every routed series has matching token evidence. */
+/** Weight every available standard endpoint series that has matching positive token evidence. */
 function tokenWeightedMeanValue(
   response: OpenRouterStatsResponse | null,
   seriesTokenWeights: Record<string, number | null> | null | undefined,
@@ -144,24 +144,12 @@ function tokenWeightedMeanValue(
   if (weightedSeries.length === 0) {
     return null;
   }
-  const weightedSeriesNames = new Set(weightedSeries.map(([series]) => series));
-  if (
-    [...valuesBySeries.keys()].some(
-      (series) => series.endsWith("::default") && !weightedSeriesNames.has(series),
-    )
-  ) {
-    return null;
-  }
   let weightedSum = 0;
   let totalWeight = 0;
   for (const [series, weight] of weightedSeries) {
-    const values = valuesBySeries.get(series);
-    if (values == null || values.length === 0) {
-      return null;
-    }
-    const seriesMean = meanOfFinite(values);
+    const seriesMean = meanOfFinite(valuesBySeries.get(series) ?? []);
     if (seriesMean == null) {
-      return null;
+      continue;
     }
     weightedSum += seriesMean * weight;
     totalWeight += weight;
@@ -169,7 +157,7 @@ function tokenWeightedMeanValue(
   return totalWeight > 0 ? weightedSum / totalWeight : null;
 }
 
-/** Prefer complete token-weighted history and otherwise use OpenRouter's provider aggregate. */
+/** Prefer matched token-weighted history and otherwise use OpenRouter's provider aggregate. */
 function summarizePerformance(stats: OpenRouterModelStats): OpenRouterPerformanceSummary {
   const weightedThroughput = tokenWeightedMeanValue(
     stats.throughput ?? null,

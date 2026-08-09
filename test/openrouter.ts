@@ -192,6 +192,29 @@ assert.deepEqual(aggregateFallbackModel.performance, {
   e2e_latency_seconds_median: null,
 });
 
+const partialWeightedPerformanceModel = processOpenRouterModelStats(
+  "openai/partial-weighted-performance-example",
+  {
+    throughput: {
+      data: [{ x: "2026-01-01", y: { matched: 50, unweighted: 100 } }],
+    },
+    latency: {
+      data: [{ x: "2026-01-01", y: { matched: 2_000, unweighted: 1_000 } }],
+    },
+    latency_e2e: {
+      data: [{ x: "2026-01-01", y: { matched: 8_000, unweighted: 4_000 } }],
+    },
+    series_token_weights: { matched: 10 },
+  },
+  null,
+);
+
+assert.deepEqual(partialWeightedPerformanceModel.performance, {
+  throughput_tokens_per_second_median: 50,
+  latency_seconds_median: 2,
+  e2e_latency_seconds_median: 8,
+});
+
 assert.deepEqual(
   parseOpenRouterWeeklyTokens(
     String.raw`weeklyTokensPromise\":\"$@44\" somewhere 44:\"3550178782\"`,

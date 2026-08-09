@@ -764,12 +764,11 @@ td:nth-child(2) {
   text-align: left;
 }
 
-/* Close score and price/context groups without framing individual columns. The guard keeps the
-   rule off the edge of the narrower PNG export, which stops at the score block. */
-th:nth-child(6):not(:last-child),
-td:nth-child(6):not(:last-child),
-th:nth-child(8):not(:last-child),
-td:nth-child(8):not(:last-child) {
+/* Close the score and headline metric groups without coupling separators to column positions. */
+th.score-group-end:not(:last-child),
+td.score-group-end:not(:last-child),
+th.headline-group-end:not(:last-child),
+td.headline-group-end:not(:last-child) {
   border-right: 1px solid var(--line);
 }
 
@@ -1097,15 +1096,6 @@ th[data-sort-state="descending"] .sort-indicator::after {
   white-space: normal;
 }
 
-.workflow-tooltip .column-tooltip-section {
-  gap: 10px;
-  padding: 10px 10px 12px;
-}
-
-.workflow-tooltip .column-tooltip-section .column-tooltip-row {
-  grid-template-columns: minmax(0, 1fr) max-content;
-}
-
 .column-tooltip-nested-section {
   display: grid;
   gap: 6px;
@@ -1117,17 +1107,8 @@ th[data-sort-state="descending"] .sort-indicator::after {
 
 .column-tooltip-nested-section .column-tooltip-row {
   grid-template-columns: minmax(0, 1fr) max-content;
-  justify-content: stretch;
-  margin-left: 0;
-}
-
-.column-tooltip-nested-section.weighted-breakdown {
-  gap: 6px;
-}
-
-.column-tooltip-nested-section.weighted-breakdown .column-tooltip-row {
-  grid-template-columns: minmax(0, 1fr) max-content;
   gap: 14px;
+  justify-content: stretch;
   max-width: 100%;
   margin-left: 0;
 }
@@ -1140,10 +1121,6 @@ th[data-sort-state="descending"] .sort-indicator::after {
   margin-left: 8px;
   padding-left: 7px;
   border-left: 1px solid rgb(var(--ink-rgb) / 0.1);
-}
-
-.column-tooltip-nested-section.weighted-breakdown .column-tooltip-value {
-  text-align: right;
 }
 
 .column-tooltip-nested-section .column-tooltip-section-title {
@@ -1172,125 +1149,11 @@ th[data-sort-state="descending"] .sort-indicator::after {
   font-size: var(--mono-label);
 }
 
-.column-tooltip-price-profile-table,
-.column-tooltip-price-share-table,
-.column-tooltip-workflow-table {
-  display: grid;
-  align-items: baseline;
-  min-width: 0;
-  max-width: 100%;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--mono-label);
-  font-weight: var(--type-label-weight);
-  line-height: 1.2;
-}
-
-.column-tooltip-price-profile-table {
-  grid-template-columns:
-    minmax(0, max-content) minmax(72px, max-content)
-    minmax(42px, max-content);
-  column-gap: 18px;
-  row-gap: 6px;
-  width: fit-content;
-  margin-left: 0;
-}
-
-.column-tooltip-price-share-table {
-  grid-template-columns:
-    minmax(0, max-content) minmax(76px, max-content)
-    minmax(44px, max-content);
-  column-gap: 18px;
-  row-gap: 6px;
-  width: fit-content;
-  margin-left: 0;
-}
-
-.column-tooltip-workflow-table {
-  --workflow-column-gap: 14px;
-  --workflow-grid-columns: minmax(0, 1.25fr) minmax(0, 32px) minmax(0, 60px) minmax(0, 64px)
-    minmax(0, 46px);
-
-  gap: 6px;
-  row-gap: 6px;
-  overflow: hidden;
-  width: 100%;
-  margin-left: 0;
-}
-
-.column-tooltip-nested-section .column-tooltip-price-profile-table,
-.column-tooltip-nested-section .column-tooltip-price-share-table,
-.column-tooltip-nested-section .column-tooltip-workflow-table,
 .column-tooltip-nested-section > .column-tooltip-row {
   box-sizing: border-box;
+  width: auto;
   max-width: 100%;
   margin-left: 0;
-}
-
-.column-tooltip-nested-section .column-tooltip-price-profile-table,
-.column-tooltip-nested-section .column-tooltip-price-share-table {
-  width: fit-content;
-}
-
-.column-tooltip-nested-section .column-tooltip-workflow-table,
-.column-tooltip-nested-section > .column-tooltip-row {
-  width: auto;
-}
-
-.column-tooltip-workflow-header,
-.column-tooltip-workflow-row {
-  display: grid;
-  grid-template-columns: var(--workflow-grid-columns);
-  column-gap: var(--workflow-column-gap);
-  align-items: baseline;
-  min-width: 0;
-}
-
-.column-tooltip-workflow-header {
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgb(var(--ink-rgb) / 0.1);
-}
-
-.column-tooltip-nested-rule {
-  grid-column: 1 / -1;
-  height: 0;
-  border-top: 1px solid rgb(var(--ink-rgb) / 0.1);
-}
-
-.column-tooltip-nested-head,
-.column-tooltip-workflow-head {
-  color: var(--faint);
-  font-size: 10px;
-  font-weight: var(--type-label-weight);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.column-tooltip-price-profile-table span,
-.column-tooltip-price-share-table span,
-.column-tooltip-workflow-header span,
-.column-tooltip-workflow-row span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.column-tooltip-workflow-scenario {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.column-tooltip-workflow-head-short {
-  display: none;
-}
-
-.column-tooltip-nested-weight,
-.column-tooltip-workflow-weight {
-  color: var(--muted);
-  text-align: right;
 }
 
 @media (max-width: 560px) {
@@ -1304,75 +1167,6 @@ th[data-sort-state="descending"] .sort-indicator::after {
   .column-tooltip-section .column-tooltip-row {
     grid-template-columns: 1fr;
     gap: 2px;
-  }
-
-  .column-tooltip-nested-section .column-tooltip-workflow-table {
-    --workflow-column-gap: 4px;
-    --workflow-grid-columns: minmax(0, 1fr) minmax(0, 25px) minmax(0, 47px) minmax(0, 51px)
-      minmax(0, 24px);
-
-    gap: 0;
-    padding-top: 1px;
-    font-size: 10px;
-  }
-
-  .column-tooltip-workflow-header {
-    padding: 2px 0 5px;
-    border-bottom: 1px solid rgb(var(--ink-rgb) / 0.1);
-  }
-
-  .column-tooltip-workflow-row {
-    padding: 5px 0 0;
-    border-bottom: 0;
-  }
-
-  .column-tooltip-workflow-scenario,
-  .column-tooltip-workflow-calls,
-  .column-tooltip-workflow-input,
-  .column-tooltip-workflow-output,
-  .column-tooltip-workflow-weight,
-  .column-tooltip-workflow-head {
-    min-width: 0;
-  }
-
-  .column-tooltip-workflow-head {
-    overflow: hidden;
-    padding-bottom: 0;
-    border-bottom: 0;
-    color: var(--faint);
-    font-size: 9px;
-  }
-
-  .column-tooltip-workflow-head:first-child {
-    visibility: hidden;
-  }
-
-  .column-tooltip-workflow-head:last-child {
-    visibility: hidden;
-  }
-
-  .column-tooltip-workflow-head-full {
-    display: none;
-  }
-
-  .column-tooltip-workflow-head-short {
-    display: inline;
-  }
-
-  .column-tooltip-workflow-scenario {
-    color: var(--muted);
-  }
-
-  .column-tooltip-workflow-calls,
-  .column-tooltip-workflow-input,
-  .column-tooltip-workflow-output,
-  .column-tooltip-workflow-weight {
-    color: var(--muted);
-    font-size: 9.5px;
-  }
-
-  .column-tooltip-workflow-weight {
-    text-align: left;
   }
 }
 

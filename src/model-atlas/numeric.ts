@@ -58,13 +58,6 @@ export function interpolateLinear(start: number, end: number, ratio: number) {
   return start + (end - start) * ratio;
 }
 
-export function expectedLogUniformValue(lower: number, upper: number): number {
-  if (lower <= 0 || upper <= 0 || lower === upper) {
-    return (lower + upper) / 2;
-  }
-  return (upper - lower) / (Math.log(upper) - Math.log(lower));
-}
-
 export function logDistance(left: number, right: number) {
   return Math.abs(Math.log10(left) - Math.log10(right));
 }

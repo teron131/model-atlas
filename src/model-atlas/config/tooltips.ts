@@ -10,25 +10,11 @@ import {
   benchmarkResourcePolicy,
   INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 } from "../benchmarks/registry";
-import {
-  PRICE_PROFILE_ENTRIES,
-  PRICE_PROFILE_TOTAL_WEIGHT,
-  PRICE_PROFILE_WEIGHTS,
-  PRICE_PROFILES,
-  SIMULATION_PROFILE_WEIGHTS,
-  type SIMULATION_PROFILES,
-} from "./usage-profiles";
 
 export type ModelAtlasColumnTooltipRow = readonly [string, string];
 
-export type ModelAtlasColumnTooltipSectionKind =
-  | "price_profile"
-  | "price_share"
-  | "workflow_simulation";
-
 export type ModelAtlasColumnTooltipNestedSection = {
   title: string;
-  kind?: ModelAtlasColumnTooltipSectionKind;
   weight?: string;
   rows: readonly ModelAtlasColumnTooltipRow[];
 };
@@ -40,7 +26,6 @@ export type ModelAtlasColumnTooltipSectionItem =
 type ModelAtlasColumnTooltipSection = {
   title: string;
   hideTitle?: boolean;
-  kind?: ModelAtlasColumnTooltipSectionKind;
   weight?: string;
   rows: readonly ModelAtlasColumnTooltipSectionItem[];
 };
@@ -73,66 +58,6 @@ function percent(value: number, fractionDigits = 0): string {
   return `${(value * 100).toFixed(fractionDigits)}%`;
 }
 
-function weightPercent<T extends Record<string, number>>(weights: T, key: keyof T): string {
-  const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
-  const weight = weights[key];
-  return total > 0 && weight != null ? percent(weight / total) : "-";
-}
-
-const priceProfileContributionRow = (
-  label: string,
-  profile: keyof typeof PRICE_PROFILES,
-  side: "input" | "output",
-) => {
-  const profileConfig = PRICE_PROFILES[profile];
-  const profileWeight =
-    PRICE_PROFILE_TOTAL_WEIGHT > 0 ? profileConfig.weight / PRICE_PROFILE_TOTAL_WEIGHT : 0;
-  return [
-    `${label} ${percent(profileWeight)} x ${percent(profileConfig[side])}`,
-    percent(profileWeight * profileConfig[side], 1),
-  ] as const;
-};
-
-const priceProfileContributionRows = (side: "input" | "output") =>
-  PRICE_PROFILE_ENTRIES.map(([label, profile]) =>
-    priceProfileContributionRow(label, profile, side),
-  );
-
-const simulationProfileRow = (
-  label: string,
-  description: string,
-  profile: keyof typeof SIMULATION_PROFILES,
-) => [`${label} ${description}`, weightPercent(SIMULATION_PROFILE_WEIGHTS, profile)] as const;
-
-const WORKFLOW_SIMULATION_ROWS = [
-  simulationProfileRow("Micro", "1 call, input 500-3k, output 1-50", "micro"),
-  simulationProfileRow(
-    "Refine/translate",
-    "1 call, input 500-20k, output 500-20k",
-    "refine_translate",
-  ),
-  simulationProfileRow(
-    "Extract/structure",
-    "1 call, input 3k-20k, output 100-1.2k",
-    "extract_structure",
-  ),
-  simulationProfileRow("Chat", "4 calls, input 1k-12k, output 300-2k", "chat_reasoning"),
-  simulationProfileRow("Long synthesis", "1 call, input 20k-80k, output 1.5k-6k", "long_synthesis"),
-  simulationProfileRow("Agentic", "8 calls, input 8k-60k, output 500-4k", "agentic_loop"),
-] as const;
-
-const effectivePriceProfileRatio = (key: "input" | "output") => {
-  const totalWeight = Object.values(PRICE_PROFILES).reduce(
-    (sum, profile) => sum + profile.weight,
-    0,
-  );
-  const weightedRatio = Object.values(PRICE_PROFILES).reduce(
-    (sum, profile) => sum + profile.weight * profile[key],
-    0,
-  );
-  return totalWeight > 0 ? percent(weightedRatio / totalWeight, 1) : "-";
-};
-
 const benchmarkContributionPercent = (
   keys: readonly BenchmarkKey[],
   key: BenchmarkKey,
@@ -145,8 +70,11 @@ const benchmarkContributionPercent = (
   return totalWeight > 0 ? percent(benchmarkDimensionWeight(key, dimension) / totalWeight, 1) : "-";
 };
 
-const SPEED_BASE_COMPONENT_COUNT = 2;
-const VALUE_PRICE_COMPONENT_COUNT = 3;
+const PROVIDER_SPEED_LABELS = ["Throughput", "Latency ↓", "End-to-end latency ↓"] as const;
+const PRICE_COMPONENT_LABELS = [
+  "Log blended price ↓",
+  "Quality-adjusted log blended price ↓",
+] as const;
 
 type CoreColumnTooltipKey =
   | "intelligence"
@@ -254,9 +182,8 @@ const AGENTIC_BENCHMARK_ROWS = benchmarkRowsByGroup(AGENTIC_BENCHMARK_DISPLAY_KE
 
 const speedInputRows = (components: ActiveResourceComponents) => {
   const resourceKeys = resourceBenchmarkKeys(components);
-  const componentCount = resourceKeys.length + SPEED_BASE_COMPONENT_COUNT;
+  const componentCount = resourceKeys.length + PROVIDER_SPEED_LABELS.length;
   const componentWeight = perComponentWeight(1, componentCount);
-  const rawStatWeight = percent(1 / componentCount / 3, 1);
   return [
     {
       title: "Benchmark runtimes ↓",
@@ -264,33 +191,21 @@ const speedInputRows = (components: ActiveResourceComponents) => {
     },
     {
       title: "Provider speed",
-      weight: componentWeight,
-      rows: [
-        ["Throughput", rawStatWeight],
-        ["Latency ↓", rawStatWeight],
-        ["End-to-end latency ↓", rawStatWeight],
-      ],
-    },
-    {
-      title: "Workflow runtime simulation ↓",
-      kind: "workflow_simulation",
-      weight: componentWeight,
-      rows: WORKFLOW_SIMULATION_ROWS,
+      rows: PROVIDER_SPEED_LABELS.map((label) => [label, componentWeight] as const),
     },
   ] as const;
 };
 
 const valueInputRows = (components: ActiveResourceComponents) => {
   const resourceKeys = resourceBenchmarkKeys(components);
-  const componentWeight = perComponentWeight(1, resourceKeys.length + VALUE_PRICE_COMPONENT_COUNT);
+  const componentWeight = perComponentWeight(
+    1,
+    resourceKeys.length + PRICE_COMPONENT_LABELS.length,
+  );
   return [
     {
       title: "Price components",
-      rows: [
-        ["Log blended price ↓", componentWeight],
-        ["Quality-adjusted log blended price ↓", componentWeight],
-        ["Quality-adjusted workflow price efficiency", componentWeight],
-      ],
+      rows: PRICE_COMPONENT_LABELS.map((label) => [label, componentWeight] as const),
     },
     {
       title: "Benchmark costs ↓",
@@ -335,9 +250,9 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "Provider and workflow inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
+      body: "Provider inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
       rows: [
-        ["Provider and workflow", "log input, then min-max"],
+        ["Provider metrics", "three equal log/min-max components"],
         ["Benchmark runtimes", "quality-adjusted residual hybrid"],
         ["Missing task runtime", "validated sibling-effort ratio or omitted"],
         ["Coverage", "shared from the default variant"],
@@ -352,7 +267,7 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "Blended price uses logged one-sided winsorized min-max normalization. Other price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality; the workflow output is not logged again. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
+      body: "Blended price uses logged one-sided winsorized min-max normalization. Quality-adjusted price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
       rows: [
         ["Blended price", "log input, then winsorized min-max"],
         ["Quality-adjusted price signals", "residual percentile/min-max mean"],
@@ -369,41 +284,12 @@ export function columnTooltipsForActiveComponents(
       ],
     },
     blend: {
-      title: "Blended price ↓",
-      body: "Estimated USD per million tokens for a task/chat/agentic usage mix.",
+      title: "Effective blended price ↓",
+      body: "Current routed-provider effective token price.",
       rows: [
-        ["Definition", "weighted input/output price"],
-        ["Formula", "sum(profile weight x profile price)"],
-      ],
-      sections: [
-        {
-          title: "Price methodology",
-          rows: [
-            {
-              title: "Profile weights",
-              kind: "price_profile",
-              rows: PRICE_PROFILE_ENTRIES.map(([label, profile]) => {
-                const profileConfig = PRICE_PROFILES[profile];
-                return [
-                  `${label} input/output split ${percent(profileConfig.input)}/${percent(profileConfig.output)}`,
-                  weightPercent(PRICE_PROFILE_WEIGHTS, profile),
-                ] as const;
-              }),
-            },
-            {
-              title: "Input share",
-              kind: "price_share",
-              weight: effectivePriceProfileRatio("input"),
-              rows: priceProfileContributionRows("input"),
-            },
-            {
-              title: "Output share",
-              kind: "price_share",
-              weight: effectivePriceProfileRatio("output"),
-              rows: priceProfileContributionRows("output"),
-            },
-          ],
-        },
+        ["Source", "OpenRouter"],
+        ["Metric", "50% effective input + 50% effective output"],
+        ["Method", "weighted by estimated OpenRouter traffic share"],
       ],
     },
     context: {

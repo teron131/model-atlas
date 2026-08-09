@@ -22,7 +22,6 @@ import {
   buildQualityScoringContext,
   imputedTaskResource,
   prepareEffortResourceImputation,
-  simulatedBlendSeconds,
 } from "../src/model-atlas/pipeline/scores";
 import {
   benchmarkImputationValues,
@@ -86,51 +85,33 @@ assertThrowsWithMessage(
 );
 
 assertEqual(
-  blendedPriceValue(
-    {
-      input: 5,
-      output: 25,
-      cache_read: 0.5,
-      cache_write: 6.25,
-      weighted_input: 1.5,
-      weighted_output: 25,
-    },
-    STAGE_CONFIG.scoring,
-  ),
-  13.1325,
+  blendedPriceValue({
+    input: 5,
+    output: 25,
+    cache_read: 0.5,
+    cache_write: 6.25,
+    weighted_input: 1.5,
+    weighted_output: 25,
+  }),
+  13.25,
 );
 
 assertEqual(
-  blendedPriceValue(
-    {
-      input: 2.5,
-      output: 7.5,
-      cache_read: 0.5,
-      cache_write: 3.125,
-      weighted_input: 0,
-      weighted_output: 0,
-    },
-    STAGE_CONFIG.scoring,
-  ),
+  blendedPriceValue({
+    input: 2.5,
+    output: 7.5,
+    cache_read: 0.5,
+    cache_write: 3.125,
+    weighted_input: 0,
+    weighted_output: 0,
+  }),
   0,
 );
 
 assert.equal(
-  blendedPriceValue({ input: 0, output: 0 }, STAGE_CONFIG.scoring),
+  blendedPriceValue({ input: 0, output: 0 }),
   null,
   "published list pricing should not replace missing provider-weighted pricing",
-);
-
-assertClose(
-  simulatedBlendSeconds(
-    {
-      throughput_tokens_per_second_median: 100,
-      latency_seconds_median: 1,
-      e2e_latency_seconds_median: 3,
-    },
-    STAGE_CONFIG.scoring,
-  ),
-  55.9474,
 );
 
 const sparseQuantileValues = [0, 50, 100];
@@ -504,8 +485,8 @@ const broadAAResourceOnlyModels = attachFinalScores(
   ],
   STAGE_CONFIG.scoring,
 );
-assertClose(broadAAResourceOnlyModels[0]?.scores.value_score, 32.4);
-assertClose(broadAAResourceOnlyModels[1]?.scores.value_score, 32.4);
+assertClose(broadAAResourceOnlyModels[0]?.scores.value_score, 44.8);
+assertClose(broadAAResourceOnlyModels[1]?.scores.value_score, 44.8);
 
 const tokenProxySpeedModels = attachFinalScores(
   [
@@ -531,7 +512,7 @@ const tokenProxySpeedModels = attachFinalScores(
   STAGE_CONFIG.scoring,
 );
 assertClose(tokenProxySpeedModels[0]?.scores.speed_score, 83.3333);
-assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 33.3333);
+assertClose(tokenProxySpeedModels[1]?.scores.speed_score, 50);
 
 const latencySpeedModels = attachFinalScores(
   [
@@ -549,7 +530,7 @@ const latencySpeedModels = attachFinalScores(
   STAGE_CONFIG.scoring,
 );
 assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
-assertClose(latencySpeedModels[1]?.scores.speed_score, 25);
+assertClose(latencySpeedModels[1]?.scores.speed_score, 50);
 
 const gapExampleValues = [1, 2, 3, 50, 60, 70, 95, 99];
 const minMaxGapScores = minMaxScores(gapExampleValues, "higher");
@@ -575,9 +556,9 @@ const absoluteGapSpeedModels = attachFinalScores(
   ),
   STAGE_CONFIG.scoring,
 );
-assertClose(absoluteGapSpeedModels[1]?.scores.speed_score, 48.1885);
+assertClose(absoluteGapSpeedModels[1]?.scores.speed_score, 65.0515);
 
-// Price inputs are logged once; conditional and workflow-derived signals are not logged again.
+// Price inputs are logged once before absolute and quality-adjusted scoring.
 const absoluteGapValueModels = attachFinalScores(
   [1, 10, 100].map((blendedPrice) =>
     modelCandidate({
@@ -589,7 +570,7 @@ const absoluteGapValueModels = attachFinalScores(
   ),
   STAGE_CONFIG.scoring,
 );
-assertClose(absoluteGapValueModels[1]?.scores.value_score, 54.6345);
+assertClose(absoluteGapValueModels[1]?.scores.value_score, 56.9517);
 
 const zeroPriceValueModels = attachFinalScores(
   [0, 1, 10].map((blendedPrice) =>
@@ -888,9 +869,9 @@ const directResourceScoredModels = attachFinalScores(
   ],
   STAGE_CONFIG.scoring,
 );
-assertClose(directResourceScoredModels[0]?.scores.value_score, 67.2);
-assertClose(directResourceScoredModels[1]?.scores.value_score, 67.2);
-assertClose(directResourceScoredModels[2]?.scores.value_score, 67.2);
+assertClose(directResourceScoredModels[0]?.scores.value_score, 75);
+assertClose(directResourceScoredModels[1]?.scores.value_score, 75);
+assertClose(directResourceScoredModels[2]?.scores.value_score, 75);
 assertClose(directResourceScoredModels[0]?.scores.speed_score, 83.3333);
 assertClose(directResourceScoredModels[1]?.scores.speed_score, 83.3333);
 assertClose(directResourceScoredModels[2]?.scores.speed_score, 83.3333);
@@ -924,7 +905,7 @@ const isolatedQualityResourceModels = attachFinalScores(
   ],
   STAGE_CONFIG.scoring,
 );
-assertEqual((isolatedQualityResourceModels.at(-1)?.scores.value_score ?? 100) < 20, true);
+assertEqual((isolatedQualityResourceModels.at(-1)?.scores.value_score ?? 100) < 25, true);
 
 const flatResidualScores = benchmarkResourceEfficiencyScores(
   [
@@ -977,9 +958,9 @@ const valueScoredModels = attachFinalScores(
   ],
   STAGE_CONFIG.scoring,
 );
-assertClose(valueScoredModels[0]?.scores.value_score, 16.2);
-assertClose(valueScoredModels[1]?.scores.value_score, 10.4995);
-assertClose(valueScoredModels[2]?.scores.value_score, 7.2);
+assertClose(valueScoredModels[0]?.scores.value_score, 33.7556);
+assertClose(valueScoredModels[1]?.scores.value_score, 21.8775);
+assertClose(valueScoredModels[2]?.scores.value_score, 15.0025);
 
 const scaleNormalizedResourceConfig = {
   ...STAGE_CONFIG.scoring,
@@ -1035,8 +1016,8 @@ const scaleNormalizedResourceModels = attachFinalScores(
   ],
   scaleNormalizedResourceConfig,
 );
-assertClose(scaleNormalizedResourceModels[0]?.scores.value_score, 32.4);
-assertClose(scaleNormalizedResourceModels[1]?.scores.value_score, 32.4);
+assertClose(scaleNormalizedResourceModels[0]?.scores.value_score, 44.8);
+assertClose(scaleNormalizedResourceModels[1]?.scores.value_score, 44.8);
 
 const sparseResourceCoverageModels = attachFinalScores(
   [
@@ -1075,10 +1056,10 @@ const sparseResourceCoverageModels = attachFinalScores(
   ],
   STAGE_CONFIG.scoring,
 );
-assertClose(sparseResourceCoverageModels[0]?.scores.value_score, 44.8);
-assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 2.4296);
-assertClose(sparseResourceCoverageModels[0]?.confidence.value, 0.5);
-assertClose(sparseResourceCoverageModels[1]?.confidence.value, 1 / 6);
+assertClose(sparseResourceCoverageModels[0]?.scores.value_score, 50);
+assertClose(sparseResourceCoverageModels[1]?.scores.value_score, 5.2);
+assertClose(sparseResourceCoverageModels[0]?.confidence.value, 0.6);
+assertClose(sparseResourceCoverageModels[1]?.confidence.value, 1 / 5);
 
 const siblingCostKeys = Array.from({ length: 5 }, (_, index) => `sibling_task_${index + 1}`);
 const siblingCostConfig: ScoringConfig = {
@@ -1191,10 +1172,10 @@ const imputedSiblingScores = attachFinalScores(
   siblingBenchmarkPreparation,
   siblingResourcePreparation,
 );
-assertClose(directOnlySiblingScores[1]?.confidence.value, 0.5);
-assertClose(imputedSiblingScores[1]?.confidence.value, 0.625);
-assertClose(directOnlySiblingScores[1]?.confidence.speed, 4 / 7);
-assertClose(imputedSiblingScores[1]?.confidence.speed, 5 / 7);
+assertClose(directOnlySiblingScores[1]?.confidence.value, 4 / 7);
+assertClose(imputedSiblingScores[1]?.confidence.value, 5 / 7);
+assertClose(directOnlySiblingScores[1]?.confidence.speed, 1 / 2);
+assertClose(imputedSiblingScores[1]?.confidence.speed, 5 / 8);
 for (const index of [0, 2, 3, 4, 5]) {
   assertClose(
     imputedSiblingScores[index]?.scores.value_score,
@@ -1216,8 +1197,8 @@ const defaultCoverageModels = [
 const defaultCoverageScores = attachFinalScores(defaultCoverageModels, siblingCostConfig);
 assertClose(defaultCoverageScores[1]?.scores.speed_score, 50);
 assertClose(defaultCoverageScores[1]?.scores.value_score, 50);
-assertClose(defaultCoverageScores[1]?.confidence.speed, 1 / 7);
-assertClose(defaultCoverageScores[1]?.confidence.value, 1 / 8);
+assertClose(defaultCoverageScores[1]?.confidence.speed, 1 / 8);
+assertClose(defaultCoverageScores[1]?.confidence.value, 1 / 7);
 const detachedCoverageScores = attachFinalScores(
   defaultCoverageModels.map((model, index) =>
     index === 1 ? { ...model, id: "test/detached", name: "Detached" } : model,

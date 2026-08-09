@@ -24,4 +24,3 @@ export {
   buildComponentScoreResult,
   deriveSpeedOutputTokenAnchors,
 } from "./score-builders";
-export { simulatedBlendSeconds } from "./workflow-simulation";

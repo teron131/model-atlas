@@ -248,11 +248,7 @@ function buildCostTier(value: unknown): ModelAtlasCostTier | null {
   return hasFields(costTier) ? costTier : null;
 }
 
-function buildCost(
-  model: JsonObject,
-  openRouterPricing: JsonObject,
-  scoringConfig: ScoringConfig,
-): ModelAtlasCost {
+function buildCost(model: JsonObject, openRouterPricing: JsonObject): ModelAtlasCost {
   const baseCost = asRecord(model.cost);
   const cost: Exclude<ModelAtlasCost, null> = {
     ...buildCostBreakdown(baseCost),
@@ -277,7 +273,7 @@ function buildCost(
   if (weightedOutput != null) {
     cost.weighted_output = weightedOutput;
   }
-  const blendedPrice = blendedPriceValue(cost, scoringConfig);
+  const blendedPrice = blendedPriceValue(cost);
   if (blendedPrice != null) {
     cost.blended_price = blendedPrice;
   }
@@ -508,7 +504,7 @@ export function buildModelCandidate(
   const speed = buildSpeed(modelId, speedByModelId);
   const pricing =
     lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ?? EMPTY_OPENROUTER_PRICING;
-  const cost = buildCost(model, pricing, scoringConfig);
+  const cost = buildCost(model, pricing);
   const scoringSources = buildScoringSources(model);
   const { componentScores, confidence } = buildComponentScoreResult(
     model,
