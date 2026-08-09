@@ -141,6 +141,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
             errorMessage={errorMessage}
             isLoading={isInitialLoading}
             maxCost={maxCostFilter}
+            modelLimit={modelLimit}
             globalModelFilterQuery={globalModelFilterQuery}
             selectedProviders={selectedProviders}
           />
@@ -156,6 +157,7 @@ function DashboardLeaderboard({
   errorMessage,
   isLoading,
   maxCost,
+  modelLimit,
   globalModelFilterQuery,
   selectedProviders,
 }: {
@@ -163,6 +165,7 @@ function DashboardLeaderboard({
   errorMessage: string | null;
   isLoading: boolean;
   maxCost: CostFilter;
+  modelLimit: ModelLimit;
   globalModelFilterQuery: string;
   selectedProviders: ProviderFilters;
 }) {
@@ -216,6 +219,8 @@ function DashboardLeaderboard({
     [deferredGlobalModelFilterQuery, filteredExpandedRows],
   );
   const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
+  const requestedGlobalLimit =
+    modelLimit === "all" ? maximumLimit : Math.min(modelLimit, maximumLimit);
   const deferredLimit = useDeferredValue(effectiveLimit);
   const matchingRows = useMemo(
     () =>
@@ -247,6 +252,10 @@ function DashboardLeaderboard({
   const rowKind = deferredShowVariants ? "variants" : "models";
   const rowCountLabel = deferredFilterQuery.length > 0 ? `${matchingRows.length} matches` : null;
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
+
+  useEffect(() => {
+    setLimit(requestedGlobalLimit);
+  }, [requestedGlobalLimit, setLimit]);
 
   const handleSort = useCallback((key: SortKey) => {
     const defaultDirection = sorters[key].direction;
