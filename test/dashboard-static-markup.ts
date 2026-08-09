@@ -270,14 +270,14 @@ const confidenceTooltipHtml = renderToStaticMarkup(
 assert.equal(
   [
     "Confidence",
-    "How much evidence supports",
+    "How much direct or validated evidence supports",
     "Intelligence confidence",
     "Agentic confidence",
     "Speed confidence",
     "Value confidence",
-    "zero through 10%",
+    "0 through 10% of selected benchmark weight",
     "full from 60%",
-    "effective direct and validated evidence share",
+    "weighted share of active inputs with direct or validated evidence",
   ].every((text) => confidenceTooltipHtml.includes(text)),
   true,
   "confidence tooltip should explain both dimensions and the evidence scale",

@@ -39,18 +39,18 @@ export type ModelAtlasColumnTooltip = {
 
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
-const CONFIDENCE_SCALE = "zero through 10% weighted evidence; full from 60%";
+const CONFIDENCE_SCALE = "0 through 10% of selected benchmark weight; full from 60%";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Confidence",
-  body: "How much evidence supports each estimated score.",
+  body: "How much direct or validated evidence supports each score.",
   rows: [
     ["I", "Intelligence confidence"],
     ["A", "Agentic confidence"],
     ["S", "Speed confidence"],
     ["V", "Value confidence"],
     ["I/A scale", CONFIDENCE_SCALE],
-    ["S/V scale", "effective direct and validated evidence share"],
+    ["S/V scale", "weighted share of active inputs with direct or validated evidence"],
   ],
 } as const satisfies ModelAtlasColumnTooltip;
 
@@ -220,10 +220,11 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Atlas capability score from selected INTELLIGENCE benchmarks. Each benchmark's weight is its importance multiplied by its Intelligence loading; frontier or baseline group affects only missing-data handling.",
+      body: "Model Atlas score for knowledge, reasoning, interpretation, and problem solving. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Frontier and baseline groups differ only in how strongly uncertain estimates are penalized.",
       rows: [
-        ["Benchmark normalization", "observed min-max range to 0-100"],
-        ["Final score", "weighted mean x evidence confidence"],
+        ["Observed benchmark weight", "importance × Intelligence loading"],
+        ["Benchmark normalization", "observed range mapped to 0–100"],
+        ["Final score", "weighted mean × evidence confidence"],
       ],
       sections: [
         {
@@ -235,10 +236,11 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "Atlas workflow and coding-task score from selected AGENTIC benchmarks. Each benchmark's weight is its importance multiplied by its Agentic loading; frontier or baseline group affects only missing-data handling.",
+      body: "Model Atlas score for completing work through tools, files, repositories, browsers, terminals, APIs, and other external environments. Selected benchmarks are normalized to 0–100 and weighted by importance × Agentic loading. Frontier and baseline groups differ only in how strongly uncertain estimates are penalized.",
       rows: [
-        ["Benchmark normalization", "observed min-max range to 0-100"],
-        ["Final score", "weighted mean x evidence confidence"],
+        ["Observed benchmark weight", "importance × Agentic loading"],
+        ["Benchmark normalization", "observed range mapped to 0–100"],
+        ["Final score", "weighted mean × evidence confidence"],
       ],
       sections: [
         {
@@ -250,12 +252,12 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "Provider inputs are logged before min-max normalization. Benchmark runtime scores average model-balanced percentile and winsorized min-max mappings of logged residuals from the model-excluded expectation at comparable quality, then shrink toward 50 when peer support is weak. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
+      body: "How quickly the model delivers comparable work. Provider speed metrics and benchmark runtimes receive equal component slots. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and confidence.",
       rows: [
-        ["Provider metrics", "three equal log/min-max components"],
-        ["Benchmark runtimes", "quality-adjusted residual hybrid"],
-        ["Missing task runtime", "validated sibling-effort ratio or omitted"],
-        ["Coverage", "shared from the default variant"],
+        ["Provider metrics", "three equal logged min–max components"],
+        ["Benchmark runtimes", "quality-adjusted peer comparison"],
+        ["Missing task runtime", "validated sibling-effort estimate or omitted"],
+        ["Family coverage", "shared from the source-default variant"],
       ],
       sections: [
         {
@@ -267,13 +269,13 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "Blended price uses logged one-sided winsorized min-max normalization. Quality-adjusted price and benchmark-cost inputs average model-balanced percentile and winsorized min-max mappings of residuals from the model-excluded expectation at comparable quality. Direct inputs get one slot and validated sibling-effort estimates are confidence-weighted. Coverage comes from the model's source-default variant, then one shared multiplier is applied to every effort.",
+      body: "How much quality and capability the model delivers for its cost. Absolute blended price, quality-adjusted blended price, and benchmark task costs receive equal component slots. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and confidence.",
       rows: [
-        ["Blended price", "log input, then winsorized min-max"],
-        ["Quality-adjusted price signals", "residual percentile/min-max mean"],
-        ["Benchmark costs", "logged residual percentile/min-max mean"],
-        ["Missing task cost", "validated sibling-effort ratio or omitted"],
-        ["Coverage", "shared from the default variant"],
+        ["Blended price", "logged, winsorized min–max score"],
+        ["Quality-adjusted price", "peer-relative efficiency score"],
+        ["Benchmark task costs", "quality-adjusted peer comparison"],
+        ["Missing task cost", "validated sibling-effort estimate or omitted"],
+        ["Family coverage", "shared from the source-default variant"],
       ],
       sections: [
         {
@@ -285,25 +287,25 @@ export function columnTooltipsForActiveComponents(
     },
     blend: {
       title: "Effective blended price ↓",
-      body: "Current routed-provider effective token price.",
+      body: "Estimated current price per 1M tokens across the model's routed providers.",
       rows: [
         ["Source", "OpenRouter"],
-        ["Metric", "50% effective input + 50% effective output"],
-        ["Method", "weighted by estimated OpenRouter traffic share"],
+        ["Blend", "50% effective input price + 50% effective output price"],
+        ["Provider weighting", "estimated OpenRouter token share"],
       ],
     },
     context: {
       title: "Context",
-      body: "Largest prompt context window available for the model.",
+      body: "Maximum number of input tokens the selected model route can accept at once.",
       rows: [
         ["Definition", "maximum input tokens"],
         ["Unit", "tokens"],
-        ["Source", "model context limit"],
+        ["Source", "selected model metadata"],
       ],
     },
     artificialAnalysisCost: {
       title: "Artificial Analysis Cost per Task ↓",
-      body: "Artificial Analysis v4.1 reported cost for one Intelligence Index task.",
+      body: "Reported cost to complete one Artificial Analysis Intelligence Index v4.1 task.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported cost per Intelligence task"],
@@ -312,7 +314,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisSeconds: {
       title: "Artificial Analysis Seconds per Task ↓",
-      body: "Artificial Analysis v4.1 reported runtime for one Intelligence Index task.",
+      body: "Reported runtime to complete one Artificial Analysis Intelligence Index v4.1 task.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported time per Intelligence task"],
@@ -321,7 +323,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisTokens: {
       title: "Artificial Analysis Output Tokens per Task",
-      body: "Artificial Analysis v4.1 reported output tokens for one Intelligence Index task.",
+      body: "Reported output tokens used to complete one Artificial Analysis Intelligence Index v4.1 task.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported output tokens per Intelligence task"],

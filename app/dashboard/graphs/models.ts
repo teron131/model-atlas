@@ -57,6 +57,7 @@ export const interactionConfigs: InteractionConfig[] = [
     tooltipFormat: fmtTooltipMoney,
     xLabel: "Blended price per 1M tokens",
     hoverLabel: "Blended price",
+    insight: "Shows whether higher Intelligence is associated with a higher effective token price.",
   },
   {
     key: "speed",
@@ -70,8 +71,7 @@ export const interactionConfigs: InteractionConfig[] = [
     tooltipFormat: (value) => `${fmtTooltipNumber(value)} t/s`,
     xLabel: "Output tokens per second (t/s)",
     hoverLabel: "Throughput",
-    insight:
-      "Separates fast utility models from models that are both fast enough and genuinely capable.",
+    insight: "Shows whether faster output is associated with higher Intelligence.",
   },
   {
     key: "response",
@@ -84,8 +84,7 @@ export const interactionConfigs: InteractionConfig[] = [
     format: fmtSeconds,
     tooltipFormat: (value) => `${fmtTooltipNumber(value)}s`,
     xLabel: "End-to-end response time",
-    insight:
-      "Makes the practical waiting-time tradeoff visible instead of ranking Intelligence in isolation.",
+    insight: "Shows the tradeoff between Intelligence and end-to-end waiting time.",
   },
   {
     key: "context",
@@ -100,7 +99,7 @@ export const interactionConfigs: InteractionConfig[] = [
     xLabel: "Context tokens",
     hoverLabel: "Context window",
     insight:
-      "Highlights when huge context is real leverage versus just a large number beside a weaker model.",
+      "Shows whether a larger advertised context window is associated with higher Intelligence.",
   },
   {
     key: "artificialAnalysisCost",
@@ -113,8 +112,7 @@ export const interactionConfigs: InteractionConfig[] = [
     format: fmtMoney,
     tooltipFormat: fmtTooltipMoney,
     xLabel: "Artificial Analysis Task Cost",
-    insight:
-      "Connects benchmark quality to the cost of producing that quality during the benchmark workload.",
+    insight: "Compares Intelligence with the reported cost of one Artificial Analysis task.",
   },
   {
     key: "frontierScore",
@@ -128,7 +126,7 @@ export const interactionConfigs: InteractionConfig[] = [
     tooltipFormat: fmtPercentScore,
     xLabel: "Mean Normalized Frontier Benchmark Score",
     insight:
-      "Shows whether broad Intelligence agrees with each model's Mean Normalized Frontier Benchmark Score.",
+      "Shows how closely broad Intelligence tracks normalized frontier-benchmark performance.",
   },
 ];
 

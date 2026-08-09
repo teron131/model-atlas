@@ -10,7 +10,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Model Atlas",
-  description: "Live model ranking and visualization graphs.",
+  description: "Independent model rankings for Intelligence, Agentic capability, Speed, and Value.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },

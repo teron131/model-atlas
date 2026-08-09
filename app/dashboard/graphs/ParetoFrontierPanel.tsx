@@ -69,7 +69,8 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
         title="Pareto Frontier"
         copy={
           <>
-            A tradeoff scatter for <em>Intelligence Score</em> versus <em>Value Score</em>.
+            Each point is a visible model variant. Up and right means stronger <em>Intelligence</em>{" "}
+            and <em>Value</em>.
           </>
         }
       >
@@ -178,7 +179,8 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       title="Pareto Frontier"
       copy={
         <>
-          <em>Intelligence Score</em> plotted against <em>Value Score</em>.
+          Each point is a visible model variant. Up and right means stronger <em>Intelligence</em>{" "}
+          and <em>Value</em>.
         </>
       }
       summary={

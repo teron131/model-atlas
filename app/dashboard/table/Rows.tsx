@@ -259,15 +259,15 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
       : availableModalities.map((modality) => modality.label).join(", ");
   return (
     <td className="data-cell modality-cell">
-      <span className="modality-icons" title={`Inputs: ${label}`}>
-        <span className="visually-hidden">Inputs: {label}</span>
+      <span className="modality-icons" title={`Input modalities: ${label}`}>
+        <span className="visually-hidden">Input modalities: {label}</span>
         {inputModalities.map(({ Icon, key, label }) => {
           const isAvailable = availableSet.has(key);
           return (
             <span
               className={`modality-icon ${isAvailable ? "" : "unavailable"}`}
               key={key}
-              title={`${label} input ${isAvailable ? "available" : "unavailable"}`}
+              title={`${label} input is ${isAvailable ? "available" : "unavailable"}`}
             >
               <Icon />
             </span>

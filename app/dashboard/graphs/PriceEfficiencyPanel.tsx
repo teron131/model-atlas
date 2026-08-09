@@ -198,7 +198,7 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
         sectionId="price-efficiency"
         sectionLabel="Cost view · Quality-adjusted efficiency"
         title={PANEL_TITLE}
-        copy="Price score plotted against benchmark task-cost efficiency."
+        copy="Compares effective token-price efficiency with the cost efficiency of benchmark work."
         wide
       >
         {controls}
@@ -223,7 +223,7 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
       sectionId="price-efficiency"
       sectionLabel="Cost view · Quality-adjusted efficiency"
       title={PANEL_TITLE}
-      copy="Each point is one visible model variant. Both axes keep the full public leaderboard as their reference population, so filters only change which points are shown. Price score uses log blended price with model-balanced 2.5% one-sided winsorization. Benchmark cost efficiency averages model-balanced percentile and winsorized min-max mappings of logged cost residuals from the model-excluded expectation at comparable benchmark quality; it excludes both blended-price components."
+      copy="Each line links a visible model variant's Price Score to its quality-adjusted benchmark task-cost efficiency. Higher is better on both sides. Both scores stay calibrated against the full public leaderboard, so filters change only which variants are shown."
       summary={
         <BoxWhiskerSummary
           label="Benchmark cost efficiency"

@@ -123,16 +123,13 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const plotRows = [...chartRows].sort((left, right) => left.score - right.score);
   const yAxisLabel = isAggregateView ? "Mean Normalized Benchmark Score" : "Benchmark Score";
   const axisDescription = frontierAxisDescription(selectedAxisKey, isAggregateView, chartRows[0]);
-  const axisTerm = axisConfig.shortLabel.replace(/ ↓$/, "");
   const scoreMetricLabel = isAggregateView
     ? "Mean Normalized Frontier Benchmark Score"
     : `${leader.benchmarkLabel} Score`;
   const panelCopy = (
     <>
-      {isAggregateView ? "Each point is one model: " : null}
-      <em>{scoreMetricLabel}</em> {isAggregateView ? "against" : "plotted against"}{" "}
-      <em>{xMetricLabel}</em>. <em>{axisTerm}</em>
-      {axisDescription.slice(axisTerm.length)}
+      Each point is one model. <em>{scoreMetricLabel}</em> is plotted against{" "}
+      <em>{xMetricLabel}</em>. {axisDescription}
     </>
   );
   const leaderDetail = axisSummaryDetail(leader, axisConfig);
