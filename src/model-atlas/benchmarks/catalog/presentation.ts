@@ -272,14 +272,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "SRE agent investigation"],
     ],
   },
-  lcr: {
-    title: "LCR",
-    body: "Extract and synthesize evidence across document sets ranging from 10,000 to 100,000 tokens.",
-    rows: [
-      ["Source", "Artificial Analysis"],
-      ["Role", "long context reasoning"],
-    ],
-  },
   legal_research: {
     title: "Legal Research",
     body: "Research questions across U.S. law using case-law search, web search, and document retrieval, then produce a supported answer.",
@@ -460,7 +452,6 @@ export const BENCHMARK_LABELS = {
   hemingway_bench: "Hemingway-bench",
   hle: "HLE",
   itbench_sre: "ITBench",
-  lcr: "LCR",
   legal_research: "Legal Research",
   medcode: "MedCode",
   mls_bench: "MLS-Bench Lite",
@@ -523,7 +514,6 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "epoch_capabilities_index",
   "finance_agent_v2",
   "hemingway_bench",
-  "lcr",
   "medcode",
   "omniscience_accuracy",
   "perception_bench",
@@ -976,12 +966,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  lcr: {
-    key: "lcr",
-    label: "LCR",
-    format: "percent",
-    defaultSort: "descending",
-  },
   legal_research: {
     key: "legalResearch",
     label: "Legal",
@@ -1087,7 +1071,7 @@ export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
 
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
   gdpval_normalized: ["gpqa"],
-  lcr: ["mmmu_pro"],
+  medcode: ["mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
 export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {

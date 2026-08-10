@@ -194,11 +194,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  lcr: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
   legal_research: {
     group: "frontier",
     benchmarkImportance: 1,

@@ -123,12 +123,10 @@ const benchmarkOrderPayload = minimalModelAtlasPayload({
 benchmarkOrderPayload.metadata.scoring.intelligence_benchmark_display_keys = [
   "weirdml",
   "riemann_bench",
-  "lcr",
   "agents_last_exam",
 ];
 benchmarkOrderPayload.metadata.scoring.benchmark_portfolio = {
   agents_last_exam: BENCHMARK_PORTFOLIO.agents_last_exam,
-  lcr: BENCHMARK_PORTFOLIO.lcr,
   riemann_bench: BENCHMARK_PORTFOLIO.riemann_bench,
   weirdml: BENCHMARK_PORTFOLIO.weirdml,
 };
@@ -311,8 +309,7 @@ for (const group of ["frontier", "baseline"] as const) {
 assert.equal(
   benchmarkOrderHtml.indexOf("Agents&#x27; Last Exam") <
     benchmarkOrderHtml.indexOf("Riemann-bench") &&
-    benchmarkOrderHtml.indexOf("Riemann-bench") < benchmarkOrderHtml.indexOf("LCR") &&
-    benchmarkOrderHtml.indexOf("LCR") < benchmarkOrderHtml.indexOf("WeirdML"),
+    benchmarkOrderHtml.indexOf("Riemann-bench") < benchmarkOrderHtml.indexOf("WeirdML"),
   true,
   "benchmark chips should be alphabetical within frontier and baseline groups",
 );
