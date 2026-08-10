@@ -66,6 +66,7 @@ function readBenchmarkObservationRows(
     const model = stringValue(row.model);
     const baseModel = stringValue(row.base_model);
     const canonicalValue = asFiniteNumber(row.canonical_value);
+    const cost = asFiniteNumber(row.cost);
     const metadata = benchmarkObservationMetadata(row.metadata_json);
     const reasoningEffort = stringValue(row.reasoning_effort);
     if (
@@ -102,6 +103,7 @@ function readBenchmarkObservationRows(
         model_creator: stringValue(row.model_creator),
         rank: asFiniteNumber(row.rank),
         canonical_value: canonicalValue,
+        ...(cost == null ? {} : { cost }),
         observed_at: stringValue(row.observed_at),
         metadata,
       },
@@ -196,8 +198,8 @@ export function insertBenchmarkObservationRows(
 		INSERT INTO ${BENCHMARK_OBSERVATION_RAW_TABLE} (
 			source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
 			model_id, model, base_model, reasoning_effort, model_creator, rank,
-			canonical_value, observed_at, metadata_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			canonical_value, cost, observed_at, metadata_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
     const rows = snapshots[binding.sourceRowsKey] as readonly BenchmarkObservationRow[];
@@ -216,6 +218,7 @@ export function insertBenchmarkObservationRows(
         row.model_creator,
         row.rank,
         row.canonical_value,
+        row.cost ?? null,
         row.observed_at,
         JSON.stringify(row.metadata),
       );

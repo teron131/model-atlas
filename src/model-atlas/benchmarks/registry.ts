@@ -69,7 +69,11 @@ type StandardBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
     {
       group: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["group"];
       id: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["id"];
-      roles: readonly ["observation"];
+      roles: (typeof BENCHMARK_STANDARD_SOURCES)[Key] extends {
+        roles: infer Roles extends readonly ["observation", ...("resource" | "validation")[]];
+      }
+        ? Roles
+        : readonly ["observation"];
       adapters: readonly [
         {
           kind: "benchmark_observation";
@@ -138,7 +142,7 @@ function benchmarkSources(): BenchmarkSources {
             {
               group: source.group,
               id: source.id,
-              roles: ["observation"],
+              roles: "roles" in source ? source.roles : ["observation"],
               adapters: [
                 {
                   kind: "benchmark_observation",

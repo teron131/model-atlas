@@ -53,6 +53,10 @@ try {
             output_tokens: 120,
             observed_at: "2026-07-30",
           },
+          arc_agi_3: {
+            cost: 20_657.37,
+            observed_at: "2026-07-30",
+          },
         },
         confidence: {
           intelligence: 0.83,
@@ -121,6 +125,12 @@ try {
     tokens: 200,
     input_tokens: 80,
     output_tokens: 120,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 1,
+  });
+  assert.deepEqual(model?.task_metrics?.arc_agi_3, {
+    cost: 20_657.37,
+    observed_cost: 20_657.37,
     observed_at: "2026-07-30",
     cost_price_ratio: 1,
   });

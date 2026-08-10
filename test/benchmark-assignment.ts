@@ -269,8 +269,9 @@ const arcAgi3Row = {
   model_creator: "Test",
   rank: 1,
   canonical_value: 0.3,
+  cost: 20_000,
   observed_at: null,
-  metadata: { evaluation_cost_usd: 20_000 },
+  metadata: {},
 } satisfies BenchmarkObservationRow;
 
 const resourceLookup = new Map([
@@ -453,6 +454,9 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 700,
     input_tokens: 600,
     output_tokens: 100,
+  },
+  arc_agi_3: {
+    cost: 20_000,
   },
   briefcase: {
     cost: 2.5,
