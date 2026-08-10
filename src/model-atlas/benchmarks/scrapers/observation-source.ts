@@ -2,6 +2,7 @@
 
 import type { BenchmarkObservationLoader } from "../factory";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../registry";
+import { getArcPrizeStats } from "./arc-prize";
 import { getEpochCapabilitiesIndexStats } from "./epoch/capabilities-index";
 import { getEpochBenchmarkStats } from "./epoch/results";
 import { getMlsBenchStats } from "./mls-bench";
@@ -16,6 +17,18 @@ export function benchmarkObservationSourceFetcher(
   binding: (typeof BENCHMARK_OBSERVATION_BINDINGS)[number],
 ) {
   const loader: BenchmarkObservationLoader = binding.loader;
+  if (loader.kind === "arc_prize") {
+    const benchmarkKey = binding.benchmark;
+    if (benchmarkKey !== "arc_agi_2" && benchmarkKey !== "arc_agi_3") {
+      throw new Error(`Invalid ARC Prize benchmark binding: ${benchmarkKey}`);
+    }
+    return () =>
+      getArcPrizeStats({
+        benchmarkKey,
+        datasetId: loader.datasetId,
+        sourceUrl: loader.sourceUrl,
+      });
+  }
   if (loader.kind === "epoch_capabilities_index") {
     return () => getEpochCapabilitiesIndexStats(loader.sourceUrl);
   }

@@ -1,4 +1,4 @@
-/** Verifies independent Vals benchmark cache round-trips and task-aware row identity. */
+/** Verifies independent Vals benchmark cache round-trips for canonical scored rows. */
 
 import assert from "node:assert/strict";
 
@@ -13,7 +13,6 @@ import {
 import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload-rows";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
 import { RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
-import { benchmarkObservationRowKey } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
 
@@ -23,11 +22,7 @@ const SOURCE_CASES = BENCHMARK_OBSERVATION_BINDINGS.filter(
 type SourceName = (typeof SOURCE_CASES)[number]["source"];
 const SOURCE_NAMES = SOURCE_CASES.map(({ source }) => source);
 
-function benchmarkRow(
-  binding: BenchmarkObservationBinding,
-  task: string,
-  scoreEligible = true,
-): BenchmarkObservationRow {
+function benchmarkRow(binding: BenchmarkObservationBinding): BenchmarkObservationRow {
   if (binding.loader.kind !== "vals") {
     throw new Error(`Expected a Vals binding for ${binding.benchmark}`);
   }
@@ -38,33 +33,17 @@ function benchmarkRow(
     model: "Example Model",
     base_model: "Example Model",
     reasoning_effort: "high",
-    model_creator_id: null,
     model_creator: "Example",
-    inference_provider: null,
     rank: 1,
-    reported_value: 75,
-    reported_unit: "percent",
     canonical_value: 0.75,
-    canonical_unit: "proportion",
-    score_eligible: scoreEligible,
-    standard_error: null,
-    confidence_low: null,
-    confidence_high: null,
     observed_at: null,
-    metadata: { task },
+    metadata: {},
   };
 }
 
 const rows = Object.fromEntries(
-  SOURCE_CASES.map(({ source, binding }) => [source, [benchmarkRow(binding, "overall")]]),
+  SOURCE_CASES.map(({ source, binding }) => [source, [benchmarkRow(binding)]]),
 ) as Record<SourceName, BenchmarkObservationRow[]>;
-const legalResearch = SOURCE_CASES.find(({ source }) => source === "legal_research");
-assert.ok(legalResearch);
-rows.legal_research.push(benchmarkRow(legalResearch.binding, "diagnostic", false));
-const legalResearchOverall = rows.legal_research[0];
-const legalResearchDiagnostic = rows.legal_research[1];
-assert.ok(legalResearchOverall);
-assert.ok(legalResearchDiagnostic);
 const fetchedAtBySource = Object.fromEntries(
   SOURCE_NAMES.map((source, index) => [source, 1_800_000_000 + index]),
 ) as Record<SourceName, number>;
@@ -105,20 +84,6 @@ for (const { source, binding } of SOURCE_CASES) {
     },
   );
 }
-
-assert.notEqual(
-  benchmarkObservationRowKey(legalResearchOverall),
-  benchmarkObservationRowKey(legalResearchDiagnostic),
-  "task rows for the same model and effort must retain distinct cache identities",
-);
-assert.equal(
-  readBenchmarkObservationRawCache(
-    collector.records(RAW_SOURCE_TABLES.legal_research),
-    legalResearch.binding,
-  )?.rows[1]?.score_eligible,
-  false,
-  "ineligible diagnostic rows must remain persisted",
-);
 
 const databasePath = ".cache/test-database-vals-benchmarks.sqlite";
 await removeDatabaseFiles(databasePath);

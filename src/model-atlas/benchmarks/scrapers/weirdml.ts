@@ -29,7 +29,6 @@ const CANDIDATE_CODE_LENGTH_TOLERANCE = 1;
 const ACCURACY_TOLERANCE = 0.0006;
 const COST_TOLERANCE_USD = 0.00002;
 const CODE_LENGTH_TOLERANCE = 0.01;
-const STANDARD_ERROR_TOLERANCE = 1e-9;
 const TASK_COLUMNS = [
   "shapes_easy_acc",
   "shapes_hard_acc",
@@ -174,11 +173,7 @@ function sharedEvidenceMatches(primary: BenchmarkObservationRow, epoch: WeirdMlE
   ) {
     return false;
   }
-  return (
-    primary.standard_error == null ||
-    epoch.standard_error == null ||
-    withinTolerance(primary.standard_error, epoch.standard_error, STANDARD_ERROR_TOLERANCE)
-  );
+  return true;
 }
 
 /** Resolve one-to-one candidates, treating aliases of an already claimed primary row as ambiguous duplicates. */
@@ -352,18 +347,9 @@ export function processWeirdMlCsv(csv: string): BenchmarkObservationRow[] {
         model,
         base_model: parsed.baseModel,
         reasoning_effort: parsed.reasoningEffort,
-        model_creator_id: null,
         model_creator: null,
-        inference_provider: row["API source"]?.trim() || null,
         rank: index + 1,
-        reported_value: score,
-        reported_unit: "proportion",
         canonical_value: score,
-        canonical_unit: "proportion",
-        score_eligible: true,
-        standard_error: asFiniteNumber(row.avg_acc_standard_error),
-        confidence_low: null,
-        confidence_high: null,
         observed_at: row.release_date?.trim() || null,
         metadata: {
           weirdml_origin: "creator",
@@ -389,18 +375,9 @@ function epochBenchmarkRow(row: WeirdMlEpochRow): BenchmarkObservationRow {
     model: row.name,
     base_model: row.base_model,
     reasoning_effort: row.reasoning_effort,
-    model_creator_id: null,
     model_creator: row.provider,
-    inference_provider: null,
     rank: null,
-    reported_value: row.accuracy,
-    reported_unit: "proportion",
     canonical_value: row.accuracy,
-    canonical_unit: "proportion",
-    score_eligible: true,
-    standard_error: row.standard_error,
-    confidence_low: null,
-    confidence_high: null,
     observed_at: row.observed_at,
     metadata: {
       weirdml_origin: "epoch",

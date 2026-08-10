@@ -247,18 +247,9 @@ const legalResearchRow = {
   model: "Example Model",
   base_model: "Example Model",
   reasoning_effort: null,
-  model_creator_id: null,
   model_creator: "Test",
-  inference_provider: null,
   rank: 1,
-  reported_value: 61,
-  reported_unit: "percent",
   canonical_value: 0.61,
-  canonical_unit: "proportion",
-  score_eligible: true,
-  standard_error: null,
-  confidence_low: null,
-  confidence_high: null,
   observed_at: null,
   metadata: {},
 } satisfies BenchmarkObservationRow;
@@ -266,8 +257,20 @@ const chartographyRow = {
   ...legalResearchRow,
   benchmark_key: "chartography",
   source_url: "https://www.surgehq.ai/leaderboard/chartography",
-  reported_value: 47,
   canonical_value: 0.47,
+} satisfies BenchmarkObservationRow;
+const arcAgi3Row = {
+  benchmark_key: "arc_agi_3",
+  source_url: "https://arcprize.org/media/data/leaderboard/v3.json",
+  model_id: "test-example-model-high",
+  model: "Example Model (High)",
+  base_model: "Example Model",
+  reasoning_effort: "high",
+  model_creator: "Test",
+  rank: 1,
+  canonical_value: 0.3,
+  observed_at: null,
+  metadata: { evaluation_cost_usd: 20_000 },
 } satisfies BenchmarkObservationRow;
 
 const resourceLookup = new Map([
@@ -288,6 +291,8 @@ const lookups = {
     rowsByModelName: emptyLookup(),
   },
   aleBench: { rowsByModelName: buildBenchmarkModelMap([aleBenchRow]) },
+  arcAgi2: { rowsByModelName: emptyLookup() },
+  arcAgi3: { rowsByModelName: buildBenchmarkObservationLookup([arcAgi3Row]) },
   blueprintBench: {
     rowsByModelName: emptyLookup(),
   },
@@ -368,6 +373,16 @@ assert.deepEqual(observationAssignment.benchmarks, {
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, undefined);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, undefined);
+assert.equal((observationAssignment.benchmarks as Record<string, unknown>).arc_agi_3, undefined);
+
+const effortObservationAssignment = buildObservationBenchmarks(
+  ["Example Model"],
+  lookups,
+  {},
+  "high",
+);
+assert.equal(effortObservationAssignment.benchmarks.arc_agi_3, 0.3);
+assert.equal(effortObservationAssignment.scoringSources.arc_agi_3, arcAgi3Row);
 
 const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"], lookups, {
   hle: 0.4,
@@ -376,6 +391,7 @@ const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"]
 assert.deepEqual(defaultVariantAssignment.benchmarks, {
   agent_arena: 0.14,
   ale_bench: 700,
+  arc_agi_3: 0.3,
   automation_bench: 0.68,
   briefcase: 0.5,
   chartography: 0.47,
@@ -392,6 +408,7 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   agent_arena: agentArenaRow,
   ale_bench: aleBenchRow,
   apex_agents_mercor: mercorApexRow,
+  arc_agi_3: arcAgi3Row,
   automation_bench: automationBenchResourceRow,
   briefcase: briefcaseResourceRow,
   chartography: chartographyRow,
@@ -880,18 +897,9 @@ const chartographyRows = [
     model: "Example Model",
     base_model: "Example Model",
     reasoning_effort: null,
-    model_creator_id: null,
     model_creator: "Test",
-    inference_provider: null,
     rank: 2,
-    reported_value: 29.5,
-    reported_unit: "percent",
     canonical_value: 0.295,
-    canonical_unit: "proportion",
-    score_eligible: true,
-    standard_error: null,
-    confidence_low: null,
-    confidence_high: null,
     observed_at: null,
     metadata: {},
   },
@@ -902,23 +910,14 @@ const chartographyRows = [
     model: "Example Model (max)",
     base_model: "Example Model",
     reasoning_effort: "max",
-    model_creator_id: null,
     model_creator: "Test",
-    inference_provider: null,
     rank: 1,
-    reported_value: 34.8,
-    reported_unit: "percent",
     canonical_value: 0.348,
-    canonical_unit: "proportion",
-    score_eligible: true,
-    standard_error: null,
-    confidence_low: null,
-    confidence_high: null,
     observed_at: null,
     metadata: {},
   },
 ] satisfies BenchmarkObservationRow[];
-const [soleVariant] = assignBenchmarksToVariants(
+const [singleVariant] = assignBenchmarksToVariants(
   [
     {
       id: "test/example-model",
@@ -935,11 +934,11 @@ const [soleVariant] = assignBenchmarksToVariants(
     },
   },
 );
-assert.ok(soleVariant);
+assert.ok(singleVariant);
 assert.equal(
-  (soleVariant.benchmarks as Record<string, unknown>).chartography,
+  (singleVariant.benchmarks as Record<string, unknown>).chartography,
   0.348,
-  "a source max effort should become the sole Atlas row's default",
+  "a source max effort should become the single Atlas row's default",
 );
 /** Return a typed empty lookup map for sources not involved in this test. */
 function emptyLookup(): Map<string, never> {

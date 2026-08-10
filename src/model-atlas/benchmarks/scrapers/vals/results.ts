@@ -1,13 +1,13 @@
-/**
- * Hydrated BenchmarkView data is scraped from VALS benchmark pages.
- *
- * Page source: https://www.vals.ai/benchmarks
- */
+/** Scrapes canonical scoring rows and method provenance from hydrated Vals benchmark pages. */
 
 import { canonicalReasoningEffort } from "../../../identity/normalization";
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../../runtime";
 import { htmlAttribute, stringValue } from "../../../scrapers/parsing";
-import type { BenchmarkObservationPayload, BenchmarkObservationRow } from "../../observation";
+import type {
+  BenchmarkObservationMetadata,
+  BenchmarkObservationPayload,
+  BenchmarkObservationRow,
+} from "../../observation";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -18,10 +18,8 @@ type ValsScraperOptions = {
 
 export type ValsBenchmarkMetadata = {
   dataset_type: string | null;
-  industry: string | null;
   mode: string | null;
   runner: string | null;
-  task_labels: Record<string, string>;
   updated: string | null;
   version: string | null;
 };
@@ -55,22 +53,12 @@ function reviveAstroValue(value: unknown): unknown {
   return value;
 }
 
-function taskLabels(value: unknown): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(asRecord(value)).flatMap(([task, label]) =>
-      typeof label === "string" && label.length > 0 ? [[task, label]] : [],
-    ),
-  );
-}
-
 function metadataFromValue(value: unknown): ValsBenchmarkMetadata {
   const metadata = asRecord(value);
   return {
     dataset_type: stringValue(metadata.dataset_type),
-    industry: stringValue(metadata.industry),
     mode: stringValue(metadata.mode),
     runner: stringValue(metadata.runner),
-    task_labels: taskLabels(metadata.tasks),
     updated: stringValue(metadata.updated),
     version: stringValue(metadata.version),
   };
@@ -107,24 +95,6 @@ function percentScore(value: unknown): number | null {
   return score != null && score >= 0 && score <= 100 ? Number((score / 100).toFixed(6)) : null;
 }
 
-function nonNegativeNumber(value: unknown): number | null {
-  const number = asFiniteNumber(value);
-  return number != null && number >= 0 ? number : null;
-}
-
-function jsonString(value: unknown): string | null {
-  if (value == null) return null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
-function modelSlug(modelId: string): string {
-  return modelId.split("/").at(-1) ?? modelId;
-}
-
 function scoreRow(
   definition: ValsBenchmarkDefinition,
   view: ValsBenchmarkView,
@@ -132,11 +102,27 @@ function scoreRow(
   modelId: string,
   value: Record<string, unknown>,
 ): BenchmarkObservationRow | null {
-  const reportedValue = asFiniteNumber(value.accuracy);
   const canonicalValue = percentScore(value.accuracy);
-  if (reportedValue == null || canonicalValue == null || modelId.length === 0) return null;
-  const baseModel = modelSlug(modelId);
+  if (
+    canonicalValue == null ||
+    modelId.length === 0 ||
+    task !== definition.canonicalTask ||
+    definition.isScoreEligible?.(task, modelId) === false
+  ) {
+    return null;
+  }
+  const baseModel = modelId.split("/").at(-1) ?? modelId;
   const reasoningEffort = canonicalReasoningEffort(value.reasoning_effort ?? value.compute_effort);
+  const metadata: BenchmarkObservationMetadata = {};
+  for (const [key, metadataValue] of [
+    ["benchmark_version", view.metadata.version],
+    ["dataset_type", view.metadata.dataset_type],
+    ["runner", view.metadata.runner],
+    ["mode", view.metadata.mode],
+    ["harness", stringValue(value.harness)],
+  ] as const) {
+    if (metadataValue != null) metadata[key] = metadataValue;
+  }
   return {
     benchmark_key: definition.benchmarkKey,
     source_url: definition.sourceUrl,
@@ -147,44 +133,15 @@ function scoreRow(
         : `${baseModel} (${reasoningEffort})`,
     base_model: baseModel,
     reasoning_effort: reasoningEffort,
-    model_creator_id: null,
     model_creator: stringValue(value.provider),
-    inference_provider: null,
     rank: null,
-    reported_value: reportedValue,
-    reported_unit: "percent",
     canonical_value: canonicalValue,
-    canonical_unit: "proportion",
-    score_eligible:
-      task === definition.canonicalTask && (definition.isScoreEligible?.(task, modelId) ?? true),
-    standard_error: nonNegativeNumber(value.stderr),
-    confidence_low: null,
-    confidence_high: null,
     observed_at: view.metadata.updated,
-    metadata: {
-      task,
-      task_label: view.metadata.task_labels[task] ?? task,
-      benchmark_version: view.metadata.version,
-      dataset_type: view.metadata.dataset_type,
-      industry: view.metadata.industry,
-      runner: view.metadata.runner,
-      mode: view.metadata.mode,
-      cost_per_test_usd: nonNegativeNumber(value.cost_per_test),
-      latency_seconds: nonNegativeNumber(value.latency),
-      temperature: nonNegativeNumber(value.temperature),
-      top_p: nonNegativeNumber(value.top_p),
-      max_output_tokens: nonNegativeNumber(value.max_output_tokens),
-      reasoning: stringValue(value.reasoning) ?? jsonString(value.reasoning),
-      verbosity: stringValue(value.verbosity),
-      compute_effort: stringValue(value.compute_effort),
-      harness: stringValue(value.harness),
-      task_results: jsonString(value.task_results),
-      usage: jsonString(value.usage),
-    },
+    metadata,
   };
 }
 
-/** Preserve every valid task row while marking only the source-specific canonical task eligible. */
+/** Emit only canonical, score-eligible Vals rows. */
 export function processValsBenchmarkPageHtml(
   pageHtml: string,
   definition: ValsBenchmarkDefinition,

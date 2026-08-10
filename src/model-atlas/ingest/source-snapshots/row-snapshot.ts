@@ -56,7 +56,7 @@ export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string
       metadataIdentity("internal_model_name"),
     metadataIdentity("run_id"),
     row.model_id ?? baseModel,
-    row.model_creator_id ?? row.model_creator ?? row.inference_provider,
+    row.model_creator,
     row.reasoning_effort ?? parsedModel.reasoningEffort,
   );
 }

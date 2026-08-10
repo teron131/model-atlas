@@ -109,7 +109,7 @@ $$
 c_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1\Omega_d}{0.5\Omega_d}\right).
 $$
 
-Because $\Omega_d$ comes from the selected portfolio, these thresholds update with the portfolio instead of becoming separate calibration literals.
+Because $\Omega_d$ comes from the selected portfolio, these thresholds update with the portfolio instead of becoming separate calibration literals. Once confidence reaches one, however, additional missing benchmarks incur no further coverage penalty. That ceiling avoids rewarding redundant evidence, but uneven effort coverage can then favor a sparse sibling whose observed subset and contextual estimates are easier than the additional direct benchmarks measured for a better-covered sibling.
 
 ![Confidence is zero through a 10 percent evidence share, rises smoothly, and is full from 60 percent.](assets/methodology/confidence.svg)
 
@@ -130,11 +130,13 @@ Intelligence and Agentic confidence are reported separately as the percentage va
 
 ## Missing Benchmark Evidence
 
-The imputation pipeline has two paths. A configured source crosswalk runs first. When no crosswalk exists or its validation fails, the contextual quantile imputer runs instead.
+Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. The single-effort family bound described below then constrains eligible estimates.
 
 ### Imputation Boundaries
 
-Imputation can estimate a missing score, but it cannot create new evidence. Every model-benchmark pair receives at most one imputed value, only observations can predict another benchmark, and imputed values never satisfy public admission or appear as observed source results.
+The single-effort bound balances that coverage-penalty asymmetry. When exactly one effort has a direct benchmark result, a validated sibling estimate is clamped around it: higher-effort estimates cannot fall below the observation, while lower-effort estimates cannot exceed it. Two or more direct efforts disable the bound. It neither creates an estimate nor increases its confidence, and it does not claim that every higher-effort run must outperform every lower-effort run.
+
+Imputation can estimate a missing score, but it cannot create new model-family evidence. Every model-benchmark pair receives at most one imputed value, only observations can predict another benchmark, and imputed values never satisfy public admission or appear as observed source results.
 
 The minimum context requirement counts distinct observed benchmarks rather than weight, so one heavily weighted observation cannot make an imputer look well supported by itself.
 
@@ -475,8 +477,6 @@ Keeping absolute and quality-conditioned price separate answers two different qu
 Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must have at least eight observed selected benchmarks, including at least one Intelligence benchmark, one Agentic benchmark, and one portfolio-designated aggregate index.
 
 Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in Intelligence, Agentic, Speed, or Value. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
-
-An unlabelled benchmark observation belongs to the source-default variant. When every observation is labelled, source-default selection chooses the highest reported effort as one complete runnable observation rather than combining field-wise maxima. Compact public views represent each base model with its highest-Intelligence scored variant; the `all` API view preserves every scored effort variant.
 
 ## Why These Parameters
 

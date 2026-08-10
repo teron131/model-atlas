@@ -11,6 +11,28 @@ import type { BenchmarkKey } from "./portfolio";
 
 /** Standard sources use the shared benchmark-observation loader and persistence contract. */
 export const BENCHMARK_STANDARD_SOURCES = {
+  arc_agi_2: {
+    group: "standalone",
+    id: "arc_prize",
+    loader: {
+      kind: "arc_prize",
+      datasetId: "v2_Semi_Private",
+      sourceUrl: "https://arcprize.org/media/data/leaderboard/v2.json",
+    },
+    sourceDataKey: "arcAgi2",
+    sourceRowsKey: "arcAgi2Rows",
+  },
+  arc_agi_3: {
+    group: "standalone",
+    id: "arc_prize",
+    loader: {
+      kind: "arc_prize",
+      datasetId: "v3_Semi_Private",
+      sourceUrl: "https://arcprize.org/media/data/leaderboard/v3.json",
+    },
+    sourceDataKey: "arcAgi3",
+    sourceRowsKey: "arcAgi3Rows",
+  },
   browsecomp: {
     group: "standalone",
     id: "zeroeval",

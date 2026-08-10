@@ -4,11 +4,7 @@
  * Page source: https://mls-bench.com/leaderboard
  */
 
-import {
-  benchmarkModelEffort,
-  modelNameWithoutCreatorPrefix,
-  normalizeModelToken,
-} from "../../identity/normalization";
+import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, percentToUnitScore, stripHtmlTags } from "../../scrapers/parsing";
 import type { BenchmarkObservationPayload, BenchmarkObservationRow } from "../observation";
@@ -85,18 +81,9 @@ export function processMlsBenchLeaderboardHtml(
         model,
         base_model: modelNameWithoutCreatorPrefix(parsedModel.baseModel, creator),
         reasoning_effort: effort ?? parsedModel.reasoningEffort,
-        model_creator_id: normalizeModelToken(creator),
         model_creator: creator,
-        inference_provider: null,
         rank,
-        reported_value: score,
-        reported_unit: "percent",
         canonical_value: canonicalScore,
-        canonical_unit: "proportion",
-        score_eligible: true,
-        standard_error: null,
-        confidence_low: null,
-        confidence_high: null,
         observed_at: null,
         metadata: {
           ...(hasFallback ? { fallback: true } : {}),

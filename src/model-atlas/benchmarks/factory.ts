@@ -31,6 +31,11 @@ export type BenchmarkSourceAdapter =
     };
 
 export type BenchmarkObservationLoader =
+  | {
+      kind: "arc_prize";
+      sourceUrl: string;
+      datasetId: "v2_Semi_Private" | "v3_Semi_Private";
+    }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }
   | { kind: "epoch_runs"; task: string }
   | { kind: "mls_bench"; sourceUrl: string }

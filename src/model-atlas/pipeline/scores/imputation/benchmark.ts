@@ -8,7 +8,11 @@ import type { BenchmarkDimension } from "../../../benchmarks/factory";
 import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
 import { buildAdditiveSourceCrosswalk } from "../../../benchmarks/source-crosswalk";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
-import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
+import {
+  canonicalModelKey,
+  canonicalReasoningEffort,
+  reasoningEffortRank,
+} from "../../../identity/normalization";
 import {
   clamp,
   clamp01,
@@ -200,6 +204,67 @@ function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps 
     imputationByModel,
     imputationConfidenceByModel,
   };
+}
+
+/** Bound validated sibling estimates around a family's single direct effort observation. */
+function applySingleEffortFamilyBounds(
+  models: readonly JsonObject[],
+  benchmarkKeys: readonly string[],
+  imputationByModel: Map<JsonObject, Map<string, number>>,
+): void {
+  const variantsByFamily = new Map<string, JsonObject[]>();
+  for (const model of models) {
+    const familyKey = canonicalModelKey(model);
+    const variants = variantsByFamily.get(familyKey) ?? [];
+    variants.push(model);
+    variantsByFamily.set(familyKey, variants);
+  }
+
+  for (const variants of variantsByFamily.values()) {
+    for (const benchmarkKey of benchmarkKeys) {
+      const observedVariants = variants.filter(
+        (variant) => benchmarkMetricValue(variant, benchmarkKey) != null,
+      );
+      if (observedVariants.length !== 1) {
+        continue;
+      }
+      const source = observedVariants[0];
+      if (source == null) {
+        continue;
+      }
+      const sourceEffort = canonicalReasoningEffort(source.reasoning_effort);
+      const sourceValue = benchmarkMetricValue(source, benchmarkKey);
+      if (sourceEffort == null || sourceValue == null) {
+        continue;
+      }
+      const sourceRank = reasoningEffortRank(sourceEffort);
+      if (sourceRank < 0) {
+        continue;
+      }
+      for (const target of variants) {
+        const targetEffort = canonicalReasoningEffort(target.reasoning_effort);
+        const targetRank = reasoningEffortRank(targetEffort);
+        if (
+          targetEffort == null ||
+          targetRank < 0 ||
+          benchmarkMetricValue(target, benchmarkKey) != null
+        ) {
+          continue;
+        }
+        const values = imputationByModel.get(target);
+        const existingValue = values?.get(benchmarkKey);
+        if (values == null || existingValue == null) {
+          continue;
+        }
+        values.set(
+          benchmarkKey,
+          targetRank >= sourceRank
+            ? Math.max(existingValue, sourceValue)
+            : Math.min(existingValue, sourceValue),
+        );
+      }
+    }
+  }
 }
 
 export function normalizedMetricValue(
@@ -782,6 +847,7 @@ function prepareImputation(
       imputationConfidenceByModel.set(model, confidenceByKey);
     }
   }
+  applySingleEffortFamilyBounds(models, benchmarkKeys, imputationByModel);
   return {
     imputationByModel,
     imputationConfidenceByModel,

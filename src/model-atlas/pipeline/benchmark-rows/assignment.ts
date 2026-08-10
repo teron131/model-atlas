@@ -405,6 +405,25 @@ export function buildObservationBenchmarks(
     lookups.artificialAnalysisBenchmarkResources.observationLookup,
     baseBenchmarks,
   );
+  const targetEffort = canonicalReasoningEffort(targetReasoningEffort);
+  for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
+    const row = findBenchmarkObservation(
+      modelNameCandidates,
+      targetEffort,
+      benchmarkObservationLookup(lookups, sourceDataKey),
+    );
+    if (
+      row?.reasoning_effort == null ||
+      canonicalReasoningEffort(row.reasoning_effort) !== targetEffort
+    ) {
+      continue;
+    }
+    assignedBenchmarks.benchmarks[benchmark] = transformBenchmarkSourceValue(
+      benchmark,
+      row.canonical_value,
+    );
+    assignedBenchmarks.scoringSources[benchmark] = row;
+  }
   assignStandaloneBenchmarks("observation", {
     assignedBenchmarks,
     lookups,
@@ -435,7 +454,7 @@ export function buildDefaultVariantBenchmarks(
     );
     if (row != null) {
       benchmarks[benchmark] = transformBenchmarkSourceValue(benchmark, row.canonical_value);
-      (scoringSources as Record<string, unknown>)[benchmark] = row;
+      scoringSources[benchmark] = row;
     }
   }
   assignStandaloneBenchmarks("defaultVariant", {

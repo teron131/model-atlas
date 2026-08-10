@@ -39,7 +39,7 @@ const eci = processEpochCapabilitiesIndexCsv(
     "gpt-5.6-sol,GPT-5.6 Sol,161.77,159.26,166.01,2026-07-09,OpenAI,US,API,Hosted,v1\n",
 );
 assert.equal(eci[0]?.canonical_value, 161.77);
-assert.equal(eci[0]?.confidence_low, 159.26);
+assert.equal(eci[0]?.observed_at, "2026-07-09");
 
 const epochRuns = parseCsvRecords(
   "id_runs,task,model,Best score (across scorers),started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,stderr,best_score,original_task_name,Scores\n" +
@@ -141,8 +141,11 @@ const proof = processValsBenchmarkPageHtml(proofHtml, {
   isScoreEligible: (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle",
   sourceUrl: proofBinding.loader.sourceUrl,
 });
-assert.equal(proof.length, 2);
-assert.equal(proof.find((row) => row.model_id === "aristotle/aristotle")?.score_eligible, false);
+assert.equal(proof.length, 1);
+assert.equal(
+  proof.some((row) => row.model_id === "aristotle/aristotle"),
+  false,
+);
 
 const surge = processSurgeBenchmarkPageHtml(
   `
@@ -163,7 +166,6 @@ assert.ok(gemini);
 assert.ok(kimiMax);
 assert.equal(gptMax.reasoning_effort, "max");
 assert.equal(gptMax.canonical_value, 0.45);
-assert.equal(gptMax.reported_value, 45);
 assert.equal(gptMax.rank, 1);
 assert.equal(claudeMax.base_model, "Claude Fable 5");
 assert.equal(claudeMax.reasoning_effort, "max");
@@ -201,17 +203,13 @@ const hemingway = processSurgeBenchmarkPageHtml(
 );
 assert.equal(hemingway.length, 3);
 assert.deepEqual(
-  hemingway.map(({ rank, reported_value }) => ({ rank, reported_value })),
+  hemingway.map(({ rank, canonical_value }) => ({ rank, canonical_value })),
   [
-    { rank: 1, reported_value: 1118 },
-    { rank: 2, reported_value: 1100 },
-    { rank: 2, reported_value: 1100 },
+    { rank: 1, canonical_value: 1118 },
+    { rank: 2, canonical_value: 1100 },
+    { rank: 2, canonical_value: 1100 },
   ],
 );
-assert.equal(hemingway[0]?.reported_unit, "index");
-assert.equal(hemingway[0]?.canonical_unit, "index");
-assert.equal(hemingway[0]?.confidence_low, 1096);
-assert.equal(hemingway[0]?.confidence_high, 1139);
 assert.equal(hemingway[0]?.base_model, "Claude Fable 5");
 assert.equal(hemingway[1]?.reasoning_effort, "max");
 
@@ -312,7 +310,6 @@ const sharedModelRows = [
     model_id: null,
     model: "Shared Model",
     base_model: "Shared Model",
-    model_creator_id: "provider-a",
     model_creator: "provider-a",
   },
   {
@@ -320,7 +317,6 @@ const sharedModelRows = [
     model_id: null,
     model: "Shared Model",
     base_model: "Shared Model",
-    model_creator_id: "provider-b",
     model_creator: "provider-b",
   },
 ];

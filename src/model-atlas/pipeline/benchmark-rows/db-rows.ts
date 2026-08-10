@@ -54,35 +54,27 @@ function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function benchmarkObservationDrafts(rows: readonly DbBenchmarkRow[]): BenchmarkRowDraft[] {
-  return rows.flatMap((row) => {
-    if (row.score_eligible !== 1) return [];
-    const key = stringValue(row.benchmark_key);
-    if (key == null) return [];
-    return [
-      {
-        key,
-        id: stringValue(row.model_id),
-        identity: stringValue(row.base_model),
-        label: stringValue(row.model),
-        provider:
-          stringValue(row.model_creator) ??
-          stringValue(row.model_creator_id) ??
-          stringValue(row.inference_provider),
-        reasoningEffort: row.reasoning_effort,
-        value: row.canonical_value,
-      },
-    ];
-  });
-}
-
 function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
   return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceRowsKey }) => {
     const sourceRows = rows[sourceRowsKey];
     if (!Array.isArray(sourceRows)) {
       throw new Error(`Persisted benchmark observation rows are missing: ${sourceRowsKey}`);
     }
-    return benchmarkObservationDrafts(sourceRows);
+    return sourceRows.flatMap((row) => {
+      const key = stringValue(row.benchmark_key);
+      if (key == null) return [];
+      return [
+        {
+          key,
+          id: stringValue(row.model_id),
+          identity: stringValue(row.base_model),
+          label: stringValue(row.model),
+          provider: stringValue(row.model_creator),
+          reasoningEffort: row.reasoning_effort,
+          value: row.canonical_value,
+        },
+      ];
+    });
   });
 }
 
@@ -98,35 +90,17 @@ function agentsLastExamDbScore(row: DbBenchmarkRow): number | null {
       });
 }
 
-function dbSourceRowDraft(source: DbSourceSpec, row: DbBenchmarkRow): BenchmarkRowDraft | null {
-  if (source.rowKind != null && stringValue(row.row_kind) !== source.rowKind) {
-    return null;
-  }
-  return {
-    key: source.key,
-    id: stringValue(row.model_id),
-    label: stringValue(row.model),
-    provider: source.providerColumn == null ? null : stringValue(row[source.providerColumn]),
-    value: source.value(row),
-  };
-}
-
 function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
-  return source.rows.flatMap((row) => dbSourceRowDraft(source, row) ?? []);
-}
-
-function riemannBenchmarkDrafts(rows: readonly DbBenchmarkRow[]): BenchmarkRowDraft[] {
-  return rows.flatMap((row) => {
-    const model = stringValue(row.model);
-    if (model == null) {
-      return [];
-    }
+  return source.rows.flatMap((row) => {
+    if (source.rowKind != null && stringValue(row.row_kind) !== source.rowKind) return [];
     return [
-      riemannBenchmarkDraft({
-        model,
-        provider: stringValue(row.provider),
-        score: row.score,
-      }),
+      {
+        key: source.key,
+        id: stringValue(row.model_id),
+        label: stringValue(row.model),
+        provider: source.providerColumn == null ? null : stringValue(row[source.providerColumn]),
+        value: source.value(row),
+      },
     ];
   });
 }
@@ -238,8 +212,9 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
     })),
 } satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
 
-function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
-  return [
+/** Persisted benchmark rows enter update-health checks through the same benchmark-keyed contract as live rows. */
+export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
+  return finalizeBenchmarkRows([
     ...benchmarkObservationDbDrafts(rows),
     ...artificialAnalysisModelRowDrafts({
       rows: rows.artificialAnalysisRows,
@@ -256,7 +231,18 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
       providerColumn: "provider",
       rowKind: "overall",
     }),
-    ...riemannBenchmarkDrafts(rows.riemannBenchRows),
+    ...rows.riemannBenchRows.flatMap((row) => {
+      const model = stringValue(row.model);
+      return model == null
+        ? []
+        : [
+            riemannBenchmarkDraft({
+              model,
+              provider: stringValue(row.provider),
+              score: row.score,
+            }),
+          ];
+    }),
     ...dbSourceDrafts({
       key: "vals_index",
       rows: rows.valsIndexRows,
@@ -264,10 +250,5 @@ function dbBenchmarkDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
       providerColumn: "provider",
       rowKind: "overall",
     }),
-  ];
-}
-
-/** Persisted benchmark rows enter update-health checks through the same benchmark-keyed contract as live rows. */
-export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
-  return finalizeBenchmarkRows(dbBenchmarkDrafts(rows));
+  ]);
 }

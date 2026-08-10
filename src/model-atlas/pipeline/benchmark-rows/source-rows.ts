@@ -84,24 +84,6 @@ function modelScoreRowDrafts(
   }));
 }
 
-function benchmarkObservationDrafts(rows: readonly BenchmarkObservationRow[]): BenchmarkRowDraft[] {
-  return rows.flatMap((row) =>
-    row.score_eligible
-      ? [
-          {
-            key: row.benchmark_key,
-            id: row.model_id,
-            identity: row.base_model,
-            label: row.model,
-            provider: row.model_creator ?? row.model_creator_id ?? row.inference_provider,
-            reasoningEffort: row.reasoning_effort,
-            value: row.canonical_value,
-          },
-        ]
-      : [],
-  );
-}
-
 /** Riemann rows share one effort-aware health identity across live and restored source data. */
 export function riemannBenchmarkDraft(row: {
   model: string;
@@ -119,10 +101,6 @@ export function riemannBenchmarkDraft(row: {
   };
 }
 
-function surgeBenchmarkRowDrafts(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
-  return sourceData.riemannBench.rows.map(riemannBenchmarkDraft);
-}
-
 function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
   return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceDataKey }) => {
     const source = sourceData[sourceDataKey as keyof ModelAtlasSourceData] as
@@ -131,7 +109,15 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     if (source?.rows == null) {
       throw new Error(`Benchmark observation source-data rows are missing: ${sourceDataKey}`);
     }
-    return benchmarkObservationDrafts(source.rows);
+    return source.rows.map((row) => ({
+      key: row.benchmark_key,
+      id: row.model_id,
+      identity: row.base_model,
+      label: row.model,
+      provider: row.model_creator,
+      reasoningEffort: row.reasoning_effort,
+      value: row.canonical_value,
+    }));
   });
 }
 
@@ -349,18 +335,14 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
     })),
 } satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
 
-function benchmarkDraftsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
-  return [
+/** Live source data enters benchmark-update health through the same draft contract as database restorations. */
+export function benchmarkRowsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowsByKey {
+  return finalizeBenchmarkRows([
     ...benchmarkObservationSourceDrafts(sourceData),
     ...artificialAnalysisBenchmarkRowDrafts(sourceData),
     ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
-    ...surgeBenchmarkRowDrafts(sourceData),
+    ...sourceData.riemannBench.rows.map(riemannBenchmarkDraft),
     ...modelScoreRowDrafts("harvey_lab", sourceData.harveyLab.rows),
     ...modelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),
-  ];
-}
-
-/** Live source data enters benchmark-update health through the same draft contract as database restorations. */
-export function benchmarkRowsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowsByKey {
-  return finalizeBenchmarkRows(benchmarkDraftsFromSourceData(sourceData));
+  ]);
 }

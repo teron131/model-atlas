@@ -133,7 +133,6 @@ const epochParsed = processEpochWeirdMlCsv(
   "id,Model version,Accuracy,Cost per run,Median code length (lines),Accuracy SE,id_model_version,Model,Display name,Unique display name,Organization,Version release date\n" +
     "epoch-alpha,alpha_high,0.9,1,100,0.0001,alpha_high,Alpha,Alpha (high),Alpha (high),Test Org,2026-01-01\n",
 );
-assert.equal(epochParsed[0]?.standard_error, 0.01);
 assert.equal(epochParsed[0]?.reasoning_effort, "high");
 
 function epochRow(options: {
@@ -153,7 +152,6 @@ function epochRow(options: {
     accuracy: options.score,
     cost_per_run_usd: options.cost,
     code_len_p50: options.codeLength,
-    standard_error: 0.01,
     observed_at: "2026-01-01",
   };
 }

@@ -1623,6 +1623,48 @@ const crossEffortConfig = {
     c3: intelligenceBenchmarkEntry(),
   },
 } as const;
+const singleEffortFamily = [
+  {
+    id: "test/single-effort",
+    name: "Single Effort",
+    reasoning_effort: "low",
+    benchmarks: {},
+  },
+  {
+    id: "test/single-effort",
+    name: "Single Effort",
+    reasoning_effort: "high",
+    benchmarks: { target: 30 },
+  },
+  {
+    id: "test/single-effort",
+    name: "Single Effort",
+    reasoning_effort: "xhigh",
+    benchmarks: {},
+  },
+  {
+    id: "test/single-effort",
+    name: "Single Effort",
+    reasoning_effort: "max",
+    benchmarks: {},
+  },
+];
+const singleEffortPreparation = prepareBenchmarkScoring(singleEffortFamily, crossEffortConfig);
+assertEqual(
+  singleEffortPreparation.imputationByModel.get(singleEffortFamily[3] ?? {})?.has("target") ??
+    false,
+  false,
+);
+assertEqual("target" in (singleEffortFamily[3]?.benchmarks ?? {}), false);
+const multipleEffortFamily = singleEffortFamily.map((model, index) =>
+  index === 2 ? { ...model, benchmarks: { target: 29 } } : model,
+);
+assertEqual(
+  prepareBenchmarkScoring(multipleEffortFamily, crossEffortConfig)
+    .imputationByModel.get(multipleEffortFamily[3] ?? {})
+    ?.has("target") ?? false,
+  false,
+);
 const crossEffortModels = crossEffortImputationModels(7);
 const crossEffortTarget = crossEffortModels.at(-1);
 if (crossEffortTarget == null) {
@@ -1658,8 +1700,17 @@ const reverseCrossEffortValue = buildBenchmarkImputationByModel(
 )
   .get(reverseCrossEffortTarget)
   ?.get("target");
-if (!(reverseCrossEffortValue != null && reverseCrossEffortValue > 0)) {
-  throw new Error("Expected lower-effort evidence to inform the maximum effort");
+if (!(reverseCrossEffortValue != null && reverseCrossEffortValue >= 60)) {
+  throw new Error("Expected lower-effort evidence to bound the maximum-effort estimate");
+}
+const reverseCrossEffortConfidence = prepareBenchmarkScoring(
+  reverseCrossEffortModels,
+  crossEffortConfig,
+)
+  .imputationConfidenceByModel.get(reverseCrossEffortTarget)
+  ?.get("target");
+if (!(reverseCrossEffortConfidence != null && reverseCrossEffortConfidence < 1)) {
+  throw new Error("Expected the bounded estimate to preserve imputation confidence");
 }
 
 const unlinkedEffortModels = crossEffortModels.map((model) => ({

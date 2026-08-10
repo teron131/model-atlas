@@ -23,7 +23,6 @@ export type WeirdMlEpochRow = {
   accuracy: number;
   cost_per_run_usd: number;
   code_len_p50: number;
-  standard_error: number | null;
   observed_at: string | null;
 };
 
@@ -43,7 +42,7 @@ function epochModelEffort(displayName: string, modelVersion: string) {
   };
 }
 
-/** Parse Epoch's mirror and convert its fractional-percent Accuracy SE to WeirdML's 0-1-scale standard error. */
+/** Parse Epoch's mirror into the identity and evidence fields used by WeirdML reconciliation. */
 export function processEpochWeirdMlCsv(csv: string): WeirdMlEpochRow[] {
   return parseCsvRecords(csv).flatMap((record) => {
     const modelVersion = record["Model version"]?.trim();
@@ -54,7 +53,6 @@ export function processEpochWeirdMlCsv(csv: string): WeirdMlEpochRow[] {
     const accuracy = asFiniteNumber(record.Accuracy);
     const costPerRun = asFiniteNumber(record["Cost per run"]);
     const medianCodeLength = asFiniteNumber(record["Median code length (lines)"]);
-    const epochAccuracySe = asFiniteNumber(record["Accuracy SE"]);
     if (
       modelVersion == null ||
       modelVersion.length === 0 ||
@@ -83,7 +81,6 @@ export function processEpochWeirdMlCsv(csv: string): WeirdMlEpochRow[] {
         accuracy,
         cost_per_run_usd: costPerRun,
         code_len_p50: medianCodeLength,
-        standard_error: epochAccuracySe == null ? null : epochAccuracySe * 100,
         observed_at: record["Version release date"]?.trim() || null,
       },
     ];

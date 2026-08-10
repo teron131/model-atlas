@@ -57,6 +57,26 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "agentic SaaS workflow"],
     ],
   },
+  arc_agi_2: {
+    title: "ARC-AGI-2",
+    body: "Solve novel abstract visual transformation tasks from a small set of demonstrations.",
+    rows: [
+      ["Source", "ARC Prize verified leaderboard"],
+      ["Split", "Semi-Private"],
+      ["Metric", "task success"],
+      ["Role", "fluid reasoning"],
+    ],
+  },
+  arc_agi_3: {
+    title: "ARC-AGI-3",
+    body: "Discover rules and solve unfamiliar interactive environments through efficient action and feedback.",
+    rows: [
+      ["Source", "ARC Prize verified leaderboard"],
+      ["Split", "Semi-Private"],
+      ["Metric", "human-relative action efficiency"],
+      ["Role", "interactive fluid reasoning"],
+    ],
+  },
   blueprint_bench_2: {
     title: "Blueprint-Bench 2",
     body: "Reconstruct apartment floor plans from interior photographs.",
@@ -425,6 +445,8 @@ export const BENCHMARK_LABELS = {
   agents_last_exam: "Agents' Last Exam",
   ale_bench: "ALE-Bench",
   apex_agents: "APEX Agents",
+  arc_agi_2: "ARC-AGI-2",
+  arc_agi_3: "ARC-AGI-3",
   automation_bench: "AutomationBench",
   blueprint_bench_2: "Blueprint-Bench 2",
   briefcase: "Briefcase",
@@ -481,6 +503,8 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "agents_last_exam",
   "ale_bench",
   "apex_agents",
+  "arc_agi_2",
+  "arc_agi_3",
   "automation_bench",
   "blueprint_bench_2",
   "briefcase",
@@ -807,6 +831,18 @@ export const BENCHMARK_COLUMNS = {
   automation_bench: {
     key: "automationBench",
     label: "Auto",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  arc_agi_2: {
+    key: "arcAgi2",
+    label: "ARC-2",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  arc_agi_3: {
+    key: "arcAgi3",
+    label: "ARC-3",
     format: "percent",
     defaultSort: "descending",
   },

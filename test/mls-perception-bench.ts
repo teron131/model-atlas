@@ -29,18 +29,15 @@ assert.deepEqual(
     model: row.model,
     effort: row.reasoning_effort,
     harness: row.metadata.harness,
-    score: row.reported_value,
+    score: row.canonical_value,
   })),
   [
-    { rank: 1, model: "Claude Fable 5", effort: "max", harness: "Claude Code", score: 49.9 },
-    { rank: 2, model: "Qwen3.8-Max", effort: null, harness: "Claude Code", score: 41 },
+    { rank: 1, model: "Claude Fable 5", effort: "max", harness: "Claude Code", score: 0.499 },
+    { rank: 2, model: "Qwen3.8-Max", effort: null, harness: "Claude Code", score: 0.41 },
   ],
 );
 assert.equal(mlsRows[0]?.metadata.fallback, true);
-assert.equal(mlsRows[0]?.reported_unit, "percent");
 assert.equal(mlsRows[0]?.canonical_value, 0.499);
-assert.equal(mlsRows[0]?.canonical_unit, "proportion");
-assert.equal(mlsRows[0]?.inference_provider, null);
 assert.deepEqual(mlsRows[1]?.metadata, { harness: "Claude Code" });
 
 const perceptionRows = processPerceptionBenchReadme(`
@@ -56,7 +53,6 @@ const perceptionRows = processPerceptionBenchReadme(`
 Footer
 `);
 assert.equal(perceptionRows.length, 3);
-assert.equal(perceptionRows[0]?.reported_value, 59.7);
 assert.equal(perceptionRows[0]?.canonical_value, 0.597);
 assert.equal(perceptionRows[0]?.reasoning_effort, "max");
 assert.deepEqual(perceptionRows[0]?.metadata, {});
