@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS benchmark_observation_raw_rows (
 	model_creator TEXT,
 	rank INTEGER,
 	canonical_value REAL NOT NULL,
+	cost REAL,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
 	PRIMARY KEY (source_key, row_index)

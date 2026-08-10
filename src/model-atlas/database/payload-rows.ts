@@ -65,6 +65,7 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "reasoning_effort",
   "model_creator",
   "canonical_value",
+  "cost",
 ] as const;
 
 /** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */

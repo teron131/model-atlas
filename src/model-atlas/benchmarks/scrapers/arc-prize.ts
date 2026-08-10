@@ -13,11 +13,7 @@ import {
 } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { stringValue } from "../../scrapers/parsing";
-import type {
-  BenchmarkObservationMetadata,
-  BenchmarkObservationPayload,
-  BenchmarkObservationRow,
-} from "../observation";
+import type { BenchmarkObservationPayload, BenchmarkObservationRow } from "../observation";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SCORE_ELIGIBLE_MODEL_TYPES = new Set(["Base LLM", "CoT"]);
@@ -39,7 +35,7 @@ type ParsedArcPrizeRow = {
   reasoning_effort: string | null;
   model_creator: string;
   score: number;
-  metadata: BenchmarkObservationMetadata;
+  cost: number | null;
   source_index: number;
 };
 
@@ -93,13 +89,7 @@ function arcPrizeObservation(
 
   const model = displayName.replace(/\s*[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/u, "").trim();
   const identity = arcModelIdentity(model, creator);
-  const metadata: BenchmarkObservationMetadata = {};
   const cost = asFiniteNumber(options.datasetId === "v2_Semi_Private" ? row.costPerTask : row.cost);
-  if (cost != null && cost >= 0) {
-    metadata[
-      options.datasetId === "v2_Semi_Private" ? "cost_per_task_usd" : "evaluation_cost_usd"
-    ] = cost;
-  }
 
   return {
     model_id: modelId,
@@ -108,7 +98,7 @@ function arcPrizeObservation(
     reasoning_effort: identity.reasoningEffort,
     model_creator: creator,
     score,
-    metadata,
+    cost: cost != null && cost >= 0 ? cost : null,
     source_index: sourceIndex,
   };
 }
@@ -133,7 +123,7 @@ export function processArcPrizeLeaderboardJson(
         row.reasoning_effort,
         row.model_creator,
         row.score,
-        row.metadata,
+        row.cost,
       ]);
       if (seenRows.has(key)) return false;
       seenRows.add(key);
@@ -156,8 +146,9 @@ export function processArcPrizeLeaderboardJson(
       model_creator: row.model_creator,
       rank,
       canonical_value: row.score,
+      ...(row.cost == null ? {} : { cost: row.cost }),
       observed_at: observedAt,
-      metadata: row.metadata,
+      metadata: {},
     };
   });
 }

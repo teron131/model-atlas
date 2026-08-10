@@ -12,6 +12,7 @@ import {
   BENCHMARK_PORTFOLIO,
 } from "../src/model-atlas/benchmarks/registry";
 import { processArcPrizeLeaderboardJson } from "../src/model-atlas/benchmarks/scrapers/arc-prize";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 
 const v2SourceUrl = "https://arcprize.org/media/data/leaderboard/v2.json";
 const v2Rows = processArcPrizeLeaderboardJson(
@@ -112,6 +113,7 @@ assert.deepEqual(
   ],
 );
 const sol = v2Rows[0];
+assert.ok(sol);
 assert.deepEqual(sol, {
   benchmark_key: "arc_agi_2",
   source_url: v2SourceUrl,
@@ -122,8 +124,9 @@ assert.deepEqual(sol, {
   model_creator: "OpenAI",
   rank: 1,
   canonical_value: 0.9,
+  cost: 1.44,
   observed_at: "2026-08-07T20:07:24.014Z",
-  metadata: { cost_per_task_usd: 1.44 },
+  metadata: {},
 });
 assert.equal(v2Rows[1]?.base_model, "Claude Opus 4.6");
 assert.equal(v2Rows[1]?.reasoning_effort, "max");
@@ -155,11 +158,16 @@ const v3Rows = processArcPrizeLeaderboardJson(
     sourceUrl: "https://arcprize.org/media/data/leaderboard/v3.json",
   },
 );
-assert.equal(v3Rows[0]?.base_model, "Claude Opus 5");
-assert.equal(v3Rows[0]?.reasoning_effort, "high");
-assert.equal(v3Rows[0]?.observed_at, "2026-08-07T20:07:24.014Z");
-assert.deepEqual(v3Rows[0]?.metadata, {
-  evaluation_cost_usd: 20657.37,
+const opus = v3Rows[0];
+assert.ok(opus);
+assert.equal(opus.base_model, "Claude Opus 5");
+assert.equal(opus.reasoning_effort, "high");
+assert.equal(opus.observed_at, "2026-08-07T20:07:24.014Z");
+assert.equal(opus.cost, 20657.37);
+assert.deepEqual(opus.metadata, {});
+assert.deepEqual(buildTaskMetrics(null, { arc_agi_2: sol, arc_agi_3: opus }), {
+  arc_agi_2: { cost: 1.44 },
+  arc_agi_3: { cost: 20657.37 },
 });
 
 const bindings = Object.fromEntries(

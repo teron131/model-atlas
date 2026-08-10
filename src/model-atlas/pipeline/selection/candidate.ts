@@ -41,7 +41,7 @@ const EMPTY_OPENROUTER_PRICING = {
 } as const;
 const TASK_METRIC_FIELDS = {
   cost: {
-    direct: ["cost_per_task_usd", "cost_per_task"],
+    direct: ["cost", "cost_per_task_usd", "cost_per_task"],
     summaries: [
       "median_cost_usd_per_task",
       "mean_cost_usd_per_task",
@@ -330,7 +330,7 @@ function taskCostMultiplier(
   return multiplier;
 }
 
-/** Normalize benchmark resource telemetry into the candidate's public per-task shape. */
+/** Normalize resource telemetry; the portfolio declares whether amounts are per-task or total. */
 export function buildTaskMetrics(
   artificialAnalysisSource: unknown,
   scoringSources: ModelAtlasScoringSources,

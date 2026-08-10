@@ -36,6 +36,8 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | Agents' Last Exam | Linear | Partial-credit performance is a graded task score, not a binary completion probability. |
 | ALE-Bench | Linear | Native Performance can exceed 100 and must retain its full spacing. |
 | APEX Agents | Logit | Loop Pass@1 is a bounded task-completion rate. |
+| ARC-AGI-2 | Logit | Task success is a bounded correctness rate with meaningful remaining error. |
+| ARC-AGI-3 | Linear | Human-relative action efficiency is a continuous efficiency ratio, not a completion probability. |
 | AutomationBench | Logit | The headline score is a bounded workflow-success rate. |
 | Briefcase | Linear | The 0-1 value is a linear normalization of Elo, not probability. |
 | CritPt | Logit | The score is a bounded correctness rate with meaningful remaining error. |
@@ -147,7 +149,7 @@ Explicit effort observations stay attached to their matching scored variants, an
 
 **APEX Agents** uses Artificial Analysis when available. A missing AA value can use Mercor's Loop Pass@1 score for the same model and assigned reasoning effort after the current AA-Mercor overlap passes the [validated additive source crosswalk](methodology.md#validated-additive-source-crosswalk). This policy requires at least three effective overlap families, at least three effective families with valid held-out predictions, and a family-balanced held-out median absolute error of at most `0.02`; projections are clamped to `[0,1]`. An unlabelled AA row uses the source-default highest effort under the ordinary matching rule.
 
-**ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard JSON. Public demo, community, competition, custom, refinement, and synthesis systems are discarded during parsing. Model Atlas keeps only comparable general-model observations and preserves every disclosed reasoning-effort variant. ARC-AGI-2 uses task success on the shared proportion scale; ARC-AGI-3 uses human-relative action efficiency on that same scale. The scraper retains model identity, creator, score, rank among retained rows, source update time, and the applicable cost field; model-type labels, release dates, result links, and chart presentation fields are discarded. ARC-AGI-2 cost is per task, while ARC-AGI-3 cost is for the complete evaluation; neither feeds Speed or Value.
+**ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard JSON. Public demo, community, competition, custom, refinement, and synthesis systems are discarded during parsing. Model Atlas keeps only comparable general-model observations and preserves every disclosed reasoning-effort variant. ARC-AGI-2 uses task success on the shared proportion scale; ARC-AGI-3 uses human-relative action efficiency on that same scale. The scraper retains model identity, creator, score, rank among retained rows, source update time, and cost; model-type labels, release dates, result links, and chart presentation fields are discarded. ARC-AGI-2 declares cost per task and ARC-AGI-3 declares total cost for the fixed evaluation. Each cost feeds Value only within its own benchmark; neither feeds Speed.
 
 **AutomationBench** comes from the dedicated Artificial Analysis benchmark page, not Zapier's hosted leaderboard. Model Atlas uses the AA headline score directly and keeps the page's reasoning-effort label, per-task cost, runtime, and token telemetry for resource scoring.
 

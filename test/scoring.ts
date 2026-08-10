@@ -218,6 +218,8 @@ assert.deepEqual(resourceQualityCoordinates, {
   agents_last_exam: "linear",
   ale_bench: "linear",
   apex_agents: "logit",
+  arc_agi_2: "logit",
+  arc_agi_3: "linear",
   automation_bench: "logit",
   briefcase: "linear",
   critpt: "logit",

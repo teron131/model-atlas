@@ -27,6 +27,12 @@ const BENCHMARK_PER_TASK_RESOURCE = {
   tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourceMeasurement;
 
+const BENCHMARK_TOTAL_RESOURCE = {
+  source: "benchmark",
+  unit: "total",
+  tokenMeasure: "tokens",
+} as const satisfies BenchmarkResourceMeasurement;
+
 const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
   source: "benchmark",
   unit: "per_task",
@@ -300,6 +306,14 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   apex_agents: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
+  },
+  arc_agi_2: {
+    ...BENCHMARK_PER_TASK_RESOURCE,
+    qualityCoordinate: "logit",
+  },
+  arc_agi_3: {
+    ...BENCHMARK_TOTAL_RESOURCE,
+    qualityCoordinate: "linear",
   },
   automation_bench: {
     ...ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE,

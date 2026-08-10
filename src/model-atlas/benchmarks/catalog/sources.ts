@@ -14,6 +14,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   arc_agi_2: {
     group: "standalone",
     id: "arc_prize",
+    roles: ["observation", "resource"],
     loader: {
       kind: "arc_prize",
       datasetId: "v2_Semi_Private",
@@ -25,6 +26,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   arc_agi_3: {
     group: "standalone",
     id: "arc_prize",
+    roles: ["observation", "resource"],
     loader: {
       kind: "arc_prize",
       datasetId: "v3_Semi_Private",
@@ -296,6 +298,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       {
         group: BenchmarkSourceGroup;
         id: string;
+        roles?: readonly ["observation"] | readonly ["observation", "resource"];
         loader: BenchmarkObservationLoader;
         sourceDataKey: string;
         sourceRowsKey: string;

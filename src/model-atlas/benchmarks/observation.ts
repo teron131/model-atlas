@@ -23,6 +23,7 @@ export type BenchmarkObservationRow = {
   model_creator: string | null;
   rank: number | null;
   canonical_value: number;
+  cost?: number | null;
   observed_at: string | null;
   metadata: BenchmarkObservationMetadata;
 };
