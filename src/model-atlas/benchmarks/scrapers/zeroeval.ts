@@ -35,7 +35,6 @@ type ZeroEvalObservationFields = {
   model: string;
   provider: string;
   providerName: string | null;
-  reportedValue: number;
   canonicalValue: number;
   reportedSourceUrl: string | null;
   analysisMethod: string | null;
@@ -58,23 +57,21 @@ function unitScore(value: unknown): number | null {
 
 function zeroEvalObservationFields(value: unknown): ZeroEvalObservationFields | null {
   const row = asRecord(value);
-  const model = stringValue(row?.model_name);
-  const provider = stringValue(row?.organization_id);
-  const reportedValue = unitScore(row?.score) ?? unitScore(row?.normalized_score);
-  const canonicalValue = unitScore(row?.normalized_score) ?? reportedValue;
-  if (model == null || provider == null || reportedValue == null || canonicalValue == null) {
+  const model = stringValue(row.model_name);
+  const provider = stringValue(row.organization_id);
+  const canonicalValue = unitScore(row.normalized_score) ?? unitScore(row.score);
+  if (model == null || provider == null || canonicalValue == null) {
     return null;
   }
   return {
     model,
     provider,
-    providerName: stringValue(row?.organization_name),
-    reportedValue,
+    providerName: stringValue(row.organization_name),
     canonicalValue,
-    reportedSourceUrl: stringValue(row?.self_reported_source),
-    analysisMethod: stringValue(row?.analysis_method),
-    verified: booleanValue(row?.verified),
-    selfReported: booleanValue(row?.self_reported),
+    reportedSourceUrl: stringValue(row.self_reported_source),
+    analysisMethod: stringValue(row.analysis_method),
+    verified: booleanValue(row.verified),
+    selfReported: booleanValue(row.self_reported),
   };
 }
 
@@ -110,18 +107,9 @@ export function processZeroEvalDetailsJson(
         model: fields.model,
         base_model: fields.model,
         reasoning_effort: null,
-        model_creator_id: fields.provider,
         model_creator: fields.providerName ?? fields.provider,
-        inference_provider: null,
         rank: options.rankField == null ? null : asFiniteNumber(sourceRow[options.rankField]),
-        reported_value: fields.reportedValue,
-        reported_unit: "proportion",
         canonical_value: fields.canonicalValue,
-        canonical_unit: "proportion",
-        score_eligible: true,
-        standard_error: null,
-        confidence_low: null,
-        confidence_high: null,
         observed_at: observedAt,
         metadata,
       },

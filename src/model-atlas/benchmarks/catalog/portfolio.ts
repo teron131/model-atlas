@@ -59,6 +59,16 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
+  arc_agi_2: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
+  arc_agi_3: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
+  },
   automation_bench: {
     group: "frontier",
     benchmarkImportance: 1,

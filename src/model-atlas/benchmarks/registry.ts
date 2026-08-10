@@ -292,7 +292,6 @@ export const BENCHMARK_OBSERVATION_BINDINGS = BENCHMARK_OBSERVATION_KEYS.map((ke
     benchmark: key,
     loader: source.loader,
     rawTable: BENCHMARK_OBSERVATION_RAW_TABLE,
-    source: source.id,
     sourceDataKey: source.sourceDataKey,
     sourceRowsKey: source.sourceRowsKey,
   };

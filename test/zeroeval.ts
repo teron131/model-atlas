@@ -52,7 +52,6 @@ const rows = processZeroEvalDetailsJson(
 assert.deepEqual(
   rows.map((row) => ({
     model: row.model,
-    reportedValue: row.reported_value,
     canonicalValue: row.canonical_value,
     rank: row.rank,
     observedAt: row.observed_at,
@@ -60,21 +59,18 @@ assert.deepEqual(
   [
     {
       model: "Normalized Model",
-      reportedValue: 0.6,
       canonicalValue: 0.625,
       rank: 1,
       observedAt: "2026-05-28",
     },
     {
       model: "Raw Fallback",
-      reportedValue: 0.5,
       canonicalValue: 0.5,
       rank: 2,
       observedAt: null,
     },
     {
       model: "Normalized Fallback",
-      reportedValue: 0.4,
       canonicalValue: 0.4,
       rank: 3,
       observedAt: null,

@@ -2,7 +2,6 @@
 
 import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
 import {
-  booleanFromSql,
   type CacheRowSource,
   firstEpochSecond,
   queryCacheRows,
@@ -20,10 +19,9 @@ import type {
   SourceSnapshots,
   SourceSnapshotStatus,
 } from "../../ingest/types";
-import { type DatabaseWriter, sqliteBooleanValue } from "../../ingest/writers/database";
+import type { DatabaseWriter } from "../../ingest/writers/database";
 import { asFiniteNumber } from "../../runtime";
 import type {
-  BenchmarkMetricUnit,
   BenchmarkObservationMetadata,
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
@@ -47,10 +45,6 @@ function benchmarkObservationMetadata(value: unknown): BenchmarkObservationMetad
   }
 }
 
-function benchmarkMetricUnit(value: unknown): BenchmarkMetricUnit | null {
-  return value === "index" || value === "percent" || value === "proportion" ? value : null;
-}
-
 function readBenchmarkObservationRows(
   cache: CacheRowSource,
   table: string,
@@ -71,11 +65,7 @@ function readBenchmarkObservationRows(
     const sourceUrl = stringValue(row.url);
     const model = stringValue(row.model);
     const baseModel = stringValue(row.base_model);
-    const reportedValue = asFiniteNumber(row.reported_value);
-    const reportedUnit = benchmarkMetricUnit(row.reported_unit);
     const canonicalValue = asFiniteNumber(row.canonical_value);
-    const canonicalUnit = benchmarkMetricUnit(row.canonical_unit);
-    const scoreEligible = booleanFromSql(row.score_eligible);
     const metadata = benchmarkObservationMetadata(row.metadata_json);
     const reasoningEffort = stringValue(row.reasoning_effort);
     if (
@@ -84,11 +74,7 @@ function readBenchmarkObservationRows(
       (expectedUrl != null && sourceUrl !== expectedUrl) ||
       model == null ||
       baseModel == null ||
-      reportedValue == null ||
-      reportedUnit == null ||
       canonicalValue == null ||
-      canonicalUnit == null ||
-      scoreEligible == null ||
       metadata == null
     )
       return [];
@@ -113,18 +99,9 @@ function readBenchmarkObservationRows(
             ? parsedModel.baseModel
             : baseModel,
         reasoning_effort: reasoningEffort,
-        model_creator_id: stringValue(row.model_creator_id),
         model_creator: stringValue(row.model_creator),
-        inference_provider: stringValue(row.inference_provider),
         rank: asFiniteNumber(row.rank),
-        reported_value: reportedValue,
-        reported_unit: reportedUnit,
         canonical_value: canonicalValue,
-        canonical_unit: canonicalUnit,
-        score_eligible: scoreEligible,
-        standard_error: asFiniteNumber(row.standard_error),
-        confidence_low: asFiniteNumber(row.confidence_low),
-        confidence_high: asFiniteNumber(row.confidence_high),
         observed_at: stringValue(row.observed_at),
         metadata,
       },
@@ -218,12 +195,9 @@ export function insertBenchmarkObservationRows(
   const statement = db.prepare(`
 		INSERT INTO ${BENCHMARK_OBSERVATION_RAW_TABLE} (
 			source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
-			model_id, model, base_model, reasoning_effort, model_creator_id,
-			model_creator, inference_provider, rank,
-			reported_value, reported_unit, canonical_value, canonical_unit,
-			score_eligible, standard_error, confidence_low, confidence_high,
-			observed_at, metadata_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			model_id, model, base_model, reasoning_effort, model_creator, rank,
+			canonical_value, observed_at, metadata_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
     const rows = snapshots[binding.sourceRowsKey] as readonly BenchmarkObservationRow[];
@@ -239,18 +213,9 @@ export function insertBenchmarkObservationRows(
         row.model,
         row.base_model,
         row.reasoning_effort,
-        row.model_creator_id,
         row.model_creator,
-        row.inference_provider,
         row.rank,
-        row.reported_value,
-        row.reported_unit,
         row.canonical_value,
-        row.canonical_unit,
-        sqliteBooleanValue(row.score_eligible),
-        row.standard_error,
-        row.confidence_low,
-        row.confidence_high,
         row.observed_at,
         JSON.stringify(row.metadata),
       );

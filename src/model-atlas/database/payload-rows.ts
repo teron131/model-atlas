@@ -63,11 +63,8 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "model",
   "base_model",
   "reasoning_effort",
-  "model_creator_id",
   "model_creator",
-  "inference_provider",
   "canonical_value",
-  "score_eligible",
 ] as const;
 
 /** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */

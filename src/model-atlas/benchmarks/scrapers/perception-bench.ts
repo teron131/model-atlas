@@ -8,7 +8,6 @@
 import {
   canonicalReasoningEffort,
   modelNameWithoutCreatorPrefix,
-  normalizeModelToken,
 } from "../../identity/normalization";
 import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { percentToUnitScore } from "../../scrapers/parsing";
@@ -106,18 +105,9 @@ export function processPerceptionBenchReadme(
       model,
       base_model: modelNameWithoutCreatorPrefix(model, creator),
       reasoning_effort: canonicalReasoningEffort(MODEL_EFFORTS[model]),
-      model_creator_id: creator == null ? null : normalizeModelToken(creator),
       model_creator: creator,
-      inference_provider: null,
       rank,
-      reported_value: overall,
-      reported_unit: "percent",
       canonical_value: canonicalValue,
-      canonical_unit: "proportion",
-      score_eligible: true,
-      standard_error: null,
-      confidence_low: null,
-      confidence_high: null,
       observed_at: null,
       metadata,
     });

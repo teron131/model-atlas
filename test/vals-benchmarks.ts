@@ -1,4 +1,4 @@
-/** Exercises shared VALS hydration parsing, source-specific eligibility, metadata, and failure fallback. */
+/** Exercises Vals hydration parsing, canonical-row filtering, provenance, and failure fallback. */
 
 import assert from "node:assert/strict";
 
@@ -115,46 +115,30 @@ for (const benchmarkKey of valsBenchmarkKeys) {
   const definition = valsDefinition(benchmarkKey);
   const processPage = (html: string) => processValsBenchmarkPageHtml(html, definition);
   const rows = processPage(pageHtml);
-  assert.equal(rows.length, 6);
+  assert.equal(rows.length, definition.canonicalTask === "overall" ? 2 : 1);
   assert.equal(
     rows.every((row) => row.benchmark_key === benchmarkKey),
     true,
   );
-  assert.deepEqual(
-    [...new Set(rows.filter((row) => row.score_eligible).map((row) => row.metadata.task))],
-    [definition.canonicalTask],
-  );
-  assert.equal(rows.find((row) => row.metadata.task === "secondary")?.score_eligible, false);
   assert.deepEqual(processPage("<main>Malformed</main>"), []);
 }
 
 const legalDefinition = valsDefinition("legal_research");
 const legalRows = processValsBenchmarkPageHtml(pageHtml, legalDefinition);
-const overall = legalRows.find(
-  (row) => row.model_id === "openai/gpt-test" && row.metadata.task === "overall",
-);
+const overall = legalRows.find((row) => row.model_id === "openai/gpt-test");
 assert.ok(overall);
 assert.equal(overall.model, "gpt-test (high)");
 assert.equal(overall.base_model, "gpt-test");
 assert.equal(overall.reasoning_effort, "high");
 assert.equal(overall.rank, 1);
 assert.equal(overall.canonical_value, 0.75);
-assert.equal(overall.reported_value, 75);
-assert.equal(overall.standard_error, 4.25);
-assert.equal(overall.metadata.task_label, "Overall");
-assert.equal(overall.metadata.benchmark_version, "2");
-assert.equal(overall.metadata.runner, "external");
-assert.equal(overall.metadata.mode, "agentic");
-assert.equal(overall.metadata.cost_per_test_usd, 1.75);
-assert.equal(overall.metadata.latency_seconds, 12.5);
-assert.equal(overall.metadata.temperature, 0.7);
-assert.equal(overall.metadata.top_p, 0.95);
-assert.equal(overall.metadata.max_output_tokens, 32_000);
-assert.equal(overall.metadata.compute_effort, "max");
-assert.equal(overall.metadata.harness, "Source Harness");
-assert.equal(overall.metadata.reasoning, '{"budget_tokens":8000}');
-assert.equal(overall.metadata.task_results, '{"sample":{"passed":true}}');
-assert.equal(overall.metadata.usage, '{"output_tokens":123}');
+assert.deepEqual(overall.metadata, {
+  benchmark_version: "2",
+  dataset_type: "private",
+  runner: "external",
+  mode: "agentic",
+  harness: "Source Harness",
+});
 
 void getValsSourceStats(legalDefinition, {
   url: "http://127.0.0.1:1",

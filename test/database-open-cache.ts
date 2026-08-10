@@ -175,12 +175,9 @@ try {
       .prepare(`
 				INSERT INTO benchmark_observation_raw_rows (
 					source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
-					model_id, model, base_model, reasoning_effort, model_creator_id,
-					model_creator, inference_provider, rank,
-					reported_value, reported_unit, canonical_value, canonical_unit,
-					score_eligible, standard_error, confidence_low,
-					confidence_high, observed_at, metadata_json
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					model_id, model, base_model, reasoning_effort, model_creator, rank,
+					canonical_value, observed_at, metadata_json
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`)
       .run(
         "browsecomp",
@@ -192,18 +189,9 @@ try {
         "Claude Fable 5",
         "Claude Fable 5",
         null,
-        "anthropic",
         "Anthropic",
         null,
-        null,
         0.5,
-        "proportion",
-        0.5,
-        "proportion",
-        1,
-        null,
-        null,
-        null,
         null,
         JSON.stringify({}),
       );

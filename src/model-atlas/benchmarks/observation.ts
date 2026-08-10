@@ -12,9 +12,7 @@ export type BenchmarkObservationMetadata = Record<
   string | number | boolean | null | string[] | number[]
 >;
 
-export type BenchmarkMetricUnit = "index" | "percent" | "proportion";
-
-/** A raw observation keeps source-reported evidence separate from its adapter-canonical value, which is not an Atlas score. */
+/** Direct benchmark evidence normalized for matching, scoring, and freshness. */
 export type BenchmarkObservationRow = {
   benchmark_key: string;
   source_url: string;
@@ -22,18 +20,9 @@ export type BenchmarkObservationRow = {
   model: string;
   base_model: string;
   reasoning_effort: string | null;
-  model_creator_id: string | null;
   model_creator: string | null;
-  inference_provider: string | null;
   rank: number | null;
-  reported_value: number;
-  reported_unit: BenchmarkMetricUnit;
   canonical_value: number;
-  canonical_unit: BenchmarkMetricUnit;
-  score_eligible: boolean;
-  standard_error: number | null;
-  confidence_low: number | null;
-  confidence_high: number | null;
   observed_at: string | null;
   metadata: BenchmarkObservationMetadata;
 };
@@ -92,7 +81,6 @@ export function buildBenchmarkObservationLookup(
   const rowsByModel = new Map<string, BenchmarkObservationRow>();
   const defaultByBase = new Map<string, BenchmarkObservationRow>();
   for (const row of rows) {
-    if (!row.score_eligible) continue;
     for (const key of modelKeys(row)) {
       const exactKey =
         row.reasoning_effort == null ? key : `${key}--${normalizeModelToken(row.reasoning_effort)}`;

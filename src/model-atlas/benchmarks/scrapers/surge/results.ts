@@ -37,14 +37,6 @@ type SurgeLeaderboardScoreRow = {
 
 type SurgeScoreKind = "percent" | "elo";
 
-type SurgeLeaderboardObservation = SurgeLeaderboardScoreRow & {
-  reportedValue: number;
-  reportedUnit: "percent" | "index";
-  canonicalUnit: "proportion" | "index";
-  confidenceLow: number | null;
-  confidenceHigh: number | null;
-};
-
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -121,18 +113,11 @@ function surgeScoreText(rowHtml: string): string | null {
   return score != null && score.length > 0 ? score : null;
 }
 
-function surgeConfidenceBound(rowHtml: string, bound: "lower" | "upper"): number | null {
-  const attribute = htmlAttribute(rowHtml, `data-leaderboard-ci-${bound}`);
-  if (attribute == null || attribute.length === 0) return null;
-  const value = Number(attribute);
-  return Number.isFinite(value) ? value : null;
-}
-
 function surgeLeaderboardScoreRow(
   rowHtml: string,
   lastUpdated: string | null,
   scoreKind: SurgeScoreKind = "percent",
-): SurgeLeaderboardObservation | null {
+): SurgeLeaderboardScoreRow | null {
   const model = surgeModelName(rowHtml);
   const scoreText = surgeScoreText(rowHtml);
   if (model == null || scoreText == null) return null;
@@ -142,12 +127,7 @@ function surgeLeaderboardScoreRow(
   return {
     provider: surgeProvider(rowHtml),
     model,
-    reportedValue,
-    reportedUnit: scoreKind === "percent" ? "percent" : "index",
     score: canonicalValue,
-    canonicalUnit: scoreKind === "percent" ? "proportion" : "index",
-    confidenceLow: scoreKind === "elo" ? surgeConfidenceBound(rowHtml, "lower") : null,
-    confidenceHigh: scoreKind === "elo" ? surgeConfidenceBound(rowHtml, "upper") : null,
     last_updated: lastUpdated,
   };
 }
@@ -156,7 +136,7 @@ export function surgeLeaderboardScoreRows(pageHtml: string): SurgeLeaderboardSco
   const lastUpdated = surgeLastUpdated(pageHtml);
   return surgeLeaderboardRows(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
-    .filter((row): row is SurgeLeaderboardObservation => row != null)
+    .filter((row): row is SurgeLeaderboardScoreRow => row != null)
     .map((row) => ({
       provider: row.provider,
       model: row.model,
@@ -174,14 +154,14 @@ export function processSurgeBenchmarkPageHtml(
   const lastUpdated = surgeLastUpdated(pageHtml);
   const rows = surgeLeaderboardRows(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated, scoreKind))
-    .filter((row): row is SurgeLeaderboardObservation => row != null);
+    .filter((row): row is SurgeLeaderboardScoreRow => row != null);
   let rank = 0;
   let previousScore: number | null = null;
   return rows.map((row, index) => {
-    if (previousScore == null || row.reportedValue !== previousScore) {
+    if (previousScore == null || row.score !== previousScore) {
       rank = index + 1;
     }
-    previousScore = row.reportedValue;
+    previousScore = row.score;
     const parsed = benchmarkModelEffort(row.model);
     return {
       benchmark_key: benchmarkKey,
@@ -190,18 +170,9 @@ export function processSurgeBenchmarkPageHtml(
       model: row.model,
       base_model: modelNameWithoutCreatorPrefix(parsed.baseModel, row.provider),
       reasoning_effort: parsed.reasoningEffort,
-      model_creator_id: null,
       model_creator: row.provider,
-      inference_provider: null,
       rank,
-      reported_value: row.reportedValue,
-      reported_unit: row.reportedUnit,
       canonical_value: row.score,
-      canonical_unit: row.canonicalUnit,
-      score_eligible: true,
-      standard_error: null,
-      confidence_low: row.confidenceLow,
-      confidence_high: row.confidenceHigh,
       observed_at: row.last_updated,
       metadata: {},
     };
