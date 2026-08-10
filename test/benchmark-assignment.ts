@@ -491,7 +491,6 @@ const replacementRows = prepareVersionReplacementBenchmarkRows(
         critpt: 0.7,
         epoch_capabilities_index: 0.45,
         hle: 0.36,
-        lcr: 0.66,
         riemann_bench: 0.7,
         scicode: 0.5,
         vals_index: 0.64,
@@ -531,7 +530,6 @@ const replacementRows = prepareVersionReplacementBenchmarkRows(
         critpt: 0.7,
         epoch_capabilities_index: 0.45,
         hle: 0.36,
-        lcr: 0.66,
         riemann_bench: 0.6,
         scicode: 0.5,
         vals_index: 0.64,
@@ -569,11 +567,6 @@ assert.equal(
   replacementBenchmarks.hle,
   0.36,
   "a confirmed stable AA alias should identify the current replacement version",
-);
-assert.equal(
-  replacementBenchmarks.lcr,
-  0.66,
-  "a native AA benchmark should inherit the confirmed row-level replacement identity",
 );
 assert.equal(
   replacementBenchmarks.scicode,

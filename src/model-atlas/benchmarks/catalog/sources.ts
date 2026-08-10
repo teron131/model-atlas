@@ -535,16 +535,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  lcr: {
-    inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation"],
-        adapters: [{ kind: "artificial_analysis_leaderboard", aliases: ["lcr"] }],
-      },
-    ],
-  },
   omniscience_accuracy: {
     inputs: [
       {

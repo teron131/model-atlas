@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	harvey_lab REAL,
 	hle REAL,
 	itbench_sre REAL,
-	lcr REAL,
 	mmmu_pro REAL,
 	scicode REAL,
 	tau_banking REAL,
