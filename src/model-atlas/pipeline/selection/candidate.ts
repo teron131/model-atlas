@@ -39,49 +39,6 @@ const EMPTY_OPENROUTER_PRICING = {
   weighted_input: null,
   weighted_output: null,
 } as const;
-const TASK_METRIC_FIELDS = {
-  cost: {
-    direct: ["cost", "cost_per_task_usd", "cost_per_task"],
-    summaries: [
-      "median_cost_usd_per_task",
-      "mean_cost_usd_per_task",
-      "median_cost_usd",
-      "mean_cost_usd",
-    ],
-  },
-  seconds: {
-    direct: ["seconds_per_task", "duration_seconds_per_task"],
-    summaries: [
-      "median_duration_seconds_per_task",
-      "mean_duration_seconds_per_task",
-      "median_duration_seconds",
-      "mean_duration_seconds",
-    ],
-  },
-  tokens: {
-    direct: ["tokens_per_task"],
-    summaries: ["median_tokens_per_task", "mean_tokens_per_task"],
-  },
-  input_tokens: {
-    direct: ["input_tokens_per_task"],
-    summaries: ["median_input_tokens_per_task", "mean_input_tokens_per_task"],
-  },
-  output_tokens: {
-    direct: ["output_tokens_per_task"],
-    summaries: [
-      "median_output_tokens_per_task",
-      "mean_output_tokens_per_task",
-      "median_output_tokens",
-      "mean_output_tokens",
-    ],
-  },
-} as const satisfies Record<
-  TaskMetricNumericKey,
-  {
-    direct: readonly string[];
-    summaries: readonly string[];
-  }
->;
 const PRICE_RATIO_TOLERANCE = 1e-9;
 
 export type BenchmarkVersioningOptions = {
@@ -330,7 +287,7 @@ function taskCostMultiplier(
   return multiplier;
 }
 
-/** Normalize resource telemetry; the portfolio declares whether amounts are per-task or total. */
+/** Normalize source telemetry into unit-neutral task metrics. */
 export function buildTaskMetrics(
   artificialAnalysisSource: unknown,
   scoringSources: ModelAtlasScoringSources,
@@ -448,12 +405,9 @@ export function versionCandidateBenchmarkData(
   };
 }
 
-function firstFiniteNumber(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-): number | null {
-  for (const key of keys) {
-    const value = asFiniteNumber(record[key]);
+function firstFiniteNumber(...values: unknown[]): number | null {
+  for (const candidate of values) {
+    const value = asFiniteNumber(candidate);
     if (value != null) {
       return value;
     }
@@ -461,13 +415,10 @@ function firstFiniteNumber(
   return null;
 }
 
-function minimumFiniteNumber(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-): number | null {
+function minimumFiniteNumber(...values: unknown[]): number | null {
   let minimum: number | null = null;
-  for (const key of keys) {
-    const value = asFiniteNumber(record[key]);
+  for (const candidate of values) {
+    const value = asFiniteNumber(candidate);
     if (value != null && (minimum == null || value < minimum)) {
       minimum = value;
     }
@@ -475,17 +426,46 @@ function minimumFiniteNumber(
   return minimum;
 }
 
-/** Extract common per-task telemetry field shapes from any benchmark source row. */
+/** Translate known source resource fields into the benchmark-neutral task-metric contract. */
 function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null {
   const row = asRecord(source);
-  const taskMetrics: ModelAtlasTaskMetricValues = {};
-  for (const [key, fields] of Object.entries(TASK_METRIC_FIELDS)) {
-    const value =
-      firstFiniteNumber(row, fields.direct) ?? minimumFiniteNumber(row, fields.summaries);
-    if (value != null && value >= 0) {
-      taskMetrics[key as TaskMetricNumericKey] = value;
-    }
-  }
+  const cost =
+    firstFiniteNumber(row.cost, row.cost_per_task, row.cost_per_task_usd) ??
+    minimumFiniteNumber(
+      row.median_cost_usd_per_task,
+      row.mean_cost_usd_per_task,
+      row.median_cost_usd,
+      row.mean_cost_usd,
+    );
+  const seconds =
+    firstFiniteNumber(row.seconds_per_task, row.duration_seconds_per_task) ??
+    minimumFiniteNumber(
+      row.median_duration_seconds_per_task,
+      row.mean_duration_seconds_per_task,
+      row.median_duration_seconds,
+      row.mean_duration_seconds,
+    );
+  const tokens =
+    firstFiniteNumber(row.tokens_per_task) ??
+    minimumFiniteNumber(row.median_tokens_per_task, row.mean_tokens_per_task);
+  const inputTokens =
+    firstFiniteNumber(row.input_tokens_per_task) ??
+    minimumFiniteNumber(row.median_input_tokens_per_task, row.mean_input_tokens_per_task);
+  const outputTokens =
+    firstFiniteNumber(row.output_tokens_per_task) ??
+    minimumFiniteNumber(
+      row.median_output_tokens_per_task,
+      row.mean_output_tokens_per_task,
+      row.median_output_tokens,
+      row.mean_output_tokens,
+    );
+  const taskMetrics: ModelAtlasTaskMetricValues = {
+    ...(cost != null && cost >= 0 ? { cost } : {}),
+    ...(seconds != null && seconds >= 0 ? { seconds } : {}),
+    ...(tokens != null && tokens >= 0 ? { tokens } : {}),
+    ...(inputTokens != null && inputTokens >= 0 ? { input_tokens: inputTokens } : {}),
+    ...(outputTokens != null && outputTokens >= 0 ? { output_tokens: outputTokens } : {}),
+  };
   return hasFields(taskMetrics) ? taskMetrics : null;
 }
 

@@ -140,13 +140,13 @@ function defaultVariantCoverageMultipliers(
   signalsByModel: readonly WeightedSignal[][],
   totalCount: number,
 ): number[] {
-  const indexesByFamily = new Map<string, number[]>();
+  const indexesByModel = new Map<string, number[]>();
   for (const [index, model] of models.entries()) {
-    const familyKey = canonicalModelKey(model);
-    indexesByFamily.set(familyKey, [...(indexesByFamily.get(familyKey) ?? []), index]);
+    const modelKey = canonicalModelKey(model);
+    indexesByModel.set(modelKey, [...(indexesByModel.get(modelKey) ?? []), index]);
   }
   const multipliers = models.map(() => 0);
-  for (const indexes of indexesByFamily.values()) {
+  for (const indexes of indexesByModel.values()) {
     const defaultIndex = indexes.reduce((selectedIndex, index) =>
       reasoningEffortRank(models[index]?.reasoning_effort) >
       reasoningEffortRank(models[selectedIndex]?.reasoning_effort)

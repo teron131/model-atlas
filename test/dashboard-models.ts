@@ -282,10 +282,14 @@ const effortVariants = [
   {
     ...rankedModel("provider/reasoner", "Reasoner", 80),
     reasoning_effort: "high",
+    benchmarks: { arc_agi_3: 0.3016 },
+    benchmark_dates: { arc_agi_3: "2026-07-24" },
+    task_metrics: { arc_agi_3: { cost: 20_657.37 } },
   },
   {
     ...rankedModel("provider/reasoner", "Reasoner", 90),
     reasoning_effort: "max",
+    benchmarks: { arc_agi_2: 0.904 },
   },
 ];
 assert.equal(canonicalReasoningEffort("null"), null);
@@ -299,13 +303,110 @@ assert.equal(
   "Reasoner (none)",
   "none should remain the canonical display label",
 );
+const compactEffortModels = modelsForVariantDisplay(effortVariants, false);
+const expandedEffortModels = modelsForVariantDisplay(effortVariants, true);
 assert.deepEqual(
-  modelsForVariantDisplay(effortVariants, false).map((model) => [
-    modelDisplayName(model),
-    model.scores.intelligence_score,
-  ]),
+  compactEffortModels.map((model) => [modelDisplayName(model), model.scores.intelligence_score]),
   [["Reasoner", 90]],
   "collapsed mode should keep the strongest variant and omit its effort label",
+);
+assert.deepEqual(compactEffortModels[0]?.benchmarks, {
+  arc_agi_2: 0.904,
+  arc_agi_3: 0.3016,
+});
+assert.deepEqual(compactEffortModels[0]?.task_metrics?.arc_agi_3, {
+  cost: 20_657.37,
+});
+assert.equal(
+  expandedEffortModels[1]?.benchmarks?.arc_agi_3,
+  undefined,
+  "expanded variants should retain exact-effort missingness",
+);
+const sourceOnlyVariants = [
+  {
+    ...rankedModel("provider/source-only", "Source Only", 90),
+    reasoning_effort: "max",
+    benchmarks: { arc_agi_2: 0.8 },
+  },
+];
+const sourceOnlyBenchmarkObservations = {
+  arc_agi_3: [
+    {
+      model_id: "provider/source-only",
+      model: "Source Only",
+      base_model: "Source Only",
+      canonical_value: 0.0152,
+      reasoning_effort: "high",
+      cost: 10_000,
+      observed_at: "2026-08-07",
+    },
+  ],
+};
+const sourceOnlyCompactModels = modelsForVariantDisplay(
+  sourceOnlyVariants,
+  false,
+  sourceOnlyBenchmarkObservations,
+);
+assert.equal(sourceOnlyCompactModels[0]?.benchmarks?.arc_agi_3, 0.0152);
+assert.deepEqual(sourceOnlyCompactModels[0]?.task_metrics?.arc_agi_3, {
+  cost: 10_000,
+  observed_cost: 10_000,
+  cost_price_ratio: 1,
+  observed_at: "2026-08-07",
+});
+const multiEffortSourceObservations = {
+  arc_agi_2: [
+    {
+      model_id: "provider/source-only",
+      model: "Source Only (High)",
+      base_model: "Source Only",
+      canonical_value: 0.8833,
+      reasoning_effort: "high",
+      cost: 1.5,
+      observed_at: "2026-08-07",
+    },
+    {
+      model_id: "provider/source-only",
+      model: "Source Only (Max)",
+      base_model: "Source Only",
+      canonical_value: 0.9042,
+      reasoning_effort: "max",
+      cost: 2.1,
+      observed_at: "2026-08-07",
+    },
+  ],
+};
+const multiEffortCompactModels = modelsForVariantDisplay(
+  sourceOnlyVariants,
+  false,
+  multiEffortSourceObservations,
+);
+assert.equal(
+  multiEffortCompactModels[0]?.benchmarks?.arc_agi_2,
+  0.8,
+  "a representative's direct benchmark value should remain unchanged",
+);
+const multiEffortMissingRepresentative = [
+  {
+    ...rankedModel("provider/source-only", "Source Only", 90),
+    reasoning_effort: "xhigh",
+  },
+];
+const projectedMultiEffortModels = modelsForVariantDisplay(
+  multiEffortMissingRepresentative,
+  false,
+  multiEffortSourceObservations,
+);
+assert.equal(
+  projectedMultiEffortModels[0]?.benchmarks?.arc_agi_2,
+  0.9042,
+  "compact rows should project the highest available observed effort",
+);
+assert.equal(projectedMultiEffortModels[0]?.task_metrics?.arc_agi_2?.cost, 2.1);
+assert.equal(
+  modelsForVariantDisplay(sourceOnlyVariants, true)[0]?.benchmarks?.arc_agi_3,
+  undefined,
+  "expanded mode should not relabel a source-only effort as the retained variant",
 );
 const searchableVariant = {
   ...rankedModel("provider/reasoner", "Reasoner", 90),

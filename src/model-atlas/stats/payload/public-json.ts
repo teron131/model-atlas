@@ -1,6 +1,6 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
-import { strongestModelVariants } from "../../pipeline/selection/public-list";
+import { compactModelVariants } from "../../pipeline/selection/public-list";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
 const SCORE_SCHEMA = "model_atlas.score";
@@ -27,7 +27,7 @@ type CoreJsonPayload = {
   models: CoreJsonModel[];
 };
 
-export type FullJsonPayload = Omit<ModelAtlasPayload, "models"> & {
+export type FullJsonPayload = Omit<ModelAtlasPayload, "models" | "benchmark_observations"> & {
   models: PublicFullJsonModel[];
 };
 
@@ -150,7 +150,7 @@ export function publicJsonPayload(
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
 export function coreJsonPayload(payload: ModelAtlasPayload): CoreJsonPayload {
-  const rankedModels = rankModelsByIntelligence(strongestModelVariants(payload.models));
+  const rankedModels = compactRankedModels(payload);
   return {
     schema: CORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -163,7 +163,7 @@ export function coreJsonPayload(payload: ModelAtlasPayload): CoreJsonPayload {
 
 /** The score view is the default public ranking surface and exposes only Atlas 0-100 score fields. */
 export function scoreJsonPayload(payload: ModelAtlasPayload): ScoreJsonPayload {
-  const rankedModels = rankModelsByIntelligence(strongestModelVariants(payload.models));
+  const rankedModels = compactRankedModels(payload);
   return {
     schema: SCORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -175,7 +175,7 @@ export function scoreJsonPayload(payload: ModelAtlasPayload): ScoreJsonPayload {
 
 /** Benchmark rows stay in their native decimal scale so downstream users can distinguish raw task scores from Atlas scores. */
 export function benchmarksJsonPayload(payload: ModelAtlasPayload): BenchmarksJsonPayload {
-  const rankedModels = rankModelsByIntelligence(strongestModelVariants(payload.models));
+  const rankedModels = compactRankedModels(payload);
   return {
     schema: BENCHMARKS_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -187,14 +187,21 @@ export function benchmarksJsonPayload(payload: ModelAtlasPayload): BenchmarksJso
 
 /** Preserve every scored variant for power users while removing fields that only make sense in the rendered dashboard. */
 export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
+  const { benchmark_observations: _benchmarkObservations, models, ...publicPayload } = payload;
   return {
-    ...payload,
-    models: payload.models.map(({ logo: _logo, reasoning: _reasoning, ...model }) => model),
+    ...publicPayload,
+    models: models.map(({ logo: _logo, reasoning: _reasoning, ...model }) => model),
   };
 }
 
 function methodologyText(): string {
-  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Compact views rank and represent each model family by its highest-INTELLIGENCE variant, while the all view retains every effort variant. INTELLIGENCE and AGENTIC normalize selected benchmarks, weight them by importance and dimension loading, and apply validation-weighted evidence confidence. Because confidence saturation can favor sparsely measured efforts, a family's single direct effort result bounds missing sibling proxies by effort order; proxies are scoring-only and public benchmark fields stay direct. Other missing values use validated non-recursive imputation and never satisfy admission. SPEED and VALUE compare resource use among nearby-quality models, using validated task estimates only for scoring.";
+  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Compact views rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only. Quality scores normalize and weight selected benchmarks, then apply validation-weighted evidence confidence. A single direct effort may bound sibling scoring proxies to offset confidence bias toward sparsely measured efforts without changing stored results. Other missing values use validated, non-recursive imputation and never satisfy admission. SPEED and VALUE compare resource use among nearby-quality models.";
+}
+
+function compactRankedModels(payload: ModelAtlasPayload): RankedModel[] {
+  return rankModelsByIntelligence(
+    compactModelVariants(payload.models, payload.benchmark_observations),
+  );
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */

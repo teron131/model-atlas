@@ -257,7 +257,7 @@ export function columnTooltipsForActiveComponents(
         ["Provider metrics", "three equal logged min–max components"],
         ["Benchmark runtimes", "quality-adjusted peer comparison"],
         ["Missing task runtime", "validated sibling-effort estimate or omitted"],
-        ["Family coverage", "shared from the source-default variant"],
+        ["Model coverage", "shared from the source-default variant"],
       ],
       sections: [
         {
@@ -275,7 +275,7 @@ export function columnTooltipsForActiveComponents(
         ["Quality-adjusted price", "peer-relative efficiency score"],
         ["Benchmark task costs", "quality-adjusted peer comparison"],
         ["Missing task cost", "validated sibling-effort estimate or omitted"],
-        ["Family coverage", "shared from the source-default variant"],
+        ["Model coverage", "shared from the source-default variant"],
       ],
       sections: [
         {

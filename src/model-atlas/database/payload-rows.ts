@@ -2,6 +2,10 @@
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys";
 import {
+  type BenchmarkObservationEvidenceRow,
+  type BenchmarkObservationsByKey,
+} from "../benchmarks/observation";
+import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type PublicBenchmarkRuntimeKeyFor,
@@ -56,9 +60,6 @@ function payloadRowGroup<Key extends string>(
 }
 
 const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
-  "source_key",
-  "row_index",
-  "benchmark_key",
   "model_id",
   "model",
   "base_model",
@@ -66,6 +67,7 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "model_creator",
   "canonical_value",
   "cost",
+  "observed_at",
 ] as const;
 
 /** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
@@ -377,6 +379,34 @@ function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<st
   return benchmarkDatesByModel;
 }
 
+/** Decode only canonical source evidence needed by post-read benchmark policy. */
+function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
+  const observations: BenchmarkObservationsByKey = {};
+  for (const { benchmark, sourceRowsKey } of BENCHMARK_OBSERVATION_BINDINGS) {
+    const benchmarkRows: BenchmarkObservationEvidenceRow[] = [];
+    for (const row of rows[sourceRowsKey]) {
+      const model = stringValue(row.model);
+      const baseModel = stringValue(row.base_model);
+      const canonicalValue = asFiniteNumber(row.canonical_value);
+      if (model == null || baseModel == null || canonicalValue == null) {
+        continue;
+      }
+      const cost = asFiniteNumber(row.cost);
+      benchmarkRows.push({
+        model_id: stringValue(row.model_id),
+        model,
+        base_model: baseModel,
+        reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
+        canonical_value: canonicalValue,
+        ...(cost == null ? {} : { cost }),
+        observed_at: stringValue(row.observed_at),
+      });
+    }
+    observations[benchmark] = benchmarkRows;
+  }
+  return observations;
+}
+
 function taskMetricsByModelRow(
   rows: readonly DbRow[],
 ): Map<number, NonNullable<ModelAtlasTaskMetrics>> {
@@ -524,5 +554,6 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
       sourceRowsByKey,
     }),
     models,
+    benchmark_observations: benchmarkObservations(rows),
   };
 }

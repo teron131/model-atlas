@@ -457,6 +457,21 @@ assert.deepEqual(
   { cost: 0.1, seconds: 5 },
   "Direct benchmark telemetry should override individual shared-source fields without discarding the fallback",
 );
+assert.deepEqual(
+  benchmarkTaskMetrics(
+    {
+      task_metrics: {
+        arc_agi_3: {
+          cost: 99,
+        },
+      },
+    },
+    "arc_agi_3",
+    STAGE_CONFIG.scoring.benchmarkPortfolio.arc_agi_3?.resourcePolicy,
+  ),
+  { cost: 99 },
+  "Total-mode benchmarks should consume the normalized cost field",
+);
 
 const broadAAResourceOnlyModels = attachFinalScores(
   [
@@ -1625,7 +1640,7 @@ const crossEffortConfig = {
     c3: intelligenceBenchmarkEntry(),
   },
 } as const;
-const singleEffortFamily = [
+const singleEffortModel = [
   {
     id: "test/single-effort",
     name: "Single Effort",
@@ -1651,19 +1666,18 @@ const singleEffortFamily = [
     benchmarks: {},
   },
 ];
-const singleEffortPreparation = prepareBenchmarkScoring(singleEffortFamily, crossEffortConfig);
+const singleEffortPreparation = prepareBenchmarkScoring(singleEffortModel, crossEffortConfig);
 assertEqual(
-  singleEffortPreparation.imputationByModel.get(singleEffortFamily[3] ?? {})?.has("target") ??
-    false,
+  singleEffortPreparation.imputationByModel.get(singleEffortModel[3] ?? {})?.has("target") ?? false,
   false,
 );
-assertEqual("target" in (singleEffortFamily[3]?.benchmarks ?? {}), false);
-const multipleEffortFamily = singleEffortFamily.map((model, index) =>
+assertEqual("target" in (singleEffortModel[3]?.benchmarks ?? {}), false);
+const multipleEffortModel = singleEffortModel.map((model, index) =>
   index === 2 ? { ...model, benchmarks: { target: 29 } } : model,
 );
 assertEqual(
-  prepareBenchmarkScoring(multipleEffortFamily, crossEffortConfig)
-    .imputationByModel.get(multipleEffortFamily[3] ?? {})
+  prepareBenchmarkScoring(multipleEffortModel, crossEffortConfig)
+    .imputationByModel.get(multipleEffortModel[3] ?? {})
     ?.has("target") ?? false,
   false,
 );
@@ -1714,6 +1728,38 @@ const reverseCrossEffortConfidence = prepareBenchmarkScoring(
 if (!(reverseCrossEffortConfidence != null && reverseCrossEffortConfidence < 1)) {
   throw new Error("Expected the bounded estimate to preserve imputation confidence");
 }
+const sourceOnlyReverseEffortModels = reverseCrossEffortImputationModels(7).map(
+  (model, index, models) => {
+    if (index === models.length - 1) {
+      const { target: _target, ...benchmarks } = model.benchmarks;
+      return { ...model, benchmarks };
+    }
+    return model;
+  },
+);
+const sourceOnlyReverseTarget = sourceOnlyReverseEffortModels.at(-2);
+const sourceOnlyReverseValue = buildBenchmarkImputationByModel(
+  sourceOnlyReverseEffortModels,
+  crossEffortConfig,
+  {
+    target: [
+      {
+        model_id: "test/reverse-cross-effort-6",
+        model: "Reverse cross-effort Model 6",
+        base_model: "Reverse cross-effort Model 6",
+        canonical_value: 60,
+        reasoning_effort: "high",
+        observed_at: "2026-08-07",
+      },
+    ],
+  },
+)
+  .get(sourceOnlyReverseTarget ?? {})
+  ?.get("target");
+if (!(sourceOnlyReverseValue != null && sourceOnlyReverseValue >= 60)) {
+  throw new Error("Expected source-only effort evidence to bound a higher-effort estimate");
+}
+assertEqual("target" in (sourceOnlyReverseTarget?.benchmarks ?? {}), false);
 
 const unlinkedEffortModels = crossEffortModels.map((model) => ({
   ...model,

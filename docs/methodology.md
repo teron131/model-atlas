@@ -130,35 +130,35 @@ Intelligence and Agentic confidence are reported separately as the percentage va
 
 ## Missing Benchmark Evidence
 
-Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. The single-effort family bound described below then constrains eligible estimates.
+Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. The single-effort model bound described below then constrains eligible estimates.
 
 ### Imputation Boundaries
 
-The single-effort bound balances that coverage-penalty asymmetry. When exactly one effort has a direct benchmark result, a validated sibling estimate is clamped around it: higher-effort estimates cannot fall below the observation, while lower-effort estimates cannot exceed it. Two or more direct efforts disable the bound. It neither creates an estimate nor increases its confidence, and it does not claim that every higher-effort run must outperform every lower-effort run.
+The single-effort bound balances that coverage-penalty asymmetry. Canonical storage keeps the result on its reported effort. After matching, when a model has exactly one direct benchmark result, validated sibling estimates are clamped around it: higher efforts cannot fall below the observation, while lower efforts cannot exceed it. Two or more direct efforts disable the bound. It neither creates an estimate nor increases confidence, and expanded views remain exact-effort only.
 
-Imputation can estimate a missing score, but it cannot create new model-family evidence. Every model-benchmark pair receives at most one imputed value, only observations can predict another benchmark, and imputed values never satisfy public admission or appear as observed source results.
+Imputation can estimate a missing score, but it cannot create new independent model evidence. Every model-benchmark pair receives at most one imputed value, only observations can predict another benchmark, and imputed values never satisfy public admission or appear as observed source results.
 
 The minimum context requirement counts distinct observed benchmarks rather than weight, so one heavily weighted observation cannot make an imputer look well supported by itself.
 
 ### Validated Additive Source Crosswalk
 
-A configured source crosswalk requires primary and fallback measurements on a compatible scale. The overlap set $S$ contains rows matched to the same model and effort. Its primary value $P_i$ and fallback value $F_i$ receive weight $w_i$, which divides one unit of mass across each base-model family's variants. Their fitted source offset is
+A configured source crosswalk requires primary and fallback measurements on a compatible scale. The overlap set $S$ contains rows matched to the same model and effort. Its primary value $P_i$ and fallback value $F_i$ receive weight $w_i$, which divides one unit of mass across each model's effort variants. Their fitted source offset is
 
 $$
 \delta=\operatorname{weightedMedian}_{i\in S}(F_i-P_i;w_i)
 $$
 
-Validation withholds the entire base-model family of each overlap row. For family $f$, Model Atlas refits $\delta_{-f}$ without that family. If $V\subseteq S$ is the set of rows with valid held-out predictions, the family-balanced held-out error is:
+Validation withholds every effort variant of each overlap model. For model $q$, Model Atlas refits $\delta_{-q}$ without any of its variants. If $V\subseteq S$ is the set of rows with valid held-out predictions, the model-balanced held-out error is:
 
 $$
-e=\operatorname{weightedMedian}_{i\in V}\left(\left|F_i-\delta_{-f(i)}-P_i\right|;w_i\right)
+e=\operatorname{weightedMedian}_{i\in V}\left(\left|F_i-\delta_{-q(i)}-P_i\right|;w_i\right)
 $$
 
-The additive offset preserves performance gaps within each source, while the weighted median limits the influence of outliers. Holding out an entire model family prevents sibling variants or reasoning efforts from validating one another.
+The additive offset preserves performance gaps within each source, while the weighted median limits the influence of outliers. Holding out an entire model prevents its effort variants from validating one another.
 
 ![Validated source crosswalk plotted against the canonical source, with an identity guide and fitted additive offset.](assets/methodology/source-crosswalk.svg)
 
-The crosswalk is accepted only when its effective-family count reaches $K_{\min}$, its effective held-out family count also reaches $K_{\min}$, and its held-out error does not exceed $\epsilon_{\max}$ on the primary scale $[L,U]$:
+The crosswalk is accepted only when its effective-model count reaches $K_{\min}$, its effective held-out model count also reaches $K_{\min}$, and its held-out error does not exceed $\epsilon_{\max}$ on the primary scale $[L,U]$:
 
 $$
 N_{\mathrm{eff}}(S)\ge K_{\min},
@@ -445,30 +445,30 @@ $$
 s^{\text{task}}_{m,b}=R^{\text{time}}_{m,b}.
 $$
 
-The global slot counts $K_{\text{speed}}$ and $K_{\text{value}}$ include every active component for their score. For public score $p\in\{\text{speed},\text{value}\}$, the source-default configuration $m_f^{\text{default}}$ of base-model family $f$ has coverage
+The global slot counts $K_{\text{speed}}$ and $K_{\text{value}}$ include every active component for their score. For public score $p\in\{\text{speed},\text{value}\}$, the source-default configuration $m_q^{\text{default}}$ of model $q$ has coverage
 
 $$
-\gamma_f^p=\frac{\sum_i\eta^p_{m_f^{\text{default}},i}}{K_p},
+\gamma_q^p=\frac{\sum_i\eta^p_{m_q^{\text{default}},i}}{K_p},
 \qquad
-C_f^p=\operatorname{smoothstep}\left(\frac{\gamma_f^p-0.1}{0.5}\right).
+C_q^p=\operatorname{smoothstep}\left(\frac{\gamma_q^p-0.1}{0.5}\right).
 $$
 
-An unlabelled configuration is the family default; when every configuration is labelled, the highest reported effort is the default. Coverage is zero through 10% of active evidence and reaches a multiplier of $1$ at 60%. Every effort in the family receives the same multiplier $C_f^p$, so non-default variants cannot create or remove family coverage.
+An unlabelled configuration is the model default; when every configuration is labelled, the highest reported effort is the default. Coverage is zero through 10% of active evidence and reaches a multiplier of $1$ at 60%. Every effort variant of the model receives the same multiplier $C_q^p$, so non-default variants cannot create or remove model coverage.
 
 The component score $s_{m,i}$ contributes to Speed and $v_{m,i}$ contributes to Value. Their evidence-weighted means produce the final scores, while the corresponding confidence remains the literal effective share of active slots:
 
 $$
 \begin{aligned}
-\text{Speed}_m&=C^{\text{speed}}_{f(m)}\frac{\sum_i\eta^{\text{speed}}_{m,i}s_{m,i}}{\sum_i\eta^{\text{speed}}_{m,i}}\\
+\text{Speed}_m&=C^{\text{speed}}_{q(m)}\frac{\sum_i\eta^{\text{speed}}_{m,i}s_{m,i}}{\sum_i\eta^{\text{speed}}_{m,i}}\\
 \text{SpeedConfidence}_m&=\frac{\sum_i\eta^{\text{speed}}_{m,i}}{K_{\text{speed}}}\\
-\text{Value}_m&=C^{\text{value}}_{f(m)}\frac{\sum_i\eta^{\text{value}}_{m,i}v_{m,i}}{\sum_i\eta^{\text{value}}_{m,i}}\\
+\text{Value}_m&=C^{\text{value}}_{q(m)}\frac{\sum_i\eta^{\text{value}}_{m,i}v_{m,i}}{\sum_i\eta^{\text{value}}_{m,i}}\\
 \text{ValueConfidence}_m&=\frac{\sum_i\eta^{\text{value}}_{m,i}}{K_{\text{value}}}.
 \end{aligned}
 $$
 
-![Component scores and evidence weights form an effort-specific weighted mean and confidence, while source-default evidence independently supplies the family coverage multiplier applied to the public Speed or Value score.](assets/methodology/final-score-assembly.svg)
+![Component scores and evidence weights form an effort-specific weighted mean and confidence, while source-default evidence independently supplies the model coverage multiplier applied to the public Speed or Value score.](assets/methodology/final-score-assembly.svg)
 
-Speed components cover provider throughput, latency, end-to-end latency, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, and active task-cost scores. The shared family multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the family coverage authority. Individual effort confidence remains separate and reports that effort's own effective evidence share.
+Speed components cover provider throughput, latency, end-to-end latency, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, and active task-cost scores. The shared model multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the model coverage authority. Individual effort confidence remains separate and reports that effort's own effective evidence share.
 
 Keeping absolute and quality-conditioned price separate answers two different questions: what the model costs and whether that cost is efficient for the quality delivered.
 

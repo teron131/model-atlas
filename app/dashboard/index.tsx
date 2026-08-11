@@ -68,7 +68,11 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
     }
     return {
       ...payload,
-      models: modelsForVariantDisplay(payload.models, showReasoningVariants),
+      models: modelsForVariantDisplay(
+        payload.models,
+        showReasoningVariants,
+        payload.benchmark_observations,
+      ),
     };
   }, [payload, showReasoningVariants]);
   const providerChoices = useMemo(
@@ -185,7 +189,14 @@ function DashboardLeaderboard({
   const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
   const [, startSortTransition] = useTransition();
   const tableRows = useMemo(
-    () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], deferredShowVariants)),
+    () =>
+      dedupeDisplayModels(
+        modelsForVariantDisplay(
+          payload?.models ?? [],
+          deferredShowVariants,
+          payload?.benchmark_observations,
+        ),
+      ),
     [deferredShowVariants, payload],
   );
   const filteredRows = useMemo(
@@ -202,7 +213,10 @@ function DashboardLeaderboard({
   );
   const maximumLimit = globallyFilteredRows.length;
   const expandedTableRows = useMemo(
-    () => dedupeDisplayModels(modelsForVariantDisplay(payload?.models ?? [], true)),
+    () =>
+      dedupeDisplayModels(
+        modelsForVariantDisplay(payload?.models ?? [], true, payload?.benchmark_observations),
+      ),
     [payload],
   );
   const filteredExpandedRows = useMemo(

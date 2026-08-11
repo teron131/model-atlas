@@ -1,6 +1,7 @@
 /** Public model and payload contracts for the Model Atlas stats surface. */
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
+import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
 import type { Confidence } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type { ModelAtlasSourceHealth } from "../ingest/types";
@@ -85,6 +86,7 @@ export type ModelAtlasPayload = {
   fetched_at_epoch_seconds: number | null;
   metadata: ModelAtlasMetadata;
   models: PipelineModel[];
+  benchmark_observations?: BenchmarkObservationsByKey;
 };
 
 export type ModelAtlasOptions = {

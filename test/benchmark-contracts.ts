@@ -387,6 +387,10 @@ assert.deepEqual(
     { key: "deepSWETokens", metric: "output_tokens" },
   ],
 );
+assert.equal(BENCHMARK_CATALOG.arc_agi_2.presentation.taskMetricColumns[0]?.metric, "cost");
+assert.equal(BENCHMARK_CATALOG.arc_agi_3.presentation.taskMetricColumns[0]?.metric, "cost");
+assert.equal(BENCHMARK_CATALOG.arc_agi_2.resources?.unit, "per_task");
+assert.equal(BENCHMARK_CATALOG.arc_agi_3.resources?.unit, "total");
 for (const key of BENCHMARK_KEYS) {
   assert.deepEqual(BENCHMARK_CATALOG[key].scoring.normalization, {
     kind: "min_max",

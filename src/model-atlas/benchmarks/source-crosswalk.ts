@@ -30,7 +30,7 @@ type SourceCrosswalk<T extends ModelIdentity> = {
   diagnostic: SourceCrosswalkDiagnostic;
 };
 
-/** Fit an additive fallback-to-primary offset and reject it unless model-family-held-out error passes. */
+/** Fit an additive fallback-to-primary offset and reject it unless model-held-out error passes. */
 export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
   items: readonly T[],
   options: SourceCrosswalkOptions<T>,

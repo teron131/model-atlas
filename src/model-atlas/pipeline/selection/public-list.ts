@@ -1,7 +1,21 @@
-/** Public model selection owns score gating, sparse-field pruning, and OpenRouter free-route collapse. */
+/** Public model selection owns score gating, compact-model projection, sparse-field pruning, and route collapse. */
 
+import {
+  type BenchmarkObservationsByKey,
+  buildBenchmarkObservationLookup,
+  findBenchmarkObservations,
+} from "../../benchmarks/observation";
+import {
+  BENCHMARK_KEYS,
+  benchmarkValueLocation,
+  transformBenchmarkSourceValue,
+} from "../../benchmarks/registry";
 import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
-import { canonicalModelKey } from "../../identity/normalization";
+import {
+  canonicalModelKey,
+  canonicalReasoningEffort,
+  reasoningEffortRank,
+} from "../../identity/normalization";
 import {
   hasPublicFreeRouteLabel,
   isOpenRouterFreeRouteId,
@@ -14,6 +28,7 @@ import type {
   ModelAtlasModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
+import { benchmarkMetricValue } from "../scores/resource-metrics";
 
 const STABLE_TOP_LEVEL_KEYS = new Set<string>([
   "id",
@@ -59,6 +74,117 @@ export function strongestModelVariants<Model extends IntelligenceScoredModel>(
     }
   }
   return [...strongestByModel.values()];
+}
+
+/** Collapse each model's variants while applying model-level benchmark observation policy. */
+export function compactModelVariants(
+  models: readonly ModelAtlasModel[],
+  benchmarkObservations: BenchmarkObservationsByKey = {},
+): ModelAtlasModel[] {
+  const variantsByModel = new Map<string, ModelAtlasModel[]>();
+  const observationLookups = new Map(
+    BENCHMARK_KEYS.map((key) => [
+      key,
+      buildBenchmarkObservationLookup(benchmarkObservations[key] ?? []),
+    ]),
+  );
+  for (const model of models) {
+    const key = canonicalModelKey(model);
+    const variants = variantsByModel.get(key) ?? [];
+    variants.push(model);
+    variantsByModel.set(key, variants);
+  }
+
+  return [...variantsByModel.values()].map((variants) => {
+    const representative = strongestModelVariants(variants)[0]!;
+    const modelNames = variants.flatMap((variant) => [variant.id, variant.name]);
+
+    const intelligence = { ...representative.intelligence };
+    const benchmarks = { ...representative.benchmarks };
+    const benchmarkDates = { ...representative.benchmark_dates };
+    const taskMetrics = { ...representative.task_metrics };
+    let hasModelObservation = false;
+
+    for (const key of BENCHMARK_KEYS) {
+      if (benchmarkMetricValue(representative, key) != null) {
+        continue;
+      }
+      const observations = variants.flatMap((model) => {
+        const value = benchmarkMetricValue(model, key);
+        return value == null ? [] : [{ model, value }];
+      });
+      const sourceObservations = findBenchmarkObservations(
+        modelNames,
+        observationLookups.get(key)!,
+      );
+      let sourceObservation = sourceObservations[0] ?? null;
+      for (const observation of sourceObservations.slice(1)) {
+        if (
+          reasoningEffortRank(observation.reasoning_effort) >
+          reasoningEffortRank(sourceObservation?.reasoning_effort)
+        ) {
+          sourceObservation = observation;
+        }
+      }
+      const sourceEffort = canonicalReasoningEffort(sourceObservation?.reasoning_effort);
+      let directObservation =
+        sourceObservation == null
+          ? (observations[0] ?? null)
+          : (observations.find(
+              ({ model }) => canonicalReasoningEffort(model.reasoning_effort) === sourceEffort,
+            ) ?? null);
+      if (sourceObservation == null) {
+        for (const observation of observations.slice(1)) {
+          if (
+            reasoningEffortRank(observation.model.reasoning_effort) >
+            reasoningEffortRank(directObservation?.model.reasoning_effort)
+          ) {
+            directObservation = observation;
+          }
+        }
+      }
+      const value =
+        sourceObservation == null
+          ? (directObservation?.value ?? null)
+          : transformBenchmarkSourceValue(key, sourceObservation.canonical_value);
+      if (value == null) {
+        continue;
+      }
+      const location = benchmarkValueLocation(key);
+      if (location?.kind === "intelligence") {
+        intelligence[location.field] = value;
+      } else {
+        benchmarks[key] = value;
+      }
+      const observedAt =
+        directObservation?.model.benchmark_dates?.[key] ?? sourceObservation?.observed_at ?? null;
+      if (observedAt != null) {
+        benchmarkDates[key] = observedAt;
+      }
+      const directTaskMetrics = directObservation?.model.task_metrics?.[key];
+      if (directTaskMetrics != null) {
+        taskMetrics[key] = directTaskMetrics;
+      } else if (sourceObservation?.cost != null) {
+        taskMetrics[key] = {
+          cost: sourceObservation.cost,
+          observed_cost: sourceObservation.cost,
+          cost_price_ratio: 1,
+          observed_at: sourceObservation.observed_at,
+        };
+      }
+      hasModelObservation = true;
+    }
+
+    return hasModelObservation
+      ? {
+          ...representative,
+          intelligence: Object.keys(intelligence).length === 0 ? null : intelligence,
+          benchmarks: Object.keys(benchmarks).length === 0 ? null : benchmarks,
+          benchmark_dates: Object.keys(benchmarkDates).length === 0 ? null : benchmarkDates,
+          task_metrics: Object.keys(taskMetrics).length === 0 ? null : taskMetrics,
+        }
+      : representative;
+  });
 }
 
 function sortByIntelligenceScore(models: ModelAtlasModel[]): ModelAtlasModel[] {

@@ -5,7 +5,17 @@ import {
   effectiveModelCount,
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
-import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
+import {
+  type BenchmarkObservationsByKey,
+  buildBenchmarkObservationLookup,
+  findBenchmarkObservations,
+} from "../../../benchmarks/observation";
+import {
+  BENCHMARK_CATALOG,
+  benchmarkDimensionWeight,
+  type BenchmarkKey,
+  transformBenchmarkSourceValue,
+} from "../../../benchmarks/registry";
 import { buildAdditiveSourceCrosswalk } from "../../../benchmarks/source-crosswalk";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
 import {
@@ -206,34 +216,62 @@ function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps 
   };
 }
 
-/** Bound validated sibling estimates around a family's single direct effort observation. */
-function applySingleEffortFamilyBounds(
+/** Bound validated sibling estimates around a model's single direct effort observation. */
+function applySingleEffortModelBounds(
   models: readonly JsonObject[],
   benchmarkKeys: readonly string[],
   imputationByModel: Map<JsonObject, Map<string, number>>,
+  benchmarkObservations: BenchmarkObservationsByKey,
 ): void {
-  const variantsByFamily = new Map<string, JsonObject[]>();
+  const variantsByModel = new Map<string, JsonObject[]>();
+  const observationLookups = new Map(
+    benchmarkKeys.map((key) => [
+      key,
+      buildBenchmarkObservationLookup(benchmarkObservations[key] ?? []),
+    ]),
+  );
   for (const model of models) {
-    const familyKey = canonicalModelKey(model);
-    const variants = variantsByFamily.get(familyKey) ?? [];
+    const modelKey = canonicalModelKey(model);
+    const variants = variantsByModel.get(modelKey) ?? [];
     variants.push(model);
-    variantsByFamily.set(familyKey, variants);
+    variantsByModel.set(modelKey, variants);
   }
 
-  for (const variants of variantsByFamily.values()) {
+  for (const variants of variantsByModel.values()) {
     for (const benchmarkKey of benchmarkKeys) {
       const observedVariants = variants.filter(
         (variant) => benchmarkMetricValue(variant, benchmarkKey) != null,
       );
-      if (observedVariants.length !== 1) {
+      if (observedVariants.length > 1) {
         continue;
       }
       const source = observedVariants[0];
-      if (source == null) {
+      const sourceObservations = findBenchmarkObservations(
+        variants.flatMap((variant) => [variant.id, variant.name]),
+        observationLookups.get(benchmarkKey)!,
+      );
+      if (sourceObservations.length > 1) {
         continue;
       }
-      const sourceEffort = canonicalReasoningEffort(source.reasoning_effort);
-      const sourceValue = benchmarkMetricValue(source, benchmarkKey);
+      const sourceObservation = sourceObservations[0];
+      if (source == null && sourceObservation == null) {
+        continue;
+      }
+      const sourceEffort = canonicalReasoningEffort(
+        source?.reasoning_effort ?? sourceObservation?.reasoning_effort,
+      );
+      const observedSourceEffort = canonicalReasoningEffort(sourceObservation?.reasoning_effort);
+      if (source != null && observedSourceEffort != null && observedSourceEffort !== sourceEffort) {
+        continue;
+      }
+      let sourceValue = source == null ? null : benchmarkMetricValue(source, benchmarkKey);
+      if (sourceValue == null && sourceObservation != null) {
+        const catalogKey = benchmarkKey as BenchmarkKey;
+        sourceValue =
+          BENCHMARK_CATALOG[catalogKey] == null
+            ? sourceObservation.canonical_value
+            : transformBenchmarkSourceValue(catalogKey, sourceObservation.canonical_value);
+      }
       if (sourceEffort == null || sourceValue == null) {
         continue;
       }
@@ -766,6 +804,7 @@ function preferCrossEffortDiagnostic(
 function prepareImputation(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
+  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): ImputationPreparation {
   const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
   const mercorApexImputation: MutableImputationMaps = benchmarkKeys.includes(APEX_AGENTS_KEY)
@@ -847,7 +886,7 @@ function prepareImputation(
       imputationConfidenceByModel.set(model, confidenceByKey);
     }
   }
-  applySingleEffortFamilyBounds(models, benchmarkKeys, imputationByModel);
+  applySingleEffortModelBounds(models, benchmarkKeys, imputationByModel, benchmarkObservations);
   return {
     imputationByModel,
     imputationConfidenceByModel,
@@ -859,8 +898,9 @@ function prepareImputation(
 export function buildBenchmarkImputationByModel(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
+  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): Map<JsonObject, Map<string, number>> {
-  return prepareImputation(models, scoringConfig).imputationByModel;
+  return prepareImputation(models, scoringConfig, benchmarkObservations).imputationByModel;
 }
 
 /** Report leave-one-model-out reliability evidence for every selected benchmark imputer. */
@@ -892,10 +932,12 @@ export function buildQualityScoringContext(
 export function prepareBenchmarkScoring(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
+  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): BenchmarkScoringPreparation {
   const { imputationByModel, imputationConfidenceByModel } = prepareImputation(
     models,
     scoringConfig,
+    benchmarkObservations,
   );
   const qualityContext = buildQualityScoringContext(models, scoringConfig);
   const imputationByVariant = new Map<string, ReadonlyMap<string, number>>();

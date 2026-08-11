@@ -55,17 +55,15 @@ function stringValue(value: unknown): string | null {
 }
 
 function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
-  return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceRowsKey }) => {
+  return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ benchmark, sourceRowsKey }) => {
     const sourceRows = rows[sourceRowsKey];
     if (!Array.isArray(sourceRows)) {
       throw new Error(`Persisted benchmark observation rows are missing: ${sourceRowsKey}`);
     }
     return sourceRows.flatMap((row) => {
-      const key = stringValue(row.benchmark_key);
-      if (key == null) return [];
       return [
         {
-          key,
+          key: benchmark,
           id: stringValue(row.model_id),
           identity: stringValue(row.base_model),
           label: stringValue(row.model),
