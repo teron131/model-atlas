@@ -1,5 +1,6 @@
 /** Final model building owns candidate scoring, public admission, rescoring, and logo cache hydration. */
 
+import type { BenchmarkObservationsByKey } from "../../benchmarks/observation";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -130,6 +131,7 @@ export async function buildFinalModels(
     observedDate: new Date().toISOString().slice(0, 10),
   },
   previousModels: readonly ModelAtlasModel[] = [],
+  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): Promise<ModelAtlasModel[]> {
   const modelRows = prepareVersionReplacementBenchmarkRows(
     openRouterData.modelRows,
@@ -139,7 +141,7 @@ export async function buildFinalModels(
   const preparedOpenRouterData = { ...openRouterData, modelRows };
   const replacementRows = modelRows.filter((row) => isVersionReplacementRow(asRecord(row)));
   const scoringPreparation = withoutBenchmarkImputationForModels(
-    prepareBenchmarkScoring(modelRows, scoringConfig),
+    prepareBenchmarkScoring(modelRows, scoringConfig, benchmarkObservations),
     replacementRows,
   );
   const candidateModels = buildCandidates(

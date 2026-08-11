@@ -1,5 +1,6 @@
 /** Shared factories keep tests aligned with Model Atlas payload contracts. */
 
+import type { BenchmarkObservationsByKey } from "../src/model-atlas/benchmarks/observation";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
@@ -23,9 +24,11 @@ export function benchmarkObservationRowGroups<Row>(
 export function minimalModelAtlasPayload({
   fetchedAt,
   models = [],
+  benchmarkObservations,
 }: {
   fetchedAt: number;
   models?: ModelAtlasModel[];
+  benchmarkObservations?: BenchmarkObservationsByKey;
 }): ModelAtlasPayload {
   return {
     fetched_at_epoch_seconds: fetchedAt,
@@ -48,6 +51,7 @@ export function minimalModelAtlasPayload({
       },
     },
     models,
+    ...(benchmarkObservations == null ? {} : { benchmark_observations: benchmarkObservations }),
   };
 }
 

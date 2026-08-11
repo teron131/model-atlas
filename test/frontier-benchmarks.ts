@@ -129,9 +129,9 @@ assert.deepEqual(
   axisOptions.map((option) => [option.key, option.label]),
   [
     ["speedValue", "Efficiency"],
-    ["cost", "Task Cost ↓"],
-    ["time", "Task Time ↓"],
-    ["tokens", "Task Tokens ↓"],
+    ["cost", "Cost ↓"],
+    ["time", "Time ↓"],
+    ["tokens", "Tokens ↓"],
   ],
   "axis options should separate the combined score from raw resource units",
 );
@@ -148,7 +148,7 @@ assert.equal(
 assert.equal(
   frontierAxisDescription("tokens", false, topRow),
   "The axis shows observed token use per task; lower is better.",
-  "benchmark token axis should use Task Tokens wording",
+  "benchmark token axes should describe the selected benchmark's resource basis",
 );
 assert.equal(
   frontierAxisDescription("speedValue", true),
@@ -158,8 +158,8 @@ assert.equal(
 const allCostAxis = frontierBenchmarkAxisConfigFor("cost", true);
 assert.equal(
   frontierAxisMetricLabel(allCostAxis, true, rows),
-  "Mean Normalized Cost ↓ (per task/total)",
-  "aggregate resource axes should use title-case metric labels",
+  "Mean Normalized Cost ↓",
+  "aggregate resource axes should omit raw units after benchmark normalization",
 );
 assert.equal(
   frontierAxisMetricLabel(costAxis, false, rows),

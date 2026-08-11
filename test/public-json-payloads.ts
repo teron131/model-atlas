@@ -112,10 +112,16 @@ assert.equal(
 
 const reasoningEffortModels = selectPublicModels(
   [
-    { ...internalCandidate, reasoning_effort: "high" },
+    {
+      ...internalCandidate,
+      reasoning_effort: "high",
+      benchmarks: { arc_agi_3: 0.3016 },
+      benchmark_dates: { arc_agi_3: "2026-07-24" },
+    },
     {
       ...internalCandidate,
       reasoning_effort: "max",
+      benchmarks: { arc_agi_2: 0.904 },
       scores: { ...internalCandidate.scores, intelligence_score: 90 },
     },
   ],
@@ -146,12 +152,53 @@ assert.equal(
   90,
   "collapsed public views should use the strongest variant for each model",
 );
+assert.deepEqual(benchmarksJsonPayload(reasoningVariantPayload).benchmarks[0]?.benchmarks, {
+  arc_agi_2: 0.904,
+  arc_agi_3: 0.3016,
+});
 const allVariantPayload = publicJsonPayload(reasoningVariantPayload, "all") as FullJsonPayload;
 assert.deepEqual(
   allVariantPayload.models.map((model) => model.reasoning_effort),
   ["max", "high"],
   "the all view should expose every reasoning-effort variant",
 );
+const sourceOnlyEffortPayload = minimalModelAtlasPayload({
+  fetchedAt: 124,
+  models: [
+    {
+      ...minimalModelAtlasModel({
+        id: "provider/source-only",
+        name: "Source Only",
+      }),
+      reasoning_effort: "max",
+    },
+  ],
+  benchmarkObservations: {
+    arc_agi_3: [
+      {
+        model_id: "provider/source-only",
+        model: "Source Only",
+        base_model: "Source Only",
+        canonical_value: 0.0152,
+        reasoning_effort: "high",
+        cost: 10_000,
+        observed_at: "2026-08-07",
+      },
+    ],
+  },
+});
+assert.equal(
+  benchmarksJsonPayload(sourceOnlyEffortPayload).benchmarks[0]?.benchmarks.arc_agi_3,
+  0.0152,
+  "compact benchmark views should surface one source-only effort observation",
+);
+const sourceOnlyAllPayload = publicJsonPayload(sourceOnlyEffortPayload, "all") as FullJsonPayload;
+assert.equal(
+  "benchmark_observations" in sourceOnlyAllPayload,
+  false,
+  "the all view should omit internal canonical observations",
+);
+assert.equal(sourceOnlyAllPayload.models[0]?.benchmarks?.arc_agi_3, undefined);
 
 const valsBenchmarkPayload = benchmarksJsonPayload(
   minimalModelAtlasPayload({
@@ -249,8 +296,8 @@ assert.equal(
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
 assert.match(methodology, /validation-weighted evidence confidence/);
-assert.match(methodology, /confidence saturation can favor sparsely measured efforts/);
-assert.match(methodology, /proxies are scoring-only and public benchmark fields stay direct/);
+assert.match(methodology, /offset confidence bias toward sparsely measured efforts/);
+assert.match(methodology, /show the highest available direct effort/);
 assert.match(methodology, /compare resource use among nearby-quality models/);
 assert.deepEqual(scoreModel, {
   rank: 1,

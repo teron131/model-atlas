@@ -615,6 +615,38 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
   ],
+  arc_agi_2: [
+    {
+      key: "arcAgi2Cost",
+      metric: "cost",
+      direction: "ascending",
+      label: "AGI-2$",
+      tooltip: {
+        title: "ARC-AGI-2 cost per task ↓",
+        body: "Official verified semi-private leaderboard cost for one ARC-AGI-2 task.",
+        details: [
+          ["Source", "ARC Prize"],
+          ["Metric", "cost per task"],
+        ],
+      },
+    },
+  ],
+  arc_agi_3: [
+    {
+      key: "arcAgi3Cost",
+      metric: "cost",
+      direction: "ascending",
+      label: "AGI-3$",
+      tooltip: {
+        title: "ARC-AGI-3 total cost ↓",
+        body: "Official verified semi-private leaderboard cost for the full ARC-AGI-3 evaluation.",
+        details: [
+          ["Source", "ARC Prize"],
+          ["Metric", "total cost"],
+        ],
+      },
+    },
+  ],
   automation_bench: [
     {
       key: "automationBenchCost",
@@ -836,13 +868,13 @@ export const BENCHMARK_COLUMNS = {
   },
   arc_agi_2: {
     key: "arcAgi2",
-    label: "ARC-2",
+    label: "AGI-2",
     format: "percent",
     defaultSort: "descending",
   },
   arc_agi_3: {
     key: "arcAgi3",
-    label: "ARC-3",
+    label: "AGI-3",
     format: "percent",
     defaultSort: "descending",
   },

@@ -1,7 +1,8 @@
 /** Dashboard model identity, variant, label, and filtering rules. */
 
+import type { BenchmarkObservationsByKey } from "../../../src/model-atlas/benchmarks/observation";
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import { strongestModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
+import { compactModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 
 const searchTextByModel = new WeakMap<ModelAtlasModel, string>();
@@ -14,6 +15,7 @@ export function modelCount(models: ModelAtlasModel[]): number {
 export function modelsForVariantDisplay(
   models: ModelAtlasModel[],
   showVariants: boolean,
+  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): ModelAtlasModel[] {
   const variantsByIdentity = new Map<string, ModelAtlasModel>();
   for (const model of models) {
@@ -27,7 +29,7 @@ export function modelsForVariantDisplay(
   if (showVariants) {
     return modelVariants;
   }
-  return strongestModelVariants(modelVariants).map((model) => ({
+  return compactModelVariants(modelVariants, benchmarkObservations).map((model) => ({
     ...model,
     reasoning_effort: null,
   }));

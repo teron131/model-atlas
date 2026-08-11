@@ -33,9 +33,24 @@ export type BenchmarkObservationPayload = {
   data: BenchmarkObservationRow[];
 };
 
-export type BenchmarkObservationLookup = Map<string, BenchmarkObservationRow>;
+export type BenchmarkObservationEvidenceRow = Pick<
+  BenchmarkObservationRow,
+  | "model_id"
+  | "model"
+  | "base_model"
+  | "reasoning_effort"
+  | "canonical_value"
+  | "cost"
+  | "observed_at"
+>;
 
-function isNewer(row: BenchmarkObservationRow, current: BenchmarkObservationRow): boolean {
+export type BenchmarkObservationsByKey = Record<string, readonly BenchmarkObservationEvidenceRow[]>;
+
+export type BenchmarkObservationLookup<
+  Row extends BenchmarkObservationEvidenceRow = BenchmarkObservationRow,
+> = Map<string, Row>;
+
+function isNewer<Row extends BenchmarkObservationEvidenceRow>(row: Row, current: Row): boolean {
   return (row.observed_at ?? "") > (current.observed_at ?? "");
 }
 
@@ -64,7 +79,7 @@ function trailingModelAlias(value: string): string | null {
   return alias.length > 0 ? alias : null;
 }
 
-function modelKeys(row: BenchmarkObservationRow): string[] {
+function modelKeys(row: BenchmarkObservationEvidenceRow): string[] {
   return [row.model_id, row.model, row.base_model]
     .flatMap((value) => {
       if (value == null) return [];
@@ -75,12 +90,36 @@ function modelKeys(row: BenchmarkObservationRow): string[] {
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
 }
 
+function candidateModelKeys(candidateNames: unknown[]): Set<string> {
+  return new Set(
+    candidateNames.flatMap((candidate) => {
+      if (typeof candidate !== "string" || candidate.length === 0) return [];
+      const parsed = benchmarkModelEffort(candidate);
+      return [candidate, parsed.baseModel, trailingModelAlias(candidate)]
+        .filter((value): value is string => value != null)
+        .map(normalizeModelToken)
+        .filter((key) => key.length > 0);
+    }),
+  );
+}
+
+/** Return every distinct source observation matched to one model. */
+export function findBenchmarkObservations<Row extends BenchmarkObservationEvidenceRow>(
+  candidateNames: unknown[],
+  rowsByModel: ReadonlyMap<string, Row>,
+): Row[] {
+  const candidateKeys = candidateModelKeys(candidateNames);
+  return [...new Set(rowsByModel.values())].filter((row) =>
+    modelKeys(row).some((key) => candidateKeys.has(key)),
+  );
+}
+
 /** Index one benchmark's eligible rows with exact variants and a source-default base row. */
-export function buildBenchmarkObservationLookup(
-  rows: readonly BenchmarkObservationRow[],
-): BenchmarkObservationLookup {
-  const rowsByModel = new Map<string, BenchmarkObservationRow>();
-  const defaultByBase = new Map<string, BenchmarkObservationRow>();
+export function buildBenchmarkObservationLookup<Row extends BenchmarkObservationEvidenceRow>(
+  rows: readonly Row[],
+): BenchmarkObservationLookup<Row> {
+  const rowsByModel = new Map<string, Row>();
+  const defaultByBase = new Map<string, Row>();
   for (const row of rows) {
     for (const key of modelKeys(row)) {
       const exactKey =
@@ -110,11 +149,11 @@ export function buildBenchmarkObservationLookup(
 }
 
 /** Find one observation without borrowing a different labelled effort variant. */
-export function findBenchmarkObservation(
+export function findBenchmarkObservation<Row extends BenchmarkObservationEvidenceRow>(
   candidateNames: unknown[],
   targetReasoningEffort: unknown,
-  rowsByModel: ReadonlyMap<string, BenchmarkObservationRow>,
-): BenchmarkObservationRow | null {
+  rowsByModel: ReadonlyMap<string, Row>,
+): Row | null {
   const targetEffort =
     typeof targetReasoningEffort === "string" ? normalizeModelToken(targetReasoningEffort) : null;
   for (const candidate of candidateNames) {

@@ -1,5 +1,7 @@
 /** Shared model derivation keeps live and persisted stats on one matching, variant, route-data, and scoring workflow. */
 
+import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import { STAGE_CONFIG } from "../config";
 import { buildMatchDiagnostics, type MatchDiagnosticsPayload } from "../identity";
 import { publicOpenRouterModelId } from "../identity/openrouter";
@@ -37,8 +39,25 @@ type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
   matchDiagnostics: MatchDiagnosticsPayload;
   modelRows: Record<string, unknown>[];
   models: ModelAtlasModel[];
+  benchmarkObservations: BenchmarkObservationsByKey;
   openRouterLoad: LoadResult;
 };
+
+function benchmarkObservations(sourceData: ModelAtlasSourceData): BenchmarkObservationsByKey {
+  const observations: BenchmarkObservationsByKey = {};
+  for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
+    observations[benchmark] = sourceData[sourceDataKey].rows.map((row) => ({
+      model_id: row.model_id,
+      model: row.model,
+      base_model: row.base_model,
+      reasoning_effort: row.reasoning_effort,
+      canonical_value: row.canonical_value,
+      ...(row.cost == null ? {} : { cost: row.cost }),
+      observed_at: row.observed_at,
+    }));
+  }
+  return observations;
+}
 
 function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
   return Array.from(
@@ -82,6 +101,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
   const variantRows = buildModelVariants(catalogRows);
   const assignedVariantRows = assignBenchmarksToVariants(variantRows, sourceData);
+  const observations = benchmarkObservations(sourceData);
   const openRouterLoad =
     "loadOpenRouter" in options
       ? await options.loadOpenRouter(openRouterModelIds(assignedVariantRows))
@@ -99,11 +119,13 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
     options.benchmarkVersioning,
     options.benchmarkVersioning?.previousModels,
+    observations,
   );
   return {
     matchDiagnostics,
     modelRows: openRouterData.modelRows,
     models,
+    benchmarkObservations: observations,
     openRouterLoad,
   };
 }

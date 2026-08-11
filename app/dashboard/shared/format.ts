@@ -48,7 +48,9 @@ const formatDuration = (value: number | null | undefined) => {
 
 function formatTaskMetric(value: number | null | undefined, column: TaskMetricColumn) {
   if (column.metric === "cost") {
-    return formatCost(value);
+    return typeof value === "number" && Number.isFinite(value) && Math.abs(value) >= 1_000
+      ? `$${formatCompactNumber(value)}`
+      : formatCost(value);
   }
   if (column.metric === "seconds") {
     if (column.format === "duration") {

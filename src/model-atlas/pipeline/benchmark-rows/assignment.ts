@@ -92,6 +92,19 @@ function benchmarkObservationLookup(
   return lookup.rowsByModelName;
 }
 
+function modelNameCandidates(row: Record<string, unknown>): unknown[] {
+  return typeof row.artificial_analysis_id === "string"
+    ? [
+        row.id,
+        row.openrouter_id,
+        modelSlugFromModelId(row.id),
+        row.name,
+        row.artificial_analysis_id,
+        row.artificial_analysis_slug,
+      ]
+    : [row.name];
+}
+
 /** Fill model-level benchmark gaps while preserving exact variant observations and direct source rows. */
 function mergeVariantBenchmarkFields(
   baseFields: Record<string, unknown>,
@@ -512,23 +525,14 @@ export function assignBenchmarksToVariants(
       defaultVariantByModel.set(modelKey, row);
     }
   }
+
   return rows.map((row) => {
     if (defaultVariantByModel.get(canonicalModelKey(row)) !== row) {
       return row;
     }
     const baseBenchmarks = asRecord(row.benchmarks);
-    const hasMatchedObservation = typeof row.artificial_analysis_id === "string";
     const defaultVariantBenchmarks = buildDefaultVariantBenchmarks(
-      hasMatchedObservation
-        ? [
-            row.id,
-            row.openrouter_id,
-            modelSlugFromModelId(row.id),
-            row.name,
-            row.artificial_analysis_id,
-            row.artificial_analysis_slug,
-          ]
-        : [row.name],
+      modelNameCandidates(row),
       lookups,
       baseBenchmarks,
       row.reasoning_effort,

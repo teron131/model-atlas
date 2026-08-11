@@ -48,7 +48,7 @@ function withCurrentMetadata(
 
 async function buildLivePayload(modelId: string | null = null): Promise<ModelAtlasPayload> {
   const sourceData = await fetchSourceData();
-  const { modelRows, models } = await deriveModelStats(sourceData, {
+  const { benchmarkObservations, modelRows, models } = await deriveModelStats(sourceData, {
     modelId,
   });
   const fetchedAt = nowEpochSeconds();
@@ -56,6 +56,7 @@ async function buildLivePayload(modelId: string | null = null): Promise<ModelAtl
     {
       fetched_at_epoch_seconds: fetchedAt,
       models,
+      benchmark_observations: benchmarkObservations,
     },
     modelRows,
     models,

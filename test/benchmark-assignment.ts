@@ -441,6 +441,25 @@ assert.deepEqual(effortQualifiedDefault.scoringSources, {
   legal_research: legalResearchRow,
   vending_bench_2: vendingBench2Row,
 });
+const sourceOnlyEffortAssignment = assignBenchmarksToVariants(
+  [
+    {
+      id: "test/example-model",
+      name: "Example Model",
+      artificial_analysis_id: "test/example-model-max",
+      reasoning_effort: "max",
+      benchmarks: {},
+    },
+  ],
+  lookups,
+);
+const [sourceOnlyEffortVariant] = sourceOnlyEffortAssignment;
+assert.ok(sourceOnlyEffortVariant);
+assert.equal(
+  (sourceOnlyEffortVariant.benchmarks as Record<string, unknown>).arc_agi_3,
+  undefined,
+  "a source-only effort must not become an exact result on another effort variant",
+);
 assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources), {
   ale_bench: {
     cost: 0.3,

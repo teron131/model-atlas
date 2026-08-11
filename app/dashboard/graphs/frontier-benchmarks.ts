@@ -3,6 +3,7 @@
 import { median } from "d3-array";
 
 import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
+import { benchmarkTaskMetrics } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type {
   BenchmarkPortfolio,
   BenchmarkResourcePolicy,
@@ -86,35 +87,35 @@ export const frontierBenchmarkAxisConfig: Record<
     xHigherIsBetter: true,
   },
   cost: {
-    label: "Task Cost ↓",
-    shortLabel: "Task Cost ↓",
+    label: "Cost ↓",
+    shortLabel: "Cost ↓",
     get: (row) => row.cost,
     selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
     format: fmtMoney,
     detailLabel: (row) => resourceMetricLabel(row, "cost"),
-    normalizedLabel: "Mean Normalized Cost ↓ (per task/total)",
-    normalizedDetailLabel: "Mean Normalized Cost ↓ (per task/total)",
+    normalizedLabel: "Mean Normalized Cost ↓",
+    normalizedDetailLabel: "Mean Normalized Cost ↓",
   },
   time: {
-    label: "Task Time ↓",
-    shortLabel: "Task Time ↓",
+    label: "Time ↓",
+    shortLabel: "Time ↓",
     get: (row) => row.seconds,
     selectionScore: (row) => (row.seconds == null ? null : row.score / (row.seconds / 86_400)),
     format: fmtDurationShort,
     detailLabel: (row) => resourceMetricLabel(row, "time"),
-    normalizedLabel: "Mean Normalized Time ↓ (per task/total)",
-    normalizedDetailLabel: "Mean Normalized Time ↓ (per task/total)",
+    normalizedLabel: "Mean Normalized Time ↓",
+    normalizedDetailLabel: "Mean Normalized Time ↓",
   },
   tokens: {
-    label: "Task Tokens ↓",
-    shortLabel: "Task Tokens ↓",
+    label: "Tokens ↓",
+    shortLabel: "Tokens ↓",
     get: (row) => row.totalTokens,
     selectionScore: (row) =>
       row.totalTokens == null ? null : row.score / (row.totalTokens / 1_000_000),
     format: fmtCompact,
     detailLabel: (row) => resourceMetricLabel(row, "tokens"),
-    normalizedLabel: "Mean Normalized Tokens ↓ (per task/total)",
-    normalizedDetailLabel: "Mean Normalized Tokens ↓ (per task/total)",
+    normalizedLabel: "Mean Normalized Tokens ↓",
+    normalizedDetailLabel: "Mean Normalized Tokens ↓",
   },
 };
 
@@ -139,11 +140,11 @@ export function frontierBenchmarkRows(
   return models
     .flatMap((model): FrontierBenchmarkRow[] => {
       const benchmarks = model.benchmarks ?? {};
-      const taskMetrics = model.task_metrics ?? {};
       return frontierKeys.flatMap((benchmarkKey) => {
         const score = toPercent(benchmarks[benchmarkKey]);
         const resourcePolicy = portfolio[benchmarkKey]?.resourcePolicy ?? null;
-        const task = resourcePolicy == null ? null : taskMetrics[benchmarkKey];
+        const task =
+          resourcePolicy == null ? null : benchmarkTaskMetrics(model, benchmarkKey, resourcePolicy);
         const cost = finiteValue(task?.cost);
         const seconds = finiteValue(task?.seconds);
         const inputTokens = finiteValue(task?.input_tokens);
@@ -522,7 +523,7 @@ function resourceMetricLabel(
   metric: FrontierBenchmarkResourceMetric,
 ): string {
   if (row.benchmarkKey === "all") {
-    return `Mean Normalized ${resourceMetricName(metric)} (per task/total)`;
+    return `Mean Normalized ${resourceMetricName(metric)}`;
   }
   const policy = row.resourcePolicy;
   if (policy == null) {

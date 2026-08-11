@@ -43,7 +43,7 @@ const artificialAnalysisTaskMetricColumns = defineTaskMetricColumns("artificial_
     key: "artificialAnalysisCost",
     metric: "cost",
     direction: "ascending",
-    label: "AA Cost",
+    label: "AA$",
   },
   {
     key: "artificialAnalysisSeconds",

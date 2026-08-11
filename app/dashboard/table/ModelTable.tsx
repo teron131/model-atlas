@@ -159,7 +159,7 @@ export const ModelTable = memo(function ModelTable({
   );
 });
 
-/** Keep each family's representative row mounted when expanded effort rows appear. */
+/** Keep each model's representative row mounted when expanded effort rows appear. */
 function stableModelRowKeys(rows: readonly TableRow[]): string[] {
   const strongestIndexByModel = new Map<string, number>();
   for (const [index, row] of rows.entries()) {

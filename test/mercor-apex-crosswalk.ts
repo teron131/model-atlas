@@ -59,14 +59,14 @@ assert.ok(Math.abs((crosswalk.projectionByItem.get(gpt56Max) ?? 0) - 0.383827433
 assert.equal(crosswalk.projectionByItem.has(glm), false);
 assert.ok((crosswalk.projectionByItem.get(lowMissing) ?? 0) < 0);
 assert.ok(Math.abs((crosswalk.confidence ?? 0) - 0.7695427728613522) < 1e-12);
-const duplicatedFamilyCrosswalk = buildAdditiveSourceCrosswalk(
+const duplicatedModelCrosswalk = buildAdditiveSourceCrosswalk(
   [...models, model("GPT-5.5", "high", 0.376843657817109, 0.385)],
   crosswalkOptions,
 );
-assert.equal(duplicatedFamilyCrosswalk.diagnostic.overlapModelCount, 4);
+assert.equal(duplicatedModelCrosswalk.diagnostic.overlapModelCount, 4);
 assert.ok(
   Math.abs(
-    (duplicatedFamilyCrosswalk.diagnostic.medianOffset ?? 0) -
+    (duplicatedModelCrosswalk.diagnostic.medianOffset ?? 0) -
       (crosswalk.diagnostic.medianOffset ?? 0),
   ) < 1e-12,
 );
