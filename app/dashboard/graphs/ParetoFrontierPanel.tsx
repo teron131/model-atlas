@@ -5,7 +5,7 @@ import { scaleLinear } from "d3-scale";
 import { type CSSProperties, memo } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../shared/model-display";
+import { modelVariantKey, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { scoreAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
@@ -13,7 +13,6 @@ import { valueDistribution } from "./chart-stats";
 import { EmptyChart, ShapeScaleLegend } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import { calloutLabelPlacements } from "./label-placement";
-import { shortLabel } from "./models";
 import { Panel } from "./Panel";
 import {
   AxisTitles,

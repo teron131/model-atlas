@@ -19,9 +19,7 @@ import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
-import { filterByModelControls, providerOptions } from "./graphs/models";
 import { researchRegionOrdinal } from "./graphs/research-index";
-import type { CostFilter, ModelLimit, ProviderFilters } from "./graphs/types";
 import { useLivePayload } from "./live-payload";
 import {
   ColumnTooltip,
@@ -30,7 +28,15 @@ import {
   type TooltipState,
 } from "./shared/ColumnTooltip";
 import { DEFAULT_DISPLAY_ITEMS, useDisplayLimit } from "./shared/DisplayControls";
-import { filterByModelQuery, modelsForVariantDisplay } from "./shared/model-display";
+import {
+  type CostFilter,
+  filterByModelControls,
+  filterByModelQuery,
+  type ModelLimit,
+  modelsForVariantDisplay,
+  type ProviderFilters,
+  providerOptions,
+} from "./shared/model-display";
 import { ModelToolbar } from "./shared/ModelToolbar";
 import {
   dashboardMetricColumns,

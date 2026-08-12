@@ -2,16 +2,14 @@
 
 import assert from "node:assert/strict";
 
-import {
-  filterByModelControls,
-  limitByIntelligenceScore,
-  providerOptions,
-} from "../app/dashboard/graphs/models";
 import { cacheBustedPath } from "../app/dashboard/shared/format";
 import {
+  filterByModelControls,
   filterByModelQuery,
+  limitByIntelligenceScore,
   modelDisplayName,
   modelsForVariantDisplay,
+  providerOptions,
   toggleProviderFilter,
 } from "../app/dashboard/shared/model-display";
 import {

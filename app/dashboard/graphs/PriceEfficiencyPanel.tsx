@@ -19,23 +19,22 @@ import { CaptureButton } from "../capture/CaptureButton";
 import { captureFileToken } from "../capture/png";
 import { useDisplayLimit } from "../shared/DisplayControls";
 import {
+  type CostFilter,
+  filterByModelControls,
   filterByModelQuery,
   modelCount,
+  modelName,
   modelsForVariantDisplay,
   modelVariantKey,
+  providerOptions,
+  shortLabel,
 } from "../shared/model-display";
 import { ModelToolbar } from "../shared/ModelToolbar";
 import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { bestByScore, valueDistribution } from "./chart-stats";
 import { EmptyChart, SummaryCard } from "./ChartComponents";
-import {
-  filterByModelControls,
-  focusHover,
-  modelName,
-  providerOptions,
-  shortLabel,
-} from "./models";
+import { focusHover } from "./models";
 import { Panel } from "./Panel";
 import { stableSvgScale } from "./PlotPrimitives";
 import {
@@ -45,7 +44,7 @@ import {
   priceEfficiencyRows,
   priceEfficiencySummaryDetail,
 } from "./price-efficiency";
-import type { CostFilter, HoverSetter } from "./types";
+import type { HoverSetter } from "./types";
 import { useCompactChartLayout } from "./use-media-query";
 
 import styles from "./graphs.module.css";

@@ -5,25 +5,24 @@ import { scaleLinear, scaleLog } from "d3-scale";
 import { type CSSProperties, memo, useMemo, useState } from "react";
 
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../shared/model-display";
+import { modelVariantKey, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { linearAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
-import { extremeLabelRows, valueDistribution } from "./chart-stats";
+import {
+  correlationLabel,
+  correlationValue,
+  extremeLabelRows,
+  formatCorrelation,
+  positiveDomain,
+  valueDistribution,
+} from "./chart-stats";
 import { EmptyChart } from "./ChartComponents";
 import { finiteValue, fmtTooltipScore } from "./format";
 import { GraphToggle } from "./GraphToggle";
 import { interactionXAxisTicks } from "./interaction-ticks";
 import { calloutLabelPlacements } from "./label-placement";
-import {
-  correlationLabel,
-  correlationValue,
-  formatCorrelation,
-  frontierBenchmarkScoreByModel,
-  interactionConfigs,
-  positiveDomain,
-  shortLabel,
-} from "./models";
+import { frontierBenchmarkScoreByModel, interactionConfigs } from "./models";
 import { Panel } from "./Panel";
 import {
   AxisTitles,
