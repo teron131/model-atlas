@@ -180,6 +180,11 @@ export function benchmarkQualityEvidence(
 
 type EffortRowsByModel = ReadonlyMap<string, ReadonlyMap<string, readonly JsonObject[]>>;
 
+type ObservedEffortValue = {
+  rank: number;
+  value: number;
+};
+
 type DimensionBenchmarkContext = {
   benchmarkKeys: readonly string[];
   benchmarkWeights: ReadonlyMap<string, number>;
@@ -216,8 +221,8 @@ function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps 
   };
 }
 
-/** Bound validated sibling estimates around a model's single direct effort observation. */
-function applySingleEffortModelBounds(
+/** Keep missing sibling proxies within the model's observed effort bounds. */
+function applyEffortModelBounds(
   models: readonly JsonObject[],
   benchmarkKeys: readonly string[],
   imputationByModel: Map<JsonObject, Map<string, number>>,
@@ -239,44 +244,35 @@ function applySingleEffortModelBounds(
 
   for (const variants of variantsByModel.values()) {
     for (const benchmarkKey of benchmarkKeys) {
-      const observedVariants = variants.filter(
-        (variant) => benchmarkMetricValue(variant, benchmarkKey) != null,
-      );
-      if (observedVariants.length > 1) {
-        continue;
-      }
-      const source = observedVariants[0];
       const sourceObservations = findBenchmarkObservations(
         variants.flatMap((variant) => [variant.id, variant.name]),
         observationLookups.get(benchmarkKey)!,
       );
-      if (sourceObservations.length > 1) {
-        continue;
-      }
-      const sourceObservation = sourceObservations[0];
-      if (source == null && sourceObservation == null) {
-        continue;
-      }
-      const sourceEffort = canonicalReasoningEffort(
-        source?.reasoning_effort ?? sourceObservation?.reasoning_effort,
-      );
-      const observedSourceEffort = canonicalReasoningEffort(sourceObservation?.reasoning_effort);
-      if (source != null && observedSourceEffort != null && observedSourceEffort !== sourceEffort) {
-        continue;
-      }
-      let sourceValue = source == null ? null : benchmarkMetricValue(source, benchmarkKey);
-      if (sourceValue == null && sourceObservation != null) {
+      const observedValuesByEffort = new Map<string, ObservedEffortValue>();
+      for (const sourceObservation of sourceObservations) {
+        const effort = canonicalReasoningEffort(sourceObservation.reasoning_effort);
+        if (effort == null) {
+          continue;
+        }
+        const rank = reasoningEffortRank(effort);
+        if (rank < 0) continue;
         const catalogKey = benchmarkKey as BenchmarkKey;
-        sourceValue =
+        const value =
           BENCHMARK_CATALOG[catalogKey] == null
             ? sourceObservation.canonical_value
             : transformBenchmarkSourceValue(catalogKey, sourceObservation.canonical_value);
+        observedValuesByEffort.set(effort, { rank, value });
       }
-      if (sourceEffort == null || sourceValue == null) {
-        continue;
+      for (const variant of variants) {
+        const effort = canonicalReasoningEffort(variant.reasoning_effort);
+        const value = benchmarkMetricValue(variant, benchmarkKey);
+        if (effort == null || value == null) continue;
+        const rank = reasoningEffortRank(effort);
+        if (rank < 0) continue;
+        observedValuesByEffort.set(effort, { rank, value });
       }
-      const sourceRank = reasoningEffortRank(sourceEffort);
-      if (sourceRank < 0) {
+      const observedValues = [...observedValuesByEffort.values()];
+      if (observedValues.length === 0) {
         continue;
       }
       for (const target of variants) {
@@ -289,17 +285,29 @@ function applySingleEffortModelBounds(
         ) {
           continue;
         }
-        const values = imputationByModel.get(target);
-        const existingValue = values?.get(benchmarkKey);
-        if (values == null || existingValue == null) {
+        const values = imputationByModel.get(target) ?? new Map<string, number>();
+        const existingValue = values.get(benchmarkKey);
+        if (existingValue == null && observedValues.length > 1) {
           continue;
         }
-        values.set(
-          benchmarkKey,
-          targetRank >= sourceRank
-            ? Math.max(existingValue, sourceValue)
-            : Math.min(existingValue, sourceValue),
-        );
+        let lowerBound: number | null = null;
+        let upperBound: number | null = null;
+        for (const observation of observedValues) {
+          if (observation.rank <= targetRank) {
+            lowerBound = Math.max(lowerBound ?? observation.value, observation.value);
+          }
+          if (observation.rank >= targetRank) {
+            upperBound = Math.min(upperBound ?? observation.value, observation.value);
+          }
+        }
+        if (lowerBound != null && upperBound != null && lowerBound > upperBound) {
+          continue;
+        }
+        let boundedValue = existingValue ?? observedValues[0]!.value;
+        if (lowerBound != null) boundedValue = Math.max(boundedValue, lowerBound);
+        if (upperBound != null) boundedValue = Math.min(boundedValue, upperBound);
+        values.set(benchmarkKey, boundedValue);
+        imputationByModel.set(target, values);
       }
     }
   }
@@ -886,7 +894,7 @@ function prepareImputation(
       imputationConfidenceByModel.set(model, confidenceByKey);
     }
   }
-  applySingleEffortModelBounds(models, benchmarkKeys, imputationByModel, benchmarkObservations);
+  applyEffortModelBounds(models, benchmarkKeys, imputationByModel, benchmarkObservations);
   return {
     imputationByModel,
     imputationConfidenceByModel,
