@@ -12,7 +12,6 @@
   },
   "scripts": {
     "build": "next build",
-    "build:vercel": "pnpm run build && if [ \"$VERCEL_ENV\" = \"production\" ]; then pnpm run d1:publish; else echo 'Skipping D1 publication outside production'; fi",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
