@@ -3,6 +3,7 @@
 import type { BenchmarkObservationLoader } from "../factory";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../registry";
 import { getArcPrizeStats } from "./arc-prize";
+import { getArtificialAnalysisOmniscienceStats } from "./artificial-analysis/omniscience";
 import { getEpochCapabilitiesIndexStats } from "./epoch/capabilities-index";
 import { getEpochBenchmarkStats } from "./epoch/results";
 import { getMlsBenchStats } from "./mls-bench";
@@ -26,6 +27,13 @@ export function benchmarkObservationSourceFetcher(
       getArcPrizeStats({
         benchmarkKey,
         datasetId: loader.datasetId,
+        sourceUrl: loader.sourceUrl,
+      });
+  }
+  if (loader.kind === "artificial_analysis_omniscience") {
+    return () =>
+      getArtificialAnalysisOmniscienceStats({
+        benchmarkKey: binding.benchmark,
         sourceUrl: loader.sourceUrl,
       });
   }

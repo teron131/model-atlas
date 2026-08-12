@@ -216,6 +216,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "mlsBench",
     sourceRowsKey: "mlsBenchRows",
   },
+  omniscience_accuracy: {
+    group: "artificial_analysis",
+    id: "artificial_analysis",
+    loader: {
+      kind: "artificial_analysis_omniscience",
+      sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
+    },
+    sourceDataKey: "omniscienceAccuracy",
+    sourceRowsKey: "omniscienceAccuracyRows",
+  },
   perception_bench: {
     group: "standalone",
     id: "perception_bench",
@@ -385,10 +395,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         roles: ["observation", "resource"],
         adapters: [
           {
-            kind: "artificial_analysis_leaderboard",
-            aliases: ["apexAgents", "apex_agents"],
-          },
-          {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
             taskRunCount: 452,
@@ -459,7 +465,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         id: "artificial_analysis",
         roles: ["observation", "resource"],
         adapters: [
-          { kind: "artificial_analysis_leaderboard", aliases: ["critpt"] },
           {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/critpt",
@@ -517,10 +522,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         roles: ["observation", "resource"],
         adapters: [
           {
-            kind: "artificial_analysis_leaderboard",
-            aliases: ["gdpvalNormalized", "gdpval_normalized"],
-          },
-          {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
             taskRunCount: 220,
@@ -531,17 +532,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
   },
   harvey_lab: {
     inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation"],
-        adapters: [
-          {
-            kind: "artificial_analysis_leaderboard",
-            aliases: ["harveyLab", "harvey_lab"],
-          },
-        ],
-      },
       {
         group: "vals",
         id: "vals",
@@ -557,7 +547,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         id: "artificial_analysis",
         roles: ["observation", "resource"],
         adapters: [
-          { kind: "artificial_analysis_leaderboard", aliases: ["hle"] },
           {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
@@ -575,25 +564,12 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         roles: ["observation", "resource"],
         adapters: [
           {
-            kind: "artificial_analysis_leaderboard",
-            aliases: ["itbenchSre", "itbench_sre"],
-          },
-          {
             kind: "artificial_analysis_resource_page",
             scoreKey: "it_bench_sre",
             url: "https://artificialanalysis.ai/evaluations/itbench-aa",
             taskRunCount: 177,
           },
         ],
-      },
-    ],
-  },
-  omniscience_accuracy: {
-    inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation"],
       },
     ],
   },
@@ -612,8 +588,14 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       {
         group: "artificial_analysis",
         id: "artificial_analysis",
-        roles: ["observation"],
-        adapters: [{ kind: "artificial_analysis_leaderboard", aliases: ["scicode"] }],
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            url: "https://artificialanalysis.ai/evaluations/scicode",
+            taskRunCount: 288,
+          },
+        ],
       },
     ],
   },
@@ -624,10 +606,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         id: "artificial_analysis",
         roles: ["observation", "resource"],
         adapters: [
-          {
-            kind: "artificial_analysis_leaderboard",
-            aliases: ["tauBanking", "tau_banking"],
-          },
           {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/tau3-banking",

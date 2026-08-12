@@ -919,6 +919,7 @@ function modelStatsSourceData(
     legalResearch: { rows: [], rowsByModelName: new Map() },
     medCode: { rows: [], rowsByModelName: new Map() },
     mlsBench: { rows: [], rowsByModelName: new Map() },
+    omniscienceAccuracy: { rows: [], rowsByModelName: new Map() },
     mercorApexAgents: {
       rows: [],
       rowsByModelName: new Map(),

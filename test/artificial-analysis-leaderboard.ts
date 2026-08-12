@@ -1,5 +1,6 @@
 /** Exercises Artificial Analysis leaderboard projection and scoring inputs. */
 
+import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/omniscience";
 import {
   buildBenchmarkImputationByModel,
   buildComponentScoreResult,
@@ -73,16 +74,9 @@ const rows = processArtificialAnalysisLeaderboardRows(
 );
 
 assertDeepEqual(rows[0]?.benchmarks, {
-  apex_agents: 0.47,
-  critpt: 0.31,
-  itbench_sre: 0.31,
   mmmu_pro: 0.24,
-  scicode: 0.42,
-  tau_banking: 0.52,
 });
-assertDeepEqual(rows[1]?.benchmarks, {
-  scicode: 0.36,
-});
+assertDeepEqual(rows[1]?.benchmarks, {});
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
 assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
@@ -177,7 +171,6 @@ assertDeepEqual(
         agentic_index: 80.5,
         coding_index: null,
         intelligence_index: 64.9,
-        omniscience_accuracy: null,
         omniscience_index: null,
       },
       intelligence_index_cost: {
@@ -194,9 +187,7 @@ assertDeepEqual(
         seconds_per_task: 120,
         output_tokens_per_task: 42000,
       },
-      benchmarks: {
-        tau_banking: 0.58,
-      },
+      benchmarks: {},
     },
   ],
 );
@@ -209,6 +200,33 @@ assertDeepEqual(
 assertDeepEqual(
   cleanArtificialAnalysisModelName("Claude Fable 5 (with fallback)"),
   "Claude Fable 5",
+);
+assertDeepEqual(
+  processArtificialAnalysisOmnisciencePage(
+    '<script type="application/ld+json">{"name":"AA-Omniscience Accuracy","data":[{"label":"Claude Opus 5 (max)","omniscienceAccuracy":0.61,"detailsUrl":"/models/claude-opus-5"}]}</script>',
+    {
+      benchmarkKey: "omniscience_accuracy",
+      sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
+    },
+  ),
+  [
+    {
+      benchmark_key: "omniscience_accuracy",
+      source_url: "https://artificialanalysis.ai/evaluations/omniscience",
+      model_id: "claude-opus-5",
+      model: "Claude Opus 5 (max)",
+      base_model: "Claude Opus 5",
+      reasoning_effort: "max",
+      model_creator: null,
+      rank: 1,
+      canonical_value: 0.61,
+      observed_at: null,
+      metadata: {
+        dataset_name: "AA-Omniscience Accuracy",
+        details_url: "/models/claude-opus-5",
+      },
+    },
+  ],
 );
 
 const scoringRows = [

@@ -1,10 +1,10 @@
 /**
- * Artificial Analysis leaderboard scraper owns the broad score table and general model metrics.
+ * Artificial Analysis leaderboard scraper owns aggregate indexes and general model metrics.
  *
- * This centralized page is the broad model table for scores and general Artificial Analysis metrics; benchmark-specific resource pages are scraped separately when they expose per-task cost, time, token, or harness details that the leaderboard omits.
+ * Task-level benchmark scores are sourced from their evaluation pages so the centralized table does not silently become a second benchmark authority.
  */
 
-import { ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS } from "../../benchmarks/registry";
+import { ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS } from "../../benchmarks/registry";
 import { asRecord, fetchWithTimeout, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import {
@@ -117,26 +117,19 @@ function pickBenchmarks(row: JsonObject): JsonObject {
 
 function benchmarkKeyBySourceKey(key: string): string | null {
   return (
-    ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS[key] ??
-    ARTIFICIAL_ANALYSIS_BENCHMARK_KEY_BY_ALIAS[normalizeMetricKey(key)] ??
+    ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS[key] ??
+    ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS[normalizeMetricKey(key)] ??
     null
   );
 }
 
 function pickIntelligence(row: JsonObject): JsonObject {
-  const omniscienceBreakdown = asRecord(row.omniscienceBreakdown);
-  const omniscienceTotal = asRecord(omniscienceBreakdown.total);
-  const intelligenceMetrics: JsonObject = {
+  return {
     intelligence_index: firstNumber(row, ["intelligenceIndex", "intelligence_index"]),
     agentic_index: firstNumber(row, ["agenticIndex", "agentic_index"]),
     coding_index: firstNumber(row, ["codingIndex", "coding_index"]),
     omniscience_index: firstNumber(row, ["omniscience", "omniscience_index"]),
-    omniscience_accuracy: firstNumber(row, ["omniscienceAccuracy", "omniscience_accuracy"]),
   };
-  if (intelligenceMetrics.omniscience_accuracy == null) {
-    intelligenceMetrics.omniscience_accuracy = firstNumber(omniscienceTotal, ["accuracy"]);
-  }
-  return intelligenceMetrics;
 }
 
 function pickIntelligenceIndexCost(row: JsonObject): JsonObject {

@@ -39,12 +39,14 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
   tokenMeasure: "output_tokens",
 } as const satisfies BenchmarkResourceMeasurement;
 
+const FALLBACK_INDEX_SCORING_WEIGHT = {
+  group: "baseline",
+  benchmarkImportance: 0.5,
+  dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+} as const satisfies BenchmarkScoringWeight;
+
 export const BENCHMARK_SCORING_WEIGHTS = {
-  aa_intelligence_index: {
-    group: "baseline",
-    benchmarkImportance: 0.5,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
+  aa_intelligence_index: FALLBACK_INDEX_SCORING_WEIGHT,
   agent_arena: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -155,11 +157,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 0.5,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  epoch_capabilities_index: {
-    group: "baseline",
-    benchmarkImportance: 0.5,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
+  epoch_capabilities_index: FALLBACK_INDEX_SCORING_WEIGHT,
   finance_agent_v2: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -265,11 +263,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
   },
-  surge_intelligence_index: {
-    group: "baseline",
-    benchmarkImportance: 0.5,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
-  },
+  surge_intelligence_index: FALLBACK_INDEX_SCORING_WEIGHT,
   tau_banking: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -280,11 +274,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  vals_index: {
-    group: "baseline",
-    benchmarkImportance: 0.5,
-    dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
-  },
+  vals_index: FALLBACK_INDEX_SCORING_WEIGHT,
   vending_bench_2: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -368,6 +358,10 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   itbench_sre: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "linear",
+  },
+  scicode: {
+    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+    qualityCoordinate: "logit",
   },
   tau_banking: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

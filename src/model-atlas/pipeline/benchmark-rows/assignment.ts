@@ -5,6 +5,7 @@ import {
   findBenchmarkObservation,
 } from "../../benchmarks/observation";
 import {
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationDataKey,
   type BenchmarkRuntimeKeyFor,
@@ -16,7 +17,6 @@ import {
 } from "../../benchmarks/scrapers/agents-last-exam";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
-  type ArtificialAnalysisBenchmarkResourceRow,
   findArtificialAnalysisBenchmarkResourceRow,
 } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { findBlueprintBenchScore } from "../../benchmarks/scrapers/blueprint-bench";
@@ -120,11 +120,6 @@ function mergeVariantBenchmarkFields(
   return fields;
 }
 
-type ArtificialAnalysisResourceQuery = {
-  modelNameCandidates: unknown[];
-  resourceLookup: ArtificialAnalysisBenchmarkResourceLookup;
-};
-
 function findSourceRow<T>(
   candidateNames: unknown[],
   rowsByModelName: ReadonlyMap<string, T>,
@@ -184,25 +179,6 @@ function findEffortSourceRow<T extends BenchmarkModelRow>(
   return row?.reasoning_effort === effort ? row : null;
 }
 
-function addArtificialAnalysisResourceBenchmark(
-  benchmarks: Record<string, unknown>,
-  scoringSources: NonNullable<ModelAtlasScoringSources>,
-  query: ArtificialAnalysisResourceQuery,
-  key: string,
-  score: (row: ArtificialAnalysisBenchmarkResourceRow) => unknown,
-): void {
-  const row = findArtificialAnalysisBenchmarkResourceRow(
-    key,
-    query.modelNameCandidates,
-    query.resourceLookup,
-  );
-  if (row == null) {
-    return;
-  }
-  benchmarks[key] = score(row);
-  scoringSources[key] = row;
-}
-
 function buildArtificialAnalysisBenchmarks(
   modelNameCandidates: unknown[],
   resourceLookup: ArtificialAnalysisBenchmarkResourceLookup,
@@ -210,10 +186,6 @@ function buildArtificialAnalysisBenchmarks(
 ): AssignedBenchmarks {
   const benchmarks: Record<string, unknown> = {};
   const scoringSources: NonNullable<ModelAtlasScoringSources> = {};
-  const query = {
-    modelNameCandidates,
-    resourceLookup,
-  };
   for (const key of Object.keys(baseBenchmarks)) {
     const resourceRow = findArtificialAnalysisBenchmarkResourceRow(
       key,
@@ -224,30 +196,19 @@ function buildArtificialAnalysisBenchmarks(
       scoringSources[key] = resourceRow;
     }
   }
-  addArtificialAnalysisResourceBenchmark(
-    benchmarks,
-    scoringSources,
-    query,
-    "analyst_agent",
-    (row) => row.score,
-  );
-  addArtificialAnalysisResourceBenchmark(benchmarks, scoringSources, query, "briefcase", (row) =>
-    transformBenchmarkSourceValue("briefcase", row.score),
-  );
-  addArtificialAnalysisResourceBenchmark(
-    benchmarks,
-    scoringSources,
-    query,
-    "automation_bench",
-    (row) => row.score,
-  );
-  addArtificialAnalysisResourceBenchmark(
-    benchmarks,
-    scoringSources,
-    query,
-    "itbench_sre",
-    (row) => row.score,
-  );
+  for (const { benchmarkKey: key } of ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES) {
+    const row = findArtificialAnalysisBenchmarkResourceRow(
+      key,
+      modelNameCandidates,
+      resourceLookup,
+    );
+    if (row == null) {
+      continue;
+    }
+    benchmarks[key] = transformBenchmarkSourceValue(key, row.score);
+    const scoringSourceKey: string = key;
+    scoringSources[scoringSourceKey] = row;
+  }
   return { benchmarks, scoringSources };
 }
 

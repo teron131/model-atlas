@@ -1,5 +1,6 @@
 /** Candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
 
+import { benchmarkValueLocation } from "../../benchmarks/registry";
 import {
   type ScoringConfig,
   TASK_COST_PRICE_TRANSITIONS,
@@ -13,11 +14,13 @@ import {
 import { resolveModelLogo } from "../../logos/resolve";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
+  ModelAtlasBenchmarks,
   ModelAtlasCandidate,
   ModelAtlasContextWindow,
   ModelAtlasCost,
   ModelAtlasCostBreakdown,
   ModelAtlasCostTier,
+  ModelAtlasIntelligence,
   ModelAtlasModalities,
   ModelAtlasModel,
   ModelAtlasScoringSources,
@@ -62,6 +65,27 @@ function buildNumericMap<T extends Record<string, number | null | undefined>>(
     }
   }
   return hasFields(numericFields) ? (numericFields as T) : null;
+}
+
+/** Place selected quality values in their declared public persistence location after scoring consumes the source row. */
+function buildPersistedQualityValues(model: JsonObject): {
+  intelligence: ModelAtlasIntelligence | null;
+  benchmarks: ModelAtlasBenchmarks | null;
+} {
+  const intelligence = buildNumericMap<ModelAtlasIntelligence>(model.intelligence) ?? {};
+  const benchmarks = buildNumericMap<ModelAtlasBenchmarks>(model.benchmarks) ?? {};
+  for (const [key, value] of Object.entries(benchmarks)) {
+    const location = benchmarkValueLocation(key);
+    if (location?.kind !== "intelligence" || value == null) {
+      continue;
+    }
+    intelligence[location.field] = value;
+    delete benchmarks[key];
+  }
+  return {
+    intelligence: hasFields(intelligence) ? intelligence : null,
+    benchmarks: hasFields(benchmarks) ? benchmarks : null,
+  };
 }
 
 function providerFromId(modelId: unknown): string | null {
@@ -486,6 +510,7 @@ export function buildModelCandidate(
     lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ?? EMPTY_OPENROUTER_PRICING;
   const cost = buildCost(model, pricing);
   const scoringSources = buildScoringSources(model);
+  const qualityValues = buildPersistedQualityValues(model);
   const { componentScores, confidence } = buildComponentScoreResult(
     model,
     speed,
@@ -512,9 +537,9 @@ export function buildModelCandidate(
     cost,
     context_window: buildContextWindow(model),
     speed,
-    intelligence: buildNumericMap(model.intelligence),
+    intelligence: qualityValues.intelligence,
     task_metrics: buildTaskMetrics(model.intelligence_index_cost, scoringSources),
-    benchmarks: buildNumericMap(model.benchmarks),
+    benchmarks: qualityValues.benchmarks,
     benchmark_dates: null,
     confidence,
     scoring_sources: scoringSources,

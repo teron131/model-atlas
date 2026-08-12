@@ -231,6 +231,7 @@ assert.deepEqual(resourceQualityCoordinates, {
   harvey_lab: "logit",
   hle: "logit",
   itbench_sre: "linear",
+  scicode: "logit",
   tau_banking: "logit",
 });
 assert.deepEqual(
@@ -313,6 +314,8 @@ for (const key of [
   "vals_index",
 ] as const) {
   assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].benchmarkImportance, 0.5);
+  assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.intelligence, 0.5);
+  assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.agentic, 0.5);
 }
 assertEqual(
   benchmarkMetricValue({ intelligence: { intelligence_index: 73.5 } }, "aa_intelligence_index"),

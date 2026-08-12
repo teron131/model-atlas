@@ -3,7 +3,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
-import { ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS } from "../../benchmarks/registry";
+import { ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS } from "../../benchmarks/registry";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { asFiniteNumber, type JsonObject } from "../../runtime";
 import {
@@ -91,7 +91,7 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   for (const key of ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS) {
     assignIfNumber(rawRow, key, row[key]);
   }
-  for (const key of ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS) {
+  for (const key of ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS) {
     assignIfNumber(rawRow, key, row[key]);
   }
   for (const key of ARTIFICIAL_ANALYSIS_COST_KEYS) {
@@ -124,7 +124,7 @@ function selectedRowFromCache(row: CacheDbRow): JsonObject {
     row.median_end_to_end_response_time_seconds,
   );
   const intelligence = nestedNumbers(row, ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS);
-  const benchmarks = nestedNumbers(row, ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS);
+  const benchmarks = nestedNumbers(row, ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS);
   const intelligenceIndexCost = nestedNumbers(row, ARTIFICIAL_ANALYSIS_COST_KEYS);
   if (nonEmptyRecord(intelligence) != null) {
     selectedRow.intelligence = intelligence;

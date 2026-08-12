@@ -2,13 +2,13 @@
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import {
-  ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
+  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
 import { agentsLastExamBenchmarkScore } from "../../benchmarks/scrapers/agents-last-exam";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { cursorBenchCanonicalModelName } from "../../benchmarks/scrapers/cursorbench";
 import {
   benchmarkModelEffort,
@@ -41,14 +41,6 @@ export type BenchmarkRowDraft = {
 
 type AggregatableBenchmarkSourceRow = BenchmarkSourceRow & {
   reasoningEffort: unknown;
-};
-
-type ArtificialAnalysisModelDraftSource<Row> = {
-  rows: readonly Row[];
-  modelId: (row: Row) => string | null;
-  label: (row: Row, modelId: string | null) => string | null;
-  reasoningEffort: (row: Row) => unknown;
-  value: (row: Row, key: string) => unknown;
 };
 
 type ModelScoreDraftRow = {
@@ -121,25 +113,6 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
   });
 }
 
-function artificialAnalysisBenchmarkResourceDrafts(
-  key: string,
-  rows: readonly ArtificialAnalysisBenchmarkResourceRow[],
-  value: (row: ArtificialAnalysisBenchmarkResourceRow) => unknown,
-): BenchmarkRowDraft[] {
-  return benchmarkRowDrafts(
-    key,
-    rows.filter((row) => row.benchmark_key === key),
-    (row) => ({
-      id: row.model_id,
-      identity: row.model_id,
-      label: row.model,
-      provider: row.provider,
-      reasoningEffort: row.reasoning_effort,
-      value: value(row),
-    }),
-  );
-}
-
 function addBenchmarkRowDraft(
   rowsByKey: Record<string, AggregatableBenchmarkSourceRow[]>,
   draft: BenchmarkRowDraft,
@@ -199,67 +172,45 @@ export function finalizeBenchmarkRows(drafts: readonly BenchmarkRowDraft[]): Ben
   );
 }
 
-/** Artificial Analysis rows carry many benchmark keys, so each supported key becomes separate source evidence. */
-export function artificialAnalysisModelRowDrafts<Row>({
-  rows,
-  modelId,
-  label,
-  reasoningEffort,
-  value,
-}: ArtificialAnalysisModelDraftSource<Row>): BenchmarkRowDraft[] {
-  return rows.flatMap((row) => {
-    const rowModelId = modelId(row);
-    const rowLabel = label(row, rowModelId);
-    if (rowLabel == null) {
-      return [];
-    }
-    return ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS.map((key) => ({
-      key,
-      id: rowModelId,
-      identity: rowModelId,
-      label: rowLabel,
-      provider: null,
-      reasoningEffort: reasoningEffort(row),
-      value: value(row, key),
-    }));
-  });
-}
-
 function artificialAnalysisBenchmarkRowDrafts(
   sourceData: ModelAtlasSourceData,
 ): BenchmarkRowDraft[] {
-  return [
-    ...artificialAnalysisModelRowDrafts({
-      rows: sourceData.artificialAnalysis.rows,
-      modelId: (row) => {
-        const record = asRecord(row);
-        return typeof record.model_id === "string" && record.model_id.length > 0
-          ? record.model_id
-          : null;
-      },
-      label: (row, modelId) => {
-        const record = asRecord(row);
-        return typeof record.name === "string" && record.name.length > 0 ? record.name : modelId;
-      },
-      reasoningEffort: (row) => asRecord(row).reasoning_effort,
-      value: (row, key) => asRecord(asRecord(row).benchmarks)[key],
-    }),
-    ...artificialAnalysisBenchmarkResourceDrafts(
-      "analyst_agent",
-      sourceData.artificialAnalysisBenchmarkResources.rows,
-      (row) => row.score,
+  const contextDrafts = sourceData.artificialAnalysis.rows.flatMap((row) => {
+    const record = asRecord(row);
+    const modelId =
+      typeof record.model_id === "string" && record.model_id.length > 0 ? record.model_id : null;
+    const label = typeof record.name === "string" && record.name.length > 0 ? record.name : modelId;
+    const benchmarks = asRecord(record.benchmarks);
+    if (label == null) {
+      return [];
+    }
+    return ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
+      key,
+      id: modelId,
+      identity: modelId,
+      label,
+      provider: null,
+      reasoningEffort: record.reasoning_effort,
+      value: benchmarks[key],
+    }));
+  });
+  const resourceDrafts = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.flatMap(({ benchmarkKey }) =>
+    benchmarkRowDrafts(
+      benchmarkKey,
+      sourceData.artificialAnalysisBenchmarkResources.rows.filter(
+        (row) => row.benchmark_key === benchmarkKey,
+      ),
+      (row) => ({
+        id: row.model_id,
+        identity: row.model_id,
+        label: row.model,
+        provider: row.provider,
+        reasoningEffort: row.reasoning_effort,
+        value: transformBenchmarkSourceValue(benchmarkKey, row.score),
+      }),
     ),
-    ...artificialAnalysisBenchmarkResourceDrafts(
-      "automation_bench",
-      sourceData.artificialAnalysisBenchmarkResources.rows,
-      (row) => row.score,
-    ),
-    ...artificialAnalysisBenchmarkResourceDrafts(
-      "briefcase",
-      sourceData.artificialAnalysisBenchmarkResources.rows,
-      (row) => transformBenchmarkSourceValue("briefcase", row.score),
-    ),
-  ];
+  );
+  return [...contextDrafts, ...resourceDrafts];
 }
 
 type StandaloneBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
