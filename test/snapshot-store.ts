@@ -1,13 +1,76 @@
 /** Verifies D1-only runtime reads, refresh guards, and batched database access. */
 
 import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
 
-import { queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1";
+import { createD1Usage, queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1/client";
+import { buildRawRowWritePlan } from "../src/model-atlas/database/d1/writes";
 import {
   readDisplaySnapshotPayload,
   refreshStoredSnapshot,
   snapshotRuntime,
 } from "../src/model-atlas/database/runtime-snapshot";
+
+const differentialDb = new DatabaseSync(":memory:");
+try {
+  differentialDb.exec(`
+    CREATE TABLE raw_rows (
+      row_index INTEGER PRIMARY KEY,
+      fetched_at_epoch_seconds INTEGER,
+      value TEXT
+    );
+    INSERT INTO raw_rows VALUES (0, 100, 'same'), (1, 100, 'old'), (2, 100, 'gone');
+  `);
+  const plan = buildRawRowWritePlan(
+    "raw_rows",
+    {
+      columns: ["row_index", "fetched_at_epoch_seconds", "value"],
+      rows: [
+        [0, 200, "same"],
+        [1, 200, "new"],
+        [3, 200, "added"],
+      ],
+    },
+    [
+      { row_index: 0, fetched_at_epoch_seconds: 100, value: "same" },
+      { row_index: 1, fetched_at_epoch_seconds: 100, value: "old" },
+      { row_index: 2, fetched_at_epoch_seconds: 100, value: "gone" },
+    ],
+  );
+  assert.equal(
+    plan.fitsAtomicBatch,
+    true,
+    "small raw D1 diffs should fit one atomic publication batch",
+  );
+  differentialDb.exec(plan.statements.join("\n"));
+  assert.deepEqual(
+    differentialDb
+      .prepare("SELECT * FROM raw_rows ORDER BY row_index")
+      .all()
+      .map((row) => ({ ...row })),
+    [
+      { row_index: 0, fetched_at_epoch_seconds: 100, value: "same" },
+      { row_index: 1, fetched_at_epoch_seconds: 200, value: "new" },
+      { row_index: 3, fetched_at_epoch_seconds: 200, value: "added" },
+    ],
+    "raw D1 differential writes should leave identical rows untouched",
+  );
+  const oversizedPlan = buildRawRowWritePlan(
+    "raw_rows",
+    {
+      columns: ["row_index", "fetched_at_epoch_seconds", "value"],
+      rows: Array.from({ length: 2_100 }, (_, rowIndex) => [rowIndex, 300, `row-${rowIndex}`]),
+    },
+    [],
+  );
+  assert.equal(
+    oversizedPlan.fitsAtomicBatch,
+    false,
+    "large raw-source churn should retain staged replacement instead of partial row writes",
+  );
+} finally {
+  differentialDb.close();
+}
 
 const originalDatabasePath = process.env.MODEL_ATLAS_DATABASE_PATH;
 const originalVercel = process.env.VERCEL;
@@ -85,9 +148,14 @@ try {
                   : [],
               },
             ]
-          : body.batch.map(() => ({
+          : body.batch.map((_, index) => ({
               success: true,
               results: [],
+              meta: {
+                rows_read: index + 1,
+                rows_written: (index + 1) * 2,
+                ...(index === 0 ? { timings: { sql_duration_ms: 0.25 } } : { duration: 0.5 }),
+              },
             })),
     });
   };
@@ -115,7 +183,8 @@ try {
     },
     "D1 payload reads should fetch the completed materialized snapshot in one statement",
   );
-  await queryD1Batch([{ sql: "DELETE FROM example" }, { sql: "INSERT example" }]);
+  const usage = createD1Usage();
+  await queryD1Batch([{ sql: "DELETE FROM example" }, { sql: "INSERT example" }], usage);
   assert.deepEqual(
     requestBodies[2],
     {
@@ -125,6 +194,17 @@ try {
       ],
     },
     "D1 publications should use one transactional REST batch",
+  );
+  assert.deepEqual(
+    usage,
+    {
+      request_count: 1,
+      statement_count: 2,
+      rows_read: 3,
+      rows_written: 6,
+      sql_duration_ms: 0.75,
+    },
+    "D1 publication usage should aggregate Cloudflare billing and duration metadata",
   );
 } finally {
   globalThis.fetch = originalFetch;

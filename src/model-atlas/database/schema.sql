@@ -550,14 +550,3 @@ CREATE TABLE IF NOT EXISTS model_match_debug (
 	openrouter_model_stats_row_index INTEGER,
 	PRIMARY KEY (row_index)
 );
-
-CREATE INDEX IF NOT EXISTS idx_artificial_analysis_raw_models_model_id
-	ON artificial_analysis_raw_models(model_id);
-CREATE INDEX IF NOT EXISTS idx_models_dev_raw_models_model_id ON models_dev_raw_models(model_id);
-CREATE INDEX IF NOT EXISTS idx_openrouter_raw_rows_model_id ON openrouter_raw_rows(model_id);
-CREATE INDEX IF NOT EXISTS idx_model_match_debug_artificial_analysis_id
-	ON model_match_debug(artificial_analysis_id);
-CREATE INDEX IF NOT EXISTS idx_model_match_debug_candidate_model_id
-	ON model_match_debug(candidate_model_id);
-CREATE INDEX IF NOT EXISTS idx_model_match_debug_selected_model_id
-	ON model_match_debug(selected_model_id);
