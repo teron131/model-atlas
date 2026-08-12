@@ -11,9 +11,11 @@ import {
   frontierBenchmarkHoverRows,
   frontierBenchmarkRows,
   frontierBenchmarkSummaryRows,
+  normalizedFrontierBenchmarkRows,
   selectedFrontierBenchmarkAxisKey,
   speedValueBlendScore,
 } from "../app/dashboard/graphs/frontier-benchmarks";
+import { frontierBenchmarkScoreByModel } from "../app/dashboard/graphs/models";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -66,6 +68,34 @@ const topRow = rows[0];
 const secondRow = rows[1];
 assert.ok(topRow);
 assert.ok(secondRow);
+
+const referenceFloor = frontierModel({
+  id: "provider/reference-floor",
+  name: "Reference floor",
+  score: 0.5,
+  cost: 1,
+  seconds: 10,
+  inputTokens: 500,
+  outputTokens: 100,
+  valueScore: 50,
+  speedScore: 50,
+  intelligenceScore: 50,
+});
+const referenceModels = [efficient, expensive, referenceFloor];
+const referenceRows = frontierBenchmarkRows(referenceModels, portfolio);
+assert.deepEqual(
+  normalizedFrontierBenchmarkRows(rows, referenceRows).map((row) => [row.model.id, row.score]),
+  [
+    ["provider/expensive", 100],
+    ["provider/efficient", 80],
+  ],
+  "filtered chart rows should retain normalization from the full reference cohort",
+);
+assert.deepEqual(
+  [...frontierBenchmarkScoreByModel([efficient, expensive], portfolio, referenceModels).values()],
+  [80, 100],
+  "filtered interaction rows should retain normalization from the full reference cohort",
+);
 
 assert.deepEqual(
   rows.map((row) => [row.model.id, row.score, row.cost, row.totalTokens]),

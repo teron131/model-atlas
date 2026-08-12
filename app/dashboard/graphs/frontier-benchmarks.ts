@@ -198,12 +198,13 @@ export function meanFrontierBenchmarkRows(rows: FrontierBenchmarkRow[]): Frontie
 
 export function normalizedFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
+  referenceRows: FrontierBenchmarkRow[] = rows,
 ): FrontierBenchmarkRow[] {
   const scoresByBenchmark = new Map<string, number[]>();
   const costsByBenchmark = new Map<string, number[]>();
   const secondsByBenchmark = new Map<string, number[]>();
   const tokensByBenchmark = new Map<string, number[]>();
-  for (const row of rows) {
+  for (const row of referenceRows) {
     const scores = scoresByBenchmark.get(row.benchmarkKey) ?? [];
     scores.push(row.score);
     scoresByBenchmark.set(row.benchmarkKey, scores);

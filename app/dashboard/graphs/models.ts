@@ -133,13 +133,16 @@ export const interactionConfigs: InteractionConfig[] = [
 export function frontierBenchmarkScoreByModel(
   models: ModelAtlasModel[],
   portfolio: BenchmarkPortfolio,
+  referenceModels: ModelAtlasModel[] = models,
 ) {
   const frontierKeys = Object.entries(portfolio)
     .filter(([, entry]) => entry.group === "frontier")
     .map(([key]) => key);
   const scoresByBenchmark = new Map<string, number[]>();
   for (const key of frontierKeys) {
-    const scores = models.map((model) => toPercent(model.benchmarks?.[key])).filter(finite);
+    const scores = referenceModels
+      .map((model) => toPercent(model.benchmarks?.[key]))
+      .filter(finite);
     if (scores.length > 0) {
       scoresByBenchmark.set(key, scores);
     }

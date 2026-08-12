@@ -42,10 +42,12 @@ import styles from "./graphs.module.css";
 export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   payload,
   models,
+  referenceModels,
   setHover,
 }: {
   payload: ModelAtlasPayload;
   models: ModelAtlasModel[];
+  referenceModels: ModelAtlasModel[];
   setHover: HoverSetter;
 }) {
   const [axisKey, setAxisKey] = useState<FrontierBenchmarkAxisKey>("speedValue");
@@ -54,9 +56,16 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     () => frontierBenchmarkRows(models, payload.metadata.scoring.benchmark_portfolio),
     [models, payload.metadata.scoring.benchmark_portfolio],
   );
+  const referenceBenchmarkRows = useMemo(
+    () => frontierBenchmarkRows(referenceModels, payload.metadata.scoring.benchmark_portfolio),
+    [referenceModels, payload.metadata.scoring.benchmark_portfolio],
+  );
   const meanRows = useMemo(
-    () => meanFrontierBenchmarkRows(normalizedFrontierBenchmarkRows(benchmarkRows)),
-    [benchmarkRows],
+    () =>
+      meanFrontierBenchmarkRows(
+        normalizedFrontierBenchmarkRows(benchmarkRows, referenceBenchmarkRows),
+      ),
+    [benchmarkRows, referenceBenchmarkRows],
   );
   const benchmarkOptions = useMemo(() => frontierBenchmarkOptions(benchmarkRows), [benchmarkRows]);
   const correlationByBenchmark = useMemo(
