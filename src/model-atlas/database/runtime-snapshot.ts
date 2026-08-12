@@ -2,8 +2,8 @@
 
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
-import { d1Configured, missingD1Environment, readD1Payload } from "./d1";
-import { publishD1Snapshot } from "./d1-publish";
+import { publishD1Snapshot, readD1Payload } from "./d1";
+import { d1Configured, missingD1Environment } from "./d1/client";
 
 type SnapshotReadState = {
   readInFlight: Promise<ModelAtlasPayload | null> | null;

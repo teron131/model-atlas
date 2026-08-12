@@ -1,7 +1,7 @@
 /** Cloudflare D1 adapter keeps deployed reads and schema checks aligned with the SQLite snapshot contract. */
 
-import type { ModelAtlasPayload } from "../stats/types";
-import { loadSchemaSql, SCHEMA_MIGRATION_VALUES } from "./schema";
+import type { ModelAtlasPayload } from "../../stats/types";
+import { loadSchemaSql, SCHEMA_MIGRATION_VALUES } from "../schema";
 import {
   catalogTableMatchesSchema,
   quoteIdentifier,
@@ -10,7 +10,7 @@ import {
   type SchemaManifestRow,
   type SchemaReconciliationPlan,
   schemaReconciliationPlan,
-} from "./schema-reconciliation";
+} from "../schema-reconciliation";
 
 type D1Value = string | number | null;
 type D1Rows = Record<string, unknown>[];
@@ -26,9 +26,17 @@ type D1Config = {
   apiBaseUrl: string;
 };
 
+type D1QueryMeta = {
+  rows_read?: number;
+  rows_written?: number;
+  duration?: number;
+  timings?: { sql_duration_ms?: number };
+};
+
 type D1QueryResult = {
   success?: boolean;
   results?: D1Rows | { columns?: string[]; rows?: unknown[][] };
+  meta?: D1QueryMeta;
 };
 
 type D1ApiResponse = {
@@ -39,9 +47,28 @@ type D1ApiResponse = {
 
 type D1QueryBody = D1Query | { batch: D1Query[] };
 
+export type D1Usage = {
+  request_count: number;
+  statement_count: number;
+  rows_read: number;
+  rows_written: number;
+  sql_duration_ms: number;
+};
+
 const DEFAULT_API_BASE_URL = "https://api.cloudflare.com/client/v4";
 const MATERIALIZED_PAYLOAD_SQL =
   "SELECT payload_json FROM snapshot_payloads WHERE snapshot_key = 'public' LIMIT 1";
+
+/** Mutable publication-scoped usage keeps Cloudflare billing evidence attached to one refresh. */
+export function createD1Usage(): D1Usage {
+  return {
+    request_count: 0,
+    statement_count: 0,
+    rows_read: 0,
+    rows_written: 0,
+    sql_duration_ms: 0,
+  };
+}
 
 /** D1 configuration is complete only when every required deployment secret is present. */
 export function d1Config(): D1Config | null {
@@ -100,7 +127,7 @@ function resultRows(result: D1QueryResult | undefined): D1Rows {
   );
 }
 
-async function sendD1Query(body: D1QueryBody): Promise<D1QueryResult[]> {
+async function sendD1Query(body: D1QueryBody, usage?: D1Usage): Promise<D1QueryResult[]> {
   const config = d1Config();
   if (config == null) {
     throw new Error(
@@ -126,38 +153,58 @@ async function sendD1Query(body: D1QueryBody): Promise<D1QueryResult[]> {
   if (results.some((result) => result.success === false)) {
     throw d1Error(payload);
   }
+  if (usage != null) {
+    usage.request_count += 1;
+    usage.statement_count += results.length;
+    for (const result of results) {
+      usage.rows_read += result.meta?.rows_read ?? 0;
+      usage.rows_written += result.meta?.rows_written ?? 0;
+      usage.sql_duration_ms += result.meta?.timings?.sql_duration_ms ?? result.meta?.duration ?? 0;
+    }
+  }
   return results;
 }
 
 /** Executes one atomic D1 batch so publication cannot expose a partial run. */
-export async function queryD1Batch(queries: readonly D1Query[]): Promise<D1QueryResult[]> {
+export async function queryD1Batch(
+  queries: readonly D1Query[],
+  usage?: D1Usage,
+): Promise<D1QueryResult[]> {
   if (queries.length === 0) {
     return [];
   }
-  return sendD1Query({
-    batch: queries.map(({ sql, params = [] }) => ({ sql, params })),
-  });
+  return sendD1Query(
+    {
+      batch: queries.map(({ sql, params = [] }) => ({ sql, params })),
+    },
+    usage,
+  );
 }
 
 /** Returns row groups for several read queries in one D1 round trip. */
-export async function queryD1BatchRows(queries: readonly D1Query[]): Promise<D1Rows[]> {
-  return (await queryD1Batch(queries)).map((result) => resultRows(result));
+export async function queryD1BatchRows(
+  queries: readonly D1Query[],
+  usage?: D1Usage,
+): Promise<D1Rows[]> {
+  return (await queryD1Batch(queries, usage)).map((result) => resultRows(result));
 }
 
-async function queryD1Rows(sql: string, params: D1Value[] = []): Promise<D1Rows> {
-  return resultRows((await sendD1Query({ sql, params }))[0]);
+async function queryD1Rows(sql: string, usage?: D1Usage): Promise<D1Rows> {
+  return resultRows((await sendD1Query({ sql, params: [] }, usage))[0]);
 }
 
 /** Reconciles D1 schema objects atomically while preserving rows in tables whose primary keys still match. */
-export async function ensureD1Schema(): Promise<SchemaReconciliationPlan> {
+export async function ensureD1Schema(usage?: D1Usage): Promise<SchemaReconciliationPlan> {
   const schemaSql = await loadSchemaSql();
   const catalogRows = (await queryD1Rows(
     "SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')",
+    usage,
   )) as SchemaCatalogRow[];
   let manifestRows: SchemaManifestRow[] = [];
   if (catalogTableMatchesSchema(catalogRows, schemaSql, SCHEMA_MANIFEST_TABLE)) {
     manifestRows = (await queryD1Rows(
       `SELECT object_type, object_name FROM ${quoteIdentifier(SCHEMA_MANIFEST_TABLE)}`,
+      usage,
     )) as SchemaManifestRow[];
   }
   const plan = schemaReconciliationPlan(
@@ -166,16 +213,19 @@ export async function ensureD1Schema(): Promise<SchemaReconciliationPlan> {
     manifestRows,
     SCHEMA_MIGRATION_VALUES,
   );
-  await queryD1Batch(plan.statements.map((sql) => ({ sql })));
+  await queryD1Batch(
+    plan.statements.map((sql) => ({ sql })),
+    usage,
+  );
   return plan;
 }
 
 /** D1 reads the one snapshot atomically replaced by publication. */
-export async function readD1Payload(): Promise<ModelAtlasPayload | null> {
+export async function readD1Payload(usage?: D1Usage): Promise<ModelAtlasPayload | null> {
   if (!d1Configured()) {
     return null;
   }
-  const row = (await queryD1Rows(MATERIALIZED_PAYLOAD_SQL))[0];
+  const row = (await queryD1Rows(MATERIALIZED_PAYLOAD_SQL, usage))[0];
   if (typeof row?.payload_json !== "string") {
     return null;
   }
