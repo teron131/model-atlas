@@ -1,9 +1,12 @@
 /** Normalize live model evidence into the shared parameter system used by every signature mode. */
 
 import { meanOfFinite, quantileFromSorted } from "../../../src/model-atlas/numeric";
-import { strongestModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { modelDisplayName, modelVariantKey } from "../shared/model-display";
+import {
+  modelDisplayName,
+  modelsForVariantDisplay,
+  modelVariantKey,
+} from "../shared/model-display";
 import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
 
 export type SignatureMode = "field" | "phase" | "type";
@@ -38,10 +41,11 @@ export const signatureModeLabels: Record<SignatureMode, string> = {
 const QUALITY_PERCENTILE = 0.8;
 
 export function signatureModels(models: ModelAtlasModel[], limit = 5): SignatureModel[] {
-  const baseModels = strongestModelVariants(
+  const baseModels = modelsForVariantDisplay(
     models.filter(
       (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
     ),
+    false,
   );
   const qualityThreshold =
     quantileFromSorted(
