@@ -1,17 +1,11 @@
-/** Graph data shaping, filter options, and hover helpers. */
+/** Shared graph projections and hover-state shaping. */
 
 import type { PointerEvent } from "react";
 
-import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { modelDisplayName, modelVariantKey } from "../shared/model-display";
-import {
-  providerChartColor,
-  providerDisplayName,
-  providerFilterKey,
-  providerLogo,
-} from "../shared/provider-theme";
+import { modelLogo, modelName, modelVariantKey } from "../shared/model-display";
+import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
 import {
   finite,
   finiteValue,
@@ -23,26 +17,7 @@ import {
   fmtTooltipNumber,
   toPercent,
 } from "./format";
-import type {
-  CostFilter,
-  HoverRow,
-  HoverState,
-  InteractionConfig,
-  ModelLimit,
-  Point,
-  ProviderFilters,
-  ProviderOption,
-} from "./types";
-
-export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
-export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
-const PROVIDER_FILTER_LIMIT = 14;
-const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
-
-type ModelControlFilters = {
-  providers: ProviderFilters;
-  maxCost: CostFilter;
-};
+import type { HoverRow, HoverState, InteractionConfig } from "./types";
 
 export const interactionConfigs: InteractionConfig[] = [
   {
@@ -168,138 +143,6 @@ export function frontierBenchmarkScoreByModel(
   return scoreByModel;
 }
 
-export function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[]> {
-  const groups = new Map<TKey, T[]>();
-  for (const value of values) {
-    const key = getKey(value);
-    const group = groups.get(key) ?? [];
-    group.push(value);
-    groups.set(key, group);
-  }
-  return groups;
-}
-
-export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
-  type ProviderOptionDraft = ProviderOption & {
-    modelKeys: Set<string>;
-    bestScoreByModel: Map<string, number>;
-  };
-
-  const optionsBySlug = new Map<string, ProviderOptionDraft>();
-  for (const model of models) {
-    const slug = providerFilterKey(model.provider);
-    const intelligenceScore = finiteValue(model.scores?.intelligence_score);
-    const option = optionsBySlug.get(slug) ?? {
-      slug,
-      label: providerDisplayName(model),
-      count: 0,
-      color: providerChartColor(model.provider),
-      logo: providerLogoSource(model),
-      modelKeys: new Set(),
-      bestScoreByModel: new Map(),
-    };
-    const modelKey = canonicalModelKey(model);
-    option.modelKeys.add(modelKey);
-    if (intelligenceScore != null) {
-      option.bestScoreByModel.set(
-        modelKey,
-        Math.max(
-          option.bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
-          intelligenceScore,
-        ),
-      );
-    }
-    option.count = option.modelKeys.size;
-    optionsBySlug.set(slug, option);
-  }
-  const providerShortlist = [...optionsBySlug.values()]
-    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
-    .slice(0, PROVIDER_FILTER_LIMIT);
-
-  return providerShortlist
-    .map((option) => ({
-      ...option,
-      orderScore: meanTopProviderScore([...option.bestScoreByModel.values()]),
-    }))
-    .sort(
-      (left, right) =>
-        right.orderScore - left.orderScore ||
-        right.count - left.count ||
-        left.label.localeCompare(right.label),
-    )
-    .map((option) => ({
-      slug: option.slug,
-      label: option.label,
-      count: option.count,
-      color: option.color,
-      logo: option.logo,
-    }));
-}
-
-export function filterByModelControls<T>(
-  items: T[],
-  getModel: (item: T) => ModelAtlasModel,
-  filters: ModelControlFilters,
-) {
-  const providerKeys = filters.providers.length === 0 ? null : new Set(filters.providers);
-  return items.filter((item) =>
-    modelMatchesControls(getModel(item), filters.maxCost, providerKeys),
-  );
-}
-
-export function limitByIntelligenceScore<T>(
-  items: T[],
-  getModel: (item: T) => ModelAtlasModel,
-  limit: ModelLimit,
-) {
-  if (limit === "all") {
-    return items;
-  }
-  const bestScoreByModel = new Map<string, number>();
-  for (const item of items) {
-    const model = getModel(item);
-    const modelKey = canonicalModelKey(model);
-    bestScoreByModel.set(
-      modelKey,
-      Math.max(
-        bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
-        finiteValue(model.scores?.intelligence_score) ?? -Infinity,
-      ),
-    );
-  }
-  const selectedModels = new Set(
-    [...bestScoreByModel]
-      .sort((left, right) => right[1] - left[1])
-      .slice(0, limit)
-      .map(([modelKey]) => modelKey),
-  );
-  return items.filter((item) => selectedModels.has(canonicalModelKey(getModel(item))));
-}
-
-function modelMatchesControls(
-  model: ModelAtlasModel,
-  maxCost: CostFilter,
-  providerKeys: ReadonlySet<string> | null,
-) {
-  if (providerKeys != null && !providerKeys.has(providerFilterKey(model.provider))) {
-    return false;
-  }
-  if (maxCost === "all") {
-    return true;
-  }
-  const blendedPrice = finiteValue(model.cost?.blended_price);
-  return blendedPrice != null && blendedPrice <= maxCost;
-}
-
-function meanTopProviderScore(scores: number[]) {
-  const topScores = [...scores]
-    .sort((left, right) => right - left)
-    .slice(0, PROVIDER_ORDER_TOP_SCORE_COUNT);
-  return topScores.length > 0
-    ? topScores.reduce((total, score) => total + score, 0) / topScores.length
-    : Number.NEGATIVE_INFINITY;
-}
-
 export function pointHover(
   event: PointerEvent<Element>,
   model: ModelAtlasModel,
@@ -312,7 +155,7 @@ export function pointHover(
     model: displayName,
     provider: providerDisplayName(model),
     color: providerChartColor(model.provider),
-    logo: providerLogoSource(model),
+    logo: modelLogo(model),
     rows,
   };
 }
@@ -330,91 +173,7 @@ export function focusHover(
     model: displayName,
     provider: providerDisplayName(model),
     color: providerChartColor(model.provider),
-    logo: providerLogoSource(model),
+    logo: modelLogo(model),
     rows,
   };
-}
-
-export function correlationLabel(points: Point[], transformX: (value: number) => number) {
-  const correlation = correlationValue(
-    points.map((point) => ({
-      x: transformX(point.x),
-      y: point.y,
-    })),
-  );
-  return formatCorrelation(correlation);
-}
-
-export function formatCorrelation(correlation: number | null) {
-  if (correlation == null) {
-    return "CORR --";
-  }
-  return `CORR ${correlation >= 0 ? "+" : ""}${correlation.toFixed(2)}`;
-}
-
-export function correlationValue(points: { x: number; y: number }[]) {
-  if (points.length < 3) {
-    return null;
-  }
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length;
-  const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
-  let numerator = 0;
-  let varianceX = 0;
-  let varianceY = 0;
-  for (const [index, xValue] of xs.entries()) {
-    const dx = xValue - meanX;
-    const dy = (ys[index] ?? meanY) - meanY;
-    numerator += dx * dy;
-    varianceX += dx * dx;
-    varianceY += dy * dy;
-  }
-  const denominator = Math.sqrt(varianceX * varianceY);
-  if (denominator === 0) {
-    return null;
-  }
-  return numerator / denominator;
-}
-
-export function positiveDomain(values: number[]): [number, number] {
-  const positive = values.filter((value) => finite(value) && value > 0);
-  const low = Math.min(...positive);
-  const high = Math.max(...positive);
-  if (!finite(low) || !finite(high)) {
-    return [0.001, 1];
-  }
-  if (low === high) {
-    return [Math.max(low / 1.4, 0.001), high * 1.4];
-  }
-  const logLow = Math.log10(low);
-  const logHigh = Math.log10(high);
-  const logPad = (logHigh - logLow) * 0.05;
-  return [Math.max(10 ** (logLow - logPad), 0.001), 10 ** (logHigh + logPad)];
-}
-
-export function modelName(model: ModelAtlasModel) {
-  return modelDisplayName(model)
-    .replace(/\bGPT\s+(?=\d)/g, "GPT-")
-    .replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
-}
-
-function prefixBareFableModelName(match: string, offset: number, name: string) {
-  const previousToken = name.slice(Math.max(0, offset - "Claude ".length), offset);
-  return previousToken === "Claude " ? match : `Claude ${match}`;
-}
-
-export function shortLabel(model: ModelAtlasModel) {
-  return modelName(model).replace(" Preview", "");
-}
-
-function providerLogoSource(model: ModelAtlasModel) {
-  const logo = providerLogo(model.provider);
-  if (logo.length > 0) {
-    return logo;
-  }
-  if (typeof model.logo === "string" && model.logo.length > 0) {
-    return model.logo;
-  }
-  return "";
 }

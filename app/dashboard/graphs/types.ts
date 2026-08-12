@@ -4,14 +4,6 @@ import type { Dispatch, SetStateAction } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 
-export type ProviderOption = {
-  slug: string;
-  label: string;
-  count: number;
-  color: string;
-  logo: string;
-};
-
 export type HoverRow = readonly [string, string];
 
 export type HoverState = {
@@ -57,7 +49,3 @@ export type Margin = {
   bottom: number;
   left: number;
 };
-
-export type ModelLimit = 30 | 60 | "all";
-export type CostFilter = "all" | number;
-export type ProviderFilters = string[];

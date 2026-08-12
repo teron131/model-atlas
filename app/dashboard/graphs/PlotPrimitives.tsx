@@ -6,8 +6,9 @@ import { type PointerEvent as ReactPointerEvent, useState } from "react";
 
 import { clamp } from "../../../src/model-atlas/numeric";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { modelName, shortLabel } from "../shared/model-display";
 import type { PointLabelPlacement } from "./label-placement";
-import { focusHover, modelName, pointHover, shortLabel } from "./models";
+import { focusHover, pointHover } from "./models";
 import { scoreQuadrilateralPoints } from "./score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "./types";
 

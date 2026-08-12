@@ -13,6 +13,7 @@ import { benchmarkLabels } from "../shared/constants";
 import { modelVariantKey } from "../shared/model-display";
 import type { AxisScale } from "./axis-scale";
 import { linearAxisScale, scoreAxisScale, steppedLinearAxisScale } from "./axis-scale";
+import { correlationValue, formatCorrelation } from "./chart-stats";
 import {
   finiteValue,
   fmtCompact,
@@ -21,7 +22,6 @@ import {
   fmtPercentScore,
   toPercent,
 } from "./format";
-import { correlationValue, formatCorrelation, groupBy } from "./models";
 import type { HoverRow } from "./types";
 
 export type FrontierBenchmarkAxisKey = "speedValue" | "cost" | "time" | "tokens";
@@ -481,6 +481,17 @@ function pushBenchmarkValue(
   const values = valuesByBenchmark.get(benchmarkKey) ?? [];
   values.push(value);
   valuesByBenchmark.set(benchmarkKey, values);
+}
+
+function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[]> {
+  const groups = new Map<TKey, T[]>();
+  for (const value of values) {
+    const key = getKey(value);
+    const group = groups.get(key) ?? [];
+    group.push(value);
+    groups.set(key, group);
+  }
+  return groups;
 }
 
 function bestAxisRowAtOrAboveScore(

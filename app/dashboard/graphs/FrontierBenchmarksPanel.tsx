@@ -4,7 +4,7 @@ import { memo, useMemo, useState } from "react";
 
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../capture/png";
-import { modelVariantKey } from "../shared/model-display";
+import { modelName, modelVariantKey, shortLabel } from "../shared/model-display";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { valueDistribution } from "./chart-stats";
 import { ShapeScaleLegend, SummaryCard } from "./ChartComponents";
@@ -32,7 +32,6 @@ import {
   selectedFrontierBenchmarkAxisKey,
 } from "./frontier-benchmarks";
 import { GraphToggle } from "./GraphToggle";
-import { modelName, shortLabel } from "./models";
 import { Panel } from "./Panel";
 import { SCATTER_CHART_WIDTH } from "./PlotPrimitives";
 import type { HoverSetter } from "./types";

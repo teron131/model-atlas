@@ -6,18 +6,23 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
-import { filterByModelQuery, modelCount, toggleProviderFilter } from "../shared/model-display";
+import {
+  type CostFilter,
+  costFilterOptions,
+  filterByModelControls,
+  filterByModelQuery,
+  limitByIntelligenceScore,
+  modelCount,
+  type ModelLimit,
+  modelLimitOptions,
+  type ProviderOption,
+  toggleProviderFilter,
+} from "../shared/model-display";
 import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
 import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
 import { InteractionMatrix } from "./InteractionMatrix";
-import {
-  costFilterOptions,
-  filterByModelControls,
-  limitByIntelligenceScore,
-  modelLimitOptions,
-} from "./models";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import { PriceEfficiencyPanel } from "./PriceEfficiencyPanel";
 import {
@@ -26,7 +31,7 @@ import {
   type ResearchRegionId,
   researchRegionOrdinal,
 } from "./research-index";
-import type { CostFilter, HoverState, ModelLimit, ProviderOption } from "./types";
+import type { HoverState } from "./types";
 
 import styles from "./graphs.module.css";
 
