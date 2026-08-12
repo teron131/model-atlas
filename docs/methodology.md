@@ -130,11 +130,11 @@ Intelligence and Agentic confidence are reported separately as the percentage va
 
 ## Missing Benchmark Evidence
 
-Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. The single-effort model bound described below then constrains eligible estimates.
+Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. The effort bound described below then constrains sibling estimates.
 
 ### Imputation Boundaries
 
-The single-effort bound balances that coverage-penalty asymmetry. Canonical storage keeps the result on its reported effort. After matching, when a model has exactly one direct benchmark result, validated sibling estimates are clamped around it: higher efforts cannot fall below the observation, while lower efforts cannot exceed it. Two or more direct efforts disable the bound. It neither creates an estimate nor increases confidence, and expanded views remain exact-effort only.
+The effort bound balances that coverage-penalty asymmetry. Canonical storage keeps every result on its reported effort. Missing sibling estimates are clamped between observed effort results: higher efforts cannot fall below lower observations, and lower efforts cannot exceed higher observations. A sole observation can supply a scoring proxy when validation produces none, but it adds no evidence confidence. Expanded views remain exact-effort only.
 
 Imputation can estimate a missing score, but it cannot create new independent model evidence. Every model-benchmark pair receives at most one imputed value, only observations can predict another benchmark, and imputed values never satisfy public admission or appear as observed source results.
 

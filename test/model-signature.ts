@@ -99,7 +99,7 @@ const selected = signatureModels([
 assert.deepEqual(
   selected.map(({ name, role }) => [role, name]),
   [
-    ["Best Intelligence", "alpha (low)"],
+    ["Best Intelligence", "alpha"],
     ["Intelligence #3", "gamma"],
     ["Another Top 3", "beta"],
     ["Intelligence #5", "epsilon"],
