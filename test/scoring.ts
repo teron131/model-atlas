@@ -1668,8 +1668,12 @@ const singleEffortModel = [
 ];
 const singleEffortPreparation = prepareBenchmarkScoring(singleEffortModel, crossEffortConfig);
 assertEqual(
-  singleEffortPreparation.imputationByModel.get(singleEffortModel[3] ?? {})?.has("target") ?? false,
-  false,
+  singleEffortPreparation.imputationByModel.get(singleEffortModel[0] ?? {})?.get("target"),
+  30,
+);
+assertEqual(
+  singleEffortPreparation.imputationByModel.get(singleEffortModel[3] ?? {})?.get("target"),
+  30,
 );
 assertEqual("target" in (singleEffortModel[3]?.benchmarks ?? {}), false);
 const multipleEffortModel = singleEffortModel.map((model, index) =>
@@ -1680,6 +1684,34 @@ assertEqual(
     .imputationByModel.get(multipleEffortModel[3] ?? {})
     ?.has("target") ?? false,
   false,
+);
+const boundedMultipleEffortTarget = {
+  id: "test/bounded-effort",
+  name: "Bounded Effort",
+  reasoning_effort: "xhigh",
+  benchmarks: { c1: 120, c2: 120, c3: 120 },
+};
+const boundedMultipleEffortModels = [
+  ...crossEffortImputationModels(7),
+  {
+    id: "test/bounded-effort",
+    name: "Bounded Effort",
+    reasoning_effort: "low",
+    benchmarks: { target: 10, c1: 10, c2: 10, c3: 10 },
+  },
+  boundedMultipleEffortTarget,
+  {
+    id: "test/bounded-effort",
+    name: "Bounded Effort",
+    reasoning_effort: "max",
+    benchmarks: { target: 30, c1: 30, c2: 30, c3: 30 },
+  },
+];
+assertClose(
+  buildBenchmarkImputationByModel(boundedMultipleEffortModels, crossEffortConfig)
+    .get(boundedMultipleEffortTarget)
+    ?.get("target"),
+  30,
 );
 const crossEffortModels = crossEffortImputationModels(7);
 const crossEffortTarget = crossEffortModels.at(-1);
@@ -1794,9 +1826,15 @@ assertEqual(
 const sparseBenchmarkContextModels = crossEffortModels.map((model, index) =>
   index === crossEffortModels.length - 1 ? { ...model, benchmarks: { c1: 0 } } : model,
 );
-assertEqual(
+assertClose(
   buildBenchmarkImputationByModel(sparseBenchmarkContextModels, crossEffortConfig)
     .get(sparseBenchmarkContextModels.at(-1) ?? {})
+    ?.get("target"),
+  120,
+);
+assertEqual(
+  prepareBenchmarkScoring(sparseBenchmarkContextModels, crossEffortConfig)
+    .imputationConfidenceByModel.get(sparseBenchmarkContextModels.at(-1) ?? {})
     ?.has("target") ?? false,
   false,
 );
