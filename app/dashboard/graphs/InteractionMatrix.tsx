@@ -58,11 +58,13 @@ const INTERACTION_LABEL_METRICS = {
 
 export const InteractionMatrix = memo(function InteractionMatrix({
   models,
+  referenceModels,
   benchmarkPortfolio,
   hasFullPayload,
   setHover,
 }: {
   models: ModelAtlasModel[];
+  referenceModels: ModelAtlasModel[];
   benchmarkPortfolio: BenchmarkPortfolio;
   hasFullPayload: boolean;
   setHover: HoverSetter;
@@ -72,9 +74,13 @@ export const InteractionMatrix = memo(function InteractionMatrix({
     interactionConfigs.find((config) => config.key === selectedKey) ?? interactionConfigs[0];
   const interactionContext = useMemo(
     () => ({
-      frontierScoreByModel: frontierBenchmarkScoreByModel(models, benchmarkPortfolio),
+      frontierScoreByModel: frontierBenchmarkScoreByModel(
+        models,
+        benchmarkPortfolio,
+        referenceModels,
+      ),
     }),
-    [models, benchmarkPortfolio],
+    [models, benchmarkPortfolio, referenceModels],
   );
   if (!selectedConfig) {
     return null;

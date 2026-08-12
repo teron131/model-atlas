@@ -294,10 +294,12 @@ export function DashboardGraphs({
             <FrontierBenchmarksPanel
               payload={deferredPayload}
               models={models}
+              referenceModels={referenceModels}
               setHover={setHover}
             />
             <InteractionMatrix
               models={models}
+              referenceModels={referenceModels}
               benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
               hasFullPayload={hasFullPayload}
               setHover={setHover}
