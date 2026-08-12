@@ -931,6 +931,7 @@ function modelStatsSourceData(
       rows: riemannBenchModelScoreRows,
       rowsByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
     },
+    surgeIntelligenceIndex: { rows: [], rowsByModelName: new Map() },
     toolathlon: {
       rows: toolathlonObservations,
       rowsByModelName: buildBenchmarkObservationLookup(toolathlonObservations),

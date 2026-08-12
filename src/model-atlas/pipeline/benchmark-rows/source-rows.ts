@@ -245,6 +245,11 @@ function artificialAnalysisBenchmarkRowDrafts(
       value: (row, key) => asRecord(asRecord(row).benchmarks)[key],
     }),
     ...artificialAnalysisBenchmarkResourceDrafts(
+      "analyst_agent",
+      sourceData.artificialAnalysisBenchmarkResources.rows,
+      (row) => row.score,
+    ),
+    ...artificialAnalysisBenchmarkResourceDrafts(
       "automation_bench",
       sourceData.artificialAnalysisBenchmarkResources.rows,
       (row) => row.score,

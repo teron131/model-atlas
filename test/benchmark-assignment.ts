@@ -182,6 +182,24 @@ const briefcaseResourceRow = {
   answer_tokens_per_task: 80,
   reasoning_tokens_per_task: 120,
 } satisfies ArtificialAnalysisBenchmarkResourceRow;
+const analystAgentResourceRow = {
+  benchmark_key: "analyst_agent",
+  source_url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
+  model_id: "test/example-model",
+  model: "Example Model",
+  provider: "Test",
+  provider_id: "test",
+  reasoning_effort: null,
+  score: 0.5,
+  task_run_count: 80,
+  cost_per_task_usd: 1.15,
+  seconds_per_task: 144,
+  tokens_per_task: 531_348,
+  input_tokens_per_task: 520_168,
+  output_tokens_per_task: 11_180,
+  answer_tokens_per_task: 2_000,
+  reasoning_tokens_per_task: 9_180,
+} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const automationBenchResourceRow = {
   benchmark_key: "automation_bench",
   source_url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
@@ -275,6 +293,7 @@ const arcAgi3Row = {
 } satisfies BenchmarkObservationRow;
 
 const resourceLookup = new Map([
+  ["analyst_agent", new Map([["example-model", analystAgentResourceRow]])],
   ["briefcase", new Map([["example-model", briefcaseResourceRow]])],
   ["automation_bench", new Map([["example-model", automationBenchResourceRow]])],
   ["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
@@ -348,6 +367,7 @@ const lookups = {
   riemannBench: {
     rowsByModelName: emptyLookup(),
   },
+  surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
   toolathlon: {
     rowsByModelName: emptyLookup(),
   },
@@ -366,6 +386,7 @@ const observationAssignment = buildObservationBenchmarks(["Example Model"], look
 });
 assert.deepEqual(observationAssignment.benchmarks, {
   ale_bench: 700,
+  analyst_agent: 0.5,
   automation_bench: 0.68,
   briefcase: 0.5,
   frontier_bench: 0.4353,
@@ -392,6 +413,7 @@ const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"]
 assert.deepEqual(defaultVariantAssignment.benchmarks, {
   agent_arena: 0.14,
   ale_bench: 700,
+  analyst_agent: 0.5,
   arc_agi_3: 0.3,
   automation_bench: 0.68,
   briefcase: 0.5,
@@ -408,6 +430,7 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
 assert.deepEqual(defaultVariantAssignment.scoringSources, {
   agent_arena: agentArenaRow,
   ale_bench: aleBenchRow,
+  analyst_agent: analystAgentResourceRow,
   apex_agents_mercor: mercorApexRow,
   arc_agi_3: arcAgi3Row,
   automation_bench: automationBenchResourceRow,
@@ -466,6 +489,13 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 3_000,
     input_tokens: 1_000,
     output_tokens: 2_000,
+  },
+  analyst_agent: {
+    cost: 1.15,
+    seconds: 144,
+    tokens: 531_348,
+    input_tokens: 520_168,
+    output_tokens: 11_180,
   },
   automation_bench: {
     cost: 0.12,

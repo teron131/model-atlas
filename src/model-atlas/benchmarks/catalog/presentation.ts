@@ -41,6 +41,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "algorithm design and code execution"],
     ],
   },
+  analyst_agent: {
+    title: "AnalystAgent",
+    body: "Answer quantitative business and scientific questions by analyzing supplied spreadsheets and documents with code execution.",
+    rows: [
+      ["Source", "Artificial Analysis"],
+      ["Metric", "pass^5"],
+      ["Role", "quantitative analysis workflow"],
+    ],
+  },
   apex_agents: {
     title: "APEX Agents",
     body: "Long-horizon consulting, investment-banking, and legal tasks completed across files and workplace tools.",
@@ -379,6 +388,14 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "structured code reasoning"],
     ],
   },
+  surge_intelligence_index: {
+    title: "Surge Intelligence Index",
+    body: "Aggregate capability index across Surge's professional reasoning, agentic, writing, and expert-preference benchmarks.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Role", "broad capability index"],
+    ],
+  },
   tau_banking: {
     title: "tau3 Banking",
     body: "Resolve realistic banking-support scenarios by applying policy and coordinating multi-step tool calls with the customer.",
@@ -444,6 +461,7 @@ export const BENCHMARK_LABELS = {
   agent_arena: "Agent Arena",
   agents_last_exam: "Agents' Last Exam",
   ale_bench: "ALE-Bench",
+  analyst_agent: "AnalystAgent",
   apex_agents: "APEX Agents",
   arc_agi_2: "ARC-AGI-2",
   arc_agi_3: "ARC-AGI-3",
@@ -484,6 +502,7 @@ export const BENCHMARK_LABELS = {
   public_benefits_bench: "Public Benefits Bench",
   riemann_bench: "Riemann-bench",
   scicode: "SciCode",
+  surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
   toolathlon: "Toolathlon",
   vals_index: "Vals Index",
@@ -502,6 +521,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "agent_arena",
   "agents_last_exam",
   "ale_bench",
+  "analyst_agent",
   "apex_agents",
   "arc_agi_2",
   "arc_agi_3",
@@ -543,6 +563,7 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "perception_bench",
   "public_benefits_bench",
   "scicode",
+  "surge_intelligence_index",
   "tau_banking",
   "toolathlon",
   "vals_index",
@@ -613,6 +634,27 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
           ["Metric", "output tokens per task"],
         ],
       },
+    },
+  ],
+  analyst_agent: [
+    {
+      key: "analystAgentCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Analyst$",
+    },
+    {
+      key: "analystAgentSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Analyst Sec",
+      format: "duration",
+    },
+    {
+      key: "analystAgentTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Analyst Tok",
     },
   ],
   arc_agi_2: [
@@ -852,6 +894,12 @@ export const BENCHMARK_COLUMNS = {
     key: "aleBench",
     label: "ALE-B",
     format: "score",
+    defaultSort: "descending",
+  },
+  analyst_agent: {
+    key: "analystAgent",
+    label: "Analyst",
+    format: "percent",
     defaultSort: "descending",
   },
   apex_agents: {
@@ -1094,6 +1142,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  surge_intelligence_index: {
+    key: "surgeIntelligenceIndex",
+    label: "Surge Index",
+    format: "percent",
+    defaultSort: "descending",
+  },
   tau_banking: {
     key: "tauBanking",
     label: "tau3",
@@ -1150,5 +1204,6 @@ export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
 export const INDEX_BENCHMARK_KEYS = [
   "aa_intelligence_index",
   "epoch_capabilities_index",
+  "surge_intelligence_index",
   "vals_index",
 ] as const satisfies readonly BenchmarkKey[];

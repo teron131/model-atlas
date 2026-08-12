@@ -60,6 +60,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.4, agentic: 0.6 },
   },
+  analyst_agent: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+  },
   apex_agents: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -260,6 +265,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
   },
+  surge_intelligence_index: {
+    group: "baseline",
+    benchmarkImportance: 0.5,
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
   tau_banking: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -302,6 +312,10 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   ale_bench: {
     ...BENCHMARK_PER_TASK_RESOURCE,
     qualityCoordinate: "linear",
+  },
+  analyst_agent: {
+    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+    qualityCoordinate: "logit",
   },
   apex_agents: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

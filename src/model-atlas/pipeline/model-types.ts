@@ -112,6 +112,7 @@ export type ModelAtlasScoringSources =
   | (Record<string, ScoringSourceRow | null | undefined> & {
       agent_arena?: AgentArenaModelScoreRow | null;
       agents_last_exam?: AgentsLastExamModelScoreRow | null;
+      analyst_agent?: ArtificialAnalysisBenchmarkResourceRow | null;
       apex_agents_mercor?: MercorApexAgentsRow | null;
       automation_bench?: ArtificialAnalysisBenchmarkResourceRow | null;
       cursorbench?: CursorBenchModelScoreRow | null;

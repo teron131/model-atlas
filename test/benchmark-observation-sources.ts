@@ -14,7 +14,10 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/benchmarks/scrapers/epoch/capabilities-index";
 import { epochBenchmarkObservationRows } from "../src/model-atlas/benchmarks/scrapers/epoch/results";
-import { processSurgeBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/surge/results";
+import {
+  processSurgeBenchmarkPageHtml,
+  processSurgeIntelligenceIndexPageHtml,
+} from "../src/model-atlas/benchmarks/scrapers/surge/results";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/vals/results";
 import { processWeirdMlCsv } from "../src/model-atlas/benchmarks/scrapers/weirdml";
 import { benchmarkModelEffort } from "../src/model-atlas/identity/normalization";
@@ -186,6 +189,33 @@ assert.equal(
   surgeLookup.has("max--max"),
   false,
   "Effort-label slashes should not create cross-model lookup aliases",
+);
+
+const surgeIndex = processSurgeIntelligenceIndexPageHtml(
+  `
+  <article id="intelligence-index">
+    <div data-ii-item><p data-ii-score-paragraph>72.5</p><img alt="Anthropic Logo"><p data-ii-model-bound>Claude Fable 5</p><p data-ii-reasoning-bound>Adaptive/Max</p></div>
+    <div data-ii-item><p data-ii-score-paragraph>71.1</p><img alt="Anthropic Logo"><p data-ii-model-bound>Claude Fable 5</p><p data-ii-reasoning-bound>Default</p></div>
+    <div data-ii-item><p data-ii-score-paragraph>68.1</p><img alt="OpenAI Logo"><p data-ii-model-bound>GPT 5.6 Sol</p><p data-ii-reasoning-bound>Max</p></div>
+    <div data-ii-status></div>
+  </article>
+  <article><div data-ii-item><p data-ii-score-paragraph>99.9</p><p data-ii-model-bound>Embedded Model</p></div></article>
+  `,
+  "surge_intelligence_index",
+  "https://surgehq.ai/benchmarks",
+);
+assert.deepEqual(
+  surgeIndex.map(({ model, reasoning_effort, rank, canonical_value }) => ({
+    model,
+    reasoning_effort,
+    rank,
+    canonical_value,
+  })),
+  [
+    { model: "Claude Fable 5", reasoning_effort: "max", rank: 1, canonical_value: 0.725 },
+    { model: "Claude Fable 5", reasoning_effort: null, rank: 2, canonical_value: 0.711 },
+    { model: "GPT 5.6 Sol", reasoning_effort: "max", rank: 3, canonical_value: 0.681 },
+  ],
 );
 
 const hemingway = processSurgeBenchmarkPageHtml(
