@@ -217,6 +217,7 @@ const resourceQualityCoordinates = Object.fromEntries(
 assert.deepEqual(resourceQualityCoordinates, {
   agents_last_exam: "linear",
   ale_bench: "linear",
+  analyst_agent: "logit",
   apex_agents: "logit",
   arc_agi_2: "logit",
   arc_agi_3: "linear",
@@ -298,9 +299,19 @@ assert.deepEqual(
 );
 assertEqual(
   JSON.stringify(STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys),
-  JSON.stringify(["aa_intelligence_index", "epoch_capabilities_index", "vals_index"]),
+  JSON.stringify([
+    "aa_intelligence_index",
+    "epoch_capabilities_index",
+    "surge_intelligence_index",
+    "vals_index",
+  ]),
 );
-for (const key of ["aa_intelligence_index", "epoch_capabilities_index", "vals_index"] as const) {
+for (const key of [
+  "aa_intelligence_index",
+  "epoch_capabilities_index",
+  "surge_intelligence_index",
+  "vals_index",
+] as const) {
   assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].benchmarkImportance, 0.5);
 }
 assertEqual(

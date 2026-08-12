@@ -224,6 +224,13 @@ function buildArtificialAnalysisBenchmarks(
       scoringSources[key] = resourceRow;
     }
   }
+  addArtificialAnalysisResourceBenchmark(
+    benchmarks,
+    scoringSources,
+    query,
+    "analyst_agent",
+    (row) => row.score,
+  );
   addArtificialAnalysisResourceBenchmark(benchmarks, scoringSources, query, "briefcase", (row) =>
     transformBenchmarkSourceValue("briefcase", row.score),
   );

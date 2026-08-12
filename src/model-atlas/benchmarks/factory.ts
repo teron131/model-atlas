@@ -40,7 +40,7 @@ export type BenchmarkObservationLoader =
   | { kind: "epoch_runs"; task: string }
   | { kind: "mls_bench"; sourceUrl: string }
   | { kind: "perception_bench"; sourceUrl: string }
-  | { kind: "surge"; sourceUrl: string; scoreKind?: "elo" }
+  | { kind: "surge"; sourceUrl: string; scoreKind?: "elo"; view?: "index" }
   | {
       kind: "vals";
       sourceUrl: string;

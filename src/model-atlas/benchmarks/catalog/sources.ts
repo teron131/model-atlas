@@ -261,6 +261,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "publicBenefitsBench",
     sourceRowsKey: "publicBenefitsBenchRows",
   },
+  surge_intelligence_index: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks",
+      view: "index",
+    },
+    sourceDataKey: "surgeIntelligenceIndex",
+    sourceRowsKey: "surgeIntelligenceIndexRows",
+  },
   toolathlon: {
     group: "standalone",
     id: "zeroeval",
@@ -347,6 +358,23 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         runtime: { key: "ale_bench", publicRows: true },
       },
       { group: "epoch", id: "epoch", roles: ["validation"] },
+    ],
+  },
+  analyst_agent: {
+    inputs: [
+      {
+        group: "artificial_analysis",
+        id: "artificial_analysis",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            scoreKey: "aa_analyst_agent",
+            url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
+            taskRunCount: 80,
+          },
+        ],
+      },
     ],
   },
   apex_agents: {

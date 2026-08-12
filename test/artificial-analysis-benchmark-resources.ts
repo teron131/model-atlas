@@ -25,6 +25,18 @@ const hlePage = {
   url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
   task_run_count: 2,
 };
+const configuredAnalystAgentPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
+  (page) => page.benchmark_key === "analyst_agent",
+);
+if (configuredAnalystAgentPage == null) {
+  throw new Error("AnalystAgent benchmark resource page is missing");
+}
+assertDeepEqual(configuredAnalystAgentPage, {
+  benchmark_key: "analyst_agent",
+  score_key: "aa_analyst_agent",
+  url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
+  task_run_count: 80,
+});
 const configuredItbenchPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
   (page) => page.benchmark_key === "itbench_sre",
 );

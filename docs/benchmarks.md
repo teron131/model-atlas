@@ -4,7 +4,7 @@ This document records which benchmarks affect Model Atlas, what capability each 
 
 ## Scoring Roles
 
-Accepted benchmarks are classified as `frontier` or `baseline` under [the standards](standards.md). Rejected and watchlist benchmarks do not affect the ranking.
+Accepted task-level benchmarks are classified as `frontier` or `baseline` under [the standards](standards.md). Aggregate indexes are listed separately; every current index uses the `baseline` missing-value policy. Rejected and watchlist benchmarks do not affect the ranking.
 
 The ranking has two quality dimensions:
 
@@ -25,7 +25,7 @@ There is no standalone coding score. Coding difficulty does not automatically ma
 
 For benchmark $b$ in dimension $D$, the effective weight $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$ combines importance with dimension loading. Group does not change the contribution of an observed value, and source identity does not determine group.
 
-The tables below show the current portfolio, why each benchmark is included, and whether its task resources can contribute to Speed or Value.
+The tables below show the current portfolio, why each benchmark or index is included, and whether its task resources can contribute to Speed or Value.
 
 ### Resource Quality Coordinates
 
@@ -35,6 +35,7 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | --- | --- | --- |
 | Agents' Last Exam | Linear | Partial-credit performance is a graded task score, not a binary completion probability. |
 | ALE-Bench | Linear | Native Performance can exceed 100 and must retain its full spacing. |
+| AnalystAgent | Logit | Pass^5 is a bounded strict workflow-success rate. |
 | APEX Agents | Logit | Loop Pass@1 is a bounded task-completion rate. |
 | ARC-AGI-2 | Logit | Task success is a bounded correctness rate with meaningful remaining error. |
 | ARC-AGI-3 | Linear | Human-relative action efficiency is a continuous efficiency ratio, not a completion probability. |
@@ -51,6 +52,17 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
 | tau3 Banking | Logit | The score is a bounded workflow-success rate. |
 
+### Indexes
+
+Indexes aggregate multiple evaluations into broad fallback coverage. They remain separate from task-level benchmarks because their component overlap and source-owned aggregation limit how independently they should influence the ranking.
+
+| Index | Group | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
+| --- | --- | ---: | ---: | ---: | --- |
+| Artificial Analysis Intelligence Index | Baseline | 0.5 | 100% | 0% | Artificial Analysis's aggregate index provides broad current Intelligence coverage. Its aggregation overlaps several individually selected benchmarks, so it contributes at half importance. |
+| Epoch Capabilities Index | Baseline | 0.5 | 100% | 0% | Epoch's multi-benchmark capabilities index adds broad stabilizing Intelligence evidence alongside AA and Vals. Its aggregate nature earns half importance. |
+| Surge Intelligence Index | Baseline | 0.5 | 75% | 25% | Surge's aggregate index adds broad stabilizing evidence across professional reasoning, agentic execution, writing, and expert preferences. Its overlap with individually selected Surge benchmarks and undisclosed aggregation details keep it at half importance, with no resource contribution. |
+| Vals Index | Baseline | 0.5 | 60% | 40% | Vals aggregates finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, while its formula also includes public coding benchmarks. Its overlap with individually selected benchmark families keeps it at half importance. |
+
 ### Frontier Benchmarks
 
 | Benchmark | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
@@ -58,6 +70,7 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | Agent&nbsp;Arena | 1 | 0% | 100% | Randomized real-world Agent Mode sessions estimate the orchestrator model's causal effect across confirmed success, praise versus complaint, steerability, bash recovery, and tool hallucination. The large current sample and direct workflow signal earn frontier status, while the score remains relative to Arena's time-weighted model and task distribution. |
 | Agents'&nbsp;Last&nbsp;Exam | 1 | 20% | 80% | Real-world software and professional workflows. It combines professional knowledge with harnessed task execution, so it contributes to both dimensions but primarily Agentic. |
 | ALE-Bench | 1 | 40% | 60% | Heuristic-programming tasks require algorithm design, executable code, and benchmark-harness interaction. The mix supports both dimensions, with more weight on Agentic execution. |
+| AnalystAgent | 1 | 20% | 80% | Quantitative business and scientific questions require substantive analysis across supplied spreadsheets and documents inside a code-enabled research workflow. It contributes to both dimensions but primarily measures Agentic execution, and Artificial Analysis's published per-task resources can feed Speed and Value. |
 | APEX&nbsp;Agents | 1 | 0% | 100% | Long-horizon professional-services workflows with realistic tooling, rubrics, and domain constraints. The signal is pure agentic task completion. |
 | ARC-AGI-2 | 1 | 100% | 0% | Novel abstract visual transformations provide a protected frontier test of fluid reasoning. The current semi-private leaderboard has strong separation across serious systems, while its fixed demonstration-to-answer protocol is Intelligence evidence rather than external workflow execution. |
 | ARC-AGI-3 | 1 | 80% | 20% | Unfamiliar interactive environments test rule discovery, abstraction, and efficient adaptation under feedback. The sparse current distribution makes it a sharp frontier signal; most weight belongs to Intelligence, with a smaller Agentic loading for sequential action and environment interaction. |
@@ -89,14 +102,12 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 
 | Benchmark | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | ---: | ---: | ---: | --- |
-| Artificial Analysis Intelligence Index | 0.5 | 100% | 0% | Artificial Analysis's aggregate index provides broad current Intelligence coverage. Its aggregation overlaps several individually selected benchmarks, so it contributes at half importance. |
 | BrowseComp | 1 | 0% | 100% | Web/research solving where browsing behavior matters more than static knowledge. It stays baseline because public web tasks have higher contamination exposure and less frontier-like top spread. |
 | Chess Puzzles | 1 | 100% | 0% | Exact-move chess puzzle solving supplies a distinct planning and tactical-reasoning signal. It remains baseline because it is a narrow specialist capability rather than a broad frontier claim. |
 | Code Migration | 1 | 20% | 80% | Repository migration requires code understanding and predominantly Agentic multi-file execution. It provides useful practical coverage but remains baseline rather than a frontier missing-data claim. |
 | CyberBench | 1 | 0% | 100% | Practical cybersecurity tasks are scored as pure Agentic workflow evidence. The focused domain and Vals-specific harness keep the benchmark in baseline. |
 | EBR-Bench | 0.5 | 0% | 100% | Repeated play of the unfamiliar Earthborne Rangers campaign tests whether an agent can learn from experience through exploration and persistent notes. The narrow game environment, small current leaderboard, and simple benchmark harness make it useful Agentic evidence at half importance rather than a broad frontier workflow claim. |
 | EnterpriseBench CoreCraft | 0.5 | 0% | 100% | Enterprise workflows inside one simulated company provide practical Agentic breadth. The single-company environment, first-party judge rubrics, and overlap with other agent benchmarks keep it stabilizing half-weight evidence. |
-| Epoch Capabilities Index | 0.5 | 100% | 0% | Epoch's multi-benchmark capabilities index adds broad stabilizing Intelligence evidence alongside AA and Vals. Its aggregate nature earns half importance. |
 | Finance Agent V2 | 1 | 20% | 80% | Finance research and analysis combine domain reasoning with predominantly Agentic workflow execution. The domain-specific Vals harness makes it stabilizing baseline evidence. |
 | Hemingway-bench | 1 | 100% | 0% | Expert pairwise preferences across creative, business, and everyday writing supply a distinct output-quality and writing-judgment signal. Its relative Elo scale and focused domain make it stabilizing Intelligence evidence rather than a broad frontier claim. |
 | MedCode | 1 | 100% | 0% | Medical coding supplies specialist professional-knowledge and reasoning evidence without enough external workflow execution to receive an Agentic loading. |
@@ -106,12 +117,11 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | SciCode | 1 | 80% | 20% | Scientist-curated Python problems. The main signal is scientific problem formulation and structured reasoning; executable code correctness adds a smaller execution signal. |
 | tau3&nbsp;Banking&nbsp;(AA) | 1 | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
 | Toolathlon | 1 | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Its planning and domain reasoning occur inside the harnessed workflow, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
-| Vals Index | 0.5 | 60% | 40% | Vals aggregate over finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, but its formula also includes public coding benchmarks. Its overlap with individually selected benchmark families keeps it at half importance. |
 | Vending-Bench&nbsp;2 | 1 | 0% | 100% | Year-long simulated business operation tests sustained tool use, inventory, pricing, negotiation, and coherence over thousands of messages. Its long horizon is distinctive, but the small run count and stochastic trading-like outcome make it stabilizing baseline evidence rather than a frontier missing-data claim. |
 | Vibe Code | 1 | 0% | 100% | End-to-end software creation in a coding-agent environment is pure Agentic evidence. Its product-building focus provides useful baseline coverage without a frontier missing-data claim. |
 | WeirdML | 1 | 60% | 40% | ML-programming tasks test model selection and implementation across 17 datasets. Problem formulation is the larger Intelligence component, while executable code generation contributes Agentic evidence. |
 
-Frontier benchmarks provide the strongest current separation; baseline benchmarks provide vetted breadth and stability. In scoring, the labels change only the conservative penalty applied to missing evidence. Benchmark importance owns the influence of observed scores, and diagnostics or exclusions are not scoring groups.
+Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate fallback coverage at half importance. In scoring, the group labels change only the conservative penalty applied to missing evidence. Importance owns the influence of observed scores, and diagnostics or exclusions are not scoring groups.
 
 ## Watchlist
 
@@ -139,6 +149,16 @@ Explicit effort observations stay attached to their matching scored variants, an
 
 **OpenRouter** supplies current route pricing and provider speed measurements used for blended price and the provider serving-performance components. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
+## Index-Specific Policies
+
+**Artificial Analysis Intelligence Index** uses Artificial Analysis's published aggregate score directly at half importance with 100% Intelligence loading. Its aggregation overlaps several individually selected benchmarks, so it provides broad stabilizing evidence rather than a full-weight frontier signal.
+
+**Epoch Capabilities Index** uses Epoch's published ECI value directly at half importance with 100% Intelligence loading and preserves model-version identifiers, access category, organization, and observation date. Its multi-benchmark aggregation provides broad stabilizing evidence rather than a full-weight frontier signal.
+
+**Surge Intelligence Index** uses its published aggregate score directly at half importance with 75% Intelligence and 25% Agentic loading. Surge does not disclose an index-level cost, runtime, token, or reproducible resource aggregation contract, so the index does not feed Speed or Value.
+
+**Vals Index** uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks such as SWE-bench Verified and Terminal-Bench 2.1. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
+
 ## Benchmark-Specific Policies
 
 **Agent Arena** uses the published Net Improvement point estimate directly as the raw benchmark value. The value is a signed causal treatment effect against the current randomized model mixture, not a probability or Bradley-Terry logit, so Model Atlas applies its ordinary observed per-benchmark min-max normalization without a sigmoid transform.
@@ -146,6 +166,8 @@ Explicit effort observations stay attached to their matching scored variants, an
 **Agents' Last Exam** uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime, token counts, and cost. Each harness row divides those totals by its evaluated task count, and the displayed ALE resource columns use the lower of the resulting median and mean per-task values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 **ALE-Bench** uses Sakana AI's complete leaderboard as the observed source and Epoch AI's overlapping rounded table as a refresh-time scale validator. The scoring row is `num_self_refine = 1`, meaning the source-default selected candidate before feedback-driven refinement loops, and its all-task mean Performance enters ordinary observed min-max normalization. The same native Performance value enters resource-quality neighborhoods linearly, so values above 100 remain distinct instead of being treated as percentages and collapsed at the logit ceiling. Higher refinement checkpoints, all/short/long mean, median, min, max, and standard deviation fields, and per-task results remain raw evidence. Mean per-task cost and input/output/total tokens are persisted; cost can feed Value, while submitted-program execution time and memory remain source context because they do not measure model workflow latency.
+
+**AnalystAgent** uses Artificial Analysis's headline pass^5 score across 80 private quantitative questions, each run five times. Model Atlas preserves model and reasoning-effort identity plus AA's published per-task cost, runtime, and input/output token telemetry. Output-per-task resources feed Speed and Value; the aggregate task count is used only to convert published totals into per-task measurements.
 
 **APEX Agents** uses Artificial Analysis when available. A missing AA value can use Mercor's Loop Pass@1 score for the same model and assigned reasoning effort after the current AA-Mercor overlap passes the [validated additive source crosswalk](methodology.md#validated-additive-source-crosswalk). This policy requires at least three effective overlap models, at least three effective models with valid held-out predictions, and a model-balanced held-out median absolute error of at most `0.02`; projections are clamped to `[0,1]`. An unlabelled AA row uses the source-default highest effort under the ordinary matching rule.
 
@@ -162,7 +184,7 @@ Explicit effort observations stay attached to their matching scored variants, an
 
 **DeepSWE** supplies pass@1, mean task cost, mean task duration, and mean output tokens. The backend derives one source-default row per model for benchmark matching. The default DeepSWE observation uses the source-default or highest reported effort as one whole observation; compact public views independently select the model variant with the highest Intelligence score. Task duration can feed Speed's benchmark task-time component, task cost can feed Value, and token totals remain source context.
 
-**Epoch benchmark family:** Epoch Capabilities Index uses Epoch's published ECI value directly and preserves model-version identifiers, access category, organization, and observation date. FrontierMath Tier 4, Chess Puzzles, and EBR-Bench use successful runs from Epoch's bulk benchmark CSV, preserving run IDs, task versions, and observation timestamps. FrontierMath is filtered to the exact v2-private task so older ZIP-era scores cannot enter the current leaderboard.
+**Epoch benchmark family:** FrontierMath Tier 4, Chess Puzzles, and EBR-Bench use successful runs from Epoch's bulk benchmark CSV, preserving run IDs, task versions, and observation timestamps. FrontierMath is filtered to the exact v2-private task so older ZIP-era scores cannot enter the current leaderboard.
 
 **Frontier-Bench** uses the official v0.1 structured leaderboard. Raw storage retains every displayed model, reasoning-effort, and agent row together with task accuracy and its standard error. Scoring uses the strongest displayed agent for each exact model effort, breaking equal-score ties by lower standard error, while the highest available effort supplies the source-default base-model observation.
 
@@ -191,8 +213,6 @@ Every reported effort and harness is persisted. Explicit effort rows match only 
 **Toolathlon** uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
 **Vals benchmark family:** Legal Research, EMB, MedCode, Code Migration, Vibe Code, and Public Benefits Bench use each leaderboard's `overall` score. Finance Agent V2 uses strict `all_pass`, ProgramBench uses the raw `partial` behavioral-test pass rate, and CyberBench uses the `patch` track. Adapters discard alternate tasks before creating shared observations and retain only benchmark version, dataset type, runner, mode, and harness as source-method provenance. Vals cost, latency, generation settings, and task detail are not persisted or used for Speed or Value, and none of these benchmarks is registered as Time Horizon evidence.
-
-**Vals Index** uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks such as SWE-bench Verified and Terminal-Bench 2.1. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
 
 **Vending-Bench 2** uses the official average final money balance as its raw benchmark value. Model Atlas preserves the number of runs and the complete published 365-day average balance curve for audit, then applies ordinary observed per-benchmark min-max normalization to the final balance. Costs and other chart-only derived comparisons do not enter Speed or Value, and the score should be interpreted as a stochastic long-horizon business simulation rather than an absolute success rate.
 
