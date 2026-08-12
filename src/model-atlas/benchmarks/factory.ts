@@ -15,10 +15,6 @@ export type BenchmarkSourceAdapter =
       sourceRowsKey: string;
     }
   | {
-      kind: "artificial_analysis_leaderboard";
-      aliases: readonly [string, ...string[]];
-    }
-  | {
       kind: "artificial_analysis_resource_page";
       url: string;
       taskRunCount: number;
@@ -35,6 +31,10 @@ export type BenchmarkObservationLoader =
       kind: "arc_prize";
       sourceUrl: string;
       datasetId: "v2_Semi_Private" | "v3_Semi_Private";
+    }
+  | {
+      kind: "artificial_analysis_omniscience";
+      sourceUrl: string;
     }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }
   | { kind: "epoch_runs"; task: string }
@@ -437,16 +437,6 @@ function validateSourceAdapters(key: string, input: BenchmarkSourceInput): void 
       (adapter.sourceDataKey.trim().length === 0 || adapter.sourceRowsKey.trim().length === 0)
     ) {
       throw new Error(`Benchmark score adapter requires a source-data key for ${key}/${input.id}`);
-    }
-    if (adapter.kind === "artificial_analysis_leaderboard") {
-      if (
-        adapter.aliases.some((alias) => alias.trim().length === 0) ||
-        new Set(adapter.aliases).size !== adapter.aliases.length
-      ) {
-        throw new Error(
-          `Artificial Analysis aliases must be non-empty and unique for ${key}/${input.id}`,
-        );
-      }
     }
     if (adapter.kind === "artificial_analysis_resource_page") {
       if (

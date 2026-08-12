@@ -357,6 +357,7 @@ const lookups = {
   },
   medCode: { rowsByModelName: emptyLookup() },
   mlsBench: { rowsByModelName: emptyLookup() },
+  omniscienceAccuracy: { rowsByModelName: emptyLookup() },
   mercorApexAgents: {
     rowsByModelName: new Map([["example-model", mercorApexRow]]),
   },
@@ -391,6 +392,7 @@ assert.deepEqual(observationAssignment.benchmarks, {
   briefcase: 0.5,
   frontier_bench: 0.4353,
   frontier_code: 0.535,
+  hle: 0.4,
   itbench_sre: 0.56,
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, undefined);
@@ -423,6 +425,7 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   frontier_bench: 0.4353,
   frontier_code: 0.535,
   harvey_lab: 0.1125,
+  hle: 0.4,
   itbench_sre: 0.56,
   legal_research: 0.61,
   vending_bench_2: 9_000,

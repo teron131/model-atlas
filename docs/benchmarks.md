@@ -50,6 +50,7 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | Harvey LAB | Logit | Strict task resolution is a bounded all-criteria completion rate. |
 | HLE | Logit | Accuracy is a bounded correctness rate. |
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
+| SciCode | Logit | The source score is a bounded scientific-code correctness rate. |
 | tau3 Banking | Logit | The score is a bounded workflow-success rate. |
 
 ### Indexes
@@ -58,10 +59,10 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 
 | Index | Group | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | --- | ---: | ---: | ---: | --- |
-| Artificial Analysis Intelligence Index | Baseline | 0.5 | 100% | 0% | Artificial Analysis's aggregate index provides broad current Intelligence coverage. Its aggregation overlaps several individually selected benchmarks, so it contributes at half importance. |
-| Epoch Capabilities Index | Baseline | 0.5 | 100% | 0% | Epoch's multi-benchmark capabilities index adds broad stabilizing Intelligence evidence alongside AA and Vals. Its aggregate nature earns half importance. |
-| Surge Intelligence Index | Baseline | 0.5 | 75% | 25% | Surge's aggregate index adds broad stabilizing evidence across professional reasoning, agentic execution, writing, and expert preferences. Its overlap with individually selected Surge benchmarks and undisclosed aggregation details keep it at half importance, with no resource contribution. |
-| Vals Index | Baseline | 0.5 | 60% | 40% | Vals aggregates finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, while its formula also includes public coding benchmarks. Its overlap with individually selected benchmark families keeps it at half importance. |
+| Artificial Analysis Intelligence Index | Baseline | 0.5 | 50% | 50% | Artificial Analysis's aggregate index provides broad current capability coverage. Its aggregation overlaps several individually selected benchmarks, so it contributes at half importance with the shared neutral index loading. |
+| Epoch Capabilities Index | Baseline | 0.5 | 50% | 50% | Epoch's multi-benchmark capabilities index adds broad stabilizing evidence across static and agentic evaluations. Its aggregate nature earns half importance with the shared neutral index loading. |
+| Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Surge's aggregate index adds broad stabilizing evidence across professional reasoning, agentic execution, writing, and expert preferences. Its overlap with individually selected Surge benchmarks and undisclosed aggregation details keep it at half importance with the shared neutral index loading and no resource contribution. |
+| Vals Index | Baseline | 0.5 | 50% | 50% | Vals aggregates finance and coding tasks. The official page labels the index proprietary because it includes non-public Vals-built components, while its formula also includes public coding benchmarks. Its overlap with individually selected benchmark families keeps it at half importance with the shared neutral index loading. |
 
 ### Frontier Benchmarks
 
@@ -121,7 +122,7 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 | Vibe Code | 1 | 0% | 100% | End-to-end software creation in a coding-agent environment is pure Agentic evidence. Its product-building focus provides useful baseline coverage without a frontier missing-data claim. |
 | WeirdML | 1 | 60% | 40% | ML-programming tasks test model selection and implementation across 17 datasets. Problem formulation is the larger Intelligence component, while executable code generation contributes Agentic evidence. |
 
-Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate fallback coverage at half importance. In scoring, the group labels change only the conservative penalty applied to missing evidence. Importance owns the influence of observed scores, and diagnostics or exclusions are not scoring groups.
+Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate fallback coverage at half importance. Every index uses a neutral 50% Intelligence and 50% Agentic loading because the source aggregates mix capability types under incompatible or undisclosed weighting schemes; this is a Model Atlas fallback heuristic, not a reconstruction of each publisher's component weights. In scoring, the group labels change only the conservative penalty applied to missing evidence. Importance owns the influence of observed scores, and diagnostics or exclusions are not scoring groups.
 
 ## Watchlist
 
@@ -145,19 +146,19 @@ Explicit effort observations stay attached to their matching scored variants, an
 
 ### Shared Inputs
 
-**Artificial Analysis** is the primary benchmark source. It supplies the broad Intelligence and Agentic indexes, selected benchmark fields, Intelligence task cost, Intelligence task token counts, and enough latency/throughput information to estimate Intelligence task seconds. GPQA, MMMU-Pro, and other available AA fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio. AA's `coding_index` likewise remains source context and does not compute a standalone score.
+**Artificial Analysis** supplies its broad aggregate indexes and index-level resource metadata from the main model table. Every selected task-level AA benchmark instead takes both its score and available resource telemetry from its dedicated evaluation page. GPQA, MMMU-Pro, and other main-table fields can remain visible as source context when present, but they are not selected benchmark inputs unless listed in the benchmark portfolio. AA's `coding_index` likewise remains source context and does not compute a standalone score.
 
 **OpenRouter** supplies current route pricing and provider speed measurements used for blended price and the provider serving-performance components. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
 ## Index-Specific Policies
 
-**Artificial Analysis Intelligence Index** uses Artificial Analysis's published aggregate score directly at half importance with 100% Intelligence loading. Its aggregation overlaps several individually selected benchmarks, so it provides broad stabilizing evidence rather than a full-weight frontier signal.
+**Artificial Analysis Intelligence Index** uses Artificial Analysis's published aggregate score directly at half importance with the shared neutral 50% Intelligence and 50% Agentic index loading. Its aggregation overlaps several individually selected benchmarks, so it provides broad stabilizing evidence rather than a full-weight frontier signal. Artificial Analysis also publishes per-index-task cost, runtime, and output-token measurements; Model Atlas preserves those source facts, but the index itself does not receive a separate Speed or Value contribution.
 
-**Epoch Capabilities Index** uses Epoch's published ECI value directly at half importance with 100% Intelligence loading and preserves model-version identifiers, access category, organization, and observation date. Its multi-benchmark aggregation provides broad stabilizing evidence rather than a full-weight frontier signal.
+**Epoch Capabilities Index** uses Epoch's published ECI value directly at half importance with the shared neutral 50% Intelligence and 50% Agentic index loading and preserves model-version identifiers, access category, organization, and observation date. Its multi-benchmark aggregation provides broad stabilizing evidence rather than a full-weight frontier signal.
 
-**Surge Intelligence Index** uses its published aggregate score directly at half importance with 75% Intelligence and 25% Agentic loading. Surge does not disclose an index-level cost, runtime, token, or reproducible resource aggregation contract, so the index does not feed Speed or Value.
+**Surge Intelligence Index** uses its published aggregate score directly at half importance with the shared neutral 50% Intelligence and 50% Agentic index loading. Surge does not disclose an index-level cost, runtime, token, or reproducible resource aggregation contract, so the index does not feed Speed or Value.
 
-**Vals Index** uses the overall percentage score as a normalized benchmark score and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks such as SWE-bench Verified and Terminal-Bench 2.1. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
+**Vals Index** uses the overall percentage score as a normalized benchmark score with the shared neutral 50% Intelligence and 50% Agentic index loading and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks such as SWE-bench Verified and Terminal-Bench 2.1. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
 
 ## Benchmark-Specific Policies
 
@@ -166,6 +167,8 @@ Explicit effort observations stay attached to their matching scored variants, an
 **Agents' Last Exam** uses `max(median_score, mean_score)` from the Full Overall split. Raw source rows preserve total runtime, token counts, and cost. Each harness row divides those totals by its evaluated task count, and the displayed ALE resource columns use the lower of the resulting median and mean per-task values. Partial-credit score is the scoring input because it is more informative than pass-rate accuracy.
 
 **ALE-Bench** uses Sakana AI's complete leaderboard as the observed source and Epoch AI's overlapping rounded table as a refresh-time scale validator. The scoring row is `num_self_refine = 1`, meaning the source-default selected candidate before feedback-driven refinement loops, and its all-task mean Performance enters ordinary observed min-max normalization. The same native Performance value enters resource-quality neighborhoods linearly, so values above 100 remain distinct instead of being treated as percentages and collapsed at the logit ceiling. Higher refinement checkpoints, all/short/long mean, median, min, max, and standard deviation fields, and per-task results remain raw evidence. Mean per-task cost and input/output/total tokens are persisted; cost can feed Value, while submitted-program execution time and memory remain source context because they do not measure model workflow latency.
+
+**Artificial Analysis benchmark family:** AnalystAgent, APEX Agents, AutomationBench, Briefcase, CritPT, GDPval-AA, Humanity's Last Exam, ITBench, Omniscience, SciCode, and tau3 Banking each use the score published on their dedicated evaluation page. The shared AA model table does not supply these benchmark scores. When a page publishes complete cost, runtime, and token telemetry, the same page row owns those task resources.
 
 **AnalystAgent** uses Artificial Analysis's headline pass^5 score across 80 private quantitative questions, each run five times. Model Atlas preserves model and reasoning-effort identity plus AA's published per-task cost, runtime, and input/output token telemetry. Output-per-task resources feed Speed and Value; the aggregate task count is used only to convert published totals into per-task measurements.
 
@@ -198,15 +201,19 @@ Every reported effort and harness is persisted. Explicit effort rows match only 
 
 **Harvey LAB** comes from the Vals leaderboard, which follows Harvey's generation environment and two-judge grading protocol. Model Atlas scores Vals' strict task-resolution result, where a task passes only when every criterion passes; criterion pass rate and practice-area rows remain source evidence only. Vals' per-task cost and runtime can feed Value and Speed, while Artificial Analysis' independently reimplemented Stirrup results do not enter Harvey LAB scoring or resources.
 
-**ITBench** uses Artificial Analysis' implementation and average precision at full recall score over 59 Kubernetes incident root-cause tasks with three repeats. The main AA leaderboard supplies all available scores, while the dedicated benchmark page adds model, effort, cost, runtime, and input/output token telemetry where complete. Model Atlas divides aggregate cost and token totals by 177 task runs, preserves AA's per-task runtime, and feeds the resulting output-per-task resources into Speed and Value.
+**ITBench** uses Artificial Analysis' implementation and average precision at full recall score over 59 Kubernetes incident root-cause tasks with three repeats. The dedicated benchmark page supplies both the score and the model, effort, cost, runtime, and input/output token telemetry. Model Atlas divides aggregate cost and token totals by 177 task runs, preserves AA's per-task runtime, and feeds the resulting output-per-task resources into Speed and Value.
 
 **MLS-Bench Lite** uses the official rendered leaderboard's baseline-normalized Performance across the 30-task Lite suite under Harbor's fixed five-hour exploration budget. The source percentage is converted at the adapter boundary to the canonical proportion used downstream. Model identity, rank, harness, reasoning effort, and fallback disclosure are retained; the harness remains model-plus-agent provenance rather than being mislabeled as an inference provider. No MLS-Bench resource field feeds Speed or Value.
+
+**Omniscience** uses the AA-Omniscience Accuracy dataset embedded on its dedicated evaluation page. Model Atlas preserves the displayed model identity, reasoning effort, rank, and page-details route; the main AA model table does not supply the scoring value.
 
 **PerceptionBench** uses the creator-owned GitHub leaderboard's overall accuracy across 3,000 verified open-ended visual questions. Model Atlas preserves the paper's exact published reasoning efforts, Gemma thinking-mode disclosure, and Claude Fable fallback model and 1.1% fallback share. The ten component accuracies are not persisted because only overall accuracy enters scoring, on the shared proportion scale, and no source resource field feeds Speed or Value. The source uses GPT-oss-120B as its automatic judge and reports 99.7% agreement in an audited judge-human sample.
 
 **ProofBench** comes directly from the current Vals benchmark page. Model Atlas uses overall compiler-verified proof accuracy, preserves source version and method provenance, and excludes `aristotle/aristotle` because it is a specialized proving system rather than a comparable general-purpose model. The overlapping Vals and Epoch rows crosswalk to the same scores, while the current Vals view covers additional models; the Epoch artifact is therefore used to validate provenance rather than merged as independent evidence.
 
 **Riemann-bench** uses the normalized public percent score and preserves provider, model label, and leaderboard last-updated date from the page.
+
+**SciCode** uses the dedicated Artificial Analysis evaluation page's scientific-code score and complete per-task resource row. Its 288-run aggregate cost and token totals are converted to per-task measurements before any resource use.
 
 **Surge benchmark family:** Chartography, ComplexConstraints, HANDBOOK.md, and EnterpriseBench CoreCraft use the public Surge leaderboard percentages and preserve displayed provider, model configuration, rank, and update date when present. ComplexConstraints scores the share of prompts for which every criterion passes. Hemingway-bench keeps the public expert-preference Elo score as an index instead of converting it into a percentage. Their page-local cost or judge details do not feed Speed or Value.
 

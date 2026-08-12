@@ -37,6 +37,21 @@ assertDeepEqual(configuredAnalystAgentPage, {
   url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
   task_run_count: 80,
 });
+assertDeepEqual(
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => page.benchmark_key).sort(),
+  [
+    "analyst_agent",
+    "apex_agents",
+    "automation_bench",
+    "briefcase",
+    "critpt",
+    "gdpval_normalized",
+    "hle",
+    "itbench_sre",
+    "scicode",
+    "tau_banking",
+  ],
+);
 const configuredItbenchPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
   (page) => page.benchmark_key === "itbench_sre",
 );
@@ -446,12 +461,17 @@ const server = createServer((_request, response) => {
   }, 20);
 });
 
+assertDeepEqual(await getArtificialAnalysisBenchmarkResourceStats({ pages: [] }), {
+  fetched_at_epoch_seconds: null,
+  data: [],
+});
+
 await new Promise<void>((resolve) => {
   server.listen(0, "127.0.0.1", resolve);
 });
 try {
   const address = server.address() as AddressInfo;
-  await getArtificialAnalysisBenchmarkResourceStats({
+  const failedPayload = await getArtificialAnalysisBenchmarkResourceStats({
     concurrency: 2,
     requestJitterMs: 0,
     timeoutMs: 1_000,
@@ -461,7 +481,8 @@ try {
       task_run_count: 1,
     })),
   });
-  assertDeepEqual(completedRequests, 6);
+  assertDeepEqual(failedPayload.fetched_at_epoch_seconds, null);
+  assertDeepEqual(completedRequests, 12);
   assertDeepEqual(maxActiveRequests, 2);
 } finally {
   await new Promise<void>((resolve, reject) => {

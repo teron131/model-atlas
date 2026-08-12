@@ -1,6 +1,7 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
 import {
+  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
   type PublicBenchmarkRuntimeKeyFor,
@@ -13,7 +14,6 @@ import {
 } from "../../benchmarks/scrapers/deep-swe";
 import { asFiniteNumber } from "../../runtime";
 import {
-  artificialAnalysisModelRowDrafts,
   type BenchmarkRowDraft,
   type BenchmarkRowsByKey,
   finalizeBenchmarkRows,
@@ -214,12 +214,20 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
 export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
   return finalizeBenchmarkRows([
     ...benchmarkObservationDbDrafts(rows),
-    ...artificialAnalysisModelRowDrafts({
-      rows: rows.artificialAnalysisRows,
-      modelId: (row) => stringValue(row.model_id),
-      label: (row, modelId) => stringValue(row.name) ?? stringValue(row.short_name) ?? modelId,
-      reasoningEffort: (row) => row.reasoning_effort,
-      value: (row, key) => row[key],
+    ...rows.artificialAnalysisRows.flatMap((row) => {
+      const modelId = stringValue(row.model_id);
+      const label = stringValue(row.name) ?? stringValue(row.short_name) ?? modelId;
+      return label == null
+        ? []
+        : ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
+            key,
+            id: modelId,
+            identity: modelId,
+            label,
+            provider: null,
+            reasoningEffort: row.reasoning_effort,
+            value: row[key],
+          }));
     }),
     ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
     ...dbSourceDrafts({

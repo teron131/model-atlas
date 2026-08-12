@@ -6,7 +6,7 @@ import {
   type BenchmarkObservationsByKey,
 } from "../benchmarks/observation";
 import {
-  ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
+  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
@@ -183,7 +183,7 @@ export const PAYLOAD_ROW_GROUPS = [
       "name",
       "short_name",
       "reasoning_effort",
-      ...ARTIFICIAL_ANALYSIS_BENCHMARK_KEYS,
+      ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
     ],
   }),
   ...Object.values(BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS),

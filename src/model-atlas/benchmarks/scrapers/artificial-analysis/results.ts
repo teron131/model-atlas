@@ -1,6 +1,5 @@
 /**
- * Benchmark resource results from Artificial Analysis evaluation pages.
- *
+ * Scrapes complete Artificial Analysis score and resource rows from evaluation-page Flight data while owning effort identity, per-task conversion, retry, and all-page completeness policy.
  * Page source: https://artificialanalysis.ai/evaluations
  */
 
@@ -26,6 +25,7 @@ import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGE
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 3;
 const DEFAULT_REQUEST_JITTER_MS = 250;
+const PAGE_FETCH_ATTEMPTS = 2;
 const ROW_DETECTION_KEY = "evalTimePerTask";
 const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
 const REASONING_EFFORT_SUFFIXES = [
@@ -544,6 +544,26 @@ async function waitForRequestJitter(maxDelayMs: number): Promise<void> {
   });
 }
 
+/** Retry one page once and require at least one complete score-resource row before accepting it. */
+async function getCompleteBenchmarkResourceRows(
+  page: ArtificialAnalysisBenchmarkResourcePage,
+  timeoutMs: number,
+  requestJitterMs: number,
+): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
+  for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      await waitForRequestJitter(requestJitterMs);
+      const rows = await getBenchmarkResourceRows(page, timeoutMs);
+      if (rows.length > 0) {
+        return rows;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return [];
+}
+
 export async function getArtificialAnalysisBenchmarkResourceStats(
   options: ArtificialAnalysisBenchmarkResourceOptions = {},
 ): Promise<ArtificialAnalysisBenchmarkResourcePayload> {
@@ -551,14 +571,13 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
   const requestJitterMs = options.requestJitterMs ?? DEFAULT_REQUEST_JITTER_MS;
-  const pageResults = await mapWithConcurrency(pages, concurrency, async (page) => {
-    try {
-      await waitForRequestJitter(requestJitterMs);
-      return await getBenchmarkResourceRows(page, timeoutMs);
-    } catch {
-      return [];
-    }
-  });
+  const pageResults = await mapWithConcurrency(pages, concurrency, (page) =>
+    getCompleteBenchmarkResourceRows(page, timeoutMs, requestJitterMs),
+  );
+  const allPagesComplete =
+    pages.length > 0 &&
+    pageResults.length === pages.length &&
+    pageResults.every((rows) => rows.length > 0);
   const resourceRows = pageResults
     .flat()
     .sort((left, right) =>
@@ -567,7 +586,7 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
       ),
     );
   return {
-    fetched_at_epoch_seconds: resourceRows.length > 0 ? nowEpochSeconds() : null,
+    fetched_at_epoch_seconds: allPagesComplete ? nowEpochSeconds() : null,
     data: resourceRows,
   };
 }
