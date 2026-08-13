@@ -59,6 +59,7 @@ import {
   appendRows,
   buildTableReplacementStatements,
   rawSourceRowsChanged,
+  rawSourceRowsFromCollector,
   replaceStagedRows,
   tableRowsChanged,
   writeChangedRawSourceRows,
@@ -90,6 +91,19 @@ type D1PublishResult = {
   schema_changed_indexes: string[];
   schema_removed_indexes: string[];
   d1_usage: D1Usage;
+  timings_ms: D1PublishTimings;
+};
+
+type D1PublishTimings = {
+  schema: number;
+  lock: number;
+  read_state: number;
+  source_refresh: number;
+  derivation: number;
+  snapshot_assembly: number;
+  d1_write: number;
+  lock_release: number;
+  total: number;
 };
 
 type D1RefreshState = {
@@ -114,6 +128,18 @@ type D1Publication = {
 
 /** Refreshes D1 directly and returns both publication diagnostics and the assembled payload. */
 export async function publishD1Snapshot(): Promise<D1Publication> {
+  const publicationStartedAt = performance.now();
+  const timings: D1PublishTimings = {
+    schema: 0,
+    lock: 0,
+    read_state: 0,
+    source_refresh: 0,
+    derivation: 0,
+    snapshot_assembly: 0,
+    d1_write: 0,
+    lock_release: 0,
+    total: 0,
+  };
   const config = d1Config();
   if (config == null) {
     throw new Error(
@@ -121,12 +147,19 @@ export async function publishD1Snapshot(): Promise<D1Publication> {
     );
   }
   const usage = createD1Usage();
+  let phaseStartedAt = performance.now();
   const schema = await ensureD1Schema(usage);
+  timings.schema = elapsedMilliseconds(phaseStartedAt);
+  phaseStartedAt = performance.now();
   const lockToken = await acquirePublicationLock(usage);
+  timings.lock = elapsedMilliseconds(phaseStartedAt);
   try {
-    return await publishLockedD1Snapshot(config.databaseId, schema, usage);
+    return await publishLockedD1Snapshot(config.databaseId, schema, usage, timings);
   } finally {
+    phaseStartedAt = performance.now();
     await releasePublicationLock(lockToken, usage);
+    timings.lock_release = elapsedMilliseconds(phaseStartedAt);
+    timings.total = elapsedMilliseconds(publicationStartedAt);
   }
 }
 
@@ -135,11 +168,14 @@ async function publishLockedD1Snapshot(
   databaseId: string,
   schema: SchemaReconciliationPlan,
   usage: D1Usage,
+  timings: D1PublishTimings,
 ): Promise<D1Publication> {
-  const previousPayload = await readD1Payload(usage);
   const startedAtEpochSeconds = nowEpochSeconds();
   const replaceSourceRows = process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1";
-  const current = await readD1RefreshState(startedAtEpochSeconds, previousPayload, usage);
+  let phaseStartedAt = performance.now();
+  const current = await readD1RefreshState(startedAtEpochSeconds, usage);
+  timings.read_state = elapsedMilliseconds(phaseStartedAt);
+  phaseStartedAt = performance.now();
   const refreshed = await refreshSourceSnapshots(
     current.sourceCaches,
     current.statuses,
@@ -150,6 +186,8 @@ async function publishLockedD1Snapshot(
       replaceSourceRows,
     },
   );
+  timings.source_refresh = elapsedMilliseconds(phaseStartedAt);
+  phaseStartedAt = performance.now();
   const derived = await deriveDatabaseSnapshot(
     startedAtEpochSeconds,
     refreshed.snapshots,
@@ -168,6 +206,8 @@ async function publishLockedD1Snapshot(
       previousPayload: current.previousPayload,
     },
   );
+  timings.derivation = elapsedMilliseconds(phaseStartedAt);
+  phaseStartedAt = performance.now();
   let collector = collectDatabaseSnapshot(derived.rows);
   const previewPayload = payloadFromCollector(startedAtEpochSeconds, collector);
   let nextPayload = previewPayload;
@@ -190,14 +230,21 @@ async function publishLockedD1Snapshot(
     collector = collectDatabaseSnapshot(derived.rows);
     nextPayload = payloadFromCollector(startedAtEpochSeconds, collector);
   }
+  const collectedRawRows = rawSourceRowsFromCollector(collector);
   const changedSources = RAW_SOURCE_NAMES.filter((source) =>
-    rawSourceRowsChanged(collector, source, current.rawRows[source]),
+    rawSourceRowsChanged(collectedRawRows[source], current.rawRows[source]),
   );
+  const modelsChanged =
+    current.previousPayload == null ||
+    stableHash(nextPayload.models) !== stableHash(current.previousPayload.models);
+  timings.snapshot_assembly = elapsedMilliseconds(phaseStartedAt);
   if (
     schema.statements.length === 0 &&
     changedSources.length === 0 &&
     current.previousPayload != null &&
-    publicContentHash(nextPayload) === publicContentHash(current.previousPayload)
+    !modelsChanged &&
+    stableHash(nextPayload.metadata.scoring) ===
+      stableHash(current.previousPayload.metadata.scoring)
   ) {
     const sourceHealthChanged = tableRowsChanged(
       collector.tables.get(SNAPSHOT_TABLES.source_health),
@@ -221,25 +268,40 @@ async function publishLockedD1Snapshot(
           materializedPayloadQuery(payload),
         ]
       : [];
+    phaseStartedAt = performance.now();
     await queryD1Batch(queries, usage);
+    timings.d1_write = elapsedMilliseconds(phaseStartedAt);
     return {
-      result: publishResult(databaseId, payload, false, [], queries.length, schema, usage),
+      result: publishResult(databaseId, payload, false, [], queries.length, schema, usage, timings),
       payload,
     };
   }
   const completedAtEpochSeconds = nowEpochSeconds();
-  const payload = payloadFromCollector(completedAtEpochSeconds, collector);
+  const payload = payloadAtEpochSeconds(nextPayload, completedAtEpochSeconds);
+  phaseStartedAt = performance.now();
   const statementCount = await publishChangedSnapshot(
     completedAtEpochSeconds,
     collector,
+    collectedRawRows,
     changedSources,
     current,
     payload,
+    modelsChanged,
     schema,
     usage,
   );
+  timings.d1_write = elapsedMilliseconds(phaseStartedAt);
   return {
-    result: publishResult(databaseId, payload, true, changedSources, statementCount, schema, usage),
+    result: publishResult(
+      databaseId,
+      payload,
+      true,
+      changedSources,
+      statementCount,
+      schema,
+      usage,
+      timings,
+    ),
     payload,
   };
 }
@@ -294,6 +356,7 @@ function publishResult(
   statementCount: number,
   schema: SchemaReconciliationPlan,
   usage: D1Usage,
+  timings: D1PublishTimings,
 ): D1PublishResult {
   return {
     database_id: databaseId,
@@ -308,17 +371,18 @@ function publishResult(
     schema_changed_indexes: schema.changedIndexes,
     schema_removed_indexes: schema.removedIndexes,
     d1_usage: usage,
+    timings_ms: timings,
   };
 }
 
 async function readD1RefreshState(
   checkedAtEpochSeconds: number,
-  previousPayload: ModelAtlasPayload | null,
   usage: D1Usage,
 ): Promise<D1RefreshState> {
-  const rawRows = await readD1RawRows(usage);
-  const [previousQuarantineRows, previousHealthRows, previousMatchDebugRows] =
-    await queryD1BatchRows(
+  const [previousPayload, rawRows, refreshStateRows] = await Promise.all([
+    readD1Payload(usage),
+    readD1RawRows(usage),
+    queryD1BatchRows(
       [
         {
           sql: "SELECT source, row_key, row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines ORDER BY source, row_key",
@@ -331,7 +395,9 @@ async function readD1RefreshState(
         },
       ],
       usage,
-    );
+    ),
+  ]);
+  const [previousQuarantineRows, previousHealthRows, previousMatchDebugRows] = refreshStateRows;
   const persistedStatuses = persistedSourceStatusesFromRows(previousHealthRows ?? []);
   return {
     rawRows,
@@ -356,6 +422,10 @@ async function readD1RefreshState(
     previousSourceRowStates: sourceRowStatesFromRows(previousQuarantineRows ?? []),
     previousPayload,
   };
+}
+
+function elapsedMilliseconds(startedAt: number): number {
+  return Math.round(performance.now() - startedAt);
 }
 
 function persistedSourceStatusesFromRows(
@@ -394,11 +464,20 @@ async function readD1RawRows(usage: D1Usage): Promise<Record<RawSourceName, Cach
     directSources.map((source, index) => [source, rowGroups[index] ?? []] as const),
   );
   const sharedRows = rowGroups[directSources.length] ?? [];
+  const sharedRowsBySource = new Map<string, CacheDbRow[]>();
+  for (const row of sharedRows) {
+    if (typeof row.source_key !== "string") {
+      continue;
+    }
+    const sourceRows = sharedRowsBySource.get(row.source_key) ?? [];
+    sourceRows.push(row);
+    sharedRowsBySource.set(row.source_key, sourceRows);
+  }
   return Object.fromEntries(
     RAW_SOURCE_NAMES.map((source) => [
       source,
       (isBenchmarkObservationRawSource(source)
-        ? sharedRows.filter((row) => row.source_key === source)
+        ? (sharedRowsBySource.get(source) ?? [])
         : (directRows.get(source) ?? [])) as CacheDbRow[],
     ]),
   ) as Record<RawSourceName, CacheDbRow[]>;
@@ -434,15 +513,67 @@ function payloadFromCollector(
   fetchedAtEpochSeconds: number,
   collector: SnapshotRowCollector,
 ): ModelAtlasPayload {
+  const recordsByTable = new Map<string, ReturnType<SnapshotRowCollector["records"]>>();
+  const recordsBySourceByTable = new Map<
+    string,
+    Map<string, ReturnType<SnapshotRowCollector["records"]>>
+  >();
+  const recordsForTable = (table: string) => {
+    const cached = recordsByTable.get(table);
+    if (cached != null) {
+      return cached;
+    }
+    const records = collector.records(table);
+    recordsByTable.set(table, records);
+    return records;
+  };
+  const recordsForSource = (table: string, source: string) => {
+    let recordsBySource = recordsBySourceByTable.get(table);
+    if (recordsBySource == null) {
+      recordsBySource = new Map();
+      for (const row of recordsForTable(table)) {
+        if (typeof row.source_key !== "string") {
+          continue;
+        }
+        const records = recordsBySource.get(row.source_key) ?? [];
+        records.push(row);
+        recordsBySource.set(row.source_key, records);
+      }
+      recordsBySourceByTable.set(table, recordsBySource);
+    }
+    return recordsBySource.get(source) ?? [];
+  };
   return buildPayloadFromRows(
     buildPayloadRows(
       fetchedAtEpochSeconds,
       PAYLOAD_ROW_GROUPS.map(({ key, table, sourceKey }) => [
         key,
-        collector.records(table).filter((row) => sourceKey == null || row.source_key === sourceKey),
+        sourceKey == null ? recordsForTable(table) : recordsForSource(table, sourceKey),
       ]),
     ),
   );
+}
+
+/** Retimestamp an assembled payload because payload construction uses this value only for snapshot and source-health generation times. */
+function payloadAtEpochSeconds(
+  payload: ModelAtlasPayload,
+  fetchedAtEpochSeconds: number,
+): ModelAtlasPayload {
+  return {
+    ...payload,
+    fetched_at_epoch_seconds: fetchedAtEpochSeconds,
+    metadata: {
+      ...payload.metadata,
+      ...(payload.metadata.source_health == null
+        ? {}
+        : {
+            source_health: {
+              ...payload.metadata.source_health,
+              generated_at_epoch_seconds: fetchedAtEpochSeconds,
+            },
+          }),
+    },
+  };
 }
 
 /** Stores the completed public snapshot only after every source and derived table is ready. */
@@ -464,9 +595,11 @@ function materializedPayloadQuery(payload: ModelAtlasPayload) {
 async function publishChangedSnapshot(
   completedAtEpochSeconds: number,
   collector: SnapshotRowCollector,
+  collectedRawRows: ReturnType<typeof rawSourceRowsFromCollector>,
   changedSources: RawSourceName[],
   current: D1RefreshState,
   payload: ModelAtlasPayload,
+  modelsChanged: boolean,
   schema: SchemaReconciliationPlan,
   usage: D1Usage,
 ): Promise<number> {
@@ -474,7 +607,7 @@ async function publishChangedSnapshot(
   for (const source of changedSources) {
     statementCount += await writeChangedRawSourceRows(
       source,
-      collector,
+      collectedRawRows[source],
       current.rawRows[source],
       usage,
     );
@@ -486,9 +619,6 @@ async function publishChangedSnapshot(
     }
     statementCount += await replaceStagedRows(table, collected, table, usage);
   }
-  const modelsChanged =
-    current.previousPayload == null ||
-    stableHash(payload.models) !== stableHash(current.previousPayload.models);
   const changedSchemaTables = new Set(schema.changedTables);
   if (modelsChanged || MODEL_TABLES.some((table) => changedSchemaTables.has(table))) {
     for (const table of MODEL_TABLES) {
@@ -511,13 +641,6 @@ async function publishChangedSnapshot(
   ];
   await queryD1Batch(completionQueries, usage);
   return statementCount + completionQueries.length;
-}
-
-function publicContentHash(payload: ModelAtlasPayload): string {
-  return stableHash({
-    models: payload.models,
-    scoring: payload.metadata.scoring,
-  });
 }
 
 function stableHash(value: unknown): string {

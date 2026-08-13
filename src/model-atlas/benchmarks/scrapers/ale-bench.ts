@@ -304,6 +304,11 @@ export async function getAleBenchStats(
 ): Promise<AleBenchPayload> {
   try {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const epochRequest = fetchWithTimeout(
+      options.epochUrl ?? ALE_BENCH_EPOCH_RESULTS_URL,
+      {},
+      timeoutMs,
+    ).catch(() => null);
     const sakanaResponse = await fetchWithTimeout(
       options.sakanaUrl ?? ALE_BENCH_SAKANA_RESULTS_URL,
       {},
@@ -317,12 +322,8 @@ export async function getAleBenchStats(
 
     let epochRows: AleBenchEpochRow[] = [];
     try {
-      const epochResponse = await fetchWithTimeout(
-        options.epochUrl ?? ALE_BENCH_EPOCH_RESULTS_URL,
-        {},
-        timeoutMs,
-      );
-      if (epochResponse.ok) epochRows = processAleBenchEpochCsv(await epochResponse.text());
+      const epochResponse = await epochRequest;
+      if (epochResponse?.ok) epochRows = processAleBenchEpochCsv(await epochResponse.text());
     } catch {
       // Epoch is validation-only and must not block the primary Sakana observation source.
     }
