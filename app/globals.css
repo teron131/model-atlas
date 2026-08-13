@@ -630,6 +630,10 @@ table {
   font-variant-numeric: tabular-nums;
 }
 
+.table-shell[data-fit-column-content="true"] table {
+  min-width: max-content;
+}
+
 th,
 td {
   height: var(--table-row-content-height);
@@ -764,11 +768,9 @@ td:nth-child(2) {
   text-align: left;
 }
 
-/* Close the score and headline metric groups without coupling separators to column positions. */
-th.score-group-end:not(:last-child),
-td.score-group-end:not(:last-child),
-th.headline-group-end:not(:last-child),
-td.headline-group-end:not(:last-child) {
+/* Close semantic measurement groups without coupling separators to column positions. */
+th.column-group-end:not(:last-child),
+td.column-group-end:not(:last-child) {
   border-right: 1px solid var(--line);
 }
 

@@ -1,0 +1,12 @@
+# Keeps local state, credentials, build products, and review artifacts out of the Cloud Run publisher image.
+
+.cache
+.env
+.env.*
+.git
+.next
+.playwright-cli
+.vercel
+node_modules
+npm-debug.log*
+pnpm-debug.log*

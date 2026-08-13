@@ -6,19 +6,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { liveStatsPath } from "./shared/constants";
-import { cacheBustedPath } from "./shared/format";
 
 const MODEL_ATLAS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
-// Cache is only a display substitute; loading and scheduled refreshes still run through this guard policy.
-const SCHEDULED_REFRESH_INTERVAL_MS = 60_000;
+// Cache is only a display substitute; missing or incomplete server payloads still refresh through this guard policy.
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
 const REFRESH_RETRY_SLACK_MS = 25;
-const AUTOMATIC_REFRESH_ENABLED =
-  process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_MODEL_ATLAS_AUTO_REFRESH === "1";
 
 type RefreshPayloadOptions = {
-  bypassHttpCache?: boolean;
   retryWhenGuarded?: boolean;
 };
 
@@ -49,10 +44,7 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
     }
     recordRefreshAttempt();
     setErrorMessage(null);
-    refreshInFlightRef.current = fetch(
-      options?.bypassHttpCache ? cacheBustedPath(liveStatsPath) : liveStatsPath,
-      options?.bypassHttpCache ? { cache: "no-store" } : undefined,
-    )
+    refreshInFlightRef.current = fetch(liveStatsPath)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -97,18 +89,6 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (payload == null || !AUTOMATIC_REFRESH_ENABLED) {
-      return;
-    }
-    const interval = window.setInterval(() => {
-      void refreshPayload({ bypassHttpCache: true });
-    }, SCHEDULED_REFRESH_INTERVAL_MS);
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [payload, refreshPayload]);
 
   return {
     payload,

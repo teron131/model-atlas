@@ -6,8 +6,8 @@ import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../benchmarks/scrapers/dee
 import { asFiniteNumber, asRecord } from "../../runtime";
 import {
   isBenchmarkObservationRawSource,
-  RAW_SOURCE_CACHE_SECONDS,
   RAW_SOURCE_TABLES,
+  rawSourceCacheSeconds,
   type RawSourceName,
 } from "../source-registry";
 import type { RawSourceCacheStatus } from "../types";
@@ -57,7 +57,7 @@ export function readRawSourceCacheStatus(
     rowCount > 0 &&
     lastFetch != null &&
     nowEpochSeconds - lastFetch >= 0 &&
-    nowEpochSeconds - lastFetch <= RAW_SOURCE_CACHE_SECONDS &&
+    nowEpochSeconds - lastFetch <= rawSourceCacheSeconds(source) &&
     isSourceCacheShapeCurrent(db, source);
   return {
     last_fetch_epoch_seconds: lastFetch,
@@ -111,7 +111,7 @@ export function rawSourceCacheStatusFromRows(
       sourceInputCount > 0 &&
       lastFetch != null &&
       nowEpochSeconds - lastFetch >= 0 &&
-      nowEpochSeconds - lastFetch <= RAW_SOURCE_CACHE_SECONDS &&
+      nowEpochSeconds - lastFetch <= rawSourceCacheSeconds(source) &&
       rowsHaveCurrentShape(source, rows),
     refreshed: false,
   };

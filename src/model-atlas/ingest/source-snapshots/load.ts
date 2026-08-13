@@ -119,7 +119,7 @@ function fetchedAtFromStatuses(
   ) as SourceSnapshots["fetchedAt"];
 }
 
-/** Load raw source snapshots from SQLite when fresh, otherwise refresh daily source inputs. */
+/** Load raw source snapshots from SQLite when fresh, otherwise refresh scheduled source inputs. */
 export async function loadSourceSnapshots(
   db: DatabaseSync,
   nowEpochSeconds: number,

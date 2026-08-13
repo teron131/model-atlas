@@ -9,7 +9,8 @@ import {
 } from "../benchmarks/registry";
 import { OPENROUTER_MODELS_URL } from "../scrapers/openrouter";
 
-export const RAW_SOURCE_CACHE_SECONDS = 24 * 60 * 60;
+const SCHEDULED_SOURCE_CACHE_SECONDS = 3.5 * 60 * 60;
+const OPENROUTER_CACHE_SECONDS = 24 * 60 * 60;
 
 const CORE_RAW_SOURCE_NAMES = [
   "artificial_analysis",
@@ -25,6 +26,11 @@ export const RAW_SOURCE_NAMES = [
 ] as const;
 
 export type RawSourceName = (typeof RAW_SOURCE_NAMES)[number];
+
+/** High-volume route telemetry refreshes daily while newly requested model IDs still bypass its populated cache. */
+export function rawSourceCacheSeconds(source: RawSourceName): number {
+  return source === "openrouter" ? OPENROUTER_CACHE_SECONDS : SCHEDULED_SOURCE_CACHE_SECONDS;
+}
 
 /** Catalog benchmark-observation sources share one physical table while retaining independent cache partitions. */
 export function isBenchmarkObservationRawSource(

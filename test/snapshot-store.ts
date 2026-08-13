@@ -1,13 +1,13 @@
-/** Verifies D1-only runtime reads, refresh guards, and batched database access. */
+/** Verifies D1-only runtime reads, standalone publication guards, and batched database access. */
 
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 
+import { publishD1Snapshot } from "../src/model-atlas/database/d1";
 import { createD1Usage, queryD1Batch, readD1Payload } from "../src/model-atlas/database/d1/client";
 import { buildRawRowWritePlan } from "../src/model-atlas/database/d1/writes";
 import {
   readDisplaySnapshotPayload,
-  refreshStoredSnapshot,
   snapshotRuntime,
 } from "../src/model-atlas/database/runtime-snapshot";
 
@@ -108,9 +108,9 @@ try {
     "Vercel display reads must not fall back when D1 is unavailable",
   );
   await assert.rejects(
-    () => refreshStoredSnapshot(),
-    /Cloudflare D1 is required by the runtime/,
-    "Vercel refreshes must not rebuild a local-only snapshot when D1 is unavailable",
+    publishD1Snapshot,
+    /Cloudflare D1 is not configured/,
+    "the standalone publisher must reject missing D1 configuration",
   );
   process.env.D1_ACCOUNT_ID = "account";
   process.env.D1_DATABASE_ID = "database";
