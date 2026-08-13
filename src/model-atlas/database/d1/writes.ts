@@ -2,9 +2,11 @@
 
 import { createHash } from "node:crypto";
 
+import { BENCHMARK_OBSERVATION_RAW_TABLE } from "../../benchmarks/registry";
 import type { CacheDbRow } from "../../ingest/cache/rows";
 import {
   isBenchmarkObservationRawSource,
+  RAW_SOURCE_NAMES,
   RAW_SOURCE_TABLES,
   type RawSourceName,
 } from "../../ingest/source-registry";
@@ -26,26 +28,62 @@ type RawRowWritePlan = {
   fitsAtomicBatch: boolean;
 };
 
+type CollectedRawSourceRows = Record<RawSourceName, CollectedTableRows | undefined>;
+
+/** Partition collected raw tables once so shared benchmark observations are not rescanned per source. */
+export function rawSourceRowsFromCollector(
+  collector: SnapshotRowCollector,
+): CollectedRawSourceRows {
+  const collectedBySource = Object.fromEntries(
+    RAW_SOURCE_NAMES.map((source) => [source, collector.tables.get(RAW_SOURCE_TABLES[source])]),
+  ) as CollectedRawSourceRows;
+  const observationSources = RAW_SOURCE_NAMES.filter(isBenchmarkObservationRawSource);
+  const shared = collector.tables.get(BENCHMARK_OBSERVATION_RAW_TABLE);
+  if (shared == null) {
+    return collectedBySource;
+  }
+  const sourceKeyIndex = shared.columns.indexOf("source_key");
+  if (sourceKeyIndex < 0) {
+    throw new Error(
+      `${BENCHMARK_OBSERVATION_RAW_TABLE} is missing its source_key partition column`,
+    );
+  }
+  const observationSourceSet = new Set<string>(observationSources);
+  const rowsBySource = new Map<string, SqlValue[][]>();
+  for (const row of shared.rows) {
+    const source = row[sourceKeyIndex];
+    if (typeof source !== "string" || !observationSourceSet.has(source)) {
+      continue;
+    }
+    const rows = rowsBySource.get(source) ?? [];
+    rows.push(row);
+    rowsBySource.set(source, rows);
+  }
+  for (const source of observationSources) {
+    collectedBySource[source] = {
+      columns: shared.columns,
+      rows: rowsBySource.get(source) ?? [],
+    };
+  }
+  return collectedBySource;
+}
+
 /** Detect meaningful raw-source changes while isolating shared observation-table partitions. */
 export function rawSourceRowsChanged(
-  collector: SnapshotRowCollector,
-  source: RawSourceName,
+  collected: CollectedTableRows | undefined,
   currentRows: readonly CacheDbRow[],
 ): boolean {
-  return (
-    tableContentHash(collectedSourceRecords(collector, source)) !== tableContentHash(currentRows)
-  );
+  return tableContentHash(collectedSourceRecords(collected)) !== tableContentHash(currentRows);
 }
 
 /** Writes a bounded raw-source diff atomically and retains staged replacement for large churn. */
 export async function writeChangedRawSourceRows(
   source: RawSourceName,
-  collector: SnapshotRowCollector,
+  collected: CollectedTableRows | undefined,
   currentRows: readonly CacheDbRow[],
   usage: D1Usage,
 ): Promise<number> {
   const table = RAW_SOURCE_TABLES[source];
-  const collected = collectedRowsForSource(collector, source);
   const isObservation = isBenchmarkObservationRawSource(source);
   const whereSql = isObservation
     ? `${quoteIdentifier("source_key")} = ${sqlLiteral(source)}`
@@ -231,31 +269,9 @@ function stageTableName(key: string): string {
   return `model_atlas_stage_${readableKey}_${suffix}`;
 }
 
-/** Select one logical source partition from the shared observation table. */
-function collectedRowsForSource(
-  collector: SnapshotRowCollector,
-  source: RawSourceName,
-): CollectedTableRows | undefined {
-  const table = RAW_SOURCE_TABLES[source];
-  const collected = collector.tables.get(table);
-  if (collected == null || !isBenchmarkObservationRawSource(source)) {
-    return collected;
-  }
-  const sourceKeyIndex = collected.columns.indexOf("source_key");
-  if (sourceKeyIndex < 0) {
-    throw new Error(`${table} is missing its source_key partition column`);
-  }
-  return {
-    columns: collected.columns,
-    rows: collected.rows.filter((row) => row[sourceKeyIndex] === source),
-  };
-}
-
 function collectedSourceRecords(
-  collector: SnapshotRowCollector,
-  source: RawSourceName,
+  collected: CollectedTableRows | undefined,
 ): Record<string, SqlValue>[] {
-  const collected = collectedRowsForSource(collector, source);
   if (collected == null) {
     return [];
   }

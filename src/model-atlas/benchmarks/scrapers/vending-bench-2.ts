@@ -125,7 +125,8 @@ async function vendingDataModule(
       text: await responseText(url, timeoutMs),
     })),
   );
-  for (const nodeModule of nodeModules) {
+  // Svelte route nodes are listed root-to-leaf, so inspect the leaf first and fall back through shared layouts.
+  for (const nodeModule of [...nodeModules].reverse()) {
     const chunkUrls = [
       ...new Set(
         [...nodeModule.text.matchAll(CHUNK_IMPORT_PATTERN)].map(
