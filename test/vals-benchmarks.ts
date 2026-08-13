@@ -87,7 +87,6 @@ const valsBenchmarkKeys = [
   "emb",
   "finance_agent_v2",
   "legal_research",
-  "medcode",
   "programbench",
   "public_benefits_bench",
   "vibe_code",

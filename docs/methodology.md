@@ -71,17 +71,17 @@ $$
 
 When every observed value is equal, the input provides no ordering evidence, so every observed row receives the same full normalized score instead of causing division by zero. Imputed values use the frozen observed anchors and cannot redefine the scale. Linear normalization is used instead of percentile rank because it preserves uneven performance gaps rather than turning them into evenly spaced positions.
 
-The selected set $\mathcal{B}_d$ contains every benchmark admitted to dimension $d$. Benchmark importance $i_b$ controls total influence, while dimension loading $\lambda_{b,d}$ directs that influence into Intelligence or Agentic without counting a mixed benchmark twice. Their product is the effective dimension weight $\omega_{b,d}=i_b\lambda_{b,d}$. The weighted benchmark mean $\bar z_{m,d}$ is
+The selected set $\mathcal{B}_d$ contains every benchmark admitted to dimension $d$. Benchmark importance $i_b$ controls total influence, while dimension loading $\lambda_{b,d}$ directs that influence into Intelligence or Agentic without counting a mixed benchmark twice. Their product is the effective dimension weight $\omega_{b,d}=i_b\lambda_{b,d}$. The evidence credit $\eta_{m,b}$ is one for an observation, validation confidence for an accepted estimate, and zero for missing evidence. The weighted benchmark mean $\bar z_{m,d}$ is
 
 $$
-\bar z_{m,d}=\frac{\sum_{b\in\mathcal{B}_d,z_{m,b}\text{ available or imputed}}\omega_{b,d}z_{m,b}}{\sum_{b\in\mathcal{B}_d,z_{m,b}\text{ available or imputed}}\omega_{b,d}}.
+\bar z_{m,d}=\frac{\sum_{b\in\mathcal{B}_d,z_{m,b}\text{ available or imputed}}\omega_{b,d}\eta_{m,b}z_{m,b}}{\sum_{b\in\mathcal{B}_d,z_{m,b}\text{ available or imputed}}\omega_{b,d}\eta_{m,b}}.
 $$
 
 Replacement inference activates only when Artificial Analysis benchmark resources and Vals independently identify the same dated release suffix for an older source identity, and the matched catalog route realizes that release. Semantic model versions remain distinct identities and cannot replace one another through this rule. It then compares each observation with the prior published identity before scoring. An observation is retained when its value changed, its source explicitly identifies the new release, its source observation date is newer than the prior value and no earlier than the model release, or the replacement already accepted it on an earlier refresh. A missing prior value and source reputation alone do not prove freshness. These replacement rows use direct accepted evidence without contextual benchmark imputation, and retained Artificial Analysis and Vals observations receive twice their ordinary effective weight so the designated freshness authorities govern the transition. The rule continues on later refreshes, preventing ambiguous old-name evidence from being reattached after the replacement is published.
 
 ### Evidence Confidence
 
-Evidence confidence uses the same dimension weights as the benchmark mean. The evidence credit $\eta_{m,b}$ distinguishes observations, validated source crosswalks, contextual imputations, and missing values:
+Evidence confidence uses the same dimension weights as the benchmark mean. The evidence credit $\eta_{m,b}$ distinguishes observations, validated source crosswalks, contextual imputations, and missing values, and it also scales each imputed value's contribution to the benchmark mean:
 
 $$
 \eta_{m,b}=
@@ -93,7 +93,7 @@ $$
 \end{cases}
 $$
 
-The normalized validation error $\tilde e_{m,b}$ comes from the contextual predictor used for that row; a combined sibling-effort prediction uses its cross-only error. Missing a low-weight benchmark therefore costs less confidence than missing a high-weight benchmark.
+The normalized validation error $\tilde e_{m,b}$ comes from the contextual predictor used for that row; a combined sibling-effort prediction uses its cross-only error. Missing a low-weight benchmark therefore costs less confidence than missing a high-weight benchmark. Direct observations retain their full score weight, while an imputed value's score weight is multiplied by $\eta_{m,b}$.
 
 The available evidence mass $E_{m,d}$ and the portfolio's total possible mass $\Omega_d$ are
 
@@ -232,20 +232,17 @@ Equal path weights prevent a model with more available sibling transitions from 
 
 At least four independent held-out models must actually use the cross-effort path, and their cross-only normalized median absolute error must not exceed 25 points. Both the target-effort and sibling-effort contexts must pass their evidence thresholds for the individual missing value. Sparse sibling evidence falls back to the separately validated direct predictor; if that predictor is also unreliable, the value remains missing. Every variant of the held-out model is excluded from the mapping fitted for its validation prediction.
 
-### Conservative Imputed Score
+### Validated Imputed Point Estimate
 
-The accepted prediction $\hat x^{\mathrm{used}}_{m,b}$ is reduced by the raw held-out error of the predictor that actually supplied it. The conservative imputed score $x_{m,b}^{\mathrm{imputed}}$ is
+The accepted prediction $\hat x^{\mathrm{used}}_{m,b}$ is used as the imputed point estimate:
 
 $$
-x_{m,b}^{\text{imputed}}=
-\max\left(0,\hat x^{\mathrm{used}}_{m,b}-\kappa_{\operatorname{group}(b)}e_b^{\mathrm{used}}\right).
+x_{m,b}^{\text{imputed}}=\hat x^{\mathrm{used}}_{m,b}.
 $$
 
-![A same-dimension context percentile mapped into the paired target distribution, then reduced by the validated held-out error penalty.](assets/methodology/quantile-imputation.svg)
+![A same-dimension context percentile mapped into the paired target distribution after held-out validation.](assets/methodology/quantile-imputation.svg)
 
-The group multiplier is $\kappa_{\text{frontier}}=1$ and $\kappa_{\text{baseline}}=0.5$. Group changes only the conservative subtraction; it does not change context selection, validation evidence, or observed weight. A combined prediction subtracts its cross-only raw held-out median error, while a direct fallback subtracts the direct predictor's error.
-
-Validation-weighted evidence mass remains in addition to the benchmark-local error subtraction. The subtraction makes every imputed value conservative, while evidence credit reflects the held-out reliability of the predictor actually used for that row. A sparse sibling-effort context falls back to the separately validated one-dimensional value, penalty, and confidence. Imputations remain ineligible for public admission regardless of that credit.
+Held-out normalized error determines whether the predictor is accepted and how much score influence and evidence credit its estimate receives; it does not systematically lower the point estimate. A sparse sibling-effort context falls back to the separately validated one-dimensional value and confidence. Imputations remain ineligible for public admission regardless of that credit.
 
 ## Effective Pricing
 
@@ -492,7 +489,6 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 | Sibling-resource paired tasks | 3 | Prevents one or two task-resource ratios from defining an effort conversion. |
 | Sibling-resource log-error ceiling | $\log 2$ | Refuses a cost or runtime ratio when its typical held-out multiplicative error reaches a factor of two. |
 | Sibling-resource score-error ceiling | 25 points | Refuses a ratio whose typical downstream Speed or Value component error is too large. |
-| Frontier / baseline error penalty | $1.0e_b^{\mathrm{used}}$ / $0.5e_b^{\mathrm{used}}$ | Makes missing frontier evidence more conservative without changing observed benchmark weight. |
 | Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
 | Minimum quality-coordinate deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences after their declared transform. |
