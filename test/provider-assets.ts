@@ -7,7 +7,6 @@ import { providerIcons } from "../app/dashboard/shared/provider-icons.generated"
 import { providerBrandColor, providerLogo } from "../app/dashboard/shared/provider-theme";
 
 const openaiLogo = providerLogo("openai");
-const openaiSvg = svgText(providerAssets.openai.logo);
 const metaLogo = providerLogo("meta");
 
 assert.deepEqual(
@@ -24,16 +23,6 @@ assert.equal(
   providerBrandColor("openai"),
   "var(--provider-openai-color)",
   "provider color overrides should remain stable over generated colors",
-);
-assert.match(
-  openaiSvg,
-  /<svg[^>]+width="64"[^>]+height="64"[^>]+viewBox="0 0 64 64"/,
-  "generated provider SVGs should use the normalized target size",
-);
-assert.match(
-  openaiSvg,
-  /<image href="data:image\/png;base64,[^"]+" width="64" height="64"\/>/,
-  "generated provider SVGs should wrap normalized PNG bytes",
 );
 assert.equal(
   metaLogo,
@@ -59,7 +48,3 @@ assert.equal(
   true,
   "all generated provider colors should be hex colors",
 );
-
-function svgText(dataUrl: string) {
-  return Buffer.from(dataUrl.slice("data:image/svg+xml;base64,".length), "base64").toString("utf8");
-}

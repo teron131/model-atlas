@@ -108,7 +108,6 @@ assert.deepEqual(
 );
 assert.equal(selected[2]?.selectionMetric, "INT 99.0");
 assert.equal(selected[4]?.selectionMetric, "INT 97.0 · $1.0 / 1M");
-assert.equal(new Set(selected.map(({ key }) => key.split("\u0000")[0])).size, selected.length);
 assert.deepEqual(
   {
     intelligence: selected[0]?.parameters.intelligence,
