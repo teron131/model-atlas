@@ -355,7 +355,6 @@ const lookups = {
   legalResearch: {
     rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
   },
-  medCode: { rowsByModelName: emptyLookup() },
   mlsBench: { rowsByModelName: emptyLookup() },
   omniscienceAccuracy: { rowsByModelName: emptyLookup() },
   mercorApexAgents: {

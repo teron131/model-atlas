@@ -218,11 +218,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
   },
-  medcode: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
   mls_bench: {
     group: "frontier",
     benchmarkImportance: 1,

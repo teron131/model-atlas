@@ -310,15 +310,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "legal research agent work"],
     ],
   },
-  medcode: {
-    title: "MedCode",
-    body: "Assign medical billing codes from clinical documentation.",
-    rows: [
-      ["Source", "Vals AI"],
-      ["Metric", "overall accuracy"],
-      ["Role", "medical coding reasoning"],
-    ],
-  },
   mls_bench: {
     title: "MLS-Bench Lite",
     body: "Improve machine-learning methods across 30 controlled research tasks through iterative experimentation in a five-hour agent environment.",
@@ -493,7 +484,6 @@ export const BENCHMARK_LABELS = {
   hle: "HLE",
   itbench_sre: "ITBench",
   legal_research: "Legal Research",
-  medcode: "MedCode",
   mls_bench: "MLS-Bench Lite",
   omniscience_accuracy: "Omniscience",
   perception_bench: "PerceptionBench",
@@ -565,7 +555,6 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "enterprisebench_corecraft",
   "finance_agent_v2",
   "hemingway_bench",
-  "medcode",
   "omniscience_accuracy",
   "perception_bench",
   "public_benefits_bench",
@@ -1100,12 +1089,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  medcode: {
-    key: "medCode",
-    label: "MedCode",
-    format: "percent",
-    defaultSort: "descending",
-  },
   mls_bench: {
     key: "mlsBench",
     label: "MLS",
@@ -1204,11 +1187,9 @@ export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
 } as const;
 
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: ["gpqa"],
-  medcode: ["mmmu_pro"],
+  gdpval_normalized: ["gpqa", "mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
 export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: ["gpqa"],
-  medcode: ["mmmu_pro"],
+  gdpval_normalized: ["gpqa", "mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;

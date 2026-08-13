@@ -295,7 +295,7 @@ assert.equal(
 );
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
-assert.match(methodology, /validation-weighted evidence confidence/);
+assert.match(methodology, /validation-confidence weighted influence/);
 assert.match(methodology, /offset confidence bias toward sparsely measured efforts/);
 assert.match(methodology, /show the highest available direct effort/);
 assert.match(methodology, /compare resource use among nearby-quality models/);

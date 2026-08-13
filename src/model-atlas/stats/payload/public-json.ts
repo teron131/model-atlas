@@ -195,7 +195,7 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Compact views rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only. Quality scores normalize and weight selected benchmarks, then apply validation-weighted evidence confidence. Observed efforts bound missing sibling scoring proxies to offset confidence bias toward sparsely measured efforts without changing stored results. Other missing values use validated, non-recursive imputation and never satisfy admission. SPEED and VALUE compare resource use among nearby-quality models.";
+  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Compact views rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only. Quality scores normalize and weight selected benchmarks; validated estimates receive validation-confidence weighted influence and evidence support. Observed efforts bound missing sibling scoring proxies to offset confidence bias toward sparsely measured efforts without changing stored results. Other missing values use validated, non-recursive imputation and never satisfy admission. SPEED and VALUE compare resource use among nearby-quality models.";
 }
 
 function compactRankedModels(payload: ModelAtlasPayload): RankedModel[] {

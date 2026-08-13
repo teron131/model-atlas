@@ -137,7 +137,10 @@ const qualityBenchmarkRows = (
   [
     ["Effective weight", "importance x dimension loading"],
     ["Aggregation", "weights normalized within dimension"],
-    ["Imputed-value penalty", "frontier subtracts 1.0x error; baseline subtracts 0.5x error"],
+    [
+      "Imputed values",
+      "validated point predictions; confidence scales score influence and support",
+    ],
     ["Confidence", CONFIDENCE_SCALE],
     {
       title: "Frontier benchmarks",

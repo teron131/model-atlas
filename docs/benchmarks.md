@@ -19,7 +19,7 @@ There is no standalone coding score. Coding difficulty does not automatically ma
 
 | Setting | Role |
 | --- | --- |
-| Group | Classifies the benchmark as `frontier` or `baseline` and controls only the missing-value error penalty |
+| Group | Classifies the benchmark as `frontier` or `baseline` for portfolio interpretation |
 | Importance | Controls the benchmark's total influence relative to other observed benchmarks |
 | Dimension loading | Allocates that importance between Intelligence and Agentic; the two loadings sum to 100% |
 
@@ -111,7 +111,6 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 | EnterpriseBench CoreCraft | 0.5 | 0% | 100% | Enterprise workflows inside one simulated company provide practical Agentic breadth. The single-company environment, first-party judge rubrics, and overlap with other agent benchmarks keep it stabilizing half-weight evidence. |
 | Finance Agent V2 | 1 | 20% | 80% | Finance research and analysis combine domain reasoning with predominantly Agentic workflow execution. The domain-specific Vals harness makes it stabilizing baseline evidence. |
 | Hemingway-bench | 1 | 100% | 0% | Expert pairwise preferences across creative, business, and everyday writing supply a distinct output-quality and writing-judgment signal. Its relative Elo scale and focused domain make it stabilizing Intelligence evidence rather than a broad frontier claim. |
-| MedCode | 1 | 100% | 0% | Medical coding supplies specialist professional-knowledge and reasoning evidence without enough external workflow execution to receive an Agentic loading. |
 | Omniscience&nbsp;Accuracy | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to distinguish the frontier leaders. |
 | PerceptionBench | 1 | 100% | 0% | Short-answer questions isolate ten atomic visual capabilities across 3,000 verified examples. The narrow multimodal focus provides distinctive Intelligence breadth, while creator-run configurations and an automatic judge keep it baseline rather than a frontier missing-data claim. |
 | Public Benefits Bench | 1 | 20% | 80% | Public-benefits case work combines policy reasoning with predominantly Agentic research and workflow execution. It remains a focused baseline signal. |
@@ -122,7 +121,7 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 | Vibe Code | 1 | 0% | 100% | End-to-end software creation in a coding-agent environment is pure Agentic evidence. Its product-building focus provides useful baseline coverage without a frontier missing-data claim. |
 | WeirdML | 1 | 60% | 40% | ML-programming tasks test model selection and implementation across 17 datasets. Problem formulation is the larger Intelligence component, while executable code generation contributes Agentic evidence. |
 
-Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate fallback coverage at half importance. Every index uses a neutral 50% Intelligence and 50% Agentic loading because the source aggregates mix capability types under incompatible or undisclosed weighting schemes; this is a Model Atlas fallback heuristic, not a reconstruction of each publisher's component weights. In scoring, the group labels change only the conservative penalty applied to missing evidence. Importance owns the influence of observed scores, and diagnostics or exclusions are not scoring groups.
+Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate fallback coverage at half importance. Every index uses a neutral 50% Intelligence and 50% Agentic loading because the source aggregates mix capability types under incompatible or undisclosed weighting schemes; this is a Model Atlas fallback heuristic, not a reconstruction of each publisher's component weights. Importance owns score influence, while group labels remain descriptive portfolio categories.
 
 ## Watchlist
 
@@ -219,7 +218,7 @@ Every reported effort and harness is persisted. Explicit effort rows match only 
 
 **Toolathlon** uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
-**Vals benchmark family:** Legal Research, EMB, MedCode, Code Migration, Vibe Code, and Public Benefits Bench use each leaderboard's `overall` score. Finance Agent V2 uses strict `all_pass`, ProgramBench uses the raw `partial` behavioral-test pass rate, and CyberBench uses the `patch` track. Adapters discard alternate tasks before creating shared observations and retain only benchmark version, dataset type, runner, mode, and harness as source-method provenance. Vals cost, latency, generation settings, and task detail are not persisted or used for Speed or Value, and none of these benchmarks is registered as Time Horizon evidence.
+**Vals benchmark family:** Legal Research, EMB, Code Migration, Vibe Code, and Public Benefits Bench use each leaderboard's `overall` score. Finance Agent V2 uses strict `all_pass`, ProgramBench uses the raw `partial` behavioral-test pass rate, and CyberBench uses the `patch` track. Adapters discard alternate tasks before creating shared observations and retain only benchmark version, dataset type, runner, mode, and harness as source-method provenance. Vals cost, latency, generation settings, and task detail are not persisted or used for Speed or Value, and none of these benchmarks is registered as Time Horizon evidence.
 
 **Vending-Bench 2** uses the official average final money balance as its raw benchmark value. Model Atlas preserves the number of runs and the complete published 365-day average balance curve for audit, then applies ordinary observed per-benchmark min-max normalization to the final balance. Costs and other chart-only derived comparisons do not enter Speed or Value, and the score should be interpreted as a stochastic long-horizon business simulation rather than an absolute success rate.
 

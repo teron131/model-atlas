@@ -48,12 +48,10 @@ type BenchmarkImputationDiagnostic = {
   validationSampleCount: number;
   effectiveModelCount: number;
   normalizedMedianAbsoluteError: number | null;
-  rawPenalty: number | null;
   imputationAllowed: boolean;
   includesCrossEffort: boolean;
   crossEffortEffectiveModelCount: number;
   crossEffortNormalizedMedianAbsoluteError: number | null;
-  crossEffortRawPenalty: number | null;
 };
 
 export type QualityScoringContext = {
@@ -94,8 +92,6 @@ const MIN_IMPUTATION_VALIDATION_MODELS = 4;
 const MIN_CROSS_EFFORT_REFERENCE_MODELS = 4;
 const MIN_CROSS_EFFORT_VALIDATION_MODELS = 4;
 const MIN_CROSS_EFFORT_ERROR_REDUCTION_RATIO = 0.02;
-const FRONTIER_MISSING_ERROR_MULTIPLIER = 1;
-const BASELINE_MISSING_ERROR_MULTIPLIER = 0.5;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const EFFORT_TRANSITION_SEPARATOR = "\u001f";
@@ -407,24 +403,6 @@ function dimensionBenchmarkContext(
   };
 }
 
-/** Penalize a validated benchmark prediction by its group-specific error multiple. */
-function imputedBenchmarkValue(
-  mappedValue: number | null,
-  diagnostic: BenchmarkImputationDiagnostic,
-  isFrontierBenchmark: boolean,
-): number | null {
-  const rawPenalty = diagnostic.includesCrossEffort
-    ? diagnostic.crossEffortRawPenalty
-    : diagnostic.rawPenalty;
-  if (mappedValue == null || !diagnostic.imputationAllowed || rawPenalty == null) {
-    return null;
-  }
-  const errorMultiplier = isFrontierBenchmark
-    ? FRONTIER_MISSING_ERROR_MULTIPLIER
-    : BASELINE_MISSING_ERROR_MULTIPLIER;
-  return Math.max(0, mappedValue - errorMultiplier * rawPenalty);
-}
-
 /** Convert held-out normalized error into partial evidence credit for a validated prediction. */
 function imputationConfidence(diagnostic: BenchmarkImputationDiagnostic): number {
   const normalizedError = diagnostic.includesCrossEffort
@@ -692,7 +670,6 @@ function imputationDiagnostic(
   includeCrossEffort: boolean,
 ): BenchmarkImputationDiagnostic {
   const normalizedAbsoluteErrorByModel = new Map<JsonObject, number>();
-  const rawAbsoluteErrorByModel = new Map<JsonObject, number>();
   const crossEffortPredictionModels = new Set<JsonObject>();
   const calibrationByHeldOutModel = new Map<
     string,
@@ -737,55 +714,39 @@ function imputationDiagnostic(
       heldOutModel,
       Math.abs(normalizedPrediction - normalizedActual),
     );
-    if (prediction != null) {
-      rawAbsoluteErrorByModel.set(heldOutModel, Math.abs(prediction.value - actualValue));
-    }
   }
   const validationErrors = calibrationObservations(
     models,
     (model) => normalizedAbsoluteErrorByModel.get(model) ?? null,
   );
   const normalizedMedianAbsoluteError = weightedMedianOfFinite(validationErrors);
-  const rawErrors = calibrationObservations(
-    models,
-    (model) => rawAbsoluteErrorByModel.get(model) ?? null,
-  );
-  const rawPenalty = weightedMedianOfFinite(rawErrors);
   const crossEffortValidationErrors = calibrationObservations(models, (model) =>
     crossEffortPredictionModels.has(model)
       ? (normalizedAbsoluteErrorByModel.get(model) ?? null)
       : null,
-  );
-  const crossEffortRawErrors = calibrationObservations(models, (model) =>
-    crossEffortPredictionModels.has(model) ? (rawAbsoluteErrorByModel.get(model) ?? null) : null,
   );
   const validationModelCount = effectiveModelCount(validationErrors);
   const crossEffortValidationModelCount = effectiveModelCount(crossEffortValidationErrors);
   const crossEffortNormalizedMedianAbsoluteError = weightedMedianOfFinite(
     crossEffortValidationErrors,
   );
-  const crossEffortRawPenalty = weightedMedianOfFinite(crossEffortRawErrors);
   const crossEffortValidationAllowed =
     !includeCrossEffort ||
     (crossEffortValidationModelCount >= MIN_CROSS_EFFORT_VALIDATION_MODELS &&
       crossEffortNormalizedMedianAbsoluteError != null &&
-      crossEffortNormalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR &&
-      crossEffortRawPenalty != null);
+      crossEffortNormalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR);
   return {
     validationSampleCount: validationErrors.length,
     effectiveModelCount: validationModelCount,
     normalizedMedianAbsoluteError,
-    rawPenalty,
     imputationAllowed:
       validationModelCount >= MIN_IMPUTATION_VALIDATION_MODELS &&
       normalizedMedianAbsoluteError != null &&
       normalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR &&
-      rawPenalty != null &&
       crossEffortValidationAllowed,
     includesCrossEffort: includeCrossEffort,
     crossEffortEffectiveModelCount: crossEffortValidationModelCount,
     crossEffortNormalizedMedianAbsoluteError,
-    crossEffortRawPenalty,
   };
 }
 
@@ -878,11 +839,7 @@ function prepareImputation(
       const diagnostic = prediction?.crossEffortUsed
         ? withCrossEffortDiagnostic
         : directOnlyDiagnostic;
-      const imputedValue = imputedBenchmarkValue(
-        prediction?.value ?? null,
-        diagnostic,
-        portfolioEntry.group === "frontier",
-      );
+      const imputedValue = diagnostic.imputationAllowed ? (prediction?.value ?? null) : null;
       if (imputedValue == null || !Number.isFinite(imputedValue)) {
         continue;
       }

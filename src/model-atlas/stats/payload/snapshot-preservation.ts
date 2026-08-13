@@ -6,7 +6,7 @@ import { canonicalReasoningEffort, normalizeModelToken } from "../../identity/no
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
-export const SNAPSHOT_PRESERVATION_VERSION = 2;
+export const SNAPSHOT_PRESERVATION_VERSION = 3;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 

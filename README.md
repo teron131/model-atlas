@@ -3,7 +3,7 @@
 Model Atlas is an opinionated model leaderboard for choosing the right model, not declaring one universal winner. Instead of averaging every available benchmark into a broad index, it selects evaluations that remain difficult for leading models, measure consequential capabilities, produce meaningful and interpretable separation, and have credible tasks, grading, provenance, and comparable results. Saturated, contaminated, redundant, opaque, or misleading benchmarks are excluded even when they are widely used. Capability, workflow execution, delivery speed, and cost efficiency remain separate so their tradeoffs stay visible.
 
 - **Efficiency remains tied to capability.** Speed and Value compare models with nearby-quality peers, so low cost or latency cannot compensate for less useful work.
-- **Missing evidence remains uncertain.** Estimates use validated, non-recursive imputation, are reduced by prediction error, and never count toward public admission.
+- **Missing evidence remains uncertain.** Estimates use validated, non-recursive imputation, prediction error reduces their score influence and evidence support, and estimates never count toward public admission.
 - **More variants do not create more confidence.** Reasoning-effort configurations remain separate, while model-balanced calibration prevents models with more variants from gaining additional reference weight.
 
 ## Scores

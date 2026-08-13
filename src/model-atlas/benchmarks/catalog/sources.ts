@@ -195,17 +195,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "legalResearch",
     sourceRowsKey: "legalResearchRows",
   },
-  medcode: {
-    group: "vals",
-    id: "vals",
-    loader: {
-      kind: "vals",
-      canonicalTask: "overall",
-      sourceUrl: "https://www.vals.ai/benchmarks/medcode",
-    },
-    sourceDataKey: "medCode",
-    sourceRowsKey: "medCodeRows",
-  },
   mls_bench: {
     group: "standalone",
     id: "mls_bench",

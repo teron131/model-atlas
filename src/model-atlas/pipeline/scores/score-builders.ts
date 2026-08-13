@@ -81,7 +81,10 @@ function qualityScore(
   evidenceThresholds: Confidence[BenchmarkDimension],
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
-    benchmarkScoreInputs.map(({ value, weight }) => ({ value, weight })),
+    benchmarkScoreInputs.map(({ value, evidenceConfidence, weight }) => ({
+      value,
+      weight: weight * evidenceConfidence,
+    })),
   );
   if (qualityMean == null) {
     return { score: null, confidence: null };
