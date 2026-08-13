@@ -22,7 +22,7 @@ export type BenchmarkAdmissionConfig = {
   minimumObservedPerDimension: number;
 };
 
-export type Confidence = Record<
+export type QualityCoverageThresholds = Record<
   BenchmarkDimension,
   {
     floor: number;
@@ -30,26 +30,26 @@ export type Confidence = Record<
   }
 >;
 
-const CONFIDENCE_FLOOR_SHARE = 0.1;
-const CONFIDENCE_FULL_SHARE = 0.6;
+const QUALITY_COVERAGE_FLOOR_SHARE = 0.1;
+const QUALITY_COVERAGE_FULL_SHARE = 0.6;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
 
-/** Derive the confidence ramp from the selected portfolio's effective dimension weight. */
-function confidenceForDimension(keys: readonly string[], dimension: BenchmarkDimension) {
+/** Derive the score-coverage ramp from the selected portfolio's effective dimension weight. */
+function qualityCoverageForDimension(keys: readonly string[], dimension: BenchmarkDimension) {
   const totalWeight = keys.reduce(
     (total, key) => total + benchmarkDimensionWeight(key, dimension, BENCHMARK_PORTFOLIO),
     0,
   );
   return {
-    floor: Number((totalWeight * CONFIDENCE_FLOOR_SHARE).toFixed(10)),
-    full: Number((totalWeight * CONFIDENCE_FULL_SHARE).toFixed(10)),
+    floor: Number((totalWeight * QUALITY_COVERAGE_FLOOR_SHARE).toFixed(10)),
+    full: Number((totalWeight * QUALITY_COVERAGE_FULL_SHARE).toFixed(10)),
   };
 }
 
-export const CONFIDENCE = {
-  intelligence: confidenceForDimension(SELECTED_INTELLIGENCE_BENCHMARKS, "intelligence"),
-  agentic: confidenceForDimension(SELECTED_AGENTIC_BENCHMARKS, "agentic"),
-} satisfies Confidence;
+export const QUALITY_COVERAGE = {
+  intelligence: qualityCoverageForDimension(SELECTED_INTELLIGENCE_BENCHMARKS, "intelligence"),
+  agentic: qualityCoverageForDimension(SELECTED_AGENTIC_BENCHMARKS, "agentic"),
+} satisfies QualityCoverageThresholds;
 
 export type FinalStageConfig = {
   nullFieldPruneThreshold: number;
@@ -106,7 +106,7 @@ export type ScoringConfig = {
   speedOutputTokenRangeMax: number;
   speedAnchorQuantiles: readonly number[];
   benchmarkPortfolio: BenchmarkPortfolio;
-  confidence: Confidence;
+  qualityCoverage: QualityCoverageThresholds;
 };
 
 export type ModelAtlasStageConfig = {
@@ -147,7 +147,7 @@ export const STAGE_CONFIG = {
     nullFieldPruneRecentLookbackDays: 90,
     benchmarkAdmission: {
       indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
-      minimumObservedBenchmarks: 8,
+      minimumObservedBenchmarks: 7,
       minimumObservedPerDimension: 1,
     },
   },
@@ -165,6 +165,6 @@ export const STAGE_CONFIG = {
     speedOutputTokenRangeMax: 8_000,
     speedAnchorQuantiles: [0.25, 0.5, 0.75],
     benchmarkPortfolio: BENCHMARK_PORTFOLIO,
-    confidence: CONFIDENCE,
+    qualityCoverage: QUALITY_COVERAGE,
   },
 } satisfies ModelAtlasStageConfig;

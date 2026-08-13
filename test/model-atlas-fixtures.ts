@@ -5,7 +5,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
 } from "../src/model-atlas/benchmarks/registry";
-import { CONFIDENCE } from "../src/model-atlas/config/stage";
+import { QUALITY_COVERAGE } from "../src/model-atlas/config/stage";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../src/model-atlas/stats/types";
 
@@ -45,7 +45,7 @@ export function minimalModelAtlasPayload({
         missing_agentic_benchmark_keys: [],
         selected_benchmark_keys: [],
         benchmark_portfolio: {},
-        confidence: CONFIDENCE,
+        quality_coverage: QUALITY_COVERAGE,
         column_tooltips: {},
         snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
       },

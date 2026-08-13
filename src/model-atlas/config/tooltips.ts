@@ -39,18 +39,23 @@ export type ModelAtlasColumnTooltip = {
 
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
-const CONFIDENCE_SCALE = "0 through 10% of selected benchmark weight; full from 60%";
+const QUALITY_COVERAGE_SCALE =
+  "score multiplier is zero through 10% of selected weight and full from 60%";
 
 export const CONFIDENCE_TOOLTIP = {
-  title: "Confidence",
-  body: "How much direct or validated evidence supports each score.",
+  title: "Evidence support",
+  body: "The weighted share of each score's active inputs supported by direct or validated evidence.",
   rows: [
-    ["I", "Intelligence confidence"],
-    ["A", "Agentic confidence"],
-    ["S", "Speed confidence"],
-    ["V", "Value confidence"],
-    ["I/A scale", CONFIDENCE_SCALE],
-    ["S/V scale", "weighted share of active inputs with direct or validated evidence"],
+    ["I", "Intelligence evidence support"],
+    ["A", "Agentic evidence support"],
+    ["S", "Speed evidence support"],
+    ["V", "Value evidence support"],
+    ["Displayed scale", "literal weighted share of active inputs"],
+    ["Quality score coverage", QUALITY_COVERAGE_SCALE],
+    [
+      "Model-default evidence",
+      "supports the source-default variant without claiming an explicit effort run",
+    ],
   ],
 } as const satisfies ModelAtlasColumnTooltip;
 
@@ -139,9 +144,10 @@ const qualityBenchmarkRows = (
     ["Aggregation", "weights normalized within dimension"],
     [
       "Imputed values",
-      "validated point predictions; confidence scales score influence and support",
+      "validated point predictions; held-out reliability scales influence and support",
     ],
-    ["Confidence", CONFIDENCE_SCALE],
+    ["Evidence support", "literal weighted share of direct or validated evidence"],
+    ["Score coverage", QUALITY_COVERAGE_SCALE],
     {
       title: "Frontier benchmarks",
       rows: benchmarkRows.frontier,
@@ -227,7 +233,7 @@ export function columnTooltipsForActiveComponents(
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
-        ["Final score", "weighted mean × evidence confidence"],
+        ["Final score", "weighted mean × score coverage multiplier"],
       ],
       sections: [
         {
@@ -243,7 +249,7 @@ export function columnTooltipsForActiveComponents(
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
-        ["Final score", "weighted mean × evidence confidence"],
+        ["Final score", "weighted mean × score coverage multiplier"],
       ],
       sections: [
         {
@@ -255,7 +261,7 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Provider speed metrics and benchmark runtimes receive equal component slots. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and confidence.",
+      body: "How quickly the model delivers comparable work. Provider speed metrics and benchmark runtimes receive equal component slots. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and evidence support.",
       rows: [
         ["Provider metrics", "three equal logged min–max components"],
         ["Benchmark runtimes", "quality-adjusted peer comparison"],
@@ -272,7 +278,7 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How much quality and capability the model delivers for its cost. Absolute blended price, quality-adjusted blended price, and benchmark task costs receive equal component slots. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and confidence.",
+      body: "How much quality and capability the model delivers for its cost. Absolute blended price, quality-adjusted blended price, and benchmark task costs receive equal component slots. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and evidence support.",
       rows: [
         ["Blended price", "logged, winsorized min–max score"],
         ["Quality-adjusted price", "peer-relative efficiency score"],

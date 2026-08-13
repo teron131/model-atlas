@@ -58,6 +58,10 @@ assert.deepEqual(benchmarkModelEffort("Claude Opus 4.8 (Adaptive/Default)"), {
   baseModel: "Claude Opus 4.8",
   reasoningEffort: "adaptive",
 });
+assert.deepEqual(benchmarkModelEffort("Claude Opus 5 (Adaptive/High)"), {
+  baseModel: "Claude Opus 5",
+  reasoningEffort: "high",
+});
 assert.deepEqual(benchmarkModelEffort("claude-opus-4.5 (high, 16k)"), {
   baseModel: "claude-opus-4.5",
   reasoningEffort: "high",
@@ -75,6 +79,43 @@ const epochFrontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol")?.canonical_value, 0.561);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol--max")?.canonical_value, 0.561);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol-pro")?.canonical_value, 0.52);
+
+const conflictingModelIdLookup = buildBenchmarkObservationLookup([
+  {
+    benchmark_key: "weirdml",
+    source_url: "https://epoch.ai/data/external_benchmarks/weirdml.csv",
+    model_id: "gpt-5.6-sol",
+    model: "GPT-5.6 Sol (max)",
+    base_model: "GPT-5.6 Sol",
+    reasoning_effort: "max",
+    model_creator: "OpenAI",
+    rank: 2,
+    canonical_value: 0.87,
+    observed_at: "2026-07-09",
+    metadata: {},
+  },
+  {
+    benchmark_key: "weirdml",
+    source_url: "https://epoch.ai/data/external_benchmarks/weirdml.csv",
+    model_id: "gpt-5.6-sol",
+    model: "GPT-5.6 Sol Pro (max)",
+    base_model: "GPT-5.6 Sol Pro",
+    reasoning_effort: "max",
+    model_creator: "OpenAI",
+    rank: 1,
+    canonical_value: 0.89,
+    observed_at: "2026-07-09",
+    metadata: {},
+  },
+]);
+assert.equal(
+  findBenchmarkObservation(["GPT-5.6 Sol"], "max", conflictingModelIdLookup)?.canonical_value,
+  0.87,
+);
+assert.equal(
+  findBenchmarkObservation(["GPT-5.6 Sol Pro"], "max", conflictingModelIdLookup)?.canonical_value,
+  0.89,
+);
 
 const weirdMl = processWeirdMlCsv(
   "internal_model_name,display_name,model_slug,shapes_easy_acc,shapes_hard_acc,digits_unsup_acc,chess_winners_acc,kolmo_shuffle_acc,classify_sentences_acc,classify_shuffled_acc,insert_patches_acc,blunders_easy_acc,blunders_hard_acc,digits_generalize_acc,shapes_variable_acc,xor_easy_acc,xor_hard_acc,splash_easy_acc,splash_hard_acc,number_patterns_acc,avg_acc,avg_acc_standard_error,cost_per_run_usd,mean_total_output_tokens,code_len_p10,code_len_p50,code_len_p90,exec_time_median_s,release_date,API source\n" +

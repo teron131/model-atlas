@@ -2,10 +2,22 @@
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
-import type { Confidence, ScoringConfig } from "../../config/stage";
-import { meanOfFinite, quantileFromSorted, weightedMeanOfFinite } from "../../numeric";
+import type { QualityCoverageThresholds, ScoringConfig } from "../../config/stage";
+import {
+  canonicalModelKey,
+  canonicalReasoningEffort,
+  reasoningEffortRank,
+} from "../../identity/normalization";
+import {
+  clamp,
+  clamp01,
+  meanOfFinite,
+  quantileFromSorted,
+  weightedMeanOfFinite,
+} from "../../numeric";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
+  ModelAtlasCandidate,
   ModelAtlasCandidateComponentScores,
   ModelAtlasConfidence,
   ModelAtlasSpeed,
@@ -22,13 +34,158 @@ type BenchmarkScoreInput = {
 
 type QualityScoreResult = {
   score: number | null;
-  confidence: number | null;
+  evidenceSupport: number | null;
 };
 
 type ComponentScoreResult = {
   componentScores: ModelAtlasCandidateComponentScores | null;
   confidence: ModelAtlasConfidence;
 };
+
+const MIN_SIBLING_COMPARISON_BENCHMARKS = 3;
+
+type QualityDimensionScoreKey = "intelligence_score" | "agentic_score";
+
+function dimensionScoreKey(dimension: BenchmarkDimension): QualityDimensionScoreKey {
+  return dimension === "intelligence" ? "intelligence_score" : "agentic_score";
+}
+
+function observedDimensionWeight(
+  model: ModelAtlasCandidate,
+  keys: readonly string[],
+  dimension: BenchmarkDimension,
+  scoringConfig: ScoringConfig,
+): number {
+  return keys.reduce(
+    (total, key) =>
+      total +
+      (benchmarkMetricValue(model, key) == null
+        ? 0
+        : benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio)),
+    0,
+  );
+}
+
+function siblingQualityGap(
+  target: ModelAtlasCandidate,
+  anchor: ModelAtlasCandidate,
+  keys: readonly string[],
+  dimension: BenchmarkDimension,
+  qualityContext: QualityScoringContext,
+  scoringConfig: ScoringConfig,
+): number | null {
+  const comparisons = keys.flatMap((key) => {
+    const targetValue = normalizedMetricValue(
+      qualityContext.benchmarkValuesByKey,
+      key,
+      benchmarkMetricValue(target, key),
+    );
+    const anchorValue = normalizedMetricValue(
+      qualityContext.benchmarkValuesByKey,
+      key,
+      benchmarkMetricValue(anchor, key),
+    );
+    const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
+    return targetValue == null || anchorValue == null || !(weight > 0)
+      ? []
+      : [{ value: targetValue - anchorValue, weight }];
+  });
+  return comparisons.length < MIN_SIBLING_COMPARISON_BENCHMARKS
+    ? null
+    : weightedMeanOfFinite(comparisons);
+}
+
+/** Calibrate sparse effort variants from their direct gap to the best-observed sibling without enforcing effort order. */
+export function calibrateSparseEffortQualityScores(
+  models: ModelAtlasCandidate[],
+  scoringConfig: ScoringConfig,
+  qualityContext: QualityScoringContext,
+): ModelAtlasCandidate[] {
+  const indexesByModel = new Map<string, number[]>();
+  for (const [index, model] of models.entries()) {
+    if (canonicalReasoningEffort(model.reasoning_effort) == null) {
+      continue;
+    }
+    const key = canonicalModelKey(model);
+    const indexes = indexesByModel.get(key) ?? [];
+    indexes.push(index);
+    indexesByModel.set(key, indexes);
+  }
+  const componentScores = models.map((model) =>
+    model.component_scores == null ? null : { ...model.component_scores },
+  );
+  for (const indexes of indexesByModel.values()) {
+    if (indexes.length < 2) {
+      continue;
+    }
+    for (const dimension of ["intelligence", "agentic"] as const) {
+      const keys =
+        dimension === "intelligence"
+          ? scoringConfig.intelligenceBenchmarkKeys
+          : scoringConfig.agenticBenchmarkKeys;
+      const fullEvidenceWeight = scoringConfig.qualityCoverage[dimension].full;
+      const observedWeightsByIndex = new Map(
+        indexes.map((index) => {
+          const model = models[index];
+          return [
+            index,
+            model == null ? 0 : observedDimensionWeight(model, keys, dimension, scoringConfig),
+          ];
+        }),
+      );
+      const anchorIndex = indexes.reduce((selectedIndex, index) => {
+        const selectedWeight = observedWeightsByIndex.get(selectedIndex) ?? 0;
+        const weight = observedWeightsByIndex.get(index) ?? 0;
+        return weight > selectedWeight ||
+          (weight === selectedWeight &&
+            reasoningEffortRank(models[index]?.reasoning_effort) >
+              reasoningEffortRank(models[selectedIndex]?.reasoning_effort))
+          ? index
+          : selectedIndex;
+      });
+      if ((observedWeightsByIndex.get(anchorIndex) ?? 0) < fullEvidenceWeight) {
+        continue;
+      }
+      const scoreKey = dimensionScoreKey(dimension);
+      const anchor = models[anchorIndex];
+      if (anchor == null) {
+        continue;
+      }
+      const anchorScore = componentScores[anchorIndex]?.[scoreKey] ?? null;
+      if (anchorScore == null) {
+        continue;
+      }
+      for (const index of indexes) {
+        if (
+          index === anchorIndex ||
+          (observedWeightsByIndex.get(index) ?? 0) >= fullEvidenceWeight
+        ) {
+          continue;
+        }
+        const target = models[index];
+        const scores = componentScores[index];
+        if (target == null || scores == null) {
+          continue;
+        }
+        const gap = siblingQualityGap(
+          target,
+          anchor,
+          keys,
+          dimension,
+          qualityContext,
+          scoringConfig,
+        );
+        if (gap != null) {
+          scores[scoreKey] = clamp(anchorScore + gap, 0, 100);
+        }
+      }
+    }
+  }
+  return models.map((model, index) => ({
+    ...model,
+    component_scores: componentScores[index] ?? null,
+  }));
+}
 
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
 export function observedBenchmarkCount(model: unknown, keys: readonly string[]): number {
@@ -75,10 +232,10 @@ function selectedBenchmarkScoreInputs(
   return inputs;
 }
 
-/** Score selected benchmarks while scaling confidence by observed and validated-imputed evidence. */
+/** Score selected benchmarks with a coverage multiplier while reporting literal evidence support. */
 function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
-  evidenceThresholds: Confidence[BenchmarkDimension],
+  evidenceThresholds: QualityCoverageThresholds[BenchmarkDimension],
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
     benchmarkScoreInputs.map(({ value, evidenceConfidence, weight }) => ({
@@ -87,20 +244,24 @@ function qualityScore(
     })),
   );
   if (qualityMean == null) {
-    return { score: null, confidence: null };
+    return { score: null, evidenceSupport: null };
   }
   const evidenceMass = benchmarkScoreInputs.reduce(
     (total, { evidenceConfidence, weight }) => total + evidenceConfidence * weight,
     0,
   );
-  const confidence = evidenceMassConfidence(
+  const coverageMultiplier = evidenceMassConfidence(
     evidenceMass,
     evidenceThresholds.floor,
     evidenceThresholds.full,
   );
+  const possibleEvidenceMass = benchmarkScoreInputs.reduce(
+    (total, { weight }) => total + weight,
+    0,
+  );
   return {
-    score: qualityMean * confidence,
-    confidence,
+    score: qualityMean * coverageMultiplier,
+    evidenceSupport: possibleEvidenceMass > 0 ? clamp01(evidenceMass / possibleEvidenceMass) : null,
   };
 }
 
@@ -205,9 +366,9 @@ export function buildComponentScoreResult(
   );
   const intelligence = qualityScore(
     intelligenceBenchmarkInputs,
-    scoringConfig.confidence.intelligence,
+    scoringConfig.qualityCoverage.intelligence,
   );
-  const agentic = qualityScore(agenticBenchmarkInputs, scoringConfig.confidence.agentic);
+  const agentic = qualityScore(agenticBenchmarkInputs, scoringConfig.qualityCoverage.agentic);
   const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
   const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);
   const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
@@ -235,8 +396,8 @@ export function buildComponentScoreResult(
             speed_score: speedScore,
           },
     confidence: {
-      intelligence: intelligence.confidence,
-      agentic: agentic.confidence,
+      intelligence: intelligence.evidenceSupport,
+      agentic: agentic.evidenceSupport,
       speed: null,
       value: null,
     },

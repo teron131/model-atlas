@@ -157,17 +157,17 @@ assert.equal(
   "server-readable dashboard markup should include model row ids",
 );
 assert.equal(
-  html.includes("Confidence") &&
-    html.includes("Intelligence confidence 83%") &&
-    html.includes("Agentic confidence 47%") &&
-    html.includes("Speed confidence 72%") &&
-    html.includes("Value confidence 61%"),
+  html.includes("Evidence") &&
+    html.includes("Intelligence evidence support 83%") &&
+    html.includes("Agentic evidence support 47%") &&
+    html.includes("Speed evidence support 72%") &&
+    html.includes("Value evidence support 61%"),
   true,
   "the final dashboard column should expose separate confidence percentages",
 );
 assert.equal(
   staleConfidenceHtml.includes(
-    'aria-label="Intelligence confidence -; Agentic confidence -; Speed confidence -; Value confidence -"',
+    'aria-label="Intelligence evidence support -; Agentic evidence support -; Speed evidence support -; Value evidence support -"',
   ) && staleConfidenceHtml.includes('class="data-cell confidence-cell missing"'),
   true,
   "stale dashboard rows without confidence should use the neutral missing representation",
@@ -267,15 +267,16 @@ const confidenceTooltipHtml = renderToStaticMarkup(
 );
 assert.equal(
   [
-    "Confidence",
-    "How much direct or validated evidence supports",
-    "Intelligence confidence",
-    "Agentic confidence",
-    "Speed confidence",
-    "Value confidence",
-    "0 through 10% of selected benchmark weight",
+    "Evidence support",
+    "weighted share of each score",
+    "Intelligence evidence support",
+    "Agentic evidence support",
+    "Speed evidence support",
+    "Value evidence support",
+    "literal weighted share of active inputs",
+    "zero through 10% of selected weight",
     "full from 60%",
-    "weighted share of active inputs with direct or validated evidence",
+    "source-default variant",
   ].every((text) => confidenceTooltipHtml.includes(text)),
   true,
   "confidence tooltip should explain both dimensions and the evidence scale",

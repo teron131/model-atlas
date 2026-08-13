@@ -18,16 +18,18 @@ The calculation proceeds in one direction:
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
-| Intelligence | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model on knowledge and reasoning? |
-| Agentic | Selected benchmark results | Importance, dimension loading, and evidence confidence | How strong is the model in tool-mediated workflows? |
-| Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and confidence-weighted evidence | How quickly does the model deliver comparable work? |
-| Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and confidence-weighted evidence | How much useful capability does the model deliver for its cost? |
+| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and score coverage | How strong is the model on knowledge and reasoning? |
+| Agentic | Selected benchmark results | Importance, dimension loading, evidence support, and score coverage | How strong is the model in tool-mediated workflows? |
+| Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and evidence-weighted aggregation | How quickly does the model deliver comparable work? |
+| Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and evidence-weighted aggregation | How much useful capability does the model deliver for its cost? |
 
-## Shared Scales and Confidence
+![Benchmark evidence produces capability scores, which condition resource comparisons that combine with price and runtime inputs to produce Speed and Value without feeding resources back into capability.](assets/methodology/pipeline-overview.svg)
+
+## Shared Scales and Evidence
 
 Quality aggregation uses the 0-100 scale. A source crosswalk may operate on a native or 0-1 scale when its formula states that scale explicitly. Resource comparisons use the logarithm of positive cost or time.
 
-The shared confidence curve uses smoothstep so evidence can gain influence gradually instead of crossing a hard cutoff. Clamping keeps the curve at $0$ below its floor and $1$ above its full-confidence point:
+The shared score coverage curve uses smoothstep so evidence can gain influence gradually instead of crossing a hard cutoff. Clamping keeps the multiplier at $0$ below its floor and $1$ above its full-coverage point:
 
 $$
 \operatorname{smoothstep}(t)=u^2(3-2u),
@@ -48,6 +50,8 @@ a_{m,v}=\frac{1}{n_m}
 $$
 
 so every represented model contributes one total unit of mass. The included-variant count is recomputed for each distribution because a variant can have one metric and lack another. These weights prevent reasoning-effort variants from manufacturing calibration support while preserving every scored configuration. They apply to percentile and quantile mappings, imputation validation errors, quality-local expectations, residual percentiles, and winsorized min-max anchors.
+
+![A model with one represented effort and a model with four represented efforts each contribute one total unit of calibration mass.](assets/methodology/model-balanced-weight.svg)
 
 ### Benchmark Scores and Dimension Weights
 
@@ -79,21 +83,21 @@ $$
 
 Replacement inference activates only when Artificial Analysis benchmark resources and Vals independently identify the same dated release suffix for an older source identity, and the matched catalog route realizes that release. Semantic model versions remain distinct identities and cannot replace one another through this rule. It then compares each observation with the prior published identity before scoring. An observation is retained when its value changed, its source explicitly identifies the new release, its source observation date is newer than the prior value and no earlier than the model release, or the replacement already accepted it on an earlier refresh. A missing prior value and source reputation alone do not prove freshness. These replacement rows use direct accepted evidence without contextual benchmark imputation, and retained Artificial Analysis and Vals observations receive twice their ordinary effective weight so the designated freshness authorities govern the transition. The rule continues on later refreshes, preventing ambiguous old-name evidence from being reattached after the replacement is published.
 
-### Evidence Confidence
+### Evidence Support and Score Coverage
 
-Evidence confidence uses the same dimension weights as the benchmark mean. The evidence credit $\eta_{m,b}$ distinguishes observations, validated source crosswalks, contextual imputations, and missing values, and it also scales each imputed value's contribution to the benchmark mean:
+Evidence support uses the same dimension weights as the benchmark mean. The evidence credit $\eta_{m,b}$ distinguishes observations, validated source crosswalks, contextual imputations, and missing values, and it also scales each imputed value's contribution to the benchmark mean:
 
 $$
 \eta_{m,b}=
 \begin{cases}
 1 & \text{observed}\\
 \eta^{\text{cross}}_{m,b} & \text{validated source crosswalk}\\
-\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1) & \text{validated contextual imputation}\\
+r_{m,b}\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1) & \text{validated contextual imputation}\\
 0 & \text{missing}.
 \end{cases}
 $$
 
-The normalized validation error $\tilde e_{m,b}$ comes from the contextual predictor used for that row; a combined sibling-effort prediction uses its cross-only error. Missing a low-weight benchmark therefore costs less confidence than missing a high-weight benchmark. Direct observations retain their full score weight, while an imputed value's score weight is multiplied by $\eta_{m,b}$.
+The normalized validation error $\tilde e_{m,b}$ comes from the contextual predictor used for that row. The row-specific context support $r_{m,b}$ is the weighted share of the predictor's other benchmark inputs that the model actually observes, combined through the target benchmark's dimension loadings when both dimensions predict. A globally reliable imputer therefore cannot turn three observations into a full portfolio of equally trusted estimates. Missing a low-weight benchmark costs less evidence support than missing a high-weight benchmark. Direct observations retain their full score weight, while an imputed value's score weight is multiplied by $\eta_{m,b}$.
 
 The available evidence mass $E_{m,d}$ and the portfolio's total possible mass $\Omega_d$ are
 
@@ -103,17 +107,23 @@ E_{m,d}=\sum_{b\in\mathcal{B}_d}\omega_{b,d}\eta_{m,b},
 \Omega_d=\sum_{b\in\mathcal{B}_d}\omega_{b,d}.
 $$
 
-The confidence $c_{m,d}$ is zero through 10% of possible evidence and reaches one at 60%:
+The public evidence support $h_{m,d}$ is the literal weighted evidence share:
+
+$$
+h_{m,d}=E_{m,d}/\Omega_d.
+$$
+
+The separate score coverage multiplier $c_{m,d}$ is zero through 10% of possible evidence and reaches one at 60%:
 
 $$
 c_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1\Omega_d}{0.5\Omega_d}\right).
 $$
 
-Because $\Omega_d$ comes from the selected portfolio, these thresholds update with the portfolio instead of becoming separate calibration literals. Once confidence reaches one, however, additional missing benchmarks incur no further coverage penalty. That ceiling avoids rewarding redundant evidence, but uneven effort coverage can then favor a sparse sibling whose observed subset and contextual estimates are easier than the additional direct benchmarks measured for a better-covered sibling.
+Because $\Omega_d$ comes from the selected portfolio, these thresholds update with the portfolio instead of becoming separate calibration literals. Once the score coverage multiplier reaches one, additional missing benchmarks incur no further score penalty, while the displayed evidence support continues to report the actual weighted share. This separates the ranking penalty from evidence disclosure and prevents 60% support from being presented as complete coverage.
 
-![Confidence is zero through a 10 percent evidence share, rises smoothly, and is full from 60 percent.](assets/methodology/confidence.svg)
+![The quality score coverage multiplier is zero through a 10 percent evidence share, rises smoothly, and is full from 60 percent.](assets/methodology/confidence.svg)
 
-The capability score $Q_{m,d}$ multiplies performance on available evidence by the confidence supporting it. This prevents a strong result on sparse evidence from looking equivalent to the same result backed by broad evidence:
+The provisional capability score $Q_{m,d}$ multiplies performance on available evidence by the score coverage multiplier. This prevents an isolated strong result from defining a standalone model score; a later sibling calibration can replace this provisional value only for a sparse effort variant backed by a broadly observed sibling and at least three directly shared benchmarks:
 
 $$
 Q_{m,d}=\bar z_{m,d}c_{m,d}.
@@ -126,15 +136,15 @@ A_m&=Q_{m,\text{Agentic}}.
 \end{aligned}
 $$
 
-Intelligence and Agentic confidence are reported separately as the percentage values of $c_{m,d}$. Each value describes the support behind its dimension's benchmark mean; the two dimensions are not combined into one confidence value. Because their total possible masses $\Omega_d$ can differ, the same displayed percentage can represent different absolute evidence mass. Confidence explains the public score rather than creating another estimate or ranking.
+Intelligence and Agentic evidence support are reported separately as the percentage values of $h_{m,d}$. Each value describes the weighted support behind its dimension's benchmark mean; the two dimensions are not combined. Because their total possible masses $\Omega_d$ can differ, the same displayed percentage can represent different absolute evidence mass. The public field remains named `confidence` for all four dimensions, but its value is the literal effective evidence share for consistent interpretation across Intelligence, Agentic, Speed, and Value.
 
 ## Missing Benchmark Evidence
 
-Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. The effort bound described below then constrains sibling estimates.
+Missing values have two validated estimation paths: a configured source crosswalk runs first, then the contextual quantile imputer runs when no crosswalk exists or its validation fails. Same-model effort evidence calibrates only the aggregate capability score and does not manufacture missing benchmark observations.
 
-### Imputation Boundaries
+### Imputation Invariants
 
-The effort bound balances that coverage-penalty asymmetry. Canonical storage keeps every result on its reported effort. Missing sibling estimates are clamped between observed effort results: higher efforts cannot fall below lower observations, and lower efforts cannot exceed higher observations. A sole observation can supply a scoring proxy when validation produces none, but it adds no evidence confidence. Expanded views remain exact-effort only.
+Canonical storage keeps every result on its reported effort, and direct observations are never replaced by estimates. A higher reasoning effort is not assumed to beat a lower effort on every task. Sparse effort calibration uses the measured direction of directly shared benchmarks and can place either effort higher. Expanded views remain exact-effort only.
 
 Imputation can estimate a missing score, but it cannot create new independent model evidence. Every model-benchmark pair receives at most one imputed value, only observations can predict another benchmark, and imputed values never satisfy public admission or appear as observed source results.
 
@@ -175,7 +185,7 @@ $$
 \eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{\epsilon_{\max}},0,1\right).
 $$
 
-$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary dimension evidence-mass confidence curve. Primary values are never replaced, fallback values do not change observed normalization anchors, and crosswalk-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, the benchmark falls through to contextual quantile imputation.
+$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary dimension score-coverage curve. Primary values are never replaced, fallback values do not change observed normalization anchors, and crosswalk-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, the benchmark falls through to contextual quantile imputation.
 
 ### Same-Dimension Quantile Imputation
 
@@ -215,22 +225,29 @@ $$
 
 Available loadings are renormalized when only one dimension can predict. Each imputer is validated by withholding every variant of one base model at a time. It is refused unless at least four effective held-out models produce valid predictions and the model-balanced normalized median absolute error is at most 25 points.
 
-### Sibling-Effort Context
+### Sparse Effort Calibration
 
-When a model has multiple reasoning efforts, a second candidate can use context from a sibling effort. The direct predictor still requires at least three other observed benchmarks at the target effort. Each directed sibling-effort predictor requires at least three observed benchmarks at the source effort and at least four effective reference models that pair the same target and source efforts.
+Benchmark-level imputation deliberately ignores sibling effort values. After provisional Intelligence and Agentic scores are assembled, each base model and dimension selects the effort variant with the greatest directly observed effective benchmark weight as its anchor; an equal-weight tie selects the higher effort. The anchor must itself reach the ordinary 60% full-evidence point.
 
-Every sibling benchmark is normalized on its own scale before aggregation. The sibling context follows the same percentile-to-target-quantile mapping as the direct predictor, so no raw difference is transferred between benchmarks. Each ordered effort transition is calibrated separately; either a higher or lower effort may provide evidence when that direction has enough support.
-
-The cross-effort estimate $\hat x^{\mathrm{cross}}_{m,b}$ is the dimension-loading-weighted mean of the available sibling predictions. When both direct and cross-effort estimates exist, the combined estimate gives each path one equal slot:
+For a sparse target effort $t$, anchor effort $a$, dimension $d$, and directly observed common benchmark set $C_{t,a,d}$, the family-relative gap is
 
 $$
-\hat x^{\mathrm{combined}}_{m,b}=
-\frac{\hat x^{\mathrm{direct}}_{m,b}+\hat x^{\mathrm{cross}}_{m,b}}{2}.
+\Delta_{t\leftarrow a,d}=
+\frac{\sum_{b\in C_{t,a,d}}\omega_{b,d}(z_{t,b}-z_{a,b})}
+{\sum_{b\in C_{t,a,d}}\omega_{b,d}}.
 $$
 
-Equal path weights prevent a model with more available sibling transitions from overwhelming its evidence at the target effort. The combined predictor is used only when leave-one-model-out validation reduces normalized median absolute error by at least 2%, or when it brings a refused direct predictor within the 25-point error limit.
+At least three positively weighted common benchmarks are required. The sparse variant's public capability score is then anchored to the broadly observed sibling:
 
-At least four independent held-out models must actually use the cross-effort path, and their cross-only normalized median absolute error must not exceed 25 points. Both the target-effort and sibling-effort contexts must pass their evidence thresholds for the individual missing value. Sparse sibling evidence falls back to the separately validated direct predictor; if that predictor is also unreliable, the value remains missing. Every variant of the held-out model is excluded from the mapping fitted for its validation prediction.
+$$
+Q^{\mathrm{sibling}}_{t,d}=\operatorname{clamp}(Q_{a,d}+\Delta_{t\leftarrow a,d},0,100).
+$$
+
+![A broadly observed sibling supplies the anchor score, and the measured shared-benchmark gap positions the sparse effort without increasing its evidence support.](assets/methodology/sparse-effort-calibration.svg)
+
+The diagram shows a negative shared-benchmark gap; a positive gap places the sparse target to the right of its anchor score instead.
+
+This rule transfers only the within-family relative position supported by common selected benchmarks. It does not fill benchmark fields, increase evidence support, satisfy admission, or assume that effort order is monotonic. A sparse variant can rank above its anchor when their shared direct results support a positive gap. A variant that already reaches the full-evidence point keeps its independently assembled score.
 
 ### Validated Imputed Point Estimate
 
@@ -242,7 +259,7 @@ $$
 
 ![A same-dimension context percentile mapped into the paired target distribution after held-out validation.](assets/methodology/quantile-imputation.svg)
 
-Held-out normalized error determines whether the predictor is accepted and how much score influence and evidence credit its estimate receives; it does not systematically lower the point estimate. A sparse sibling-effort context falls back to the separately validated one-dimensional value and confidence. Imputations remain ineligible for public admission regardless of that credit.
+Held-out normalized error determines whether the predictor is accepted and how much score influence its estimate receives; row-specific context support further reduces that influence when the prediction rests on sparse inputs. It does not systematically lower the point estimate. Imputations remain ineligible for public admission regardless of their evidence credit.
 
 ## Effective Pricing
 
@@ -272,7 +289,7 @@ S^{\text{e2e}}_m&=\operatorname{MinMax}_{\text{lower}}(\log \text{end-to-end lat
 \end{aligned}
 $$
 
-Higher throughput ranks higher, while lower latency and end-to-end latency rank higher. Logging makes proportional gaps comparable and prevents extreme raw values from defining most of the normalized range. Each available provider statistic contributes independently; a missing statistic reduces Speed confidence instead of redistributing its weight across the remaining inputs.
+Higher throughput ranks higher, while lower latency and end-to-end latency rank higher. Logging makes proportional gaps comparable and prevents extreme raw values from defining most of the normalized range. Each available provider statistic contributes independently; a missing statistic reduces Speed evidence support instead of redistributing its weight across the remaining inputs.
 
 ## Quality-Adjusted Task Resources
 
@@ -408,6 +425,8 @@ $$
 
 with each term clamped to $[0,1]$. The final directed ratio is the median of all paired $d^r_k$. If more than one sibling can supply a missing task, the nearest effort is preferred, then the better-validated ratio. Benchmark quality may itself be an existing validated imputation; its confidence $\eta^{\text{quality}}$ multiplies the resource confidence. Predicted costs, runtimes, and benchmark quality can receive a score, but they never enter the quality neighborhood, expected-resource peers, residual range, percentile anchors, persistence tables, or public admission evidence.
 
+![At least three paired tasks fit a directed resource ratio, leave-one-task-out validation checks two error limits, and only an accepted ratio estimates a missing task resource with reduced confidence.](assets/methodology/sibling-resource-imputation.svg)
+
 ## Final Speed and Value
 
 Provider throughput, latency, and end-to-end latency use $\log x$ as their inputs to ordinary min-max normalization. Value's absolute price component uses $\log_{10}(1+\text{blended price})$ with model-balanced 2.5% favorable-tail winsorized min-max. Its quality-adjusted log blended price component subtracts the locally expected log blended price at the model's aggregate quality, then uses the residual percentile/min-max mean above.
@@ -418,7 +437,7 @@ $$
 q_m^{\text{aggregate}}=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
 $$
 
-This composite is not a success probability, so it is not transformed into log odds. The public scores already include their dimension-specific evidence confidence; aggregate neighborhoods do not reconstruct an undisclosed pre-confidence estimate or apply a second confidence weight to peers. Benchmark task-time and task-cost components remain separate: each uses its own observed benchmark quality and the benchmark-specific linear or logit coordinate declared in the portfolio.
+This composite is not a success probability, so it is not transformed into log odds. The public scores already include their dimension-specific score coverage multiplier; aggregate neighborhoods do not reconstruct an undisclosed pre-coverage estimate or apply a second coverage weight to peers. Benchmark task-time and task-cost components remain separate: each uses its own observed benchmark quality and the benchmark-specific linear or logit coordinate declared in the portfolio.
 
 The higher-is-better score $S_{\uparrow}(x)$ maps the completed signal $g(x)$ between its finite minimum $y_{\min}$ and maximum $y_{\max}$. Raw provider inputs use $g(x)=\log x$:
 
@@ -452,7 +471,7 @@ $$
 
 An unlabelled configuration is the model default; when every configuration is labelled, the highest reported effort is the default. Coverage is zero through 10% of active evidence and reaches a multiplier of $1$ at 60%. Every effort variant of the model receives the same multiplier $C_q^p$, so non-default variants cannot create or remove model coverage.
 
-The component score $s_{m,i}$ contributes to Speed and $v_{m,i}$ contributes to Value. Their evidence-weighted means produce the final scores, while the corresponding confidence remains the literal effective share of active slots:
+The component score $s_{m,i}$ contributes to Speed and $v_{m,i}$ contributes to Value. Their evidence-weighted means produce the final scores, while the corresponding evidence support remains the literal effective share of active slots:
 
 $$
 \begin{aligned}
@@ -463,15 +482,15 @@ $$
 \end{aligned}
 $$
 
-![Component scores and evidence weights form an effort-specific weighted mean and confidence, while source-default evidence independently supplies the model coverage multiplier applied to the public Speed or Value score.](assets/methodology/final-score-assembly.svg)
+![Component scores and evidence weights form an effort-specific weighted mean and evidence support, while source-default evidence independently supplies the model coverage multiplier applied to the public Speed or Value score.](assets/methodology/final-score-assembly.svg)
 
-Speed components cover provider throughput, latency, end-to-end latency, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, and active task-cost scores. The shared model multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the model coverage authority. Individual effort confidence remains separate and reports that effort's own effective evidence share.
+Speed components cover provider throughput, latency, end-to-end latency, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, and active task-cost scores. The shared model multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the model coverage authority. Individual effort evidence support remains separate and reports that effort's own effective evidence share.
 
 Keeping absolute and quality-conditioned price separate answers two different questions: what the model costs and whether that cost is efficient for the quality delivered.
 
 ## Public Admission
 
-Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must have at least eight observed selected benchmarks, including at least one Intelligence benchmark, one Agentic benchmark, and one portfolio-designated aggregate index.
+Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must have at least seven observed selected benchmarks, including at least one Intelligence benchmark, one Agentic benchmark, and one portfolio-designated aggregate index.
 
 Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in Intelligence, Agentic, Speed, or Value. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
 
@@ -481,11 +500,11 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Evidence confidence floor / full point | 10% / 60% of effective dimension weight | Suppresses scores built from isolated evidence while deriving absolute unit thresholds from the selected portfolio. |
+| Score coverage floor / full point | 10% / 60% of effective dimension weight | Suppresses scores built from isolated evidence while reporting the unsaturated evidence share separately. |
 | Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |
-| Cross-effort improvement | 2% | Requires a measurable validation gain before adding sibling-effort complexity. |
+| Sparse-effort common benchmarks | 3 | Requires a family-relative score calibration to rest on several directly shared selected benchmarks. |
 | Sibling-resource paired tasks | 3 | Prevents one or two task-resource ratios from defining an effort conversion. |
 | Sibling-resource log-error ceiling | $\log 2$ | Refuses a cost or runtime ratio when its typical held-out multiplicative error reaches a factor of two. |
 | Sibling-resource score-error ceiling | 25 points | Refuses a ratio whose typical downstream Speed or Value component error is too large. |

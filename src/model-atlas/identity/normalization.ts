@@ -147,6 +147,10 @@ export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
   const reasoningEffort =
     labels
       .flatMap(({ efforts }) => efforts)
+      .filter(
+        (effort, _index, efforts) =>
+          effort !== "adaptive" || !efforts.some((candidate) => candidate !== "adaptive"),
+      )
       .sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0] ?? null;
   if (reasoningEffort == null) {
     return { baseModel: value, reasoningEffort: null };

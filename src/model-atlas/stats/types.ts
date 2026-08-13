@@ -2,7 +2,7 @@
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
-import type { Confidence } from "../config/stage";
+import type { QualityCoverageThresholds } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type { ModelAtlasSourceHealth } from "../ingest/types";
 import type { ModelAtlasModel as PipelineModel } from "../pipeline/model-types";
@@ -76,7 +76,7 @@ export type ModelAtlasMetadata = {
     missing_agentic_benchmark_keys: string[];
     selected_benchmark_keys: string[];
     benchmark_portfolio: BenchmarkPortfolio;
-    confidence: Confidence;
+    quality_coverage: QualityCoverageThresholds;
     column_tooltips: ModelAtlasColumnTooltips;
     snapshot_preservation_version: number;
   };

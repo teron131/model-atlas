@@ -119,7 +119,6 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
     options.benchmarkVersioning,
     options.benchmarkVersioning?.previousModels,
-    observations,
   );
   return {
     matchDiagnostics,

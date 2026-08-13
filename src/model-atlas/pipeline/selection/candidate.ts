@@ -511,14 +511,16 @@ export function buildModelCandidate(
   const cost = buildCost(model, pricing);
   const scoringSources = buildScoringSources(model);
   const qualityValues = buildPersistedQualityValues(model);
+  const imputedValues = benchmarkImputationValues(scoringPreparation, model);
+  const imputedConfidence = benchmarkImputationConfidence(scoringPreparation, model);
   const { componentScores, confidence } = buildComponentScoreResult(
     model,
     speed,
     outputTokenAnchors,
     scoringConfig,
     scoringPreparation.qualityContext,
-    benchmarkImputationValues(scoringPreparation, model),
-    benchmarkImputationConfidence(scoringPreparation, model),
+    imputedValues,
+    imputedConfidence,
     benchmarkWeightMultipliersByKey,
   );
   return {

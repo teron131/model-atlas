@@ -45,6 +45,7 @@ import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
+import { calibrateSparseEffortQualityScores } from "../src/model-atlas/pipeline/scores/score-builders";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
 
@@ -204,10 +205,10 @@ const intelligenceWeight = selectedDimensionWeight(
   "intelligence",
 );
 const agenticWeight = selectedDimensionWeight(STAGE_CONFIG.scoring.agenticBenchmarkKeys, "agentic");
-assertClose(STAGE_CONFIG.scoring.confidence.intelligence.floor, intelligenceWeight * 0.1);
-assertClose(STAGE_CONFIG.scoring.confidence.intelligence.full, intelligenceWeight * 0.6);
-assertClose(STAGE_CONFIG.scoring.confidence.agentic.floor, agenticWeight * 0.1);
-assertClose(STAGE_CONFIG.scoring.confidence.agentic.full, agenticWeight * 0.6);
+assertClose(STAGE_CONFIG.scoring.qualityCoverage.intelligence.floor, intelligenceWeight * 0.1);
+assertClose(STAGE_CONFIG.scoring.qualityCoverage.intelligence.full, intelligenceWeight * 0.6);
+assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.floor, agenticWeight * 0.1);
+assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.full, agenticWeight * 0.6);
 const resourceQualityCoordinates = Object.fromEntries(
   Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio).flatMap(
     ([key, policy]) =>
@@ -394,7 +395,10 @@ const aaOnlyResourceMetadata = buildCurrentModelAtlasMetadata({
 });
 const aaOnlyTimeTooltip = JSON.stringify(aaOnlyResourceMetadata.scoring.column_tooltips.speed);
 const aaOnlyValueTooltip = JSON.stringify(aaOnlyResourceMetadata.scoring.column_tooltips.value);
-assert.deepEqual(aaOnlyResourceMetadata.scoring.confidence, STAGE_CONFIG.scoring.confidence);
+assert.deepEqual(
+  aaOnlyResourceMetadata.scoring.quality_coverage,
+  STAGE_CONFIG.scoring.qualityCoverage,
+);
 assertEqual(aaOnlyTimeTooltip.includes("33.3% each"), false);
 assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark runtime"), false);
 assertEqual(aaOnlyValueTooltip.includes("25.0% each"), false);
@@ -679,7 +683,7 @@ const fractionalBenchmarkConfig = {
   ...STAGE_CONFIG.scoring,
   intelligenceBenchmarkKeys: ["omniscience_accuracy", "hle"],
   agenticBenchmarkKeys: [],
-  confidence: {
+  qualityCoverage: {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
   },
@@ -810,7 +814,7 @@ assertClose(fractionalEvidenceComponentScores?.intelligence_score, 10.4);
 
 const imputationConfidenceConfig = {
   ...importanceWeightedConfig,
-  confidence: {
+  qualityCoverage: {
     intelligence: { floor: 0, full: 0.1 },
     agentic: { floor: 0, full: 0.1 },
   },
@@ -829,7 +833,7 @@ const imputationConfidenceResult = buildComponentScoreResult(
   new Map([["hle", 0.2]]),
 );
 assertClose(imputationConfidenceResult.componentScores?.intelligence_score, 62.5);
-assertClose(imputationConfidenceResult.confidence.intelligence, 1);
+assertClose(imputationConfidenceResult.confidence.intelligence, 0.4);
 
 const sparseBenchmarkKeys = Array.from({ length: 12 }, (_, index) => `quality_${index}`);
 const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
@@ -853,7 +857,7 @@ const sparseEvidenceConfig = {
   ...STAGE_CONFIG.scoring,
   intelligenceBenchmarkKeys: sparseBenchmarkKeys,
   agenticBenchmarkKeys: [],
-  confidence: {
+  qualityCoverage: {
     intelligence: { floor: 0, full: 2 },
     agentic: { floor: 0, full: 1 },
   },
@@ -886,7 +890,7 @@ const sparseEvidenceResult = buildComponentScoreResult(
 );
 const sparseEvidenceComponentScores = sparseEvidenceResult.componentScores;
 assertClose(sparseEvidenceComponentScores?.intelligence_score, 50);
-assertClose(sparseEvidenceResult.confidence.intelligence, 0.5);
+assertClose(sparseEvidenceResult.confidence.intelligence, 1 / 12);
 
 const directResourceScoredModels = attachFinalScores(
   [
@@ -1653,7 +1657,7 @@ assertClose(nonRecursiveImputations?.get("bridge"), 50);
 assertClose(nonRecursiveImputations?.get("bridge2"), 50);
 assertEqual(nonRecursiveImputations?.has("target"), false);
 
-const crossEffortConfig = {
+const contextualImputationConfig = {
   ...STAGE_CONFIG.scoring,
   intelligenceBenchmarkKeys: ["target", "c1", "c2", "c3"],
   agenticBenchmarkKeys: [],
@@ -1690,195 +1694,71 @@ const singleEffortModel = [
     benchmarks: {},
   },
 ];
-const singleEffortPreparation = prepareBenchmarkScoring(singleEffortModel, crossEffortConfig);
-assertEqual(
-  singleEffortPreparation.imputationByModel.get(singleEffortModel[0] ?? {})?.get("target"),
-  30,
+const singleEffortPreparation = prepareBenchmarkScoring(
+  singleEffortModel,
+  contextualImputationConfig,
 );
 assertEqual(
-  singleEffortPreparation.imputationByModel.get(singleEffortModel[3] ?? {})?.get("target"),
-  30,
+  singleEffortPreparation.imputationByModel.get(singleEffortModel[0] ?? {})?.has("target") ?? false,
+  false,
+);
+assertEqual(
+  singleEffortPreparation.imputationByModel.get(singleEffortModel[3] ?? {})?.has("target") ?? false,
+  false,
 );
 assertEqual("target" in (singleEffortModel[3]?.benchmarks ?? {}), false);
 const multipleEffortModel = singleEffortModel.map((model, index) =>
   index === 2 ? { ...model, benchmarks: { target: 29 } } : model,
 );
 assertEqual(
-  prepareBenchmarkScoring(multipleEffortModel, crossEffortConfig)
+  prepareBenchmarkScoring(multipleEffortModel, contextualImputationConfig)
     .imputationByModel.get(multipleEffortModel[3] ?? {})
     ?.has("target") ?? false,
   false,
 );
-const boundedMultipleEffortTarget = {
-  id: "test/bounded-effort",
-  name: "Bounded Effort",
+const contextualMultipleEffortTarget = {
+  id: "test/contextual-effort",
+  name: "Contextual Effort",
   reasoning_effort: "xhigh",
   benchmarks: { c1: 120, c2: 120, c3: 120 },
 };
-const boundedMultipleEffortModels = [
-  ...crossEffortImputationModels(7),
+const contextualMultipleEffortModels = [
+  ...contextualImputationModels(7),
   {
-    id: "test/bounded-effort",
-    name: "Bounded Effort",
+    id: "test/contextual-effort",
+    name: "Contextual Effort",
     reasoning_effort: "low",
     benchmarks: { target: 10, c1: 10, c2: 10, c3: 10 },
   },
-  boundedMultipleEffortTarget,
+  contextualMultipleEffortTarget,
   {
-    id: "test/bounded-effort",
-    name: "Bounded Effort",
+    id: "test/contextual-effort",
+    name: "Contextual Effort",
     reasoning_effort: "max",
     benchmarks: { target: 30, c1: 30, c2: 30, c3: 30 },
   },
 ];
 assertClose(
-  buildBenchmarkImputationByModel(boundedMultipleEffortModels, crossEffortConfig)
-    .get(boundedMultipleEffortTarget)
-    ?.get("target"),
-  30,
-);
-const crossEffortModels = crossEffortImputationModels(7);
-const crossEffortTarget = crossEffortModels.at(-1);
-if (crossEffortTarget == null) {
-  throw new Error("Expected a cross-effort imputation target");
-}
-const crossEffortValue = buildBenchmarkImputationByModel(crossEffortModels, crossEffortConfig)
-  .get(crossEffortTarget)
-  ?.get("target");
-assertClose(crossEffortValue, 25);
-const crossEffortConfidence = prepareBenchmarkScoring(crossEffortModels, crossEffortConfig)
-  .imputationConfidenceByModel.get(crossEffortTarget)
-  ?.get("target");
-if (!(crossEffortConfidence != null && crossEffortConfidence > 0)) {
-  throw new Error("Expected validated cross-effort evidence credit");
-}
-const crossEffortDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
-  crossEffortModels,
-  crossEffortConfig,
-).get("target");
-assertEqual(crossEffortDiagnostic?.includesCrossEffort, true);
-if (!((crossEffortDiagnostic?.crossEffortEffectiveModelCount ?? 0) >= 4)) {
-  throw new Error("Expected independent cross-effort validation coverage");
-}
-
-const reverseCrossEffortModels = reverseCrossEffortImputationModels(7);
-const reverseCrossEffortTarget = reverseCrossEffortModels.at(-2);
-if (reverseCrossEffortTarget == null) {
-  throw new Error("Expected a reverse cross-effort imputation target");
-}
-const reverseCrossEffortValue = buildBenchmarkImputationByModel(
-  reverseCrossEffortModels,
-  crossEffortConfig,
-)
-  .get(reverseCrossEffortTarget)
-  ?.get("target");
-if (!(reverseCrossEffortValue != null && reverseCrossEffortValue >= 60)) {
-  throw new Error("Expected lower-effort evidence to bound the maximum-effort estimate");
-}
-const reverseCrossEffortConfidence = prepareBenchmarkScoring(
-  reverseCrossEffortModels,
-  crossEffortConfig,
-)
-  .imputationConfidenceByModel.get(reverseCrossEffortTarget)
-  ?.get("target");
-if (!(reverseCrossEffortConfidence != null && reverseCrossEffortConfidence < 1)) {
-  throw new Error("Expected the bounded estimate to preserve imputation confidence");
-}
-const sourceOnlyReverseEffortModels = reverseCrossEffortImputationModels(7).map(
-  (model, index, models) => {
-    if (index === models.length - 1) {
-      const { target: _target, ...benchmarks } = model.benchmarks;
-      return { ...model, benchmarks };
-    }
-    return model;
-  },
-);
-const sourceOnlyReverseTarget = sourceOnlyReverseEffortModels.at(-2);
-const sourceOnlyReverseValue = buildBenchmarkImputationByModel(
-  sourceOnlyReverseEffortModels,
-  crossEffortConfig,
-  {
-    target: [
-      {
-        model_id: "test/reverse-cross-effort-6",
-        model: "Reverse cross-effort Model 6",
-        base_model: "Reverse cross-effort Model 6",
-        canonical_value: 60,
-        reasoning_effort: "high",
-        observed_at: "2026-08-07",
-      },
-    ],
-  },
-)
-  .get(sourceOnlyReverseTarget ?? {})
-  ?.get("target");
-if (!(sourceOnlyReverseValue != null && sourceOnlyReverseValue >= 60)) {
-  throw new Error("Expected source-only effort evidence to bound a higher-effort estimate");
-}
-assertEqual("target" in (sourceOnlyReverseTarget?.benchmarks ?? {}), false);
-
-const unlinkedEffortModels = crossEffortModels.map((model) => ({
-  ...model,
-  name: `${model.name} ${model.reasoning_effort}`,
-}));
-assertClose(
-  buildBenchmarkImputationByModel(unlinkedEffortModels, crossEffortConfig)
-    .get(unlinkedEffortModels.at(-1) ?? {})
-    ?.get("target"),
-  0,
-);
-assertEqual(
-  prepareBenchmarkScoring(unlinkedEffortModels, crossEffortConfig)
-    .imputationConfidenceByModel.get(unlinkedEffortModels.at(-1) ?? {})
-    ?.has("target") ?? false,
-  true,
-);
-
-const sparseTransitionModels = crossEffortImputationModels(4);
-assertClose(
-  buildBenchmarkImputationByModel(sparseTransitionModels, crossEffortConfig)
-    .get(sparseTransitionModels.at(-1) ?? {})
-    ?.get("target"),
-  0,
-);
-assertEqual(
-  buildBenchmarkImputationDiagnosticsByKey(sparseTransitionModels, crossEffortConfig).get("target")
-    ?.includesCrossEffort,
-  false,
-);
-
-const sparseBenchmarkContextModels = crossEffortModels.map((model, index) =>
-  index === crossEffortModels.length - 1 ? { ...model, benchmarks: { c1: 0 } } : model,
-);
-assertClose(
-  buildBenchmarkImputationByModel(sparseBenchmarkContextModels, crossEffortConfig)
-    .get(sparseBenchmarkContextModels.at(-1) ?? {})
+  buildBenchmarkImputationByModel(contextualMultipleEffortModels, contextualImputationConfig)
+    .get(contextualMultipleEffortTarget)
     ?.get("target"),
   120,
 );
+const contextualModelPopulation = contextualImputationModels(7);
+const sparseBenchmarkContextModels = contextualModelPopulation.map((model, index) =>
+  index === contextualModelPopulation.length - 1 ? { ...model, benchmarks: { c1: 0 } } : model,
+);
 assertEqual(
-  prepareBenchmarkScoring(sparseBenchmarkContextModels, crossEffortConfig)
-    .imputationConfidenceByModel.get(sparseBenchmarkContextModels.at(-1) ?? {})
+  buildBenchmarkImputationByModel(sparseBenchmarkContextModels, contextualImputationConfig)
+    .get(sparseBenchmarkContextModels.at(-1) ?? {})
     ?.has("target") ?? false,
   false,
 );
-
-const sparseSiblingContextModels = crossEffortModels.map((model, index) =>
-  index === crossEffortModels.length - 2
-    ? {
-        ...model,
-        benchmarks: {
-          target: model.benchmarks.target,
-          c1: model.benchmarks.c1,
-        },
-      }
-    : model,
-);
-assertClose(
-  buildBenchmarkImputationByModel(sparseSiblingContextModels, crossEffortConfig)
-    .get(sparseSiblingContextModels.at(-1) ?? {})
-    ?.get("target"),
-  0,
+assertEqual(
+  prepareBenchmarkScoring(sparseBenchmarkContextModels, contextualImputationConfig)
+    .imputationConfidenceByModel.get(sparseBenchmarkContextModels.at(-1) ?? {})
+    ?.has("target") ?? false,
+  false,
 );
 
 const imputationEvidenceModels = [
@@ -1893,7 +1773,7 @@ const imputationEvidenceModels = [
 ];
 const imputationEvidenceContext = buildQualityScoringContext(
   imputationEvidenceModels,
-  crossEffortConfig,
+  contextualImputationConfig,
 );
 const imputationEvidenceTarget = {
   id: "imputation-evidence-target",
@@ -1905,8 +1785,8 @@ const imputedHighValues = new Map([
   ["c3", 100],
 ]);
 const imputationEvidenceConfig = {
-  ...crossEffortConfig,
-  confidence: {
+  ...contextualImputationConfig,
+  qualityCoverage: {
     intelligence: { floor: 0, full: 2.5 },
     agentic: { floor: 0, full: 1 },
   },
@@ -2027,6 +1907,68 @@ function modelCandidate(options: {
   };
 }
 
+const siblingCalibrationConfig = {
+  ...STAGE_CONFIG.scoring,
+  intelligenceBenchmarkKeys: ["b1", "b2", "b3", "b4"],
+  agenticBenchmarkKeys: [],
+  benchmarkPortfolio: {
+    b1: intelligenceBenchmarkEntry(),
+    b2: intelligenceBenchmarkEntry(),
+    b3: intelligenceBenchmarkEntry(),
+    b4: intelligenceBenchmarkEntry(),
+  },
+  qualityCoverage: {
+    intelligence: { floor: 0.5, full: 3.5 },
+    agentic: { floor: 0, full: 1 },
+  },
+} as const;
+const siblingCalibrationModels = [
+  {
+    ...modelCandidate({ id: "test/sibling-calibration", intelligenceScore: 80 }),
+    reasoning_effort: "max",
+    benchmarks: { b1: 50, b2: 50, b3: 50, b4: 50 },
+  },
+  {
+    ...modelCandidate({ id: "test/sibling-calibration", intelligenceScore: 99 }),
+    reasoning_effort: "xhigh",
+    benchmarks: { b1: 40, b2: 40, b3: 40 },
+    confidence: { intelligence: 0.75, agentic: 1, speed: null, value: null },
+  },
+  {
+    ...modelCandidate({ id: "test/sibling-calibration", intelligenceScore: 1 }),
+    reasoning_effort: "high",
+    benchmarks: { b1: 60, b2: 60, b3: 60 },
+    confidence: { intelligence: 0.5, agentic: 1, speed: null, value: null },
+  },
+  {
+    ...modelCandidate({ id: "test/sibling-calibration-min", intelligenceScore: 0 }),
+    benchmarks: { b1: 0, b2: 0, b3: 0, b4: 0 },
+  },
+  {
+    ...modelCandidate({ id: "test/sibling-calibration-max", intelligenceScore: 100 }),
+    benchmarks: { b1: 100, b2: 100, b3: 100, b4: 100 },
+  },
+];
+const calibratedSiblingModels = calibrateSparseEffortQualityScores(
+  siblingCalibrationModels,
+  siblingCalibrationConfig,
+  buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
+);
+assertClose(calibratedSiblingModels[0]?.component_scores?.intelligence_score, 80);
+assertClose(calibratedSiblingModels[1]?.component_scores?.intelligence_score, 70);
+assertClose(calibratedSiblingModels[2]?.component_scores?.intelligence_score, 90);
+assertClose(calibratedSiblingModels[1]?.confidence.intelligence, 0.75);
+assertClose(calibratedSiblingModels[2]?.confidence.intelligence, 0.5);
+
+const insufficientSiblingOverlap = calibrateSparseEffortQualityScores(
+  siblingCalibrationModels.map((model, index) =>
+    index === 1 ? { ...model, benchmarks: { b1: 40, b2: 40 } } : model,
+  ),
+  siblingCalibrationConfig,
+  buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
+);
+assertClose(insufficientSiblingOverlap[1]?.component_scores?.intelligence_score, 99);
+
 function resourceModel(
   modelKey: string,
   resourceScale: number,
@@ -2087,12 +2029,12 @@ function dualContextImputationModel(
   };
 }
 
-function crossEffortImputationModels(modelCount: number) {
+function contextualImputationModels(modelCount: number) {
   return Array.from({ length: modelCount }, (_, index) => {
-    const name = `Cross-effort Model ${index}`;
+    const name = `Contextual Model ${index}`;
     return [
       {
-        id: `test/cross-effort-${index}`,
+        id: `test/contextual-${index}`,
         name,
         reasoning_effort: "max",
         benchmarks: {
@@ -2103,7 +2045,7 @@ function crossEffortImputationModels(modelCount: number) {
         },
       },
       {
-        id: `test/cross-effort-${index}`,
+        id: `test/contextual-${index}`,
         name,
         reasoning_effort: "low",
         benchmarks: {
@@ -2111,36 +2053,6 @@ function crossEffortImputationModels(modelCount: number) {
           c1: 0,
           c2: 0,
           c3: 0,
-        },
-      },
-    ];
-  }).flat();
-}
-
-function reverseCrossEffortImputationModels(modelCount: number) {
-  return Array.from({ length: modelCount }, (_, index) => {
-    const name = `Reverse cross-effort Model ${index}`;
-    return [
-      {
-        id: `test/reverse-cross-effort-${index}`,
-        name,
-        reasoning_effort: "max",
-        benchmarks: {
-          ...(index === modelCount - 1 ? {} : { target: index * 20 }),
-          c1: 0,
-          c2: 0,
-          c3: 0,
-        },
-      },
-      {
-        id: `test/reverse-cross-effort-${index}`,
-        name,
-        reasoning_effort: "low",
-        benchmarks: {
-          target: index * 10,
-          c1: index * 10,
-          c2: index * 10,
-          c3: index * 10,
         },
       },
     ];
