@@ -39,6 +39,13 @@ import {
 } from "./shared/model-display";
 import { ModelToolbar } from "./shared/ModelToolbar";
 import {
+  tableColumnKeysForView,
+  type TableColumnPreset,
+  tableColumnSearchMatchCount,
+  tableColumnSortKey,
+} from "./table/column-views";
+import { ColumnViewControls } from "./table/ColumnViewControls";
+import {
   dashboardMetricColumns,
   dedupeDisplayModels,
   sortedRows,
@@ -186,6 +193,8 @@ function DashboardLeaderboard({
     direction: "descending",
   });
   const [filterQuery, setFilterQuery] = useState("");
+  const [columnFilterQuery, setColumnFilterQuery] = useState("");
+  const [columnPreset, setColumnPreset] = useState<TableColumnPreset>("all");
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
   const [showVariants, setShowVariants] = useState(false);
   const deferredFilterQuery = useDeferredValue(filterQuery);
@@ -267,6 +276,14 @@ function DashboardLeaderboard({
     [limitedRows, sortState],
   );
   const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
+  const visibleColumnKeys = useMemo(
+    () => tableColumnKeysForView(columnPreset, columnFilterQuery, columnTooltips),
+    [columnFilterQuery, columnPreset, columnTooltips],
+  );
+  const columnSearchMatchCount = useMemo(
+    () => tableColumnSearchMatchCount(columnFilterQuery, columnTooltips),
+    [columnFilterQuery, columnTooltips],
+  );
   const activeTooltipContent =
     tooltip == null ? undefined : tableColumnTooltip(tooltip.key, columnTooltips);
   const rowKind = deferredShowVariants ? "variants" : "models";
@@ -276,6 +293,16 @@ function DashboardLeaderboard({
   useEffect(() => {
     setLimit(requestedGlobalLimit);
   }, [requestedGlobalLimit, setLimit]);
+
+  useEffect(() => {
+    setSortState((current) => {
+      if (visibleColumnKeys.includes(current.key)) {
+        return current;
+      }
+      const key = tableColumnSortKey(columnPreset, columnFilterQuery, visibleColumnKeys);
+      return { key, direction: sorters[key].direction };
+    });
+  }, [columnFilterQuery, columnPreset, visibleColumnKeys]);
 
   const handleSort = useCallback((key: SortKey) => {
     const defaultDirection = sorters[key].direction;
@@ -302,6 +329,11 @@ function DashboardLeaderboard({
     },
     [effectiveLimit, expandedVariantCount, setLimit],
   );
+
+  const handleColumnPresetChange = useCallback((preset: TableColumnPreset) => {
+    setColumnPreset(preset);
+    setColumnFilterQuery("");
+  }, []);
 
   const clearTooltipFadeTimeout = useCallback(() => {
     if (tooltipFadeTimeoutRef.current != null) {
@@ -380,8 +412,17 @@ function DashboardLeaderboard({
         }
         onFilterQueryChange={setFilterQuery}
       />
+      <ColumnViewControls
+        preset={columnPreset}
+        query={columnFilterQuery}
+        searchMatchCount={columnSearchMatchCount}
+        onPresetChange={handleColumnPresetChange}
+        onQueryChange={setColumnFilterQuery}
+      />
       <ModelTable
         sortState={sortState}
+        fitColumnContent={columnFilterQuery.trim().length > 0}
+        visibleColumnKeys={visibleColumnKeys}
         visibleRows={visibleRows}
         emptyMessage={emptyMessage}
         isLoading={isLoading}

@@ -9,16 +9,19 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import { benchmarkLabels, benchmarkTooltips } from "../app/dashboard/shared/constants";
 import { formatBenchmarkMetric } from "../app/dashboard/shared/format";
+import { ALL_TABLE_COLUMN_KEYS } from "../app/dashboard/table/column-views";
 import {
   benchmarkMetricColumns,
   dashboardMetricColumns,
   type TableColumnKey,
+  tableColumnRuleKeys,
   type TableRow,
 } from "../app/dashboard/table/models";
 import { tableColumnTooltip } from "../app/dashboard/table/tooltips";
 import {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_PORTFOLIO,
+  INDEX_BENCHMARK_KEYS,
   INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 } from "../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/config";
@@ -141,21 +144,7 @@ const displayedBenchmarkKeys = new Set([
   ...INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
   ...AGENTIC_BENCHMARK_DISPLAY_KEYS,
 ]);
-const tableColumnKeys: TableColumnKey[] = [
-  "rank",
-  "model",
-  "intelligence",
-  "agentic",
-  "speed",
-  "value",
-  "blend",
-  "throughput",
-  "latency",
-  "e2eLatency",
-  "context",
-  ...dashboardMetricColumns.map((column) => column.key),
-  "confidence",
-];
+const tableColumnKeys: TableColumnKey[] = [...ALL_TABLE_COLUMN_KEYS];
 
 assert.equal(
   html.includes("Loading stats"),
@@ -192,6 +181,17 @@ assert.equal(
   html.includes("Variants") && html.includes("Collapsed") && html.includes("Expanded"),
   true,
   "the global view panel should expose both reasoning variant display modes",
+);
+assert.equal(
+  html.includes('aria-label="Search table columns"') &&
+    html.includes('placeholder="Search columns or benchmarks"') &&
+    html.includes('aria-label="Column presets"') &&
+    html.includes("Scores") &&
+    html.includes("Cost") &&
+    html.includes("Time") &&
+    html.includes("All"),
+  true,
+  "the leaderboard should expose full-catalog column search and fixed presets",
 );
 assert.equal(
   html.includes('aria-label="Global model filter"') && html.includes('placeholder="Filter models"'),
@@ -287,18 +287,33 @@ assert.deepEqual(
   [],
   "every displayed benchmark should have a leaderboard table column",
 );
+const indexBenchmarkKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
+const benchmarkDisplayGroups = benchmarkMetricColumns.map((column) =>
+  BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier"
+    ? 0
+    : indexBenchmarkKeys.has(column.benchmark)
+      ? 1
+      : 2,
+);
 assert.deepEqual(
-  benchmarkMetricColumns.map((column) =>
-    BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1,
-  ),
+  benchmarkDisplayGroups,
+  [...benchmarkDisplayGroups].sort(),
+  "table benchmark columns should place frontier benchmarks before indexes and remaining baselines",
+);
+assert.deepEqual(
   benchmarkMetricColumns
-    .map((column) => (BENCHMARK_PORTFOLIO[column.benchmark].group === "frontier" ? 0 : 1))
-    .sort(),
-  "table benchmark columns should place frontier benchmarks before baseline benchmarks",
+    .filter((column) => indexBenchmarkKeys.has(column.benchmark))
+    .map((column) => column.benchmark),
+  INDEX_BENCHMARK_KEYS,
+  "index benchmark columns should remain one ordered group",
 );
 for (const group of ["frontier", "baseline"] as const) {
   const labels = benchmarkMetricColumns
-    .filter((column) => BENCHMARK_PORTFOLIO[column.benchmark].group === group)
+    .filter(
+      (column) =>
+        BENCHMARK_PORTFOLIO[column.benchmark].group === group &&
+        !indexBenchmarkKeys.has(column.benchmark),
+    )
     .map((column) => benchmarkLabels[column.benchmark] ?? column.benchmark);
   assert.deepEqual(
     labels,
@@ -306,6 +321,54 @@ for (const group of ["frontier", "baseline"] as const) {
     `${group} table benchmark columns should be alphabetical`,
   );
 }
+const dashboardMetricColumnKeys = dashboardMetricColumns.map((column) => column.key);
+assert.equal(
+  dashboardMetricColumns.find((column) => column.key === "modalities")?.label,
+  "Modality",
+  "the input-modality column should use the agreed compact header",
+);
+const allTableRuleKeys = tableColumnRuleKeys(ALL_TABLE_COLUMN_KEYS);
+const artificialAnalysisColumnIndex = dashboardMetricColumnKeys.indexOf("aaIntelligenceIndex");
+assert.deepEqual(
+  dashboardMetricColumnKeys.slice(artificialAnalysisColumnIndex, artificialAnalysisColumnIndex + 4),
+  [
+    "aaIntelligenceIndex",
+    "artificialAnalysisCost",
+    "artificialAnalysisSeconds",
+    "artificialAnalysisTokens",
+  ],
+  "Artificial Analysis score and resource evidence should remain one benchmark column group",
+);
+assert.equal(
+  allTableRuleKeys.has("effectiveOutputPrice"),
+  true,
+  "effective output price should close the pricing group",
+);
+assert.equal(
+  allTableRuleKeys.has("riemannBench"),
+  true,
+  "the final frontier benchmark should mark the index transition",
+);
+assert.equal(
+  allTableRuleKeys.has("valsIndex"),
+  true,
+  "the final index benchmark should mark the remaining baseline transition",
+);
+assert.equal(
+  allTableRuleKeys.has("openWeights"),
+  true,
+  "open weights should close the profile group before confidence",
+);
+assert.equal(
+  allTableRuleKeys.has("weirdMl"),
+  true,
+  "the final benchmark should close the benchmark group before release",
+);
+assert.equal(
+  allTableRuleKeys.has("context"),
+  false,
+  "context should no longer close the headline metric group",
+);
 assert.equal(
   benchmarkOrderHtml.indexOf("Agents&#x27; Last Exam") <
     benchmarkOrderHtml.indexOf("Riemann-bench") &&
@@ -341,6 +404,8 @@ const visibleRankRows: TableRow[] = [
 const rankHtml = renderToStaticMarkup(
   React.createElement(ModelTable, {
     sortState: { key: "rank", direction: "ascending" },
+    fitColumnContent: false,
+    visibleColumnKeys: ["rank", "model"],
     visibleRows: visibleRankRows,
     emptyMessage: "No models",
     isLoading: false,
@@ -360,6 +425,8 @@ assert.deepEqual(
 const versionedModelHtml = renderToStaticMarkup(
   React.createElement(ModelTable, {
     sortState: { key: "rank", direction: "ascending" },
+    fitColumnContent: false,
+    visibleColumnKeys: ["rank", "model"],
     visibleRows: [tableRow("deepseek/deepseek-v4-flash-0731", "DeepSeek V4 Flash", 1, 0)],
     emptyMessage: "No models",
     isLoading: false,

@@ -23,6 +23,7 @@ import type {
   TableColumnKey,
   TableRow,
 } from "./models";
+import { tableColumnRuleKeys } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow } from "./Rows";
 import { clampNumber, type TableViewportSnapshot, useTableViewport } from "./viewport";
 
@@ -30,6 +31,8 @@ const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
 
 type ModelTableProps = {
   sortState: SortState;
+  fitColumnContent: boolean;
+  visibleColumnKeys: readonly TableColumnKey[];
   visibleRows: TableRow[];
   emptyMessage: string;
   isLoading: boolean;
@@ -43,10 +46,11 @@ const SCROLL_THUMB_MIN_PERCENT = 8;
 const SCROLL_THUMB_MIN_WIDTH_PX = 58;
 const TABLE_SCROLL_KEY_STEP_PX = 80;
 const SCROLL_PAGE_STEP_RATIO = 0.85;
-const staticColumnKeys = staticSortableColumns.map((column) => column.key);
 
 export const ModelTable = memo(function ModelTable({
   sortState,
+  fitColumnContent,
+  visibleColumnKeys,
   visibleRows,
   emptyMessage,
   isLoading,
@@ -55,14 +59,10 @@ export const ModelTable = memo(function ModelTable({
   onTooltipEnd,
   metricColumns,
 }: ModelTableProps) {
-  const columnKeys = useMemo(
-    () =>
-      [
-        ...staticColumnKeys,
-        ...metricColumns.map((column) => column.key),
-        "confidence",
-      ] satisfies TableColumnKey[],
-    [metricColumns],
+  const visibleColumnKeySet = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys]);
+  const ruledColumnKeySet = useMemo(
+    () => tableColumnRuleKeys(visibleColumnKeys),
+    [visibleColumnKeys],
   );
   const {
     tableScrollRef,
@@ -75,10 +75,10 @@ export const ModelTable = memo(function ModelTable({
     handleHeaderScroll,
     scrollTableTo,
   } = useTableViewport({
-    columnCount: columnKeys.length,
+    columnCount: visibleColumnKeys.length,
     onTooltipEnd,
   });
-  const isStickyHeaderReady = columnWidths.length === columnKeys.length;
+  const isStickyHeaderReady = columnWidths.length === visibleColumnKeys.length;
   const rowKeys = useMemo(() => stableModelRowKeys(visibleRows), [visibleRows]);
   const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
@@ -100,13 +100,14 @@ export const ModelTable = memo(function ModelTable({
   return (
     <div
       className="table-shell"
+      data-fit-column-content={fitColumnContent}
       data-pinned-columns={pinnedColumnsEnabled}
       data-sticky-head-ready={isStickyHeaderReady}
       style={tableShellStyle}
     >
       <div className="table-sticky-head" ref={headerScrollRef} onScroll={handleHeaderScroll}>
         <table className="sticky-header-table" style={stickyHeaderTableStyle}>
-          <ColumnGroup widths={columnWidths} columnKeys={columnKeys} />
+          <ColumnGroup widths={columnWidths} columnKeys={visibleColumnKeys} />
           <thead>
             <TableHeaderRow
               metricColumns={metricColumns}
@@ -114,6 +115,8 @@ export const ModelTable = memo(function ModelTable({
               onSort={onSort}
               onTooltip={onTooltip}
               onTooltipEnd={onTooltipEnd}
+              visibleColumnKeySet={visibleColumnKeySet}
+              ruledColumnKeySet={ruledColumnKeySet}
             />
           </thead>
         </table>
@@ -132,11 +135,13 @@ export const ModelTable = memo(function ModelTable({
               onSort={onSort}
               onTooltip={onTooltip}
               onTooltipEnd={onTooltipEnd}
+              visibleColumnKeySet={visibleColumnKeySet}
+              ruledColumnKeySet={ruledColumnKeySet}
             />
           </thead>
           <tbody>
             {isLoading ? (
-              <LoadingRows columnKeys={columnKeys} />
+              <LoadingRows columnKeys={visibleColumnKeys} ruledColumnKeySet={ruledColumnKeySet} />
             ) : (
               <>
                 {visibleRows.map((rowData, index) => (
@@ -144,10 +149,12 @@ export const ModelTable = memo(function ModelTable({
                     key={rowKeys[index] ?? `${rowData.originalIndex}`}
                     rowData={rowData}
                     metricColumns={metricColumns}
+                    visibleColumnKeySet={visibleColumnKeySet}
+                    ruledColumnKeySet={ruledColumnKeySet}
                   />
                 ))}
                 {visibleRows.length === 0 && (
-                  <EmptyStateRow message={emptyMessage} columnCount={columnKeys.length} />
+                  <EmptyStateRow message={emptyMessage} columnCount={visibleColumnKeys.length} />
                 )}
               </>
             )}
@@ -343,45 +350,69 @@ function TableHeaderRow({
   onSort,
   onTooltip,
   onTooltipEnd,
-}: Omit<ModelTableProps, "visibleRows" | "emptyMessage" | "isLoading">) {
+  visibleColumnKeySet,
+  ruledColumnKeySet,
+}: Omit<
+  ModelTableProps,
+  "visibleRows" | "emptyMessage" | "isLoading" | "visibleColumnKeys" | "fitColumnContent"
+> & {
+  visibleColumnKeySet: ReadonlySet<TableColumnKey>;
+  ruledColumnKeySet: ReadonlySet<TableColumnKey>;
+}) {
   return (
     <tr>
-      {staticSortableColumns.map((column) => (
-        <SortableHeader
-          key={column.key}
-          label={column.label}
-          keyName={column.key}
-          className={column.className}
-          sortState={sortState}
-          onSort={onSort}
-          onTooltip={onTooltip}
-          onTooltipEnd={onTooltipEnd}
-        />
-      ))}
-      {metricColumns.map((column) => (
-        <SortableHeader
-          key={column.key}
-          label={column.label}
-          keyName={column.key}
-          className={column.key === "modalities" ? "modality-cell" : undefined}
-          sortState={sortState}
-          onSort={onSort}
-          onTooltip={onTooltip}
-          onTooltipEnd={onTooltipEnd}
-        />
-      ))}
-      <th className="confidence-cell" data-column-key="confidence" scope="col">
-        <button
-          className="header-button"
-          type="button"
-          onMouseEnter={(event) => onTooltip(event, "confidence")}
-          onFocus={(event) => onTooltip(event, "confidence")}
-          onMouseLeave={onTooltipEnd}
-          onBlur={onTooltipEnd}
-        >
-          Confidence
-        </button>
-      </th>
+      {staticSortableColumns
+        .filter((column) => visibleColumnKeySet.has(column.key))
+        .map((column) => (
+          <SortableHeader
+            key={column.key}
+            label={column.label}
+            keyName={column.key}
+            className={[
+              column.className,
+              ruledColumnKeySet.has(column.key) ? "column-group-end" : undefined,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            sortState={sortState}
+            onSort={onSort}
+            onTooltip={onTooltip}
+            onTooltipEnd={onTooltipEnd}
+          />
+        ))}
+      {metricColumns
+        .filter((column) => visibleColumnKeySet.has(column.key))
+        .map((column) => (
+          <SortableHeader
+            key={column.key}
+            label={column.label}
+            keyName={column.key}
+            className={[
+              column.key === "modalities" ? "modality-cell" : undefined,
+              ruledColumnKeySet.has(column.key) ? "column-group-end" : undefined,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            sortState={sortState}
+            onSort={onSort}
+            onTooltip={onTooltip}
+            onTooltipEnd={onTooltipEnd}
+          />
+        ))}
+      {visibleColumnKeySet.has("confidence") ? (
+        <th className="confidence-cell" data-column-key="confidence" scope="col">
+          <button
+            className="header-button"
+            type="button"
+            onMouseEnter={(event) => onTooltip(event, "confidence")}
+            onFocus={(event) => onTooltip(event, "confidence")}
+            onMouseLeave={onTooltipEnd}
+            onBlur={onTooltipEnd}
+          >
+            Confidence
+          </button>
+        </th>
+      ) : null}
     </tr>
   );
 }

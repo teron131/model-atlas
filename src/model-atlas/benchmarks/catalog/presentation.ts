@@ -516,8 +516,7 @@ export const BENCHMARK_SCORING_LABELS: Partial<Record<BenchmarkKey, string>> = {
   omniscience_accuracy: "Omniscience accuracy",
 };
 
-/** Preserve the established frontier-first display sequence without caller-owned sorting rules. */
-export const BENCHMARK_DISPLAY_ORDER = [
+const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "agent_arena",
   "agents_last_exam",
   "ale_bench",
@@ -548,14 +547,22 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "programbench",
   "proofbench",
   "riemann_bench",
+] as const satisfies readonly BenchmarkKey[];
+
+export const INDEX_BENCHMARK_KEYS = [
   "aa_intelligence_index",
+  "epoch_capabilities_index",
+  "surge_intelligence_index",
+  "vals_index",
+] as const satisfies readonly BenchmarkKey[];
+
+const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "browsecomp",
   "chess_puzzles",
   "code_migration",
   "cyberbench",
   "ebr_bench",
   "enterprisebench_corecraft",
-  "epoch_capabilities_index",
   "finance_agent_v2",
   "hemingway_bench",
   "medcode",
@@ -563,13 +570,18 @@ export const BENCHMARK_DISPLAY_ORDER = [
   "perception_bench",
   "public_benefits_bench",
   "scicode",
-  "surge_intelligence_index",
   "tau_banking",
   "toolathlon",
-  "vals_index",
   "vending_bench_2",
   "vibe_code",
   "weirdml",
+] as const satisfies readonly BenchmarkKey[];
+
+/** Preserve frontier, index, and baseline display groups without caller-owned sorting rules. */
+export const BENCHMARK_DISPLAY_ORDER = [
+  ...FRONTIER_BENCHMARK_DISPLAY_ORDER,
+  ...INDEX_BENCHMARK_KEYS,
+  ...BASELINE_BENCHMARK_DISPLAY_ORDER,
 ] as const satisfies readonly BenchmarkKey[];
 
 export const BENCHMARK_TASK_METRIC_COLUMNS = {
@@ -874,7 +886,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
 export const BENCHMARK_COLUMNS = {
   aa_intelligence_index: {
     key: "aaIntelligenceIndex",
-    label: "Artificial Analysis Index",
+    label: "AA",
     format: "number",
     defaultSort: "descending",
   },
@@ -1144,7 +1156,7 @@ export const BENCHMARK_COLUMNS = {
   },
   surge_intelligence_index: {
     key: "surgeIntelligenceIndex",
-    label: "Surge Index",
+    label: "Surge",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1200,10 +1212,3 @@ export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
   gdpval_normalized: ["gpqa"],
   medcode: ["mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
-
-export const INDEX_BENCHMARK_KEYS = [
-  "aa_intelligence_index",
-  "epoch_capabilities_index",
-  "surge_intelligence_index",
-  "vals_index",
-] as const satisfies readonly BenchmarkKey[];

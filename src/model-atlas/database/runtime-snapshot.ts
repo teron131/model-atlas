@@ -1,8 +1,8 @@
-/** Runtime snapshot loading reads and refreshes Cloudflare D1 without a SQLite fallback. */
+/** Runtime snapshot loading reads Cloudflare D1 without a SQLite fallback. */
 
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
-import { publishD1Snapshot, readD1Payload } from "./d1";
+import { readD1Payload } from "./d1";
 import { d1Configured, missingD1Environment } from "./d1/client";
 
 type SnapshotReadState = {
@@ -44,7 +44,7 @@ export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload | 
   return state.readInFlight;
 }
 
-/** Display reads never trigger writes; refresh is owned by the authenticated refresh route. */
+/** Display reads never trigger writes; the standalone publication job owns refreshes. */
 async function readDisplayPayloadUncached(): Promise<ModelAtlasPayload | null> {
   const runtime = snapshotRuntime();
   if (!runtime.requiresD1 && runtime.remoteSnapshotUrl) {
@@ -66,15 +66,6 @@ function cacheDisplayPayload(payload: ModelAtlasPayload | null): void {
   const state = getSnapshotReadState();
   state.cachedPayload = payload;
   state.cacheExpiresAt = Date.now() + DISPLAY_SNAPSHOT_CACHE_MS;
-}
-
-/** Refreshes the runtime D1 snapshot directly. */
-export async function refreshStoredSnapshot(
-  runtime = snapshotRuntime(),
-): Promise<ModelAtlasPayload> {
-  assertD1Configured(runtime);
-  const { payload } = await publishD1Snapshot();
-  return withCurrentMetadata(payload);
 }
 
 /** Prevent runtime reads from silently substituting a build-time or local snapshot for D1. */

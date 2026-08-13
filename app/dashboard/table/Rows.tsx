@@ -21,6 +21,7 @@ import { modelDisplayName } from "../shared/model-display";
 import { providerBrandColor, providerLogo } from "../shared/provider-theme";
 import {
   benchmarkDisplayValue,
+  benchmarkMeterValue,
   contextWindowValue,
   type DashboardMetricColumn,
   dashboardMetricValue,
@@ -61,11 +62,22 @@ export function EmptyStateRow({ message, columnCount }: { message: string; colum
   );
 }
 
-export function LoadingRows({ columnKeys }: { columnKeys: readonly TableColumnKey[] }) {
+export function LoadingRows({
+  columnKeys,
+  ruledColumnKeySet,
+}: {
+  columnKeys: readonly TableColumnKey[];
+  ruledColumnKeySet: ReadonlySet<TableColumnKey>;
+}) {
   return (
     <>
       {LOADING_ROW_KEYS.map((key, index) => (
-        <LoadingRow key={key} index={index} columnKeys={columnKeys} />
+        <LoadingRow
+          key={key}
+          index={index}
+          columnKeys={columnKeys}
+          ruledColumnKeySet={ruledColumnKeySet}
+        />
       ))}
     </>
   );
@@ -74,9 +86,11 @@ export function LoadingRows({ columnKeys }: { columnKeys: readonly TableColumnKe
 function LoadingRow({
   index,
   columnKeys,
+  ruledColumnKeySet,
 }: {
   index: number;
   columnKeys: readonly TableColumnKey[];
+  ruledColumnKeySet: ReadonlySet<TableColumnKey>;
 }) {
   return (
     <tr className="loading-row" style={{ "--loading-row-index": index } as CSSProperties}>
@@ -93,10 +107,7 @@ function LoadingRow({
         </div>
       </td>
       {columnKeys.slice(2).map((key) => (
-        <td
-          className={`data-cell${key === "value" ? " score-group-end" : ""}${key === "context" ? " headline-group-end" : ""}`}
-          key={`loading-${key}`}
-        >
+        <td className={tableCellClassName(key, ruledColumnKeySet)} key={`loading-${key}`}>
           <span className="loading-block loading-metric" />
         </td>
       ))}
@@ -107,26 +118,57 @@ function LoadingRow({
 export const ModelRow = memo(function ModelRow({
   rowData,
   metricColumns,
+  visibleColumnKeySet,
+  ruledColumnKeySet,
 }: {
   rowData: TableRow;
   metricColumns: DashboardMetricColumn[];
+  visibleColumnKeySet: ReadonlySet<TableColumnKey>;
+  ruledColumnKeySet: ReadonlySet<TableColumnKey>;
 }) {
   const model = rowData.model;
   return (
     <tr style={rowProviderStyle(model.provider)}>
-      <ModelScoreCells rowData={rowData} />
-      <TableCell text={formatCost(model.cost?.blended_price)} className="data-cell" />
-      {speedMetricColumns.map((column) => (
-        <DashboardMetricCell key={column.key} rowData={rowData} column={column} />
-      ))}
-      <TableCell
-        text={formatContext(contextWindowValue(model))}
-        className="data-cell headline-group-end"
+      <ModelScoreCells
+        rowData={rowData}
+        visibleColumnKeySet={visibleColumnKeySet}
+        ruledColumnKeySet={ruledColumnKeySet}
       />
-      {metricColumns.map((column) => (
-        <DashboardMetricCell key={column.key} rowData={rowData} column={column} />
-      ))}
-      <ConfidenceCell confidence={model.confidence} />
+      {visibleColumnKeySet.has("blend") ? (
+        <TableCell
+          text={formatCost(model.cost?.blended_price)}
+          className={tableCellClassName("blend", ruledColumnKeySet)}
+        />
+      ) : null}
+      {speedMetricColumns
+        .filter((column) => visibleColumnKeySet.has(column.key))
+        .map((column) => (
+          <DashboardMetricCell
+            key={column.key}
+            rowData={rowData}
+            column={column}
+            hasRuleAfter={ruledColumnKeySet.has(column.key)}
+          />
+        ))}
+      {visibleColumnKeySet.has("context") ? (
+        <TableCell
+          text={formatContext(contextWindowValue(model))}
+          className={tableCellClassName("context", ruledColumnKeySet)}
+        />
+      ) : null}
+      {metricColumns
+        .filter((column) => visibleColumnKeySet.has(column.key))
+        .map((column) => (
+          <DashboardMetricCell
+            key={column.key}
+            rowData={rowData}
+            column={column}
+            hasRuleAfter={ruledColumnKeySet.has(column.key)}
+          />
+        ))}
+      {visibleColumnKeySet.has("confidence") ? (
+        <ConfidenceCell confidence={model.confidence} />
+      ) : null}
     </tr>
   );
 });
@@ -144,7 +186,15 @@ function rowProviderStyle(provider: string | null | undefined) {
   return { "--row-provider": providerBrandColor(provider) } as CSSProperties;
 }
 
-function ModelScoreCells({ rowData }: { rowData: TableRow }) {
+function ModelScoreCells({
+  rowData,
+  visibleColumnKeySet,
+  ruledColumnKeySet,
+}: {
+  rowData: TableRow;
+  visibleColumnKeySet?: ReadonlySet<TableColumnKey>;
+  ruledColumnKeySet?: ReadonlySet<TableColumnKey>;
+}) {
   const model = rowData.model;
   const visibleName = visibleModelName(modelDisplayName(model));
   const visibleSlug = visibleModelSlug(model.id);
@@ -165,10 +215,34 @@ function ModelScoreCells({ rowData }: { rowData: TableRow }) {
           </div>
         </div>
       </td>
-      {scoreCell(scores.intelligence_score, model.provider)}
-      {scoreCell(scores.agentic_score, model.provider)}
-      {scoreCell(scores.speed_score, model.provider)}
-      {scoreCell(scores.value_score, model.provider, "score-group-end")}
+      {visibleColumnKeySet == null || visibleColumnKeySet.has("intelligence")
+        ? scoreCell(
+            scores.intelligence_score,
+            model.provider,
+            ruledColumnKeySet?.has("intelligence") ? "column-group-end" : "",
+          )
+        : null}
+      {visibleColumnKeySet == null || visibleColumnKeySet.has("agentic")
+        ? scoreCell(
+            scores.agentic_score,
+            model.provider,
+            ruledColumnKeySet?.has("agentic") ? "column-group-end" : "",
+          )
+        : null}
+      {visibleColumnKeySet == null || visibleColumnKeySet.has("speed")
+        ? scoreCell(
+            scores.speed_score,
+            model.provider,
+            ruledColumnKeySet?.has("speed") ? "column-group-end" : "",
+          )
+        : null}
+      {visibleColumnKeySet == null || visibleColumnKeySet.has("value")
+        ? scoreCell(
+            scores.value_score,
+            model.provider,
+            ruledColumnKeySet?.has("value") ? "column-group-end" : "",
+          )
+        : null}
     </>
   );
 }
@@ -176,46 +250,63 @@ function ModelScoreCells({ rowData }: { rowData: TableRow }) {
 const DashboardMetricCell = memo(function DashboardMetricCell({
   rowData,
   column,
+  hasRuleAfter,
 }: {
   rowData: TableRow;
   column: DashboardMetricColumn;
+  hasRuleAfter: boolean;
 }) {
   const model = rowData.model;
   if (column.group === "profile" && column.field === "modalities") {
-    return <ModalityInputCell inputs={model.modalities?.input} />;
+    return <ModalityInputCell inputs={model.modalities?.input} hasRuleAfter={hasRuleAfter} />;
   }
   const value =
     "benchmark" in column
       ? benchmarkDisplayValue(rowData, column)
       : dashboardMetricValue(model, column);
+  const className = `data-cell${hasRuleAfter ? " column-group-end" : ""}`;
   if ("benchmark" in column) {
-    if (column.format === "number" || column.format === "currency") {
-      return <TableCell text={formatDashboardMetric(value, column)} className="data-cell" />;
+    if (column.format === "currency") {
+      return <TableCell text={formatDashboardMetric(value, column)} className={className} />;
     }
+    const meterValue = benchmarkMeterValue(rowData, column);
+    const meterPercent =
+      column.format === "percent" ? benchmarkPercentValue(meterValue) : meterValue;
     return (
       <BenchmarkMetricCell
-        value={typeof value === "number" ? value : null}
+        meterPercent={typeof meterPercent === "number" ? meterPercent : null}
         text={formatDashboardMetric(value, column)}
         provider={model.provider}
+        className={className}
       />
     );
   }
-  return <TableCell text={formatDashboardMetric(value, column)} className="data-cell" />;
+  return <TableCell text={formatDashboardMetric(value, column)} className={className} />;
 }, metricCellPropsEqual);
 
 function metricCellPropsEqual(
-  left: { rowData: TableRow; column: DashboardMetricColumn },
-  right: { rowData: TableRow; column: DashboardMetricColumn },
+  left: { rowData: TableRow; column: DashboardMetricColumn; hasRuleAfter: boolean },
+  right: { rowData: TableRow; column: DashboardMetricColumn; hasRuleAfter: boolean },
 ) {
   if (
     left.column !== right.column ||
+    left.hasRuleAfter !== right.hasRuleAfter ||
     left.rowData.model.provider !== right.rowData.model.provider
   ) {
     return false;
   }
   return (
-    metricCellValue(left.rowData, left.column) === metricCellValue(right.rowData, right.column)
+    metricCellValue(left.rowData, left.column) === metricCellValue(right.rowData, right.column) &&
+    metricCellMeterValue(left.rowData, left.column) ===
+      metricCellMeterValue(right.rowData, right.column)
   );
+}
+
+function tableCellClassName(
+  key: TableColumnKey,
+  ruledColumnKeySet: ReadonlySet<TableColumnKey>,
+): string {
+  return `data-cell${ruledColumnKeySet.has(key) ? " column-group-end" : ""}`;
 }
 
 function metricCellValue(rowData: TableRow, column: DashboardMetricColumn) {
@@ -224,24 +315,29 @@ function metricCellValue(rowData: TableRow, column: DashboardMetricColumn) {
     : dashboardMetricValue(rowData.model, column);
 }
 
+function metricCellMeterValue(rowData: TableRow, column: DashboardMetricColumn) {
+  return "benchmark" in column ? benchmarkMeterValue(rowData, column) : null;
+}
+
 function BenchmarkMetricCell({
-  value,
+  meterPercent,
   text,
   provider,
+  className,
 }: {
-  value: number | null;
+  meterPercent: number | null;
   text: string;
   provider: string | null | undefined;
+  className: string;
 }) {
-  const normalizedValue = benchmarkPercentValue(value);
   const displayColor = providerBrandColor(provider);
   const style = {
-    "--score": String(Math.max(0, Math.min(100, normalizedValue ?? 0))),
+    "--score": String(Math.max(0, Math.min(100, meterPercent ?? 0))),
     "--score-color": displayColor,
   } as CSSProperties;
   return (
     <td
-      className={`data-cell benchmark-cell${normalizedValue == null ? " missing" : ""}`}
+      className={`${className} benchmark-cell${meterPercent == null ? " missing" : ""}`}
       style={style}
     >
       <span className="score-value">{text}</span>
@@ -250,7 +346,13 @@ function BenchmarkMetricCell({
   );
 }
 
-function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
+function ModalityInputCell({
+  inputs,
+  hasRuleAfter,
+}: {
+  inputs: string[] | undefined;
+  hasRuleAfter: boolean;
+}) {
   const availableSet = new Set((inputs ?? []).map((input) => input.toLowerCase()));
   const availableModalities = inputModalities.filter((modality) => availableSet.has(modality.key));
   const label =
@@ -258,7 +360,7 @@ function ModalityInputCell({ inputs }: { inputs: string[] | undefined }) {
       ? "none"
       : availableModalities.map((modality) => modality.label).join(", ");
   return (
-    <td className="data-cell modality-cell">
+    <td className={`data-cell modality-cell${hasRuleAfter ? " column-group-end" : ""}`}>
       <span className="modality-icons" title={`Input modalities: ${label}`}>
         <span className="visually-hidden">Input modalities: {label}</span>
         {inputModalities.map(({ Icon, key, label }) => {

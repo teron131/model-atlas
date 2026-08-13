@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { cacheBustedPath } from "../app/dashboard/shared/format";
 import {
   filterByModelControls,
   filterByModelQuery,
@@ -14,6 +13,7 @@ import {
 } from "../app/dashboard/shared/model-display";
 import {
   benchmarkDisplayValue,
+  benchmarkMeterValue,
   benchmarkMetricColumns,
   benchmarkMetricValue,
   dedupeDisplayModels,
@@ -92,6 +92,37 @@ assert.deepEqual(
   agentArenaRows.map((row) => benchmarkMetricValue(row.model, agentArenaColumn)),
   [-0.1, 0, 0.1],
   "Arena display normalization should preserve raw reward values",
+);
+
+const aaColumn = benchmarkMetricColumns.find((column) => column.key === "aaIntelligenceIndex");
+const eciColumn = benchmarkMetricColumns.find((column) => column.key === "epochCapabilitiesIndex");
+assert.ok(aaColumn, "AA should remain a dashboard benchmark column");
+assert.ok(eciColumn, "ECI should remain a dashboard benchmark column");
+const indexRows = dedupeDisplayModels([
+  indexBenchmarkModel("provider/low", "Low", 45, 150),
+  indexBenchmarkModel("provider/mid", "Mid", 50, 155),
+  indexBenchmarkModel("provider/high", "High", 55, 160),
+]);
+assert.deepEqual(
+  indexRows.map((row) => [benchmarkMeterValue(row, aaColumn), benchmarkMeterValue(row, eciColumn)]),
+  [
+    [0, 0],
+    [50, 50],
+    [100, 100],
+  ],
+  "number benchmarks should scale meter positions to their observed min and max",
+);
+assert.deepEqual(
+  indexRows.map((row) => [
+    benchmarkDisplayValue(row, aaColumn),
+    benchmarkDisplayValue(row, eciColumn),
+  ]),
+  [
+    [45, 150],
+    [50, 155],
+    [55, 160],
+  ],
+  "number benchmark meters should preserve their raw display values",
 );
 
 const frontierCodeColumn = benchmarkMetricColumns.find((column) => column.key === "frontierCode");
@@ -266,14 +297,6 @@ assert.deepEqual(
   ]).map((row) => row.model.id),
   ["mistral/mistral-medium-3.5"],
   "display dedupe should collapse provider ids that only differ by a trailing ai suffix when the slug family matches",
-);
-
-assert.equal(
-  cacheBustedPath("/api/llm-stats?view=dashboard").startsWith(
-    "/api/llm-stats?view=dashboard&reload=",
-  ),
-  true,
-  "cache busting should preserve existing query params",
 );
 
 const effortVariants = [
@@ -481,6 +504,21 @@ function agentArenaModel(id: string, name: string, agentArenaReward: number): Mo
   return {
     ...minimalModelAtlasModel({ id, name }),
     benchmarks: { agent_arena: agentArenaReward },
+  };
+}
+
+function indexBenchmarkModel(
+  id: string,
+  name: string,
+  aaIntelligenceIndex: number,
+  epochCapabilitiesIndex: number,
+): ModelAtlasModel {
+  return {
+    ...minimalModelAtlasModel({ id, name }),
+    benchmarks: {
+      aa_intelligence_index: aaIntelligenceIndex,
+      epoch_capabilities_index: epochCapabilitiesIndex,
+    },
   };
 }
 

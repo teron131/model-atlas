@@ -203,18 +203,12 @@ export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterRawScra
       permaslug: stringValue(row.permaslug),
     }),
   );
-  const modelIds = new Set<string>();
-  for (const rowKind of ["endpoint_summary", "permaslug_candidate", "stat_point", "model_stats"]) {
-    for (const row of rowsByKind.get(rowKind) ?? []) {
-      const modelId = stringValue(row.model_id);
-      if (modelId != null) {
-        modelIds.add(modelId);
-      }
-    }
-  }
+  const modelIds = (rowsByKind.get("model_stats") ?? [])
+    .map((row) => stringValue(row.model_id))
+    .filter((modelId): modelId is string => modelId != null);
   return {
     fetched_at_epoch_seconds: fetchedAt,
     directory,
-    models: [...modelIds].map((modelId) => openRouterModelRows(modelId, rowsByKind)),
+    models: modelIds.map((modelId) => openRouterModelRows(modelId, rowsByKind)),
   };
 }

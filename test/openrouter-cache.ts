@@ -91,7 +91,7 @@ try {
         },
         {
           id: "xai/grok-4.1-fast",
-          selected_permaslug: null,
+          selected_permaslug: "x-ai/grok-4.1-fast",
           candidate_permaslugs: ["x-ai/grok-4.1-fast"],
           performance: {},
           pricing: null,
@@ -128,7 +128,7 @@ try {
     assert.equal(
       openRouterCacheHasCurrentShape(db),
       true,
-      "Candidate scope should use the catalog slug behind an opaque permaslug",
+      "Candidate scope and attempted summaries should keep sparse route caches current",
     );
     const freshCacheStatus = {
       last_fetch_epoch_seconds: 1_800_000_000,

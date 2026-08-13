@@ -3,8 +3,10 @@
 import {
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
+  BENCHMARK_SCORING_WEIGHTS,
   BENCHMARK_TASK_METRIC_COLUMNS,
   type BenchmarkKey,
+  INDEX_BENCHMARK_KEYS,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import { clampScore, minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
@@ -55,7 +57,7 @@ const artificialAnalysisTaskMetricColumns = defineTaskMetricColumns("artificial_
     key: "artificialAnalysisTokens",
     metric: "output_tokens",
     direction: "descending",
-    label: "AA Output",
+    label: "AA Out",
   },
 ] as const);
 
@@ -103,7 +105,7 @@ const profileMetricColumns = [
     field: "modalities",
     direction: "descending",
     type: "number",
-    label: "Inputs",
+    label: "Modality",
   },
 ] as const;
 
@@ -114,7 +116,7 @@ const costMetricColumns = [
     field: "weighted_input",
     direction: "ascending",
     type: "number",
-    label: "Eff In$",
+    label: "In$",
   },
   {
     key: "effectiveOutputPrice",
@@ -122,7 +124,7 @@ const costMetricColumns = [
     field: "weighted_output",
     direction: "ascending",
     type: "number",
-    label: "Eff Out$",
+    label: "Out$",
   },
 ] as const;
 
@@ -176,8 +178,8 @@ const unsortedBenchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map((benchmark) =
 export const benchmarkMetricColumns = [...unsortedBenchmarkMetricColumns].sort((left, right) =>
   compareBenchmarkDisplayKeys(left.benchmark, right.benchmark),
 );
-const scoreBenchmarkMetricColumns = benchmarkMetricColumns.filter(
-  (column) => column.format === "score",
+const scaledBenchmarkMetricColumns = benchmarkMetricColumns.filter(
+  (column) => column.format === "score" || column.format === "number",
 );
 
 export type TaskMetricColumn = (typeof taskMetricColumns)[number] & BenchmarkTaskMetricColumnFacet;
@@ -213,23 +215,99 @@ export type SortState = {
   direction: SortDirection;
 };
 
-const taskMetricColumnsByBenchmark = new Map<string, TaskMetricColumn[]>();
+const taskMetricColumnsByBenchmark = new Map<string, TaskMetricColumn[]>([
+  ["aa_intelligence_index", [...artificialAnalysisTaskMetricColumns]],
+]);
 for (const column of benchmarkTaskMetricColumns) {
   const columns = taskMetricColumnsByBenchmark.get(column.source) ?? [];
   columns.push(column);
   taskMetricColumnsByBenchmark.set(column.source, columns);
 }
 
+const benchmarkColumnGroups = benchmarkMetricColumns.map((column) => ({
+  benchmark: column.benchmark as BenchmarkKey,
+  columns: [column, ...(taskMetricColumnsByBenchmark.get(column.benchmark) ?? [])],
+}));
+const indexBenchmarkKeys = new Set<BenchmarkKey>(INDEX_BENCHMARK_KEYS);
+
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
   ...profileMetricColumns.filter((column) => column.key === "modalities"),
   ...costMetricColumns,
-  ...artificialAnalysisTaskMetricColumns,
-  ...benchmarkMetricColumns.flatMap((column) => [
-    column,
-    ...(taskMetricColumnsByBenchmark.get(column.benchmark) ?? []),
-  ]),
+  ...benchmarkColumnGroups.flatMap(({ columns }) => columns),
   ...profileMetricColumns.filter((column) => column.key !== "modalities"),
 ];
+
+type TableColumnGroup =
+  | "fixed"
+  | "scores"
+  | "operations"
+  | "frontier"
+  | "indexes"
+  | "baseline"
+  | "profile"
+  | "confidence";
+
+const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
+const operationColumnKeys = new Set<TableColumnKey>([
+  "blend",
+  "throughput",
+  "latency",
+  "e2eLatency",
+  "context",
+  "modalities",
+  "effectiveInputPrice",
+  "effectiveOutputPrice",
+]);
+const profileColumnKeys = new Set<TableColumnKey>(["release", "openWeights"]);
+const benchmarkColumnGroupsByKey = new Map<TableColumnKey, TableColumnGroup>();
+for (const { benchmark, columns } of benchmarkColumnGroups) {
+  const group =
+    BENCHMARK_SCORING_WEIGHTS[benchmark].group === "frontier"
+      ? "frontier"
+      : indexBenchmarkKeys.has(benchmark)
+        ? "indexes"
+        : "baseline";
+  for (const column of columns) {
+    benchmarkColumnGroupsByKey.set(column.key, group);
+  }
+}
+
+/** Resolve group-ending rules against the columns that are actually visible. */
+export function tableColumnRuleKeys(
+  visibleColumnKeys: readonly TableColumnKey[],
+): ReadonlySet<TableColumnKey> {
+  const ruledKeys = new Set<TableColumnKey>();
+  let previousKey: TableColumnKey | undefined;
+  let previousGroup: TableColumnGroup | undefined;
+  for (const key of visibleColumnKeys) {
+    const group = tableColumnGroup(key);
+    if (previousKey != null && previousGroup !== group && previousGroup !== "fixed") {
+      ruledKeys.add(previousKey);
+    }
+    previousKey = key;
+    previousGroup = group;
+  }
+  return ruledKeys;
+}
+
+function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
+  if (key === "rank" || key === "model") {
+    return "fixed";
+  }
+  if (scoreColumnKeys.has(key)) {
+    return "scores";
+  }
+  if (operationColumnKeys.has(key)) {
+    return "operations";
+  }
+  if (profileColumnKeys.has(key)) {
+    return "profile";
+  }
+  if (key === "confidence") {
+    return "confidence";
+  }
+  return benchmarkColumnGroupsByKey.get(key) ?? "baseline";
+}
 
 export type TableRow = {
   model: ModelAtlasModel;
@@ -324,7 +402,7 @@ export function sortedRows(rows: TableRow[], filterQuery: string, sortState: Sor
 /** Collapse duplicate model routes before assigning display ranks. */
 export function dedupeDisplayModels(models: ModelAtlasModel[]) {
   const benchmarkDisplayScoreValues = Object.fromEntries(
-    scoreBenchmarkMetricColumns.map((column) => [
+    scaledBenchmarkMetricColumns.map((column) => [
       column.key,
       models.map((model) => benchmarkMetricValue(model, column)),
     ]),
@@ -337,7 +415,7 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]) {
       originalIndex,
       aliasPriority: displayAliasPriority(model),
       benchmarkDisplayScores: Object.fromEntries(
-        scoreBenchmarkMetricColumns.map((column) => {
+        scaledBenchmarkMetricColumns.map((column) => {
           const value = benchmarkMetricValue(model, column);
           const normalized = minMaxScale(benchmarkDisplayScoreValues[column.key] ?? [], value);
           return [column.key, normalized == null ? null : clampScore(normalized)];
@@ -363,6 +441,13 @@ export function benchmarkDisplayValue(row: TableRow, column: BenchmarkMetricColu
   return column.format === "score"
     ? row.benchmarkDisplayScores[column.key]
     : benchmarkMetricValue(row.model, column);
+}
+
+/** Return a benchmark's 0-100 meter position while preserving its formatted display value. */
+export function benchmarkMeterValue(row: TableRow, column: BenchmarkMetricColumn) {
+  return column.format === "number"
+    ? row.benchmarkDisplayScores[column.key]
+    : benchmarkDisplayValue(row, column);
 }
 
 export function contextWindowValue(model: ModelAtlasModel) {
