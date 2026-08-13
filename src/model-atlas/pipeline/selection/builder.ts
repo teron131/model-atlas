@@ -1,6 +1,5 @@
 /** Final model building owns candidate scoring, public admission, rescoring, and logo cache hydration. */
 
-import type { BenchmarkObservationsByKey } from "../../benchmarks/observation";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -16,7 +15,10 @@ import {
   prepareEffortResourceImputation,
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
-import { observedBenchmarkCount } from "../scores/score-builders";
+import {
+  calibrateSparseEffortQualityScores,
+  observedBenchmarkCount,
+} from "../scores/score-builders";
 import {
   type BenchmarkVersioningOptions,
   buildModelCandidate,
@@ -131,7 +133,6 @@ export async function buildFinalModels(
     observedDate: new Date().toISOString().slice(0, 10),
   },
   previousModels: readonly ModelAtlasModel[] = [],
-  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): Promise<ModelAtlasModel[]> {
   const modelRows = prepareVersionReplacementBenchmarkRows(
     openRouterData.modelRows,
@@ -141,15 +142,20 @@ export async function buildFinalModels(
   const preparedOpenRouterData = { ...openRouterData, modelRows };
   const replacementRows = modelRows.filter((row) => isVersionReplacementRow(asRecord(row)));
   const scoringPreparation = withoutBenchmarkImputationForModels(
-    prepareBenchmarkScoring(modelRows, scoringConfig, benchmarkObservations),
+    prepareBenchmarkScoring(modelRows, scoringConfig),
     replacementRows,
   );
-  const candidateModels = buildCandidates(
+  const provisionalCandidates = buildCandidates(
     preparedOpenRouterData,
     scoringConfig,
     scoringPreparation,
     previousModels,
     versioning,
+  );
+  const candidateModels = calibrateSparseEffortQualityScores(
+    provisionalCandidates,
+    scoringConfig,
+    scoringPreparation.qualityContext,
   );
   const resourceImputation = prepareEffortResourceImputation(
     candidateModels,

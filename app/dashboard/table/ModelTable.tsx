@@ -409,7 +409,7 @@ function TableHeaderRow({
             onMouseLeave={onTooltipEnd}
             onBlur={onTooltipEnd}
           >
-            Confidence
+            Evidence
           </button>
         </th>
       ) : null}

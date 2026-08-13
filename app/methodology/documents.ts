@@ -37,10 +37,14 @@ export const METHODOLOGY_ASSETS = {
   "elo-transform.svg": { width: 720, height: 420 },
   "final-score-assembly.svg": { width: 720, height: 500 },
   "logit-quality.svg": { width: 720, height: 520 },
+  "model-balanced-weight.svg": { width: 720, height: 350 },
+  "pipeline-overview.svg": { width: 720, height: 420 },
   "quantile-imputation.svg": { width: 720, height: 420 },
   "resource-residual.svg": { width: 720, height: 420 },
   "resource-score-mapping.svg": { width: 720, height: 600 },
+  "sibling-resource-imputation.svg": { width: 720, height: 410 },
   "source-crosswalk.svg": { width: 720, height: 420 },
+  "sparse-effort-calibration.svg": { width: 720, height: 420 },
 } as const;
 
 type MethodologyAsset = keyof typeof METHODOLOGY_ASSETS;

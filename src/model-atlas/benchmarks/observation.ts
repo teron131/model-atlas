@@ -79,8 +79,19 @@ function trailingModelAlias(value: string): string | null {
   return alias.length > 0 ? alias : null;
 }
 
+function modelIdConflictsWithBaseModel(row: BenchmarkObservationEvidenceRow): boolean {
+  if (row.model_id == null) return false;
+  const modelId = normalizeModelToken(trailingModelAlias(row.model_id) ?? row.model_id);
+  const baseModel = normalizeModelToken(row.base_model);
+  return (
+    modelId !== baseModel &&
+    (baseModel.startsWith(`${modelId}-`) || modelId.startsWith(`${baseModel}-`))
+  );
+}
+
 function modelKeys(row: BenchmarkObservationEvidenceRow): string[] {
-  return [row.model_id, row.model, row.base_model]
+  const modelId = modelIdConflictsWithBaseModel(row) ? null : row.model_id;
+  return [modelId, row.model, row.base_model]
     .flatMap((value) => {
       if (value == null) return [];
       return [value, trailingModelAlias(value)];

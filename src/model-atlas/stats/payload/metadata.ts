@@ -165,11 +165,11 @@ export function buildCurrentModelAtlasMetadata({
       ),
       selected_benchmark_keys: selectedBenchmarkKeys,
       benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
-      confidence: {
+      quality_coverage: {
         intelligence: {
-          ...scoringConfig.confidence.intelligence,
+          ...scoringConfig.qualityCoverage.intelligence,
         },
-        agentic: { ...scoringConfig.confidence.agentic },
+        agentic: { ...scoringConfig.qualityCoverage.agentic },
       },
       column_tooltips: columnTooltipsForActiveComponents(resourceComponents),
       snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,

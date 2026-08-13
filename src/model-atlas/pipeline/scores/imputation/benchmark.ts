@@ -5,24 +5,10 @@ import {
   effectiveModelCount,
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
-import {
-  type BenchmarkObservationsByKey,
-  buildBenchmarkObservationLookup,
-  findBenchmarkObservations,
-} from "../../../benchmarks/observation";
-import {
-  BENCHMARK_CATALOG,
-  benchmarkDimensionWeight,
-  type BenchmarkKey,
-  transformBenchmarkSourceValue,
-} from "../../../benchmarks/registry";
+import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
 import { buildAdditiveSourceCrosswalk } from "../../../benchmarks/source-crosswalk";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
-import {
-  canonicalModelKey,
-  canonicalReasoningEffort,
-  reasoningEffortRank,
-} from "../../../identity/normalization";
+import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
   clamp,
   clamp01,
@@ -49,9 +35,6 @@ type BenchmarkImputationDiagnostic = {
   effectiveModelCount: number;
   normalizedMedianAbsoluteError: number | null;
   imputationAllowed: boolean;
-  includesCrossEffort: boolean;
-  crossEffortEffectiveModelCount: number;
-  crossEffortNormalizedMedianAbsoluteError: number | null;
 };
 
 export type QualityScoringContext = {
@@ -89,12 +72,7 @@ type ImputationPreparation = MutableImputationMaps & {
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_MODELS = 3;
 const MIN_IMPUTATION_VALIDATION_MODELS = 4;
-const MIN_CROSS_EFFORT_REFERENCE_MODELS = 4;
-const MIN_CROSS_EFFORT_VALIDATION_MODELS = 4;
-const MIN_CROSS_EFFORT_ERROR_REDUCTION_RATIO = 0.02;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
-const DEFAULT_EFFORT_KEY = "\u0000default";
-const EFFORT_TRANSITION_SEPARATOR = "\u001f";
 const APEX_AGENTS_KEY = "apex_agents";
 const apexImputationPolicy = (() => {
   const policy = BENCHMARK_CATALOG.apex_agents.scoring.imputation;
@@ -174,13 +152,6 @@ export function benchmarkQualityEvidence(
     : { confidence: clamp01(confidence), value };
 }
 
-type EffortRowsByModel = ReadonlyMap<string, ReadonlyMap<string, readonly JsonObject[]>>;
-
-type ObservedEffortValue = {
-  rank: number;
-  value: number;
-};
-
 type DimensionBenchmarkContext = {
   benchmarkKeys: readonly string[];
   benchmarkWeights: ReadonlyMap<string, number>;
@@ -217,98 +188,6 @@ function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps 
   };
 }
 
-/** Keep missing sibling proxies within the model's observed effort bounds. */
-function applyEffortModelBounds(
-  models: readonly JsonObject[],
-  benchmarkKeys: readonly string[],
-  imputationByModel: Map<JsonObject, Map<string, number>>,
-  benchmarkObservations: BenchmarkObservationsByKey,
-): void {
-  const variantsByModel = new Map<string, JsonObject[]>();
-  const observationLookups = new Map(
-    benchmarkKeys.map((key) => [
-      key,
-      buildBenchmarkObservationLookup(benchmarkObservations[key] ?? []),
-    ]),
-  );
-  for (const model of models) {
-    const modelKey = canonicalModelKey(model);
-    const variants = variantsByModel.get(modelKey) ?? [];
-    variants.push(model);
-    variantsByModel.set(modelKey, variants);
-  }
-
-  for (const variants of variantsByModel.values()) {
-    for (const benchmarkKey of benchmarkKeys) {
-      const sourceObservations = findBenchmarkObservations(
-        variants.flatMap((variant) => [variant.id, variant.name]),
-        observationLookups.get(benchmarkKey)!,
-      );
-      const observedValuesByEffort = new Map<string, ObservedEffortValue>();
-      for (const sourceObservation of sourceObservations) {
-        const effort = canonicalReasoningEffort(sourceObservation.reasoning_effort);
-        if (effort == null) {
-          continue;
-        }
-        const rank = reasoningEffortRank(effort);
-        if (rank < 0) continue;
-        const catalogKey = benchmarkKey as BenchmarkKey;
-        const value =
-          BENCHMARK_CATALOG[catalogKey] == null
-            ? sourceObservation.canonical_value
-            : transformBenchmarkSourceValue(catalogKey, sourceObservation.canonical_value);
-        observedValuesByEffort.set(effort, { rank, value });
-      }
-      for (const variant of variants) {
-        const effort = canonicalReasoningEffort(variant.reasoning_effort);
-        const value = benchmarkMetricValue(variant, benchmarkKey);
-        if (effort == null || value == null) continue;
-        const rank = reasoningEffortRank(effort);
-        if (rank < 0) continue;
-        observedValuesByEffort.set(effort, { rank, value });
-      }
-      const observedValues = [...observedValuesByEffort.values()];
-      if (observedValues.length === 0) {
-        continue;
-      }
-      for (const target of variants) {
-        const targetEffort = canonicalReasoningEffort(target.reasoning_effort);
-        const targetRank = reasoningEffortRank(targetEffort);
-        if (
-          targetEffort == null ||
-          targetRank < 0 ||
-          benchmarkMetricValue(target, benchmarkKey) != null
-        ) {
-          continue;
-        }
-        const values = imputationByModel.get(target) ?? new Map<string, number>();
-        const existingValue = values.get(benchmarkKey);
-        if (existingValue == null && observedValues.length > 1) {
-          continue;
-        }
-        let lowerBound: number | null = null;
-        let upperBound: number | null = null;
-        for (const observation of observedValues) {
-          if (observation.rank <= targetRank) {
-            lowerBound = Math.max(lowerBound ?? observation.value, observation.value);
-          }
-          if (observation.rank >= targetRank) {
-            upperBound = Math.min(upperBound ?? observation.value, observation.value);
-          }
-        }
-        if (lowerBound != null && upperBound != null && lowerBound > upperBound) {
-          continue;
-        }
-        let boundedValue = existingValue ?? observedValues[0]!.value;
-        if (lowerBound != null) boundedValue = Math.max(boundedValue, lowerBound);
-        if (upperBound != null) boundedValue = Math.min(boundedValue, upperBound);
-        values.set(benchmarkKey, boundedValue);
-        imputationByModel.set(target, values);
-      }
-    }
-  }
-}
-
 export function normalizedMetricValue(
   valuesByKey: ReadonlyMap<string, readonly number[]>,
   key: string,
@@ -316,6 +195,30 @@ export function normalizedMetricValue(
 ): number | null {
   const normalized = minMaxScale(valuesByKey.get(key) ?? [], value);
   return normalized == null ? null : clampScore(normalized);
+}
+
+function observedEvidenceSupport(
+  model: JsonObject,
+  benchmarkKeys: readonly string[],
+  benchmarkWeights: ReadonlyMap<string, number>,
+  excludedBenchmarkKey: string | null,
+): number {
+  let observedWeight = 0;
+  let possibleWeight = 0;
+  for (const key of benchmarkKeys) {
+    if (key === excludedBenchmarkKey) {
+      continue;
+    }
+    const weight = benchmarkWeights.get(key) ?? 0;
+    if (!(weight > 0)) {
+      continue;
+    }
+    possibleWeight += weight;
+    if (benchmarkMetricValue(model, key) != null) {
+      observedWeight += weight;
+    }
+  }
+  return possibleWeight > 0 ? observedWeight / possibleWeight : 0;
 }
 
 function observedNormalizedEvidenceScore(
@@ -334,50 +237,6 @@ function observedNormalizedEvidenceScore(
   return weightedFinitePartCount(parts) >= MIN_IMPUTATION_EVIDENCE_VALUES
     ? weightedMeanOfFinite(parts)
     : null;
-}
-
-function effortKey(model: JsonObject): string {
-  return canonicalReasoningEffort(model.reasoning_effort) ?? DEFAULT_EFFORT_KEY;
-}
-
-function effortRowsByModel(models: readonly JsonObject[]): EffortRowsByModel {
-  const mutable = new Map<string, Map<string, JsonObject[]>>();
-  for (const model of models) {
-    const modelKey = canonicalModelKey(model);
-    const rowsByEffort = mutable.get(modelKey) ?? new Map<string, JsonObject[]>();
-    const key = effortKey(model);
-    const rows = rowsByEffort.get(key) ?? [];
-    rows.push(model);
-    rowsByEffort.set(key, rows);
-    mutable.set(modelKey, rowsByEffort);
-  }
-  return mutable;
-}
-
-function siblingEffortContextScore(
-  targetModel: JsonObject,
-  sourceEffortKey: string,
-  rowsByModel: EffortRowsByModel,
-  benchmarkKeys: readonly string[],
-  benchmarkWeights: ReadonlyMap<string, number>,
-  valuesByKey: ReadonlyMap<string, readonly number[]>,
-): number | null {
-  const sourceRows = rowsByModel.get(canonicalModelKey(targetModel))?.get(sourceEffortKey);
-  if (sourceRows == null) {
-    return null;
-  }
-  return weightedMeanOfFinite(
-    sourceRows.map((sourceRow) => ({
-      value: observedNormalizedEvidenceScore(
-        sourceRow,
-        benchmarkKeys,
-        benchmarkWeights,
-        null,
-        valuesByKey,
-      ),
-      weight: 1,
-    })),
-  );
 }
 
 /** Resolve one dimension's selected benchmarks and effective weights for imputation context. */
@@ -405,14 +264,17 @@ function dimensionBenchmarkContext(
 
 /** Convert held-out normalized error into partial evidence credit for a validated prediction. */
 function imputationConfidence(diagnostic: BenchmarkImputationDiagnostic): number {
-  const normalizedError = diagnostic.includesCrossEffort
-    ? diagnostic.crossEffortNormalizedMedianAbsoluteError
-    : diagnostic.normalizedMedianAbsoluteError;
+  const normalizedError = diagnostic.normalizedMedianAbsoluteError;
   if (!diagnostic.imputationAllowed || normalizedError == null) {
     return 0;
   }
   return clamp01(1 - normalizedError / MAX_NORMALIZED_IMPUTATION_ERROR);
 }
+
+type ContextualPrediction = {
+  contextSupport: number;
+  value: number;
+};
 
 /** Build one dimension-specific predictor from observed context and target values only. */
 function buildDimensionPredictor(
@@ -421,7 +283,7 @@ function buildDimensionPredictor(
   dimension: BenchmarkDimension,
   scoringConfig: ScoringConfig,
   valuesByKey: ReadonlyMap<string, readonly number[]>,
-): ((model: JsonObject) => number | null) | null {
+): ((model: JsonObject) => ContextualPrediction | null) | null {
   const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
   const referenceContextScores = calibrationObservations(models, (model) => {
     if (benchmarkMetricValue(model, targetBenchmarkKey) == null) {
@@ -454,23 +316,25 @@ function buildDimensionPredictor(
       return null;
     }
     const percentile = weightedQuantileRank(referenceContextScores, contextScore);
-    return percentile == null ? null : weightedQuantile(targetObservations, percentile / 100);
+    const value =
+      percentile == null ? null : weightedQuantile(targetObservations, percentile / 100);
+    return value == null
+      ? null
+      : {
+          contextSupport: observedEvidenceSupport(
+            model,
+            benchmarkKeys,
+            benchmarkWeights,
+            targetBenchmarkKey,
+          ),
+          value,
+        };
   };
 }
 
 type WeightedBenchmarkPredictor = {
-  predict: ((model: JsonObject) => number | null) | null;
+  predict: ((model: JsonObject) => ContextualPrediction | null) | null;
   weight: number;
-};
-
-type BenchmarkPredictors = {
-  direct: WeightedBenchmarkPredictor[];
-  crossEffort: WeightedBenchmarkPredictor[];
-};
-
-type BenchmarkPrediction = {
-  value: number;
-  crossEffortUsed: boolean;
 };
 
 function selectedBenchmarkKeys(scoringConfig: ScoringConfig): string[] {
@@ -491,174 +355,46 @@ function observedValuesByBenchmark(
   );
 }
 
-/** Learn one directed sibling-effort context mapping for a target benchmark and dimension. */
-function buildCrossEffortPredictor(
-  calibrationModels: JsonObject[],
-  calibrationRows: EffortRowsByModel,
-  contextRows: EffortRowsByModel,
-  targetBenchmarkKey: string,
-  targetEffortKey: string,
-  sourceEffortKey: string,
-  dimension: BenchmarkDimension,
-  scoringConfig: ScoringConfig,
-  valuesByKey: ReadonlyMap<string, readonly number[]>,
-): ((model: JsonObject) => number | null) | null {
-  const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
-  const referenceContextScores = calibrationObservations(calibrationModels, (model) => {
-    if (
-      effortKey(model) !== targetEffortKey ||
-      benchmarkMetricValue(model, targetBenchmarkKey) == null ||
-      observedNormalizedEvidenceScore(
-        model,
-        benchmarkKeys,
-        benchmarkWeights,
-        targetBenchmarkKey,
-        valuesByKey,
-      ) == null
-    ) {
-      return null;
-    }
-    return siblingEffortContextScore(
-      model,
-      sourceEffortKey,
-      calibrationRows,
-      benchmarkKeys,
-      benchmarkWeights,
-      valuesByKey,
-    );
-  });
-  if (effectiveModelCount(referenceContextScores) < MIN_CROSS_EFFORT_REFERENCE_MODELS) {
-    return null;
-  }
-  const targetObservations = referenceContextScores.map((observation) => ({
-    ...observation,
-    value: benchmarkMetricValue(observation.item, targetBenchmarkKey) as number,
-  }));
-  return (model) => {
-    if (
-      effortKey(model) !== targetEffortKey ||
-      observedNormalizedEvidenceScore(
-        model,
-        benchmarkKeys,
-        benchmarkWeights,
-        targetBenchmarkKey,
-        valuesByKey,
-      ) == null
-    ) {
-      return null;
-    }
-    const contextScore = siblingEffortContextScore(
-      model,
-      sourceEffortKey,
-      contextRows,
-      benchmarkKeys,
-      benchmarkWeights,
-      valuesByKey,
-    );
-    const percentile = weightedQuantileRank(referenceContextScores, contextScore);
-    return percentile == null ? null : weightedQuantile(targetObservations, percentile / 100);
-  };
-}
-
-/** List directed target/source effort pairs backed by an observed target benchmark. */
-function crossEffortTransitions(
-  models: readonly JsonObject[],
-  targetBenchmarkKey: string,
-  rowsByModel: EffortRowsByModel,
-): Array<readonly [targetEffort: string, sourceEffort: string]> {
-  const transitions = new Set<string>();
-  for (const model of models) {
-    if (benchmarkMetricValue(model, targetBenchmarkKey) == null) {
-      continue;
-    }
-    const targetEffort = effortKey(model);
-    for (const sourceEffort of rowsByModel.get(canonicalModelKey(model))?.keys() ?? []) {
-      if (sourceEffort !== targetEffort) {
-        transitions.add(`${targetEffort}${EFFORT_TRANSITION_SEPARATOR}${sourceEffort}`);
-      }
-    }
-  }
-  return [...transitions].map((transition) => {
-    const separator = transition.indexOf(EFFORT_TRANSITION_SEPARATOR);
-    return [transition.slice(0, separator), transition.slice(separator + 1)] as const;
-  });
-}
-
 function buildWeightedPredictors(
   models: JsonObject[],
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
   valuesByKey: ReadonlyMap<string, readonly number[]>,
-  contextModels: JsonObject[],
-  includeCrossEffort: boolean,
-): BenchmarkPredictors {
+): WeightedBenchmarkPredictor[] {
   const portfolioEntry = scoringConfig.benchmarkPortfolio[targetBenchmarkKey];
   if (portfolioEntry == null) {
-    return { direct: [], crossEffort: [] };
+    return [];
   }
-  const direct = IMPUTATION_DIMENSIONS.map((dimension) => ({
+  return IMPUTATION_DIMENSIONS.map((dimension) => ({
     predict:
       portfolioEntry.dimensionLoadings[dimension] > 0
         ? buildDimensionPredictor(models, targetBenchmarkKey, dimension, scoringConfig, valuesByKey)
         : null,
     weight: portfolioEntry.dimensionLoadings[dimension],
   }));
-  if (!includeCrossEffort) {
-    return { direct, crossEffort: [] };
-  }
-  const calibrationRows = effortRowsByModel(models);
-  const contextRows = contextModels === models ? calibrationRows : effortRowsByModel(contextModels);
-  const crossEffort = crossEffortTransitions(models, targetBenchmarkKey, calibrationRows).flatMap(
-    ([targetEffort, sourceEffort]) =>
-      IMPUTATION_DIMENSIONS.map((dimension) => ({
-        predict:
-          portfolioEntry.dimensionLoadings[dimension] > 0
-            ? buildCrossEffortPredictor(
-                models,
-                calibrationRows,
-                contextRows,
-                targetBenchmarkKey,
-                targetEffort,
-                sourceEffort,
-                dimension,
-                scoringConfig,
-                valuesByKey,
-              )
-            : null,
-        weight: portfolioEntry.dimensionLoadings[dimension],
-      })),
-  );
-  return { direct, crossEffort };
 }
 
-/** Blend the direct estimate with cross-effort evidence only when both are available. */
 function predictedBenchmarkValue(
   model: JsonObject,
-  predictors: BenchmarkPredictors,
-): BenchmarkPrediction | null {
-  const predictionFor = (sources: readonly WeightedBenchmarkPredictor[]) =>
-    weightedMeanOfFinite(
-      sources.map(({ predict, weight }) => ({
-        value: predict?.(model) ?? null,
-        weight,
-      })),
-    );
-  const directPrediction = predictionFor(predictors.direct);
-  if (directPrediction == null) {
-    return null;
-  }
-  const crossEffortPrediction = predictionFor(predictors.crossEffort);
-  if (crossEffortPrediction == null) {
-    return { value: directPrediction, crossEffortUsed: false };
-  }
-  const value = weightedMeanOfFinite([
-    { value: directPrediction, weight: 1 },
-    { value: crossEffortPrediction, weight: 1 },
-  ]);
-  return {
-    value: value ?? directPrediction,
-    crossEffortUsed: true,
-  };
+  predictors: readonly WeightedBenchmarkPredictor[],
+): ContextualPrediction | null {
+  const predictions = predictors.map(({ predict, weight }) => ({
+    prediction: predict?.(model) ?? null,
+    weight,
+  }));
+  const value = weightedMeanOfFinite(
+    predictions.map(({ prediction, weight }) => ({
+      value: prediction?.value ?? null,
+      weight,
+    })),
+  );
+  const contextSupport = weightedMeanOfFinite(
+    predictions.map(({ prediction, weight }) => ({
+      value: prediction?.contextSupport ?? null,
+      weight,
+    })),
+  );
+  return value == null || contextSupport == null ? null : { contextSupport, value };
 }
 
 /** Validate one benchmark's imputer while withholding every variant of the observed model. */
@@ -667,14 +403,12 @@ function imputationDiagnostic(
   benchmarkKeys: readonly string[],
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
-  includeCrossEffort: boolean,
 ): BenchmarkImputationDiagnostic {
   const normalizedAbsoluteErrorByModel = new Map<JsonObject, number>();
-  const crossEffortPredictionModels = new Set<JsonObject>();
   const calibrationByHeldOutModel = new Map<
     string,
     {
-      predictors: BenchmarkPredictors;
+      predictors: WeightedBenchmarkPredictor[];
       targetValues: readonly number[];
     }
   >();
@@ -694,8 +428,6 @@ function imputationDiagnostic(
           targetBenchmarkKey,
           scoringConfig,
           trainingValuesByKey,
-          models,
-          includeCrossEffort,
         ),
         targetValues: trainingValuesByKey.get(targetBenchmarkKey) ?? [],
       };
@@ -707,9 +439,6 @@ function imputationDiagnostic(
     if (normalizedPrediction == null || normalizedActual == null) {
       continue;
     }
-    if (prediction?.crossEffortUsed) {
-      crossEffortPredictionModels.add(heldOutModel);
-    }
     normalizedAbsoluteErrorByModel.set(
       heldOutModel,
       Math.abs(normalizedPrediction - normalizedActual),
@@ -720,21 +449,7 @@ function imputationDiagnostic(
     (model) => normalizedAbsoluteErrorByModel.get(model) ?? null,
   );
   const normalizedMedianAbsoluteError = weightedMedianOfFinite(validationErrors);
-  const crossEffortValidationErrors = calibrationObservations(models, (model) =>
-    crossEffortPredictionModels.has(model)
-      ? (normalizedAbsoluteErrorByModel.get(model) ?? null)
-      : null,
-  );
   const validationModelCount = effectiveModelCount(validationErrors);
-  const crossEffortValidationModelCount = effectiveModelCount(crossEffortValidationErrors);
-  const crossEffortNormalizedMedianAbsoluteError = weightedMedianOfFinite(
-    crossEffortValidationErrors,
-  );
-  const crossEffortValidationAllowed =
-    !includeCrossEffort ||
-    (crossEffortValidationModelCount >= MIN_CROSS_EFFORT_VALIDATION_MODELS &&
-      crossEffortNormalizedMedianAbsoluteError != null &&
-      crossEffortNormalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR);
   return {
     validationSampleCount: validationErrors.length,
     effectiveModelCount: validationModelCount,
@@ -742,38 +457,13 @@ function imputationDiagnostic(
     imputationAllowed:
       validationModelCount >= MIN_IMPUTATION_VALIDATION_MODELS &&
       normalizedMedianAbsoluteError != null &&
-      normalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR &&
-      crossEffortValidationAllowed,
-    includesCrossEffort: includeCrossEffort,
-    crossEffortEffectiveModelCount: crossEffortValidationModelCount,
-    crossEffortNormalizedMedianAbsoluteError,
+      normalizedMedianAbsoluteError <= MAX_NORMALIZED_IMPUTATION_ERROR,
   };
-}
-
-/** Require reliable cross-only validation and a material improvement over the direct imputer. */
-function preferCrossEffortDiagnostic(
-  directOnly: BenchmarkImputationDiagnostic,
-  withCrossEffort: BenchmarkImputationDiagnostic,
-): boolean {
-  if (!withCrossEffort.imputationAllowed) {
-    return false;
-  }
-  if (!directOnly.imputationAllowed) {
-    return true;
-  }
-  return (
-    withCrossEffort.normalizedMedianAbsoluteError != null &&
-    directOnly.normalizedMedianAbsoluteError != null &&
-    directOnly.normalizedMedianAbsoluteError > 0 &&
-    withCrossEffort.normalizedMedianAbsoluteError <=
-      directOnly.normalizedMedianAbsoluteError * (1 - MIN_CROSS_EFFORT_ERROR_REDUCTION_RATIO)
-  );
 }
 
 function prepareImputation(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
-  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): ImputationPreparation {
   const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
   const mercorApexImputation: MutableImputationMaps = benchmarkKeys.includes(APEX_AGENTS_KEY)
@@ -800,58 +490,31 @@ function prepareImputation(
     ) {
       continue;
     }
-    const directOnlyDiagnostic = imputationDiagnostic(
-      models,
-      benchmarkKeys,
-      key,
-      scoringConfig,
-      false,
-    );
-    const withCrossEffortDiagnostic = imputationDiagnostic(
-      models,
-      benchmarkKeys,
-      key,
-      scoringConfig,
-      true,
-    );
-    const useCrossEffort = preferCrossEffortDiagnostic(
-      directOnlyDiagnostic,
-      withCrossEffortDiagnostic,
-    );
-    const selectedDiagnostic = useCrossEffort ? withCrossEffortDiagnostic : directOnlyDiagnostic;
-    diagnosticsByKey.set(key, selectedDiagnostic);
-    if (!selectedDiagnostic.imputationAllowed) {
+    const diagnostic = imputationDiagnostic(models, benchmarkKeys, key, scoringConfig);
+    diagnosticsByKey.set(key, diagnostic);
+    if (!diagnostic.imputationAllowed) {
       continue;
     }
-    const selectedPredictors = buildWeightedPredictors(
-      models,
-      key,
-      scoringConfig,
-      valuesByKey,
-      models,
-      useCrossEffort,
-    );
+    const predictors = buildWeightedPredictors(models, key, scoringConfig, valuesByKey);
     for (const model of models) {
       if (benchmarkMetricValue(model, key) != null || imputationByModel.get(model)?.has(key)) {
         continue;
       }
-      const prediction = predictedBenchmarkValue(model, selectedPredictors);
-      const diagnostic = prediction?.crossEffortUsed
-        ? withCrossEffortDiagnostic
-        : directOnlyDiagnostic;
-      const imputedValue = diagnostic.imputationAllowed ? (prediction?.value ?? null) : null;
-      if (imputedValue == null || !Number.isFinite(imputedValue)) {
+      const prediction = predictedBenchmarkValue(model, predictors);
+      if (prediction == null) {
+        continue;
+      }
+      if (!Number.isFinite(prediction.value)) {
         continue;
       }
       const imputedValuesByKey = imputationByModel.get(model) ?? new Map<string, number>();
-      imputedValuesByKey.set(key, imputedValue);
+      imputedValuesByKey.set(key, prediction.value);
       imputationByModel.set(model, imputedValuesByKey);
       const confidenceByKey = imputationConfidenceByModel.get(model) ?? new Map<string, number>();
-      confidenceByKey.set(key, imputationConfidence(diagnostic));
+      confidenceByKey.set(key, imputationConfidence(diagnostic) * prediction.contextSupport);
       imputationConfidenceByModel.set(model, confidenceByKey);
     }
   }
-  applyEffortModelBounds(models, benchmarkKeys, imputationByModel, benchmarkObservations);
   return {
     imputationByModel,
     imputationConfidenceByModel,
@@ -863,9 +526,8 @@ function prepareImputation(
 export function buildBenchmarkImputationByModel(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
-  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): Map<JsonObject, Map<string, number>> {
-  return prepareImputation(models, scoringConfig, benchmarkObservations).imputationByModel;
+  return prepareImputation(models, scoringConfig).imputationByModel;
 }
 
 /** Report leave-one-model-out reliability evidence for every selected benchmark imputer. */
@@ -897,12 +559,10 @@ export function buildQualityScoringContext(
 export function prepareBenchmarkScoring(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
-  benchmarkObservations: BenchmarkObservationsByKey = {},
 ): BenchmarkScoringPreparation {
   const { imputationByModel, imputationConfidenceByModel } = prepareImputation(
     models,
     scoringConfig,
-    benchmarkObservations,
   );
   const qualityContext = buildQualityScoringContext(models, scoringConfig);
   const imputationByVariant = new Map<string, ReadonlyMap<string, number>>();

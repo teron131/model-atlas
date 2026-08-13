@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Sparse effort calibration</title>
+  <desc id="desc">A broadly observed effort anchors the score, while the weighted gap on directly shared benchmarks moves a sparse effort left or right without increasing its evidence support.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .muted { fill: var(--muted); font-size: 14px; }
+    .label { font-size: 18px; }
+    .annotation { font-size: 14px; font-weight: 600; }
+    .grid { stroke: var(--grid); stroke-width: 1; }
+    .axis { stroke: var(--fg); stroke-width: 1.5; }
+    .threshold { stroke: var(--secondary); stroke-width: 1.5; stroke-dasharray: 5 5; }
+    .projection { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 6; }
+    .gap { stroke: var(--primary); stroke-width: 3; }
+    .anchor { fill: var(--primary); }
+    .target { fill: var(--secondary); }
+    .peer { fill: var(--muted); }
+    .ghost { fill: var(--bg); stroke: var(--primary); stroke-width: 2; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L8 4 L0 8 Z" fill="var(--primary)" />
+    </marker>
+  </defs>
+  <rect width="720" height="420" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Sparse effort calibration</text>
+  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
+  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
+  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
+  <line x1="90" y1="165" x2="670" y2="165" class="threshold" />
+  <text x="660" y="155" text-anchor="end" class="annotation">60% full-evidence point</text>
+  <line x1="524" y1="69" x2="524" y2="257" class="projection" />
+  <circle cx="524" cy="69" r="8" class="anchor" />
+  <text x="509" y="74" text-anchor="end" class="annotation">Anchor Qₐ</text>
+  <text x="509" y="93" text-anchor="end" class="muted">greatest observed weight</text>
+  <circle cx="338" cy="211" r="6" class="peer" />
+  <text x="323" y="207" text-anchor="end" class="annotation">Other sibling</text>
+  <text x="323" y="226" text-anchor="end" class="muted">not used as a bridge</text>
+  <circle cx="524" cy="257" r="7" class="ghost" />
+  <line x1="515" y1="257" x2="427" y2="257" class="gap" marker-end="url(#arrow)" />
+  <text x="470" y="244" text-anchor="middle" class="annotation">shared-benchmark gap Δ</text>
+  <circle cx="417" cy="257" r="8" class="target" />
+  <text x="402" y="281" text-anchor="end" class="annotation">Sparse target Qₐ + Δ</text>
+  <text x="402" y="300" text-anchor="end" class="muted">support remains unchanged</text>
+  <text x="90" y="367" text-anchor="middle" class="muted">0</text>
+  <text x="380" y="367" text-anchor="middle" class="muted">50</text>
+  <text x="670" y="367" text-anchor="middle" class="muted">100</text>
+  <text x="74" y="345" text-anchor="end" class="muted">0%</text>
+  <text x="74" y="199" text-anchor="end" class="muted">50%</text>
+  <text x="74" y="53" text-anchor="end" class="muted">100%</text>
+  <text x="380" y="403" text-anchor="middle" class="label">Capability score</text>
+  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Evidence support</text>
+</svg>

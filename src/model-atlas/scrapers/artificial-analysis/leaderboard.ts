@@ -43,6 +43,7 @@ type ArtificialAnalysisLeaderboardPayload = ArtificialAnalysisLeaderboardRawPayl
 /** Leaderboard projection columns keep source-data callers off the larger raw page row shape. */
 export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
   "model_id",
+  "name",
   "model_url",
   "logo",
   "reasoning_effort",

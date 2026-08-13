@@ -76,6 +76,7 @@ const rows = processArtificialAnalysisLeaderboardRows(
 assertDeepEqual(rows[0]?.benchmarks, {
   mmmu_pro: 0.24,
 });
+assertDeepEqual(rows[0]?.name, "Alpha");
 assertDeepEqual(rows[1]?.benchmarks, {});
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
@@ -326,7 +327,7 @@ const scoringConfig = {
       dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
     },
   },
-  confidence: {
+  qualityCoverage: {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
   },

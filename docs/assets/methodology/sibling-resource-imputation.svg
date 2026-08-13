@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 410" role="img" aria-labelledby="title desc">
+  <title id="title">Sibling-effort resource imputation</title>
+  <desc id="desc">At least three paired tasks fit a directed log-resource ratio, leave-one-task-out validation checks multiplicative and downstream score error, and an accepted ratio estimates only the missing resource with reduced confidence.</desc>
+  <style>
+    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .label { font-size: 18px; }
+    .annotation { font-size: 14px; font-weight: 600; }
+    .muted { fill: var(--muted); font-size: 14px; }
+    .box { fill: none; stroke: var(--grid); stroke-width: 1.5; rx: 4; }
+    .input { stroke: var(--primary); stroke-width: 2; }
+    .gate { stroke: var(--secondary); stroke-width: 2; }
+    .accepted-box { fill: var(--primary); fill-opacity: 0.06; }
+    .rejected-box { fill: var(--muted); fill-opacity: 0.035; stroke-dasharray: 6 6; }
+    .arrow { fill: none; stroke: var(--muted); stroke-width: 2; marker-end: url(#arrow); }
+    .accepted { stroke: var(--primary); marker-end: url(#accepted-arrow); }
+    .rejected { stroke-dasharray: 6 6; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0 0 L8 4 L0 8 Z" fill="var(--muted)" /></marker>
+    <marker id="accepted-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0 0 L8 4 L0 8 Z" fill="var(--primary)" /></marker>
+  </defs>
+  <rect width="720" height="410" fill="var(--bg)" />
+  <text x="360" y="31" text-anchor="middle" class="label">Sibling-effort resource imputation</text>
+  <rect x="35" y="65" width="185" height="112" class="box input" />
+  <text x="127" y="94" text-anchor="middle" class="annotation">At least 3 paired tasks</text>
+  <text x="127" y="123" text-anchor="middle" class="muted">source and target effort</text>
+  <text x="127" y="149" text-anchor="middle" class="annotation">dₖ = log(target / source)</text>
+  <rect x="268" y="65" width="185" height="112" class="box" />
+  <text x="360" y="94" text-anchor="middle" class="annotation">Leave one task out</text>
+  <text x="360" y="123" text-anchor="middle" class="muted">fit median on the others</text>
+  <text x="360" y="149" text-anchor="middle" class="muted">predict the withheld target</text>
+  <rect x="500" y="65" width="185" height="112" class="box gate" />
+  <text x="592" y="94" text-anchor="middle" class="annotation">Pass both error gates</text>
+  <text x="592" y="123" text-anchor="middle" class="muted">log error &lt; log 2</text>
+  <text x="592" y="149" text-anchor="middle" class="muted">score error &lt; 25 points</text>
+  <line x1="220" y1="121" x2="258" y2="121" class="arrow" />
+  <line x1="453" y1="121" x2="490" y2="121" class="arrow" />
+  <rect x="390" y="247" width="250" height="92" class="box input accepted-box" />
+  <text x="515" y="278" text-anchor="middle" class="annotation">Accepted ratio</text>
+  <text x="515" y="302" text-anchor="middle" class="muted">predict the missing cost or runtime</text>
+  <text x="515" y="326" text-anchor="middle" class="muted">confidence ηʳ scales score influence</text>
+  <rect x="80" y="247" width="220" height="92" class="box rejected-box" />
+  <text x="190" y="278" text-anchor="middle" class="annotation">Rejected ratio</text>
+  <text x="190" y="306" text-anchor="middle" class="muted">resource remains missing</text>
+  <path d="M592 177 V214 H515 V237" class="arrow accepted" />
+  <path d="M500 177 V205 H190 V237" class="arrow rejected" />
+  <text x="536" y="207" class="annotation">pass</text>
+  <text x="205" y="198" class="muted">fail</text>
+  <text x="360" y="382" text-anchor="middle" class="annotation">Predictions never become peer evidence, normalization anchors, or admission evidence</text>
+</svg>

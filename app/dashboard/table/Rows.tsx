@@ -392,7 +392,7 @@ const ConfidenceCell = memo(function ConfidenceCell({
   const missing = intelligence === "-" && agentic === "-" && speed === "-" && value === "-";
   return (
     <td
-      aria-label={`Intelligence confidence ${intelligence}; Agentic confidence ${agentic}; Speed confidence ${speed}; Value confidence ${value}`}
+      aria-label={`Intelligence evidence support ${intelligence}; Agentic evidence support ${agentic}; Speed evidence support ${speed}; Value evidence support ${value}`}
       className={`data-cell confidence-cell${missing ? " missing" : ""}`}
     >
       <span aria-hidden="true" className="confidence-values">
