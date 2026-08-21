@@ -1,6 +1,5 @@
-/** Root document shell, metadata, and production page-speed instrumentation. */
+/** Root document shell owns shared metadata and theme bootstrapping for every route. */
 
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
@@ -31,10 +30,7 @@ export default function RootLayout({
         {/* The saved theme must be applied before body paint on every route. */}
         <ThemeBootstrap />
       </head>
-      <body>
-        {children}
-        <SpeedInsights />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

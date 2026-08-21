@@ -494,6 +494,7 @@ CREATE TABLE IF NOT EXISTS models (
 	agentic_confidence REAL,
 	speed_confidence REAL,
 	value_confidence REAL,
+	latest_change_json TEXT,
 	PRIMARY KEY (row_index)
 );
 
@@ -529,6 +530,35 @@ CREATE TABLE IF NOT EXISTS benchmark_version_log (
 	value_json TEXT,
 	PRIMARY KEY (model_id, reasoning_effort, benchmark_key, metric_kind, version_date)
 );
+
+CREATE TABLE IF NOT EXISTS refresh_runs (
+	refresh_id INTEGER NOT NULL,
+	previous_refresh_id INTEGER,
+	methodology_changed INTEGER NOT NULL CHECK (methodology_changed IN (0, 1)),
+	model_change_count INTEGER NOT NULL CHECK (model_change_count >= 0),
+	score_change_count INTEGER NOT NULL CHECK (score_change_count >= 0),
+	PRIMARY KEY (refresh_id)
+);
+
+CREATE TABLE IF NOT EXISTS model_score_changes (
+	refresh_id INTEGER NOT NULL,
+	model_id TEXT NOT NULL,
+	reasoning_effort TEXT NOT NULL,
+	score_key TEXT NOT NULL CHECK (score_key IN ('intelligence', 'agentic', 'speed', 'value')),
+	score_before REAL,
+	score_after REAL NOT NULL,
+	score_delta REAL,
+	rank_before INTEGER,
+	rank_after INTEGER,
+	confidence_before INTEGER,
+	confidence_after INTEGER,
+	causes_json TEXT NOT NULL,
+	rank_drivers_json TEXT NOT NULL,
+	PRIMARY KEY (refresh_id, model_id, reasoning_effort, score_key)
+);
+
+CREATE INDEX IF NOT EXISTS model_score_changes_model_refresh_idx
+	ON model_score_changes (model_id, reasoning_effort, refresh_id DESC);
 
 CREATE TABLE IF NOT EXISTS model_match_debug (
 	row_index INTEGER NOT NULL,

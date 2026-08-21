@@ -24,7 +24,7 @@ import type {
   TableRow,
 } from "./models";
 import { tableColumnRuleKeys } from "./models";
-import { EmptyStateRow, LoadingRows, ModelRow } from "./Rows";
+import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
 import { clampNumber, type TableViewportSnapshot, useTableViewport } from "./viewport";
 
 const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
@@ -39,6 +39,7 @@ type ModelTableProps = {
   onSort: (key: SortKey) => void;
   onTooltip: HeaderTooltipHandler;
   onTooltipEnd: () => void;
+  onScoreChange: ScoreChangeHandler;
   metricColumns: DashboardMetricColumn[];
 };
 
@@ -57,6 +58,7 @@ export const ModelTable = memo(function ModelTable({
   onSort,
   onTooltip,
   onTooltipEnd,
+  onScoreChange,
   metricColumns,
 }: ModelTableProps) {
   const visibleColumnKeySet = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys]);
@@ -151,6 +153,7 @@ export const ModelTable = memo(function ModelTable({
                     metricColumns={metricColumns}
                     visibleColumnKeySet={visibleColumnKeySet}
                     ruledColumnKeySet={ruledColumnKeySet}
+                    onScoreChange={onScoreChange}
                   />
                 ))}
                 {visibleRows.length === 0 && (
@@ -354,7 +357,12 @@ function TableHeaderRow({
   ruledColumnKeySet,
 }: Omit<
   ModelTableProps,
-  "visibleRows" | "emptyMessage" | "isLoading" | "visibleColumnKeys" | "fitColumnContent"
+  | "visibleRows"
+  | "emptyMessage"
+  | "isLoading"
+  | "visibleColumnKeys"
+  | "fitColumnContent"
+  | "onScoreChange"
 > & {
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
@@ -410,6 +418,20 @@ function TableHeaderRow({
             onBlur={onTooltipEnd}
           >
             Evidence
+          </button>
+        </th>
+      ) : null}
+      {visibleColumnKeySet.has("change") ? (
+        <th className="change-cell" data-column-key="change" scope="col">
+          <button
+            className="header-button"
+            type="button"
+            onMouseEnter={(event) => onTooltip(event, "change")}
+            onFocus={(event) => onTooltip(event, "change")}
+            onMouseLeave={onTooltipEnd}
+            onBlur={onTooltipEnd}
+          >
+            Change
           </button>
         </th>
       ) : null}

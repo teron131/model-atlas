@@ -13,7 +13,10 @@ import {
   useTransition,
 } from "react";
 
-import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
+import type {
+  ModelAtlasColumnTooltip,
+  ModelAtlasColumnTooltips,
+} from "../../src/model-atlas/config/tooltips";
 import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
@@ -55,16 +58,16 @@ import {
   type TableColumnKey,
 } from "./table/models";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
-import { tableColumnTooltip } from "./table/tooltips";
+import type { ScoreChangeHandler } from "./table/Rows";
+import { scoreChangeTooltip, tableColumnTooltip } from "./table/tooltips";
 
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 const TOOLTIP_FADE_OUT_MS = 1_000;
 const COLUMN_FRAME_HEADER_KEYS = ["modalities", "context"] as const;
 
-type DashboardTooltipState = Omit<TooltipState, "key"> & {
-  key: TableColumnKey;
-};
+type DashboardTooltipState = Omit<TooltipState, "key"> &
+  ({ kind: "column"; key: TableColumnKey } | { kind: "change"; content: ModelAtlasColumnTooltip });
 
 export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayload | null }) {
   const dashboardRef = useRef<HTMLElement>(null);
@@ -285,7 +288,11 @@ function DashboardLeaderboard({
     [columnFilterQuery, columnTooltips],
   );
   const activeTooltipContent =
-    tooltip == null ? undefined : tableColumnTooltip(tooltip.key, columnTooltips);
+    tooltip == null
+      ? undefined
+      : tooltip.kind === "change"
+        ? tooltip.content
+        : tableColumnTooltip(tooltip.key, columnTooltips);
   const rowKind = deferredShowVariants ? "variants" : "models";
   const rowCountLabel = deferredFilterQuery.length > 0 ? `${matchingRows.length} matches` : null;
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
@@ -367,6 +374,7 @@ function DashboardLeaderboard({
       }
       clearTooltipFadeTimeout();
       setTooltip({
+        kind: "column",
         key,
         phase: "visible",
         ...tooltipPositionFromElement(event.currentTarget),
@@ -374,6 +382,48 @@ function DashboardLeaderboard({
     },
     [columnTooltips, clearTooltipFadeTimeout],
   );
+
+  const showScoreChange = useCallback<ScoreChangeHandler>(
+    (event, model) => {
+      if (model.latest_change == null) {
+        return;
+      }
+      clearTooltipFadeTimeout();
+      setTooltip({
+        kind: "change",
+        content: scoreChangeTooltip(model),
+        phase: "visible",
+        ...tooltipPositionFromElement(event.currentTarget),
+      });
+    },
+    [clearTooltipFadeTimeout],
+  );
+
+  useEffect(() => {
+    if (tooltip?.kind !== "change") {
+      return;
+    }
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setTooltip(null);
+      }
+    };
+    const handlePointerDown = (event: globalThis.PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(".column-tooltip, .score-change-button") == null
+      ) {
+        setTooltip(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [tooltip?.kind]);
 
   useEffect(() => {
     return clearTooltipFadeTimeout;
@@ -428,6 +478,7 @@ function DashboardLeaderboard({
         isLoading={isLoading}
         metricColumns={dashboardMetricColumns}
         onSort={handleSort}
+        onScoreChange={showScoreChange}
         onTooltip={showTooltip}
         onTooltipEnd={clearTooltip}
       />
@@ -438,6 +489,7 @@ function DashboardLeaderboard({
           left={tooltip.left}
           onMouseEnter={cancelTooltipFade}
           onMouseLeave={clearTooltip}
+          role={tooltip.kind === "change" ? "dialog" : "tooltip"}
           top={tooltip.top}
         />
       )}

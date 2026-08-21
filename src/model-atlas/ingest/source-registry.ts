@@ -70,6 +70,8 @@ export const SNAPSHOT_TABLES = {
   model_benchmarks: "model_benchmarks",
   model_task_metrics: "model_task_metrics",
   benchmark_version_log: "benchmark_version_log",
+  refresh_runs: "refresh_runs",
+  model_score_changes: "model_score_changes",
   model_match_debug: "model_match_debug",
 } as const;
 

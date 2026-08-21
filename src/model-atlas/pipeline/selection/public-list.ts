@@ -48,6 +48,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
   "benchmarks",
   "benchmark_dates",
   "confidence",
+  "latest_change",
   "component_scores",
   "scores",
 ]);
@@ -239,6 +240,7 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
     benchmarks: model.benchmarks,
     benchmark_dates: model.benchmark_dates,
     confidence: { ...model.confidence },
+    ...(model.latest_change == null ? {} : { latest_change: model.latest_change }),
     component_scores: {
       intelligence_score: model.component_scores.intelligence_score,
       agentic_score: model.component_scores.agentic_score,

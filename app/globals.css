@@ -1293,6 +1293,37 @@ tbody tr:nth-child(-n + 3) .rank {
   text-align: right;
 }
 
+.change-cell {
+  min-width: 96px;
+  text-align: right;
+}
+
+.score-change-button {
+  min-width: 68px;
+  padding: 4px 7px;
+  border: 1px solid var(--line-strong);
+  background: rgb(var(--ink-rgb) / 0.055);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--mono-label);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.score-change-button:hover,
+.score-change-button:focus-visible {
+  background: rgb(var(--ink-rgb) / 0.12);
+  border-color: var(--focus-ring);
+}
+
+.score-change-button[data-direction="down"] {
+  background: rgb(var(--ink-rgb) / 0.025);
+  color: var(--muted);
+}
+
 .confidence-values {
   display: inline-flex;
   gap: 10px;

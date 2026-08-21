@@ -1,6 +1,6 @@
 /** Leaderboard row components and model display rules. */
 
-import { type CSSProperties, memo, useState } from "react";
+import { type CSSProperties, memo, type MouseEvent, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
@@ -29,6 +29,7 @@ import {
   type TableColumnKey,
   type TableRow,
 } from "./models";
+import { scoreDimensionLabel } from "./tooltips";
 
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
 const LOADING_ROW_KEYS = [
@@ -51,6 +52,11 @@ const inputModalities = [
   { key: "audio", label: "audio", Icon: AudioInputIcon },
   { key: "video", label: "video", Icon: VideoInputIcon },
 ] as const;
+
+export type ScoreChangeHandler = (
+  event: MouseEvent<HTMLButtonElement>,
+  model: ModelAtlasModel,
+) => void;
 
 export function EmptyStateRow({ message, columnCount }: { message: string; columnCount: number }) {
   return (
@@ -120,11 +126,13 @@ export const ModelRow = memo(function ModelRow({
   metricColumns,
   visibleColumnKeySet,
   ruledColumnKeySet,
+  onScoreChange,
 }: {
   rowData: TableRow;
   metricColumns: DashboardMetricColumn[];
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
+  onScoreChange: ScoreChangeHandler;
 }) {
   const model = rowData.model;
   return (
@@ -168,6 +176,9 @@ export const ModelRow = memo(function ModelRow({
         ))}
       {visibleColumnKeySet.has("confidence") ? (
         <ConfidenceCell confidence={model.confidence} />
+      ) : null}
+      {visibleColumnKeySet.has("change") ? (
+        <ScoreChangeCell model={model} onScoreChange={onScoreChange} />
       ) : null}
     </tr>
   );
@@ -416,6 +427,66 @@ const ConfidenceCell = memo(function ConfidenceCell({
     </td>
   );
 });
+
+const ScoreChangeCell = memo(function ScoreChangeCell({
+  model,
+  onScoreChange,
+}: {
+  model: ModelAtlasModel;
+  onScoreChange: ScoreChangeHandler;
+}) {
+  const change = model.latest_change;
+  if (change == null) {
+    return <td className="data-cell change-cell missing">—</td>;
+  }
+  const direction =
+    change.score_delta == null
+      ? "new"
+      : change.score_delta > 0
+        ? "up"
+        : change.score_delta < 0
+          ? "down"
+          : "rank";
+  return (
+    <td className="data-cell change-cell">
+      <button
+        aria-haspopup="dialog"
+        aria-label={`${scoreDimensionLabel(change.dimension)} change: ${scoreChangeButtonText(change)}`}
+        className="score-change-button"
+        data-direction={direction}
+        onClick={(event) => onScoreChange(event, model)}
+        type="button"
+      >
+        {scoreChangeButtonText(change)}
+      </button>
+    </td>
+  );
+});
+
+function scoreChangeButtonText(change: NonNullable<ModelAtlasModel["latest_change"]>): string {
+  const prefix = scoreDimensionLabel(change.dimension).slice(0, 1);
+  if (change.score_delta == null) {
+    return change.rank_after === 1 ? `${prefix} New #1` : `${prefix} New`;
+  }
+  if (change.score_delta !== 0) {
+    return `${prefix} ${change.score_delta > 0 ? "+" : "−"}${Math.abs(change.score_delta).toFixed(1)}`;
+  }
+  if (
+    change.rank_before != null &&
+    change.rank_after != null &&
+    change.rank_before !== change.rank_after
+  ) {
+    return `${prefix} #${change.rank_before}→#${change.rank_after}`;
+  }
+  if (
+    change.confidence_before != null &&
+    change.confidence_after != null &&
+    change.confidence_before !== change.confidence_after
+  ) {
+    return `${prefix} support`;
+  }
+  return `${prefix} changed`;
+}
 
 function visibleModelName(name: string | null | undefined) {
   if (name == null || name.length === 0) {

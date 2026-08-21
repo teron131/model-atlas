@@ -1,4 +1,4 @@
-/** Package-wide runtime policies for coercing source values and bounded async work. */
+/** Package-wide runtime policies for coercing source values, deterministic serialization, and bounded async work. */
 
 import type { NumberOrNull } from "./numeric";
 
@@ -25,6 +25,25 @@ export function asFiniteNumber(value: unknown): NumberOrNull {
   }
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+/** Serialize nested JSON with stable object-key ordering for comparisons and content hashes. */
+export function stableJson(value: unknown): string {
+  return JSON.stringify(canonicalize(value)) ?? "null";
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+  if (value != null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, canonicalize(entry)]),
+    );
+  }
+  return value;
 }
 
 /** Bound external fetches with AbortController while preserving the caller's request options. */

@@ -1,4 +1,4 @@
-/** Resolve dashboard table header tooltips from table policy and payload metadata. */
+/** Resolve dashboard table header and row-change tooltips from table policy and payload metadata. */
 
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import {
@@ -6,7 +6,12 @@ import {
   type ModelAtlasColumnTooltip,
   type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
+import type {
+  ModelAtlasModel,
+  ModelAtlasScoreDimension,
+} from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltips } from "../shared/constants";
+import { modelDisplayName } from "../shared/model-display";
 import {
   benchmarkMetricColumns,
   type SortKey,
@@ -129,6 +134,10 @@ const staticTableColumnTooltips = {
     ],
   },
   confidence: CONFIDENCE_TOOLTIP,
+  change: {
+    title: "Latest material change",
+    body: "The latest material score, evidence-support, or stable-cohort rank movement. Entrants and removals do not create cascade events for incumbent models, while reaching or losing #1 among continuing models remains material. Click a row value for its before-and-after evidence and strongest rank-aligned benchmarks.",
+  },
 } as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;
 
 const fallbackColumnTooltips: Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>> = {
@@ -188,4 +197,85 @@ function taskMetricTooltipEntry(
 /** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */
 export function tableColumnTooltip(key: TableColumnKey, columnTooltips: ModelAtlasColumnTooltips) {
   return fallbackColumnTooltips[key] ?? columnTooltips[key];
+}
+
+/** Build the row-owned evidence popover from one persisted material change. */
+export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTooltip {
+  const change = model.latest_change!;
+  const scoreBefore = change.score_before == null ? "New" : change.score_before.toFixed(1);
+  const scoreAfter = change.score_after.toFixed(1);
+  const rank =
+    change.rank_before == null
+      ? change.rank_after == null
+        ? null
+        : `#${change.rank_after}`
+      : change.rank_before === change.rank_after
+        ? null
+        : formatChangePair(change.rank_before, change.rank_after, "#");
+  const rankLabel = change.rank_before == null ? "Entry rank" : "Stable-cohort rank";
+  const support =
+    change.confidence_before === change.confidence_after
+      ? null
+      : formatChangePair(change.confidence_before, change.confidence_after, "", "%");
+  const scoreSummary =
+    change.score_before == null
+      ? `New score ${scoreAfter}.`
+      : change.score_delta === 0
+        ? `Score unchanged at ${scoreAfter}.`
+        : `Score ${scoreBefore} → ${scoreAfter}${change.score_delta == null ? "" : ` (${signedScore(change.score_delta)})`}.`;
+  const rankAlignment =
+    change.rank_drivers.length === 0
+      ? ""
+      : " Rank alignment uses Spearman ρ across model-balanced results.";
+  return {
+    title: `${modelDisplayName(model)} · Material ${scoreDimensionLabel(change.dimension)} change`,
+    body: `Latest material event. ${scoreSummary}${rankAlignment}`,
+    rows: [
+      ...(rank == null ? [] : [[rankLabel, rank] as [string, string]]),
+      ...(support == null ? [] : [["Evidence support", support] as [string, string]]),
+      ...change.causes.map(({ label }) => ["Cause", label] as [string, string]),
+    ],
+    sections:
+      change.rank_drivers.length === 0
+        ? undefined
+        : [
+            {
+              title: "Rank-aligned benchmarks",
+              rows: change.rank_drivers.map((driver) => [
+                driver.label,
+                `#${driver.benchmark_rank} of ${driver.benchmark_model_count} · ρ ${signedCorrelation(driver.rank_correlation)}`,
+              ]),
+            },
+          ],
+  };
+}
+
+export function scoreDimensionLabel(dimension: ModelAtlasScoreDimension): string {
+  return dimension === "intelligence"
+    ? "Intelligence"
+    : dimension === "agentic"
+      ? "Agentic"
+      : dimension === "speed"
+        ? "Speed"
+        : "Value";
+}
+
+function signedScore(value: number): string {
+  return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(1)}`;
+}
+
+function signedCorrelation(value: number): string {
+  return `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}`;
+}
+
+function formatChangePair(
+  before: number | null,
+  after: number | null,
+  prefix: string,
+  suffix = "",
+): string | null {
+  if (before == null && after == null) {
+    return null;
+  }
+  return `${before == null ? "—" : `${prefix}${before}${suffix}`} → ${after == null ? "—" : `${prefix}${after}${suffix}`}`;
 }

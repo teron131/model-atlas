@@ -13,9 +13,11 @@ import {
   insertBenchmarkVersionLog,
   insertModelBenchmarks,
   insertModels,
+  insertModelScoreChanges,
   insertModelsDevRawModels,
   insertModelTaskMetrics,
   insertOpenRouterRawRows,
+  insertRefreshRuns,
   insertSourceHealth,
   insertSourceQuarantines,
 } from "../ingest/writers";
@@ -23,6 +25,12 @@ import type { DatabaseWriter } from "../ingest/writers/database";
 import { deriveModelStats } from "../pipeline/derivation";
 import { taskMetricVersionValue } from "../pipeline/selection/candidate";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
+import {
+  buildRefreshChanges,
+  type ModelScoreChangeRow,
+  type RefreshRunRow,
+} from "../stats/payload/changes";
+import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 
 export type BenchmarkVersionLogRow = {
@@ -42,6 +50,8 @@ export type DatabaseSnapshotRows = {
   debugTraceRows: readonly DebugTraceRow[];
   sourceHealth: DatabaseBuildResult["source_health"];
   benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
+  refreshRunRows: readonly RefreshRunRow[];
+  modelScoreChangeRows: readonly ModelScoreChangeRow[];
 };
 
 type OpenRouterLoader = (modelIds: string[]) => Promise<{
@@ -110,6 +120,14 @@ const SNAPSHOT_APPEND_WRITERS = [
   {
     table: SNAPSHOT_TABLES.benchmark_version_log,
     write: (db, rows) => insertBenchmarkVersionLog(db, rows.benchmarkVersionLogRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.refresh_runs,
+    write: (db, rows) => insertRefreshRuns(db, rows.refreshRunRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_score_changes,
+    write: (db, rows) => insertModelScoreChanges(db, rows.modelScoreChangeRows),
   },
 ] satisfies readonly SnapshotWriter[];
 
@@ -235,6 +253,27 @@ export function buildBenchmarkVersionLogRows(
   );
 }
 
+/** Recompute the refresh audit after snapshot-preservation policy finalizes the published model rows. */
+export function rebuildDatabaseSnapshotChanges(
+  rows: DatabaseSnapshotRows,
+  refreshId: number,
+  previousPayload: ModelAtlasPayload | null | undefined,
+): void {
+  const currentScoring = buildCurrentModelAtlasMetadata({
+    models: rows.finalModelRows,
+    healthModels: rows.finalModelRows,
+  }).scoring;
+  const changes = buildRefreshChanges(
+    refreshId,
+    previousPayload,
+    rows.finalModelRows,
+    currentScoring,
+  );
+  rows.finalModelRows = changes.models;
+  rows.refreshRunRows = changes.refreshRunRows;
+  rows.modelScoreChangeRows = changes.modelScoreChangeRows;
+}
+
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
   startedAtEpochSeconds: number,
@@ -269,24 +308,28 @@ export async function deriveDatabaseSnapshot(
     ...sourceCache,
     openrouter: openRouterLoad.cacheStatus,
   };
-  return {
-    rows: {
-      snapshots,
-      openRouterRawPayload: openRouterLoad.rawPayload,
+  const rows: DatabaseSnapshotRows = {
+    snapshots,
+    openRouterRawPayload: openRouterLoad.rawPayload,
+    finalModelRows,
+    debugTraceRows,
+    sourceHealth: buildSourceHealth({
+      generatedAtEpochSeconds: startedAtEpochSeconds,
+      sourceCache: finalSourceCache,
+      sourceRowStates: snapshots.sourceRowStates,
+    }),
+    benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
+      previousModels,
       finalModelRows,
-      debugTraceRows,
-      sourceHealth: buildSourceHealth({
-        generatedAtEpochSeconds: startedAtEpochSeconds,
-        sourceCache: finalSourceCache,
-        sourceRowStates: snapshots.sourceRowStates,
-      }),
-      benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
-        previousModels,
-        finalModelRows,
-        baselineDate,
-        observedDate,
-      ),
-    },
+      baselineDate,
+      observedDate,
+    ),
+    refreshRunRows: [],
+    modelScoreChangeRows: [],
+  };
+  rebuildDatabaseSnapshotChanges(rows, startedAtEpochSeconds, versioning.previousPayload);
+  return {
+    rows,
     sourceCache: finalSourceCache,
   };
 }

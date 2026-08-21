@@ -91,6 +91,7 @@ function modelScoreValues(model: JsonObject): SqlValue[] {
     asFiniteNumber(confidence.agentic),
     asFiniteNumber(confidence.speed),
     asFiniteNumber(confidence.value),
+    model.latest_change == null ? null : JSON.stringify(model.latest_change),
   ];
 }
 
@@ -120,8 +121,9 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score,
-			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence
-		) VALUES (${Array.from({ length: 46 }, () => "?").join(", ")})
+			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
+			latest_change_json
+		) VALUES (${Array.from({ length: 47 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -217,6 +219,55 @@ export function insertBenchmarkVersionLog(db: DatabaseWriter, rows: readonly unk
       firstString(revision, ["version_date"]),
       firstString(revision, ["change_kind"]),
       typeof revision.value_json === "string" ? revision.value_json : null,
+    );
+  }
+}
+
+/** Appends one bounded summary for each refresh that reached publication. */
+export function insertRefreshRuns(db: DatabaseWriter, rows: readonly unknown[]): void {
+  const statement = db.prepare(`
+		INSERT OR IGNORE INTO refresh_runs (
+			refresh_id, previous_refresh_id, methodology_changed,
+			model_change_count, score_change_count
+		) VALUES (?, ?, ?, ?, ?)
+	`);
+  for (const row of rows) {
+    const refresh = asRecord(row);
+    statement.run(
+      asFiniteNumber(refresh.refresh_id),
+      asFiniteNumber(refresh.previous_refresh_id),
+      sqliteBooleanValue(refresh.methodology_changed),
+      asFiniteNumber(refresh.model_change_count),
+      asFiniteNumber(refresh.score_change_count),
+    );
+  }
+}
+
+/** Appends only material score dimensions together with their bounded cause and rank-alignment evidence. */
+export function insertModelScoreChanges(db: DatabaseWriter, rows: readonly unknown[]): void {
+  const statement = db.prepare(`
+		INSERT OR IGNORE INTO model_score_changes (
+			refresh_id, model_id, reasoning_effort, score_key,
+			score_before, score_after, score_delta, rank_before, rank_after,
+			confidence_before, confidence_after, causes_json, rank_drivers_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+  for (const row of rows) {
+    const change = asRecord(row);
+    statement.run(
+      asFiniteNumber(change.refresh_id),
+      firstString(change, ["model_id"]),
+      typeof change.reasoning_effort === "string" ? change.reasoning_effort : "",
+      firstString(change, ["dimension"]),
+      asFiniteNumber(change.score_before),
+      asFiniteNumber(change.score_after),
+      asFiniteNumber(change.score_delta),
+      asFiniteNumber(change.rank_before),
+      asFiniteNumber(change.rank_after),
+      asFiniteNumber(change.confidence_before),
+      asFiniteNumber(change.confidence_after),
+      JSON.stringify(Array.isArray(change.causes) ? change.causes : []),
+      JSON.stringify(Array.isArray(change.rank_drivers) ? change.rank_drivers : []),
     );
   }
 }
