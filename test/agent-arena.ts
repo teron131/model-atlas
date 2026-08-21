@@ -2,8 +2,8 @@
 
 import assert from "node:assert/strict";
 
-import { processAgentArenaPageHtml } from "../src/model-atlas/benchmarks/scrapers/agent-arena";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
+import { processAgentArenaPageHtml } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
 
 const payload = {
   arena: { slug: "agent", title: "Agent" },

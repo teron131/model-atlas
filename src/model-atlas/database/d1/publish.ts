@@ -2,13 +2,13 @@
 
 import { createHash, randomUUID } from "node:crypto";
 
-import { readBenchmarkObservationRawCache } from "../../benchmarks/persistence/observation";
-import { benchmarkSnapshotCachesFromRows } from "../../benchmarks/persistence/runtime";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../../benchmarks/registry";
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../../config";
+import { readBenchmarkObservationRawCache } from "../../ingest/benchmark-runtimes/observation";
+import { benchmarkSnapshotCachesFromRows } from "../../ingest/benchmark-runtimes/registry";
 import {
   artificialAnalysisBenchmarkResourceRawCacheFromRows,
   artificialAnalysisRawCacheFromRows,

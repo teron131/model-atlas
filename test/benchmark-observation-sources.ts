@@ -6,21 +6,13 @@ import {
   buildBenchmarkObservationLookup,
   findBenchmarkObservation,
 } from "../src/model-atlas/benchmarks/observation";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/benchmarks/persistence/observation";
-import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../src/model-atlas/benchmarks/registry";
-import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/benchmarks/scrapers/epoch/capabilities-index";
-import { epochBenchmarkObservationRows } from "../src/model-atlas/benchmarks/scrapers/epoch/results";
-import {
-  processSurgeBenchmarkPageHtml,
-  processSurgeIntelligenceIndexPageHtml,
-} from "../src/model-atlas/benchmarks/scrapers/surge/results";
-import { processValsBenchmarkPageHtml } from "../src/model-atlas/benchmarks/scrapers/vals/results";
-import { processWeirdMlCsv } from "../src/model-atlas/benchmarks/scrapers/weirdml";
 import { benchmarkModelEffort } from "../src/model-atlas/identity/normalization";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/observation";
+import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
 import {
   mergeCachedSourceRows,
   snapshotRows,
@@ -31,6 +23,14 @@ import {
 } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/benchmarks/epoch/capabilities-index";
+import { epochBenchmarkObservationRows } from "../src/model-atlas/scrapers/benchmarks/epoch/results";
+import {
+  processSurgeBenchmarkPageHtml,
+  processSurgeIntelligenceIndexPageHtml,
+} from "../src/model-atlas/scrapers/benchmarks/surge/results";
+import { processValsBenchmarkPageHtml } from "../src/model-atlas/scrapers/benchmarks/vals/results";
+import { processWeirdMlCsv } from "../src/model-atlas/scrapers/benchmarks/weirdml";
 import { parseCsvRecords } from "../src/model-atlas/scrapers/parsing";
 
 assert.deepEqual(parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'), [

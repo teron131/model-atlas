@@ -1,4 +1,4 @@
-/** Vercel environment syncing for Model Atlas. */
+/** Mirror local dotenv keys into selected Vercel scopes and remove remote keys absent locally. */
 
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";

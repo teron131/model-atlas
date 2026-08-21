@@ -1,4 +1,4 @@
-/** Public Model Atlas package exports for stats consumers. */
+/** Package boundary for live Model Atlas payloads, scoring policy, benchmark groups, and public contracts. */
 
 export {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,

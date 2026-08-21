@@ -1,4 +1,4 @@
-/** Defines and validates benchmark contracts and derived views. */
+/** Benchmark contracts are validated once, then projected into configured definitions and portfolio views. */
 
 export type BenchmarkSourceGroup =
   | "artificial_analysis"
@@ -7,7 +7,7 @@ export type BenchmarkSourceGroup =
   | "vals"
   | "standalone";
 type BenchmarkSourceRole = "observation" | "resource" | "imputation" | "validation";
-export type BenchmarkJsonPath = readonly [string, ...string[]];
+type BenchmarkJsonPath = readonly [string, ...string[]];
 export type BenchmarkSourceAdapter =
   | {
       kind: "benchmark_observation";
@@ -72,7 +72,7 @@ export type BenchmarkSourceFacet = {
 };
 export type BenchmarkGroup = "baseline" | "frontier";
 type BenchmarkMetricFormat = "percent" | "score" | "number" | "currency";
-export type BenchmarkSortDirection = "ascending" | "descending";
+type BenchmarkSortDirection = "ascending" | "descending";
 export type BenchmarkDimension = "intelligence" | "agentic";
 export type BenchmarkResourceQualityCoordinate = "linear" | "logit";
 
@@ -108,7 +108,7 @@ export type BenchmarkProcessingFacet = {
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };
 
-export type BenchmarkNormalizationPolicy =
+type BenchmarkNormalizationPolicy =
   | { kind: "min_max"; output: readonly [minimum: number, maximum: number] }
   | { kind: "identity" };
 

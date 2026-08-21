@@ -7,33 +7,35 @@ import { type CSSProperties, memo } from "react";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
-import { scoreAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { valueDistribution } from "./chart-stats";
 import { EmptyChart, ShapeScaleLegend } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
-import { calloutLabelPlacements } from "./label-placement";
 import { Panel } from "./Panel";
+import { scoreAxisScale } from "./plot/axis-scale";
 import {
-  AxisTitles,
   CursorCapture,
   CursorProjectionLayer,
+  PointHitTarget,
+  useCursorProjection,
+} from "./plot/Interaction";
+import { calloutLabelPlacements } from "./plot/label-placement";
+import {
+  AxisTitles,
   DirectionArrow,
   MedianCross,
   ModelPointLabel,
   ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
-  PointHitTarget,
   SCATTER_CHART_HEIGHT,
   SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
   stableSvgScale,
-  useCursorProjection,
   XAxisTicks,
   YAxisTicks,
-} from "./PlotPrimitives";
-import { scoreQuadrilateralRadius } from "./score-quadrilateral";
+} from "./plot/Primitives";
+import { scoreQuadrilateralRadius } from "./plot/score-quadrilateral";
 import type { HoverRow, HoverSetter } from "./types";
 
 import styles from "./graphs.module.css";

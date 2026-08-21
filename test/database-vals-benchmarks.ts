@@ -3,8 +3,6 @@
 import assert from "node:assert/strict";
 
 import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/benchmarks/persistence/observation";
-import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
@@ -12,6 +10,8 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload-rows";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/observation";
+import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
 import { RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";

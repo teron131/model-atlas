@@ -1,9 +1,9 @@
 /** Persisted snapshot rows are adapted into the shared normalized source-data contract. */
 
-import { benchmarkSourceRowsFromSnapshots } from "../../benchmarks/persistence/runtime";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import type { ModelAtlasSourceData } from "../assembly";
 import { buildSourceData } from "../assembly";
+import { benchmarkSourceRowsFromSnapshots } from "../benchmark-runtimes/registry";
 import type { SourceSnapshots } from "../types";
 
 /** Restored source rows rebuild lookup maps without refetching external benchmark pages. */

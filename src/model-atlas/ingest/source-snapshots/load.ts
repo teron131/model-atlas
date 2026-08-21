@@ -2,19 +2,19 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
+import type { ScoringConfig } from "../../config/stage";
+import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
 import {
   benchmarkObservationSnapshots,
   readBenchmarkObservationRawCache,
-} from "../../benchmarks/persistence/observation";
+} from "../benchmark-runtimes/observation";
 import {
   type BenchmarkSnapshotCaches,
   benchmarkSnapshotRows,
   readBenchmarkSnapshotCaches,
   refreshBenchmarkSnapshots,
-} from "../../benchmarks/persistence/runtime";
-import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
-import type { ScoringConfig } from "../../config/stage";
-import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
+} from "../benchmark-runtimes/registry";
 import {
   readArtificialAnalysisBenchmarkResourceRawCache,
   readArtificialAnalysisRawCache,

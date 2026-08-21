@@ -4,8 +4,8 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
 import { ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS } from "../../benchmarks/registry";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../../benchmarks/scrapers/artificial-analysis/results";
 import { asFiniteNumber, type JsonObject } from "../../runtime";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../../scrapers/benchmarks/artificial-analysis/results";
 import {
   assignIfBoolean,
   assignIfNumber,

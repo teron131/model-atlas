@@ -3,7 +3,6 @@
 import assert from "node:assert/strict";
 
 import { type BenchmarkDefinitions, defineBenchmarks } from "../src/model-atlas/benchmarks/factory";
-import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/benchmarks/persistence/runtime";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   BENCHMARK_CATALOG,
@@ -14,6 +13,7 @@ import {
   BENCHMARK_RUNTIME_KEYS,
   transformBenchmarkSourceValue,
 } from "../src/model-atlas/benchmarks/registry";
+import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
 import { RAW_SOURCE_NAMES, RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
 
 const definitions = {

@@ -9,77 +9,77 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
+import { buildBenchmarkModelMap, modelSlugFromModelId } from "../../identity/normalization";
 import type {
   AgentArenaModelScoreRow,
   AgentArenaRowsByModelName,
-} from "../../benchmarks/scrapers/agent-arena";
+} from "../../scrapers/benchmarks/agent-arena";
 import {
   type AgentsLastExamModelScoreRow,
   type AgentsLastExamRowsByModelName,
   buildAgentsLastExamMap,
-} from "../../benchmarks/scrapers/agents-last-exam";
+} from "../../scrapers/benchmarks/agents-last-exam";
 import {
   type AleBenchConfigurationRow,
   type AleBenchModelScoreRow,
   type AleBenchRowsByModelName,
   summarizeAleBenchSourceDefaultRows,
-} from "../../benchmarks/scrapers/ale-bench";
+} from "../../scrapers/benchmarks/ale-bench";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
   type ArtificialAnalysisBenchmarkResourceRow,
   buildArtificialAnalysisResourceLookup,
   buildArtificialAnalysisSourceDefaultResourceLookup,
-} from "../../benchmarks/scrapers/artificial-analysis/results";
+} from "../../scrapers/benchmarks/artificial-analysis/results";
 import {
   type BlueprintBenchModelScoreRow,
   type BlueprintBenchRowsByModelName,
   buildBlueprintBenchMap,
-} from "../../benchmarks/scrapers/blueprint-bench";
+} from "../../scrapers/benchmarks/blueprint-bench";
 import {
   buildCursorBenchMap,
   type CursorBenchModelScoreRow,
   type CursorBenchRowsByModelName,
-} from "../../benchmarks/scrapers/cursorbench";
+} from "../../scrapers/benchmarks/cursorbench";
 import {
   buildDeepSWEMap,
   type DeepSWELeaderboardRow,
   type DeepSWEModelScoreRow,
   type DeepSWERowsByModelName,
   summarizeDeepSWESourceDefaultRows,
-} from "../../benchmarks/scrapers/deep-swe";
+} from "../../scrapers/benchmarks/deep-swe";
 import {
   buildFrontierBenchMap,
   type FrontierBenchModelAgentRow,
   type FrontierBenchRowsByModelName,
-} from "../../benchmarks/scrapers/frontier-bench";
+} from "../../scrapers/benchmarks/frontier-bench";
 import type {
   FrontierCodeModelEffortRow,
   FrontierCodeRowsByModelName,
-} from "../../benchmarks/scrapers/frontier-code";
+} from "../../scrapers/benchmarks/frontier-code";
 import type {
   MercorApexAgentsRow,
   MercorApexAgentsRowsByModelName,
-} from "../../benchmarks/scrapers/mercor-apex-agents";
+} from "../../scrapers/benchmarks/mercor-apex-agents";
 import {
   buildRiemannBenchMap,
   type RiemannBenchModelScoreRow,
   type RiemannBenchRowsByModelName,
-} from "../../benchmarks/scrapers/surge/riemann-bench";
+} from "../../scrapers/benchmarks/surge/riemann-bench";
 import {
   buildHarveyLabMap,
   type HarveyLabModelScoreRow,
   type HarveyLabRowsByModelName,
-} from "../../benchmarks/scrapers/vals/harvey-lab";
+} from "../../scrapers/benchmarks/vals/harvey-lab";
 import {
   buildValsIndexMap,
   type ValsIndexModelScoreRow,
   type ValsIndexRowsByModelName,
-} from "../../benchmarks/scrapers/vals/index-benchmark";
+} from "../../scrapers/benchmarks/vals/index-benchmark";
 import type {
   VendingBench2ModelScoreRow,
   VendingBench2RowsByModelName,
-} from "../../benchmarks/scrapers/vending-bench-2";
-import { buildBenchmarkModelMap, modelSlugFromModelId } from "../../identity/normalization";
+} from "../../scrapers/benchmarks/vending-bench-2";
 import type { ModelsDevFlatModel } from "../../scrapers/models-dev";
 import { pickPreferredModelsDevRows } from "./policy";
 
@@ -202,7 +202,7 @@ function buildBenchmarkObservationData(rows: ModelAtlasSourceRows): Partial<Mode
 export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceData {
   const preferredModelsDevModels = pickPreferredModelsDevRows(rows.modelsDevModels);
   const deepSweSourceDefaultRows = summarizeDeepSWESourceDefaultRows(rows.deepSWEEffortRows);
-  const aleBenchPersistenceDefaultRows = summarizeAleBenchSourceDefaultRows(
+  const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
     rows.aleBenchConfigurationRows,
   );
   const benchmarkObservationData = buildBenchmarkObservationData(rows);
@@ -236,8 +236,8 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rowsByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
     },
     aleBench: {
-      sourceDefaultRows: aleBenchPersistenceDefaultRows,
-      rowsByModelName: buildBenchmarkModelMap(aleBenchPersistenceDefaultRows),
+      sourceDefaultRows: aleBenchSourceDefaultRows,
+      rowsByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
     },
     blueprintBench: {
       rows: rows.blueprintBenchRows,

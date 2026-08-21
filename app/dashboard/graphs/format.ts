@@ -1,4 +1,4 @@
-/** Number formatting helpers for graph labels and hover details. */
+/** Graph formatting keeps axes compact while preserving more precise hover values. */
 
 export function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);

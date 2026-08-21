@@ -1,7 +1,7 @@
 /** Storage-independent snapshot workflow derives model rows and writes normalized table rows through a minimal writer interface. */
 
-import { BENCHMARK_RAW_WRITERS } from "../benchmarks/persistence/runtime";
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
+import { BENCHMARK_RAW_WRITERS } from "../ingest/benchmark-runtimes/registry";
 import { buildDebugTraceRows, insertDebugTraceRows } from "../ingest/debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/source-registry";
 import { buildSourceHealth } from "../ingest/source-snapshots/policy";
@@ -33,7 +33,7 @@ import {
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 
-export type BenchmarkVersionLogRow = {
+type BenchmarkVersionLogRow = {
   model_id: string;
   reasoning_effort: string;
   benchmark_key: string;

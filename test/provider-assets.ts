@@ -2,9 +2,9 @@
 
 import assert from "node:assert/strict";
 
-import { providerAssets } from "../app/dashboard/shared/provider-assets.generated";
-import { providerIcons } from "../app/dashboard/shared/provider-icons.generated";
 import { providerBrandColor, providerLogo } from "../app/dashboard/shared/provider-theme";
+import { providerAssets } from "../src/model-atlas/logos/provider-assets.generated";
+import { providerIcons } from "../src/model-atlas/logos/provider-icons.generated";
 
 const openaiLogo = providerLogo("openai");
 const metaLogo = providerLogo("meta");

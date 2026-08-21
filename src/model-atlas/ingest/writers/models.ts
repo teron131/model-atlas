@@ -1,4 +1,4 @@
-/** Relational writers persist final models, benchmark benchmarks, and task metrics without nested storage. */
+/** Relational writers persist final models, benchmark scores, and task metrics without nested storage. */
 
 import { MODEL_ATLAS_BENCHMARK_KEYS } from "../../benchmarks/registry";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";

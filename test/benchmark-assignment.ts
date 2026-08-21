@@ -6,14 +6,6 @@ import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
 } from "../src/model-atlas/benchmarks/observation";
-import type { AgentArenaModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/agent-arena";
-import type { AleBenchModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/ale-bench";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
-import type { FrontierBenchModelAgentRow } from "../src/model-atlas/benchmarks/scrapers/frontier-bench";
-import type { FrontierCodeModelEffortRow } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
-import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
-import type { HarveyLabModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vals/harvey-lab";
-import type { VendingBench2ModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildBenchmarkVersionLogRows } from "../src/model-atlas/database/snapshot-workflow";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
@@ -29,6 +21,14 @@ import {
   versionCandidateBenchmarkData,
 } from "../src/model-atlas/pipeline/selection/candidate";
 import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipeline/selection/version-replacement";
+import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
+import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/ale-bench";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
+import type { FrontierBenchModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/frontier-bench";
+import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/benchmarks/frontier-code";
+import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
+import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vals/harvey-lab";
+import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
 
 const deepSWERow = {
   model: "Example Model Preview",

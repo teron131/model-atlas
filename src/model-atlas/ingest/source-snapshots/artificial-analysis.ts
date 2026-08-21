@@ -1,10 +1,6 @@
 /** Artificial Analysis snapshots retain benchmark-carrier rows while projecting selected public model fields. */
 
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
-import {
-  type ArtificialAnalysisBenchmarkResourceRow,
-  getArtificialAnalysisBenchmarkResourceStats,
-} from "../../benchmarks/scrapers/artificial-analysis/results";
 import type { ScoringConfig } from "../../config/stage";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import {
@@ -13,6 +9,10 @@ import {
   getArtificialAnalysisLeaderboardRawStats,
   processArtificialAnalysisLeaderboardRows,
 } from "../../scrapers/artificial-analysis/leaderboard";
+import {
+  type ArtificialAnalysisBenchmarkResourceRow,
+  getArtificialAnalysisBenchmarkResourceStats,
+} from "../../scrapers/benchmarks/artificial-analysis/results";
 import type {
   readArtificialAnalysisBenchmarkResourceRawCache,
   readArtificialAnalysisRawCache,

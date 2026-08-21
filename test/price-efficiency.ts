@@ -6,7 +6,7 @@ import {
   priceEfficiencyHoverRows,
   priceEfficiencyRows,
   priceEfficiencySummaryDetail,
-} from "../app/dashboard/graphs/price-efficiency";
+} from "../app/dashboard/graphs/price-efficiency/rows";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 

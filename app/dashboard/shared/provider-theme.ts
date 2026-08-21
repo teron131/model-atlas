@@ -1,7 +1,7 @@
 /** Dashboard provider labels, brand assets, and chart colors. */
 
+import { providerIcons } from "../../../src/model-atlas/logos/provider-icons.generated";
 import { safeSlug } from "./format";
-import { providerIcons } from "./provider-icons.generated";
 
 type ProviderLike = { provider?: string | null };
 

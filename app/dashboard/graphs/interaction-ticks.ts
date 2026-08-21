@@ -1,7 +1,7 @@
 /** Interaction-chart tick selection for linear and logarithmic axes. */
 
 import { interpolateLinear, logDistance } from "../../../src/model-atlas/numeric";
-import { niceLinearStep, roundTick } from "./axis-scale";
+import { niceLinearStep, roundTick } from "./plot/axis-scale";
 import type { InteractionConfig } from "./types";
 
 const TARGET_TICK_COUNT = 5;

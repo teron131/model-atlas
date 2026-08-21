@@ -5,7 +5,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
-import { BenchmarkStrip } from "../benchmarks/BenchmarkStrip";
+import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
   type CostFilter,
   costFilterOptions,
@@ -21,10 +21,10 @@ import {
 import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import { FrontierBenchmarksPanel } from "./FrontierBenchmarksPanel";
+import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
 import { InteractionMatrix } from "./InteractionMatrix";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
-import { PriceEfficiencyPanel } from "./PriceEfficiencyPanel";
+import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
   RESEARCH_REGION_IDS,
   RESEARCH_REGIONS,

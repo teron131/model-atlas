@@ -11,8 +11,8 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_PORTFOLIO,
 } from "../src/model-atlas/benchmarks/registry";
-import { processArcPrizeLeaderboardJson } from "../src/model-atlas/benchmarks/scrapers/arc-prize";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
+import { processArcPrizeLeaderboardJson } from "../src/model-atlas/scrapers/benchmarks/arc-prize";
 
 const v2SourceUrl = "https://arcprize.org/media/data/leaderboard/v2.json";
 const v2Rows = processArcPrizeLeaderboardJson(

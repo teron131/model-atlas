@@ -1,17 +1,10 @@
-/** Shared dashboard chart statistics and bubble-radius calculations. */
+/** Shared dashboard chart statistics and analytical summaries. */
 
 import { quantile } from "d3-array";
 
-import { clamp } from "../../../src/model-atlas/numeric";
 import type { BoxWhiskerDistribution } from "./BoxWhiskerSummary";
 import { finite } from "./format";
 import type { Point } from "./types";
-
-/** Scale chart markers by visible area so normalized values read proportionally. */
-function areaScaledRadius(minRadius: number, maxRadius: number, score: number): number {
-  const clampedScore = clamp(score, 0, 1);
-  return Math.sqrt(minRadius ** 2 + clampedScore * (maxRadius ** 2 - minRadius ** 2));
-}
 
 export function valueDistribution(values: number[]): BoxWhiskerDistribution {
   const sortedValues = values.filter(finite).sort((left, right) => left - right);
@@ -23,24 +16,6 @@ export function valueDistribution(values: number[]): BoxWhiskerDistribution {
     median: quantile(sortedValues, 0.5) ?? 0,
     q3: quantile(sortedValues, 0.75) ?? 0,
     max: sortedValues[sortedValues.length - 1] ?? 0,
-  };
-}
-
-export function linearBubbleRadius(values: number[], minRadius = 3, maxRadius = 10) {
-  const finiteValues = values.filter(finite);
-  const minValue = Math.min(...finiteValues);
-  const maxValue = Math.max(...finiteValues);
-  const span = maxValue - minValue;
-
-  return (value: number) => {
-    if (!finite(value)) {
-      return minRadius;
-    }
-    if (!finite(span) || span === 0) {
-      return areaScaledRadius(minRadius, maxRadius, 0.5);
-    }
-    const normalized = clamp((value - minValue) / span, 0, 1);
-    return areaScaledRadius(minRadius, maxRadius, normalized);
   };
 }
 

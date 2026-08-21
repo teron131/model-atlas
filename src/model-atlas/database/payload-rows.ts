@@ -365,8 +365,8 @@ function buildCost(row: DbRow): ModelAtlasCost {
   return hasFields(cost) ? (cost as NonNullable<ModelAtlasCost>) : null;
 }
 
-/** One selected model row and its normalized child records become the public model contract. */
-function modelFromRow(
+/** Reconstruct one scored candidate from a selected model row and its normalized child records. */
+function scoredCandidateFromRow(
   row: DbRow,
   benchmarks: ModelAtlasBenchmarks | null,
   benchmarkDates: Record<string, string> | null,
@@ -620,7 +620,7 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   const models = rows.modelRows.flatMap((row) => {
     const modelRowIndex = asFiniteNumber(row.row_index);
     const model = publicModelFromCandidate(
-      modelFromRow(
+      scoredCandidateFromRow(
         row,
         modelRowIndex == null ? null : (benchmarksByModel.get(modelRowIndex) ?? null),
         modelRowIndex == null ? null : (benchmarkDatesByModel.get(modelRowIndex) ?? null),
