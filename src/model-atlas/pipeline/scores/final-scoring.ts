@@ -1,6 +1,6 @@
 /** Final component scoring for public Model Atlas model rows. */
 
-import type { ScoringConfig } from "../../config/stage";
+import { RESOURCE_SCORE_BUCKET_WEIGHTS, type ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";
 import {
   log10OnePlusNonnegative,
@@ -30,7 +30,6 @@ import {
 } from "./resource-metrics";
 import { blendedPriceValue } from "./score-builders";
 
-const ACTIVE_COMPONENT_WEIGHT = 1;
 type WeightedSignal = {
   value: number | null;
   weight: number;
@@ -52,6 +51,10 @@ function finiteSignalWeight(signals: WeightedSignal[]): number {
         : total,
     0,
   );
+}
+
+function perComponentWeight(bucketWeight: number, componentCount: number): number {
+  return componentCount > 0 ? bucketWeight / componentCount : 0;
 }
 
 function blendedPrice(model: ModelAtlasCandidate): number | null {
@@ -128,17 +131,17 @@ function taskResourceEfficiencyEvidence(
 
 function evidenceConfidence(
   signals: WeightedSignal[],
-  totalCount: number,
+  totalWeight: number,
   score: number | null,
 ): number | null {
-  return score == null ? null : Math.min(1, finiteSignalWeight(signals) / totalCount);
+  return score == null ? null : Math.min(1, finiteSignalWeight(signals) / totalWeight);
 }
 
 /** Use the source-default variant's coverage uniformly across every reasoning effort. */
 function defaultVariantCoverageMultipliers(
   models: readonly ModelAtlasCandidate[],
   signalsByModel: readonly WeightedSignal[][],
-  totalCount: number,
+  totalWeight: number,
 ): number[] {
   const indexesByModel = new Map<string, number[]>();
   for (const [index, model] of models.entries()) {
@@ -155,13 +158,57 @@ function defaultVariantCoverageMultipliers(
     );
     const multiplier = coverageConfidence(
       finiteSignalWeight(signalsByModel[defaultIndex] ?? []),
-      totalCount,
+      totalWeight,
     );
     for (const index of indexes) {
       multipliers[index] = multiplier;
     }
   }
   return multipliers;
+}
+
+function scoreResourceDimension(
+  models: readonly ModelAtlasCandidate[],
+  nonBenchmarkScores: readonly (readonly (number | null)[])[],
+  benchmarkEvidence: WeightedResourceEfficiencyEvidence,
+): { scores: Array<number | null>; confidences: Array<number | null> } {
+  const nonBenchmarkComponentWeight = perComponentWeight(
+    RESOURCE_SCORE_BUCKET_WEIGHTS.nonBenchmark,
+    nonBenchmarkScores.length,
+  );
+  const benchmarkComponentWeight = perComponentWeight(
+    RESOURCE_SCORE_BUCKET_WEIGHTS.benchmark,
+    benchmarkEvidence.benchmarkKeys.length,
+  );
+  const signalsByModel = models.map((_, index) => [
+    ...nonBenchmarkScores.map((scores) => ({
+      value: scores[index] ?? null,
+      weight: nonBenchmarkComponentWeight,
+    })),
+    ...(benchmarkEvidence.signalsByModel[index] ?? []).map((signal) => ({
+      ...signal,
+      weight: signal.weight * benchmarkComponentWeight,
+    })),
+  ]);
+  const totalWeight =
+    nonBenchmarkComponentWeight * nonBenchmarkScores.length +
+    benchmarkComponentWeight * benchmarkEvidence.benchmarkKeys.length;
+  const estimates = signalsByModel.map((signals) => weightedMeanOfFinite(signals));
+  const coverageMultipliers = defaultVariantCoverageMultipliers(
+    models,
+    signalsByModel,
+    totalWeight,
+  );
+  const scores = estimates.map((estimate, index) =>
+    estimate == null ? null : estimate * (coverageMultipliers[index] ?? 0),
+  );
+  const confidences = signalsByModel.map((signals, index) =>
+    evidenceConfidence(signals, totalWeight, scores[index] ?? null),
+  );
+  return {
+    scores,
+    confidences,
+  };
 }
 
 export function attachFinalScores(
@@ -214,57 +261,13 @@ export function attachFinalScores(
     benchmarkPreparation,
     resourceImputation,
   );
-  const speedSignalsByModel = models.map((_, index) => [
-    ...providerSpeedScores.map((scores) => ({
-      value: scores[index] ?? null,
-      weight: ACTIVE_COMPONENT_WEIGHT,
-    })),
-    ...(taskTimeComponentEvidence.signalsByModel[index] ?? []),
-  ]);
-  const speedEstimates = speedSignalsByModel.map((signals) => weightedMeanOfFinite(signals));
-  const speedCoverageMultipliers = defaultVariantCoverageMultipliers(
-    models,
-    speedSignalsByModel,
-    taskTimeComponentEvidence.benchmarkKeys.length + providerSpeedScores.length,
-  );
-  const speedScores = speedEstimates.map((estimate, index) =>
-    estimate == null ? null : estimate * (speedCoverageMultipliers[index] ?? 0),
-  );
-  const speedConfidences = speedSignalsByModel.map((signals, index) =>
-    evidenceConfidence(
-      signals,
-      taskTimeComponentEvidence.benchmarkKeys.length + providerSpeedScores.length,
-      speedScores[index] ?? null,
-    ),
-  );
-  const valueSignalsByModel = models.map((_, index) => [
-    ...priceComponentScores.map((scores) => ({
-      value: scores[index] ?? null,
-      weight: ACTIVE_COMPONENT_WEIGHT,
-    })),
-    ...(taskCostComponentEvidence.signalsByModel[index] ?? []),
-  ]);
-  const valueEstimates = valueSignalsByModel.map((signals) => weightedMeanOfFinite(signals));
-  const valueCoverageMultipliers = defaultVariantCoverageMultipliers(
-    models,
-    valueSignalsByModel,
-    taskCostComponentEvidence.benchmarkKeys.length + priceComponentScores.length,
-  );
-  const valueScores = valueEstimates.map((estimate, index) =>
-    estimate == null ? null : estimate * (valueCoverageMultipliers[index] ?? 0),
-  );
-  const valueConfidences = valueSignalsByModel.map((signals, index) =>
-    evidenceConfidence(
-      signals,
-      taskCostComponentEvidence.benchmarkKeys.length + priceComponentScores.length,
-      valueScores[index] ?? null,
-    ),
-  );
+  const speed = scoreResourceDimension(models, providerSpeedScores, taskTimeComponentEvidence);
+  const value = scoreResourceDimension(models, priceComponentScores, taskCostComponentEvidence);
   return models.map((model, index) => {
     const intelligenceScore = intelligenceScores[index] ?? null;
     const agenticScore = agenticScores[index] ?? null;
-    const speedScore = speedScores[index] ?? null;
-    const valueScore = valueScores[index] ?? null;
+    const speedScore = speed.scores[index] ?? null;
+    const valueScore = value.scores[index] ?? null;
     return {
       ...model,
       scores: {
@@ -275,8 +278,8 @@ export function attachFinalScores(
       },
       confidence: {
         ...model.confidence,
-        speed: speedConfidences[index] ?? null,
-        value: valueConfidences[index] ?? null,
+        speed: speed.confidences[index] ?? null,
+        value: value.confidences[index] ?? null,
       },
     };
   });
