@@ -81,7 +81,7 @@ export function refreshedCacheStatus(
 
 function rowsHaveCurrentShape(source: RawSourceName, rows: readonly CacheDbRow[]): boolean {
   if (source === "artificial_analysis") {
-    return rows.some((row) => row.deprecated === 1 && row.tau_banking != null);
+    return rows.some((row) => row.deprecated === 1);
   }
   if (source === "deep_swe") {
     return rows.some((row) => row.source_version === DEEP_SWE_PREFERRED_SOURCE_VERSION);
