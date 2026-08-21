@@ -127,6 +127,15 @@ assert.equal(
   false,
   "An explicit missing refresh timestamp should not fall back to an old raw-row timestamp",
 );
+assert.equal(
+  rawSourceCacheStatusFromRows(
+    "artificial_analysis",
+    [{ deprecated: 1, fetched_at_epoch_seconds: 1_900_000_000 }],
+    1_900_000_010,
+  ).cache_hit,
+  true,
+  "A fresh Artificial Analysis snapshot with retained deprecated rows should remain cacheable when a former benchmark field is absent",
+);
 
 const payloadRows = await readPayloadRows(1_800_000_000, async (rowGroup) => {
   if (rowGroup.optional === true) {
@@ -147,16 +156,17 @@ try {
   try {
     firstDb
       .prepare(`
-				INSERT INTO artificial_analysis_raw_models (
-					row_index, fetched_at_epoch_seconds, url, model_id, name
-				) VALUES (?, ?, ?, ?, ?)
-			`)
+					INSERT INTO artificial_analysis_raw_models (
+						row_index, fetched_at_epoch_seconds, url, model_id, name, deprecated
+					) VALUES (?, ?, ?, ?, ?, ?)
+				`)
       .run(
         0,
         1_800_000_000,
         "https://artificialanalysis.ai/leaderboards/models",
         "anthropic/claude-fable-5",
         "Claude Fable 5",
+        1,
       );
     firstDb
       .prepare("INSERT INTO models (row_index, model_id) VALUES (?, ?)")
@@ -236,6 +246,11 @@ try {
       Number(row?.count ?? 0),
       1,
       "Schema reconciliation should preserve rows when the primary keys still match",
+    );
+    assert.equal(
+      readRawSourceCacheStatus(reopenedDb, "artificial_analysis", 1_800_000_010).cache_hit,
+      true,
+      "A retained deprecated row should prove the local Artificial Analysis cache has the current hidden-row shape",
     );
     assert(
       !reopenedDb
