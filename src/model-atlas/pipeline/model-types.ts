@@ -158,6 +158,35 @@ export type ModelAtlasScores = {
   value_score: NumberOrNull;
 };
 
+export type ModelAtlasScoreDimension = "intelligence" | "agentic" | "speed" | "value";
+
+export type ModelAtlasScoreChangeCause = {
+  kind: "model" | "evidence" | "coverage" | "methodology" | "relative";
+  label: string;
+};
+
+export type ModelAtlasBenchmarkRankDriver = {
+  benchmark_key: string;
+  label: string;
+  benchmark_rank: number;
+  benchmark_model_count: number;
+  rank_correlation: number;
+};
+
+export type ModelAtlasScoreChange = {
+  refresh_id: number;
+  dimension: ModelAtlasScoreDimension;
+  score_before: number | null;
+  score_after: number;
+  score_delta: number | null;
+  rank_before: number | null;
+  rank_after: number | null;
+  confidence_before: number | null;
+  confidence_after: number | null;
+  causes: ModelAtlasScoreChangeCause[];
+  rank_drivers: ModelAtlasBenchmarkRankDriver[];
+};
+
 type ModelFields = {
   id: string | null;
   name: string | null;
@@ -176,6 +205,7 @@ type ModelFields = {
   benchmarks: ModelAtlasBenchmarks | null;
   benchmark_dates: Record<string, string> | null;
   confidence: ModelAtlasConfidence;
+  latest_change?: ModelAtlasScoreChange | null;
 };
 
 export type ModelAtlasCandidate = ModelFields & {

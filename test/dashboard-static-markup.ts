@@ -17,7 +17,7 @@ import {
   tableColumnRuleKeys,
   type TableRow,
 } from "../app/dashboard/table/models";
-import { tableColumnTooltip } from "../app/dashboard/table/tooltips";
+import { scoreChangeTooltip, tableColumnTooltip } from "../app/dashboard/table/tooltips";
 import {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_PORTFOLIO,
@@ -411,6 +411,7 @@ const rankHtml = renderToStaticMarkup(
     emptyMessage: "No models",
     isLoading: false,
     metricColumns: [],
+    onScoreChange: () => {},
     onSort: () => {},
     onTooltip: () => {},
     onTooltipEnd: () => {},
@@ -423,6 +424,62 @@ assert.deepEqual(
   "rendered rank cells should preserve each model's intelligence rank",
 );
 
+const changedRow = tableRow("provider/change", "Changed Model", 2, 0);
+changedRow.model.latest_change = {
+  refresh_id: 200,
+  dimension: "intelligence",
+  score_before: 79.2,
+  score_after: 81,
+  score_delta: 1.8,
+  rank_before: 3,
+  rank_after: 2,
+  confidence_before: 64,
+  confidence_after: 78,
+  causes: [{ kind: "evidence", label: "Evidence: HLE" }],
+  rank_drivers: [
+    {
+      benchmark_key: "hle",
+      label: "HLE",
+      benchmark_rank: 2,
+      benchmark_model_count: 29,
+      rank_correlation: 0.77,
+    },
+  ],
+};
+const changeHtml = renderToStaticMarkup(
+  React.createElement(ModelTable, {
+    sortState: { key: "rank", direction: "ascending" },
+    fitColumnContent: false,
+    visibleColumnKeys: ["rank", "model", "change"],
+    visibleRows: [changedRow],
+    emptyMessage: "No models",
+    isLoading: false,
+    metricColumns: [],
+    onScoreChange: () => {},
+    onSort: () => {},
+    onTooltip: () => {},
+    onTooltipEnd: () => {},
+  }),
+);
+assert.equal(
+  changeHtml.includes('aria-haspopup="dialog"') && changeHtml.includes("I +1.8"),
+  true,
+  "changed rows should render one compact final-column popover trigger",
+);
+assert.equal(
+  scoreChangeTooltip(changedRow.model).body.includes("Spearman ρ"),
+  true,
+  "rank-driver evidence should explain its model-balanced correlation method",
+);
+assert.equal(
+  scoreChangeTooltip({
+    ...changedRow.model,
+    latest_change: { ...changedRow.model.latest_change!, rank_drivers: [] },
+  }).body.includes("Spearman ρ"),
+  false,
+  "changes without rank drivers should not claim correlation evidence",
+);
+
 const versionedModelHtml = renderToStaticMarkup(
   React.createElement(ModelTable, {
     sortState: { key: "rank", direction: "ascending" },
@@ -432,6 +489,7 @@ const versionedModelHtml = renderToStaticMarkup(
     emptyMessage: "No models",
     isLoading: false,
     metricColumns: [],
+    onScoreChange: () => {},
     onSort: () => {},
     onTooltip: () => {},
     onTooltipEnd: () => {},

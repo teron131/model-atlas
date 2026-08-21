@@ -8,8 +8,10 @@ export { SnapshotRowCollector } from "./collector";
 export {
   insertBenchmarkVersionLog,
   insertModelBenchmarks,
+  insertModelScoreChanges,
   insertModels,
   insertModelTaskMetrics,
+  insertRefreshRuns,
 } from "./models";
 export { insertModelsDevRawModels } from "./models-dev";
 export { insertOpenRouterRawRows } from "./openrouter";

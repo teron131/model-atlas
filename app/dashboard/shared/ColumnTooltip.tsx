@@ -30,6 +30,7 @@ export function ColumnTooltip({
   left,
   onMouseEnter,
   onMouseLeave,
+  role = "tooltip",
   top,
 }: {
   content: ModelAtlasColumnTooltip;
@@ -37,6 +38,7 @@ export function ColumnTooltip({
   left: number;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  role?: "dialog" | "tooltip";
   top: number;
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -65,11 +67,12 @@ export function ColumnTooltip({
 
   return (
     <div
+      aria-label={role === "dialog" ? content.title : undefined}
       className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       ref={tooltipRef}
-      role="tooltip"
+      role={role}
       style={{ ...position, width: tooltipWidth }}
     >
       <div className="column-tooltip-title">{content.title}</div>

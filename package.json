@@ -1,6 +1,6 @@
 {
   "name": "model-atlas",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -27,7 +27,6 @@
     "icons:providers": "tsx scripts/generate-provider-icons.ts"
   },
   "dependencies": {
-    "@vercel/speed-insights": "^2.0.0",
     "d3-array": "^3.2.4",
     "d3-scale": "^4.0.2",
     "html-to-image": "^1.11.13",

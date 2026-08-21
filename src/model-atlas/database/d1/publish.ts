@@ -35,7 +35,7 @@ import {
 import { sourceRowStatesFromRows } from "../../ingest/source-snapshots/policy";
 import type { RawSourceCacheStatus } from "../../ingest/types";
 import { SnapshotRowCollector } from "../../ingest/writers";
-import { nowEpochSeconds } from "../../runtime";
+import { nowEpochSeconds, stableJson } from "../../runtime";
 import { preserveHighSignalSnapshotModels } from "../../stats/payload/snapshot-preservation";
 import type { ModelAtlasPayload } from "../../stats/types";
 import { buildPayloadFromRows, buildPayloadRows, PAYLOAD_ROW_GROUPS } from "../payload-rows";
@@ -43,6 +43,7 @@ import { quoteIdentifier, type SchemaReconciliationPlan } from "../schema-reconc
 import {
   buildBenchmarkVersionLogRows,
   deriveDatabaseSnapshot,
+  rebuildDatabaseSnapshotChanges,
   writeDatabaseSnapshotRows,
 } from "../snapshot-workflow";
 import {
@@ -227,6 +228,7 @@ async function publishLockedD1Snapshot(
       BENCHMARK_VERSION_BASELINE_DATE,
       new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10),
     );
+    rebuildDatabaseSnapshotChanges(derived.rows, startedAtEpochSeconds, current.previousPayload);
     collector = collectDatabaseSnapshot(derived.rows);
     nextPayload = payloadFromCollector(startedAtEpochSeconds, collector);
   }
@@ -234,7 +236,11 @@ async function publishLockedD1Snapshot(
   const changedSources = RAW_SOURCE_NAMES.filter((source) =>
     rawSourceRowsChanged(collectedRawRows[source], current.rawRows[source]),
   );
-  const modelsChanged =
+  const modelDataChanged =
+    current.previousPayload == null ||
+    stableHash(modelsWithoutRefreshChanges(nextPayload.models)) !==
+      stableHash(modelsWithoutRefreshChanges(current.previousPayload.models));
+  const modelRowsChanged =
     current.previousPayload == null ||
     stableHash(nextPayload.models) !== stableHash(current.previousPayload.models);
   timings.snapshot_assembly = elapsedMilliseconds(phaseStartedAt);
@@ -242,7 +248,7 @@ async function publishLockedD1Snapshot(
     schema.statements.length === 0 &&
     changedSources.length === 0 &&
     current.previousPayload != null &&
-    !modelsChanged &&
+    !modelDataChanged &&
     stableHash(nextPayload.metadata.scoring) ===
       stableHash(current.previousPayload.metadata.scoring)
   ) {
@@ -286,7 +292,8 @@ async function publishLockedD1Snapshot(
     changedSources,
     current,
     payload,
-    modelsChanged,
+    modelRowsChanged,
+    modelDataChanged,
     schema,
     usage,
   );
@@ -599,7 +606,8 @@ async function publishChangedSnapshot(
   changedSources: RawSourceName[],
   current: D1RefreshState,
   payload: ModelAtlasPayload,
-  modelsChanged: boolean,
+  modelRowsChanged: boolean,
+  modelDataChanged: boolean,
   schema: SchemaReconciliationPlan,
   usage: D1Usage,
 ): Promise<number> {
@@ -620,17 +628,22 @@ async function publishChangedSnapshot(
     statementCount += await replaceStagedRows(table, collected, table, usage);
   }
   const changedSchemaTables = new Set(schema.changedTables);
-  if (modelsChanged || MODEL_TABLES.some((table) => changedSchemaTables.has(table))) {
+  if (modelRowsChanged || MODEL_TABLES.some((table) => changedSchemaTables.has(table))) {
     for (const table of MODEL_TABLES) {
       statementCount += await replaceStagedRows(table, collector.tables.get(table), table, usage);
     }
   }
-  if (modelsChanged || changedSchemaTables.has(SNAPSHOT_TABLES.benchmark_version_log)) {
+  if (modelDataChanged || changedSchemaTables.has(SNAPSHOT_TABLES.benchmark_version_log)) {
     statementCount += await appendRows(
       SNAPSHOT_TABLES.benchmark_version_log,
       collector.tables.get(SNAPSHOT_TABLES.benchmark_version_log),
       usage,
     );
+  }
+  for (const table of [SNAPSHOT_TABLES.refresh_runs, SNAPSHOT_TABLES.model_score_changes]) {
+    if (collector.tables.has(table) || changedSchemaTables.has(table)) {
+      statementCount += await appendRows(table, collector.tables.get(table), usage);
+    }
   }
   const completionQueries = [
     { sql: "DELETE FROM snapshot_metadata;" },
@@ -644,21 +657,9 @@ async function publishChangedSnapshot(
 }
 
 function stableHash(value: unknown): string {
-  return createHash("sha256")
-    .update(JSON.stringify(canonicalize(value)))
-    .digest("hex");
+  return createHash("sha256").update(stableJson(value)).digest("hex");
 }
 
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(canonicalize);
-  }
-  if (value != null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entry]) => [key, canonicalize(entry)]),
-    );
-  }
-  return value;
+function modelsWithoutRefreshChanges(models: ModelAtlasPayload["models"]): unknown[] {
+  return models.map(({ latest_change: _latestChange, ...model }) => model);
 }

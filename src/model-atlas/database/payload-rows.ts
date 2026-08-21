@@ -17,13 +17,17 @@ import { publicModelFromCandidate } from "../pipeline/selection/public-list";
 import { asFiniteNumber, asRecord } from "../runtime";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
+  ModelAtlasBenchmarkRankDriver,
   ModelAtlasBenchmarks,
   ModelAtlasContextWindow,
   ModelAtlasCost,
   ModelAtlasIntelligence,
   ModelAtlasModalities,
   ModelAtlasPayload,
+  ModelAtlasScoreChange,
+  ModelAtlasScoreChangeCause,
   ModelAtlasScoredCandidate,
+  ModelAtlasScoreDimension,
   ModelAtlasSourceHealth,
   ModelAtlasSourceQuarantine,
   ModelAtlasTaskMetrics,
@@ -222,6 +226,91 @@ function booleanValue(value: unknown): boolean | null {
   return null;
 }
 
+const SCORE_CHANGE_DIMENSIONS = new Set<ModelAtlasScoreDimension>([
+  "intelligence",
+  "agentic",
+  "speed",
+  "value",
+]);
+const SCORE_CHANGE_CAUSE_KINDS = new Set<ModelAtlasScoreChangeCause["kind"]>([
+  "model",
+  "evidence",
+  "coverage",
+  "methodology",
+  "relative",
+]);
+
+function scoreChangeFromJson(value: unknown): ModelAtlasScoreChange | null {
+  if (typeof value !== "string" || value.length === 0) {
+    return null;
+  }
+  let change: DbRow;
+  try {
+    change = asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
+  const refreshId = asFiniteNumber(change.refresh_id);
+  const dimension = stringValue(change.dimension) as ModelAtlasScoreDimension | null;
+  const scoreAfter = asFiniteNumber(change.score_after);
+  if (
+    refreshId == null ||
+    dimension == null ||
+    !SCORE_CHANGE_DIMENSIONS.has(dimension) ||
+    scoreAfter == null
+  ) {
+    return null;
+  }
+  const causes = Array.isArray(change.causes)
+    ? change.causes.flatMap((value) => {
+        const cause = asRecord(value);
+        const kind = stringValue(cause.kind) as ModelAtlasScoreChangeCause["kind"] | null;
+        const label = stringValue(cause.label);
+        return kind == null || label == null || !SCORE_CHANGE_CAUSE_KINDS.has(kind)
+          ? []
+          : [{ kind, label }];
+      })
+    : [];
+  const rankDrivers = Array.isArray(change.rank_drivers)
+    ? change.rank_drivers.flatMap((value) => {
+        const driver = asRecord(value);
+        const benchmarkKey = stringValue(driver.benchmark_key);
+        const label = stringValue(driver.label);
+        const benchmarkRank = asFiniteNumber(driver.benchmark_rank);
+        const benchmarkModelCount = asFiniteNumber(driver.benchmark_model_count);
+        const rankCorrelation = asFiniteNumber(driver.rank_correlation);
+        return benchmarkKey == null ||
+          label == null ||
+          benchmarkRank == null ||
+          benchmarkModelCount == null ||
+          rankCorrelation == null
+          ? []
+          : [
+              {
+                benchmark_key: benchmarkKey,
+                label,
+                benchmark_rank: benchmarkRank,
+                benchmark_model_count: benchmarkModelCount,
+                rank_correlation: rankCorrelation,
+              } satisfies ModelAtlasBenchmarkRankDriver,
+            ];
+      })
+    : [];
+  return {
+    refresh_id: refreshId,
+    dimension,
+    score_before: asFiniteNumber(change.score_before),
+    score_after: scoreAfter,
+    score_delta: asFiniteNumber(change.score_delta),
+    rank_before: asFiniteNumber(change.rank_before),
+    rank_after: asFiniteNumber(change.rank_after),
+    confidence_before: asFiniteNumber(change.confidence_before),
+    confidence_after: asFiniteNumber(change.confidence_after),
+    causes: causes.slice(0, 3),
+    rank_drivers: rankDrivers.slice(0, 3),
+  };
+}
+
 function hasFields(record: object): boolean {
   return Object.keys(record).length > 0;
 }
@@ -313,6 +402,7 @@ function modelFromRow(
       speed: asFiniteNumber(row.speed_confidence) ?? null,
       value: asFiniteNumber(row.value_confidence) ?? null,
     },
+    latest_change: scoreChangeFromJson(row.latest_change_json),
     component_scores: {
       intelligence_score: asFiniteNumber(row.component_intelligence_score) ?? null,
       agentic_score: asFiniteNumber(row.component_agentic_score) ?? null,

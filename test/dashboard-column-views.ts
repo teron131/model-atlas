@@ -119,8 +119,8 @@ assert.equal(
 const noMatchKeys = tableColumnKeysForView("all", "no such column evidence", COLUMN_TOOLTIPS);
 assert.deepEqual(
   noMatchKeys,
-  ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
-  "No-match search should preserve identity and headline scores",
+  [...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS, "change"],
+  "No-match search should preserve identity, headline scores, and the final change column",
 );
 
 assert.equal(
@@ -130,8 +130,8 @@ assert.equal(
 );
 assert.equal(
   tableColumnSearchMatchCount("rank", COLUMN_TOOLTIPS),
-  1,
-  "Search result counts should include fixed column headers",
+  2,
+  "Search result counts should include fixed columns whose tooltip text matches",
 );
 
 assert.equal(

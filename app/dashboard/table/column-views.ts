@@ -28,10 +28,12 @@ export const ALL_TABLE_COLUMN_KEYS: readonly TableColumnKey[] = [
   ...staticSortableColumns.map((column) => column.key),
   ...dashboardMetricColumns.map((column) => column.key),
   "confidence",
+  "change",
 ] satisfies readonly TableColumnKey[];
 
 const optionalColumnKeys = ALL_TABLE_COLUMN_KEYS.filter(
   (key) =>
+    key !== "change" &&
     !ALWAYS_VISIBLE_TABLE_COLUMN_KEYS.includes(
       key as (typeof ALWAYS_VISIBLE_TABLE_COLUMN_KEYS)[number],
     ),
@@ -94,6 +96,7 @@ export function tableColumnKeysForView(
   return [
     ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
     ...optionalColumnKeys.filter((key) => matchingKeys.has(key)),
+    "change",
   ];
 }
 
@@ -122,7 +125,8 @@ export function tableColumnSortKey(
   }
   return (
     visibleColumnKeys.find(
-      (key): key is SortKey => key !== "rank" && key !== "model" && key !== "confidence",
+      (key): key is SortKey =>
+        key !== "rank" && key !== "model" && key !== "confidence" && key !== "change",
     ) ?? "rank"
   );
 }

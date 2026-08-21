@@ -13,6 +13,7 @@ import {
 import { SnapshotRowCollector } from "../../ingest/writers";
 import type { CollectedTableRows } from "../../ingest/writers/collector";
 import type { SqlValue } from "../../ingest/writers/database";
+import { stableJson } from "../../runtime";
 import { quoteIdentifier } from "../schema-reconciliation";
 import { type D1Usage, queryD1Batch } from "./client";
 
@@ -363,26 +364,8 @@ function cachedRowContent(columns: readonly string[], row: CacheDbRow): string {
 
 function tableContentHash(rows: readonly Record<string, unknown>[]): string {
   return createHash("sha256")
-    .update(
-      JSON.stringify(
-        rows.map(({ row_index, fetched_at_epoch_seconds, ...row }) => canonicalize(row)),
-      ),
-    )
+    .update(stableJson(rows.map(({ row_index, fetched_at_epoch_seconds, ...row }) => row)))
     .digest("hex");
-}
-
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(canonicalize);
-  }
-  if (value != null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entry]) => [key, canonicalize(entry)]),
-    );
-  }
-  return value;
 }
 
 function sqlLiteral(value: SqlValue): string {

@@ -208,7 +208,7 @@ export type SortKey =
   | TaskMetricColumn["key"]
   | BenchmarkMetricColumn["key"];
 
-export type TableColumnKey = SortKey | "confidence";
+export type TableColumnKey = SortKey | "confidence" | "change";
 
 export type SortState = {
   key: SortKey;
@@ -245,7 +245,8 @@ type TableColumnGroup =
   | "indexes"
   | "baseline"
   | "profile"
-  | "confidence";
+  | "confidence"
+  | "change";
 
 const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
 const operationColumnKeys = new Set<TableColumnKey>([
@@ -305,6 +306,9 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
   }
   if (key === "confidence") {
     return "confidence";
+  }
+  if (key === "change") {
+    return "change";
   }
   return benchmarkColumnGroupsByKey.get(key) ?? "baseline";
 }
