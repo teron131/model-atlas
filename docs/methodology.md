@@ -277,7 +277,7 @@ Effective input and output prices use current provider prices weighted by each p
 
 ## Provider Speed
 
-The public Speed score gives one equal slot to output throughput, latency, end-to-end latency, and each active task-time input. The provider heading is only a presentation group; it does not collapse the three serving measurements into one component.
+The public Speed score assigns 70% to active benchmark task-time inputs and 30% to provider speed. Benchmark runtimes divide their bucket equally, while output throughput, latency, and end-to-end latency divide the provider bucket equally.
 
 Provider throughput, latency, and end-to-end latency use every historical OpenRouter provider series with matching positive token-volume evidence; an unweighted or temporarily missing endpoint no longer invalidates the matched provider evidence. When no matched weighted history remains, throughput falls back to OpenRouter's highest endpoint P50 and latency falls back to its lowest endpoint P50, matching the aggregate cards on the model page. End-to-end latency remains missing only when no matched weighted series is available because OpenRouter does not publish an equivalent aggregate card.
 
@@ -453,7 +453,7 @@ $$
 
 The observed minimum maps to $0$ and the observed maximum maps to $100$ before any lower-is-better reversal. The two forms therefore share the same anchors; direction changes the ordering, not the scale. Absolute-price inputs instead use one-sided winsorized anchors. Quality-conditioned residual inputs average their one-sided winsorized min-max score with their model-balanced percentile score.
 
-Each provider or task-resource input receives one slot. A direct input has evidence weight $1$; a task resource with imputed benchmark quality has weight $\eta^{\text{quality}}$; and a task whose resource and quality are both imputed has weight $\eta^r\eta^{\text{quality}}$. This separates a component's estimated score from the confidence placed in that estimate.
+Benchmark task resources receive 70% of each resource score, while provider speed or price inputs receive 30%. Active benchmark inputs divide the 70% bucket equally; Speed's three provider inputs and Value's two price inputs divide the 30% bucket equally. The base weight $a_i$ is therefore $0.7/n_{\text{task}}$ for an active task input, $0.3/3$ for a Speed provider input, and $0.3/2$ for a Value price input. A direct input has evidence credit $\eta_i=1$; a task resource with imputed benchmark quality has credit $\eta^{\text{quality}}$; and a task whose resource and quality are both imputed has credit $\eta^r\eta^{\text{quality}}$. Its effective weight is $w_{m,i}=a_i\eta_{m,i}$, separating the component's policy weight from the confidence placed in that estimate.
 
 The task-time component $s^{\text{task}}_{m,b}$ is the quality-adjusted runtime score already derived above:
 
@@ -461,24 +461,24 @@ $$
 s^{\text{task}}_{m,b}=R^{\text{time}}_{m,b}.
 $$
 
-The global slot counts $K_{\text{speed}}$ and $K_{\text{value}}$ include every active component for their score. For public score $p\in\{\text{speed},\text{value}\}$, the source-default configuration $m_q^{\text{default}}$ of model $q$ has coverage
+The total active base weights $K_{\text{speed}}$ and $K_{\text{value}}$ sum the policy weights for every active component. For public score $p\in\{\text{speed},\text{value}\}$, the source-default configuration $m_q^{\text{default}}$ of model $q$ has coverage
 
 $$
-\gamma_q^p=\frac{\sum_i\eta^p_{m_q^{\text{default}},i}}{K_p},
+\gamma_q^p=\frac{\sum_iw^p_{m_q^{\text{default}},i}}{K_p},
 \qquad
 C_q^p=\operatorname{smoothstep}\left(\frac{\gamma_q^p-0.1}{0.5}\right).
 $$
 
 An unlabelled configuration is the model default; when every configuration is labelled, the highest reported effort is the default. Coverage is zero through 10% of active evidence and reaches a multiplier of $1$ at 60%. Every effort variant of the model receives the same multiplier $C_q^p$, so non-default variants cannot create or remove model coverage.
 
-The component score $s_{m,i}$ contributes to Speed and $v_{m,i}$ contributes to Value. Their evidence-weighted means produce the final scores, while the corresponding evidence support remains the literal effective share of active slots:
+The component score $s_{m,i}$ contributes to Speed and $v_{m,i}$ contributes to Value. Their evidence-weighted means produce the final scores, while the corresponding evidence support remains the literal effective share of active policy weight:
 
 $$
 \begin{aligned}
-\text{Speed}_m&=C^{\text{speed}}_{q(m)}\frac{\sum_i\eta^{\text{speed}}_{m,i}s_{m,i}}{\sum_i\eta^{\text{speed}}_{m,i}}\\
-\text{SpeedConfidence}_m&=\frac{\sum_i\eta^{\text{speed}}_{m,i}}{K_{\text{speed}}}\\
-\text{Value}_m&=C^{\text{value}}_{q(m)}\frac{\sum_i\eta^{\text{value}}_{m,i}v_{m,i}}{\sum_i\eta^{\text{value}}_{m,i}}\\
-\text{ValueConfidence}_m&=\frac{\sum_i\eta^{\text{value}}_{m,i}}{K_{\text{value}}}.
+\text{Speed}_m&=C^{\text{speed}}_{q(m)}\frac{\sum_iw^{\text{speed}}_{m,i}s_{m,i}}{\sum_iw^{\text{speed}}_{m,i}}\\
+\text{SpeedConfidence}_m&=\frac{\sum_iw^{\text{speed}}_{m,i}}{K_{\text{speed}}}\\
+\text{Value}_m&=C^{\text{value}}_{q(m)}\frac{\sum_iw^{\text{value}}_{m,i}v_{m,i}}{\sum_iw^{\text{value}}_{m,i}}\\
+\text{ValueConfidence}_m&=\frac{\sum_iw^{\text{value}}_{m,i}}{K_{\text{value}}}.
 \end{aligned}
 $$
 

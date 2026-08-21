@@ -299,6 +299,7 @@ assert.match(methodology, /validation-confidence weighted influence/);
 assert.match(methodology, /literal weighted evidence support/);
 assert.match(methodology, /source-default variant/);
 assert.match(methodology, /show the highest available direct effort/);
+assert.match(methodology, /assign 70% to benchmark task resources and 30%/);
 assert.match(methodology, /compare resource use among nearby-quality models/);
 assert.deepEqual(scoreModel, {
   rank: 1,

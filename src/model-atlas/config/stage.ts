@@ -33,6 +33,10 @@ export type QualityCoverageThresholds = Record<
 const QUALITY_COVERAGE_FLOOR_SHARE = 0.1;
 const QUALITY_COVERAGE_FULL_SHARE = 0.6;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
+export const RESOURCE_SCORE_BUCKET_WEIGHTS = {
+  benchmark: 0.7,
+  nonBenchmark: 0.3,
+} as const;
 
 /** Derive the score-coverage ramp from the selected portfolio's effective dimension weight. */
 function qualityCoverageForDimension(keys: readonly string[], dimension: BenchmarkDimension) {

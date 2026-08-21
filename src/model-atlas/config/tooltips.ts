@@ -10,6 +10,7 @@ import {
   benchmarkResourcePolicy,
   INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
 } from "../benchmarks/registry";
+import { RESOURCE_SCORE_BUCKET_WEIGHTS } from "./stage";
 
 export type ModelAtlasColumnTooltipRow = readonly [string, string];
 
@@ -191,34 +192,48 @@ const AGENTIC_BENCHMARK_ROWS = benchmarkRowsByGroup(AGENTIC_BENCHMARK_DISPLAY_KE
 
 const speedInputRows = (components: ActiveResourceComponents) => {
   const resourceKeys = resourceBenchmarkKeys(components);
-  const componentCount = resourceKeys.length + PROVIDER_SPEED_LABELS.length;
-  const componentWeight = perComponentWeight(1, componentCount);
+  const benchmarkComponentWeight = perComponentWeight(
+    RESOURCE_SCORE_BUCKET_WEIGHTS.benchmark,
+    resourceKeys.length,
+  );
+  const providerComponentWeight = perComponentWeight(
+    RESOURCE_SCORE_BUCKET_WEIGHTS.nonBenchmark,
+    PROVIDER_SPEED_LABELS.length,
+  );
   return [
     {
       title: "Benchmark runtimes ↓",
-      rows: benchmarkResourceRows(resourceKeys, "", "runtime ↓", componentWeight),
+      weight: percent(RESOURCE_SCORE_BUCKET_WEIGHTS.benchmark),
+      rows: benchmarkResourceRows(resourceKeys, "", "runtime ↓", benchmarkComponentWeight),
     },
     {
       title: "Provider speed",
-      rows: PROVIDER_SPEED_LABELS.map((label) => [label, componentWeight] as const),
+      weight: percent(RESOURCE_SCORE_BUCKET_WEIGHTS.nonBenchmark),
+      rows: PROVIDER_SPEED_LABELS.map((label) => [label, providerComponentWeight] as const),
     },
   ] as const;
 };
 
 const valueInputRows = (components: ActiveResourceComponents) => {
   const resourceKeys = resourceBenchmarkKeys(components);
-  const componentWeight = perComponentWeight(
-    1,
-    resourceKeys.length + PRICE_COMPONENT_LABELS.length,
+  const benchmarkComponentWeight = perComponentWeight(
+    RESOURCE_SCORE_BUCKET_WEIGHTS.benchmark,
+    resourceKeys.length,
+  );
+  const priceComponentWeight = perComponentWeight(
+    RESOURCE_SCORE_BUCKET_WEIGHTS.nonBenchmark,
+    PRICE_COMPONENT_LABELS.length,
   );
   return [
     {
       title: "Price components",
-      rows: PRICE_COMPONENT_LABELS.map((label) => [label, componentWeight] as const),
+      weight: percent(RESOURCE_SCORE_BUCKET_WEIGHTS.nonBenchmark),
+      rows: PRICE_COMPONENT_LABELS.map((label) => [label, priceComponentWeight] as const),
     },
     {
       title: "Benchmark costs ↓",
-      rows: benchmarkResourceRows(resourceKeys, "", "cost ↓", componentWeight),
+      weight: percent(RESOURCE_SCORE_BUCKET_WEIGHTS.benchmark),
+      rows: benchmarkResourceRows(resourceKeys, "", "cost ↓", benchmarkComponentWeight),
     },
   ] as const;
 };
@@ -261,10 +276,10 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Provider speed metrics and benchmark runtimes receive equal component slots. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and evidence support.",
+      body: "How quickly the model delivers comparable work. Benchmark runtimes receive 70% of Speed and provider speed metrics receive 30%. Each bucket divides its weight equally among its active components. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and evidence support.",
       rows: [
-        ["Provider metrics", "three equal logged min–max components"],
-        ["Benchmark runtimes", "quality-adjusted peer comparison"],
+        ["Benchmark runtimes", "70% total; quality-adjusted peer comparison"],
+        ["Provider metrics", "30% total across three logged min–max components"],
         ["Missing task runtime", "validated sibling-effort estimate or omitted"],
         ["Model coverage", "shared from the source-default variant"],
       ],
@@ -278,11 +293,10 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How much quality and capability the model delivers for its cost. Absolute blended price, quality-adjusted blended price, and benchmark task costs receive equal component slots. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and evidence support.",
+      body: "How much quality and capability the model delivers for its cost. Benchmark task costs receive 70% of Value and price components receive 30%. Each bucket divides its weight equally among its active components. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and evidence support.",
       rows: [
-        ["Blended price", "logged, winsorized min–max score"],
-        ["Quality-adjusted price", "peer-relative efficiency score"],
-        ["Benchmark task costs", "quality-adjusted peer comparison"],
+        ["Benchmark task costs", "70% total; quality-adjusted peer comparison"],
+        ["Price components", "30% total across absolute and quality-adjusted price"],
         ["Missing task cost", "validated sibling-effort estimate or omitted"],
         ["Model coverage", "shared from the source-default variant"],
       ],
