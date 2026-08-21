@@ -2,17 +2,17 @@
 
 import assert from "node:assert/strict";
 
-import { readAgentArenaRawCache } from "../src/model-atlas/benchmarks/persistence/agent-arena";
-import { readMercorApexAgentsRawCache } from "../src/model-atlas/benchmarks/persistence/mercor-apex-agents";
-import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
-import { readVendingBench2RawCache } from "../src/model-atlas/benchmarks/persistence/vending-bench-2";
-import type { AgentArenaModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/agent-arena";
-import type { MercorApexAgentsRow } from "../src/model-atlas/benchmarks/scrapers/mercor-apex-agents";
-import type { VendingBench2ModelScoreRow } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
+import { readAgentArenaRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/agent-arena";
+import { readMercorApexAgentsRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/mercor-apex-agents";
+import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
+import { readVendingBench2RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/vending-bench-2";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
+import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
+import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
+import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 const agentArenaRow: AgentArenaModelScoreRow = {

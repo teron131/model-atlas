@@ -14,7 +14,7 @@ import {
   normalizedFrontierBenchmarkRows,
   selectedFrontierBenchmarkAxisKey,
   speedValueBlendScore,
-} from "../app/dashboard/graphs/frontier-benchmarks";
+} from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { frontierBenchmarkScoreByModel } from "../app/dashboard/graphs/models";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";

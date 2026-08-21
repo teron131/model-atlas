@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/results";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   artificialAnalysisBenchmarkResourceSourceKey,
@@ -14,6 +13,7 @@ import {
   snapshotRowsWithStates,
 } from "../src/model-atlas/ingest/source-snapshots/policy";
 import { artificialAnalysisModelId } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
 
 type ArtificialAnalysisFixtureRow = {
   model_id: string;

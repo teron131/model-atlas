@@ -1,4 +1,4 @@
-/** Model catalog exports expose variant construction and inclusion through one intentional surface. */
+/** Catalog consumers share one boundary for model admission and reasoning-variant construction. */
 
 export { buildModelCatalogRows } from "./inclusion";
 export { buildModelVariants, collapseModelVariants } from "./variants";

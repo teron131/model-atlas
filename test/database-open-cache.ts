@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { readDeepSWERawCache } from "../src/model-atlas/benchmarks/persistence/deep-swe";
 import { readPayloadRows } from "../src/model-atlas/database/payload-rows";
 import {
   loadSchemaSql,
@@ -17,6 +16,7 @@ import {
   schemaTableColumns,
   schemaTableShapes,
 } from "../src/model-atlas/database/schema-reconciliation";
+import { readDeepSWERawCache } from "../src/model-atlas/ingest/benchmark-runtimes/deep-swe";
 import {
   rawSourceCacheStatusFromRows,
   readRawSourceCacheStatus,

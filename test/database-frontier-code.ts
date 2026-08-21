@@ -2,11 +2,10 @@
 
 import assert from "node:assert/strict";
 
-import { readFrontierCodeRawCache } from "../src/model-atlas/benchmarks/persistence/frontier-code";
-import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
-import { processFrontierCodePayload } from "../src/model-atlas/benchmarks/scrapers/frontier-code";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
+import { readFrontierCodeRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/frontier-code";
+import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import {
@@ -15,6 +14,7 @@ import {
   insertModelTaskMetrics,
 } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
+import { processFrontierCodePayload } from "../src/model-atlas/scrapers/benchmarks/frontier-code";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 function metrics(score: number, cost: number, tokens: number) {

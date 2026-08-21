@@ -7,7 +7,7 @@ import {
 import {
   processSurgeBenchmarkPageHtml,
   surgeLeaderboardScoreRows,
-} from "../src/model-atlas/benchmarks/scrapers/surge/results";
+} from "../src/model-atlas/scrapers/benchmarks/surge/results";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);

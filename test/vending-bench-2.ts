@@ -2,8 +2,8 @@
 
 import assert from "node:assert/strict";
 
-import { processVendingBench2DataModule } from "../src/model-atlas/benchmarks/scrapers/vending-bench-2";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
+import { processVendingBench2DataModule } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
 
 const rows = processVendingBench2DataModule(`
 	const metadata={time_grid:[1,2,3]};

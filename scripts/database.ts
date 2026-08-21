@@ -1,4 +1,4 @@
-/** Build the Model Atlas SQLite database snapshot. */
+/** Build a local SQLite snapshot from live source evidence and a prior D1 payload. */
 
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";

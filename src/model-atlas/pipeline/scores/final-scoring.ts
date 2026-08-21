@@ -1,4 +1,4 @@
-/** Final component scoring for public Model Atlas model rows. */
+/** Final scoring combines capability, resource efficiency, coverage, and confidence into public model scores. */
 
 import { RESOURCE_SCORE_BUCKET_WEIGHTS, type ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";

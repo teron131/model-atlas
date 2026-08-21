@@ -1,11 +1,11 @@
 /** Source loading owns provider dispatch and produces the complete raw-row contract for stats assembly. */
 
-import { fetchBenchmarkSourceRows } from "../../benchmarks/persistence/runtime";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
-import { getArtificialAnalysisBenchmarkResourceStats } from "../../benchmarks/scrapers/artificial-analysis/results";
-import { benchmarkObservationSourceFetcher } from "../../benchmarks/scrapers/observation-source";
 import { getArtificialAnalysisLeaderboardStats } from "../../scrapers/artificial-analysis/leaderboard";
+import { getArtificialAnalysisBenchmarkResourceStats } from "../../scrapers/benchmarks/artificial-analysis/results";
+import { benchmarkObservationSourceFetcher } from "../../scrapers/benchmarks/observation-source";
 import { getModelsDevSourceStats } from "../../scrapers/models-dev";
+import { fetchBenchmarkSourceRows } from "../benchmark-runtimes/registry";
 import { selectModelsDevRowsForArtificialAnalysis } from "./policy";
 import {
   buildSourceData,

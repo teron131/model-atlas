@@ -11,17 +11,6 @@ import {
   type BenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
-import {
-  agentsLastExamBenchmarkScore,
-  findAgentsLastExamModelScore,
-} from "../../benchmarks/scrapers/agents-last-exam";
-import {
-  type ArtificialAnalysisBenchmarkResourceLookup,
-  findArtificialAnalysisBenchmarkResourceRow,
-} from "../../benchmarks/scrapers/artificial-analysis/results";
-import { findBlueprintBenchScore } from "../../benchmarks/scrapers/blueprint-bench";
-import { findRiemannBenchScore } from "../../benchmarks/scrapers/surge/riemann-bench";
-import { findValsIndexScore } from "../../benchmarks/scrapers/vals/index-benchmark";
 import { modelNameIdentityKey } from "../../identity";
 import {
   benchmarkModelEffort,
@@ -34,6 +23,17 @@ import {
 } from "../../identity/normalization";
 import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
+import {
+  agentsLastExamBenchmarkScore,
+  findAgentsLastExamModelScore,
+} from "../../scrapers/benchmarks/agents-last-exam";
+import {
+  type ArtificialAnalysisBenchmarkResourceLookup,
+  findArtificialAnalysisBenchmarkResourceRow,
+} from "../../scrapers/benchmarks/artificial-analysis/results";
+import { findBlueprintBenchScore } from "../../scrapers/benchmarks/blueprint-bench";
+import { findRiemannBenchScore } from "../../scrapers/benchmarks/surge/riemann-bench";
+import { findValsIndexScore } from "../../scrapers/benchmarks/vals/index-benchmark";
 import type { ModelAtlasScoringSources } from "../model-types";
 
 type BenchmarkObservationLookups = {

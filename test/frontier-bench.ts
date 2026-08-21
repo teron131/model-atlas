@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   buildFrontierBenchMap,
   processFrontierBenchPayload,
-} from "../src/model-atlas/benchmarks/scrapers/frontier-bench";
+} from "../src/model-atlas/scrapers/benchmarks/frontier-bench";
 
 function row({
   model,

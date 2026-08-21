@@ -57,7 +57,7 @@ export type OpenRouterEffectivePricingResponse = {
   };
 };
 
-export type OpenRouterPerformanceSummary = {
+type OpenRouterPerformanceSummary = {
   throughput_tokens_per_second_median: number | null;
   latency_seconds_median: number | null;
   e2e_latency_seconds_median: number | null;

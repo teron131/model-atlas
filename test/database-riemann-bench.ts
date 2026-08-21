@@ -1,17 +1,17 @@
-/** Verifies Riemann Bench model payloads and raw-source URL cache round-trips. */
+/** Verifies Riemann-bench model payloads and raw-source URL cache round-trips. */
 
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  readRiemannBenchRawCache,
-  riemannBenchPersistence,
-} from "../src/model-atlas/benchmarks/persistence/riemann-bench";
-import { insertBenchmarkRawRows } from "../src/model-atlas/benchmarks/persistence/runtime";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase } from "../src/model-atlas/database/schema";
+import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
+import {
+  readRiemannBenchRawCache,
+  riemannBenchRuntime,
+} from "../src/model-atlas/ingest/benchmark-runtimes/riemann-bench";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { insertModelBenchmarks, insertModels } from "../src/model-atlas/ingest/writers";
@@ -37,7 +37,7 @@ globalThis.fetch = async () =>
 	</div>
 `);
 try {
-  const reconciledSnapshot = await riemannBenchPersistence.snapshot(
+  const reconciledSnapshot = await riemannBenchRuntime.snapshot(
     {
       rows: [
         {
@@ -130,7 +130,7 @@ try {
       customSourceUrl,
       "cache reconstruction should accept a consistent custom source URL",
     );
-    const cachedSnapshot = await riemannBenchPersistence.snapshot(
+    const cachedSnapshot = await riemannBenchRuntime.snapshot(
       cachedRows,
       {
         last_fetch_epoch_seconds: 1_800_000_000,
@@ -142,14 +142,14 @@ try {
       new Map(),
       1_800_000_100,
     );
-    assert.equal(cachedSnapshot.riemannBenchPersistenceUrl, customSourceUrl);
+    assert.equal(cachedSnapshot.riemannBenchSourceUrl, customSourceUrl);
 
     db.prepare("DELETE FROM riemann_bench_raw_rows").run();
     insertBenchmarkRawRows(
       db,
       {
         riemannBenchModelScoreRows: cachedSnapshot.riemannBenchModelScoreRows,
-        riemannBenchPersistenceUrl: cachedSnapshot.riemannBenchPersistenceUrl,
+        riemannBenchSourceUrl: cachedSnapshot.riemannBenchSourceUrl,
         fetchedAt: {
           riemannBench: cachedSnapshot.sourceStatus.fetchedAt,
         },

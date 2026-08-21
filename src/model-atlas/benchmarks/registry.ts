@@ -52,7 +52,7 @@ const DEFAULT_BENCHMARK_PERSISTENCE = {
   location: { kind: "benchmark" },
 } as const satisfies BenchmarkPersistenceFacet;
 
-function benchmarkProcessing(
+function resolveBenchmarkProcessing(
   overrides: Partial<BenchmarkProcessingFacet> = {},
 ): BenchmarkProcessingFacet {
   return {
@@ -122,7 +122,7 @@ type BenchmarkSources = {
 };
 
 /** Compose source facets from extended declarations and standard observation sources. */
-function benchmarkSources(): BenchmarkSources {
+function composeBenchmarkSources(): BenchmarkSources {
   return Object.fromEntries(
     Object.keys(BENCHMARK_SCORING_WEIGHTS).map((key) => {
       const benchmarkKey = key as BenchmarkKey;
@@ -158,11 +158,11 @@ function benchmarkSources(): BenchmarkSources {
   ) as unknown as BenchmarkSources;
 }
 
-const BENCHMARK_SOURCES = benchmarkSources();
+const BENCHMARK_SOURCES = composeBenchmarkSources();
 const BENCHMARK_PROCESSING = Object.fromEntries(
   Object.keys(BENCHMARK_SCORING_WEIGHTS).map((key) => [
     key,
-    benchmarkProcessing(
+    resolveBenchmarkProcessing(
       BENCHMARK_PROCESSING_OVERRIDES[key as keyof typeof BENCHMARK_PROCESSING_OVERRIDES],
     ),
   ]),

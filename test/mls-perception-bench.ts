@@ -11,8 +11,8 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_PORTFOLIO,
 } from "../src/model-atlas/benchmarks/registry";
-import { processMlsBenchLeaderboardHtml } from "../src/model-atlas/benchmarks/scrapers/mls-bench";
-import { processPerceptionBenchReadme } from "../src/model-atlas/benchmarks/scrapers/perception-bench";
+import { processMlsBenchLeaderboardHtml } from "../src/model-atlas/scrapers/benchmarks/mls-bench";
+import { processPerceptionBenchReadme } from "../src/model-atlas/scrapers/benchmarks/perception-bench";
 
 const mlsRows = processMlsBenchLeaderboardHtml(`
   <table><tbody>

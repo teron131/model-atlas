@@ -2,8 +2,8 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../benchmarks/scrapers/deep-swe";
 import { asFiniteNumber, asRecord } from "../../runtime";
+import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../../scrapers/benchmarks/deep-swe";
 import {
   isBenchmarkObservationRawSource,
   RAW_SOURCE_TABLES,

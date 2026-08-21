@@ -42,7 +42,7 @@ registerHooks({
 });
 
 const { Dashboard } = await import("../app/dashboard/index");
-const { BenchmarkStrip } = await import("../app/dashboard/benchmarks/BenchmarkStrip");
+const { BenchmarkStrip } = await import("../app/dashboard/BenchmarkStrip");
 const { ModelTable } = await import("../app/dashboard/table/ModelTable");
 
 const payload = minimalModelAtlasPayload({

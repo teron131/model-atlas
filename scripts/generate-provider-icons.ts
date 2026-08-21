@@ -1,4 +1,4 @@
-/** Provider icon generation for Model Atlas. */
+/** Materialize provider logo modules and public SVGs from the current database snapshot and logo cache. */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -15,8 +15,8 @@ type ProviderAsset = {
 
 type ProviderAssetMap = Record<string, ProviderAsset>;
 
-const GENERATED_PATH = "app/dashboard/shared/provider-assets.generated.ts";
-const GENERATED_ICON_PATH = "app/dashboard/shared/provider-icons.generated.ts";
+const GENERATED_PATH = "src/model-atlas/logos/provider-assets.generated.ts";
+const GENERATED_ICON_PATH = "src/model-atlas/logos/provider-icons.generated.ts";
 const PUBLIC_ICON_DIR = "public/provider-icons";
 const LOGO_SIZE = 64;
 
@@ -44,8 +44,8 @@ for (const [provider, source] of [...logoSources].sort()) {
 
 await mkdir(resolve(PUBLIC_ICON_DIR), { recursive: true });
 await Promise.all([
-  writeFile(resolve(GENERATED_PATH), providerAssetsModule(nextAssets)),
-  writeFile(resolve(GENERATED_ICON_PATH), providerIconsModule(nextAssets)),
+  writeFile(resolve(GENERATED_PATH), renderProviderAssetsModule(nextAssets)),
+  writeFile(resolve(GENERATED_ICON_PATH), renderProviderIconsModule(nextAssets)),
   ...Object.entries(nextAssets).map(([provider, asset]) =>
     writeFile(resolve(PUBLIC_ICON_DIR, `${provider}.svg`), generatedIconBytes(asset.logo)),
   ),
@@ -134,7 +134,7 @@ function svgDataUrl(imageBuffer: Buffer) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
-function providerAssetsModule(assets: ProviderAssetMap) {
+function renderProviderAssetsModule(assets: ProviderAssetMap) {
   const entries = Object.entries(assets)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([provider, asset]) => {
@@ -148,7 +148,7 @@ function providerAssetsModule(assets: ProviderAssetMap) {
     })
     .join("\n");
   return [
-    "// Generated provider assets from scripts/generate-provider-icons.ts. Do not edit directly.",
+    "// Generated provider logo data for API and dashboard consumers; do not edit directly.",
     "",
     "type ProviderAsset = {",
     "\tcolor: string;",
@@ -162,7 +162,7 @@ function providerAssetsModule(assets: ProviderAssetMap) {
   ].join("\n");
 }
 
-function providerIconsModule(assets: ProviderAssetMap) {
+function renderProviderIconsModule(assets: ProviderAssetMap) {
   const entries = Object.entries(assets)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([provider, asset]) => {
@@ -176,7 +176,7 @@ function providerIconsModule(assets: ProviderAssetMap) {
     })
     .join("\n");
   return [
-    "// Generated provider icon metadata from scripts/generate-provider-icons.ts. Do not edit directly.",
+    "// Generated provider icon URLs and colors for dashboard consumers; do not edit directly.",
     "",
     "type ProviderIcon = {",
     "\tcolor: string;",

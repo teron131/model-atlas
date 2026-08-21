@@ -1,4 +1,4 @@
-/** Leaderboard row components and model display rules. */
+/** Leaderboard row rendering applies model display, cell formatting, and interaction rules. */
 
 import { type CSSProperties, memo, type MouseEvent, useState } from "react";
 

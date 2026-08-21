@@ -1,6 +1,5 @@
 /** Exercises Artificial Analysis leaderboard projection and scoring inputs. */
 
-import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/benchmarks/scrapers/artificial-analysis/omniscience";
 import {
   buildBenchmarkImputationByModel,
   buildComponentScoreResult,
@@ -11,6 +10,7 @@ import {
   processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
 import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/model-labels";
+import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/omniscience";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = stableJson(actual);

@@ -1,4 +1,4 @@
-/** Scripted test runner for Model Atlas. */
+/** Discover and run standalone TypeScript behavior checks in deterministic filename order. */
 
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";

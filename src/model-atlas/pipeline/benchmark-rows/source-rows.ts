@@ -8,8 +8,6 @@ import {
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
-import { agentsLastExamBenchmarkScore } from "../../benchmarks/scrapers/agents-last-exam";
-import { cursorBenchCanonicalModelName } from "../../benchmarks/scrapers/cursorbench";
 import {
   benchmarkModelEffort,
   canonicalReasoningEffort,
@@ -17,6 +15,8 @@ import {
 } from "../../identity/normalization";
 import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
+import { agentsLastExamBenchmarkScore } from "../../scrapers/benchmarks/agents-last-exam";
+import { cursorBenchCanonicalModelName } from "../../scrapers/benchmarks/cursorbench";
 import { collapseModelVariants } from "../model-catalog";
 
 export type BenchmarkSourceRow = {

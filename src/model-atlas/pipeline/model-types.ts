@@ -2,19 +2,19 @@
 
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BenchmarkKey, BenchmarkResourceKey } from "../benchmarks/registry";
-import type { AgentArenaModelScoreRow } from "../benchmarks/scrapers/agent-arena";
-import type { AgentsLastExamModelScoreRow } from "../benchmarks/scrapers/agents-last-exam";
-import type { AleBenchModelScoreRow } from "../benchmarks/scrapers/ale-bench";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../benchmarks/scrapers/artificial-analysis/results";
-import type { CursorBenchModelScoreRow } from "../benchmarks/scrapers/cursorbench";
-import type { DeepSWEModelScoreRow } from "../benchmarks/scrapers/deep-swe";
-import type { FrontierBenchModelAgentRow } from "../benchmarks/scrapers/frontier-bench";
-import type { FrontierCodeModelEffortRow } from "../benchmarks/scrapers/frontier-code";
-import type { MercorApexAgentsRow } from "../benchmarks/scrapers/mercor-apex-agents";
-import type { HarveyLabModelScoreRow } from "../benchmarks/scrapers/vals/harvey-lab";
-import type { VendingBench2ModelScoreRow } from "../benchmarks/scrapers/vending-bench-2";
 import type { NumberOrNull } from "../numeric";
 import type { JsonObject } from "../runtime";
+import type { AgentArenaModelScoreRow } from "../scrapers/benchmarks/agent-arena";
+import type { AgentsLastExamModelScoreRow } from "../scrapers/benchmarks/agents-last-exam";
+import type { AleBenchModelScoreRow } from "../scrapers/benchmarks/ale-bench";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../scrapers/benchmarks/artificial-analysis/results";
+import type { CursorBenchModelScoreRow } from "../scrapers/benchmarks/cursorbench";
+import type { DeepSWEModelScoreRow } from "../scrapers/benchmarks/deep-swe";
+import type { FrontierBenchModelAgentRow } from "../scrapers/benchmarks/frontier-bench";
+import type { FrontierCodeModelEffortRow } from "../scrapers/benchmarks/frontier-code";
+import type { MercorApexAgentsRow } from "../scrapers/benchmarks/mercor-apex-agents";
+import type { HarveyLabModelScoreRow } from "../scrapers/benchmarks/vals/harvey-lab";
+import type { VendingBench2ModelScoreRow } from "../scrapers/benchmarks/vending-bench-2";
 
 export type ModelAtlasModalities = {
   input?: string[];

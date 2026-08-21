@@ -1,4 +1,4 @@
-/** Dashboard table and control formatting helpers. */
+/** Dashboard formatting keeps table values, controls, and missing-value glyphs consistent. */
 
 import type { DashboardMetricColumn, TaskMetricColumn } from "../table/models";
 

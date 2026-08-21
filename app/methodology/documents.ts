@@ -32,7 +32,7 @@ export type TableOfContentsItem = {
   level: 2 | 3;
 };
 
-export const METHODOLOGY_ASSETS = {
+const METHODOLOGY_ASSETS = {
   "confidence.svg": { width: 720, height: 360 },
   "elo-transform.svg": { width: 720, height: 420 },
   "final-score-assembly.svg": { width: 720, height: 500 },

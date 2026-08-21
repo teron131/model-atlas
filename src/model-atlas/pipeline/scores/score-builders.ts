@@ -1,4 +1,4 @@
-/** Component score builders for final Model Atlas model rows. */
+/** Capability score assembly owns benchmark weighting, sparse-effort calibration, speed anchors, and confidence. */
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";

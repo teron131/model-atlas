@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   scoreQuadrilateralPoints,
   scoreQuadrilateralRadius,
-} from "../app/dashboard/graphs/score-quadrilateral";
+} from "../app/dashboard/graphs/plot/score-quadrilateral";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const completeModel = {

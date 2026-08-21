@@ -7,7 +7,6 @@ import { type CSSProperties, memo, useMemo, useState } from "react";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
-import { linearAxisScale } from "./axis-scale";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import {
   correlationLabel,
@@ -21,29 +20,32 @@ import { EmptyChart } from "./ChartComponents";
 import { finiteValue, fmtTooltipScore } from "./format";
 import { GraphToggle } from "./GraphToggle";
 import { interactionXAxisTicks } from "./interaction-ticks";
-import { calloutLabelPlacements } from "./label-placement";
 import { frontierBenchmarkScoreByModel, interactionConfigs } from "./models";
 import { Panel } from "./Panel";
+import { linearAxisScale } from "./plot/axis-scale";
 import {
-  AxisTitles,
   CursorCapture,
   CursorProjectionLayer,
+  PointHitTarget,
+  useCursorProjection,
+} from "./plot/Interaction";
+import { calloutLabelPlacements } from "./plot/label-placement";
+import {
+  AxisTitles,
   DirectionArrow,
   MedianCross,
   ModelPointLabel,
   ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
-  PointHitTarget,
   SCATTER_CHART_HEIGHT,
   SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
   stableSvgScale,
-  useCursorProjection,
   XAxisTicks,
   YAxisTicks,
-} from "./PlotPrimitives";
-import { scoreQuadrilateralRadius } from "./score-quadrilateral";
+} from "./plot/Primitives";
+import { scoreQuadrilateralRadius } from "./plot/score-quadrilateral";
 import type { HoverRow, HoverSetter, InteractionConfig, InteractionContext, Point } from "./types";
 
 import styles from "./graphs.module.css";

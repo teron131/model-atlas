@@ -1,4 +1,4 @@
-/** Payload smoke testing for Model Atlas. */
+/** Fetch the live payload and print a compact health summary for deployment smoke checks. */
 
 import { getLiveModelAtlasPayload } from "../src/model-atlas/index";
 
