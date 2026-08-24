@@ -100,9 +100,13 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     columns: ["base_model", "reasoning_effort", "score"],
   }),
   deep_swe: payloadRowGroup("deepSWERows", SNAPSHOT_TABLES.deep_swe, "pass_at_1 DESC, row_index"),
-  frontier_bench: payloadRowGroup(
-    "frontierBenchRows",
-    SNAPSHOT_TABLES.frontier_bench,
+  frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
+    columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],
+    optional: true,
+  }),
+  terminal_bench_3: payloadRowGroup(
+    "terminalBench3Rows",
+    SNAPSHOT_TABLES.terminal_bench_3,
     "row_index",
     {
       columns: [
@@ -116,10 +120,6 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
       optional: true,
     },
   ),
-  frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
-    columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],
-    optional: true,
-  }),
   vending_bench_2: payloadRowGroup(
     "vendingBench2Rows",
     SNAPSHOT_TABLES.vending_bench_2,

@@ -13,10 +13,10 @@ import type { ArtificialAnalysisBenchmarkResourceRow } from "../scrapers/benchma
 import type { BlueprintBenchModelScoreRow } from "../scrapers/benchmarks/blueprint-bench";
 import type { CursorBenchModelScoreRow } from "../scrapers/benchmarks/cursorbench";
 import type { DeepSWERawLeaderboardRow } from "../scrapers/benchmarks/deep-swe";
-import type { FrontierBenchModelAgentRow } from "../scrapers/benchmarks/frontier-bench";
 import type { FrontierCodeModelEffortRow } from "../scrapers/benchmarks/frontier-code";
 import type { MercorApexAgentsRow } from "../scrapers/benchmarks/mercor-apex-agents";
 import type { RiemannBenchModelScoreRow } from "../scrapers/benchmarks/surge/riemann-bench";
+import type { TerminalBench3ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-3";
 import type {
   HarveyLabModelScoreRow,
   HarveyLabTaskRow,
@@ -129,13 +129,13 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
   cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
   deepSWERawRows: DeepSWERawLeaderboardRow[];
-  frontierBenchRows: FrontierBenchModelAgentRow[];
   frontierCodeRows: FrontierCodeModelEffortRow[];
   harveyLabRows: HarveyLabTaskRow[];
   harveyLabModelScoreRows: HarveyLabModelScoreRow[];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
   riemannBenchSourceUrl: string;
+  terminalBench3Rows: TerminalBench3ModelAgentRow[];
   valsIndexRows: ValsIndexTaskScoreRow[];
   valsIndexModelScoreRows: ValsIndexModelScoreRow[];
   vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
@@ -150,11 +150,11 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
     blueprintBench: number | null;
     cursorBench: number | null;
     deepSWE: number | null;
-    frontierBench: number | null;
     frontierCode: number | null;
     harveyLab: number | null;
     mercorApexAgents: number | null;
     riemannBench: number | null;
+    terminalBench3: number | null;
     valsIndex: number | null;
     vendingBench2: number | null;
   };

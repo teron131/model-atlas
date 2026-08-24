@@ -307,20 +307,6 @@ CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS frontier_bench_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	revision TEXT NOT NULL,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	harness TEXT NOT NULL,
-	score REAL NOT NULL,
-	score_standard_error REAL NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
@@ -367,6 +353,20 @@ CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	model TEXT NOT NULL,
 	score REAL NOT NULL,
 	last_updated TEXT,
+	PRIMARY KEY (row_index)
+);
+
+CREATE TABLE IF NOT EXISTS terminal_bench_3_raw_rows (
+	row_index INTEGER NOT NULL,
+	fetched_at_epoch_seconds INTEGER,
+	url TEXT NOT NULL,
+	revision TEXT NOT NULL,
+	model TEXT NOT NULL,
+	base_model TEXT NOT NULL,
+	reasoning_effort TEXT,
+	harness TEXT NOT NULL,
+	score REAL NOT NULL,
+	score_standard_error REAL NOT NULL,
 	PRIMARY KEY (row_index)
 );
 

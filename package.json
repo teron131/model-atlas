@@ -1,6 +1,6 @@
 {
   "name": "model-atlas",
-  "version": "0.26.1",
+  "version": "0.26.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,7 +16,7 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "dev": "next dev --webpack",
+    "dev": "next dev --webpack --hostname 127.0.0.1",
     "start": "next start",
     "test": "tsx scripts/test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",

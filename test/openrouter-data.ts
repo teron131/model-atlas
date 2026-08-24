@@ -54,7 +54,7 @@ const effortObservations = [
     artificial_analysis_id: "openai/gpt-5-6-sol",
     artificial_analysis_slug: "gpt-5-6-sol",
     reasoning_effort: "max",
-    benchmarks: { frontier_bench: 0.88, scicode: 0.56 },
+    benchmarks: { scicode: 0.56, terminal_bench_3: 0.88 },
     intelligence: { coding_index: 77, intelligence_index: 59 },
     intelligence_index_cost: { total_cost: 12 },
   },
@@ -64,7 +64,7 @@ const effortObservations = [
     artificial_analysis_id: "openai/gpt-5-6-sol-xhigh",
     artificial_analysis_slug: "gpt-5-6-sol-xhigh",
     reasoning_effort: "xhigh",
-    benchmarks: { frontier_bench: 0.9, scicode: 0.55 },
+    benchmarks: { scicode: 0.55, terminal_bench_3: 0.9 },
     intelligence: { coding_index: 78, intelligence_index: 58 },
     intelligence_index_cost: { total_cost: 10 },
   },
@@ -97,7 +97,7 @@ assertEqual(collapsedVariantRows.length, 1);
 assertEqual(collapsedVariantRow.artificial_analysis_id, "openai/gpt-5-6-sol");
 assertEqual(collapsedVariantRow.reasoning_effort, undefined);
 assertEqual(collapsedVariantBenchmarks.scicode, 0.56);
-assertEqual(collapsedVariantBenchmarks.frontier_bench, 0.88);
+assertEqual(collapsedVariantBenchmarks.terminal_bench_3, 0.88);
 assertEqual(collapsedVariantIntelligence.coding_index, 77);
 assertEqual(collapsedVariantIntelligence.intelligence_index, 59);
 assertEqual(collapsedVariantIntelligenceCost.total_cost, 12);

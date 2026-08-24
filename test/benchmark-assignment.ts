@@ -24,9 +24,9 @@ import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipel
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/ale-bench";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
-import type { FrontierBenchModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/frontier-bench";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/benchmarks/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
+import type { TerminalBench3ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-3";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
 
@@ -119,8 +119,8 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   cost_per_task_usd: 0.75,
   tokens_per_task: 4_500,
 };
-const frontierBenchRow: FrontierBenchModelAgentRow = {
-  revision: "v0_1",
+const terminalBench3Row: TerminalBench3ModelAgentRow = {
+  revision: "3_0_0",
   model: "Example Model (high)",
   base_model: "Example Model",
   reasoning_effort: "high",
@@ -337,9 +337,6 @@ const lookups = {
   enterpriseBenchCoreCraft: { rowsByModelName: new Map() },
   epochCapabilitiesIndex: { rowsByModelName: new Map() },
   financeAgentV2: { rowsByModelName: emptyLookup() },
-  frontierBench: {
-    rowsByModelName: buildBenchmarkModelMap([frontierBenchRow]),
-  },
   frontierCode: {
     rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
   },
@@ -368,6 +365,9 @@ const lookups = {
     rowsByModelName: emptyLookup(),
   },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
+  terminalBench3: {
+    rowsByModelName: buildBenchmarkModelMap([terminalBench3Row]),
+  },
   toolathlon: {
     rowsByModelName: emptyLookup(),
   },
@@ -389,10 +389,10 @@ assert.deepEqual(observationAssignment.benchmarks, {
   analyst_agent: 0.5,
   automation_bench: 0.68,
   briefcase: 0.5,
-  frontier_bench: 0.4353,
   frontier_code: 0.535,
   hle: 0.4,
   itbench_sre: 0.56,
+  terminal_bench_3: 0.4353,
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, undefined);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, undefined);
@@ -421,12 +421,12 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   chartography: 0.47,
   cursorbench: 0.52,
   deep_swe: 0.72,
-  frontier_bench: 0.4353,
   frontier_code: 0.535,
   harvey_lab: 0.1125,
   hle: 0.4,
   itbench_sre: 0.56,
   legal_research: 0.61,
+  terminal_bench_3: 0.4353,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(defaultVariantAssignment.scoringSources, {
@@ -440,12 +440,12 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   chartography: chartographyRow,
   cursorbench: cursorBenchRow,
   deep_swe: deepSWERow,
-  frontier_bench: frontierBenchRow,
   frontier_code: frontierCodeRow,
   harvey_lab: harveyLabRow,
   hle: artificialAnalysisHleResourceRow,
   itbench_sre: itbenchResourceRow,
   legal_research: legalResearchRow,
+  terminal_bench_3: terminalBench3Row,
   vending_bench_2: vendingBench2Row,
 });
 const effortQualifiedDefault = buildDefaultVariantBenchmarks(

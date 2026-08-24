@@ -16,10 +16,10 @@ import {
   getDeepSWELeaderboardStats,
   preferredDeepSWELeaderboardRows,
 } from "../../scrapers/benchmarks/deep-swe";
-import { getFrontierBenchStats } from "../../scrapers/benchmarks/frontier-bench";
 import { getFrontierCodeStats } from "../../scrapers/benchmarks/frontier-code";
 import { getMercorApexAgentsStats } from "../../scrapers/benchmarks/mercor-apex-agents";
 import { getRiemannBenchStats } from "../../scrapers/benchmarks/surge/riemann-bench";
+import { getTerminalBench3Stats } from "../../scrapers/benchmarks/terminal-bench-3";
 import { getHarveyLabStats } from "../../scrapers/benchmarks/vals/harvey-lab";
 import { getValsIndexStats } from "../../scrapers/benchmarks/vals/index-benchmark";
 import { getVendingBench2Stats } from "../../scrapers/benchmarks/vending-bench-2";
@@ -39,12 +39,12 @@ import { aleBenchRuntime } from "./ale-bench";
 import { blueprintBenchRuntime } from "./blueprint-bench";
 import { cursorBenchRuntime } from "./cursorbench";
 import { deepSWERuntime } from "./deep-swe";
-import { frontierBenchRuntime } from "./frontier-bench";
 import { frontierCodeRuntime } from "./frontier-code";
 import { harveyLabRuntime } from "./harvey-lab";
 import { mercorApexAgentsRuntime } from "./mercor-apex-agents";
 import { insertBenchmarkObservationRows } from "./observation";
 import { riemannBenchRuntime } from "./riemann-bench";
+import { terminalBench3Runtime } from "./terminal-bench-3";
 import { valsIndexRuntime } from "./vals-index";
 import { vendingBench2Runtime } from "./vending-bench-2";
 
@@ -123,12 +123,6 @@ const STANDALONE_BENCHMARK_RUNTIMES = {
     sourceRowsFromSnapshots: (snapshots) =>
       preferredDeepSWELeaderboardRows(snapshots.deepSWERawRows),
   }),
-  frontier_bench: defineBenchmarkRuntime({
-    ...frontierBenchRuntime,
-    sourceRowsKey: "frontierBenchRows",
-    loadSourceRows: async () => (await getFrontierBenchStats()).data,
-    sourceRowsFromSnapshots: (snapshots) => snapshots.frontierBenchRows,
-  }),
   frontier_code: defineBenchmarkRuntime({
     ...frontierCodeRuntime,
     sourceRowsKey: "frontierCodeRows",
@@ -140,6 +134,12 @@ const STANDALONE_BENCHMARK_RUNTIMES = {
     sourceRowsKey: "mercorApexAgentsRows",
     loadSourceRows: async () => (await getMercorApexAgentsStats()).data,
     sourceRowsFromSnapshots: (snapshots) => snapshots.mercorApexAgentsRows,
+  }),
+  terminal_bench_3: defineBenchmarkRuntime({
+    ...terminalBench3Runtime,
+    sourceRowsKey: "terminalBench3Rows",
+    loadSourceRows: async () => (await getTerminalBench3Stats()).data,
+    sourceRowsFromSnapshots: (snapshots) => snapshots.terminalBench3Rows,
   }),
   vending_bench_2: defineBenchmarkRuntime({
     ...vendingBench2Runtime,

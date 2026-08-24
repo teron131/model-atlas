@@ -42,10 +42,10 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   blueprintBenchRows: readonly DbBenchmarkRow[];
   cursorBenchRows: readonly DbBenchmarkRow[];
   deepSWERows: readonly DbBenchmarkRow[];
-  frontierBenchRows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
   harveyLabRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
+  terminalBench3Rows: readonly DbBenchmarkRow[];
   valsIndexRows: readonly DbBenchmarkRow[];
   vendingBench2Rows: readonly DbBenchmarkRow[];
 };
@@ -176,15 +176,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.pass_at_1,
     })),
-  frontier_bench: (rows) =>
-    rows.frontierBenchRows.map((row) => ({
-      key: "frontier_bench",
-      id: stringValue(row.base_model),
-      identity: stringValue(row.base_model),
-      label: stringValue(row.model),
-      reasoningEffort: row.reasoning_effort,
-      value: row.score,
-    })),
   frontier_code: (rows) =>
     rows.frontierCodeRows.flatMap((row) =>
       row.score_eligible === 1
@@ -200,6 +191,15 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
           ]
         : [],
     ),
+  terminal_bench_3: (rows) =>
+    rows.terminalBench3Rows.map((row) => ({
+      key: "terminal_bench_3",
+      id: stringValue(row.base_model),
+      identity: stringValue(row.base_model),
+      label: stringValue(row.model),
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   vending_bench_2: (rows) =>
     rows.vendingBench2Rows.map((row) => ({
       key: "vending_bench_2",

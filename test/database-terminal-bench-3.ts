@@ -1,21 +1,21 @@
-/** Verifies Frontier-Bench raw model-agent persistence and public benchmark payload wiring. */
+/** Verifies Terminal-Bench 3.0 raw model-agent persistence and public benchmark payload wiring. */
 
 import assert from "node:assert/strict";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readFrontierBenchRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/frontier-bench";
 import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
+import { readTerminalBench3RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/terminal-bench-3";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { insertModelBenchmarks, insertModels } from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import type { FrontierBenchModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/frontier-bench";
+import type { TerminalBench3ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-3";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
-const rows: FrontierBenchModelAgentRow[] = [
+const rows: TerminalBench3ModelAgentRow[] = [
   {
-    revision: "v0_1",
+    revision: "3_0_0",
     model: "Claude Fable 5 (xhigh)",
     base_model: "Claude Fable 5",
     reasoning_effort: "xhigh",
@@ -24,7 +24,7 @@ const rows: FrontierBenchModelAgentRow[] = [
     score_standard_error: 0.0163,
   },
   {
-    revision: "v0_1",
+    revision: "3_0_0",
     model: "Claude Fable 5 (max)",
     base_model: "Claude Fable 5",
     reasoning_effort: "max",
@@ -34,12 +34,12 @@ const rows: FrontierBenchModelAgentRow[] = [
   },
 ];
 const snapshots = {
-  frontierBenchRows: rows,
-  fetchedAt: { frontierBench: 1_800_000_000 },
-} satisfies Pick<SourceSnapshots, "frontierBenchRows"> & {
-  fetchedAt: Pick<SourceSnapshots["fetchedAt"], "frontierBench">;
+  terminalBench3Rows: rows,
+  fetchedAt: { terminalBench3: 1_800_000_000 },
+} satisfies Pick<SourceSnapshots, "terminalBench3Rows"> & {
+  fetchedAt: Pick<SourceSnapshots["fetchedAt"], "terminalBench3">;
 };
-const databasePath = ".cache/test-database-frontier-bench.sqlite";
+const databasePath = ".cache/test-database-terminal-bench-3.sqlite";
 
 await removeDatabaseFiles(databasePath);
 try {
@@ -51,17 +51,17 @@ try {
     insertBenchmarkRawRows(
       db,
       snapshots as unknown as SourceSnapshots,
-      SNAPSHOT_TABLES.frontier_bench,
+      SNAPSHOT_TABLES.terminal_bench_3,
     );
-    const rawRows = db.prepare("SELECT * FROM frontier_bench_raw_rows ORDER BY row_index").all();
+    const rawRows = db.prepare("SELECT * FROM terminal_bench_3_raw_rows ORDER BY row_index").all();
     assert.equal(rawRows.length, 2);
-    assert.equal(rawRows[1]?.revision, "v0_1");
+    assert.equal(rawRows[1]?.revision, "3_0_0");
     assert.equal(rawRows[1]?.base_model, "Claude Fable 5");
     assert.equal(rawRows[1]?.reasoning_effort, "max");
     assert.equal(rawRows[1]?.harness, "mini-SWE-agent");
     assert.equal(rawRows[1]?.score, 0.4353);
     assert.equal(rawRows[1]?.score_standard_error, 0.0165);
-    assert.deepEqual(readFrontierBenchRawCache(db), {
+    assert.deepEqual(readTerminalBench3RawCache(db), {
       rows,
       fetchedAt: 1_800_000_000,
     });
@@ -75,15 +75,15 @@ try {
       ...benchmarkObservationRowGroups(),
       cursorBenchRows: [],
       deepSWERows: [],
-      frontierBenchRows: rawRows,
       frontierCodeRows: [],
       gdpPdfRows: [],
       harveyLabRows: [],
       riemannBenchRows: [],
+      terminalBench3Rows: rawRows,
       valsIndexRows: [],
       vendingBench2Rows: [],
     });
-    assert.deepEqual(benchmarkRows.frontier_bench, [
+    assert.deepEqual(benchmarkRows.terminal_bench_3, [
       {
         id: "Claude Fable 5",
         identity: "Claude Fable 5",
@@ -101,8 +101,8 @@ try {
         reasoning_effort: "max",
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text"] },
-        benchmarks: { frontier_bench: 0.4353 },
-        benchmark_dates: { frontier_bench: "2026-07-30" },
+        benchmarks: { terminal_bench_3: 0.4353 },
+        benchmark_dates: { terminal_bench_3: "2026-07-30" },
         component_scores: {
           intelligence_score: 70,
           agentic_score: 80,
@@ -123,13 +123,13 @@ try {
   }
 
   const payload = readDatabasePayload(databasePath);
-  assert.equal(payload.models[0]?.benchmarks?.frontier_bench, 0.4353);
-  assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.frontier_bench, {
+  assert.equal(payload.models[0]?.benchmarks?.terminal_bench_3, 0.4353);
+  assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.terminal_bench_3, {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   });
-  assert.equal(payload.metadata.scoring.selected_benchmark_keys.includes("frontier_bench"), true);
+  assert.equal(payload.metadata.scoring.selected_benchmark_keys.includes("terminal_bench_3"), true);
 } finally {
   await removeDatabaseFiles(databasePath);
 }

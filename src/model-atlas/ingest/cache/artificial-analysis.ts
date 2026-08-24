@@ -35,10 +35,8 @@ const ARTIFICIAL_ANALYSIS_COST_KEYS = [
 /** Hidden retained Artificial Analysis rows prove the cache is new enough to preserve deprecated benchmark carriers. */
 export function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
   return (
-    queryCacheRows(
-      db,
-      "SELECT 1 FROM artificial_analysis_raw_models WHERE deprecated = 1 LIMIT 1",
-    ).length > 0
+    queryCacheRows(db, "SELECT 1 FROM artificial_analysis_raw_models WHERE deprecated = 1 LIMIT 1")
+      .length > 0
   );
 }
 

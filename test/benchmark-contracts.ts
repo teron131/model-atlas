@@ -236,12 +236,12 @@ assert.throws(
   /Benchmark resource policy requires a resource source for invalid/,
 );
 
-assert.deepEqual(BENCHMARK_CATALOG.frontier_bench.source.inputs, [
+assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_3.source.inputs, [
   {
     group: "standalone",
-    id: "frontier_bench",
+    id: "terminal_bench_3",
     roles: ["observation"],
-    runtime: { key: "frontier_bench", publicRows: true },
+    runtime: { key: "terminal_bench_3", publicRows: true },
   },
 ]);
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.source.inputs, [
@@ -303,7 +303,7 @@ assert.deepEqual(BENCHMARK_CATALOG.briefcase.processing, {
 assert.equal(transformBenchmarkSourceValue("briefcase", 500), 0);
 assert.equal(transformBenchmarkSourceValue("briefcase", 1_500), 0.5);
 assert.equal(transformBenchmarkSourceValue("briefcase", 3_000), 1);
-assert.deepEqual(BENCHMARK_CATALOG.frontier_bench.processing.aggregation, {
+assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_3.processing.aggregation, {
   kind: "custom",
 });
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.processing.sourceCrosswalk, {
