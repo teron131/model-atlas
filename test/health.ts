@@ -394,16 +394,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
       mean_output_tokens: 60_000,
     },
   ],
-  frontierBenchRows: [
-    {
-      model: "GPT-5 (max)",
-      base_model: "GPT-5",
-      reasoning_effort: "max",
-      harness: "mini-SWE-agent",
-      score: 0.4353,
-      score_standard_error: 0.0165,
-    },
-  ],
   frontierCodeRows: [],
   gdpPdfRows: [],
   harveyLabRows: [
@@ -420,6 +410,16 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
       model: "GPT 5.6 Sol (Max reasoning)",
       provider: "OpenAI",
       score: 0.744,
+    },
+  ],
+  terminalBench3Rows: [
+    {
+      model: "GPT-5 (max)",
+      base_model: "GPT-5",
+      reasoning_effort: "max",
+      harness: "mini-SWE-agent",
+      score: 0.4353,
+      score_standard_error: 0.0165,
     },
   ],
   valsIndexRows: [
@@ -498,7 +498,7 @@ assert.deepEqual(dbBenchmarkRows.vals_index, [
     value: 0.67,
   },
 ]);
-assert.deepEqual(dbBenchmarkRows.frontier_bench, [
+assert.deepEqual(dbBenchmarkRows.terminal_bench_3, [
   {
     id: "GPT-5",
     identity: "GPT-5",

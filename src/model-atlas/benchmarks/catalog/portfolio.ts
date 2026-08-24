@@ -163,11 +163,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
   },
-  frontier_bench: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
-  },
   frontier_code: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -261,6 +256,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   surge_intelligence_index: FALLBACK_INDEX_SCORING_WEIGHT,
   tau_banking: {
     group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
+  terminal_bench_3: {
+    group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },

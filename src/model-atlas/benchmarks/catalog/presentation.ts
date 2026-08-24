@@ -219,15 +219,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "finance agent work"],
     ],
   },
-  frontier_bench: {
-    title: "Frontier-Bench",
-    body: "Complete difficult software, infrastructure, data, and technical workflows inside containerized terminal environments.",
-    rows: [
-      ["Source", "Frontier-Bench"],
-      ["Metric", "task accuracy"],
-      ["Role", "terminal and software agent work"],
-    ],
-  },
   frontier_code: {
     title: "FrontierCode",
     body: "Make repository-scale code changes that are tested for correctness, quality, and mergeability.",
@@ -395,6 +386,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "banking agent work"],
     ],
   },
+  terminal_bench_3: {
+    title: "Terminal-Bench 3.0",
+    body: "Complete difficult software, infrastructure, data, and technical workflows inside containerized terminal environments.",
+    rows: [
+      ["Source", "Terminal-Bench 3.0"],
+      ["Metric", "task accuracy"],
+      ["Role", "terminal and software agent work"],
+    ],
+  },
   toolathlon: {
     title: "Toolathlon",
     body: "Complete long-horizon real-world tasks that require selecting and coordinating many external tools.",
@@ -473,7 +473,6 @@ export const BENCHMARK_LABELS = {
   enterprisebench_corecraft: "EnterpriseBench CoreCraft",
   epoch_capabilities_index: "Epoch Capabilities Index",
   finance_agent_v2: "Finance Agent V2",
-  frontier_bench: "Frontier-Bench",
   frontier_code: "FrontierCode",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
@@ -494,6 +493,7 @@ export const BENCHMARK_LABELS = {
   scicode: "SciCode",
   surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
+  terminal_bench_3: "Terminal-Bench 3.0",
   toolathlon: "Toolathlon",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
@@ -523,7 +523,6 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "cursorbench",
   "deep_swe",
   "emb",
-  "frontier_bench",
   "frontier_code",
   "frontiermath_tier_4",
   "gdp_pdf",
@@ -537,6 +536,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "programbench",
   "proofbench",
   "riemann_bench",
+  "terminal_bench_3",
 ] as const satisfies readonly BenchmarkKey[];
 
 export const INDEX_BENCHMARK_KEYS = [
@@ -1023,12 +1023,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  frontier_bench: {
-    key: "frontierBench",
-    label: "FBench",
-    format: "percent",
-    defaultSort: "descending",
-  },
   frontier_code: {
     key: "frontierCode",
     label: "FCode",
@@ -1146,6 +1140,12 @@ export const BENCHMARK_COLUMNS = {
   tau_banking: {
     key: "tauBanking",
     label: "tau3",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  terminal_bench_3: {
+    key: "terminalBench3",
+    label: "TB3",
     format: "percent",
     defaultSort: "descending",
   },

@@ -126,7 +126,7 @@ const sourceRows: ModelAtlasSourceRows = {
   harveyLabRows: [],
   mercorApexAgentsRows: [],
   riemannBenchRows: [],
-  frontierBenchRows: [],
+  terminalBench3Rows: [],
   valsIndexRows: [],
   vendingBench2Rows: [],
 };
@@ -154,10 +154,10 @@ const cachedSourceData = cachedSourceDataFromSnapshots({
     }),
   ),
   frontierCodeRows: [],
-  frontierBenchRows: [],
   harveyLabModelScoreRows: [],
   mercorApexAgentsRows: [],
   riemannBenchModelScoreRows: [],
+  terminalBench3Rows: [],
   valsIndexModelScoreRows: [],
   vendingBench2ModelScoreRows: [],
 } as unknown as SourceSnapshots);

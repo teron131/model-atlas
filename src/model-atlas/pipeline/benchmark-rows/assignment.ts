@@ -51,11 +51,11 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   blueprintBench: Pick<ModelAtlasSourceData["blueprintBench"], "rowsByModelName">;
   cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
   deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
-  frontierBench: Pick<ModelAtlasSourceData["frontierBench"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
   harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
   mercorApexAgents: Pick<ModelAtlasSourceData["mercorApexAgents"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
+  terminalBench3: Pick<ModelAtlasSourceData["terminalBench3"], "rowsByModelName">;
   valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
   vendingBench2: Pick<ModelAtlasSourceData["vendingBench2"], "rowsByModelName">;
 };
@@ -229,24 +229,6 @@ const addAleBench: StandaloneBenchmarkOperation = ({
   }
 };
 
-/** Adds the strongest agent result for the exact model effort selected by the source projection. */
-const addFrontierBench: StandaloneBenchmarkOperation = ({
-  assignedBenchmarks,
-  lookups,
-  modelNameCandidates,
-  targetReasoningEffort,
-}) => {
-  const row = findEffortSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.frontierBench.rowsByModelName,
-  );
-  if (row != null) {
-    assignedBenchmarks.benchmarks.frontier_bench = row.score;
-    assignedBenchmarks.scoringSources.frontier_bench = row;
-  }
-};
-
 /** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
 const addFrontierCode: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
@@ -278,6 +260,24 @@ const addMercorApexAgents: StandaloneBenchmarkOperation = ({
   );
   if (row != null) {
     assignedBenchmarks.scoringSources.apex_agents_mercor = row;
+  }
+};
+
+/** Adds the strongest agent result for the exact model effort selected by the source projection. */
+const addTerminalBench3: StandaloneBenchmarkOperation = ({
+  assignedBenchmarks,
+  lookups,
+  modelNameCandidates,
+  targetReasoningEffort,
+}) => {
+  const row = findEffortSourceRow(
+    modelNameCandidates,
+    targetReasoningEffort,
+    lookups.terminalBench3.rowsByModelName,
+  );
+  if (row != null) {
+    assignedBenchmarks.benchmarks.terminal_bench_3 = row.score;
+    assignedBenchmarks.scoringSources.terminal_bench_3 = row;
   }
 };
 
@@ -337,10 +337,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       }
     },
   },
-  frontier_bench: {
-    defaultVariant: addFrontierBench,
-    observation: addFrontierBench,
-  },
   frontier_code: {
     defaultVariant: addFrontierCode,
     observation: addFrontierCode,
@@ -348,6 +344,10 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
   mercor_apex_agents: {
     defaultVariant: addMercorApexAgents,
     observation: addMercorApexAgents,
+  },
+  terminal_bench_3: {
+    defaultVariant: addTerminalBench3,
+    observation: addTerminalBench3,
   },
   vending_bench_2: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {

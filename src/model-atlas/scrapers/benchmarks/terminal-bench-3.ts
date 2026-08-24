@@ -1,5 +1,5 @@
 /**
- * Frontier-Bench v0.1 leaderboard results from FrontierBench.
+ * Terminal-Bench 3.0 leaderboard results from its official structured source.
  *
  * Page source: https://www.frontierbench.ai/
  * JSON source: https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read
@@ -14,30 +14,30 @@ import {
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { stringValue } from "../parsing";
 
-const FRONTIER_BENCH_DATA_URL =
+const TERMINAL_BENCH_3_DATA_URL =
   "https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read";
-const FRONTIER_BENCH_PACKAGE = "frontier-bench/frontier-bench";
-const FRONTIER_BENCH_NAME = "frontier-bench";
-const FRONTIER_BENCH_TITLE = "FRONTIER-BENCH V0.1";
+const TERMINAL_BENCH_3_PACKAGE = "terminal-bench/terminal-bench";
+const TERMINAL_BENCH_3_NAME = "3-0-0";
+const TERMINAL_BENCH_3_TITLE = "Terminal-Bench 3.0";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export const FRONTIER_BENCH_SOURCE_REVISION = "v0_1";
+export const TERMINAL_BENCH_3_SOURCE_REVISION = "3_0_0";
 
-export type FrontierBenchModelAgentRow = BenchmarkModelRow & {
-  revision: typeof FRONTIER_BENCH_SOURCE_REVISION;
+export type TerminalBench3ModelAgentRow = BenchmarkModelRow & {
+  revision: typeof TERMINAL_BENCH_3_SOURCE_REVISION;
   harness: string;
   score: number;
   score_standard_error: number;
 };
 
-export type FrontierBenchRowsByModelName = Map<string, FrontierBenchModelAgentRow>;
+export type TerminalBench3RowsByModelName = Map<string, TerminalBench3ModelAgentRow>;
 
-type FrontierBenchPayload = {
+type TerminalBench3Payload = {
   fetched_at_epoch_seconds: number | null;
-  data: FrontierBenchModelAgentRow[];
+  data: TerminalBench3ModelAgentRow[];
 };
 
-type FrontierBenchScraperOptions = {
+type TerminalBench3ScraperOptions = {
   url?: string;
   timeoutMs?: number;
 };
@@ -51,7 +51,7 @@ function modelEffortLabel(baseModel: string, reasoningEffort: string | null): st
   return reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`;
 }
 
-function modelAgentRow(value: unknown): FrontierBenchModelAgentRow | null {
+function modelAgentRow(value: unknown): TerminalBench3ModelAgentRow | null {
   const row = asRecord(value);
   if (row.status !== "display") {
     return null;
@@ -67,7 +67,7 @@ function modelAgentRow(value: unknown): FrontierBenchModelAgentRow | null {
     return null;
   }
   return {
-    revision: FRONTIER_BENCH_SOURCE_REVISION,
+    revision: TERMINAL_BENCH_3_SOURCE_REVISION,
     model: modelEffortLabel(baseModel, reasoningEffort),
     base_model: baseModel,
     reasoning_effort: reasoningEffort,
@@ -77,20 +77,20 @@ function modelAgentRow(value: unknown): FrontierBenchModelAgentRow | null {
   };
 }
 
-/** Return the provider-qualified alias omitted by Frontier-Bench for Claude family labels. */
+/** Return the provider-qualified alias omitted by Terminal-Bench 3.0 for Claude family labels. */
 function claudeBaseModelAlias(baseModel: string): string | null {
   return /^(?:Fable|Opus|Sonnet)\b/.test(baseModel) ? `Claude ${baseModel}` : null;
 }
 
-/** Parse every displayed v0.1 row without collapsing model, effort, or agent configurations. */
-export function processFrontierBenchPayload(value: unknown): FrontierBenchModelAgentRow[] {
+/** Parse every displayed Terminal-Bench 3.0 row without collapsing model, effort, or agent configurations. */
+export function processTerminalBench3Payload(value: unknown): TerminalBench3ModelAgentRow[] {
   const root = asRecord(value);
   const leaderboard = asRecord(root.leaderboard);
   const datasetVersionIds = leaderboard.dataset_version_ids;
   if (
-    leaderboard.package !== FRONTIER_BENCH_PACKAGE ||
-    leaderboard.name !== FRONTIER_BENCH_NAME ||
-    leaderboard.title !== FRONTIER_BENCH_TITLE ||
+    leaderboard.package !== TERMINAL_BENCH_3_PACKAGE ||
+    leaderboard.name !== TERMINAL_BENCH_3_NAME ||
+    leaderboard.title !== TERMINAL_BENCH_3_TITLE ||
     !Array.isArray(datasetVersionIds) ||
     datasetVersionIds.length === 0 ||
     datasetVersionIds.some((id) => stringValue(id) == null)
@@ -109,10 +109,10 @@ export function processFrontierBenchPayload(value: unknown): FrontierBenchModelA
  *
  * Raw persistence retains every model-agent row; this projection only settles scoring when the source later publishes more than one agent for the same model and effort.
  */
-export function buildFrontierBenchMap(
-  rows: readonly FrontierBenchModelAgentRow[],
-): FrontierBenchRowsByModelName {
-  const strongestByModelEffort = new Map<string, FrontierBenchModelAgentRow>();
+export function buildTerminalBench3Map(
+  rows: readonly TerminalBench3ModelAgentRow[],
+): TerminalBench3RowsByModelName {
+  const strongestByModelEffort = new Map<string, TerminalBench3ModelAgentRow>();
   for (const row of rows) {
     const key = normalizeModelToken(row.model);
     const current = strongestByModelEffort.get(key);
@@ -141,26 +141,26 @@ export function buildFrontierBenchMap(
   return rowsByModelName;
 }
 
-/** Fetch the structured public source used by the official Frontier-Bench leaderboard. */
-export async function getFrontierBenchStats(
-  options: FrontierBenchScraperOptions = {},
-): Promise<FrontierBenchPayload> {
+/** Fetch the structured public source used by the official Terminal-Bench 3.0 leaderboard. */
+export async function getTerminalBench3Stats(
+  options: TerminalBench3ScraperOptions = {},
+): Promise<TerminalBench3Payload> {
   try {
     const response = await fetchWithTimeout(
-      options.url ?? FRONTIER_BENCH_DATA_URL,
+      options.url ?? TERMINAL_BENCH_3_DATA_URL,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ package: FRONTIER_BENCH_PACKAGE, name: FRONTIER_BENCH_NAME }),
+        body: JSON.stringify({ package: TERMINAL_BENCH_3_PACKAGE, name: TERMINAL_BENCH_3_NAME }),
       },
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     );
     if (!response.ok) {
-      throw new Error(`Frontier-Bench scrape failed: ${response.status}`);
+      throw new Error(`Terminal-Bench 3.0 scrape failed: ${response.status}`);
     }
-    const data = processFrontierBenchPayload(await response.json());
+    const data = processTerminalBench3Payload(await response.json());
     if (data.length === 0) {
-      throw new Error("Frontier-Bench scrape returned no v0.1 rows");
+      throw new Error("Terminal-Bench 3.0 scrape returned no 3.0 rows");
     }
     return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
   } catch {

@@ -262,14 +262,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.pass_at_1,
     })),
-  frontier_bench: (sourceData) =>
-    benchmarkRowDrafts("frontier_bench", sourceData.frontierBench.rows, (row) => ({
-      id: row.base_model,
-      identity: row.base_model,
-      label: row.model,
-      reasoningEffort: row.reasoning_effort,
-      value: row.score,
-    })),
   frontier_code: (sourceData) =>
     benchmarkRowDrafts(
       "frontier_code",
@@ -282,6 +274,14 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         value: row.score,
       }),
     ),
+  terminal_bench_3: (sourceData) =>
+    benchmarkRowDrafts("terminal_bench_3", sourceData.terminalBench3.rows, (row) => ({
+      id: row.base_model,
+      identity: row.base_model,
+      label: row.model,
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   vending_bench_2: (sourceData) =>
     benchmarkRowDrafts("vending_bench_2", sourceData.vendingBench2.rows, (row) => ({
       identity: row.base_model,

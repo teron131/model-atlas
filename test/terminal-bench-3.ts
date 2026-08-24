@@ -1,11 +1,11 @@
-/** Verifies Frontier-Bench v0.1 parsing and strongest-agent scoring projection. */
+/** Verifies Terminal-Bench 3.0 parsing and strongest-agent scoring projection. */
 
 import assert from "node:assert/strict";
 
 import {
-  buildFrontierBenchMap,
-  processFrontierBenchPayload,
-} from "../src/model-atlas/scrapers/benchmarks/frontier-bench";
+  buildTerminalBench3Map,
+  processTerminalBench3Payload,
+} from "../src/model-atlas/scrapers/benchmarks/terminal-bench-3";
 
 function row({
   model,
@@ -36,11 +36,11 @@ function row({
   };
 }
 
-function payload(rows: unknown[], title = "FRONTIER-BENCH V0.1") {
+function payload(rows: unknown[], title = "Terminal-Bench 3.0") {
   return {
     leaderboard: {
-      package: "frontier-bench/frontier-bench",
-      name: "frontier-bench",
+      package: "terminal-bench/terminal-bench",
+      name: "3-0-0",
       title,
       dataset_version_ids: ["version-id"],
     },
@@ -48,7 +48,7 @@ function payload(rows: unknown[], title = "FRONTIER-BENCH V0.1") {
   };
 }
 
-const rows = processFrontierBenchPayload(
+const rows = processTerminalBench3Payload(
   payload([
     row({
       model: "GPT-5.6 Sol",
@@ -81,7 +81,7 @@ const rows = processFrontierBenchPayload(
 
 assert.equal(rows.length, 2);
 assert.deepEqual(rows[0], {
-  revision: "v0_1",
+  revision: "3_0_0",
   model: "GPT-5.6 Sol (max)",
   base_model: "GPT-5.6 Sol",
   reasoning_effort: "max",
@@ -92,11 +92,11 @@ assert.deepEqual(rows[0], {
 assert.equal(rows[1]?.score, 0.1784);
 assert.equal(rows[1]?.score_standard_error, 0.0144);
 
-const rowsByModelName = buildFrontierBenchMap(rows);
+const rowsByModelName = buildTerminalBench3Map(rows);
 assert.equal(rowsByModelName.get("gpt-5-6-sol")?.harness, "Codex");
 assert.equal(rowsByModelName.get("grok-4-5-xhigh")?.harness, "Cursor CLI");
 
-const strongestAgentRows = buildFrontierBenchMap([
+const strongestAgentRows = buildTerminalBench3Map([
   {
     ...rows[0]!,
     harness: "Weaker",
@@ -117,9 +117,9 @@ const strongestAgentRows = buildFrontierBenchMap([
 ]);
 assert.equal(strongestAgentRows.get("gpt-5-6-sol-max")?.harness, "Stronger with lower uncertainty");
 
-const claudeAliasRows = buildFrontierBenchMap([
+const claudeAliasRows = buildTerminalBench3Map([
   {
-    revision: "v0_1",
+    revision: "3_0_0",
     model: "Opus 5 (max)",
     base_model: "Opus 5",
     reasoning_effort: "max",
@@ -131,4 +131,4 @@ const claudeAliasRows = buildFrontierBenchMap([
 assert.equal(claudeAliasRows.get("claude-opus-5-max")?.model, "Opus 5 (max)");
 assert.equal(claudeAliasRows.get("claude-opus-5")?.score, 0.4353);
 
-assert.deepEqual(processFrontierBenchPayload(payload([], "FRONTIER-BENCH V0.2")), []);
+assert.deepEqual(processTerminalBench3Payload(payload([], "Terminal-Bench 3.1")), []);

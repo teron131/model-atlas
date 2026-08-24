@@ -483,16 +483,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  frontier_bench: {
-    inputs: [
-      {
-        group: "standalone",
-        id: "frontier_bench",
-        roles: ["observation"],
-        runtime: { key: "frontier_bench", publicRows: true },
-      },
-    ],
-  },
   frontier_code: {
     inputs: [
       {
@@ -604,6 +594,16 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
+  terminal_bench_3: {
+    inputs: [
+      {
+        group: "standalone",
+        id: "terminal_bench_3",
+        roles: ["observation"],
+        runtime: { key: "terminal_bench_3", publicRows: true },
+      },
+    ],
+  },
   vals_index: {
     inputs: [
       {
@@ -657,7 +657,7 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       clamp: true,
     },
   },
-  frontier_bench: {
+  terminal_bench_3: {
     aggregation: { kind: "custom" },
   },
   weirdml: {
