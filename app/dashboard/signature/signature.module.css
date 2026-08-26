@@ -378,16 +378,6 @@
     min-height: max(820px, calc(100dvh - 66px));
   }
 
-  .scrim {
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--paper) 98%, transparent) 0%,
-      color-mix(in srgb, var(--paper) 84%, transparent) 46%,
-      color-mix(in srgb, var(--paper) 38%, transparent) 72%,
-      transparent 100%
-    );
-  }
-
   .modeBar {
     display: block;
     min-height: 0;

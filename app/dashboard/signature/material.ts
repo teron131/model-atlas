@@ -505,7 +505,7 @@ function renderSignalType(frame: MaterialFrame): void {
   const layers = signalTypeLayers(context, width, height, baseSize, models);
   models.forEach((model, modelIndex) => {
     const { agentic, intelligence, speed, mean, value } = model.parameters;
-    const y = signalTypeY(compact, modelIndex, models.length, height);
+    const y = signalTypeY(modelIndex, models.length, height);
     const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
     const density = context.canvas.width / Math.max(1, width);
     const layer = layers[modelIndex];
@@ -651,7 +651,6 @@ function signalTypeLayers(
   models: SignatureModel[],
 ): TypeLayer[] {
   const density = context.canvas.width / Math.max(1, width);
-  const compact = width < 720;
   const keys = models.map((model, modelIndex) => {
     const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
     return `${model.key}:${model.name}:${model.color}:${fontSize}:${width}:${height}:${density}:${modelIndex}`;
@@ -667,7 +666,7 @@ function signalTypeLayers(
 
   const layers = models.map((model, modelIndex) => {
     const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
-    const y = signalTypeY(compact, modelIndex, models.length, height);
+    const y = signalTypeY(modelIndex, models.length, height);
     const top = Math.max(0, y - fontSize * 0.68 - 2);
     const bottom = Math.min(height, y + fontSize * 0.52 + 2);
     const canvas = document.createElement("canvas");
@@ -693,14 +692,9 @@ function signalTypeLayers(
   return layers;
 }
 
-function signalTypeY(
-  compact: boolean,
-  modelIndex: number,
-  modelCount: number,
-  height: number,
-): number {
-  const start = compact ? 0.58 : 0.18;
-  const end = compact ? 0.8 : 0.78;
+function signalTypeY(modelIndex: number, modelCount: number, height: number): number {
+  const start = 0.18;
+  const end = 0.78;
   const progress = modelCount <= 1 ? 0.5 : modelIndex / (modelCount - 1);
   return height * (start + (end - start) * progress);
 }
@@ -720,9 +714,7 @@ function signalTypeFontSize(
 
 function drawMaterialAnnotations(frame: MaterialFrame): void {
   const { context, width, models, palette } = frame;
-  if (width < 720) {
-    return;
-  }
+  const compact = width < 720;
 
   context.save();
   context.textBaseline = "middle";
@@ -733,6 +725,11 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
         ? evidenceAnchor(modelIndex, frame.width, frame.height)
         : modelPoint(modelIndex, models.length, frame.width, frame.height);
     const displaced = disturb(frame, anchor.x, anchor.y, 0.04);
+    const annotationY = compact ? Math.min(displaced.y, frame.height * 0.76) : displaced.y;
+    const annotationX =
+      compact && annotationY > frame.height * 0.7
+        ? Math.min(displaced.x, width * 0.62)
+        : displaced.x;
     const rank = String(model.rank).padStart(2, "0");
     const rankFont = `650 9px ${MATERIAL_MONO_FONT}`;
     const nameFont = `600 13px ${MATERIAL_SANS_FONT}`;
@@ -741,20 +738,20 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
     context.font = nameFont;
     const nameWidth = context.measureText(model.name).width;
     const labelWidth = rankWidth + 8 + nameWidth;
-    const labelOnLeft = displaced.x + 18 + labelWidth > width - 20;
-    const labelX = displaced.x + (labelOnLeft ? -18 - labelWidth : 18);
+    const labelOnLeft = annotationX + 18 + labelWidth > width - 20;
+    const labelX = annotationX + (labelOnLeft ? -18 - labelWidth : 18);
     if (frame.mode === "phase") {
       context.strokeStyle = withAlpha(model.color, 0.74);
       context.lineWidth = 1;
       context.beginPath();
-      context.moveTo(displaced.x - 18, displaced.y);
-      context.lineTo(displaced.x + 18, displaced.y);
-      context.moveTo(displaced.x, displaced.y - 18);
-      context.lineTo(displaced.x, displaced.y + 18);
+      context.moveTo(annotationX - 18, annotationY);
+      context.lineTo(annotationX + 18, annotationY);
+      context.moveTo(annotationX, annotationY - 18);
+      context.lineTo(annotationX, annotationY + 18);
       context.stroke();
     } else {
       context.save();
-      context.translate(displaced.x, displaced.y);
+      context.translate(annotationX, annotationY);
       context.rotate(Math.PI / 4);
       context.fillStyle = model.color;
       const markerSize = 5;
@@ -765,13 +762,13 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
     context.lineWidth = 2;
     context.strokeStyle = withAlpha(palette.background, 0.82);
     context.font = rankFont;
-    context.strokeText(rank, labelX, displaced.y);
+    context.strokeText(rank, labelX, annotationY);
     context.fillStyle = withAlpha(palette.muted, 0.82);
-    context.fillText(rank, labelX, displaced.y);
+    context.fillText(rank, labelX, annotationY);
     context.font = nameFont;
-    context.strokeText(model.name, labelX + rankWidth + 8, displaced.y);
+    context.strokeText(model.name, labelX + rankWidth + 8, annotationY);
     context.fillStyle = withAlpha(palette.ink, 0.92);
-    context.fillText(model.name, labelX + rankWidth + 8, displaced.y);
+    context.fillText(model.name, labelX + rankWidth + 8, annotationY);
   });
   context.restore();
 }
@@ -784,15 +781,8 @@ function evidenceAnchor(index: number, width: number, height: number): Point {
     [0.66, 0.66],
     [0.8, 0.82],
   ];
-  const compactClusters = [
-    [0.85, 0.34],
-    [0.68, 0.46],
-    [0.6, 0.59],
-    [0.88, 0.7],
-    [0.71, 0.83],
-  ];
-  const clusters = width < 720 ? compactClusters : desktopClusters;
-  const cluster = clusters[index] ?? clusters[index % clusters.length] ?? [0.68, 0.48];
+  const cluster = desktopClusters[index] ??
+    desktopClusters[index % desktopClusters.length] ?? [0.68, 0.48];
   return {
     x: Number(cluster[0]) * width,
     y: Number(cluster[1]) * height,
@@ -868,17 +858,9 @@ function modelPoint(index: number, count: number, width: number, height: number)
     [0.61, 0.63],
     [0.72, 0.77],
   ];
-  const compact = [
-    [0.82, 0.38],
-    [0.65, 0.49],
-    [0.58, 0.66],
-    [0.84, 0.74],
-    [0.68, 0.84],
-  ];
-  const points = width < 720 ? compact : desktop;
   const fallbackX = 0.58 + ((index + 1) / Math.max(2, count + 1)) * 0.36;
   const fallbackY = 0.2 + ((index + 1) / Math.max(2, count + 1)) * 0.65;
-  const point = points[index] ?? [fallbackX, fallbackY];
+  const point = desktop[index] ?? [fallbackX, fallbackY];
   return { x: Number(point[0]) * width, y: Number(point[1]) * height };
 }
 
