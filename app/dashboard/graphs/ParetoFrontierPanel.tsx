@@ -128,7 +128,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       fromY,
       toX,
       toY,
-      path: `M${fromX},${fromY} H${toX} V${toY}`,
+      path: `M${fromX},${fromY} L${toX},${toY}`,
     };
   });
   const plot = plotBoundsFor(width, height, margin);
@@ -194,7 +194,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       }
       note={
         <>
-          Step line: displayed <em>Intelligence</em> versus <em>Value</em> tradeoff envelope.
+          Frontier line: displayed <em>Intelligence</em> versus <em>Value</em> tradeoff envelope.
         </>
       }
     >
