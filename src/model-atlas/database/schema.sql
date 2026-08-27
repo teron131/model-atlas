@@ -456,6 +456,7 @@ CREATE TABLE IF NOT EXISTS models (
 	logo TEXT,
 	reasoning INTEGER,
 	release_date TEXT,
+	is_preview INTEGER NOT NULL DEFAULT 0 CHECK (is_preview IN (0, 1)),
 	open_weights INTEGER,
 	context INTEGER,
 	context_input INTEGER,

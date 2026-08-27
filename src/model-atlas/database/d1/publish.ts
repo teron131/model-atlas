@@ -35,6 +35,7 @@ import {
 import { sourceRowStatesFromRows } from "../../ingest/source-snapshots/policy";
 import type { RawSourceCacheStatus } from "../../ingest/types";
 import { SnapshotRowCollector } from "../../ingest/writers";
+import { rankedModels } from "../../pipeline/model-types";
 import { nowEpochSeconds, stableJson } from "../../runtime";
 import { preserveHighSignalSnapshotModels } from "../../stats/payload/snapshot-preservation";
 import type { ModelAtlasPayload } from "../../stats/types";
@@ -223,8 +224,8 @@ async function publishLockedD1Snapshot(
   if (preservedPayload !== previewPayload) {
     derived.rows.finalModelRows = preservedPayload.models;
     derived.rows.benchmarkVersionLogRows = buildBenchmarkVersionLogRows(
-      current.previousPayload?.models ?? [],
-      preservedPayload.models,
+      rankedModels(current.previousPayload?.models ?? []),
+      rankedModels(preservedPayload.models),
       BENCHMARK_VERSION_BASELINE_DATE,
       new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10),
     );

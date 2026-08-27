@@ -1,5 +1,6 @@
 /** Runtime snapshot loading reads Cloudflare D1 without a SQLite fallback. */
 
+import { rankedModels } from "../pipeline/model-types";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
 import { readD1Payload } from "./d1";
@@ -98,11 +99,12 @@ async function fetchRemoteSnapshot(url: string): Promise<ModelAtlasPayload> {
 
 /** Keep cached payload rows, but rebuild metadata from current code-owned benchmark and scoring policy. */
 function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
+  const metadataModels = rankedModels(payload.models);
   return {
     ...payload,
     metadata: buildCurrentModelAtlasMetadata({
-      models: payload.models,
-      healthModels: payload.models,
+      models: metadataModels,
+      healthModels: metadataModels,
       availableMetrics: payload.metadata?.available_metrics,
       sourceHealth: payload.metadata?.source_health,
       benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,

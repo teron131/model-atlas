@@ -3,7 +3,10 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
-import { selectPublicModels } from "../src/model-atlas/pipeline/selection/public-list";
+import {
+  previewModelFromCandidate,
+  selectPublicModels,
+} from "../src/model-atlas/pipeline/selection/public-list";
 import {
   benchmarksJsonPayload,
   coreJsonPayload,
@@ -161,6 +164,34 @@ assert.deepEqual(
   allVariantPayload.models.map((model) => model.reasoning_effort),
   ["max", "high"],
   "the all view should expose every reasoning-effort variant",
+);
+const previewModel = previewModelFromCandidate({
+  ...internalCandidate,
+  id: "provider/recent-preview",
+  name: "Recent Preview",
+  component_scores: {
+    intelligence_score: 95,
+    agentic_score: 85,
+    speed_score: null,
+  },
+});
+const previewPayload = minimalModelAtlasPayload({
+  fetchedAt: 123,
+  models: [reasoningEffortModels[0]!, previewModel],
+});
+assert.deepEqual(
+  [
+    scoreJsonPayload(previewPayload).scores.length,
+    coreJsonPayload(previewPayload).models.length,
+    benchmarksJsonPayload(previewPayload).benchmarks.length,
+  ],
+  [1, 1, 1],
+  "compact public views should exclude unranked previews",
+);
+assert.equal(
+  (publicJsonPayload(previewPayload, "all") as FullJsonPayload).models[1]?.preview,
+  true,
+  "the all view should expose the explicit preview marker",
 );
 const sourceOnlyEffortPayload = minimalModelAtlasPayload({
   fetchedAt: 124,

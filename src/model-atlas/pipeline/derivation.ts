@@ -10,7 +10,7 @@ import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
-import type { ModelAtlasModel } from "./model-types";
+import type { ModelAtlasModel, ModelAtlasPublishedModel } from "./model-types";
 import { prepareOpenRouterModelData } from "./openrouter-data";
 import { buildFinalModels } from "./selection/builder";
 import type { BenchmarkVersioningOptions } from "./selection/candidate";
@@ -38,7 +38,7 @@ type ModelDerivationLoaderOptions<LoadResult extends OpenRouterLoadResult> =
 type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
   matchDiagnostics: MatchDiagnosticsPayload;
   modelRows: Record<string, unknown>[];
-  models: ModelAtlasModel[];
+  models: ModelAtlasPublishedModel[];
   benchmarkObservations: BenchmarkObservationsByKey;
   openRouterLoad: LoadResult;
 };

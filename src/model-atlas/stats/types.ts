@@ -5,7 +5,9 @@ import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
 import type { QualityCoverageThresholds } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type { ModelAtlasSourceHealth } from "../ingest/types";
-import type { ModelAtlasModel as PipelineModel } from "../pipeline/model-types";
+import type { ModelAtlasPublishedModel as PipelinePublishedModel } from "../pipeline/model-types";
+
+export { isPreviewModel, rankedModels } from "../pipeline/model-types";
 
 export type {
   BenchmarkGroup,
@@ -34,6 +36,8 @@ export type {
   ModelAtlasIntelligence,
   ModelAtlasModalities,
   ModelAtlasModel,
+  ModelAtlasPreviewModel,
+  ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
   ModelAtlasScores,
   ModelAtlasBenchmarkRankDriver,
@@ -89,7 +93,7 @@ export type ModelAtlasMetadata = {
 export type ModelAtlasPayload = {
   fetched_at_epoch_seconds: number | null;
   metadata: ModelAtlasMetadata;
-  models: PipelineModel[];
+  models: PipelinePublishedModel[];
   benchmark_observations?: BenchmarkObservationsByKey;
 };
 

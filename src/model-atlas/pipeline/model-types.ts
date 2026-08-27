@@ -221,6 +221,24 @@ export type ModelAtlasScoredCandidate = ModelFields & {
 };
 
 export type ModelAtlasModel = ModelFields & {
+  preview?: false;
   component_scores: ModelAtlasComponentScores;
   scores: ModelAtlasScores;
 };
+
+export type ModelAtlasPreviewModel = ModelFields & {
+  preview: true;
+  component_scores: ModelAtlasCandidateComponentScores;
+  scores: ModelAtlasCandidateScores;
+};
+
+export type ModelAtlasPublishedModel = ModelAtlasModel | ModelAtlasPreviewModel;
+
+export function isPreviewModel(model: ModelAtlasPublishedModel): model is ModelAtlasPreviewModel {
+  return model.preview === true;
+}
+
+/** Exclude provisional rows from ranking, metadata, and change tracking. */
+export function rankedModels(models: readonly ModelAtlasPublishedModel[]): ModelAtlasModel[] {
+  return models.filter((model): model is ModelAtlasModel => !isPreviewModel(model));
+}

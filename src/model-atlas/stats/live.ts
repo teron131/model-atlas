@@ -3,6 +3,7 @@
 import { fetchSourceData } from "../ingest/assembly";
 import { type BenchmarkRowsByKey, benchmarkRowsFromSourceData } from "../pipeline/benchmark-rows";
 import { deriveModelStats } from "../pipeline/derivation";
+import { rankedModels } from "../pipeline/model-types";
 import { nowEpochSeconds } from "../runtime";
 import { buildCurrentModelAtlasMetadata } from "./payload/metadata";
 import type { ModelAtlasModel, ModelAtlasOptions, ModelAtlasPayload } from "./types";
@@ -33,10 +34,11 @@ function withCurrentMetadata(
   resourceModels: Array<Record<string, unknown> | ModelAtlasModel> = payload.models,
   sourceRowsByKey?: BenchmarkRowsByKey,
 ): ModelAtlasPayload {
+  const healthModels = rankedModels(payload.models);
   const metadata = buildCurrentModelAtlasMetadata({
     models: modelsForMetadata,
     resourceModels,
-    healthModels: payload.models,
+    healthModels,
     availableMetrics: payload.metadata?.available_metrics,
     sourceRowsByKey,
   });
@@ -59,7 +61,7 @@ async function buildLivePayload(modelId: string | null = null): Promise<ModelAtl
       benchmark_observations: benchmarkObservations,
     },
     modelRows,
-    models,
+    rankedModels(models),
     benchmarkRowsFromSourceData(sourceData),
   );
 }

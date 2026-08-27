@@ -11,6 +11,7 @@ const MODEL_ATLAS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 // Cache is only a display substitute; missing or incomplete server payloads still refresh through this guard policy.
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
+const ACTIVE_REFRESH_INTERVAL_MS = 60_000;
 const REFRESH_RETRY_SLACK_MS = 25;
 
 type RefreshPayloadOptions = {
@@ -44,7 +45,7 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
     }
     recordRefreshAttempt();
     setErrorMessage(null);
-    refreshInFlightRef.current = fetch(liveStatsPath)
+    refreshInFlightRef.current = fetch(liveStatsPath, { cache: "no-cache" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -83,12 +84,25 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
   }, [initialPayload, refreshPayload]);
 
   useEffect(() => {
-    return () => {
-      if (refreshRetryTimeoutRef.current != null) {
-        window.clearTimeout(refreshRetryTimeoutRef.current);
+    const refreshWhenActive = () => {
+      if (document.visibilityState === "visible") {
+        void refreshPayload({ retryWhenGuarded: true });
       }
     };
-  }, []);
+    refreshWhenActive();
+    const refreshInterval = window.setInterval(refreshWhenActive, ACTIVE_REFRESH_INTERVAL_MS);
+    window.addEventListener("focus", refreshWhenActive);
+    document.addEventListener("visibilitychange", refreshWhenActive);
+    return () => {
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", refreshWhenActive);
+      document.removeEventListener("visibilitychange", refreshWhenActive);
+      if (refreshRetryTimeoutRef.current != null) {
+        window.clearTimeout(refreshRetryTimeoutRef.current);
+        refreshRetryTimeoutRef.current = null;
+      }
+    };
+  }, [refreshPayload]);
 
   return {
     payload,

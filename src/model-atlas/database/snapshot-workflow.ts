@@ -23,6 +23,7 @@ import {
 } from "../ingest/writers";
 import type { DatabaseWriter } from "../ingest/writers/database";
 import { deriveModelStats } from "../pipeline/derivation";
+import { isPreviewModel, rankedModels } from "../pipeline/model-types";
 import { taskMetricVersionValue } from "../pipeline/selection/candidate";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import {
@@ -31,7 +32,7 @@ import {
   type RefreshRunRow,
 } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
-import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
+import type { ModelAtlasModel, ModelAtlasPayload, ModelAtlasPublishedModel } from "../stats/types";
 
 type BenchmarkVersionLogRow = {
   model_id: string;
@@ -46,7 +47,7 @@ type BenchmarkVersionLogRow = {
 export type DatabaseSnapshotRows = {
   snapshots: SourceSnapshots;
   openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
-  finalModelRows: readonly ModelAtlasModel[];
+  finalModelRows: readonly ModelAtlasPublishedModel[];
   debugTraceRows: readonly DebugTraceRow[];
   sourceHealth: DatabaseBuildResult["source_health"];
   benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
@@ -259,17 +260,13 @@ export function rebuildDatabaseSnapshotChanges(
   refreshId: number,
   previousPayload: ModelAtlasPayload | null | undefined,
 ): void {
+  const currentModels = rankedModels(rows.finalModelRows);
   const currentScoring = buildCurrentModelAtlasMetadata({
-    models: rows.finalModelRows,
-    healthModels: rows.finalModelRows,
+    models: currentModels,
+    healthModels: currentModels,
   }).scoring;
-  const changes = buildRefreshChanges(
-    refreshId,
-    previousPayload,
-    rows.finalModelRows,
-    currentScoring,
-  );
-  rows.finalModelRows = changes.models;
+  const changes = buildRefreshChanges(refreshId, previousPayload, currentModels, currentScoring);
+  rows.finalModelRows = [...changes.models, ...rows.finalModelRows.filter(isPreviewModel)];
   rows.refreshRunRows = changes.refreshRunRows;
   rows.modelScoreChangeRows = changes.modelScoreChangeRows;
 }
@@ -284,7 +281,7 @@ export async function deriveDatabaseSnapshot(
 ): Promise<DerivedDatabaseSnapshot> {
   const observedDate = new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10);
   const baselineDate = versioning.baselineDate ?? BENCHMARK_VERSION_BASELINE_DATE;
-  const previousModels = versioning.previousPayload?.models ?? [];
+  const previousModels = rankedModels(versioning.previousPayload?.models ?? []);
   const sourceData = cachedSourceDataFromSnapshots(snapshots);
   const {
     matchDiagnostics,
@@ -320,7 +317,7 @@ export async function deriveDatabaseSnapshot(
     }),
     benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
       previousModels,
-      finalModelRows,
+      rankedModels(finalModelRows),
       baselineDate,
       observedDate,
     ),

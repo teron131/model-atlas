@@ -544,7 +544,12 @@ export function buildQualityScoringContext(
   scoringConfig: ScoringConfig,
 ): QualityScoringContext {
   const benchmarkValuesByKey = new Map<string, number[]>();
-  const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
+  const benchmarkKeys = [
+    ...new Set([
+      ...selectedBenchmarkKeys(scoringConfig),
+      ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
+    ]),
+  ];
   for (const key of benchmarkKeys) {
     const values = models
       .map((model) => benchmarkMetricValue(model, key))

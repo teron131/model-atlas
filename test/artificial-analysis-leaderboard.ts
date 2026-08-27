@@ -46,6 +46,8 @@ const rows = processArtificialAnalysisLeaderboardRows(
       medianEndToEndResponseTimeSeconds: 103,
       apexAgents: 0.47,
       critpt: 0.31,
+      gdpvalNormalized: 0.61,
+      hle: 0.41,
       scicode: 0.42,
       tauBanking: 0.52,
       itbenchSre: 0.31,
@@ -74,10 +76,15 @@ const rows = processArtificialAnalysisLeaderboardRows(
 );
 
 assertDeepEqual(rows[0]?.benchmarks, {
+  critpt: 0.31,
+  gdpval_normalized: 0.61,
+  hle: 0.41,
   mmmu_pro: 0.24,
+  scicode: 0.42,
+  tau_banking: 0.52,
 });
 assertDeepEqual(rows[0]?.name, "Alpha");
-assertDeepEqual(rows[1]?.benchmarks, {});
+assertDeepEqual(rows[1]?.benchmarks, { scicode: 0.36 });
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
 assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
@@ -188,7 +195,9 @@ assertDeepEqual(
         seconds_per_task: 120,
         output_tokens_per_task: 42000,
       },
-      benchmarks: {},
+      benchmarks: {
+        tau_banking: 0.58,
+      },
     },
   ],
 );
@@ -296,6 +305,7 @@ const scoringConfig = {
     "tau_banking",
     "terminal_bench_3",
   ],
+  previewAdditionalIntelligenceBenchmarkKeys: [],
   defaultSpeedOutputTokenAnchors: [],
   speedOutputTokenRangeMin: 0,
   speedOutputTokenRangeMax: 0,

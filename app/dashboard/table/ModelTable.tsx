@@ -177,7 +177,7 @@ function stableModelRowKeys(rows: readonly TableRow[]): string[] {
     const strongestIndex = strongestIndexByModel.get(modelKey);
     if (
       strongestIndex == null ||
-      row.model.scores.intelligence_score >
+      (row.model.scores.intelligence_score ?? Number.NEGATIVE_INFINITY) >
         (rows[strongestIndex]?.model.scores.intelligence_score ?? Number.NEGATIVE_INFINITY)
     ) {
       strongestIndexByModel.set(modelKey, index);

@@ -265,6 +265,90 @@ function qualityScore(
   };
 }
 
+function previewQualityScore(
+  model: JsonObject,
+  keys: readonly string[],
+  dimension: BenchmarkDimension,
+  qualityContext: QualityScoringContext,
+  scoringConfig: ScoringConfig,
+): QualityScoreResult {
+  const inputs = keys.flatMap((key) => {
+    const rawValue = benchmarkMetricValue(model, key);
+    const value = normalizedMetricValue(qualityContext.benchmarkValuesByKey, key, rawValue);
+    const weight = previewBenchmarkDimensionWeight(key, dimension, scoringConfig);
+    return value == null || !(weight > 0) ? [] : [{ value, weight }];
+  });
+  const score = weightedMeanOfFinite(inputs);
+  if (score == null) {
+    return { score: null, evidenceSupport: null };
+  }
+  const observedWeight = inputs.reduce((total, { weight }) => total + weight, 0);
+  const possibleWeight = keys.reduce(
+    (total, key) => total + previewBenchmarkDimensionWeight(key, dimension, scoringConfig),
+    0,
+  );
+  return {
+    score,
+    evidenceSupport: possibleWeight > 0 ? clamp01(observedWeight / possibleWeight) : null,
+  };
+}
+
+/** Give preview-only Intelligence fields one full unit while preserving portfolio weights for selected benchmarks. */
+function previewBenchmarkDimensionWeight(
+  key: string,
+  dimension: BenchmarkDimension,
+  scoringConfig: ScoringConfig,
+): number {
+  if (scoringConfig.previewAdditionalIntelligenceBenchmarkKeys.includes(key)) {
+    return dimension === "intelligence" ? 1 : 0;
+  }
+  return benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
+}
+
+/** Score recent preview rows from direct observations only, with aggregate indexes weighted by their configured benchmark equivalents. */
+export function buildPreviewComponentScoreResult(
+  model: JsonObject,
+  scoringConfig: ScoringConfig,
+  qualityContext: QualityScoringContext,
+): ComponentScoreResult {
+  const intelligenceKeys = [
+    ...new Set([
+      ...scoringConfig.intelligenceBenchmarkKeys,
+      ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
+    ]),
+  ];
+  const intelligence = previewQualityScore(
+    model,
+    intelligenceKeys,
+    "intelligence",
+    qualityContext,
+    scoringConfig,
+  );
+  const agentic = previewQualityScore(
+    model,
+    scoringConfig.agenticBenchmarkKeys,
+    "agentic",
+    qualityContext,
+    scoringConfig,
+  );
+  return {
+    componentScores:
+      intelligence.score == null && agentic.score == null
+        ? null
+        : {
+            intelligence_score: intelligence.score,
+            agentic_score: agentic.score,
+            speed_score: null,
+          },
+    confidence: {
+      intelligence: intelligence.evidenceSupport,
+      agentic: agentic.evidenceSupport,
+      speed: null,
+      value: null,
+    },
+  };
+}
+
 /** Average effective input and output prices when both provider-weighted sides are available. */
 export function blendedPriceValue(costLike: unknown): number | null {
   const cost = asRecord(costLike);

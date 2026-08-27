@@ -11,7 +11,10 @@ import {
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import { clampScore, minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import {
+  isPreviewModel,
+  type ModelAtlasPublishedModel,
+} from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
 
@@ -314,8 +317,8 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
 }
 
 export type TableRow = {
-  model: ModelAtlasModel;
-  intelligenceRank: number;
+  model: ModelAtlasPublishedModel;
+  intelligenceRank: number | null;
   originalIndex: number;
   aliasPriority: number;
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
@@ -344,7 +347,10 @@ export const sorters: Record<SortKey, Sorter> = {
   rank: {
     direction: "ascending",
     type: "number",
-    get: (row) => row.intelligenceRank,
+    get: (row) => {
+      const score = intelligenceScore(row);
+      return typeof score === "number" ? -score : null;
+    },
   },
   model: {
     direction: "ascending",
@@ -404,11 +410,12 @@ export function sortedRows(rows: TableRow[], filterQuery: string, sortState: Sor
 }
 
 /** Collapse duplicate model routes before assigning display ranks. */
-export function dedupeDisplayModels(models: ModelAtlasModel[]) {
+export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
+  const benchmarkReferenceModels = models.filter((model) => !isPreviewModel(model));
   const benchmarkDisplayScoreValues = Object.fromEntries(
     scaledBenchmarkMetricColumns.map((column) => [
       column.key,
-      models.map((model) => benchmarkMetricValue(model, column)),
+      benchmarkReferenceModels.map((model) => benchmarkMetricValue(model, column)),
     ]),
   ) as Partial<Record<BenchmarkMetricColumn["key"], Array<number | null>>>;
   const rowsByIdentity = new Map<string, UnrankedTableRow>();
@@ -436,7 +443,10 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]) {
   );
 }
 
-export function benchmarkMetricValue(model: ModelAtlasModel, column: BenchmarkMetricColumn) {
+export function benchmarkMetricValue(
+  model: ModelAtlasPublishedModel,
+  column: BenchmarkMetricColumn,
+) {
   return modelBenchmarkMetricValue(model, column.benchmark);
 }
 
@@ -454,14 +464,17 @@ export function benchmarkMeterValue(row: TableRow, column: BenchmarkMetricColumn
     : benchmarkDisplayValue(row, column);
 }
 
-export function contextWindowValue(model: ModelAtlasModel) {
+export function contextWindowValue(model: ModelAtlasPublishedModel) {
   const contextWindow = model.context_window as
-    | ({ total?: number | null } & NonNullable<ModelAtlasModel["context_window"]>)
+    | ({ total?: number | null } & NonNullable<ModelAtlasPublishedModel["context_window"]>)
     | null;
   return contextWindow?.context ?? contextWindow?.total;
 }
 
-export function dashboardMetricValue(model: ModelAtlasModel, column: DashboardMetricColumn) {
+export function dashboardMetricValue(
+  model: ModelAtlasPublishedModel,
+  column: DashboardMetricColumn,
+) {
   if ("source" in column) {
     return model.task_metrics?.[column.source]?.[column.metric];
   }
@@ -477,7 +490,7 @@ export function dashboardMetricValue(model: ModelAtlasModel, column: DashboardMe
   return profileMetricValue(model, column);
 }
 
-function profileMetricValue(model: ModelAtlasModel, column: ProfileMetricColumn) {
+function profileMetricValue(model: ModelAtlasPublishedModel, column: ProfileMetricColumn) {
   if (column.field === "release") {
     return model.release_date;
   }
@@ -491,7 +504,7 @@ function profileMetricValue(model: ModelAtlasModel, column: ProfileMetricColumn)
   return value ? 1 : 0;
 }
 
-function inputModalityRank(model: ModelAtlasModel) {
+function inputModalityRank(model: ModelAtlasPublishedModel) {
   const input = new Set((model.modalities?.input ?? []).map((value) => value.toLowerCase()));
   if (input.size === 0) {
     return null;
@@ -503,7 +516,7 @@ function inputModalityRank(model: ModelAtlasModel) {
 }
 
 function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
-  const rankedRows = [...rows].sort(compareIntelligenceRank);
+  const rankedRows = rows.filter((row) => !isPreviewModel(row.model)).sort(compareIntelligenceRank);
   const rankByOriginalIndex = new Map<number, number>();
   for (const [rankIndex, row] of rankedRows.entries()) {
     const previousRow = rankedRows[rankIndex - 1];
@@ -519,7 +532,7 @@ function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
   }
   return rows.map((row) => ({
     ...row,
-    intelligenceRank: rankByOriginalIndex.get(row.originalIndex) ?? rows.length,
+    intelligenceRank: rankByOriginalIndex.get(row.originalIndex) ?? null,
   }));
 }
 
@@ -571,7 +584,7 @@ function compareSortValues(sorter: Sorter, left: unknown, right: unknown) {
   return Number(left) - Number(right);
 }
 
-function displayKey(model: ModelAtlasModel) {
+function displayKey(model: ModelAtlasPublishedModel) {
   const id = typeof model.id === "string" ? model.id : "";
   const slashIndex = id.indexOf("/");
   if (slashIndex <= 0) {
@@ -597,7 +610,7 @@ function canonicalProviderId(provider: string, slug: string) {
     : normalizedProvider;
 }
 
-function displayAliasPriority(model: ModelAtlasModel) {
+function displayAliasPriority(model: ModelAtlasPublishedModel) {
   const id = typeof model.id === "string" ? model.id.toLowerCase() : "";
   if (id.includes("latest")) {
     return 3;

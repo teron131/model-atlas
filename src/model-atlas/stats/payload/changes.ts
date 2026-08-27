@@ -1,6 +1,7 @@
 /** Material change derivation owns the bounded score, rank, cause, and benchmark-alignment trail exposed by the leaderboard. */
 
 import { BENCHMARK_LABELS } from "../../benchmarks/catalog";
+import { rankedModels } from "../../pipeline/model-types";
 import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
 import { stableJson } from "../../runtime";
 import type {
@@ -63,7 +64,7 @@ export function buildRefreshChanges(
   currentModels: readonly ModelAtlasModel[],
   currentScoring: ModelAtlasMetadata["scoring"],
 ): RefreshChanges {
-  const previousModels = previousPayload?.models ?? [];
+  const previousModels = rankedModels(previousPayload?.models ?? []);
   const methodologyChanged =
     previousPayload != null &&
     stableJson(scoringMethodology(previousPayload.metadata.scoring)) !==

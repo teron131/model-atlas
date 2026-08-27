@@ -39,14 +39,33 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
   tokenMeasure: "output_tokens",
 } as const satisfies BenchmarkResourceMeasurement;
 
-const FALLBACK_INDEX_SCORING_WEIGHT = {
-  group: "baseline",
-  benchmarkImportance: 0.5,
-  dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
-} as const satisfies BenchmarkScoringWeight;
+const DISCLOSED_INDEX_BENCHMARK_COUNTS = {
+  artificialAnalysis: 9,
+  surge: 8,
+  vals: 7,
+} as const;
+
+function medianOfThree([first, second, third]: readonly [number, number, number]): number {
+  return first + second + third - Math.min(first, second, third) - Math.max(first, second, third);
+}
+
+const epochIndexBenchmarkImportance = medianOfThree([
+  DISCLOSED_INDEX_BENCHMARK_COUNTS.artificialAnalysis,
+  DISCLOSED_INDEX_BENCHMARK_COUNTS.surge,
+  DISCLOSED_INDEX_BENCHMARK_COUNTS.vals,
+]);
+
+const indexEquivalentScoringWeight = (benchmarkImportance: number) =>
+  ({
+    group: "baseline",
+    benchmarkImportance,
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+  }) as const satisfies BenchmarkScoringWeight;
 
 export const BENCHMARK_SCORING_WEIGHTS = {
-  aa_intelligence_index: FALLBACK_INDEX_SCORING_WEIGHT,
+  aa_intelligence_index: indexEquivalentScoringWeight(
+    DISCLOSED_INDEX_BENCHMARK_COUNTS.artificialAnalysis,
+  ),
   agent_arena: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -157,7 +176,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 0.5,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  epoch_capabilities_index: FALLBACK_INDEX_SCORING_WEIGHT,
+  epoch_capabilities_index: indexEquivalentScoringWeight(epochIndexBenchmarkImportance),
   finance_agent_v2: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -253,7 +272,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
   },
-  surge_intelligence_index: FALLBACK_INDEX_SCORING_WEIGHT,
+  surge_intelligence_index: indexEquivalentScoringWeight(DISCLOSED_INDEX_BENCHMARK_COUNTS.surge),
   tau_banking: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -269,7 +288,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  vals_index: FALLBACK_INDEX_SCORING_WEIGHT,
+  vals_index: indexEquivalentScoringWeight(DISCLOSED_INDEX_BENCHMARK_COUNTS.vals),
   vending_bench_2: {
     group: "baseline",
     benchmarkImportance: 1,

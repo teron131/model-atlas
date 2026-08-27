@@ -1,21 +1,26 @@
 /** Final model building owns candidate scoring, public admission, rescoring, and logo cache hydration. */
 
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
+import { canonicalModelKey } from "../../identity/normalization";
+import { publicOpenRouterModelId } from "../../identity/openrouter";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
   ModelAtlasCandidate,
   ModelAtlasModel,
+  ModelAtlasPreviewModel,
+  ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
 import type { OpenRouterModelData } from "../openrouter-data";
-import { attachFinalScores } from "../scores";
+import { attachFinalScores, buildPreviewResourceScoreResults } from "../scores";
 import {
   prepareBenchmarkScoring,
   prepareEffortResourceImputation,
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
 import {
+  buildPreviewComponentScoreResult,
   calibrateSparseEffortQualityScores,
   observedBenchmarkCount,
 } from "../scores/score-builders";
@@ -24,7 +29,12 @@ import {
   buildModelCandidate,
   versionCandidateBenchmarkData,
 } from "./candidate";
-import { hasRequiredQualityScores, selectPublicModels } from "./public-list";
+import {
+  hasRequiredQualityScores,
+  normalizePreviewModels,
+  previewModelFromCandidate,
+  selectPublicModels,
+} from "./public-list";
 import {
   buildPreviousModelLookup,
   isVersionReplacementRow,
@@ -39,12 +49,31 @@ const PUBLIC_COMPONENT_SCORE_KEYS = [
   "speed_score",
   "value_score",
 ] as const;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
 type BasicSpecCandidate = Pick<
   ModelAtlasCandidate,
   "id" | "name" | "release_date" | "modalities" | "cost" | "context_window" | "speed"
 >;
 type BenchmarkEvidenceCandidate = Pick<ModelAtlasScoredCandidate, "intelligence" | "benchmarks">;
+
+function publicModelIdentityKeys(model: Pick<ModelAtlasScoredCandidate, "id" | "name">): string[] {
+  const publicId = publicOpenRouterModelId(model.id);
+  return [canonicalModelKey(model), ...(publicId == null ? [] : [`id:${publicId}`])];
+}
+
+function publicModelIdentitySet(
+  models: readonly Pick<ModelAtlasScoredCandidate, "id" | "name">[],
+): Set<string> {
+  return new Set(models.flatMap(publicModelIdentityKeys));
+}
+
+function hasPublicModelIdentity(
+  identities: ReadonlySet<string>,
+  model: Pick<ModelAtlasScoredCandidate, "id" | "name">,
+): boolean {
+  return publicModelIdentityKeys(model).some((key) => identities.has(key));
+}
 
 function selectedBenchmarkKeys(scoringConfig: ScoringConfig): string[] {
   return [
@@ -101,6 +130,99 @@ export function hasRequiredPublicRelevance(
   });
 }
 
+export function isRecentPreviewCandidate(
+  model: Pick<ModelAtlasScoredCandidate, "id" | "name" | "release_date" | "modalities">,
+  observedDate: string,
+  maxAgeDays: number,
+): boolean {
+  if (model.id == null || model.name == null || model.release_date == null) {
+    return false;
+  }
+  if (model.modalities?.output?.includes("text") !== true) {
+    return false;
+  }
+  const releaseDay = model.release_date.slice(0, 10);
+  const observedDay = observedDate.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDay) || !/^\d{4}-\d{2}-\d{2}$/.test(observedDay)) {
+    return false;
+  }
+  const releaseTimestamp = Date.parse(`${releaseDay}T00:00:00Z`);
+  const observedTimestamp = Date.parse(`${observedDay}T00:00:00Z`);
+  if (!Number.isFinite(releaseTimestamp) || !Number.isFinite(observedTimestamp)) {
+    return false;
+  }
+  const ageDays = (observedTimestamp - releaseTimestamp) / MILLISECONDS_PER_DAY;
+  return ageDays >= 0 && ageDays < maxAgeDays;
+}
+
+/** Build visibly provisional rows without allowing their alternate score policy into official admission or ranking. */
+function buildPreviewModels(
+  scoredCandidates: ModelAtlasScoredCandidate[],
+  admittedModels: ModelAtlasModel[],
+  observedDate: string,
+  id: string | null | undefined,
+  finalConfig: FinalStageConfig,
+  scoringConfig: ScoringConfig,
+  scoringPreparation: ReturnType<typeof prepareBenchmarkScoring>,
+): ModelAtlasPreviewModel[] {
+  const admittedModelIdentities = publicModelIdentitySet(admittedModels);
+  const previewCandidates = scoredCandidates.map((model) => {
+    if (
+      hasPublicModelIdentity(admittedModelIdentities, model) ||
+      !isRecentPreviewCandidate(model, observedDate, finalConfig.previewMaxAgeDays) ||
+      !hasRequiredBasicSpecs(model)
+    ) {
+      return null;
+    }
+    const previewResult = buildPreviewComponentScoreResult(
+      asRecord(model),
+      scoringConfig,
+      scoringPreparation.qualityContext,
+    );
+    return { model, previewResult };
+  });
+  const previewResourceResults = buildPreviewResourceScoreResults(
+    scoredCandidates,
+    previewCandidates.map((candidate) => candidate?.previewResult.componentScores ?? null),
+    scoringConfig,
+  );
+  const previewModels = previewCandidates.flatMap((candidate, index) => {
+    if (candidate == null) {
+      return [];
+    }
+    const { model, previewResult } = candidate;
+    const previewResources = previewResourceResults[index];
+    const previewCandidate = {
+      ...model,
+      component_scores:
+        previewResult.componentScores == null
+          ? null
+          : {
+              ...previewResult.componentScores,
+              speed_score: previewResources?.scores.speed_score ?? null,
+            },
+      confidence: {
+        ...previewResult.confidence,
+        speed: previewResources?.confidence.speed ?? null,
+        value: previewResources?.confidence.value ?? null,
+      },
+      scores: {
+        ...model.scores,
+        intelligence_score: previewResult.componentScores?.intelligence_score ?? null,
+        agentic_score: previewResult.componentScores?.agentic_score ?? null,
+        speed_score: previewResources?.scores.speed_score ?? null,
+        value_score: previewResources?.scores.value_score ?? null,
+      },
+    };
+    if (!hasRequiredQualityScores(previewCandidate)) {
+      return [];
+    }
+    const previewModel = previewModelFromCandidate(previewCandidate);
+    return hasRequiredPublicRelevance(previewModel) ? [previewModel] : [];
+  });
+  return normalizePreviewModels(previewModels, id);
+}
+
 function buildCandidates(
   openRouterData: OpenRouterModelData,
   scoringConfig: ScoringConfig,
@@ -133,7 +255,7 @@ export async function buildFinalModels(
     observedDate: new Date().toISOString().slice(0, 10),
   },
   previousModels: readonly ModelAtlasModel[] = [],
-): Promise<ModelAtlasModel[]> {
+): Promise<ModelAtlasPublishedModel[]> {
   const modelRows = prepareVersionReplacementBenchmarkRows(
     openRouterData.modelRows,
     previousModels,
@@ -183,13 +305,32 @@ export async function buildFinalModels(
     scoringPreparation,
     resourceImputation,
   );
+  const previousOfficialModelIdentities = publicModelIdentitySet(previousModels);
   // Public admission is output-only and must not redefine the scoring reference population.
+  // Preview status applies only to newly surfaced recent models; prior official models retain normal admission and rank.
   const admittedPublicModels = rescoredReferenceModels
+    .filter(
+      (model) =>
+        hasPublicModelIdentity(previousOfficialModelIdentities, model) ||
+        !isRecentPreviewCandidate(model, versioning.observedDate, finalConfig.previewMaxAgeDays),
+    )
     .filter(hasRequiredBasicSpecs)
     .filter((model) =>
       hasRequiredBenchmarkEvidence(model, scoringConfig, finalConfig.benchmarkAdmission),
     )
     .filter(hasRequiredQualityScores)
     .filter(hasRequiredPublicRelevance);
-  return cacheModelLogos(admittedPublicModels, (model) => model.provider ?? model.id);
+  const previewModels = buildPreviewModels(
+    scoredCandidates,
+    admittedPublicModels,
+    versioning.observedDate,
+    id,
+    finalConfig,
+    scoringConfig,
+    scoringPreparation,
+  );
+  return cacheModelLogos(
+    [...admittedPublicModels, ...previewModels],
+    (model) => model.provider ?? model.id,
+  );
 }
