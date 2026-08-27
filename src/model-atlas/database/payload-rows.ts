@@ -13,7 +13,11 @@ import {
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/source-registry";
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
-import { publicModelFromCandidate } from "../pipeline/selection/public-list";
+import { rankedModels } from "../pipeline/model-types";
+import {
+  previewModelFromCandidate,
+  publicModelFromCandidate,
+} from "../pipeline/selection/public-list";
 import { asFiniteNumber, asRecord } from "../runtime";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
@@ -619,16 +623,19 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   const taskMetricsByModel = taskMetricsByModelRow(rows.modelTaskMetricRows);
   const models = rows.modelRows.flatMap((row) => {
     const modelRowIndex = asFiniteNumber(row.row_index);
-    const model = publicModelFromCandidate(
-      scoredCandidateFromRow(
-        row,
-        modelRowIndex == null ? null : (benchmarksByModel.get(modelRowIndex) ?? null),
-        modelRowIndex == null ? null : (benchmarkDatesByModel.get(modelRowIndex) ?? null),
-        modelRowIndex == null ? null : (taskMetricsByModel.get(modelRowIndex) ?? null),
-      ),
+    const candidate = scoredCandidateFromRow(
+      row,
+      modelRowIndex == null ? null : (benchmarksByModel.get(modelRowIndex) ?? null),
+      modelRowIndex == null ? null : (benchmarkDatesByModel.get(modelRowIndex) ?? null),
+      modelRowIndex == null ? null : (taskMetricsByModel.get(modelRowIndex) ?? null),
     );
+    const model =
+      booleanValue(row.is_preview) === true
+        ? previewModelFromCandidate(candidate)
+        : publicModelFromCandidate(candidate);
     return model == null ? [] : [model];
   });
+  const metadataModels = rankedModels(models);
   const sourceHealth = sourceHealthFromRows(
     rows.sourceHealthRows,
     rows.sourceQuarantineRows,
@@ -638,8 +645,8 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   return {
     fetched_at_epoch_seconds: rows.fetchedAt,
     metadata: buildCurrentModelAtlasMetadata({
-      models,
-      healthModels: models,
+      models: metadataModels,
+      healthModels: metadataModels,
       sourceHealth,
       sourceRowsByKey,
     }),

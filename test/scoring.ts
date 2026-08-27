@@ -19,6 +19,8 @@ import {
   buildBenchmarkImputationByModel,
   buildBenchmarkImputationDiagnosticsByKey,
   buildComponentScoreResult,
+  buildPreviewComponentScoreResult,
+  buildPreviewResourceScoreResults,
   buildQualityScoringContext,
   imputedTaskResource,
   prepareEffortResourceImputation,
@@ -46,6 +48,7 @@ import {
   benchmarkTaskMetrics,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { calibrateSparseEffortQualityScores } from "../src/model-atlas/pipeline/scores/score-builders";
+import { isRecentPreviewCandidate } from "../src/model-atlas/pipeline/selection/builder";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
 
@@ -187,6 +190,127 @@ assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
+const previewScoreResult = buildPreviewComponentScoreResult(
+  {
+    intelligence: { intelligence_index: 1 },
+    benchmarks: { deep_swe: 0.5, gpqa: 1, hle: 0, tau_banking: 1 },
+  },
+  STAGE_CONFIG.scoring,
+  {
+    benchmarkValuesByKey: new Map([
+      ["aa_intelligence_index", [0, 1]],
+      ["deep_swe", [0, 1]],
+      ["gpqa", [0, 1]],
+      ["hle", [0, 1]],
+      ["tau_banking", [0, 1]],
+    ]),
+  },
+);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 84.6154);
+assertClose(previewScoreResult.componentScores?.agentic_score, 92.3077);
+assert.equal(
+  (previewScoreResult.confidence.intelligence ?? 1) < 1,
+  true,
+  "preview quality should renormalize direct evidence without multiplying by low coverage",
+);
+assert.equal(
+  buildPreviewComponentScoreResult({}, STAGE_CONFIG.scoring, { benchmarkValuesByKey: new Map() })
+    .componentScores,
+  null,
+  "metadata-only previews should publish without invented quality scores",
+);
+const previewResourceCandidates = [
+  modelCandidate({
+    id: "test/preview-resource-slow",
+    intelligenceScore: 40,
+    agenticScore: 40,
+    blendedPrice: 10,
+    throughputTokensPerSecond: 10,
+    latencySeconds: 10,
+    deepSWEScore: 0.4,
+    deepSWECost: 10,
+    deepSWESeconds: 10,
+  }),
+  modelCandidate({
+    id: "test/preview-resource-target",
+    intelligenceScore: 60,
+    agenticScore: 60,
+    blendedPrice: 3,
+    throughputTokensPerSecond: 50,
+    latencySeconds: 3,
+    deepSWEScore: 0.6,
+    deepSWECost: 3,
+    deepSWESeconds: 3,
+  }),
+  modelCandidate({
+    id: "test/preview-resource-fast",
+    intelligenceScore: 80,
+    agenticScore: 80,
+    blendedPrice: 1,
+    throughputTokensPerSecond: 100,
+    latencySeconds: 1,
+    deepSWEScore: 0.8,
+    deepSWECost: 1,
+    deepSWESeconds: 1,
+  }),
+];
+const previewResourceScoredCandidates = attachFinalScores(
+  previewResourceCandidates,
+  STAGE_CONFIG.scoring,
+);
+const previewQualityByModel = previewResourceScoredCandidates.map(
+  (model) => model.component_scores,
+);
+const previewResourceScores = buildPreviewResourceScoreResults(
+  previewResourceScoredCandidates,
+  previewQualityByModel,
+  STAGE_CONFIG.scoring,
+);
+const previewSpecOnlyScores = buildPreviewResourceScoreResults(
+  previewResourceScoredCandidates.map((model) => ({ ...model, task_metrics: null })),
+  previewQualityByModel,
+  STAGE_CONFIG.scoring,
+);
+assertClose(previewSpecOnlyScores[1]?.confidence.speed, (0.7 * 2) / 3);
+assertClose(previewSpecOnlyScores[1]?.confidence.value, 0.7);
+assertClose(previewResourceScores[1]?.confidence.speed, (0.7 * 2) / 3 + 0.3);
+assertClose(previewResourceScores[1]?.confidence.value, 1);
+assert.notEqual(
+  previewResourceScores[1]?.scores.speed_score,
+  previewSpecOnlyScores[1]?.scores.speed_score,
+  "direct task timing should contribute 30% when preview benchmark resources are available",
+);
+assert.notEqual(
+  previewResourceScores[1]?.scores.value_score,
+  previewSpecOnlyScores[1]?.scores.value_score,
+  "direct task cost should contribute 30% when preview benchmark resources are available",
+);
+const indexBenchmarkImportance = Object.fromEntries(
+  STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys.map((key) => [
+    key,
+    STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance,
+  ]),
+);
+assert.equal(indexBenchmarkImportance.aa_intelligence_index, 9);
+assert.equal(indexBenchmarkImportance.surge_intelligence_index, 8);
+assert.equal(indexBenchmarkImportance.vals_index, 7);
+assert.equal(
+  indexBenchmarkImportance.epoch_capabilities_index,
+  medianOfFinite([
+    indexBenchmarkImportance.aa_intelligence_index,
+    indexBenchmarkImportance.surge_intelligence_index,
+    indexBenchmarkImportance.vals_index,
+  ]),
+);
+const recentPreviewIdentity = {
+  id: "z-ai/glm-5.3-flash",
+  name: "GLM-5.3-Flash",
+  release_date: "2026-08-01T15:30:00Z",
+  modalities: { output: ["text"] },
+};
+assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-08-30", 30), true);
+assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-08-31", 30), false);
+assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-07-31", 30), false);
 function selectedDimensionWeight(
   keys: readonly string[],
   dimension: "intelligence" | "agentic",
@@ -308,7 +432,6 @@ for (const key of [
   "surge_intelligence_index",
   "vals_index",
 ] as const) {
-  assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].benchmarkImportance, 0.5);
   assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.intelligence, 0.5);
   assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.agentic, 0.5);
 }

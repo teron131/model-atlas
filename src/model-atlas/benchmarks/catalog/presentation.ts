@@ -1182,12 +1182,25 @@ export const BENCHMARK_COLUMNS = {
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
 
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
+  critpt: ["critpt"],
+  gdpval_normalized: ["gdpvalNormalized", "gdpval_normalized"],
   gpqa: ["gpqa"],
+  hle: ["hle"],
   mmmu_pro: ["mmmuPro", "mmmu_pro"],
+  scicode: ["scicode"],
+  tau_banking: ["tauBanking", "tau_banking"],
 } as const;
 
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: ["gpqa", "mmmu_pro"],
+  gdpval_normalized: [
+    "critpt",
+    "gdpval_normalized",
+    "gpqa",
+    "hle",
+    "mmmu_pro",
+    "scicode",
+    "tau_banking",
+  ],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
 export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {

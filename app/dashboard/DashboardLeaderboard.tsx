@@ -17,7 +17,7 @@ import type {
   ModelAtlasColumnTooltips,
 } from "../../src/model-atlas/config/tooltips";
 import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
-import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import { isPreviewModel, type ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { researchRegionOrdinal } from "./graphs/research-index";
 import {
@@ -153,10 +153,17 @@ export function DashboardLeaderboard({
       }),
     [deferredFilterQuery, globallyFilteredRows],
   );
-  const limitedRows = useMemo(
-    () => matchingRows.slice(0, deferredLimit),
-    [deferredLimit, matchingRows],
-  );
+  const limitedRows = useMemo(() => {
+    // Previews remain visible without consuming official top-N slots.
+    let officialCount = 0;
+    return matchingRows.filter((row) => {
+      if (isPreviewModel(row.model)) {
+        return true;
+      }
+      officialCount += 1;
+      return officialCount <= deferredLimit;
+    });
+  }, [deferredLimit, matchingRows]);
   const expandedVariantCount = useMemo(() => {
     const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
     return filterByModelQuery(

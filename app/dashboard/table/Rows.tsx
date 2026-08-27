@@ -2,7 +2,11 @@
 
 import { type CSSProperties, memo, type MouseEvent, useState } from "react";
 
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import {
+  isPreviewModel,
+  type ModelAtlasModel,
+  type ModelAtlasPublishedModel,
+} from "../../../src/model-atlas/stats/types";
 import {
   AudioInputIcon,
   ImageInputIcon,
@@ -136,7 +140,15 @@ export const ModelRow = memo(function ModelRow({
 }) {
   const model = rowData.model;
   return (
-    <tr style={rowProviderStyle(model.provider)}>
+    <tr
+      className={isPreviewModel(model) ? "preview-row" : undefined}
+      style={rowProviderStyle(model.provider)}
+      title={
+        isPreviewModel(model)
+          ? "Early preview based only on direct evidence; Speed and Value use 70% provider specs and 30% observed benchmark resources, falling back to specs alone, while the row remains unranked."
+          : undefined
+      }
+    >
       <ModelScoreCells
         rowData={rowData}
         visibleColumnKeySet={visibleColumnKeySet}
@@ -187,7 +199,10 @@ export const ModelRow = memo(function ModelRow({
 /** Render the leaderboard identity and four score columns used by PNG exports. */
 export function ScoreModelRow({ rowData }: { rowData: TableRow }) {
   return (
-    <tr style={rowProviderStyle(rowData.model.provider)}>
+    <tr
+      className={isPreviewModel(rowData.model) ? "preview-row" : undefined}
+      style={rowProviderStyle(rowData.model.provider)}
+    >
       <ModelScoreCells rowData={rowData} />
     </tr>
   );
@@ -207,12 +222,22 @@ function ModelScoreCells({
   ruledColumnKeySet?: ReadonlySet<TableColumnKey>;
 }) {
   const model = rowData.model;
+  const preview = isPreviewModel(model);
   const visibleName = visibleModelName(modelDisplayName(model));
   const visibleSlug = visibleModelSlug(model.id);
   const scores = model.scores ?? {};
   return (
     <>
-      <TableCell text={String(rowData.intelligenceRank).padStart(2, "0")} className="rank" />
+      <TableCell
+        text={
+          preview
+            ? "PREVIEW"
+            : rowData.intelligenceRank == null
+              ? "—"
+              : String(rowData.intelligenceRank).padStart(2, "0")
+        }
+        className="rank"
+      />
       <td className="model-column">
         <div className="model-cell">
           <ProviderLogo model={model} />
@@ -394,7 +419,7 @@ function ModalityInputCell({
 const ConfidenceCell = memo(function ConfidenceCell({
   confidence,
 }: {
-  confidence?: ModelAtlasModel["confidence"];
+  confidence?: ModelAtlasPublishedModel["confidence"];
 }) {
   const intelligence = formatConfidence(confidence?.intelligence);
   const agentic = formatConfidence(confidence?.agentic);
@@ -432,9 +457,12 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
   model,
   onScoreChange,
 }: {
-  model: ModelAtlasModel;
+  model: ModelAtlasPublishedModel;
   onScoreChange: ScoreChangeHandler;
 }) {
+  if (isPreviewModel(model)) {
+    return <td className="data-cell change-cell missing">—</td>;
+  }
   const change = model.latest_change;
   if (change == null) {
     return <td className="data-cell change-cell missing">—</td>;
@@ -513,7 +541,7 @@ function isHiddenDisplayToken(token: string) {
   return HIDDEN_MODEL_DISPLAY_TOKENS.has(token.toLowerCase());
 }
 
-function ProviderLogo({ model }: { model: ModelAtlasModel }) {
+function ProviderLogo({ model }: { model: ModelAtlasPublishedModel }) {
   const [hidden, setHidden] = useState(false);
   const logoSrc = logoSource(model);
 
@@ -537,7 +565,7 @@ function ProviderLogo({ model }: { model: ModelAtlasModel }) {
   );
 }
 
-function logoSource(model: ModelAtlasModel) {
+function logoSource(model: ModelAtlasPublishedModel) {
   const logo = providerLogo(model.provider);
   if (logo.length > 0) {
     return logo;

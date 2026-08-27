@@ -22,6 +22,7 @@ import {
   taskMetricColumns,
 } from "../app/dashboard/table/models";
 import { canonicalReasoningEffort } from "../src/model-atlas/identity/normalization";
+import { previewModelFromCandidate } from "../src/model-atlas/pipeline/selection/public-list";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -56,6 +57,40 @@ assert.deepEqual(
     ["provider/fourth", 4],
   ],
   "equal intelligence scores should share competition ranks",
+);
+
+const previewRankingRows = dedupeDisplayModels([
+  rankedModel("provider/official-first", "Official First", 90),
+  previewModelFromCandidate({
+    ...rankedModel("provider/preview", "Preview", 85),
+    component_scores: {
+      intelligence_score: 85,
+      agentic_score: 80,
+      speed_score: null,
+    },
+  }),
+  rankedModel("provider/official-second", "Official Second", 80),
+]);
+assert.deepEqual(
+  previewRankingRows.map((row) => [row.model.id, row.intelligenceRank]),
+  [
+    ["provider/official-first", 1],
+    ["provider/preview", null],
+    ["provider/official-second", 2],
+  ],
+  "preview rows should remain unranked without shifting official competition ranks",
+);
+assert.deepEqual(
+  sortedRows(previewRankingRows, "", sortState("intelligence", "descending")).map(
+    (row) => row.model.id,
+  ),
+  ["provider/official-first", "provider/preview", "provider/official-second"],
+  "preview rows with evidence should still sit in provisional score order",
+);
+assert.deepEqual(
+  sortedRows(previewRankingRows, "", sortState("rank", "ascending")).map((row) => row.model.id),
+  ["provider/official-first", "provider/preview", "provider/official-second"],
+  "rank sorting should place an unranked preview at its Intelligence-relative position",
 );
 
 const aleBenchColumn = benchmarkMetricColumns.find((column) => column.key === "aleBench");

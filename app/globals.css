@@ -1209,6 +1209,19 @@ tbody tr:nth-child(-n + 3) .rank {
   white-space: nowrap;
 }
 
+.preview-row .model,
+.preview-row .score-cell .score-value {
+  font-style: italic;
+}
+
+tbody tr.preview-row .rank {
+  color: var(--muted);
+  font-size: var(--mono-label);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 .id {
   margin-top: 3px;
   color: var(--muted);

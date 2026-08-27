@@ -1,7 +1,8 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
+import { rankedModels } from "../../pipeline/model-types";
 import { compactModelVariants } from "../../pipeline/selection/public-list";
-import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
+import type { ModelAtlasModel, ModelAtlasPayload, ModelAtlasPublishedModel } from "../types";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
@@ -31,7 +32,7 @@ export type FullJsonPayload = Omit<ModelAtlasPayload, "models" | "benchmark_obse
   models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo">;
+type PublicFullJsonModel = Omit<ModelAtlasPublishedModel, "reasoning" | "logo">;
 
 type ScoreJsonPayload = {
   schema: typeof SCORE_SCHEMA;
@@ -195,12 +196,12 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Compact views rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only. Quality scores normalize and weight selected benchmarks; validated estimates receive validation-confidence weighted influence and evidence support. Public confidence fields report literal weighted evidence support, while quality scores separately apply a coverage multiplier that is zero through 10% and full from 60%. Unlabelled family evidence belongs to the source-default variant and does not claim an explicit effort run. A sparse effort score can use the best-observed sibling plus their directly measured common-benchmark gap, without assuming monotonic effort order or filling missing benchmark fields. Other missing values use validated, non-recursive imputation and never satisfy admission. SPEED and VALUE assign 70% to benchmark task resources and 30% to provider speed or price inputs, then compare resource use among nearby-quality models after quality adjustment.";
+  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Models released fewer than 30 days ago may appear as unranked previews; preview quality uses direct observations only and applies no coverage penalty. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources, falling back to specifications alone when the matching resource is absent; they use no imputation or missing-coverage multiplier, while confidence still reports literal evidence support. Official and preview quality use benchmark-equivalent aggregate-index importance of 9 for Artificial Analysis, 8 for Surge, and 7 for Vals, while Epoch uses the median of those other index weights because its exact underlying benchmark count is unavailable per model score. Compact views rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only. Quality scores normalize and weight selected benchmarks; validated estimates receive validation-confidence weighted influence and evidence support. Public confidence fields report literal weighted evidence support, while quality scores separately apply a coverage multiplier that is zero through 10% and full from 60%. Unlabelled family evidence belongs to the source-default variant and does not claim an explicit effort run. A sparse effort score can use the best-observed sibling plus their directly measured common-benchmark gap, without assuming monotonic effort order or filling missing benchmark fields. Other missing values use validated, non-recursive imputation and never satisfy admission. Official SPEED and VALUE assign 70% to benchmark task resources and 30% to provider speed or price inputs, then compare resource use among nearby-quality models after quality adjustment.";
 }
 
 function compactRankedModels(payload: ModelAtlasPayload): RankedModel[] {
   return rankModelsByIntelligence(
-    compactModelVariants(payload.models, payload.benchmark_observations),
+    compactModelVariants(rankedModels(payload.models), payload.benchmark_observations),
   );
 }
 

@@ -26,6 +26,8 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
   ModelAtlasCandidateComponentScores,
   ModelAtlasModel,
+  ModelAtlasPreviewModel,
+  ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
 import { benchmarkMetricValue } from "../scores/resource-metrics";
@@ -49,6 +51,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
   "benchmark_dates",
   "confidence",
   "latest_change",
+  "preview",
   "component_scores",
   "scores",
 ]);
@@ -188,10 +191,16 @@ export function compactModelVariants(
   });
 }
 
-function sortByIntelligenceScore(models: ModelAtlasModel[]): ModelAtlasModel[] {
+function sortByIntelligenceScore<Model extends ModelAtlasPublishedModel>(models: Model[]): Model[] {
   return [...models].sort((left, right) => {
-    const leftIntelligence = left.scores.intelligence_score;
-    const rightIntelligence = right.scores.intelligence_score;
+    const leftIntelligence = asFiniteNumber(left.scores.intelligence_score);
+    const rightIntelligence = asFiniteNumber(right.scores.intelligence_score);
+    if (leftIntelligence == null || rightIntelligence == null) {
+      if (leftIntelligence == null && rightIntelligence == null) {
+        return (left.id ?? "").localeCompare(right.id ?? "");
+      }
+      return leftIntelligence == null ? 1 : -1;
+    }
     if (leftIntelligence !== rightIntelligence) {
       return rightIntelligence - leftIntelligence;
     }
@@ -221,7 +230,7 @@ export function hasRequiredQualityScores(
 }
 
 /** Project scored candidates onto the public contract before pruning can preserve internal fields. */
-function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): ModelAtlasModel {
+function publishedModelFields(model: ModelAtlasScoredCandidate) {
   return {
     id: model.id,
     name: model.name,
@@ -240,6 +249,12 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
     benchmarks: model.benchmarks,
     benchmark_dates: model.benchmark_dates,
     confidence: { ...model.confidence },
+  };
+}
+
+function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): ModelAtlasModel {
+  return {
+    ...publishedModelFields(model),
     ...(model.latest_change == null ? {} : { latest_change: model.latest_change }),
     component_scores: {
       intelligence_score: model.component_scores.intelligence_score,
@@ -258,6 +273,27 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
 /** Validate and project one scored candidate onto the exact public model contract. */
 export function publicModelFromCandidate(model: ModelAtlasScoredCandidate): ModelAtlasModel | null {
   return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
+}
+
+/** Project a recent candidate without converting provisional evidence into an official ranked model. */
+export function previewModelFromCandidate(
+  model: ModelAtlasScoredCandidate,
+): ModelAtlasPreviewModel {
+  return {
+    ...publishedModelFields(model),
+    preview: true,
+    component_scores: {
+      intelligence_score: model.component_scores?.intelligence_score ?? null,
+      agentic_score: model.component_scores?.agentic_score ?? null,
+      speed_score: model.component_scores?.speed_score ?? null,
+    },
+    scores: {
+      intelligence_score: model.component_scores?.intelligence_score ?? null,
+      agentic_score: model.component_scores?.agentic_score ?? null,
+      speed_score: model.scores.speed_score,
+      value_score: model.scores.value_score,
+    },
+  };
 }
 
 function isPlainObject(value: unknown): value is JsonObject {
@@ -381,18 +417,20 @@ function pruneSparseFields(
 }
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
-function collapseFreeRoutesByVariant(models: ModelAtlasModel[]): ModelAtlasModel[] {
-  const modelByPublicId = new Map<string, { model: ModelAtlasModel; isFreeRoute: boolean }>();
-  const passthrough: ModelAtlasModel[] = [];
+function collapseFreeRoutesByVariant<Model extends ModelAtlasPublishedModel>(
+  models: Model[],
+): Model[] {
+  const modelByPublicId = new Map<string, { model: Model; isFreeRoute: boolean }>();
+  const passthrough: Model[] = [];
 
   for (const model of models) {
     const publicId = publicOpenRouterModelId(model.id);
     const publicName = publicOpenRouterModelName(model.name, publicId);
-    const normalizedModel: ModelAtlasModel = {
+    const normalizedModel = {
       ...model,
       id: publicId,
       name: publicName,
-    };
+    } as Model;
     if (!publicId) {
       passthrough.push(normalizedModel);
       continue;
@@ -415,6 +453,25 @@ function collapseFreeRoutesByVariant(models: ModelAtlasModel[]): ModelAtlasModel
   ]);
 }
 
+/** Normalize preview routes without applying official score or evidence admission. */
+export function normalizePreviewModels(
+  models: ModelAtlasPreviewModel[],
+  id: string | null | undefined,
+): ModelAtlasPreviewModel[] {
+  return normalizedModelsForId(models, id);
+}
+
+function normalizedModelsForId<Model extends ModelAtlasPublishedModel>(
+  models: Model[],
+  id: string | null | undefined,
+): Model[] {
+  const normalizedModels = collapseFreeRoutesByVariant(models);
+  const normalizedId = publicOpenRouterModelId(id ?? null);
+  return normalizedId == null
+    ? normalizedModels
+    : normalizedModels.filter((model) => publicOpenRouterModelId(model.id) === normalizedId);
+}
+
 export function selectPublicModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
   id: string | null | undefined,
@@ -427,9 +484,5 @@ export function selectPublicModels(
   });
   const sortedModels = sortByIntelligenceScore(signalModels);
   const prunedModels = pruneSparseFields(sortedModels, finalConfig, scoringConfig);
-  const normalizedModels = collapseFreeRoutesByVariant(prunedModels);
-  const normalizedId = publicOpenRouterModelId(id ?? null);
-  return normalizedId == null
-    ? normalizedModels
-    : normalizedModels.filter((model) => publicOpenRouterModelId(model.id) === normalizedId);
+  return normalizedModelsForId(prunedModels, id);
 }

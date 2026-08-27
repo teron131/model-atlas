@@ -3,7 +3,13 @@
 import type { BenchmarkObservationsByKey } from "../../../src/model-atlas/benchmarks/observation";
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { compactModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import {
+  isPreviewModel,
+  type ModelAtlasModel,
+  type ModelAtlasPreviewModel,
+  type ModelAtlasPublishedModel,
+  rankedModels,
+} from "../../../src/model-atlas/stats/types";
 import {
   providerChartColor,
   providerDisplayName,
@@ -11,7 +17,7 @@ import {
   providerLogo,
 } from "./provider-theme";
 
-const searchTextByModel = new WeakMap<ModelAtlasModel, string>();
+const searchTextByModel = new WeakMap<ModelAtlasPublishedModel, string>();
 const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 
@@ -34,7 +40,7 @@ type ModelControlFilters = {
 export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
 export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
 
-export function modelCount(models: ModelAtlasModel[]): number {
+export function modelCount(models: ModelAtlasPublishedModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
 }
 
@@ -42,42 +48,65 @@ export function modelCount(models: ModelAtlasModel[]): number {
 export function modelsForVariantDisplay(
   models: ModelAtlasModel[],
   showVariants: boolean,
+  benchmarkObservations?: BenchmarkObservationsByKey,
+): ModelAtlasModel[];
+export function modelsForVariantDisplay(
+  models: ModelAtlasPublishedModel[],
+  showVariants: boolean,
+  benchmarkObservations?: BenchmarkObservationsByKey,
+): ModelAtlasPublishedModel[];
+export function modelsForVariantDisplay(
+  models: ModelAtlasPublishedModel[],
+  showVariants: boolean,
   benchmarkObservations: BenchmarkObservationsByKey = {},
-): ModelAtlasModel[] {
-  const variantsByIdentity = new Map<string, ModelAtlasModel>();
+): ModelAtlasPublishedModel[] {
+  const variantsByIdentity = new Map<string, ModelAtlasPublishedModel>();
   for (const model of models) {
     const key = modelVariantKey(model);
     const existing = variantsByIdentity.get(key);
-    if (existing == null || model.scores.intelligence_score > existing.scores.intelligence_score) {
+    if (existing == null || compareIntelligence(model, existing) < 0) {
       variantsByIdentity.set(key, model);
     }
   }
   const modelVariants = [...variantsByIdentity.values()];
+  const rankedVariants = rankedModels(modelVariants);
+  const previewModels = modelVariants.filter(isPreviewModel);
   if (showVariants) {
-    return modelVariants;
+    return [...rankedVariants, ...previewModels];
   }
-  return compactModelVariants(modelVariants, benchmarkObservations).map((model) => ({
-    ...model,
-    reasoning_effort: null,
-  }));
+  const compactRankedModels = compactModelVariants(rankedVariants, benchmarkObservations).map(
+    (model) => ({ ...model, reasoning_effort: null }),
+  );
+  const previewByModel = new Map<string, ModelAtlasPreviewModel>();
+  for (const model of previewModels) {
+    const key = canonicalModelKey(model);
+    const existing = previewByModel.get(key);
+    if (existing == null || compareIntelligence(model, existing) < 0) {
+      previewByModel.set(key, model);
+    }
+  }
+  return [
+    ...compactRankedModels,
+    ...[...previewByModel.values()].map((model) => ({ ...model, reasoning_effort: null })),
+  ];
 }
 
-export function modelDisplayName(model: ModelAtlasModel): string {
+export function modelDisplayName(model: ModelAtlasPublishedModel): string {
   const baseName = model.name ?? model.id ?? "Unknown model";
   return model.reasoning_effort == null ? baseName : `${baseName} (${model.reasoning_effort})`;
 }
 
-export function modelName(model: ModelAtlasModel) {
+export function modelName(model: ModelAtlasPublishedModel) {
   return modelDisplayName(model)
     .replace(/\bGPT\s+(?=\d)/g, "GPT-")
     .replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
 }
 
-export function shortLabel(model: ModelAtlasModel) {
+export function shortLabel(model: ModelAtlasPublishedModel) {
   return modelName(model).replace(" Preview", "");
 }
 
-export function modelLogo(model: ModelAtlasModel) {
+export function modelLogo(model: ModelAtlasPublishedModel) {
   const logo = providerLogo(model.provider);
   if (logo.length > 0) {
     return logo;
@@ -88,7 +117,7 @@ export function modelLogo(model: ModelAtlasModel) {
 /** Filter model-backed rows with case-insensitive ANDed terms and `*` glob wildcards. */
 export function filterByModelQuery<T>(
   items: readonly T[],
-  getModel: (item: T) => ModelAtlasModel,
+  getModel: (item: T) => ModelAtlasPublishedModel,
   filterQuery: string,
 ): T[] {
   const terms = filterQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -107,7 +136,7 @@ export function filterByModelQuery<T>(
   });
 }
 
-export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
+export function providerOptions(models: ModelAtlasPublishedModel[]): ProviderOption[] {
   type ProviderOptionDraft = ProviderOption & {
     modelKeys: Set<string>;
     bestScoreByModel: Map<string, number>;
@@ -166,7 +195,7 @@ export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
 
 export function filterByModelControls<T>(
   items: T[],
-  getModel: (item: T) => ModelAtlasModel,
+  getModel: (item: T) => ModelAtlasPublishedModel,
   filters: ModelControlFilters,
 ) {
   const providerKeys = filters.providers.length === 0 ? null : new Set(filters.providers);
@@ -177,7 +206,7 @@ export function filterByModelControls<T>(
 
 export function limitByIntelligenceScore<T>(
   items: T[],
-  getModel: (item: T) => ModelAtlasModel,
+  getModel: (item: T) => ModelAtlasPublishedModel,
   limit: ModelLimit,
 ) {
   if (limit === "all") {
@@ -211,12 +240,12 @@ export function toggleProviderFilter(selectedProviders: string[], provider: stri
     : [...selectedProviders, provider];
 }
 
-export function modelVariantKey(model: ModelAtlasModel): string {
+export function modelVariantKey(model: ModelAtlasPublishedModel): string {
   return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
 }
 
 function modelMatchesControls(
-  model: ModelAtlasModel,
+  model: ModelAtlasPublishedModel,
   maxCost: CostFilter,
   providerKeys: ReadonlySet<string> | null,
 ) {
@@ -246,6 +275,18 @@ function prefixBareFableModelName(match: string, offset: number, name: string) {
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function compareIntelligence(
+  left: ModelAtlasPublishedModel,
+  right: ModelAtlasPublishedModel,
+): number {
+  const leftScore = finiteNumber(left.scores.intelligence_score);
+  const rightScore = finiteNumber(right.scores.intelligence_score);
+  if (leftScore == null || rightScore == null) {
+    return leftScore == null ? (rightScore == null ? 0 : 1) : -1;
+  }
+  return rightScore - leftScore;
 }
 
 function escapeRegExp(value: string): string {

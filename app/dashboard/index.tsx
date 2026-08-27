@@ -4,7 +4,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import { type ModelAtlasPayload, rankedModels } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
@@ -37,7 +37,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
     return {
       ...payload,
       models: modelsForVariantDisplay(
-        payload.models,
+        rankedModels(payload.models),
         showReasoningVariants,
         payload.benchmark_observations,
       ),
@@ -93,7 +93,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
       <ModelAtlasHeader page="dashboard" />
       <DashboardGraphs
         payload={displayPayload}
-        referenceModels={payload?.models ?? []}
+        referenceModels={rankedModels(payload?.models ?? [])}
         hasFullPayload={hasFullPayload}
         benchmarksLoading={isInitialLoading}
         selectedProviders={selectedProviders}

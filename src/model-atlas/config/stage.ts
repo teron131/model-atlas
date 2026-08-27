@@ -58,6 +58,7 @@ export const QUALITY_COVERAGE = {
 export type FinalStageConfig = {
   nullFieldPruneThreshold: number;
   nullFieldPruneRecentLookbackDays: number;
+  previewMaxAgeDays: number;
   benchmarkAdmission: BenchmarkAdmissionConfig;
 };
 
@@ -105,6 +106,7 @@ export type ScoringConfig = {
   intelligenceBenchmarkDisplayKeys: readonly string[];
   agenticBenchmarkKeys: readonly string[];
   agenticBenchmarkDisplayKeys: readonly string[];
+  previewAdditionalIntelligenceBenchmarkKeys: readonly string[];
   defaultSpeedOutputTokenAnchors: readonly number[];
   speedOutputTokenRangeMin: number;
   speedOutputTokenRangeMax: number;
@@ -149,6 +151,7 @@ export const STAGE_CONFIG = {
   final: {
     nullFieldPruneThreshold: 0.5,
     nullFieldPruneRecentLookbackDays: 90,
+    previewMaxAgeDays: 30,
     benchmarkAdmission: {
       indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
       minimumObservedBenchmarks: 7,
@@ -164,6 +167,7 @@ export const STAGE_CONFIG = {
     intelligenceBenchmarkDisplayKeys: INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
     agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS,
     agenticBenchmarkDisplayKeys: AGENTIC_BENCHMARK_DISPLAY_KEYS,
+    previewAdditionalIntelligenceBenchmarkKeys: ["gpqa", "mmmu_pro"],
     defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
     speedOutputTokenRangeMin: 200,
     speedOutputTokenRangeMax: 8_000,

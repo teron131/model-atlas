@@ -9,7 +9,11 @@ import {
   positiveFiniteNumber,
   weightedMeanOfFinite,
 } from "../../numeric";
-import type { ModelAtlasCandidate, ModelAtlasScoredCandidate } from "../model-types";
+import type {
+  ModelAtlasCandidate,
+  ModelAtlasCandidateComponentScores,
+  ModelAtlasScoredCandidate,
+} from "../model-types";
 import {
   benchmarkQualityEvidence,
   type BenchmarkScoringPreparation,
@@ -40,6 +44,36 @@ type WeightedResourceEfficiencyEvidence = {
   signalsByModel: WeightedSignal[][];
 };
 
+type ResourceScoreResult = {
+  scores: Array<number | null>;
+  confidences: Array<number | null>;
+};
+
+type ResourceScoreInputs = {
+  providerSpeedScores: readonly (readonly (number | null)[])[];
+  priceComponentScores: readonly (readonly (number | null)[])[];
+  taskTimeComponentEvidence: WeightedResourceEfficiencyEvidence;
+  taskCostComponentEvidence: WeightedResourceEfficiencyEvidence;
+};
+
+export type PreviewResourceScoreResult = {
+  scores: {
+    speed_score: number | null;
+    value_score: number | null;
+  };
+  confidence: {
+    speed: number | null;
+    value: number | null;
+  };
+};
+
+const PREVIEW_RESOURCE_BUCKET_WEIGHTS = {
+  nonBenchmark: 0.7,
+  benchmark: 0.3,
+} as const;
+
+type ResourceScoringModel = ModelAtlasCandidate | ModelAtlasScoredCandidate;
+
 function finiteSignalWeight(signals: WeightedSignal[]): number {
   return signals.reduce(
     (total, signal) =>
@@ -57,12 +91,12 @@ function perComponentWeight(bucketWeight: number, componentCount: number): numbe
   return componentCount > 0 ? bucketWeight / componentCount : 0;
 }
 
-function blendedPrice(model: ModelAtlasCandidate): number | null {
+function blendedPrice(model: ResourceScoringModel): number | null {
   return nonnegativeFiniteNumber(model.cost?.blended_price) ?? blendedPriceValue(model.cost);
 }
 
 function taskResourceEfficiencyEvidence(
-  models: ModelAtlasCandidate[],
+  models: ResourceScoringModel[],
   scoringConfig: ScoringConfig,
   kind: TaskResourceKind,
   benchmarkPreparation?: BenchmarkScoringPreparation,
@@ -139,7 +173,7 @@ function evidenceConfidence(
 
 /** Use the source-default variant's coverage uniformly across every reasoning effort. */
 function defaultVariantCoverageMultipliers(
-  models: readonly ModelAtlasCandidate[],
+  models: readonly ResourceScoringModel[],
   signalsByModel: readonly WeightedSignal[][],
   totalWeight: number,
 ): number[] {
@@ -168,10 +202,10 @@ function defaultVariantCoverageMultipliers(
 }
 
 function scoreResourceDimension(
-  models: readonly ModelAtlasCandidate[],
+  models: readonly ResourceScoringModel[],
   nonBenchmarkScores: readonly (readonly (number | null)[])[],
   benchmarkEvidence: WeightedResourceEfficiencyEvidence,
-): { scores: Array<number | null>; confidences: Array<number | null> } {
+): ResourceScoreResult {
   const nonBenchmarkComponentWeight = perComponentWeight(
     RESOURCE_SCORE_BUCKET_WEIGHTS.nonBenchmark,
     nonBenchmarkScores.length,
@@ -211,19 +245,58 @@ function scoreResourceDimension(
   };
 }
 
-export function attachFinalScores(
-  models: ModelAtlasCandidate[],
+/** Score a preview from provider specs first, adding direct benchmark resources without a missing-coverage multiplier. */
+function scorePreviewResourceDimension(
+  nonBenchmarkScores: readonly (readonly (number | null)[])[],
+  benchmarkEvidence: WeightedResourceEfficiencyEvidence,
+): ResourceScoreResult {
+  const nonBenchmarkConfidenceWeight = perComponentWeight(
+    PREVIEW_RESOURCE_BUCKET_WEIGHTS.nonBenchmark,
+    nonBenchmarkScores.length,
+  );
+  const benchmarkConfidenceWeight = perComponentWeight(
+    PREVIEW_RESOURCE_BUCKET_WEIGHTS.benchmark,
+    benchmarkEvidence.benchmarkKeys.length,
+  );
+  const modelCount = nonBenchmarkScores[0]?.length ?? benchmarkEvidence.signalsByModel.length;
+  const scores: Array<number | null> = [];
+  const confidences: Array<number | null> = [];
+  for (let index = 0; index < modelCount; index += 1) {
+    const nonBenchmarkSignals = nonBenchmarkScores.map((componentScores) => ({
+      value: componentScores[index] ?? null,
+      weight: 1,
+    }));
+    const benchmarkSignals = benchmarkEvidence.signalsByModel[index] ?? [];
+    const nonBenchmarkScore = weightedMeanOfFinite(nonBenchmarkSignals);
+    const benchmarkScore = weightedMeanOfFinite(benchmarkSignals);
+    const score =
+      nonBenchmarkScore == null
+        ? null
+        : benchmarkScore == null
+          ? nonBenchmarkScore
+          : nonBenchmarkScore * PREVIEW_RESOURCE_BUCKET_WEIGHTS.nonBenchmark +
+            benchmarkScore * PREVIEW_RESOURCE_BUCKET_WEIGHTS.benchmark;
+    const confidence =
+      score == null
+        ? null
+        : Math.min(
+            1,
+            finiteSignalWeight(nonBenchmarkSignals) * nonBenchmarkConfidenceWeight +
+              finiteSignalWeight(benchmarkSignals) * benchmarkConfidenceWeight,
+          );
+    scores.push(score);
+    confidences.push(confidence);
+  }
+  return { scores, confidences };
+}
+
+function buildResourceScoreInputs(
+  models: ResourceScoringModel[],
+  qualityCoordinates: readonly (number | null)[],
   scoringConfig: ScoringConfig,
   benchmarkPreparation?: BenchmarkScoringPreparation,
   resourceImputation?: EffortResourceImputation,
-): ModelAtlasScoredCandidate[] {
-  const intelligenceScores = models.map(
-    (model) => model.component_scores?.intelligence_score ?? null,
-  );
-  const agenticScores = models.map((model) => model.component_scores?.agentic_score ?? null);
-  const qualityCoordinates = models.map((_, index) =>
-    meanOfFinite([intelligenceScores[index] ?? null, agenticScores[index] ?? null]),
-  );
+): ResourceScoreInputs {
   const logBlendedPriceSignals = models.map((model) =>
     log10OnePlusNonnegative(blendedPrice(model)),
   );
@@ -261,8 +334,78 @@ export function attachFinalScores(
     benchmarkPreparation,
     resourceImputation,
   );
-  const speed = scoreResourceDimension(models, providerSpeedScores, taskTimeComponentEvidence);
-  const value = scoreResourceDimension(models, priceComponentScores, taskCostComponentEvidence);
+  return {
+    providerSpeedScores,
+    priceComponentScores,
+    taskTimeComponentEvidence,
+    taskCostComponentEvidence,
+  };
+}
+
+/** Compute unranked preview Speed and Value from direct evidence with a spec-heavy fallback. */
+export function buildPreviewResourceScoreResults(
+  models: ModelAtlasScoredCandidate[],
+  previewQualityByModel: readonly (ModelAtlasCandidateComponentScores | null)[],
+  scoringConfig: ScoringConfig,
+): PreviewResourceScoreResult[] {
+  const qualityCoordinates = models.map((model, index) => {
+    const previewQuality = previewQualityByModel[index];
+    return meanOfFinite([
+      previewQuality?.intelligence_score ?? model.component_scores?.intelligence_score ?? null,
+      previewQuality?.agentic_score ?? model.component_scores?.agentic_score ?? null,
+    ]);
+  });
+  const inputs = buildResourceScoreInputs(models, qualityCoordinates, scoringConfig);
+  const speed = scorePreviewResourceDimension(
+    inputs.providerSpeedScores,
+    inputs.taskTimeComponentEvidence,
+  );
+  const value = scorePreviewResourceDimension(
+    inputs.priceComponentScores,
+    inputs.taskCostComponentEvidence,
+  );
+  return models.map((_, index) => ({
+    scores: {
+      speed_score: speed.scores[index] ?? null,
+      value_score: value.scores[index] ?? null,
+    },
+    confidence: {
+      speed: speed.confidences[index] ?? null,
+      value: value.confidences[index] ?? null,
+    },
+  }));
+}
+
+export function attachFinalScores(
+  models: ModelAtlasCandidate[],
+  scoringConfig: ScoringConfig,
+  benchmarkPreparation?: BenchmarkScoringPreparation,
+  resourceImputation?: EffortResourceImputation,
+): ModelAtlasScoredCandidate[] {
+  const intelligenceScores = models.map(
+    (model) => model.component_scores?.intelligence_score ?? null,
+  );
+  const agenticScores = models.map((model) => model.component_scores?.agentic_score ?? null);
+  const qualityCoordinates = models.map((_, index) =>
+    meanOfFinite([intelligenceScores[index] ?? null, agenticScores[index] ?? null]),
+  );
+  const inputs = buildResourceScoreInputs(
+    models,
+    qualityCoordinates,
+    scoringConfig,
+    benchmarkPreparation,
+    resourceImputation,
+  );
+  const speed = scoreResourceDimension(
+    models,
+    inputs.providerSpeedScores,
+    inputs.taskTimeComponentEvidence,
+  );
+  const value = scoreResourceDimension(
+    models,
+    inputs.priceComponentScores,
+    inputs.taskCostComponentEvidence,
+  );
   return models.map((model, index) => {
     const intelligenceScore = intelligenceScores[index] ?? null;
     const agenticScore = agenticScores[index] ?? null;

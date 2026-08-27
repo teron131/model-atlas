@@ -7,6 +7,7 @@ import type { ScoringConfig } from "../src/model-atlas/config/stage";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
 import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog";
 import {
+  buildFinalModels,
   hasRequiredBasicSpecs,
   hasRequiredBenchmarkEvidence,
   hasRequiredPublicRelevance,
@@ -215,6 +216,58 @@ assert.equal(
   "provider/other",
   "catalog rows should carry the canonical qualified route into variant construction",
 );
+
+const duplicateRouteId = "provider/same-route";
+const selectedBenchmarkKeys = [
+  ...new Set([
+    ...STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
+    ...STAGE_CONFIG.scoring.agenticBenchmarkKeys,
+  ]),
+];
+const duplicateRouteModels = await buildFinalModels(
+  {
+    modelRows: [
+      duplicateRouteRow("Existing Route Name", "2026-07-01", 0.8),
+      duplicateRouteRow("Renamed Route", "2026-08-26", 0.6),
+    ],
+    speedByModelId: new Map([
+      [
+        duplicateRouteId,
+        {
+          throughput_tokens_per_second_median: 50,
+          latency_seconds_median: 1,
+          e2e_latency_seconds_median: 5,
+        },
+      ],
+    ]),
+    pricingByModelId: new Map([[duplicateRouteId, { weighted_input: 1, weighted_output: 2 }]]),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+  {
+    baselineDate: "2026-07-30",
+    observedDate: "2026-08-27",
+  },
+);
+assert.deepEqual(
+  duplicateRouteModels.map((model) => [model.id, model.name, model.preview === true]),
+  [[duplicateRouteId, "Existing Route Name", false]],
+  "one public route must not appear as both an official model and a renamed preview",
+);
+
+function duplicateRouteRow(name: string, releaseDate: string, benchmarkValue: number) {
+  return {
+    id: duplicateRouteId,
+    name,
+    release_date: releaseDate,
+    modalities: { input: ["text"], output: ["text"] },
+    cost: { input: 1, output: 2 },
+    limit: { context: 100_000, output: 10_000 },
+    benchmarks: Object.fromEntries(selectedBenchmarkKeys.map((key) => [key, benchmarkValue])),
+  };
+}
 
 function catalogModel(id: string, name: string, family: string): ModelsDevFlatModel {
   return {

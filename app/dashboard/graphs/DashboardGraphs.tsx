@@ -4,7 +4,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
-import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
   type CostFilter,
@@ -35,6 +35,10 @@ import type { HoverState } from "./types";
 
 import styles from "./graphs.module.css";
 
+type GraphPayload = Omit<ModelAtlasPayload, "models"> & {
+  models: ModelAtlasModel[];
+};
+
 export function DashboardGraphs({
   payload,
   referenceModels,
@@ -53,8 +57,8 @@ export function DashboardGraphs({
   onModelLimitChange,
   onGlobalModelFilterQueryChange,
 }: {
-  payload: ModelAtlasPayload | null;
-  referenceModels: ModelAtlasPayload["models"];
+  payload: GraphPayload | null;
+  referenceModels: ModelAtlasModel[];
   hasFullPayload: boolean;
   benchmarksLoading: boolean;
   afterLead?: React.ReactNode;
