@@ -548,12 +548,15 @@ function buildQualityAnchorPredictor(
 ): QualityAnchorPredictor | null {
   const validationErrorByModel = new Map<JsonObject, number>();
   const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
+  const modelKeyByModel = new Map(
+    models.map((model) => [model, canonicalModelKey(model)] as const),
+  );
   for (const heldOutModel of models) {
     if (benchmarkMetricValue(heldOutModel, indexKey) == null) {
       continue;
     }
-    const heldOutModelKey = canonicalModelKey(heldOutModel);
-    const trainingModels = models.filter((model) => canonicalModelKey(model) !== heldOutModelKey);
+    const heldOutModelKey = modelKeyByModel.get(heldOutModel)!;
+    const trainingModels = models.filter((model) => modelKeyByModel.get(model) !== heldOutModelKey);
     const trainingValuesByKey = observedValuesByBenchmark(trainingModels, benchmarkKeys);
     const trainingQualityContext = taskQualityContext(
       dimension,
@@ -677,6 +680,9 @@ function imputationDiagnostic(
   scoringConfig: ScoringConfig,
 ): BenchmarkImputationDiagnostic {
   const normalizedAbsoluteErrorByModel = new Map<JsonObject, number>();
+  const modelKeyByModel = new Map(
+    models.map((model) => [model, canonicalModelKey(model)] as const),
+  );
   const calibrationByHeldOutModel = new Map<
     string,
     {
@@ -689,10 +695,12 @@ function imputationDiagnostic(
     if (actualValue == null) {
       continue;
     }
-    const heldOutModelKey = canonicalModelKey(heldOutModel);
+    const heldOutModelKey = modelKeyByModel.get(heldOutModel)!;
     let calibration = calibrationByHeldOutModel.get(heldOutModelKey);
     if (calibration == null) {
-      const trainingModels = models.filter((model) => canonicalModelKey(model) !== heldOutModelKey);
+      const trainingModels = models.filter(
+        (model) => modelKeyByModel.get(model) !== heldOutModelKey,
+      );
       const trainingValuesByKey = observedValuesByBenchmark(trainingModels, benchmarkKeys);
       calibration = {
         predictors: buildWeightedPredictors(
@@ -815,20 +823,13 @@ export function buildQualityScoringContext(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): QualityScoringContext {
-  const benchmarkValuesByKey = new Map<string, number[]>();
   const benchmarkKeys = [
     ...new Set([
       ...selectedBenchmarkKeys(scoringConfig),
       ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
     ]),
   ];
-  for (const key of benchmarkKeys) {
-    const values = models
-      .map((model) => benchmarkMetricValue(model, key))
-      .filter((value): value is number => value != null && Number.isFinite(value));
-    benchmarkValuesByKey.set(key, values);
-  }
-
+  const benchmarkValuesByKey = observedValuesByBenchmark(models, benchmarkKeys);
   const indexAnchorsByModel = buildQualityIndexAnchors(models, scoringConfig, benchmarkValuesByKey);
   return { benchmarkValuesByKey, indexAnchorsByModel };
 }
