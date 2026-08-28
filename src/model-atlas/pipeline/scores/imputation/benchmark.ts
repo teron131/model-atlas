@@ -5,10 +5,18 @@ import {
   effectiveModelCount,
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
-import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
+import {
+  BENCHMARK_CATALOG,
+  benchmarkDimensionWeight,
+  INDEX_BENCHMARK_KEYS,
+} from "../../../benchmarks/registry";
 import { buildAdditiveSourceCrosswalk } from "../../../benchmarks/source-crosswalk";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
-import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
+import {
+  canonicalModelKey,
+  canonicalReasoningEffort,
+  reasoningEffortRank,
+} from "../../../identity/normalization";
 import {
   clamp,
   clamp01,
@@ -30,6 +38,15 @@ export type BenchmarkImputationConfidenceByModel = ReadonlyMap<
   ReadonlyMap<string, number>
 >;
 
+export type QualityIndexAnchor = {
+  score: number;
+  confidence: number;
+};
+
+type ModelQualityIndexAnchor = QualityIndexAnchor & {
+  representativeVariantKey: string;
+};
+
 type BenchmarkImputationDiagnostic = {
   validationSampleCount: number;
   effectiveModelCount: number;
@@ -39,6 +56,10 @@ type BenchmarkImputationDiagnostic = {
 
 export type QualityScoringContext = {
   benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
+  indexAnchorsByModel: ReadonlyMap<
+    string,
+    Readonly<Partial<Record<BenchmarkDimension, ModelQualityIndexAnchor>>>
+  >;
 };
 
 type BenchmarkScoringModelIdentity = {
@@ -73,6 +94,7 @@ const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_MODELS = 3;
 const MIN_IMPUTATION_VALIDATION_MODELS = 4;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
+const INDEX_BENCHMARK_KEY_SET = new Set<string>(INDEX_BENCHMARK_KEYS);
 const APEX_AGENTS_KEY = "apex_agents";
 const apexImputationPolicy = (() => {
   const policy = BENCHMARK_CATALOG.apex_agents.scoring.imputation;
@@ -106,6 +128,16 @@ export function benchmarkImputationConfidence(
     preparation.imputationConfidenceByModel.get(model as JsonObject) ??
     preparation.imputationConfidenceByVariant.get(scoringVariantKey(model))
   );
+}
+
+/** Resolve a validated aggregate-index anchor that may reduce sparse quality regularization. */
+export function qualityIndexAnchor(
+  context: QualityScoringContext,
+  model: BenchmarkScoringModelIdentity,
+  dimension: BenchmarkDimension,
+): QualityIndexAnchor | null {
+  const anchor = context.indexAnchorsByModel.get(canonicalModelKey(model))?.[dimension];
+  return anchor?.representativeVariantKey === scoringVariantKey(model) ? anchor : null;
 }
 
 /** Remove generic benchmark estimates for rows whose direct evidence must stand on its own. */
@@ -155,6 +187,13 @@ export function benchmarkQualityEvidence(
 type DimensionBenchmarkContext = {
   benchmarkKeys: readonly string[];
   benchmarkWeights: ReadonlyMap<string, number>;
+};
+
+type TaskQualityContext = {
+  benchmarkKeys: readonly string[];
+  benchmarkWeights: ReadonlyMap<string, number>;
+  minimumObservedWeight: number;
+  valuesByKey: ReadonlyMap<string, readonly number[]>;
 };
 
 function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps {
@@ -260,6 +299,39 @@ function dimensionBenchmarkContext(
       ),
     ),
   };
+}
+
+function taskQualityContext(
+  dimension: BenchmarkDimension,
+  scoringConfig: ScoringConfig,
+  valuesByKey: ReadonlyMap<string, readonly number[]>,
+): TaskQualityContext {
+  const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
+  return {
+    benchmarkKeys: benchmarkKeys.filter((key) => !INDEX_BENCHMARK_KEY_SET.has(key)),
+    benchmarkWeights,
+    minimumObservedWeight: scoringConfig.qualityCoverage[dimension].full,
+    valuesByKey,
+  };
+}
+
+/** Build a broadly observed task-benchmark score without using aggregate indexes as its own target. */
+function observedTaskQualityScore(model: JsonObject, context: TaskQualityContext): number | null {
+  const observedWeight = context.benchmarkKeys.reduce(
+    (total, key) =>
+      total +
+      (benchmarkMetricValue(model, key) == null ? 0 : (context.benchmarkWeights.get(key) ?? 0)),
+    0,
+  );
+  if (observedWeight < context.minimumObservedWeight) {
+    return null;
+  }
+  return weightedMeanOfFinite(
+    context.benchmarkKeys.map((key) => ({
+      value: normalizedMetricValue(context.valuesByKey, key, benchmarkMetricValue(model, key)),
+      weight: context.benchmarkWeights.get(key) ?? 0,
+    })),
+  );
 }
 
 /** Convert held-out normalized error into partial evidence credit for a validated prediction. */
@@ -395,6 +467,206 @@ function predictedBenchmarkValue(
     })),
   );
   return value == null || contextSupport == null ? null : { contextSupport, value };
+}
+
+type QualityAnchorPredictor = {
+  confidence: number;
+  predict: (model: JsonObject) => number | null;
+};
+
+type QualityAnchorParts = {
+  parts: Array<{ score: number; confidence: number; weight: number }>;
+  representativeVariantKey: string;
+};
+
+type QualityAnchorPartsByDimension = Partial<Record<BenchmarkDimension, QualityAnchorParts>>;
+
+/** Choose one evidence-leading representative per model family for model-level index anchoring. */
+function qualityAnchorRepresentatives(
+  models: JsonObject[],
+  dimension: BenchmarkDimension,
+  scoringConfig: ScoringConfig,
+): JsonObject[] {
+  const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
+  const representativesByModel = new Map<string, { model: JsonObject; observedWeight: number }>();
+  for (const model of models) {
+    const observedWeight = benchmarkKeys.reduce(
+      (total, key) =>
+        total + (benchmarkMetricValue(model, key) == null ? 0 : (benchmarkWeights.get(key) ?? 0)),
+      0,
+    );
+    const modelKey = canonicalModelKey(model);
+    const current = representativesByModel.get(modelKey);
+    if (
+      current == null ||
+      observedWeight > current.observedWeight ||
+      (observedWeight === current.observedWeight &&
+        reasoningEffortRank(model.reasoning_effort) >
+          reasoningEffortRank(current.model.reasoning_effort))
+    ) {
+      representativesByModel.set(modelKey, { model, observedWeight });
+    }
+  }
+  return Array.from(representativesByModel.values(), ({ model }) => model);
+}
+
+/** Fit a monotonic mapping from one aggregate index to broadly observed task-benchmark quality. */
+function buildQualityAnchorMapping(
+  models: JsonObject[],
+  indexKey: string,
+  qualityContext: TaskQualityContext,
+): ((model: JsonObject) => number | null) | null {
+  const qualityScoresByModel = new Map<JsonObject, number>();
+  const indexObservations = calibrationObservations(models, (model) => {
+    const qualityScore = observedTaskQualityScore(model, qualityContext);
+    if (qualityScore != null) {
+      qualityScoresByModel.set(model, qualityScore);
+    }
+    return qualityScore == null ? null : benchmarkMetricValue(model, indexKey);
+  });
+  if (effectiveModelCount(indexObservations) < MIN_IMPUTATION_REFERENCE_MODELS) {
+    return null;
+  }
+  const qualityObservations = indexObservations.flatMap((observation) => {
+    const value = qualityScoresByModel.get(observation.item);
+    return value == null ? [] : [{ ...observation, value }];
+  });
+  return (model) => {
+    const indexValue = benchmarkMetricValue(model, indexKey);
+    const percentile = weightedQuantileRank(indexObservations, indexValue);
+    return percentile == null ? null : weightedQuantile(qualityObservations, percentile / 100);
+  };
+}
+
+/** Accept an index anchor only when model-held-out predictions remain reliable on the 0-100 quality scale. */
+function buildQualityAnchorPredictor(
+  models: JsonObject[],
+  indexKey: string,
+  dimension: BenchmarkDimension,
+  scoringConfig: ScoringConfig,
+  valuesByKey: ReadonlyMap<string, readonly number[]>,
+): QualityAnchorPredictor | null {
+  const validationErrorByModel = new Map<JsonObject, number>();
+  const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
+  for (const heldOutModel of models) {
+    if (benchmarkMetricValue(heldOutModel, indexKey) == null) {
+      continue;
+    }
+    const heldOutModelKey = canonicalModelKey(heldOutModel);
+    const trainingModels = models.filter((model) => canonicalModelKey(model) !== heldOutModelKey);
+    const trainingValuesByKey = observedValuesByBenchmark(trainingModels, benchmarkKeys);
+    const trainingQualityContext = taskQualityContext(
+      dimension,
+      scoringConfig,
+      trainingValuesByKey,
+    );
+    const actualScore = observedTaskQualityScore(heldOutModel, trainingQualityContext);
+    if (actualScore == null) {
+      continue;
+    }
+    const mapping = buildQualityAnchorMapping(trainingModels, indexKey, trainingQualityContext);
+    const predictedScore = mapping?.(heldOutModel) ?? null;
+    if (predictedScore != null) {
+      validationErrorByModel.set(heldOutModel, Math.abs(predictedScore - actualScore));
+    }
+  }
+  const validationErrors = calibrationObservations(
+    models,
+    (model) => validationErrorByModel.get(model) ?? null,
+  );
+  const validationModelCount = effectiveModelCount(validationErrors);
+  const medianAbsoluteError = weightedMedianOfFinite(validationErrors);
+  if (
+    validationModelCount < MIN_IMPUTATION_VALIDATION_MODELS ||
+    medianAbsoluteError == null ||
+    medianAbsoluteError > MAX_NORMALIZED_IMPUTATION_ERROR
+  ) {
+    return null;
+  }
+  const mapping = buildQualityAnchorMapping(
+    models,
+    indexKey,
+    taskQualityContext(dimension, scoringConfig, valuesByKey),
+  );
+  return mapping == null
+    ? null
+    : {
+        confidence: clamp01(1 - medianAbsoluteError / MAX_NORMALIZED_IMPUTATION_ERROR),
+        predict: mapping,
+      };
+}
+
+/** Combine every validated aggregate index at its normal portfolio weight into sparse-score anchors. */
+function buildQualityIndexAnchors(
+  models: JsonObject[],
+  scoringConfig: ScoringConfig,
+  valuesByKey: ReadonlyMap<string, readonly number[]>,
+): Map<string, Partial<Record<BenchmarkDimension, ModelQualityIndexAnchor>>> {
+  const anchorPartsByModel = new Map<string, QualityAnchorPartsByDimension>();
+  for (const dimension of IMPUTATION_DIMENSIONS) {
+    const representatives = qualityAnchorRepresentatives(models, dimension, scoringConfig);
+    for (const indexKey of INDEX_BENCHMARK_KEYS) {
+      const weight = benchmarkDimensionWeight(
+        indexKey,
+        dimension,
+        scoringConfig.benchmarkPortfolio,
+      );
+      if (!(weight > 0)) {
+        continue;
+      }
+      const predictor = buildQualityAnchorPredictor(
+        representatives,
+        indexKey,
+        dimension,
+        scoringConfig,
+        valuesByKey,
+      );
+      if (predictor == null || !(predictor.confidence > 0)) {
+        continue;
+      }
+      for (const model of representatives) {
+        const score = predictor.predict(model);
+        if (score == null) {
+          continue;
+        }
+        const modelKey = canonicalModelKey(model);
+        const byDimension = anchorPartsByModel.get(modelKey) ?? {};
+        const anchor = byDimension[dimension] ?? {
+          parts: [],
+          representativeVariantKey: scoringVariantKey(model),
+        };
+        anchor.parts.push({ score, confidence: predictor.confidence, weight });
+        byDimension[dimension] = anchor;
+        anchorPartsByModel.set(modelKey, byDimension);
+      }
+    }
+  }
+  const anchorsByModel = new Map<
+    string,
+    Partial<Record<BenchmarkDimension, ModelQualityIndexAnchor>>
+  >();
+  for (const [modelKey, partsByDimension] of anchorPartsByModel) {
+    const anchors: Partial<Record<BenchmarkDimension, ModelQualityIndexAnchor>> = {};
+    for (const dimension of IMPUTATION_DIMENSIONS) {
+      const anchor = partsByDimension[dimension];
+      const parts = anchor?.parts ?? [];
+      const score = weightedMeanOfFinite(
+        parts.map((part) => ({ value: part.score, weight: part.weight * part.confidence })),
+      );
+      const confidence = weightedMeanOfFinite(
+        parts.map((part) => ({ value: part.confidence, weight: part.weight })),
+      );
+      if (anchor != null && score != null && confidence != null) {
+        anchors[dimension] = {
+          score,
+          confidence,
+          representativeVariantKey: anchor.representativeVariantKey,
+        };
+      }
+    }
+    anchorsByModel.set(modelKey, anchors);
+  }
+  return anchorsByModel;
 }
 
 /** Validate one benchmark's imputer while withholding every variant of the observed model. */
@@ -557,7 +829,8 @@ export function buildQualityScoringContext(
     benchmarkValuesByKey.set(key, values);
   }
 
-  return { benchmarkValuesByKey };
+  const indexAnchorsByModel = buildQualityIndexAnchors(models, scoringConfig, benchmarkValuesByKey);
+  return { benchmarkValuesByKey, indexAnchorsByModel };
 }
 
 /** Prepare benchmark imputations and quality normalization context in dependency order. */

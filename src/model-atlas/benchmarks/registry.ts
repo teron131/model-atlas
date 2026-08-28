@@ -40,7 +40,12 @@ import {
 } from "./factory";
 
 export type { BenchmarkKey } from "./catalog";
-export { BENCHMARK_TASK_METRIC_COLUMNS, INDEX_BENCHMARK_KEYS } from "./catalog";
+export {
+  BENCHMARK_TASK_METRIC_COLUMNS,
+  INDEX_BENCHMARK_KEYS,
+  INDEX_REPRESENTED_BENCHMARK_COUNTS,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+} from "./catalog";
 
 const IDENTITY_TRANSFORM = {
   kind: "identity",

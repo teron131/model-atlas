@@ -28,7 +28,7 @@
   <line x1="90" y1="48" x2="90" y2="340" class="axis" />
   <line x1="90" y1="194" x2="670" y2="194" class="grid" />
   <line x1="90" y1="165" x2="670" y2="165" class="threshold" />
-  <text x="660" y="155" text-anchor="end" class="annotation">60% full-evidence point</text>
+  <text x="660" y="155" text-anchor="end" class="annotation">Public-admission evidence point</text>
   <line x1="524" y1="69" x2="524" y2="257" class="projection" />
   <circle cx="524" cy="69" r="8" class="anchor" />
   <text x="509" y="74" text-anchor="end" class="annotation">Anchor Qₐ</text>

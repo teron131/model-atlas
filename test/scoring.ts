@@ -3,6 +3,10 @@
 import assert from "node:assert/strict";
 
 import { validateBenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
+import {
+  INDEX_REPRESENTED_BENCHMARK_COUNTS,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+} from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { ScoringConfig } from "../src/model-atlas/config/stage";
 import {
@@ -29,6 +33,7 @@ import {
   benchmarkImputationValues,
   normalizedMetricValue,
   prepareBenchmarkScoring,
+  qualityIndexAnchor,
   withoutBenchmarkImputationForModels,
 } from "../src/model-atlas/pipeline/scores/imputation";
 import {
@@ -204,21 +209,40 @@ const previewScoreResult = buildPreviewComponentScoreResult(
       ["hle", [0, 1]],
       ["tau_banking", [0, 1]],
     ]),
+    indexAnchorsByModel: new Map(),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 84.6154);
-assertClose(previewScoreResult.componentScores?.agentic_score, 92.3077);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 55.5556);
+assertClose(previewScoreResult.componentScores?.agentic_score, 77.7778);
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
   "preview quality should renormalize direct evidence without multiplying by low coverage",
 );
 assert.equal(
-  buildPreviewComponentScoreResult({}, STAGE_CONFIG.scoring, { benchmarkValuesByKey: new Map() })
-    .componentScores,
+  buildPreviewComponentScoreResult({}, STAGE_CONFIG.scoring, {
+    benchmarkValuesByKey: new Map(),
+    indexAnchorsByModel: new Map(),
+  }).componentScores,
   null,
   "metadata-only previews should publish without invented quality scores",
 );
+const indexOnlyPreviewScoreResult = buildPreviewComponentScoreResult(
+  {
+    intelligence: { intelligence_index: 1 },
+    benchmarks: { vals_index: 0 },
+  },
+  STAGE_CONFIG.scoring,
+  {
+    benchmarkValuesByKey: new Map([
+      ["aa_intelligence_index", [0, 1]],
+      ["vals_index", [0, 1]],
+    ]),
+    indexAnchorsByModel: new Map(),
+  },
+);
+assertClose(indexOnlyPreviewScoreResult.componentScores?.intelligence_score, 56.25);
+assertClose(indexOnlyPreviewScoreResult.componentScores?.agentic_score, 56.25);
 const previewResourceCandidates = [
   modelCandidate({
     id: "test/preview-resource-slow",
@@ -285,22 +309,23 @@ assert.notEqual(
   previewSpecOnlyScores[1]?.scores.value_score,
   "direct task cost should contribute 30% when preview benchmark resources are available",
 );
-const indexBenchmarkImportance = Object.fromEntries(
-  STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys.map((key) => [
-    key,
-    STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance,
+for (const key of STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys) {
+  assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 0.5);
+}
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 9);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 7);
+assert.equal(
+  INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index,
+  medianOfFinite([
+    INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index,
+    INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index,
+    INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index,
   ]),
 );
-assert.equal(indexBenchmarkImportance.aa_intelligence_index, 9);
-assert.equal(indexBenchmarkImportance.surge_intelligence_index, 8);
-assert.equal(indexBenchmarkImportance.vals_index, 7);
 assert.equal(
-  indexBenchmarkImportance.epoch_capabilities_index,
-  medianOfFinite([
-    indexBenchmarkImportance.aa_intelligence_index,
-    indexBenchmarkImportance.surge_intelligence_index,
-    indexBenchmarkImportance.vals_index,
-  ]),
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+  medianOfFinite(Object.values(INDEX_REPRESENTED_BENCHMARK_COUNTS)),
 );
 const recentPreviewIdentity = {
   id: "z-ai/glm-5.3-flash",
@@ -311,28 +336,23 @@ const recentPreviewIdentity = {
 assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-08-30", 30), true);
 assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-08-31", 30), false);
 assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-07-31", 30), false);
-function selectedDimensionWeight(
-  keys: readonly string[],
-  dimension: "intelligence" | "agentic",
-): number {
-  const selectedKeys = new Set(keys);
-  return Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio).reduce(
-    (total, [key, entry]) =>
-      selectedKeys.has(key)
-        ? total + entry.benchmarkImportance * entry.dimensionLoadings[dimension]
-        : total,
-    0,
-  );
-}
-const intelligenceWeight = selectedDimensionWeight(
-  STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
-  "intelligence",
+assertClose(
+  STAGE_CONFIG.scoring.qualityCoverage.intelligence.floor,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN * 0.1,
 );
-const agenticWeight = selectedDimensionWeight(STAGE_CONFIG.scoring.agenticBenchmarkKeys, "agentic");
-assertClose(STAGE_CONFIG.scoring.qualityCoverage.intelligence.floor, intelligenceWeight * 0.1);
-assertClose(STAGE_CONFIG.scoring.qualityCoverage.intelligence.full, intelligenceWeight * 0.6);
-assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.floor, agenticWeight * 0.1);
-assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.full, agenticWeight * 0.6);
+assertClose(
+  STAGE_CONFIG.scoring.qualityCoverage.intelligence.full,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+);
+assertClose(
+  STAGE_CONFIG.scoring.qualityCoverage.agentic.floor,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN * 0.1,
+);
+assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.full, INDEX_REPRESENTED_BENCHMARK_MEDIAN);
+assert.equal(
+  STAGE_CONFIG.final.benchmarkAdmission.minimumObservedBenchmarks,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+);
 const resourceQualityCoordinates = Object.fromEntries(
   Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio).flatMap(
     ([key, policy]) =>
@@ -935,7 +955,7 @@ const fractionalEvidenceComponentScores = buildComponentScoreResult(
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
-assertClose(fractionalEvidenceComponentScores?.intelligence_score, 10.4);
+assertClose(fractionalEvidenceComponentScores?.intelligence_score, 55.2);
 
 const imputationConfidenceConfig = {
   ...importanceWeightedConfig,
@@ -957,7 +977,7 @@ const imputationConfidenceResult = buildComponentScoreResult(
   new Map([["hle", 0]]),
   new Map([["hle", 0.2]]),
 );
-assertClose(imputationConfidenceResult.componentScores?.intelligence_score, 62.5);
+assertClose(imputationConfidenceResult.componentScores?.intelligence_score, 100);
 assertClose(imputationConfidenceResult.confidence.intelligence, 0.4);
 
 const sparseBenchmarkKeys = Array.from({ length: 12 }, (_, index) => `quality_${index}`);
@@ -1014,8 +1034,20 @@ const sparseEvidenceResult = buildComponentScoreResult(
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
 const sparseEvidenceComponentScores = sparseEvidenceResult.componentScores;
-assertClose(sparseEvidenceComponentScores?.intelligence_score, 50);
+assertClose(sparseEvidenceComponentScores?.intelligence_score, 75);
 assertClose(sparseEvidenceResult.confidence.intelligence, 1 / 12);
+const sparseLowEvidenceResult = buildComponentScoreResult(
+  { id: "sparse-low", benchmarks: { quality_0: 0 } },
+  {
+    throughput_tokens_per_second_median: null,
+    latency_seconds_median: null,
+    e2e_latency_seconds_median: null,
+  },
+  [],
+  sparseEvidenceConfig,
+  buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
+);
+assertClose(sparseLowEvidenceResult.componentScores?.intelligence_score, 0);
 
 const directResourceScoredModels = attachFinalScores(
   [
@@ -1945,7 +1977,7 @@ const validatedImputationScores = buildComponentScoreResult(
     ["c3", 0.5],
   ]),
 ).componentScores;
-assertClose(untrustedImputationScores?.intelligence_score, 35.2);
+assertClose(untrustedImputationScores?.intelligence_score, 67.6);
 assertClose(validatedImputationScores?.intelligence_score, 100);
 
 function modelCandidate(options: {
@@ -2093,6 +2125,134 @@ const insufficientSiblingOverlap = calibrateSparseEffortQualityScores(
   buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
 );
 assertClose(insufficientSiblingOverlap[1]?.component_scores?.intelligence_score, 99);
+
+const indexAnchorBenchmarkKeys = Array.from(
+  { length: INDEX_REPRESENTED_BENCHMARK_MEDIAN },
+  (_, index) => `b${index + 1}`,
+);
+
+function indexAnchorBenchmarks(value: number, count = indexAnchorBenchmarkKeys.length) {
+  return Object.fromEntries(indexAnchorBenchmarkKeys.slice(0, count).map((key) => [key, value]));
+}
+
+const indexAnchorConfig: ScoringConfig = {
+  ...STAGE_CONFIG.scoring,
+  intelligenceBenchmarkKeys: ["aa_intelligence_index", ...indexAnchorBenchmarkKeys],
+  agenticBenchmarkKeys: [],
+  previewAdditionalIntelligenceBenchmarkKeys: [],
+  benchmarkPortfolio: {
+    aa_intelligence_index: {
+      group: "baseline",
+      benchmarkImportance: 0.5,
+      dimensionLoadings: { intelligence: 1, agentic: 0 },
+    },
+    ...Object.fromEntries(
+      indexAnchorBenchmarkKeys.map((key) => [key, intelligenceBenchmarkEntry()]),
+    ),
+  },
+  qualityCoverage: {
+    intelligence: {
+      floor: INDEX_REPRESENTED_BENCHMARK_MEDIAN * 0.1,
+      full: INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+    },
+    agentic: { floor: 0, full: 1 },
+  },
+};
+const indexAnchorReferences = [0, 20, 40, 60, 80, 100].map((value, index) => ({
+  id: `test/index-anchor-reference-${index}`,
+  intelligence: { intelligence_index: value },
+  benchmarks: indexAnchorBenchmarks(value),
+}));
+const sparseIndexAnchorModel = {
+  id: "test/index-anchor-target",
+  intelligence: { intelligence_index: 70 },
+  benchmarks: { b1: 80 },
+};
+const coveredIndexAnchorModel = {
+  id: "test/index-anchor-covered",
+  intelligence: { intelligence_index: 100 },
+  benchmarks: indexAnchorBenchmarks(60),
+};
+const indexAnchorModels = [
+  ...indexAnchorReferences,
+  sparseIndexAnchorModel,
+  coveredIndexAnchorModel,
+];
+const indexAnchorContext = buildQualityScoringContext(indexAnchorModels, indexAnchorConfig);
+const learnedIndexAnchor = qualityIndexAnchor(
+  indexAnchorContext,
+  sparseIndexAnchorModel,
+  "intelligence",
+);
+assert.equal(learnedIndexAnchor != null && learnedIndexAnchor.confidence > 0, true);
+const indexAnchorSpeed = {
+  throughput_tokens_per_second_median: null,
+  latency_seconds_median: null,
+  e2e_latency_seconds_median: null,
+};
+const anchoredIndexScore = buildComponentScoreResult(
+  sparseIndexAnchorModel,
+  indexAnchorSpeed,
+  [],
+  indexAnchorConfig,
+  indexAnchorContext,
+).componentScores?.intelligence_score;
+const unanchoredIndexScore = buildComponentScoreResult(
+  sparseIndexAnchorModel,
+  indexAnchorSpeed,
+  [],
+  indexAnchorConfig,
+  { ...indexAnchorContext, indexAnchorsByModel: new Map() },
+).componentScores?.intelligence_score;
+assert.equal(
+  (anchoredIndexScore ?? 0) > (unanchoredIndexScore ?? 0),
+  true,
+  "validated aggregate indexes should stabilize uncovered official quality evidence without named-model rules",
+);
+const coveredIndexScore = buildComponentScoreResult(
+  coveredIndexAnchorModel,
+  indexAnchorSpeed,
+  [],
+  indexAnchorConfig,
+  indexAnchorContext,
+).componentScores?.intelligence_score;
+const coveredUnanchoredIndexScore = buildComponentScoreResult(
+  coveredIndexAnchorModel,
+  indexAnchorSpeed,
+  [],
+  indexAnchorConfig,
+  { ...indexAnchorContext, indexAnchorsByModel: new Map() },
+).componentScores?.intelligence_score;
+assert.notEqual(coveredUnanchoredIndexScore, null);
+assertClose(coveredIndexScore, coveredUnanchoredIndexScore as number);
+const familyIndexAnchorModels = [
+  ...indexAnchorReferences,
+  {
+    id: "test/index-anchor-family",
+    reasoning_effort: "high",
+    intelligence: { intelligence_index: 70 },
+    benchmarks: indexAnchorBenchmarks(70, indexAnchorBenchmarkKeys.length - 1),
+  },
+  {
+    id: "test/index-anchor-family",
+    reasoning_effort: "low",
+    intelligence: { intelligence_index: 90 },
+    benchmarks: { b1: 90 },
+  },
+];
+const familyIndexAnchorContext = buildQualityScoringContext(
+  familyIndexAnchorModels,
+  indexAnchorConfig,
+);
+assert.notEqual(
+  qualityIndexAnchor(familyIndexAnchorContext, familyIndexAnchorModels.at(-2)!, "intelligence"),
+  null,
+);
+assert.equal(
+  qualityIndexAnchor(familyIndexAnchorContext, familyIndexAnchorModels.at(-1)!, "intelligence"),
+  null,
+  "aggregate-index anchoring should target only the evidence-leading model variant",
+);
 
 function resourceModel(
   modelKey: string,

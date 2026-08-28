@@ -4,6 +4,7 @@ export type {
   BenchmarkImputationByModel,
   BenchmarkImputationConfidenceByModel,
   BenchmarkScoringPreparation,
+  QualityIndexAnchor,
   QualityScoringContext,
 } from "./benchmark";
 export {
@@ -15,6 +16,7 @@ export {
   buildQualityScoringContext,
   normalizedMetricValue,
   prepareBenchmarkScoring,
+  qualityIndexAnchor,
   withoutBenchmarkImputationForModels,
 } from "./benchmark";
 export type {
