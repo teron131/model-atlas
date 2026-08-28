@@ -326,7 +326,10 @@ assert.equal(
 );
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
-assert.match(methodology, /validation-confidence weighted influence/);
+assert.match(
+  methodology,
+  /validated estimates add discounted evidence support and relax regularization without changing the observed benchmark mean/,
+);
 assert.match(methodology, /literal weighted evidence support/);
 assert.match(methodology, /source-default variant/);
 assert.match(methodology, /show the highest available direct effort/);

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="title desc">
-  <title id="title">Quality score coverage multiplier</title>
-  <desc id="desc">The score multiplier is zero through a ten percent evidence share, rises smoothly, and is full from sixty percent.</desc>
+  <title id="title">Quality evidence reliability</title>
+  <desc id="desc">The evidence reliability coefficient is zero through 10% of the aggregate-index median evidence breadth, rises smoothly, and is full from that median.</desc>
   <style>
     :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
     text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
@@ -13,23 +13,23 @@
     .threshold { stroke: var(--secondary); stroke-width: 1.5; stroke-dasharray: 5 5; }
   </style>
   <rect width="720" height="360" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Quality score coverage multiplier</text>
+  <text x="360" y="31" text-anchor="middle" class="label">Quality evidence reliability</text>
   <line x1="90" y1="280" x2="670" y2="280" class="axis" />
   <line x1="90" y1="60" x2="90" y2="280" class="axis" />
   <line x1="90" y1="170" x2="670" y2="170" class="grid" />
   <line x1="380" y1="60" x2="380" y2="280" class="grid" />
   <line x1="670" y1="60" x2="670" y2="280" class="grid" />
-  <line x1="148" y1="60" x2="148" y2="280" class="threshold" />
-  <line x1="438" y1="60" x2="438" y2="280" class="threshold" />
-  <polyline class="curve" points="90,280 119,280 148,280 177,274 206,257 235,232 264,203 293,170 322,137 351,108 380,83 409,66 438,60 467,60 496,60 525,60 554,60 583,60 612,60 641,60 670,60" />
-  <text x="148" y="50" text-anchor="middle" class="annotation">10% floor</text>
-  <text x="438" y="50" text-anchor="middle" class="annotation">60% full</text>
-  <text x="90" y="307" text-anchor="middle" class="muted">0%</text>
-  <text x="380" y="307" text-anchor="middle" class="muted">50%</text>
-  <text x="670" y="307" text-anchor="middle" class="muted">100%</text>
+  <line x1="136" y1="60" x2="136" y2="280" class="threshold" />
+  <line x1="554" y1="60" x2="554" y2="280" class="threshold" />
+  <polyline class="curve" points="90,280 119,280 148,280 177,274 206,264 235,249 264,231 293,210 322,188 351,165 380,143 409,121 438,101 467,85 496,72 525,63 554,60 583,60 612,60 641,60 670,60" />
+  <text x="136" y="50" text-anchor="middle" class="annotation">10% floor</text>
+  <text x="554" y="50" text-anchor="middle" class="annotation">Index median full</text>
+  <text x="90" y="307" text-anchor="middle" class="muted">0</text>
+  <text x="380" y="307" text-anchor="middle" class="muted">5</text>
+  <text x="670" y="307" text-anchor="middle" class="muted">10</text>
   <text x="74" y="285" text-anchor="end" class="muted">0</text>
   <text x="74" y="175" text-anchor="end" class="muted">50</text>
   <text x="74" y="65" text-anchor="end" class="muted">100</text>
-  <text x="380" y="342" text-anchor="middle" class="label">Evidence share E / Ω</text>
-  <text transform="translate(25 170) rotate(-90)" text-anchor="middle" class="label">Multiplier c (%)</text>
+  <text x="380" y="342" text-anchor="middle" class="label">Effective evidence mass E</text>
+  <text transform="translate(25 170) rotate(-90)" text-anchor="middle" class="label">Reliability c (%)</text>
 </svg>

@@ -4,8 +4,8 @@ import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/facto
 import {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_PORTFOLIO,
-  benchmarkDimensionWeight,
   INDEX_BENCHMARK_KEYS,
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
   SELECTED_AGENTIC_BENCHMARKS,
   SELECTED_INTELLIGENCE_BENCHMARKS,
@@ -31,28 +31,25 @@ export type QualityCoverageThresholds = Record<
 >;
 
 const QUALITY_COVERAGE_FLOOR_SHARE = 0.1;
-const QUALITY_COVERAGE_FULL_SHARE = 0.6;
+const QUALITY_COVERAGE_FULL_WEIGHT = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
+const QUALITY_COVERAGE_FLOOR_WEIGHT = QUALITY_COVERAGE_FULL_WEIGHT * QUALITY_COVERAGE_FLOOR_SHARE;
+const MINIMUM_OBSERVED_BENCHMARKS = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
 export const RESOURCE_SCORE_BUCKET_WEIGHTS = {
   benchmark: 0.7,
   nonBenchmark: 0.3,
 } as const;
 
-/** Derive the score-coverage ramp from the selected portfolio's effective dimension weight. */
-function qualityCoverageForDimension(keys: readonly string[], dimension: BenchmarkDimension) {
-  const totalWeight = keys.reduce(
-    (total, key) => total + benchmarkDimensionWeight(key, dimension, BENCHMARK_PORTFOLIO),
-    0,
-  );
-  return {
-    floor: Number((totalWeight * QUALITY_COVERAGE_FLOOR_SHARE).toFixed(10)),
-    full: Number((totalWeight * QUALITY_COVERAGE_FULL_SHARE).toFixed(10)),
-  };
-}
-
+/** Keep regularization stable as the selected portfolio grows by using effective benchmark mass rather than portfolio share. */
 export const QUALITY_COVERAGE = {
-  intelligence: qualityCoverageForDimension(SELECTED_INTELLIGENCE_BENCHMARKS, "intelligence"),
-  agentic: qualityCoverageForDimension(SELECTED_AGENTIC_BENCHMARKS, "agentic"),
+  intelligence: {
+    floor: QUALITY_COVERAGE_FLOOR_WEIGHT,
+    full: QUALITY_COVERAGE_FULL_WEIGHT,
+  },
+  agentic: {
+    floor: QUALITY_COVERAGE_FLOOR_WEIGHT,
+    full: QUALITY_COVERAGE_FULL_WEIGHT,
+  },
 } satisfies QualityCoverageThresholds;
 
 export type FinalStageConfig = {
@@ -154,7 +151,7 @@ export const STAGE_CONFIG = {
     previewMaxAgeDays: 30,
     benchmarkAdmission: {
       indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
-      minimumObservedBenchmarks: 7,
+      minimumObservedBenchmarks: MINIMUM_OBSERVED_BENCHMARKS,
       minimumObservedPerDimension: 1,
     },
   },

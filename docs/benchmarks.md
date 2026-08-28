@@ -59,10 +59,12 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 
 | Index | Group | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | --- | ---: | ---: | ---: | --- |
-| Artificial Analysis Intelligence Index | Baseline | 9 | 50% | 50% | Artificial Analysis aggregates nine evaluations, so its normalized index score receives nine benchmark-equivalent units split through the shared neutral loading. |
-| Epoch Capabilities Index | Baseline | Median of other indexes | 50% | 50% | ECI can derive a model score from four or more underlying benchmarks but does not publish that count per row. Its importance is therefore computed from the median of the other three index-equivalent weights rather than assigned a fixed benchmark count. |
-| Surge Intelligence Index | Baseline | 8 | 50% | 50% | Surge aggregates eight professional reasoning, agentic, writing, and expert-preference benchmarks, so its normalized index score receives eight benchmark-equivalent units with no resource contribution. |
-| Vals Index | Baseline | 7 | 50% | 50% | Vals Index v2 aggregates seven finance, coding, and legal benchmarks, so its normalized index score receives seven benchmark-equivalent units. |
+| Artificial Analysis Intelligence Index | Baseline | 0.5 | 50% | 50% | Broad fallback evidence with substantial overlap with selected task-level benchmarks. |
+| Epoch Capabilities Index | Baseline | 0.5 | 50% | 50% | Broad fallback evidence whose source-owned aggregation does not publish a fixed underlying count per model row. |
+| Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Broad fallback evidence with overlapping professional, reasoning, agentic, and writing evaluations. |
+| Vals Index | Baseline | 0.5 | 50% | 50% | Broad fallback evidence with overlap across finance, coding, and legal evaluations. |
+
+When a recent preview has aggregate indexes as its only observed quality evidence, those indexes are combined by the number of benchmarks they represent: Artificial Analysis 9, Epoch 8, Surge 8, and Vals 7. Epoch uses the median of the other three represented counts because its exact underlying count is unavailable per model row. These index-only preview counts do not replace the normal portfolio importance of 0.5.
 
 ### Frontier Benchmarks
 
@@ -121,7 +123,7 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 | Vibe Code | 1 | 0% | 100% | End-to-end software creation in a coding-agent environment is pure Agentic evidence. Its product-building focus provides useful baseline coverage without a frontier missing-data claim. |
 | WeirdML | 1 | 60% | 40% | ML-programming tasks test model selection and implementation across 17 datasets. Problem formulation is the larger Intelligence component, while executable code generation contributes Agentic evidence. |
 
-Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate coverage weighted by the number of evaluations they represent. Every index uses a neutral 50% Intelligence and 50% Agentic loading because the source aggregates mix capability types under incompatible or undisclosed weighting schemes; this is a Model Atlas allocation heuristic, not a reconstruction of each publisher's component weights. Artificial Analysis, Surge, and Vals use disclosed component counts of nine, eight, and seven. ECI uses the median of those other index weights because Epoch admits models with at least four underlying benchmark scores but does not expose each row's actual count in the published score export. Importance owns score influence, while group labels remain descriptive portfolio categories.
+Frontier benchmarks provide the strongest current separation, baseline benchmarks provide vetted task-level breadth and stability, and indexes provide broad aggregate fallback coverage at normal importance 0.5. Every index uses a neutral 50% Intelligence and 50% Agentic loading because the source aggregates mix capability types under incompatible or undisclosed weighting schemes; this is a Model Atlas allocation heuristic, not a reconstruction of each publisher's component weights. Only an index-only preview uses represented benchmark counts of nine for Artificial Analysis, eight for Epoch, eight for Surge, and seven for Vals. Importance owns score influence, while group labels remain descriptive portfolio categories.
 
 ## Watchlist
 
@@ -151,13 +153,13 @@ Explicit effort observations stay attached to their matching scored variants, an
 
 ## Index-Specific Policies
 
-**Artificial Analysis Intelligence Index** uses Artificial Analysis's published aggregate score directly with nine benchmark-equivalent units and the shared neutral 50% Intelligence and 50% Agentic index loading. Artificial Analysis also publishes per-index-task cost, runtime, and output-token measurements; Model Atlas preserves those source facts, but the index itself does not receive a separate Speed or Value contribution.
+**Artificial Analysis Intelligence Index** uses Artificial Analysis's published aggregate score directly with half importance and the shared neutral 50% Intelligence and 50% Agentic index loading. Its overlap with selected task-level benchmarks makes it a stabilizing fallback rather than nine independent observations in normal scoring. Artificial Analysis also publishes per-index-task cost, runtime, and output-token measurements; Model Atlas preserves those source facts, but the index itself does not receive a separate Speed or Value contribution.
 
-**Epoch Capabilities Index** uses Epoch's published ECI value directly with an importance computed as the median of the other three index weights and the shared neutral 50% Intelligence and 50% Agentic index loading and preserves model-version identifiers, access category, organization, and observation date. This proxy remains a relative rule rather than a fixed benchmark count because ECI requires at least four underlying observations but does not disclose the exact count for each published model score.
+**Epoch Capabilities Index** uses Epoch's published ECI value directly with half importance and the shared neutral 50% Intelligence and 50% Agentic index loading and preserves model-version identifiers, access category, organization, and observation date. ECI is broad stabilizing evidence in normal scoring; its represented count is used only when a preview has no task-level quality evidence.
 
-**Surge Intelligence Index** uses its published aggregate score directly with eight benchmark-equivalent units and the shared neutral 50% Intelligence and 50% Agentic index loading. Surge does not disclose an index-level cost, runtime, token, or reproducible resource aggregation contract, so the index does not feed Speed or Value.
+**Surge Intelligence Index** uses its published aggregate score directly with half importance and the shared neutral 50% Intelligence and 50% Agentic index loading. Its component overlap makes it a stabilizing fallback in normal scoring. Surge does not disclose an index-level cost, runtime, token, or reproducible resource aggregation contract, so the index does not feed Speed or Value.
 
-**Vals Index** uses the overall percentage score as a normalized benchmark score with seven benchmark-equivalent units and the shared neutral 50% Intelligence and 50% Agentic index loading and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
+**Vals Index** uses the overall percentage score as a normalized benchmark score with half importance and the shared neutral 50% Intelligence and 50% Agentic index loading and preserves the component task rows for source audit/display only. The official page labels the index proprietary and describes non-public Vals-built datasets, while the published formula also includes public coding benchmarks. Model Atlas therefore treats it as a useful aggregate baseline, not a pure frontier source. Its reported cost and latency stay out of Speed and Value because they are Vals harness-local measurements rather than comparable task-resource inputs.
 
 ## Benchmark-Specific Policies
 

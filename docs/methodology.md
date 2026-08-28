@@ -18,8 +18,8 @@ The calculation proceeds in one direction:
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
-| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and score coverage | How strong is the model on knowledge and reasoning? |
-| Agentic | Selected benchmark results | Importance, dimension loading, evidence support, and score coverage | How strong is the model in tool-mediated workflows? |
+| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model on knowledge and reasoning? |
+| Agentic | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model in tool-mediated workflows? |
 | Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and evidence-weighted aggregation | How quickly does the model deliver comparable work? |
 | Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and evidence-weighted aggregation | How much useful capability does the model deliver for its cost? |
 
@@ -29,7 +29,7 @@ The calculation proceeds in one direction:
 
 Quality aggregation uses the 0-100 scale. A source crosswalk may operate on a native or 0-1 scale when its formula states that scale explicitly. Resource comparisons use the logarithm of positive cost or time.
 
-The shared score coverage curve uses smoothstep so evidence can gain influence gradually instead of crossing a hard cutoff. Clamping keeps the multiplier at $0$ below its floor and $1$ above its full-coverage point:
+The shared evidence reliability curve uses smoothstep so evidence can gain influence gradually instead of crossing a hard cutoff. Clamping keeps the coefficient at $0$ below its floor and $1$ above its full-evidence point:
 
 $$
 \operatorname{smoothstep}(t)=u^2(3-2u),
@@ -75,17 +75,17 @@ $$
 
 When every observed value is equal, the input provides no ordering evidence, so every observed row receives the same full normalized score instead of causing division by zero. Imputed values use the frozen observed anchors and cannot redefine the scale. Linear normalization is used instead of percentile rank because it preserves uneven performance gaps rather than turning them into evenly spaced positions.
 
-The selected set $\mathcal{B}_d$ contains every benchmark admitted to dimension $d$. Benchmark importance $i_b$ controls total influence, while dimension loading $\lambda_{b,d}$ directs that influence into Intelligence or Agentic without counting a mixed benchmark twice. Their product is the effective dimension weight $\omega_{b,d}=i_b\lambda_{b,d}$. The evidence credit $\eta_{m,b}$ is one for an observation, validation confidence for an accepted estimate, and zero for missing evidence. The weighted benchmark mean $\bar z_{m,d}$ is
+The selected set $\mathcal{B}_d$ contains every benchmark admitted to dimension $d$. Benchmark importance $i_b$ controls total influence, while dimension loading $\lambda_{b,d}$ directs that influence into Intelligence or Agentic without counting a mixed benchmark twice. Their product is the effective dimension weight $\omega_{b,d}=i_b\lambda_{b,d}$. The observed set $\mathcal{O}_{m,d}$ contains the selected benchmarks directly measured for model configuration $m$. The weighted benchmark mean $\bar z_{m,d}$ is
 
 $$
-\bar z_{m,d}=\frac{\sum_{b\in\mathcal{B}_d,z_{m,b}\text{ available or imputed}}\omega_{b,d}\eta_{m,b}z_{m,b}}{\sum_{b\in\mathcal{B}_d,z_{m,b}\text{ available or imputed}}\omega_{b,d}\eta_{m,b}}.
+\bar z_{m,d}=\frac{\sum_{b\in\mathcal{O}_{m,d}}\omega_{b,d}z_{m,b}}{\sum_{b\in\mathcal{O}_{m,d}}\omega_{b,d}}.
 $$
 
 Replacement inference activates only when Artificial Analysis benchmark resources and Vals independently identify the same dated release suffix for an older source identity, and the matched catalog route realizes that release. Semantic model versions remain distinct identities and cannot replace one another through this rule. It then compares each observation with the prior published identity before scoring. An observation is retained when its value changed, its source explicitly identifies the new release, its source observation date is newer than the prior value and no earlier than the model release, or the replacement already accepted it on an earlier refresh. A missing prior value and source reputation alone do not prove freshness. These replacement rows use direct accepted evidence without contextual benchmark imputation, and retained Artificial Analysis and Vals observations receive twice their ordinary effective weight so the designated freshness authorities govern the transition. The rule continues on later refreshes, preventing ambiguous old-name evidence from being reattached after the replacement is published.
 
-### Evidence Support and Score Coverage
+### Evidence Support and Quality Regularization
 
-Evidence support uses the same dimension weights as the benchmark mean. The evidence credit $\eta_{m,b}$ distinguishes observations, validated source crosswalks, contextual imputations, and missing values, and it also scales each imputed value's contribution to the benchmark mean:
+Evidence support uses the same dimension weights as the benchmark mean. The evidence credit $\eta_{m,b}$ distinguishes observations, validated source crosswalks, contextual imputations, and missing values. Estimates can increase evidence support and relax regularization, but they do not alter the observed benchmark mean:
 
 $$
 \eta_{m,b}=
@@ -97,7 +97,7 @@ r_{m,b}\operatorname{clamp}(1-\tilde e_{m,b}/25,0,1) & \text{validated contextua
 \end{cases}
 $$
 
-The normalized validation error $\tilde e_{m,b}$ comes from the contextual predictor used for that row. The row-specific context support $r_{m,b}$ is the weighted share of the predictor's other benchmark inputs that the model actually observes, combined through the target benchmark's dimension loadings when both dimensions predict. A globally reliable imputer therefore cannot turn three observations into a full portfolio of equally trusted estimates. Missing a low-weight benchmark costs less evidence support than missing a high-weight benchmark. Direct observations retain their full score weight, while an imputed value's score weight is multiplied by $\eta_{m,b}$.
+The normalized validation error $\tilde e_{m,b}$ comes from the contextual predictor used for that row. The row-specific context support $r_{m,b}$ is the weighted share of the predictor's other benchmark inputs that the model actually observes, combined through the target benchmark's dimension loadings when both dimensions predict. A globally reliable imputer therefore cannot turn three observations into a full portfolio of equally trusted estimates. Missing a low-weight benchmark costs less evidence support than missing a high-weight benchmark. Direct observations define performance, while accepted estimates only contribute their discounted $\eta_{m,b}$ to evidence mass.
 
 The available evidence mass $E_{m,d}$ and the portfolio's total possible mass $\Omega_d$ are
 
@@ -113,21 +113,23 @@ $$
 h_{m,d}=E_{m,d}/\Omega_d.
 $$
 
-The separate score coverage multiplier $c_{m,d}$ is zero through 10% of possible evidence and reaches one at 60%:
+The evidence reliability coefficient $c_{m,d}$ uses the median represented benchmark count $F$ across the four aggregate indexes, remaining zero through 10% of $F$ and reaching one at $F$:
 
 $$
-c_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1\Omega_d}{0.5\Omega_d}\right).
+c_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1F}{0.9F}\right).
 $$
 
-Because $\Omega_d$ comes from the selected portfolio, these thresholds update with the portfolio instead of becoming separate calibration literals. Once the score coverage multiplier reaches one, additional missing benchmarks incur no further score penalty, while the displayed evidence support continues to report the actual weighted share. This separates the ranking penalty from evidence disclosure and prevents 60% support from being presented as complete coverage.
+The absolute ramp keeps regularization stable as the selected portfolio grows. Its full-evidence point follows the aggregate-index median rather than a separately tuned number, while the floor remains 10% of that median. Once the evidence reliability coefficient reaches one, additional missing benchmarks incur no further score regularization, while the displayed evidence support continues to report the actual weighted share of the full portfolio. This separates ranking regularization from evidence disclosure.
 
-![The quality score coverage multiplier is zero through a 10 percent evidence share, rises smoothly, and is full from 60 percent.](assets/methodology/confidence.svg)
+![Quality evidence reliability is zero through 10% of the aggregate-index median evidence breadth, rises smoothly, and is full from that median.](assets/methodology/confidence.svg)
 
-The provisional capability score $Q_{m,d}$ multiplies performance on available evidence by the score coverage multiplier. This prevents an isolated strong result from defining a standalone model score; a later sibling calibration can replace this provisional value only for a sparse effort variant backed by a broadly observed sibling and at least three directly shared benchmarks:
+The provisional capability score $R_{m,d}$ applies one-sided regularization toward the neutral score of 50 when the available benchmark mean is above 50. Below-neutral means are not raised. Validated imputation raises evidence mass according to held-out reliability and observed context, so relational evidence reduces regularization without becoming a hard positional constraint:
 
 $$
-Q_{m,d}=\bar z_{m,d}c_{m,d}.
+R_{m,d}=\bar z_{m,d}-(1-c_{m,d})\max(\bar z_{m,d}-50,0).
 $$
+
+A validated aggregate-index anchor may then relieve regularization for an undercovered model family's evidence-leading variant. The anchor is learned from broadly observed task-benchmark scores, not from named model relationships, and its held-out error discounts its relief. If the representative variant reaches the aggregate-index median evidence breadth, no index mapping passes validation, the direct benchmark mean is at or below 50, or the mapped anchor would lower the provisional score, the provisional score remains unchanged. The aggregate-index anchoring section defines the final $Q_{m,d}$.
 
 $$
 \begin{aligned}
@@ -138,7 +140,7 @@ $$
 
 Intelligence and Agentic evidence support are reported separately as the percentage values of $h_{m,d}$. Each value describes the weighted support behind its dimension's benchmark mean; the two dimensions are not combined. Because their total possible masses $\Omega_d$ can differ, the same displayed percentage can represent different absolute evidence mass. The public field remains named `confidence` for all four dimensions, but its value is the literal effective evidence share for consistent interpretation across Intelligence, Agentic, Speed, and Value.
 
-Models released fewer than 30 days ago may appear as unranked previews before they satisfy official admission. Preview capability uses only direct observations, keeps each selected benchmark's configured Intelligence and Agentic loading, includes directly observed GPQA and MMMU-Pro source fields as one unit of additional Intelligence evidence each, and omits the score coverage multiplier. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources; when the matching benchmark resource is absent, the score uses provider specifications alone, while confidence continues to report the literal evidence share. Preview resource scores use no imputation or missing-coverage multiplier. Official and preview scores both use benchmark-equivalent index importance of 9 for Artificial Analysis, 8 for Surge, and 7 for Vals, while Epoch uses the median of those other index weights. ECI requires at least four underlying benchmark observations but does not publish the exact count per model score, so its importance remains a relative rule rather than a fixed count.
+Models released fewer than 30 days ago may appear as unranked previews before they satisfy official admission. Preview capability uses direct observations, keeps each selected benchmark's configured Intelligence and Agentic loading, includes directly observed GPQA and MMMU-Pro source fields as one unit of additional Intelligence evidence each, and omits quality regularization. A validated aggregate-index prior may stabilize sparse preview quality without increasing evidence support or satisfying admission. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources; when the matching benchmark resource is absent, the score uses provider specifications alone, while confidence continues to report the literal evidence share. Preview resource scores use no imputation or missing-coverage regularization. Aggregate indexes have normal portfolio importance of 0.5. Only when indexes are a preview's sole observed quality evidence are they combined by represented benchmark counts of 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals; Epoch uses the median of the other three counts because its exact underlying count is unavailable per model score.
 
 ## Missing Benchmark Evidence
 
@@ -187,7 +189,7 @@ $$
 \eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{\epsilon_{\max}},0,1\right).
 $$
 
-$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary dimension score-coverage curve. Primary values are never replaced, fallback values do not change observed normalization anchors, and crosswalk-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, the benchmark falls through to contextual quantile imputation.
+$\eta^{\text{cross}}_m$ is the imputed row's evidence credit before the ordinary dimension evidence-reliability curve. Primary values are never replaced, fallback values do not change observed normalization anchors, and crosswalk-derived values never satisfy public admission or become evidence for another imputation. If the overlap gate fails, the benchmark falls through to contextual quantile imputation.
 
 ### Same-Dimension Quantile Imputation
 
@@ -229,7 +231,7 @@ Available loadings are renormalized when only one dimension can predict. Each im
 
 ### Sparse Effort Calibration
 
-Benchmark-level imputation deliberately ignores sibling effort values. After provisional Intelligence and Agentic scores are assembled, each base model and dimension selects the effort variant with the greatest directly observed effective benchmark weight as its anchor; an equal-weight tie selects the higher effort. The anchor must itself reach the ordinary 60% full-evidence point.
+Benchmark-level imputation deliberately ignores sibling effort values. After provisional Intelligence and Agentic scores are assembled, each base model and dimension selects the effort variant with the greatest directly observed effective benchmark weight as its anchor; an equal-weight tie selects the higher effort. The anchor must itself reach the same full-evidence breadth used by quality regularization.
 
 For a sparse target effort $t$, anchor effort $a$, dimension $d$, and directly observed common benchmark set $C_{t,a,d}$, the family-relative gap is
 
@@ -251,6 +253,30 @@ The diagram shows a negative shared-benchmark gap; a positive gap places the spa
 
 This rule transfers only the within-family relative position supported by common selected benchmarks. It does not fill benchmark fields, increase evidence support, satisfy admission, or assume that effort order is monotonic. A sparse variant can rank above its anchor when their shared direct results support a positive gap. A variant that already reaches the full-evidence point keeps its independently assembled score.
 
+### Aggregate Index Anchoring
+
+Each aggregate index can learn a separate monotonic mapping to broadly observed task-benchmark quality for Intelligence and Agentic. Each base model family contributes only its evidence-leading variant for that dimension, so reasoning-effort variants cannot multiply or independently receive index anchors. A calibration target requires non-index evidence mass at least equal to the aggregate-index median used as the full-evidence point. Validation withholds the entire represented model family, requires at least four effective held-out models, and rejects a mapping when its model-balanced median absolute error exceeds 25 points.
+
+Each accepted index $k$ maps model $m$ in dimension $d$ to task-quality anchor $p_{m,k,d}$, while held-out median absolute error $e_{k,d}$ determines reliability:
+
+$$
+\alpha_{k,d}=\operatorname{clamp}\left(1-\frac{e_{k,d}}{25},0,1\right).
+$$
+
+Ordinary portfolio weights and dimension loadings combine the available index anchors into $P_{m,d}$ and their weighted reliability into $\alpha_{m,d}$. Validation error then shrinks the reliable anchor toward neutral:
+
+$$
+G_{m,d}=50+\alpha_{m,d}(P_{m,d}-50).
+$$
+
+The validated index prior applies only while the representative variant's directly observed evidence mass $o_{m,d}$ remains below $F$, and its strength falls with the literal effective portfolio support $h_{m,d}$. For an above-neutral direct benchmark mean, it stabilizes undercovered quality as follows:
+
+$$
+Q_{m,d}=R_{m,d}+\mathbf{1}[o_{m,d}<F](1-h_{m,d})\max(G_{m,d}-R_{m,d},0).
+$$
+
+This rule contains no model IDs, release relationships, assumed ordering, or rank bounds. Reaching the direct evidence threshold switches the extra index prior off, and a low mapped index cannot create an additional downward penalty. Aggregate indexes retain normal importance 0.5 in the observed benchmark mean, add no evidence mass through anchoring, and cannot satisfy admission. Sparse effort variants remain positioned by their directly measured gaps to the family representative. Preview rows omit quality regularization but may use the same evidence-weighted index prior without gaining evidence support or admission credit.
+
 ### Validated Imputed Point Estimate
 
 The accepted prediction $\hat x^{\mathrm{used}}_{m,b}$ is used as the imputed point estimate:
@@ -261,7 +287,7 @@ $$
 
 ![A same-dimension context percentile mapped into the paired target distribution after held-out validation.](assets/methodology/quantile-imputation.svg)
 
-Held-out normalized error determines whether the predictor is accepted and how much score influence its estimate receives; row-specific context support further reduces that influence when the prediction rests on sparse inputs. It does not systematically lower the point estimate. Imputations remain ineligible for public admission regardless of their evidence credit.
+Held-out normalized error determines whether the predictor is accepted and how much evidence credit and regularization relief its estimate receives; row-specific context support further reduces that credit when the prediction rests on sparse inputs. The point estimate does not enter the observed quality mean. Imputations remain ineligible for public admission regardless of their evidence credit.
 
 ## Effective Pricing
 
@@ -439,7 +465,7 @@ $$
 q_m^{\text{aggregate}}=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
 $$
 
-This composite is not a success probability, so it is not transformed into log odds. The public scores already include their dimension-specific score coverage multiplier; aggregate neighborhoods do not reconstruct an undisclosed pre-coverage estimate or apply a second coverage weight to peers. Benchmark task-time and task-cost components remain separate: each uses its own observed benchmark quality and the benchmark-specific linear or logit coordinate declared in the portfolio.
+This composite is not a success probability, so it is not transformed into log odds. The public quality scores already include their dimension-specific quality regularization; aggregate neighborhoods do not reconstruct an undisclosed pre-regularization estimate or apply a second adjustment to peers. Benchmark task-time and task-cost components remain separate: each uses its own observed benchmark quality and the benchmark-specific linear or logit coordinate declared in the portfolio.
 
 The higher-is-better score $S_{\uparrow}(x)$ maps the completed signal $g(x)$ between its finite minimum $y_{\min}$ and maximum $y_{\max}$. Raw provider inputs use $g(x)=\log x$:
 
@@ -492,7 +518,7 @@ Keeping absolute and quality-conditioned price separate answers two different qu
 
 ## Public Admission
 
-Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must have at least seven observed selected benchmarks, including at least one Intelligence benchmark, one Agentic benchmark, and one portfolio-designated aggregate index.
+Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must observe at least the median represented benchmark count across the aggregate indexes, including at least one Intelligence benchmark, one Agentic benchmark, and one portfolio-designated aggregate index.
 
 Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in Intelligence, Agentic, Speed, or Value. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
 
@@ -502,7 +528,7 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Score coverage floor / full point | 10% / 60% of effective dimension weight | Suppresses scores built from isolated evidence while reporting the unsaturated evidence share separately. |
+| Quality regularization floor / full point | 10% / 100% of aggregate-index median evidence breadth | Suppresses high scores built from isolated evidence without making the penalty grow whenever the selected portfolio expands. |
 | Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |

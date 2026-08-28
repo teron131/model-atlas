@@ -40,8 +40,8 @@ export type ModelAtlasColumnTooltip = {
 
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
-const QUALITY_COVERAGE_SCALE =
-  "score multiplier is zero through 10% of selected weight and full from 60%";
+const QUALITY_REGULARIZATION_SCALE =
+  "high scores are regularized toward 50 through 10% of the aggregate-index median evidence breadth and unadjusted from that median";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Evidence support",
@@ -52,7 +52,7 @@ export const CONFIDENCE_TOOLTIP = {
     ["S", "Speed evidence support"],
     ["V", "Value evidence support"],
     ["Displayed scale", "literal weighted share of active inputs"],
-    ["Quality score coverage", QUALITY_COVERAGE_SCALE],
+    ["Quality regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Model-default evidence",
       "supports the source-default variant without claiming an explicit effort run",
@@ -145,10 +145,14 @@ const qualityBenchmarkRows = (
     ["Aggregation", "weights normalized within dimension"],
     [
       "Imputed values",
-      "validated point predictions; held-out reliability scales influence and support",
+      "validated predictions add discounted support and relax regularization without changing the observed mean",
     ],
     ["Evidence support", "literal weighted share of direct or validated evidence"],
-    ["Score coverage", QUALITY_COVERAGE_SCALE],
+    ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
+    [
+      "Aggregate-index anchor",
+      "validated model-held-out mappings can relieve regularization only for an undercovered family's evidence-leading variant",
+    ],
     {
       title: "Frontier benchmarks",
       rows: benchmarkRows.frontier,
@@ -248,7 +252,7 @@ export function columnTooltipsForActiveComponents(
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
-        ["Final score", "weighted mean × score coverage multiplier"],
+        ["Final score", "weighted mean with sparse highs regularized toward 50"],
       ],
       sections: [
         {
@@ -264,7 +268,7 @@ export function columnTooltipsForActiveComponents(
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
-        ["Final score", "weighted mean × score coverage multiplier"],
+        ["Final score", "weighted mean with sparse highs regularized toward 50"],
       ],
       sections: [
         {
