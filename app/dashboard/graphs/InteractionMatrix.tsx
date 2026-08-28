@@ -180,6 +180,7 @@ function interactionTabCorrelation(
   return formatCorrelation(correlationValue(pairs));
 }
 
+/** Render one interaction metric against intelligence with stable scales, cursor projections, correlation context, and complete empty-state handling. */
 function InteractionPlot({
   models,
   config,

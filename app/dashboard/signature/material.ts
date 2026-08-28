@@ -268,6 +268,7 @@ function renderPhaseLedger(frame: MaterialFrame): void {
   drawMaterialAnnotations(frame);
 }
 
+/** Render the Phase Ledger through WebGL when available, falling back to a cached CPU field that preserves the same material inputs. */
 function drawPhaseSurface(frame: MaterialFrame): void {
   const { context, width, height, time, models, palette, pointer } = frame;
   const shaderRendered = renderPhaseShader({
@@ -469,6 +470,7 @@ function phaseBuffer(
   return buffer;
 }
 
+/** Render Signal Type as cached typographic layers over animated signal traces, with model metrics controlling scale, position, and blend. */
 function renderSignalType(frame: MaterialFrame): void {
   const { context, width, height, time, models, palette } = frame;
   const signalTime = time * 0.12;

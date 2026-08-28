@@ -1,3 +1,5 @@
+/** Executable chart-statistics checks for raw-value distributions and precise benchmark percentage formatting. */
+
 import assert from "node:assert/strict";
 
 import { valueDistribution } from "../app/dashboard/graphs/chart-stats";

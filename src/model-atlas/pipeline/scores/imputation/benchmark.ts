@@ -741,6 +741,7 @@ function imputationDiagnostic(
   };
 }
 
+/** Calibrate contextual benchmark imputers from observed peer evidence and enable only predictors whose validation error and support meet policy. */
 function prepareImputation(
   models: JsonObject[],
   scoringConfig: ScoringConfig,

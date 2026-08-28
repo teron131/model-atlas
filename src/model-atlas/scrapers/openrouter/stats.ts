@@ -207,6 +207,7 @@ export function summarizeEndpointPerformance(
   };
 }
 
+/** Allocate provider token totals to endpoint series by request share, omitting ambiguous multi-endpoint providers instead of inventing weights. */
 export function buildOpenRouterSeriesTokenWeights(
   endpointResponse: OpenRouterEndpointStatsResponse | null,
   pricingResponse: OpenRouterEffectivePricingResponse | null,

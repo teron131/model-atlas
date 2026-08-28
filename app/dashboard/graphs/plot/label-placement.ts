@@ -173,6 +173,7 @@ function leaderLineFor({
   };
 }
 
+/** Place higher-priority labels first by scoring candidates against bounds, point obstacles, and prior labels, then attach leader lines. */
 export function calloutLabelPlacements({
   labels,
   obstacles,

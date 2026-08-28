@@ -245,6 +245,7 @@ function buildCandidates(
   });
 }
 
+/** Build the publication cohort through versioning, imputation calibration, effort scoring, public admission, preview isolation, and logo hydration. */
 export async function buildFinalModels(
   openRouterData: OpenRouterModelData,
   id: string | null | undefined,

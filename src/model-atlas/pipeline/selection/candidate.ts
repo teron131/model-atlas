@@ -362,8 +362,7 @@ function taskMetricContentMatches(
 }
 
 /**
- * Date benchmark observations against the previous published model and reprice only task rows
- * whose complete normalized telemetry remains unchanged across a model-price transition.
+ * Date benchmark observations against the previous published model and reprice only task rows whose complete normalized telemetry remains unchanged across a model-price transition.
  */
 export function versionCandidateBenchmarkData(
   candidate: ModelAtlasCandidate,

@@ -1,3 +1,5 @@
+/** Executable route and resolver checks for provider logo lookup, filtering, and missing assets. */
+
 import assert from "node:assert/strict";
 
 import { GET as getLogo } from "../app/api/logos/[logo]/route";

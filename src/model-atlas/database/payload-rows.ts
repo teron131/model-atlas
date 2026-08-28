@@ -244,6 +244,7 @@ const SCORE_CHANGE_CAUSE_KINDS = new Set<ModelAtlasScoreChangeCause["kind"]>([
   "relative",
 ]);
 
+/** Decode persisted change JSON defensively, rejecting invalid required fields while discarding malformed optional causes and drivers. */
 function scoreChangeFromJson(value: unknown): ModelAtlasScoreChange | null {
   if (typeof value !== "string" || value.length === 0) {
     return null;

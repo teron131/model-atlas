@@ -453,6 +453,7 @@ export function blendedPriceValue(costLike: unknown): number | null {
   return (inputPrice + outputPrice) / 2;
 }
 
+/** Derive representative output-token workloads from observed latency and throughput, falling back when evidence cannot produce five usable anchors. */
 export function deriveSpeedOutputTokenAnchors(
   speedByModelId: Map<string, JsonObject>,
   scoringConfig: ScoringConfig,
@@ -511,6 +512,7 @@ export function deriveSpeedOutputTokenAnchors(
   });
 }
 
+/** Build quality and speed components from normalized benchmark evidence and resource metrics while preserving missing scores and evidence support. */
 export function buildComponentScoreResult(
   model: JsonObject,
   speed: ModelAtlasSpeed,
