@@ -53,6 +53,7 @@ export function priceEfficiencyChartWidth(compactLayout: boolean) {
   return compactLayout ? COMPACT_CHART_WIDTH : CHART_WIDTH;
 }
 
+/** Render the price-to-cost-efficiency comparison with collision-separated labels and synchronized pointer, keyboard, and focus highlighting. */
 export function PriceEfficiencySlopeGraph({
   compactLayout,
   rows,

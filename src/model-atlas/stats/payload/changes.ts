@@ -168,6 +168,7 @@ export function buildRefreshChanges(
   };
 }
 
+/** Emit a material public score change only when score, stable-cohort rank, or evidence support crosses policy, then attach bounded explanations. */
 function scoreChange(
   refreshId: number,
   current: ModelAtlasModel,
@@ -252,6 +253,7 @@ function isMaterialChange(change: ModelAtlasScoreChange): boolean {
   );
 }
 
+/** Identify up to three benchmarks whose population rank tracks the current dimension, using one strongest effort variant per model. */
 function rankDriversForModel(
   current: ModelAtlasModel,
   currentModels: readonly ModelAtlasModel[],
@@ -383,6 +385,7 @@ function competitionRank(values: number[], target: number): number {
   return 1 + values.filter((value) => value > target).length;
 }
 
+/** Explain a material score change with bounded rank, methodology, evidence, and coverage causes, falling back to relative peer movement. */
 function changeCauses(
   current: ModelAtlasModel,
   previous: ModelAtlasModel | undefined,

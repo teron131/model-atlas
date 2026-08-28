@@ -189,6 +189,7 @@ function stableModelRowKeys(rows: readonly TableRow[]): string[] {
   });
 }
 
+/** Mirror the table viewport in an accessible scroll rail and translate pointer, drag, and keyboard input back to horizontal table positions. */
 function TableScrollRail({
   snapshot,
   onScrollTo,

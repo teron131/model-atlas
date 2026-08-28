@@ -1,3 +1,5 @@
+/** Executable contract checks for Agents Last Exam parsing, model matching, task telemetry, and benchmark aggregation. */
+
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import {
   agentsLastExamBenchmarkScore,

@@ -35,8 +35,8 @@ export function toggleModelAtlasTheme(): void {
 }
 
 /**
- * Write the theme and persist it. Exported so the signature can keep its material mode and the page
- * field in step; the root attribute is the single source of truth every listener observes.
+ * Write the theme and persist it.
+ * Exported so the signature can keep its material mode and the page field in step; the root attribute is the single source of truth every listener observes.
  */
 export function applyModelAtlasTheme(theme: ModelAtlasTheme): void {
   document.documentElement.dataset.modelAtlasTheme = theme;

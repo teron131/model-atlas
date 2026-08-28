@@ -41,9 +41,8 @@ const MATERIAL_VISIBILITY_MARGIN_PX = 120;
 const DEFAULT_DARK_MODE: SignatureMode = "phase";
 
 /**
- * Each material was authored against one page field: Evidence Field on mineral paper, Phase Ledger
- * and Signal Type on blue charcoal. Mode and theme therefore move together, but the root attribute
- * stays authoritative so the saved theme survives a reload and the header toggle keeps working.
+ * Each material was authored against one page field: Evidence Field on mineral paper, Phase Ledger and Signal Type on blue charcoal.
+ * Mode and theme therefore move together, but the root attribute stays authoritative so the saved theme survives a reload and the header toggle keeps working.
  */
 function themeForMode(mode: SignatureMode): ModelAtlasTheme {
   return mode === "field" ? "light" : "dark";

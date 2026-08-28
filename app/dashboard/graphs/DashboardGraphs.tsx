@@ -39,6 +39,7 @@ type GraphPayload = Omit<ModelAtlasPayload, "models"> & {
   models: ModelAtlasModel[];
 };
 
+/** Coordinate deferred dashboard filtering, shared hover state, and research-region panels while keeping controls responsive during payload changes. */
 export function DashboardGraphs({
   payload,
   referenceModels,

@@ -49,6 +49,7 @@ type ScatterEffortLine<Row> = {
   color: string;
 };
 
+/** Render a generic frontier benchmark scatter plot with configurable axes, labels, effort connections, cursor projections, and hover payloads. */
 export function FrontierBenchmarkScatterPlot<Row>({
   rows,
   metric,

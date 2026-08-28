@@ -1,3 +1,5 @@
+/** Executable contract checks for Blueprint Bench HTML parsing, model matching, and score normalization. */
+
 import {
   buildBlueprintBenchMap,
   findBlueprintBenchScore,

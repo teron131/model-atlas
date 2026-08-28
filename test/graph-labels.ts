@@ -1,3 +1,5 @@
+/** Executable chart-label checks for selecting unique extremes according to metric direction. */
+
 import assert from "node:assert/strict";
 
 import { extremeLabelRows } from "../app/dashboard/graphs/chart-stats";
