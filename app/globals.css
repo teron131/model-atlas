@@ -521,15 +521,9 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   overflow: visible;
   background: transparent;
   --rank-column-width: 48px;
-  --table-visible-rows: 15;
+  --table-visible-rows: 12;
   --table-row-content-height: 35px;
   --table-row-padding-y: 9px;
-  --table-row-border-width: 1px;
-  --table-row-height: calc(
-    var(--table-row-content-height) + var(--table-row-padding-y) + var(--table-row-padding-y) +
-      var(--table-row-border-width)
-  );
-  --table-body-height: calc(var(--table-row-height) * var(--table-visible-rows));
 }
 
 .table-sticky-head {
@@ -560,9 +554,9 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 
 .table-wrap {
   width: 100%;
+  height: var(--table-body-height, auto);
   overflow-x: auto;
   overflow-y: auto;
-  max-height: var(--table-body-height);
   overscroll-behavior-x: none;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: auto;
@@ -646,7 +640,6 @@ td {
 tbody tr {
   position: relative;
   --sticky-cell-background: var(--paper);
-  height: var(--table-row-height);
   transition: background-color 0.18s ease;
 }
 
