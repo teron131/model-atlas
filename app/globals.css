@@ -521,7 +521,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   overflow: visible;
   background: transparent;
   --rank-column-width: 48px;
-  --table-visible-rows: 12;
+  --table-visible-rows: 8;
   --table-row-content-height: 35px;
   --table-row-padding-y: 9px;
 }
