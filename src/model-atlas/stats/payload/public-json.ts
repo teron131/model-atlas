@@ -1,8 +1,15 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
-import { rankedModels } from "../../pipeline/model-types";
-import { compactModelVariants } from "../../pipeline/selection/public-list";
-import type { ModelAtlasModel, ModelAtlasPayload, ModelAtlasPublishedModel } from "../types";
+import { isPreviewModel, rankedModels } from "../../pipeline/model-types";
+import { compactModelVariants, strongestModelVariants } from "../../pipeline/selection/public-list";
+import type {
+  ModelAtlasLeaderboardRank,
+  ModelAtlasModel,
+  ModelAtlasPayload,
+  ModelAtlasPreviewModel,
+  ModelAtlasPublishedModel,
+  ModelAtlasScores,
+} from "../types";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
@@ -43,7 +50,7 @@ type ScoreJsonPayload = {
 };
 
 type ScoreJsonModel = {
-  rank: number;
+  rank: ModelAtlasLeaderboardRank;
   id: string | null;
   name: string | null;
   provider: string | null;
@@ -68,7 +75,7 @@ type BenchmarksJsonPayload = {
 };
 
 type BenchmarksJsonModel = {
-  rank: number;
+  rank: ModelAtlasLeaderboardRank;
   id: string | null;
   name: string | null;
   provider: string | null;
@@ -77,7 +84,7 @@ type BenchmarksJsonModel = {
 };
 
 type CoreJsonModel = {
-  rank: number;
+  rank: ModelAtlasLeaderboardRank;
   id: string | null;
   name: string | null;
   provider: string | null;
@@ -124,9 +131,12 @@ const CORE_MODEL_COLUMNS = [
   "e2e_latency_seconds_median",
 ] as const;
 
-type RankedModel = {
-  model: ModelAtlasModel;
-  rank: number;
+type PreviewLeaderboardModel = ModelAtlasPreviewModel & { scores: ModelAtlasScores };
+type LeaderboardModel = ModelAtlasModel | PreviewLeaderboardModel;
+
+type LeaderboardRow = {
+  model: LeaderboardModel;
+  rank: ModelAtlasLeaderboardRank;
 };
 
 /** Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly. */
@@ -151,38 +161,38 @@ export function publicJsonPayload(
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
 export function coreJsonPayload(payload: ModelAtlasPayload): CoreJsonPayload {
-  const rankedModels = compactRankedModels(payload);
+  const rows = compactLeaderboardRows(payload);
   return {
     schema: CORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
     score_scale: SCORE_SCALE,
     methodology: methodologyText(),
     columns: [...CORE_MODEL_COLUMNS],
-    models: rankedModels.map(({ model, rank }) => coreJsonModel(model, rank)),
+    models: rows.map(({ model, rank }) => coreJsonModel(model, rank)),
   };
 }
 
 /** The score view is the default public ranking surface and exposes only Atlas 0-100 score fields. */
 export function scoreJsonPayload(payload: ModelAtlasPayload): ScoreJsonPayload {
-  const rankedModels = compactRankedModels(payload);
+  const rows = compactLeaderboardRows(payload);
   return {
     schema: SCORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
     score_scale: SCORE_SCALE,
     methodology: methodologyText(),
-    scores: rankedModels.map(({ model, rank }) => scoreJsonModel(model, rank)),
+    scores: rows.map(({ model, rank }) => scoreJsonModel(model, rank)),
   };
 }
 
 /** Benchmark rows stay in their native decimal scale so downstream users can distinguish raw task scores from Atlas scores. */
 export function benchmarksJsonPayload(payload: ModelAtlasPayload): BenchmarksJsonPayload {
-  const rankedModels = compactRankedModels(payload);
+  const rows = compactLeaderboardRows(payload);
   return {
     schema: BENCHMARKS_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
     benchmark_scale: BENCHMARK_SCALE,
     methodology: methodologyText(),
-    benchmarks: rankedModels.map(({ model, rank }) => benchmarksJsonModel(model, rank)),
+    benchmarks: rows.map(({ model, rank }) => benchmarksJsonModel(model, rank)),
   };
 }
 
@@ -196,21 +206,33 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Models released fewer than 30 days ago may appear as unranked previews; preview quality uses direct observations without quality regularization, while a validated aggregate-index prior may stabilize sparse quality without increasing evidence support. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources, falling back to specifications alone when the matching resource is absent; they use no imputation or missing-coverage regularization, while confidence still reports literal evidence support. Aggregate indexes have normal portfolio importance of 0.5; only index-only previews combine Artificial Analysis, Epoch, Surge, and Vals using represented benchmark breadth, with Epoch derived as the median of the other three indexes. Compact views rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only. Quality scores normalize and weight direct observations; validated estimates add discounted evidence support and relax regularization without changing the observed benchmark mean. Public confidence fields report literal weighted evidence support, while sparse high quality means are separately regularized toward 50 through 10% of the aggregate-index median evidence breadth and become unadjusted from that median. Each aggregate index can learn separate model-held-out monotonic mappings to broadly observed Intelligence and Agentic task quality; accepted mappings provide an evidence-weighted prior only for an undercovered model family's evidence-leading variant and never add a downward penalty, evidence mass, admission credit, model relationship, or rank bound. Unlabelled family evidence belongs to the source-default variant and does not claim an explicit effort run. A sparse effort score can use the best-observed sibling plus their directly measured common-benchmark gap, without assuming monotonic effort order or filling missing benchmark fields. Other missing values use validated, non-recursive imputation and never satisfy admission. Official SPEED and VALUE assign 70% to benchmark task resources and 30% to provider speed or price inputs, then compare resource use among nearby-quality models after quality adjustment.";
+  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Models released fewer than 30 days ago may appear as previews before they satisfy official admission; preview quality uses direct observations without quality regularization, while a validated aggregate-index prior may stabilize sparse quality without increasing evidence support. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources, falling back to specifications alone when the matching resource is absent; they use no imputation or missing-coverage regularization, while confidence still reports literal evidence support. Aggregate indexes have normal portfolio importance of 0.5; only index-only previews combine Artificial Analysis, Epoch, Surge, and Vals using represented benchmark breadth, with Epoch derived as the median of the other three indexes. Compact views place previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. Compact views otherwise rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only and exposes no rank. Quality scores normalize and weight direct observations; validated estimates add discounted evidence support and relax regularization without changing the observed benchmark mean. Public confidence fields report literal weighted evidence support, while sparse high quality means are separately regularized toward 50 through 10% of the aggregate-index median evidence breadth and become unadjusted from that median. Each aggregate index can learn separate model-held-out monotonic mappings to broadly observed Intelligence and Agentic task quality; accepted mappings provide an evidence-weighted prior only for an undercovered model family's evidence-leading variant and never add a downward penalty, evidence mass, admission credit, model relationship, or rank bound. Unlabelled family evidence belongs to the source-default variant and does not claim an explicit effort run. A sparse effort score can use the best-observed sibling plus their directly measured common-benchmark gap, without assuming monotonic effort order or filling missing benchmark fields. Other missing values use validated, non-recursive imputation and never satisfy admission. Official SPEED and VALUE assign 70% to benchmark task resources and 30% to provider speed or price inputs, then compare resource use among nearby-quality models after quality adjustment.";
 }
 
-function compactRankedModels(payload: ModelAtlasPayload): RankedModel[] {
-  return rankModelsByIntelligence(
-    compactModelVariants(rankedModels(payload.models), payload.benchmark_observations),
+function compactLeaderboardRows(payload: ModelAtlasPayload): LeaderboardRow[] {
+  const officialModels = compactModelVariants(
+    rankedModels(payload.models),
+    payload.benchmark_observations,
+  );
+  const previewModels = strongestModelVariants(payload.models.filter(isPreviewLeaderboardModel));
+  const rows: LeaderboardRow[] = [
+    ...rankModelsByIntelligence(officialModels),
+    ...previewModels.map((model) => ({ model, rank: "preview" as const })),
+  ];
+  return rows.sort(
+    (left, right) => right.model.scores.intelligence_score - left.model.scores.intelligence_score,
   );
 }
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
-function rankModelsByIntelligence(models: ModelAtlasModel[]): RankedModel[] {
-  const rankedModels: RankedModel[] = [];
+function rankModelsByIntelligence(models: readonly ModelAtlasModel[]): LeaderboardRow[] {
+  const rankedModels: LeaderboardRow[] = [];
+  const sortedModels = [...models].sort(
+    (left, right) => right.scores.intelligence_score - left.scores.intelligence_score,
+  );
   let previousScore: number | null = null;
   let previousRank = 0;
-  for (const [index, model] of models.entries()) {
+  for (const [index, model] of sortedModels.entries()) {
     const score = model.scores.intelligence_score;
     const rank = score === previousScore ? previousRank : index + 1;
     rankedModels.push({ model, rank });
@@ -220,7 +242,19 @@ function rankModelsByIntelligence(models: ModelAtlasModel[]): RankedModel[] {
   return rankedModels;
 }
 
-function scoreJsonModel(model: ModelAtlasModel, rank: number): ScoreJsonModel {
+function isPreviewLeaderboardModel(
+  model: ModelAtlasPublishedModel,
+): model is PreviewLeaderboardModel {
+  return (
+    isPreviewModel(model) &&
+    typeof model.scores.intelligence_score === "number" &&
+    Number.isFinite(model.scores.intelligence_score) &&
+    typeof model.scores.agentic_score === "number" &&
+    Number.isFinite(model.scores.agentic_score)
+  );
+}
+
+function scoreJsonModel(model: LeaderboardModel, rank: ModelAtlasLeaderboardRank): ScoreJsonModel {
   return {
     rank,
     id: model.id,
@@ -239,7 +273,10 @@ function scoreJsonModel(model: ModelAtlasModel, rank: number): ScoreJsonModel {
   };
 }
 
-function benchmarksJsonModel(model: ModelAtlasModel, rank: number): BenchmarksJsonModel {
+function benchmarksJsonModel(
+  model: LeaderboardModel,
+  rank: ModelAtlasLeaderboardRank,
+): BenchmarksJsonModel {
   return {
     rank,
     id: model.id,
@@ -254,7 +291,7 @@ function benchmarksJsonModel(model: ModelAtlasModel, rank: number): BenchmarksJs
   };
 }
 
-function coreJsonModel(model: ModelAtlasModel, rank: number): CoreJsonModel {
+function coreJsonModel(model: LeaderboardModel, rank: ModelAtlasLeaderboardRank): CoreJsonModel {
   return {
     rank,
     id: model.id,

@@ -13,6 +13,7 @@ import { clampScore, minMaxScale } from "../../../src/model-atlas/pipeline/score
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
   isPreviewModel,
+  type ModelAtlasLeaderboardRank,
   type ModelAtlasPublishedModel,
 } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
@@ -318,7 +319,7 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
 
 export type TableRow = {
   model: ModelAtlasPublishedModel;
-  intelligenceRank: number | null;
+  intelligenceRank: ModelAtlasLeaderboardRank;
   originalIndex: number;
   aliasPriority: number;
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
@@ -532,7 +533,9 @@ function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
   }
   return rows.map((row) => ({
     ...row,
-    intelligenceRank: rankByOriginalIndex.get(row.originalIndex) ?? null,
+    intelligenceRank: isPreviewModel(row.model)
+      ? "preview"
+      : rankByOriginalIndex.get(row.originalIndex)!,
   }));
 }
 
