@@ -75,10 +75,10 @@ assert.deepEqual(
   previewRankingRows.map((row) => [row.model.id, row.intelligenceRank]),
   [
     ["provider/official-first", 1],
-    ["provider/preview", null],
+    ["provider/preview", "preview"],
     ["provider/official-second", 2],
   ],
-  "preview rows should remain unranked without shifting official competition ranks",
+  "preview rows should use the preview rank marker without shifting official competition ranks",
 );
 assert.deepEqual(
   sortedRows(previewRankingRows, "", sortState("intelligence", "descending")).map(
@@ -90,7 +90,7 @@ assert.deepEqual(
 assert.deepEqual(
   sortedRows(previewRankingRows, "", sortState("rank", "ascending")).map((row) => row.model.id),
   ["provider/official-first", "provider/preview", "provider/official-second"],
-  "rank sorting should place an unranked preview at its Intelligence-relative position",
+  "rank sorting should place a preview at its Intelligence-relative position",
 );
 
 const aleBenchColumn = benchmarkMetricColumns.find((column) => column.key === "aleBench");

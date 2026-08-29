@@ -185,8 +185,32 @@ assert.deepEqual(
     coreJsonPayload(previewPayload).models.length,
     benchmarksJsonPayload(previewPayload).benchmarks.length,
   ],
-  [1, 1, 1],
-  "compact public views should exclude unranked previews",
+  [2, 2, 2],
+  "compact public views should include preview leaderboard rows",
+);
+assert.deepEqual(
+  scoreJsonPayload(previewPayload).scores.map((model) => [model.id, model.rank]),
+  [
+    ["provider/recent-preview", "preview"],
+    ["provider/internal-candidate", 1],
+  ],
+  "preview rows should appear in score-relative order without consuming official ranks",
+);
+assert.deepEqual(
+  coreJsonPayload(previewPayload).models.map((model) => [model.id, model.rank]),
+  [
+    ["provider/recent-preview", "preview"],
+    ["provider/internal-candidate", 1],
+  ],
+  "core preview rows should expose the same rank contract",
+);
+assert.deepEqual(
+  benchmarksJsonPayload(previewPayload).benchmarks.map((model) => [model.id, model.rank]),
+  [
+    ["provider/recent-preview", "preview"],
+    ["provider/internal-candidate", 1],
+  ],
+  "benchmark preview rows should expose the same rank contract",
 );
 assert.equal(
   (publicJsonPayload(previewPayload, "all") as FullJsonPayload).models[1]?.preview,

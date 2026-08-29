@@ -145,7 +145,7 @@ export const ModelRow = memo(function ModelRow({
       style={rowProviderStyle(model.provider)}
       title={
         isPreviewModel(model)
-          ? "Early preview based only on direct evidence; Speed and Value use 70% provider specs and 30% observed benchmark resources, falling back to specs alone, while the row remains unranked."
+          ? "Early preview based only on direct evidence; Speed and Value use 70% provider specs and 30% observed benchmark resources, falling back to specs alone, while PREVIEW replaces a numeric rank."
           : undefined
       }
     >
@@ -222,7 +222,6 @@ function ModelScoreCells({
   ruledColumnKeySet?: ReadonlySet<TableColumnKey>;
 }) {
   const model = rowData.model;
-  const preview = isPreviewModel(model);
   const visibleName = visibleModelName(modelDisplayName(model));
   const visibleSlug = visibleModelSlug(model.id);
   const scores = model.scores ?? {};
@@ -230,11 +229,9 @@ function ModelScoreCells({
     <>
       <TableCell
         text={
-          preview
+          rowData.intelligenceRank === "preview"
             ? "PREVIEW"
-            : rowData.intelligenceRank == null
-              ? "—"
-              : String(rowData.intelligenceRank).padStart(2, "0")
+            : String(rowData.intelligenceRank).padStart(2, "0")
         }
         className="rank"
       />
