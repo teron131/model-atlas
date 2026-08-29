@@ -70,6 +70,7 @@ export const ModelTable = memo(function ModelTable({
     tableScrollRef,
     headerScrollRef,
     tableRef,
+    rowHeight,
     columnWidths,
     pinnedColumnsEnabled,
     scrollSnapshot,
@@ -92,12 +93,11 @@ export const ModelTable = memo(function ModelTable({
           maxWidth: stickyHeaderWidthStyle,
         } as CSSProperties)
       : undefined;
-  const tableShellStyle =
-    columnWidths[0] == null
-      ? undefined
-      : ({
-          "--rank-column-width": `${columnWidths[0]}px`,
-        } as CSSProperties);
+  const tableShellStyle = {
+    "--rank-column-width": columnWidths[0] == null ? undefined : `${columnWidths[0]}px`,
+    "--table-body-height":
+      rowHeight == null ? undefined : `calc(${rowHeight}px * var(--table-visible-rows))`,
+  } as CSSProperties;
 
   return (
     <div

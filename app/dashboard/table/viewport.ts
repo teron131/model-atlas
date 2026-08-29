@@ -28,6 +28,7 @@ type UseTableViewportResult = {
   tableScrollRef: RefObject<HTMLDivElement | null>;
   headerScrollRef: RefObject<HTMLDivElement | null>;
   tableRef: RefObject<HTMLTableElement | null>;
+  rowHeight: number | null;
   columnWidths: number[];
   pinnedColumnsEnabled: boolean;
   scrollSnapshot: TableViewportSnapshot;
@@ -41,7 +42,7 @@ const PINNED_COLUMNS_ENABLE_BUFFER_PX = 24;
 const UNPIN_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
 
-/** Manage mirrored table/header horizontal scrolling and column measurements. */
+/** Manage mirrored table/header horizontal scrolling and rendered layout measurements. */
 export function useTableViewport({
   columnCount,
   onTooltipEnd,
@@ -51,6 +52,7 @@ export function useTableViewport({
   const tableRef = useRef<HTMLTableElement>(null);
   const mirroredScrollTargetRef = useRef<ScrollTargetName | null>(null);
   const widestLeadingColumnsWidthRef = useRef(0);
+  const [rowHeight, setRowHeight] = useState<number | null>(null);
   const [columnWidths, setColumnWidths] = useState<number[]>([]);
   const [pinnedColumnsEnabled, setPinnedColumnsEnabled] = useState(false);
   const [scrollSnapshot, setScrollSnapshot] = useState<TableViewportSnapshot>(() =>
@@ -63,7 +65,19 @@ export function useTableViewport({
     );
   }, []);
   const syncTableLayoutMeasurements = useCallback(() => {
-    const widths = measuredTableColumnWidths(tableRef.current, columnCount);
+    const table = tableRef.current;
+    const measuredRowHeight =
+      table
+        ?.querySelector<HTMLTableCellElement>("tbody td.model-column")
+        ?.parentElement?.getBoundingClientRect().height ?? 0;
+    if (measuredRowHeight > 0) {
+      setRowHeight((current) =>
+        current != null && Math.abs(current - measuredRowHeight) < 0.5
+          ? current
+          : measuredRowHeight,
+      );
+    }
+    const widths = measuredTableColumnWidths(table, columnCount);
     if (widths.length === 0) {
       setPinnedColumnsEnabled(false);
       syncScrollSnapshot();
@@ -206,6 +220,7 @@ export function useTableViewport({
     tableScrollRef,
     headerScrollRef,
     tableRef,
+    rowHeight,
     columnWidths,
     pinnedColumnsEnabled,
     scrollSnapshot,
