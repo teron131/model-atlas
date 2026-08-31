@@ -42,11 +42,13 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   payload,
   models,
   referenceModels,
+  showVariants,
   setHover,
 }: {
   payload: ModelAtlasPayload;
   models: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
+  showVariants: boolean;
   setHover: HoverSetter;
 }) {
   const [axisKey, setAxisKey] = useState<FrontierBenchmarkAxisKey>("speedValue");
@@ -136,7 +138,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     : `${leader.benchmarkLabel} Score`;
   const panelCopy = (
     <>
-      Each point is one model. <em>{scoreMetricLabel}</em> is plotted against{" "}
+      Each point is a visible model variant. <em>{scoreMetricLabel}</em> is plotted against{" "}
       <em>{xMetricLabel}</em>. {axisDescription}
     </>
   );
@@ -220,6 +222,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig)}
         labelRows={labeledRows}
         getLabel={(row) => shortLabel(row.model)}
+        connectReasoningVariants={showVariants}
         setHover={setHover}
       />
       <div className={styles.chartSummary}>

@@ -50,6 +50,7 @@ export function ModelScoreMark({
   strokeWidth,
   className,
   opacity = 1,
+  clearance = 0,
 }: {
   model: ModelAtlasModel;
   cx: number;
@@ -60,20 +61,35 @@ export function ModelScoreMark({
   strokeWidth: number;
   className?: string;
   opacity?: number;
+  clearance?: number;
 }) {
+  const points = scoreQuadrilateralPoints(model, cx, cy, radius)
+    .map(({ x, y }) => `${stableSvgNumber(x)},${stableSvgNumber(y)}`)
+    .join(" ");
   return (
-    <polygon
-      className={className}
-      points={scoreQuadrilateralPoints(model, cx, cy, radius)
-        .map(({ x, y }) => `${stableSvgNumber(x)},${stableSvgNumber(y)}`)
-        .join(" ")}
-      fill={fill}
-      stroke={stroke}
-      strokeWidth={strokeWidth}
-      strokeLinejoin="round"
-      vectorEffect="non-scaling-stroke"
-      opacity={opacity}
-    />
+    <>
+      {clearance > 0 ? (
+        <polygon
+          aria-hidden="true"
+          points={points}
+          fill="var(--paper)"
+          stroke="var(--paper)"
+          strokeWidth={clearance * 2}
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : null}
+      <polygon
+        className={className}
+        points={points}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+        opacity={opacity}
+      />
+    </>
   );
 }
 

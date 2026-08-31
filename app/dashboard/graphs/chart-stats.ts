@@ -4,7 +4,6 @@ import { quantile } from "d3-array";
 
 import type { BoxWhiskerDistribution } from "./BoxWhiskerSummary";
 import { finite } from "./format";
-import type { Point } from "./types";
 
 export function valueDistribution(values: number[]): BoxWhiskerDistribution {
   const sortedValues = values.filter(finite).sort((left, right) => left - right);
@@ -30,16 +29,6 @@ export function bestByScore<T>(rows: readonly T[], score: (row: T) => number | n
     }
   }
   return bestRow;
-}
-
-export function correlationLabel(points: Point[], transformX: (value: number) => number) {
-  const correlation = correlationValue(
-    points.map((point) => ({
-      x: transformX(point.x),
-      y: point.y,
-    })),
-  );
-  return formatCorrelation(correlation);
 }
 
 export function formatCorrelation(correlation: number | null) {
@@ -69,48 +58,4 @@ export function correlationValue(points: { x: number; y: number }[]) {
   }
   const denominator = Math.sqrt(varianceX * varianceY);
   return denominator === 0 ? null : numerator / denominator;
-}
-
-export function positiveDomain(values: number[]): [number, number] {
-  const positive = values.filter((value) => finite(value) && value > 0);
-  const low = Math.min(...positive);
-  const high = Math.max(...positive);
-  if (!finite(low) || !finite(high)) {
-    return [0.001, 1];
-  }
-  if (low === high) {
-    return [Math.max(low / 1.4, 0.001), high * 1.4];
-  }
-  const logLow = Math.log10(low);
-  const logHigh = Math.log10(high);
-  const logPad = (logHigh - logLow) * 0.05;
-  return [Math.max(10 ** (logLow - logPad), 0.001), 10 ** (logHigh + logPad)];
-}
-
-export function extremeLabelRows<T>(
-  rows: readonly T[],
-  keyFor: (row: T) => string,
-  xValue: (row: T) => number,
-  yValue: (row: T) => number,
-  { xHigherIsBetter = true }: { xHigherIsBetter?: boolean } = {},
-) {
-  const tradeoffScore = (row: T) => {
-    const x = xValue(row);
-    const y = yValue(row);
-    if (!finite(x) || !finite(y)) {
-      return null;
-    }
-    return xHigherIsBetter ? y * x : x > 0 ? y / x : null;
-  };
-  const selected: T[] = [];
-  for (const row of [
-    bestByScore(rows, yValue),
-    bestByScore(rows, (candidate) => (xHigherIsBetter ? xValue(candidate) : -xValue(candidate))),
-    bestByScore(rows, tradeoffScore),
-  ]) {
-    if (row != null && !selected.some((candidate) => keyFor(candidate) === keyFor(row))) {
-      selected.push(row);
-    }
-  }
-  return new Set(selected);
 }

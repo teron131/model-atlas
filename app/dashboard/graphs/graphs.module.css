@@ -71,9 +71,6 @@
 .filtersToggle,
 .controlLabel,
 .axisLabel,
-.interactionTitle,
-.interactionBadge,
-.interactionRead,
 .summaryLabel,
 .summaryDetail {
   font-family: var(--font-mono);
@@ -811,19 +808,19 @@
 }
 
 .cursorProjection line {
-  stroke: var(--chart-projection-line);
+  stroke: var(--projection-color, var(--chart-projection-line));
   stroke-width: 1;
   stroke-dasharray: 2 5;
 }
 
 .cursorProjection circle {
-  fill: var(--chart-projection-point);
+  fill: var(--projection-color, var(--chart-projection-point));
   stroke: var(--chart-point-stroke-strong);
   stroke-width: 1.5;
 }
 
 .cursorProjectionLabel {
-  fill: var(--chart-point-label-soft);
+  fill: var(--projection-color, var(--chart-point-label-soft));
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: var(--type-label-weight);
@@ -873,23 +870,76 @@
   stroke-width: 1.6;
   stroke-linecap: square;
   stroke-linejoin: miter;
+  transition: opacity 0.12s ease;
 }
 
-.deepSweEffortLine {
+.reasoningVariantLine {
   fill: none;
   stroke: var(--line-color);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.58;
+  stroke-width: 1.25;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  opacity: 0.44;
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    stroke 0.12s ease,
+    stroke-width 0.12s ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.reasoningVariantLineActive {
+  opacity: 0.96;
+  stroke-width: 2.4;
+}
+
+.reasoningVariantLineMuted {
+  stroke: var(--chart-point-line);
+  opacity: 0.55;
+}
+
+.reasoningContextMuted {
+  stroke: var(--chart-point-line);
+  opacity: 0.55;
+}
+
+.reasoningVariantPoint .pointLabel,
+.reasoningVariantPoint .pointLabelLine {
+  transition: opacity 0.12s ease;
+}
+
+.reasoningVariantPoint.reasoningVariantPointActive .datavizPoint {
+  opacity: 1;
+}
+
+.reasoningVariantPointActive:hover .datavizPoint,
+.reasoningVariantPointActive:focus-within .datavizPoint {
+  transform: scale(1.16);
+  stroke-width: 1.8;
+}
+
+.reasoningVariantPoint.reasoningVariantPointMuted .datavizPoint {
+  fill: var(--chart-point-label-soft);
+  stroke: var(--chart-point-line-soft);
+  opacity: 0.34;
+}
+
+.reasoningVariantPoint.reasoningVariantPointMuted .pointLabel,
+.reasoningVariantPoint.reasoningVariantPointMuted .pointLabelLine {
+  opacity: 0.2;
 }
 
 .datavizPoint {
   outline: none;
+  transform-box: fill-box;
+  transform-origin: center;
   transition:
+    fill 0.12s ease,
     opacity 0.16s ease,
     r 0.16s ease,
-    stroke 0.16s ease;
+    stroke 0.16s ease,
+    stroke-width 0.12s ease,
+    transform 0.12s ease;
 }
 
 .pointButton {
@@ -925,18 +975,6 @@
   font-size: 11px;
   stroke: var(--chart-point-label-stroke-soft);
   stroke-width: 2px;
-}
-
-.interactionPlot .pointLabel {
-  fill: var(--chart-point-label-soft);
-  font-size: 11px;
-  stroke: var(--chart-point-label-stroke-soft);
-  stroke-width: 2px;
-}
-
-.interactionPlot .pointLabelLine {
-  stroke: var(--chart-point-line-soft);
-  stroke-width: 0.8px;
 }
 
 .slopeRail {
@@ -1302,12 +1340,6 @@
   gap: 6px;
 }
 
-.interactionControls {
-  display: flex;
-  justify-content: flex-start;
-  padding: 8px 0 12px;
-}
-
 .metricToggleStacked {
   flex-wrap: wrap;
   gap: 8px 20px;
@@ -1347,57 +1379,6 @@
 
 .metricToggleStacked button[aria-pressed="true"] .metricToggleDetail {
   color: var(--muted);
-}
-
-.interactionPlotBody {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-}
-
-.interactionPlot {
-  min-width: 0;
-  padding: 14px 0 2px;
-  border-bottom: 0;
-  border-right: 0;
-}
-
-.interactionPlotHead {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.interactionTitle {
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: var(--type-label-weight);
-}
-
-.interactionBadge {
-  padding: 4px 0;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: var(--type-label-weight);
-}
-
-.interactionRead {
-  max-width: 66ch;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-family: var(--font-sans);
-  font-size: var(--type-note-size);
-  font-weight: var(--type-body-weight);
-  letter-spacing: 0;
-  line-height: 1.45;
-  text-transform: none;
 }
 
 .note {
@@ -1525,14 +1506,6 @@
     padding: 13px 16px;
   }
 
-  .interactionControls {
-    padding-inline: 8px;
-  }
-
-  .interactionPlotBody {
-    grid-template-columns: 1fr;
-  }
-
   .chartSummary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px 14px;
@@ -1553,7 +1526,6 @@
   }
 
   .summaryCard,
-  .interactionPlot,
   .controlGroup {
     border-right: 0;
   }
@@ -1580,21 +1552,6 @@
 
   .benchmarkRow :global(.benchmark-group:last-child) {
     border-bottom: 0;
-  }
-
-  .interactionPlot,
-  .interactionPlot:nth-child(2n) {
-    padding-right: 8px;
-    padding-left: 8px;
-    border-right: 0;
-    border-bottom: 0;
-  }
-
-  .interactionPlot .pointLabel {
-    fill: var(--chart-point-label-soft);
-    font-size: 10px;
-    stroke: var(--chart-point-label-stroke-soft);
-    stroke-width: 1.6px;
   }
 
   .panelHead {
@@ -1665,8 +1622,7 @@
   }
 
   .pointLabel,
-  .frontierPoint .pointLabel,
-  .interactionPlot .pointLabel {
+  .frontierPoint .pointLabel {
     font-size: 17px;
     stroke-width: 4px;
   }
@@ -1692,8 +1648,7 @@
     stroke-width: 28px;
   }
 
-  .chartToolbar,
-  .interactionControls {
+  .chartToolbar {
     overflow: hidden;
   }
 
@@ -1858,8 +1813,7 @@
   stroke-width: 3px;
 }
 
-.panel[data-capture-layout="artifact"] .frontierPoint .pointLabel,
-.panel[data-capture-layout="artifact"] .interactionPlot .pointLabel {
+.panel[data-capture-layout="artifact"] .frontierPoint .pointLabel {
   fill: var(--chart-point-label-soft);
   font-size: 11px;
   stroke: var(--chart-point-label-stroke-soft);
@@ -1874,31 +1828,12 @@
   display: none;
 }
 
-.panel[data-capture-layout="artifact"] .interactionPlot .pointLabelLine {
-  stroke: var(--chart-point-line-soft);
-}
-
 .panel[data-capture-layout="artifact"] .cornerDirectionGlyph {
   fill: var(--chart-corner-fill);
 }
 
 .panel[data-capture-layout="artifact"] .chartToolbar {
   padding: 8px 0 0;
-}
-
-.panel[data-capture-layout="artifact"] .interactionControls {
-  padding: 8px 0 12px;
-}
-
-.panel[data-capture-layout="artifact"] .interactionPlot,
-.panel[data-capture-layout="artifact"] .interactionPlot:nth-child(2n) {
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.panel[data-capture-layout="artifact"] .interactionControls .metricToggleStacked {
-  width: 100%;
-  flex-wrap: nowrap;
 }
 
 .panel[data-capture-layout="artifact"] .slopeChartWrap::-webkit-scrollbar {

@@ -107,7 +107,6 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
   return {
     payload,
     errorMessage,
-    hasFullPayload: payload != null && isFullPayload(payload),
   };
 }
 

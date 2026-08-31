@@ -457,12 +457,14 @@ const effortQualifiedDefault = buildDefaultVariantBenchmarks(
 assert.deepEqual(effortQualifiedDefault.benchmarks, {
   agent_arena: 0.14,
   chartography: 0.47,
+  harvey_lab: 0.1125,
   legal_research: 0.61,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(effortQualifiedDefault.scoringSources, {
   agent_arena: agentArenaRow,
   chartography: chartographyRow,
+  harvey_lab: harveyLabRow,
   legal_research: legalResearchRow,
   vending_bench_2: vendingBench2Row,
 });
@@ -992,8 +994,8 @@ const [singleVariant] = assignBenchmarksToVariants(
 assert.ok(singleVariant);
 assert.equal(
   (singleVariant.benchmarks as Record<string, unknown>).chartography,
-  0.348,
-  "a source max effort should become the single Atlas row's default",
+  0.295,
+  "an effort-unspecified benchmark row should remain the source's highest-effort default",
 );
 /** Return a typed empty lookup map for sources not involved in this test. */
 function emptyLookup(): Map<string, never> {

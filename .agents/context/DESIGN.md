@@ -151,7 +151,7 @@ The system carries no decorative accent hue. Emphasis is ink against the page fi
 
 ## Layout
 
-The dashboard stays one column. A full-width signature leads, followed by a persistent research index connecting five numbered regions: model leaderboard, Pareto Frontier, price efficiency, frontier benchmarks, and interaction matrix. The index numbering is real and shared: each region head repeats the same two-digit ordinal as a compact register mark beside its descriptor. One module owns the sequence, so the rail and the heads cannot disagree about it. Global controls, the wide leaderboard, and one analytical panel per row continue below it. Content may become horizontally scrollable where its data density requires it, but the page itself must not overflow. Desktop composition uses generous lateral breathing room; below 760px, labels and controls reflow while the model evidence remains visible.
+The dashboard stays one column. A full-width signature leads, followed by a persistent research index connecting four numbered regions: model leaderboard, Pareto Frontier, price efficiency, and frontier benchmarks. The index numbering is real and shared: each region head repeats the same two-digit ordinal as a compact register mark beside its descriptor. One module owns the sequence, so the rail and the heads cannot disagree about it. Global controls, the wide leaderboard, and one analytical panel per row continue below it. Content may become horizontally scrollable where its data density requires it, but the page itself must not overflow. Desktop composition uses generous lateral breathing room; below 760px, labels and controls reflow while the model evidence remains visible.
 
 ## Elevation & Depth
 

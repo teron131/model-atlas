@@ -1,7 +1,10 @@
 /** Dashboard model identity, labels, variants, and shared filtering controls. */
 
 import type { BenchmarkObservationsByKey } from "../../../src/model-atlas/benchmarks/observation";
-import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import {
+  canonicalModelKey,
+  reasoningEffortRank,
+} from "../../../src/model-atlas/identity/normalization";
 import { compactModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
 import {
   isPreviewModel,
@@ -242,6 +245,34 @@ export function toggleProviderFilter(selectedProviders: string[], provider: stri
 
 export function modelVariantKey(model: ModelAtlasPublishedModel): string {
   return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
+}
+
+/** Group visible model variants by family in ascending effort order, including an unlabeled sibling. */
+export function reasoningVariantGroups<T>(
+  items: readonly T[],
+  getModel: (item: T) => ModelAtlasPublishedModel,
+) {
+  const variantsByModel = new Map<string, T[]>();
+  for (const item of items) {
+    const model = getModel(item);
+    const key = canonicalModelKey(model);
+    const variants = variantsByModel.get(key) ?? [];
+    variants.push(item);
+    variantsByModel.set(key, variants);
+  }
+  return [...variantsByModel]
+    .map(([key, variants]) => ({
+      key,
+      variants: variants.sort((left, right) => {
+        const leftEffort = getModel(left).reasoning_effort;
+        const rightEffort = getModel(right).reasoning_effort;
+        return (
+          reasoningEffortRank(leftEffort) - reasoningEffortRank(rightEffort) ||
+          String(leftEffort).localeCompare(String(rightEffort))
+        );
+      }),
+    }))
+    .filter((group) => group.variants.length > 1);
 }
 
 function modelMatchesControls(

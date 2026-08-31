@@ -4,9 +4,10 @@
 
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
 import {
   CursorCapture,
@@ -30,7 +31,10 @@ import {
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
-import { scoreQuadrilateralRadius } from "../plot/score-quadrilateral";
+import {
+  scoreQuadrilateralConnectorSegments,
+  scoreQuadrilateralRadius,
+} from "../plot/score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "../types";
 import { useCompactChartLayout } from "../use-media-query";
 
@@ -41,12 +45,6 @@ type ScatterMetric<Row> = {
   get: (row: Row) => number;
   format: (value: number) => string;
   xHigherIsBetter?: boolean;
-};
-
-type ScatterEffortLine<Row> = {
-  key: string;
-  rows: Row[];
-  color: string;
 };
 
 /** Render a generic frontier benchmark scatter plot with configurable axes, labels, effort connections, cursor projections, and hover payloads. */
@@ -67,7 +65,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverTitle,
   labelRows,
   getLabel,
-  effortLines = [],
+  connectReasoningVariants = false,
   setHover,
   width = SCATTER_CHART_WIDTH,
   height = SCATTER_CHART_HEIGHT,
@@ -89,13 +87,14 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverTitle?: (row: Row) => string;
   labelRows: Set<Row>;
   getLabel: (row: Row) => string;
-  effortLines?: ScatterEffortLine<Row>[];
+  connectReasoningVariants?: boolean;
   setHover: HoverSetter;
   width?: number;
   height?: number;
   margin?: Margin;
 }) {
   const compactLayout = useCompactChartLayout();
+  const [highlightedVariantKey, setHighlightedVariantKey] = useState<string | null>(null);
   const chartMargin = compactLayout ? { ...margin, left: Math.max(margin.left, 84) } : margin;
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
   const metricValues = rows.map(metric.get);
@@ -117,7 +116,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const plot = plotBoundsFor(width, height, chartMargin);
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
   const medianScore = median(rows.map(getScore)) ?? yDomain[0];
-  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 4, 13);
+  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 3, 10);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
     const yValue = getScore(row);
@@ -150,6 +149,46 @@ export function FrontierBenchmarkScatterPlot<Row>({
         priority: rows.length - index,
       })),
   });
+  const reasoningGroups = connectReasoningVariants ? reasoningVariantGroups(rows, getModel) : [];
+  const reasoningGroupByRow = new Map(
+    reasoningGroups.flatMap((group) => group.variants.map((row) => [row, group.key] as const)),
+  );
+  const activeRow = rows.find((row) => getKey(row) === highlightedVariantKey);
+  const activeVariantKey = activeRow == null ? null : highlightedVariantKey;
+  const activeReasoningGroup =
+    activeRow == null ? null : (reasoningGroupByRow.get(activeRow) ?? null);
+  const reasoningHighlightClass = (row: Row) => {
+    if (activeVariantKey == null) {
+      return "";
+    }
+    const isActiveVariant =
+      activeReasoningGroup == null
+        ? getKey(row) === activeVariantKey
+        : reasoningGroupByRow.get(row) === activeReasoningGroup;
+    return isActiveVariant ? styles.reasoningVariantPointActive : styles.reasoningVariantPointMuted;
+  };
+  const reasoningVariantLines = reasoningGroups.flatMap((group) => {
+    const first = group.variants[0];
+    if (first == null) {
+      return [];
+    }
+    return [
+      {
+        key: group.key,
+        color: providerChartColor(getModel(first).provider),
+        segments: scoreQuadrilateralConnectorSegments(
+          group.variants.map((row) => ({
+            model: getModel(row),
+            cx: xPoint(metric.get(row)),
+            cy: yPoint(getScore(row)),
+            radius: markRadius(row),
+          })),
+        ),
+      },
+    ];
+  });
+  const activeHighlightColor =
+    activeRow == null ? undefined : providerChartColor(getModel(activeRow).provider);
 
   return (
     <div
@@ -209,29 +248,46 @@ export function FrontierBenchmarkScatterPlot<Row>({
           bounds={plot}
           xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
           yLabel={cursorProjection ? `${cursorProjection.yValue.toFixed(1)}%` : ""}
+          color={activeHighlightColor}
         />
-        {effortLines.map((line) => (
-          <polyline
-            key={line.key}
-            className={styles.deepSweEffortLine}
-            points={line.rows
-              .map((row) => `${xPoint(metric.get(row))},${yPoint(getScore(row))}`)
-              .join(" ")}
-            style={
-              {
-                "--line-color": line.color,
-              } as CSSProperties
-            }
-          />
-        ))}
+        {reasoningVariantLines.flatMap((line) =>
+          line.segments.map((segment, index) => (
+            <line
+              {...segment}
+              aria-hidden="true"
+              key={`${line.key}-${index}`}
+              className={[
+                styles.reasoningVariantLine,
+                activeVariantKey == null
+                  ? ""
+                  : activeReasoningGroup != null && line.key === activeReasoningGroup
+                    ? styles.reasoningVariantLineActive
+                    : styles.reasoningVariantLineMuted,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              style={
+                {
+                  "--line-color": line.color,
+                } as CSSProperties
+              }
+            />
+          )),
+        )}
         {rows.map((row) => {
           const axisValue = metric.get(row);
           const score = getScore(row);
           const cx = xPoint(axisValue);
           const cy = yPoint(score);
           const model = getModel(row);
+          const variantKey = getKey(row);
           return (
-            <g key={getKey(row)}>
+            <g
+              className={[styles.reasoningVariantPoint, reasoningHighlightClass(row)]
+                .filter(Boolean)
+                .join(" ")}
+              key={getKey(row)}
+            >
               <ModelScoreMark
                 className={styles.datavizPoint}
                 model={model}
@@ -242,6 +298,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 stroke="var(--chart-point-stroke)"
                 strokeWidth={1}
                 opacity={1}
+                clearance={connectReasoningVariants ? 2 : 0}
               />
               <PointHitTarget
                 cx={cx}
@@ -257,6 +314,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                   yValue: score,
                 }}
                 setCursorProjection={setCursorProjection}
+                onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
               />
             </g>
           );
@@ -266,17 +324,23 @@ export function FrontierBenchmarkScatterPlot<Row>({
           const cx = xPoint(axisValue);
           const cy = yPoint(getScore(row));
           return labelRows.has(row) ? (
-            <TextPointLabel
+            <g
+              className={[styles.reasoningVariantPoint, reasoningHighlightClass(row)]
+                .filter(Boolean)
+                .join(" ")}
               key={`label-${getKey(row)}`}
-              label={getLabel(row)}
-              cx={cx}
-              cy={cy}
-              width={width}
-              margin={chartMargin}
-              height={height}
-              xOffset={markRadius(row) + 8}
-              placement={labelPlacements.get(getKey(row))}
-            />
+            >
+              <TextPointLabel
+                label={getLabel(row)}
+                cx={cx}
+                cy={cy}
+                width={width}
+                margin={chartMargin}
+                height={height}
+                xOffset={markRadius(row) + 8}
+                placement={labelPlacements.get(getKey(row))}
+              />
+            </g>
           ) : null;
         })}
       </svg>

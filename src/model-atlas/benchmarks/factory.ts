@@ -20,10 +20,7 @@ export type BenchmarkSourceAdapter =
       taskRunCount: number;
       scoreKey?: string;
       scorePath?: BenchmarkJsonPath;
-      costPath?: BenchmarkJsonPath;
-      tokenCountsPath?: BenchmarkJsonPath;
-      secondsProcessor?: "briefcase";
-      rowDetectionKey?: string;
+      resourceKey: string;
     };
 
 export type BenchmarkObservationLoader =

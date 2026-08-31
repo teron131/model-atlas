@@ -20,8 +20,47 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
   }
 }
 
+function assertApprox(actual: number | undefined, expected: number): void {
+  if (actual == null || Math.abs(actual - expected) > 1e-12) {
+    throw new Error(`Expected ${expected}, got ${String(actual)}`);
+  }
+}
+
+function currentResourceTelemetry({
+  resourceKey,
+  taskCount,
+  input,
+  answer,
+  reasoning,
+  totalCost,
+  secondsPerTask,
+}: {
+  resourceKey: string;
+  taskCount: number;
+  input: number;
+  answer: number;
+  reasoning: number;
+  totalCost: number;
+  secondsPerTask: number;
+}) {
+  const output = answer + reasoning;
+  return {
+    canonicalEvalTokenCounts: {
+      [resourceKey]: { input, answer, reasoning, cacheableInput: null },
+    },
+    price1mInputTokens: 0,
+    price1mOutputTokens: (totalCost * 1_000_000) / output,
+    cacheHitPrice: null,
+    cacheWritePrice: null,
+    cacheHitRate: null,
+    medianCanonicalAnswerOutputSpeed: output / taskCount / secondsPerTask,
+  };
+}
+
 const hlePage = {
   benchmark_key: "hle",
+  score_key: "hle",
+  resource_key: "hle",
   url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
   task_run_count: 2,
 };
@@ -33,7 +72,8 @@ if (configuredAnalystAgentPage == null) {
 }
 assertDeepEqual(configuredAnalystAgentPage, {
   benchmark_key: "analyst_agent",
-  score_key: "aa_analyst_agent",
+  score_key: "analystAgent",
+  resource_key: "analystAgent",
   url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
   task_run_count: 80,
 });
@@ -60,7 +100,8 @@ if (configuredItbenchPage == null) {
 }
 assertDeepEqual(configuredItbenchPage, {
   benchmark_key: "itbench_sre",
-  score_key: "it_bench_sre",
+  score_key: "itbenchSre",
+  resource_key: "itBench",
   url: "https://artificialanalysis.ai/evaluations/itbench-aa",
   task_run_count: 177,
 });
@@ -76,47 +117,48 @@ const briefcasePage = {
 };
 const automationBenchPage = {
   benchmark_key: "automation_bench",
-  score_path: ["automation_bench_breakdown", "summary", "completion"],
+  score_path: ["automationBenchBreakdown", "completion"],
+  resource_key: "automationBench",
   url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
   task_run_count: 2,
 };
 const hleRows = processArtificialAnalysisBenchmarkResourceRows(
   [
     {
-      name: "Claude Fable 5 (Adaptive Reasoning, Max Effort)",
-      short_name: "Claude Fable 5 (max)",
+      name: "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",
+      shortName: "Claude Fable 5 (with fallback)",
       slug: "claude-fable-5",
-      model_creators: {
+      creator: {
         name: "Anthropic",
         slug: "anthropic",
       },
       hle: 0.42,
-      evalCost: {
-        total: 4,
-      },
-      evalTimePerTask: 12,
-      tokenCounts: {
-        inputTokens: 20,
-        answerTokens: 30,
-        reasoningTokens: 50,
-        outputTokens: 80,
-      },
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 20,
+        answer: 30,
+        reasoning: 50,
+        totalCost: 4,
+        secondsPerTask: 12,
+      }),
     },
     {
       name: "Missing Score",
       slug: "missing-score",
-      model_creators: {
+      creator: {
         name: "Test",
         slug: "test",
       },
-      evalCost: {
-        total: 4,
-      },
-      evalTimePerTask: 12,
-      tokenCounts: {
-        inputTokens: 20,
-        outputTokens: 80,
-      },
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 20,
+        answer: 80,
+        reasoning: 0,
+        totalCost: 4,
+        secondsPerTask: 12,
+      }),
     },
   ],
   hlePage,
@@ -127,7 +169,7 @@ assertDeepEqual(hleRows, [
     benchmark_key: "hle",
     source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
     model_id: "anthropic/claude-fable-5",
-    model: "Claude Fable 5 (max)",
+    model: "Claude Fable 5",
     provider: "Anthropic",
     provider_id: "anthropic",
     reasoning_effort: "max",
@@ -145,7 +187,7 @@ assertDeepEqual(hleRows, [
 
 const hleLookup = buildArtificialAnalysisSourceDefaultResourceLookup(hleRows);
 assertDeepEqual(
-  findArtificialAnalysisBenchmarkResourceRow("hle", ["Claude Fable 5 max"], hleLookup)
+  findArtificialAnalysisBenchmarkResourceRow("hle", ["Claude Fable 5"], hleLookup)
     ?.cost_per_task_usd,
   2,
 );
@@ -154,25 +196,48 @@ assertDeepEqual(
   null,
 );
 
+const [cachedInputRow] = processArtificialAnalysisBenchmarkResourceRows(
+  [
+    {
+      shortName: "Cache Model",
+      slug: "cache-model",
+      creator: { name: "Test", slug: "test" },
+      hle: 0.5,
+      canonicalEvalTokenCounts: {
+        hle: { input: 100, answer: 20, reasoning: 30, cacheableInput: 40 },
+      },
+      price1mInputTokens: 10,
+      price1mOutputTokens: 50,
+      cacheHitPrice: 1,
+      cacheWritePrice: 12,
+      cacheHitRate: 0.5,
+      medianCanonicalAnswerOutputSpeed: 25,
+    },
+  ],
+  hlePage,
+);
+assertApprox(cachedInputRow?.cost_per_task_usd, 0.00174);
+
 assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(
     [
       {
-        short_name: "GPT-5.6 Sol (max)",
+        shortName: "GPT-5.6 Sol (max)",
         slug: "gpt-5-6-sol",
-        model_creators: {
+        creator: {
           name: "OpenAI",
           slug: "openai",
         },
-        it_bench_sre: 0.56,
-        evalCost: { total: 177 },
-        evalTimePerTask: 100,
-        tokenCounts: {
-          inputTokens: 17_700,
-          answerTokens: 1_770,
-          reasoningTokens: 1_770,
-          outputTokens: 3_540,
-        },
+        itbenchSre: 0.56,
+        ...currentResourceTelemetry({
+          resourceKey: "itBench",
+          taskCount: 177,
+          input: 17_700,
+          answer: 1_770,
+          reasoning: 1_770,
+          totalCost: 177,
+          secondsPerTask: 100,
+        }),
       },
     ],
     configuredItbenchPage,
@@ -201,29 +266,25 @@ assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(
     [
       {
-        short_name: "Claude Fable 5 (max)",
+        shortName: "Claude Fable 5 (max)",
         slug: "claude-fable-5",
-        model_creators: {
+        creator: {
           name: "Anthropic",
           slug: "anthropic",
         },
-        briefcase: {
-          elo: 1500,
+        briefcaseElo: 1500,
+        briefcaseBreakdown: {
           totalToolMs: 4000,
         },
-        briefcaseCost: {
-          total: 6,
-        },
-        canonicalEvalTokenCounts: {
-          briefcase: {
-            input: 20,
-            answer: 30,
-            reasoning: 50,
-          },
-        },
-        timescaleData: {
-          median_output_speed: 10,
-        },
+        ...currentResourceTelemetry({
+          resourceKey: "briefcase",
+          taskCount: 2,
+          input: 20,
+          answer: 30,
+          reasoning: 50,
+          totalCost: 6,
+          secondsPerTask: 6,
+        }),
       },
     ],
     briefcasePage,
@@ -235,82 +296,24 @@ assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(
     [
       {
-        short_name: "Claude Fable 5 (max)",
-        slug: "claude-fable-5",
-        model_creators: {
-          name: "Anthropic",
-          slug: "anthropic",
-        },
-        briefcase: {
-          elo: 1500,
-          totalToolMs: 4000,
-        },
-        briefcase_breakdown: {
-          telemetry: {
-            total_generation_ms: 18_000,
-          },
-        },
-        briefcaseCost: {
-          total: 6,
-        },
-        canonicalEvalTokenCounts: {
-          briefcase: {
-            input: 20,
-            answer: 30,
-            reasoning: 50,
-          },
-        },
-        timescaleData: {
-          median_output_speed: 10,
-        },
-      },
-    ],
-    briefcasePage,
-  )[0],
-  {
-    benchmark_key: "briefcase",
-    source_url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
-    model_id: "anthropic/claude-fable-5",
-    model: "Claude Fable 5 (max)",
-    provider: "Anthropic",
-    provider_id: "anthropic",
-    reasoning_effort: "max",
-    score: 1500,
-    task_run_count: 2,
-    cost_per_task_usd: 3,
-    seconds_per_task: 9,
-    tokens_per_task: 50,
-    input_tokens_per_task: 10,
-    output_tokens_per_task: 40,
-    answer_tokens_per_task: 15,
-    reasoning_tokens_per_task: 25,
-  },
-);
-
-assertDeepEqual(
-  processArtificialAnalysisBenchmarkResourceRows(
-    [
-      {
-        short_name: "Grok 4.5",
+        shortName: "Grok 4.5",
         slug: "grok-4-5",
-        model_creators: {
+        creator: {
           name: "xAI",
           slug: "x-ai",
         },
-        automation_bench_breakdown: {
-          summary: {
-            completion: 0.72,
-          },
+        automationBenchBreakdown: {
+          completion: 0.72,
         },
-        evalCost: {
-          total: 1,
-        },
-        evalTimePerTask: 91,
-        tokenCounts: {
-          inputTokens: 20,
-          answerTokens: 6,
-          reasoningTokens: 4,
-        },
+        ...currentResourceTelemetry({
+          resourceKey: "automationBench",
+          taskCount: 2,
+          input: 20,
+          answer: 6,
+          reasoning: 4,
+          totalCost: 1,
+          secondsPerTask: 91,
+        }),
       },
     ],
     automationBenchPage,
@@ -338,72 +341,76 @@ assertDeepEqual(
 const effortRows = processArtificialAnalysisBenchmarkResourceRows(
   [
     {
-      short_name: "GPT-5.2",
+      shortName: "GPT-5.2",
       slug: "gpt-5-2-non-reasoning",
-      model_creators: {
+      creator: {
         name: "OpenAI",
         slug: "openai",
       },
       hle: 0.1,
-      evalCost: {
-        total: 0.2,
-      },
-      evalTimePerTask: 2,
-      tokenCounts: {
-        inputTokens: 8,
-        outputTokens: 12,
-      },
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 8,
+        answer: 12,
+        reasoning: 0,
+        totalCost: 0.2,
+        secondsPerTask: 2,
+      }),
     },
     {
-      short_name: "GPT-5.2 (low)",
+      shortName: "GPT-5.2 (low)",
       slug: "gpt-5-2-low",
-      model_creators: {
+      creator: {
         name: "OpenAI",
         slug: "openai",
       },
       hle: 0.4,
-      evalCost: {
-        total: 1,
-      },
-      evalTimePerTask: 10,
-      tokenCounts: {
-        inputTokens: 20,
-        outputTokens: 30,
-      },
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 20,
+        answer: 30,
+        reasoning: 0,
+        totalCost: 1,
+        secondsPerTask: 10,
+      }),
     },
     {
-      short_name: "GPT-5.2 (xhigh)",
+      shortName: "GPT-5.2 (xhigh)",
       slug: "gpt-5-2",
-      model_creators: {
+      creator: {
         name: "OpenAI",
         slug: "openai",
       },
       hle: 0.3,
-      evalCost: {
-        total: 4,
-      },
-      evalTimePerTask: 40,
-      tokenCounts: {
-        inputTokens: 80,
-        outputTokens: 120,
-      },
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 80,
+        answer: 120,
+        reasoning: 0,
+        totalCost: 4,
+        secondsPerTask: 40,
+      }),
     },
     {
-      short_name: "GPT-5.2 (max)",
+      shortName: "GPT-5.2 (max)",
       slug: "gpt-5-2-max",
-      model_creators: {
+      creator: {
         name: "OpenAI",
         slug: "openai",
       },
       hle: 0.35,
-      evalCost: {
-        total: 6,
-      },
-      evalTimePerTask: 60,
-      tokenCounts: {
-        inputTokens: 100,
-        outputTokens: 140,
-      },
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 100,
+        answer: 140,
+        reasoning: 0,
+        totalCost: 6,
+        secondsPerTask: 60,
+      }),
     },
   ],
   hlePage,
@@ -444,7 +451,7 @@ for (const candidateName of [
   );
   assertDeepEqual(defaultRow?.reasoning_effort, "max");
   assertDeepEqual(defaultRow?.score, 0.35);
-  assertDeepEqual(defaultRow?.cost_per_task_usd, 3);
+  assertApprox(defaultRow?.cost_per_task_usd, 3);
 }
 
 let activeRequests = 0;
@@ -477,6 +484,8 @@ try {
     timeoutMs: 1_000,
     pages: Array.from({ length: 6 }, (_, index) => ({
       benchmark_key: `test_${index}`,
+      score_key: `test_${index}`,
+      resource_key: `test_${index}`,
       url: `http://127.0.0.1:${address.port}/${index}`,
       task_run_count: 1,
     })),

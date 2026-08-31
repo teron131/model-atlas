@@ -2,8 +2,6 @@
 
 import type { Dispatch, SetStateAction } from "react";
 
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-
 export type HoverRow = readonly [string, string];
 
 export type HoverState = {
@@ -17,31 +15,6 @@ export type HoverState = {
 };
 
 export type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
-
-export type Point = {
-  model: ModelAtlasModel;
-  x: number;
-  y: number;
-};
-
-export type InteractionContext = {
-  frontierScoreByModel: ReadonlyMap<string, number>;
-};
-
-export type InteractionConfig = {
-  key: string;
-  title: string;
-  fieldLabel: string;
-  lowerIsBetter: boolean;
-  logScale: boolean;
-  ticks: number[];
-  get: (model: ModelAtlasModel, context: InteractionContext) => number | null;
-  format: (value: number) => string;
-  tooltipFormat: (value: number) => string;
-  xLabel: string;
-  hoverLabel?: string;
-  insight?: string;
-};
 
 export type Margin = {
   top: number;

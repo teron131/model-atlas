@@ -207,9 +207,9 @@ assert.equal(
   html.includes("Pareto Frontier") &&
     html.includes("Price vs Cost Efficiency") &&
     html.includes("Frontier Benchmarks") &&
-    html.includes("Intelligence Interaction Matrix"),
+    !html.includes('id="interaction-matrix"'),
   true,
-  "server markup should include every graph panel in the initial page response",
+  "server markup should include every remaining graph panel and omit the removed interaction matrix",
 );
 assert.equal(
   matchCount(html, 'data-column-key="model"'),

@@ -7,6 +7,7 @@ import {
   normalizeModelToken,
   normalizeProviderModelId,
   PRIMARY_PROVIDER_ID,
+  reasoningEffortRank,
 } from "../../identity/normalization";
 import {
   publicOpenRouterModelId,
@@ -110,6 +111,7 @@ function versionKeyForRow(row: JsonObject): string | null {
 function dedupeKeyForRow(
   row: JsonObject,
   benchmarkVersionKeys: ReadonlySet<string>,
+  alignedVersionKeyByRoute: ReadonlyMap<string, string>,
 ): string | null {
   const id = typeof row.id === "string" ? row.id : null;
   if (id == null) {
@@ -117,7 +119,7 @@ function dedupeKeyForRow(
   }
   const versionKey = versionKeyForRow(row);
   if (versionKey != null && benchmarkVersionKeys.has(versionKey)) {
-    return `artificial_analysis:${versionKey}`;
+    return `artificial_analysis:${alignedVersionKeyByRoute.get(dedupeKeyForRowId(id)) ?? versionKey}`;
   }
   return dedupeKeyForRowId(id);
 }
@@ -208,20 +210,71 @@ function mergeCollapsedModelRows(winner: JsonObject, group: readonly JsonObject[
   return collapsedRow;
 }
 
+function isAlignedObservationRow(row: JsonObject, canonicalSlug: string | null): boolean {
+  const artificialAnalysisSlug =
+    typeof row.artificial_analysis_slug === "string" ? row.artificial_analysis_slug : null;
+  return (
+    canonicalSlug != null &&
+    reasoningEffortSelectionPriority(row.reasoning_effort, artificialAnalysisSlug, canonicalSlug) >
+      0
+  );
+}
+
+function isGenericReasoningObservationRow(row: JsonObject): boolean {
+  const artificialAnalysisSlug =
+    typeof row.artificial_analysis_slug === "string" ? row.artificial_analysis_slug : null;
+  return (
+    canonicalReasoningEffort(row.reasoning_effort) == null &&
+    artificialAnalysisSlug != null &&
+    /-(?:reasoning|thinking)$/.test(normalizeModelToken(artificialAnalysisSlug))
+  );
+}
+
+function preferredObservationRows(
+  group: readonly JsonObject[],
+  canonicalSlug: string | null,
+): readonly JsonObject[] {
+  const observationRows = group.filter((row) => typeof row.artificial_analysis_id === "string");
+  const preferredRows = observationRows.filter(
+    (row) => isAlignedObservationRow(row, canonicalSlug) || isGenericReasoningObservationRow(row),
+  );
+  if (preferredRows.length > 0) {
+    return preferredRows;
+  }
+  return observationRows.length > 0 ? observationRows : group;
+}
+
 /** Preserve one Artificial Analysis observation per explicit effort while sharing route-owned catalog fields. */
 function mergeRowsByReasoningEffort(
   group: readonly JsonObject[],
   normalizedId: string,
 ): JsonObject[] {
+  const canonicalSlug = canonicalSlugFromDedupeKey(normalizedId);
   const rowsByEffort = new Map<string | null, JsonObject[]>();
-  for (const row of group) {
+  for (const row of preferredObservationRows(group, canonicalSlug)) {
     const effort = canonicalReasoningEffort(row.reasoning_effort);
     const effortRows = rowsByEffort.get(effort) ?? [];
     effortRows.push(row);
     rowsByEffort.set(effort, effortRows);
   }
+  const defaultRows = rowsByEffort.get(null);
+  const highestExplicitReasoningEffort = [...rowsByEffort.keys()]
+    .filter((effort): effort is string => effort != null && effort !== "none")
+    .sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0];
+  if (defaultRows != null && highestExplicitReasoningEffort != null) {
+    rowsByEffort.set(highestExplicitReasoningEffort, [
+      ...(rowsByEffort.get(highestExplicitReasoningEffort) ?? []),
+      ...defaultRows,
+    ]);
+    rowsByEffort.delete(null);
+  }
   return [...rowsByEffort].map(([effort, effortRows]) => {
-    const winner = [...effortRows].sort(
+    const explicitEffortRows =
+      effort == null
+        ? effortRows
+        : effortRows.filter((row) => canonicalReasoningEffort(row.reasoning_effort) === effort);
+    const winnerCandidates = explicitEffortRows.length > 0 ? explicitEffortRows : effortRows;
+    const winner = [...winnerCandidates].sort(
       (left, right) => rowPriority(right, normalizedId) - rowPriority(left, normalizedId),
     )[0] as JsonObject;
     return {
@@ -244,10 +297,24 @@ function buildModelRows(
       .map(versionKeyForRow)
       .filter((key): key is string => key != null),
   );
+  const alignedVersionKeyByRoute = new Map<string, string>();
+  for (const inputRow of rows) {
+    const row = asRecord(inputRow);
+    const id = typeof row.id === "string" ? row.id : null;
+    if (id == null) {
+      continue;
+    }
+    const routeKey = dedupeKeyForRowId(id);
+    const canonicalSlug = canonicalSlugFromDedupeKey(routeKey);
+    const versionKey = versionKeyForRow(row);
+    if (versionKey != null && isAlignedObservationRow(row, canonicalSlug)) {
+      alignedVersionKeyByRoute.set(routeKey, versionKey);
+    }
+  }
 
   for (const row of rows) {
     const rowRecord = asRecord(row);
-    const key = dedupeKeyForRow(rowRecord, benchmarkVersionKeys);
+    const key = dedupeKeyForRow(rowRecord, benchmarkVersionKeys, alignedVersionKeyByRoute);
     if (key == null) {
       passthrough.push(row);
       continue;

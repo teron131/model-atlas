@@ -9,7 +9,10 @@ import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
-import { cleanArtificialAnalysisModelName } from "../src/model-atlas/scrapers/artificial-analysis/model-labels";
+import {
+  cleanArtificialAnalysisModelName,
+  parseArtificialAnalysisReasoningEffort,
+} from "../src/model-atlas/scrapers/artificial-analysis/model-labels";
 import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/omniscience";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -92,6 +95,14 @@ assertDeepEqual(
   processArtificialAnalysisLeaderboardRows(
     [
       {
+        slug: "structured-effort",
+        name: "Structured Effort (max)",
+        effort: { slug: "high" },
+        modelCreatorName: "Test",
+        modelCreatorSlug: "test",
+        intelligenceIndex: 60,
+      },
+      {
         slug: "gpt-5-5",
         name: "GPT-5.5 (xhigh)",
         modelCreatorName: "OpenAI",
@@ -105,14 +116,32 @@ assertDeepEqual(
         modelCreatorSlug: "anthropic",
         intelligenceIndex: 43,
       },
+      {
+        slug: "gemini-3-5-flash",
+        name: "Gemini 3.5 Flash (high)",
+        shortName: "Gemini 3.5 Flash",
+        modelCreatorName: "Google",
+        modelCreatorSlug: "google",
+        intelligenceIndex: 52,
+      },
     ],
     { selectedColumns: ["model_id", "name", "reasoning_effort"] },
   ),
   [
     {
+      model_id: "test/structured-effort",
+      name: "Structured Effort (max)",
+      reasoning_effort: "high",
+    },
+    {
       model_id: "openai/gpt-5-5",
       name: "GPT-5.5 (xhigh)",
       reasoning_effort: "xhigh",
+    },
+    {
+      model_id: "google/gemini-3-5-flash",
+      name: "Gemini 3.5 Flash",
+      reasoning_effort: "high",
     },
     {
       model_id: "anthropic/claude-opus-4-7",
@@ -211,6 +240,26 @@ assertDeepEqual(
   cleanArtificialAnalysisModelName("Claude Fable 5 (with fallback)"),
   "Claude Fable 5",
 );
+assertDeepEqual(
+  parseArtificialAnalysisReasoningEffort(
+    "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",
+  ),
+  "max",
+);
+assertDeepEqual(
+  parseArtificialAnalysisReasoningEffort(
+    "Claude Opus 4.6 (Non-reasoning, High Effort)",
+    "Claude Opus 4.6 (high)",
+  ),
+  null,
+);
+assertDeepEqual(
+  parseArtificialAnalysisReasoningEffort("Gemini 3.5 Flash (high)", "Gemini 3.5 Flash"),
+  "high",
+);
+assertDeepEqual(parseArtificialAnalysisReasoningEffort("Example (No reasoning)"), "none");
+assertDeepEqual(parseArtificialAnalysisReasoningEffort("Qwen3.8 Max"), null);
+assertDeepEqual(parseArtificialAnalysisReasoningEffort("Gemini 3.5 Flash (minimal)"), "minimal");
 assertDeepEqual(
   processArtificialAnalysisOmnisciencePage(
     '<script type="application/ld+json">{"name":"AA-Omniscience Accuracy","data":[{"label":"Claude Opus 5 (max)","omniscienceAccuracy":0.61,"detailsUrl":"/models/claude-opus-5"}]}</script>',
