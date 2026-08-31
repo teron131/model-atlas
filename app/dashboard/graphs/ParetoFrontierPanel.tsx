@@ -1,6 +1,6 @@
 /** Pareto frontier panel for model intelligence and value tradeoffs. */
 
-import { median, pairs } from "d3-array";
+import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import { type CSSProperties, memo, useState } from "react";
 
@@ -20,6 +20,7 @@ import {
   useCursorProjection,
 } from "./plot/Interaction";
 import { calloutLabelPlacements } from "./plot/label-placement";
+import { ParetoEnvelope, paretoFrontier } from "./plot/ParetoEnvelope";
 import {
   AxisTitles,
   DirectionArrow,
@@ -46,6 +47,9 @@ import styles from "./graphs.module.css";
 const SCORE_AXIS_FORMAT_OPTIONS = {
   formatTick: (tick: number) => tick.toFixed(0),
 };
+const intelligenceScore = (model: ModelAtlasModel) => model.scores.intelligence_score;
+const valueScore = (model: ModelAtlasModel) => Number(model.scores.value_score);
+
 export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   models,
   showVariants,
@@ -89,20 +93,12 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   const width = SCATTER_CHART_WIDTH;
   const height = SCATTER_CHART_HEIGHT;
   const margin = SCATTER_CHART_MARGIN;
-  const values = candidates.map((model) => Number(model.scores.value_score));
-  const scores = candidates.map((model) => model.scores.intelligence_score);
-  const frontierDescending: ModelAtlasModel[] = [];
-  let bestFromRight = -Infinity;
-  for (const model of [...candidates].sort(
-    (left, right) => Number(right.scores.value_score) - Number(left.scores.value_score),
-  )) {
-    const score = model.scores.intelligence_score;
-    if (score > bestFromRight) {
-      frontierDescending.push(model);
-      bestFromRight = score;
-    }
-  }
-  const frontier = frontierDescending.reverse();
+  const values = candidates.map(valueScore);
+  const scores = candidates.map(intelligenceScore);
+  const frontier = paretoFrontier(candidates, {
+    x: { get: valueScore, goal: "maximize" },
+    y: { get: intelligenceScore, goal: "maximize" },
+  });
   const scoreDistribution = valueDistribution(scores);
   const valueAxis = scoreAxisScale(values, SCORE_AXIS_FORMAT_OPTIONS);
   const intelligenceAxis = scoreAxisScale(scores, SCORE_AXIS_FORMAT_OPTIONS);
@@ -121,22 +117,6 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   const medianValue = median(values) ?? xDomain[0];
   const medianScore = median(scores) ?? 50;
   const frontierIds = new Set(frontier.map(modelVariantKey));
-  const frontierSegments = pairs(frontier).map(([fromModel, toModel], index) => {
-    const fromX = xPoint(Number(fromModel.scores.value_score));
-    const fromY = yPoint(fromModel.scores.intelligence_score);
-    const toX = xPoint(Number(toModel.scores.value_score));
-    const toY = yPoint(toModel.scores.intelligence_score);
-    return {
-      gradientId: `pareto-frontier-gradient-${index + 1}`,
-      fromColor: providerChartColor(fromModel.provider),
-      toColor: providerChartColor(toModel.provider),
-      fromX,
-      fromY,
-      toX,
-      toY,
-      path: `M${fromX},${fromY} L${toX},${toY}`,
-    };
-  });
   const markRadius = (model: ModelAtlasModel) => scoreQuadrilateralRadius(model, 2.5, 8);
   const reasoningGroups = showVariants ? reasoningVariantGroups(candidates, (model) => model) : [];
   const reasoningGroupByVariant = new Map(
@@ -256,22 +236,6 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
           aria-label="Intelligence by Value Score scatter plot"
           {...projectionHandlers}
         >
-          <defs>
-            {frontierSegments.map((segment) => (
-              <linearGradient
-                id={segment.gradientId}
-                key={segment.gradientId}
-                gradientUnits="userSpaceOnUse"
-                x1={segment.fromX}
-                y1={segment.fromY}
-                x2={segment.toX}
-                y2={segment.toY}
-              >
-                <stop offset="0" stopColor={segment.fromColor} />
-                <stop offset="1" stopColor={segment.toColor} />
-              </linearGradient>
-            ))}
-          </defs>
           <PlotFrame width={width} height={height} margin={margin} />
           <CursorCapture bounds={plot} />
           <YAxisTicks
@@ -331,19 +295,21 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
               />
             )),
           )}
-          {frontierSegments.map((segment) => (
-            <path
-              className={[
-                styles.frontier,
-                activeVariantKey == null ? "" : styles.reasoningContextMuted,
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              d={segment.path}
-              key={segment.gradientId}
-              stroke={`url(#${segment.gradientId})`}
-            />
-          ))}
+          <ParetoEnvelope
+            frontier={frontier}
+            getX={valueScore}
+            getY={intelligenceScore}
+            xPoint={xPoint}
+            yPoint={yPoint}
+            getColor={(model) => providerChartColor(model.provider)}
+            idPrefix="pareto-frontier"
+            className={[
+              styles.frontier,
+              activeVariantKey == null ? "" : styles.reasoningContextMuted,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
           {plottedCandidates.map((model) => {
             const cx = xPoint(Number(model.scores.value_score));
             const cy = yPoint(model.scores.intelligence_score);

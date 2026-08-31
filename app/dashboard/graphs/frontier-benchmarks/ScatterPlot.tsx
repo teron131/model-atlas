@@ -1,6 +1,6 @@
 "use client";
 
-/** Frontier benchmark scatter plot owns axes, labels, cursor projections, and effort lines. */
+/** Frontier benchmark scatter plot owns axes, Pareto envelopes, labels, cursor projections, and effort lines. */
 
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
@@ -16,6 +16,7 @@ import {
   useCursorProjection,
 } from "../plot/Interaction";
 import { calloutLabelPlacements } from "../plot/label-placement";
+import { ParetoEnvelope, paretoFrontier } from "../plot/ParetoEnvelope";
 import {
   AxisTitles,
   DirectionArrow,
@@ -114,9 +115,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
   const plot = plotBoundsFor(width, height, chartMargin);
+  const frontier = paretoFrontier(rows, {
+    x: { get: metric.get, goal: metric.xHigherIsBetter ? "maximize" : "minimize" },
+    y: { get: getScore, goal: "maximize" },
+  });
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
   const medianScore = median(rows.map(getScore)) ?? yDomain[0];
-  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 3, 10);
+  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 2.5, 8);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
     const yValue = getScore(row);
@@ -274,6 +279,18 @@ export function FrontierBenchmarkScatterPlot<Row>({
             />
           )),
         )}
+        <ParetoEnvelope
+          frontier={frontier}
+          getX={metric.get}
+          getY={getScore}
+          xPoint={xPoint}
+          yPoint={yPoint}
+          getColor={(row) => providerChartColor(getModel(row).provider)}
+          idPrefix={`${keyPrefix}-frontier`}
+          className={[styles.frontier, activeVariantKey == null ? "" : styles.reasoningContextMuted]
+            .filter(Boolean)
+            .join(" ")}
+        />
         {rows.map((row) => {
           const axisValue = metric.get(row);
           const score = getScore(row);

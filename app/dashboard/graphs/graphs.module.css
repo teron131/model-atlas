@@ -867,7 +867,7 @@
 
 .frontier {
   fill: none;
-  stroke-width: 1.6;
+  stroke-width: 1.5;
   stroke-linecap: square;
   stroke-linejoin: miter;
   transition: opacity 0.12s ease;
@@ -876,10 +876,10 @@
 .reasoningVariantLine {
   fill: none;
   stroke: var(--line-color);
-  stroke-width: 1.25;
+  stroke-width: 0.95;
   stroke-linecap: square;
   stroke-linejoin: miter;
-  opacity: 0.44;
+  opacity: 0.34;
   pointer-events: none;
   transition:
     opacity 0.12s ease,
@@ -889,13 +889,13 @@
 }
 
 .reasoningVariantLineActive {
-  opacity: 0.96;
-  stroke-width: 2.4;
+  opacity: 0.9;
+  stroke-width: 1.6;
 }
 
 .reasoningVariantLineMuted {
   stroke: var(--chart-point-line);
-  opacity: 0.55;
+  opacity: 0.18;
 }
 
 .reasoningContextMuted {

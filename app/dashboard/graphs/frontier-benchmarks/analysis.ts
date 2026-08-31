@@ -200,27 +200,39 @@ export function normalizedFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
   referenceRows: FrontierBenchmarkRow[] = rows,
 ): FrontierBenchmarkRow[] {
-  const scoresByBenchmark = new Map<string, number[]>();
   const costsByBenchmark = new Map<string, number[]>();
   const secondsByBenchmark = new Map<string, number[]>();
   const tokensByBenchmark = new Map<string, number[]>();
   for (const row of referenceRows) {
-    const scores = scoresByBenchmark.get(row.benchmarkKey) ?? [];
-    scores.push(row.score);
-    scoresByBenchmark.set(row.benchmarkKey, scores);
     pushBenchmarkValue(costsByBenchmark, row.benchmarkKey, row.cost);
     pushBenchmarkValue(secondsByBenchmark, row.benchmarkKey, row.seconds);
     pushBenchmarkValue(tokensByBenchmark, row.benchmarkKey, row.totalTokens);
   }
-  return rows.map((row) => ({
+  return normalizedFrontierBenchmarkScoreRows(rows, referenceRows).map((row) => ({
     ...row,
-    score: minMaxScale(scoresByBenchmark.get(row.benchmarkKey) ?? [], row.score) ?? row.score,
     cost: minMaxScale(costsByBenchmark.get(row.benchmarkKey) ?? [], row.cost) ?? row.cost,
     seconds:
       minMaxScale(secondsByBenchmark.get(row.benchmarkKey) ?? [], row.seconds) ?? row.seconds,
     totalTokens:
       minMaxScale(tokensByBenchmark.get(row.benchmarkKey) ?? [], row.totalTokens) ??
       row.totalTokens,
+  }));
+}
+
+/** Normalize benchmark-native quality values onto the shared 0-100 chart scale without changing resource measurements. */
+export function normalizedFrontierBenchmarkScoreRows(
+  rows: FrontierBenchmarkRow[],
+  referenceRows: FrontierBenchmarkRow[] = rows,
+): FrontierBenchmarkRow[] {
+  const scoresByBenchmark = new Map<string, number[]>();
+  for (const row of referenceRows) {
+    const scores = scoresByBenchmark.get(row.benchmarkKey) ?? [];
+    scores.push(row.score);
+    scoresByBenchmark.set(row.benchmarkKey, scores);
+  }
+  return rows.map((row) => ({
+    ...row,
+    score: minMaxScale(scoresByBenchmark.get(row.benchmarkKey) ?? [], row.score) ?? row.score,
   }));
 }
 
@@ -410,7 +422,11 @@ export function frontierBenchmarkHoverRows(
   const rows: HoverRow[] = [];
   rows.push(
     [
-      row.benchmarkKey === "all" ? "Mean Normalized Benchmark Score" : "Benchmark Score",
+      row.benchmarkKey === "all"
+        ? "Mean Normalized Benchmark Score"
+        : row.benchmarkKey === "ale_bench"
+          ? "Normalized Benchmark Score"
+          : "Benchmark Score",
       fmtPercentScore(row.score),
     ],
     [axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
