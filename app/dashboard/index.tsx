@@ -28,7 +28,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
   const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
   const [modelLimit, setModelLimit] = useState<ModelLimit>(DEFAULT_DISPLAY_ITEMS);
   const [globalModelFilterQuery, setGlobalModelFilterQuery] = useState("");
-  const { payload, errorMessage, hasFullPayload } = useLivePayload(initialPayload);
+  const { payload, errorMessage } = useLivePayload(initialPayload);
 
   const displayPayload = useMemo(() => {
     if (payload == null) {
@@ -94,7 +94,6 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
       <DashboardGraphs
         payload={displayPayload}
         referenceModels={rankedModels(payload?.models ?? [])}
-        hasFullPayload={hasFullPayload}
         benchmarksLoading={isInitialLoading}
         selectedProviders={selectedProviders}
         providerChoices={providerChoices}

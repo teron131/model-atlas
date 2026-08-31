@@ -4,7 +4,11 @@
  */
 
 import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../../benchmarks/registry";
-import { normalizeModelToken, reasoningEffortRank } from "../../../identity/normalization";
+import {
+  canonicalReasoningEffort,
+  normalizeModelToken,
+  reasoningEffortRank,
+} from "../../../identity/normalization";
 import {
   asFiniteNumber,
   asRecord,
@@ -22,7 +26,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 3;
 const DEFAULT_REQUEST_JITTER_MS = 250;
 const PAGE_FETCH_ATTEMPTS = 2;
-const ROW_DETECTION_KEY = "evalTimePerTask";
+const ROW_DETECTION_KEY = "canonicalEvalTokenCounts";
 const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
 const REASONING_EFFORT_SUFFIXES = [
   "non-reasoning",
@@ -36,49 +40,30 @@ const REASONING_EFFORT_SUFFIXES = [
 
 type JsonPath = readonly string[];
 
-type OutputSpeedAndToolMsFallback = {
-  kind: "output_speed_plus_tool_ms";
-  output_speed_path: JsonPath;
-  tool_ms_path: JsonPath;
+type TokenPrices = {
+  input: number;
+  output: number;
+  cacheHit: number | null;
+  cacheWrite: number | null;
 };
 
-type SecondsPerTaskPolicy =
-  | {
-      kind: "value";
-      path: JsonPath;
-    }
-  | {
-      kind: "total_ms";
-      paths: readonly JsonPath[];
-      fallback?: OutputSpeedAndToolMsFallback;
-    };
+type CostCategories = {
+  input: number;
+  cacheHit: number;
+  cacheWrite: number;
+  answer: number;
+  reasoning: number;
+};
 
-const DEFAULT_SECONDS_PER_TASK_POLICY = {
-  kind: "value",
-  path: ["evalTimePerTask"],
-} as const satisfies SecondsPerTaskPolicy;
-
-const BRIEFCASE_SECONDS_PER_TASK_POLICY = {
-  kind: "total_ms",
-  paths: [
-    ["briefcase_breakdown", "telemetry", "total_generation_ms"],
-    ["briefcaseBreakdown", "telemetry", "total_generation_ms"],
-  ],
-  fallback: {
-    kind: "output_speed_plus_tool_ms",
-    output_speed_path: ["timescaleData", "median_output_speed"],
-    tool_ms_path: ["briefcase", "totalToolMs"],
-  },
-} as const satisfies SecondsPerTaskPolicy;
+type CostPerTask = {
+  total: number;
+} & Partial<CostCategories>;
 
 type ArtificialAnalysisBenchmarkResourcePage = {
   benchmark_key: string;
   score_key?: string;
   score_path?: JsonPath;
-  cost_path?: JsonPath;
-  token_counts_path?: JsonPath;
-  seconds_policy?: SecondsPerTaskPolicy;
-  row_detection_key?: string;
+  resource_key: string;
   url: string;
   task_run_count: number;
 };
@@ -124,12 +109,7 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_RESOURCE_P
     benchmark_key: page.benchmarkKey,
     ...(page.scoreKey == null ? {} : { score_key: page.scoreKey }),
     ...(page.scorePath == null ? {} : { score_path: page.scorePath }),
-    ...(page.costPath == null ? {} : { cost_path: page.costPath }),
-    ...(page.tokenCountsPath == null ? {} : { token_counts_path: page.tokenCountsPath }),
-    ...(page.secondsProcessor === "briefcase"
-      ? { seconds_policy: BRIEFCASE_SECONDS_PER_TASK_POLICY }
-      : {}),
-    ...(page.rowDetectionKey == null ? {} : { row_detection_key: page.rowDetectionKey }),
+    resource_key: page.resourceKey,
     url: page.url,
     task_run_count: page.taskRunCount,
   }),
@@ -160,14 +140,8 @@ function perTask(value: number | null, taskCount: number): number | null {
   return value == null ? null : value / taskCount;
 }
 
-function tokenCount(tokenCounts: Record<string, unknown>, keys: readonly string[]): number | null {
-  for (const key of keys) {
-    const value = asFiniteNumber(tokenCounts[key]);
-    if (value != null) {
-      return value;
-    }
-  }
-  return null;
+function tokenCount(tokenCounts: Record<string, unknown>, key: string): number | null {
+  return asFiniteNumber(tokenCounts[key]);
 }
 
 function scoreValue(
@@ -181,77 +155,117 @@ function scoreValue(
   );
 }
 
-function costRecord(
-  row: Record<string, unknown>,
-  page: ArtificialAnalysisBenchmarkResourcePage,
-): Record<string, unknown> {
-  return asRecord(page.cost_path == null ? row.evalCost : nestedValue(row, page.cost_path));
-}
-
 function tokenCountsRecord(
   row: Record<string, unknown>,
   page: ArtificialAnalysisBenchmarkResourcePage,
 ): Record<string, unknown> {
-  return asRecord(
-    page.token_counts_path == null ? row.tokenCounts : nestedValue(row, page.token_counts_path),
-  );
+  return asRecord(nestedValue(row, ["canonicalEvalTokenCounts", page.resource_key]));
 }
 
-function firstNestedNumber(
-  row: Record<string, unknown>,
-  paths: readonly JsonPath[],
-): number | null {
-  for (const path of paths) {
-    const value = asFiniteNumber(nestedValue(row, path));
-    if (value != null) {
-      return value;
-    }
+function sourceTokenPrices(row: Record<string, unknown>): TokenPrices | null {
+  const input = asFiniteNumber(row.price1mInputTokens);
+  const output = asFiniteNumber(row.price1mOutputTokens);
+  if (input == null || output == null) {
+    return null;
   }
-  return null;
+  return {
+    input,
+    output,
+    cacheHit: asFiniteNumber(row.cacheHitPrice),
+    cacheWrite: asFiniteNumber(row.cacheWritePrice),
+  };
 }
 
-function fallbackSecondsPerTask(
+function tokenBreakdown(
   row: Record<string, unknown>,
-  outputTokensPerTask: number | null,
-  taskRunCount: number,
-  fallback: OutputSpeedAndToolMsFallback | undefined,
-): number | null {
-  if (fallback == null) {
+  tokenCounts: Record<string, unknown>,
+): CostCategories | null {
+  const input = tokenCount(tokenCounts, "input");
+  const answer = tokenCount(tokenCounts, "answer") ?? 0;
+  const reasoning = tokenCount(tokenCounts, "reasoning") ?? 0;
+  const cacheableInput = tokenCount(tokenCounts, "cacheableInput");
+  if (input == null) {
     return null;
   }
-  const outputSpeed = asFiniteNumber(nestedValue(row, fallback.output_speed_path));
-  const toolMs = asFiniteNumber(nestedValue(row, fallback.tool_ms_path));
-  if (outputSpeed == null || outputTokensPerTask == null || toolMs == null) {
+  if (cacheableInput == null) {
+    return { input, cacheHit: 0, cacheWrite: 0, answer, reasoning };
+  }
+  const cacheHitRate = asFiniteNumber(row.cacheHitRate);
+  if (
+    cacheHitRate == null ||
+    cacheHitRate < 0 ||
+    cacheHitRate > 1 ||
+    cacheableInput < 0 ||
+    cacheableInput > input
+  ) {
     return null;
   }
-  return outputTokensPerTask / outputSpeed + toolMs / 1000 / taskRunCount;
+  const cacheHit = cacheableInput * cacheHitRate;
+  return {
+    input: 0,
+    cacheHit,
+    cacheWrite: input - cacheHit,
+    answer,
+    reasoning,
+  };
+}
+
+function categoryCosts(tokens: CostCategories, prices: TokenPrices): CostCategories {
+  return {
+    input: (tokens.input / 1_000_000) * prices.input,
+    cacheHit: (tokens.cacheHit / 1_000_000) * (prices.cacheHit ?? prices.input),
+    cacheWrite: (tokens.cacheWrite / 1_000_000) * (prices.cacheWrite ?? prices.input),
+    answer: (tokens.answer / 1_000_000) * prices.output,
+    reasoning: (tokens.reasoning / 1_000_000) * prices.output,
+  };
+}
+
+function perTaskCost(categories: CostCategories, taskCount: number): CostPerTask {
+  const input = categories.input / taskCount;
+  const cacheHit = categories.cacheHit / taskCount;
+  const cacheWrite = categories.cacheWrite / taskCount;
+  const answer = categories.answer / taskCount;
+  const reasoning = categories.reasoning / taskCount;
+  return {
+    total: input + cacheHit + cacheWrite + answer + reasoning,
+    input,
+    cacheHit,
+    cacheWrite,
+    answer,
+    reasoning,
+  };
+}
+
+function costPerTask(
+  row: Record<string, unknown>,
+  tokenCounts: Record<string, unknown>,
+  page: ArtificialAnalysisBenchmarkResourcePage,
+): CostPerTask | null {
+  const tokens = tokenBreakdown(row, tokenCounts);
+  const prices = sourceTokenPrices(row);
+  if (tokens == null || prices == null) {
+    return null;
+  }
+  return perTaskCost(categoryCosts(tokens, prices), page.task_run_count);
 }
 
 function secondsPerTask(
   row: Record<string, unknown>,
   outputTokensPerTask: number | null,
-  page: ArtificialAnalysisBenchmarkResourcePage,
 ): number | null {
-  const policy = page.seconds_policy ?? DEFAULT_SECONDS_PER_TASK_POLICY;
-  if (policy.kind === "value") {
-    return asFiniteNumber(nestedValue(row, policy.path));
+  const outputSpeed = asFiniteNumber(row.medianCanonicalAnswerOutputSpeed);
+  if (outputTokensPerTask == null || outputSpeed == null || outputSpeed <= 0) {
+    return null;
   }
-  const msPerTask = perTask(firstNestedNumber(row, policy.paths), page.task_run_count);
-  return msPerTask == null
-    ? fallbackSecondsPerTask(row, outputTokensPerTask, page.task_run_count, policy.fallback)
-    : msPerTask / 1000;
+  return outputTokensPerTask / outputSpeed;
 }
 
-function extractRowsFromPageHtml(
-  pageHtml: string,
-  page: ArtificialAnalysisBenchmarkResourcePage,
-): Record<string, unknown>[] {
+function extractRowsFromPageHtml(pageHtml: string): Record<string, unknown>[] {
   const flightCorpus = extractNextFlightCorpus(pageHtml);
   const resourceRowsById = new Map<string, Record<string, unknown>>();
-  const rowDetectionKey = page.row_detection_key ?? ROW_DETECTION_KEY;
   let cursor = 0;
   while (true) {
-    const hitIndex = flightCorpus.indexOf(`"${rowDetectionKey}":`, cursor);
+    const hitIndex = flightCorpus.indexOf(`"${ROW_DETECTION_KEY}":`, cursor);
     if (hitIndex === -1) {
       break;
     }
@@ -267,7 +281,7 @@ function extractRowsFromPageHtml(
       }
       const candidateRow = parseFlightJsonObject(flightCorpus.slice(backIndex, endIndex + 1));
       const rowId = stringValue(candidateRow?.id) ?? stringValue(candidateRow?.slug);
-      if (candidateRow == null || rowId == null || !(rowDetectionKey in candidateRow)) {
+      if (candidateRow == null || rowId == null || !(ROW_DETECTION_KEY in candidateRow)) {
         continue;
       }
       resourceRowsById.set(rowId, candidateRow);
@@ -283,50 +297,38 @@ function resourceRow(
 ): ArtificialAnalysisBenchmarkResourceRow | null {
   const row = asRecord(sourceRow);
   const modelSlug = stringValue(row.slug);
-  const providerRecord = asRecord(row.model_creators);
+  const providerRecord = asRecord(row.creator);
   const provider = stringValue(providerRecord.name) ?? stringValue(row.modelCreatorName);
   const providerId = stringValue(providerRecord.slug) ?? providerSlug(provider);
-  const sourceModelName = stringValue(row.short_name) ?? stringValue(row.shortName) ?? row.name;
+  const fullModelName = stringValue(row.name);
+  const sourceModelName = stringValue(row.shortName) ?? fullModelName;
   const model = cleanArtificialAnalysisModelName(sourceModelName) ?? modelSlug;
   const reasoningEffort =
-    parseArtificialAnalysisReasoningEffort(sourceModelName) ?? reasoningEffortFromSlug(modelSlug);
-  const cost = costRecord(row, page);
+    canonicalReasoningEffort(asRecord(row.effort).slug) ??
+    parseArtificialAnalysisReasoningEffort(sourceModelName, fullModelName) ??
+    reasoningEffortFromSlug(modelSlug);
   const tokenCounts = tokenCountsRecord(row, page);
   const score = scoreValue(row, page);
-  const costPerTask = perTask(asFiniteNumber(cost.total), page.task_run_count);
-  const inputTokensPerTask = perTask(
-    tokenCount(tokenCounts, ["inputTokens", "input"]),
-    page.task_run_count,
-  );
-  const outputTokensPerTask = perTask(
-    tokenCount(tokenCounts, ["outputTokens", "output"]),
-    page.task_run_count,
-  );
-  const answerTokensPerTask = perTask(
-    tokenCount(tokenCounts, ["answerTokens", "answer"]),
-    page.task_run_count,
-  );
-  const reasoningTokensPerTask = perTask(
-    tokenCount(tokenCounts, ["reasoningTokens", "reasoning"]),
-    page.task_run_count,
-  );
+  const resolvedCostPerTask = costPerTask(row, tokenCounts, page);
+  const inputTokensPerTask = perTask(tokenCount(tokenCounts, "input"), page.task_run_count);
+  const answerTokensPerTask = perTask(tokenCount(tokenCounts, "answer"), page.task_run_count);
+  const reasoningTokensPerTask = perTask(tokenCount(tokenCounts, "reasoning"), page.task_run_count);
   const effectiveOutputTokensPerTask =
-    outputTokensPerTask ??
-    (answerTokensPerTask == null && reasoningTokensPerTask == null
+    answerTokensPerTask == null && reasoningTokensPerTask == null
       ? null
-      : (answerTokensPerTask ?? 0) + (reasoningTokensPerTask ?? 0));
+      : (answerTokensPerTask ?? 0) + (reasoningTokensPerTask ?? 0);
   const tokensPerTask =
     inputTokensPerTask == null || effectiveOutputTokensPerTask == null
       ? null
       : inputTokensPerTask + effectiveOutputTokensPerTask;
-  const resolvedSecondsPerTask = secondsPerTask(row, effectiveOutputTokensPerTask, page);
+  const resolvedSecondsPerTask = secondsPerTask(row, effectiveOutputTokensPerTask);
   if (
     modelSlug == null ||
     provider == null ||
     providerId == null ||
     model == null ||
     score == null ||
-    costPerTask == null ||
+    resolvedCostPerTask == null ||
     resolvedSecondsPerTask == null ||
     inputTokensPerTask == null ||
     effectiveOutputTokensPerTask == null ||
@@ -344,7 +346,7 @@ function resourceRow(
     reasoning_effort: reasoningEffort,
     score,
     task_run_count: page.task_run_count,
-    cost_per_task_usd: costPerTask,
+    cost_per_task_usd: resolvedCostPerTask.total,
     seconds_per_task: resolvedSecondsPerTask,
     tokens_per_task: tokensPerTask,
     input_tokens_per_task: inputTokensPerTask,
@@ -524,7 +526,7 @@ async function getBenchmarkResourceRows(
     );
   }
   return processArtificialAnalysisBenchmarkResourceRows(
-    extractRowsFromPageHtml(await response.text(), page),
+    extractRowsFromPageHtml(await response.text()),
     page,
   );
 }

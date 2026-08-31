@@ -2,7 +2,6 @@
 
 import {
   benchmarkModelEffort,
-  canonicalReasoningEffort,
   normalizeModelToken,
   reasoningEffortRank,
 } from "../identity/normalization";
@@ -52,12 +51,6 @@ export type BenchmarkObservationLookup<
 
 function isNewer<Row extends BenchmarkObservationEvidenceRow>(row: Row, current: Row): boolean {
   return (row.observed_at ?? "") > (current.observed_at ?? "");
-}
-
-/** Prefer an explicit highest effort over an unlabelled source row when both configurations exist. */
-function defaultEffortRank(value: unknown): number {
-  const effort = canonicalReasoningEffort(value);
-  return effort == null ? -1 : reasoningEffortRank(effort);
 }
 
 /** Return the final provider or composite-model alias without splitting configuration labels. */
@@ -144,10 +137,10 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
     const currentDefault = defaultByBase.get(baseKey);
     if (
       currentDefault == null ||
-      defaultEffortRank(row.reasoning_effort) >
-        defaultEffortRank(currentDefault.reasoning_effort) ||
-      (defaultEffortRank(row.reasoning_effort) ===
-        defaultEffortRank(currentDefault.reasoning_effort) &&
+      reasoningEffortRank(row.reasoning_effort) >
+        reasoningEffortRank(currentDefault.reasoning_effort) ||
+      (reasoningEffortRank(row.reasoning_effort) ===
+        reasoningEffortRank(currentDefault.reasoning_effort) &&
         isNewer(row, currentDefault))
     ) {
       defaultByBase.set(baseKey, row);

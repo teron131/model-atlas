@@ -92,7 +92,7 @@ function projectLeaderboardRows(
   });
 }
 
-/** Preserves stronger cached Artificial Analysis rows when refreshed rows lose signals. */
+/** Preserve stronger cached evidence while adopting the current Artificial Analysis model labels. */
 export function mergeArtificialAnalysisRow(
   cachedRow: JsonObject,
   fetchedRow: JsonObject,
@@ -104,7 +104,14 @@ export function mergeArtificialAnalysisRow(
   ) {
     return cachedRow;
   }
-  return mergeSourceEvidence(cachedRow, fetchedRow);
+  const merged = mergeSourceEvidence(cachedRow, fetchedRow);
+  const currentShortName = fetchedRow.shortName ?? fetchedRow.short_name;
+  return {
+    ...merged,
+    name: fetchedRow.name ?? merged.name,
+    shortName: currentShortName ?? merged.shortName,
+    short_name: currentShortName ?? merged.short_name,
+  };
 }
 
 /** Loads raw Artificial Analysis rows and projects the leaderboard rows consumed by stats. */
@@ -194,6 +201,7 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     fetchRows: getArtificialAnalysisBenchmarkResourceStats,
     rowKey: artificialAnalysisBenchmarkResourceSourceKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
+    mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
   });
   return {
     artificialAnalysisBenchmarkResourceRows: snapshot.rows,

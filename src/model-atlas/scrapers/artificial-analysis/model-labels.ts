@@ -2,16 +2,15 @@
 
 const DISPLAY_SUFFIX_PATTERN =
   /\s*\((?:[^)]*(?:fallback|not currently available|unavailable|adaptive reasoning|max effort)[^)]*)\)\s*/gi;
-const REASONING_EFFORT_BY_LABEL = {
-  "non reasoning": "none",
-  max: "max",
-  "max effort": "max",
-  xhigh: "xhigh",
-  "extra high": "xhigh",
-  high: "high",
-  medium: "medium",
-  low: "low",
-} as const satisfies Readonly<Record<string, string>>;
+const NON_REASONING_PATTERN = /\b(?:non|no) reasoning\b/;
+const REASONING_EFFORT_PATTERNS = [
+  { effort: "max", pattern: /\bmax(?:imum)?(?: effort)?\b/ },
+  { effort: "xhigh", pattern: /\b(?:xhigh|extra high)(?: effort)?\b/ },
+  { effort: "high", pattern: /\bhigh(?: effort)?\b/ },
+  { effort: "medium", pattern: /\bmedium(?: effort)?\b/ },
+  { effort: "low", pattern: /\blow(?: effort)?\b/ },
+  { effort: "minimal", pattern: /\bminimal(?: effort)?\b/ },
+] as const;
 
 /** Remove transient availability/fallback qualifiers from Artificial Analysis model names. */
 export function cleanArtificialAnalysisModelName(value: unknown): string | null {
@@ -22,18 +21,24 @@ export function cleanArtificialAnalysisModelName(value: unknown): string | null 
   return cleaned.length > 0 ? cleaned : value;
 }
 
-/** Extract reasoning-effort labels that Artificial Analysis embeds in display-name parentheticals. */
-export function parseArtificialAnalysisReasoningEffort(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  for (const match of value.matchAll(/\(([^)]*)\)/g)) {
-    const effort = reasoningEffortLabel(match[1]);
-    if (effort != null) {
-      return effort;
+/** Extract one consistent reasoning effort from Artificial Analysis name parentheticals. */
+export function parseArtificialAnalysisReasoningEffort(...values: unknown[]): string | null {
+  let resolvedEffort: string | null = null;
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    for (const match of value.matchAll(/\(([^)]*)\)/g)) {
+      const effort = reasoningEffortLabel(match[1]);
+      if (effort != null) {
+        if (resolvedEffort != null && resolvedEffort !== effort) {
+          return null;
+        }
+        resolvedEffort = effort;
+      }
     }
   }
-  return null;
+  return resolvedEffort;
 }
 
 function reasoningEffortLabel(value: string | undefined): string | null {
@@ -41,9 +46,16 @@ function reasoningEffortLabel(value: string | undefined): string | null {
   if (label == null) {
     return null;
   }
-  // Some AA labels append an effort qualifier to an explicitly non-reasoning configuration. Non-reasoning is the runnable mode, so the qualifier must not turn it into an unknown effort.
-  if (/\bnon reasoning\b/.test(label)) {
+  if (NON_REASONING_PATTERN.test(label)) {
     return "none";
   }
-  return REASONING_EFFORT_BY_LABEL[label as keyof typeof REASONING_EFFORT_BY_LABEL] ?? null;
+  const efforts = new Set<string>();
+  let remainingLabel = label;
+  for (const { effort, pattern } of REASONING_EFFORT_PATTERNS) {
+    if (pattern.test(remainingLabel)) {
+      efforts.add(effort);
+      remainingLabel = remainingLabel.replace(pattern, " ");
+    }
+  }
+  return efforts.size === 1 ? ([...efforts][0] ?? null) : null;
 }

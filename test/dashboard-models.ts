@@ -9,6 +9,7 @@ import {
   modelDisplayName,
   modelsForVariantDisplay,
   providerOptions,
+  reasoningVariantGroups,
   toggleProviderFilter,
 } from "../app/dashboard/shared/model-display";
 import {
@@ -235,6 +236,20 @@ assert.deepEqual(
 assert.equal(
   modelLimitedVariants.some((model) => model.id === "provider/excluded"),
   false,
+);
+
+const connectedMixedVariants = reasoningVariantGroups(
+  [
+    { ...rankedModel("provider/mixed", "Mixed", 80), reasoning_effort: null },
+    { ...rankedModel("provider/mixed", "Mixed", 70), reasoning_effort: "medium" },
+    rankedModel("provider/unrelated", "Unrelated", 60),
+  ],
+  (model) => model,
+);
+assert.deepEqual(
+  connectedMixedVariants.map((group) => group.variants.map((model) => model.reasoning_effort)),
+  [["medium", null]],
+  "variant connectors should include an unlabeled sibling when the same model also has an effort-labelled variant",
 );
 
 const providerModelOptions = providerOptions([

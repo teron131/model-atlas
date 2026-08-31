@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 
 import { type BenchmarkDefinitions, defineBenchmarks } from "../src/model-atlas/benchmarks/factory";
 import {
-  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   BENCHMARK_CATALOG,
   BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_KEYS,
@@ -329,11 +328,6 @@ assert.deepEqual(BENCHMARK_CATALOG.agent_arena.persistence, {
 assert.deepEqual(BENCHMARK_CATALOG.omniscience_accuracy.persistence, {
   location: { kind: "intelligence", field: "omniscience_accuracy" },
 });
-assert.equal(
-  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find((page) => page.benchmarkKey === "briefcase")
-    ?.secondsProcessor,
-  "briefcase",
-);
 assert.deepEqual(
   BENCHMARK_OBSERVATION_BINDINGS.find((binding) => binding.benchmark === "chartography"),
   {

@@ -5,6 +5,7 @@
  */
 
 import { ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS } from "../../benchmarks/registry";
+import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asRecord, fetchWithTimeout, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import {
@@ -449,7 +450,11 @@ function getSelectedColumnValue(
     case "reasoning_model":
       return firstBoolean(row, ["reasoningModel"]);
     case "reasoning_effort":
-      return parseArtificialAnalysisReasoningEffort(row.short_name ?? row.shortName ?? row.name);
+      return (
+        canonicalReasoningEffort(
+          row.reasoning_effort ?? row.reasoningEffort ?? asRecord(row.effort).slug,
+        ) ?? parseArtificialAnalysisReasoningEffort(row.name, row.short_name, row.shortName)
+      );
     case "input_modalities":
       return selectModalities(row, "input");
     case "output_modalities":

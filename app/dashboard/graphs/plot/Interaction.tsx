@@ -2,11 +2,11 @@
 
 /** Pointer projection, cursor overlays, and interactive hit targets for dashboard SVG plots. */
 
-import { type PointerEvent as ReactPointerEvent, useState } from "react";
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelName } from "../../shared/model-display";
-import { focusHover, pointHover } from "../models";
+import { focusHover, pointHover } from "../hover-state";
 import type { HoverRow, HoverSetter } from "../types";
 import type { PlotBounds } from "./Primitives";
 
@@ -107,18 +107,23 @@ export function CursorProjectionLayer({
   bounds,
   xLabel,
   yLabel,
+  color,
 }: {
   projection: CursorProjection | null;
   bounds: PlotBounds;
   xLabel: string;
   yLabel: string;
+  color?: string;
 }) {
   if (!projection) {
     return null;
   }
 
   return (
-    <g className={styles.cursorProjection}>
+    <g
+      className={styles.cursorProjection}
+      style={color == null ? undefined : ({ "--projection-color": color } as CSSProperties)}
+    >
       <line x1={projection.x} x2={projection.x} y1={bounds.top} y2={projection.y} />
       <line x1={projection.x} x2={bounds.right} y1={projection.y} y2={projection.y} />
       <circle cx={projection.x} cy={projection.y} r={3} />
@@ -151,6 +156,7 @@ export function PointHitTarget({
   hoverTitle,
   snapProjection,
   setCursorProjection,
+  onActiveChange,
 }: {
   cx: number;
   cy: number;
@@ -160,9 +166,16 @@ export function PointHitTarget({
   hoverTitle?: string;
   snapProjection?: CursorProjection;
   setCursorProjection?: (projection: CursorProjection | null) => void;
+  onActiveChange?: (active: boolean) => void;
 }) {
   const size = 28;
   const displayName = hoverTitle ?? modelName(model);
+  const setActive = (active: boolean) => {
+    onActiveChange?.(active);
+    if (snapProjection) {
+      setCursorProjection?.(active ? snapProjection : null);
+    }
+  };
   return (
     <foreignObject
       data-capture-exclude
@@ -176,15 +189,11 @@ export function PointHitTarget({
         className={styles.pointButton}
         aria-label={`Show details for ${displayName}`}
         onPointerEnter={(event) => {
-          if (snapProjection) {
-            setCursorProjection?.(snapProjection);
-          }
+          setActive(true);
           setHover(pointHover(event, model, rows, displayName));
         }}
         onFocus={(event) => {
-          if (snapProjection) {
-            setCursorProjection?.(snapProjection);
-          }
+          setActive(true);
           setHover(focusHover(event.currentTarget, model, rows, displayName));
         }}
         onPointerMove={(event) =>
@@ -200,15 +209,11 @@ export function PointHitTarget({
           )
         }
         onPointerLeave={() => {
-          if (snapProjection) {
-            setCursorProjection?.(null);
-          }
+          setActive(false);
           setHover(null);
         }}
         onBlur={() => {
-          if (snapProjection) {
-            setCursorProjection?.(null);
-          }
+          setActive(false);
           setHover(null);
         }}
       />

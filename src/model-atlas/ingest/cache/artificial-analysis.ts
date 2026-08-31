@@ -5,6 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
 import { ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS } from "../../benchmarks/registry";
 import { asFiniteNumber, type JsonObject } from "../../runtime";
+import { parseArtificialAnalysisReasoningEffort } from "../../scrapers/artificial-analysis/model-labels";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../../scrapers/benchmarks/artificial-analysis/results";
 import {
   assignIfBoolean,
@@ -31,6 +32,13 @@ const ARTIFICIAL_ANALYSIS_COST_KEYS = [
   "seconds_per_task",
   "output_tokens_per_task",
 ] as const;
+
+function cachedReasoningEffort(row: CacheDbRow): string | null {
+  return (
+    stringValue(row.reasoning_effort) ??
+    parseArtificialAnalysisReasoningEffort(row.name, row.short_name)
+  );
+}
 
 /** Hidden retained Artificial Analysis rows prove the cache is new enough to preserve deprecated benchmark carriers. */
 export function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
@@ -61,7 +69,7 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   assignIfString(rawRow, "model_url", row.model_url);
   assignIfString(rawRow, "releaseDate", row.release_date);
   assignIfString(rawRow, "logo_url", row.logo_url);
-  assignIfString(rawRow, "reasoning_effort", row.reasoning_effort);
+  assignIfString(rawRow, "reasoning_effort", cachedReasoningEffort(row));
   assignIfNumber(rawRow, "median_output_speed", row.median_output_tokens_per_second);
   assignIfNumber(rawRow, "medianTimeToFirstTokenSeconds", row.median_time_to_first_token_seconds);
   assignIfNumber(
@@ -108,7 +116,7 @@ function selectedRowFromCache(row: CacheDbRow): JsonObject {
   assignIfString(selectedRow, "name", row.name);
   assignIfString(selectedRow, "model_url", row.model_url);
   assignIfString(selectedRow, "logo", row.logo_url);
-  assignIfString(selectedRow, "reasoning_effort", row.reasoning_effort);
+  assignIfString(selectedRow, "reasoning_effort", cachedReasoningEffort(row));
   assignIfNumber(selectedRow, "median_speed", row.median_output_tokens_per_second);
   assignIfNumber(selectedRow, "median_time", row.median_time_to_first_token_seconds);
   assignIfNumber(

@@ -5,7 +5,6 @@ export const RESEARCH_REGIONS = [
   { id: "pareto-frontier", label: "Pareto" },
   { id: "price-efficiency", label: "Price" },
   { id: "frontier-benchmarks", label: "Benchmarks" },
-  { id: "interaction-matrix", label: "Matrix" },
 ] as const;
 
 export type ResearchRegionId = (typeof RESEARCH_REGIONS)[number]["id"];

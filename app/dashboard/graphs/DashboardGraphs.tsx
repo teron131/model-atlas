@@ -22,7 +22,6 @@ import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
 import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
-import { InteractionMatrix } from "./InteractionMatrix";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
@@ -43,7 +42,6 @@ type GraphPayload = Omit<ModelAtlasPayload, "models"> & {
 export function DashboardGraphs({
   payload,
   referenceModels,
-  hasFullPayload,
   benchmarksLoading,
   afterLead,
   selectedProviders,
@@ -60,7 +58,6 @@ export function DashboardGraphs({
 }: {
   payload: GraphPayload | null;
   referenceModels: ModelAtlasModel[];
-  hasFullPayload: boolean;
   benchmarksLoading: boolean;
   afterLead?: React.ReactNode;
   selectedProviders: string[];
@@ -287,7 +284,11 @@ export function DashboardGraphs({
       ) : (
         <>
           <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
-            <ParetoFrontierPanel models={models} setHover={setHover} />
+            <ParetoFrontierPanel
+              models={models}
+              showVariants={deferredShowReasoningVariants}
+              setHover={setHover}
+            />
             <PriceEfficiencyPanel
               benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
               globalModelFilterQuery={deferredGlobalModelFilterQuery}
@@ -300,21 +301,13 @@ export function DashboardGraphs({
               setHover={setHover}
             />
           </section>
-          <section className={styles.sectionGrid}>
-            <FrontierBenchmarksPanel
-              payload={deferredPayload}
-              models={models}
-              referenceModels={referenceModels}
-              setHover={setHover}
-            />
-            <InteractionMatrix
-              models={models}
-              referenceModels={referenceModels}
-              benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
-              hasFullPayload={hasFullPayload}
-              setHover={setHover}
-            />
-          </section>
+          <FrontierBenchmarksPanel
+            payload={deferredPayload}
+            models={models}
+            referenceModels={referenceModels}
+            showVariants={deferredShowReasoningVariants}
+            setHover={setHover}
+          />
         </>
       )}
 

@@ -2,10 +2,10 @@
 
 import { median, pairs } from "d3-array";
 import { scaleLinear } from "d3-scale";
-import { type CSSProperties, memo } from "react";
+import { type CSSProperties, memo, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey, shortLabel } from "../shared/model-display";
+import { modelVariantKey, reasoningVariantGroups, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { valueDistribution } from "./chart-stats";
@@ -35,7 +35,10 @@ import {
   XAxisTicks,
   YAxisTicks,
 } from "./plot/Primitives";
-import { scoreQuadrilateralRadius } from "./plot/score-quadrilateral";
+import {
+  scoreQuadrilateralConnectorSegments,
+  scoreQuadrilateralRadius,
+} from "./plot/score-quadrilateral";
 import type { HoverRow, HoverSetter } from "./types";
 
 import styles from "./graphs.module.css";
@@ -45,12 +48,15 @@ const SCORE_AXIS_FORMAT_OPTIONS = {
 };
 export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   models,
+  showVariants,
   setHover,
 }: {
   models: ModelAtlasModel[];
+  showVariants: boolean;
   setHover: HoverSetter;
 }) {
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
+  const [highlightedVariantKey, setHighlightedVariantKey] = useState<string | null>(null);
   const candidates = models
     .filter(
       (model) =>
@@ -131,13 +137,47 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       path: `M${fromX},${fromY} L${toX},${toY}`,
     };
   });
+  const markRadius = (model: ModelAtlasModel) => scoreQuadrilateralRadius(model, 2.5, 8);
+  const reasoningGroups = showVariants ? reasoningVariantGroups(candidates, (model) => model) : [];
+  const reasoningGroupByVariant = new Map(
+    reasoningGroups.flatMap((group) =>
+      group.variants.map((model) => [modelVariantKey(model), group.key] as const),
+    ),
+  );
+  const activeVariant = candidates.find(
+    (model) => modelVariantKey(model) === highlightedVariantKey,
+  );
+  const activeVariantKey = activeVariant == null ? null : highlightedVariantKey;
+  const activeReasoningGroup =
+    activeVariantKey == null ? null : (reasoningGroupByVariant.get(activeVariantKey) ?? null);
+  const reasoningVariantLines = reasoningGroups.flatMap((group) => {
+    const first = group.variants[0];
+    if (first == null) {
+      return [];
+    }
+    return [
+      {
+        key: group.key,
+        color: providerChartColor(first.provider),
+        segments: scoreQuadrilateralConnectorSegments(
+          group.variants.map((model) => ({
+            model,
+            cx: xPoint(Number(model.scores.value_score)),
+            cy: yPoint(model.scores.intelligence_score),
+            radius: markRadius(model),
+          })),
+        ),
+      },
+    ];
+  });
+  const activeHighlightColor =
+    activeVariant == null ? undefined : providerChartColor(activeVariant.provider);
   const plot = plotBoundsFor(width, height, margin);
   const medianX = xPoint(medianValue);
   const medianY = yPoint(medianScore);
   const yTicks = intelligenceAxis.ticks;
   const xTicks = valueAxis.ticks;
   const plottedCandidates = candidates;
-  const markRadius = (model: ModelAtlasModel) => scoreQuadrilateralRadius(model, 3, 10);
   const projectionPoints = plottedCandidates.map((model) => {
     const xValue = Number(model.scores.value_score);
     const yValue = model.scores.intelligence_score;
@@ -269,10 +309,36 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
             bounds={plot}
             xLabel={cursorProjection ? cursorProjection.xValue.toFixed(1) : ""}
             yLabel={cursorProjection ? cursorProjection.yValue.toFixed(1) : ""}
+            color={activeHighlightColor}
           />
+          {reasoningVariantLines.flatMap((line) =>
+            line.segments.map((segment, index) => (
+              <line
+                {...segment}
+                aria-hidden="true"
+                className={[
+                  styles.reasoningVariantLine,
+                  activeVariantKey == null
+                    ? ""
+                    : activeReasoningGroup != null && line.key === activeReasoningGroup
+                      ? styles.reasoningVariantLineActive
+                      : styles.reasoningVariantLineMuted,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={`${line.key}-${index}`}
+                style={{ "--line-color": line.color } as CSSProperties}
+              />
+            )),
+          )}
           {frontierSegments.map((segment) => (
             <path
-              className={styles.frontier}
+              className={[
+                styles.frontier,
+                activeVariantKey == null ? "" : styles.reasoningContextMuted,
+              ]
+                .filter(Boolean)
+                .join(" ")}
               d={segment.path}
               key={segment.gradientId}
               stroke={`url(#${segment.gradientId})`}
@@ -282,6 +348,19 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
             const cx = xPoint(Number(model.scores.value_score));
             const cy = yPoint(model.scores.intelligence_score);
             const isFrontier = frontierIds.has(modelVariantKey(model));
+            const variantKey = modelVariantKey(model);
+            const reasoningGroupKey = reasoningGroupByVariant.get(variantKey);
+            const isActiveVariant =
+              activeVariantKey != null &&
+              (activeReasoningGroup == null
+                ? variantKey === activeVariantKey
+                : reasoningGroupKey === activeReasoningGroup);
+            const reasoningHighlightClass =
+              activeVariantKey == null
+                ? ""
+                : isActiveVariant
+                  ? styles.reasoningVariantPointActive
+                  : styles.reasoningVariantPointMuted;
             const rows: HoverRow[] = [
               ["Intelligence Score", fmtTooltipScore(model.scores.intelligence_score)],
               ["Agentic Score", fmtTooltipScore(model.scores.agentic_score)],
@@ -291,7 +370,13 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
             ];
             return (
               <g
-                className={isFrontier ? styles.frontierPoint : styles.paretoBackgroundPoint}
+                className={[
+                  isFrontier ? styles.frontierPoint : styles.paretoBackgroundPoint,
+                  styles.reasoningVariantPoint,
+                  reasoningHighlightClass,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 key={modelVariantKey(model) || `${cx}-${cy}`}
               >
                 <ModelScoreMark
@@ -306,6 +391,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
                   }
                   strokeWidth={isFrontier ? 1.4 : 1}
                   opacity={1}
+                  clearance={showVariants ? 2 : 0}
                 />
                 <PointHitTarget
                   cx={cx}
@@ -320,6 +406,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
                     yValue: model.scores.intelligence_score,
                   }}
                   setCursorProjection={setCursorProjection}
+                  onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
                 />
                 {isFrontier ? (
                   <ModelPointLabel

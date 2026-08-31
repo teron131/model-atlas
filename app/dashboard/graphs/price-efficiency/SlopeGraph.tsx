@@ -13,7 +13,7 @@ import {
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
-import { focusHover } from "../models";
+import { focusHover } from "../hover-state";
 import { stableSvgScale } from "../plot/Primitives";
 import type { HoverSetter } from "../types";
 import { priceEfficiencyHoverRows, type PriceEfficiencyRow } from "./rows";

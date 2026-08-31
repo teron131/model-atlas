@@ -65,11 +65,15 @@ type AssignedBenchmarks = {
   scoringSources: NonNullable<ModelAtlasScoringSources>;
 };
 
+type StandaloneSourceRowResolver = <T extends BenchmarkModelRow>(
+  rowsByModelName: ReadonlyMap<string, T>,
+) => T | null;
+
 type StandaloneBenchmarkContext = {
   assignedBenchmarks: AssignedBenchmarks;
   lookups: BenchmarkAssignmentLookups;
   modelNameCandidates: unknown[];
-  targetReasoningEffort: unknown;
+  resolveSourceRow: StandaloneSourceRowResolver;
 };
 
 type StandaloneBenchmarkOperation = (context: StandaloneBenchmarkContext) => void;
@@ -179,6 +183,26 @@ function findEffortSourceRow<T extends BenchmarkModelRow>(
   return row?.reasoning_effort === effort ? row : null;
 }
 
+/** Resolve an exact effort first, then allow only an effort-unspecified source row as its default fallback. */
+function findDefaultSourceRow<T extends BenchmarkModelRow>(
+  candidateNames: unknown[],
+  targetReasoningEffort: unknown,
+  rowsByModelName: ReadonlyMap<string, T>,
+): T | null {
+  const effort = canonicalReasoningEffort(targetReasoningEffort);
+  if (effort == null) {
+    return findBaseModelSourceRow(candidateNames, rowsByModelName);
+  }
+  const exactRow = findEffortSourceRow(candidateNames, effort, rowsByModelName);
+  if (exactRow != null) {
+    return exactRow;
+  }
+  const sourceDefaultRow = findBaseModelSourceRow(candidateNames, rowsByModelName);
+  return canonicalReasoningEffort(sourceDefaultRow?.reasoning_effort) == null
+    ? sourceDefaultRow
+    : null;
+}
+
 function buildArtificialAnalysisBenchmarks(
   modelNameCandidates: unknown[],
   resourceLookup: ArtificialAnalysisBenchmarkResourceLookup,
@@ -212,17 +236,8 @@ function buildArtificialAnalysisBenchmarks(
   return { benchmarks, scoringSources };
 }
 
-const addAleBench: StandaloneBenchmarkOperation = ({
-  assignedBenchmarks,
-  lookups,
-  modelNameCandidates,
-  targetReasoningEffort,
-}) => {
-  const row = findEffortSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.aleBench.rowsByModelName,
-  );
+const addAleBench: StandaloneBenchmarkOperation = ({ assignedBenchmarks, lookups, ...context }) => {
+  const row = context.resolveSourceRow(lookups.aleBench.rowsByModelName);
   if (row != null) {
     assignedBenchmarks.benchmarks.ale_bench = row.score;
     assignedBenchmarks.scoringSources.ale_bench = row;
@@ -233,14 +248,9 @@ const addAleBench: StandaloneBenchmarkOperation = ({
 const addFrontierCode: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
-  modelNameCandidates,
-  targetReasoningEffort,
+  ...context
 }) => {
-  const row = findEffortSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.frontierCode.rowsByModelName,
-  );
+  const row = context.resolveSourceRow(lookups.frontierCode.rowsByModelName);
   if (row?.score_eligible === true) {
     assignedBenchmarks.benchmarks.frontier_code = row.score;
     assignedBenchmarks.scoringSources.frontier_code = row;
@@ -250,14 +260,9 @@ const addFrontierCode: StandaloneBenchmarkOperation = ({
 const addMercorApexAgents: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
-  modelNameCandidates,
-  targetReasoningEffort,
+  ...context
 }) => {
-  const row = findEffortSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.mercorApexAgents.rowsByModelName,
-  );
+  const row = context.resolveSourceRow(lookups.mercorApexAgents.rowsByModelName);
   if (row != null) {
     assignedBenchmarks.scoringSources.apex_agents_mercor = row;
   }
@@ -267,14 +272,9 @@ const addMercorApexAgents: StandaloneBenchmarkOperation = ({
 const addTerminalBench3: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
-  modelNameCandidates,
-  targetReasoningEffort,
+  ...context
 }) => {
-  const row = findEffortSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.terminalBench3.rowsByModelName,
-  );
+  const row = context.resolveSourceRow(lookups.terminalBench3.rowsByModelName);
   if (row != null) {
     assignedBenchmarks.benchmarks.terminal_bench_3 = row.score;
     assignedBenchmarks.scoringSources.terminal_bench_3 = row;
@@ -409,7 +409,8 @@ export function buildObservationBenchmarks(
     assignedBenchmarks,
     lookups,
     modelNameCandidates,
-    targetReasoningEffort,
+    resolveSourceRow: (rowsByModelName) =>
+      findEffortSourceRow(modelNameCandidates, targetReasoningEffort, rowsByModelName),
   });
   return assignedBenchmarks;
 }
@@ -442,9 +443,10 @@ export function buildDefaultVariantBenchmarks(
     assignedBenchmarks,
     lookups,
     modelNameCandidates,
-    targetReasoningEffort,
+    resolveSourceRow: (rowsByModelName) =>
+      findDefaultSourceRow(modelNameCandidates, targetReasoningEffort, rowsByModelName),
   });
-  const harveyLabRow = findEffortSourceRow(
+  const harveyLabRow = findDefaultSourceRow(
     modelNameCandidates,
     targetReasoningEffort,
     lookups.harveyLab.rowsByModelName,

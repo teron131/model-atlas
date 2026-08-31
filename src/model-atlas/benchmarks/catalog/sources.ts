@@ -368,7 +368,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scoreKey: "aa_analyst_agent",
+            scoreKey: "analystAgent",
+            resourceKey: "analystAgent",
             url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
             taskRunCount: 80,
           },
@@ -385,6 +386,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
+            scoreKey: "apexAgents",
+            resourceKey: "apexAgents",
             url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
             taskRunCount: 452,
           },
@@ -408,7 +411,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scorePath: ["automation_bench_breakdown", "summary", "completion"],
+            scorePath: ["automationBenchBreakdown", "completion"],
+            resourceKey: "automationBench",
             url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
             taskRunCount: 657,
           },
@@ -435,11 +439,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scorePath: ["briefcase", "elo"],
-            costPath: ["briefcaseCost"],
-            tokenCountsPath: ["canonicalEvalTokenCounts", "briefcase"],
-            secondsProcessor: "briefcase",
-            rowDetectionKey: "briefcase",
+            scoreKey: "briefcaseElo",
+            resourceKey: "briefcase",
             url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
             taskRunCount: 91,
           },
@@ -456,6 +457,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
+            scoreKey: "critpt",
+            resourceKey: "critpt",
             url: "https://artificialanalysis.ai/evaluations/critpt",
             taskRunCount: 70,
           },
@@ -502,6 +505,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
+            scoreKey: "gdpval",
+            resourceKey: "gdpval",
             url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
             taskRunCount: 220,
           },
@@ -528,6 +533,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
+            scoreKey: "hle",
+            resourceKey: "hle",
             url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
             taskRunCount: 2158,
           },
@@ -544,7 +551,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scoreKey: "it_bench_sre",
+            scoreKey: "itbenchSre",
+            resourceKey: "itBench",
             url: "https://artificialanalysis.ai/evaluations/itbench-aa",
             taskRunCount: 177,
           },
@@ -571,6 +579,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
+            scoreKey: "scicode",
+            resourceKey: "scicode",
             url: "https://artificialanalysis.ai/evaluations/scicode",
             taskRunCount: 288,
           },
@@ -587,6 +597,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
+            scoreKey: "tauBanking",
+            resourceKey: "tauBanking",
             url: "https://artificialanalysis.ai/evaluations/tau3-banking",
             taskRunCount: 97,
           },

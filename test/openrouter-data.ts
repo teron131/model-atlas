@@ -75,6 +75,75 @@ const expandedVariantRows = buildModelVariants([...effortObservations]);
 assertEqual(expandedVariantRows.length, 2);
 assertEqual(expandedVariantRows[0]?.reasoning_effort, "max");
 assertEqual(expandedVariantRows[1]?.reasoning_effort, "xhigh");
+const explicitEffortWithCatalogAliasRows = buildModelVariants([
+  effortObservations[1],
+  {
+    id: "openai/gpt-5.6-sol",
+    provider_id: "openai",
+    artificial_analysis_id: null,
+    reasoning_effort: null,
+  },
+]);
+const [explicitEffortWithCatalogAlias] = explicitEffortWithCatalogAliasRows;
+assertEqual(explicitEffortWithCatalogAlias?.reasoning_effort, "xhigh");
+assertEqual(explicitEffortWithCatalogAliasRows.length, 1);
+const museSourceRows = [
+  {
+    id: "meta/muse-spark-1.1",
+    provider_id: "meta",
+    artificial_analysis_id: "meta/muse-spark-1-1",
+    artificial_analysis_slug: "muse-spark-1-1",
+    reasoning_effort: "xhigh",
+    benchmarks: { hle: 0.5 },
+  },
+  {
+    id: "meta/muse-spark-1.1",
+    provider_id: "meta",
+    artificial_analysis_id: "meta/muse-spark",
+    artificial_analysis_slug: "muse-spark",
+    reasoning_effort: null,
+    benchmarks: { hle: 0.4 },
+  },
+] as const;
+const versionAlignedSourceDefaultRows = buildModelVariants([...museSourceRows]);
+const [versionAlignedSourceDefault] = versionAlignedSourceDefaultRows;
+assertEqual(versionAlignedSourceDefault?.reasoning_effort, "xhigh");
+assertEqual(versionAlignedSourceDefaultRows.length, 1);
+assertEqual(
+  (versionAlignedSourceDefault?.benchmarks as Record<string, unknown> | undefined)?.hle,
+  0.5,
+);
+const [o3MiniHigh] = buildModelVariants([
+  {
+    id: "openai/o3-mini",
+    provider_id: "openai",
+    artificial_analysis_id: "openai/o3-mini",
+    artificial_analysis_slug: "o3-mini",
+    reasoning_effort: null,
+    benchmarks: { gpqa: 0.74, hle: 0.08, scicode: 0.39 },
+  },
+  {
+    id: "openai/o3-mini",
+    provider_id: "openai",
+    artificial_analysis_id: "openai/o3-mini-high",
+    artificial_analysis_slug: "o3-mini-high",
+    reasoning_effort: "high",
+    benchmarks: {
+      critpt: 0.003,
+      gdpval_normalized: 0,
+      gpqa: 0.77,
+      hle: 0.12,
+      scicode: 0.4,
+      tau_banking: 0.05,
+    },
+  },
+]);
+const o3MiniHighBenchmarks = o3MiniHigh?.benchmarks as Record<string, unknown>;
+assertEqual(o3MiniHigh?.reasoning_effort, "high");
+assertEqual(o3MiniHighBenchmarks.critpt, 0.003);
+assertEqual(o3MiniHighBenchmarks.gdpval_normalized, 0);
+assertEqual(o3MiniHighBenchmarks.gpqa, 0.77);
+assertEqual(o3MiniHighBenchmarks.tau_banking, 0.05);
 const [canonicalNoneVariant] = buildModelVariants([
   {
     id: "openai/gpt-5.6-sol",
@@ -86,6 +155,29 @@ const [canonicalNoneVariant] = buildModelVariants([
   },
 ]);
 assertEqual(canonicalNoneVariant?.reasoning_effort, "none");
+const genericReasoningRows = buildModelVariants([
+  {
+    id: "anthropic/claude-haiku-4.5",
+    provider_id: "anthropic",
+    artificial_analysis_id: "anthropic/claude-4-5-haiku-reasoning",
+    artificial_analysis_slug: "claude-4-5-haiku-reasoning",
+    reasoning_effort: null,
+    benchmarks: { hle: 0.4 },
+  },
+  {
+    id: "anthropic/claude-haiku-4.5",
+    provider_id: "anthropic",
+    artificial_analysis_id: "anthropic/claude-4-5-haiku",
+    artificial_analysis_slug: "claude-4-5-haiku",
+    reasoning_effort: "none",
+    benchmarks: { hle: 0.2 },
+  },
+]);
+const genericReasoningRow = genericReasoningRows.find((row) => row.reasoning_effort == null);
+const nonReasoningRow = genericReasoningRows.find((row) => row.reasoning_effort === "none");
+assertEqual(genericReasoningRows.length, 2);
+assertEqual((genericReasoningRow?.benchmarks as Record<string, unknown> | undefined)?.hle, 0.4);
+assertEqual((nonReasoningRow?.benchmarks as Record<string, unknown> | undefined)?.hle, 0.2);
 const collapsedVariantRow = collapsedVariantRows[0] as Record<string, unknown>;
 const collapsedVariantBenchmarks = collapsedVariantRow.benchmarks as Record<string, unknown>;
 const collapsedVariantIntelligence = collapsedVariantRow.intelligence as Record<string, unknown>;
@@ -129,9 +221,9 @@ const versionedReplacementRows = buildModelVariants([
     provider_id: "openrouter",
   },
 ]);
-assertEqual(versionedReplacementRows.length, 2);
+assertEqual(versionedReplacementRows.length, 1);
 assertEqual(versionedReplacementRows[0]?.name, "DeepSeek V4 Flash");
-assertEqual(versionedReplacementRows[1]?.name, "DeepSeek V4 Flash");
+assertEqual(versionedReplacementRows[0]?.reasoning_effort, "max");
 
 const separatelyNamedMaxRow = collapseModelVariants([
   {

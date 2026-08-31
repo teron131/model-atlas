@@ -82,6 +82,29 @@ assert.equal(
   "Persisted and live Artificial Analysis shapes for one model must merge into one source row",
 );
 
+const refreshedArtificialAnalysisIdentity = mergeArtificialAnalysisRow(
+  {
+    model_id: "google/gemini-3-5-flash",
+    name: "Gemini 3.5 Flash",
+    shortName: "Gemini 3.5 Flash",
+    short_name: "Gemini 3.5 Flash (medium)",
+    intelligenceIndex: 51.9,
+  },
+  {
+    model_id: "google/gemini-3-5-flash",
+    name: "Gemini 3.5 Flash (high)",
+    shortName: "Gemini 3.5 Flash",
+  },
+  STAGE_CONFIG.scoring,
+);
+assert.equal(
+  refreshedArtificialAnalysisIdentity.name,
+  "Gemini 3.5 Flash (high)",
+  "AA refreshes should adopt current full names so newly exposed effort labels reach the parser",
+);
+assert.equal(refreshedArtificialAnalysisIdentity.short_name, "Gemini 3.5 Flash");
+assert.equal(refreshedArtificialAnalysisIdentity.intelligenceIndex, 51.9);
+
 const mergedRows = mergeCachedSourceRows(
   cachedRows,
   fetchedRows,

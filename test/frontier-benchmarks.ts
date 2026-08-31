@@ -15,7 +15,6 @@ import {
   selectedFrontierBenchmarkAxisKey,
   speedValueBlendScore,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-import { frontierBenchmarkScoreByModel } from "../app/dashboard/graphs/models";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -91,12 +90,6 @@ assert.deepEqual(
   ],
   "filtered chart rows should retain normalization from the full reference cohort",
 );
-assert.deepEqual(
-  [...frontierBenchmarkScoreByModel([efficient, expensive], portfolio, referenceModels).values()],
-  [80, 100],
-  "filtered interaction rows should retain normalization from the full reference cohort",
-);
-
 assert.deepEqual(
   rows.map((row) => [row.model.id, row.score, row.cost, row.totalTokens]),
   [

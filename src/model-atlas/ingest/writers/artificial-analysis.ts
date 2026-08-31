@@ -46,13 +46,12 @@ function identityValues(row: JsonObject, selectedRow: JsonObject, creator: JsonO
     typeof selectedRow.model_id === "string"
       ? selectedRow.model_id
       : firstString(row, ["model_id", "model_url", "id"]);
+  const fullName = firstString(row, ["name"]) ?? firstString(selectedRow, ["name"]);
   const sourceName =
     firstString(row, ["shortName", "short_name", "name"]) ?? firstString(selectedRow, ["name"]);
   return [
     modelId,
-    cleanArtificialAnalysisModelName(
-      firstString(row, ["name"]) ?? firstString(selectedRow, ["name"]),
-    ),
+    cleanArtificialAnalysisModelName(fullName),
     cleanArtificialAnalysisModelName(sourceName),
     firstString(creator, ["name"]) ?? firstString(row, ["modelCreatorName"]),
     absoluteArtificialAnalysisUrl(
@@ -62,7 +61,7 @@ function identityValues(row: JsonObject, selectedRow: JsonObject, creator: JsonO
     sqliteBooleanValue(row.deprecated),
     sqliteBooleanValue(row.reasoningModel),
     firstString(selectedRow, ["reasoning_effort"]) ??
-      parseArtificialAnalysisReasoningEffort(sourceName),
+      parseArtificialAnalysisReasoningEffort(fullName, sourceName),
     sqliteBooleanValue(row.isOpenWeights),
     sqliteBooleanValue(row.commercialAllowed),
   ];

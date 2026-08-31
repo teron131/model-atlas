@@ -15,6 +15,20 @@ type ScoreQuadrilateral = readonly [
   QuadrilateralPoint,
 ];
 
+type ScoreQuadrilateralConnectorAnchor = {
+  model: Pick<ModelAtlasModel, "scores">;
+  cx: number;
+  cy: number;
+  radius: number;
+};
+
+type ScoreQuadrilateralConnectorSegment = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
 /**
  * Size a score quadrilateral so its area tracks the mean of its available scores.
  * Missing axes use that same observed mean to preserve a complete visual silhouette.
@@ -50,6 +64,82 @@ export function scoreQuadrilateralPoints(
     { x: cx, y: cy + valueRadius * scale },
     { x: cx - speedRadius * scale, y: cy },
   ];
+}
+
+/** Connect score quadrilaterals with segments that stop outside each polygon boundary. */
+export function scoreQuadrilateralConnectorSegments(
+  anchors: ScoreQuadrilateralConnectorAnchor[],
+  gap = 2,
+): ScoreQuadrilateralConnectorSegment[] {
+  return anchors.slice(1).flatMap((to, index) => {
+    const from = anchors[index];
+    if (from == null) {
+      return [];
+    }
+    const segment = scoreQuadrilateralConnectorSegment(from, to, gap);
+    return segment == null ? [] : [segment];
+  });
+}
+
+function scoreQuadrilateralConnectorSegment(
+  from: ScoreQuadrilateralConnectorAnchor,
+  to: ScoreQuadrilateralConnectorAnchor,
+  gap: number,
+): ScoreQuadrilateralConnectorSegment | null {
+  const deltaX = to.cx - from.cx;
+  const deltaY = to.cy - from.cy;
+  const distance = Math.hypot(deltaX, deltaY);
+  if (distance === 0) {
+    return null;
+  }
+  const unitX = deltaX / distance;
+  const unitY = deltaY / distance;
+  const safeGap = Math.max(0, gap);
+  const fromInset = quadrilateralBoundaryDistance(from, unitX, unitY) + safeGap;
+  const toInset = quadrilateralBoundaryDistance(to, -unitX, -unitY) + safeGap;
+  if (distance <= fromInset + toInset) {
+    return null;
+  }
+  return {
+    x1: from.cx + unitX * fromInset,
+    y1: from.cy + unitY * fromInset,
+    x2: to.cx - unitX * toInset,
+    y2: to.cy - unitY * toInset,
+  };
+}
+
+function quadrilateralBoundaryDistance(
+  anchor: ScoreQuadrilateralConnectorAnchor,
+  unitX: number,
+  unitY: number,
+): number {
+  const points = scoreQuadrilateralPoints(anchor.model, anchor.cx, anchor.cy, anchor.radius);
+  let boundaryDistance = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < points.length; index += 1) {
+    const start = points[index];
+    const end = points[(index + 1) % points.length];
+    if (start == null || end == null) {
+      continue;
+    }
+    const edgeX = end.x - start.x;
+    const edgeY = end.y - start.y;
+    const denominator = crossProduct(unitX, unitY, edgeX, edgeY);
+    if (Math.abs(denominator) < Number.EPSILON) {
+      continue;
+    }
+    const offsetX = start.x - anchor.cx;
+    const offsetY = start.y - anchor.cy;
+    const rayDistance = crossProduct(offsetX, offsetY, edgeX, edgeY) / denominator;
+    const edgeUnit = crossProduct(offsetX, offsetY, unitX, unitY) / denominator;
+    if (rayDistance >= 0 && edgeUnit >= 0 && edgeUnit <= 1) {
+      boundaryDistance = Math.min(boundaryDistance, rayDistance);
+    }
+  }
+  return Number.isFinite(boundaryDistance) ? boundaryDistance : 0;
+}
+
+function crossProduct(leftX: number, leftY: number, rightX: number, rightY: number): number {
+  return leftX * rightY - leftY * rightX;
 }
 
 function quadrilateralScoreUnits(model: Pick<ModelAtlasModel, "scores">) {
