@@ -289,23 +289,23 @@ export function DashboardGraphs({
               showVariants={deferredShowReasoningVariants}
               setHover={setHover}
             />
-            <PriceEfficiencyPanel
-              benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
-              globalModelFilterQuery={deferredGlobalModelFilterQuery}
-              showVariants={deferredShowReasoningVariants}
-              maxCost={deferredMaxCost}
-              onShowVariantsChange={onShowReasoningVariantsChange}
-              selectedProviders={deferredSelectedProviders}
-              onSelectedProvidersChange={onSelectedProvidersChange}
+            <FrontierBenchmarksPanel
+              payload={deferredPayload}
+              models={models}
               referenceModels={referenceModels}
+              showVariants={deferredShowReasoningVariants}
               setHover={setHover}
             />
           </section>
-          <FrontierBenchmarksPanel
-            payload={deferredPayload}
-            models={models}
-            referenceModels={referenceModels}
+          <PriceEfficiencyPanel
+            benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
+            globalModelFilterQuery={deferredGlobalModelFilterQuery}
             showVariants={deferredShowReasoningVariants}
+            maxCost={deferredMaxCost}
+            onShowVariantsChange={onShowReasoningVariantsChange}
+            selectedProviders={deferredSelectedProviders}
+            onSelectedProvidersChange={onSelectedProvidersChange}
+            referenceModels={referenceModels}
             setHover={setHover}
           />
         </>

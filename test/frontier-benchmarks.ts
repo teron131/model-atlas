@@ -12,6 +12,7 @@ import {
   frontierBenchmarkRows,
   frontierBenchmarkSummaryRows,
   normalizedFrontierBenchmarkRows,
+  normalizedFrontierBenchmarkScoreRows,
   selectedFrontierBenchmarkAxisKey,
   speedValueBlendScore,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
@@ -89,6 +90,20 @@ assert.deepEqual(
     ["provider/efficient", 80],
   ],
   "filtered chart rows should retain normalization from the full reference cohort",
+);
+assert.deepEqual(
+  normalizedFrontierBenchmarkScoreRows(
+    [
+      { ...topRow, benchmarkKey: "ale_bench", score: 1_403 },
+      { ...secondRow, benchmarkKey: "ale_bench", score: 900 },
+    ],
+    [
+      { ...topRow, benchmarkKey: "ale_bench", score: 1_403 },
+      { ...secondRow, benchmarkKey: "ale_bench", score: 397 },
+    ],
+  ).map((row) => row.score),
+  [100, 50],
+  "benchmark-native scores should normalize against the reference cohort without being treated as percentages",
 );
 assert.deepEqual(
   rows.map((row) => [row.model.id, row.score, row.cost, row.totalTokens]),

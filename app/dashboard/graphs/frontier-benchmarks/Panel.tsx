@@ -31,6 +31,7 @@ import {
   frontierXAxisScale,
   meanFrontierBenchmarkRows,
   normalizedFrontierBenchmarkRows,
+  normalizedFrontierBenchmarkScoreRows,
   positiveMetric,
   selectedFrontierBenchmarkAxisKey,
 } from "./analysis";
@@ -77,13 +78,22 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     benchmarkKey !== "all" && benchmarkOptions.some((option) => option.key === benchmarkKey)
       ? benchmarkKey
       : "all";
-  const selectedRows = useMemo(
-    () =>
-      selectedBenchmarkKey === "all"
-        ? meanRows
-        : benchmarkRows.filter((row) => row.benchmarkKey === selectedBenchmarkKey),
-    [benchmarkRows, meanRows, selectedBenchmarkKey],
-  );
+  const usesNormalizedBenchmarkScore = selectedBenchmarkKey === "ale_bench";
+  const selectedRows = useMemo(() => {
+    if (selectedBenchmarkKey === "all") {
+      return meanRows;
+    }
+    const rows = benchmarkRows.filter((row) => row.benchmarkKey === selectedBenchmarkKey);
+    return usesNormalizedBenchmarkScore
+      ? normalizedFrontierBenchmarkScoreRows(rows, referenceBenchmarkRows)
+      : rows;
+  }, [
+    benchmarkRows,
+    meanRows,
+    referenceBenchmarkRows,
+    selectedBenchmarkKey,
+    usesNormalizedBenchmarkScore,
+  ]);
   const isAggregateView = selectedBenchmarkKey === "all";
   const axisOptions = useMemo(
     () => frontierBenchmarkAxisOptions(selectedRows, isAggregateView),
@@ -131,11 +141,17 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const { leader, highScoreAxisRow, medianScoreAxisRow, labeledRows } = summaryRows;
   const scoreDistribution = valueDistribution(chartRows.map((row) => row.score));
   const plotRows = [...chartRows].sort((left, right) => left.score - right.score);
-  const yAxisLabel = isAggregateView ? "Mean Normalized Benchmark Score" : "Benchmark Score";
+  const yAxisLabel = isAggregateView
+    ? "Mean Normalized Benchmark Score"
+    : usesNormalizedBenchmarkScore
+      ? "Normalized Benchmark Score"
+      : "Benchmark Score";
   const axisDescription = frontierAxisDescription(selectedAxisKey, isAggregateView, chartRows[0]);
   const scoreMetricLabel = isAggregateView
     ? "Mean Normalized Frontier Benchmark Score"
-    : `${leader.benchmarkLabel} Score`;
+    : usesNormalizedBenchmarkScore
+      ? `${leader.benchmarkLabel} Normalized Score`
+      : `${leader.benchmarkLabel} Score`;
   const panelCopy = (
     <>
       Each point is a visible model variant. <em>{scoreMetricLabel}</em> is plotted against{" "}
@@ -161,6 +177,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           showDomainEndpoints
         />
       }
+      note={`Frontier line: displayed ${scoreMetricLabel} versus ${xMetricLabel} tradeoff envelope.`}
       wide
     >
       <div className={styles.chartToolbar}>
