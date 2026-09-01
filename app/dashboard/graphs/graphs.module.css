@@ -809,7 +809,7 @@
 .medianLabel {
   fill: var(--chart-label-fill);
   font-family: var(--font-mono);
-  font-size: var(--mono-chip);
+  font-size: var(--type-data-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -837,7 +837,7 @@
 .cursorProjectionLabel {
   fill: var(--projection-color, var(--chart-point-label-soft));
   font-family: var(--font-mono);
-  font-size: var(--mono-chip);
+  font-size: var(--type-data-size);
   font-weight: var(--type-label-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
@@ -847,7 +847,7 @@
 .axisLabel,
 .axisTitle {
   fill: var(--muted);
-  font-size: var(--mono-chip);
+  font-size: var(--type-data-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -863,7 +863,7 @@
 
 .cornerDirection {
   filter: var(--chart-corner-shadow);
-  opacity: 0.56;
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -874,7 +874,7 @@
 .cornerDirectionLabel {
   fill: var(--chart-corner-fill);
   font-family: var(--font-mono);
-  font-size: var(--type-micro-size);
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -970,7 +970,7 @@
   pointer-events: none;
   fill: var(--chart-point-label);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--type-data-size);
   font-weight: var(--type-label-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
@@ -986,7 +986,7 @@
 
 .frontierPoint .pointLabel {
   fill: var(--chart-point-label-soft);
-  font-size: var(--mono-chip);
+  font-size: var(--type-data-size);
   stroke: var(--chart-point-label-stroke-soft);
   stroke-width: 2px;
 }
@@ -1667,13 +1667,13 @@
 
 .shapeScaleCopy b {
   color: var(--ink);
-  font-size: var(--type-caption-size);
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
 }
 
 .shapeScaleCopy span {
   color: var(--muted);
-  font-size: var(--type-caption-size);
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -2119,7 +2119,7 @@
 .panel[data-capture-layout="artifact"] .axisTitle,
 .panel[data-capture-layout="artifact"] .cursorProjectionLabel,
 .panel[data-capture-layout="artifact"] .medianLabel {
-  font-size: 11px;
+  font-size: var(--type-label-size);
 }
 
 .panel[data-capture-layout="artifact"] .axisTitle {
@@ -2136,14 +2136,14 @@
 
 .panel[data-capture-layout="artifact"] .pointLabel {
   fill: var(--chart-point-label);
-  font-size: 12px;
+  font-size: var(--type-data-size);
   stroke: var(--chart-point-label-stroke);
   stroke-width: 3px;
 }
 
 .panel[data-capture-layout="artifact"] .frontierPoint .pointLabel {
   fill: var(--chart-point-label-soft);
-  font-size: 11px;
+  font-size: var(--type-label-size);
   stroke: var(--chart-point-label-stroke-soft);
   stroke-width: 2px;
 }
