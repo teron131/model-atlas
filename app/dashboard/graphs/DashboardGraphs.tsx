@@ -24,8 +24,7 @@ import {
 import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
-import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
+import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
 import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
   RESEARCH_REGION_IDS,
@@ -325,12 +324,7 @@ export function DashboardGraphs({
       ) : (
         <>
           <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
-            <ParetoFrontierPanel
-              models={models}
-              showVariants={deferredShowReasoningVariants}
-              setHover={setHover}
-            />
-            <FrontierBenchmarksPanel
+            <ParetoAnalysisPanel
               payload={deferredPayload}
               models={models}
               referenceModels={referenceModels}

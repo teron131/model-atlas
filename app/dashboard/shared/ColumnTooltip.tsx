@@ -9,7 +9,6 @@ import type {
   ModelAtlasColumnTooltipRow,
   ModelAtlasColumnTooltipSectionItem,
 } from "../../../src/model-atlas/config/tooltips";
-import type { TableColumnKey } from "../table/models";
 import { tooltipHorizontalPadding, tooltipMaxWidth, tooltipOffsetTop } from "./constants";
 
 export type TooltipState = {
@@ -19,9 +18,9 @@ export type TooltipState = {
   phase: "visible" | "leaving";
 };
 
-export type HeaderTooltipHandler = (
+export type HeaderTooltipHandler<TKey extends string = string> = (
   event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
-  key: TableColumnKey,
+  key: TKey,
 ) => void;
 
 export function ColumnTooltip({

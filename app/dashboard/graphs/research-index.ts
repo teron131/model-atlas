@@ -2,8 +2,7 @@
 
 export const RESEARCH_REGIONS = [
   { id: "leaderboard", label: "Models" },
-  { id: "pareto-frontier", label: "Pareto" },
-  { id: "frontier-benchmarks", label: "Benchmarks" },
+  { id: "pareto-analysis", label: "Pareto" },
   { id: "price-efficiency", label: "Price" },
 ] as const;
 

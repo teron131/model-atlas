@@ -313,7 +313,7 @@ export function DashboardLeaderboard({
     }, TOOLTIP_FADE_OUT_MS);
   }, [clearTooltipFadeTimeout]);
 
-  const showTooltip = useCallback<HeaderTooltipHandler>(
+  const showTooltip = useCallback<HeaderTooltipHandler<TableColumnKey>>(
     (event, key) => {
       if (!tableColumnTooltip(key, columnTooltips)) {
         return;

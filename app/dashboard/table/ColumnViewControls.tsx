@@ -2,6 +2,7 @@
 
 /** Column view controls expose temporary full-catalog search and fixed analytical presets. */
 
+import { hasSearchQuery } from "../shared/search";
 import {
   BENCHMARK_COLUMN_ORDERS,
   TABLE_COLUMN_PRESETS,
@@ -28,7 +29,7 @@ export function ColumnViewControls({
   onPresetChange: (preset: TableColumnPreset) => void;
   onQueryChange: (query: string) => void;
 }) {
-  const isSearching = query.trim().length > 0;
+  const isSearching = hasSearchQuery(query);
   const showsOrder = preset === "scores" && !isSearching;
   return (
     <section className={styles.controls} aria-label="Table column view" data-capture-exclude>
@@ -38,8 +39,8 @@ export function ColumnViewControls({
           type="search"
           autoComplete="off"
           spellCheck="false"
-          aria-label="Search table columns"
-          placeholder="Search columns or benchmarks"
+          aria-label="Search table columns and descriptions"
+          placeholder="Search columns or descriptions"
           value={query}
           onChange={(event) => onQueryChange(event.currentTarget.value)}
         />

@@ -74,7 +74,7 @@ export function Panel({
         </div>
       </div>
       {children}
-      {note ? <div className={styles.note}>{note}</div> : null}
+      {note ? <footer className={styles.note}>{note}</footer> : null}
     </article>
   );
 }

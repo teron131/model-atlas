@@ -1,16 +1,16 @@
 /** Frontier benchmark panel coordinates benchmark selection, resource axes, and scatter composition. */
 
-import { memo, useMemo, useState } from "react";
+import { memo, type ReactNode, useMemo } from "react";
 
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { valueDistribution } from "../chart-stats";
-import { ShapeScaleLegend } from "../ChartComponents";
 import { finite, fmtPercentScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { Panel } from "../Panel";
+import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
 import { SCATTER_CHART_WIDTH } from "../plot/Primitives";
 import type { HoverSetter } from "../types";
 import {
@@ -27,31 +27,38 @@ import {
   frontierBenchmarkRows,
   frontierScoreAxisScale,
   frontierXAxisScale,
-  meanFrontierBenchmarkRows,
-  normalizedFrontierBenchmarkRows,
-  normalizedFrontierBenchmarkScoreRows,
   positiveMetric,
   selectedFrontierBenchmarkAxisKey,
+  selectedFrontierBenchmarkRows,
 } from "./analysis";
-import { FrontierBenchmarkScatterPlot } from "./ScatterPlot";
-
-import styles from "../graphs.module.css";
+import { BenchmarkSelect } from "./BenchmarkSelect";
+import { EmptyFrontierBenchmarkScatterPlot, FrontierBenchmarkScatterPlot } from "./ScatterPlot";
 
 export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   payload,
   models,
   referenceModels,
   showVariants,
+  compactLayout,
+  axisKey,
+  benchmarkKeys,
+  scoreBasisControl,
+  onAxisKeyChange,
+  onBenchmarkKeysChange,
   setHover,
 }: {
   payload: ModelAtlasPayload;
   models: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
+  compactLayout: boolean;
+  axisKey: FrontierBenchmarkAxisKey;
+  benchmarkKeys: readonly string[] | null;
+  scoreBasisControl: ReactNode;
+  onAxisKeyChange: (axisKey: FrontierBenchmarkAxisKey) => void;
+  onBenchmarkKeysChange: (benchmarkKeys: string[] | null) => void;
   setHover: HoverSetter;
 }) {
-  const [axisKey, setAxisKey] = useState<FrontierBenchmarkAxisKey>("speedValue");
-  const [benchmarkKey, setBenchmarkKey] = useState("all");
   const benchmarkRows = useMemo(
     () => frontierBenchmarkRows(models, payload.metadata.scoring.benchmark_portfolio),
     [models, payload.metadata.scoring.benchmark_portfolio],
@@ -60,49 +67,48 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     () => frontierBenchmarkRows(referenceModels, payload.metadata.scoring.benchmark_portfolio),
     [referenceModels, payload.metadata.scoring.benchmark_portfolio],
   );
-  const meanRows = useMemo(
-    () =>
-      meanFrontierBenchmarkRows(
-        normalizedFrontierBenchmarkRows(benchmarkRows, referenceBenchmarkRows),
-      ),
-    [benchmarkRows, referenceBenchmarkRows],
-  );
   const benchmarkOptions = useMemo(() => frontierBenchmarkOptions(benchmarkRows), [benchmarkRows]);
   const correlationByBenchmark = useMemo(
-    () => frontierBenchmarkCorrelationByBenchmark(benchmarkRows, meanRows),
-    [benchmarkRows, meanRows],
+    () => frontierBenchmarkCorrelationByBenchmark(benchmarkRows),
+    [benchmarkRows],
   );
-  const selectedBenchmarkKey =
-    benchmarkKey !== "all" && benchmarkOptions.some((option) => option.key === benchmarkKey)
-      ? benchmarkKey
-      : "all";
-  const usesNormalizedBenchmarkScore = selectedBenchmarkKey === "ale_bench";
-  const selectedRows = useMemo(() => {
-    if (selectedBenchmarkKey === "all") {
-      return meanRows;
-    }
-    const rows = benchmarkRows.filter((row) => row.benchmarkKey === selectedBenchmarkKey);
-    return usesNormalizedBenchmarkScore
-      ? normalizedFrontierBenchmarkScoreRows(rows, referenceBenchmarkRows)
-      : rows;
-  }, [
-    benchmarkRows,
-    meanRows,
-    referenceBenchmarkRows,
-    selectedBenchmarkKey,
-    usesNormalizedBenchmarkScore,
-  ]);
-  const isAggregateView = selectedBenchmarkKey === "all";
+  const benchmarkKeySet = useMemo(
+    () => new Set(benchmarkOptions.map((option) => option.key)),
+    [benchmarkOptions],
+  );
+  const activeBenchmarkKeys = useMemo(
+    () =>
+      benchmarkKeys == null
+        ? benchmarkOptions.map((option) => option.key)
+        : benchmarkKeys.filter((key) => benchmarkKeySet.has(key)),
+    [benchmarkKeySet, benchmarkKeys, benchmarkOptions],
+  );
+  const selectedRows = useMemo(
+    () => selectedFrontierBenchmarkRows(benchmarkRows, referenceBenchmarkRows, activeBenchmarkKeys),
+    [activeBenchmarkKeys, benchmarkRows, referenceBenchmarkRows],
+  );
+  const isAllBenchmarkView =
+    benchmarkOptions.length > 0 && activeBenchmarkKeys.length === benchmarkOptions.length;
+  const isAggregateView = activeBenchmarkKeys.length !== 1;
+  const selectedBenchmarkKey = activeBenchmarkKeys[0];
+  const usesNormalizedBenchmarkScore =
+    activeBenchmarkKeys.length === 1 && selectedBenchmarkKey === "ale_bench";
   const axisOptions = useMemo(
     () => frontierBenchmarkAxisOptions(selectedRows, isAggregateView),
     [isAggregateView, selectedRows],
   );
   const selectedAxisKey = selectedFrontierBenchmarkAxisKey(axisKey, axisOptions);
-  const selectedBenchmarkLabel =
-    selectedBenchmarkKey === "all"
-      ? "all"
-      : (benchmarkOptions.find((option) => option.key === selectedBenchmarkKey)?.label ??
-        selectedBenchmarkKey);
+  let selectedBenchmarkLabel = "none";
+  if (isAllBenchmarkView) {
+    selectedBenchmarkLabel = "all";
+  } else if (activeBenchmarkKeys.length === 1) {
+    selectedBenchmarkLabel =
+      benchmarkOptions.find((option) => option.key === selectedBenchmarkKey)?.label ??
+      selectedBenchmarkKey ??
+      "benchmark";
+  } else if (activeBenchmarkKeys.length > 1) {
+    selectedBenchmarkLabel = `${activeBenchmarkKeys.length}-benchmarks`;
+  }
   const captureFileName = [
     "model-atlas-frontier-benchmarks",
     captureFileToken(selectedBenchmarkLabel),
@@ -123,9 +129,50 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     }),
     [axisConfig, xMetricLabel],
   );
+  const controls = (
+    <ParetoControlSet
+      scoreBasisControl={scoreBasisControl}
+      yAxisControl={
+        <BenchmarkSelect
+          options={benchmarkOptions}
+          selectedKeys={activeBenchmarkKeys}
+          correlationByBenchmark={correlationByBenchmark}
+          onChange={onBenchmarkKeysChange}
+        />
+      }
+      xAxisControl={
+        <GraphToggle
+          legend="Comparison axis"
+          options={Object.entries(frontierBenchmarkAxisConfig).map(
+            ([key, config]) =>
+              axisOptions.find((option) => option.key === key) ?? {
+                key: key as FrontierBenchmarkAxisKey,
+                label: config.shortLabel,
+              },
+          )}
+          selectedKey={selectedAxisKey}
+          onSelect={onAxisKeyChange}
+        />
+      }
+    />
+  );
 
   if (chartRows.length === 0) {
-    return null;
+    return (
+      <Panel
+        {...PARETO_PANEL_CONTENT}
+        captureWidth={SCATTER_CHART_WIDTH}
+        captureFileName={captureFileName}
+        wide
+      >
+        {controls}
+        <EmptyFrontierBenchmarkScatterPlot
+          compactLayout={compactLayout}
+          xAxisLabel={xMetricLabel}
+          xHigherIsBetter={axisConfig.xHigherIsBetter}
+        />
+      </Panel>
+    );
   }
   const leader = chartRows[0];
   if (leader == null) {
@@ -143,26 +190,20 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     : usesNormalizedBenchmarkScore
       ? "Normalized Benchmark Score"
       : "Benchmark Score";
-  const axisDescription = frontierAxisDescription(selectedAxisKey, isAggregateView, chartRows[0]);
-  const scoreMetricLabel = isAggregateView
-    ? "Mean Normalized Frontier Benchmark Score"
-    : usesNormalizedBenchmarkScore
-      ? `${leader.benchmarkLabel} Normalized Score`
-      : `${leader.benchmarkLabel} Score`;
-  const panelCopy = (
-    <>
-      Each point is a visible model variant. <em>{scoreMetricLabel}</em> is plotted against{" "}
-      <em>{xMetricLabel}</em>. {axisDescription}
-    </>
-  );
+  const axisDescription = frontierAxisDescription(selectedAxisKey, isAggregateView, leader);
+  let scoreMetricLabel = `${leader.benchmarkLabel} Score`;
+  if (isAggregateView) {
+    scoreMetricLabel = isAllBenchmarkView
+      ? "Mean Normalized Frontier Benchmark Score"
+      : "Mean Normalized Selected Benchmark Score";
+  } else if (usesNormalizedBenchmarkScore) {
+    scoreMetricLabel = `${leader.benchmarkLabel} Normalized Score`;
+  }
   return (
     <Panel
+      {...PARETO_PANEL_CONTENT}
       captureWidth={SCATTER_CHART_WIDTH}
       captureFileName={captureFileName}
-      sectionId="frontier-benchmarks"
-      sectionLabel="Benchmark view · Portfolio evidence"
-      title="Frontier Benchmarks"
-      copy={panelCopy}
       summary={
         <BoxWhiskerSummary
           label={yAxisLabel}
@@ -172,51 +213,10 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           showDomainEndpoints
         />
       }
-      note={`Frontier line: displayed ${scoreMetricLabel} versus ${xMetricLabel} tradeoff envelope.`}
+      note={`The frontier line traces the best displayed tradeoffs between ${scoreMetricLabel} and ${xMetricLabel}. ${axisDescription}`}
       wide
     >
-      <div className={styles.chartToolbar}>
-        <span className={styles.toolbarControlTitle} aria-hidden="true">
-          Benchmark
-        </span>
-        <GraphToggle
-          legend="Frontier benchmark"
-          options={[
-            {
-              key: "all",
-              label: `All ${meanRows.length}`,
-              detail: correlationByBenchmark.get("all") ?? "CORR --",
-            },
-            ...benchmarkOptions.map((option) => ({
-              key: option.key,
-              label: `${option.label} ${option.count}`,
-              detail: correlationByBenchmark.get(option.key) ?? "CORR --",
-            })),
-          ]}
-          selectedKey={selectedBenchmarkKey}
-          onSelect={setBenchmarkKey}
-          layout="stacked"
-        />
-        <span className={styles.toolbarControlTitle} aria-hidden="true">
-          Measure by
-        </span>
-        <GraphToggle
-          legend="Comparison axis"
-          options={Object.entries(frontierBenchmarkAxisConfig).map(
-            ([key, config]) =>
-              axisOptions.find((option) => option.key === key) ?? {
-                key: key as FrontierBenchmarkAxisKey,
-                label: config.shortLabel,
-              },
-          )}
-          selectedKey={selectedAxisKey}
-          onSelect={setAxisKey}
-        />
-        <div className={styles.chartToolbarCaption}>
-          <span className={styles.markerKey}>CORR = correlation to Intelligence score</span>
-          <ShapeScaleLegend />
-        </div>
-      </div>
+      {controls}
       <FrontierBenchmarkScatterPlot
         rows={plotRows}
         metric={chartMetric}
@@ -225,7 +225,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         yDomain={scoreAxis.domain}
         yTicks={scoreAxis.ticks}
         yAxisLabel={yAxisLabel}
-        keyPrefix={`frontier-benchmarks-${selectedBenchmarkKey}-${selectedAxisKey}`}
+        keyPrefix={`frontier-benchmarks-${activeBenchmarkKeys.join("-") || "all"}-${selectedAxisKey}`}
         ariaLabel={`${axisConfig.label} frontier scatter plot`}
         getScore={(row) => row.score}
         getModel={(row) => row.model}
@@ -234,6 +234,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig)}
         getLabel={(row) => shortLabel(row.model)}
         connectReasoningVariants={showVariants}
+        compactLayout={compactLayout}
         setHover={setHover}
       />
     </Panel>

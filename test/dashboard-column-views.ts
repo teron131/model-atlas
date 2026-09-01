@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 
+import { filterSearchDocuments } from "../app/dashboard/shared/search";
 import {
   ALL_TABLE_COLUMN_KEYS,
   ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
@@ -120,6 +121,19 @@ assert.equal(
   tooltipSearchKeys.includes("latency"),
   true,
   "Search should match tooltip descriptions",
+);
+assert.equal(
+  tableColumnKeysForView("scores", "first*token", COLUMN_TOOLTIPS).includes("latency"),
+  true,
+  "Search should support safe wildcard matching across tooltip descriptions",
+);
+assert.deepEqual(
+  filterSearchDocuments("agent coding tool", [
+    { value: "exact", primary: "Agent Coding Tool" },
+    { value: "partial", primary: "Other", context: ["agent", "coding"] },
+  ]),
+  ["exact"],
+  "Search should remove partial candidates below the best result's relevance threshold",
 );
 
 const noMatchKeys = tableColumnKeysForView("all", "no such column evidence", COLUMN_TOOLTIPS);

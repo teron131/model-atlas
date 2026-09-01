@@ -28,6 +28,11 @@ export const SCATTER_CHART_WIDTH = 960;
 
 const SVG_NUMBER_DECIMALS = 3;
 
+/** Reserve enough compact-width space for enlarged axis labels without changing the plot origin between score bases. */
+export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
+  return compact ? { ...margin, left: Math.max(margin.left, 84) } : margin;
+}
+
 /** Return stable SVG number attributes across server and client rendering. */
 function stableSvgNumber(value: number): number {
   return Number(value.toFixed(SVG_NUMBER_DECIMALS));

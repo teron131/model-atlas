@@ -1,6 +1,6 @@
-/** Dashboard formatting keeps table values, controls, and missing-value glyphs consistent. */
+/** Leaderboard table formatting keeps metric values and missing-value glyphs consistent. */
 
-import type { DashboardMetricColumn, TaskMetricColumn } from "../table/models";
+import type { DashboardMetricColumn, TaskMetricColumn } from "./models";
 
 export const formatScore = (value: number | null | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
@@ -135,10 +135,3 @@ export const formatContext = (value: number | null | undefined) => {
   }
   return `${Math.round(value / 1000)}K`;
 };
-
-export const safeSlug = (value: unknown) =>
-  String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");

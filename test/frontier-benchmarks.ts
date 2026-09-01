@@ -12,6 +12,7 @@ import {
   normalizedFrontierBenchmarkRows,
   normalizedFrontierBenchmarkScoreRows,
   selectedFrontierBenchmarkAxisKey,
+  selectedFrontierBenchmarkRows,
   speedValueBlendScore,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { transformBenchmarkSourceValue } from "../src/model-atlas/benchmarks/registry";
@@ -89,6 +90,38 @@ assert.deepEqual(
     ["provider/efficient", 80],
   ],
   "filtered chart rows should retain normalization from the full reference cohort",
+);
+const cursorRows = rows.map((row) => ({
+  ...row,
+  benchmarkKey: "cursorbench",
+  benchmarkLabel: "CursorBench",
+}));
+const cursorReferenceRows = referenceRows.map((row) => ({
+  ...row,
+  benchmarkKey: "cursorbench",
+  benchmarkLabel: "CursorBench",
+}));
+assert.deepEqual(
+  selectedFrontierBenchmarkRows(
+    [...rows, ...cursorRows],
+    [...referenceRows, ...cursorReferenceRows],
+    ["deep_swe", "cursorbench"],
+  ).map((row) => [row.model.id, row.score]),
+  [
+    ["provider/expensive", 100],
+    ["provider/efficient", 80],
+  ],
+  "multiple selected benchmarks should produce one normalized aggregate row per model",
+);
+assert.deepEqual(
+  selectedFrontierBenchmarkRows(rows, referenceRows, ["deep_swe"]).map((row) => row.score),
+  [90, 82],
+  "one selected benchmark should preserve its native score scale",
+);
+assert.deepEqual(
+  selectedFrontierBenchmarkRows(rows, referenceRows, []),
+  [],
+  "an empty benchmark selection should remain empty",
 );
 assert.deepEqual(
   normalizedFrontierBenchmarkScoreRows(

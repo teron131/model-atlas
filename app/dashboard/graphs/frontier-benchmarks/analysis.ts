@@ -9,7 +9,7 @@ import type {
 } from "../../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../../shared/constants";
 import { modelVariantKey } from "../../shared/model-display";
-import { correlationValue, formatCorrelation } from "../chart-stats";
+import { correlationValue } from "../chart-stats";
 import {
   finiteValue,
   fmtCompact,
@@ -49,7 +49,7 @@ type FrontierBenchmarkAxisConfig = {
   xHigherIsBetter?: boolean;
 };
 
-type FrontierBenchmarkOption = {
+export type FrontierBenchmarkOption = {
   key: string;
   label: string;
   count: number;
@@ -221,6 +221,26 @@ export function normalizedFrontierBenchmarkScoreRows(
   }));
 }
 
+/** Resolve one native benchmark or a normalized aggregate for the selected benchmark subset. */
+export function selectedFrontierBenchmarkRows(
+  rows: FrontierBenchmarkRow[],
+  referenceRows: FrontierBenchmarkRow[],
+  selectedBenchmarkKeys: readonly string[],
+): FrontierBenchmarkRow[] {
+  const selectedKeySet = new Set(selectedBenchmarkKeys);
+  if (selectedKeySet.size === 0) {
+    return [];
+  }
+  const selectedRows = rows.filter((row) => selectedKeySet.has(row.benchmarkKey));
+  if (selectedKeySet.size === 1) {
+    const [selectedBenchmarkKey] = selectedKeySet;
+    return selectedBenchmarkKey === "ale_bench"
+      ? normalizedFrontierBenchmarkScoreRows(selectedRows, referenceRows)
+      : selectedRows;
+  }
+  return meanFrontierBenchmarkRows(normalizedFrontierBenchmarkRows(selectedRows, referenceRows));
+}
+
 export function frontierBenchmarkOptions(rows: FrontierBenchmarkRow[]): FrontierBenchmarkOption[] {
   const options = new Map<string, FrontierBenchmarkOption>();
   for (const row of rows) {
@@ -241,9 +261,8 @@ export function frontierBenchmarkOptions(rows: FrontierBenchmarkRow[]): Frontier
 
 export function frontierBenchmarkCorrelationByBenchmark(
   benchmarkRows: FrontierBenchmarkRow[],
-  meanRows: FrontierBenchmarkRow[],
-): Map<string, string> {
-  const correlations = new Map<string, string>([["all", benchmarkCorrelation(meanRows)]]);
+): Map<string, number | null> {
+  const correlations = new Map<string, number | null>();
   for (const [benchmarkKey, rows] of groupBy(benchmarkRows, (row) => row.benchmarkKey)) {
     correlations.set(benchmarkKey, benchmarkCorrelation(rows));
   }
@@ -457,22 +476,20 @@ function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[
   return groups;
 }
 
-function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): string {
-  return formatCorrelation(
-    correlationValue(
-      rows.flatMap((row) => {
-        const intelligenceScore = finiteValue(row.model.scores?.intelligence_score);
-        if (intelligenceScore == null) {
-          return [];
-        }
-        return [
-          {
-            x: row.score,
-            y: intelligenceScore,
-          },
-        ];
-      }),
-    ),
+function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): number | null {
+  return correlationValue(
+    rows.flatMap((row) => {
+      const intelligenceScore = finiteValue(row.model.scores?.intelligence_score);
+      if (intelligenceScore == null) {
+        return [];
+      }
+      return [
+        {
+          x: row.score,
+          y: intelligenceScore,
+        },
+      ];
+    }),
   );
 }
 

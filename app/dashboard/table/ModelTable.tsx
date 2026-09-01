@@ -39,7 +39,7 @@ type ModelTableProps = {
   emptyMessage: string;
   isLoading: boolean;
   onSort: (key: SortKey) => void;
-  onTooltip: HeaderTooltipHandler;
+  onTooltip: HeaderTooltipHandler<TableColumnKey>;
   onTooltipEnd: () => void;
   onScoreChange: ScoreChangeHandler;
   metricColumns: DashboardMetricColumn[];
@@ -458,7 +458,7 @@ function SortableHeader({
   className?: string;
   sortState: SortState;
   onSort: (key: SortKey) => void;
-  onTooltip: HeaderTooltipHandler;
+  onTooltip: HeaderTooltipHandler<TableColumnKey>;
   onTooltipEnd: () => void;
 }) {
   const sortDirection = sortState.key === keyName ? sortState.direction : "none";

@@ -27,6 +27,7 @@ import {
   SCATTER_CHART_HEIGHT,
   SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
+  scatterChartMargin,
   stableSvgScale,
   TextPointLabel,
   XAxisTicks,
@@ -37,7 +38,6 @@ import {
   scoreQuadrilateralRadius,
 } from "../plot/score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "../types";
-import { useCompactChartLayout } from "../use-media-query";
 
 import styles from "../graphs.module.css";
 
@@ -47,6 +47,70 @@ type ScatterMetric<Row> = {
   format: (value: number) => string;
   xHigherIsBetter?: boolean;
 };
+
+const EMPTY_CHART_TICKS = [0, 20, 40, 60, 80, 100];
+
+/** Preserve the benchmark chart footprint when no benchmark evidence is selected. */
+export function EmptyFrontierBenchmarkScatterPlot({
+  compactLayout,
+  xAxisLabel,
+  xHigherIsBetter,
+}: {
+  compactLayout: boolean;
+  xAxisLabel: string;
+  xHigherIsBetter?: boolean;
+}) {
+  const width = SCATTER_CHART_WIDTH;
+  const height = SCATTER_CHART_HEIGHT;
+  const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compactLayout);
+  const plot = plotBoundsFor(width, height, margin);
+  const xPoint = stableSvgScale(scaleLinear().domain([0, 100]).range([plot.left, plot.right]));
+  const yPoint = stableSvgScale(scaleLinear().domain([0, 100]).range([plot.bottom, plot.top]));
+  return (
+    <div
+      className={styles.chartWrap}
+      style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      role="group"
+      aria-label="Empty frontier benchmark chart viewport"
+    >
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="Empty frontier benchmark chart"
+      >
+        <PlotFrame width={width} height={height} margin={margin} />
+        <YAxisTicks
+          ticks={EMPTY_CHART_TICKS}
+          yPoint={yPoint}
+          x={plot.left}
+          format={(tick) => `${tick}%`}
+          keyPrefix="empty-frontier-benchmarks"
+        />
+        <XAxisTicks
+          ticks={EMPTY_CHART_TICKS}
+          xPoint={xPoint}
+          y={plot.bottom}
+          format={(tick) => tick.toFixed(0)}
+          keyPrefix="empty-frontier-benchmarks"
+        />
+        <AxisTitles
+          width={width}
+          height={height}
+          margin={margin}
+          x={xAxisLabel}
+          y="Mean Normalized Benchmark Score"
+          compact={compactLayout}
+          xTitleOffset={50}
+        />
+        <DirectionArrow
+          bounds={plot}
+          direction={xHigherIsBetter ? "upper-right" : "upper-left"}
+          label="Better"
+        />
+      </svg>
+    </div>
+  );
+}
 
 /** Render a generic frontier benchmark scatter plot with configurable axes, labels, effort connections, cursor projections, and hover payloads. */
 export function FrontierBenchmarkScatterPlot<Row>({
@@ -66,6 +130,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverTitle,
   getLabel,
   connectReasoningVariants = false,
+  compactLayout,
   setHover,
   width = SCATTER_CHART_WIDTH,
   height = SCATTER_CHART_HEIGHT,
@@ -87,14 +152,14 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverTitle?: (row: Row) => string;
   getLabel: (row: Row) => string;
   connectReasoningVariants?: boolean;
+  compactLayout: boolean;
   setHover: HoverSetter;
   width?: number;
   height?: number;
   margin?: Margin;
 }) {
-  const compactLayout = useCompactChartLayout();
   const [highlightedVariantKey, setHighlightedVariantKey] = useState<string | null>(null);
-  const chartMargin = compactLayout ? { ...margin, left: Math.max(margin.left, 84) } : margin;
+  const chartMargin = scatterChartMargin(margin, compactLayout);
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
   const metricValues = rows.map(metric.get);
   const xTicks =
@@ -205,7 +270,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
         aria-label={ariaLabel}
         {...projectionHandlers}
       >
-        <PlotFrame width={width} height={height} margin={margin} />
+        <PlotFrame width={width} height={height} margin={chartMargin} />
         <CursorCapture bounds={plot} />
         <YAxisTicks
           ticks={yTicks}
