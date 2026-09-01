@@ -21,10 +21,12 @@ import {
 } from "./provider-theme";
 
 const searchTextByModel = new WeakMap<ModelAtlasPublishedModel, string>();
+const MILLISECONDS_PER_DAY = 86_400_000;
 const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 
-export type ModelLimit = 30 | 60 | "all";
+export type ModelRankFilter = 30 | 60 | "all";
+export type RecencyFilter = 90 | 180 | "all";
 export type CostFilter = "all" | number;
 export type ProviderFilters = string[];
 export type ProviderOption = {
@@ -41,7 +43,10 @@ type ModelControlFilters = {
 };
 
 export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
-export const modelLimitOptions: ModelLimit[] = [30, 60, "all"];
+export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = 30;
+export const DEFAULT_RECENCY_FILTER: RecencyFilter = 180;
+export const modelRankFilterOptions: ModelRankFilter[] = [30, 60, "all"];
+export const recencyFilterOptions: RecencyFilter[] = [90, 180, "all"];
 
 export function modelCount(models: ModelAtlasPublishedModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
@@ -207,17 +212,39 @@ export function filterByModelControls<T>(
   );
 }
 
-export function limitByIntelligenceScore<T>(
+/** Retain canonical model families released within the selected UTC-day window. */
+export function filterByReleaseRecency<T>(
   items: T[],
   getModel: (item: T) => ModelAtlasPublishedModel,
-  limit: ModelLimit,
+  recency: RecencyFilter,
+  observedAtEpochSeconds: number | null,
 ) {
-  if (limit === "all") {
+  if (recency === "all") {
+    return items;
+  }
+  const selectedModels = new Set(
+    items
+      .filter((item) => isReleasedWithinDays(getModel(item), observedAtEpochSeconds, recency))
+      .map((item) => canonicalModelKey(getModel(item))),
+  );
+  return items.filter((item) => selectedModels.has(canonicalModelKey(getModel(item))));
+}
+
+/** Filter by global Intelligence rank while retaining unranked previews and every variant in an eligible family. */
+export function filterByIntelligenceRank<T>(
+  items: T[],
+  getModel: (item: T) => ModelAtlasPublishedModel,
+  rankFilter: ModelRankFilter,
+  rankingModels: readonly ModelAtlasPublishedModel[],
+) {
+  if (rankFilter === "all") {
     return items;
   }
   const bestScoreByModel = new Map<string, number>();
-  for (const item of items) {
-    const model = getModel(item);
+  for (const model of rankingModels) {
+    if (isPreviewModel(model)) {
+      continue;
+    }
     const modelKey = canonicalModelKey(model);
     bestScoreByModel.set(
       modelKey,
@@ -227,13 +254,39 @@ export function limitByIntelligenceScore<T>(
       ),
     );
   }
+  const rankedModels = [...bestScoreByModel].sort((left, right) => right[1] - left[1]);
+  const rankCutoffScore = rankedModels[Math.min(rankFilter, rankedModels.length) - 1]?.[1];
   const selectedModels = new Set(
-    [...bestScoreByModel]
-      .sort((left, right) => right[1] - left[1])
-      .slice(0, limit)
+    rankedModels
+      .filter(([, score]) => rankCutoffScore != null && score >= rankCutoffScore)
       .map(([modelKey]) => modelKey),
   );
-  return items.filter((item) => selectedModels.has(canonicalModelKey(getModel(item))));
+  return items.filter((item) => {
+    const model = getModel(item);
+    return isPreviewModel(model) || selectedModels.has(canonicalModelKey(model));
+  });
+}
+
+function isReleasedWithinDays(
+  model: ModelAtlasPublishedModel,
+  observedAtEpochSeconds: number | null,
+  maxAgeDays: number,
+): boolean {
+  if (model.release_date == null || observedAtEpochSeconds == null) {
+    return false;
+  }
+  const releaseDay = model.release_date.slice(0, 10);
+  const observedDay = new Date(observedAtEpochSeconds * 1_000).toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDay)) {
+    return false;
+  }
+  const releaseTimestamp = Date.parse(`${releaseDay}T00:00:00Z`);
+  const observedTimestamp = Date.parse(`${observedDay}T00:00:00Z`);
+  if (!Number.isFinite(releaseTimestamp) || !Number.isFinite(observedTimestamp)) {
+    return false;
+  }
+  const ageDays = (observedTimestamp - releaseTimestamp) / MILLISECONDS_PER_DAY;
+  return ageDays >= 0 && ageDays < maxAgeDays;
 }
 
 /** Toggle one provider while an empty selection continues to represent All. */

@@ -8,12 +8,16 @@ import { captureFileToken } from "../../capture/png";
 import { useDisplayLimit } from "../../shared/DisplayControls";
 import {
   type CostFilter,
+  filterByIntelligenceRank,
   filterByModelControls,
   filterByModelQuery,
+  filterByReleaseRecency,
   modelCount,
   modelName,
+  type ModelRankFilter,
   modelsForVariantDisplay,
   providerOptions,
+  type RecencyFilter,
 } from "../../shared/model-display";
 import { ModelToolbar } from "../../shared/ModelToolbar";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
@@ -38,6 +42,9 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   globalModelFilterQuery,
   showVariants,
   maxCost,
+  modelRankFilter,
+  recencyFilter,
+  observedAtEpochSeconds,
   onShowVariantsChange,
   selectedProviders,
   onSelectedProvidersChange,
@@ -48,6 +55,9 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   globalModelFilterQuery: string;
   showVariants: boolean;
   maxCost: CostFilter;
+  modelRankFilter: ModelRankFilter;
+  recencyFilter: RecencyFilter;
+  observedAtEpochSeconds: number | null;
   onShowVariantsChange: (show: boolean) => void;
   selectedProviders: string[];
   onSelectedProvidersChange: (providers: string[]) => void;
@@ -72,8 +82,20 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
       providers: selectedProviders,
       maxCost,
     });
-    return priceEfficiencyRows(
+    const recencyFilteredModels = filterByReleaseRecency(
       filteredModels,
+      (model) => model,
+      recencyFilter,
+      observedAtEpochSeconds,
+    );
+    const rankFilteredModels = filterByIntelligenceRank(
+      recencyFilteredModels,
+      (model) => model,
+      modelRankFilter,
+      referenceModels,
+    );
+    return priceEfficiencyRows(
+      rankFilteredModels,
       referenceModels,
       benchmarkPortfolio,
       showVariants,
@@ -85,6 +107,9 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
     displayModels,
     showVariants,
     maxCost,
+    modelRankFilter,
+    observedAtEpochSeconds,
+    recencyFilter,
     referenceModels,
     selectedProviders,
   ]);

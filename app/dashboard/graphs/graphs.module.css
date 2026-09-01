@@ -92,7 +92,9 @@
   top: 0;
   z-index: 20;
   display: grid;
+  max-height: 100dvh;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
   background: color-mix(in srgb, var(--paper) 94%, transparent);
@@ -252,7 +254,10 @@
 
 .filterPanel {
   display: grid;
+  min-height: 0;
   gap: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   border-top: 1px solid var(--line);
 }
 
@@ -262,7 +267,7 @@
 
 .controlRow {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.95fr) minmax(0, 1.1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: start;
 }
 
@@ -273,9 +278,20 @@
 
 .controlGroup {
   display: grid;
+  grid-column: span 2;
   gap: 14px;
   padding: 16px;
   border-right: 1px solid var(--line);
+}
+
+.controlRow .controlGroup:nth-child(3) {
+  border-right: 0;
+}
+
+.controlRow .controlGroup:nth-child(4),
+.controlRow .controlGroup:nth-child(5) {
+  grid-column: span 3;
+  border-top: 1px solid var(--line);
 }
 
 .controlRow .controlGroup:last-child {
@@ -299,8 +315,8 @@
 }
 
 .benchmarkRow :global(.benchmark-groups) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
-  flex-wrap: wrap;
   gap: 4px 0;
   overflow-x: visible;
 }
@@ -308,7 +324,6 @@
 .benchmarkRow :global(.benchmark-group) {
   min-width: 200px;
   max-width: none;
-  flex: 1 1 240px;
   padding: 4px 20px 4px 0;
   border-right: 1px solid var(--line);
 }
@@ -1487,19 +1502,15 @@
 }
 
 @media (max-width: 820px) {
-  .instrumentRail {
-    max-height: 100dvh;
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  .filterPanel {
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-  }
-
   .controlRow {
     grid-template-columns: 1fr;
+  }
+
+  .controlGroup,
+  .controlRow .controlGroup:nth-child(4),
+  .controlRow .controlGroup:nth-child(5),
+  .controlGroupWide {
+    grid-column: 1;
   }
 
   .filtersToggle {
@@ -1540,10 +1551,14 @@
 
   .benchmarkRow :global(.benchmark-group) {
     min-width: 0;
-    flex-basis: 100%;
     padding-right: 0;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .benchmarkRow :global(.benchmark-groups) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
   }
 
   .benchmarkRow :global(.benchmark-group + .benchmark-group) {
