@@ -67,7 +67,7 @@ export const frontierBenchmarkAxisConfig: Record<
 > = {
   speedValue: {
     label: "Speed and Value Scores",
-    shortLabel: "Efficiency",
+    shortLabel: "Efficiency ↑",
     get: speedValueBlendScore,
     format: (value) => value.toFixed(0),
     detailLabel: () => "Speed and Value Scores",

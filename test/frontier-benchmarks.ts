@@ -166,7 +166,7 @@ const axisOptions = frontierBenchmarkAxisOptions(rows, false);
 assert.deepEqual(
   axisOptions.map((option) => [option.key, option.label]),
   [
-    ["speedValue", "Efficiency"],
+    ["speedValue", "Efficiency ↑"],
     ["cost", "Cost ↓"],
     ["time", "Time ↓"],
     ["tokens", "Tokens ↓"],
