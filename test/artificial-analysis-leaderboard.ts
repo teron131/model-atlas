@@ -297,7 +297,7 @@ const scoringRows = [
       gdpval_normalized: 0.4,
       scicode: 0.4,
       tau_banking: 0.4,
-      terminal_bench_3: 0.4,
+      terminal_bench_4: 0.4,
       apex_agents: 0.1,
     },
   },
@@ -310,7 +310,7 @@ const scoringRows = [
       gdpval_normalized: 0.6,
       scicode: 0.6,
       tau_banking: 0.6,
-      terminal_bench_3: 0.6,
+      terminal_bench_4: 0.6,
     },
   },
   {
@@ -322,7 +322,7 @@ const scoringRows = [
       gdpval_normalized: 0.8,
       scicode: 0.8,
       tau_banking: 0.8,
-      terminal_bench_3: 0.8,
+      terminal_bench_4: 0.8,
     },
   },
   {
@@ -333,7 +333,7 @@ const scoringRows = [
       gdpval_normalized: 0.7,
       scicode: 0.7,
       tau_banking: 0.7,
-      terminal_bench_3: 0.7,
+      terminal_bench_4: 0.7,
     },
   },
 ];
@@ -345,14 +345,14 @@ const scoringConfig = {
     "gdpval_normalized",
     "scicode",
     "tau_banking",
-    "terminal_bench_3",
+    "terminal_bench_4",
   ],
   agenticBenchmarkDisplayKeys: [
     "apex_agents",
     "gdpval_normalized",
     "scicode",
     "tau_banking",
-    "terminal_bench_3",
+    "terminal_bench_4",
   ],
   previewAdditionalIntelligenceBenchmarkKeys: [],
   defaultSpeedOutputTokenAnchors: [],
@@ -370,7 +370,7 @@ const scoringConfig = {
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
     },
-    terminal_bench_3: {
+    terminal_bench_4: {
       group: "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },

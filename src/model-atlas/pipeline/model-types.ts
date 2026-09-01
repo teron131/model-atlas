@@ -12,7 +12,7 @@ import type { CursorBenchModelScoreRow } from "../scrapers/benchmarks/cursorbenc
 import type { DeepSWEModelScoreRow } from "../scrapers/benchmarks/deep-swe";
 import type { FrontierCodeModelEffortRow } from "../scrapers/benchmarks/frontier-code";
 import type { MercorApexAgentsRow } from "../scrapers/benchmarks/mercor-apex-agents";
-import type { TerminalBench3ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-3";
+import type { TerminalBench4ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-4";
 import type { HarveyLabModelScoreRow } from "../scrapers/benchmarks/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../scrapers/benchmarks/vending-bench-2";
 
@@ -105,7 +105,7 @@ type ScoringSourceRow =
   | FrontierCodeModelEffortRow
   | HarveyLabModelScoreRow
   | MercorApexAgentsRow
-  | TerminalBench3ModelAgentRow
+  | TerminalBench4ModelAgentRow
   | VendingBench2ModelScoreRow;
 
 export type ModelAtlasScoringSources =
@@ -120,7 +120,7 @@ export type ModelAtlasScoringSources =
       frontier_code?: FrontierCodeModelEffortRow | null;
       harvey_lab?: HarveyLabModelScoreRow | null;
       itbench_sre?: ArtificialAnalysisBenchmarkResourceRow | null;
-      terminal_bench_3?: TerminalBench3ModelAgentRow | null;
+      terminal_bench_4?: TerminalBench4ModelAgentRow | null;
       vending_bench_2?: VendingBench2ModelScoreRow | null;
     })
   | null;

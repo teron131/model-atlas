@@ -16,7 +16,7 @@ import type { DeepSWERawLeaderboardRow } from "../scrapers/benchmarks/deep-swe";
 import type { FrontierCodeModelEffortRow } from "../scrapers/benchmarks/frontier-code";
 import type { MercorApexAgentsRow } from "../scrapers/benchmarks/mercor-apex-agents";
 import type { RiemannBenchModelScoreRow } from "../scrapers/benchmarks/surge/riemann-bench";
-import type { TerminalBench3ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-3";
+import type { TerminalBench4ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-4";
 import type {
   HarveyLabModelScoreRow,
   HarveyLabTaskRow,
@@ -135,7 +135,7 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
   riemannBenchSourceUrl: string;
-  terminalBench3Rows: TerminalBench3ModelAgentRow[];
+  terminalBench4Rows: TerminalBench4ModelAgentRow[];
   valsIndexRows: ValsIndexTaskScoreRow[];
   valsIndexModelScoreRows: ValsIndexModelScoreRow[];
   vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
@@ -154,7 +154,7 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
     harveyLab: number | null;
     mercorApexAgents: number | null;
     riemannBench: number | null;
-    terminalBench3: number | null;
+    terminalBench4: number | null;
     valsIndex: number | null;
     vendingBench2: number | null;
   };

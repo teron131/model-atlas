@@ -606,13 +606,13 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  terminal_bench_3: {
+  terminal_bench_4: {
     inputs: [
       {
         group: "standalone",
-        id: "terminal_bench_3",
+        id: "terminal_bench_4",
         roles: ["observation"],
-        runtime: { key: "terminal_bench_3", publicRows: true },
+        runtime: { key: "terminal_bench_4", publicRows: true },
       },
     ],
   },
@@ -677,7 +677,7 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       clamp: true,
     },
   },
-  terminal_bench_3: {
+  terminal_bench_4: {
     aggregation: { kind: "custom" },
   },
   weirdml: {

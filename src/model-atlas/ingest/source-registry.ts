@@ -92,7 +92,7 @@ export const SOURCE_URLS = {
   frontier_code: "https://cognition.com/frontiercode",
   mercor_apex_agents: "https://www.mercor.com/apex/apex-agents-leaderboard/",
   riemann_bench: "https://surgehq.ai/leaderboards/riemann-bench",
-  terminal_bench_3: "https://www.frontierbench.ai/",
+  terminal_bench_4: "https://www.tbench.ai/?version=4.0",
   vals_harvey_lab: "https://www.vals.ai/benchmarks/hlab",
   vals_index: "https://www.vals.ai/benchmarks/vals_index",
   vending_bench_2: "https://andonlabs.com/evals/vending-bench-2",

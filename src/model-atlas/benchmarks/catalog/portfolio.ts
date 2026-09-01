@@ -287,7 +287,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
-  terminal_bench_3: {
+  terminal_bench_4: {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },

@@ -45,7 +45,7 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   frontierCodeRows: readonly DbBenchmarkRow[];
   harveyLabRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
-  terminalBench3Rows: readonly DbBenchmarkRow[];
+  terminalBench4Rows: readonly DbBenchmarkRow[];
   valsIndexRows: readonly DbBenchmarkRow[];
   vendingBench2Rows: readonly DbBenchmarkRow[];
 };
@@ -191,9 +191,9 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
           ]
         : [],
     ),
-  terminal_bench_3: (rows) =>
-    rows.terminalBench3Rows.map((row) => ({
-      key: "terminal_bench_3",
+  terminal_bench_4: (rows) =>
+    rows.terminalBench4Rows.map((row) => ({
+      key: "terminal_bench_4",
       id: stringValue(row.base_model),
       identity: stringValue(row.base_model),
       label: stringValue(row.model),

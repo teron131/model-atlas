@@ -51,7 +51,7 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
 | SciCode | Logit | The source score is a bounded scientific-code correctness rate. |
 | tau3 Banking | Logit | The score is a bounded workflow-success rate. |
-| Terminal-Bench 3.0 | Logit | Task accuracy is a bounded completion rate with meaningful remaining error. |
+| Terminal-Bench 4.0 | Logit | Task accuracy is a bounded completion rate with meaningful remaining error. |
 
 ### Indexes
 
@@ -99,7 +99,7 @@ When a recent preview has aggregate indexes as its only observed quality evidenc
 | ProgramBench | 1 | 20% | 80% | Programming tasks combine problem formulation with executable workflow completion. Current Vals results retain frontier pressure, with most weight assigned to Agentic execution. |
 | ProofBench | 1 | 70% | 30% | Private compiler-verified theorem proving emphasizes mathematical reasoning, while the multi-turn proof-development harness contributes a smaller Agentic component. |
 | Riemann-bench | 1 | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
-| Terminal-Bench 3.0 | 1 | 0% | 100% | Difficult containerized tasks across software, infrastructure, data, and technical workflows measure terminal-agent execution with substantial headroom among current systems. |
+| Terminal-Bench 4.0 | 1 | 0% | 100% | Difficult containerized tasks across software, infrastructure, data, and technical workflows measure terminal-agent execution with substantial headroom among current systems. |
 
 ### Baseline Benchmarks
 
@@ -215,9 +215,9 @@ Every reported effort and harness is persisted. Explicit effort rows match only 
 
 **Surge benchmark family:** Chartography, ComplexConstraints, HANDBOOK.md, and EnterpriseBench CoreCraft use the public Surge leaderboard percentages and preserve displayed provider, model configuration, rank, and update date when present. ComplexConstraints scores the share of prompts for which every criterion passes. Hemingway-bench keeps the public expert-preference Elo score as an index instead of converting it into a percentage. Their page-local cost or judge details do not feed Speed or Value.
 
-**Terminal-Bench 3.0** uses the official 3.0 structured leaderboard. Raw storage retains every displayed model, reasoning-effort, and agent row together with task accuracy and its standard error. Scoring uses the strongest displayed agent for each exact model effort, breaking equal-score ties by lower standard error, while the highest available effort supplies the source-default base-model observation.
+**Terminal-Bench 4.0** uses the official 4.0 structured leaderboard over 66 tasks with five trials per task and an eight-hour agent timeout. Raw storage retains every displayed model, reasoning-effort, and agent row together with task accuracy and its reported 95% confidence-interval half-width. Scoring uses the strongest displayed agent for each exact model effort, breaking equal-score ties by narrower confidence interval, while the highest available effort supplies the source-default base-model observation.
 
-Agent harness remains part of the raw observation rather than a quality dimension. The source publishes aggregate mixed-harness token and cost totals, but Model Atlas does not use them as model-level Speed or Value evidence; no comparable per-task latency is published. Terminal-Bench 3.0 therefore contributes only to Agentic quality.
+Agent harness remains part of the raw observation rather than a quality dimension. The source publishes aggregate mixed-harness token, cost, and duration telemetry, but Model Atlas does not use them as model-level Speed or Value evidence. Terminal-Bench 4.0 therefore contributes only to Agentic quality.
 
 **Toolathlon** uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
