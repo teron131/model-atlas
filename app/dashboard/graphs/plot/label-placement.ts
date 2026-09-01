@@ -178,9 +178,9 @@ export function calloutLabelPlacements({
   labels,
   obstacles,
   bounds,
-  fontSize = 12,
-  charWidth = 7.2,
-  lineHeight = 14,
+  fontSize = 13,
+  charWidth = 7.8,
+  lineHeight = 15,
   padding = 4,
 }: {
   labels: PointLabelAnchor[];

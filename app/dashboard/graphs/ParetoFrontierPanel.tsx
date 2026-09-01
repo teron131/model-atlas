@@ -190,9 +190,9 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       radius: markRadius(model),
       priority: frontier.length - index,
     })),
-    fontSize: 11,
-    charWidth: 6.6,
-    lineHeight: 13,
+    fontSize: 13,
+    charWidth: 7.8,
+    lineHeight: 15,
   });
 
   return (
