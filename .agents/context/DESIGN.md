@@ -22,7 +22,7 @@ typography:
     lineHeight: 1.58
   label:
     fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
-    fontSize: "11px"
+    fontSize: "12px"
     fontWeight: 650
     lineHeight: 1.2
     letterSpacing: "0.035em"
@@ -33,19 +33,19 @@ typography:
     lineHeight: 1.5
   caption:
     fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
-    fontSize: "10px"
+    fontSize: "11px"
     fontWeight: 650
     lineHeight: 1.2
     letterSpacing: "0.035em"
   micro:
     fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
-    fontSize: "9px"
+    fontSize: "10px"
     fontWeight: 650
     lineHeight: 1.2
     letterSpacing: "0.035em"
   note:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
-    fontSize: "14px"
+    fontSize: "15px"
     fontWeight: 500
     lineHeight: 1.55
   data-compact:
@@ -142,10 +142,10 @@ The system carries no decorative accent hue. Emphasis is ink against the page fi
 - **Headline** (600, clamp(36px, 4.3vw, 64px), 0.95): analytical section titles.
 - **Body** (500, 1rem, 1.58): factual explanation with a maximum measure near 68ch.
 - **Data** (600, 0.8125rem, tabular): scores, prices, ranks, and model metadata.
-- **Label** (650, 0.6875rem, 0.035em, uppercase): parameters, axes, and compact controls.
-- **Caption** (650, 0.625rem, 0.035em, uppercase): secondary annotations.
-- **Micro** (650, 9px, 0.035em, uppercase): the compact-width floor for captions and dense rail annotations. Nothing shrinks below it.
-- **Note** (500, 14px): panel copy and tooltip prose.
+- **Label** (650, 0.75rem, 0.035em, uppercase): parameters, axes, and compact controls.
+- **Caption** (650, 0.6875rem, 0.035em, uppercase): secondary annotations.
+- **Micro** (650, 10px, 0.035em, uppercase): the compact-width floor for captions and dense rail annotations. Nothing shrinks below it.
+- **Note** (500, 15px): panel copy and tooltip prose.
 - **Data compact** (650, 12px, tabular): model identifiers, chips, and secondary readouts.
 - **Document title / heading / subheading** (600, clamp(36px, 4vw, 46px) / 24px / 18px): the reading route only.
 

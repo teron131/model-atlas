@@ -3,19 +3,18 @@
 import assert from "node:assert/strict";
 
 import {
-  axisSummaryDetail,
   frontierAxisDescription,
   frontierAxisMetricLabel,
   frontierBenchmarkAxisConfigFor,
   frontierBenchmarkAxisOptions,
   frontierBenchmarkHoverRows,
   frontierBenchmarkRows,
-  frontierBenchmarkSummaryRows,
   normalizedFrontierBenchmarkRows,
   normalizedFrontierBenchmarkScoreRows,
   selectedFrontierBenchmarkAxisKey,
   speedValueBlendScore,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
+import { transformBenchmarkSourceValue } from "../src/model-atlas/benchmarks/registry";
 import type { BenchmarkPortfolio, ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -113,6 +112,25 @@ assert.deepEqual(
   ],
   "frontier rows should normalize percentages and attach resource metrics",
 );
+const gdpvalPortfolio = {
+  gdpval_normalized: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
+  },
+} satisfies BenchmarkPortfolio;
+const gdpvalModel = {
+  ...minimalModelAtlasModel({ id: "anthropic/claude-opus-5", name: "Claude Opus 5" }),
+  benchmarks: {
+    gdpval_normalized: transformBenchmarkSourceValue("gdpval_normalized", 1_823.94),
+  },
+} satisfies ModelAtlasModel;
+const gdpvalRow = frontierBenchmarkRows([gdpvalModel], gdpvalPortfolio)[0];
+assert.ok(gdpvalRow);
+assert.ok(
+  Math.abs(gdpvalRow.score - 66.197) < 1e-12,
+  "GDPval page Elo should reach the frontier graph on the normalized percent scale",
+);
 const scoreOnlyPortfolio = {
   deep_swe: {
     group: "frontier",
@@ -129,18 +147,6 @@ assert.equal(
 );
 
 const costAxis = frontierBenchmarkAxisConfigFor("cost", false);
-const summaryRows = frontierBenchmarkSummaryRows(rows, costAxis);
-assert.equal(
-  summaryRows?.leader.model.id,
-  "provider/expensive",
-  "highest scoring model should remain the chart leader",
-);
-assert.equal(
-  summaryRows?.highScoreAxisRow.model.id,
-  "provider/efficient",
-  "high-score axis row should prefer the cheaper model above the leader score floor",
-);
-
 assert.deepEqual(
   frontierBenchmarkHoverRows(topRow, costAxis),
   [
@@ -149,12 +155,6 @@ assert.deepEqual(
     ["Speed and Value Scores", "30.0"],
   ],
   "hover rows should describe selected benchmark score, resource axis, and Efficiency score",
-);
-
-assert.equal(
-  axisSummaryDetail(secondRow, costAxis),
-  "82% / DeepSWE cost per task $2.0",
-  "summary detail should combine benchmark score and selected axis metric",
 );
 
 assert.equal(

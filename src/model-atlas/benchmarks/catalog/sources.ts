@@ -669,6 +669,14 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       clamp: true,
     },
   },
+  gdpval_normalized: {
+    transform: {
+      kind: "linear",
+      input: [500, 2_500],
+      output: [0, 1],
+      clamp: true,
+    },
+  },
   terminal_bench_3: {
     aggregation: { kind: "custom" },
   },

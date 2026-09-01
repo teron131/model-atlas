@@ -95,14 +95,14 @@
 
 .trigger span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.04em;
 }
 
 .trigger strong {
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   text-overflow: ellipsis;
@@ -149,7 +149,7 @@
   min-height: 30px;
   padding: 0 7px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.02em;
   line-height: 1;
@@ -180,7 +180,7 @@
 .option small {
   color: var(--faint);
   font: inherit;
-  font-size: 10px;
+  font-size: var(--type-caption-size);
 }
 
 .logo {
@@ -189,7 +189,7 @@
   height: 16px;
   place-items: center;
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-micro-size);
 }
 
 .logo img,
@@ -368,7 +368,7 @@
   }
 
   .count {
-    font-size: 10.5px;
+    font-size: var(--type-caption-size);
   }
 }
 

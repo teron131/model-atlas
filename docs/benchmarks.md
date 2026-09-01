@@ -45,7 +45,7 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | CursorBench | Linear | The published grading score is a composite rather than a completion probability. |
 | DeepSWE | Logit | Pass@1 is a bounded task-completion rate. |
 | FrontierCode | Linear | The versioned `new_score` is a grading composite. |
-| GDPval-AA v2 | Linear | The normalized professional-work score is a grading composite. |
+| GDPval-AA v2 | Linear | The page Elo is normalized onto the benchmark's 0-1 scale before use as a professional-work grading composite. |
 | Harvey LAB | Logit | Strict task resolution is a bounded all-criteria completion rate. |
 | HLE | Logit | Accuracy is a bounded correctness rate. |
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
@@ -183,6 +183,7 @@ Explicit effort observations stay attached to their matching scored variants, an
 
 **Briefcase** comes from the dedicated Artificial Analysis benchmark page rather than the main AA model table. The raw page score is Elo and stays raw in source storage; Model Atlas normalizes it to the 0-1 benchmark scale with `clamp((Elo - 500) / 2000)` before quality scoring and benchmark-health comparison. Its resource-quality neighborhood uses that normalized score linearly rather than assigning probability odds to the Elo-derived coordinate. Its page-specific cost, token, and estimated runtime resources can feed Value and Speed through the same Artificial Analysis per-task resource policy used by other AA benchmark-resource benchmarks.
 
+**GDPval-AA v2** keeps the dedicated page's raw Elo in source storage and converts it to the 0-1 normalized score with `clamp((Elo - 500) / 2000)` before matching, scoring, display, and frontier-chart use. Artificial Analysis's main model table publishes the same metric already normalized; exact overlap such as `1823.94 -> 0.66197` validates the conversion and lets that normalized field remain a compatible fallback for models not yet listed on the dedicated page.
 
 **CursorBench** preserves score, average cost per task, tokens per task, steps per task, reasoning effort, and source score eligibility where shown. When multiple public effort rows map to variants of the same model, the scoring lookup uses the source-default row when effort is unlabelled, or the highest reported effort when it is labelled, while preserving all raw effort rows. Source-caveated scores remain in the raw rows but are excluded from scoring; this currently applies to Grok 4.5 because Cursor discloses that an earlier Cursor codebase snapshot was included in training and the score impact is unknown. Cursor's private Composer models are excluded because their model data is not available from independent catalog sources.
 

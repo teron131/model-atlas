@@ -1,4 +1,4 @@
-/** Frontier benchmark panel coordinates benchmark selection, resource axes, summaries, and scatter composition. */
+/** Frontier benchmark panel coordinates benchmark selection, resource axes, and scatter composition. */
 
 import { memo, useMemo, useState } from "react";
 
@@ -7,14 +7,13 @@ import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { valueDistribution } from "../chart-stats";
-import { ShapeScaleLegend, SummaryCard } from "../ChartComponents";
+import { ShapeScaleLegend } from "../ChartComponents";
 import { finite, fmtPercentScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { Panel } from "../Panel";
 import { SCATTER_CHART_WIDTH } from "../plot/Primitives";
 import type { HoverSetter } from "../types";
 import {
-  axisSummaryDetail,
   frontierAxisDescription,
   frontierAxisMetricLabel,
   frontierBenchmarkAxisConfig,
@@ -26,7 +25,6 @@ import {
   frontierBenchmarkOptions,
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
-  frontierBenchmarkSummaryRows,
   frontierScoreAxisScale,
   frontierXAxisScale,
   meanFrontierBenchmarkRows,
@@ -129,16 +127,15 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   if (chartRows.length === 0) {
     return null;
   }
+  const leader = chartRows[0];
+  if (leader == null) {
+    return null;
+  }
 
   const axisValues = chartRows.map(axisConfig.get).filter(finite);
   const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
   const scoreValues = chartRows.map((row) => row.score).filter(finite);
   const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView);
-  const summaryRows = frontierBenchmarkSummaryRows(chartRows, axisConfig);
-  if (summaryRows == null) {
-    return null;
-  }
-  const { leader, highScoreAxisRow, medianScoreAxisRow, labeledRows } = summaryRows;
   const scoreDistribution = valueDistribution(chartRows.map((row) => row.score));
   const plotRows = [...chartRows].sort((left, right) => left.score - right.score);
   const yAxisLabel = isAggregateView
@@ -158,8 +155,6 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
       <em>{xMetricLabel}</em>. {axisDescription}
     </>
   );
-  const leaderDetail = axisSummaryDetail(leader, axisConfig);
-
   return (
     <Panel
       captureWidth={SCATTER_CHART_WIDTH}
@@ -237,24 +232,10 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}
         getHoverTitle={(row) => modelName(row.model)}
         getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig)}
-        labelRows={labeledRows}
         getLabel={(row) => shortLabel(row.model)}
         connectReasoningVariants={showVariants}
         setHover={setHover}
       />
-      <div className={styles.chartSummary}>
-        <SummaryCard label="Leader" value={modelName(leader.model)} detail={leaderDetail} />
-        <SummaryCard
-          label="Best near leader"
-          value={modelName(highScoreAxisRow.model)}
-          detail={axisSummaryDetail(highScoreAxisRow, axisConfig)}
-        />
-        <SummaryCard
-          label="Best above median"
-          value={modelName(medianScoreAxisRow.model)}
-          detail={axisSummaryDetail(medianScoreAxisRow, axisConfig)}
-        />
-      </div>
     </Panel>
   );
 });

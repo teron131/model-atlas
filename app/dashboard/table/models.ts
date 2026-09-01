@@ -252,6 +252,8 @@ type TableColumnGroup =
   | "confidence"
   | "change";
 
+export type BenchmarkColumnOrder = "portfolio" | "coverage";
+
 const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
 const operationColumnKeys = new Set<TableColumnKey>([
   "blend",
@@ -280,12 +282,13 @@ for (const { benchmark, columns } of benchmarkColumnGroups) {
 /** Resolve group-ending rules against the columns that are actually visible. */
 export function tableColumnRuleKeys(
   visibleColumnKeys: readonly TableColumnKey[],
+  benchmarkColumnOrder: BenchmarkColumnOrder,
 ): ReadonlySet<TableColumnKey> {
   const ruledKeys = new Set<TableColumnKey>();
   let previousKey: TableColumnKey | undefined;
   let previousGroup: TableColumnGroup | undefined;
   for (const key of visibleColumnKeys) {
-    const group = tableColumnGroup(key);
+    const group = tableColumnGroup(key, benchmarkColumnOrder);
     if (previousKey != null && previousGroup !== group && previousGroup !== "fixed") {
       ruledKeys.add(previousKey);
     }
@@ -295,7 +298,10 @@ export function tableColumnRuleKeys(
   return ruledKeys;
 }
 
-function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
+function tableColumnGroup(
+  key: TableColumnKey,
+  benchmarkColumnOrder: BenchmarkColumnOrder,
+): TableColumnGroup {
   if (key === "rank" || key === "model") {
     return "fixed";
   }
@@ -314,7 +320,9 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
   if (key === "change") {
     return "change";
   }
-  return benchmarkColumnGroupsByKey.get(key) ?? "baseline";
+  return benchmarkColumnOrder === "portfolio"
+    ? (benchmarkColumnGroupsByKey.get(key) ?? "baseline")
+    : "baseline";
 }
 
 export type TableRow = {

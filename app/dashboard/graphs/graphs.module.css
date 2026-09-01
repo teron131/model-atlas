@@ -494,7 +494,7 @@
   height: 15px;
   border: 1px solid color-mix(in srgb, var(--provider-color, var(--ink)) 58%, var(--line));
   color: var(--provider-color, var(--ink));
-  font-size: 9px;
+  font-size: var(--type-micro-size);
   line-height: 1;
 }
 
@@ -632,7 +632,7 @@
 
 .boxWhiskerTopMeta b {
   color: var(--faint);
-  font-size: 9px;
+  font-size: var(--type-micro-size);
   font-weight: var(--type-label-weight);
   letter-spacing: var(--type-label-tracking);
   white-space: nowrap;
@@ -715,7 +715,7 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 10px;
   color: var(--faint);
-  font-size: 9px;
+  font-size: var(--type-micro-size);
   line-height: 1;
   white-space: nowrap;
 }
@@ -768,7 +768,7 @@
 }
 
 .chartWrap {
-  --chart-max-width: 820px;
+  --chart-max-width: 960px;
   width: 100%;
   overflow: hidden;
   padding: 14px 0 10px;
@@ -809,7 +809,7 @@
 .medianLabel {
   fill: var(--chart-label-fill);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--mono-chip);
   font-weight: var(--type-label-weight);
 }
 
@@ -837,7 +837,7 @@
 .cursorProjectionLabel {
   fill: var(--projection-color, var(--chart-point-label-soft));
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--mono-chip);
   font-weight: var(--type-label-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
@@ -847,7 +847,7 @@
 .axisLabel,
 .axisTitle {
   fill: var(--muted);
-  font-size: 11px;
+  font-size: var(--mono-chip);
   font-weight: var(--type-label-weight);
 }
 
@@ -874,7 +874,7 @@
 .cornerDirectionLabel {
   fill: var(--chart-corner-fill);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--type-micro-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -900,7 +900,6 @@
     opacity 0.12s ease,
     stroke 0.12s ease,
     stroke-width 0.12s ease;
-  vector-effect: non-scaling-stroke;
 }
 
 .reasoningVariantLineActive {
@@ -987,7 +986,7 @@
 
 .frontierPoint .pointLabel {
   fill: var(--chart-point-label-soft);
-  font-size: 11px;
+  font-size: var(--mono-chip);
   stroke: var(--chart-point-label-stroke-soft);
   stroke-width: 2px;
 }
@@ -1085,7 +1084,7 @@
 .summaryDetail,
 .summaryLabel {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -1188,7 +1187,7 @@
   flex: 1 0 100%;
   color: var(--ink);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--type-micro-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.09em;
   line-height: 1;
@@ -1275,7 +1274,7 @@
   margin-left: auto;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.035em;
   text-transform: uppercase;
@@ -1383,7 +1382,7 @@
 
 .metricToggleDetail {
   color: var(--faint);
-  font-size: 9px;
+  font-size: var(--type-micro-size);
 }
 
 .metricToggleLabel {
@@ -1400,7 +1399,7 @@
   padding: 14px 0;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--mono-chip);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   line-height: 1.45;
@@ -1461,7 +1460,7 @@
   margin-top: 3px;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
   text-transform: uppercase;
 }
@@ -1478,7 +1477,7 @@
   gap: 12px;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--type-label-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -1532,7 +1531,7 @@
 
   .summaryDetail,
   .summaryLabel {
-    font-size: 10px;
+    font-size: var(--type-caption-size);
     line-height: 1.25;
   }
 
@@ -1616,6 +1615,7 @@
 
   .chartWrap:not(.slopeChartWrap) svg {
     width: min(620px, var(--chart-max-width));
+    max-width: none;
   }
 
   .chartSummary {

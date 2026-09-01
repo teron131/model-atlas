@@ -40,6 +40,7 @@ import {
 } from "./shared/model-display";
 import { ModelToolbar } from "./shared/ModelToolbar";
 import {
+  tableColumnKeysByCoverage,
   tableColumnKeysForView,
   type TableColumnPreset,
   tableColumnSearchMatchCount,
@@ -47,6 +48,7 @@ import {
 } from "./table/column-views";
 import { ColumnViewControls } from "./table/ColumnViewControls";
 import {
+  type BenchmarkColumnOrder,
   dashboardMetricColumns,
   dedupeDisplayModels,
   sortedRows,
@@ -94,6 +96,8 @@ export function DashboardLeaderboard({
   const [filterQuery, setFilterQuery] = useState("");
   const [columnFilterQuery, setColumnFilterQuery] = useState("");
   const [columnPreset, setColumnPreset] = useState<TableColumnPreset>("all");
+  const [benchmarkColumnOrder, setBenchmarkColumnOrder] =
+    useState<BenchmarkColumnOrder>("portfolio");
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
   const [showVariants, setShowVariants] = useState(false);
   const deferredFilterQuery = useDeferredValue(filterQuery);
@@ -200,10 +204,31 @@ export function DashboardLeaderboard({
     [limitedRows, sortState],
   );
   const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
-  const visibleColumnKeys = useMemo(
+  const portfolioColumnKeys = useMemo(
     () => tableColumnKeysForView(columnPreset, columnFilterQuery, columnTooltips),
     [columnFilterQuery, columnPreset, columnTooltips],
   );
+  const activeBenchmarkColumnOrder: BenchmarkColumnOrder =
+    columnPreset === "scores" &&
+    columnFilterQuery.trim().length === 0 &&
+    benchmarkColumnOrder === "coverage"
+      ? "coverage"
+      : "portfolio";
+  const visibleColumnKeys = useMemo(
+    () =>
+      activeBenchmarkColumnOrder === "coverage"
+        ? tableColumnKeysByCoverage(portfolioColumnKeys, limitedRows)
+        : portfolioColumnKeys,
+    [activeBenchmarkColumnOrder, limitedRows, portfolioColumnKeys],
+  );
+  const orderedMetricColumns = useMemo(() => {
+    const orderByKey = new Map(visibleColumnKeys.map((key, index) => [key, index]));
+    return [...dashboardMetricColumns].sort(
+      (left, right) =>
+        (orderByKey.get(left.key) ?? Number.MAX_SAFE_INTEGER) -
+        (orderByKey.get(right.key) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [visibleColumnKeys]);
   const columnSearchMatchCount = useMemo(
     () => tableColumnSearchMatchCount(columnFilterQuery, columnTooltips),
     [columnFilterQuery, columnTooltips],
@@ -385,19 +410,22 @@ export function DashboardLeaderboard({
       />
       <ColumnViewControls
         preset={columnPreset}
+        benchmarkOrder={benchmarkColumnOrder}
         query={columnFilterQuery}
         searchMatchCount={columnSearchMatchCount}
+        onBenchmarkOrderChange={setBenchmarkColumnOrder}
         onPresetChange={handleColumnPresetChange}
         onQueryChange={setColumnFilterQuery}
       />
       <ModelTable
         sortState={sortState}
         fitColumnContent={columnFilterQuery.trim().length > 0}
+        benchmarkColumnOrder={activeBenchmarkColumnOrder}
         visibleColumnKeys={visibleColumnKeys}
         visibleRows={visibleRows}
         emptyMessage={emptyMessage}
         isLoading={isLoading}
-        metricColumns={dashboardMetricColumns}
+        metricColumns={orderedMetricColumns}
         onSort={handleSort}
         onScoreChange={showScoreChange}
         onTooltip={showTooltip}

@@ -16,6 +16,7 @@ import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import { modelVariantKey } from "../shared/model-display";
 import { staticSortableColumns } from "./Columns";
 import type {
+  BenchmarkColumnOrder,
   DashboardMetricColumn,
   SortDirection,
   SortKey,
@@ -32,6 +33,7 @@ const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
 type ModelTableProps = {
   sortState: SortState;
   fitColumnContent: boolean;
+  benchmarkColumnOrder: BenchmarkColumnOrder;
   visibleColumnKeys: readonly TableColumnKey[];
   visibleRows: TableRow[];
   emptyMessage: string;
@@ -51,6 +53,7 @@ const SCROLL_PAGE_STEP_RATIO = 0.85;
 export const ModelTable = memo(function ModelTable({
   sortState,
   fitColumnContent,
+  benchmarkColumnOrder,
   visibleColumnKeys,
   visibleRows,
   emptyMessage,
@@ -63,8 +66,8 @@ export const ModelTable = memo(function ModelTable({
 }: ModelTableProps) {
   const visibleColumnKeySet = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys]);
   const ruledColumnKeySet = useMemo(
-    () => tableColumnRuleKeys(visibleColumnKeys),
-    [visibleColumnKeys],
+    () => tableColumnRuleKeys(visibleColumnKeys, benchmarkColumnOrder),
+    [benchmarkColumnOrder, visibleColumnKeys],
   );
   const {
     tableScrollRef,
@@ -363,6 +366,7 @@ function TableHeaderRow({
   | "isLoading"
   | "visibleColumnKeys"
   | "fitColumnContent"
+  | "benchmarkColumnOrder"
   | "onScoreChange"
 > & {
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;

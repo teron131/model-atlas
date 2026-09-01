@@ -5,10 +5,11 @@
   --type-section-size: clamp(36px, 4.3vw, 64px);
   --type-document-title-size: clamp(36px, 4vw, 46px);
   --type-body-size: 16px;
-  --type-note-size: 14px;
+  --type-note-size: 15px;
   --type-data-size: 13px;
-  --type-label-size: 11px;
-  --type-caption-size: 10px;
+  --type-label-size: 12px;
+  --type-caption-size: 11px;
+  --type-micro-size: 10px;
   --type-display-weight: 620;
   --type-heading-weight: 600;
   --type-body-weight: 500;
@@ -398,7 +399,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   gap: 10px;
   margin: 0;
   color: var(--faint);
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.08em;
   line-height: 1;
@@ -1374,7 +1375,7 @@ tbody tr.preview-row .rank {
 
 .confidence-dimension {
   color: var(--muted);
-  font-size: 0.78em;
+  font-size: 0.85em;
   font-weight: 600;
 }
 
@@ -1445,7 +1446,7 @@ td.modality-cell {
     --mono-data: 12px;
     --sans-note: 13px;
     --model-name: 14px;
-    --model-id: 10.5px;
+    --model-id: 11px;
   }
 
   main {

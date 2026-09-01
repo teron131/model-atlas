@@ -64,7 +64,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getKey,
   getHoverRows,
   getHoverTitle,
-  labelRows,
   getLabel,
   connectReasoningVariants = false,
   setHover,
@@ -86,7 +85,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getKey: (row: Row) => string;
   getHoverRows: (row: Row) => HoverRow[];
   getHoverTitle?: (row: Row) => string;
-  labelRows: Set<Row>;
   getLabel: (row: Row) => string;
   connectReasoningVariants?: boolean;
   setHover: HoverSetter;
@@ -143,16 +141,14 @@ export function FrontierBenchmarkScatterPlot<Row>({
       cy: yPoint(getScore(row)),
       radius: markRadius(row),
     })),
-    labels: rows
-      .filter((row) => labelRows.has(row))
-      .map((row, index) => ({
-        key: getKey(row),
-        label: getLabel(row),
-        cx: xPoint(metric.get(row)),
-        cy: yPoint(getScore(row)),
-        radius: markRadius(row),
-        priority: rows.length - index,
-      })),
+    labels: frontier.map((row, index) => ({
+      key: getKey(row),
+      label: getLabel(row),
+      cx: xPoint(metric.get(row)),
+      cy: yPoint(getScore(row)),
+      radius: markRadius(row),
+      priority: frontier.length - index,
+    })),
   });
   const reasoningGroups = connectReasoningVariants ? reasoningVariantGroups(rows, getModel) : [];
   const reasoningGroupByRow = new Map(
@@ -276,6 +272,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                   "--line-color": line.color,
                 } as CSSProperties
               }
+              vectorEffect="non-scaling-stroke"
             />
           )),
         )}
@@ -336,11 +333,11 @@ export function FrontierBenchmarkScatterPlot<Row>({
             </g>
           );
         })}
-        {rows.map((row) => {
+        {frontier.map((row) => {
           const axisValue = metric.get(row);
           const cx = xPoint(axisValue);
           const cy = yPoint(getScore(row));
-          return labelRows.has(row) ? (
+          return (
             <g
               className={[styles.reasoningVariantPoint, reasoningHighlightClass(row)]
                 .filter(Boolean)
@@ -358,7 +355,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 placement={labelPlacements.get(getKey(row))}
               />
             </g>
-          ) : null;
+          );
         })}
       </svg>
     </div>
