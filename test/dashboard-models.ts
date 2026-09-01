@@ -529,6 +529,8 @@ const searchableVariant = {
   ...rankedModel("provider/reasoner", "Reasoner", 90),
   provider: "Example Provider",
   reasoning_effort: "max",
+  open_weights: true,
+  modalities: { input: ["text", "image"], output: ["text"] },
 };
 assert.equal(
   filterByModelQuery([searchableVariant], (model) => model, "reasoner max").length,
@@ -549,6 +551,21 @@ assert.equal(
   filterByModelQuery([searchableVariant], (model) => model, "unrelated").length,
   0,
   "model search should reject unrelated identity text",
+);
+assert.equal(
+  filterByModelQuery([searchableVariant], (model) => model, "open weights").length,
+  1,
+  "model search should include explicit contextual metadata",
+);
+assert.equal(
+  filterByModelQuery([searchableVariant], (model) => model, "image input").length,
+  1,
+  "model search should include modality context",
+);
+assert.equal(
+  filterByModelQuery([searchableVariant], (model) => model, "reasoner thematic mismatch").length,
+  0,
+  "model search should reject candidates below the query-term coverage threshold",
 );
 assert.deepEqual(
   dedupeDisplayModels(modelsForVariantDisplay(effortVariants, true)).map((row) =>

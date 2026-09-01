@@ -19,8 +19,8 @@ import {
   providerFilterKey,
   providerLogo,
 } from "./provider-theme";
+import { filterSearchDocuments, type SearchDocument } from "./search";
 
-const searchTextByModel = new WeakMap<ModelAtlasPublishedModel, string>();
 const MILLISECONDS_PER_DAY = 86_400_000;
 const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
@@ -122,26 +122,16 @@ export function modelLogo(model: ModelAtlasPublishedModel) {
   return typeof model.logo === "string" ? model.logo : "";
 }
 
-/** Filter model-backed rows with case-insensitive ANDed terms and `*` glob wildcards. */
+/** Filter model-backed rows through the shared weighted keyword policy and explicit model metadata projection. */
 export function filterByModelQuery<T>(
   items: readonly T[],
   getModel: (item: T) => ModelAtlasPublishedModel,
   filterQuery: string,
 ): T[] {
-  const terms = filterQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  if (terms.length === 0) {
-    return [...items];
-  }
-  const patterns = terms.map((term) => new RegExp(term.split("*").map(escapeRegExp).join(".*")));
-  return items.filter((item) => {
-    const model = getModel(item);
-    let searchable = searchTextByModel.get(model);
-    if (searchable == null) {
-      searchable = [modelDisplayName(model), model.id, model.provider].join(" ").toLowerCase();
-      searchTextByModel.set(model, searchable);
-    }
-    return patterns.every((pattern) => pattern.test(searchable));
-  });
+  return filterSearchDocuments(
+    filterQuery,
+    items.map((item) => modelSearchDocument(item, getModel(item))),
+  );
 }
 
 export function providerOptions(models: ModelAtlasPublishedModel[]): ProviderOption[] {
@@ -373,6 +363,24 @@ function compareIntelligence(
   return rightScore - leftScore;
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function modelSearchDocument<T>(value: T, model: ModelAtlasPublishedModel): SearchDocument<T> {
+  return {
+    value,
+    primary: [
+      modelDisplayName(model),
+      modelName(model),
+      shortLabel(model),
+      model.id,
+      model.provider,
+      providerDisplayName(model),
+    ],
+    context: [
+      model.reasoning === true ? "reasoning" : undefined,
+      model.preview === true ? "preview" : undefined,
+      model.open_weights === true ? "open weights" : undefined,
+      model.release_date,
+      model.modalities?.input?.map((modality) => `${modality} input`),
+      model.modalities?.output?.map((modality) => `${modality} output`),
+    ],
+  };
 }

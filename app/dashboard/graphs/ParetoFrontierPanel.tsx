@@ -2,16 +2,17 @@
 
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
-import { type CSSProperties, memo, useState } from "react";
+import { type CSSProperties, memo, type ReactNode, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelVariantKey, reasoningVariantGroups, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { valueDistribution } from "./chart-stats";
-import { EmptyChart, ShapeScaleLegend } from "./ChartComponents";
+import { EmptyChart } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import { Panel } from "./Panel";
+import { PARETO_PANEL_CONTENT, ParetoControlSet } from "./ParetoControlSet";
 import { scoreAxisScale } from "./plot/axis-scale";
 import {
   CursorCapture,
@@ -31,6 +32,7 @@ import {
   SCATTER_CHART_HEIGHT,
   SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
+  scatterChartMargin,
   stableSvgScale,
   TextPointLabel,
   XAxisTicks,
@@ -53,14 +55,25 @@ const valueScore = (model: ModelAtlasModel) => Number(model.scores.value_score);
 export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   models,
   showVariants,
+  compactLayout,
+  scoreBasisControl,
   setHover,
 }: {
   models: ModelAtlasModel[];
   showVariants: boolean;
+  compactLayout: boolean;
+  scoreBasisControl: ReactNode;
   setHover: HoverSetter;
 }) {
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
   const [highlightedVariantKey, setHighlightedVariantKey] = useState<string | null>(null);
+  const controls = (
+    <ParetoControlSet
+      scoreBasisControl={scoreBasisControl}
+      yAxisControl={<span className={styles.axisReadout}>Intelligence ↑</span>}
+      xAxisControl={<span className={styles.axisReadout}>Value ↑</span>}
+    />
+  );
   const candidates = models
     .filter(
       (model) =>
@@ -73,18 +86,8 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
 
   if (candidates.length === 0) {
     return (
-      <Panel
-        captureWidth={SCATTER_CHART_WIDTH}
-        sectionId="pareto-frontier"
-        sectionLabel="Tradeoff view · Intelligence × Value"
-        title="Pareto Frontier"
-        copy={
-          <>
-            Each point is a visible model variant. Up and right means stronger <em>Intelligence</em>{" "}
-            and <em>Value</em>.
-          </>
-        }
-      >
+      <Panel {...PARETO_PANEL_CONTENT} captureWidth={SCATTER_CHART_WIDTH} wide>
+        {controls}
         <EmptyChart />
       </Panel>
     );
@@ -92,7 +95,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
 
   const width = SCATTER_CHART_WIDTH;
   const height = SCATTER_CHART_HEIGHT;
-  const margin = SCATTER_CHART_MARGIN;
+  const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compactLayout);
   const values = candidates.map(valueScore);
   const scores = candidates.map(intelligenceScore);
   const frontier = paretoFrontier(candidates, {
@@ -194,16 +197,8 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
 
   return (
     <Panel
+      {...PARETO_PANEL_CONTENT}
       captureWidth={SCATTER_CHART_WIDTH}
-      sectionId="pareto-frontier"
-      sectionLabel="Tradeoff view · Intelligence × Value"
-      title="Pareto Frontier"
-      copy={
-        <>
-          Each point is a visible model variant. Up and right means stronger <em>Intelligence</em>{" "}
-          and <em>Value</em>.
-        </>
-      }
       summary={
         <BoxWhiskerSummary
           label="Intelligence Score"
@@ -212,17 +207,10 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
           showDomainEndpoints
         />
       }
-      note={
-        <>
-          Frontier line: displayed <em>Intelligence</em> versus <em>Value</em> tradeoff envelope.
-        </>
-      }
+      note="The frontier line traces the best displayed tradeoffs between Intelligence and Value."
+      wide
     >
-      <div className={styles.chartToolbar}>
-        <div className={styles.chartToolbarCaption}>
-          <ShapeScaleLegend />
-        </div>
-      </div>
+      {controls}
       <div
         className={styles.chartWrap}
         style={{ "--chart-max-width": `${width}px` } as CSSProperties}

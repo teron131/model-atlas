@@ -1183,8 +1183,70 @@
   padding: 10px 0 0;
 }
 
+.paretoControlGrid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(180px, 0.75fr) minmax(220px, 1fr) minmax(340px, auto);
+  align-items: flex-start;
+  gap: 18px 34px;
+}
+
+.paretoControlSet {
+  --pareto-control-height: 30px;
+
+  align-items: flex-start;
+}
+
+.toolbarControl {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.axisReadout {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  justify-self: start;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.025em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .paretoControlGrid {
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 1.5fr);
+  }
+
+  .paretoControlBasis {
+    grid-column: 1 / -1;
+  }
+
+  .paretoControlXAxis {
+    min-width: 0;
+  }
+
+  .paretoControlXAxis .metricToggle {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .paretoControlXAxis .metricToggle::-webkit-scrollbar {
+    display: none;
+  }
+
+  .paretoControlXAxis .metricToggle button {
+    flex: 0 0 auto;
+  }
+}
+
 .toolbarControlTitle {
-  flex: 1 0 100%;
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: var(--type-micro-size);
@@ -1219,17 +1281,12 @@
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background 0.16s ease,
     border-color 0.16s ease,
     color 0.16s ease;
-}
-
-.metricToggle button span {
-  margin-left: 6px;
-  color: currentColor;
-  font-size: inherit;
 }
 
 .metricToggle button[aria-pressed="true"] {
@@ -1257,6 +1314,294 @@
   color: var(--muted);
 }
 
+.benchmarkSelect {
+  position: relative;
+  min-width: 220px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.benchmarkSelect summary {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  border-bottom: 2px solid var(--line-strong);
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.benchmarkSelect summary::after {
+  min-width: 12px;
+  color: var(--faint);
+  content: "+";
+  text-align: right;
+}
+
+.benchmarkSelect[open] summary::after {
+  color: var(--ink);
+  content: "-";
+}
+
+.benchmarkSelect summary::-webkit-details-marker {
+  display: none;
+}
+
+.benchmarkSelect summary:hover,
+.benchmarkSelect[open] summary {
+  border-bottom-color: var(--ink);
+}
+
+.benchmarkSelect summary:focus-visible,
+.benchmarkSelectMenu button:focus-visible,
+.benchmarkSelectSearch input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.benchmarkSelectMenu {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(420px, calc(100vw - (var(--page-gutter) * 2)));
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  box-shadow: var(--tooltip-shadow);
+}
+
+.benchmarkSelectBulk {
+  display: grid;
+  width: 14px;
+  height: 30px;
+  align-items: center;
+  justify-items: center;
+  cursor: pointer;
+}
+
+.benchmarkSelectBulk input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.benchmarkSelectBulkMark,
+.benchmarkSelectOptionMark {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--muted);
+}
+
+.benchmarkSelectBulkMark {
+  display: grid;
+  place-items: center;
+}
+
+.benchmarkSelectBulk input:focus-visible + .benchmarkSelectBulkMark,
+.benchmarkSelectOption input:focus-visible + .benchmarkSelectOptionMark {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.benchmarkSelectBulk input:checked + .benchmarkSelectBulkMark,
+.benchmarkSelectOption input:checked + .benchmarkSelectOptionMark {
+  border-color: var(--ink);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+.benchmarkSelectBulk input:indeterminate + .benchmarkSelectBulkMark::after {
+  width: 6px;
+  height: 2px;
+  background: var(--ink);
+  content: "";
+}
+
+.benchmarkSelectSearch {
+  display: block;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.benchmarkSelectSearch input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--type-caption-size);
+  text-transform: none;
+}
+
+.benchmarkSelectSearch input::placeholder {
+  color: var(--faint);
+}
+
+.benchmarkSelectOptions {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.benchmarkSelectHeader,
+.benchmarkSelectOption {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 72px 48px;
+  gap: 9px;
+  padding: 0 10px;
+}
+
+.benchmarkSelectHeader {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  min-height: 30px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--faint);
+  font-size: var(--type-micro-size);
+}
+
+.benchmarkSelectSortHeader {
+  display: flex;
+  min-width: 0;
+}
+
+.benchmarkSelectSortHeader:nth-child(n + 3) {
+  justify-content: flex-end;
+}
+
+.benchmarkSelectSortHeader button {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.benchmarkSelectSortHeader button:hover,
+.benchmarkSelectSortHeader button:focus-visible {
+  color: var(--ink);
+  outline: 0;
+}
+
+.benchmarkSelectSortHeader button:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.benchmarkSelectSortIndicator {
+  display: inline-grid;
+  width: 7px;
+  height: 12px;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 2px;
+}
+
+.benchmarkSelectSortIndicator::before,
+.benchmarkSelectSortIndicator::after {
+  width: 0;
+  height: 0;
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
+  content: "";
+  opacity: 0.28;
+}
+
+.benchmarkSelectSortIndicator::before {
+  border-bottom: 4px solid currentColor;
+}
+
+.benchmarkSelectSortIndicator::after {
+  border-top: 4px solid currentColor;
+}
+
+.benchmarkSelectSortHeader
+  button[data-sort-state="ascending"]
+  .benchmarkSelectSortIndicator::before,
+.benchmarkSelectSortHeader
+  button[data-sort-state="descending"]
+  .benchmarkSelectSortIndicator::after {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.benchmarkSelectOption {
+  position: relative;
+  min-height: 42px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.benchmarkSelectOption:last-child {
+  border-bottom: 0;
+}
+
+.benchmarkSelectOption:hover {
+  background: var(--hover);
+}
+
+.benchmarkSelectOption input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.benchmarkSelectOptionLabel {
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benchmarkSelectOptionCorrelation,
+.benchmarkSelectOptionCoverage {
+  color: var(--muted);
+  font-size: var(--type-micro-size);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.benchmarkSelectEmpty {
+  margin: 0;
+  padding: 18px 10px;
+  color: var(--muted);
+  font-size: var(--type-caption-size);
+}
+
+.benchmarkSelectExplainer {
+  margin: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--type-micro-size);
+}
+
+.paretoControlSet .metricToggle button,
+.paretoControlSet .axisReadout,
+.paretoControlSet .benchmarkSelect summary {
+  min-height: var(--pareto-control-height);
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;
@@ -1278,13 +1623,6 @@
   font-weight: var(--type-label-weight);
   letter-spacing: 0.035em;
   text-transform: uppercase;
-}
-
-.markerKey {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
 }
 
 .shapeScaleLegend {
@@ -1354,56 +1692,14 @@
   gap: 6px;
 }
 
-.metricToggleStacked {
-  flex-wrap: wrap;
-  gap: 8px 20px;
-}
-
-.chartToolbar > .metricToggleStacked {
-  flex-basis: 100%;
-  width: 100%;
-  margin-bottom: 12px;
-}
-
-.metricToggleStacked button {
-  display: grid;
-  min-width: 76px;
-  gap: 5px;
-  justify-items: start;
-  padding: 4px 2px 7px;
-  text-align: left;
-}
-
-.metricToggleStacked button span,
-.metricToggleStacked button b {
-  margin-left: 0;
-  line-height: 1;
-}
-
-.metricToggleDetail {
-  color: var(--faint);
-  font-size: var(--type-micro-size);
-}
-
-.metricToggleLabel {
-  color: currentColor;
-  font-size: inherit;
-  font-weight: var(--type-label-weight);
-}
-
-.metricToggleStacked button[aria-pressed="true"] .metricToggleDetail {
-  color: var(--muted);
-}
-
 .note {
   padding: 14px 0;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: var(--mono-chip);
   font-weight: var(--type-label-weight);
-  letter-spacing: 0.025em;
+  letter-spacing: 0.01em;
   line-height: 1.45;
-  text-transform: uppercase;
 }
 
 .note b {
@@ -1667,6 +1963,20 @@
     overflow: hidden;
   }
 
+  .paretoControlGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .paretoControlSet {
+    --pareto-control-height: 36px;
+  }
+
+  .paretoControlBasis {
+    grid-column: auto;
+  }
+
   .metricToggle {
     width: 100%;
     gap: 14px;
@@ -1685,19 +1995,22 @@
     flex: 0 0 auto;
   }
 
-  .metricToggleStacked {
-    flex-wrap: nowrap;
-  }
-
-  .metricToggleStacked button {
-    min-width: max-content;
-    justify-items: start;
-  }
-
   .chartToolbarCaption {
     width: 100%;
     margin-left: 0;
     justify-content: space-between;
+  }
+
+  .benchmarkSelect {
+    width: 100%;
+  }
+
+  .benchmarkSelectMenu {
+    position: relative;
+    top: auto;
+    width: 100%;
+    margin-top: 8px;
+    box-shadow: none;
   }
 }
 

@@ -8,8 +8,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { ColumnTooltip } from "../app/dashboard/shared/ColumnTooltip";
 import { benchmarkLabels, benchmarkTooltips } from "../app/dashboard/shared/constants";
-import { formatBenchmarkMetric } from "../app/dashboard/shared/format";
 import { ALL_TABLE_COLUMN_KEYS } from "../app/dashboard/table/column-views";
+import { formatBenchmarkMetric } from "../app/dashboard/table/format";
 import {
   benchmarkMetricColumns,
   dashboardMetricColumns,
@@ -185,8 +185,8 @@ assert.equal(
   "the global view panel should expose both reasoning variant display modes",
 );
 assert.equal(
-  html.includes('aria-label="Search table columns"') &&
-    html.includes('placeholder="Search columns or benchmarks"') &&
+  html.includes('aria-label="Search table columns and descriptions"') &&
+    html.includes('placeholder="Search columns or descriptions"') &&
     html.includes('aria-label="Column presets"') &&
     html.includes("Scores") &&
     html.includes("Cost") &&
@@ -206,12 +206,12 @@ assert.equal(
   "graph exports should have a stable theme boundary independent of CSS-module class names",
 );
 assert.equal(
-  html.includes("Pareto Frontier") &&
+  html.includes("Pareto Analysis") &&
     html.includes("Price vs Cost Efficiency") &&
-    html.includes("Frontier Benchmarks") &&
+    !html.includes("Frontier Benchmarks") &&
     !html.includes('id="interaction-matrix"'),
   true,
-  "server markup should include every remaining graph panel and omit the removed interaction matrix",
+  "server markup should include the merged Pareto panel and omit superseded graph panels",
 );
 assert.equal(
   matchCount(html, 'data-column-key="model"'),

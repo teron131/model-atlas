@@ -13,6 +13,8 @@ import {
   TextInputIcon,
   VideoInputIcon,
 } from "../shared/DashboardIcons";
+import { modelDisplayName } from "../shared/model-display";
+import { providerBrandColor, providerLogo } from "../shared/provider-theme";
 import {
   benchmarkPercentValue,
   formatConfidence,
@@ -20,9 +22,7 @@ import {
   formatCost,
   formatDashboardMetric,
   formatScore,
-} from "../shared/format";
-import { modelDisplayName } from "../shared/model-display";
-import { providerBrandColor, providerLogo } from "../shared/provider-theme";
+} from "./format";
 import {
   benchmarkDisplayValue,
   benchmarkMeterValue,

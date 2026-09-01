@@ -2,6 +2,7 @@
 
 import type { ModelAtlasColumnTooltips } from "../../../src/model-atlas/config/tooltips";
 import { benchmarkLabels } from "../shared/constants";
+import { filterSearchDocuments, hasSearchQuery, type SearchDocument } from "../shared/search";
 import { staticSortableColumns } from "./Columns";
 import {
   type BenchmarkColumnOrder,
@@ -100,15 +101,14 @@ export function tableColumnKeysForView(
   query: string,
   columnTooltips: ModelAtlasColumnTooltips,
 ): TableColumnKey[] {
-  const normalizedQuery = normalizeSearchText(query);
-  const matchingKeys =
-    normalizedQuery.length === 0
-      ? presetColumnKeys[preset]
-      : new Set(
-          optionalColumnKeys.filter((key) =>
-            columnMatchesQuery(key, normalizedQuery, columnTooltips),
-          ),
-        );
+  const matchingKeys = hasSearchQuery(query)
+    ? new Set(
+        filterSearchDocuments(
+          query,
+          optionalColumnKeys.map((key) => columnSearchDocument(key, columnTooltips)),
+        ),
+      )
+    : presetColumnKeys[preset];
   return [
     ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
     ...optionalColumnKeys.filter((key) => matchingKeys.has(key)),
@@ -121,12 +121,12 @@ export function tableColumnSearchMatchCount(
   query: string,
   columnTooltips: ModelAtlasColumnTooltips,
 ): number {
-  const normalizedQuery = normalizeSearchText(query);
-  return normalizedQuery.length === 0
-    ? 0
-    : ALL_TABLE_COLUMN_KEYS.filter((key) =>
-        columnMatchesQuery(key, normalizedQuery, columnTooltips),
-      ).length;
+  return hasSearchQuery(query)
+    ? filterSearchDocuments(
+        query,
+        ALL_TABLE_COLUMN_KEYS.map((key) => columnSearchDocument(key, columnTooltips)),
+      ).length
+    : 0;
 }
 
 /** Keep sorting visible when a preset or search removes the active sort column. */
@@ -135,7 +135,7 @@ export function tableColumnSortKey(
   query: string,
   visibleColumnKeys: readonly TableColumnKey[],
 ): SortKey {
-  const preferredKey = query.trim().length === 0 ? presetDefaultSortKeys[preset] : null;
+  const preferredKey = hasSearchQuery(query) ? null : presetDefaultSortKeys[preset];
   if (preferredKey != null && visibleColumnKeys.includes(preferredKey)) {
     return preferredKey;
   }
@@ -176,45 +176,22 @@ export function tableColumnKeysByCoverage(
   );
 }
 
-function columnMatchesQuery(
+function columnSearchDocument(
   key: TableColumnKey,
-  normalizedQuery: string,
   columnTooltips: ModelAtlasColumnTooltips,
-): boolean {
+): SearchDocument<TableColumnKey> {
   const column = metricColumnsByKey.get(key);
   const tooltip = tableColumnTooltip(key, columnTooltips);
-  const searchText = normalizeSearchText(
-    [
+  return {
+    value: key,
+    primary: [
       key,
       staticColumnSearchText.get(key),
       column?.label,
       column?.group === "benchmarks" ? benchmarkLabels[column.benchmark] : undefined,
       column?.group === "tasks" ? benchmarkLabels[column.source] : undefined,
       column?.group === "tasks" ? column.metric.replaceAll("_", " ") : undefined,
-      ...collectTextValues(tooltip),
-    ]
-      .filter((value) => value != null)
-      .join(" "),
-  );
-  return normalizedQuery.split(" ").every((term) => searchText.includes(term));
-}
-
-function collectTextValues(value: unknown): string[] {
-  if (typeof value === "string") {
-    return [value];
-  }
-  if (Array.isArray(value)) {
-    return value.flatMap(collectTextValues);
-  }
-  if (value != null && typeof value === "object") {
-    return Object.values(value).flatMap(collectTextValues);
-  }
-  return [];
-}
-
-function normalizeSearchText(value: string): string {
-  return value
-    .toLocaleLowerCase("en")
-    .replaceAll(/[^a-z0-9]+/g, " ")
-    .trim();
+    ],
+    context: tooltip,
+  };
 }

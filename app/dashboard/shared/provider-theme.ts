@@ -1,7 +1,6 @@
 /** Dashboard provider labels, brand assets, and chart colors. */
 
 import { providerIcons } from "../../../src/model-atlas/logos/provider-icons.generated";
-import { safeSlug } from "./format";
 
 type ProviderLike = { provider?: string | null };
 
@@ -90,7 +89,11 @@ export function providerFilterKey(provider: string | null | undefined) {
 }
 
 function providerAssetKey(provider: string | null | undefined) {
-  return safeSlug(provider);
+  return String(provider ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function providerIcon(provider: string | null | undefined) {
