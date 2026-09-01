@@ -248,7 +248,7 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Model Atlas score for knowledge, reasoning, interpretation, and problem solving. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Frontier and baseline groups differ only in how strongly uncertain estimates are penalized.",
+      body: "Model Atlas score for knowledge, reasoning, interpretation, and problem solving. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
@@ -264,7 +264,7 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "Model Atlas score for completing work through tools, files, repositories, browsers, terminals, APIs, and other external environments. Selected benchmarks are normalized to 0–100 and weighted by importance × Agentic loading. Frontier and baseline groups differ only in how strongly uncertain estimates are penalized.",
+      body: "Model Atlas score for completing work through tools, files, repositories, browsers, terminals, APIs, and other external environments. Selected benchmarks are normalized to 0–100 and weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
@@ -323,16 +323,16 @@ export function columnTooltipsForActiveComponents(
     },
     context: {
       title: "Context",
-      body: "Maximum number of input tokens the selected model route can accept at once.",
+      body: "Maximum context window reported for the selected model route.",
       rows: [
-        ["Definition", "maximum input tokens"],
+        ["Definition", "maximum context window"],
         ["Unit", "tokens"],
         ["Source", "selected model metadata"],
       ],
     },
     artificialAnalysisCost: {
       title: "Artificial Analysis Cost per Task ↓",
-      body: "Reported cost to complete one Artificial Analysis Intelligence Index v4.1 task.",
+      body: "Reported cost to complete one task in the current Artificial Analysis Intelligence Index.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported cost per Intelligence task"],
@@ -341,7 +341,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisSeconds: {
       title: "Artificial Analysis Seconds per Task ↓",
-      body: "Reported runtime to complete one Artificial Analysis Intelligence Index v4.1 task.",
+      body: "Reported runtime to complete one task in the current Artificial Analysis Intelligence Index.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported time per Intelligence task"],
@@ -350,7 +350,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisTokens: {
       title: "Artificial Analysis Output Tokens per Task",
-      body: "Reported output tokens used to complete one Artificial Analysis Intelligence Index v4.1 task.",
+      body: "Reported output tokens used to complete one task in the current Artificial Analysis Intelligence Index.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported output tokens per Intelligence task"],

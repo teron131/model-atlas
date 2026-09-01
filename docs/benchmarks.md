@@ -4,7 +4,7 @@ This document records which benchmarks affect Model Atlas, what capability each 
 
 ## Scoring Roles
 
-Accepted task-level benchmarks are classified as `frontier` or `baseline` under [the standards](standards.md). Aggregate indexes are listed separately; every current index uses the `baseline` missing-value policy. Rejected and watchlist benchmarks do not affect the ranking.
+Accepted task-level benchmarks are classified as `frontier` or `baseline` under [the standards](standards.md). Aggregate indexes are listed separately. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment. Rejected and watchlist benchmarks do not affect the ranking.
 
 The ranking has two quality dimensions:
 
@@ -51,7 +51,6 @@ Every benchmark whose task time or cost can enter Speed or Value declares how it
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
 | SciCode | Logit | The source score is a bounded scientific-code correctness rate. |
 | tau3 Banking | Logit | The score is a bounded workflow-success rate. |
-| Terminal-Bench 4.0 | Logit | Task accuracy is a bounded completion rate with meaningful remaining error. |
 
 ### Indexes
 
