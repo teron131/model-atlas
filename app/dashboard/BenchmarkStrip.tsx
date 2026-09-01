@@ -4,7 +4,6 @@ import { Star } from "lucide-react";
 import {
   type CSSProperties,
   type FocusEvent,
-  Fragment,
   memo,
   type MouseEvent,
   useCallback,
@@ -156,28 +155,66 @@ function BenchmarkList({
   onHover: (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => void;
   onHoverEnd: () => void;
 }) {
+  const frontierKeys = keys.filter((key) => frontierBenchmarkKeys.has(key));
+  const baselineKeys = keys.filter((key) => !frontierBenchmarkKeys.has(key));
   return (
-    <ul className="benchmark-list">
-      {keys.map((key, index) => {
-        const label = benchmarkLabels[key] ?? key;
-        const isFrontier = frontierBenchmarkKeys.has(key);
-        const startsBaselineGroup =
-          index > 0 && !isFrontier && frontierBenchmarkKeys.has(keys[index - 1] as string);
-        const coverage = benchmarkCoverage(models, key);
-        const coverageLabel = benchmarkCoverageLabel(coverage);
-        return (
-          <Fragment key={key}>
-            {startsBaselineGroup && (
-              <li className="benchmark-baseline-divider" aria-hidden="true" />
-            )}
-            <li>
+    <>
+      {frontierKeys.length > 0 && (
+        <BenchmarkTier
+          tier="frontier"
+          keys={frontierKeys}
+          models={models}
+          hoveredBenchmarkKey={hoveredBenchmarkKey}
+          onHover={onHover}
+          onHoverEnd={onHoverEnd}
+        />
+      )}
+      {baselineKeys.length > 0 && (
+        <BenchmarkTier
+          tier="baseline"
+          keys={baselineKeys}
+          models={models}
+          hoveredBenchmarkKey={hoveredBenchmarkKey}
+          onHover={onHover}
+          onHoverEnd={onHoverEnd}
+        />
+      )}
+    </>
+  );
+}
+
+function BenchmarkTier({
+  tier,
+  keys,
+  models,
+  hoveredBenchmarkKey,
+  onHover,
+  onHoverEnd,
+}: {
+  tier: "frontier" | "baseline";
+  keys: string[];
+  models: ModelAtlasPayload["models"];
+  hoveredBenchmarkKey: string | null;
+  onHover: (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>, key: string) => void;
+  onHoverEnd: () => void;
+}) {
+  const isFrontier = tier === "frontier";
+  const label = isFrontier ? "Frontier" : "Baseline";
+  return (
+    <section className="benchmark-tier" aria-label={`${label} benchmarks`}>
+      <h3 className="benchmark-tier-label">{label}</h3>
+      <ul className="benchmark-list">
+        {keys.map((key) => {
+          const benchmarkLabel = benchmarkLabels[key] ?? key;
+          const coverage = benchmarkCoverage(models, key);
+          const coverageLabel = benchmarkCoverageLabel(coverage);
+          return (
+            <li key={key}>
               <button
                 className="benchmark-chip"
                 type="button"
                 data-hovered={hoveredBenchmarkKey === key ? "true" : undefined}
-                aria-label={`${label}, ${coverageAriaLabel(coverage)}${
-                  isFrontier ? ", frontier benchmark" : ""
-                }`}
+                aria-label={`${benchmarkLabel}, ${coverageAriaLabel(coverage)}, ${isFrontier ? "frontier" : "baseline"} benchmark`}
                 onMouseEnter={(event) => onHover(event, key)}
                 onFocus={(event) => onHover(event, key)}
                 onMouseLeave={onHoverEnd}
@@ -186,14 +223,14 @@ function BenchmarkList({
                 {isFrontier && (
                   <Star className="benchmark-frontier-star" aria-hidden="true" size={10} />
                 )}
-                <span className="benchmark-chip-label">{label}</span>
+                <span className="benchmark-chip-label">{benchmarkLabel}</span>
                 <span className="benchmark-chip-coverage">{coverageLabel}</span>
               </button>
             </li>
-          </Fragment>
-        );
-      })}
-    </ul>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

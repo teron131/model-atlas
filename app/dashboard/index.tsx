@@ -9,13 +9,15 @@ import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { useLivePayload } from "./live-payload";
-import { DEFAULT_DISPLAY_ITEMS } from "./shared/DisplayControls";
 import {
   type CostFilter,
-  type ModelLimit,
+  DEFAULT_MODEL_RANK_FILTER,
+  DEFAULT_RECENCY_FILTER,
+  type ModelRankFilter,
   modelsForVariantDisplay,
   type ProviderFilters,
   providerOptions,
+  type RecencyFilter,
 } from "./shared/model-display";
 
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
@@ -26,7 +28,9 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
   const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay();
   const [selectedProviders, setSelectedProviders] = useState<ProviderFilters>([]);
   const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
-  const [modelLimit, setModelLimit] = useState<ModelLimit>(DEFAULT_DISPLAY_ITEMS);
+  const [modelRankFilter, setModelRankFilter] =
+    useState<ModelRankFilter>(DEFAULT_MODEL_RANK_FILTER);
+  const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(DEFAULT_RECENCY_FILTER);
   const [globalModelFilterQuery, setGlobalModelFilterQuery] = useState("");
   const { payload, errorMessage } = useLivePayload(initialPayload);
 
@@ -98,13 +102,15 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
         selectedProviders={selectedProviders}
         providerChoices={providerChoices}
         maxCost={maxCostFilter}
-        modelLimit={modelLimit}
+        modelRankFilter={modelRankFilter}
+        recencyFilter={recencyFilter}
         globalModelFilterQuery={globalModelFilterQuery}
         showReasoningVariants={showReasoningVariants}
         onShowReasoningVariantsChange={setShowReasoningVariants}
         onSelectedProvidersChange={setSelectedProviders}
         onMaxCostChange={setMaxCostFilter}
-        onModelLimitChange={setModelLimit}
+        onModelRankFilterChange={setModelRankFilter}
+        onRecencyFilterChange={setRecencyFilter}
         onGlobalModelFilterQueryChange={setGlobalModelFilterQuery}
         afterLead={
           <DashboardLeaderboard
@@ -112,7 +118,8 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
             errorMessage={errorMessage}
             isLoading={isInitialLoading}
             maxCost={maxCostFilter}
-            modelLimit={modelLimit}
+            modelRankFilter={modelRankFilter}
+            recencyFilter={recencyFilter}
             globalModelFilterQuery={globalModelFilterQuery}
             selectedProviders={selectedProviders}
           />

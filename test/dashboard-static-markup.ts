@@ -53,6 +53,7 @@ const payload = minimalModelAtlasPayload({
         id: "openai/gpt-5.5",
         name: "GPT-5.5",
       }),
+      release_date: "1970-01-01",
       benchmarks: { deep_swe: 0.6 },
       confidence: {
         intelligence: 0.83,
@@ -78,6 +79,7 @@ const { confidence: _staleConfidence, ...staleConfidenceModel } = minimalModelAt
   id: "openai/stale-snapshot-model",
   name: "Stale Snapshot Model",
 });
+staleConfidenceModel.release_date = "1970-01-01";
 const staleConfidenceHtml = renderToStaticMarkup(
   React.createElement(Dashboard, {
     initialPayload: minimalModelAtlasPayload({
@@ -378,9 +380,10 @@ assert.equal(
   "benchmark chips should be alphabetical within frontier and baseline groups",
 );
 assert.equal(
-  benchmarkOrderHtml.includes('class="benchmark-baseline-divider"'),
+  benchmarkOrderHtml.includes('class="benchmark-tier-label">Frontier</h3>') &&
+    benchmarkOrderHtml.includes('class="benchmark-tier-label">Baseline</h3>'),
   true,
-  "benchmark chips should mark the frontier-to-baseline boundary",
+  "benchmark chips should label both frontier and baseline tiers",
 );
 assert.equal(
   formatBenchmarkMetric(161.77, "number"),

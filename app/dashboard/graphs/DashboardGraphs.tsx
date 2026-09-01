@@ -9,13 +9,16 @@ import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
   type CostFilter,
   costFilterOptions,
+  filterByIntelligenceRank,
   filterByModelControls,
   filterByModelQuery,
-  limitByIntelligenceScore,
+  filterByReleaseRecency,
   modelCount,
-  type ModelLimit,
-  modelLimitOptions,
+  type ModelRankFilter,
+  modelRankFilterOptions,
   type ProviderOption,
+  type RecencyFilter,
+  recencyFilterOptions,
   toggleProviderFilter,
 } from "../shared/model-display";
 import { ModelSignature } from "../signature/ModelSignature";
@@ -47,13 +50,15 @@ export function DashboardGraphs({
   selectedProviders,
   providerChoices,
   maxCost,
-  modelLimit,
+  modelRankFilter,
+  recencyFilter,
   globalModelFilterQuery,
   showReasoningVariants,
   onShowReasoningVariantsChange,
   onSelectedProvidersChange,
   onMaxCostChange,
-  onModelLimitChange,
+  onModelRankFilterChange,
+  onRecencyFilterChange,
   onGlobalModelFilterQueryChange,
 }: {
   payload: GraphPayload | null;
@@ -63,13 +68,15 @@ export function DashboardGraphs({
   selectedProviders: string[];
   providerChoices: ProviderOption[];
   maxCost: CostFilter;
-  modelLimit: ModelLimit;
+  modelRankFilter: ModelRankFilter;
+  recencyFilter: RecencyFilter;
   globalModelFilterQuery: string;
   showReasoningVariants: boolean;
   onShowReasoningVariantsChange: (show: boolean) => void;
   onSelectedProvidersChange: (providers: string[]) => void;
   onMaxCostChange: (maxCost: CostFilter) => void;
-  onModelLimitChange: (modelLimit: ModelLimit) => void;
+  onModelRankFilterChange: (modelRankFilter: ModelRankFilter) => void;
+  onRecencyFilterChange: (recencyFilter: RecencyFilter) => void;
   onGlobalModelFilterQueryChange: (value: string) => void;
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
@@ -77,7 +84,8 @@ export function DashboardGraphs({
   const deferredPayload = useDeferredValue(payload);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
   const deferredMaxCost = useDeferredValue(maxCost);
-  const deferredModelLimit = useDeferredValue(modelLimit);
+  const deferredModelRankFilter = useDeferredValue(modelRankFilter);
+  const deferredRecencyFilter = useDeferredValue(recencyFilter);
   const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
   const deferredShowReasoningVariants = useDeferredValue(showReasoningVariants);
 
@@ -98,22 +106,39 @@ export function DashboardGraphs({
     });
   }, [deferredMaxCost, deferredSelectedProviders, queryFilteredModels]);
 
-  const models = useMemo(() => {
-    return limitByIntelligenceScore(filteredModels, (model) => model, deferredModelLimit);
-  }, [filteredModels, deferredModelLimit]);
+  const recencyFilteredModels = useMemo(() => {
+    return filterByReleaseRecency(
+      filteredModels,
+      (model) => model,
+      deferredRecencyFilter,
+      deferredPayload?.fetched_at_epoch_seconds ?? null,
+    );
+  }, [deferredPayload?.fetched_at_epoch_seconds, deferredRecencyFilter, filteredModels]);
+  const models = useMemo(
+    () =>
+      filterByIntelligenceRank(
+        recencyFilteredModels,
+        (model) => model,
+        deferredModelRankFilter,
+        referenceModels,
+      ),
+    [deferredModelRankFilter, recencyFilteredModels, referenceModels],
+  );
   const currentSection = useCurrentResearchSection(deferredPayload != null && allModels.length > 0);
 
   const filteredModelCount = modelCount(filteredModels);
+  const recencyModelCount = modelCount(recencyFilteredModels);
   const visibleModelCount = modelCount(models);
-  const visibleModelLabel = deferredShowReasoningVariants
-    ? `${
-        deferredModelLimit === "all" || filteredModelCount <= deferredModelLimit
-          ? fmtCompact(visibleModelCount)
-          : `Top ${deferredModelLimit} of ${fmtCompact(filteredModelCount)}`
-      } models / ${fmtCompact(models.length)} variants`
-    : deferredModelLimit === "all" || filteredModelCount <= deferredModelLimit
-      ? `${fmtCompact(visibleModelCount)} models`
-      : `Top ${deferredModelLimit} of ${fmtCompact(filteredModelCount)} models`;
+  const modelRankLabel = modelRankValueLabel(
+    deferredModelRankFilter,
+    recencyModelCount,
+    visibleModelCount,
+    deferredShowReasoningVariants ? models.length : null,
+  );
+  const recencyLabel =
+    deferredRecencyFilter === "all"
+      ? `${fmtCompact(recencyModelCount)} models`
+      : `${fmtCompact(recencyModelCount)} of ${fmtCompact(filteredModelCount)} models`;
   const selectedProviderChoices = providerChoices.filter((option) =>
     selectedProviders.includes(option.slug),
   );
@@ -132,8 +157,9 @@ export function DashboardGraphs({
     trimmedGlobalModelFilterQuery.length === 0 ? "All models" : trimmedGlobalModelFilterQuery;
   const costLabel = maxCost === "all" ? "Any cost" : `<= ${fmtMoney(maxCost)}`;
   const compactCostLabel = maxCost === "all" ? "Any" : `<= ${fmtMoney(maxCost)}`;
-  const compactLimitLabel = modelLimit === "all" ? "All" : `Top ${modelLimit}`;
-  const filterSummary = `${compactModelFilterLabel} / ${compactProviderLabel} / ${compactCostLabel} / ${compactLimitLabel}`;
+  const compactRecencyLabel = recencyFilter === "all" ? "Any date" : `${recencyFilter}d`;
+  const compactRankLabel = modelRankFilter === "all" ? "All ranks" : `Rank ≤${modelRankFilter}`;
+  const filterSummary = `${compactModelFilterLabel} / ${compactProviderLabel} / ${compactCostLabel} / ${compactRecencyLabel} / ${compactRankLabel}`;
 
   if (!payload || !deferredPayload || allModels.length === 0) {
     return (
@@ -203,6 +229,36 @@ export function DashboardGraphs({
                 ))}
               </div>
             </FilterSection>
+            <FilterSection label="Release recency" value={recencyLabel}>
+              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+                {recencyFilterOptions.map((option) => (
+                  <button
+                    key={String(option)}
+                    type="button"
+                    className={styles.costFilterButton}
+                    aria-pressed={recencyFilter === option}
+                    onClick={() => onRecencyFilterChange(option)}
+                  >
+                    <span>{option === "all" ? "All" : `${option}d`}</span>
+                  </button>
+                ))}
+              </div>
+            </FilterSection>
+            <FilterSection label="Model rank" value={modelRankLabel}>
+              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+                {modelRankFilterOptions.map((option) => (
+                  <button
+                    key={String(option)}
+                    type="button"
+                    className={styles.costFilterButton}
+                    aria-pressed={modelRankFilter === option}
+                    onClick={() => onModelRankFilterChange(option)}
+                  >
+                    <span>{option === "all" ? "All" : `≤ ${option}`}</span>
+                  </button>
+                ))}
+              </div>
+            </FilterSection>
             <FilterSection
               label="Variants"
               value={showReasoningVariants ? "Expanded" : "Collapsed"}
@@ -224,21 +280,6 @@ export function DashboardGraphs({
                 >
                   <span>Expanded</span>
                 </button>
-              </div>
-            </FilterSection>
-            <FilterSection label="Model count" value={visibleModelLabel}>
-              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
-                {modelLimitOptions.map((option) => (
-                  <button
-                    key={String(option)}
-                    type="button"
-                    className={styles.costFilterButton}
-                    aria-pressed={modelLimit === option}
-                    onClick={() => onModelLimitChange(option)}
-                  >
-                    <span>{option === "all" ? "All" : `Top ${option}`}</span>
-                  </button>
-                ))}
               </div>
             </FilterSection>
             <FilterSection wide label="Provider filter" value={providerLabel}>
@@ -302,6 +343,9 @@ export function DashboardGraphs({
             globalModelFilterQuery={deferredGlobalModelFilterQuery}
             showVariants={deferredShowReasoningVariants}
             maxCost={deferredMaxCost}
+            modelRankFilter={deferredModelRankFilter}
+            recencyFilter={deferredRecencyFilter}
+            observedAtEpochSeconds={deferredPayload.fetched_at_epoch_seconds}
             onShowVariantsChange={onShowReasoningVariantsChange}
             selectedProviders={deferredSelectedProviders}
             onSelectedProvidersChange={onSelectedProvidersChange}
@@ -314,6 +358,20 @@ export function DashboardGraphs({
       {hover ? <HoverCard hover={hover} /> : null}
     </section>
   );
+}
+
+function modelRankValueLabel(
+  rankFilter: ModelRankFilter,
+  filteredModelCount: number,
+  visibleModelCount: number,
+  visibleVariantCount: number | null,
+): string {
+  const variantLabel =
+    visibleVariantCount == null ? "" : ` / ${fmtCompact(visibleVariantCount)} variants`;
+  if (rankFilter === "all") {
+    return `${fmtCompact(visibleModelCount)} models${variantLabel}`;
+  }
+  return `Rank ≤${rankFilter} · ${fmtCompact(visibleModelCount)} of ${fmtCompact(filteredModelCount)} models${variantLabel}`;
 }
 
 /** Report the last research region to enter the upper viewport band below the sticky index. */

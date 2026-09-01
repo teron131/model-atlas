@@ -3,9 +3,10 @@
 import assert from "node:assert/strict";
 
 import {
+  filterByIntelligenceRank,
   filterByModelControls,
   filterByModelQuery,
-  limitByIntelligenceScore,
+  filterByReleaseRecency,
   modelDisplayName,
   modelsForVariantDisplay,
   providerOptions,
@@ -194,48 +195,93 @@ assert.deepEqual(
   "rank sort should follow intelligence rank",
 );
 
+const rankedPopulation = [
+  rankedModel("provider/high", "High", 90),
+  rankedModel("provider/mid", "Mid", 60),
+  ...Array.from({ length: 29 }, (_, index) =>
+    rankedModel(`provider/low-${index}`, `Low ${index}`, 30 - index),
+  ),
+];
 assert.deepEqual(
-  limitByIntelligenceScore(
-    [
-      rankedModel("provider/high", "High", 90),
-      rankedModel("provider/mid", "Mid", 60),
-      ...Array.from({ length: 29 }, (_, index) =>
-        rankedModel(`provider/low-${index}`, `Low ${index}`, 30 - index),
-      ),
-    ],
-    (model) => model,
-    30,
-  )
+  filterByIntelligenceRank(rankedPopulation, (model) => model, 30, rankedPopulation)
     .slice(0, 2)
     .map((model) => model.id),
   ["provider/high", "provider/mid"],
-  "model limit should prefer the highest intelligence scores",
+  "rank filtering should retain models through the requested global Intelligence rank",
 );
 
-const modelLimitedVariants = limitByIntelligenceScore(
-  [
-    { ...rankedModel("provider/a", "A", 90), reasoning_effort: "max" },
-    { ...rankedModel("provider/a", "A", 80), reasoning_effort: "high" },
-    ...Array.from({ length: 29 }, (_, index) =>
-      rankedModel(`provider/included-${index}`, `Included ${index}`, 70 - index),
-    ),
-    rankedModel("provider/excluded", "Excluded", 1),
-  ],
+const variantPopulation = [
+  { ...rankedModel("provider/a", "A", 90), reasoning_effort: "max" },
+  { ...rankedModel("provider/a", "A", 80), reasoning_effort: "high" },
+  ...Array.from({ length: 29 }, (_, index) =>
+    rankedModel(`provider/included-${index}`, `Included ${index}`, 70 - index),
+  ),
+  rankedModel("provider/excluded", "Excluded", 1),
+];
+const rankFilteredVariants = filterByIntelligenceRank(
+  variantPopulation,
   (model) => model,
   30,
+  variantPopulation,
 );
 assert.equal(
-  modelLimitedVariants.length,
+  rankFilteredVariants.length,
   31,
-  "model limits should select models before expanding their variants",
+  "rank filters should select model families before expanding their variants",
 );
 assert.deepEqual(
-  modelLimitedVariants.slice(0, 2).map((model) => modelDisplayName(model)),
+  rankFilteredVariants.slice(0, 2).map((model) => modelDisplayName(model)),
   ["A (max)", "A (high)"],
 );
 assert.equal(
-  modelLimitedVariants.some((model) => model.id === "provider/excluded"),
+  rankFilteredVariants.some((model) => model.id === "provider/excluded"),
   false,
+);
+
+const filteredRankedPopulation = filterByIntelligenceRank(
+  rankedPopulation.slice(1),
+  (model) => model,
+  30,
+  rankedPopulation,
+);
+assert.equal(
+  filteredRankedPopulation.some((model) => model.id === "provider/low-28"),
+  false,
+  "other filters should not backfill a model whose global Intelligence rank is below the threshold",
+);
+const previewModel = previewRankingRows.find((row) => row.intelligenceRank === "preview")?.model;
+assert.ok(previewModel);
+const previewRankPopulation = [...rankedPopulation, previewModel];
+const previewRankFiltered = filterByIntelligenceRank(
+  previewRankPopulation,
+  (model) => model,
+  30,
+  previewRankPopulation,
+);
+assert.equal(
+  previewRankFiltered.includes(previewModel),
+  true,
+  "unranked previews should remain visible without consuming ranked slots",
+);
+assert.equal(previewRankFiltered.length, 31);
+
+const recencyReference = Date.parse("2026-08-31T00:00:00Z") / 1_000;
+const recentModels = filterByReleaseRecency(
+  [
+    { ...rankedModel("provider/recent", "Recent", 70), release_date: "2026-06-03" },
+    { ...rankedModel("provider/recent", "Recent", 60), release_date: "2026-01-01" },
+    { ...rankedModel("provider/boundary", "Boundary", 90), release_date: "2026-06-02" },
+    { ...rankedModel("provider/future", "Future", 100), release_date: "2026-09-01" },
+    rankedModel("provider/unknown", "Unknown", 80),
+  ],
+  (model) => model,
+  90,
+  recencyReference,
+);
+assert.deepEqual(
+  recentModels.map((model) => model.id),
+  ["provider/recent", "provider/recent"],
+  "recency filters should retain every variant of model families released in the selected window",
 );
 
 const connectedMixedVariants = reasoningVariantGroups(

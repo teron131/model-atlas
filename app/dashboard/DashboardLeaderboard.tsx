@@ -29,11 +29,14 @@ import {
 import { DEFAULT_DISPLAY_ITEMS, useDisplayLimit } from "./shared/DisplayControls";
 import {
   type CostFilter,
+  filterByIntelligenceRank,
   filterByModelControls,
   filterByModelQuery,
-  type ModelLimit,
+  filterByReleaseRecency,
+  type ModelRankFilter,
   modelsForVariantDisplay,
   type ProviderFilters,
+  type RecencyFilter,
 } from "./shared/model-display";
 import { ModelToolbar } from "./shared/ModelToolbar";
 import {
@@ -68,7 +71,8 @@ export function DashboardLeaderboard({
   errorMessage,
   isLoading,
   maxCost,
-  modelLimit,
+  modelRankFilter,
+  recencyFilter,
   globalModelFilterQuery,
   selectedProviders,
 }: {
@@ -76,7 +80,8 @@ export function DashboardLeaderboard({
   errorMessage: string | null;
   isLoading: boolean;
   maxCost: CostFilter;
-  modelLimit: ModelLimit;
+  modelRankFilter: ModelRankFilter;
+  recencyFilter: RecencyFilter;
   globalModelFilterQuery: string;
   selectedProviders: ProviderFilters;
 }) {
@@ -120,7 +125,27 @@ export function DashboardLeaderboard({
     () => filterByModelQuery(filteredRows, (row) => row.model, deferredGlobalModelFilterQuery),
     [deferredGlobalModelFilterQuery, filteredRows],
   );
-  const maximumLimit = globallyFilteredRows.length;
+  const recencyFilteredRows = useMemo(
+    () =>
+      filterByReleaseRecency(
+        globallyFilteredRows,
+        (row) => row.model,
+        recencyFilter,
+        payload?.fetched_at_epoch_seconds ?? null,
+      ),
+    [globallyFilteredRows, payload?.fetched_at_epoch_seconds, recencyFilter],
+  );
+  const scopedRows = useMemo(
+    () =>
+      filterByIntelligenceRank(
+        recencyFilteredRows,
+        (row) => row.model,
+        modelRankFilter,
+        payload?.models ?? [],
+      ),
+    [modelRankFilter, payload?.models, recencyFilteredRows],
+  );
+  const maximumLimit = scopedRows.length;
   const expandedTableRows = useMemo(
     () =>
       dedupeDisplayModels(
@@ -142,16 +167,14 @@ export function DashboardLeaderboard({
     [deferredGlobalModelFilterQuery, filteredExpandedRows],
   );
   const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
-  const requestedGlobalLimit =
-    modelLimit === "all" ? maximumLimit : Math.min(modelLimit, maximumLimit);
   const deferredLimit = useDeferredValue(effectiveLimit);
   const matchingRows = useMemo(
     () =>
-      sortedRows(globallyFilteredRows, deferredFilterQuery, {
+      sortedRows(scopedRows, deferredFilterQuery, {
         key: "intelligence",
         direction: "descending",
       }),
-    [deferredFilterQuery, globallyFilteredRows],
+    [deferredFilterQuery, scopedRows],
   );
   const limitedRows = useMemo(() => {
     // Previews remain visible without consuming official top-N slots.
@@ -196,8 +219,8 @@ export function DashboardLeaderboard({
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
   useEffect(() => {
-    setLimit(requestedGlobalLimit);
-  }, [requestedGlobalLimit, setLimit]);
+    setLimit(maximumLimit);
+  }, [maximumLimit, setLimit]);
 
   useEffect(() => {
     setSortState((current) => {
