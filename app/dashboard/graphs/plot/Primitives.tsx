@@ -4,7 +4,6 @@
 
 import { clamp } from "../../../../src/model-atlas/numeric";
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
-import { shortLabel } from "../../shared/model-display";
 import type { Margin } from "../types";
 import type { PointLabelPlacement } from "./label-placement";
 import { scoreQuadrilateralPoints } from "./score-quadrilateral";
@@ -18,14 +17,14 @@ export type PlotBounds = {
   bottom: number;
 };
 
-export const SCATTER_CHART_HEIGHT = 500;
+export const SCATTER_CHART_HEIGHT = 600;
 export const SCATTER_CHART_MARGIN: Margin = {
   top: 28,
   right: 34,
   bottom: 70,
   left: 62,
 };
-export const SCATTER_CHART_WIDTH = 820;
+export const SCATTER_CHART_WIDTH = 960;
 
 const SVG_NUMBER_DECIMALS = 3;
 
@@ -336,52 +335,6 @@ export function AxisTitles({
         {y}
       </text>
     </>
-  );
-}
-
-export function ModelPointLabel({
-  model,
-  cx,
-  cy,
-  width,
-  margin,
-  height,
-  placement,
-}: {
-  model: ModelAtlasModel;
-  cx: number;
-  cy: number;
-  width: number;
-  margin: Margin;
-  height: number;
-  placement?: PointLabelPlacement;
-}) {
-  const labelOnLeft = cx > width - margin.right - 120;
-  const xOffset = 10;
-  const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
-  const textX = placement?.x ?? (labelOnLeft ? cx - xOffset : cx + xOffset);
-  const textY = placement?.y ?? y;
-  const textAnchor = placement?.textAnchor ?? (labelOnLeft ? "end" : "start");
-  return (
-    <g>
-      {placement?.line ? (
-        <line
-          className={styles.pointLabelLine}
-          x1={stableSvgNumber(placement.line.x1)}
-          y1={stableSvgNumber(placement.line.y1)}
-          x2={stableSvgNumber(placement.line.x2)}
-          y2={stableSvgNumber(placement.line.y2)}
-        />
-      ) : null}
-      <text
-        className={styles.pointLabel}
-        x={stableSvgNumber(textX)}
-        y={stableSvgNumber(textY)}
-        textAnchor={textAnchor}
-      >
-        {shortLabel(model)}
-      </text>
-    </g>
   );
 }
 

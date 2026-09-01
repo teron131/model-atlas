@@ -25,7 +25,6 @@ import {
   AxisTitles,
   DirectionArrow,
   MedianCross,
-  ModelPointLabel,
   ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
@@ -33,6 +32,7 @@ import {
   SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
   stableSvgScale,
+  TextPointLabel,
   XAxisTicks,
   YAxisTicks,
 } from "./plot/Primitives";
@@ -292,6 +292,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
                   .join(" ")}
                 key={`${line.key}-${index}`}
                 style={{ "--line-color": line.color } as CSSProperties}
+                vectorEffect="non-scaling-stroke"
               />
             )),
           )}
@@ -375,8 +376,8 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
                   onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
                 />
                 {isFrontier ? (
-                  <ModelPointLabel
-                    model={model}
+                  <TextPointLabel
+                    label={shortLabel(model)}
                     cx={cx}
                     cy={cy}
                     width={width}

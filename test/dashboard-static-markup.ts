@@ -330,7 +330,7 @@ assert.equal(
   "Modality",
   "the input-modality column should use the agreed compact header",
 );
-const allTableRuleKeys = tableColumnRuleKeys(ALL_TABLE_COLUMN_KEYS);
+const allTableRuleKeys = tableColumnRuleKeys(ALL_TABLE_COLUMN_KEYS, "portfolio");
 const artificialAnalysisColumnIndex = dashboardMetricColumnKeys.indexOf("aaIntelligenceIndex");
 assert.deepEqual(
   dashboardMetricColumnKeys.slice(artificialAnalysisColumnIndex, artificialAnalysisColumnIndex + 4),
@@ -409,6 +409,7 @@ const rankHtml = renderToStaticMarkup(
   React.createElement(ModelTable, {
     sortState: { key: "rank", direction: "ascending" },
     fitColumnContent: false,
+    benchmarkColumnOrder: "portfolio",
     visibleColumnKeys: ["rank", "model"],
     visibleRows: visibleRankRows,
     emptyMessage: "No models",
@@ -453,6 +454,7 @@ const changeHtml = renderToStaticMarkup(
   React.createElement(ModelTable, {
     sortState: { key: "rank", direction: "ascending" },
     fitColumnContent: false,
+    benchmarkColumnOrder: "portfolio",
     visibleColumnKeys: ["rank", "model", "change"],
     visibleRows: [changedRow],
     emptyMessage: "No models",
@@ -487,6 +489,7 @@ const versionedModelHtml = renderToStaticMarkup(
   React.createElement(ModelTable, {
     sortState: { key: "rank", direction: "ascending" },
     fitColumnContent: false,
+    benchmarkColumnOrder: "portfolio",
     visibleColumnKeys: ["rank", "model"],
     visibleRows: [tableRow("deepseek/deepseek-v4-flash-0731", "DeepSeek V4 Flash", 1, 0)],
     emptyMessage: "No models",

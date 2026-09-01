@@ -11,8 +11,8 @@
 
 .row {
   display: grid;
-  grid-template-areas: "search result presets";
-  grid-template-columns: minmax(180px, 1fr) max-content max-content;
+  grid-template-areas: "search result ordering presets";
+  grid-template-columns: minmax(180px, 1fr) max-content max-content max-content;
   min-height: 44px;
   align-items: stretch;
 }
@@ -71,7 +71,27 @@
   border-left: 1px solid var(--line);
 }
 
-.preset {
+.ordering {
+  grid-area: ordering;
+  display: flex;
+  align-items: stretch;
+  margin-right: 12px;
+  border-left: 1px solid var(--line);
+}
+
+.orderingLabel {
+  display: flex;
+  align-items: center;
+  padding: 1px 8px 0 10px;
+  color: var(--faint);
+  font-size: var(--type-micro-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.preset,
+.orderButton {
   min-width: 58px;
   min-height: 44px;
   padding: 1px 10px 0;
@@ -80,7 +100,7 @@
   background: transparent;
   color: var(--faint);
   font: inherit;
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   line-height: 1;
@@ -91,22 +111,30 @@
     transform 0.16s ease;
 }
 
-.preset:hover {
+.orderButton {
+  min-width: 74px;
+}
+
+.preset:hover,
+.orderButton:hover {
   color: var(--ink);
 }
 
-.preset:focus-visible {
+.preset:focus-visible,
+.orderButton:focus-visible {
   position: relative;
   z-index: 1;
   outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 
-.preset:active {
+.preset:active,
+.orderButton:active {
   transform: translateY(1px);
 }
 
-.preset[aria-pressed="true"] {
+.preset[aria-pressed="true"],
+.orderButton[aria-pressed="true"] {
   border-bottom-color: var(--ink);
   color: var(--ink);
 }
@@ -115,6 +143,7 @@
   .row {
     grid-template-areas:
       "search result"
+      "ordering ordering"
       "presets presets";
     grid-template-columns: minmax(0, 1fr) max-content;
   }
@@ -125,6 +154,20 @@
     border-left: 0;
   }
 
+  .ordering {
+    margin-right: 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .orderingLabel {
+    min-width: 58px;
+  }
+
+  .orderButton {
+    flex: 1;
+  }
+
   .preset {
     width: 100%;
     min-width: 0;
@@ -133,7 +176,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .search,
-  .preset {
+  .preset,
+  .orderButton {
     transition: none;
   }
 }

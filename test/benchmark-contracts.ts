@@ -302,6 +302,17 @@ assert.deepEqual(BENCHMARK_CATALOG.briefcase.processing, {
 assert.equal(transformBenchmarkSourceValue("briefcase", 500), 0);
 assert.equal(transformBenchmarkSourceValue("briefcase", 1_500), 0.5);
 assert.equal(transformBenchmarkSourceValue("briefcase", 3_000), 1);
+assert.deepEqual(BENCHMARK_CATALOG.gdpval_normalized.processing, {
+  transform: {
+    kind: "linear",
+    input: [500, 2_500],
+    output: [0, 1],
+    clamp: true,
+  },
+  aggregation: { kind: "direct" },
+});
+assert.ok(Math.abs(transformBenchmarkSourceValue("gdpval_normalized", 1_823.94) - 0.66197) < 1e-12);
+assert.ok(Math.abs(transformBenchmarkSourceValue("gdpval_normalized", 1_710.14) - 0.60507) < 1e-12);
 assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_3.processing.aggregation, {
   kind: "custom",
 });

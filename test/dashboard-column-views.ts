@@ -5,12 +5,18 @@ import assert from "node:assert/strict";
 import {
   ALL_TABLE_COLUMN_KEYS,
   ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
+  tableColumnKeysByCoverage,
   tableColumnKeysForView,
   tableColumnSearchMatchCount,
   tableColumnSortKey,
 } from "../app/dashboard/table/column-views";
-import { tableColumnRuleKeys } from "../app/dashboard/table/models";
+import {
+  benchmarkMetricColumns,
+  dedupeDisplayModels,
+  tableColumnRuleKeys,
+} from "../app/dashboard/table/models";
 import { COLUMN_TOOLTIPS } from "../src/model-atlas/config";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const scoreKeys = tableColumnKeysForView("scores", "", COLUMN_TOOLTIPS);
 assert.equal(scoreKeys.includes("intelligence"), true, "Scores should include headline scores");
@@ -52,7 +58,7 @@ assert.equal(
 );
 assert.equal(timeKeys.includes("agentsLastExamCost"), false, "Time should omit benchmark costs");
 
-const costRuleKeys = tableColumnRuleKeys(costKeys);
+const costRuleKeys = tableColumnRuleKeys(costKeys, "portfolio");
 assert.equal(costRuleKeys.has("value"), true, "Cost should separate Value from pricing");
 assert.equal(costRuleKeys.has("effectiveOutputPrice"), true, "Cost should close provider pricing");
 assert.equal(costRuleKeys.has("hleCost"), true, "Cost should close its visible frontier evidence");
@@ -67,7 +73,7 @@ assert.equal(
   "Cost should not depend on a hidden score column",
 );
 
-const timeRuleKeys = tableColumnRuleKeys(timeKeys);
+const timeRuleKeys = tableColumnRuleKeys(timeKeys, "portfolio");
 assert.equal(timeRuleKeys.has("value"), true, "Time should separate scores from provider timing");
 assert.equal(timeRuleKeys.has("e2eLatency"), true, "Time should close provider timing");
 assert.equal(
@@ -143,4 +149,39 @@ assert.equal(
   tableColumnSortKey("all", "confidence", [...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS, "confidence"]),
   "intelligence",
   "Search should fall back to the first visible headline score when its match is not sortable",
+);
+
+const agentArenaColumn = benchmarkMetricColumns.find(
+  (column) => column.benchmark === "agent_arena",
+);
+const aleBenchColumn = benchmarkMetricColumns.find((column) => column.benchmark === "ale_bench");
+assert.ok(agentArenaColumn);
+assert.ok(aleBenchColumn);
+const coverageRows = dedupeDisplayModels([
+  {
+    ...minimalModelAtlasModel({ id: "provider/complete", name: "Complete" }),
+    benchmarks: { agent_arena: 0.7, ale_bench: 0.6 },
+  },
+  {
+    ...minimalModelAtlasModel({ id: "provider/partial", name: "Partial" }),
+    benchmarks: { agent_arena: 0.5 },
+  },
+]);
+const coverageOrderedKeys = tableColumnKeysByCoverage(
+  [...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS, aleBenchColumn.key, agentArenaColumn.key, "change"],
+  coverageRows,
+);
+assert.deepEqual(
+  coverageOrderedKeys,
+  [...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS, agentArenaColumn.key, aleBenchColumn.key, "change"],
+  "coverage ordering should move denser benchmarks first without moving fixed columns",
+);
+const coverageOrderedScoreKeys = tableColumnKeysByCoverage(scoreKeys, coverageRows);
+const coverageRuleKeys = tableColumnRuleKeys(coverageOrderedScoreKeys, "coverage");
+const finalBenchmarkKey = coverageOrderedScoreKeys.at(-2);
+assert.ok(finalBenchmarkKey);
+assert.deepEqual(
+  [...coverageRuleKeys],
+  ["value", finalBenchmarkKey],
+  "Coverage order should rule only the outer benchmark block boundaries",
 );

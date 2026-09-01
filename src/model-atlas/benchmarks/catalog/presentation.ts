@@ -248,6 +248,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Produce documents, spreadsheets, slides, and diagrams for real tasks drawn from 44 occupations, judged through blind pairwise comparisons.",
     rows: [
       ["Source", "Artificial Analysis"],
+      ["Metric", "normalized Elo"],
       ["Role", "real work completion"],
     ],
   },

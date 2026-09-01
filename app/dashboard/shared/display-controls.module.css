@@ -38,7 +38,7 @@
 .limit small,
 .variants > span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.03em;
 }
@@ -158,7 +158,7 @@
   background: transparent;
   color: var(--faint);
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.025em;
   line-height: 1;
@@ -202,8 +202,20 @@
 }
 
 @container (max-width: 25rem) {
+  .controls {
+    gap: 8px;
+  }
+
   .range {
     min-width: 72px;
+  }
+
+  .variants {
+    padding-left: 8px;
+  }
+
+  .variantOptions {
+    gap: 8px;
   }
 }
 

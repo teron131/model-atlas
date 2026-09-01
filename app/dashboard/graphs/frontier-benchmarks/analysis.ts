@@ -1,6 +1,4 @@
-/** Frontier benchmark analysis owns row projection, normalization, axis policy, summaries, and hover evidence. */
-
-import { median } from "d3-array";
+/** Frontier benchmark analysis owns row projection, normalization, axis policy, and hover evidence. */
 
 import { minMaxScale } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
@@ -44,7 +42,6 @@ type FrontierBenchmarkAxisConfig = {
   label: string;
   shortLabel: string;
   get: (row: FrontierBenchmarkRow) => number | null;
-  selectionScore: (row: FrontierBenchmarkRow) => number | null;
   format: (value: number) => string;
   detailLabel: (row: FrontierBenchmarkRow) => string;
   normalizedLabel: string;
@@ -64,13 +61,6 @@ type FrontierBenchmarkAxisOption = {
   disabled?: boolean;
 };
 
-type FrontierBenchmarkSummaryRows = {
-  leader: FrontierBenchmarkRow;
-  highScoreAxisRow: FrontierBenchmarkRow;
-  medianScoreAxisRow: FrontierBenchmarkRow;
-  labeledRows: Set<FrontierBenchmarkRow>;
-};
-
 export const frontierBenchmarkAxisConfig: Record<
   FrontierBenchmarkAxisKey,
   FrontierBenchmarkAxisConfig
@@ -79,7 +69,6 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Speed and Value Scores",
     shortLabel: "Efficiency",
     get: speedValueBlendScore,
-    selectionScore: speedValueBlendScore,
     format: (value) => value.toFixed(0),
     detailLabel: () => "Speed and Value Scores",
     normalizedLabel: "Speed and Value Scores",
@@ -90,7 +79,6 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Cost ↓",
     shortLabel: "Cost ↓",
     get: (row) => row.cost,
-    selectionScore: (row) => (row.cost == null ? null : row.score / row.cost),
     format: fmtMoney,
     detailLabel: (row) => resourceMetricLabel(row, "cost"),
     normalizedLabel: "Mean Normalized Cost ↓",
@@ -100,7 +88,6 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Time ↓",
     shortLabel: "Time ↓",
     get: (row) => row.seconds,
-    selectionScore: (row) => (row.seconds == null ? null : row.score / (row.seconds / 86_400)),
     format: fmtDurationShort,
     detailLabel: (row) => resourceMetricLabel(row, "time"),
     normalizedLabel: "Mean Normalized Time ↓",
@@ -110,8 +97,6 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Tokens ↓",
     shortLabel: "Tokens ↓",
     get: (row) => row.totalTokens,
-    selectionScore: (row) =>
-      row.totalTokens == null ? null : row.score / (row.totalTokens / 1_000_000),
     format: fmtCompact,
     detailLabel: (row) => resourceMetricLabel(row, "tokens"),
     normalizedLabel: "Mean Normalized Tokens ↓",
@@ -311,10 +296,6 @@ export function frontierBenchmarkAxisConfigFor(
   return {
     ...axisConfig,
     label: axisConfig.normalizedLabel,
-    selectionScore: (row) => {
-      const value = axisConfig.get(row);
-      return value == null ? null : row.score / Math.max(value, 1);
-    },
     format: (value) => value.toFixed(0),
     detailLabel: () => axisConfig.normalizedDetailLabel,
   };
@@ -356,40 +337,6 @@ export function frontierAxisMetricLabel(
   }
   const row = rows.find((candidate) => positiveMetric(axisConfig.get(candidate)));
   return row == null ? axisConfig.label : axisConfig.detailLabel(row);
-}
-
-export function frontierBenchmarkSummaryRows(
-  rows: FrontierBenchmarkRow[],
-  axisConfig: FrontierBenchmarkAxisConfig,
-): FrontierBenchmarkSummaryRows | null {
-  const leader = rows[0];
-  if (leader == null) {
-    return null;
-  }
-  const medianScore = median(rows.map((row) => row.score)) ?? leader.score;
-  const highScoreFloor = leader.score * 0.8;
-  const medianScoreAxisRow = bestAxisRowAtOrAboveScore(rows, axisConfig, medianScore, leader);
-  const highScoreAxisRow = bestAxisRowAtOrAboveScore(rows, axisConfig, highScoreFloor, leader);
-  const labeledRows = new Set(
-    [leader, highScoreAxisRow, medianScoreAxisRow].filter(
-      (row): row is FrontierBenchmarkRow => row != null,
-    ),
-  );
-  return {
-    leader,
-    highScoreAxisRow,
-    medianScoreAxisRow,
-    labeledRows,
-  };
-}
-
-export function axisSummaryDetail(
-  row: FrontierBenchmarkRow,
-  axisConfig: FrontierBenchmarkAxisConfig,
-): string {
-  return `${fmtPercentScore(row.score)} / ${axisConfig.detailLabel(row)} ${axisConfig.format(
-    axisConfig.get(row) ?? 0,
-  )}`;
 }
 
 export function frontierScoreAxisScale(values: number[], isAggregateView: boolean): AxisScale {
@@ -508,23 +455,6 @@ function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[
     groups.set(key, group);
   }
   return groups;
-}
-
-function bestAxisRowAtOrAboveScore(
-  rows: FrontierBenchmarkRow[],
-  axisConfig: FrontierBenchmarkAxisConfig,
-  minScore: number,
-  fallback: FrontierBenchmarkRow,
-): FrontierBenchmarkRow {
-  return (
-    [...rows]
-      .filter((row) => row.score >= minScore)
-      .sort(
-        (left, right) =>
-          (axisConfig.selectionScore(right) ?? Number.NEGATIVE_INFINITY) -
-          (axisConfig.selectionScore(left) ?? Number.NEGATIVE_INFINITY),
-      )[0] ?? fallback
-  );
 }
 
 function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): string {

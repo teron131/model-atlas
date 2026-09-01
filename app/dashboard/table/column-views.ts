@@ -3,7 +3,15 @@
 import type { ModelAtlasColumnTooltips } from "../../../src/model-atlas/config/tooltips";
 import { benchmarkLabels } from "../shared/constants";
 import { staticSortableColumns } from "./Columns";
-import { dashboardMetricColumns, type SortKey, type TableColumnKey } from "./models";
+import {
+  type BenchmarkColumnOrder,
+  benchmarkMetricColumns,
+  benchmarkMetricValue,
+  dashboardMetricColumns,
+  type SortKey,
+  type TableColumnKey,
+  type TableRow,
+} from "./models";
 import { tableColumnTooltip } from "./tooltips";
 
 export const TABLE_COLUMN_PRESETS = [
@@ -14,6 +22,11 @@ export const TABLE_COLUMN_PRESETS = [
 ] as const;
 
 export type TableColumnPreset = (typeof TABLE_COLUMN_PRESETS)[number]["key"];
+
+export const BENCHMARK_COLUMN_ORDERS = [
+  { key: "portfolio", label: "Portfolio" },
+  { key: "coverage", label: "Coverage" },
+] as const satisfies readonly { key: BenchmarkColumnOrder; label: string }[];
 
 export const ALWAYS_VISIBLE_TABLE_COLUMN_KEYS = [
   "rank",
@@ -40,6 +53,9 @@ const optionalColumnKeys = ALL_TABLE_COLUMN_KEYS.filter(
 );
 const metricColumnsByKey = new Map<TableColumnKey, (typeof dashboardMetricColumns)[number]>(
   dashboardMetricColumns.map((column) => [column.key, column]),
+);
+const benchmarkColumnsByKey = new Map<TableColumnKey, (typeof benchmarkMetricColumns)[number]>(
+  benchmarkMetricColumns.map((column) => [column.key, column]),
 );
 const staticColumnSearchText = new Map<TableColumnKey, string>(
   staticSortableColumns.map((column) => [column.key, column.searchText]),
@@ -128,6 +144,35 @@ export function tableColumnSortKey(
       (key): key is SortKey =>
         key !== "rank" && key !== "model" && key !== "confidence" && key !== "change",
     ) ?? "rank"
+  );
+}
+
+/** Order visible benchmark columns by observed cells in the active table rows while preserving canonical ties and fixed-column positions. */
+export function tableColumnKeysByCoverage(
+  columnKeys: readonly TableColumnKey[],
+  rows: readonly TableRow[],
+): TableColumnKey[] {
+  const canonicalOrder = new Map(columnKeys.map((key, index) => [key, index]));
+  const observedByKey = new Map<TableColumnKey, number>();
+  for (const key of columnKeys) {
+    const column = benchmarkColumnsByKey.get(key);
+    if (column == null) {
+      continue;
+    }
+    observedByKey.set(
+      key,
+      rows.filter((row) => benchmarkMetricValue(row.model, column) != null).length,
+    );
+  }
+  const orderedBenchmarkKeys = [...observedByKey.keys()].sort((left, right) => {
+    const coverageDifference = (observedByKey.get(right) ?? 0) - (observedByKey.get(left) ?? 0);
+    return coverageDifference !== 0
+      ? coverageDifference
+      : (canonicalOrder.get(left) ?? 0) - (canonicalOrder.get(right) ?? 0);
+  });
+  let benchmarkIndex = 0;
+  return columnKeys.map((key) =>
+    observedByKey.has(key) ? (orderedBenchmarkKeys[benchmarkIndex++] ?? key) : key,
   );
 }
 
