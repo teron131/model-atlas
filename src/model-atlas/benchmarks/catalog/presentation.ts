@@ -387,11 +387,11 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "banking agent work"],
     ],
   },
-  terminal_bench_3: {
-    title: "Terminal-Bench 3.0",
+  terminal_bench_4: {
+    title: "Terminal-Bench 4.0",
     body: "Complete difficult software, infrastructure, data, and technical workflows inside containerized terminal environments.",
     rows: [
-      ["Source", "Terminal-Bench 3.0"],
+      ["Source", "Terminal-Bench 4.0"],
       ["Metric", "task accuracy"],
       ["Role", "terminal and software agent work"],
     ],
@@ -494,7 +494,7 @@ export const BENCHMARK_LABELS = {
   scicode: "SciCode",
   surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
-  terminal_bench_3: "Terminal-Bench 3.0",
+  terminal_bench_4: "Terminal-Bench 4.0",
   toolathlon: "Toolathlon",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
@@ -537,7 +537,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "programbench",
   "proofbench",
   "riemann_bench",
-  "terminal_bench_3",
+  "terminal_bench_4",
 ] as const satisfies readonly BenchmarkKey[];
 
 export const INDEX_BENCHMARK_KEYS = [
@@ -1144,9 +1144,9 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  terminal_bench_3: {
-    key: "terminalBench3",
-    label: "TB3",
+  terminal_bench_4: {
+    key: "terminalBench4",
+    label: "TB4",
     format: "percent",
     defaultSort: "descending",
   },

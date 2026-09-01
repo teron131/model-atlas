@@ -1,11 +1,11 @@
-/** Terminal-Bench 3.0 runtime owns raw model-agent rows, cache reconstruction, and refresh state. */
+/** Terminal-Bench 4.0 runtime owns raw model-agent rows, cache reconstruction, and refresh state. */
 
 import { asFiniteNumber } from "../../runtime";
 import {
-  getTerminalBench3Stats,
-  TERMINAL_BENCH_3_SOURCE_REVISION,
-  type TerminalBench3ModelAgentRow,
-} from "../../scrapers/benchmarks/terminal-bench-3";
+  getTerminalBench4Stats,
+  TERMINAL_BENCH_4_SOURCE_REVISION,
+  type TerminalBench4ModelAgentRow,
+} from "../../scrapers/benchmarks/terminal-bench-4";
 import { type CacheRowSource, firstEpochSecond, sourceCacheRows, stringValue } from "../cache/rows";
 import { SNAPSHOT_TABLES, SOURCE_URLS } from "../source-registry";
 import { sourceKey } from "../source-snapshots/policy";
@@ -19,118 +19,118 @@ import type {
 import type { DatabaseWriter } from "../writers/database";
 
 /** Reconstruct the cache only when every persisted row matches the current source revision. */
-export function readTerminalBench3RawCache(cache: CacheRowSource): {
-  rows: TerminalBench3ModelAgentRow[];
+export function readTerminalBench4RawCache(cache: CacheRowSource): {
+  rows: TerminalBench4ModelAgentRow[];
   fetchedAt: number | null;
 } | null {
   const cacheRows = sourceCacheRows(
     cache,
-    "SELECT * FROM terminal_bench_3_raw_rows ORDER BY row_index",
+    "SELECT * FROM terminal_bench_4_raw_rows ORDER BY row_index",
   );
   if (
     cacheRows.length === 0 ||
     cacheRows.some(
       (row) =>
-        stringValue(row.url) !== SOURCE_URLS.terminal_bench_3 ||
-        stringValue(row.revision) !== TERMINAL_BENCH_3_SOURCE_REVISION,
+        stringValue(row.url) !== SOURCE_URLS.terminal_bench_4 ||
+        stringValue(row.revision) !== TERMINAL_BENCH_4_SOURCE_REVISION,
     )
   ) {
     return null;
   }
-  const rows = cacheRows.flatMap<TerminalBench3ModelAgentRow>((row) => {
+  const rows = cacheRows.flatMap<TerminalBench4ModelAgentRow>((row) => {
     const model = stringValue(row.model);
     const baseModel = stringValue(row.base_model);
     const harness = stringValue(row.harness);
     const score = asFiniteNumber(row.score);
-    const scoreStandardError = asFiniteNumber(row.score_standard_error);
+    const scoreCi95HalfWidth = asFiniteNumber(row.score_ci95_half_width);
     if (
       model == null ||
       baseModel == null ||
       harness == null ||
       score == null ||
-      scoreStandardError == null
+      scoreCi95HalfWidth == null
     ) {
       return [];
     }
     return [
       {
-        revision: TERMINAL_BENCH_3_SOURCE_REVISION,
+        revision: TERMINAL_BENCH_4_SOURCE_REVISION,
         model,
         base_model: baseModel,
         reasoning_effort: stringValue(row.reasoning_effort),
         harness,
         score,
-        score_standard_error: scoreStandardError,
+        score_ci95_half_width: scoreCi95HalfWidth,
       },
     ];
   });
   return rows.length === cacheRows.length ? { rows, fetchedAt: firstEpochSecond(cacheRows) } : null;
 }
 
-type TerminalBench3Snapshot = {
-  terminalBench3Rows: TerminalBench3ModelAgentRow[];
+type TerminalBench4Snapshot = {
+  terminalBench4Rows: TerminalBench4ModelAgentRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 /** Refresh every model-agent observation while keeping effort and harness in row identity. */
-async function terminalBench3Snapshot(
-  cached: ReturnType<typeof readTerminalBench3RawCache>,
+async function terminalBench4Snapshot(
+  cached: ReturnType<typeof readTerminalBench4RawCache>,
   status: RawSourceCacheStatus,
   options: DatabaseBuildOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
-): Promise<TerminalBench3Snapshot> {
+): Promise<TerminalBench4Snapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "terminal_bench_3",
+    source: "terminal_bench_4",
     cached,
     status,
     options,
     previousMissingSince,
     nowEpochSeconds,
-    fetchRows: getTerminalBench3Stats,
+    fetchRows: getTerminalBench4Stats,
     rowKey: (row) => sourceKey(row.base_model, row.reasoning_effort, row.harness),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
   });
   return {
-    terminalBench3Rows: snapshot.rows,
+    terminalBench4Rows: snapshot.rows,
     sourceStatus: {
-      source: "terminal_bench_3",
+      source: "terminal_bench_4",
       fetchedAt: snapshot.fetchedAt,
       sourceInputCount: snapshot.rows.length,
       sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "terminalBench3",
+      fetchedAtKey: "terminalBench4",
     },
   };
 }
 
-function insertTerminalBench3RawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
-		INSERT INTO terminal_bench_3_raw_rows (
+		INSERT INTO terminal_bench_4_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
-			reasoning_effort, harness, score, score_standard_error
+			reasoning_effort, harness, score, score_ci95_half_width
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.terminalBench3Rows.entries()) {
+  for (const [index, row] of snapshots.terminalBench4Rows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.terminalBench3,
-      SOURCE_URLS.terminal_bench_3,
+      snapshots.fetchedAt.terminalBench4,
+      SOURCE_URLS.terminal_bench_4,
       row.revision,
       row.model,
       row.base_model,
       row.reasoning_effort,
       row.harness,
       row.score,
-      row.score_standard_error,
+      row.score_ci95_half_width,
     );
   }
 }
 
-export const terminalBench3Runtime = {
-  cacheKey: "terminalBench3",
-  source: "terminal_bench_3",
-  table: SNAPSHOT_TABLES.terminal_bench_3,
-  readCache: readTerminalBench3RawCache,
-  snapshot: terminalBench3Snapshot,
-  write: insertTerminalBench3RawRows,
+export const terminalBench4Runtime = {
+  cacheKey: "terminalBench4",
+  source: "terminal_bench_4",
+  table: SNAPSHOT_TABLES.terminal_bench_4,
+  readCache: readTerminalBench4RawCache,
+  snapshot: terminalBench4Snapshot,
+  write: insertTerminalBench4RawRows,
 } as const;

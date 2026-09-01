@@ -103,7 +103,7 @@ try {
       gdpPdfRows: [],
       harveyLabRows: [],
       riemannBenchRows: [],
-      terminalBench3Rows: [],
+      terminalBench4Rows: [],
       valsIndexRows: [],
       vendingBench2Rows: [],
     });

@@ -55,7 +55,7 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
   mercorApexAgents: Pick<ModelAtlasSourceData["mercorApexAgents"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
-  terminalBench3: Pick<ModelAtlasSourceData["terminalBench3"], "rowsByModelName">;
+  terminalBench4: Pick<ModelAtlasSourceData["terminalBench4"], "rowsByModelName">;
   valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
   vendingBench2: Pick<ModelAtlasSourceData["vendingBench2"], "rowsByModelName">;
 };
@@ -269,15 +269,15 @@ const addMercorApexAgents: StandaloneBenchmarkOperation = ({
 };
 
 /** Adds the strongest agent result for the exact model effort selected by the source projection. */
-const addTerminalBench3: StandaloneBenchmarkOperation = ({
+const addTerminalBench4: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
   ...context
 }) => {
-  const row = context.resolveSourceRow(lookups.terminalBench3.rowsByModelName);
+  const row = context.resolveSourceRow(lookups.terminalBench4.rowsByModelName);
   if (row != null) {
-    assignedBenchmarks.benchmarks.terminal_bench_3 = row.score;
-    assignedBenchmarks.scoringSources.terminal_bench_3 = row;
+    assignedBenchmarks.benchmarks.terminal_bench_4 = row.score;
+    assignedBenchmarks.scoringSources.terminal_bench_4 = row;
   }
 };
 
@@ -345,9 +345,9 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
     defaultVariant: addMercorApexAgents,
     observation: addMercorApexAgents,
   },
-  terminal_bench_3: {
-    defaultVariant: addTerminalBench3,
-    observation: addTerminalBench3,
+  terminal_bench_4: {
+    defaultVariant: addTerminalBench4,
+    observation: addTerminalBench4,
   },
   vending_bench_2: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {

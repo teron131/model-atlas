@@ -1,25 +1,25 @@
-/** Verifies Terminal-Bench 3.0 parsing and strongest-agent scoring projection. */
+/** Verifies Terminal-Bench 4.0 parsing and strongest-agent scoring projection. */
 
 import assert from "node:assert/strict";
 
 import {
-  buildTerminalBench3Map,
-  processTerminalBench3Payload,
-} from "../src/model-atlas/scrapers/benchmarks/terminal-bench-3";
+  buildTerminalBench4Map,
+  processTerminalBench4Payload,
+} from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
 
 function row({
   model,
   agent,
   effort,
   accuracy,
-  standardError = 1.6,
+  ci95HalfWidth = 3.4,
   status = "display",
 }: {
   model: string;
   agent: string;
   effort: string;
   accuracy: number;
-  standardError?: number;
+  ci95HalfWidth?: number;
   status?: string;
 }) {
   return {
@@ -31,16 +31,16 @@ function row({
     },
     metrics: {
       accuracy,
-      accuracy_stderr: standardError,
+      accuracy_ci95_half_width: ci95HalfWidth,
     },
   };
 }
 
-function payload(rows: unknown[], title = "Terminal-Bench 3.0") {
+function payload(rows: unknown[], title = "Terminal-Bench 4.0") {
   return {
     leaderboard: {
       package: "terminal-bench/terminal-bench",
-      name: "3-0-0",
+      name: "4-0-0",
       title,
       dataset_version_ids: ["version-id"],
     },
@@ -48,20 +48,20 @@ function payload(rows: unknown[], title = "Terminal-Bench 3.0") {
   };
 }
 
-const rows = processTerminalBench3Payload(
+const rows = processTerminalBench4Payload(
   payload([
     row({
       model: "GPT-5.6 Sol",
       agent: "Codex",
       effort: "max",
-      accuracy: 34.42,
+      accuracy: 37.27,
     }),
     row({
-      model: "Grok 4.5",
-      agent: "Cursor CLI",
-      effort: "xhigh",
-      accuracy: 17.84,
-      standardError: 1.44,
+      model: "Grok 4.6",
+      agent: "Grok Build",
+      effort: "high",
+      accuracy: 20.3,
+      ci95HalfWidth: 3.09,
     }),
     row({
       model: "Hidden",
@@ -81,22 +81,22 @@ const rows = processTerminalBench3Payload(
 
 assert.equal(rows.length, 2);
 assert.deepEqual(rows[0], {
-  revision: "3_0_0",
+  revision: "4_0_0",
   model: "GPT-5.6 Sol (max)",
   base_model: "GPT-5.6 Sol",
   reasoning_effort: "max",
   harness: "Codex",
-  score: 0.3442,
-  score_standard_error: 0.016,
+  score: 0.3727,
+  score_ci95_half_width: 0.034,
 });
-assert.equal(rows[1]?.score, 0.1784);
-assert.equal(rows[1]?.score_standard_error, 0.0144);
+assert.equal(rows[1]?.score, 0.203);
+assert.equal(rows[1]?.score_ci95_half_width, 0.0309);
 
-const rowsByModelName = buildTerminalBench3Map(rows);
+const rowsByModelName = buildTerminalBench4Map(rows);
 assert.equal(rowsByModelName.get("gpt-5-6-sol")?.harness, "Codex");
-assert.equal(rowsByModelName.get("grok-4-5-xhigh")?.harness, "Cursor CLI");
+assert.equal(rowsByModelName.get("grok-4-6-high")?.harness, "Grok Build");
 
-const strongestAgentRows = buildTerminalBench3Map([
+const strongestAgentRows = buildTerminalBench4Map([
   {
     ...rows[0]!,
     harness: "Weaker",
@@ -106,29 +106,29 @@ const strongestAgentRows = buildTerminalBench3Map([
     ...rows[0]!,
     harness: "Stronger",
     score: 0.4,
-    score_standard_error: 0.02,
+    score_ci95_half_width: 0.04,
   },
   {
     ...rows[0]!,
     harness: "Stronger with lower uncertainty",
     score: 0.4,
-    score_standard_error: 0.01,
+    score_ci95_half_width: 0.02,
   },
 ]);
 assert.equal(strongestAgentRows.get("gpt-5-6-sol-max")?.harness, "Stronger with lower uncertainty");
 
-const claudeAliasRows = buildTerminalBench3Map([
+const claudeAliasRows = buildTerminalBench4Map([
   {
-    revision: "3_0_0",
+    revision: "4_0_0",
     model: "Opus 5 (max)",
     base_model: "Opus 5",
     reasoning_effort: "max",
-    harness: "mini-SWE-agent",
-    score: 0.4353,
-    score_standard_error: 0.0165,
+    harness: "Claude Code",
+    score: 0.5182,
+    score_ci95_half_width: 0.0339,
   },
 ]);
 assert.equal(claudeAliasRows.get("claude-opus-5-max")?.model, "Opus 5 (max)");
-assert.equal(claudeAliasRows.get("claude-opus-5")?.score, 0.4353);
+assert.equal(claudeAliasRows.get("claude-opus-5")?.score, 0.5182);
 
-assert.deepEqual(processTerminalBench3Payload(payload([], "Terminal-Bench 3.1")), []);
+assert.deepEqual(processTerminalBench4Payload(payload([], "Terminal-Bench 4.1")), []);

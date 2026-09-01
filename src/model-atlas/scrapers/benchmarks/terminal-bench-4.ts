@@ -1,7 +1,7 @@
 /**
- * Terminal-Bench 3.0 leaderboard results from its official structured source.
+ * Terminal-Bench 4.0 leaderboard results from its official structured source.
  *
- * Page source: https://www.frontierbench.ai/
+ * Page source: https://www.tbench.ai/?version=4.0
  * JSON source: https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read
  */
 
@@ -14,30 +14,30 @@ import {
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 import { stringValue } from "../parsing";
 
-const TERMINAL_BENCH_3_DATA_URL =
+const TERMINAL_BENCH_4_DATA_URL =
   "https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read";
-const TERMINAL_BENCH_3_PACKAGE = "terminal-bench/terminal-bench";
-const TERMINAL_BENCH_3_NAME = "3-0-0";
-const TERMINAL_BENCH_3_TITLE = "Terminal-Bench 3.0";
+const TERMINAL_BENCH_4_PACKAGE = "terminal-bench/terminal-bench";
+const TERMINAL_BENCH_4_NAME = "4-0-0";
+const TERMINAL_BENCH_4_TITLE = "Terminal-Bench 4.0";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export const TERMINAL_BENCH_3_SOURCE_REVISION = "3_0_0";
+export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_0_0";
 
-export type TerminalBench3ModelAgentRow = BenchmarkModelRow & {
-  revision: typeof TERMINAL_BENCH_3_SOURCE_REVISION;
+export type TerminalBench4ModelAgentRow = BenchmarkModelRow & {
+  revision: typeof TERMINAL_BENCH_4_SOURCE_REVISION;
   harness: string;
   score: number;
-  score_standard_error: number;
+  score_ci95_half_width: number;
 };
 
-export type TerminalBench3RowsByModelName = Map<string, TerminalBench3ModelAgentRow>;
+export type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelAgentRow>;
 
-type TerminalBench3Payload = {
+type TerminalBench4Payload = {
   fetched_at_epoch_seconds: number | null;
-  data: TerminalBench3ModelAgentRow[];
+  data: TerminalBench4ModelAgentRow[];
 };
 
-type TerminalBench3ScraperOptions = {
+type TerminalBench4ScraperOptions = {
   url?: string;
   timeoutMs?: number;
 };
@@ -51,7 +51,7 @@ function modelEffortLabel(baseModel: string, reasoningEffort: string | null): st
   return reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`;
 }
 
-function modelAgentRow(value: unknown): TerminalBench3ModelAgentRow | null {
+function modelAgentRow(value: unknown): TerminalBench4ModelAgentRow | null {
   const row = asRecord(value);
   if (row.status !== "display") {
     return null;
@@ -62,35 +62,35 @@ function modelAgentRow(value: unknown): TerminalBench3ModelAgentRow | null {
   const harness = stringValue(asRecord(metadata.agent_display).label);
   const reasoningEffort = canonicalReasoningEffort(metadata.reasoning_effort);
   const score = percentToUnitScore(metrics.accuracy);
-  const scoreStandardError = percentToUnitScore(metrics.accuracy_stderr);
-  if (baseModel == null || harness == null || score == null || scoreStandardError == null) {
+  const scoreCi95HalfWidth = percentToUnitScore(metrics.accuracy_ci95_half_width);
+  if (baseModel == null || harness == null || score == null || scoreCi95HalfWidth == null) {
     return null;
   }
   return {
-    revision: TERMINAL_BENCH_3_SOURCE_REVISION,
+    revision: TERMINAL_BENCH_4_SOURCE_REVISION,
     model: modelEffortLabel(baseModel, reasoningEffort),
     base_model: baseModel,
     reasoning_effort: reasoningEffort,
     harness,
     score,
-    score_standard_error: scoreStandardError,
+    score_ci95_half_width: scoreCi95HalfWidth,
   };
 }
 
-/** Return the provider-qualified alias omitted by Terminal-Bench 3.0 for Claude family labels. */
+/** Return the provider-qualified alias omitted by Terminal-Bench 4.0 for Claude family labels. */
 function claudeBaseModelAlias(baseModel: string): string | null {
   return /^(?:Fable|Opus|Sonnet)\b/.test(baseModel) ? `Claude ${baseModel}` : null;
 }
 
-/** Parse every displayed Terminal-Bench 3.0 row without collapsing model, effort, or agent configurations. */
-export function processTerminalBench3Payload(value: unknown): TerminalBench3ModelAgentRow[] {
+/** Parse every displayed Terminal-Bench 4.0 row without collapsing model, effort, or agent configurations. */
+export function processTerminalBench4Payload(value: unknown): TerminalBench4ModelAgentRow[] {
   const root = asRecord(value);
   const leaderboard = asRecord(root.leaderboard);
   const datasetVersionIds = leaderboard.dataset_version_ids;
   if (
-    leaderboard.package !== TERMINAL_BENCH_3_PACKAGE ||
-    leaderboard.name !== TERMINAL_BENCH_3_NAME ||
-    leaderboard.title !== TERMINAL_BENCH_3_TITLE ||
+    leaderboard.package !== TERMINAL_BENCH_4_PACKAGE ||
+    leaderboard.name !== TERMINAL_BENCH_4_NAME ||
+    leaderboard.title !== TERMINAL_BENCH_4_TITLE ||
     !Array.isArray(datasetVersionIds) ||
     datasetVersionIds.length === 0 ||
     datasetVersionIds.some((id) => stringValue(id) == null)
@@ -109,17 +109,17 @@ export function processTerminalBench3Payload(value: unknown): TerminalBench3Mode
  *
  * Raw persistence retains every model-agent row; this projection only settles scoring when the source later publishes more than one agent for the same model and effort.
  */
-export function buildTerminalBench3Map(
-  rows: readonly TerminalBench3ModelAgentRow[],
-): TerminalBench3RowsByModelName {
-  const strongestByModelEffort = new Map<string, TerminalBench3ModelAgentRow>();
+export function buildTerminalBench4Map(
+  rows: readonly TerminalBench4ModelAgentRow[],
+): TerminalBench4RowsByModelName {
+  const strongestByModelEffort = new Map<string, TerminalBench4ModelAgentRow>();
   for (const row of rows) {
     const key = normalizeModelToken(row.model);
     const current = strongestByModelEffort.get(key);
     if (
       current == null ||
       row.score > current.score ||
-      (row.score === current.score && row.score_standard_error < current.score_standard_error)
+      (row.score === current.score && row.score_ci95_half_width < current.score_ci95_half_width)
     ) {
       strongestByModelEffort.set(key, row);
     }
@@ -141,26 +141,26 @@ export function buildTerminalBench3Map(
   return rowsByModelName;
 }
 
-/** Fetch the structured public source used by the official Terminal-Bench 3.0 leaderboard. */
-export async function getTerminalBench3Stats(
-  options: TerminalBench3ScraperOptions = {},
-): Promise<TerminalBench3Payload> {
+/** Fetch the structured public source used by the official Terminal-Bench 4.0 leaderboard. */
+export async function getTerminalBench4Stats(
+  options: TerminalBench4ScraperOptions = {},
+): Promise<TerminalBench4Payload> {
   try {
     const response = await fetchWithTimeout(
-      options.url ?? TERMINAL_BENCH_3_DATA_URL,
+      options.url ?? TERMINAL_BENCH_4_DATA_URL,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ package: TERMINAL_BENCH_3_PACKAGE, name: TERMINAL_BENCH_3_NAME }),
+        body: JSON.stringify({ package: TERMINAL_BENCH_4_PACKAGE, name: TERMINAL_BENCH_4_NAME }),
       },
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     );
     if (!response.ok) {
-      throw new Error(`Terminal-Bench 3.0 scrape failed: ${response.status}`);
+      throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
     }
-    const data = processTerminalBench3Payload(await response.json());
+    const data = processTerminalBench4Payload(await response.json());
     if (data.length === 0) {
-      throw new Error("Terminal-Bench 3.0 scrape returned no 3.0 rows");
+      throw new Error("Terminal-Bench 4.0 scrape returned no 4.0 rows");
     }
     return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
   } catch {

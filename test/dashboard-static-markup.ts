@@ -348,7 +348,7 @@ assert.equal(
   "effective output price should close the pricing group",
 );
 assert.equal(
-  allTableRuleKeys.has("terminalBench3"),
+  allTableRuleKeys.has("terminalBench4"),
   true,
   "the final frontier benchmark should mark the index transition",
 );

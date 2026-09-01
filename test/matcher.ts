@@ -31,7 +31,7 @@ import {
 import { buildBlueprintBenchMap } from "../src/model-atlas/scrapers/benchmarks/blueprint-bench";
 import { buildCursorBenchMap } from "../src/model-atlas/scrapers/benchmarks/cursorbench";
 import { buildRiemannBenchMap } from "../src/model-atlas/scrapers/benchmarks/surge/riemann-bench";
-import { buildTerminalBench3Map } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-3";
+import { buildTerminalBench4Map } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
 import {
   buildValsIndexMap,
   type ValsIndexModelScoreRow,
@@ -928,9 +928,9 @@ function modelStatsSourceData(
       rowsByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
     },
     surgeIntelligenceIndex: { rows: [], rowsByModelName: new Map() },
-    terminalBench3: {
+    terminalBench4: {
       rows: [],
-      rowsByModelName: buildTerminalBench3Map([]),
+      rowsByModelName: buildTerminalBench4Map([]),
     },
     toolathlon: {
       rows: toolathlonObservations,

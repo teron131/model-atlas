@@ -62,10 +62,10 @@ import {
   type RiemannBenchRowsByModelName,
 } from "../../scrapers/benchmarks/surge/riemann-bench";
 import {
-  buildTerminalBench3Map,
-  type TerminalBench3ModelAgentRow,
-  type TerminalBench3RowsByModelName,
-} from "../../scrapers/benchmarks/terminal-bench-3";
+  buildTerminalBench4Map,
+  type TerminalBench4ModelAgentRow,
+  type TerminalBench4RowsByModelName,
+} from "../../scrapers/benchmarks/terminal-bench-4";
 import {
   buildHarveyLabMap,
   type HarveyLabModelScoreRow,
@@ -138,7 +138,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
   harveyLab: IndexedSourceRows<HarveyLabModelScoreRow, HarveyLabRowsByModelName>;
   mercorApexAgents: IndexedSourceRows<MercorApexAgentsRow, MercorApexAgentsRowsByModelName>;
   riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
-  terminalBench3: IndexedSourceRows<TerminalBench3ModelAgentRow, TerminalBench3RowsByModelName>;
+  terminalBench4: IndexedSourceRows<TerminalBench4ModelAgentRow, TerminalBench4RowsByModelName>;
   valsIndex: IndexedSourceRows<ValsIndexModelScoreRow, ValsIndexRowsByModelName>;
   vendingBench2: IndexedSourceRows<VendingBench2ModelScoreRow, VendingBench2RowsByModelName>;
 };
@@ -161,7 +161,7 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   harveyLabRows: ModelAtlasSourceData["harveyLab"]["rows"];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
-  terminalBench3Rows: ModelAtlasSourceData["terminalBench3"]["rows"];
+  terminalBench4Rows: ModelAtlasSourceData["terminalBench4"]["rows"];
   valsIndexRows: ModelAtlasSourceData["valsIndex"]["rows"];
   vendingBench2Rows: ModelAtlasSourceData["vendingBench2"]["rows"];
 };
@@ -267,9 +267,9 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rows: rows.riemannBenchRows,
       rowsByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
     },
-    terminalBench3: {
-      rows: rows.terminalBench3Rows,
-      rowsByModelName: buildTerminalBench3Map(rows.terminalBench3Rows),
+    terminalBench4: {
+      rows: rows.terminalBench4Rows,
+      rowsByModelName: buildTerminalBench4Map(rows.terminalBench4Rows),
     },
     valsIndex: {
       rows: rows.valsIndexRows,

@@ -108,9 +108,9 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],
     optional: true,
   }),
-  terminal_bench_3: payloadRowGroup(
-    "terminalBench3Rows",
-    SNAPSHOT_TABLES.terminal_bench_3,
+  terminal_bench_4: payloadRowGroup(
+    "terminalBench4Rows",
+    SNAPSHOT_TABLES.terminal_bench_4,
     "row_index",
     {
       columns: [
@@ -119,7 +119,7 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
         "reasoning_effort",
         "harness",
         "score",
-        "score_standard_error",
+        "score_ci95_half_width",
       ],
       optional: true,
     },

@@ -19,7 +19,7 @@ import {
 import { getFrontierCodeStats } from "../../scrapers/benchmarks/frontier-code";
 import { getMercorApexAgentsStats } from "../../scrapers/benchmarks/mercor-apex-agents";
 import { getRiemannBenchStats } from "../../scrapers/benchmarks/surge/riemann-bench";
-import { getTerminalBench3Stats } from "../../scrapers/benchmarks/terminal-bench-3";
+import { getTerminalBench4Stats } from "../../scrapers/benchmarks/terminal-bench-4";
 import { getHarveyLabStats } from "../../scrapers/benchmarks/vals/harvey-lab";
 import { getValsIndexStats } from "../../scrapers/benchmarks/vals/index-benchmark";
 import { getVendingBench2Stats } from "../../scrapers/benchmarks/vending-bench-2";
@@ -44,7 +44,7 @@ import { harveyLabRuntime } from "./harvey-lab";
 import { mercorApexAgentsRuntime } from "./mercor-apex-agents";
 import { insertBenchmarkObservationRows } from "./observation";
 import { riemannBenchRuntime } from "./riemann-bench";
-import { terminalBench3Runtime } from "./terminal-bench-3";
+import { terminalBench4Runtime } from "./terminal-bench-4";
 import { valsIndexRuntime } from "./vals-index";
 import { vendingBench2Runtime } from "./vending-bench-2";
 
@@ -135,11 +135,11 @@ const STANDALONE_BENCHMARK_RUNTIMES = {
     loadSourceRows: async () => (await getMercorApexAgentsStats()).data,
     sourceRowsFromSnapshots: (snapshots) => snapshots.mercorApexAgentsRows,
   }),
-  terminal_bench_3: defineBenchmarkRuntime({
-    ...terminalBench3Runtime,
-    sourceRowsKey: "terminalBench3Rows",
-    loadSourceRows: async () => (await getTerminalBench3Stats()).data,
-    sourceRowsFromSnapshots: (snapshots) => snapshots.terminalBench3Rows,
+  terminal_bench_4: defineBenchmarkRuntime({
+    ...terminalBench4Runtime,
+    sourceRowsKey: "terminalBench4Rows",
+    loadSourceRows: async () => (await getTerminalBench4Stats()).data,
+    sourceRowsFromSnapshots: (snapshots) => snapshots.terminalBench4Rows,
   }),
   vending_bench_2: defineBenchmarkRuntime({
     ...vendingBench2Runtime,

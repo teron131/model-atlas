@@ -412,14 +412,14 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
       score: 0.744,
     },
   ],
-  terminalBench3Rows: [
+  terminalBench4Rows: [
     {
       model: "GPT-5 (max)",
       base_model: "GPT-5",
       reasoning_effort: "max",
-      harness: "mini-SWE-agent",
+      harness: "Claude Code",
       score: 0.4353,
-      score_standard_error: 0.0165,
+      score_ci95_half_width: 0.0385,
     },
   ],
   valsIndexRows: [
@@ -498,7 +498,7 @@ assert.deepEqual(dbBenchmarkRows.vals_index, [
     value: 0.67,
   },
 ]);
-assert.deepEqual(dbBenchmarkRows.terminal_bench_3, [
+assert.deepEqual(dbBenchmarkRows.terminal_bench_4, [
   {
     id: "GPT-5",
     identity: "GPT-5",

@@ -26,7 +26,7 @@ import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/benchmar
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/benchmarks/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
-import type { TerminalBench3ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-3";
+import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
 import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
 
@@ -119,14 +119,14 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   cost_per_task_usd: 0.75,
   tokens_per_task: 4_500,
 };
-const terminalBench3Row: TerminalBench3ModelAgentRow = {
-  revision: "3_0_0",
+const terminalBench4Row: TerminalBench4ModelAgentRow = {
+  revision: "4_0_0",
   model: "Example Model (high)",
   base_model: "Example Model",
   reasoning_effort: "high",
   harness: "mini-SWE-agent",
   score: 0.4353,
-  score_standard_error: 0.0165,
+  score_ci95_half_width: 0.0385,
 };
 const mercorApexRow: MercorApexAgentsRow = {
   model_id: "test/example-model",
@@ -365,8 +365,8 @@ const lookups = {
     rowsByModelName: emptyLookup(),
   },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
-  terminalBench3: {
-    rowsByModelName: buildBenchmarkModelMap([terminalBench3Row]),
+  terminalBench4: {
+    rowsByModelName: buildBenchmarkModelMap([terminalBench4Row]),
   },
   toolathlon: {
     rowsByModelName: emptyLookup(),
@@ -392,7 +392,7 @@ assert.deepEqual(observationAssignment.benchmarks, {
   frontier_code: 0.535,
   hle: 0.4,
   itbench_sre: 0.56,
-  terminal_bench_3: 0.4353,
+  terminal_bench_4: 0.4353,
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, undefined);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, undefined);
@@ -426,7 +426,7 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   hle: 0.4,
   itbench_sre: 0.56,
   legal_research: 0.61,
-  terminal_bench_3: 0.4353,
+  terminal_bench_4: 0.4353,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(defaultVariantAssignment.scoringSources, {
@@ -445,7 +445,7 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   hle: artificialAnalysisHleResourceRow,
   itbench_sre: itbenchResourceRow,
   legal_research: legalResearchRow,
-  terminal_bench_3: terminalBench3Row,
+  terminal_bench_4: terminalBench4Row,
   vending_bench_2: vendingBench2Row,
 });
 const effortQualifiedDefault = buildDefaultVariantBenchmarks(

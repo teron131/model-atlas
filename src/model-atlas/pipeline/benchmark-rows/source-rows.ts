@@ -274,8 +274,8 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         value: row.score,
       }),
     ),
-  terminal_bench_3: (sourceData) =>
-    benchmarkRowDrafts("terminal_bench_3", sourceData.terminalBench3.rows, (row) => ({
+  terminal_bench_4: (sourceData) =>
+    benchmarkRowDrafts("terminal_bench_4", sourceData.terminalBench4.rows, (row) => ({
       id: row.base_model,
       identity: row.base_model,
       label: row.model,

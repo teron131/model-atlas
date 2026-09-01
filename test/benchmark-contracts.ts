@@ -235,12 +235,12 @@ assert.throws(
   /Benchmark resource policy requires a resource source for invalid/,
 );
 
-assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_3.source.inputs, [
+assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_4.source.inputs, [
   {
     group: "standalone",
-    id: "terminal_bench_3",
+    id: "terminal_bench_4",
     roles: ["observation"],
-    runtime: { key: "terminal_bench_3", publicRows: true },
+    runtime: { key: "terminal_bench_4", publicRows: true },
   },
 ]);
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.source.inputs, [
@@ -313,7 +313,7 @@ assert.deepEqual(BENCHMARK_CATALOG.gdpval_normalized.processing, {
 });
 assert.ok(Math.abs(transformBenchmarkSourceValue("gdpval_normalized", 1_823.94) - 0.66197) < 1e-12);
 assert.ok(Math.abs(transformBenchmarkSourceValue("gdpval_normalized", 1_710.14) - 0.60507) < 1e-12);
-assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_3.processing.aggregation, {
+assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_4.processing.aggregation, {
   kind: "custom",
 });
 assert.deepEqual(BENCHMARK_CATALOG.ale_bench.processing.sourceCrosswalk, {
