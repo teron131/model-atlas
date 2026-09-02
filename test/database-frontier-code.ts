@@ -169,7 +169,7 @@ try {
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.frontier_code, {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     resourcePolicy: {
       source: "benchmark",
       unit: "per_task",

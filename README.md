@@ -12,8 +12,8 @@ The four scores answer different questions:
 
 | Score | Question |
 | --- | --- |
-| Intelligence | How strong is the model at knowledge, reasoning, interpretation, and problem solving? |
-| Agentic | How reliably does the model complete work through tools, files, repositories, browsers, terminals, APIs, and other external environments? |
+| Intelligence | How strong is the model at knowledge, reasoning, judgment, problem solving, and constructing correct or valuable artifacts? |
+| Agentic | How reliably does the model follow complex instructions, orchestrate tools, manage external state, verify progress, and recover through multi-step work? |
 | Speed | How quickly does the model deliver comparable work? |
 | Value | How much quality and capability does the model deliver for its cost? |
 

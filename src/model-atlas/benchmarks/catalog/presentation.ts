@@ -30,7 +30,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Agents' Last Exam"],
       ["Split", "Full Overall"],
-      ["Role", "agentic real-world work"],
+      ["Role", "instruction- and tool-driven work"],
     ],
   },
   ale_bench: {
@@ -55,7 +55,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Long-horizon consulting, investment-banking, and legal tasks completed across files and workplace tools.",
     rows: [
       ["Source", "Artificial Analysis"],
-      ["Role", "agentic task completion"],
+      ["Role", "long-horizon professional execution"],
     ],
   },
   automation_bench: {
@@ -99,7 +99,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Multi-file business projects requiring spreadsheets, presentations, and memos, graded for correctness, analysis, and presentation.",
     rows: [
       ["Source", "Artificial Analysis"],
-      ["Role", "agentic knowledge work"],
+      ["Role", "multi-artifact professional work"],
     ],
   },
   browsecomp: {
@@ -157,7 +157,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Implement ambiguous, multi-file changes in real repositories, scored for functional correctness and code quality.",
     rows: [
       ["Source", "Cursor"],
-      ["Role", "coding-agent workflow"],
+      ["Role", "repository problem solving"],
     ],
   },
   cyberbench: {
@@ -166,7 +166,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "patch-track accuracy"],
-      ["Role", "cybersecurity agent work"],
+      ["Role", "cybersecurity patching"],
     ],
   },
   deep_swe: {
@@ -174,7 +174,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Resolve original software-engineering tasks by inspecting, editing, and testing active open-source repositories.",
     rows: [
       ["Source", "DeepSWE leaderboard"],
-      ["Role", "coding agent work"],
+      ["Role", "repository software engineering"],
     ],
   },
   ebr_bench: {
@@ -191,7 +191,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
-      ["Role", "expert agent workflow"],
+      ["Role", "financial-model construction"],
     ],
   },
   enterprisebench_corecraft: {
@@ -216,7 +216,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "strict all-pass rate"],
-      ["Role", "finance agent work"],
+      ["Role", "finance research and analysis"],
     ],
   },
   frontier_code: {
@@ -224,7 +224,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Make repository-scale code changes that are tested for correctness, quality, and mergeability.",
     rows: [
       ["Source", "Cognition"],
-      ["Role", "repository-scale coding agents"],
+      ["Role", "repository-scale software engineering"],
     ],
   },
   frontiermath_tier_4: {
@@ -257,7 +257,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Complete enterprise tasks while following long company handbooks and using internal tools and external MCP servers.",
     rows: [
       ["Source", "Surge AI"],
-      ["Role", "policy-grounded agent work"],
+      ["Role", "policy-grounded workflow execution"],
     ],
   },
   harvey_lab: {
@@ -265,7 +265,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Produce legal work such as memos, redlines, and disclosure schedules from case documents, with every required criterion graded.",
     rows: [
       ["Source", "Vals AI"],
-      ["Role", "legal agent work"],
+      ["Role", "legal work-product construction"],
     ],
   },
   hemingway_bench: {
@@ -290,7 +290,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Diagnose Kubernetes incidents from offline alerts, events, traces, metrics, and topology, identifying every contributing root-cause entity.",
     rows: [
       ["Source", "Artificial Analysis"],
-      ["Role", "SRE agent investigation"],
+      ["Role", "SRE diagnosis workflow"],
     ],
   },
   legal_research: {
@@ -299,7 +299,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "strict all-pass accuracy"],
-      ["Role", "legal research agent work"],
+      ["Role", "legal research workflow"],
     ],
   },
   mls_bench: {
@@ -308,7 +308,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "MLS-Bench"],
       ["Metric", "baseline-normalized performance"],
-      ["Role", "agentic machine-learning research"],
+      ["Role", "iterative machine-learning research"],
     ],
   },
   omniscience_accuracy: {
@@ -334,7 +334,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "raw behavioral-test pass rate"],
-      ["Role", "programming agent work"],
+      ["Role", "program construction"],
     ],
   },
   proofbench: {
@@ -352,7 +352,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
-      ["Role", "public-benefits agent work"],
+      ["Role", "public-benefits case analysis"],
     ],
   },
   riemann_bench: {
@@ -393,7 +393,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Terminal-Bench 4.0"],
       ["Metric", "task accuracy"],
-      ["Role", "terminal and software agent work"],
+      ["Role", "terminal workflow execution"],
     ],
   },
   toolathlon: {
@@ -426,7 +426,7 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
-      ["Role", "coding agent work"],
+      ["Role", "software product construction"],
     ],
   },
   weirdml: {

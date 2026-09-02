@@ -8,12 +8,26 @@ The current portfolio, source precedence, metric selection, and scoring roles ar
 
 Every accepted benchmark must measure at least one of two capabilities:
 
-1. **Intelligence:** knowledge, reasoning, interpretation, judgment, or problem solving.
-2. **Agentic ability:** completing work through tools, files, repositories, browsers, terminals, APIs, multi-step harnesses, or other external environments.
+1. **Intelligence:** acquiring and interpreting knowledge, reasoning and exercising judgment, solving problems, and constructing correct or valuable artifacts such as answers, analyses, plans, proofs, code, documents, or models.
+2. **Agentic ability:** carrying instructions through action by following complex or persistent constraints, selecting and sequencing tools, using feedback, maintaining external state, self-verifying, recovering from failures, and persisting through a multi-step task.
 
-Difficulty alone does not make a benchmark Agentic. A hard coding or scientific-programming question measures Intelligence when success depends mainly on understanding the problem and producing an answer. It measures Agentic ability when success depends on editing files, running code, using tools, recovering from failures, or completing a workflow.
+Classification follows the intended scored capability before the interface. Code, proofs, documents, files, repositories, browsers, terminals, compilers, interpreters, and harnesses are neutral media: their presence does not itself earn Agentic loading. A benchmark earns Agentic loading only when instruction fidelity, tool orchestration, or stateful execution materially determines the score.
 
-A benchmark may contribute to both dimensions when its tasks genuinely require both substantive reasoning and external execution. The review should explain the division in terms of the work required, not the benchmark's marketing category.
+Ordinary compliance with a task prompt is common to every benchmark and does not make every benchmark Agentic. Instruction fidelity becomes Agentic evidence when the benchmark deliberately stresses and scores interdependent, conditional, implicit, conflicting, long-horizon, or state-dependent requirements. Likewise, merely running a verifier is not tool orchestration; the model must select or sequence actions, use feedback, manage state, or recover.
+
+Use the completed-artifact counterfactual when the distinction is unclear: if a correct artifact could be submitted directly and would fully represent success, the benchmark is primarily Intelligence even when the artifact is code or a proof. A mixed loading is justified when the benchmark also scores how reliably the model translates instructions into actions, coordinates tools, or completes a stateful workflow.
+
+Dimension loadings use a coarse five-level scale so incidental mechanics do not create false precision:
+
+| Intelligence / Agentic | Meaning |
+| --- | --- |
+| 100% / 0% | The scored construct is Intelligence; any execution mechanics are incidental. |
+| 75% / 25% | Intelligence dominates, with a material but secondary Agentic component. |
+| 50% / 50% | Both capabilities independently and materially determine success. |
+| 25% / 75% | Agentic ability dominates, with substantive Intelligence still required. |
+| 0% / 100% | The scored construct is instruction fidelity, tool orchestration, or stateful execution; domain reasoning is incidental to that construct. |
+
+Endpoints are normal, not exceptional. A review should assign weight only to capabilities the benchmark materially scores and explain every cross-loading. Harness or provider provenance remains a separate comparability judgment except for the narrow repeated-harness coding case defined below.
 
 If the benchmark does not add credible evidence about either capability, it does not belong in the ranking.
 
@@ -147,11 +161,13 @@ A defensible review should answer these questions:
 
 ## Harness Interpretation
 
-Same-harness results provide the cleanest direct comparison. Every row shares the same agent framework, tool contract, budget, and evaluation environment, so differences are easier to attribute to the model.
+Harness choice normally affects provenance and comparability, not capability loading. Same-harness results make model attribution cleaner, while mixed-harness rows represent model-plus-harness systems, but neither condition makes the underlying task Agentic.
 
-Mixed-harness leaderboards measure something different. Each row represents a model plus an agent system, and the review must preserve that unit of interpretation. Harness variation is not inherently a defect: it can reveal whether a model works well across different scaffolds and whether the surrounding ecosystem can use it effectively.
+For non-coding benchmarks and coding benchmarks with only one harness per exact model configuration, record the harness and preserve the model-plus-harness interpretation without using harness presence as Agentic evidence. A leaderboard cannot infer model agency by comparing different models that also use different harnesses because model and scaffold effects are confounded.
 
-For mixed-harness evidence, record the best and median score by model, the number of independent harness families, whether runs use one model or several, and whether performance depends on a single specialized scaffold. Escalate only when opaque or incompatible harness differences dominate the result while the leaderboard presents the rows as pure model comparisons.
+The narrow exception is an explicitly coding benchmark that evaluates the same exact model configuration under more than one materially different harness. Repeated-harness results can reveal tool-loop reliability, instruction execution, feedback use, or recovery across scaffolds and may therefore support Agentic loading when those behaviors are part of the benchmark's scored construct. Code remains neutral, each row remains a model-plus-harness result, and harness variation alone does not determine the loading.
+
+For that repeated-harness case, retain every model-harness row and report how aggregation selects or combines them. Escalate when the result depends on one specialized scaffold, opaque harness differences dominate, or the leaderboard presents a selected model-plus-harness score as a pure model score.
 
 ## Provenance Interpretation
 
