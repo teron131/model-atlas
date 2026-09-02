@@ -9,6 +9,7 @@ import {
   BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
+  BENCHMARK_PORTFOLIO,
   BENCHMARK_RUNTIME_KEYS,
   transformBenchmarkSourceValue,
 } from "../src/model-atlas/benchmarks/registry";
@@ -111,6 +112,18 @@ assert.deepEqual(factory.portfolio, {
     },
   },
 });
+
+const dimensionLoadingSteps = new Set([0, 0.25, 0.5, 0.75, 1]);
+for (const [key, entry] of Object.entries(BENCHMARK_PORTFOLIO)) {
+  assert.ok(
+    dimensionLoadingSteps.has(entry.dimensionLoadings.intelligence),
+    `${key} Intelligence loading must use the documented five-level scale`,
+  );
+  assert.ok(
+    dimensionLoadingSteps.has(entry.dimensionLoadings.agentic),
+    `${key} Agentic loading must use the documented five-level scale`,
+  );
+}
 
 assert.throws(
   () =>

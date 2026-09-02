@@ -76,8 +76,8 @@ const bindings = Object.fromEntries(
 assert.equal(bindings.mls_bench?.loader.kind, "mls_bench");
 assert.equal(bindings.perception_bench?.loader.kind, "perception_bench");
 assert.deepEqual(BENCHMARK_PORTFOLIO.mls_bench.dimensionLoadings, {
-  intelligence: 0.4,
-  agentic: 0.6,
+  intelligence: 0.75,
+  agentic: 0.25,
 });
 assert.deepEqual(BENCHMARK_PORTFOLIO.perception_bench.dimensionLoadings, {
   intelligence: 1,

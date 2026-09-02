@@ -171,7 +171,7 @@ try {
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.ale_bench, {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.4, agentic: 0.6 },
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     resourcePolicy: {
       source: "benchmark",
       unit: "per_task",

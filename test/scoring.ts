@@ -212,8 +212,8 @@ const previewScoreResult = buildPreviewComponentScoreResult(
     indexAnchorsByModel: new Map(),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 55.5556);
-assertClose(previewScoreResult.componentScores?.agentic_score, 77.7778);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 54.1667);
+assertClose(previewScoreResult.componentScores?.agentic_score, 91.6667);
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
@@ -398,42 +398,42 @@ assert.deepEqual(
     code_migration: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+      dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
     cyberbench: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0, agentic: 1 },
+      dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
     emb: {
       group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+      dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
     finance_agent_v2: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     legal_research: {
       group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     programbench: {
       group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+      dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
     public_benefits_bench: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
+      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     vibe_code: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0, agentic: 1 },
+      dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
   },
 );
@@ -477,8 +477,11 @@ assertEqual(
 );
 assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.group, "frontier");
 assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.benchmarkImportance, 1);
-assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings.agentic, 1);
-assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings.intelligence, 0);
+assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings.agentic, 0.25);
+assertEqual(
+  STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings.intelligence,
+  0.75,
+);
 assertThrowsWithMessage(
   () =>
     validateBenchmarkPortfolio({

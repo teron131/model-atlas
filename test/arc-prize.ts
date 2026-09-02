@@ -180,8 +180,8 @@ assert.deepEqual(BENCHMARK_PORTFOLIO.arc_agi_2.dimensionLoadings, {
   agentic: 0,
 });
 assert.deepEqual(BENCHMARK_PORTFOLIO.arc_agi_3.dimensionLoadings, {
-  intelligence: 0.8,
-  agentic: 0.2,
+  intelligence: 0.75,
+  agentic: 0.25,
 });
 assert.equal(BENCHMARK_PORTFOLIO.arc_agi_2.benchmarkImportance, 1);
 assert.equal(BENCHMARK_PORTFOLIO.arc_agi_3.benchmarkImportance, 1);

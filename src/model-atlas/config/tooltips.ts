@@ -248,7 +248,7 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Model Atlas score for knowledge, reasoning, interpretation, and problem solving. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "Model Atlas score for knowledge, perception, reasoning, judgment, problem solving, and constructing correct or valuable artifacts. Code, proofs, documents, and other artifacts remain Intelligence evidence unless a benchmark separately scores Agentic behavior. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
@@ -264,7 +264,7 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "Model Atlas score for completing work through tools, files, repositories, browsers, terminals, APIs, and other external environments. Selected benchmarks are normalized to 0–100 and weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "Model Atlas score for following complex instructions, selecting and sequencing tools, using feedback, managing external state, self-verifying, recovering, and persisting through multi-step work. A coding task, repository, terminal, or harness does not create Agentic evidence unless one of those capabilities materially determines the score. Selected benchmarks are normalized to 0–100 and weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],

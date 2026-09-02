@@ -18,8 +18,8 @@ The calculation proceeds in one direction:
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
-| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model on knowledge and reasoning? |
-| Agentic | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model in tool-mediated workflows? |
+| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model at knowledge, reasoning, judgment, problem solving, and artifact construction? |
+| Agentic | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How reliably does the model follow complex instructions, orchestrate tools, manage state, verify progress, and recover? |
 | Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and evidence-weighted aggregation | How quickly does the model deliver comparable work? |
 | Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and evidence-weighted aggregation | How much useful capability does the model deliver for its cost? |
 

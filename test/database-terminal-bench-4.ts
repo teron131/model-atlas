@@ -127,7 +127,7 @@ try {
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.terminal_bench_4, {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   });
   assert.equal(payload.metadata.scoring.selected_benchmark_keys.includes("terminal_bench_4"), true);
 } finally {
