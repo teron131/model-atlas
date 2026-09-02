@@ -3,6 +3,10 @@
 import assert from "node:assert/strict";
 
 import {
+  filterGraphPreviewsByIntelligenceFloor,
+  graphModelLabel,
+} from "../app/dashboard/graphs/model-series";
+import {
   filterByIntelligenceRank,
   filterByModelControls,
   filterByModelQuery,
@@ -93,6 +97,27 @@ assert.deepEqual(
   sortedRows(previewRankingRows, "", sortState("rank", "ascending")).map((row) => row.model.id),
   ["provider/official-first", "provider/preview", "provider/official-second"],
   "rank sorting should place a preview at its Intelligence-relative position",
+);
+assert.equal(
+  graphModelLabel(previewRankingRows[1]!.model),
+  "*Preview",
+  "preview graph labels should carry the marker explained by the legend",
+);
+const lowPreview = previewModelFromCandidate({
+  ...rankedModel("provider/low-preview", "Low Preview", 70),
+  component_scores: {
+    intelligence_score: 70,
+    agentic_score: 70,
+    speed_score: null,
+  },
+});
+assert.deepEqual(
+  filterGraphPreviewsByIntelligenceFloor(
+    [...previewRankingRows.map((row) => row.model), lowPreview],
+    (model) => model,
+  ).map((model) => model.id),
+  ["provider/official-first", "provider/preview", "provider/official-second"],
+  "graphs should omit previews below the displayed official Intelligence floor",
 );
 
 const aleBenchColumn = benchmarkMetricColumns.find((column) => column.key === "aleBench");

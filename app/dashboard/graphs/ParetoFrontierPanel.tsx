@@ -4,13 +4,17 @@ import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import { type CSSProperties, memo, type ReactNode, useState } from "react";
 
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { modelVariantKey, reasoningVariantGroups, shortLabel } from "../shared/model-display";
+import {
+  isPreviewModel,
+  type ModelAtlasPublishedModel,
+} from "../../../src/model-atlas/stats/types";
+import { modelVariantKey, reasoningVariantGroups } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { valueDistribution } from "./chart-stats";
 import { EmptyChart } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
+import { graphLabeledItems, graphModelLabel, graphReferenceItems } from "./model-series";
 import { Panel } from "./Panel";
 import { PARETO_PANEL_CONTENT, ParetoControlSet } from "./ParetoControlSet";
 import { scoreAxisScale } from "./plot/axis-scale";
@@ -49,8 +53,9 @@ import styles from "./graphs.module.css";
 const SCORE_AXIS_FORMAT_OPTIONS = {
   formatTick: (tick: number) => tick.toFixed(0),
 };
-const intelligenceScore = (model: ModelAtlasModel) => model.scores.intelligence_score;
-const valueScore = (model: ModelAtlasModel) => Number(model.scores.value_score);
+const intelligenceScore = (model: ModelAtlasPublishedModel) =>
+  Number(model.scores.intelligence_score);
+const valueScore = (model: ModelAtlasPublishedModel) => Number(model.scores.value_score);
 
 export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   models,
@@ -59,7 +64,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   scoreBasisControl,
   setHover,
 }: {
-  models: ModelAtlasModel[];
+  models: ModelAtlasPublishedModel[];
   showVariants: boolean;
   compactLayout: boolean;
   scoreBasisControl: ReactNode;
@@ -72,6 +77,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       scoreBasisControl={scoreBasisControl}
       yAxisControl={<span className={styles.axisReadout}>Intelligence ↑</span>}
       xAxisControl={<span className={styles.axisReadout}>Value ↑</span>}
+      showPreviewLegend={models.some(isPreviewModel)}
     />
   );
   const candidates = models
@@ -96,13 +102,15 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   const width = SCATTER_CHART_WIDTH;
   const height = SCATTER_CHART_HEIGHT;
   const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compactLayout);
+  const referenceCandidates = graphReferenceItems(candidates, (model) => model);
   const values = candidates.map(valueScore);
   const scores = candidates.map(intelligenceScore);
+  const referenceScores = referenceCandidates.map(intelligenceScore);
   const frontier = paretoFrontier(candidates, {
     x: { get: valueScore, goal: "maximize" },
     y: { get: intelligenceScore, goal: "maximize" },
   });
-  const scoreDistribution = valueDistribution(scores);
+  const scoreDistribution = valueDistribution(referenceScores);
   const valueAxis = scoreAxisScale(values, SCORE_AXIS_FORMAT_OPTIONS);
   const intelligenceAxis = scoreAxisScale(scores, SCORE_AXIS_FORMAT_OPTIONS);
   const xDomain = valueAxis.domain;
@@ -117,10 +125,10 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
     .clamp(true);
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
-  const medianValue = median(values) ?? xDomain[0];
-  const medianScore = median(scores) ?? 50;
+  const medianValue = median(referenceCandidates.map(valueScore)) ?? xDomain[0];
+  const medianScore = median(referenceScores) ?? 50;
   const frontierIds = new Set(frontier.map(modelVariantKey));
-  const markRadius = (model: ModelAtlasModel) => scoreQuadrilateralRadius(model, 2.5, 8);
+  const markRadius = (model: ModelAtlasPublishedModel) => scoreQuadrilateralRadius(model, 2.5, 8);
   const reasoningGroups = showVariants ? reasoningVariantGroups(candidates, (model) => model) : [];
   const reasoningGroupByVariant = new Map(
     reasoningGroups.flatMap((group) =>
@@ -146,7 +154,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
           group.variants.map((model) => ({
             model,
             cx: xPoint(Number(model.scores.value_score)),
-            cy: yPoint(model.scores.intelligence_score),
+            cy: yPoint(intelligenceScore(model)),
             radius: markRadius(model),
           })),
         ),
@@ -163,7 +171,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
   const plottedCandidates = candidates;
   const projectionPoints = plottedCandidates.map((model) => {
     const xValue = Number(model.scores.value_score);
-    const yValue = model.scores.intelligence_score;
+    const yValue = intelligenceScore(model);
     return {
       x: xPoint(xValue),
       y: yPoint(yValue),
@@ -175,20 +183,21 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
     bounds: plot,
     points: projectionPoints,
   });
+  const labeledCandidates = graphLabeledItems(candidates, frontier, (model) => model);
   const labelPlacements = calloutLabelPlacements({
     bounds: plot,
     obstacles: plottedCandidates.map((model) => ({
       cx: xPoint(Number(model.scores.value_score)),
-      cy: yPoint(model.scores.intelligence_score),
+      cy: yPoint(intelligenceScore(model)),
       radius: markRadius(model),
     })),
-    labels: frontier.map((model, index) => ({
+    labels: labeledCandidates.map((model, index) => ({
       key: modelVariantKey(model),
-      label: shortLabel(model),
+      label: graphModelLabel(model),
       cx: xPoint(Number(model.scores.value_score)),
-      cy: yPoint(model.scores.intelligence_score),
+      cy: yPoint(intelligenceScore(model)),
       radius: markRadius(model),
-      priority: frontier.length - index,
+      priority: labeledCandidates.length - index,
     })),
     fontSize: 13,
     charWidth: 7.8,
@@ -301,8 +310,9 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
           />
           {plottedCandidates.map((model) => {
             const cx = xPoint(Number(model.scores.value_score));
-            const cy = yPoint(model.scores.intelligence_score);
+            const cy = yPoint(intelligenceScore(model));
             const isFrontier = frontierIds.has(modelVariantKey(model));
+            const isPreview = isPreviewModel(model);
             const variantKey = modelVariantKey(model);
             const reasoningGroupKey = reasoningGroupByVariant.get(variantKey);
             const isActiveVariant =
@@ -358,20 +368,21 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
                     x: cx,
                     y: cy,
                     xValue: Number(model.scores.value_score),
-                    yValue: model.scores.intelligence_score,
+                    yValue: intelligenceScore(model),
                   }}
                   setCursorProjection={setCursorProjection}
                   onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
                 />
-                {isFrontier ? (
+                {isFrontier || isPreview ? (
                   <TextPointLabel
-                    label={shortLabel(model)}
+                    label={graphModelLabel(model)}
                     cx={cx}
                     cy={cy}
                     width={width}
                     margin={margin}
                     height={height}
                     placement={labelPlacements.get(modelVariantKey(model))}
+                    italic={isPreview}
                   />
                 ) : null}
               </g>

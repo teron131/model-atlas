@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { ShapeScaleLegend } from "./ChartComponents";
+import { PreviewLabelLegend, ShapeScaleLegend } from "./ChartComponents";
 
 import styles from "./graphs.module.css";
 
@@ -17,10 +17,12 @@ export function ParetoControlSet({
   scoreBasisControl,
   yAxisControl,
   xAxisControl,
+  showPreviewLegend = false,
 }: {
   scoreBasisControl: ReactNode;
   yAxisControl: ReactNode;
   xAxisControl: ReactNode;
+  showPreviewLegend?: boolean;
 }) {
   return (
     <div className={`${styles.chartToolbar} ${styles.paretoControlSet}`}>
@@ -45,6 +47,7 @@ export function ParetoControlSet({
         </div>
       </div>
       <div className={styles.chartToolbarCaption}>
+        {showPreviewLegend ? <PreviewLabelLegend /> : null}
         <ShapeScaleLegend />
       </div>
     </div>

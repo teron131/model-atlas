@@ -4,7 +4,7 @@
 
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } from "react";
 
-import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import { modelName } from "../../shared/model-display";
 import { focusHover, pointHover } from "../hover-state";
 import type { HoverRow, HoverSetter } from "../types";
@@ -160,7 +160,7 @@ export function PointHitTarget({
 }: {
   cx: number;
   cy: number;
-  model: ModelAtlasModel;
+  model: ModelAtlasPublishedModel;
   rows: HoverRow[];
   setHover: HoverSetter;
   hoverTitle?: string;

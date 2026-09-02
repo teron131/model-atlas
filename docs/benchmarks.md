@@ -67,7 +67,7 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix artifact quality with workflow execution without recoverable component weights; coding is not presumed Agentic. |
 
-When a recent preview has aggregate indexes as its only observed quality evidence, those indexes are combined by the number of benchmarks they represent: Artificial Analysis 9, Epoch 8, Surge 8, and Vals 7. Epoch uses the median of the other three represented counts because its exact underlying count is unavailable per model row. These index-only preview counts do not replace the normal portfolio importance of 0.5.
+For every model without complete direct-task coverage, aggregate indexes enter the quality mean with the number of benchmarks they represent: Artificial Analysis 9, Epoch 8, Surge 8, and Vals 7. Epoch uses the median of the other three represented counts because its exact underlying count is unavailable per model row. Observed task benchmarks retain their ordinary effective weights. The normal index importance of 0.5 does not enter an undercovered mean and resumes only at complete direct-task coverage.
 
 ### Frontier Benchmarks
 

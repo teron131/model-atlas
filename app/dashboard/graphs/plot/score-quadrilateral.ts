@@ -1,7 +1,7 @@
 /** Own the fixed-compass quadrilateral geometry used by analytical model-score plots. */
 
 import { meanOfFinite } from "../../../../src/model-atlas/numeric";
-import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 
 type QuadrilateralPoint = {
   x: number;
@@ -16,7 +16,7 @@ type ScoreQuadrilateral = readonly [
 ];
 
 type ScoreQuadrilateralConnectorAnchor = {
-  model: Pick<ModelAtlasModel, "scores">;
+  model: Pick<ModelAtlasPublishedModel, "scores">;
   cx: number;
   cy: number;
   radius: number;
@@ -34,7 +34,7 @@ type ScoreQuadrilateralConnectorSegment = {
  * Missing axes use that same observed mean to preserve a complete visual silhouette.
  */
 export function scoreQuadrilateralRadius(
-  model: Pick<ModelAtlasModel, "scores">,
+  model: Pick<ModelAtlasPublishedModel, "scores">,
   minRadius = 3,
   maxRadius = 10,
 ): number {
@@ -44,7 +44,7 @@ export function scoreQuadrilateralRadius(
 
 /** Build an equal-area compass polygon: Intelligence up, Agentic right, Speed left, Value down. */
 export function scoreQuadrilateralPoints(
-  model: Pick<ModelAtlasModel, "scores">,
+  model: Pick<ModelAtlasPublishedModel, "scores">,
   cx: number,
   cy: number,
   radius: number,
@@ -142,7 +142,7 @@ function crossProduct(leftX: number, leftY: number, rightX: number, rightY: numb
   return leftX * rightY - leftY * rightX;
 }
 
-function quadrilateralScoreUnits(model: Pick<ModelAtlasModel, "scores">) {
+function quadrilateralScoreUnits(model: Pick<ModelAtlasPublishedModel, "scores">) {
   const rawScores = [
     model.scores.intelligence_score,
     model.scores.agentic_score,

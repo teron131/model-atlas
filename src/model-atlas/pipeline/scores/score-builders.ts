@@ -25,16 +25,12 @@ import type {
   ModelAtlasConfidence,
   ModelAtlasSpeed,
 } from "../model-types";
-import {
-  normalizedMetricValue,
-  qualityIndexAnchor,
-  type QualityIndexAnchor,
-  type QualityScoringContext,
-} from "./imputation";
+import { normalizedMetricValue, type QualityScoringContext } from "./imputation";
 import { evidenceMassConfidence } from "./normalization";
 import { benchmarkMetricValue } from "./resource-metrics";
 
 type BenchmarkScoreInput = {
+  key: string;
   value: number | null;
   evidenceConfidence: number;
   observed: boolean;
@@ -53,7 +49,9 @@ type ComponentScoreResult = {
 
 const MIN_SIBLING_COMPARISON_BENCHMARKS = 3;
 const QUALITY_REGULARIZATION_TARGET = 50;
-const INDEX_ONLY_BENCHMARK_KEYS = new Set(Object.keys(INDEX_REPRESENTED_BENCHMARK_COUNTS));
+const AGGREGATE_INDEX_KEYS = new Set(Object.keys(INDEX_REPRESENTED_BENCHMARK_COUNTS));
+
+type UnproxiedQualityScore = "observed-mean" | "regularized";
 
 type QualityDimensionScoreKey = "intelligence_score" | "agentic_score";
 
@@ -230,6 +228,7 @@ function selectedBenchmarkScoreInputs(
     const rawValue = observedValue ?? imputedValue;
     const value = normalizedMetricValue(qualityContext.benchmarkValuesByKey, key, rawValue);
     inputs.push({
+      key,
       value,
       evidenceConfidence:
         observedValue != null
@@ -252,31 +251,22 @@ function evidenceRegularizedQualityScore(qualityMean: number, evidenceReliabilit
         (qualityMean - QUALITY_REGULARIZATION_TARGET) * evidenceReliability;
 }
 
-/** Allow a validated model-level index anchor to relieve only the remaining sparse-evidence penalty. */
-function indexAnchoredQualityScore(
-  qualityMean: number,
-  regularizedScore: number,
-  hasFullObservedEvidence: boolean,
-  evidenceSupport: number,
-  anchor: QualityIndexAnchor | null,
-): number {
-  if (qualityMean <= QUALITY_REGULARIZATION_TARGET || hasFullObservedEvidence || anchor == null) {
-    return regularizedScore;
-  }
-  const reliableAnchor = clamp(
-    QUALITY_REGULARIZATION_TARGET +
-      (anchor.score - QUALITY_REGULARIZATION_TARGET) * anchor.confidence,
-    0,
-    100,
+/** Weight observed aggregate indexes by represented breadth in an undercovered quality mean. */
+function undercoveredQualityScore(benchmarkScoreInputs: BenchmarkScoreInput[]): number | null {
+  return weightedMeanOfFinite(
+    benchmarkScoreInputs.flatMap(({ key, value, observed, weight }) => {
+      const representedBenchmarkCount =
+        INDEX_REPRESENTED_BENCHMARK_COUNTS[key as keyof typeof INDEX_REPRESENTED_BENCHMARK_COUNTS];
+      return observed ? [{ value, weight: representedBenchmarkCount ?? weight }] : [];
+    }),
   );
-  return regularizedScore + Math.max(reliableAnchor - regularizedScore, 0) * (1 - evidenceSupport);
 }
 
-/** Score direct observations while validated estimates contribute only evidence support and regularization relief. */
+/** Score direct observations while aggregate indexes proxy the missing share below full task coverage. */
 function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
   evidenceThresholds: QualityCoverageThresholds[BenchmarkDimension],
-  indexAnchor: QualityIndexAnchor | null,
+  unproxiedScore: UnproxiedQualityScore,
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
     benchmarkScoreInputs.flatMap(({ value, observed, weight }) =>
@@ -290,10 +280,12 @@ function qualityScore(
     (total, { evidenceConfidence, weight }) => total + evidenceConfidence * weight,
     0,
   );
-  const observedEvidenceMass = benchmarkScoreInputs.reduce(
+  const taskInputs = benchmarkScoreInputs.filter(({ key }) => !AGGREGATE_INDEX_KEYS.has(key));
+  const observedTaskEvidenceMass = taskInputs.reduce(
     (total, { observed, weight }) => total + (observed ? weight : 0),
     0,
   );
+  const possibleTaskEvidenceMass = taskInputs.reduce((total, { weight }) => total + weight, 0);
   const evidenceReliability = evidenceMassConfidence(
     evidenceMass,
     evidenceThresholds.floor,
@@ -305,15 +297,18 @@ function qualityScore(
   );
   const evidenceSupport =
     possibleEvidenceMass > 0 ? clamp01(evidenceMass / possibleEvidenceMass) : null;
+  const hasObservedIndex = benchmarkScoreInputs.some(
+    ({ key, observed }) => observed && AGGREGATE_INDEX_KEYS.has(key),
+  );
+  if (hasObservedIndex && observedTaskEvidenceMass < possibleTaskEvidenceMass) {
+    return {
+      score: undercoveredQualityScore(benchmarkScoreInputs),
+      evidenceSupport,
+    };
+  }
   const regularizedScore = evidenceRegularizedQualityScore(qualityMean, evidenceReliability);
   return {
-    score: indexAnchoredQualityScore(
-      qualityMean,
-      regularizedScore,
-      observedEvidenceMass >= evidenceThresholds.full,
-      evidenceSupport ?? 0,
-      indexAnchor,
-    ),
+    score: unproxiedScore === "regularized" ? regularizedScore : qualityMean,
     evidenceSupport,
   };
 }
@@ -324,78 +319,39 @@ function previewQualityScore(
   dimension: BenchmarkDimension,
   qualityContext: QualityScoringContext,
   scoringConfig: ScoringConfig,
-  indexOnly: boolean,
 ): QualityScoreResult {
   const inputs = keys.flatMap((key) => {
     const rawValue = benchmarkMetricValue(model, key);
     const value = normalizedMetricValue(qualityContext.benchmarkValuesByKey, key, rawValue);
-    const weight = previewBenchmarkDimensionWeight(key, dimension, scoringConfig, indexOnly);
-    return value == null || !(weight > 0) ? [] : [{ value, weight }];
+    const weight = previewBenchmarkDimensionWeight(key, dimension, scoringConfig);
+    return !(weight > 0)
+      ? []
+      : [
+          {
+            key,
+            value,
+            evidenceConfidence: value == null ? 0 : 1,
+            observed: value != null,
+            weight,
+          },
+        ];
   });
-  const score = weightedMeanOfFinite(inputs);
-  if (score == null) {
-    return { score: null, evidenceSupport: null };
-  }
-  const observedWeight = inputs.reduce((total, { weight }) => total + weight, 0);
-  const possibleWeight = keys.reduce(
-    (total, key) =>
-      total + previewBenchmarkDimensionWeight(key, dimension, scoringConfig, indexOnly),
-    0,
-  );
-  const evidenceSupport = possibleWeight > 0 ? clamp01(observedWeight / possibleWeight) : null;
-  return {
-    score: indexAnchoredQualityScore(
-      score,
-      score,
-      false,
-      evidenceSupport ?? 0,
-      qualityIndexAnchor(qualityContext, model, dimension),
-    ),
-    evidenceSupport,
-  };
+  return qualityScore(inputs, scoringConfig.qualityCoverage[dimension], "observed-mean");
 }
 
-/** Give preview-only Intelligence fields one unit and represent aggregate indexes only when they are the sole quality evidence. */
+/** Give preview-only Intelligence fields one unit while retaining normal portfolio weights elsewhere. */
 function previewBenchmarkDimensionWeight(
   key: string,
   dimension: BenchmarkDimension,
   scoringConfig: ScoringConfig,
-  indexOnly: boolean,
 ): number {
   if (scoringConfig.previewAdditionalIntelligenceBenchmarkKeys.includes(key)) {
     return dimension === "intelligence" ? 1 : 0;
   }
-  const representedBenchmarkCount =
-    INDEX_REPRESENTED_BENCHMARK_COUNTS[key as keyof typeof INDEX_REPRESENTED_BENCHMARK_COUNTS];
-  if (indexOnly && representedBenchmarkCount != null) {
-    return (
-      representedBenchmarkCount *
-      (scoringConfig.benchmarkPortfolio[key]?.dimensionLoadings[dimension] ?? 0)
-    );
-  }
   return benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
 }
 
-function hasOnlyIndexQualityEvidence(model: JsonObject, scoringConfig: ScoringConfig): boolean {
-  const qualityKeys = new Set([
-    ...scoringConfig.intelligenceBenchmarkKeys,
-    ...scoringConfig.agenticBenchmarkKeys,
-    ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
-  ]);
-  let observedIndex = false;
-  for (const key of qualityKeys) {
-    if (benchmarkMetricValue(model, key) == null) {
-      continue;
-    }
-    if (!INDEX_ONLY_BENCHMARK_KEYS.has(key)) {
-      return false;
-    }
-    observedIndex = true;
-  }
-  return observedIndex;
-}
-
-/** Score recent previews from direct observations while validated indexes may anchor sparse quality without adding support. */
+/** Score recent previews from direct observations with the shared under-coverage index proxy. */
 export function buildPreviewComponentScoreResult(
   model: JsonObject,
   scoringConfig: ScoringConfig,
@@ -407,14 +363,12 @@ export function buildPreviewComponentScoreResult(
       ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
     ]),
   ];
-  const indexOnly = hasOnlyIndexQualityEvidence(model, scoringConfig);
   const intelligence = previewQualityScore(
     model,
     intelligenceKeys,
     "intelligence",
     qualityContext,
     scoringConfig,
-    indexOnly,
   );
   const agentic = previewQualityScore(
     model,
@@ -422,7 +376,6 @@ export function buildPreviewComponentScoreResult(
     "agentic",
     qualityContext,
     scoringConfig,
-    indexOnly,
   );
   return {
     componentScores:
@@ -546,12 +499,12 @@ export function buildComponentScoreResult(
   const intelligence = qualityScore(
     intelligenceBenchmarkInputs,
     scoringConfig.qualityCoverage.intelligence,
-    qualityIndexAnchor(qualityContext, model, "intelligence"),
+    "regularized",
   );
   const agentic = qualityScore(
     agenticBenchmarkInputs,
     scoringConfig.qualityCoverage.agentic,
-    qualityIndexAnchor(qualityContext, model, "agentic"),
+    "regularized",
   );
   const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
   const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);

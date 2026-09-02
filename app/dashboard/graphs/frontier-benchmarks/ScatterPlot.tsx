@@ -6,9 +6,13 @@ import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import { type CSSProperties, useState } from "react";
 
-import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import {
+  isPreviewModel,
+  type ModelAtlasPublishedModel,
+} from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
+import { graphLabeledItems, graphReferenceItems } from "../model-series";
 import {
   CursorCapture,
   CursorProjectionLayer,
@@ -146,7 +150,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   keyPrefix: string;
   ariaLabel: string;
   getScore: (row: Row) => number;
-  getModel: (row: Row) => ModelAtlasModel;
+  getModel: (row: Row) => ModelAtlasPublishedModel;
   getKey: (row: Row) => string;
   getHoverRows: (row: Row) => HoverRow[];
   getHoverTitle?: (row: Row) => string;
@@ -178,12 +182,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
   const plot = plotBoundsFor(width, height, chartMargin);
+  const referenceRows = graphReferenceItems(rows, getModel);
   const frontier = paretoFrontier(rows, {
     x: { get: metric.get, goal: metric.xHigherIsBetter ? "maximize" : "minimize" },
     y: { get: getScore, goal: "maximize" },
   });
-  const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
-  const medianScore = median(rows.map(getScore)) ?? yDomain[0];
+  const medianMetric = median(referenceRows.map(metric.get)) ?? xDomain[0];
+  const medianScore = median(referenceRows.map(getScore)) ?? yDomain[0];
   const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 2.5, 8);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
@@ -199,6 +204,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     bounds: plot,
     points: projectionPoints,
   });
+  const labeledRows = graphLabeledItems(rows, frontier, getModel);
   const labelPlacements = calloutLabelPlacements({
     bounds: plot,
     obstacles: rows.map((row) => ({
@@ -206,13 +212,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
       cy: yPoint(getScore(row)),
       radius: markRadius(row),
     })),
-    labels: frontier.map((row, index) => ({
+    labels: labeledRows.map((row, index) => ({
       key: getKey(row),
       label: getLabel(row),
       cx: xPoint(metric.get(row)),
       cy: yPoint(getScore(row)),
       radius: markRadius(row),
-      priority: frontier.length - index,
+      priority: labeledRows.length - index,
     })),
   });
   const reasoningGroups = connectReasoningVariants ? reasoningVariantGroups(rows, getModel) : [];
@@ -398,7 +404,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
             </g>
           );
         })}
-        {frontier.map((row) => {
+        {labeledRows.map((row) => {
           const axisValue = metric.get(row);
           const cx = xPoint(axisValue);
           const cy = yPoint(getScore(row));
@@ -418,6 +424,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 height={height}
                 xOffset={markRadius(row) + 8}
                 placement={labelPlacements.get(getKey(row))}
+                italic={isPreviewModel(getModel(row))}
               />
             </g>
           );

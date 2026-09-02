@@ -129,7 +129,7 @@ $$
 R_{m,d}=\bar z_{m,d}-(1-c_{m,d})\max(\bar z_{m,d}-50,0).
 $$
 
-A validated aggregate-index anchor may then relieve regularization for an undercovered model family's evidence-leading variant. The anchor is learned from broadly observed task-benchmark scores, not from named model relationships, and its held-out error discounts its relief. If the representative variant reaches the aggregate-index median evidence breadth, no index mapping passes validation, the direct benchmark mean is at or below 50, or the mapped anchor would lower the provisional score, the provisional score remains unchanged. The aggregate-index anchoring section defines the final $Q_{m,d}$.
+When direct task evidence does not cover the full selected task portfolio, directly observed aggregate indexes become the primary proxy inputs by carrying the benchmark breadth they represent. This applies to every undercovered row, including previews, and the aggregate-index proxying section defines the final $Q_{m,d}$.
 
 $$
 \begin{aligned}
@@ -140,7 +140,7 @@ $$
 
 Intelligence and Agentic evidence support are reported separately as the percentage values of $h_{m,d}$. Each value describes the weighted support behind its dimension's benchmark mean; the two dimensions are not combined. Because their total possible masses $\Omega_d$ can differ, the same displayed percentage can represent different absolute evidence mass. The public field remains named `confidence` for all four dimensions, but its value is the literal effective evidence share for consistent interpretation across Intelligence, Agentic, Speed, and Value.
 
-Models released fewer than 30 days ago may appear as previews before they satisfy official admission. Preview capability uses direct observations, keeps each selected benchmark's configured Intelligence and Agentic loading, includes directly observed GPQA and MMMU-Pro source fields as one unit of additional Intelligence evidence each, and omits quality regularization. A validated aggregate-index prior may stabilize sparse preview quality without increasing evidence support or satisfying admission. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources; when the matching benchmark resource is absent, the score uses provider specifications alone, while confidence continues to report the literal evidence share. Preview resource scores use no imputation or missing-coverage regularization. Aggregate indexes have normal portfolio importance of 0.5. Only when indexes are a preview's sole observed quality evidence are they combined by represented benchmark counts of 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals; Epoch uses the median of the other three counts because its exact underlying count is unavailable per model score. Compact leaderboard views place previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. The exact-variant `all` view exposes no rank.
+Models released fewer than 30 days ago may appear as previews before they satisfy official admission. Preview capability uses direct observations, keeps each selected task benchmark's configured Intelligence and Agentic loading, includes directly observed GPQA and MMMU-Pro source fields as one unit of additional Intelligence evidence each, and uses the same aggregate-index proxy as every other undercovered row. Preview capability omits quality regularization when no index proxy is available. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources; when the matching benchmark resource is absent, the score uses provider specifications alone, while confidence continues to report the literal evidence share. Preview resource scores use no imputation or missing-coverage regularization. Compact leaderboard views place previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. The exact-variant `all` view exposes no rank.
 
 ## Missing Benchmark Evidence
 
@@ -253,29 +253,17 @@ The diagram shows a negative shared-benchmark gap; a positive gap places the spa
 
 This rule transfers only the within-family relative position supported by common selected benchmarks. It does not fill benchmark fields, increase evidence support, satisfy admission, or assume that effort order is monotonic. A sparse variant can rank above its anchor when their shared direct results support a positive gap. A variant that already reaches the full-evidence point keeps its independently assembled score.
 
-### Aggregate Index Anchoring
+### Aggregate Index Proxying
 
-Each aggregate index can learn a separate monotonic mapping to broadly observed task-benchmark quality for Intelligence and Agentic. Each base model family contributes only its evidence-leading variant for that dimension, so reasoning-effort variants cannot multiply or independently receive index anchors. A calibration target requires non-index evidence mass at least equal to the aggregate-index median used as the full-evidence point. Validation withholds the entire represented model family, requires at least four effective held-out models, and rejects a mapping when its model-balanced median absolute error exceeds 25 points.
+Aggregate indexes proxy capability whenever directly observed task evidence does not cover the full selected task portfolio in a dimension. Each available index uses its normalized score $z_{m,k}$ and the number of benchmarks $n_k$ represented by that index: 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals. Epoch uses the median of the other three counts because its exact component count is unavailable per model score.
 
-Each accepted index $k$ maps model $m$ in dimension $d$ to task-quality anchor $p_{m,k,d}$, while held-out median absolute error $e_{k,d}$ determines reliability:
-
-$$
-\alpha_{k,d}=\operatorname{clamp}\left(1-\frac{e_{k,d}}{25},0,1\right).
-$$
-
-Ordinary portfolio weights and dimension loadings combine the available index anchors into $P_{m,d}$ and their weighted reliability into $\alpha_{m,d}$. Validation error then shrinks the reliable anchor toward neutral:
+Let $\mathcal{K}_m$ contain the observed aggregate indexes and let $\mathcal{O}^{T}_{m,d}$ contain the observed non-index task benchmarks. The undercovered quality score is their single weighted mean, with represented counts for indexes and ordinary effective portfolio weights for tasks:
 
 $$
-G_{m,d}=50+\alpha_{m,d}(P_{m,d}-50).
+Q_{m,d}=\frac{\sum_{k\in\mathcal{K}_m}n_k z_{m,k}+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}z_{m,b}}{\sum_{k\in\mathcal{K}_m}n_k+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}}.
 $$
 
-The validated index prior applies only while the representative variant's directly observed evidence mass $o_{m,d}$ remains below $F$, and its strength falls with the literal effective portfolio support $h_{m,d}$. For an above-neutral direct benchmark mean, it stabilizes undercovered quality as follows:
-
-$$
-Q_{m,d}=R_{m,d}+\mathbf{1}[o_{m,d}<F](1-h_{m,d})\max(G_{m,d}-R_{m,d},0).
-$$
-
-This rule contains no model IDs, release relationships, assumed ordering, or rank bounds. Reaching the direct evidence threshold switches the extra index prior off, and a low mapped index cannot create an additional downward penalty. Aggregate indexes retain normal importance 0.5 in the observed benchmark mean, add no evidence mass through anchoring, and cannot satisfy admission. Sparse effort variants remain positioned by their directly measured gaps to the family representative. Preview rows omit quality regularization but may use the same evidence-weighted index prior without gaining evidence support or admission credit.
+At complete direct-task coverage, the normal portfolio score applies and aggregate indexes again use their configured importance of 0.5 and dimension loadings. The 0.5 importance does not enter an undercovered mean. Represented index breadth affects the quality estimate but does not inflate public evidence support or satisfy admission. Sparse effort variants remain positioned by their directly measured gaps to the family representative.
 
 ### Validated Imputed Point Estimate
 

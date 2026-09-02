@@ -977,6 +977,19 @@
   stroke-width: 3px;
 }
 
+.previewLabel {
+  font-style: italic;
+}
+
+.previewLabelLegend {
+  white-space: nowrap;
+}
+
+.previewLabelLegend i {
+  font-style: italic;
+  font-weight: var(--type-label-weight);
+}
+
 .pointLabelLine {
   pointer-events: none;
   stroke: var(--chart-point-line);

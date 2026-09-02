@@ -10,10 +10,14 @@ import {
   useState,
 } from "react";
 
-import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import {
+  isPreviewModel,
+  type ModelAtlasPublishedModel,
+} from "../../../../src/model-atlas/stats/types";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import { focusHover } from "../hover-state";
+import { graphModelLabel } from "../model-series";
 import { stableSvgScale } from "../plot/Primitives";
 import type { HoverSetter } from "../types";
 import { priceEfficiencyHoverRows, type PriceEfficiencyRow } from "./rows";
@@ -100,7 +104,10 @@ export function PriceEfficiencySlopeGraph({
     return {
       row,
       key,
-      label: compactLayout ? compactSlopeLabel(row.model) : shortLabel(row.model),
+      label: graphModelLabel(
+        row.model,
+        compactLayout ? compactSlopeLabel(row.model) : shortLabel(row.model),
+      ),
       color: providerChartColor(row.model.provider),
       logo,
       leftY,
@@ -288,7 +295,12 @@ export function PriceEfficiencySlopeGraph({
                 toY={graphRow.leftLabelY}
               />
               <text
-                className={styles.slopeLabel}
+                className={[
+                  styles.slopeLabel,
+                  isPreviewModel(graphRow.row.model) ? styles.previewLabel : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 x={graphRow.leftNameX}
                 y={graphRow.leftLabelY}
                 textAnchor="end"
@@ -331,7 +343,12 @@ export function PriceEfficiencySlopeGraph({
                 toY={graphRow.rightLabelY}
               />
               <text
-                className={styles.slopeLabel}
+                className={[
+                  styles.slopeLabel,
+                  isPreviewModel(graphRow.row.model) ? styles.previewLabel : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 x={graphRow.rightNameX}
                 y={graphRow.rightLabelY}
                 textAnchor="start"
@@ -371,7 +388,7 @@ function scrollSlopeChart(event: ReactKeyboardEvent<HTMLDivElement>) {
 }
 
 /** Keep effort identity visible while fitting model labels beside both mobile rails. */
-function compactSlopeLabel(model: ModelAtlasModel): string {
+function compactSlopeLabel(model: ModelAtlasPublishedModel): string {
   const label = shortLabel(model);
   const effort = model.reasoning_effort;
   const effortSuffix =

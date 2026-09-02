@@ -4,7 +4,12 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
-import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
+import {
+  type ModelAtlasModel,
+  type ModelAtlasPayload,
+  type ModelAtlasPublishedModel,
+  rankedModels,
+} from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
   type CostFilter,
@@ -24,6 +29,7 @@ import {
 import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
+import { filterGraphPreviewsByIntelligenceFloor } from "./model-series";
 import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
 import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
@@ -37,7 +43,7 @@ import type { HoverState } from "./types";
 import styles from "./graphs.module.css";
 
 type GraphPayload = Omit<ModelAtlasPayload, "models"> & {
-  models: ModelAtlasModel[];
+  models: ModelAtlasPublishedModel[];
 };
 
 /** Coordinate deferred dashboard filtering, shared hover state, and research-region panels while keeping controls responsive during payload changes. */
@@ -91,7 +97,10 @@ export function DashboardGraphs({
   const allModels = useMemo(() => {
     return (deferredPayload?.models ?? [])
       .filter((model) => model.name != null && finite(model.scores?.intelligence_score))
-      .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
+      .sort(
+        (left, right) =>
+          Number(right.scores.intelligence_score) - Number(left.scores.intelligence_score),
+      );
   }, [deferredPayload]);
 
   const queryFilteredModels = useMemo(
@@ -113,16 +122,15 @@ export function DashboardGraphs({
       deferredPayload?.fetched_at_epoch_seconds ?? null,
     );
   }, [deferredPayload?.fetched_at_epoch_seconds, deferredRecencyFilter, filteredModels]);
-  const models = useMemo(
-    () =>
-      filterByIntelligenceRank(
-        recencyFilteredModels,
-        (model) => model,
-        deferredModelRankFilter,
-        referenceModels,
-      ),
-    [deferredModelRankFilter, recencyFilteredModels, referenceModels],
-  );
+  const models = useMemo(() => {
+    const rankFilteredModels = filterByIntelligenceRank(
+      recencyFilteredModels,
+      (model) => model,
+      deferredModelRankFilter,
+      referenceModels,
+    );
+    return filterGraphPreviewsByIntelligenceFloor(rankFilteredModels, (model) => model);
+  }, [deferredModelRankFilter, recencyFilteredModels, referenceModels]);
   const currentSection = useCurrentResearchSection(deferredPayload != null && allModels.length > 0);
 
   const filteredModelCount = modelCount(filteredModels);
@@ -173,7 +181,7 @@ export function DashboardGraphs({
 
   return (
     <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
-      <ModelSignature models={filteredModels} />
+      <ModelSignature models={rankedModels(filteredModels)} />
       <section className={styles.instrumentRail} aria-label="Global view">
         <div className={styles.instrumentBar}>
           <nav className={styles.researchIndexLinks} aria-label="Dashboard sections">
@@ -334,6 +342,7 @@ export function DashboardGraphs({
           </section>
           <PriceEfficiencyPanel
             benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
+            models={deferredPayload.models}
             globalModelFilterQuery={deferredGlobalModelFilterQuery}
             showVariants={deferredShowReasoningVariants}
             maxCost={deferredMaxCost}
