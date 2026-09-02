@@ -1,0 +1,66 @@
+# Builds, deploys, runs, and verifies the production Model Atlas refresh job after publisher changes land on main.
+
+name: Deploy refresh job
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy-refresh-job.yaml
+      - .dockerignore
+      - .gcloudignore
+      - Dockerfile
+      - package.json
+      - pnpm-lock.yaml
+      - scripts/publish-d1.ts
+      - src/model-atlas/**
+      - tsconfig.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-model-atlas-refresh
+  cancel-in-progress: false
+
+env:
+  REGION: asia-southeast1
+  JOB_NAME: model-atlas-refresh
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+
+      - name: Build publisher image
+        run: gcloud builds submit --quiet --project="$PROJECT_ID" --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${JOB_NAME}:$GITHUB_SHA" .
+
+      - name: Deploy publisher image
+        run: gcloud run jobs update "$JOB_NAME" --quiet --project="$PROJECT_ID" --region="$REGION" --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${JOB_NAME}:$GITHUB_SHA"
+
+      - name: Refresh production snapshot
+        run: gcloud run jobs execute "$JOB_NAME" --quiet --project="$PROJECT_ID" --region="$REGION" --wait
+
+      - name: Verify public API
+        run: curl --fail --silent --show-error "https://llmstats.vercel.app/api/llm-stats?view=all&verify=$GITHUB_SHA" | jq --exit-status '.fetched_at_epoch_seconds > 0 and (.models | length > 0)'

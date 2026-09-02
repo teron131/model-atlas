@@ -4,6 +4,7 @@
 .env
 .env.*
 .git
+gha-creds-*.json
 .next
 .playwright-cli
 .vercel

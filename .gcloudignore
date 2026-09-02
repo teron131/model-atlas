@@ -1,0 +1,7 @@
+# Keeps repository metadata and generated credentials out of Cloud Build uploads while reusing the project ignore rules.
+
+.git
+.gcloudignore
+.gitignore
+gha-creds-*.json
+#!include:.gitignore
