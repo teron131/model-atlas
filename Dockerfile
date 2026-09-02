@@ -16,5 +16,6 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm exec playwright install --with-deps chromium
 
 COPY . .
+RUN pnpm run typecheck && pnpm run test
 
 CMD ["pnpm", "run", "d1:publish"]

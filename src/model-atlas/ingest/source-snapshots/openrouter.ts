@@ -2,7 +2,11 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { getOpenRouterRawScrapedStats } from "../../scrapers/openrouter";
+import { asFiniteNumber } from "../../runtime";
+import {
+  getOpenRouterRawScrapedStats,
+  processOpenRouterModelStats,
+} from "../../scrapers/openrouter";
 import { readOpenRouterRawCache, readRawSourceCacheStatus, refreshedCacheStatus } from "../cache";
 import type { DatabaseBuildOptions, RawSourceCacheStatus } from "../types";
 import { mergeCachedSourceRows } from "./policy";
@@ -12,6 +16,16 @@ const PARTIAL_FETCH_MAX_RETRIES = 1;
 
 export type OpenRouterRawCache = ReturnType<typeof readOpenRouterRawCache>;
 type OpenRouterRawModel = NonNullable<OpenRouterRawCache>["models"][number];
+
+/** A cached route is usable only when it can satisfy the leaderboard's required speed profile. */
+function hasUsableOpenRouterSpeed(model: OpenRouterRawModel): boolean {
+  const speed = processOpenRouterModelStats(model.id, model.performance, model.pricing).performance;
+  return (
+    asFiniteNumber(speed.throughput_tokens_per_second_median) != null &&
+    (asFiniteNumber(speed.latency_seconds_median) != null ||
+      asFiniteNumber(speed.e2e_latency_seconds_median) != null)
+  );
+}
 
 /** Refreshes mutable route telemetry while retaining a usable cached field when its fetch failed. */
 export function mergeOpenRouterModel(
@@ -54,7 +68,7 @@ export async function loadOpenRouterRawPayload(
   );
 }
 
-/** Fresh OpenRouter caches fetch only uncovered model IDs; stale or explicitly replaced caches refresh the full requested set. */
+/** Fresh OpenRouter caches retry uncovered or unusable model IDs; stale or explicitly replaced caches refresh the full requested set. */
 export function openRouterModelIdsToRefresh(
   cached: OpenRouterRawCache,
   status: RawSourceCacheStatus,
@@ -65,8 +79,11 @@ export function openRouterModelIdsToRefresh(
   if (cached == null || !status.cache_hit || replaceSourceRows) {
     return requestedModelIds;
   }
-  const cachedModelIds = new Set(cached.models.map((model) => model.id));
-  return requestedModelIds.filter((modelId) => !cachedModelIds.has(modelId));
+  const cachedModelsById = new Map(cached.models.map((model) => [model.id, model]));
+  return requestedModelIds.filter((modelId) => {
+    const cachedModel = cachedModelsById.get(modelId);
+    return cachedModel == null || !hasUsableOpenRouterSpeed(cachedModel);
+  });
 }
 
 /** Keeps cached OpenRouter evidence only for current requested keys, while an empty request preserves all cached data. */
@@ -114,16 +131,15 @@ export async function refreshOpenRouterRawPayload(
     };
   }
   try {
-    const useCachedDirectory = status.cache_hit && scopedCache != null && !replaceSourceRows;
+    const isPartialRefresh = status.cache_hit && scopedCache != null && !replaceSourceRows;
     const fetchedPayload =
       modelIdsToRefresh.length === 0
         ? null
         : await getOpenRouterRawScrapedStats({
             modelIds: modelIdsToRefresh,
             concurrency: speedConcurrency,
-            ...(useCachedDirectory
+            ...(isPartialRefresh
               ? {
-                  modelDirectory: scopedCache.directory,
                   timeoutMs: PARTIAL_FETCH_TIMEOUT_MS,
                   maxRetries: PARTIAL_FETCH_MAX_RETRIES,
                 }

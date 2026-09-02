@@ -123,7 +123,7 @@ try {
     assert.deepEqual(
       cached.models.map((model) => model.id),
       ["anthropic/claude-fable-5", "qwen/qwen-plus-2025-07-28:thinking", "xai/grok-4.1-fast"],
-      "Models with no stats should persist as negative cache coverage",
+      "Models with no stats should persist so later refreshes can retry them",
     );
     assert.equal(
       openRouterCacheHasCurrentShape(db),
@@ -143,18 +143,18 @@ try {
         ["anthropic/claude-fable-5", "xai/grok-4.1-fast", "openai/new-model"],
         false,
       ),
-      ["openai/new-model"],
-      "Fresh OpenRouter caches should fetch only uncovered model IDs",
+      ["xai/grok-4.1-fast", "openai/new-model"],
+      "Fresh OpenRouter caches should retry unusable routes and fetch uncovered model IDs",
     );
     const scopedRefresh = await refreshOpenRouterRawPayload(
       cached,
       freshCacheStatus,
-      ["anthropic/claude-fable-5", "xai/grok-4.1-fast"],
+      ["anthropic/claude-fable-5"],
       8,
     );
     assert.deepEqual(
       scopedRefresh.rawPayload?.models.map((model) => model.id),
-      ["anthropic/claude-fable-5", "xai/grok-4.1-fast"],
+      ["anthropic/claude-fable-5"],
       "Fresh cache reuse should drop model keys no longer requested",
     );
 
