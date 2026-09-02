@@ -41,7 +41,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
     return {
       ...payload,
       models: modelsForVariantDisplay(
-        rankedModels(payload.models),
+        payload.models,
         showReasoningVariants,
         payload.benchmark_observations,
       ),

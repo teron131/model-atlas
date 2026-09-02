@@ -3,7 +3,7 @@
 /** Stateless SVG drawing primitives and shared plot geometry for Model Atlas charts. */
 
 import { clamp } from "../../../../src/model-atlas/numeric";
-import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import type { Margin } from "../types";
 import type { PointLabelPlacement } from "./label-placement";
 import { scoreQuadrilateralPoints } from "./score-quadrilateral";
@@ -56,7 +56,7 @@ export function ModelScoreMark({
   opacity = 1,
   clearance = 0,
 }: {
-  model: ModelAtlasModel;
+  model: ModelAtlasPublishedModel;
   cx: number;
   cy: number;
   radius: number;
@@ -352,6 +352,7 @@ export function TextPointLabel({
   height,
   xOffset = 10,
   placement,
+  italic = false,
 }: {
   label: string;
   cx: number;
@@ -361,6 +362,7 @@ export function TextPointLabel({
   height: number;
   xOffset?: number;
   placement?: PointLabelPlacement;
+  italic?: boolean;
 }) {
   const labelOnLeft = cx > width - margin.right - 135;
   const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
@@ -379,7 +381,7 @@ export function TextPointLabel({
         />
       ) : null}
       <text
-        className={styles.pointLabel}
+        className={[styles.pointLabel, italic ? styles.previewLabel : ""].filter(Boolean).join(" ")}
         x={stableSvgNumber(textX)}
         y={stableSvgNumber(textY)}
         textAnchor={textAnchor}

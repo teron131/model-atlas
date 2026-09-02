@@ -5,7 +5,7 @@ import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/score
 import type {
   BenchmarkPortfolio,
   BenchmarkResourcePolicy,
-  ModelAtlasModel,
+  ModelAtlasPublishedModel,
 } from "../../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../../shared/constants";
 import { modelVariantKey } from "../../shared/model-display";
@@ -29,7 +29,7 @@ export type FrontierBenchmarkRow = {
   benchmarkKey: string;
   benchmarkLabel: string;
   resourcePolicy: BenchmarkResourcePolicy | null;
-  model: ModelAtlasModel;
+  model: ModelAtlasPublishedModel;
   score: number;
   cost: number | null;
   seconds: number | null;
@@ -116,7 +116,7 @@ const BENCHMARK_SCORE_AXIS_OPTIONS = {
 };
 
 export function frontierBenchmarkRows(
-  models: ModelAtlasModel[],
+  models: ModelAtlasPublishedModel[],
   portfolio: BenchmarkPortfolio,
 ): FrontierBenchmarkRow[] {
   const frontierKeys = Object.entries(portfolio)

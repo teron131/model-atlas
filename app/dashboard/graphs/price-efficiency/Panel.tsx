@@ -2,7 +2,12 @@
 
 import { memo, useDeferredValue, useMemo, useRef, useState } from "react";
 
-import type { BenchmarkPortfolio, ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import {
+  type BenchmarkPortfolio,
+  isPreviewModel,
+  type ModelAtlasModel,
+  type ModelAtlasPublishedModel,
+} from "../../../../src/model-atlas/stats/types";
 import { CaptureButton } from "../../capture/CaptureButton";
 import { captureFileToken } from "../../capture/png";
 import { useDisplayLimit } from "../../shared/DisplayControls";
@@ -22,7 +27,11 @@ import {
 import { ModelToolbar } from "../../shared/ModelToolbar";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { bestByScore, valueDistribution } from "../chart-stats";
-import { EmptyChart, SummaryCard } from "../ChartComponents";
+import { EmptyChart, PreviewLabelLegend, SummaryCard } from "../ChartComponents";
+import {
+  filterGraphPreviewsByIntelligenceFloor,
+  limitGraphItemsByOfficialCount,
+} from "../model-series";
 import { Panel } from "../Panel";
 import type { HoverSetter } from "../types";
 import { useCompactChartLayout } from "../use-media-query";
@@ -39,6 +48,7 @@ const PANEL_TITLE = "Price vs Cost Efficiency";
 
 export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   benchmarkPortfolio,
+  models,
   globalModelFilterQuery,
   showVariants,
   maxCost,
@@ -52,6 +62,7 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   setHover,
 }: {
   benchmarkPortfolio: BenchmarkPortfolio;
+  models: ModelAtlasPublishedModel[];
   globalModelFilterQuery: string;
   showVariants: boolean;
   maxCost: CostFilter;
@@ -70,11 +81,14 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   const compactChartLayout = useCompactChartLayout();
   const chartWidth = priceEfficiencyChartWidth(compactChartLayout);
   const displayModels = useMemo(() => {
-    const models = modelsForVariantDisplay(referenceModels, showVariants)
+    const displayVariants = modelsForVariantDisplay(models, showVariants)
       .filter((model) => model.name != null && Number.isFinite(model.scores?.intelligence_score))
-      .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
-    return filterByModelQuery(models, (model) => model, globalModelFilterQuery);
-  }, [globalModelFilterQuery, referenceModels, showVariants]);
+      .sort(
+        (left, right) =>
+          Number(right.scores.intelligence_score) - Number(left.scores.intelligence_score),
+      );
+    return filterByModelQuery(displayVariants, (model) => model, globalModelFilterQuery);
+  }, [globalModelFilterQuery, models, showVariants]);
   const providerChoices = useMemo(() => providerOptions(displayModels), [displayModels]);
   const providerModelCount = modelCount(displayModels);
   const availableRows = useMemo(() => {
@@ -94,13 +108,14 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
       modelRankFilter,
       referenceModels,
     );
-    return priceEfficiencyRows(
+    const graphModels = filterGraphPreviewsByIntelligenceFloor(
       rankFilteredModels,
-      referenceModels,
-      benchmarkPortfolio,
-      showVariants,
-    ).sort(
-      (left, right) => right.model.scores.intelligence_score - left.model.scores.intelligence_score,
+      (model) => model,
+    );
+    return priceEfficiencyRows(graphModels, referenceModels, benchmarkPortfolio, showVariants).sort(
+      (left, right) =>
+        Number(right.model.scores.intelligence_score) -
+        Number(left.model.scores.intelligence_score),
     );
   }, [
     benchmarkPortfolio,
@@ -113,13 +128,13 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
     referenceModels,
     selectedProviders,
   ]);
-  const maximumLimit = availableRows.length;
+  const maximumLimit = availableRows.filter((row) => !isPreviewModel(row.model)).length;
   const [effectiveLimit, setDisplayLimit] = useDisplayLimit(maximumLimit);
   const matchingRows = useMemo(
     () => filterByModelQuery(availableRows, (row) => row.model, deferredFilterQuery),
     [availableRows, deferredFilterQuery],
   );
-  const rows = matchingRows.slice(0, effectiveLimit);
+  const rows = limitGraphItemsByOfficialCount(matchingRows, (row) => row.model, effectiveLimit);
   const itemKind = showVariants ? "variants" : "models";
   const captureFileName = [
     `model-atlas-price-vs-cost-efficiency-top-${effectiveLimit}-${itemKind}`,
@@ -188,10 +203,11 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   const plottedRows = [...rows].sort(
     (left, right) => left.costEfficiencyScore - right.costEfficiencyScore,
   );
-  const efficiencyLeader = bestByScore(rows, (row) => row.costEfficiencyScore);
-  const bestLift = bestByScore(rows, (row) => row.deltaScore);
-  const worstDrop = bestByScore(rows, (row) => -row.deltaScore);
-  const scoreDistribution = valueDistribution(rows.map((row) => row.costEfficiencyScore));
+  const officialRows = rows.filter((row) => !isPreviewModel(row.model));
+  const efficiencyLeader = bestByScore(officialRows, (row) => row.costEfficiencyScore);
+  const bestLift = bestByScore(officialRows, (row) => row.deltaScore);
+  const worstDrop = bestByScore(officialRows, (row) => -row.deltaScore);
+  const scoreDistribution = valueDistribution(officialRows.map((row) => row.costEfficiencyScore));
 
   return (
     <Panel
@@ -215,6 +231,11 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
       wide
     >
       {controls}
+      {rows.some((row) => isPreviewModel(row.model)) ? (
+        <div className={styles.chartToolbarCaption}>
+          <PreviewLabelLegend />
+        </div>
+      ) : null}
       <PriceEfficiencySlopeGraph
         compactLayout={compactChartLayout}
         rows={plottedRows}

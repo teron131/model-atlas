@@ -149,3 +149,11 @@ export function ShapeScaleLegend() {
     </span>
   );
 }
+
+export function PreviewLabelLegend() {
+  return (
+    <span className={styles.previewLabelLegend}>
+      <i>*Italic labels</i> indicate preview models
+    </span>
+  );
+}

@@ -33,7 +33,6 @@ import {
   benchmarkImputationValues,
   normalizedMetricValue,
   prepareBenchmarkScoring,
-  qualityIndexAnchor,
   withoutBenchmarkImputationForModels,
 } from "../src/model-atlas/pipeline/scores/imputation";
 import {
@@ -209,11 +208,10 @@ const previewScoreResult = buildPreviewComponentScoreResult(
       ["hle", [0, 1]],
       ["tau_banking", [0, 1]],
     ]),
-    indexAnchorsByModel: new Map(),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 54.1667);
-assertClose(previewScoreResult.componentScores?.agentic_score, 91.6667);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 88.2979);
+assertClose(previewScoreResult.componentScores?.agentic_score, 98.7805);
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
@@ -222,7 +220,6 @@ assert.equal(
 assert.equal(
   buildPreviewComponentScoreResult({}, STAGE_CONFIG.scoring, {
     benchmarkValuesByKey: new Map(),
-    indexAnchorsByModel: new Map(),
   }).componentScores,
   null,
   "metadata-only previews should publish without invented quality scores",
@@ -238,7 +235,6 @@ const indexOnlyPreviewScoreResult = buildPreviewComponentScoreResult(
       ["aa_intelligence_index", [0, 1]],
       ["vals_index", [0, 1]],
     ]),
-    indexAnchorsByModel: new Map(),
   },
 );
 assertClose(indexOnlyPreviewScoreResult.componentScores?.intelligence_score, 56.25);
@@ -2131,18 +2127,18 @@ const insufficientSiblingOverlap = calibrateSparseEffortQualityScores(
 );
 assertClose(insufficientSiblingOverlap[1]?.component_scores?.intelligence_score, 99);
 
-const indexAnchorBenchmarkKeys = Array.from(
+const undercoveredBenchmarkKeys = Array.from(
   { length: INDEX_REPRESENTED_BENCHMARK_MEDIAN },
   (_, index) => `b${index + 1}`,
 );
 
-function indexAnchorBenchmarks(value: number, count = indexAnchorBenchmarkKeys.length) {
-  return Object.fromEntries(indexAnchorBenchmarkKeys.slice(0, count).map((key) => [key, value]));
+function undercoveredBenchmarks(value: number, count = undercoveredBenchmarkKeys.length) {
+  return Object.fromEntries(undercoveredBenchmarkKeys.slice(0, count).map((key) => [key, value]));
 }
 
-const indexAnchorConfig: ScoringConfig = {
+const undercoveredConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
-  intelligenceBenchmarkKeys: ["aa_intelligence_index", ...indexAnchorBenchmarkKeys],
+  intelligenceBenchmarkKeys: ["aa_intelligence_index", "vals_index", ...undercoveredBenchmarkKeys],
   agenticBenchmarkKeys: [],
   previewAdditionalIntelligenceBenchmarkKeys: [],
   benchmarkPortfolio: {
@@ -2151,113 +2147,92 @@ const indexAnchorConfig: ScoringConfig = {
       benchmarkImportance: 0.5,
       dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
+    vals_index: {
+      group: "baseline",
+      benchmarkImportance: 0.5,
+      dimensionLoadings: { intelligence: 1, agentic: 0 },
+    },
     ...Object.fromEntries(
-      indexAnchorBenchmarkKeys.map((key) => [key, intelligenceBenchmarkEntry()]),
+      undercoveredBenchmarkKeys.map((key) => [key, intelligenceBenchmarkEntry()]),
     ),
   },
   qualityCoverage: {
     intelligence: {
       floor: INDEX_REPRESENTED_BENCHMARK_MEDIAN * 0.1,
-      full: INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+      full: 2,
     },
     agentic: { floor: 0, full: 1 },
   },
 };
-const indexAnchorReferences = [0, 20, 40, 60, 80, 100].map((value, index) => ({
-  id: `test/index-anchor-reference-${index}`,
+const undercoveredReferences = [0, 20, 40, 60, 80, 100].map((value, index) => ({
+  id: `test/undercovered-reference-${index}`,
   intelligence: { intelligence_index: value },
-  benchmarks: indexAnchorBenchmarks(value),
+  benchmarks: { vals_index: value, ...undercoveredBenchmarks(value) },
 }));
-const sparseIndexAnchorModel = {
-  id: "test/index-anchor-target",
+const undercoveredModel = {
+  id: "test/undercovered-target",
   intelligence: { intelligence_index: 70 },
-  benchmarks: { b1: 80 },
+  benchmarks: { vals_index: 30, b1: 80 },
 };
-const coveredIndexAnchorModel = {
-  id: "test/index-anchor-covered",
+const coveredModel = {
+  id: "test/covered-target",
   intelligence: { intelligence_index: 100 },
-  benchmarks: indexAnchorBenchmarks(60),
+  benchmarks: { vals_index: 100, ...undercoveredBenchmarks(60) },
 };
-const indexAnchorModels = [
-  ...indexAnchorReferences,
-  sparseIndexAnchorModel,
-  coveredIndexAnchorModel,
-];
-const indexAnchorContext = buildQualityScoringContext(indexAnchorModels, indexAnchorConfig);
-const learnedIndexAnchor = qualityIndexAnchor(
-  indexAnchorContext,
-  sparseIndexAnchorModel,
-  "intelligence",
-);
-assert.equal(learnedIndexAnchor != null && learnedIndexAnchor.confidence > 0, true);
-const indexAnchorSpeed = {
+const undercoveredModels = [...undercoveredReferences, undercoveredModel, coveredModel];
+const undercoveredContext = buildQualityScoringContext(undercoveredModels, undercoveredConfig);
+const qualityTestSpeed = {
   throughput_tokens_per_second_median: null,
   latency_seconds_median: null,
   e2e_latency_seconds_median: null,
 };
-const anchoredIndexScore = buildComponentScoreResult(
-  sparseIndexAnchorModel,
-  indexAnchorSpeed,
+const undercoveredScore = buildComponentScoreResult(
+  undercoveredModel,
+  qualityTestSpeed,
   [],
-  indexAnchorConfig,
-  indexAnchorContext,
+  undercoveredConfig,
+  undercoveredContext,
 ).componentScores?.intelligence_score;
-const unanchoredIndexScore = buildComponentScoreResult(
-  sparseIndexAnchorModel,
-  indexAnchorSpeed,
-  [],
-  indexAnchorConfig,
-  { ...indexAnchorContext, indexAnchorsByModel: new Map() },
-).componentScores?.intelligence_score;
-assert.equal(
-  (anchoredIndexScore ?? 0) > (unanchoredIndexScore ?? 0),
-  true,
-  "validated aggregate indexes should stabilize uncovered official quality evidence without named-model rules",
+assertClose(undercoveredScore, 920 / 17);
+assertClose(
+  buildPreviewComponentScoreResult(undercoveredModel, undercoveredConfig, undercoveredContext)
+    .componentScores?.intelligence_score,
+  920 / 17,
 );
-const coveredIndexScore = buildComponentScoreResult(
-  coveredIndexAnchorModel,
-  indexAnchorSpeed,
-  [],
-  indexAnchorConfig,
-  indexAnchorContext,
-).componentScores?.intelligence_score;
-const coveredUnanchoredIndexScore = buildComponentScoreResult(
-  coveredIndexAnchorModel,
-  indexAnchorSpeed,
-  [],
-  indexAnchorConfig,
-  { ...indexAnchorContext, indexAnchorsByModel: new Map() },
-).componentScores?.intelligence_score;
-assert.notEqual(coveredUnanchoredIndexScore, null);
-assertClose(coveredIndexScore, coveredUnanchoredIndexScore as number);
-const familyIndexAnchorModels = [
-  ...indexAnchorReferences,
-  {
-    id: "test/index-anchor-family",
-    reasoning_effort: "high",
-    intelligence: { intelligence_index: 70 },
-    benchmarks: indexAnchorBenchmarks(70, indexAnchorBenchmarkKeys.length - 1),
+const lowImportanceIndexConfig = {
+  ...undercoveredConfig,
+  benchmarkPortfolio: {
+    ...undercoveredConfig.benchmarkPortfolio,
+    aa_intelligence_index: {
+      group: "baseline",
+      benchmarkImportance: 0.05,
+      dimensionLoadings: { intelligence: 1, agentic: 0 },
+    },
+    vals_index: {
+      group: "baseline",
+      benchmarkImportance: 0.05,
+      dimensionLoadings: { intelligence: 1, agentic: 0 },
+    },
   },
-  {
-    id: "test/index-anchor-family",
-    reasoning_effort: "low",
-    intelligence: { intelligence_index: 90 },
-    benchmarks: { b1: 90 },
-  },
-];
-const familyIndexAnchorContext = buildQualityScoringContext(
-  familyIndexAnchorModels,
-  indexAnchorConfig,
+} as const;
+assertClose(
+  buildComponentScoreResult(
+    undercoveredModel,
+    qualityTestSpeed,
+    [],
+    lowImportanceIndexConfig,
+    buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
+  ).componentScores?.intelligence_score,
+  920 / 17,
 );
-assert.notEqual(
-  qualityIndexAnchor(familyIndexAnchorContext, familyIndexAnchorModels.at(-2)!, "intelligence"),
-  null,
-);
-assert.equal(
-  qualityIndexAnchor(familyIndexAnchorContext, familyIndexAnchorModels.at(-1)!, "intelligence"),
-  null,
-  "aggregate-index anchoring should target only the evidence-leading model variant",
-);
+const coveredScore = buildComponentScoreResult(
+  coveredModel,
+  qualityTestSpeed,
+  [],
+  undercoveredConfig,
+  undercoveredContext,
+).componentScores?.intelligence_score;
+assertClose(coveredScore, 580 / 9);
 
 function resourceModel(
   modelKey: string,

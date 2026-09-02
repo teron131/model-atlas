@@ -8,13 +8,17 @@ import {
   modelBalancedMinMaxScores,
 } from "../../../../src/model-atlas/pipeline/scores/resource-efficiency";
 import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type { BenchmarkPortfolio, ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import {
+  type BenchmarkPortfolio,
+  isPreviewModel,
+  type ModelAtlasPublishedModel,
+} from "../../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../../shared/model-display";
 import { finiteValue, fmtMoney, fmtTooltipMoney, fmtTooltipScore } from "../format";
 import type { HoverRow } from "../types";
 
 export type PriceEfficiencyRow = {
-  model: ModelAtlasModel;
+  model: ModelAtlasPublishedModel;
   priceScore: number;
   costEfficiencyScore: number;
   qualityScore: number;
@@ -23,7 +27,7 @@ export type PriceEfficiencyRow = {
 };
 
 type PriceEfficiencyDraft = {
-  model: ModelAtlasModel;
+  model: ModelAtlasPublishedModel;
   qualityScore: number;
   blendedPrice: number;
   priceScore: number;
@@ -32,18 +36,22 @@ type PriceEfficiencyDraft = {
 
 /** Rebuild the scored absolute-price and benchmark-only task-cost signals for chart comparison. */
 export function priceEfficiencyRows(
-  visibleModels: ModelAtlasModel[],
-  referenceModels: ModelAtlasModel[],
+  visibleModels: ModelAtlasPublishedModel[],
+  referenceModels: ModelAtlasPublishedModel[],
   portfolio: BenchmarkPortfolio,
   showVariants: boolean,
 ): PriceEfficiencyRow[] {
-  const eligibleModels = referenceModels.filter(isPriceEligibleModel);
+  const eligibleModels = [...referenceModels, ...visibleModels.filter(isPreviewModel)].filter(
+    isPriceEligibleModel,
+  );
+  const calibrationMask = eligibleModels.map((model) => !isPreviewModel(model));
   const priceScores = modelBalancedMinMaxScores(
     eligibleModels,
     eligibleModels.map((model) => log10OnePlusPositive(finiteValue(model.cost?.blended_price))),
     "lower",
+    calibrationMask,
   );
-  const costEfficiencyScores = costEfficiencyByModel(eligibleModels, portfolio);
+  const costEfficiencyScores = costEfficiencyByModel(eligibleModels, portfolio, calibrationMask);
   const drafts = eligibleModels.flatMap((model, index): PriceEfficiencyDraft[] => {
     const blendedPrice = finiteValue(model.cost?.blended_price);
     const logCost = log10OnePlusPositive(blendedPrice);
@@ -72,11 +80,14 @@ export function priceEfficiencyRows(
       },
     ];
   });
-  const strongestByKey = new Map<string, ModelAtlasModel>();
-  for (const model of referenceModels) {
+  const strongestByKey = new Map<string, ModelAtlasPublishedModel>();
+  for (const model of eligibleModels) {
     const key = comparisonKey(model, showVariants);
     const existing = strongestByKey.get(key);
-    if (existing == null || model.scores.intelligence_score > existing.scores.intelligence_score) {
+    if (
+      existing == null ||
+      Number(model.scores.intelligence_score) > Number(existing.scores.intelligence_score)
+    ) {
       strongestByKey.set(key, model);
     }
   }
@@ -102,11 +113,11 @@ export function priceEfficiencyRows(
     .sort((left, right) => right.costEfficiencyScore - left.costEfficiencyScore);
 }
 
-function comparisonKey(model: ModelAtlasModel, showVariants: boolean): string {
+function comparisonKey(model: ModelAtlasPublishedModel, showVariants: boolean): string {
   return showVariants ? modelVariantKey(model) : canonicalModelKey(model);
 }
 
-function isPriceEligibleModel(model: ModelAtlasModel): boolean {
+function isPriceEligibleModel(model: ModelAtlasPublishedModel): boolean {
   const blendedPrice = finiteValue(model.cost?.blended_price);
   const qualityScore = meanOfFinite([
     finiteValue(model.scores?.intelligence_score),
@@ -136,8 +147,9 @@ export function priceEfficiencyDeltaDetail(row: PriceEfficiencyRow): string {
 }
 
 function costEfficiencyByModel(
-  models: ModelAtlasModel[],
+  models: ModelAtlasPublishedModel[],
   portfolio: BenchmarkPortfolio,
+  calibrationMask: readonly boolean[],
 ): Array<number | null> {
   const benchmarks = Object.entries(portfolio)
     .flatMap(([key, entry]) => {
@@ -160,6 +172,7 @@ function costEfficiencyByModel(
         return cost == null ? null : Math.log(cost);
       }),
       qualityCoordinate,
+      calibrationMask,
     );
     for (const [modelIndex, score] of scores.entries()) {
       if (score != null) {
@@ -175,14 +188,14 @@ function costEfficiencyByModel(
   });
 }
 
-function benchmarkScore(model: ModelAtlasModel, benchmarkKey: string): number | null {
+function benchmarkScore(model: ModelAtlasPublishedModel, benchmarkKey: string): number | null {
   return (
     finiteValue(model.intelligence?.[benchmarkKey]) ?? finiteValue(model.benchmarks?.[benchmarkKey])
   );
 }
 
 function taskCost(
-  model: ModelAtlasModel,
+  model: ModelAtlasPublishedModel,
   portfolio: BenchmarkPortfolio,
   benchmarkKey: string,
 ): number | null {

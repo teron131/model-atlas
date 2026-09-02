@@ -2,14 +2,14 @@
 
 import type { PointerEvent } from "react";
 
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
 import { modelLogo, modelName } from "../shared/model-display";
 import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
 import type { HoverRow, HoverState } from "./types";
 
 export function pointHover(
   event: PointerEvent<Element>,
-  model: ModelAtlasModel,
+  model: ModelAtlasPublishedModel,
   rows: HoverRow[],
   displayName = modelName(model),
 ): HoverState {
@@ -26,7 +26,7 @@ export function pointHover(
 
 export function focusHover(
   target: Element,
-  model: ModelAtlasModel,
+  model: ModelAtlasPublishedModel,
   rows: HoverRow[],
   displayName = modelName(model),
 ): HoverState {

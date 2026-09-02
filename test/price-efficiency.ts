@@ -7,7 +7,11 @@ import {
   priceEfficiencyRows,
   priceEfficiencySummaryDetail,
 } from "../app/dashboard/graphs/price-efficiency/rows";
-import type { BenchmarkPortfolio, ModelAtlasModel } from "../src/model-atlas/stats/types";
+import type {
+  BenchmarkPortfolio,
+  ModelAtlasModel,
+  ModelAtlasPreviewModel,
+} from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const portfolio = {
@@ -75,6 +79,34 @@ const referenceModels = [
   }),
 ];
 const rows = priceEfficiencyRows(referenceModels, referenceModels, portfolio, true);
+const preview = {
+  ...priceModel({
+    id: "provider/preview",
+    name: "Preview",
+    price: 3,
+    benchmarkCost: 0.4,
+    intelligenceScore: 85,
+    agenticScore: 85,
+    valueScore: 85,
+  }),
+  preview: true,
+} satisfies ModelAtlasPreviewModel;
+const rowsWithPreview = priceEfficiencyRows(
+  [...referenceModels, preview],
+  referenceModels,
+  portfolio,
+  true,
+);
+
+assert.ok(
+  rowsWithPreview.some((row) => row.model === preview),
+  "preview models should receive graph scores against the official calibration population",
+);
+assert.deepEqual(
+  rowsWithPreview.find((row) => row.model === middleStrong),
+  rows.find((row) => row.model === middleStrong),
+  "preview display should not change official price-efficiency calibration",
+);
 
 assert.deepEqual(
   priceEfficiencyRows([middleStrong], referenceModels, portfolio, true)[0]?.priceScore,

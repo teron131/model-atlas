@@ -150,8 +150,8 @@ const qualityBenchmarkRows = (
     ["Evidence support", "literal weighted share of direct or validated evidence"],
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
-      "Aggregate-index anchor",
-      "validated model-held-out mappings can relieve regularization only for an undercovered family's evidence-leading variant",
+      "Aggregate-index proxy",
+      "incomplete rows weight indexes by represented benchmark count and task benchmarks by ordinary effective weight",
     ],
     {
       title: "Frontier benchmarks",

@@ -2,13 +2,19 @@
 
 import { memo, type ReactNode, useMemo } from "react";
 
-import type { ModelAtlasModel, ModelAtlasPayload } from "../../../../src/model-atlas/stats/types";
+import {
+  isPreviewModel,
+  type ModelAtlasModel,
+  type ModelAtlasPayload,
+  type ModelAtlasPublishedModel,
+} from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
-import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
+import { modelName, modelVariantKey } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { valueDistribution } from "../chart-stats";
 import { finite, fmtPercentScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
+import { graphModelLabel, graphReferenceItems } from "../model-series";
 import { Panel } from "../Panel";
 import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
 import { SCATTER_CHART_WIDTH } from "../plot/Primitives";
@@ -48,7 +54,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   setHover,
 }: {
   payload: ModelAtlasPayload;
-  models: ModelAtlasModel[];
+  models: ModelAtlasPublishedModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
   compactLayout: boolean;
@@ -69,8 +75,8 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   );
   const benchmarkOptions = useMemo(() => frontierBenchmarkOptions(benchmarkRows), [benchmarkRows]);
   const correlationByBenchmark = useMemo(
-    () => frontierBenchmarkCorrelationByBenchmark(benchmarkRows),
-    [benchmarkRows],
+    () => frontierBenchmarkCorrelationByBenchmark(referenceBenchmarkRows),
+    [referenceBenchmarkRows],
   );
   const benchmarkKeySet = useMemo(
     () => new Set(benchmarkOptions.map((option) => option.key)),
@@ -154,6 +160,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           onSelect={onAxisKeyChange}
         />
       }
+      showPreviewLegend={models.some(isPreviewModel)}
     />
   );
 
@@ -183,7 +190,9 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
   const scoreValues = chartRows.map((row) => row.score).filter(finite);
   const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView);
-  const scoreDistribution = valueDistribution(chartRows.map((row) => row.score));
+  const scoreDistribution = valueDistribution(
+    graphReferenceItems(chartRows, (row) => row.model).map((row) => row.score),
+  );
   const plotRows = [...chartRows].sort((left, right) => left.score - right.score);
   const yAxisLabel = isAggregateView
     ? "Mean Normalized Benchmark Score"
@@ -232,7 +241,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}
         getHoverTitle={(row) => modelName(row.model)}
         getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig)}
-        getLabel={(row) => shortLabel(row.model)}
+        getLabel={(row) => graphModelLabel(row.model)}
         connectReasoningVariants={showVariants}
         compactLayout={compactLayout}
         setHover={setHover}

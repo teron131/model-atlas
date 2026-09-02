@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 
-import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
+import type {
+  ModelAtlasModel,
+  ModelAtlasPayload,
+  ModelAtlasPublishedModel,
+} from "../../../src/model-atlas/stats/types";
 import type { FrontierBenchmarkAxisKey } from "./frontier-benchmarks/analysis";
 import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
 import { GraphToggle } from "./GraphToggle";
@@ -20,7 +24,7 @@ export function ParetoAnalysisPanel({
   setHover,
 }: {
   payload: ModelAtlasPayload;
-  models: ModelAtlasModel[];
+  models: ModelAtlasPublishedModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
   setHover: HoverSetter;
