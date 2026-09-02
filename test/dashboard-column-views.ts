@@ -38,6 +38,7 @@ assert.deepEqual(
 assert.equal(costKeys.includes("value"), true, "Cost should include Value");
 assert.equal(costKeys.includes("effectiveInputPrice"), true, "Cost should include input price");
 assert.equal(costKeys.includes("agentsLastExamCost"), true, "Cost should include benchmark costs");
+assert.equal(costKeys.includes("terminalBench4Cost"), true, "Cost should include TB4 cost");
 assert.equal(
   costKeys.includes("agentsLastExamSeconds"),
   false,
@@ -59,10 +60,17 @@ assert.equal(
 );
 assert.equal(timeKeys.includes("agentsLastExamCost"), false, "Time should omit benchmark costs");
 
+const allKeys = tableColumnKeysForView("all", "", COLUMN_TOOLTIPS);
+assert.equal(allKeys.includes("terminalBench4Tokens"), true, "All should include TB4 tokens");
+
 const costRuleKeys = tableColumnRuleKeys(costKeys, "portfolio");
 assert.equal(costRuleKeys.has("value"), true, "Cost should separate Value from pricing");
 assert.equal(costRuleKeys.has("effectiveOutputPrice"), true, "Cost should close provider pricing");
-assert.equal(costRuleKeys.has("hleCost"), true, "Cost should close its visible frontier evidence");
+assert.equal(
+  costRuleKeys.has("terminalBenchScienceCost"),
+  true,
+  "Cost should close its visible frontier evidence",
+);
 assert.equal(
   costRuleKeys.has("artificialAnalysisCost"),
   true,

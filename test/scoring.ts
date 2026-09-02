@@ -378,6 +378,8 @@ assert.deepEqual(resourceQualityCoordinates, {
   itbench_sre: "linear",
   scicode: "logit",
   tau_banking: "logit",
+  terminal_bench_4: "logit",
+  terminal_bench_science: "logit",
 });
 assert.deepEqual(
   Object.fromEntries(
@@ -630,7 +632,7 @@ assert.deepEqual(
     STAGE_CONFIG.scoring.benchmarkPortfolio.arc_agi_3?.resourcePolicy,
   ),
   { cost: 99 },
-  "Total-mode benchmarks should consume the normalized cost field",
+  "Per-task benchmarks should consume the normalized cost field",
 );
 
 const broadAAResourceOnlyModels = attachFinalScores(

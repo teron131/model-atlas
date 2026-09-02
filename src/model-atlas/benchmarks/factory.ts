@@ -23,6 +23,13 @@ export type BenchmarkSourceAdapter =
       resourceKey: string;
     };
 
+type BenchmarkSourceAdapterDeclaration =
+  | Extract<BenchmarkSourceAdapter, { kind: "benchmark_observation" }>
+  | Omit<
+      Extract<BenchmarkSourceAdapter, { kind: "artificial_analysis_resource_page" }>,
+      "taskRunCount"
+    >;
+
 export type BenchmarkObservationLoader =
   | {
       kind: "arc_prize";
@@ -38,6 +45,7 @@ export type BenchmarkObservationLoader =
   | { kind: "mls_bench"; sourceUrl: string }
   | { kind: "perception_bench"; sourceUrl: string }
   | { kind: "surge"; sourceUrl: string; scoreKind?: "elo"; view?: "index" }
+  | { kind: "terminal_bench_science"; sourceUrl: string }
   | {
       kind: "vals";
       sourceUrl: string;
@@ -66,6 +74,12 @@ export type BenchmarkSourceInput = {
 };
 export type BenchmarkSourceFacet = {
   inputs: readonly [BenchmarkSourceInput, ...BenchmarkSourceInput[]];
+};
+type BenchmarkSourceInputDeclaration = Omit<BenchmarkSourceInput, "adapters"> & {
+  adapters?: readonly BenchmarkSourceAdapterDeclaration[];
+};
+export type BenchmarkSourceDeclarationFacet = {
+  inputs: readonly [BenchmarkSourceInputDeclaration, ...BenchmarkSourceInputDeclaration[]];
 };
 export type BenchmarkGroup = "baseline" | "frontier";
 type BenchmarkMetricFormat = "percent" | "score" | "number" | "currency";

@@ -11,6 +11,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_PORTFOLIO,
 } from "../src/model-atlas/benchmarks/registry";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/observation";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import { processArcPrizeLeaderboardJson } from "../src/model-atlas/scrapers/benchmarks/arc-prize";
 
@@ -163,11 +164,13 @@ assert.ok(opus);
 assert.equal(opus.base_model, "Claude Opus 5");
 assert.equal(opus.reasoning_effort, "high");
 assert.equal(opus.observed_at, "2026-08-07T20:07:24.014Z");
-assert.equal(opus.cost, 20657.37);
+assert.equal(opus.cost, 375.588545);
+assert.equal(opus.task_run_count, 55);
+assert.equal(opus.total_cost_usd, 20657.37);
 assert.deepEqual(opus.metadata, {});
 assert.deepEqual(buildTaskMetrics(null, { arc_agi_2: sol, arc_agi_3: opus }), {
   arc_agi_2: { cost: 1.44 },
-  arc_agi_3: { cost: 20657.37 },
+  arc_agi_3: { cost: 375.588545 },
 });
 
 const bindings = Object.fromEntries(
@@ -175,6 +178,59 @@ const bindings = Object.fromEntries(
 );
 assert.equal(bindings.arc_agi_2?.loader.kind, "arc_prize");
 assert.equal(bindings.arc_agi_3?.loader.kind, "arc_prize");
+assert.ok(bindings.arc_agi_3);
+const cachedArcAgi3Row = {
+  source_key: "arc_agi_3",
+  fetched_at_epoch_seconds: 1_788_000_000,
+  benchmark_key: opus.benchmark_key,
+  url: opus.source_url,
+  model_id: opus.model_id,
+  model: opus.model,
+  base_model: opus.base_model,
+  reasoning_effort: opus.reasoning_effort,
+  model_creator: opus.model_creator,
+  rank: opus.rank,
+  canonical_value: opus.canonical_value,
+  cost: opus.cost,
+  tokens_per_task: null,
+  task_run_count: opus.task_run_count,
+  total_cost_usd: opus.total_cost_usd,
+  total_tokens: null,
+  observed_at: opus.observed_at,
+  metadata_json: JSON.stringify(opus.metadata),
+};
+assert.deepEqual(readBenchmarkObservationRawCache([cachedArcAgi3Row], bindings.arc_agi_3), {
+  rows: [opus],
+  fetchedAt: 1_788_000_000,
+});
+assert.equal(
+  readBenchmarkObservationRawCache(
+    [
+      {
+        ...cachedArcAgi3Row,
+        cost: 20657.37,
+        metadata_json: "{}",
+      },
+    ],
+    bindings.arc_agi_3,
+  ),
+  null,
+  "ARC-AGI-3 cache rows with total cost should refetch",
+);
+assert.equal(
+  readBenchmarkObservationRawCache(
+    [
+      {
+        ...cachedArcAgi3Row,
+        cost: 826.2948,
+        task_run_count: 25,
+      },
+    ],
+    bindings.arc_agi_3,
+  ),
+  null,
+  "ARC-AGI-3 cache rows normalized against the public-demo count should refetch",
+);
 assert.deepEqual(BENCHMARK_PORTFOLIO.arc_agi_2.dimensionLoadings, {
   intelligence: 1,
   agentic: 0,

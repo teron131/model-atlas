@@ -17,6 +17,7 @@ import {
   schemaTableShapes,
 } from "../src/model-atlas/database/schema-reconciliation";
 import { readDeepSWERawCache } from "../src/model-atlas/ingest/benchmark-runtimes/deep-swe";
+import { readTerminalBench4RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/terminal-bench-4";
 import {
   rawSourceCacheStatusFromRows,
   readRawSourceCacheStatus,
@@ -214,6 +215,37 @@ try {
     firstDb.prepare("ALTER TABLE model_benchmarks DROP COLUMN observed_at").run();
     firstDb.prepare("ALTER TABLE model_task_metrics DROP COLUMN observed_at").run();
     firstDb.prepare("ALTER TABLE benchmark_observation_raw_rows DROP COLUMN observed_at").run();
+    for (const column of ["tokens_per_task", "task_run_count", "total_cost_usd", "total_tokens"]) {
+      firstDb.prepare(`ALTER TABLE benchmark_observation_raw_rows DROP COLUMN ${column}`).run();
+    }
+    for (const column of [
+      "task_run_count",
+      "total_cost_usd",
+      "total_tokens",
+      "cost_per_task_usd",
+      "tokens_per_task",
+    ]) {
+      firstDb.prepare(`ALTER TABLE terminal_bench_4_raw_rows DROP COLUMN ${column}`).run();
+    }
+    firstDb
+      .prepare(`
+				INSERT INTO terminal_bench_4_raw_rows (
+					row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
+					reasoning_effort, harness, score, score_ci95_half_width
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			`)
+      .run(
+        0,
+        1_800_000_000,
+        "https://www.tbench.ai/?version=4.0",
+        "4_0_0",
+        "Legacy TB4 Model (max)",
+        "Legacy TB4 Model",
+        "max",
+        "Legacy Agent",
+        0.4,
+        0.03,
+      );
     firstDb
       .prepare(DEEP_SWE_INSERT_SQL)
       .run(
@@ -312,6 +344,11 @@ try {
         .get()?.observed_at,
       null,
       "Reintroduced nullable source columns should start empty",
+    );
+    assert.equal(
+      readTerminalBench4RawCache(reopenedDb),
+      null,
+      "TB4 rows from the old schema should be invalidated so the source refresh rewrites them",
     );
     assert.equal(
       reopenedDb

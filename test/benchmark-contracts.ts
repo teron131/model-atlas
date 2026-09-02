@@ -252,7 +252,7 @@ assert.deepEqual(BENCHMARK_CATALOG.terminal_bench_4.source.inputs, [
   {
     group: "standalone",
     id: "terminal_bench_4",
-    roles: ["observation"],
+    roles: ["observation", "resource"],
     runtime: { key: "terminal_bench_4", publicRows: true },
   },
 ]);
@@ -408,7 +408,9 @@ assert.deepEqual(
 assert.equal(BENCHMARK_CATALOG.arc_agi_2.presentation.taskMetricColumns[0]?.metric, "cost");
 assert.equal(BENCHMARK_CATALOG.arc_agi_3.presentation.taskMetricColumns[0]?.metric, "cost");
 assert.equal(BENCHMARK_CATALOG.arc_agi_2.resources?.unit, "per_task");
-assert.equal(BENCHMARK_CATALOG.arc_agi_3.resources?.unit, "total");
+assert.equal(BENCHMARK_CATALOG.arc_agi_3.resources?.unit, "per_task");
+assert.equal(BENCHMARK_CATALOG.terminal_bench_4.resources?.unit, "per_task");
+assert.equal(BENCHMARK_CATALOG.terminal_bench_science.resources?.unit, "per_task");
 for (const key of BENCHMARK_KEYS) {
   assert.deepEqual(BENCHMARK_CATALOG[key].scoring.normalization, {
     kind: "min_max",

@@ -332,6 +332,8 @@ $$
 
 Task resources can come from direct benchmark telemetry or from a source-level per-task metric when the portfolio declares that source eligible. If a benchmark reports output tokens but not wall time, effective task seconds fall back to output tokens divided by served throughput. Speed and Value may also use validated sibling-effort runtime and cost estimates.
 
+Per-task units are preferred. A fixed-evaluation total is admissible only when every compared row covers the same task set and run count; otherwise the source total must be normalized before entering the resource scorer. Normalized resource evidence retains the optional `task_run_count` and source totals needed to audit that conversion.
+
 ### Comparable-Quality Peers
 
 For each active task-resource signal, portfolio metadata transforms the stored quality score $x_{m,b}$ into the local coordinate $q_{m,b}$:

@@ -11,8 +11,14 @@ export type BenchmarkObservationMetadata = Record<
   string | number | boolean | null | string[] | number[]
 >;
 
+export type BenchmarkResourceAggregate = {
+  task_run_count: number;
+  total_cost_usd?: number;
+  total_tokens?: number;
+};
+
 /** Direct benchmark evidence normalized for matching, scoring, and freshness. */
-export type BenchmarkObservationRow = {
+export type BenchmarkObservationRow = Partial<BenchmarkResourceAggregate> & {
   benchmark_key: string;
   source_url: string;
   model_id: string | null;
@@ -23,9 +29,15 @@ export type BenchmarkObservationRow = {
   rank: number | null;
   canonical_value: number;
   cost?: number | null;
+  tokens_per_task?: number | null;
   observed_at: string | null;
   metadata: BenchmarkObservationMetadata;
 };
+
+/** Normalize one aggregate resource total onto the shared task-run unit. */
+export function resourcePerTaskRun(total: number, taskRunCount: number): number {
+  return Number((total / taskRunCount).toFixed(6));
+}
 
 export type BenchmarkObservationPayload = {
   fetched_at_epoch_seconds: number | null;
@@ -40,6 +52,7 @@ export type BenchmarkObservationEvidenceRow = Pick<
   | "reasoning_effort"
   | "canonical_value"
   | "cost"
+  | "tokens_per_task"
   | "observed_at"
 >;
 

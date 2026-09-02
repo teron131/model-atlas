@@ -127,6 +127,11 @@ const terminalBench4Row: TerminalBench4ModelAgentRow = {
   harness: "mini-SWE-agent",
   score: 0.4353,
   score_ci95_half_width: 0.0385,
+  task_run_count: 330,
+  total_cost_usd: 330,
+  total_tokens: 330_000,
+  cost_per_task_usd: 1,
+  tokens_per_task: 1_000,
 };
 const mercorApexRow: MercorApexAgentsRow = {
   model_id: "test/example-model",
@@ -368,6 +373,7 @@ const lookups = {
   terminalBench4: {
     rowsByModelName: buildBenchmarkModelMap([terminalBench4Row]),
   },
+  terminalBenchScience: { rowsByModelName: emptyLookup() },
   toolathlon: {
     rowsByModelName: emptyLookup(),
   },
@@ -548,6 +554,10 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 1500,
     input_tokens: 1300,
     output_tokens: 200,
+  },
+  terminal_bench_4: {
+    cost: 1,
+    tokens: 1_000,
   },
 });
 const replacementRows = prepareVersionReplacementBenchmarkRows(

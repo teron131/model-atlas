@@ -6,9 +6,11 @@
  * ARC-AGI-3 JSON source: https://arcprize.org/media/data/leaderboard/v3.json
  */
 
-import type {
-  BenchmarkObservationPayload,
-  BenchmarkObservationRow,
+import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
+import {
+  type BenchmarkObservationPayload,
+  type BenchmarkObservationRow,
+  resourcePerTaskRun,
 } from "../../benchmarks/observation";
 import {
   benchmarkModelEffort,
@@ -39,8 +41,32 @@ type ParsedArcPrizeRow = {
   model_creator: string;
   score: number;
   cost: number | null;
+  task_run_count?: number;
+  total_cost_usd?: number;
   source_index: number;
 };
+
+/** Normalize ARC-AGI-2's reported task cost and ARC-AGI-3's 55-environment semi-private total into the shared per-task contract. */
+function arcPrizeResource(
+  row: Record<string, unknown>,
+  datasetId: ArcPrizeLeaderboardOptions["datasetId"],
+): Pick<ParsedArcPrizeRow, "cost" | "task_run_count" | "total_cost_usd"> {
+  if (datasetId === "v2_Semi_Private") {
+    const cost = asFiniteNumber(row.costPerTask);
+    return { cost: cost != null && cost >= 0 ? cost : null };
+  }
+
+  const totalCostUsd = asFiniteNumber(row.cost);
+  const taskRunCount = BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount;
+  return {
+    cost:
+      totalCostUsd != null && totalCostUsd >= 0
+        ? resourcePerTaskRun(totalCostUsd, taskRunCount)
+        : null,
+    task_run_count: taskRunCount,
+    ...(totalCostUsd != null && totalCostUsd >= 0 ? { total_cost_usd: totalCostUsd } : {}),
+  };
+}
 
 /** Normalize ARC's Anthropic shorthand while preserving every displayed configuration in model. */
 function arcModelIdentity(
@@ -92,7 +118,7 @@ function arcPrizeObservation(
 
   const model = displayName.replace(/\s*[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/u, "").trim();
   const identity = arcModelIdentity(model, creator);
-  const cost = asFiniteNumber(options.datasetId === "v2_Semi_Private" ? row.costPerTask : row.cost);
+  const resource = arcPrizeResource(row, options.datasetId);
 
   return {
     model_id: modelId,
@@ -101,7 +127,9 @@ function arcPrizeObservation(
     reasoning_effort: identity.reasoningEffort,
     model_creator: creator,
     score,
-    cost: cost != null && cost >= 0 ? cost : null,
+    cost: resource.cost,
+    task_run_count: resource.task_run_count,
+    total_cost_usd: resource.total_cost_usd,
     source_index: sourceIndex,
   };
 }
@@ -127,6 +155,8 @@ export function processArcPrizeLeaderboardJson(
         row.model_creator,
         row.score,
         row.cost,
+        row.task_run_count,
+        row.total_cost_usd,
       ]);
       if (seenRows.has(key)) return false;
       seenRows.add(key);
@@ -150,6 +180,8 @@ export function processArcPrizeLeaderboardJson(
       rank,
       canonical_value: row.score,
       ...(row.cost == null ? {} : { cost: row.cost }),
+      ...(row.task_run_count == null ? {} : { task_run_count: row.task_run_count }),
+      ...(row.total_cost_usd == null ? {} : { total_cost_usd: row.total_cost_usd }),
       observed_at: observedAt,
       metadata: {},
     };

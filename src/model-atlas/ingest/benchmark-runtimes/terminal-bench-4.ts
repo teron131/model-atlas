@@ -1,5 +1,6 @@
 /** Terminal-Bench 4.0 runtime owns raw model-agent rows, cache reconstruction, and refresh state. */
 
+import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
 import { asFiniteNumber } from "../../runtime";
 import {
   getTerminalBench4Stats,
@@ -43,12 +44,26 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
     const harness = stringValue(row.harness);
     const score = asFiniteNumber(row.score);
     const scoreCi95HalfWidth = asFiniteNumber(row.score_ci95_half_width);
+    const taskRunCount = asFiniteNumber(row.task_run_count);
+    const totalCostUsd = asFiniteNumber(row.total_cost_usd);
+    const totalTokens = asFiniteNumber(row.total_tokens);
+    const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
+    const tokensPerTask = asFiniteNumber(row.tokens_per_task);
     if (
       model == null ||
       baseModel == null ||
       harness == null ||
       score == null ||
-      scoreCi95HalfWidth == null
+      scoreCi95HalfWidth == null ||
+      taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount ||
+      totalCostUsd == null ||
+      totalCostUsd <= 0 ||
+      totalTokens == null ||
+      totalTokens <= 0 ||
+      costPerTaskUsd == null ||
+      costPerTaskUsd <= 0 ||
+      tokensPerTask == null ||
+      tokensPerTask <= 0
     ) {
       return [];
     }
@@ -61,6 +76,11 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
         harness,
         score,
         score_ci95_half_width: scoreCi95HalfWidth,
+        task_run_count: taskRunCount,
+        total_cost_usd: totalCostUsd,
+        total_tokens: totalTokens,
+        cost_per_task_usd: costPerTaskUsd,
+        tokens_per_task: tokensPerTask,
       },
     ];
   });
@@ -107,8 +127,9 @@ function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapsh
   const statement = db.prepare(`
 		INSERT INTO terminal_bench_4_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
-			reasoning_effort, harness, score, score_ci95_half_width
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			reasoning_effort, harness, score, score_ci95_half_width, task_run_count,
+			total_cost_usd, total_tokens, cost_per_task_usd, tokens_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.terminalBench4Rows.entries()) {
     statement.run(
@@ -122,6 +143,11 @@ function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapsh
       row.harness,
       row.score,
       row.score_ci95_half_width,
+      row.task_run_count,
+      row.total_cost_usd,
+      row.total_tokens,
+      row.cost_per_task_usd,
+      row.tokens_per_task,
     );
   }
 }

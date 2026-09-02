@@ -75,6 +75,10 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "model_creator",
   "canonical_value",
   "cost",
+  "tokens_per_task",
+  "task_run_count",
+  "total_cost_usd",
+  "total_tokens",
   "observed_at",
 ] as const;
 
@@ -120,6 +124,11 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
         "harness",
         "score",
         "score_ci95_half_width",
+        "task_run_count",
+        "total_cost_usd",
+        "total_tokens",
+        "cost_per_task_usd",
+        "tokens_per_task",
       ],
       optional: true,
     },
@@ -487,6 +496,7 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
         continue;
       }
       const cost = asFiniteNumber(row.cost);
+      const tokensPerTask = asFiniteNumber(row.tokens_per_task);
       benchmarkRows.push({
         model_id: stringValue(row.model_id),
         model,
@@ -494,6 +504,7 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
         reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
         canonical_value: canonicalValue,
         ...(cost == null ? {} : { cost }),
+        ...(tokensPerTask == null ? {} : { tokens_per_task: tokensPerTask }),
         observed_at: stringValue(row.observed_at),
       });
     }

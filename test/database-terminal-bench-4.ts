@@ -8,7 +8,11 @@ import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runt
 import { readTerminalBench4RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/terminal-bench-4";
 import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { insertModelBenchmarks, insertModels } from "../src/model-atlas/ingest/writers";
+import {
+  insertModelBenchmarks,
+  insertModels,
+  insertModelTaskMetrics,
+} from "../src/model-atlas/ingest/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
 import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
@@ -22,6 +26,11 @@ const rows: TerminalBench4ModelAgentRow[] = [
     harness: "Claude Code",
     score: 0.4118,
     score_ci95_half_width: 0.0385,
+    task_run_count: 330,
+    total_cost_usd: 1_000,
+    total_tokens: 330_000,
+    cost_per_task_usd: 3.030303,
+    tokens_per_task: 1_000,
   },
   {
     revision: "4_0_0",
@@ -31,6 +40,11 @@ const rows: TerminalBench4ModelAgentRow[] = [
     harness: "Claude Code",
     score: 0.4455,
     score_ci95_half_width: 0.0385,
+    task_run_count: 330,
+    total_cost_usd: 2_000,
+    total_tokens: 660_000,
+    cost_per_task_usd: 6.060606,
+    tokens_per_task: 2_000,
   },
 ];
 const snapshots = {
@@ -61,6 +75,11 @@ try {
     assert.equal(rawRows[1]?.harness, "Claude Code");
     assert.equal(rawRows[1]?.score, 0.4455);
     assert.equal(rawRows[1]?.score_ci95_half_width, 0.0385);
+    assert.equal(rawRows[1]?.task_run_count, 330);
+    assert.equal(rawRows[1]?.total_cost_usd, 2_000);
+    assert.equal(rawRows[1]?.total_tokens, 660_000);
+    assert.equal(rawRows[1]?.cost_per_task_usd, 6.060606);
+    assert.equal(rawRows[1]?.tokens_per_task, 2_000);
     assert.deepEqual(readTerminalBench4RawCache(db), {
       rows,
       fetchedAt: 1_800_000_000,
@@ -103,6 +122,13 @@ try {
         modalities: { input: ["text"] },
         benchmarks: { terminal_bench_4: 0.4455 },
         benchmark_dates: { terminal_bench_4: "2026-08-28" },
+        task_metrics: {
+          terminal_bench_4: {
+            cost: 6.060606,
+            tokens: 2_000,
+            observed_at: "2026-08-28",
+          },
+        },
         component_scores: {
           intelligence_score: 70,
           agentic_score: 80,
@@ -118,16 +144,30 @@ try {
     ];
     insertModels(db, finalRows);
     insertModelBenchmarks(db, finalRows);
+    insertModelTaskMetrics(db, finalRows);
   } finally {
     db.close();
   }
 
   const payload = readDatabasePayload(databasePath);
   assert.equal(payload.models[0]?.benchmarks?.terminal_bench_4, 0.4455);
+  assert.deepEqual(payload.models[0]?.task_metrics?.terminal_bench_4, {
+    cost: 6.060606,
+    observed_cost: 6.060606,
+    tokens: 2_000,
+    observed_at: "2026-08-28",
+    cost_price_ratio: 1,
+  });
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.terminal_bench_4, {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+    resourcePolicy: {
+      source: "benchmark",
+      unit: "per_task",
+      tokenMeasure: "tokens",
+      qualityCoordinate: "logit",
+    },
   });
   assert.equal(payload.metadata.scoring.selected_benchmark_keys.includes("terminal_bench_4"), true);
 } finally {
