@@ -5,7 +5,7 @@ import type {
   BenchmarkPresentationDetail,
   BenchmarkTaskMetricColumnFacet,
 } from "../factory";
-import type { BenchmarkKey } from "./portfolio";
+import { BENCHMARK_RESOURCE_PROFILES, type BenchmarkKey } from "./portfolio";
 
 export const BENCHMARK_TOOLTIPS = {
   aa_intelligence_index: {
@@ -396,6 +396,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "terminal workflow execution"],
     ],
   },
+  terminal_bench_science: {
+    title: "Terminal-Bench-Science 0.1",
+    body: "Solve difficult scientific research tasks in terminal environments by constructing and verifying correct analytical artifacts.",
+    rows: [
+      ["Source", "Terminal-Bench-Science 0.1"],
+      ["Metric", "resolution rate"],
+      ["Role", "scientific problem solving"],
+    ],
+  },
   toolathlon: {
     title: "Toolathlon",
     body: "Complete long-horizon real-world tasks that require selecting and coordinating many external tools.",
@@ -495,6 +504,7 @@ export const BENCHMARK_LABELS = {
   surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
   terminal_bench_4: "Terminal-Bench 4.0",
+  terminal_bench_science: "Terminal-Bench-Science 0.1",
   toolathlon: "Toolathlon",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
@@ -538,6 +548,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "proofbench",
   "riemann_bench",
   "terminal_bench_4",
+  "terminal_bench_science",
 ] as const satisfies readonly BenchmarkKey[];
 
 export const INDEX_BENCHMARK_KEYS = [
@@ -682,11 +693,11 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       direction: "ascending",
       label: "AGI-3$",
       tooltip: {
-        title: "ARC-AGI-3 total cost ↓",
-        body: "Official verified semi-private leaderboard cost for the full ARC-AGI-3 evaluation.",
+        title: "ARC-AGI-3 cost per environment ↓",
+        body: `Official verified leaderboard total cost divided across the ${BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount} semi-private ARC-AGI-3 environments.`,
         details: [
           ["Source", "ARC Prize"],
-          ["Metric", "total cost"],
+          ["Metric", "cost per environment"],
         ],
       },
     },
@@ -869,6 +880,66 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "tau3 Tok",
+    },
+  ],
+  terminal_bench_4: [
+    {
+      key: "terminalBench4Cost",
+      metric: "cost",
+      direction: "ascending",
+      label: "TB4$",
+      tooltip: {
+        title: "Terminal-Bench 4.0 cost per trial ↓",
+        body: `Official total evaluation cost divided by ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount} task trials.`,
+        details: [
+          ["Source", "Terminal-Bench 4.0"],
+          ["Metric", "cost per task trial"],
+        ],
+      },
+    },
+    {
+      key: "terminalBench4Tokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "TB4 Tok",
+      tooltip: {
+        title: "Terminal-Bench 4.0 tokens per trial ↓",
+        body: `Official total token usage divided by ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount} task trials.`,
+        details: [
+          ["Source", "Terminal-Bench 4.0"],
+          ["Metric", "tokens per task trial"],
+        ],
+      },
+    },
+  ],
+  terminal_bench_science: [
+    {
+      key: "terminalBenchScienceCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "TBS$",
+      tooltip: {
+        title: "Terminal-Bench-Science cost per trial ↓",
+        body: `Official total evaluation cost divided by the reported ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount} task trials.`,
+        details: [
+          ["Source", "Terminal-Bench-Science 0.1"],
+          ["Metric", "cost per task trial"],
+        ],
+      },
+    },
+    {
+      key: "terminalBenchScienceTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "TBS Tok",
+      tooltip: {
+        title: "Terminal-Bench-Science tokens per trial ↓",
+        body: `Official total token usage divided by the reported ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount} task trials.`,
+        details: [
+          ["Source", "Terminal-Bench-Science 0.1"],
+          ["Metric", "tokens per task trial"],
+        ],
+      },
     },
   ],
 } as const satisfies Partial<Record<BenchmarkKey, readonly BenchmarkTaskMetricColumnFacet[]>>;
@@ -1147,6 +1218,12 @@ export const BENCHMARK_COLUMNS = {
   terminal_bench_4: {
     key: "terminalBench4",
     label: "TB4",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  terminal_bench_science: {
+    key: "terminalBenchScience",
+    label: "TBS",
     format: "percent",
     defaultSort: "descending",
   },

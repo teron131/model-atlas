@@ -119,6 +119,10 @@ CREATE TABLE IF NOT EXISTS benchmark_observation_raw_rows (
 	rank INTEGER,
 	canonical_value REAL NOT NULL,
 	cost REAL,
+	tokens_per_task REAL,
+	task_run_count INTEGER,
+	total_cost_usd REAL,
+	total_tokens INTEGER,
 	observed_at TEXT,
 	metadata_json TEXT NOT NULL,
 	PRIMARY KEY (source_key, row_index)
@@ -367,6 +371,11 @@ CREATE TABLE IF NOT EXISTS terminal_bench_4_raw_rows (
 	harness TEXT NOT NULL,
 	score REAL NOT NULL,
 	score_ci95_half_width REAL NOT NULL,
+	task_run_count INTEGER,
+	total_cost_usd REAL,
+	total_tokens INTEGER,
+	cost_per_task_usd REAL,
+	tokens_per_task REAL,
 	PRIMARY KEY (row_index)
 );
 

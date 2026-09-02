@@ -9,6 +9,7 @@ import { getEpochBenchmarkStats } from "./epoch/results";
 import { getMlsBenchStats } from "./mls-bench";
 import { getPerceptionBenchStats } from "./perception-bench";
 import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "./surge/results";
+import { getTerminalBenchScienceStats } from "./terminal-bench-science";
 import { getValsSourceStats } from "./vals/results";
 import { getWeirdMlStats } from "./weirdml";
 import { getZeroEvalStats } from "./zeroeval";
@@ -54,6 +55,9 @@ export function benchmarkObservationSourceFetcher(
       return () => getSurgeIntelligenceIndexStats(binding.benchmark, loader.sourceUrl);
     }
     return () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind);
+  }
+  if (loader.kind === "terminal_bench_science") {
+    return () => getTerminalBenchScienceStats(loader.sourceUrl);
   }
   if (loader.kind === "vals") {
     return () =>

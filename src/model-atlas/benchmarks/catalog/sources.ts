@@ -4,7 +4,7 @@ import type {
   BenchmarkObservationLoader,
   BenchmarkPersistenceFacet,
   BenchmarkProcessingFacet,
-  BenchmarkSourceFacet,
+  BenchmarkSourceDeclarationFacet,
   BenchmarkSourceGroup,
 } from "../factory";
 import type { BenchmarkKey } from "./portfolio";
@@ -271,6 +271,18 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "surgeIntelligenceIndex",
     sourceRowsKey: "surgeIntelligenceIndexRows",
   },
+  terminal_bench_science: {
+    group: "standalone",
+    id: "terminal_bench_science",
+    roles: ["observation", "resource"],
+    loader: {
+      kind: "terminal_bench_science",
+      sourceUrl:
+        "https://www.terminal-bench-science.ai/api/leaderboard?package=terminal-bench-science%2Fterminal-bench-science&name=v0-1-eval",
+    },
+    sourceDataKey: "terminalBenchScience",
+    sourceRowsKey: "terminalBenchScienceRows",
+  },
   toolathlon: {
     group: "standalone",
     id: "zeroeval",
@@ -371,7 +383,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "analystAgent",
             resourceKey: "analystAgent",
             url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
-            taskRunCount: 80,
           },
         ],
       },
@@ -389,7 +400,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "apexAgents",
             resourceKey: "apexAgents",
             url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
-            taskRunCount: 452,
           },
         ],
       },
@@ -414,7 +424,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scorePath: ["automationBenchBreakdown", "completion"],
             resourceKey: "automationBench",
             url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
-            taskRunCount: 657,
           },
         ],
       },
@@ -442,7 +451,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "briefcaseElo",
             resourceKey: "briefcase",
             url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
-            taskRunCount: 91,
           },
         ],
       },
@@ -460,7 +468,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "critpt",
             resourceKey: "critpt",
             url: "https://artificialanalysis.ai/evaluations/critpt",
-            taskRunCount: 70,
           },
         ],
       },
@@ -508,7 +515,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "gdpval",
             resourceKey: "gdpval",
             url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
-            taskRunCount: 220,
           },
         ],
       },
@@ -536,7 +542,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "hle",
             resourceKey: "hle",
             url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
-            taskRunCount: 2158,
           },
         ],
       },
@@ -554,7 +559,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "itbenchSre",
             resourceKey: "itBench",
             url: "https://artificialanalysis.ai/evaluations/itbench-aa",
-            taskRunCount: 177,
           },
         ],
       },
@@ -582,7 +586,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "scicode",
             resourceKey: "scicode",
             url: "https://artificialanalysis.ai/evaluations/scicode",
-            taskRunCount: 288,
           },
         ],
       },
@@ -600,7 +603,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "tauBanking",
             resourceKey: "tauBanking",
             url: "https://artificialanalysis.ai/evaluations/tau3-banking",
-            taskRunCount: 97,
           },
         ],
       },
@@ -611,7 +613,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       {
         group: "standalone",
         id: "terminal_bench_4",
-        roles: ["observation"],
+        roles: ["observation", "resource"],
         runtime: { key: "terminal_bench_4", publicRows: true },
       },
     ],
@@ -653,7 +655,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       { group: "epoch", id: "epoch", roles: ["observation", "validation"] },
     ],
   },
-} as const satisfies Partial<Record<BenchmarkKey, BenchmarkSourceFacet>>;
+} as const satisfies Partial<Record<BenchmarkKey, BenchmarkSourceDeclarationFacet>>;
 export const BENCHMARK_PROCESSING_OVERRIDES = {
   agents_last_exam: {
     aggregation: { kind: "custom" },

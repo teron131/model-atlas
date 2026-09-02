@@ -348,9 +348,17 @@ assert.equal(
   "effective output price should close the pricing group",
 );
 assert.equal(
-  allTableRuleKeys.has("terminalBench4"),
+  allTableRuleKeys.has("terminalBenchScienceTokens"),
   true,
   "the final frontier benchmark should mark the index transition",
+);
+assert.deepEqual(
+  dashboardMetricColumnKeys.slice(
+    dashboardMetricColumnKeys.indexOf("terminalBench4"),
+    dashboardMetricColumnKeys.indexOf("terminalBench4") + 3,
+  ),
+  ["terminalBench4", "terminalBench4Cost", "terminalBench4Tokens"],
+  "Terminal-Bench 4.0 score and resources should remain one benchmark column group",
 );
 assert.equal(
   allTableRuleKeys.has("valsIndex"),

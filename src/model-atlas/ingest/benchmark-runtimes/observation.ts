@@ -1,9 +1,11 @@
 /** Benchmark-observation runtime owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
 
-import type {
-  BenchmarkObservationMetadata,
-  BenchmarkObservationPayload,
-  BenchmarkObservationRow,
+import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
+import {
+  type BenchmarkObservationMetadata,
+  type BenchmarkObservationPayload,
+  type BenchmarkObservationRow,
+  resourcePerTaskRun,
 } from "../../benchmarks/observation";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
@@ -62,6 +64,10 @@ function readBenchmarkObservationRows(
     const baseModel = stringValue(row.base_model);
     const canonicalValue = asFiniteNumber(row.canonical_value);
     const cost = asFiniteNumber(row.cost);
+    const tokensPerTask = asFiniteNumber(row.tokens_per_task);
+    const taskRunCount = asFiniteNumber(row.task_run_count);
+    const totalCostUsd = asFiniteNumber(row.total_cost_usd);
+    const totalTokens = asFiniteNumber(row.total_tokens);
     const metadata = benchmarkObservationMetadata(row.metadata_json);
     const reasoningEffort = stringValue(row.reasoning_effort);
     if (
@@ -74,6 +80,13 @@ function readBenchmarkObservationRows(
       metadata == null
     )
       return [];
+    if (
+      (taskRunCount != null && (!Number.isInteger(taskRunCount) || taskRunCount <= 0)) ||
+      (totalCostUsd != null && totalCostUsd < 0) ||
+      (totalTokens != null && (!Number.isInteger(totalTokens) || totalTokens < 0))
+    ) {
+      return [];
+    }
     const parsedModel = benchmarkModelEffort(model);
     const storedBaseKey = normalizeModelToken(baseModel);
     const parsedBaseKey = normalizeModelToken(parsedModel.baseModel);
@@ -99,6 +112,10 @@ function readBenchmarkObservationRows(
         rank: asFiniteNumber(row.rank),
         canonical_value: canonicalValue,
         ...(cost == null ? {} : { cost }),
+        ...(tokensPerTask == null ? {} : { tokens_per_task: tokensPerTask }),
+        ...(taskRunCount == null ? {} : { task_run_count: taskRunCount }),
+        ...(totalCostUsd == null ? {} : { total_cost_usd: totalCostUsd }),
+        ...(totalTokens == null ? {} : { total_tokens: totalTokens }),
         observed_at: stringValue(row.observed_at),
         metadata,
       },
@@ -113,7 +130,46 @@ export function readBenchmarkObservationRawCache(
   binding: BenchmarkObservationBinding,
 ) {
   const expectedUrl = "sourceUrl" in binding.loader ? binding.loader.sourceUrl : undefined;
-  return readBenchmarkObservationRows(cache, binding.rawTable, binding.benchmark, expectedUrl);
+  const cached = readBenchmarkObservationRows(
+    cache,
+    binding.rawTable,
+    binding.benchmark,
+    expectedUrl,
+  );
+  if (cached == null) return null;
+  if (binding.loader.kind === "terminal_bench_science") {
+    const resourcesAreCurrent = cached.rows.every((row) => {
+      return (
+        row.metadata.source_revision === "v0-1-eval" &&
+        row.cost != null &&
+        row.cost >= 0 &&
+        row.tokens_per_task != null &&
+        row.tokens_per_task >= 0 &&
+        row.task_run_count === BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount &&
+        row.total_cost_usd != null &&
+        row.total_cost_usd >= 0 &&
+        row.total_tokens != null &&
+        row.total_tokens >= 0
+      );
+    });
+    return resourcesAreCurrent ? cached : null;
+  }
+  if (binding.loader.kind === "arc_prize" && binding.benchmark === "arc_agi_3") {
+    const resourcesAreCurrent = cached.rows.every((row) => {
+      if (row.task_run_count !== BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount) {
+        return false;
+      }
+      if (row.cost == null) return row.total_cost_usd == null;
+      return (
+        row.cost >= 0 &&
+        row.total_cost_usd != null &&
+        row.total_cost_usd >= 0 &&
+        row.cost === resourcePerTaskRun(row.total_cost_usd, row.task_run_count)
+      );
+    });
+    return resourcesAreCurrent ? cached : null;
+  }
+  return cached;
 }
 
 type BenchmarkObservationSnapshot = {
@@ -193,8 +249,9 @@ export function insertBenchmarkObservationRows(
 		INSERT INTO ${BENCHMARK_OBSERVATION_RAW_TABLE} (
 			source_key, row_index, fetched_at_epoch_seconds, benchmark_key, url,
 			model_id, model, base_model, reasoning_effort, model_creator, rank,
-			canonical_value, cost, observed_at, metadata_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			canonical_value, cost, tokens_per_task, task_run_count, total_cost_usd,
+			total_tokens, observed_at, metadata_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
     const rows = snapshots[binding.sourceRowsKey] as readonly BenchmarkObservationRow[];
@@ -214,6 +271,10 @@ export function insertBenchmarkObservationRows(
         row.rank,
         row.canonical_value,
         row.cost ?? null,
+        row.tokens_per_task ?? null,
+        row.task_run_count ?? null,
+        row.total_cost_usd ?? null,
+        row.total_tokens ?? null,
         row.observed_at,
         JSON.stringify(row.metadata),
       );

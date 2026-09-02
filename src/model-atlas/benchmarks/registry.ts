@@ -11,6 +11,7 @@ import {
   BENCHMARK_PERSISTENCE_OVERRIDES,
   BENCHMARK_PROCESSING_OVERRIDES,
   BENCHMARK_RESOURCE_POLICIES,
+  BENCHMARK_RESOURCE_PROFILES,
   BENCHMARK_SCORING_LABELS,
   BENCHMARK_SCORING_WEIGHTS,
   BENCHMARK_STANDARD_SOURCES,
@@ -31,9 +32,9 @@ import {
   type BenchmarkProcessingFacet,
   type BenchmarkScoringFacet,
   type BenchmarkSourceAdapter,
+  type BenchmarkSourceDeclarationFacet,
   type BenchmarkSourceFacet,
   type BenchmarkSourceGroup,
-  type BenchmarkSourceInput,
   type BenchmarkSourceRuntime,
   type BenchmarkSourceTransform,
   defineBenchmarks,
@@ -98,27 +99,26 @@ type DeclaredBenchmarkSources = {
       : never;
 };
 
-type ResolvedBenchmarkSourceInput<Input> = Input & {
+type ResolvedBenchmarkSourceInput<Input> = Omit<Input, "adapters"> & {
   evidenceKey?: string;
   adapters?: readonly BenchmarkSourceAdapter[];
   runtime?: BenchmarkSourceRuntime;
 };
 
-type ResolvedBenchmarkSourceInputs<
-  Inputs extends readonly [BenchmarkSourceInput, ...BenchmarkSourceInput[]],
-> = Inputs extends readonly [
-  infer First extends BenchmarkSourceInput,
-  ...infer Rest extends BenchmarkSourceInput[],
-]
-  ? readonly [
-      ResolvedBenchmarkSourceInput<First>,
-      ...{
-        readonly [Index in keyof Rest]: ResolvedBenchmarkSourceInput<Rest[Index]>;
-      },
-    ]
-  : never;
+type ResolvedBenchmarkSourceInputs<Inputs extends BenchmarkSourceDeclarationFacet["inputs"]> =
+  Inputs extends readonly [
+    infer First extends BenchmarkSourceDeclarationFacet["inputs"][number],
+    ...infer Rest extends BenchmarkSourceDeclarationFacet["inputs"][number][],
+  ]
+    ? readonly [
+        ResolvedBenchmarkSourceInput<First>,
+        ...{
+          readonly [Index in keyof Rest]: ResolvedBenchmarkSourceInput<Rest[Index]>;
+        },
+      ]
+    : never;
 
-type ResolvedBenchmarkSourceFacet<Facet extends BenchmarkSourceFacet> = {
+type ResolvedBenchmarkSourceFacet<Facet extends BenchmarkSourceDeclarationFacet> = {
   inputs: ResolvedBenchmarkSourceInputs<Facet["inputs"]>;
 };
 
@@ -133,8 +133,10 @@ function composeBenchmarkSources(): BenchmarkSources {
       const benchmarkKey = key as BenchmarkKey;
       const extended = BENCHMARK_EXTENDED_SOURCES[
         benchmarkKey as keyof typeof BENCHMARK_EXTENDED_SOURCES
-      ] as BenchmarkSourceFacet | undefined;
-      if (extended != null) return [benchmarkKey, extended];
+      ] as BenchmarkSourceDeclarationFacet | undefined;
+      if (extended != null) {
+        return [benchmarkKey, resolveBenchmarkSource(benchmarkKey, extended)];
+      }
 
       const source = BENCHMARK_STANDARD_SOURCES[benchmarkKey as BenchmarkObservationKey];
       if (source == null) {
@@ -161,6 +163,33 @@ function composeBenchmarkSources(): BenchmarkSources {
       ];
     }),
   ) as unknown as BenchmarkSources;
+}
+
+function resolveBenchmarkSource(
+  benchmarkKey: BenchmarkKey,
+  source: BenchmarkSourceDeclarationFacet,
+): BenchmarkSourceFacet {
+  const taskRunCount =
+    BENCHMARK_RESOURCE_PROFILES[benchmarkKey as keyof typeof BENCHMARK_RESOURCE_PROFILES]
+      ?.taskRunCount;
+  return {
+    inputs: source.inputs.map((input) => ({
+      ...input,
+      ...(input.adapters == null
+        ? {}
+        : {
+            adapters: input.adapters.map((adapter) => {
+              if (adapter.kind !== "artificial_analysis_resource_page") return adapter;
+              if (taskRunCount == null) {
+                throw new Error(
+                  `Artificial Analysis resource page requires a resource profile for ${benchmarkKey}`,
+                );
+              }
+              return { ...adapter, taskRunCount };
+            }),
+          }),
+    })) as unknown as BenchmarkSourceFacet["inputs"],
+  };
 }
 
 const BENCHMARK_SOURCES = composeBenchmarkSources();

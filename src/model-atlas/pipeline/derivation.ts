@@ -53,6 +53,7 @@ function benchmarkObservations(sourceData: ModelAtlasSourceData): BenchmarkObser
       reasoning_effort: row.reasoning_effort,
       canonical_value: row.canonical_value,
       ...(row.cost == null ? {} : { cost: row.cost }),
+      ...(row.tokens_per_task == null ? {} : { tokens_per_task: row.tokens_per_task }),
       observed_at: row.observed_at,
     }));
   }

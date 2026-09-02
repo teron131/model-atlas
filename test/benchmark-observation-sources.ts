@@ -435,6 +435,7 @@ const snapshots = {
   handbookMdRows: handbook,
   hemingwayBenchRows: hemingway,
   proofBenchRows: proof,
+  terminalBenchScienceRows: [],
   weirdMlRows: weirdMl,
   fetchedAt: {
     ...Object.fromEntries(

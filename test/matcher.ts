@@ -932,6 +932,7 @@ function modelStatsSourceData(
       rows: [],
       rowsByModelName: buildTerminalBench4Map([]),
     },
+    terminalBenchScience: { rows: [], rowsByModelName: new Map() },
     toolathlon: {
       rows: toolathlonObservations,
       rowsByModelName: buildBenchmarkObservationLookup(toolathlonObservations),

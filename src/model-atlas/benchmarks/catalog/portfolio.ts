@@ -28,12 +28,6 @@ const BENCHMARK_PER_TASK_RESOURCE = {
   tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourceMeasurement;
 
-const BENCHMARK_TOTAL_RESOURCE = {
-  source: "benchmark",
-  unit: "total",
-  tokenMeasure: "tokens",
-} as const satisfies BenchmarkResourceMeasurement;
-
 const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
   source: "benchmark",
   unit: "per_task",
@@ -292,6 +286,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
+  terminal_bench_science: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
   toolathlon: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -317,6 +316,26 @@ export const BENCHMARK_SCORING_WEIGHTS = {
 
 export type BenchmarkKey = keyof typeof BENCHMARK_SCORING_WEIGHTS & string;
 
+export type BenchmarkResourceProfile = {
+  taskRunCount: number;
+};
+
+export const BENCHMARK_RESOURCE_PROFILES = {
+  analyst_agent: { taskRunCount: 80 },
+  apex_agents: { taskRunCount: 452 },
+  arc_agi_3: { taskRunCount: 55 },
+  automation_bench: { taskRunCount: 657 },
+  briefcase: { taskRunCount: 91 },
+  critpt: { taskRunCount: 70 },
+  gdpval_normalized: { taskRunCount: 220 },
+  hle: { taskRunCount: 2_158 },
+  itbench_sre: { taskRunCount: 177 },
+  scicode: { taskRunCount: 288 },
+  tau_banking: { taskRunCount: 97 },
+  terminal_bench_4: { taskRunCount: 330 },
+  terminal_bench_science: { taskRunCount: 210 },
+} as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourceProfile>>;
+
 export const BENCHMARK_RESOURCE_POLICIES = {
   agents_last_exam: {
     ...BENCHMARK_PER_TASK_RESOURCE,
@@ -339,7 +358,7 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     qualityCoordinate: "logit",
   },
   arc_agi_3: {
-    ...BENCHMARK_TOTAL_RESOURCE,
+    ...BENCHMARK_PER_TASK_RESOURCE,
     qualityCoordinate: "linear",
   },
   automation_bench: {
@@ -388,6 +407,14 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   },
   tau_banking: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+    qualityCoordinate: "logit",
+  },
+  terminal_bench_4: {
+    ...BENCHMARK_PER_TASK_RESOURCE,
+    qualityCoordinate: "logit",
+  },
+  terminal_bench_science: {
+    ...BENCHMARK_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;

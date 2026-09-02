@@ -5,6 +5,8 @@
  * JSON source: https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read
  */
 
+import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
+import { type BenchmarkResourceAggregate, resourcePerTaskRun } from "../../benchmarks/observation";
 import {
   type BenchmarkModelRow,
   buildBenchmarkModelMap,
@@ -23,12 +25,15 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_0_0";
 
-export type TerminalBench4ModelAgentRow = BenchmarkModelRow & {
-  revision: typeof TERMINAL_BENCH_4_SOURCE_REVISION;
-  harness: string;
-  score: number;
-  score_ci95_half_width: number;
-};
+export type TerminalBench4ModelAgentRow = BenchmarkModelRow &
+  Required<BenchmarkResourceAggregate> & {
+    revision: typeof TERMINAL_BENCH_4_SOURCE_REVISION;
+    harness: string;
+    score: number;
+    score_ci95_half_width: number;
+    cost_per_task_usd: number;
+    tokens_per_task: number;
+  };
 
 export type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelAgentRow>;
 
@@ -63,7 +68,21 @@ function modelAgentRow(value: unknown): TerminalBench4ModelAgentRow | null {
   const reasoningEffort = canonicalReasoningEffort(metadata.reasoning_effort);
   const score = percentToUnitScore(metrics.accuracy);
   const scoreCi95HalfWidth = percentToUnitScore(metrics.accuracy_ci95_half_width);
-  if (baseModel == null || harness == null || score == null || scoreCi95HalfWidth == null) {
+  const taskRunCount = asFiniteNumber(metrics.n_trials);
+  const totalCostUsd = asFiniteNumber(metrics.total_cost_usd);
+  const totalTokens = asFiniteNumber(metrics.total_tokens);
+  if (
+    baseModel == null ||
+    harness == null ||
+    score == null ||
+    scoreCi95HalfWidth == null ||
+    taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount ||
+    totalCostUsd == null ||
+    totalCostUsd <= 0 ||
+    totalTokens == null ||
+    !Number.isInteger(totalTokens) ||
+    totalTokens <= 0
+  ) {
     return null;
   }
   return {
@@ -74,6 +93,11 @@ function modelAgentRow(value: unknown): TerminalBench4ModelAgentRow | null {
     harness,
     score,
     score_ci95_half_width: scoreCi95HalfWidth,
+    task_run_count: taskRunCount,
+    total_cost_usd: totalCostUsd,
+    total_tokens: totalTokens,
+    cost_per_task_usd: resourcePerTaskRun(totalCostUsd, taskRunCount),
+    tokens_per_task: resourcePerTaskRun(totalTokens, taskRunCount),
   };
 }
 
