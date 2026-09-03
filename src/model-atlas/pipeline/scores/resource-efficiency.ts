@@ -4,14 +4,12 @@ import { calibrationObservations } from "../../benchmarks/calibration-population
 import type { BenchmarkResourceQualityCoordinate } from "../../benchmarks/factory";
 import { canonicalModelKey } from "../../identity/normalization";
 import {
-  effectiveSampleSize,
-  gaussianWeight,
+  boundedResidualMultipliers,
   meanOfFinite,
-  smoothstep,
+  qualityLocalResiduals,
   weightedPercentileRank,
-  weightedQuantile,
-} from "../../numeric";
-import { logitUnitScore, weightedRobustDeviation, winsorizedMinMaxScores } from "./normalization";
+} from "../../math-utils";
+import { logitUnitScore, winsorizedMinMaxScores } from "./normalization";
 
 const RESOURCE_QUALITY_SIGMA = 0.5;
 const MIN_QUALITY_DEVIATION = 0.35;
@@ -24,15 +22,12 @@ function observationsFromValues<T extends { id?: unknown; name?: unknown }>(
   calibrationMask?: readonly boolean[],
 ) {
   const valueByModel = new Map(
-    models.map((model, index) => [model, values[index] ?? null] as const),
+    models.map((model, index) => [
+      model,
+      calibrationMask?.[index] === false ? null : (values[index] ?? null),
+    ]),
   );
-  const modelIndexByModel = new Map(models.map((model, index) => [model, index] as const));
-  return calibrationObservations(models, (model) => {
-    const index = modelIndexByModel.get(model);
-    return index == null || calibrationMask?.[index] === false
-      ? null
-      : (valueByModel.get(model) ?? null);
-  });
+  return calibrationObservations(models, (model) => valueByModel.get(model) ?? null);
 }
 
 /** Apply model-balanced favorable-tail anchors to a completed signal. */
@@ -50,6 +45,32 @@ export function modelBalancedMinMaxScores<T extends { id?: unknown; name?: unkno
   );
 }
 
+/** Translate model-balanced calibration evidence into the package-wide quality-local comparison. */
+function qualityLocalResourceComparisons<T extends { id?: unknown; name?: unknown }>(
+  models: readonly T[],
+  qualityCoordinates: readonly (number | null)[],
+  resourceSignals: readonly (number | null)[],
+  calibrationMask?: readonly boolean[],
+) {
+  const observations = observationsFromValues(
+    models,
+    qualityCoordinates.map((value, index) => (resourceSignals[index] == null ? null : value)),
+    calibrationMask,
+  );
+  const weights = new Map(observations.map(({ item, weight }) => [item, weight]));
+  return qualityLocalResiduals(
+    models.map((model, index) => ({
+      group: canonicalModelKey(model),
+      quality: qualityCoordinates[index] ?? null,
+      resource: resourceSignals[index] ?? null,
+      weight: weights.get(model) ?? 0,
+    })),
+    RESOURCE_QUALITY_SIGMA,
+    MIN_QUALITY_DEVIATION,
+    FULL_RESOURCE_SUPPORT,
+  );
+}
+
 /** Score resource magnitude after removing the model-balanced local expectation at comparable quality. */
 export function qualityLocalResourceScores<T extends { id?: unknown; name?: unknown }>(
   models: readonly T[],
@@ -57,86 +78,12 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   resourceSignals: readonly (number | null)[],
   calibrationMask?: readonly boolean[],
 ): Array<number | null> {
-  const modelIndexByModel = new Map(models.map((model, index) => [model, index] as const));
-  const qualityObservations = calibrationObservations(models, (model) => {
-    const modelIndex = modelIndexByModel.get(model);
-    const qualityCoordinate = modelIndex == null ? null : (qualityCoordinates[modelIndex] ?? null);
-    const resourceSignal = modelIndex == null ? null : (resourceSignals[modelIndex] ?? null);
-    return qualityCoordinate == null ||
-      resourceSignal == null ||
-      calibrationMask?.[modelIndex ?? -1] === false
-      ? null
-      : qualityCoordinate;
-  });
-  const benchmarkQualityMedian = weightedQuantile(qualityObservations, 0.5);
-  const benchmarkQualityDeviation = weightedRobustDeviation(
-    qualityObservations,
-    MIN_QUALITY_DEVIATION,
+  const { residuals, supportConfidence } = qualityLocalResourceComparisons(
+    models,
+    qualityCoordinates,
+    resourceSignals,
+    calibrationMask,
   );
-  if (benchmarkQualityMedian == null || benchmarkQualityDeviation == null) {
-    return models.map(() => null);
-  }
-  const calibrationWeightByModel = new Map(
-    qualityObservations.map(({ item, weight }) => [item, weight] as const),
-  );
-  const points = models.flatMap((model, modelIndex) => {
-    const quality = qualityCoordinates[modelIndex] ?? null;
-    const resourceSignal = resourceSignals[modelIndex] ?? null;
-    return quality == null || resourceSignal == null
-      ? []
-      : [
-          {
-            modelIndex,
-            modelKey: canonicalModelKey(model),
-            qualityDeviation: (quality - benchmarkQualityMedian) / benchmarkQualityDeviation,
-            resourceSignal,
-          },
-        ];
-  });
-  const calibrationPoints = points.flatMap((point) => {
-    const model = models[point.modelIndex];
-    const calibrationWeight = model == null ? null : calibrationWeightByModel.get(model);
-    return calibrationWeight == null ? [] : [{ ...point, calibrationWeight }];
-  });
-  const residuals = models.map(() => null as number | null);
-  const supportConfidence = models.map(() => 0);
-  for (const point of points) {
-    residuals[point.modelIndex] = 0;
-    const comparisonsByModel = new Map<string, { resourceTotal: number; weight: number }>();
-    for (const comparisonPoint of calibrationPoints) {
-      if (comparisonPoint.modelKey === point.modelKey) {
-        continue;
-      }
-      const weight =
-        comparisonPoint.calibrationWeight *
-        gaussianWeight(
-          point.qualityDeviation,
-          comparisonPoint.qualityDeviation,
-          RESOURCE_QUALITY_SIGMA,
-        );
-      const comparison = comparisonsByModel.get(comparisonPoint.modelKey) ?? {
-        resourceTotal: 0,
-        weight: 0,
-      };
-      comparison.resourceTotal += weight * comparisonPoint.resourceSignal;
-      comparison.weight += weight;
-      comparisonsByModel.set(comparisonPoint.modelKey, comparison);
-    }
-    const comparisons = [...comparisonsByModel.values()];
-    const totalWeight = comparisons.reduce((sum, comparison) => sum + comparison.weight, 0);
-    if (totalWeight > 0) {
-      residuals[point.modelIndex] =
-        point.resourceSignal -
-        comparisons.reduce((sum, comparison) => sum + comparison.resourceTotal, 0) / totalWeight;
-      const effectivePeers = Math.min(
-        totalWeight,
-        effectiveSampleSize(comparisons.map((comparison) => comparison.weight)),
-      );
-      supportConfidence[point.modelIndex] = smoothstep(
-        (effectivePeers - 1) / (FULL_RESOURCE_SUPPORT - 1),
-      );
-    }
-  }
   const supportedResiduals = residuals.map((residual, index) =>
     (supportConfidence[index] ?? 0) > 0 ? residual : null,
   );
@@ -180,6 +127,21 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
     ]);
     return 50 + confidence * ((hybridScore ?? 50) - 50);
   });
+}
+
+/** Bound a quality-conditioned log-resource residual around one, retaining the original resource MAD scale rather than rescaling residuals. */
+export function qualityAdjustedResourceMultipliers<T extends { id?: unknown; name?: unknown }>(
+  models: readonly T[],
+  qualityCoordinates: readonly (number | null)[],
+  logResources: readonly (number | null)[],
+  cap: number,
+): number[] {
+  const observations = observationsFromValues(
+    models,
+    logResources.map((value, index) => (qualityCoordinates[index] == null ? null : value)),
+  );
+  const comparisons = qualityLocalResourceComparisons(models, qualityCoordinates, logResources);
+  return boundedResidualMultipliers(comparisons, observations, cap);
 }
 
 /** Score benchmark resource use within quality-local comparisons. */

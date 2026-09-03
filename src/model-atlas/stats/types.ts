@@ -83,6 +83,7 @@ export type ModelAtlasMetadata = {
     missing_intelligence_benchmark_keys: string[];
     agentic_benchmark_keys: string[];
     agentic_benchmark_display_keys: string[];
+    agentic_token_modifier_cap: number;
     missing_agentic_benchmark_keys: string[];
     selected_benchmark_keys: string[];
     benchmark_portfolio: BenchmarkPortfolio;

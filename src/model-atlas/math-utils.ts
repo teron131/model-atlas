@@ -11,6 +11,100 @@ type FiniteWeightedValue = {
   weight: number;
 };
 
+export type QualityResourcePoint = {
+  group: string;
+  quality: number | null;
+  resource: number | null;
+  weight: number;
+};
+
+type LocalResiduals = {
+  residuals: Array<number | null>;
+  supportConfidence: number[];
+};
+
+/** Estimate an IQR-based standard-deviation-like spread with an explicit floor. */
+export function weightedRobustDeviation(
+  values: readonly WeightedScorePart[],
+  minimumDeviation: number,
+): number | null {
+  const q25 = weightedQuantile(values, 0.25);
+  const q75 = weightedQuantile(values, 0.75);
+  return q25 == null || q75 == null ? null : Math.max((q75 - q25) / 1.349, minimumDeviation);
+}
+
+/** Estimate quality-local residuals and independent-group support without knowing model identities or benchmark policy. */
+export function qualityLocalResiduals(
+  points: readonly QualityResourcePoint[],
+  bandwidth: number,
+  minimumDeviation: number,
+  fullSupport: number,
+): LocalResiduals {
+  const references = points.filter(
+    (point) => point.quality != null && point.resource != null && point.weight > 0,
+  );
+  const observations = references.map((point) => ({ value: point.quality, weight: point.weight }));
+  const median = weightedQuantile(observations, 0.5);
+  const deviation = weightedRobustDeviation(observations, minimumDeviation);
+  const result: LocalResiduals = {
+    residuals: points.map(() => null),
+    supportConfidence: points.map(() => 0),
+  };
+  if (median == null || deviation == null) return result;
+  const peers = references.map((point) => ({
+    ...point,
+    coordinate: (point.quality! - median) / deviation,
+  }));
+  for (const [index, point] of points.entries()) {
+    if (point.quality == null || point.resource == null) continue;
+    result.residuals[index] = 0;
+    const coordinate = (point.quality - median) / deviation;
+    const comparisons = new Map<string, { resourceTotal: number; weight: number }>();
+    for (const peer of peers) {
+      if (peer.group === point.group) continue;
+      const weight = peer.weight * gaussianWeight(coordinate, peer.coordinate, bandwidth);
+      const comparison = comparisons.get(peer.group) ?? { resourceTotal: 0, weight: 0 };
+      comparison.resourceTotal += weight * peer.resource!;
+      comparison.weight += weight;
+      comparisons.set(peer.group, comparison);
+    }
+    const groups = [...comparisons.values()];
+    const totalWeight = groups.reduce((sum, group) => sum + group.weight, 0);
+    if (totalWeight <= 0) continue;
+    result.residuals[index] =
+      point.resource - groups.reduce((sum, group) => sum + group.resourceTotal, 0) / totalWeight;
+    const support = Math.min(totalWeight, effectiveSampleSize(groups.map((group) => group.weight)));
+    result.supportConfidence[index] = smoothstep((support - 1) / (fullSupport - 1));
+  }
+  return result;
+}
+
+/** Map residuals to a neutral-one multiplier using the original weighted resource MAD and comparison support. */
+export function boundedResidualMultipliers(
+  comparisons: LocalResiduals,
+  referenceValues: readonly WeightedScorePart[],
+  cap: number,
+): number[] {
+  const median = weightedQuantile(referenceValues, 0.5);
+  const mad =
+    median == null
+      ? null
+      : weightedQuantile(
+          referenceValues.map(({ value, weight }) => ({
+            value: value == null ? null : Math.abs(value - median),
+            weight,
+          })),
+          0.5,
+        );
+  if (cap === 0 || mad == null || mad <= 0) return comparisons.residuals.map(() => 1);
+  const scale = 1.4826 * mad;
+  return comparisons.residuals.map((residual, index) =>
+    residual == null
+      ? 1
+      : 1 - cap * comparisons.supportConfidence[index]! * clamp(residual / scale / 2, -1, 1),
+  );
+}
+
 export function positiveFiniteNumber(value: unknown): number | null {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;

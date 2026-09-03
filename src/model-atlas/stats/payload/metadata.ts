@@ -8,7 +8,7 @@ import {
   columnTooltipsForActiveComponents,
 } from "../../config/tooltips";
 import type { MatcherConfig } from "../../identity";
-import { positiveFiniteNumber } from "../../numeric";
+import { positiveFiniteNumber } from "../../math-utils";
 import type { BenchmarkRowsByKey } from "../../pipeline/benchmark-rows";
 import {
   type BenchmarkMetricModel,
@@ -160,6 +160,7 @@ export function buildCurrentModelAtlasMetadata({
       ),
       agentic_benchmark_keys: [...scoringConfig.agenticBenchmarkKeys],
       agentic_benchmark_display_keys: [...scoringConfig.agenticBenchmarkDisplayKeys],
+      agentic_token_modifier_cap: scoringConfig.agenticTokenModifierCap,
       missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
         (key) => !benchmarkAvailable(key, availabilityMetrics),
       ),

@@ -8,7 +8,7 @@ import {
   nonnegativeFiniteNumber,
   positiveFiniteNumber,
   weightedMeanOfFinite,
-} from "../../numeric";
+} from "../../math-utils";
 import type {
   ModelAtlasCandidate,
   ModelAtlasCandidateComponentScores,

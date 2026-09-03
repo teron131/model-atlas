@@ -1,6 +1,6 @@
 /** Model-balanced additive crosswalks project missing primary-source values from overlapping fallback sources. */
 
-import { clamp01, weightedMedianOfFinite } from "../numeric";
+import { clamp01, weightedMedianOfFinite } from "../math-utils";
 import { calibrationObservations, effectiveModelCount } from "./calibration-population";
 
 type ModelIdentity = {

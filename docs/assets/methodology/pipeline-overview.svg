@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
   <title id="title">Model Atlas scoring pipeline</title>
-  <desc id="desc">Benchmark evidence produces Intelligence and Agentic scores, which condition resource comparisons that combine with price and runtime inputs to produce Speed and Value without feeding resources back into capability.</desc>
+  <desc id="desc">Benchmark results produce Intelligence and Agentic scores, with matched tokens modifying only Agentic before remapping and aggregation. Quality conditions resource comparisons for Speed and Value; price and runtime do not modify capability scores.</desc>
   <style>
     :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
     text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
@@ -24,10 +24,11 @@
   <text x="42" y="64" class="annotation">Capability</text>
   <rect x="42" y="78" width="160" height="82" class="box capability" />
   <text x="122" y="110" text-anchor="middle" class="annotation">Benchmark evidence</text>
-  <text x="122" y="134" text-anchor="middle" class="muted">model × effort results</text>
+  <text x="122" y="134" text-anchor="middle" class="muted">results and tokens</text>
   <rect x="280" y="78" width="160" height="82" class="box capability" />
-  <text x="360" y="110" text-anchor="middle" class="annotation">Normalize + weight</text>
-  <text x="360" y="134" text-anchor="middle" class="muted">evidence and coverage</text>
+  <text x="360" y="102" text-anchor="middle" class="annotation">Normalize</text>
+  <text x="360" y="125" text-anchor="middle" class="muted">Agentic × 0.85–1.15</text>
+  <text x="360" y="148" text-anchor="middle" class="muted">Remap + weight</text>
   <rect x="518" y="78" width="160" height="82" class="box capability" />
   <text x="598" y="108" text-anchor="middle" class="annotation">Intelligence</text>
   <text x="598" y="132" text-anchor="middle" class="annotation">and Agentic</text>
@@ -47,5 +48,6 @@
   <line x1="440" y1="289" x2="508" y2="289" class="arrow delivery-arrow" />
   <path d="M598 160 V198 H360 V233" class="arrow capability-arrow" />
   <text x="458" y="190" text-anchor="middle" class="muted">quality sets comparable peers</text>
-  <text x="360" y="381" text-anchor="middle" class="annotation">Price and speed never feed back into capability</text>
+  <text x="360" y="369" text-anchor="middle" class="annotation">Matched tokens modify Agentic only</text>
+  <text x="360" y="393" text-anchor="middle" class="muted">Price and speed never feed back into capability</text>
 </svg>

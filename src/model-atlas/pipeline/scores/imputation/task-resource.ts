@@ -6,7 +6,7 @@ import {
   canonicalReasoningEffort,
   reasoningEffortRank,
 } from "../../../identity/normalization";
-import { clamp01, medianOfFinite, positiveFiniteNumber } from "../../../numeric";
+import { clamp01, medianOfFinite, positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
 import { benchmarkResourceEfficiencyScores } from "../resource-efficiency";
 import {

@@ -264,10 +264,22 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "Model Atlas score for following complex instructions, selecting and sequencing tools, using feedback, managing external state, self-verifying, recovering, and persisting through multi-step work. A coding task, repository, terminal, or harness does not create Agentic evidence unless one of those capabilities materially determines the score. Selected benchmarks are normalized to 0–100 and weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "Model Atlas score for following complex instructions, selecting and sequencing tools, using feedback, managing external state, self-verifying, recovering, and persisting through multi-step work. A coding task, repository, terminal, or harness does not create Agentic evidence unless one of those capabilities materially determines the score. Token efficiency is assessed against independent peers at comparable benchmark quality and modifies matched benchmark contributions before the final 0–100 remapping. Selected benchmarks are weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
-        ["Benchmark normalization", "observed range mapped to 0–100"],
+        [
+          "Benchmark normalization",
+          "zero-based contribution × token modifier, then cohort remapped to 0–100",
+        ],
+        [
+          "Token efficiency",
+          "0.85–1.15 multiplier versus independent peers at comparable benchmark quality",
+        ],
+        ["Token evidence", "direct same-benchmark tokens; AA tokens apply only to AA's own index"],
+        [
+          "Weak or missing token evidence",
+          "modifier shrinks toward 1; no token imputation or inherited index fallback",
+        ],
         ["Final score", "weighted mean with sparse highs regularized toward 50"],
       ],
       sections: [
@@ -280,16 +292,18 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Benchmark runtimes receive 70% of Speed and provider speed metrics receive 30%. Each bucket divides its weight equally among its active components. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and evidence support.",
+      body: "How quickly the model delivers comparable work. For officially ranked models, benchmark runtimes receive 70% of Speed and provider speed metrics receive 30%. Each bucket divides its weight equally among its active components. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and evidence support. Previews use 70% provider speed and 30% directly observed task runtimes, with no imputation or missing-coverage regularization.",
       rows: [
         ["Benchmark runtimes", "70% total; quality-adjusted peer comparison"],
         ["Provider metrics", "30% total across three logged min–max components"],
-        ["Missing task runtime", "validated sibling-effort estimate or omitted"],
-        ["Model coverage", "shared from the source-default variant"],
+        ["Missing task runtime", "official: validated sibling-effort estimate or omitted"],
+        ["Model coverage", "official: shared from the source-default variant"],
+        ["Previews", "70% provider speed + 30% direct task runtimes"],
+        ["Preview without task runtime", "provider speed alone; evidence support stays literal"],
       ],
       sections: [
         {
-          title: "Speed inputs",
+          title: "Official Speed inputs",
           hideTitle: true,
           rows: speedInputRows(components),
         },
@@ -297,16 +311,18 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How much quality and capability the model delivers for its cost. Benchmark task costs receive 70% of Value and price components receive 30%. Each bucket divides its weight equally among its active components. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and evidence support.",
+      body: "How much quality and capability the model delivers for its cost. For officially ranked models, benchmark task costs receive 70% of Value and price components receive 30%. Each bucket divides its weight equally among its active components. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and evidence support. Previews use 70% price components and 30% directly observed task costs, with no imputation or missing-coverage regularization.",
       rows: [
         ["Benchmark task costs", "70% total; quality-adjusted peer comparison"],
         ["Price components", "30% total across absolute and quality-adjusted price"],
-        ["Missing task cost", "validated sibling-effort estimate or omitted"],
-        ["Model coverage", "shared from the source-default variant"],
+        ["Missing task cost", "official: validated sibling-effort estimate or omitted"],
+        ["Model coverage", "official: shared from the source-default variant"],
+        ["Previews", "70% price components + 30% direct task costs"],
+        ["Preview without task cost", "price components alone; evidence support stays literal"],
       ],
       sections: [
         {
-          title: "Value inputs",
+          title: "Official Value inputs",
           hideTitle: true,
           rows: valueInputRows(components),
         },

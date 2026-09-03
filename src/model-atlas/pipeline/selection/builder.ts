@@ -16,11 +16,15 @@ import type {
 import type { OpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores, buildPreviewResourceScoreResults } from "../scores";
 import {
+  benchmarkImputationConfidence,
+  benchmarkImputationValues,
   prepareBenchmarkScoring,
   prepareEffortResourceImputation,
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
 import {
+  buildAgenticTokenScoringContext,
+  buildComponentScoreResult,
   buildPreviewComponentScoreResult,
   calibrateSparseEffortQualityScores,
   observedBenchmarkCount,
@@ -299,8 +303,27 @@ export async function buildFinalModels(
     previousModels,
     versioning,
   );
-  const candidateModels = calibrateSparseEffortQualityScores(
+  scoringPreparation.qualityContext = buildAgenticTokenScoringContext(
     provisionalCandidates,
+    scoringConfig,
+    scoringPreparation.qualityContext,
+  );
+  const tokenAdjustedCandidates = provisionalCandidates.map((model, index) => {
+    const row = asRecord(modelRows[index]);
+    const result = buildComponentScoreResult(
+      asRecord(model),
+      model.speed,
+      openRouterData.outputTokenAnchors,
+      scoringConfig,
+      scoringPreparation.qualityContext,
+      benchmarkImputationValues(scoringPreparation, row),
+      benchmarkImputationConfidence(scoringPreparation, row),
+      versionReplacementBenchmarkWeights(row, scoringConfig),
+    );
+    return { ...model, component_scores: result.componentScores, confidence: result.confidence };
+  });
+  const candidateModels = calibrateSparseEffortQualityScores(
+    tokenAdjustedCandidates,
     scoringConfig,
     scoringPreparation.qualityContext,
   );

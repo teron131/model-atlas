@@ -568,6 +568,7 @@ function scoringMethodology(scoring: ModelAtlasMetadata["scoring"]): unknown {
     agentic_benchmark_keys: scoring.agentic_benchmark_keys,
     benchmark_portfolio: scoring.benchmark_portfolio,
     quality_coverage: scoring.quality_coverage,
+    agentic_token_modifier_cap: scoring.agentic_token_modifier_cap,
     snapshot_preservation_version: scoring.snapshot_preservation_version,
   };
 }

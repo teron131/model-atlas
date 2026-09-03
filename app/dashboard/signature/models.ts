@@ -1,7 +1,7 @@
 /** Normalize live model evidence into the shared parameter system used by every signature mode. */
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import { meanOfFinite, medianOfFinite } from "../../../src/model-atlas/numeric";
+import { meanOfFinite, medianOfFinite } from "../../../src/model-atlas/math-utils";
 import {
   isPreviewModel,
   type ModelAtlasPublishedModel,

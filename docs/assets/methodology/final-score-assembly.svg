@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 500" role="img" aria-labelledby="title desc">
-  <title id="title">Final Speed and Value assembly</title>
-  <desc id="desc">Component scores and their evidence weights form an evidence-weighted mean and individual support. Model-default evidence separately forms a coverage multiplier. The weighted mean times model coverage becomes the public Speed or Value score.</desc>
+  <title id="title">Official Speed and Value assembly</title>
+  <desc id="desc">For officially ranked models, 70/30 policy weights multiplied by evidence credits form an effort-specific weighted mean and evidence support. Source-default coverage supplies a shared multiplier that rises from zero at 10% coverage to one at 60%.</desc>
   <style>
     :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; --tertiary: #c4b5fd; }
     text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
@@ -8,6 +8,7 @@
     .label { font-size: 17px; }
     .annotation { font-size: 15px; font-weight: 600; }
     .micro { fill: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+    .formula { fill: var(--muted); font-size: 12px; }
     .rule { stroke: var(--grid); stroke-width: 1; }
     .primary { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; }
     .secondary { fill: none; stroke: var(--secondary); stroke-width: 2; stroke-linecap: round; }
@@ -30,7 +31,8 @@
   </defs>
 
   <rect width="720" height="500" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Final Speed and Value assembly</text>
+  <text x="360" y="31" text-anchor="middle" class="label">Official Speed and Value assembly</text>
+  <text x="360" y="51" text-anchor="middle" class="formula">Policy weights: 70% benchmark tasks · 30% provider speed or price</text>
 
   <text x="90" y="72" class="micro">EFFORT EVIDENCE</text>
   <text x="300" y="72" class="micro">EFFORT OUTPUTS</text>
@@ -39,40 +41,41 @@
 
   <text x="90" y="120" class="annotation">component scores</text>
   <text x="90" y="143" class="muted">s<tspan baseline-shift="sub" font-size="10">m,i</tspan><tspan baseline-shift="super" font-size="10">p</tspan></text>
-  <text x="90" y="200" class="annotation">evidence weights</text>
-  <text x="90" y="223" class="muted">η<tspan baseline-shift="sub" font-size="10">m,i</tspan><tspan baseline-shift="super" font-size="10">p</tspan></text>
+  <text x="90" y="200" class="annotation">effective weights</text>
+  <text x="90" y="223" class="muted">w<tspan baseline-shift="sub" font-size="10">m,i</tspan><tspan baseline-shift="super" font-size="10">p</tspan> = a<tspan baseline-shift="sub" font-size="10">i</tspan><tspan baseline-shift="super" font-size="10">p</tspan>η<tspan baseline-shift="sub" font-size="10">m,i</tspan><tspan baseline-shift="super" font-size="10">p</tspan></text>
 
   <path d="M238 128 L286 128" class="primary" marker-end="url(#arrow-primary)" />
   <path d="M238 208 C262 208 266 158 286 148" class="secondary" marker-end="url(#arrow-secondary-branch)" />
   <path d="M238 208 C262 208 266 240 286 250" class="secondary" marker-end="url(#arrow-secondary-branch)" />
 
   <text x="300" y="120" class="annotation">evidence-weighted mean</text>
-  <text x="300" y="143" class="muted">Σηs / Ση</text>
+  <text x="300" y="143" class="muted">Σws / Σw</text>
   <text x="300" y="242" class="annotation">individual support</text>
-  <text x="300" y="265" class="muted">Ση / K<tspan baseline-shift="sub" font-size="10">p</tspan></text>
+  <text x="300" y="265" class="muted">Σw / K<tspan baseline-shift="sub" font-size="10">p</tspan></text>
 
   <path d="M482 128 L516 128" class="primary" />
   <path d="M540 128 L548 128" class="primary" marker-end="url(#arrow-primary)" />
   <path d="M482 250 L548 250" class="secondary" marker-end="url(#arrow-secondary)" />
 
   <text x="560" y="120" class="annotation">Speed or Value</text>
-  <text x="560" y="143" class="muted">C<tspan baseline-shift="sub" font-size="10">q</tspan><tspan baseline-shift="super" font-size="10">p</tspan> × Σηs / Ση</text>
+  <text x="560" y="143" class="muted">C<tspan baseline-shift="sub" font-size="10">q</tspan><tspan baseline-shift="super" font-size="10">p</tspan> × Σws / Σw</text>
   <text x="560" y="242" class="annotation">evidence support</text>
-  <text x="560" y="265" class="muted">Ση / K<tspan baseline-shift="sub" font-size="10">p</tspan></text>
+  <text x="560" y="265" class="muted">Σw / K<tspan baseline-shift="sub" font-size="10">p</tspan></text>
 
   <line x1="90" y1="305" x2="670" y2="305" class="rule" />
   <text x="90" y="340" class="micro">MODEL-DEFAULT EVIDENCE</text>
 
   <text x="90" y="386" class="annotation">default weights</text>
-  <text x="90" y="409" class="muted">η<tspan baseline-shift="sub" font-size="10">m_q default,i</tspan><tspan baseline-shift="super" font-size="10">p</tspan></text>
+  <text x="90" y="409" class="muted">w<tspan baseline-shift="sub" font-size="10">m_q default,i</tspan><tspan baseline-shift="super" font-size="10">p</tspan></text>
 
   <path d="M238 394 L286 394" class="tertiary" marker-end="url(#arrow-tertiary)" />
   <text x="300" y="386" class="annotation">model coverage</text>
-  <text x="300" y="409" class="muted">C<tspan baseline-shift="sub" font-size="10">q</tspan><tspan baseline-shift="super" font-size="10">p</tspan> = smoothstep(γ<tspan baseline-shift="sub" font-size="10">q</tspan><tspan baseline-shift="super" font-size="10">p</tspan>)</text>
+  <text x="300" y="409" class="formula">C<tspan baseline-shift="sub" font-size="9">q</tspan><tspan baseline-shift="super" font-size="9">p</tspan> = smoothstep((γ<tspan baseline-shift="sub" font-size="9">q</tspan><tspan baseline-shift="super" font-size="9">p</tspan> − 0.1) / 0.5)</text>
 
   <path d="M482 394 C525 394 495 158 520 140" class="tertiary" />
   <text x="528" y="134" text-anchor="middle" class="operator">×</text>
 
   <text x="90" y="456" class="muted">p = speed or value</text>
   <text x="670" y="456" text-anchor="end" class="muted">coverage is shared by model · evidence is specific to effort</text>
+  <text x="360" y="480" text-anchor="middle" class="formula">a = policy weight · η = evidence credit · K = total active policy weight</text>
 </svg>

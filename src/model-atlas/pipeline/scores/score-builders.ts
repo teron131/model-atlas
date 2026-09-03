@@ -1,5 +1,9 @@
 /** Capability score assembly owns benchmark weighting, sparse-effort calibration, speed anchors, and confidence. */
 
+import {
+  calibrationObservations,
+  effectiveModelCount,
+} from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import {
   benchmarkDimensionWeight,
@@ -17,7 +21,7 @@ import {
   meanOfFinite,
   quantileFromSorted,
   weightedMeanOfFinite,
-} from "../../numeric";
+} from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
   ModelAtlasCandidate,
@@ -26,8 +30,13 @@ import type {
   ModelAtlasSpeed,
 } from "../model-types";
 import { normalizedMetricValue, type QualityScoringContext } from "./imputation";
-import { evidenceMassConfidence } from "./normalization";
-import { benchmarkMetricValue } from "./resource-metrics";
+import { evidenceMassConfidence, logitUnitScore, minMaxScale } from "./normalization";
+import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
+import {
+  benchmarkMetricValue,
+  type BenchmarkTokenMeasure,
+  directBenchmarkTokens,
+} from "./resource-metrics";
 
 type BenchmarkScoreInput = {
   key: string;
@@ -54,6 +63,128 @@ const AGGREGATE_INDEX_KEYS = new Set(Object.keys(INDEX_REPRESENTED_BENCHMARK_COU
 type UnproxiedQualityScore = "observed-mean" | "regularized";
 
 type QualityDimensionScoreKey = "intelligence_score" | "agentic_score";
+
+const TOKEN_MEASURES = ["input-output", "tokens", "output_tokens"] as const;
+
+/** Build only the Agentic scoring projection; raw quality, imputation inputs, and telemetry remain unchanged. */
+export function buildAgenticTokenScoringContext(
+  models: readonly ModelAtlasCandidate[],
+  scoringConfig: ScoringConfig,
+  qualityContext: QualityScoringContext,
+): QualityScoringContext {
+  const adjustments = new Map<
+    string,
+    {
+      resourceKey: string;
+      measure: BenchmarkTokenMeasure;
+      values: number[];
+      multipliersByObservation: Map<string, number>;
+    }
+  >();
+  if (scoringConfig.agenticTokenModifierCap === 0) {
+    return { ...qualityContext, agenticTokenAdjustments: adjustments };
+  }
+  for (const key of scoringConfig.agenticBenchmarkKeys) {
+    const coordinate =
+      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy?.qualityCoordinate ??
+      (key === "aa_intelligence_index" ? "linear" : null);
+    if (coordinate == null) continue;
+    const resourceKey = key === "aa_intelligence_index" ? "artificial_analysis" : key;
+    const qualityValues = qualityContext.benchmarkValuesByKey.get(key) ?? [];
+    if (!(Math.min(...qualityValues) < Math.max(...qualityValues))) continue;
+    const qualities = models.map((model) => benchmarkMetricValue(model, key));
+    for (const measure of TOKEN_MEASURES) {
+      const tokensByModel = new Map(
+        models.map((model) => [model, directBenchmarkTokens(model, resourceKey, measure)]),
+      );
+      const observations = calibrationObservations(models, (model) =>
+        benchmarkMetricValue(model, key) == null ? null : (tokensByModel.get(model) ?? null),
+      );
+      if (effectiveModelCount(observations) < 3) continue;
+      const tokens = observations.map(({ value }) => value);
+      // The first supported measure owns the benchmark, even when its token population is flat.
+      if (!(Math.min(...tokens) < Math.max(...tokens))) break;
+      const multipliers = qualityAdjustedResourceMultipliers(
+        models,
+        qualities.map((value) =>
+          value == null || coordinate === "linear" ? value : logitUnitScore(value),
+        ),
+        models.map((model) => {
+          const amount = tokensByModel.get(model) ?? null;
+          return amount == null ? null : Math.log(amount);
+        }),
+        scoringConfig.agenticTokenModifierCap,
+      );
+      const values: number[] = [];
+      const multipliersByObservation = new Map<string, number>();
+      for (const [index, model] of models.entries()) {
+        const value = normalizedMetricValue(
+          qualityContext.benchmarkValuesByKey,
+          key,
+          qualities[index] ?? null,
+        );
+        if (value == null) continue;
+        const multiplier = multipliers[index]!;
+        values.push(value * multiplier);
+        multipliersByObservation.set(
+          tokenObservationKey(model, qualities[index]!, tokensByModel.get(model) ?? null),
+          multiplier,
+        );
+      }
+      adjustments.set(key, { resourceKey, measure, values, multipliersByObservation });
+      // One consistent measure owns the entire benchmark; do not mix totals and output-only rows.
+      break;
+    }
+  }
+  return { ...qualityContext, agenticTokenAdjustments: adjustments };
+}
+
+/** Historical candidates can share an ID and effort; their distinct quality/token observations must not overwrite each other. */
+function tokenObservationKey(
+  model: { id?: unknown; name?: unknown; reasoning_effort?: unknown },
+  quality: number,
+  tokens: number | null,
+): string {
+  return JSON.stringify([
+    model.id ?? model.name,
+    canonicalReasoningEffort(model.reasoning_effort),
+    quality,
+    tokens,
+  ]);
+}
+
+/** Apply token efficiency only in the Agentic view, before the adjusted cohort is mapped back to 0–100. */
+function normalizedQualityBenchmarkValue(
+  model: {
+    id?: unknown;
+    name?: unknown;
+    reasoning_effort?: unknown;
+    benchmarks?: unknown;
+    intelligence?: unknown;
+    task_metrics?: unknown;
+  },
+  key: string,
+  rawValue: number | null,
+  dimension: BenchmarkDimension,
+  context: QualityScoringContext,
+): number | null {
+  const value = normalizedMetricValue(context.benchmarkValuesByKey, key, rawValue);
+  const adjustment = dimension === "agentic" ? context.agenticTokenAdjustments?.get(key) : null;
+  if (value == null || adjustment == null) return value;
+  const observed = benchmarkMetricValue(model, key);
+  const multiplier =
+    observed == null
+      ? 1
+      : (adjustment.multipliersByObservation.get(
+          tokenObservationKey(
+            model,
+            observed,
+            directBenchmarkTokens(model, adjustment.resourceKey, adjustment.measure),
+          ),
+        ) ?? 1);
+  const adjusted = minMaxScale(adjustment.values, value * multiplier);
+  return adjusted == null ? null : clamp(adjusted, 0, 100);
+}
 
 function dimensionScoreKey(dimension: BenchmarkDimension): QualityDimensionScoreKey {
   return dimension === "intelligence" ? "intelligence_score" : "agentic_score";
@@ -84,15 +215,19 @@ function siblingQualityGap(
   scoringConfig: ScoringConfig,
 ): number | null {
   const comparisons = keys.flatMap((key) => {
-    const targetValue = normalizedMetricValue(
-      qualityContext.benchmarkValuesByKey,
+    const targetValue = normalizedQualityBenchmarkValue(
+      target,
       key,
       benchmarkMetricValue(target, key),
+      dimension,
+      qualityContext,
     );
-    const anchorValue = normalizedMetricValue(
-      qualityContext.benchmarkValuesByKey,
+    const anchorValue = normalizedQualityBenchmarkValue(
+      anchor,
       key,
       benchmarkMetricValue(anchor, key),
+      dimension,
+      qualityContext,
     );
     const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
     return targetValue == null || anchorValue == null || !(weight > 0)
@@ -226,7 +361,7 @@ function selectedBenchmarkScoreInputs(
     const observedValue = benchmarkMetricValue(model, key);
     const imputedValue = imputedValuesByKey.get(key) ?? null;
     const rawValue = observedValue ?? imputedValue;
-    const value = normalizedMetricValue(qualityContext.benchmarkValuesByKey, key, rawValue);
+    const value = normalizedQualityBenchmarkValue(model, key, rawValue, dimension, qualityContext);
     inputs.push({
       key,
       value,
@@ -322,7 +457,7 @@ function previewQualityScore(
 ): QualityScoreResult {
   const inputs = keys.flatMap((key) => {
     const rawValue = benchmarkMetricValue(model, key);
-    const value = normalizedMetricValue(qualityContext.benchmarkValuesByKey, key, rawValue);
+    const value = normalizedQualityBenchmarkValue(model, key, rawValue, dimension, qualityContext);
     const weight = previewBenchmarkDimensionWeight(key, dimension, scoringConfig);
     return !(weight > 0)
       ? []

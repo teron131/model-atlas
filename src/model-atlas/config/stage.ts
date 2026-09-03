@@ -104,6 +104,7 @@ export type ScoringConfig = {
   intelligenceBenchmarkDisplayKeys: readonly string[];
   agenticBenchmarkKeys: readonly string[];
   agenticBenchmarkDisplayKeys: readonly string[];
+  agenticTokenModifierCap: number;
   previewAdditionalIntelligenceBenchmarkKeys: readonly string[];
   defaultSpeedOutputTokenAnchors: readonly number[];
   speedOutputTokenRangeMin: number;
@@ -166,6 +167,7 @@ export const STAGE_CONFIG = {
     intelligenceBenchmarkDisplayKeys: INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
     agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS,
     agenticBenchmarkDisplayKeys: AGENTIC_BENCHMARK_DISPLAY_KEYS,
+    agenticTokenModifierCap: 0.15,
     previewAdditionalIntelligenceBenchmarkKeys: ["gpqa", "mmmu_pro"],
     defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
     speedOutputTokenRangeMin: 200,
