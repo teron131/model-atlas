@@ -105,6 +105,7 @@
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   min-height: 48px;
+  border-right: 1px solid var(--line);
   align-items: stretch;
 }
 
@@ -259,6 +260,7 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   border-top: 1px solid var(--line);
+  border-inline: 1px solid var(--line);
 }
 
 .filterPanel[hidden] {
@@ -274,6 +276,13 @@
 .benchmarkRow {
   min-width: 0;
   border-top: 1px solid var(--line);
+}
+
+.benchmarksToggle {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0 16px;
+  border-left: 0;
 }
 
 .controlGroup {

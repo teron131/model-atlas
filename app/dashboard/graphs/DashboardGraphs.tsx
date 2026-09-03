@@ -2,7 +2,7 @@
 
 /** Interactive chart view for LLM stats payloads. */
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import {
@@ -88,6 +88,8 @@ export function DashboardGraphs({
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [benchmarksExpanded, setBenchmarksExpanded] = useState(false);
+  const instrumentRailRef = useRef<HTMLElement>(null);
   const deferredPayload = useDeferredValue(payload);
   const deferredModelVariants = useDeferredValue(modelVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
@@ -96,6 +98,24 @@ export function DashboardGraphs({
   const deferredRecencyFilter = useDeferredValue(recencyFilter);
   const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
   const deferredShowReasoningVariants = useDeferredValue(showReasoningVariants);
+
+  useEffect(() => {
+    if (!filtersExpanded) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        !instrumentRailRef.current?.contains(target) &&
+        target.closest(".column-tooltip") == null
+      ) {
+        setFiltersExpanded(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [filtersExpanded]);
 
   const allModels = useMemo(() => {
     return (deferredPayload?.models ?? [])
@@ -203,7 +223,7 @@ export function DashboardGraphs({
         paretoModels={paretoSignatureModels}
         referenceModels={deferredModelVariants}
       />
-      <section className={styles.instrumentRail} aria-label="Global view">
+      <section className={styles.instrumentRail} aria-label="Global view" ref={instrumentRailRef}>
         <div className={styles.instrumentBar}>
           <nav className={styles.researchIndexLinks} aria-label="Dashboard sections">
             {RESEARCH_REGIONS.map((region) => (
@@ -338,11 +358,25 @@ export function DashboardGraphs({
             </FilterSection>
           </div>
           <div className={styles.benchmarkRow}>
-            <BenchmarkStrip
-              payload={deferredPayload}
-              models={models}
-              isLoading={benchmarksLoading}
-            />
+            <button
+              type="button"
+              className={`${styles.filtersToggle} ${styles.benchmarksToggle}`}
+              aria-expanded={benchmarksExpanded}
+              aria-controls="global-benchmarks"
+              onClick={() => setBenchmarksExpanded((current) => !current)}
+            >
+              <span>Benchmarks</span>
+              <i aria-hidden="true">{benchmarksExpanded ? "-" : "+"}</i>
+            </button>
+            <div id="global-benchmarks" hidden={!benchmarksExpanded}>
+              {filtersExpanded && benchmarksExpanded && (
+                <BenchmarkStrip
+                  payload={deferredPayload}
+                  models={models}
+                  isLoading={benchmarksLoading}
+                />
+              )}
+            </div>
           </div>
         </div>
       </section>
