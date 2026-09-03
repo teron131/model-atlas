@@ -58,7 +58,6 @@
 
 .modeLabel,
 .modeButton,
-.motionButton,
 .rank,
 .scoreLeader,
 .scoreLeadersLabel,
@@ -113,8 +112,7 @@
   background: var(--ink);
 }
 
-.modeButton:focus-visible,
-.motionButton:focus-visible {
+.modeButton:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
@@ -250,27 +248,6 @@
   width: 14px;
   height: 14px;
   stroke-width: 2.1;
-}
-
-/* Also sits over live material, so it carries a field rather than relying on the rule alone. */
-.motionButton {
-  position: absolute;
-  right: var(--signature-gutter);
-  bottom: 104px;
-  z-index: 2;
-  padding: 8px 10px;
-  border: 0;
-  border-bottom: 1px solid var(--line-strong);
-  background: color-mix(in srgb, var(--paper) 82%, transparent);
-  backdrop-filter: blur(10px);
-  color: var(--muted);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-  cursor: pointer;
-}
-
-.motionButton:hover {
-  color: var(--ink);
 }
 
 .modelRail {
@@ -433,10 +410,6 @@
     column-gap: 8px;
   }
 
-  .motionButton {
-    bottom: 184px;
-  }
-
   .modelRail {
     display: grid;
     min-height: 0;
@@ -539,11 +512,5 @@
 
   .scoreLeaderPrice {
     margin-left: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .motionButton {
-    display: none;
   }
 }

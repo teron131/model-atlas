@@ -71,7 +71,6 @@ export const ModelSignature = memo(function ModelSignature({
     y: 0,
   });
   const [mode, setMode] = useState<SignatureMode>("field");
-  const [paused, setPaused] = useState(false);
   const lastDarkModeRef = useRef<SignatureMode>(DEFAULT_DARK_MODE);
   const signatureModelRows = useMemo(
     () =>
@@ -149,8 +148,7 @@ export const ModelSignature = memo(function ModelSignature({
       context.setTransform(density, 0, 0, density, 0, 0);
       lastRenderTime = 0;
     };
-    const canAnimate = () =>
-      !paused && !reducedMotion && visible && document.visibilityState === "visible";
+    const canAnimate = () => !reducedMotion && visible && document.visibilityState === "visible";
     const renderFrame = (now: number) => {
       const frameScale = Math.max(0.5, Math.min(2, (now - previousTime) / 16.667));
       previousTime = now;
@@ -206,7 +204,7 @@ export const ModelSignature = memo(function ModelSignature({
     resize();
     const resizeObserver = new ResizeObserver(() => {
       resize();
-      if (paused || reducedMotion) {
+      if (reducedMotion) {
         renderIfVisible();
       }
     });
@@ -250,7 +248,7 @@ export const ModelSignature = memo(function ModelSignature({
       themeObserver.disconnect();
       visibilityObserver.disconnect();
     };
-  }, [mode, paused, signatureModelRows]);
+  }, [mode, signatureModelRows]);
 
   const syncPointer = (event: PointerEvent<HTMLElement>, immediate = false) => {
     const stage = stageRef.current;
@@ -363,14 +361,6 @@ export const ModelSignature = memo(function ModelSignature({
           </dl>
         </div>
       </div>
-      <button
-        className={styles.motionButton}
-        type="button"
-        aria-pressed={paused}
-        onClick={() => setPaused((current) => !current)}
-      >
-        {paused ? "Resume material" : "Pause material"}
-      </button>
       <ol className={styles.modelRail} aria-label="Distinct model roles in the signature">
         {signatureModelRows.map((model) => (
           <li
