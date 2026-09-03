@@ -97,6 +97,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
       <ModelAtlasHeader page="dashboard" />
       <DashboardGraphs
         payload={displayPayload}
+        modelVariants={payload?.models ?? []}
         referenceModels={rankedModels(payload?.models ?? [])}
         benchmarksLoading={isInitialLoading}
         selectedProviders={selectedProviders}

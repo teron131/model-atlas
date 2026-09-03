@@ -231,16 +231,16 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
       wide
     >
       {controls}
-      {rows.some((row) => isPreviewModel(row.model)) ? (
-        <div className={styles.chartToolbarCaption}>
-          <PreviewLabelLegend />
-        </div>
-      ) : null}
       <PriceEfficiencySlopeGraph
         compactLayout={compactChartLayout}
         rows={plottedRows}
         setHover={setHover}
       />
+      {rows.some((row) => isPreviewModel(row.model)) ? (
+        <div className={styles.chartFooterCaption}>
+          <PreviewLabelLegend />
+        </div>
+      ) : null}
       <div className={styles.chartSummary}>
         {efficiencyLeader == null ? null : (
           <SummaryCard

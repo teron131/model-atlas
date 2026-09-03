@@ -1,8 +1,9 @@
 /** Exercises keyed schema reconciliation, payload fallback, and current raw cache reads. */
 
 import assert from "node:assert/strict";
+import { existsSync, statSync } from "node:fs";
+import { rename } from "node:fs/promises";
 
-import { readPayloadRows } from "../src/model-atlas/database/payload-rows";
 import {
   loadSchemaSql,
   openDatabase,
@@ -16,6 +17,10 @@ import {
   schemaTableColumns,
   schemaTableShapes,
 } from "../src/model-atlas/database/schema-reconciliation";
+import {
+  readCachedDatabasePayload,
+  readDatabasePayload,
+} from "../src/model-atlas/database/sqlite-payload";
 import { readDeepSWERawCache } from "../src/model-atlas/ingest/benchmark-runtimes/deep-swe";
 import { readTerminalBench4RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/terminal-bench-4";
 import {
@@ -63,10 +68,6 @@ assert.equal(
   "schema parsing should preserve complete column definitions",
 );
 const processedModelShape = schemaTableShapes(schemaSql).get("models");
-assert(
-  (processedModelShape?.size ?? 0) <= 100,
-  "D1 tables must stay within Cloudflare's 100-column SQLite limit",
-);
 assert.equal(
   processedModelShape?.has("agent_arena"),
   false,
@@ -136,18 +137,6 @@ assert.equal(
   ).cache_hit,
   true,
   "A fresh Artificial Analysis snapshot with retained deprecated rows should remain cacheable when a former benchmark field is absent",
-);
-
-const payloadRows = await readPayloadRows(1_800_000_000, async (rowGroup) => {
-  if (rowGroup.optional === true) {
-    throw new Error("optional table is absent");
-  }
-  return [];
-});
-assert.deepEqual(
-  payloadRows.valsIndexRows,
-  [],
-  "optional async payload row groups should degrade to empty rows",
 );
 
 await removeDatabaseFiles(databasePath);
@@ -456,9 +445,61 @@ try {
       false,
       "A fallback-only DeepSWE snapshot should not suppress a v1.1 retry",
     );
+    reopenedDb.exec("DELETE FROM snapshot_metadata; INSERT INTO snapshot_metadata VALUES (100)");
+    reopenedDb.exec("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint = 0");
+    const cached = readCachedDatabasePayload(databasePath);
+    assert.equal(
+      readCachedDatabasePayload(databasePath),
+      cached,
+      "Unchanged reads reuse the payload",
+    );
+    const checkpointMtime = statSync(databasePath, { bigint: true }).mtimeNs;
+    reopenedDb.exec("UPDATE snapshot_metadata SET updated_at_epoch_seconds = 101");
+    assert.equal(statSync(databasePath, { bigint: true }).mtimeNs, checkpointMtime);
+    const updated = readCachedDatabasePayload(databasePath);
+    assert.equal(updated.fetched_at_epoch_seconds, 101, "WAL-only commits invalidate immediately");
+    assert.notEqual(updated, cached);
+    reopenedDb.exec("BEGIN; UPDATE snapshot_metadata SET updated_at_epoch_seconds = 102");
+    assert.equal(readCachedDatabasePayload(databasePath).fetched_at_epoch_seconds, 101);
+    reopenedDb.exec("ROLLBACK; PRAGMA wal_checkpoint(TRUNCATE)");
+    assert.deepEqual(
+      readCachedDatabasePayload(databasePath),
+      updated,
+      "WAL truncation preserves the committed view",
+    );
+
+    const payload = readDatabasePayload(databasePath);
+    reopenedDb.exec("DROP TABLE vals_index_raw_rows");
+    assert.deepEqual(
+      readDatabasePayload(databasePath),
+      payload,
+      "Missing optional source tables must preserve the actual SQLite payload read",
+    );
+    reopenedDb.exec("DROP TABLE models");
+    assert.throws(
+      () => readCachedDatabasePayload(databasePath),
+      /no such table: models/,
+      "Missing required tables must fail rather than return stale cached data",
+    );
   } finally {
     reopenedDb.close();
+  }
+  const replacementPath = `${databasePath}.replacement`;
+  try {
+    const replacement = await openDatabase(replacementPath);
+    try {
+      replacement.exec("INSERT INTO snapshot_metadata VALUES (200)");
+    } finally {
+      replacement.close();
+    }
+    await rename(replacementPath, databasePath);
+    assert.equal(readCachedDatabasePayload(databasePath).fetched_at_epoch_seconds, 200);
+  } finally {
+    await removeDatabaseFiles(replacementPath);
   }
 } finally {
   await removeDatabaseFiles(databasePath);
 }
+assert.throws(() => readCachedDatabasePayload(databasePath), /ENOENT/);
+assert.throws(() => readDatabasePayload(databasePath), /unable to open database/);
+assert.equal(existsSync(databasePath), false, "A display read must not create an empty checkpoint");

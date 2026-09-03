@@ -12,7 +12,7 @@ import { modelVariantKey, reasoningVariantGroups } from "../shared/model-display
 import { providerChartColor } from "../shared/provider-theme";
 import { BoxWhiskerSummary } from "./BoxWhiskerSummary";
 import { valueDistribution } from "./chart-stats";
-import { EmptyChart } from "./ChartComponents";
+import { EmptyChart, PreviewLabelLegend } from "./ChartComponents";
 import { finite, fmtTooltipMoney, fmtTooltipScore } from "./format";
 import { graphLabeledItems, graphModelLabel, graphReferenceItems } from "./model-series";
 import { Panel } from "./Panel";
@@ -77,7 +77,6 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
       scoreBasisControl={scoreBasisControl}
       yAxisControl={<span className={styles.axisReadout}>Intelligence ↑</span>}
       xAxisControl={<span className={styles.axisReadout}>Value ↑</span>}
-      showPreviewLegend={models.some(isPreviewModel)}
     />
   );
   const candidates = models
@@ -390,6 +389,11 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
           })}
         </svg>
       </div>
+      {models.some(isPreviewModel) ? (
+        <div className={styles.chartFooterCaption}>
+          <PreviewLabelLegend />
+        </div>
+      ) : null}
     </Panel>
   );
 });

@@ -24,6 +24,7 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
+  const payloadEtagRef = useRef<string | null>(null);
 
   const refreshPayload = useCallback((options?: RefreshPayloadOptions) => {
     if (refreshInFlightRef.current != null) {
@@ -45,14 +46,23 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
     }
     recordRefreshAttempt();
     setErrorMessage(null);
-    refreshInFlightRef.current = fetch(liveStatsPath, { cache: "no-cache" })
-      .then((response) => {
+    refreshInFlightRef.current = fetch(liveStatsPath, {
+      cache: "no-cache",
+      headers: payloadEtagRef.current ? { "If-None-Match": payloadEtagRef.current } : {},
+    })
+      .then(async (response) => {
+        if (response.status === 304) return;
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        return response.json() as Promise<ModelAtlasPayload>;
-      })
-      .then((nextPayload) => {
+        const etag = response.headers.get("etag");
+        // Browser caches may merge a 304 into a 200 response; unchanged content still needs no parsing or state update.
+        if (etag != null && etag === payloadEtagRef.current) {
+          await response.body?.cancel();
+          return;
+        }
+        const nextPayload = (await response.json()) as ModelAtlasPayload;
+        payloadEtagRef.current = etag;
         setPayload(nextPayload);
         scheduleCacheWrite(nextPayload);
       })

@@ -1,4 +1,4 @@
-/** Public row-writer surface shared by local SQLite builds and direct D1 publication. */
+/** Snapshot row writers persist normalized evidence and expose collected rows for verification. */
 
 export {
   insertArtificialAnalysisBenchmarkResourceRawRows,

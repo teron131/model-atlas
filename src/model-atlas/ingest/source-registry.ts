@@ -39,7 +39,7 @@ export function isBenchmarkObservationRawSource(
   return (BENCHMARK_OBSERVATION_KEYS as readonly string[]).includes(source);
 }
 
-/** Raw source table names shared by cache freshness checks, snapshot writes, and D1 verification. */
+/** Raw source table names shared by cache freshness checks and snapshot writes. */
 const CORE_RAW_SOURCE_TABLES = {
   artificial_analysis: "artificial_analysis_raw_models",
   artificial_analysis_benchmark_resources: "artificial_analysis_benchmarks_raw_rows",

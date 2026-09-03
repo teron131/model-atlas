@@ -4,7 +4,7 @@
  * THESIS: Live model evidence becomes the dashboard material instead of sitting inside a decorative hero card.
  * OWN-WORLD: Mineral paper or blue-charcoal fields, provider pigments, square measurement controls, and four-score geometry.
  * STORY: Read the leading filtered models, see which scores control the material, then continue into the same evidence in the table and charts.
- * FIRST VIEWPORT: The shared header leads directly into a full-width generative field with factual copy, three material alternatives, and a five-model rail.
+ * FIRST VIEWPORT: The shared header leads directly into a full-width generative field with factual copy, three material alternatives, and a six-role model rail.
  * FORM: Living Evidence Field, adapted from the selected reference; Evidence Field is the default while Phase Ledger and Signal Type remain equal alternatives.
  */
 
@@ -18,7 +18,6 @@ import {
   useState,
 } from "react";
 
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
   applyModelAtlasTheme,
   currentModelAtlasTheme,
@@ -31,11 +30,15 @@ import {
   renderMaterial,
   stepMaterialPointer,
 } from "./material";
-import { type SignatureMode, signatureModeLabels, signatureModels } from "./models";
+import {
+  type SignatureMode,
+  signatureModeLabels,
+  signatureModels,
+  type SignaturePopulation,
+} from "./models";
 
 import styles from "./signature.module.css";
 
-const MATERIAL_MODEL_LIMIT = 5;
 const MATERIAL_FRAME_INTERVAL_MS = 1_000 / 30;
 const MATERIAL_VISIBILITY_MARGIN_PX = 120;
 const DEFAULT_DARK_MODE: SignatureMode = "phase";
@@ -50,9 +53,9 @@ function themeForMode(mode: SignatureMode): ModelAtlasTheme {
 
 export const ModelSignature = memo(function ModelSignature({
   models,
-}: {
-  models: ModelAtlasModel[];
-}) {
+  paretoModels,
+  referenceModels,
+}: SignaturePopulation) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLElement>(null);
   const stageBoundsRef = useRef<DOMRect | null>(null);
@@ -70,7 +73,14 @@ export const ModelSignature = memo(function ModelSignature({
   const [mode, setMode] = useState<SignatureMode>("field");
   const [paused, setPaused] = useState(false);
   const lastDarkModeRef = useRef<SignatureMode>(DEFAULT_DARK_MODE);
-  const signatureModelRows = useMemo(() => signatureModels(models, MATERIAL_MODEL_LIMIT), [models]);
+  const signatureModelRows = useMemo(
+    () =>
+      signatureModels({ models, paretoModels, referenceModels }).map((model) => ({
+        ...model,
+        metric: selectionMetricPresentation(model.selectionMetric),
+      })),
+    [models, paretoModels, referenceModels],
+  );
 
   // Adopt the saved theme on mount, then follow any later theme change from the header toggle.
   useEffect(() => {
@@ -311,31 +321,41 @@ export const ModelSignature = memo(function ModelSignature({
                   <span className={styles.scoreLeaderIcon} aria-hidden="true">
                     {model.logo ? <img src={model.logo} alt="" width={14} height={14} /> : null}
                   </span>
-                  <strong>{model.name}</strong>
+                  <strong className={model.preview ? styles.previewModel : undefined}>
+                    {model.name}
+                  </strong>
                 </dd>
                 <dd className={styles.scoreLeaderValue}>
-                  <span className="visually-hidden">
-                    {accessibleSelectionMetric(model.selectionMetric)}
-                  </span>
+                  <span className="visually-hidden">{model.metric.accessible}</span>
                   <span className={styles.scoreLeaderValueVisual} aria-hidden="true">
-                    {selectionMetricParts(model.selectionMetric).map((part, index) =>
-                      part.kind === "text" ? (
-                        <span key={`${part.value}-${index}`}>{part.value}</span>
-                      ) : (
-                        <span
-                          className={styles.scoreLeaderMetricIcon}
-                          key={`${part.kind}-${index}`}
-                        >
-                          {part.kind === "intelligence" ? (
-                            <BrainIcon />
-                          ) : part.kind === "agentic" ? (
-                            <BotIcon />
-                          ) : (
-                            <DollarIcon />
-                          )}
-                        </span>
-                      ),
-                    )}
+                    <span className={styles.scoreLeaderScores}>
+                      {model.metric.parts.map((part, index) =>
+                        part.kind === "text" ? (
+                          <span key={`${part.value}-${index}`}>{part.value}</span>
+                        ) : (
+                          <span
+                            className={styles.scoreLeaderMetricIcon}
+                            key={`${part.kind}-${index}`}
+                          >
+                            {part.kind === "intelligence" ? (
+                              <BrainIcon />
+                            ) : part.kind === "agentic" ? (
+                              <BotIcon />
+                            ) : (
+                              <DollarIcon />
+                            )}
+                          </span>
+                        ),
+                      )}
+                    </span>
+                    {model.metric.price != null ? (
+                      <span
+                        className={styles.scoreLeaderPrice}
+                        title="Blended price per million tokens"
+                      >
+                        {model.metric.price}
+                      </span>
+                    ) : null}
                   </span>
                 </dd>
               </div>
@@ -364,9 +384,11 @@ export const ModelSignature = memo(function ModelSignature({
             </span>
             <span className={styles.modelCopy}>
               <span className={styles.modelRole}>{model.role}</span>
-              <strong>{model.name}</strong>
-              <span>
-                {model.provider} · {model.selectionMetric}
+              <strong className={model.preview ? styles.previewModel : undefined}>
+                {model.name}
+              </strong>
+              <span title={model.metric.accessible}>
+                {model.provider} · {model.metric.compact}
               </span>
             </span>
           </li>
@@ -380,27 +402,37 @@ type SelectionMetricPart =
   | { kind: "agentic" | "intelligence" | "value" }
   | { kind: "text"; value: string };
 
-function selectionMetricParts(metric: string): SelectionMetricPart[] {
-  const metricKind = metric.startsWith("AGT ") ? "agentic" : "intelligence";
-  const withoutPrefix = metric.replace(/^(?:AGT|INT) /, "");
-  const priceStart = withoutPrefix.indexOf(" · $");
-  if (priceStart === -1) {
-    return [{ kind: metricKind }, { kind: "text", value: withoutPrefix }];
-  }
-  return [
+/** Keep the leader list, compact rail, and accessible labels on one score-and-price presentation. */
+function selectionMetricPresentation(metric: string) {
+  const [scores = "", blendedPrice] = metric.split(" · BLEND ");
+  const price = blendedPrice?.replace("/M", "");
+  const metricKind = scores.startsWith("AGT ") ? "agentic" : "intelligence";
+  const withoutPrefix = scores.replace(/^(?:AGT|INT) /, "");
+  const valueStart = withoutPrefix.indexOf(" · VAL ");
+  const parts: SelectionMetricPart[] = [
     { kind: metricKind },
-    { kind: "text", value: withoutPrefix.slice(0, priceStart) },
-    { kind: "text", value: "·" },
-    { kind: "value" },
-    { kind: "text", value: withoutPrefix.slice(priceStart + 4) },
+    { kind: "text", value: valueStart === -1 ? withoutPrefix : withoutPrefix.slice(0, valueStart) },
   ];
-}
-
-function accessibleSelectionMetric(metric: string): string {
-  return metric
+  if (valueStart !== -1) {
+    parts.push(
+      { kind: "text", value: "·" },
+      { kind: "value" },
+      { kind: "text", value: withoutPrefix.slice(valueStart + 7) },
+    );
+  }
+  const accessibleScores = scores
     .replace(/^INT /, "Intelligence ")
     .replace(/^AGT /, "Agentic ")
-    .replace(" · $", " · Value $");
+    .replace(" · VAL ", " · Value ");
+  return {
+    parts,
+    price,
+    compact: price == null ? scores : `${scores} · ${price}`,
+    accessible:
+      price == null
+        ? accessibleScores
+        : `${accessibleScores} · Blended price ${price} per million tokens`,
+  };
 }
 
 function readPalette(element: HTMLElement): MaterialPalette {

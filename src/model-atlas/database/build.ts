@@ -1,4 +1,4 @@
-/** Local SQLite tooling builds and atomically publishes offline Model Atlas snapshots. */
+/** Build a complete SQLite checkpoint while retaining source caches and append-only audit history. */
 
 import { existsSync } from "node:fs";
 import { rename } from "node:fs/promises";
@@ -10,13 +10,8 @@ import { loadOpenRouterRawPayload } from "../ingest/source-snapshots/openrouter"
 import type { DatabaseBuildOptions, DatabaseBuildResult } from "../ingest/types";
 import { nowEpochSeconds } from "../runtime";
 import type { ModelAtlasPayload } from "../stats/types";
+import { deriveDatabaseSnapshot, writeCheckpoint } from "./checkpoint";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
-import {
-  type DatabaseSnapshotRows,
-  deriveDatabaseSnapshot,
-  SNAPSHOT_WRITER_TABLES,
-  writeDatabaseSnapshotRows,
-} from "./snapshot-workflow";
 import { readDatabasePayload } from "./sqlite-payload";
 
 function countTableRows(db: DatabaseSync): Record<string, number> {
@@ -67,18 +62,7 @@ async function publishDatabaseFile(db: DatabaseSync, outputPath: string): Promis
   await rename(persistedPath, outputPath);
 }
 
-function writeSnapshot(db: DatabaseSync, rows: DatabaseSnapshotRows): void {
-  for (const table of SNAPSHOT_WRITER_TABLES) {
-    db.prepare(`DELETE FROM ${table}`).run();
-  }
-  db.prepare("DELETE FROM snapshot_metadata").run();
-  writeDatabaseSnapshotRows(db, rows);
-  db.prepare("INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)").run(
-    nowEpochSeconds(),
-  );
-}
-
-/** Builds a local SQLite artifact for offline inspection and scripts; runtime publication uses D1 directly. */
+/** Refresh the local checkpoint; the GCS publisher owns making it visible to runtime readers. */
 export async function buildDatabase(
   outputPath = DEFAULT_DATABASE_PATH,
   options: DatabaseBuildOptions & { previousPayload?: ModelAtlasPayload | null } = {},
@@ -109,11 +93,15 @@ export async function buildDatabase(
         ),
       {
         previousPayload,
+        replaceSourceRows: options.replaceSourceRows,
       },
     );
 
     const activeDb = db;
-    runInTransaction(activeDb, () => writeSnapshot(activeDb, derived.rows));
+    runInTransaction(activeDb, () => writeCheckpoint(activeDb, derived.rows));
+    if (activeDb.prepare("PRAGMA integrity_check").get()?.integrity_check !== "ok") {
+      throw new Error("Refusing to publish a SQLite checkpoint that failed its integrity check");
+    }
     const result = {
       path: outputPath,
       source_rows: countTableRows(activeDb),

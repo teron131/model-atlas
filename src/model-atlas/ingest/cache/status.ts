@@ -92,7 +92,7 @@ function rowsHaveCurrentShape(source: RawSourceName, rows: readonly CacheDbRow[]
   return true;
 }
 
-/** Computes source freshness from D1 rows without a local database. */
+/** Computes source freshness from collected rows without a local database. */
 export function rawSourceCacheStatusFromRows(
   source: RawSourceName,
   rows: readonly CacheDbRow[],

@@ -157,6 +157,10 @@
   line-height: 32px;
 }
 
+.previewModel {
+  font-style: italic;
+}
+
 .scoreLeaderList {
   display: grid;
   grid-template-columns: max-content max-content max-content;
@@ -221,10 +225,17 @@
   white-space: nowrap;
 }
 
-.scoreLeaderValueVisual {
+.scoreLeaderValueVisual,
+.scoreLeaderScores {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.scoreLeaderPrice {
+  margin-left: 8px;
+  color: var(--ink);
+  font-size: var(--type-micro-size);
 }
 
 .scoreLeaderMetricIcon {
@@ -273,7 +284,7 @@
   padding: 0 var(--signature-gutter);
   border-top: 1px solid var(--line-strong);
   background: color-mix(in srgb, var(--paper) 90%, transparent);
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   list-style: none;
 }
 
@@ -454,7 +465,7 @@
     border-top: 0;
   }
 
-  .modelItem:last-child {
+  .modelItem:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
 
@@ -518,6 +529,16 @@
     margin-left: 0;
     color: var(--muted);
     font-size: var(--type-micro-size);
+  }
+
+  .scoreLeaderValueVisual {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .scoreLeaderPrice {
+    margin-left: 0;
   }
 }
 

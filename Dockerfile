@@ -1,4 +1,4 @@
-# Runs the existing D1 publication command as a bounded Cloud Run batch job.
+# Refreshes the private checkpoint and publishes GCS snapshots as a bounded Cloud Run batch job.
 
 FROM node:24-bookworm-slim
 
@@ -18,4 +18,4 @@ RUN pnpm exec playwright install --with-deps chromium
 COPY . .
 RUN pnpm run typecheck && pnpm run test
 
-CMD ["pnpm", "run", "d1:publish"]
+CMD ["pnpm", "run", "snapshot:publish"]

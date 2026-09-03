@@ -44,6 +44,7 @@ registerHooks({
 const { Dashboard } = await import("../app/dashboard/index");
 const { BenchmarkStrip } = await import("../app/dashboard/BenchmarkStrip");
 const { ModelTable } = await import("../app/dashboard/table/ModelTable");
+const { ModelSignature } = await import("../app/dashboard/signature/ModelSignature");
 
 const payload = minimalModelAtlasPayload({
   fetchedAt: 900,
@@ -74,6 +75,82 @@ payload.metadata.scoring.benchmark_portfolio = {
   deep_swe: BENCHMARK_PORTFOLIO.deep_swe,
 };
 const html = renderToStaticMarkup(React.createElement(Dashboard, { initialPayload: payload }));
+assert.ok(
+  html.includes("Pareto Balance") && html.includes("Intelligence 90.0 · Value 60.0"),
+  "The signature must preserve a repeated Pareto winner and label its Value score rather than token price",
+);
+const signatureCandidates = [
+  [90, 50],
+  [60, 90],
+  [50, 99],
+  [40, 20],
+  [30, 20],
+].map(([intelligence, value], index) => ({
+  ...minimalModelAtlasModel({ id: `model-${index}`, name: `Model ${index}` }),
+  provider: `lab-${index}`,
+  open_weights: true,
+  cost: { blended_price: index === 1 ? 0.174 : 0.732 },
+  release_date: index === 0 ? "2026-09-01" : "1970-01-01",
+  scores: {
+    intelligence_score: intelligence!,
+    agentic_score: intelligence!,
+    speed_score: 50,
+    value_score: value!,
+  },
+}));
+const expandedSignatureHtml = renderToStaticMarkup(
+  React.createElement(ModelSignature, {
+    models: signatureCandidates,
+    paretoModels: signatureCandidates,
+    referenceModels: signatureCandidates,
+  }),
+);
+assert.equal(expandedSignatureHtml.match(/<dt>/g)?.length, 6, "Render all six signature roles");
+assert.ok(
+  expandedSignatureHtml.includes("Pareto Value") &&
+    expandedSignatureHtml.includes(
+      "Intelligence 60.0 · Value 90.0 · Blended price $0.174 per million tokens",
+    ),
+  "The above-median Value role must reach the visible and accessible signature output",
+);
+assert.ok(
+  expandedSignatureHtml.includes(">$0.174</span>") &&
+    !expandedSignatureHtml.includes("BLEND ") &&
+    !expandedSignatureHtml.includes("/M"),
+  "Show only the dollar amount while retaining full price units in accessible labels and tooltips",
+);
+const globallyReferencedSignatureHtml = renderToStaticMarkup(
+  React.createElement(Dashboard, {
+    initialPayload: minimalModelAtlasPayload({
+      fetchedAt: Date.parse("2026-09-03T00:00:00Z") / 1_000,
+      models: signatureCandidates,
+    }),
+  }),
+);
+assert.ok(
+  globallyReferencedSignatureHtml.includes("Pareto Value") &&
+    globallyReferencedSignatureHtml.includes("Intelligence 60.0 · Value 90.0"),
+  "Dashboard recency limits must not remove Pareto candidates or truncate the global median population",
+);
+const effortLeaderHtml = renderToStaticMarkup(
+  React.createElement(Dashboard, {
+    initialPayload: {
+      ...payload,
+      models: [
+        { ...payload.models[0]!, reasoning_effort: "high" },
+        {
+          ...payload.models[0]!,
+          reasoning_effort: "max",
+          scores: { ...payload.models[0]!.scores, intelligence_score: 89, agentic_score: 95 },
+        },
+      ],
+    },
+  }),
+);
+assert.ok(
+  effortLeaderHtml.includes("AGT 95.0"),
+  "The collapsed dashboard must pass original effort evidence to its Best Agentic signature role",
+);
 const loadingHtml = renderToStaticMarkup(React.createElement(Dashboard, { initialPayload: null }));
 const { confidence: _staleConfidence, ...staleConfidenceModel } = minimalModelAtlasModel({
   id: "openai/stale-snapshot-model",

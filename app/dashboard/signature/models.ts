@@ -1,15 +1,29 @@
 /** Normalize live model evidence into the shared parameter system used by every signature mode. */
 
-import { meanOfFinite, quantileFromSorted } from "../../../src/model-atlas/numeric";
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { meanOfFinite, medianOfFinite } from "../../../src/model-atlas/numeric";
 import {
-  modelDisplayName,
-  modelsForVariantDisplay,
-  modelVariantKey,
-} from "../shared/model-display";
-import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
+  isPreviewModel,
+  type ModelAtlasPublishedModel,
+} from "../../../src/model-atlas/stats/types";
+import { graphModelLabel } from "../graphs/model-series";
+import { paretoFrontier } from "../graphs/plot/ParetoEnvelope";
+import { modelsForVariantDisplay, modelVariantKey } from "../shared/model-display";
+import {
+  providerChartColor,
+  providerDisplayName,
+  providerFilterKey,
+  providerLogo,
+} from "../shared/provider-theme";
+import { formatCost } from "../table/format";
 
 export type SignatureMode = "field" | "phase" | "type";
+
+export type SignaturePopulation = {
+  models: ModelAtlasPublishedModel[];
+  paretoModels: ModelAtlasPublishedModel[];
+  referenceModels: ModelAtlasPublishedModel[];
+};
 
 type SignatureParameters = {
   intelligence: number;
@@ -23,6 +37,7 @@ type SignatureParameters = {
 export type SignatureModel = {
   key: string;
   rank: number;
+  preview: boolean;
   role: string;
   selectionMetric: string;
   name: string;
@@ -38,77 +53,96 @@ export const signatureModeLabels: Record<SignatureMode, string> = {
   type: "Signal Type",
 };
 
-const QUALITY_PERCENTILE = 0.8;
-
-export function signatureModels(models: ModelAtlasModel[], limit = 5): SignatureModel[] {
-  const baseModels = modelsForVariantDisplay(
+/** Select visible role leaders and display-limit-independent Pareto choices against a global Intelligence median. */
+export function signatureModels(
+  { models, paretoModels, referenceModels }: SignaturePopulation,
+  limit = 6,
+): SignatureModel[] {
+  const variants = modelsForVariantDisplay(
     models.filter(
       (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
     ),
-    false,
+    true,
   );
-  const qualityThreshold =
-    quantileFromSorted(
-      baseModels
-        .map((model) => model.scores.intelligence_score)
-        .sort((left, right) => left - right),
-      QUALITY_PERCENTILE,
-    ) ?? -Infinity;
-  const qualityFrontier = baseModels.filter(
-    (model) => model.scores.intelligence_score >= qualityThreshold,
+  const baseModels = modelsForVariantDisplay(variants, false);
+  const valueModels = intelligenceValueModels(paretoModels);
+  const medianIntelligence = medianOfFinite(
+    intelligenceValueModels(referenceModels).map(intelligenceScore),
   );
-  const intelligenceRanking = rankModels(baseModels, (model) => model.scores.intelligence_score);
+  const frontier = paretoFrontier(valueModels, {
+    x: { get: (model) => Number(model.scores.value_score), goal: "maximize" },
+    y: { get: intelligenceScore, goal: "maximize" },
+  });
+  const intelligenceRanking = rankModels(baseModels, intelligenceScore);
+  const agenticRanking = rankModels(
+    variants.filter((model) => Number.isFinite(model.scores.agentic_score)),
+    (model) => Number(model.scores.agentic_score),
+  );
+  const representedLabs = new Set(
+    [intelligenceRanking[0], agenticRanking[0]]
+      .filter((model): model is ModelAtlasPublishedModel => model != null)
+      .map((model) => providerFilterKey(model.provider)),
+  );
+  const anotherLab = intelligenceRanking.find(
+    (model) => !representedLabs.has(providerFilterKey(model.provider)),
+  );
   const selectedModels = selectRolesWithTopFiveFallback(
     [
       {
         label: "Best Intelligence",
-        candidates: intelligenceRanking.slice(0, 1),
-        metric: (model) => `INT ${model.scores.intelligence_score.toFixed(1)}`,
+        model: intelligenceRanking[0],
+        metric: (model) => `INT ${intelligenceScore(model).toFixed(1)}`,
       },
       {
         label: "Best Agentic",
-        candidates: rankModels(
-          baseModels.filter((model) => Number.isFinite(model.scores.agentic_score)),
-          (model) => Number(model.scores.agentic_score),
-        ).slice(0, 1),
+        allowRepeat: true,
+        model: agenticRanking[0],
         metric: (model) => `AGT ${Number(model.scores.agentic_score).toFixed(1)}`,
       },
       {
-        label: "Another Top 3",
-        candidates: intelligenceRanking.slice(0, 3),
-        metric: (model) => `INT ${model.scores.intelligence_score.toFixed(1)}`,
+        label: "Another Lab",
+        model: anotherLab,
+        metric: (model) => `INT ${intelligenceScore(model).toFixed(1)}`,
       },
       {
         label: "Best Open Weight",
-        candidates: rankModels(
-          baseModels.filter((model) => model.open_weights === true),
-          (model) => model.scores.intelligence_score,
-        ).slice(0, 1),
-        metric: (model) => `INT ${model.scores.intelligence_score.toFixed(1)}`,
+        allowRepeat: true,
+        model: intelligenceRanking.find((model) => model.open_weights === true),
+        metric: (model) => `INT ${intelligenceScore(model).toFixed(1)}`,
       },
       {
-        label: "Pareto Frontier",
-        candidates: rankModels(
-          qualityFrontier.filter(
-            (model) =>
-              Number.isFinite(model.cost?.blended_price) && Number(model.cost?.blended_price) >= 0,
+        label: "Pareto Balance",
+        allowRepeat: true,
+        allowFallback: false,
+        model: rankModels(
+          frontier,
+          (model) => intelligenceScore(model) * Number(model.scores.value_score),
+        )[0],
+        metric: intelligenceValueMetric,
+      },
+      {
+        label: "Pareto Value",
+        allowRepeat: true,
+        allowFallback: false,
+        model: rankModels(
+          frontier.filter(
+            (model) => medianIntelligence != null && intelligenceScore(model) > medianIntelligence,
           ),
-          (model) => Number(model.cost?.blended_price),
-          "ascending",
-        ).slice(0, 1),
-        metric: (model) =>
-          `INT ${model.scores.intelligence_score.toFixed(1)} · ${formatPrice(Number(model.cost?.blended_price))} / 1M`,
+          (model) => Number(model.scores.value_score),
+        )[0],
+        metric: intelligenceValueMetric,
       },
     ],
     intelligenceRanking.slice(0, 5),
     limit,
   );
   return selectedModels.map(({ model, role, selectionMetric }, index) => ({
-    key: modelVariantKey(model),
+    key: `${modelVariantKey(model)}:${role}`,
     rank: index + 1,
+    preview: isPreviewModel(model),
     role,
     selectionMetric,
-    name: modelDisplayName(model),
+    name: graphModelLabel({ ...model, reasoning_effort: null }),
     provider: providerDisplayName(model),
     logo: providerLogo(model.provider) || model.logo,
     color: providerChartColor(model.provider),
@@ -121,32 +155,42 @@ export function signatureModels(models: ModelAtlasModel[], limit = 5): Signature
 
 type SignatureRole = {
   label: string;
-  candidates: ModelAtlasModel[];
-  metric: (model: ModelAtlasModel) => string;
+  allowRepeat?: boolean;
+  allowFallback?: boolean;
+  model: ModelAtlasPublishedModel | undefined;
+  metric: (model: ModelAtlasPublishedModel) => string;
 };
 
 function selectRolesWithTopFiveFallback(
   roles: SignatureRole[],
-  intelligenceTopFive: ModelAtlasModel[],
+  intelligenceTopFive: ModelAtlasPublishedModel[],
   limit: number,
 ) {
-  const selectedModels = new Set<ModelAtlasModel>();
+  const selectedModelKeys = new Set<string>();
   const selected = roles.slice(0, limit).map((role) => {
-    const model = role.candidates.find((candidate) => !selectedModels.has(candidate));
-    if (model == null) {
+    const model = role.model;
+    if (
+      model == null ||
+      (role.allowRepeat !== true && selectedModelKeys.has(canonicalModelKey(model)))
+    ) {
       return null;
     }
-    selectedModels.add(model);
+    selectedModelKeys.add(canonicalModelKey(model));
     return {
       model,
       role: role.label,
       selectionMetric: role.metric(model),
     };
   });
-  const fallbacks = intelligenceTopFive.filter((model) => !selectedModels.has(model));
-  return selected.flatMap((selection) => {
+  const fallbacks = intelligenceTopFive.filter(
+    (model) => !selectedModelKeys.has(canonicalModelKey(model)),
+  );
+  return selected.flatMap((selection, index) => {
     if (selection != null) {
       return [selection];
+    }
+    if (roles[index]?.allowFallback === false) {
+      return [];
     }
     const model = fallbacks.shift();
     if (model == null) {
@@ -157,38 +201,47 @@ function selectRolesWithTopFiveFallback(
       {
         model,
         role: `Intelligence #${intelligenceRank}`,
-        selectionMetric: `INT ${model.scores.intelligence_score.toFixed(1)}`,
+        selectionMetric: `INT ${intelligenceScore(model).toFixed(1)}`,
       },
     ];
   });
 }
 
 function rankModels(
-  models: ModelAtlasModel[],
-  metric: (model: ModelAtlasModel) => number,
-  direction: "ascending" | "descending" = "descending",
-): ModelAtlasModel[] {
-  const directionFactor = direction === "ascending" ? 1 : -1;
+  models: ModelAtlasPublishedModel[],
+  metric: (model: ModelAtlasPublishedModel) => number,
+): ModelAtlasPublishedModel[] {
   return [...models].sort(
     (left, right) =>
-      (metric(left) - metric(right)) * directionFactor ||
-      right.scores.intelligence_score - left.scores.intelligence_score ||
-      modelDisplayName(left).localeCompare(modelDisplayName(right)),
+      metric(right) - metric(left) ||
+      intelligenceScore(right) - intelligenceScore(left) ||
+      graphModelLabel(left).localeCompare(graphModelLabel(right)),
   );
 }
 
-function formatPrice(value: number): string {
-  if (value < 1) {
-    return `$${value.toFixed(2)}`;
-  }
-  if (value < 10) {
-    return `$${value.toFixed(1)}`;
-  }
-  return `$${value.toFixed(0)}`;
+function intelligenceScore(model: ModelAtlasPublishedModel): number {
+  return Number(model.scores.intelligence_score);
+}
+
+function intelligenceValueMetric(model: ModelAtlasPublishedModel): string {
+  const scores = `INT ${intelligenceScore(model).toFixed(1)} · VAL ${Number(model.scores.value_score).toFixed(1)}`;
+  const price = model.cost?.blended_price;
+  return typeof price === "number" && Number.isFinite(price) && price >= 0
+    ? `${scores} · BLEND ${formatCost(price)}/M`
+    : scores;
+}
+
+function intelligenceValueModels(models: ModelAtlasPublishedModel[]): ModelAtlasPublishedModel[] {
+  return modelsForVariantDisplay(
+    models.filter(
+      (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
+    ),
+    false,
+  ).filter((model) => Number.isFinite(model.scores.value_score));
 }
 
 /** Translate published scores into the normalized parameter vocabulary owned by signature renderers. */
-function signatureScoreParameters(model: Pick<ModelAtlasModel, "scores">) {
+function signatureScoreParameters(model: Pick<ModelAtlasPublishedModel, "scores">) {
   const rawScores = [
     model.scores.intelligence_score,
     model.scores.agentic_score,

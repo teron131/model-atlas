@@ -11,7 +11,7 @@ export function graphModelLabel(
   model: ModelAtlasPublishedModel,
   label = shortLabel(model),
 ): string {
-  return isPreviewModel(model) ? `*${label}` : label;
+  return isPreviewModel(model) ? `* ${label}` : label;
 }
 
 /** Use official rows for graph references while keeping preview-only views usable. */

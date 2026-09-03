@@ -24,7 +24,7 @@ import { getHarveyLabStats } from "../../scrapers/benchmarks/vals/harvey-lab";
 import { getValsIndexStats } from "../../scrapers/benchmarks/vals/index-benchmark";
 import { getVendingBench2Stats } from "../../scrapers/benchmarks/vending-bench-2";
 import type { ModelAtlasSourceRows } from "../assembly/source-data";
-import type { CacheDbRow, CacheRowSource } from "../cache/rows";
+import type { CacheRowSource } from "../cache/rows";
 import type { RawSourceName, SnapshotTableName } from "../source-registry";
 import type {
   DatabaseBuildOptions,
@@ -229,24 +229,8 @@ export function benchmarkSourceRowsFromSnapshots(snapshots: SourceSnapshots): Be
 
 /** Read every benchmark runtime cache through its source-group registry. */
 export function readBenchmarkSnapshotCaches(db: DatabaseSync): BenchmarkSnapshotCaches {
-  return readBenchmarkCaches(() => db);
-}
-
-/** Reconstruct every benchmark runtime cache from D1 rows through the same registry. */
-export function benchmarkSnapshotCachesFromRows(
-  rows: Record<RawSourceName, CacheDbRow[]>,
-): BenchmarkSnapshotCaches {
-  return readBenchmarkCaches((source) => rows[source]);
-}
-
-function readBenchmarkCaches(
-  cacheForSource: (source: RawSourceName) => CacheRowSource,
-): BenchmarkSnapshotCaches {
   return Object.fromEntries(
-    Object.values(BENCHMARK_RUNTIMES).map((runtime) => [
-      runtime.cacheKey,
-      runtime.readCache(cacheForSource(runtime.source)),
-    ]),
+    Object.values(BENCHMARK_RUNTIMES).map((runtime) => [runtime.cacheKey, runtime.readCache(db)]),
   ) as BenchmarkSnapshotCaches;
 }
 
