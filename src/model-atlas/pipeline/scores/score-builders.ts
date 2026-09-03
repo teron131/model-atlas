@@ -30,7 +30,13 @@ import type {
   ModelAtlasSpeed,
 } from "../model-types";
 import { normalizedMetricValue, type QualityScoringContext } from "./imputation";
-import { evidenceMassConfidence, logitUnitScore, minMaxScale } from "./normalization";
+import {
+  evidenceMassConfidence,
+  logitUnitScore,
+  minMaxRange,
+  type MinMaxRange,
+  minMaxScale,
+} from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
   benchmarkMetricValue,
@@ -77,7 +83,7 @@ export function buildAgenticTokenScoringContext(
     {
       resourceKey: string;
       measure: BenchmarkTokenMeasure;
-      values: number[];
+      range: MinMaxRange | null;
       multipliersByObservation: Map<string, number>;
     }
   >();
@@ -90,8 +96,8 @@ export function buildAgenticTokenScoringContext(
       (key === "aa_intelligence_index" ? "linear" : null);
     if (coordinate == null) continue;
     const resourceKey = key === "aa_intelligence_index" ? "artificial_analysis" : key;
-    const qualityValues = qualityContext.benchmarkValuesByKey.get(key) ?? [];
-    if (!(Math.min(...qualityValues) < Math.max(...qualityValues))) continue;
+    const qualityRange = qualityContext.benchmarkRangesByKey.get(key);
+    if (qualityRange == null || !(qualityRange.min < qualityRange.max)) continue;
     const qualities = models.map((model) => benchmarkMetricValue(model, key));
     for (const measure of TOKEN_MEASURES) {
       const tokensByModel = new Map(
@@ -119,7 +125,7 @@ export function buildAgenticTokenScoringContext(
       const multipliersByObservation = new Map<string, number>();
       for (const [index, model] of models.entries()) {
         const value = normalizedMetricValue(
-          qualityContext.benchmarkValuesByKey,
+          qualityContext.benchmarkRangesByKey,
           key,
           qualities[index] ?? null,
         );
@@ -131,7 +137,12 @@ export function buildAgenticTokenScoringContext(
           multiplier,
         );
       }
-      adjustments.set(key, { resourceKey, measure, values, multipliersByObservation });
+      adjustments.set(key, {
+        resourceKey,
+        measure,
+        range: minMaxRange(values),
+        multipliersByObservation,
+      });
       // One consistent measure owns the entire benchmark; do not mix totals and output-only rows.
       break;
     }
@@ -168,7 +179,7 @@ function normalizedQualityBenchmarkValue(
   dimension: BenchmarkDimension,
   context: QualityScoringContext,
 ): number | null {
-  const value = normalizedMetricValue(context.benchmarkValuesByKey, key, rawValue);
+  const value = normalizedMetricValue(context.benchmarkRangesByKey, key, rawValue);
   const adjustment = dimension === "agentic" ? context.agenticTokenAdjustments?.get(key) : null;
   if (value == null || adjustment == null) return value;
   const observed = benchmarkMetricValue(model, key);
@@ -182,7 +193,7 @@ function normalizedQualityBenchmarkValue(
             directBenchmarkTokens(model, adjustment.resourceKey, adjustment.measure),
           ),
         ) ?? 1);
-  const adjusted = minMaxScale(adjustment.values, value * multiplier);
+  const adjusted = minMaxScale(adjustment.range, value * multiplier);
   return adjusted == null ? null : clamp(adjusted, 0, 100);
 }
 

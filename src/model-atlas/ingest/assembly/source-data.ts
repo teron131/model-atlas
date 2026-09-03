@@ -178,12 +178,10 @@ function buildArtificialAnalysisBySlug(rows: unknown[]): Map<string, ArtificialA
   return bySlug;
 }
 
-function buildBenchmarkObservationData(rows: ModelAtlasSourceRows): Partial<ModelAtlasSourceData> {
+function buildBenchmarkObservationData(rows: ModelAtlasSourceRows): BenchmarkObservationData {
   return Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map(({ sourceDataKey, sourceRowsKey }) => {
-      const sourceRows = rows[sourceRowsKey as keyof ModelAtlasSourceRows] as
-        | readonly BenchmarkObservationRow[]
-        | undefined;
+      const sourceRows = rows[sourceRowsKey];
       if (!Array.isArray(sourceRows)) {
         throw new Error(`Benchmark observation source rows are missing: ${sourceRowsKey}`);
       }
@@ -195,7 +193,7 @@ function buildBenchmarkObservationData(rows: ModelAtlasSourceRows): Partial<Mode
         },
       ];
     }),
-  ) as Partial<ModelAtlasSourceData>;
+  ) as BenchmarkObservationData;
 }
 
 /** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
@@ -279,5 +277,5 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rows: rows.vendingBench2Rows,
       rowsByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
     },
-  } as unknown as ModelAtlasSourceData;
+  };
 }

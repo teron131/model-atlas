@@ -12,7 +12,6 @@ import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/n
 import {
   clamp,
   clamp01,
-  mapFiniteNumbers,
   weightedFinitePartCount,
   weightedMeanOfFinite,
   weightedMedianOfFinite,
@@ -20,7 +19,7 @@ import {
   weightedQuantileRank,
 } from "../../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../../runtime";
-import { clampScore, minMaxScale } from "../normalization";
+import { clampScore, minMaxRange, type MinMaxRange, minMaxScale } from "../normalization";
 import { benchmarkMetricValue, type BenchmarkTokenMeasure } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
@@ -38,13 +37,13 @@ type BenchmarkImputationDiagnostic = {
 };
 
 export type QualityScoringContext = {
-  benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
+  benchmarkRangesByKey: ReadonlyMap<string, MinMaxRange | null>;
   agenticTokenAdjustments?: ReadonlyMap<
     string,
     {
       resourceKey: string;
       measure: BenchmarkTokenMeasure;
-      values: readonly number[];
+      range: MinMaxRange | null;
       multipliersByObservation: ReadonlyMap<string, number>;
     }
   >;
@@ -198,11 +197,11 @@ function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps 
 }
 
 export function normalizedMetricValue(
-  valuesByKey: ReadonlyMap<string, readonly number[]>,
+  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
   key: string,
   value: number | null,
 ): number | null {
-  const normalized = minMaxScale(valuesByKey.get(key) ?? [], value);
+  const normalized = minMaxScale(rangesByKey.get(key) ?? null, value);
   return normalized == null ? null : clampScore(normalized);
 }
 
@@ -235,12 +234,12 @@ function observedNormalizedEvidenceScore(
   benchmarkKeys: readonly string[],
   benchmarkWeights: ReadonlyMap<string, number>,
   excludedBenchmarkKey: string | null,
-  valuesByKey: ReadonlyMap<string, readonly number[]>,
+  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
 ): number | null {
   const parts = benchmarkKeys
     .filter((key) => key !== excludedBenchmarkKey)
     .map((key) => ({
-      value: normalizedMetricValue(valuesByKey, key, benchmarkMetricValue(model, key)),
+      value: normalizedMetricValue(rangesByKey, key, benchmarkMetricValue(model, key)),
       weight: benchmarkWeights.get(key) ?? 0,
     }));
   return weightedFinitePartCount(parts) >= MIN_IMPUTATION_EVIDENCE_VALUES
@@ -291,7 +290,7 @@ function buildDimensionPredictor(
   targetBenchmarkKey: string,
   dimension: BenchmarkDimension,
   scoringConfig: ScoringConfig,
-  valuesByKey: ReadonlyMap<string, readonly number[]>,
+  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
 ): ((model: JsonObject) => ContextualPrediction | null) | null {
   const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
   const referenceContextScores = calibrationObservations(models, (model) => {
@@ -303,7 +302,7 @@ function buildDimensionPredictor(
       benchmarkKeys,
       benchmarkWeights,
       targetBenchmarkKey,
-      valuesByKey,
+      rangesByKey,
     );
   });
   const targetObservations = referenceContextScores.map((observation) => ({
@@ -319,7 +318,7 @@ function buildDimensionPredictor(
       benchmarkKeys,
       benchmarkWeights,
       targetBenchmarkKey,
-      valuesByKey,
+      rangesByKey,
     );
     if (contextScore == null) {
       return null;
@@ -352,14 +351,13 @@ function selectedBenchmarkKeys(scoringConfig: ScoringConfig): string[] {
   ];
 }
 
-function observedValuesByBenchmark(
+function observedRangesByBenchmark(
   models: JsonObject[],
   benchmarkKeys: readonly string[],
-): Map<string, number[]> {
+): Map<string, MinMaxRange | null> {
   return new Map(
     benchmarkKeys.map(
-      (key) =>
-        [key, mapFiniteNumbers(models, (model) => benchmarkMetricValue(model, key))] as const,
+      (key) => [key, minMaxRange(models.map((model) => benchmarkMetricValue(model, key)))] as const,
     ),
   );
 }
@@ -368,7 +366,7 @@ function buildWeightedPredictors(
   models: JsonObject[],
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
-  valuesByKey: ReadonlyMap<string, readonly number[]>,
+  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
 ): WeightedBenchmarkPredictor[] {
   const portfolioEntry = scoringConfig.benchmarkPortfolio[targetBenchmarkKey];
   if (portfolioEntry == null) {
@@ -377,7 +375,7 @@ function buildWeightedPredictors(
   return IMPUTATION_DIMENSIONS.map((dimension) => ({
     predict:
       portfolioEntry.dimensionLoadings[dimension] > 0
-        ? buildDimensionPredictor(models, targetBenchmarkKey, dimension, scoringConfig, valuesByKey)
+        ? buildDimensionPredictor(models, targetBenchmarkKey, dimension, scoringConfig, rangesByKey)
         : null,
     weight: portfolioEntry.dimensionLoadings[dimension],
   }));
@@ -421,7 +419,7 @@ function imputationDiagnostic(
     string,
     {
       predictors: WeightedBenchmarkPredictor[];
-      targetValues: readonly number[];
+      targetRange: MinMaxRange | null;
     }
   >();
   for (const heldOutModel of models) {
@@ -435,21 +433,21 @@ function imputationDiagnostic(
       const trainingModels = models.filter(
         (model) => modelKeyByModel.get(model) !== heldOutModelKey,
       );
-      const trainingValuesByKey = observedValuesByBenchmark(trainingModels, benchmarkKeys);
+      const trainingRangesByKey = observedRangesByBenchmark(trainingModels, benchmarkKeys);
       calibration = {
         predictors: buildWeightedPredictors(
           trainingModels,
           targetBenchmarkKey,
           scoringConfig,
-          trainingValuesByKey,
+          trainingRangesByKey,
         ),
-        targetValues: trainingValuesByKey.get(targetBenchmarkKey) ?? [],
+        targetRange: trainingRangesByKey.get(targetBenchmarkKey) ?? null,
       };
       calibrationByHeldOutModel.set(heldOutModelKey, calibration);
     }
     const prediction = predictedBenchmarkValue(heldOutModel, calibration.predictors);
-    const normalizedPrediction = minMaxScale(calibration.targetValues, prediction?.value ?? null);
-    const normalizedActual = minMaxScale(calibration.targetValues, actualValue);
+    const normalizedPrediction = minMaxScale(calibration.targetRange, prediction?.value ?? null);
+    const normalizedActual = minMaxScale(calibration.targetRange, actualValue);
     if (normalizedPrediction == null || normalizedActual == null) {
       continue;
     }
@@ -490,7 +488,7 @@ function prepareImputation(
   const imputationByModel = mercorApexImputation.imputationByModel;
   const imputationConfidenceByModel = mercorApexImputation.imputationConfidenceByModel;
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
-  const valuesByKey = observedValuesByBenchmark(models, benchmarkKeys);
+  const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
   for (const key of benchmarkKeys) {
     const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
     if (portfolioEntry == null) {
@@ -510,7 +508,7 @@ function prepareImputation(
     if (!diagnostic.imputationAllowed) {
       continue;
     }
-    const predictors = buildWeightedPredictors(models, key, scoringConfig, valuesByKey);
+    const predictors = buildWeightedPredictors(models, key, scoringConfig, rangesByKey);
     for (const model of models) {
       if (benchmarkMetricValue(model, key) != null || imputationByModel.get(model)?.has(key)) {
         continue;
@@ -553,7 +551,7 @@ export function buildBenchmarkImputationDiagnosticsByKey(
   return prepareImputation(models, scoringConfig).imputationDiagnosticsByKey;
 }
 
-/** Precompute raw comparison distributions used to normalize quality fields before averaging. */
+/** Precompute finite comparison ranges used to normalize quality fields before averaging. */
 export function buildQualityScoringContext(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
@@ -564,8 +562,8 @@ export function buildQualityScoringContext(
       ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
     ]),
   ];
-  const benchmarkValuesByKey = observedValuesByBenchmark(models, benchmarkKeys);
-  return { benchmarkValuesByKey };
+  const benchmarkRangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
+  return { benchmarkRangesByKey };
 }
 
 /** Prepare benchmark imputations and quality normalization context in dependency order. */
