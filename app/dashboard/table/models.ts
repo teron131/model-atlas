@@ -9,7 +9,12 @@ import {
   INDEX_BENCHMARK_KEYS,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
-import { clampScore, minMaxScale } from "../../../src/model-atlas/pipeline/scores/normalization";
+import {
+  clampScore,
+  minMaxRange,
+  type MinMaxRange,
+  minMaxScale,
+} from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
   isPreviewModel,
@@ -421,12 +426,12 @@ export function sortedRows(rows: TableRow[], filterQuery: string, sortState: Sor
 /** Collapse duplicate model routes before assigning display ranks. */
 export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
   const benchmarkReferenceModels = models.filter((model) => !isPreviewModel(model));
-  const benchmarkDisplayScoreValues = Object.fromEntries(
+  const benchmarkDisplayScoreRanges = Object.fromEntries(
     scaledBenchmarkMetricColumns.map((column) => [
       column.key,
-      benchmarkReferenceModels.map((model) => benchmarkMetricValue(model, column)),
+      minMaxRange(benchmarkReferenceModels.map((model) => benchmarkMetricValue(model, column))),
     ]),
-  ) as Partial<Record<BenchmarkMetricColumn["key"], Array<number | null>>>;
+  ) as Partial<Record<BenchmarkMetricColumn["key"], MinMaxRange | null>>;
   const rowsByIdentity = new Map<string, UnrankedTableRow>();
   for (const [originalIndex, model] of models.entries()) {
     const key = displayKey(model);
@@ -437,7 +442,7 @@ export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
       benchmarkDisplayScores: Object.fromEntries(
         scaledBenchmarkMetricColumns.map((column) => {
           const value = benchmarkMetricValue(model, column);
-          const normalized = minMaxScale(benchmarkDisplayScoreValues[column.key] ?? [], value);
+          const normalized = minMaxScale(benchmarkDisplayScoreRanges[column.key] ?? null, value);
           return [column.key, normalized == null ? null : clampScore(normalized)];
         }),
       ),

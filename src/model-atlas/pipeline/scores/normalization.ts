@@ -3,7 +3,6 @@
 import {
   clamp,
   clamp01,
-  finiteScoreValues,
   smoothstep,
   weightedQuantile,
   type WeightedScorePart,
@@ -11,6 +10,11 @@ import {
 
 const COVERAGE_CONFIDENCE_FLOOR = 0.1;
 const COVERAGE_CONFIDENCE_FULL = 0.6;
+
+export type MinMaxRange = {
+  min: number;
+  max: number;
+};
 
 /** Clamp public score-scale values to 0-100 after normalization or interpolation. */
 export function clampScore(value: number): number {
@@ -62,24 +66,27 @@ export function evidenceMassConfidence(evidenceMass: number, floor: number, full
   return smoothstep((evidenceMass - floor) / (full - floor));
 }
 
+/** Prepare finite reference bounds once so a population can be normalized without rescanning it for every value. */
+export function minMaxRange(values: ReadonlyArray<number | null>): MinMaxRange | null {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const value of values) {
+    if (value == null || !Number.isFinite(value)) continue;
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+  return min === Infinity ? null : { min, max };
+}
+
 /** Normalize onto the 0-100 score scale, giving full credit when the comparison set has no spread. */
-export function minMaxScale(
-  values: ReadonlyArray<number | null>,
-  value: number | null,
-): number | null {
-  if (value == null) {
+export function minMaxScale(range: MinMaxRange | null, value: number | null): number | null {
+  if (value == null || range == null) {
     return null;
   }
-  const finiteValues = finiteScoreValues(values);
-  if (finiteValues.length === 0) {
-    return null;
-  }
-  const minValue = Math.min(...finiteValues);
-  const maxValue = Math.max(...finiteValues);
-  if (maxValue === minValue) {
+  if (range.max === range.min) {
     return 100;
   }
-  return ((value - minValue) / (maxValue - minValue)) * 100;
+  return ((value - range.min) / (range.max - range.min)) * 100;
 }
 
 /** Min-max normalize finite signals in the requested scoring direction. */
@@ -91,7 +98,8 @@ export function minMaxScores(
   const directedValues = values.map((value) =>
     value != null && Number.isFinite(value) ? directionMultiplier * value : null,
   );
-  return directedValues.map((value) => minMaxScale(directedValues, value));
+  const range = minMaxRange(directedValues);
+  return directedValues.map((value) => minMaxScale(range, value));
 }
 
 /** Min-max normalize against weighted anchors while winsorizing only the favorable tail. */

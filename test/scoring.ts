@@ -39,6 +39,8 @@ import {
   evidenceMassConfidence,
   logInputMinMaxScores,
   logitUnitScore,
+  minMaxRange,
+  minMaxScale,
   minMaxScores,
   winsorizedMinMaxScores,
 } from "../src/model-atlas/pipeline/scores/normalization";
@@ -82,12 +84,12 @@ function assertThrowsWithMessage(action: () => void, expectedMessage: string): v
   throw new Error(`Expected error: ${expectedMessage}`);
 }
 
-const rawAgentBenchmarkValues = new Map([
-  ["agent_arena", [-0.15305257102824063, 0, 0.1394124051275084]],
-  ["vending_bench_2", [-31.18399999999995, 9_000, 10_936.763333333334]],
+const rawAgentBenchmarkRanges = new Map([
+  ["agent_arena", minMaxRange([-0.15305257102824063, 0, 0.1394124051275084])],
+  ["vending_bench_2", minMaxRange([-31.18399999999995, 9_000, 10_936.763333333334])],
 ]);
-assertClose(normalizedMetricValue(rawAgentBenchmarkValues, "agent_arena", 0), 52.3319);
-assertClose(normalizedMetricValue(rawAgentBenchmarkValues, "vending_bench_2", 9_000), 82.3416);
+assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "agent_arena", 0), 52.3319);
+assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "vending_bench_2", 9_000), 82.3416);
 assertClose(evidenceMassConfidence(1, 1, 3), 0);
 assertClose(evidenceMassConfidence(2, 1, 3), 0.5);
 assertClose(evidenceMassConfidence(3, 1, 3), 1);
@@ -205,12 +207,12 @@ const previewScoreResult = buildPreviewComponentScoreResult(
   },
   STAGE_CONFIG.scoring,
   {
-    benchmarkValuesByKey: new Map([
-      ["aa_intelligence_index", [0, 1]],
-      ["deep_swe", [0, 1]],
-      ["gpqa", [0, 1]],
-      ["hle", [0, 1]],
-      ["tau_banking", [0, 1]],
+    benchmarkRangesByKey: new Map([
+      ["aa_intelligence_index", minMaxRange([0, 1])],
+      ["deep_swe", minMaxRange([0, 1])],
+      ["gpqa", minMaxRange([0, 1])],
+      ["hle", minMaxRange([0, 1])],
+      ["tau_banking", minMaxRange([0, 1])],
     ]),
   },
 );
@@ -223,7 +225,7 @@ assert.equal(
 );
 assert.equal(
   buildPreviewComponentScoreResult({}, STAGE_CONFIG.scoring, {
-    benchmarkValuesByKey: new Map(),
+    benchmarkRangesByKey: new Map(),
   }).componentScores,
   null,
   "metadata-only previews should publish without invented quality scores",
@@ -235,9 +237,9 @@ const indexOnlyPreviewScoreResult = buildPreviewComponentScoreResult(
   },
   STAGE_CONFIG.scoring,
   {
-    benchmarkValuesByKey: new Map([
-      ["aa_intelligence_index", [0, 1]],
-      ["vals_index", [0, 1]],
+    benchmarkRangesByKey: new Map([
+      ["aa_intelligence_index", minMaxRange([0, 1])],
+      ["vals_index", minMaxRange([0, 1])],
     ]),
   },
 );
@@ -713,6 +715,19 @@ assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
 assertClose(latencySpeedModels[1]?.scores.speed_score, 50);
 
 const gapExampleValues = [1, 2, 3, 50, 60, 70, 95, 99];
+assert.equal(minMaxScale(minMaxRange([null, NaN, Infinity]), 5), null);
+assert.equal(minMaxScale(minMaxRange([null, 5, 5]), null), null);
+assert.equal(minMaxScale(minMaxRange([null, 5, 5]), 5), 100);
+assert.equal(minMaxScale(minMaxRange([null, NaN, 10, 20, Infinity]), 15), 50);
+assert.equal(minMaxScale(minMaxRange([10, 20]), 30), 200);
+assert.deepEqual(minMaxScores([null, NaN, Infinity, 10, 15, 20], "lower"), [
+  null,
+  null,
+  null,
+  100,
+  50,
+  0,
+]);
 const minMaxGapScores = minMaxScores(gapExampleValues, "higher");
 assertClose(minMaxGapScores[3], 50);
 assertClose(minMaxGapScores[4], 60.2040816327);

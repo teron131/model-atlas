@@ -1,6 +1,9 @@
 /** Frontier benchmark analysis owns row projection, normalization, axis policy, and hover evidence. */
 
-import { minMaxScale } from "../../../../src/model-atlas/pipeline/scores/normalization";
+import {
+  minMaxRange,
+  minMaxScale,
+} from "../../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type {
   BenchmarkPortfolio,
@@ -185,23 +188,25 @@ export function normalizedFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
   referenceRows: FrontierBenchmarkRow[] = rows,
 ): FrontierBenchmarkRow[] {
-  const costsByBenchmark = new Map<string, number[]>();
-  const secondsByBenchmark = new Map<string, number[]>();
-  const tokensByBenchmark = new Map<string, number[]>();
-  for (const row of referenceRows) {
-    pushBenchmarkValue(costsByBenchmark, row.benchmarkKey, row.cost);
-    pushBenchmarkValue(secondsByBenchmark, row.benchmarkKey, row.seconds);
-    pushBenchmarkValue(tokensByBenchmark, row.benchmarkKey, row.totalTokens);
-  }
-  return normalizedFrontierBenchmarkScoreRows(rows, referenceRows).map((row) => ({
-    ...row,
-    cost: minMaxScale(costsByBenchmark.get(row.benchmarkKey) ?? [], row.cost) ?? row.cost,
-    seconds:
-      minMaxScale(secondsByBenchmark.get(row.benchmarkKey) ?? [], row.seconds) ?? row.seconds,
-    totalTokens:
-      minMaxScale(tokensByBenchmark.get(row.benchmarkKey) ?? [], row.totalTokens) ??
-      row.totalTokens,
-  }));
+  const rangesByBenchmark = new Map(
+    [...groupBy(referenceRows, (row) => row.benchmarkKey)].map(([key, benchmarkRows]) => [
+      key,
+      {
+        cost: minMaxRange(benchmarkRows.map((row) => row.cost)),
+        seconds: minMaxRange(benchmarkRows.map((row) => row.seconds)),
+        totalTokens: minMaxRange(benchmarkRows.map((row) => row.totalTokens)),
+      },
+    ]),
+  );
+  return normalizedFrontierBenchmarkScoreRows(rows, referenceRows).map((row) => {
+    const ranges = rangesByBenchmark.get(row.benchmarkKey);
+    return {
+      ...row,
+      cost: minMaxScale(ranges?.cost ?? null, row.cost) ?? row.cost,
+      seconds: minMaxScale(ranges?.seconds ?? null, row.seconds) ?? row.seconds,
+      totalTokens: minMaxScale(ranges?.totalTokens ?? null, row.totalTokens) ?? row.totalTokens,
+    };
+  });
 }
 
 /** Normalize benchmark-native quality values onto the shared 0-100 chart scale without changing resource measurements. */
@@ -209,15 +214,15 @@ export function normalizedFrontierBenchmarkScoreRows(
   rows: FrontierBenchmarkRow[],
   referenceRows: FrontierBenchmarkRow[] = rows,
 ): FrontierBenchmarkRow[] {
-  const scoresByBenchmark = new Map<string, number[]>();
-  for (const row of referenceRows) {
-    const scores = scoresByBenchmark.get(row.benchmarkKey) ?? [];
-    scores.push(row.score);
-    scoresByBenchmark.set(row.benchmarkKey, scores);
-  }
+  const rangesByBenchmark = new Map(
+    [...groupBy(referenceRows, (row) => row.benchmarkKey)].map(([key, benchmarkRows]) => [
+      key,
+      minMaxRange(benchmarkRows.map((row) => row.score)),
+    ]),
+  );
   return rows.map((row) => ({
     ...row,
-    score: minMaxScale(scoresByBenchmark.get(row.benchmarkKey) ?? [], row.score) ?? row.score,
+    score: minMaxScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score) ?? row.score,
   }));
 }
 
@@ -450,19 +455,6 @@ function frontierResourceTokens(
     : outputTokens != null && outputTokens > 0
       ? outputTokens
       : null;
-}
-
-function pushBenchmarkValue(
-  valuesByBenchmark: Map<string, number[]>,
-  benchmarkKey: string,
-  value: number | null,
-): void {
-  if (value == null) {
-    return;
-  }
-  const values = valuesByBenchmark.get(benchmarkKey) ?? [];
-  values.push(value);
-  valuesByBenchmark.set(benchmarkKey, values);
 }
 
 function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[]> {

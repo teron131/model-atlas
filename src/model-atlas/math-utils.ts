@@ -131,15 +131,6 @@ export function finiteScoreValues(values: ReadonlyArray<number | null | undefine
   return values.filter((value): value is number => value != null && Number.isFinite(value));
 }
 
-export function mapFiniteNumbers<T>(
-  values: readonly T[],
-  valueForItem: (item: T) => number | null,
-): number[] {
-  return values
-    .map(valueForItem)
-    .filter((value): value is number => value != null && Number.isFinite(value));
-}
-
 export function clamp(value: number, minValue: number, maxValue: number) {
   return Math.max(minValue, Math.min(maxValue, value));
 }
