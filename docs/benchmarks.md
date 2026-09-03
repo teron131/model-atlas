@@ -33,6 +33,8 @@ The tables below show the current portfolio, why each benchmark or index is incl
 
 Every benchmark whose task time or cost can enter Speed or Value declares how its quality value is positioned inside resource-comparison neighborhoods. `Logit` is limited to probability-like success, pass, accuracy, or completion rates. `Linear` preserves spacing for native scales and composites that do not have remaining-error probability semantics.
 
+Direct same-benchmark tokens also use these coordinates for the [Agentic token modifier](methodology.md#agentic-token-efficiency) when the benchmark has a non-zero Agentic loading. AA aggregate output tokens use a linear coordinate for its own Intelligence Index only; index membership never supplies token evidence to constituent or cross-index benchmarks.
+
 | Benchmark | Coordinate | Decision |
 | --- | --- | --- |
 | Agents' Last Exam | Linear | Partial-credit performance is a graded task score, not a binary completion probability. |
@@ -191,7 +193,7 @@ Harvey LAB uses Vals' strict all-criteria task resolution plus its per-task cost
 
 **CursorBench** uses the source-default row or, when every row is effort-labelled, the highest reported effort as one complete observation. Grok 4.5 remains raw but non-scoring because Cursor discloses possible benchmark-snapshot training overlap; private Composer models are excluded because they are not independently available. Eligible per-task cost and tokens can affect Value and Speed.
 
-**DeepSWE** uses pass@1 and one complete source-default or highest-labelled-effort observation per model. Mean duration and cost can affect Speed and Value; mean output tokens are used only as the task-time fallback or source context.
+**DeepSWE** uses pass@1 and one complete source-default or highest-labelled-effort observation per model. Mean duration and cost can affect Speed and Value; mean output tokens can supply the task-time fallback and the quality-adjusted Agentic token modifier.
 
 **FrontierCode** uses Cognition 1.1 Main `new_score`; Main per-task cost can affect Value and token averages can supply Speed's task-time fallback. Explicit efforts match only their variants, the default follows the ordinary highest-labelled-effort rule, and proprietary SWE-1.7 and Composer 2.5 rows remain non-scoring.
 

@@ -6,7 +6,7 @@
  */
 
 import { normalizeModelToken } from "../../identity/normalization";
-import { meanOfFinite, medianOfFinite } from "../../numeric";
+import { meanOfFinite, medianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
 
 const DEFAULT_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";

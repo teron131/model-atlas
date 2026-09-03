@@ -9,7 +9,7 @@ import {
   canonicalReasoningEffort,
   normalizeModelToken,
 } from "../../../identity/normalization";
-import { positiveFiniteNumber } from "../../../numeric";
+import { positiveFiniteNumber } from "../../../math-utils";
 import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../../runtime";
 import { htmlAttribute, stringValue } from "../../parsing";
 

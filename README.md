@@ -2,7 +2,7 @@
 
 Model Atlas is an opinionated model leaderboard for choosing the right model, not declaring one universal winner. Instead of averaging every available benchmark into a broad index, it selects evaluations that remain difficult for leading models, measure consequential capabilities, produce meaningful and interpretable separation, and have credible tasks, grading, provenance, and comparable results. Saturated, contaminated, redundant, opaque, or misleading benchmarks are excluded even when they are widely used. Capability, workflow execution, delivery speed, and cost efficiency remain separate so their tradeoffs stay visible.
 
-- **Efficiency remains tied to capability.** Speed and Value compare models with nearby-quality peers, so low cost or latency cannot compensate for less useful work.
+- **Efficiency remains tied to capability.** Agentic applies a bounded quality-adjusted token modifier, while Speed and Value compare resource use with nearby-quality peers.
 - **Missing evidence remains uncertain.** Estimates use validated, non-recursive imputation, and both prediction error and the row's observed context limit how much they relieve score regularization or increase evidence support; estimates never change the observed benchmark mean or count toward public admission.
 - **More variants do not create more evidence.** Reasoning-effort configurations remain separate, model-balanced calibration prevents them from adding reference weight, and a sparse effort score uses only its measured common-benchmark gap to a broadly observed sibling without assuming effort order.
 

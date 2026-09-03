@@ -16,7 +16,7 @@ import {
   weightedPercentileRank,
   weightedQuantile,
   weightedQuantileRank,
-} from "../src/model-atlas/numeric";
+} from "../src/model-atlas/math-utils";
 import {
   attachFinalScores,
   blendedPriceValue,
@@ -45,13 +45,17 @@ import {
 import {
   benchmarkResourceEfficiencyScores,
   modelBalancedMinMaxScores,
+  qualityAdjustedResourceMultipliers,
   qualityLocalResourceScores,
 } from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
-import { calibrateSparseEffortQualityScores } from "../src/model-atlas/pipeline/scores/score-builders";
+import {
+  buildAgenticTokenScoringContext,
+  calibrateSparseEffortQualityScores,
+} from "../src/model-atlas/pipeline/scores/score-builders";
 import { isRecentPreviewCandidate } from "../src/model-atlas/pipeline/selection/builder";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
@@ -2340,3 +2344,130 @@ function agenticBenchmarkEntry() {
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   } as const;
 }
+
+// Token modulation shares peer comparison with task resources but has a neutral-one bounded output.
+const tokenAmounts = [1, 10, 100, 1000, 10000];
+const tokenModels = tokenAmounts.map((tokens, index) =>
+  modelCandidate({
+    id: `test/token-${index}`,
+    deepSWEScore: index === 0 ? 0.7 : index === 4 ? 0.704 : 0.702,
+    deepSWEOutputTokens: tokens,
+  }),
+);
+const tokenCoordinates = tokenModels.map(() => 0.7);
+const tokenLogs = tokenAmounts.map(Math.log);
+const tokenMultipliers = qualityAdjustedResourceMultipliers(
+  tokenModels,
+  tokenCoordinates,
+  tokenLogs,
+  0.15,
+);
+assert(tokenMultipliers[0]! > 1);
+assert(tokenMultipliers[4]! < 1);
+assertClose(tokenMultipliers[2], 1);
+assert(tokenMultipliers.every((value) => value >= 0.85 && value <= 1.15));
+assert.deepEqual(
+  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, tokenLogs, 0),
+  [1, 1, 1, 1, 1],
+);
+assert.deepEqual(
+  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, [1, 1, 1, 1, 1], 0.15),
+  [1, 1, 1, 1, 1],
+);
+assert.deepEqual(
+  qualityAdjustedResourceMultipliers(
+    tokenModels.map((model) => ({ ...model, id: "test/same-model", name: "test/same-model" })),
+    tokenCoordinates,
+    tokenLogs,
+    0.15,
+  ),
+  [1, 1, 1, 1, 1],
+);
+
+const tokenConfig: ScoringConfig = {
+  ...STAGE_CONFIG.scoring,
+  intelligenceBenchmarkKeys: ["deep_swe"],
+  agenticBenchmarkKeys: ["deep_swe"],
+};
+const tokenRawContext = buildQualityScoringContext(tokenModels, tokenConfig);
+const tokenEvidenceBefore = JSON.stringify(tokenModels);
+const tokenContext = buildAgenticTokenScoringContext(tokenModels, tokenConfig, tokenRawContext);
+for (const model of tokenModels) {
+  const original = buildPreviewComponentScoreResult({ ...model }, tokenConfig, tokenRawContext);
+  const adjusted = buildPreviewComponentScoreResult({ ...model }, tokenConfig, tokenContext);
+  assert.equal(
+    adjusted.componentScores?.intelligence_score,
+    original.componentScores?.intelligence_score,
+  );
+  assert.deepEqual(adjusted.confidence, original.confidence);
+  assert(
+    adjusted.componentScores!.agentic_score! >= 0 &&
+      adjusted.componentScores!.agentic_score! <= 100,
+  );
+}
+assert.equal(JSON.stringify(tokenModels), tokenEvidenceBefore);
+
+function tokenAgenticScores(models: ModelAtlasCandidate[], config = tokenConfig) {
+  const rawContext = buildQualityScoringContext(models, config);
+  const context = buildAgenticTokenScoringContext(models, config, rawContext);
+  return models.map(
+    (model) =>
+      buildPreviewComponentScoreResult({ ...model }, config, context).componentScores
+        ?.agentic_score,
+  );
+}
+
+const adjustedTokenScores = tokenAgenticScores(tokenModels);
+assert(adjustedTokenScores[1]! > adjustedTokenScores[2]!);
+assert(adjustedTokenScores[2]! > adjustedTokenScores[3]!);
+assertClose(adjustedTokenScores[0], 0);
+assertClose(adjustedTokenScores[4], 100);
+const neutralTokenScores = tokenAgenticScores(tokenModels, {
+  ...tokenConfig,
+  agenticTokenModifierCap: 0,
+});
+assert.deepEqual(neutralTokenScores, [0, 50, 50, 50, 100]);
+
+const indexOnlyTokens = tokenModels.map((model, index) => ({
+  ...model,
+  task_metrics: { artificial_analysis: { tokens: Math.exp(tokenLogs[index]!) } },
+}));
+assert.deepEqual(tokenAgenticScores(indexOnlyTokens), neutralTokenScores);
+const sparseTokens = tokenModels.map((model, index) =>
+  index < 2 ? model : { ...model, task_metrics: null },
+);
+assert.deepEqual(tokenAgenticScores(sparseTokens), neutralTokenScores);
+
+// Input plus output takes precedence over reported totals; a flat selected measure never falls through to output-only tokens.
+const flatInputOutputTokens = tokenModels.map((model, index) => ({
+  ...model,
+  task_metrics: {
+    deep_swe: {
+      input_tokens: 10000 - tokenAmounts[index]!,
+      output_tokens: tokenAmounts[index]!,
+      tokens: tokenAmounts[index]!,
+    },
+  },
+}));
+assert.deepEqual(tokenAgenticScores(flatInputOutputTokens), neutralTokenScores);
+const flatTotalTokens = tokenModels.map((model, index) => ({
+  ...model,
+  task_metrics: { deep_swe: { output_tokens: tokenAmounts[index]!, tokens: 10000 } },
+}));
+assert.deepEqual(tokenAgenticScores(flatTotalTokens), neutralTokenScores);
+
+// Same-ID historical observations must retain separate modifiers, and a missing-telemetry row cannot overwrite a measured row.
+const missingTokenDuplicate = { ...tokenModels[1]!, task_metrics: null };
+assert.deepEqual(
+  tokenAgenticScores([...tokenModels, missingTokenDuplicate]).slice(0, tokenModels.length),
+  adjustedTokenScores,
+);
+const duplicateTokenRows = [
+  ...tokenModels,
+  missingTokenDuplicate,
+  { ...tokenModels[1]!, task_metrics: { deep_swe: { output_tokens: 1000 } } },
+];
+const duplicateTokenScores = tokenAgenticScores(duplicateTokenRows);
+assert(duplicateTokenScores[1]! > duplicateTokenScores.at(-1)!);
+const reversedTokenScores = tokenAgenticScores([...duplicateTokenRows].reverse()).reverse();
+duplicateTokenScores.forEach((score, index) => assertClose(reversedTokenScores[index], score!));

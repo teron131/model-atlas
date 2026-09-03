@@ -2,16 +2,16 @@
 
 ## Scope
 
-This document specifies how benchmark, price, and runtime observations become four independent 0-100 scores: Intelligence, Agentic, Speed, and Value. It defines the mathematical pipeline without depending on the current portfolio. Selected inputs and source policies live in [Benchmarks](benchmarks.md); admission criteria live in [Standards](standards.md).
+This document specifies how benchmark, token, price, and runtime observations become four separate 0-100 scores: Intelligence, Agentic, Speed, and Value. It defines the mathematical pipeline without depending on the current portfolio. Selected inputs and source policies live in [Benchmarks](benchmarks.md); admission criteria live in [Standards](standards.md).
 
-Intelligence and Agentic measure capability. Speed and Value measure practical delivery constraints without feeding cost or latency back into capability. Reasoning-effort variants remain separate scored configurations, while model-balanced calibration prevents a model with many variants from dominating empirical reference distributions.
+Intelligence measures capability, while Agentic also incorporates a bounded token-efficiency modifier conditioned on observed benchmark quality. Speed and Value measure practical delivery constraints without feeding cost or latency back into capability. Reasoning-effort variants remain separate scored configurations, while model-balanced calibration prevents a model with many variants from dominating empirical reference distributions.
 
 ## Pipeline Overview
 
 The calculation proceeds in one direction:
 
 1. **Observed inputs**
-2. **Normalized benchmark evidence**
+2. **Normalized benchmark evidence, with quality-adjusted token modulation for Agentic**
 3. **Quality scores** $(I_m,A_m)$
 4. **Quality-adjusted resources**
 5. **Public outputs** $(\text{Speed}_m,\text{Value}_m)$
@@ -19,11 +19,11 @@ The calculation proceeds in one direction:
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
 | Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model at knowledge, reasoning, judgment, problem solving, and artifact construction? |
-| Agentic | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How reliably does the model follow complex instructions, orchestrate tools, manage state, verify progress, and recover? |
+| Agentic | Selected benchmark results and matched token telemetry | Quality-adjusted token multiplier, importance, dimension loading, evidence support, and quality regularization | How reliably and token-efficiently does the model follow complex instructions, orchestrate tools, manage state, verify progress, and recover? |
 | Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and evidence-weighted aggregation | How quickly does the model deliver comparable work? |
 | Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and evidence-weighted aggregation | How much useful capability does the model deliver for its cost? |
 
-![Benchmark evidence produces capability scores, which condition resource comparisons that combine with price and runtime inputs to produce Speed and Value without feeding resources back into capability.](assets/methodology/pipeline-overview.svg)
+![Benchmark results produce Intelligence and Agentic scores, with matched tokens modifying only Agentic before remapping and aggregation. Quality conditions resource comparisons for Speed and Value; price and runtime do not modify capability scores.](assets/methodology/pipeline-overview.svg)
 
 ## Shared Scales and Evidence
 
@@ -82,6 +82,51 @@ $$
 $$
 
 Replacement inference activates only when Artificial Analysis benchmark resources and Vals independently identify the same dated release suffix for an older source identity, and the matched catalog route realizes that release. Semantic model versions remain distinct identities and cannot replace one another through this rule. It then compares each observation with the prior published identity before scoring. An observation is retained when its value changed, its source explicitly identifies the new release, its source observation date is newer than the prior value and no earlier than the model release, or the replacement already accepted it on an earlier refresh. A missing prior value and source reputation alone do not prove freshness. These replacement rows use direct accepted evidence without contextual benchmark imputation, and retained Artificial Analysis and Vals observations receive twice their ordinary effective weight so the designated freshness authorities govern the transition. The rule continues on later refreshes, preventing ambiguous old-name evidence from being reattached after the replacement is published.
+
+### Agentic Token Efficiency
+
+Agentic uses a quality-conditioned token modifier before its benchmark contributions enter the weighted mean, aggregate-index proxy, or sparse-effort calibration.
+Intelligence and the published raw benchmark observations remain unchanged.
+The modifier uses the full pre-admission candidate cohort and the same quality coordinate, half-spread Gaussian neighborhood, model balancing, own-model exclusion, and peer-support confidence as [resource comparisons](#comparable-quality-peers).
+It compares directly observed benchmark quality and tokens, never an imputed quality or token amount.
+
+Each benchmark selects one token measure for its entire reference population: input plus output first, reported total tokens second, and output-only tokens third.
+The first measure represented by at least three independent models is used; totals and output-only values are not mixed across rows.
+Tokens must belong to that benchmark and effort configuration.
+Artificial Analysis aggregate tokens apply only to the AA Intelligence Index, using a linear quality coordinate; they are never inherited by constituent or cross-index benchmarks.
+
+For actual tokens $T_{m,b}$, let $\mu^T_{m,b}$ be the weighted mean of nearby peers' log tokens and $h_{m,b}$ their support confidence, as defined in [Expected Resource Use](#expected-resource-use) and [Comparison Support](#comparison-support).
+The residual and its robust scale are
+
+$$
+r^T_{m,b}=\ln T_{m,b}-\mu^T_{m,b},\qquad
+s^T_b=1.4826\operatorname{weightedMedian}\left(|\ln T-\operatorname{weightedMedian}(\ln T)|\right).
+$$
+
+The scale uses the original paired log-token population, not the residual population.
+With cap $c=0.15$, the multiplier is
+
+$$
+m_{m,b}=1-c\,h_{m,b}\operatorname{clamp}\left(\frac{r^T_{m,b}}{2s^T_b},-1,1\right).
+$$
+
+The multiplier lies in $[0.85,1.15]$ and moves toward neutral $1$ as peer support decreases.
+Missing tokens, a zero token MAD, or insufficient comparison support give a neutral multiplier, not an additional missing-token penalty.
+Flat quality or token reference populations do not activate the modifier.
+
+First multiply the zero-based benchmark contribution $z_{m,b}$ by $m_{m,b}$, then recompute its observed cohort anchors:
+
+$$
+\widetilde z_{m,b}=z_{m,b}m_{m,b},\qquad
+z^A_{m,b}=100\frac{\widetilde z_{m,b}-\min_j\widetilde z_{j,b}}{\max_j\widetilde z_{j,b}-\min_j\widetilde z_{j,b}}.
+$$
+
+The Agentic mean and sibling gaps use $z^A$ in place of $z$ for activated benchmarks.
+There is no clipping of the multiplied contribution at 100 before cohort remapping.
+The ±15% bound applies to the multiplier, not the final Agentic score change; neutral-telemetry rows can still move when cohort anchors change.
+Existing evidence weights, admission requirements, and raw benchmark data are not changed by token telemetry.
+Value's quality-adjusted price component follows the resulting public Agentic score through its existing aggregate-quality input.
+Aggregate telemetry does not distinguish successful-only trajectories from early termination, so this modifier measures observed token efficiency rather than a causal reasoning-effort effect.
 
 ### Evidence Support and Quality Regularization
 
@@ -500,7 +545,7 @@ $$
 \end{aligned}
 $$
 
-![Component scores and evidence weights form an effort-specific weighted mean and evidence support, while source-default evidence independently supplies the model coverage multiplier applied to the public Speed or Value score.](assets/methodology/final-score-assembly.svg)
+![For officially ranked models, 70/30 policy weights multiplied by evidence credits form an effort-specific weighted mean and evidence support. Source-default coverage supplies a shared multiplier that rises from zero at 10% coverage to one at 60%.](assets/methodology/final-score-assembly.svg)
 
 Speed components cover provider throughput, latency, end-to-end latency, and active task-time scores. Value components cover absolute log blended price, quality-adjusted log blended price, and active task-cost scores. The shared model multiplier prevents one sparse non-default effort from being penalized relative to its siblings while retaining the source-default observation as the model coverage authority. Individual effort evidence support remains separate and reports that effort's own effective evidence share.
 
@@ -514,7 +559,9 @@ Imputed values do not satisfy admission. After rescoring, a variant must reach a
 
 ## Signature Pareto Selection
 
-The signature retains the highest-Intelligence variant of each model and allows eligible previews to compete.
+The signature uses each model's highest-Intelligence variant for Intelligence-based and Pareto roles and allows eligible previews to compete.
+Best Agentic instead searches all scored effort variants of the visible models, so its winner can differ from the variant shown in the collapsed leaderboard.
+Signature labels omit effort suffixes; the same model can therefore appear in both Best Intelligence and Best Agentic with scores from different variants.
 Its ordinary model roles follow the displayed population, while Pareto candidates follow model, provider, and price filters before rank and release-recency display limits.
 Its two Pareto roles use the same non-dominance calculation as the graphs, maximizing both Intelligence and Value: a model is dominated when another model is at least as good on both axes and strictly better on one.
 Pareto Balance selects the largest Intelligence × Value product among frontier points with finite scores, equivalently the largest equal-weight geometric mean, with higher Intelligence breaking product ties.
@@ -545,3 +592,4 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
 | Minimum quality-coordinate deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences after their declared transform. |
 | Full comparison support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
+| Agentic token modifier | ±15%, capped at two robust log-token spread units | Bounds the effect of tokens relative to same-quality peers before benchmark remapping. |

@@ -7,7 +7,7 @@ import {
   smoothstep,
   weightedQuantile,
   type WeightedScorePart,
-} from "../../numeric";
+} from "../../math-utils";
 
 const COVERAGE_CONFIDENCE_FLOOR = 0.1;
 const COVERAGE_CONFIDENCE_FULL = 0.6;
@@ -28,18 +28,6 @@ export function logitUnitScore(value: number): number {
     throw new RangeError(`Logit quality coordinates require a finite 0-1 score, received ${value}`);
   }
   return probabilityLogit(value);
-}
-
-export function weightedRobustDeviation(
-  values: readonly WeightedScorePart[],
-  minimumDeviation: number,
-): number | null {
-  const q25 = weightedQuantile(values, 0.25);
-  const q75 = weightedQuantile(values, 0.75);
-  if (q25 == null || q75 == null) {
-    return null;
-  }
-  return Math.max((q75 - q25) / 1.349, minimumDeviation);
 }
 
 export function coverageConfidence(availableCount: number, totalCount: number) {

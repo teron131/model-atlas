@@ -1,6 +1,6 @@
 /** Own the fixed-compass quadrilateral geometry used by analytical model-score plots. */
 
-import { meanOfFinite } from "../../../../src/model-atlas/numeric";
+import { meanOfFinite } from "../../../../src/model-atlas/math-utils";
 import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 
 type QuadrilateralPoint = {

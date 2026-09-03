@@ -1,6 +1,6 @@
 /** Benchmark portfolio policy owns scoring weights, imputation, and resource-scoring policy. */
 
-import { medianOfFinite } from "../../numeric";
+import { medianOfFinite } from "../../math-utils";
 import type {
   BenchmarkImputationPolicy,
   BenchmarkPortfolioEntry,

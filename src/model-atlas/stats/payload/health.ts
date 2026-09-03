@@ -11,7 +11,7 @@ import {
   normalizeModelToken,
   normalizeProviderModelId,
 } from "../../identity/normalization";
-import type { NumberOrNull } from "../../numeric";
+import type { NumberOrNull } from "../../math-utils";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
 import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
 import { strongestModelVariants } from "../../pipeline/selection/public-list";

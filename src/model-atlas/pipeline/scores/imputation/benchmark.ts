@@ -18,10 +18,10 @@ import {
   weightedMedianOfFinite,
   weightedQuantile,
   weightedQuantileRank,
-} from "../../../numeric";
+} from "../../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../../runtime";
 import { clampScore, minMaxScale } from "../normalization";
-import { benchmarkMetricValue } from "../resource-metrics";
+import { benchmarkMetricValue, type BenchmarkTokenMeasure } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -39,6 +39,15 @@ type BenchmarkImputationDiagnostic = {
 
 export type QualityScoringContext = {
   benchmarkValuesByKey: ReadonlyMap<string, readonly number[]>;
+  agenticTokenAdjustments?: ReadonlyMap<
+    string,
+    {
+      resourceKey: string;
+      measure: BenchmarkTokenMeasure;
+      values: readonly number[];
+      multipliersByObservation: ReadonlyMap<string, number>;
+    }
+  >;
 };
 
 type BenchmarkScoringModelIdentity = {

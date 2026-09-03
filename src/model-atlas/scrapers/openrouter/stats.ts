@@ -1,7 +1,7 @@
 /** Pure OpenRouter stat normalization, same-version permaslug resolution, and best-candidate selection policy. */
 
 import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
-import { meanOfFinite } from "../../numeric";
+import { meanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 
 export type OpenRouterFrontendModel = {

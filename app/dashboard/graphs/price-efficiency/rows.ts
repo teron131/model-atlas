@@ -1,7 +1,7 @@
 /** Price-efficiency chart data reconstruction and summaries. */
 
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
-import { log10OnePlusPositive, meanOfFinite } from "../../../../src/model-atlas/numeric";
+import { log10OnePlusPositive, meanOfFinite } from "../../../../src/model-atlas/math-utils";
 import { coverageConfidence } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import {
   benchmarkResourceEfficiencyScores,

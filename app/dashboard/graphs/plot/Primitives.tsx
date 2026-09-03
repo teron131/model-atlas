@@ -2,7 +2,7 @@
 
 /** Stateless SVG drawing primitives and shared plot geometry for Model Atlas charts. */
 
-import { clamp } from "../../../../src/model-atlas/numeric";
+import { clamp } from "../../../../src/model-atlas/math-utils";
 import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import type { Margin } from "../types";
 import type { PointLabelPlacement } from "./label-placement";

@@ -4,7 +4,7 @@
 
 import type { CSSProperties } from "react";
 
-import { clamp } from "../../../src/model-atlas/numeric";
+import { clamp } from "../../../src/model-atlas/math-utils";
 
 import styles from "./graphs.module.css";
 

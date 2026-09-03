@@ -50,6 +50,7 @@ export function minimalModelAtlasPayload({
         selected_benchmark_keys: [],
         benchmark_portfolio: {},
         quality_coverage: QUALITY_COVERAGE,
+        agentic_token_modifier_cap: 0.15,
         column_tooltips: {},
         snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
       },

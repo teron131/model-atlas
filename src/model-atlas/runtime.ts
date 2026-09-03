@@ -1,6 +1,6 @@
 /** Package-wide runtime policies for coercing source values, deterministic serialization, and bounded async work. */
 
-import type { NumberOrNull } from "./numeric";
+import type { NumberOrNull } from "./math-utils";
 
 export type JsonObject = Record<string, unknown>;
 

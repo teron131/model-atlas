@@ -338,6 +338,7 @@ const scoringRows = [
   },
 ];
 const scoringConfig = {
+  agenticTokenModifierCap: 0.15,
   intelligenceBenchmarkKeys: [],
   intelligenceBenchmarkDisplayKeys: [],
   agenticBenchmarkKeys: [

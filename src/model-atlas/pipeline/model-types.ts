@@ -2,7 +2,7 @@
 
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BenchmarkKey, BenchmarkResourceKey } from "../benchmarks/registry";
-import type { NumberOrNull } from "../numeric";
+import type { NumberOrNull } from "../math-utils";
 import type { JsonObject } from "../runtime";
 import type { AgentArenaModelScoreRow } from "../scrapers/benchmarks/agent-arena";
 import type { AgentsLastExamModelScoreRow } from "../scrapers/benchmarks/agents-last-exam";

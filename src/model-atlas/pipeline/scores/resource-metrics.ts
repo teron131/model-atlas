@@ -2,7 +2,7 @@
 
 import type { BenchmarkResourcePolicy } from "../../benchmarks/factory";
 import { benchmarkValueLocation } from "../../benchmarks/registry";
-import { positiveFiniteNumber } from "../../numeric";
+import { positiveFiniteNumber } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasTaskMetricValues } from "../model-types";
 
@@ -15,6 +15,23 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
   speed?: unknown;
   task_metrics?: unknown;
 };
+
+export type BenchmarkTokenMeasure = "input-output" | "tokens" | "output_tokens";
+
+/** Read one declared token measure directly, without borrowing an index's aggregate telemetry. */
+export function directBenchmarkTokens(
+  model: { task_metrics?: unknown },
+  key: string,
+  measure: BenchmarkTokenMeasure,
+): number | null {
+  const metrics = asRecord(asRecord(model.task_metrics)[key]);
+  if (measure !== "input-output") return positiveFiniteNumber(metrics[measure]);
+  const input = asFiniteNumber(metrics.input_tokens);
+  const output = asFiniteNumber(metrics.output_tokens);
+  return input == null || input < 0 || output == null || output < 0
+    ? null
+    : positiveFiniteNumber(input + output);
+}
 
 export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): number | null {
   const location = benchmarkValueLocation(key);
