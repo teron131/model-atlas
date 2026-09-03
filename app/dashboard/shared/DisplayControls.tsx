@@ -7,7 +7,7 @@ import { type CSSProperties, type SyntheticEvent, useEffect, useState } from "re
 import styles from "./display-controls.module.css";
 
 const MINIMUM_DISPLAY_ITEMS = 3;
-export const DEFAULT_DISPLAY_ITEMS = 30;
+export const DEFAULT_DISPLAY_ITEMS = 50;
 
 const variantOptions = [
   { showVariants: false, label: "Collapsed" },

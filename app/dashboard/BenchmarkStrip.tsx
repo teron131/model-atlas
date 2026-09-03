@@ -1,4 +1,4 @@
-/** Selected-benchmark summary strip backed by scoring metadata. */
+/** Benchmark coverage groups and viewport-anchored explanations for the current global model view. */
 
 import { Star } from "lucide-react";
 import {
@@ -7,8 +7,10 @@ import {
   memo,
   type MouseEvent,
   useCallback,
+  useEffect,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { benchmarkMetricValue } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
@@ -70,6 +72,18 @@ export const BenchmarkStrip = memo(function BenchmarkStrip({
     [],
   );
 
+  useEffect(() => {
+    if (tooltip == null) {
+      return;
+    }
+    window.addEventListener("scroll", clearBenchmarkHover, { capture: true, passive: true });
+    window.addEventListener("resize", clearBenchmarkHover);
+    return () => {
+      window.removeEventListener("scroll", clearBenchmarkHover, true);
+      window.removeEventListener("resize", clearBenchmarkHover);
+    };
+  }, [tooltip, clearBenchmarkHover]);
+
   return (
     <section className="benchmarks" aria-label="Selected benchmarks">
       <h2>Selected benchmarks</h2>
@@ -93,9 +107,13 @@ export const BenchmarkStrip = memo(function BenchmarkStrip({
           );
         })}
       </div>
-      {tooltip != null && activeTooltipContent != null && (
-        <ColumnTooltip content={activeTooltipContent} left={tooltip.left} top={tooltip.top} />
-      )}
+      {/* The sticky rail's backdrop filter must not become the tooltip's coordinate origin. */}
+      {tooltip != null &&
+        activeTooltipContent != null &&
+        createPortal(
+          <ColumnTooltip content={activeTooltipContent} left={tooltip.left} top={tooltip.top} />,
+          document.body,
+        )}
     </section>
   );
 });
