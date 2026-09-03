@@ -152,6 +152,9 @@ assert.ok(
   "The collapsed dashboard must pass original effort evidence to its Best Agentic signature role",
 );
 const loadingHtml = renderToStaticMarkup(React.createElement(Dashboard, { initialPayload: null }));
+const emptySnapshotHtml = renderToStaticMarkup(
+  React.createElement(Dashboard, { initialPayload: { ...payload, models: [] } }),
+);
 const { confidence: _staleConfidence, ...staleConfidenceModel } = minimalModelAtlasModel({
   id: "openai/stale-snapshot-model",
   name: "Stale Snapshot Model",
@@ -306,9 +309,24 @@ assert.equal(
   "initial loading markup should preserve table density with skeleton rows",
 );
 assert.equal(
-  loadingHtml.includes("benchmark-chip-loading"),
+  loadingHtml.includes('aria-label="Selected benchmarks"'),
+  false,
+  "initial loading must not expose benchmarks outside the collapsed global view panel",
+);
+assert.equal(
+  loadingHtml.includes("Unable to load the Model Atlas snapshot."),
+  false,
+  "waiting for the initial snapshot must not display a load failure",
+);
+assert.equal(
+  emptySnapshotHtml.includes("Unable to load the Model Atlas snapshot."),
   true,
-  "initial loading markup should include benchmark placeholder chips",
+  "a settled snapshot without usable models must still report unavailable data",
+);
+assert.equal(
+  emptySnapshotHtml.includes('aria-label="Selected benchmarks"'),
+  false,
+  "an empty snapshot must not expose benchmark lists with missing coverage",
 );
 assert.equal(
   benchmarkCoverageHtml.includes('benchmark-chip-coverage">50%</span>'),
