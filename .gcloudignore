@@ -4,4 +4,5 @@
 .gcloudignore
 .gitignore
 gha-creds-*.json
+PLAN.md
 #!include:.gitignore

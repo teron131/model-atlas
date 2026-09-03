@@ -18,6 +18,7 @@ export type OpenRouterConfig = {
 
 export type BenchmarkAdmissionConfig = {
   indexBenchmarkKeys: readonly string[];
+  minimumObservedIndexes: number;
   minimumObservedBenchmarks: number;
   minimumObservedPerDimension: number;
 };
@@ -151,6 +152,7 @@ export const STAGE_CONFIG = {
     previewMaxAgeDays: 30,
     benchmarkAdmission: {
       indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
+      minimumObservedIndexes: 2,
       minimumObservedBenchmarks: MINIMUM_OBSERVED_BENCHMARKS,
       minimumObservedPerDimension: 1,
     },

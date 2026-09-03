@@ -679,7 +679,7 @@ function signalTypeLayers(
       throw new Error("Unable to create the Signal Type rendering layer.");
     }
     layerContext.setTransform(density, 0, 0, density, 0, 0);
-    layerContext.font = `620 ${fontSize}px ${MATERIAL_SANS_FONT}`;
+    layerContext.font = `${model.preview ? "italic " : ""}620 ${fontSize}px ${MATERIAL_SANS_FONT}`;
     layerContext.textAlign = "right";
     layerContext.textBaseline = "middle";
     layerContext.fillStyle = withAlpha(model.color, 0.48 + model.parameters.intelligence * 0.45);
@@ -734,7 +734,7 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
         : displaced.x;
     const rank = String(model.rank).padStart(2, "0");
     const rankFont = `650 9px ${MATERIAL_MONO_FONT}`;
-    const nameFont = `600 13px ${MATERIAL_SANS_FONT}`;
+    const nameFont = `${model.preview ? "italic " : ""}600 13px ${MATERIAL_SANS_FONT}`;
     context.font = rankFont;
     const rankWidth = context.measureText(rank).width;
     context.font = nameFont;
@@ -782,6 +782,7 @@ function evidenceAnchor(index: number, width: number, height: number): Point {
     [0.92, 0.49],
     [0.66, 0.66],
     [0.8, 0.82],
+    [0.93, 0.69],
   ];
   const cluster = desktopClusters[index] ??
     desktopClusters[index % desktopClusters.length] ?? [0.68, 0.48];
@@ -859,6 +860,7 @@ function modelPoint(index: number, count: number, width: number, height: number)
     [0.88, 0.48],
     [0.61, 0.63],
     [0.72, 0.77],
+    [0.91, 0.68],
   ];
   const fallbackX = 0.58 + ((index + 1) / Math.max(2, count + 1)) * 0.36;
   const fallbackY = 0.2 + ((index + 1) / Math.max(2, count + 1)) * 0.65;

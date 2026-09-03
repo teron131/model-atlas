@@ -4,11 +4,11 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import {
   type ModelAtlasModel,
   type ModelAtlasPayload,
   type ModelAtlasPublishedModel,
-  rankedModels,
 } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
@@ -49,6 +49,7 @@ type GraphPayload = Omit<ModelAtlasPayload, "models"> & {
 /** Coordinate deferred dashboard filtering, shared hover state, and research-region panels while keeping controls responsive during payload changes. */
 export function DashboardGraphs({
   payload,
+  modelVariants,
   referenceModels,
   benchmarksLoading,
   afterLead,
@@ -67,6 +68,7 @@ export function DashboardGraphs({
   onGlobalModelFilterQueryChange,
 }: {
   payload: GraphPayload | null;
+  modelVariants: ModelAtlasPublishedModel[];
   referenceModels: ModelAtlasModel[];
   benchmarksLoading: boolean;
   afterLead?: React.ReactNode;
@@ -87,6 +89,7 @@ export function DashboardGraphs({
   const [hover, setHover] = useState<HoverState | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const deferredPayload = useDeferredValue(payload);
+  const deferredModelVariants = useDeferredValue(modelVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
   const deferredMaxCost = useDeferredValue(maxCost);
   const deferredModelRankFilter = useDeferredValue(modelRankFilter);
@@ -131,6 +134,20 @@ export function DashboardGraphs({
     );
     return filterGraphPreviewsByIntelligenceFloor(rankFilteredModels, (model) => model);
   }, [deferredModelRankFilter, recencyFilteredModels, referenceModels]);
+  const signatureModels = useMemo(() => {
+    if (deferredShowReasoningVariants) {
+      return models;
+    }
+    const visibleModelKeys = new Set(models.map(canonicalModelKey));
+    return deferredModelVariants.filter((model) => visibleModelKeys.has(canonicalModelKey(model)));
+  }, [deferredModelVariants, deferredShowReasoningVariants, models]);
+  const paretoSignatureModels = useMemo(() => {
+    const eligibleModelKeys = new Set(filteredModels.map(canonicalModelKey));
+    return filterGraphPreviewsByIntelligenceFloor(
+      deferredModelVariants.filter((model) => eligibleModelKeys.has(canonicalModelKey(model))),
+      (model) => model,
+    );
+  }, [deferredModelVariants, filteredModels]);
   const currentSection = useCurrentResearchSection(deferredPayload != null && allModels.length > 0);
 
   const filteredModelCount = modelCount(filteredModels);
@@ -171,7 +188,7 @@ export function DashboardGraphs({
   if (!payload || !deferredPayload || allModels.length === 0) {
     return (
       <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
-        <ModelSignature models={[]} />
+        <ModelSignature models={[]} paretoModels={[]} referenceModels={[]} />
         <BenchmarkStrip payload={payload} models={[]} isLoading={benchmarksLoading} />
         <div className={styles.error}>Unable to load the Model Atlas snapshot.</div>
         {afterLead}
@@ -181,7 +198,11 @@ export function DashboardGraphs({
 
   return (
     <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
-      <ModelSignature models={rankedModels(filteredModels)} />
+      <ModelSignature
+        models={signatureModels}
+        paretoModels={paretoSignatureModels}
+        referenceModels={deferredModelVariants}
+      />
       <section className={styles.instrumentRail} aria-label="Global view">
         <div className={styles.instrumentBar}>
           <nav className={styles.researchIndexLinks} aria-label="Dashboard sections">

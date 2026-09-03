@@ -169,7 +169,7 @@ async function fetchPerformance(
       throughput,
       latency,
       latency_e2e: latencyE2e,
-      series_token_weights: buildOpenRouterSeriesTokenWeights(endpointStats, effectivePricing),
+      series_token_weights: buildOpenRouterSeriesTokenWeights(effectivePricing),
     },
     pricing: effectivePricing,
   };

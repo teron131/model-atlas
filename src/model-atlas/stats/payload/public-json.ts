@@ -139,16 +139,30 @@ type LeaderboardRow = {
   rank: ModelAtlasLeaderboardRank;
 };
 
+/** Bound cached representations to the supported views and canonicalize aliases before serialization. */
+export function publicJsonView(view: string | null): ModelAtlasJsonView {
+  switch (view) {
+    case "full":
+      return "all";
+    case "all":
+    case "dashboard":
+    case "core":
+    case "benchmarks":
+      return view;
+    default:
+      return "score";
+  }
+}
+
 /** Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly. */
 export function publicJsonPayload(
   payload: ModelAtlasPayload,
   view: string | null,
 ): PublicJsonPayload {
-  switch (view) {
+  switch (publicJsonView(view)) {
     case "dashboard":
       return payload;
     case "all":
-    case "full":
       return fullJsonPayload(payload);
     case "core":
       return coreJsonPayload(payload);
@@ -206,7 +220,7 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
 }
 
 function methodologyText(): string {
-  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Models released fewer than 30 days ago may appear as previews before they satisfy official admission; preview quality uses the same under-coverage aggregate-index proxy as official quality and omits quality regularization only when no proxy is available. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources, falling back to specifications alone when the matching resource is absent; they use no imputation or missing-coverage regularization, while confidence still reports literal evidence support. Below complete direct-task coverage, normalized Artificial Analysis, Epoch, Surge, and Vals indexes enter the quality mean with represented benchmark weights of 9, 8, 8, and 7 respectively, with Epoch derived as the median of the other three counts; observed task benchmarks retain their ordinary effective weights. The normal aggregate-index portfolio importance of 0.5 resumes at complete direct-task coverage and does not enter an undercovered mean. Represented index breadth affects quality but adds no public evidence support or admission credit. Compact views place previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. Compact views otherwise rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only and exposes no rank. Quality scores normalize and weight direct observations; validated estimates add discounted evidence support and relax regularization without changing the observed benchmark mean. Public confidence fields report literal weighted evidence support, while sparse high quality means without an index proxy are separately regularized toward 50 through 10% of the aggregate-index median evidence breadth and become unadjusted from that median. Unlabelled family evidence belongs to the source-default variant and does not claim an explicit effort run. A sparse effort score can use the best-observed sibling plus their directly measured common-benchmark gap, without assuming monotonic effort order or filling missing benchmark fields. Other missing values use validated, non-recursive imputation and never satisfy admission. Official SPEED and VALUE assign 70% to benchmark task resources and 30% to provider speed or price inputs, then compare resource use among nearby-quality models after quality adjustment.";
+  return "Model Atlas reports INTELLIGENCE, AGENTIC, SPEED, and VALUE separately. Models that meet ordinary admission requirements rank immediately regardless of age. Undercovered models released fewer than 30 days ago may survive as previews; older undercovered models are filtered out. Previews waive the broad benchmark-count requirement but still require a complete basic profile, at least two observed index signals, finite Intelligence and Agentic scores, and both quality scores at or above 10. Preview quality uses the same under-coverage aggregate-index proxy as official quality. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources, falling back to specifications alone when the matching resource is absent; they use no imputation or missing-coverage regularization, while confidence still reports literal evidence support. Below complete direct-task coverage, normalized Artificial Analysis, Epoch, Surge, and Vals indexes enter the quality mean with represented benchmark weights of 9, 8, 8, and 7 respectively, with Epoch derived as the median of the other three counts; observed task benchmarks retain their ordinary effective weights. The normal aggregate-index portfolio importance of 0.5 resumes at complete direct-task coverage and does not enter an undercovered mean. Represented index breadth affects quality but adds no public evidence support. Compact views place eligible previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. Compact views otherwise rank each model by its strongest variant and show the highest available direct effort for missing benchmark fields; the all view stays exact-effort only and exposes no rank. Quality scores normalize and weight direct observations; validated estimates add discounted evidence support and relax regularization without changing the observed benchmark mean. Public confidence fields report literal weighted evidence support, while sparse high quality means without an index proxy are separately regularized toward 50 through 10% of the aggregate-index median evidence breadth and become unadjusted from that median. Unlabelled family evidence belongs to the source-default variant and does not claim an explicit effort run. A sparse effort score can use the best-observed sibling plus their directly measured common-benchmark gap, without assuming monotonic effort order or filling missing benchmark fields. Other missing values use validated, non-recursive imputation and never satisfy admission. Official SPEED and VALUE assign 70% to benchmark task resources and 30% to provider speed or price inputs, then compare resource use among nearby-quality models after quality adjustment.";
 }
 
 function compactLeaderboardRows(payload: ModelAtlasPayload): LeaderboardRow[] {

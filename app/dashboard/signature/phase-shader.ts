@@ -59,21 +59,25 @@ const FRAGMENT_SHADER = `
   uniform vec2 uPoint2;
   uniform vec2 uPoint3;
   uniform vec2 uPoint4;
+  uniform vec2 uPoint5;
   uniform vec4 uModel0;
   uniform vec4 uModel1;
   uniform vec4 uModel2;
   uniform vec4 uModel3;
   uniform vec4 uModel4;
+  uniform vec4 uModel5;
   uniform vec3 uDynamics0;
   uniform vec3 uDynamics1;
   uniform vec3 uDynamics2;
   uniform vec3 uDynamics3;
   uniform vec3 uDynamics4;
+  uniform vec3 uDynamics5;
   uniform vec3 uColor0;
   uniform vec3 uColor1;
   uniform vec3 uColor2;
   uniform vec3 uColor3;
   uniform vec3 uColor4;
+  uniform vec3 uColor5;
   uniform float uModelCount;
   uniform float uAspect;
   uniform vec2 uPointer;
@@ -163,6 +167,9 @@ const FRAGMENT_SHADER = `
     if (uModelCount > 4.5) {
       phase += modelWave(uv, uPoint4, uModel4, uDynamics4);
     }
+    if (uModelCount > 5.5) {
+      phase += modelWave(uv, uPoint5, uModel5, uDynamics5);
+    }
     phase += sin(uv.x * 31.0 + uv.y * 17.0 - uTime * 0.32) * 0.65;
 
     float local0 = localField(uv, uPoint0, uModel0.w);
@@ -170,19 +177,24 @@ const FRAGMENT_SHADER = `
     float local2 = localField(uv, uPoint2, uModel2.w);
     float local3 = 0.0;
     float local4 = 0.0;
+    float local5 = 0.0;
     if (uModelCount > 3.5) {
       local3 = localField(uv, uPoint3, uModel3.w);
     }
     if (uModelCount > 4.5) {
       local4 = localField(uv, uPoint4, uModel4.w);
     }
+    if (uModelCount > 5.5) {
+      local5 = localField(uv, uPoint5, uModel5.w);
+    }
     float weight0 = pow(local0, 0.78);
     float weight1 = pow(local1, 0.78);
     float weight2 = pow(local2, 0.78);
     float weight3 = pow(local3, 0.78);
     float weight4 = pow(local4, 0.78);
+    float weight5 = pow(local5, 0.78);
     float weightSum = max(
-      weight0 + weight1 + weight2 + weight3 + weight4,
+      weight0 + weight1 + weight2 + weight3 + weight4 + weight5,
       0.00001
     );
     vec3 provider = (
@@ -190,25 +202,28 @@ const FRAGMENT_SHADER = `
       uColor1 * weight1 +
       uColor2 * weight2 +
       uColor3 * weight3 +
-      uColor4 * weight4
+      uColor4 * weight4 +
+      uColor5 * weight5
     ) / weightSum;
     float presenceGain = (
       uDynamics0.z * weight0 +
       uDynamics1.z * weight1 +
       uDynamics2.z * weight2 +
       uDynamics3.z * weight3 +
-      uDynamics4.z * weight4
+      uDynamics4.z * weight4 +
+      uDynamics5.z * weight5
     ) / weightSum;
     float detail = (
       uDynamics0.y * weight0 +
       uDynamics1.y * weight1 +
       uDynamics2.y * weight2 +
       uDynamics3.y * weight3 +
-      uDynamics4.y * weight4
+      uDynamics4.y * weight4 +
+      uDynamics5.y * weight5
     ) / weightSum;
     float strongest = max(
       max(max(local0, local1), max(local2, local3)),
-      local4
+      max(local4, local5)
     );
 
     float wave = abs(sin(phase));
@@ -356,21 +371,25 @@ function phaseRenderer(target: HTMLCanvasElement): PhaseRenderer | null {
       "uPoint2",
       "uPoint3",
       "uPoint4",
+      "uPoint5",
       "uModel0",
       "uModel1",
       "uModel2",
       "uModel3",
       "uModel4",
+      "uModel5",
       "uDynamics0",
       "uDynamics1",
       "uDynamics2",
       "uDynamics3",
       "uDynamics4",
+      "uDynamics5",
       "uColor0",
       "uColor1",
       "uColor2",
       "uColor3",
       "uColor4",
+      "uColor5",
     ];
     const uniforms = Object.fromEntries(
       uniformNames.map((name) => [name, gl.getUniformLocation(program, name)]),
@@ -413,7 +432,14 @@ function compileShader(gl: WebGLRenderingContext, type: number, source: string):
 
 function shaderModels(
   models: PhaseShaderModel[],
-): [PhaseShaderModel, PhaseShaderModel, PhaseShaderModel, PhaseShaderModel, PhaseShaderModel] {
+): [
+  PhaseShaderModel,
+  PhaseShaderModel,
+  PhaseShaderModel,
+  PhaseShaderModel,
+  PhaseShaderModel,
+  PhaseShaderModel,
+] {
   const empty: PhaseShaderModel = {
     agentic: 0,
     color: [216, 255, 69],
@@ -431,6 +457,7 @@ function shaderModels(
     models[2] ?? empty,
     models[3] ?? empty,
     models[4] ?? empty,
+    models[5] ?? empty,
   ];
 }
 

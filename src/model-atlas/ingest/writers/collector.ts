@@ -7,7 +7,7 @@ export type CollectedTableRows = {
   rows: SqlValue[][];
 };
 
-/** Captures trusted INSERT writer calls so D1 can publish their rows directly. */
+/** Captures trusted INSERT writer calls for inspecting the persisted row contract without disk I/O. */
 export class SnapshotRowCollector implements DatabaseWriter {
   readonly tables = new Map<string, CollectedTableRows>();
 

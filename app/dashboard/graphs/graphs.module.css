@@ -1624,18 +1624,31 @@
   white-space: nowrap;
 }
 
-.chartToolbarCaption {
+.chartToolbarCaption,
+.chartFooterCaption {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: 8px 12px;
-  margin-left: auto;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
   letter-spacing: 0.035em;
   text-transform: uppercase;
+}
+
+.chartToolbarCaption {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.chartFooterCaption {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.chartFooterCaption + .chartSummary {
+  margin-top: 12px;
 }
 
 .shapeScaleLegend {

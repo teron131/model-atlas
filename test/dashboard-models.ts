@@ -100,7 +100,7 @@ assert.deepEqual(
 );
 assert.equal(
   graphModelLabel(previewRankingRows[1]!.model),
-  "*Preview",
+  "* Preview",
   "preview graph labels should carry the marker explained by the legend",
 );
 const lowPreview = previewModelFromCandidate({

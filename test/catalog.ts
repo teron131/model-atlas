@@ -1,4 +1,4 @@
-/** Verifies model-catalog identity, inclusion, alias collapse, and basic-spec admission. */
+/** Verifies model-catalog identity, inclusion, alias collapse, and public admission. */
 
 import assert from "node:assert/strict";
 
@@ -93,26 +93,26 @@ assert.equal(
 assert.equal(
   hasRequiredPublicRelevance({
     scores: {
-      intelligence_score: 9,
-      agentic_score: 9,
-      speed_score: 10,
-      value_score: 9,
-    },
-  }),
-  true,
-  "one qualifying primary score should satisfy the public relevance threshold",
-);
-assert.equal(
-  hasRequiredPublicRelevance({
-    scores: {
-      intelligence_score: 9,
-      agentic_score: 9,
+      intelligence_score: 10,
+      agentic_score: 10,
       speed_score: 9,
       value_score: 9,
     },
   }),
+  true,
+  "both qualifying quality scores should satisfy the public relevance threshold",
+);
+assert.equal(
+  hasRequiredPublicRelevance({
+    scores: {
+      intelligence_score: 10,
+      agentic_score: 9,
+      speed_score: 100,
+      value_score: 100,
+    },
+  }),
   false,
-  "scores below the public floor should not qualify",
+  "resource scores should not rescue a model below the Agentic relevance floor",
 );
 
 const evidencePortfolio = {
@@ -144,7 +144,8 @@ const evidenceScoringConfig = {
   benchmarkPortfolio: evidencePortfolio,
 } satisfies ScoringConfig;
 const benchmarkAdmissionConfig = {
-  indexBenchmarkKeys: ["intelligence_observed"],
+  indexBenchmarkKeys: ["intelligence_observed", "agentic_observed"],
+  minimumObservedIndexes: 2,
   minimumObservedBenchmarks: 2,
   minimumObservedPerDimension: 1,
 } as const;
@@ -209,7 +210,7 @@ assert.equal(
     benchmarkAdmissionConfig,
   ),
   false,
-  "models without an aggregate index should be hidden",
+  "models with fewer than two index signals should be hidden",
 );
 assert.equal(
   catalogRows.find((row) => row.id === "provider/other")?.openrouter_id,
@@ -224,6 +225,9 @@ const selectedBenchmarkKeys = [
     ...STAGE_CONFIG.scoring.agenticBenchmarkKeys,
   ]),
 ];
+const indexBenchmarkKeys = new Set<string>(
+  STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys,
+);
 const duplicateRouteModels = await buildFinalModels(
   {
     modelRows: [
@@ -257,6 +261,85 @@ assert.deepEqual(
   "one public route must not appear as both an official model and a renamed preview",
 );
 
+const knownPreviewId = "provider/known-preview";
+const unknownPreviewId = "provider/unknown-preview";
+const coveredRecentId = "provider/covered-recent";
+const coveredOlderId = "provider/covered-older";
+const expiredPreviewId = "provider/expired-preview";
+const admissionRows = [
+  {
+    ...recentPreviewRow(knownPreviewId, "Known Preview", {
+      intelligence_index: 70,
+      agentic_index: 65,
+    }),
+    release_date: "2026-07-29",
+    benchmarks: { critpt: 0.7, tau_banking: 0.7 },
+  },
+  recentPreviewRow(unknownPreviewId, "Unknown Preview"),
+  {
+    ...recentPreviewRow(coveredRecentId, "Covered Recent", {
+      intelligence_index: 75,
+      agentic_index: 70,
+    }),
+    release_date: "2026-08-27",
+  },
+  {
+    ...recentPreviewRow(coveredOlderId, "Covered Older", {
+      intelligence_index: 75,
+      agentic_index: 70,
+    }),
+    release_date: "2026-07-28",
+  },
+  {
+    ...recentPreviewRow(expiredPreviewId, "Expired Preview", {
+      intelligence_index: 70,
+      agentic_index: 65,
+    }),
+    release_date: "2026-07-28",
+    benchmarks: { critpt: 0.7, tau_banking: 0.7 },
+  },
+];
+const previewModels = await buildFinalModels(
+  {
+    modelRows: admissionRows,
+    speedByModelId: new Map(
+      admissionRows.map(({ id }) => [
+        id,
+        {
+          throughput_tokens_per_second_median: 50,
+          latency_seconds_median: 1,
+          e2e_latency_seconds_median: 5,
+        },
+      ]),
+    ),
+    pricingByModelId: new Map(
+      admissionRows.map(({ id }) => [id, { weighted_input: 1, weighted_output: 2 }]),
+    ),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+  {
+    baselineDate: "2026-07-30",
+    observedDate: "2026-08-27",
+  },
+);
+assert.deepEqual(
+  previewModels.map((model) => [model.id, model.preview === true]).sort(),
+  [
+    [coveredOlderId, false],
+    [coveredRecentId, false],
+    [knownPreviewId, true],
+  ].sort(),
+  "covered models rank immediately at any age; only undercovered models younger than 30 days with two index signals survive as previews",
+);
+assert.deepEqual(
+  previewModels.find((model) => model.id === coveredRecentId)?.scores,
+  previewModels.find((model) => model.id === coveredOlderId)?.scores,
+  "release age alone must not select a different scoring policy for adequately covered models",
+);
+
 function duplicateRouteRow(name: string, releaseDate: string, benchmarkValue: number) {
   return {
     id: duplicateRouteId,
@@ -266,6 +349,25 @@ function duplicateRouteRow(name: string, releaseDate: string, benchmarkValue: nu
     cost: { input: 1, output: 2 },
     limit: { context: 100_000, output: 10_000 },
     benchmarks: Object.fromEntries(selectedBenchmarkKeys.map((key) => [key, benchmarkValue])),
+  };
+}
+
+function recentPreviewRow(
+  id: string,
+  name: string,
+  intelligence?: { intelligence_index: number; agentic_index: number },
+) {
+  return {
+    id,
+    name,
+    release_date: "2026-08-26",
+    modalities: { input: ["text"], output: ["text"] },
+    cost: { input: 1, output: 2 },
+    limit: { context: 100_000, output: 10_000 },
+    ...(intelligence == null ? {} : { intelligence }),
+    benchmarks: Object.fromEntries(
+      selectedBenchmarkKeys.filter((key) => !indexBenchmarkKeys.has(key)).map((key) => [key, 0.7]),
+    ),
   };
 }
 

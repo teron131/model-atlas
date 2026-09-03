@@ -1,6 +1,6 @@
 {
   "name": "model-atlas",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -22,11 +22,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "database": "tsx scripts/database.ts",
     "smoke": "tsx scripts/smoke-model-atlas.ts",
-    "d1:publish": "tsx scripts/publish-d1.ts",
+    "snapshot:publish": "tsx scripts/publish-snapshot.ts",
     "env:sync": "tsx scripts/sync-vercel-env.ts",
     "icons:providers": "tsx scripts/generate-provider-icons.ts"
   },
   "dependencies": {
+    "@google-cloud/storage": "^8.0.1",
     "d3-array": "^3.2.4",
     "d3-scale": "^4.0.2",
     "html-to-image": "^1.11.13",

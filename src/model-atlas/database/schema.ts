@@ -51,7 +51,7 @@ export async function removeDatabaseFiles(path: string): Promise<void> {
   ]);
 }
 
-/** Opening a local snapshot applies the same keyed schema reconciliation used by D1. */
+/** Reconcile the checkpoint schema by keyed table shape while preserving compatible evidence and history. */
 export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
   await mkdir(dirname(outputPath), { recursive: true });
   const db = new DatabaseSync(outputPath);

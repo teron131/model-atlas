@@ -12,8 +12,26 @@ import {
   refreshOpenRouterRawPayload,
 } from "../src/model-atlas/ingest/source-snapshots/openrouter";
 import { insertOpenRouterRawRows } from "../src/model-atlas/ingest/writers/openrouter";
+import {
+  buildOpenRouterSeriesTokenWeights,
+  processOpenRouterModelStats,
+} from "../src/model-atlas/scrapers/openrouter";
 
 const databasePath = ".cache/test-openrouter-cache.sqlite";
+const endpointId = "3ecee37f-b217-4093-87fb-aaf0afe307af";
+const pricing = {
+  data: {
+    providerSummaries: [
+      {
+        endpointId,
+        providerName: "Provider A (1)",
+        effectiveInputPrice: 10,
+        effectiveOutputPrice: 50,
+        totalTokens: 123,
+      },
+    ],
+  },
+};
 
 await removeDatabaseFiles(databasePath);
 
@@ -51,7 +69,7 @@ try {
               data: [
                 {
                   x: "2026-06-17",
-                  y: { p50: 100 },
+                  y: { [endpointId]: 100 },
                 },
               ],
             },
@@ -60,27 +78,14 @@ try {
                 {
                   x: "2026-06-17",
                   y: {
-                    p50: 16_220,
+                    [endpointId]: 16_220,
                   },
                 },
               ],
             },
-            series_token_weights: {
-              p50: 123,
-            },
+            series_token_weights: buildOpenRouterSeriesTokenWeights(pricing),
           },
-          pricing: {
-            data: {
-              providerSummaries: [
-                {
-                  providerName: "Provider A",
-                  effectiveInputPrice: 10,
-                  effectiveOutputPrice: 50,
-                  totalTokens: 100,
-                },
-              ],
-            },
-          },
+          pricing,
         },
         {
           id: "qwen/qwen-plus-2025-07-28:thinking",
@@ -102,9 +107,16 @@ try {
     const cached = readOpenRouterRawCache(db);
     assert.ok(cached != null);
     assert.equal(
-      cached?.models[0]?.performance.series_token_weights?.p50,
+      cached?.models[0]?.performance.series_token_weights?.[endpointId],
       123,
       "OpenRouter cache reads should preserve token-share weights",
+    );
+    const cachedModel = cached.models[0]!;
+    assert.equal(
+      processOpenRouterModelStats(cachedModel.id, cachedModel.performance, cachedModel.pricing)
+        .performance.e2e_latency_seconds_median,
+      16.22,
+      "Endpoint-weighted E2E latency must survive ingestion and a SQLite cache round trip",
     );
     assert.deepEqual(
       cached?.models[0]?.performance.summary,

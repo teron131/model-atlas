@@ -7,7 +7,7 @@ import {
   buildBenchmarkObservationLookup,
 } from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
-import { buildBenchmarkVersionLogRows } from "../src/model-atlas/database/snapshot-workflow";
+import { buildBenchmarkVersionLogRows } from "../src/model-atlas/database/checkpoint";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import {
   assignBenchmarksToVariants,

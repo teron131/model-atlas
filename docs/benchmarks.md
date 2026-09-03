@@ -151,7 +151,7 @@ An unlabelled configuration is the source default. When every configuration is l
 
 **Artificial Analysis Intelligence Index** uses the published aggregate directly. Its overlap with selected task benchmarks makes it one fallback observation rather than nine independent observations; its resource facts are retained but do not separately affect Speed or Value.
 
-**Epoch Capabilities Index** uses the published ECI value directly. Its represented benchmark count matters only for previews with no task-level quality evidence.
+**Epoch Capabilities Index** uses the published ECI value directly.
 
 **Surge Intelligence Index** uses the published aggregate directly. It remains fallback evidence, and the absence of a reproducible index-level resource contract keeps it out of Speed and Value.
 

@@ -1,4 +1,4 @@
-/** Storage-independent payload assembly enforces the public stats shape shared by local snapshots and D1. */
+/** Payload assembly turns normalized checkpoint rows into the public stats contract. */
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys";
 import {
@@ -216,7 +216,6 @@ export const PAYLOAD_ROW_GROUPS = [
 export type PayloadRowGroup = (typeof PAYLOAD_ROW_GROUPS)[number];
 type PayloadRowKey = PayloadRowGroup["key"];
 type PayloadRows = { fetchedAt: number | null } & Record<PayloadRowKey, DbRow[]>;
-type PayloadRowReader = (rowGroup: PayloadRowGroup) => Promise<DbRow[]>;
 
 const INPUT_MODALITY_COLUMNS = [
   ["input_modality_text", "text"],
@@ -540,26 +539,6 @@ function taskMetricsByModelRow(
     taskMetricsByModel.set(modelRowIndex, taskMetrics);
   }
   return taskMetricsByModel;
-}
-
-/** Payload row groups share one reader contract across local SQLite and Cloudflare D1. */
-export async function readPayloadRows(
-  fetchedAt: number | null,
-  readRows: PayloadRowReader,
-): Promise<PayloadRows> {
-  const rowGroups = await Promise.all(
-    PAYLOAD_ROW_GROUPS.map(async (rowGroup) => {
-      try {
-        return [rowGroup.key, await readRows(rowGroup)] as [PayloadRowKey, DbRow[]];
-      } catch (error) {
-        if (rowGroup.optional === true) {
-          return [rowGroup.key, []] as [PayloadRowKey, DbRow[]];
-        }
-        throw error;
-      }
-    }),
-  );
-  return buildPayloadRows(fetchedAt, rowGroups);
 }
 
 function sourceHealthFromRows(

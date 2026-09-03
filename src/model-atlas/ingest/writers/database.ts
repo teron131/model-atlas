@@ -8,7 +8,7 @@ export type DatabaseStatement = {
   run: (...values: SqlValue[]) => unknown;
 };
 
-/** Minimal write surface shared by SQLite and the direct D1 row collector. */
+/** Minimal write surface shared by SQLite and the in-memory verification collector. */
 export type DatabaseWriter = {
   prepare: (sql: string) => DatabaseStatement;
 };

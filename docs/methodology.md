@@ -140,7 +140,7 @@ $$
 
 Intelligence and Agentic evidence support are reported separately as the percentage values of $h_{m,d}$. Each value describes the weighted support behind its dimension's benchmark mean; the two dimensions are not combined. Because their total possible masses $\Omega_d$ can differ, the same displayed percentage can represent different absolute evidence mass. The public field remains named `confidence` for all four dimensions, but its value is the literal effective evidence share for consistent interpretation across Intelligence, Agentic, Speed, and Value.
 
-Models released fewer than 30 days ago may appear as previews before they satisfy official admission. Preview capability uses direct observations, keeps each selected task benchmark's configured Intelligence and Agentic loading, includes directly observed GPQA and MMMU-Pro source fields as one unit of additional Intelligence evidence each, and uses the same aggregate-index proxy as every other undercovered row. Preview capability omits quality regularization when no index proxy is available. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources; when the matching benchmark resource is absent, the score uses provider specifications alone, while confidence continues to report the literal evidence share. Preview resource scores use no imputation or missing-coverage regularization. Compact leaderboard views place previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. The exact-variant `all` view exposes no rank.
+Models that meet ordinary admission requirements enter official ranking immediately, regardless of release age. Only models that fail the benchmark-coverage requirement may use the preview fallback while they are fewer than 30 days old; older undercovered models are filtered out. Preview capability uses direct observations, keeps each selected task benchmark's configured Intelligence and Agentic loading, includes directly observed GPQA and MMMU-Pro source fields as one unit of additional Intelligence evidence each, and uses the same aggregate-index proxy as every other undercovered row. Preview Speed and Value assign 70% to available provider speed or price specifications and 30% to directly observed benchmark task resources; when the matching benchmark resource is absent, the score uses provider specifications alone, while confidence continues to report the literal evidence share. Preview resource scores use no imputation or missing-coverage regularization. Previews waive the broad benchmark-count requirement but still require the complete basic profile, at least two observed index signals, finite Intelligence and Agentic scores, and both quality scores at or above 10. Compact leaderboard views place eligible previews by Intelligence alongside official models but expose `preview` instead of a numeric rank, so previews do not consume or shift official ranks. The exact-variant `all` view exposes no rank.
 
 ## Missing Benchmark Evidence
 
@@ -263,7 +263,7 @@ $$
 Q_{m,d}=\frac{\sum_{k\in\mathcal{K}_m}n_k z_{m,k}+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}z_{m,b}}{\sum_{k\in\mathcal{K}_m}n_k+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}}.
 $$
 
-At complete direct-task coverage, the normal portfolio score applies and aggregate indexes again use their configured importance of 0.5 and dimension loadings. The 0.5 importance does not enter an undercovered mean. Represented index breadth affects the quality estimate but does not inflate public evidence support or satisfy admission. Sparse effort variants remain positioned by their directly measured gaps to the family representative.
+At complete direct-task coverage, the normal portfolio score applies and aggregate indexes again use their configured importance of 0.5 and dimension loadings. The 0.5 importance does not enter an undercovered mean. Represented index breadth affects the quality estimate but does not inflate public evidence support or the observed benchmark count; the observed index values themselves can satisfy the separate index-signal gate. Sparse effort variants remain positioned by their directly measured gaps to the family representative.
 
 ### Validated Imputed Point Estimate
 
@@ -295,7 +295,7 @@ Effective input and output prices use current provider prices weighted by each p
 
 The public Speed score assigns 70% to active benchmark task-time inputs and 30% to provider speed. Benchmark runtimes divide their bucket equally, while output throughput, latency, and end-to-end latency divide the provider bucket equally.
 
-Provider throughput, latency, and end-to-end latency use every historical OpenRouter provider series with matching positive token-volume evidence; an unweighted or temporarily missing endpoint no longer invalidates the matched provider evidence. When no matched weighted history remains, throughput falls back to OpenRouter's highest endpoint P50 and latency falls back to its lowest endpoint P50, matching the aggregate cards on the model page. End-to-end latency remains missing only when no matched weighted series is available because OpenRouter does not publish an equivalent aggregate card.
+Provider throughput, latency, and end-to-end latency use every historical OpenRouter endpoint series with matching positive token-volume evidence; history series IDs match the effective-pricing response's `endpointId` directly, and its `totalTokens` supplies the weight without provider-name joins or request-count allocation. An unweighted or temporarily missing endpoint does not invalidate the matched evidence. When no matched weighted history remains, throughput falls back to OpenRouter's highest endpoint P50 and latency falls back to its lowest endpoint P50, matching the aggregate cards on the model page. End-to-end latency remains missing only when no matched weighted series is available because OpenRouter does not publish an equivalent aggregate card.
 
 $$
 \begin{aligned}
@@ -508,9 +508,22 @@ Keeping absolute and quality-conditioned price separate answers two different qu
 
 ## Public Admission
 
-Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must observe at least the median represented benchmark count across the aggregate indexes, including at least one Intelligence benchmark, one Agentic benchmark, and one portfolio-designated aggregate index.
+Public admission requires a complete basic profile: release date, text output, input and output prices, context and output limits, throughput, and latency or end-to-end latency. A model variant must observe at least the median represented benchmark count across the aggregate indexes, including at least one Intelligence benchmark, one Agentic benchmark, and two index signals. Artificial Analysis contributes one signal for each directly reported Intelligence, Agentic, Coding, or Omniscience index; Epoch, Surge, and Vals each contribute one signal when observed.
 
-Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in Intelligence, Agentic, Speed, or Value. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
+Imputed values do not satisfy admission. After rescoring, a variant must reach at least 10 in both Intelligence and Agentic. Ordinary admission is evaluated first and has no minimum release age or prior-publication requirement. Only undercovered models released fewer than 30 days ago can survive through the preview fallback. Recent previews waive only the broad benchmark-count requirement; they retain the basic-profile, two-index-signal, finite-quality-score, and quality-floor gates. These gates remove public rows only after reference scoring, so they do not recalibrate the reference population.
+
+## Signature Pareto Selection
+
+The signature retains the highest-Intelligence variant of each model and allows eligible previews to compete.
+Its ordinary model roles follow the displayed population, while Pareto candidates follow model, provider, and price filters before rank and release-recency display limits.
+Its two Pareto roles use the same non-dominance calculation as the graphs, maximizing both Intelligence and Value: a model is dominated when another model is at least as good on both axes and strictly better on one.
+Pareto Balance selects the largest Intelligence × Value product among frontier points with finite scores, equivalently the largest equal-weight geometric mean, with higher Intelligence breaking product ties.
+Pareto Value selects the highest Value score among candidate frontier points whose Intelligence is strictly greater than the global median Intelligence of the full published, finite Intelligence–Value base-model population, including eligible previews, with higher Intelligence breaking Value ties.
+The median is computed before any dashboard filter or frontier selection and counts each model once rather than each reasoning variant; changing the current selection never changes this reference threshold, and a model exactly at the median does not qualify.
+These are explicit trade-off rules on the published score scales, not claims of universally optimal models; neither selects by blended token price, and Pareto Balance applies no Intelligence cutoff.
+Both roles display Intelligence and Value and retain their labels even when their winner also occupies another signature role or wins both Pareto roles.
+When available, they also display blended token price in dollars per million tokens for context; this is not measured total task cost and does not influence either selection rule.
+Each Pareto role is omitted if it has no qualifying candidate rather than being replaced by an unrelated Intelligence pick.
 
 ## Why These Parameters
 
@@ -518,6 +531,8 @@ The fixed values below are robustness rules and usage priors rather than fitted 
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
+| Public index signals | 2 | Excludes models whose quality position cannot be checked against more than one aggregate index signal. |
+| Public Intelligence and Agentic floor | 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |
 | Quality regularization floor / full point | 10% / 100% of aggregate-index median evidence breadth | Suppresses high scores built from isolated evidence without making the penalty grow whenever the selected portfolio expands. |
 | Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |

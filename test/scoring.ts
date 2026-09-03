@@ -349,6 +349,7 @@ assert.equal(
   STAGE_CONFIG.final.benchmarkAdmission.minimumObservedBenchmarks,
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
 );
+assert.equal(STAGE_CONFIG.final.benchmarkAdmission.minimumObservedIndexes, 2);
 const resourceQualityCoordinates = Object.fromEntries(
   Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio).flatMap(
     ([key, policy]) =>

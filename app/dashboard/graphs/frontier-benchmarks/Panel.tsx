@@ -12,6 +12,7 @@ import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { valueDistribution } from "../chart-stats";
+import { PreviewLabelLegend } from "../ChartComponents";
 import { finite, fmtPercentScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { graphModelLabel, graphReferenceItems } from "../model-series";
@@ -39,6 +40,8 @@ import {
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
 import { EmptyFrontierBenchmarkScatterPlot, FrontierBenchmarkScatterPlot } from "./ScatterPlot";
+
+import styles from "../graphs.module.css";
 
 export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   payload,
@@ -160,7 +163,6 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           onSelect={onAxisKeyChange}
         />
       }
-      showPreviewLegend={models.some(isPreviewModel)}
     />
   );
 
@@ -246,6 +248,11 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         compactLayout={compactLayout}
         setHover={setHover}
       />
+      {models.some(isPreviewModel) ? (
+        <div className={styles.chartFooterCaption}>
+          <PreviewLabelLegend />
+        </div>
+      ) : null}
     </Panel>
   );
 });

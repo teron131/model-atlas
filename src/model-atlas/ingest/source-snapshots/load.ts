@@ -1,4 +1,4 @@
-/** Source snapshots share one cache-aware workflow across local SQLite and production D1. */
+/** Source snapshots share one cache-aware workflow across local builds and production checkpoint refreshes. */
 
 import type { DatabaseSync } from "node:sqlite";
 

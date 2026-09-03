@@ -28,16 +28,9 @@ export type OpenRouterModelStats = {
 
 export type OpenRouterEndpointStatsResponse = {
   data?: Array<{
-    id?: string | null;
-    provider_display_name?: string | null;
-    provider_name?: string | null;
-    provider_info?: {
-      displayName?: string | null;
-    } | null;
     stats?: {
       p50_throughput?: number | null;
       p50_latency?: number | null;
-      request_count?: number | null;
     } | null;
   }>;
 };
@@ -207,71 +200,17 @@ export function summarizeEndpointPerformance(
   };
 }
 
-/** Allocate provider token totals to endpoint series by request share, omitting ambiguous multi-endpoint providers instead of inventing weights. */
+/** Match reported endpoint token totals directly to history series IDs, independently of provider display names or current endpoint availability. */
 export function buildOpenRouterSeriesTokenWeights(
-  endpointResponse: OpenRouterEndpointStatsResponse | null,
   pricingResponse: OpenRouterEffectivePricingResponse | null,
 ): Record<string, number> {
-  const endpoints = Array.isArray(endpointResponse?.data) ? endpointResponse.data : [];
   const providerSummaries = pricingResponse?.data?.providerSummaries ?? [];
-  const totalTokensByProviderName = new Map(
-    providerSummaries.flatMap((provider) => {
-      const name = provider.providerName;
-      const totalTokens = asFiniteNumber(provider.totalTokens);
-      return name != null && totalTokens != null && totalTokens > 0
-        ? [[name, totalTokens] as const]
-        : [];
-    }),
-  );
-  const endpointsByProviderName = new Map<
-    string,
-    Array<{
-      id: string;
-      requestCount: number | null;
-    }>
-  >();
-  for (const endpoint of endpoints) {
-    const id = endpoint.id;
-    const providerName =
-      endpoint.provider_display_name ??
-      endpoint.provider_info?.displayName ??
-      endpoint.provider_name ??
-      null;
-    if (id == null || providerName == null) {
-      continue;
-    }
-    const providerEndpoints = endpointsByProviderName.get(providerName) ?? [];
-    providerEndpoints.push({
-      id,
-      requestCount: asFiniteNumber(endpoint.stats?.request_count),
-    });
-    endpointsByProviderName.set(providerName, providerEndpoints);
-  }
   const weights: Record<string, number> = {};
-  for (const [providerName, providerEndpoints] of endpointsByProviderName) {
-    const totalTokens = totalTokensByProviderName.get(providerName);
-    if (totalTokens == null) {
-      continue;
-    }
-    if (providerEndpoints.length === 1) {
-      weights[`${providerEndpoints[0]!.id}::default`] = totalTokens;
-      continue;
-    }
-    if (providerEndpoints.some((endpoint) => endpoint.requestCount == null)) {
-      continue;
-    }
-    const requestCountSum = providerEndpoints.reduce(
-      (sum, endpoint) => sum + (endpoint.requestCount ?? 0),
-      0,
-    );
-    if (requestCountSum <= 0) {
-      continue;
-    }
-    for (const endpoint of providerEndpoints) {
-      if (endpoint.requestCount == null || endpoint.requestCount <= 0) {
-        continue;
-      }
-      weights[`${endpoint.id}::default`] = (totalTokens * endpoint.requestCount) / requestCountSum;
+  for (const provider of providerSummaries) {
+    const endpointId = provider.endpointId;
+    const totalTokens = asFiniteNumber(provider.totalTokens);
+    if (endpointId && totalTokens != null && totalTokens > 0) {
+      weights[endpointId] = totalTokens;
     }
   }
   return weights;

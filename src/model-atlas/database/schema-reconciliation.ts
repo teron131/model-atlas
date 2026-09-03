@@ -1,4 +1,4 @@
-/** Pure schema parsing and reconciliation for SQLite and D1 catalogs. */
+/** Pure schema parsing and reconciliation preserves compatible SQLite checkpoint tables. */
 
 export const SCHEMA_MANIFEST_TABLE = "model_atlas_schema_manifest";
 

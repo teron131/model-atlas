@@ -1,4 +1,4 @@
-/** Storage-independent snapshot workflow derives model rows and writes normalized table rows through a minimal writer interface. */
+/** Derive checkpoint rows from cached source evidence and preserve benchmark, refresh, and model-change history. */
 
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { BENCHMARK_RAW_WRITERS } from "../ingest/benchmark-runtimes/registry";
@@ -25,6 +25,7 @@ import type { DatabaseWriter } from "../ingest/writers/database";
 import { deriveModelStats } from "../pipeline/derivation";
 import { isPreviewModel, rankedModels } from "../pipeline/model-types";
 import { taskMetricVersionValue } from "../pipeline/selection/candidate";
+import { nowEpochSeconds } from "../runtime";
 import type { OpenRouterRawScrapedPayload } from "../scrapers/openrouter";
 import {
   buildRefreshChanges,
@@ -32,6 +33,7 @@ import {
   type RefreshRunRow,
 } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
+import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload, ModelAtlasPublishedModel } from "../stats/types";
 
 type BenchmarkVersionLogRow = {
@@ -44,7 +46,7 @@ type BenchmarkVersionLogRow = {
   value_json: string | null;
 };
 
-export type DatabaseSnapshotRows = {
+type DatabaseSnapshotRows = {
   snapshots: SourceSnapshots;
   openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
   finalModelRows: readonly ModelAtlasPublishedModel[];
@@ -132,11 +134,10 @@ const SNAPSHOT_APPEND_WRITERS = [
   },
 ] satisfies readonly SnapshotWriter[];
 
-export const SNAPSHOT_WRITER_TABLES = SNAPSHOT_REPLACE_WRITERS.map(({ table }) => table);
-
 type DatabaseSnapshotVersioning = {
   previousPayload?: ModelAtlasPayload | null;
   baselineDate?: string;
+  replaceSourceRows?: boolean;
 };
 
 type BenchmarkObservation = Omit<BenchmarkVersionLogRow, "change_kind">;
@@ -255,7 +256,7 @@ export function buildBenchmarkVersionLogRows(
 }
 
 /** Recompute the refresh audit after snapshot-preservation policy finalizes the published model rows. */
-export function rebuildDatabaseSnapshotChanges(
+function rebuildDatabaseSnapshotChanges(
   rows: DatabaseSnapshotRows,
   refreshId: number,
   previousPayload: ModelAtlasPayload | null | undefined,
@@ -285,7 +286,7 @@ export async function deriveDatabaseSnapshot(
   const sourceData = cachedSourceDataFromSnapshots(snapshots);
   const {
     matchDiagnostics,
-    models: finalModelRows,
+    models: derivedModels,
     openRouterLoad,
   } = await deriveModelStats(sourceData, {
     loadOpenRouter,
@@ -295,6 +296,18 @@ export async function deriveDatabaseSnapshot(
       previousModels,
     },
   });
+  const finalModelRows = versioning.replaceSourceRows
+    ? derivedModels
+    : preserveHighSignalSnapshotModels(
+        {
+          fetched_at_epoch_seconds: startedAtEpochSeconds,
+          models: derivedModels,
+          metadata: buildCurrentModelAtlasMetadata({ models: rankedModels(derivedModels) }),
+        },
+        versioning.previousPayload ?? null,
+        STAGE_CONFIG.snapshotPreservation,
+        STAGE_CONFIG.scoring,
+      ).models;
   const debugTraceRows = buildDebugTraceRows(
     snapshots,
     openRouterLoad.rawPayload,
@@ -331,9 +344,16 @@ export async function deriveDatabaseSnapshot(
   };
 }
 
-/** Writes one derived snapshot through either SQLite statements or a direct-publication collector. */
-export function writeDatabaseSnapshotRows(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
+/** Replace current evidence and model rows, append audit history, and update freshness inside the caller's transaction. */
+export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
+  for (const { table } of SNAPSHOT_REPLACE_WRITERS) {
+    db.prepare(`DELETE FROM ${table}`).run();
+  }
+  db.prepare("DELETE FROM snapshot_metadata").run();
   for (const { write } of [...SNAPSHOT_REPLACE_WRITERS, ...SNAPSHOT_APPEND_WRITERS]) {
     write(db, rows);
   }
+  db.prepare("INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)").run(
+    nowEpochSeconds(),
+  );
 }

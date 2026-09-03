@@ -1,5 +1,6 @@
 /** Final model building owns candidate scoring, public admission, rescoring, and logo cache hydration. */
 
+import { ARTIFICIAL_ANALYSIS_INDEX_SCORE_KEYS } from "../../benchmarks/field-keys";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import { publicOpenRouterModelId } from "../../identity/openrouter";
@@ -42,13 +43,8 @@ import {
   versionReplacementBenchmarkWeights,
 } from "./version-replacement";
 
-const MIN_PUBLIC_COMPONENT_SCORE = 10;
-const PUBLIC_COMPONENT_SCORE_KEYS = [
-  "intelligence_score",
-  "agentic_score",
-  "speed_score",
-  "value_score",
-] as const;
+const MIN_PUBLIC_QUALITY_SCORE = 10;
+const PUBLIC_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
 type BasicSpecCandidate = Pick<
@@ -98,7 +94,33 @@ export function hasRequiredBasicSpecs(model: BasicSpecCandidate): boolean {
   );
 }
 
-/** Admit variants with broad evidence, both quality dimensions, and at least one aggregate index. */
+function observedIndexCount(
+  model: BenchmarkEvidenceCandidate,
+  admissionConfig: BenchmarkAdmissionConfig,
+): number {
+  const intelligence = asRecord(model.intelligence);
+  const artificialAnalysisIndexCount = admissionConfig.indexBenchmarkKeys.includes(
+    "aa_intelligence_index",
+  )
+    ? ARTIFICIAL_ANALYSIS_INDEX_SCORE_KEYS.reduce(
+        (count, key) => count + (asFiniteNumber(intelligence[key]) == null ? 0 : 1),
+        0,
+      )
+    : 0;
+  const otherIndexKeys = admissionConfig.indexBenchmarkKeys.filter(
+    (key) => key !== "aa_intelligence_index",
+  );
+  return artificialAnalysisIndexCount + observedBenchmarkCount(model, otherIndexKeys);
+}
+
+function hasRequiredIndexEvidence(
+  model: BenchmarkEvidenceCandidate,
+  admissionConfig: BenchmarkAdmissionConfig,
+): boolean {
+  return observedIndexCount(model, admissionConfig) >= admissionConfig.minimumObservedIndexes;
+}
+
+/** Admit variants with broad evidence, both quality dimensions, and the minimum index signal count. */
 export function hasRequiredBenchmarkEvidence(
   model: BenchmarkEvidenceCandidate,
   scoringConfig: ScoringConfig,
@@ -111,25 +133,25 @@ export function hasRequiredBenchmarkEvidence(
     scoringConfig.intelligenceBenchmarkKeys,
   );
   const observedAgenticCount = observedBenchmarkCount(model, scoringConfig.agenticBenchmarkKeys);
-  const observedIndexCount = observedBenchmarkCount(model, admissionConfig.indexBenchmarkKeys);
   return (
     observedCount >= admissionConfig.minimumObservedBenchmarks &&
     observedIntelligenceCount >= admissionConfig.minimumObservedPerDimension &&
     observedAgenticCount >= admissionConfig.minimumObservedPerDimension &&
-    observedIndexCount >= 1
+    hasRequiredIndexEvidence(model, admissionConfig)
   );
 }
 
-/** Admit a final row when at least one primary score reaches the public relevance floor. */
+/** Admit a final row when both public quality scores reach the relevance floor. */
 export function hasRequiredPublicRelevance(
   model: Pick<ModelAtlasScoredCandidate, "scores">,
 ): boolean {
-  return PUBLIC_COMPONENT_SCORE_KEYS.some((key) => {
+  return PUBLIC_QUALITY_SCORE_KEYS.every((key) => {
     const score = asFiniteNumber(model.scores?.[key]);
-    return score != null && score >= MIN_PUBLIC_COMPONENT_SCORE;
+    return score != null && score >= MIN_PUBLIC_QUALITY_SCORE;
   });
 }
 
+/** Limit the undercoverage exception to released models younger than the preview window. */
 export function isRecentPreviewCandidate(
   model: Pick<ModelAtlasScoredCandidate, "id" | "name" | "release_date" | "modalities">,
   observedDate: string,
@@ -155,7 +177,7 @@ export function isRecentPreviewCandidate(
   return ageDays >= 0 && ageDays < maxAgeDays;
 }
 
-/** Build visibly provisional rows without allowing their alternate score policy into official admission or ranking. */
+/** Retain recent undercovered models only after ordinary admission, without relaxing basic specs or relevance gates. */
 function buildPreviewModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
   admittedModels: ModelAtlasModel[],
@@ -169,8 +191,10 @@ function buildPreviewModels(
   const previewCandidates = scoredCandidates.map((model) => {
     if (
       hasPublicModelIdentity(admittedModelIdentities, model) ||
+      hasRequiredBenchmarkEvidence(model, scoringConfig, finalConfig.benchmarkAdmission) ||
       !isRecentPreviewCandidate(model, observedDate, finalConfig.previewMaxAgeDays) ||
-      !hasRequiredBasicSpecs(model)
+      !hasRequiredBasicSpecs(model) ||
+      !hasRequiredIndexEvidence(model, finalConfig.benchmarkAdmission)
     ) {
       return null;
     }
@@ -306,15 +330,9 @@ export async function buildFinalModels(
     scoringPreparation,
     resourceImputation,
   );
-  const previousOfficialModelIdentities = publicModelIdentitySet(previousModels);
   // Public admission is output-only and must not redefine the scoring reference population.
-  // Preview status applies only to newly surfaced recent models; prior official models retain normal admission and rank.
+  // Age never blocks ordinary admission; recent undercovered models receive a separate preview fallback.
   const admittedPublicModels = rescoredReferenceModels
-    .filter(
-      (model) =>
-        hasPublicModelIdentity(previousOfficialModelIdentities, model) ||
-        !isRecentPreviewCandidate(model, versioning.observedDate, finalConfig.previewMaxAgeDays),
-    )
     .filter(hasRequiredBasicSpecs)
     .filter((model) =>
       hasRequiredBenchmarkEvidence(model, scoringConfig, finalConfig.benchmarkAdmission),

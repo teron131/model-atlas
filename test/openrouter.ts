@@ -77,41 +77,49 @@ assert.deepEqual(providerWeightedPriceModel.pricing, {
   weighted_output_price_per_1m: 12,
 });
 
-assert.deepEqual(
-  buildOpenRouterSeriesTokenWeights(
+const endpointWeights = buildOpenRouterSeriesTokenWeights({
+  data: {
+    providerSummaries: [
+      { endpointId: "endpoint-a-fast", providerName: "Provider A (1)", totalTokens: 60 },
+      { endpointId: "endpoint-a-slow", providerName: "Provider A (2)", totalTokens: 20 },
+      { endpointId: "endpoint-b", totalTokens: 20 },
+      { providerName: "Missing endpoint", totalTokens: 100 },
+      { endpointId: "", totalTokens: 100 },
+      { endpointId: "zero-tokens", totalTokens: 0 },
+      { endpointId: "negative-tokens", totalTokens: -1 },
+      { endpointId: "missing-tokens", totalTokens: null },
+      { endpointId: "invalid-tokens", totalTokens: Number.NaN },
+    ],
+  },
+});
+assert.deepEqual(endpointWeights, {
+  "endpoint-a-fast": 60,
+  "endpoint-a-slow": 20,
+  "endpoint-b": 20,
+});
+assert.deepEqual(buildOpenRouterSeriesTokenWeights(null), {});
+assert.equal(
+  processOpenRouterModelStats(
+    "openai/endpoint-weighted-example",
     {
-      data: [
-        {
-          id: "endpoint-a-fast",
-          provider_display_name: "Provider A",
-          stats: { request_count: 3 },
-        },
-        {
-          id: "endpoint-a-slow",
-          provider_display_name: "Provider A",
-          stats: { request_count: 1 },
-        },
-        {
-          id: "endpoint-b",
-          provider_info: { displayName: "Provider B" },
-          stats: { request_count: null },
-        },
-      ],
-    },
-    {
-      data: {
-        providerSummaries: [
-          { providerName: "Provider A", totalTokens: 80 },
-          { providerName: "Provider B", totalTokens: 20 },
+      latency_e2e: {
+        data: [
+          {
+            y: {
+              "endpoint-a-fast": 1_000,
+              "endpoint-a-slow": 5_000,
+              "endpoint-b": null,
+              "unmatched-endpoint": 100_000,
+            },
+          },
         ],
       },
+      series_token_weights: endpointWeights,
     },
-  ),
-  {
-    "endpoint-a-fast::default": 60,
-    "endpoint-a-slow::default": 20,
-    "endpoint-b::default": 20,
-  },
+    null,
+  ).performance.e2e_latency_seconds_median,
+  2,
+  "Endpoint IDs must match history directly and only matched positive evidence contributes",
 );
 
 assert.deepEqual(
