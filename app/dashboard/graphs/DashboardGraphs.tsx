@@ -209,8 +209,10 @@ export function DashboardGraphs({
     return (
       <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
         <ModelSignature models={[]} paretoModels={[]} referenceModels={[]} />
-        <BenchmarkStrip payload={payload} models={[]} isLoading={benchmarksLoading} />
-        <div className={styles.error}>Unable to load the Model Atlas snapshot.</div>
+        {/* A deferred render can still be waiting after the live payload has arrived. */}
+        {!benchmarksLoading && payload === deferredPayload && (
+          <div className={styles.error}>Unable to load the Model Atlas snapshot.</div>
+        )}
         {afterLead}
       </section>
     );
