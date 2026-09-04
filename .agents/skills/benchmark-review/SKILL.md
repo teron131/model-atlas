@@ -62,12 +62,22 @@ Judge:
 - grading quality, verifier strength, contamination risk, and exploitability
 - whether results measure the model, the harness, or a model-plus-scaffold system
 - same-harness versus mixed-harness comparability
+- whether the selected metric, task version, model configuration, effort, and harness describe one comparable result series
 - current model coverage and reasoning-effort sensitivity
 - provenance, including official, independent, vendor-reported, self-reported, private, or partially opaque evidence
 - redundancy with selected benchmarks and uniqueness of the capability signal; compare with the current portfolio even when the candidate is new
 - whether structured, current results are available well enough to support ongoing audit and ingestion
 
-Recommend exactly `frontier`, `baseline`, or `rejected` when the evidence supports a decision, matching `docs/standards.md`. If essential evidence is unavailable, state what blocks classification instead of inventing a fourth class. Explain the capability and evidence behind the decision. Keep benchmark merit separate from ingestion readiness: difficult access or an unimplemented scraper can block adoption without making the underlying benchmark low quality. Do not derive benchmark importance from class, and do not invent exact scoring settings unless the user asks to settle scoring policy.
+Recommend exactly `frontier`, `baseline`, or `rejected` when the evidence supports a decision, matching `docs/standards.md`. If essential evidence is unavailable, state what blocks classification instead of inventing a fourth class. Explain the capability and evidence behind the decision. Keep benchmark merit separate from ingestion readiness: difficult access or an unimplemented scraper can block adoption without making the underlying benchmark low quality.
+
+When the user asks to settle portfolio policy:
+
+- Treat classification as an interpretive label; it does not change importance, imputation, or missing-evidence treatment.
+- Default task-level benchmark importance to `1`. Reserve lower importance for an explicit benchmark-specific decision; overlapping aggregate indexes are the ordinary half-importance case.
+- Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
+- Keep imputed values out of the observed benchmark mean and public admission; use them only through the methodology's discounted evidence support.
+
+An unexpected winner is a reason to inspect task fit, grading, configuration, and harness effects, not evidence of bad methodology by itself.
 
 ## Audit A Selected Benchmark
 

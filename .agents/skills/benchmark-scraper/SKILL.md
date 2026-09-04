@@ -1,6 +1,6 @@
 ---
 name: benchmark-scraper
-description: Use when implementing, scraping, or wiring an approved benchmark leaderboard into Model Atlas. Enforces staged user discussion before field selection, scoring policy, and final database refresh. Use benchmark-review instead for standalone admission, retention, or drift review.
+description: Use when implementing, scraping, or wiring an approved benchmark leaderboard into Model Atlas. Preserves source configuration, applies settled portfolio policy, and verifies refreshed served data. Use benchmark-review instead for standalone admission, retention, or drift review.
 ---
 
 # Benchmark Scraper
@@ -9,7 +9,7 @@ Use this after benchmark merit has been reviewed and the user wants to implement
 
 ## Rule
 
-Do not treat benchmark ingestion as a straight coding task. Work in stages and pause for user discussion at the gates below.
+Separate benchmark merit, source parsing, and scoring policy. Once implementation is authorized, complete the workflow without repeated confirmation; ask only when a material policy choice remains unresolved.
 
 ## Repo Map
 
@@ -23,7 +23,7 @@ Find the current files by role before broad edits:
 - Database schema, writers, and payload readers: where raw rows, summarized rows, processed models, and public payloads are stored.
 - Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users.
 - Public exports and tests: package surface plus focused scraper/matcher/scoring/payload tests.
-- Database refresh scripts: `pnpm run database` for local SQLite and `pnpm run d1:publish` for production D1.
+- Refresh and publication scripts: derive the current local and production workflow from `package.json` and the database boundary rather than relying on remembered commands.
 
 ## Research And Tooling Methods
 
@@ -33,7 +33,6 @@ Use primary evidence before implementation:
 - Read the paper and official or high-signal blog posts when available.
 - Inspect sample tasks or dataset examples when available; use at least two real samples before judging benchmark texture.
 - Use Hugging Face when benchmark data, model cards, datasets, papers, or Spaces are hosted there.
-- Use Chrome when the task depends on the user's existing browser state, logged-in access, cookies, or an already-open benchmark page.
 - Use `playwright-cli` for repeatable leaderboard inspection, network/API discovery, DOM checks, screenshots, and scraper development.
 - Prefer stable APIs, JSON payloads, dataset files, or hydrated page chunks over brittle DOM scraping when they exist.
 
@@ -46,7 +45,7 @@ Before writing scraper code:
 - Use web search, paper/blog reading, Hugging Face artifacts, and sample inspection to build the evidence base.
 - Judge whether the benchmark is worthy for Model Atlas.
 - Give candid feedback on strengths, weaknesses, access opacity, saturation, narrowness, benchmark-gaming risk, and fit for intelligence versus agentic scoring.
-- Pause and ask the user whether to proceed.
+- If benchmark merit is not already settled, present the verdict before writing implementation code.
 
 Do not soften weak evidence into a polite summary. If access is gated or sample texture is thin, say that clearly.
 
@@ -59,7 +58,7 @@ After the user agrees to proceed:
 - Prefer stable APIs or structured artifacts over DOM scraping when available.
 - Identify all available fields, including model names, providers, ranks, scores, splits, harnesses, domains, attempts, efforts, timestamps, costs, ties, notes, and source URLs.
 - Note any fields that are computed, hidden, ambiguous, or display-only.
-- Pause and ask the user which fields should be fetched and preserved.
+- Surface only unresolved field or aggregation choices that would materially change the scored result.
 
 Do not silently drop domains, splits, efforts, ties, or raw rows just because the first scoring policy may not need them.
 
@@ -83,10 +82,11 @@ After the scraper works:
 - Show the fetched row shape and representative parsed output.
 - Discuss scoring with the user before wiring it into Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
-- Decide the accepted class (`baseline` or `frontier`), positive benchmark importance, and Intelligence/Agentic split. The two dimension portions must sum to 100%; importance controls observed contribution, while class controls the imputation-error penalty.
-- Treat Agentic as coding workflow execution or specific tool use: terminals, browsers, files, repositories, APIs, harnesses, or other external environments. Do not assign Agentic portion just because the task is hard coding; static coding or scientific programming can be Intelligence when it mainly tests professional knowledge and reasoning.
+- Decide the accepted class (`baseline` or `frontier`), positive benchmark importance, and Intelligence/Agentic split. The two dimension portions must sum to 100%; class does not change importance, imputation, or missing-evidence treatment.
+- Default task-level benchmark importance to `1`. Use lower importance only for an explicit benchmark-specific reason; overlapping aggregate indexes are the ordinary half-importance case.
+- Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
 - Check effort sensitivity before scoring. If the same model regresses at higher reasoning effort, explain whether this looks like real overthinking, timeout pressure, brittle formatting, harness mismatch, or another benchmark artifact.
-- Choose benchmark importance deliberately rather than deriving it from class. Explain the expected impact through importance, dimension loadings, and the class-specific imputation-error penalty.
+- Choose benchmark importance deliberately rather than deriving it from class. Explain its impact through importance and dimension loadings.
 - Decide whether any non-quality data contributes to speed, value, bonus-only display, or raw display only.
 - Preserve extra dimensions even if the initial scoring uses only one summary.
 
@@ -99,7 +99,7 @@ After scoring policy is agreed:
 - Wire the benchmark through source data, model matching, score inputs, database schema/writers, payload reading, public exports, dashboard labels, and tooltips as needed.
 - Add or update tests for scraper, matching, scoring, and payload behavior.
 - Run focused tests first, then the repo checks appropriate to the touched surface.
-- Run `pnpm run database` so the local database reflects the new benchmark; publish with `pnpm run d1:publish` only when production refresh is in scope.
+- Run the current local refresh, then use the repository's current publication workflow when production is in scope and verify the affected served payload rather than relying on the local database alone.
 - Run `pnpm run typecheck` and `pnpm run build` when TypeScript or UI surfaces changed.
 - Check `git diff --check`.
 - Summarize the final benchmark role, scoring method, refresh result, and any unmatched or excluded rows.
