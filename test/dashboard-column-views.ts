@@ -136,6 +136,14 @@ for (const query of ["fin", "financ", "finace", "finanxe", "finnance", "finacne"
   );
 }
 
+const critptColumn = benchmarkMetricColumns.find((column) => column.benchmark === "critpt");
+assert.ok(critptColumn);
+assert.equal(
+  tableColumnKeysForView("scores", "crit", COLUMN_TOOLTIPS).includes(critptColumn.key),
+  true,
+  "Search should retain a benchmark prefix when exact resource aliases also match",
+);
+
 const searchDocuments = [
   { value: "finance", primary: "Finance Agent V2" },
   { value: "context", primary: "Other", context: "Finance workflows" },
