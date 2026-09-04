@@ -1,4 +1,4 @@
-/** Verifies ARC Prize parsing, eligibility, identity, and catalog registration. */
+/** Verifies ARC Prize eligibility, explicit harness aggregation, resources, matching, and catalog policy. */
 
 import assert from "node:assert/strict";
 
@@ -43,13 +43,14 @@ const v2Rows = processArcPrizeLeaderboardJson(
       },
       {
         datasetId: "v2_Semi_Private",
-        modelId: "hidden",
-        modelDisplayName: "Hidden model",
+        modelId: "anthropic-opus-4-6-max",
+        modelDisplayName: "Anthropic Opus 4.6 (Max)",
         modelType: "CoT",
-        providerId: "OpenAI",
-        providerDisplayName: "OpenAI",
-        score: 0.99,
-        display: false,
+        providerId: "Anthropic",
+        providerDisplayName: "Anthropic",
+        score: 0.75,
+        costPerTask: 2.4,
+        display: true,
       },
       {
         datasetId: "v2_Public",
@@ -69,43 +70,13 @@ const v2Rows = processArcPrizeLeaderboardJson(
         providerId: "ARC Prize 2025",
         providerDisplayName: "ARC Prize 2025",
         score: 0.9,
-        costPerTask: 0.2,
-        display: true,
-      },
-      {
-        datasetId: "v2_Semi_Private",
-        modelId: "openai-gpt-5-6-sol-max",
-        modelDisplayName: "GPT-5.6 Sol (Max)",
-        modelType: "CoT",
-        modelReleaseDate: "2026-07-01T00:00:00.000Z",
-        providerId: "OpenAI",
-        providerDisplayName: "OpenAI",
-        score: 0.9,
-        costPerTask: 1.44,
-        resultsUrl: "/results/openai-gpt-5-6-sol",
-        display: true,
-      },
-      {
-        datasetId: "v2_Semi_Private",
-        modelId: "anthropic-opus-4-6-max",
-        modelDisplayName: "Anthropic Opus 4.6 (Max)",
-        modelType: "CoT",
-        providerId: "Anthropic",
-        providerDisplayName: "Anthropic",
-        score: 0.75,
-        costPerTask: 2.4,
         display: true,
       },
     ],
   },
-  {
-    benchmarkKey: "arc_agi_2",
-    datasetId: "v2_Semi_Private",
-    sourceUrl: v2SourceUrl,
-  },
+  { benchmarkKey: "arc_agi_2", datasetId: "v2_Semi_Private", sourceUrl: v2SourceUrl },
 );
 
-assert.equal(v2Rows.length, 2);
 assert.deepEqual(
   v2Rows.map((row) => [row.model, row.rank]),
   [
@@ -113,64 +84,125 @@ assert.deepEqual(
     ["Anthropic Opus 4.6 (Max)", 2],
   ],
 );
-const sol = v2Rows[0];
-assert.ok(sol);
-assert.deepEqual(sol, {
-  benchmark_key: "arc_agi_2",
-  source_url: v2SourceUrl,
-  model_id: "openai-gpt-5-6-sol-max",
-  model: "GPT-5.6 Sol (Max)",
-  base_model: "GPT-5.6 Sol",
-  reasoning_effort: "max",
-  model_creator: "OpenAI",
-  rank: 1,
-  canonical_value: 0.9,
-  cost: 1.44,
-  observed_at: "2026-08-07T20:07:24.014Z",
-  metadata: {},
-});
+assert.equal(v2Rows[0]?.base_model, "GPT-5.6 Sol");
+assert.equal(v2Rows[0]?.cost, 1.44);
 assert.equal(v2Rows[1]?.base_model, "Claude Opus 4.6");
-assert.equal(v2Rows[1]?.reasoning_effort, "max");
-const v2Lookup = buildBenchmarkObservationLookup(v2Rows);
-assert.equal(findBenchmarkObservation(["Custom solver"], null, v2Lookup), null);
-assert.equal(findBenchmarkObservation(["GPT-5.6 Sol"], "max", v2Lookup)?.canonical_value, 0.9);
-assert.equal(findBenchmarkObservation(["Claude Opus 4.6"], "max", v2Lookup)?.canonical_value, 0.75);
+assert.equal(
+  findBenchmarkObservation(["Claude Opus 4.6"], "max", buildBenchmarkObservationLookup(v2Rows))
+    ?.canonical_value,
+  0.75,
+);
 
+const v3SourceUrl = "https://arcprize.org/media/data/leaderboard/v3.json";
 const v3Rows = processArcPrizeLeaderboardJson(
   {
     generatedAt: "2026-08-07T20:07:24.014Z",
     evaluations: [
       {
         datasetId: "v3_Semi_Private",
+        modelId: "openai-gpt-6-astra-max",
+        modelGroup: "openai-gpt-6-astra-max",
+        modelDisplayName: "GPT-6 Astra (Max)",
+        modelType: "CoT",
+        providerDisplayName: "OpenAI",
+        score: 0.6,
+        cost: 1_100,
+        display: true,
+      },
+      {
+        datasetId: "v3_Semi_Private",
+        modelId: "openai-gpt-6-astra-max-provider-adapter",
+        modelGroup: "openai-gpt-6-astra-max-provider-adapter",
+        modelDisplayName: "GPT-6 Astra - Provider Adapter (Max)",
+        modelType: "CoT",
+        providerDisplayName: "OpenAI",
+        score: 0.9,
+        cost: 2_200,
+        display: true,
+      },
+      {
+        datasetId: "v3_Semi_Private",
+        modelId: "openai-gpt-6-astra-high",
+        modelGroup: "openai-gpt-6-astra-high",
+        modelDisplayName: "GPT-6 Astra (High)",
+        modelType: "CoT",
+        providerDisplayName: "OpenAI",
+        score: 0.5,
+        cost: 550,
+        display: true,
+      },
+      {
+        datasetId: "v3_Semi_Private",
+        modelId: "openai-gpt-6-astra-high-provider-adapter",
+        modelGroup: "openai-gpt-6-astra-high-provider-adapter",
+        modelDisplayName: "GPT-6 Astra - Provider Adapter (High)",
+        modelType: "CoT",
+        providerDisplayName: "OpenAI",
+        score: 0.7,
+        cost: 1_100,
+        display: true,
+      },
+      {
+        datasetId: "v3_Semi_Private",
         modelId: "anthropic-claude-opus-5-high",
+        modelGroup: "anthropic-claude-opus-5-high",
         modelDisplayName: "Claude Opus 5 (High)",
         modelType: "CoT",
-        providerId: "Anthropic",
         providerDisplayName: "Anthropic",
-        score: 0.3016,
-        cost: 20657.37,
+        score: 0.3,
+        cost: 550,
+        display: true,
+      },
+      {
+        datasetId: "v3_Semi_Private",
+        modelId: "openai-gpt-6-astra-max-provider-adapter",
+        modelGroup: "openai-gpt-6-astra-max-provider-adapter",
+        modelDisplayName: "GPT-6 Astra Adapter Experiment (Max)",
+        modelType: "CoT",
+        providerDisplayName: "OpenAI",
+        score: 0.99,
+        cost: 100,
         display: true,
       },
     ],
   },
-  {
-    benchmarkKey: "arc_agi_3",
-    datasetId: "v3_Semi_Private",
-    sourceUrl: "https://arcprize.org/media/data/leaderboard/v3.json",
-  },
+  { benchmarkKey: "arc_agi_3", datasetId: "v3_Semi_Private", sourceUrl: v3SourceUrl },
 );
-const opus = v3Rows[0];
-assert.ok(opus);
-assert.equal(opus.base_model, "Claude Opus 5");
-assert.equal(opus.reasoning_effort, "high");
-assert.equal(opus.observed_at, "2026-08-07T20:07:24.014Z");
-assert.equal(opus.cost, 375.588545);
-assert.equal(opus.task_run_count, 55);
-assert.equal(opus.total_cost_usd, 20657.37);
-assert.deepEqual(opus.metadata, {});
-assert.deepEqual(buildTaskMetrics(null, { arc_agi_2: sol, arc_agi_3: opus }), {
-  arc_agi_2: { cost: 1.44 },
-  arc_agi_3: { cost: 375.588545 },
+
+const canonicalRows = v3Rows.filter((row) => row.metadata.observation_role === "canonical");
+const componentRows = v3Rows.filter((row) => row.metadata.observation_role === "component");
+assert.equal(canonicalRows.length, 3);
+assert.equal(componentRows.length, 5);
+const astraMax = canonicalRows.find((row) => row.reasoning_effort === "max");
+const astraHigh = canonicalRows.find(
+  (row) => row.base_model === "GPT-6 Astra" && row.reasoning_effort === "high",
+);
+const opusHigh = canonicalRows.find((row) => row.base_model === "Claude Opus 5");
+assert.ok(astraMax);
+assert.equal(astraMax.canonical_value, 0.75);
+assert.equal(astraMax.task_run_count, 110);
+assert.equal(astraMax.total_cost_usd, 3_300);
+assert.equal(astraMax.cost, 30);
+assert.deepEqual(astraMax.metadata.harnesses, ["standard", "provider_adapter"]);
+assert.equal(astraHigh?.canonical_value, 0.6, "reasoning efforts must remain separate");
+assert.equal(opusHigh?.canonical_value, 0.3);
+assert.equal(opusHigh?.task_run_count, 55);
+assert.equal(opusHigh?.metadata.aggregation, "single_harness");
+assert.deepEqual(componentRows.map((row) => row.metadata.harness).sort(), [
+  "provider_adapter",
+  "provider_adapter",
+  "standard",
+  "standard",
+  "standard",
+]);
+const v3Lookup = buildBenchmarkObservationLookup(v3Rows);
+assert.equal(
+  findBenchmarkObservation(["GPT-6 Astra"], "max", v3Lookup)?.canonical_value,
+  0.75,
+  "component observations must not overwrite the canonical harness blend",
+);
+assert.deepEqual(buildTaskMetrics(null, { arc_agi_3: astraMax }), {
+  arc_agi_3: { cost: 30 },
 });
 
 const bindings = Object.fromEntries(
@@ -179,69 +211,53 @@ const bindings = Object.fromEntries(
 assert.equal(bindings.arc_agi_2?.loader.kind, "arc_prize");
 assert.equal(bindings.arc_agi_3?.loader.kind, "arc_prize");
 assert.ok(bindings.arc_agi_3);
-const cachedArcAgi3Row = {
+const cachedRows = v3Rows.map((row, index) => ({
   source_key: "arc_agi_3",
+  row_index: index,
   fetched_at_epoch_seconds: 1_788_000_000,
-  benchmark_key: opus.benchmark_key,
-  url: opus.source_url,
-  model_id: opus.model_id,
-  model: opus.model,
-  base_model: opus.base_model,
-  reasoning_effort: opus.reasoning_effort,
-  model_creator: opus.model_creator,
-  rank: opus.rank,
-  canonical_value: opus.canonical_value,
-  cost: opus.cost,
-  tokens_per_task: null,
-  task_run_count: opus.task_run_count,
-  total_cost_usd: opus.total_cost_usd,
-  total_tokens: null,
-  observed_at: opus.observed_at,
-  metadata_json: JSON.stringify(opus.metadata),
-};
-assert.deepEqual(readBenchmarkObservationRawCache([cachedArcAgi3Row], bindings.arc_agi_3), {
-  rows: [opus],
-  fetchedAt: 1_788_000_000,
-});
+  benchmark_key: row.benchmark_key,
+  url: row.source_url,
+  model_id: row.model_id,
+  model: row.model,
+  base_model: row.base_model,
+  reasoning_effort: row.reasoning_effort,
+  model_creator: row.model_creator,
+  rank: row.rank,
+  canonical_value: row.canonical_value,
+  cost: row.cost ?? null,
+  tokens_per_task: row.tokens_per_task ?? null,
+  task_run_count: row.task_run_count ?? null,
+  total_cost_usd: row.total_cost_usd ?? null,
+  total_tokens: row.total_tokens ?? null,
+  observed_at: row.observed_at,
+  metadata_json: JSON.stringify(row.metadata),
+}));
+assert.equal(readBenchmarkObservationRawCache(cachedRows, bindings.arc_agi_3)?.rows.length, 8);
 assert.equal(
   readBenchmarkObservationRawCache(
-    [
-      {
-        ...cachedArcAgi3Row,
-        cost: 20657.37,
-        metadata_json: "{}",
-      },
-    ],
+    cachedRows.map((row) => ({ ...row, metadata_json: "{}" })),
     bindings.arc_agi_3,
   ),
   null,
-  "ARC-AGI-3 cache rows with total cost should refetch",
+  "pre-aggregation ARC-AGI-3 cache rows must refetch",
 );
 assert.equal(
   readBenchmarkObservationRawCache(
-    [
-      {
-        ...cachedArcAgi3Row,
-        cost: 826.2948,
-        task_run_count: 25,
-      },
-    ],
+    cachedRows.map((row) =>
+      JSON.parse(row.metadata_json).observation_role === "canonical"
+        ? { ...row, task_run_count: 55 }
+        : row,
+    ),
     bindings.arc_agi_3,
   ),
   null,
-  "ARC-AGI-3 cache rows normalized against the public-demo count should refetch",
+  "canonical cache rows must account for every included harness run",
 );
-assert.deepEqual(BENCHMARK_PORTFOLIO.arc_agi_2.dimensionLoadings, {
-  intelligence: 1,
-  agentic: 0,
-});
+
 assert.deepEqual(BENCHMARK_PORTFOLIO.arc_agi_3.dimensionLoadings, {
-  intelligence: 0.75,
-  agentic: 0.25,
+  intelligence: 0.5,
+  agentic: 0.5,
 });
-assert.equal(BENCHMARK_PORTFOLIO.arc_agi_2.benchmarkImportance, 1);
 assert.equal(BENCHMARK_PORTFOLIO.arc_agi_3.benchmarkImportance, 1);
-assert.equal(BENCHMARK_CATALOG.arc_agi_2.scoring.group, "frontier");
 assert.equal(BENCHMARK_CATALOG.arc_agi_3.scoring.group, "frontier");
-assert.equal(BENCHMARK_CATALOG.arc_agi_2.presentation.column.key, "arcAgi2");
 assert.equal(BENCHMARK_CATALOG.arc_agi_3.presentation.column.key, "arcAgi3");

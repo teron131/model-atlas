@@ -115,6 +115,7 @@ function scoreRow(
   const reasoningEffort = canonicalReasoningEffort(value.reasoning_effort ?? value.compute_effort);
   const metadata: BenchmarkObservationMetadata = {};
   for (const [key, metadataValue] of [
+    ["task", task],
     ["benchmark_version", view.metadata.version],
     ["dataset_type", view.metadata.dataset_type],
     ["runner", view.metadata.runner],

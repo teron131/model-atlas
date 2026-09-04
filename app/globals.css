@@ -1425,10 +1425,6 @@ td.modality-cell {
   font-weight: 500;
 }
 
-.missing .score-meter {
-  visibility: hidden;
-}
-
 .empty {
   padding: 24px 0;
   color: var(--muted);

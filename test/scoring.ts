@@ -376,7 +376,6 @@ assert.deepEqual(resourceQualityCoordinates, {
   deep_swe: "logit",
   frontier_code: "linear",
   gdpval_normalized: "linear",
-  harvey_lab: "logit",
   hle: "logit",
   itbench_sre: "linear",
   scicode: "logit",
@@ -401,7 +400,7 @@ assert.deepEqual(
   ),
   {
     code_migration: {
-      group: "baseline",
+      group: "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },

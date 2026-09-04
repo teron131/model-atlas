@@ -363,16 +363,16 @@ function BenchmarkMetricCell({
   provider: string | null | undefined;
   className: string;
 }) {
+  if (meterPercent == null) {
+    return <TableCell text={text} className={`${className} benchmark-cell`} />;
+  }
   const displayColor = providerBrandColor(provider);
   const style = {
-    "--score": String(Math.max(0, Math.min(100, meterPercent ?? 0))),
+    "--score": String(Math.max(0, Math.min(100, meterPercent))),
     "--score-color": displayColor,
   } as CSSProperties;
   return (
-    <td
-      className={`${className} benchmark-cell${meterPercent == null ? " missing" : ""}`}
-      style={style}
-    >
+    <td className={`${className} benchmark-cell`} style={style}>
       <span className="score-value">{text}</span>
       <span className="score-meter benchmark-meter" />
     </td>
@@ -584,16 +584,16 @@ function scoreCell(
   className = "",
 ) {
   const score = typeof value === "number" && Number.isFinite(value) ? value : null;
+  if (score == null) {
+    return <TableCell text={formatScore(score)} className={`score-cell ${className}`.trim()} />;
+  }
   const displayColor = providerBrandColor(provider);
   const style = {
-    "--score": String(Math.max(0, Math.min(100, score ?? 0))),
+    "--score": String(Math.max(0, Math.min(100, score))),
     "--score-color": displayColor,
   } as CSSProperties;
   return (
-    <td
-      className={`score-cell ${className}${score == null ? " missing" : ""}`.trim()}
-      style={style}
-    >
+    <td className={`score-cell ${className}`.trim()} style={style}>
       <span className="score-value">{formatScore(score)}</span>
       <span className="score-meter" />
     </td>

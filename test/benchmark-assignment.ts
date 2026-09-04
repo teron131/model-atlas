@@ -27,7 +27,6 @@ import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/benchmarks/frontier-code";
 import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
 import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
-import type { HarveyLabModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vals/harvey-lab";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
 
 const deepSWERow = {
@@ -205,46 +204,20 @@ const analystAgentResourceRow = {
   answer_tokens_per_task: 2_000,
   reasoning_tokens_per_task: 9_180,
 } satisfies ArtificialAnalysisBenchmarkResourceRow;
-const automationBenchResourceRow = {
+const automationBenchRow = {
   benchmark_key: "automation_bench",
-  source_url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
-  model_id: "test/example-model",
+  source_url: "https://zapier.com/benchmarks",
+  model_id: null,
   model: "Example Model",
-  provider: "Test",
-  provider_id: "test",
+  base_model: "Example Model",
   reasoning_effort: null,
-  score: 0.68,
-  task_run_count: 657,
-  cost_per_task_usd: 0.12,
-  seconds_per_task: 15,
-  tokens_per_task: 700,
-  input_tokens_per_task: 600,
-  output_tokens_per_task: 100,
-  answer_tokens_per_task: 60,
-  reasoning_tokens_per_task: 40,
-} satisfies ArtificialAnalysisBenchmarkResourceRow;
-const harveyLabRow = {
-  task: "overall",
-  task_label: "Overall",
-  metric: "task_resolution",
-  model_id: "test/example-model",
-  model: "example-model",
-  base_model: "example-model",
-  reasoning_effort: null,
-  provider: "Test",
+  model_creator: "Test",
   rank: 1,
-  score: 0.1125,
-  criterion_pass: 0.9048,
-  standard_error: 0.024,
-  cost_per_task_usd: 19.225253,
-  seconds_per_task: 1613.04,
-  temperature: 1,
-  top_p: null,
-  max_output_tokens: 128_000,
-  verbosity: null,
-  compute_effort: null,
-  harness: null,
-} satisfies HarveyLabModelScoreRow;
+  canonical_value: 0.3044,
+  cost: 0.12,
+  observed_at: null,
+  metadata: { metric: "task_completed_correctly" },
+} satisfies BenchmarkObservationRow;
 const itbenchResourceRow = {
   benchmark_key: "itbench_sre",
   source_url: "https://artificialanalysis.ai/evaluations/itbench-aa",
@@ -300,7 +273,6 @@ const arcAgi3Row = {
 const resourceLookup = new Map([
   ["analyst_agent", new Map([["example-model", analystAgentResourceRow]])],
   ["briefcase", new Map([["example-model", briefcaseResourceRow]])],
-  ["automation_bench", new Map([["example-model", automationBenchResourceRow]])],
   ["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
   ["itbench_sre", new Map([["example-model", itbenchResourceRow]])],
 ]);
@@ -318,6 +290,7 @@ const lookups = {
   aleBench: { rowsByModelName: buildBenchmarkModelMap([aleBenchRow]) },
   arcAgi2: { rowsByModelName: emptyLookup() },
   arcAgi3: { rowsByModelName: buildBenchmarkObservationLookup([arcAgi3Row]) },
+  automationBench: { rowsByModelName: buildBenchmarkObservationLookup([automationBenchRow]) },
   blueprintBench: {
     rowsByModelName: emptyLookup(),
   },
@@ -345,19 +318,18 @@ const lookups = {
   frontierCode: {
     rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
   },
+  frontierMathErdos: { rowsByModelName: emptyLookup() },
   frontierMathTier4: { rowsByModelName: new Map() },
   gdpPdf: {
     rowsByModelName: emptyLookup(),
   },
   handbookMd: { rowsByModelName: new Map() },
-  harveyLab: {
-    rowsByModelName: new Map([["example-model", harveyLabRow]]),
-  },
   hemingwayBench: { rowsByModelName: emptyLookup() },
   legalResearch: {
     rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
   },
   mlsBench: { rowsByModelName: emptyLookup() },
+  mirrorCode: { rowsByModelName: emptyLookup() },
   omniscienceAccuracy: { rowsByModelName: emptyLookup() },
   mercorApexAgents: {
     rowsByModelName: new Map([["example-model", mercorApexRow]]),
@@ -369,6 +341,8 @@ const lookups = {
   riemannBench: {
     rowsByModelName: emptyLookup(),
   },
+  simpleQaVerified: { rowsByModelName: emptyLookup() },
+  sreBench: { rowsByModelName: emptyLookup() },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
   terminalBench4: {
     rowsByModelName: buildBenchmarkModelMap([terminalBench4Row]),
@@ -393,7 +367,6 @@ const observationAssignment = buildObservationBenchmarks(["Example Model"], look
 assert.deepEqual(observationAssignment.benchmarks, {
   ale_bench: 700,
   analyst_agent: 0.5,
-  automation_bench: 0.68,
   briefcase: 0.5,
   frontier_code: 0.535,
   hle: 0.4,
@@ -407,11 +380,21 @@ assert.equal((observationAssignment.benchmarks as Record<string, unknown>).arc_a
 const effortObservationAssignment = buildObservationBenchmarks(
   ["Example Model"],
   lookups,
-  {},
+  { hle: 0.4 },
   "high",
 );
 assert.equal(effortObservationAssignment.benchmarks.arc_agi_3, 0.3);
 assert.equal(effortObservationAssignment.scoringSources.arc_agi_3, arcAgi3Row);
+assert.equal(
+  effortObservationAssignment.benchmarks.hle,
+  undefined,
+  "exact-effort observations should not borrow an effort-unspecified Artificial Analysis resource row",
+);
+assert.equal(
+  effortObservationAssignment.scoringSources.hle,
+  undefined,
+  "exact-effort observations should not borrow resource telemetry for an existing benchmark score",
+);
 
 const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"], lookups, {
   hle: 0.4,
@@ -422,13 +405,12 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   ale_bench: 700,
   analyst_agent: 0.5,
   arc_agi_3: 0.3,
-  automation_bench: 0.68,
+  automation_bench: 0.3044,
   briefcase: 0.5,
   chartography: 0.47,
   cursorbench: 0.52,
   deep_swe: 0.72,
   frontier_code: 0.535,
-  harvey_lab: 0.1125,
   hle: 0.4,
   itbench_sre: 0.56,
   legal_research: 0.61,
@@ -441,13 +423,12 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   analyst_agent: analystAgentResourceRow,
   apex_agents_mercor: mercorApexRow,
   arc_agi_3: arcAgi3Row,
-  automation_bench: automationBenchResourceRow,
+  automation_bench: automationBenchRow,
   briefcase: briefcaseResourceRow,
   chartography: chartographyRow,
   cursorbench: cursorBenchRow,
   deep_swe: deepSWERow,
   frontier_code: frontierCodeRow,
-  harvey_lab: harveyLabRow,
   hle: artificialAnalysisHleResourceRow,
   itbench_sre: itbenchResourceRow,
   legal_research: legalResearchRow,
@@ -462,15 +443,15 @@ const effortQualifiedDefault = buildDefaultVariantBenchmarks(
 );
 assert.deepEqual(effortQualifiedDefault.benchmarks, {
   agent_arena: 0.14,
+  automation_bench: 0.3044,
   chartography: 0.47,
-  harvey_lab: 0.1125,
   legal_research: 0.61,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(effortQualifiedDefault.scoringSources, {
   agent_arena: agentArenaRow,
+  automation_bench: automationBenchRow,
   chartography: chartographyRow,
-  harvey_lab: harveyLabRow,
   legal_research: legalResearchRow,
   vending_bench_2: vendingBench2Row,
 });
@@ -509,10 +490,6 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
   },
   automation_bench: {
     cost: 0.12,
-    seconds: 15,
-    tokens: 700,
-    input_tokens: 600,
-    output_tokens: 100,
   },
   arc_agi_3: {
     cost: 20_000,
@@ -536,10 +513,6 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     cost: 4.2,
     seconds: 300,
     output_tokens: 12000,
-  },
-  harvey_lab: {
-    cost: 19.225253,
-    seconds: 1613.04,
   },
   hle: {
     cost: 0.02,
@@ -725,10 +698,6 @@ const versionedLuna = versionCandidateBenchmarkData(
         cost: 0.42,
         tokens: 12_345,
       },
-      harvey_lab: {
-        cost: 2,
-        seconds: 20,
-      },
     },
     benchmarks: {
       deep_swe: 0.72,
@@ -747,10 +716,6 @@ const versionedLuna = versionCandidateBenchmarkData(
       cursorbench: {
         cost: 2.1,
         tokens: 12_345,
-      },
-      harvey_lab: {
-        cost: 2,
-        seconds: 19,
       },
     },
     benchmarks: {
@@ -795,17 +760,6 @@ assert.deepEqual(
     cost_price_ratio: 1,
   },
   "changed task costs should be dated now and should not be adjusted a second time",
-);
-assert.deepEqual(
-  versionedLuna.task_metrics?.harvey_lab,
-  {
-    cost: 2,
-    observed_cost: 2,
-    seconds: 20,
-    observed_at: "2026-07-31",
-    cost_price_ratio: 1,
-  },
-  "a change anywhere in the same task row should disable price compression",
 );
 const lunaVersionLog = buildBenchmarkVersionLogRows(
   [
@@ -884,15 +838,14 @@ assert.deepEqual(
   "new identities should be added while changed content on an existing identity is versioned",
 );
 
-const variantAutomationBenchResourceRow = {
-  ...automationBenchResourceRow,
+const variantAutomationBenchRow = {
+  ...automationBenchRow,
   model_id: "test/example-model-medium",
   model: "Example Model (medium)",
   reasoning_effort: "medium",
-  score: 0.61,
-  cost_per_task_usd: 0.04,
-  seconds_per_task: 6,
-} satisfies ArtificialAnalysisBenchmarkResourceRow;
+  canonical_value: 0.61,
+  cost: 0.04,
+} satisfies BenchmarkObservationRow;
 const [assignedObservation, assignedDefaultVariant, unassignedFastRoute] =
   assignBenchmarksToVariants(
     [
@@ -902,10 +855,10 @@ const [assignedObservation, assignedDefaultVariant, unassignedFastRoute] =
         artificial_analysis_id: "test/example-model-medium",
         reasoning_effort: "medium",
         benchmarks: {
-          automation_bench: variantAutomationBenchResourceRow.score,
+          automation_bench: variantAutomationBenchRow.canonical_value,
         },
         scoring_sources: {
-          automation_bench: variantAutomationBenchResourceRow,
+          automation_bench: variantAutomationBenchRow,
         },
       },
       {
@@ -927,15 +880,15 @@ const [assignedObservation, assignedDefaultVariant, unassignedFastRoute] =
 assert.ok(assignedObservation, "benchmark assignment must preserve the input observation");
 assert.equal(
   (assignedObservation.benchmarks as Record<string, unknown>).automation_bench,
-  variantAutomationBenchResourceRow.score,
+  variantAutomationBenchRow.canonical_value,
   "default-variant benchmarks must not overwrite an effort observation's benchmark value",
 );
 assert.equal(
   (
     (assignedObservation.scoring_sources as Record<string, unknown>)
-      .automation_bench as ArtificialAnalysisBenchmarkResourceRow
-  ).cost_per_task_usd,
-  variantAutomationBenchResourceRow.cost_per_task_usd,
+      .automation_bench as BenchmarkObservationRow
+  ).cost,
+  variantAutomationBenchRow.cost,
   "default-variant benchmarks must not overwrite effort-specific resources",
 );
 assert.equal(

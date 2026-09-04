@@ -101,7 +101,6 @@ try {
       deepSWERows: [],
       frontierCodeRows: [],
       gdpPdfRows: [],
-      harveyLabRows: [],
       riemannBenchRows: [],
       terminalBench4Rows: [],
       valsIndexRows: [],

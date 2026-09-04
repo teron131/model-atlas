@@ -37,7 +37,7 @@ function benchmarkRow(binding: BenchmarkObservationBinding): BenchmarkObservatio
     rank: 1,
     canonical_value: 0.75,
     observed_at: null,
-    metadata: {},
+    metadata: { task: binding.loader.canonicalTask },
   };
 }
 

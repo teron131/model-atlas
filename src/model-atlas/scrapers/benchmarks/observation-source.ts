@@ -4,6 +4,7 @@ import type { BenchmarkObservationLoader } from "../../benchmarks/factory";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import { getArcPrizeStats } from "./arc-prize";
 import { getArtificialAnalysisOmniscienceStats } from "./artificial-analysis/omniscience";
+import { getAutomationBenchStats } from "./automation-bench";
 import { getEpochCapabilitiesIndexStats } from "./epoch/capabilities-index";
 import { getEpochBenchmarkStats } from "./epoch/results";
 import { getMlsBenchStats } from "./mls-bench";
@@ -42,7 +43,7 @@ export function benchmarkObservationSourceFetcher(
     return () => getEpochCapabilitiesIndexStats(loader.sourceUrl);
   }
   if (loader.kind === "epoch_runs") {
-    return () => getEpochBenchmarkStats(binding.benchmark, loader.task);
+    return () => getEpochBenchmarkStats(binding.benchmark, loader.task, loader.eligibility);
   }
   if (loader.kind === "mls_bench") {
     return () => getMlsBenchStats(loader.sourceUrl);
@@ -74,6 +75,9 @@ export function benchmarkObservationSourceFetcher(
   }
   if (loader.kind === "weirdml") {
     return () => getWeirdMlStats();
+  }
+  if (loader.kind === "automation_bench") {
+    return () => getAutomationBenchStats(loader);
   }
   if (loader.kind === "zeroeval") {
     return () =>

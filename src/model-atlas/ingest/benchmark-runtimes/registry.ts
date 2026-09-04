@@ -20,7 +20,6 @@ import { getFrontierCodeStats } from "../../scrapers/benchmarks/frontier-code";
 import { getMercorApexAgentsStats } from "../../scrapers/benchmarks/mercor-apex-agents";
 import { getRiemannBenchStats } from "../../scrapers/benchmarks/surge/riemann-bench";
 import { getTerminalBench4Stats } from "../../scrapers/benchmarks/terminal-bench-4";
-import { getHarveyLabStats } from "../../scrapers/benchmarks/vals/harvey-lab";
 import { getValsIndexStats } from "../../scrapers/benchmarks/vals/index-benchmark";
 import { getVendingBench2Stats } from "../../scrapers/benchmarks/vending-bench-2";
 import type { ModelAtlasSourceRows } from "../assembly/source-data";
@@ -40,7 +39,6 @@ import { blueprintBenchRuntime } from "./blueprint-bench";
 import { cursorBenchRuntime } from "./cursorbench";
 import { deepSWERuntime } from "./deep-swe";
 import { frontierCodeRuntime } from "./frontier-code";
-import { harveyLabRuntime } from "./harvey-lab";
 import { mercorApexAgentsRuntime } from "./mercor-apex-agents";
 import { insertBenchmarkObservationRows } from "./observation";
 import { riemannBenchRuntime } from "./riemann-bench";
@@ -159,12 +157,6 @@ const SURGE_BENCHMARK_RUNTIMES = {
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"surge">, object>;
 
 const VALS_BENCHMARK_RUNTIMES = {
-  vals_harvey_lab: defineBenchmarkRuntime({
-    ...harveyLabRuntime,
-    sourceRowsKey: "harveyLabRows",
-    loadSourceRows: async () => (await getHarveyLabStats()).model_scores,
-    sourceRowsFromSnapshots: (snapshots) => snapshots.harveyLabModelScoreRows,
-  }),
   vals_index: defineBenchmarkRuntime({
     ...valsIndexRuntime,
     sourceRowsKey: "valsIndexRows",

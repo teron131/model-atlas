@@ -67,11 +67,6 @@ import {
   type TerminalBench4RowsByModelName,
 } from "../../scrapers/benchmarks/terminal-bench-4";
 import {
-  buildHarveyLabMap,
-  type HarveyLabModelScoreRow,
-  type HarveyLabRowsByModelName,
-} from "../../scrapers/benchmarks/vals/harvey-lab";
-import {
   buildValsIndexMap,
   type ValsIndexModelScoreRow,
   type ValsIndexRowsByModelName,
@@ -141,7 +136,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     rowsByModelName: DeepSWERowsByModelName;
   };
   frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
-  harveyLab: IndexedSourceRows<HarveyLabModelScoreRow, HarveyLabRowsByModelName>;
   mercorApexAgents: IndexedSourceRows<MercorApexAgentsRow, MercorApexAgentsRowsByModelName>;
   riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
   terminalBench4: IndexedSourceRows<TerminalBench4ModelAgentRow, TerminalBench4RowsByModelName>;
@@ -164,7 +158,6 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
   deepSWEEffortRows: DeepSWELeaderboardRow[];
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
-  harveyLabRows: ModelAtlasSourceData["harveyLab"]["rows"];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
   terminalBench4Rows: ModelAtlasSourceData["terminalBench4"]["rows"];
@@ -258,10 +251,6 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
     frontierCode: {
       rows: rows.frontierCodeRows,
       rowsByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
-    },
-    harveyLab: {
-      rows: rows.harveyLabRows,
-      rowsByModelName: buildHarveyLabMap(rows.harveyLabRows),
     },
     mercorApexAgents: {
       rows: rows.mercorApexAgentsRows,

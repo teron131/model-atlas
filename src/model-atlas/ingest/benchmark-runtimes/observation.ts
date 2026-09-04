@@ -1,10 +1,11 @@
 /** Benchmark-observation runtime owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
 
 import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
+import type { EpochRunEligibility } from "../../benchmarks/factory";
 import {
-  type BenchmarkObservationMetadata,
   type BenchmarkObservationPayload,
   type BenchmarkObservationRow,
+  parseBenchmarkObservationMetadata,
   resourcePerTaskRun,
 } from "../../benchmarks/observation";
 import {
@@ -29,18 +30,6 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import type { DatabaseWriter } from "../writers/database";
-
-function benchmarkObservationMetadata(value: unknown): BenchmarkObservationMetadata | null {
-  if (typeof value !== "string") return null;
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as BenchmarkObservationMetadata)
-      : null;
-  } catch {
-    return null;
-  }
-}
 
 function readBenchmarkObservationRows(
   cache: CacheRowSource,
@@ -68,7 +57,7 @@ function readBenchmarkObservationRows(
     const taskRunCount = asFiniteNumber(row.task_run_count);
     const totalCostUsd = asFiniteNumber(row.total_cost_usd);
     const totalTokens = asFiniteNumber(row.total_tokens);
-    const metadata = benchmarkObservationMetadata(row.metadata_json);
+    const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
     const reasoningEffort = stringValue(row.reasoning_effort);
     if (
       rowBenchmarkKey !== benchmarkKey ||
@@ -124,6 +113,81 @@ function readBenchmarkObservationRows(
   return rows.length === 0 ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
 }
 
+function rowsMatchLoader(
+  rows: readonly BenchmarkObservationRow[],
+  binding: BenchmarkObservationBinding,
+): boolean {
+  const loader = binding.loader;
+  if (loader.kind === "epoch_runs") {
+    const eligibility: EpochRunEligibility =
+      "eligibility" in loader ? (loader.eligibility ?? {}) : {};
+    const excludedModelIds = new Set(eligibility.excludedModelIds ?? []);
+    return rows.every(
+      (row) =>
+        row.metadata.task === loader.task &&
+        (eligibility.taskVersion == null ||
+          row.metadata.task_version === eligibility.taskVersion) &&
+        (eligibility.originalTaskName == null ||
+          row.metadata.original_task_name === eligibility.originalTaskName) &&
+        (eligibility.runIdPrefix == null ||
+          (typeof row.metadata.run_id === "string" &&
+            row.metadata.run_id.startsWith(eligibility.runIdPrefix))) &&
+        (row.model_id == null || !excludedModelIds.has(row.model_id)),
+    );
+  }
+  if (loader.kind === "vals") {
+    return rows.every((row) => row.metadata.task === loader.canonicalTask);
+  }
+  if (loader.kind === "automation_bench") {
+    return rows.every((row) => row.metadata.metric === "task_completed_correctly");
+  }
+  return true;
+}
+
+function arcAgi3HarnessCount(row: BenchmarkObservationRow): number | null {
+  if (row.metadata.observation_role === "component") {
+    return row.metadata.harness === "standard" || row.metadata.harness === "provider_adapter"
+      ? 1
+      : null;
+  }
+  if (row.metadata.observation_role !== "canonical") return null;
+  const harnesses = row.metadata.harnesses;
+  const validHarnesses = Array.isArray(harnesses)
+    ? harnesses.filter(
+        (harness): harness is "standard" | "provider_adapter" =>
+          harness === "standard" || harness === "provider_adapter",
+      )
+    : [];
+  if (
+    !Array.isArray(harnesses) ||
+    validHarnesses.length === 0 ||
+    validHarnesses.length !== harnesses.length ||
+    new Set(validHarnesses).size !== validHarnesses.length
+  ) {
+    return null;
+  }
+  return validHarnesses.length;
+}
+
+function arcAgi3ResourcesAreCurrent(rows: readonly BenchmarkObservationRow[]): boolean {
+  return rows.every((row) => {
+    const harnessCount = arcAgi3HarnessCount(row);
+    if (
+      harnessCount == null ||
+      row.task_run_count !== BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount * harnessCount
+    ) {
+      return false;
+    }
+    if (row.cost == null) return row.total_cost_usd == null;
+    return (
+      row.cost >= 0 &&
+      row.total_cost_usd != null &&
+      row.total_cost_usd >= 0 &&
+      row.cost === resourcePerTaskRun(row.total_cost_usd, row.task_run_count)
+    );
+  });
+}
+
 /** Reconstruct one catalog-declared benchmark-observation source from SQLite or collected rows. */
 export function readBenchmarkObservationRawCache(
   cache: CacheRowSource,
@@ -137,6 +201,7 @@ export function readBenchmarkObservationRawCache(
     expectedUrl,
   );
   if (cached == null) return null;
+  if (!rowsMatchLoader(cached.rows, binding)) return null;
   if (binding.loader.kind === "terminal_bench_science") {
     const resourcesAreCurrent = cached.rows.every((row) => {
       return (
@@ -155,19 +220,7 @@ export function readBenchmarkObservationRawCache(
     return resourcesAreCurrent ? cached : null;
   }
   if (binding.loader.kind === "arc_prize" && binding.benchmark === "arc_agi_3") {
-    const resourcesAreCurrent = cached.rows.every((row) => {
-      if (row.task_run_count !== BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount) {
-        return false;
-      }
-      if (row.cost == null) return row.total_cost_usd == null;
-      return (
-        row.cost >= 0 &&
-        row.total_cost_usd != null &&
-        row.total_cost_usd >= 0 &&
-        row.cost === resourcePerTaskRun(row.total_cost_usd, row.task_run_count)
-      );
-    });
-    return resourcesAreCurrent ? cached : null;
+    return arcAgi3ResourcesAreCurrent(cached.rows) ? cached : null;
   }
   return cached;
 }

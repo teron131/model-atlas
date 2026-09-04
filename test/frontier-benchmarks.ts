@@ -91,6 +91,13 @@ assert.deepEqual(
   ],
   "filtered chart rows should retain normalization from the full reference cohort",
 );
+assert.deepEqual(
+  normalizedFrontierBenchmarkScoreRows([{ ...topRow, score: 100 }], referenceRows).map(
+    (row) => row.score,
+  ),
+  [100],
+  "displayed models above the reference maximum should remain within the normalized score scale",
+);
 const cursorRows = rows.map((row) => ({
   ...row,
   benchmarkKey: "cursorbench",

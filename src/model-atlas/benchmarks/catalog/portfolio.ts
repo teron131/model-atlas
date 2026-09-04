@@ -10,12 +10,6 @@ import type {
 type BenchmarkScoringWeight = Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 type BenchmarkResourceMeasurement = Omit<BenchmarkResourcePolicy, "qualityCoordinate">;
 
-const ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE = {
-  source: "artificial_analysis",
-  unit: "per_task",
-  tokenMeasure: "tokens",
-} as const satisfies BenchmarkResourceMeasurement;
-
 const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE = {
   source: "artificial_analysis",
   unit: "per_task",
@@ -102,7 +96,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   arc_agi_3: {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   automation_bench: {
     group: "frontier",
@@ -135,7 +129,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   code_migration: {
-    group: "baseline",
+    group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
@@ -165,8 +159,8 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   ebr_bench: {
-    group: "baseline",
-    benchmarkImportance: 0.5,
+    group: "frontier",
+    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   emb: {
@@ -190,6 +184,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
+  frontiermath_erdos: {
+    group: "frontier",
+    benchmarkImportance: 0.5,
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
   frontiermath_tier_4: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -209,11 +208,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
-  },
-  harvey_lab: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   hemingway_bench: {
     group: "baseline",
@@ -240,6 +234,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
+  mirrorcode: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+  },
   omniscience_accuracy: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -256,7 +255,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   proofbench: {
-    group: "frontier",
+    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
@@ -274,6 +273,16 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
+  simpleqa_verified: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
+  sre_bench: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   surge_intelligence_index: INDEX_SCORING_WEIGHT,
   tau_banking: {
@@ -324,7 +333,6 @@ export const BENCHMARK_RESOURCE_PROFILES = {
   analyst_agent: { taskRunCount: 80 },
   apex_agents: { taskRunCount: 452 },
   arc_agi_3: { taskRunCount: 55 },
-  automation_bench: { taskRunCount: 657 },
   briefcase: { taskRunCount: 91 },
   critpt: { taskRunCount: 70 },
   gdpval_normalized: { taskRunCount: 220 },
@@ -362,7 +370,7 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     qualityCoordinate: "linear",
   },
   automation_bench: {
-    ...ARTIFICIAL_ANALYSIS_PER_TASK_RESOURCE,
+    ...BENCHMARK_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },
   briefcase: {
@@ -388,10 +396,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   gdpval_normalized: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "linear",
-  },
-  harvey_lab: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
   },
   hle: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

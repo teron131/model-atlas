@@ -23,6 +23,7 @@ import {
 } from "../src/model-atlas/ingest/source-snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { processAutomationBenchModule } from "../src/model-atlas/scrapers/benchmarks/automation-bench";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/scrapers/benchmarks/epoch/capabilities-index";
 import { epochBenchmarkObservationRows } from "../src/model-atlas/scrapers/benchmarks/epoch/results";
 import {
@@ -79,6 +80,50 @@ const epochFrontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol")?.canonical_value, 0.561);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol--max")?.canonical_value, 0.561);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol-pro")?.canonical_value, 0.52);
+
+const selectedEpochRuns = parseCsvRecords(
+  "id_runs,task,started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,original_task_name\n" +
+    "erdos,FrontierMath-Erdos,2026-08-20,Success,1.0.0,gpt-6-astra,GPT-6 Astra,GPT-6 Astra (max),OpenAI,0.0294118,FrontierMath-Erdos\n" +
+    "mirrorcode-ml-2l-fable,MirrorCode,2026-08-20,Success,1.0.0,claude-fable-5,Claude Fable 5,Claude Fable 5 (max),Anthropic,0.64,MirrorCode\n" +
+    "mirrorcode-paper-sol,MirrorCode,2026-08-20,Success,1.0.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.8,MirrorCode\n" +
+    "simple-current,SimpleQA Verified,2026-08-27,Success,1.2.0,gemini-3-1-pro,Gemini 3.1 Pro,Gemini 3.1 Pro,Google,0.71,SimpleQA Verified (anti-abstention)\n" +
+    "simple-old,SimpleQA Verified,2026-08-20,Success,1.1.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol,OpenAI,0.9,SimpleQA Verified\n" +
+    "simple-contaminated,SimpleQA Verified,2026-08-27,Success,1.2.0,qwen3-max-2025-09-23,Qwen3 Max,Qwen3 Max,Alibaba,0.99,SimpleQA Verified (anti-abstention)\n",
+);
+assert.deepEqual(
+  epochBenchmarkObservationRows(selectedEpochRuns, "frontiermath_erdos", "FrontierMath-Erdos").map(
+    (row) => row.canonical_value,
+  ),
+  [0.0294118],
+);
+assert.deepEqual(
+  epochBenchmarkObservationRows(selectedEpochRuns, "mirrorcode", "MirrorCode", {
+    runIdPrefix: "mirrorcode-ml-2l-",
+  }).map((row) => row.model_id),
+  ["claude-fable-5"],
+);
+assert.deepEqual(
+  epochBenchmarkObservationRows(selectedEpochRuns, "simpleqa_verified", "SimpleQA Verified", {
+    taskVersion: "1.2.0",
+    originalTaskName: "SimpleQA Verified (anti-abstention)",
+    excludedModelIds: ["qwen3-max-2025-09-23"],
+  }).map((row) => row.model_id),
+  ["gemini-3-1-pro"],
+);
+
+const automationBenchRows = processAutomationBenchModule(
+  "const v=`1.0.6`,B=[[1,`Claude Fable 5.1 with Opus 5 fallback`,`56.77%`,`$0.18*`],[2,`Gemini 3.7 Flash (High)`,`30.44%`,`$0.07`],[3,`GPT-5.6 Sol (Max)`,`28.77%`,`$0.31†`]];const metric=`task_completed_correctly`;",
+  "https://zapier.com/benchmarks",
+);
+assert.deepEqual(
+  automationBenchRows.map(({ model, canonical_value, cost }) => ({ model, canonical_value, cost })),
+  [
+    { model: "Gemini 3.7 Flash (High)", canonical_value: 0.3044, cost: 0.07 },
+    { model: "GPT-5.6 Sol (Max)", canonical_value: 0.2877, cost: 0.31 },
+  ],
+);
+assert.equal(automationBenchRows[0]?.metadata.benchmark_version, "1.0.6");
+assert.equal(automationBenchRows[1]?.metadata.cost_annotation, "†");
 
 const conflictingModelIdLookup = buildBenchmarkObservationLookup([
   {
@@ -149,6 +194,17 @@ function benchmarkObservationBinding(sourceDataKey: string) {
   return binding;
 }
 
+function valsPage(tasks: Record<string, unknown>): string {
+  return `<astro-island component-url="/_astro/BenchmarkView.hash.js" props="${JSON.stringify({
+    benchmarkView: astro({
+      default: astro({
+        metadata: astro({ updated: astro("2026-09-03"), version: astro("1") }),
+        tasks: astro(tasks),
+      }),
+    }),
+  }).replace(/"/g, "&quot;")}"></astro-island>`;
+}
+
 const proofHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" props="${JSON.stringify(
   {
     benchmarkView: astro({
@@ -189,6 +245,45 @@ assert.equal(proof.length, 1);
 assert.equal(
   proof.some((row) => row.model_id === "aristotle/aristotle"),
   false,
+);
+
+const programBinding = benchmarkObservationBinding("programBench");
+assert.equal(programBinding.loader.kind, "vals");
+if (programBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
+const program = processValsBenchmarkPageHtml(
+  valsPage({
+    partial: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(82.3) }) }),
+    almost: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(41.5) }) }),
+    strict: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(3) }) }),
+  }),
+  {
+    benchmarkKey: programBinding.benchmark,
+    canonicalTask: programBinding.loader.canonicalTask,
+    sourceUrl: programBinding.loader.sourceUrl,
+  },
+);
+assert.deepEqual(
+  program.map((row) => row.canonical_value),
+  [0.415],
+);
+
+const sreBinding = benchmarkObservationBinding("sreBench");
+assert.equal(sreBinding.loader.kind, "vals");
+if (sreBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
+const sre = processValsBenchmarkPageHtml(
+  valsPage({
+    overall: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(12) }) }),
+    partial: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(59.542) }) }),
+  }),
+  {
+    benchmarkKey: sreBinding.benchmark,
+    canonicalTask: sreBinding.loader.canonicalTask,
+    sourceUrl: sreBinding.loader.sourceUrl,
+  },
+);
+assert.deepEqual(
+  sre.map((row) => row.canonical_value),
+  [0.59542],
 );
 
 const surge = processSurgeBenchmarkPageHtml(
@@ -401,10 +496,12 @@ const collector = new SnapshotRowCollector();
 const chess = frontierMath.map((row) => ({
   ...row,
   benchmark_key: "chess_puzzles",
+  metadata: { ...row.metadata, task: "Chess Puzzles" },
 }));
 const ebr = frontierMath.map((row) => ({
   ...row,
   benchmark_key: "ebr_bench",
+  metadata: { ...row.metadata, task: "EBR-bench" },
 }));
 const handbook = surge.map((row) => ({
   ...row,
@@ -434,6 +531,7 @@ const snapshots = {
   frontierMathTier4Rows: frontierMath,
   handbookMdRows: handbook,
   hemingwayBenchRows: hemingway,
+  programBenchRows: program,
   proofBenchRows: proof,
   terminalBenchScienceRows: [],
   weirdMlRows: weirdMl,
@@ -450,6 +548,7 @@ const snapshots = {
     frontierMathTier4: 1_784_000_001,
     handbookMd: 1_784_000_005,
     hemingwayBench: 1_784_000_010,
+    programBench: 1_784_000_011,
     proofBench: 1_784_000_007,
     weirdMl: 1_784_000_008,
   },
@@ -464,6 +563,7 @@ const expectedBySourceDataKey = {
   frontierMathTier4: { rows: frontierMath, fetchedAt: 1_784_000_001 },
   handbookMd: { rows: handbook, fetchedAt: 1_784_000_005 },
   hemingwayBench: { rows: hemingway, fetchedAt: 1_784_000_010 },
+  programBench: { rows: program, fetchedAt: 1_784_000_011 },
   proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
   weirdMl: { rows: weirdMl, fetchedAt: 1_784_000_008 },
 };
@@ -490,6 +590,22 @@ for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey))
     );
   }
 }
+
+const persistedProgramRows = collector
+  .records(BENCHMARK_OBSERVATION_RAW_TABLE)
+  .map((row) =>
+    row.source_key === "programbench"
+      ? { ...row, metadata_json: JSON.stringify({ task: "partial" }) }
+      : row,
+  );
+assert.equal(
+  readBenchmarkObservationRawCache(
+    persistedProgramRows,
+    benchmarkObservationBinding("programBench"),
+  ),
+  null,
+  "ProgramBench cache rows from the previous metric must refetch",
+);
 
 const persistedFrontierMathRows = collector
   .records(BENCHMARK_OBSERVATION_RAW_TABLE)

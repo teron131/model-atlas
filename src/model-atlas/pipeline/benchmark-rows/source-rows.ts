@@ -1,6 +1,9 @@
 /** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
 
-import type { BenchmarkObservationRow } from "../../benchmarks/observation";
+import {
+  type BenchmarkObservationRow,
+  isCanonicalBenchmarkObservation,
+} from "../../benchmarks/observation";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
@@ -101,7 +104,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     if (source?.rows == null) {
       throw new Error(`Benchmark observation source-data rows are missing: ${sourceDataKey}`);
     }
-    return source.rows.map((row) => ({
+    return source.rows.filter(isCanonicalBenchmarkObservation).map((row) => ({
       key: row.benchmark_key,
       id: row.model_id,
       identity: row.base_model,
@@ -298,7 +301,6 @@ export function benchmarkRowsFromSourceData(sourceData: ModelAtlasSourceData): B
     ...artificialAnalysisBenchmarkRowDrafts(sourceData),
     ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
     ...sourceData.riemannBench.rows.map(riemannBenchmarkDraft),
-    ...modelScoreRowDrafts("harvey_lab", sourceData.harveyLab.rows),
     ...modelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),
   ]);
 }
