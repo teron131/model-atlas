@@ -233,13 +233,17 @@ export function DashboardLeaderboard({
     () => tableColumnSearchMatchCount(columnFilterQuery, columnTooltips),
     [columnFilterQuery, columnTooltips],
   );
+  const rowKind = deferredShowVariants ? "variants" : "models";
   const activeTooltipContent =
     tooltip == null
       ? undefined
       : tooltip.kind === "change"
         ? tooltip.content
-        : tableColumnTooltip(tooltip.key, columnTooltips);
-  const rowKind = deferredShowVariants ? "variants" : "models";
+        : tableColumnTooltip(tooltip.key, columnTooltips, {
+            models: visibleRows.map((row) => row.model),
+            scoring: payload?.metadata.scoring,
+            unit: rowKind,
+          });
   const rowCountLabel = deferredFilterQuery.length > 0 ? `${matchingRows.length} matches` : null;
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 

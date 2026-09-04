@@ -10,6 +10,7 @@ import type {
   ModelAtlasPublishedModel,
   ModelAtlasScoreDimension,
 } from "../../../src/model-atlas/stats/types";
+import { benchmarkTooltip, type BenchmarkTooltipContext } from "../shared/benchmark-tooltips";
 import { benchmarkTooltips } from "../shared/constants";
 import { modelDisplayName } from "../shared/model-display";
 import {
@@ -165,8 +166,8 @@ function taskMetricTooltipEntry(
       ],
     ];
   }
-  const benchmarkTooltip = benchmarkTooltips[column.source];
-  if (benchmarkTooltip == null) {
+  const sourceTooltip = benchmarkTooltips[column.source];
+  if (sourceTooltip == null) {
     return [];
   }
   const metricTooltip = defaultTaskMetricText[column.metric];
@@ -177,15 +178,14 @@ function taskMetricTooltipEntry(
     [
       column.key,
       {
-        title: `${benchmarkTooltip.title} ${metricTooltip.title}${
+        title: `${sourceTooltip.title} ${metricTooltip.title}${
           column.direction === "ascending" ? " ↓" : ""
         }`,
-        body: `${metricTooltip.body} for ${benchmarkTooltip.title}.`,
+        body: `${metricTooltip.body} for ${sourceTooltip.title}.`,
         rows: [
           [
             "Source",
-            benchmarkTooltip.rows?.find(([label]) => label === "Source")?.[1] ??
-              benchmarkTooltip.title,
+            sourceTooltip.rows?.find(([label]) => label === "Source")?.[1] ?? sourceTooltip.title,
           ],
           ["Metric", metricTooltip.row],
         ],
@@ -195,7 +195,17 @@ function taskMetricTooltipEntry(
 }
 
 /** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */
-export function tableColumnTooltip(key: TableColumnKey, columnTooltips: ModelAtlasColumnTooltips) {
+export function tableColumnTooltip(
+  key: TableColumnKey,
+  columnTooltips: ModelAtlasColumnTooltips,
+  context?: BenchmarkTooltipContext,
+) {
+  if (context != null) {
+    const benchmark = benchmarkMetricColumns.find((column) => column.key === key);
+    if (benchmark != null) {
+      return benchmarkTooltip(benchmark.benchmark, context);
+    }
+  }
   return fallbackColumnTooltips[key] ?? columnTooltips[key];
 }
 

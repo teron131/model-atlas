@@ -12,8 +12,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { benchmarkMetricValue } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import {
+  benchmarkCoverage,
+  benchmarkCoverageLabel,
+  benchmarkTooltip,
+} from "./shared/benchmark-tooltips";
 import {
   ColumnTooltip,
   tooltipPositionFromElement,
@@ -35,10 +39,12 @@ export const BenchmarkStrip = memo(function BenchmarkStrip({
   payload,
   models,
   isLoading,
+  unit = "models",
 }: {
   payload: ModelAtlasPayload | null;
   models: ModelAtlasPayload["models"];
   isLoading: boolean;
+  unit?: "models" | "variants";
 }) {
   const scoring = payload?.metadata?.scoring;
   const benchmarkPortfolio = scoring?.benchmark_portfolio ?? {};
@@ -50,9 +56,7 @@ export const BenchmarkStrip = memo(function BenchmarkStrip({
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [hoveredBenchmarkKey, setHoveredBenchmarkKey] = useState<string | null>(null);
   const activeTooltipContent =
-    tooltip == null
-      ? undefined
-      : tooltipWithCoverage(benchmarkTooltips[tooltip.key], benchmarkCoverage(models, tooltip.key));
+    tooltip == null ? undefined : benchmarkTooltip(tooltip.key, { models, scoring, unit });
   const clearBenchmarkHover = useCallback(() => {
     setTooltip(null);
     setHoveredBenchmarkKey(null);
@@ -252,44 +256,10 @@ function BenchmarkTier({
   );
 }
 
-type BenchmarkCoverage = {
-  observed: number;
-  total: number;
-};
-
-/** Count only observed benchmark values across the models in the current global view. */
-function benchmarkCoverage(models: ModelAtlasPayload["models"], key: string): BenchmarkCoverage {
-  return {
-    observed: models.filter((model) => benchmarkMetricValue(model, key) != null).length,
-    total: models.length,
-  };
-}
-
-function benchmarkCoverageLabel({ observed, total }: BenchmarkCoverage): string {
-  return total === 0 ? "-" : `${Math.round((observed / total) * 100)}%`;
-}
-
-function coverageAriaLabel(coverage: BenchmarkCoverage): string {
+function coverageAriaLabel(coverage: ReturnType<typeof benchmarkCoverage>): string {
   return coverage.total === 0
     ? "no models in current view"
     : `${benchmarkCoverageLabel(coverage)} coverage in current model view`;
-}
-
-function tooltipWithCoverage(
-  tooltip: (typeof benchmarkTooltips)[string] | undefined,
-  coverage: BenchmarkCoverage,
-) {
-  if (tooltip == null) {
-    return undefined;
-  }
-  const coverageValue =
-    coverage.total === 0
-      ? "No models in current view"
-      : `${coverage.observed} of ${coverage.total} models (${benchmarkCoverageLabel(coverage)})`;
-  return {
-    ...tooltip,
-    rows: [...(tooltip.rows ?? []), ["Coverage", coverageValue] as const],
-  };
 }
 
 function LoadingBenchmarkList({ label }: { label: string }) {
