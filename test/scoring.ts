@@ -216,8 +216,8 @@ const previewScoreResult = buildPreviewComponentScoreResult(
     ]),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 88.2979);
-assertClose(previewScoreResult.componentScores?.agentic_score, 98.7805);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 90);
+assertClose(previewScoreResult.componentScores?.agentic_score, 96.5116);
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
@@ -403,12 +403,12 @@ assert.deepEqual(
     code_migration: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 1, agentic: 0 },
+      dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     cyberbench: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+      dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     emb: {
       group: "frontier",
@@ -428,7 +428,7 @@ assert.deepEqual(
     programbench: {
       group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 1, agentic: 0 },
+      dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     public_benefits_bench: {
       group: "baseline",
@@ -438,7 +438,7 @@ assert.deepEqual(
     vibe_code: {
       group: "baseline",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+      dimensionLoadings: { intelligence: 0, agentic: 1 },
     },
   },
 );

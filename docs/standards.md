@@ -8,24 +8,26 @@ The current portfolio, source precedence, metric selection, and scoring roles ar
 
 Every accepted benchmark must measure at least one of two capabilities:
 
-1. **Intelligence:** acquiring and interpreting knowledge, reasoning and exercising judgment, solving problems, and constructing correct or valuable artifacts such as answers, analyses, plans, proofs, code, documents, or models.
-2. **Agentic ability:** carrying instructions through action by following complex or persistent constraints, selecting and sequencing tools, using feedback, maintaining external state, self-verifying, recovering from failures, and persisting through a multi-step task.
+1. **Intelligence:** knowledge, perception, conceptual understanding, abstract reasoning, and judgment in difficult problems. Coding contributes when success requires substantial algorithmic, mathematical, scientific, or research reasoning beyond routine software implementation.
+2. **Agentic ability:** reliably turning goals and specifications into working results through coding, instruction following, planning and coordinating actions, tool use, state management, verification, recovery, and persistence.
 
-Classification follows the intended scored capability before the interface. Code, proofs, documents, files, repositories, browsers, terminals, compilers, and interpreters are neutral media: their presence does not itself earn Agentic loading. A benchmark earns Agentic loading only when instruction fidelity, tool orchestration, or stateful execution materially determines the score.
+Coding benchmarks default to primarily Agentic evidence. Writing, modifying, migrating, testing, debugging, and delivering software measure the ability to carry specifications through execution, including when correctness is assessed only through the finished program.
+
+Intelligence loading in a coding benchmark needs a specific reasoning justification, such as deriving a difficult algorithm, constructing a mathematical proof, formulating a scientific model, or solving a research problem. Increase that loading when those demands materially determine success, potentially making Intelligence dominant. Repository size, lengthy execution, difficult setup, or a scientific topic label alone do not establish that reasoning demand.
 
 Ordinary compliance with a task prompt is common to every benchmark and does not make every benchmark Agentic. Instruction fidelity becomes Agentic evidence when the benchmark deliberately stresses and scores interdependent, conditional, implicit, conflicting, long-horizon, or state-dependent requirements. Likewise, merely running a verifier is not tool orchestration; the model must select or sequence actions, use feedback, manage state, or recover.
 
-Use the completed-artifact counterfactual when the distinction is unclear: if a correct artifact could be submitted directly and would fully represent success, the benchmark is primarily Intelligence even when the artifact is code or a proof. A mixed loading is justified when the benchmark also scores how reliably the model translates instructions into actions, coordinates tools, or completes a stateful workflow.
+Assign loadings from the demands of completing the actual task and the causes of success or failure. A final-output test can measure coding execution, instruction fidelity, or workflow reliability without separately awarding points for intermediate actions. The format of the deliverable or grader does not determine the dimension. Use mixed loadings when substantive reasoning and reliable execution both materially determine success.
 
 Dimension loadings use a coarse five-level scale so incidental mechanics do not create false precision:
 
 | Intelligence / Agentic | Meaning |
 | --- | --- |
-| 100% / 0% | The scored construct is Intelligence; any execution mechanics are incidental. |
+| 100% / 0% | Knowledge, understanding, or reasoning determines success; coding and workflow execution demands are negligible. |
 | 75% / 25% | Intelligence dominates, with a material but secondary Agentic component. |
 | 50% / 50% | Both capabilities independently and materially determine success. |
 | 25% / 75% | Agentic ability dominates, with substantive Intelligence still required. |
-| 0% / 100% | The scored construct is instruction fidelity, tool orchestration, or stateful execution; domain reasoning is incidental to that construct. |
+| 0% / 100% | Coding execution, instruction fidelity, tool orchestration, or workflow completion determines success; no substantial additional reasoning demand earns Intelligence loading. |
 
 Endpoints are normal, not exceptional. A review should assign weight only to capabilities the benchmark materially scores and explain every cross-loading. Provenance never determines capability loading.
 

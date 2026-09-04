@@ -12,10 +12,12 @@ The four scores answer different questions:
 
 | Score | Question |
 | --- | --- |
-| Intelligence | How strong is the model at knowledge, reasoning, judgment, problem solving, and constructing correct or valuable artifacts? |
-| Agentic | How reliably does the model follow complex instructions, orchestrate tools, manage external state, verify progress, and recover through multi-step work? |
+| Intelligence | How strong is the model at knowledge, perception, understanding, abstract reasoning, and judgment in difficult problems? |
+| Agentic | How reliably does the model turn goals and specifications into working results through coding, instruction following, tool use, verification, and recovery? |
 | Speed | How quickly does the model deliver comparable work? |
 | Value | How much quality and capability does the model deliver for its cost? |
+
+Coding benchmarks default to primarily Agentic evidence. Intelligence loading is earned when success requires substantial algorithmic, mathematical, scientific, or research reasoning beyond routine software implementation.
 
 ## Documentation
 
