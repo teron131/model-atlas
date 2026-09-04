@@ -923,6 +923,7 @@ function modelStatsSourceData(
     },
     arcAgi2: { rows: [], rowsByModelName: new Map() },
     arcAgi3: { rows: [], rowsByModelName: new Map() },
+    automationBench: { rows: [], rowsByModelName: new Map() },
     blueprintBench: {
       rows: blueprintBenchModelScoreRows,
       rowsByModelName: buildBlueprintBenchMap(blueprintBenchModelScoreRows),
@@ -950,16 +951,17 @@ function modelStatsSourceData(
     epochCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
     financeAgentV2: { rows: [], rowsByModelName: new Map() },
     frontierCode: { rows: [], rowsByModelName: new Map() },
+    frontierMathErdos: { rows: [], rowsByModelName: new Map() },
     frontierMathTier4: { rows: [], rowsByModelName: new Map() },
     gdpPdf: {
       rows: gdpPdfRows,
       rowsByModelName: buildBenchmarkObservationLookup(gdpPdfRows),
     },
     handbookMd: { rows: [], rowsByModelName: new Map() },
-    harveyLab: { rows: [], rowsByModelName: new Map() },
     hemingwayBench: { rows: [], rowsByModelName: new Map() },
     legalResearch: { rows: [], rowsByModelName: new Map() },
     mlsBench: { rows: [], rowsByModelName: new Map() },
+    mirrorCode: { rows: [], rowsByModelName: new Map() },
     omniscienceAccuracy: { rows: [], rowsByModelName: new Map() },
     mercorApexAgents: {
       rows: [],
@@ -973,6 +975,8 @@ function modelStatsSourceData(
       rows: riemannBenchModelScoreRows,
       rowsByModelName: buildRiemannBenchMap(riemannBenchModelScoreRows),
     },
+    simpleQaVerified: { rows: [], rowsByModelName: new Map() },
+    sreBench: { rows: [], rowsByModelName: new Map() },
     surgeIntelligenceIndex: { rows: [], rowsByModelName: new Map() },
     terminalBench4: {
       rows: [],

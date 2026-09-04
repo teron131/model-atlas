@@ -35,6 +35,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "arcAgi3",
     sourceRowsKey: "arcAgi3Rows",
   },
+  automation_bench: {
+    group: "standalone",
+    id: "zapier",
+    roles: ["observation", "resource"],
+    loader: {
+      kind: "automation_bench",
+      sourceUrl: "https://zapier.com/benchmarks",
+    },
+    sourceDataKey: "automationBench",
+    sourceRowsKey: "automationBenchRows",
+  },
   browsecomp: {
     group: "standalone",
     id: "zeroeval",
@@ -143,6 +154,13 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "financeAgentV2",
     sourceRowsKey: "financeAgentV2Rows",
   },
+  frontiermath_erdos: {
+    group: "epoch",
+    id: "epoch",
+    loader: { kind: "epoch_runs", task: "FrontierMath-Erdos" },
+    sourceDataKey: "frontierMathErdos",
+    sourceRowsKey: "frontierMathErdosRows",
+  },
   frontiermath_tier_4: {
     group: "epoch",
     id: "epoch",
@@ -205,6 +223,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "mlsBench",
     sourceRowsKey: "mlsBenchRows",
   },
+  mirrorcode: {
+    group: "epoch",
+    id: "epoch",
+    loader: {
+      kind: "epoch_runs",
+      task: "MirrorCode",
+      eligibility: { runIdPrefix: "mirrorcode-ml-2l-" },
+    },
+    sourceDataKey: "mirrorCode",
+    sourceRowsKey: "mirrorCodeRows",
+  },
   omniscience_accuracy: {
     group: "artificial_analysis",
     id: "artificial_analysis",
@@ -230,7 +259,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     id: "vals",
     loader: {
       kind: "vals",
-      canonicalTask: "partial",
+      canonicalTask: "almost",
       sourceUrl: "https://www.vals.ai/benchmarks/programbench",
     },
     sourceDataKey: "programBench",
@@ -259,6 +288,32 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "publicBenefitsBench",
     sourceRowsKey: "publicBenefitsBenchRows",
+  },
+  simpleqa_verified: {
+    group: "epoch",
+    id: "epoch",
+    loader: {
+      kind: "epoch_runs",
+      task: "SimpleQA Verified",
+      eligibility: {
+        taskVersion: "1.2.0",
+        originalTaskName: "SimpleQA Verified (anti-abstention)",
+        excludedModelIds: ["qwen3-max-2025-09-23"],
+      },
+    },
+    sourceDataKey: "simpleQaVerified",
+    sourceRowsKey: "simpleQaVerifiedRows",
+  },
+  sre_bench: {
+    group: "vals",
+    id: "vals",
+    loader: {
+      kind: "vals",
+      canonicalTask: "partial",
+      sourceUrl: "https://www.vals.ai/benchmarks/srebench",
+    },
+    sourceDataKey: "sreBench",
+    sourceRowsKey: "sreBenchRows",
   },
   surge_intelligence_index: {
     group: "surge",
@@ -412,23 +467,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  automation_bench: {
-    inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation", "resource"],
-        adapters: [
-          {
-            kind: "artificial_analysis_resource_page",
-            scorePath: ["automationBenchBreakdown", "completion"],
-            resourceKey: "automationBench",
-            url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
-          },
-        ],
-      },
-    ],
-  },
   blueprint_bench_2: {
     inputs: [
       {
@@ -517,16 +555,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
           },
         ],
-      },
-    ],
-  },
-  harvey_lab: {
-    inputs: [
-      {
-        group: "vals",
-        id: "vals",
-        roles: ["observation", "resource"],
-        runtime: { key: "vals_harvey_lab", publicRows: true },
       },
     ],
   },

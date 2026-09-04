@@ -18,10 +18,6 @@ import type { MercorApexAgentsRow } from "../scrapers/benchmarks/mercor-apex-age
 import type { RiemannBenchModelScoreRow } from "../scrapers/benchmarks/surge/riemann-bench";
 import type { TerminalBench4ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-4";
 import type {
-  HarveyLabModelScoreRow,
-  HarveyLabTaskRow,
-} from "../scrapers/benchmarks/vals/harvey-lab";
-import type {
   ValsIndexModelScoreRow,
   ValsIndexTaskScoreRow,
 } from "../scrapers/benchmarks/vals/index-benchmark";
@@ -130,8 +126,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
   deepSWERawRows: DeepSWERawLeaderboardRow[];
   frontierCodeRows: FrontierCodeModelEffortRow[];
-  harveyLabRows: HarveyLabTaskRow[];
-  harveyLabModelScoreRows: HarveyLabModelScoreRow[];
   mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
   riemannBenchSourceUrl: string;
@@ -151,7 +145,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
     cursorBench: number | null;
     deepSWE: number | null;
     frontierCode: number | null;
-    harveyLab: number | null;
     mercorApexAgents: number | null;
     riemannBench: number | null;
     terminalBench4: number | null;

@@ -107,7 +107,6 @@ try {
       deepSWERows: [],
       frontierCodeRows: rawRows,
       gdpPdfRows: [],
-      harveyLabRows: [],
       riemannBenchRows: [],
       terminalBench4Rows: [],
       valsIndexRows: [],
@@ -169,7 +168,7 @@ try {
   assert.deepEqual(payload.metadata.scoring.benchmark_portfolio.frontier_code, {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     resourcePolicy: {
       source: "benchmark",
       unit: "per_task",

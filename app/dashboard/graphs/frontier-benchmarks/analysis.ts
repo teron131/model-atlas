@@ -1,6 +1,7 @@
 /** Frontier benchmark analysis owns row projection, normalization, axis policy, and hover evidence. */
 
 import {
+  clampScore,
   minMaxRange,
   minMaxScale,
 } from "../../../../src/model-atlas/pipeline/scores/normalization";
@@ -220,10 +221,13 @@ export function normalizedFrontierBenchmarkScoreRows(
       minMaxRange(benchmarkRows.map((row) => row.score)),
     ]),
   );
-  return rows.map((row) => ({
-    ...row,
-    score: minMaxScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score) ?? row.score,
-  }));
+  return rows.map((row) => {
+    const normalizedScore = minMaxScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
+    return {
+      ...row,
+      score: normalizedScore == null ? row.score : clampScore(normalizedScore),
+    };
+  });
 }
 
 /** Resolve one native benchmark or a normalized aggregate for the selected benchmark subset. */

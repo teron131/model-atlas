@@ -1,6 +1,10 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
 import {
+  isCanonicalBenchmarkObservation,
+  parseBenchmarkObservationMetadata,
+} from "../../benchmarks/observation";
+import {
   ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
@@ -43,12 +47,16 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   cursorBenchRows: readonly DbBenchmarkRow[];
   deepSWERows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
-  harveyLabRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
   terminalBench4Rows: readonly DbBenchmarkRow[];
   valsIndexRows: readonly DbBenchmarkRow[];
   vendingBench2Rows: readonly DbBenchmarkRow[];
 };
+
+function isCanonicalBenchmarkObservationDbRow(row: DbBenchmarkRow): boolean {
+  const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
+  return metadata == null || isCanonicalBenchmarkObservation({ metadata });
+}
 
 function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -60,7 +68,7 @@ function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[
     if (!Array.isArray(sourceRows)) {
       throw new Error(`Persisted benchmark observation rows are missing: ${sourceRowsKey}`);
     }
-    return sourceRows.flatMap((row) => {
+    return sourceRows.filter(isCanonicalBenchmarkObservationDbRow).flatMap((row) => {
       return [
         {
           key: benchmark,
@@ -230,13 +238,6 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
           }));
     }),
     ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
-    ...dbSourceDrafts({
-      key: "harvey_lab",
-      rows: rows.harveyLabRows,
-      value: (row) => row.score,
-      providerColumn: "provider",
-      rowKind: "overall",
-    }),
     ...rows.riemannBenchRows.flatMap((row) => {
       const model = stringValue(row.model);
       return model == null

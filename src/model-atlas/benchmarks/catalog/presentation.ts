@@ -60,9 +60,10 @@ export const BENCHMARK_TOOLTIPS = {
   },
   automation_bench: {
     title: "AutomationBench",
-    body: "Multi-step workflows across simulated SaaS apps, scored by objectives completed without guardrail violations.",
+    body: "Complete multi-step workflows across simulated SaaS apps, with credit only when every required final-state assertion passes.",
     rows: [
-      ["Source", "Artificial Analysis"],
+      ["Source", "Zapier"],
+      ["Metric", "tasks completed correctly"],
       ["Role", "agentic SaaS workflow"],
     ],
   },
@@ -83,6 +84,7 @@ export const BENCHMARK_TOOLTIPS = {
       ["Source", "ARC Prize verified leaderboard"],
       ["Split", "Semi-Private"],
       ["Metric", "human-relative action efficiency"],
+      ["Harness", "mean of eligible Standard and Provider Adapter runs"],
       ["Role", "interactive fluid reasoning"],
     ],
   },
@@ -227,6 +229,16 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "repository-scale software engineering"],
     ],
   },
+  frontiermath_erdos: {
+    title: "FrontierMath Erdős",
+    body: "Resolve significant open Erdős problems with complete Lean proofs or disproofs under Epoch's fixed official scaffold.",
+    rows: [
+      ["Source", "Epoch AI"],
+      ["Metric", "verified conjectures resolved"],
+      ["Scope", "68 open problems; one official attempt each"],
+      ["Role", "mathematical research and formalization"],
+    ],
+  },
   frontiermath_tier_4: {
     title: "FrontierMath Tier 4",
     body: "Solve original, expert-written Tier 4 mathematics problems designed to require research-level reasoning.",
@@ -258,14 +270,6 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Surge AI"],
       ["Role", "policy-grounded workflow execution"],
-    ],
-  },
-  harvey_lab: {
-    title: "Harvey LAB",
-    body: "Produce legal work such as memos, redlines, and disclosure schedules from case documents, with every required criterion graded.",
-    rows: [
-      ["Source", "Vals AI"],
-      ["Role", "legal work-product construction"],
     ],
   },
   hemingway_bench: {
@@ -311,6 +315,16 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "iterative machine-learning research"],
     ],
   },
+  mirrorcode: {
+    title: "MirrorCode",
+    body: "Reconstruct medium and large programs from documentation and black-box execution, with complete solves requiring every visible and held-out test to pass.",
+    rows: [
+      ["Source", "Epoch AI"],
+      ["Configuration", "ML, private tests, two languages"],
+      ["Metric", "complete-solve rate"],
+      ["Role", "long-horizon program reconstruction"],
+    ],
+  },
   omniscience_accuracy: {
     title: "Omniscience",
     body: "Answer cross-domain factual questions drawn from authoritative sources; the displayed score is the share answered correctly.",
@@ -333,7 +347,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Write executable programs from natural-language requirements, scored by behavioral tests.",
     rows: [
       ["Source", "Vals AI"],
-      ["Metric", "raw behavioral-test pass rate"],
+      ["Metric", "almost resolved (at least 95% of tests)"],
       ["Role", "program construction"],
     ],
   },
@@ -369,6 +383,26 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "structured code reasoning"],
+    ],
+  },
+  simpleqa_verified: {
+    title: "SimpleQA Verified",
+    body: "Answer 1,000 short fact-seeking questions across broad general-knowledge domains under Epoch's anti-abstention methodology.",
+    rows: [
+      ["Source", "Epoch AI"],
+      ["Metric", "reference-grounded accuracy"],
+      ["Version", "1.2.0 anti-abstention cohort"],
+      ["Role", "general factual knowledge"],
+    ],
+  },
+  sre_bench: {
+    title: "SRE Bench",
+    body: "Reverse engineer protected binary programs and recover their behavior across substantive objectives with deterministic grading.",
+    rows: [
+      ["Source", "Vals AI"],
+      ["Metric", "Capability Score"],
+      ["Scope", "1,572 objectives across 262 instances"],
+      ["Role", "binary reverse engineering"],
     ],
   },
   surge_intelligence_index: {
@@ -484,16 +518,17 @@ export const BENCHMARK_LABELS = {
   epoch_capabilities_index: "Epoch Capabilities Index",
   finance_agent_v2: "Finance Agent V2",
   frontier_code: "FrontierCode",
+  frontiermath_erdos: "FrontierMath Erdős",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
   gdpval_normalized: "GDPval v2",
   handbook_md: "HANDBOOK.md",
-  harvey_lab: "Harvey LAB",
   hemingway_bench: "Hemingway-bench",
   hle: "HLE",
   itbench_sre: "ITBench",
   legal_research: "Legal Research",
   mls_bench: "MLS-Bench Lite",
+  mirrorcode: "MirrorCode",
   omniscience_accuracy: "Omniscience",
   perception_bench: "PerceptionBench",
   programbench: "ProgramBench",
@@ -501,6 +536,8 @@ export const BENCHMARK_LABELS = {
   public_benefits_bench: "Public Benefits Bench",
   riemann_bench: "Riemann-bench",
   scicode: "SciCode",
+  simpleqa_verified: "SimpleQA Verified",
+  sre_bench: "SRE Bench",
   surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
   terminal_bench_4: "Terminal-Bench 4.0",
@@ -529,24 +566,27 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "blueprint_bench_2",
   "briefcase",
   "chartography",
+  "code_migration",
   "complex_constraints",
   "critpt",
   "cursorbench",
   "deep_swe",
+  "ebr_bench",
   "emb",
   "frontier_code",
+  "frontiermath_erdos",
   "frontiermath_tier_4",
   "gdp_pdf",
   "gdpval_normalized",
   "handbook_md",
-  "harvey_lab",
   "hle",
   "itbench_sre",
   "legal_research",
+  "mirrorcode",
   "mls_bench",
   "programbench",
-  "proofbench",
   "riemann_bench",
+  "sre_bench",
   "terminal_bench_4",
   "terminal_bench_science",
 ] as const satisfies readonly BenchmarkKey[];
@@ -561,16 +601,16 @@ export const INDEX_BENCHMARK_KEYS = [
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "browsecomp",
   "chess_puzzles",
-  "code_migration",
   "cyberbench",
-  "ebr_bench",
   "enterprisebench_corecraft",
   "finance_agent_v2",
   "hemingway_bench",
   "omniscience_accuracy",
   "perception_bench",
+  "proofbench",
   "public_benefits_bench",
   "scicode",
+  "simpleqa_verified",
   "tau_banking",
   "toolathlon",
   "vending_bench_2",
@@ -694,7 +734,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "AGI-3$",
       tooltip: {
         title: "ARC-AGI-3 cost per environment ↓",
-        body: `Official verified leaderboard total cost divided across the ${BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount} semi-private ARC-AGI-3 environments.`,
+        body: `Official verified leaderboard total cost divided across ${BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount} semi-private environments per matched harness, with blended rows combining the same component runs.`,
         details: [
           ["Source", "ARC Prize"],
           ["Metric", "cost per environment"],
@@ -708,6 +748,14 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "cost",
       direction: "ascending",
       label: "Auto$",
+      tooltip: {
+        title: "AutomationBench cost per task ↓",
+        body: "Zapier's reported cost for each comparable standalone task run.",
+        details: [
+          ["Source", "Zapier"],
+          ["Metric", "cost per task"],
+        ],
+      },
     },
   ],
   critpt: [
@@ -820,26 +868,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "GDP Tok",
-    },
-  ],
-  harvey_lab: [
-    {
-      key: "harveyLabCost",
-      metric: "cost",
-      direction: "ascending",
-      label: "HLAB$",
-    },
-    {
-      key: "harveyLabSeconds",
-      metric: "seconds",
-      direction: "ascending",
-      label: "HLAB Sec",
-    },
-    {
-      key: "harveyLabTokens",
-      metric: "tokens",
-      direction: "ascending",
-      label: "HLAB Tok",
     },
   ],
   hle: [
@@ -1101,6 +1129,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  frontiermath_erdos: {
+    key: "frontierMathErdos",
+    label: "FM Erdős",
+    format: "percent",
+    defaultSort: "descending",
+  },
   frontiermath_tier_4: {
     key: "frontierMathTier4",
     label: "FM T4",
@@ -1122,12 +1156,6 @@ export const BENCHMARK_COLUMNS = {
   handbook_md: {
     key: "handbookMd",
     label: "Handbook",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  harvey_lab: {
-    key: "harveyLab",
-    label: "HLAB",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1158,6 +1186,12 @@ export const BENCHMARK_COLUMNS = {
   mls_bench: {
     key: "mlsBench",
     label: "MLS",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  mirrorcode: {
+    key: "mirrorCode",
+    label: "Mirror",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1200,6 +1234,18 @@ export const BENCHMARK_COLUMNS = {
   scicode: {
     key: "scicode",
     label: "SciCode",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  simpleqa_verified: {
+    key: "simpleQaVerified",
+    label: "SimpleQA",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  sre_bench: {
+    key: "sreBench",
+    label: "SRE",
     format: "percent",
     defaultSort: "descending",
   },

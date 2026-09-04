@@ -82,7 +82,6 @@ assertDeepEqual(
   [
     "analyst_agent",
     "apex_agents",
-    "automation_bench",
     "briefcase",
     "critpt",
     "gdpval_normalized",
@@ -113,13 +112,6 @@ if (configuredBriefcasePage == null) {
 }
 const briefcasePage = {
   ...configuredBriefcasePage,
-  task_run_count: 2,
-};
-const automationBenchPage = {
-  benchmark_key: "automation_bench",
-  score_path: ["automationBenchBreakdown", "completion"],
-  resource_key: "automationBench",
-  url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
   task_run_count: 2,
 };
 const hleRows = processArtificialAnalysisBenchmarkResourceRows(
@@ -290,52 +282,6 @@ assertDeepEqual(
     briefcasePage,
   )[0]?.seconds_per_task,
   6,
-);
-
-assertDeepEqual(
-  processArtificialAnalysisBenchmarkResourceRows(
-    [
-      {
-        shortName: "Grok 4.5",
-        slug: "grok-4-5",
-        creator: {
-          name: "xAI",
-          slug: "x-ai",
-        },
-        automationBenchBreakdown: {
-          completion: 0.72,
-        },
-        ...currentResourceTelemetry({
-          resourceKey: "automationBench",
-          taskCount: 2,
-          input: 20,
-          answer: 6,
-          reasoning: 4,
-          totalCost: 1,
-          secondsPerTask: 91,
-        }),
-      },
-    ],
-    automationBenchPage,
-  )[0],
-  {
-    benchmark_key: "automation_bench",
-    source_url: "https://artificialanalysis.ai/evaluations/automationbench-aa",
-    model_id: "x-ai/grok-4-5",
-    model: "Grok 4.5",
-    provider: "xAI",
-    provider_id: "x-ai",
-    reasoning_effort: null,
-    score: 0.72,
-    task_run_count: 2,
-    cost_per_task_usd: 0.5,
-    seconds_per_task: 91,
-    tokens_per_task: 15,
-    input_tokens_per_task: 10,
-    output_tokens_per_task: 5,
-    answer_tokens_per_task: 3,
-    reasoning_tokens_per_task: 2,
-  },
 );
 
 const effortRows = processArtificialAnalysisBenchmarkResourceRows(

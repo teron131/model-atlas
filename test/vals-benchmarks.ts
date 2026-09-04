@@ -58,6 +58,7 @@ const pageHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" pr
           tasks: astro({
             overall: astro("Overall"),
             all_pass: astro("All-Pass"),
+            almost: astro("Almost Resolved"),
             partial: astro("Raw Pass Rate"),
             patch: astro("Patch"),
             secondary: astro("Secondary Evidence"),
@@ -72,6 +73,7 @@ const pageHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" pr
             }),
           }),
           all_pass: task(65),
+          almost: task(60),
           partial: task(55),
           patch: task(45),
           secondary: task(35),
@@ -89,6 +91,7 @@ const valsBenchmarkKeys = [
   "legal_research",
   "programbench",
   "public_benefits_bench",
+  "sre_bench",
   "vibe_code",
 ] as const satisfies readonly BenchmarkObservationKey[];
 
@@ -132,6 +135,7 @@ assert.equal(overall.reasoning_effort, "high");
 assert.equal(overall.rank, 1);
 assert.equal(overall.canonical_value, 0.75);
 assert.deepEqual(overall.metadata, {
+  task: "overall",
   benchmark_version: "2",
   dataset_type: "private",
   runner: "external",

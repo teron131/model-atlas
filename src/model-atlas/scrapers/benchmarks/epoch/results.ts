@@ -4,6 +4,7 @@
  * CSV source: https://epoch.ai/data/benchmarks.csv
  */
 
+import type { EpochRunEligibility } from "../../../benchmarks/factory";
 import type {
   BenchmarkObservationMetadata,
   BenchmarkObservationPayload,
@@ -90,9 +91,20 @@ export function epochBenchmarkObservationRows(
   rows: EpochBenchmarkCsvRow[],
   benchmarkKey: BenchmarkObservationRow["benchmark_key"],
   task: string,
+  eligibility: EpochRunEligibility = {},
 ): BenchmarkObservationRow[] {
+  const excludedModelIds = new Set(eligibility.excludedModelIds ?? []);
   return rows.flatMap((row) => {
-    if (row.task !== task) return [];
+    if (
+      row.task !== task ||
+      (eligibility.taskVersion != null && row["task version"] !== eligibility.taskVersion) ||
+      (eligibility.originalTaskName != null &&
+        row.original_task_name !== eligibility.originalTaskName) ||
+      (eligibility.runIdPrefix != null && !row.id_runs?.startsWith(eligibility.runIdPrefix)) ||
+      (row.id_model_version != null && excludedModelIds.has(row.id_model_version))
+    ) {
+      return [];
+    }
     const scoreRow = epochRunScoreRow(row, benchmarkKey);
     return scoreRow == null ? [] : [scoreRow];
   });
@@ -102,10 +114,11 @@ export function epochBenchmarkObservationRows(
 export async function getEpochBenchmarkStats(
   benchmarkKey: BenchmarkObservationRow["benchmark_key"],
   task: string,
+  eligibility: EpochRunEligibility = {},
 ): Promise<BenchmarkObservationPayload> {
   const payload = await fetchEpochBenchmarkRows();
   return {
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-    data: epochBenchmarkObservationRows(payload.data, benchmarkKey, task),
+    data: epochBenchmarkObservationRows(payload.data, benchmarkKey, task, eligibility),
   };
 }

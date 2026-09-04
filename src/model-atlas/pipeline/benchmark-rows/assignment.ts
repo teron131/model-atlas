@@ -52,7 +52,6 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
   deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
-  harveyLab: Pick<ModelAtlasSourceData["harveyLab"], "rowsByModelName">;
   mercorApexAgents: Pick<ModelAtlasSourceData["mercorApexAgents"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
   terminalBench4: Pick<ModelAtlasSourceData["terminalBench4"], "rowsByModelName">;
@@ -203,10 +202,22 @@ function findDefaultSourceRow<T extends BenchmarkModelRow>(
     : null;
 }
 
+function matchesExactReasoningEffort<T extends { reasoning_effort?: unknown }>(
+  row: T | null,
+  exactReasoningEffort: string | null | undefined,
+): row is T {
+  return (
+    row != null &&
+    (exactReasoningEffort === undefined ||
+      canonicalReasoningEffort(row.reasoning_effort) === exactReasoningEffort)
+  );
+}
+
 function buildArtificialAnalysisBenchmarks(
   modelNameCandidates: unknown[],
   resourceLookup: ArtificialAnalysisBenchmarkResourceLookup,
   baseBenchmarks: Record<string, unknown> = {},
+  exactReasoningEffort?: string | null,
 ): AssignedBenchmarks {
   const benchmarks: Record<string, unknown> = {};
   const scoringSources: NonNullable<ModelAtlasScoringSources> = {};
@@ -216,7 +227,7 @@ function buildArtificialAnalysisBenchmarks(
       modelNameCandidates,
       resourceLookup,
     );
-    if (resourceRow != null) {
+    if (matchesExactReasoningEffort(resourceRow, exactReasoningEffort)) {
       scoringSources[key] = resourceRow;
     }
   }
@@ -226,7 +237,7 @@ function buildArtificialAnalysisBenchmarks(
       modelNameCandidates,
       resourceLookup,
     );
-    if (row == null) {
+    if (!matchesExactReasoningEffort(row, exactReasoningEffort)) {
       continue;
     }
     benchmarks[key] = transformBenchmarkSourceValue(key, row.score);
@@ -385,6 +396,7 @@ export function buildObservationBenchmarks(
     modelNameCandidates,
     lookups.artificialAnalysisBenchmarkResources.observationLookup,
     baseBenchmarks,
+    canonicalReasoningEffort(targetReasoningEffort),
   );
   const targetEffort = canonicalReasoningEffort(targetReasoningEffort);
   for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
@@ -446,15 +458,6 @@ export function buildDefaultVariantBenchmarks(
     resolveSourceRow: (rowsByModelName) =>
       findDefaultSourceRow(modelNameCandidates, targetReasoningEffort, rowsByModelName),
   });
-  const harveyLabRow = findDefaultSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.harveyLab.rowsByModelName,
-  );
-  if (harveyLabRow != null) {
-    benchmarks.harvey_lab = harveyLabRow.score;
-    scoringSources.harvey_lab = harveyLabRow;
-  }
   const riemannBenchScore = findRiemannBenchScore(
     modelNameCandidates,
     lookups.riemannBench.rowsByModelName,

@@ -53,6 +53,7 @@ type ScatterMetric<Row> = {
 };
 
 const EMPTY_CHART_TICKS = [0, 20, 40, 60, 80, 100];
+const PLOT_EDGE_GUTTER = 9;
 
 /** Preserve the benchmark chart footprint when no benchmark evidence is selected. */
 export function EmptyFrontierBenchmarkScatterPlot({
@@ -171,17 +172,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
     (metric.label === "Value Score"
       ? roundedLinearTicks(xDomain, 10)
       : linearTicksForValues(metricValues, metric.format));
+  const plot = plotBoundsFor(width, height, chartMargin);
   const x = scaleLinear()
     .domain(xDomain)
-    .range([chartMargin.left, width - chartMargin.right])
+    .range([plot.left + PLOT_EDGE_GUTTER, plot.right - PLOT_EDGE_GUTTER])
     .clamp(true);
   const y = scaleLinear()
     .domain(yDomain)
-    .range([height - chartMargin.bottom, chartMargin.top])
+    .range([plot.bottom - PLOT_EDGE_GUTTER, plot.top + PLOT_EDGE_GUTTER])
     .clamp(true);
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
-  const plot = plotBoundsFor(width, height, chartMargin);
   const referenceRows = graphReferenceItems(rows, getModel);
   const frontier = paretoFrontier(rows, {
     x: { get: metric.get, goal: metric.xHigherIsBetter ? "maximize" : "minimize" },
@@ -383,7 +384,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 stroke="var(--chart-point-stroke)"
                 strokeWidth={1}
                 opacity={1}
-                clearance={connectReasoningVariants ? 2 : 0}
+                clearance={connectReasoningVariants ? 0.5 : 0}
               />
               <PointHitTarget
                 cx={cx}

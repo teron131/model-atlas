@@ -355,7 +355,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
                   }
                   strokeWidth={isFrontier ? 1.4 : 1}
                   opacity={1}
-                  clearance={showVariants ? 2 : 0}
+                  clearance={showVariants ? 0.5 : 0}
                 />
                 <PointHitTarget
                   cx={cx}

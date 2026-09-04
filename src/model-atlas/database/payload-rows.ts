@@ -4,6 +4,7 @@ import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys"
 import {
   type BenchmarkObservationEvidenceRow,
   type BenchmarkObservationsByKey,
+  parseBenchmarkObservationMetadata,
 } from "../benchmarks/observation";
 import {
   ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
@@ -80,6 +81,7 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "total_cost_usd",
   "total_tokens",
   "observed_at",
+  "metadata_json",
 ] as const;
 
 /** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
@@ -157,10 +159,6 @@ const SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 >;
 
 const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  vals_harvey_lab: payloadRowGroup("harveyLabRows", SNAPSHOT_TABLES.vals_harvey_lab, "row_index", {
-    columns: ["model_id", "model", "provider", "row_kind", "score"],
-    optional: true,
-  }),
   vals_index: payloadRowGroup("valsIndexRows", SNAPSHOT_TABLES.vals_index, "row_index", {
     columns: ["model_id", "model", "provider", "row_kind", "score"],
     optional: true,
@@ -482,7 +480,7 @@ function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<st
   return benchmarkDatesByModel;
 }
 
-/** Decode only canonical source evidence needed by post-read benchmark policy. */
+/** Decode persisted source evidence needed by post-read benchmark policy. */
 function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
   const observations: BenchmarkObservationsByKey = {};
   for (const { benchmark, sourceRowsKey } of BENCHMARK_OBSERVATION_BINDINGS) {
@@ -496,6 +494,10 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
       }
       const cost = asFiniteNumber(row.cost);
       const tokensPerTask = asFiniteNumber(row.tokens_per_task);
+      const taskRunCount = asFiniteNumber(row.task_run_count);
+      const totalCostUsd = asFiniteNumber(row.total_cost_usd);
+      const totalTokens = asFiniteNumber(row.total_tokens);
+      const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
       benchmarkRows.push({
         model_id: stringValue(row.model_id),
         model,
@@ -504,7 +506,11 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
         canonical_value: canonicalValue,
         ...(cost == null ? {} : { cost }),
         ...(tokensPerTask == null ? {} : { tokens_per_task: tokensPerTask }),
+        ...(taskRunCount == null ? {} : { task_run_count: taskRunCount }),
+        ...(totalCostUsd == null ? {} : { total_cost_usd: totalCostUsd }),
+        ...(totalTokens == null ? {} : { total_tokens: totalTokens }),
         observed_at: stringValue(row.observed_at),
+        ...(metadata?.observation_role == null ? {} : { metadata }),
       });
     }
     observations[benchmark] = benchmarkRows;

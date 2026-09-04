@@ -45,14 +45,13 @@ Direct same-benchmark tokens also use these coordinates for the [Agentic token m
 | APEX Agents | Logit | Loop Pass@1 is a bounded task-completion rate. |
 | ARC-AGI-2 | Logit | Task success is a bounded correctness rate with meaningful remaining error. |
 | ARC-AGI-3 | Linear | Human-relative action efficiency is a continuous efficiency ratio, not a completion probability. |
-| AutomationBench | Logit | The headline score is a bounded workflow-success rate. |
+| AutomationBench | Logit | Strict task completion is a bounded workflow-success rate. |
 | Briefcase | Linear | The 0-1 value is a linear normalization of Elo, not probability. |
 | CritPt | Logit | The score is a bounded correctness rate with meaningful remaining error. |
 | CursorBench | Linear | The published grading score is a composite rather than a completion probability. |
 | DeepSWE | Logit | Pass@1 is a bounded task-completion rate. |
 | FrontierCode | Linear | The versioned `new_score` is a grading composite. |
 | GDPval-AA v2 | Linear | The page Elo is normalized onto the benchmark's 0-1 scale before use as a professional-work grading composite. |
-| Harvey LAB | Logit | Strict task resolution is a bounded all-criteria completion rate. |
 | HLE | Logit | Accuracy is a bounded correctness rate. |
 | ITBench | Linear | Average precision at full recall is used as a ranking metric, not interpreted as task-success probability. |
 | SciCode | Logit | The source score is a bounded scientific-code correctness rate. |
@@ -83,29 +82,32 @@ For every model without complete direct-task coverage, aggregate indexes enter t
 | AnalystAgent | 1 | 75% | 25% | Correct quantitative analysis of supplied spreadsheets and documents is the primary construct. Choosing code and document operations contributes a secondary Agentic component, and published per-task resources can feed Speed and Value. |
 | APEX&nbsp;Agents | 1 | 25% | 75% | Long-horizon professional-services tasks deliberately stress complex instructions, workplace-tool coordination, and persistent completion. Professional judgment remains a substantive secondary requirement. |
 | ARC-AGI-2 | 1 | 100% | 0% | Novel abstract visual transformations provide a protected frontier test of fluid reasoning. The current semi-private leaderboard has strong separation across serious systems, while its fixed demonstration-to-answer protocol is Intelligence evidence rather than external workflow execution. |
-| ARC-AGI-3 | 1 | 75% | 25% | Rule discovery, abstraction, and planning in unfamiliar interactive environments dominate the score. Sequential action and adaptation to environment feedback provide a secondary Agentic component. |
-| AutomationBench | 1 | 0% | 100% | Artificial Analysis implementation of Zapier workflow-automation tasks over simulated SaaS app environments. It is frontier because it tests business-process execution with tool-like constraints, and its AA per-task resources can feed Speed and Value. |
+| ARC-AGI-3 | 1 | 50% | 50% | Rule discovery and predictive world-model construction and persistent action, feedback use, state management, and recovery independently determine success. The score is explicitly model-plus-harness evidence under the official aggregation policy below. |
+| AutomationBench | 1 | 0% | 100% | Zapier's official strict-completion metric tests whether a model leaves simulated SaaS applications in the fully required final state. Comparable standalone per-task cost can affect Value; combined fallback systems are excluded. |
 | Blueprint-Bench&nbsp;2 | 1 | 100% | 0% | Spatial reasoning over apartment-photo floor-plan reconstruction. It is protected and difficult enough to act as a frontier intelligence-only stress test. |
 | Briefcase | 1 | 50% | 50% | Multi-file professional projects score both the quality and correctness of substantive deliverables and reliable coordination of interdependent instructions and artifacts. Neither capability is merely incidental. |
 | Chartography | 1 | 100% | 0% | Professional chart interpretation over difficult visual and quantitative questions. It is a current Intelligence-only stress test with meaningful frontier spread. |
+| Code Migration | 1 | 25% | 75% | Porting, building, testing, and delivering working programs primarily measure coding execution. Reasoning about cross-language semantics and subtle behavioral equivalence retains a secondary Intelligence loading, and current results retain substantial headroom. Endpoint latency remains part of the delivery constraint. |
 | ComplexConstraints | 1 | 25% | 75% | The intended construct is fidelity to many interdependent, conditional, implicit, and multistep requirements, measured by all-criteria task pass. Tools are unnecessary for Agentic loading because complex instruction fidelity is itself the primary Agentic capability; planning quality is secondary. |
 | CritPt | 1 | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
 | CursorBench | 1 | 25% | 75% | Completing ambiguous, multi-file repository changes primarily measures coding execution, instruction fidelity, and verification. Architectural reasoning about interactions across the codebase retains a secondary Intelligence loading. |
 | DeepSWE | 1 | 25% | 75% | Repository-level implementation, testing, and delivery of a correct committed patch primarily measure Agentic ability. Difficult program analysis and algorithmic changes retain a secondary Intelligence loading. |
+| EBR-Bench | 1 | 25% | 75% | Repeated play measures exploration, learning from feedback, persistent notes, and stateful adaptation. Models remain far below expert human performance, and the task's distinct unsolved capability earns ordinary task-level importance. |
 | EMB | 1 | 75% | 25% | Correct financial-model construction and professional judgment dominate the score. Coordinating spreadsheet operations and multi-step requirements adds a secondary Agentic component. |
 | FrontierCode | 1 | 25% | 75% | Producing mergeable repository changes primarily measures reliable coding execution, constraint following, and verification. Architectural and algorithmic reasoning needed for difficult maintainer-defined tasks retains a secondary Intelligence loading. |
+| FrontierMath Erdős | 0.5 | 75% | 25% | Verified resolution of open Erdős problems is exceptional mathematical-research evidence with substantial Lean execution demands. Near-binary current results, one attempt per problem, stochastic long-running agents, and overlap with FrontierMath Tier 4 justify exceptional half importance. |
 | FrontierMath Tier 4 | 1 | 100% | 0% | Epoch's hardest private FrontierMath tier is a current specialist mathematical-reasoning stress test. |
 | GDP.pdf | 1 | 100% | 0% | Dense page-grounded rubrics measure professional document interpretation and judgment. PDF access is an input medium, not an independently scored Agentic capability. |
 | GDPval-AA&nbsp;v2 | 1 | 75% | 25% | The quality of professional deliverables across economically important occupations is primary. Longer tool, file, and web trajectories add a secondary Agentic component when they materially support completion. |
 | HANDBOOK.md | 1 | 25% | 75% | Enterprise tasks deliberately stress sustained policy adherence, long-context instructions, internal tools, and external MCP coordination. Domain reasoning is substantial but secondary to reliable constrained execution. |
-| Harvey LAB | 1 | 75% | 25% | The correctness and quality of legal work products dominate the dense criterion grading. Matter-file navigation and multi-step instruction handling add a secondary Agentic component. |
 | HLE | 1 | 100% | 0% | Broad expert academic knowledge and reasoning with remaining headroom. It is a frontier intelligence stress test because top models still separate meaningfully. |
 | ITBench | 1 | 75% | 25% | Identifying every contributing Kubernetes root cause primarily measures diagnosis across complex technical evidence. Navigating investigation data and validating hypotheses adds a secondary Agentic component. |
 | Legal Research | 1 | 50% | 50% | Legal interpretation and synthesis and the reliable orchestration of retrieval and research tools independently determine strict all-pass success. Current results retain frontier headroom and separation. |
+| MirrorCode | 1 | 25% | 75% | Sustained whole-program reconstruction through documentation, black-box probing, implementation, and exhaustive testing primarily measures Agentic delivery. Inferring hidden behavior and program structure supplies secondary Intelligence evidence. |
 | MLS-Bench Lite | 1 | 75% | 25% | Machine-learning method design and improvement quality dominate across 30 controlled tasks. Iterative experimentation, feedback use, and validation in the five-hour environment add a secondary Agentic component. |
-| ProgramBench | 1 | 25% | 75% | Reconstructing programs through executable probing, implementation, compilation, and testing primarily measures Agentic ability. Inferring hidden program semantics from behavior and specifications retains a secondary Intelligence loading. |
-| ProofBench | 1 | 100% | 0% | Mathematical reasoning and construction of a valid Lean proof are the scored construct. Compilation verifies the artifact but does not by itself measure tool orchestration or stateful execution. |
+| ProgramBench | 1 | 25% | 75% | Reconstructing programs through executable probing, implementation, compilation, and testing primarily measures Agentic ability. The selected Almost Resolved rate requires at least 95% of hidden tests to pass, while inferring hidden program semantics retains a secondary Intelligence loading. |
 | Riemann-bench | 1 | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
+| SRE Bench | 1 | 25% | 75% | Binary reverse engineering across protected programs primarily measures investigation, tool use, reconstruction, and verified execution. Inferring hidden semantics and protections supplies secondary Intelligence evidence, while deterministic grading and substantial headroom support frontier use despite sparse model coverage. |
 | Terminal-Bench 4.0 | 1 | 25% | 75% | Difficult containerized tasks deliberately require instruction fidelity, terminal-tool orchestration, state inspection, self-verification, and recovery. Technical reasoning is substantive, but the scored construct is primarily reliable workflow execution rather than coding. |
 | Terminal-Bench-Science 0.1 | 1 | 75% | 25% | Scientific formulation and research-level analysis justify the Intelligence-heavy exception to the coding default. Implementing methods, coordinating terminal tools, and verifying results contribute the secondary Agentic loading. |
 
@@ -115,16 +117,16 @@ For every model without complete direct-task coverage, aggregate indexes enter t
 | --- | ---: | ---: | ---: | --- |
 | BrowseComp | 1 | 50% | 50% | Finding and synthesizing difficult web evidence requires both substantive research reasoning and deliberate browsing, query selection, and feedback use. Public tasks and less frontier-like top spread keep it baseline. |
 | Chess Puzzles | 1 | 100% | 0% | Exact-move chess puzzle solving supplies a distinct planning and tactical-reasoning signal. It remains baseline because it is a narrow specialist capability rather than a broad frontier claim. |
-| Code Migration | 1 | 25% | 75% | Porting, building, testing, and delivering working programs primarily measure coding execution. Reasoning about cross-language semantics and subtle behavioral equivalence retains a secondary Intelligence loading. |
 | CyberBench | 1 | 25% | 75% | The selected Patch track supplies the crash input and sanitizer report, then requires editing, compiling, and validating a repair without breaking valid behavior. That workflow is primarily Agentic, with memory-safety and vulnerability diagnosis providing secondary Intelligence evidence. |
-| EBR-Bench | 0.5 | 25% | 75% | Repeated play deliberately measures exploration, learning from feedback, persistent notes, and stateful adaptation. Strategic reasoning is secondary, while the narrow game, small leaderboard, and limited result volume keep it half importance. |
 | EnterpriseBench CoreCraft | 0.5 | 25% | 75% | Simulated-company tasks primarily measure instruction fidelity, workplace-tool coordination, and reliable workflow completion. Business reasoning is secondary, while one environment, first-party judges, and portfolio overlap keep it half importance. |
 | Finance Agent V2 | 1 | 50% | 50% | Financial reasoning and calculation and reliable filing retrieval, research, and tool use independently determine strict all-pass success. Its focused financial domain makes it stabilizing baseline evidence. |
 | Hemingway-bench | 1 | 75% | 25% | Writing quality, originality, coherence, and emotional intelligence dominate expert preference. Explicit instruction adherence contributes a secondary Agentic component, while the relative Elo scale and focused domain keep it baseline. |
 | Omniscience | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to distinguish the frontier leaders. |
 | PerceptionBench | 1 | 100% | 0% | Short-answer questions isolate ten atomic visual capabilities across 3,000 verified examples. The narrow multimodal focus provides distinctive Intelligence breadth, while creator-run configurations and an automatic judge keep it baseline rather than a frontier missing-data claim. |
+| ProofBench | 1 | 100% | 0% | Mathematical reasoning and construction of a valid Lean proof are the scored construct. Compilation verifies the artifact, and the remaining spread across current general models still adds useful baseline evidence despite near-ceiling leaders. Remove it once comparable current models cluster at the ceiling. |
 | Public Benefits Bench | 1 | 50% | 50% | Policy interpretation and case reasoning and reliable research and workflow completion independently determine success. Its focused domain keeps it baseline. |
 | SciCode | 1 | 100% | 0% | Scientist-curated problems require substantive scientific knowledge and mathematical formulation to derive the solution. Those demands justify the Intelligence exception; the fixed function-completion protocol provides little independent workflow evidence. |
+| SimpleQA Verified | 1 | 100% | 0% | Broad factual recall under Epoch's current anti-abstention methodology adds general-knowledge coverage distinct from Omniscience's professional-domain focus. Public static questions and exposure risk keep it baseline. |
 | tau3&nbsp;Banking&nbsp;(AA) | 1 | 0% | 100% | Realistic banking-agent workflows over a large fintech knowledge base with tool-mediated, policy-constrained state changes. It remains useful domain workflow evidence, but its current rank agreement and tight top spread make it a stabilizing baseline signal rather than a frontier separator. |
 | Toolathlon | 1 | 0% | 100% | Multi-tool workflow execution across files, APIs, business applications, and other external environments. Selecting and coordinating external tools through long-horizon tasks is the intended construct, so the signal is fully Agentic; limited current row count and provenance keep it baseline. |
 | Vending-Bench&nbsp;2 | 1 | 25% | 75% | Year-long simulated business operation deliberately measures sustained tool use, state management, negotiation, and coherence over thousands of messages. Business judgment is secondary, while small run counts and stochastic outcomes keep it baseline. |
@@ -134,6 +136,10 @@ For every model without complete direct-task coverage, aggregate indexes enter t
 ## Watchlist
 
 Watchlist benchmarks remain outside the scoring portfolio. Time Horizon Index is currently non-scoring because the available evidence does not yet provide the structured, comparable, uncertainty-aware leaderboard required by [the standards](standards.md).
+
+## Rejected Benchmarks
+
+**Harvey LAB / HLAB** is excluded from scores and task resources in its current form. Its all-criteria task score turns any failed rubric item into a whole-task failure, amplifying rubric choices and LLM-judge disagreement into unstable model ordering. The legal tasks remain promising, and unexpected rankings were a reason to inspect the method rather than independent grounds for rejection. Reconsideration requires evidence on the current held-out evaluation showing stable per-judge rankings and human adjudication of borderline failures.
 
 ## Evidence Rules
 
@@ -167,21 +173,29 @@ Only non-default source, metric, selection, exclusion, and resource rules are de
 
 ### Shared Source Families
 
-**Artificial Analysis benchmark family:** AnalystAgent, APEX Agents, AutomationBench, Briefcase, CritPt, GDPval-AA v2, HLE, ITBench, Omniscience, SciCode, and tau3 Banking use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their task-level scores.
+**Artificial Analysis benchmark family:** AnalystAgent, APEX Agents, Briefcase, CritPt, GDPval-AA v2, HLE, ITBench, Omniscience, SciCode, and tau3 Banking use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their task-level scores.
 
 AnalystAgent uses headline pass^5 across 80 private questions; its published totals are normalized per question before resource scoring. APEX Agents uses Artificial Analysis when available, with Mercor Loop Pass@1 as a same-model-and-effort fallback only after the [validated additive source crosswalk](methodology.md#validated-additive-source-crosswalk) reaches three effective overlap and held-out models with median absolute error at most `0.02`; projections are clamped to `[0,1]`.
 
 Briefcase and GDPval-AA v2 retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. ITBench divides aggregate cost and tokens by 177 task runs, and SciCode divides them by 288 task runs.
 
-**ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard and discard public-demo, community, competition, custom, refinement, and synthesis systems. ARC-AGI-2 uses task success and reported task cost; ARC-AGI-3 uses human-relative action efficiency and divides total cost across 55 semi-private environments. These costs affect Value only within their respective benchmarks.
+**ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard and discard public-demo, community, competition, custom, refinement, and synthesis systems. ARC-AGI-2 uses task success and reported task cost. These costs affect Value only within their respective benchmarks.
 
-**Epoch benchmark family:** FrontierMath Tier 4, Chess Puzzles, and EBR-Bench use successful runs from Epoch's bulk benchmark data. FrontierMath is restricted to the exact v2-private task so older scores cannot enter the current benchmark.
+**Epoch benchmark family:** FrontierMath Tier 4, FrontierMath Erdős, Chess Puzzles, EBR-Bench, MirrorCode, and SimpleQA Verified use successful runs from Epoch's bulk benchmark data. FrontierMath Tier 4 is restricted to the exact v2-private task. MirrorCode accepts only `mirrorcode-ml-2l-*` runs for the ML, private-tests, two-language configuration. SimpleQA Verified accepts only task version 1.2.0 under the `SimpleQA Verified (anti-abstention)` method and excludes the source-flagged `qwen3-max-2025-09-23` row.
 
 **Surge benchmark family:** Chartography, ComplexConstraints, HANDBOOK.md, and EnterpriseBench CoreCraft use published percentages; ComplexConstraints uses all-criteria task pass. Hemingway-bench retains its expert-preference Elo rather than converting it to a percentage, and Surge page-local resources do not affect Speed or Value.
 
-**Vals benchmark family:** Legal Research, EMB, Code Migration, Vibe Code, and Public Benefits Bench use `overall`; Finance Agent V2 uses `all_pass`, ProgramBench uses `partial`, and CyberBench uses the `patch` track. Vals cost and latency remain outside Speed and Value, and these benchmarks are not Time Horizon evidence.
+**Vals benchmark family:** Legal Research, EMB, Code Migration, Vibe Code, and Public Benefits Bench use `overall`; Finance Agent V2 uses `all_pass`, ProgramBench uses `almost`, SRE Bench uses `partial`, and CyberBench uses the `patch` track. ProgramBench `almost` is the share of tasks passing at least 95% of hidden behavioral tests. SRE Bench `partial` is its Capability Score across 1,572 objectives in 262 binary instances; its Fully Solved rate remains supporting context. Vals cost and latency remain outside Speed and Value, and these benchmarks are not Time Horizon evidence.
 
-Harvey LAB uses Vals' strict all-criteria task resolution plus its per-task cost and runtime; Artificial Analysis' Stirrup reimplementation does not enter its score or resources. ProofBench uses Vals' compiler-verified overall accuracy, excludes the specialized `aristotle/aristotle` system, and uses Epoch overlap only as provenance validation rather than additional evidence.
+ProofBench uses Vals' compiler-verified overall accuracy, excludes the specialized `aristotle/aristotle` system, and uses Epoch overlap only as provenance validation rather than additional evidence.
+
+### ARC-AGI-3 Harness Policy
+
+ARC-AGI-3 uses human-relative action efficiency over 55 semi-private environments per official harness. Standard uses provider-neutral text history and visible persistent notes; Provider Adapter uses provider-native continuous conversation, opaque reasoning state, and context compaction. Raw Standard and Provider Adapter rows remain separately attributable. For each exact base model and reasoning effort, the canonical score is their arithmetic mean when both are present and the single observed score when only one is present; missing harnesses are never imputed. Canonical resources sum the same component-run totals and divide by 55 environments per included harness. Current Provider Adapter coverage is limited to GPT-6 Astra, so its blended score must be interpreted as model-plus-harness interactive reasoning and execution rather than intrinsic intelligence.
+
+### FrontierMath Erdős Policy
+
+FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one official attempt for each of 68 conjectures under the published 72-hour scaffold, with success requiring a complete Lean proof or disproof that Comparator replays against the trusted statement. Higher-budget repetitions, changed agents, and alternate scaffolds are excluded. The benchmark is admitted as a sparse breakthrough signal despite near-binary current results, and half importance limits instability from one attempt per problem, long-running stochastic agents, and overlap with FrontierMath Tier 4. Zero means no verified resolution under this scaffold rather than no mathematical capability. The August 2026 problem set remains the common denominator for current clean comparisons; future cutoff-aware handling must exclude publicly solved conjectures through an explicit shared denominator rather than silently changing each model's task set.
 
 ### Standalone Policies
 
@@ -192,6 +206,8 @@ Harvey LAB uses Vals' strict all-criteria task resolution plus its per-task cost
 **ALE-Bench** uses Sakana AI's complete leaderboard, with Epoch's overlapping rounded table only as a scale validator. The `num_self_refine = 1` all-task mean Performance is the scoring row and remains linear for resource comparison so values above 100 retain their spacing. Mean per-task cost can affect Value; submitted-program execution time and memory remain source context.
 
 **Blueprint-Bench 2** uses normalized connectivity similarity; Andon's internal identifiers are not model-matching inputs.
+
+**AutomationBench** uses Zapier's official `task_completed_correctly` rate, which requires every final-state assertion for a task to pass. Partial credit remains diagnostic only. Model-effort rows remain distinct, combined fallback systems are excluded from standalone assignment, and only the official row's comparable per-task cost can affect Value.
 
 **CursorBench** uses the source-default row or, when every row is effort-labelled, the highest reported effort as one complete observation. Grok 4.5 remains raw but non-scoring because Cursor discloses possible benchmark-snapshot training overlap; private Composer models are excluded because they are not independently available. Eligible per-task cost and tokens can affect Value and Speed.
 

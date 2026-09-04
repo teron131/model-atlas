@@ -396,15 +396,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
   ],
   frontierCodeRows: [],
   gdpPdfRows: [],
-  harveyLabRows: [
-    {
-      row_kind: "overall",
-      model_id: "kimi/kimi-k3",
-      model: "kimi-k3",
-      provider: "Moonshot AI",
-      score: 0.108333,
-    },
-  ],
   riemannBenchRows: [
     {
       model: "GPT 5.6 Sol (Max reasoning)",
@@ -433,16 +424,6 @@ const dbBenchmarkRows = benchmarkRowsFromDb({
   ],
   vendingBench2Rows: [],
 });
-
-assert.deepEqual(dbBenchmarkRows.harvey_lab, [
-  {
-    id: "kimi/kimi-k3",
-    identity: "kimi/kimi-k3",
-    label: "kimi-k3",
-    provider: "Moonshot AI",
-    value: 0.108333,
-  },
-]);
 
 assert.deepEqual(dbBenchmarkRows.gpqa, [
   {

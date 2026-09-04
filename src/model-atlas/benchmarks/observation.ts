@@ -11,6 +11,21 @@ export type BenchmarkObservationMetadata = Record<
   string | number | boolean | null | string[] | number[]
 >;
 
+/** Decode persisted observation metadata without admitting arrays or primitive JSON values. */
+export function parseBenchmarkObservationMetadata(
+  value: unknown,
+): BenchmarkObservationMetadata | null {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as BenchmarkObservationMetadata)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export type BenchmarkResourceAggregate = {
   task_run_count: number;
   total_cost_usd?: number;
@@ -44,17 +59,20 @@ export type BenchmarkObservationPayload = {
   data: BenchmarkObservationRow[];
 };
 
-export type BenchmarkObservationEvidenceRow = Pick<
-  BenchmarkObservationRow,
-  | "model_id"
-  | "model"
-  | "base_model"
-  | "reasoning_effort"
-  | "canonical_value"
-  | "cost"
-  | "tokens_per_task"
-  | "observed_at"
->;
+export type BenchmarkObservationEvidenceRow = Partial<BenchmarkResourceAggregate> &
+  Pick<
+    BenchmarkObservationRow,
+    | "model_id"
+    | "model"
+    | "base_model"
+    | "reasoning_effort"
+    | "canonical_value"
+    | "cost"
+    | "tokens_per_task"
+    | "observed_at"
+  > & {
+    metadata?: BenchmarkObservationMetadata;
+  };
 
 export type BenchmarkObservationsByKey = Record<string, readonly BenchmarkObservationEvidenceRow[]>;
 
@@ -64,6 +82,13 @@ export type BenchmarkObservationLookup<
 
 function isNewer<Row extends BenchmarkObservationEvidenceRow>(row: Row, current: Row): boolean {
   return (row.observed_at ?? "") > (current.observed_at ?? "");
+}
+
+/** Component observations retain source provenance without entering model assignment or display defaults. */
+export function isCanonicalBenchmarkObservation(
+  row: Pick<BenchmarkObservationEvidenceRow, "metadata">,
+): boolean {
+  return row.metadata?.observation_role !== "component";
 }
 
 /** Return the final provider or composite-model alias without splitting configuration labels. */
@@ -138,6 +163,7 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
   const rowsByModel = new Map<string, Row>();
   const defaultByBase = new Map<string, Row>();
   for (const row of rows) {
+    if (!isCanonicalBenchmarkObservation(row)) continue;
     for (const key of modelKeys(row)) {
       const exactKey =
         row.reasoning_effort == null ? key : `${key}--${normalizeModelToken(row.reasoning_effort)}`;

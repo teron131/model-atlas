@@ -54,6 +54,10 @@ function benchmarkObservations(sourceData: ModelAtlasSourceData): BenchmarkObser
       canonical_value: row.canonical_value,
       ...(row.cost == null ? {} : { cost: row.cost }),
       ...(row.tokens_per_task == null ? {} : { tokens_per_task: row.tokens_per_task }),
+      ...(row.task_run_count == null ? {} : { task_run_count: row.task_run_count }),
+      ...(row.total_cost_usd == null ? {} : { total_cost_usd: row.total_cost_usd }),
+      ...(row.total_tokens == null ? {} : { total_tokens: row.total_tokens }),
+      ...(row.metadata.observation_role == null ? {} : { metadata: row.metadata }),
       observed_at: row.observed_at,
     }));
   }

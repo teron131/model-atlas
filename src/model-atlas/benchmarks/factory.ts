@@ -30,6 +30,13 @@ type BenchmarkSourceAdapterDeclaration =
       "taskRunCount"
     >;
 
+export type EpochRunEligibility = {
+  taskVersion?: string;
+  originalTaskName?: string;
+  runIdPrefix?: string;
+  excludedModelIds?: readonly string[];
+};
+
 export type BenchmarkObservationLoader =
   | {
       kind: "arc_prize";
@@ -41,7 +48,11 @@ export type BenchmarkObservationLoader =
       sourceUrl: string;
     }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }
-  | { kind: "epoch_runs"; task: string }
+  | {
+      kind: "epoch_runs";
+      task: string;
+      eligibility?: EpochRunEligibility;
+    }
   | { kind: "mls_bench"; sourceUrl: string }
   | { kind: "perception_bench"; sourceUrl: string }
   | { kind: "surge"; sourceUrl: string; scoreKind?: "elo"; view?: "index" }
@@ -54,6 +65,7 @@ export type BenchmarkObservationLoader =
       eligibility?: "exclude_aristotle";
     }
   | { kind: "weirdml" }
+  | { kind: "automation_bench"; sourceUrl: string }
   | {
       kind: "zeroeval";
       sourceUrl: string;
