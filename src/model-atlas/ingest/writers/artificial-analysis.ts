@@ -111,9 +111,12 @@ function costAndLogoValues(
   selectedRow: JsonObject,
   creator: JsonObject,
 ): SqlValue[] {
+  const cost = asRecord(selectedRow.cost);
   const intelligenceIndexCost = asRecord(selectedRow.intelligence_index_cost);
   const tokenCounts = asRecord(row.intelligenceIndexTokenCounts);
   return [
+    asFiniteNumber(cost.input),
+    asFiniteNumber(cost.output),
     asFiniteNumber(intelligenceIndexCost.input_cost),
     asFiniteNumber(intelligenceIndexCost.reasoning_cost),
     asFiniteNumber(intelligenceIndexCost.output_cost),
@@ -156,11 +159,12 @@ export function insertArtificialAnalysisRawModels(
 			median_end_to_end_response_time_seconds, intelligence_index,
 			agentic_index, coding_index, omniscience_index, omniscience_accuracy,
 			apex_agents, critpt, gdpval_normalized, gpqa, harvey_lab, hle,
-			itbench_sre, mmmu_pro, scicode, tau_banking, input_cost,
-			reasoning_cost, output_cost, total_cost, input_tokens, reasoning_tokens,
+			itbench_sre, mmmu_pro, scicode, tau_banking,
+			price_1m_input_tokens, price_1m_output_tokens,
+			input_cost, reasoning_cost, output_cost, total_cost, input_tokens, reasoning_tokens,
 			answer_tokens, output_tokens, total_tokens, cost_per_task,
 			seconds_per_task, output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 53 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 55 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
     const selectedRow =

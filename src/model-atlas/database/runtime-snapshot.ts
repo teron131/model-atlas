@@ -1,4 +1,4 @@
-/** Local development reads its SQLite checkpoint; deployed display reads use GCS without credentials or refresh side effects. */
+/** All display reads use the published GCS snapshot, including local development, without credentials or refresh side effects. */
 
 import { rankedModels } from "../pipeline/model-types";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
@@ -14,11 +14,11 @@ import {
 
 type SnapshotReadState = {
   bucket: string;
-  readInFlight: Promise<ModelAtlasPayload> | null;
   cachedPayload: ModelAtlasPayload | null;
   version: string | null;
   etag: string | null;
   cacheExpiresAt: number;
+  readInFlight: Promise<ModelAtlasPayload> | null;
 };
 
 const snapshotReadState = globalThis as typeof globalThis & {
@@ -28,10 +28,6 @@ const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
 /** Collapse concurrent reads and keep a short in-memory result for repeated server renders. */
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
-  if (process.env.NODE_ENV === "development" && process.env.VERCEL !== "1") {
-    const { readCachedDatabasePayload } = await import("./sqlite-payload");
-    return readCachedDatabasePayload();
-  }
   const bucket = snapshotBucket();
   if (snapshotReadState.__modelAtlasSnapshotReadState?.bucket !== bucket) {
     snapshotReadState.__modelAtlasSnapshotReadState = {

@@ -1,8 +1,7 @@
 /** Exercises keyed schema reconciliation, payload fallback, and current raw cache reads. */
 
 import assert from "node:assert/strict";
-import { existsSync, statSync } from "node:fs";
-import { rename } from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 import {
   loadSchemaSql,
@@ -17,10 +16,7 @@ import {
   schemaTableColumns,
   schemaTableShapes,
 } from "../src/model-atlas/database/schema-reconciliation";
-import {
-  readCachedDatabasePayload,
-  readDatabasePayload,
-} from "../src/model-atlas/database/sqlite-payload";
+import { readDatabasePayload } from "../src/model-atlas/database/sqlite-payload";
 import { readDeepSWERawCache } from "../src/model-atlas/ingest/benchmark-runtimes/deep-swe";
 import { readTerminalBench4RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/terminal-bench-4";
 import {
@@ -447,23 +443,15 @@ try {
     );
     reopenedDb.exec("DELETE FROM snapshot_metadata; INSERT INTO snapshot_metadata VALUES (100)");
     reopenedDb.exec("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint = 0");
-    const cached = readCachedDatabasePayload(databasePath);
-    assert.equal(
-      readCachedDatabasePayload(databasePath),
-      cached,
-      "Unchanged reads reuse the payload",
-    );
-    const checkpointMtime = statSync(databasePath, { bigint: true }).mtimeNs;
+    assert.equal(readDatabasePayload(databasePath).fetched_at_epoch_seconds, 100);
     reopenedDb.exec("UPDATE snapshot_metadata SET updated_at_epoch_seconds = 101");
-    assert.equal(statSync(databasePath, { bigint: true }).mtimeNs, checkpointMtime);
-    const updated = readCachedDatabasePayload(databasePath);
-    assert.equal(updated.fetched_at_epoch_seconds, 101, "WAL-only commits invalidate immediately");
-    assert.notEqual(updated, cached);
+    const updated = readDatabasePayload(databasePath);
+    assert.equal(updated.fetched_at_epoch_seconds, 101, "Checkpoint reads include WAL commits");
     reopenedDb.exec("BEGIN; UPDATE snapshot_metadata SET updated_at_epoch_seconds = 102");
-    assert.equal(readCachedDatabasePayload(databasePath).fetched_at_epoch_seconds, 101);
+    assert.equal(readDatabasePayload(databasePath).fetched_at_epoch_seconds, 101);
     reopenedDb.exec("ROLLBACK; PRAGMA wal_checkpoint(TRUNCATE)");
     assert.deepEqual(
-      readCachedDatabasePayload(databasePath),
+      readDatabasePayload(databasePath),
       updated,
       "WAL truncation preserves the committed view",
     );
@@ -477,29 +465,15 @@ try {
     );
     reopenedDb.exec("DROP TABLE models");
     assert.throws(
-      () => readCachedDatabasePayload(databasePath),
+      () => readDatabasePayload(databasePath),
       /no such table: models/,
-      "Missing required tables must fail rather than return stale cached data",
+      "Missing required tables must fail rather than return an incomplete payload",
     );
   } finally {
     reopenedDb.close();
   }
-  const replacementPath = `${databasePath}.replacement`;
-  try {
-    const replacement = await openDatabase(replacementPath);
-    try {
-      replacement.exec("INSERT INTO snapshot_metadata VALUES (200)");
-    } finally {
-      replacement.close();
-    }
-    await rename(replacementPath, databasePath);
-    assert.equal(readCachedDatabasePayload(databasePath).fetched_at_epoch_seconds, 200);
-  } finally {
-    await removeDatabaseFiles(replacementPath);
-  }
 } finally {
   await removeDatabaseFiles(databasePath);
 }
-assert.throws(() => readCachedDatabasePayload(databasePath), /ENOENT/);
 assert.throws(() => readDatabasePayload(databasePath), /unable to open database/);
-assert.equal(existsSync(databasePath), false, "A display read must not create an empty checkpoint");
+assert.equal(existsSync(databasePath), false, "A payload read must not create an empty checkpoint");

@@ -87,7 +87,7 @@ assert.equal(
     },
   }),
   false,
-  "sparse core specs should not form a leaderboard model",
+  "sparse core specs should not form an official leaderboard model",
 );
 
 assert.equal(
@@ -338,6 +338,145 @@ assert.deepEqual(
   previewModels.find((model) => model.id === coveredRecentId)?.scores,
   previewModels.find((model) => model.id === coveredOlderId)?.scores,
   "release age alone must not select a different scoring policy for adequately covered models",
+);
+
+const metadataPreviewId = "provider/metadata-preview";
+const completeMetadataRow = recentPreviewRow(metadataPreviewId, "Metadata Preview", {
+  intelligence_index: 75,
+  agentic_index: 70,
+});
+const metadataPreviewRow = {
+  ...completeMetadataRow,
+  release_date: null,
+  cost: null,
+  limit: null,
+};
+const metadataModels = await buildFinalModels(
+  {
+    modelRows: [
+      ...admissionRows,
+      metadataPreviewRow,
+      { ...metadataPreviewRow, id: "provider/old-metadata-preview", release_date: "2025-01-01" },
+      { ...metadataPreviewRow, id: "provider/sparse-metadata", benchmarks: { critpt: 0.7 } },
+      { ...metadataPreviewRow, id: "provider/no-index-metadata", intelligence: null },
+      { ...metadataPreviewRow, id: "provider/non-text", modalities: { output: ["image"] } },
+    ],
+    speedByModelId: new Map(),
+    pricingByModelId: new Map(),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+  { baselineDate: "2026-07-30", observedDate: "2026-08-27" },
+);
+assert.deepEqual(
+  metadataModels.map((model) => model.id).sort(),
+  [coveredOlderId, coveredRecentId, metadataPreviewId, "provider/old-metadata-preview"].sort(),
+  "incomplete specs waive neither broad benchmark evidence nor index coverage; only the new benchmark-complete preview path is independent of release age",
+);
+assert.ok(metadataModels.every((model) => model.preview === true));
+const metadataPreview = metadataModels.find((model) => model.id === metadataPreviewId)!;
+assert.equal(metadataPreview.release_date, null);
+assert.equal(metadataPreview.cost, null);
+assert.equal(metadataPreview.context_window, null);
+assert.equal(metadataPreview.scores.speed_score, null);
+assert.equal(metadataPreview.scores.value_score, null);
+assert.ok(metadataPreview.scores.intelligence_score! >= 10);
+assert.ok(metadataPreview.scores.agentic_score! >= 10);
+
+const completedMetadataModels = await buildFinalModels(
+  {
+    modelRows: [completeMetadataRow],
+    speedByModelId: new Map([[metadataPreviewId, completeBasicSpecs.speed]]),
+    pricingByModelId: new Map([[metadataPreviewId, { weighted_input: 1, weighted_output: 2 }]]),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+);
+assert.equal(completedMetadataModels.length, 1);
+assert.notEqual(
+  completedMetadataModels[0]?.preview,
+  true,
+  "complete metadata restores ordinary admission without retaining a preview duplicate",
+);
+
+const fallbackRows = ["high", "max"].map((effort, index) => ({
+  ...metadataPreviewRow,
+  reasoning_effort: effort,
+  artificial_analysis_cost: { input: 10, output: 50 },
+  median_output_tokens_per_second: 100 - index * 50,
+  median_time_to_first_token_seconds: 2 + index * 10,
+  median_end_to_end_response_time_seconds: 20 + index * 40,
+}));
+const fallbackModels = await buildFinalModels(
+  {
+    modelRows: fallbackRows,
+    speedByModelId: new Map(),
+    pricingByModelId: new Map(),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+);
+assert.equal(fallbackModels.length, 2);
+assert.equal(
+  fallbackModels.find((model) => model.reasoning_effort === "high")?.speed
+    .throughput_tokens_per_second_median,
+  100,
+);
+assert.equal(
+  fallbackModels.find((model) => model.reasoning_effort === "max")?.speed
+    .throughput_tokens_per_second_median,
+  50,
+  "AA fallback telemetry stays on its exact effort rather than a shared route map",
+);
+assert.ok(
+  fallbackModels.every(
+    (model) =>
+      model.preview &&
+      model.cost?.input === 10 &&
+      model.cost?.output === 50 &&
+      model.cost?.blended_price === 30,
+  ),
+);
+assert.ok(
+  fallbackModels.every(
+    (model) => model.scores.speed_score != null && model.scores.value_score != null,
+  ),
+);
+const primaryModels = await buildFinalModels(
+  {
+    modelRows: [{ ...fallbackRows[0], cost: { input: 8, output: 40 } }],
+    speedByModelId: new Map([
+      [
+        metadataPreviewId,
+        {
+          throughput_tokens_per_second_median: 200,
+          latency_seconds_median: null,
+          e2e_latency_seconds_median: 7,
+        },
+      ],
+    ]),
+    pricingByModelId: new Map([[metadataPreviewId, { weighted_input: 6, weighted_output: null }]]),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+);
+assert.deepEqual(primaryModels[0]?.speed, {
+  throughput_tokens_per_second_median: 200,
+  latency_seconds_median: 2,
+  e2e_latency_seconds_median: 7,
+});
+assert.deepEqual(
+  primaryModels[0]?.cost,
+  { input: 8, output: 40, weighted_input: 6, weighted_output: 40, blended_price: 23 },
+  "primary catalog and OpenRouter values replace fallback fields independently",
 );
 
 function duplicateRouteRow(name: string, releaseDate: string, benchmarkValue: number) {

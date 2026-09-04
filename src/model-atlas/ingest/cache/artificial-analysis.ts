@@ -70,6 +70,8 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   assignIfString(rawRow, "releaseDate", row.release_date);
   assignIfString(rawRow, "logo_url", row.logo_url);
   assignIfString(rawRow, "reasoning_effort", cachedReasoningEffort(row));
+  assignIfNumber(rawRow, "price1mInputTokens", row.price_1m_input_tokens);
+  assignIfNumber(rawRow, "price1mOutputTokens", row.price_1m_output_tokens);
   assignIfNumber(rawRow, "median_output_speed", row.median_output_tokens_per_second);
   assignIfNumber(rawRow, "medianTimeToFirstTokenSeconds", row.median_time_to_first_token_seconds);
   assignIfNumber(
@@ -117,6 +119,11 @@ function selectedRowFromCache(row: CacheDbRow): JsonObject {
   assignIfString(selectedRow, "model_url", row.model_url);
   assignIfString(selectedRow, "logo", row.logo_url);
   assignIfString(selectedRow, "reasoning_effort", cachedReasoningEffort(row));
+  const cost = {
+    input: asFiniteNumber(row.price_1m_input_tokens),
+    output: asFiniteNumber(row.price_1m_output_tokens),
+  };
+  if (cost.input != null || cost.output != null) selectedRow.cost = cost;
   assignIfNumber(selectedRow, "median_speed", row.median_output_tokens_per_second);
   assignIfNumber(selectedRow, "median_time", row.median_time_to_first_token_seconds);
   assignIfNumber(

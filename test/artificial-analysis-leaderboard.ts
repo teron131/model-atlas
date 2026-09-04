@@ -44,6 +44,8 @@ const rows = processArtificialAnalysisLeaderboardRows(
       modelCreatorName: "Acme",
       modelCreatorSlug: "acme",
       intelligenceIndex: 70,
+      price1mInputTokens: 10,
+      price1mOutputTokens: 50,
       medianOutputTokensPerSecond: 59,
       medianTimeToFirstTokenSeconds: 94,
       medianEndToEndResponseTimeSeconds: 103,
@@ -87,6 +89,8 @@ assertDeepEqual(rows[0]?.benchmarks, {
   tau_banking: 0.52,
 });
 assertDeepEqual(rows[0]?.name, "Alpha");
+assertDeepEqual(rows[0]?.cost, { input: 10, output: 50 });
+assertDeepEqual(rows[1]?.cost, { input: null, output: null });
 assertDeepEqual(rows[1]?.benchmarks, { scicode: 0.36 });
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);

@@ -1,4 +1,4 @@
-/** Proves atomic publication, private checkpoint recovery, and conditional runtime reads without cloud credentials. */
+/** Proves atomic publication, private checkpoint recovery, and cloud-only display reads even in local development. */
 
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -86,6 +86,10 @@ await mkdir(".cache", { recursive: true });
 const workspace = await mkdtemp(".cache/snapshot-test-");
 const originalFetch = globalThis.fetch;
 const originalBucket = process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
+const originalEnvironment = {
+  NODE_ENV: process.env.NODE_ENV,
+  VERCEL: process.env.VERCEL,
+};
 const originalNow = Date.now;
 try {
   const checkpoint = join(workspace, "database.sqlite");
@@ -150,6 +154,7 @@ try {
   assert.equal((await store.current()).manifest?.version, warned.manifest.version);
   failRetirement = false;
 
+  Object.assign(process.env, { NODE_ENV: "development", VERCEL: "0" });
   delete process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
   await assert.rejects(readDisplaySnapshotPayload(), /MODEL_ATLAS_SNAPSHOT_BUCKET/);
   process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "public-bucket";
@@ -173,7 +178,7 @@ try {
     readDisplaySnapshotPayload(),
   ]);
   assert.equal(read, concurrent);
-  assert.deepEqual(read.models, payload.models);
+  assert.deepEqual(read.models, payload.models, "Local development must read the GCS snapshot");
   assert.equal(manifestReads, 1);
   assert.equal(payloadReads, 1);
   await readDisplaySnapshotPayload();
@@ -460,5 +465,9 @@ try {
   Date.now = originalNow;
   if (originalBucket === undefined) delete process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
   else process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = originalBucket;
+  for (const [key, value] of Object.entries(originalEnvironment)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
   await rm(workspace, { recursive: true, force: true });
 }

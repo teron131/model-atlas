@@ -1,5 +1,5 @@
 /**
- * Benchmark-matched rows provide the evidence-backed catalog foundation.
+ * Benchmark-source rows provide the evidence-backed catalog foundation even before a public catalog lists them.
  * Eligible models.dev rows extend that foundation so recent models can enter the catalog before benchmark coverage catches up.
  */
 

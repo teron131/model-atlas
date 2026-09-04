@@ -181,7 +181,7 @@ export function isRecentPreviewCandidate(
   return ageDays >= 0 && ageDays < maxAgeDays;
 }
 
-/** Retain recent undercovered models only after ordinary admission, without relaxing basic specs or relevance gates. */
+/** Score eligible previews from direct observations, then apply the same public relevance floor as ordinary models. */
 function buildPreviewModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
   admittedModels: ModelAtlasModel[],
@@ -195,10 +195,7 @@ function buildPreviewModels(
   const previewCandidates = scoredCandidates.map((model) => {
     if (
       hasPublicModelIdentity(admittedModelIdentities, model) ||
-      hasRequiredBenchmarkEvidence(model, scoringConfig, finalConfig.benchmarkAdmission) ||
-      !isRecentPreviewCandidate(model, observedDate, finalConfig.previewMaxAgeDays) ||
-      !hasRequiredBasicSpecs(model) ||
-      !hasRequiredIndexEvidence(model, finalConfig.benchmarkAdmission)
+      !isPreviewCandidate(model, observedDate, finalConfig, scoringConfig)
     ) {
       return null;
     }
@@ -249,6 +246,31 @@ function buildPreviewModels(
     return hasRequiredPublicRelevance(previewModel) ? [previewModel] : [];
   });
   return normalizePreviewModels(previewModels, id);
+}
+
+/** Allow incomplete metadata only with broad observed evidence; sparse evidence still requires recent release and complete specs. */
+function isPreviewCandidate(
+  model: ModelAtlasScoredCandidate,
+  observedDate: string,
+  finalConfig: FinalStageConfig,
+  scoringConfig: ScoringConfig,
+): boolean {
+  const completeSpecs = hasRequiredBasicSpecs(model);
+  if (hasRequiredBenchmarkEvidence(model, scoringConfig, finalConfig.benchmarkAdmission)) {
+    return (
+      !completeSpecs &&
+      model.id != null &&
+      /^[^/\s]+\/[^/\s]+$/.test(model.id) &&
+      model.name != null &&
+      model.name.trim().length > 0 &&
+      model.modalities?.output?.includes("text") === true
+    );
+  }
+  return (
+    completeSpecs &&
+    isRecentPreviewCandidate(model, observedDate, finalConfig.previewMaxAgeDays) &&
+    hasRequiredIndexEvidence(model, finalConfig.benchmarkAdmission)
+  );
 }
 
 function buildCandidates(
@@ -354,7 +376,7 @@ export async function buildFinalModels(
     resourceImputation,
   );
   // Public admission is output-only and must not redefine the scoring reference population.
-  // Age never blocks ordinary admission; recent undercovered models receive a separate preview fallback.
+  // Age limits only undercovered previews; benchmark-complete previews can precede a public release and complete metadata.
   const admittedPublicModels = rescoredReferenceModels
     .filter(hasRequiredBasicSpecs)
     .filter((model) =>
