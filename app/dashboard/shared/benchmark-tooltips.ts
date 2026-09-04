@@ -32,13 +32,18 @@ export function benchmarkTooltip(
     coverage.total === 0
       ? `No ${unit} in current view`
       : `${coverage.observed} of ${coverage.total} ${unit} (${benchmarkCoverageLabel(coverage)})`;
-  const rows: ModelAtlasColumnTooltipRow[] = [...(tooltip.rows ?? []), ["Coverage", coverageValue]];
-  if (scoring != null && scoring.benchmark_portfolio[key] != null) {
+  const rows: ModelAtlasColumnTooltipRow[] = [...(tooltip.rows ?? [])];
+  const entry = scoring?.benchmark_portfolio[key];
+  if (scoring != null && entry != null) {
     rows.push(
-      ["Intel weight", dimensionWeightLabel(key, "intelligence", scoring)],
-      ["Agentic weight", dimensionWeightLabel(key, "agentic", scoring)],
+      ["Class", entry.group === "frontier" ? "Frontier" : "Baseline"],
+      [
+        "Weights",
+        `I ${dimensionWeightLabel(key, "intelligence", scoring)} · A ${dimensionWeightLabel(key, "agentic", scoring)}`,
+      ],
     );
   }
+  rows.push(["Coverage", coverageValue]);
   return {
     ...tooltip,
     rows,
@@ -65,10 +70,5 @@ function dimensionWeightLabel(
   const keys = scoring[`${dimension}_benchmark_keys`];
   const portfolio = scoring.benchmark_portfolio;
   const weight = keys.includes(key) ? benchmarkDimensionWeight(key, dimension, portfolio) : 0;
-  const totalWeight = keys.reduce(
-    (total, benchmark) => total + benchmarkDimensionWeight(benchmark, dimension, portfolio),
-    0,
-  );
-  const share = totalWeight > 0 ? (weight / totalWeight) * 100 : 0;
-  return `${Number((weight * 100).toFixed(1))}% · ${share.toFixed(1)}% share`;
+  return `${Number((weight * 100).toFixed(1))}%`;
 }
