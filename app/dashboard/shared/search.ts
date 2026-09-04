@@ -104,7 +104,7 @@ function searchTermScore(values: string[], pattern: SearchPattern): number {
   }
   const prefix = pattern.prefixExpression;
   if (prefix != null && values.some((value) => prefix.test(value))) {
-    return 0.75;
+    return 1;
   }
   const term = pattern.fuzzyTerm;
   if (term == null || values.length === 0) {
