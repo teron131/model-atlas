@@ -141,17 +141,20 @@ function buildContextWindow(model: JsonObject): ModelAtlasContextWindow {
   };
 }
 
-function buildSpeed(
-  modelId: string | null,
-  speedByModelId: Map<string, JsonObject>,
-): ModelAtlasSpeed {
+/** Fill missing route telemetry from the exact Artificial Analysis observation, never a sibling effort. */
+function buildSpeed(model: JsonObject, speedByModelId: Map<string, JsonObject>): ModelAtlasSpeed {
+  const modelId = typeof model.id === "string" ? model.id : null;
   const openRouterSpeed = lookupOpenRouterData(speedByModelId, modelId, hasSpeedData);
   return {
-    throughput_tokens_per_second_median: asFiniteNumber(
-      openRouterSpeed?.throughput_tokens_per_second_median,
-    ),
-    latency_seconds_median: asFiniteNumber(openRouterSpeed?.latency_seconds_median),
-    e2e_latency_seconds_median: asFiniteNumber(openRouterSpeed?.e2e_latency_seconds_median),
+    throughput_tokens_per_second_median:
+      asFiniteNumber(openRouterSpeed?.throughput_tokens_per_second_median) ??
+      asFiniteNumber(model.median_output_tokens_per_second),
+    latency_seconds_median:
+      asFiniteNumber(openRouterSpeed?.latency_seconds_median) ??
+      asFiniteNumber(model.median_time_to_first_token_seconds),
+    e2e_latency_seconds_median:
+      asFiniteNumber(openRouterSpeed?.e2e_latency_seconds_median) ??
+      asFiniteNumber(model.median_end_to_end_response_time_seconds),
   };
 }
 
@@ -229,11 +232,17 @@ function buildCostTier(value: unknown): ModelAtlasCostTier | null {
   return hasFields(costTier) ? costTier : null;
 }
 
+/** Keep catalog prices and effective route prices authoritative, filling only missing fields from Artificial Analysis USD-per-million-token prices. */
 function buildCost(model: JsonObject, openRouterPricing: JsonObject): ModelAtlasCost {
   const baseCost = asRecord(model.cost);
   const cost: Exclude<ModelAtlasCost, null> = {
     ...buildCostBreakdown(baseCost),
   };
+  const artificialAnalysisCost = asRecord(model.artificial_analysis_cost);
+  for (const key of ["input", "output"] as const) {
+    const fallback = asFiniteNumber(artificialAnalysisCost[key]);
+    if (cost[key] == null && fallback != null && fallback >= 0) cost[key] = fallback;
+  }
   const contextOver200k = buildCostBreakdown(baseCost.context_over_200k);
   if (contextOver200k != null) {
     cost.context_over_200k = contextOver200k;
@@ -246,8 +255,8 @@ function buildCost(model: JsonObject, openRouterPricing: JsonObject): ModelAtlas
       cost.tiers = tiers;
     }
   }
-  const weightedInput = asFiniteNumber(openRouterPricing.weighted_input);
-  const weightedOutput = asFiniteNumber(openRouterPricing.weighted_output);
+  const weightedInput = asFiniteNumber(openRouterPricing.weighted_input) ?? cost.input;
+  const weightedOutput = asFiniteNumber(openRouterPricing.weighted_output) ?? cost.output;
   if (weightedInput != null) {
     cost.weighted_input = weightedInput;
   }
@@ -504,7 +513,7 @@ export function buildModelCandidate(
   const model = asRecord(row);
   const provider = providerFromModel(model);
   const modelId = typeof model.id === "string" ? model.id : null;
-  const speed = buildSpeed(modelId, speedByModelId);
+  const speed = buildSpeed(model, speedByModelId);
   const pricing =
     lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ?? EMPTY_OPENROUTER_PRICING;
   const cost = buildCost(model, pricing);

@@ -86,14 +86,20 @@ import { pickPreferredModelsDevRows } from "./policy";
 export type ArtificialAnalysisModel = {
   model_id?: unknown;
   name?: unknown;
-  reasoning_effort?: unknown;
+  provider?: unknown;
   logo?: unknown;
+  release_date?: unknown;
+  input_modalities?: unknown;
+  output_modalities?: unknown;
+  reasoning?: unknown;
+  reasoning_effort?: unknown;
+  cost?: unknown;
   median_speed?: unknown;
   median_time?: unknown;
   median_end_to_end_response_time?: unknown;
-  benchmarks?: unknown;
   intelligence?: unknown;
   intelligence_index_cost?: unknown;
+  benchmarks?: unknown;
 };
 
 type IndexedSourceRows<Row, Lookup> = {

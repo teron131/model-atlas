@@ -145,7 +145,7 @@ export const ModelRow = memo(function ModelRow({
       style={rowProviderStyle(model.provider)}
       title={
         isPreviewModel(model)
-          ? "Early preview based only on direct evidence; Speed and Value use 70% provider specs and 30% observed benchmark resources, falling back to specs alone, while PREVIEW replaces a numeric rank."
+          ? "Preview based on direct evidence: either a recent model with limited benchmark coverage or a benchmark-qualified model with incomplete metadata. Unsupported Speed and Value scores remain unavailable; PREVIEW replaces a numeric rank."
           : undefined
       }
     >

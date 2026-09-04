@@ -2,11 +2,13 @@
 
 Model Atlas joins benchmark results, catalog metadata, pricing, and serving performance from sources that use different identifiers. Matching resolves those source-specific names to one stable public model identity without merging genuinely different versions, tiers, or reasoning configurations.
 
-The matcher is deliberately conservative. Dropping an uncertain row is safer than attaching evidence to the wrong model.
+The matcher is deliberately conservative: rejecting an uncertain association is safer than attaching evidence to the wrong model. Rejecting a catalog association does not erase a separately identified benchmark model.
 
 ## Identity Sources
 
-Benchmark pages provide measurements, not canonical identities. Their rows join the public model table only after the matcher resolves them to a catalog model.
+Benchmark pages provide measurements and source-specific identities; a catalog match enriches those identities rather than deciding whether the model exists. When Artificial Analysis supplies a qualified provider/model ID, a nonempty name, and explicit text output but no catalog match is accepted, the pipeline retains that source identity and its reported reasoning configurations without borrowing metadata from a rejected candidate. Other benchmark observations can attach through the existing conservative identity and effort rules.
+
+Retention is not publication: a model with incomplete metadata must still satisfy the ordinary observed-benchmark requirements before it can appear as a preview.
 
 The preferred identity comes from a public OpenRouter route because pricing and speed data use that route ID. `models.dev` supplies provider pools and catalog metadata. Direct OpenAI, Google, Anthropic, and Vercel identities act as trusted fallbacks when they provide a cleaner exact match.
 
@@ -94,7 +96,13 @@ Dates and route labels do not define the base model. Reasoning and configuration
 
 ## Selected Identity
 
-The selected match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. Benchmark values join only after their source row resolves to that identity.
+An accepted catalog match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. An unmatched qualified Artificial Analysis identity instead retains only source-reported metadata, leaving genuinely missing prices, limits, and serving measurements unknown.
+
+Artificial Analysis input/output token prices and exact-effort throughput and latency measurements fill missing resource fields temporarily; they do not replace catalog prices or available OpenRouter telemetry. Catalog input/output prices take precedence over Artificial Analysis prices, and effective OpenRouter prices take precedence over those listed-price fallbacks for Value scoring. Fallback selection is field-by-field and recomputed on every refresh, so primary data automatically takes over when it arrives without retaining a stale override.
+
+Artificial Analysis token prices are USD per million tokens, throughput is output tokens per second, and latency is seconds; total benchmark evaluation costs are never treated as token prices.
+
+Both paths attach benchmark evidence before applying the publication rules described in [Methodology](methodology.md#public-admission).
 
 Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored configurations.
 

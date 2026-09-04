@@ -683,6 +683,52 @@ assert.equal(
 assert.equal(asBenchmarks(assignedFlashVariant).hle, 0.4);
 assert.equal(assignedFlashVariant?.reasoning_effort, undefined);
 
+const uncatalogedIndexKeys = new Set<string>(
+  STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys,
+);
+const uncatalogedSourceData = modelStatsSourceData(
+  ["max", "high", "none"].map((effort) => ({
+    model_id: `example/private-model-${effort === "none" ? "non-reasoning" : effort}`,
+    name: `Private Model (${effort === "none" ? "Non-reasoning" : effort})`,
+    provider: "example",
+    output_modalities: ["text"],
+    reasoning_effort: effort,
+    intelligence: { intelligence_index: 75, agentic_index: 70 },
+    benchmarks: Object.fromEntries(
+      [
+        ...STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
+        ...STAGE_CONFIG.scoring.agenticBenchmarkKeys,
+      ]
+        .filter((key) => !uncatalogedIndexKeys.has(key))
+        .map((key) => [key, 0.7]),
+    ),
+  })),
+);
+const uncatalogedDerivation = await deriveModelStats(uncatalogedSourceData, {
+  loadOpenRouter: async () => ({ rawPayload: null }),
+});
+assert.ok(uncatalogedDerivation.matchDiagnostics.models.every((model) => model.best_match == null));
+assert.deepEqual(
+  uncatalogedDerivation.models
+    .map((model) => [model.id, model.reasoning_effort, model.preview])
+    .sort(),
+  [
+    ["example/private-model", "high", true],
+    ["example/private-model", "max", true],
+    ["example/private-model", "none", true],
+  ],
+  "qualified benchmark-source identities survive an absent catalog without merging their reasoning configurations",
+);
+assert.ok(
+  uncatalogedDerivation.models.every((model) => model.name === "Private Model"),
+  "effort labels must not create separate base-model calibration or display identities",
+);
+assert.ok(
+  uncatalogedDerivation.models.every(
+    (model) => model.cost == null && model.context_window == null && model.release_date == null,
+  ),
+);
+
 function source(sourceSlug: string, sourceName: string): MatcherSourceModel {
   return {
     sourceId: sourceSlug,

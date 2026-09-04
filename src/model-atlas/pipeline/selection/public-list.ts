@@ -275,7 +275,7 @@ export function publicModelFromCandidate(model: ModelAtlasScoredCandidate): Mode
   return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
 }
 
-/** Project a recent candidate without converting provisional evidence into an official ranked model. */
+/** Project a preview candidate without converting incomplete admission requirements into an official rank. */
 export function previewModelFromCandidate(
   model: ModelAtlasScoredCandidate,
 ): ModelAtlasPreviewModel {

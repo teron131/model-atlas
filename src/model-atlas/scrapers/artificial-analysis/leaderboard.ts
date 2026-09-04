@@ -46,8 +46,14 @@ export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
   "model_id",
   "name",
   "model_url",
+  "provider",
   "logo",
+  "release_date",
+  "input_modalities",
+  "output_modalities",
+  "reasoning",
   "reasoning_effort",
+  "cost",
   "median_speed",
   "median_time",
   "median_end_to_end_response_time",
@@ -461,6 +467,11 @@ function getSelectedColumnValue(
       return selectModalities(row, "output");
     case "release_date":
       return firstString(row, ["releaseDate"]);
+    case "cost":
+      return {
+        input: firstNumber(row, ["price1mInputTokens"]),
+        output: firstNumber(row, ["price1mOutputTokens"]),
+      };
     case "input_tokens": {
       const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
       return intelligenceTokenCounts.inputTokens ?? null;

@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	mmmu_pro REAL,
 	scicode REAL,
 	tau_banking REAL,
+	price_1m_input_tokens REAL,
+	price_1m_output_tokens REAL,
 	input_cost REAL,
 	reasoning_cost REAL,
 	output_cost REAL,
