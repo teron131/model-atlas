@@ -381,12 +381,13 @@ assert.deepEqual(
   "Benchmark tooltips should count zero scores as observed and missing scores as uncovered",
 );
 assert.deepEqual(
-  weightedTooltip?.rows?.slice(-2),
+  weightedTooltip?.rows?.slice(-3),
   [
-    ["Intel weight", "50% · 33.3% share"],
-    ["Agentic weight", "150% · 100.0% share"],
+    ["Class", "Frontier"],
+    ["Weights", "I 50% · A 150%"],
+    ["Coverage", "1 of 2 models (50%)"],
   ],
-  "Benchmark tooltips should use payload importance and normalize each selected dimension independently",
+  "Benchmark tooltips should show the payload classification and compact percentage weights",
 );
 assert.deepEqual(
   tableColumnTooltip(deepSweKey, COLUMN_TOOLTIPS, {
