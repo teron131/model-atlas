@@ -1,4 +1,6 @@
-/** Dashboard metadata search ranks target-specific identity and context fields without a remote embedding dependency. */
+/** Dashboard metadata search combines exact and wildcard matching with Fuse.js typo tolerance across identity and context fields. */
+
+import Fuse from "fuse.js";
 
 const MIN_QUERY_TERM_COVERAGE = 0.6;
 const MIN_RELATIVE_SEARCH_SCORE = 0.2;
@@ -11,6 +13,8 @@ export type SearchDocument<T> = {
 
 type SearchPattern = {
   expression: RegExp;
+  prefixExpression: RegExp | null;
+  fuzzyTerm: string | null;
 };
 
 type ScoredSearchDocument<T> = {
@@ -49,7 +53,13 @@ function buildSearchQuery(query: string): { patterns: SearchPattern[]; query: st
   const patterns = normalizedQuery
     .split(" ")
     .filter(Boolean)
-    .map((term) => ({ expression: createSearchPattern(term) }));
+    .map((term) => ({
+      expression: createSearchPattern(term),
+      prefixExpression: /^\p{L}+$/u.test(term)
+        ? new RegExp(`(^|[^\\p{L}\\p{N}])${term}`, "iu")
+        : null,
+      fuzzyTerm: /^\p{L}{4,}$/u.test(term) ? term : null,
+    }));
   return patterns.length > 0 ? { patterns, query: normalizedQuery } : null;
 }
 
@@ -72,12 +82,13 @@ function scoreSearchDocument<T>(
   }
   let matchedTerms = 0;
   for (const pattern of patterns) {
-    if (primary.some((value) => pattern.expression.test(value))) {
+    const termScore = Math.max(
+      searchTermScore(primary, pattern) * 2,
+      searchTermScore(context, pattern) * 0.75,
+    );
+    if (termScore > 0) {
       matchedTerms += 1;
-      score += 2;
-    } else if (context.some((value) => pattern.expression.test(value))) {
-      matchedTerms += 1;
-      score += 0.75;
+      score += termScore;
     }
   }
   return {
@@ -85,6 +96,28 @@ function scoreSearchDocument<T>(
     coverage: matchedTerms / patterns.length,
     score,
   };
+}
+
+function searchTermScore(values: string[], pattern: SearchPattern): number {
+  if (values.some((value) => pattern.expression.test(value))) {
+    return 1;
+  }
+  const prefix = pattern.prefixExpression;
+  if (prefix != null && values.some((value) => prefix.test(value))) {
+    return 0.75;
+  }
+  const term = pattern.fuzzyTerm;
+  if (term == null || values.length === 0) {
+    return 0;
+  }
+  // Search words near their start so description position does not matter and loose suffix matches stay weak.
+  const words = values.flatMap((value) => value.match(/[\p{L}\p{N}]+/gu) ?? []);
+  const [match] = new Fuse(words, {
+    includeScore: true,
+    distance: 10,
+    threshold: 0.3,
+  }).search(term, { limit: 1 });
+  return match == null ? 0 : (1 - (match.score ?? 1)) * 0.5;
 }
 
 function collectTextValues(value: unknown): string[] {

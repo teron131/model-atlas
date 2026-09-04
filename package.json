@@ -1,6 +1,6 @@
 {
   "name": "model-atlas",
-  "version": "0.36.0",
+  "version": "0.36.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -30,6 +30,7 @@
     "@google-cloud/storage": "^8.0.1",
     "d3-array": "^3.2.4",
     "d3-scale": "^4.0.2",
+    "fuse.js": "^7.5.0",
     "html-to-image": "^1.11.13",
     "katex": "^0.16.47",
     "lucide-react": "^1.17.0",

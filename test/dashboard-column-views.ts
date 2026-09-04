@@ -124,6 +124,46 @@ assert.equal(
   "Search should ignore preset membership",
 );
 
+const financeColumn = benchmarkMetricColumns.find(
+  (column) => column.benchmark === "finance_agent_v2",
+);
+assert.ok(financeColumn);
+for (const query of ["fin", "financ", "finace", "finanxe", "finnance", "finacne", "finace ag"]) {
+  assert.equal(
+    tableColumnKeysForView("scores", query, COLUMN_TOOLTIPS).includes(financeColumn.key),
+    true,
+    `Search should find Finance Agent V2 for the partial or mistyped query ${query}`,
+  );
+}
+
+const searchDocuments = [
+  { value: "finance", primary: "Finance Agent V2" },
+  { value: "context", primary: "Other", context: "Finance workflows" },
+  { value: "unrelated", primary: "Final exam" },
+];
+assert.deepEqual(
+  filterSearchDocuments("finace", searchDocuments),
+  ["finance", "context"],
+  "Typo matching should search names and descriptions while preserving display order",
+);
+for (const query of ["fnce", "fin.*", "fiz"]) {
+  assert.deepEqual(
+    filterSearchDocuments(query, searchDocuments),
+    [],
+    "Search should keep regex punctuation literal and avoid broad or short-word typo matches",
+  );
+}
+assert.deepEqual(
+  filterSearchDocuments("5.7", [{ value: "model", primary: "GPT 5.6" }]),
+  [],
+  "Typo tolerance should not blur distinct model versions",
+);
+assert.deepEqual(
+  filterSearchDocuments("inteligance", [{ value: "intelligence", primary: "Intelligence" }]),
+  ["intelligence"],
+  "Fuzzy search should tolerate multiple small typos in longer words",
+);
+
 const tooltipSearchKeys = tableColumnKeysForView("scores", "first output token", COLUMN_TOOLTIPS);
 assert.equal(
   tooltipSearchKeys.includes("latency"),
