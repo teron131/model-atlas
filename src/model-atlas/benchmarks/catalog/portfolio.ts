@@ -137,7 +137,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   code_migration: {
     group: "baseline",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   complex_constraints: {
     group: "frontier",
@@ -152,17 +152,17 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   cursorbench: {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   cyberbench: {
     group: "baseline",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   deep_swe: {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   ebr_bench: {
     group: "baseline",
@@ -188,7 +188,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   frontier_code: {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   frontiermath_tier_4: {
     group: "frontier",
@@ -253,7 +253,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   programbench: {
     group: "frontier",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   proofbench: {
     group: "frontier",
@@ -305,7 +305,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   vibe_code: {
     group: "baseline",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   weirdml: {
     group: "baseline",

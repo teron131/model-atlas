@@ -4,7 +4,7 @@
 
 This document specifies how benchmark, token, price, and runtime observations become four separate 0-100 scores: Intelligence, Agentic, Speed, and Value. It defines the mathematical pipeline without depending on the current portfolio. Selected inputs and source policies live in [Benchmarks](benchmarks.md); admission criteria live in [Standards](standards.md).
 
-Intelligence measures capability, while Agentic also incorporates a bounded token-efficiency modifier conditioned on observed benchmark quality. Speed and Value measure practical delivery constraints without feeding cost or latency back into capability. Reasoning-effort variants remain separate scored configurations, while model-balanced calibration prevents a model with many variants from dominating empirical reference distributions.
+Intelligence measures knowledge, perception, understanding, abstract reasoning, and judgment. Agentic measures reliable execution of goals and specifications, including coding, instruction following, tool use, verification, recovery, and completion, and incorporates a bounded token-efficiency modifier conditioned on observed benchmark quality. Coding benchmarks default to primarily Agentic; substantial algorithmic, mathematical, scientific, or research reasoning can earn Intelligence loading under the [capability standards](standards.md#capability-fit). Speed and Value measure practical delivery constraints without feeding cost or latency back into capability. Reasoning-effort variants remain separate scored configurations, while model-balanced calibration prevents a model with many variants from dominating empirical reference distributions.
 
 ## Pipeline Overview
 
@@ -18,8 +18,8 @@ The calculation proceeds in one direction:
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
-| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model at knowledge, reasoning, judgment, problem solving, and artifact construction? |
-| Agentic | Selected benchmark results and matched token telemetry | Quality-adjusted token multiplier, importance, dimension loading, evidence support, and quality regularization | How reliably and token-efficiently does the model follow complex instructions, orchestrate tools, manage state, verify progress, and recover? |
+| Intelligence | Selected benchmark results | Importance, dimension loading, evidence support, and quality regularization | How strong is the model at knowledge, perception, understanding, abstract reasoning, and judgment in difficult problems? |
+| Agentic | Selected benchmark results and matched token telemetry | Quality-adjusted token multiplier, importance, dimension loading, evidence support, and quality regularization | How reliably and token-efficiently does the model turn goals into working results through coding, instruction following, tool use, verification, and recovery? |
 | Speed | Provider throughput, latency, end-to-end latency, and benchmark task time | Log scaling, quality-local comparison, and evidence-weighted aggregation | How quickly does the model deliver comparable work? |
 | Value | Blended price, benchmark task cost | Log scaling, quality-local comparison, and evidence-weighted aggregation | How much useful capability does the model deliver for its cost? |
 

@@ -248,7 +248,7 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Model Atlas score for knowledge, perception, reasoning, judgment, problem solving, and constructing correct or valuable artifacts. Code, proofs, documents, and other artifacts remain Intelligence evidence unless a benchmark separately scores Agentic behavior. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "Model Atlas score for knowledge, perception, understanding, abstract reasoning, and judgment in difficult problems. Coding earns Intelligence loading when substantial algorithmic, mathematical, scientific, or research reasoning beyond routine implementation materially determines success. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "observed range mapped to 0–100"],
@@ -264,7 +264,7 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "Model Atlas score for following complex instructions, selecting and sequencing tools, using feedback, managing external state, self-verifying, recovering, and persisting through multi-step work. A coding task, repository, terminal, or harness does not create Agentic evidence unless one of those capabilities materially determines the score. Token efficiency is assessed against independent peers at comparable benchmark quality and modifies matched benchmark contributions before the final 0–100 remapping. Selected benchmarks are weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "Model Atlas score for reliably turning goals and specifications into working results through coding, instruction following, planning, tool use, state management, verification, recovery, and completion. Coding benchmarks default to primarily Agentic evidence, including when only the finished program is graded. Token efficiency is assessed against independent peers at comparable benchmark quality and modifies matched benchmark contributions before the final 0–100 remapping. Selected benchmarks are weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         [
