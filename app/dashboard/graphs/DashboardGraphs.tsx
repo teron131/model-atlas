@@ -376,6 +376,7 @@ export function DashboardGraphs({
                   payload={deferredPayload}
                   models={models}
                   isLoading={benchmarksLoading}
+                  unit={deferredShowReasoningVariants ? "variants" : "models"}
                 />
               )}
             </div>

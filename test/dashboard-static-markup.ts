@@ -353,6 +353,57 @@ assert.deepEqual(
   [],
   "every dashboard table column should resolve tooltip content",
 );
+const tooltipContext = {
+  models: [{ benchmarks: { deep_swe: 0 } }, { benchmarks: {} }],
+  scoring: {
+    ...coveragePayload.metadata.scoring,
+    intelligence_benchmark_keys: ["deep_swe", "agents_last_exam"],
+    agentic_benchmark_keys: ["deep_swe"],
+    benchmark_portfolio: {
+      deep_swe: {
+        group: "frontier" as const,
+        benchmarkImportance: 2,
+        dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+      },
+      agents_last_exam: {
+        group: "frontier" as const,
+        benchmarkImportance: 1,
+        dimensionLoadings: { intelligence: 1, agentic: 0 },
+      },
+    },
+  },
+};
+const deepSweKey = benchmarkMetricColumns.find((column) => column.benchmark === "deep_swe")!.key;
+const weightedTooltip = tableColumnTooltip(deepSweKey, COLUMN_TOOLTIPS, tooltipContext);
+assert.deepEqual(
+  weightedTooltip?.rows?.find(([label]) => label === "Coverage"),
+  ["Coverage", "1 of 2 models (50%)"],
+  "Benchmark tooltips should count zero scores as observed and missing scores as uncovered",
+);
+assert.deepEqual(
+  weightedTooltip?.rows?.slice(-2),
+  [
+    ["Intel weight", "50% · 33.3% share"],
+    ["Agentic weight", "150% · 100.0% share"],
+  ],
+  "Benchmark tooltips should use payload importance and normalize each selected dimension independently",
+);
+assert.deepEqual(
+  tableColumnTooltip(deepSweKey, COLUMN_TOOLTIPS, {
+    ...tooltipContext,
+    models: tooltipContext.models.slice(0, 1),
+    unit: "variants",
+  })?.rows?.find(([label]) => label === "Coverage"),
+  ["Coverage", "1 of 1 variants (100%)"],
+  "Coverage should follow the current filtered population and its variant display mode",
+);
+assert.deepEqual(
+  tableColumnTooltip(deepSweKey, COLUMN_TOOLTIPS, { ...tooltipContext, models: [] })?.rows?.find(
+    ([label]) => label === "Coverage",
+  ),
+  ["Coverage", "No models in current view"],
+  "Empty views should not report misleading zero-percent coverage",
+);
 const confidenceTooltip = tableColumnTooltip("confidence", COLUMN_TOOLTIPS);
 assert.ok(confidenceTooltip);
 const confidenceTooltipHtml = renderToStaticMarkup(
