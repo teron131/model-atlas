@@ -2,20 +2,18 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { getOpenRouterRawScrapedStats, processOpenRouterModelStats } from ".";
 import { asFiniteNumber } from "../../runtime";
 import { readRawSourceCacheStatus, refreshedCacheStatus } from "../cache/status";
 import { mergeCachedSourceRows } from "../snapshots/policy";
 import type { RawSourceCacheStatus, SourceRefreshOptions } from "../types";
 import { readOpenRouterRawCache } from "./cache";
+import { processOpenRouterModelStats } from "./stats";
+import type { OpenRouterSourceModel, OpenRouterSourcePayload } from "./types";
+import { getOpenRouterRawScrapedStats } from "./workflow";
 
 const PARTIAL_FETCH_TIMEOUT_MS = 10_000;
 
 const PARTIAL_FETCH_MAX_RETRIES = 1;
-
-export type OpenRouterRawCache = ReturnType<typeof readOpenRouterRawCache>;
-
-type OpenRouterRawModel = NonNullable<OpenRouterRawCache>["models"][number];
 
 /** Load OpenRouter raw stats from SQLite when fresh and complete for the current matched model ids. */
 export async function loadOpenRouterRawPayload(
@@ -25,7 +23,7 @@ export async function loadOpenRouterRawPayload(
   nowEpochSeconds: number,
   options: SourceRefreshOptions = {},
 ): Promise<{
-  rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
+  rawPayload: OpenRouterSourcePayload | null;
   cacheStatus: RawSourceCacheStatus;
 }> {
   return refreshOpenRouterRawPayload(
@@ -39,13 +37,13 @@ export async function loadOpenRouterRawPayload(
 
 /** Refreshes OpenRouter data from a storage-independent cache value. */
 export async function refreshOpenRouterRawPayload(
-  cached: OpenRouterRawCache,
+  cached: OpenRouterSourcePayload | null,
   status: RawSourceCacheStatus,
   modelIds: string[],
   speedConcurrency: number,
   options: SourceRefreshOptions = {},
 ): Promise<{
-  rawPayload: Awaited<ReturnType<typeof getOpenRouterRawScrapedStats>> | null;
+  rawPayload: OpenRouterSourcePayload | null;
   cacheStatus: RawSourceCacheStatus;
 }> {
   const replaceSourceRows = options.replaceSourceRows === true;
@@ -122,9 +120,9 @@ export async function refreshOpenRouterRawPayload(
 
 /** Refreshes mutable route telemetry while retaining a usable cached field when its fetch failed. */
 export function mergeOpenRouterModel(
-  cachedModel: OpenRouterRawModel,
-  fetchedModel: OpenRouterRawModel,
-): OpenRouterRawModel {
+  cachedModel: OpenRouterSourceModel,
+  fetchedModel: OpenRouterSourceModel,
+): OpenRouterSourceModel {
   return {
     ...cachedModel,
     ...fetchedModel,
@@ -143,7 +141,7 @@ export function mergeOpenRouterModel(
 
 /** Fresh OpenRouter caches retry uncovered or unusable model IDs; stale or explicitly replaced caches refresh the full requested set. */
 export function openRouterModelIdsToRefresh(
-  cached: OpenRouterRawCache,
+  cached: OpenRouterSourcePayload | null,
   status: RawSourceCacheStatus,
   modelIds: readonly string[],
   replaceSourceRows: boolean,
@@ -161,9 +159,9 @@ export function openRouterModelIdsToRefresh(
 
 /** Keeps cached OpenRouter evidence only for current requested keys, while an empty request preserves all cached data. */
 function scopeCachedModels(
-  cached: OpenRouterRawCache,
+  cached: OpenRouterSourcePayload | null,
   requestedModelIds: readonly string[],
-): OpenRouterRawCache {
+): OpenRouterSourcePayload | null {
   if (cached == null || requestedModelIds.length === 0) {
     return cached;
   }
@@ -175,7 +173,7 @@ function scopeCachedModels(
 }
 
 /** A cached route is usable only when it can satisfy the leaderboard's required speed profile. */
-function hasUsableOpenRouterSpeed(model: OpenRouterRawModel): boolean {
+function hasUsableOpenRouterSpeed(model: OpenRouterSourceModel): boolean {
   const speed = processOpenRouterModelStats(model.id, model.performance, model.pricing).performance;
   return (
     asFiniteNumber(speed.throughput_tokens_per_second_median) != null &&

@@ -142,6 +142,36 @@ try {
       true,
       "Candidate scope and attempted summaries should keep sparse route caches current",
     );
+    const cacheRows = db.prepare("SELECT * FROM openrouter_raw_rows ORDER BY row_index").all();
+    assert.deepEqual(
+      readOpenRouterRawCache(cacheRows),
+      cached,
+      "Indexed cache reconstruction must preserve the SQLite and collected-row contracts",
+    );
+    const withoutSummary = cacheRows.filter(
+      (row) => row.row_kind !== "endpoint_summary" || row.model_id !== cachedModel.id,
+    );
+    assert.equal(openRouterCacheHasCurrentShape(withoutSummary), false);
+    db.prepare(
+      "DELETE FROM openrouter_raw_rows WHERE row_kind = 'endpoint_summary' AND model_id = ?",
+    ).run(cachedModel.id);
+    assert.equal(
+      openRouterCacheHasCurrentShape(db),
+      false,
+      "Projected shape checks must still reject a selected model with no endpoint summary",
+    );
+    db.prepare("DELETE FROM openrouter_raw_rows").run();
+    insertOpenRouterRawRows(db, cached);
+    db.prepare(
+      "UPDATE openrouter_raw_rows SET permaslug = 'openai/unrelated-model' WHERE row_kind = 'permaslug_candidate' AND model_id = ?",
+    ).run(cachedModel.id);
+    assert.equal(
+      openRouterCacheHasCurrentShape(db),
+      false,
+      "Projected shape checks must still reject candidates outside the requested model route",
+    );
+    db.prepare("DELETE FROM openrouter_raw_rows").run();
+    insertOpenRouterRawRows(db, cached);
     const freshCacheStatus = {
       last_fetch_epoch_seconds: 1_800_000_000,
       source_input_count: 3,

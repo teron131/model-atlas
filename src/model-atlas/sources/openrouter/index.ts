@@ -3,11 +3,11 @@
 export type {
   OpenRouterEffectivePricingResponse,
   OpenRouterFrontendModel,
-  OpenRouterModelStats,
-  OpenRouterRawScrapedModel,
-  OpenRouterRawScrapedPayload,
-  OpenRouterStatsResponse,
-} from "./stats";
+  OpenRouterPerformance,
+  OpenRouterSourceModel,
+  OpenRouterSourcePayload,
+  OpenRouterSeriesResponse,
+} from "./types";
 export {
   buildOpenRouterSeriesTokenWeights,
   buildOpenRouterSlugCandidates,

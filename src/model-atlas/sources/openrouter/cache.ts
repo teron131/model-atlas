@@ -1,14 +1,5 @@
 /** OpenRouter raw-cache reconstruction and scoped route coverage checks. */
 
-import {
-  type OpenRouterEffectivePricingResponse,
-  type OpenRouterFrontendModel,
-  type OpenRouterModelStats,
-  type OpenRouterRawScrapedModel,
-  type OpenRouterRawScrapedPayload,
-  type OpenRouterStatsResponse,
-  sanitizeModelId,
-} from ".";
 import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
 import { asFiniteNumber } from "../../runtime";
 import {
@@ -18,10 +9,19 @@ import {
   sourceCacheRows,
   stringValue,
 } from "../cache/rows";
+import { sanitizeModelId } from "./stats";
+import type {
+  OpenRouterEffectivePricingResponse,
+  OpenRouterFrontendModel,
+  OpenRouterPerformance,
+  OpenRouterSeriesResponse,
+  OpenRouterSourceModel,
+  OpenRouterSourcePayload,
+} from "./types";
 
-/** Reassembles OpenRouter directory, permaslug, stat, and pricing rows. */
-export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterRawScrapedPayload | null {
-  const cacheRows = openRouterCacheRows(cache);
+/** Index rows once by model while preserving directory order, model order, and per-model source evidence. */
+export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterSourcePayload | null {
+  const cacheRows = sourceCacheRows(cache, "SELECT * FROM openrouter_raw_rows ORDER BY row_index");
   if (cacheRows.length === 0) {
     return null;
   }
@@ -29,35 +29,43 @@ export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterRawScra
   if (fetchedAt == null) {
     return null;
   }
-  const rowsByKind = new Map<string, CacheDbRow[]>();
+  const directory: OpenRouterFrontendModel[] = [];
+  const modelIds: string[] = [];
+  const rowsByModel = new Map<string, CacheDbRow[]>();
   for (const row of cacheRows) {
-    const rowKind = stringValue(row.row_kind);
-    if (rowKind == null) {
+    if (row.row_kind === "directory_model") {
+      directory.push({
+        slug: stringValue(row.slug),
+        permaslug: stringValue(row.permaslug),
+      });
+    }
+    const modelId = stringValue(row.model_id);
+    if (modelId == null) {
       continue;
     }
-    const groupedRows = rowsByKind.get(rowKind) ?? [];
+    if (row.row_kind === "model_stats") {
+      modelIds.push(modelId);
+    }
+    const groupedRows = rowsByModel.get(modelId) ?? [];
     groupedRows.push(row);
-    rowsByKind.set(rowKind, groupedRows);
+    rowsByModel.set(modelId, groupedRows);
   }
-  const directory: OpenRouterFrontendModel[] = (rowsByKind.get("directory_model") ?? []).map(
-    (row) => ({
-      slug: stringValue(row.slug),
-      permaslug: stringValue(row.permaslug),
-    }),
-  );
-  const modelIds = (rowsByKind.get("model_stats") ?? [])
-    .map((row) => stringValue(row.model_id))
-    .filter((modelId): modelId is string => modelId != null);
   return {
     fetched_at_epoch_seconds: fetchedAt,
     directory,
-    models: modelIds.map((modelId) => openRouterModelRows(modelId, rowsByKind)),
+    models: modelIds.map((modelId) => openRouterModelRows(modelId, rowsByModel.get(modelId)!)),
   };
 }
 
-/** Confirms endpoint summaries are persisted and candidates remain scoped to catalog routes. */
+/** Validate summary presence and candidate routes without reading unrelated time-series values from SQLite. */
 export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
-  const cacheRows = openRouterCacheRows(cache);
+  const cacheRows = sourceCacheRows(
+    cache,
+    `SELECT row_kind, model_id, selected_permaslug, slug, permaslug
+     FROM openrouter_raw_rows
+     WHERE row_kind IN ('directory_model', 'model_stats', 'endpoint_summary', 'permaslug_candidate')
+     ORDER BY row_index`,
+  );
   const summaryModelIds = new Set(
     cacheRows
       .filter((row) => row.row_kind === "endpoint_summary")
@@ -101,28 +109,17 @@ export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
   return candidateRows.length > 0;
 }
 
-function openRouterCacheRows(cache: CacheRowSource): CacheDbRow[] {
-  return sourceCacheRows(cache, "SELECT * FROM openrouter_raw_rows ORDER BY row_index");
-}
-
-function openRouterModelRows(
-  modelId: string,
-  rowsByKind: Map<string, CacheDbRow[]>,
-): OpenRouterRawScrapedModel {
-  const candidateRows = (rowsByKind.get("permaslug_candidate") ?? []).filter(
-    (row) => row.model_id === modelId,
-  );
-  const statRows = (rowsByKind.get("stat_point") ?? []).filter((row) => row.model_id === modelId);
-  const summaryRow = (rowsByKind.get("endpoint_summary") ?? []).find(
-    (row) => row.model_id === modelId,
-  );
-  const statsRow = (rowsByKind.get("model_stats") ?? []).find((row) => row.model_id === modelId);
+function openRouterModelRows(modelId: string, rows: CacheDbRow[]): OpenRouterSourceModel {
+  const candidateRows = rows.filter((row) => row.row_kind === "permaslug_candidate");
+  const statRows = rows.filter((row) => row.row_kind === "stat_point");
+  const summaryRow = rows.find((row) => row.row_kind === "endpoint_summary");
+  const statsRow = rows.find((row) => row.row_kind === "model_stats");
   const selectedPermaslug =
     stringValue(statsRow?.selected_permaslug) ??
     stringValue(summaryRow?.selected_permaslug) ??
     stringValue(statRows[0]?.selected_permaslug) ??
     stringValue(candidateRows[0]?.selected_permaslug);
-  const performance: OpenRouterModelStats = {
+  const performance: OpenRouterPerformance = {
     ...(summaryRow == null
       ? {}
       : {
@@ -155,7 +152,7 @@ function openRouterModelRows(
   };
 }
 
-function openRouterStatsResponse(rowsToConvert: CacheDbRow[]): OpenRouterStatsResponse {
+function openRouterStatsResponse(rowsToConvert: CacheDbRow[]): OpenRouterSeriesResponse {
   const pointsByX = new Map<string, { x: string | null; y: Record<string, number | null> }>();
   for (const [index, row] of rowsToConvert.entries()) {
     const series = stringValue(row.series);

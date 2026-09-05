@@ -1,14 +1,14 @@
 /** SQLite writer for OpenRouter directory, route, stat-point, and pricing source rows. */
 
-import {
-  type OpenRouterRawScrapedModel,
-  type OpenRouterRawScrapedPayload,
-  type OpenRouterStatsResponse,
-  processOpenRouterModelStats,
-} from ".";
 import type { DatabaseStatement, DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { SOURCE_URLS } from "../registry";
+import { processOpenRouterModelStats } from "./stats";
+import type {
+  OpenRouterSeriesResponse,
+  OpenRouterSourceModel,
+  OpenRouterSourcePayload,
+} from "./types";
 
 type OpenRouterPointRow = {
   x: string | null;
@@ -49,7 +49,7 @@ type OpenRouterRawRow = {
 /** Insert OpenRouter raw directory rows, candidate rows, stat points, and model summaries in one source table. */
 export function insertOpenRouterRawRows(
   db: DatabaseWriter,
-  rawPayload: OpenRouterRawScrapedPayload | null | undefined,
+  rawPayload: OpenRouterSourcePayload | null | undefined,
 ): void {
   if (rawPayload == null) {
     return;
@@ -110,7 +110,7 @@ export function insertOpenRouterRawRows(
 
 function insertDirectoryRows(
   statement: DatabaseStatement,
-  rawPayload: OpenRouterRawScrapedPayload,
+  rawPayload: OpenRouterSourcePayload,
   rowIndex: number,
 ): number {
   for (const model of rawPayload.directory) {
@@ -153,7 +153,7 @@ function insertRawRow(statement: DatabaseStatement, row: OpenRouterRawRow): void
 
 function insertPermaslugCandidateRows(
   statement: DatabaseStatement,
-  model: OpenRouterRawScrapedModel,
+  model: OpenRouterSourceModel,
   fetchedAtEpochSeconds: number,
   rowIndex: number,
 ): number {
@@ -175,7 +175,7 @@ function insertPermaslugCandidateRows(
 
 function insertStatPointRows(
   statement: DatabaseStatement,
-  model: OpenRouterRawScrapedModel,
+  model: OpenRouterSourceModel,
   fetchedAtEpochSeconds: number,
   rowIndex: number,
 ): number {
@@ -205,7 +205,7 @@ function insertStatPointRows(
 }
 
 function statPointRows(
-  response: OpenRouterStatsResponse | null | undefined,
+  response: OpenRouterSeriesResponse | null | undefined,
   seriesTokenWeights: Record<string, number | null> | null | undefined,
 ): OpenRouterPointRow[] {
   const rows: OpenRouterPointRow[] = [];

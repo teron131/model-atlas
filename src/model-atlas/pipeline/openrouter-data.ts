@@ -10,7 +10,7 @@ import {
 import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
 import {
   getOpenRouterRawScrapedStats,
-  type OpenRouterRawScrapedPayload,
+  type OpenRouterSourcePayload,
   processOpenRouterModelStats,
 } from "../sources/openrouter";
 import { deriveSpeedOutputTokenAnchors } from "./scores";
@@ -181,7 +181,7 @@ function backfillFreeModelCosts(rows: Record<string, unknown>[]): Record<string,
 async function buildOpenRouterDataById(
   rows: Record<string, unknown>[],
   speedConcurrency: number,
-  cachedRawPayload?: OpenRouterRawScrapedPayload | null,
+  cachedRawPayload?: OpenRouterSourcePayload | null,
 ): Promise<{
   speedById: Map<string, JsonObject>;
   pricingById: Map<string, JsonObject>;
@@ -238,7 +238,7 @@ export async function prepareOpenRouterModelData(
   rows: Record<string, unknown>[],
   openRouterConfig: OpenRouterConfig,
   scoringConfig: ScoringConfig,
-  cachedRawPayload?: OpenRouterRawScrapedPayload | null,
+  cachedRawPayload?: OpenRouterSourcePayload | null,
 ): Promise<OpenRouterModelData> {
   const costBackfilledRows = backfillFreeModelCosts(rows);
   const { speedById: speedByModelId, pricingById: pricingByModelId } =

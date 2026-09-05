@@ -23,6 +23,11 @@ Start with the existing source owner and its parser fixtures.
 Shared publishers such as Epoch, Surge, Vals, and Artificial Analysis retain shared parsers for their common external formats.
 Benchmarks with custom raw records keep their leaderboard and runtime together, such as `sources/cursorbench/leaderboard.ts` and `sources/cursorbench/runtime.ts`.
 
+OpenRouter's shared response and source contracts live in `sources/openrouter/types.ts`, with normalization in `stats.ts`, fetching in `workflow.ts`, and persistence in `cache.ts` and `write.ts`.
+`OpenRouterSourcePayload` contains selected source evidence, `OpenRouterPerformance` distinguishes summaries from histories, and `OpenRouterSeriesResponse` describes the upstream series shape.
+Keep upstream latency histories in milliseconds and normalized latency summaries in seconds.
+Each refresh shares requests for aliases of the same route; the request cache ends with the refresh and failed candidates remain retryable.
+
 A standard benchmark's catalog binding resolves through `benchmarkObservationSource` to its fetch operation and optional cache-acceptance rule.
 Put task-version, harness, eligibility, and resource-shape checks beside the parser, and attach them through that binding.
 The shared observation cache owns SQL decoding, timestamps, row identity, and source-preservation mechanics.

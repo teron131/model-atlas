@@ -11,7 +11,7 @@ import {
 } from "../sources/artificial-analysis/write";
 import { BENCHMARK_RAW_WRITERS } from "../sources/benchmarks";
 import { insertModelsDevRawModels } from "../sources/models-dev/write";
-import type { OpenRouterRawScrapedPayload } from "../sources/openrouter";
+import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import { insertOpenRouterRawRows } from "../sources/openrouter/write";
 import type { RawSourceName } from "../sources/registry";
 import { buildSourceHealth } from "../sources/snapshots/policy";
@@ -55,7 +55,7 @@ type BenchmarkVersionLogRow = {
 
 type DatabaseSnapshotRows = {
   snapshots: SourceSnapshots;
-  openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined;
+  openRouterRawPayload: OpenRouterSourcePayload | null | undefined;
   finalModelRows: readonly ModelAtlasPublishedModel[];
   debugTraceRows: readonly DebugTraceRow[];
   sourceHealth: ModelAtlasSourceHealth;
@@ -65,7 +65,7 @@ type DatabaseSnapshotRows = {
 };
 
 type OpenRouterLoader = (modelIds: string[]) => Promise<{
-  rawPayload: OpenRouterRawScrapedPayload | null;
+  rawPayload: OpenRouterSourcePayload | null;
   cacheStatus: RawSourceCacheStatus;
 }>;
 
