@@ -21,7 +21,7 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
 }
 
 function assertApprox(actual: number | undefined, expected: number): void {
-  if (actual == null || Math.abs(actual - expected) > 1e-12) {
+  if (actual == null || !Number.isFinite(actual) || Math.abs(actual - expected) > 1e-12) {
     throw new Error(`Expected ${expected}, got ${String(actual)}`);
   }
 }
