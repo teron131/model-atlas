@@ -12,7 +12,7 @@ import {
   hasRequiredBenchmarkEvidence,
   hasRequiredPublicRelevance,
 } from "../src/model-atlas/pipeline/selection/builder";
-import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
+import type { ModelsDevFlatModel } from "../src/model-atlas/sources/models-dev/catalog";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 

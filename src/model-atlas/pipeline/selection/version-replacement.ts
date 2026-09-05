@@ -14,8 +14,8 @@ import {
   modelSlugFromModelId,
   normalizeModelToken,
 } from "../../identity/normalization";
-import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord, type JsonObject } from "../../runtime";
+import type { ModelAtlasSourceData } from "../../sources/assembly";
 import type { ModelAtlasModel } from "../model-types";
 import { benchmarkMetricValue } from "../scores/resource-metrics";
 

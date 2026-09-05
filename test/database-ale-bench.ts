@@ -4,17 +4,17 @@ import assert from "node:assert/strict";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readAleBenchRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/ale-bench";
-import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
-import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
-import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
+import { SNAPSHOT_TABLES } from "../src/model-atlas/database/tables";
 import {
   insertModelBenchmarks,
   insertModels,
   insertModelTaskMetrics,
-} from "../src/model-atlas/ingest/writers";
+} from "../src/model-atlas/database/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import { processAleBenchSakanaPayload } from "../src/model-atlas/scrapers/benchmarks/ale-bench";
+import { processAleBenchSakanaPayload } from "../src/model-atlas/sources/ale-bench/leaderboard";
+import { readAleBenchRawCache } from "../src/model-atlas/sources/ale-bench/runtime";
+import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
+import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 function statistics(mean: number) {

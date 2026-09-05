@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
-import { processVendingBench2DataModule } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
+import { processVendingBench2DataModule } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
 const rows = processVendingBench2DataModule(`
 	const metadata={time_grid:[1,2,3]};

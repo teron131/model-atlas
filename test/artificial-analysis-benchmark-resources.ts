@@ -10,7 +10,7 @@ import {
   findArtificialAnalysisBenchmarkResourceRow,
   getArtificialAnalysisBenchmarkResourceStats,
   processArtificialAnalysisBenchmarkResourceRows,
-} from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
+} from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);

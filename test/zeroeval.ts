@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import { processZeroEvalDetailsJson } from "../src/model-atlas/scrapers/benchmarks/zeroeval";
+import { processZeroEvalDetailsJson } from "../src/model-atlas/sources/zeroeval";
 
 const rows = processZeroEvalDetailsJson(
   {

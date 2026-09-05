@@ -7,14 +7,14 @@ import { join } from "node:path";
 
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase } from "../src/model-atlas/database/schema";
-import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
+import { SNAPSHOT_TABLES } from "../src/model-atlas/database/tables";
+import { insertModelBenchmarks, insertModels } from "../src/model-atlas/database/writers";
+import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
 import {
   readRiemannBenchRawCache,
   riemannBenchRuntime,
-} from "../src/model-atlas/ingest/benchmark-runtimes/riemann-bench";
-import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
-import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { insertModelBenchmarks, insertModels } from "../src/model-atlas/ingest/writers";
+} from "../src/model-atlas/sources/surge/riemann-runtime";
+import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 
 const tempDir = await mkdtemp(join(tmpdir(), "model-atlas-riemann-bench-"));
 const databasePath = join(tempDir, "database.sqlite");

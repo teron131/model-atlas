@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
-import { processAgentArenaPageHtml } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
+import { processAgentArenaPageHtml } from "../src/model-atlas/sources/agent-arena/leaderboard";
 
 const payload = {
   arena: { slug: "agent", title: "Agent" },

@@ -655,7 +655,7 @@ export function buildComponentScoreResult(
   const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
   const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);
   const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
-  const imaginedSpeedScore = meanOfFinite(
+  const estimatedSpeedScore = meanOfFinite(
     speedOutputTokenAnchors.map((targetTokens) =>
       latencySeconds != null && throughputTokensPerSecond != null && throughputTokensPerSecond > 0
         ? targetTokens / (latencySeconds + targetTokens / throughputTokensPerSecond)
@@ -668,7 +668,7 @@ export function buildComponentScoreResult(
     representativeTargetTokens != null && e2eLatencySeconds != null && e2eLatencySeconds > 0
       ? representativeTargetTokens / e2eLatencySeconds
       : null;
-  const speedScore = meanOfFinite([imaginedSpeedScore, observedE2eSpeedScore]);
+  const speedScore = meanOfFinite([estimatedSpeedScore, observedE2eSpeedScore]);
   return {
     componentScores:
       intelligence.score == null && agentic.score == null && speedScore == null

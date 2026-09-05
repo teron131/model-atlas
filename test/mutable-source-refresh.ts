@@ -2,8 +2,8 @@
 
 import assert from "node:assert/strict";
 
-import { mergeModelsDevPayload } from "../src/model-atlas/ingest/source-snapshots/models-dev";
-import { mergeOpenRouterModel } from "../src/model-atlas/ingest/source-snapshots/openrouter";
+import { mergeModelsDevPayload } from "../src/model-atlas/sources/models-dev/snapshot";
+import { mergeOpenRouterModel } from "../src/model-atlas/sources/openrouter/snapshot";
 
 const mergedModelsDev = mergeModelsDevPayload(
   {

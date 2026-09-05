@@ -8,8 +8,8 @@ import {
   modelSlugFromModelId,
 } from "../identity/normalization";
 import { publicOpenRouterModelId } from "../identity/openrouter";
-import type { ArtificialAnalysisModel, ModelAtlasSourceData } from "../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../runtime";
+import type { ArtificialAnalysisModel, ModelAtlasSourceData } from "../sources/assembly";
 import { type BenchmarkAssignmentLookups, buildObservationBenchmarks } from "./benchmark-rows";
 
 type MatchedRowLookups = Pick<ModelAtlasSourceData, "modelsDev"> & BenchmarkAssignmentLookups;

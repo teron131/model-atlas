@@ -3,17 +3,17 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
+import { artificialAnalysisModelId } from "../src/model-atlas/sources/artificial-analysis/leaderboard";
 import {
   artificialAnalysisBenchmarkResourceSourceKey,
   mergeArtificialAnalysisRow,
-} from "../src/model-atlas/ingest/source-snapshots/artificial-analysis";
+} from "../src/model-atlas/sources/artificial-analysis/snapshot";
 import {
   mergeCachedSourceRows,
   snapshotRows,
   snapshotRowsWithStates,
-} from "../src/model-atlas/ingest/source-snapshots/policy";
-import { artificialAnalysisModelId } from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
+} from "../src/model-atlas/sources/snapshots/policy";
 
 type ArtificialAnalysisFixtureRow = {
   model_id: string;

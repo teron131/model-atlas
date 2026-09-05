@@ -21,13 +21,13 @@ import {
   versionCandidateBenchmarkData,
 } from "../src/model-atlas/pipeline/selection/candidate";
 import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipeline/selection/version-replacement";
-import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
-import type { AleBenchModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/ale-bench";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/results";
-import type { FrontierCodeModelEffortRow } from "../src/model-atlas/scrapers/benchmarks/frontier-code";
-import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
-import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
-import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
+import type { AgentArenaModelScoreRow } from "../src/model-atlas/sources/agent-arena/leaderboard";
+import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
+import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
+import type { MercorApexAgentsRow } from "../src/model-atlas/sources/mercor-apex-agents/leaderboard";
+import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
 const deepSWERow = {
   model: "Example Model Preview",

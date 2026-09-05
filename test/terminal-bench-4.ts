@@ -7,7 +7,7 @@ import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidat
 import {
   buildTerminalBench4Map,
   processTerminalBench4Payload,
-} from "../src/model-atlas/scrapers/benchmarks/terminal-bench-4";
+} from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 
 function row({
   model,

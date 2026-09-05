@@ -5,11 +5,8 @@ import assert from "node:assert/strict";
 import {
   processEpochWeirdMlCsv,
   type WeirdMlEpochRow,
-} from "../src/model-atlas/scrapers/benchmarks/epoch/weirdml";
-import {
-  mergeWeirdMlRows,
-  processWeirdMlCsv,
-} from "../src/model-atlas/scrapers/benchmarks/weirdml";
+} from "../src/model-atlas/sources/epoch/weirdml";
+import { mergeWeirdMlRows, processWeirdMlCsv } from "../src/model-atlas/sources/weirdml";
 
 const taskColumns = [
   "shapes_easy_acc",

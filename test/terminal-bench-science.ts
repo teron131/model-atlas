@@ -12,12 +12,12 @@ import {
   BENCHMARK_OBSERVATION_RAW_TABLE,
   BENCHMARK_PORTFOLIO,
 } from "../src/model-atlas/benchmarks/registry";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/observation";
-import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
-import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { SnapshotRowCollector } from "../src/model-atlas/database/writers";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
-import { processTerminalBenchSciencePayload } from "../src/model-atlas/scrapers/benchmarks/terminal-bench-science";
+import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
+import { processTerminalBenchSciencePayload } from "../src/model-atlas/sources/terminal-bench-science";
+import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 
 function row({
   model,

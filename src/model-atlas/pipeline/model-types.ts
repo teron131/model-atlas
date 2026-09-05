@@ -4,16 +4,16 @@ import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BenchmarkKey, BenchmarkResourceKey } from "../benchmarks/registry";
 import type { NumberOrNull } from "../math-utils";
 import type { JsonObject } from "../runtime";
-import type { AgentArenaModelScoreRow } from "../scrapers/benchmarks/agent-arena";
-import type { AgentsLastExamModelScoreRow } from "../scrapers/benchmarks/agents-last-exam";
-import type { AleBenchModelScoreRow } from "../scrapers/benchmarks/ale-bench";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../scrapers/benchmarks/artificial-analysis/results";
-import type { CursorBenchModelScoreRow } from "../scrapers/benchmarks/cursorbench";
-import type { DeepSWEModelScoreRow } from "../scrapers/benchmarks/deep-swe";
-import type { FrontierCodeModelEffortRow } from "../scrapers/benchmarks/frontier-code";
-import type { MercorApexAgentsRow } from "../scrapers/benchmarks/mercor-apex-agents";
-import type { TerminalBench4ModelAgentRow } from "../scrapers/benchmarks/terminal-bench-4";
-import type { VendingBench2ModelScoreRow } from "../scrapers/benchmarks/vending-bench-2";
+import type { AgentArenaModelScoreRow } from "../sources/agent-arena/leaderboard";
+import type { AgentsLastExamModelScoreRow } from "../sources/agents-last-exam/leaderboard";
+import type { AleBenchModelScoreRow } from "../sources/ale-bench/leaderboard";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../sources/artificial-analysis/benchmark-resources";
+import type { CursorBenchModelScoreRow } from "../sources/cursorbench/leaderboard";
+import type { DeepSWEModelScoreRow } from "../sources/deep-swe/leaderboard";
+import type { FrontierCodeModelEffortRow } from "../sources/frontier-code/leaderboard";
+import type { MercorApexAgentsRow } from "../sources/mercor-apex-agents/leaderboard";
+import type { TerminalBench4ModelAgentRow } from "../sources/terminal-bench-4/leaderboard";
+import type { VendingBench2ModelScoreRow } from "../sources/vending-bench-2/leaderboard";
 
 export type ModelAtlasModalities = {
   input?: string[];

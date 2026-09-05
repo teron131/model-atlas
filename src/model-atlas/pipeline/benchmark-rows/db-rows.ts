@@ -11,12 +11,12 @@ import {
   type PublicBenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
 import { asFiniteNumber } from "../../runtime";
-import { agentsLastExamBenchmarkScore } from "../../scrapers/benchmarks/agents-last-exam";
-import { cursorBenchCanonicalModelName } from "../../scrapers/benchmarks/cursorbench";
+import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
+import { cursorBenchCanonicalModelName } from "../../sources/cursorbench/leaderboard";
 import {
   asDeepSWERawLeaderboardRow,
   preferredDeepSWELeaderboardRows,
-} from "../../scrapers/benchmarks/deep-swe";
+} from "../../sources/deep-swe/leaderboard";
 import {
   type BenchmarkRowDraft,
   type BenchmarkRowsByKey,

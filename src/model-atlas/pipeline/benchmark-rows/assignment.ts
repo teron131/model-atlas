@@ -21,19 +21,19 @@ import {
   normalizeModelToken,
   reasoningEffortRank,
 } from "../../identity/normalization";
-import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
 import {
   agentsLastExamBenchmarkScore,
   findAgentsLastExamModelScore,
-} from "../../scrapers/benchmarks/agents-last-exam";
+} from "../../sources/agents-last-exam/leaderboard";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
   findArtificialAnalysisBenchmarkResourceRow,
-} from "../../scrapers/benchmarks/artificial-analysis/results";
-import { findBlueprintBenchScore } from "../../scrapers/benchmarks/blueprint-bench";
-import { findRiemannBenchScore } from "../../scrapers/benchmarks/surge/riemann-bench";
-import { findValsIndexScore } from "../../scrapers/benchmarks/vals/index-benchmark";
+} from "../../sources/artificial-analysis/benchmark-resources";
+import type { ModelAtlasSourceData } from "../../sources/assembly";
+import { findBlueprintBenchScore } from "../../sources/blueprint-bench/leaderboard";
+import { findRiemannBenchScore } from "../../sources/surge/riemann-bench";
+import { findValsIndexScore } from "../../sources/vals/index-benchmark";
 import type { ModelAtlasScoringSources } from "../model-types";
 
 type BenchmarkObservationLookups = {
@@ -485,13 +485,13 @@ export function assignBenchmarksToVariants(
   for (const row of rows) {
     const modelKey = canonicalModelKey(row);
     const currentDefaultVariant = defaultVariantByModel.get(modelKey);
-    const hasMatchedObservation = typeof row.artificial_analysis_id === "string";
-    const currentHasMatchedObservation =
+    const hasArtificialAnalysisMatch = typeof row.artificial_analysis_id === "string";
+    const currentHasArtificialAnalysisMatch =
       typeof currentDefaultVariant?.artificial_analysis_id === "string";
     if (
       currentDefaultVariant == null ||
-      (hasMatchedObservation && !currentHasMatchedObservation) ||
-      (hasMatchedObservation === currentHasMatchedObservation &&
+      (hasArtificialAnalysisMatch && !currentHasArtificialAnalysisMatch) ||
+      (hasArtificialAnalysisMatch === currentHasArtificialAnalysisMatch &&
         reasoningEffortRank(row.reasoning_effort) >
           reasoningEffortRank(currentDefaultVariant.reasoning_effort))
     ) {

@@ -1,10 +1,10 @@
 /** Live stats coordinates source refresh, route data, scoring, and failure-safe payload assembly. */
 
-import { fetchSourceData } from "../ingest/assembly";
 import { type BenchmarkRowsByKey, benchmarkRowsFromSourceData } from "../pipeline/benchmark-rows";
 import { deriveModelStats } from "../pipeline/derivation";
 import { rankedModels } from "../pipeline/model-types";
 import { nowEpochSeconds } from "../runtime";
+import { fetchSourceData } from "../sources/assembly";
 import { buildCurrentModelAtlasMetadata } from "./payload/metadata";
 import type { ModelAtlasModel, ModelAtlasOptions, ModelAtlasPayload } from "./types";
 

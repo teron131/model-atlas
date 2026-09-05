@@ -13,8 +13,8 @@ import {
   BENCHMARK_RUNTIME_KEYS,
   transformBenchmarkSourceValue,
 } from "../src/model-atlas/benchmarks/registry";
-import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
-import { RAW_SOURCE_NAMES, RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
+import { BENCHMARK_RAW_WRITERS } from "../src/model-atlas/sources/benchmarks";
+import { RAW_SOURCE_NAMES, RAW_SOURCE_TABLES } from "../src/model-atlas/sources/registry";
 
 const definitions = {
   quality: {

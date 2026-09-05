@@ -8,7 +8,7 @@ import {
   insertModelBenchmarks,
   insertModels,
   insertModelTaskMetrics,
-} from "../src/model-atlas/ingest/writers";
+} from "../src/model-atlas/database/writers";
 
 const databasePath = ".cache/test-database-aa-resource-task-metrics.sqlite";
 

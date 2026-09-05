@@ -2,17 +2,17 @@
 
 import assert from "node:assert/strict";
 
-import { readAgentArenaRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/agent-arena";
-import { readMercorApexAgentsRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/mercor-apex-agents";
-import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
-import { readVendingBench2RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/vending-bench-2";
-import { SNAPSHOT_TABLES } from "../src/model-atlas/ingest/source-registry";
-import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { SNAPSHOT_TABLES } from "../src/model-atlas/database/tables";
+import { SnapshotRowCollector } from "../src/model-atlas/database/writers";
 import { benchmarkRowsFromDb } from "../src/model-atlas/pipeline/benchmark-rows";
-import type { AgentArenaModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/agent-arena";
-import type { MercorApexAgentsRow } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
-import type { VendingBench2ModelScoreRow } from "../src/model-atlas/scrapers/benchmarks/vending-bench-2";
+import type { AgentArenaModelScoreRow } from "../src/model-atlas/sources/agent-arena/leaderboard";
+import { readAgentArenaRawCache } from "../src/model-atlas/sources/agent-arena/runtime";
+import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
+import type { MercorApexAgentsRow } from "../src/model-atlas/sources/mercor-apex-agents/leaderboard";
+import { readMercorApexAgentsRawCache } from "../src/model-atlas/sources/mercor-apex-agents/runtime";
+import type { SourceSnapshots } from "../src/model-atlas/sources/types";
+import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
+import { readVendingBench2RawCache } from "../src/model-atlas/sources/vending-bench-2/runtime";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 const agentArenaRow: AgentArenaModelScoreRow = {

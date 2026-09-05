@@ -10,11 +10,11 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { PAYLOAD_ROW_GROUPS } from "../src/model-atlas/database/payload-rows";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/ingest/benchmark-runtimes/observation";
-import { insertBenchmarkRawRows } from "../src/model-atlas/ingest/benchmark-runtimes/registry";
-import { RAW_SOURCE_TABLES } from "../src/model-atlas/ingest/source-registry";
-import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
-import { SnapshotRowCollector } from "../src/model-atlas/ingest/writers";
+import { SnapshotRowCollector } from "../src/model-atlas/database/writers";
+import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
+import { RAW_SOURCE_TABLES } from "../src/model-atlas/sources/registry";
+import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 
 const SOURCE_CASES = BENCHMARK_OBSERVATION_BINDINGS.filter(
   (binding) => binding.loader.kind === "vals",

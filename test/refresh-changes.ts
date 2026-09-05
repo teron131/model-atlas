@@ -7,7 +7,7 @@ import {
   insertModelScoreChanges,
   insertRefreshRuns,
   SnapshotRowCollector,
-} from "../src/model-atlas/ingest/writers";
+} from "../src/model-atlas/database/writers";
 import { buildRefreshChanges } from "../src/model-atlas/stats/payload/changes";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 

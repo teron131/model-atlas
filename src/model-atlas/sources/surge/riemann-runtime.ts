@@ -1,0 +1,145 @@
+/** Riemann-bench runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+
+import { SNAPSHOT_TABLES } from "../../database/tables";
+import type { DatabaseWriter } from "../../database/writers/database";
+import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../../identity/normalization";
+import { asFiniteNumber } from "../../runtime";
+import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type CacheRowSource, firstEpochSecond, sourceCacheRows, stringValue } from "../cache/rows";
+import { mergeSourceEvidence, sourceKey } from "../snapshots/policy";
+import { snapshotSourceRows } from "../snapshots/row-snapshot";
+import type {
+  RawSourceCacheStatus,
+  SourceRefreshOptions,
+  SourceSnapshots,
+  SourceSnapshotStatus,
+} from "../types";
+import { getRiemannBenchStats, type RiemannBenchModelScoreRow } from "./riemann-bench";
+
+type RiemannBenchSnapshot = {
+  riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
+  riemannBenchSourceUrl: string;
+  sourceStatus: SourceSnapshotStatus;
+};
+
+export const riemannBenchRuntime = defineBenchmarkRuntime({
+  cacheKey: "riemannBench",
+  source: "riemann_bench",
+  table: SNAPSHOT_TABLES.riemann_bench,
+  readCache: readRiemannBenchRawCache,
+  snapshot: riemannBenchSnapshot,
+  write: insertRiemannBenchRawRows,
+  sourceRowsKey: "riemannBenchRows",
+  loadSourceRows: async () => (await getRiemannBenchStats()).data,
+  sourceRowsFromSnapshots: (snapshots) => snapshots.riemannBenchModelScoreRows,
+});
+
+export function readRiemannBenchRawCache(cache: CacheRowSource): {
+  rows: RiemannBenchModelScoreRow[];
+  fetchedAt: number | null;
+  sourceUrl: string;
+} | null {
+  const cacheRows = sourceCacheRows(
+    cache,
+    "SELECT * FROM riemann_bench_raw_rows ORDER BY row_index",
+  );
+  if (cacheRows.length === 0) {
+    return null;
+  }
+  const sourceUrls = new Set(cacheRows.map((row) => stringValue(row.url)));
+  if (sourceUrls.size !== 1 || sourceUrls.has(null)) {
+    return null;
+  }
+  const sourceUrl = [...sourceUrls][0];
+  if (sourceUrl == null) {
+    return null;
+  }
+  const cachedRows = cacheRows.flatMap((row) => {
+    const model = stringValue(row.model);
+    const score = asFiniteNumber(row.score);
+    return model != null && score != null
+      ? [
+          {
+            provider: stringValue(row.provider),
+            model,
+            score,
+            last_updated: stringValue(row.last_updated),
+          },
+        ]
+      : [];
+  });
+  if (cachedRows.length === 0) {
+    return null;
+  }
+  return {
+    rows: cachedRows,
+    fetchedAt: firstEpochSecond(cacheRows),
+    sourceUrl,
+  };
+}
+
+/** Loads Riemann-bench rows using normalized model configuration identity for cache continuity. */
+async function riemannBenchSnapshot(
+  cached: ReturnType<typeof readRiemannBenchRawCache>,
+  status: RawSourceCacheStatus,
+  options: SourceRefreshOptions,
+  previousMissingSince: ReadonlyMap<string, number>,
+  nowEpochSeconds: number,
+): Promise<RiemannBenchSnapshot> {
+  const snapshot = await snapshotSourceRows({
+    source: "riemann_bench",
+    cached,
+    status,
+    options,
+    previousMissingSince,
+    nowEpochSeconds,
+    fetchRows: getRiemannBenchStats,
+    rowKey: (row) => {
+      const parsedModel = benchmarkModelEffort(row.model);
+      return sourceKey(
+        row.provider,
+        modelNameWithoutCreatorPrefix(parsedModel.baseModel, row.provider),
+        parsedModel.reasoningEffort,
+      );
+    },
+    rowLabel: (row) => row.model,
+    mergeRow: (cachedRow, fetchedRow) => ({
+      ...mergeSourceEvidence(cachedRow, fetchedRow),
+      model: fetchedRow.model,
+    }),
+  });
+  if (snapshot.sourceUrl == null) {
+    throw new Error("Riemann-bench snapshot is missing its source URL");
+  }
+  return {
+    riemannBenchModelScoreRows: snapshot.rows,
+    riemannBenchSourceUrl: snapshot.sourceUrl,
+    sourceStatus: {
+      source: "riemann_bench",
+      fetchedAt: snapshot.fetchedAt,
+      sourceInputCount: snapshot.rows.length,
+      sourceRowStates: snapshot.sourceRowStates,
+      fetchedAtKey: "riemannBench",
+    },
+  };
+}
+
+function insertRiemannBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+  const statement = db.prepare(`
+		INSERT INTO riemann_bench_raw_rows (
+			row_index, fetched_at_epoch_seconds, url, provider,
+			model, score, last_updated
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
+	`);
+  for (const [index, row] of snapshots.riemannBenchModelScoreRows.entries()) {
+    statement.run(
+      index,
+      snapshots.fetchedAt.riemannBench,
+      snapshots.riemannBenchSourceUrl,
+      row.provider,
+      row.model,
+      row.score,
+      row.last_updated,
+    );
+  }
+}

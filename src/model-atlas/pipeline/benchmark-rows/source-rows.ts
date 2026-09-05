@@ -16,10 +16,10 @@ import {
   canonicalReasoningEffort,
   normalizeModelToken,
 } from "../../identity/normalization";
-import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asFiniteNumber, asRecord } from "../../runtime";
-import { agentsLastExamBenchmarkScore } from "../../scrapers/benchmarks/agents-last-exam";
-import { cursorBenchCanonicalModelName } from "../../scrapers/benchmarks/cursorbench";
+import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
+import type { ModelAtlasSourceData } from "../../sources/assembly";
+import { cursorBenchCanonicalModelName } from "../../sources/cursorbench/leaderboard";
 import { collapseModelVariants } from "../model-catalog";
 
 export type BenchmarkSourceRow = {

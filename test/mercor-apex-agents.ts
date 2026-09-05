@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
-import { processMercorApexAgentsPageHtml } from "../src/model-atlas/scrapers/benchmarks/mercor-apex-agents";
+import { processMercorApexAgentsPageHtml } from "../src/model-atlas/sources/mercor-apex-agents/leaderboard";
 
 function result(
   modelId: string,

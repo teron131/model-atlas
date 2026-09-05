@@ -12,7 +12,7 @@ import {
   getOpenRouterRawScrapedStats,
   type OpenRouterRawScrapedPayload,
   processOpenRouterModelStats,
-} from "../scrapers/openrouter";
+} from "../sources/openrouter";
 import { deriveSpeedOutputTokenAnchors } from "./scores";
 
 export type OpenRouterModelData = {
