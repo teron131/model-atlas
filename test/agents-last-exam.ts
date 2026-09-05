@@ -7,7 +7,7 @@ import {
   findAgentsLastExamModelScore,
   processAgentsLastExamLeaderboardRows,
   summarizeAgentsLastExamModelScores,
-} from "../src/model-atlas/scrapers/benchmarks/agents-last-exam";
+} from "../src/model-atlas/sources/agents-last-exam/leaderboard";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);

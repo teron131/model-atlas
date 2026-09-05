@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { SOURCE_URLS } from "../src/model-atlas/ingest/source-registry";
 import {
   buildOpenRouterSeriesTokenWeights,
   buildOpenRouterSlugCandidates,
@@ -10,7 +9,8 @@ import {
   processOpenRouterModelStats,
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
-} from "../src/model-atlas/scrapers/openrouter";
+} from "../src/model-atlas/sources/openrouter";
+import { SOURCE_URLS } from "../src/model-atlas/sources/registry";
 
 assert.deepEqual(
   SOURCE_URLS.openrouter_models,

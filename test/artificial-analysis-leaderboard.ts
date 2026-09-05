@@ -8,12 +8,12 @@ import {
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   processArtificialAnalysisLeaderboardRows,
-} from "../src/model-atlas/scrapers/artificial-analysis/leaderboard";
+} from "../src/model-atlas/sources/artificial-analysis/leaderboard";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
-} from "../src/model-atlas/scrapers/artificial-analysis/model-labels";
-import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/scrapers/benchmarks/artificial-analysis/omniscience";
+} from "../src/model-atlas/sources/artificial-analysis/model-labels";
+import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/sources/artificial-analysis/omniscience";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = stableJson(actual);

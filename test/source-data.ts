@@ -3,16 +3,19 @@
 import assert from "node:assert/strict";
 
 import type { BenchmarkObservationRow } from "../src/model-atlas/benchmarks/observation";
-import type { ModelAtlasSourceData } from "../src/model-atlas/ingest/assembly";
-import { buildSourceData, type ModelAtlasSourceRows } from "../src/model-atlas/ingest/assembly";
-import { cachedSourceDataFromSnapshots } from "../src/model-atlas/ingest/source-snapshots/source-data";
-import type { SourceSnapshots } from "../src/model-atlas/ingest/types";
 import { benchmarkRowsFromSourceData } from "../src/model-atlas/pipeline/benchmark-rows";
+import {
+  buildSourceData,
+  type ModelAtlasSourceData,
+  type ModelAtlasSourceRows,
+} from "../src/model-atlas/sources/assembly";
 import type {
   DeepSWELeaderboardRow,
   DeepSWERawLeaderboardRow,
-} from "../src/model-atlas/scrapers/benchmarks/deep-swe";
-import type { ModelsDevFlatModel } from "../src/model-atlas/scrapers/models-dev";
+} from "../src/model-atlas/sources/deep-swe/leaderboard";
+import type { ModelsDevFlatModel } from "../src/model-atlas/sources/models-dev/catalog";
+import { cachedSourceDataFromSnapshots } from "../src/model-atlas/sources/snapshots/source-data";
+import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { benchmarkObservationRowGroups } from "./model-atlas-fixtures";
 
 function modelsDevModel(providerId: string, modelId: string): ModelsDevFlatModel {

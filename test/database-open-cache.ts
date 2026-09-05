@@ -17,12 +17,12 @@ import {
   schemaTableShapes,
 } from "../src/model-atlas/database/schema-reconciliation";
 import { readDatabasePayload } from "../src/model-atlas/database/sqlite-payload";
-import { readDeepSWERawCache } from "../src/model-atlas/ingest/benchmark-runtimes/deep-swe";
-import { readTerminalBench4RawCache } from "../src/model-atlas/ingest/benchmark-runtimes/terminal-bench-4";
 import {
   rawSourceCacheStatusFromRows,
   readRawSourceCacheStatus,
-} from "../src/model-atlas/ingest/cache";
+} from "../src/model-atlas/sources/cache/status";
+import { readDeepSWERawCache } from "../src/model-atlas/sources/deep-swe/runtime";
+import { readTerminalBench4RawCache } from "../src/model-atlas/sources/terminal-bench-4/runtime";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
 const DEEP_SWE_V1_1_URL = "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";

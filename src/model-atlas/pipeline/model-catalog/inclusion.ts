@@ -8,9 +8,9 @@ import {
   normalizeProviderId,
   normalizeProviderModelId,
 } from "../../identity/normalization";
-import type { ModelAtlasSourceData } from "../../ingest/assembly";
 import { asRecord } from "../../runtime";
-import type { ModelsDevFlatModel } from "../../scrapers/models-dev";
+import type { ModelAtlasSourceData } from "../../sources/assembly";
+import type { ModelsDevFlatModel } from "../../sources/models-dev/catalog";
 
 function normalizedRowId(row: Record<string, unknown>): string | null {
   const id = typeof row.id === "string" ? row.id : null;

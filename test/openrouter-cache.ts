@@ -4,18 +4,18 @@ import assert from "node:assert/strict";
 
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
 import {
+  buildOpenRouterSeriesTokenWeights,
+  processOpenRouterModelStats,
+} from "../src/model-atlas/sources/openrouter";
+import {
   openRouterCacheHasCurrentShape,
   readOpenRouterRawCache,
-} from "../src/model-atlas/ingest/cache/openrouter";
+} from "../src/model-atlas/sources/openrouter/cache";
 import {
   openRouterModelIdsToRefresh,
   refreshOpenRouterRawPayload,
-} from "../src/model-atlas/ingest/source-snapshots/openrouter";
-import { insertOpenRouterRawRows } from "../src/model-atlas/ingest/writers/openrouter";
-import {
-  buildOpenRouterSeriesTokenWeights,
-  processOpenRouterModelStats,
-} from "../src/model-atlas/scrapers/openrouter";
+} from "../src/model-atlas/sources/openrouter/snapshot";
+import { insertOpenRouterRawRows } from "../src/model-atlas/sources/openrouter/write";
 
 const databasePath = ".cache/test-openrouter-cache.sqlite";
 const endpointId = "3ecee37f-b217-4093-87fb-aaf0afe307af";

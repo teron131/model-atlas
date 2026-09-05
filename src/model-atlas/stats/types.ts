@@ -4,8 +4,8 @@ import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
 import type { QualityCoverageThresholds } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
-import type { ModelAtlasSourceHealth } from "../ingest/types";
 import type { ModelAtlasPublishedModel as PipelinePublishedModel } from "../pipeline/model-types";
+import type { ModelAtlasSourceHealth } from "../sources/types";
 
 export { isPreviewModel, rankedModels } from "../pipeline/model-types";
 
@@ -20,7 +20,7 @@ export type {
   ModelAtlasSourceHealthEntry,
   ModelAtlasSourceHealthStatus,
   ModelAtlasSourceQuarantine,
-} from "../ingest/types";
+} from "../sources/types";
 export type {
   ModelAtlasBenchmarks,
   ModelAtlasBenchmarkValues,

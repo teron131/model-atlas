@@ -2,13 +2,13 @@
 
 import assert from "node:assert/strict";
 
-import { surgeLeaderboardScoreRows } from "../src/model-atlas/scrapers/benchmarks/surge/results";
+import { surgeLeaderboardScoreRows } from "../src/model-atlas/sources/surge/results";
 import {
   buildRiemannBenchMap,
   findRiemannBenchScore,
   getRiemannBenchStats,
   RIEMANN_BENCH_LEADERBOARD_URL,
-} from "../src/model-atlas/scrapers/benchmarks/surge/riemann-bench";
+} from "../src/model-atlas/sources/surge/riemann-bench";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);

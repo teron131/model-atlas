@@ -107,13 +107,13 @@ export function compactModelVariants(
     const benchmarks = { ...representative.benchmarks };
     const benchmarkDates = { ...representative.benchmark_dates };
     const taskMetrics = { ...representative.task_metrics };
-    let hasModelObservation = false;
+    let hasAddedBenchmarks = false;
 
     for (const key of BENCHMARK_KEYS) {
       if (benchmarkMetricValue(representative, key) != null) {
         continue;
       }
-      const observations = variants.flatMap((model) => {
+      const variantObservations = variants.flatMap((model) => {
         const value = benchmarkMetricValue(model, key);
         return value == null ? [] : [{ model, value }];
       });
@@ -131,25 +131,25 @@ export function compactModelVariants(
         }
       }
       const sourceEffort = canonicalReasoningEffort(sourceObservation?.reasoning_effort);
-      let directObservation =
+      let variantObservation =
         sourceObservation == null
-          ? (observations[0] ?? null)
-          : (observations.find(
+          ? (variantObservations[0] ?? null)
+          : (variantObservations.find(
               ({ model }) => canonicalReasoningEffort(model.reasoning_effort) === sourceEffort,
             ) ?? null);
       if (sourceObservation == null) {
-        for (const observation of observations.slice(1)) {
+        for (const observation of variantObservations.slice(1)) {
           if (
             reasoningEffortRank(observation.model.reasoning_effort) >
-            reasoningEffortRank(directObservation?.model.reasoning_effort)
+            reasoningEffortRank(variantObservation?.model.reasoning_effort)
           ) {
-            directObservation = observation;
+            variantObservation = observation;
           }
         }
       }
       const value =
         sourceObservation == null
-          ? (directObservation?.value ?? null)
+          ? (variantObservation?.value ?? null)
           : transformBenchmarkSourceValue(key, sourceObservation.canonical_value);
       if (value == null) {
         continue;
@@ -161,13 +161,13 @@ export function compactModelVariants(
         benchmarks[key] = value;
       }
       const observedAt =
-        directObservation?.model.benchmark_dates?.[key] ?? sourceObservation?.observed_at ?? null;
+        variantObservation?.model.benchmark_dates?.[key] ?? sourceObservation?.observed_at ?? null;
       if (observedAt != null) {
         benchmarkDates[key] = observedAt;
       }
-      const directTaskMetrics = directObservation?.model.task_metrics?.[key];
-      if (directTaskMetrics != null) {
-        taskMetrics[key] = directTaskMetrics;
+      const variantTaskMetrics = variantObservation?.model.task_metrics?.[key];
+      if (variantTaskMetrics != null) {
+        taskMetrics[key] = variantTaskMetrics;
       } else if (sourceObservation?.cost != null) {
         taskMetrics[key] = {
           cost: sourceObservation.cost,
@@ -176,10 +176,10 @@ export function compactModelVariants(
           observed_at: sourceObservation.observed_at,
         };
       }
-      hasModelObservation = true;
+      hasAddedBenchmarks = true;
     }
 
-    return hasModelObservation
+    return hasAddedBenchmarks
       ? {
           ...representative,
           intelligence: Object.keys(intelligence).length === 0 ? null : intelligence,

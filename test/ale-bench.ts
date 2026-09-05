@@ -7,8 +7,8 @@ import {
   buildAleBenchCrosswalkStatus,
   processAleBenchSakanaPayload,
   summarizeAleBenchSourceDefaultRows,
-} from "../src/model-atlas/scrapers/benchmarks/ale-bench";
-import { processAleBenchEpochCsv } from "../src/model-atlas/scrapers/benchmarks/epoch/ale-bench";
+} from "../src/model-atlas/sources/ale-bench/leaderboard";
+import { processAleBenchEpochCsv } from "../src/model-atlas/sources/epoch/ale-bench";
 
 function statistics(mean: number) {
   return {

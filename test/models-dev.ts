@@ -3,8 +3,8 @@
 import {
   pickPreferredModelsDevRows,
   selectModelsDevRowsForArtificialAnalysis,
-} from "../src/model-atlas/ingest/assembly/policy";
-import { processModelsDevPayload } from "../src/model-atlas/scrapers/models-dev";
+} from "../src/model-atlas/sources/assembly/policy";
+import { processModelsDevPayload } from "../src/model-atlas/sources/models-dev/catalog";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);

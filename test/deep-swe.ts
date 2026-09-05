@@ -13,7 +13,7 @@ import {
   getDeepSWERawLeaderboardSourceRows,
   preferredDeepSWELeaderboardRows,
   summarizeDeepSWESourceDefaultRows,
-} from "../src/model-atlas/scrapers/benchmarks/deep-swe";
+} from "../src/model-atlas/sources/deep-swe/leaderboard";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = JSON.stringify(actual);

@@ -12,7 +12,6 @@ import {
   type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
 import { canonicalReasoningEffort } from "../identity/normalization";
-import { SNAPSHOT_TABLES, type SnapshotTableName } from "../ingest/source-registry";
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
 import { rankedModels } from "../pipeline/model-types";
 import {
@@ -38,6 +37,7 @@ import type {
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
 } from "../stats/types";
+import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 
 type DbRow = Record<string, unknown>;
 
