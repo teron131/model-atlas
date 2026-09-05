@@ -6,7 +6,7 @@ import { STAGE_CONFIG } from "../config";
 import { buildMatchDiagnostics, type MatchDiagnosticsPayload } from "../identity";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { ModelAtlasSourceData } from "../sources/assembly";
-import type { OpenRouterRawScrapedPayload } from "../sources/openrouter";
+import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
@@ -20,7 +20,7 @@ import {
 } from "./selection/version-replacement";
 
 type OpenRouterLoadResult = {
-  rawPayload: OpenRouterRawScrapedPayload | null;
+  rawPayload: OpenRouterSourcePayload | null;
 };
 
 type ModelDerivationOptions = {

@@ -3,90 +3,17 @@
 import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
 import { meanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
-
-export type OpenRouterFrontendModel = {
-  slug?: string | null;
-  permaslug?: string | null;
-};
-
-type OpenRouterStatsPoint = {
-  x?: string;
-  y?: Record<string, number | null>;
-};
-
-export type OpenRouterStatsResponse = {
-  data?: OpenRouterStatsPoint[];
-};
-
-export type OpenRouterModelStats = {
-  summary?: OpenRouterPerformanceSummary | null;
-  throughput?: OpenRouterStatsResponse | null;
-  latency?: OpenRouterStatsResponse | null;
-  latency_e2e?: OpenRouterStatsResponse | null;
-  series_token_weights?: Record<string, number | null> | null;
-};
-
-export type OpenRouterEndpointStatsResponse = {
-  data?: Array<{
-    stats?: {
-      p50_throughput?: number | null;
-      p50_latency?: number | null;
-    } | null;
-  }>;
-};
-
-export type OpenRouterEffectivePricingResponse = {
-  data?: {
-    // OpenRouter's opaque aggregates are retained in the source response but never become final prices.
-    weightedInputPrice?: number | null;
-    weightedOutputPrice?: number | null;
-    providerSummaries?: Array<{
-      endpointId?: string | null;
-      providerName?: string | null;
-      effectiveInputPrice?: number | null;
-      effectiveOutputPrice?: number | null;
-      totalTokens?: number | null;
-    }>;
-  };
-};
-
-type OpenRouterPerformanceSummary = {
-  throughput_tokens_per_second_median: number | null;
-  latency_seconds_median: number | null;
-  e2e_latency_seconds_median: number | null;
-};
-
-type OpenRouterPricingSummary = {
-  weighted_input_price_per_1m: number | null;
-  weighted_output_price_per_1m: number | null;
-};
-
-type OpenRouterScrapedModel = {
-  id: string;
-  performance: OpenRouterPerformanceSummary;
-  pricing: OpenRouterPricingSummary;
-};
-
-export type OpenRouterRawScrapedModel = {
-  id: string;
-  selected_permaslug: string | null;
-  candidate_permaslugs: string[];
-  performance: OpenRouterModelStats;
-  pricing: OpenRouterEffectivePricingResponse | null;
-};
-
-export type OpenRouterCandidateStats = {
-  permaslug: string;
-  weekly_tokens: number | null;
-  performance: OpenRouterModelStats;
-  pricing: OpenRouterEffectivePricingResponse | null;
-};
-
-export type OpenRouterRawScrapedPayload = {
-  fetched_at_epoch_seconds: number;
-  directory: OpenRouterFrontendModel[];
-  models: OpenRouterRawScrapedModel[];
-};
+import type {
+  OpenRouterCandidateStats,
+  OpenRouterEffectivePricingResponse,
+  OpenRouterEndpointStatsResponse,
+  OpenRouterModelMetrics,
+  OpenRouterPerformance,
+  OpenRouterPerformanceSummary,
+  OpenRouterPricingSummary,
+  OpenRouterSeriesResponse,
+  OpenRouterSourceModel,
+} from "./types";
 
 const OPENROUTER_PROVIDER_ALIASES: Readonly<Record<string, string>> = {
   xai: "x-ai",
@@ -151,7 +78,7 @@ export function buildOpenRouterSeriesTokenWeights(
 export function emptyRawScrapedModel(
   modelId: string,
   candidatePermaslugs: string[] = [],
-): OpenRouterRawScrapedModel {
+): OpenRouterSourceModel {
   return {
     id: modelId,
     selected_permaslug: null,
@@ -163,9 +90,9 @@ export function emptyRawScrapedModel(
 
 export function processOpenRouterModelStats(
   modelId: string,
-  stats: OpenRouterModelStats,
+  stats: OpenRouterPerformance,
   pricing: OpenRouterEffectivePricingResponse | null,
-): OpenRouterScrapedModel {
+): OpenRouterModelMetrics {
   return {
     id: modelId,
     performance: summarizePerformance(stats),
@@ -221,7 +148,7 @@ export function parseOpenRouterWeeklyTokens(html: string): number | null {
 export function selectOpenRouterRawModelStats(
   modelId: string,
   candidates: OpenRouterCandidateStats[],
-): OpenRouterRawScrapedModel {
+): OpenRouterSourceModel {
   const performanceCandidate =
     bestCandidateByUsage(candidates, (candidate) =>
       Object.values(summarizePerformance(candidate.performance)).some((value) => value != null),
@@ -245,7 +172,7 @@ export function selectOpenRouterRawModelStats(
 }
 
 /** Prefer matched token-weighted history and otherwise use OpenRouter's provider aggregate. */
-function summarizePerformance(stats: OpenRouterModelStats): OpenRouterPerformanceSummary {
+function summarizePerformance(stats: OpenRouterPerformance): OpenRouterPerformanceSummary {
   const weightedThroughput = tokenWeightedMeanValue(
     stats.throughput ?? null,
     stats.series_token_weights,
@@ -272,7 +199,7 @@ function summarizePerformance(stats: OpenRouterModelStats): OpenRouterPerformanc
 
 /** Weight every available standard endpoint series that has matching positive token evidence. */
 function tokenWeightedMeanValue(
-  response: OpenRouterStatsResponse | null,
+  response: OpenRouterSeriesResponse | null,
   seriesTokenWeights: Record<string, number | null> | null | undefined,
   valueScale: number,
 ): number | null {

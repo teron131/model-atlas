@@ -13,20 +13,22 @@ import { fetchWithTimeout, mapWithConcurrency, nowEpochSeconds } from "../../run
 import {
   buildOpenRouterSeriesTokenWeights,
   emptyRawScrapedModel,
-  type OpenRouterCandidateStats,
-  type OpenRouterEffectivePricingResponse,
-  type OpenRouterEndpointStatsResponse,
-  type OpenRouterFrontendModel,
-  type OpenRouterModelStats,
-  type OpenRouterRawScrapedModel,
-  type OpenRouterRawScrapedPayload,
-  type OpenRouterStatsResponse,
   parseOpenRouterWeeklyTokens,
   resolvePermaslugCandidates,
   sanitizeModelId,
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
 } from "./stats";
+import type {
+  OpenRouterCandidateStats,
+  OpenRouterEffectivePricingResponse,
+  OpenRouterEndpointStatsResponse,
+  OpenRouterFrontendModel,
+  OpenRouterPerformance,
+  OpenRouterSeriesResponse,
+  OpenRouterSourceModel,
+  OpenRouterSourcePayload,
+} from "./types";
 
 export const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/frontend/v1/catalog/models";
 
@@ -69,10 +71,11 @@ type OpenRouterRequestOptions = {
  * Scrape OpenRouter raw stat responses for a finalized set of model IDs.
  *
  * The raw responses are still scoped to selected model IDs; this avoids full catalog stat scraping while preserving daily points and permaslug resolution.
+ * Aliases share route requests only within this call, and a failed candidate remains retryable.
  */
 export async function getOpenRouterRawScrapedStats(
   options: OpenRouterScraperOptions,
-): Promise<OpenRouterRawScrapedPayload> {
+): Promise<OpenRouterSourcePayload> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -96,9 +99,32 @@ export async function getOpenRouterRawScrapedStats(
       : [...options.modelDirectory];
   const permaslugBySlug = buildPermaslugLookup(directory);
   const availableSlugs = [...permaslugBySlug.keys()];
+  const candidateRequests = new Map<string, Promise<OpenRouterCandidateStats>>();
+
+  // Aliases can resolve to the same route; share its six requests for this scrape and allow failed candidates to retry.
+  const fetchCandidate = (permaslug: string): Promise<OpenRouterCandidateStats> => {
+    const existing = candidateRequests.get(permaslug);
+    if (existing) return existing;
+    const request = Promise.all([
+      fetchPerformance(permaslug, requestOptions),
+      fetchWeeklyTokens(permaslug, requestOptions),
+    ])
+      .then(([stats, weeklyTokens]) => ({
+        permaslug,
+        weekly_tokens: weeklyTokens,
+        performance: stats.performance,
+        pricing: stats.pricing,
+      }))
+      .catch((error) => {
+        candidateRequests.delete(permaslug);
+        throw error;
+      });
+    candidateRequests.set(permaslug, request);
+    return request;
+  };
 
   const models = await mapWithConcurrency(uniqueModelIds, concurrency, async (modelId) =>
-    fetchBestModelStats(modelId, availableSlugs, permaslugBySlug, requestOptions),
+    fetchBestModelStats(modelId, availableSlugs, permaslugBySlug, fetchCandidate),
   );
 
   return {
@@ -180,8 +206,8 @@ async function fetchBestModelStats(
   modelId: string,
   availableSlugs: string[],
   permaslugBySlug: Map<string, string>,
-  requestOptions: OpenRouterRequestOptions,
-): Promise<OpenRouterRawScrapedModel> {
+  fetchCandidate: (permaslug: string) => Promise<OpenRouterCandidateStats>,
+): Promise<OpenRouterSourceModel> {
   const permaslugCandidates = resolvePermaslugCandidates(modelId, availableSlugs, permaslugBySlug);
 
   if (permaslugCandidates.length === 0) {
@@ -191,16 +217,7 @@ async function fetchBestModelStats(
   const resolvedCandidates: OpenRouterCandidateStats[] = [];
   for (const permaslug of permaslugCandidates) {
     try {
-      const [stats, weeklyTokens] = await Promise.all([
-        fetchPerformance(permaslug, requestOptions),
-        fetchWeeklyTokens(permaslug, requestOptions),
-      ]);
-      resolvedCandidates.push({
-        permaslug,
-        weekly_tokens: weeklyTokens,
-        performance: stats.performance,
-        pricing: stats.pricing,
-      });
+      resolvedCandidates.push(await fetchCandidate(permaslug));
     } catch {
       // Try the next permaslug candidate when one stats request fails.
     }
@@ -215,7 +232,7 @@ async function fetchPerformance(
   permaslug: string,
   requestOptions: OpenRouterRequestOptions,
 ): Promise<{
-  performance: OpenRouterModelStats;
+  performance: OpenRouterPerformance;
   pricing: OpenRouterEffectivePricingResponse;
 }> {
   const query = new URLSearchParams({ permaslug });
@@ -232,15 +249,15 @@ async function fetchPerformance(
       `${ENDPOINT_URL}?${endpointQuery.toString()}`,
       requestOptions,
     ),
-    fetchJsonWithRetry<OpenRouterStatsResponse>(
+    fetchJsonWithRetry<OpenRouterSeriesResponse>(
       `${THROUGHPUT_URL}?${query.toString()}`,
       requestOptions,
     ),
-    fetchJsonWithRetry<OpenRouterStatsResponse>(
+    fetchJsonWithRetry<OpenRouterSeriesResponse>(
       `${LATENCY_URL}?${query.toString()}`,
       requestOptions,
     ),
-    fetchJsonWithRetry<OpenRouterStatsResponse>(
+    fetchJsonWithRetry<OpenRouterSeriesResponse>(
       `${E2E_LATENCY_URL}?${query.toString()}`,
       requestOptions,
     ),

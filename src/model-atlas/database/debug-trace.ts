@@ -7,7 +7,7 @@ import {
   type MatcherConfig,
 } from "../identity";
 import { publicOpenRouterModelId } from "../identity/openrouter";
-import type { OpenRouterRawScrapedPayload } from "../sources/openrouter";
+import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import type { SourceSnapshots } from "../sources/types";
 import type { DatabaseWriter } from "./writers/database";
 
@@ -73,7 +73,7 @@ export function insertDebugTraceRows(db: DatabaseWriter, rows: readonly DebugTra
 
 export function buildDebugTraceRows(
   snapshots: SourceSnapshots,
-  openRouterRawPayload: OpenRouterRawScrapedPayload | null | undefined,
+  openRouterRawPayload: OpenRouterSourcePayload | null | undefined,
   diagnostics: MatchDiagnosticsPayload,
   matcherConfig: MatcherConfig,
 ): DebugTraceRow[] {
@@ -151,7 +151,7 @@ function modelsDevRowIndexByKey(snapshots: SourceSnapshots): Map<string, number>
 }
 
 function openRouterStatsRowIndexById(
-  rawPayload: OpenRouterRawScrapedPayload | null | undefined,
+  rawPayload: OpenRouterSourcePayload | null | undefined,
 ): Map<string, number> {
   const byModelId = new Map<string, number>();
   if (rawPayload == null) {
@@ -167,7 +167,7 @@ function openRouterStatsRowIndexById(
   return byModelId;
 }
 
-function statsPointCount(model: OpenRouterRawScrapedPayload["models"][number]): number {
+function statsPointCount(model: OpenRouterSourcePayload["models"][number]): number {
   let count = 0;
   for (const metric of ["throughput", "latency", "latency_e2e"] as const) {
     for (const point of model.performance[metric]?.data ?? []) {
