@@ -50,8 +50,6 @@ export type {
   ModelAtlasTaskMetricValues,
 } from "../pipeline/model-types";
 
-export type ModelAtlasLeaderboardRank = number | "preview";
-
 type ModelAtlasBenchmarkUpdateStatus = "current" | "watch" | "stale_possible" | "missing";
 
 export type ModelAtlasBenchmarkUpdateEntry = {

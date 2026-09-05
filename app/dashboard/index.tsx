@@ -34,6 +34,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
   const [globalModelFilterQuery, setGlobalModelFilterQuery] = useState("");
   const { payload, errorMessage } = useLivePayload(initialPayload);
 
+  const referenceModels = useMemo(() => rankedModels(payload?.models ?? []), [payload]);
   const displayPayload = useMemo(() => {
     if (payload == null) {
       return null;
@@ -98,7 +99,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
       <DashboardGraphs
         payload={displayPayload}
         modelVariants={payload?.models ?? []}
-        referenceModels={rankedModels(payload?.models ?? [])}
+        referenceModels={referenceModels}
         benchmarksLoading={isInitialLoading}
         selectedProviders={selectedProviders}
         providerChoices={providerChoices}

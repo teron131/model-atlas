@@ -5,7 +5,6 @@ import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
-import { compactModelVariants } from "../../../src/model-atlas/pipeline/selection/public-list";
 import {
   isPreviewModel,
   type ModelAtlasModel,
@@ -13,6 +12,7 @@ import {
   type ModelAtlasPublishedModel,
   rankedModels,
 } from "../../../src/model-atlas/stats/types";
+import { compactModelVariants } from "../../leaderboard/model-variants";
 import {
   providerChartColor,
   providerDisplayName,

@@ -3,12 +3,12 @@
 import { createHash } from "node:crypto";
 
 import { readDisplaySnapshotPayload } from "../../../src/model-atlas/database/runtime-snapshot";
+import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import {
   type ModelAtlasJsonView,
   publicJsonPayload,
   publicJsonView,
-} from "../../../src/model-atlas/stats/payload/public-json";
-import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
+} from "../../leaderboard/public-json";
 import { publicCacheHeaders } from "../cache-headers";
 
 export const dynamic = "force-dynamic";

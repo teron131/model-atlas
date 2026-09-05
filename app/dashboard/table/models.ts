@@ -18,9 +18,9 @@ import {
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
   isPreviewModel,
-  type ModelAtlasLeaderboardRank,
   type ModelAtlasPublishedModel,
 } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasLeaderboardRank } from "../../leaderboard/public-json";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
 

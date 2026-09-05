@@ -14,7 +14,7 @@ import {
 import type { NumberOrNull } from "../../math-utils";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
 import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
-import { strongestModelVariants } from "../../pipeline/selection/public-list";
+import { strongestModelVariants } from "../model-variants";
 import type {
   ModelAtlasBenchmarkUpdateEntry,
   ModelAtlasBenchmarkUpdateHealth,
