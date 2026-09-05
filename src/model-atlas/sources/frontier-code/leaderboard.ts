@@ -6,7 +6,8 @@
  */
 
 import { canonicalReasoningEffort, reasoningEffortRank } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
+import { fetchSource } from "../request-scheduler";
 
 const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontiercode-leaderboard/data.json";
 
@@ -68,19 +69,21 @@ export async function getFrontierCodeStats(
   options: FrontierCodeScraperOptions = {},
 ): Promise<FrontierCodePayload> {
   try {
-    const response = await fetchWithTimeout(
+    return await fetchSource(
       options.url ?? FRONTIER_CODE_DATA_URL,
       {},
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`FrontierCode scrape failed: ${response.status}`);
+        }
+        const data = processFrontierCodePayload(await response.json());
+        if (data.length === 0) {
+          throw new Error("FrontierCode scrape returned no revision 1.1 rows");
+        }
+        return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+      },
     );
-    if (!response.ok) {
-      throw new Error(`FrontierCode scrape failed: ${response.status}`);
-    }
-    const data = processFrontierCodePayload(await response.json());
-    if (data.length === 0) {
-      throw new Error("FrontierCode scrape returned no revision 1.1 rows");
-    }
-    return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

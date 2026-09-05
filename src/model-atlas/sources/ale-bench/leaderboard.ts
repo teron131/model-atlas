@@ -10,12 +10,13 @@ import {
   type SourceCrosswalkDiagnostic,
 } from "../../benchmarks/source-crosswalk";
 import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   ALE_BENCH_EPOCH_RESULTS_URL,
   type AleBenchEpochRow,
   processAleBenchEpochCsv,
 } from "../epoch/ale-bench";
+import { fetchSource } from "../request-scheduler";
 
 const ALE_BENCH_SAKANA_RESULTS_URL =
   "https://sakanaai.github.io/ALE-Bench-Leaderboard/data/results_summary.json";
@@ -111,26 +112,30 @@ export async function getAleBenchStats(
 ): Promise<AleBenchPayload> {
   try {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const epochRequest = fetchWithTimeout(
+    const epochRequest = fetchSource(
       options.epochUrl ?? ALE_BENCH_EPOCH_RESULTS_URL,
       {},
       timeoutMs,
+      async (response) => (response.ok ? response.text() : null),
     ).catch(() => null);
-    const sakanaResponse = await fetchWithTimeout(
+    const sakanaPayload = await fetchSource(
       options.sakanaUrl ?? ALE_BENCH_SAKANA_RESULTS_URL,
       {},
       timeoutMs,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`ALE-Bench Sakana scrape failed: ${response.status}`);
+        }
+        return response.json();
+      },
     );
-    if (!sakanaResponse.ok) {
-      throw new Error(`ALE-Bench Sakana scrape failed: ${sakanaResponse.status}`);
-    }
-    const data = processAleBenchSakanaPayload(await sakanaResponse.json());
+    const data = processAleBenchSakanaPayload(sakanaPayload);
     if (data.length === 0) throw new Error("ALE-Bench Sakana scrape returned no rows");
 
     let epochRows: AleBenchEpochRow[] = [];
     try {
-      const epochResponse = await epochRequest;
-      if (epochResponse?.ok) epochRows = processAleBenchEpochCsv(await epochResponse.text());
+      const epochCsv = await epochRequest;
+      if (epochCsv != null) epochRows = processAleBenchEpochCsv(epochCsv);
     } catch {
       // Epoch is validation-only and must not block the primary Sakana observation source.
     }

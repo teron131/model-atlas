@@ -5,8 +5,9 @@
  */
 
 import { normalizeModelToken, reasoningEffortRank } from "../../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { nowEpochSeconds } from "../../runtime";
 import { htmlTextLines } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://cursor.com/cursorbench";
 
@@ -79,14 +80,15 @@ export async function getCursorBenchStats(
   try {
     const url = options.url ?? DEFAULT_LEADERBOARD_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const response = await fetchWithTimeout(url, {}, timeoutMs);
-    if (!response.ok) {
-      throw new Error(`CursorBench scrape failed: ${response.status}`);
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processCursorBenchPageHtml(await response.text()),
-    };
+    return await fetchSource(url, {}, timeoutMs, async (response) => {
+      if (!response.ok) {
+        throw new Error(`CursorBench scrape failed: ${response.status}`);
+      }
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: processCursorBenchPageHtml(await response.text()),
+      };
+    });
   } catch {
     return {
       fetched_at_epoch_seconds: null,

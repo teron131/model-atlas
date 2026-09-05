@@ -28,12 +28,14 @@ import type {
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
 } from "../model-types";
+import type { OpenRouterModelData } from "../openrouter-data";
 import {
   benchmarkImputationConfidence,
   benchmarkImputationValues,
   type BenchmarkScoringPreparation,
   blendedPriceValue,
   buildComponentScoreResult,
+  buildSpeedComponentScore,
 } from "../scores";
 
 type TaskMetricNumericKey = "cost" | "seconds" | "tokens" | "input_tokens" | "output_tokens";
@@ -555,5 +557,31 @@ export function buildModelCandidate(
     scoring_sources: scoringSources,
     component_scores: componentScores,
     scores: null,
+  };
+}
+
+/** Attach route speed and effective pricing to an already-scored candidate without recomputing or changing its quality. */
+export function enrichModelResources(
+  candidate: ModelAtlasCandidate,
+  row: Record<string, unknown>,
+  openRouterData: OpenRouterModelData,
+): ModelAtlasCandidate {
+  const speed = buildSpeed(row, openRouterData.speedByModelId);
+  const pricing =
+    lookupOpenRouterData(openRouterData.pricingByModelId, candidate.id, hasPricingData) ??
+    EMPTY_OPENROUTER_PRICING;
+  const speedScore = buildSpeedComponentScore(speed, openRouterData.outputTokenAnchors);
+  return {
+    ...candidate,
+    cost: buildCost(row, pricing),
+    speed,
+    component_scores:
+      candidate.component_scores == null && speedScore == null
+        ? null
+        : {
+            intelligence_score: candidate.component_scores?.intelligence_score ?? null,
+            agentic_score: candidate.component_scores?.agentic_score ?? null,
+            speed_score: speedScore,
+          },
   };
 }

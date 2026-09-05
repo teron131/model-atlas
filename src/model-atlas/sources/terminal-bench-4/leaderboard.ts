@@ -13,8 +13,9 @@ import {
   canonicalReasoningEffort,
   normalizeModelToken,
 } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { stringValue } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 const TERMINAL_BENCH_4_DATA_URL =
   "https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read";
@@ -58,7 +59,7 @@ export async function getTerminalBench4Stats(
   options: TerminalBench4ScraperOptions = {},
 ): Promise<TerminalBench4Payload> {
   try {
-    const response = await fetchWithTimeout(
+    return await fetchSource(
       options.url ?? TERMINAL_BENCH_4_DATA_URL,
       {
         method: "POST",
@@ -66,15 +67,17 @@ export async function getTerminalBench4Stats(
         body: JSON.stringify({ package: TERMINAL_BENCH_4_PACKAGE, name: TERMINAL_BENCH_4_NAME }),
       },
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
+        }
+        const data = processTerminalBench4Payload(await response.json());
+        if (data.length === 0) {
+          throw new Error("Terminal-Bench 4.0 scrape returned no 4.0 rows");
+        }
+        return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+      },
     );
-    if (!response.ok) {
-      throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
-    }
-    const data = processTerminalBench4Payload(await response.json());
-    if (data.length === 0) {
-      throw new Error("Terminal-Bench 4.0 scrape returned no 4.0 rows");
-    }
-    return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

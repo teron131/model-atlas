@@ -5,13 +5,14 @@
  */
 
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   extractNextFlightCorpus,
   findObjectEnd,
   parseFlightJsonObject,
   stringValue,
 } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";
 
@@ -46,15 +47,16 @@ export async function getAgentArenaStats(
 ): Promise<AgentArenaPayload> {
   try {
     const url = options.url ?? DEFAULT_LEADERBOARD_URL;
-    const response = await fetchWithTimeout(url, {}, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-    if (!response.ok) {
-      throw new Error(`Agent Arena scrape failed: ${response.status}`);
-    }
-    const data = processAgentArenaPageHtml(await response.text());
-    return {
-      fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
-      data,
-    };
+    return await fetchSource(url, {}, options.timeoutMs ?? DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Agent Arena scrape failed: ${response.status}`);
+      }
+      const data = processAgentArenaPageHtml(await response.text());
+      return {
+        fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
+        data,
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

@@ -199,7 +199,7 @@ const server = createServer((_request, response) => {
         ],
       }),
     );
-  }, 20);
+  }, 350);
 });
 
 await new Promise<void>((resolve) => {

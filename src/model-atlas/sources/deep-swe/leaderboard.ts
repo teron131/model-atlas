@@ -10,13 +10,8 @@ import {
   normalizeModelToken,
   reasoningEffortRank,
 } from "../../identity/normalization";
-import {
-  asFiniteNumber,
-  asRecord,
-  fetchWithTimeout,
-  mapWithConcurrency,
-  nowEpochSeconds,
-} from "../../runtime";
+import { asFiniteNumber, asRecord, mapWithConcurrency, nowEpochSeconds } from "../../runtime";
+import { fetchSource } from "../request-scheduler";
 
 export const DEEP_SWE_V1_1_LEADERBOARD_URL =
   "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
@@ -179,21 +174,22 @@ async function getDeepSWERawRowsForUrl(
   url: string,
   timeoutMs: number,
 ): Promise<DeepSWERawLeaderboardRow[]> {
-  const response = await fetchWithTimeout(url, {}, timeoutMs);
-  if (!response.ok) {
-    return [];
-  }
-  const payload = asRecord(await response.json());
-  const rows = Array.isArray(payload.rows)
-    ? payload.rows
-        .map((row) => asDeepSWELeaderboardRow(row))
-        .filter((row): row is DeepSWELeaderboardRow => row != null)
-    : [];
-  const sourceVersion = sourceVersionForUrl(url);
-  return rows.map((row) => ({
-    ...row,
-    source_version: sourceVersion,
-  }));
+  return await fetchSource(url, {}, timeoutMs, async (response) => {
+    if (!response.ok) {
+      return [];
+    }
+    const payload = asRecord(await response.json());
+    const rows = Array.isArray(payload.rows)
+      ? payload.rows
+          .map((row) => asDeepSWELeaderboardRow(row))
+          .filter((row): row is DeepSWELeaderboardRow => row != null)
+      : [];
+    const sourceVersion = sourceVersionForUrl(url);
+    return rows.map((row) => ({
+      ...row,
+      source_version: sourceVersion,
+    }));
+  });
 }
 
 function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {

@@ -15,8 +15,9 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
 import { stringValue } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -47,18 +48,20 @@ export async function getZeroEvalStats(
   options: ZeroEvalFetchOptions,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(
+    return await fetchSource(
       options.sourceUrl,
       {},
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`ZeroEval ${options.benchmarkKey} scrape failed: ${response.status}`);
+        }
+        return {
+          fetched_at_epoch_seconds: nowEpochSeconds(),
+          data: processZeroEvalDetailsJson(await response.json(), options),
+        };
+      },
     );
-    if (!response.ok) {
-      throw new Error(`ZeroEval ${options.benchmarkKey} scrape failed: ${response.status}`);
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processZeroEvalDetailsJson(await response.json(), options),
-    };
   } catch {
     return {
       fetched_at_epoch_seconds: null,

@@ -1,5 +1,5 @@
 /**
- * OpenRouter scraper workflow for scoped model performance and pricing stats.
+ * Model performance, effective pricing, and weekly usage from OpenRouter.
  *
  * Catalog source: https://openrouter.ai/api/frontend/v1/catalog/models
  * Endpoint stats source: https://openrouter.ai/api/frontend/v1/stats/endpoint
@@ -7,9 +7,13 @@
  * Latency source: https://openrouter.ai/api/frontend/v1/stats/latency-comparison
  * End-to-end latency source: https://openrouter.ai/api/frontend/v1/stats/latency-e2e-comparison
  * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
+ * Usage page source: https://openrouter.ai/{provider}/{model}/performance
  */
 
-import { fetchWithTimeout, mapWithConcurrency, nowEpochSeconds } from "../../runtime";
+import { setTimeout as sleep } from "node:timers/promises";
+
+import { mapWithConcurrency, nowEpochSeconds } from "../../runtime";
+import { fetchSource, scheduleSourcePage, SourceQueueTimeoutError } from "../request-scheduler";
 import {
   buildOpenRouterSeriesTokenWeights,
   emptyRawScrapedModel,
@@ -24,7 +28,6 @@ import type {
   OpenRouterEffectivePricingResponse,
   OpenRouterEndpointStatsResponse,
   OpenRouterFrontendModel,
-  OpenRouterPerformance,
   OpenRouterSeriesResponse,
   OpenRouterSourceModel,
   OpenRouterSourcePayload,
@@ -50,9 +53,9 @@ const DEFAULT_CONCURRENCY = 8;
 
 const DEFAULT_MAX_RETRIES = 3;
 
-const DEFAULT_RETRY_BASE_DELAY_MS = 300;
+const DEFAULT_RETRY_BASE_DELAY_MS = 1_000;
 
-type OpenRouterScraperOptions = {
+type ScraperOptions = {
   modelIds: string[];
   modelDirectory?: readonly OpenRouterFrontendModel[];
   timeoutMs?: number;
@@ -61,29 +64,27 @@ type OpenRouterScraperOptions = {
   retryBaseDelayMs?: number;
 };
 
-type OpenRouterRequestOptions = {
+type RequestContext = {
   timeoutMs: number;
   maxRetries: number;
   retryBaseDelayMs: number;
+  responses: Map<string, Promise<unknown>>;
 };
 
 /**
  * Scrape OpenRouter raw stat responses for a finalized set of model IDs.
  *
- * The raw responses are still scoped to selected model IDs; this avoids full catalog stat scraping while preserving daily points and permaslug resolution.
- * Aliases share route requests only within this call, and a failed candidate remains retryable.
+ * The raw responses are still scoped to selected model IDs; this avoids full catalog stat scraping while preserving daily points and permaslug resolution. Aliases share route groups and successful endpoint responses only within this call, so a failed candidate retries only its missing endpoints.
  */
 export async function getOpenRouterRawScrapedStats(
-  options: OpenRouterScraperOptions,
+  options: ScraperOptions,
 ): Promise<OpenRouterSourcePayload> {
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
-  const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-  const retryBaseDelayMs = options.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
-  const requestOptions = {
-    timeoutMs,
-    maxRetries,
-    retryBaseDelayMs,
+  const context: RequestContext = {
+    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    maxRetries: options.maxRetries ?? DEFAULT_MAX_RETRIES,
+    retryBaseDelayMs: options.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS,
+    responses: new Map(),
   };
   const uniqueModelIds = Array.from(
     new Set(options.modelIds.map((modelId) => modelId.trim()).filter(Boolean)),
@@ -92,9 +93,9 @@ export async function getOpenRouterRawScrapedStats(
   const directory =
     options.modelDirectory == null
       ? ((
-          await fetchJsonWithRetry<{
+          await fetchJson<{
             data?: OpenRouterFrontendModel[];
-          }>(OPENROUTER_MODELS_URL, requestOptions)
+          }>(OPENROUTER_MODELS_URL, context)
         ).data ?? [])
       : [...options.modelDirectory];
   const permaslugBySlug = buildPermaslugLookup(directory);
@@ -105,20 +106,10 @@ export async function getOpenRouterRawScrapedStats(
   const fetchCandidate = (permaslug: string): Promise<OpenRouterCandidateStats> => {
     const existing = candidateRequests.get(permaslug);
     if (existing) return existing;
-    const request = Promise.all([
-      fetchPerformance(permaslug, requestOptions),
-      fetchWeeklyTokens(permaslug, requestOptions),
-    ])
-      .then(([stats, weeklyTokens]) => ({
-        permaslug,
-        weekly_tokens: weeklyTokens,
-        performance: stats.performance,
-        pricing: stats.pricing,
-      }))
-      .catch((error) => {
-        candidateRequests.delete(permaslug);
-        throw error;
-      });
+    const request = fetchCandidateStats(permaslug, context).catch((error) => {
+      candidateRequests.delete(permaslug);
+      throw error;
+    });
     candidateRequests.set(permaslug, request);
     return request;
   };
@@ -134,56 +125,8 @@ export async function getOpenRouterRawScrapedStats(
   };
 }
 
-async function fetchJsonWithRetry<T>(
-  url: string,
-  requestOptions: OpenRouterRequestOptions,
-): Promise<T> {
-  return fetchOpenRouterWithRetry(
-    url,
-    requestOptions,
-    async (response) => (await response.json()) as T,
-  );
-}
-
-async function fetchOpenRouterWithRetry<T>(
-  url: string,
-  requestOptions: OpenRouterRequestOptions,
-  readResponse: (response: Response) => Promise<T>,
-): Promise<T> {
-  let lastError: unknown = null;
-
-  for (let attempt = 0; attempt < requestOptions.maxRetries; attempt += 1) {
-    try {
-      const response = await fetchWithTimeout(url, {}, requestOptions.timeoutMs);
-      if (!response.ok) {
-        const status = response.status;
-        if ((status === 429 || status >= 500) && attempt < requestOptions.maxRetries - 1) {
-          await sleep(retryBackoffMs(requestOptions, attempt));
-          continue;
-        }
-        throw new Error(`OpenRouter request failed: ${status} (${url})`);
-      }
-      return await readResponse(response);
-    } catch (error) {
-      lastError = error;
-      if (attempt < requestOptions.maxRetries - 1) {
-        await sleep(retryBackoffMs(requestOptions, attempt));
-      }
-    }
-  }
-
-  throw lastError ?? new Error(`OpenRouter request failed: ${url}`);
-}
-
-/** Sleep for the requested number of milliseconds between OpenRouter retries. */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-function retryBackoffMs(requestOptions: OpenRouterRequestOptions, attempt: number): number {
-  return requestOptions.retryBaseDelayMs * 2 ** attempt + Math.floor(Math.random() * 100);
+function fetchJson<T>(url: string, context: RequestContext): Promise<T> {
+  return fetchResponse(url, context, async (response) => (await response.json()) as T);
 }
 
 function buildPermaslugLookup(models: OpenRouterFrontendModel[]): Map<string, string> {
@@ -200,6 +143,48 @@ function buildPermaslugLookup(models: OpenRouterFrontendModel[]): Map<string, st
     permaslugBySlug.set(slug, permaslug);
   }
   return permaslugBySlug;
+}
+
+/** Fetch a model page's independent endpoints together while each endpoint retains its own retry and timeout policy. */
+async function fetchCandidateStats(
+  permaslug: string,
+  context: RequestContext,
+): Promise<OpenRouterCandidateStats> {
+  const query = new URLSearchParams({ permaslug });
+  const standardQuery = new URLSearchParams({
+    permaslug,
+    variant: "standard",
+  });
+  const [endpointStats, throughput, latency, latencyE2e, effectivePricing, weeklyTokens] =
+    await scheduleSourcePage(BASE_URL, [
+      () =>
+        fetchJson<OpenRouterEndpointStatsResponse>(
+          `${ENDPOINT_URL}?${standardQuery.toString()}`,
+          context,
+        ),
+      () => fetchJson<OpenRouterSeriesResponse>(`${THROUGHPUT_URL}?${query.toString()}`, context),
+      () => fetchJson<OpenRouterSeriesResponse>(`${LATENCY_URL}?${query.toString()}`, context),
+      () => fetchJson<OpenRouterSeriesResponse>(`${E2E_LATENCY_URL}?${query.toString()}`, context),
+      () =>
+        fetchJson<OpenRouterEffectivePricingResponse>(
+          `${EFFECTIVE_PRICING_URL}?${standardQuery.toString()}`,
+          context,
+        ),
+      () => fetchWeeklyTokens(permaslug, context),
+    ]);
+
+  return {
+    permaslug,
+    weekly_tokens: weeklyTokens,
+    performance: {
+      summary: summarizeEndpointPerformance(endpointStats),
+      throughput,
+      latency,
+      latency_e2e: latencyE2e,
+      series_token_weights: buildOpenRouterSeriesTokenWeights(effectivePricing),
+    },
+    pricing: effectivePricing,
+  };
 }
 
 async function fetchBestModelStats(
@@ -228,71 +213,68 @@ async function fetchBestModelStats(
     : emptyRawScrapedModel(modelId, permaslugCandidates);
 }
 
-async function fetchPerformance(
-  permaslug: string,
-  requestOptions: OpenRouterRequestOptions,
-): Promise<{
-  performance: OpenRouterPerformance;
-  pricing: OpenRouterEffectivePricingResponse;
-}> {
-  const query = new URLSearchParams({ permaslug });
-  const endpointQuery = new URLSearchParams({
-    permaslug,
-    variant: "standard",
+/** Cache decoded responses after the full retry lifecycle so aliases retain successful siblings but can retry failed endpoints. */
+function fetchResponse<T>(
+  url: string,
+  context: RequestContext,
+  readResponse: (response: Response) => Promise<T>,
+): Promise<T> {
+  // Each endpoint URL has one decoder in this workflow; the heterogeneous cache remains private to one scrape.
+  const existing = context.responses.get(url) as Promise<T> | undefined;
+  if (existing) return existing;
+  const request = requestWithRetries(url, context, readResponse).catch((error) => {
+    context.responses.delete(url);
+    throw error;
   });
-  const pricingQuery = new URLSearchParams({
-    permaslug,
-    variant: "standard",
-  });
-  const [endpointStats, throughput, latency, latencyE2e, effectivePricing] = await Promise.all([
-    fetchJsonWithRetry<OpenRouterEndpointStatsResponse>(
-      `${ENDPOINT_URL}?${endpointQuery.toString()}`,
-      requestOptions,
-    ),
-    fetchJsonWithRetry<OpenRouterSeriesResponse>(
-      `${THROUGHPUT_URL}?${query.toString()}`,
-      requestOptions,
-    ),
-    fetchJsonWithRetry<OpenRouterSeriesResponse>(
-      `${LATENCY_URL}?${query.toString()}`,
-      requestOptions,
-    ),
-    fetchJsonWithRetry<OpenRouterSeriesResponse>(
-      `${E2E_LATENCY_URL}?${query.toString()}`,
-      requestOptions,
-    ),
-    fetchJsonWithRetry<OpenRouterEffectivePricingResponse>(
-      `${EFFECTIVE_PRICING_URL}?${pricingQuery.toString()}`,
-      requestOptions,
-    ),
-  ]);
-
-  return {
-    performance: {
-      summary: summarizeEndpointPerformance(endpointStats),
-      throughput,
-      latency,
-      latency_e2e: latencyE2e,
-      series_token_weights: buildOpenRouterSeriesTokenWeights(effectivePricing),
-    },
-    pricing: effectivePricing,
-  };
+  context.responses.set(url, request);
+  return request;
 }
 
 async function fetchWeeklyTokens(
   permaslug: string,
-  requestOptions: OpenRouterRequestOptions,
+  context: RequestContext,
 ): Promise<number | null> {
   try {
     const path = permaslug.split("/").map(encodeURIComponent).join("/");
-    return parseOpenRouterWeeklyTokens(
-      await fetchOpenRouterWithRetry(
-        `${BASE_URL}/${path}/performance`,
-        requestOptions,
-        (response) => response.text(),
-      ),
+    return await fetchResponse(`${BASE_URL}/${path}/performance`, context, async (response) =>
+      parseOpenRouterWeeklyTokens(await response.text()),
     );
   } catch {
     return null;
   }
+}
+
+/** Retry transient failures for one endpoint; the shared scheduler enforces host cooldowns before each attempt. */
+async function requestWithRetries<T>(
+  url: string,
+  context: RequestContext,
+  readResponse: (response: Response) => Promise<T>,
+): Promise<T> {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < context.maxRetries; attempt += 1) {
+    let retryable = true;
+    try {
+      return await fetchSource(url, {}, context.timeoutMs, async (response) => {
+        if (!response.ok) {
+          const status = response.status;
+          retryable = status === 408 || status === 429 || status >= 500;
+          throw new Error(`OpenRouter request failed: ${status} (${url})`);
+        }
+        return readResponse(response);
+      });
+    } catch (error) {
+      lastError = error;
+      if (!retryable || error instanceof SourceQueueTimeoutError) throw error;
+      if (attempt < context.maxRetries - 1) {
+        await sleep(retryBackoffMs(context, attempt));
+      }
+    }
+  }
+
+  throw lastError ?? new Error(`OpenRouter request failed: ${url}`);
+}
+
+function retryBackoffMs(context: RequestContext, attempt: number): number {
+  return context.retryBaseDelayMs * 2 ** attempt + Math.floor(Math.random() * 100);
 }

@@ -5,8 +5,9 @@
  */
 
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { nowEpochSeconds } from "../../runtime";
 import { findObjectEnd } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/vending-bench-2";
 
@@ -112,11 +113,12 @@ export function processVendingBench2DataModule(dataModule: string): VendingBench
 }
 
 async function responseText(url: string, timeoutMs: number): Promise<string> {
-  const response = await fetchWithTimeout(url, {}, timeoutMs);
-  if (!response.ok) {
-    throw new Error(`Vending-Bench 2 asset fetch failed: ${response.status}`);
-  }
-  return response.text();
+  return await fetchSource(url, {}, timeoutMs, async (response) => {
+    if (!response.ok) {
+      throw new Error(`Vending-Bench 2 asset fetch failed: ${response.status}`);
+    }
+    return response.text();
+  });
 }
 
 async function vendingDataModule(

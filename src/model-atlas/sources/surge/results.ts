@@ -16,8 +16,9 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, percentToUnitScore, providerFromLogoAlt, stripHtmlTags } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -44,13 +45,14 @@ export async function getSurgeIntelligenceIndexStats(
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(sourceUrl, {}, DEFAULT_TIMEOUT_MS);
-    if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
-    const pageHtml = await response.text();
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processSurgeIntelligenceIndexPageHtml(pageHtml, benchmarkKey, sourceUrl),
-    };
+    return await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
+      const pageHtml = await response.text();
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: processSurgeIntelligenceIndexPageHtml(pageHtml, benchmarkKey, sourceUrl),
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }
@@ -62,13 +64,14 @@ export async function getSurgeLeaderboardStats(
   scoreKind: SurgeScoreKind = "percent",
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(sourceUrl, {}, DEFAULT_TIMEOUT_MS);
-    if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
-    const pageHtml = await response.text();
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
-    };
+    return await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
+      const pageHtml = await response.text();
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

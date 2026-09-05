@@ -7,7 +7,8 @@
 
 import { claudeIdentityKey, parseClaudeIdentity } from "../../identity/claude";
 import { normalizeModelToken, normalizeProviderModelId } from "../../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { nowEpochSeconds } from "../../runtime";
+import { fetchSource } from "../request-scheduler";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
 
@@ -122,22 +123,20 @@ export function processModelsDevPayload(
 }
 
 async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
-  const [response, liveVercelModels] = await Promise.all([
-    fetchWithTimeout(MODELS_DEV_URL, {}, REQUEST_TIMEOUT_MS),
+  const [source, liveVercelModels] = await Promise.all([
+    fetchSource(MODELS_DEV_URL, {}, REQUEST_TIMEOUT_MS, async (response) => {
+      if (!response.ok) {
+        throw new Error(`models.dev request failed: ${response.status}`);
+      }
+      return { status: response.status, payload: (await response.json()) as ModelsDevPayload };
+    }),
     fetchVercelGatewayModels(),
   ]);
 
-  if (!response.ok) {
-    throw new Error(`models.dev request failed: ${response.status}`);
-  }
-
-  const payload = mergeVercelProvider(
-    (await response.json()) as ModelsDevPayload,
-    liveVercelModels,
-  );
+  const payload = mergeVercelProvider(source.payload, liveVercelModels);
   return {
     fetched_at_epoch_seconds: nowEpochSeconds(),
-    status_code: response.status,
+    status_code: source.status,
     payload,
     live_vercel_models: liveVercelModels,
   };
@@ -145,11 +144,17 @@ async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
 
 async function fetchVercelGatewayModels(): Promise<VercelGatewayModelRecord[]> {
   try {
-    const response = await fetchWithTimeout(VERCEL_AI_GATEWAY_MODELS_URL, {}, REQUEST_TIMEOUT_MS);
-    if (!response.ok) {
-      throw new Error(`Vercel AI Gateway request failed: ${response.status}`);
-    }
-    return extractVercelGatewayModels(await response.text());
+    return await fetchSource(
+      VERCEL_AI_GATEWAY_MODELS_URL,
+      {},
+      REQUEST_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`Vercel AI Gateway request failed: ${response.status}`);
+        }
+        return extractVercelGatewayModels(await response.text());
+      },
+    );
   } catch {
     return [];
   }

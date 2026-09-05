@@ -5,8 +5,9 @@
  */
 
 import { normalizeModelToken } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, stringValue } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
 
@@ -60,14 +61,15 @@ export async function getValsIndexStats(
   try {
     const url = options.url ?? DEFAULT_LEADERBOARD_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const response = await fetchWithTimeout(url, {}, timeoutMs);
-    if (!response.ok) {
-      throw new Error(`Vals Index scrape failed: ${response.status}`);
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      ...processValsIndexPageHtml(await response.text()),
-    };
+    return await fetchSource(url, {}, timeoutMs, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Vals Index scrape failed: ${response.status}`);
+      }
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        ...processValsIndexPageHtml(await response.text()),
+      };
+    });
   } catch {
     return {
       fetched_at_epoch_seconds: null,

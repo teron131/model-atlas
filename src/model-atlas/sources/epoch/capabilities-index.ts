@@ -10,8 +10,9 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
 
@@ -21,12 +22,14 @@ export async function getEpochCapabilitiesIndexStats(
   sourceUrl = EPOCH_CAPABILITIES_INDEX_CSV_URL,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(sourceUrl, {}, DEFAULT_TIMEOUT_MS);
-    if (!response.ok) throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processEpochCapabilitiesIndexCsv(await response.text(), sourceUrl),
-    };
+    return await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok)
+        throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: processEpochCapabilitiesIndexCsv(await response.text(), sourceUrl),
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

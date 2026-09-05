@@ -9,8 +9,9 @@ import type {
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
 import { benchmarkModelEffort } from "../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { nowEpochSeconds } from "../runtime";
 import { htmlAttribute, percentToUnitScore } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -29,14 +30,18 @@ export async function getAutomationBenchStats(
   options: AutomationBenchOptions,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(
+    const pageHtml = await fetchSource(
       options.sourceUrl,
       {},
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok)
+          throw new Error(`Zapier AutomationBench scrape failed: ${response.status}`);
+        return response.text();
+      },
     );
-    if (!response.ok) throw new Error(`Zapier AutomationBench scrape failed: ${response.status}`);
     const moduleSource = await fetchLeaderboardModule(
-      await response.text(),
+      pageHtml,
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     );
     if (moduleSource == null) return { fetched_at_epoch_seconds: null, data: [] };
@@ -102,14 +107,11 @@ export function automationBenchCacheMatches(rows: readonly BenchmarkObservationR
 
 async function fetchLeaderboardModule(pageHtml: string, timeoutMs: number): Promise<string | null> {
   const modules = await Promise.all(
-    modulePreloadUrls(pageHtml).map(async (url) => {
-      try {
-        const response = await fetchWithTimeout(url, {}, timeoutMs);
-        return response.ok ? await response.text() : "";
-      } catch {
-        return "";
-      }
-    }),
+    modulePreloadUrls(pageHtml).map((url) =>
+      fetchSource(url, {}, timeoutMs, async (response) =>
+        response.ok ? response.text() : "",
+      ).catch(() => ""),
+    ),
   );
   return modules.find((source) => source.includes("task_completed_correctly")) ?? null;
 }

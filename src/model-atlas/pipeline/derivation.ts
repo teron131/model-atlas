@@ -6,13 +6,17 @@ import { STAGE_CONFIG } from "../config";
 import { buildMatchDiagnostics, type MatchDiagnosticsPayload } from "../identity";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { ModelAtlasSourceData } from "../sources/assembly";
-import type { OpenRouterSourcePayload } from "../sources/openrouter";
+import { getOpenRouterRawScrapedStats, type OpenRouterSourcePayload } from "../sources/openrouter";
 import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
 import type { ModelAtlasModel, ModelAtlasPublishedModel } from "./model-types";
 import { prepareOpenRouterModelData } from "./openrouter-data";
-import { buildFinalModels } from "./selection/builder";
+import {
+  buildFinalModels,
+  prepareModelSelection,
+  selectOpenRouterModelRows,
+} from "./selection/builder";
 import type { BenchmarkVersioningOptions } from "./selection/candidate";
 import {
   buildVersionReplacementMatchSlugOverrides,
@@ -42,6 +46,79 @@ type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
   benchmarkObservations: BenchmarkObservationsByKey;
   openRouterLoad: LoadResult;
 };
+
+/**
+ * Both live refresh and persisted snapshots cross this workflow so stage ordering cannot drift. Supplying a loader preserves its full result type for storage-specific cache metadata.
+ */
+export function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
+  sourceData: ModelAtlasSourceData,
+  options: ModelDerivationLoaderOptions<LoadResult>,
+): Promise<ModelDerivationResult<LoadResult>>;
+export function deriveModelStats(
+  sourceData: ModelAtlasSourceData,
+  options?: ModelDerivationOptions,
+): Promise<ModelDerivationResult<null>>;
+export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
+  sourceData: ModelAtlasSourceData,
+  options: ModelDerivationOptions | ModelDerivationLoaderOptions<LoadResult> = {},
+): Promise<ModelDerivationResult<LoadResult | null>> {
+  const matchSlugOverridesBySourceId = buildVersionReplacementMatchSlugOverrides(sourceData);
+  const matchDiagnostics = buildMatchDiagnostics({
+    matcherConfig: STAGE_CONFIG.matcher,
+    scrapedRows: sourceData.artificialAnalysis.rows,
+    modelsDevModels: sourceData.modelsDev.rows,
+    matchSlugOverridesBySourceId,
+  });
+  const matchedRows = prepareVersionReplacementMatchedRows(
+    modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics),
+    matchDiagnostics,
+    matchSlugOverridesBySourceId,
+  );
+  const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
+  const variantRows = buildModelVariants(catalogRows);
+  const assignedVariantRows = assignBenchmarksToVariants(variantRows, sourceData);
+  const observations = benchmarkObservations(sourceData);
+  const selection = prepareModelSelection(
+    assignedVariantRows,
+    STAGE_CONFIG.scoring,
+    options.benchmarkVersioning,
+    options.benchmarkVersioning?.previousModels,
+  );
+  const eligibleRows = selectOpenRouterModelRows(
+    selection,
+    STAGE_CONFIG.final,
+    STAGE_CONFIG.scoring,
+  );
+  const modelIds = openRouterModelIds(eligibleRows);
+  const openRouterLoad =
+    "loadOpenRouter" in options ? await options.loadOpenRouter(modelIds) : null;
+  let rawPayload = openRouterLoad?.rawPayload ?? null;
+  if (openRouterLoad == null && modelIds.length > 0) {
+    rawPayload = await getOpenRouterRawScrapedStats({
+      modelIds,
+      concurrency: STAGE_CONFIG.openrouter.speedConcurrency,
+    }).catch(() => null);
+  }
+  const openRouterData = prepareOpenRouterModelData(
+    assignedVariantRows,
+    STAGE_CONFIG.scoring,
+    rawPayload,
+  );
+  const models = await buildFinalModels(
+    selection,
+    openRouterData,
+    options.modelId ?? null,
+    STAGE_CONFIG.final,
+    STAGE_CONFIG.scoring,
+  );
+  return {
+    matchDiagnostics,
+    modelRows: openRouterData.modelRows,
+    models,
+    benchmarkObservations: observations,
+    openRouterLoad,
+  };
+}
 
 function benchmarkObservations(sourceData: ModelAtlasSourceData): BenchmarkObservationsByKey {
   const observations: BenchmarkObservationsByKey = {};
@@ -73,63 +150,4 @@ function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
         .map((id) => publicOpenRouterModelId(id) ?? id),
     ),
   );
-}
-
-/**
- * Both live refresh and persisted snapshots cross this workflow so stage ordering cannot drift.
- * Supplying a loader preserves its full result type for storage-specific cache metadata.
- */
-export function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
-  sourceData: ModelAtlasSourceData,
-  options: ModelDerivationLoaderOptions<LoadResult>,
-): Promise<ModelDerivationResult<LoadResult>>;
-export function deriveModelStats(
-  sourceData: ModelAtlasSourceData,
-  options?: ModelDerivationOptions,
-): Promise<ModelDerivationResult<null>>;
-export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
-  sourceData: ModelAtlasSourceData,
-  options: ModelDerivationOptions | ModelDerivationLoaderOptions<LoadResult> = {},
-): Promise<ModelDerivationResult<LoadResult | null>> {
-  const matchSlugOverridesBySourceId = buildVersionReplacementMatchSlugOverrides(sourceData);
-  const matchDiagnostics = buildMatchDiagnostics({
-    matcherConfig: STAGE_CONFIG.matcher,
-    scrapedRows: sourceData.artificialAnalysis.rows,
-    modelsDevModels: sourceData.modelsDev.rows,
-    matchSlugOverridesBySourceId,
-  });
-  const matchedRows = prepareVersionReplacementMatchedRows(
-    modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics),
-    matchDiagnostics,
-    matchSlugOverridesBySourceId,
-  );
-  const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
-  const variantRows = buildModelVariants(catalogRows);
-  const assignedVariantRows = assignBenchmarksToVariants(variantRows, sourceData);
-  const observations = benchmarkObservations(sourceData);
-  const openRouterLoad =
-    "loadOpenRouter" in options
-      ? await options.loadOpenRouter(openRouterModelIds(assignedVariantRows))
-      : null;
-  const openRouterData = await prepareOpenRouterModelData(
-    assignedVariantRows,
-    STAGE_CONFIG.openrouter,
-    STAGE_CONFIG.scoring,
-    openRouterLoad?.rawPayload,
-  );
-  const models = await buildFinalModels(
-    openRouterData,
-    options.modelId ?? null,
-    STAGE_CONFIG.final,
-    STAGE_CONFIG.scoring,
-    options.benchmarkVersioning,
-    options.benchmarkVersioning?.previousModels,
-  );
-  return {
-    matchDiagnostics,
-    modelRows: openRouterData.modelRows,
-    models,
-    benchmarkObservations: observations,
-    openRouterLoad,
-  };
 }

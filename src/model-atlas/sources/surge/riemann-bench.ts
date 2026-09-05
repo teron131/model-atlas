@@ -6,7 +6,8 @@
  */
 
 import { modelNameWithoutCreatorPrefix, normalizeModelToken } from "../../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { nowEpochSeconds } from "../../runtime";
+import { fetchSource } from "../request-scheduler";
 import { surgeLeaderboardScoreRows } from "./results";
 
 export const RIEMANN_BENCH_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
@@ -39,15 +40,16 @@ export async function getRiemannBenchStats(
   const sourceUrl = options.url ?? RIEMANN_BENCH_LEADERBOARD_URL;
   try {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const response = await fetchWithTimeout(sourceUrl, {}, timeoutMs);
-    if (!response.ok) {
-      throw new Error(`Riemann-bench scrape failed: ${response.status}`);
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      source_url: sourceUrl,
-      data: surgeLeaderboardScoreRows(await response.text()),
-    };
+    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Riemann-bench scrape failed: ${response.status}`);
+      }
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        source_url: sourceUrl,
+        data: surgeLeaderboardScoreRows(await response.text()),
+      };
+    });
   } catch {
     return {
       fetched_at_epoch_seconds: null,

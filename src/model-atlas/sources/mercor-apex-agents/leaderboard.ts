@@ -5,13 +5,14 @@
  */
 
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   extractNextFlightCorpus,
   findObjectEnd,
   parseFlightJsonObject,
   stringValue,
 } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://www.mercor.com/apex/apex-agents-leaderboard/";
 
@@ -49,19 +50,21 @@ export async function getMercorApexAgentsStats(
   options: MercorApexAgentsOptions = {},
 ): Promise<MercorApexAgentsPayload> {
   try {
-    const response = await fetchWithTimeout(
+    return await fetchSource(
       options.url ?? DEFAULT_LEADERBOARD_URL,
       {},
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`Mercor APEX-Agents scrape failed: ${response.status}`);
+        }
+        const data = processMercorApexAgentsPageHtml(await response.text());
+        return {
+          fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
+          data,
+        };
+      },
     );
-    if (!response.ok) {
-      throw new Error(`Mercor APEX-Agents scrape failed: ${response.status}`);
-    }
-    const data = processMercorApexAgentsPageHtml(await response.text());
-    return {
-      fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
-      data,
-    };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

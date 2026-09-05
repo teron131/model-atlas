@@ -3,15 +3,19 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
-import type { ScoringConfig } from "../src/model-atlas/config/stage";
+import type { FinalStageConfig, ScoringConfig } from "../src/model-atlas/config/stage";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
 import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog";
+import type { OpenRouterModelData } from "../src/model-atlas/pipeline/openrouter-data";
 import {
   buildFinalModels,
   hasRequiredBasicSpecs,
   hasRequiredBenchmarkEvidence,
   hasRequiredPublicRelevance,
+  prepareModelSelection,
+  selectOpenRouterModelRows,
 } from "../src/model-atlas/pipeline/selection/builder";
+import type { BenchmarkVersioningOptions } from "../src/model-atlas/pipeline/selection/candidate";
 import type { ModelsDevFlatModel } from "../src/model-atlas/sources/models-dev/catalog";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -228,7 +232,70 @@ const selectedBenchmarkKeys = [
 const indexBenchmarkKeys = new Set<string>(
   STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys,
 );
-const duplicateRouteModels = await buildFinalModels(
+const qualityRows = [0.0001, 0.9].map((value, index) => ({
+  id: `provider/quality-${index}`,
+  name: `Quality ${index}`,
+  release_date: "2026-08-26",
+  modalities: { output: ["text"] },
+  cost: { input: 1, output: 2 },
+  limit: { context: 100_000, output: 10_000 },
+  intelligence: { intelligence_index: value * 100, agentic_index: value * 100 },
+  benchmarks: Object.fromEntries(
+    selectedBenchmarkKeys
+      .filter((key) => key !== "aa_intelligence_index")
+      .map((key) => [key, value]),
+  ),
+}));
+const qualitySelection = prepareModelSelection(qualityRows, STAGE_CONFIG.scoring, {
+  baselineDate: "2026-08-27",
+  observedDate: "2026-08-27",
+});
+assert.deepEqual(
+  qualitySelection.candidates.map((model) => [
+    model.component_scores?.intelligence_score,
+    model.component_scores?.agentic_score,
+  ]),
+  [
+    [0, 0],
+    [100, 100],
+  ],
+  "quality must be computed with both reference models before per-model enrichment is chosen",
+);
+assert.deepEqual(
+  selectOpenRouterModelRows(qualitySelection, STAGE_CONFIG.final, STAGE_CONFIG.scoring).map(
+    (row) => row.id,
+  ),
+  ["provider/quality-1"],
+  "complete benchmark evidence must not trigger OpenRouter fetching when computed quality is below ten",
+);
+const enrichedQualityModels = await buildFinalModels(
+  qualitySelection,
+  {
+    modelRows: qualityRows,
+    speedByModelId: new Map([["provider/quality-1", completeBasicSpecs.speed]]),
+    pricingByModelId: new Map([["provider/quality-1", { weighted_input: 3, weighted_output: 6 }]]),
+    outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
+  },
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+);
+assert.deepEqual(
+  enrichedQualityModels.map((model) => model.id),
+  ["provider/quality-1"],
+);
+assert.deepEqual(
+  enrichedQualityModels.map((model) => [
+    model.scores.intelligence_score,
+    model.scores.agentic_score,
+  ]),
+  [[100, 100]],
+  "adding OpenRouter speed and pricing must preserve the previously computed quality scores",
+);
+assert.equal(enrichedQualityModels[0]!.speed.throughput_tokens_per_second_median, 50);
+assert.equal(qualitySelection.candidates[1]!.speed.throughput_tokens_per_second_median, null);
+
+const duplicateRouteModels = await buildTestModels(
   {
     modelRows: [
       duplicateRouteRow("Existing Route Name", "2026-07-01", 0.8),
@@ -299,7 +366,7 @@ const admissionRows = [
     benchmarks: { critpt: 0.7, tau_banking: 0.7 },
   },
 ];
-const previewModels = await buildFinalModels(
+const previewModels = await buildTestModels(
   {
     modelRows: admissionRows,
     speedByModelId: new Map(
@@ -324,6 +391,20 @@ const previewModels = await buildFinalModels(
     baselineDate: "2026-07-30",
     observedDate: "2026-08-27",
   },
+);
+assert.deepEqual(
+  selectOpenRouterModelRows(
+    prepareModelSelection(admissionRows, STAGE_CONFIG.scoring, {
+      baselineDate: "2026-08-27",
+      observedDate: "2026-08-27",
+    }),
+    STAGE_CONFIG.final,
+    STAGE_CONFIG.scoring,
+  )
+    .map((row) => row.id)
+    .sort(),
+  [coveredOlderId, coveredRecentId, knownPreviewId].sort(),
+  "route fetching must exclude stale or unqualified evidence while retaining eligible rows before speed is available",
 );
 assert.deepEqual(
   previewModels.map((model) => [model.id, model.preview === true]).sort(),
@@ -351,7 +432,31 @@ const metadataPreviewRow = {
   cost: null,
   limit: null,
 };
-const metadataModels = await buildFinalModels(
+assert.deepEqual(
+  selectOpenRouterModelRows(
+    prepareModelSelection(
+      [
+        metadataPreviewRow,
+        {
+          ...metadataPreviewRow,
+          id: "provider/benchmark-index",
+          intelligence: { agentic_index: 70 },
+          benchmarks: { ...metadataPreviewRow.benchmarks, aa_intelligence_index: 75 },
+        },
+        { ...admissionRows[0]!, id: "provider/missing-context", limit: null },
+        { ...metadataPreviewRow, id: "provider/no-index", intelligence: null },
+        { ...metadataPreviewRow, id: "provider/non-text", modalities: { output: ["image"] } },
+      ],
+      STAGE_CONFIG.scoring,
+      { baselineDate: "2026-08-27", observedDate: "2026-08-27" },
+    ),
+    STAGE_CONFIG.final,
+    STAGE_CONFIG.scoring,
+  ).map((row) => row.id),
+  [metadataPreviewId, "provider/benchmark-index"],
+  "broad-evidence previews may need missing metadata, but sparse previews still need catalog context and index evidence",
+);
+const metadataModels = await buildTestModels(
   {
     modelRows: [
       ...admissionRows,
@@ -385,7 +490,7 @@ assert.equal(metadataPreview.scores.value_score, null);
 assert.ok(metadataPreview.scores.intelligence_score! >= 10);
 assert.ok(metadataPreview.scores.agentic_score! >= 10);
 
-const completedMetadataModels = await buildFinalModels(
+const completedMetadataModels = await buildTestModels(
   {
     modelRows: [completeMetadataRow],
     speedByModelId: new Map([[metadataPreviewId, completeBasicSpecs.speed]]),
@@ -411,7 +516,7 @@ const fallbackRows = ["high", "max"].map((effort, index) => ({
   median_time_to_first_token_seconds: 2 + index * 10,
   median_end_to_end_response_time_seconds: 20 + index * 40,
 }));
-const fallbackModels = await buildFinalModels(
+const fallbackModels = await buildTestModels(
   {
     modelRows: fallbackRows,
     speedByModelId: new Map(),
@@ -448,7 +553,7 @@ assert.ok(
     (model) => model.scores.speed_score != null && model.scores.value_score != null,
   ),
 );
-const primaryModels = await buildFinalModels(
+const primaryModels = await buildTestModels(
   {
     modelRows: [{ ...fallbackRows[0], cost: { input: 8, output: 40 } }],
     speedByModelId: new Map([
@@ -522,4 +627,16 @@ function catalogModel(id: string, name: string, family: string): ModelsDevFlatMo
       modalities: { output: ["text"] },
     },
   };
+}
+
+/** Exercise both selection phases while keeping the existing catalog fixtures and final-output expectations. */
+function buildTestModels(
+  openRouterData: OpenRouterModelData,
+  id: string | null | undefined,
+  finalConfig: FinalStageConfig,
+  scoringConfig: ScoringConfig,
+  versioning?: BenchmarkVersioningOptions,
+) {
+  const selection = prepareModelSelection(openRouterData.modelRows, scoringConfig, versioning);
+  return buildFinalModels(selection, openRouterData, id, finalConfig, scoringConfig);
 }
