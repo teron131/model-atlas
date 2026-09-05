@@ -69,31 +69,31 @@ const taskMetricColumnTooltips = Object.fromEntries(
 const staticTableColumnTooltips = {
   rank: {
     title: "Rank ↓",
-    body: "Competition rank by Intelligence Score; tied models share the same rank.",
+    body: "Position by Intelligence Score. Ties share a rank and leave the next position open: 1, 2, 2, 4. Preview rows have no numeric rank and do not shift official ranks.",
   },
   model: {
     title: "Model",
-    body: "Model display name and canonical provider/model route ID.",
+    body: "The model's display name and canonical provider/model route ID. Reasoning-effort configurations keep their own results.",
     rows: [["Sort", "alphabetical by model name"]],
   },
   release: {
     title: "Release date",
-    body: "Known release date for the selected model variant.",
+    body: "The reported release date of the selected model variant.",
     rows: [["Sort", "newer releases sort first"]],
   },
   openWeights: {
     title: "Open weights",
-    body: "Whether downloadable model weights are available according to the selected metadata.",
+    body: "Whether the selected metadata reports downloadable model weights. This field describes weight availability, not a licensing guarantee.",
     rows: [["Sort", "open-weight models sort first"]],
   },
   modalities: {
     title: "Input modalities",
-    body: "Input types the selected route accepts: text, image, audio, and video.",
+    body: "Input types accepted by the selected route: text, images, audio, or video.",
     rows: [["Sort", "more input capabilities sort first"]],
   },
   effectiveInputPrice: {
     title: "Effective input price ↓",
-    body: "Estimated current input price per 1M tokens across routed providers.",
+    body: "Estimated input price in USD per million tokens, averaged across routed providers using their estimated token shares.",
     rows: [
       ["Source", "OpenRouter"],
       ["Provider weighting", "estimated token share"],
@@ -101,7 +101,7 @@ const staticTableColumnTooltips = {
   },
   effectiveOutputPrice: {
     title: "Effective output price ↓",
-    body: "Estimated current output price per 1M tokens across routed providers.",
+    body: "Estimated output price in USD per million tokens, averaged across routed providers using their estimated token shares.",
     rows: [
       ["Source", "OpenRouter"],
       ["Provider weighting", "estimated token share"],
@@ -109,7 +109,7 @@ const staticTableColumnTooltips = {
   },
   throughput: {
     title: "Output throughput",
-    body: "Estimated current output speed across routed providers.",
+    body: "How quickly output tokens arrive once generation is underway, in tokens per second. OpenRouter estimates are combined using routed-provider token shares.",
     rows: [
       ["Source", "OpenRouter"],
       ["Metric", "output tokens per second"],
@@ -118,7 +118,7 @@ const staticTableColumnTooltips = {
   },
   latency: {
     title: "Latency ↓",
-    body: "Estimated current time until the first output token across routed providers.",
+    body: "How long the model takes to produce its first output token, in seconds. Lower values mean a shorter initial wait.",
     rows: [
       ["Source", "OpenRouter"],
       ["Metric", "time to first token"],
@@ -127,7 +127,7 @@ const staticTableColumnTooltips = {
   },
   e2eLatency: {
     title: "End-to-end latency ↓",
-    body: "Estimated current total response time across routed providers.",
+    body: "The measured time for the whole response, in seconds. It includes the initial wait and subsequent generation, so response length affects it.",
     rows: [
       ["Source", "OpenRouter"],
       ["Metric", "end-to-end response time"],
@@ -137,7 +137,7 @@ const staticTableColumnTooltips = {
   confidence: CONFIDENCE_TOOLTIP,
   change: {
     title: "Latest material change",
-    body: "The latest material score, evidence-support, or stable-cohort rank movement. Entrants and removals do not create cascade events for incumbent models, while reaching or losing #1 among continuing models remains material. Click a row value for its before-and-after evidence and strongest rank-aligned benchmarks.",
+    body: "The latest material change in score, evidence support, or rank among continuing models. New entrants and removals do not create a cascade of rank-change events. Gaining or losing first place among continuing models still counts. Open a row value for its before-and-after evidence.",
   },
 } as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;
 
@@ -236,7 +236,7 @@ export function scoreChangeTooltip(model: ModelAtlasPublishedModel): ModelAtlasC
   const rankAlignment =
     change.rank_drivers.length === 0
       ? ""
-      : " Rank alignment uses Spearman ρ across model-balanced results.";
+      : " Spearman ρ describes agreement between benchmark and overall ordering; model balancing limits repeated effort variants.";
   return {
     title: `${modelDisplayName(model)} · Material ${scoreDimensionLabel(change.dimension)} change`,
     body: `Latest material event. ${scoreSummary}${rankAlignment}`,
@@ -287,5 +287,5 @@ function formatChangePair(
   if (before == null && after == null) {
     return null;
   }
-  return `${before == null ? "—" : `${prefix}${before}${suffix}`} → ${after == null ? "—" : `${prefix}${after}${suffix}`}`;
+  return `${before == null ? "-" : `${prefix}${before}${suffix}`} → ${after == null ? "-" : `${prefix}${after}${suffix}`}`;
 }

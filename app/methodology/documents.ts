@@ -5,22 +5,24 @@ export const DOCUMENTS = [
     slug: "methodology",
     title: "Methodology",
     description:
-      "How Model Atlas scores models, handles missing evidence, and admits public results.",
+      "How benchmark results become scores, what missing evidence means, and why the method works this way.",
   },
   {
     slug: "benchmarks",
     title: "Benchmarks",
-    description: "Selected benchmarks, capability roles, weights, and source policy.",
+    description:
+      "Which benchmarks contribute, what they measure, and why their weights and sources were chosen.",
   },
   {
     slug: "standards",
     title: "Standards",
-    description: "How benchmarks are admitted, reviewed, retained, or rejected.",
+    description: "The evidence a benchmark needs to earn and keep a place in the portfolio.",
   },
   {
     slug: "matching",
     title: "Matching",
-    description: "How source rows map to model identities and reasoning-effort variants.",
+    description:
+      "How results from different sources are matched without confusing models or reasoning efforts.",
   },
 ] as const;
 
@@ -33,18 +35,14 @@ export type TableOfContentsItem = {
 };
 
 const METHODOLOGY_ASSETS = {
-  "confidence.svg": { width: 720, height: 360 },
-  "elo-transform.svg": { width: 720, height: 420 },
-  "final-score-assembly.svg": { width: 720, height: 500 },
-  "logit-quality.svg": { width: 720, height: 520 },
-  "model-balanced-weight.svg": { width: 720, height: 350 },
-  "pipeline-overview.svg": { width: 720, height: 420 },
-  "quantile-imputation.svg": { width: 720, height: 420 },
-  "resource-residual.svg": { width: 720, height: 420 },
-  "resource-score-mapping.svg": { width: 720, height: 600 },
-  "sibling-resource-imputation.svg": { width: 720, height: 410 },
-  "source-crosswalk.svg": { width: 720, height: 420 },
-  "sparse-effort-calibration.svg": { width: 720, height: 420 },
+  "agentic-token-modifier.svg": { width: 760, height: 428 },
+  "confidence.svg": { width: 760, height: 436 },
+  "resource-coverage.svg": { width: 760, height: 432 },
+  "logit-quality.svg": { width: 760, height: 505 },
+  "quantile-imputation.svg": { width: 760, height: 458 },
+  "resource-residual.svg": { width: 760, height: 538 },
+  "resource-score-mapping.svg": { width: 760, height: 433 },
+  "source-crosswalk.svg": { width: 760, height: 442 },
 } as const;
 
 type MethodologyAsset = keyof typeof METHODOLOGY_ASSETS;

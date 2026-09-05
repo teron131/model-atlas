@@ -1,35 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="title desc">
-  <title id="title">Quality evidence reliability</title>
-  <desc id="desc">The evidence reliability coefficient is zero through 10% of the aggregate-index median evidence breadth, rises smoothly, and is full from that median.</desc>
-  <style>
-    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
-    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
-    .muted { fill: var(--muted); font-size: 14px; }
-    .label { font-size: 17px; }
-    .annotation { font-size: 15px; font-weight: 600; }
-    .grid { stroke: var(--grid); stroke-width: 1; }
-    .axis { stroke: var(--fg); stroke-width: 1.5; }
-    .curve { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-    .threshold { stroke: var(--secondary); stroke-width: 1.5; stroke-dasharray: 5 5; }
-  </style>
-  <rect width="720" height="360" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Quality evidence reliability</text>
-  <line x1="90" y1="280" x2="670" y2="280" class="axis" />
-  <line x1="90" y1="60" x2="90" y2="280" class="axis" />
-  <line x1="90" y1="170" x2="670" y2="170" class="grid" />
-  <line x1="380" y1="60" x2="380" y2="280" class="grid" />
-  <line x1="670" y1="60" x2="670" y2="280" class="grid" />
-  <line x1="136" y1="60" x2="136" y2="280" class="threshold" />
-  <line x1="554" y1="60" x2="554" y2="280" class="threshold" />
-  <polyline class="curve" points="90,280 119,280 148,280 177,274 206,264 235,249 264,231 293,210 322,188 351,165 380,143 409,121 438,101 467,85 496,72 525,63 554,60 583,60 612,60 641,60 670,60" />
-  <text x="136" y="50" text-anchor="middle" class="annotation">10% floor</text>
-  <text x="554" y="50" text-anchor="middle" class="annotation">Index median full</text>
-  <text x="90" y="307" text-anchor="middle" class="muted">0</text>
-  <text x="380" y="307" text-anchor="middle" class="muted">5</text>
-  <text x="670" y="307" text-anchor="middle" class="muted">10</text>
-  <text x="74" y="285" text-anchor="end" class="muted">0</text>
-  <text x="74" y="175" text-anchor="end" class="muted">50</text>
-  <text x="74" y="65" text-anchor="end" class="muted">100</text>
-  <text x="380" y="342" text-anchor="middle" class="label">Effective evidence mass E</text>
-  <text transform="translate(25 170) rotate(-90)" text-anchor="middle" class="label">Reliability c (%)</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 436" role="img" aria-labelledby="title desc">
+<title id="title">Evidence share and regularization follow different curves</title>
+<desc id="desc">With illustrative portfolio weight 40 and full-evidence point 8, evidence mass 4.4 gives coefficient 50 percent but coverage 11 percent. At mass 8, regularization ends with only 20 percent coverage.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<rect x="123.2" y="92" width="370.8" height="252" fill="#808080" opacity="1" fill-opacity="0.12"/>
+<line x1="82" y1="344" x2="700" y2="344" stroke="#b5bfbc" stroke-width="1"/>
+<text x="68" y="350" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0%</text>
+<line x1="82" y1="218" x2="700" y2="218" stroke="#b5bfbc" stroke-width="1"/>
+<text x="68" y="224" font-size="16" fill="#000000" text-anchor="end" font-weight="400">50%</text>
+<line x1="82" y1="92" x2="700" y2="92" stroke="#b5bfbc" stroke-width="1"/>
+<text x="68" y="98" font-size="16" fill="#000000" text-anchor="end" font-weight="400">100%</text>
+<line x1="82" y1="344" x2="82" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="82" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0</text>
+<line x1="123.2" y1="344" x2="123.2" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="123.2" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.8</text>
+<line x1="308.6" y1="344" x2="308.6" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="308.6" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">4.4</text>
+<line x1="494" y1="344" x2="494" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="494" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">8</text>
+<line x1="700" y1="344" x2="700" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="700" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">12</text>
+<line x1="82" y1="344" x2="700" y2="344" stroke="#63706e" stroke-width="1"/>
+<text x="82" y="69" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Coefficient / evidence share</text>
+<text x="390" y="409" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Effective evidence mass E</text>
+<path d="M82 344 L85.86 344 L89.73 344 L93.59 344 L97.45 344 L101.31 344 L105.17 344 L109.04 344 L112.9 344 L116.76 344 L120.63 344 L124.49 343.99 L128.35 343.86 L132.21 343.56 L136.08 343.11 L139.94 342.51 L143.8 341.75 L147.66 340.85 L151.52 339.81 L155.39 338.63 L159.25 337.32 L163.11 335.87 L166.97 334.29 L170.84 332.59 L174.7 330.77 L178.56 328.82 L182.43 326.77 L186.29 324.6 L190.15 322.32 L194.01 319.94 L197.88 317.46 L201.74 314.87 L205.6 312.2 L209.46 309.43 L213.32 306.58 L217.19 303.64 L221.05 300.62 L224.91 297.52 L228.78 294.35 L232.64 291.1 L236.5 287.79 L240.36 284.42 L244.22 280.99 L248.09 277.5 L251.95 273.95 L255.81 270.36 L259.68 266.72 L263.54 263.03 L267.4 259.31 L271.26 255.55 L275.13 251.75 L278.99 247.93 L282.85 244.08 L286.71 240.21 L290.57 236.32 L294.44 232.41 L298.3 228.49 L302.16 224.56 L306.02 220.62 L309.89 216.69 L313.75 212.75 L317.61 208.82 L321.48 204.9 L325.34 200.98 L329.2 197.09 L333.06 193.21 L336.93 189.35 L340.79 185.52 L344.65 181.71 L348.51 177.94 L352.38 174.2 L356.24 170.51 L360.1 166.85 L363.96 163.24 L367.82 159.68 L371.69 156.17 L375.55 152.72 L379.41 149.32 L383.27 145.99 L387.14 142.73 L391 139.53 L394.86 136.41 L398.73 133.36 L402.59 130.4 L406.45 127.51 L410.31 124.71 L414.18 122.01 L418.04 119.39 L421.9 116.88 L425.76 114.46 L429.63 112.15 L433.49 109.94 L437.35 107.85 L441.21 105.87 L445.07 104 L448.94 102.26 L452.8 100.64 L456.66 99.15 L460.52 97.79 L464.39 96.56 L468.25 95.48 L472.11 94.53 L475.98 93.73 L479.84 93.07 L483.7 92.57 L487.56 92.23 L491.43 92.04 L495.29 92 L499.15 92 L503.01 92 L506.88 92 L510.74 92 L514.6 92 L518.46 92 L522.33 92 L526.19 92 L530.05 92 L533.91 92 L537.77 92 L541.64 92 L545.5 92 L549.36 92 L553.23 92 L557.09 92 L560.95 92 L564.81 92 L568.67 92 L572.54 92 L576.4 92 L580.26 92 L584.13 92 L587.99 92 L591.85 92 L595.71 92 L599.58 92 L603.44 92 L607.3 92 L611.16 92 L615.02 92 L618.89 92 L622.75 92 L626.61 92 L630.48 92 L634.34 92 L638.2 92 L642.06 92 L645.92 92 L649.79 92 L653.65 92 L657.51 92 L661.38 92 L665.24 92 L669.1 92 L672.96 92 L676.83 92 L680.69 92 L684.55 92 L688.41 92 L692.27 92 L696.14 92 L700 92" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<path d="M82 344 L85.86 343.53 L89.73 343.06 L93.59 342.58 L97.45 342.11 L101.31 341.64 L105.17 341.17 L109.04 340.69 L112.9 340.22 L116.76 339.75 L120.63 339.28 L124.49 338.8 L128.35 338.33 L132.21 337.86 L136.08 337.39 L139.94 336.91 L143.8 336.44 L147.66 335.97 L151.52 335.5 L155.39 335.02 L159.25 334.55 L163.11 334.08 L166.97 333.61 L170.84 333.13 L174.7 332.66 L178.56 332.19 L182.43 331.72 L186.29 331.24 L190.15 330.77 L194.01 330.3 L197.88 329.82 L201.74 329.35 L205.6 328.88 L209.46 328.41 L213.32 327.94 L217.19 327.46 L221.05 326.99 L224.91 326.52 L228.78 326.05 L232.64 325.57 L236.5 325.1 L240.36 324.63 L244.22 324.16 L248.09 323.68 L251.95 323.21 L255.81 322.74 L259.68 322.26 L263.54 321.79 L267.4 321.32 L271.26 320.85 L275.13 320.38 L278.99 319.9 L282.85 319.43 L286.71 318.96 L290.57 318.49 L294.44 318.01 L298.3 317.54 L302.16 317.07 L306.02 316.59 L309.89 316.12 L313.75 315.65 L317.61 315.18 L321.48 314.7 L325.34 314.23 L329.2 313.76 L333.06 313.29 L336.93 312.81 L340.79 312.34 L344.65 311.87 L348.51 311.4 L352.38 310.93 L356.24 310.45 L360.1 309.98 L363.96 309.51 L367.82 309.04 L371.69 308.56 L375.55 308.09 L379.41 307.62 L383.27 307.14 L387.14 306.67 L391 306.2 L394.86 305.73 L398.73 305.25 L402.59 304.78 L406.45 304.31 L410.31 303.84 L414.18 303.36 L418.04 302.89 L421.9 302.42 L425.76 301.95 L429.63 301.47 L433.49 301 L437.35 300.53 L441.21 300.06 L445.07 299.58 L448.94 299.11 L452.8 298.64 L456.66 298.17 L460.52 297.7 L464.39 297.22 L468.25 296.75 L472.11 296.28 L475.98 295.8 L479.84 295.33 L483.7 294.86 L487.56 294.39 L491.43 293.92 L495.29 293.44 L499.15 292.97 L503.01 292.5 L506.88 292.03 L510.74 291.55 L514.6 291.08 L518.46 290.61 L522.33 290.14 L526.19 289.66 L530.05 289.19 L533.91 288.72 L537.77 288.25 L541.64 287.77 L545.5 287.3 L549.36 286.83 L553.23 286.36 L557.09 285.88 L560.95 285.41 L564.81 284.94 L568.67 284.47 L572.54 283.99 L576.4 283.52 L580.26 283.05 L584.13 282.57 L587.99 282.1 L591.85 281.63 L595.71 281.16 L599.58 280.69 L603.44 280.21 L607.3 279.74 L611.16 279.27 L615.02 278.79 L618.89 278.32 L622.75 277.85 L626.61 277.38 L630.48 276.9 L634.34 276.43 L638.2 275.96 L642.06 275.49 L645.92 275.01 L649.79 274.54 L653.65 274.07 L657.51 273.6 L661.38 273.13 L665.24 272.65 L669.1 272.18 L672.96 271.71 L676.83 271.24 L680.69 270.76 L684.55 270.29 L688.41 269.82 L692.27 269.35 L696.14 268.87 L700 268.4" fill="none" stroke="#a64d0c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1" stroke-dasharray="7 5"/>
+<line x1="494" y1="344" x2="494" y2="92" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="465" y="64" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Regularization ends</text>
+<text x="488" y="249" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Evidence still accumulates</text>
+<line x1="308.6" y1="344" x2="308.6" y2="218" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
+<circle cx="308.6" cy="218" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="308.6" cy="316.28" r="5" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<text x="322.6" y="250" font-size="18" fill="#000000" text-anchor="start" font-weight="600">c = 50%</text>
+<text x="322.6" y="303.28" font-size="18" fill="#000000" text-anchor="start" font-weight="600">h = 11%</text>
 </svg>

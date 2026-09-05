@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 432" role="img" aria-labelledby="title desc">
+<title id="title">A shared coverage ramp scales each effort by the same multiplier</title>
+<desc id="desc">For illustrative effort means 80 and 60, default coverage 35 percent applies multiplier 0.5 and produces scores 40 and 30. The ramp is zero through 10 percent coverage and complete at 60 percent. Each effort still reports its own evidence share.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<rect x="147.4" y="82" width="307" height="252" fill="#808080" opacity="1" fill-opacity="0.12"/>
+<line x1="86" y1="334" x2="700" y2="334" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="340" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0</text>
+<line x1="86" y1="233.2" x2="700" y2="233.2" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="239.2" font-size="16" fill="#000000" text-anchor="end" font-weight="400">40</text>
+<line x1="86" y1="182.8" x2="700" y2="182.8" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="188.8" font-size="16" fill="#000000" text-anchor="end" font-weight="400">60</text>
+<line x1="86" y1="132.4" x2="700" y2="132.4" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="138.4" font-size="16" fill="#000000" text-anchor="end" font-weight="400">80</text>
+<line x1="86" y1="82" x2="700" y2="82" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="88" font-size="16" fill="#000000" text-anchor="end" font-weight="400">100</text>
+<line x1="86" y1="334" x2="86" y2="340" stroke="#63706e" stroke-width="1"/>
+<text x="86" y="361" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0%</text>
+<line x1="147.4" y1="334" x2="147.4" y2="340" stroke="#63706e" stroke-width="1"/>
+<text x="147.4" y="361" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">10%</text>
+<line x1="300.9" y1="334" x2="300.9" y2="340" stroke="#63706e" stroke-width="1"/>
+<text x="300.9" y="361" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">35%</text>
+<line x1="454.4" y1="334" x2="454.4" y2="340" stroke="#63706e" stroke-width="1"/>
+<text x="454.4" y="361" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">60%</text>
+<line x1="700" y1="334" x2="700" y2="340" stroke="#63706e" stroke-width="1"/>
+<text x="700" y="361" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">100%</text>
+<line x1="86" y1="334" x2="700" y2="334" stroke="#63706e" stroke-width="1"/>
+<text x="86" y="59" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Final resource score</text>
+<text x="390" y="400" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Source-default evidence coverage</text>
+<path d="M86 334 L89.84 334 L93.67 334 L97.51 334 L101.35 334 L105.19 334 L109.03 334 L112.86 334 L116.7 334 L120.54 334 L124.38 334 L128.21 334 L132.05 334 L135.89 334 L139.72 334 L143.56 334 L147.4 334 L151.24 333.91 L155.07 333.63 L158.91 333.17 L162.75 332.54 L166.59 331.74 L170.43 330.77 L174.26 329.64 L178.1 328.36 L181.94 326.92 L185.78 325.34 L189.61 323.61 L193.45 321.75 L197.29 319.76 L201.13 317.64 L204.96 315.4 L208.8 313.03 L212.64 310.56 L216.47 307.97 L220.31 305.29 L224.15 302.5 L227.99 299.62 L231.82 296.65 L235.66 293.59 L239.5 290.45 L243.34 287.24 L247.18 283.96 L251.01 280.61 L254.85 277.2 L258.69 273.73 L262.52 270.21 L266.36 266.65 L270.2 263.04 L274.04 259.39 L277.88 255.71 L281.71 252 L285.55 248.27 L289.39 244.52 L293.23 240.75 L297.06 236.98 L300.9 233.2 L304.74 229.42 L308.57 225.65 L312.41 221.88 L316.25 218.13 L320.09 214.4 L323.93 210.69 L327.76 207.01 L331.6 203.36 L335.44 199.75 L339.27 196.19 L343.11 192.67 L346.95 189.2 L350.79 185.79 L354.63 182.44 L358.46 179.16 L362.3 175.95 L366.14 172.81 L369.98 169.75 L373.81 166.78 L377.65 163.9 L381.49 161.11 L385.32 158.43 L389.16 155.84 L393 153.37 L396.84 151 L400.67 148.76 L404.51 146.64 L408.35 144.65 L412.19 142.79 L416.02 141.06 L419.86 139.48 L423.7 138.04 L427.54 136.76 L431.38 135.63 L435.21 134.66 L439.05 133.86 L442.89 133.23 L446.73 132.77 L450.56 132.49 L454.4 132.4 L458.24 132.4 L462.08 132.4 L465.91 132.4 L469.75 132.4 L473.59 132.4 L477.42 132.4 L481.26 132.4 L485.1 132.4 L488.94 132.4 L492.77 132.4 L496.61 132.4 L500.45 132.4 L504.29 132.4 L508.13 132.4 L511.96 132.4 L515.8 132.4 L519.64 132.4 L523.48 132.4 L527.31 132.4 L531.15 132.4 L534.99 132.4 L538.83 132.4 L542.66 132.4 L546.5 132.4 L550.34 132.4 L554.17 132.4 L558.01 132.4 L561.85 132.4 L565.69 132.4 L569.52 132.4 L573.36 132.4 L577.2 132.4 L581.04 132.4 L584.88 132.4 L588.71 132.4 L592.55 132.4 L596.39 132.4 L600.23 132.4 L604.06 132.4 L607.9 132.4 L611.74 132.4 L615.58 132.4 L619.41 132.4 L623.25 132.4 L627.09 132.4 L630.92 132.4 L634.76 132.4 L638.6 132.4 L642.44 132.4 L646.27 132.4 L650.11 132.4 L653.95 132.4 L657.79 132.4 L661.63 132.4 L665.46 132.4 L669.3 132.4 L673.14 132.4 L676.98 132.4 L680.81 132.4 L684.65 132.4 L688.49 132.4 L692.33 132.4 L696.16 132.4 L700 132.4" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<circle cx="300.9" cy="233.2" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="492" y="119.4" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Effort mean 80</text>
+<text x="285.9" y="230.2" font-size="18" fill="#000000" text-anchor="end" font-weight="600">40</text>
+<path d="M86 334 L89.84 334 L93.67 334 L97.51 334 L101.35 334 L105.19 334 L109.03 334 L112.86 334 L116.7 334 L120.54 334 L124.38 334 L128.21 334 L132.05 334 L135.89 334 L139.72 334 L143.56 334 L147.4 334 L151.24 333.93 L155.07 333.72 L158.91 333.38 L162.75 332.9 L166.59 332.3 L170.43 331.58 L174.26 330.73 L178.1 329.77 L181.94 328.69 L185.78 327.5 L189.61 326.21 L193.45 324.81 L197.29 323.32 L201.13 321.73 L204.96 320.05 L208.8 318.28 L212.64 316.42 L216.47 314.48 L220.31 312.47 L224.15 310.38 L227.99 308.21 L231.82 305.99 L235.66 303.69 L239.5 301.34 L243.34 298.93 L247.18 296.47 L251.01 293.96 L254.85 291.4 L258.69 288.8 L262.52 286.16 L266.36 283.48 L270.2 280.78 L274.04 278.04 L277.88 275.28 L281.71 272.5 L285.55 269.7 L289.39 266.89 L293.23 264.07 L297.06 261.23 L300.9 258.4 L304.74 255.57 L308.57 252.73 L312.41 249.91 L316.25 247.1 L320.09 244.3 L323.93 241.52 L327.76 238.76 L331.6 236.02 L335.44 233.32 L339.27 230.64 L343.11 228 L346.95 225.4 L350.79 222.84 L354.63 220.33 L358.46 217.87 L362.3 215.46 L366.14 213.11 L369.98 210.81 L373.81 208.59 L377.65 206.42 L381.49 204.33 L385.32 202.32 L389.16 200.38 L393 198.52 L396.84 196.75 L400.67 195.07 L404.51 193.48 L408.35 191.99 L412.19 190.59 L416.02 189.3 L419.86 188.11 L423.7 187.03 L427.54 186.07 L431.38 185.22 L435.21 184.5 L439.05 183.9 L442.89 183.42 L446.73 183.08 L450.56 182.87 L454.4 182.8 L458.24 182.8 L462.08 182.8 L465.91 182.8 L469.75 182.8 L473.59 182.8 L477.42 182.8 L481.26 182.8 L485.1 182.8 L488.94 182.8 L492.77 182.8 L496.61 182.8 L500.45 182.8 L504.29 182.8 L508.13 182.8 L511.96 182.8 L515.8 182.8 L519.64 182.8 L523.48 182.8 L527.31 182.8 L531.15 182.8 L534.99 182.8 L538.83 182.8 L542.66 182.8 L546.5 182.8 L550.34 182.8 L554.17 182.8 L558.01 182.8 L561.85 182.8 L565.69 182.8 L569.52 182.8 L573.36 182.8 L577.2 182.8 L581.04 182.8 L584.88 182.8 L588.71 182.8 L592.55 182.8 L596.39 182.8 L600.23 182.8 L604.06 182.8 L607.9 182.8 L611.74 182.8 L615.58 182.8 L619.41 182.8 L623.25 182.8 L627.09 182.8 L630.92 182.8 L634.76 182.8 L638.6 182.8 L642.44 182.8 L646.27 182.8 L650.11 182.8 L653.95 182.8 L657.79 182.8 L661.63 182.8 L665.46 182.8 L669.3 182.8 L673.14 182.8 L676.98 182.8 L680.81 182.8 L684.65 182.8 L688.49 182.8 L692.33 182.8 L696.16 182.8 L700 182.8" fill="none" stroke="#a64d0c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1" stroke-dasharray="7 5"/>
+<circle cx="300.9" cy="258.4" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<text x="492" y="169.8" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Effort mean 60</text>
+<text x="315.9" y="285.4" font-size="18" fill="#000000" text-anchor="start" font-weight="600">30</text>
+<line x1="300.9" y1="334" x2="300.9" y2="82" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="700" y="59" font-size="19" fill="#000000" text-anchor="end" font-weight="400" font-family="Georgia, serif" font-style="italic">Shared multiplier ½</text>
+</svg>

@@ -1,4 +1,8 @@
-/** Trusted repository Markdown renderer with stable headings, links, math, and figures. */
+/** Render repository Markdown with stable headings and content-versioned SVGs so artwork edits bypass stale browser caches. */
+
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -24,14 +28,29 @@ export function MarkdownDocument({ markdown }: { markdown: string }) {
   );
 }
 
-const MarkdownImage: NonNullable<Components["img"]> = ({ src = "", alt = "" }) => {
+/** Fingerprint trusted local artwork during server rendering; small SVGs load eagerly for section-link visits. */
+const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "" }) => {
   if (typeof src !== "string") {
     return null;
   }
   const size = documentImageSize(src);
+  let imageSource = documentImageSource(src);
+  if (imageSource !== src) {
+    const source = await readFile(join(process.cwd(), "docs", src));
+    const revision = createHash("sha256").update(source).digest("hex").slice(0, 16);
+    imageSource += `?v=${revision}`;
+  }
   return (
     <span className={styles.figure}>
-      <Image src={documentImageSource(src)} alt={alt} width={size.width} height={size.height} />
+      <span className={styles.figureViewport} role="region" aria-label="Illustration" tabIndex={0}>
+        <Image
+          src={imageSource}
+          alt={alt}
+          width={size.width}
+          height={size.height}
+          loading="eager"
+        />
+      </span>
       {alt === "" ? null : <span aria-hidden="true">{alt}</span>}
     </span>
   );
@@ -53,6 +72,11 @@ const markdownComponents: Components = {
       </a>
     );
   },
+  table: ({ children }) => (
+    <div className={styles.tableViewport} role="region" aria-label="Table" tabIndex={0}>
+      <table>{children}</table>
+    </div>
+  ),
   img: MarkdownImage,
 };
 

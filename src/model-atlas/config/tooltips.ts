@@ -41,11 +41,11 @@ export type ModelAtlasColumnTooltip = {
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
 const QUALITY_REGULARIZATION_SCALE =
-  "high scores are regularized toward 50 through 10% of the aggregate-index median evidence breadth and unadjusted from that median";
+  "ordinary high means stay at 50 through 10% of the aggregate-index median evidence mass, then move toward the observed mean; regularization ends at that median";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Evidence support",
-  body: "The weighted share of each score's active inputs supported by direct or validated evidence.",
+  body: "How much of each score's input weight is supported by direct results or discounted, validated estimates. This is evidence coverage, not a confidence interval or the probability that a rank is correct.",
   rows: [
     ["I", "Intelligence evidence support"],
     ["A", "Agentic evidence support"],
@@ -248,11 +248,14 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Model Atlas score for knowledge, perception, understanding, abstract reasoning, and judgment in difficult problems. Coding earns Intelligence loading when substantial algorithmic, mathematical, scientific, or research reasoning beyond routine implementation materially determines success. Selected benchmarks are normalized to 0–100 and weighted by importance × Intelligence loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence loading. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when task coverage is incomplete.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
-        ["Benchmark normalization", "observed range mapped to 0–100"],
-        ["Final score", "weighted mean with sparse highs regularized toward 50"],
+        ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],
+        [
+          "Final score",
+          "observed weighted mean; index proxy or sparse-high regularization as applicable",
+        ],
       ],
       sections: [
         {
@@ -264,23 +267,23 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "Model Atlas score for reliably turning goals and specifications into working results through coding, instruction following, planning, tool use, state management, verification, recovery, and completion. Coding benchmarks default to primarily Agentic evidence, including when only the finished program is graded. Token efficiency is assessed against independent peers at comparable benchmark quality and modifies matched benchmark contributions before the final 0–100 remapping. Selected benchmarks are weighted by importance × Agentic loading. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment.",
+      body: "How reliably the model turns goals into working results through coding, instruction following, tool use, verification, and recovery. Selected benchmark contributions are weighted by importance × Agentic loading. Direct token use can adjust a contribution before it is remapped to 0-100, using independent models at similar benchmark quality as the comparison.",
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         [
           "Benchmark normalization",
-          "zero-based contribution × token modifier, then cohort remapped to 0–100",
+          "zero-based contribution × token modifier, then cohort remapped to 0-100",
         ],
-        [
-          "Token efficiency",
-          "0.85–1.15 multiplier versus independent peers at comparable benchmark quality",
-        ],
+        ["Token efficiency", "0.85-1.15 before remapping; not a ±15% bound on the final score"],
         ["Token evidence", "direct same-benchmark tokens; AA tokens apply only to AA's own index"],
         [
           "Weak or missing token evidence",
-          "modifier shrinks toward 1; no token imputation or inherited index fallback",
+          "multiplier approaches 1; estimated tokens and inherited index tokens are excluded",
         ],
-        ["Final score", "weighted mean with sparse highs regularized toward 50"],
+        [
+          "Final score",
+          "observed weighted mean; index proxy or sparse-high regularization as applicable",
+        ],
       ],
       sections: [
         {
@@ -292,14 +295,17 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. For officially ranked models, benchmark runtimes receive 70% of Speed and provider speed metrics receive 30%. Each bucket divides its weight equally among its active components. Provider metrics use logged min–max scores; task runtimes compare the model with independent peers at similar benchmark quality. Weak peer support pulls a task score toward neutral 50, while estimated evidence reduces influence and evidence support. Previews use 70% provider speed and 30% directly observed task runtimes, with no imputation or missing-coverage regularization.",
+      body: "How quickly the model delivers comparable work. Ordinary ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
-        ["Benchmark runtimes", "70% total; quality-adjusted peer comparison"],
-        ["Provider metrics", "30% total across three logged min–max components"],
-        ["Missing task runtime", "official: validated sibling-effort estimate or omitted"],
-        ["Model coverage", "official: shared from the source-default variant"],
+        ["Benchmark runtimes", "70% base weight; comparison with peers at similar quality"],
+        [
+          "Provider metrics",
+          "30% base weight; equal shares for throughput and both latency metrics",
+        ],
+        ["Missing task runtime", "validated sibling-effort estimate, otherwise no contribution"],
+        ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
         ["Previews", "70% provider speed + 30% direct task runtimes"],
-        ["Preview without task runtime", "provider speed alone; evidence support stays literal"],
+        ["Preview without task runtime", "provider speed alone; no missing-coverage multiplier"],
       ],
       sections: [
         {
@@ -311,14 +317,17 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How much quality and capability the model delivers for its cost. For officially ranked models, benchmark task costs receive 70% of Value and price components receive 30%. Each bucket divides its weight equally among its active components. Quality-adjusted inputs compare the model with independent peers at similar quality. Weak peer support pulls an efficiency score toward neutral 50, while estimated evidence reduces influence and evidence support. Previews use 70% price components and 30% directly observed task costs, with no imputation or missing-coverage regularization.",
+      body: "How efficiently the model delivers capability for its cost. Ordinary ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
-        ["Benchmark task costs", "70% total; quality-adjusted peer comparison"],
-        ["Price components", "30% total across absolute and quality-adjusted price"],
-        ["Missing task cost", "official: validated sibling-effort estimate or omitted"],
-        ["Model coverage", "official: shared from the source-default variant"],
+        ["Benchmark task costs", "70% base weight; comparison with peers at similar quality"],
+        [
+          "Price components",
+          "30% base weight; equal shares for absolute and quality-adjusted price",
+        ],
+        ["Missing task cost", "validated sibling-effort estimate, otherwise no contribution"],
+        ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
         ["Previews", "70% price components + 30% direct task costs"],
-        ["Preview without task cost", "price components alone; evidence support stays literal"],
+        ["Preview without task cost", "price components alone; no missing-coverage multiplier"],
       ],
       sections: [
         {
@@ -330,7 +339,7 @@ export function columnTooltipsForActiveComponents(
     },
     blend: {
       title: "Effective blended price ↓",
-      body: "Estimated current price per 1M tokens across the model's routed providers.",
+      body: "An equal blend of effective input and output prices, in USD per million tokens. Provider prices are weighted by estimated OpenRouter token share. This gives a common comparison price; a workload's bill depends on its own input/output mix.",
       rows: [
         ["Source", "OpenRouter"],
         ["Blend", "50% effective input price + 50% effective output price"],
@@ -339,7 +348,7 @@ export function columnTooltipsForActiveComponents(
     },
     context: {
       title: "Context",
-      body: "Maximum context window reported for the selected model route.",
+      body: "The maximum context window reported for the selected model route, in tokens.",
       rows: [
         ["Definition", "maximum context window"],
         ["Unit", "tokens"],
@@ -348,7 +357,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisCost: {
       title: "Artificial Analysis Cost per Task ↓",
-      body: "Reported cost to complete one task in the current Artificial Analysis Intelligence Index.",
+      body: "Artificial Analysis's reported cost to complete one Intelligence Index task. This is a task cost, separate from a price per million tokens.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported cost per Intelligence task"],
@@ -357,7 +366,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisSeconds: {
       title: "Artificial Analysis Seconds per Task ↓",
-      body: "Reported runtime to complete one task in the current Artificial Analysis Intelligence Index.",
+      body: "Artificial Analysis's reported time to complete one Intelligence Index task, in seconds.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported time per Intelligence task"],
@@ -366,7 +375,7 @@ export function columnTooltipsForActiveComponents(
     },
     artificialAnalysisTokens: {
       title: "Artificial Analysis Output Tokens per Task",
-      body: "Reported output tokens used to complete one task in the current Artificial Analysis Intelligence Index.",
+      body: "Artificial Analysis's reported output tokens per Intelligence Index task. These tokens describe the index evaluation, not each constituent benchmark.",
       rows: [
         ["Source", "Artificial Analysis"],
         ["Metric", "reported output tokens per Intelligence task"],

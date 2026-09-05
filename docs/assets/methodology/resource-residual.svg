@@ -1,41 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
-  <title id="title">Quality-local resource residual</title>
-  <desc id="desc">A focal model's logged resource use is compared with expected resource use among nearby-quality models.</desc>
-  <style>
-    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
-    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
-    .muted { fill: var(--muted); font-size: 15px; }
-    .label { font-size: 17px; }
-    .annotation { font-size: 15px; font-weight: 600; }
-    .grid { stroke: var(--grid); stroke-width: 1; }
-    .axis { stroke: var(--fg); stroke-width: 1.5; }
-    .expected { fill: none; stroke: var(--primary); stroke-width: 3; }
-    .residual { fill: none; stroke: var(--secondary); stroke-width: 2.5; stroke-dasharray: 6 5; }
-    .neighbor { fill: var(--primary); }
-    .focal { fill: var(--secondary); }
-  </style>
-  <rect width="720" height="420" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Quality-local resource residual</text>
-  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
-  <line x1="380" y1="48" x2="380" y2="340" class="grid" />
-  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
-  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
-  <path d="M90 304 C202 287 298 244 380 199 C471 149 562 113 670 74" class="expected" />
-  <circle cx="175" cy="297" r="5" class="neighbor" opacity="0.18" />
-  <circle cx="240" cy="259" r="6" class="neighbor" opacity="0.34" />
-  <circle cx="300" cy="240" r="7" class="neighbor" opacity="0.56" />
-  <circle cx="353" cy="218" r="8" class="neighbor" opacity="0.78" />
-  <circle cx="404" cy="187" r="8" class="neighbor" opacity="0.92" />
-  <circle cx="454" cy="171" r="8" class="neighbor" opacity="0.94" />
-  <circle cx="503" cy="139" r="7" class="neighbor" opacity="0.72" />
-  <circle cx="576" cy="119" r="6" class="neighbor" opacity="0.38" />
-  <circle cx="639" cy="91" r="5" class="neighbor" opacity="0.2" />
-  <line x1="468" y1="156" x2="468" y2="246" class="residual" />
-  <path d="M461 236 L468 246 L475 236" class="residual" />
-  <circle cx="468" cy="246" r="8" class="focal" />
-  <text x="485" y="204" class="annotation">negative residual</text>
-  <text x="508" y="127" class="muted">expected</text>
-  <text x="486" y="254" class="muted">focal model</text>
-  <text x="380" y="403" text-anchor="middle" class="label">Benchmark quality coordinate</text>
-  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Log resource use</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 538" role="img" aria-labelledby="title desc">
+<title id="title">Resource efficiency is a vertical gap within a local quality neighborhood</title>
+<desc id="desc">The upper Gaussian curve shows quality distance weights at width 0.5. Peer dots below share that horizontal coordinate and fade with distance. Illustrative symmetric independent peers have weighted geometric time 100 seconds; the focal model uses 50 seconds, a log residual of minus 0.693.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="88" y="39" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Nearby quality carries more weight</text>
+<path d="M88 160.07 L91.78 159.96 L95.55 159.83 L99.32 159.7 L103.1 159.55 L106.88 159.39 L110.65 159.21 L114.43 159.02 L118.2 158.81 L121.97 158.57 L125.75 158.32 L129.53 158.05 L133.3 157.75 L137.07 157.42 L140.85 157.07 L144.63 156.69 L148.4 156.28 L152.18 155.84 L155.95 155.37 L159.72 154.86 L163.5 154.32 L167.28 153.73 L171.05 153.11 L174.82 152.45 L178.6 151.74 L182.38 150.99 L186.15 150.19 L189.93 149.34 L193.7 148.45 L197.47 147.51 L201.25 146.52 L205.03 145.47 L208.8 144.38 L212.58 143.23 L216.35 142.03 L220.13 140.77 L223.9 139.47 L227.67 138.11 L231.45 136.7 L235.22 135.24 L239 133.73 L242.78 132.17 L246.55 130.57 L250.32 128.92 L254.1 127.23 L257.88 125.5 L261.65 123.74 L265.43 121.94 L269.2 120.11 L272.98 118.26 L276.75 116.39 L280.52 114.5 L284.3 112.6 L288.07 110.69 L291.85 108.78 L295.63 106.87 L299.4 104.97 L303.18 103.09 L306.95 101.23 L310.73 99.4 L314.5 97.59 L318.28 95.83 L322.05 94.11 L325.82 92.45 L329.6 90.84 L333.38 89.29 L337.15 87.81 L340.93 86.41 L344.7 85.09 L348.47 83.85 L352.25 82.7 L356.03 81.65 L359.8 80.7 L363.57 79.84 L367.35 79.1 L371.13 78.46 L374.9 77.94 L378.68 77.53 L382.45 77.24 L386.22 77.06 L390 77 L393.77 77.06 L397.55 77.24 L401.32 77.53 L405.1 77.94 L408.88 78.46 L412.65 79.1 L416.43 79.84 L420.2 80.7 L423.98 81.65 L427.75 82.7 L431.52 83.85 L435.3 85.09 L439.07 86.41 L442.85 87.81 L446.63 89.29 L450.4 90.84 L454.18 92.45 L457.95 94.11 L461.73 95.83 L465.5 97.59 L469.27 99.4 L473.05 101.23 L476.82 103.09 L480.6 104.97 L484.38 106.87 L488.15 108.78 L491.93 110.69 L495.7 112.6 L499.48 114.5 L503.25 116.39 L507.02 118.26 L510.8 120.11 L514.57 121.94 L518.35 123.74 L522.13 125.5 L525.9 127.23 L529.68 128.92 L533.45 130.57 L537.23 132.17 L541 133.73 L544.77 135.24 L548.55 136.7 L552.32 138.11 L556.1 139.47 L559.88 140.77 L563.65 142.03 L567.43 143.23 L571.2 144.38 L574.98 145.47 L578.75 146.52 L582.52 147.51 L586.3 148.45 L590.07 149.34 L593.85 150.19 L597.63 150.99 L601.4 151.74 L605.18 152.45 L608.95 153.11 L612.73 153.73 L616.5 154.32 L620.27 154.86 L624.05 155.37 L627.82 155.84 L631.6 156.28 L635.38 156.69 L639.15 157.07 L642.93 157.42 L646.7 157.75 L650.48 158.05 L654.25 158.32 L658.02 158.57 L661.8 158.81 L665.57 159.02 L669.35 159.21 L673.13 159.39 L676.9 159.55 L680.68 159.7 L684.45 159.83 L688.23 159.96 L692 160.07 L692 161 L88 161 Z" fill="#808080" fill-opacity="0.12" stroke="none" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<path d="M88 160.07 L91.78 159.96 L95.55 159.83 L99.32 159.7 L103.1 159.55 L106.88 159.39 L110.65 159.21 L114.43 159.02 L118.2 158.81 L121.97 158.57 L125.75 158.32 L129.53 158.05 L133.3 157.75 L137.07 157.42 L140.85 157.07 L144.63 156.69 L148.4 156.28 L152.18 155.84 L155.95 155.37 L159.72 154.86 L163.5 154.32 L167.28 153.73 L171.05 153.11 L174.82 152.45 L178.6 151.74 L182.38 150.99 L186.15 150.19 L189.93 149.34 L193.7 148.45 L197.47 147.51 L201.25 146.52 L205.03 145.47 L208.8 144.38 L212.58 143.23 L216.35 142.03 L220.13 140.77 L223.9 139.47 L227.67 138.11 L231.45 136.7 L235.22 135.24 L239 133.73 L242.78 132.17 L246.55 130.57 L250.32 128.92 L254.1 127.23 L257.88 125.5 L261.65 123.74 L265.43 121.94 L269.2 120.11 L272.98 118.26 L276.75 116.39 L280.52 114.5 L284.3 112.6 L288.07 110.69 L291.85 108.78 L295.63 106.87 L299.4 104.97 L303.18 103.09 L306.95 101.23 L310.73 99.4 L314.5 97.59 L318.28 95.83 L322.05 94.11 L325.82 92.45 L329.6 90.84 L333.38 89.29 L337.15 87.81 L340.93 86.41 L344.7 85.09 L348.47 83.85 L352.25 82.7 L356.03 81.65 L359.8 80.7 L363.57 79.84 L367.35 79.1 L371.13 78.46 L374.9 77.94 L378.68 77.53 L382.45 77.24 L386.22 77.06 L390 77 L393.77 77.06 L397.55 77.24 L401.32 77.53 L405.1 77.94 L408.88 78.46 L412.65 79.1 L416.43 79.84 L420.2 80.7 L423.98 81.65 L427.75 82.7 L431.52 83.85 L435.3 85.09 L439.07 86.41 L442.85 87.81 L446.63 89.29 L450.4 90.84 L454.18 92.45 L457.95 94.11 L461.73 95.83 L465.5 97.59 L469.27 99.4 L473.05 101.23 L476.82 103.09 L480.6 104.97 L484.38 106.87 L488.15 108.78 L491.93 110.69 L495.7 112.6 L499.48 114.5 L503.25 116.39 L507.02 118.26 L510.8 120.11 L514.57 121.94 L518.35 123.74 L522.13 125.5 L525.9 127.23 L529.68 128.92 L533.45 130.57 L537.23 132.17 L541 133.73 L544.77 135.24 L548.55 136.7 L552.32 138.11 L556.1 139.47 L559.88 140.77 L563.65 142.03 L567.43 143.23 L571.2 144.38 L574.98 145.47 L578.75 146.52 L582.52 147.51 L586.3 148.45 L590.07 149.34 L593.85 150.19 L597.63 150.99 L601.4 151.74 L605.18 152.45 L608.95 153.11 L612.73 153.73 L616.5 154.32 L620.27 154.86 L624.05 155.37 L627.82 155.84 L631.6 156.28 L635.38 156.69 L639.15 157.07 L642.93 157.42 L646.7 157.75 L650.48 158.05 L654.25 158.32 L658.02 158.57 L661.8 158.81 L665.57 159.02 L669.35 159.21 L673.13 159.39 L676.9 159.55 L680.68 159.7 L684.45 159.83 L688.23 159.96 L692 160.07" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="704" y="88" font-size="16" fill="#000000" text-anchor="start" font-weight="400">1.0</text>
+<text x="704" y="166" font-size="16" fill="#000000" text-anchor="start" font-weight="400">0</text>
+<line x1="390" y1="76" x2="390" y2="447" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="502.67" y="103" font-size="17" fill="#000000" text-anchor="start" font-weight="400">61%</text>
+<text x="603.33" y="132" font-size="17" fill="#000000" text-anchor="start" font-weight="400">14%</text>
+<circle cx="188.67" cy="149.63" r="4" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="289.33" cy="110.05" r="4" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="490.67" cy="110.05" r="4" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="591.33" cy="149.63" r="4" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="88" y1="447" x2="692" y2="447" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="453" font-size="16" fill="#000000" text-anchor="end" font-weight="400">25</text>
+<line x1="88" y1="391" x2="692" y2="391" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="397" font-size="16" fill="#000000" text-anchor="end" font-weight="400">50</text>
+<line x1="88" y1="335" x2="692" y2="335" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="341" font-size="16" fill="#000000" text-anchor="end" font-weight="400">100</text>
+<line x1="88" y1="279" x2="692" y2="279" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="285" font-size="16" fill="#000000" text-anchor="end" font-weight="400">200</text>
+<line x1="88" y1="223" x2="692" y2="223" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="229" font-size="16" fill="#000000" text-anchor="end" font-weight="400">400</text>
+<line x1="88" y1="447" x2="88" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="88" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">-1.5</text>
+<line x1="188.67" y1="447" x2="188.67" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="188.67" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">-1</text>
+<line x1="289.33" y1="447" x2="289.33" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="289.33" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">-0.5</text>
+<line x1="390" y1="447" x2="390" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="390" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0</text>
+<line x1="490.67" y1="447" x2="490.67" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="490.67" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.5</text>
+<line x1="591.33" y1="447" x2="591.33" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="591.33" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">1</text>
+<line x1="692" y1="447" x2="692" y2="453" stroke="#63706e" stroke-width="1"/>
+<text x="692" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">1.5</text>
+<line x1="88" y1="447" x2="692" y2="447" stroke="#63706e" stroke-width="1"/>
+<text x="88" y="200" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Task time · seconds · log scale</text>
+<text x="390" y="509" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Quality distance from the focal model</text>
+<circle cx="416.17" cy="316.34" r="6.900294514813459" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.9750736287033648"/>
+<circle cx="363.83" cy="353.66" r="6.900294514813459" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.9750736287033648"/>
+<circle cx="446.37" cy="325.63" r="6.564625050174008" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.8911562625435021"/>
+<circle cx="333.63" cy="344.37" r="6.564625050174008" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.8911562625435021"/>
+<circle cx="478.59" cy="293.96" r="6.036865870865704" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.7592164677164259"/>
+<circle cx="301.41" cy="376.04" r="6.036865870865704" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.7592164677164259"/>
+<circle cx="522.88" cy="309.79" r="5.255347326739106" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.5638368316847766"/>
+<circle cx="257.12" cy="360.21" r="5.255347326739106" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.5638368316847766"/>
+<circle cx="565.16" cy="278.53" r="4.660216338984387" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.4150540847460969"/>
+<circle cx="214.84" cy="391.47" r="4.660216338984387" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.4150540847460969"/>
+<circle cx="611.47" cy="282.49" r="4.2667648523781585" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.31669121309453974"/>
+<circle cx="168.53" cy="387.51" r="4.2667648523781585" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.31669121309453974"/>
+<circle cx="657.77" cy="251.7" r="4.08723167999664" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.27180791999916004"/>
+<circle cx="122.23" cy="418.3" r="4.08723167999664" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.27180791999916004"/>
+<line x1="390" y1="335" x2="390" y2="391" stroke="#a64d0c" stroke-width="3"/>
+<circle cx="390" cy="335" r="6" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="390" cy="391" r="7" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<line x1="401" y1="335" x2="480" y2="335" stroke="#a64d0c" stroke-width="1"/>
+<text x="489" y="361" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Expected 100 s</text>
+<line x1="401" y1="391" x2="480" y2="391" stroke="#a64d0c" stroke-width="1"/>
+<text x="489" y="417" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Observed 50 s</text>
+<text x="475" y="200" font-size="20" fill="#000000" text-anchor="start" font-weight="400" font-family="Georgia, serif" font-style="italic">Residual = ln(½)</text>
 </svg>

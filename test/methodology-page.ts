@@ -31,8 +31,8 @@ assert.equal(
   "assets/methodology/unknown.svg",
 );
 assert.deepEqual(documentImageSize("logit-quality.svg"), {
-  width: 720,
-  height: 520,
+  width: 760,
+  height: 505,
 });
 assert.equal(
   outline.some(
