@@ -1,16 +1,16 @@
 # Model Matching
 
-Model Atlas joins benchmark results, catalog metadata, pricing, and serving performance from sources that use different identifiers. Matching resolves those source-specific names to one stable public model identity without merging genuinely different versions, tiers, or reasoning configurations.
+The same model can appear under different names on benchmark pages, catalogs, and serving platforms. Model Atlas joins those records so its scores, specifications, prices, and speed measurements describe the same underlying model and reasoning configuration.
 
-The matcher is deliberately conservative: rejecting an uncertain association is safer than attaching evidence to the wrong model. Rejecting a catalog association does not erase a separately identified benchmark model.
+A mistaken join can give one model another model's evidence. The matcher therefore leaves uncertain associations unmatched. A rejected catalog match does not erase a separately identified benchmark model; it leaves catalog metadata unavailable.
 
 ## Identity Sources
 
-Benchmark pages provide measurements and source-specific identities; a catalog match enriches those identities rather than deciding whether the model exists. When Artificial Analysis supplies a qualified provider/model ID, a nonempty name, and explicit text output but no catalog match is accepted, the pipeline retains that source identity and its reported reasoning configurations without borrowing metadata from a rejected candidate. Other benchmark observations can attach through the existing conservative identity and effort rules.
+A benchmark identity can exist before a public catalog entry. A qualified Artificial Analysis provider/model ID, a nonempty name, and confirmed text output can keep that model in the pipeline even when no catalog candidate is accepted. It retains only source-reported metadata, and other benchmark results can attach through the same identity and effort checks.
 
-Retention is not publication: a model with incomplete metadata must still satisfy the ordinary observed-benchmark requirements before it can appear as a preview.
+Keeping the identity does not guarantee publication. Incomplete metadata is allowed in a preview only when the model meets the ordinary observed-benchmark requirements.
 
-The preferred identity comes from a public OpenRouter route because pricing and speed data use that route ID. `models.dev` supplies provider pools and catalog metadata. Direct OpenAI, Google, Anthropic, and Vercel identities act as trusted fallbacks when they provide a cleaner exact match.
+An OpenRouter route is the preferred public identity when it wins the match, because route IDs connect directly to pricing and serving measurements. `models.dev` supplies candidate pools and catalog metadata. Trusted direct OpenAI, Google, Anthropic, and Vercel identities can win when they provide a stronger exact match.
 
 Candidate scoring uses only identity-bearing fields:
 
@@ -32,7 +32,7 @@ Three token classes receive special treatment:
 - parameter scales such as `70b`
 - active-parameter scales such as `a22b`
 
-A wrong version or model size is usually more serious than a small spelling difference, so these tokens can reject a candidate rather than merely lower its score.
+Versions and parameter scales can identify different models even when the surrounding name is nearly identical. A conflict in these fields can therefore reject a candidate outright.
 
 ## Candidate Pool
 
@@ -44,7 +44,7 @@ OpenRouter remains the preferred public identity only when its candidate actuall
 
 ## Candidate Score
 
-The score is a ranking heuristic, not a probability. It rewards evidence that two names identify the same model and penalizes signs that they identify neighboring variants.
+The match score orders plausible identity candidates. It is a heuristic, not the probability that a match is correct: agreement raises it, while missing or conflicting identity information lowers it.
 
 The strongest rewards are:
 
@@ -68,13 +68,13 @@ A candidate is rejected when it has no normalized character-prefix overlap, conf
 
 ## Relative Cutoff
 
-After every source row has a best candidate, the matcher removes unusually weak winners relative to the current batch. With the minimum best-match score $s_{\min}$ and maximum best-match score $s_{\max}$, the cutoff is
+After choosing the best candidate for each source row, the matcher checks for unusually weak winners within that batch. The lowest best-match score $s_{\min}$ and highest $s_{\max}$ set the relative cutoff:
 
 $$
 s_{\text{cutoff}}=s_{\min}+0.35(s_{\max}-s_{\min}).
 $$
 
-A best match below $s_{\text{cutoff}}$ is discarded. The cutoff is relative to the score range of the current source batch; it is not a universal confidence probability.
+For an illustrative batch ranging from 20 to 100, the cutoff is $20+0.35(100-20)=48$. A winner below 48 is discarded. Because the threshold depends on the current batch, the same raw score need not pass every batch. It is not a universal confidence probability.
 
 ## Variant Guardrail
 
@@ -82,7 +82,7 @@ After ranking, the matcher checks labels that distinguish important variants, in
 
 If the source has one of these labels and the candidate does not, or the candidate has one and the source does not, the candidate is rejected. Multi-token labels remain distinct, so `flash-lite` does not count as plain `flash`.
 
-Reasoning-effort suffixes are removed before this check because effort identifies a scored configuration, not a different base model. The matcher walks the ranked candidates until one survives the guardrail. Matching a base model to an image route, a `flash` model to `flash-lite`, or an `omni` model to a non-omni sibling is worse than leaving the row unmatched.
+Reasoning effort is a configuration of the base model, so its suffix is removed before the variant-label check. The matcher tries ranked candidates until one survives. This keeps distinctions such as `flash` versus `flash-lite` or text versus image routes from being erased by a superficially similar name.
 
 Benchmark-update health uses the same ranking and variant boundary with stricter full-token coverage. A source row therefore remains explicitly unrepresented when only a weak family-prefix candidate exists.
 
@@ -98,7 +98,7 @@ Dates and route labels do not define the base model. Reasoning and configuration
 
 An accepted catalog match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. An unmatched qualified Artificial Analysis identity instead retains only source-reported metadata, leaving genuinely missing prices, limits, and serving measurements unknown.
 
-Artificial Analysis input/output token prices and exact-effort throughput and latency measurements fill missing resource fields temporarily; they do not replace catalog prices or available OpenRouter telemetry. Catalog input/output prices take precedence over Artificial Analysis prices, and effective OpenRouter prices take precedence over those listed-price fallbacks for Value scoring. Fallback selection is field-by-field and recomputed on every refresh, so primary data automatically takes over when it arrives without retaining a stale override.
+Resource fallback works field by field. Catalog input/output prices take precedence over Artificial Analysis prices, and effective OpenRouter prices take precedence for Value scoring. Exact-effort Artificial Analysis throughput and latency can fill serving fields only when primary measurements are unavailable. Each refresh recomputes these choices, so primary data takes over when it arrives without a stale override.
 
 Artificial Analysis token prices are USD per million tokens, throughput is output tokens per second, and latency is seconds; total benchmark evaluation costs are never treated as token prices.
 
@@ -106,4 +106,6 @@ Both paths attach benchmark evidence before applying the publication rules descr
 
 Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored configurations.
 
-An unlabelled observation is the source-default configuration; when every observation is labelled, the highest reported effort becomes the default. Canonical storage keeps every result on its reported effort. After benchmark scoring, a sparse effort variant can be calibrated from the best-observed sibling's capability score plus their weighted gap on directly shared benchmarks; no monotonic effort ordering is imposed. Expanded views remain exact-effort only; compact views show the highest available direct effort at model level without relabelling it as the representative effort.
+An unlabelled observation represents the source-default configuration. If all observations name an effort, the highest reported effort supplies the default. Storage preserves every reported effort. A sparse effort's capability score can later use a well-measured sibling's score plus their gap on common benchmarks, without forcing effort order to be monotonic.
+
+Expanded views keep exact-effort results. Compact views use the highest-Intelligence representative and can fill its missing benchmark fields from the highest available direct effort, while retaining the distinction between a model-level display and an exact-effort observation.

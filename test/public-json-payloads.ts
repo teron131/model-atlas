@@ -352,12 +352,12 @@ assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "percentage");
 assert.match(
   methodology,
-  /validated estimates add discounted evidence support and relax regularization without changing the observed benchmark mean/,
+  /Validated estimates add discounted evidence support.*without changing the observed benchmark mean/,
 );
 assert.match(methodology, /literal weighted evidence support/);
 assert.match(methodology, /source-default variant/);
 assert.match(methodology, /show the highest available direct effort/);
-assert.match(methodology, /assign 70% to benchmark task resources and 30%/);
+assert.match(methodology, /assign 70% of base weight to benchmark task resources and 30%/);
 assert.match(methodology, /compare resource use among nearby-quality models/);
 assert.deepEqual(scoreModel, {
   rank: 1,

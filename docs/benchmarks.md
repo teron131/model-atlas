@@ -1,10 +1,10 @@
 # Benchmark Portfolio
 
-This document records which benchmarks affect Model Atlas, what capability each one measures, how much it contributes to Intelligence and Agentic scores, and which source evidence enters the ranking. [Benchmark standards](standards.md) define admission and classification; [Methodology](methodology.md) defines the scoring mathematics.
+A benchmark earns its place by adding credible information about model capability. This reference records the selected evaluations, their weights, the reasons for including them, and the source policies that keep results comparable. [Standards](standards.md) explains the selection criteria; [Methodology](methodology.md) explains how the results become scores.
 
 ## Scoring Roles
 
-Accepted task-level benchmarks are classified as `frontier` or `baseline` under [the standards](standards.md). Aggregate indexes are listed separately. Group labels describe portfolio role; the group itself does not change benchmark weight or missing-evidence treatment. Rejected and watchlist benchmarks do not affect the ranking.
+Task benchmarks have either a `frontier` or `baseline` role; aggregate indexes are listed separately. These labels explain why an input is useful. Importance and dimension loading determine its numerical influence, and the label itself changes neither weight nor the treatment of missing evidence. Rejected and watchlist benchmarks contribute no score.
 
 The ranking has two quality dimensions:
 
@@ -13,7 +13,7 @@ The ranking has two quality dimensions:
 | Intelligence | Knowledge, perception, conceptual understanding, abstract reasoning, and judgment in difficult problems | Benchmarks with a non-zero Intelligence loading |
 | Agentic | Reliable execution of goals and specifications through coding, instruction following, planning, tool use, state management, verification, recovery, and completion | Benchmarks with a non-zero Agentic loading |
 
-Coding benchmarks default to primarily Agentic evidence, including writing, modifying, migrating, testing, debugging, and delivering software. Intelligence loading is earned when substantial algorithmic, mathematical, scientific, or research reasoning beyond routine implementation materially determines success. The difficulty of operating an environment or the presence of a scientific topic alone does not establish that reasoning demand. Final-output grading can measure either capability; a correct deliverable does not automatically imply Intelligence. Harness identity is retained as provenance and does not itself determine capability loading.
+Writing, modifying, testing, debugging, and delivering software primarily test Agentic ability. A coding benchmark earns Intelligence weight when difficult algorithmic, mathematical, scientific, or research reasoning substantially determines success. A scientific topic or a difficult environment alone does not establish that demand. The task and its failure modes determine the loading; a final-output grader or harness name does not.
 
 ### Portfolio Settings
 
@@ -23,13 +23,13 @@ Coding benchmarks default to primarily Agentic evidence, including writing, modi
 | Importance | Controls the benchmark's total influence relative to other observed benchmarks |
 | Dimension loading | Allocates that importance between Intelligence and Agentic; the two loadings sum to 100% |
 
-For benchmark $b$ in dimension $D$, the effective weight $w_{b,D}=\operatorname{benchmarkImportance}_b\operatorname{dimensionLoading}_{b,D}$ combines importance with dimension loading. Group does not change the contribution of an observed value, and source identity does not determine group.
+The importance $i_b$ describes a benchmark's overall influence, and its loading $\lambda_{b,d}$ assigns a share to dimension $d$. Their product gives the effective weight $\omega_{b,d}=i_b\lambda_{b,d}$. For example, importance 2 with 25% Intelligence and 75% Agentic loading gives weights 0.5 and 1.5. The benchmark keeps its total importance rather than receiving full weight in both dimensions.
 
-Task-level loadings use the five-level scale defined in [the standards](standards.md): 100% / 0%, 75% / 25%, 50% / 50%, 25% / 75%, or 0% / 100%. The review examines actual task demands and failure modes, starts coding benchmarks as primarily Agentic, and requires a specific substantive reasoning justification for Intelligence loading.
+Loadings use the five-level scale in [Standards](standards.md): 100/0, 75/25, 50/50, 25/75, or 0/100. This keeps the judgment coarse enough to explain. Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
-The benchmark-specific loadings below apply the revised coding default. Software implementation and delivery are primarily Agentic; difficult program semantics, vulnerability diagnosis, and architectural reasoning retain a secondary Intelligence loading where justified. Algorithm design, formal mathematics, and scientific research retain their stronger Intelligence loadings.
+The decisions below apply that distinction. Software delivery is primarily Agentic; difficult program semantics, vulnerability diagnosis, or architecture can add an Intelligence component. Algorithm design, formal mathematics, and scientific research can justify stronger Intelligence weight.
 
-The tables below show the current portfolio, why each benchmark or index is included, and whether its task resources can contribute to Speed or Value.
+Each table records the capability being measured and the reason for its weight. The source policies below specify which observations and task resources are eligible.
 
 ### Resource Quality Coordinates
 
@@ -61,7 +61,7 @@ Direct same-benchmark tokens also use these coordinates for the [Agentic token m
 
 ### Indexes
 
-Indexes aggregate multiple evaluations into broad fallback coverage. They remain separate from task-level benchmarks because their component overlap and source-owned aggregation limit how independently they should influence the ranking.
+An aggregate index summarizes several evaluations. It offers broad coverage, but its components can overlap selected tasks and its source controls the aggregation. Keeping indexes separate makes that limitation visible.
 
 | Index | Group | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -70,7 +70,7 @@ Indexes aggregate multiple evaluations into broad fallback coverage. They remain
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
 
-For every model without complete direct-task coverage, aggregate indexes enter the quality mean with the number of benchmarks they represent: Artificial Analysis 9, Epoch 8, Surge 8, and Vals 7. Epoch uses the median of the other three represented counts because its exact underlying count is unavailable per model row. Observed task benchmarks retain their ordinary effective weights. The normal index importance of 0.5 does not enter an undercovered mean and resumes only at complete direct-task coverage.
+When direct task coverage is incomplete, observed aggregate indexes stand in for broader capability evidence. Their represented counts are 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals; Epoch uses the median of the other three because its per-model component count is unavailable. Tasks retain their ordinary effective weights. At complete task coverage, indexes return to importance 0.5 and their configured loadings. Represented breadth changes the quality estimate, not the number of independent observations or the displayed evidence share.
 
 ### Frontier Benchmarks
 
@@ -123,7 +123,7 @@ For every model without complete direct-task coverage, aggregate indexes enter t
 | Hemingway-bench | 1 | 75% | 25% | Writing quality, originality, coherence, and emotional intelligence dominate expert preference. Explicit instruction adherence contributes a secondary Agentic component, while the relative Elo scale and focused domain keep it baseline. |
 | Omniscience | 1 | 100% | 0% | Factual recall in economically relevant domains. It stabilizes knowledge precision but is not sharp enough by itself to distinguish the frontier leaders. |
 | PerceptionBench | 1 | 100% | 0% | Short-answer questions isolate ten atomic visual capabilities across 3,000 verified examples. The narrow multimodal focus provides distinctive Intelligence breadth, while creator-run configurations and an automatic judge keep it baseline rather than a frontier missing-data claim. |
-| ProofBench | 1 | 100% | 0% | Mathematical reasoning and construction of a valid Lean proof are the scored construct. Compilation verifies the artifact, and the remaining spread across current general models still adds useful baseline evidence despite near-ceiling leaders. Remove it once comparable current models cluster at the ceiling. |
+| ProofBench | 1 | 100% | 0% | Mathematical reasoning and construction of a valid Lean proof are the scored construct. Compilation verifies the artifact, and the remaining spread across current general models still adds useful baseline evidence despite near-ceiling leaders. Its inclusion ends when comparable current models cluster at the ceiling. |
 | Public Benefits Bench | 1 | 50% | 50% | Policy interpretation and case reasoning and reliable research and workflow completion independently determine success. Its focused domain keeps it baseline. |
 | SciCode | 1 | 100% | 0% | Scientist-curated problems require substantive scientific knowledge and mathematical formulation to derive the solution. Those demands justify the Intelligence exception; the fixed function-completion protocol provides little independent workflow evidence. |
 | SimpleQA Verified | 1 | 100% | 0% | Broad factual recall under Epoch's current anti-abstention methodology adds general-knowledge coverage distinct from Omniscience's professional-domain focus. Public static questions and exposure risk keep it baseline. |
@@ -145,11 +145,11 @@ Watchlist benchmarks remain outside the scoring portfolio. Time Horizon Index is
 
 ### Compatibility and Defaults
 
-Rows are combined only when their task set and version, metric, scoring protocol, units, aggregation, model identity, and reasoning effort are compatible. For an explicitly coding benchmark that reports multiple harnesses for the same model configuration, harness rows remain distinct unless a benchmark policy defines their aggregation.
+Combining results is justified only when they refer to compatible tasks and versions, metrics, scoring protocols, units, aggregation, model identities, and reasoning efforts. For explicitly coding benchmarks, different harness rows remain distinct unless the benchmark defines how to aggregate them.
 
-A source crosswalk requires overlap that validates any identity, scale, or unit conversion and an explicit precedence rule for duplicate observations. Duplicate mirrors are not averaged, and methodologically different measurements remain separate unless a benchmark policy explicitly defines their aggregation.
+A source crosswalk is eligible only after validation on overlapping results, with an explicit precedence rule for duplicates. Repeated mirrors do not create new evidence, so they are not averaged. Measurements from different methods stay separate unless a benchmark policy explicitly defines a valid combination.
 
-An unlabelled configuration is the source default. When every configuration is labelled, the highest reported effort becomes the default as one complete observation; explicit effort rows remain attached to their matching variants, and Model Atlas never constructs a synthetic best-of-fields default.
+An unlabelled configuration is the source default. If every configuration names an effort, the highest reported effort supplies the default as one complete observation. Individual effort rows still belong to their matching variants. Choosing one complete observation prevents a synthetic default assembled from the best field in each row.
 
 ### Shared Inputs
 
@@ -195,7 +195,7 @@ ARC-AGI-3 uses human-relative action efficiency over 55 semi-private environment
 
 ### FrontierMath Erdős Policy
 
-FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one official attempt for each of 68 conjectures under the published 72-hour scaffold, with success requiring a complete Lean proof or disproof that Comparator replays against the trusted statement. Higher-budget repetitions, changed agents, and alternate scaffolds are excluded. The benchmark is admitted as a sparse breakthrough signal despite near-binary current results, and half importance limits instability from one attempt per problem, long-running stochastic agents, and overlap with FrontierMath Tier 4. Zero means no verified resolution under this scaffold rather than no mathematical capability. The August 2026 problem set remains the common denominator for current clean comparisons; future cutoff-aware handling must exclude publicly solved conjectures through an explicit shared denominator rather than silently changing each model's task set.
+FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one official attempt for each of 68 conjectures under the published 72-hour scaffold, with success requiring a complete Lean proof or disproof that Comparator replays against the trusted statement. Higher-budget repetitions, changed agents, and alternate scaffolds are excluded. The benchmark is admitted as a sparse breakthrough signal despite near-binary current results, and half importance limits instability from one attempt per problem, long-running stochastic agents, and overlap with FrontierMath Tier 4. Zero means no verified resolution under this scaffold rather than no mathematical capability. The August 2026 problem set remains the common denominator for current clean comparisons. Any future exclusion of publicly solved conjectures requires an explicit shared denominator; changing each model's task set separately would break comparability.
 
 ### Standalone Policies
 

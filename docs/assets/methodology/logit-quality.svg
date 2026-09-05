@@ -1,48 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" role="img" aria-labelledby="title desc">
-  <title id="title">Logit quality coordinate</title>
-  <desc id="desc">The logit transform expands equal percentage-point differences in an observed probability-like benchmark score near the ceiling, making the change from ninety-five to ninety-six percent about 5.8 times the transformed distance from fifty to fifty-one percent.</desc>
-  <style>
-    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
-    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
-    .muted { fill: var(--muted); font-size: 14px; }
-    .label { font-size: 16px; }
-    .annotation { font-size: 14px; font-weight: 600; }
-    .grid { stroke: var(--grid); stroke-width: 1; }
-    .axis { stroke: var(--fg); stroke-width: 1.5; }
-    .curve { fill: none; stroke: var(--primary); stroke-width: 4; stroke-linejoin: round; }
-    .midpoint { fill: var(--primary); }
-    .ceiling { fill: var(--secondary); }
-    .midbar { stroke: var(--primary); stroke-width: 7; }
-    .ceilingbar { stroke: var(--secondary); stroke-width: 7; }
-  </style>
-  <rect width="720" height="520" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Logit quality coordinate</text>
-  <line x1="90" y1="179" x2="670" y2="179" class="grid" />
-  <line x1="380" y1="48" x2="380" y2="310" class="grid" />
-  <line x1="90" y1="310" x2="670" y2="310" class="axis" />
-  <line x1="90" y1="48" x2="90" y2="310" class="axis" />
-  <path d="M95.8 299.4 L101.6 281 L119 256.1 L148 236.6 L206 215.3 L264 201.2 L322 189.6 L380 179 L438 168.4 L496 156.8 L554 142.7 L612 121.4 L641 101.9 L658.4 77 L664.2 58.6" class="curve" />
-  <circle cx="380" cy="179" r="6" class="midpoint" />
-  <circle cx="385.8" cy="178" r="5" class="midpoint" />
-  <circle cx="641" cy="101.9" r="6" class="ceiling" />
-  <circle cx="646.8" cy="95.7" r="5" class="ceiling" />
-  <text x="395" y="169" class="muted">50% → 51%</text>
-  <text x="508" y="91" class="muted">95% → 96%</text>
-  <text x="90" y="335" text-anchor="middle" class="muted">0</text>
-  <text x="380" y="335" text-anchor="middle" class="muted">0.5</text>
-  <text x="670" y="335" text-anchor="middle" class="muted">1</text>
-  <text x="74" y="314" text-anchor="end" class="muted">−5</text>
-  <text x="74" y="184" text-anchor="end" class="muted">0</text>
-  <text x="74" y="53" text-anchor="end" class="muted">5</text>
-  <text x="380" y="362" text-anchor="middle" class="label">Observed benchmark score x</text>
-  <text transform="translate(25 179) rotate(-90)" text-anchor="middle" class="label">logit(x)</text>
-
-  <text x="90" y="405" class="annotation">Equal +1 percentage point</text>
-  <text x="90" y="440" class="muted">50% → 51%</text>
-  <line x1="220" y1="435" x2="260" y2="435" class="midbar" />
-  <text x="273" y="440" class="muted">Δlogit = 0.040</text>
-  <text x="90" y="480" class="muted">95% → 96%</text>
-  <line x1="220" y1="475" x2="454" y2="475" class="ceilingbar" />
-  <text x="467" y="480" class="muted">Δlogit = 0.234</text>
-  <text x="616" y="480" class="annotation">5.8×</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 505" role="img" aria-labelledby="title desc">
+<title id="title">An equal success-rate gain expands near the ceiling</title>
+<desc id="desc">The logit curve gives a gain from 95 to 96 percent a log-odds distance of 0.234, compared with 0.040 for 50 to 51 percent. The lower bars share one scale and expose that difference.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<line x1="86" y1="290" x2="700" y2="290" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="296" font-size="16" fill="#000000" text-anchor="end" font-weight="400">-4</text>
+<line x1="86" y1="183" x2="700" y2="183" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="189" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0</text>
+<line x1="86" y1="76" x2="700" y2="76" stroke="#b5bfbc" stroke-width="1"/>
+<text x="72" y="82" font-size="16" fill="#000000" text-anchor="end" font-weight="400">4</text>
+<line x1="86" y1="290" x2="86" y2="296" stroke="#63706e" stroke-width="1"/>
+<text x="86" y="317" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0%</text>
+<line x1="239.5" y1="290" x2="239.5" y2="296" stroke="#63706e" stroke-width="1"/>
+<text x="239.5" y="317" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">25%</text>
+<line x1="393" y1="290" x2="393" y2="296" stroke="#63706e" stroke-width="1"/>
+<text x="393" y="317" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">50%</text>
+<line x1="546.5" y1="290" x2="546.5" y2="296" stroke="#63706e" stroke-width="1"/>
+<text x="546.5" y="317" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">75%</text>
+<line x1="700" y1="290" x2="700" y2="296" stroke="#63706e" stroke-width="1"/>
+<text x="700" y="317" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">100%</text>
+<line x1="86" y1="290" x2="700" y2="290" stroke="#63706e" stroke-width="1"/>
+<text x="86" y="53" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Log odds</text>
+<path d="M97.05 289.98 L100.75 282.09 L104.45 275.94 L108.15 270.88 L111.85 266.59 L115.55 262.84 L119.25 259.51 L122.95 256.52 L126.65 253.8 L130.35 251.29 L134.05 248.98 L137.74 246.82 L141.44 244.79 L145.14 242.89 L148.84 241.08 L152.54 239.37 L156.24 237.75 L159.94 236.19 L163.64 234.7 L167.34 233.27 L171.04 231.89 L174.74 230.57 L178.44 229.29 L182.14 228.05 L185.84 226.84 L189.54 225.68 L193.24 224.54 L196.93 223.44 L200.63 222.37 L204.33 221.32 L208.03 220.29 L211.73 219.29 L215.43 218.31 L219.13 217.35 L222.83 216.41 L226.53 215.49 L230.23 214.59 L233.93 213.7 L237.63 212.82 L241.33 211.97 L245.03 211.12 L248.73 210.29 L252.42 209.46 L256.12 208.65 L259.82 207.85 L263.52 207.07 L267.22 206.29 L270.92 205.52 L274.62 204.75 L278.32 204 L282.02 203.26 L285.72 202.52 L289.42 201.79 L293.12 201.06 L296.82 200.34 L300.52 199.63 L304.22 198.93 L307.91 198.23 L311.61 197.53 L315.31 196.84 L319.01 196.15 L322.71 195.47 L326.41 194.79 L330.11 194.12 L333.81 193.45 L337.51 192.78 L341.21 192.11 L344.91 191.45 L348.61 190.79 L352.31 190.13 L356.01 189.48 L359.71 188.82 L363.41 188.17 L367.1 187.52 L370.8 186.87 L374.5 186.23 L378.2 185.58 L381.9 184.93 L385.6 184.29 L389.3 183.64 L393 183 L396.7 182.36 L400.4 181.71 L404.1 181.07 L407.8 180.42 L411.5 179.77 L415.2 179.13 L418.9 178.48 L422.59 177.83 L426.29 177.18 L429.99 176.52 L433.69 175.87 L437.39 175.21 L441.09 174.55 L444.79 173.89 L448.49 173.22 L452.19 172.55 L455.89 171.88 L459.59 171.21 L463.29 170.53 L466.99 169.85 L470.69 169.16 L474.39 168.47 L478.09 167.77 L481.78 167.07 L485.48 166.37 L489.18 165.66 L492.88 164.94 L496.58 164.21 L500.28 163.48 L503.98 162.74 L507.68 162 L511.38 161.25 L515.08 160.48 L518.78 159.71 L522.48 158.93 L526.18 158.15 L529.88 157.35 L533.58 156.54 L537.27 155.71 L540.97 154.88 L544.67 154.03 L548.37 153.18 L552.07 152.3 L555.77 151.41 L559.47 150.51 L563.17 149.59 L566.87 148.65 L570.57 147.69 L574.27 146.71 L577.97 145.71 L581.67 144.68 L585.37 143.63 L589.07 142.56 L592.76 141.46 L596.46 140.32 L600.16 139.16 L603.86 137.95 L607.56 136.71 L611.26 135.43 L614.96 134.11 L618.66 132.73 L622.36 131.3 L626.06 129.81 L629.76 128.25 L633.46 126.63 L637.16 124.92 L640.86 123.11 L644.56 121.21 L648.26 119.18 L651.95 117.02 L655.65 114.71 L659.35 112.2 L663.05 109.48 L666.75 106.49 L670.45 103.16 L674.15 99.41 L677.85 95.12 L681.55 90.06 L685.25 83.91 L688.95 76.02" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<circle cx="393" cy="183" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="380" y="163" font-size="17" fill="#000000" text-anchor="end" font-weight="600">50 → 51%</text>
+<circle cx="669.3" cy="104.24" r="5" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<text x="656.3" y="64" font-size="17" fill="#000000" text-anchor="end" font-weight="600">95 → 96%</text>
+<text x="390" y="348" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Success rate</text>
+<text x="46" y="400" font-size="17" fill="#000000" text-anchor="start" font-weight="600">Log-odds distance</text>
+<text x="46" y="441" font-size="17" fill="#000000" text-anchor="start" font-weight="400">50 → 51%</text>
+<line x1="230" y1="435" x2="298.81" y2="435" stroke="#146cba" stroke-width="8"/>
+<circle cx="298.81" cy="435" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="316.81" y="441" font-size="17" fill="#000000" text-anchor="start" font-weight="400">0.040</text>
+<text x="46" y="478" font-size="17" fill="#000000" text-anchor="start" font-weight="400">95 → 96%</text>
+<line x1="230" y1="472" x2="631.82" y2="472" stroke="#a64d0c" stroke-width="8"/>
+<circle cx="631.82" cy="472" r="5" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<text x="649.82" y="478" font-size="17" fill="#000000" text-anchor="start" font-weight="400">0.234</text>
 </svg>

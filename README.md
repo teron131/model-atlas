@@ -1,10 +1,10 @@
 # Model Atlas
 
-Model Atlas is an opinionated model leaderboard for choosing the right model, not declaring one universal winner. Instead of averaging every available benchmark into a broad index, it selects evaluations that remain difficult for leading models, measure consequential capabilities, produce meaningful and interpretable separation, and have credible tasks, grading, provenance, and comparable results. Saturated, contaminated, redundant, opaque, or misleading benchmarks are excluded even when they are widely used. Capability, workflow execution, delivery speed, and cost efficiency remain separate so their tradeoffs stay visible.
+Model Atlas compares language models across capability, execution, speed, and cost. Its benchmark portfolio favors difficult, consequential tasks with credible grading and useful separation between current models. Each score answers a different question, so the leaderboard keeps those trade-offs visible.
 
-- **Efficiency remains tied to capability.** Agentic applies a bounded quality-adjusted token modifier, while Speed and Value compare resource use with nearby-quality peers.
-- **Missing evidence remains uncertain.** Estimates use validated, non-recursive imputation, and both prediction error and the row's observed context limit how much they relieve score regularization or increase evidence support; estimates never change the observed benchmark mean or count toward public admission.
-- **More variants do not create more evidence.** Reasoning-effort configurations remain separate, model-balanced calibration prevents them from adding reference weight, and a sparse effort score uses only its measured common-benchmark gap to a broadly observed sibling without assuming effort order.
+- **Compare similar work.** Agentic includes a bounded adjustment for direct token use. Speed and Value compare resources among models at similar quality, so a cheap or fast result is interpreted alongside what the model achieved.
+- **Keep evidence visible.** Validated estimates receive discounted credit and can reduce uncertainty penalties. They never replace the observed benchmark mean or count as direct evidence for admission.
+- **Count models fairly.** Each reasoning effort keeps its own results, while a model's variants share its weight in calibration. A sparse effort can be positioned using its measured gap to a well-tested sibling, without assuming that higher effort always wins.
 
 ## Scores
 
@@ -28,7 +28,7 @@ Coding benchmarks default to primarily Agentic evidence. Intelligence loading is
 | [Model matching](docs/matching.md) | Explains how source-specific names resolve to stable model identities. |
 | [Methodology](docs/methodology.md) | Specifies the scoring mathematics, imputation, evidence support, quality regularization, and public admission. |
 
-The source code is authoritative when documentation and implementation disagree. Portfolio policy lives in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark display copy lives in `src/model-atlas/benchmarks/catalog/presentation.ts`.
+The source code is authoritative when documentation and implementation disagree. Portfolio decisions live in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark descriptions live in `src/model-atlas/benchmarks/catalog/presentation.ts`. The [methodology article](docs/methodology.md) explains the formulas, worked examples, and reasons behind the scoring choices.
 
 ## Development
 

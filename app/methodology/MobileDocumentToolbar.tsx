@@ -2,7 +2,7 @@
 
 /** Fixed mobile controls for home, document navigation, and theme. */
 
-import { ArrowLeft, ListTree, Moon, Sun } from "lucide-react";
+import { ListTree, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 
 import { toggleModelAtlasTheme } from "../shared/theme";
@@ -24,14 +24,14 @@ export function MobileDocumentToolbar({
   return (
     <header className={styles.mobileToolbar}>
       <Link
-        className={styles.navigationIconButton}
+        className={`brand-lockup ${styles.mobileHomeLink}`}
         href="/"
         prefetch={false}
-        aria-label="Back to leaderboard"
+        aria-label="Model Atlas home"
       >
-        <ArrowLeft aria-hidden="true" />
+        <span className="brand-mark" aria-hidden="true" />
+        <span className={`brand-title ${styles.mobileToolbarTitle}`}>{currentDocument.title}</span>
       </Link>
-      <span className={styles.mobileToolbarTitle}>{currentDocument.title}</span>
       <div className={styles.mobileToolbarActions}>
         <button
           className={styles.navigationIconButton}

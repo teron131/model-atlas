@@ -52,7 +52,7 @@ export function DocumentShell({
   };
 
   return (
-    <main className={`${styles.page} ${navigationDocked ? styles.pageWithNavigation : ""}`}>
+    <main className={styles.page}>
       <ModelAtlasHeader
         page="methodology"
         documentNavigationOpen={navigationOpen}

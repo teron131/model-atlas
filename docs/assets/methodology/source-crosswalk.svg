@@ -1,45 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
-  <title id="title">Validated source crosswalk</title>
-  <desc id="desc">Overlapping values from source B plotted against canonical source A, with an identity guide and a fitted additive offset.</desc>
-  <style>
-    :root { --bg: #000000; --fg: #f5f5f5; --muted: #d4d4d4; --grid: #3f3f46; --primary: #60a5fa; --secondary: #fbbf24; }
-    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
-    .muted { fill: var(--muted); font-size: 15px; }
-    .label { font-size: 17px; }
-    .annotation { font-size: 15px; font-weight: 600; }
-    .grid { stroke: var(--grid); stroke-width: 1; }
-    .axis { stroke: var(--fg); stroke-width: 1.5; }
-    .identity { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 7 7; }
-    .fit { stroke: var(--primary); stroke-width: 3; }
-    .offset { stroke: var(--secondary); stroke-width: 2; }
-    .point { fill: var(--primary); }
-  </style>
-  <rect width="720" height="420" fill="var(--bg)" />
-  <text x="360" y="31" text-anchor="middle" class="label">Validated source crosswalk</text>
-  <line x1="90" y1="194" x2="670" y2="194" class="grid" />
-  <line x1="380" y1="48" x2="380" y2="340" class="grid" />
-  <line x1="90" y1="340" x2="670" y2="340" class="axis" />
-  <line x1="90" y1="48" x2="90" y2="340" class="axis" />
-  <line x1="90" y1="340" x2="670" y2="48" class="identity" />
-  <line x1="136" y1="340" x2="670" y2="71" class="fit" />
-  <circle cx="212" cy="305" r="6" class="point" />
-  <circle cx="270" cy="270" r="6" class="point" />
-  <circle cx="339" cy="241" r="6" class="point" />
-  <circle cx="409" cy="194" r="6" class="point" />
-  <circle cx="484" cy="165" r="6" class="point" />
-  <circle cx="548" cy="121" r="6" class="point" />
-  <circle cx="618" cy="95" r="6" class="point" />
-  <line x1="496" y1="136" x2="496" y2="159" class="offset" />
-  <path d="M490 142 L496 136 L502 142 M490 153 L496 159 L502 153" fill="none" class="offset" />
-  <text x="510" y="153" class="annotation">δ</text>
-  <text x="546" y="71" class="muted">identity</text>
-  <text x="420" y="104" class="annotation">fitted offset</text>
-  <text x="90" y="367" text-anchor="middle" class="muted">0</text>
-  <text x="380" y="367" text-anchor="middle" class="muted">0.5</text>
-  <text x="670" y="367" text-anchor="middle" class="muted">1</text>
-  <text x="74" y="345" text-anchor="end" class="muted">0</text>
-  <text x="74" y="199" text-anchor="end" class="muted">0.5</text>
-  <text x="74" y="53" text-anchor="end" class="muted">1</text>
-  <text x="380" y="403" text-anchor="middle" class="label">Source B</text>
-  <text transform="translate(25 194) rotate(-90)" text-anchor="middle" class="label">Canonical source A</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 442" role="img" aria-labelledby="title desc">
+<title id="title">An additive crosswalk preserves source gaps</title>
+<desc id="desc">Illustrative paired source observations support a primary-scale conversion of fallback minus 0.05. A fallback result 0.70 predicts 0.65. Hollow points are calibration observations; the highlighted filled point is an estimate, subject to model-held-out validation.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<line x1="88" y1="351" x2="695" y2="351" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="357" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0.00</text>
+<line x1="88" y1="283" x2="695" y2="283" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="289" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0.25</text>
+<line x1="88" y1="215" x2="695" y2="215" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="221" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0.50</text>
+<line x1="88" y1="147" x2="695" y2="147" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="153" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0.75</text>
+<line x1="88" y1="79" x2="695" y2="79" stroke="#b5bfbc" stroke-width="1"/>
+<text x="74" y="85" font-size="16" fill="#000000" text-anchor="end" font-weight="400">1.00</text>
+<line x1="88" y1="351" x2="88" y2="357" stroke="#63706e" stroke-width="1"/>
+<text x="88" y="378" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.00</text>
+<line x1="239.75" y1="351" x2="239.75" y2="357" stroke="#63706e" stroke-width="1"/>
+<text x="239.75" y="378" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.25</text>
+<line x1="391.5" y1="351" x2="391.5" y2="357" stroke="#63706e" stroke-width="1"/>
+<text x="391.5" y="378" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.50</text>
+<line x1="543.25" y1="351" x2="543.25" y2="357" stroke="#63706e" stroke-width="1"/>
+<text x="543.25" y="378" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.75</text>
+<line x1="695" y1="351" x2="695" y2="357" stroke="#63706e" stroke-width="1"/>
+<text x="695" y="378" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">1.00</text>
+<line x1="88" y1="351" x2="695" y2="351" stroke="#63706e" stroke-width="1"/>
+<text x="88" y="56" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Primary source</text>
+<text x="392" y="412" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Fallback source</text>
+<line x1="88" y1="351" x2="695" y2="79" stroke="#63706e" stroke-width="1.5" stroke-dasharray="5 6"/>
+<path d="M118.35 351 L695 92.6" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<line x1="179.05" y1="323.8" x2="179.05" y2="323.8" stroke="#146cba" stroke-width="2"/>
+<circle cx="179.05" cy="323.8" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="245.82" y1="293.88" x2="245.82" y2="291.16" stroke="#146cba" stroke-width="2"/>
+<circle cx="245.82" cy="291.16" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="306.52" y1="266.68" x2="306.52" y2="269.4" stroke="#146cba" stroke-width="2"/>
+<circle cx="306.52" cy="269.4" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="367.22" y1="239.48" x2="367.22" y2="239.48" stroke="#146cba" stroke-width="2"/>
+<circle cx="367.22" cy="239.48" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="452.2" y1="201.4" x2="452.2" y2="198.68" stroke="#146cba" stroke-width="2"/>
+<circle cx="452.2" cy="198.68" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="579.67" y1="144.28" x2="579.67" y2="147" stroke="#146cba" stroke-width="2"/>
+<circle cx="579.67" cy="147" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="640.37" y1="117.08" x2="640.37" y2="117.08" stroke="#146cba" stroke-width="2"/>
+<circle cx="640.37" cy="117.08" r="4" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="512.9" y1="351" x2="512.9" y2="174.2" stroke="#a64d0c" stroke-width="1" stroke-dasharray="3 5"/>
+<line x1="88" y1="174.2" x2="512.9" y2="174.2" stroke="#a64d0c" stroke-width="1" stroke-dasharray="3 5"/>
+<circle cx="512.9" cy="174.2" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<text x="112" y="114" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Identity guide</text>
+<line x1="215" y1="119" x2="306.52" y2="253.08" stroke="#63706e" stroke-width="1"/>
+<text x="112" y="235" font-size="23" fill="#000000" text-anchor="start" font-weight="600">0.70 → 0.65</text>
+<text x="112" y="265" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Accepted offset −0.05</text>
 </svg>

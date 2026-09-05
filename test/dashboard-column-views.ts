@@ -192,7 +192,7 @@ assert.deepEqual(
   "Search should remove partial candidates below the best result's relevance threshold",
 );
 
-const noMatchKeys = tableColumnKeysForView("all", "no such column evidence", COLUMN_TOOLTIPS);
+const noMatchKeys = tableColumnKeysForView("all", "zzzxqvv unmatchedcolumn", COLUMN_TOOLTIPS);
 assert.deepEqual(
   noMatchKeys,
   [...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS, "change"],
@@ -206,8 +206,8 @@ assert.equal(
 );
 assert.equal(
   tableColumnSearchMatchCount("rank", COLUMN_TOOLTIPS),
-  2,
-  "Search result counts should include fixed columns whose tooltip text matches",
+  3,
+  "Rank search should count the fixed rank column, change history, and evidence-support explanation",
 );
 
 assert.equal(

@@ -1,26 +1,12 @@
 /** Editorial documentation layout and Markdown typography for Model Atlas. */
 
 .page {
-  --dashboard-frame-width: 1440px;
   --document-article-width: 800px;
   --document-navigation-width: 190px;
   --document-column-gap: clamp(20px, 3vw, 40px);
-  --document-frame-width: var(--document-article-width);
   position: relative;
   z-index: 1;
   padding-bottom: 112px;
-}
-
-.pageWithNavigation {
-  --document-frame-width: calc(
-    var(--document-article-width) + var(--document-column-gap) + var(--document-navigation-width)
-  );
-}
-
-.page :global(.dashboard-header) {
-  width: min(100%, var(--document-frame-width));
-  margin-inline: auto;
-  align-items: center;
 }
 
 .mobileToolbar {
@@ -64,6 +50,12 @@
   width: 18px;
   height: 18px;
   stroke-width: 1.9;
+}
+
+.mobileHomeLink {
+  min-width: 0;
+  min-height: var(--dashboard-icon-button-size);
+  flex: 1;
 }
 
 .documentNavigationLayer {
@@ -216,7 +208,7 @@
     "article";
   grid-template-columns: minmax(0, var(--document-article-width));
   row-gap: 12px;
-  justify-content: center;
+  justify-content: start;
   align-items: start;
 }
 
@@ -258,8 +250,7 @@
   list-style: none;
 }
 
-/* The document strip is the methodology sibling of the dashboard research index: one ruled bar of
-   measurement labels, divided by hairlines, with the current route carrying a full ink rule. */
+/* The document strip uses ruled measurement labels, with the current route carrying a full ink rule. */
 .documentNav ul {
   display: flex;
   gap: 0;
@@ -463,47 +454,35 @@
 }
 
 .article h2[id="pipeline-overview"] + p + ol {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 0;
-  margin: 18px 0 24px;
-  padding: 0;
+  margin: 20px 0 28px;
+  padding-left: 28px;
 }
 
 .article h2[id="pipeline-overview"] + p + ol > li {
-  display: inline-flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  color: color-mix(in srgb, var(--ink) 86%, var(--muted));
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  list-style: none;
+  padding: 8px 0 8px 10px;
+  border-bottom: 1px solid var(--line);
 }
 
-.article h2[id="pipeline-overview"] + p + ol > li::after {
-  margin: 0 12px;
-  color: var(--faint);
-  font-size: 14px;
-  line-height: 1;
-  content: "→";
-}
-
-.article h2[id="pipeline-overview"] + p + ol > li:last-child::after {
-  display: none;
-}
-
-.article h2[id="pipeline-overview"] + p + ol strong {
+.article h2[id="pipeline-overview"] + p + ol > li::marker {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
-.article table {
-  display: block;
-  width: 100%;
-  margin: 18px 0 24px;
+.tableViewport {
+  margin: 22px 0 30px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.tableViewport:focus-visible,
+.figureViewport:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.article table {
+  width: 100%;
   border-collapse: collapse;
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
@@ -513,15 +492,13 @@
 
 .article thead {
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .article th,
 .article td {
-  min-width: 116px;
+  min-width: 100px;
   padding: 11px 14px 12px 0;
   border-bottom: 1px solid var(--line);
   text-align: left;
@@ -570,30 +547,36 @@
   color: var(--muted);
 }
 
-.figure {
-  display: block;
-  margin: 24px 0;
+.article > p:has(.figure) {
+  max-width: none;
 }
 
-/* Diagrams are authored on the dark field and inverted for the light theme below. */
+.figure {
+  display: block;
+  margin: 30px 0 36px;
+}
+
+/* Transparent SVGs follow the inherited color scheme; small screens scroll the plot to preserve readable labels. */
+.figureViewport {
+  display: block;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
 .figure img {
   display: block;
   width: 100%;
+  min-width: 600px;
   height: auto;
-  border: 1px solid var(--line);
-  background: #0b1016;
 }
 
-.figure > span {
+.figure > span:last-child:not(.figureViewport) {
   display: block;
-  margin-top: 8px;
-  color: var(--faint);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-:global(html[data-model-atlas-theme="light"]) .figure img {
-  filter: invert(1) hue-rotate(180deg);
+  max-width: 68ch;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .article :global(.katex-display) {
@@ -646,7 +629,7 @@
 
 @media (max-width: 780px) {
   .page {
-    padding-top: calc(70px + env(safe-area-inset-top));
+    padding-top: calc(var(--header-height) + 16px + env(safe-area-inset-top));
     padding-bottom: 72px;
   }
 
@@ -660,10 +643,10 @@
     z-index: 50;
     display: flex;
     box-sizing: border-box;
-    height: calc(54px + env(safe-area-inset-top));
+    height: calc(var(--header-height) + env(safe-area-inset-top));
     align-items: center;
     gap: 10px;
-    padding: env(safe-area-inset-top) 14px 0;
+    padding: env(safe-area-inset-top) var(--page-gutter) 0;
     border-bottom: 1px solid var(--line);
     background: color-mix(in srgb, var(--paper) 92%, transparent);
     backdrop-filter: blur(14px);
@@ -671,15 +654,8 @@
 
   .mobileToolbarTitle {
     min-width: 0;
-    flex: 1;
     overflow: hidden;
-    color: var(--ink);
-    font-family: var(--font-mono);
-    font-size: var(--type-label-size);
-    font-weight: var(--type-label-weight);
-    letter-spacing: var(--type-label-tracking);
     text-overflow: ellipsis;
-    text-transform: uppercase;
     white-space: nowrap;
   }
 
@@ -694,11 +670,11 @@
   }
 
   .documentNavigationBackdrop {
-    inset: calc(54px + env(safe-area-inset-top)) 0 0;
+    inset: calc(var(--header-height) + env(safe-area-inset-top)) 0 0;
   }
 
   .documentNavigationPanel {
-    top: calc(54px + env(safe-area-inset-top));
+    top: calc(var(--header-height) + env(safe-area-inset-top));
     bottom: 0;
   }
 
@@ -717,27 +693,12 @@
   .article h2,
   .article h3,
   .article h4 {
-    scroll-margin-top: calc(66px + env(safe-area-inset-top));
+    scroll-margin-top: calc(var(--header-height) + 12px + env(safe-area-inset-top));
   }
 
-  .article table {
-    margin-right: -14px;
-    width: calc(100% + 14px);
-  }
-
-  .article h2[id="pipeline-overview"] + p + ol {
-    display: block;
-    margin: 16px 0 22px;
-  }
-
-  .article h2[id="pipeline-overview"] + p + ol > li {
-    display: block;
-  }
-
-  .article h2[id="pipeline-overview"] + p + ol > li::after {
-    display: block;
-    margin: 7px 0 7px 2px;
-    content: "↓";
+  .tableViewport,
+  .figureViewport {
+    scrollbar-width: thin;
   }
 }
 

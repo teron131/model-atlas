@@ -417,14 +417,14 @@ const confidenceTooltipHtml = renderToStaticMarkup(
 assert.equal(
   [
     "Evidence support",
-    "weighted share of each score",
+    "supported by direct results or discounted, validated estimates",
     "Intelligence evidence support",
     "Agentic evidence support",
     "Speed evidence support",
     "Value evidence support",
     "literal weighted share of active inputs",
-    "regularized toward 50 through 10% of the aggregate-index median evidence breadth",
-    "unadjusted from that median",
+    "stay at 50 through 10% of the aggregate-index median evidence mass",
+    "regularization ends at that median",
     "source-default variant",
   ].every((text) => confidenceTooltipHtml.includes(text)),
   true,
