@@ -7,7 +7,8 @@
 
 import { normalizeModelToken } from "../../identity/normalization";
 import { meanOfFinite, medianOfFinite } from "../../math-utils";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
+import { fetchSource, scheduleSourceRequest, SourceQueueTimeoutError } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";
 
@@ -91,8 +92,8 @@ export async function getAgentsLastExamHarnessStats(
       fetched_at_epoch_seconds: nowEpochSeconds(),
       data: rows,
     };
-  } catch {
-    if (options.usePlaywrightFallback === false) {
+  } catch (error) {
+    if (options.usePlaywrightFallback === false || error instanceof SourceQueueTimeoutError) {
       return {
         fetched_at_epoch_seconds: null,
         data: [],
@@ -258,12 +259,13 @@ async function fetchApiRows(
   apiUrl: string,
   timeoutMs: number,
 ): Promise<AgentsLastExamHarnessRow[]> {
-  const response = await fetchWithTimeout(apiUrl, {}, timeoutMs);
-  if (!response.ok) {
-    throw new Error(`Agents' Last Exam scrape failed: ${response.status}`);
-  }
-  const payload = asRecord(await response.json());
-  return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];
+  return await fetchSource(apiUrl, {}, timeoutMs, async (response) => {
+    if (!response.ok) {
+      throw new Error(`Agents' Last Exam scrape failed: ${response.status}`);
+    }
+    const payload = asRecord(await response.json());
+    return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];
+  });
 }
 
 /** Browser fallback keeps the source usable when the direct JSON endpoint blocks plain fetches. */
@@ -272,21 +274,23 @@ async function fetchPlaywrightRows(
   apiUrl: string,
   timeoutMs: number,
 ): Promise<AgentsLastExamHarnessRow[]> {
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const page = await browser.newPage();
-    const responsePromise = page.waitForResponse(
-      (response) => response.url() === apiUrl && response.ok(),
-      { timeout: timeoutMs },
-    );
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
-    const response = await responsePromise;
-    const payload = asRecord(await response.json());
-    return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];
-  } finally {
-    await browser.close();
-  }
+  return scheduleSourceRequest(url, async () => {
+    const { chromium } = await import("playwright");
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage();
+      const responsePromise = page.waitForResponse(
+        (response) => response.url() === apiUrl && response.ok(),
+        { timeout: timeoutMs },
+      );
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+      const response = await responsePromise;
+      const payload = asRecord(await response.json());
+      return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];
+    } finally {
+      await browser.close();
+    }
+  });
 }
 
 /** API rows are narrowed to the stable source shape before summary and harness joins run. */

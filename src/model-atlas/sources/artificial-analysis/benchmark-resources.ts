@@ -9,14 +9,9 @@ import {
   normalizeModelToken,
   reasoningEffortRank,
 } from "../../identity/normalization";
-import {
-  asFiniteNumber,
-  asRecord,
-  fetchWithTimeout,
-  mapWithConcurrency,
-  nowEpochSeconds,
-} from "../../runtime";
+import { asFiniteNumber, asRecord, mapWithConcurrency, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
+import { fetchSource, SourceQueueTimeoutError } from "../request-scheduler";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -25,8 +20,6 @@ import {
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 const DEFAULT_CONCURRENCY = 3;
-
-const DEFAULT_REQUEST_JITTER_MS = 250;
 
 const PAGE_FETCH_ATTEMPTS = 2;
 
@@ -78,7 +71,6 @@ type ArtificialAnalysisBenchmarkResourceOptions = {
   pages?: readonly ArtificialAnalysisBenchmarkResourcePage[];
   timeoutMs?: number;
   concurrency?: number;
-  requestJitterMs?: number;
 };
 
 export type ArtificialAnalysisBenchmarkResourceRow = {
@@ -127,9 +119,8 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   const pages = options.pages ?? ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
-  const requestJitterMs = options.requestJitterMs ?? DEFAULT_REQUEST_JITTER_MS;
   const pageResults = await mapWithConcurrency(pages, concurrency, (page) =>
-    getCompleteBenchmarkResourceRows(page, timeoutMs, requestJitterMs),
+    getCompleteBenchmarkResourceRows(page, timeoutMs),
   );
   const allPagesComplete =
     pages.length > 0 &&
@@ -261,47 +252,35 @@ export function findArtificialAnalysisBenchmarkResourceRow(
 async function getCompleteBenchmarkResourceRows(
   page: ArtificialAnalysisBenchmarkResourcePage,
   timeoutMs: number,
-  requestJitterMs: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
   for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      await waitForRequestJitter(requestJitterMs);
       const rows = await getBenchmarkResourceRows(page, timeoutMs);
       if (rows.length > 0) {
         return rows;
       }
-    } catch {
-      continue;
+    } catch (error) {
+      if (error instanceof SourceQueueTimeoutError) break;
     }
   }
   return [];
-}
-
-/** Random start jitter spreads same-origin page requests without changing row parsing semantics. */
-async function waitForRequestJitter(maxDelayMs: number): Promise<void> {
-  const safeMaxDelayMs = Math.max(0, Math.floor(maxDelayMs));
-  if (safeMaxDelayMs === 0) {
-    return;
-  }
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, Math.floor(Math.random() * safeMaxDelayMs));
-  });
 }
 
 async function getBenchmarkResourceRows(
   page: ArtificialAnalysisBenchmarkResourcePage,
   timeoutMs: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
-  const response = await fetchWithTimeout(page.url, {}, timeoutMs);
-  if (!response.ok) {
-    throw new Error(
-      `Artificial Analysis benchmark resource scrape failed for ${page.benchmark_key}: ${response.status}`,
+  return await fetchSource(page.url, {}, timeoutMs, async (response) => {
+    if (!response.ok) {
+      throw new Error(
+        `Artificial Analysis benchmark resource scrape failed for ${page.benchmark_key}: ${response.status}`,
+      );
+    }
+    return processArtificialAnalysisBenchmarkResourceRows(
+      extractRowsFromPageHtml(await response.text()),
+      page,
     );
-  }
-  return processArtificialAnalysisBenchmarkResourceRows(
-    extractRowsFromPageHtml(await response.text()),
-    page,
-  );
+  });
 }
 
 function extractRowsFromPageHtml(pageHtml: string): Record<string, unknown>[] {

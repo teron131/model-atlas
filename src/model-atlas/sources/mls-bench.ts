@@ -9,8 +9,9 @@ import type {
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
 import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { nowEpochSeconds } from "../runtime";
 import { htmlAttribute, percentToUnitScore, stripHtmlTags } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const MLS_BENCH_LEADERBOARD_URL = "https://mls-bench.com/leaderboard";
 
@@ -22,12 +23,13 @@ export async function getMlsBenchStats(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(sourceUrl, {}, timeoutMs);
-    if (!response.ok) throw new Error(`MLS-Bench scrape failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processMlsBenchLeaderboardHtml(await response.text(), sourceUrl),
-    };
+    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
+      if (!response.ok) throw new Error(`MLS-Bench scrape failed: ${response.status}`);
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: processMlsBenchLeaderboardHtml(await response.text(), sourceUrl),
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

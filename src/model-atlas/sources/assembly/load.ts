@@ -1,4 +1,4 @@
-/** Source loading owns provider dispatch and produces the complete raw-row contract for stats assembly. */
+/** Bulk source loading acquires shared catalog and benchmark inputs before derivation scores models and schedules per-model enrichment. */
 
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import { getArtificialAnalysisBenchmarkResourceStats } from "../artificial-analysis/benchmark-resources";
@@ -13,12 +13,12 @@ import {
   type ModelAtlasSourceRows,
 } from "./source-data";
 
-/** Fetch and normalize every configured stats source through the same assembly boundary. */
+/** Fetch and normalize shared benchmark and catalog sources; OpenRouter route requests wait for derived quality scores. */
 export async function fetchSourceData(): Promise<ModelAtlasSourceData> {
   return buildSourceData(await fetchSourceRows());
 }
 
-/** Fetch every external source into the raw-row contract consumed by stats assembly. */
+/** Independent bulk feeds run in parallel because model filtering requires their combined evidence. */
 async function fetchSourceRows(): Promise<ModelAtlasSourceRows> {
   const [
     artificialAnalysisStats,

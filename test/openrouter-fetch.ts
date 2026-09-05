@@ -1,4 +1,4 @@
-/** Verify request sharing preserves alias identities, candidate retries, and freshness across OpenRouter scrapes. */
+/** Verify request sharing, transient-only retries, alias identities, and freshness across OpenRouter scrapes. */
 
 import assert from "node:assert/strict";
 
@@ -10,16 +10,17 @@ import {
 const directory = [{ slug: "x-ai/grok-test", permaslug: "x-ai/grok-test-20260905" }];
 const modelIds = ["x-ai/grok-test", "xai/grok-test"];
 const requests: string[] = [];
-let failNextEndpointRequest = false;
+let nextEndpointStatus: number | null = null;
 const originalFetch = globalThis.fetch;
 
 globalThis.fetch = async (input) => {
   const url = new URL(String(input));
   requests.push(url.pathname);
   if (url.pathname.endsWith("/endpoint")) {
-    if (failNextEndpointRequest) {
-      failNextEndpointRequest = false;
-      return new Response("retryable upstream failure", { status: 503 });
+    if (nextEndpointStatus != null) {
+      const status = nextEndpointStatus;
+      nextEndpointStatus = null;
+      return new Response("upstream failure", { status, headers: { "retry-after": "1" } });
     }
     return Response.json({ data: [{ stats: { p50_throughput: 70, p50_latency: 250 } }] });
   }
@@ -51,12 +52,19 @@ globalThis.fetch = async (input) => {
 };
 
 try {
-  const concurrent = await getOpenRouterRawScrapedStats({
+  const firstScrape = getOpenRouterRawScrapedStats({
     modelIds,
     modelDirectory: directory,
     concurrency: 2,
     maxRetries: 1,
   });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(
+    requests.length,
+    6,
+    "One page must start its six endpoints without individual pacing",
+  );
+  const concurrent = await firstScrape;
   assert.equal(requests.length, 6, "Concurrent aliases should share all six route requests");
   assert.equal(new Set(requests).size, 6);
   assert.deepEqual(
@@ -96,7 +104,7 @@ try {
   assert.deepEqual(sequential.models, concurrent.models);
 
   requests.length = 0;
-  failNextEndpointRequest = true;
+  nextEndpointStatus = 503;
   const recovered = await getOpenRouterRawScrapedStats({
     modelIds,
     modelDirectory: directory,
@@ -111,6 +119,41 @@ try {
     2,
     "A failed shared candidate must remain retryable by the next alias",
   );
+  assert.equal(
+    requests.length,
+    7,
+    "A later alias must retain the failed page's five successful responses",
+  );
+  assert.deepEqual(recovered.models[1], concurrent.models[1]);
+
+  for (const status of [403, 404]) {
+    requests.length = 0;
+    nextEndpointStatus = status;
+    const rejected = await getOpenRouterRawScrapedStats({
+      modelIds: [modelIds[0]!],
+      modelDirectory: directory,
+      maxRetries: 3,
+      retryBaseDelayMs: 0,
+    });
+    assert.equal(rejected.models[0]!.selected_permaslug, null);
+    assert.equal(
+      requests.filter((path) => path.endsWith("/endpoint")).length,
+      1,
+      `Permanent HTTP ${status} must not be retried`,
+    );
+  }
+
+  requests.length = 0;
+  nextEndpointStatus = 429;
+  const retried = await getOpenRouterRawScrapedStats({
+    modelIds: [modelIds[0]!],
+    modelDirectory: directory,
+    maxRetries: 3,
+    retryBaseDelayMs: 0,
+  });
+  assert.equal(retried.models[0]!.selected_permaslug, directory[0]!.permaslug);
+  assert.equal(requests.filter((path) => path.endsWith("/endpoint")).length, 2);
+  assert.equal(requests.length, 7, "An endpoint retry must not replay successful sibling requests");
 } finally {
   globalThis.fetch = originalFetch;
 }

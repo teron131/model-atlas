@@ -18,7 +18,7 @@ function assertEqual(actual: unknown, expected: unknown): void {
   }
 }
 
-const openRouterData = await prepareOpenRouterModelData(
+const openRouterData = prepareOpenRouterModelData(
   collapseModelVariants([
     {
       id: "anthropic/claude-opus-4.8-fast",
@@ -38,7 +38,6 @@ const openRouterData = await prepareOpenRouterModelData(
       },
     },
   ]),
-  STAGE_CONFIG.openrouter,
   STAGE_CONFIG.scoring,
   null,
 );
@@ -310,7 +309,7 @@ assertEqual(
   false,
 );
 
-const qwenRouteData = await prepareOpenRouterModelData(
+const qwenRouteData = prepareOpenRouterModelData(
   [
     {
       id: "qwen/qwen3.7-max",
@@ -321,7 +320,6 @@ const qwenRouteData = await prepareOpenRouterModelData(
       },
     },
   ],
-  STAGE_CONFIG.openrouter,
   STAGE_CONFIG.scoring,
   {
     fetched_at_epoch_seconds: 123,
@@ -345,7 +343,7 @@ assertEqual(
   47,
 );
 
-const aliasOnlyData = await prepareOpenRouterModelData(
+const aliasOnlyData = prepareOpenRouterModelData(
   collapseModelVariants([
     {
       id: "openai/gpt-5.5-xhigh",
@@ -356,7 +354,6 @@ const aliasOnlyData = await prepareOpenRouterModelData(
       },
     },
   ]),
-  STAGE_CONFIG.openrouter,
   STAGE_CONFIG.scoring,
   null,
 );
@@ -376,7 +373,7 @@ const qualifiedFallbackRows = collapseModelVariants([
 assertEqual(qualifiedFallbackRows[0]?.id, "openai/gpt-test");
 assertEqual(qualifiedFallbackRows[0]?.openrouter_id, "openai/gpt-test");
 
-const datedGeminiPreviewData = await prepareOpenRouterModelData(
+const datedGeminiPreviewData = prepareOpenRouterModelData(
   collapseModelVariants([
     {
       id: "google/gemini-2.5-flash-preview-09-2025",
@@ -387,7 +384,6 @@ const datedGeminiPreviewData = await prepareOpenRouterModelData(
       },
     },
   ]),
-  STAGE_CONFIG.openrouter,
   STAGE_CONFIG.scoring,
   null,
 );

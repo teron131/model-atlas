@@ -13,13 +13,14 @@ import type {
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
 import { benchmarkModelEffort, normalizeModelToken } from "../identity/normalization";
-import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { asFiniteNumber, nowEpochSeconds } from "../runtime";
 import {
   processEpochWeirdMlCsv,
   WEIRDML_EPOCH_CSV_URL,
   type WeirdMlEpochRow,
 } from "./epoch/weirdml";
 import { parseCsvRecords } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const WEIRDML_CREATOR_CSV_URL = "https://htihle.github.io/data/weirdml_data.csv";
 
@@ -111,25 +112,37 @@ export async function getWeirdMlStats(
 ): Promise<WeirdMlPayload> {
   try {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const epochRequest = fetchWithTimeout(
+    const epochRequest = fetchSource(
       options.epochUrl ?? WEIRDML_EPOCH_CSV_URL,
       {},
       timeoutMs,
-    ).catch(() => null);
-    const creatorResponse = await fetchWithTimeout(
+      async (response) => {
+        if (!response.ok) return { text: null };
+        // Missing mirrors allow primary-only results; interrupted mirror bodies still reject the refresh.
+        return response.text().then(
+          (text) => ({ text }),
+          (error: unknown) => ({ error }),
+        );
+      },
+    ).catch(() => ({ text: null }));
+    const creatorCsv = await fetchSource(
       options.creatorUrl ?? WEIRDML_CREATOR_CSV_URL,
       {},
       timeoutMs,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`WeirdML creator scrape failed: ${response.status}`);
+        }
+        return response.text();
+      },
     );
-    if (!creatorResponse.ok) {
-      throw new Error(`WeirdML creator scrape failed: ${creatorResponse.status}`);
-    }
-    const primaryRows = processWeirdMlCsv(await creatorResponse.text());
+    const primaryRows = processWeirdMlCsv(creatorCsv);
     if (primaryRows.length === 0) {
       throw new Error("WeirdML creator scrape returned no current-schema rows");
     }
-    const epochResponse = await epochRequest;
-    const epochRows = epochResponse?.ok ? processEpochWeirdMlCsv(await epochResponse.text()) : [];
+    const epochResult = await epochRequest;
+    if ("error" in epochResult) throw epochResult.error;
+    const epochRows = epochResult.text == null ? [] : processEpochWeirdMlCsv(epochResult.text);
     if (epochRows.length === 0) {
       return {
         fetched_at_epoch_seconds: nowEpochSeconds(),

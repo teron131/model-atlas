@@ -12,8 +12,9 @@ import {
   resourcePerTaskRun,
 } from "../benchmarks/observation";
 import { canonicalReasoningEffort, modelNameWithoutCreatorPrefix } from "../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
 import { percentToUnitScore, stringValue } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const TERMINAL_BENCH_SCIENCE_DATA_URL =
   "https://www.terminal-bench-science.ai/api/leaderboard?package=terminal-bench-science%2Fterminal-bench-science&name=v0-1-eval";
@@ -30,15 +31,16 @@ export async function getTerminalBenchScienceStats(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(sourceUrl, {}, timeoutMs);
-    if (!response.ok) {
-      throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
-    }
-    const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
-    if (data.length === 0) {
-      throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
-    }
-    return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
+      }
+      const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
+      if (data.length === 0) {
+        throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
+      }
+      return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

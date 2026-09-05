@@ -11,8 +11,9 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/benchmarks.csv";
 
@@ -96,12 +97,13 @@ function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 
 async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
   try {
-    const response = await fetchWithTimeout(EPOCH_BENCHMARKS_CSV_URL, {}, DEFAULT_TIMEOUT_MS);
-    if (!response.ok) throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: parseCsvRecords(await response.text()),
-    };
+    return await fetchSource(EPOCH_BENCHMARKS_CSV_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok) throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: parseCsvRecords(await response.text()),
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

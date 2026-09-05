@@ -17,8 +17,9 @@ import {
   modelNameWithoutCreatorPrefix,
   normalizeModelToken,
 } from "../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
 import { stringValue } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -61,18 +62,20 @@ export async function getArcPrizeStats(
   options: ArcPrizeFetchOptions,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(
+    return await fetchSource(
       options.sourceUrl,
       {},
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`ARC Prize ${options.benchmarkKey} scrape failed: ${response.status}`);
+        }
+        return {
+          fetched_at_epoch_seconds: nowEpochSeconds(),
+          data: processArcPrizeLeaderboardJson(await response.json(), options),
+        };
+      },
     );
-    if (!response.ok) {
-      throw new Error(`ARC Prize ${options.benchmarkKey} scrape failed: ${response.status}`);
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processArcPrizeLeaderboardJson(await response.json(), options),
-    };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

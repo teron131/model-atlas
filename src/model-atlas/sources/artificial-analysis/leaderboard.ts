@@ -6,8 +6,9 @@
 
 import { ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS } from "../../benchmarks/registry";
 import { canonicalReasoningEffort } from "../../identity/normalization";
-import { asRecord, fetchWithTimeout, type JsonObject, nowEpochSeconds } from "../../runtime";
+import { asRecord, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -90,20 +91,21 @@ export async function getArtificialAnalysisLeaderboardRawStats(
     const url = options.url ?? DEFAULT_SCRAPE_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-    const response = await fetchWithTimeout(url, {}, timeoutMs);
-    if (!response.ok) {
-      throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
-    }
-    const pageHtml = await response.text();
-    const flightCorpus = extractNextFlightCorpus(pageHtml);
-    const leaderboardRows = sortLeaderboardRows(
-      extractLeaderboardRowsFromCorpus(flightCorpus).filter(isLeaderboardModelRow),
-    );
+    return await fetchSource(url, {}, timeoutMs, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
+      }
+      const pageHtml = await response.text();
+      const flightCorpus = extractNextFlightCorpus(pageHtml);
+      const leaderboardRows = sortLeaderboardRows(
+        extractLeaderboardRowsFromCorpus(flightCorpus).filter(isLeaderboardModelRow),
+      );
 
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: leaderboardRows,
-    };
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: leaderboardRows,
+      };
+    });
   } catch {
     return {
       fetched_at_epoch_seconds: null,

@@ -5,7 +5,8 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
+import { fetchSource } from "../request-scheduler";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -30,19 +31,21 @@ type ArtificialAnalysisOmniscienceOptions = {
 export async function getArtificialAnalysisOmniscienceStats(
   options: ArtificialAnalysisOmniscienceOptions,
 ): Promise<BenchmarkObservationPayload> {
-  const response = await fetchWithTimeout(
+  return await fetchSource(
     options.sourceUrl,
     {},
     options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    async (response) => {
+      if (!response.ok) {
+        throw new Error(`Artificial Analysis Omniscience scrape failed: ${response.status}`);
+      }
+      const data = processArtificialAnalysisOmnisciencePage(await response.text(), options);
+      return {
+        fetched_at_epoch_seconds: data.length === 0 ? null : nowEpochSeconds(),
+        data,
+      };
+    },
   );
-  if (!response.ok) {
-    throw new Error(`Artificial Analysis Omniscience scrape failed: ${response.status}`);
-  }
-  const data = processArtificialAnalysisOmnisciencePage(await response.text(), options);
-  return {
-    fetched_at_epoch_seconds: data.length === 0 ? null : nowEpochSeconds(),
-    data,
-  };
 }
 
 /** Normalize the declared Omniscience JSON-LD dataset into shared benchmark observations. */

@@ -6,8 +6,9 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, fetchWithTimeout, nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, stringValue } from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -43,16 +44,18 @@ export async function getValsSourceStats(
   options: ValsScraperOptions = {},
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(
+    return await fetchSource(
       options.url ?? definition.sourceUrl,
       {},
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) return { fetched_at_epoch_seconds: null, data: [] };
+        return {
+          fetched_at_epoch_seconds: nowEpochSeconds(),
+          data: processValsBenchmarkPageHtml(await response.text(), definition),
+        };
+      },
     );
-    if (!response.ok) return { fetched_at_epoch_seconds: null, data: [] };
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processValsBenchmarkPageHtml(await response.text(), definition),
-    };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

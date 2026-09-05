@@ -11,8 +11,9 @@ import type {
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
 import { canonicalReasoningEffort, modelNameWithoutCreatorPrefix } from "../identity/normalization";
-import { fetchWithTimeout, nowEpochSeconds } from "../runtime";
+import { nowEpochSeconds } from "../runtime";
 import { percentToUnitScore } from "./parsing";
+import { fetchSource } from "./request-scheduler";
 
 const PERCEPTION_BENCH_README_URL =
   "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md";
@@ -58,12 +59,13 @@ export async function getPerceptionBenchStats(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const response = await fetchWithTimeout(sourceUrl, {}, timeoutMs);
-    if (!response.ok) throw new Error(`PerceptionBench scrape failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processPerceptionBenchReadme(await response.text(), sourceUrl),
-    };
+    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
+      if (!response.ok) throw new Error(`PerceptionBench scrape failed: ${response.status}`);
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data: processPerceptionBenchReadme(await response.text(), sourceUrl),
+      };
+    });
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }

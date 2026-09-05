@@ -652,23 +652,7 @@ export function buildComponentScoreResult(
     scoringConfig.qualityCoverage.agentic,
     "regularized",
   );
-  const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
-  const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);
-  const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
-  const estimatedSpeedScore = meanOfFinite(
-    speedOutputTokenAnchors.map((targetTokens) =>
-      latencySeconds != null && throughputTokensPerSecond != null && throughputTokensPerSecond > 0
-        ? targetTokens / (latencySeconds + targetTokens / throughputTokensPerSecond)
-        : null,
-    ),
-  );
-  const sortedAnchors = [...speedOutputTokenAnchors].sort((left, right) => left - right);
-  const representativeTargetTokens = quantileFromSorted(sortedAnchors, 0.5);
-  const observedE2eSpeedScore =
-    representativeTargetTokens != null && e2eLatencySeconds != null && e2eLatencySeconds > 0
-      ? representativeTargetTokens / e2eLatencySeconds
-      : null;
-  const speedScore = meanOfFinite([estimatedSpeedScore, observedE2eSpeedScore]);
+  const speedScore = buildSpeedComponentScore(speed, speedOutputTokenAnchors);
   return {
     componentScores:
       intelligence.score == null && agentic.score == null && speedScore == null
@@ -685,4 +669,28 @@ export function buildComponentScoreResult(
       value: null,
     },
   };
+}
+
+/** Compute route delivery speed independently of quality so enrichment cannot alter the score-filter decision. */
+export function buildSpeedComponentScore(
+  speed: ModelAtlasSpeed,
+  speedOutputTokenAnchors: number[],
+): number | null {
+  const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
+  const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);
+  const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
+  const estimatedSpeedScore = meanOfFinite(
+    speedOutputTokenAnchors.map((targetTokens) =>
+      latencySeconds != null && throughputTokensPerSecond != null && throughputTokensPerSecond > 0
+        ? targetTokens / (latencySeconds + targetTokens / throughputTokensPerSecond)
+        : null,
+    ),
+  );
+  const sortedAnchors = [...speedOutputTokenAnchors].sort((left, right) => left - right);
+  const representativeTargetTokens = quantileFromSorted(sortedAnchors, 0.5);
+  const observedE2eSpeedScore =
+    representativeTargetTokens != null && e2eLatencySeconds != null && e2eLatencySeconds > 0
+      ? representativeTargetTokens / e2eLatencySeconds
+      : null;
+  return meanOfFinite([estimatedSpeedScore, observedE2eSpeedScore]);
 }

@@ -561,11 +561,11 @@ const matchDiagnostics = buildMatchDiagnostics({
 });
 const sharedDerivation = await deriveModelStats(sourceData, {
   loadOpenRouter: async (modelIds) => {
-    assert.deepEqual(modelIds, [
-      "google/example-2.5-flash",
-      "google/example-2.5-flash-lite",
-      "~google/example-pro-latest",
-    ]);
+    assert.deepEqual(
+      modelIds,
+      ["google/example-2.5-flash"],
+      "catalog-only and unqualified routes must not trigger OpenRouter fetching",
+    );
     return {
       rawPayload: null,
       cacheStatus: "cached",
@@ -578,6 +578,62 @@ assert.deepEqual(
   "live and persisted derivation should consume the same finalized matcher decisions",
 );
 assert.equal(sharedDerivation.openRouterLoad.cacheStatus, "cached");
+assert.ok(
+  sharedDerivation.modelRows.length > 0,
+  "fetch filtering must retain the scoring population",
+);
+const uncoveredSourceData = modelStatsSourceData([]);
+const uncoveredCatalogModel = model("openrouter", "uncovered/unqualified", "Unqualified");
+uncoveredSourceData.modelsDev = {
+  rows: [uncoveredCatalogModel],
+  byId: new Map([[uncoveredCatalogModel.model_id, uncoveredCatalogModel]]),
+};
+const originalFetch = globalThis.fetch;
+let openRouterRequests = 0;
+globalThis.fetch = async (input) => {
+  if (new URL(String(input)).hostname === "openrouter.ai") openRouterRequests++;
+  throw new Error("Offline derivation check");
+};
+try {
+  const uncovered = await deriveModelStats(uncoveredSourceData);
+  assert.ok(uncovered.modelRows.length > 0);
+  assert.equal(
+    openRouterRequests,
+    0,
+    "the direct live workflow must also skip an empty eligible cohort",
+  );
+} finally {
+  globalThis.fetch = originalFetch;
+}
+const scoredSourceData = modelStatsSourceData(
+  [
+    { id: "google/example-2-5-flash", score: 0.9 },
+    { id: "google/example-2-5-flash-lite", score: 0.0001 },
+  ].map(({ id, score }) => {
+    return {
+      ...sourceModel(id, score * 100),
+      intelligence: { intelligence_index: score * 100, agentic_index: score * 100 },
+      benchmarks: Object.fromEntries(
+        [
+          ...STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
+          ...STAGE_CONFIG.scoring.agenticBenchmarkKeys,
+        ]
+          .filter((key) => key !== "aa_intelligence_index")
+          .map((key) => [key, score]),
+      ),
+    };
+  }),
+);
+await deriveModelStats(scoredSourceData, {
+  loadOpenRouter: async (modelIds) => {
+    assert.deepEqual(
+      modelIds,
+      ["google/example-2.5-flash"],
+      "the lower-scoring model must be removed before the network loader despite complete benchmark inputs",
+    );
+    return { rawPayload: null };
+  },
+});
 const unmatchedProDiagnostics = matchDiagnostics.models.find(
   (model) => model.artificial_analysis_slug === "example-3-pro",
 );

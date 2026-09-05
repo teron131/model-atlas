@@ -411,7 +411,7 @@ const server = createServer((_request, response) => {
     completedRequests += 1;
     response.writeHead(404, { "content-type": "text/plain" });
     response.end("not found");
-  }, 20);
+  }, 350);
 });
 
 assertDeepEqual(await getArtificialAnalysisBenchmarkResourceStats({ pages: [] }), {
@@ -426,7 +426,6 @@ try {
   const address = server.address() as AddressInfo;
   const failedPayload = await getArtificialAnalysisBenchmarkResourceStats({
     concurrency: 2,
-    requestJitterMs: 0,
     timeoutMs: 1_000,
     pages: Array.from({ length: 6 }, (_, index) => ({
       benchmark_key: `test_${index}`,

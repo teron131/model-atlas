@@ -23,5 +23,6 @@ export {
   blendedPriceValue,
   buildComponentScoreResult,
   buildPreviewComponentScoreResult,
+  buildSpeedComponentScore,
   deriveSpeedOutputTokenAnchors,
 } from "./score-builders";
