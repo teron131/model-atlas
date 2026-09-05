@@ -69,7 +69,11 @@ function assertEqual(actual: unknown, expected: unknown): void {
 }
 
 function assertClose(actual: unknown, expected: number, epsilon = 0.0001): void {
-  if (typeof actual !== "number" || Math.abs(actual - expected) > epsilon) {
+  if (
+    typeof actual !== "number" ||
+    !Number.isFinite(actual) ||
+    Math.abs(actual - expected) > epsilon
+  ) {
     throw new Error(`Expected ${expected}, got ${actual}`);
   }
 }
