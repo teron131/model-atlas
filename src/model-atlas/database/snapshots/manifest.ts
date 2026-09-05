@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { gunzip } from "node:zlib";
 
 import { asRecord, stableJson } from "../../runtime";
+import { isModelAtlasPayload } from "../../stats/payload/validation";
 import type { ModelAtlasPayload } from "../../stats/types";
 
 type SnapshotArtifacts = {
@@ -160,13 +161,8 @@ export async function decodeSnapshotPayload(
 }
 
 export function parseSnapshotPayload(bytes: Buffer): ModelAtlasPayload {
-  const payload = JSON.parse(bytes.toString("utf8")) as ModelAtlasPayload;
-  if (
-    !payload ||
-    !Array.isArray(payload.models) ||
-    !payload.metadata?.scoring ||
-    !Number.isSafeInteger(payload.fetched_at_epoch_seconds)
-  ) {
+  const payload: unknown = JSON.parse(bytes.toString("utf8"));
+  if (!isModelAtlasPayload(payload) || !Number.isSafeInteger(payload.fetched_at_epoch_seconds)) {
     throw new Error("GCS contains an invalid dashboard snapshot");
   }
   return payload;

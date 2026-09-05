@@ -1,13 +1,17 @@
 "use client";
 
-/** Own the dashboard payload's browser fetch, cache, retry, and refresh lifecycle. */
+/** Coordinate dashboard hydration and active-page refreshes while payload-cache owns downloads and persisted validators. */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
-import { liveStatsPath } from "./shared/constants";
+import {
+  type CachedPayload,
+  fetchDashboardPayload,
+  readCachedPayload,
+  schedulePayloadCacheWrite,
+} from "./payload-cache";
 
-const MODEL_ATLAS_PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
 // Cache is only a display substitute; missing or incomplete server payloads still refresh through this guard policy.
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
@@ -24,7 +28,9 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
-  const payloadEtagRef = useRef<string | null>(null);
+  const currentPayloadRef = useRef<CachedPayload | null>(
+    initialPayload == null ? null : { etag: null, payload: initialPayload },
+  );
 
   const refreshPayload = useCallback((options?: RefreshPayloadOptions) => {
     if (refreshInFlightRef.current != null) {
@@ -46,25 +52,13 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
     }
     recordRefreshAttempt();
     setErrorMessage(null);
-    refreshInFlightRef.current = fetch(liveStatsPath, {
-      cache: "no-cache",
-      headers: payloadEtagRef.current ? { "If-None-Match": payloadEtagRef.current } : {},
-    })
-      .then(async (response) => {
-        if (response.status === 304) return;
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const etag = response.headers.get("etag");
-        // Browser caches may merge a 304 into a 200 response; unchanged content still needs no parsing or state update.
-        if (etag != null && etag === payloadEtagRef.current) {
-          await response.body?.cancel();
-          return;
-        }
-        const nextPayload = (await response.json()) as ModelAtlasPayload;
-        payloadEtagRef.current = etag;
-        setPayload(nextPayload);
-        scheduleCacheWrite(nextPayload);
+    const current = currentPayloadRef.current;
+    refreshInFlightRef.current = fetchDashboardPayload(current)
+      .then((next) => {
+        if (next === current) return;
+        currentPayloadRef.current = next;
+        setPayload(next.payload);
+        schedulePayloadCacheWrite(next);
       })
       .catch((error) => {
         console.error("Unable to refresh stats", error);
@@ -77,20 +71,13 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
   }, []);
 
   useLayoutEffect(() => {
-    const cachedPayload = readCachedPayload();
-    if (initialPayload == null) {
-      if (cachedPayload != null) {
-        setPayload(cachedPayload);
-      }
-      void refreshPayload({ retryWhenGuarded: true });
-      return;
+    if (initialPayload != null && hasSelectedBenchmarks(initialPayload)) return;
+    const cached = readCachedPayload();
+    if (cached != null && (initialPayload == null || hasSelectedBenchmarks(cached.payload))) {
+      currentPayloadRef.current = cached;
+      setPayload(cached.payload);
     }
-    if (!isFullPayload(initialPayload)) {
-      if (cachedPayload != null && isFullPayload(cachedPayload)) {
-        setPayload(cachedPayload);
-      }
-      void refreshPayload({ retryWhenGuarded: true });
-    }
+    void refreshPayload({ retryWhenGuarded: true });
   }, [initialPayload, refreshPayload]);
 
   useEffect(() => {
@@ -120,37 +107,11 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
   };
 }
 
-function isModelAtlasPayload(payload: unknown): payload is ModelAtlasPayload {
-  if (payload == null || typeof payload !== "object") {
-    return false;
-  }
-  return Array.isArray((payload as Partial<ModelAtlasPayload>).models);
-}
-
-function isFullPayload(payload: ModelAtlasPayload): boolean {
+function hasSelectedBenchmarks(payload: ModelAtlasPayload): boolean {
   return payload.metadata.scoring.selected_benchmark_keys.length > 0;
 }
 
-function readCachedPayload(): ModelAtlasPayload | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const cachedPayload = window.localStorage.getItem(MODEL_ATLAS_PAYLOAD_CACHE_KEY);
-    if (cachedPayload == null) {
-      return null;
-    }
-    const parsedPayload: unknown = JSON.parse(cachedPayload);
-    return isModelAtlasPayload(parsedPayload) ? parsedPayload : null;
-  } catch {
-    return null;
-  }
-}
-
 function refreshGuardRemainingMs(): number {
-  if (typeof window === "undefined") {
-    return 0;
-  }
   try {
     const refreshedAt = Number.parseInt(
       window.sessionStorage.getItem(PAYLOAD_REFRESH_ATTEMPT_KEY) ?? "",
@@ -166,33 +127,7 @@ function refreshGuardRemainingMs(): number {
 }
 
 function recordRefreshAttempt(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
   try {
     window.sessionStorage.setItem(PAYLOAD_REFRESH_ATTEMPT_KEY, String(Date.now()));
   } catch {}
-}
-
-function scheduleCacheWrite(payload: ModelAtlasPayload): void {
-  const idleCallback = window.requestIdleCallback?.(
-    () => {
-      writeCachedPayload(payload);
-    },
-    { timeout: 2500 },
-  );
-  if (idleCallback != null) {
-    return;
-  }
-  window.setTimeout(() => {
-    writeCachedPayload(payload);
-  }, 0);
-}
-
-function writeCachedPayload(payload: ModelAtlasPayload): void {
-  try {
-    window.localStorage.setItem(MODEL_ATLAS_PAYLOAD_CACHE_KEY, JSON.stringify(payload));
-  } catch {
-    // The live response still renders even when browser storage is unavailable.
-  }
 }

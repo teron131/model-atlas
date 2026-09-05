@@ -2,11 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/config";
-import {
-  previewModelFromCandidate,
-  selectPublicModels,
-} from "../src/model-atlas/pipeline/selection/public-list";
 import {
   benchmarksJsonPayload,
   coreJsonPayload,
@@ -14,7 +9,12 @@ import {
   fullJsonPayload,
   publicJsonPayload,
   scoreJsonPayload,
-} from "../src/model-atlas/stats/payload/public-json";
+} from "../app/leaderboard/public-json";
+import { STAGE_CONFIG } from "../src/model-atlas/config";
+import {
+  previewModelFromCandidate,
+  selectPublicModels,
+} from "../src/model-atlas/pipeline/selection/public-list";
 import type { ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 

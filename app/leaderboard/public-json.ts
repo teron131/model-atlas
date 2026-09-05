@@ -1,15 +1,15 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
-import { isPreviewModel, rankedModels } from "../../pipeline/model-types";
-import { compactModelVariants, strongestModelVariants } from "../../pipeline/selection/public-list";
+import { strongestModelVariants } from "../../src/model-atlas/stats/model-variants";
+import { isPreviewModel, rankedModels } from "../../src/model-atlas/stats/types";
 import type {
-  ModelAtlasLeaderboardRank,
   ModelAtlasModel,
   ModelAtlasPayload,
   ModelAtlasPreviewModel,
   ModelAtlasPublishedModel,
   ModelAtlasScores,
-} from "../types";
+} from "../../src/model-atlas/stats/types";
+import { compactModelVariants } from "./model-variants";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
@@ -18,6 +18,8 @@ const SCORE_SCALE = "percentage";
 const BENCHMARK_SCALE = "decimal";
 
 export type ModelAtlasJsonView = "score" | "core" | "benchmarks" | "all" | "full" | "dashboard";
+
+export type ModelAtlasLeaderboardRank = number | "preview";
 
 type PublicJsonPayload =
   | ScoreJsonPayload
@@ -240,7 +242,7 @@ function compactLeaderboardRows(payload: ModelAtlasPayload): LeaderboardRow[] {
 
 /** Use competition ranking semantics: tied intelligence scores share a rank and leave the next ordinal gap. */
 function rankModelsByIntelligence(models: readonly ModelAtlasModel[]): LeaderboardRow[] {
-  const rankedModels: LeaderboardRow[] = [];
+  const rows: LeaderboardRow[] = [];
   const sortedModels = [...models].sort(
     (left, right) => right.scores.intelligence_score - left.scores.intelligence_score,
   );
@@ -249,11 +251,11 @@ function rankModelsByIntelligence(models: readonly ModelAtlasModel[]): Leaderboa
   for (const [index, model] of sortedModels.entries()) {
     const score = model.scores.intelligence_score;
     const rank = score === previousScore ? previousRank : index + 1;
-    rankedModels.push({ model, rank });
+    rows.push({ model, rank });
     previousScore = score;
     previousRank = rank;
   }
-  return rankedModels;
+  return rows;
 }
 
 function isPreviewLeaderboardModel(

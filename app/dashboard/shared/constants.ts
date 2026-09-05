@@ -1,4 +1,4 @@
-/** Shared dashboard constants for live data paths, tooltips, and benchmark labels. */
+/** Shared dashboard display constants keep tooltips and benchmark labels aligned across graphs and tables. */
 
 import {
   BENCHMARK_DISPLAY_ORDER,
@@ -6,8 +6,6 @@ import {
   BENCHMARK_TOOLTIPS,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { ModelAtlasColumnTooltip } from "../../../src/model-atlas/config/tooltips";
-
-export const liveStatsPath = "/api/llm-stats?view=dashboard";
 
 export const tooltipHorizontalPadding = 18;
 export const tooltipMaxWidth = 360;
