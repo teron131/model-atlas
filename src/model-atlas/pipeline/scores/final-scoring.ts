@@ -305,6 +305,7 @@ function buildResourceScoreInputs(
     models,
     qualityCoordinates,
     logBlendedPriceSignals,
+    "linear",
   );
   const priceComponentScores = [logBlendedPriceScores, qualityAdjustedBlendedPriceScores] as const;
   const throughputSpeedSignals = models.map((model) =>

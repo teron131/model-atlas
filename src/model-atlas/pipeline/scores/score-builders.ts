@@ -9,7 +9,11 @@ import {
   benchmarkDimensionWeight,
   INDEX_REPRESENTED_BENCHMARK_COUNTS,
 } from "../../benchmarks/registry";
-import type { QualityCoverageThresholds, ScoringConfig } from "../../config/stage";
+import {
+  QUALITY_SCORE_BUCKET_WEIGHTS,
+  type QualityCoverageThresholds,
+  type ScoringConfig,
+} from "../../config/stage";
 import {
   canonicalModelKey,
   canonicalReasoningEffort,
@@ -120,6 +124,7 @@ export function buildAgenticTokenScoringContext(
           return amount == null ? null : Math.log(amount);
         }),
         scoringConfig.agenticTokenModifierCap,
+        coordinate,
       );
       const values: number[] = [];
       const multipliersByObservation = new Map<string, number>();
@@ -397,18 +402,35 @@ function evidenceRegularizedQualityScore(qualityMean: number, evidenceReliabilit
         (qualityMean - QUALITY_REGULARIZATION_TARGET) * evidenceReliability;
 }
 
-/** Weight observed aggregate indexes by represented breadth in an undercovered quality mean. */
-function undercoveredQualityScore(benchmarkScoreInputs: BenchmarkScoreInput[]): number | null {
+/** Taper represented index breadth to a 30% group share at full task coverage; importance distributes that share among observed indexes. */
+function indexBlendedQualityScore(
+  benchmarkScoreInputs: BenchmarkScoreInput[],
+  taskCoverage: number,
+  possibleTaskWeight: number,
+): number | null {
+  const observedIndexWeight = benchmarkScoreInputs.reduce(
+    (sum, input) =>
+      sum + (input.observed && AGGREGATE_INDEX_KEYS.has(input.key) ? input.weight : 0),
+    0,
+  );
+  const fullIndexWeight =
+    (possibleTaskWeight * QUALITY_SCORE_BUCKET_WEIGHTS.nonBenchmark) /
+    QUALITY_SCORE_BUCKET_WEIGHTS.benchmark;
   return weightedMeanOfFinite(
     benchmarkScoreInputs.flatMap(({ key, value, observed, weight }) => {
       const representedBenchmarkCount =
         INDEX_REPRESENTED_BENCHMARK_COUNTS[key as keyof typeof INDEX_REPRESENTED_BENCHMARK_COUNTS];
-      return observed ? [{ value, weight: representedBenchmarkCount ?? weight }] : [];
+      const effectiveWeight =
+        representedBenchmarkCount == null
+          ? weight
+          : representedBenchmarkCount * (1 - taskCoverage) +
+            (taskCoverage * fullIndexWeight * weight) / observedIndexWeight;
+      return observed ? [{ value, weight: effectiveWeight }] : [];
     }),
   );
 }
 
-/** Score direct observations while aggregate indexes proxy the missing share below full task coverage. */
+/** Score direct evidence with index support converging to the 70/30 task/index blend; estimates affect evidence support only. */
 function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
   evidenceThresholds: QualityCoverageThresholds[BenchmarkDimension],
@@ -446,9 +468,15 @@ function qualityScore(
   const hasObservedIndex = benchmarkScoreInputs.some(
     ({ key, observed }) => observed && AGGREGATE_INDEX_KEYS.has(key),
   );
-  if (hasObservedIndex && observedTaskEvidenceMass < possibleTaskEvidenceMass) {
+  if (hasObservedIndex) {
     return {
-      score: undercoveredQualityScore(benchmarkScoreInputs),
+      score: indexBlendedQualityScore(
+        benchmarkScoreInputs,
+        possibleTaskEvidenceMass > 0
+          ? clamp01(observedTaskEvidenceMass / possibleTaskEvidenceMass)
+          : 0,
+        possibleTaskEvidenceMass,
+      ),
       evidenceSupport,
     };
   }

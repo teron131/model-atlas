@@ -43,6 +43,8 @@ $$
 
 At an input of $t=0.5$, smoothstep is also 0.5. Its gradual transition avoids an abrupt on/off threshold as evidence accumulates. Weighted quantiles, ranks, medians, and percentiles use the model balancing below unless stated otherwise.
 
+Weighted quantiles accumulate observation weight in value order and retain the full mass of ties. A quantile selects the value whose cumulative mass crosses its requested fraction; exactly at a boundary between values, it averages those two values. The weighted median is the 50th quantile. Nine units at 0 and one at 100 therefore have median 0, not 50. Contextual ranks place a value at the midpoint of its tied mass; a value between observations uses the cumulative mass below it.
+
 ## Intelligence and Agentic
 
 ### Model-Balanced Reference Weight
@@ -65,13 +67,13 @@ $$
 e(x)=\operatorname{clamp}\left(\frac{x-500}{2000},0,1\right).
 $$
 
-The observation $x_{m,b}$ is then compared with that benchmark's observed minimum $x_{\min,b}$ and maximum $x_{\max,b}$. The normalized contribution $z_{m,b}$ preserves the gaps between results while placing them on a common 0-100 scale:
+The observation $x_{m,b}$ is then compared with that benchmark's observed minimum $x_{\mathrm{min},b}$ and maximum $x_{\mathrm{max},b}$. The normalized contribution $z_{m,b}$ preserves the gaps between results while placing them on a common 0-100 scale:
 
 $$
 z_{m,b}=
 \begin{cases}
-100 & x_{\max,b}=x_{\min,b}\\
-100\cdot\operatorname{clamp}\left(\dfrac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}},0,1\right) & x_{\max,b}>x_{\min,b}.
+100 & x_{\mathrm{max},b}=x_{\mathrm{min},b}\\
+100\cdot\operatorname{clamp}\left(\dfrac{x_{m,b}-x_{\mathrm{min},b}}{x_{\mathrm{max},b}-x_{\mathrm{min},b}},0,1\right) & x_{\mathrm{max},b}>x_{\mathrm{min},b}.
 \end{cases}
 $$
 
@@ -79,7 +81,7 @@ For example, observed results of 20, 40, and 100 become 0, 25, and 100. The midd
 
 When all observed values are equal, every observed row receives 100: the benchmark adds no ordering among those rows, and the calculation avoids division by zero. Estimated values use the same frozen observed anchors and cannot redefine the scale.
 
-A benchmark's importance $i_b$ controls its overall influence. Its dimension loading $\lambda_{b,d}$ allocates that influence to Intelligence or Agentic. The effective weight $\omega_{b,d}=i_b\lambda_{b,d}$ combines those two choices. For example, importance 2 with a 25% Intelligence loading contributes weight 0.5 to Intelligence. The complementary loading directs the remaining influence to Agentic, so a mixed benchmark does not receive its full importance twice.
+A benchmark's importance $i_b$ controls its influence within the task or index group. Its dimension loading $\lambda_{b,d}$ allocates that influence to Intelligence or Agentic. The effective weight $\omega_{b,d}=i_b\lambda_{b,d}$ combines those two choices. For example, importance 2 with a 25% Intelligence loading contributes weight 0.5 to Intelligence. The complementary loading directs the remaining influence to Agentic, so a mixed benchmark does not receive its full importance twice.
 
 The selected benchmarks $\mathcal{B}_d$ define the dimension's portfolio. The directly observed subset $\mathcal{O}_{m,d}$ supplies the weighted mean $\bar z_{m,d}$:
 
@@ -99,7 +101,7 @@ The comparison uses the full candidate cohort before admission, with the same [n
 
 Each benchmark uses one token measure consistently across its reference population. Input plus output tokens are preferred, followed by reported total tokens, then output-only tokens. The first measure supported by at least three independent models is used. Tokens must match the benchmark and effort configuration; Artificial Analysis aggregate tokens apply only to its own Intelligence Index, using a linear quality coordinate.
 
-The actual token count $T_{m,b}$ is compared with nearby peers' average log token count $\mu^T_{m,b}$. Their difference $r^T_{m,b}$ is negative when the model uses fewer tokens than expected. The robust spread $s^T_b$ measures variation in the original paired log-token observations:
+The actual token count $T_{m,b}$ is compared with the nearby peers' expected log token count $\mu^T_{m,b}$, using the supported local trend or peer-average fallback described below. Their difference $r^T_{m,b}$ is negative when the model uses fewer tokens than expected. The robust spread $s^T_b$ measures variation in the original paired log-token observations:
 
 $$
 r^T_{m,b}=\ln T_{m,b}-\mu^T_{m,b},\qquad
@@ -181,7 +183,7 @@ $$
 
 For an observed mean of 80 and a reliability coefficient of 0.5, the provisional score is $80-0.5(80-50)=65$. A mean of 40 stays 40.
 
-There is an important alternative to this calculation. When the model has an observed aggregate index but incomplete direct task coverage, the [aggregate-index proxy](#aggregate-index-proxying) supplies its quality score instead. The final capability scores $I_m$ and $A_m$ use the applicable quality estimate $Q_{m,d}$, including any supported sibling-effort calibration:
+When the model has an observed aggregate index, the [aggregate-index blend](#aggregate-index-proxying) supplies its quality score instead, converging to 70% task benchmarks and 30% indexes as direct task coverage becomes complete. The final capability scores $I_m$ and $A_m$ use the applicable quality estimate $Q_{m,d}$, including any supported sibling-effort calibration:
 
 $$
 \begin{aligned}
@@ -232,21 +234,21 @@ Subtracting one offset preserves gaps within the fallback source. Using a weight
 
 ![An illustrative additive crosswalk preserves source gaps while shifting the baseline. Hollow points are paired observations; the filled point is a converted estimate. Actual use requires validation on held-out models.](assets/methodology/source-crosswalk.svg)
 
-The conversion needs at least $K_{\min}$ effective models both in its overlap and in its held-out predictions. Its error must also stay within the declared limit $\epsilon_{\max}$ on the primary scale $[L,U]$:
+The conversion needs at least $K_{\mathrm{min}}$ effective models both in its overlap and in its held-out predictions. Its error must also stay within the declared limit $\epsilon_{\mathrm{max}}$ on the primary scale $[L,U]$:
 
 $$
-N_{\mathrm{eff}}(S)\ge K_{\min},
+N_{\mathrm{eff}}(S)\ge K_{\mathrm{min}},
 \qquad
-N_{\mathrm{eff}}(V)\ge K_{\min},
+N_{\mathrm{eff}}(V)\ge K_{\mathrm{min}},
 \qquad
-e\le\epsilon_{\max}.
+e\le\epsilon_{\mathrm{max}}.
 $$
 
 An accepted crosswalk converts the fallback value $F_m$ into the estimate $\hat P_m$ and gives it evidence credit $\eta^{\text{cross}}_m$:
 
 $$
 \hat P_m=\operatorname{clamp}(F_m-\delta,L,U),\qquad
-\eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{\epsilon_{\max}},0,1\right).
+\eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{\epsilon_{\mathrm{max}}},0,1\right).
 $$
 
 For an illustrative 0-1 scale, a fallback result of 0.70 and an offset of 0.05 give an estimate of 0.65. The error check determines how much evidence credit that estimate earns. Existing primary results are never replaced, and estimates cannot alter the observed normalization anchors or become inputs to another prediction. A failed crosswalk leaves the contextual predictor to try next.
@@ -279,7 +281,7 @@ $$
 \left(\{(x_{j,b},a_j):x_{j,b}\text{ and }g_{j,b,d}\text{ available}\},\pi_{m,b,d}\right).
 $$
 
-A model at the 75th context percentile therefore receives the target benchmark's 75th-percentile observed value. That value is not necessarily 75% accuracy: it depends on the target distribution. Both sides use the same paired calibration rows.
+A model at the 70th context percentile therefore receives the target benchmark's 70th-percentile observed value. That value is not necessarily 70% accuracy: it depends on the target distribution. Both sides use the same paired calibration rows, and ties retain their full probability mass.
 
 A benchmark that contributes to both capability dimensions can receive two predictions. Its configured loadings combine the available estimates into $\hat x^{\mathrm{direct}}_{m,b}$:
 
@@ -291,7 +293,7 @@ $$
 
 When only one dimension can predict, its available loading is renormalized. Validation withholds every variant of one base model at a time. At least four effective held-out models must yield valid predictions, and their normalized median absolute error must be at most 25 points.
 
-![The same percentile links two different observed distributions. In this illustrative five-model calibration set, context score 70 maps to target value 0.58 through the 75th percentile. Neither raw score nor accuracy percentage is transferred.](assets/methodology/quantile-imputation.svg)
+![The same percentile links two different observed distributions. In this illustrative five-model calibration set, context score 70 maps to target value 0.58 through its 70th-percentile midrank. Neither raw score nor accuracy percentage is transferred.](assets/methodology/quantile-imputation.svg)
 
 The accepted point estimate stays separate from the observed quality mean. Its error and row-specific context determine the discounted evidence credit used in regularization and resource scoring.
 
@@ -328,19 +330,36 @@ This transfers a supported relative position, not the anchor's evidence coverage
 
 ### Aggregate Index Proxying
 
-A model may have broad external index results before every selected task has been evaluated. When at least one aggregate index is directly observed and task coverage is incomplete, Model Atlas uses those indexes to represent the missing breadth.
+A model may have broad external index results before every selected task has been evaluated. When at least one aggregate index is directly observed, Model Atlas gives indexes extra influence while task coverage is incomplete. The blend converges to 70% task benchmarks and 30% aggregate indexes at complete direct task coverage, for both Intelligence and Agentic.
 
-Each observed index score $z_{m,k}$ receives its represented benchmark count $n_k$: 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals. Epoch uses the median of the other three counts because its exact per-model component count is unavailable.
+Each observed index score $z_{m,k}$ starts from its represented benchmark count $n_k$: 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals. Epoch uses the median of the other three counts because its exact per-model component count is unavailable.
 
-The observed indexes $\mathcal{K}_m$ and observed task benchmarks $\mathcal{O}^{T}_{m,d}$ enter one weighted mean. Indexes use represented counts; tasks retain their ordinary effective weights:
+Direct task coverage $c^T_{m,d}$ divides observed task weight by the dimension's total selected task weight $\Omega^T_d$. The observed indexes' ordinary weights add up to $J_{m,d}$:
 
 $$
-Q_{m,d}=\frac{\sum_{k\in\mathcal{K}_m}n_k z_{m,k}+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}z_{m,b}}{\sum_{k\in\mathcal{K}_m}n_k+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}}.
+\Omega^T_d=\sum_{b\in\mathcal B_d\setminus\mathcal K}\omega_{b,d},\qquad
+J_{m,d}=\sum_{k\in\mathcal K_m}\omega_{k,d},\qquad
+c^T_{m,d}=\frac{\sum_{b\in\mathcal O^T_{m,d}}\omega_{b,d}}{\Omega^T_d}.
+$$
+
+The endpoint index weight is normalized as a group. Its total is $3\Omega^T_d/7$, which makes indexes exactly 30% of the combined weight when the task weight reaches $\Omega^T_d$. Importance and dimension loading divide that index weight among the observed indexes:
+
+$$
+v^{\mathrm{full}}_{m,k,d}=\frac{0.30}{0.70}\Omega^T_d\frac{\omega_{k,d}}{J_{m,d}},\qquad
+v_{m,k,d}=(1-c^T_{m,d})n_k+c^T_{m,d}v^{\mathrm{full}}_{m,k,d}.
+$$
+
+The configured index importance remains 0.5 with a 50/50 dimension loading. Their product allocates weight within the index group; it does not determine the group's overall share. Per-index weights interpolate linearly between represented breadth and the normalized endpoint, so the final task/index percentages change continuously but need not be linear in coverage. For a task portfolio of weight 22 with AA, Epoch, and Vals observed, no task coverage gives a 0/100 split, half task coverage gives about 39.69/60.31, and full coverage gives 70/30. Imputed tasks do not advance the taper. With no selected tasks, coverage is treated as zero and only the represented index mean is used.
+
+The observed indexes $\mathcal{K}_m$ and observed task benchmarks $\mathcal{O}^{T}_{m,d}$ enter one weighted mean. Indexes use the tapered weights; tasks retain their ordinary effective weights:
+
+$$
+Q_{m,d}=\frac{\sum_{k\in\mathcal{K}_m}v_{m,k,d} z_{m,k}+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}z_{m,b}}{\sum_{k\in\mathcal{K}_m}v_{m,k,d}+\sum_{b\in\mathcal{O}^{T}_{m,d}}\omega_{b,d}}.
 $$
 
 This represented breadth changes the quality estimate only. It does not turn one index result into several independent observations or inflate displayed evidence support. Observed indexes can still satisfy the separate index-signal requirement for admission.
 
-At complete direct task coverage, indexes return to their configured importance of 0.5 and dimension loadings. That 0.5 importance is not multiplied into the undercovered proxy mean. Sparse efforts can still be positioned by their directly measured gap to an eligible family anchor.
+At complete direct task coverage, the same formula yields 70% of the observed task mean and 30% of the observed index mean, regardless of task count or how many indexes are observed. There is no separate endpoint scoring branch. With no observed index, the ordinary task-only calculation and its evidence regularization apply. Sparse efforts can still be positioned by their directly measured gap to an eligible family anchor.
 
 ## Effective Pricing
 
@@ -389,7 +408,7 @@ A^{\text{cost}}_{m,b}&=\text{task cost}_{m,b}
 \end{aligned}
 $$
 
-The portfolio declares whether a benchmark's own telemetry or an eligible source-level per-task metric can supply resources. When wall time is missing but output tokens and served throughput are available, estimated task seconds equal output tokens divided by throughput. Validated sibling-effort estimates can fill some remaining cost and runtime gaps.
+The portfolio declares whether a benchmark's own telemetry or an eligible source-level per-task metric can supply resources. When wall time is missing but output tokens and served throughput are available, estimated task seconds equal output tokens divided by throughput. Total input-plus-output tokens cannot substitute for output tokens in this conversion. Validated sibling-effort estimates can fill some remaining cost and runtime gaps.
 
 Comparisons normally use per-task amounts. A total across a fixed evaluation is comparable only when the rows cover the same tasks and run count; otherwise it must first be normalized. Source totals and task-run counts are retained where needed to audit that conversion.
 
@@ -420,12 +439,12 @@ After the declared transform, the weighted median centers the coordinate and a r
 
 $$
 \begin{aligned}
-\operatorname{deviation}_b&=\max\left(\frac{Q^{a}_{75}(\{q_{j,b}\})-Q^{a}_{25}(\{q_{j,b}\})}{1.349},0.35\right)\\
+\operatorname{deviation}_b&=\max\left(\frac{Q^{a}_{75}(\{q_{j,b}\})-Q^{a}_{25}(\{q_{j,b}\})}{1.349},f_b\right)\\
 Z_{m,b}&=\frac{q_{m,b}-\operatorname{weightedMedian}_j(q_{j,b},a_{j,b})}{\operatorname{deviation}_b}
 \end{aligned}
 $$
 
-The interquartile range measures the spread of the middle half of the observations. Dividing by 1.349 expresses it on a standard-deviation-like scale, and the 0.35 floor prevents a nearly tied population from magnifying tiny differences.
+The interquartile range measures the spread of the middle half of the observations. Dividing by 1.349 expresses it on a standard-deviation-like scale. For logit coordinates, $f_b=0.35$ log-odds units. For linear coordinates, $f_b=0.35(q_{\mathrm{max},b}-q_{\mathrm{min},b})$ over the observed paired reference population. This limits magnification of a tightly clustered middle relative to the full observed range and scales automatically when the same metric is expressed in different units. It is a relative-spread safeguard, not a claim about measurement error. Estimated rows cannot set the range. When reference quality is exactly flat, only equal-quality rows receive peer support.
 
 Gaussian weights favor nearby-quality peers, with a neighborhood width of $\sigma=0.5$. A peer half a standardized unit away receives about 61% of its model-balanced weight; one unit away receives about 14%. Every effort of the focal model is excluded from its own comparison:
 
@@ -437,16 +456,25 @@ The calibration weight $a_{j,b}$ divides one model's unit mass across its varian
 
 ### Expected Resource Use
 
-For time or cost $r$, the nearby-peer weights give an expected log resource use $\mu^r_{m,b}$. The residual $\epsilon^r_{m,b}$ measures how far the actual amount lies above or below that expectation:
+For time or cost $r$, the nearby-peer weights first give a local mean log resource use $\bar y^r_{m,b}$. With full comparison support, a stable local slope, and the focal quality strictly inside the observed peers' quality range, a weighted local line estimates resource use at the focal quality:
 
 $$
-\mu^{r}_{m,b}=\frac{\sum_j w_{m,j,b}\log A^{r}_{j,b}}{\sum_j w_{m,j,b}},\qquad
+\begin{aligned}
+\bar y^r_{m,b}&=\frac{\sum_jw_{m,j,b}\log A^r_{j,b}}{\sum_jw_{m,j,b}}\\
+(\hat\alpha,\hat\beta)&=\arg\min_{\alpha,\beta}\sum_jw_{m,j,b}\left[\log A^r_{j,b}-\alpha-\beta(Z_{j,b}-Z_{m,b})\right]^2\\
+\mu^r_{m,b}&=\begin{cases}\hat\alpha&\text{supported interpolation}\\\bar y^r_{m,b}&\text{otherwise}\end{cases}
+\end{aligned}
+$$
+
+The slope accounts for small quality differences within the neighborhood; it does not assume that higher quality must consume more resources. At least three supported independent-model units are required. Sparse comparisons, flat quality, numerically unstable slopes, and targets at or beyond the peers' quality endpoints retain the local mean. Resource predictions and token modifiers share this rule. The residual $\epsilon^r_{m,b}$ measures the actual log resource amount relative to that expectation:
+
+$$
 \epsilon^{r}_{m,b}=\log A^{r}_{m,b}-\mu^{r}_{m,b}
 $$
 
 A negative residual means less resource use than expected at that quality. If the peer expectation corresponds to 100 seconds and the model uses 50, its residual is $\log(50/100)\approx-0.69$. The same residual describes a cost of \$1 against an expected \$2. These are equal proportional advantages.
 
-![The Gaussian neighborhood above and the illustrative peer population below share one quality axis. Nearby independent models carry more weight. The vertical gap from expected 100 seconds to observed 50 seconds is the focal model's resource advantage.](assets/methodology/resource-residual.svg)
+![The Gaussian neighborhood above and the illustrative peer population below share one quality axis. Nearby independent models carry more weight. A supported local trend supplies the expected 100 seconds at the focal quality; the vertical gap to observed 50 seconds is the resource advantage.](assets/methodology/resource-residual.svg)
 
 ### Comparison Support
 
@@ -504,10 +532,10 @@ $$
 \widehat A^{r,\text{target}}_k=A^{r,\text{source}}_k\exp(\hat d^r_{-k}).
 $$
 
-Validation checks the ratio in two ways. The median absolute log error $e^r_{\log}$ measures multiplicative prediction error; the score error $e^r_{\text{score}}$ measures its effect after actual and predicted amounts pass through the resource scorer:
+Validation checks the ratio in two ways. The median absolute log error $e^r_{\mathrm{log}}$ measures multiplicative prediction error; the score error $e^r_{\text{score}}$ measures its effect after actual and predicted amounts pass through the resource scorer:
 
 $$
-e^r_{\log}=\operatorname{median}_k\left|\log\frac{\widehat A^r_k}{A^r_k}\right|,
+e^r_{\mathrm{log}}=\operatorname{median}_k\left|\log\frac{\widehat A^r_k}{A^r_k}\right|,
 \qquad
 e^r_{\text{score}}=\operatorname{median}_k\left|\widehat R^r_k-R^r_k\right|.
 $$
@@ -515,7 +543,7 @@ $$
 The ratio is rejected if its typical multiplicative error reaches a factor of two, its typical component-score error reaches 25 points, or fewer than three held-out score comparisons are usable. An accepted ratio receives the lower of the two reliability credits:
 
 $$
-\eta^r=\min\left(1-\frac{e^r_{\log}}{\log2},1-\frac{e^r_{\text{score}}}{25}\right),
+\eta^r=\min\left(1-\frac{e^r_{\mathrm{log}}}{\log2},1-\frac{e^r_{\text{score}}}{25}\right),
 $$
 
 Both terms are clipped to $[0,1]$. The final ratio uses the median log difference across all paired tasks. If several siblings can fill the gap, the nearest effort is preferred, followed by the better-validated ratio.
@@ -536,16 +564,16 @@ $$
 
 This coordinate is a capability composite, so it stays linear. It uses the public scores, including their existing regularization, rather than reconstructing a hidden quality estimate. Task cost and task time remain separate comparisons, each using its own benchmark quality and declared coordinate.
 
-For a completed signal $g(x)$, the higher-is-better score $S_{\uparrow}(x)$ uses its finite minimum $y_{\min}$ and maximum $y_{\max}$:
+For a completed signal $g(x)$, the higher-is-better score $S_{\uparrow}(x)$ uses its finite minimum $y_{\mathrm{min}}$ and maximum $y_{\mathrm{max}}$:
 
 $$
-S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-y_{\min}}{y_{\max}-y_{\min}},0,1\right)
+S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-y_{\mathrm{min}}}{y_{\mathrm{max}}-y_{\mathrm{min}}},0,1\right)
 $$
 
 The lower-is-better score $S_{\downarrow}(x)$ reverses the same scale:
 
 $$
-S_{\downarrow}(x)=100\operatorname{clamp}\left(\frac{y_{\max}-g(x)}{y_{\max}-y_{\min}},0,1\right)
+S_{\downarrow}(x)=100\operatorname{clamp}\left(\frac{y_{\mathrm{max}}-g(x)}{y_{\mathrm{max}}-y_{\mathrm{min}}},0,1\right)
 $$
 
 The direction changes which endpoint receives 100; it does not change the anchors. Equal-value populations use the normalization rule above. Absolute price uses clipped favorable-tail anchors instead, while quality-adjusted resources combine magnitude and percentile.
@@ -654,6 +682,9 @@ These parameters encode robustness choices and usage priorities. They are explic
 | Sibling-resource score-error ceiling | 25 points | Refuses a ratio whose typical downstream Speed or Value component error is too large. |
 | Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
-| Minimum quality-coordinate deviation | 0.35 | Prevents nearly tied benchmarks from exaggerating small quality differences after their declared transform. |
+| Minimum quality-coordinate deviation | 0.35 log-odds units, or 35% of the observed linear range | Limits relative clustering while keeping linear comparisons invariant to a change of units. |
+| Local resource trend | Full peer support and interpolation only | Accounts for nearby quality differences while avoiding sparse fits and unsupported extrapolation. |
+| Capability task/index endpoint | 70% / 30% | Keeps the full-coverage group split independent of the number of task benchmarks or observed indexes. |
+| Aggregate-index proxy taper | Per-index weights interpolate with direct weighted task coverage | Preserves broad index evidence for sparse rows and converges continuously to the 70/30 group endpoint. |
 | Full comparison support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
 | Agentic token modifier | ±15%, capped at two robust log-token spread units | Bounds the effect of tokens relative to same-quality peers before benchmark remapping. |

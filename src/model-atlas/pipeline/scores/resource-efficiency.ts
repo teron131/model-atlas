@@ -12,7 +12,8 @@ import {
 import { logitUnitScore, winsorizedMinMaxScores } from "./normalization";
 
 const RESOURCE_QUALITY_SIGMA = 0.5;
-const MIN_QUALITY_DEVIATION = 0.35;
+const MIN_LOGIT_QUALITY_DEVIATION = 0.35;
+const MIN_LINEAR_QUALITY_RANGE_SHARE = 0.35;
 const RESOURCE_TAIL_SHARE = 0.025;
 const FULL_RESOURCE_SUPPORT = 3;
 
@@ -50,6 +51,7 @@ function qualityLocalResourceComparisons<T extends { id?: unknown; name?: unknow
   models: readonly T[],
   qualityCoordinates: readonly (number | null)[],
   resourceSignals: readonly (number | null)[],
+  qualityCoordinate: BenchmarkResourceQualityCoordinate,
   calibrationMask?: readonly boolean[],
 ) {
   const observations = observationsFromValues(
@@ -58,6 +60,13 @@ function qualityLocalResourceComparisons<T extends { id?: unknown; name?: unknow
     calibrationMask,
   );
   const weights = new Map(observations.map(({ item, weight }) => [item, weight]));
+  const qualityValues = observations.map(({ value }) => value);
+  const qualityRange =
+    qualityValues.length > 0 ? Math.max(...qualityValues) - Math.min(...qualityValues) : 0;
+  const minimumDeviation =
+    qualityCoordinate === "logit"
+      ? MIN_LOGIT_QUALITY_DEVIATION
+      : MIN_LINEAR_QUALITY_RANGE_SHARE * qualityRange;
   return qualityLocalResiduals(
     models.map((model, index) => ({
       group: canonicalModelKey(model),
@@ -66,7 +75,7 @@ function qualityLocalResourceComparisons<T extends { id?: unknown; name?: unknow
       weight: weights.get(model) ?? 0,
     })),
     RESOURCE_QUALITY_SIGMA,
-    MIN_QUALITY_DEVIATION,
+    minimumDeviation,
     FULL_RESOURCE_SUPPORT,
   );
 }
@@ -76,12 +85,14 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   models: readonly T[],
   qualityCoordinates: readonly (number | null)[],
   resourceSignals: readonly (number | null)[],
+  qualityCoordinate: BenchmarkResourceQualityCoordinate,
   calibrationMask?: readonly boolean[],
 ): Array<number | null> {
   const { residuals, supportConfidence } = qualityLocalResourceComparisons(
     models,
     qualityCoordinates,
     resourceSignals,
+    qualityCoordinate,
     calibrationMask,
   );
   const supportedResiduals = residuals.map((residual, index) =>
@@ -135,12 +146,18 @@ export function qualityAdjustedResourceMultipliers<T extends { id?: unknown; nam
   qualityCoordinates: readonly (number | null)[],
   logResources: readonly (number | null)[],
   cap: number,
+  qualityCoordinate: BenchmarkResourceQualityCoordinate,
 ): number[] {
   const observations = observationsFromValues(
     models,
     logResources.map((value, index) => (qualityCoordinates[index] == null ? null : value)),
   );
-  const comparisons = qualityLocalResourceComparisons(models, qualityCoordinates, logResources);
+  const comparisons = qualityLocalResourceComparisons(
+    models,
+    qualityCoordinates,
+    logResources,
+    qualityCoordinate,
+  );
   return boundedResidualMultipliers(comparisons, observations, cap);
 }
 
@@ -158,6 +175,7 @@ export function benchmarkResourceEfficiencyScores<T extends { id?: unknown; name
       score == null || qualityCoordinate === "linear" ? score : logitUnitScore(score),
     ),
     resourceSignals,
+    qualityCoordinate,
     calibrationMask,
   );
 }

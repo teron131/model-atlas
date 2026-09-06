@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 538" role="img" aria-labelledby="title desc">
 <title id="title">Resource efficiency is a vertical gap within a local quality neighborhood</title>
-<desc id="desc">The upper Gaussian curve shows quality distance weights at width 0.5. Peer dots below share that horizontal coordinate and fade with distance. Illustrative symmetric independent peers have weighted geometric time 100 seconds; the focal model uses 50 seconds, a log residual of minus 0.693.</desc>
+<desc id="desc">The upper Gaussian curve shows quality distance weights at width 0.5. Peer dots below share that horizontal coordinate and fade with distance. Illustrative symmetric independent peers support a local log-time trend predicting 100 seconds at the focal quality; the focal model uses 50 seconds, a log residual of minus 0.693.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
 @media (prefers-color-scheme:dark) {
@@ -64,6 +64,7 @@ text { fill:#ffffff; }
 <circle cx="168.53" cy="387.51" r="4.2667648523781585" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.31669121309453974"/>
 <circle cx="657.77" cy="251.7" r="4.08723167999664" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.27180791999916004"/>
 <circle cx="122.23" cy="418.3" r="4.08723167999664" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.27180791999916004"/>
+<line x1="122.23" y1="414.09821887370305" x2="657.77" y2="255.90178112629695" stroke="#146cba" stroke-width="2"/>
 <line x1="390" y1="335" x2="390" y2="391" stroke="#a64d0c" stroke-width="3"/>
 <circle cx="390" cy="335" r="6" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
 <circle cx="390" cy="391" r="7" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>

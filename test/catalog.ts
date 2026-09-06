@@ -333,10 +333,11 @@ const unknownPreviewId = "provider/unknown-preview";
 const coveredRecentId = "provider/covered-recent";
 const coveredOlderId = "provider/covered-older";
 const expiredPreviewId = "provider/expired-preview";
+// Keep index quality equally strong so these admission checks isolate age and evidence rather than the relevance floor.
 const admissionRows = [
   {
     ...recentPreviewRow(knownPreviewId, "Known Preview", {
-      intelligence_index: 70,
+      intelligence_index: 75,
       agentic_index: 65,
     }),
     release_date: "2026-07-29",
@@ -359,13 +360,25 @@ const admissionRows = [
   },
   {
     ...recentPreviewRow(expiredPreviewId, "Expired Preview", {
-      intelligence_index: 70,
+      intelligence_index: 75,
       agentic_index: 65,
     }),
     release_date: "2026-07-28",
     benchmarks: { critpt: 0.7, tau_banking: 0.7 },
   },
 ];
+const admissionSelection = prepareModelSelection(admissionRows, STAGE_CONFIG.scoring, {
+  baselineDate: "2026-08-27",
+  observedDate: "2026-08-27",
+});
+for (const id of [knownPreviewId, expiredPreviewId]) {
+  assert.ok(
+    hasRequiredPublicRelevance({
+      scores: admissionSelection.candidates.find((model) => model.id === id)!.component_scores,
+    }),
+    "preview age fixtures must independently clear the quality floor",
+  );
+}
 const previewModels = await buildTestModels(
   {
     modelRows: admissionRows,
@@ -393,14 +406,7 @@ const previewModels = await buildTestModels(
   },
 );
 assert.deepEqual(
-  selectOpenRouterModelRows(
-    prepareModelSelection(admissionRows, STAGE_CONFIG.scoring, {
-      baselineDate: "2026-08-27",
-      observedDate: "2026-08-27",
-    }),
-    STAGE_CONFIG.final,
-    STAGE_CONFIG.scoring,
-  )
+  selectOpenRouterModelRows(admissionSelection, STAGE_CONFIG.final, STAGE_CONFIG.scoring)
     .map((row) => row.id)
     .sort(),
   [coveredOlderId, coveredRecentId, knownPreviewId].sort(),

@@ -33,7 +33,7 @@ export function weightedRobustDeviation(
   return q25 == null || q75 == null ? null : Math.max((q75 - q25) / 1.349, minimumDeviation);
 }
 
-/** Estimate quality-local residuals and independent-group support without knowing model identities or benchmark policy. */
+/** Fit a supported local line inside the peer quality range; sparse, flat, and extrapolated comparisons retain the local mean. */
 export function qualityLocalResiduals(
   points: readonly QualityResourcePoint[],
   bandwidth: number,
@@ -51,18 +51,32 @@ export function qualityLocalResiduals(
     supportConfidence: points.map(() => 0),
   };
   if (median == null || deviation == null) return result;
+  const coordinateOf = (quality: number) =>
+    deviation > 0 ? (quality - median) / deviation : quality === median ? 0 : Infinity;
   const peers = references.map((point) => ({
     ...point,
-    coordinate: (point.quality! - median) / deviation,
+    coordinate: coordinateOf(point.quality!),
   }));
   for (const [index, point] of points.entries()) {
     if (point.quality == null || point.resource == null) continue;
     result.residuals[index] = 0;
-    const coordinate = (point.quality - median) / deviation;
+    const coordinate = coordinateOf(point.quality);
     const comparisons = new Map<string, { resourceTotal: number; weight: number }>();
+    let qualityTotal = 0;
+    let qualitySquares = 0;
+    let qualityResourceTotal = 0;
+    let minimumQuality = Infinity;
+    let maximumQuality = -Infinity;
     for (const peer of peers) {
       if (peer.group === point.group) continue;
       const weight = peer.weight * gaussianWeight(coordinate, peer.coordinate, bandwidth);
+      if (!(weight > 0)) continue;
+      const distance = peer.coordinate - coordinate;
+      qualityTotal += weight * distance;
+      qualitySquares += weight * distance * distance;
+      qualityResourceTotal += weight * distance * peer.resource!;
+      minimumQuality = Math.min(minimumQuality, peer.coordinate);
+      maximumQuality = Math.max(maximumQuality, peer.coordinate);
       const comparison = comparisons.get(peer.group) ?? { resourceTotal: 0, weight: 0 };
       comparison.resourceTotal += weight * peer.resource!;
       comparison.weight += weight;
@@ -71,10 +85,25 @@ export function qualityLocalResiduals(
     const groups = [...comparisons.values()];
     const totalWeight = groups.reduce((sum, group) => sum + group.weight, 0);
     if (totalWeight <= 0) continue;
-    result.residuals[index] =
-      point.resource - groups.reduce((sum, group) => sum + group.resourceTotal, 0) / totalWeight;
+    const resourceTotal = groups.reduce((sum, group) => sum + group.resourceTotal, 0);
+    let expectedResource = resourceTotal / totalWeight;
     const support = Math.min(totalWeight, effectiveSampleSize(groups.map((group) => group.weight)));
     result.supportConfidence[index] = smoothstep((support - 1) / (fullSupport - 1));
+    const determinant = totalWeight * qualitySquares - qualityTotal ** 2;
+    const stableSlope = determinant > Number.EPSILON * totalWeight * qualitySquares * 32;
+    if (
+      support >= fullSupport &&
+      stableSlope &&
+      coordinate > minimumQuality &&
+      coordinate < maximumQuality
+    ) {
+      expectedResource =
+        (qualitySquares * resourceTotal - qualityTotal * qualityResourceTotal) / determinant;
+    }
+    const residual = point.resource - expectedResource;
+    const tolerance =
+      Number.EPSILON * Math.max(1, Math.abs(point.resource), Math.abs(expectedResource)) * 32;
+    result.residuals[index] = Math.abs(residual) <= tolerance ? 0 : residual;
   }
   return result;
 }
@@ -199,21 +228,6 @@ function sortedWeightedValues(parts: readonly WeightedScorePart[]): FiniteWeight
   return [...weightByValue].map(([value, weight]) => ({ value, weight }));
 }
 
-function positionedWeightedValues(
-  parts: readonly WeightedScorePart[],
-): Array<FiniteWeightedValue & { position: number }> {
-  let cumulativeWeight = 0;
-  return sortedWeightedValues(parts)
-    .sort((left, right) => left.value - right.value)
-    .map((observation) => {
-      cumulativeWeight += observation.weight;
-      return {
-        ...observation,
-        position: cumulativeWeight - observation.weight / 2,
-      };
-    });
-}
-
 /** Generalize the empirical less-than-or-equal percentile to weighted observations. */
 export function weightedPercentileRank(
   parts: readonly WeightedScorePart[],
@@ -234,45 +248,33 @@ export function weightedPercentileRank(
   return Number(((100 * lessOrEqualWeight) / totalWeight).toFixed(4));
 }
 
-/** Interpolate a quantile across weighted empirical value masses. */
+/** Invert cumulative weight without spreading tied mass across gaps; average adjacent values only at an exact mass boundary. */
 export function weightedQuantile(
   parts: readonly WeightedScorePart[],
   quantile: number,
 ): number | null {
-  const positioned = positionedWeightedValues(parts);
-  if (positioned.length === 0) {
+  const observations = sortedWeightedValues(parts).sort((left, right) => left.value - right.value);
+  if (observations.length === 0) {
     return null;
   }
-  const first = positioned[0];
-  const last = positioned.at(-1);
-  if (first == null || last == null) {
-    return null;
-  }
-  if (positioned.length === 1) {
-    return first.value;
-  }
-  const clampedQuantile = clamp01(quantile);
-  const targetPosition = interpolateLinear(first.position, last.position, clampedQuantile);
-  for (let index = 1; index < positioned.length; index += 1) {
-    const upper = positioned[index];
-    const lower = positioned[index - 1];
-    if (upper == null || lower == null || targetPosition > upper.position) {
-      continue;
+  if (quantile <= 0) return observations[0]!.value;
+  if (quantile >= 1) return observations.at(-1)!.value;
+  const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
+  const targetWeight = clamp01(quantile) * totalWeight;
+  const tolerance = Number.EPSILON * totalWeight * 8;
+  let cumulativeWeight = 0;
+  for (const [index, observation] of observations.entries()) {
+    cumulativeWeight += observation.weight;
+    if (targetWeight < cumulativeWeight - tolerance) return observation.value;
+    if (Math.abs(targetWeight - cumulativeWeight) <= tolerance) {
+      const next = observations[index + 1];
+      return next == null ? observation.value : (observation.value + next.value) / 2;
     }
-    const positionRange = upper.position - lower.position;
-    if (positionRange <= 0) {
-      return upper.value;
-    }
-    return interpolateLinear(
-      lower.value,
-      upper.value,
-      (targetPosition - lower.position) / positionRange,
-    );
   }
-  return last.value;
+  return observations.at(-1)!.value;
 }
 
-/** Locate a value on the same weighted mid-mass axis used by weightedQuantile. */
+/** Locate observed values at the middle of their cumulative mass; values in a gap share its cumulative boundary. */
 export function weightedQuantileRank(
   parts: readonly WeightedScorePart[],
   value: number | null,
@@ -280,34 +282,20 @@ export function weightedQuantileRank(
   if (value == null || !Number.isFinite(value)) {
     return null;
   }
-  const positioned = positionedWeightedValues(parts);
-  const first = positioned[0];
-  const last = positioned.at(-1);
-  if (first == null || last == null) {
-    return null;
-  }
-  if (first.value === last.value) {
-    return 50;
-  }
-  if (value <= first.value) {
-    return 0;
-  }
-  if (value >= last.value) {
-    return 100;
-  }
-  for (let index = 1; index < positioned.length; index += 1) {
-    const upper = positioned[index];
-    const lower = positioned[index - 1];
-    if (upper == null || lower == null || value > upper.value) {
-      continue;
-    }
-    const valueRatio = (value - lower.value) / (upper.value - lower.value);
-    const position = interpolateLinear(lower.position, upper.position, valueRatio);
-    return Number(
-      ((100 * (position - first.position)) / (last.position - first.position)).toFixed(4),
-    );
-  }
-  return 100;
+  const observations = sortedWeightedValues(parts);
+  const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
+  if (totalWeight <= 0) return null;
+  const rankWeight = observations.reduce(
+    (sum, observation) =>
+      sum +
+      (observation.value < value
+        ? observation.weight
+        : observation.value === value
+          ? observation.weight / 2
+          : 0),
+    0,
+  );
+  return (100 * rankWeight) / totalWeight;
 }
 
 export function weightedMedianOfFinite(parts: readonly WeightedScorePart[]): number | null {

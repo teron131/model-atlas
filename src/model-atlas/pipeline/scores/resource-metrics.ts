@@ -59,8 +59,7 @@ export function effectiveTaskSeconds(model: ResourceMetricModel, task: unknown):
   if (explicitSeconds != null) {
     return explicitSeconds;
   }
-  const outputTokens =
-    positiveFiniteNumber(taskRecord.output_tokens) ?? positiveFiniteNumber(taskRecord.tokens);
+  const outputTokens = positiveFiniteNumber(taskRecord.output_tokens);
   const throughput = positiveFiniteNumber(
     asRecord(model.speed).throughput_tokens_per_second_median,
   );
