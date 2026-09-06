@@ -7,7 +7,7 @@ import { isPreviewModel, rankedModels } from "../../pipeline/model-types";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
-export const SNAPSHOT_PRESERVATION_VERSION = 3;
+export const SNAPSHOT_PRESERVATION_VERSION = 5;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 

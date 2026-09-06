@@ -36,6 +36,11 @@ const QUALITY_COVERAGE_FULL_WEIGHT = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 const QUALITY_COVERAGE_FLOOR_WEIGHT = QUALITY_COVERAGE_FULL_WEIGHT * QUALITY_COVERAGE_FLOOR_SHARE;
 const MINIMUM_OBSERVED_BENCHMARKS = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
+/** Capability convergence groups direct task benchmarks and aggregate index signals. */
+export const QUALITY_SCORE_BUCKET_WEIGHTS = {
+  benchmark: 0.7,
+  nonBenchmark: 0.3,
+} as const;
 export const RESOURCE_SCORE_BUCKET_WEIGHTS = {
   benchmark: 0.7,
   nonBenchmark: 0.3,

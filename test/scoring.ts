@@ -190,7 +190,12 @@ assert.deepEqual(
     linearResourceSignals,
     "linear",
   ),
-  qualityLocalResourceScores(linearCoordinateModels, linearCoordinates, linearResourceSignals),
+  qualityLocalResourceScores(
+    linearCoordinateModels,
+    linearCoordinates,
+    linearResourceSignals,
+    "linear",
+  ),
 );
 const winsorizedScores = winsorizedMinMaxScores(
   [1, 2, 3, 10],
@@ -220,8 +225,8 @@ const previewScoreResult = buildPreviewComponentScoreResult(
     ]),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 90);
-assertClose(previewScoreResult.componentScores?.agentic_score, 96.5116);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 90.250696);
+assertClose(previewScoreResult.componentScores?.agentic_score, 96.522655);
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
@@ -768,7 +773,7 @@ const absoluteGapValueModels = attachFinalScores(
   ),
   STAGE_CONFIG.scoring,
 );
-assertClose(absoluteGapValueModels[1]?.scores.value_score, 56.9517);
+assertClose(absoluteGapValueModels[1]?.scores.value_score, 56.166718);
 
 const zeroPriceValueModels = attachFinalScores(
   [0, 1, 10].map((blendedPrice) =>
@@ -815,6 +820,7 @@ const aggregateQualityLinearScores = qualityLocalResourceScores(
   aggregateQualityModels,
   aggregateQualityModels.map((model) => model.component_scores?.intelligence_score ?? null),
   aggregateQualityPriceSignals,
+  "linear",
 );
 const aggregateQualityLogitScores = qualityLocalResourceScores(
   aggregateQualityModels,
@@ -823,6 +829,7 @@ const aggregateQualityLogitScores = qualityLocalResourceScores(
     return score == null ? null : logitUnitScore(score / 100);
   }),
   aggregateQualityPriceSignals,
+  "logit",
 );
 const aggregateQualityScoredModels = attachFinalScores(
   aggregateQualityModels,
@@ -1192,7 +1199,7 @@ const valueScoredModels = attachFinalScores(
   STAGE_CONFIG.scoring,
 );
 assertClose(valueScoredModels[0]?.scores.value_score, 75);
-assertClose(valueScoredModels[1]?.scores.value_score, 48.6088);
+assertClose(valueScoredModels[1]?.scores.value_score, 48.354506);
 assertClose(valueScoredModels[2]?.scores.value_score, 33.3333);
 
 const scaleNormalizedResourceConfig = {
@@ -1406,9 +1413,9 @@ const imputedSiblingScores = attachFinalScores(
   siblingResourcePreparation,
 );
 assertClose(directOnlySiblingScores[1]?.confidence.value, 0.56);
-assertClose(imputedSiblingScores[1]?.confidence.value, 0.7);
+assertClose(imputedSiblingScores[1]?.confidence.value, 0.66);
 assertClose(directOnlySiblingScores[1]?.confidence.speed, 0.56);
-assertClose(imputedSiblingScores[1]?.confidence.speed, 0.7);
+assertClose(imputedSiblingScores[1]?.confidence.speed, 0.66);
 for (const index of [0, 2, 3, 4, 5]) {
   assertClose(
     imputedSiblingScores[index]?.scores.value_score,
@@ -1715,7 +1722,7 @@ assertClose(
   prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig)
     .imputationConfidenceByModel.get(sharedTargetModel)
     ?.get("shared_target"),
-  0.5,
+  1,
 );
 const directOnlySharedTargetPreparation = withoutBenchmarkImputationForModels(
   prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig),
@@ -2216,11 +2223,12 @@ const undercoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(undercoveredScore, 920 / 17);
+// One of eight tasks is observed: represented breadth tapers toward a shared index endpoint of 8 * 3/7.
+assertClose(undercoveredScore, 5855 / 108);
 assertClose(
   buildPreviewComponentScoreResult(undercoveredModel, undercoveredConfig, undercoveredContext)
     .componentScores?.intelligence_score,
-  920 / 17,
+  5855 / 108,
 );
 const lowImportanceIndexConfig = {
   ...undercoveredConfig,
@@ -2246,7 +2254,7 @@ assertClose(
     lowImportanceIndexConfig,
     buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
   ).componentScores?.intelligence_score,
-  920 / 17,
+  5855 / 108,
 );
 const coveredScore = buildComponentScoreResult(
   coveredModel,
@@ -2255,7 +2263,49 @@ const coveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(coveredScore, 580 / 9);
+assertClose(coveredScore, 72);
+
+const nearlyCoveredModel = {
+  ...coveredModel,
+  benchmarks: { ...coveredModel.benchmarks, b8: null },
+};
+const nearlyCoveredScore = buildComponentScoreResult(
+  nearlyCoveredModel,
+  qualityTestSpeed,
+  [],
+  undercoveredConfig,
+  undercoveredContext,
+).componentScores?.intelligence_score;
+assertClose(nearlyCoveredScore, 920 / 12);
+assert.ok(
+  Math.abs(nearlyCoveredScore! - coveredScore!) < 10,
+  "the last agreeing task must not switch every index from full proxy breadth at once",
+);
+const weightedCoverageConfig: ScoringConfig = {
+  ...undercoveredConfig,
+  benchmarkPortfolio: {
+    ...undercoveredConfig.benchmarkPortfolio,
+    b8: { ...intelligenceBenchmarkEntry(), benchmarkImportance: 1e-6 },
+  },
+};
+const beforeLastTask = buildComponentScoreResult(
+  nearlyCoveredModel,
+  qualityTestSpeed,
+  [],
+  weightedCoverageConfig,
+  undercoveredContext,
+).componentScores?.intelligence_score;
+const afterLastTask = buildComponentScoreResult(
+  coveredModel,
+  qualityTestSpeed,
+  [],
+  weightedCoverageConfig,
+  undercoveredContext,
+).componentScores?.intelligence_score;
+assert.ok(
+  Math.abs(beforeLastTask! - afterLastTask!) < 1e-4,
+  "proxy strength must approach the 70/30 endpoint continuously with weighted task coverage",
+);
 
 function resourceModel(
   modelKey: string,
@@ -2379,17 +2429,24 @@ const tokenMultipliers = qualityAdjustedResourceMultipliers(
   tokenCoordinates,
   tokenLogs,
   0.15,
+  "linear",
 );
 assert(tokenMultipliers[0]! > 1);
 assert(tokenMultipliers[4]! < 1);
 assertClose(tokenMultipliers[2], 1);
 assert(tokenMultipliers.every((value) => value >= 0.85 && value <= 1.15));
 assert.deepEqual(
-  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, tokenLogs, 0),
+  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, tokenLogs, 0, "linear"),
   [1, 1, 1, 1, 1],
 );
 assert.deepEqual(
-  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, [1, 1, 1, 1, 1], 0.15),
+  qualityAdjustedResourceMultipliers(
+    tokenModels,
+    tokenCoordinates,
+    [1, 1, 1, 1, 1],
+    0.15,
+    "linear",
+  ),
   [1, 1, 1, 1, 1],
 );
 assert.deepEqual(
@@ -2398,6 +2455,7 @@ assert.deepEqual(
     tokenCoordinates,
     tokenLogs,
     0.15,
+    "linear",
   ),
   [1, 1, 1, 1, 1],
 );

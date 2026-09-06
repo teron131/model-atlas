@@ -20,10 +20,10 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Setting | Role |
 | --- | --- |
 | Group | Classifies the benchmark as `frontier` or `baseline` for portfolio interpretation |
-| Importance | Controls the benchmark's total influence relative to other observed benchmarks |
+| Importance | Controls influence relative to other tasks or other indexes in the same group |
 | Dimension loading | Allocates that importance between Intelligence and Agentic; the two loadings sum to 100% |
 
-The importance $i_b$ describes a benchmark's overall influence, and its loading $\lambda_{b,d}$ assigns a share to dimension $d$. Their product gives the effective weight $\omega_{b,d}=i_b\lambda_{b,d}$. For example, importance 2 with 25% Intelligence and 75% Agentic loading gives weights 0.5 and 1.5. The benchmark keeps its total importance rather than receiving full weight in both dimensions.
+The importance $i_b$ sets a benchmark's influence within the task or index group, and its loading $\lambda_{b,d}$ assigns a share to dimension $d$. Their product gives the effective weight $\omega_{b,d}=i_b\lambda_{b,d}$. For example, importance 2 with 25% Intelligence and 75% Agentic loading gives weights 0.5 and 1.5. The benchmark keeps its total importance rather than receiving full weight in both dimensions.
 
 Loadings use the five-level scale in [Standards](standards.md): 100/0, 75/25, 50/50, 25/75, or 0/100. This keeps the judgment coarse enough to explain. Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
@@ -70,7 +70,7 @@ An aggregate index summarizes several evaluations. It offers broad coverage, but
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
 
-When direct task coverage is incomplete, observed aggregate indexes stand in for broader capability evidence. Their represented counts are 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals; Epoch uses the median of the other three because its per-model component count is unavailable. Tasks retain their ordinary effective weights. At complete task coverage, indexes return to importance 0.5 and their configured loadings. Represented breadth changes the quality estimate, not the number of independent observations or the displayed evidence share.
+When direct task coverage is incomplete, observed aggregate indexes stand in for broader capability evidence. Their represented counts are 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals; Epoch uses the median of the other three because its per-model component count is unavailable. Index weights interpolate from represented breadth to a group-normalized endpoint as directly observed weighted task coverage increases. Tasks retain their configured importance and dimension loading. At complete task coverage, the combined quality mean is 70% task benchmarks and 30% aggregate indexes. Configured index importance 0.5 and its dimension loading allocate weight within the 30% index group, rather than setting that group’s total share. Represented breadth changes the quality estimate, not the number of independent observations or the displayed evidence share.
 
 ### Frontier Benchmarks
 

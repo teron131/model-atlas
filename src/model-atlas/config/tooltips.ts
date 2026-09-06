@@ -142,7 +142,10 @@ const qualityBenchmarkRows = (
 ) =>
   [
     ["Effective weight", "importance x dimension loading"],
-    ["Aggregation", "weights normalized within dimension"],
+    [
+      "Aggregation",
+      "70% tasks / 30% indexes at full task coverage; sparse rows give indexes more influence",
+    ],
     [
       "Imputed values",
       "validated predictions add discounted support and relax regularization without changing the observed mean",
@@ -151,7 +154,7 @@ const qualityBenchmarkRows = (
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Aggregate-index proxy",
-      "incomplete rows weight indexes by represented benchmark count and task benchmarks by ordinary effective weight",
+      "extra index influence tapers with direct weighted task coverage toward 70% task benchmarks and 30% aggregate indexes",
     ],
     {
       title: "Frontier benchmarks",
@@ -248,7 +251,7 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence loading. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when task coverage is incomplete.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence loading. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when task coverage is incomplete, converging to a 70% task / 30% index blend at full task coverage.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],
@@ -295,9 +298,16 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Ordinary ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How quickly the model delivers comparable work. Ordinary ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A local trend adjusts for nearby quality differences when support is full and the target lies inside the peer range; otherwise the peer average is used. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
-        ["Benchmark runtimes", "70% base weight; comparison with peers at similar quality"],
+        [
+          "Benchmark runtimes",
+          "70% base weight; supported local quality trend or peer-average fallback",
+        ],
+        [
+          "Runtime estimates",
+          "output tokens divided by output throughput; total tokens are not substituted",
+        ],
         [
           "Provider metrics",
           "30% base weight; equal shares for throughput and both latency metrics",
@@ -317,9 +327,12 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How efficiently the model delivers capability for its cost. Ordinary ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How efficiently the model delivers capability for its cost. Ordinary ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. A local trend adjusts for nearby quality differences when support is full and the target lies inside the peer range; otherwise the peer average is used. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
-        ["Benchmark task costs", "70% base weight; comparison with peers at similar quality"],
+        [
+          "Benchmark task costs",
+          "70% base weight; supported local quality trend or peer-average fallback",
+        ],
         [
           "Price components",
           "30% base weight; equal shares for absolute and quality-adjusted price",
