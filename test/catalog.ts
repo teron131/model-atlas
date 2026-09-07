@@ -556,7 +556,7 @@ assert.ok(
 );
 assert.ok(
   fallbackModels.every(
-    (model) => model.scores.speed_score != null && model.scores.value_score != null,
+    (model) => model.scores.speed_score == null && model.scores.value_score == null,
   ),
 );
 const primaryModels = await buildTestModels(

@@ -126,6 +126,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   yDomain,
   yTicks,
   yAxisLabel,
+  formatScore,
   keyPrefix,
   ariaLabel,
   getScore,
@@ -148,6 +149,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   yDomain: [number, number];
   yTicks: number[];
   yAxisLabel: string;
+  formatScore: (value: number) => string;
   keyPrefix: string;
   ariaLabel: string;
   getScore: (row: Row) => number;
@@ -283,7 +285,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
           ticks={yTicks}
           yPoint={yPoint}
           x={plot.left}
-          format={(tick) => `${tick}%`}
+          format={formatScore}
           keyPrefix={keyPrefix}
         />
         <XAxisTicks
@@ -308,7 +310,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
           y={yPoint(medianScore)}
           bounds={plot}
           xLabel={`MED ${metric.format(medianMetric)}`}
-          yLabel={`MED ${medianScore.toFixed(0)}%`}
+          yLabel={`MED ${formatScore(medianScore)}`}
           yLabelInside
         />
         <DirectionArrow
@@ -320,7 +322,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
           projection={cursorProjection}
           bounds={plot}
           xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
-          yLabel={cursorProjection ? `${cursorProjection.yValue.toFixed(1)}%` : ""}
+          yLabel={cursorProjection ? formatScore(cursorProjection.yValue) : ""}
           color={activeHighlightColor}
         />
         {reasoningVariantLines.flatMap((line) =>
@@ -348,18 +350,23 @@ export function FrontierBenchmarkScatterPlot<Row>({
             />
           )),
         )}
-        <ParetoEnvelope
-          frontier={frontier}
-          getX={metric.get}
-          getY={getScore}
-          xPoint={xPoint}
-          yPoint={yPoint}
-          getColor={(row) => providerChartColor(getModel(row).provider)}
-          idPrefix={`${keyPrefix}-frontier`}
-          className={[styles.frontier, activeVariantKey == null ? "" : styles.reasoningContextMuted]
-            .filter(Boolean)
-            .join(" ")}
-        />
+        {!connectReasoningVariants ? (
+          <ParetoEnvelope
+            frontier={frontier}
+            getX={metric.get}
+            getY={getScore}
+            xPoint={xPoint}
+            yPoint={yPoint}
+            getColor={(row) => providerChartColor(getModel(row).provider)}
+            idPrefix={`${keyPrefix}-frontier`}
+            className={[
+              styles.frontier,
+              activeVariantKey == null ? "" : styles.reasoningContextMuted,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        ) : null}
         {rows.map((row) => {
           const axisValue = metric.get(row);
           const score = getScore(row);

@@ -29,7 +29,7 @@ import {
 import { ModelSignature } from "../signature/ModelSignature";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import { filterGraphPreviewsByIntelligenceFloor } from "./model-series";
+import { filterGraphPreviewsByIntelligenceFloor, isGraphEligible } from "./model-series";
 import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
 import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
@@ -159,12 +159,16 @@ export function DashboardGraphs({
       return models;
     }
     const visibleModelKeys = new Set(models.map(canonicalModelKey));
-    return deferredModelVariants.filter((model) => visibleModelKeys.has(canonicalModelKey(model)));
+    return deferredModelVariants.filter(
+      (model) => isGraphEligible(model) && visibleModelKeys.has(canonicalModelKey(model)),
+    );
   }, [deferredModelVariants, deferredShowReasoningVariants, models]);
   const paretoSignatureModels = useMemo(() => {
     const eligibleModelKeys = new Set(filteredModels.map(canonicalModelKey));
     return filterGraphPreviewsByIntelligenceFloor(
-      deferredModelVariants.filter((model) => eligibleModelKeys.has(canonicalModelKey(model))),
+      deferredModelVariants.filter(
+        (model) => isGraphEligible(model) && eligibleModelKeys.has(canonicalModelKey(model)),
+      ),
       (model) => model,
     );
   }, [deferredModelVariants, filteredModels]);
@@ -205,7 +209,7 @@ export function DashboardGraphs({
   const compactRankLabel = modelRankFilter === "all" ? "All ranks" : `Rank ≤${modelRankFilter}`;
   const filterSummary = `${compactModelFilterLabel} / ${compactProviderLabel} / ${compactCostLabel} / ${compactRecencyLabel} / ${compactRankLabel}`;
 
-  if (!payload || !deferredPayload || allModels.length === 0) {
+  if (!payload || !deferredPayload) {
     return (
       <section className={styles.atlas} aria-label="Model graphs" data-capture-theme>
         <ModelSignature models={[]} paretoModels={[]} referenceModels={[]} />
@@ -386,7 +390,9 @@ export function DashboardGraphs({
       {afterLead}
 
       {models.length === 0 ? (
-        <div className={styles.error}>No models match the current global filters.</div>
+        <div className={styles.error}>
+          No models with eligible Value match the current global filters.
+        </div>
       ) : (
         <>
           <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>

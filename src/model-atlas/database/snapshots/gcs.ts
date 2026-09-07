@@ -3,11 +3,12 @@
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { writeFile } from "node:fs/promises";
+import type { IncomingMessage } from "node:http";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
 import { createGzip, gzip } from "node:zlib";
 
-import { Storage } from "@google-cloud/storage";
+import { type File, Storage } from "@google-cloud/storage";
 
 import type { ModelAtlasPayload } from "../../stats/types";
 import {
@@ -74,9 +75,9 @@ export class SnapshotStorage {
         throw error;
       }
       try {
-        const [bytes] = await this.publicBucket
-          .file(SNAPSHOT_MANIFEST_OBJECT, { generation })
-          .download();
+        const bytes = await downloadSnapshotObject(
+          this.publicBucket.file(SNAPSHOT_MANIFEST_OBJECT, { generation }),
+        );
         return { value: JSON.parse(bytes.toString("utf8")), generation };
       } catch (error) {
         // An overwrite can remove the pinned generation between metadata and content reads.
@@ -93,9 +94,11 @@ export class SnapshotStorage {
     if (value != null && typeof value === "object" && "previous" in value)
       return parseSnapshotManifest(value);
     const snapshot = parseSnapshotArtifacts(value);
-    const [[dashboard], [checkpoint]] = await Promise.all([
-      this.publicBucket.file(snapshotObject(snapshot.version, "payload")).download(),
-      this.checkpointBucket.file(snapshotObject(snapshot.version, "checkpoint")).download(),
+    const [dashboard, checkpoint] = await Promise.all([
+      downloadSnapshotObject(this.publicBucket.file(snapshotObject(snapshot.version, "payload"))),
+      downloadSnapshotObject(
+        this.checkpointBucket.file(snapshotObject(snapshot.version, "checkpoint")),
+      ),
     ]);
     const payload = parseSnapshotPayload(
       await decodeSnapshotBytes(dashboard, snapshot.payload_sha256),
@@ -110,9 +113,11 @@ export class SnapshotStorage {
   }
 
   async restore(manifest: SnapshotVersion, databasePath: string): Promise<ModelAtlasPayload> {
-    const [[checkpoint], [dashboard]] = await Promise.all([
-      this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")).download(),
-      this.publicBucket.file(snapshotObject(manifest.version, "payload")).download(),
+    const [checkpoint, dashboard] = await Promise.all([
+      downloadSnapshotObject(
+        this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
+      ),
+      downloadSnapshotObject(this.publicBucket.file(snapshotObject(manifest.version, "payload"))),
     ]);
     const payload = await decodeSnapshotPayload(dashboard, manifest);
     await writeFile(
@@ -251,5 +256,17 @@ async function compressCheckpoint(databasePath: string): Promise<Buffer> {
   await pipeline(createReadStream(databasePath), createGzip(), async (source) => {
     for await (const chunk of source) chunks.push(chunk);
   });
+  return Buffer.concat(chunks);
+}
+
+/** GCS and teeny-request attach overlapping pipelines to each response; budget their bounded listeners without hiding warnings globally. */
+async function downloadSnapshotObject(file: File): Promise<Buffer> {
+  const stream = file.createReadStream();
+  stream.on("response", (response: IncomingMessage) => {
+    const currentLimit = response.getMaxListeners();
+    if (currentLimit > 0 && currentLimit < 16) response.setMaxListeners(16);
+  });
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk);
   return Buffer.concat(chunks);
 }

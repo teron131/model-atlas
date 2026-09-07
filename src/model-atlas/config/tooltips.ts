@@ -41,7 +41,7 @@ export type ModelAtlasColumnTooltip = {
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
 const QUALITY_REGULARIZATION_SCALE =
-  "ordinary high means stay at 50 through 10% of the aggregate-index median evidence mass, then move toward the observed mean; regularization ends at that median";
+  "ordinary high means stay at 50 through 10% of the aggregate-index median evidence mass, then move toward the task mean, including supported sibling estimates; regularization ends at that median";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Evidence support",
@@ -144,17 +144,17 @@ const qualityBenchmarkRows = (
     ["Effective weight", "importance x dimension loading"],
     [
       "Aggregation",
-      "70% tasks / 30% indexes at full task coverage; sparse rows give indexes more influence",
+      "20% tasks / 80% indexes at one direct task; 80% tasks / 20% indexes at the configured direct-task threshold",
     ],
     [
       "Imputed values",
-      "validated predictions add discounted support and relax regularization without changing the observed mean",
+      "supported sibling estimates enter missing task contributions; validated contextual predictions supply discounted evidence support",
     ],
     ["Evidence support", "literal weighted share of direct or validated evidence"],
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Aggregate-index proxy",
-      "extra index influence tapers with direct weighted task coverage toward 70% task benchmarks and 30% aggregate indexes",
+      "effort-labelled variants use effort-aware indexes (currently AA); each variant uses its own direct task count; a smooth taper reaches 80% tasks / 20% indexes at the configured direct-task threshold tasks",
     ],
     {
       title: "Frontier benchmarks",
@@ -251,13 +251,13 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence loading. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when task coverage is incomplete, converging to a 70% task / 30% index blend at full task coverage.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence loading. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when task coverage is incomplete, moving from 20% task / 80% index at one direct task to 80% task / 20% index at the configured direct-task threshold.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence loading"],
         ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],
         [
           "Final score",
-          "observed weighted mean; index proxy or sparse-high regularization as applicable",
+          "task mean with supported sibling estimates; index blend or sparse-high regularization as applicable",
         ],
       ],
       sections: [
@@ -278,14 +278,17 @@ export function columnTooltipsForActiveComponents(
           "zero-based contribution × token modifier, then cohort remapped to 0-100",
         ],
         ["Token efficiency", "0.85-1.15 before remapping; not a ±15% bound on the final score"],
-        ["Token evidence", "direct same-benchmark tokens; AA tokens apply only to AA's own index"],
+        [
+          "Token evidence",
+          "same-benchmark measurements or discounted estimates; AA tokens apply only to AA's own index",
+        ],
         [
           "Weak or missing token evidence",
           "multiplier approaches 1; estimated tokens and inherited index tokens are excluded",
         ],
         [
           "Final score",
-          "observed weighted mean; index proxy or sparse-high regularization as applicable",
+          "task mean with supported sibling estimates; index blend or sparse-high regularization as applicable",
         ],
       ],
       sections: [
@@ -298,11 +301,11 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Ordinary ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A local trend adjusts for nearby quality differences when support is full and the target lies inside the peer range; otherwise the peer average is used. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How quickly the model delivers comparable work. Ordinary ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
         [
           "Benchmark runtimes",
-          "70% base weight; supported local quality trend or peer-average fallback",
+          "70% base weight; bounded local quality trend blended by peer support",
         ],
         [
           "Runtime estimates",
@@ -312,9 +315,19 @@ export function columnTooltipsForActiveComponents(
           "Provider metrics",
           "30% base weight; equal shares for throughput and both latency metrics",
         ],
-        ["Missing task runtime", "validated sibling-effort estimate, otherwise no contribution"],
+        [
+          "Missing task runtime",
+          "validated sibling estimate, then the shared global/lab/release/model resource fallback",
+        ],
+        [
+          "Speed availability",
+          "at least 4 observed benchmark time-and-quality pairs at this effort; estimated runtimes do not count",
+        ],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
-        ["Previews", "70% provider speed + 30% direct task runtimes"],
+        [
+          "Previews",
+          "100% provider speed tapering to 80% provider / 20% tasks with observed runtime-pair coverage",
+        ],
         ["Preview without task runtime", "provider speed alone; no missing-coverage multiplier"],
       ],
       sections: [
@@ -327,19 +340,30 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How efficiently the model delivers capability for its cost. Ordinary ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. A local trend adjusts for nearby quality differences when support is full and the target lies inside the peer range; otherwise the peer average is used. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How efficiently the model delivers capability for its cost. Ordinary ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
         [
           "Benchmark task costs",
-          "70% base weight; supported local quality trend or peer-average fallback",
+          "70% base weight; bounded local quality trend blended by peer support",
         ],
         [
           "Price components",
           "30% base weight; equal shares for absolute and quality-adjusted price",
         ],
-        ["Missing task cost", "validated sibling-effort estimate, otherwise no contribution"],
+        [
+          "Missing task cost",
+          "validated sibling first; fixed-shrinkage global/lab/release-proximity/model cost fallback",
+        ],
+        [
+          "Value availability",
+          "at least 4 observed benchmark cost-and-quality pairs at this effort",
+        ],
+        ["Without eligible Value", "quality remains in the table; excluded from all graphs"],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
-        ["Previews", "70% price components + 30% direct task costs"],
+        [
+          "Previews",
+          "100% price components tapering to 80% price / 20% tasks with observed cost-pair coverage",
+        ],
         ["Preview without task cost", "price components alone; no missing-coverage multiplier"],
       ],
       sections: [

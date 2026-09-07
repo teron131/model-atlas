@@ -35,6 +35,15 @@ export type TableOfContentsItem = {
 };
 
 const METHODOLOGY_ASSETS = {
+  "pipeline-overview.svg": { width: 760, height: 438 },
+  "reference-balance.svg": { width: 760, height: 370 },
+  "index-coverage-taper.svg": { width: 760, height: 434 },
+  "resource-publication-gate.svg": { width: 760, height: 373 },
+  "resource-tier-shrinkage.svg": { width: 760, height: 474 },
+  "common-variant-basket.svg": { width: 760, height: 403 },
+  "matching-boundary.svg": { width: 760, height: 411 },
+  "merit-and-readiness.svg": { width: 760, height: 395 },
+  "matching-relative-cutoff.svg": { width: 760, height: 770 },
   "agentic-token-modifier.svg": { width: 760, height: 428 },
   "confidence.svg": { width: 760, height: 436 },
   "resource-coverage.svg": { width: 760, height: 432 },

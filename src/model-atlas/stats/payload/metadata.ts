@@ -77,12 +77,8 @@ function benchmarkAvailable(
   );
 }
 
-function hasPositiveTaskMetric(
-  model: ResourceMetricModel,
-  key: string,
-  resourcePolicy: NonNullable<ScoringConfig["benchmarkPortfolio"][string]["resourcePolicy"]>,
-): boolean {
-  const task = benchmarkTaskMetrics(model, key, resourcePolicy);
+function hasPositiveTaskMetric(model: ResourceMetricModel, key: string): boolean {
+  const task = benchmarkTaskMetrics(model, key);
   return positiveFiniteNumber(task?.cost) != null || effectiveTaskSeconds(model, task) != null;
 }
 
@@ -96,9 +92,7 @@ function activeResourceComponents(
       const resourcePolicy = entry.resourcePolicy;
       return resourcePolicy != null &&
         models.some(
-          (model) =>
-            benchmarkMetricValue(model, key) != null &&
-            hasPositiveTaskMetric(model, key, resourcePolicy),
+          (model) => benchmarkMetricValue(model, key) != null && hasPositiveTaskMetric(model, key),
         )
         ? [{ key, resourcePolicy }]
         : [];

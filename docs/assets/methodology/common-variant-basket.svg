@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 403" role="img" aria-labelledby="title desc">
+<title id="title">Common evidence is shared within a model rather than across all models</title>
+<desc id="desc">An illustrative three-variant model has one complete task, one task missing a paired measurement at medium, and an index. Only the complete task and index enter its common comparison.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">The common basket belongs to one model</text>
+<text x="40" y="62" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Only paired observations shared by its displayed variants enter both axes.</text>
+<text x="40" y="115" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Variant</text>
+<text x="280" y="115" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Task 1</text>
+<text x="437" y="115" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Task 2</text>
+<text x="606" y="115" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Index</text>
+<text x="40" y="167" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Low</text>
+<circle cx="280" cy="161" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="437" cy="161" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="606" cy="161" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="40" y="215" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Medium</text>
+<circle cx="280" cy="209" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="437" cy="209" r="6" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="606" cy="209" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="40" y="263" font-size="17" fill="#000000" text-anchor="start" font-weight="400">High</text>
+<circle cx="280" cy="257" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="437" cy="257" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="606" cy="257" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="40" y1="287" x2="705" y2="287" stroke="#b5bfbc" stroke-width="1"/>
+<text x="40" y="322" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Included</text>
+<text x="280" y="322" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Task 1</text>
+<text x="437" y="322" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Excluded</text>
+<text x="606" y="322" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Index</text>
+<text x="40" y="374" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Another model builds its own basket from its own displayed variants.</text>
+</svg>

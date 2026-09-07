@@ -113,6 +113,7 @@ export function canonicalReasoningEffort(value: unknown): string | null {
   if (normalized.length === 0 || normalized === "null") {
     return null;
   }
+  if (normalized === "extra-high") return "xhigh";
   return normalized === "non-reasoning" ? "none" : normalized;
 }
 

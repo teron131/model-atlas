@@ -998,7 +998,7 @@ function modelStatsSourceData(
     },
     cyberBench: { rows: [], rowsByModelName: new Map() },
     deepSWE: {
-      sourceDefaultRows: [],
+      rows: [],
       rowsByModelName: new Map(),
     },
     ebrBench: { rows: [], rowsByModelName: new Map() },

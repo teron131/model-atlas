@@ -1,4 +1,4 @@
-/** Guarded sibling-effort task-resource imputation for Speed and Value scoring. */
+/** Guarded sibling-effort task-resource imputation for cost, time, and token-use scoring. */
 
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
 import {
@@ -9,31 +9,21 @@ import {
 import { clamp01, medianOfFinite, positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
 import { benchmarkResourceEfficiencyScores } from "../resource-efficiency";
-import {
-  benchmarkMetricValue,
-  benchmarkTaskMetrics,
-  effectiveTaskSeconds,
-} from "../resource-metrics";
+import { benchmarkMetricValue } from "../resource-metrics";
 import { benchmarkQualityEvidence, type BenchmarkScoringPreparation } from "./benchmark";
+import {
+  directTaskResource,
+  type EffortResourceImputation,
+  type ImputedTaskResource,
+  resourceImputationKeys,
+  resourceVariantKey,
+  TASK_RESOURCE_KINDS,
+  type TaskResourceKind,
+} from "./resource-evidence";
+import { prepareTieredResourceEstimator } from "./resource-tiers";
 
 const MIN_PAIRED_TASKS = 3;
 const MAX_MEDIAN_LOG_RESOURCE_ERROR = Math.LN2;
-const TASK_RESOURCE_KINDS = ["cost", "time"] as const;
-
-export type TaskResourceKind = (typeof TASK_RESOURCE_KINDS)[number];
-
-export type ImputedTaskResource = {
-  amount: number;
-  confidence: number;
-};
-
-export type EffortResourceImputation = {
-  byVariant: ReadonlyMap<
-    string,
-    ReadonlyMap<string, Partial<Record<TaskResourceKind, ImputedTaskResource>>>
-  >;
-};
-
 type ValidatedEffortRatio = {
   confidence: number;
   kind: TaskResourceKind;
@@ -41,26 +31,6 @@ type ValidatedEffortRatio = {
   sourceIndex: number;
   targetIndex: number;
 };
-
-function variantKey(model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort">) {
-  return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
-}
-
-function directTaskResource(
-  model: ModelAtlasCandidate,
-  key: string,
-  scoringConfig: ScoringConfig,
-  kind: TaskResourceKind,
-): number | null {
-  const policy = scoringConfig.benchmarkPortfolio[key]?.resourcePolicy;
-  if (policy?.source !== "benchmark") {
-    return null;
-  }
-  const metrics = benchmarkTaskMetrics(model, key, policy);
-  return kind === "cost"
-    ? positiveFiniteNumber(metrics?.cost)
-    : effectiveTaskSeconds(model, metrics);
-}
 
 function validatedEffortRatio(
   models: readonly ModelAtlasCandidate[],
@@ -74,16 +44,13 @@ function validatedEffortRatio(
   if (target == null || source == null) {
     return null;
   }
-  const pairedKeys = Object.entries(scoringConfig.benchmarkPortfolio)
-    .filter(([, entry]) => entry.resourcePolicy?.source === "benchmark")
-    .map(([key]) => key)
-    .filter(
-      (key) =>
-        benchmarkMetricValue(target, key) != null &&
-        benchmarkMetricValue(source, key) != null &&
-        directTaskResource(target, key, scoringConfig, kind) != null &&
-        directTaskResource(source, key, scoringConfig, kind) != null,
-    );
+  const pairedKeys = resourceImputationKeys(scoringConfig, kind).filter(
+    (key) =>
+      benchmarkMetricValue(target, key) != null &&
+      benchmarkMetricValue(source, key) != null &&
+      directTaskResource(target, key, scoringConfig, kind) != null &&
+      directTaskResource(source, key, scoringConfig, kind) != null,
+  );
   if (pairedKeys.length < MIN_PAIRED_TASKS) {
     return null;
   }
@@ -107,7 +74,9 @@ function validatedEffortRatio(
     const predictedTargetAmount = sourceAmount * Math.exp(logRatio);
     rawErrors.push(Math.abs(Math.log(predictedTargetAmount / actualTargetAmount)));
 
-    const policy = scoringConfig.benchmarkPortfolio[key]?.resourcePolicy;
+    const policy =
+      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy ??
+      (key === "aa_intelligence_index" ? { qualityCoordinate: "linear" as const } : null);
     if (policy == null) {
       continue;
     }
@@ -170,11 +139,12 @@ function validatedEffortRatio(
   };
 }
 
-/** Fit validated effort ratios, then fill missing benchmark-source task costs and runtimes. */
+/** Fit validated effort ratios, then fill missing benchmark-specific task costs, runtimes, and token amounts. */
 export function prepareEffortResourceImputation(
   models: readonly ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
   benchmarkPreparation: BenchmarkScoringPreparation,
+  kinds: readonly TaskResourceKind[] = TASK_RESOURCE_KINDS,
 ): EffortResourceImputation {
   const indexesByModel = new Map<string, number[]>();
   for (const [index, model] of models.entries()) {
@@ -186,6 +156,9 @@ export function prepareEffortResourceImputation(
     indexesByModel.set(key, [...(indexesByModel.get(key) ?? []), index]);
   }
 
+  const tieredEstimators = new Map(
+    kinds.map((kind) => [kind, prepareTieredResourceEstimator(models, scoringConfig, kind)]),
+  );
   const ratios: ValidatedEffortRatio[] = [];
   for (const indexes of indexesByModel.values()) {
     for (const targetIndex of indexes) {
@@ -193,7 +166,7 @@ export function prepareEffortResourceImputation(
         if (targetIndex === sourceIndex) {
           continue;
         }
-        for (const kind of TASK_RESOURCE_KINDS) {
+        for (const kind of kinds) {
           const ratio = validatedEffortRatio(models, targetIndex, sourceIndex, scoringConfig, kind);
           if (ratio != null) {
             ratios.push(ratio);
@@ -223,18 +196,23 @@ export function prepareEffortResourceImputation(
           left.sourceIndex - right.sourceIndex
         );
       });
-    if (targetRatios.length === 0) {
-      continue;
-    }
+    const siblingIndexes = (indexesByModel.get(canonicalModelKey(target)) ?? [])
+      .filter((index) => index !== targetIndex)
+      .sort(
+        (left, right) =>
+          Math.abs(reasoningEffortRank(models[left]?.reasoning_effort) - targetEffortRank) -
+          Math.abs(reasoningEffortRank(models[right]?.reasoning_effort) - targetEffortRank),
+      );
     const estimates = new Map<string, Partial<Record<TaskResourceKind, ImputedTaskResource>>>();
-    for (const [key, entry] of Object.entries(scoringConfig.benchmarkPortfolio)) {
-      if (
-        entry.resourcePolicy?.source !== "benchmark" ||
-        benchmarkQualityEvidence(target, key, benchmarkPreparation) == null
-      ) {
-        continue;
-      }
-      for (const kind of TASK_RESOURCE_KINDS) {
+    const targetKeys = Object.entries(scoringConfig.benchmarkPortfolio)
+      .filter(
+        ([key, entry]) =>
+          (entry.resourcePolicy != null || key === "aa_intelligence_index") &&
+          benchmarkQualityEvidence(target, key, benchmarkPreparation) != null,
+      )
+      .map(([key]) => key);
+    for (const key of targetKeys) {
+      for (const kind of kinds) {
         if (directTaskResource(target, key, scoringConfig, kind) != null) {
           continue;
         }
@@ -263,19 +241,24 @@ export function prepareEffortResourceImputation(
         }
       }
     }
+    for (const key of targetKeys) {
+      for (const kind of kinds) {
+        if (
+          estimates.get(key)?.[kind] != null ||
+          directTaskResource(target, key, scoringConfig, kind) != null
+        )
+          continue;
+        for (const index of siblingIndexes) {
+          const estimate = tieredEstimators.get(kind)!(target, models[index]!, key);
+          if (estimate == null) continue;
+          estimates.set(key, { ...estimates.get(key), [kind]: estimate });
+          break;
+        }
+      }
+    }
     if (estimates.size > 0) {
-      byVariant.set(variantKey(target), estimates);
+      byVariant.set(resourceVariantKey(target), estimates);
     }
   }
   return { byVariant };
-}
-
-/** Look up a validated scoring-only task resource for a projected model variant. */
-export function imputedTaskResource(
-  preparation: EffortResourceImputation,
-  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort">,
-  key: string,
-  kind: TaskResourceKind,
-): ImputedTaskResource | null {
-  return preparation.byVariant.get(variantKey(model))?.get(key)?.[kind] ?? null;
 }

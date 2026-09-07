@@ -1,9 +1,9 @@
-/** Verify that direct task coverage hands capability weight from aggregate indexes to a stable 70/30 endpoint. */
+/** Verify that direct task coverage hands capability weight from aggregate indexes to a configured 80/20 endpoint. */
 
 import assert from "node:assert/strict";
 
 import { type ScoringConfig, STAGE_CONFIG } from "../src/model-atlas/config/stage";
-import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/benchmark";
+import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import {
   buildComponentScoreResult,
   buildPreviewComponentScoreResult,
@@ -28,6 +28,7 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 0.5) {
   const keys = [...tasks, ...indexes];
   const config: ScoringConfig = {
     ...STAGE_CONFIG.scoring,
+    qualityTaskFullCount: Math.max(1, taskCount),
     intelligenceBenchmarkKeys: keys,
     agenticBenchmarkKeys: keys,
     previewAdditionalIntelligenceBenchmarkKeys: [],
@@ -63,11 +64,11 @@ for (const taskCount of [4, 40]) {
     for (const importance of [0.05, 0.5, 5]) {
       const test = fixture(taskCount, indexCount, importance);
       const score = test.score(test.model()).componentScores!;
-      assert.ok(Math.abs(score.intelligence_score! - 72) < 1e-10);
-      assert.ok(Math.abs(score.agentic_score! - 72) < 1e-10);
+      assert.ok(Math.abs(score.intelligence_score! - 68) < 1e-10);
+      assert.ok(Math.abs(score.agentic_score! - 68) < 1e-10);
       const preview = buildPreviewComponentScoreResult(test.model(), test.config, test.context);
-      assert.ok(Math.abs(preview.componentScores!.intelligence_score! - 72) < 1e-10);
-      assert.ok(Math.abs(preview.componentScores!.agentic_score! - 72) < 1e-10);
+      assert.ok(Math.abs(preview.componentScores!.intelligence_score! - 68) < 1e-10);
+      assert.ok(Math.abs(preview.componentScores!.agentic_score! - 68) < 1e-10);
     }
   }
 }
@@ -77,14 +78,14 @@ let previous = 100;
 for (let count = 0; count <= 8; count++) {
   const score = convergence.score(convergence.model(count, 0)).componentScores!.agentic_score!;
   assert.ok(score <= previous + 1e-10);
-  assert.ok(score >= 30 - 1e-10);
+  assert.ok(score >= 20 - 1e-10);
   previous = score;
 }
-assert.ok(Math.abs(previous - 30) < 1e-10);
+assert.ok(Math.abs(previous - 20) < 1e-10);
 assert.ok(
   Math.abs(
     convergence.score(convergence.model(8, 60, ["aa_intelligence_index"])).componentScores!
-      .agentic_score! - 72,
+      .agentic_score! - 68,
   ) < 1e-10,
 );
 assert.equal(convergence.score(convergence.model(8, 60, [])).componentScores!.agentic_score, 60);
@@ -116,14 +117,53 @@ const unequalConfig: ScoringConfig = {
 };
 const unequalModel = unequal.model();
 unequalModel.benchmarks.aa_intelligence_index = 0;
-// The 30% index group divides 2:1; its mean is 100/3, while the task mean stays 60.
+// Index importance and represented breadth both apply within the 20% group: AA has weight 20 versus Epoch 8.
 assert.ok(
   Math.abs(
     buildComponentScoreResult(unequalModel, nullSpeed, [], unequalConfig, unequal.context)
-      .componentScores!.agentic_score! - 52,
+      .componentScores!.agentic_score! -
+      (0.8 * 60 + (0.2 * 100 * 8) / 28),
   ) < 1e-10,
 );
 
 const indexOnly = fixture(0, 4);
 assert.equal(indexOnly.score(indexOnly.model()).componentScores!.agentic_score, 100);
 assert.equal(indexOnly.score(indexOnly.model(0, 60, [])).componentScores, null);
+
+// Effort-labelled variants use only indexes with direct effort coverage; other indexes remain raw evidence.
+const variantFixture = fixture(8, 4);
+const labelled = { ...variantFixture.model(), reasoning_effort: "max" };
+labelled.benchmarks.epoch_capabilities_index = 0;
+labelled.benchmarks.vals_index = 0;
+labelled.benchmarks.surge_intelligence_index = 0;
+assert.ok(
+  Math.abs(variantFixture.score(labelled).componentScores!.intelligence_score! - 68) < 1e-10,
+);
+assert.ok(
+  Math.abs(
+    buildPreviewComponentScoreResult(labelled, variantFixture.config, variantFixture.context)
+      .componentScores!.intelligence_score! - 68,
+  ) < 1e-10,
+);
+const sameTasks = {
+  ...labelled,
+  reasoning_effort: "xhigh",
+  benchmarks: {
+    ...labelled.benchmarks,
+    epoch_capabilities_index: 100,
+    vals_index: 100,
+    surge_intelligence_index: 100,
+  },
+};
+assert.equal(
+  variantFixture.score(labelled).componentScores!.intelligence_score,
+  variantFixture.score(sameTasks).componentScores!.intelligence_score,
+);
+assert.equal(labelled.benchmarks.epoch_capabilities_index, 0);
+const unlabelled = { ...labelled, reasoning_effort: null };
+assert.ok(variantFixture.score(unlabelled).componentScores!.intelligence_score! < 68);
+const noEffortIndex = {
+  ...variantFixture.model(8, 60, ["epoch_capabilities_index"]),
+  reasoning_effort: "high",
+};
+assert.equal(variantFixture.score(noEffortIndex).componentScores!.intelligence_score, 60);

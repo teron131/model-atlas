@@ -33,7 +33,7 @@ export function weightedRobustDeviation(
   return q25 == null || q75 == null ? null : Math.max((q75 - q25) / 1.349, minimumDeviation);
 }
 
-/** Fit a supported local line inside the peer quality range; sparse, flat, and extrapolated comparisons retain the local mean. */
+/** Blend a stable local trend with the peer mean as support grows, evaluating the trend only within observed peer bounds. */
 export function qualityLocalResiduals(
   points: readonly QualityResourcePoint[],
   bandwidth: number,
@@ -67,6 +67,8 @@ export function qualityLocalResiduals(
     let qualityResourceTotal = 0;
     let minimumQuality = Infinity;
     let maximumQuality = -Infinity;
+    let minimumResource = Infinity;
+    let maximumResource = -Infinity;
     for (const peer of peers) {
       if (peer.group === point.group) continue;
       const weight = peer.weight * gaussianWeight(coordinate, peer.coordinate, bandwidth);
@@ -77,6 +79,8 @@ export function qualityLocalResiduals(
       qualityResourceTotal += weight * distance * peer.resource!;
       minimumQuality = Math.min(minimumQuality, peer.coordinate);
       maximumQuality = Math.max(maximumQuality, peer.coordinate);
+      minimumResource = Math.min(minimumResource, peer.resource!);
+      maximumResource = Math.max(maximumResource, peer.resource!);
       const comparison = comparisons.get(peer.group) ?? { resourceTotal: 0, weight: 0 };
       comparison.resourceTotal += weight * peer.resource!;
       comparison.weight += weight;
@@ -91,14 +95,14 @@ export function qualityLocalResiduals(
     result.supportConfidence[index] = smoothstep((support - 1) / (fullSupport - 1));
     const determinant = totalWeight * qualitySquares - qualityTotal ** 2;
     const stableSlope = determinant > Number.EPSILON * totalWeight * qualitySquares * 32;
-    if (
-      support >= fullSupport &&
-      stableSlope &&
-      coordinate > minimumQuality &&
-      coordinate < maximumQuality
-    ) {
-      expectedResource =
+    if (stableSlope && result.supportConfidence[index]! > 0) {
+      const intercept =
         (qualitySquares * resourceTotal - qualityTotal * qualityResourceTotal) / determinant;
+      const slope =
+        (totalWeight * qualityResourceTotal - qualityTotal * resourceTotal) / determinant;
+      const offset = clamp(coordinate, minimumQuality, maximumQuality) - coordinate;
+      const fittedResource = clamp(intercept + slope * offset, minimumResource, maximumResource);
+      expectedResource += result.supportConfidence[index]! * (fittedResource - expectedResource);
     }
     const residual = point.resource - expectedResource;
     const tolerance =

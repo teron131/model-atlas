@@ -23,11 +23,12 @@ import {
   prepareEffortResourceImputation,
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
+import { prepareSiblingQualityScoringContext } from "../scores/imputation/sibling-quality";
+import { buildAgenticTokenScoringContext } from "../scores/quality-context";
+import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
 import {
-  buildAgenticTokenScoringContext,
   buildComponentScoreResult,
   buildPreviewComponentScoreResult,
-  calibrateSparseEffortQualityScores,
   observedBenchmarkCount,
 } from "../scores/score-builders";
 import {
@@ -96,12 +97,27 @@ export function prepareModelSelection(
     previousModels,
     versioning,
   );
+  const imputationCandidates = provisionalCandidates.filter(
+    (_model, index) => !isVersionReplacementRow(asRecord(modelRows[index])),
+  );
+  const tokenImputation = prepareEffortResourceImputation(
+    imputationCandidates,
+    scoringConfig,
+    scoringPreparation,
+    ["tokens", "output_tokens"],
+  );
   scoringPreparation.qualityContext = buildAgenticTokenScoringContext(
     provisionalCandidates,
     scoringConfig,
     scoringPreparation.qualityContext,
+    tokenImputation,
   );
-  const tokenAdjustedCandidates = provisionalCandidates.map((model, index) => {
+  scoringPreparation.qualityContext = prepareSiblingQualityScoringContext(
+    imputationCandidates,
+    scoringConfig,
+    scoringPreparation.qualityContext,
+  );
+  const qualityScoredCandidates = provisionalCandidates.map((model, index) => {
     const row = asRecord(modelRows[index]);
     const result = buildComponentScoreResult(
       asRecord(model),
@@ -115,14 +131,9 @@ export function prepareModelSelection(
     );
     return { ...model, component_scores: result.componentScores, confidence: result.confidence };
   });
-  const candidateModels = calibrateSparseEffortQualityScores(
-    tokenAdjustedCandidates,
-    scoringConfig,
-    scoringPreparation.qualityContext,
-  );
   return {
     modelRows,
-    candidates: candidateModels,
+    candidates: qualityScoredCandidates,
     scoringPreparation,
     observedDate: versioning.observedDate,
   };
@@ -183,6 +194,7 @@ export async function buildFinalModels(
     candidateModels,
     scoringConfig,
     scoringPreparation,
+    ["cost", "time"],
   );
   const scoredCandidates = attachFinalScores(
     candidateModels,
@@ -224,7 +236,9 @@ export async function buildFinalModels(
     scoringPreparation,
   );
   return cacheModelLogos(
-    [...admittedPublicModels, ...previewModels],
+    [...admittedPublicModels, ...previewModels].map((model) =>
+      applyResourceEvidenceRequirements(model, scoringConfig.benchmarkPortfolio),
+    ),
     (model) => model.provider ?? model.id,
   );
 }

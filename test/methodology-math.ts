@@ -1,7 +1,9 @@
 /** Check statistical invariants that protect robust evidence, unit-independent comparisons, and supported resource predictions. */
 import assert from "node:assert/strict";
 
+import { frontierBenchmarkRows } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { buildAdditiveSourceCrosswalk } from "../src/model-atlas/benchmarks/source-crosswalk";
+import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   qualityLocalResiduals,
   weightedMedianOfFinite,
@@ -10,6 +12,7 @@ import {
 } from "../src/model-atlas/math-utils";
 import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import { effectiveTaskSeconds } from "../src/model-atlas/pipeline/scores/resource-metrics";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const majority = [
   { value: 0, weight: 9 },
@@ -102,7 +105,7 @@ const line = models.map((model, i) => ({
 const fitted = qualityLocalResiduals(line, 0.5, 0.35, 3);
 assert.equal(fitted.residuals[20], 0);
 assert.equal(fitted.supportConfidence[20], 1);
-// Endpoint targets have no observations on one side, so their comparisons retain the bounded peer average.
+// Endpoint targets use the nearest independent peer quality rather than extrapolating the trend.
 assert.ok(fitted.residuals[0]! < 0);
 assert.ok(fitted.residuals[40]! > 0);
 const hidden = [
@@ -128,3 +131,29 @@ const noPeers = qualityLocalResiduals(
 assert.ok(noPeers.supportConfidence.every((value) => value === 0));
 const sparse = qualityLocalResiduals(line.slice(0, 3), 0.5, 0.35, 3);
 assert.ok(sparse.supportConfidence.every((value) => value < 1));
+// The same resource amount must not jump when comparison quality crosses a peer endpoint.
+const boundaryResidual = (quality: number) =>
+  qualityLocalResiduals(
+    [...line, { group: "held-out", quality, resource: 5, weight: 0 }],
+    0.5,
+    0.35,
+    3,
+  ).residuals.at(-1)!;
+assert.ok(Math.abs(boundaryResidual(40 - 1e-6) - boundaryResidual(40 + 1e-6)) < 1e-5);
+assert.ok(Math.abs(boundaryResidual(-1e-6) - boundaryResidual(1e-6)) < 1e-5);
+assert.ok(boundaryResidual(50) >= 1 - 1e-10);
+assert.ok(boundaryResidual(50) <= 5 + 1e-10);
+
+// A stored benchmark score with only source-wide cost must not appear as an observed task-cost point.
+const missingBenchmarkCost = {
+  ...minimalModelAtlasModel({ id: "test/missing-cost", name: "Missing Cost" }),
+  benchmarks: { arc_agi_2: 0.5 },
+  task_metrics: { artificial_analysis: { cost: 0.8, seconds: 20, output_tokens: 1_000 } },
+};
+const [missingCostPoint] = frontierBenchmarkRows(
+  [missingBenchmarkCost],
+  STAGE_CONFIG.scoring.benchmarkPortfolio,
+);
+assert.equal(missingCostPoint?.cost, null);
+assert.equal(missingCostPoint?.seconds, null);
+assert.equal(missingCostPoint?.outputTokens, null);

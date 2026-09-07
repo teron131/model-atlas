@@ -255,6 +255,15 @@ const addAleBench: StandaloneBenchmarkOperation = ({ assignedBenchmarks, lookups
   }
 };
 
+/** Attach quality and resources from the same exact DeepSWE effort observation. */
+const addDeepSWE: StandaloneBenchmarkOperation = ({ assignedBenchmarks, lookups, ...context }) => {
+  const row = context.resolveSourceRow(lookups.deepSWE.rowsByModelName);
+  if (row != null) {
+    assignedBenchmarks.benchmarks.deep_swe = row.pass_at_1;
+    assignedBenchmarks.scoringSources.deep_swe = row;
+  }
+};
+
 /** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
 const addFrontierCode: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
@@ -302,6 +311,13 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         assignedBenchmarks.scoringSources.agent_arena = row;
       }
     },
+    observation: ({ assignedBenchmarks, lookups, resolveSourceRow }) => {
+      const row = resolveSourceRow(lookups.agentArena.rowsByModelName);
+      if (row != null) {
+        assignedBenchmarks.benchmarks.agent_arena = row.score;
+        assignedBenchmarks.scoringSources.agent_arena = row;
+      }
+    },
   },
   agents_last_exam: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
@@ -338,6 +354,13 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         assignedBenchmarks.scoringSources.cursorbench = row;
       }
     },
+    observation: ({ assignedBenchmarks, lookups, resolveSourceRow }) => {
+      const row = resolveSourceRow(lookups.cursorBench.rowsByModelName);
+      if (row != null) {
+        assignedBenchmarks.benchmarks.cursorbench = row.score;
+        assignedBenchmarks.scoringSources.cursorbench = row;
+      }
+    },
   },
   deep_swe: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
@@ -347,6 +370,7 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         assignedBenchmarks.scoringSources.deep_swe = row;
       }
     },
+    observation: addDeepSWE,
   },
   frontier_code: {
     defaultVariant: addFrontierCode,
@@ -366,6 +390,13 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         modelNameCandidates,
         lookups.vendingBench2.rowsByModelName,
       );
+      if (row != null) {
+        assignedBenchmarks.benchmarks.vending_bench_2 = row.final_balance_usd;
+        assignedBenchmarks.scoringSources.vending_bench_2 = row;
+      }
+    },
+    observation: ({ assignedBenchmarks, lookups, resolveSourceRow }) => {
+      const row = resolveSourceRow(lookups.vendingBench2.rowsByModelName);
       if (row != null) {
         assignedBenchmarks.benchmarks.vending_bench_2 = row.final_balance_usd;
         assignedBenchmarks.scoringSources.vending_bench_2 = row;

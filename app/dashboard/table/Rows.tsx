@@ -1,6 +1,6 @@
 /** Leaderboard row rendering applies model display, cell formatting, and interaction rules. */
 
-import { type CSSProperties, memo, type MouseEvent, useState } from "react";
+import { type CSSProperties, memo, type MouseEvent } from "react";
 
 import {
   isPreviewModel,
@@ -14,7 +14,8 @@ import {
   VideoInputIcon,
 } from "../shared/DashboardIcons";
 import { modelDisplayName } from "../shared/model-display";
-import { providerBrandColor, providerLogo } from "../shared/provider-theme";
+import { providerBrandColor } from "../shared/provider-theme";
+import { ProviderLogo } from "../shared/ProviderLogo";
 import {
   benchmarkPercentValue,
   formatConfidence,
@@ -536,41 +537,6 @@ function stripModelDisplayTokens(value: string, separator: " " | "-") {
 
 function isHiddenDisplayToken(token: string) {
   return HIDDEN_MODEL_DISPLAY_TOKENS.has(token.toLowerCase());
-}
-
-function ProviderLogo({ model }: { model: ModelAtlasPublishedModel }) {
-  const [hidden, setHidden] = useState(false);
-  const logoSrc = logoSource(model);
-
-  if (hidden || !logoSrc) {
-    return <span className="provider-logo provider-logo-empty" />;
-  }
-
-  return (
-    <img
-      className="provider-logo"
-      src={logoSrc}
-      alt=""
-      width={32}
-      height={32}
-      loading="lazy"
-      decoding="async"
-      onError={() => {
-        setHidden(true);
-      }}
-    />
-  );
-}
-
-function logoSource(model: ModelAtlasPublishedModel) {
-  const logo = providerLogo(model.provider);
-  if (logo.length > 0) {
-    return logo;
-  }
-  if (typeof model.logo === "string" && model.logo.length > 0) {
-    return model.logo;
-  }
-  return "";
 }
 
 function TableCell({ text, className }: { text: string; className?: string }) {

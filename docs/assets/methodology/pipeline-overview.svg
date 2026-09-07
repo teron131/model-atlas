@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 438" role="img" aria-labelledby="title desc">
+<title id="title">Quality precedes resource scoring and publication</title>
+<desc id="desc">Five stages connect source observations to comparable quality, quality-adjusted resources, and publication. Publication gates do not redefine calibration.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">Quality comes before resource comparison</text>
+<line x1="60" y1="93" x2="60" y2="136" stroke="#63706e" stroke-width="1.5"/>
+<path d="M56.64 129.86 L60 136 L63.36 129.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<circle cx="60" cy="83" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="84" y="88" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Observed inputs</text>
+<text x="84" y="110" font-size="15" fill="#000000" text-anchor="start" font-weight="400">Exact model, variant, task, and resources</text>
+<line x1="60" y1="159" x2="60" y2="202" stroke="#63706e" stroke-width="1.5"/>
+<path d="M56.64 195.86 L60 202 L63.36 195.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<circle cx="60" cy="149" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="84" y="154" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Comparable benchmark evidence</text>
+<text x="84" y="176" font-size="15" fill="#000000" text-anchor="start" font-weight="400">Normalize within each benchmark</text>
+<line x1="60" y1="225" x2="60" y2="268" stroke="#63706e" stroke-width="1.5"/>
+<path d="M56.64 261.86 L60 268 L63.36 261.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<circle cx="60" cy="215" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="84" y="220" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Intelligence and Agentic</text>
+<text x="84" y="242" font-size="15" fill="#000000" text-anchor="start" font-weight="400">Combine task and index evidence</text>
+<line x1="60" y1="291" x2="60" y2="334" stroke="#63706e" stroke-width="1.5"/>
+<path d="M56.64 327.86 L60 334 L63.36 327.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<circle cx="60" cy="281" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<text x="84" y="286" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Quality-adjusted resources</text>
+<text x="84" y="308" font-size="15" fill="#000000" text-anchor="start" font-weight="400">Compare cost and time at similar quality</text>
+<circle cx="60" cy="347" r="5" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<text x="84" y="352" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Public scores and availability</text>
+<text x="84" y="374" font-size="15" fill="#000000" text-anchor="start" font-weight="400">Apply admission and direct-evidence gates</text>
+<text x="40" y="415" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Publication filters do not change the reference population.</text>
+</svg>

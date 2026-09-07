@@ -125,16 +125,18 @@ export function BenchmarkSelect({
       <div className={styles.benchmarkSelectMenu}>
         <label className={styles.benchmarkSelectSearch}>
           <span className={styles.visuallyHidden}>
-            Filter frontier benchmarks by name or description
+            Filter benchmarks and index proxies by name or description
           </span>
           <input
             type="search"
             value={query}
-            placeholder="Filter benchmarks or descriptions"
+            placeholder="Filter benchmarks or index proxies"
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <p className={styles.benchmarkSelectExplainer}>CORR = correlation to Intelligence score</p>
+        <p className={styles.benchmarkSelectExplainer}>
+          CORR = correlation to Intelligence score. Index proxies are aggregate evidence.
+        </p>
         <div className={styles.benchmarkSelectOptions}>
           <div className={styles.benchmarkSelectHeader} role="row">
             <span role="columnheader">
@@ -146,7 +148,7 @@ export function BenchmarkSelect({
                   onChange={() => onChange(allSelected ? [] : null)}
                 />
                 <span className={styles.benchmarkSelectBulkMark} aria-hidden="true" />
-                <span className={styles.visuallyHidden}>All benchmarks</span>
+                <span className={styles.visuallyHidden}>All benchmarks and index proxies</span>
               </label>
             </span>
             <BenchmarkSortHeader

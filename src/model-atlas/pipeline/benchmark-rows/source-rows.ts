@@ -258,7 +258,7 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       };
     }),
   deep_swe: (sourceData) =>
-    benchmarkRowDrafts("deep_swe", sourceData.deepSWE.sourceDefaultRows, (row) => ({
+    benchmarkRowDrafts("deep_swe", sourceData.deepSWE.rows, (row) => ({
       id: row.model,
       identity: row.model,
       label: row.model,

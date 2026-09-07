@@ -3,10 +3,12 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { Readable } from "node:stream";
 
 import type { Storage } from "@google-cloud/storage";
 
 import { GET } from "../app/api/llm-stats/route";
+import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
 import { SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
 import {
@@ -40,8 +42,12 @@ const storage = {
           async getMetadata() {
             return [{ generation: get().generation }];
           },
-          async download() {
-            return [get().bytes];
+          createReadStream() {
+            return Readable.from(
+              (async function* () {
+                yield get().bytes;
+              })(),
+            );
           },
           async save(
             bytes: Buffer,
@@ -187,7 +193,7 @@ try {
   const url = "http://localhost/api/llm-stats?view=dashboard";
   const firstResponse = await GET(new Request(url));
   assert.equal(firstResponse.status, 200);
-  assert.deepEqual(await firstResponse.json(), read);
+  assert.deepEqual(await firstResponse.json(), publicJsonPayload(read, "dashboard"));
   const etag = firstResponse.headers.get("etag")!;
   assert.ok(etag.startsWith('W/"'));
   assert.equal(firstResponse.headers.get("vary"), "x-model-atlas-view");

@@ -44,9 +44,7 @@ import {
 import {
   buildDeepSWEMap,
   type DeepSWELeaderboardRow,
-  type DeepSWEModelScoreRow,
   type DeepSWERowsByModelName,
-  summarizeDeepSWESourceDefaultRows,
 } from "../deep-swe/leaderboard";
 import type {
   FrontierCodeModelEffortRow,
@@ -132,7 +130,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
   blueprintBench: IndexedSourceRows<BlueprintBenchModelScoreRow, BlueprintBenchRowsByModelName>;
   cursorBench: IndexedSourceRows<CursorBenchModelScoreRow, CursorBenchRowsByModelName>;
   deepSWE: {
-    sourceDefaultRows: DeepSWEModelScoreRow[];
+    rows: DeepSWELeaderboardRow[];
     rowsByModelName: DeepSWERowsByModelName;
   };
   frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
@@ -168,7 +166,6 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
 /** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
 export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceData {
   const preferredModelsDevModels = pickPreferredModelsDevRows(rows.modelsDevModels);
-  const deepSweSourceDefaultRows = summarizeDeepSWESourceDefaultRows(rows.deepSWEEffortRows);
   const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
     rows.aleBenchConfigurationRows,
   );
@@ -215,8 +212,8 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rowsByModelName: buildCursorBenchMap(rows.cursorBenchRows),
     },
     deepSWE: {
-      sourceDefaultRows: deepSweSourceDefaultRows,
-      rowsByModelName: buildDeepSWEMap(deepSweSourceDefaultRows),
+      rows: rows.deepSWEEffortRows,
+      rowsByModelName: buildDeepSWEMap(rows.deepSWEEffortRows),
     },
     frontierCode: {
       rows: rows.frontierCodeRows,

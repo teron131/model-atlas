@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 411" role="img" aria-labelledby="title desc">
+<title id="title">Accepted matches add compatible metadata while preserving source evidence</title>
+<desc id="desc">Source identity and variant are checked against catalog candidates. An accepted match attaches metadata; a rejected match retains a qualified source identity without borrowing catalog fields.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">A match adds metadata, not another model’s results</text>
+<text x="40" y="94" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Source identity + explicit variant</text>
+<line x1="350" y1="88" x2="430" y2="88" stroke="#63706e" stroke-width="1.5"/>
+<path d="M423.86 91.36 L430 88 L423.86 84.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="451" y="94" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Candidate catalog identity</text>
+<line x1="378" y1="112" x2="378" y2="158" stroke="#63706e" stroke-width="1.5"/>
+<path d="M374.64 151.86 L378 158 L381.36 151.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<rect x="170" y="171" width="416" height="66" fill="none" stroke="#b5bfbc"/>
+<text x="378" y="198" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">Identity and configuration checks</text>
+<text x="378" y="222" font-size="15" fill="#000000" text-anchor="middle" font-weight="400">Rank candidates; reject incompatible matches</text>
+<line x1="277" y1="237" x2="195" y2="291" stroke="#146cba" stroke-width="1.5"/>
+<path d="M198.28 284.82 L195 291 L201.98 290.42" fill="none" stroke="#146cba" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<line x1="479" y1="237" x2="562" y2="291" stroke="#a64d0c" stroke-width="1.5"/>
+<path d="M555.02 290.46 L562 291 L558.68 284.84" fill="none" stroke="#a64d0c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="80" y="323" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Accepted match</text>
+<text x="80" y="350" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Attach compatible metadata</text>
+<text x="80" y="374" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Keep exact variant observations</text>
+<text x="440" y="323" font-size="18" fill="#000000" text-anchor="start" font-weight="600">No accepted match</text>
+<text x="440" y="350" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Keep qualified source identity</text>
+<text x="440" y="374" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Leave catalog metadata missing</text>
+</svg>

@@ -1,7 +1,8 @@
 /** Shared resource-metric rules for benchmark cost, speed, and availability scoring. */
 
-import type { BenchmarkResourcePolicy } from "../../benchmarks/factory";
+import type { BenchmarkPortfolio } from "../../benchmarks/factory";
 import { benchmarkValueLocation } from "../../benchmarks/registry";
+import { MINIMUM_RESOURCE_BENCHMARKS } from "../../config/stage";
 import { positiveFiniteNumber } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasTaskMetricValues } from "../model-types";
@@ -16,6 +17,41 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
   task_metrics?: unknown;
 };
 
+/** Publish resource scores only with enough direct task pairs, counted independently without altering scoring references. */
+export function applyResourceEvidenceRequirements<
+  T extends ResourceMetricModel & {
+    scores: { speed_score: number | null; value_score: number | null };
+  },
+>(model: T, portfolio: BenchmarkPortfolio): T {
+  const counts = observedResourceBenchmarkCounts(model, portfolio);
+  const valueScore = counts.cost >= MINIMUM_RESOURCE_BENCHMARKS ? model.scores.value_score : null;
+  const speedScore = counts.time >= MINIMUM_RESOURCE_BENCHMARKS ? model.scores.speed_score : null;
+  return valueScore === model.scores.value_score && speedScore === model.scores.speed_score
+    ? model
+    : { ...model, scores: { ...model.scores, speed_score: speedScore, value_score: valueScore } };
+}
+
+/** Direct quality-resource pairs drive both publication gates and preview tapering; selected tasks without a pair remain in the denominator. */
+export function observedResourceBenchmarkCounts(
+  model: ResourceMetricModel,
+  portfolio: BenchmarkPortfolio,
+): {
+  cost: number;
+  time: number;
+  selected: number;
+} {
+  const counts = { cost: 0, time: 0, selected: 0 };
+  for (const [key, entry] of Object.entries(portfolio)) {
+    if (entry.resourcePolicy == null) continue;
+    counts.selected += 1;
+    if (benchmarkMetricValue(model, key) == null) continue;
+    const metrics = benchmarkTaskMetrics(model, key);
+    if (positiveFiniteNumber(metrics?.cost) != null) counts.cost += 1;
+    if (positiveFiniteNumber(metrics?.seconds) != null) counts.time += 1;
+  }
+  return counts;
+}
+
 export type BenchmarkTokenMeasure = "input-output" | "tokens" | "output_tokens";
 
 /** Read one declared token measure directly, without borrowing an index's aggregate telemetry. */
@@ -25,12 +61,12 @@ export function directBenchmarkTokens(
   measure: BenchmarkTokenMeasure,
 ): number | null {
   const metrics = asRecord(asRecord(model.task_metrics)[key]);
-  if (measure !== "input-output") return positiveFiniteNumber(metrics[measure]);
+  if (measure === "output_tokens") return positiveFiniteNumber(metrics.output_tokens);
   const input = asFiniteNumber(metrics.input_tokens);
   const output = asFiniteNumber(metrics.output_tokens);
-  return input == null || input < 0 || output == null || output < 0
-    ? null
-    : positiveFiniteNumber(input + output);
+  if (input != null && input >= 0 && output != null && output >= 0)
+    return positiveFiniteNumber(input + output);
+  return measure === "tokens" ? positiveFiniteNumber(metrics.tokens) : null;
 }
 
 export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): number | null {
@@ -66,8 +102,12 @@ export function effectiveTaskSeconds(model: ResourceMetricModel, task: unknown):
   return outputTokens != null && throughput != null ? outputTokens / throughput : null;
 }
 
-function taskMetricValues(value: unknown): ModelAtlasTaskMetricValues | null {
-  const record = asRecord(value);
+/** Read telemetry for the named benchmark only; source-wide averages do not measure a missing task. */
+export function benchmarkTaskMetrics(
+  model: ResourceMetricModel,
+  key: string,
+): ModelAtlasTaskMetricValues | null {
+  const record = asRecord(asRecord(model.task_metrics)[key]);
   const cost = asFiniteNumber(record.cost);
   const seconds = asFiniteNumber(record.seconds);
   const tokens = asFiniteNumber(record.tokens);
@@ -80,21 +120,5 @@ function taskMetricValues(value: unknown): ModelAtlasTaskMetricValues | null {
     ...(inputTokens == null ? {} : { input_tokens: inputTokens }),
     ...(outputTokens == null ? {} : { output_tokens: outputTokens }),
   };
-  return Object.keys(metrics).length === 0 ? null : metrics;
-}
-
-/** Resolve direct benchmark telemetry over its declared shared-source fallback. */
-export function benchmarkTaskMetrics(
-  model: ResourceMetricModel,
-  key: string,
-  resourcePolicy?: BenchmarkResourcePolicy,
-): ModelAtlasTaskMetricValues | null {
-  const taskMetrics = asRecord(model.task_metrics);
-  const fallback =
-    resourcePolicy?.source === "artificial_analysis"
-      ? taskMetricValues(taskMetrics.artificial_analysis)
-      : null;
-  const direct = taskMetricValues(taskMetrics[key]);
-  const metrics = { ...fallback, ...direct };
   return Object.keys(metrics).length === 0 ? null : metrics;
 }

@@ -1,6 +1,9 @@
 /** Price-efficiency chart data reconstruction and summaries. */
 
-import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
+import {
+  canonicalModelKey,
+  reasoningEffortRank,
+} from "../../../../src/model-atlas/identity/normalization";
 import { log10OnePlusPositive, meanOfFinite } from "../../../../src/model-atlas/math-utils";
 import { coverageConfidence } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import {
@@ -15,6 +18,7 @@ import {
 } from "../../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../../shared/model-display";
 import { finiteValue, fmtMoney, fmtTooltipMoney, fmtTooltipScore } from "../format";
+import { isGraphEligible } from "../model-series";
 import type { HoverRow } from "../types";
 
 export type PriceEfficiencyRow = {
@@ -82,6 +86,7 @@ export function priceEfficiencyRows(
   });
   const strongestByKey = new Map<string, ModelAtlasPublishedModel>();
   for (const model of eligibleModels) {
+    if (!isGraphEligible(model)) continue;
     const key = comparisonKey(model, showVariants);
     const existing = strongestByKey.get(key);
     if (
@@ -155,9 +160,7 @@ function costEfficiencyByModel(
     .flatMap(([key, entry]) => {
       const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
       return qualityCoordinate != null &&
-        models.some(
-          (model) => benchmarkScore(model, key) != null && taskCost(model, portfolio, key) != null,
-        )
+        models.some((model) => benchmarkScore(model, key) != null && taskCost(model, key) != null)
         ? [{ key, qualityCoordinate }]
         : [];
     })
@@ -168,7 +171,7 @@ function costEfficiencyByModel(
       models,
       models.map((model) => benchmarkScore(model, key)),
       models.map((model) => {
-        const cost = taskCost(model, portfolio, key);
+        const cost = taskCost(model, key);
         return cost == null ? null : Math.log(cost);
       }),
       qualityCoordinate,
@@ -180,11 +183,29 @@ function costEfficiencyByModel(
       }
     }
   }
-  return scoresByModel.map((scores) => {
+  // Ordinary efforts share the source-default effort's coverage, as in final resource scoring.
+  const defaultIndexByModel = new Map<string, number>();
+  for (const [index, model] of models.entries()) {
+    if (isPreviewModel(model)) continue;
+    const key = canonicalModelKey(model);
+    const previous = defaultIndexByModel.get(key);
+    if (
+      previous == null ||
+      reasoningEffortRank(model.reasoning_effort) >
+        reasoningEffortRank(models[previous]?.reasoning_effort)
+    )
+      defaultIndexByModel.set(key, index);
+  }
+  return scoresByModel.map((scores, index) => {
     const meanScore = meanOfFinite(scores);
+    const model = models[index]!;
+    const defaultIndex = isPreviewModel(model)
+      ? index
+      : (defaultIndexByModel.get(canonicalModelKey(model)) ?? index);
+    const coverageCount = scoresByModel[defaultIndex]?.length ?? 0;
     return meanScore == null
       ? null
-      : meanScore * coverageConfidence(scores.length, benchmarks.length);
+      : meanScore * coverageConfidence(coverageCount, benchmarks.length);
   });
 }
 
@@ -194,13 +215,8 @@ function benchmarkScore(model: ModelAtlasPublishedModel, benchmarkKey: string): 
   );
 }
 
-function taskCost(
-  model: ModelAtlasPublishedModel,
-  portfolio: BenchmarkPortfolio,
-  benchmarkKey: string,
-): number | null {
-  const resourcePolicy = portfolio[benchmarkKey]?.resourcePolicy;
-  const cost = finiteValue(benchmarkTaskMetrics(model, benchmarkKey, resourcePolicy)?.cost);
+function taskCost(model: ModelAtlasPublishedModel, benchmarkKey: string): number | null {
+  const cost = finiteValue(benchmarkTaskMetrics(model, benchmarkKey)?.cost);
   return cost != null && cost > 0 ? cost : null;
 }
 

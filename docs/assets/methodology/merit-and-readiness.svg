@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 395" role="img" aria-labelledby="title desc">
+<title id="title">Benchmark merit does not depend on ingestion convenience</title>
+<desc id="desc">A merit judgment classifies the benchmark evidence. A separate readiness judgment identifies usable source data or operational blockers. Adoption requires both positive merit and usable comparable evidence.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">Benchmark merit and adoption readiness are separate</text>
+<text x="40" y="95" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Evidence merit</text>
+<text x="40" y="124" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Capability, grading, separation,</text>
+<text x="40" y="148" font-size="16" fill="#000000" text-anchor="start" font-weight="400">provenance, portfolio value</text>
+<text x="424" y="95" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Adoption readiness</text>
+<text x="424" y="124" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Stable data, identities, units,</text>
+<text x="424" y="148" font-size="16" fill="#000000" text-anchor="start" font-weight="400">versions, maintainable ingestion</text>
+<line x1="190" y1="174" x2="190" y2="220" stroke="#63706e" stroke-width="1.5"/>
+<path d="M186.64 213.86 L190 220 L193.36 213.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<line x1="574" y1="174" x2="574" y2="220" stroke="#63706e" stroke-width="1.5"/>
+<path d="M570.64 213.86 L574 220 L577.36 213.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="40" y="254" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Frontier / baseline / rejected</text>
+<text x="424" y="254" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Ready / operational blockers</text>
+<line x1="40" y1="293" x2="718" y2="293" stroke="#b5bfbc" stroke-width="1"/>
+<text x="40" y="330" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Adoption needs positive merit and usable, comparable evidence.</text>
+<text x="40" y="367" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Easy ingestion does not make weak evidence stronger.</text>
+</svg>

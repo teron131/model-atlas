@@ -4,7 +4,11 @@
  * Page source: https://cursor.com/cursorbench
  */
 
-import { normalizeModelToken, reasoningEffortRank } from "../../identity/normalization";
+import {
+  canonicalReasoningEffort,
+  normalizeModelToken,
+  reasoningEffortRank,
+} from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { htmlTextLines } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -139,7 +143,11 @@ export function processCursorBenchPageHtml(pageHtml: string): CursorBenchModelSc
 /** Build the scoring lookup from eligible rows while leaving caveated rows available as raw evidence. */
 export function buildCursorBenchMap(rows: CursorBenchModelScoreRow[]): CursorBenchRowsByModelName {
   const rowsByModelName: CursorBenchRowsByModelName = new Map();
-  for (const row of rows) {
+  for (const sourceRow of rows) {
+    const row = {
+      ...sourceRow,
+      reasoning_effort: canonicalReasoningEffort(sourceRow.reasoning_effort),
+    };
     if (!row.score_eligible) {
       continue;
     }
@@ -307,6 +315,10 @@ function cursorBenchModelAliases(row: CursorBenchModelScoreRow): string[] {
     row.base_model,
     cursorBenchCanonicalModelName(row.base_model),
   ]);
+  if (row.reasoning_effort != null) {
+    aliases.add(`${row.base_model} (${row.reasoning_effort})`);
+    aliases.add(`${cursorBenchCanonicalModelName(row.base_model)} (${row.reasoning_effort})`);
+  }
   return [...aliases];
 }
 

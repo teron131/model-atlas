@@ -6,6 +6,11 @@ import {
 } from "../../../src/model-atlas/stats/types";
 import { shortLabel } from "../shared/model-display";
 
+/** Every graph requires available Value; quality-qualified rows without it remain table-only. */
+export function isGraphEligible(model: ModelAtlasPublishedModel): boolean {
+  return finiteNumber(model.scores?.value_score) != null;
+}
+
 /** Prefix preview graph labels with the marker explained by the graph legend. */
 export function graphModelLabel(
   model: ModelAtlasPublishedModel,

@@ -3,8 +3,8 @@
 import {
   buildBenchmarkImputationByModel,
   buildComponentScoreResult,
-  buildQualityScoringContext,
 } from "../src/model-atlas/pipeline/scores";
+import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   processArtificialAnalysisLeaderboardRows,
@@ -391,6 +391,7 @@ const scoringConfig = {
       dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
     },
   },
+  qualityTaskFullCount: 8,
   qualityCoverage: {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
