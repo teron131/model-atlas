@@ -39,7 +39,6 @@
   --loading-sheen: rgb(var(--ink-rgb) / 0.11);
   --loading-fill: rgb(var(--ink-rgb) / 0.065);
   --tooltip-surface: rgb(var(--paper-rgb) / 0.97);
-  --tooltip-section-fill: rgb(var(--ink-rgb) / 0.018);
   --tooltip-shadow: 0 18px 48px rgb(0 0 0 / 0.46);
   --score-track: rgb(var(--ink-rgb) / 0.12);
   --table-edge-fade: rgb(var(--paper-rgb) / 0);
@@ -77,7 +76,6 @@ html[data-model-atlas-theme="light"] {
   --loading-sheen: rgb(var(--ink-rgb) / 0.105);
   --loading-fill: rgb(var(--ink-rgb) / 0.055);
   --tooltip-surface: rgb(var(--paper-rgb) / 0.98);
-  --tooltip-section-fill: rgb(var(--ink-rgb) / 0.03);
   --tooltip-shadow: 0 18px 48px rgb(var(--ink-rgb) / 0.16);
 }
 
@@ -1089,9 +1087,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
   display: grid;
   gap: 7px;
   min-width: 0;
-  padding: 9px 10px 10px;
-  border: 1px solid rgb(var(--ink-rgb) / 0.1);
-  background: var(--tooltip-section-fill);
+  padding: 9px 0 10px;
 }
 
 .column-tooltip-section-title {
@@ -1165,8 +1161,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
   gap: 6px;
   max-width: calc(100% - 8px);
   margin-left: 8px;
-  padding-left: 7px;
-  border-left: 1px solid rgb(var(--ink-rgb) / 0.1);
+  padding-left: 8px;
 }
 
 .column-tooltip-nested-section .column-tooltip-section-title {
