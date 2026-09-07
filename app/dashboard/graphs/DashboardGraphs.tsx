@@ -21,6 +21,7 @@ import {
   modelCount,
   type ModelRankFilter,
   modelRankFilterOptions,
+  modelsForVariantDisplay,
   type ProviderOption,
   type RecencyFilter,
   recencyFilterOptions,
@@ -155,6 +156,44 @@ export function DashboardGraphs({
     );
     return filterGraphPreviewsByIntelligenceFloor(rankFilteredModels, (model) => model);
   }, [deferredModelRankFilter, recencyFilteredModels, referenceModels]);
+  const performanceModels = useMemo(() => {
+    const variants = modelsForVariantDisplay(
+      deferredModelVariants,
+      deferredShowReasoningVariants,
+      deferredPayload?.benchmark_observations,
+    );
+    const controlled = filterByModelControls(variants, (model) => model, {
+      providers: deferredSelectedProviders,
+      maxCost: deferredMaxCost,
+    });
+    const queried = filterByModelQuery(
+      controlled,
+      (model) => model,
+      deferredGlobalModelFilterQuery,
+    );
+    const recent = filterByReleaseRecency(
+      queried,
+      (model) => model,
+      deferredRecencyFilter,
+      deferredPayload?.fetched_at_epoch_seconds ?? null,
+    );
+    return filterByIntelligenceRank(
+      recent,
+      (model) => model,
+      deferredModelRankFilter,
+      referenceModels,
+    );
+  }, [
+    deferredModelVariants,
+    deferredShowReasoningVariants,
+    deferredPayload,
+    deferredSelectedProviders,
+    deferredMaxCost,
+    deferredGlobalModelFilterQuery,
+    deferredRecencyFilter,
+    deferredModelRankFilter,
+    referenceModels,
+  ]);
   const signatureModels = useMemo(() => {
     if (deferredShowReasoningVariants) {
       return models;
@@ -173,7 +212,7 @@ export function DashboardGraphs({
       (model) => model,
     );
   }, [deferredModelVariants, filteredModels]);
-  const currentSection = useCurrentResearchSection(deferredPayload != null && allModels.length > 0);
+  const currentSection = useCurrentResearchSection(deferredPayload != null);
 
   const filteredModelCount = modelCount(filteredModels);
   const recencyModelCount = modelCount(recencyFilteredModels);
@@ -390,37 +429,35 @@ export function DashboardGraphs({
       </section>
       {afterLead}
 
+      <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
+        <ParetoAnalysisPanel
+          payload={deferredPayload}
+          models={performanceModels}
+          referenceModels={referenceModels}
+          showVariants={deferredShowReasoningVariants}
+          setHover={setHover}
+        />
+      </section>
       {models.length === 0 ? (
         <div className={styles.error}>
-          No models with eligible Value match the current global filters.
+          No models with eligible Value match the current global filters for Price.
         </div>
       ) : (
-        <>
-          <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
-            <ParetoAnalysisPanel
-              payload={deferredPayload}
-              models={models}
-              referenceModels={referenceModels}
-              showVariants={deferredShowReasoningVariants}
-              setHover={setHover}
-            />
-          </section>
-          <PriceEfficiencyPanel
-            benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
-            models={deferredPayload.models}
-            globalModelFilterQuery={deferredGlobalModelFilterQuery}
-            showVariants={deferredShowReasoningVariants}
-            maxCost={deferredMaxCost}
-            modelRankFilter={deferredModelRankFilter}
-            recencyFilter={deferredRecencyFilter}
-            observedAtEpochSeconds={deferredPayload.fetched_at_epoch_seconds}
-            onShowVariantsChange={onShowReasoningVariantsChange}
-            selectedProviders={deferredSelectedProviders}
-            onSelectedProvidersChange={onSelectedProvidersChange}
-            referenceModels={referenceModels}
-            setHover={setHover}
-          />
-        </>
+        <PriceEfficiencyPanel
+          benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
+          models={deferredPayload.models}
+          globalModelFilterQuery={deferredGlobalModelFilterQuery}
+          showVariants={deferredShowReasoningVariants}
+          maxCost={deferredMaxCost}
+          modelRankFilter={deferredModelRankFilter}
+          recencyFilter={deferredRecencyFilter}
+          observedAtEpochSeconds={deferredPayload.fetched_at_epoch_seconds}
+          onShowVariantsChange={onShowReasoningVariantsChange}
+          selectedProviders={deferredSelectedProviders}
+          onSelectedProvidersChange={onSelectedProvidersChange}
+          referenceModels={referenceModels}
+          setHover={setHover}
+        />
       )}
 
       {hover ? <HoverCard hover={hover} /> : null}

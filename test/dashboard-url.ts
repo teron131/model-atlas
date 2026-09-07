@@ -10,6 +10,12 @@ assert.equal(readUrlValue(base.searchParams, "view"), "all");
 assert.equal(readUrlValue(base.searchParams, "rank"), 50);
 assert.equal(readUrlValue(base.searchParams, "days"), 180);
 assert.equal(dashboardUrlSection(base), null);
+assert.equal(readUrlValue(base.searchParams, "performance"), "intelligence");
+assert.equal(readUrlValue(base.searchParams, "axes"), "cost");
+for (const axis of ["cost", "time", "tokens", "speed", "value"] as const) {
+  assert.equal(readUrlValue(patchDashboardUrl(base, { axes: axis }).searchParams, "axes"), axis);
+}
+assert.equal(readUrlValue(new URLSearchParams("axes=speedValue"), "axes"), "cost");
 
 const cost = patchDashboardUrl(base, { view: "cost" });
 assert.equal(cost.search, "?view=cost");
@@ -64,12 +70,12 @@ for (const query of [
   assert.equal(readUrlValue(params, "max-cost"), "all");
 }
 const malformed = new URLSearchParams(
-  "view=bad&sort=__proto__.asc&pareto=unknown&axes=bad&column-order=bad&benchmark=unknown",
+  "view=bad&sort=__proto__.asc&performance=unknown&axes=bad&column-order=bad&benchmark=unknown",
 );
 assert.equal(readUrlValue(malformed, "view"), "all");
 assert.deepEqual(readUrlValue(malformed, "sort"), { key: "intelligence", direction: "descending" });
-assert.equal(readUrlValue(malformed, "pareto"), "scores");
-assert.equal(readUrlValue(malformed, "axes"), "speedValue");
+assert.equal(readUrlValue(malformed, "performance"), "intelligence");
+assert.equal(readUrlValue(malformed, "axes"), "cost");
 assert.equal(readUrlValue(malformed, "column-order"), "portfolio");
 assert.equal(readUrlValue(malformed, "benchmark"), null);
 assert.deepEqual(readUrlValue(new URLSearchParams("benchmark=none"), "benchmark"), []);
@@ -89,9 +95,12 @@ assert.equal(
   null,
 );
 assert.equal(dashboardUrlSection(new URL("?view=cost", base)), "leaderboard");
-assert.equal(dashboardUrlSection(new URL("?pareto=benchmarks&axes=cost", base)), "pareto-analysis");
 assert.equal(
-  dashboardUrlSection(new URL("?view=cost&pareto=benchmarks#price-efficiency", base)),
+  dashboardUrlSection(new URL("?performance=benchmarks&axes=cost", base)),
+  "pareto-analysis",
+);
+assert.equal(
+  dashboardUrlSection(new URL("?view=cost&performance=benchmarks#price-efficiency", base)),
   "price-efficiency",
 );
 assert.equal(patchDashboardUrl(base, { benchmark: null }).searchParams.get("benchmark"), "all");

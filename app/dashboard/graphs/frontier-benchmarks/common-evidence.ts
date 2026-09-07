@@ -9,6 +9,7 @@ import {
   type FrontierBenchmarkRow,
   frontierEvidenceWeight,
   isIndexProxy,
+  isScoreAxis,
   meanFrontierBenchmarkRows,
   normalizedFrontierBenchmarkRows,
   positiveMetric,
@@ -38,7 +39,7 @@ export function sharedFrontierBenchmarkComparison(
   selectedBenchmarkKeys: readonly string[],
   axisKey: FrontierBenchmarkAxisKey,
 ): CommonBenchmarkComparison {
-  if (selectedBenchmarkKeys.length < 2 || axisKey === "speedValue") {
+  if (selectedBenchmarkKeys.length < 2) {
     return {
       rows: selectedFrontierBenchmarkRows(rows, referenceRows, selectedBenchmarkKeys),
       benchmarkKeys: selectedBenchmarkKeys,
@@ -50,14 +51,18 @@ export function sharedFrontierBenchmarkComparison(
   const selected = new Set(selectedBenchmarkKeys);
   const metric = frontierBenchmarkAxisConfig[axisKey].get;
   const observed = rows.filter(
-    (row) => selected.has(row.benchmarkKey) && positiveMetric(metric(row)),
+    (row) => selected.has(row.benchmarkKey) && positiveMetric(metric(row), isScoreAxis(axisKey)),
+  );
+  // Uncalibrated or unpaired observations cannot enter a normalized basket or its disclosure.
+  const normalized = normalizedFrontierBenchmarkRows(observed, referenceRows).filter((row) =>
+    positiveMetric(metric(row), true),
   );
   const result: FrontierBenchmarkRow[] = [];
   const groups: CommonModelEvidence[] = [];
   let indexVariantCount = 0;
   let excludedVariantCount = 0;
   const rowsByModel = new Map<string, FrontierBenchmarkRow[]>();
-  for (const row of observed) {
+  for (const row of normalized) {
     const key = canonicalModelKey(row.model);
     const group = rowsByModel.get(key) ?? [];
     group.push(row);
@@ -84,9 +89,7 @@ export function sharedFrontierBenchmarkComparison(
     const commonRows = modelRows.filter(
       (row) => shared.has(row.benchmarkKey) && compared.has(modelVariantKey(row.model)),
     );
-    const plotted = meanFrontierBenchmarkRows(
-      normalizedFrontierBenchmarkRows(commonRows, referenceRows),
-    );
+    const plotted = meanFrontierBenchmarkRows(commonRows);
     result.push(...plotted);
     indexVariantCount += indexVariants.length;
     excludedVariantCount += allVariants.length - variants.length;

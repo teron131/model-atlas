@@ -3,10 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   frontierBenchmarkAxisConfig,
-  frontierBenchmarkAxisOptions,
   frontierBenchmarkHoverRows,
   frontierBenchmarkRows,
-  speedValueBlendScore,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { isGraphEligible } from "../app/dashboard/graphs/model-series";
 import { priceEfficiencyRows } from "../app/dashboard/graphs/price-efficiency/rows";
@@ -134,35 +132,23 @@ assert.equal(timeDashboard.models[0]?.scores.speed_score, null);
 
 const [missingSpeedRow] = frontierBenchmarkRows([timeGated], portfolio);
 assert.ok(missingSpeedRow);
+assert.equal(frontierBenchmarkAxisConfig.speed.get(missingSpeedRow), null);
 assert.equal(
-  speedValueBlendScore(missingSpeedRow),
-  null,
-  "A missing Speed score cannot halve the displayed efficiency coordinate",
-);
-assert.equal(
-  frontierBenchmarkAxisOptions([missingSpeedRow], false).find(
-    (option) => option.key === "speedValue",
-  )?.disabled,
-  true,
+  frontierBenchmarkAxisConfig.value.get(missingSpeedRow),
+  70,
+  "Missing Speed does not erase independently available Value",
 );
 assert.ok(
-  frontierBenchmarkHoverRows(missingSpeedRow, frontierBenchmarkAxisConfig.cost).some(
-    ([label, value]) => label === "Speed and Value Scores" && value === "--",
+  frontierBenchmarkHoverRows(missingSpeedRow, frontierBenchmarkAxisConfig.cost).every(
+    ([label]) => label !== "Speed and Value Scores",
   ),
 );
 const zeroResourceRow = {
   ...missingSpeedRow,
   model: { ...timeGated, scores: { ...timeGated.scores, speed_score: 0, value_score: 0 } },
 };
-assert.equal(speedValueBlendScore(zeroResourceRow), 0);
-assert.equal(
-  frontierBenchmarkAxisOptions([zeroResourceRow], false).find(
-    (option) => option.key === "speedValue",
-  )?.disabled,
-  false,
-  "Measured zero scores remain valid coordinates",
-);
-assert.equal(speedValueBlendScore({ ...missingSpeedRow, model }), 65);
+assert.equal(frontierBenchmarkAxisConfig.speed.get(zeroResourceRow), 0);
+assert.equal(frontierBenchmarkAxisConfig.value.get(zeroResourceRow), 0);
 
 const completeEffort = { ...model, reasoning_effort: "max" };
 const sparseEffort = {

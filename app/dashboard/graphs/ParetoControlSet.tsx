@@ -1,4 +1,4 @@
-/** Shared Pareto presentation content and responsive controls keep both score bases aligned across browser widths. */
+/** Pareto presentation keeps performance and resource choices on equal footing, with explicit evidence selection. */
 
 import type { ReactNode } from "react";
 
@@ -14,32 +14,24 @@ export const PARETO_PANEL_CONTENT = {
 } as const;
 
 export function ParetoControlSet({
-  scoreBasisControl,
   yAxisControl,
   xAxisControl,
 }: {
-  scoreBasisControl: ReactNode;
   yAxisControl: ReactNode;
   xAxisControl: ReactNode;
 }) {
   return (
     <div className={`${styles.chartToolbar} ${styles.paretoControlSet}`}>
       <div className={styles.paretoControlGrid}>
-        <div className={`${styles.toolbarControl} ${styles.paretoControlBasis}`}>
-          <span className={styles.toolbarControlTitle} aria-hidden="true">
-            Score basis
-          </span>
-          {scoreBasisControl}
-        </div>
         <div className={styles.toolbarControl}>
           <span className={styles.toolbarControlTitle} aria-hidden="true">
-            Y axis
+            Y · Performance
           </span>
           {yAxisControl}
         </div>
         <div className={`${styles.toolbarControl} ${styles.paretoControlXAxis}`}>
           <span className={styles.toolbarControlTitle} aria-hidden="true">
-            X axis
+            X · Resources
           </span>
           {xAxisControl}
         </div>

@@ -1,15 +1,19 @@
-/** Compact multi-select for choosing the benchmark evidence combined by the frontier chart. */
+/** Horizontal performance choices keep published scores immediate and custom benchmark selection in one disclosure. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { benchmarkTooltips } from "../../shared/constants";
 import { filterSearchDocuments } from "../../shared/search";
 import { formatCorrelation } from "../chart-stats";
-import type { FrontierBenchmarkOption } from "./analysis";
+import {
+  type FrontierBenchmarkOption,
+  PERFORMANCE_SCORES,
+  type PerformanceMetric,
+} from "./analysis";
 
 import styles from "../graphs.module.css";
 
-type BenchmarkSortKey = "benchmark" | "correlation" | "models";
+type BenchmarkSortKey = "benchmark" | "correlation" | "items";
 type BenchmarkSortDirection = "ascending" | "descending";
 type BenchmarkSortState = {
   key: BenchmarkSortKey;
@@ -19,19 +23,22 @@ type BenchmarkSortState = {
 const DEFAULT_SORT_DIRECTION: Record<BenchmarkSortKey, BenchmarkSortDirection> = {
   benchmark: "ascending",
   correlation: "descending",
-  models: "descending",
+  items: "descending",
 };
 
+/** Switching to benchmarks selects all sources; activating the selected choice opens its editable basket. */
 export function BenchmarkSelect({
   options,
   selectedKeys,
   correlationByBenchmark,
   onChange,
+  performance,
 }: {
   options: FrontierBenchmarkOption[];
   selectedKeys: readonly string[];
   correlationByBenchmark: ReadonlyMap<string, number | null>;
   onChange: (keys: string[] | null) => void;
+  performance: { value: PerformanceMetric; onChange: (value: PerformanceMetric) => void };
 }) {
   const rootRef = useRef<HTMLDetailsElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -41,7 +48,11 @@ export function BenchmarkSelect({
     direction: "ascending",
   });
   const optionKeys = options.map((option) => option.key);
-  const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
+  const selectsEvidence = performance.value === "benchmarks";
+  const selectedKeySet = useMemo(
+    () => new Set(selectsEvidence ? selectedKeys : []),
+    [selectedKeys, selectsEvidence],
+  );
   const visibleOptions = sortBenchmarkOptions(
     filterSearchDocuments(
       query,
@@ -56,15 +67,7 @@ export function BenchmarkSelect({
   );
   const allSelected = optionKeys.length > 0 && selectedKeySet.size === optionKeys.length;
   const partiallySelected = selectedKeySet.size > 0 && !allSelected;
-  let summaryLabel =
-    options.find((option) => selectedKeySet.has(option.key))?.label ?? "1 selected";
-  if (selectedKeySet.size === 0) {
-    summaryLabel = "None selected";
-  } else if (allSelected) {
-    summaryLabel = `All ${options.length}`;
-  } else if (selectedKeySet.size > 1) {
-    summaryLabel = `${selectedKeySet.size} selected`;
-  }
+  const summaryLabel = `Benchmarks · ${selectsEvidence ? selectedKeySet.size : options.length}`;
 
   useEffect(() => {
     if (selectAllRef.current != null) {
@@ -118,85 +121,116 @@ export function BenchmarkSelect({
   }
 
   return (
-    <details className={styles.benchmarkSelect} ref={rootRef}>
-      <summary>
-        <span>{summaryLabel}</span>
-      </summary>
-      <div className={styles.benchmarkSelectMenu}>
-        <label className={styles.benchmarkSelectSearch}>
-          <span className={styles.visuallyHidden}>
-            Filter benchmarks and index proxies by name or description
-          </span>
-          <input
-            type="search"
-            value={query}
-            placeholder="Filter benchmarks or index proxies"
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <p className={styles.benchmarkSelectExplainer}>
-          CORR = correlation to Intelligence score. Index proxies are aggregate evidence.
-        </p>
-        <div className={styles.benchmarkSelectOptions}>
-          <div className={styles.benchmarkSelectHeader} role="row">
-            <span role="columnheader">
-              <label className={styles.benchmarkSelectBulk}>
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={() => onChange(allSelected ? [] : null)}
-                />
-                <span className={styles.benchmarkSelectBulkMark} aria-hidden="true" />
-                <span className={styles.visuallyHidden}>All benchmarks and index proxies</span>
-              </label>
+    <fieldset className={`${styles.metricToggle} ${styles.performanceToggle}`}>
+      <legend className={styles.visuallyHidden}>Performance</legend>
+      {PERFORMANCE_SCORES.map((option) => (
+        <button
+          type="button"
+          key={option.key}
+          aria-pressed={performance.value === option.key}
+          onClick={() => {
+            performance.onChange(option.key);
+            if (rootRef.current) rootRef.current.open = false;
+          }}
+        >
+          {option.label}
+        </button>
+      ))}
+      <details className={styles.benchmarkSelect} ref={rootRef} aria-label="Benchmarks">
+        <summary
+          aria-label={summaryLabel}
+          aria-current={selectsEvidence ? "true" : undefined}
+          onClick={(event) => {
+            if (!selectsEvidence) {
+              event.preventDefault();
+              onChange(null);
+            }
+          }}
+        >
+          <span>{summaryLabel}</span>
+        </summary>
+        <div className={styles.benchmarkSelectMenu}>
+          <label className={styles.benchmarkSelectSearch}>
+            <span className={styles.visuallyHidden}>
+              Filter benchmarks and indexes by name or description
             </span>
-            <BenchmarkSortHeader
-              label="Benchmark"
-              sortKey="benchmark"
-              sortState={sortState}
-              onSort={sortBy}
+            <input
+              type="search"
+              value={query}
+              placeholder="Filter benchmarks or indexes"
+              onChange={(event) => setQuery(event.target.value)}
             />
-            <BenchmarkSortHeader
-              label="Corr"
-              sortKey="correlation"
-              sortState={sortState}
-              onSort={sortBy}
-            />
-            <BenchmarkSortHeader
-              label="Models"
-              sortKey="models"
-              sortState={sortState}
-              onSort={sortBy}
-            />
+          </label>
+          <p className={styles.benchmarkSelectExplainer}>
+            Choose one source for native units, or several for normalized performance. CORR compares
+            each source with Intelligence.
+          </p>
+          <div className={styles.benchmarkSelectOptions}>
+            <div className={styles.benchmarkSelectHeader} role="row">
+              <span role="columnheader">
+                <label className={styles.benchmarkSelectBulk}>
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={() => onChange(allSelected ? [] : null)}
+                  />
+                  <span className={styles.benchmarkSelectBulkMark} aria-hidden="true" />
+                  <span className={styles.visuallyHidden}>All benchmarks and indexes</span>
+                </label>
+              </span>
+              <BenchmarkSortHeader
+                label="Benchmark"
+                sortKey="benchmark"
+                sortState={sortState}
+                onSort={sortBy}
+              />
+              <BenchmarkSortHeader
+                label="Corr"
+                sortKey="correlation"
+                sortState={sortState}
+                onSort={sortBy}
+              />
+              <BenchmarkSortHeader
+                label="Items"
+                sortKey="items"
+                sortState={sortState}
+                onSort={sortBy}
+              />
+            </div>
+            {visibleOptions.map((option) => {
+              const selected = selectedKeySet.has(option.key);
+              return (
+                <label className={styles.benchmarkSelectOption} key={option.key}>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) => toggleBenchmark(option.key, event.target.checked)}
+                  />
+                  <span className={styles.benchmarkSelectOptionMark} aria-hidden="true" />
+                  <span className={styles.benchmarkSelectOptionLabel}>
+                    {option.label}
+                    {option.detail ? (
+                      <small className={styles.evidenceUnit}>{option.detail}</small>
+                    ) : null}
+                  </span>
+                  <span className={styles.benchmarkSelectOptionCorrelation}>
+                    {formatCorrelation(correlationByBenchmark.get(option.key) ?? null).replace(
+                      /^CORR\s*/,
+                      "",
+                    )}
+                  </span>
+                  <span className={styles.benchmarkSelectOptionCoverage}>{option.count}</span>
+                </label>
+              );
+            })}
+            {visibleOptions.length === 0 ? (
+              <p className={styles.benchmarkSelectEmpty}>No matching benchmarks</p>
+            ) : null}
           </div>
-          {visibleOptions.map((option) => {
-            const selected = selectedKeySet.has(option.key);
-            return (
-              <label className={styles.benchmarkSelectOption} key={option.key}>
-                <input
-                  type="checkbox"
-                  checked={selected}
-                  onChange={(event) => toggleBenchmark(option.key, event.target.checked)}
-                />
-                <span className={styles.benchmarkSelectOptionMark} aria-hidden="true" />
-                <span className={styles.benchmarkSelectOptionLabel}>{option.label}</span>
-                <span className={styles.benchmarkSelectOptionCorrelation}>
-                  {formatCorrelation(correlationByBenchmark.get(option.key) ?? null).replace(
-                    /^CORR\s*/,
-                    "",
-                  )}
-                </span>
-                <span className={styles.benchmarkSelectOptionCoverage}>{option.count}</span>
-              </label>
-            );
-          })}
-          {visibleOptions.length === 0 ? (
-            <p className={styles.benchmarkSelectEmpty}>No matching benchmarks</p>
-          ) : null}
         </div>
-      </div>
-    </details>
+      </details>
+    </fieldset>
   );
 }
 
@@ -239,7 +273,7 @@ function sortBenchmarkOptions(
     let comparison = 0;
     if (sortState.key === "benchmark") {
       comparison = left.label.localeCompare(right.label, undefined, { numeric: true });
-    } else if (sortState.key === "models") {
+    } else if (sortState.key === "items") {
       comparison = left.count - right.count;
     } else {
       const leftCorrelation = correlationByBenchmark.get(left.key) ?? null;

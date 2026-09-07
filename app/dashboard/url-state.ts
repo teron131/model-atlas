@@ -1,7 +1,10 @@
 /** Dashboard URL contract validates explicit selections without materializing absent defaults. */
 
 import { BENCHMARK_COLUMNS } from "../../src/model-atlas/benchmarks/catalog";
-import type { FrontierBenchmarkAxisKey } from "./graphs/frontier-benchmarks/analysis";
+import type {
+  FrontierBenchmarkAxisKey,
+  PerformanceMetric,
+} from "./graphs/frontier-benchmarks/analysis";
 import { RESEARCH_REGION_IDS, type ResearchRegionId } from "./graphs/research-index";
 import {
   type CostFilter,
@@ -30,7 +33,7 @@ export type DashboardUrlState = {
   "column-order": BenchmarkColumnOrder;
   "table-variants": boolean;
   "graph-variants": boolean;
-  pareto: "scores" | "benchmarks";
+  performance: PerformanceMetric;
   benchmark: string[] | null;
   axes: FrontierBenchmarkAxisKey;
 };
@@ -46,7 +49,7 @@ const tableKeys = new Set<DashboardUrlKey>([
   "column-order",
   "table-variants",
 ]);
-const paretoKeys = new Set<DashboardUrlKey>(["pareto", "benchmark", "axes"]);
+const paretoKeys = new Set<DashboardUrlKey>(["performance", "benchmark", "axes"]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 
 /** Decode one control independently so absent or malformed values retain the owning UI default. */
@@ -92,8 +95,8 @@ export function readUrlValue<K extends DashboardUrlKey>(
     case "graph-variants":
       result = value === "1";
       break;
-    case "pareto":
-      result = choice(value, ["scores", "benchmarks"], "scores");
+    case "performance":
+      result = choice(value, ["intelligence", "agentic", "benchmarks"], "intelligence");
       break;
     case "benchmark": {
       const values = params.getAll(key);
@@ -102,7 +105,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     }
     case "axes":
-      result = choice(value, ["speedValue", "cost", "time", "tokens"], "speedValue");
+      result = choice(value, ["cost", "time", "tokens", "speed", "value"], "cost");
       break;
     default:
       result = value ?? "";

@@ -38,8 +38,14 @@ import type { AxisScale } from "../plot/axis-scale";
 import { linearAxisScale, scoreAxisScale, steppedLinearAxisScale } from "../plot/axis-scale";
 import type { HoverRow } from "../types";
 
-export type FrontierBenchmarkAxisKey = "speedValue" | "cost" | "time" | "tokens";
-type FrontierBenchmarkResourceMetric = Exclude<FrontierBenchmarkAxisKey, "speedValue">;
+export type FrontierBenchmarkAxisKey = "cost" | "time" | "tokens" | "speed" | "value";
+export type PerformanceMetric = "intelligence" | "agentic" | "benchmarks";
+type FrontierBenchmarkResourceMetric = Exclude<FrontierBenchmarkAxisKey, "speed" | "value">;
+
+export const PERFORMANCE_SCORES = [
+  { key: "intelligence", label: "Intelligence" },
+  { key: "agentic", label: "Agentic" },
+] as const;
 
 export type FrontierBenchmarkRow = {
   benchmarkKey: string;
@@ -69,59 +75,60 @@ export type FrontierBenchmarkOption = {
   key: string;
   label: string;
   count: number;
-};
-
-type FrontierBenchmarkAxisOption = {
-  key: FrontierBenchmarkAxisKey;
-  label: string;
-  disabled?: boolean;
+  detail?: string;
 };
 
 export const frontierBenchmarkAxisConfig: Record<
   FrontierBenchmarkAxisKey,
   FrontierBenchmarkAxisConfig
 > = {
-  speedValue: {
-    label: "Speed and Value Scores",
-    shortLabel: "Efficiency ↑",
-    get: speedValueBlendScore,
-    format: (value) => value.toFixed(0),
-    detailLabel: () => "Speed and Value Scores",
-    normalizedLabel: "Speed and Value Scores",
-    normalizedDetailLabel: "Speed and Value Scores",
-    xHigherIsBetter: true,
-  },
   cost: {
     label: "Cost ↓",
-    shortLabel: "Cost ↓",
+    shortLabel: "Cost",
     get: (row) => row.cost,
     format: fmtMoney,
     detailLabel: (row) => resourceMetricLabel(row, "cost"),
-    normalizedLabel: "Mean Normalized Cost ↓",
-    normalizedDetailLabel: "Mean Normalized Cost ↓",
+    normalizedLabel: "Normalized Cost ↓",
+    normalizedDetailLabel: "Normalized Cost ↓",
   },
   time: {
     label: "Time ↓",
-    shortLabel: "Time ↓",
+    shortLabel: "Time",
     get: (row) => row.seconds,
     format: fmtDurationShort,
     detailLabel: (row) => resourceMetricLabel(row, "time"),
-    normalizedLabel: "Mean Normalized Time ↓",
-    normalizedDetailLabel: "Mean Normalized Time ↓",
+    normalizedLabel: "Normalized Time ↓",
+    normalizedDetailLabel: "Normalized Time ↓",
   },
   tokens: {
     label: "Tokens ↓",
-    shortLabel: "Tokens ↓",
+    shortLabel: "Tokens",
     get: (row) => row.totalTokens,
     format: fmtCompact,
     detailLabel: (row) => resourceMetricLabel(row, "tokens"),
-    normalizedLabel: "Mean Normalized Tokens ↓",
-    normalizedDetailLabel: "Mean Normalized Tokens ↓",
+    normalizedLabel: "Normalized Tokens ↓",
+    normalizedDetailLabel: "Normalized Tokens ↓",
   },
-};
-
-const FRONTIER_SCORE_AXIS_OPTIONS = {
-  formatTick: (tick: number) => `${tick}%`,
+  speed: {
+    label: "Speed Score",
+    shortLabel: "Speed Score",
+    get: (row) => finiteValue(row.model.scores?.speed_score),
+    format: fmtTooltipScore,
+    detailLabel: () => "Speed Score",
+    normalizedLabel: "Speed Score",
+    normalizedDetailLabel: "Speed Score",
+    xHigherIsBetter: true,
+  },
+  value: {
+    label: "Value Score",
+    shortLabel: "Value Score",
+    get: (row) => finiteValue(row.model.scores?.value_score),
+    format: fmtTooltipScore,
+    detailLabel: () => "Value Score",
+    normalizedLabel: "Value Score",
+    normalizedDetailLabel: "Value Score",
+    xHigherIsBetter: true,
+  },
 };
 
 const BENCHMARK_SCORE_AXIS_OPTIONS = {
@@ -203,7 +210,7 @@ export function frontierBenchmarkRows(
         return [
           {
             benchmarkKey,
-            benchmarkLabel: `${benchmarkLabels[benchmarkKey] ?? benchmarkKey}${indexProxy ? " (index proxy)" : ""}`,
+            benchmarkLabel: `${benchmarkLabels[benchmarkKey] ?? benchmarkKey}${indexProxy ? " (index)" : ""}`,
             resourcePolicy,
             model,
             score,
@@ -239,7 +246,7 @@ export function meanFrontierBenchmarkRows(rows: FrontierBenchmarkRow[]): Frontie
       }
       return {
         benchmarkKey: "all",
-        benchmarkLabel: "Normalized frontier score",
+        benchmarkLabel: "Normalized performance",
         resourcePolicy: null,
         model: first.model,
         score: meanMetric(modelRows, (row) => row.score)!,
@@ -272,9 +279,9 @@ export function normalizedFrontierBenchmarkRows(
     const ranges = rangesByBenchmark.get(row.benchmarkKey);
     return {
       ...row,
-      cost: minMaxScale(ranges?.cost ?? null, row.cost) ?? row.cost,
-      seconds: minMaxScale(ranges?.seconds ?? null, row.seconds) ?? row.seconds,
-      totalTokens: minMaxScale(ranges?.totalTokens ?? null, row.totalTokens) ?? row.totalTokens,
+      cost: minMaxScale(ranges?.cost ?? null, row.cost),
+      seconds: minMaxScale(ranges?.seconds ?? null, row.seconds),
+      totalTokens: minMaxScale(ranges?.totalTokens ?? null, row.totalTokens),
     };
   });
 }
@@ -290,12 +297,9 @@ export function normalizedFrontierBenchmarkScoreRows(
       minMaxRange(benchmarkRows.map((row) => row.score)),
     ]),
   );
-  return rows.map((row) => {
+  return rows.flatMap((row) => {
     const normalizedScore = minMaxScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
-    return {
-      ...row,
-      score: normalizedScore == null ? row.score : clampScore(normalizedScore),
-    };
+    return normalizedScore == null ? [] : [{ ...row, score: clampScore(normalizedScore) }];
   });
 }
 
@@ -347,49 +351,12 @@ export function frontierBenchmarkCorrelationByBenchmark(
   return correlations;
 }
 
-export function frontierBenchmarkAxisOptions(
-  rows: FrontierBenchmarkRow[],
-  isAggregateView: boolean,
-): FrontierBenchmarkAxisOption[] {
-  return Object.entries(frontierBenchmarkAxisConfig).map(([key, config]) => {
-    const axisKey = key as FrontierBenchmarkAxisKey;
-    const axisConfig = frontierBenchmarkAxisConfigFor(axisKey, isAggregateView);
-    return {
-      key: axisKey,
-      label: config.shortLabel,
-      disabled: !rows.some((row) =>
-        positiveMetric(axisConfig.get(row), isAggregateView || axisKey === "speedValue"),
-      ),
-    };
-  });
-}
-
-export function selectedFrontierBenchmarkAxisKey(
-  axisKey: FrontierBenchmarkAxisKey,
-  options: FrontierBenchmarkAxisOption[],
-): FrontierBenchmarkAxisKey {
-  return options.some((option) => option.key === axisKey && !option.disabled)
-    ? axisKey
-    : (firstAvailableAxis(options, "speedValue") ??
-        firstAvailableAxis(options, "cost") ??
-        options.find((option) => !option.disabled)?.key ??
-        axisKey);
-}
-
-function firstAvailableAxis(
-  options: FrontierBenchmarkAxisOption[],
-  axisKey: FrontierBenchmarkAxisKey,
-): FrontierBenchmarkAxisKey | null {
-  const option = options.find((candidate) => candidate.key === axisKey);
-  return option != null && !option.disabled ? option.key : null;
-}
-
 export function frontierBenchmarkAxisConfigFor(
   axisKey: FrontierBenchmarkAxisKey,
   isAggregateView: boolean,
 ): FrontierBenchmarkAxisConfig {
   const axisConfig = frontierBenchmarkAxisConfig[axisKey];
-  if (!isAggregateView || isEfficiencyScoreAxis(axisKey)) {
+  if (!isAggregateView || isScoreAxis(axisKey)) {
     return axisConfig;
   }
   return {
@@ -405,21 +372,21 @@ export function frontierAxisDescription(
   isAggregateView: boolean,
   row?: FrontierBenchmarkRow,
 ): string {
-  if (axisKey === "speedValue") {
-    return "Speed and Value Scores are averaged with equal weight; both scores are required and higher is better.";
+  if (isScoreAxis(axisKey)) {
+    return `${frontierBenchmarkAxisConfig[axisKey].label} is the published model-wide score; evidence selection does not recalculate it. Higher is better.`;
   }
   if (axisKey === "cost") {
     return isAggregateView
-      ? "Cost is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run."
+      ? "Cost is normalized within each source against the full reference population before averaging; lower is better."
       : `Cost is the observed dollars ${resourceUnitPhrase(row)}; lower is better.`;
   }
   if (axisKey === "time") {
     return isAggregateView
-      ? "Runtime is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run."
+      ? "Time is normalized within each source against the full reference population before averaging; lower is better."
       : `Runtime is the observed time ${resourceUnitPhrase(row)}; lower is better.`;
   }
   if (isAggregateView) {
-    return "Token use is normalized within each benchmark before averaging, while preserving whether the source reports resources per task or for the full run.";
+    return "Matching token measurements are normalized within each source against the full reference population before averaging; lower is better.";
   }
   const tokenUse =
     row?.resourcePolicy?.tokenMeasure === "output_tokens" ? "output-token use" : "token use";
@@ -435,19 +402,20 @@ export function frontierAxisMetricLabel(
     return axisConfig.label;
   }
   const row = rows.find((candidate) => positiveMetric(axisConfig.get(candidate)));
-  return row == null ? axisConfig.label : axisConfig.detailLabel(row);
+  if (row == null || axisConfig.xHigherIsBetter) return axisConfig.label;
+  const unit = row.resourcePolicy?.unit === "total" ? "run" : "task";
+  if (axisConfig.get === frontierBenchmarkAxisConfig.cost.get) return `Cost ($ / ${unit})`;
+  if (axisConfig.get === frontierBenchmarkAxisConfig.time.get) return `Time / ${unit}`;
+  const tokens =
+    row.resourcePolicy?.tokenMeasure === "output_tokens" ? "Output tokens" : "Total tokens";
+  return `${tokens} / ${unit}`;
 }
 
-export function frontierScoreAxisScale(
-  values: number[],
-  isAggregateView: boolean,
-  indexProxy = false,
-): AxisScale {
-  if (indexProxy) return linearAxisScale(values, { formatTick: (value) => value.toFixed(0) });
-  if (isAggregateView) {
-    return scoreAxisScale(values, FRONTIER_SCORE_AXIS_OPTIONS);
-  }
-  return steppedLinearAxisScale(values, BENCHMARK_SCORE_AXIS_OPTIONS);
+/** Native benchmark percentages and index points retain their distinct tick scales. */
+export function frontierScoreAxisScale(values: number[], indexProxy: boolean): AxisScale {
+  return indexProxy
+    ? linearAxisScale(values, { formatTick: (value) => value.toFixed(0) })
+    : steppedLinearAxisScale(values, BENCHMARK_SCORE_AXIS_OPTIONS);
 }
 
 export function frontierXAxisScale(
@@ -456,10 +424,10 @@ export function frontierXAxisScale(
   axisConfig: FrontierBenchmarkAxisConfig,
   isAggregateView = false,
 ): AxisScale {
-  if (isAggregateView && values.every((value) => value >= 0 && value <= 100)) {
-    return scoreAxisScale(values, { formatTick: axisConfig.format });
-  }
-  if (isEfficiencyScoreAxis(axisKey)) {
+  if (
+    isScoreAxis(axisKey) ||
+    (isAggregateView && values.every((value) => value >= 0 && value <= 100))
+  ) {
     return scoreAxisScale(values, {
       formatTick: axisConfig.format,
     });
@@ -470,41 +438,129 @@ export function frontierXAxisScale(
   });
 }
 
+/** Describe exactly the two plotted coordinates, retaining native units and published-score identity. */
 export function frontierBenchmarkHoverRows(
   row: FrontierBenchmarkRow,
   axisConfig: FrontierBenchmarkAxisConfig,
+  performance: PerformanceMetric = "benchmarks",
 ): HoverRow[] {
-  const rows: HoverRow[] = [];
-  rows.push(
+  const publishedScore = performance !== "benchmarks";
+  const label = publishedScore
+    ? `${performance === "intelligence" ? "Intelligence" : "Agentic"} Score`
+    : row.benchmarkKey === "all"
+      ? "Normalized Performance"
+      : row.benchmarkKey === "ale_bench"
+        ? "Normalized ALE-Bench Score"
+        : `${row.benchmarkLabel} Score`;
+  return [
     [
-      row.benchmarkKey === "all"
-        ? "Mean Normalized Benchmark Score"
-        : row.benchmarkKey === "ale_bench"
-          ? "Normalized Benchmark Score"
-          : isIndexProxy(row.benchmarkKey)
-            ? "Index Score"
-            : "Benchmark Score",
-      isIndexProxy(row.benchmarkKey)
-        ? `${row.score.toFixed(2)} points`
+      label,
+      publishedScore ||
+      isIndexProxy(row.benchmarkKey) ||
+      row.benchmarkKey === "all" ||
+      row.benchmarkKey === "ale_bench"
+        ? fmtTooltipScore(row.score)
         : fmtPercentScore(row.score),
     ],
     [axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
+    ...(publishedScore
+      ? [
+          [
+            "Performance basis",
+            "Published score, including supported estimates and coverage adjustments",
+          ] as HoverRow,
+        ]
+      : []),
+  ];
+}
+
+/** Published resource scores are independent coordinates, never an implicit efficiency blend. */
+export function isScoreAxis(axisKey: FrontierBenchmarkAxisKey): boolean {
+  return axisKey === "speed" || axisKey === "value";
+}
+
+/** Keep model-wide Y scores intact; measured X values still require selected resource evidence. */
+export function performanceComparisonRows(
+  models: ModelAtlasPublishedModel[],
+  evidenceRows: FrontierBenchmarkRow[],
+  performance: PerformanceMetric,
+  axisKey: FrontierBenchmarkAxisKey,
+): FrontierBenchmarkRow[] {
+  if (performance === "benchmarks") return evidenceRows;
+  const sourceRows = isScoreAxis(axisKey)
+    ? models.map(
+        (model): FrontierBenchmarkRow => ({
+          benchmarkKey: performance,
+          benchmarkLabel: performance === "intelligence" ? "Intelligence" : "Agentic",
+          resourcePolicy: null,
+          model,
+          score: 0,
+          cost: null,
+          seconds: null,
+          inputTokens: null,
+          outputTokens: null,
+          totalTokens: null,
+        }),
+      )
+    : evidenceRows;
+  return sourceRows.flatMap((row) => {
+    const score = finiteValue(
+      row.model.scores?.[performance === "intelligence" ? "intelligence_score" : "agentic_score"],
+    );
+    return score == null ? [] : [{ ...row, score }];
+  });
+}
+
+/** Published performance scores use measured sources contributing to that dimension, independent of any previous manual selection. */
+export function automaticResourceKeys(
+  rows: FrontierBenchmarkRow[],
+  portfolio: BenchmarkPortfolio,
+  performance: Exclude<PerformanceMetric, "benchmarks">,
+  axisKey: FrontierBenchmarkAxisKey,
+): string[] {
+  if (isScoreAxis(axisKey)) return [];
+  const metric = frontierBenchmarkAxisConfig[axisKey].get;
+  return [
+    ...new Set(
+      rows
+        .filter(
+          (row) =>
+            (portfolio[row.benchmarkKey]?.dimensionLoadings[performance] ?? 0) > 0 &&
+            positiveMetric(metric(row)),
+        )
+        .map((row) => row.benchmarkKey),
+    ),
+  ];
+}
+
+/** A normalized resource basket must represent the same measurement, not merely share a numeric range. */
+export function resourceComparisonIssue(
+  rows: FrontierBenchmarkRow[],
+  selectedKeys: readonly string[],
+  axisKey: FrontierBenchmarkAxisKey,
+): string | null {
+  if (isScoreAxis(axisKey) || selectedKeys.length < 2) return null;
+  const selected = new Set(selectedKeys);
+  const measured = rows.filter(
+    (row) =>
+      selected.has(row.benchmarkKey) &&
+      positiveMetric(frontierBenchmarkAxisConfig[axisKey].get(row)),
   );
-  if (axisConfig.get !== speedValueBlendScore) {
-    rows.push(["Speed and Value Scores", fmtTooltipScore(speedValueBlendScore(row))]);
+  const units = new Set(measured.map((row) => row.resourcePolicy?.unit));
+  if (units.has(undefined))
+    return "Some selected sources have no declared resource unit. Select sources with a known per-task or full-run basis.";
+  if (units.size > 1)
+    return "Selected sources mix per-task and full-run measurements. Select sources with the same resource basis.";
+  if (axisKey === "tokens") {
+    const measures = new Set(
+      measured.map((row) =>
+        row.resourcePolicy?.tokenMeasure === "output_tokens" ? "output" : "total",
+      ),
+    );
+    if (measures.size > 1)
+      return "Selected sources mix output tokens and total tokens. Select sources with the same token measurement.";
   }
-  return rows;
-}
-
-/** Missing resource scores cannot become zero-valued coordinates in a two-score comparison. */
-export function speedValueBlendScore(row: FrontierBenchmarkRow): number | null {
-  const value = finiteValue(row.model.scores?.value_score);
-  const speed = finiteValue(row.model.scores?.speed_score);
-  return value == null || speed == null ? null : (value + speed) / 2;
-}
-
-function isEfficiencyScoreAxis(axisKey: FrontierBenchmarkAxisKey): boolean {
-  return axisKey === "speedValue";
+  return null;
 }
 
 export function positiveMetric(value: number | null, allowZero = false): value is number {
@@ -558,7 +614,7 @@ function resourceMetricLabel(
   metric: FrontierBenchmarkResourceMetric,
 ): string {
   if (row.benchmarkKey === "all") {
-    return `Mean Normalized ${resourceMetricName(metric)}`;
+    return `Normalized ${resourceMetricName(metric)}`;
   }
   const policy = row.resourcePolicy;
   if (policy == null) {
